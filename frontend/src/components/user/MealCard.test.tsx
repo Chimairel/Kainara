@@ -30,12 +30,12 @@ describe('MealCard', () => {
     ],
   };
 
-  it('renders meal card with name, macros, and Verified badge when approved', () => {
+  it('labels an approved meal without a nutritionist verifier as ready', () => {
     render(<MealCard {...defaultProps} />);
 
     expect(screen.getAllByText('Sinigang na Hipon').length).toBeGreaterThan(0);
     expect(screen.getByText(/350 kcal/i)).toBeInTheDocument();
-    expect(screen.getByText('Verified')).toBeInTheDocument();
+    expect(screen.getByText('Ready')).toBeInTheDocument();
   });
 
   it('renders Awaiting Review badge when status is PENDING_REVIEW', () => {

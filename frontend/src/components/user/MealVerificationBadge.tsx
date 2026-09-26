@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { ShieldCheck, ShieldAlert } from 'lucide-react';
+import { Check, ShieldCheck, ShieldAlert } from 'lucide-react';
 import type { MealPlanStatus } from '@/types';
 
 export interface MealVerificationBadgeProps {
@@ -15,7 +15,7 @@ export default function MealVerificationBadge({
   hasVerifier = false,
   className = '',
 }: MealVerificationBadgeProps) {
-  const isVerified = status === 'APPROVED' || hasVerifier;
+  const isVerified = status === 'APPROVED' && hasVerifier;
   const isRejected = status === 'REJECTED';
 
   if (isVerified) {
@@ -26,6 +26,18 @@ export default function MealVerificationBadge({
       >
         <ShieldCheck className="h-3 w-3 text-emerald-400 shrink-0 stroke-[2.5]" />
         <span>Verified</span>
+      </div>
+    );
+  }
+
+  if (status === 'APPROVED') {
+    return (
+      <div
+        className={`inline-flex items-center gap-1.5 rounded-full border border-brand-green/40 bg-black/75 px-2.5 py-1 font-mono text-[9px] font-bold text-brand-green shadow-md backdrop-blur-md select-none ${className}`}
+        aria-label="Meal ready to use"
+      >
+        <Check className="h-3 w-3 shrink-0 stroke-[2.5]" />
+        <span>Ready</span>
       </div>
     );
   }

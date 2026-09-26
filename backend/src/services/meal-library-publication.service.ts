@@ -90,7 +90,11 @@ export async function persistDeterministicLibraryClassification(tx: Prisma.Trans
   return classification;
 }
 
-export async function createOrReuseLibraryDraftFromApprovedPlan(nutritionistProfileId: string, mealPlanId: string) {
+export async function createOrReuseLibraryDraftFromApprovedPlan(
+  nutritionistProfileId: string,
+  mealPlanId: string,
+  options: { attachPlan?: boolean } = {}
+) {
   try {
     return await prisma.$transaction(
       async (tx) => {
@@ -118,12 +122,21 @@ export async function createOrReuseLibraryDraftFromApprovedPlan(nutritionistProf
         });
         const existing = await tx.mealLibrary.findUnique({ where: { recipeSignature } });
         if (existing) {
-          await tx.mealPlan.update({ where: { id: mealPlanId }, data: { libraryMealId: existing.id } });
+          if (plan.sourceRawRecipeCandidateId && !existing.sourceRawRecipeCandidateId) {
+            await tx.mealLibrary.update({
+              where: { id: existing.id },
+              data: { sourceRawRecipeCandidateId: plan.sourceRawRecipeCandidateId },
+            });
+          }
+          if (options.attachPlan !== false) {
+            await tx.mealPlan.update({ where: { id: mealPlanId }, data: { libraryMealId: existing.id } });
+          }
           return { meal: existing, deduplicated: true };
         }
 
         const created = await tx.mealLibrary.create({
           data: {
+            sourceRawRecipeCandidateId: plan.sourceRawRecipeCandidateId,
             verifiedByNutritionistId: nutritionistProfileId,
             mealName: plan.mealName,
             description: plan.description,
@@ -168,7 +181,9 @@ export async function createOrReuseLibraryDraftFromApprovedPlan(nutritionistProf
             } as Prisma.InputJsonValue,
           },
         });
-        await tx.mealPlan.update({ where: { id: mealPlanId }, data: { libraryMealId: created.id } });
+        if (options.attachPlan !== false) {
+          await tx.mealPlan.update({ where: { id: mealPlanId }, data: { libraryMealId: created.id } });
+        }
         return {
           meal: await tx.mealLibrary.findUniqueOrThrow({ where: { id: created.id } }),
           deduplicated: false,
@@ -184,7 +199,15 @@ export async function createOrReuseLibraryDraftFromApprovedPlan(nutritionistProf
       });
       const recipeSignature = buildMealLibraryRecipeSignature({ ...plan, ingredients: plan.ingredients });
       const existing = await prisma.mealLibrary.findUniqueOrThrow({ where: { recipeSignature } });
-      await prisma.mealPlan.update({ where: { id: mealPlanId }, data: { libraryMealId: existing.id } });
+      if (plan.sourceRawRecipeCandidateId && !existing.sourceRawRecipeCandidateId) {
+        await prisma.mealLibrary.update({
+          where: { id: existing.id },
+          data: { sourceRawRecipeCandidateId: plan.sourceRawRecipeCandidateId },
+        });
+      }
+      if (options.attachPlan !== false) {
+        await prisma.mealPlan.update({ where: { id: mealPlanId }, data: { libraryMealId: existing.id } });
+      }
       return { meal: existing, deduplicated: true };
     }
     throw error;

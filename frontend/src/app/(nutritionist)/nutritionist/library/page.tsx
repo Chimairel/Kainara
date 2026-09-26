@@ -43,10 +43,6 @@ export default function MealLibraryPage() {
     setActiveModal,
     setSelectedMeal,
     setSelectedVerifier,
-    setFlagReason,
-    isOwner,
-    handleOpenEdit,
-    handleOpenCertification,
   } = workspace;
 
   return (
@@ -377,17 +373,12 @@ export default function MealLibraryPage() {
           <div className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {meals.map((meal) => {
-                const owned = isOwner(meal);
                 const isFlagged = meal.status === 'FLAGGED';
-                const isArchived = meal.status === 'ARCHIVED';
                 const isAdminDraft =
                   meal.safetyEvidenceStatus === 'INCOMPLETE' &&
                   meal.safetyReviews?.some((review) => review.reasonCode === 'ADMIN_AUTHORED_DRAFT');
                 const activeFlag = meal.flags?.[0];
                 const evidenceStatus = libraryEvidenceStatus(meal);
-                const readyToReview =
-                  meal.preparedNutritionRevision === meal.safetyEvidenceRevision &&
-                  meal.safetyEvidenceStatus !== 'COMPLETE';
 
                 return (
                   <Card
@@ -516,62 +507,11 @@ export default function MealLibraryPage() {
                           View
                         </Button>
 
-                        {!isFlagged && !isArchived && (
-                          <Button
-                            variant="secondary"
-                            onClick={() => {
-                              if (readyToReview) handleOpenCertification(meal);
-                              else {
-                                setSelectedMeal(meal);
-                                setActiveModal('prepare');
-                              }
-                            }}
-                            className="!px-3 !py-1.5 !h-8 text-xs font-semibold hover:border-brand-green"
-                          >
-                            {readyToReview
-                              ? 'Sign off recipe'
-                              : meal.safetyEvidenceStatus === 'COMPLETE'
-                                ? 'Recheck recipe'
-                                : 'Prepare recipe'}
-                          </Button>
-                        )}
-
-                        {owned && !isArchived ? (
-                          <>
-                            <Button
-                              variant="secondary"
-                              onClick={() => handleOpenEdit(meal)}
-                              className="!px-3 !py-1.5 !h-8 text-xs font-semibold hover:border-brand-green"
-                            >
-                              Edit
-                            </Button>
-                            <Button
-                              variant="secondary"
-                              onClick={() => {
-                                setSelectedMeal(meal);
-                                setActiveModal('delete');
-                              }}
-                              className="!px-3 !py-1.5 !h-8 text-xs font-semibold hover:border-red-900/60 hover:text-red-400"
-                            >
-                              Archive
-                            </Button>
-                          </>
-                        ) : (
-                          !isFlagged &&
-                          !isArchived && (
-                            <Button
-                              variant="secondary"
-                              onClick={() => {
-                                setSelectedMeal(meal);
-                                setFlagReason('');
-                                setActiveModal('flag');
-                              }}
-                              className="!px-3 !py-1.5 !h-8 text-xs font-semibold hover:border-amber-900/60 hover:text-amber-400"
-                            >
-                              Flag
-                            </Button>
-                          )
-                        )}
+                        <Button variant="secondary"
+                          onClick={() => { setSelectedMeal(meal); setActiveModal('approvals'); }}
+                          className="!px-3 !py-1.5 !h-8 text-xs font-semibold">
+                          Approvals
+                        </Button>
                       </div>
                     </div>
                   </Card>

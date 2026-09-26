@@ -993,6 +993,7 @@ model NutritionistProfile {
   safetyReviewedMeals      MealLibrary[]                    @relation("MealLibrarySafetyReviewer")
   safetyReviewEvents       MealLibrarySafetyReview[]        @relation("MealLibrarySafetyReviewActor")
   profileMatchedApprovals  MealLibraryProfileApproval[]     @relation("MealLibraryProfileApprovalReviewer")
+  flaggedProfileApprovals  MealLibraryProfileApproval[]     @relation("MealLibraryProfileApprovalFlagger")
   submittedFlags           MealLibraryFlag[]                @relation("SubmittedFlags")
   claimedPlans             MealPlan[]                       @relation("ClaimedPlans")
   firstApprovedPlans       MealPlan[]                       @relation("FirstMealPlanApproval")
@@ -1220,53 +1221,55 @@ model FoodConsumptionStat {
 }
 
 model MealPlan {
-  id                            String                  @id @default(cuid())
+  id                            String                      @id @default(cuid())
   planGroupId                   String
-  cycle                         MealPlanCycle           @relation(fields: [planGroupId], references: [id], onDelete: Cascade)
+  cycle                         MealPlanCycle               @relation(fields: [planGroupId], references: [id], onDelete: Cascade)
   userId                        String
-  user                          User                    @relation("UserMealPlans", fields: [userId], references: [id], onDelete: Cascade)
+  user                          User                        @relation("UserMealPlans", fields: [userId], references: [id], onDelete: Cascade)
   nutritionistId                String?
-  nutritionist                  NutritionistProfile?    @relation(fields: [nutritionistId], references: [id])
+  nutritionist                  NutritionistProfile?        @relation(fields: [nutritionistId], references: [id])
   libraryMealId                 String?
-  libraryMeal                   MealLibrary?            @relation("PlanLibraryMeal", fields: [libraryMealId], references: [id])
-  status                        MealPlanStatus          @default(PENDING_REVIEW)
+  libraryMeal                   MealLibrary?                @relation("PlanLibraryMeal", fields: [libraryMealId], references: [id])
+  profileApprovalId             String?
+  profileApproval               MealLibraryProfileApproval? @relation(fields: [profileApprovalId], references: [id], onDelete: SetNull)
+  status                        MealPlanStatus              @default(PENDING_REVIEW)
   mealType                      MealType
   mealName                      String
-  description                   String?                 @db.Text
+  description                   String?                     @db.Text
   calories                      Float
   proteinG                      Float
   carbsG                        Float
   fatG                          Float
-  aiConfidenceFlag              AIConfidenceFlag        @default(SAFE)
-  planType                      PlanType                @default(WEEKLY)
-  nutritionistNote              String?                 @db.Text
+  aiConfidenceFlag              AIConfidenceFlag            @default(SAFE)
+  planType                      PlanType                    @default(WEEKLY)
+  nutritionistNote              String?                     @db.Text
   scheduledDate                 DateTime
   reviewedAt                    DateTime?
-  createdAt                     DateTime                @default(now())
+  createdAt                     DateTime                    @default(now())
   claimedByNutritionistId       String?
-  claimedByNutritionist         NutritionistProfile?    @relation("ClaimedPlans", fields: [claimedByNutritionistId], references: [id])
+  claimedByNutritionist         NutritionistProfile?        @relation("ClaimedPlans", fields: [claimedByNutritionistId], references: [id])
   claimedAt                     DateTime?
-  requiresSafetyRevalidation    Boolean                 @default(true)
-  safetyPolicyVersion           String?                 @db.VarChar(64)
-  highRiskReviewRequired        Boolean                 @default(false)
-  reviewApprovalCount           Int                     @default(0)
+  requiresSafetyRevalidation    Boolean                     @default(true)
+  safetyPolicyVersion           String?                     @db.VarChar(64)
+  highRiskReviewRequired        Boolean                     @default(false)
+  reviewApprovalCount           Int                         @default(0)
   firstApprovedByNutritionistId String?
-  firstApprovedByNutritionist   NutritionistProfile?    @relation("FirstMealPlanApproval", fields: [firstApprovedByNutritionistId], references: [id], onDelete: Restrict)
+  firstApprovedByNutritionist   NutritionistProfile?        @relation("FirstMealPlanApproval", fields: [firstApprovedByNutritionistId], references: [id], onDelete: Restrict)
   firstApprovedAt               DateTime?
   selectionEvidence             Json?
-  candidateProvenance           MealCandidateProvenance @default(AI_FROM_SCRATCH)
+  candidateProvenance           MealCandidateProvenance     @default(AI_FROM_SCRATCH)
   sourceRawRecipeCandidateId    String?
-  sourceRawRecipeCandidate      RawRecipeCandidate?     @relation(fields: [sourceRawRecipeCandidateId], references: [id], onDelete: Restrict)
-  baseRecipeSignature           String?                 @db.VarChar(64)
-  composedServingSignature      String?                 @db.VarChar(64)
-  reviewWorkKey                 String?                 @db.VarChar(64)
+  sourceRawRecipeCandidate      RawRecipeCandidate?         @relation(fields: [sourceRawRecipeCandidateId], references: [id], onDelete: Restrict)
+  baseRecipeSignature           String?                     @db.VarChar(64)
+  composedServingSignature      String?                     @db.VarChar(64)
+  reviewWorkKey                 String?                     @db.VarChar(64)
   candidateRank                 Int?
   rankingScore                  Float?
-  rankingReasonCodes            String[]                @default([])
-  fallbackAvailable             Boolean                 @default(false)
+  rankingReasonCodes            String[]                    @default([])
+  fallbackAvailable             Boolean                     @default(false)
   supersededByMealPlanId        String?
-  supersededByMealPlan          MealPlan?               @relation("MealPlanCandidateSupersession", fields: [supersededByMealPlanId], references: [id], onDelete: SetNull)
-  supersedesMealPlans           MealPlan[]              @relation("MealPlanCandidateSupersession")
+  supersededByMealPlan          MealPlan?                   @relation("MealPlanCandidateSupersession", fields: [supersededByMealPlanId], references: [id], onDelete: SetNull)
+  supersedesMealPlans           MealPlan[]                  @relation("MealPlanCandidateSupersession")
   /// Set when the user deliberately replaces an upcoming slot. Ordinary
   /// preparation ranking must preserve this choice; safety invalidation may
   /// still supersede it.
@@ -1284,6 +1287,7 @@ model MealPlan {
   @@index([requiresSafetyRevalidation, status], map: "MealPlan_revalidation_status_idx")
   @@index([highRiskReviewRequired, reviewApprovalCount, status], map: "MealPlan_highRisk_review_idx")
   @@index([sourceRawRecipeCandidateId])
+  @@index([profileApprovalId])
   @@index([planGroupId])
   @@index([reviewWorkKey, status])
   @@index([planGroupId, scheduledDate, mealType, status], map: "MealPlan_cycle_slot_status_idx")
@@ -1308,6 +1312,8 @@ model MealPlanReviewDecision {
 
 model MealLibrary {
   id                               String                             @id @default(cuid())
+  sourceRawRecipeCandidateId       String?
+  sourceRawRecipeCandidate         RawRecipeCandidate?                @relation(fields: [sourceRawRecipeCandidateId], references: [id], onDelete: SetNull)
   verifiedByNutritionistId         String?
   verifiedByNutritionist           NutritionistProfile?               @relation(fields: [verifiedByNutritionistId], references: [id])
   safetyReviewedByNutritionistId   String?
@@ -1385,26 +1391,37 @@ model MealLibrary {
 
   @@index([status, safetyEvidenceStatus])
   @@index([safetyReviewedByNutritionistId])
+  @@index([sourceRawRecipeCandidateId])
 }
 
 /// One qualified RND's approval of an unchanged recipe for an exact recorded
 /// safety profile. This is narrower than general recipe certification and
 /// stores no patient identifier in the scope row.
 model MealLibraryProfileApproval {
-  id                       String             @id @default(cuid())
-  mealLibraryId            String
-  mealLibrary              MealLibrary        @relation(fields: [mealLibraryId], references: [id], onDelete: Restrict)
-  safetyScopeKey           String             @db.VarChar(64)
-  recipeSignature          String             @db.VarChar(64)
-  evidenceRevision         Int
+  id                      String                  @id @default(cuid())
+  mealLibraryId           String
+  mealLibrary             MealLibrary             @relation(fields: [mealLibraryId], references: [id], onDelete: Restrict)
+  safetyScopeKey          String                  @db.VarChar(64)
+  recipeSignature         String                  @db.VarChar(64)
+  evidenceRevision        Int
   reviewerNutritionistId  String
-  reviewerNutritionist    NutritionistProfile @relation("MealLibraryProfileApprovalReviewer", fields: [reviewerNutritionistId], references: [id], onDelete: Restrict)
-  reviewPolicyVersion      String             @db.VarChar(64)
-  sourceProvenance         MealCandidateProvenance
-  approvedAt               DateTime           @default(now())
+  reviewerNutritionist    NutritionistProfile     @relation("MealLibraryProfileApprovalReviewer", fields: [reviewerNutritionistId], references: [id], onDelete: Restrict)
+  reviewPolicyVersion     String                  @db.VarChar(64)
+  sourceProvenance        MealCandidateProvenance
+  approvedAt              DateTime                @default(now())
+  /// Review lifecycle belongs to this exact context and recipe revision.
+  reviewDueAt             DateTime                @default(dbgenerated("NOW() + INTERVAL '1 year'"))
+  flaggedAt               DateTime?
+  flagReason              String?                 @db.Text
+  flaggedByNutritionistId String?
+  flaggedByNutritionist   NutritionistProfile?    @relation("MealLibraryProfileApprovalFlagger", fields: [flaggedByNutritionistId], references: [id], onDelete: Restrict)
+  /// Public context labels only; no patient identifiers or clinical documents.
+  scopeSnapshot           Json?
+  planUsages              MealPlan[]
 
   @@unique([mealLibraryId, safetyScopeKey, evidenceRevision], map: "MealLibraryProfileApproval_scope_revision_key")
   @@index([safetyScopeKey, approvedAt])
+  @@index([reviewDueAt, flaggedAt])
 }
 
 model RawRecipeCandidate {
@@ -1436,6 +1453,7 @@ model RawRecipeCandidate {
   indexedAt            DateTime                  @default(now())
   updatedAt            DateTime                  @updatedAt
   mealPlans            MealPlan[]
+  libraryVariants      MealLibrary[]
   applicableMealTypes  RawRecipeApplicableType[]
   observedSubmissions  ObservedMealSubmission[]
 

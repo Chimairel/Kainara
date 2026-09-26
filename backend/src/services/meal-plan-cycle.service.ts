@@ -1,4 +1,8 @@
 import prisma from '@/lib/prisma';
+import { adaptUserSafetyRestrictions } from '@/domain/structured-restriction.adapter';
+import { mealApprovalSafetyScope } from '@/domain/meal-approval-scope.policy';
+import { isNutritionistEligibleForReview } from '@/domain/nutritionist-review.policy';
+import { MEAL_PLAN_SAFETY_POLICY_VERSION } from '@/domain/meal-plan-production-safety.policy';
 import { deriveMealPlanCycleLifecycle, getManilaDateKey, getManilaMidnight } from '@/domain/meal-plan-cycle.policy';
 import {
   ConditionClearanceState,
@@ -64,7 +68,14 @@ export class MealPlanCycleService {
     const cycle = await client.mealPlanCycle.findFirst({
       where: { id: cycleId, userId },
       select: {
-        user: { select: { healthConditions: { select: { condition: true } } } },
+        user: {
+          select: {
+            healthConditions: { select: { condition: true } },
+            allergies: { select: { allergen: true } },
+            userProfile: { select: { otherConditions: true, otherAllergies: true } },
+            safetyProfileEntries: { select: { domain: true, canonicalCode: true, originalText: true, supportState: true } },
+          },
+        },
         mealPlans: {
           where: { status: { not: MealPlanStatus.CANCELLED } },
           select: {
@@ -77,6 +88,19 @@ export class MealPlanCycleService {
             safetyPolicyVersion: true,
             highRiskReviewRequired: true,
             reviewApprovalCount: true,
+            profileApproval: {
+              select: {
+                safetyScopeKey: true, recipeSignature: true, evidenceRevision: true,
+                reviewPolicyVersion: true, reviewDueAt: true, flaggedAt: true,
+                reviewerNutritionist: {
+                  include: { user: { select: { role: true, isSuspended: true } } },
+                },
+              },
+            },
+            candidateProvenance: true,
+            sourceRawRecipeCandidate: {
+              select: { sourceName: true, status: true, publishedNutrition: true },
+            },
             libraryMeal: {
               select: {
                 status: true,
@@ -96,6 +120,8 @@ export class MealPlanCycleService {
                     evidenceRevision: true,
                     composedServingSignature: true,
                     expiresAt: true,
+                    auditDueAt: true,
+                    userScopeId: true,
                   },
                 },
               },
@@ -112,6 +138,20 @@ export class MealPlanCycleService {
     const requiredConditions = new Set(
       cycle.user.healthConditions.map((item) => item.condition).filter((condition) => condition !== 'NONE')
     );
+    const safetyRestrictions = adaptUserSafetyRestrictions({
+      healthConditions: cycle.user.healthConditions.map((item) => item.condition),
+      allergies: cycle.user.allergies.map((item) => item.allergen),
+      otherConditions: cycle.user.userProfile?.otherConditions,
+      otherAllergies: cycle.user.userProfile?.otherAllergies,
+      safetyEntries: cycle.user.safetyProfileEntries,
+    });
+    const profileScope = mealApprovalSafetyScope({
+      conditions: cycle.user.healthConditions.map((item) => item.condition),
+      allergens: cycle.user.allergies.map((item) => item.allergen),
+      otherConditions: cycle.user.userProfile?.otherConditions,
+      otherAllergies: cycle.user.userProfile?.otherAllergies,
+      safetyEntries: cycle.user.safetyProfileEntries,
+    });
     return cycle.mealPlans
       .filter((meal) => {
         if (
@@ -125,12 +165,20 @@ export class MealPlanCycleService {
         }
         if (meal.libraryMealId) {
           const library = meal.libraryMeal;
-          if (
-            !library ||
-            library.status !== MealLibraryStatus.APPROVED ||
-            library.safetyEvidenceStatus !== MealLibrarySafetyEvidenceStatus.COMPLETE ||
-            library.recipeSignature !== meal.baseRecipeSignature
-          ) {
+          if (!library || library.status !== MealLibraryStatus.APPROVED ||
+              library.recipeSignature !== meal.baseRecipeSignature) {
+            return false;
+          }
+          const profileApproval = meal.profileApproval;
+          const profileApprovalCurrent = profileApproval && profileScope.supported &&
+            safetyRestrictions.conditions.length === 0 &&
+            profileApproval.safetyScopeKey === profileScope.key &&
+            profileApproval.recipeSignature === library.recipeSignature &&
+            profileApproval.evidenceRevision === library.safetyEvidenceRevision &&
+            profileApproval.reviewPolicyVersion === MEAL_PLAN_SAFETY_POLICY_VERSION &&
+            !profileApproval.flaggedAt && profileApproval.reviewDueAt > now &&
+            isNutritionistEligibleForReview(profileApproval.reviewerNutritionist, now);
+          if (!profileApprovalCurrent && library.safetyEvidenceStatus !== MealLibrarySafetyEvidenceStatus.COMPLETE) {
             return false;
           }
           const validConditions = new Set(
@@ -143,11 +191,22 @@ export class MealPlanCycleService {
                   usage.composedServingSignature === meal.composedServingSignature &&
                   (!usage.clearance.composedServingSignature ||
                     usage.clearance.composedServingSignature === meal.composedServingSignature) &&
-                  (!usage.clearance.expiresAt || usage.clearance.expiresAt > now)
+                  (!usage.clearance.expiresAt || usage.clearance.expiresAt > now) &&
+                  Boolean(usage.clearance.auditDueAt && usage.clearance.auditDueAt > now) &&
+                  (!usage.clearance.userScopeId || usage.clearance.userScopeId === userId)
               )
               .map((usage) => usage.condition)
           );
-          return [...requiredConditions].every((condition) => validConditions.has(condition));
+          return [...requiredConditions].every((condition) => validConditions.has(condition)) &&
+            (!profileApproval || Boolean(profileApprovalCurrent));
+        }
+        if (meal.candidateProvenance === 'RAW_RECIPE_CORPUS' && meal.reviewApprovalCount === 0) {
+          return !safetyRestrictions.requiresReview &&
+            safetyRestrictions.conditions.length === 0 && safetyRestrictions.allergies.length === 0 &&
+            safetyRestrictions.customConditions.length === 0 && safetyRestrictions.customFoodRestrictions.length === 0 &&
+            meal.sourceRawRecipeCandidate?.sourceName === 'PANLASANG_PINOY' &&
+            meal.sourceRawRecipeCandidate.status === 'AVAILABLE' &&
+            Boolean(meal.sourceRawRecipeCandidate.publishedNutrition);
         }
         const distinctApprovers = new Set(meal.reviewDecisions.map((decision) => decision.nutritionistProfileId));
         const requiredApprovals = meal.highRiskReviewRequired ? 2 : 1;

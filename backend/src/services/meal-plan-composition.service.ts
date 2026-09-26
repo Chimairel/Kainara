@@ -39,6 +39,7 @@ import type { MealSelectionEvidence } from '@/domain/meal-explanation.policy';
 import {
   certifiedLibraryMealInclude,
   isCertifiedLibraryMealCompatible,
+  isProfileApprovedLibraryMealCompatible,
   queryEligibleLibraryMeals,
 } from './meal-library-candidate-query.service';
 import { sourceRawRecipeCandidates } from './raw-recipe-candidate.service';
@@ -48,6 +49,7 @@ import {
 } from './meal-generation-ingredient-preparation.service';
 import { buildBaseServingPersistence, composePlanWithPairedRice } from './meal-plan-serving.service';
 import { getMaximumAssuranceTier } from '@/domain/assurance-tier.policy';
+import { isUnrestrictedPanlasangBaseEligible } from '@/domain/unrestricted-panlasang-base.policy';
 import { GroceryService } from './grocery.service';
 import {
   buildReviewWorkKey,
@@ -316,6 +318,24 @@ export async function generate7DayPlan(
     userHasConditions,
     groundedFoodById: new Map(),
   });
+  const rawSources = await prisma.rawRecipeCandidate.findMany({
+    where: { id: { in: preparedAiMeals.flatMap((meal) => meal.rawCandidateId ? [meal.rawCandidateId] : []) } },
+  });
+  const sourceById = new Map(rawSources.map((source) => [source.id, source]));
+  const unrestrictedBaseIds = new Set(
+    preparedAiMeals.flatMap((meal) =>
+      isUnrestrictedPanlasangBaseEligible({
+        source: meal.rawCandidateId ? sourceById.get(meal.rawCandidateId) : null,
+        candidateId: meal.rawCandidateId,
+        conditions: userConditions,
+        allergens: userAllergens,
+        otherConditions,
+        otherAllergies,
+        safetyEntries: user.safetyProfileEntries,
+        preparedIngredients: meal.ingredientsData,
+      }) && meal.rawCandidateId ? [meal.rawCandidateId] : []
+    )
+  );
   await updateGenerationProgress(
     generationJobId,
     72,
@@ -408,7 +428,9 @@ export async function generate7DayPlan(
   }, {});
   const now = new Date();
   const businessDay = MealPlanCycleService.getBusinessDay(now);
-  const completeSlotSet = preparedAiMeals.length === 0 && matchedSlots.length >= cycleTiming.expectedSlotCount;
+  const completeSlotSet = preparedAiMeals.every((meal) =>
+    Boolean(meal.rawCandidateId && unrestrictedBaseIds.has(meal.rawCandidateId))
+  ) && matchedSlots.length + preparedAiMeals.length >= cycleTiming.expectedSlotCount;
   const deadlinePassed = now.getTime() >= cycleTiming.shoppingDeadlineAt.getTime();
   const cycleStatus =
     cycleTiming.endDate < businessDay
@@ -521,15 +543,27 @@ export async function generate7DayPlan(
             where: { id: slot.libraryMeal.id },
             include: certifiedLibraryMealInclude,
           });
+          const currentProfile = { ...profile, userId, safetyEntries: user.safetyProfileEntries };
+          const certified = isCertifiedLibraryMealCompatible(latest, userConditions, userAllergens, currentProfile);
+          const profileApproved = !certified && isProfileApprovedLibraryMealCompatible(
+            latest, userConditions, userAllergens, currentProfile
+          );
+          const scope = profileApproved ? mealApprovalSafetyScope({
+            conditions: userConditions,
+            allergens: userAllergens,
+            otherConditions,
+            otherAllergies,
+            safetyEntries: user.safetyProfileEntries,
+          }) : null;
+          const approval = profileApproved ? latest.profileApprovals.find((item) =>
+            item.safetyScopeKey === scope?.key && !item.flaggedAt && item.reviewDueAt > new Date() &&
+            item.recipeSignature === latest.recipeSignature &&
+            item.evidenceRevision === latest.safetyEvidenceRevision
+          ) : null;
           if (
             latest.safetyEvidenceRevision !== slot.libraryMeal.safetyEvidenceRevision ||
-            latest.safetyEvidenceStatus !== 'COMPLETE' ||
             latest.status !== 'APPROVED' ||
-            !isCertifiedLibraryMealCompatible(latest, userConditions, userAllergens, {
-              ...profile,
-              userId,
-              safetyEntries: user.safetyProfileEntries,
-            })
+            (!certified && !approval)
           )
             throw new Error('Recipe or clearance evidence changed during generation. Please retry.');
           const ingredientsData = latest.ingredients.map((ing) => ({
@@ -557,7 +591,8 @@ export async function generate7DayPlan(
               status: MealPlanStatus.APPROVED,
               candidateProvenance: MealCandidateProvenance.CERTIFIED_LIBRARY,
               libraryMealId: slot.libraryMeal.id,
-              nutritionistId: latest.safetyReviewedByNutritionistId,
+              profileApprovalId: approval?.id ?? null,
+              nutritionistId: approval?.reviewerNutritionistId ?? latest.safetyReviewedByNutritionistId,
               planType,
               mealType: slot.mealType,
               mealName: latest.mealName,
@@ -568,7 +603,7 @@ export async function generate7DayPlan(
               fatG: latest.fatG,
               aiConfidenceFlag: AIConfidenceFlag.SAFE,
               scheduledDate: slot.scheduledDate,
-              reviewedAt: latest.safetyReviewedAt,
+              reviewedAt: approval?.approvedAt ?? latest.safetyReviewedAt,
               requiresSafetyRevalidation: false,
               safetyPolicyVersion: MEAL_PLAN_SAFETY_POLICY_VERSION,
               highRiskReviewRequired,
@@ -629,11 +664,28 @@ export async function generate7DayPlan(
 
       // 3. Create newly AI generated meals using pre-resolved lookups
       for (const meal of preparedAiMeals) {
+        const autoGeneralBase = Boolean(meal.rawCandidateId && unrestrictedBaseIds.has(meal.rawCandidateId));
+        if (autoGeneralBase) {
+          const currentSource = await tx.rawRecipeCandidate.findUniqueOrThrow({ where: { id: meal.rawCandidateId! } });
+          if (currentSource.contentSignature !== sourceById.get(meal.rawCandidateId!)?.contentSignature ||
+              !isUnrestrictedPanlasangBaseEligible({
+                source: currentSource,
+                candidateId: meal.rawCandidateId,
+                conditions: userConditions,
+                allergens: userAllergens,
+                otherConditions,
+                otherAllergies,
+                safetyEntries: user.safetyProfileEntries,
+                preparedIngredients: meal.ingredientsData,
+              })) throw new Error('Source recipe changed during preparation. Please retry.');
+        }
         const serving = buildBaseServingPersistence({
           ...meal,
           ingredients: meal.ingredientsData,
           evidenceSource:
-            meal.candidateProvenance === MealCandidateProvenance.RAW_RECIPE_CORPUS
+            autoGeneralBase
+              ? 'PANLASANG_PINOY_GENERAL_BASE'
+              : meal.candidateProvenance === MealCandidateProvenance.RAW_RECIPE_CORPUS
               ? 'RAW_RECIPE_CORPUS_PENDING_REVIEW'
               : 'AI_GENERATED_PENDING_REVIEW',
         });
@@ -641,7 +693,7 @@ export async function generate7DayPlan(
           data: {
             planGroupId: newPlanGroupId,
             userId,
-            status: MealPlanStatus.PENDING_REVIEW,
+            status: autoGeneralBase ? MealPlanStatus.APPROVED : MealPlanStatus.PENDING_REVIEW,
             candidateProvenance: meal.candidateProvenance,
             sourceRawRecipeCandidateId: meal.rawCandidateId,
             planType,
@@ -652,9 +704,9 @@ export async function generate7DayPlan(
             proteinG: meal.proteinG,
             carbsG: meal.carbsG,
             fatG: meal.fatG,
-            aiConfidenceFlag: meal.aiConfidenceFlag,
+            aiConfidenceFlag: autoGeneralBase ? AIConfidenceFlag.CAUTION : meal.aiConfidenceFlag,
             scheduledDate: meal.scheduledDate,
-            requiresSafetyRevalidation: true,
+            requiresSafetyRevalidation: !autoGeneralBase,
             safetyPolicyVersion: MEAL_PLAN_SAFETY_POLICY_VERSION,
             highRiskReviewRequired,
             reviewWorkKey: buildReviewWorkKey({
@@ -710,7 +762,7 @@ export async function generate7DayPlan(
     }
   }
 
-  const needsReview = createdPlansList.some((p) => p.aiConfidenceFlag === AIConfidenceFlag.NEEDS_REVIEW);
+  const needsReview = createdPlansList.some((p) => p.status === MealPlanStatus.PENDING_REVIEW);
   if (needsReview) {
     const notificationTitle = 'New Meal Plan Awaiting Verification';
     await prisma.notification.create({

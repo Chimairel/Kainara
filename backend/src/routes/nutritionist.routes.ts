@@ -34,6 +34,7 @@ import { asyncHandler } from '@/middleware/errorHandler';
 import { ClearanceDecisionValue, HealthConditionType, RuleApprovalDecision } from '@prisma/client';
 import { ConditionClearanceService } from '@/services/condition-clearance.service';
 import { ClinicalEvidenceService } from '@/services/clinical-evidence.service';
+import { flagMealApproval, listMealApprovals, recheckConditionApproval, recheckProfileApproval } from '@/services/meal-approval-lifecycle.service';
 import { clinicalDocumentIdParamsSchema, clinicalDocumentReviewSchema } from '@/validation/clinical-evidence.schemas';
 
 const router = Router();
@@ -570,6 +571,52 @@ router.get('/library/:id', async (req: AuthenticatedRequest, res: Response) => {
     return res
       .status(500)
       .json({ success: false, error: sanitizeErrorMessage(error, 'Failed to retrieve library meal details.') });
+  }
+});
+
+router.get('/library/:id/approvals', async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    return res.status(200).json({ success: true, data: await listMealApprovals(req.params.id) });
+  } catch (error) {
+    return res.status(404).json({ success: false, error: sanitizeErrorMessage(error, 'Approvals unavailable.') });
+  }
+});
+
+const scopedFlagSchema = z.object({
+  kind: z.enum(['PROFILE', 'CONDITION']),
+  approvalId: z.string().min(1),
+  reason: z.string().trim().min(10).max(1000),
+}).strict();
+router.post('/library/:id/approvals/flag', validateZodBody(scopedFlagSchema), async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const data = await flagMealApproval({
+      nutritionistProfileId: req.nutritionistProfileId!,
+      mealLibraryId: req.params.id,
+      ...req.body,
+    });
+    return res.status(200).json({ success: true, data });
+  } catch (error) {
+    return res.status(409).json({ success: false, error: sanitizeErrorMessage(error, 'Could not flag approval.') });
+  }
+});
+
+const approvalRecheckSchema = z.object({
+  kind: z.enum(['PROFILE', 'CONDITION']),
+  rationale: z.string().trim().min(10).max(1000),
+}).strict();
+router.post('/library/:id/approvals/:approvalId/recheck', validateZodBody(approvalRecheckSchema), async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const input = {
+      nutritionistProfileId: req.nutritionistProfileId!,
+      mealLibraryId: req.params.id,
+      approvalId: req.params.approvalId,
+    };
+    const data = req.body.kind === 'CONDITION'
+      ? await recheckConditionApproval({ ...input, rationale: req.body.rationale })
+      : await recheckProfileApproval({ ...input, rationale: req.body.rationale });
+    return res.status(200).json({ success: true, data });
+  } catch (error) {
+    return res.status(409).json({ success: false, error: sanitizeErrorMessage(error, 'Could not recheck approval.') });
   }
 });
 

@@ -16,11 +16,13 @@ import {
 import {
   certifiedLibraryMealInclude,
   isCertifiedLibraryMealCompatible,
+  isProfileApprovedLibraryMealCompatible,
   queryEligibleLibraryMeals,
 } from './meal-library-candidate-query.service';
 import { buildBaseServingPersistence } from './meal-plan-serving.service';
 import { MEAL_PLAN_SAFETY_POLICY_VERSION } from '@/domain/meal-plan-production-safety.policy';
 import { scorePreparationCandidate } from '@/domain/upcoming-preparation.policy';
+import { mealApprovalSafetyScope } from '@/domain/meal-approval-scope.policy';
 
 export class CertifiedSlotFallbackService {
   static async replaceWithBestCertified(input: {
@@ -148,15 +150,31 @@ export class CertifiedSlotFallbackService {
         where: { id: candidate.id },
         include: certifiedLibraryMealInclude,
       });
-      if (
-        !isCertifiedLibraryMealCompatible(latest, context.conditions, context.allergens, {
+      const currentProfile = {
           ...context.profile,
           userId: target.userId,
           safetyEntries: context.user.safetyProfileEntries,
-        })
-      ) {
+      };
+      const certified = isCertifiedLibraryMealCompatible(latest, context.conditions, context.allergens, currentProfile);
+      const profileApproved = !certified && isProfileApprovedLibraryMealCompatible(
+        latest, context.conditions, context.allergens, currentProfile
+      );
+      if (!certified && !profileApproved) {
         throw new Error('Certified fallback evidence changed during selection.');
       }
+      const profileScope = profileApproved ? mealApprovalSafetyScope({
+        conditions: context.conditions,
+        allergens: context.allergens,
+        otherConditions: context.profile.otherConditions,
+        otherAllergies: context.profile.otherAllergies,
+        safetyEntries: context.user.safetyProfileEntries,
+      }) : null;
+      const approval = profileApproved ? latest.profileApprovals.find((item) =>
+        item.safetyScopeKey === profileScope?.key && !item.flaggedAt && item.reviewDueAt > new Date() &&
+        item.recipeSignature === latest.recipeSignature &&
+        item.evidenceRevision === latest.safetyEvidenceRevision
+      ) : null;
+      if (profileApproved && !approval) throw new Error('Approval changed during fallback selection.');
       const ingredients = latest.ingredients.map((ingredient) => ({
         ingredientName: ingredient.ingredientName,
         category: ingredient.category,
@@ -179,7 +197,8 @@ export class CertifiedSlotFallbackService {
           status: MealPlanStatus.APPROVED,
           candidateProvenance: MealCandidateProvenance.CERTIFIED_LIBRARY,
           libraryMealId: latest.id,
-          nutritionistId: latest.safetyReviewedByNutritionistId,
+          profileApprovalId: approval?.id ?? null,
+          nutritionistId: approval?.reviewerNutritionistId ?? latest.safetyReviewedByNutritionistId,
           planType: target.planType,
           mealType: slotType,
           mealName: latest.mealName,
@@ -190,7 +209,7 @@ export class CertifiedSlotFallbackService {
           fatG: latest.fatG,
           aiConfidenceFlag: AIConfidenceFlag.SAFE,
           scheduledDate: target.scheduledDate,
-          reviewedAt: latest.safetyReviewedAt,
+          reviewedAt: approval?.approvedAt ?? latest.safetyReviewedAt,
           requiresSafetyRevalidation: false,
           safetyPolicyVersion: MEAL_PLAN_SAFETY_POLICY_VERSION,
           highRiskReviewRequired: target.cycle.assuranceTier === AssuranceTier.ENHANCED,

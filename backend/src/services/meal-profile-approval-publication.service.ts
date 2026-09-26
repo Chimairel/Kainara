@@ -37,6 +37,7 @@ export async function publishProfileMatchedMealApproval(input: {
     plan.cycle.snapshot?.profileRevision !== plan.user.userProfile?.revision ||
     plan.cycle.snapshot?.safetyRevision !== plan.user.userProfile?.safetyRevision ||
     plan.highRiskReviewRequired || plan.clinicalEvidence.length > 0 ||
+    !plan.baseRecipeSignature || plan.composedServingSignature !== plan.baseRecipeSignature ||
     plan.candidateProvenance === MealCandidateProvenance.CERTIFIED_LIBRARY ||
     plan.sourceRawRecipeCandidate?.sourceName === 'USER_OBSERVED'
   ) return false;
@@ -48,7 +49,10 @@ export async function publishProfileMatchedMealApproval(input: {
     otherAllergies: plan.user.userProfile.otherAllergies,
     safetyEntries: plan.user.safetyProfileEntries,
   });
-  if (!scope.supported || !plan.ingredients.length) return false;
+  if (!scope.supported || !plan.ingredients.length || !plan.ingredients.every((ingredient) =>
+    typeof ingredient.quantity === 'number' && Number.isFinite(ingredient.quantity) && ingredient.quantity > 0 &&
+    typeof ingredient.unit === 'string' && ingredient.unit.trim().length > 0
+  )) return false;
   const restrictions = adaptUserSafetyRestrictions({
     safetyEntries: plan.user.safetyProfileEntries,
     healthConditions: plan.user.healthConditions.map((item) => item.condition),
@@ -70,10 +74,12 @@ export async function publishProfileMatchedMealApproval(input: {
 
   const { meal } = await createOrReuseLibraryDraftFromApprovedPlan(
     input.nutritionistProfileId,
-    input.mealPlanId
+    input.mealPlanId,
+    { attachPlan: false }
   );
-  if (!meal.recipeSignature || meal.status !== MealLibraryStatus.APPROVED) return false;
-  await prisma.mealLibraryProfileApproval.upsert({
+  if (!meal.recipeSignature || meal.recipeSignature !== plan.baseRecipeSignature ||
+      meal.status !== MealLibraryStatus.APPROVED) return false;
+  const approval = await prisma.mealLibraryProfileApproval.upsert({
     where: {
       mealLibraryId_safetyScopeKey_evidenceRevision: {
         mealLibraryId: meal.id,
@@ -89,8 +95,28 @@ export async function publishProfileMatchedMealApproval(input: {
       reviewerNutritionistId: input.nutritionistProfileId,
       reviewPolicyVersion: MEAL_PLAN_SAFETY_POLICY_VERSION,
       sourceProvenance: plan.candidateProvenance,
+      reviewDueAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
+      scopeSnapshot: {
+        conditions: restrictions.conditions,
+        allergens: restrictions.allergies,
+        customConditions: restrictions.customConditions,
+        customFoodRestrictions: restrictions.customFoodRestrictions,
+      },
     },
     update: {},
   });
-  return true;
+  if (approval.flaggedAt || approval.reviewDueAt <= new Date() ||
+      approval.recipeSignature !== meal.recipeSignature ||
+      approval.evidenceRevision !== meal.safetyEvidenceRevision) return false;
+  const linked = await prisma.mealPlan.updateMany({
+    where: {
+      id: input.mealPlanId,
+      status: MealPlanStatus.APPROVED,
+      nutritionistId: input.nutritionistProfileId,
+      requiresSafetyRevalidation: false,
+      user: { userProfile: { revision: input.approvedProfileRevision } },
+    },
+    data: { libraryMealId: meal.id, profileApprovalId: approval.id },
+  });
+  return linked.count === 1;
 }

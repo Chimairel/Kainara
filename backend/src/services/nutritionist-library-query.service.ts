@@ -1,4 +1,4 @@
-import { MealLibraryStatus, MealType, Prisma } from '@prisma/client';
+import { HealthConditionType, MealLibraryStatus, MealType, Prisma } from '@prisma/client';
 import prisma from '@/lib/prisma';
 import { normalizePagination, normalizeSearch } from '@/policies/pagination.policy';
 
@@ -29,29 +29,49 @@ export async function getNutritionistMealLibraryWithFilters(
   const skip = (page - 1) * limit;
   const search = normalizeSearch(filters.search);
   const where: Prisma.MealLibraryWhereInput = {};
+  const and: Prisma.MealLibraryWhereInput[] = [];
 
   if (search) where.mealName = { contains: search, mode: 'insensitive' };
   if (filters.mealType && filters.mealType !== 'All') {
     where.applicableMealTypes = { some: { mealType: filters.mealType as MealType } };
   }
   if (filters.conditionTag && filters.conditionTag !== 'All') {
-    where.suitableConditions = { array_contains: filters.conditionTag };
+    and.push({ OR: [
+      { suitableConditions: { array_contains: filters.conditionTag } },
+      { conditionClearances: { some: { condition: filters.conditionTag as HealthConditionType } } },
+    ] });
   }
   if (filters.status && filters.status !== 'All') where.status = filters.status as MealLibraryStatus;
-  if (filters.verifiedByMe) where.verifiedByNutritionist = { userId: currentUserId };
+  if (filters.verifiedByMe) and.push({ OR: [
+    { verifiedByNutritionist: { userId: currentUserId } },
+    { profileApprovals: { some: { reviewerNutritionist: { userId: currentUserId } } } },
+    { conditionClearances: { some: { decisions: { some: { nutritionistProfile: { userId: currentUserId } } } } } },
+  ] });
   if (filters.adminDraftsOnly) {
     where.status = MealLibraryStatus.APPROVED;
     where.safetyEvidenceStatus = 'INCOMPLETE';
     where.safetyReviews = { some: { reasonCode: 'ADMIN_AUTHORED_DRAFT' } };
   }
+  if (and.length) where.AND = and;
 
-  const [total, meals] = await Promise.all([
-    prisma.mealLibrary.count({ where }),
-    prisma.mealLibrary.findMany({
-      where,
-      orderBy: { addedAt: 'desc' },
-      skip,
-      take: limit,
+  // Several reviewed ingredient/serving variants may share one Panlasang
+  // source. Show one card for that source; Approvals exposes every variant.
+  const keys = await prisma.mealLibrary.findMany({
+    where,
+    orderBy: [{ addedAt: 'desc' }, { id: 'asc' }],
+    select: { id: true, sourceRawRecipeCandidateId: true },
+  });
+  const seen = new Set<string>();
+  const groupedIds = keys.flatMap((row) => {
+    const key = row.sourceRawRecipeCandidateId || row.id;
+    if (seen.has(key)) return [];
+    seen.add(key);
+    return [row.id];
+  });
+  const total = groupedIds.length;
+  const pageIds = groupedIds.slice(skip, skip + limit);
+  const meals = pageIds.length ? await prisma.mealLibrary.findMany({
+      where: { id: { in: pageIds } },
       include: {
         verifiedByNutritionist: { include: { user: { select: { name: true } } } },
         flags: {
@@ -74,15 +94,19 @@ export async function getNutritionistMealLibraryWithFilters(
         safetyReviewedByNutritionist: { include: { user: { select: { name: true } } } },
         applicableMealTypes: { orderBy: { mealType: 'asc' } },
       },
-    }),
-  ]);
+    }) : [];
+  const byId = new Map(meals.map((meal) => [meal.id, meal]));
+  const orderedMeals = pageIds.flatMap((id) => {
+    const meal = byId.get(id);
+    return meal ? [meal] : [];
+  });
 
-  const preparedEvents = meals.length
+  const preparedEvents = orderedMeals.length
     ? await prisma.auditEvent.findMany({
         where: {
           action: 'NUTRITION_EVIDENCE_PREPARED',
           entityType: 'MealLibrary',
-          entityId: { in: meals.map((meal) => meal.id) },
+          entityId: { in: orderedMeals.map((meal) => meal.id) },
         },
         select: { entityId: true, metadata: true },
         orderBy: { createdAt: 'desc' },
@@ -103,7 +127,7 @@ export async function getNutritionistMealLibraryWithFilters(
     total,
     page,
     limit,
-    meals: meals.map((meal) => ({
+    meals: orderedMeals.map((meal) => ({
       ...meal,
       preparedNutritionRevision: preparedRevision.get(meal.id)?.revision ?? null,
       preparedNutritionBasis: preparedRevision.get(meal.id)?.portionBasis ?? null,

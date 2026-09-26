@@ -17,7 +17,8 @@ import {
 } from '@prisma/client';
 import { generateGenerativeJSON } from '@/lib/gemini';
 import { GroceryService } from './grocery.service';
-import { queryEligibleLibraryMeals } from './meal-library-candidate-query.service';
+import { isCertifiedLibraryMealCompatible, isProfileApprovedLibraryMealCompatible, queryEligibleLibraryMeals } from './meal-library-candidate-query.service';
+import { mealApprovalSafetyScope } from '@/domain/meal-approval-scope.policy';
 import {
   MEAL_PLAN_SAFETY_POLICY_VERSION,
   requiresEscalatedMealReview,
@@ -146,9 +147,34 @@ export class UserSafetyRecheckService {
         await prisma.$transaction(async (tx) => {
           await lockUserProfile(tx, userId);
           const currentEvidence = await tx.mealLibrary.findUniqueOrThrow({ where: { id: currentCertifiedMeal.id } });
+          const certified = isCertifiedLibraryMealCompatible(
+            currentCertifiedMeal, userConditions, userAllergens,
+            { ...userProfile, userId, safetyEntries: user.safetyProfileEntries }
+          );
+          const profileApproved = !certified && isProfileApprovedLibraryMealCompatible(
+            currentCertifiedMeal, userConditions, userAllergens,
+            { ...userProfile, userId, safetyEntries: user.safetyProfileEntries }
+          );
+          const scope = profileApproved ? mealApprovalSafetyScope({
+            conditions: userConditions,
+            allergens: userAllergens,
+            otherConditions: userProfile.otherConditions,
+            otherAllergies: userProfile.otherAllergies,
+            safetyEntries: user.safetyProfileEntries,
+          }) : null;
+          const approval = profileApproved ? await tx.mealLibraryProfileApproval.findFirst({
+            where: {
+              mealLibraryId: currentCertifiedMeal.id,
+              safetyScopeKey: scope!.key,
+              recipeSignature: currentCertifiedMeal.recipeSignature!,
+              evidenceRevision: currentCertifiedMeal.safetyEvidenceRevision,
+              flaggedAt: null,
+              reviewDueAt: { gt: new Date() },
+            },
+          }) : null;
           if (
             currentEvidence.safetyEvidenceRevision !== currentCertifiedMeal.safetyEvidenceRevision ||
-            currentEvidence.safetyEvidenceStatus !== 'COMPLETE'
+            (currentEvidence.safetyEvidenceStatus !== 'COMPLETE' && !approval)
           )
             throw new Error('Recipe evidence changed; revalidation remains pending.');
           await tx.mealPlan.update({
@@ -163,8 +189,9 @@ export class UserSafetyRecheckService {
               safetyPolicyVersion: MEAL_PLAN_SAFETY_POLICY_VERSION,
               highRiskReviewRequired: false,
               reviewApprovalCount: 1,
-              nutritionistId: currentCertifiedMeal.safetyReviewedByNutritionistId,
-              reviewedAt: new Date(),
+              profileApprovalId: approval?.id ?? null,
+              nutritionistId: approval?.reviewerNutritionistId ?? currentCertifiedMeal.safetyReviewedByNutritionistId,
+              reviewedAt: approval?.approvedAt ?? new Date(),
             },
           });
         });

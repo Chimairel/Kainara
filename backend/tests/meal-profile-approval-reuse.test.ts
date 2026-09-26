@@ -26,6 +26,8 @@ function meal(override: Record<string, unknown> = {}): CertifiedLibraryMeal {
       recipeSignature: 'a'.repeat(64),
       evidenceRevision: 1,
       reviewPolicyVersion: 'NUTRIMIND_PLAN_SAFETY_V2',
+      reviewDueAt: new Date('2099-01-01'),
+      flaggedAt: null,
       reviewerNutritionist: {
         isVerified: true, prcLicenseExpiry: new Date('2099-01-01'),
         user: { role: 'NUTRITIONIST', isSuspended: false },
@@ -50,4 +52,10 @@ test('profile approval fails closed when the recipe changes, reviewer expires, o
   const expired = meal();
   expired.profileApprovals[0].reviewerNutritionist.prcLicenseExpiry = new Date('2020-01-01');
   assert.equal(isProfileApprovedLibraryMealCompatible(expired, [], ['DAIRY'], profile), false);
+  assert.equal(isProfileApprovedLibraryMealCompatible(meal({
+    profileApprovals: [{ ...meal().profileApprovals[0], flaggedAt: new Date() }],
+  }), [], ['DAIRY'], profile), false);
+  assert.equal(isProfileApprovedLibraryMealCompatible(meal({
+    profileApprovals: [{ ...meal().profileApprovals[0], reviewDueAt: new Date('2020-01-01') }],
+  }), [], ['DAIRY'], profile), false);
 });

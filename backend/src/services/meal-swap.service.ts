@@ -38,6 +38,7 @@ import type { PublicMealCookingLink } from '@/domain/meal-cooking-link.policy';
 import {
   certifiedLibraryMealInclude,
   isCertifiedLibraryMealCompatible,
+  isProfileApprovedLibraryMealCompatible,
   queryEligibleLibraryMeals,
   queryEligibleLibraryPage,
   type CertifiedLibraryMeal,
@@ -364,7 +365,17 @@ export class MealSwapService {
         proteinG: mealPlan.proteinG,
         carbsG: mealPlan.carbsG,
         fatG: mealPlan.fatG,
-      }).map((meal) => toPublicSwapOption(meal, recipeImages.get(meal.id), cookingLinks.get(meal.id))),
+      }).map((meal) => {
+        const certified = isCertifiedLibraryMealCompatible(meal, userConditions, userAllergens,
+          { ...userProfile, userId, safetyEntries: user.safetyProfileEntries });
+        return toPublicSwapOption(meal, recipeImages.get(meal.id), cookingLinks.get(meal.id),
+          certified ? 'CERTIFIED_RECIPE' : 'PROFILE_MATCHED_APPROVAL',
+          mealApprovalSafetyScope({
+            conditions: userConditions, allergens: userAllergens,
+            otherConditions: userProfile.otherConditions, otherAllergies: userProfile.otherAllergies,
+            safetyEntries: user.safetyProfileEntries,
+          }).key);
+      }),
     };
   }
 
@@ -397,6 +408,11 @@ export class MealSwapService {
         user.healthConditions.map((item) => item.condition),
         user.allergies.map((item) => item.allergen),
         { ...userProfile, safetyEntries: user.safetyProfileEntries }
+      ) && !isProfileApprovedLibraryMealCompatible(
+        libraryMeal,
+        user.healthConditions.map((item) => item.condition),
+        user.allergies.map((item) => item.allergen),
+        { ...userProfile, userId, safetyEntries: user.safetyProfileEntries }
       )
     ) {
       throw new Error('Selected replacement meal is not certified for your current health profile.');
@@ -608,14 +624,29 @@ export class MealSwapService {
           throw new Error('Selected replacement meal type does not match slot meal type.');
         }
 
-        if (
-          !isCertifiedLibraryMealCompatible(libraryMeal, userConditions, userAllergens, {
+        const certified = isCertifiedLibraryMealCompatible(libraryMeal, userConditions, userAllergens, {
             ...userProfile,
+            userId,
             safetyEntries: user.safetyProfileEntries,
-          })
-        ) {
+          });
+        const profileApproved = !certified && isProfileApprovedLibraryMealCompatible(
+          libraryMeal, userConditions, userAllergens,
+          { ...userProfile, userId, safetyEntries: user.safetyProfileEntries }
+        );
+        if (!certified && !profileApproved) {
           throw new Error('Selected meal is not certified for your current health profile.');
         }
+        const profileScope = profileApproved ? mealApprovalSafetyScope({
+          conditions: userConditions, allergens: userAllergens,
+          otherConditions: userProfile.otherConditions, otherAllergies: userProfile.otherAllergies,
+          safetyEntries: user.safetyProfileEntries,
+        }) : null;
+        const approval = profileApproved ? libraryMeal.profileApprovals.find((item) =>
+          item.safetyScopeKey === profileScope?.key && !item.flaggedAt && item.reviewDueAt > new Date() &&
+          item.recipeSignature === libraryMeal.recipeSignature &&
+          item.evidenceRevision === libraryMeal.safetyEvidenceRevision
+        ) : null;
+        if (profileApproved && !approval) throw new Error('Approval changed during swap. Please retry.');
 
         // A user-selected upcoming slot wins over ordinary pending candidates.
         // Cancel them in the same transaction so a later review or deadline
@@ -643,6 +674,7 @@ export class MealSwapService {
             carbsG: libraryMeal.carbsG,
             fatG: libraryMeal.fatG,
             libraryMealId: libraryMeal.id,
+            profileApprovalId: approval?.id ?? null,
             sourceRawRecipeCandidateId: null,
             candidateProvenance: 'CERTIFIED_LIBRARY',
             status: 'APPROVED',
@@ -650,8 +682,8 @@ export class MealSwapService {
             safetyPolicyVersion: MEAL_PLAN_SAFETY_POLICY_VERSION,
             highRiskReviewRequired: false,
             reviewApprovalCount: 1,
-            nutritionistId: libraryMeal.safetyReviewedByNutritionistId,
-            reviewedAt: new Date(),
+            nutritionistId: approval?.reviewerNutritionistId ?? libraryMeal.safetyReviewedByNutritionistId,
+            reviewedAt: approval?.approvedAt ?? new Date(),
             userSelectionPinnedAt: new Date(),
             selectionEvidence: {
               source: 'USER_SWAP',

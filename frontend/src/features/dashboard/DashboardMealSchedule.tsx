@@ -58,7 +58,7 @@ export function DashboardMealSchedule({ activeDate, approvedMeals, onStatusToggl
         {approvedMeals.length > 0 && (
           <div className="flex flex-col gap-4 text-left">
             <h2 className="font-display text-lg font-extrabold uppercase tracking-tight text-brand-text">
-              Nutritionist-approved meals
+              Meals ready to use
             </h2>
             <div className="grid grid-cols-1 gap-6 md:grid-cols-3">{mealCards}</div>
           </div>

@@ -193,6 +193,8 @@ export function isProfileApprovedLibraryMealCompatible(
     entry.recipeSignature === meal.recipeSignature &&
     entry.evidenceRevision === meal.safetyEvidenceRevision &&
     entry.reviewPolicyVersion === MEAL_PLAN_SAFETY_POLICY_VERSION &&
+    !entry.flaggedAt &&
+    entry.reviewDueAt > new Date() &&
     isNutritionistEligibleForReview(entry.reviewerNutritionist)
   );
   if (!approved) return false;
@@ -223,6 +225,13 @@ export async function queryEligibleLibraryMeals(input: {
   const limit = Math.max(1, Math.min(input.limit ?? 80, 120));
   const conditions = positiveValues(input.userConditions);
   const allergens = positiveValues(input.userAllergens);
+  const profileScope = conditions.length === 0 ? mealApprovalSafetyScope({
+    conditions: input.userConditions,
+    allergens: input.userAllergens,
+    otherConditions: input.profile.otherConditions,
+    otherAllergies: input.profile.otherAllergies,
+    safetyEntries: input.profile.safetyEntries,
+  }) : null;
   const and: Prisma.MealLibraryWhereInput[] = [];
 
   for (const condition of conditions) {
@@ -261,14 +270,21 @@ export async function queryEligibleLibraryMeals(input: {
   const where: Prisma.MealLibraryWhereInput = {
     ...getApprovedMealLibraryWhere(),
     verifiedByNutritionistId: { not: null },
-    safetyEvidenceStatus: MealLibrarySafetyEvidenceStatus.COMPLETE,
     recipeSignature: { not: null },
+    OR: [
+      {
+        safetyEvidenceStatus: MealLibrarySafetyEvidenceStatus.COMPLETE,
+        ...(and.length ? { AND: and } : {}),
+      },
+      ...(profileScope?.supported ? [{ profileApprovals: {
+        some: { safetyScopeKey: profileScope.key, flaggedAt: null, reviewDueAt: { gt: new Date() } },
+      } }] : []),
+    ],
     ...(input.mealType ? { applicableMealTypes: { some: { mealType: input.mealType } } } : {}),
     ...(calorieRange ? { calories: { gte: calorieRange.minimum, lte: calorieRange.maximum } } : {}),
     ...(input.excludeIds?.length ? { id: { notIn: [...input.excludeIds] } } : {}),
     ...(input.search ? { mealName: { contains: input.search, mode: 'insensitive' } } : {}),
     ...(input.profile.dietaryPreference ? { dietaryTags: { array_contains: [input.profile.dietaryPreference] } } : {}),
-    ...(and.length ? { AND: and } : {}),
   };
 
   const candidates = await prisma.mealLibrary.findMany({
@@ -279,7 +295,8 @@ export async function queryEligibleLibraryMeals(input: {
   });
 
   return candidates.filter((meal) =>
-    isCertifiedLibraryMealCompatible(meal, input.userConditions, input.userAllergens, input.profile)
+    isCertifiedLibraryMealCompatible(meal, input.userConditions, input.userAllergens, input.profile) ||
+    isProfileApprovedLibraryMealCompatible(meal, input.userConditions, input.userAllergens, input.profile)
   );
 }
 
@@ -376,7 +393,7 @@ export async function queryEligibleLibraryPage(input: {
         ...(and.length ? { AND: and } : {}),
       },
       ...(profileScope?.supported && conditions.length === 0
-        ? [{ profileApprovals: { some: { safetyScopeKey: profileScope.key } } }]
+        ? [{ profileApprovals: { some: { safetyScopeKey: profileScope.key, flaggedAt: null, reviewDueAt: { gt: new Date() } } } }]
         : []),
     ],
     ...(input.mealType ? { applicableMealTypes: { some: { mealType: input.mealType } } } : {}),

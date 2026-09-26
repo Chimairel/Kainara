@@ -142,7 +142,10 @@ export async function prepareGeneratedMealIngredients(input: {
       const food = compositionByName.get(ingredientName.trim());
       if (food) {
         ingredientsData.push({
-          ingredientName: food.name,
+          ingredientName:
+            rawMeal.candidateProvenance === MealCandidateProvenance.RAW_RECIPE_CORPUS
+              ? ingredientName
+              : food.name,
           category: food.category || 'PANTRY',
           foodItemId: food.id,
           dataSource: food.source === 'FNRI' ? MealIngredientDataSource.FNRI : MealIngredientDataSource.USDA_FDC,

@@ -179,7 +179,7 @@ export function useNutritionistLibrary() {
 
   // Modal / Action States
   const [activeModal, setActiveModal] = useState<
-    'view' | 'edit' | 'delete' | 'flag' | 'resolve' | 'verifier' | 'certify' | 'prepare' | null
+    'view' | 'approvals' | 'edit' | 'delete' | 'flag' | 'resolve' | 'verifier' | 'certify' | 'prepare' | null
   >(null);
   const [selectedMeal, setSelectedMeal] = useState<LibraryMeal | null>(null);
   const [selectedVerifier, setSelectedVerifier] = useState<Verifier | null>(null);

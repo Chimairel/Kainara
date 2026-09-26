@@ -9,6 +9,7 @@ import api from '@/lib/axios';
 import { normalizeExclusiveNone } from '@/lib/profile-normalization';
 import { libraryEvidenceStatus } from './libraryEvidenceStatus';
 import { PrepareLibraryNutritionEvidence } from './PrepareLibraryNutritionEvidence';
+import { MealApprovalsModal } from './MealApprovalsModal';
 import {
   AVAILABLE_ALLERGENS,
   AVAILABLE_CONDITIONS,
@@ -38,12 +39,19 @@ export function NutritionistLibraryModals({ workspace }: Props) {
     handleDeleteSubmit,
     handleFlagSubmit,
     handleResolveFlag,
+    handleOpenEdit,
+    handleOpenCertification,
+    isOwner,
     handleToggleDiet,
     setEvidenceAllergen,
   } = workspace;
 
   return (
     <>
+      {selectedMeal && activeModal === 'approvals' && (
+        <MealApprovalsModal mealId={selectedMeal.id} mealName={selectedMeal.mealName}
+          onClose={() => { setActiveModal(null); void fetchLibrary(); }} />
+      )}
       {/* View Meal Details Modal */}
       {selectedMeal && activeModal === 'view' && (
         <Modal isOpen={true} onClose={() => setActiveModal(null)} title={selectedMeal.mealName} size="lg">
@@ -182,6 +190,21 @@ export function NutritionistLibraryModals({ workspace }: Props) {
                     PRC License: {selectedMeal.verifiedByNutritionist.prcLicenseNumber}
                   </span>
                 </div>
+              </div>
+            )}
+            {selectedMeal.status === 'APPROVED' && (
+              <div className="flex flex-wrap gap-2 border-t border-brand-border/60 pt-3">
+                <Button variant="secondary" onClick={() => {
+                  if (selectedMeal.preparedNutritionRevision === selectedMeal.safetyEvidenceRevision &&
+                      selectedMeal.safetyEvidenceStatus !== 'COMPLETE') handleOpenCertification(selectedMeal);
+                  else setActiveModal('prepare');
+                }}>
+                  {selectedMeal.preparedNutritionRevision === selectedMeal.safetyEvidenceRevision &&
+                   selectedMeal.safetyEvidenceStatus !== 'COMPLETE' ? 'Sign off recipe' : 'Prepare recipe evidence'}
+                </Button>
+                {isOwner(selectedMeal) && (
+                  <Button variant="secondary" onClick={() => handleOpenEdit(selectedMeal)}>Edit recipe details</Button>
+                )}
               </div>
             )}
           </div>
