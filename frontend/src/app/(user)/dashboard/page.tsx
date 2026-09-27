@@ -79,6 +79,7 @@ export default function DashboardPage() {
   } = useMealGenerationProgress(isGenerating);
   const [error, setError] = useState<string | null>(null);
   const [clinicalEvidenceRequired, setClinicalEvidenceRequired] = useState(false);
+  const [profileReviewStatus, setProfileReviewStatus] = useState<'checking' | 'ready' | 'pending' | 'error'>('checking');
   const [pendingReview, setPendingReview] = useState<PendingReview | null>(cachedPlan?.pendingReview ?? null);
   const [awaitingGenerationCount, setAwaitingGenerationCount] = useState(cachedPlan?.awaitingGenerationCount ?? 0);
   const [generationStatus, setGenerationStatus] = useState(cachedPlan?.generationStatus ?? null);
@@ -90,6 +91,21 @@ export default function DashboardPage() {
   const [upcomingCycle, setUpcomingCycle] = useState<CycleMetaSnapshot | null>(cachedPlan?.upcomingCycle ?? null);
   const generationRequestInFlight = useRef(false);
   const currentPlanRequestInFlight = useRef(false);
+  useEffect(() => {
+    if (!ownerId) return;
+    let active = true;
+    const check = async () => {
+      try {
+        const response = await api.get('/user/clinical-profile-review/status');
+        if (active) setProfileReviewStatus(response.data.data.required && !response.data.data.approved ? 'pending' : 'ready');
+      } catch {
+        if (active) setProfileReviewStatus('error');
+      }
+    };
+    void check();
+    const interval = window.setInterval(() => { if (document.visibilityState === 'visible') void check(); }, 30_000);
+    return () => { active = false; window.clearInterval(interval); };
+  }, [ownerId]);
   const isStarterPlan = currentCycle?.planType === 'STARTER' || currentMeals[0]?.planType === 'STARTER';
   const nextCycleDay = React.useMemo(() => {
     if (!isStarterPlan) return null;
@@ -297,12 +313,12 @@ export default function DashboardPage() {
   }, [awaitingGenerationCount, fetchCurrentPlan]);
 
   useEffect(() => {
-    if (isLoading || currentCycle || generationStatus === 'FAILED' || isReportPending || clinicalEvidenceRequired || error) return;
+    if (isLoading || currentCycle || generationStatus === 'FAILED' || isReportPending || clinicalEvidenceRequired || profileReviewStatus !== 'ready' || error) return;
     const interval = window.setInterval(() => {
       if (document.visibilityState === 'visible') void fetchCurrentPlan();
     }, 5_000);
     return () => window.clearInterval(interval);
-  }, [isLoading, currentCycle, generationStatus, isReportPending, clinicalEvidenceRequired, error, fetchCurrentPlan]);
+  }, [isLoading, currentCycle, generationStatus, isReportPending, clinicalEvidenceRequired, profileReviewStatus, error, fetchCurrentPlan]);
 
   const checkCheckinStatus = useCallback(async () => {
     try {
@@ -397,6 +413,10 @@ export default function DashboardPage() {
       const msg = getApiErrorMessage(err, 'Gemini failed to generate standard plan.');
       if (axios.isAxiosError(err) && err.response?.data?.errorCode === 'CLINICAL_EVIDENCE_REQUIRED') {
         setClinicalEvidenceRequired(true);
+        setIsGenerating(false);
+      }
+      if (axios.isAxiosError(err) && err.response?.data?.errorCode === 'PROFILE_REVIEW_REQUIRED') {
+        setProfileReviewStatus('pending');
         setIsGenerating(false);
       }
       failGenerationProgress(msg);
@@ -604,6 +624,18 @@ export default function DashboardPage() {
             description="Your health details need more review before a meal plan can be prepared. Check the requested clinical information and upload a supporting document if required."
             action={{ label: 'Review clinical information', href: '/profile/clinical-evidence' }}
           />
+        ) : profileReviewStatus === 'pending' ? (
+          <StateNotice
+            variant="no-meal-plan"
+            eyebrow="Awaiting nutritionist"
+            eyebrowVariant="amber"
+            title="Meal planning isn't available yet"
+            description="A nutritionist needs to review your declared health profile before meal candidates can be prepared. Each proposed meal will then receive its own case approval."
+          />
+        ) : profileReviewStatus === 'checking' || profileReviewStatus === 'error' ? (
+          <div role="status" className="rounded-xl border border-brand-border bg-brand-surface p-5 text-sm text-brand-muted">
+            {profileReviewStatus === 'checking' ? 'Checking meal-planning eligibility…' : 'We could not check your meal-planning eligibility. Refresh this page to try again.'}
+          </div>
         ) : currentMeals.length === 0 && !pendingReview && awaitingGenerationCount > 0 && generationStatus !== 'FAILED' ? (
           <div role="status" className="rounded-2xl border border-brand-border bg-brand-surface p-6 text-sm text-brand-muted">
             Your first meal candidates are being prepared. Visit Meals to follow the preview and nutritionist review progress.

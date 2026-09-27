@@ -1,5 +1,6 @@
 import prisma from '@/lib/prisma';
 import { admittedLibraryBaseIds } from './meal-base-admission.service';
+import { ClinicalProfileReviewService } from './clinical-profile-review.service';
 import { adaptUserSafetyRestrictions } from '@/domain/structured-restriction.adapter';
 import { mealApprovalSafetyScope } from '@/domain/meal-approval-scope.policy';
 import { isNutritionistEligibleForReview } from '@/domain/nutritionist-review.policy';
@@ -66,6 +67,9 @@ export class MealPlanCycleService {
     now: Date = new Date(),
     client: CycleClient = prisma
   ): Promise<string[]> {
+    // Legacy approved slots cannot become actionable before the current
+    // restricted profile has received its separate nutritionist review.
+    if (!(await ClinicalProfileReviewService.hasCurrentApproval(userId))) return [];
     const cycle = await client.mealPlanCycle.findFirst({
       where: { id: cycleId, userId },
       select: {

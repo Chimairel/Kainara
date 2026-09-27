@@ -23,6 +23,7 @@ import { randomUUID } from 'crypto';
 import { assertMealSlotCalories, validateGeneratedDayCalories } from '@/domain/generated-plan-calories.policy';
 import { getMealPlanCycleTiming, getManilaDateKey, getScheduledMealDate } from '@/domain/meal-plan-cycle.policy';
 import { MealPlanCycleService } from './meal-plan-cycle.service';
+import { ClinicalProfileReviewService } from './clinical-profile-review.service';
 import {
   MEAL_PLAN_SAFETY_POLICY_VERSION,
   requiresEscalatedMealReview,
@@ -68,6 +69,7 @@ export async function generate7DayPlan(
   startDate: Date = new Date(),
   generationJobId?: string
 ): Promise<string> {
+  await ClinicalProfileReviewService.assertReadyForMealPlanning(userId);
   await updateGenerationProgress(
     generationJobId,
     10,

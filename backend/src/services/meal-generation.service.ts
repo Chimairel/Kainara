@@ -21,6 +21,7 @@ import { getMaximumAssuranceTier } from '@/domain/assurance-tier.policy';
 import { getPreparationLeadDays } from '@/domain/upcoming-preparation.policy';
 import { generate7DayPlan } from './meal-plan-composition.service';
 import { ClinicalEvidenceService } from './clinical-evidence.service';
+import { ClinicalProfileReviewService } from './clinical-profile-review.service';
 import { missingMealSlots } from '@/domain/meal-generation-gap.policy';
 import { MealAiQueueService } from './meal-ai-queue.service';
 
@@ -45,6 +46,7 @@ export class MealGenerationService {
     options: { replaceExisting?: boolean } = {}
   ): Promise<string> {
     await ClinicalEvidenceService.assertReadyForMealPlanning(userId);
+    await ClinicalProfileReviewService.assertReadyForMealPlanning(userId);
     const currentCycle = await MealPlanCycleService.getCurrentCycle(userId, now);
     if (currentCycle) {
       if (!options.replaceExisting) return currentCycle.id;
@@ -101,6 +103,7 @@ export class MealGenerationService {
     now: Date = new Date()
   ): Promise<{ state: 'NOT_OPEN' | 'EXISTING' | 'PREPARED'; planGroupId: string | null }> {
     await ClinicalEvidenceService.assertReadyForMealPlanning(userId);
+    await ClinicalProfileReviewService.assertReadyForMealPlanning(userId);
     const context = await loadUserNutritionContext(
       prisma,
       userId,
@@ -160,6 +163,7 @@ export class MealGenerationService {
     replaceExisting = false
   ): Promise<string> {
     await ClinicalEvidenceService.assertReadyForMealPlanning(userId);
+    await ClinicalProfileReviewService.assertReadyForMealPlanning(userId);
     const endDate = getScheduledMealDate(window.startDate, Math.max(0, window.numDays - 1));
     const existing = await MealGenerationService.findExistingPlan(userId, window.planType, {
       startDate: window.startDate,

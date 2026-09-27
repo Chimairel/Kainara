@@ -16,6 +16,7 @@ import { loadUserNutritionContext } from '@/domain/user-nutrition-context';
 import { mealApprovalSafetyScope } from '@/domain/meal-approval-scope.policy';
 import { adaptUserSafetyRestrictions } from '@/domain/structured-restriction.adapter';
 import { ClinicalEvidenceService } from './clinical-evidence.service';
+import { ClinicalProfileReviewService } from './clinical-profile-review.service';
 import { buildMealGenerationPrompt } from '@/domain/meal-generation-cuisine.policy';
 import { buildMealGenerationResponseSchema } from '@/validation/meal-generation-response.schema';
 import { earliestMissingDay, missingMealSlots } from '@/domain/meal-generation-gap.policy';
@@ -67,6 +68,7 @@ export class MealAiQueueService {
     const cycle = await loadQueuedCycle(cycleId);
     if (!cycle || cycle.userId !== userId || terminalReason(cycle, new Date())) return false;
     await ClinicalEvidenceService.assertReadyForMealPlanning(userId);
+    await ClinicalProfileReviewService.assertReadyForMealPlanning(userId);
     const context = await loadUserNutritionContext(prisma, userId, 'PROFILE_MISSING');
     if (context.profile.revision !== cycle.snapshot!.profileRevision ||
         context.profile.safetyRevision !== cycle.snapshot!.safetyRevision ||
@@ -135,6 +137,7 @@ export class MealAiQueueService {
       const blocked = terminalReason(cycle, now);
       if (blocked) throw new Error(blocked);
       await ClinicalEvidenceService.assertReadyForMealPlanning(cycle.userId);
+    await ClinicalProfileReviewService.assertReadyForMealPlanning(cycle.userId);
       const context = await loadUserNutritionContext(prisma, cycle.userId, 'PROFILE_MISSING');
       const { profile, conditions, allergens, otherConditions, otherAllergies } = context;
       if (profile.revision !== cycle.snapshot!.profileRevision || profile.safetyRevision !== cycle.snapshot!.safetyRevision || cycle.profileAdaptationState !== 'CURRENT')

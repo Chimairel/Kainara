@@ -32,6 +32,7 @@ import { asyncHandler } from '@/middleware/errorHandler';
 import { ClearanceDecisionValue, HealthConditionType, RuleApprovalDecision } from '@prisma/client';
 import { ConditionClearanceService } from '@/services/condition-clearance.service';
 import { ClinicalEvidenceService } from '@/services/clinical-evidence.service';
+import { ClinicalProfileReviewService } from '@/services/clinical-profile-review.service';
 import { flagMealApproval, getMealApprovalCaseDetails, listDueProfileApprovals, listMealApprovals, recheckConditionApproval, recheckProfileApproval } from '@/services/meal-approval-lifecycle.service';
 import { clinicalDocumentIdParamsSchema, clinicalDocumentReviewSchema } from '@/validation/clinical-evidence.schemas';
 import { MealBaseVerificationService } from '@/services/meal-base-verification.service';
@@ -52,6 +53,26 @@ const mealVerificationDecision = z.object({
   decision: z.enum(['VERIFIED', 'REJECTED']),
   rationale: z.string().trim().min(10).max(1000),
 }).strict();
+const profileReviewParams = z.object({ userId: z.string().min(1) }).strict();
+const profileReviewDecision = z.object({
+  decision: z.enum(['APPROVED', 'DECLINED']),
+  notes: z.string().trim().min(10).max(2000),
+}).strict();
+
+router.get('/profile-reviews', asyncHandler(async (_req: AuthenticatedRequest, res: Response) => {
+  res.json({ success: true, data: await ClinicalProfileReviewService.queue() });
+}));
+router.get('/profile-reviews/:userId', validateZodRequest({ params: profileReviewParams }),
+  asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+    res.json({ success: true, data: await ClinicalProfileReviewService.detail(req.params.userId) });
+  }));
+router.post('/profile-reviews/:userId/decision',
+  validateZodRequest({ params: profileReviewParams, body: profileReviewDecision }),
+  asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+    res.json({ success: true, data: await ClinicalProfileReviewService.decide(
+      req.nutritionistProfileId!, req.params.userId, req.body.decision, req.body.notes
+    ) });
+  }));
 
 router.get('/meal-verification', asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
   const data = await MealBaseVerificationService.list(req.nutritionistProfileId!);

@@ -137,6 +137,7 @@ export function useMealsWorkspace() {
   const regenerationProgress = useMealGenerationProgress(isRegenerating);
   const [error, setError] = useState<string | null>(null);
   const [clinicalEvidenceRequired, setClinicalEvidenceRequired] = useState(false);
+  const [profileReviewRequired, setProfileReviewRequired] = useState(false);
   const [pendingReview, setPendingReview] = useState<PendingReviewState | null>(cachedPlan?.pendingReview ?? null);
   const [awaitingGeneration, setAwaitingGeneration] = useState(cachedPlan?.awaitingGeneration ?? { current: 0, upcoming: 0 });
   const [generationStatus, setGenerationStatus] = useState(cachedPlan?.generationStatus ?? { current: null, upcoming: null });
@@ -144,6 +145,14 @@ export function useMealsWorkspace() {
   const [selectedPlanDateKey, setSelectedPlanDateKey] = useState<string | null>(null);
   const currentPlanRequestInFlight = useRef(false);
   const secondaryDataPrefetchedForUserRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!ownerId) return;
+    let active = true;
+    void api.get('/user/clinical-profile-review/status').then((response) => {
+      if (active) setProfileReviewRequired(response.data.data.required && !response.data.data.approved);
+    }).catch(() => { /* The server generation gate remains authoritative. */ });
+    return () => { active = false; };
+  }, [ownerId]);
 
   // Meal swap states
   const [activeSwapMeal, setActiveSwapMeal] = useState<MealPlan | null>(null);
@@ -242,6 +251,13 @@ export function useMealsWorkspace() {
         setCycles(null);
         setAwaitingGeneration({ current: 0, upcoming: 0 });
         setGenerationStatus({ current: null, upcoming: null });
+        invalidateSessionResource(ownerId, currentPlanResource);
+      }
+      if (axios.isAxiosError(err) && err.response?.data?.errorCode === 'PROFILE_REVIEW_REQUIRED') {
+        setProfileReviewRequired(true);
+        setMeals([]);
+        setPendingReview(null);
+        setCycles(null);
         invalidateSessionResource(ownerId, currentPlanResource);
       }
       setError(getApiErrorMessage(err, 'Failed to fetch weekly plan menu.'));
@@ -564,6 +580,8 @@ export function useMealsWorkspace() {
         }
       } catch (err: unknown) {
         const msg = getApiErrorMessage(err, 'Gemini failed to regenerate weekly plan.');
+        if (axios.isAxiosError(err) && err.response?.data?.errorCode === 'PROFILE_REVIEW_REQUIRED')
+          setProfileReviewRequired(true);
         regenerationProgress.fail(msg);
         setError(msg);
       }
@@ -856,6 +874,7 @@ export function useMealsWorkspace() {
     regenerationProgress,
     error,
     clinicalEvidenceRequired,
+    profileReviewRequired,
     pendingReview,
     awaitingGeneration,
     generationStatus,

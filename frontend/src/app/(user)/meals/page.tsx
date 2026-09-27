@@ -52,6 +52,7 @@ export default function WeeklyPlanPage() {
     regenerationProgress,
     error,
     clinicalEvidenceRequired,
+    profileReviewRequired,
     pendingReview,
     awaitingGeneration,
     generationStatus,
@@ -418,7 +419,7 @@ export default function WeeklyPlanPage() {
           </section>
         )}
 
-        {error && !clinicalEvidenceRequired && !error.toLowerCase().includes('nutrition report') && (
+        {error && !clinicalEvidenceRequired && !profileReviewRequired && !error.toLowerCase().includes('nutrition report') && (
           <div className="p-4 rounded-xl bg-status-error-bg/10 border border-status-error-text/25 text-status-error-text text-sm font-semibold flex items-center gap-2 text-left">
             <AlertTriangle className="w-4 h-4 text-status-error-text shrink-0" />
             <span>{error}</span>
@@ -449,6 +450,14 @@ export default function WeeklyPlanPage() {
               title="Meal planning isn't available yet"
               description="Your health details need more review before a meal plan can be prepared. Check the requested clinical information and upload a supporting document if required."
               action={{ label: 'Review clinical information', href: '/profile/clinical-evidence' }}
+            />
+          ) : profileReviewRequired ? (
+            <StateNotice
+              variant="no-meal-plan"
+              eyebrow="Awaiting nutritionist"
+              eyebrowVariant="amber"
+              title="Meal planning isn't available yet"
+              description="A nutritionist needs to review your declared health profile before meal candidates can be prepared. Each proposed meal will then receive its own case approval."
             />
           ) : groupedDays.length === 0 ? (
             pendingReview ? (

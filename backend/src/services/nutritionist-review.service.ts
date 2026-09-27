@@ -26,6 +26,7 @@ import { GroceryService } from '@/services/grocery.service';
 import { adaptUserSafetyRestrictions } from '@/domain/structured-restriction.adapter';
 import { mealApprovalSafetyScope } from '@/domain/meal-approval-scope.policy';
 import { publishProfileMatchedMealApproval } from './meal-profile-approval-publication.service';
+import { ClinicalProfileReviewService } from './clinical-profile-review.service';
 import { NutritionistReplacementService } from './nutritionist-replacement.service';
 import { classifyMealIngredients } from '@/domain/meal-ingredient-classification.policy';
 import { evaluateApprovedConditionRules } from './condition-rule.service';
@@ -304,6 +305,7 @@ export class NutritionistReviewService {
     const targetOwner = await prisma.mealPlan.findUnique({ where: { id: mealPlanId }, select: { userId: true } });
     if (!targetOwner) throw new Error('Meal plan not found.');
     const clinicalRequirements = await ClinicalEvidenceService.assertReadyForMealPlanning(targetOwner.userId);
+    await ClinicalProfileReviewService.assertReadyForMealPlanning(targetOwner.userId);
     if (reviewTarget.highRiskReviewRequired && reviewTarget.reviewApprovalCount === 1) {
       if (!reviewer.canLeadReview) throw new Error('Lead review capability is required for this second review.');
       if (reviewTarget.firstApprovedByNutritionistId === nutritionistProfileId) {
@@ -677,6 +679,7 @@ export class NutritionistReviewService {
       safetyEntries: plan.user.safetyProfileEntries,
     });
     const clinicalRequirements = await ClinicalEvidenceService.assertReadyForMealPlanning(plan.userId);
+    await ClinicalProfileReviewService.assertReadyForMealPlanning(plan.userId);
     const clinicalDocumentIds = [...new Set(clinicalRequirements.flatMap((item) => item.readyDocumentIds))];
     const clinicalDocuments = clinicalDocumentIds.length
       ? await prisma.clinicalDocument.findMany({

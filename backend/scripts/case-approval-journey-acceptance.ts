@@ -10,6 +10,7 @@ import {
 import prisma from '../src/lib/prisma';
 import { AdminMealAuthoringService } from '../src/services/admin-meal-authoring.service';
 import { ClinicalEvidenceService } from '../src/services/clinical-evidence.service';
+import { ClinicalProfileReviewService } from '../src/services/clinical-profile-review.service';
 import { MealBaseVerificationService } from '../src/services/meal-base-verification.service';
 import { MealPlanCycleService } from '../src/services/meal-plan-cycle.service';
 import { generate7DayPlan } from '../src/services/meal-plan-composition.service';
@@ -105,6 +106,20 @@ async function main() {
   assert.equal((await ClinicalEvidenceService.requirementsForUser(diabetesId))[0].state, 'READY');
 
   const day = getManilaMidnight(getManilaDateKey(new Date()));
+  const pendingProfiles = await ClinicalProfileReviewService.queue();
+  for (const item of cases.filter((entry) => entry.condition !== HealthConditionType.NONE || entry.allergy !== AllergenType.NONE)) {
+    const userId = users.get(item.label)!;
+    assert.ok(pendingProfiles.some((entry) => entry.userId === userId), `${item.label} missing from profile queue.`);
+    await assert.rejects(generate7DayPlan(userId, PlanType.WEEKLY, 1, day), /awaiting nutritionist review/);
+    const detail = await ClinicalProfileReviewService.detail(userId);
+    assert.equal(detail.conditions.includes(item.condition), item.condition !== HealthConditionType.NONE);
+    assert.equal(detail.allergies.includes(item.allergy), item.allergy !== AllergenType.NONE);
+    if (item.label === 'diabetes-eggs') assert.ok(detail.documents.some((entry) => entry.id === document.id));
+    await ClinicalProfileReviewService.decide(rnd.id, userId, 'APPROVED',
+      'Fictional profile context reviewed for isolated workflow testing.');
+    await ClinicalProfileReviewService.assertReadyForMealPlanning(userId);
+  }
+  assert.ok(!(await ClinicalProfileReviewService.queue()).some((entry) => [...users.values()].includes(entry.userId)));
   const outcomes: Record<string, unknown> = {};
   for (const item of cases) {
     const userId = users.get(item.label)!;
@@ -172,9 +187,18 @@ async function main() {
       assert.ok((await MealPlanCycleService.getClearedMealPlanIds(userId, cycleId)).length > 0);
     }
     outcomes[item.label] = { saved: meals.length, initial: restricted ? 'PENDING_REVIEW' : 'APPROVED',
-      caseReviewed: restricted };
+      profileReviewed: restricted, caseReviewed: restricted };
   }
-  console.log(JSON.stringify({ passed: true, mealOnlyVerification: 'separate from planning evidence',
+  await prisma.user.create({ data: {
+    email: `cf-profile-ui-${marker}@example.com`, name: 'Case flow profile UI', passwordHash,
+    role: Role.USER, emailVerified: true, onboardingDone: true, tosAccepted: true,
+    userProfile: { create: { age: 30, biologicalSex: 'FEMALE', heightCm: 160, weightKg: 60,
+      goal: Goal.MAINTAIN, activityLevel: ActivityLevel.LIGHTLY_ACTIVE,
+      dietaryPreference: DietaryPreference.OMNIVORE, dailyCalorieTarget: 1200 } },
+    healthConditions: { create: { condition: HealthConditionType.NONE } },
+    allergies: { create: { allergen: AllergenType.EGGS } },
+  } });
+  console.log(JSON.stringify({ passed: true, runId: marker, mealOnlyVerification: 'separate from planning evidence',
     profileDocument: 'claimed and reviewed before diabetes case', outcomes }, null, 2));
 }
 

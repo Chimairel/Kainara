@@ -1,7 +1,7 @@
 import type { ClinicalEvidenceRequirement } from './clinical-evidence-requirement.policy';
 
 export type PlanningReadiness = {
-  status: 'BLOCKED_CLINICAL_CONTEXT' | 'REQUEST_ALLOWED_REVIEW_EXPECTED' | 'REQUEST_ALLOWED';
+  status: 'BLOCKED_CLINICAL_CONTEXT' | 'BLOCKED_PROFILE_REVIEW' | 'REQUEST_ALLOWED_REVIEW_EXPECTED' | 'REQUEST_ALLOWED';
   canRequestPlan: boolean;
   title: string;
   message: string;
@@ -12,6 +12,7 @@ export function determinePlanningReadiness(input: {
   requirements: readonly ClinicalEvidenceRequirement[];
   restrictionsRequireReview: boolean;
   conditions: readonly string[];
+  profileReviewApproved: boolean;
 }): PlanningReadiness {
   const blocked = input.requirements.filter((requirement) => requirement.state !== 'READY');
   if (blocked.length) {
@@ -20,6 +21,15 @@ export function determinePlanningReadiness(input: {
       canRequestPlan: false,
       title: 'Clinical context needed before planning',
       message: blocked.map((requirement) => requirement.message).join(' '),
+      actionPath: '/profile/clinical-evidence',
+    };
+  }
+
+  if (!input.profileReviewApproved) {
+    return {
+      status: 'BLOCKED_PROFILE_REVIEW', canRequestPlan: false,
+      title: 'Health profile awaiting nutritionist review',
+      message: 'A nutritionist must review your declared conditions and allergies before meal candidates can be prepared. Individual meals will then need separate case approval.',
       actionPath: '/profile/clinical-evidence',
     };
   }

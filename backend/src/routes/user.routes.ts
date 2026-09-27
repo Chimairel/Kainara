@@ -30,6 +30,7 @@ import { UserPrivacyService } from '@/services/user-privacy.service';
 import { getActivePlanningLocationOptions } from '@/services/food-consumption-context.service';
 import multer from 'multer';
 import { ClinicalEvidenceService } from '@/services/clinical-evidence.service';
+import { ClinicalProfileReviewService } from '@/services/clinical-profile-review.service';
 import {
   clinicalDocumentIdParamsSchema,
   clinicalDocumentMetadataSchema,
@@ -70,6 +71,10 @@ router.put('/profile/avatar', UserController.updateAvatar);
 // Below routes are restricted to USER role
 // ──────────────────────────────────────────
 router.use(requireRole('USER'));
+
+router.get('/clinical-profile-review/status', asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+  res.json({ success: true, data: await ClinicalProfileReviewService.status(req.user!.userId) });
+}));
 
 /**
  * Onboarding Flow Endpoints
