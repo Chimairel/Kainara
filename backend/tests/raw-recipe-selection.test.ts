@@ -85,6 +85,21 @@ test('raw selection does not treat a dietary tag or blank ingredient list as suf
   assert.equal(selected.remainingSlots.length, 1);
 });
 
+test('review-free sourcing skips incomplete recipes without sending them to nutritionists', () => {
+  const incomplete = candidate('a', 'Incomplete source', 'chicken');
+  incomplete.reviewFreeBaseEligible = false;
+  const complete = candidate('b', 'Measured source', 'chicken');
+  complete.reviewFreeBaseEligible = true;
+  const selected = selectRawRecipeCandidates({
+    slots: [{ dayNumber: 1, mealType: MealType.LUNCH, scheduledDate: new Date() }],
+    candidatesByType: new Map([[MealType.LUNCH, [incomplete, complete]]]),
+    dietaryPreference: DietaryPreference.OMNIVORE,
+    allergens: [],
+    reviewFreeBaseOnly: true,
+  });
+  assert.deepEqual(selected.meals.map((meal) => meal.rawCandidateId), ['b']);
+});
+
 test('raw sourcing checks the next corpus page before leaving a slot for Gemini', async () => {
   const originalList = databaseRecipeCandidateProvider.list;
   const requestedCursors: Array<string | undefined> = [];

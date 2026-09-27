@@ -28,7 +28,9 @@ export async function getNutritionistMealLibraryWithFilters(
   const { page, limit } = normalizePagination(filters.page, filters.limit, 20);
   const skip = (page - 1) * limit;
   const search = normalizeSearch(filters.search);
-  const where: Prisma.MealLibraryWhereInput = {};
+  // The nutritionist library lists base recipes; flags and review dates belong
+  // to the scoped approvals shown inside each recipe.
+  const where: Prisma.MealLibraryWhereInput = { status: MealLibraryStatus.APPROVED };
   const and: Prisma.MealLibraryWhereInput[] = [];
 
   if (search) where.mealName = { contains: search, mode: 'insensitive' };
@@ -41,7 +43,6 @@ export async function getNutritionistMealLibraryWithFilters(
       { conditionClearances: { some: { condition: filters.conditionTag as HealthConditionType } } },
     ] });
   }
-  if (filters.status && filters.status !== 'All') where.status = filters.status as MealLibraryStatus;
   if (filters.verifiedByMe) and.push({ OR: [
     { verifiedByNutritionist: { userId: currentUserId } },
     { profileApprovals: { some: { reviewerNutritionist: { userId: currentUserId } } } },
@@ -73,6 +74,7 @@ export async function getNutritionistMealLibraryWithFilters(
   const meals = pageIds.length ? await prisma.mealLibrary.findMany({
       where: { id: { in: pageIds } },
       include: {
+        sourceRawRecipeCandidate: { select: { sourceName: true, sourceUrl: true, sourceImageUrl: true } },
         verifiedByNutritionist: { include: { user: { select: { name: true } } } },
         flags: {
           where: { status: 'PENDING' },

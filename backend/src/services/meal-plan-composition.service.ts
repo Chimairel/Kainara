@@ -50,6 +50,7 @@ import {
 import { buildBaseServingPersistence, composePlanWithPairedRice } from './meal-plan-serving.service';
 import { getMaximumAssuranceTier } from '@/domain/assurance-tier.policy';
 import { isUnrestrictedPanlasangBaseEligible } from '@/domain/unrestricted-panlasang-base.policy';
+import { adaptUserSafetyRestrictions } from '@/domain/structured-restriction.adapter';
 import { GroceryService } from './grocery.service';
 import {
   buildReviewWorkKey,
@@ -82,6 +83,13 @@ export async function generate7DayPlan(
     otherAllergies,
   } = await loadUserNutritionContext(prisma, userId, 'User profile must be initialized before generating a meal plan.');
   const highRiskReviewRequired = requiresEscalatedMealReview(userConditions, otherConditions);
+  const restrictions = adaptUserSafetyRestrictions({
+    healthConditions: userConditions, allergies: userAllergens, otherConditions, otherAllergies,
+    safetyEntries: user.safetyProfileEntries,
+  });
+  const reviewFreeBaseOnly = !restrictions.requiresReview && !restrictions.conditions.length &&
+    !restrictions.allergies.length && !restrictions.customConditions.length &&
+    !restrictions.customFoodRestrictions.length;
   const assuranceTier = getMaximumAssuranceTier(userConditions);
 
   const { age, heightCm, weightKg, goal, activityLevel, dailyCalorieTarget } = profile;
@@ -264,6 +272,7 @@ export async function generate7DayPlan(
     allergens: userAllergens,
     otherConditions,
     otherAllergies,
+    reviewFreeBaseOnly,
     localityFoodGroupScores: localizedFoodGroupScores,
     localityEvidenceText: localizedConsumption.text,
   });
@@ -311,7 +320,7 @@ export async function generate7DayPlan(
     'INGREDIENT_RECONCILIATION',
     'Checking recipe ingredients against FNRI food records.'
   );
-  const { preparedMeals: preparedAiMeals, compositionRevisions } = await prepareGeneratedMealIngredients({
+  const { preparedMeals: preparedCandidates, compositionRevisions } = await prepareGeneratedMealIngredients({
     meals: aiMeals,
     unmatchedSlots,
     startDate,
@@ -319,9 +328,19 @@ export async function generate7DayPlan(
     groundedFoodById: new Map(),
   });
   const rawSources = await prisma.rawRecipeCandidate.findMany({
-    where: { id: { in: preparedAiMeals.flatMap((meal) => meal.rawCandidateId ? [meal.rawCandidateId] : []) } },
+    where: { id: { in: preparedCandidates.flatMap((meal) => meal.rawCandidateId ? [meal.rawCandidateId] : []) } },
   });
   const sourceById = new Map(rawSources.map((source) => [source.id, source]));
+  // A general-wellness candidate with incomplete source evidence is an empty
+  // slot, never a nutritionist review task or an automatically approved plan.
+  const preparedAiMeals = reviewFreeBaseOnly
+    ? preparedCandidates.filter((meal) => isUnrestrictedPanlasangBaseEligible({
+        source: meal.rawCandidateId ? sourceById.get(meal.rawCandidateId) : null,
+        candidateId: meal.rawCandidateId,
+        conditions: userConditions, allergens: userAllergens, otherConditions, otherAllergies,
+        safetyEntries: user.safetyProfileEntries, preparedIngredients: meal.ingredientsData,
+      }))
+    : preparedCandidates;
   const unrestrictedBaseIds = new Set(
     preparedAiMeals.flatMap((meal) =>
       isUnrestrictedPanlasangBaseEligible({

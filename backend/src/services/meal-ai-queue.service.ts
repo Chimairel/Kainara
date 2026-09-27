@@ -14,6 +14,7 @@ import { getFNRISubset } from '@/lib/fnri';
 import { AiCapacityDeferredError } from './ai-capacity.service';
 import { loadUserNutritionContext } from '@/domain/user-nutrition-context';
 import { mealApprovalSafetyScope } from '@/domain/meal-approval-scope.policy';
+import { adaptUserSafetyRestrictions } from '@/domain/structured-restriction.adapter';
 import { ClinicalEvidenceService } from './clinical-evidence.service';
 import { buildMealGenerationPrompt } from '@/domain/meal-generation-cuisine.policy';
 import { buildMealGenerationResponseSchema } from '@/validation/meal-generation-response.schema';
@@ -146,6 +147,14 @@ export class MealAiQueueService {
           lastErrorCode: null, progressPct: 100, stageCode: 'COMPLETED', stageMessage: 'All meal candidates are saved.', completedAt: now,
         } });
         return;
+      }
+      const restrictions = adaptUserSafetyRestrictions({
+        healthConditions: conditions, allergies: allergens, otherConditions, otherAllergies,
+        safetyEntries: context.user.safetyProfileEntries,
+      });
+      if (!restrictions.requiresReview && !restrictions.conditions.length && !restrictions.allergies.length &&
+          !restrictions.customConditions.length && !restrictions.customFoodRestrictions.length) {
+        throw new Error('NO_REVIEW_FREE_SOURCE');
       }
       const slots = earliestMissingDay(gaps.filter(
         (slot) => slot.scheduledDate >= MealPlanCycleService.getBusinessDay(now)
@@ -300,7 +309,9 @@ export class MealAiQueueService {
       } : {
         status: MealPlanGenerationJobStatus.FAILED, processingToken: null, nextAttemptAt: null,
         lastErrorCode: String(error).slice(0, 64), stageCode: 'FAILED',
-        stageMessage: 'Some meal slots could not be prepared. Saved meals remain available for review.', completedAt: new Date(),
+        stageMessage: String(error).includes('NO_REVIEW_FREE_SOURCE')
+          ? 'Some slots have no complete source recipe yet. No nutritionist review was requested.'
+          : 'Some meal slots could not be prepared. Saved meals remain available for review.', completedAt: new Date(),
       } });
       if (!deferred) console.error('[MealAiQueue] Day generation failed:', error);
     }

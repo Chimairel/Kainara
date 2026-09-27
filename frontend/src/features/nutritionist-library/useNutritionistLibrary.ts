@@ -1,8 +1,5 @@
 import React, { useEffect, useState } from 'react';
 import api from '@/lib/axios';
-import { useAuth } from '@/hooks/useAuth';
-import { normalizeExclusiveNone } from '@/lib/profile-normalization';
-import { getApiErrorMessage } from '@/lib/api-error';
 
 export interface Flag {
   id: string;
@@ -34,6 +31,7 @@ export interface Verifier {
 
 export interface LibraryMeal {
   id: string;
+  sourceRawRecipeCandidate?: { sourceName: string; sourceUrl: string; sourceImageUrl: string | null } | null;
   mealName: string;
   mealType: string;
   applicableMealTypes?: Array<{
@@ -159,7 +157,6 @@ export const AVAILABLE_DIETS = [
 ];
 
 export function useNutritionistLibrary() {
-  const { user: currentUser } = useAuth();
   const [meals, setMeals] = useState<LibraryMeal[]>([]);
   const [totalCount, setTotalCount] = useState(0);
   const [page, setPage] = useState(1);
@@ -173,42 +170,8 @@ export function useNutritionistLibrary() {
   const [search, setSearch] = useState('');
   const [mealType, setMealType] = useState('All');
   const [conditionTag, setConditionTag] = useState('All');
-  const [status, setStatus] = useState('All');
   const [verifiedByMe, setVerifiedByMe] = useState(false);
   const [adminDraftsOnly, setAdminDraftsOnly] = useState(false);
-
-  // Modal / Action States
-  const [activeModal, setActiveModal] = useState<
-    'view' | 'approvals' | 'edit' | 'delete' | 'flag' | 'resolve' | 'verifier' | 'certify' | 'prepare' | null
-  >(null);
-  const [selectedMeal, setSelectedMeal] = useState<LibraryMeal | null>(null);
-  const [selectedVerifier, setSelectedVerifier] = useState<Verifier | null>(null);
-
-  // Form input states
-  const [editForm, setEditForm] = useState({
-    mealName: '',
-    description: '',
-    calories: 0,
-    proteinG: 0,
-    carbsG: 0,
-    fatG: 0,
-    suitableConditions: [] as string[],
-    allergenFree: [] as string[],
-    dietaryTags: [] as string[],
-    applicableMealTypes: [] as string[],
-    riceRole: 'STANDALONE' as 'PAIR_WITH_RICE' | 'STANDALONE' | 'INCLUDES_RICE',
-    includedRiceG: null as number | null,
-  });
-  const [flagReason, setFlagReason] = useState('');
-  const [evidenceForm, setEvidenceForm] = useState({
-    allergensPresent: [] as string[],
-    allergensReviewedAbsent: [] as string[],
-    crossContactAcknowledged: false,
-    usdaUseAccepted: false,
-    usdaRationale: '',
-  });
-  const [actionLoading, setActionLoading] = useState(false);
-  const [actionError, setActionError] = useState<string | null>(null);
 
   // Debounce search query
   useEffect(() => {
@@ -228,7 +191,6 @@ export function useNutritionistLibrary() {
           search,
           mealType: mealType === 'All' ? undefined : mealType,
           conditionTag: conditionTag === 'All' ? undefined : conditionTag,
-          status: status === 'All' ? undefined : status,
           verifiedByMe: verifiedByMe ? 'true' : undefined,
           adminDraftsOnly: adminDraftsOnly ? 'true' : undefined,
           page,
@@ -260,268 +222,16 @@ export function useNutritionistLibrary() {
   useEffect(() => {
     fetchLibrary();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [search, mealType, conditionTag, status, verifiedByMe, adminDraftsOnly, page]);
+  }, [search, mealType, conditionTag, verifiedByMe, adminDraftsOnly, page]);
 
   useEffect(() => {
     fetchCoverage();
   }, [fetchCoverage]);
 
-  // Check if current user is owner or admin (for override checks)
-  const isOwner = (meal: LibraryMeal) => {
-    if (!currentUser) return false;
-    return meal.verifiedByNutritionist?.userId === currentUser.userId || currentUser.role === 'ADMIN';
-  };
-
-  // Open Edit Modal & Populate Form
-  const handleOpenEdit = (meal: LibraryMeal) => {
-    setSelectedMeal(meal);
-    setEditForm({
-      mealName: meal.mealName,
-      description: meal.description || '',
-      calories: meal.calories,
-      proteinG: meal.proteinG,
-      carbsG: meal.carbsG,
-      fatG: meal.fatG,
-      suitableConditions: normalizeExclusiveNone(meal.suitableConditions),
-      allergenFree: normalizeExclusiveNone(meal.allergenFree),
-      dietaryTags: (meal.dietaryTags || []) as string[],
-      applicableMealTypes: meal.applicableMealTypes?.map((entry) => entry.mealType) ?? [meal.mealType],
-      riceRole: meal.riceRole ?? 'STANDALONE',
-      includedRiceG: meal.includedRiceG ?? null,
-    });
-    setActionError(null);
-    setActiveModal('edit');
-  };
-
-  const handleOpenCertification = (meal: LibraryMeal) => {
-    setSelectedMeal(meal);
-    setEvidenceForm({
-      allergensPresent: [],
-      allergensReviewedAbsent: normalizeExclusiveNone(meal.allergenFree),
-      crossContactAcknowledged: meal.crossContactAssessment === 'ASSESSED_NO_KNOWN_RISK',
-      usdaUseAccepted: false,
-      usdaRationale: '',
-    });
-    setActionError(null);
-    setActiveModal('certify');
-  };
-
-  const handleCertificationSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!selectedMeal || !evidenceForm.crossContactAcknowledged) return;
-
-    setActionLoading(true);
-    setActionError(null);
-    try {
-      const allergenCount = evidenceForm.allergensPresent.length + evidenceForm.allergensReviewedAbsent.length;
-      const res = await api.post(`/nutritionist/library/${selectedMeal.id}/safety-evidence/certify`, {
-        expectedRevision: selectedMeal.safetyEvidenceRevision,
-        conditionDeclarationState: 'NOT_REVIEWED',
-        allergenDeclarationState: allergenCount > 0 ? 'REVIEWED_WITH_DECLARATIONS' : 'REVIEWED_NONE_DECLARED',
-        crossContactAssessment: 'ASSESSED_NO_KNOWN_RISK',
-        suitableConditions: [],
-        allergensPresent: evidenceForm.allergensPresent,
-        allergensReviewedAbsent: evidenceForm.allergensReviewedAbsent,
-        usdaUseAccepted: evidenceForm.usdaUseAccepted,
-        usdaRationale: evidenceForm.usdaRationale || undefined,
-      });
-      if (res.data?.success) {
-        if (res.data.data?.certificationAwaitingSecondReview) {
-          setActionError(
-            'First review recorded. A different nutritionist must submit the same kidney/pregnancy evidence before certification.'
-          );
-          await fetchLibrary();
-          return;
-        }
-        await Promise.all([fetchLibrary(), fetchCoverage()]);
-        setActiveModal(null);
-      }
-    } catch (err: unknown) {
-      setActionError(getApiErrorMessage(err, 'Failed to certify the current evidence revision.'));
-    } finally {
-      setActionLoading(false);
-    }
-  };
-
-  // Submit Edit Mutation
-  const handleEditSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!selectedMeal) return;
-
-    setActionLoading(true);
-    setActionError(null);
-    try {
-      const res = await api.patch(`/nutritionist/library/${selectedMeal.id}`, {
-        mealName: editForm.mealName,
-        description: editForm.description,
-        calories: editForm.calories,
-        proteinG: editForm.proteinG,
-        carbsG: editForm.carbsG,
-        fatG: editForm.fatG,
-        dietaryTags: editForm.dietaryTags,
-        applicableMealTypes: editForm.applicableMealTypes,
-        riceRole: editForm.riceRole,
-        includedRiceG: editForm.riceRole === 'INCLUDES_RICE' ? editForm.includedRiceG : null,
-      });
-      if (res.data?.success) {
-        await Promise.all([fetchLibrary(), fetchCoverage()]);
-        setActiveModal(null);
-      }
-    } catch (err: unknown) {
-      setActionError(getApiErrorMessage(err, 'Failed to update library meal.'));
-    } finally {
-      setActionLoading(false);
-    }
-  };
-
-  // Submit Delete Mutation
-  const handleDeleteSubmit = async () => {
-    if (!selectedMeal) return;
-
-    setActionLoading(true);
-    setActionError(null);
-    try {
-      const res = await api.delete(`/nutritionist/library/${selectedMeal.id}`);
-      if (res.data?.success) {
-        await Promise.all([fetchLibrary(), fetchCoverage()]);
-        setActiveModal(null);
-      }
-    } catch (err: unknown) {
-      setActionError(getApiErrorMessage(err, 'Failed to delete library meal.'));
-    } finally {
-      setActionLoading(false);
-    }
-  };
-
-  // Submit Flag Mutation
-  const handleFlagSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!selectedMeal || !flagReason.trim()) return;
-
-    setActionLoading(true);
-    setActionError(null);
-    try {
-      const res = await api.post(`/nutritionist/library/${selectedMeal.id}/flag`, { reason: flagReason });
-      if (res.data?.success) {
-        await Promise.all([fetchLibrary(), fetchCoverage()]);
-        setActiveModal(null);
-        setFlagReason('');
-      }
-    } catch (err: unknown) {
-      setActionError(getApiErrorMessage(err, 'Failed to submit flag.'));
-    } finally {
-      setActionLoading(false);
-    }
-  };
-
-  // Submit Resolve Flag Mutation
-  const handleResolveFlag = async (resolution: 'edit' | 'delete' | 'dismiss') => {
-    if (!selectedMeal) return;
-
-    setActionLoading(true);
-    setActionError(null);
-    try {
-      const payload = {
-        resolution,
-        updatedFields:
-          resolution === 'edit'
-            ? {
-                mealName: editForm.mealName,
-                description: editForm.description,
-                calories: editForm.calories,
-                proteinG: editForm.proteinG,
-                carbsG: editForm.carbsG,
-                fatG: editForm.fatG,
-                dietaryTags: editForm.dietaryTags,
-                applicableMealTypes: editForm.applicableMealTypes,
-                riceRole: editForm.riceRole,
-                includedRiceG: editForm.riceRole === 'INCLUDES_RICE' ? editForm.includedRiceG : null,
-              }
-            : undefined,
-      };
-      const res = await api.patch(`/nutritionist/library/${selectedMeal.id}/resolve-flag`, payload);
-      if (res.data?.success) {
-        await Promise.all([fetchLibrary(), fetchCoverage()]);
-        setActiveModal(null);
-      }
-    } catch (err: unknown) {
-      setActionError(getApiErrorMessage(err, 'Failed to resolve flag.'));
-    } finally {
-      setActionLoading(false);
-    }
-  };
-
-  // Helper toggle arrays
-  const handleToggleDiet = (val: string) => {
-    setEditForm((prev) => ({
-      ...prev,
-      dietaryTags: prev.dietaryTags.includes(val)
-        ? prev.dietaryTags.filter((d) => d !== val)
-        : [...prev.dietaryTags, val],
-    }));
-  };
-
-  const setEvidenceAllergen = (value: string, mode: 'present' | 'absent' | 'clear') => {
-    setEvidenceForm((current) => ({
-      ...current,
-      allergensPresent:
-        mode === 'present'
-          ? [...current.allergensPresent.filter((item) => item !== value), value]
-          : current.allergensPresent.filter((item) => item !== value),
-      allergensReviewedAbsent:
-        mode === 'absent'
-          ? [...current.allergensReviewedAbsent.filter((item) => item !== value), value]
-          : current.allergensReviewedAbsent.filter((item) => item !== value),
-    }));
-  };
-
   return {
-    meals,
-    totalCount,
-    page,
-    setPage,
-    totalPages,
-    isLoading,
-    fetchError,
-    coverage,
-    searchVal,
-    setSearchVal,
-    mealType,
-    setMealType,
-    conditionTag,
-    setConditionTag,
-    status,
-    setStatus,
-    verifiedByMe,
-    setVerifiedByMe,
-    adminDraftsOnly,
-    setAdminDraftsOnly,
-    activeModal,
-    setActiveModal,
-    selectedMeal,
-    setSelectedMeal,
-    selectedVerifier,
-    setSelectedVerifier,
-    editForm,
-    setEditForm,
-    flagReason,
-    setFlagReason,
-    evidenceForm,
-    setEvidenceForm,
-    actionLoading,
-    actionError,
-    setActionError,
-    fetchLibrary,
-    fetchCoverage,
-    isOwner,
-    handleOpenEdit,
-    handleOpenCertification,
-    handleCertificationSubmit,
-    handleEditSubmit,
-    handleDeleteSubmit,
-    handleFlagSubmit,
-    handleResolveFlag,
-    handleToggleDiet,
-    setEvidenceAllergen,
+    meals, totalCount, page, setPage, totalPages, isLoading, fetchError,
+    coverage, searchVal, setSearchVal, mealType, setMealType,
+    conditionTag, setConditionTag, verifiedByMe, setVerifiedByMe,
+    adminDraftsOnly, setAdminDraftsOnly, fetchLibrary, fetchCoverage,
   };
 }

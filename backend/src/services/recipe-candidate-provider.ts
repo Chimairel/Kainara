@@ -24,6 +24,7 @@ export interface RecipeCandidateProjection {
     fnriMappingVersion?: string;
   }>;
   ingredientsComplete: boolean;
+  reviewFreeBaseEligible?: boolean;
   nutrition: { calories: number; proteinG: number; carbsG: number; fatG: number } | null;
   servingDescription: string | null;
   riceRole: RecipeRiceRole | null;

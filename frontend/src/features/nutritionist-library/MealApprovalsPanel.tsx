@@ -1,7 +1,6 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import Modal from '@/components/ui/Modal';
 import Button from '@/components/ui/Button';
 import api from '@/lib/axios';
 import { getApiErrorMessage } from '@/lib/api-error';
@@ -41,10 +40,8 @@ function contextLabel(scope: unknown): string {
   return parts.join(' · ');
 }
 
-export function MealApprovalsModal({ mealId, mealName, onClose }: {
+export function MealApprovalsPanel({ mealId }: {
   mealId: string;
-  mealName: string;
-  onClose: () => void;
 }) {
   const [variants, setVariants] = useState<Variant[]>([]);
   const [loading, setLoading] = useState(true);
@@ -54,6 +51,7 @@ export function MealApprovalsModal({ mealId, mealName, onClose }: {
   const [recheckTarget, setRecheckTarget] = useState<{ variantId: string; approval: Approval } | null>(null);
   const [reason, setReason] = useState('');
   const [reviewNote, setReviewNote] = useState('');
+  const [filter, setFilter] = useState<'ALL' | 'ACTIVE' | 'FLAGGED' | 'REVIEW_DUE'>('ALL');
 
   const reload = useCallback(async () => {
     setLoading(true);
@@ -107,14 +105,34 @@ export function MealApprovalsModal({ mealId, mealName, onClose }: {
     }
   }
 
+  const filteredVariants = variants.map((variant) => ({
+    ...variant,
+    approvals: variant.approvals.filter((approval) => filter === 'ALL' || approval.status === filter),
+  }));
+
   return (
-    <Modal isOpen onClose={onClose} title={`${mealName} approvals`} size="xl"
-      description="Each approval applies to its recorded ingredients, serving and health context.">
+    <section aria-labelledby="meal-approvals-heading" className="space-y-4 rounded-2xl border border-brand-border bg-brand-surface/60 p-5">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h2 id="meal-approvals-heading" className="font-display text-xl font-bold text-brand-text">Approvals</h2>
+          <p className="text-xs text-brand-muted">Each approval applies to its recorded ingredients, serving, and health context.</p>
+        </div>
+        <label className="flex items-center gap-2 text-xs font-semibold text-brand-muted">
+          Show
+          <select aria-label="Filter approvals" value={filter} onChange={(event) => setFilter(event.target.value as typeof filter)}
+            className="rounded-lg border border-brand-border bg-brand-bg px-3 py-2 text-brand-text">
+            <option value="ALL">All approvals</option>
+            <option value="ACTIVE">Current</option>
+            <option value="FLAGGED">Flagged</option>
+            <option value="REVIEW_DUE">Scheduled recheck due</option>
+          </select>
+        </label>
+      </div>
       <div className="space-y-4">
         {error && <p role="alert" className="rounded-xl border border-red-500/40 p-3 text-red-300">{error}</p>}
-        {loading ? <p className="text-brand-muted">Loading approvals...</p> : variants.every((variant) => variant.approvals.length === 0) ? (
-          <p className="rounded-xl border border-brand-border p-4 text-brand-muted">No reusable approvals are recorded for this recipe yet.</p>
-        ) : variants.map((variant) => variant.approvals.length > 0 && (
+        {loading ? <p className="text-brand-muted">Loading approvals...</p> : filteredVariants.every((variant) => variant.approvals.length === 0) ? (
+          <p className="rounded-xl border border-brand-border p-4 text-brand-muted">{filter === 'ALL' ? 'No reusable approvals are recorded for this recipe yet.' : 'No approvals match this filter.'}</p>
+        ) : filteredVariants.map((variant) => variant.approvals.length > 0 && (
           <section key={variant.id} className="space-y-3 rounded-2xl border border-brand-border p-4">
             <div>
               <h3 className="font-bold">{variant.mealName}</h3>
@@ -184,6 +202,6 @@ export function MealApprovalsModal({ mealId, mealName, onClose }: {
           </div>
         </div>}
       </div>
-    </Modal>
+    </section>
   );
 }

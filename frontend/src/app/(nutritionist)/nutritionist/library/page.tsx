@@ -1,23 +1,23 @@
 'use client';
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import Badge from '@/components/ui/Badge';
 import PortalPageHeader from '@/components/shared/PortalPageHeader';
-import { BookOpen, Soup, Stethoscope, ShieldAlert, Flag } from 'lucide-react';
-import { normalizeExclusiveNone } from '@/lib/profile-normalization';
+import { ArrowLeft, BookOpen, Soup, ShieldAlert } from 'lucide-react';
 
 import {
-  AVAILABLE_ALLERGENS,
   AVAILABLE_CONDITIONS,
   useNutritionistLibrary,
 } from '@/features/nutritionist-library/useNutritionistLibrary';
-import { NutritionistLibraryModals } from '@/features/nutritionist-library/NutritionistLibraryModals';
-import { libraryEvidenceStatus } from '@/features/nutritionist-library/libraryEvidenceStatus';
+import { MealApprovalsPanel } from '@/features/nutritionist-library/MealApprovalsPanel';
+import type { LibraryMeal } from '@/features/nutritionist-library/useNutritionistLibrary';
 
 export default function MealLibraryPage() {
   const [section, setSection] = useState<'recipes' | 'coverage'>('recipes');
+  const [viewedMeal, setViewedMeal] = useState<LibraryMeal | null>(null);
+  const listScrollTop = useRef(0);
   const workspace = useNutritionistLibrary();
   const {
     meals,
@@ -34,16 +34,72 @@ export default function MealLibraryPage() {
     setMealType,
     conditionTag,
     setConditionTag,
-    status,
-    setStatus,
     verifiedByMe,
     setVerifiedByMe,
     adminDraftsOnly,
     setAdminDraftsOnly,
-    setActiveModal,
-    setSelectedMeal,
-    setSelectedVerifier,
   } = workspace;
+
+  if (viewedMeal) {
+    const source = viewedMeal.sourceRawRecipeCandidate;
+    return (
+      <div className="portal-page space-y-6">
+        <button type="button" onClick={() => {
+          setViewedMeal(null);
+          requestAnimationFrame(() => document.querySelector('main.portal-main')?.scrollTo({ top: listScrollTop.current }));
+        }}
+          className="inline-flex items-center gap-2 text-sm font-bold text-brand-green hover:underline">
+          <ArrowLeft className="h-4 w-4" aria-hidden="true" /> Back to meal library
+        </button>
+        <header className="flex flex-col gap-5 rounded-2xl border border-brand-border bg-brand-surface/60 p-5 md:flex-row md:items-center">
+          {source?.sourceImageUrl ? (
+            // The recipe publisher supplies the image URL; a failed image leaves the details usable.
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={source.sourceImageUrl} alt={viewedMeal.mealName}
+              className="h-36 w-full rounded-xl object-cover md:w-52" />
+          ) : <div className="flex h-36 w-full items-center justify-center rounded-xl bg-brand-bg text-brand-muted md:w-52"><Soup className="h-12 w-12" /></div>}
+          <div>
+            <p className="text-xs font-bold uppercase tracking-widest text-brand-green">
+              {viewedMeal.mealType} · {source?.sourceName === 'PANLASANG_PINOY' ? 'Panlasang Pinoy base recipe' : 'Recorded recipe'}
+            </p>
+            <h1 className="mt-2 font-display text-3xl font-black text-brand-text">{viewedMeal.mealName}</h1>
+            {source?.sourceUrl && <a href={source.sourceUrl} target="_blank" rel="noopener noreferrer"
+              className="mt-3 inline-block text-sm font-semibold text-brand-green underline">View original recipe ↗</a>}
+          </div>
+        </header>
+        <section className="space-y-5 rounded-2xl border border-brand-border bg-brand-surface/60 p-5" aria-label="Meal details">
+          <div>
+            <h2 className="font-display text-xl font-bold text-brand-text">Recipe details</h2>
+            <p className="mt-2 whitespace-pre-line text-sm leading-relaxed text-brand-muted">{viewedMeal.description || 'No description recorded.'}</p>
+          </div>
+          <dl className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+            {([['Calories', `${viewedMeal.calories} kcal`], ['Protein', `${viewedMeal.proteinG} g`],
+              ['Carbs', `${viewedMeal.carbsG} g`], ['Fat', `${viewedMeal.fatG} g`]] as const).map(([label, value]) => (
+              <div key={label} className="rounded-xl border border-brand-border bg-brand-bg/50 p-3">
+                <dt className="text-xs text-brand-muted">{label}</dt><dd className="mt-1 font-bold text-brand-text">{value}</dd>
+              </div>
+            ))}
+          </dl>
+          {viewedMeal.nutritionServingDescription && <p className="text-xs text-brand-muted">Serving: {viewedMeal.nutritionServingDescription}</p>}
+          <div>
+            <h3 className="text-sm font-bold text-brand-text">Ingredients</h3>
+            <ul className="mt-2 grid gap-2 sm:grid-cols-2">
+              {(viewedMeal.ingredients || []).map((ingredient) => (
+                <li key={ingredient.id} className="rounded-lg border border-brand-border bg-brand-bg/50 px-3 py-2 text-xs text-brand-text">
+                  {ingredient.ingredientName}{ingredient.quantity != null ? ` · ${ingredient.quantity} ${ingredient.unit || ''}` : ''}
+                </li>
+              ))}
+            </ul>
+            {!viewedMeal.ingredients?.length && <p className="mt-2 text-xs text-brand-muted">No ingredient snapshot recorded.</p>}
+          </div>
+          {viewedMeal.safetyReviews?.[0]?.evidenceSnapshot?.nutritionBasis && (
+            <p className="text-xs text-brand-muted">Nutrition source notes: {viewedMeal.safetyReviews[0].evidenceSnapshot.nutritionBasis}</p>
+          )}
+        </section>
+        <MealApprovalsPanel mealId={viewedMeal.id} />
+      </div>
+    );
+  }
 
   return (
     <div className="portal-page space-y-6">
@@ -290,29 +346,6 @@ export default function MealLibraryPage() {
           </div>
 
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pt-2 border-t border-brand-border/40">
-            <div className="flex gap-4">
-              {/* Status Filter */}
-              <div className="flex items-center gap-2">
-                <label htmlFor="library-status" className="text-xs font-bold text-brand-muted uppercase">
-                  Status:
-                </label>
-                <select
-                  id="library-status"
-                  value={status}
-                  onChange={(e) => {
-                    setStatus(e.target.value);
-                    setPage(1);
-                  }}
-                  className="bg-brand-bg border border-brand-border rounded-lg px-2.5 py-1.5 text-xs text-brand-text focus:outline-none focus:border-brand-green/80"
-                >
-                  <option value="All">All Statuses</option>
-                  <option value="APPROVED">Approved</option>
-                  <option value="FLAGGED">Flagged</option>
-                  <option value="ARCHIVED">Archived</option>
-                </select>
-              </div>
-            </div>
-
             {/* Owner filter */}
             <label className="flex items-center gap-2.5 cursor-pointer select-none py-1 text-xs font-bold text-brand-text">
               <input
@@ -373,19 +406,14 @@ export default function MealLibraryPage() {
           <div className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {meals.map((meal) => {
-                const isFlagged = meal.status === 'FLAGGED';
                 const isAdminDraft =
                   meal.safetyEvidenceStatus === 'INCOMPLETE' &&
                   meal.safetyReviews?.some((review) => review.reasonCode === 'ADMIN_AUTHORED_DRAFT');
-                const activeFlag = meal.flags?.[0];
-                const evidenceStatus = libraryEvidenceStatus(meal);
 
                 return (
                   <Card
                     key={meal.id}
-                    className={`relative p-5 border-brand-border/60 overflow-hidden flex flex-col justify-between transition-all duration-300 hover:border-brand-border-hover hover:shadow-lg ${
-                      isFlagged ? 'border-amber-900/60 bg-amber-950/5' : ''
-                    }`}
+                    className="relative p-5 border-brand-border/60 overflow-hidden flex flex-col justify-between transition-all duration-300 hover:border-brand-border-hover hover:shadow-lg"
                   >
                     <div>
                       {/* Top tags & status */}
@@ -393,24 +421,10 @@ export default function MealLibraryPage() {
                         <span className="text-[10px] font-bold text-brand-green bg-brand-green/10 border border-brand-green/20 px-2.5 py-1 rounded-md tracking-wider uppercase font-display">
                           {meal.mealType}
                         </span>
-                        <div className="flex gap-1.5">
-                          <span
-                            className={`rounded-full border px-2 py-1 text-[9px] font-bold uppercase tracking-wide ${
-                              evidenceStatus.label === 'Verified for reuse'
-                                ? 'border-brand-green/40 bg-brand-green/10 text-brand-green'
-                                : meal.safetyEvidenceStatus === 'STALE'
-                                  ? 'border-amber-700/50 bg-amber-950/20 text-amber-300'
-                                  : 'border-brand-border/60 bg-brand-bg/60 text-brand-muted'
-                            }`}
-                          >
-                            {evidenceStatus.label}
-                          </span>
-                        </div>
                       </div>
 
                       {/* Meal details */}
                       <h3 className="text-base font-bold text-brand-text leading-snug">{meal.mealName}</h3>
-                      <p className="mt-1 text-xs text-brand-muted">{evidenceStatus.next}</p>
                       {meal.description && (
                         <p className="text-xs text-brand-muted line-clamp-2 mt-1.5 leading-relaxed">
                           {meal.description}
@@ -437,60 +451,13 @@ export default function MealLibraryPage() {
                         </div>
                       </div>
 
-                      {/* Suitability details */}
-                      <div className="flex flex-wrap gap-1.5 mb-4">
-                        {normalizeExclusiveNone(meal.suitableConditions).map((cond) => (
-                          <span
-                            key={cond}
-                            className="text-[10px] bg-brand-border/30 text-brand-text px-2 py-0.5 rounded border border-brand-border/50 flex items-center gap-1"
-                          >
-                            <Stethoscope className="w-3 h-3 text-brand-green" />{' '}
-                            {AVAILABLE_CONDITIONS.find((c) => c.value === cond)?.label || cond}
-                          </span>
-                        ))}
-                        {normalizeExclusiveNone(meal.allergenFree).map((alg) => (
-                          <span
-                            key={alg}
-                            className="text-[10px] bg-brand-border/30 text-brand-text px-2 py-0.5 rounded border border-brand-border/50 flex items-center gap-1"
-                          >
-                            <ShieldAlert className="w-3 h-3 text-brand-green" />{' '}
-                            {AVAILABLE_ALLERGENS.find((a) => a.value === alg)?.label || alg}
-                          </span>
-                        ))}
-                      </div>
-
-                      {/* Flag Alert Warning banner */}
-                      {isFlagged && activeFlag && (
-                        <div className="p-3 bg-amber-950/20 border border-amber-900/40 rounded-xl text-xs text-amber-200/90 leading-relaxed mb-4">
-                          <span className="font-bold flex items-center gap-1 mb-1">
-                            <Flag className="w-3.5 h-3.5 text-amber-500 fill-amber-500" /> Flagged for Re-Review:
-                          </span>
-                          &quot;{activeFlag.reason}&quot; —{' '}
-                          <span className="font-semibold">{activeFlag.flaggedByNutritionist?.user?.name}</span>
-                        </div>
-                      )}
                     </div>
 
                     {/* Verifier Badge & Actions footer */}
                     <div className="flex items-center justify-between border-t border-brand-border/40 pt-4 mt-2">
-                      {/* Verifier credentials */}
+                      {/* Base recipe provenance */}
                       <div className="text-[11px] text-brand-muted">
-                        <span>Verifier: </span>
-                        {meal.verifiedByNutritionist ? (
-                          <button
-                            onClick={() => {
-                              setSelectedVerifier(meal.verifiedByNutritionist!);
-                              setActiveModal('verifier');
-                            }}
-                            className="font-bold text-brand-green hover:underline cursor-pointer"
-                          >
-                            {meal.verifiedByNutritionist.user.name}
-                          </button>
-                        ) : (
-                          <span className="italic">
-                            {isAdminDraft ? 'Awaiting RND certification' : 'System / Unknown'}
-                          </span>
-                        )}
+                        <span>{meal.sourceRawRecipeCandidate?.sourceName === 'PANLASANG_PINOY' ? 'Panlasang Pinoy base recipe' : isAdminDraft ? 'Admin recipe draft' : 'Recorded recipe'}</span>
                         <span className="block mt-0.5">Used {meal.usageCount}x</span>
                       </div>
 
@@ -499,19 +466,16 @@ export default function MealLibraryPage() {
                         <Button
                           variant="secondary"
                           onClick={() => {
-                            setSelectedMeal(meal);
-                            setActiveModal('view');
+                            const main = document.querySelector('main.portal-main');
+                            listScrollTop.current = main?.scrollTop ?? 0;
+                            setViewedMeal(meal);
+                            requestAnimationFrame(() => main?.scrollTo({ top: 0 }));
                           }}
                           className="!px-3 !py-1.5 !h-8 text-xs font-semibold"
                         >
                           View
                         </Button>
 
-                        <Button variant="secondary"
-                          onClick={() => { setSelectedMeal(meal); setActiveModal('approvals'); }}
-                          className="!px-3 !py-1.5 !h-8 text-xs font-semibold">
-                          Approvals
-                        </Button>
                       </div>
                     </div>
                   </Card>
@@ -552,7 +516,6 @@ export default function MealLibraryPage() {
         {/* MODALS SECTION */}
         {/* ──────────────────────────────────────────────────────── */}
       </div>
-      <NutritionistLibraryModals workspace={workspace} />
     </div>
   );
 }

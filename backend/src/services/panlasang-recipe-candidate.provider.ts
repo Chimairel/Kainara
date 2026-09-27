@@ -6,6 +6,7 @@ import type {
   RecipeCandidateProvider,
   RecipeCandidateProvenance,
 } from './recipe-candidate-provider';
+import { isUnrestrictedPanlasangBaseEligible } from '@/domain/unrestricted-panlasang-base.policy';
 
 type Row = Prisma.RawRecipeCandidateGetPayload<{ include: { applicableMealTypes: true } }>;
 
@@ -77,6 +78,12 @@ function project(row: Row): RecipeCandidateProjection {
     ),
     ingredients: parsedIngredients,
     ingredientsComplete: parsedIngredients.length > 0 && parsedIngredients.every((item) => item.quantity !== undefined),
+    reviewFreeBaseEligible: isUnrestrictedPanlasangBaseEligible({
+      source: row,
+      candidateId: row.id,
+      conditions: [], allergens: [],
+      preparedIngredients: parsedIngredients.map((item) => ({ ingredientName: item.name, quantity: item.quantity, unit: item.unit })),
+    }),
     nutrition,
     servingDescription: row.originalServings ? `Original recipe yields ${row.originalServings} servings` : null,
     riceRole: row.riceRole,

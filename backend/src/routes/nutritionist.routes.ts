@@ -14,9 +14,7 @@ import {
 } from '@/services/nutritionist-library-nutrition-evidence.service';
 import validateZodBody, { validateZodRequest } from '@/middleware/validateZod';
 import {
-  libraryFlagResolutionSchema,
   libraryMealEditSchema,
-  libraryMealFlagSchema,
   nutritionistReviewActionSchema,
   regenerateCandidateSchema,
   replaceAndApproveSchema,
@@ -658,56 +656,6 @@ router.delete('/library/:id', async (req: AuthenticatedRequest, res: Response) =
       .json({ success: false, error: sanitizeErrorMessage(error, 'Failed to delete library meal.') });
   }
 });
-
-/**
- * POST /api/nutritionist/library/:id/flag
- * Flag a meal for re-review (Only allowed if requester is NOT original verifier).
- */
-router.post(
-  '/library/:id/flag',
-  validateZodBody(libraryMealFlagSchema),
-  async (req: AuthenticatedRequest, res: Response) => {
-    try {
-      const { reason } = req.body;
-      if (!reason) return res.status(400).json({ success: false, error: 'Flag reason is required.' });
-
-      const flag = await NutritionistService.flagLibraryMeal(req.user!.userId, req.params.id, reason);
-      return res.status(201).json({ success: true, data: flag });
-    } catch (error: any) {
-      return res
-        .status(400)
-        .json({ success: false, error: sanitizeErrorMessage(error, 'Failed to flag library meal.') });
-    }
-  }
-);
-
-/**
- * PATCH /api/nutritionist/library/:id/resolve-flag
- * Resolve pending flags (Only original verifier or admin override).
- */
-router.patch(
-  '/library/:id/resolve-flag',
-  validateZodBody(libraryFlagResolutionSchema),
-  async (req: AuthenticatedRequest, res: Response) => {
-    try {
-      const { resolution, updatedFields } = req.body;
-      if (!resolution) return res.status(400).json({ success: false, error: 'Resolution action is required.' });
-
-      const result = await NutritionistService.resolveLibraryMealFlag(
-        req.user!.userId,
-        req.user!.role,
-        req.params.id,
-        resolution,
-        updatedFields
-      );
-      return res.status(200).json({ success: true, data: result });
-    } catch (error: any) {
-      return res
-        .status(400)
-        .json({ success: false, error: sanitizeErrorMessage(error, 'Failed to resolve library meal flag.') });
-    }
-  }
-);
 
 /**
  * GET /api/nutritionist/approved

@@ -60,6 +60,7 @@ export function selectRawRecipeCandidates(input: {
   dietaryPreference: DietaryPreference;
   allergens: readonly string[];
   otherAllergies?: string | null;
+  reviewFreeBaseOnly?: boolean;
 }): { meals: SourcedRawRecipeMeal[]; remainingSlots: RawCandidateSlot[] } {
   const meals: SourcedRawRecipeMeal[] = [];
   const usedIds = new Set<string>();
@@ -74,6 +75,7 @@ export function selectRawRecipeCandidates(input: {
       if (!candidate.applicableMealTypes.includes(slot.mealType)) return false;
       if (!candidate.dietaryTags.includes(input.dietaryPreference)) return false;
       if (!candidate.nutrition || candidate.ingredients.length === 0) return false;
+      if (input.reviewFreeBaseOnly && !candidate.reviewFreeBaseEligible) return false;
       // Reject definite conflicts; unknown facts stay pending for RND review.
       return validateGeneratedMealCandidate({
         ingredients: candidate.ingredients,
@@ -119,6 +121,7 @@ export async function sourceRawRecipeCandidates(input: {
   allergens: readonly string[];
   otherConditions?: string | null;
   otherAllergies?: string | null;
+  reviewFreeBaseOnly?: boolean;
   excludeCandidateIds?: readonly string[];
   localityFoodGroupScores?: ReadonlyMap<EnnsFoodGroupCode, number>;
   localityEvidenceText?: string;
@@ -126,7 +129,9 @@ export async function sourceRawRecipeCandidates(input: {
   if (input.slots.length === 0) return { meals: [], remainingSlots: [] };
   const assuranceTier = getMaximumAssuranceTier(input.conditions);
   const mealTypes = [...new Set(input.slots.map((slot) => slot.mealType))];
-  const sources = ['PANLASANG_PINOY', 'USER_OBSERVED'] as const;
+  const sources = input.reviewFreeBaseOnly
+    ? (['PANLASANG_PINOY'] as const)
+    : (['PANLASANG_PINOY', 'USER_OBSERVED'] as const);
   const candidatePools = new Map<MealType, RankedCandidate[]>(mealTypes.map((mealType) => [mealType, []]));
   const nextCursor = new Map<string, string | null>();
   const pagesFetched = new Map<string, number>();
@@ -199,6 +204,7 @@ export async function sourceRawRecipeCandidates(input: {
       dietaryPreference: input.dietaryPreference,
       allergens: input.allergens,
       otherAllergies: input.otherAllergies,
+      reviewFreeBaseOnly: input.reviewFreeBaseOnly,
     });
   let selected = select();
   // Read further bounded pages only when the first shortlist cannot fill a slot.
