@@ -13,6 +13,12 @@ type Detail = QueueItem & {
   dailyCalorieTarget: number | null; customConditions: string[]; customFoodRestrictions: string[];
   requirements: Array<{ area: string; state: string; message: string }>;
   documents: Array<{ id: string; area: string; status: string; originalFileName: string }>;
+  nutritionGuidance: null | {
+    version: number; generatedAt: string; acknowledgedAt: string | null; isCurrent: boolean;
+    summary: string; referenceItems: Array<{
+      heading: string; value: string; explanation: string; sourceTitle: string; sourceUrl: string;
+    }>;
+  };
 };
 
 export default function ClinicalProfileReviewPanel() {
@@ -59,6 +65,15 @@ export default function ClinicalProfileReviewPanel() {
       {detail ? <div className="space-y-4 rounded-xl border border-brand-border p-4">
         <div><h2 className="font-bold">{detail.name}</h2><p className="text-sm text-brand-muted">Age {detail.age ?? 'not recorded'} · {detail.goal ?? 'no goal'} · {detail.dietaryPreference ?? 'no diet preference'} · {detail.dailyCalorieTarget ?? 'no target'} kcal/day</p></div>
         <div className="grid gap-3 sm:grid-cols-2"><div><h3 className="text-sm font-bold">Conditions</h3><p className="text-sm">{[...detail.conditions.filter((value) => value !== 'NONE'), ...detail.customConditions].join(', ') || 'None declared'}</p></div><div><h3 className="text-sm font-bold">Allergies and food restrictions</h3><p className="text-sm">{[...detail.allergies.filter((value) => value !== 'NONE'), ...detail.customFoodRestrictions].join(', ') || 'None declared'}</p></div></div>
+        <section className="rounded-xl border border-brand-border p-4" aria-label="Nutrition guidance">
+          <div className="flex flex-wrap items-center gap-2"><h3 className="text-sm font-bold">Nutrition guidance</h3>{detail.nutritionGuidance && <span className={`rounded-full border px-2 py-0.5 text-xs ${detail.nutritionGuidance.isCurrent ? 'border-brand-green text-brand-green' : 'border-amber-500/40 text-amber-400'}`}>{detail.nutritionGuidance.isCurrent ? 'Current profile' : 'Out of date'}</span>}</div>
+          {detail.nutritionGuidance ? <>
+            <p className="mt-1 text-xs text-brand-muted">Version {detail.nutritionGuidance.version} · Prepared {new Date(detail.nutritionGuidance.generatedAt).toLocaleDateString()} · {detail.nutritionGuidance.acknowledgedAt ? 'Acknowledged by user' : 'Awaiting user acknowledgment'}</p>
+            <p className="mt-3 text-sm text-brand-muted">{detail.nutritionGuidance.summary}</p>
+            <div className="mt-3 grid gap-2 sm:grid-cols-2">{detail.nutritionGuidance.referenceItems.map((item, index) => <div key={`${item.heading}-${index}`} className="rounded-lg border border-brand-border p-3 text-sm"><p className="font-semibold">{item.heading}: {item.value}</p><p className="mt-1 text-brand-muted">{item.explanation}</p>{item.sourceUrl.startsWith('https://') && <a href={item.sourceUrl} target="_blank" rel="noopener noreferrer" className="mt-1 inline-block text-xs text-brand-green underline">{item.sourceTitle} ↗</a>}</div>)}</div>
+          </> : <p className="mt-2 text-sm text-brand-muted">No nutrition guidance has been prepared for this profile yet.</p>}
+          <p className="mt-3 text-xs text-brand-muted">These are planning references, not a diagnosis or approval of a particular meal.</p>
+        </section>
         {detail.needsClarification && <p className="rounded-lg border border-amber-500/40 p-3 text-sm text-amber-400">A restriction needs clarification before this profile can be approved.</p>}
         <div><h3 className="text-sm font-bold">Clinical context</h3>{detail.requirements.length ? detail.requirements.map((item) => <p key={item.area} className={`mt-1 text-sm ${item.state === 'READY' ? 'text-brand-muted' : 'text-amber-400'}`}>{item.area.replaceAll('_', ' ')}: {item.message}</p>) : <p className="text-sm text-brand-muted">No clinical document requirement.</p>}</div>
         {detail.documents.length > 0 && <div><h3 className="text-sm font-bold">Submitted documents</h3>{detail.documents.map((item) => <p key={item.id} className="text-sm text-brand-muted">{item.area.replaceAll('_', ' ')} · {item.originalFileName} · {item.status.replaceAll('_', ' ')}</p>)}<p className="mt-1 text-xs text-brand-muted">Open Clinical documents to claim and review the original file.</p></div>}

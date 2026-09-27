@@ -4,6 +4,7 @@ import prisma from '@/lib/prisma';
 import { AppError } from '@/errors/AppError';
 import { adaptUserSafetyRestrictions } from '@/domain/structured-restriction.adapter';
 import { isNutritionistEligibleForReview } from '@/domain/nutritionist-review.policy';
+import { NUTRITION_GUIDANCE_POLICY_VERSION } from '@/domain/deterministic-nutrition-report.policy';
 import { ClinicalEvidenceService } from './clinical-evidence.service';
 import { lockUserProfile } from './profile-revision.service';
 
@@ -121,11 +122,30 @@ export class ClinicalProfileReviewService {
     if (!user || user.role !== Role.USER) throw new AppError('Profile not found.', 404, 'PROFILE_NOT_FOUND');
     const current = context(user);
     if (!current.restricted) throw new AppError('This profile does not need a clinical review.', 409, 'PROFILE_REVIEW_NOT_REQUIRED');
-    const [requirements, documents] = await Promise.all([
+    const [requirements, documents, report] = await Promise.all([
       ClinicalEvidenceService.requirementsForUser(userId),
       prisma.clinicalDocument.findMany({ where: { userId }, orderBy: { createdAt: 'desc' },
         select: { id: true, area: true, documentType: true, status: true, originalFileName: true, createdAt: true } }),
+      prisma.nutritionReport.findUnique({ where: { userId }, select: {
+        version: true, profileRevision: true, isStale: true, generatedAt: true,
+        acknowledgedAt: true, generalSummary: true,
+      } }),
     ]);
+    const reportVersion = report ? await prisma.nutritionReportVersion.findFirst({
+      where: { userId, version: report.version }, select: { content: true, policyVersion: true },
+    }) : null;
+    const reportContent = reportVersion?.content;
+    const references = reportContent && typeof reportContent === 'object' && !Array.isArray(reportContent)
+      ? (reportContent as Record<string, Prisma.JsonValue>).referenceItems : null;
+    const referenceItems = Array.isArray(references) ? references.flatMap((item) => {
+      if (!item || typeof item !== 'object' || Array.isArray(item)) return [];
+      const value = item as Record<string, Prisma.JsonValue>;
+      if (typeof value.heading !== 'string' || typeof value.value !== 'string' ||
+          typeof value.explanation !== 'string' || typeof value.sourceTitle !== 'string' ||
+          typeof value.sourceUrl !== 'string') return [];
+      return [{ heading: value.heading, value: value.value, explanation: value.explanation,
+        sourceTitle: value.sourceTitle, sourceUrl: value.sourceUrl }];
+    }) : [];
     return {
       userId, name: user.name, age: current.profile.age, goal: current.profile.goal,
       dietaryPreference: current.profile.dietaryPreference, dailyCalorieTarget: current.profile.dailyCalorieTarget,
@@ -133,6 +153,12 @@ export class ClinicalProfileReviewService {
       allergies: current.snapshot.allergies, customConditions: current.snapshot.customConditions,
       customFoodRestrictions: current.snapshot.customFoodRestrictions,
       needsClarification: current.needsClarification, requirements, documents,
+      nutritionGuidance: report ? {
+        version: report.version, generatedAt: report.generatedAt, acknowledgedAt: report.acknowledgedAt,
+        isCurrent: !report.isStale && report.profileRevision === current.profile.revision &&
+          reportVersion?.policyVersion === NUTRITION_GUIDANCE_POLICY_VERSION,
+        summary: report.generalSummary, referenceItems,
+      } : null,
     };
   }
 

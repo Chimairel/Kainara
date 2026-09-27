@@ -107,6 +107,9 @@ export default function MealLibraryPage() {
               className="mt-3 inline-block text-sm font-semibold text-brand-green underline">View original recipe ↗</a>}
             {viewedMeal.status === 'FLAGGED' && <p className="mt-3 text-sm font-bold text-amber-300">Meal flagged · all serving variants and approvals are unavailable for reuse</p>}
           </div>
+          <a href="#meal-wide-review" className="inline-flex items-center gap-2 rounded-xl border border-amber-500/40 px-4 py-2 text-sm font-bold text-amber-300 hover:bg-amber-500/10 md:ml-auto md:self-start">
+            <ShieldAlert className="h-4 w-4" aria-hidden="true" /> {viewedMeal.status === 'FLAGGED' ? 'Review meal flag' : 'Flag meal'}
+          </a>
         </header>
         <section className="space-y-5 rounded-2xl border border-brand-border bg-brand-surface/60 p-5" aria-label="Meal details">
           <div>
@@ -137,7 +140,7 @@ export default function MealLibraryPage() {
             <p className="text-xs text-brand-muted">Nutrition source notes: {viewedMeal.safetyReviews[0].evidenceSnapshot.nutritionBasis}</p>
           )}
         </section>
-        <section className="space-y-3 rounded-2xl border border-brand-border bg-brand-surface/60 p-5" aria-label="Meal-wide flag">
+        <section id="meal-wide-review" className="scroll-mt-20 space-y-3 rounded-2xl border border-brand-border bg-brand-surface/60 p-5" aria-label="Meal-wide flag">
           <h2 className="font-display text-xl font-bold text-brand-text">Meal-wide review</h2>
           {viewedMeal.status === 'FLAGGED' ? (
             <>
