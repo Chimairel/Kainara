@@ -121,6 +121,7 @@ export class GroceryService {
       }
       if (duplicates.size) await tx.groceryItem.deleteMany({ where: { id: { in: [...duplicates] } } });
       const keys = new Set(items.map((item) => item.key));
+      const newItems: Prisma.GroceryItemCreateManyInput[] = [];
       for (const item of items) {
         const previous = old.get(item.key);
         const purchasedQuantity = previous?.purchasedQuantity ?? 0;
@@ -135,9 +136,19 @@ export class GroceryService {
           ...state,
           ...(item.quantity === null ? { isChecked: previous?.isChecked ?? false } : {}),
         };
-        if (previous) await tx.groceryItem.update({ where: { id: previous.id }, data });
-        else await tx.groceryItem.create({ data: { ...data, groceryListId: list.id } });
+        if (previous) {
+          if (previous.ingredientName !== data.ingredientName || previous.category !== data.category ||
+              previous.quantity !== data.quantity || previous.unit !== data.unit ||
+              previous.sourceMealCount !== data.sourceMealCount ||
+              previous.purchasedQuantity !== data.purchasedQuantity || previous.isChecked !== data.isChecked) {
+            await tx.groceryItem.update({ where: { id: previous.id }, data });
+          }
+        } else newItems.push({ ...data, groceryListId: list.id });
       }
+      // A full cycle can contain hundreds of ingredients. One insert keeps
+      // the remote database transaction within its deadline.
+      if (newItems.length) await tx.groceryItem.createMany({ data: newItems });
+      const obsoleteIds: string[] = [];
       for (const previous of old.values()) {
         if (duplicates.has(previous.id) || keys.has(groceryItemKey(previous.ingredientName, previous.unit))) continue;
         if (previous.purchasedQuantity > 0)
@@ -145,8 +156,9 @@ export class GroceryService {
             where: { id: previous.id },
             data: { quantity: 0, isChecked: true, sourceMealCount: 0 },
           });
-        else await tx.groceryItem.delete({ where: { id: previous.id } });
+        else obsoleteIds.push(previous.id);
       }
+      if (obsoleteIds.length) await tx.groceryItem.deleteMany({ where: { id: { in: obsoleteIds } } });
       const updated = await tx.groceryList.update({
         where: { id: list.id },
         data: { planGroupId, isStale: false, generatedAt: new Date() },

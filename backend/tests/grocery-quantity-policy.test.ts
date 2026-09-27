@@ -45,7 +45,7 @@ test('[TEST-061] missing quantities remain honestly unspecified', () => {
 test('a measured salt amount remains visible beside additional unmeasured salt', () => {
   const items = aggregateGroceryIngredients([
     { ingredientName: 'salt', quantity: 1, unit: 'tsp' },
-    { ingredientName: 'salt', quantity: null, unit: 'tsp' },
+    { ingredientName: 'Salt to taste', quantity: null, unit: 'tsp' },
     { ingredientName: 'salt', quantity: 0.5, unit: 'teaspoon' },
     { ingredientName: 'salt', quantity: 2, unit: null },
   ]);
