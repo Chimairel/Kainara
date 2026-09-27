@@ -133,6 +133,9 @@ export function NutritionistApplicationCard(props: Props) {
                 onChange={(event) => onRejectionReasonChange(application.id, event.target.value)}
                 placeholder="Required before rejecting"
               />
+              {application.status === 'CALL_SCHEDULED' && !application.callVerifiedAt && (
+                <button type="button" className="mt-2 text-xs font-semibold text-status-error-text underline" onClick={() => onRejectionReasonChange(application.id, 'The uploaded identity photo did not match the applicant during the verification call.')}>Use photo mismatch reason</button>
+              )}
             </div>
             <Button
               variant="danger"
@@ -229,13 +232,12 @@ function ApplicationIdentity({ application }: { application: NutritionistApplica
         <p className="rounded-xl border border-brand-border/60 p-3">{application.professionalBio}</p>
       </div>
 
-      {/* Official Identity & Handwritten Signature Audit Section */}
-      {(application.officialHeadshot || application.digitalSignature) && (
+      {application.officialHeadshot && (
         <div className="mt-4 rounded-2xl border border-brand-border/60 bg-brand-bgAlt/40 p-4">
           <p className="text-[10px] font-bold uppercase tracking-wider text-brand-muted mb-3">
-            Biometric &amp; Clinical Signature Verification (Locked &amp; Immutable)
+            Applicant photo for video-call comparison
           </p>
-          <div className="grid gap-4 sm:grid-cols-2 items-center">
+          <div className="grid gap-4 items-center">
             {application.officialHeadshot && (
               <div className="flex items-center gap-3">
                 <div className="relative h-14 w-14 shrink-0 rounded-full overflow-hidden border-2 border-brand-green shadow-sm">
@@ -247,21 +249,8 @@ function ApplicationIdentity({ application }: { application: NutritionistApplica
                   />
                 </div>
                 <div className="text-xs">
-                  <p className="font-bold text-brand-text">Live Photo Headshot</p>
-                  <p className="text-[11px] text-brand-muted">Captured via webcam on application</p>
-                </div>
-              </div>
-            )}
-            {application.digitalSignature && (
-              <div className="flex flex-col sm:items-end">
-                <p className="text-[11px] font-bold text-brand-text mb-1">Handwritten Digital Signature</p>
-                <div className="h-14 w-40 rounded-xl bg-neutral-950 border border-neutral-800 p-1 flex items-center justify-center overflow-hidden">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={application.digitalSignature}
-                    alt={`${application.fullName} digital signature`}
-                    className="max-h-full max-w-full object-contain"
-                  />
+                  <p className="font-bold text-brand-text">Uploaded identity photo</p>
+                  <p className="text-[11px] text-brand-muted">Compare with the applicant during the call. {application.photoRecentAttestedAt ? 'Applicant attested that it was taken within 30 days.' : 'Legacy application photo.'}</p>
                 </div>
               </div>
             )}
@@ -361,6 +350,19 @@ function ScheduledCall({
         )}
       </div>
       <div className="mt-4 flex flex-wrap gap-3">
+        {!application.callVerifiedAt && <Button
+          variant="secondary"
+          onClick={() => void onAction(
+            application.id,
+            () => api.patch(`/admin/nutritionist-applications/${application.id}/call-verification`, { identityMatched: true }),
+            'Completed call and photo match recorded.'
+          )}
+          disabled={!callOccurred}
+          isLoading={workingId === application.id}
+        >
+          <UserCheck className="h-4 w-4" />
+          Confirm call completed and photo matched
+        </Button>}
         <Button
           onClick={() =>
             void onAction(
@@ -369,14 +371,14 @@ function ScheduledCall({
               approvalNotice
             )
           }
-          disabled={!callOccurred}
+          disabled={!application.callVerifiedAt}
           isLoading={workingId === application.id}
         >
           <CheckCircle2 className="h-4 w-4" />
-          Approve after call
+          Approve verified applicant
         </Button>
         {!callOccurred && (
-          <p className="self-center text-[10px] text-brand-muted">Approval unlocks after the scheduled call time.</p>
+          <p className="self-center text-[10px] text-brand-muted">Confirm the completed call and photo match before approval. Reject with a reason if the face does not match.</p>
         )}
       </div>
     </div>

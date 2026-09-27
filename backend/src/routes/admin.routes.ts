@@ -8,6 +8,7 @@ import { validateZodBody } from '@/middleware/validateZod';
 import NutritionistApplicationService from '@/services/nutritionist-application.service';
 import {
   applicationDecisionSchema,
+  applicationCallVerificationSchema,
   applicationScheduleSchema,
   applicationStageSchema,
 } from '@/validation/nutritionist-application.schemas';
@@ -172,6 +173,19 @@ router.patch(
       return res
         .status(400)
         .json({ success: false, error: sanitizeErrorMessage(error, 'Failed to record application decision.') });
+    }
+  }
+);
+
+router.patch(
+  '/nutritionist-applications/:id/call-verification',
+  validateZodBody(applicationCallVerificationSchema),
+  async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const data = await NutritionistApplicationService.confirmCall(req.user!.userId, req.params.id);
+      return res.json({ success: true, data });
+    } catch (error: unknown) {
+      return res.status(400).json({ success: false, error: sanitizeErrorMessage(error, 'Failed to confirm verification call.') });
     }
   }
 );

@@ -6,6 +6,17 @@ import { ConditionClearanceService, enforceClearanceCircuitBreakers } from './co
 
 const REVIEW_INTERVAL_MS = 365 * 24 * 60 * 60 * 1000;
 
+export async function listDueProfileApprovals(nutritionistProfileId: string) {
+  await reviewer(nutritionistProfileId);
+  const now = new Date();
+  return prisma.mealLibraryProfileApproval.findMany({
+    where: { OR: [{ flaggedAt: { not: null } }, { reviewDueAt: { lte: now } }] },
+    select: { id: true, mealLibraryId: true, reviewDueAt: true, flaggedAt: true, flagReason: true,
+      scopeSnapshot: true, mealLibrary: { select: { mealName: true, status: true } } },
+    orderBy: [{ flaggedAt: 'desc' }, { reviewDueAt: 'asc' }], take: 100,
+  });
+}
+
 function recordedCaseScope(snapshot: Prisma.JsonValue): Prisma.JsonValue | null {
   if (!snapshot || typeof snapshot !== 'object' || Array.isArray(snapshot)) return null;
   return (snapshot as Record<string, Prisma.JsonValue>).recordedCaseScope ?? null;
@@ -125,6 +136,10 @@ export async function getMealApprovalCaseDetails(input: {
       id: true, mealName: true, description: true, nutritionistNote: true,
       calories: true, proteinG: true, carbsG: true, fatG: true,
       ingredients: { select: { ingredientName: true, quantity: true, unit: true, dataSource: true } },
+      clinicalEvidence: { select: { clinicalDocument: { select: {
+        area: true, documentType: true, status: true, validUntil: true,
+        facts: { where: { reviewStatus: 'CONFIRMED' }, select: { code: true, valueText: true, valueNumber: true, unit: true } },
+      } } } },
       cycle: { select: { snapshot: { select: {
         goal: true, dailyCalorieTarget: true, dietaryPreference: true, ricePreference: true,
       } } } },
@@ -174,6 +189,13 @@ export async function getMealApprovalCaseDetails(input: {
       dietaryPreference: plan.cycle.snapshot.dietaryPreference,
       ricePreference: plan.cycle.snapshot.ricePreference,
     } : null,
+    reviewedClinicalDocuments: plan?.clinicalEvidence.map((entry) => ({
+      area: entry.clinicalDocument.area,
+      documentType: entry.clinicalDocument.documentType,
+      status: entry.clinicalDocument.status,
+      validUntil: entry.clinicalDocument.validUntil,
+      facts: entry.clinicalDocument.facts,
+    })) ?? [],
     linkedUserCurrentProfile: linkedUser ? {
       name: linkedUser.name,
       age: linkedUser.userProfile?.age ?? null,

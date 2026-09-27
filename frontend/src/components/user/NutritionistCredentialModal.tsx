@@ -9,7 +9,6 @@ export interface VerifierData {
   name: string;
   image?: string | null;
   officialHeadshot?: string | null;
-  digitalSignature?: string | null;
   prcLicenseNumber: string;
   prcLicenseExpiry: string | Date;
   specialization?: string | null;
@@ -101,32 +100,6 @@ function DietitianAvatarIllustration() {
       {/* Center seam */}
       <line x1="70" y1="102" x2="70" y2="140" stroke="#d5dedb" strokeWidth="1.6" />
     </svg>
-  );
-}
-
-/**
- * Realistic cursive signature motif matching the ChatGPT reference card
- */
-function DietitianSignature({ name }: { name: string }) {
-  const cleanName = name.replace(/,.*$/, '').trim();
-  return (
-    <div className="flex flex-col items-center select-none pt-2 pb-1">
-      <div className="relative">
-        <span
-          className="text-2xl sm:text-[25px] text-slate-100 font-normal tracking-wide block italic font-serif"
-          style={{
-            fontFamily: "'Segoe Script', 'Caveat', 'Dancing Script', 'Snell Roundhand', cursive, serif",
-          }}
-        >
-          {cleanName}
-        </span>
-        <svg viewBox="0 0 110 6" className="w-28 h-1.5 text-emerald-400/40 mt-0.5 mx-auto" fill="none">
-          <path d="M4 3 Q 55 1, 106 3" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
-        </svg>
-      </div>
-      <span className="font-sans font-semibold text-[10px] tracking-[0.28em] text-white/80 uppercase mt-1">RND</span>
-      <p className="text-xs text-[#8ea79d] mt-1 font-normal">Better meals. Healthier you.</p>
-    </div>
   );
 }
 
@@ -288,25 +261,7 @@ export default function NutritionistCredentialModal({
                     </div>
                   </div>
 
-                  {/* Handwritten Signature & Motto */}
-                  {verifier.digitalSignature ? (
-                    <div className="flex flex-col items-center select-none pt-2 pb-1">
-                      <div className="relative flex items-center justify-center min-h-[48px] max-w-[200px]">
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img
-                          src={verifier.digitalSignature}
-                          alt={`${verifier.name}'s digital signature`}
-                          className="max-h-12 w-auto object-contain drop-shadow-sm"
-                        />
-                      </div>
-                      <span className="font-sans font-semibold text-[10px] tracking-[0.28em] text-white/80 uppercase mt-1">
-                        RND
-                      </span>
-                      <p className="text-xs text-[#8ea79d] mt-1 font-normal">Better meals. Healthier you.</p>
-                    </div>
-                  ) : (
-                    <DietitianSignature name={verifier.name} />
-                  )}
+                  <p className="pt-3 text-center text-xs text-[#8ea79d]">Review attributed to {verifier.name}, RND</p>
                 </div>
 
                 {/* ──── MIDDLE: Inset Dashed Vertical Divider ──── */}

@@ -4,7 +4,6 @@ import type { ReactNode } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import type { LucideIcon } from 'lucide-react';
-import ReviewNavigation from './ReviewNavigation';
 import RouteGuard from '@/components/shared/RouteGuard';
 import Sidebar from '@/components/ui/Sidebar';
 import Navbar from '@/components/shared/Navbar';
@@ -30,9 +29,6 @@ export default function PortalRoleLayout({
         <Sidebar />
         <div className="relative z-10 flex min-w-0 flex-1 flex-col md:pl-4">
           <Navbar />
-          {['/nutritionist/reviews', '/nutritionist/outside-meals', '/nutritionist/approved'].includes(pathname) && (
-            <ReviewNavigation />
-          )}
           <main className="portal-main custom-scrollbar relative flex-1 overflow-y-auto pb-24 md:pb-4">{children}</main>
         </div>
         <nav

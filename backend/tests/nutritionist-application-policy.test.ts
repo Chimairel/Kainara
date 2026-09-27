@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
   applicationDecisionSchema,
+  applicationCallVerificationSchema,
   applicationScheduleSchema,
   applicationStageSchema,
   nutritionistApplicationSchema,
@@ -22,7 +23,7 @@ const validApplication = {
   availableCallSlots: [future(2), future(3)],
   consent: true,
   officialHeadshot: 'data:image/jpeg;base64,/9j/AA==',
-  digitalSignature: 'data:image/png;base64,iVBORw0KGgo=',
+  photoRecentAttested: true,
 };
 
 test('[TEST-067] nutritionist application accepts a complete professional application and normalizes email', () => {
@@ -57,6 +58,8 @@ test('[TEST-069] admin application transition inputs are default-deny and meetin
 });
 
 test('[TEST-070] rejections require a reason and invitation passwords use the account password policy', () => {
+  assert.equal(applicationCallVerificationSchema.safeParse({ identityMatched: false }).success, false);
+  assert.equal(applicationCallVerificationSchema.safeParse({ identityMatched: true }).success, true);
   assert.equal(applicationDecisionSchema.safeParse({ decision: 'reject', reason: '' }).success, false);
   assert.equal(applicationDecisionSchema.safeParse({ decision: 'approve' }).success, true);
   assert.equal(

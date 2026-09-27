@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import Button from '@/components/ui/Button';
 import api from '@/lib/axios';
 import { getApiErrorMessage } from '@/lib/api-error';
+import ExpandableCasePanel from '@/features/nutritionist-reviews/ExpandableCasePanel';
 
 type Approval = {
   id: string;
@@ -43,6 +44,7 @@ type CaseDetails = {
     name: string; age: number | null; sex: string | null;
     conditions: string[]; allergies: string[];
   } | null;
+  reviewedClinicalDocuments: Array<{ area: string; documentType: string; status: string; validUntil: string | null; facts: Array<{ code: string; valueText: string | null; valueNumber: number | null; unit: string | null }> }>;
 };
 
 function readable(value: string): string {
@@ -79,6 +81,7 @@ export function MealApprovalsPanel({ mealId }: {
   const [selected, setSelected] = useState<{ variantId: string; approval: Approval } | null>(null);
   const [caseDetails, setCaseDetails] = useState<CaseDetails | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
+  const [expanded, setExpanded] = useState(false);
 
   const reload = useCallback(async () => {
     setLoading(true);
@@ -160,8 +163,8 @@ export function MealApprovalsPanel({ mealId }: {
     const caseUser = caseDetails?.linkedUserCurrentProfile;
     const reviewedMeal = caseDetails?.originatingPlan ?? caseDetails?.meal;
     return (
-      <section aria-labelledby="approval-case-heading" className="space-y-5 rounded-2xl border border-brand-border bg-brand-surface/60 p-5">
-        <Button variant="ghost" size="sm" onClick={() => { setSelected(null); setCaseDetails(null); setFlagTarget(null); setRecheckTarget(null); }}>
+      <ExpandableCasePanel expanded={expanded} onExpandedChange={setExpanded} className="space-y-5 rounded-2xl border border-brand-border bg-brand-surface/60 p-5">
+        <Button variant="ghost" size="sm" onClick={() => { setExpanded(false); setSelected(null); setCaseDetails(null); setFlagTarget(null); setRecheckTarget(null); }}>
           ← Back to approvals
         </Button>
         <div>
@@ -195,6 +198,13 @@ export function MealApprovalsPanel({ mealId }: {
                   <div><dt className="text-brand-muted">Current allergies</dt><dd>{caseUser.allergies.length ? caseUser.allergies.map(readable).join(', ') : 'None declared'}</dd></div>
                 </dl>
               </> : <p className="text-sm text-brand-muted">No linked user case is retained for this approval. Review the recorded scope above; do not infer missing patient details.</p>}
+              {(caseDetails.reviewedClinicalDocuments?.length ?? 0) > 0 && <div className="border-t border-brand-border pt-3 text-sm">
+                <h4 className="font-bold">Reviewed clinical documents at case approval</h4>
+                {caseDetails.reviewedClinicalDocuments?.map((document, index) => <div key={`${document.area}-${index}`} className="mt-2 rounded-lg border border-brand-border p-2">
+                  <p>{readable(document.area)} · {readable(document.documentType)} · {readable(document.status)}</p>
+                  {document.facts.map((fact, factIndex) => <p key={`${fact.code}-${factIndex}`} className="text-xs text-brand-muted">{readable(fact.code)}: {fact.valueText ?? fact.valueNumber} {fact.unit ?? ''}</p>)}
+                </div>)}
+              </div>}
             </section>
             <section className="space-y-3 rounded-2xl border border-brand-border p-4" aria-label="Meal details">
               <h3 className="font-bold text-brand-text">Meal details</h3>
@@ -225,7 +235,7 @@ export function MealApprovalsPanel({ mealId }: {
             <div className="mt-2 flex gap-2"><Button disabled={busy || reviewNote.trim().length < 10} onClick={() => void recheck()}>Submit recheck</Button><Button variant="secondary" onClick={() => setRecheckTarget(null)}>Cancel</Button></div>
           </div>}
         </>}
-      </section>
+      </ExpandableCasePanel>
     );
   }
 

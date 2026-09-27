@@ -12,8 +12,6 @@ import { generateGenerativeJSON } from '@/lib/gemini';
 import { adaptUserSafetyRestrictions } from '@/domain/structured-restriction.adapter';
 import { candidateMealSchema } from '@/validation/nutritionist.schemas';
 import { MEAL_PLAN_SAFETY_POLICY_VERSION } from '@/domain/meal-plan-production-safety.policy';
-import { GroceryService } from './grocery.service';
-import { recordCompletedMealPlanReviewCredit as recordReplacementReviewCredit } from './work-credit.service';
 import { buildBaseServingPersistence } from './meal-plan-serving.service';
 
 export class NutritionistReplacementService {
@@ -138,9 +136,8 @@ export class NutritionistReplacementService {
 
     const { reason, note, candidate } = payload;
     assertMealSlotCalories(candidate.calories, plan.user.userProfile?.dailyCalorieTarget ?? 2000, plan.mealType);
-    // A different recipe starts a new review chain; approval of the discarded recipe cannot transfer.
-    const isFirstHighRiskApproval = plan.highRiskReviewRequired;
-    const newMealStatus = isFirstHighRiskApproval ? MealPlanStatus.PENDING_REVIEW : MealPlanStatus.APPROVED;
+    // A newly generated recipe must enter meal-only verification before a case decision.
+    // The prior claim and its approvals cannot transfer to this replacement.
     let replacementPlanId = '';
 
     await prisma.$transaction(
@@ -190,7 +187,8 @@ export class NutritionistReplacementService {
           data: {
             planGroupId: plan.planGroupId,
             userId: plan.userId,
-            status: newMealStatus,
+            status: MealPlanStatus.PENDING_REVIEW,
+            candidateProvenance: 'AI_FROM_SCRATCH',
             planType: plan.planType,
             highRiskReviewRequired: plan.highRiskReviewRequired,
             mealType: plan.mealType,
@@ -200,16 +198,12 @@ export class NutritionistReplacementService {
             proteinG: candidate.proteinG,
             carbsG: candidate.carbsG,
             fatG: candidate.fatG,
-            aiConfidenceFlag: isFirstHighRiskApproval ? AIConfidenceFlag.NEEDS_REVIEW : AIConfidenceFlag.SAFE,
+            aiConfidenceFlag: AIConfidenceFlag.NEEDS_REVIEW,
             scheduledDate: plan.scheduledDate,
-            nutritionistId: isFirstHighRiskApproval ? null : nutritionistProfileId,
-            nutritionistNote: note || `Clinically approved replacement for rejected dish: ${plan.mealName}`,
-            reviewedAt: isFirstHighRiskApproval ? null : now,
-            reviewApprovalCount: 1,
-            firstApprovedByNutritionistId: isFirstHighRiskApproval ? nutritionistProfileId : null,
-            firstApprovedAt: isFirstHighRiskApproval ? now : null,
+            nutritionistNote: note || `Replacement proposed for rejected dish: ${plan.mealName}`,
+            reviewApprovalCount: 0,
             safetyPolicyVersion: MEAL_PLAN_SAFETY_POLICY_VERSION,
-            requiresSafetyRevalidation: false,
+            requiresSafetyRevalidation: true,
             ingredients: {
               create: replacementIngredients,
             },
@@ -221,23 +215,13 @@ export class NutritionistReplacementService {
         // Reusable library publication is an explicit second action after this
         // user-specific approval. No library evidence is created here.
 
-        // 3. Update profile verified count if finalized
-        if (!isFirstHighRiskApproval) {
-          await tx.nutritionistProfile.update({
-            where: { id: nutritionistProfileId },
-            data: { totalVerified: { increment: 1 } },
-          });
-        }
-
-        // 5. User notification
+        // User notification
         await tx.notification.create({
           data: {
             userId: plan.userId,
-            title: isFirstHighRiskApproval ? 'Meal Replacement In Progress ⏳' : 'Meal Updated & Approved ✅',
-            message: isFirstHighRiskApproval
-              ? `Your dietitian generated and reviewed a replacement: "${candidate.mealName}". It is awaiting a second safety review.`
-              : `Your meal was updated by your dietitian: "${candidate.mealName}" has been approved and added to your plan.${note ? ` Note: ${note}` : ''}`,
-            type: isFirstHighRiskApproval ? NotificationType.REVIEW_REQUEST : NotificationType.PLAN_APPROVED,
+            title: 'Meal Replacement In Progress ⏳',
+            message: `A replacement recipe, "${candidate.mealName}", is awaiting general meal verification and your case approval.`,
+            type: NotificationType.REVIEW_REQUEST,
           },
         });
 
@@ -254,40 +238,23 @@ export class NutritionistReplacementService {
         await tx.auditEvent.create({
           data: {
             actorUserId: reviewer.userId,
-            action: isFirstHighRiskApproval ? 'MEAL_PLAN_FIRST_HIGH_RISK_APPROVAL' : 'MEAL_PLAN_APPROVED',
+            action: 'MEAL_REPLACEMENT_PROPOSED_FOR_VERIFICATION',
             entityType: 'MealPlan',
             entityId: createdReplacement.id,
             metadata: { replacedMealId: mealPlanId, policyVersion: MEAL_PLAN_SAFETY_POLICY_VERSION },
           },
         });
 
-        // 7. Review work credit
-        await recordReplacementReviewCredit(tx, {
-          nutritionistProfileId,
-          actorUserId: reviewer.userId,
-          mealPlanId: createdReplacement.id,
-          stage: isFirstHighRiskApproval ? 'HIGH_RISK_ESCALATION' : 'ORDINARY_FINAL',
-          outcome: isFirstHighRiskApproval ? 'ESCALATED' : 'APPROVED',
-          earnedAt: now,
-        });
       },
       { isolationLevel: Prisma.TransactionIsolationLevel.Serializable }
     );
-
-    // 8. Re-project user grocery list
-    if (!isFirstHighRiskApproval) {
-      try {
-        await GroceryService.generateGroceryList(plan.userId, undefined, plan.planGroupId, 'EXPLICIT');
-      } catch (error) {
-        console.error('[NutritionistService] Grocery projection refresh failed after replace-and-approve:', error);
-      }
-    }
 
     return {
       success: true,
       replacedMealId: mealPlanId,
       replacementPlanId,
-      awaitingSecondReview: isFirstHighRiskApproval,
+      awaitingMealVerification: true,
+      awaitingSecondReview: false,
     };
   }
 }

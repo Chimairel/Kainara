@@ -68,6 +68,8 @@ async function main() {
       yearsOfExperience: 3,
       university: 'Synthetic University',
       professionalBio: 'Synthetic audit fixture.',
+      officialHeadshot: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/lS8AAAAASUVORK5CYII=',
+      photoRecentAttested: true,
       availableCallSlots: ['Monday afternoon'],
       consent: true,
     });
@@ -81,12 +83,13 @@ async function main() {
       scheduledCallAt: new Date(Date.now() - 60_000).toISOString(),
       meetingUrl: 'https://example.invalid/audit-call',
     });
+    await NutritionistApplicationService.confirmCall(admin.id, stored.id);
     await NutritionistApplicationService.decide(admin.id, stored.id, { decision: 'approve' });
     const captured = JSON.parse((await readFile(process.env.NUTRIMIND_TEST_MAIL_CAPTURE_PATH, 'utf8')).trim());
     await NutritionistApplicationService.acceptInvitation(captured.token, password);
     await assert.rejects(() => NutritionistApplicationService.acceptInvitation(captured.token, password));
     observations.nutritionistApplication =
-      'PASS: staged approval, captured invitation, activation, replay rejection; no external email';
+      'PASS: staged photo/call approval, captured invitation, activation, replay rejection; no external email';
 
     const registration = await request('/api/auth/register', 'POST', {
       name: 'Onboarding Audit',

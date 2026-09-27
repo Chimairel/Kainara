@@ -35,12 +35,8 @@ export const nutritionistApplicationSchema = z
       .string()
       .trim()
       .max(1000000)
-      .regex(/^data:image\/(?:png|jpeg);base64,[A-Za-z0-9+/]+={0,2}$/, 'A captured PNG or JPEG headshot is required.'),
-    digitalSignature: z
-      .string()
-      .trim()
-      .max(500000)
-      .regex(/^data:image\/png;base64,[A-Za-z0-9+/]+={0,2}$/, 'A confirmed PNG handwritten signature is required.'),
+      .regex(/^data:image\/(?:png|jpeg);base64,[A-Za-z0-9+/]+={0,2}$/, 'A PNG or JPEG headshot is required.'),
+    photoRecentAttested: z.literal(true, { error: 'Confirm that your photo was taken within the past 30 days.' }),
     availableCallSlots: z
       .array(isoFutureDate('Call availability'))
       .min(2, 'Provide at least two available call schedules.')
@@ -87,6 +83,10 @@ export const applicationDecisionSchema = z.discriminatedUnion('decision', [
     })
     .strict(),
 ]);
+
+export const applicationCallVerificationSchema = z.object({
+  identityMatched: z.literal(true, { error: 'Confirm that the call took place and the applicant matched the uploaded photo.' }),
+}).strict();
 
 export const nutritionistInvitationAcceptanceSchema = z
   .object({

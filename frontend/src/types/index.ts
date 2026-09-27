@@ -232,7 +232,6 @@ export interface PublicVerifier {
   name: string;
   image?: string | null;
   officialHeadshot?: string | null;
-  digitalSignature?: string | null;
   prcLicenseNumber: string;
   prcLicenseExpiry: string;
   specialization?: string | null;

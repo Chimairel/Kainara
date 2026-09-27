@@ -1,4 +1,5 @@
 import prisma from '@/lib/prisma';
+import { admittedLibraryBaseIds } from './meal-base-admission.service';
 import { adaptUserSafetyRestrictions } from '@/domain/structured-restriction.adapter';
 import { mealApprovalSafetyScope } from '@/domain/meal-approval-scope.policy';
 import { isNutritionistEligibleForReview } from '@/domain/nutritionist-review.policy';
@@ -103,6 +104,10 @@ export class MealPlanCycleService {
             },
             libraryMeal: {
               select: {
+                id: true,
+                description: true,
+                sourceRawRecipeCandidateId: true,
+                sourceRawRecipeCandidate: { select: { sourceName: true, status: true, contentSignature: true } },
                 status: true,
                 safetyEvidenceStatus: true,
                 safetyEvidenceRevision: true,
@@ -152,6 +157,16 @@ export class MealPlanCycleService {
       otherAllergies: cycle.user.userProfile?.otherAllergies,
       safetyEntries: cycle.user.safetyProfileEntries,
     });
+    const libraries = cycle.mealPlans.flatMap((meal) => meal.libraryMeal ? [meal.libraryMeal] : []);
+    const admittedLibraries = await admittedLibraryBaseIds(libraries);
+    const generatedSignatures = [...new Set(cycle.mealPlans.flatMap((meal) =>
+      meal.candidateProvenance === 'AI_FROM_SCRATCH' && meal.baseRecipeSignature ? [meal.baseRecipeSignature] : []))];
+    const verifiedGenerated = generatedSignatures.length ? await prisma.mealBaseVerification.findMany({
+      where: { targetKind: 'GENERATED_RECIPE', status: 'VERIFIED', targetId: { in: generatedSignatures } },
+      select: { targetId: true, revisionKey: true },
+    }) : [];
+    const verifiedGeneratedSignatures = new Set(verifiedGenerated.flatMap((row) =>
+      row.targetId === row.revisionKey ? [row.targetId] : []));
     return cycle.mealPlans
       .filter((meal) => {
         if (
@@ -165,7 +180,7 @@ export class MealPlanCycleService {
         }
         if (meal.libraryMealId) {
           const library = meal.libraryMeal;
-          if (!library || library.status !== MealLibraryStatus.APPROVED ||
+          if (!library || !admittedLibraries.has(library.id) || library.status !== MealLibraryStatus.APPROVED ||
               library.recipeSignature !== meal.baseRecipeSignature) {
             return false;
           }
@@ -208,6 +223,8 @@ export class MealPlanCycleService {
             meal.sourceRawRecipeCandidate.status === 'AVAILABLE' &&
             Boolean(meal.sourceRawRecipeCandidate.publishedNutrition);
         }
+        if (meal.candidateProvenance === 'AI_FROM_SCRATCH' &&
+          !verifiedGeneratedSignatures.has(meal.baseRecipeSignature)) return false;
         const distinctApprovers = new Set(meal.reviewDecisions.map((decision) => decision.nutritionistProfileId));
         const requiredApprovals = meal.highRiskReviewRequired ? 2 : 1;
         return meal.reviewApprovalCount >= requiredApprovals && distinctApprovers.size >= requiredApprovals;

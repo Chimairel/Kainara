@@ -11,8 +11,7 @@ import {
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import type { NutritionistApplicationForm } from '@/validation/nutritionist-application.schemas';
-import { LiveWebcamCapture } from './LiveWebcamCapture';
-import { SignaturePad } from './SignaturePad';
+import { PhotoUpload } from './PhotoUpload';
 
 const steps = [
   { label: 'Identity', icon: UserRound },
@@ -143,11 +142,16 @@ function IdentityFields({ form, errors, onFieldChange }: FieldProps) {
         autoComplete="tel"
       />
       <div className="pt-2">
-        <LiveWebcamCapture
+        <PhotoUpload
           value={form.officialHeadshot}
           onChange={(val) => onFieldChange('officialHeadshot', val)}
           error={errors.officialHeadshot}
         />
+        <label className="mt-3 flex items-start gap-3 text-xs text-brand-muted">
+          <input type="checkbox" checked={form.photoRecentAttested} onChange={(event) => onFieldChange('photoRecentAttested', event.target.checked)} />
+          <span>I confirm this photo was taken within the past 30 days. If it does not match me during the one-on-one video call, my application will be rejected.</span>
+        </label>
+        {errors.photoRecentAttested && <p role="alert" className="text-xs text-status-error-text">{errors.photoRecentAttested}</p>}
       </div>
     </>
   );
@@ -183,13 +187,6 @@ function CredentialFields({ form, errors, onFieldChange }: FieldProps) {
         placeholder="e.g. Clinical Nutrition, Renal Nutrition, Diabetes Care"
         helperText="Your primary areas of clinical or dietetic practice."
       />
-      <div className="pt-2">
-        <SignaturePad
-          value={form.digitalSignature}
-          onChange={(val) => onFieldChange('digitalSignature', val)}
-          error={errors.digitalSignature}
-        />
-      </div>
     </>
   );
 }
@@ -318,19 +315,6 @@ function ApplicationReview({ form }: { form: NutritionistApplicationForm }) {
           <p className="text-xs text-brand-muted truncate">{form.specialization || 'Clinical Nutrition'}</p>
         </div>
 
-        {form.digitalSignature && (
-          <div className="shrink-0 flex flex-col items-center sm:items-end">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-brand-muted">Digital Signature</span>
-            <div className="mt-1 h-12 w-28 rounded-lg bg-neutral-950 border border-neutral-800 p-1 flex items-center justify-center overflow-hidden">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={form.digitalSignature}
-                alt="Digital signature preview"
-                className="max-h-full max-w-full object-contain"
-              />
-            </div>
-          </div>
-        )}
       </div>
 
       <div className="space-y-3">

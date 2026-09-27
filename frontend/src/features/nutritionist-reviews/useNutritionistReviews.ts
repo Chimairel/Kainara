@@ -371,8 +371,8 @@ export function useNutritionistReviews() {
       setCandidateMeal(null);
       setIsEditingCandidate(false);
     } catch (err: unknown) {
-      console.error('Replace and approve failed:', err);
-      setErrorMsg(getApiErrorMessage(err, 'Failed to certify replacement meal. Please refresh the queue.'));
+      console.error('Replacement submission failed:', err);
+      setErrorMsg(getApiErrorMessage(err, 'Failed to submit the replacement for meal verification. Please refresh the queue.'));
     } finally {
       setActionLoading(null);
     }

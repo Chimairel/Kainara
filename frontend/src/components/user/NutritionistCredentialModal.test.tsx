@@ -38,7 +38,7 @@ describe('NutritionistCredentialModal', () => {
     );
 
     // Header & Name
-    expect(screen.getByText(/Andrea Reyes, RND/i)).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /Andrea Reyes, RND/i })).toBeInTheDocument();
     expect(screen.getByText('Verified Nutritionist')).toBeInTheDocument();
     expect(screen.getByText('PRC-Verified')).toBeInTheDocument();
 
@@ -75,16 +75,15 @@ describe('NutritionistCredentialModal', () => {
 
     render(<NutritionistCredentialModal isOpen={true} onClose={() => {}} verifier={verifierWithoutImg} />);
 
-    expect(screen.getByText(/Andrea Reyes, RND/i)).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /Andrea Reyes, RND/i })).toBeInTheDocument();
     const svgs = document.querySelectorAll('svg');
     expect(svgs.length).toBeGreaterThan(0);
   });
 
-  it('renders officialHeadshot and digitalSignature when provided', () => {
+  it('renders the verified photo and reviewer attribution without a signature', () => {
     const verifierWithBiometrics: PublicVerifier = {
       ...mockVerifier,
       officialHeadshot: 'data:image/jpeg;base64,mockheadshotimage123',
-      digitalSignature: 'data:image/png;base64,mocksignatureimage456',
     };
 
     render(<NutritionistCredentialModal isOpen={true} onClose={() => {}} verifier={verifierWithBiometrics} />);
@@ -92,8 +91,7 @@ describe('NutritionistCredentialModal', () => {
     const headshot = screen.getByAltText('Andrea Reyes');
     expect(headshot).toHaveAttribute('src', verifierWithBiometrics.officialHeadshot);
 
-    const signature = screen.getByAltText("Andrea Reyes's digital signature");
-    expect(signature).toHaveAttribute('src', verifierWithBiometrics.digitalSignature);
+    expect(screen.getByText(/Review attributed to Andrea Reyes, RND/)).toBeInTheDocument();
   });
 
   it('does not render when isOpen is false', () => {

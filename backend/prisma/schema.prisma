@@ -299,6 +299,36 @@ enum RawRecipeCandidateStatus {
   RETIRED
 }
 
+enum MealVerificationTargetKind {
+  LIBRARY_MEAL
+  RAW_RECIPE
+  GENERATED_RECIPE
+}
+
+enum MealVerificationStatus {
+  PENDING
+  VERIFIED
+  REJECTED
+}
+
+model MealBaseVerification {
+  id                String                     @id @default(cuid())
+  targetKind        MealVerificationTargetKind
+  targetId          String
+  revisionKey       String                     @db.VarChar(64)
+  status            MealVerificationStatus     @default(PENDING)
+  claimedByNutritionistId String?
+  claimedAt         DateTime?
+  reviewedByNutritionistId String?
+  reviewedAt        DateTime?
+  rationale         String?                    @db.VarChar(1000)
+  createdAt         DateTime                   @default(now())
+  updatedAt         DateTime                   @updatedAt
+
+  @@unique([targetKind, targetId, revisionKey])
+  @@index([status, createdAt])
+}
+
 enum ObservedMealSubmissionStatus {
   SUBMITTED
   ADMITTED_REFERENCE
@@ -1028,11 +1058,14 @@ model NutritionistApplication {
   professionalBio     String                        @db.Text
   officialHeadshot    String?                       @db.Text
   digitalSignature    String?                       @db.Text
+  photoRecentAttestedAt DateTime?
   availableCallSlots  Json
   applicantConsentAt  DateTime
   reviewedByAdminId   String?
   reviewedByAdmin     User?                         @relation("NutritionistApplicationReviewer", fields: [reviewedByAdminId], references: [id], onDelete: SetNull)
   scheduledCallAt     DateTime?
+  callVerifiedAt      DateTime?
+  callVerifiedByAdminId String?
   meetingUrl          String?                       @db.VarChar(500)
   adminNotes          String?                       @db.Text
   decisionReason      String?                       @db.VarChar(500)

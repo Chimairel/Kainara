@@ -62,7 +62,7 @@ async function main() {
       university: 'Synthetic University',
       professionalBio: 'Synthetic licensed professional used for an isolated application journey acceptance test.',
       officialHeadshot: 'data:image/jpeg;base64,/9j/AA==',
-      digitalSignature: 'data:image/png;base64,iVBORw0KGgo=',
+      photoRecentAttested: true,
       availableCallSlots: [new Date(Date.now() + 3600000).toISOString(), new Date(Date.now() + 7200000).toISOString()],
       consent: true,
     };
@@ -99,6 +99,8 @@ async function main() {
     await waitForMail('NUTRITIONIST_CALL_SCHEDULED', applicantEmail);
     assert.equal((await request(`${route}/decision`, 'PATCH', { decision: 'approve' }, adminToken)).status, 400);
     await new Promise((resolve) => setTimeout(resolve, 1400));
+    assert.equal((await request(`${route}/decision`, 'PATCH', { decision: 'approve' }, adminToken)).status, 400);
+    assert.equal((await request(`${route}/call-verification`, 'PATCH', { identityMatched: true }, adminToken)).status, 200);
     const approved = await request(`${route}/decision`, 'PATCH', { decision: 'approve' }, adminToken);
     assert.equal(approved.status, 200, JSON.stringify(approved.data));
     assert.equal(approved.data.data.invitationEmailSent, true);
@@ -174,6 +176,7 @@ async function main() {
       meetingUrl: 'https://meet.example.test/approval-race',
     }, adminToken)).status, 200);
     await new Promise((resolve) => setTimeout(resolve, 1300));
+    assert.equal((await request(`${raceRoute}/call-verification`, 'PATCH', { identityMatched: true }, adminToken)).status, 200);
     const approvals = await Promise.all([
       request(`${raceRoute}/decision`, 'PATCH', { decision: 'approve' }, adminToken),
       request(`${raceRoute}/decision`, 'PATCH', { decision: 'approve' }, adminToken),

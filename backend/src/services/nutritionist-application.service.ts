@@ -25,7 +25,7 @@ type ApplicationInput = {
   university: string;
   professionalBio: string;
   officialHeadshot?: string;
-  digitalSignature?: string;
+  photoRecentAttested: true;
   availableCallSlots: string[];
   consent: true;
 };
@@ -42,8 +42,9 @@ const publicApplicationSelect = {
   fullName: true,
   email: true,
   officialHeadshot: true,
-  digitalSignature: true,
+  photoRecentAttestedAt: true,
   scheduledCallAt: true,
+  callVerifiedAt: true,
   meetingUrl: true,
   decisionReason: true,
   invitationSentAt: true,
@@ -90,7 +91,7 @@ export class NutritionistApplicationService {
         university: input.university.trim(),
         professionalBio: input.professionalBio.trim(),
         officialHeadshot: input.officialHeadshot?.trim() || null,
-        digitalSignature: input.digitalSignature?.trim() || null,
+        photoRecentAttestedAt: new Date(),
         availableCallSlots: input.availableCallSlots,
         applicantConsentAt: new Date(),
       },
@@ -220,6 +221,30 @@ export class NutritionistApplicationService {
     return updated;
   }
 
+  static async confirmCall(adminUserId: string, applicationId: string) {
+    return prisma.$transaction(async (tx) => {
+      const changed = await tx.nutritionistApplication.updateMany({
+        where: {
+          id: applicationId,
+          status: 'CALL_SCHEDULED',
+          scheduledCallAt: { lte: new Date() },
+          callVerifiedAt: null,
+        },
+        data: { callVerifiedAt: new Date(), callVerifiedByAdminId: adminUserId },
+      });
+      if (changed.count !== 1) throw new Error('The scheduled call must occur before identity can be confirmed. Refresh this application.');
+      await tx.auditEvent.create({
+        data: {
+          actorUserId: adminUserId,
+          action: 'NUTRITIONIST_APPLICATION_CALL_IDENTITY_MATCHED',
+          entityType: 'NutritionistApplication',
+          entityId: applicationId,
+        },
+      });
+      return tx.nutritionistApplication.findUniqueOrThrow({ where: { id: applicationId } });
+    });
+  }
+
   static async decide(
     adminUserId: string,
     applicationId: string,
@@ -272,7 +297,7 @@ export class NutritionistApplicationService {
       return result;
     }
 
-    if (application.status !== 'CALL_SCHEDULED' || !application.scheduledCallAt) {
+    if (application.status !== 'CALL_SCHEDULED' || !application.scheduledCallAt || !application.callVerifiedAt) {
       throw new Error('Complete and record the required verification call before approving this application.');
     }
     if (application.scheduledCallAt.getTime() > Date.now()) {
@@ -293,6 +318,7 @@ export class NutritionistApplicationService {
           id: applicationId,
           status: 'CALL_SCHEDULED',
           scheduledCallAt: { lte: new Date() },
+          callVerifiedAt: { not: null },
           prcLicenseExpiry: { gt: new Date() },
         },
         data: {
@@ -329,7 +355,6 @@ export class NutritionistApplicationService {
           university: application.university,
           bio: application.professionalBio,
           officialHeadshot: application.officialHeadshot,
-          digitalSignature: application.digitalSignature,
           isVerified: true,
           verifiedAt: new Date(),
         },

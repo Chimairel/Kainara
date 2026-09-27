@@ -3,27 +3,29 @@ import { applicantCredentialSchema, applicantIdentitySchema, issuesToFields } fr
 
 describe('nutritionist application schema validation', () => {
   describe('applicantIdentitySchema', () => {
-    it('requires a camera photo before the applicant continues', () => {
+    it('requires a recent uploaded photo and attestation', () => {
       const result = applicantIdentitySchema.safeParse({
         fullName: 'Maria Santos',
         email: 'maria.santos@rnd.ph',
         phoneNumber: '+63 917 123 4567',
         officialHeadshot: '',
+        photoRecentAttested: false,
       });
 
       expect(result.success).toBe(false);
       if (!result.success) {
-        expect(result.error.issues[0].message).toMatch(/A camera photo is required/i);
-        expect(issuesToFields(result.error).officialHeadshot).toMatch(/A camera photo is required/i);
+        expect(issuesToFields(result.error).officialHeadshot).toMatch(/Upload a recent photo/i);
+        expect(issuesToFields(result.error).photoRecentAttested).toMatch(/past 30 days/i);
       }
     });
 
-    it('passes when a camera photo data URL is present', () => {
+    it('passes when a photo and recency attestation are present', () => {
       const result = applicantIdentitySchema.safeParse({
         fullName: 'Maria Santos',
         email: 'maria.santos@rnd.ph',
         phoneNumber: '+63 917 123 4567',
         officialHeadshot: 'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQEASABIAAD=',
+        photoRecentAttested: true,
       });
 
       expect(result.success).toBe(true);
@@ -31,27 +33,21 @@ describe('nutritionist application schema validation', () => {
   });
 
   describe('applicantCredentialSchema', () => {
-    it('requires handwritten digitalSignature', () => {
+    it('accepts valid professional credentials without a signature', () => {
       const result = applicantCredentialSchema.safeParse({
         prcLicenseNumber: '0098765',
         prcLicenseExpiry: '2029-12-31',
         specialization: 'Clinical Renal Nutrition',
-        digitalSignature: '',
       });
 
-      expect(result.success).toBe(false);
-      if (!result.success) {
-        expect(result.error.issues[0].message).toMatch(/Digital handwritten signature is required/i);
-        expect(issuesToFields(result.error).digitalSignature).toMatch(/Digital handwritten signature is required/i);
-      }
+      expect(result.success).toBe(true);
     });
 
-    it('passes when valid digitalSignature data URL is present', () => {
+    it('does not require biometric signature data', () => {
       const result = applicantCredentialSchema.safeParse({
         prcLicenseNumber: '0098765',
         prcLicenseExpiry: '2029-12-31',
         specialization: 'Clinical Renal Nutrition',
-        digitalSignature: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMg=',
       });
 
       expect(result.success).toBe(true);

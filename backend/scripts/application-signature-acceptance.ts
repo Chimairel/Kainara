@@ -34,7 +34,7 @@ async function main() {
       university: 'Synthetic University',
       professionalBio: 'Synthetic application used only for a local database acceptance test.',
       officialHeadshot: 'data:image/jpeg;base64,' + 'A'.repeat(300000),
-      digitalSignature: 'data:image/png;base64,iVBORw0KGgo=',
+      photoRecentAttested: true,
       availableCallSlots: [
         new Date(Date.now() + 86400000).toISOString(),
         new Date(Date.now() + 172800000).toISOString(),
@@ -47,12 +47,12 @@ async function main() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
       });
-    assert.equal((await send({ ...payload, digitalSignature: '' })).status, 400);
-    assert.equal((await send({ ...payload, digitalSignature: 'https://example.test/signature.png' })).status, 400);
+    assert.equal((await send({ ...payload, photoRecentAttested: false })).status, 400);
+    assert.equal((await send({ ...payload, officialHeadshot: 'https://example.test/photo.png' })).status, 400);
     const response = await send(payload);
     assert.equal(response.status, 201, await response.text());
     const application = await prisma.nutritionistApplication.findUniqueOrThrow({ where: { email: payload.email } });
-    assert.equal(application.digitalSignature, payload.digitalSignature);
+    assert.ok(application.photoRecentAttestedAt);
     assert.equal(application.officialHeadshot, payload.officialHeadshot);
     const user = await prisma.user.create({
       data: {
@@ -146,12 +146,14 @@ async function main() {
     });
     assert.equal(saved.status, 'PENDING_REVIEW');
     assert.equal(saved.highRiskReviewRequired, true);
-    assert.equal(saved.reviewApprovalCount, 1);
-    assert.equal(saved.firstApprovedByNutritionistId, reviewerId);
+    assert.equal(saved.reviewApprovalCount, 0);
+    assert.equal(saved.firstApprovedByNutritionistId, null);
+    assert.equal(saved.candidateProvenance, 'AI_FROM_SCRATCH');
+    assert.equal(replacement.awaitingMealVerification, true);
     assert.equal(saved.planType, 'STARTER');
     assert.equal(saved.ingredients[0].dataSource, 'GEMINI_ESTIMATED');
     console.log(
-      'PASS: >256 KB applicant submission, signature persistence/validation, and fresh high-risk replacement review chain. Synthetic database and captured email only.'
+      'PASS: recent-photo applicant submission and replacement routed to meal verification. Synthetic database and captured email only.'
     );
   } finally {
     await new Promise<void>((resolve) => server.close(() => resolve()));

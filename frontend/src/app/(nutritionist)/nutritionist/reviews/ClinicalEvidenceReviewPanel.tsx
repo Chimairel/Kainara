@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import api from '@/lib/axios';
 import { getApiErrorMessage } from '@/lib/api-error';
-import { ReviewTabs, type ReviewWorkspaceTab } from './GovernanceQueuePanel';
 
 type QueueItem = {
   id: string; area: string; documentType: string; status: string; originalFileName: string;
@@ -18,7 +17,7 @@ const factCodes: Record<string, string[]> = {
   DIABETES: ['DIABETES_MEDICATION'],
 };
 
-export default function ClinicalEvidenceReviewPanel({ onTabChange }: { onTabChange: (tab: ReviewWorkspaceTab) => void }) {
+export default function ClinicalEvidenceReviewPanel() {
   const [queue, setQueue] = useState<QueueItem[]>([]);
   const [detail, setDetail] = useState<Detail | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -77,7 +76,6 @@ export default function ClinicalEvidenceReviewPanel({ onTabChange }: { onTabChan
   };
 
   return <div className="m-3 h-[calc(100%-1.5rem)] overflow-y-auto rounded-2xl border border-brand-border bg-brand-surface p-5 text-brand-text">
-    <ReviewTabs value="clinical" onChange={onTabChange} />
     <div className="mb-5 flex items-center justify-between gap-3"><div><h1 className="font-display text-xl font-bold">Clinical document review</h1><p className="text-sm text-brand-muted">Check the original record and confirm only facts relevant to nutrition planning. Sufficiency is not diagnosis or document authentication.</p></div><button type="button" onClick={() => void refresh()} className="rounded-xl border border-brand-border px-3 py-2 text-sm">Refresh</button></div>
     {error && <p role="alert" className="mb-4 rounded-xl border border-red-500/30 p-3 text-sm text-red-400">{error}</p>}
     <div className="grid gap-5 lg:grid-cols-[minmax(240px,360px)_1fr]">

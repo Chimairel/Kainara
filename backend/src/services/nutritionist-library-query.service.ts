@@ -1,5 +1,6 @@
 import { HealthConditionType, MealLibraryStatus, MealType, Prisma } from '@prisma/client';
 import prisma from '@/lib/prisma';
+import { libraryBaseRevisionKey } from './meal-base-admission.service';
 import { normalizePagination, normalizeSearch } from '@/policies/pagination.policy';
 
 export interface NutritionistLibraryFilters {
@@ -78,6 +79,7 @@ export async function getNutritionistMealLibraryWithFilters(
           sourceName: true,
           sourceUrl: true,
           sourceImageUrl: true,
+          contentSignature: true,
           status: true,
           observedSubmissions: { where: { status: 'ADMITTED_RECIPE' }, select: { id: true }, take: 1 },
         } },
@@ -104,6 +106,14 @@ export async function getNutritionistMealLibraryWithFilters(
       },
     }) : [];
   const byId = new Map(meals.map((meal) => [meal.id, meal]));
+  const baseVerifications = meals.length ? await prisma.mealBaseVerification.findMany({
+    where: { status: 'VERIFIED', OR: [
+      { targetKind: 'LIBRARY_MEAL', targetId: { in: meals.map((meal) => meal.id) } },
+      { targetKind: 'RAW_RECIPE', targetId: { in: meals.flatMap((meal) => meal.sourceRawRecipeCandidateId ? [meal.sourceRawRecipeCandidateId] : []) } },
+    ] },
+    select: { targetKind: true, targetId: true, revisionKey: true },
+  }) : [];
+  const verifiedKeys = new Set(baseVerifications.map((row) => `${row.targetKind}:${row.targetId}:${row.revisionKey}`));
   const orderedMeals = pageIds.flatMap((id) => {
     const meal = byId.get(id);
     return meal ? [meal] : [];
@@ -141,8 +151,9 @@ export async function getNutritionistMealLibraryWithFilters(
       // recipe or has completed independent RND evidence review. It does not
       // assert that a particular serving is ready for automatic planning.
       const panlasangSource = source?.sourceName === 'PANLASANG_PINOY' && source.status === 'AVAILABLE';
-      const admittedOutsideRecipe = source?.sourceName === 'USER_OBSERVED' &&
-        source.status === 'AVAILABLE' && source.observedSubmissions.length > 0;
+      const verifiedBase = !!meal.recipeSignature && verifiedKeys.has(`LIBRARY_MEAL:${meal.id}:${libraryBaseRevisionKey(meal.recipeSignature, meal.description)}`) ||
+        (source?.status === 'AVAILABLE' && !!meal.sourceRawRecipeCandidateId &&
+          verifiedKeys.has(`RAW_RECIPE:${meal.sourceRawRecipeCandidateId}:${source.contentSignature}`));
       const rndCertified = meal.safetyEvidenceStatus === 'COMPLETE' &&
         meal.certifiedEvidenceRevision === meal.safetyEvidenceRevision &&
         !!meal.safetyReviewedByNutritionistId;
@@ -154,10 +165,10 @@ export async function getNutritionistMealLibraryWithFilters(
           sourceImageUrl: source.sourceImageUrl,
           status: source.status,
         } : null,
-        baseVerification: panlasangSource || admittedOutsideRecipe || rndCertified
+        baseVerification: panlasangSource || verifiedBase || rndCertified
           ? 'VERIFIED' as const : 'REVIEW_PENDING' as const,
         baseVerificationBasis: panlasangSource ? 'PANLASANG_PINOY' as const :
-          admittedOutsideRecipe || rndCertified ? 'NUTRITIONIST' as const : null,
+          verifiedBase || rndCertified ? 'NUTRITIONIST' as const : null,
         preparedNutritionRevision: preparedRevision.get(meal.id)?.revision ?? null,
         preparedNutritionBasis: preparedRevision.get(meal.id)?.portionBasis ?? null,
       };

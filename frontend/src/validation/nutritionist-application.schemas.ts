@@ -19,9 +19,10 @@ export const applicantIdentitySchema = z.object({
   phoneNumber: text('Phone number', 30).regex(/^\+?[0-9 ()-]{7,25}$/, 'Enter a valid phone number.'),
   officialHeadshot: z
     .string()
-    .min(1, 'A camera photo is required. Please capture it using your camera.')
-    .max(1000000, 'Photo is too large. Please capture it again.')
-    .regex(/^data:image\/(?:png|jpeg);base64,[A-Za-z0-9+/]+={0,2}$/, 'Capture a PNG or JPEG photo.'),
+    .min(1, 'Upload a recent photo.')
+    .max(1000000, 'Photo is too large.')
+    .regex(/^data:image\/(?:png|jpeg);base64,[A-Za-z0-9+/]+={0,2}$/, 'Upload a PNG or JPEG photo.'),
+  photoRecentAttested: z.literal(true, { error: 'Confirm that your photo was taken within the past 30 days.' }),
 });
 
 export const applicantCredentialSchema = z.object({
@@ -33,11 +34,6 @@ export const applicantCredentialSchema = z.object({
     .min(1, 'License expiration date is required.')
     .refine((value) => new Date(`${value}T23:59:59`).getTime() > Date.now(), 'PRC license must not be expired.'),
   specialization: text('Specialization', 120).min(2, 'Specialization must be at least 2 characters.'),
-  digitalSignature: z
-    .string()
-    .min(1, 'Digital handwritten signature is required. Please draw and confirm your signature in the box provided.')
-    .max(500000, 'Signature is too large. Please clear and redraw it.')
-    .regex(/^data:image\/png;base64,[A-Za-z0-9+/]+={0,2}$/, 'Draw and confirm a PNG signature.'),
 });
 
 export const applicantProfileSchema = z.object({
@@ -74,10 +70,10 @@ export type NutritionistApplicationForm = {
   email: string;
   phoneNumber: string;
   officialHeadshot: string;
+  photoRecentAttested: boolean;
   prcLicenseNumber: string;
   prcLicenseExpiry: string;
   specialization: string;
-  digitalSignature: string;
   yearsOfExperience: string;
   university: string;
   professionalBio: string;

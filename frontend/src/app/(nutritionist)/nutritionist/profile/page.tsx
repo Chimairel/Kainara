@@ -21,7 +21,6 @@ interface NProfile {
   university?: string;
   bio?: string;
   officialHeadshot?: string | null;
-  digitalSignature?: string | null;
   isVerified: boolean;
   totalVerified: number;
 }
@@ -262,7 +261,7 @@ export default function NutritionistProfilePage() {
             <div className="flex items-center justify-between border-b border-brand-border/60 pb-3">
               <div>
                 <p className="portal-section-label !text-brand-green">Clinical Identity Verification</p>
-                <h3 className="text-sm font-bold text-brand-text mt-0.5">Biometric Headshot &amp; Digital Signature</h3>
+                <h3 className="text-sm font-bold text-brand-text mt-0.5">Verified identity photo</h3>
               </div>
               <span className="inline-flex items-center gap-1 rounded-full border border-emerald-500/30 bg-emerald-950/40 px-2.5 py-1 text-[10px] font-bold text-emerald-400">
                 <ShieldCheck className="h-3 w-3" /> Locked &amp; Immutable
@@ -270,12 +269,10 @@ export default function NutritionistProfilePage() {
             </div>
 
             <p className="text-xs text-brand-muted leading-relaxed">
-              Your official clinical headshot and handwritten signature were captured during application onboarding and
-              verified by administration. These credentials are permanently locked to ensure clinical accountability and
-              prevent identity spoofing.
+              Your application photo was compared with you during the administrator&apos;s verification call.
             </p>
 
-            <div className="grid gap-4 sm:grid-cols-2 pt-2">
+            <div className="grid gap-4 pt-2">
               <div className="rounded-2xl border border-brand-border/60 bg-brand-surface/70 p-4 space-y-3">
                 <span className="text-[10px] uppercase font-bold tracking-wider text-brand-muted">
                   Official Headshot Photo
@@ -296,34 +293,12 @@ export default function NutritionistProfilePage() {
                     </div>
                   )}
                   <div className="text-xs space-y-0.5">
-                    <p className="font-bold text-brand-text">Verified Live Capture</p>
+                    <p className="font-bold text-brand-text">Identity photo reviewed during video call</p>
                     <p className="text-[11px] text-brand-muted">Displayed on meal certificates</p>
                   </div>
                 </div>
               </div>
 
-              <div className="rounded-2xl border border-brand-border/60 bg-brand-surface/70 p-4 space-y-3">
-                <span className="text-[10px] uppercase font-bold tracking-wider text-brand-muted">
-                  Official Digital Signature
-                </span>
-                <div>
-                  {profile?.digitalSignature ? (
-                    <div className="h-16 w-full max-w-[200px] rounded-xl bg-neutral-950 border border-neutral-800 p-2 flex items-center justify-center overflow-hidden">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src={profile.digitalSignature}
-                        alt="Official digital signature"
-                        className="max-h-full max-w-full object-contain"
-                      />
-                    </div>
-                  ) : (
-                    <div className="h-16 rounded-xl bg-neutral-900 flex items-center justify-center text-xs text-brand-muted">
-                      No signature recorded
-                    </div>
-                  )}
-                  <p className="text-[10px] text-brand-muted mt-1.5">Attached to approved meal plans</p>
-                </div>
-              </div>
             </div>
           </Card>
 
@@ -388,21 +363,6 @@ export default function NutritionistProfilePage() {
                   {profile?.specialization || 'General Clinical Nutrition'}
                 </p>
                 <p className="text-xs leading-relaxed text-brand-muted">{profile?.bio || 'No introduction provided'}</p>
-                {profile?.digitalSignature && (
-                  <div className="pt-2">
-                    <span className="text-[9px] uppercase font-bold tracking-wider text-brand-muted block mb-1">
-                      Attestation Signature
-                    </span>
-                    <div className="h-10 w-28 rounded-lg bg-neutral-950 border border-neutral-800 p-1 flex items-center justify-center overflow-hidden">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src={profile.digitalSignature}
-                        alt="Digital signature"
-                        className="max-h-full max-w-full object-contain"
-                      />
-                    </div>
-                  </div>
-                )}
                 <p className="pt-2 text-[10px] text-brand-muted/80">
                   Users view these professional credentials whenever you approve or review their meal plans.
                 </p>

@@ -22,7 +22,6 @@ export interface Verifier {
   university?: string;
   bio?: string;
   officialHeadshot?: string | null;
-  digitalSignature?: string | null;
   user: {
     name: string;
     image?: string | null;

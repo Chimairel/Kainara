@@ -34,7 +34,7 @@ test('applicant tracking, validation, invitation screen, and admin application l
       prcLicenseNumber: `BROWSER-${stamp}`, prcLicenseExpiry: '2029-12-31T23:59:59.000Z',
       specialization: 'Clinical nutrition', yearsOfExperience: 4, university: 'Synthetic University',
       professionalBio: 'Synthetic professional for the isolated browser application journey verification.',
-      officialHeadshot: 'data:image/jpeg;base64,/9j/AA==', digitalSignature: 'data:image/png;base64,iVBORw0KGgo=',
+      officialHeadshot: 'data:image/jpeg;base64,/9j/AA==', photoRecentAttested: true,
       availableCallSlots: [new Date(Date.now() + 3600000).toISOString(), new Date(Date.now() + 7200000).toISOString()],
       consent: true,
     },

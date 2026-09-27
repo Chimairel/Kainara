@@ -22,8 +22,10 @@ import { enforceClearanceCircuitBreakers } from '@/services/condition-clearance.
 import { mealApprovalSafetyScope } from '@/domain/meal-approval-scope.policy';
 import { classifyMealIngredients } from '@/domain/meal-ingredient-classification.policy';
 import { MEAL_PLAN_SAFETY_POLICY_VERSION } from '@/domain/meal-plan-production-safety.policy';
+import { admittedLibraryBaseIds } from './meal-base-admission.service';
 
 export const certifiedLibraryMealInclude = {
+  sourceRawRecipeCandidate: { select: { sourceName: true, status: true, contentSignature: true } },
   applicableMealTypes: { orderBy: { mealType: 'asc' as const } },
   ingredients: {
     orderBy: { position: 'asc' as const },
@@ -294,9 +296,12 @@ export async function queryEligibleLibraryMeals(input: {
     take: limit,
   });
 
+  const admitted = await admittedLibraryBaseIds(candidates);
+
   return candidates.filter((meal) =>
-    isCertifiedLibraryMealCompatible(meal, input.userConditions, input.userAllergens, input.profile) ||
-    isProfileApprovedLibraryMealCompatible(meal, input.userConditions, input.userAllergens, input.profile)
+    admitted.has(meal.id) &&
+    (isCertifiedLibraryMealCompatible(meal, input.userConditions, input.userAllergens, input.profile) ||
+      isProfileApprovedLibraryMealCompatible(meal, input.userConditions, input.userAllergens, input.profile))
   );
 }
 
@@ -433,8 +438,10 @@ export async function queryEligibleLibraryPage(input: {
       orderBy: [{ mealName: 'asc' }, { id: 'asc' }],
       take: chunkSize,
     });
+    const admitted = await admittedLibraryBaseIds(rows);
     for (const row of rows) {
       if (
+        !admitted.has(row.id) ||
         !isCertifiedLibraryMealCompatible(row, input.userConditions, input.userAllergens, input.profile, {
           safetyOnly: input.safetyOnly,
         }) &&

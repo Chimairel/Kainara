@@ -11,6 +11,7 @@ import {
 } from '@prisma/client';
 
 import { getNutritionistReviewableMealPlanWhere } from '@/domain/meal-actionability.policy';
+import { isGeneratedBaseVerified } from './meal-base-verification.service';
 import {
   getReviewClaimCooldownUntil,
   getReviewClaimCutoff,
@@ -154,7 +155,15 @@ export class NutritionistReviewService {
         }).every((requirement) => requirement.state === 'READY'),
       ])
     );
-    const clinicallyReadyMeals = pendingMeals.filter((meal) => readinessByUser.get(meal.userId) !== false);
+    const generatedSignatures = [...new Set(pendingMeals.flatMap((meal) =>
+      meal.candidateProvenance === 'AI_FROM_SCRATCH' && meal.baseRecipeSignature ? [meal.baseRecipeSignature] : []))];
+    const verifiedGenerated = generatedSignatures.length ? await prisma.mealBaseVerification.findMany({
+      where: { targetKind: 'GENERATED_RECIPE', status: 'VERIFIED', targetId: { in: generatedSignatures } },
+      select: { targetId: true, revisionKey: true },
+    }) : [];
+    const verifiedSignatures = new Set(verifiedGenerated.filter((item) => item.targetId === item.revisionKey).map((item) => item.targetId));
+    const clinicallyReadyMeals = pendingMeals.filter((meal) => readinessByUser.get(meal.userId) !== false &&
+      (meal.candidateProvenance !== 'AI_FROM_SCRATCH' || (!!meal.baseRecipeSignature && verifiedSignatures.has(meal.baseRecipeSignature))));
 
     const workCounts = new Map<string, number>();
     for (const meal of clinicallyReadyMeals) {
@@ -283,10 +292,13 @@ export class NutritionistReviewService {
       }),
       prisma.mealPlan.findUnique({
         where: { id: mealPlanId },
-        select: { highRiskReviewRequired: true, reviewApprovalCount: true, firstApprovedByNutritionistId: true },
+        select: { highRiskReviewRequired: true, reviewApprovalCount: true, firstApprovedByNutritionistId: true, candidateProvenance: true, baseRecipeSignature: true },
       }),
     ]);
     if (!reviewer || !reviewTarget) throw new Error('Meal plan or nutritionist profile not found.');
+    if (reviewTarget.candidateProvenance === 'AI_FROM_SCRATCH' && !await isGeneratedBaseVerified(reviewTarget.baseRecipeSignature)) {
+      throw new Error('The generated base recipe must pass meal verification before case approval.');
+    }
     const targetOwner = await prisma.mealPlan.findUnique({ where: { id: mealPlanId }, select: { userId: true } });
     if (!targetOwner) throw new Error('Meal plan not found.');
     const clinicalRequirements = await ClinicalEvidenceService.assertReadyForMealPlanning(targetOwner.userId);
@@ -652,6 +664,9 @@ export class NutritionistReviewService {
     });
 
     if (!plan) throw new Error('Meal plan not found.');
+    if (plan.candidateProvenance === 'AI_FROM_SCRATCH' && !await isGeneratedBaseVerified(plan.baseRecipeSignature)) {
+      throw new Error('The generated base recipe must pass meal verification before case approval.');
+    }
     const approvedScope = mealApprovalSafetyScope({
       conditions: plan.user.healthConditions.map((item) => item.condition),
       allergens: plan.user.allergies.map((item) => item.allergen),

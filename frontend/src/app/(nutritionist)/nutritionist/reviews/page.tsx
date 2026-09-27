@@ -24,13 +24,20 @@ import {
 
 import { useNutritionistReviews } from '@/features/nutritionist-reviews/useNutritionistReviews';
 import IngredientEvidenceList from '@/features/nutritionist-reviews/IngredientEvidenceList';
-import GovernanceQueuePanel, { ReviewTabs, type ReviewWorkspaceTab } from './GovernanceQueuePanel';
+import GovernanceQueuePanel from './GovernanceQueuePanel';
 import ClinicalEvidenceReviewPanel from './ClinicalEvidenceReviewPanel';
+import WorkspaceTabs, { type ReviewWorkspace } from './WorkspaceTabs';
+import MealVerificationPanel from './MealVerificationPanel';
+import OutsideMealReviewsPage from '../outside-meals/page';
+import ApprovedReviewsPage from '../approved/page';
+import ExpandableCasePanel from '@/features/nutritionist-reviews/ExpandableCasePanel';
 import api from '@/lib/axios';
 import { toast } from '@/components/ui/Sonner';
 
 export default function ReviewsPage() {
-  const [workspaceTab, setWorkspaceTab] = useState<ReviewWorkspaceTab>('pending');
+  const [workspace, setWorkspace] = useState<ReviewWorkspace>('case');
+  const [caseFilter, setCaseFilter] = useState<'pending' | 'second' | 'audit' | 'disputed' | 'outside' | 'completed'>('pending');
+  const [expanded, setExpanded] = useState(false);
   const {
     queue,
     fetchQueue,
@@ -73,24 +80,30 @@ export default function ReviewsPage() {
     updateIngredientField,
   } = useNutritionistReviews();
   const visibleQueue = queue.filter((meal) =>
-    workspaceTab === 'second' ? meal.requiresIndependentSecondReview : !meal.requiresIndependentSecondReview
+    caseFilter === 'second' ? meal.requiresIndependentSecondReview : !meal.requiresIndependentSecondReview
   );
 
-  if (workspaceTab === 'audit' || workspaceTab === 'disputed') {
-    return <GovernanceQueuePanel tab={workspaceTab} onTabChange={setWorkspaceTab} />;
-  }
-  if (workspaceTab === 'clinical') {
-    return <ClinicalEvidenceReviewPanel onTabChange={setWorkspaceTab} />;
-  }
+  const navigation = <WorkspaceTabs value={workspace} onChange={(next) => { setWorkspace(next); setExpanded(false); }} />;
+  if (workspace === 'meal') return <>{navigation}<MealVerificationPanel /></>;
+  if (workspace === 'profile') return <>{navigation}<ClinicalEvidenceReviewPanel /></>;
+  const caseFilters = <div className="flex flex-wrap gap-2 px-4 py-3" aria-label="Case approval filters">{([
+    ['pending', 'Pending'], ['second', 'Second decision'], ['outside', 'Outside meal logs'],
+    ['completed', 'Completed history'], ['audit', 'Audit and rechecks'], ['disputed', 'Needs resolution'],
+  ] as const).map(([key, label]) => <button key={key} type="button" aria-pressed={caseFilter === key} onClick={() => { setCaseFilter(key); setExpanded(false); }} className={`rounded-lg border border-brand-border px-3 py-2 text-xs font-bold ${caseFilter === key ? 'bg-brand-green text-[#07100d]' : 'text-brand-muted'}`}>{label}</button>)}</div>;
+  if (caseFilter === 'audit' || caseFilter === 'disputed') return <>{navigation}{caseFilters}<GovernanceQueuePanel tab={caseFilter} /></>;
+  if (caseFilter === 'outside') return <>{navigation}{caseFilters}<OutsideMealReviewsPage /></>;
+  if (caseFilter === 'completed') return <>{navigation}{caseFilters}<ApprovedReviewsPage /></>;
 
   return (
+    <>
+    {navigation}
+    {caseFilters}
     <div className="m-2 sm:m-3 flex h-[calc(100%-1rem)] sm:h-[calc(100%-1.5rem)] w-[calc(100%-1rem)] sm:w-[calc(100%-1.5rem)] flex-col overflow-hidden rounded-2xl sm:rounded-[30px] border border-brand-border/70 bg-brand-surface text-left shadow-card-lg backdrop-blur-xl md:m-4 md:h-[calc(100%-2rem)] md:w-[calc(100%-2rem)] md:flex-row">
       {/* Master Queue List Panel */}
       <div
-        className={`${selectedMealId ? 'hidden md:flex' : 'flex'} h-full w-full min-w-0 flex-col space-y-4 overflow-y-auto border-brand-border/70 bg-brand-surface/75 p-5 custom-scrollbar md:w-[38%] md:min-w-[280px] md:border-r`}
+        className={`${selectedMealId ? 'hidden md:flex' : 'flex'} ${expanded ? '!hidden' : ''} h-full w-full min-w-0 flex-col space-y-4 overflow-y-auto border-brand-border/70 bg-brand-surface/75 p-5 custom-scrollbar md:w-[38%] md:min-w-[280px] md:border-r`}
       >
         <div className="rounded-2xl border border-brand-green/20 bg-brand-green/5 p-5 text-brand-text">
-          <ReviewTabs value={workspaceTab} onChange={setWorkspaceTab} />
           <p className="text-xs font-semibold text-brand-green">Meal-plan review</p>
           <div className="mt-3 flex items-center justify-between">
             <h1 className="flex items-center gap-2 font-display text-xl font-extrabold tracking-tight">
@@ -204,9 +217,8 @@ export default function ReviewsPage() {
       </div>
 
       {/* Details View Panel */}
-      <div
-        className={`${selectedMealId ? 'flex' : 'hidden md:flex'} h-full min-w-0 flex-1 flex-col overflow-y-auto bg-transparent p-4 custom-scrollbar sm:p-6`}
-      >
+      <ExpandableCasePanel expanded={expanded} onExpandedChange={setExpanded} canExpand={selectedMealId !== null}
+        className={`${selectedMealId ? 'flex' : 'hidden md:flex'} h-full min-w-0 flex-1 flex-col overflow-y-auto bg-transparent p-4 custom-scrollbar sm:p-6`}>
         {selectedMealId !== null && (
           <button
             type="button"
@@ -836,7 +848,7 @@ export default function ReviewsPage() {
                         className="text-xs px-6 py-2.5 font-bold flex-1 flex items-center justify-center gap-1.5 bg-brand-green text-brand-bg hover:bg-brand-green/90"
                       >
                         <Check className="w-4 h-4" />
-                        <span>Approve & Deliver to Patient ✅</span>
+                        <span>Send replacement for meal verification</span>
                       </Button>
                       <Button
                         variant="secondary"
@@ -920,7 +932,8 @@ export default function ReviewsPage() {
             </>}
           </div>
         ) : null}
-      </div>
+      </ExpandableCasePanel>
     </div>
+    </>
   );
 }

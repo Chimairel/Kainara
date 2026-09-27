@@ -4,43 +4,9 @@ import { useCallback, useEffect, useState } from 'react';
 import Button from '@/components/ui/Button';
 import api from '@/lib/axios';
 
-export type ReviewWorkspaceTab = 'pending' | 'second' | 'clinical' | 'audit' | 'disputed';
-
-export function ReviewTabs({
-  value,
-  onChange,
-}: {
-  value: ReviewWorkspaceTab;
-  onChange: (value: ReviewWorkspaceTab) => void;
-}) {
-  return (
-    <div className="mb-4 grid grid-cols-2 gap-1 rounded-xl border border-brand-border bg-brand-bg/40 p-1 xl:grid-cols-5">
-      {(
-        [
-          ['pending', 'Pending'],
-          ['second', 'Second review'],
-          ['clinical', 'Clinical documents'],
-          ['audit', 'Audit'],
-          ['disputed', 'Disputed'],
-        ] as const
-      ).map(([tab, label]) => (
-        <button
-          key={tab}
-          type="button"
-          onClick={() => onChange(tab)}
-          className={`rounded-lg px-2 py-2 text-[10px] font-bold ${
-            value === tab ? 'bg-brand-green text-[#07100d]' : 'text-brand-muted hover:text-brand-text'
-          }`}
-        >
-          {label}
-        </button>
-      ))}
-    </div>
-  );
-}
-
 type GovernanceClearance = {
   id: string;
+  mealLibraryId: string;
   condition: string;
   assuranceTier: string;
   state: string;
@@ -56,13 +22,19 @@ type DisputedPlan = {
   scheduledDate: string;
   user: { name: string };
 };
+type DueProfileApproval = {
+  id: string;
+  mealLibraryId: string;
+  reviewDueAt: string;
+  flaggedAt: string | null;
+  flagReason: string | null;
+  mealLibrary: { mealName: string };
+};
 
 export default function GovernanceQueuePanel({
   tab,
-  onTabChange,
 }: {
   tab: 'audit' | 'disputed';
-  onTabChange: (value: ReviewWorkspaceTab) => void;
 }) {
   const [data, setData] = useState<{
     canLeadReview: boolean;
@@ -70,12 +42,19 @@ export default function GovernanceQueuePanel({
     plans?: DisputedPlan[];
   } | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+  const [dueProfiles, setDueProfiles] = useState<DueProfileApproval[]>([]);
+  const [selectedProfile, setSelectedProfile] = useState<DueProfileApproval | null>(null);
+  const [caseDetail, setCaseDetail] = useState<{ recordedScope: unknown; originatingPlan: { mealName: string; calories: number } | null; linkedUserCurrentProfile: { name: string; conditions: string[]; allergies: string[] } | null } | null>(null);
 
   const load = useCallback(async () => {
     setMessage(null);
     try {
       const response = await api.get(`/nutritionist/governance/queue?view=${tab}`);
       setData(response.data.data);
+      if (tab === 'audit') {
+        const due = await api.get('/nutritionist/approval-follow-ups');
+        setDueProfiles(due.data.data ?? []);
+      } else setDueProfiles([]);
     } catch {
       setMessage('Governance queue could not be loaded.');
     }
@@ -109,10 +88,27 @@ export default function GovernanceQueuePanel({
     }
   };
 
+  const recheck = async (mealId: string, approvalId: string, kind: 'PROFILE' | 'CONDITION') => {
+    const rationale = window.prompt('Record your findings for this approval recheck (at least 10 characters).');
+    if (!rationale || rationale.trim().length < 10) return;
+    try {
+      await api.post(`/nutritionist/library/${mealId}/approvals/${approvalId}/recheck`, { kind, rationale: rationale.trim() });
+      setMessage('Approval recheck recorded.');
+      setSelectedProfile(null); setCaseDetail(null);
+      await load();
+    } catch { setMessage('This approval could not be rechecked. Open its current case evidence and verify reviewer eligibility.'); }
+  };
+  const inspectProfile = async (approval: DueProfileApproval) => {
+    setSelectedProfile(approval); setCaseDetail(null);
+    try {
+      const response = await api.get(`/nutritionist/library/${approval.mealLibraryId}/approvals/PROFILE/${approval.id}`);
+      setCaseDetail(response.data.data);
+    } catch { setMessage('The approval case could not be opened.'); }
+  };
+
   return (
     <div className="portal-page space-y-5">
       <div className="rounded-2xl border border-brand-green/20 bg-brand-surface p-5">
-        <ReviewTabs value={tab} onChange={onTabChange} />
         <h1 className="font-display text-2xl font-black text-brand-text">
           {tab === 'audit' ? 'Reusable evidence audit queue' : 'Disputed decisions'}
         </h1>
@@ -165,16 +161,27 @@ export default function GovernanceQueuePanel({
                           Reject
                         </Button>
                       </>
-                    ) : (
-                      <Button size="sm" variant="secondary" onClick={() => void suspend(clearance.id)}>
-                        Suspend
-                      </Button>
-                    )}
+                    ) : <>
+                      {(clearance.state === 'REVIEW_DUE' || clearance.state === 'SUSPENDED') && <Button size="sm" onClick={() => void recheck(clearance.mealLibraryId, clearance.id, 'CONDITION')}>Recheck</Button>}
+                      {clearance.state === 'ACTIVE' && <Button size="sm" variant="secondary" onClick={() => void suspend(clearance.id)}>Suspend</Button>}
+                    </>}
                   </div>
                 )}
               </div>
             </div>
           ))}
+          {tab === 'audit' && dueProfiles.map((approval) => <div key={approval.id} className="rounded-2xl border border-brand-border bg-brand-surface p-4">
+            <p className="font-bold">{approval.mealLibrary.mealName}</p>
+            <p className="text-xs text-brand-muted">Profile approval · {approval.flaggedAt ? 'Flagged' : `Review due ${new Date(approval.reviewDueAt).toLocaleDateString()}`}</p>
+            {approval.flagReason && <p className="text-xs text-amber-400">{approval.flagReason}</p>}
+            <Button size="sm" variant="secondary" onClick={() => void inspectProfile(approval)}>View case</Button>
+            {selectedProfile?.id === approval.id && caseDetail && <div className="mt-3 rounded-xl border border-brand-border p-3 text-sm">
+              <p>Original meal: {caseDetail.originatingPlan?.mealName ?? approval.mealLibrary.mealName} · {caseDetail.originatingPlan?.calories ?? 'Unknown'} kcal</p>
+              <p>Linked user now: {caseDetail.linkedUserCurrentProfile?.name ?? 'Unavailable'}</p>
+              <p className="text-xs text-brand-muted">Current conditions: {caseDetail.linkedUserCurrentProfile?.conditions.join(', ') || 'none'} · Allergies: {caseDetail.linkedUserCurrentProfile?.allergies.join(', ') || 'none'}. Review the recorded context before renewal.</p>
+              <Button size="sm" onClick={() => void recheck(approval.mealLibraryId, approval.id, 'PROFILE')}>Record recheck</Button>
+            </div>}
+          </div>)}
           {tab === 'disputed' &&
             (data.plans || []).map((plan) => (
               <div key={plan.id} className="rounded-2xl border border-status-error-text/25 bg-brand-surface p-4">
@@ -201,7 +208,7 @@ export default function GovernanceQueuePanel({
                 )}
               </div>
             ))}
-          {data.clearances.length === 0 && (data.plans?.length ?? 0) === 0 && (
+          {data.clearances.length === 0 && dueProfiles.length === 0 && (data.plans?.length ?? 0) === 0 && (
             <div className="rounded-2xl border border-dashed border-brand-border p-10 text-center text-sm text-brand-muted">
               Queue is clear.
             </div>

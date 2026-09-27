@@ -32,8 +32,9 @@ import { asyncHandler } from '@/middleware/errorHandler';
 import { ClearanceDecisionValue, HealthConditionType, RuleApprovalDecision } from '@prisma/client';
 import { ConditionClearanceService } from '@/services/condition-clearance.service';
 import { ClinicalEvidenceService } from '@/services/clinical-evidence.service';
-import { flagMealApproval, getMealApprovalCaseDetails, listMealApprovals, recheckConditionApproval, recheckProfileApproval } from '@/services/meal-approval-lifecycle.service';
+import { flagMealApproval, getMealApprovalCaseDetails, listDueProfileApprovals, listMealApprovals, recheckConditionApproval, recheckProfileApproval } from '@/services/meal-approval-lifecycle.service';
 import { clinicalDocumentIdParamsSchema, clinicalDocumentReviewSchema } from '@/validation/clinical-evidence.schemas';
+import { MealBaseVerificationService } from '@/services/meal-base-verification.service';
 
 const router = Router();
 
@@ -41,6 +42,35 @@ const router = Router();
 router.use(authenticate);
 router.use(requireRole('NUTRITIONIST'));
 router.use(requireEligibleNutritionist);
+
+const mealVerificationParams = z.object({
+  kind: z.enum(['LIBRARY_MEAL', 'RAW_RECIPE', 'GENERATED_RECIPE']),
+  id: z.string().min(1),
+}).strict();
+const mealVerificationDecision = z.object({
+  decision: z.enum(['VERIFIED', 'REJECTED']),
+  rationale: z.string().trim().min(10).max(1000),
+}).strict();
+
+router.get('/meal-verification', asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+  const data = await MealBaseVerificationService.list(req.nutritionistProfileId!);
+  res.json({ success: true, data });
+}));
+router.post('/meal-verification/:kind/:id/claim', validateZodRequest({ params: mealVerificationParams }),
+  asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+    const data = await MealBaseVerificationService.claim(req.nutritionistProfileId!, req.params.kind as 'LIBRARY_MEAL' | 'RAW_RECIPE' | 'GENERATED_RECIPE', req.params.id);
+    res.json({ success: true, data });
+  }));
+router.post('/meal-verification/:kind/:id/release', validateZodRequest({ params: mealVerificationParams }),
+  asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+    await MealBaseVerificationService.release(req.nutritionistProfileId!, req.params.kind as 'LIBRARY_MEAL' | 'RAW_RECIPE' | 'GENERATED_RECIPE', req.params.id);
+    res.json({ success: true });
+  }));
+router.post('/meal-verification/:kind/:id/decision', validateZodRequest({ params: mealVerificationParams, body: mealVerificationDecision }),
+  asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+    const data = await MealBaseVerificationService.decide(req.nutritionistProfileId!, req.params.kind as 'LIBRARY_MEAL' | 'RAW_RECIPE' | 'GENERATED_RECIPE', req.params.id, req.body.decision, req.body.rationale);
+    res.json({ success: true, data });
+  }));
 
 router.get(
   '/outside-meal-reviews',
@@ -579,6 +609,10 @@ router.get('/library/:id/approvals', async (req: AuthenticatedRequest, res: Resp
     return res.status(404).json({ success: false, error: sanitizeErrorMessage(error, 'Approvals unavailable.') });
   }
 });
+
+router.get('/approval-follow-ups', asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+  res.json({ success: true, data: await listDueProfileApprovals(req.nutritionistProfileId!) });
+}));
 
 router.get('/library/:id/approvals/:kind/:approvalId', async (req: AuthenticatedRequest, res: Response) => {
   const kind = req.params.kind;
