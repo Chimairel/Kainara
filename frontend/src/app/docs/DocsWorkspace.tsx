@@ -112,16 +112,16 @@ export default function DocsWorkspace() {
               <p className="mt-4 max-w-2xl text-sm leading-7 text-brand-muted">{chapter.summary}</p>
             </header>
 
-            <div className="space-y-6 pt-8">
+            <div className="pt-3">
               {chapter.sections.map((section) => (
-                <section key={section.id} id={section.id} className="surface-panel scroll-mt-28 rounded-[24px] border border-brand-border/70 p-6 sm:p-8">
-                  <h3 className="font-display text-xl font-bold tracking-tight text-brand-text">{section.title}</h3>
-                  <div className="mt-4 space-y-4 text-sm leading-7 text-brand-muted">{section.content}</div>
+                <section key={section.id} id={section.id} className="scroll-mt-28 border-b border-brand-border/70 py-10 first:pt-8 last:border-b-0">
+                  <h3 className="font-display text-xl font-bold tracking-tight text-brand-text sm:text-2xl">{section.title}</h3>
+                  <div className="mt-5 max-w-3xl space-y-5 text-sm leading-8 text-brand-muted">{section.content}</div>
                 </section>
               ))}
             </div>
 
-            <div className="mt-10 flex flex-col gap-4 rounded-[24px] border border-brand-accent/20 bg-brand-accent/5 p-6 sm:flex-row sm:items-center sm:justify-between">
+            <div className="mt-6 flex flex-col gap-4 border-t border-brand-border/70 pt-8 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <p className="font-display text-lg font-bold text-brand-text">Ready to use KAINARA?</p>
                 <p className="mt-1 text-xs leading-5 text-brand-muted">Return to your nutrition workspace when you are ready.</p>
