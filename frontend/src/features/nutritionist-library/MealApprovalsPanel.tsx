@@ -19,6 +19,7 @@ type Approval = {
 };
 type Variant = {
   id: string;
+  status: 'APPROVED' | 'FLAGGED' | 'ARCHIVED';
   mealName: string;
   nutritionServingDescription: string | null;
   calories: number;
@@ -220,9 +221,11 @@ export function MealApprovalsPanel({ mealId }: {
             </section>
           </div>
           {currentApproval.flagReason && <p className="text-sm text-amber-300">Flag reason: {currentApproval.flagReason}</p>}
+          {variants.find((variant) => variant.id === selected.variantId)?.status === 'FLAGGED' &&
+            <p className="text-sm text-amber-300">This approval is suspended by a meal-wide flag. Resolve the base meal before reviewing this approval.</p>}
           <div className="flex flex-wrap gap-2">
-            {(currentApproval.status === 'ACTIVE' || currentApproval.status === 'REVIEW_DUE') && <Button variant="secondary" disabled={busy} onClick={() => { setFlagTarget({ variantId: selected.variantId, approval: currentApproval }); setReason(''); }}>Flag approval</Button>}
-            {(currentApproval.status === 'FLAGGED' || currentApproval.status === 'REVIEW_DUE') && <Button variant="secondary" disabled={busy} onClick={() => { setRecheckTarget({ variantId: selected.variantId, approval: currentApproval }); setReviewNote(''); }}>Recheck approval</Button>}
+            {(currentApproval.status === 'ACTIVE' || currentApproval.status === 'REVIEW_DUE') && <Button variant="secondary" disabled={busy || variants.find((variant) => variant.id === selected.variantId)?.status === 'FLAGGED'} onClick={() => { setFlagTarget({ variantId: selected.variantId, approval: currentApproval }); setReason(''); }}>Flag approval</Button>}
+            {(currentApproval.status === 'FLAGGED' || currentApproval.status === 'REVIEW_DUE') && <Button variant="secondary" disabled={busy || variants.find((variant) => variant.id === selected.variantId)?.status === 'FLAGGED'} onClick={() => { setRecheckTarget({ variantId: selected.variantId, approval: currentApproval }); setReviewNote(''); }}>Recheck approval</Button>}
           </div>
           {flagTarget && <div className="rounded-xl border border-amber-600/50 p-4">
             <label htmlFor="approval-flag-reason" className="block text-sm font-semibold">Reason for flagging this approval</label>
@@ -264,6 +267,7 @@ export function MealApprovalsPanel({ mealId }: {
         ) : filteredVariants.map((variant) => variant.approvals.length > 0 && (
           <section key={variant.id} className="space-y-3 rounded-2xl border border-brand-border p-4">
             <div>
+              {variant.status === 'FLAGGED' && <p className="mb-2 text-sm font-semibold text-amber-300">Suspended by meal-wide flag</p>}
               <p className="text-xs font-semibold uppercase tracking-wide text-brand-muted">Serving variant · {variant.mealName}</p>
               <p className="text-xs text-brand-muted">
                 {variant.nutritionServingDescription || 'Recorded serving'} · {variant.calories} kcal ·
@@ -283,8 +287,8 @@ export function MealApprovalsPanel({ mealId }: {
               <div key={`${approval.kind}-${approval.id}`} className="rounded-xl border border-brand-border bg-brand-bg/50 p-3">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <h3 className="text-base font-bold text-brand-text">{contextLabel(approval.caseScope ?? approval.scope)}</h3>
-                  <span className={approval.status === 'ACTIVE' ? 'text-brand-green' : 'text-amber-300'}>
-                    {approval.status.replaceAll('_', ' ')}
+                  <span className={variant.status === 'APPROVED' && approval.status === 'ACTIVE' ? 'text-brand-green' : 'text-amber-300'}>
+                    {variant.status === 'FLAGGED' ? 'Suspended by meal flag' : approval.status.replaceAll('_', ' ')}
                   </span>
                 </div>
                 <p className="mt-1 text-xs text-brand-muted">

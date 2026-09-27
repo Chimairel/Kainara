@@ -100,7 +100,8 @@ export class MealPlanCycleService {
             },
             candidateProvenance: true,
             sourceRawRecipeCandidate: {
-              select: { sourceName: true, status: true, publishedNutrition: true },
+              select: { sourceName: true, status: true, publishedNutrition: true,
+                libraryVariants: { where: { status: 'FLAGGED' }, select: { id: true }, take: 1 } },
             },
             libraryMeal: {
               select: {
@@ -221,6 +222,7 @@ export class MealPlanCycleService {
             safetyRestrictions.customConditions.length === 0 && safetyRestrictions.customFoodRestrictions.length === 0 &&
             meal.sourceRawRecipeCandidate?.sourceName === 'PANLASANG_PINOY' &&
             meal.sourceRawRecipeCandidate.status === 'AVAILABLE' &&
+            meal.sourceRawRecipeCandidate.libraryVariants.length === 0 &&
             Boolean(meal.sourceRawRecipeCandidate.publishedNutrition);
         }
         if (meal.candidateProvenance === 'AI_FROM_SCRATCH' &&

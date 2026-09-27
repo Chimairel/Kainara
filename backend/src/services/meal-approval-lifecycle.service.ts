@@ -219,6 +219,10 @@ export async function flagMealApproval(input: {
   if (reason.length < 10 || reason.length > 1000) throw new Error('Give a reason of 10 to 1000 characters.');
   const now = new Date();
   return prisma.$transaction(async (tx) => {
+    const meal = await tx.mealLibrary.findUnique({
+      where: { id: input.mealLibraryId }, select: { status: true },
+    });
+    if (meal?.status !== 'APPROVED') throw new Error('A flagged meal cannot receive a separate approval flag.');
     await tx.$executeRaw`SELECT pg_advisory_xact_lock_shared(741010)`;
     let users: Array<{ userId: string }>;
     if (input.kind === 'PROFILE') {

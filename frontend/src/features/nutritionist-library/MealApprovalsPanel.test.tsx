@@ -56,4 +56,16 @@ describe('meal approvals on the recipe detail page', () => {
       kind: 'CONDITION', approvalId: 'condition-1', reason: 'The approved serving needs another ingredient check.',
     }));
   });
+
+  it('shows approvals as suspended when the base meal is flagged', async () => {
+    mocks.get.mockResolvedValueOnce({ data: { data: [{
+      id: 'variant-1', status: 'FLAGGED', mealName: 'Tinola', nutritionServingDescription: 'One bowl',
+      calories: 420, proteinG: 30, carbsG: 20, fatG: 12, ingredients: [],
+      approvals: [{ id: 'a', kind: 'CONDITION', scope: { conditions: ['HYPERTENSION'] }, reviewerName: 'RND A', reviewedAt: '2026-01-01', reviewDueAt: '2027-01-01', status: 'STALE', flagReason: null }],
+    }] } });
+    render(<MealApprovalsPanel mealId="recipe-1" />);
+    expect(await screen.findAllByText('Suspended by meal-wide flag')).toHaveLength(1);
+    expect(screen.getByText('Suspended by meal flag')).toBeInTheDocument();
+    expect(screen.getByText('Hypertension')).toBeInTheDocument();
+  });
 });

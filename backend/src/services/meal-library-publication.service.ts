@@ -110,6 +110,10 @@ export async function createOrReuseLibraryDraftFromApprovedPlan(
           throw new Error('Only the nutritionist who finalized this user approval can publish its reusable draft.');
         }
         if (!plan.ingredients.length) throw new Error('A reusable recipe requires at least one ingredient.');
+        if (plan.sourceRawRecipeCandidateId && await tx.mealLibrary.findFirst({
+          where: { sourceRawRecipeCandidateId: plan.sourceRawRecipeCandidateId, status: MealLibraryStatus.FLAGGED },
+          select: { id: true },
+        })) throw new Error('This source recipe is flagged and cannot publish a new serving variant.');
 
         const recipeSignature = buildMealLibraryRecipeSignature({
           mealName: plan.mealName,
@@ -122,6 +126,7 @@ export async function createOrReuseLibraryDraftFromApprovedPlan(
         });
         const existing = await tx.mealLibrary.findUnique({ where: { recipeSignature } });
         if (existing) {
+          if (existing.status !== MealLibraryStatus.APPROVED) throw new Error('A flagged or archived meal cannot become reusable evidence.');
           if (plan.sourceRawRecipeCandidateId && !existing.sourceRawRecipeCandidateId) {
             await tx.mealLibrary.update({
               where: { id: existing.id },
@@ -199,6 +204,11 @@ export async function createOrReuseLibraryDraftFromApprovedPlan(
       });
       const recipeSignature = buildMealLibraryRecipeSignature({ ...plan, ingredients: plan.ingredients });
       const existing = await prisma.mealLibrary.findUniqueOrThrow({ where: { recipeSignature } });
+      if (existing.status !== MealLibraryStatus.APPROVED ||
+        (plan.sourceRawRecipeCandidateId && await prisma.mealLibrary.findFirst({
+          where: { sourceRawRecipeCandidateId: plan.sourceRawRecipeCandidateId, status: MealLibraryStatus.FLAGGED },
+          select: { id: true },
+        }))) throw new Error('A flagged source recipe cannot become reusable evidence.');
       if (plan.sourceRawRecipeCandidateId && !existing.sourceRawRecipeCandidateId) {
         await prisma.mealLibrary.update({
           where: { id: existing.id },

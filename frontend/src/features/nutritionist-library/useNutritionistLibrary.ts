@@ -3,6 +3,7 @@ import api from '@/lib/axios';
 
 export interface Flag {
   id: string;
+  status: 'PENDING' | 'RESOLVED_KEPT' | 'RESOLVED_REMOVED';
   reason: string;
   createdAt: string;
   flaggedByNutritionist: {
@@ -173,6 +174,7 @@ export function useNutritionistLibrary() {
   const [conditionTag, setConditionTag] = useState('All');
   const [verifiedByMe, setVerifiedByMe] = useState(false);
   const [adminDraftsOnly, setAdminDraftsOnly] = useState(false);
+  const [status, setStatus] = useState<'ALL' | 'APPROVED' | 'FLAGGED'>('ALL');
 
   // Debounce search query
   useEffect(() => {
@@ -194,6 +196,7 @@ export function useNutritionistLibrary() {
           conditionTag: conditionTag === 'All' ? undefined : conditionTag,
           verifiedByMe: verifiedByMe ? 'true' : undefined,
           adminDraftsOnly: adminDraftsOnly ? 'true' : undefined,
+          status,
           page,
           limit: 20,
         },
@@ -223,7 +226,7 @@ export function useNutritionistLibrary() {
   useEffect(() => {
     fetchLibrary();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [search, mealType, conditionTag, verifiedByMe, adminDraftsOnly, page]);
+  }, [search, mealType, conditionTag, verifiedByMe, adminDraftsOnly, status, page]);
 
   useEffect(() => {
     fetchCoverage();
@@ -233,6 +236,6 @@ export function useNutritionistLibrary() {
     meals, totalCount, page, setPage, totalPages, isLoading, fetchError,
     coverage, searchVal, setSearchVal, mealType, setMealType,
     conditionTag, setConditionTag, verifiedByMe, setVerifiedByMe,
-    adminDraftsOnly, setAdminDraftsOnly, fetchLibrary, fetchCoverage,
+    adminDraftsOnly, setAdminDraftsOnly, status, setStatus, fetchLibrary, fetchCoverage,
   };
 }

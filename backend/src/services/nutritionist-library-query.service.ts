@@ -29,9 +29,12 @@ export async function getNutritionistMealLibraryWithFilters(
   const { page, limit } = normalizePagination(filters.page, filters.limit, 20);
   const skip = (page - 1) * limit;
   const search = normalizeSearch(filters.search);
-  // The nutritionist library lists base recipes; flags and review dates belong
-  // to the scoped approvals shown inside each recipe.
-  const where: Prisma.MealLibraryWhereInput = { status: MealLibraryStatus.APPROVED };
+  // Base-meal flags are visible here; context-specific flags remain inside approvals.
+  const where: Prisma.MealLibraryWhereInput = {
+    status: filters.status === 'FLAGGED' ? MealLibraryStatus.FLAGGED
+      : filters.status === 'APPROVED' ? MealLibraryStatus.APPROVED
+      : { in: [MealLibraryStatus.APPROVED, MealLibraryStatus.FLAGGED] },
+  };
   const and: Prisma.MealLibraryWhereInput[] = [];
 
   if (search) where.mealName = { contains: search, mode: 'insensitive' };

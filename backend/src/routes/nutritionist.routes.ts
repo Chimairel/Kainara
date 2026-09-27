@@ -35,6 +35,7 @@ import { ClinicalEvidenceService } from '@/services/clinical-evidence.service';
 import { flagMealApproval, getMealApprovalCaseDetails, listDueProfileApprovals, listMealApprovals, recheckConditionApproval, recheckProfileApproval } from '@/services/meal-approval-lifecycle.service';
 import { clinicalDocumentIdParamsSchema, clinicalDocumentReviewSchema } from '@/validation/clinical-evidence.schemas';
 import { MealBaseVerificationService } from '@/services/meal-base-verification.service';
+import { flagWholeMeal, releaseWholeMeal } from '@/services/meal-wide-flag.service';
 
 const router = Router();
 
@@ -607,6 +608,25 @@ router.get('/library/:id/approvals', async (req: AuthenticatedRequest, res: Resp
     return res.status(200).json({ success: true, data: await listMealApprovals(req.params.id) });
   } catch (error) {
     return res.status(404).json({ success: false, error: sanitizeErrorMessage(error, 'Approvals unavailable.') });
+  }
+});
+
+const mealFlagReasonSchema = z.object({ reason: z.string().trim().min(10).max(1000) }).strict();
+const mealFlagReleaseSchema = z.object({ rationale: z.string().trim().min(10).max(1000) }).strict();
+router.post('/library/:id/flag', validateZodBody(mealFlagReasonSchema), async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const data = await flagWholeMeal(req.nutritionistProfileId!, req.params.id, req.body.reason);
+    return res.status(200).json({ success: true, data });
+  } catch (error) {
+    return res.status(409).json({ success: false, error: sanitizeErrorMessage(error, 'Could not flag meal.') });
+  }
+});
+router.post('/library/:id/release-flag', validateZodBody(mealFlagReleaseSchema), async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const data = await releaseWholeMeal(req.nutritionistProfileId!, req.params.id, req.body.rationale);
+    return res.status(200).json({ success: true, data });
+  } catch (error) {
+    return res.status(409).json({ success: false, error: sanitizeErrorMessage(error, 'Could not release meal flag.') });
   }
 });
 

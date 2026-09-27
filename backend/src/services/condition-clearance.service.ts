@@ -105,6 +105,7 @@ export class ConditionClearanceService {
       },
     });
     if (!meal) throw new Error('Library meal not found.');
+    if (meal.status !== 'APPROVED') throw new Error('A flagged meal cannot receive a condition approval.');
     if (!meal.recipeSignature || meal.safetyEvidenceRevision <= 0) {
       throw new Error('The meal requires a stable recipe signature and evidence revision before condition review.');
     }
@@ -140,6 +141,8 @@ export class ConditionClearanceService {
     const now = new Date();
     return prisma.$transaction(
       async (tx) => {
+        const currentMeal = await tx.mealLibrary.findUnique({ where: { id: meal.id }, select: { status: true } });
+        if (currentMeal?.status !== 'APPROVED') throw new Error('This meal was flagged during review.');
         const scopedUser = input.userScopeId ? await tx.user.findUnique({
           where: { id: input.userScopeId },
           include: { userProfile: true, healthConditions: true, allergies: true, safetyProfileEntries: true },

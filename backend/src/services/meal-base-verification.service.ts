@@ -154,6 +154,9 @@ export class MealBaseVerificationService {
       }
       if (kind === 'RAW_RECIPE' && decision === 'VERIFIED') {
         const source = await tx.rawRecipeCandidate.findUniqueOrThrow({ where: { id } });
+        if (await tx.mealLibrary.findFirst({
+          where: { sourceRawRecipeCandidateId: source.id, status: 'FLAGGED' }, select: { id: true },
+        })) throw new Error('This source recipe is flagged and cannot be republished.');
         const ingredients = Array.isArray(source.ingredients) ? source.ingredients.flatMap((value) => {
           if (!value || typeof value !== 'object' || Array.isArray(value)) return [];
           const item = value as Record<string, unknown>;

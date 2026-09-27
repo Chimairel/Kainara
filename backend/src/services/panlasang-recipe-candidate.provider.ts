@@ -113,6 +113,7 @@ export class DatabaseRecipeCandidateProvider implements RecipeCandidateProvider 
     const rows = await prisma.rawRecipeCandidate.findMany({
       where: {
         status: 'AVAILABLE',
+        libraryVariants: { none: { status: 'FLAGGED' } },
         sourceName: input.sourceKind ?? { in: ['PANLASANG_PINOY', 'USER_OBSERVED'] },
         ...(input.mealType ? { applicableMealTypes: { some: { mealType: input.mealType } } } : {}),
         ...(input.dietaryPreference ? { dietaryTags: { array_contains: [input.dietaryPreference] } } : {}),

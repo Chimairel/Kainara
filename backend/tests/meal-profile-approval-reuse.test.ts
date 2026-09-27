@@ -47,6 +47,7 @@ test('profile approval reuses the exact recipe for the same safety scope despite
 });
 
 test('profile approval fails closed when the recipe changes, reviewer expires, or allergen conflicts', () => {
+  assert.equal(isProfileApprovedLibraryMealCompatible(meal({ status: 'FLAGGED' }), [], ['DAIRY'], profile), false);
   assert.equal(isProfileApprovedLibraryMealCompatible(meal({ safetyEvidenceRevision: 2 }), [], ['DAIRY'], profile), false);
   assert.equal(isProfileApprovedLibraryMealCompatible(meal({ ingredients: [{ ingredientName: 'milk', category: 'DAIRY', foodItem: null }] }), [], ['DAIRY'], profile), false);
   const expired = meal();

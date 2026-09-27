@@ -6,6 +6,7 @@ import Button from '@/components/ui/Button';
 import Badge from '@/components/ui/Badge';
 import PortalPageHeader from '@/components/shared/PortalPageHeader';
 import { ArrowLeft, BookOpen, Soup, ShieldAlert } from 'lucide-react';
+import api from '@/lib/axios';
 
 import {
   AVAILABLE_CONDITIONS,
@@ -17,6 +18,10 @@ import type { LibraryMeal } from '@/features/nutritionist-library/useNutritionis
 export default function MealLibraryPage() {
   const [section, setSection] = useState<'recipes' | 'coverage'>('recipes');
   const [viewedMeal, setViewedMeal] = useState<LibraryMeal | null>(null);
+  const [mealFlagReason, setMealFlagReason] = useState('');
+  const [mealReleaseFindings, setMealReleaseFindings] = useState('');
+  const [mealFlagBusy, setMealFlagBusy] = useState(false);
+  const [mealFlagError, setMealFlagError] = useState<string | null>(null);
   const listScrollTop = useRef(0);
   const workspace = useNutritionistLibrary();
   const {
@@ -38,7 +43,30 @@ export default function MealLibraryPage() {
     setVerifiedByMe,
     adminDraftsOnly,
     setAdminDraftsOnly,
+    status,
+    setStatus,
+    fetchLibrary,
   } = workspace;
+
+  async function changeMealFlag(action: 'flag' | 'release-flag') {
+    if (!viewedMeal) return;
+    setMealFlagBusy(true);
+    setMealFlagError(null);
+    try {
+      await api.post(`/nutritionist/library/${viewedMeal.id}/${action}`, action === 'flag'
+        ? { reason: mealFlagReason.trim() } : { rationale: mealReleaseFindings.trim() });
+      const response = await api.get(`/nutritionist/library/${viewedMeal.id}`);
+      if (response.data?.success) setViewedMeal({ ...viewedMeal, ...response.data.data });
+      setMealFlagReason('');
+      setMealReleaseFindings('');
+      await fetchLibrary();
+    } catch (error: unknown) {
+      const response = error as { response?: { data?: { error?: string } } };
+      setMealFlagError(response.response?.data?.error || 'The meal flag could not be updated. Reload and try again.');
+    } finally {
+      setMealFlagBusy(false);
+    }
+  }
 
   if (viewedMeal) {
     const source = viewedMeal.sourceRawRecipeCandidate;
@@ -77,6 +105,7 @@ export default function MealLibraryPage() {
             </div>
             {source?.sourceUrl && <a href={source.sourceUrl} target="_blank" rel="noopener noreferrer"
               className="mt-3 inline-block text-sm font-semibold text-brand-green underline">View original recipe ↗</a>}
+            {viewedMeal.status === 'FLAGGED' && <p className="mt-3 text-sm font-bold text-amber-300">Meal flagged · all serving variants and approvals are unavailable for reuse</p>}
           </div>
         </header>
         <section className="space-y-5 rounded-2xl border border-brand-border bg-brand-surface/60 p-5" aria-label="Meal details">
@@ -108,7 +137,31 @@ export default function MealLibraryPage() {
             <p className="text-xs text-brand-muted">Nutrition source notes: {viewedMeal.safetyReviews[0].evidenceSnapshot.nutritionBasis}</p>
           )}
         </section>
-        <MealApprovalsPanel mealId={viewedMeal.id} />
+        <section className="space-y-3 rounded-2xl border border-brand-border bg-brand-surface/60 p-5" aria-label="Meal-wide flag">
+          <h2 className="font-display text-xl font-bold text-brand-text">Meal-wide review</h2>
+          {viewedMeal.status === 'FLAGGED' ? (
+            <>
+              <p className="text-sm text-brand-muted">This base meal and every serving variant are unavailable. Recorded approvals remain intact; separately flagged approvals stay flagged after release.</p>
+              {viewedMeal.flags?.filter((flag) => flag.status === 'PENDING').map((flag) => (
+                <p key={flag.id} className="rounded-xl border border-amber-500/30 p-3 text-sm text-amber-200">Flag reason: {flag.reason}</p>
+              ))}
+              <label htmlFor="meal-release-findings" className="block text-sm font-semibold text-brand-text">Independent review findings</label>
+              <textarea id="meal-release-findings" value={mealReleaseFindings} onChange={(event) => setMealReleaseFindings(event.target.value)} minLength={10} maxLength={1000} rows={3}
+                className="w-full rounded-xl border border-brand-border bg-brand-bg p-3 text-sm text-brand-text" />
+              <Button variant="secondary" disabled={mealFlagBusy || mealReleaseFindings.trim().length < 10} onClick={() => void changeMealFlag('release-flag')}>Release meal flag</Button>
+            </>
+          ) : (
+            <>
+              <p className="text-sm text-brand-muted">Flagging pauses this meal, its serving variants, and every associated approval. Current plan slots using it require revalidation.</p>
+              <label htmlFor="meal-flag-reason" className="block text-sm font-semibold text-brand-text">Reason for flagging the meal</label>
+              <textarea id="meal-flag-reason" value={mealFlagReason} onChange={(event) => setMealFlagReason(event.target.value)} minLength={10} maxLength={1000} rows={3}
+                className="w-full rounded-xl border border-brand-border bg-brand-bg p-3 text-sm text-brand-text" />
+              <Button variant="secondary" disabled={mealFlagBusy || mealFlagReason.trim().length < 10} onClick={() => void changeMealFlag('flag')}>Flag entire meal</Button>
+            </>
+          )}
+          {mealFlagError && <p role="alert" className="text-sm text-red-300">{mealFlagError}</p>}
+        </section>
+        <MealApprovalsPanel key={`${viewedMeal.id}-${viewedMeal.status}`} mealId={viewedMeal.id} />
       </div>
     );
   }
@@ -120,7 +173,7 @@ export default function MealLibraryPage() {
         icon={BookOpen}
         eyebrow="Meal intelligence"
         title="Meal library"
-        description="Browse base recipes and their separate health-context approvals. Verified identifies an established recipe source or completed nutritionist review; automatic planning also requires usable serving and nutrition details."
+        description="Browse base recipes and their separate health-context approvals. A flagged base meal and all its approvals are unavailable until independent review releases the meal."
         meta={
           <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-2 font-mono text-[9px] uppercase tracking-wider text-brand-muted">
             {totalCount} records
@@ -358,6 +411,17 @@ export default function MealLibraryPage() {
           </div>
 
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pt-2 border-t border-brand-border/40">
+              <label htmlFor="library-meal-status" className="flex items-center gap-2 text-xs font-bold text-brand-text">
+                Meal status
+                <select id="library-meal-status" value={status} onChange={(event) => {
+                  setStatus(event.target.value as typeof status);
+                  setPage(1);
+                }} className="rounded-lg border border-brand-border bg-brand-bg px-3 py-2 text-brand-text">
+                  <option value="ALL">All meals</option>
+                  <option value="APPROVED">Available</option>
+                  <option value="FLAGGED">Flagged</option>
+                </select>
+              </label>
             {/* Owner filter */}
             <label className="flex items-center gap-2.5 cursor-pointer select-none py-1 text-xs font-bold text-brand-text">
               <input
@@ -433,8 +497,8 @@ export default function MealLibraryPage() {
                         <span className="text-[10px] font-bold text-brand-green bg-brand-green/10 border border-brand-green/20 px-2.5 py-1 rounded-md tracking-wider uppercase font-display">
                           {meal.mealType}
                         </span>
-                        <Badge variant={meal.baseVerification === 'VERIFIED' ? 'verified' : 'pending'} showIcon={false} className="text-[10px]">
-                          {meal.baseVerification === 'VERIFIED' ? 'Verified' : 'Review pending'}
+                        <Badge variant={meal.status === 'FLAGGED' ? 'pending' : meal.baseVerification === 'VERIFIED' ? 'verified' : 'pending'} showIcon={false} className="text-[10px]">
+                          {meal.status === 'FLAGGED' ? 'Flagged' : meal.baseVerification === 'VERIFIED' ? 'Verified' : 'Review pending'}
                         </Badge>
                       </div>
 
@@ -483,6 +547,9 @@ export default function MealLibraryPage() {
                           onClick={() => {
                             const main = document.querySelector('main.portal-main');
                             listScrollTop.current = main?.scrollTop ?? 0;
+                            setMealFlagError(null);
+                            setMealFlagReason('');
+                            setMealReleaseFindings('');
                             setViewedMeal(meal);
                             requestAnimationFrame(() => main?.scrollTo({ top: 0 }));
                           }}

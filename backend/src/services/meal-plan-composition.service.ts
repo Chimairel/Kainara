@@ -328,19 +328,23 @@ export async function generate7DayPlan(
     groundedFoodById: new Map(),
   });
   const rawSources = await prisma.rawRecipeCandidate.findMany({
-    where: { id: { in: preparedCandidates.flatMap((meal) => meal.rawCandidateId ? [meal.rawCandidateId] : []) } },
+    where: {
+      id: { in: preparedCandidates.flatMap((meal) => meal.rawCandidateId ? [meal.rawCandidateId] : []) },
+      libraryVariants: { none: { status: 'FLAGGED' } },
+    },
   });
   const sourceById = new Map(rawSources.map((source) => [source.id, source]));
   // A general-wellness candidate with incomplete source evidence is an empty
   // slot, never a nutritionist review task or an automatically approved plan.
+  const unflaggedCandidates = preparedCandidates.filter((meal) => !meal.rawCandidateId || sourceById.has(meal.rawCandidateId));
   const preparedAiMeals = reviewFreeBaseOnly
-    ? preparedCandidates.filter((meal) => isUnrestrictedPanlasangBaseEligible({
+    ? unflaggedCandidates.filter((meal) => isUnrestrictedPanlasangBaseEligible({
         source: meal.rawCandidateId ? sourceById.get(meal.rawCandidateId) : null,
         candidateId: meal.rawCandidateId,
         conditions: userConditions, allergens: userAllergens, otherConditions, otherAllergies,
         safetyEntries: user.safetyProfileEntries, preparedIngredients: meal.ingredientsData,
       }))
-    : preparedCandidates;
+    : unflaggedCandidates;
   const unrestrictedBaseIds = new Set(
     preparedAiMeals.flatMap((meal) =>
       isUnrestrictedPanlasangBaseEligible({
@@ -684,19 +688,25 @@ export async function generate7DayPlan(
       // 3. Create newly AI generated meals using pre-resolved lookups
       for (const meal of preparedAiMeals) {
         const autoGeneralBase = Boolean(meal.rawCandidateId && unrestrictedBaseIds.has(meal.rawCandidateId));
-        if (autoGeneralBase) {
-          const currentSource = await tx.rawRecipeCandidate.findUniqueOrThrow({ where: { id: meal.rawCandidateId! } });
-          if (currentSource.contentSignature !== sourceById.get(meal.rawCandidateId!)?.contentSignature ||
-              !isUnrestrictedPanlasangBaseEligible({
-                source: currentSource,
-                candidateId: meal.rawCandidateId,
-                conditions: userConditions,
-                allergens: userAllergens,
-                otherConditions,
-                otherAllergies,
-                safetyEntries: user.safetyProfileEntries,
-                preparedIngredients: meal.ingredientsData,
-              })) throw new Error('Source recipe changed during preparation. Please retry.');
+        if (meal.rawCandidateId) {
+          const currentSource = await tx.rawRecipeCandidate.findUniqueOrThrow({
+            where: { id: meal.rawCandidateId },
+            include: { libraryVariants: { where: { status: 'FLAGGED' }, select: { id: true }, take: 1 } },
+          });
+          if (currentSource.libraryVariants.length) throw new Error('Source recipe was flagged during preparation. Please retry.');
+          if (autoGeneralBase) {
+            if (currentSource.contentSignature !== sourceById.get(meal.rawCandidateId)?.contentSignature ||
+                !isUnrestrictedPanlasangBaseEligible({
+                  source: currentSource,
+                  candidateId: meal.rawCandidateId,
+                  conditions: userConditions,
+                  allergens: userAllergens,
+                  otherConditions,
+                  otherAllergies,
+                  safetyEntries: user.safetyProfileEntries,
+                  preparedIngredients: meal.ingredientsData,
+                })) throw new Error('Source recipe changed during preparation. Please retry.');
+          }
         }
         const serving = buildBaseServingPersistence({
           ...meal,
