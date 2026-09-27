@@ -70,7 +70,9 @@ export default function StructuredSafetyIntake({
   submitLabel: string;
   onSaved: (entries: SafetyProfileEntry[], changed: boolean) => void | Promise<void>;
 }) {
-  const [catalogue, setCatalogue] = useState<CatalogueItem[]>([]);
+  const [catalogue, setCatalogue] = useState<CatalogueItem[] | null>(null);
+  const [catalogueLoadError, setCatalogueLoadError] = useState(false);
+  const [catalogueRetry, setCatalogueRetry] = useState(0);
   const [inputs, setInputs] = useState<SafetyInputValue[]>(initialEntries);
   const [activeDomain, setActiveDomain] = useState<SafetyEntryDomain>(editableDomains[0]);
   const [customText, setCustomText] = useState('');
@@ -81,16 +83,21 @@ export default function StructuredSafetyIntake({
   const [modalConfirmed, setModalConfirmed] = useState(false);
 
   useEffect(() => {
+    let active = true;
     api
       .get('/user/onboarding/safety-catalogue')
-      .then((response) =>
-        setCatalogue([...(response.data?.data?.conditions || []), ...(response.data?.data?.foodSafety || [])])
-      )
-      .catch(() => setError('The safety catalogue could not be loaded.'));
-  }, []);
+      .then((response) => {
+        if (!active) return;
+        const items = [...(response.data?.data?.conditions || []), ...(response.data?.data?.foodSafety || [])];
+        if (items.length) setCatalogue(items);
+        else setCatalogueLoadError(true);
+      })
+      .catch(() => { if (active) setCatalogueLoadError(true); });
+    return () => { active = false; };
+  }, [catalogueRetry]);
 
   const options = useMemo(
-    () => catalogue.filter((item) => item.domains.includes(activeDomain)),
+    () => (catalogue ?? []).filter((item) => item.domains.includes(activeDomain)),
     [activeDomain, catalogue]
   );
 
@@ -234,7 +241,7 @@ export default function StructuredSafetyIntake({
       if (domainEntries.length === 0) {
         setActiveDomain(domain);
         const domainTitle = domainConfig[domain]?.title || labels[domain];
-        const noneItem = catalogue.find((item) => item.domains.includes(domain) && item.code === 'NONE');
+        const noneItem = catalogue?.find((item) => item.domains.includes(domain) && item.code === 'NONE');
         const noneLabel = noneItem ? `"${noneItem.displayName}"` : '"None"';
         setError(`Please select your entries or choose ${noneLabel} for ${domainTitle} before proceeding.`);
         return;
@@ -267,6 +274,11 @@ export default function StructuredSafetyIntake({
       setIsBusy(false);
     }
   };
+
+  if (!catalogue) return <div className="flex min-h-[440px] flex-col items-center justify-center rounded-xl border border-brand-border/60 bg-brand-bgAlt/30 p-6 text-center" role="status" aria-live="polite">
+    {catalogueLoadError ? <><p className="text-sm font-semibold text-status-error-text">Medical and food safety choices could not be loaded.</p><button type="button" onClick={() => { setCatalogueLoadError(false); setCatalogueRetry((value) => value + 1); }} className="mt-3 rounded-lg border border-brand-border px-4 py-2 text-sm font-bold">Try again</button></>
+      : <p className="text-sm text-brand-muted">Loading medical and food safety choices…</p>}
+  </div>;
 
   return (
     <div className="space-y-4 sm:space-y-5">

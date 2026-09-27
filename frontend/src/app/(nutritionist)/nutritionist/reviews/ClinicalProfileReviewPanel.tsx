@@ -13,6 +13,8 @@ type Detail = QueueItem & {
   dailyCalorieTarget: number | null; customConditions: string[]; customFoodRestrictions: string[];
   requirements: Array<{ area: string; state: string; message: string }>;
   documents: Array<{ id: string; area: string; status: string; originalFileName: string }>;
+  availableAreas: string[];
+  previousReview: null | { status: string; reasonCodes: string[]; notes: string | null };
   nutritionGuidance: null | {
     version: number; generatedAt: string; acknowledgedAt: string | null; isCurrent: boolean;
     summary: string; referenceItems: Array<{
@@ -25,6 +27,7 @@ export default function ClinicalProfileReviewPanel() {
   const [queue, setQueue] = useState<QueueItem[]>([]);
   const [detail, setDetail] = useState<Detail | null>(null);
   const [notes, setNotes] = useState('');
+  const [requestArea, setRequestArea] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -42,14 +45,17 @@ export default function ClinicalProfileReviewPanel() {
       const response = await api.get(`/nutritionist/profile-reviews/${userId}`);
       setDetail(response.data.data);
       setNotes('');
+      setRequestArea(response.data.data.availableAreas?.[0] ?? '');
     } catch (cause) { setError(getApiErrorMessage(cause, 'Could not open this profile.')); }
     finally { setBusy(false); }
   };
-  const decide = async (decision: 'APPROVED' | 'DECLINED') => {
+  const decide = async (decision: 'APPROVED' | 'DECLINED' | 'REQUEST_DOCUMENT') => {
     if (!detail) return;
     setBusy(true); setError(null);
     try {
-      await api.post(`/nutritionist/profile-reviews/${detail.userId}/decision`, { decision, notes });
+      await api.post(`/nutritionist/profile-reviews/${detail.userId}/decision`, {
+        decision, notes, ...(decision === 'REQUEST_DOCUMENT' ? { area: requestArea } : {}),
+      });
       setDetail(null); setNotes('');
       await refresh();
     } catch (cause) { setError(getApiErrorMessage(cause, 'Could not save this profile review.')); }
@@ -75,10 +81,13 @@ export default function ClinicalProfileReviewPanel() {
           <p className="mt-3 text-xs text-brand-muted">These are planning references, not a diagnosis or approval of a particular meal.</p>
         </section>
         {detail.needsClarification && <p className="rounded-lg border border-amber-500/40 p-3 text-sm text-amber-400">A restriction needs clarification before this profile can be approved.</p>}
+        {detail.previousReview?.notes && <div className="rounded-lg border border-amber-500/30 p-3 text-sm"><p className="font-bold">Previous review: {detail.previousReview.reasonCodes?.[0] === 'DOCUMENT_REQUESTED' ? 'Documentation requested' : detail.previousReview.status.toLowerCase()}</p><p className="mt-1 text-brand-muted">{detail.previousReview.notes}</p></div>}
         <div><h3 className="text-sm font-bold">Clinical context</h3>{detail.requirements.length ? detail.requirements.map((item) => <p key={item.area} className={`mt-1 text-sm ${item.state === 'READY' ? 'text-brand-muted' : 'text-amber-400'}`}>{item.area.replaceAll('_', ' ')}: {item.message}</p>) : <p className="text-sm text-brand-muted">No clinical document requirement.</p>}</div>
         {detail.documents.length > 0 && <div><h3 className="text-sm font-bold">Submitted documents</h3>{detail.documents.map((item) => <p key={item.id} className="text-sm text-brand-muted">{item.area.replaceAll('_', ' ')} · {item.originalFileName} · {item.status.replaceAll('_', ' ')}</p>)}<p className="mt-1 text-xs text-brand-muted">Open Clinical documents to claim and review the original file.</p></div>}
+        {detail.availableAreas.length > 0 && <label className="block text-sm">Document request area<select value={requestArea} onChange={(event) => setRequestArea(event.target.value)} className="mt-1 w-full rounded-lg border border-brand-border bg-brand-bg p-2">{detail.availableAreas.map((area) => <option key={area} value={area}>{area.replaceAll('_', ' ').toLowerCase()}</option>)}</select></label>}
         <label className="block text-sm">Review notes<textarea value={notes} onChange={(event) => setNotes(event.target.value)} rows={3} className="mt-1 w-full rounded-lg border border-brand-border bg-brand-bg p-2" /></label>
-        <div className="flex flex-wrap gap-2"><button type="button" disabled={busy || blocked || notes.trim().length < 10} onClick={() => void decide('APPROVED')} className="rounded-xl bg-brand-green px-4 py-2 text-sm font-bold text-[#07100d] disabled:opacity-50">Confirm for planning</button><button type="button" disabled={busy || notes.trim().length < 10} onClick={() => void decide('DECLINED')} className="rounded-xl border border-brand-border px-4 py-2 text-sm font-bold disabled:opacity-50">Needs correction</button></div>
+        <p className="text-xs text-brand-muted">Use the request action when the declaration or clinical context cannot be confirmed without a document. A vague condition entry must also be corrected before approval. The user stays blocked from meal planning until this profile is approved.</p>
+        <div className="flex flex-wrap gap-2"><button type="button" disabled={busy || blocked || notes.trim().length < 10} onClick={() => void decide('APPROVED')} className="rounded-xl bg-brand-green px-4 py-2 text-sm font-bold text-[#07100d] disabled:opacity-50">Confirm for planning</button><button type="button" disabled={busy || !requestArea || notes.trim().length < 10} onClick={() => void decide('REQUEST_DOCUMENT')} className="rounded-xl border border-amber-500/40 px-4 py-2 text-sm font-bold disabled:opacity-50">Request document</button><button type="button" disabled={busy || notes.trim().length < 10} onClick={() => void decide('DECLINED')} className="rounded-xl border border-brand-border px-4 py-2 text-sm font-bold disabled:opacity-50">Needs correction</button></div>
       </div> : <p className="text-sm text-brand-muted">Select a profile to review its declared context.</p>}
     </div>
   </div>;

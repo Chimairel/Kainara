@@ -55,6 +55,27 @@ const clinicalDocumentUpload = multer({
   fileFilter: (_req, file, callback) =>
     callback(null, ['application/pdf', 'image/jpeg', 'image/png'].includes(file.mimetype)),
 });
+const uploadClinicalDocument = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+  if (!req.file) return res.status(400).json({ success: false, error: 'Choose a PDF, JPEG, or PNG document.' });
+  let facts: unknown = [];
+  try {
+    facts = req.body.facts ? JSON.parse(req.body.facts) : [];
+  } catch {
+    return res.status(400).json({ success: false, error: 'Clinical facts must be valid JSON.' });
+  }
+  const parsed = clinicalDocumentMetadataSchema.safeParse({
+    area: req.body.area,
+    documentType: req.body.documentType,
+    issuedAt: req.body.issuedAt || null,
+    issuerName: req.body.issuerName || null,
+    supersedesDocumentId: req.body.supersedesDocumentId || null,
+    facts,
+    consentAccepted: req.body.consentAccepted === 'true',
+  });
+  if (!parsed.success) return res.status(400).json({ success: false, error: parsed.error.issues[0]?.message ?? 'Invalid document details.' });
+  const data = await ClinicalEvidenceService.upload({ userId: req.user!.userId, file: req.file, ...parsed.data });
+  return res.status(201).json({ success: true, data });
+});
 
 // Apply auth on all /api/user routes
 router.use(authenticate);
@@ -139,6 +160,31 @@ router.post(
   }
 );
 router.post('/onboarding/tos', requireVerifiedUser, validateZodBody(consentSchema), UserController.acceptTos);
+router.get('/onboarding/clinical-evidence', requireVerifiedUser,
+  asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+    res.json({ success: true, data: await ClinicalEvidenceService.workspace(req.user!.userId) });
+  }));
+router.put('/onboarding/clinical-evidence/diabetes-context', requireVerifiedUser,
+  validateZodBody(diabetesContextSchema), asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+    res.json({ success: true, data: await ClinicalEvidenceService.saveDiabetesContext(req.user!.userId, req.body) });
+  }));
+router.post('/onboarding/clinical-evidence/documents', requireVerifiedUser,
+  clinicalDocumentUpload.single('document'), uploadClinicalDocument);
+router.get('/onboarding/clinical-evidence/documents/:id/file', requireVerifiedUser,
+  validateZodRequest({ params: clinicalDocumentIdParamsSchema }),
+  asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+    const file = await ClinicalEvidenceService.fileForUser(req.user!.userId, req.params.id);
+    res.setHeader('Content-Type', file.mime);
+    res.setHeader('Content-Disposition', `attachment; filename="${file.fileName}"`);
+    res.setHeader('Cache-Control', 'private, no-store');
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.send(file.buffer);
+  }));
+router.delete('/onboarding/clinical-evidence/documents/:id', requireVerifiedUser,
+  validateZodRequest({ params: clinicalDocumentIdParamsSchema }),
+  asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+    res.json({ success: true, data: await ClinicalEvidenceService.withdraw(req.user!.userId, req.params.id) });
+  }));
 router.post(
   '/onboarding/complete',
   requireVerifiedUser,
@@ -223,32 +269,7 @@ router.post(
   '/clinical-evidence/documents',
   requireReportEligible,
   clinicalDocumentUpload.single('document'),
-  asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
-    if (!req.file) return res.status(400).json({ success: false, error: 'Choose a PDF, JPEG, or PNG document.' });
-    let facts: unknown = [];
-    try {
-      facts = req.body.facts ? JSON.parse(req.body.facts) : [];
-    } catch {
-      return res.status(400).json({ success: false, error: 'Clinical facts must be valid JSON.' });
-    }
-    const parsed = clinicalDocumentMetadataSchema.safeParse({
-      area: req.body.area,
-      documentType: req.body.documentType,
-      issuedAt: req.body.issuedAt || null,
-      issuerName: req.body.issuerName || null,
-      supersedesDocumentId: req.body.supersedesDocumentId || null,
-      facts,
-      consentAccepted: req.body.consentAccepted === 'true',
-    });
-    if (!parsed.success) return res.status(400).json({ success: false, error: parsed.error.issues[0]?.message ?? 'Invalid document details.' });
-    const metadata = parsed.data;
-    const data = await ClinicalEvidenceService.upload({
-      userId: req.user!.userId,
-      file: req.file,
-      ...metadata,
-    });
-    return res.status(201).json({ success: true, data });
-  })
+  uploadClinicalDocument
 );
 router.get(
   '/clinical-evidence/documents/:id/file',

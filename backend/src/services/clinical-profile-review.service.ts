@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { ClinicalProfileReviewStatus, NotificationType, Prisma, Role } from '@prisma/client';
+import { ClinicalEvidenceArea, ClinicalProfileReviewStatus, NotificationType, Prisma, Role } from '@prisma/client';
 import prisma from '@/lib/prisma';
 import { AppError } from '@/errors/AppError';
 import { adaptUserSafetyRestrictions } from '@/domain/structured-restriction.adapter';
@@ -65,8 +65,23 @@ export class ClinicalProfileReviewService {
   static async status(userId: string) {
     const user = await prisma.user.findUnique({ where: { id: userId }, include: userInclude });
     if (!user) throw new AppError('User not found.', 404, 'USER_NOT_FOUND');
-    const required = context(user).restricted;
-    return { required, approved: await this.hasCurrentApproval(userId) };
+    const current = context(user);
+    const latest = current.restricted ? await prisma.clinicalProfileReview.findFirst({
+      where: { userId, policyVersion: POLICY_VERSION }, orderBy: { reviewedAt: 'desc' },
+      select: { status: true, profileSnapshot: true, reasonCodes: true, reviewNotes: true },
+    }) : null;
+    const request = latest && snapshotKey(latest.profileSnapshot) === current.scopeKey &&
+      latest.status === 'DECLINED' && Array.isArray(latest.reasonCodes) &&
+      latest.reasonCodes[0] === 'DOCUMENT_REQUESTED' ? latest : null;
+    const requestArea = request && Array.isArray(request.reasonCodes) &&
+      typeof request.reasonCodes[1] === 'string' ? request.reasonCodes[1] : null;
+    return {
+      required: current.restricted, approved: await this.hasCurrentApproval(userId),
+      documentRequest: request ? {
+        area: requestArea,
+        notes: request.reviewNotes,
+      } : null,
+    };
   }
 
   static async hasCurrentApproval(userId: string, client: Pick<Prisma.TransactionClient, 'user' | 'clinicalProfileReview'> = prisma) {
@@ -112,8 +127,12 @@ export class ClinicalProfileReviewService {
       userId: user.id, name: user.name, profileRevision: current.profile.revision,
       conditions: current.snapshot.conditions, allergies: current.snapshot.allergies,
       needsClarification: current.needsClarification,
-      status: reviews.find((review) => review.userId === user.id &&
-        snapshotKey(review.profileSnapshot) === current.scopeKey)?.status ?? 'PENDING',
+      status: (() => {
+        const review = reviews.find((item) => item.userId === user.id &&
+          snapshotKey(item.profileSnapshot) === current.scopeKey);
+        return review?.status === 'DECLINED' && Array.isArray(review.reasonCodes) &&
+          review.reasonCodes[0] === 'DOCUMENT_REQUESTED' ? 'DOCUMENT_REQUESTED' : review?.status ?? 'PENDING';
+      })(),
     }));
   }
 
@@ -122,14 +141,16 @@ export class ClinicalProfileReviewService {
     if (!user || user.role !== Role.USER) throw new AppError('Profile not found.', 404, 'PROFILE_NOT_FOUND');
     const current = context(user);
     if (!current.restricted) throw new AppError('This profile does not need a clinical review.', 409, 'PROFILE_REVIEW_NOT_REQUIRED');
-    const [requirements, documents, report] = await Promise.all([
-      ClinicalEvidenceService.requirementsForUser(userId),
-      prisma.clinicalDocument.findMany({ where: { userId }, orderBy: { createdAt: 'desc' },
-        select: { id: true, area: true, documentType: true, status: true, originalFileName: true, createdAt: true } }),
+    const [clinicalWorkspace, report, latestReview] = await Promise.all([
+      ClinicalEvidenceService.workspace(userId),
       prisma.nutritionReport.findUnique({ where: { userId }, select: {
         version: true, profileRevision: true, isStale: true, generatedAt: true,
         acknowledgedAt: true, generalSummary: true,
       } }),
+      prisma.clinicalProfileReview.findFirst({ where: { userId, policyVersion: POLICY_VERSION },
+        orderBy: { reviewedAt: 'desc' }, select: {
+          status: true, profileSnapshot: true, reasonCodes: true, reviewNotes: true,
+        } }),
     ]);
     const reportVersion = report ? await prisma.nutritionReportVersion.findFirst({
       where: { userId, version: report.version }, select: { content: true, policyVersion: true },
@@ -152,7 +173,17 @@ export class ClinicalProfileReviewService {
       profileRevision: current.profile.revision, conditions: current.snapshot.conditions,
       allergies: current.snapshot.allergies, customConditions: current.snapshot.customConditions,
       customFoodRestrictions: current.snapshot.customFoodRestrictions,
-      needsClarification: current.needsClarification, requirements, documents,
+      needsClarification: current.needsClarification,
+      requirements: clinicalWorkspace.requirements,
+      documents: clinicalWorkspace.documents.map(({ id, area, documentType, status, originalFileName, createdAt }) => ({
+        id, area, documentType, status, originalFileName, createdAt,
+      })),
+      availableAreas: clinicalWorkspace.availableAreas,
+      previousReview: latestReview && snapshotKey(latestReview.profileSnapshot) === current.scopeKey ? {
+        status: latestReview.status,
+        reasonCodes: latestReview.reasonCodes,
+        notes: latestReview.reviewNotes,
+      } : null,
       nutritionGuidance: report ? {
         version: report.version, generatedAt: report.generatedAt, acknowledgedAt: report.acknowledgedAt,
         isCurrent: !report.isStale && report.profileRevision === current.profile.revision &&
@@ -162,7 +193,8 @@ export class ClinicalProfileReviewService {
     };
   }
 
-  static async decide(reviewerId: string, userId: string, decision: 'APPROVED' | 'DECLINED', notes: string) {
+  static async decide(reviewerId: string, userId: string,
+    decision: 'APPROVED' | 'DECLINED' | 'REQUEST_DOCUMENT', notes: string, area?: ClinicalEvidenceArea) {
     const reviewer = await prisma.nutritionistProfile.findUnique({ where: { id: reviewerId } });
     if (!reviewer || !isNutritionistEligibleForReview(reviewer))
       throw new AppError('A currently verified nutritionist is required.', 403, 'NUTRITIONIST_INELIGIBLE');
@@ -173,6 +205,11 @@ export class ClinicalProfileReviewService {
     if (decision === 'APPROVED') {
       if (current.needsClarification) throw new AppError('Clarify unsupported or vague restrictions before approval.', 422, 'PROFILE_CLARIFICATION_REQUIRED');
       await ClinicalEvidenceService.assertReadyForMealPlanning(userId);
+    }
+    if (decision === 'REQUEST_DOCUMENT') {
+      const workspace = await ClinicalEvidenceService.workspace(userId);
+      if (!area || !workspace.availableAreas.includes(area))
+        throw new AppError('Select an area declared in this health profile.', 422, 'CLINICAL_AREA_NOT_DECLARED');
     }
     const row = await prisma.$transaction(async (tx) => {
       await lockUserProfile(tx, userId);
@@ -186,7 +223,8 @@ export class ClinicalProfileReviewService {
       const existing = await tx.clinicalProfileReview.findUnique({ where: key });
       if (existing?.status === 'APPROVED')
         throw new AppError('This profile revision has already been approved.', 409, 'PROFILE_REVIEW_ALREADY_APPROVED');
-      const data = { status: decision, reasonCodes: [], profileSnapshot: current.snapshot,
+      const data = { status: decision === 'REQUEST_DOCUMENT' ? ClinicalProfileReviewStatus.DECLINED : decision,
+        reasonCodes: decision === 'REQUEST_DOCUMENT' ? ['DOCUMENT_REQUESTED', area!] : [], profileSnapshot: current.snapshot,
         reviewerId, reviewNotes: notes, reviewedAt: new Date() };
       let saved;
       if (existing) {
@@ -209,10 +247,13 @@ export class ClinicalProfileReviewService {
     try {
       await prisma.notification.create({ data: {
         userId,
-        title: decision === 'APPROVED' ? 'Health profile reviewed' : 'Health profile needs an update',
+        title: decision === 'APPROVED' ? 'Health profile reviewed' :
+          decision === 'REQUEST_DOCUMENT' ? 'Clinical document requested' : 'Health profile needs an update',
         message: decision === 'APPROVED'
           ? 'A nutritionist reviewed your health profile. Meal candidates can now be prepared; each new meal still needs case approval before use.'
-          : 'A nutritionist could not approve your current health profile. Review your health information and any requested clinical documents.',
+          : decision === 'REQUEST_DOCUMENT'
+            ? `A nutritionist requested a document for ${String(area).replace(/_/g, ' ').toLowerCase()}. Open Profile → Clinical documents. Review note: ${notes.trim()}`
+            : `A nutritionist could not approve your current health profile. Review note: ${notes.trim()}`,
         type: decision === 'APPROVED' ? NotificationType.ASSIGNMENT : NotificationType.REVIEW_REQUEST,
       } });
     } catch (error) {

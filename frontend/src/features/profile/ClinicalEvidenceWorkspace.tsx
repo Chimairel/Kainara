@@ -2,8 +2,10 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
+import { useRouter, useSearchParams } from 'next/navigation';
 import api from '@/lib/axios';
 import { getApiErrorMessage } from '@/lib/api-error';
+import OnboardingProgressSlider from '@/components/onboarding/OnboardingProgressSlider';
 
 type Requirement = {
   area: string;
@@ -46,8 +48,12 @@ function friendly(value: string) {
   return value.replace(/_/g, ' ').toLowerCase();
 }
 
-export default function ClinicalEvidenceWorkspace() {
+export default function ClinicalEvidenceWorkspace({ mode = 'profile' }: { mode?: 'profile' | 'onboarding' }) {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const endpoint = mode === 'onboarding' ? '/user/onboarding/clinical-evidence' : '/user/clinical-evidence';
   const [workspace, setWorkspace] = useState<Workspace | null>(null);
+  const [documentRequest, setDocumentRequest] = useState<{ area: string | null; notes: string | null } | null>(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -64,11 +70,18 @@ export default function ClinicalEvidenceWorkspace() {
 
   const load = useCallback(async () => {
     try {
-      const response = await api.get('/user/clinical-evidence');
+      const [response, profileReview] = await Promise.all([
+        api.get(endpoint),
+        mode === 'profile' ? api.get('/user/clinical-profile-review/status').catch(() => null) : Promise.resolve(null),
+      ]);
       const next = response.data.data as Workspace;
       setWorkspace(next);
+      setDocumentRequest(profileReview?.data?.data?.documentRequest ?? null);
       const available = next.availableAreas;
-      if (!area && available.length) setArea(available[0]);
+      if (!area && available.length) {
+        const requestedArea = profileReview?.data?.data?.documentRequest?.area;
+        setArea(requestedArea && available.includes(requestedArea) ? requestedArea : available[0]);
+      }
       const diabetes = next.contexts.find((item) => item.area === 'DIABETES')?.responses;
       if (diabetes?.medicationRisk) setMedicationRisk(diabetes.medicationRisk);
       if (diabetes?.recurrentHypoglycemia !== undefined)
@@ -78,7 +91,7 @@ export default function ClinicalEvidenceWorkspace() {
     } finally {
       setLoading(false);
     }
-  }, [area]);
+  }, [area, endpoint, mode]);
 
   useEffect(() => {
     void load();
@@ -88,7 +101,7 @@ export default function ClinicalEvidenceWorkspace() {
     setBusy(true);
     setError(null);
     try {
-      await api.put('/user/clinical-evidence/diabetes-context', {
+      await api.put(`${endpoint}/diabetes-context`, {
         medicationRisk,
         recurrentHypoglycemia: recurrentHypoglycemia === 'UNSURE' ? 'UNSURE' : recurrentHypoglycemia === 'YES',
       });
@@ -116,7 +129,7 @@ export default function ClinicalEvidenceWorkspace() {
       form.append('supersedesDocumentId', supersedesDocumentId);
       form.append('facts', '[]');
       form.append('consentAccepted', 'true');
-      await api.post('/user/clinical-evidence/documents', form, { headers: { 'Content-Type': 'multipart/form-data' } });
+      await api.post(`${endpoint}/documents`, form, { headers: { 'Content-Type': 'multipart/form-data' } });
       setMessage('Document uploaded privately. An RND will review whether it provides enough nutrition context.');
       setFile(null);
       setIssuedAt('');
@@ -134,7 +147,7 @@ export default function ClinicalEvidenceWorkspace() {
   const download = async (item: Document) => {
     setError(null);
     try {
-      const response = await api.get(`/user/clinical-evidence/documents/${item.id}/file`, { responseType: 'blob' });
+      const response = await api.get(`${endpoint}/documents/${item.id}/file`, { responseType: 'blob' });
       const url = URL.createObjectURL(response.data);
       const anchor = document.createElement('a');
       anchor.href = url;
@@ -151,7 +164,7 @@ export default function ClinicalEvidenceWorkspace() {
     setBusy(true);
     setError(null);
     try {
-      await api.delete(`/user/clinical-evidence/documents/${document.id}`);
+      await api.delete(`${endpoint}/documents/${document.id}`);
       setMessage('Document withdrawn. Affected meals were flagged for revalidation.');
       await load();
     } catch (cause) {
@@ -163,16 +176,21 @@ export default function ClinicalEvidenceWorkspace() {
 
   const areas = workspace?.availableAreas ?? [];
   return (
-    <div className="portal-page max-w-4xl space-y-6">
-      <Link href="/profile/health" className="text-sm font-semibold text-brand-green">← Health & goals</Link>
+    <div className={mode === 'onboarding' ? 'mx-auto min-h-screen max-w-3xl space-y-5 bg-brand-bg px-4 py-8 text-brand-text' : 'portal-page max-w-4xl space-y-6'}>
+      {mode === 'onboarding' && <OnboardingProgressSlider currentStep={3} totalSteps={6} />}
+      {mode === 'onboarding'
+        ? <Link href={searchParams.get('from') === 'review' ? '/onboarding/conditions?from=review' : '/onboarding/conditions'} className="text-sm font-semibold text-brand-green">← Back to medical conditions</Link>
+        : <Link href="/profile/health" className="text-sm font-semibold text-brand-green">← Health & goals</Link>}
       <header>
         <p className="text-xs font-bold uppercase tracking-widest text-brand-green">Private health context</p>
-        <h1 className="mt-2 font-display text-3xl font-black">Clinical documents</h1>
+        <h1 className="mt-2 font-display text-3xl font-black">{mode === 'onboarding' ? 'Supporting health documents (optional)' : 'Clinical documents'}</h1>
         <p className="mt-2 text-sm text-brand-muted">
+          {mode === 'onboarding' ? 'You may upload a relevant record now or continue without one. A nutritionist may ask for documentation before confirming your profile; some declared conditions already require reviewed clinical context before meal planning. ' : ''}
           Share only the pages relevant to your nutrition plan. An RND checks whether they provide enough context;
           KAINARA does not diagnose conditions or authenticate medical records.
         </p>
       </header>
+      {documentRequest && <div role="status" className="rounded-xl border border-amber-500/40 bg-amber-500/10 p-4 text-sm"><p className="font-bold">A nutritionist requested a document{documentRequest.area ? ` for ${friendly(documentRequest.area)}` : ''}.</p>{documentRequest.notes && <p className="mt-1">{documentRequest.notes}</p>}<p className="mt-1 text-brand-muted">Your profile remains unconfirmed until the nutritionist reviews the requested context. If your condition entry is unclear, update Health & goals with its specific name as well.</p></div>}
       {error && <p role="alert" className="rounded-xl border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-400">{error}</p>}
       {message && <p role="status" className="rounded-xl border border-brand-green/30 bg-brand-green/10 p-3 text-sm text-brand-green">{message}</p>}
       {loading ? <p className="text-sm text-brand-muted">Loading clinical information…</p> : (
@@ -209,7 +227,7 @@ export default function ClinicalEvidenceWorkspace() {
             </section>
           )}
 
-          <form onSubmit={submitDocument} className="rounded-2xl border border-brand-border bg-brand-surface p-5">
+          {areas.length > 0 && <form onSubmit={submitDocument} className="rounded-2xl border border-brand-border bg-brand-surface p-5">
             <h2 className="font-bold">Upload a supporting document</h2>
             <p className="mt-1 text-sm text-brand-muted">PDF, JPG, or PNG up to 8 MB. Cover unrelated identifiers before uploading. Do not include records about another person.</p>
             <div className="mt-4 grid gap-3 sm:grid-cols-2">
@@ -245,7 +263,7 @@ export default function ClinicalEvidenceWorkspace() {
               <span>I consent to KAINARA storing this sensitive document privately for nutrition review and allowing an assigned RND to view it. I can withdraw it later. Consent version: {workspace?.consentVersion}.</span>
             </label>
             <button type="submit" disabled={busy || !file || !consentAccepted} className="mt-4 rounded-xl bg-brand-accent px-4 py-2 text-sm font-bold text-[#07100d] disabled:opacity-60">{busy ? 'Saving…' : 'Upload privately'}</button>
-          </form>
+          </form>}
 
           <section className="rounded-2xl border border-brand-border bg-brand-surface p-5">
             <h2 className="font-bold">Your documents</h2>
@@ -262,6 +280,7 @@ export default function ClinicalEvidenceWorkspace() {
               </div>
             ))}</div> : <p className="mt-2 text-sm text-brand-muted">No documents uploaded yet.</p>}
           </section>
+          {mode === 'onboarding' && <div className="flex justify-end"><button type="button" onClick={() => router.push(searchParams.get('from') === 'review' ? '/onboarding/tos' : '/onboarding/allergies')} className="rounded-xl bg-brand-accent px-5 py-3 text-sm font-bold text-[#07100d]">{searchParams.get('from') === 'review' ? 'Return to review' : 'Continue to food safety'}</button></div>}
         </>
       )}
     </div>

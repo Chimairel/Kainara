@@ -28,7 +28,7 @@ import {
   observedMealAdmissionSchema,
 } from '@/validation/user-action.schemas';
 import { asyncHandler } from '@/middleware/errorHandler';
-import { ClearanceDecisionValue, HealthConditionType, RuleApprovalDecision } from '@prisma/client';
+import { ClearanceDecisionValue, ClinicalEvidenceArea, HealthConditionType, RuleApprovalDecision } from '@prisma/client';
 import { ConditionClearanceService } from '@/services/condition-clearance.service';
 import { ClinicalEvidenceService } from '@/services/clinical-evidence.service';
 import { ClinicalProfileReviewService } from '@/services/clinical-profile-review.service';
@@ -54,9 +54,14 @@ const mealVerificationDecision = z.object({
 }).strict();
 const profileReviewParams = z.object({ userId: z.string().min(1) }).strict();
 const profileReviewDecision = z.object({
-  decision: z.enum(['APPROVED', 'DECLINED']),
+  decision: z.enum(['APPROVED', 'DECLINED', 'REQUEST_DOCUMENT']),
   notes: z.string().trim().min(10).max(2000),
-}).strict();
+  area: z.nativeEnum(ClinicalEvidenceArea).optional(),
+}).strict().superRefine((value, ctx) => {
+  if (value.decision === 'REQUEST_DOCUMENT' && !value.area) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['area'], message: 'Select the clinical area for the document request.' });
+  }
+});
 
 router.get('/profile-reviews', asyncHandler(async (_req: AuthenticatedRequest, res: Response) => {
   res.json({ success: true, data: await ClinicalProfileReviewService.queue() });
@@ -69,7 +74,7 @@ router.post('/profile-reviews/:userId/decision',
   validateZodRequest({ params: profileReviewParams, body: profileReviewDecision }),
   asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
     res.json({ success: true, data: await ClinicalProfileReviewService.decide(
-      req.nutritionistProfileId!, req.params.userId, req.body.decision, req.body.notes
+      req.nutritionistProfileId!, req.params.userId, req.body.decision, req.body.notes, req.body.area
     ) });
   }));
 

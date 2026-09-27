@@ -841,9 +841,9 @@ model User {
   clinicalFacts                    ClinicalFact[]
 }
 
-// Historical profile-review evidence remains in the database. Current flows
-// use the report and meal-review gates, but this model preserves schema parity
-// and the account-deletion cascade for existing review records.
+// Profile review records are scoped to the declared restriction snapshot.
+// Document requests use DECLINED with a DOCUMENT_REQUESTED reason code until
+// a nutritionist can confirm the current planning context.
 enum ClinicalProfileReviewStatus {
   PENDING
   APPROVED
