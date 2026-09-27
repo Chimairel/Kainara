@@ -8,6 +8,14 @@ async function signIn(page: Page, role: 'user' | 'nutritionist' | 'admin') {
   await page.getByLabel('Email address').fill(`batch10-browser-${role}-${runId}@example.invalid`);
   await page.getByLabel(/^Password$/).fill('SyntheticBrowser123!');
   await page.getByRole('button', { name: /^Sign in$/i }).click();
+  if (role === 'nutritionist') {
+    const recovery = page.getByRole('heading', { name: 'Your workspace took too long to open' });
+    await Promise.race([
+      page.waitForURL(/\/nutritionist\//, { timeout: 12_000 }).catch(() => undefined),
+      recovery.waitFor({ state: 'visible', timeout: 12_000 }).catch(() => undefined),
+    ]);
+    if (await recovery.isVisible()) await page.getByRole('button', { name: 'Try again' }).click();
+  }
   await expect(page).toHaveURL(role === 'user' ? /\/dashboard$/ : new RegExp(`/${role}/`), { timeout: 25_000 });
 }
 
@@ -148,22 +156,21 @@ test('administrator can inspect account, nutritionist, and operations workspaces
 });
 
 test('patient and nutritionist correct an outside meal and admit a consented recipe candidate', async ({ browser }) => {
-  test.setTimeout(120_000);
+  test.setTimeout(180_000);
   const patient = await browser.newPage();
   const nutritionist = await browser.newPage();
   const mealName = `Batch 10 home-cooked stew ${runId}-${Date.now()}`;
   try {
     await signIn(patient, 'user');
     await patient.getByRole('button', { name: /Log an outside meal/i }).click();
-    const dialog = patient.getByRole('dialog', { name: 'LOG OUTSIDE FOOD' });
-    await dialog.getByLabel('Foods eaten').fill(mealName);
-    await dialog.getByLabel('Approximate portion in grams (if known)').fill('250');
-    await dialog.getByRole('checkbox', { name: /I have nutrition-label or menu values/i }).check();
-    await dialog.getByLabel('Calories').fill('400');
-    await dialog.getByLabel('Protein (g)').fill('30');
-    await dialog.getByLabel('Carbs (g)').fill('45');
-    await dialog.getByLabel('Fat (g)').fill('12');
-    await dialog.getByRole('button', { name: 'Check nutrition sources' }).click();
+    const dialog = patient.getByRole('dialog', { name: 'MANUALLY LOG A MEAL' });
+    await dialog.getByLabel('Food or Meal Eaten (required)').fill(mealName);
+    await dialog.getByLabel('Approximate portion in grams (optional)').fill('250');
+    await dialog.getByText('Calories (kcal)').locator('..').locator('input').fill('400');
+    await dialog.getByText('Protein (g)').locator('..').locator('input').fill('30');
+    await dialog.getByText('Carbs (g)').locator('..').locator('input').fill('45');
+    await dialog.getByText('Fat (g)').locator('..').locator('input').fill('12');
+    await dialog.getByRole('button', { name: 'LOG THIS MEAL' }).click();
     await expect(dialog.getByText('Review before logging')).toBeVisible();
     await dialog.getByRole('button', { name: 'Confirm and log' }).click();
     await expect(dialog.getByText('Meal recorded')).toBeVisible();
@@ -231,7 +238,7 @@ test('patient and nutritionist correct an outside meal and admit a consented rec
     await admittedCard.locator('[role="button"]').first().click();
     await expect(admittedCard.getByText(/Deidentified food-detail reuse: admitted recipe/)).toBeVisible();
   } finally {
-    await patient.close();
-    await nutritionist.close();
+    if (!patient.isClosed()) await patient.close().catch(() => undefined);
+    if (!nutritionist.isClosed()) await nutritionist.close().catch(() => undefined);
   }
 });

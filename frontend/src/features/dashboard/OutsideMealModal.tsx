@@ -405,7 +405,9 @@ function OutsideMealForm(props: Props) {
 
     let submittedItems: OutsideMealInputItem[];
 
-    const fnriGrams = selectedSuggestion?.kind === 'FNRI_FOOD' ? Number(portionGrams) : null;
+    const enteredGrams = Number(portionGrams);
+    const measuredGrams = Number.isFinite(enteredGrams) && enteredGrams > 0 ? enteredGrams : null;
+    const fnriGrams = selectedSuggestion?.kind === 'FNRI_FOOD' ? measuredGrams : null;
     if (selectedSuggestion?.kind === 'FNRI_FOOD' && (!fnriGrams || fnriGrams <= 0)) return;
     const referenceFactor = selectedSuggestion?.kind === 'FNRI_FOOD' && fnriGrams ? fnriGrams / 100 : 1;
     const referenceMacros = baseNutrition
@@ -429,7 +431,7 @@ function OutsideMealForm(props: Props) {
     if (hasManual && !useAi && !useReference) {
       const singleItem: OutsideMealInputItem = {
         name: selectedName || 'Custom Meal',
-        ...(fnriGrams ? { portionGrams: fnriGrams } : {}),
+        ...(measuredGrams ? { portionGrams: measuredGrams } : {}),
         reportedNutrition: {
           calories: Number(manual.calories) || 0,
           proteinG: Number(manual.proteinG) || 0,
@@ -451,6 +453,7 @@ function OutsideMealForm(props: Props) {
           ? parsedItems.map((item) => ({ ...item }))
           : [{ name: selectedName }];
       if (fnriGrams && submittedItems.length === 1) submittedItems[0].portionGrams = fnriGrams;
+      else if (measuredGrams && submittedItems.length === 1) submittedItems[0].portionGrams = measuredGrams;
       if (
         selectedSuggestion?.id &&
         (selectedSuggestion.kind === 'ELIGIBLE_LIBRARY' || selectedSuggestion.kind === 'KNOWN_CATALOG') &&
@@ -622,6 +625,28 @@ function OutsideMealForm(props: Props) {
             className="w-full rounded-lg border border-brand-border/80 bg-brand-bgAlt/80 px-3 py-2 text-xs font-bold text-brand-text outline-none focus:border-brand-green"
           />
           <p className="text-[10px] text-brand-muted">FNRI values are per 100 g; this amount scales the estimate.</p>
+        </div>
+      )}
+
+      {selectedSuggestion?.kind !== 'FNRI_FOOD' && selectedSuggestion?.kind !== 'ELIGIBLE_LIBRARY' && (
+        <div className="flex flex-col gap-1">
+          <label htmlFor="outsidePortionGrams" className="text-xs font-bold text-brand-text/90">
+            Approximate portion in grams (optional)
+          </label>
+          <input
+            id="outsidePortionGrams"
+            type="number"
+            min="1"
+            max="5000"
+            step="1"
+            value={portionGrams}
+            onChange={(event) => setPortionGrams(event.target.value)}
+            disabled={props.isLoading}
+            className="w-full rounded-xl border border-brand-border/80 bg-brand-surface/80 px-3.5 py-2.5 text-xs text-brand-text outline-none focus:border-brand-green"
+          />
+          <p className="text-[10px] text-brand-muted">
+            Record the amount eaten when you know it. This helps a nutritionist review the estimate.
+          </p>
         </div>
       )}
 

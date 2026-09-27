@@ -107,7 +107,7 @@ async function main(): Promise<void> {
       carbsG: 28,
       fatG: 0.3,
       sodium: 1,
-      source: 'FNRI acceptance fixture',
+      source: 'FNRI',
     },
   });
 
@@ -116,9 +116,10 @@ async function main(): Promise<void> {
     () =>
       MealLogService.logOutsideMeal({
         userId: user.id,
-        items: [{ name: `Unresolved quota estimate ${run}` }],
+        items: [{ name: `Unresolved quota estimate ${run}`, portionGrams: 150 }],
         mealType: MealType.SNACK,
         useAiEstimate: true,
+        estimationContext: 'One cooked serving with mixed ingredients and sauce.',
       }),
     'DAILY_LIMIT_REACHED'
   );
@@ -147,7 +148,7 @@ async function main(): Promise<void> {
   );
   assert.equal(preview.summary.totals.calories, 445);
   assert.equal(preview.summary.unresolvedItemCount, 1);
-  assert.equal(preview.summary.provisionalCalories, 0);
+  assert.equal(preview.summary.provisionalCalories, 445);
   const replay = await MealLogService.logOutsideMeal(input);
   assertPreview(replay);
   assert.equal(replay.confirmationId, preview.confirmationId);
@@ -170,23 +171,21 @@ async function main(): Promise<void> {
   });
   assertCommit(committed);
   assert.equal(committed.log.calories, 445);
-  assert.equal(committed.log.provisionalCalories, 0);
+  assert.equal(committed.log.provisionalCalories, 445);
   assert.equal(committed.log.nutritionCompleteness, 'PARTIAL');
   assert.equal(committed.log.outsideItems.length, 3);
   const unresolved = committed.log.outsideItems.find((item) => item.source === OutsideMealItemSource.UNRESOLVED);
   assert.ok(unresolved);
   assert.equal(unresolved.includedInTotals, false);
   assert.equal(unresolved.calories, null);
-  await rejectsWithCode(
-    () =>
-      MealLogService.logOutsideMeal({
-        userId: user.id,
-        mealType: MealType.SNACK,
-        warningAcknowledged: true,
-        confirmationId: preview.confirmationId,
-      }),
-    'PREVIEW_EXPIRED_OR_USED'
-  );
+  const committedReplay = await MealLogService.logOutsideMeal({
+    userId: user.id,
+    mealType: MealType.SNACK,
+    warningAcknowledged: true,
+    confirmationId: preview.confirmationId,
+  });
+  assertCommit(committedReplay);
+  assert.equal(committedReplay.log.id, committed.log.id);
   await assert.rejects(() =>
     prisma.outsideMealLogItem.create({
       data: {

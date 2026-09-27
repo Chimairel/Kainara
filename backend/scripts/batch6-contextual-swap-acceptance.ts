@@ -8,6 +8,7 @@ import { buildMealLibraryRecipeSignature } from '../src/domain/meal-library-sign
 import { MealSwapService } from '../src/services/meal-swap.service';
 import { GroceryService } from '../src/services/grocery.service';
 import { CertifiedSlotFallbackService } from '../src/services/certified-slot-fallback.service';
+import { libraryBaseRevisionKey } from '../src/services/meal-base-admission.service';
 
 const day = 86_400_000;
 
@@ -90,6 +91,7 @@ async function main() {
           safetyEvidenceRevision: 1,
           certifiedEvidenceRevision: 1,
           safetyPolicyVersion: template.safetyPolicyVersion,
+          nutritionEvidenceSource: template.nutritionEvidenceSource,
           conditionDeclarationState: 'REVIEWED_NONE_DECLARED',
           allergenDeclarationState: template.allergenDeclarationState,
           crossContactAssessment: template.crossContactAssessment,
@@ -112,6 +114,17 @@ async function main() {
         },
       });
       fixtureMealIds.push(row.id);
+      await prisma.mealBaseVerification.create({
+        data: {
+          targetKind: 'LIBRARY_MEAL',
+          targetId: row.id,
+          revisionKey: libraryBaseRevisionKey(signature, row.description),
+          status: 'VERIFIED',
+          reviewedByNutritionistId: template.verifiedByNutritionistId,
+          reviewedAt: new Date(),
+          rationale: 'Synthetic acceptance fixture for swap lifecycle testing.',
+        },
+      });
       return row;
     };
     const original = await makeMeal('original', 360, 'Fixture oats');
@@ -178,6 +191,10 @@ async function main() {
 
     const currentOptions = await MealSwapService.getEligibleSwapOptions(user.id, current.id);
     assert.equal(currentOptions.swapOptions[0]?.id, favorite.id, 'Eligible favorite must rank first.');
+    assert.ok(
+      currentOptions.swapOptions.some((option) => option.id === favorite.id && option.isFavorite),
+      'Eligible favorite must be offered and identified as a favorite.'
+    );
     assert.ok(currentOptions.swapOptions.some((option) => option.id === other.id));
     assert.ok(currentOptions.swapOptions.every((option) => option.id !== original.id));
     await prisma.mealLibrary.update({ where: { id: other.id }, data: { safetyEvidenceStatus: 'INCOMPLETE' } });
@@ -327,6 +344,12 @@ async function main() {
     console.log('[Batch 6 contextual swap acceptance] PASS');
   } finally {
     if (userId) await prisma.user.delete({ where: { id: userId } }).catch(() => undefined);
+    if (fixtureMealIds.length)
+      await prisma.mealBaseVerification
+        .deleteMany({
+          where: { targetKind: 'LIBRARY_MEAL', targetId: { in: fixtureMealIds } },
+        })
+        .catch(() => undefined);
     for (const id of fixtureMealIds) await prisma.mealLibrary.delete({ where: { id } }).catch(() => undefined);
     await prisma.$disconnect();
   }

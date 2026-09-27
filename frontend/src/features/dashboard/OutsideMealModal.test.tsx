@@ -54,11 +54,11 @@ describe('OutsideMealModal', () => {
     const onSubmit = vi.fn();
     render(<OutsideMealModal {...defaultProps} onSubmit={onSubmit} />);
 
-    // Check 4 nutritional inputs exist and are editable
+    // The optional portion precedes the four editable nutrition inputs.
     const inputs = screen.getAllByRole('spinbutton');
-    expect(inputs.length).toBe(4);
+    expect(inputs.length).toBe(5);
 
-    const [calInput, protInput, carbsInput, fatInput] = inputs;
+    const [calInput, protInput, carbsInput, fatInput] = inputs.slice(1);
 
     // User types custom 1.5-serving values
     fireEvent.change(calInput, { target: { value: '750' } });
@@ -89,6 +89,25 @@ describe('OutsideMealModal', () => {
               fatG: 30,
             },
           },
+        ],
+      })
+    );
+  });
+
+  it('sends the measured portion with manually reported nutrition', () => {
+    const onSubmit = vi.fn();
+    render(<OutsideMealModal {...defaultProps} onSubmit={onSubmit} />);
+    fireEvent.change(screen.getByLabelText('Approximate portion in grams (optional)'), {
+      target: { value: '250' },
+    });
+    const [, calories] = screen.getAllByRole('spinbutton');
+    fireEvent.change(calories, { target: { value: '400' } });
+    fireEvent.click(screen.getByRole('button', { name: /LOG THIS MEAL/i }));
+    expect(onSubmit).toHaveBeenCalledWith(
+      false,
+      expect.objectContaining({
+        items: [
+          expect.objectContaining({ portionGrams: 250, reportedNutrition: expect.objectContaining({ calories: 400 }) }),
         ],
       })
     );
