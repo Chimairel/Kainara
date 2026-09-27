@@ -234,12 +234,6 @@ const routes: RouteDocumentation[] = [
   { method: 'patch', path: '/api/nutritionist/library/{id}', tag: 'Nutritionist', summary: 'Update a library meal' },
   { method: 'delete', path: '/api/nutritionist/library/{id}', tag: 'Nutritionist', summary: 'Archive a library meal' },
   { method: 'get', path: '/api/nutritionist/approved', tag: 'Nutritionist', summary: 'List approved plans' },
-  {
-    method: 'get',
-    path: '/api/nutritionist/compensation',
-    tag: 'Compensation',
-    summary: 'Read own compensation records',
-  },
   { method: 'get', path: '/api/nutritionist/profile', tag: 'Nutritionist', summary: 'Read nutritionist profile' },
   { method: 'patch', path: '/api/nutritionist/profile', tag: 'Nutritionist', summary: 'Update nutritionist profile' },
   { method: 'get', path: '/api/admin/analytics', tag: 'Admin', summary: 'Read platform analytics' },
@@ -254,7 +248,6 @@ const routes: RouteDocumentation[] = [
   { method: 'get', path: '/api/admin/audit-events', tag: 'Admin', summary: 'List audit events' },
   { method: 'get', path: '/api/admin/safety-incidents', tag: 'Admin', summary: 'List safety incidents' },
   { method: 'get', path: '/api/admin/structured-safety-operations', tag: 'Admin', summary: 'Read safety operations' },
-  { method: 'get', path: '/api/admin/compensation', tag: 'Compensation', summary: 'Read compensation workspace' },
   { method: 'get', path: '/api/admin/data', tag: 'Data governance', summary: 'Read the reference-data workspace' },
   {
     method: 'get',

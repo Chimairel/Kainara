@@ -52,7 +52,6 @@
     "prices:psa:dry-run": "tsx scripts/import-psa-openstat-prices.ts --dry-run",
     "prices:psa:apply-local": "tsx scripts/import-psa-openstat-prices.ts --apply",
     "prices:conversion:coverage": "tsx scripts/report-ingredient-conversion-coverage.ts",
-    "test:acceptance:compensation-local": "tsx scripts/compensation-local-acceptance.ts",
     "test:acceptance:outside-meal-local": "tsx scripts/outside-meal-local-acceptance.ts",
     "test:acceptance:admin-data-local": "tsx scripts/admin-reference-data-local-acceptance.ts",
     "images:approved:dry-run": "tsx scripts/import-approved-meal-images.ts",

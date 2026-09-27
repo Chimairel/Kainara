@@ -23,7 +23,7 @@ async function main() {
   const databaseHost = new URL(process.env.DATABASE_URL ?? '').hostname;
   if (process.env.BATCH10_DISPOSABLE_DB !== '1' || !['127.0.0.1', 'localhost'].includes(databaseHost)) {
     throw new Error(
-      'This approval journey writes append-only work credits. Run it only against a disposable local database.'
+      'This approval journey creates review evidence. Run it only against a disposable local database.'
     );
   }
   const marker = randomUUID();
@@ -378,7 +378,7 @@ async function main() {
     if (candidateId) await prisma.rawRecipeCandidate.deleteMany({ where: { id: candidateId } });
     for (const id of accounts) {
       const reviewer = await prisma.nutritionistProfile.findUnique({ where: { userId: id }, select: { id: true } });
-      if (reviewer) continue; // work credits are append-only; the disposable database is destroyed after this run.
+      if (reviewer) continue; // Published review evidence may still reference the reviewer; the disposable database is destroyed after this run.
       await prisma.user.delete({ where: { id } });
     }
     await prisma.$disconnect();

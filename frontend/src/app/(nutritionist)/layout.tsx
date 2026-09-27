@@ -1,13 +1,12 @@
 'use client';
 
 import React from 'react';
-import { ClipboardList, BookOpen, User, Receipt } from 'lucide-react';
+import { ClipboardList, BookOpen, User } from 'lucide-react';
 import PortalRoleLayout from '@/components/shared/PortalRoleLayout';
 
 const navItems = [
   { href: '/nutritionist/reviews', label: 'Reviews', icon: ClipboardList },
   { href: '/nutritionist/library', label: 'Library', icon: BookOpen },
-  { href: '/nutritionist/compensation', label: 'Pay', icon: Receipt },
   { href: '/nutritionist/profile', label: 'Profile', icon: User },
 ];
 

@@ -206,7 +206,6 @@ async function main() {
           '/api/admin/nutritionists',
           '/api/admin/nutritionist-applications',
           '/api/admin/data',
-          '/api/admin/compensation',
         ],
       ],
       [
@@ -216,7 +215,6 @@ async function main() {
           '/api/nutritionist/library',
           '/api/nutritionist/approved',
           '/api/nutritionist/profile',
-          '/api/nutritionist/compensation',
           '/api/nutritionist/outside-meal-reviews',
         ],
       ],

@@ -20,7 +20,6 @@ import {
   REVIEW_CLAIM_COOLDOWN_MS,
   REVIEW_CLAIM_TTL_MS,
 } from '@/domain/nutritionist-review.policy';
-import { recordCompletedMealPlanReviewCredit } from '@/services/work-credit.service';
 import { MEAL_PLAN_SAFETY_POLICY_VERSION } from '@/domain/meal-plan-production-safety.policy';
 import { GroceryService } from '@/services/grocery.service';
 import { adaptUserSafetyRestrictions } from '@/domain/structured-restriction.adapter';
@@ -865,15 +864,6 @@ export class NutritionistReviewService {
             }
           }
 
-          await recordCompletedMealPlanReviewCredit(tx, {
-            nutritionistProfileId,
-            actorUserId: reviewer.userId,
-            mealPlanId,
-            stage: 'HIGH_RISK_ESCALATION',
-            outcome: 'ESCALATED',
-            earnedAt: now,
-          });
-
           await tx.auditEvent.create({
             data: {
               actorUserId: reviewer.userId,
@@ -1100,14 +1090,6 @@ export class NutritionistReviewService {
               reusableEvidenceRequiresExplicitAction: true,
             },
           },
-        });
-        await recordCompletedMealPlanReviewCredit(tx, {
-          nutritionistProfileId,
-          actorUserId: reviewer.userId,
-          mealPlanId,
-          stage: plan.highRiskReviewRequired ? 'HIGH_RISK_SECOND' : 'ORDINARY_FINAL',
-          outcome: 'APPROVED',
-          earnedAt: now,
         });
         return [...new Set(coalescedApprovedUsers)];
       },

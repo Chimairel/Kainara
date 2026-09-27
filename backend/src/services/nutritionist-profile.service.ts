@@ -4,6 +4,18 @@ export class NutritionistProfileService {
   static async getProfile(userId: string) {
     return prisma.nutritionistProfile.findUnique({
       where: { userId },
+      select: {
+        id: true,
+        prcLicenseNumber: true,
+        prcLicenseExpiry: true,
+        specialization: true,
+        yearsOfExperience: true,
+        university: true,
+        bio: true,
+        officialHeadshot: true,
+        isVerified: true,
+        totalVerified: true,
+      },
     });
   }
 
@@ -14,6 +26,18 @@ export class NutritionistProfileService {
     return prisma.nutritionistProfile.update({
       where: { userId },
       data,
+      select: {
+        id: true,
+        prcLicenseNumber: true,
+        prcLicenseExpiry: true,
+        specialization: true,
+        yearsOfExperience: true,
+        university: true,
+        bio: true,
+        officialHeadshot: true,
+        isVerified: true,
+        totalVerified: true,
+      },
     });
   }
 }

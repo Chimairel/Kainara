@@ -7,7 +7,6 @@ import {
   HeartPulse,
   Home,
   ImageIcon,
-  Receipt,
   ShieldCheck,
   ShoppingCart,
   Soup,
@@ -106,13 +105,6 @@ export const workspaceTools: Record<WorkspaceRole, WorkspaceTool[]> = {
       icon: BookOpen,
     },
     {
-      label: 'Compensation',
-      href: '/nutritionist/compensation',
-      description: 'Review work credits, statements, and payout records.',
-      group: 'Professional tools',
-      icon: Receipt,
-    },
-    {
       label: 'Professional profile',
       href: '/nutritionist/profile',
       description: 'Your credentials, PRC license, and specialization.',
@@ -157,13 +149,6 @@ export const workspaceTools: Record<WorkspaceRole, WorkspaceTool[]> = {
       icon: Stethoscope,
     },
     {
-      label: 'Compensation',
-      href: '/admin/compensation',
-      description: 'Work policies, statements, adjustments, and payout records.',
-      group: 'People',
-      icon: Receipt,
-    },
-    {
       label: 'Nutrition data',
       href: '/admin/data',
       description: 'Sources, releases, imports, publication, and FNRI catalogue.',
@@ -202,7 +187,6 @@ export const primaryWorkspaceTools: Record<WorkspaceRole, WorkspaceTool[]> = {
     '/admin/meals',
     '/admin/images',
     '/admin/operations',
-    '/admin/compensation',
     '/admin/analytics',
   ].map((href) => {
     const tool = workspaceTools.ADMIN.find((entry) => entry.href === href)!;

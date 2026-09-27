@@ -55,7 +55,15 @@ export class AdminService {
    */
   static async getNutritionists() {
     return prisma.nutritionistProfile.findMany({
-      include: {
+      select: {
+        id: true,
+        prcLicenseNumber: true,
+        prcLicenseExpiry: true,
+        specialization: true,
+        isVerified: true,
+        totalVerified: true,
+        canLeadReview: true,
+        verifiedAt: true,
         user: { select: { id: true, name: true, email: true, image: true } },
       },
       orderBy: [{ isVerified: 'asc' }, { userId: 'asc' }],

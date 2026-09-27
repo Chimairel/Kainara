@@ -4,7 +4,6 @@ import { MealPlanStatus, AIConfidenceFlag, NotificationType, MealIngredientDataS
 import { generateGenerativeJSON } from '@/lib/gemini';
 
 import { getReviewClaimCutoff } from '@/domain/nutritionist-review.policy';
-import { recordCompletedMealPlanReviewCredit } from '@/services/work-credit.service';
 import { MEAL_PLAN_SAFETY_POLICY_VERSION } from '@/domain/meal-plan-production-safety.policy';
 import { GroceryService } from '@/services/grocery.service';
 import { adaptUserSafetyRestrictions } from '@/domain/structured-restriction.adapter';
@@ -115,14 +114,6 @@ export async function rejectMealPlan(nutritionistProfileId: string, mealPlanId: 
           entityId: mealPlanId,
           metadata: { reason: reason.trim().slice(0, 240) },
         },
-      });
-      await recordCompletedMealPlanReviewCredit(tx, {
-        nutritionistProfileId,
-        actorUserId: reviewer.userId,
-        mealPlanId,
-        stage: plan.highRiskReviewRequired && plan.reviewApprovalCount === 1 ? 'HIGH_RISK_SECOND' : 'ORDINARY_FINAL',
-        outcome: 'REJECTED',
-        earnedAt: now,
       });
     },
     { isolationLevel: Prisma.TransactionIsolationLevel.Serializable }

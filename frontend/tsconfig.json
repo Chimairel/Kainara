@@ -23,5 +23,5 @@
     "target": "ES2017"
   },
   "include": ["**/*.ts", "**/*.tsx", ".next/types/**/*.ts", ".next-production/types/**/*.ts", "next-env.d.ts", ".next-repair/types/**/*.ts"],
-  "exclude": ["node_modules"]
+  "exclude": ["node_modules", ".next", ".next-repair"]
 }
