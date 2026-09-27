@@ -29,11 +29,34 @@ test('complete Panlasang source may serve a user with no declared restrictions',
   }), false);
 });
 
-test('incomplete source and any health restriction keep the review path', () => {
+test('unmeasured source ingredients keep their names without inventing grocery quantities', () => {
+  const partial = { ...source, ingredients: [
+    source.ingredients[0],
+    { name: 'salt', quantity: null, unit: null },
+    { name: '(minced)', quantity: null, unit: null, excludedFromPlanning: true },
+  ] };
+  assert.equal(isUnrestrictedPanlasangBaseEligible({
+    ...input, source: partial,
+    preparedIngredients: [input.preparedIngredients[0], { ingredientName: 'salt' }],
+  }), true);
+  assert.equal(isUnrestrictedPanlasangBaseEligible({
+    ...input, source: partial,
+    preparedIngredients: [input.preparedIngredients[0], { ingredientName: 'pepper' }],
+  }), false);
+  assert.equal(isUnrestrictedPanlasangBaseEligible({
+    ...input, source: { ...partial, ingredients: [...partial.ingredients, null] },
+    preparedIngredients: [input.preparedIngredients[0], { ingredientName: 'salt' }],
+  }), false);
+  assert.equal(isUnrestrictedPanlasangBaseEligible({
+    ...input, source: { ...partial, ingredients: [source.ingredients[0],
+      { name: 'shrimp', excludedFromPlanning: true }] },
+    preparedIngredients: [input.preparedIngredients[0]],
+  }), false);
+});
+
+test('health restrictions or missing source nutrition keep the review path', () => {
   assert.equal(isUnrestrictedPanlasangBaseEligible({ ...input, conditions: ['DIABETES'] }), false);
   assert.equal(isUnrestrictedPanlasangBaseEligible({ ...input, allergens: ['DAIRY'] }), false);
   assert.equal(isUnrestrictedPanlasangBaseEligible({ ...input, otherConditions: 'unclear symptoms' }), false);
-  assert.equal(isUnrestrictedPanlasangBaseEligible({
-    ...input, source: { ...source, ingredients: [{ name: 'chicken', quantity: null, unit: null }] },
-  }), false);
+  assert.equal(isUnrestrictedPanlasangBaseEligible({ ...input, source: { ...source, publishedNutrition: null } }), false);
 });

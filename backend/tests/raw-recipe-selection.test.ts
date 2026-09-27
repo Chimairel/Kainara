@@ -4,6 +4,7 @@ import { DietaryPreference, MealType } from '@prisma/client';
 import { fillRepeatedRawRecipeSlots, selectRawRecipeCandidates, sourceRawRecipeCandidates } from '../src/services/raw-recipe-candidate.service';
 import type { RecipeCandidateProjection } from '../src/services/recipe-candidate-provider';
 import { databaseRecipeCandidateProvider } from '../src/services/panlasang-recipe-candidate.provider';
+import { parseRecipeCandidateIngredients } from '../src/services/panlasang-recipe-candidate.provider';
 
 function candidate(
   id: string,
@@ -68,6 +69,16 @@ test('raw selection skips definite allergen conflicts and exact duplicate signat
     [3]
   );
   assert.equal(selected.meals[0].candidateRank, 2);
+});
+
+test('a source number without a unit remains an unmeasured grocery ingredient', () => {
+  assert.deepEqual(parseRecipeCandidateIngredients([
+    { name: 'salt', quantity: 1, unit: 'tsp' },
+    { name: 'salt', quantity: 2, unit: null },
+  ]).map(({ name, quantity, unit }) => ({ name, quantity, unit })), [
+    { name: 'salt', quantity: 1, unit: 'tsp' },
+    { name: 'salt', quantity: undefined, unit: undefined },
+  ]);
 });
 
 test('raw selection does not treat a dietary tag or blank ingredient list as sufficient', () => {

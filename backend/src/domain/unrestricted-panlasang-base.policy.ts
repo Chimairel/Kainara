@@ -1,5 +1,6 @@
 import type { Prisma } from '@prisma/client';
 import { adaptUserSafetyRestrictions, type StructuredSafetyRestrictionEntry } from './structured-restriction.adapter';
+import { isInvalidSourceIngredientLabel } from './source-ingredient-fnri-match.policy';
 
 type SourceRecipe = {
   id: string;
@@ -39,18 +40,26 @@ export function isUnrestrictedPanlasangBaseEligible(input: {
   if (![source.calories, source.proteinG, source.carbsG, source.fatG].every(
     (value) => typeof value === 'number' && Number.isFinite(value) && value >= 0
   ) || (source.calories ?? 0) <= 0) return false;
-  if (!Array.isArray(source.ingredients) || !source.ingredients.length ||
-      source.ingredients.length !== input.preparedIngredients.length) return false;
-  return source.ingredients.every((item, index) => {
+  if (!Array.isArray(source.ingredients)) return false;
+  if (source.ingredients.some((item) => item && typeof item === 'object' && !Array.isArray(item) &&
+      (item as Record<string, unknown>).excludedFromPlanning === true &&
+      (typeof (item as Record<string, unknown>).name !== 'string' ||
+        !isInvalidSourceIngredientLabel((item as Record<string, unknown>).name as string)))) return false;
+  const sourceIngredients = source.ingredients.filter((item) =>
+    !item || typeof item !== 'object' || Array.isArray(item) ||
+    (item as Record<string, unknown>).excludedFromPlanning !== true
+  );
+  if (!sourceIngredients.length || sourceIngredients.length !== input.preparedIngredients.length) return false;
+  return sourceIngredients.every((item, index) => {
     if (!item || typeof item !== 'object' || Array.isArray(item)) return false;
     const ingredient = item as Record<string, unknown>;
     const prepared = input.preparedIngredients[index];
-    return ingredient.excludedFromPlanning !== true &&
-      typeof ingredient.name === 'string' && ingredient.name.trim().length > 0 &&
-      typeof ingredient.quantity === 'number' && Number.isFinite(ingredient.quantity) && ingredient.quantity > 0 &&
-      typeof ingredient.unit === 'string' && ingredient.unit.trim().length > 0 &&
+    const unit = typeof ingredient.unit === 'string' && ingredient.unit.trim() ? ingredient.unit.trim() : undefined;
+    const quantity = unit && typeof ingredient.quantity === 'number' &&
+      Number.isFinite(ingredient.quantity) && ingredient.quantity > 0 ? ingredient.quantity : undefined;
+    return typeof ingredient.name === 'string' && ingredient.name.trim().length > 0 &&
       prepared?.ingredientName.normalize('NFKC').trim().toLowerCase() === ingredient.name.normalize('NFKC').trim().toLowerCase() &&
-      prepared.quantity === ingredient.quantity &&
-      prepared.unit?.normalize('NFKC').trim().toLowerCase() === ingredient.unit.normalize('NFKC').trim().toLowerCase();
+      (prepared.quantity ?? undefined) === quantity &&
+      (prepared.unit?.normalize('NFKC').trim().toLowerCase() || undefined) === unit?.normalize('NFKC').toLowerCase();
   });
 }

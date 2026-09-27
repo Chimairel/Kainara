@@ -63,7 +63,7 @@ export function groceryItemKey(name: string, unit?: string | null): string {
 export function aggregateGroceryIngredients(
   ingredients: readonly GroceryIngredientInput[]
 ): AggregatedGroceryIngredient[] {
-  const aggregated = new Map<string, AggregatedGroceryIngredient & { hasUnknownQuantity: boolean }>();
+  const aggregated = new Map<string, AggregatedGroceryIngredient>();
 
   for (const ingredient of ingredients) {
     const cleanName = ingredient.ingredientName.trim().replace(/\s+/g, ' ');
@@ -71,11 +71,14 @@ export function aggregateGroceryIngredients(
     const originalUnit = normalizeGroceryUnit(ingredient.unit);
     const factor = originalUnit === 'kg' || originalUnit === 'L' ? 1000 : 1;
     const unit = originalUnit === 'kg' ? 'g' : originalUnit === 'L' ? 'mL' : originalUnit;
-    const key = groceryItemKey(cleanName, unit);
     const validQuantity =
-      typeof ingredient.quantity === 'number' && Number.isFinite(ingredient.quantity) && ingredient.quantity > 0
+      unit && typeof ingredient.quantity === 'number' && Number.isFinite(ingredient.quantity) && ingredient.quantity > 0
         ? ingredient.quantity * factor
         : null;
+    // Keep a measured amount and an additional unmeasured amount as separate
+    // shopping rows. Otherwise one "to taste" entry hides a useful known sum.
+    const recordedUnit = validQuantity === null ? null : unit;
+    const key = groceryItemKey(cleanName, recordedUnit);
     const current = aggregated.get(key);
     if (!current) {
       aggregated.set(key, {
@@ -83,21 +86,17 @@ export function aggregateGroceryIngredients(
         ingredientName: cleanName.charAt(0).toUpperCase() + cleanName.slice(1),
         category: ingredient.category?.trim() || 'Other',
         quantity: validQuantity,
-        unit,
+        unit: recordedUnit,
         sourceMealCount: 1,
-        hasUnknownQuantity: validQuantity === null,
       });
       continue;
     }
 
     current.sourceMealCount += 1;
-    if (validQuantity === null) current.hasUnknownQuantity = true;
-    if (!current.hasUnknownQuantity && current.quantity !== null && validQuantity !== null) {
+    if (current.quantity !== null && validQuantity !== null) {
       current.quantity = Math.round((current.quantity + validQuantity) * 100) / 100;
-    } else {
-      current.quantity = null;
     }
   }
 
-  return [...aggregated.values()].map(({ hasUnknownQuantity: _ignored, ...item }) => item);
+  return [...aggregated.values()];
 }

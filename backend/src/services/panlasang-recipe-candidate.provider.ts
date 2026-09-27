@@ -22,11 +22,13 @@ export function parseRecipeCandidateIngredients(value: Prisma.JsonValue): Recipe
     if (record.excludedFromPlanning === true) return [];
     const name = typeof record.name === 'string' ? record.name.trim() : '';
     if (!name) return [];
+    const unit = typeof record.unit === 'string' && record.unit.trim() ? record.unit.trim() : undefined;
+    // A number without a unit is not a usable grocery quantity. Preserve the
+    // ingredient and its source nutrition without inventing an amount.
     const quantity =
-      typeof record.quantity === 'number' && Number.isFinite(record.quantity) && record.quantity > 0
+      unit && typeof record.quantity === 'number' && Number.isFinite(record.quantity) && record.quantity > 0
         ? record.quantity
         : undefined;
-    const unit = typeof record.unit === 'string' && record.unit.trim() ? record.unit.trim() : undefined;
     const foodItemId = typeof record.foodItemId === 'string' && record.foodItemId ? record.foodItemId : undefined;
     const fnriFoodName =
       typeof record.fnriFoodName === 'string' && record.fnriFoodName ? record.fnriFoodName : undefined;

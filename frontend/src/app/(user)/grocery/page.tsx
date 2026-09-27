@@ -141,6 +141,9 @@ export default function GroceryListPage() {
 
   const groupedItems = getGroupedItems();
   const totalItems = groceryList?.groceryItems.length || 0;
+  const measuredIngredientNames = new Set((groceryList?.groceryItems ?? [])
+    .filter((item) => item.quantity !== null)
+    .map((item) => item.ingredientName.trim().toLowerCase()));
   const shoppingItems = groceryList?.groceryItems.filter((item) => !item.isPantryStaple) || [];
   const pantryItems = totalItems - shoppingItems.length;
   const checkedItems = shoppingItems.filter((item) => item.isChecked).length;
@@ -502,7 +505,7 @@ export default function GroceryListPage() {
                                 <span className="mt-0.5 block text-[9px] font-medium text-brand-muted">
                                   {item.quantity !== null && item.unit
                                     ? `${Math.max(0, Math.round((item.quantity - (item.purchasedQuantity ?? 0)) * 1000) / 1000)} ${item.unit} to buy · ${item.purchasedQuantity ?? 0} purchased / ${item.quantity} needed`
-                                    : `Used in ${item.sourceMealCount} meal${item.sourceMealCount === 1 ? '' : 's'}`}
+                                    : `${measuredIngredientNames.has(item.ingredientName.trim().toLowerCase()) ? 'Additional amount' : 'Amount'} not recorded · used in ${item.sourceMealCount} meal${item.sourceMealCount === 1 ? '' : 's'}. Check the source recipe.`}
                                 </span>
                                 {item.quantity !== null && canCheckItems && (
                                   <PurchaseAmountEditor item={item} onSaved={fetchGroceryList} />
