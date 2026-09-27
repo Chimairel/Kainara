@@ -16,6 +16,8 @@ import { MealPlanCycleService } from '../src/services/meal-plan-cycle.service';
 import { generate7DayPlan } from '../src/services/meal-plan-composition.service';
 import { NutritionistReviewService } from '../src/services/nutritionist-review.service';
 import { queryEligibleLibraryMeals } from '../src/services/meal-library-candidate-query.service';
+import { flagMealApproval, recheckProfileApproval } from '../src/services/meal-approval-lifecycle.service';
+import { flagWholeMeal, releaseWholeMeal } from '../src/services/meal-wide-flag.service';
 import { getManilaDateKey, getManilaMidnight } from '../src/domain/meal-plan-cycle.policy';
 
 async function main() {
@@ -123,9 +125,23 @@ async function main() {
   const outcomes: Record<string, unknown> = {};
   for (const item of cases) {
     const userId = users.get(item.label)!;
-    const cycleId = await generate7DayPlan(userId, PlanType.WEEKLY, 1, day);
+    const cycleId = await generate7DayPlan(userId, PlanType.WEEKLY, 7, day);
     const meals = await prisma.mealPlan.findMany({ where: { planGroupId: cycleId }, orderBy: { mealType: 'asc' } });
-    assert.ok(meals.length > 0, `${item.label} should have saved a base recipe candidate.`);
+    assert.equal(meals.length, 21, `${item.label} should have a complete three-meal, seven-day plan.`);
+    for (const mealType of ['BREAKFAST', 'LUNCH', 'DINNER'] as const) {
+      const slots = meals.filter((meal) => meal.mealType === mealType)
+        .sort((left, right) => left.scheduledDate.getTime() - right.scheduledDate.getTime());
+      assert.equal(slots.length, 7, `${item.label} is missing a ${mealType.toLowerCase()} slot.`);
+      for (let index = 1; index < slots.length; index += 1) {
+        const previousUse = slots.slice(0, index).reverse().find((slot) =>
+          slot.libraryMealId === slots[index].libraryMealId);
+        if (previousUse) {
+          const daysApart = Math.round((slots[index].scheduledDate.getTime() -
+            previousUse.scheduledDate.getTime()) / 86_400_000);
+          assert.ok(daysApart >= 3, `${item.label} repeats ${mealType} before two intervening days.`);
+        }
+      }
+    }
     const restricted = item.condition !== HealthConditionType.NONE || item.allergy !== AllergenType.NONE;
     assert.ok(meals.every((meal) => meal.status === (restricted ? 'PENDING_REVIEW' : 'APPROVED')),
       `${item.label} received the wrong initial case-approval state.`);
@@ -189,6 +205,92 @@ async function main() {
     outcomes[item.label] = { saved: meals.length, initial: restricted ? 'PENDING_REVIEW' : 'APPROVED',
       profileReviewed: restricted, caseReviewed: restricted };
   }
+  const lead1 = await prisma.nutritionistProfile.findFirstOrThrow({
+    where: { user: { email: 'nutritionist.lead1@gmail.com' } },
+  });
+  const lead2 = await prisma.nutritionistProfile.findFirstOrThrow({
+    where: { user: { email: 'nutritionist.lead2@gmail.com' } },
+  });
+  const hypertensionId = users.get('hypertension')!;
+  const highRiskSlots = await prisma.mealPlan.findMany({
+    where: { userId: hypertensionId, status: 'PENDING_REVIEW' },
+    orderBy: { id: 'asc' }, take: 2,
+  });
+  assert.equal(highRiskSlots.length, 2, 'Two pending meals are needed to test independent review and dispute.');
+  const highRiskCycleId = highRiskSlots[0].planGroupId!;
+  for (const slot of highRiskSlots) {
+    await prisma.mealPlan.update({ where: { id: slot.id }, data: { highRiskReviewRequired: true } });
+    await NutritionistReviewService.getReviewCardDetails(rnd.id, slot.id, true);
+    const first = await NutritionistReviewService.approveMealPlan(rnd.id, slot.id,
+      'Fictional first high-risk decision for isolated workflow testing.');
+    assert.equal(first.awaitingSecondReview, true);
+    assert.ok(!(await MealPlanCycleService.getClearedMealPlanIds(hypertensionId, highRiskCycleId)).includes(slot.id),
+      'A first high-risk decision must not make the slot actionable.');
+    await assert.rejects(NutritionistReviewService.getReviewCardDetails(rnd.id, slot.id, true),
+      /Lead review|different nutritionist/i);
+  }
+  await NutritionistReviewService.getReviewCardDetails(lead1.id, highRiskSlots[0].id, true);
+  await NutritionistReviewService.approveMealPlan(lead1.id, highRiskSlots[0].id,
+    'Independent fictional second decision.');
+  assert.ok((await MealPlanCycleService.getClearedMealPlanIds(hypertensionId, highRiskCycleId))
+    .includes(highRiskSlots[0].id), 'Two independent approvals should release the case.');
+
+  await NutritionistReviewService.getReviewCardDetails(lead1.id, highRiskSlots[1].id, true);
+  await NutritionistReviewService.rejectMealPlan(lead1.id, highRiskSlots[1].id,
+    'Independent fictional reviewer disagrees.');
+  assert.equal((await prisma.mealPlan.findUniqueOrThrow({ where: { id: highRiskSlots[1].id } })).status,
+    'DISPUTED');
+  assert.ok(!(await MealPlanCycleService.getClearedMealPlanIds(hypertensionId, highRiskCycleId))
+    .includes(highRiskSlots[1].id), 'A disputed slot must remain blocked.');
+  await assert.rejects(NutritionistReviewService.resolveMealPlanDispute(lead1.id, highRiskSlots[1].id,
+    'APPROVE', 'The disputing reviewer cannot adjudicate.'), /did not submit/i);
+  await NutritionistReviewService.resolveMealPlanDispute(lead2.id, highRiskSlots[1].id,
+    'APPROVE', 'Independent fictional lead adjudication.');
+  assert.ok((await MealPlanCycleService.getClearedMealPlanIds(hypertensionId, highRiskCycleId))
+    .includes(highRiskSlots[1].id), 'Independent lead resolution should release the case.');
+  outcomes['high-risk-governance'] = { independentApproval: 'released', dispute: 'blocked then released' };
+
+  const eggPlan = await prisma.mealPlan.findFirstOrThrow({
+    where: { userId: users.get('eggs-only')!, status: 'APPROVED', profileApprovalId: { not: null } },
+  });
+  await prisma.mealLibraryProfileApproval.update({ where: { id: eggPlan.profileApprovalId! },
+    data: { reviewDueAt: new Date(Date.now() - 86_400_000) } });
+  assert.ok(!(await MealPlanCycleService.getClearedMealPlanIds(eggPlan.userId, eggPlan.planGroupId!))
+    .includes(eggPlan.id), 'An overdue approval must not remain actionable.');
+  await recheckProfileApproval({ nutritionistProfileId: lead1.id,
+    mealLibraryId: eggPlan.libraryMealId!, approvalId: eggPlan.profileApprovalId!,
+    rationale: 'Fictional scheduled approval recheck in isolated acceptance.' });
+  assert.ok((await MealPlanCycleService.getClearedMealPlanIds(eggPlan.userId, eggPlan.planGroupId!))
+    .includes(eggPlan.id), 'A current rechecked approval should become actionable again.');
+  await flagMealApproval({ nutritionistProfileId: lead1.id,
+    mealLibraryId: eggPlan.libraryMealId!, kind: 'PROFILE', approvalId: eggPlan.profileApprovalId!,
+    reason: 'Fictional scoped approval flag for isolated lifecycle testing.' });
+  assert.ok(!(await MealPlanCycleService.getClearedMealPlanIds(eggPlan.userId, eggPlan.planGroupId!))
+    .includes(eggPlan.id), 'A scoped flag must block its approved plan slot.');
+  await recheckProfileApproval({ nutritionistProfileId: lead2.id,
+    mealLibraryId: eggPlan.libraryMealId!, approvalId: eggPlan.profileApprovalId!,
+    rationale: 'Fictional scoped approval recheck after flag resolution.' });
+  assert.equal((await prisma.mealLibraryProfileApproval.findUniqueOrThrow({
+    where: { id: eggPlan.profileApprovalId! },
+  })).flaggedAt, null);
+  assert.ok(!(await MealPlanCycleService.getClearedMealPlanIds(eggPlan.userId, eggPlan.planGroupId!))
+    .includes(eggPlan.id), 'A recheck must not silently restore a previously invalidated plan slot.');
+
+  const healthyPlan = await prisma.mealPlan.findFirstOrThrow({
+    where: { userId: users.get('healthy-omni')!, status: 'APPROVED', libraryMealId: { not: null } },
+  });
+  await flagWholeMeal(rnd.id, healthyPlan.libraryMealId!,
+    'Fictional whole-meal flag for isolated lifecycle testing.');
+  assert.ok(!(await MealPlanCycleService.getClearedMealPlanIds(healthyPlan.userId, healthyPlan.planGroupId!))
+    .includes(healthyPlan.id), 'A whole-meal flag must block its plan slots.');
+  assert.equal(await prisma.mealPlan.count({ where: { libraryMealId: healthyPlan.libraryMealId!,
+    status: 'APPROVED', requiresSafetyRevalidation: false } }), 0);
+  await releaseWholeMeal(lead1.id, healthyPlan.libraryMealId!,
+    'Independent fictional whole-meal release after review.');
+  assert.ok(!(await MealPlanCycleService.getClearedMealPlanIds(healthyPlan.userId, healthyPlan.planGroupId!))
+    .includes(healthyPlan.id), 'Meal release must not silently restore old plan slots.');
+  outcomes['approval-lifecycle'] = { scopedFlag: 'blocked and rechecked',
+    scheduledDue: 'blocked and rechecked', wholeMealFlag: 'blocked across plans' };
   await prisma.user.create({ data: {
     email: `cf-profile-ui-${marker}@example.com`, name: 'Case flow profile UI', passwordHash,
     role: Role.USER, emailVerified: true, onboardingDone: true, tosAccepted: true,

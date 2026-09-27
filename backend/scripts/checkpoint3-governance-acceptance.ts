@@ -1,9 +1,11 @@
 import 'dotenv/config';
 import assert from 'node:assert/strict';
 import { createHash, randomUUID } from 'node:crypto';
-import { HealthConditionType, MealPlanStatus, PrismaClient } from '@prisma/client';
+import { ClinicalDocumentReviewDecision, ClinicalDocumentType, ClinicalEvidenceArea, ClinicalFactCode,
+  HealthConditionType, MealPlanStatus, PrismaClient } from '@prisma/client';
 import { AdminService } from '../src/services/admin.service';
 import { ConditionClearanceService } from '../src/services/condition-clearance.service';
+import { ClinicalEvidenceService } from '../src/services/clinical-evidence.service';
 import { NutritionistReviewService } from '../src/services/nutritionist-review.service';
 import { MEAL_LIBRARY_SAFETY_POLICY_VERSION } from '../src/domain/meal-library-safety-evidence.policy';
 import { MEAL_PLAN_SAFETY_POLICY_VERSION } from '../src/domain/meal-plan-production-safety.policy';
@@ -12,6 +14,11 @@ import { createFixturePlanCycle } from './helpers/plan-cycle-fixture';
 const prisma = new PrismaClient();
 
 async function main() {
+  const databaseHost = new URL(process.env.DATABASE_URL ?? '').hostname;
+  if (!['localhost', '127.0.0.1'].includes(databaseHost) ||
+      process.env.CHECKPOINT3_DISPOSABLE_DB !== '1') {
+    throw new Error('Run this governance fixture only in a disposable local database.');
+  }
   const marker = `checkpoint3-${randomUUID()}`;
   const [admin, regular, leadOne, leadTwo, user, food] = await Promise.all([
     prisma.user.findUniqueOrThrow({ where: { email: 'admin@gmail.com' } }),
@@ -45,6 +52,7 @@ async function main() {
       recipeSignature,
       safetyEvidenceStatus: 'COMPLETE',
       safetyEvidenceOrigin: 'NUTRITIONIST_REVIEW',
+      nutritionEvidenceSource: 'FNRI_RECONCILED',
       safetyEvidenceRevision: 1,
       certifiedEvidenceRevision: 1,
       safetyPolicyVersion: MEAL_LIBRARY_SAFETY_POLICY_VERSION,
@@ -68,8 +76,31 @@ async function main() {
 
   let clearanceId: string | null = null;
   let rulesetId: string | null = null;
+  let sourceId: string | null = null;
+  let documentId: string | null = null;
+  let conditionId: string | null = null;
   const planIds: string[] = [];
   try {
+    const condition = await prisma.healthCondition.create({
+      data: { userId: user.id, condition: HealthConditionType.HEART_CONDITION },
+    });
+    conditionId = condition.id;
+    const document = await ClinicalEvidenceService.upload({
+      userId: user.id, area: ClinicalEvidenceArea.HEART_CONDITION,
+      documentType: ClinicalDocumentType.MEDICAL_ABSTRACT,
+      file: { buffer: Buffer.from('%PDF-1.7\nfictional heart-condition fixture'),
+        mimetype: 'application/pdf', originalname: 'fictional-heart-context.pdf' },
+      consentAccepted: true,
+    });
+    documentId = document.id;
+    await ClinicalEvidenceService.claimDetail(regular.id, document.id);
+    await ClinicalEvidenceService.review({
+      nutritionistProfileId: regular.id, actorUserId: regular.userId,
+      documentId: document.id, decision: ClinicalDocumentReviewDecision.SUFFICIENT,
+      rationale: 'Fictional heart context reviewed for isolated governance testing.',
+      validUntil: new Date(Date.now() + 30 * 86_400_000),
+      confirmedFacts: [{ code: ClinicalFactCode.HEART_DIAGNOSIS, valueText: 'Fictional test subtype' }],
+    });
     const primary = await ConditionClearanceService.submitManualDecision({
       nutritionistProfileId: regular.id,
       mealLibraryId: meal.id,
@@ -150,8 +181,10 @@ async function main() {
       data: {
         planGroupId: blindPlanGroupId,
         userId: user.id,
+        libraryMealId: meal.id,
+        candidateProvenance: 'CERTIFIED_LIBRARY',
         status: MealPlanStatus.PENDING_REVIEW,
-        mealType: 'DINNER',
+        mealType: 'LUNCH',
         mealName: `Blind second review ${marker}`,
         calories: 500,
         proteinG: 25,
@@ -204,6 +237,17 @@ async function main() {
       },
     });
     rulesetId = temporaryRuleset.id;
+    const fixtureSource = await prisma.clinicalEvidenceSource.create({ data: {
+      code: `CHECKPOINT3_FIXTURE_${randomUUID()}`,
+      issuingOrganization: 'Isolated acceptance fixture', title: 'Fictional governance source',
+      documentType: 'GOVERNMENT_GUIDANCE', domain: 'DIABETES',
+      canonicalUrl: 'https://example.invalid/checkpoint3-acceptance',
+      sourceVersion: 'TEST_ONLY_V1', retrievedAt: new Date(),
+      population: 'Fictional acceptance records only', jurisdiction: 'TEST_ONLY',
+      exclusionsAndCaveats: 'Never use this fictional source for clinical decisions.',
+      state: 'CURRENT',
+    } });
+    sourceId = fixtureSource.id;
     await prisma.conditionNutrientRule.create({
       data: {
         id: `checkpoint3-rule-${randomUUID()}`,
@@ -217,6 +261,12 @@ async function main() {
         rationale: 'Temporary governance acceptance fixture.',
         sourceTitle: 'Acceptance fixture',
         sourceCitation: 'https://example.invalid/checkpoint3-acceptance',
+        evidenceSourceId: fixtureSource.id,
+        evidenceLocator: 'Fictional fixture line 1',
+        applicablePopulation: 'Fictional acceptance records only',
+        requiredInputs: { serving: ['sodiumMg'] },
+        exclusionsAndCaveats: 'Never use this fictional rule for clinical decisions.',
+        evaluationScope: 'SERVING', authorityOutcome: 'REVIEW_REQUIRED',
         policyVersion: rulesetVersion,
       },
     });
@@ -272,6 +322,8 @@ async function main() {
       await prisma.mealConditionClearanceDecision.deleteMany({ where: { clearanceId } });
       await prisma.mealConditionClearance.deleteMany({ where: { id: clearanceId } });
     }
+    if (documentId) await prisma.clinicalDocument.delete({ where: { id: documentId } });
+    if (conditionId) await prisma.healthCondition.delete({ where: { id: conditionId } });
     await prisma.auditEvent.deleteMany({
       where: {
         OR: [
@@ -287,6 +339,7 @@ async function main() {
       await prisma.conditionIngredientRule.deleteMany({ where: { policyVersion: rulesetVersion } });
       await prisma.conditionRulePolicyVersion.delete({ where: { id: rulesetId } });
     }
+    if (sourceId) await prisma.clinicalEvidenceSource.delete({ where: { id: sourceId } });
     await prisma.mealLibrary.delete({ where: { id: meal.id } });
   }
 }

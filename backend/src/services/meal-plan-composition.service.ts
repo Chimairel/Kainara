@@ -172,7 +172,7 @@ export async function generate7DayPlan(
     mealType: MealType;
     scheduledDate: Date;
   }[] = [];
-  const selectedLibraryMealIds = new Set<string>();
+  const lastSelectedLibraryDay = new Map<string, number>();
 
   // Evaluate each individual slot independently
   for (let day = 0; day < numDays; day++) {
@@ -182,7 +182,8 @@ export async function generate7DayPlan(
     for (const slotType of slots) {
       // Filter in-memory verified library matches
       const matches = eligibleLibraryMeals.filter((meal) => {
-        if (selectedLibraryMealIds.has(meal.id)) return false;
+        const previousDay = lastSelectedLibraryDay.get(meal.id);
+        if (previousDay !== undefined && day + 1 - previousDay < 3) return false;
         if (!meal.applicableMealTypes.some((entry) => entry.mealType === slotType)) return false;
         if (caseReviewCandidateIds.has(meal.id) && meal.mealType !== slotType) return false;
 
@@ -231,10 +232,13 @@ export async function generate7DayPlan(
             left.meal.usageCount - right.meal.usageCount ||
             left.meal.id.localeCompare(right.meal.id)
         );
-      const selected = ranked[0];
+      // Use a different recipe when one is available. A smaller catalogue can
+      // repeat a compatible recipe after two intervening days instead of
+      // leaving later slots empty solely because it appeared earlier this week.
+      const selected = ranked.find(({ meal }) => !lastSelectedLibraryDay.has(meal.id)) ?? ranked[0];
 
       if (selected) {
-        selectedLibraryMealIds.add(selected.meal.id);
+        lastSelectedLibraryDay.set(selected.meal.id, day + 1);
         const pairedRiceG =
           cookedRiceFood &&
           selected.meal.riceRole === RecipeRiceRole.PAIR_WITH_RICE &&
