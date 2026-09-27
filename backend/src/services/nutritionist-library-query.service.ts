@@ -74,7 +74,13 @@ export async function getNutritionistMealLibraryWithFilters(
   const meals = pageIds.length ? await prisma.mealLibrary.findMany({
       where: { id: { in: pageIds } },
       include: {
-        sourceRawRecipeCandidate: { select: { sourceName: true, sourceUrl: true, sourceImageUrl: true } },
+        sourceRawRecipeCandidate: { select: {
+          sourceName: true,
+          sourceUrl: true,
+          sourceImageUrl: true,
+          status: true,
+          observedSubmissions: { where: { status: 'ADMITTED_RECIPE' }, select: { id: true }, take: 1 },
+        } },
         verifiedByNutritionist: { include: { user: { select: { name: true } } } },
         flags: {
           where: { status: 'PENDING' },
@@ -129,10 +135,32 @@ export async function getNutritionistMealLibraryWithFilters(
     total,
     page,
     limit,
-    meals: orderedMeals.map((meal) => ({
-      ...meal,
-      preparedNutritionRevision: preparedRevision.get(meal.id)?.revision ?? null,
-      preparedNutritionBasis: preparedRevision.get(meal.id)?.portionBasis ?? null,
-    })),
+    meals: orderedMeals.map((meal) => {
+      const { sourceRawRecipeCandidate: source, ...mealFields } = meal;
+      // This label describes whether the base recipe is an established source
+      // recipe or has completed independent RND evidence review. It does not
+      // assert that a particular serving is ready for automatic planning.
+      const panlasangSource = source?.sourceName === 'PANLASANG_PINOY' && source.status === 'AVAILABLE';
+      const admittedOutsideRecipe = source?.sourceName === 'USER_OBSERVED' &&
+        source.status === 'AVAILABLE' && source.observedSubmissions.length > 0;
+      const rndCertified = meal.safetyEvidenceStatus === 'COMPLETE' &&
+        meal.certifiedEvidenceRevision === meal.safetyEvidenceRevision &&
+        !!meal.safetyReviewedByNutritionistId;
+      return {
+        ...mealFields,
+        sourceRawRecipeCandidate: source ? {
+          sourceName: source.sourceName,
+          sourceUrl: source.sourceUrl,
+          sourceImageUrl: source.sourceImageUrl,
+          status: source.status,
+        } : null,
+        baseVerification: panlasangSource || admittedOutsideRecipe || rndCertified
+          ? 'VERIFIED' as const : 'REVIEW_PENDING' as const,
+        baseVerificationBasis: panlasangSource ? 'PANLASANG_PINOY' as const :
+          admittedOutsideRecipe || rndCertified ? 'NUTRITIONIST' as const : null,
+        preparedNutritionRevision: preparedRevision.get(meal.id)?.revision ?? null,
+        preparedNutritionBasis: preparedRevision.get(meal.id)?.portionBasis ?? null,
+      };
+    }),
   };
 }

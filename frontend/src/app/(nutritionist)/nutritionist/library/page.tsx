@@ -63,6 +63,18 @@ export default function MealLibraryPage() {
               {viewedMeal.mealType} · {source?.sourceName === 'PANLASANG_PINOY' ? 'Panlasang Pinoy base recipe' : 'Recorded recipe'}
             </p>
             <h1 className="mt-2 font-display text-3xl font-black text-brand-text">{viewedMeal.mealName}</h1>
+            <div className="mt-3 flex flex-wrap items-center gap-2">
+              <Badge variant={viewedMeal.baseVerification === 'VERIFIED' ? 'verified' : 'pending'} showIcon={false}>
+                {viewedMeal.baseVerification === 'VERIFIED' ? 'Verified' : 'Review pending'}
+              </Badge>
+              {viewedMeal.baseVerification === 'VERIFIED' && (
+                <span className="text-xs text-brand-muted">
+                  {viewedMeal.baseVerificationBasis === 'PANLASANG_PINOY'
+                    ? 'Established Panlasang Pinoy recipe source'
+                    : 'Nutritionist reviewed base recipe'}
+                </span>
+              )}
+            </div>
             {source?.sourceUrl && <a href={source.sourceUrl} target="_blank" rel="noopener noreferrer"
               className="mt-3 inline-block text-sm font-semibold text-brand-green underline">View original recipe ↗</a>}
           </div>
@@ -108,7 +120,7 @@ export default function MealLibraryPage() {
         icon={BookOpen}
         eyebrow="Meal intelligence"
         title="Meal library"
-        description="Search, inspect, and maintain the reusable meal evidence available to compatible user plans."
+        description="Browse base recipes and their separate health-context approvals. Verified identifies an established recipe source or completed nutritionist review; automatic planning also requires usable serving and nutrition details."
         meta={
           <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-2 font-mono text-[9px] uppercase tracking-wider text-brand-muted">
             {totalCount} records
@@ -392,7 +404,7 @@ export default function MealLibraryPage() {
         {isLoading ? (
           <div className="flex flex-col items-center justify-center min-h-[40vh] space-y-3">
             <div className="w-8 h-8 border-2 border-brand-green/20 border-t-brand-green rounded-full animate-spin"></div>
-            <span className="text-sm text-brand-muted">Fetching verified library meals...</span>
+            <span className="text-sm text-brand-muted">Fetching meal records...</span>
           </div>
         ) : meals.length === 0 ? (
           <Card className="p-16 text-center border-brand-border/40 bg-brand-surface/30 flex flex-col items-center">
@@ -421,6 +433,9 @@ export default function MealLibraryPage() {
                         <span className="text-[10px] font-bold text-brand-green bg-brand-green/10 border border-brand-green/20 px-2.5 py-1 rounded-md tracking-wider uppercase font-display">
                           {meal.mealType}
                         </span>
+                        <Badge variant={meal.baseVerification === 'VERIFIED' ? 'verified' : 'pending'} showIcon={false} className="text-[10px]">
+                          {meal.baseVerification === 'VERIFIED' ? 'Verified' : 'Review pending'}
+                        </Badge>
                       </div>
 
                       {/* Meal details */}
