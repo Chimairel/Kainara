@@ -134,7 +134,7 @@ export default function DocsWorkspace() {
         ) : <div className="min-h-[400px]" aria-label="Loading documentation" />}
       </article>
 
-      <aside className="hidden xl:block xl:self-start xl:sticky xl:top-28" aria-label="On this page">
+      <aside className="hidden xl:sticky xl:top-28 xl:block xl:max-h-[calc(100vh-8rem)] xl:self-start xl:overflow-y-auto" aria-label="On this page">
         <p className="mb-4 border-b border-brand-border/70 pb-4 font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-brand-accent">On this page</p>
         {chapter && (
           <nav className="space-y-1">

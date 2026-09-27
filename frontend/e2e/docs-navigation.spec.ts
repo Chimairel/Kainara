@@ -34,3 +34,18 @@ test('narrow screens can select a chapter without the desktop outline', async ({
   await expect(page.getByRole('heading', { name: 'Medical Disclaimers', exact: true })).toBeVisible();
   await expect(page.getByRole('complementary', { name: 'On this page' })).toBeHidden();
 });
+
+test('the former Sources page opens the full evidence register in Docs', async ({ page }) => {
+  await page.goto('/sources');
+
+  await expect(page).toHaveURL(/\/docs#data-sources$/);
+  await expect(page.getByRole('heading', { name: 'Sources and evidence', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Draft clinical policy map' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Philippine nutrition and consumption data' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'How to read source statuses' })).toBeVisible();
+  await expect(page.getByRole('navigation', { name: 'Public navigation' }).getByRole('link', { name: 'Sources' })).toHaveCount(0);
+
+  await page.getByRole('complementary', { name: 'On this page' }).getByRole('button', { name: 'Draft clinical policy map' }).click();
+  await expect(page).toHaveURL(/#data-sources-policy-map$/);
+  await expect(page.getByRole('heading', { name: 'Draft clinical policy map' })).toBeInViewport();
+});

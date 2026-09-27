@@ -402,7 +402,7 @@ export default function Home() {
                   approval by any listed organization.
                 </p>
                 <Link
-                  href="/sources"
+                  href="/docs#data-sources"
                   className="mt-5 inline-flex items-center gap-2 text-sm font-bold text-brand-green hover:underline"
                 >
                   Read the complete evidence register <ArrowUpRight className="h-4 w-4" />
@@ -530,7 +530,7 @@ export default function Home() {
             <Link href="/docs" className="transition hover:text-brand-green">
               Documentation
             </Link>
-            <Link href="/sources" className="transition hover:text-brand-green">
+            <Link href="/docs#data-sources" className="transition hover:text-brand-green">
               Evidence sources
             </Link>
             <Link href="/login" className="transition hover:text-brand-green">
