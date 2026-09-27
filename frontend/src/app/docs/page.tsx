@@ -1,654 +1,159 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import {
-  ArrowLeft,
-  ArrowRight,
-  ArrowUpRight,
-  BookOpen,
-  BrainCircuit,
-  CheckCircle2,
-  Clock,
-  Compass,
-  FileDown,
-  FileText,
-  HeartPulse,
-  HelpCircle,
-  Lock,
-  Mail,
-  Repeat2,
-  ShieldAlert,
-  ShoppingCart,
-  Sparkles,
-  Stethoscope,
-  User,
-  UtensilsCrossed,
-} from 'lucide-react';
+import type { ReactNode } from 'react';
 import PublicHeader from '@/components/shared/PublicHeader';
 
 export const metadata: Metadata = {
-  title: 'Documentation & User Guide | KAINARA',
-  description:
-    'Comprehensive product documentation, user guides, clinical safety standards, nutrition algorithms, and troubleshooting FAQs for KAINARA.',
+  title: 'How KAINARA works · Guidelines, Terms & Privacy',
+  description: 'KAINARA product guide, clinical limitations, terms of service, and privacy policy.',
 };
 
-const chapters = [
-  ['01', 'Getting Started & Intake', '#getting-started'],
-  ['02', 'Meal Planning & Cycles', '#meal-planning'],
-  ['03', 'Daily Tracking & Cockpit', '#daily-tracking'],
-  ['04', 'Outside Meals & AI', '#outside-meals'],
-  ['05', 'Swaps & Verified Library', '#meal-swaps'],
-  ['06', 'Groceries & PDF Export', '#groceries'],
-  ['07', 'Clinical Oversight & Safety', '#clinical-safety'],
-  ['08', 'Account, Goals & Privacy', '#account-settings'],
-  ['09', 'Troubleshooting & FAQs', '#faqs'],
-];
+const sections = [
+  ['what-is-kainara', 'What KAINARA is'],
+  ['getting-started', 'Getting started'],
+  ['meal-planning', 'Plans and shopping cycles'],
+  ['meal-library', 'Meal Library'],
+  ['tracking', 'Daily tracking'],
+  ['outside-meals', 'Outside meals'],
+  ['meal-swaps', 'Meal swaps'],
+  ['groceries', 'Grocery lists'],
+  ['professional-review', 'Nutritionist and admin review'],
+  ['data-sources', 'Nutrition and recipe data'],
+  ['clinical-guidelines', 'Clinical Guidelines'],
+  ['medical-disclaimers', 'Medical Disclaimers'],
+  ['terms-of-service', 'Terms of Service'],
+  ['privacy-policy', 'Privacy Policy'],
+  ['data-protection-notice', 'Data Protection Notice'],
+  ['account-settings', 'Account controls'],
+  ['faqs', 'Common questions'],
+  ['help', 'Help'],
+] as const;
 
-const faqs = [
-  {
-    q: 'How does KAINARA calculate my calories and macros?',
-    a: 'KAINARA calculates your Basal Metabolic Rate (BMR) and Total Daily Energy Expenditure (TDEE) using the Mifflin-St Jeor formula. Targets are calibrated for your biological sex, age, height, current weight, activity level, and weight objective (loss, maintenance, or gain).',
-  },
-  {
-    q: 'Are the recipes realistic for Philippine households?',
-    a: 'Yes. KAINARA matches all plans against the Food and Nutrition Research Institute (FNRI) Philippine Food Composition Table. Plans feature accessible market ingredients like bangus, tilapia, mongo, malunggay, kangkong, and brown rice with accurate local portion weights.',
-  },
-  {
-    q: 'What is a Starter / Bridge Plan?',
-    a: 'If your designated shopping day (e.g. Saturday or Sunday) is several days away, KAINARA immediately prepares a 1 to 3-day Starter Bridge Plan using standard kitchen staples so you can begin eating right away without disrupting your weekly grocery schedule.',
-  },
-  {
-    q: 'Can I eat outside meals and still track my adherence?',
-    a: 'Yes. Click "Log Outside Food" on your dashboard. Our multimodal AI identifies ingredients, estimates calories and macros per gram or serving, and alerts you if any ingredients conflict with your declared medical conditions or allergies.',
-  },
-  {
-    q: 'Why is there a ±15% calorie delta warning when swapping meals?',
-    a: 'To safeguard your caloric balance, KAINARA warns you if a replacement dish differs by more than 15% calories from your original target meal. This gives you transparency to adjust your other meals during the day.',
-  },
-  {
-    q: 'Who reviews the meal plans before they are marked verified?',
-    a: 'PRC-licensed Filipino Registered Nutritionist-Dietitians (RNDs) review queued AI plans, audit nutritional accuracy, and curate the verified recipe library. Dishes marked "Verified RND" have undergone clinical inspection.',
-  },
-];
+function Section({ id, title, children }: { id: string; title: string; children: ReactNode }) {
+  return <section id={id} className="scroll-mt-28 border-t border-brand-border/70 pt-12">
+    <h2 className="font-display text-2xl font-black text-brand-text sm:text-3xl">{title}</h2>
+    <div className="mt-5 space-y-4 text-sm leading-7 text-brand-muted">{children}</div>
+  </section>;
+}
 
 export default function DocsPage() {
-  return (
-    <div className="min-h-screen text-brand-text">
-      <PublicHeader />
+  return <div className="min-h-screen bg-brand-bg text-brand-text">
+    <PublicHeader />
+    <main className="mx-auto max-w-6xl px-5 pb-24 pt-14 sm:px-8">
+      <header className="max-w-3xl">
+        <p className="text-xs font-bold uppercase tracking-[0.2em] text-brand-green">Product guide and notices</p>
+        <h1 className="mt-3 font-display text-4xl font-black sm:text-5xl">Understand KAINARA</h1>
+        <p className="mt-4 text-sm leading-7 text-brand-muted">How the app prepares meals, where professional review applies, what its limits are, and how your information is handled. Updated September 27, 2026. The legal notices below describe this capstone implementation and should be reviewed by the operator before public deployment.</p>
+      </header>
 
-      <main>
-        {/* Hero Section */}
-        <section className="relative overflow-hidden border-b border-brand-border/60">
-          <div className="pointer-events-none absolute inset-0 futuristic-grid opacity-50" />
-          <div className="pointer-events-none absolute left-[12%] top-10 h-72 w-72 rounded-full bg-brand-accent/10 blur-[110px]" />
-          <div className="pointer-events-none absolute right-[8%] top-20 h-72 w-72 rounded-full bg-brand-cyan/10 blur-[110px]" />
+      <div className="mt-12 grid gap-12 lg:grid-cols-[230px_minmax(0,1fr)]">
+        <nav aria-label="Documentation sections" className="self-start rounded-2xl border border-brand-border bg-brand-surface p-3 lg:sticky lg:top-24">
+          {sections.map(([id, label]) => <a key={id} href={`#${id}`} className="block rounded-lg px-3 py-2 text-xs font-semibold text-brand-muted hover:bg-brand-bgAlt hover:text-brand-green">{label}</a>)}
+        </nav>
+        <article className="min-w-0 space-y-12">
+          <Section id="what-is-kainara" title="What KAINARA is">
+            <p>KAINARA is a Filipino-focused meal planning and nutrition tracking app. It combines a local recipe catalogue, food-composition references, calculated energy targets, optional Gemini-assisted drafting, and nutritionist review for cases that need it. It offers educational guidance and planning tools, not diagnosis or treatment.</p>
+            <p>There are three roles. Users set a profile, view plans, log food, and manage their data. Registered Nutritionist-Dietitians review clinical profiles, documents, meal cases, and new recipe submissions. Administrators manage accounts, nutritionist applications, and source data.</p>
+          </Section>
 
-          <div className="relative mx-auto max-w-[1320px] px-5 py-20 sm:px-8 lg:px-12 lg:py-28">
-            <Link
-              href="/"
-              className="mb-10 inline-flex items-center gap-2 text-xs font-bold text-brand-muted transition hover:text-brand-green"
-            >
-              <ArrowLeft className="h-3.5 w-3.5" />
-              Back to experience
-            </Link>
-            <div className="grid gap-12 lg:grid-cols-[1fr_0.55fr] lg:items-end">
-              <div>
-                <div className="eyebrow inline-flex items-center gap-2">
-                  <BookOpen className="h-3.5 w-3.5 text-brand-accent" />
-                  Official Product Documentation & User Guide
-                </div>
-                <h1 className="mt-6 max-w-4xl font-display text-[clamp(3.2rem,7vw,7rem)] font-black leading-[0.9] tracking-[-0.065em]">
-                  The complete guide to <span className="text-gradient">KAINARA.</span>
-                </h1>
-              </div>
-              <div className="border-l border-brand-border/70 pl-6">
-                <p className="text-sm leading-7 text-brand-muted">
-                  Official user manuals, step-by-step feature guides, clinical safety standards, nutrition algorithms,
-                  and troubleshooting FAQs for the KAINARA nutrition platform.
-                </p>
-                <div className="mt-5 flex items-center gap-3 text-[10px] font-bold uppercase tracking-[0.15em] text-brand-muted">
-                  <span className="h-2 w-2 rounded-full bg-brand-green" />
-                  Version 1.0 · Updated September 2026
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
+          <Section id="getting-started" title="Getting started">
+            <ol className="list-decimal space-y-2 pl-5"><li>Register, verify your email, and enter body measurements, activity, goal, and food preferences.</li><li>Declare conditions, allergies, and food restrictions accurately. Supporting clinical documents are optional to upload during onboarding, though some cases require reviewed evidence before planning.</li><li>Select a grocery shopping day, review the summary, and accept the current consent notices.</li><li>Read and acknowledge your <Link href="/profile/nutrition-report" className="text-brand-green underline">Nutrition Guidance</Link>. It explains calculated targets and restrictions without requiring AI to write the report.</li></ol>
+            <p>Restricted profiles wait for a nutritionist to confirm the recorded planning context. The nutritionist can request a document or correction. This confirmation is separate from approval of a particular meal. A user with no declared condition, allergy, or restriction can use eligible base recipes without a case review.</p>
+          </Section>
 
-        {/* Two-Column Layout */}
-        <div className="mx-auto grid max-w-[1320px] gap-12 px-5 py-16 sm:px-8 lg:grid-cols-[220px_minmax(0,1fr)] lg:px-12 lg:py-24">
-          {/* Sticky Left Navigation */}
-          <aside className="hidden lg:block">
-            <div className="sticky top-28">
-              <p className="font-mono text-[9px] font-bold uppercase tracking-[0.2em] text-brand-muted">On this page</p>
-              <nav className="mt-5 space-y-1" aria-label="Documentation chapters">
-                {chapters.map(([num, title, href]) => (
-                  <a
-                    key={num}
-                    href={href}
-                    className="group flex items-center gap-3 rounded-xl px-3 py-2 text-xs font-semibold text-brand-muted transition hover:bg-brand-surface/70 hover:text-brand-text"
-                  >
-                    <span className="font-mono text-[9px] font-bold text-brand-muted/60 transition group-hover:text-brand-green">
-                      {num}
-                    </span>
-                    <span>{title}</span>
-                  </a>
-                ))}
-              </nav>
+          <Section id="meal-planning" title="Plans and shopping cycles">
+            <p>The app estimates a daily energy target from the profile and allocates it across breakfast, lunch, and dinner. The shopping day anchors a seven-day cycle; a short starter plan can bridge the days before the next cycle. The date shown on each slot is the day that meal is scheduled, not the day it was generated.</p>
+            <p>The planner tries recorded, eligible servings first, then other eligible published recipes. When a suitable slot cannot be filled, it stays empty or awaits a separate generation attempt. AI capacity, incomplete ingredients, a calorie range, and review gates can all leave a gap. A saved candidate is not automatically actionable for a restricted user: the meal case may still need one or two independent nutritionist decisions.</p>
+            <p>The app prefers variety. When the eligible catalogue is too small for an entire week, the same verified recipe may recur on different days. A repeated recipe is a visible limitation of current catalogue coverage, not a new clinical approval.</p>
+          </Section>
 
-              {/* Direct Support Card */}
-              <div className="mt-10 rounded-[24px] border border-brand-border/80 bg-brand-surface/60 p-5 text-xs">
-                <div className="flex items-center gap-2 text-brand-text font-bold">
-                  <Mail className="h-4 w-4 text-brand-green" />
-                  <span>Need help?</span>
-                </div>
-                <p className="mt-2 text-[11px] leading-5 text-brand-muted">
-                  Questions regarding clinical profiles, meal plans, or account access? Reach our team directly.
-                </p>
-                <a
-                  href="mailto:support@kainara.ph"
-                  className="mt-3 inline-flex items-center gap-1.5 text-xs font-bold text-brand-green hover:underline"
-                >
-                  support@kainara.ph
-                  <ArrowUpRight className="h-3 w-3" />
-                </a>
-              </div>
-            </div>
-          </aside>
+          <Section id="meal-library" title="Meal Library">
+            <p>The Library has three distinct kinds of entries. <strong className="text-brand-text">Verified base recipes</strong> are published Panlasang Pinoy recipes or other recipes whose identity was checked. That label says the dish is a real recipe; it does not certify its nutrition or suitability for every user. <strong className="text-brand-text">Reusable recipes</strong> have the recorded serving and safety evidence needed by the relevant query. <strong className="text-brand-text">Meals in your plan</strong> are your scheduled portions and may appear even if separate reusable certification is still pending.</p>
+            <p>Browsing a recipe does not add it to your plan. Planning and swaps check current restrictions, source availability, serving data, and the selected slot. A goal or calorie mismatch can change planning eligibility without making the underlying dish medically unsafe. A flagged base recipe is withheld together with its serving variants and approvals until reviewed.</p>
+          </Section>
 
-          {/* Right Column: Chapters */}
-          <article className="min-w-0 space-y-24">
-            {/* Chapter 01: Getting Started & Intake */}
-            <section id="getting-started" className="scroll-mt-28">
-              <div className="flex items-center gap-3">
-                <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-brand-accent text-[#07100d]">
-                  <Compass className="h-[18px] w-[18px]" />
-                </span>
-                <div>
-                  <p className="font-mono text-[9px] font-bold uppercase tracking-[0.18em] text-brand-muted">
-                    Chapter 01
-                  </p>
-                  <h2 className="font-display text-2xl font-black tracking-tight sm:text-3xl">
-                    Getting Started & Clinical Intake
-                  </h2>
-                </div>
-              </div>
+          <Section id="tracking" title="Daily tracking">
+            <span id="daily-tracking" className="block scroll-mt-28" />
+            <p>On the dashboard, mark a scheduled meal eaten or skipped. Record water and weight separately. Logs describe what you recorded; a scheduled meal alone is not proof that it was eaten. Weight and adherence summaries depend on the entries available and are not diagnoses.</p>
+            <p>If you change a restriction or other planning input, review the current plan again. A saved meal can need revalidation even when its recipe name is unchanged.</p>
+          </Section>
 
-              <div className="mt-8 grid gap-8 text-sm leading-7 text-brand-muted md:grid-cols-2">
-                <p>
-                  Getting started with KAINARA begins with our 5-step biometric and clinical onboarding wizard. Instead
-                  of generic calorie calculators, KAINARA gathers your medical history, dietary preferences, and local
-                  shopping schedule to formulate an individualized nutrition plan.
-                </p>
-                <p>
-                  Your daily energy baseline is computed using the <strong>Mifflin-St Jeor</strong> formula, the
-                  clinical standard recognized by dietitians for calculating Basal Metabolic Rate (BMR) and Total Daily
-                  Energy Expenditure (TDEE).
-                </p>
-              </div>
+          <Section id="outside-meals" title="Outside meals">
+            <p>You can log food eaten outside your plan. Enter the dish, ingredients, and portion as accurately as possible. Nutrition may be estimated or incomplete, and an allergy or condition warning is not a substitute for checking the real food and packaging.</p>
+            <p>An outside log records your consumption. With separate consent, a reusable recipe proposal may enter meal verification. Neither the log nor the proposal automatically becomes a verified base recipe or a case approval.</p>
+          </Section>
 
-              <div className="mt-10 grid gap-4 sm:grid-cols-3">
-                <div className="surface-panel rounded-[24px] p-5">
-                  <span className="font-mono text-xs font-bold text-brand-green">STEP 01–02</span>
-                  <h3 className="mt-2 text-xs font-bold text-brand-text">Biometrics & Goals</h3>
-                  <p className="mt-2 text-xs leading-relaxed text-brand-muted">
-                    Age, sex, height, current weight, target weight, and activity multipliers.
-                  </p>
-                </div>
-                <div className="surface-panel rounded-[24px] p-5">
-                  <span className="font-mono text-xs font-bold text-brand-cyan">STEP 03–04</span>
-                  <h3 className="mt-2 text-xs font-bold text-brand-text">Medical & Allergens</h3>
-                  <p className="mt-2 text-xs leading-relaxed text-brand-muted">
-                    Screening for Type 2 Diabetes, Hypertension, Kidney Disease, and specific allergens.
-                  </p>
-                </div>
-                <div className="surface-panel rounded-[24px] p-5">
-                  <span className="font-mono text-xs font-bold text-brand-accent">STEP 05</span>
-                  <h3 className="mt-2 text-xs font-bold text-brand-text">Shopping Day Anchoring</h3>
-                  <p className="mt-2 text-xs leading-relaxed text-brand-muted">
-                    Selecting your weekly palengke or supermarket schedule (Weekend vs. Weekday).
-                  </p>
-                </div>
-              </div>
-            </section>
+          <Section id="meal-swaps" title="Meal swaps">
+            <p>Preview an eligible replacement for a scheduled meal before confirming a swap. The app checks current profile restrictions and the destination slot, and warns when the calorie difference is substantial. A swap changes that plan slot and updates its grocery data; it does not approve the replacement for every other user.</p>
+            <p>Available choices may be limited by serving evidence, active flags, review state, and your profile. If a meal has already been logged or shopping has begun, whole-plan replacement may be unavailable; inspect the controls shown for that cycle.</p>
+          </Section>
 
-            {/* Chapter 02: Meal Planning & Cycles */}
-            <section id="meal-planning" className="scroll-mt-28 border-t border-brand-border/70 pt-16">
-              <div className="flex items-center gap-3">
-                <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-brand-cyan/15 text-brand-cyan">
-                  <Clock className="h-[18px] w-[18px]" />
-                </span>
-                <div>
-                  <p className="font-mono text-[9px] font-bold uppercase tracking-[0.18em] text-brand-muted">
-                    Chapter 02
-                  </p>
-                  <h2 className="font-display text-2xl font-black tracking-tight sm:text-3xl">
-                    Meal Planning & Shopping Cycles
-                  </h2>
-                </div>
-              </div>
+          <Section id="groceries" title="Grocery lists">
+            <p>The grocery page groups ingredients from the saved plan and lets you track what you have purchased. Quantities, units, and food availability can be incomplete, so check the linked recipes and actual household portions before shopping. A changed meal or plan can make an older list stale.</p>
+            <p>Where offered, the PDF export reflects the recorded list at that point in time. It is a shopping aid, not a guarantee that every listed quantity covers a prepared recipe.</p>
+          </Section>
 
-              <p className="mt-7 max-w-3xl text-sm leading-7 text-brand-muted">
-                Filipino shopping rhythms revolve around weekend market trips or designated grocery days. Rather than
-                imposing an arbitrary Monday-to-Sunday cycle, KAINARA synchronizes your 7-day plan with your routine and
-                provides starter bridge plans so you never have to wait.
-              </p>
+          <Section id="professional-review" title="Nutritionist and admin review">
+            <p><strong className="text-brand-text">Meal verification</strong> checks a new dish as a base recipe without a patient profile. <strong className="text-brand-text">Profile review</strong> checks declared restrictions and any submitted documents before restricted planning. <strong className="text-brand-text">Case approval</strong> checks a particular meal and serving against a recorded health context. These decisions are separate and none should be read as a universal safety guarantee.</p>
+            <p>Nutritionists claim review work, record reasons, and may need an independent second decision for a higher risk case. A flag pauses the affected meal or approval; due reviews and disputes can also block reuse. Administrators verify nutritionist applications and may submit complete new recipes for meal verification. A changed recipe or user safety profile can invalidate an earlier decision.</p>
+          </Section>
 
-              <div className="mt-9 grid gap-4 md:grid-cols-2">
-                <div className="surface-panel rounded-[26px] p-6">
-                  <div className="flex items-center gap-2 text-brand-green font-bold text-xs uppercase tracking-wider">
-                    <CheckCircle2 className="h-4 w-4" />
-                    Starter Bridge Plans
-                  </div>
-                  <h3 className="mt-3 font-display text-lg font-bold text-brand-text">Immediate first steps</h3>
-                  <p className="mt-2 text-xs leading-relaxed text-brand-muted">
-                    If you sign up on a Tuesday and shop on Saturday, KAINARA generates a 1 to 3-day Starter Bridge Plan
-                    using everyday pantry items. Your full 7-day cycle begins the day after your shopping day.
-                  </p>
-                </div>
+          <Section id="data-sources" title="Nutrition and recipe data">
+            <p>Panlasang Pinoy supplies source recipes and attributed images or links where available. The DOST-FNRI Philippine Food Composition Tables provide food-level nutrient references. Where configured, other composition records may supplement a missing match. These sources do not establish that every whole recipe has laboratory-measured calories or that every ingredient has a confirmed edible weight.</p>
+            <p>Gemini can draft meal candidates and assist with some estimates. Generated values are checked against structured rules and may still need professional review. Estimates, source recipes, and nutritionist decisions are labeled differently in the app. See the <Link href="/sources" className="text-brand-green underline">source register</Link> and the <a href="https://i.fnri.dost.gov.ph/fct/library" className="text-brand-green underline" target="_blank" rel="noopener noreferrer">official PhilFCT resource</a>.</p>
+          </Section>
 
-                <div className="surface-panel rounded-[26px] p-6">
-                  <div className="flex items-center gap-2 text-brand-cyan font-bold text-xs uppercase tracking-wider">
-                    <UtensilsCrossed className="h-4 w-4" />
-                    FNRI Food Composition
-                  </div>
-                  <h3 className="mt-3 font-display text-lg font-bold text-brand-text">100% Culturally Familiar</h3>
-                  <p className="mt-2 text-xs leading-relaxed text-brand-muted">
-                    Dishes are matched against the FNRI Philippine Food Composition Table, guaranteeing realistic
-                    Filipino dishes (e.g. tinola, sinigang, ginisang monggo) with exact laboratory-verified macros.
-                  </p>
-                </div>
-              </div>
-            </section>
+          <Section id="clinical-guidelines" title="Clinical Guidelines">
+            <span id="clinical-safety" className="block scroll-mt-28" />
+            <p>Enter diagnosed conditions, allergies, medications or relevant risk context truthfully, and update them when they change. A vague entry may need correction. Some conditions require reviewed documents; a nutritionist may also request a document for a specific declared area. Do not upload another person’s record. Cover unrelated identifiers before submitting a supporting file.</p>
+            <p>For restricted profiles, the system waits for a current profile decision and a meal-specific case decision before making that meal actionable. A second independent reviewer can be required. Ingredient conflicts, missing evidence, flags, expired approvals, or changed profiles can block use. Nutritionists assess the recorded evidence; they do not diagnose a condition through this app.</p>
+            <p>If you have a severe reaction, symptoms, or an urgent medical concern, seek in-person or emergency care. Do not rely on KAINARA to identify or manage an emergency.</p>
+          </Section>
 
-            {/* Chapter 03: Daily Tracking & Cockpit */}
-            <section id="daily-tracking" className="scroll-mt-28 border-t border-brand-border/70 pt-16">
-              <div className="flex items-center gap-3">
-                <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-brand-green/10 text-brand-green">
-                  <Sparkles className="h-[18px] w-[18px]" />
-                </span>
-                <div>
-                  <p className="font-mono text-[9px] font-bold uppercase tracking-[0.18em] text-brand-muted">
-                    Chapter 03
-                  </p>
-                  <h2 className="font-display text-2xl font-black tracking-tight sm:text-3xl">
-                    Daily Tracking & Cockpit Dashboard
-                  </h2>
-                </div>
-              </div>
+          <Section id="medical-disclaimers" title="Medical Disclaimers">
+            <p>KAINARA provides educational nutrition guidance and planning support. It is not a medical device, clinician, emergency service, diagnosis, prescription, or treatment plan. An AI result, a published recipe, a nutritionist review, and a case approval each have different scopes. None guarantees that a meal will be free of allergens, cross-contact, preparation errors, or adverse effects.</p>
+            <p>Nutrition data can be estimated, incomplete, or based on a different serving than the food you actually eat. Check ingredients, labels, portions, and preparation methods, particularly for allergies and conditions. Discuss individual restrictions and medication-related diet changes with your own qualified healthcare professional.</p>
+          </Section>
 
-              <div className="mt-8 grid gap-8 text-sm leading-7 text-brand-muted md:grid-cols-2">
-                <p>
-                  Your home dashboard serves as your daily nutrition cockpit. The interactive Calorie Ring gives you an
-                  immediate visual indicator of consumed vs. remaining energy for the day, complemented by protein,
-                  carb, and fat macro progression bars.
-                </p>
-                <p>
-                  Each scheduled meal card lets you record your intake with a single click: mark as{' '}
-                  <strong>DONE</strong> to tally macros, or <strong>SKIPPED</strong> if you omitted the meal. Log water
-                  consumption in 250ml increments and monitor your 7-day adherence streak.
-                </p>
-              </div>
+          <Section id="terms-of-service" title="Terms of Service">
+            <p><strong className="text-brand-text">Use and eligibility.</strong> By creating an account and accepting the displayed version, you may use KAINARA for personal meal planning and tracking. Provide accurate account and health information, keep credentials private, and do not submit another person’s medical records or harmful or unlawful content. The app may restrict or suspend access when information is unsafe or an account is misused.</p>
+            <p><strong className="text-brand-text">Service limits.</strong> Plans, recipes, estimates, source links, and third-party services can be incomplete, unavailable, or changed. A slot may remain unfilled while evidence or AI capacity is unavailable. Review each suggestion before eating; you remain responsible for food selection, purchase, storage, and preparation. Professional review in the app is limited to the recorded recipe, serving, and health context.</p>
+            <p><strong className="text-brand-text">Your content and changes.</strong> You retain rights to information and images you provide, while allowing KAINARA to process them to operate the requested features and permitted review workflows. An outside recipe enters the reusable catalogue only through its separate consent and verification path. The operator may update the service and these terms; material consent changes should be presented for acceptance before continued use.</p>
+            <p><strong className="text-brand-text">Account controls.</strong> You can export account data and request self-service deletion from Security & privacy after reauthentication. Deletion may leave independently stored, non-patient recipe records and limited audit evidence where required for integrity. These terms do not remove rights granted by applicable Philippine law.</p>
+          </Section>
 
-              <div className="mt-10 rounded-[28px] border border-brand-border bg-brand-surface/60 p-7">
-                <h3 className="font-display text-base font-bold text-brand-text">Adherence Criteria</h3>
-                <div className="mt-4 grid gap-3 sm:grid-cols-3 text-xs">
-                  <div className="rounded-xl border border-brand-green/20 bg-brand-green/5 p-4">
-                    <p className="font-bold text-brand-green">90% – 110% Optimal</p>
-                    <p className="mt-1 text-brand-muted text-[11px]">Caloric intake within target tolerance window.</p>
-                  </div>
-                  <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 p-4">
-                    <p className="font-bold text-amber-500">70% – 89% Buffer</p>
-                    <p className="mt-1 text-brand-muted text-[11px]">
-                      Acceptable variance; slightly below target energy.
-                    </p>
-                  </div>
-                  <div className="rounded-xl border border-red-500/20 bg-red-500/5 p-4">
-                    <p className="font-bold text-red-500">&lt; 70% or &gt; 110%</p>
-                    <p className="mt-1 text-brand-muted text-[11px]">
-                      Substantial deviation from metabolic prescription.
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </section>
+          <Section id="privacy-policy" title="Privacy Policy">
+            <p><strong className="text-brand-text">Data collected.</strong> The app stores registration and login details; profile, goals, conditions, allergies, and preferences; optional clinical documents and review outcomes; meal plans, logs, grocery and progress records; consent events; and operational audit records. Health data is sensitive personal information under the Philippine <a href="https://officialgazette.gov.ph/2012/08/15/republic-act-no-10173/" target="_blank" rel="noopener noreferrer" className="text-brand-green underline">Data Privacy Act of 2012</a>.</p>
+            <p><strong className="text-brand-text">Why it is used.</strong> The app uses these records to authenticate you, calculate guidance, prepare and track meals, check declared restrictions, enable professional review, support account controls, and investigate service integrity. Where an AI feature is used, the relevant meal parameters or text may be sent to the configured AI provider. Recipe and composition sources may be accessed for links or data matching.</p>
+            <p><strong className="text-brand-text">Who can access it.</strong> Authorized nutritionists can inspect assigned or claimed review information; access to original clinical-document files is claim-controlled and logged. Administrators access operational and account-management information needed for their role. Hosting, email, storage, and AI providers may process data needed to deliver those services under their arrangements. The app does not publicly list your clinical profile in the recipe catalogue.</p>
+            <p><strong className="text-brand-text">Storage and choices.</strong> Document bytes are encrypted in storage by the application, and the account uses authenticated API access. No security measure eliminates all risk. You may update your profile, withdraw a document, export the account data represented in the export feature, or delete your account after reauthentication. A raw clinical file can be downloaded separately while you own it. Retention of backups and audit evidence depends on the deployed operator’s schedule; this capstone does not specify a universal deletion period. Consult the <a href="https://privacy.gov.ph/data-subject-rights/" target="_blank" rel="noopener noreferrer" className="text-brand-green underline">National Privacy Commission’s data-subject rights guide</a>.</p>
+          </Section>
 
-            {/* Chapter 04: Outside Meals & AI Breakdown */}
-            <section id="outside-meals" className="scroll-mt-28 border-t border-brand-border/70 pt-16">
-              <div className="flex items-center gap-3">
-                <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-amber-500/10 text-amber-500">
-                  <FileText className="h-[18px] w-[18px]" />
-                </span>
-                <div>
-                  <p className="font-mono text-[9px] font-bold uppercase tracking-[0.18em] text-brand-muted">
-                    Chapter 04
-                  </p>
-                  <h2 className="font-display text-2xl font-black tracking-tight sm:text-3xl">
-                    Logging Outside Meals & AI Breakdown
-                  </h2>
-                </div>
-              </div>
+          <Section id="data-protection-notice" title="Data Protection Notice">
+            <p>Onboarding asks for separate acknowledgments of the clinical disclaimer, health-data processing, and Terms and Privacy notices. Uploading a clinical record requires an additional explicit consent checkbox. Documents are optional to submit at onboarding, although an unreviewed required document can keep a restricted profile from planning. Withdrawing a document can invalidate meal decisions that depended on it.</p>
+            <p>Before public deployment, the operator should publish verified privacy contact details, a retention schedule, provider/subprocessor disclosures, and any required jurisdiction-specific notices. The current capstone interface should not be interpreted as proof of regulatory compliance or independent clinical validation. The <a href="https://privacy.gov.ph/implementing-rules-regulations-data-privacy-act-2012/" target="_blank" rel="noopener noreferrer" className="text-brand-green underline">National Privacy Commission rules</a> are the official reference for Philippine data-protection requirements.</p>
+          </Section>
 
-              <p className="mt-7 max-w-3xl text-sm leading-7 text-brand-muted">
-                Eating outside the planned menu is a normal part of life. Whether dining at a carinderia, restaurant, or
-                family gathering, you can log custom food directly into KAINARA without losing your progress.
-              </p>
+          <Section id="account-settings" title="Account controls">
+            <p>Use <Link href="/profile" className="text-brand-green underline">Profile</Link> to review and update health details, goals, nutrition guidance, clinical documents, and security settings. Changes to conditions or allergies may require a fresh profile review and new meal case decisions.</p>
+            <p>The <Link href="/export" className="text-brand-green underline">Export</Link> page provides supported saved records. Self-service account deletion is available after reauthentication. Check the Privacy Policy for the scope and limits of export and deletion.</p>
+          </Section>
 
-              <div className="mt-9 grid gap-4 md:grid-cols-2">
-                <div className="surface-panel rounded-[26px] p-6">
-                  <div className="flex items-center gap-2 text-brand-green font-bold text-sm">
-                    <BrainCircuit className="h-4 w-4" />
-                    Multimodal AI Estimation
-                  </div>
-                  <p className="mt-3 text-xs leading-relaxed text-brand-muted">
-                    Enter dish names like &ldquo;Pork Sinigang with 1 cup rice&rdquo;. Gemini AI breaks down the
-                    ingredients, estimates portion weights, and calculates exact calories, proteins, carbohydrates, and
-                    fats.
-                  </p>
-                </div>
+          <Section id="faqs" title="Common questions">
+            <dl className="space-y-5">
+              <div><dt className="font-bold text-brand-text">Why can I browse more recipes than appear in my plan?</dt><dd>Base verification means a real published or reviewed dish. Planning also needs usable serving evidence, a matching meal slot and energy range, and your current restrictions to permit it.</dd></div>
+              <div><dt className="font-bold text-brand-text">Why did a dish repeat?</dt><dd>The planner tries distinct eligible dishes first. It can rotate an eligible recipe when the suitable pool is too small to fill the whole cycle. A starter and the next weekly cycle are separate selections.</dd></div>
+              <div><dt className="font-bold text-brand-text">Why is a day missing a meal?</dt><dd>No candidate passed the current requirements for that slot, or generation is still pending. Check the plan status and available retry action. An empty slot is not an instruction to skip eating.</dd></div>
+              <div><dt className="font-bold text-brand-text">Why does my health profile need review before planning?</dt><dd>A nutritionist first confirms the recorded restrictions, possibly after requesting clearer information or a document. Each restricted meal then needs its own case decision.</dd></div>
+            </dl>
+          </Section>
 
-                <div className="surface-panel rounded-[26px] p-6">
-                  <div className="flex items-center gap-2 text-red-500 font-bold text-sm">
-                    <ShieldAlert className="h-4 w-4" />
-                    Automated Contraindication Alerts
-                  </div>
-                  <p className="mt-3 text-xs leading-relaxed text-brand-muted">
-                    If you manage Hypertension or Type 2 Diabetes, dishes containing excess sodium, refined sugars, or
-                    your recorded allergens trigger an instant clinical contraindication alert before logging.
-                  </p>
-                </div>
-              </div>
-            </section>
-
-            {/* Chapter 05: Meal Swaps & Verified Library */}
-            <section id="meal-swaps" className="scroll-mt-28 border-t border-brand-border/70 pt-16">
-              <div className="flex items-center gap-3">
-                <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-violet-500/10 text-violet-400">
-                  <Repeat2 className="h-[18px] w-[18px]" />
-                </span>
-                <div>
-                  <p className="font-mono text-[9px] font-bold uppercase tracking-[0.18em] text-brand-muted">
-                    Chapter 05
-                  </p>
-                  <h2 className="font-display text-2xl font-black tracking-tight sm:text-3xl">
-                    Meal Swaps & Verified Library
-                  </h2>
-                </div>
-              </div>
-
-              <div className="mt-8 grid gap-8 text-sm leading-7 text-brand-muted md:grid-cols-2">
-                <p>
-                  Not in the mood for a scheduled meal? KAINARA allows you to swap individual meal slots with
-                  dietitian-curated recipes from our verified Meal Library that align with your dietary preference
-                  (Omnivore, Vegetarian, Pescatarian, Low Carb).
-                </p>
-                <p>
-                  Every user can swap meals from the compatible library. KAINARA still shows an energy divergence alert
-                  when a replacement differs substantially from the planned slot.
-                </p>
-              </div>
-
-              <div className="mt-10 grid gap-6 sm:grid-cols-2">
-                <div className="surface-panel rounded-[26px] p-6">
-                  <span className="font-mono text-xs font-bold text-brand-green">ACCESS</span>
-                  <h3 className="mt-2 font-display text-lg font-bold text-brand-text">Unlimited compatible swaps</h3>
-                  <p className="mt-2 text-xs leading-relaxed text-brand-muted">
-                    Replace a planned slot whenever an eligible meal matches your current dietary and safety profile.
-                  </p>
-                </div>
-
-                <div className="surface-panel rounded-[26px] p-6">
-                  <span className="font-mono text-xs font-bold text-amber-400">SAFETY ALERT</span>
-                  <h3 className="mt-2 font-display text-lg font-bold text-brand-text">±15% Calorie Delta Warning</h3>
-                  <p className="mt-2 text-xs leading-relaxed text-brand-muted">
-                    If a replacement dish differs by more than 15% from the slot&apos;s allocated energy, KAINARA alerts
-                    you to help you balance your total intake.
-                  </p>
-                </div>
-              </div>
-            </section>
-
-            {/* Chapter 06: Groceries & PDF Export */}
-            <section id="groceries" className="scroll-mt-28 border-t border-brand-border/70 pt-16">
-              <div className="flex items-center gap-3">
-                <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-brand-green/10 text-brand-green">
-                  <ShoppingCart className="h-[18px] w-[18px]" />
-                </span>
-                <div>
-                  <p className="font-mono text-[9px] font-bold uppercase tracking-[0.18em] text-brand-muted">
-                    Chapter 06
-                  </p>
-                  <h2 className="font-display text-2xl font-black tracking-tight sm:text-3xl">
-                    Groceries & PDF Export
-                  </h2>
-                </div>
-              </div>
-
-              <p className="mt-7 max-w-3xl text-sm leading-7 text-brand-muted">
-                Every approved 7-day meal plan automatically aggregates ingredients into a categorized grocery
-                checklist. Items are grouped by department: Fresh Produce, Meats & Seafood, Dairy, and Pantry Staples.
-              </p>
-
-              <div className="mt-9 grid gap-4 md:grid-cols-2">
-                <div className="surface-panel rounded-[26px] p-6">
-                  <div className="flex items-center gap-2 text-brand-text font-bold text-sm">
-                    <CheckCircle2 className="h-4 w-4 text-brand-green" />
-                    Interactive In-App Checklists
-                  </div>
-                  <p className="mt-3 text-xs leading-relaxed text-brand-muted">
-                    Check off ingredients on your phone while shopping at the supermarket or palengke. Checked items are
-                    saved in your session.
-                  </p>
-                </div>
-
-                <div className="surface-panel rounded-[26px] p-6">
-                  <div className="flex items-center gap-2 text-brand-text font-bold text-sm">
-                    <FileDown className="h-4 w-4 text-brand-cyan" />
-                    Printable PDF Generation
-                  </div>
-                  <p className="mt-3 text-xs leading-relaxed text-brand-muted">
-                    Export high-resolution PDF grocery lists formatted for easy printing or sharing on messaging apps
-                    with family members.
-                  </p>
-                </div>
-              </div>
-            </section>
-
-            {/* Chapter 07: Clinical Oversight & Safety */}
-            <section id="clinical-safety" className="scroll-mt-28 border-t border-brand-border/70 pt-16">
-              <div className="flex items-center gap-3">
-                <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-brand-cyan/15 text-brand-cyan">
-                  <Stethoscope className="h-[18px] w-[18px]" />
-                </span>
-                <div>
-                  <p className="font-mono text-[9px] font-bold uppercase tracking-[0.18em] text-brand-muted">
-                    Chapter 07
-                  </p>
-                  <h2 className="font-display text-2xl font-black tracking-tight sm:text-3xl">
-                    Clinical Oversight & Safety Protocols
-                  </h2>
-                </div>
-              </div>
-
-              <div className="mt-8 grid gap-8 text-sm leading-7 text-brand-muted md:grid-cols-2">
-                <p>
-                  KAINARA is designed with clinical oversight at its foundation. PRC-licensed Filipino Registered
-                  Nutritionist-Dietitians (RNDs) review and audit meal plans to ensure nutritional integrity and safety.
-                </p>
-                <p>
-                  Nutritionists utilize a global review queue with 30-minute task claim locks. RNDs verify ingredient
-                  amounts, inspect potential medical contraindications, and sign off with their official PRC
-                  credentials.
-                </p>
-              </div>
-
-              <div className="mt-10 rounded-[28px] border border-brand-border bg-brand-surface/60 p-7">
-                <h3 className="font-display text-base font-bold text-brand-text">Status Badges Legend</h3>
-                <div className="mt-4 space-y-3 text-xs">
-                  <div className="flex items-start gap-3">
-                    <span className="shrink-0 rounded-full bg-brand-green/15 px-2.5 py-1 font-mono text-[10px] font-bold text-brand-green">
-                      VERIFIED RND
-                    </span>
-                    <p className="text-brand-muted leading-relaxed">
-                      Audited, checked, and approved by a licensed Filipino Registered Nutritionist-Dietitian.
-                    </p>
-                  </div>
-                  <div className="flex items-start gap-3">
-                    <span className="shrink-0 rounded-full bg-amber-500/15 px-2.5 py-1 font-mono text-[10px] font-bold text-amber-400">
-                      PENDING REVIEW
-                    </span>
-                    <p className="text-brand-muted leading-relaxed">
-                      AI-generated recipe formulated against FNRI tables, queued in the professional review queue.
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </section>
-
-            {/* Chapter 08: Account, Goals & Privacy */}
-            <section id="account-settings" className="scroll-mt-28 border-t border-brand-border/70 pt-16">
-              <div className="flex items-center gap-3">
-                <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-brand-accent text-[#07100d]">
-                  <User className="h-[18px] w-[18px]" />
-                </span>
-                <div>
-                  <p className="font-mono text-[9px] font-bold uppercase tracking-[0.18em] text-brand-muted">
-                    Chapter 08
-                  </p>
-                  <h2 className="font-display text-2xl font-black tracking-tight sm:text-3xl">
-                    Account, Health Goals & Data Privacy
-                  </h2>
-                </div>
-              </div>
-
-              <div className="mt-8 grid gap-8 text-sm leading-7 text-brand-muted md:grid-cols-2">
-                <p>
-                  Health conditions and allergies change over time. In KAINARA, you do not need to wait for a weekly
-                  check-in to update your health profile. Visit <strong>Profile &gt; Health &amp; Goals</strong> to add
-                  newly diagnosed conditions or food allergies anytime.
-                </p>
-                <p>
-                  Your personal health data is processed in compliance with the Philippine Data Privacy Act of 2012 (RA
-                  10173). We never sell or distribute your biometric records. You can update your credentials or
-                  permanently delete your account from the Security settings page.
-                </p>
-              </div>
-
-              <div className="mt-10 grid gap-4 sm:grid-cols-3">
-                <div className="surface-panel rounded-[24px] p-5">
-                  <div className="flex items-center gap-2">
-                    <HeartPulse className="h-4 w-4 text-brand-green" />
-                    <h3 className="text-xs font-bold text-brand-text">Dynamic Updates</h3>
-                  </div>
-                  <p className="mt-2 text-xs leading-relaxed text-brand-muted">
-                    Modify allergies or medical restrictions mid-plan to trigger real-time plan safety rechecks.
-                  </p>
-                </div>
-                <div className="surface-panel rounded-[24px] p-5">
-                  <div className="flex items-center gap-2">
-                    <Sparkles className="h-4 w-4 text-brand-cyan" />
-                    <h3 className="text-xs font-bold text-brand-text">DiceBear Avatars</h3>
-                  </div>
-                  <p className="mt-2 text-xs leading-relaxed text-brand-muted">
-                    Personalize your display identity with custom pixel-art avatars across all portal views.
-                  </p>
-                </div>
-                <div className="surface-panel rounded-[24px] p-5">
-                  <div className="flex items-center gap-2">
-                    <Lock className="h-4 w-4 text-brand-accent" />
-                    <h3 className="text-xs font-bold text-brand-text">Account Control</h3>
-                  </div>
-                  <p className="mt-2 text-xs leading-relaxed text-brand-muted">
-                    Sign out securely from the Profile page, change passwords, or request complete account erasure.
-                  </p>
-                </div>
-              </div>
-            </section>
-
-            {/* Chapter 09: Troubleshooting & FAQs */}
-            <section id="faqs" className="scroll-mt-28 border-t border-brand-border/70 pt-16">
-              <div className="flex items-center gap-3">
-                <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-brand-cyan/15 text-brand-cyan">
-                  <HelpCircle className="h-[18px] w-[18px]" />
-                </span>
-                <div>
-                  <p className="font-mono text-[9px] font-bold uppercase tracking-[0.18em] text-brand-muted">
-                    Chapter 09
-                  </p>
-                  <h2 className="font-display text-2xl font-black tracking-tight sm:text-3xl">
-                    Troubleshooting & Frequently Asked Questions
-                  </h2>
-                </div>
-              </div>
-
-              <div className="mt-8 space-y-3">
-                {faqs.map(({ q, a }, index) => (
-                  <div
-                    key={index}
-                    className="rounded-2xl border border-brand-border bg-brand-surface/60 p-5 transition-colors hover:border-brand-border/90"
-                  >
-                    <h3 className="font-display text-sm font-bold text-brand-text sm:text-base">{q}</h3>
-                    <p className="mt-2 text-xs sm:text-sm leading-relaxed text-brand-muted">{a}</p>
-                  </div>
-                ))}
-              </div>
-
-              {/* Support Contact Box */}
-              <div className="mt-12 rounded-[28px] border border-brand-border/80 bg-brand-bgAlt/60 p-7 sm:p-9">
-                <h3 className="font-display text-lg font-bold text-brand-text">Need direct assistance?</h3>
-                <p className="mt-2 max-w-xl text-xs sm:text-sm leading-relaxed text-brand-muted">
-                  Our technical support and clinical advisory teams are available to assist with account questions,
-                  dietary adjustments, or system troubleshooting.
-                </p>
-                <div className="mt-6 flex flex-wrap items-center gap-4">
-                  <a
-                    href="mailto:support@kainara.ph"
-                    className="inline-flex min-h-11 items-center gap-2 rounded-2xl bg-brand-green px-5 text-xs font-bold text-[#07100d] transition hover:-translate-y-0.5"
-                  >
-                    <Mail className="h-4 w-4" />
-                    Contact support@kainara.ph
-                  </a>
-                  <Link
-                    href="/dashboard"
-                    className="inline-flex min-h-11 items-center gap-2 rounded-2xl border border-brand-border bg-brand-surface px-5 text-xs font-bold text-brand-text transition hover:bg-brand-bgAlt"
-                  >
-                    Go to Dashboard
-                    <ArrowRight className="h-4 w-4" />
-                  </Link>
-                </div>
-              </div>
-            </section>
-
-            {/* Bottom CTA Banner */}
-            <section className="overflow-hidden rounded-[30px] bg-brand-accent p-7 text-[#07100d] sm:p-10">
-              <div className="flex flex-col gap-7 sm:flex-row sm:items-end sm:justify-between">
-                <div>
-                  <p className="font-mono text-[9px] font-bold uppercase tracking-[0.2em] opacity-55">
-                    Start eating with confidence
-                  </p>
-                  <h2 className="mt-3 max-w-xl font-display text-3xl font-black tracking-[-0.04em]">
-                    Experience personalized Filipino nutrition today.
-                  </h2>
-                </div>
-                <Link
-                  href="/dashboard"
-                  className="inline-flex min-h-12 shrink-0 items-center justify-center gap-3 rounded-2xl bg-[#07100d] px-5 text-sm font-extrabold text-white transition hover:-translate-y-0.5"
-                >
-                  Go to Dashboard
-                  <ArrowRight className="h-4 w-4" />
-                </Link>
-              </div>
-            </section>
-          </article>
-        </div>
-      </main>
-
-      {/* Footer */}
-      <footer className="border-t border-brand-border/70">
-        <div className="mx-auto flex max-w-[1320px] flex-col gap-3 px-5 py-8 text-xs text-brand-muted sm:px-8 md:flex-row md:items-center md:justify-between lg:px-12">
-          <p className="font-display font-bold text-brand-text">KAINARA documentation & help center</p>
-          <p>Validated against the FNRI Philippine Food Composition Table.</p>
-        </div>
-      </footer>
-    </div>
-  );
+          <Section id="help" title="Help">
+            <p>If a plan day is missing a meal, check its generation status. A missing slot is not an instruction to skip eating.</p>
+            <p>For medical questions, contact your own healthcare professional. Operator contact details must be verified before the service is offered publicly.</p>
+          </Section>
+        </article>
+      </div>
+    </main>
+  </div>;
 }

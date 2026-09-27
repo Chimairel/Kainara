@@ -6,6 +6,7 @@ const state = vi.hoisted(() => ({
   path: '/profile',
   replace: vi.fn(),
   profileLoadError: false,
+  isLoading: false,
   refreshSession: vi.fn(),
   logout: vi.fn(),
   user: { role: 'USER', emailVerified: true, onboardingDone: true, tosAccepted: true, reportAcknowledged: false },
@@ -14,7 +15,7 @@ vi.mock('next/navigation', () => ({ usePathname: () => state.path, useRouter: ()
 vi.mock('@/hooks/useAuth', () => ({
   useAuth: () => ({
     user: state.user,
-    isLoading: false,
+    isLoading: state.isLoading,
     profileLoadError: state.profileLoadError,
     refreshSession: state.refreshSession,
     logout: state.logout,
@@ -25,6 +26,7 @@ describe('report access within the profile', () => {
   beforeEach(() => {
     state.replace.mockClear();
     state.profileLoadError = false;
+    state.isLoading = false;
     state.user = {
       role: 'USER',
       emailVerified: true,
@@ -59,6 +61,20 @@ describe('report access within the profile', () => {
       </RouteGuard>
     );
     expect(state.replace).toHaveBeenCalledWith('/onboarding/stats');
+  });
+  it.each(['/docs', '/sources'])('keeps the public %s page open without a session', (path) => {
+    state.path = path;
+    state.user = null as unknown as typeof state.user;
+    render(<RouteGuard><p>Public information</p></RouteGuard>);
+    expect(screen.getByText('Public information')).toBeInTheDocument();
+    expect(state.replace).not.toHaveBeenCalled();
+  });
+  it('renders legal information while an old session is still being checked', () => {
+    state.path = '/docs';
+    state.isLoading = true;
+    state.user = null as unknown as typeof state.user;
+    render(<RouteGuard><p>Public information</p></RouteGuard>);
+    expect(screen.getByText('Public information')).toBeInTheDocument();
   });
   it('still rejects a different role', () => {
     state.path = '/profile/nutrition-report';

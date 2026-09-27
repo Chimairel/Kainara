@@ -288,6 +288,11 @@ export async function generate7DayPlan(
     reviewFreeBaseOnly,
     localityFoodGroupScores: localizedFoodGroupScores,
     localityEvidenceText: localizedConsumption.text,
+    recentCandidateIds: (await prisma.mealPlan.findMany({
+      where: { userId, sourceRawRecipeCandidateId: { not: null }, status: MealPlanStatus.APPROVED },
+      orderBy: { scheduledDate: 'desc' }, take: 63,
+      select: { sourceRawRecipeCandidateId: true },
+    })).flatMap((meal) => meal.sourceRawRecipeCandidateId ? [meal.sourceRawRecipeCandidateId] : []),
   });
   const rawCorpusMeals: GeneratedMeal[] = rawCorpusResult.meals.map((meal) => ({
     ...meal,

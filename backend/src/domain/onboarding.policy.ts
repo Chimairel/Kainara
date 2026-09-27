@@ -1,5 +1,5 @@
-export const CURRENT_TERMS_VERSION = '2026-08-27';
-export const CURRENT_PRIVACY_VERSION = '2026-08-27';
+export const CURRENT_TERMS_VERSION = '2026-09-27';
+export const CURRENT_PRIVACY_VERSION = '2026-09-27';
 
 export const ONBOARDING_PATHS = [
   '/onboarding/stats',

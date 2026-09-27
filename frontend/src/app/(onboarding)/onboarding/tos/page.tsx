@@ -290,12 +290,21 @@ export default function OnboardingTosPage() {
                   I understand that AI-generated meal plans are NOT medical advice. If managing chronic conditions, I
                   agree to follow our{' '}
                   <a
-                    href="/docs"
+                    href="/docs#clinical-guidelines"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="font-bold text-brand-green underline decoration-brand-green/40 underline-offset-2 hover:text-brand-greenHover hover:decoration-brand-green"
                   >
-                    Clinical Guidelines & Disclaimers
+                    Clinical Guidelines
+                  </a>
+                  {' '}and{' '}
+                  <a
+                    href="/docs#medical-disclaimers"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="font-bold text-brand-green underline decoration-brand-green/40 underline-offset-2 hover:text-brand-greenHover hover:decoration-brand-green"
+                  >
+                    Medical Disclaimers
                   </a>
                   .
                 </span>
@@ -312,7 +321,7 @@ export default function OnboardingTosPage() {
                   I explicitly consent to KAINARA processing my health data and transmitting required meal parameters to
                   Google Gemini under the Philippine Data Privacy Act of 2012 (R.A. 10173). Learn more in our{' '}
                   <a
-                    href="/docs"
+                    href="/docs#data-protection-notice"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="font-bold text-brand-green underline decoration-brand-green/40 underline-offset-2 hover:text-brand-greenHover hover:decoration-brand-green"
@@ -338,7 +347,7 @@ export default function OnboardingTosPage() {
                 <span className="text-xs text-brand-text leading-relaxed">
                   I agree to the{' '}
                   <a
-                    href="/docs"
+                    href="/docs#terms-of-service"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="font-bold text-brand-green underline decoration-brand-green/40 underline-offset-2 hover:text-brand-greenHover hover:decoration-brand-green"
@@ -347,7 +356,7 @@ export default function OnboardingTosPage() {
                   </a>{' '}
                   and{' '}
                   <a
-                    href="/docs"
+                    href="/docs#privacy-policy"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="font-bold text-brand-green underline decoration-brand-green/40 underline-offset-2 hover:text-brand-greenHover hover:decoration-brand-green"

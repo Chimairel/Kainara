@@ -35,8 +35,11 @@ export const RouteGuard: React.FC<RouteGuardProps> = ({ children }) => {
     '/reset-password',
     '/nutritionist-apply',
     '/nutritionist-invitation',
+    '/docs',
+    '/sources',
   ];
   const isPublicRoute = publicRoutes.some((route) => pathname.startsWith(route));
+  const isPublicInformationRoute = pathname === '/docs' || pathname === '/sources';
   const isVerifyPage = pathname.startsWith('/verify-email');
   const isOnboardingPage = pathname.startsWith('/onboarding');
   const isAccountPrivacyRoute = pathname.startsWith('/profile/security');
@@ -87,11 +90,11 @@ export const RouteGuard: React.FC<RouteGuardProps> = ({ children }) => {
   }, [redirectTarget, router]);
 
   // Render a full-screen loading spinner while the status is being resolved
-  if (isLoading || redirectTarget) {
+  if ((isLoading && !isPublicInformationRoute) || redirectTarget) {
     return <PortalLoadingState fullScreen />;
   }
 
-  if (profileLoadError && user) {
+  if (profileLoadError && user && !isPublicRoute) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-brand-bg p-6 text-brand-text">
         <div role="alert" className="w-full max-w-md rounded-2xl border border-brand-border bg-brand-surface p-6">

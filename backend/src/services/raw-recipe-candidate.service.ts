@@ -61,16 +61,18 @@ export function selectRawRecipeCandidates(input: {
   allergens: readonly string[];
   otherAllergies?: string | null;
   reviewFreeBaseOnly?: boolean;
+  recentCandidateIds?: readonly string[];
 }): { meals: SourcedRawRecipeMeal[]; remainingSlots: RawCandidateSlot[] } {
   const meals: SourcedRawRecipeMeal[] = [];
   const usedIds = new Set<string>();
   const usedSignatures = new Set<string>();
   const remainingSlots: RawCandidateSlot[] = [];
   const customAllergies = splitCustomRestrictions(input.otherAllergies);
+  const recentIds = new Set(input.recentCandidateIds ?? []);
 
   for (const slot of input.slots) {
     const candidates = input.candidatesByType.get(slot.mealType) ?? [];
-    const index = candidates.findIndex((candidate) => {
+    const eligible = (candidate: RankedCandidate) => {
       if (usedIds.has(candidate.id) || usedSignatures.has(candidate.contentSignature)) return false;
       if (!candidate.applicableMealTypes.includes(slot.mealType)) return false;
       if (!candidate.dietaryTags.includes(input.dietaryPreference)) return false;
@@ -83,7 +85,9 @@ export function selectRawRecipeCandidates(input: {
         allergens: input.allergens,
         customAllergies,
       }).accepted;
-    });
+    };
+    const freshIndex = candidates.findIndex((candidate) => !recentIds.has(candidate.id) && eligible(candidate));
+    const index = freshIndex >= 0 ? freshIndex : candidates.findIndex(eligible);
     if (index < 0) {
       remainingSlots.push(slot);
       continue;
@@ -113,6 +117,58 @@ export function selectRawRecipeCandidates(input: {
   return { meals, remainingSlots };
 }
 
+/** Fill only after all corpus pages have been checked for distinct recipes. */
+export function fillRepeatedRawRecipeSlots(input: {
+  slots: readonly RawCandidateSlot[];
+  candidatesByType: ReadonlyMap<MealType, readonly RankedCandidate[]>;
+  selected: readonly SourcedRawRecipeMeal[];
+  dietaryPreference: DietaryPreference;
+  allergens: readonly string[];
+  otherAllergies?: string | null;
+  reviewFreeBaseOnly?: boolean;
+  recentCandidateIds?: readonly string[];
+}): { meals: SourcedRawRecipeMeal[]; remainingSlots: RawCandidateSlot[] } {
+  const meals: SourcedRawRecipeMeal[] = [];
+  const remainingSlots: RawCandidateSlot[] = [];
+  const counts = new Map<string, number>();
+  for (const meal of input.selected) counts.set(meal.rawCandidateId, (counts.get(meal.rawCandidateId) ?? 0) + 1);
+  const recent = new Set(input.recentCandidateIds ?? []);
+  const customAllergies = splitCustomRestrictions(input.otherAllergies);
+  const lastByType = new Map<MealType, string>();
+  for (const meal of input.selected) lastByType.set(meal.mealType, meal.rawCandidateId);
+  for (const slot of input.slots) {
+    const pool = input.candidatesByType.get(slot.mealType) ?? [];
+    const eligible = pool.map((candidate, index) => ({ candidate, index })).filter(({ candidate }) =>
+      candidate.applicableMealTypes.includes(slot.mealType) &&
+      candidate.dietaryTags.includes(input.dietaryPreference) &&
+      Boolean(candidate.nutrition && candidate.ingredients.length) &&
+      (!input.reviewFreeBaseOnly || candidate.reviewFreeBaseEligible) &&
+      validateGeneratedMealCandidate({ ingredients: candidate.ingredients,
+        dietaryPreference: input.dietaryPreference, allergens: input.allergens,
+        customAllergies }).accepted
+    );
+    eligible.sort((a, b) =>
+      (counts.get(a.candidate.id) ?? 0) - (counts.get(b.candidate.id) ?? 0) ||
+      Number(lastByType.get(slot.mealType) === a.candidate.id) - Number(lastByType.get(slot.mealType) === b.candidate.id) ||
+      Number(recent.has(a.candidate.id)) - Number(recent.has(b.candidate.id)) ||
+      a.index - b.index
+    );
+    const chosen = eligible[0];
+    if (!chosen) { remainingSlots.push(slot); continue; }
+    const { candidate, index } = chosen;
+    counts.set(candidate.id, (counts.get(candidate.id) ?? 0) + 1);
+    lastByType.set(slot.mealType, candidate.id);
+    meals.push({ dayNumber: slot.dayNumber, mealType: slot.mealType, rawCandidateId: candidate.id,
+      mealName: candidate.displayName, description: candidate.description ?? 'Existing recipe from the broader recipe corpus.',
+      calories: candidate.nutrition!.calories, proteinG: candidate.nutrition!.proteinG,
+      carbsG: candidate.nutrition!.carbsG, fatG: candidate.nutrition!.fatG,
+      ingredients: candidate.ingredients.map((ingredient) => ({ ...ingredient, foodItemId: ingredient.foodItemId ?? null })),
+      candidateRank: index + 1, rankingScore: candidate._ranking.score,
+      rankingReasonCodes: candidate._ranking.reasonCodes });
+  }
+  return { meals, remainingSlots };
+}
+
 export async function sourceRawRecipeCandidates(input: {
   slots: readonly RawCandidateSlot[];
   dailyCalorieTarget: number;
@@ -125,6 +181,7 @@ export async function sourceRawRecipeCandidates(input: {
   excludeCandidateIds?: readonly string[];
   localityFoodGroupScores?: ReadonlyMap<EnnsFoodGroupCode, number>;
   localityEvidenceText?: string;
+  recentCandidateIds?: readonly string[];
 }): Promise<{ meals: SourcedRawRecipeMeal[]; remainingSlots: RawCandidateSlot[] }> {
   if (input.slots.length === 0) return { meals: [], remainingSlots: [] };
   const assuranceTier = getMaximumAssuranceTier(input.conditions);
@@ -205,6 +262,7 @@ export async function sourceRawRecipeCandidates(input: {
       allergens: input.allergens,
       otherAllergies: input.otherAllergies,
       reviewFreeBaseOnly: input.reviewFreeBaseOnly,
+      recentCandidateIds: input.recentCandidateIds,
     });
   let selected = select();
   // Read further bounded pages only when the first shortlist cannot fill a slot.
@@ -225,5 +283,10 @@ export async function sourceRawRecipeCandidates(input: {
     await Promise.all(requests);
     selected = select();
   }
-  return selected;
+  if (selected.remainingSlots.length === 0) return selected;
+  const repeated = fillRepeatedRawRecipeSlots({ ...input, slots: selected.remainingSlots,
+    candidatesByType: candidatePools, selected: selected.meals });
+  return { meals: [...selected.meals, ...repeated.meals].sort((a, b) =>
+    a.dayNumber - b.dayNumber || Object.values(MealType).indexOf(a.mealType) - Object.values(MealType).indexOf(b.mealType)),
+    remainingSlots: repeated.remainingSlots };
 }

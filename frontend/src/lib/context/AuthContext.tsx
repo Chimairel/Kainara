@@ -87,7 +87,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           role: role as Role,
           emailVerified: emailVerified ?? false,
           onboardingDone,
-          tosAccepted,
+          tosAccepted: Boolean(tosAccepted && onboardingStatus?.acceptedCurrentConsent),
           image,
           googleImage,
           authMethods: authMethods ?? { password: true, google: false },

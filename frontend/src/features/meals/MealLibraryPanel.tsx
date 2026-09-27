@@ -7,6 +7,7 @@ import Link from 'next/link';
 import { AlertTriangle, Heart, Search, Salad } from 'lucide-react';
 import type { useMealsWorkspace } from './useMealsWorkspace';
 import { groupApprovedPlanRecipes } from './approvedPlanRecipes';
+import VerifiedRecipeCatalog from './VerifiedRecipeCatalog';
 
 export default function MealLibraryPanel({ workspace }: { workspace: ReturnType<typeof useMealsWorkspace> }) {
   const {
@@ -101,16 +102,16 @@ export default function MealLibraryPanel({ workspace }: { workspace: ReturnType<
           </select>
         </label>
         {libraryTotalCount !== null && (
-          <span className="ml-auto text-brand-muted">{libraryTotalCount} reviewed recipes · {approvedInPlan.length} approved {approvedInPlan.length === 1 ? 'recipe' : 'recipes'} in plan</span>
+          <span className="ml-auto text-brand-muted">{libraryTotalCount} reusable approvals · {approvedInPlan.length} approved {approvedInPlan.length === 1 ? 'recipe' : 'recipes'} in plan</span>
         )}
       </div>
 
       {approvedInPlan.length > 0 && (
         <section className="space-y-3" aria-label="Meals approved for your plan">
           <div>
-            <h2 className="text-sm font-bold text-brand-text">Approved for your current or upcoming plan</h2>
+            <h2 className="text-sm font-bold text-brand-text">Meals in your current or upcoming plan</h2>
             <p className="text-xs text-brand-muted">
-              These meals were reviewed for your current profile. They are shown here for your plan; reusable library certification is separate.
+              These servings were scheduled for your plan. This does not mean each had a separate nutritionist case approval.
             </p>
           </div>
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -118,7 +119,7 @@ export default function MealLibraryPanel({ workspace }: { workspace: ReturnType<
               <article key={meal.id} className="flex flex-col gap-3 rounded-[22px] border border-brand-border bg-brand-surface p-5 shadow-sm">
                 <MealImage image={meal.image} mealName={meal.mealName} mealType={meal.mealType} className="h-36 w-full" showAttributionLinks />
                 <div className="flex flex-wrap gap-2 text-[11px] font-semibold">
-                  <span className="rounded-full border border-brand-green/40 px-2 py-1 text-brand-green">Approved for you</span>
+                  <span className="rounded-full border border-brand-green/40 px-2 py-1 text-brand-green">Scheduled for you</span>
                   <span className="rounded-full border border-brand-green/40 px-2 py-1 text-brand-green">In your plan{occurrences.length > 1 ? ` · ${occurrences.length} times` : ''}</span>
                 </div>
                 <div className="flex justify-between gap-2 text-xs font-bold text-brand-green">
@@ -144,7 +145,9 @@ export default function MealLibraryPanel({ workspace }: { workspace: ReturnType<
         </section>
       )}
 
-      {approvedInPlan.length > 0 && <h2 className="text-sm font-bold text-brand-text">Reviewed recipes for your profile</h2>}
+      <VerifiedRecipeCatalog search={librarySearch} mealType={libraryMealType} />
+
+      {approvedInPlan.length > 0 && <h2 className="text-sm font-bold text-brand-text">Reusable recipes for your profile</h2>}
 
       {isLibraryLoading ? (
         <div className="flex flex-col items-center py-12 gap-2">
@@ -159,9 +162,9 @@ export default function MealLibraryPanel({ workspace }: { workspace: ReturnType<
       ) : libraryMeals.length === 0 && approvedInPlan.length === 0 ? (
         <div className="p-12 text-center border border-brand-border/40 bg-brand-surface/30 rounded-xl">
           <Salad className="w-8 h-8 text-brand-green mx-auto mb-2" />
-          <p className="text-sm text-brand-text font-semibold">No Recipes Found</p>
+          <p className="text-sm text-brand-text font-semibold">No reusable approvals for this selection</p>
           <p className="text-xs text-brand-muted mt-1 max-w-sm mx-auto">
-            No verified recipes are available for this selection right now. The catalogue may still be preparing, or none may meet your current restrictions.
+            The published recipe catalogue above is separate from meals with a complete reusable serving or case approval.
           </p>
         </div>
       ) : libraryMeals.length > 0 ? (

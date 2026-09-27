@@ -45,7 +45,7 @@ describe('Meal Library', () => {
     render(<MealLibraryPanel workspace={workspace} />);
 
     expect(screen.getByText('Corned Beef Sinigang')).toBeInTheDocument();
-    expect(screen.getByText('Approved for you')).toBeInTheDocument();
+    expect(screen.getByText('Scheduled for you')).toBeInTheDocument();
     expect(screen.getByText('In your plan')).toBeInTheDocument();
     expect(screen.queryByText('No Recipes Found')).not.toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'View planned meal' })).toHaveAttribute('href', '/dashboard/approved-plan-meal');
@@ -74,7 +74,7 @@ describe('Meal Library', () => {
     expect(screen.getByText('In your plan · 2 times')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'This week · Sep 25' })).toHaveAttribute('href', '/dashboard/current-slot');
     expect(screen.getByRole('link', { name: 'Next week · Oct 2' })).toHaveAttribute('href', '/dashboard/upcoming-slot');
-    expect(screen.getByText('0 reviewed recipes · 1 approved recipe in plan')).toBeInTheDocument();
+    expect(screen.getByText('0 reusable approvals · 1 approved recipe in plan')).toBeInTheDocument();
   });
 
   it('labels profile-matched approvals without presenting them as broad certification', () => {

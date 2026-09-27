@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { DietaryPreference, MealType } from '@prisma/client';
-import { selectRawRecipeCandidates, sourceRawRecipeCandidates } from '../src/services/raw-recipe-candidate.service';
+import { fillRepeatedRawRecipeSlots, selectRawRecipeCandidates, sourceRawRecipeCandidates } from '../src/services/raw-recipe-candidate.service';
 import type { RecipeCandidateProjection } from '../src/services/recipe-candidate-provider';
 import { databaseRecipeCandidateProvider } from '../src/services/panlasang-recipe-candidate.provider';
 
@@ -98,6 +98,29 @@ test('review-free sourcing skips incomplete recipes without sending them to nutr
     reviewFreeBaseOnly: true,
   });
   assert.deepEqual(selected.meals.map((meal) => meal.rawCandidateId), ['b']);
+});
+
+test('a new cycle selects a different eligible source before a recently used recipe', () => {
+  const options = [candidate('a', 'First', 'chicken'), candidate('b', 'Second', 'pork')];
+  const selected = selectRawRecipeCandidates({
+    slots: [{ dayNumber: 1, mealType: MealType.LUNCH, scheduledDate: new Date() }],
+    candidatesByType: new Map([[MealType.LUNCH, options]]),
+    dietaryPreference: DietaryPreference.OMNIVORE, allergens: [], recentCandidateIds: ['a'],
+  });
+  assert.equal(selected.meals[0].rawCandidateId, 'b');
+});
+
+test('limited eligible recipes rotate only after distinct candidates are exhausted', () => {
+  const options = [candidate('a', 'First', 'chicken'), candidate('b', 'Second', 'pork')];
+  const slots = [1, 2, 3, 4].map((dayNumber) => ({ dayNumber, mealType: MealType.LUNCH,
+    scheduledDate: new Date(`2031-01-0${dayNumber}T00:00:00Z`) }));
+  const unique = selectRawRecipeCandidates({ slots, candidatesByType: new Map([[MealType.LUNCH, options]]),
+    dietaryPreference: DietaryPreference.OMNIVORE, allergens: [] });
+  const repeated = fillRepeatedRawRecipeSlots({ slots: unique.remainingSlots, selected: unique.meals,
+    candidatesByType: new Map([[MealType.LUNCH, options]]),
+    dietaryPreference: DietaryPreference.OMNIVORE, allergens: [] });
+  assert.deepEqual([...unique.meals, ...repeated.meals].map((meal) => meal.rawCandidateId), ['a', 'b', 'a', 'b']);
+  assert.equal(repeated.remainingSlots.length, 0);
 });
 
 test('raw sourcing checks the next corpus page before leaving a slot for Gemini', async () => {

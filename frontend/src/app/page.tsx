@@ -461,7 +461,7 @@ export default function Home() {
               <div className="absolute right-8 top-8 h-28 w-28 rounded-full bg-brand-cyan/15 blur-3xl" />
               <div className="relative grid h-full grid-cols-2 gap-4">
                 <Link
-                  href="/docs#clinical-safety"
+                  href="/docs#clinical-guidelines"
                   className="group flex flex-col justify-end overflow-hidden rounded-[26px] border border-white/10 bg-[linear-gradient(150deg,rgba(184,244,95,0.18),rgba(255,255,255,0.02))] p-5 transition hover:border-brand-accent/40 hover:bg-white/[0.04]"
                 >
                   <ShieldCheck className="h-7 w-7 text-brand-accent transition-transform group-hover:scale-110" />
@@ -482,7 +482,7 @@ export default function Home() {
                     </p>
                   </Link>
                   <Link
-                    href="/docs#faqs"
+                    href="/docs#help"
                     className="group rounded-[26px] border border-white/10 bg-[radial-gradient(circle_at_20%_90%,rgba(139,92,246,0.22),transparent_48%),rgba(255,255,255,0.025)] p-5 transition hover:border-violet-400/40 hover:bg-white/[0.04]"
                   >
                     <Sparkles className="h-6 w-6 text-violet-300 transition-transform group-hover:scale-110" />

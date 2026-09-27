@@ -7,6 +7,7 @@ import { MealsController } from '@/controllers/meals.controller';
 import { requireReadyUser } from '@/middleware/userPrerequisites';
 import requireClinicalEvidenceReady from '@/middleware/clinicalEvidenceReady';
 import { PlanningReadinessService } from '@/services/planning-readiness.service';
+import { VerifiedRecipeCatalogService } from '@/services/verified-recipe-catalog.service';
 import type { AuthenticatedRequest } from '@/types';
 import { validateZodRequest } from '@/middleware/validateZod';
 import {
@@ -174,6 +175,20 @@ router.get(
   validateZodRequest({ query: compatibleLibraryQuerySchema }),
   MealsController.getCompatibleLibrary
 );
+
+router.get('/verified-recipes', validateZodRequest({ query: z.object({
+  search: z.string().trim().max(120).optional(),
+  mealType: z.enum(['BREAKFAST', 'LUNCH', 'DINNER']).optional(),
+  page: z.coerce.number().int().min(1).max(1000).optional(),
+}).strict() }), async (req, res, next) => {
+  try {
+    const data = await VerifiedRecipeCatalogService.list((req as AuthenticatedRequest).user!.userId,
+      { search: req.query.search as string | undefined,
+        mealType: req.query.mealType as 'BREAKFAST' | 'LUNCH' | 'DINNER' | undefined,
+        page: req.query.page ? Number(req.query.page) : undefined });
+    res.json({ success: true, data });
+  } catch (error) { next(error); }
+});
 
 router.post(
   '/library/:id/favorite',
