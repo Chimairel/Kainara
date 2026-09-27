@@ -39,6 +39,7 @@ import type { MealSelectionEvidence } from '@/domain/meal-explanation.policy';
 import {
   certifiedLibraryMealInclude,
   isCertifiedLibraryMealCompatible,
+  isLibraryMealSafeToQueueForCaseReview,
   isProfileApprovedLibraryMealCompatible,
   queryEligibleLibraryMeals,
 } from './meal-library-candidate-query.service';
@@ -122,11 +123,18 @@ export async function generate7DayPlan(
           userAllergens,
           profile: { ...profile, userId, safetyEntries: user.safetyProfileEntries },
           limit: 120,
+          includeUnapprovedCaseCandidates: true,
         })
       )
     )
   ).flat();
   const eligibleLibraryMeals = libraryMeals;
+  const caseReviewCandidateIds = new Set(libraryMeals.filter((meal) =>
+    !isCertifiedLibraryMealCompatible(meal, userConditions, userAllergens,
+      { ...profile, userId, safetyEntries: user.safetyProfileEntries }) &&
+    !isProfileApprovedLibraryMealCompatible(meal, userConditions, userAllergens,
+      { ...profile, userId, safetyEntries: user.safetyProfileEntries })
+  ).map((meal) => meal.id));
   const userHasConditions = userConditions.some((condition) => condition !== HealthConditionType.NONE);
   const cookedRiceFood =
     profile.ricePreference === RicePreference.WITH_RICE && !userHasConditions
@@ -154,6 +162,7 @@ export async function generate7DayPlan(
     rankingReasonCodes: string[];
     pairedRiceG: number | null;
     fallbackAvailable: boolean;
+    requiresCaseApproval: boolean;
   }[] = [];
 
   const unmatchedSlots: {
@@ -173,6 +182,7 @@ export async function generate7DayPlan(
       const matches = eligibleLibraryMeals.filter((meal) => {
         if (selectedLibraryMealIds.has(meal.id)) return false;
         if (!meal.applicableMealTypes.some((entry) => entry.mealType === slotType)) return false;
+        if (caseReviewCandidateIds.has(meal.id) && meal.mealType !== slotType) return false;
 
         // Dietary preference is a positive classification fact. User goals
         // influence serving allocation and ranking, never reusable diet tags.
@@ -198,12 +208,12 @@ export async function generate7DayPlan(
         .map((meal, localityIndex) => ({
           meal,
           ranking: scorePreparationCandidate({
-            activeClearanceCoverage: true,
+            activeClearanceCoverage: !caseReviewCandidateIds.has(meal.id),
             allergenDeclarationsComplete: true,
             ingredientsResolved: meal.ingredients.every((ingredient) => Boolean(ingredient.foodItemId)),
             nutrientsComplete: [meal.calories, meal.proteinG, meal.carbsG, meal.fatG].every(Number.isFinite),
             dietCompatible: true,
-            remainingReviews: 0,
+            remainingReviews: caseReviewCandidateIds.has(meal.id) ? (highRiskReviewRequired ? 2 : 1) : 0,
             calorieDeviationRatio: Math.abs(meal.calories - range.target) / range.target,
             mealTypeMatch: meal.applicableMealTypes.some((entry) => entry.mealType === slotType),
             ricePreference: profile.ricePreference,
@@ -246,6 +256,7 @@ export async function generate7DayPlan(
           rankingReasonCodes: selected.ranking.reasonCodes,
           pairedRiceG,
           fallbackAvailable: ranked.length > 1,
+          requiresCaseApproval: caseReviewCandidateIds.has(selected.meal.id),
         });
       } else {
         unmatchedSlots.push({
@@ -451,7 +462,8 @@ export async function generate7DayPlan(
   }, {});
   const now = new Date();
   const businessDay = MealPlanCycleService.getBusinessDay(now);
-  const completeSlotSet = preparedAiMeals.every((meal) =>
+  const completeSlotSet = matchedSlots.every((slot) => !slot.requiresCaseApproval) &&
+    preparedAiMeals.every((meal) =>
     Boolean(meal.rawCandidateId && unrestrictedBaseIds.has(meal.rawCandidateId))
   ) && matchedSlots.length + preparedAiMeals.length >= cycleTiming.expectedSlotCount;
   const deadlinePassed = now.getTime() >= cycleTiming.shoppingDeadlineAt.getTime();
@@ -571,6 +583,10 @@ export async function generate7DayPlan(
           const profileApproved = !certified && isProfileApprovedLibraryMealCompatible(
             latest, userConditions, userAllergens, currentProfile
           );
+          const requiresCaseApproval = !certified && !profileApproved &&
+            slot.requiresCaseApproval && isLibraryMealSafeToQueueForCaseReview(
+              latest, userConditions, userAllergens, currentProfile
+            );
           const scope = profileApproved ? mealApprovalSafetyScope({
             conditions: userConditions,
             allergens: userAllergens,
@@ -586,7 +602,7 @@ export async function generate7DayPlan(
           if (
             latest.safetyEvidenceRevision !== slot.libraryMeal.safetyEvidenceRevision ||
             latest.status !== 'APPROVED' ||
-            (!certified && !approval)
+            (!certified && !approval && !requiresCaseApproval)
           )
             throw new Error('Recipe or clearance evidence changed during generation. Please retry.');
           const ingredientsData = latest.ingredients.map((ing) => ({
@@ -605,17 +621,18 @@ export async function generate7DayPlan(
             evidenceSource: 'CERTIFIED_LIBRARY',
           });
 
-          // A currently certified library revision is already staff-reviewed,
-          // so this clone is actionable without another queue round-trip.
+          // Base verification permits a case candidate, but an allergy case is
+          // not actionable until a nutritionist records its own decision.
           const createdPlan = await tx.mealPlan.create({
             data: {
               planGroupId: newPlanGroupId,
               userId,
-              status: MealPlanStatus.APPROVED,
+              status: requiresCaseApproval ? MealPlanStatus.PENDING_REVIEW : MealPlanStatus.APPROVED,
               candidateProvenance: MealCandidateProvenance.CERTIFIED_LIBRARY,
               libraryMealId: slot.libraryMeal.id,
               profileApprovalId: approval?.id ?? null,
-              nutritionistId: approval?.reviewerNutritionistId ?? latest.safetyReviewedByNutritionistId,
+              nutritionistId: requiresCaseApproval ? null :
+                (approval?.reviewerNutritionistId ?? latest.safetyReviewedByNutritionistId),
               planType,
               mealType: slot.mealType,
               mealName: latest.mealName,
@@ -626,11 +643,23 @@ export async function generate7DayPlan(
               fatG: latest.fatG,
               aiConfidenceFlag: AIConfidenceFlag.SAFE,
               scheduledDate: slot.scheduledDate,
-              reviewedAt: approval?.approvedAt ?? latest.safetyReviewedAt,
-              requiresSafetyRevalidation: false,
+              reviewedAt: requiresCaseApproval ? null : (approval?.approvedAt ?? latest.safetyReviewedAt),
+              requiresSafetyRevalidation: requiresCaseApproval,
               safetyPolicyVersion: MEAL_PLAN_SAFETY_POLICY_VERSION,
               highRiskReviewRequired,
-              reviewApprovalCount: highRiskReviewRequired ? 2 : 1,
+              reviewApprovalCount: requiresCaseApproval ? 0 : (highRiskReviewRequired ? 2 : 1),
+              reviewWorkKey: requiresCaseApproval ? buildReviewWorkKey({
+                recipeSignature: serving.baseRecipeSignature,
+                evidenceRevision: latest.safetyEvidenceRevision,
+                conditions: planConditions,
+                allergens: userAllergens,
+                safetyScopeKey: mealApprovalSafetyScope({
+                  conditions: userConditions, allergens: userAllergens,
+                  otherConditions, otherAllergies, safetyEntries: user.safetyProfileEntries,
+                }).key,
+                policyVersion: MEAL_PLAN_SAFETY_POLICY_VERSION,
+                requiredReviewerCount: highRiskReviewRequired ? 2 : 1,
+              }) : null,
               candidateRank: slot.candidateRank,
               rankingScore: slot.rankingScore,
               rankingReasonCodes: slot.rankingReasonCodes,
@@ -647,7 +676,7 @@ export async function generate7DayPlan(
           });
           createdPlansList.push(createdPlan);
 
-          if (planConditions.length) {
+          if (planConditions.length && !requiresCaseApproval) {
             const clearanceUsages = planConditions.map((condition) => {
               const clearance = latest.conditionClearances.find(
                 (candidate) =>

@@ -209,7 +209,7 @@ test('[TEST-075] required realistic structured combinations use conservative int
   }
 });
 
-test('[TEST-075] production compatibility intersects each exact structured profile with dietary tags', () => {
+test('[TEST-075] certified recipe evidence does not grant allergy-case approval', () => {
   const profiles = [
     {
       label: 'diabetes + vegetarian + egg allergy',
@@ -244,8 +244,8 @@ test('[TEST-075] production compatibility intersects each exact structured profi
         otherAllergies: null,
         safetyEntries: profile.entries,
       }),
-      true,
-      profile.label
+      false,
+      `${profile.label} requires a separate case decision`
     );
   }
 
@@ -274,8 +274,8 @@ test('[TEST-075] production compatibility intersects each exact structured profi
   };
   assert.equal(
     isCertifiedLibraryMealCompatible(restrictionCompatiblePescatarianMeal, [], [], browseProfile, { safetyOnly: true }),
-    true,
-    'a certified meal with a voluntary diet mismatch can be browsed'
+    false,
+    'browse mode must not bypass a missing allergy-case approval'
   );
   assert.equal(
     isCertifiedLibraryMealCompatible(certifiedMeal(['PESCATARIAN'], [], []), [], [], browseProfile, {

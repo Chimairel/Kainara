@@ -38,7 +38,6 @@ export async function publishProfileMatchedMealApproval(input: {
     plan.cycle.snapshot?.safetyRevision !== plan.user.userProfile?.safetyRevision ||
     plan.highRiskReviewRequired || plan.clinicalEvidence.length > 0 ||
     !plan.baseRecipeSignature || plan.composedServingSignature !== plan.baseRecipeSignature ||
-    plan.candidateProvenance === MealCandidateProvenance.CERTIFIED_LIBRARY ||
     plan.sourceRawRecipeCandidate?.sourceName === 'USER_OBSERVED'
   ) return false;
 
@@ -71,6 +70,16 @@ export async function publishProfileMatchedMealApproval(input: {
   const requestedAllergies = new Set(restrictions.allergies);
   if (requestedAllergies.size && allergyFacts.status !== 'COMPLETE') return false;
   if (allergyFacts.detectedAllergens.some((allergen) => requestedAllergies.has(allergen))) return false;
+
+  // A case decision for a changed recipe cannot certify a new general meal.
+  // Reuse the already verified base only when the reviewed serving is exact.
+  if (plan.candidateProvenance === MealCandidateProvenance.CERTIFIED_LIBRARY) {
+    const original = plan.libraryMealId
+      ? await prisma.mealLibrary.findUnique({ where: { id: plan.libraryMealId } })
+      : null;
+    if (!original || original.status !== MealLibraryStatus.APPROVED ||
+        original.recipeSignature !== plan.baseRecipeSignature) return false;
+  }
 
   const { meal } = await createOrReuseLibraryDraftFromApprovedPlan(
     input.nutritionistProfileId,

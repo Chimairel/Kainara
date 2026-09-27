@@ -109,6 +109,10 @@ export function isCertifiedLibraryMealCompatible(
     otherAllergies: profile.otherAllergies,
   });
   const requestedConditions = restrictions.conditions.filter((condition) => condition !== 'NONE');
+  // Base recipe verification and allergen-absence evidence do not constitute a
+  // nutritionist's approval of this user's allergy case. A scoped approval (or
+  // a direct meal-plan review) is required before the recipe is actionable.
+  if (restrictions.allergies.length || restrictions.customFoodRestrictions.length) return false;
   const now = new Date();
   const activeClearances = Array.isArray(meal.conditionClearances)
     ? meal.conditionClearances.filter(
@@ -160,6 +164,41 @@ export function isCertifiedLibraryMealCompatible(
   const tags = Array.isArray(meal.dietaryTags) ? meal.dietaryTags : [];
   return conditionCoverageComplete &&
     (options.safetyOnly || !profile.dietaryPreference || tags.includes(profile.dietaryPreference));
+}
+
+/** A reviewed base recipe may be proposed for case review, never used directly. */
+export function isLibraryMealSafeToQueueForCaseReview(
+  meal: CertifiedLibraryMeal,
+  userConditions: readonly string[],
+  userAllergens: readonly string[],
+  profile: LibraryCandidateProfile
+): boolean {
+  const restrictions = adaptUserSafetyRestrictions({
+    safetyEntries: profile.safetyEntries,
+    healthConditions: userConditions,
+    allergies: userAllergens,
+    otherConditions: profile.otherConditions,
+    otherAllergies: profile.otherAllergies,
+  });
+  if (restrictions.requiresReview || restrictions.customConditions.length ||
+      restrictions.customFoodRestrictions.length ||
+      (!restrictions.conditions.length && !restrictions.allergies.length)) return false;
+  if (!isCertifiedLibraryMealCompatible(meal, [], [], {
+    ...profile, otherConditions: null, otherAllergies: null, safetyEntries: [],
+  })) return false;
+  const safety = evaluateMealLibrarySafetyEvidence({
+    ...meal,
+    reviewerEligible: meal.safetyReviewedByNutritionist
+      ? isNutritionistEligibleForReview(meal.safetyReviewedByNutritionist)
+      : false,
+  });
+  if (!restrictions.allergies.every((allergen) => safety.allergenFree.includes(allergen))) return false;
+  const classification = classifyMealIngredients(meal.ingredients.flatMap((ingredient) => [
+    { name: ingredient.ingredientName, category: ingredient.category },
+    ...(ingredient.foodItem?.name ? [{ name: ingredient.foodItem.name, category: ingredient.category }] : []),
+  ]));
+  return classification.status === 'COMPLETE' &&
+    !classification.detectedAllergens.some((allergen) => restrictions.allergies.includes(allergen));
 }
 
 export function isProfileApprovedLibraryMealCompatible(
@@ -222,6 +261,8 @@ export async function queryEligibleLibraryMeals(input: {
   search?: string;
   limit?: number;
   skipCalorieFilter?: boolean;
+  /** Planning only: include base recipes as pending clinical case candidates. */
+  includeUnapprovedCaseCandidates?: boolean;
 }): Promise<CertifiedLibraryMeal[]> {
   await enforceClearanceCircuitBreakers();
   const limit = Math.max(1, Math.min(input.limit ?? 80, 120));
@@ -235,6 +276,7 @@ export async function queryEligibleLibraryMeals(input: {
     safetyEntries: input.profile.safetyEntries,
   }) : null;
   const and: Prisma.MealLibraryWhereInput[] = [];
+  const allergenAnd: Prisma.MealLibraryWhereInput[] = [];
 
   for (const condition of conditions) {
     and.push({
@@ -248,7 +290,7 @@ export async function queryEligibleLibraryMeals(input: {
     });
   }
   for (const allergen of allergens) {
-    and.push(
+    allergenAnd.push(
       {
         safetyDeclarations: {
           some: {
@@ -264,6 +306,7 @@ export async function queryEligibleLibraryMeals(input: {
       }
     );
   }
+  and.push(...allergenAnd);
 
   const calorieRange =
     !input.skipCalorieFilter && input.mealType && input.dailyCalorieTarget && isPrimaryMealType(input.mealType)
@@ -278,6 +321,10 @@ export async function queryEligibleLibraryMeals(input: {
         safetyEvidenceStatus: MealLibrarySafetyEvidenceStatus.COMPLETE,
         ...(and.length ? { AND: and } : {}),
       },
+      ...(input.includeUnapprovedCaseCandidates && (conditions.length || allergens.length)
+        ? [{ safetyEvidenceStatus: MealLibrarySafetyEvidenceStatus.COMPLETE,
+            ...(allergenAnd.length ? { AND: allergenAnd } : {}) }]
+        : []),
       ...(profileScope?.supported ? [{ profileApprovals: {
         some: { safetyScopeKey: profileScope.key, flaggedAt: null, reviewDueAt: { gt: new Date() } },
       } }] : []),
@@ -301,7 +348,9 @@ export async function queryEligibleLibraryMeals(input: {
   return candidates.filter((meal) =>
     admitted.has(meal.id) &&
     (isCertifiedLibraryMealCompatible(meal, input.userConditions, input.userAllergens, input.profile) ||
-      isProfileApprovedLibraryMealCompatible(meal, input.userConditions, input.userAllergens, input.profile))
+      isProfileApprovedLibraryMealCompatible(meal, input.userConditions, input.userAllergens, input.profile) ||
+      (input.includeUnapprovedCaseCandidates &&
+        isLibraryMealSafeToQueueForCaseReview(meal, input.userConditions, input.userAllergens, input.profile)))
   );
 }
 

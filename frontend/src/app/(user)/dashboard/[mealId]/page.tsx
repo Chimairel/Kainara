@@ -292,7 +292,7 @@ export default function MealDetailPage() {
                 <h3 className="text-xs font-extrabold text-brand-text">Why this meal?</h3>
                 {meal.verifier && (
                   <span className="inline-flex items-center gap-1 rounded-full bg-brand-green/10 px-2 py-0.5 text-[9px] font-extrabold text-brand-green border border-brand-green/20">
-                    <ShieldCheck className="h-3 w-3" /> RND Supervised
+                    <ShieldCheck className="h-3 w-3" /> RND reviewed recipe or case
                   </span>
                 )}
               </div>

@@ -194,6 +194,14 @@ export class MealPlanCycleService {
             profileApproval.reviewPolicyVersion === MEAL_PLAN_SAFETY_POLICY_VERSION &&
             !profileApproval.flaggedAt && profileApproval.reviewDueAt > now &&
             isNutritionistEligibleForReview(profileApproval.reviewerNutritionist, now);
+          const distinctCaseReviewers = new Set(meal.reviewDecisions.map((decision) => decision.nutritionistProfileId));
+          const caseReviewComplete = distinctCaseReviewers.size >= (meal.highRiskReviewRequired ? 2 : 1);
+          // An allergy-absent declaration belongs to the base recipe. Legacy
+          // auto-approved allergy plans without a scoped approval or an actual
+          // case decision must not remain usable after the policy correction.
+          if (safetyRestrictions.allergies.length && !profileApprovalCurrent) {
+            if (!caseReviewComplete) return false;
+          }
           if (!profileApprovalCurrent && library.safetyEvidenceStatus !== MealLibrarySafetyEvidenceStatus.COMPLETE) {
             return false;
           }
@@ -213,7 +221,9 @@ export class MealPlanCycleService {
               )
               .map((usage) => usage.condition)
           );
-          return [...requiredConditions].every((condition) => validConditions.has(condition)) &&
+          const clearedForConditions = [...requiredConditions].every((condition) => validConditions.has(condition));
+          const directlyReviewedCase = meal.clearanceUsages.length === 0 && caseReviewComplete;
+          return (clearedForConditions || directlyReviewedCase) &&
             (!profileApproval || Boolean(profileApprovalCurrent));
         }
         if (meal.candidateProvenance === 'RAW_RECIPE_CORPUS' && meal.reviewApprovalCount === 0) {

@@ -22,7 +22,7 @@ export default function MealVerificationBadge({
     return (
       <div
         className={`inline-flex items-center gap-1.5 rounded-full border border-emerald-500/40 bg-black/75 px-2.5 py-1 font-mono text-[9px] font-bold text-emerald-300 shadow-md backdrop-blur-md select-none ${className}`}
-        aria-label="Clinically verified meal"
+        aria-label="Verified recipe or approved case"
       >
         <ShieldCheck className="h-3 w-3 text-emerald-400 shrink-0 stroke-[2.5]" />
         <span>Verified</span>
