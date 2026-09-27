@@ -9,6 +9,7 @@ type Approval = {
   id: string;
   kind: 'PROFILE' | 'CONDITION';
   scope: unknown;
+  caseScope?: unknown;
   reviewerName: string | null;
   reviewedAt: string | null;
   reviewDueAt: string | null;
@@ -27,17 +28,40 @@ type Variant = {
   approvals: Approval[];
 };
 
+type CaseDetails = {
+  meal: Variant & { description: string | null; mealType: string; recipeSignature: string | null };
+  recordedScope: unknown;
+  recordedCaseScope?: unknown;
+  recordedAt: string | null;
+  approvalMatchesCurrentRecipe: boolean;
+  originatingPlan: (Pick<Variant, 'mealName' | 'calories' | 'proteinG' | 'carbsG' | 'fatG'> & {
+    description: string | null; nutritionistNote: string | null;
+    ingredients: Array<{ ingredientName: string; quantity: number | null; unit: string | null; dataSource?: string }>;
+  }) | null;
+  reviewedPlanProfile: { goal: string; dailyCalorieTarget: number; dietaryPreference: string | null; ricePreference: string } | null;
+  linkedUserCurrentProfile: {
+    name: string; age: number | null; sex: string | null;
+    conditions: string[]; allergies: string[];
+  } | null;
+};
+
+function readable(value: string): string {
+  return value.replaceAll('_', ' ').toLowerCase().replace(/\b\w/g, (letter) => letter.toUpperCase());
+}
+
 function contextLabel(scope: unknown): string {
-  if (!scope || typeof scope !== 'object' || Array.isArray(scope)) return 'Recorded health context';
+  if (!scope || typeof scope !== 'object' || Array.isArray(scope)) return 'Health context unavailable';
   const value = scope as Record<string, unknown>;
-  const conditions = Array.isArray(value.conditions) ? value.conditions.filter((item): item is string => typeof item === 'string') : [];
-  const allergens = Array.isArray(value.allergens) ? value.allergens.filter((item): item is string => typeof item === 'string') : [];
+  const values = (key: string) => Array.isArray(value[key])
+    ? (value[key] as unknown[]).filter((item): item is string => typeof item === 'string' && item.toUpperCase() !== 'NONE')
+    : [];
   const parts = [
-    conditions.length ? conditions.join(', ') : 'No conditions',
-    allergens.length ? `Avoid: ${allergens.join(', ')}` : 'No allergies',
+    ...values('conditions').map(readable),
+    ...values('customConditions').map(readable),
+    ...values('allergens').map((item) => `${readable(item)} allergy`),
+    ...values('customFoodRestrictions').map((item) => `${readable(item)} restriction`),
   ];
-  if (value.userScoped === true) parts.push('Individual clinical scope');
-  return parts.join(' · ');
+  return parts.length ? parts.join(' + ') : 'No recorded health restrictions';
 }
 
 export function MealApprovalsPanel({ mealId }: {
@@ -52,6 +76,9 @@ export function MealApprovalsPanel({ mealId }: {
   const [reason, setReason] = useState('');
   const [reviewNote, setReviewNote] = useState('');
   const [filter, setFilter] = useState<'ALL' | 'ACTIVE' | 'FLAGGED' | 'REVIEW_DUE'>('ALL');
+  const [selected, setSelected] = useState<{ variantId: string; approval: Approval } | null>(null);
+  const [caseDetails, setCaseDetails] = useState<CaseDetails | null>(null);
+  const [detailLoading, setDetailLoading] = useState(false);
 
   const reload = useCallback(async () => {
     setLoading(true);
@@ -110,6 +137,98 @@ export function MealApprovalsPanel({ mealId }: {
     approvals: variant.approvals.filter((approval) => filter === 'ALL' || approval.status === filter),
   }));
 
+  async function viewApproval(variantId: string, approval: Approval) {
+    setSelected({ variantId, approval });
+    setCaseDetails(null);
+    setFlagTarget(null);
+    setRecheckTarget(null);
+    setDetailLoading(true);
+    try {
+      const response = await api.get(`/nutritionist/library/${variantId}/approvals/${approval.kind}/${approval.id}`);
+      setCaseDetails(response.data.data);
+      setError(null);
+    } catch (cause) {
+      setError(getApiErrorMessage(cause, 'Could not load this approval case.'));
+    } finally {
+      setDetailLoading(false);
+    }
+  }
+
+  if (selected) {
+    const currentApproval = variants.flatMap((variant) => variant.approvals)
+      .find((approval) => approval.id === selected.approval.id && approval.kind === selected.approval.kind) ?? selected.approval;
+    const caseUser = caseDetails?.linkedUserCurrentProfile;
+    const reviewedMeal = caseDetails?.originatingPlan ?? caseDetails?.meal;
+    return (
+      <section aria-labelledby="approval-case-heading" className="space-y-5 rounded-2xl border border-brand-border bg-brand-surface/60 p-5">
+        <Button variant="ghost" size="sm" onClick={() => { setSelected(null); setCaseDetails(null); setFlagTarget(null); setRecheckTarget(null); }}>
+          ← Back to approvals
+        </Button>
+        <div>
+          <p className="text-xs font-bold uppercase tracking-widest text-brand-green">Health-context approval</p>
+          <h2 id="approval-case-heading" className="mt-1 font-display text-2xl font-bold text-brand-text">{contextLabel(caseDetails?.recordedCaseScope ?? currentApproval.caseScope ?? currentApproval.scope)}</h2>
+          {currentApproval.kind === 'CONDITION' && <p className="mt-1 text-xs text-brand-muted">Approved condition scope: {contextLabel(currentApproval.scope)}. Other restrictions in this case are checked separately.</p>}
+          <p className="mt-1 text-xs text-brand-muted">
+            {currentApproval.reviewerName || 'Reviewer unavailable'} · Reviewed {currentApproval.reviewedAt ? new Date(currentApproval.reviewedAt).toLocaleDateString() : 'date unavailable'} · {currentApproval.status.replaceAll('_', ' ')}
+          </p>
+        </div>
+        {error && <p role="alert" className="rounded-xl border border-red-500/40 p-3 text-red-300">{error}</p>}
+        {detailLoading && <p className="text-brand-muted">Loading approval case...</p>}
+        {caseDetails && <>
+          {!caseDetails.approvalMatchesCurrentRecipe && <p role="status" className="rounded-xl border border-amber-500/40 p-3 text-sm text-amber-300">The current recipe differs from the version recorded with this approval. Recheck before reuse.</p>}
+          <div className="grid gap-4 md:grid-cols-2">
+            <section className="space-y-3 rounded-2xl border border-brand-border p-4" aria-label="User health profile">
+              <h3 className="font-bold text-brand-text">Reviewed health context</h3>
+              <p className="text-sm">Case at review: {contextLabel(caseDetails.recordedCaseScope ?? caseDetails.recordedScope)}</p>
+              {caseDetails.reviewedPlanProfile && <dl className="grid grid-cols-2 gap-3 text-sm">
+                <div><dt className="text-brand-muted">Goal at planning</dt><dd>{readable(caseDetails.reviewedPlanProfile.goal)}</dd></div>
+                <div><dt className="text-brand-muted">Daily target at planning</dt><dd>{caseDetails.reviewedPlanProfile.dailyCalorieTarget} kcal</dd></div>
+                <div><dt className="text-brand-muted">Diet at planning</dt><dd>{caseDetails.reviewedPlanProfile.dietaryPreference ? readable(caseDetails.reviewedPlanProfile.dietaryPreference) : 'Not recorded'}</dd></div>
+                <div><dt className="text-brand-muted">Rice preference at planning</dt><dd>{readable(caseDetails.reviewedPlanProfile.ricePreference)}</dd></div>
+              </dl>}
+              {caseUser ? <>
+                <h4 className="border-t border-brand-border pt-3 text-sm font-bold">Linked user now</h4>
+                <p className="font-semibold">{caseUser.name}{caseUser.age != null ? ` · ${caseUser.age} years` : ''}{caseUser.sex ? ` · ${readable(caseUser.sex)}` : ''}</p>
+                <p className="text-xs text-amber-300">This profile may have changed since approval. The recorded scope and planning targets above are the review context.</p>
+                <dl className="grid grid-cols-2 gap-3 text-sm">
+                  <div><dt className="text-brand-muted">Current conditions</dt><dd>{caseUser.conditions.length ? caseUser.conditions.map(readable).join(', ') : 'None declared'}</dd></div>
+                  <div><dt className="text-brand-muted">Current allergies</dt><dd>{caseUser.allergies.length ? caseUser.allergies.map(readable).join(', ') : 'None declared'}</dd></div>
+                </dl>
+              </> : <p className="text-sm text-brand-muted">No linked user case is retained for this approval. Review the recorded scope above; do not infer missing patient details.</p>}
+            </section>
+            <section className="space-y-3 rounded-2xl border border-brand-border p-4" aria-label="Meal details">
+              <h3 className="font-bold text-brand-text">Meal details</h3>
+              <p className="font-semibold">{reviewedMeal?.mealName}</p>
+              <p className="text-sm text-brand-muted">{reviewedMeal?.description || 'No description recorded.'}</p>
+              <p className="text-sm">{reviewedMeal?.calories} kcal · {reviewedMeal?.proteinG}g protein · {reviewedMeal?.carbsG}g carbs · {reviewedMeal?.fatG}g fat</p>
+              <h4 className="text-sm font-bold">Ingredients in the reviewed serving</h4>
+              <ul className="space-y-1 text-sm text-brand-muted">
+                {reviewedMeal?.ingredients.map((ingredient, index) => <li key={index}>{ingredient.ingredientName}{ingredient.quantity != null ? ` · ${ingredient.quantity} ${ingredient.unit || ''}` : ''}{'dataSource' in ingredient && ingredient.dataSource ? ` · ${readable(ingredient.dataSource)}` : ''}</li>)}
+              </ul>
+              {caseDetails.originatingPlan?.nutritionistNote && <p className="border-t border-brand-border pt-3 text-sm"><strong>Nutritionist note:</strong> {caseDetails.originatingPlan.nutritionistNote}</p>}
+              {caseDetails.originatingPlan && <p className="text-xs text-brand-muted">Shown from the linked reviewed meal plan.</p>}
+            </section>
+          </div>
+          {currentApproval.flagReason && <p className="text-sm text-amber-300">Flag reason: {currentApproval.flagReason}</p>}
+          <div className="flex flex-wrap gap-2">
+            {(currentApproval.status === 'ACTIVE' || currentApproval.status === 'REVIEW_DUE') && <Button variant="secondary" disabled={busy} onClick={() => { setFlagTarget({ variantId: selected.variantId, approval: currentApproval }); setReason(''); }}>Flag approval</Button>}
+            {(currentApproval.status === 'FLAGGED' || currentApproval.status === 'REVIEW_DUE') && <Button variant="secondary" disabled={busy} onClick={() => { setRecheckTarget({ variantId: selected.variantId, approval: currentApproval }); setReviewNote(''); }}>Recheck approval</Button>}
+          </div>
+          {flagTarget && <div className="rounded-xl border border-amber-600/50 p-4">
+            <label htmlFor="approval-flag-reason" className="block text-sm font-semibold">Reason for flagging this approval</label>
+            <textarea id="approval-flag-reason" value={reason} onChange={(event) => setReason(event.target.value)} minLength={10} maxLength={1000} rows={3} className="mt-2 w-full rounded-xl border border-brand-border bg-brand-bg p-3 text-brand-text" />
+            <div className="mt-2 flex gap-2"><Button disabled={busy || reason.trim().length < 10} onClick={() => void flag()}>Submit flag</Button><Button variant="secondary" onClick={() => setFlagTarget(null)}>Cancel</Button></div>
+          </div>}
+          {recheckTarget && <div className="rounded-xl border border-brand-green/50 p-4">
+            <label htmlFor="approval-recheck-note" className="block text-sm font-semibold">Review findings for this approval</label>
+            <textarea id="approval-recheck-note" value={reviewNote} onChange={(event) => setReviewNote(event.target.value)} minLength={10} maxLength={1000} rows={3} className="mt-2 w-full rounded-xl border border-brand-border bg-brand-bg p-3 text-brand-text" />
+            <div className="mt-2 flex gap-2"><Button disabled={busy || reviewNote.trim().length < 10} onClick={() => void recheck()}>Submit recheck</Button><Button variant="secondary" onClick={() => setRecheckTarget(null)}>Cancel</Button></div>
+          </div>}
+        </>}
+      </section>
+    );
+  }
+
   return (
     <section aria-labelledby="meal-approvals-heading" className="space-y-4 rounded-2xl border border-brand-border bg-brand-surface/60 p-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -135,7 +254,7 @@ export function MealApprovalsPanel({ mealId }: {
         ) : filteredVariants.map((variant) => variant.approvals.length > 0 && (
           <section key={variant.id} className="space-y-3 rounded-2xl border border-brand-border p-4">
             <div>
-              <h3 className="font-bold">{variant.mealName}</h3>
+              <p className="text-xs font-semibold uppercase tracking-wide text-brand-muted">Serving variant · {variant.mealName}</p>
               <p className="text-xs text-brand-muted">
                 {variant.nutritionServingDescription || 'Recorded serving'} · {variant.calories} kcal ·
                 {' '}{variant.proteinG}g protein · {variant.carbsG}g carbs · {variant.fatG}g fat
@@ -153,7 +272,7 @@ export function MealApprovalsPanel({ mealId }: {
             {variant.approvals.map((approval) => (
               <div key={`${approval.kind}-${approval.id}`} className="rounded-xl border border-brand-border bg-brand-bg/50 p-3">
                 <div className="flex flex-wrap items-center justify-between gap-2">
-                  <strong className="text-sm">{contextLabel(approval.scope)}</strong>
+                  <h3 className="text-base font-bold text-brand-text">{contextLabel(approval.caseScope ?? approval.scope)}</h3>
                   <span className={approval.status === 'ACTIVE' ? 'text-brand-green' : 'text-amber-300'}>
                     {approval.status.replaceAll('_', ' ')}
                   </span>
@@ -162,45 +281,15 @@ export function MealApprovalsPanel({ mealId }: {
                   {approval.reviewerName || 'Reviewed policy'} · Reviewed {approval.reviewedAt ? new Date(approval.reviewedAt).toLocaleDateString() : 'pending'}
                   {approval.reviewDueAt ? ` · Recheck ${new Date(approval.reviewDueAt).toLocaleDateString()}` : ''}
                 </p>
+                {approval.kind === 'CONDITION' && approval.caseScope != null && contextLabel(approval.caseScope) !== contextLabel(approval.scope) &&
+                  <p className="mt-1 text-xs text-brand-muted">Approved condition: {contextLabel(approval.scope)} · other case restrictions checked separately</p>}
                 {approval.flagReason && <p className="mt-2 text-xs text-amber-300">Flag reason: {approval.flagReason}</p>}
                 {approval.status === 'STALE' && <p className="mt-2 text-xs text-amber-300">The recipe evidence or reviewer eligibility changed. A fresh approval is required.</p>}
-                <div className="mt-3 flex gap-2">
-                  {approval.status === 'ACTIVE' || approval.status === 'REVIEW_DUE' ? (
-                    <Button variant="secondary" disabled={busy} onClick={() => { setFlagTarget({ variantId: variant.id, approval }); setReason(''); }}>
-                      Flag approval
-                    </Button>
-                  ) : null}
-                  {approval.status === 'FLAGGED' || approval.status === 'REVIEW_DUE' ? (
-                    <Button variant="secondary" disabled={busy} onClick={() => { setRecheckTarget({ variantId: variant.id, approval }); setReviewNote(''); }}>
-                      Recheck approval
-                    </Button>
-                  ) : null}
-                </div>
+                <div className="mt-3"><Button variant="secondary" size="sm" onClick={() => void viewApproval(variant.id, approval)}>View</Button></div>
               </div>
             ))}
           </section>
         ))}
-        {flagTarget && <div className="rounded-xl border border-amber-600/50 p-4">
-          <label htmlFor="approval-flag-reason" className="block text-sm font-semibold">Reason for flagging this approval</label>
-          <textarea id="approval-flag-reason" value={reason} onChange={(event) => setReason(event.target.value)}
-            minLength={10} maxLength={1000} rows={3}
-            className="mt-2 w-full rounded-xl border border-brand-border bg-brand-bg p-3 text-brand-text" />
-          <div className="mt-2 flex gap-2">
-            <Button disabled={busy || reason.trim().length < 10} onClick={() => void flag()}>Submit flag</Button>
-            <Button variant="secondary" onClick={() => setFlagTarget(null)}>Cancel</Button>
-          </div>
-        </div>}
-        {recheckTarget && <div className="rounded-xl border border-brand-green/50 p-4">
-          <label htmlFor="approval-recheck-note" className="block text-sm font-semibold">Review findings for this approval</label>
-          <p className="mt-1 text-xs text-brand-muted">Inspect this variant’s ingredients, serving, health context and original flag before renewing approval.</p>
-          <textarea id="approval-recheck-note" value={reviewNote} onChange={(event) => setReviewNote(event.target.value)}
-            minLength={10} maxLength={1000} rows={3}
-            className="mt-2 w-full rounded-xl border border-brand-border bg-brand-bg p-3 text-brand-text" />
-          <div className="mt-2 flex gap-2">
-            <Button disabled={busy || reviewNote.trim().length < 10} onClick={() => void recheck()}>Submit recheck</Button>
-            <Button variant="secondary" onClick={() => setRecheckTarget(null)}>Cancel</Button>
-          </div>
-        </div>}
       </div>
     </section>
   );

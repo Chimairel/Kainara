@@ -21,6 +21,7 @@ import {
   getConditionAssuranceTier,
 } from '@/domain/assurance-tier.policy';
 import { evaluateConditionNutrientRule } from '@/domain/condition-rule-evaluation.policy';
+import { adaptUserSafetyRestrictions } from '@/domain/structured-restriction.adapter';
 import { assertConditionPolicyEvidenceComplete } from '@/domain/condition-policy-evidence.policy';
 import { ClinicalEvidenceService } from './clinical-evidence.service';
 
@@ -139,6 +140,25 @@ export class ConditionClearanceService {
     const now = new Date();
     return prisma.$transaction(
       async (tx) => {
+        const scopedUser = input.userScopeId ? await tx.user.findUnique({
+          where: { id: input.userScopeId },
+          include: { userProfile: true, healthConditions: true, allergies: true, safetyProfileEntries: true },
+        }) : null;
+        if (input.userScopeId && !scopedUser) throw new Error('User-scoped case not found.');
+        const caseRestrictions = scopedUser ? adaptUserSafetyRestrictions({
+          safetyEntries: scopedUser.safetyProfileEntries,
+          healthConditions: scopedUser.healthConditions.map((item) => item.condition),
+          allergies: scopedUser.allergies.map((item) => item.allergen),
+          otherConditions: scopedUser.userProfile?.otherConditions,
+          otherAllergies: scopedUser.userProfile?.otherAllergies,
+        }) : null;
+        // This is display context at review time, not an extra clinical clearance.
+        const recordedCaseScope = caseRestrictions ? {
+          conditions: caseRestrictions.conditions,
+          allergens: caseRestrictions.allergies,
+          customConditions: caseRestrictions.customConditions,
+          customFoodRestrictions: caseRestrictions.customFoodRestrictions,
+        } : null;
         const clearance =
           existing ??
           (await tx.mealConditionClearance.create({
@@ -152,7 +172,7 @@ export class ConditionClearanceService {
               assuranceTier: tier,
               provenance: ConditionClearanceProvenance.MANUAL_REVIEW,
               state: ConditionClearanceState.REVIEW_DUE,
-              evidenceSnapshot: { ...evidenceSnapshot(meal), clinicalDocuments },
+              evidenceSnapshot: { ...evidenceSnapshot(meal), clinicalDocuments, recordedCaseScope },
             },
             include: { decisions: true },
           }));
@@ -175,7 +195,7 @@ export class ConditionClearanceService {
             stage,
             decision: input.decision,
             rationale: input.rationale?.trim() || null,
-            evidenceSnapshot: { ...evidenceSnapshot(meal), clinicalDocuments },
+            evidenceSnapshot: { ...evidenceSnapshot(meal), clinicalDocuments, recordedCaseScope },
           },
         });
 

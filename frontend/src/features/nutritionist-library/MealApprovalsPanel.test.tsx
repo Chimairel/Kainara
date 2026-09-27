@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { MealApprovalsPanel } from './MealApprovalsPanel';
 
@@ -21,12 +21,39 @@ describe('meal approvals on the recipe detail page', () => {
 
   it('filters flagged and due approvals independently of other contexts', async () => {
     render(<MealApprovalsPanel mealId="recipe-1" />);
-    expect(await screen.findByText('HYPERTENSION · No allergies')).toBeInTheDocument();
+    expect(await screen.findByText('Hypertension')).toBeInTheDocument();
     fireEvent.change(screen.getByRole('combobox', { name: 'Filter approvals' }), { target: { value: 'FLAGGED' } });
-    expect(screen.getByText('DIABETES · No allergies')).toBeInTheDocument();
-    expect(screen.queryByText('HYPERTENSION · No allergies')).not.toBeInTheDocument();
+    expect(screen.getByText('Diabetes')).toBeInTheDocument();
+    expect(screen.queryByText('Hypertension')).not.toBeInTheDocument();
     fireEvent.change(screen.getByRole('combobox', { name: 'Filter approvals' }), { target: { value: 'REVIEW_DUE' } });
-    expect(screen.getByText('KIDNEY_DISEASE · No allergies')).toBeInTheDocument();
-    expect(screen.queryByText('DIABETES · No allergies')).not.toBeInTheDocument();
+    expect(screen.getByText('Kidney Disease')).toBeInTheDocument();
+    expect(screen.queryByText('Diabetes')).not.toBeInTheDocument();
+  });
+
+  it('opens a combined case and keeps flagging inside the case view', async () => {
+    mocks.get.mockResolvedValueOnce({ data: { data: [{
+      id: 'variant-1', mealName: 'Tinola', nutritionServingDescription: 'One bowl',
+      calories: 420, proteinG: 30, carbsG: 20, fatG: 12, ingredients: [],
+      approvals: [{ id: 'condition-1', kind: 'CONDITION', scope: { conditions: ['DIABETES'] }, caseScope: { conditions: ['DIABETES'], allergens: ['SHRIMP'] }, reviewerName: 'RND A', reviewedAt: '2026-01-01', reviewDueAt: '2027-01-01', status: 'ACTIVE', flagReason: null }],
+    }] } });
+    mocks.get.mockResolvedValueOnce({ data: { data: {
+      meal: { id: 'variant-1', mealName: 'Tinola', description: 'Chicken soup', calories: 420, proteinG: 30, carbsG: 20, fatG: 12, ingredients: [{ ingredientName: 'chicken', quantity: 1, unit: 'cup' }] },
+      approvalMatchesCurrentRecipe: true,
+      recordedScope: { conditions: ['DIABETES'] },
+      recordedCaseScope: { conditions: ['DIABETES'], allergens: ['SHRIMP'] },
+      linkedUserCurrentProfile: { name: 'Test User', age: 30, sex: 'FEMALE', goal: 'MAINTAIN', dailyCalorieTarget: 1800, dietaryPreference: 'OMNIVORE', ricePreference: 'FLEXIBLE', conditions: ['DIABETES'], allergies: ['SHRIMP'] },
+      originatingPlan: null,
+    } } });
+    render(<MealApprovalsPanel mealId="recipe-1" />);
+    expect(await screen.findByText('Diabetes + Shrimp allergy')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Flag approval' })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'View' }));
+    expect(await screen.findByText(/Test User · 30 years/)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Flag approval' }));
+    fireEvent.change(screen.getByRole('textbox', { name: 'Reason for flagging this approval' }), { target: { value: 'The approved serving needs another ingredient check.' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Submit flag' }));
+    await waitFor(() => expect(mocks.post).toHaveBeenCalledWith('/nutritionist/library/variant-1/approvals/flag', {
+      kind: 'CONDITION', approvalId: 'condition-1', reason: 'The approved serving needs another ingredient check.',
+    }));
   });
 });

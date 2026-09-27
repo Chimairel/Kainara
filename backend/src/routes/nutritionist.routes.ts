@@ -32,7 +32,7 @@ import { asyncHandler } from '@/middleware/errorHandler';
 import { ClearanceDecisionValue, HealthConditionType, RuleApprovalDecision } from '@prisma/client';
 import { ConditionClearanceService } from '@/services/condition-clearance.service';
 import { ClinicalEvidenceService } from '@/services/clinical-evidence.service';
-import { flagMealApproval, listMealApprovals, recheckConditionApproval, recheckProfileApproval } from '@/services/meal-approval-lifecycle.service';
+import { flagMealApproval, getMealApprovalCaseDetails, listMealApprovals, recheckConditionApproval, recheckProfileApproval } from '@/services/meal-approval-lifecycle.service';
 import { clinicalDocumentIdParamsSchema, clinicalDocumentReviewSchema } from '@/validation/clinical-evidence.schemas';
 
 const router = Router();
@@ -577,6 +577,24 @@ router.get('/library/:id/approvals', async (req: AuthenticatedRequest, res: Resp
     return res.status(200).json({ success: true, data: await listMealApprovals(req.params.id) });
   } catch (error) {
     return res.status(404).json({ success: false, error: sanitizeErrorMessage(error, 'Approvals unavailable.') });
+  }
+});
+
+router.get('/library/:id/approvals/:kind/:approvalId', async (req: AuthenticatedRequest, res: Response) => {
+  const kind = req.params.kind;
+  if (kind !== 'PROFILE' && kind !== 'CONDITION') {
+    return res.status(400).json({ success: false, error: 'Unknown approval type.' });
+  }
+  try {
+    const data = await getMealApprovalCaseDetails({
+      mealLibraryId: req.params.id,
+      kind,
+      approvalId: req.params.approvalId,
+    });
+    return res.status(200).json({ success: true, data });
+  } catch (error) {
+    const message = sanitizeErrorMessage(error, 'Could not load approval details.');
+    return res.status(message.includes('not found') ? 404 : 500).json({ success: false, error: message });
   }
 });
 

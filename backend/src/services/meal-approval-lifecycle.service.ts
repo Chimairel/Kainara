@@ -6,6 +6,11 @@ import { ConditionClearanceService, enforceClearanceCircuitBreakers } from './co
 
 const REVIEW_INTERVAL_MS = 365 * 24 * 60 * 60 * 1000;
 
+function recordedCaseScope(snapshot: Prisma.JsonValue): Prisma.JsonValue | null {
+  if (!snapshot || typeof snapshot !== 'object' || Array.isArray(snapshot)) return null;
+  return (snapshot as Record<string, Prisma.JsonValue>).recordedCaseScope ?? null;
+}
+
 async function reviewer(nutritionistProfileId: string) {
   const profile = await prisma.nutritionistProfile.findUnique({
     where: { id: nutritionistProfileId },
@@ -50,6 +55,7 @@ export async function listMealApprovals(mealLibraryId: string) {
         id: approval.id,
         kind: 'PROFILE' as const,
         scope: approval.scopeSnapshot,
+        caseScope: approval.scopeSnapshot,
         reviewerName: approval.reviewerNutritionist.user.name,
         reviewedAt: approval.approvedAt,
         reviewDueAt: approval.reviewDueAt,
@@ -66,6 +72,7 @@ export async function listMealApprovals(mealLibraryId: string) {
         id: clearance.id,
         kind: 'CONDITION' as const,
         scope: { conditions: [clearance.condition], userScoped: Boolean(clearance.userScopeId) },
+        caseScope: recordedCaseScope(clearance.evidenceSnapshot),
         reviewerName: clearance.resolvedByNutritionist?.user.name ?? null,
         reviewedAt: clearance.activatedAt,
         reviewDueAt: clearance.auditDueAt,
@@ -81,6 +88,100 @@ export async function listMealApprovals(mealLibraryId: string) {
     profileApprovals: undefined,
     conditionClearances: undefined,
   }));
+}
+
+/** Read-only case preview. A reusable approval never inherits the user's current profile. */
+export async function getMealApprovalCaseDetails(input: {
+  mealLibraryId: string;
+  kind: 'PROFILE' | 'CONDITION';
+  approvalId: string;
+}) {
+  const approval = input.kind === 'PROFILE'
+    ? await prisma.mealLibraryProfileApproval.findFirst({
+        where: { id: input.approvalId, mealLibraryId: input.mealLibraryId },
+        select: { scopeSnapshot: true, approvedAt: true, recipeSignature: true, evidenceRevision: true },
+      })
+    : await prisma.mealConditionClearance.findFirst({
+        where: { id: input.approvalId, mealLibraryId: input.mealLibraryId },
+        select: { condition: true, userScopeId: true, activatedAt: true, recipeSignature: true, evidenceRevision: true, evidenceSnapshot: true },
+      });
+  if (!approval) throw new Error('Approval not found for this meal.');
+
+  const meal = await prisma.mealLibrary.findUniqueOrThrow({
+    where: { id: input.mealLibraryId },
+    select: {
+      id: true, mealName: true, mealType: true, description: true,
+      calories: true, proteinG: true, carbsG: true, fatG: true,
+      nutritionServingDescription: true, recipeSignature: true, safetyEvidenceRevision: true,
+      ingredients: { orderBy: { position: 'asc' }, select: { ingredientName: true, quantity: true, unit: true, dataSource: true } },
+    },
+  });
+  const plan = await prisma.mealPlan.findFirst({
+    where: input.kind === 'PROFILE'
+      ? { profileApprovalId: input.approvalId, libraryMealId: input.mealLibraryId, status: 'APPROVED' }
+      : { libraryMealId: input.mealLibraryId, status: 'APPROVED', clearanceUsages: { some: { clearanceId: input.approvalId } } },
+    orderBy: { reviewedAt: 'asc' },
+    select: {
+      id: true, mealName: true, description: true, nutritionistNote: true,
+      calories: true, proteinG: true, carbsG: true, fatG: true,
+      ingredients: { select: { ingredientName: true, quantity: true, unit: true, dataSource: true } },
+      cycle: { select: { snapshot: { select: {
+        goal: true, dailyCalorieTarget: true, dietaryPreference: true, ricePreference: true,
+      } } } },
+      user: {
+        select: {
+          name: true,
+          userProfile: { select: { age: true, biologicalSex: true } },
+          healthConditions: { select: { condition: true } },
+          allergies: { select: { allergen: true } },
+        },
+      },
+    },
+  });
+  const scopedUser = !plan && 'userScopeId' in approval && approval.userScopeId
+    ? await prisma.user.findUnique({
+        where: { id: approval.userScopeId },
+        select: {
+          name: true,
+          userProfile: { select: { age: true, biologicalSex: true } },
+          healthConditions: { select: { condition: true } },
+          allergies: { select: { allergen: true } },
+        },
+      })
+    : null;
+  const linkedUser = plan?.user ?? scopedUser;
+  return {
+    meal,
+    recordedScope: input.kind === 'PROFILE'
+      ? ('scopeSnapshot' in approval ? approval.scopeSnapshot : null)
+      : { conditions: 'condition' in approval ? [approval.condition] : [], userScoped: 'userScopeId' in approval && Boolean(approval.userScopeId) },
+    recordedCaseScope: 'scopeSnapshot' in approval ? approval.scopeSnapshot
+      : 'evidenceSnapshot' in approval ? recordedCaseScope(approval.evidenceSnapshot) : null,
+    recordedAt: input.kind === 'PROFILE'
+      ? ('approvedAt' in approval ? approval.approvedAt : null)
+      : ('activatedAt' in approval ? approval.activatedAt : null),
+    approvalMatchesCurrentRecipe: approval.recipeSignature === meal.recipeSignature &&
+      approval.evidenceRevision === meal.safetyEvidenceRevision,
+    originatingPlan: plan ? {
+      mealName: plan.mealName, description: plan.description,
+      nutritionistNote: plan.nutritionistNote,
+      calories: plan.calories, proteinG: plan.proteinG, carbsG: plan.carbsG, fatG: plan.fatG,
+      ingredients: plan.ingredients,
+    } : null,
+    reviewedPlanProfile: plan?.cycle.snapshot ? {
+      goal: plan.cycle.snapshot.goal,
+      dailyCalorieTarget: plan.cycle.snapshot.dailyCalorieTarget,
+      dietaryPreference: plan.cycle.snapshot.dietaryPreference,
+      ricePreference: plan.cycle.snapshot.ricePreference,
+    } : null,
+    linkedUserCurrentProfile: linkedUser ? {
+      name: linkedUser.name,
+      age: linkedUser.userProfile?.age ?? null,
+      sex: linkedUser.userProfile?.biologicalSex ?? null,
+      conditions: linkedUser.healthConditions.map((item) => item.condition),
+      allergies: linkedUser.allergies.map((item) => item.allergen),
+    } : null,
+  };
 }
 
 /** A scoped flag suspends only plans that actually used this approval. */
