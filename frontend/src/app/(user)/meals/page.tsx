@@ -485,7 +485,7 @@ export default function WeeklyPlanPage() {
                     </div>
                   ))}
               </section>
-            ) : awaitingGenerationCount > 0 ? (
+            ) : awaitingGenerationCount > 0 && activeGenerationStatus !== 'FAILED' ? (
               <div role="status" className="rounded-2xl border border-brand-border bg-brand-surface p-6 text-sm text-brand-muted">
                 The first meal candidates are being prepared. Saved candidates and nutritionist review progress will appear here automatically.
               </div>

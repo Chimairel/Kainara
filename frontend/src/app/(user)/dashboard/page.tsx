@@ -604,7 +604,7 @@ export default function DashboardPage() {
             description="Your health details need more review before a meal plan can be prepared. Check the requested clinical information and upload a supporting document if required."
             action={{ label: 'Review clinical information', href: '/profile/clinical-evidence' }}
           />
-        ) : currentMeals.length === 0 && !pendingReview && awaitingGenerationCount > 0 ? (
+        ) : currentMeals.length === 0 && !pendingReview && awaitingGenerationCount > 0 && generationStatus !== 'FAILED' ? (
           <div role="status" className="rounded-2xl border border-brand-border bg-brand-surface p-6 text-sm text-brand-muted">
             Your first meal candidates are being prepared. Visit Meals to follow the preview and nutritionist review progress.
           </div>

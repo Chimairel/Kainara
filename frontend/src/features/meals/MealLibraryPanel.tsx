@@ -161,7 +161,7 @@ export default function MealLibraryPanel({ workspace }: { workspace: ReturnType<
           <Salad className="w-8 h-8 text-brand-green mx-auto mb-2" />
           <p className="text-sm text-brand-text font-semibold">No Recipes Found</p>
           <p className="text-xs text-brand-muted mt-1 max-w-sm mx-auto">
-            No verified meals of this type match your health profile right now.
+            No verified recipes are available for this selection right now. The catalogue may still be preparing, or none may meet your current restrictions.
           </p>
         </div>
       ) : libraryMeals.length > 0 ? (

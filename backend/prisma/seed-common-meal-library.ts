@@ -36,6 +36,8 @@ import {
 } from '../src/domain/catalogue-population.policy';
 import { MEAL_LIBRARY_SAFETY_POLICY_VERSION } from '../src/domain/meal-library-safety-evidence.policy';
 import { NutritionistService } from '../src/services/nutritionist.service';
+import { prepareLibraryNutritionEvidence } from '../src/services/nutritionist-library-nutrition-evidence.service';
+import { libraryBaseRevisionKey } from '../src/services/meal-base-admission.service';
 import { evaluateMealLibrarySafetyEvidence } from '../src/domain/meal-library-safety-evidence.policy';
 import { buildMealLibraryRecipeSignature } from '../src/domain/meal-library-signature.policy';
 import { isNutritionistEligibleForReview } from '../src/domain/nutritionist-review.policy';
@@ -50,6 +52,30 @@ const OFFLINE_DRY_RUN = process.argv.includes('--offline-dry-run');
 const SEED_REVIEW_REASON = CURRENT_CATALOGUE_REVIEW_REASON;
 const NUTRITIONIST_EMAIL = 'nutritionist@gmail.com';
 const COVERAGE_GAP_ADDITION_NAMES = ['Tokwa Ampalaya Rice Bowl', 'Tokwa Sayote and Sitaw Dinner Plate'] as const;
+
+async function ensureCatalogueMealVerification(mealId: string, nutritionistProfileId: string) {
+  const meal = await prisma.mealLibrary.findUniqueOrThrow({
+    where: { id: mealId },
+    select: { recipeSignature: true, description: true },
+  });
+  if (!meal.recipeSignature) throw new Error(`Catalogue meal ${mealId} has no recipe signature.`);
+  const record = await prisma.mealBaseVerification.upsert({
+    where: { targetKind_targetId_revisionKey: {
+      targetKind: 'LIBRARY_MEAL', targetId: mealId,
+      revisionKey: libraryBaseRevisionKey(meal.recipeSignature, meal.description),
+    } },
+    create: {
+      targetKind: 'LIBRARY_MEAL', targetId: mealId,
+      revisionKey: libraryBaseRevisionKey(meal.recipeSignature, meal.description),
+      status: 'VERIFIED', reviewedByNutritionistId: nutritionistProfileId,
+      reviewedAt: new Date(), rationale: 'Reviewed common meal catalogue recipe with exact FNRI ingredients and portion evidence.',
+    },
+    update: {},
+  });
+  if (record.status !== 'VERIFIED') {
+    throw new Error(`Catalogue meal ${mealId} has a pending or rejected base verification.`);
+  }
+}
 
 async function ensureFixtureReviewedMealType(mealLibraryId: string, mealType: MealType) {
   await prisma.mealLibraryApplicableType.upsert({
@@ -430,6 +456,7 @@ async function main() {
       !needsSoybeanCurdClassificationRefresh(meal, managed.ingredientClassificationVersion)
     ) {
       await ensureFixtureReviewedMealType(managed.id, meal.mealType as MealType);
+      await ensureCatalogueMealVerification(managed.id, nutritionist.id);
       skipped += 1;
       continue;
     }
@@ -547,11 +574,32 @@ async function main() {
       expectedRevision = nextDraftRevision;
     }
 
+    const savedIngredients = await prisma.mealLibraryIngredient.findMany({
+      where: { mealLibraryId: mealId },
+      orderBy: { position: 'asc' },
+      select: { id: true, foodItemId: true, quantity: true, unit: true },
+    });
+    if (
+      savedIngredients.length !== meal.ingredients.length ||
+      savedIngredients.some((item) => !item.foodItemId || item.unit !== 'g' || !item.quantity || item.quantity <= 0)
+    ) {
+      throw new Error(`Catalogue ingredients are incomplete for ${meal.mealName}.`);
+    }
+    const prepared = await prepareLibraryNutritionEvidence(nutritionist.id, mealId, {
+      expectedRevision: expectedRevision!,
+      portionBasis: 'One recipe serving using the listed FNRI edible gram amounts.',
+      ingredients: savedIngredients.map((item) => ({
+        id: item.id,
+        foodItemId: item.foodItemId!,
+        gramsPerServing: item.quantity!,
+      })),
+    });
+
     const allergensReviewedAbsent = SUPPORTED_LIBRARY_ALLERGENS.filter(
       (allergen) => !meal.allergensPresent.includes(allergen)
     );
     await NutritionistService.certifyLibraryMealSafety(nutritionist.id, mealId, {
-      expectedRevision: expectedRevision!,
+      expectedRevision: prepared.revision,
       conditionDeclarationState:
         suitableConditions.length > 0 ? 'REVIEWED_WITH_DECLARATIONS' : 'REVIEWED_NONE_DECLARED',
       allergenDeclarationState: 'REVIEWED_WITH_DECLARATIONS',
@@ -561,6 +609,7 @@ async function main() {
       allergensReviewedAbsent,
     });
     await ensureFixtureReviewedMealType(mealId, meal.mealType as MealType);
+    await ensureCatalogueMealVerification(mealId, nutritionist.id);
     certified += 1;
     console.log(`Certified ${meal.mealType.toLowerCase()}: ${meal.mealName}`);
   }
