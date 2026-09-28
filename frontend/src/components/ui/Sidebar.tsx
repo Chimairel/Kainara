@@ -321,7 +321,21 @@ export const Sidebar: React.FC<SidebarProps> = ({ className = '' }) => {
             })}
           </nav>
 
-          <div className="relative mt-auto border-t border-white/[0.08] pt-4">
+          <div className="relative mt-auto flex flex-col gap-1 border-t border-white/[0.08] pt-3">
+            <a
+              href="/docs"
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="Docs & Help"
+              className="group relative flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-white/60 outline-none transition hover:bg-white/[0.06] hover:text-white focus:ring-2 focus:ring-brand-accent/30"
+            >
+              <BookOpen className="h-4 w-4 shrink-0 stroke-2 text-white/60 transition-colors group-hover:text-brand-accent" />
+              <span className="text-xs font-semibold text-white/75 transition-colors group-hover:text-white">
+                Docs & Help
+              </span>
+              <ArrowUpRight className="ml-auto h-3.5 w-3.5 text-white/30 transition-colors group-hover:text-white/70" />
+            </a>
+
             <Link
               href={profileHref}
               prefetch={true}
@@ -345,20 +359,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ className = '' }) => {
                 </p>
               </div>
             </Link>
-
-            <a
-              href="/docs"
-              target="_blank"
-              rel="noopener noreferrer"
-              aria-label="Docs & Help"
-              className="group relative mt-2 flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-white/60 outline-none transition hover:bg-white/[0.06] hover:text-white focus:ring-2 focus:ring-brand-accent/30"
-            >
-              <BookOpen className="h-4 w-4 shrink-0 stroke-2 text-white/60 transition-colors group-hover:text-brand-accent" />
-              <span className="text-xs font-semibold text-white/75 transition-colors group-hover:text-white">
-                Docs & Help
-              </span>
-              <ArrowUpRight className="ml-auto h-3.5 w-3.5 text-white/30 transition-colors group-hover:text-white/70" />
-            </a>
           </div>
         </>
       )}
