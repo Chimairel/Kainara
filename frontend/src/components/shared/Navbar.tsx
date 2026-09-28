@@ -7,7 +7,6 @@ import { useTheme } from '@/lib/context/ThemeContext';
 import NotificationDropdown from '@/components/shared/NotificationDropdown';
 import { usePathname } from 'next/navigation';
 import { workspaceTools } from '@/lib/workspace-navigation';
-import { WorkspaceTools } from './WorkspaceTools';
 
 import Breadcrumb1, { type BreadcrumbSegment } from '@/components/watermelon/breadcrumb-1';
 import { useBreadcrumb } from '@/lib/context/BreadcrumbContext';
@@ -195,7 +194,6 @@ export const Navbar: React.FC = () => {
         <Breadcrumb1 segments={segments} />
       </div>
       <div className="ml-auto flex items-center gap-2">
-        <WorkspaceTools role={user.role} />
         <button
           type="button"
           onClick={toggleTheme}
