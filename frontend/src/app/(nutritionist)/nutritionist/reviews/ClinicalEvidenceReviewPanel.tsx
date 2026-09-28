@@ -130,7 +130,7 @@ export default function ClinicalEvidenceReviewPanel() {
   };
 
   return (
-    <div className="flex md:h-[calc(100vh-270px)] md:min-h-[640px] flex-col overflow-hidden rounded-3xl border border-brand-border/70 bg-brand-surface text-left shadow-card-lg backdrop-blur-xl md:flex-row">
+    <div className="flex md:h-[calc(100vh-270px)] md:min-h-[640px] flex-col overflow-hidden rounded-3xl border border-brand-border/70 bg-brand-surface text-left shadow-sm md:flex-row">
       {/* Master Queue List Panel */}
       <div
         className={`${detail ? 'hidden md:flex' : 'flex'} ${expanded ? '!hidden' : ''} h-full w-full min-w-0 flex-col border-brand-border/70 bg-brand-surface/75 p-5 md:w-[38%] md:min-w-[280px] md:border-r`}
@@ -232,7 +232,7 @@ export default function ClinicalEvidenceReviewPanel() {
 
         {!detail ? (
           <div className="space-y-6 py-2">
-            <div className="rounded-3xl border border-brand-border/80 bg-brand-surface/90 p-6 sm:p-8 shadow-card-lg backdrop-blur-xl space-y-6">
+            <div className="rounded-3xl border border-brand-border/80 bg-brand-surface/90 p-6 sm:p-8 shadow-sm space-y-6">
               <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-brand-accent/15 text-brand-accent">
                 <FileCheck className="h-6 w-6 stroke-[2.2]" />
               </div>
