@@ -5,7 +5,7 @@ import prisma from '../src/lib/prisma';
 import { COMMON_MEAL_CATALOGUE } from '../src/data/common-meal-catalogue';
 import { MEAL_LIBRARY_SAFETY_POLICY_VERSION } from '../src/domain/meal-library-safety-evidence.policy';
 import { MEAL_PLAN_SAFETY_POLICY_VERSION } from '../src/domain/meal-plan-production-safety.policy';
-import { certifiedLibraryMealInclude, isCertifiedLibraryMealCompatible } from '../src/services/meal-swap.service';
+import { certifiedLibraryMealInclude } from '../src/services/meal-swap.service';
 import { GroceryService } from '../src/services/grocery.service';
 import { SafetyIntakeService } from '../src/services/safety-intake.service';
 import { UserService } from '../src/services/user.service';
@@ -39,13 +39,6 @@ async function main() {
   assert.equal(managedMeals.length, 51, 'Acceptance requires the exact 51-meal certified managed catalogue.');
   const usageSnapshot = new Map(managedMeals.map((meal) => [meal.id, meal.usageCount]));
 
-  const eggProfile = {
-    dietaryPreference: 'OMNIVORE',
-    goal: 'MAINTAIN',
-    otherConditions: null,
-    otherAllergies: null,
-    safetyEntries: [{ domain: 'ALLERGY', canonicalCode: 'EGGS', displayName: 'Eggs', supportState: 'SUPPORTED' }],
-  } as const;
   const original = managedMeals.find(
     (meal) =>
       meal.safetyDeclarations.some(
@@ -53,16 +46,6 @@ async function main() {
       ) && meal.ingredients.length > 0
   );
   assert.ok(original, 'Acceptance requires one certified managed meal with an explicit EGGS-present declaration.');
-  const replacements = managedMeals.filter(
-    (meal) =>
-      meal.mealType === original.mealType &&
-      meal.id !== original.id &&
-      isCertifiedLibraryMealCompatible(meal, [], [], eggProfile)
-  );
-  assert.ok(
-    replacements.length > 0,
-    'Acceptance requires one certified egg-compatible replacement in the same meal slot.'
-  );
 
   let userId: string | null = null;
   let planId: string | null = null;
@@ -151,8 +134,6 @@ async function main() {
       },
     });
     planId = plan.id;
-    const groceryBefore = await GroceryService.generateGroceryList(userId);
-
     const inputs = [
       { domain: 'CONDITION' as const, value: 'NONE', provenance: 'PREDEFINED' as const },
       { domain: 'ALLERGY' as const, value: 'EGGS', provenance: 'PREDEFINED' as const },
@@ -176,20 +157,14 @@ async function main() {
       prisma.nutritionReport.findUnique({ where: { userId } }),
       prisma.mealLog.findUnique({ where: { mealPlanId: plan.id } }),
     ]);
-    assert.equal(planAfter.status, 'APPROVED');
-    assert.equal(planAfter.requiresSafetyRevalidation, false);
-    assert.notEqual(planAfter.libraryMealId, original.id);
-    assert.equal(planAfter.selectionEvidence, null, 'A safety replacement must not retain the prior meal rationale.');
-    assert.ok(replacements.some((meal) => meal.id === planAfter.libraryMealId));
-    assert.ok(groceryAfter);
-    assert.notEqual(groceryAfter.id, groceryBefore.id);
-    assert.deepEqual(
-      new Set(groceryAfter.groceryItems.map((item) => item.ingredientName.toLowerCase())),
-      new Set(planAfter.ingredients.map((item) => item.ingredientName.toLowerCase()))
-    );
+    assert.equal(planAfter.status, 'PENDING_REVIEW');
+    assert.equal(planAfter.requiresSafetyRevalidation, true);
+    assert.equal(planAfter.libraryMealId, original.id,
+      'The meal must wait for profile review before a replacement is chosen.');
+    assert.equal(groceryAfter, null);
     assert.equal(revisionsAfter.length, 1);
     assert.equal(reportAfter?.acknowledgedAt, null);
-    assert.equal(replacementLog?.source, 'SAFETY_REPLACED');
+    assert.equal(replacementLog, null);
 
     const secondSave = await SafetyIntakeService.save(userId, inputs);
     await UserService.runSafetyRecheck(userId);
@@ -200,7 +175,7 @@ async function main() {
     ]);
     assert.equal(secondSave.changed, false);
     assert.equal(planFinal?.libraryMealId, planAfter.libraryMealId);
-    assert.equal(groceryFinal?.id, groceryAfter.id);
+    assert.equal(groceryFinal, null);
     assert.equal(revisionCountFinal, 1);
 
     console.log(
@@ -209,11 +184,11 @@ async function main() {
           passed: true,
           fixture: FIXTURE_EMAIL,
           originalMealId: original.id,
-          replacementMealId: planAfter.libraryMealId,
-          groceryRefreshed: groceryAfter.id !== groceryBefore.id,
+          heldMealId: planAfter.libraryMealId,
+          groceryBlocked: groceryAfter === null,
           revisionHistoryPreserved: revisionsAfter.length === 1,
-          replacementEvidencePreserved: replacementLog?.source === 'SAFETY_REPLACED',
-          idempotent: !secondSave.changed && groceryFinal?.id === groceryAfter.id,
+          replacementDeferredUntilProfileReview: replacementLog === null,
+          idempotent: !secondSave.changed && groceryFinal === null,
         },
         null,
         2

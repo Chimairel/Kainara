@@ -33,6 +33,7 @@ export interface OnboardingSnapshot {
   } | null;
   conditions: readonly string[];
   allergies: readonly string[];
+  safetyEntries: readonly { domain: string }[];
 }
 
 export interface OnboardingStatus {
@@ -88,10 +89,11 @@ export function evaluateOnboardingStatus(snapshot: OnboardingSnapshot): Onboardi
     missingFields.push('dietaryPreference', 'ricePreference', 'foodCulture');
   }
 
-  const conditionsComplete = snapshot.conditions.length > 0;
+  // Legacy projections may contain NONE even when the person never answered.
+  const conditionsComplete = snapshot.safetyEntries.some((entry) => entry.domain === 'CONDITION');
   if (!conditionsComplete) missingFields.push('healthConditions');
 
-  const allergiesComplete = snapshot.allergies.length > 0;
+  const allergiesComplete = snapshot.safetyEntries.some((entry) => entry.domain === 'ALLERGY');
   if (!allergiesComplete) missingFields.push('allergies');
 
   const shoppingDayComplete =

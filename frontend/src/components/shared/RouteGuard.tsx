@@ -78,6 +78,9 @@ export const RouteGuard: React.FC<RouteGuardProps> = ({ children }) => {
       } else if (!isPublicRoute && user.role === 'USER') {
         if (!user.onboardingDone && !isOnboardingPage && !isAccountPrivacyRoute) {
           redirectTarget = user.onboardingNextPath || '/onboarding/stats';
+        } else if (user.onboardingDone && user.onboardingNextPath?.startsWith('/onboarding/') &&
+          !isOnboardingPage && !isAccountPrivacyRoute) {
+          redirectTarget = user.onboardingNextPath;
         } else if (user.onboardingDone && !user.tosAccepted && !pathname.endsWith('/tos') && !isAccountPrivacyRoute) {
           redirectTarget = '/onboarding/tos';
         }

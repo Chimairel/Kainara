@@ -25,14 +25,14 @@ export const structuredSafetyItemSchema = z
 export const structuredSafetyPreviewSchema = z
   .object({
     entries: z.array(structuredSafetyItemSchema).max(80),
-    editableDomains: z.array(safetyDomainSchema).min(1).max(4).optional(),
+    editableDomains: z.array(safetyDomainSchema).min(1).max(4),
   })
   .strict();
 
 export const structuredSafetySaveSchema = z
   .object({
     entries: z.array(structuredSafetyItemSchema).max(80),
-    editableDomains: z.array(safetyDomainSchema).min(1).max(4).optional(),
+    editableDomains: z.array(safetyDomainSchema).min(1).max(4),
     confirmed: z.literal(true),
   })
   .strict();

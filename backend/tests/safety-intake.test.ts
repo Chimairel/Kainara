@@ -161,6 +161,7 @@ test('an allergy-step save cannot erase a condition recorded in the prior onboar
   assert.deepEqual(buildLegacySafetyProjection(SafetyIntakeService.preview(merged).entries).conditions, ['DIABETES']);
   assert.throws(() => mergeSafetyDomains([diabetes], domains, [diabetes]), /selected sections/);
   assert.equal(structuredSafetySaveSchema.safeParse({ entries: foods, editableDomains: domains, confirmed: true }).success, true);
+  assert.equal(structuredSafetySaveSchema.safeParse({ entries: foods, confirmed: true }).success, false);
 });
 
 test('catalogue exposes stable evidence-bearing entries without merging condition and food catalogues', () => {

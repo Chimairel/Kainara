@@ -18,6 +18,9 @@ import { certifyLibraryMealSafety } from '../src/services/nutritionist-library-c
 import { certifyMealLibrarySafetySchema } from '../src/domain/meal-library-safety-review.schema';
 import { queryEligibleLibraryMeals } from '../src/services/meal-library-candidate-query.service';
 import { validateGeneratedMealCandidate } from '../src/domain/generated-meal-validation.policy';
+import { SafetyIntakeService } from '../src/services/safety-intake.service';
+import { prepareLibraryNutritionEvidence } from '../src/services/nutritionist-library-nutrition-evidence.service';
+import { MealBaseVerificationService } from '../src/services/meal-base-verification.service';
 
 async function main() {
   const databaseHost = new URL(process.env.DATABASE_URL ?? '').hostname;
@@ -118,6 +121,12 @@ async function main() {
       },
     });
     accounts.push(patient.id);
+    await SafetyIntakeService.replaceDomains(patient.id, ['CONDITION', 'ALLERGY'], [
+      { domain: 'CONDITION', value: 'NONE', provenance: 'PREDEFINED' },
+      { domain: 'ALLERGY', value: 'NONE', provenance: 'PREDEFINED' },
+    ]);
+    // The fixture intentionally reviews a 420 kcal lunch against a 1,200 kcal day.
+    await prisma.userProfile.update({ where: { userId: patient.id }, data: { dailyCalorieTarget: 1200 } });
     const historicalReviewId = randomUUID();
     await prisma.clinicalProfileReview.create({
       data: {
@@ -327,20 +336,34 @@ async function main() {
       applicableMealTypes: [MealType.LUNCH],
       riceRole: 'PAIR_WITH_RICE',
     });
+    const draftIngredients = await prisma.mealLibraryIngredient.findMany({ where: { mealLibraryId: libraryMealId } });
+    const prepared = await prepareLibraryNutritionEvidence(rnd.id, libraryMealId, {
+      expectedRevision: edited.safetyEvidenceRevision,
+      portionBasis: 'One bowl with 240 g chicken breast and 50 g carrot.',
+      ingredients: draftIngredients.map((ingredient) => ({
+        id: ingredient.id,
+        foodItemId: ingredient.foodItemId!,
+        gramsPerServing: ingredient.ingredientName === 'Chicken breast' ? 240 : 50,
+      })),
+    });
     const certified = await certifyLibraryMealSafety(
       rnd.id,
       libraryMealId,
       certifyMealLibrarySafetySchema.parse({
-        expectedRevision: edited.safetyEvidenceRevision,
+        expectedRevision: prepared.revision,
         conditionDeclarationState: 'NOT_REVIEWED',
         allergenDeclarationState: 'REVIEWED_WITH_DECLARATIONS',
         crossContactAssessment: 'ASSESSED_NO_KNOWN_RISK',
         suitableConditions: [],
         allergensPresent: [],
         allergensReviewedAbsent: ['SHELLFISH', 'NUTS', 'DAIRY', 'GLUTEN', 'EGGS'],
+        usdaUseAccepted: false,
       })
     );
     assert.equal(certified?.safetyEvidenceStatus, 'COMPLETE');
+    await MealBaseVerificationService.claim(rnd.id, 'LIBRARY_MEAL', libraryMealId);
+    await MealBaseVerificationService.decide(rnd.id, 'LIBRARY_MEAL', libraryMealId,
+      'VERIFIED', 'Reviewed the complete recipe as an edible meal.');
     assert.equal(
       (await queryEligibleLibraryMeals(eligibleQuery)).some((meal) => meal.id === libraryMealId),
       true

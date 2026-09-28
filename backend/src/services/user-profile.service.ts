@@ -65,10 +65,11 @@ function classifyProfileChanges(fields: readonly (keyof ProfileUpdateData)[]): P
 }
 
 type OnboardingEvaluationInput = Parameters<typeof evaluateOnboardingStatus>[0];
-type OnboardingEvaluationUser = Omit<OnboardingEvaluationInput, 'profile' | 'conditions' | 'allergies'> & {
+type OnboardingEvaluationUser = Omit<OnboardingEvaluationInput, 'profile' | 'conditions' | 'allergies' | 'safetyEntries'> & {
   userProfile: OnboardingEvaluationInput['profile'];
   healthConditions: Array<{ condition: string }>;
   allergies: Array<{ allergen: string }>;
+  safetyProfileEntries: Array<{ domain: string }>;
 };
 
 function evaluateUserOnboardingStatus(user: OnboardingEvaluationUser) {
@@ -80,6 +81,7 @@ function evaluateUserOnboardingStatus(user: OnboardingEvaluationUser) {
     profile: user.userProfile,
     conditions: user.healthConditions.map((item) => item.condition),
     allergies: user.allergies.map((item) => item.allergen),
+    safetyEntries: user.safetyProfileEntries,
   });
 }
 
@@ -250,6 +252,7 @@ export class UserProfileService {
         userProfile: true,
         healthConditions: { select: { condition: true } },
         allergies: { select: { allergen: true } },
+        safetyProfileEntries: { select: { domain: true } },
         nutritionReport: { select: { acknowledgedAt: true, isStale: true, profileRevision: true } },
       },
     });

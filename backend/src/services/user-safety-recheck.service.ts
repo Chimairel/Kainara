@@ -27,6 +27,8 @@ import { adaptUserSafetyRestrictions } from '@/domain/structured-restriction.ada
 import { classifyMealIngredients } from '@/domain/meal-ingredient-classification.policy';
 import { ProfileCycleAdaptationService } from './profile-cycle-adaptation.service';
 import { ClinicalProfileReviewService } from './clinical-profile-review.service';
+import { isNutritionistEligibleForReview } from '@/domain/nutritionist-review.policy';
+import { replacePlanBaseServing } from './meal-plan-serving.service';
 
 export class UserSafetyRecheckService {
   /**
@@ -192,21 +194,39 @@ export class UserSafetyRecheckService {
             otherAllergies: userProfile.otherAllergies,
             safetyEntries: user.safetyProfileEntries,
           }) : null;
-          const approval = profileApproved ? await tx.mealLibraryProfileApproval.findFirst({
+          const candidateApproval = profileApproved ? currentCertifiedMeal.profileApprovals.find((entry) =>
+            entry.safetyScopeKey === scope!.key &&
+            entry.recipeSignature === currentCertifiedMeal.recipeSignature &&
+            entry.evidenceRevision === currentCertifiedMeal.safetyEvidenceRevision &&
+            entry.reviewPolicyVersion === MEAL_PLAN_SAFETY_POLICY_VERSION &&
+            !entry.flaggedAt && entry.reviewDueAt > new Date() &&
+            isNutritionistEligibleForReview(entry.reviewerNutritionist)
+          ) : null;
+          const approval = candidateApproval ? await tx.mealLibraryProfileApproval.findFirst({
             where: {
-              mealLibraryId: currentCertifiedMeal.id,
+              id: candidateApproval.id,
               safetyScopeKey: scope!.key,
               recipeSignature: currentCertifiedMeal.recipeSignature!,
               evidenceRevision: currentCertifiedMeal.safetyEvidenceRevision,
+              reviewPolicyVersion: MEAL_PLAN_SAFETY_POLICY_VERSION,
               flaggedAt: null,
               reviewDueAt: { gt: new Date() },
             },
+            include: { reviewerNutritionist: { include: { user: { select: { role: true, isSuspended: true } } } } },
           }) : null;
+          const currentApproval = approval && isNutritionistEligibleForReview(approval.reviewerNutritionist)
+            ? approval : null;
           if (
+            currentEvidence.status !== 'APPROVED' ||
+            currentEvidence.recipeSignature !== currentCertifiedMeal.recipeSignature ||
             currentEvidence.safetyEvidenceRevision !== currentCertifiedMeal.safetyEvidenceRevision ||
-            (currentEvidence.safetyEvidenceStatus !== 'COMPLETE' && !approval)
+            (currentEvidence.safetyEvidenceStatus !== 'COMPLETE' && !currentApproval)
           )
             throw new Error('Recipe evidence changed; revalidation remains pending.');
+          // Conditions require a serving-specific clearance usage. A candidate
+          // match alone cannot silently recreate that link after a profile edit.
+          const canRestore = userConditions.every((condition) => condition === HealthConditionType.NONE) &&
+            (certified || Boolean(currentApproval));
           await tx.mealPlan.update({
             where: {
               id: meal.id,
@@ -214,14 +234,14 @@ export class UserSafetyRecheckService {
               mealLogs: { none: { status: { in: ['DONE', 'SKIPPED'] } } },
             },
             data: {
-              status: MealPlanStatus.APPROVED,
-              requiresSafetyRevalidation: false,
+              status: canRestore ? MealPlanStatus.APPROVED : MealPlanStatus.PENDING_REVIEW,
+              requiresSafetyRevalidation: !canRestore,
               safetyPolicyVersion: MEAL_PLAN_SAFETY_POLICY_VERSION,
               highRiskReviewRequired: false,
-              reviewApprovalCount: 1,
-              profileApprovalId: approval?.id ?? null,
-              nutritionistId: approval?.reviewerNutritionistId ?? currentCertifiedMeal.safetyReviewedByNutritionistId,
-              reviewedAt: approval?.approvedAt ?? new Date(),
+              reviewApprovalCount: canRestore && currentApproval ? 1 : 0,
+              profileApprovalId: canRestore ? currentApproval?.id ?? null : null,
+              nutritionistId: canRestore ? currentApproval?.reviewerNutritionistId ?? null : null,
+              reviewedAt: canRestore && currentApproval ? currentApproval.approvedAt : null,
             },
           });
         });
@@ -283,7 +303,13 @@ export class UserSafetyRecheckService {
         await prisma.$transaction(async (tx) => {
           await lockUserProfile(tx, userId);
           const evidence = await tx.mealLibrary.findUniqueOrThrow({ where: { id: selectedLibraryMeal.id } });
+          const canRestoreBaseMeal = userConditions.every((condition) => condition === HealthConditionType.NONE) &&
+            userAllergens.every((allergen) => allergen === AllergenType.NONE) &&
+            isCertifiedLibraryMealCompatible(selectedLibraryMeal, userConditions, userAllergens,
+              { ...userProfile, userId, safetyEntries: user.safetyProfileEntries });
           if (
+            evidence.status !== 'APPROVED' ||
+            evidence.recipeSignature !== selectedLibraryMeal.recipeSignature ||
             evidence.safetyEvidenceRevision !== selectedLibraryMeal.safetyEvidenceRevision ||
             evidence.safetyEvidenceStatus !== 'COMPLETE'
           )
@@ -303,13 +329,14 @@ export class UserSafetyRecheckService {
               fatG: selectedLibraryMeal.fatG,
               libraryMealId: selectedLibraryMeal.id,
               aiConfidenceFlag: AIConfidenceFlag.SAFE,
-              status: MealPlanStatus.APPROVED,
-              requiresSafetyRevalidation: false,
+              status: canRestoreBaseMeal ? MealPlanStatus.APPROVED : MealPlanStatus.PENDING_REVIEW,
+              requiresSafetyRevalidation: !canRestoreBaseMeal,
               safetyPolicyVersion: MEAL_PLAN_SAFETY_POLICY_VERSION,
               highRiskReviewRequired: false,
-              reviewApprovalCount: 1,
-              nutritionistId: selectedLibraryMeal.safetyReviewedByNutritionistId,
-              reviewedAt: new Date(),
+              reviewApprovalCount: 0,
+              profileApprovalId: null,
+              nutritionistId: null,
+              reviewedAt: null,
               // The previous meal's selection rationale must not survive a
               // safety replacement whose evidence was not captured here.
               selectionEvidence: Prisma.DbNull,
@@ -328,6 +355,13 @@ export class UserSafetyRecheckService {
               unit: ingredient.unit,
             })),
           });
+          await replacePlanBaseServing(tx, meal.id, {
+            ...selectedLibraryMeal,
+            mealType: meal.mealType,
+            recipeSignature: selectedLibraryMeal.recipeSignature,
+            evidenceSource: 'SAFETY_RECHECK_LIBRARY',
+          });
+          await tx.mealPlanClearanceUsage.deleteMany({ where: { mealPlanId: meal.id } });
           await tx.mealLibrary.update({
             where: { id: selectedLibraryMeal.id },
             data: { usageCount: { increment: 1 } },
@@ -412,12 +446,15 @@ export class UserSafetyRecheckService {
                 carbsG: Number(replacement.carbsG || 0),
                 fatG: Number(replacement.fatG || 0),
                 libraryMealId: null,
+                sourceRawRecipeCandidateId: null,
+                candidateProvenance: 'AI_FROM_SCRATCH',
                 aiConfidenceFlag: AIConfidenceFlag.CAUTION,
                 status: MealPlanStatus.PENDING_REVIEW,
                 requiresSafetyRevalidation: true,
                 safetyPolicyVersion: MEAL_PLAN_SAFETY_POLICY_VERSION,
                 highRiskReviewRequired,
                 reviewApprovalCount: 0,
+                profileApprovalId: null,
                 nutritionistId: null,
                 reviewedAt: null,
                 selectionEvidence: Prisma.DbNull,
@@ -442,6 +479,22 @@ export class UserSafetyRecheckService {
                 })),
               });
             }
+
+            await replacePlanBaseServing(tx, meal.id, {
+              mealName: replacement.mealName,
+              mealType: meal.mealType,
+              calories: replacement.calories,
+              proteinG: replacement.proteinG,
+              carbsG: replacement.carbsG,
+              fatG: replacement.fatG,
+              ingredients: replacement.ingredients.map((ing) => ({
+                ingredientName: ing.name,
+                quantity: ing.quantity,
+                unit: ing.unit,
+              })),
+              evidenceSource: 'SAFETY_RECHECK_GENERATED',
+            });
+            await tx.mealPlanClearanceUsage.deleteMany({ where: { mealPlanId: meal.id } });
 
             await tx.mealLog.upsert({
               where: { mealPlanId: meal.id },
@@ -482,9 +535,9 @@ export class UserSafetyRecheckService {
       await prisma.notification.create({
         data: {
           userId,
-          title: 'Meal Plan Safety Update ⚠️',
-          message: `We updated ${replacedCount} meal(s) in your current plan due to your health or food restriction update.`,
-          type: NotificationType.PLAN_APPROVED,
+          title: 'Meal plan recheck update',
+          message: `We updated ${replacedCount} meal(s) after your health or food restriction change. Check your plan for meals awaiting review.`,
+          type: NotificationType.REVIEW_REQUEST,
         },
       });
     }

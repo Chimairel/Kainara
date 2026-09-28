@@ -19,6 +19,7 @@ import { queryEligibleLibraryMeals } from '../src/services/meal-library-candidat
 import { flagMealApproval, recheckProfileApproval } from '../src/services/meal-approval-lifecycle.service';
 import { flagWholeMeal, releaseWholeMeal } from '../src/services/meal-wide-flag.service';
 import { getManilaDateKey, getManilaMidnight } from '../src/domain/meal-plan-cycle.policy';
+import { SafetyIntakeService } from '../src/services/safety-intake.service';
 
 async function main() {
   const url = new URL(process.env.DATABASE_URL ?? '');
@@ -76,6 +77,13 @@ async function main() {
       allergies: { create: { allergen: item.allergy } },
     } });
     users.set(item.label, user.id);
+    await assert.rejects(ClinicalProfileReviewService.assertReadyForMealPlanning(user.id),
+      /Confirm your conditions and allergies/);
+    await SafetyIntakeService.replaceDomains(user.id, ['CONDITION', 'ALLERGY'], [
+      { domain: 'CONDITION', value: item.condition, provenance: 'PREDEFINED' },
+      { domain: 'ALLERGY', value: item.allergy, provenance: 'PREDEFINED' },
+    ]);
+    await prisma.userProfile.update({ where: { userId: user.id }, data: { dailyCalorieTarget: 1200 } });
   }
 
   const diabetesId = users.get('diabetes-eggs')!;
@@ -190,7 +198,7 @@ async function main() {
         assert.ok(reusable.some((meal) => meal.id === approved.libraryMealId));
         const sameCaseOtherUser = await queryEligibleLibraryMeals({
           mealType: selected.mealType, userConditions: ['NONE'], userAllergens: ['EGGS'],
-          profile: { ...user.userProfile!, userId: `another-user-${marker}`, safetyEntries: [] },
+          profile: { ...user.userProfile!, userId: `another-user-${marker}`, safetyEntries: user.safetyProfileEntries },
         });
         assert.ok(sameCaseOtherUser.some((meal) => meal.id === approved.libraryMealId));
         const differentCase = await queryEligibleLibraryMeals({

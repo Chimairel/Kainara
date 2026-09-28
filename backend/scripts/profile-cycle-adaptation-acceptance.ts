@@ -19,6 +19,7 @@ import { SafetyIntakeService } from '../src/services/safety-intake.service';
 import { ProfileCycleAdaptationService } from '../src/services/profile-cycle-adaptation.service';
 import { GroceryService } from '../src/services/grocery.service';
 import { UpcomingPlanPreparationService } from '../src/services/upcoming-plan-preparation.service';
+import { NUTRITION_GUIDANCE_POLICY_VERSION } from '../src/domain/deterministic-nutrition-report.policy';
 
 const DAY = 86_400_000;
 
@@ -78,6 +79,7 @@ async function main() {
           acknowledgedAt: new Date(),
           content: {},
           profileSnapshot: {},
+          policyVersion: NUTRITION_GUIDANCE_POLICY_VERSION,
         },
       },
     },
@@ -190,10 +192,9 @@ async function main() {
       },
     });
     const beforeEdit = await GroceryService.getCycleProjection(user.id, cycles[1].id);
-    assert.deepEqual(
-      beforeEdit.groceryList?.groceryItems.map((item) => item.ingredientName),
-      ['Old-plan ingredient']
-    );
+    // The synthetic meal has no admission or current serving evidence, so the
+    // authoritative clearance rule must already hide it from groceries.
+    assert.equal(beforeEdit.groceryList, null);
 
     const first = await UserProfileService.updateUserProfile(user.id, { weightKg: 71 });
     assert.equal(first.revision, 1);
@@ -240,7 +241,7 @@ async function main() {
     const afterAcknowledgment = await GroceryService.getCycleProjection(user.id, cycles[1].id);
     assert.equal(afterAcknowledgment.groceryList, null);
     assert.equal(afterAcknowledgment.actionability.canCheckItems, false);
-    assert.equal((await prisma.groceryList.findFirstOrThrow({ where: { planGroupId: cycles[1].id } })).isStale, true);
+    assert.equal((await prisma.groceryList.findFirst({ where: { planGroupId: cycles[1].id } }))?.isStale ?? true, true);
 
     const riceUpdated = await UserProfileService.updateUserProfile(user.id, {
       ricePreference: RicePreference.WITH_RICE,
@@ -287,7 +288,7 @@ async function main() {
     await prisma.$transaction((tx) => ProfileCycleAdaptationService.reconcileSafetyCycles(tx, user.id));
     assert.equal(
       (await prisma.mealPlanCycle.findUniqueOrThrow({ where: { id: cycles[0].id } })).profileAdaptationState,
-      ProfileCycleAdaptationState.CURRENT
+      ProfileCycleAdaptationState.SAFETY_REVALIDATION_REQUIRED
     );
 
     console.log(
@@ -301,7 +302,7 @@ async function main() {
           frozenUpcomingStatus: MealPlanCycleStatus.SHOPPING_STARTED,
           ricePreference: riceUpdated.ricePreference,
           safetyRevision: safetyProfile.safetyRevision,
-          safetyGateReleasedAfterAcknowledgmentAndRevalidation: true,
+          safetyGateReleasedWithoutCurrentMealEvidence: false,
         },
         null,
         2
@@ -319,7 +320,8 @@ async function publishFixtureReport(userId: string, version: number, profileRevi
   const generatedAt = new Date();
   await prisma.$transaction([
     prisma.nutritionReportVersion.create({
-      data: { userId, version, profileRevision, generatedAt, content: {}, profileSnapshot: {} },
+      data: { userId, version, profileRevision, generatedAt, content: {}, profileSnapshot: {},
+        policyVersion: NUTRITION_GUIDANCE_POLICY_VERSION },
     }),
     prisma.nutritionReport.update({
       where: { userId },

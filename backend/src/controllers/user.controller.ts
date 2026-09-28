@@ -10,6 +10,18 @@ import { sanitizeErrorMessage } from '@/lib/sanitizeError';
 import { COMMON_ALLERGIES, COMMON_CONDITIONS } from '@/services/health-validation.service';
 import { SafetyIntakeService } from '@/services/safety-intake.service';
 
+// The declaration and its fail-closed invalidation commit together. A later
+// recheck failure must never make the API claim that the declaration was lost.
+async function trySafetyRecheck(userId: string): Promise<boolean> {
+  try {
+    await UserService.runSafetyRecheck(userId);
+    return true;
+  } catch (error) {
+    console.error('[UserController] Safety recheck deferred; pending plans remain blocked.', error);
+    return false;
+  }
+}
+
 export class UserController {
   static async getSafetyCatalogue(_req: AuthenticatedRequest, res: Response) {
     return res.status(200).json({ success: true, data: SafetyIntakeService.getCatalogue() });
@@ -19,9 +31,7 @@ export class UserController {
     try {
       const userId = req.user?.userId;
       if (!userId) return res.status(401).json({ success: false, error: 'Unauthorized.' });
-      const preview = req.body.editableDomains
-        ? await SafetyIntakeService.previewDomains(userId, req.body.editableDomains, req.body.entries)
-        : SafetyIntakeService.preview(req.body.entries);
+      const preview = await SafetyIntakeService.previewDomains(userId, req.body.editableDomains, req.body.entries);
       return res.status(200).json({ success: true, data: preview });
     } catch (error: unknown) {
       return res.status(400).json({
@@ -35,11 +45,9 @@ export class UserController {
     try {
       const userId = req.user?.userId;
       if (!userId) return res.status(401).json({ success: false, error: 'Unauthorized.' });
-      const saved = req.body.editableDomains
-        ? await SafetyIntakeService.replaceDomains(userId, req.body.editableDomains, req.body.entries)
-        : await SafetyIntakeService.save(userId, req.body.entries);
-      if (saved.changed) await UserService.runSafetyRecheck(userId);
-      return res.status(200).json({ success: true, data: saved });
+      const saved = await SafetyIntakeService.replaceDomains(userId, req.body.editableDomains, req.body.entries);
+      const safetyRecheckRetryNeeded = saved.changed && !(await trySafetyRecheck(userId));
+      return res.status(200).json({ success: true, data: { ...saved, safetyRecheckRetryNeeded } });
     } catch (error: unknown) {
       return res.status(400).json({
         success: false,
@@ -90,15 +98,15 @@ export class UserController {
       const updatedProfile = await UserService.updateUserProfile(userId, req.body);
 
       const user = await prisma.user.findUnique({ where: { id: userId } });
-      if (user?.onboardingDone && previousProfile?.safetyRevision !== updatedProfile.safetyRevision) {
-        await UserService.runSafetyRecheck(userId);
-      }
+      const safetyRecheckRetryNeeded = Boolean(user?.onboardingDone &&
+        previousProfile?.safetyRevision !== updatedProfile.safetyRevision &&
+        !(await trySafetyRecheck(userId)));
 
       const profileDetails = await UserService.getUserProfileDetails(userId);
 
       return res.status(200).json({
         success: true,
-        data: profileDetails,
+        data: { ...profileDetails, safetyRecheckRetryNeeded },
       });
     } catch (error: any) {
       console.error('[UserController] updateProfile error:', error);
@@ -137,11 +145,11 @@ export class UserController {
         ]
       );
 
-      if (savedConditions.changed) await UserService.runSafetyRecheck(userId);
+      const safetyRecheckRetryNeeded = savedConditions.changed && !(await trySafetyRecheck(userId));
 
       return res.status(200).json({
         success: true,
-        data: savedConditions,
+        data: { ...savedConditions, safetyRecheckRetryNeeded },
       });
     } catch (error: any) {
       console.error('[UserController] updateConditions error:', error);
@@ -180,11 +188,11 @@ export class UserController {
         ]
       );
 
-      if (savedAllergies.changed) await UserService.runSafetyRecheck(userId);
+      const safetyRecheckRetryNeeded = savedAllergies.changed && !(await trySafetyRecheck(userId));
 
       return res.status(200).json({
         success: true,
-        data: savedAllergies,
+        data: { ...savedAllergies, safetyRecheckRetryNeeded },
       });
     } catch (error: any) {
       console.error('[UserController] updateAllergies error:', error);
@@ -226,9 +234,9 @@ export class UserController {
             : []),
         ]
       );
-      if (saved.changed) await UserService.runSafetyRecheck(userId);
+      const safetyRecheckRetryNeeded = saved.changed && !(await trySafetyRecheck(userId));
 
-      return res.status(200).json({ success: true, data: saved });
+      return res.status(200).json({ success: true, data: { ...saved, safetyRecheckRetryNeeded } });
     } catch (error: unknown) {
       console.error('[UserController] updateSafetyProfile error:', error);
       return res.status(500).json({ success: false, error: 'Failed to update clinical safety settings.' });

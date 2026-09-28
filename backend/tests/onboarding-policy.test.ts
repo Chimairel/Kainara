@@ -39,7 +39,22 @@ const completeSnapshot: OnboardingSnapshot = {
   },
   conditions: ['NONE'],
   allergies: ['NONE'],
+  safetyEntries: [{ domain: 'CONDITION' }, { domain: 'ALLERGY' }],
 };
+
+test('legacy NONE rows do not stand in for an explicit safety declaration', () => {
+  const missingCondition = evaluateOnboardingStatus({
+    ...completeSnapshot,
+    safetyEntries: [{ domain: 'ALLERGY' }],
+  });
+  assert.equal(missingCondition.nextPath, '/onboarding/conditions');
+  assert.equal(missingCondition.readyToComplete, false);
+  const missingAllergy = evaluateOnboardingStatus({
+    ...completeSnapshot,
+    safetyEntries: [{ domain: 'CONDITION' }],
+  });
+  assert.equal(missingAllergy.nextPath, '/onboarding/allergies');
+});
 
 test('onboarding status routes an incomplete profile to the first missing step', () => {
   const status = evaluateOnboardingStatus({

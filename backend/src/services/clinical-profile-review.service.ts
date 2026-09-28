@@ -50,6 +50,8 @@ function context(user: ProfileUser) {
     profile,
     snapshot,
     scopeKey: snapshotKey(snapshot)!,
+    declarationRequired: !user.safetyProfileEntries.some((item) => item.domain === 'CONDITION') ||
+      !user.safetyProfileEntries.some((item) => item.domain === 'ALLERGY'),
     restricted: snapshot.conditions.some((item) => item !== 'NONE') || snapshot.allergies.some((item) => item !== 'NONE') ||
       snapshot.customConditions.length > 0 || snapshot.customFoodRestrictions.length > 0,
     needsClarification: restrictions.requiresReview,
@@ -77,6 +79,7 @@ export class ClinicalProfileReviewService {
       typeof request.reasonCodes[1] === 'string' ? request.reasonCodes[1] : null;
     return {
       required: current.restricted, approved: await this.hasCurrentApproval(userId),
+      declarationRequired: current.declarationRequired,
       documentRequest: request ? {
         area: requestArea,
         notes: request.reviewNotes,
@@ -88,6 +91,7 @@ export class ClinicalProfileReviewService {
     const user = await client.user.findUnique({ where: { id: userId }, include: userInclude });
     if (!user) throw new AppError('User not found.', 404, 'USER_NOT_FOUND');
     const current = context(user);
+    if (current.declarationRequired) return false;
     if (!current.restricted) return true;
     const approvals = await client.clinicalProfileReview.findMany({
       where: { userId, policyVersion: POLICY_VERSION, status: 'APPROVED' },
@@ -98,6 +102,10 @@ export class ClinicalProfileReviewService {
 
   static async assertReadyForMealPlanning(userId: string) {
     if (await this.hasCurrentApproval(userId)) return;
+    const user = await prisma.user.findUnique({ where: { id: userId }, include: userInclude });
+    if (user && context(user).declarationRequired) {
+      throw new AppError('Confirm your conditions and allergies before meal planning.', 422, 'SAFETY_DECLARATION_REQUIRED');
+    }
     throw new AppError('Your health profile is awaiting nutritionist review before meals can be prepared.', 422, 'PROFILE_REVIEW_REQUIRED');
   }
 

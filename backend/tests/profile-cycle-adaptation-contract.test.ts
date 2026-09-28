@@ -34,7 +34,7 @@ test('[BATCH-2] safety changes gate every current or future cycle and release on
   assert.match(adaptation, /endDate: \{ gte: businessDay \}/);
   assert.match(adaptation, /SAFETY_REVALIDATION_REQUIRED/);
   assert.match(adaptation, /acknowledgedProfileRevision !== cycle\.requestedProfileRevision/);
-  assert.match(adaptation, /requiresSafetyRevalidation === false/);
+  assert.match(adaptation, /MealPlanCycleService\.getClearedMealPlanIds\(userId, cycle\.id/);
   assert.match(report, /expectedVersion !== report\.version/);
   assert.match(report, /acknowledgeProfileRevision\(tx, userId, profile\.revision\)/);
 });

@@ -1,5 +1,6 @@
 import { MealPlanCycleStatus, MealPlanStatus, Prisma, ProfileCycleAdaptationState } from '@prisma/client';
 import { getStartOfManilaBusinessDay } from '@/domain/meal-actionability.policy';
+import { MealPlanCycleService } from './meal-plan-cycle.service';
 
 export const PROFILE_CHANGE_KIND = {
   BODY_TARGETS: 'BODY_TARGETS',
@@ -161,7 +162,7 @@ export class ProfileCycleAdaptationService {
         expectedSlotCount: true,
         mealPlans: {
           where: { status: { not: MealPlanStatus.CANCELLED } },
-          select: { status: true, requiresSafetyRevalidation: true, scheduledDate: true, mealType: true },
+          select: { id: true, status: true, requiresSafetyRevalidation: true, scheduledDate: true, mealType: true },
         },
       },
     });
@@ -173,9 +174,10 @@ export class ProfileCycleAdaptationService {
       ) {
         continue;
       }
+      const clearedIds = new Set(await MealPlanCycleService.getClearedMealPlanIds(userId, cycle.id, new Date(), tx));
       const actionableSlots = new Set(
         cycle.mealPlans
-          .filter((meal) => meal.status === MealPlanStatus.APPROVED && meal.requiresSafetyRevalidation === false)
+          .filter((meal) => clearedIds.has(meal.id))
           .map((meal) => `${meal.scheduledDate.getTime()}:${meal.mealType}`)
       );
       if (actionableSlots.size < cycle.expectedSlotCount) continue;
