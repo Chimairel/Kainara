@@ -107,22 +107,17 @@ export default function MealVerificationPanel() {
         </Button>
       </div>
     ) : (
-      <div className="flex items-center gap-2">
-        <Button
-          variant="primary"
-          size="sm"
-          disabled={busy || selected.claimedByOther}
-          isLoading={busy}
-          onClick={() => void act('claim')}
-          className="rounded-xl shadow-md text-xs font-bold px-3.5 py-2"
-        >
-          <ChefHat className="mr-1.5 h-3.5 w-3.5" />
-          Claim verification
-        </Button>
-        <span className="hidden sm:inline-block rounded-xl border border-brand-border/70 bg-brand-surface/90 px-2.5 py-1.5 text-[11px] font-semibold text-brand-muted backdrop-blur-md shadow-xs">
-          Preview only
-        </span>
-      </div>
+      <Button
+        variant="primary"
+        size="sm"
+        disabled={busy || selected.claimedByOther}
+        isLoading={busy}
+        onClick={() => void act('claim')}
+        className="rounded-xl shadow-md text-xs font-bold px-3.5 py-2"
+      >
+        <ChefHat className="mr-1.5 h-3.5 w-3.5" />
+        Claim verification
+      </Button>
     )
   ) : null;
 

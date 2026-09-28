@@ -257,56 +257,50 @@ export default function ReviewsPage() {
     );
   }
 
+  const selectedQueueMeal = queue.find((m) => m.id === selectedMealId);
+  const activeClaimStatus = detailData?.claimStatus ?? selectedQueueMeal?.claimStatus;
+
   const claimHeader = selectedMealId ? (
-    detailLoading ? (
-      <div className="h-9 w-32 rounded-xl bg-brand-surface/80 border border-brand-border/60 animate-pulse shadow-sm" />
-    ) : detailData ? (
-      detailData.claimStatus.claimedByMe ? (
-        <div className="flex items-center gap-2 rounded-xl border border-brand-green/35 bg-brand-surface/95 px-3 py-1.5 text-xs text-brand-green shadow-md backdrop-blur-md">
-          <ShieldCheck className="h-3.5 w-3.5 shrink-0 text-brand-green" />
-          <span className="font-semibold text-xs text-brand-text">
-            Claimed until{' '}
-            {detailData.claimStatus.claimExpiresAt
-              ? new Date(detailData.claimStatus.claimExpiresAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-              : '30m'}
-          </span>
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={handleReleaseMeal}
-            isLoading={actionLoading === selectedMealId}
-            disabled={Boolean(actionLoading)}
-            className="ml-1 text-[11px] h-7 px-2.5 rounded-lg border-brand-green/30 hover:border-brand-green/50"
-          >
-            Release claim
-          </Button>
-        </div>
-      ) : detailData.claimStatus.claimedByOther ? (
-        <span className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-1.5 text-xs font-bold text-amber-500 shadow-sm backdrop-blur-md">
-          Being reviewed by another RND
+    activeClaimStatus?.claimedByMe ? (
+      <div className="flex items-center gap-2 rounded-xl border border-brand-green/35 bg-brand-surface/95 px-3 py-1.5 text-xs text-brand-green shadow-md backdrop-blur-md">
+        <ShieldCheck className="h-3.5 w-3.5 shrink-0 text-brand-green" />
+        <span className="font-semibold text-xs text-brand-text">
+          Claimed until{' '}
+          {activeClaimStatus.claimExpiresAt
+            ? new Date(activeClaimStatus.claimExpiresAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+            : '30m'}
         </span>
-      ) : detailData.claimStatus.coolingDownForMe ? (
-        <span className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-1.5 text-xs font-bold text-amber-500 shadow-sm backdrop-blur-md">
-          Claim cooling down
-        </span>
-      ) : (
-        <div className="flex items-center gap-2">
-          <Button
-            size="sm"
-            onClick={handleClaimMeal}
-            isLoading={actionLoading === selectedMealId}
-            disabled={Boolean(actionLoading)}
-            className="rounded-xl shadow-md text-xs font-bold px-3.5 py-2"
-          >
-            <ShieldCheck className="mr-1.5 h-3.5 w-3.5" />
-            Claim review
-          </Button>
-          <span className="hidden sm:inline-block rounded-xl border border-brand-border/70 bg-brand-surface/90 px-2.5 py-1.5 text-[11px] font-semibold text-brand-muted backdrop-blur-md shadow-xs">
-            Preview only
-          </span>
-        </div>
-      )
-    ) : null
+        <Button
+          variant="secondary"
+          size="sm"
+          onClick={handleReleaseMeal}
+          isLoading={actionLoading === selectedMealId}
+          disabled={Boolean(actionLoading)}
+          className="ml-1 text-[11px] h-7 px-2.5 rounded-lg border-brand-green/30 hover:border-brand-green/50"
+        >
+          Release claim
+        </Button>
+      </div>
+    ) : activeClaimStatus?.claimedByOther ? (
+      <span className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-1.5 text-xs font-bold text-amber-500 shadow-sm backdrop-blur-md">
+        Being reviewed by another RND
+      </span>
+    ) : activeClaimStatus?.coolingDownForMe ? (
+      <span className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-1.5 text-xs font-bold text-amber-500 shadow-sm backdrop-blur-md">
+        Claim cooling down
+      </span>
+    ) : (
+      <Button
+        size="sm"
+        onClick={handleClaimMeal}
+        isLoading={actionLoading === selectedMealId || (detailLoading && !activeClaimStatus)}
+        disabled={Boolean(actionLoading)}
+        className="rounded-xl shadow-md text-xs font-bold px-3.5 py-2"
+      >
+        <ShieldCheck className="mr-1.5 h-3.5 w-3.5" />
+        Claim review
+      </Button>
+    )
   ) : null;
 
   return (

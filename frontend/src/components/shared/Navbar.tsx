@@ -190,7 +190,7 @@ export const Navbar: React.FC = () => {
   const segments = getBreadcrumbSegments(pathname, user.role, subTab);
 
   return (
-    <header className="relative z-30 flex min-h-[60px] w-full shrink-0 items-center justify-between gap-3 border-b border-brand-border/50 bg-brand-surface/70 px-4 backdrop-blur-xl md:px-5">
+    <header className="relative z-30 flex min-h-[60px] w-full shrink-0 items-center justify-between gap-3 border-b border-brand-border/40 bg-transparent px-4 md:px-5">
       <div className="min-w-0 flex items-center">
         <Breadcrumb1 segments={segments} />
       </div>

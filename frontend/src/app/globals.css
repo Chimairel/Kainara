@@ -320,23 +320,9 @@ th {
 }
 
 .portal-shell {
-  background:
-    radial-gradient(circle at 78% -15%, var(--orb-cyan), transparent 32rem),
-    radial-gradient(circle at 18% 105%, var(--orb-green), transparent 34rem), var(--brand-bg);
+  background: var(--brand-bg);
   isolation: isolate;
   position: relative;
-}
-
-.portal-shell::before {
-  background: radial-gradient(circle, var(--orb-cyan), transparent 65%);
-  content: '';
-  height: 28rem;
-  pointer-events: none;
-  position: fixed;
-  right: -12rem;
-  top: -12rem;
-  width: 28rem;
-  z-index: -1;
 }
 
 .portal-main {
@@ -350,19 +336,6 @@ th {
   padding: 1.25rem;
   position: relative;
   width: 100%;
-}
-
-.portal-page::before {
-  background: radial-gradient(circle, var(--orb-green), transparent 68%);
-  content: '';
-  height: 20rem;
-  left: 12%;
-  opacity: 0.25;
-  pointer-events: none;
-  position: absolute;
-  top: 3rem;
-  width: min(20rem, 88%);
-  z-index: -1;
 }
 
 .portal-page-header {
