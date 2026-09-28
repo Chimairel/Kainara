@@ -3,6 +3,7 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { ArrowLeft, Maximize2, Minimize2 } from 'lucide-react';
+import ThemeToggle from '@/components/ui/ThemeToggle';
 
 export default function ExpandableCasePanel({
   children,
@@ -84,7 +85,8 @@ export default function ExpandableCasePanel({
                 </span>
               </div>
 
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2.5">
+                <ThemeToggle size="sm" />
                 <span className="hidden text-[11px] font-medium text-brand-muted md:inline-block">
                   Press <kbd className="rounded border border-brand-border bg-brand-bg px-1.5 py-0.5 font-mono text-[10px] text-brand-text">Esc</kbd> to exit
                 </span>

@@ -23,6 +23,8 @@ import {
 } from 'lucide-react';
 import PortalPageHeader from '@/components/shared/PortalPageHeader';
 import { ReviewQueueSkeleton, ReviewDetailSkeleton } from '@/features/nutritionist-reviews/NutritionistReviewsSkeleton';
+import MealImage from '@/components/user/MealImage';
+import type { PublicMealImage } from '@/types';
 
 import { useNutritionistReviews } from '@/features/nutritionist-reviews/useNutritionistReviews';
 import IngredientEvidenceList from '@/features/nutritionist-reviews/IngredientEvidenceList';
@@ -651,6 +653,18 @@ export default function ReviewsPage() {
                       {new Date(detailData.mealPlan.createdAt).toLocaleDateString()}
                     </p>
                   </div>
+                </div>
+
+                {/* Meal Image Visual */}
+                <div className="overflow-hidden rounded-2xl border border-brand-border/60">
+                  <MealImage
+                    mealName={detailData.mealPlan.mealName}
+                    mealType={detailData.mealPlan.mealType}
+                    image={(detailData.mealPlan as { image?: PublicMealImage | null }).image ?? null}
+                    variant="card"
+                    className="h-44 w-full sm:h-52"
+                    showAttributionLinks
+                  />
                 </div>
 
                 {/* Description */}

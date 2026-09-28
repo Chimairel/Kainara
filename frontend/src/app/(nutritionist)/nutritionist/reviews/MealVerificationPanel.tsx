@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import api from '@/lib/axios';
 import { getApiErrorMessage } from '@/lib/api-error';
 import Button from '@/components/ui/Button';
+import MealImage from '@/components/user/MealImage';
 
 type MealCandidate = {
   kind: 'LIBRARY_MEAL' | 'RAW_RECIPE' | 'GENERATED_RECIPE';
@@ -132,6 +133,16 @@ export default function MealVerificationPanel() {
               <p className="mt-2 text-sm leading-relaxed text-brand-muted">
                 {selected.description || 'No description recorded.'}
               </p>
+            </div>
+
+            <div className="overflow-hidden rounded-2xl border border-brand-border/60">
+              <MealImage
+                mealName={selected.name}
+                mealType={selected.mealType}
+                variant="card"
+                className="h-44 w-full sm:h-52"
+                showAttributionLinks
+              />
             </div>
 
             <div className="rounded-2xl border border-brand-border/70 bg-brand-bgAlt/40 p-4 text-sm font-display font-bold flex flex-wrap gap-4 text-brand-text">

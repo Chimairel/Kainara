@@ -1,14 +1,19 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import { useState } from 'react';
 import { describe, expect, it } from 'vitest';
+import { ThemeProvider } from '@/lib/context/ThemeContext';
 import ExpandableCasePanel from './ExpandableCasePanel';
 
 function CaseFixture() {
   const [expanded, setExpanded] = useState(false);
   const [selection] = useState('Selected approval: Diabetes + shrimp allergy');
-  return <ExpandableCasePanel expanded={expanded} onExpandedChange={setExpanded}>
-    <p>{selection}</p>
-  </ExpandableCasePanel>;
+  return (
+    <ThemeProvider>
+      <ExpandableCasePanel expanded={expanded} onExpandedChange={setExpanded}>
+        <p>{selection}</p>
+      </ExpandableCasePanel>
+    </ThemeProvider>
+  );
 }
 
 describe('shared case viewer', () => {
