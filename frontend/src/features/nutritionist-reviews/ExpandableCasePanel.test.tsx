@@ -26,4 +26,28 @@ describe('shared case viewer', () => {
     expect(screen.getByRole('button', { name: 'Expand case details' })).toBeInTheDocument();
     expect(screen.getByText('Selected approval: Diabetes + shrimp allergy')).toBeInTheDocument();
   });
+
+  it('renders headerLeft on the upper left in split and expanded views', () => {
+    function HeaderFixture() {
+      const [expanded, setExpanded] = useState(false);
+      return (
+        <ThemeProvider>
+          <ExpandableCasePanel
+            expanded={expanded}
+            onExpandedChange={setExpanded}
+            headerLeft={<button type="button">Claim review</button>}
+          >
+            <p>Case content</p>
+          </ExpandableCasePanel>
+        </ThemeProvider>
+      );
+    }
+    render(<HeaderFixture />);
+    expect(screen.getByRole('button', { name: 'Claim review' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Expand case details' })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Expand case details' }));
+    expect(screen.getByRole('button', { name: 'Back to split view' })).toBeInTheDocument();
+    expect(screen.getAllByRole('button', { name: 'Claim review' }).length).toBeGreaterThanOrEqual(1);
+  });
 });

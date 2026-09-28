@@ -258,6 +258,58 @@ export default function ReviewsPage() {
     );
   }
 
+  const claimHeader = selectedMealId ? (
+    detailLoading ? (
+      <div className="h-9 w-32 rounded-xl bg-brand-surface/80 border border-brand-border/60 animate-pulse shadow-sm" />
+    ) : detailData ? (
+      detailData.claimStatus.claimedByMe ? (
+        <div className="flex items-center gap-2 rounded-xl border border-brand-green/35 bg-brand-surface/95 px-3 py-1.5 text-xs text-brand-green shadow-md backdrop-blur-md">
+          <ShieldCheck className="h-3.5 w-3.5 shrink-0 text-brand-green" />
+          <span className="font-semibold text-xs text-brand-text">
+            Claimed until{' '}
+            {detailData.claimStatus.claimExpiresAt
+              ? new Date(detailData.claimStatus.claimExpiresAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+              : '30m'}
+          </span>
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={handleReleaseMeal}
+            isLoading={actionLoading === selectedMealId}
+            disabled={Boolean(actionLoading)}
+            className="ml-1 text-[11px] h-7 px-2.5 rounded-lg border-brand-green/30 hover:border-brand-green/50"
+          >
+            Release claim
+          </Button>
+        </div>
+      ) : detailData.claimStatus.claimedByOther ? (
+        <span className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-1.5 text-xs font-bold text-amber-500 shadow-sm backdrop-blur-md">
+          Being reviewed by another RND
+        </span>
+      ) : detailData.claimStatus.coolingDownForMe ? (
+        <span className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-1.5 text-xs font-bold text-amber-500 shadow-sm backdrop-blur-md">
+          Claim cooling down
+        </span>
+      ) : (
+        <div className="flex items-center gap-2">
+          <Button
+            size="sm"
+            onClick={handleClaimMeal}
+            isLoading={actionLoading === selectedMealId}
+            disabled={Boolean(actionLoading)}
+            className="rounded-xl shadow-md text-xs font-bold px-3.5 py-2"
+          >
+            <ShieldCheck className="mr-1.5 h-3.5 w-3.5" />
+            Claim review
+          </Button>
+          <span className="hidden sm:inline-block rounded-xl border border-brand-border/70 bg-brand-surface/90 px-2.5 py-1.5 text-[11px] font-semibold text-brand-muted backdrop-blur-md shadow-xs">
+            Preview only
+          </span>
+        </div>
+      )
+    ) : null
+  ) : null;
+
   return (
     <div className="portal-page space-y-5 pb-20 text-brand-text">
       <div className="mx-auto flex max-w-7xl flex-col gap-5">
@@ -398,7 +450,7 @@ export default function ReviewsPage() {
       </div>
 
       {/* Details View Panel */}
-      <ExpandableCasePanel expanded={expanded} onExpandedChange={setExpanded} canExpand={selectedMealId !== null}
+      <ExpandableCasePanel expanded={expanded} onExpandedChange={setExpanded} canExpand={selectedMealId !== null} headerLeft={claimHeader}
         className={`${selectedMealId ? 'flex' : 'hidden md:flex'} h-full min-w-0 flex-1 flex-col overflow-y-auto bg-transparent p-4 custom-scrollbar sm:p-6`}>
         {selectedMealId !== null && (
           <button
@@ -476,27 +528,12 @@ export default function ReviewsPage() {
         ) : detailData ? (
           <div className="space-y-6">
             {errorMsg && <div role="alert" className="rounded-xl border border-red-500/30 bg-red-950/20 p-3 text-xs text-red-400">{errorMsg}</div>}
-            {!detailData.claimStatus.claimedByMe && (
-              <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-brand-border bg-brand-surface p-4">
-                <p className="text-xs text-brand-muted">Preview only. Claim this meal before submitting a review or downloading its clinical record.</p>
-                <Button onClick={handleClaimMeal} isLoading={actionLoading === selectedMealId} disabled={Boolean(actionLoading)}>
-                  Claim review
-                </Button>
-              </div>
-            )}
-            {/* Header Lock Info Banner */}
             {detailData.claimStatus.claimedByMe && (
-              <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-brand-green/20 bg-brand-green/10 p-3 text-xs text-brand-green">
+              <div className="flex items-center gap-2.5 rounded-xl border border-brand-green/20 bg-brand-green/10 p-3 text-xs text-brand-green">
                 <ShieldCheck className="h-4 w-4 shrink-0" />
-                <span className="flex-1">
-                  Claimed by you until{' '}
-                  {detailData.claimStatus.claimExpiresAt
-                    ? new Date(detailData.claimStatus.claimExpiresAt).toLocaleTimeString()
-                    : 'the 30-minute deadline'}. Submit before it expires; afterward, others may claim it and you have a 5-minute cooldown.
+                <span>
+                  30-minute exclusive review lock active. Submit before expiry to prevent automatic release and cooldown.
                 </span>
-                <Button variant="secondary" onClick={handleReleaseMeal} isLoading={actionLoading === selectedMealId} disabled={Boolean(actionLoading)}>
-                  Release claim
-                </Button>
               </div>
             )}
             {detailData.mealPlan.requiresSafetyRevalidation && (

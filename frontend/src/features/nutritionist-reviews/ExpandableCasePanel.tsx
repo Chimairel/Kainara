@@ -11,12 +11,14 @@ export default function ExpandableCasePanel({
   expanded,
   onExpandedChange,
   canExpand = true,
+  headerLeft,
 }: {
   children: ReactNode;
   className?: string;
   expanded: boolean;
   onExpandedChange: (value: boolean) => void;
   canExpand?: boolean;
+  headerLeft?: ReactNode;
 }) {
   const [mounted, setMounted] = useState(false);
 
@@ -42,17 +44,22 @@ export default function ExpandableCasePanel({
     };
   }, [expanded, onExpandedChange]);
 
-  const expandButton = canExpand ? (
-    <div className="sticky top-2 z-30 flex justify-end pb-2 pointer-events-none">
-      <button
-        type="button"
-        onClick={() => onExpandedChange(true)}
-        aria-label="Expand case details"
-        title="Expand full screen"
-        className="pointer-events-auto inline-flex h-9 w-9 items-center justify-center rounded-xl border border-brand-border/80 bg-brand-surface/95 text-brand-muted shadow-md backdrop-blur-md transition-all hover:border-brand-accent/60 hover:bg-brand-surface hover:text-brand-accent focus-visible:ring-2 focus-visible:ring-brand-accent"
-      >
-        <Maximize2 className="h-4 w-4" aria-hidden="true" />
-      </button>
+  const topBar = (canExpand || headerLeft) ? (
+    <div className="sticky top-2 z-30 flex items-center justify-between gap-3 pb-2 pointer-events-none">
+      <div className="pointer-events-auto flex items-center gap-2 min-w-0">
+        {headerLeft}
+      </div>
+      {canExpand && (
+        <button
+          type="button"
+          onClick={() => onExpandedChange(true)}
+          aria-label="Expand case details"
+          title="Expand full screen"
+          className="pointer-events-auto inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-brand-border/80 bg-brand-surface/95 text-brand-muted shadow-md backdrop-blur-md transition-all hover:border-brand-accent/60 hover:bg-brand-surface hover:text-brand-accent focus-visible:ring-2 focus-visible:ring-brand-accent"
+        >
+          <Maximize2 className="h-4 w-4" aria-hidden="true" />
+        </button>
+      )}
     </div>
   ) : null;
 
@@ -83,6 +90,11 @@ export default function ExpandableCasePanel({
                 <span className="hidden text-xs font-semibold text-brand-muted sm:inline-block">
                   Full screen case inspection
                 </span>
+                {headerLeft && (
+                  <div className="hidden sm:flex items-center pl-3 border-l border-brand-border/70">
+                    {headerLeft}
+                  </div>
+                )}
               </div>
 
               <div className="flex items-center gap-2.5">
@@ -115,7 +127,7 @@ export default function ExpandableCasePanel({
 
   return (
     <div className={className}>
-      {expandButton}
+      {topBar}
       {children}
     </div>
   );

@@ -90,6 +90,42 @@ export default function MealVerificationPanel() {
     }
   };
 
+  const claimHeader = selected ? (
+    selected.claimedByMe ? (
+      <div className="flex items-center gap-2 rounded-xl border border-brand-green/35 bg-brand-surface/95 px-3 py-1.5 text-xs text-brand-green shadow-md backdrop-blur-md">
+        <ShieldCheck className="h-3.5 w-3.5 shrink-0 text-brand-green" />
+        <span className="font-semibold text-xs text-brand-text">Claim active</span>
+        <Button
+          variant="secondary"
+          size="sm"
+          disabled={busy}
+          isLoading={busy}
+          onClick={() => void act('release')}
+          className="ml-1 text-[11px] h-7 px-2.5 rounded-lg border-brand-green/30 hover:border-brand-green/50"
+        >
+          Release claim
+        </Button>
+      </div>
+    ) : (
+      <div className="flex items-center gap-2">
+        <Button
+          variant="primary"
+          size="sm"
+          disabled={busy || selected.claimedByOther}
+          isLoading={busy}
+          onClick={() => void act('claim')}
+          className="rounded-xl shadow-md text-xs font-bold px-3.5 py-2"
+        >
+          <ChefHat className="mr-1.5 h-3.5 w-3.5" />
+          Claim verification
+        </Button>
+        <span className="hidden sm:inline-block rounded-xl border border-brand-border/70 bg-brand-surface/90 px-2.5 py-1.5 text-[11px] font-semibold text-brand-muted backdrop-blur-md shadow-xs">
+          Preview only
+        </span>
+      </div>
+    )
+  ) : null;
+
   return (
     <section className="flex md:h-[calc(100vh-270px)] md:min-h-[640px] flex-col overflow-hidden rounded-3xl border border-brand-border/70 bg-brand-surface text-left shadow-card-lg backdrop-blur-xl md:flex-row">
       {/* Master Queue List Panel */}
@@ -145,6 +181,7 @@ export default function MealVerificationPanel() {
                 <button
                   key={`${item.kind}:${item.id}`}
                   type="button"
+                  aria-pressed={isSelected}
                   onClick={() => {
                     setSelectedId(`${item.kind}:${item.id}`);
                     setRationale('');
@@ -191,6 +228,7 @@ export default function MealVerificationPanel() {
         expanded={expanded}
         onExpandedChange={setExpanded}
         canExpand={Boolean(selected)}
+        headerLeft={claimHeader}
         className={`${selected ? 'flex' : 'hidden md:flex'} h-full min-w-0 flex-1 flex-col overflow-y-auto bg-transparent p-4 custom-scrollbar sm:p-6`}
       >
         {selected && (
@@ -263,37 +301,14 @@ export default function MealVerificationPanel() {
               </div>
             )}
 
-            {/* Claim Info Banner */}
-            {!selected.claimedByMe && (
-              <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-brand-border bg-brand-surface p-4">
-                <p className="text-xs text-brand-muted">
-                  Preview only. Claim this recipe before recording verification decisions.
-                </p>
-                <Button
-                  variant="primary"
-                  disabled={busy || selected.claimedByOther}
-                  isLoading={busy}
-                  onClick={() => void act('claim')}
-                >
-                  Claim verification
-                </Button>
-              </div>
-            )}
+
 
             {selected.claimedByMe && (
-              <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-brand-green/20 bg-brand-green/10 p-3 text-xs text-brand-green">
+              <div className="flex items-center gap-2.5 rounded-xl border border-brand-green/20 bg-brand-green/10 p-3 text-xs text-brand-green">
                 <ShieldCheck className="h-4 w-4 shrink-0" />
-                <span className="flex-1">
-                  Claim active by you. Review the preparation details and record your verification decision below.
+                <span>
+                  30-minute exclusive verification lock active. Submit before expiry to prevent automatic release.
                 </span>
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  disabled={busy}
-                  onClick={() => void act('release')}
-                >
-                  Release claim
-                </Button>
               </div>
             )}
 
