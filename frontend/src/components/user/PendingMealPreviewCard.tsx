@@ -122,11 +122,11 @@ export default function PendingMealPreviewCard({
         aria-label={`Open ${meal.mealName} details`}
         className="group relative block h-full w-full cursor-pointer select-none text-left outline-none focus-visible:ring-2 focus-visible:ring-brand-green focus-visible:ring-offset-2 focus-visible:ring-offset-brand-bg rounded-3xl"
       >
-        <div className="relative flex h-full flex-col justify-between rounded-3xl border border-brand-border/70 bg-brand-surface p-3.5 sm:p-4 shadow-[0_4px_20px_rgba(0,0,0,0.04)] dark:shadow-[0_8px_24px_rgba(0,0,0,0.4)] transition-all duration-300 hover:-translate-y-1 hover:border-brand-green/40 hover:shadow-card-hover">
-          {/* Upper Pastel Banner with Circular Plate on Left */}
-          <div className={`relative h-36 sm:h-40 w-full overflow-hidden rounded-2xl ${bannerTheme.bannerBg}`}>
-            {/* Circular Plate on Left */}
-            <div className={`absolute -left-3 top-1/2 -translate-y-1/2 h-32 w-32 sm:h-36 sm:w-36 rounded-full border-4 ${bannerTheme.plateBorder} bg-white dark:bg-[#071914] shadow-[0_8px_20px_rgba(0,0,0,0.12)] dark:shadow-[0_8px_24px_rgba(0,0,0,0.5)] p-1 overflow-hidden transition-transform duration-300 group-hover:scale-105`}>
+        <div className={`relative flex h-full flex-col justify-between rounded-3xl bg-brand-surface p-3.5 sm:p-4 ${bannerTheme.shadow} ${bannerTheme.hoverShadow} transition-all duration-300 hover:-translate-y-1`}>
+          {/* Upper Banner with Cropped Circular Plate on Left */}
+          <div className={`relative h-40 sm:h-44 w-full overflow-hidden rounded-2xl ${bannerTheme.bannerBg}`}>
+            {/* Circular Plate on Left - Enlarge and crop so parts cut out */}
+            <div className={`absolute -left-9 sm:-left-12 top-1/2 -translate-y-1/2 h-52 w-52 sm:h-56 sm:w-56 rounded-full ${bannerTheme.plateBorder} bg-white dark:bg-[#071914] shadow-[0_12px_28px_rgba(0,0,0,0.22)] dark:shadow-[0_14px_32px_rgba(0,0,0,0.7)] overflow-hidden transition-transform duration-300 group-hover:scale-105`}>
               <div className="relative h-full w-full rounded-full overflow-hidden">
                 <MealImage
                   image={meal.image}
@@ -142,8 +142,8 @@ export default function PendingMealPreviewCard({
 
             {/* Top Right Badges */}
             <div className="absolute top-2.5 right-2.5 flex flex-col items-end gap-1.5 z-10">
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-white/90 dark:bg-black/60 px-2.5 py-1 text-[11px] font-extrabold uppercase tracking-wider text-brand-text shadow-xs backdrop-blur-md">
-                <MealTypeIcon className="h-3 w-3 text-brand-green" />
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-white/95 dark:bg-black/60 px-3 py-1 text-[11px] font-black uppercase tracking-wider text-brand-text shadow-sm backdrop-blur-md">
+                <MealTypeIcon className="h-3.5 w-3.5 text-brand-green" />
                 {typeStyle.label}
               </span>
               <MealVerificationBadge status="PENDING_REVIEW" className="scale-90 origin-right" />

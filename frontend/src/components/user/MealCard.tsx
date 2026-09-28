@@ -68,24 +68,34 @@ interface MealCardProps {
 export interface MealBannerTheme {
   bannerBg: string;
   plateBorder: string;
+  shadow: string;
+  hoverShadow: string;
 }
 
 export const BANNER_THEMES: Record<string, MealBannerTheme> = {
   BREAKFAST: {
-    bannerBg: 'bg-gradient-to-br from-[#fedcd2] via-[#ffe7df] to-[#ffdcd0] dark:from-[#3a1a0f] dark:via-[#2f1309] dark:to-[#220c05]',
-    plateBorder: 'border-white dark:border-[#4d2416]',
+    bannerBg: 'bg-gradient-to-br from-[#eb6a38] via-[#e25c28] to-[#c74614] dark:from-[#8d3210] dark:via-[#752609] dark:to-[#571b05]',
+    plateBorder: 'border-2 border-white dark:border-white/20',
+    shadow: 'shadow-[0_14px_30px_-4px_rgba(235,106,56,0.32),0_4px_12px_rgba(235,106,56,0.14)] dark:shadow-[0_14px_32px_rgba(0,0,0,0.65)]',
+    hoverShadow: 'hover:shadow-[0_18px_38px_-4px_rgba(235,106,56,0.42),0_6px_16px_rgba(235,106,56,0.2)] dark:hover:shadow-[0_18px_40px_rgba(0,0,0,0.8)]',
   },
   LUNCH: {
-    bannerBg: 'bg-gradient-to-br from-[#d7f3e8] via-[#e5f8f0] to-[#c8eedf] dark:from-[#0d3329] dark:via-[#092920] dark:to-[#051c15]',
-    plateBorder: 'border-white dark:border-[#13493b]',
+    bannerBg: 'bg-gradient-to-br from-[#08705b] via-[#065e4c] to-[#044c3d] dark:from-[#083e33] dark:via-[#06332a] dark:to-[#04241d]',
+    plateBorder: 'border-2 border-white dark:border-white/20',
+    shadow: 'shadow-[0_14px_30px_-4px_rgba(8,112,91,0.32),0_4px_12px_rgba(8,112,91,0.14)] dark:shadow-[0_14px_32px_rgba(0,0,0,0.65)]',
+    hoverShadow: 'hover:shadow-[0_18px_38px_-4px_rgba(8,112,91,0.42),0_6px_16px_rgba(8,112,91,0.2)] dark:hover:shadow-[0_18px_40px_rgba(0,0,0,0.8)]',
   },
   DINNER: {
-    bannerBg: 'bg-gradient-to-br from-[#e4e1fd] via-[#edeaff] to-[#d8d5fb] dark:from-[#231f47] dark:via-[#1c1839] dark:to-[#131028]',
-    plateBorder: 'border-white dark:border-[#352e66]',
+    bannerBg: 'bg-gradient-to-br from-[#4f46e5] via-[#4338ca] to-[#3730a3] dark:from-[#2e265c] dark:via-[#241e4a] dark:to-[#1a1538]',
+    plateBorder: 'border-2 border-white dark:border-white/20',
+    shadow: 'shadow-[0_14px_30px_-4px_rgba(79,70,229,0.32),0_4px_12px_rgba(79,70,229,0.14)] dark:shadow-[0_14px_32px_rgba(0,0,0,0.65)]',
+    hoverShadow: 'hover:shadow-[0_18px_38px_-4px_rgba(79,70,229,0.42),0_6px_16px_rgba(79,70,229,0.2)] dark:hover:shadow-[0_18px_40px_rgba(0,0,0,0.8)]',
   },
   SNACK: {
-    bannerBg: 'bg-gradient-to-br from-[#fee0e8] via-[#feeef2] to-[#fdd3dd] dark:from-[#3b1522] dark:via-[#2f0f1a] dark:to-[#210911]',
-    plateBorder: 'border-white dark:border-[#4d1d2e]',
+    bannerBg: 'bg-gradient-to-br from-[#db4d6d] via-[#c43b5b] to-[#a62a48] dark:from-[#6b1e32] dark:via-[#541626] dark:to-[#3e0f1b]',
+    plateBorder: 'border-2 border-white dark:border-white/20',
+    shadow: 'shadow-[0_14px_30px_-4px_rgba(219,77,109,0.32),0_4px_12px_rgba(219,77,109,0.14)] dark:shadow-[0_14px_32px_rgba(0,0,0,0.65)]',
+    hoverShadow: 'hover:shadow-[0_18px_38px_-4px_rgba(219,77,109,0.42),0_6px_16px_rgba(219,77,109,0.2)] dark:hover:shadow-[0_18px_40px_rgba(0,0,0,0.8)]',
   },
 };
 
@@ -254,11 +264,11 @@ export default function MealCard({
         }}
         className="group relative block h-full w-full cursor-pointer select-none text-left outline-none focus-visible:ring-2 focus-visible:ring-brand-green focus-visible:ring-offset-2 focus-visible:ring-offset-brand-bg rounded-3xl"
       >
-        <div className="relative flex h-full flex-col justify-between rounded-3xl border border-brand-border/70 bg-brand-surface p-3.5 sm:p-4 shadow-[0_4px_20px_rgba(0,0,0,0.04)] dark:shadow-[0_8px_24px_rgba(0,0,0,0.4)] transition-all duration-300 hover:-translate-y-1 hover:border-brand-green/40 hover:shadow-card-hover">
-          {/* Upper Pastel Banner with Circular Food Plate on Left */}
-          <div className={`relative h-36 sm:h-40 w-full overflow-hidden rounded-2xl ${bannerTheme.bannerBg}`}>
-            {/* Circular Plate on Left */}
-            <div className={`absolute -left-3 top-1/2 -translate-y-1/2 h-32 w-32 sm:h-36 sm:w-36 rounded-full border-4 ${bannerTheme.plateBorder} bg-white dark:bg-[#071914] shadow-[0_8px_20px_rgba(0,0,0,0.12)] dark:shadow-[0_8px_24px_rgba(0,0,0,0.5)] p-1 overflow-hidden transition-transform duration-300 group-hover:scale-105`}>
+        <div className={`relative flex h-full flex-col justify-between rounded-3xl bg-brand-surface p-3.5 sm:p-4 ${bannerTheme.shadow} ${bannerTheme.hoverShadow} transition-all duration-300 hover:-translate-y-1`}>
+          {/* Upper Banner with Cropped Circular Food Plate on Left */}
+          <div className={`relative h-40 sm:h-44 w-full overflow-hidden rounded-2xl ${bannerTheme.bannerBg}`}>
+            {/* Circular Plate on Left - Enlarge and crop so parts cut out */}
+            <div className={`absolute -left-9 sm:-left-12 top-1/2 -translate-y-1/2 h-52 w-52 sm:h-56 sm:w-56 rounded-full ${bannerTheme.plateBorder} bg-white dark:bg-[#071914] shadow-[0_12px_28px_rgba(0,0,0,0.22)] dark:shadow-[0_14px_32px_rgba(0,0,0,0.7)] overflow-hidden transition-transform duration-300 group-hover:scale-105`}>
               <div className="relative h-full w-full rounded-full overflow-hidden">
                 <MealImage
                   image={image}
@@ -274,15 +284,19 @@ export default function MealCard({
 
             {/* Top Right Badges */}
             <div className="absolute top-2.5 right-2.5 flex flex-col items-end gap-1.5 z-10">
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-white/90 dark:bg-black/60 px-2.5 py-1 text-[11px] font-extrabold uppercase tracking-wider text-brand-text shadow-xs backdrop-blur-md">
-                <Icon className="h-3 w-3 text-brand-green" />
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-white/95 dark:bg-black/60 px-3 py-1 text-[11px] font-black uppercase tracking-wider text-brand-text shadow-sm backdrop-blur-md">
+                <Icon className="h-3.5 w-3.5 text-brand-green" />
                 {activeLabel.label}
               </span>
-              <MealVerificationBadge
-                status={status}
-                hasVerifier={Boolean(verifier)}
-                className="scale-90 origin-right"
-              />
+              {status === 'APPROVED' && !verifier ? (
+                <span className="sr-only">Ready</span>
+              ) : (
+                <MealVerificationBadge
+                  status={status}
+                  hasVerifier={Boolean(verifier)}
+                  className="scale-90 origin-right"
+                />
+              )}
               {isCompleted && (
                 <span className="inline-flex items-center gap-1 rounded-full border border-emerald-400/40 bg-emerald-500/90 px-2 py-0.5 font-mono text-[9px] font-extrabold uppercase tracking-wider text-white shadow-xs">
                   <Check className="h-2.5 w-2.5 stroke-[3]" /> Eaten
