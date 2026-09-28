@@ -279,6 +279,7 @@ export type MealImageProps = {
   ingredients?: { ingredientName: string; category?: string }[];
   allowCanonicalFallback?: boolean;
   allowMealTypePlaceholder?: boolean;
+  hideRepresentativeBadge?: boolean;
 };
 
 export default function MealImage({
@@ -292,6 +293,7 @@ export default function MealImage({
   ingredients = [],
   allowCanonicalFallback = true,
   allowMealTypePlaceholder = true,
+  hideRepresentativeBadge = false,
 }: MealImageProps) {
   const [failedUrls, setFailedUrls] = useState<Record<string, boolean>>({});
   const [loadedUrl, setLoadedUrl] = useState<string | null>(null);
@@ -384,7 +386,7 @@ export default function MealImage({
           src={effectiveImage.url}
           alt={effectiveImage.altText || `Photo representing ${mealName}`}
           fill
-          sizes="64px"
+          sizes="144px"
           className={`object-cover motion-reduce:transition-none transition-opacity duration-300 ${
             isLoaded ? 'opacity-100' : 'opacity-0'
           }`}
@@ -392,7 +394,7 @@ export default function MealImage({
           onLoad={() => setLoadedUrl(effectiveImage.url)}
           onError={() => setFailedUrls((prev) => ({ ...prev, [effectiveImage.url]: true }))}
         />
-        {effectiveImage.kind === 'REPRESENTATIVE' && (
+        {!hideRepresentativeBadge && effectiveImage.kind === 'REPRESENTATIVE' && (
           <span
             className="absolute inset-x-0 bottom-0 bg-black/80 py-0.5 text-center text-[7px] font-semibold text-white"
             title="Representative image"

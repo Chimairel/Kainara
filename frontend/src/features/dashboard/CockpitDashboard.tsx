@@ -233,12 +233,12 @@ export function CockpitDashboard({
             </button>
           </div>
           {pendingMeals.length > 0 && (
-            <p className="mb-4 rounded-2xl border border-status-pending-text/20 bg-status-pending-bg/50 p-3.5 text-xs leading-relaxed text-status-pending-text">
+            <p className="mb-4 rounded-2xl border border-status-pending-text/20 bg-status-pending-bg/50 p-3.5 text-xs leading-relaxed text-status-pending-text ml-7 sm:ml-10 lg:ml-12">
               Awaiting review: pending meals are previews. Open a preview to see its ingredients; logging becomes
               available after approval.
             </p>
           )}
-          <div className="space-y-3.5 flex-1">
+          <div className="space-y-4 flex-1 pl-7 sm:pl-10 lg:pl-12">
             {meals.map((meal) => (
               <DashboardMealRow
                 key={meal.id}
@@ -252,7 +252,7 @@ export function CockpitDashboard({
             ))}
           </div>
           {meals.length === 0 && pendingMeals.length === 0 && (
-            <p className="rounded-2xl border border-brand-border/70 bg-brand-surface p-6 text-sm text-brand-muted text-center shadow-card">
+            <p className="rounded-2xl border border-brand-border/70 bg-brand-surface p-6 text-sm text-brand-muted text-center shadow-card ml-7 sm:ml-10 lg:ml-12">
               No meals scheduled for this day. Open your weekly plan to view another day.
             </p>
           )}
