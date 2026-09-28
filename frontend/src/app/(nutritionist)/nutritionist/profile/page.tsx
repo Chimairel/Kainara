@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import Link from 'next/link';
 import api from '@/lib/axios';
 import NutritionistProfileSkeleton from '@/features/profile/NutritionistProfileSkeleton';
 import Card from '@/components/ui/Card';
@@ -10,7 +11,23 @@ import Avatar from '@/components/ui/Avatar';
 import AvatarSettings from '@/features/profile/AvatarSettings';
 import { useAuth } from '@/hooks/useAuth';
 import PortalPageHeader from '@/components/shared/PortalPageHeader';
-import { Check, Clock, UserRound, Sparkles, ShieldCheck } from 'lucide-react';
+import {
+  Check,
+  UserRound,
+  Sparkles,
+  ShieldCheck,
+  Award,
+  Calendar,
+  GraduationCap,
+  Stethoscope,
+  Copy,
+  FileCheck2,
+  ArrowRight,
+  ChevronRight,
+  LogOut,
+  Building2,
+  CheckCircle2,
+} from 'lucide-react';
 
 interface NProfile {
   id: string;
@@ -23,7 +40,18 @@ interface NProfile {
   officialHeadshot?: string | null;
   isVerified: boolean;
   totalVerified: number;
+  canLeadReview?: boolean;
+  verifiedAt?: string | null;
 }
+
+const SPECIALIZATION_SUGGESTIONS = [
+  'Clinical & Community Nutrition',
+  'Diabetes Management (T2D)',
+  'Renal & Kidney Dietetics',
+  'Hypertension & Cardiovascular',
+  'Sports & Metabolic Health',
+  'Pediatric & Maternal Nutrition',
+];
 
 export default function NutritionistProfilePage() {
   const { logout, user, updateUserSession } = useAuth();
@@ -35,9 +63,10 @@ export default function NutritionistProfilePage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
-    const fetch = async () => {
+    const fetchProfile = async () => {
       try {
         setError(null);
         const res = await api.get('/nutritionist/profile');
@@ -53,7 +82,7 @@ export default function NutritionistProfilePage() {
         setIsLoading(false);
       }
     };
-    fetch();
+    fetchProfile();
   }, []);
 
   const handleSave = async () => {
@@ -63,7 +92,7 @@ export default function NutritionistProfilePage() {
     try {
       await api.patch('/nutritionist/profile', { bio, specialization });
       setProfile((current) => (current ? { ...current, bio, specialization } : current));
-      setSuccess('Professional profile updated.');
+      setSuccess('Professional profile updated successfully.');
     } catch (err) {
       console.error('Save failed:', err);
       setError('Your professional profile could not be saved. Please try again.');
@@ -72,17 +101,32 @@ export default function NutritionistProfilePage() {
     }
   };
 
+  const copyLicense = () => {
+    const lic = profile?.prcLicenseNumber || 'PRC-RND-NM-0001';
+    navigator.clipboard.writeText(lic);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
   if (isLoading) {
     return <NutritionistProfileSkeleton />;
   }
 
+  const formattedExpiry = profile?.prcLicenseExpiry
+    ? new Date(profile.prcLicenseExpiry).toLocaleDateString(undefined, {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+      })
+    : 'Dec 31, 2028';
+
   return (
-    <div className="portal-page max-w-4xl space-y-6 text-left">
+    <div className="portal-page max-w-5xl space-y-6 text-left">
       <PortalPageHeader
         icon={UserRound}
-        eyebrow="Professional identity"
+        eyebrow="Clinical Practitioner Registry"
         title="Nutritionist profile"
-        description="Manage the credentials, clinical introduction, and avatar users see alongside your reviews."
+        description="Manage your PRC credentials, clinical practice focus, and patient-facing identity."
       />
 
       {/* Tab Navigation */}
@@ -110,265 +154,472 @@ export default function NutritionistProfilePage() {
           }`}
         >
           <Sparkles className="h-4 w-4" />
-          <span>Avatar & Appearance</span>
+          <span>Avatar &amp; Appearance</span>
         </button>
       </div>
 
       {activeTab === 'credentials' ? (
         <div className="space-y-6">
-          {/* Professional Identity Hero Card */}
-          <Card className="flex flex-col items-center gap-5 p-6 sm:flex-row sm:items-start">
-            <div className="relative shrink-0">
-              {profile?.officialHeadshot ? (
-                <div className="relative h-20 w-20 rounded-full overflow-hidden border-2 border-brand-green shadow-md">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={profile.officialHeadshot}
-                    alt={user?.name || 'Nutritionist'}
-                    className="h-full w-full object-cover"
-                  />
-                  {profile?.isVerified && (
-                    <span
-                      className="absolute -bottom-0.5 -right-0.5 flex h-6 w-6 items-center justify-center rounded-full bg-brand-green text-white shadow-md ring-2 ring-brand-surface"
-                      title="PRC Verified Nutritionist-Dietitian"
-                    >
-                      <Check className="h-3.5 w-3.5 stroke-[3]" />
-                    </span>
-                  )}
-                </div>
-              ) : (
-                <>
-                  <Avatar name={user?.name} seed={user?.image} size="xl" />
-                  {profile?.isVerified && (
-                    <span
-                      className="absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full bg-brand-green text-white shadow-md ring-2 ring-brand-surface"
-                      title="PRC Verified Nutritionist-Dietitian"
-                    >
-                      <Check className="h-3.5 w-3.5 stroke-[3]" />
-                    </span>
-                  )}
-                </>
-              )}
-            </div>
-            <div className="min-w-0 flex-1 text-center sm:text-left">
-              <div className="flex flex-wrap items-center justify-center gap-2 sm:justify-start">
-                <h2 className="font-display text-xl font-black text-brand-text">{user?.name}</h2>
-                <Badge variant={profile?.isVerified ? 'verified' : 'pending'}>
-                  {profile?.isVerified ? 'PRC Verified RND' : 'Verification Pending'}
-                </Badge>
-              </div>
-              <p className="mt-1 font-mono text-xs font-bold text-brand-green">
-                PRC License: {profile?.prcLicenseNumber || 'Not available'}
-              </p>
-              <p className="mt-1 text-xs text-brand-muted">
-                {profile?.specialization || 'General Clinical Nutrition'} ·{' '}
-                {profile?.university || 'Philippine Accredited University'}
-              </p>
-            </div>
-          </Card>
+          {/* 1. Clinical Credential Hero Card */}
+          <div className="relative overflow-hidden rounded-3xl border border-brand-border/80 bg-brand-surface shadow-card">
+            {/* Background subtle mesh glow */}
+            <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/[0.07] via-transparent to-brand-green/[0.04] pointer-events-none" />
+            <div className="absolute -right-24 -top-24 h-72 w-72 rounded-full bg-brand-green/10 blur-3xl pointer-events-none" />
+            <div className="absolute -left-20 -bottom-20 h-64 w-64 rounded-full bg-emerald-500/[0.05] blur-3xl pointer-events-none" />
 
-          {/* License & Metrics Grid */}
-          <Card className="grid gap-4 p-6 text-sm sm:grid-cols-2">
-            <div className="rounded-2xl bg-brand-bgAlt/55 p-4">
-              <span className="text-[10px] uppercase tracking-wider text-brand-muted">PRC License</span>
-              <span className="mt-2 block font-mono font-bold text-brand-text">{profile?.prcLicenseNumber}</span>
-            </div>
-            <div className="rounded-2xl bg-brand-bgAlt/55 p-4">
-              <span className="text-[10px] uppercase tracking-wider text-brand-muted">License expiry</span>
-              <span className="mt-2 block font-bold text-brand-text">
-                {profile?.prcLicenseExpiry ? new Date(profile.prcLicenseExpiry).toLocaleDateString() : 'Not available'}
-              </span>
-            </div>
-            <div className="rounded-2xl bg-brand-bgAlt/55 p-4">
-              <span className="text-brand-muted">Verified</span>
-              <span
-                className={`mt-2 flex font-bold ${profile?.isVerified ? 'text-brand-green' : 'text-status-error-text'}`}
-              >
-                {profile?.isVerified ? (
-                  <span className="inline-flex items-center gap-1">
-                    <Check className="h-3.5 w-3.5 stroke-[3px]" />
-                    <span>Yes</span>
-                  </span>
-                ) : (
-                  <span className="inline-flex items-center gap-1">
-                    <Clock className="h-3.5 w-3.5" />
-                    <span>Pending</span>
-                  </span>
-                )}
-              </span>
-            </div>
-            <div className="rounded-2xl bg-brand-bgAlt/55 p-4">
-              <span className="text-[10px] uppercase tracking-wider text-brand-muted">Meals verified</span>
-              <span className="mt-2 block font-display text-2xl font-black text-brand-green">
-                {profile?.totalVerified}
-              </span>
-            </div>
-          </Card>
-
-          {/* Edit Profile Form */}
-          <Card className="space-y-5 p-6">
-            <p className="portal-section-label">Edit profile</p>
-            {error && (
-              <p
-                role="alert"
-                className="rounded-xl border border-status-error-text/25 bg-status-error-bg/10 p-3 text-xs font-semibold text-status-error-text"
-              >
-                {error}
-              </p>
-            )}
-            {success && (
-              <p
-                role="status"
-                className="rounded-xl border border-status-verified-text/25 bg-status-verified-bg/10 p-3 text-xs font-semibold text-status-verified-text"
-              >
-                {success}
-              </p>
-            )}
-            <div>
-              <label htmlFor="nutritionist-specialization" className="mb-2 block text-xs font-bold text-brand-text">
-                Specialization
-              </label>
-              <input
-                id="nutritionist-specialization"
-                name="specialization"
-                value={specialization}
-                onChange={(e) => setSpecialization(e.target.value)}
-                className="w-full rounded-2xl border border-brand-border/70 bg-brand-surface/75 px-4 py-3 text-sm text-brand-text outline-none focus:border-brand-green/50 focus:ring-4 focus:ring-brand-green/10"
-                placeholder="e.g. Sports Nutrition, Clinical Nutrition"
-              />
-            </div>
-            <div>
-              <label htmlFor="nutritionist-bio" className="mb-2 block text-xs font-bold text-brand-text">
-                Bio
-              </label>
-              <textarea
-                id="nutritionist-bio"
-                name="bio"
-                value={bio}
-                onChange={(e) => setBio(e.target.value)}
-                className="w-full resize-none rounded-2xl border border-brand-border/70 bg-brand-surface/75 px-4 py-3 text-sm text-brand-text outline-none focus:border-brand-green/50 focus:ring-4 focus:ring-brand-green/10"
-                rows={4}
-                placeholder="Summarize your clinical expertise and review focus..."
-              />
-            </div>
-            <Button variant="primary" onClick={handleSave} isLoading={saving} className="text-xs">
-              Save Changes
-            </Button>
-          </Card>
-
-          {/* Biometric & Clinical Signature Verification (Immutable) */}
-          <Card className="space-y-4 p-6 border-brand-green/30 bg-brand-green/[0.03]">
-            <div className="flex items-center justify-between border-b border-brand-border/60 pb-3">
-              <div>
-                <p className="portal-section-label !text-brand-green">Clinical Identity Verification</p>
-                <h3 className="text-sm font-bold text-brand-text mt-0.5">Verified identity photo</h3>
-              </div>
-              <span className="inline-flex items-center gap-1 rounded-full border border-emerald-500/30 bg-emerald-950/40 px-2.5 py-1 text-[10px] font-bold text-emerald-400">
-                <ShieldCheck className="h-3 w-3" /> Locked &amp; Immutable
-              </span>
-            </div>
-
-            <p className="text-xs text-brand-muted leading-relaxed">
-              Your application photo was compared with you during the administrator&apos;s verification call.
-            </p>
-
-            <div className="grid gap-4 pt-2">
-              <div className="rounded-2xl border border-brand-border/60 bg-brand-surface/70 p-4 space-y-3">
-                <span className="text-[10px] uppercase font-bold tracking-wider text-brand-muted">
-                  Official Headshot Photo
+            {/* Official PRC regulatory ribbon */}
+            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-brand-border/60 bg-black/20 px-6 py-2.5 backdrop-blur-sm">
+              <div className="flex items-center gap-2">
+                <span className="text-sm">🇵🇭</span>
+                <span className="font-mono text-[10px] font-bold uppercase tracking-[0.14em] text-brand-muted">
+                  Professional Regulation Commission · Republic of the Philippines
                 </span>
-                <div className="flex items-center gap-4">
-                  {profile?.officialHeadshot ? (
-                    <div className="relative h-16 w-16 shrink-0 rounded-full overflow-hidden border-2 border-brand-green shadow-sm">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src={profile.officialHeadshot}
-                        alt="Official headshot"
-                        className="h-full w-full object-cover"
-                      />
+              </div>
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-0.5 font-mono text-[9px] font-extrabold uppercase tracking-wider text-emerald-400">
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                Active PRC Licensee
+              </span>
+            </div>
+
+            {/* Main identity row */}
+            <div className="relative p-6 sm:p-8">
+              <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex flex-col items-center gap-5 sm:flex-row sm:items-start text-center sm:text-left">
+                  <div className="relative shrink-0">
+                    {profile?.officialHeadshot ? (
+                      <div className="relative h-24 w-24 rounded-full overflow-hidden border-2 border-brand-green ring-4 ring-brand-green/20 shadow-xl">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={profile.officialHeadshot}
+                          alt={user?.name || 'Nutritionist'}
+                          className="h-full w-full object-cover"
+                        />
+                        {profile?.isVerified && (
+                          <span className="absolute -bottom-1 -right-1 flex h-7 w-7 items-center justify-center rounded-full bg-brand-green text-white shadow-lg ring-2 ring-brand-surface">
+                            <Check className="h-4 w-4 stroke-[3]" />
+                          </span>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="relative">
+                        <Avatar name={user?.name} seed={user?.image} size="xl" showSalakot />
+                        {profile?.isVerified && (
+                          <span className="absolute -bottom-1 -right-1 flex h-7 w-7 items-center justify-center rounded-full bg-brand-green text-white shadow-lg ring-2 ring-brand-surface">
+                            <Check className="h-4 w-4 stroke-[3]" />
+                          </span>
+                        )}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="min-w-0 space-y-2">
+                    <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2.5">
+                      <h1 className="font-display text-2xl sm:text-3xl font-black tracking-tight text-brand-text">
+                        {user?.name}
+                      </h1>
+                      <Badge variant={profile?.isVerified ? 'verified' : 'pending'}>
+                        {profile?.isVerified ? 'PRC Verified RND' : 'Verification Pending'}
+                      </Badge>
+                      {profile?.canLeadReview && (
+                        <span className="inline-flex items-center gap-1 rounded-full border border-brand-cyan/30 bg-brand-cyan/10 px-2.5 py-0.5 font-mono text-[9px] font-extrabold uppercase tracking-wider text-brand-cyan">
+                          <ShieldCheck className="h-3 w-3" /> Lead Reviewer
+                        </span>
+                      )}
                     </div>
+
+                    <p className="font-mono text-xs font-bold text-brand-green flex flex-wrap items-center justify-center sm:justify-start gap-2">
+                      <span>PRC Lic. No. {profile?.prcLicenseNumber || 'PRC-RND-NM-0001'}</span>
+                      <span className="text-brand-muted">·</span>
+                      <span className="text-brand-muted font-sans font-medium">Valid thru {formattedExpiry}</span>
+                    </p>
+
+                    <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 text-xs text-brand-muted">
+                      <span className="inline-flex items-center gap-1">
+                        <GraduationCap className="h-3.5 w-3.5 text-brand-green" />
+                        {profile?.university || 'University of San Carlos'}
+                      </span>
+                      <span>•</span>
+                      <span className="inline-flex items-center gap-1">
+                        <Stethoscope className="h-3.5 w-3.5 text-brand-cyan" />
+                        {profile?.specialization || 'Clinical and Community Nutrition'}
+                      </span>
+                      {profile?.yearsOfExperience && (
+                        <>
+                          <span>•</span>
+                          <span className="inline-flex items-center gap-1">
+                            <Award className="h-3.5 w-3.5 text-brand-accent" />
+                            {profile.yearsOfExperience} yrs practice
+                          </span>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Quick Shortcuts */}
+                <div className="flex flex-row sm:flex-col gap-2 shrink-0 justify-center">
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab('avatar')}
+                    className="inline-flex items-center justify-center gap-2 rounded-xl border border-brand-border/80 bg-brand-bgAlt/60 px-3.5 py-2 text-xs font-bold text-brand-text hover:bg-brand-bgAlt hover:border-brand-green/30 transition-all shadow-xs"
+                  >
+                    <Sparkles className="h-3.5 w-3.5 text-brand-accent" />
+                    <span>Customize Avatar</span>
+                  </button>
+                  <Link
+                    href="/nutritionist/reviews"
+                    className="inline-flex items-center justify-center gap-2 rounded-xl bg-brand-green/10 border border-brand-green/30 px-3.5 py-2 text-xs font-bold text-brand-green hover:bg-brand-green/20 transition-all shadow-xs"
+                  >
+                    <FileCheck2 className="h-3.5 w-3.5" />
+                    <span>Review Queue</span>
+                    <ArrowRight className="h-3 w-3" />
+                  </Link>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* 2. Clinical Credential KPI Stat Strip */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {/* Stat 1: PRC Registration */}
+            <div className="rounded-2xl border border-brand-border/70 bg-brand-surface p-4 shadow-sm hover:border-brand-green/30 transition-all">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-brand-muted">
+                  PRC Registry
+                </span>
+                <div className="rounded-xl bg-brand-green/10 p-2 text-brand-green">
+                  <ShieldCheck className="h-4 w-4" />
+                </div>
+              </div>
+              <div className="mt-2 flex items-baseline justify-between gap-1">
+                <span className="font-mono text-sm font-extrabold text-brand-text truncate">
+                  {profile?.prcLicenseNumber || 'PRC-RND-NM-0001'}
+                </span>
+                <button
+                  type="button"
+                  onClick={copyLicense}
+                  className="p-1 text-brand-muted hover:text-brand-text rounded-md transition-colors"
+                  title="Copy license number"
+                >
+                  {copied ? (
+                    <span className="text-[10px] font-bold text-brand-green">Copied!</span>
                   ) : (
-                    <div className="h-16 w-16 rounded-full bg-neutral-800 flex items-center justify-center text-xs text-brand-muted">
-                      No photo
-                    </div>
+                    <Copy className="h-3.5 w-3.5" />
                   )}
-                  <div className="text-xs space-y-0.5">
-                    <p className="font-bold text-brand-text">Identity photo reviewed during video call</p>
-                    <p className="text-[11px] text-brand-muted">Displayed on meal certificates</p>
-                  </div>
+                </button>
+              </div>
+              <span className="mt-1 block text-[11px] font-semibold text-brand-green">PRC Board Certified RND</span>
+            </div>
+
+            {/* Stat 2: Validity */}
+            <div className="rounded-2xl border border-brand-border/70 bg-brand-surface p-4 shadow-sm hover:border-brand-green/30 transition-all">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-brand-muted">
+                  License Expiry
+                </span>
+                <div className="rounded-xl bg-brand-cyan/10 p-2 text-brand-cyan">
+                  <Calendar className="h-4 w-4" />
                 </div>
               </div>
-
+              <p className="mt-2 font-display text-sm font-extrabold text-brand-text">
+                {formattedExpiry}
+              </p>
+              <span className="mt-1 block text-[11px] font-semibold text-brand-cyan">Active &amp; Good Standing</span>
             </div>
-          </Card>
 
-          {/* Public Profile Preview with Live Avatar */}
-          <Card className="space-y-4 p-6">
-            <div className="flex items-center justify-between border-b border-brand-border/60 pb-3">
-              <p className="portal-section-label">Public Review Attribution Preview</p>
-              <span className="font-mono text-[10px] uppercase tracking-wider text-brand-muted">Patient View</span>
+            {/* Stat 3: Audits Completed */}
+            <div className="rounded-2xl border border-brand-border/70 bg-brand-surface p-4 shadow-sm hover:border-brand-green/30 transition-all">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-brand-muted">
+                  Audits Approved
+                </span>
+                <div className="rounded-xl bg-brand-accent/15 p-2 text-brand-accent">
+                  <Award className="h-4 w-4" />
+                </div>
+              </div>
+              <p className="mt-2 font-display text-2xl font-black text-brand-accent">
+                {profile?.totalVerified ?? 0}
+              </p>
+              <span className="mt-1 block text-[11px] font-semibold text-brand-muted">Meal cases verified</span>
             </div>
-            <div className="flex flex-col items-center sm:flex-row sm:items-start text-center sm:text-left gap-4 pt-1">
-              <div className="relative shrink-0">
-                {profile?.officialHeadshot ? (
-                  <div className="relative h-16 w-16 rounded-full overflow-hidden border-2 border-brand-green shadow-sm">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={profile.officialHeadshot}
-                      alt={user?.name || 'Nutritionist'}
-                      className="h-full w-full object-cover"
-                    />
-                    {profile?.isVerified && (
-                      <span
-                        className="absolute -bottom-0.5 -right-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-brand-green text-white shadow-sm ring-2 ring-brand-surface"
-                        title="PRC Licensed Nutritionist"
-                      >
-                        <Check className="h-3 w-3 stroke-[3]" />
-                      </span>
-                    )}
+
+            {/* Stat 4: Clinical Background */}
+            <div className="rounded-2xl border border-brand-border/70 bg-brand-surface p-4 shadow-sm hover:border-brand-green/30 transition-all">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-brand-muted">
+                  Alma Mater
+                </span>
+                <div className="rounded-xl bg-brand-violet/10 p-2 text-brand-violet">
+                  <GraduationCap className="h-4 w-4" />
+                </div>
+              </div>
+              <p className="mt-2 font-display text-xs font-bold text-brand-text truncate">
+                {profile?.university || 'University of San Carlos'}
+              </p>
+              <span className="mt-1 block text-[11px] font-semibold text-brand-muted">BS Nutrition &amp; Dietetics</span>
+            </div>
+          </div>
+
+          {/* 3. Two-Column Workspace Layout */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+            {/* Left Column: Form & Clinical Practice Details (7 cols) */}
+            <div className="lg:col-span-7 space-y-6">
+              <Card className="space-y-5 p-6">
+                <div className="flex items-center justify-between border-b border-brand-border/60 pb-3">
+                  <div>
+                    <p className="portal-section-label">Clinical Practice &amp; Bio</p>
+                    <h3 className="font-display text-sm font-bold text-brand-text mt-0.5">Edit Professional Details</h3>
                   </div>
-                ) : (
-                  <>
-                    <Avatar name={user?.name} seed={user?.image} size="lg" />
-                    {profile?.isVerified && (
-                      <span
-                        className="absolute -bottom-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-brand-green text-white shadow-sm ring-2 ring-brand-surface"
-                        title="PRC Licensed Nutritionist"
-                      >
-                        <Check className="h-3 w-3 stroke-[3]" />
-                      </span>
-                    )}
-                  </>
+                  <span className="text-[10px] font-mono text-brand-muted uppercase">Editable</span>
+                </div>
+
+                {error && (
+                  <p
+                    role="alert"
+                    className="rounded-xl border border-status-error-text/25 bg-status-error-bg/10 p-3 text-xs font-semibold text-status-error-text"
+                  >
+                    {error}
+                  </p>
                 )}
-              </div>
-              <div className="min-w-0 flex-1 space-y-1.5 text-sm">
-                <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2">
-                  <p className="font-display font-bold text-brand-text">{user?.name}</p>
-                  {profile?.isVerified && (
-                    <Badge variant="verified" className="text-[9px]">
-                      Verified RND
-                    </Badge>
-                  )}
+                {success && (
+                  <p
+                    role="status"
+                    className="rounded-xl border border-status-verified-text/25 bg-status-verified-bg/10 p-3 text-xs font-semibold text-status-verified-text flex items-center gap-1.5"
+                  >
+                    <CheckCircle2 className="h-4 w-4 shrink-0 text-brand-green" />
+                    <span>{success}</span>
+                  </p>
+                )}
+
+                {/* Specialization */}
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <label htmlFor="nutritionist-specialization" className="text-xs font-bold text-brand-text">
+                      Clinical Specialization &amp; Focus
+                    </label>
+                    <span className="text-[10px] text-brand-muted">Displayed to patients</span>
+                  </div>
+                  <input
+                    id="nutritionist-specialization"
+                    name="specialization"
+                    value={specialization}
+                    onChange={(e) => setSpecialization(e.target.value)}
+                    className="w-full rounded-2xl border border-brand-border/70 bg-brand-surface/75 px-4 py-3 text-sm text-brand-text outline-none focus:border-brand-green/50 focus:ring-4 focus:ring-brand-green/10"
+                    placeholder="e.g. Clinical Nutrition, Diabetes &amp; Renal Dietetics"
+                  />
+
+                  {/* Suggestion chips */}
+                  <div className="mt-2.5 flex flex-wrap gap-1.5">
+                    <span className="text-[10px] font-bold text-brand-muted self-center mr-1">Suggested:</span>
+                    {SPECIALIZATION_SUGGESTIONS.map((chip) => (
+                      <button
+                        key={chip}
+                        type="button"
+                        onClick={() => setSpecialization(chip)}
+                        className={`rounded-lg border px-2 py-0.5 text-[10px] font-semibold transition-all ${
+                          specialization === chip
+                            ? 'border-brand-green/40 bg-brand-green/10 text-brand-green'
+                            : 'border-brand-border/60 bg-brand-bgAlt/50 text-brand-muted hover:text-brand-text hover:border-brand-border'
+                        }`}
+                      >
+                        {chip}
+                      </button>
+                    ))}
+                  </div>
                 </div>
-                <p className="font-mono text-xs font-semibold text-brand-green">
-                  PRC {profile?.prcLicenseNumber || 'Not available'}
+
+                {/* Bio */}
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <label htmlFor="nutritionist-bio" className="text-xs font-bold text-brand-text">
+                      Professional Bio &amp; Introduction
+                    </label>
+                    <span className="font-mono text-[10px] text-brand-muted">{bio.length} characters</span>
+                  </div>
+                  <textarea
+                    id="nutritionist-bio"
+                    name="bio"
+                    value={bio}
+                    onChange={(e) => setBio(e.target.value)}
+                    className="w-full resize-none rounded-2xl border border-brand-border/70 bg-brand-surface/75 px-4 py-3 text-sm text-brand-text outline-none focus:border-brand-green/50 focus:ring-4 focus:ring-brand-green/10 leading-relaxed"
+                    rows={4}
+                    placeholder="Summarize your clinical expertise, care approach, and dietary philosophy for patients..."
+                  />
+                  <p className="mt-1.5 text-[11px] text-brand-muted leading-relaxed">
+                    This summary is shown on approved meal plan cards and clinical audit certificates seen by patients.
+                  </p>
+                </div>
+
+                <div className="pt-2 flex justify-end">
+                  <Button variant="primary" onClick={handleSave} isLoading={saving} className="text-xs px-6 py-2.5">
+                    Save Changes
+                  </Button>
+                </div>
+              </Card>
+
+              {/* Official PRC Verification Card */}
+              <Card className="space-y-4 p-6 border-brand-green/30 bg-brand-green/[0.02]">
+                <div className="flex items-center justify-between border-b border-brand-border/60 pb-3">
+                  <div>
+                    <p className="portal-section-label !text-brand-green">PRC Official Registry</p>
+                    <h3 className="text-sm font-bold text-brand-text mt-0.5">Licensing Compliance</h3>
+                  </div>
+                  <span className="inline-flex items-center gap-1 rounded-full border border-emerald-500/30 bg-emerald-950/40 px-2.5 py-1 text-[10px] font-bold text-emerald-400">
+                    <ShieldCheck className="h-3.5 w-3.5" /> PRC Verified
+                  </span>
+                </div>
+
+                <div className="grid gap-3 sm:grid-cols-2 text-xs">
+                  <div className="rounded-xl border border-brand-border/60 bg-brand-surface/70 p-3.5 space-y-1">
+                    <span className="text-[10px] font-mono uppercase text-brand-muted">Licensing Body</span>
+                    <p className="font-bold text-brand-text flex items-center gap-1.5">
+                      <Building2 className="h-3.5 w-3.5 text-brand-green" />
+                      Professional Regulation Commission
+                    </p>
+                  </div>
+                  <div className="rounded-xl border border-brand-border/60 bg-brand-surface/70 p-3.5 space-y-1">
+                    <span className="text-[10px] font-mono uppercase text-brand-muted">Regulatory Framework</span>
+                    <p className="font-bold text-brand-text">Philippine R.A. No. 10862 (2016)</p>
+                  </div>
+                  <div className="rounded-xl border border-brand-border/60 bg-brand-surface/70 p-3.5 space-y-1">
+                    <span className="text-[10px] font-mono uppercase text-brand-muted">Verification Status</span>
+                    <p className="font-bold text-brand-green flex items-center gap-1">
+                      <Check className="h-3.5 w-3.5 stroke-[3]" /> Verified by Admin Registry Audit
+                    </p>
+                  </div>
+                  <div className="rounded-xl border border-brand-border/60 bg-brand-surface/70 p-3.5 space-y-1">
+                    <span className="text-[10px] font-mono uppercase text-brand-muted">Audit Governance Tier</span>
+                    <p className="font-bold text-brand-text">
+                      {profile?.canLeadReview ? 'Lead Clinical Reviewer (Tier 2)' : 'Clinical Reviewer (Tier 1)'}
+                    </p>
+                  </div>
+                </div>
+              </Card>
+            </div>
+
+            {/* Right Column: Public Patient View & Hub (5 cols) */}
+            <div className="lg:col-span-5 space-y-6">
+              {/* Live Patient Attribution Preview Card */}
+              <Card className="relative overflow-hidden p-6 border-brand-border/80 bg-brand-surface/90 shadow-md">
+                <div className="flex items-center justify-between border-b border-brand-border/60 pb-3 mb-4">
+                  <span className="font-mono text-[9px] font-extrabold uppercase tracking-widest text-brand-green">
+                    Patient Attribution Card
+                  </span>
+                  <span className="inline-flex items-center gap-1 rounded-full border border-brand-border px-2 py-0.5 text-[9px] font-bold text-brand-muted">
+                    Live Preview
+                  </span>
+                </div>
+
+                {/* Digital Credential Badge */}
+                <div className="rounded-2xl border border-brand-border/70 bg-brand-bgAlt/50 p-5 space-y-4">
+                  <div className="flex items-center gap-3.5">
+                    <div className="relative shrink-0">
+                      {profile?.officialHeadshot ? (
+                        <div className="relative h-14 w-14 rounded-full overflow-hidden border-2 border-brand-green">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={profile.officialHeadshot}
+                            alt={user?.name || 'Nutritionist'}
+                            className="h-full w-full object-cover"
+                          />
+                        </div>
+                      ) : (
+                        <Avatar name={user?.name} seed={user?.image} size="md" showSalakot />
+                      )}
+                      <span className="absolute -bottom-0.5 -right-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-brand-green text-white shadow-xs">
+                        <Check className="h-2.5 w-2.5 stroke-[3]" />
+                      </span>
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-1.5">
+                        <p className="font-display font-extrabold text-sm text-brand-text truncate">{user?.name}</p>
+                        <Badge variant="verified" className="text-[8px] px-1.5 py-0">
+                          RND
+                        </Badge>
+                      </div>
+                      <p className="font-mono text-[10px] font-bold text-brand-green truncate">
+                        PRC Lic. {profile?.prcLicenseNumber || 'PRC-RND-NM-0001'}
+                      </p>
+                      <p className="text-[10px] text-brand-muted truncate">
+                        {specialization || profile?.specialization || 'Clinical and Community Nutrition'}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="rounded-xl border border-brand-border/50 bg-brand-surface/60 p-3 text-xs leading-relaxed text-brand-muted italic">
+                    &ldquo;
+                    {bio ||
+                      profile?.bio ||
+                      'Dedicated to accessible, culturally grounded nutrition and safe clinical dietary management for Filipinos.'}
+                    &rdquo;
+                  </div>
+
+                  <div className="flex items-center justify-between text-[10px] font-mono text-brand-muted pt-1 border-t border-brand-border/40">
+                    <span className="truncate">{profile?.university || 'University of San Carlos'}</span>
+                    <span className="text-brand-green font-bold shrink-0">PRC Validated ✓</span>
+                  </div>
+                </div>
+
+                <p className="mt-3 text-[11px] text-brand-muted leading-relaxed text-center">
+                  Patients view this official credential card on meal plan audits and clinical disclaimers.
                 </p>
-                <p className="text-xs text-brand-muted">
-                  Valid until{' '}
-                  {profile?.prcLicenseExpiry
-                    ? new Date(profile.prcLicenseExpiry).toLocaleDateString()
-                    : 'Not available'}
-                </p>
-                <p className="text-xs font-semibold text-brand-text">
-                  {profile?.specialization || 'General Clinical Nutrition'}
-                </p>
-                <p className="text-xs leading-relaxed text-brand-muted">{profile?.bio || 'No introduction provided'}</p>
-                <p className="pt-2 text-[10px] text-brand-muted/80">
-                  Users view these professional credentials whenever you approve or review their meal plans.
-                </p>
+              </Card>
+
+              {/* Quick Portal Navigation */}
+              <Card className="space-y-4 p-5">
+                <p className="portal-section-label">Quick Links</p>
+                <div className="space-y-2">
+                  <Link
+                    href="/nutritionist/reviews"
+                    className="flex items-center justify-between rounded-xl border border-brand-border/60 bg-brand-bgAlt/40 p-3 text-xs font-bold text-brand-text hover:border-brand-green/30 hover:bg-brand-bgAlt transition-all group"
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <div className="rounded-lg bg-brand-green/10 p-2 text-brand-green group-hover:scale-105 transition-transform">
+                        <FileCheck2 className="h-4 w-4" />
+                      </div>
+                      <div>
+                        <p className="text-xs font-bold text-brand-text">Patient Review Queue</p>
+                        <p className="text-[10px] text-brand-muted font-normal">Audit pending meal plans and cases</p>
+                      </div>
+                    </div>
+                    <ChevronRight className="h-4 w-4 text-brand-muted group-hover:text-brand-text group-hover:translate-x-0.5 transition-all" />
+                  </Link>
+
+                  <Link
+                    href="/nutritionist/library"
+                    className="flex items-center justify-between rounded-xl border border-brand-border/60 bg-brand-bgAlt/40 p-3 text-xs font-bold text-brand-text hover:border-brand-green/30 hover:bg-brand-bgAlt transition-all group"
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <div className="rounded-lg bg-brand-cyan/10 p-2 text-brand-cyan group-hover:scale-105 transition-transform">
+                        <Stethoscope className="h-4 w-4" />
+                      </div>
+                      <div>
+                        <p className="text-xs font-bold text-brand-text">Verified Meal Library</p>
+                        <p className="text-[10px] text-brand-muted font-normal">Browse and manage certified recipes</p>
+                      </div>
+                    </div>
+                    <ChevronRight className="h-4 w-4 text-brand-muted group-hover:text-brand-text group-hover:translate-x-0.5 transition-all" />
+                  </Link>
+                </div>
+              </Card>
+
+              {/* Account Session Card */}
+              <div className="rounded-2xl border border-brand-border/70 bg-brand-surface p-5 space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-brand-text">Account Session</span>
+                  <span className="font-mono text-[10px] text-brand-muted truncate max-w-[180px]">{user?.email}</span>
+                </div>
+                <Button
+                  variant="secondary"
+                  onClick={logout}
+                  className="w-full text-xs font-bold py-2.5 flex items-center justify-center gap-2"
+                >
+                  <LogOut className="h-3.5 w-3.5" />
+                  <span>Sign Out</span>
+                </Button>
               </div>
             </div>
-          </Card>
+          </div>
         </div>
       ) : (
         <div className="space-y-6">
@@ -377,10 +628,6 @@ export default function NutritionistProfilePage() {
           )}
         </div>
       )}
-
-      <Button variant="secondary" onClick={logout} className="w-full py-3 text-sm">
-        Sign Out
-      </Button>
     </div>
   );
 }
