@@ -69,7 +69,7 @@ export function CockpitDashboard({
           aria-label="Nutrition summary"
           className="daily-intake-card relative overflow-hidden flex min-h-full flex-col justify-between rounded-3xl border border-brand-border p-5 sm:p-6"
         >
-          {/* Retro Wave Organic Corner Accent (Top Right) */}
+          {/* Retro Wave Organic Corner Accent (Top Right) - Connected with On your menu card */}
           <div className="pointer-events-none absolute -top-0.5 -right-0.5 h-32 w-32 overflow-hidden rounded-tr-3xl z-0">
             <svg viewBox="0 0 160 160" className="h-full w-full" fill="none" aria-hidden="true">
               <path d="M160,0 L0,0 C20,40 55,95 120,135 C140,147 160,155 160,155 Z" fill="#eb6a38" />
@@ -215,9 +215,25 @@ export function CockpitDashboard({
         </section>
         <section
           aria-label="Scheduled meals"
-          className="dashboard-surface flex min-h-full min-w-0 flex-col rounded-3xl p-5 sm:p-6"
+          className="relative overflow-hidden flex min-h-full min-w-0 flex-col rounded-3xl border border-[#dce4e0] dark:border-[#173e33] bg-[#faf8f5] dark:bg-[#0e271f] p-5 sm:p-6 shadow-card"
         >
-          <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
+          {/* Flowing Retro Wave Ribbon - Connected with Daily Intake card & flowing down through menu */}
+          <div className="pointer-events-none absolute inset-y-0 left-0 w-48 sm:w-56 overflow-hidden rounded-l-3xl z-0">
+            <svg viewBox="0 0 200 800" className="h-full w-full" preserveAspectRatio="none" fill="none" aria-hidden="true">
+              {/* Terracotta outer band */}
+              <path
+                d="M0,115 C35,140 90,195 105,250 C113,285 97,390 90,450 C85,500 58,680 48,800 L70,800 C80,680 110,500 115,450 C122,390 138,285 130,250 C115,200 45,180 0,150 Z"
+                fill="#eb6a38"
+              />
+              {/* Peach middle band */}
+              <path
+                d="M0,80 C25,100 65,190 78,250 C86,285 72,390 65,450 C60,500 36,680 26,800 L48,800 C58,680 85,500 90,450 C97,390 113,285 105,250 C90,195 35,140 0,115 Z"
+                fill="#f09e6c"
+              />
+            </svg>
+          </div>
+
+          <div className="relative z-10 mb-5 flex flex-wrap items-start justify-between gap-3">
             <div>
               <p className="text-xs font-semibold text-brand-green">
                 {formatManilaDate(activeDate, { weekday: 'long', month: 'short', day: 'numeric' })}
@@ -233,12 +249,12 @@ export function CockpitDashboard({
             </button>
           </div>
           {pendingMeals.length > 0 && (
-            <p className="mb-4 rounded-2xl bg-status-pending-bg/50 p-3.5 text-xs leading-relaxed text-status-pending-text">
+            <p className="relative z-10 mb-4 rounded-2xl bg-status-pending-bg/50 p-3.5 text-xs leading-relaxed text-status-pending-text">
               Awaiting review: pending meals are previews. Open a preview to see its ingredients; logging becomes
               available after approval.
             </p>
           )}
-          <div className="space-y-3">
+          <div className="relative z-10 space-y-3">
             {meals.map((meal) => (
               <DashboardMealRow
                 key={meal.id}
@@ -252,7 +268,7 @@ export function CockpitDashboard({
             ))}
           </div>
           {meals.length === 0 && pendingMeals.length === 0 && (
-            <p className="rounded-2xl bg-brand-bgAlt p-5 text-sm text-brand-muted">
+            <p className="relative z-10 rounded-2xl bg-brand-bgAlt p-5 text-sm text-brand-muted">
               No meals scheduled for this day. Open your weekly plan to view another day.
             </p>
           )}
