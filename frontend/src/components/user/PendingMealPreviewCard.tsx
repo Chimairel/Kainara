@@ -135,7 +135,7 @@ export default function PendingMealPreviewCard({
           {/* Upper Banner with Cropped Circular Plate on Left */}
           <div className={`relative h-40 sm:h-44 w-full overflow-hidden rounded-2xl ${bannerTheme.bannerBg}`}>
             {/* Circular Plate on Left - Enlarge and crop so parts cut out */}
-            <div className={`absolute -left-9 sm:-left-12 top-1/2 -translate-y-1/2 h-52 w-52 sm:h-56 sm:w-56 rounded-full ${bannerTheme.plateBorder} bg-white dark:bg-[#071914] shadow-[0_12px_28px_rgba(0,0,0,0.22)] dark:shadow-[0_14px_32px_rgba(0,0,0,0.7)] overflow-hidden transition-transform duration-300 group-hover:scale-105`}>
+            <div className={`absolute -left-9 sm:-left-12 top-1/2 -translate-y-1/2 h-52 w-52 sm:h-56 sm:w-56 rounded-full ${bannerTheme.plateBorder} bg-white dark:bg-[#071914] shadow-[0_6px_16px_rgba(0,0,0,0.12)] dark:shadow-[0_8px_20px_rgba(0,0,0,0.45)] overflow-hidden transition-transform duration-300 group-hover:scale-105`}>
               <div className="relative h-full w-full rounded-full overflow-hidden">
                 <MealImage
                   image={meal.image}

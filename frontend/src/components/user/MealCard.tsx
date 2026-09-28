@@ -80,26 +80,26 @@ export const BANNER_THEMES: Record<string, MealBannerTheme> = {
   BREAKFAST: {
     bannerBg: 'bg-gradient-to-br from-[#eb6a38] via-[#e25c28] to-[#c74614] dark:from-[#8d3210] dark:via-[#752609] dark:to-[#571b05]',
     plateBorder: 'border border-white/80 dark:border-white/20',
-    shadow: 'shadow-[0_14px_30px_-4px_rgba(235,106,56,0.32),0_4px_12px_rgba(235,106,56,0.14)] dark:shadow-[0_14px_32px_rgba(0,0,0,0.65)]',
-    hoverShadow: 'hover:shadow-[0_18px_38px_-4px_rgba(235,106,56,0.42),0_6px_16px_rgba(235,106,56,0.2)] dark:hover:shadow-[0_18px_40px_rgba(0,0,0,0.8)]',
+    shadow: 'shadow-[0_4px_16px_-3px_rgba(235,106,56,0.12),0_2px_6px_rgba(0,0,0,0.03)] dark:shadow-[0_4px_20px_rgba(0,0,0,0.4)]',
+    hoverShadow: 'hover:shadow-[0_8px_22px_-4px_rgba(235,106,56,0.18),0_4px_10px_rgba(0,0,0,0.05)] dark:hover:shadow-[0_8px_24px_rgba(0,0,0,0.6)]',
   },
   LUNCH: {
     bannerBg: 'bg-gradient-to-br from-[#08705b] via-[#065e4c] to-[#044c3d] dark:from-[#083e33] dark:via-[#06332a] dark:to-[#04241d]',
     plateBorder: 'border border-white/80 dark:border-white/20',
-    shadow: 'shadow-[0_14px_30px_-4px_rgba(8,112,91,0.32),0_4px_12px_rgba(8,112,91,0.14)] dark:shadow-[0_14px_32px_rgba(0,0,0,0.65)]',
-    hoverShadow: 'hover:shadow-[0_18px_38px_-4px_rgba(8,112,91,0.42),0_6px_16px_rgba(8,112,91,0.2)] dark:hover:shadow-[0_18px_40px_rgba(0,0,0,0.8)]',
+    shadow: 'shadow-[0_4px_16px_-3px_rgba(8,112,91,0.12),0_2px_6px_rgba(0,0,0,0.03)] dark:shadow-[0_4px_20px_rgba(0,0,0,0.4)]',
+    hoverShadow: 'hover:shadow-[0_8px_22px_-4px_rgba(8,112,91,0.18),0_4px_10px_rgba(0,0,0,0.05)] dark:hover:shadow-[0_8px_24px_rgba(0,0,0,0.6)]',
   },
   DINNER: {
     bannerBg: 'bg-gradient-to-br from-[#4f46e5] via-[#4338ca] to-[#3730a3] dark:from-[#2e265c] dark:via-[#241e4a] dark:to-[#1a1538]',
     plateBorder: 'border border-white/80 dark:border-white/20',
-    shadow: 'shadow-[0_14px_30px_-4px_rgba(79,70,229,0.32),0_4px_12px_rgba(79,70,229,0.14)] dark:shadow-[0_14px_32px_rgba(0,0,0,0.65)]',
-    hoverShadow: 'hover:shadow-[0_18px_38px_-4px_rgba(79,70,229,0.42),0_6px_16px_rgba(79,70,229,0.2)] dark:hover:shadow-[0_18px_40px_rgba(0,0,0,0.8)]',
+    shadow: 'shadow-[0_4px_16px_-3px_rgba(79,70,229,0.12),0_2px_6px_rgba(0,0,0,0.03)] dark:shadow-[0_4px_20px_rgba(0,0,0,0.4)]',
+    hoverShadow: 'hover:shadow-[0_8px_22px_-4px_rgba(79,70,229,0.18),0_4px_10px_rgba(0,0,0,0.05)] dark:hover:shadow-[0_8px_24px_rgba(0,0,0,0.6)]',
   },
   SNACK: {
     bannerBg: 'bg-gradient-to-br from-[#db4d6d] via-[#c43b5b] to-[#a62a48] dark:from-[#6b1e32] dark:via-[#541626] dark:to-[#3e0f1b]',
     plateBorder: 'border border-white/80 dark:border-white/20',
-    shadow: 'shadow-[0_14px_30px_-4px_rgba(219,77,109,0.32),0_4px_12px_rgba(219,77,109,0.14)] dark:shadow-[0_14px_32px_rgba(0,0,0,0.65)]',
-    hoverShadow: 'hover:shadow-[0_18px_38px_-4px_rgba(219,77,109,0.42),0_6px_16px_rgba(219,77,109,0.2)] dark:hover:shadow-[0_18px_40px_rgba(0,0,0,0.8)]',
+    shadow: 'shadow-[0_4px_16px_-3px_rgba(219,77,109,0.12),0_2px_6px_rgba(0,0,0,0.03)] dark:shadow-[0_4px_20px_rgba(0,0,0,0.4)]',
+    hoverShadow: 'hover:shadow-[0_8px_22px_-4px_rgba(219,77,109,0.18),0_4px_10px_rgba(0,0,0,0.05)] dark:hover:shadow-[0_8px_24px_rgba(0,0,0,0.6)]',
   },
 };
 
@@ -292,7 +292,7 @@ export default function MealCard({
           {/* Upper Banner with Cropped Circular Food Plate on Left */}
           <div className={`relative h-40 sm:h-44 w-full overflow-hidden rounded-2xl ${bannerTheme.bannerBg}`}>
             {/* Circular Plate on Left - Enlarge and crop so parts cut out */}
-            <div className={`absolute -left-9 sm:-left-12 top-1/2 -translate-y-1/2 h-52 w-52 sm:h-56 sm:w-56 rounded-full ${bannerTheme.plateBorder} bg-white dark:bg-[#071914] shadow-[0_12px_28px_rgba(0,0,0,0.22)] dark:shadow-[0_14px_32px_rgba(0,0,0,0.7)] overflow-hidden transition-transform duration-300 group-hover:scale-105`}>
+            <div className={`absolute -left-9 sm:-left-12 top-1/2 -translate-y-1/2 h-52 w-52 sm:h-56 sm:w-56 rounded-full ${bannerTheme.plateBorder} bg-white dark:bg-[#071914] shadow-[0_6px_16px_rgba(0,0,0,0.12)] dark:shadow-[0_8px_20px_rgba(0,0,0,0.45)] overflow-hidden transition-transform duration-300 group-hover:scale-105`}>
               <div className="relative h-full w-full rounded-full overflow-hidden">
                 <MealImage
                   image={image}

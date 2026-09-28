@@ -25,9 +25,6 @@ import {
   Search,
   FileText,
   Clock3,
-  ShieldCheck,
-  CircleCheckBig,
-  ListChecks,
   ChevronLeft,
   ChevronRight,
 } from 'lucide-react';
@@ -92,7 +89,6 @@ export default function WeeklyPlanPage() {
     isStarterPlan,
     nextCycleDay,
     displayedMealCount,
-    completedMealCount,
   } = workspace;
   const upcomingOnly = !cycles?.current && Boolean(cycles?.upcoming) && (displayedMealCount > 0 || awaitingGeneration.upcoming > 0);
   const awaitingGenerationCount = upcomingOnly ? awaitingGeneration.upcoming : awaitingGeneration.current;
@@ -300,28 +296,7 @@ export default function WeeklyPlanPage() {
           </div>
         )}
 
-        {activeTab === 'plan' && !isLoading && displayedMealCount > 0 && (
-          <section className="flex flex-wrap gap-x-5 gap-y-2 rounded-xl border border-brand-border bg-brand-surface px-4 py-3">
-            {[
-              { label: upcomingOnly ? 'Upcoming candidates' : 'Scheduled meals', value: displayedMealCount, icon: ListChecks },
-              { label: upcomingOnly ? 'Upcoming days' : 'Plan days', value: displayedPlanDays.length, icon: Calendar },
-              {
-                label: pendingReview ? 'Awaiting review' : upcomingOnly ? 'Cleared' : 'Completed',
-                value: pendingReview ? pendingReview.mealCount : upcomingOnly ? meals.length : completedMealCount,
-                icon: pendingReview || upcomingOnly ? ShieldCheck : CircleCheckBig,
-              },
-            ].map((metric) => {
-              const MetricIcon = metric.icon;
-              return (
-                <div key={metric.label} className="flex items-center gap-2 text-sm">
-                  <MetricIcon className="h-4 w-4 text-brand-green" />
-                  <p className="font-bold text-brand-text">{metric.value}</p>
-                  <p className="text-xs text-brand-muted">{metric.label}</p>
-                </div>
-              );
-            })}
-          </section>
-        )}
+
 
         {activeTab === 'plan' && !isLoading && displayedPlanDays.length > 0 && selectedPlanDay && (
           <section

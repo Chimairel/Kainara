@@ -13,12 +13,32 @@ import {
   AlertCircle,
   ArrowRight,
   Sprout,
+  CheckCheck,
 } from 'lucide-react';
 import api from '@/lib/axios';
 import { readSessionResource } from '@/lib/session-resource-cache';
 import { formatManilaDate, getManilaDateKey, manilaDateFromKey } from '@/lib/manila-date';
 import type { PlanningReadiness } from '@/types/planning-readiness';
 import { formatBadgeCount } from '@/lib/badge-count';
+
+function formatRelativeTime(dateString: string): string {
+  const date = new Date(dateString);
+  const now = new Date();
+  const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+
+  if (diffInSeconds < 60) return 'Just now';
+  const diffInMinutes = Math.floor(diffInSeconds / 60);
+  if (diffInMinutes < 60) return `${diffInMinutes}m ago`;
+  const diffInHours = Math.floor(diffInMinutes / 60);
+  if (diffInHours < 24) return `${diffInHours}h ago`;
+  const diffInDays = Math.floor(diffInHours / 24);
+  if (diffInDays < 7) return `${diffInDays}d ago`;
+
+  return date.toLocaleDateString(undefined, {
+    month: 'short',
+    day: 'numeric',
+  });
+}
 
 interface CachedPlanInfo {
   isStarterPlan?: boolean;
@@ -161,19 +181,37 @@ export default function NotificationDropdown() {
       case 'PLAN_APPROVED':
       case 'OUTSIDE_MEAL_REVIEWED':
       case 'FLAG_RESOLVED':
-        return <CheckCircle className="w-4 h-4 text-brand-green" />;
+        return {
+          icon: <CheckCircle className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />,
+          surface: 'bg-emerald-500/10 border-emerald-500/20 text-emerald-600 dark:text-emerald-400',
+        };
       case 'ASSIGNMENT':
-        return <Sprout className="w-4 h-4 text-brand-green" />;
+        return {
+          icon: <Sprout className="w-4 h-4 text-brand-green" />,
+          surface: 'bg-brand-green/10 border-brand-green/20 text-brand-green',
+        };
       case 'PLAN_REJECTED':
       case 'MEAL_FLAGGED':
-        return <AlertTriangle className="w-4 h-4 text-status-error-text" />;
+        return {
+          icon: <AlertTriangle className="w-4 h-4 text-rose-600 dark:text-rose-400" />,
+          surface: 'bg-rose-500/10 border-rose-500/20 text-rose-600 dark:text-rose-400',
+        };
       case 'OUTSIDE_MEAL_MORE_INFO':
       case 'REVIEW_REQUEST':
-        return <ClipboardList className="w-4 h-4 text-status-pending-text" />;
+        return {
+          icon: <ClipboardList className="w-4 h-4 text-amber-600 dark:text-amber-400" />,
+          surface: 'bg-amber-500/10 border-amber-500/20 text-amber-600 dark:text-amber-400',
+        };
       case 'WEEKLY_CHECKIN':
-        return <Calendar className="w-4 h-4 text-brand-green" />;
+        return {
+          icon: <Calendar className="w-4 h-4 text-brand-green" />,
+          surface: 'bg-brand-green/10 border-brand-green/20 text-brand-green',
+        };
       default:
-        return <Bell className="w-4 h-4 text-brand-muted" />;
+        return {
+          icon: <Bell className="w-4 h-4 text-brand-muted" />,
+          surface: 'bg-brand-bgAlt border-brand-border/60 text-brand-muted',
+        };
     }
   };
 
@@ -182,7 +220,7 @@ export default function NotificationDropdown() {
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className="relative flex h-10 w-10 items-center justify-center rounded-[14px] border border-brand-border/70 bg-brand-surface/75 text-brand-muted shadow-sm outline-none transition hover:-translate-y-0.5 hover:border-brand-green/30 hover:bg-brand-green/10 hover:text-brand-green focus-visible:ring-2 focus-visible:ring-brand-green/40"
+        className="relative flex h-10 w-10 items-center justify-center rounded-2xl border border-brand-border/70 bg-brand-surface/80 text-brand-muted shadow-sm outline-none transition-all duration-200 hover:-translate-y-0.5 hover:border-brand-green/30 hover:bg-brand-green/10 hover:text-brand-green focus-visible:ring-2 focus-visible:ring-brand-green/40"
         aria-label="View notifications"
         aria-expanded={isOpen}
         aria-haspopup="dialog"
@@ -190,7 +228,7 @@ export default function NotificationDropdown() {
         <Bell className="h-[18px] w-[18px]" />
 
         {unreadCount > 0 ? (
-          <span className="absolute -right-1 -top-1 flex min-h-4 min-w-4 items-center justify-center rounded-full border-2 border-brand-bg bg-brand-accent px-0.5 text-[8px] font-bold text-[#07100d]">
+          <span className="absolute -right-1 -top-1 flex min-h-4 min-w-4 items-center justify-center rounded-full border-2 border-brand-bg bg-brand-accent px-1 text-[8px] font-bold text-[#07100d] shadow-sm">
             {formatBadgeCount(unreadCount)}
           </span>
         ) : user?.role === 'USER' && (!prerequisitesComplete || planningReadiness?.canRequestPlan === false) ? (
@@ -202,19 +240,30 @@ export default function NotificationDropdown() {
         <div
           role="dialog"
           aria-label="Notifications"
-          className="absolute right-0 top-[calc(100%+12px)] z-50 flex max-h-[min(34rem,calc(100vh-6rem))] w-[min(23rem,calc(100vw-1.5rem))] flex-col overflow-hidden rounded-[24px] border border-brand-border bg-brand-surface shadow-[0_24px_70px_rgba(3,14,10,0.22)] animate-in fade-in zoom-in-95 duration-200"
+          className="absolute right-0 top-[calc(100%+12px)] z-50 flex max-h-[min(36rem,calc(100vh-5.5rem))] w-[min(26rem,calc(100vw-1.5rem))] flex-col overflow-hidden rounded-[26px] border border-brand-border/80 bg-brand-surface/95 backdrop-blur-2xl shadow-[0_24px_60px_-12px_rgba(0,0,0,0.22)] dark:shadow-[0_28px_70px_-15px_rgba(0,0,0,0.75)] animate-in fade-in zoom-in-95 duration-200"
         >
-          <div className="flex items-center justify-between gap-4 border-b border-brand-border/70 px-5 py-4">
+          {/* Header */}
+          <div className="flex items-center justify-between gap-3 border-b border-brand-border/60 bg-brand-surface/60 px-5 py-4">
             <div className="flex min-w-0 items-center gap-3">
-              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[14px] bg-brand-green/10 text-brand-green">
-                <Bell className="h-[18px] w-[18px]" />
+              <span className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-brand-green/10 text-brand-green border border-brand-green/20">
+                <Bell className="h-4 w-4" />
+                {unreadCount > 0 && (
+                  <span className="absolute -top-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-brand-green ring-2 ring-brand-surface animate-pulse" />
+                )}
               </span>
               <div className="min-w-0">
-                <h3 className="font-display text-sm font-bold text-brand-text">Notifications</h3>
+                <div className="flex items-center gap-2">
+                  <h3 className="font-display text-sm font-bold text-brand-text tracking-tight">Notifications</h3>
+                  {unreadCount > 0 && (
+                    <span className="rounded-full bg-brand-green/15 px-2 py-0.5 text-[10px] font-bold text-brand-green border border-brand-green/25">
+                      {unreadCount} new
+                    </span>
+                  )}
+                </div>
                 <p className="mt-0.5 text-[11px] text-brand-muted">
                   {unreadCount > 0
-                    ? `${unreadCount} unread update${unreadCount === 1 ? '' : 's'}`
-                    : 'You are all caught up'}
+                    ? `${unreadCount} unread update${unreadCount === 1 ? '' : 's'} to review`
+                    : 'All caught up with latest updates'}
                 </p>
               </div>
             </div>
@@ -222,40 +271,54 @@ export default function NotificationDropdown() {
               <button
                 type="button"
                 onClick={markAllAsRead}
-                className="shrink-0 rounded-xl border border-brand-border/80 bg-brand-bgAlt px-3 py-2 text-[10px] font-bold text-brand-green outline-none transition hover:border-brand-green/30 hover:bg-brand-green/10 focus-visible:ring-2 focus-visible:ring-brand-green/30"
+                className="group inline-flex items-center gap-1.5 shrink-0 rounded-xl border border-brand-border/80 bg-brand-bgAlt/80 px-2.5 py-1.5 text-[11px] font-semibold text-brand-text/80 transition hover:border-brand-green/30 hover:bg-brand-green/10 hover:text-brand-green active:scale-95"
               >
-                Mark all read
+                <CheckCheck className="h-3.5 w-3.5 text-brand-muted group-hover:text-brand-green transition" />
+                <span>Mark read</span>
               </button>
             )}
           </div>
 
-          <div className="custom-scrollbar flex-1 overflow-y-auto bg-brand-bgAlt/45 p-2.5">
+          <div className="custom-scrollbar flex-1 overflow-y-auto bg-brand-bgAlt/40 p-3">
             {/* Planner Status Section */}
             {user?.role === 'USER' && (
-              <div className="mb-2.5 rounded-[18px] border border-brand-border/80 bg-brand-surface p-3 text-left shadow-sm">
+              <div
+                className={`mb-3 rounded-2xl border p-3.5 text-left transition-all ${
+                  isPlanningReady
+                    ? 'border-brand-green/20 bg-gradient-to-br from-brand-green/[0.04] to-transparent'
+                    : 'border-status-warning-text/25 bg-gradient-to-br from-status-warning-bg/10 to-transparent'
+                }`}
+              >
                 <div className="flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-2 min-w-0">
+                  <div className="flex items-center gap-2.5 min-w-0">
                     <span
-                      className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-xl ${
+                      className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border ${
                         isPlanningReady
-                          ? 'bg-brand-green/10 text-brand-green'
-                          : 'bg-status-warning-bg/15 text-status-warning-text'
+                          ? 'border-brand-green/20 bg-brand-green/10 text-brand-green'
+                          : 'border-status-warning-text/25 bg-status-warning-bg/20 text-status-warning-text'
                       }`}
                     >
                       {isPlanningReady ? <ShieldCheck className="h-4 w-4" /> : <AlertCircle className="h-4 w-4" />}
                     </span>
                     <div className="min-w-0">
-                      <h4 className="font-display text-xs font-bold text-brand-text truncate">Planner status</h4>
+                      <div className="flex items-center gap-1.5">
+                        <h4 className="font-display text-xs font-bold text-brand-text truncate">Planner Status</h4>
+                        <span
+                          className={`inline-block h-1.5 w-1.5 rounded-full ${
+                            isPlanningReady ? 'bg-brand-green' : 'bg-status-warning-text animate-pulse'
+                          }`}
+                        />
+                      </div>
                       <span className="text-[10px] text-brand-muted truncate block">
-                        {planningReadiness?.title || (prerequisitesComplete ? 'Checking planning status' : 'Action required')}
+                        {planningReadiness?.title || (prerequisitesComplete ? 'Checking clinical readiness' : 'Action required')}
                       </span>
                     </div>
                   </div>
                   <span
-                    className={`shrink-0 rounded-full px-2 py-0.5 font-mono text-[9px] font-bold uppercase tracking-wider ${
+                    className={`shrink-0 rounded-full px-2.5 py-0.5 font-mono text-[9px] font-bold uppercase tracking-wider border ${
                       isPlanningReady
-                        ? 'border border-brand-green/30 bg-brand-green/10 text-brand-green'
-                        : 'border border-status-warning-text/30 bg-status-warning-bg/15 text-status-warning-text'
+                        ? 'border-brand-green/30 bg-brand-green/10 text-brand-green'
+                        : 'border-status-warning-text/30 bg-status-warning-bg/20 text-status-warning-text'
                     }`}
                   >
                     {isPlanningReady ? 'Ready' : planningReadiness?.canRequestPlan === false ? 'Blocked' : 'Pending'}
@@ -273,21 +336,21 @@ export default function NotificationDropdown() {
                 </p>
 
                 {(!isPlanningReady || planningReadiness?.status === 'REQUEST_ALLOWED_REVIEW_EXPECTED') && (
-                  <div className="mt-2">
+                  <div className="mt-2.5 pt-2 border-t border-brand-border/40">
                     {planningReadiness && prerequisitesComplete ? (
                       <Link
                         href={planningReadiness.actionPath}
                         onClick={() => setIsOpen(false)}
-                        className="inline-flex items-center gap-1 text-[11px] font-bold text-brand-green transition hover:underline"
+                        className="inline-flex items-center gap-1 text-[11px] font-bold text-brand-green transition hover:gap-1.5"
                       >
-                        <span>{planningReadiness.canRequestPlan ? 'View meals' : 'Review clinical context'}</span>
+                        <span>{planningReadiness.canRequestPlan ? 'View meal plan' : 'Review clinical context'}</span>
                         <ArrowRight className="h-3 w-3" />
                       </Link>
                     ) : !isReportAcknowledged ? (
                       <Link
                         href="/profile/nutrition-report"
                         onClick={() => setIsOpen(false)}
-                        className="inline-flex items-center gap-1 text-[11px] font-bold text-brand-green transition hover:underline"
+                        className="inline-flex items-center gap-1 text-[11px] font-bold text-brand-green transition hover:gap-1.5"
                       >
                         <span>View nutrition report</span>
                         <ArrowRight className="h-3 w-3" />
@@ -296,7 +359,7 @@ export default function NotificationDropdown() {
                       <Link
                         href="/onboarding/tos"
                         onClick={() => setIsOpen(false)}
-                        className="inline-flex items-center gap-1 text-[11px] font-bold text-brand-green transition hover:underline"
+                        className="inline-flex items-center gap-1 text-[11px] font-bold text-brand-green transition hover:gap-1.5"
                       >
                         <span>Accept Terms of Service</span>
                         <ArrowRight className="h-3 w-3" />
@@ -305,7 +368,7 @@ export default function NotificationDropdown() {
                       <Link
                         href="/onboarding/stats"
                         onClick={() => setIsOpen(false)}
-                        className="inline-flex items-center gap-1 text-[11px] font-bold text-brand-green transition hover:underline"
+                        className="inline-flex items-center gap-1 text-[11px] font-bold text-brand-green transition hover:gap-1.5"
                       >
                         <span>Complete onboarding</span>
                         <ArrowRight className="h-3 w-3" />
@@ -318,10 +381,10 @@ export default function NotificationDropdown() {
 
             {/* Starter Plan Status Card */}
             {user?.role === 'USER' && cycleInfo?.isStarterPlan && (
-              <div className="mb-2.5 rounded-[18px] border border-brand-green/30 bg-brand-green/5 p-3 text-left shadow-sm">
+              <div className="mb-3 rounded-2xl border border-brand-green/25 bg-gradient-to-br from-brand-green/[0.06] to-transparent p-3.5 text-left">
                 <div className="flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-2 min-w-0">
-                    <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-xl bg-brand-green/10 text-brand-green">
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border border-brand-green/20 bg-brand-green/10 text-brand-green">
                       <Sprout className="h-4 w-4" />
                     </span>
                     <div className="min-w-0">
@@ -329,7 +392,7 @@ export default function NotificationDropdown() {
                       <span className="text-[10px] text-brand-muted truncate block">Kickoff bridge plan</span>
                     </div>
                   </div>
-                  <span className="shrink-0 rounded-full border border-brand-green/30 bg-brand-green/10 px-2 py-0.5 font-mono text-[9px] font-bold uppercase tracking-wider text-brand-green">
+                  <span className="shrink-0 rounded-full border border-brand-green/30 bg-brand-green/10 px-2.5 py-0.5 font-mono text-[9px] font-bold uppercase tracking-wider text-brand-green">
                     Starter
                   </span>
                 </div>
@@ -342,11 +405,11 @@ export default function NotificationDropdown() {
                   .
                 </p>
 
-                <div className="mt-2">
+                <div className="mt-2.5 pt-2 border-t border-brand-border/40">
                   <Link
                     href="/meals"
                     onClick={() => setIsOpen(false)}
-                    className="inline-flex items-center gap-1 text-[11px] font-bold text-brand-green transition hover:underline"
+                    className="inline-flex items-center gap-1 text-[11px] font-bold text-brand-green transition hover:gap-1.5"
                   >
                     <span>View meal plan</span>
                     <ArrowRight className="h-3 w-3" />
@@ -356,73 +419,73 @@ export default function NotificationDropdown() {
             )}
 
             {isLoading ? (
-              <div className="space-y-2" aria-label="Loading notifications">
+              <div className="space-y-2 py-1" aria-label="Loading notifications">
                 {[0, 1, 2].map((item) => (
                   <div
                     key={item}
-                    className="h-24 animate-pulse rounded-[18px] border border-brand-border/60 bg-brand-surface"
+                    className="h-20 animate-pulse rounded-2xl border border-brand-border/40 bg-brand-surface/60"
                   />
                 ))}
               </div>
             ) : notifications.length === 0 ? (
-              <div className="flex min-h-52 flex-col items-center justify-center gap-3 px-6 text-center">
-                <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-brand-green/10 text-brand-green">
-                  <Inbox className="h-6 w-6" />
+              <div className="flex min-h-52 flex-col items-center justify-center gap-3 px-6 py-8 text-center">
+                <span className="flex h-12 w-12 items-center justify-center rounded-2xl border border-brand-border/60 bg-brand-surface text-brand-muted shadow-sm">
+                  <Inbox className="h-5 w-5 opacity-70" />
                 </span>
                 <div>
-                  <p className="text-sm font-bold text-brand-text">No new notifications</p>
-                  <p className="mt-1 text-[11px] leading-relaxed text-brand-muted">
-                    Your account and review updates will appear here.
+                  <p className="text-xs font-bold text-brand-text">No notifications yet</p>
+                  <p className="mt-1 text-[11px] leading-relaxed text-brand-muted max-w-[200px]">
+                    Updates regarding meal approvals and check-ins will show up here.
                   </p>
                 </div>
               </div>
             ) : (
               <div className="space-y-2">
-                {notifications.map((notif) => (
-                  <button
-                    key={notif.id}
-                    type="button"
-                    onClick={() => {
-                      if (!notif.isRead) markAsRead(notif.id);
-                    }}
-                    className={`group flex w-full items-start gap-3 rounded-[18px] border p-3.5 text-left outline-none transition hover:-translate-y-px hover:shadow-sm focus-visible:ring-2 focus-visible:ring-brand-green/35 ${
-                      !notif.isRead
-                        ? 'border-brand-green/25 bg-brand-green/[0.07]'
-                        : 'border-brand-border/70 bg-brand-surface'
-                    }`}
-                  >
-                    <span
-                      className={`mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${
-                        !notif.isRead ? 'bg-brand-green/[0.12]' : 'bg-brand-bgAlt'
+                {notifications.map((notif) => {
+                  const meta = getIconForType(notif.type);
+                  return (
+                    <button
+                      key={notif.id}
+                      type="button"
+                      onClick={() => {
+                        if (!notif.isRead) markAsRead(notif.id);
+                      }}
+                      className={`group relative flex w-full items-start gap-3 rounded-2xl border p-3 text-left outline-none transition-all duration-150 hover:-translate-y-0.5 hover:shadow-sm focus-visible:ring-2 focus-visible:ring-brand-green/35 ${
+                        !notif.isRead
+                          ? 'border-brand-green/25 bg-gradient-to-r from-brand-green/[0.07] to-brand-surface shadow-[0_2px_8px_-2px_rgba(8,112,91,0.08)]'
+                          : 'border-brand-border/60 bg-brand-surface/80 hover:bg-brand-surface hover:border-brand-border'
                       }`}
                     >
-                      {getIconForType(notif.type)}
-                    </span>
-                    <span className="min-w-0 flex-1">
-                      <span className="flex items-start justify-between gap-3">
-                        <span
-                          className={`text-xs font-bold leading-snug ${!notif.isRead ? 'text-brand-text' : 'text-brand-muted'}`}
-                        >
-                          {notif.title}
+                      <span
+                        className={`mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border ${meta.surface} transition-transform group-hover:scale-105`}
+                      >
+                        {meta.icon}
+                      </span>
+                      <span className="min-w-0 flex-1">
+                        <span className="flex items-start justify-between gap-2">
+                          <span
+                            className={`text-xs font-bold leading-snug line-clamp-1 ${
+                              !notif.isRead ? 'text-brand-text' : 'text-brand-muted'
+                            }`}
+                          >
+                            {notif.title}
+                          </span>
+                          <span className="shrink-0 flex items-center gap-1.5">
+                            <span className="font-mono text-[9px] font-medium text-brand-muted/70">
+                              {formatRelativeTime(notif.createdAt)}
+                            </span>
+                            {!notif.isRead && (
+                              <span className="h-1.5 w-1.5 rounded-full bg-brand-green shadow-[0_0_6px_rgba(8,112,91,0.6)]" />
+                            )}
+                          </span>
                         </span>
-                        {!notif.isRead && (
-                          <span className="mt-1 h-2 w-2 shrink-0 rounded-full bg-brand-green shadow-[0_0_8px_rgba(8,112,91,0.35)]" />
-                        )}
+                        <span className="mt-1 line-clamp-2 block text-[11px] leading-relaxed text-brand-muted">
+                          {notif.message}
+                        </span>
                       </span>
-                      <span className="mt-1.5 line-clamp-2 block text-[11px] leading-relaxed text-brand-muted">
-                        {notif.message}
-                      </span>
-                      <span className="mt-2.5 block font-mono text-[9px] font-semibold uppercase tracking-[0.08em] text-brand-muted/70">
-                        {new Date(notif.createdAt).toLocaleString(undefined, {
-                          month: 'short',
-                          day: 'numeric',
-                          hour: '2-digit',
-                          minute: '2-digit',
-                        })}
-                      </span>
-                    </span>
-                  </button>
-                ))}
+                    </button>
+                  );
+                })}
               </div>
             )}
           </div>
