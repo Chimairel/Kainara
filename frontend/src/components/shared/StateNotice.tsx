@@ -120,7 +120,7 @@ const VARIANT_CONFIGS: Record<StateNoticeVariant, VariantDefaults> = {
 };
 
 const EYEBROW_STYLES: Record<EyebrowVariant, string> = {
-  amber: 'border-amber-500/40 bg-amber-500/10 text-amber-500',
+  amber: 'border-[#a64600]/40 bg-[#8c3b00] text-white shadow-xs',
   emerald: 'border-brand-green/40 bg-brand-green/10 text-brand-green',
   brand: 'border-brand-green/40 bg-brand-green/10 text-brand-green',
   cyan: 'border-brand-cyan/40 bg-brand-cyan/10 text-brand-cyan',

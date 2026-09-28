@@ -623,7 +623,7 @@ export default function MealLibraryPage() {
                               : 'Review pending'}
                         </Badge>
                         {isAdminDraft && (
-                          <span className="rounded-full border border-amber-500/40 bg-amber-500/10 px-2 py-0.5 text-[10px] font-semibold text-amber-500">
+                          <span className="rounded-full border border-[#a64600]/30 bg-[#8c3b00] px-2 py-0.5 text-[10px] font-semibold text-white shadow-xs">
                             Admin draft
                           </span>
                         )}

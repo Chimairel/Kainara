@@ -510,7 +510,7 @@ export default function StructuredSafetyIntake({
                     className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${
                       entry.supportState === 'SUPPORTED'
                         ? 'bg-status-verified-bg text-status-verified-text'
-                        : 'bg-status-pending-bg text-status-pending-text'
+                        : 'border border-[#a64600]/30 bg-[#8c3b00] text-white shadow-xs'
                     }`}
                   >
                     {stateLabel[entry.supportState]}

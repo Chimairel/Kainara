@@ -194,7 +194,7 @@ export default function NotificationDropdown() {
             {formatBadgeCount(unreadCount)}
           </span>
         ) : user?.role === 'USER' && (!prerequisitesComplete || planningReadiness?.canRequestPlan === false) ? (
-          <span className="absolute -right-0.5 -top-0.5 flex h-2.5 w-2.5 rounded-full border-2 border-brand-bg bg-amber-500" />
+          <span className="absolute -right-0.5 -top-0.5 flex h-2.5 w-2.5 rounded-full border-2 border-brand-bg bg-[#8c3b00]" />
         ) : null}
       </button>
 

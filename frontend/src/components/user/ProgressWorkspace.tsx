@@ -697,8 +697,8 @@ export function ProgressWorkspace({ mode = 'progress' }: { mode?: ProgressWorksp
                             <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
                             90%–110%: Target Achieved
                           </span>
-                          <span className="inline-flex items-center gap-1.5 rounded-lg bg-amber-500/10 px-2.5 py-1 text-[11px] font-bold text-amber-600 dark:text-amber-400">
-                            <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
+                          <span className="inline-flex items-center gap-1.5 rounded-lg bg-[#8c3b00]/15 px-2.5 py-1 text-[11px] font-bold text-[#8c3b00] dark:text-[#ff8a3d]">
+                            <span className="h-1.5 w-1.5 rounded-full bg-[#8c3b00] dark:bg-[#ff8a3d]" />
                             70%–89%: Acceptable Buffer
                           </span>
                           <span className="inline-flex items-center gap-1.5 rounded-lg bg-rose-500/10 px-2.5 py-1 text-[11px] font-bold text-rose-600 dark:text-rose-400">

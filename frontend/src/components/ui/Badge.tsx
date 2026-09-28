@@ -19,7 +19,7 @@ export const Badge: React.FC<BadgeProps> = ({
 }) => {
   const styles: Record<BadgeVariant, string> = {
     verified: 'border border-status-verified-text/20 bg-status-verified-bg text-status-verified-text',
-    pending: 'border border-status-pending-text/20 bg-status-pending-bg text-status-pending-text',
+    pending: 'border border-[#a64600]/30 bg-[#8c3b00] text-white shadow-xs',
     rejected: 'border border-status-rejected-text/20 bg-status-rejected-bg text-status-rejected-text',
     ai: 'border border-status-ai-text/20 bg-status-ai-bg text-status-ai-text',
     user: 'border border-status-user-text/20 bg-status-user-bg text-status-user-text',

@@ -282,11 +282,11 @@ export default function ReviewsPage() {
         </Button>
       </div>
     ) : activeClaimStatus?.claimedByOther ? (
-      <span className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-1.5 text-xs font-bold text-amber-500 shadow-sm backdrop-blur-md">
+      <span className="rounded-xl border border-[#a64600]/30 bg-[#8c3b00] px-3 py-1.5 text-xs font-bold text-white shadow-sm backdrop-blur-md">
         Being reviewed by another RND
       </span>
     ) : activeClaimStatus?.coolingDownForMe ? (
-      <span className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-1.5 text-xs font-bold text-amber-500 shadow-sm backdrop-blur-md">
+      <span className="rounded-xl border border-[#a64600]/30 bg-[#8c3b00] px-3 py-1.5 text-xs font-bold text-white shadow-sm backdrop-blur-md">
         Claim cooling down
       </span>
     ) : (
@@ -392,7 +392,7 @@ export default function ReviewsPage() {
                   </div>
                   <h3 className="text-sm font-bold text-brand-text truncate mb-1">{meal.mealName}</h3>
                   {meal.highRiskReviewRequired && (
-                    <p className="mb-2 text-[9px] font-black uppercase tracking-wider text-amber-500">
+                    <p className="mb-2 text-[9px] font-black uppercase tracking-wider text-[#8c3b00] dark:text-[#ff8a3d]">
                       {meal.requiresIndependentSecondReview ? 'Independent second review required' : 'Escalated review'}
                     </p>
                   )}
@@ -403,7 +403,7 @@ export default function ReviewsPage() {
                     <span className="rounded-md border border-brand-border px-2 py-1 text-brand-muted">
                       {meal.sourceProvenance.replace(/_/g, ' ')}
                     </span>
-                    <span className="rounded-md border border-amber-500/25 bg-amber-500/10 px-2 py-1 text-amber-500">
+                    <span className="rounded-md border border-[#a64600]/30 bg-[#8c3b00] px-2 py-1 text-white shadow-xs">
                       Shop by {new Date(meal.shoppingDeadlineAt).toLocaleDateString()}
                     </span>
                     {meal.coalescedDependentCount > 1 && (
@@ -424,13 +424,13 @@ export default function ReviewsPage() {
                     <span className="shrink-0">{new Date(meal.scheduledDate).toLocaleDateString()}</span>
                   </div>
                   {meal.claimStatus.claimedByOther && (
-                    <div className="mt-2 flex items-center gap-1 text-[10px] text-amber-500 font-bold">
+                    <div className="mt-2 flex items-center gap-1 text-[10px] text-[#8c3b00] dark:text-[#ff8a3d] font-bold">
                       <Eye className="w-3.5 h-3.5" />
                       <span>Being reviewed</span>
                     </div>
                   )}
                   {meal.claimStatus.coolingDownForMe && (
-                    <p className="mt-2 text-[10px] font-bold text-amber-500">
+                    <p className="mt-2 text-[10px] font-bold text-[#8c3b00] dark:text-[#ff8a3d]">
                       Your claim expired. Available to other nutritionists; you can retry after{' '}
                       {meal.claimStatus.cooldownUntil ? new Date(meal.claimStatus.cooldownUntil).toLocaleTimeString() : 'the cooldown'}.
                     </p>

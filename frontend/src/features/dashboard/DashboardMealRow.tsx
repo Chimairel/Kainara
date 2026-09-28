@@ -74,7 +74,7 @@ export function DashboardMealRow(props: Props) {
       </button>
       <div className="mt-3 flex flex-wrap items-center justify-between gap-2 pl-0 sm:pl-[92px]">
         <span
-          className={`rounded-full px-2.5 py-1 text-xs font-semibold ${props.meal.status === 'APPROVED' ? 'bg-brand-greenLight text-brand-green' : 'bg-status-pending-bg text-status-pending-text'}`}
+          className={`rounded-full px-2.5 py-1 text-xs font-semibold ${props.meal.status === 'APPROVED' ? 'bg-brand-greenLight text-brand-green' : 'border border-[#a64600]/30 bg-[#8c3b00] text-white shadow-xs'}`}
         >
           {completed
             ? 'Eaten'

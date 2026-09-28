@@ -115,7 +115,7 @@ export function DashboardNutritionBudgets({ metrics, className = '' }: { metrics
         <div className="flex flex-col items-center gap-1 text-center">
           <CalorieRing consumed={metrics.caloriesConsumed} target={metrics.caloriesTarget} />
           {metrics.provisionalCalories > 0 && (
-            <p className="rounded-full bg-status-pending-bg px-3 py-1 text-[11px] font-bold text-status-pending-text">
+            <p className="rounded-full border border-[#a64600]/30 bg-[#8c3b00] px-3 py-1 text-[11px] font-bold text-white shadow-xs">
               Includes {Math.round(metrics.provisionalCalories)} provisional kcal
             </p>
           )}

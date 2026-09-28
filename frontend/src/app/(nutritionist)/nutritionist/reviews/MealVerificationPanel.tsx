@@ -206,7 +206,7 @@ export default function MealVerificationPanel() {
                     )}
                   </div>
                   {item.claimedByOther && (
-                    <div className="mt-2 flex items-center gap-1 text-[10px] text-amber-500 font-bold">
+                    <div className="mt-2 flex items-center gap-1 text-[10px] text-[#8c3b00] dark:text-[#ff8a3d] font-bold">
                       <Eye className="w-3.5 h-3.5" />
                       <span>Being reviewed by another nutritionist</span>
                     </div>
@@ -361,7 +361,7 @@ export default function MealVerificationPanel() {
               <p className="text-xs text-brand-muted leading-relaxed">{ingredientText(selected.ingredients)}</p>
             </div>
 
-            <div className="rounded-xl border border-amber-500/25 bg-amber-500/10 p-3.5 text-xs text-amber-500 font-semibold leading-relaxed">
+            <div className="rounded-xl border border-[#a64600]/30 bg-[#8c3b00]/10 p-3.5 text-xs text-[#8c3b00] dark:text-[#ff8a3d] font-semibold leading-relaxed">
               Verification confirms the base dish only. It does not certify nutrition amounts or permit use for a health condition.
             </div>
 

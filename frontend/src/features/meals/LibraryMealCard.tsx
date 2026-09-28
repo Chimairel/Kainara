@@ -39,7 +39,7 @@ export default function LibraryMealCard({
             <span className="rounded-full border border-brand-green/40 px-2 py-1 text-brand-green">In your plan</span>
           )}
           {meal.matchesDietaryPreference === false && (
-            <span className="rounded-full border border-amber-500/40 px-2 py-1 text-amber-500">
+            <span className="rounded-full border border-[#a64600]/30 bg-[#8c3b00] px-2 py-1 text-white shadow-xs">
               Outside your dietary preference
             </span>
           )}

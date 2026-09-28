@@ -57,12 +57,12 @@ export default function MealVerificationBadge({
   // Default: Awaiting Review / Not yet verified
   return (
     <div
-      className={`inline-flex items-center gap-1.5 rounded-full border border-amber-500/35 bg-black/75 px-2.5 py-1 font-mono text-[9px] font-bold text-amber-300 shadow-md backdrop-blur-md select-none ${className}`}
+      className={`inline-flex items-center gap-1.5 rounded-full border border-[#a64600]/40 bg-[#8c3b00] px-2.5 py-1 font-mono text-[9px] font-bold text-white shadow-md select-none ${className}`}
       aria-label="Awaiting clinical review"
     >
       <span className="relative flex h-1.5 w-1.5 shrink-0" aria-hidden="true">
-        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-amber-400 opacity-75" />
-        <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-amber-400" />
+        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-white opacity-75" />
+        <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-white" />
       </span>
       <span>Awaiting Review</span>
     </div>

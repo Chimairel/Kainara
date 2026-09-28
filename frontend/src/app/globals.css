@@ -51,8 +51,8 @@
   /* ─── Status Colors ─── */
   --status-verified-bg: #d5f5e3;
   --status-verified-text: #14532d; /* High contrast green */
-  --status-pending-bg: #fef3c7;
-  --status-pending-text: #78350f; /* High contrast amber */
+  --status-pending-bg: rgba(140, 59, 0, 0.12);
+  --status-pending-text: #8c3b00; /* Rich terracotta matching banner */
   --status-rejected-bg: #fee2e2;
   --status-rejected-text: #7f1d1d; /* High contrast red */
   --status-error-bg: #fee2e2;
@@ -117,8 +117,8 @@ html.dark {
   /* Status Colors (Warm Dark) */
   --status-verified-bg: rgba(74, 222, 128, 0.15);
   --status-verified-text: #4ade80;
-  --status-pending-bg: rgba(245, 158, 11, 0.15);
-  --status-pending-text: #f59e0b;
+  --status-pending-bg: rgba(140, 59, 0, 0.25);
+  --status-pending-text: #ff8a3d;
   --status-rejected-bg: rgba(239, 68, 68, 0.15);
   --status-rejected-text: #f87171;
   --status-error-bg: rgba(239, 68, 68, 0.15);

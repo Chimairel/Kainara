@@ -135,7 +135,7 @@ export default function GovernanceQueuePanel({
                   <p className="mt-1 text-xs text-brand-muted">
                     {clearance.condition} · {clearance.assuranceTier} · {clearance.state}
                   </p>
-                  <p className="mt-2 text-xs font-semibold text-amber-500">
+                  <p className="mt-2 text-xs font-semibold text-[#8c3b00] dark:text-[#ff8a3d]">
                     {clearance.auditReason || `Used by ${clearance.uniqueUserExposure ?? 0} users`}
                   </p>
                 </div>
@@ -173,7 +173,7 @@ export default function GovernanceQueuePanel({
           {tab === 'audit' && dueProfiles.map((approval) => <div key={approval.id} className="rounded-2xl border border-brand-border bg-brand-surface p-4">
             <p className="font-bold">{approval.mealLibrary.mealName}</p>
             <p className="text-xs text-brand-muted">Profile approval · {approval.flaggedAt ? 'Flagged' : `Review due ${new Date(approval.reviewDueAt).toLocaleDateString()}`}</p>
-            {approval.flagReason && <p className="text-xs text-amber-400">{approval.flagReason}</p>}
+            {approval.flagReason && <p className="text-xs text-[#8c3b00] dark:text-[#ff8a3d]">{approval.flagReason}</p>}
             <Button size="sm" variant="secondary" onClick={() => void inspectProfile(approval)}>View case</Button>
             {selectedProfile?.id === approval.id && caseDetail && <div className="mt-3 rounded-xl border border-brand-border p-3 text-sm">
               <p>Original meal: {caseDetail.originatingPlan?.mealName ?? approval.mealLibrary.mealName} · {caseDetail.originatingPlan?.calories ?? 'Unknown'} kcal</p>

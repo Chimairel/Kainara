@@ -255,7 +255,7 @@ export default function MealCard({
                 </span>
               )}
               {isUnloggedPastMeal && (
-                <span className="inline-flex items-center gap-1 rounded-full border border-amber-500/30 bg-amber-500/10 px-2.5 py-0.5 font-mono text-[9px] font-bold uppercase tracking-wider text-amber-700 dark:text-amber-300">
+                <span className="inline-flex items-center gap-1 rounded-full border border-[#a64600]/30 bg-[#8c3b00] px-2.5 py-0.5 font-mono text-[9px] font-bold uppercase tracking-wider text-white shadow-xs">
                   <Clock3 className="h-2.5 w-2.5" /> Unlogged
                 </span>
               )}

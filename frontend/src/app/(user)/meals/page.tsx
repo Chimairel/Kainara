@@ -860,7 +860,7 @@ export default function WeeklyPlanPage() {
                           </p>
                         </div>
 
-                        <span className="self-start md:self-auto rounded-xl border border-amber-500/25 bg-amber-500/10 px-2.5 py-1 font-mono text-[10px] font-extrabold uppercase tracking-wider text-amber-700 dark:text-amber-300">
+                        <span className="self-start md:self-auto rounded-xl border border-[#a64600]/30 bg-[#8c3b00] px-2.5 py-1 font-mono text-[10px] font-extrabold uppercase tracking-wider text-white shadow-xs">
                           Catch-up available
                         </span>
                       </div>

@@ -18,7 +18,7 @@ interface ReleaseOperationsProps {
 
 const statusTone: Record<DataRelease['status'], string> = {
   DRAFT: 'border-sky-500/25 bg-sky-500/10 text-sky-700 dark:text-sky-300',
-  STAGED: 'border-amber-500/25 bg-amber-500/10 text-amber-700 dark:text-amber-300',
+  STAGED: 'border-[#a64600]/30 bg-[#8c3b00] text-white shadow-xs',
   ACTIVE: 'border-brand-green/25 bg-brand-green/10 text-brand-green',
   RETIRED: 'border-brand-border bg-brand-bgAlt text-brand-muted',
 };

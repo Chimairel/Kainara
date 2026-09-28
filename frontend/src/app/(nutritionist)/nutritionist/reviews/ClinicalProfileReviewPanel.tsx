@@ -187,7 +187,7 @@ export default function ClinicalProfileReviewPanel() {
                       Revision {item.profileRevision}
                     </span>
                     {item.needsClarification && (
-                      <span className="rounded-md border border-amber-500/25 bg-amber-500/10 px-2 py-0.5 text-amber-500">
+                      <span className="rounded-md border border-[#a64600]/30 bg-[#8c3b00] px-2 py-0.5 text-[9px] font-bold text-white shadow-xs">
                         Needs clarification
                       </span>
                     )}
@@ -308,7 +308,7 @@ export default function ClinicalProfileReviewPanel() {
                     className={`rounded-full border px-2.5 py-0.5 font-mono text-[10px] font-bold ${
                       detail.nutritionGuidance.isCurrent
                         ? 'border-brand-green text-brand-green bg-brand-green/10'
-                        : 'border-amber-500/40 text-amber-400 bg-amber-500/10'
+                        : 'border-[#a64600]/40 text-white bg-[#8c3b00] shadow-xs'
                     }`}
                   >
                     {detail.nutritionGuidance.isCurrent ? 'Current profile' : 'Out of date'}

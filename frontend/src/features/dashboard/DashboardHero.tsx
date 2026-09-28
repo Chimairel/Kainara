@@ -81,7 +81,7 @@ export function DashboardHero({
             <span
               className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-[11px] font-bold ${
                 isPendingReview
-                  ? 'border-status-pending-text/30 bg-status-pending-bg/30 text-status-pending-text'
+                  ? 'border-[#a64600]/30 bg-[#8c3b00] text-white shadow-xs'
                   : 'border-brand-green/30 bg-brand-green/10 text-brand-green'
               }`}
             >
