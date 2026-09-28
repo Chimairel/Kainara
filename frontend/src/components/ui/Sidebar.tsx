@@ -87,8 +87,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ className = '' }) => {
   return (
     <aside
       className={`
-        relative z-30 hidden h-full shrink-0 flex-col overflow-visible rounded-[30px] border border-white/10
-        bg-[linear-gradient(180deg,#0d1713_0%,#07100d_58%,#050a08_100%)] text-white floating-sidebar-shadow
+        relative z-30 hidden h-full shrink-0 flex-col overflow-visible rounded-[30px] border border-[#173e33]
+        bg-[linear-gradient(180deg,#0e271f_0%,#0b231c_58%,#071914_100%)] text-white floating-sidebar-shadow
         transition-all duration-300 ease-out md:flex
         ${collapsed ? 'w-[68px] px-2 py-3.5' : 'w-[248px] p-4'}
         ${className}
@@ -161,7 +161,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ className = '' }) => {
                       active={active}
                       className={`transition-colors duration-200 ${
                         active
-                          ? 'bg-brand-accent text-[#07100d] font-bold shadow-neon'
+                          ? 'bg-brand-accent text-white font-bold shadow-sm'
                           : 'text-white/60 hover:text-white hover:bg-white/[0.08]'
                       }`}
                     >
@@ -299,20 +299,20 @@ export const Sidebar: React.FC<SidebarProps> = ({ className = '' }) => {
                     }}
                     aria-label={item.label}
                     aria-current={active ? 'page' : undefined}
-                    className={`group relative flex min-h-12 items-center gap-3 rounded-2xl px-3.5 outline-none transition-colors duration-200 focus-visible:ring-2 focus-visible:ring-brand-accent focus-visible:ring-offset-2 focus-visible:ring-offset-[#07100d] ${
-                      active ? 'text-[#07100d]' : 'text-white/55 hover:bg-white/[0.055] hover:text-white'
+                    className={`group relative flex min-h-12 items-center gap-3 rounded-2xl px-3.5 outline-none transition-colors duration-200 focus-visible:ring-2 focus-visible:ring-brand-accent focus-visible:ring-offset-2 focus-visible:ring-offset-[#071914] ${
+                      active ? 'text-white' : 'text-white/55 hover:bg-white/[0.055] hover:text-white'
                     }`}
                   >
                     {active && (
                       <MotionActiveIndicator
                         layoutId="sidebar-active-nav-indicator"
-                        className="rounded-2xl bg-brand-accent shadow-neon"
+                        className="rounded-2xl bg-brand-accent shadow-sm"
                       />
                     )}
                     <span className="relative z-10 flex w-full items-center gap-3">
                       <Icon className={`h-[18px] w-[18px] shrink-0 ${active ? 'stroke-[2.5]' : ''}`} />
                       <span className="font-display text-[13px] font-semibold tracking-tight">{item.label}</span>
-                      {active && <span className="ml-auto h-1.5 w-1.5 rounded-full bg-[#07100d]/60" />}
+                      {active && <span className="ml-auto h-1.5 w-1.5 rounded-full bg-white/70" />}
                     </span>
                   </Link>
                 </React.Fragment>

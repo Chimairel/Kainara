@@ -3,143 +3,140 @@
 @tailwind utilities;
 
 :root {
-  /* ─── Core Palette (Warm Cream + Lime) ─── */
+  /* ─── Core Palette (Warm Cream Ivory + Deep Forest Pine) ─── */
   color-scheme: light;
-  --background: #f3f7f4;
-  --foreground: #10201b;
-  --brand-bg: #f3f7f4;
-  --brand-bg-alt: #e8efeb;
+  --background: #faf8f5;
+  --foreground: #0d2820;
+  --brand-bg: #faf8f5;
+  --brand-bg-alt: #f3efe8;
   --brand-surface: #ffffff;
-  --brand-border: #d5e0da;
+  --brand-border: #dce4e0;
   --brand-green: #08705b;
   --brand-green-hover: #075947;
   --brand-green-light: #dff6ed;
-  --brand-text: #10201b;
-  --brand-muted: #60716a;
-  --brand-accent: #b8f45f;
+  --brand-text: #0d2820;
+  --brand-muted: #5a746a;
+  --brand-accent: #eb6a38;
   --brand-cyan: #18b9d2;
   --brand-violet: #7759e8;
   --brand-black: #07100d;
   --brand-dark: #0a1512;
 
-  /* ─── KAINARA Logo Gradient (Light: Forest Jade) ─── */
+  /* ─── KAINARA Logo Gradient (Light: Forest Jade + Terracotta) ─── */
   --kainara-logo-grad-start: #08705b;
   --kainara-logo-grad-mid: #0e9f6e;
-  --kainara-logo-grad-end: #18b9d2;
+  --kainara-logo-grad-end: #eb6a38;
 
   /* ─── Skeleton Loading Tokens ─── */
-  --skeleton-bg: rgba(16, 32, 27, 0.085);
-  --skeleton-border: rgba(16, 32, 27, 0.045);
+  --skeleton-bg: rgba(13, 40, 32, 0.075);
+  --skeleton-border: rgba(13, 40, 32, 0.04);
 
   /* ─── Grid Line Accent ─── */
-  --grid-line: rgba(19, 78, 61, 0.055);
-  --orb-green: rgba(55, 225, 162, 0.12);
-  --orb-cyan: rgba(70, 207, 241, 0.11);
+  --grid-line: rgba(13, 40, 32, 0.04);
+  --orb-green: rgba(8, 112, 91, 0.08);
+  --orb-cyan: rgba(235, 106, 56, 0.05);
 
-  /* ─── Macro Colors (NutriMind green + cyan + violet) ─── */
+  /* ─── Macro Colors (NutriMind green + cyan + terracotta) ─── */
   --macro-protein: #08705b;
   --macro-carbs: #0b7788;
-  --macro-fat: #527a16;
-  --macro-track-bg: rgba(0, 0, 0, 0.08);
+  --macro-fat: #eb6a38;
+  --macro-track-bg: rgba(0, 0, 0, 0.06);
   --macro-protein-bg: rgba(8, 112, 91, 0.09);
   --macro-protein-border: rgba(8, 112, 91, 0.2);
   --macro-carbs-bg: rgba(24, 185, 210, 0.1);
   --macro-carbs-border: rgba(24, 185, 210, 0.22);
-  --macro-fat-bg: rgba(184, 244, 95, 0.2);
-  --macro-fat-border: rgba(82, 122, 22, 0.22);
+  --macro-fat-bg: rgba(235, 106, 56, 0.14);
+  --macro-fat-border: rgba(235, 106, 56, 0.25);
 
   /* ─── Status Colors ─── */
   --status-verified-bg: #d5f5e3;
   --status-verified-text: #14532d; /* High contrast green */
-  --status-pending-bg: rgba(140, 59, 0, 0.12);
-  --status-pending-text: #8c3b00; /* Rich terracotta matching banner */
+  --status-pending-bg: rgba(235, 106, 56, 0.12);
+  --status-pending-text: #eb6a38; /* Rich terracotta */
   --status-rejected-bg: #fee2e2;
   --status-rejected-text: #7f1d1d; /* High contrast red */
   --status-error-bg: #fee2e2;
   --status-error-text: #7f1d1d;
   --status-ai-bg: rgba(24, 185, 210, 0.12);
   --status-ai-text: #08705b;
-  --status-user-bg: rgba(184, 244, 95, 0.24);
-  --status-user-text: #456715;
+  --status-user-bg: rgba(235, 106, 56, 0.16);
+  --status-user-text: #c25426;
 
-  /* ─── Sidebar (Dark) ─── */
-  --sidebar-bg: #07110e;
-  --sidebar-text: #8fa59c;
-  --sidebar-active: #b8f45f;
-  --sidebar-hover: #10201a;
+  /* ─── Sidebar (Dark Spruce in Light Mode) ─── */
+  --sidebar-bg: #071914;
+  --sidebar-text: #8ea99f;
+  --sidebar-active: #eb6a38;
+  --sidebar-hover: #0e271f;
 }
 
 html.dark {
   color-scheme: dark;
-  --background: #060b09;
+  --background: #071914;
   --foreground: #eff8f3;
-  --brand-bg: #060b09;
-  --brand-bg-alt: #0b1411;
-  --brand-surface: #0e1814;
-  /* Match the portal hero's quiet translucent outline across dark surfaces. */
-  --brand-border: rgba(255, 255, 255, 0.09);
-  --brand-green: #62e5b5;
-  --brand-green-hover: #8bf1cb;
-  --brand-green-light: #103a2d;
+  --brand-bg: #071914;
+  --brand-bg-alt: #0b231c;
+  --brand-surface: #0e271f;
+  /* Match the rich deep spruce outline across dark surfaces */
+  --brand-border: #173e33;
+  --brand-green: #10b981;
+  --brand-green-hover: #34d399;
+  --brand-green-light: #164639;
   --brand-text: #eff8f3;
-  --brand-muted: #8ca098;
-  --brand-accent: #b8f45f;
-  --brand-cyan: #61e6ff;
+  --brand-muted: #8ea99f;
+  --brand-accent: #eb6a38;
+  --brand-cyan: #38bdf8;
   --brand-violet: #a892ff;
-  --brand-black: #020504;
-  --brand-dark: #040806;
+  --brand-black: #040d0a;
+  --brand-dark: #05130f;
 
-  /* ─── KAINARA Logo Gradient (Dark: Signature Neon) ─── */
-  --kainara-logo-grad-start: #b8f45f;
+  /* ─── KAINARA Logo Gradient (Dark: Jade to Terracotta) ─── */
+  --kainara-logo-grad-start: #34d399;
   --kainara-logo-grad-mid: #2dd4bf;
-  --kainara-logo-grad-end: #18b9d2;
+  --kainara-logo-grad-end: #eb6a38;
 
   /* ─── Skeleton Loading Tokens ─── */
-  --skeleton-bg: rgba(255, 255, 255, 0.09);
-  --skeleton-border: rgba(255, 255, 255, 0.04);
+  --skeleton-bg: rgba(23, 62, 51, 0.6);
+  --skeleton-border: rgba(23, 62, 51, 0.3);
 
   /* ─── Grid Line Accent ─── */
-  --grid-line: rgba(131, 236, 195, 0.035);
-  --orb-green: rgba(55, 225, 162, 0.09);
-  --orb-cyan: rgba(70, 207, 241, 0.07);
+  --grid-line: rgba(23, 62, 51, 0.25);
+  --orb-green: rgba(16, 185, 129, 0.08);
+  --orb-cyan: rgba(235, 106, 56, 0.05);
 
-  --macro-protein: #62e5b5;
-  --macro-carbs: #61e6ff;
-  --macro-fat: #b8f45f;
-  --macro-track-bg: rgba(255, 255, 255, 0.08);
-  --macro-protein-bg: rgba(98, 229, 181, 0.1);
-  --macro-protein-border: rgba(98, 229, 181, 0.2);
-  --macro-carbs-bg: rgba(97, 230, 255, 0.1);
-  --macro-carbs-border: rgba(97, 230, 255, 0.2);
-  --macro-fat-bg: rgba(184, 244, 95, 0.1);
-  --macro-fat-border: rgba(184, 244, 95, 0.2);
+  --macro-protein: #10b981;
+  --macro-carbs: #38bdf8;
+  --macro-fat: #eb6a38;
+  --macro-track-bg: rgba(255, 255, 255, 0.07);
+  --macro-protein-bg: rgba(16, 185, 129, 0.12);
+  --macro-protein-border: rgba(16, 185, 129, 0.25);
+  --macro-carbs-bg: rgba(56, 189, 248, 0.12);
+  --macro-carbs-border: rgba(56, 189, 248, 0.25);
+  --macro-fat-bg: rgba(235, 106, 56, 0.15);
+  --macro-fat-border: rgba(235, 106, 56, 0.25);
 
   /* Status Colors (Warm Dark) */
-  --status-verified-bg: rgba(74, 222, 128, 0.15);
-  --status-verified-text: #4ade80;
-  --status-pending-bg: rgba(140, 59, 0, 0.25);
-  --status-pending-text: #ff8a3d;
+  --status-verified-bg: rgba(16, 185, 129, 0.15);
+  --status-verified-text: #34d399;
+  --status-pending-bg: rgba(235, 106, 56, 0.22);
+  --status-pending-text: #f09e6c;
   --status-rejected-bg: rgba(239, 68, 68, 0.15);
   --status-rejected-text: #f87171;
   --status-error-bg: rgba(239, 68, 68, 0.15);
   --status-error-text: #f87171;
-  --status-ai-bg: rgba(97, 230, 255, 0.12);
-  --status-ai-text: #61e6ff;
-  --status-user-bg: rgba(184, 244, 95, 0.12);
-  --status-user-text: #b8f45f;
+  --status-ai-bg: rgba(56, 189, 248, 0.12);
+  --status-ai-text: #38bdf8;
+  --status-user-bg: rgba(235, 106, 56, 0.15);
+  --status-user-text: #f09e6c;
 
-  --sidebar-bg: #030806;
-  --sidebar-text: #82948c;
-  --sidebar-active: #b8f45f;
-  --sidebar-hover: #0c1813;
+  --sidebar-bg: #071914;
+  --sidebar-text: #8ea99f;
+  --sidebar-active: #eb6a38;
+  --sidebar-hover: #0e271f;
 }
 
 /*
  * Tailwind does not emit opacity variants such as border-brand-border/70
- * for a custom color backed by a complete CSS color value. Without an
- * emitted border-color rule, bordered dark surfaces inherit their light
- * text color and render as solid white outlines. Keep every neutral dark
- * border on the same quiet treatment used by the portal hero.
+ * for a custom color backed by a complete CSS color value.
  */
 :root .border-brand-border,
 :root [class*='border-brand-border/'] {
@@ -147,7 +144,7 @@ html.dark {
 }
 html.dark .border-brand-border,
 html.dark [class*='border-brand-border/'] {
-  border-color: rgba(255, 255, 255, 0.09);
+  border-color: #173e33;
 }
 [class*='border-status-pending-text/'] {
   border-color: var(--status-pending-text);
@@ -201,7 +198,7 @@ body {
 /* Smooth transitions for theme switches */
 ::selection {
   background: var(--brand-accent);
-  color: #07100d;
+  color: #ffffff;
 }
 
 body,
@@ -254,16 +251,16 @@ th {
 }
 
 .daily-intake-card {
-  --brand-surface: #163c30;
-  --brand-text: #f4fff8;
-  --brand-muted: #b7cec2;
-  --brand-green: #b8f45f;
-  --brand-border: #345548;
-  --macro-protein: #b8f45f;
-  --macro-carbs: #61e6ff;
-  --macro-fat: #c3afea;
-  background: radial-gradient(ellipse at top right, #24543e, transparent 70%), #102d24;
-  border-color: #345548;
+  --brand-surface: #0e271f;
+  --brand-text: #eff8f3;
+  --brand-muted: #8ea99f;
+  --brand-green: #10b981;
+  --brand-border: #173e33;
+  --macro-protein: #10b981;
+  --macro-carbs: #38bdf8;
+  --macro-fat: #eb6a38;
+  background: radial-gradient(ellipse at top right, #1b4e41, transparent 70%), #0e271f;
+  border-color: #173e33;
   box-shadow:
     0 4px 8px rgb(5 18 14 / 8%),
     0 18px 36px rgb(5 18 14 / 16%);
@@ -340,9 +337,9 @@ th {
 
 .portal-page-header {
   background:
-    radial-gradient(circle at 88% 12%, rgba(34, 211, 238, 0.13), transparent 13rem),
-    radial-gradient(circle at 7% 120%, rgba(184, 244, 95, 0.13), transparent 14rem), #07100d;
-  border: 1px solid rgba(255, 255, 255, 0.09);
+    radial-gradient(circle at 88% 12%, rgba(235, 106, 56, 0.15), transparent 13rem),
+    radial-gradient(circle at 7% 120%, rgba(16, 185, 129, 0.15), transparent 14rem), #0e271f;
+  border: 1px solid #173e33;
   border-radius: 2rem;
   box-shadow: 0 8px 24px rgba(1, 8, 5, 0.1);
   color: white;
@@ -381,12 +378,12 @@ th {
 .portal-page-header [data-button-variant='secondary']:hover:not(:disabled),
 .portal-page-header [data-button-variant='ghost']:hover:not(:disabled) {
   background: rgba(255, 255, 255, 0.085);
-  border-color: rgba(184, 244, 95, 0.3);
-  color: #b8f45f;
+  border-color: rgba(235, 106, 56, 0.4);
+  color: #eb6a38;
 }
 
 .portal-kicker {
-  color: #b8f45f;
+  color: var(--brand-accent);
   font-family: var(--font-jetbrains-mono), monospace;
   font-size: 0.625rem;
   font-weight: 700;
