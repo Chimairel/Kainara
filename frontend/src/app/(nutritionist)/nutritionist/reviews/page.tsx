@@ -21,6 +21,8 @@ import {
   ArrowLeft,
   Sparkles,
 } from 'lucide-react';
+import PortalPageHeader from '@/components/shared/PortalPageHeader';
+import LoadingSpinner from '@/components/shared/LoadingSpinner';
 
 import { useNutritionistReviews } from '@/features/nutritionist-reviews/useNutritionistReviews';
 import IngredientEvidenceList from '@/features/nutritionist-reviews/IngredientEvidenceList';
@@ -87,61 +89,235 @@ export default function ReviewsPage() {
     caseFilter === 'second' ? meal.requiresIndependentSecondReview : !meal.requiresIndependentSecondReview
   );
 
-  const navigation = <WorkspaceTabs value={workspace} counts={workCounts} onChange={(next) => { setWorkspace(next); setExpanded(false); }} />;
-  if (workspace === 'meal') return <>{navigation}<MealVerificationPanel /></>;
-  if (workspace === 'profile') return <>{navigation}<div className="flex gap-2 px-4 py-3" aria-label="Profile queue filters"><button type="button" aria-pressed={profileTab === 'profiles'} onClick={() => setProfileTab('profiles')} className={`rounded-lg border border-brand-border px-3 py-2 text-xs font-bold ${profileTab === 'profiles' ? 'bg-brand-green text-[#07100d]' : 'text-brand-muted'}`}>Profiles</button><button type="button" aria-pressed={profileTab === 'documents'} onClick={() => setProfileTab('documents')} className={`rounded-lg border border-brand-border px-3 py-2 text-xs font-bold ${profileTab === 'documents' ? 'bg-brand-green text-[#07100d]' : 'text-brand-muted'}`}>Clinical documents</button></div>{profileTab === 'profiles' ? <ClinicalProfileReviewPanel /> : <ClinicalEvidenceReviewPanel />}</>;
-  const caseFilters = <div className="flex flex-wrap gap-2 px-4 py-3" aria-label="Case approval filters">{([
-    ['pending', 'Pending'], ['second', 'Second decision'], ['outside', 'Outside meal logs'],
-    ['completed', 'Completed history'], ['audit', 'Audit and rechecks'], ['disputed', 'Needs resolution'],
-  ] as const).map(([key, label]) => <button key={key} type="button" aria-pressed={caseFilter === key} onClick={() => { setCaseFilter(key); setExpanded(false); }} className={`rounded-lg border border-brand-border px-3 py-2 text-xs font-bold ${caseFilter === key ? 'bg-brand-green text-[#07100d]' : 'text-brand-muted'}`}>{label}</button>)}</div>;
-  if (caseFilter === 'audit' || caseFilter === 'disputed') return <>{navigation}{caseFilters}<GovernanceQueuePanel tab={caseFilter} /></>;
-  if (caseFilter === 'outside') return <>{navigation}{caseFilters}<OutsideMealReviewsPage /></>;
-  if (caseFilter === 'completed') return <>{navigation}{caseFilters}<ApprovedReviewsPage /></>;
+  const navigation = (
+    <WorkspaceTabs
+      value={workspace}
+      counts={workCounts}
+      onChange={(next) => {
+        setWorkspace(next);
+        setExpanded(false);
+      }}
+    />
+  );
+
+  const profileFilters = (
+    <div
+      className="flex w-fit items-center gap-1.5 rounded-2xl border border-brand-border/70 bg-brand-surface/75 p-1.5 shadow-sm backdrop-blur-md"
+      aria-label="Profile queue filters"
+    >
+      <button
+        type="button"
+        aria-pressed={profileTab === 'profiles'}
+        onClick={() => setProfileTab('profiles')}
+        className={`group relative flex items-center justify-center gap-1.5 rounded-xl px-4 py-2 font-display text-xs font-extrabold outline-none transition-all duration-200 focus-visible:ring-2 focus-visible:ring-brand-green ${
+          profileTab === 'profiles'
+            ? 'bg-brand-accent text-[#07100d] font-black shadow-sm'
+            : 'text-brand-muted hover:bg-brand-bgAlt/80 hover:text-brand-text'
+        }`}
+      >
+        Profiles
+      </button>
+      <button
+        type="button"
+        aria-pressed={profileTab === 'documents'}
+        onClick={() => setProfileTab('documents')}
+        className={`group relative flex items-center justify-center gap-1.5 rounded-xl px-4 py-2 font-display text-xs font-extrabold outline-none transition-all duration-200 focus-visible:ring-2 focus-visible:ring-brand-green ${
+          profileTab === 'documents'
+            ? 'bg-brand-accent text-[#07100d] font-black shadow-sm'
+            : 'text-brand-muted hover:bg-brand-bgAlt/80 hover:text-brand-text'
+        }`}
+      >
+        Clinical documents
+      </button>
+    </div>
+  );
+
+  const caseFilters = (
+    <div
+      className="flex flex-wrap items-center gap-1.5 rounded-2xl border border-brand-border/70 bg-brand-surface/75 p-1.5 shadow-sm backdrop-blur-md"
+      aria-label="Case approval filters"
+    >
+      {(
+        [
+          ['pending', 'Pending'],
+          ['second', 'Second decision'],
+          ['outside', 'Outside meal logs'],
+          ['completed', 'Completed history'],
+          ['audit', 'Audit and rechecks'],
+          ['disputed', 'Needs resolution'],
+        ] as const
+      ).map(([key, label]) => (
+        <button
+          key={key}
+          type="button"
+          aria-pressed={caseFilter === key}
+          onClick={() => {
+            setCaseFilter(key);
+            setExpanded(false);
+          }}
+          className={`group relative flex items-center justify-center gap-1.5 rounded-xl px-3.5 py-2 font-display text-xs font-extrabold outline-none transition-all duration-200 focus-visible:ring-2 focus-visible:ring-brand-green ${
+            caseFilter === key
+              ? 'bg-brand-accent text-[#07100d] font-black shadow-sm'
+              : 'text-brand-muted hover:bg-brand-bgAlt/80 hover:text-brand-text'
+          }`}
+        >
+          {label}
+        </button>
+      ))}
+    </div>
+  );
+
+  if (workspace === 'meal') {
+    return (
+      <div className="portal-page space-y-5 pb-20 text-brand-text">
+        <div className="mx-auto flex max-w-7xl flex-col gap-5">
+          <PortalPageHeader
+            icon={ShieldCheck}
+            eyebrow="Clinical workspace"
+            title="Reviews"
+            description="Audit AI-generated meal plans, approve health profiles, and verify base recipes."
+          />
+          {navigation}
+          <MealVerificationPanel />
+        </div>
+      </div>
+    );
+  }
+
+  if (workspace === 'profile') {
+    return (
+      <div className="portal-page space-y-5 pb-20 text-brand-text">
+        <div className="mx-auto flex max-w-7xl flex-col gap-5">
+          <PortalPageHeader
+            icon={ShieldCheck}
+            eyebrow="Clinical workspace"
+            title="Reviews"
+            description="Audit AI-generated meal plans, approve health profiles, and verify base recipes."
+          />
+          {navigation}
+          {profileFilters}
+          {profileTab === 'profiles' ? <ClinicalProfileReviewPanel /> : <ClinicalEvidenceReviewPanel />}
+        </div>
+      </div>
+    );
+  }
+
+  if (caseFilter === 'audit' || caseFilter === 'disputed') {
+    return (
+      <div className="portal-page space-y-5 pb-20 text-brand-text">
+        <div className="mx-auto flex max-w-7xl flex-col gap-5">
+          <PortalPageHeader
+            icon={ShieldCheck}
+            eyebrow="Clinical workspace"
+            title="Reviews"
+            description="Audit AI-generated meal plans, approve health profiles, and verify base recipes."
+          />
+          {navigation}
+          {caseFilters}
+          <GovernanceQueuePanel tab={caseFilter} />
+        </div>
+      </div>
+    );
+  }
+
+  if (caseFilter === 'outside') {
+    return (
+      <div className="portal-page space-y-5 pb-20 text-brand-text">
+        <div className="mx-auto flex max-w-7xl flex-col gap-5">
+          <PortalPageHeader
+            icon={ShieldCheck}
+            eyebrow="Clinical workspace"
+            title="Reviews"
+            description="Audit AI-generated meal plans, approve health profiles, and verify base recipes."
+          />
+          {navigation}
+          {caseFilters}
+          <OutsideMealReviewsPage />
+        </div>
+      </div>
+    );
+  }
+
+  if (caseFilter === 'completed') {
+    return (
+      <div className="portal-page space-y-5 pb-20 text-brand-text">
+        <div className="mx-auto flex max-w-7xl flex-col gap-5">
+          <PortalPageHeader
+            icon={ShieldCheck}
+            eyebrow="Clinical workspace"
+            title="Reviews"
+            description="Audit AI-generated meal plans, approve health profiles, and verify base recipes."
+          />
+          {navigation}
+          {caseFilters}
+          <ApprovedReviewsPage />
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <>
-    {navigation}
-    {caseFilters}
-    <div className="m-2 sm:m-3 flex h-[calc(100%-1rem)] sm:h-[calc(100%-1.5rem)] w-[calc(100%-1rem)] sm:w-[calc(100%-1.5rem)] flex-col overflow-hidden rounded-2xl sm:rounded-[30px] border border-brand-border/70 bg-brand-surface text-left shadow-card-lg backdrop-blur-xl md:m-4 md:h-[calc(100%-2rem)] md:w-[calc(100%-2rem)] md:flex-row">
-      {/* Master Queue List Panel */}
-      <div
-        className={`${selectedMealId ? 'hidden md:flex' : 'flex'} ${expanded ? '!hidden' : ''} h-full w-full min-w-0 flex-col space-y-4 overflow-y-auto border-brand-border/70 bg-brand-surface/75 p-5 custom-scrollbar md:w-[38%] md:min-w-[280px] md:border-r`}
-      >
-        <div className="rounded-2xl border border-brand-green/20 bg-brand-green/5 p-5 text-brand-text">
-          <p className="text-xs font-semibold text-brand-green">Meal-plan review</p>
-          <div className="mt-3 flex items-center justify-between">
-            <h1 className="flex items-center gap-2 font-display text-xl font-extrabold tracking-tight">
-              Review queue
-              <button
-                onClick={() => fetchQueue()}
-                className="rounded-xl p-2 text-brand-green transition hover:bg-brand-green/10"
-                title="Refresh queue"
-                aria-label="Refresh queue"
-              >
-                <RefreshCw className="w-4 h-4" />
-              </button>
-            </h1>
-            <Badge variant="pending" className="text-[9px]">
-              {visibleQueue.length} pending
-            </Badge>
-          </div>
-          <p className="mt-3 text-xs leading-relaxed text-brand-muted">
-            Select a meal to preview its evidence. Claim it when you are ready to review; release your claim if you need to hand it back.
-          </p>
-        </div>
+    <div className="portal-page space-y-5 pb-20 text-brand-text">
+      <div className="mx-auto flex max-w-7xl flex-col gap-5">
+        <PortalPageHeader
+          icon={ShieldCheck}
+          eyebrow="Clinical workspace"
+          title="Reviews"
+          description="Audit AI-generated meal plans, approve health profiles, and verify base recipes."
+        />
+        {navigation}
+        {caseFilters}
+        <div className="flex min-h-[640px] flex-col overflow-hidden rounded-3xl border border-brand-border/70 bg-brand-surface text-left shadow-card-lg backdrop-blur-xl md:flex-row">
+          {/* Master Queue List Panel */}
+          <div
+            className={`${selectedMealId ? 'hidden md:flex' : 'flex'} ${expanded ? '!hidden' : ''} h-full w-full min-w-0 flex-col space-y-4 overflow-y-auto border-brand-border/70 bg-brand-surface/75 p-5 custom-scrollbar md:w-[38%] md:min-w-[280px] md:border-r`}
+          >
+            <div className="rounded-2xl border border-brand-border/80 bg-brand-surface/90 p-5 text-brand-text shadow-sm backdrop-blur-md">
+              <div className="flex items-center justify-between gap-2">
+                <span className="font-mono text-[9px] font-bold uppercase tracking-[0.16em] text-brand-green">
+                  Meal-plan review
+                </span>
+                <Badge variant="pending" className="text-[9px]">
+                  {visibleQueue.length} pending
+                </Badge>
+              </div>
+              <div className="mt-2.5 flex items-center justify-between">
+                <h2 className="font-display text-lg font-black tracking-tight text-brand-text">
+                  Review queue
+                </h2>
+                <button
+                  type="button"
+                  onClick={() => fetchQueue()}
+                  className="flex h-8 w-8 items-center justify-center rounded-xl border border-brand-border/60 bg-brand-bgAlt/60 text-brand-muted transition hover:border-brand-green/30 hover:bg-brand-green/10 hover:text-brand-green outline-none focus-visible:ring-2 focus-visible:ring-brand-green"
+                  title="Refresh queue"
+                  aria-label="Refresh queue"
+                >
+                  <RefreshCw className="w-3.5 h-3.5" />
+                </button>
+              </div>
+              <p className="mt-2 text-xs leading-relaxed text-brand-muted">
+                Select a meal to preview its evidence. Claim it when ready to decide.
+              </p>
+            </div>
 
-        {isLoading ? (
-          <div className="flex-1 flex items-center justify-center">
-            <span className="text-brand-muted animate-pulse text-sm">Loading queue...</span>
-          </div>
-        ) : visibleQueue.length === 0 ? (
-          <div className="flex-1 flex flex-col items-center justify-center p-6 text-center space-y-2 border border-dashed border-brand-border rounded-xl">
-            <CheckCircle className="w-8 h-8 text-brand-green" />
-            <p role={errorMsg ? 'alert' : 'status'} className="text-xs text-brand-muted">
-              {errorMsg || 'No meals awaiting review in this queue.'}
-            </p>
-          </div>
-        ) : (
+            {isLoading ? (
+              <div className="flex-1 flex flex-col items-center justify-center p-12 text-center space-y-3">
+                <LoadingSpinner size="md" />
+                <span className="text-brand-muted text-xs font-semibold animate-pulse">Loading review queue…</span>
+              </div>
+            ) : visibleQueue.length === 0 ? (
+              <div className="flex-1 flex flex-col items-center justify-center p-8 text-center space-y-3 rounded-2xl border border-dashed border-brand-border/80 bg-brand-surface/40">
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-brand-green/10 text-brand-green shadow-inner">
+                  <CheckCircle className="w-6 h-6 stroke-[2.2]" />
+                </div>
+                <div className="space-y-1">
+                  <p className="font-display text-sm font-extrabold text-brand-text">Queue clear</p>
+                  <p role={errorMsg ? 'alert' : 'status'} className="text-xs text-brand-muted max-w-xs leading-relaxed">
+                    {errorMsg || 'No meals awaiting review in this queue.'}
+                  </p>
+                </div>
+              </div>
+            ) : (
           <div className="space-y-3">
             {visibleQueue.map((meal) => {
               const isSelected = selectedMealId === meal.id;
@@ -234,23 +410,51 @@ export default function ReviewsPage() {
           </button>
         )}
         {selectedMealId === null ? (
-          <div className="space-y-6 py-3">
-            <div className="rounded-2xl border border-brand-border bg-brand-surface p-6">
-              <h2 className="font-display text-2xl font-bold text-brand-text">A clear path to every review</h2>
-              <p className="mt-3 text-sm leading-relaxed text-brand-muted">
-                Select a meal to inspect the person’s health profile and the meal’s evidence side by side. The review lock begins only when you press Claim review.
-              </p>
-              <ol className="mt-5 space-y-3 text-sm text-brand-text">
-                <li>
-                  <strong className="text-brand-green">01 · Inspect</strong> an available meal.
-                </li>
-                <li>
-                  <strong className="text-brand-green">02 · Claim</strong> when ready to decide.
-                </li>
-                <li>
-                  <strong className="text-brand-green">03 · Decide</strong> and record your review notes.
-                </li>
-              </ol>
+          <div className="space-y-6 py-2">
+            <div className="rounded-3xl border border-brand-border/80 bg-brand-surface/90 p-6 sm:p-8 shadow-card-lg backdrop-blur-xl space-y-6">
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-brand-accent/15 text-brand-accent">
+                <ShieldCheck className="h-6 w-6 stroke-[2.2]" />
+              </div>
+              <div>
+                <h2 className="font-display text-2xl font-black tracking-tight text-brand-text">
+                  A clear path to every review
+                </h2>
+                <p className="mt-2 text-sm leading-relaxed text-brand-muted">
+                  Select a meal to inspect the person’s health profile and the meal’s evidence side by side. The review lock begins only when you press Claim review.
+                </p>
+              </div>
+              <div className="grid gap-3 pt-2">
+                {[
+                  {
+                    step: '01',
+                    title: 'Inspect an available meal',
+                    desc: 'Preview the patient’s clinical conditions, allergen profile, and meal candidate evidence.',
+                  },
+                  {
+                    step: '02',
+                    title: 'Claim when ready to decide',
+                    desc: 'Secure a 30-minute exclusive review lock when you are ready to evaluate.',
+                  },
+                  {
+                    step: '03',
+                    title: 'Decide and record your review notes',
+                    desc: 'Approve, edit portions/ingredients, or regenerate candidates with clinical notes.',
+                  },
+                ].map((item) => (
+                  <div
+                    key={item.step}
+                    className="flex items-start gap-3.5 rounded-2xl border border-brand-border/60 bg-brand-bgAlt/50 p-4 transition-colors hover:border-brand-accent/30"
+                  >
+                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-brand-accent/15 font-mono text-xs font-black text-brand-accent">
+                      {item.step}
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <p className="font-display text-sm font-bold text-brand-text">{item.title}</p>
+                      <p className="mt-0.5 text-xs leading-relaxed text-brand-muted">{item.desc}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         ) : detailLoading ? (
@@ -916,15 +1120,15 @@ export default function ReviewsPage() {
                     <Button
                       variant="secondary"
                       onClick={startEditing}
-                      className="w-full sm:w-auto text-xs px-6 sm:px-8 py-2.5 flex items-center justify-center gap-1.5 border-brand-muted text-brand-muted hover:text-brand-text hover:border-brand-text active:scale-[0.98]"
+                      className="w-full sm:w-auto text-xs px-6 sm:px-8 py-2.5 flex items-center justify-center gap-1.5"
                     >
                       <Edit className="w-4 h-4" />
                       <span>Edit & Approve</span>
                     </Button>
                     <Button
-                      variant="secondary"
+                      variant="danger"
                       onClick={() => setShowRejectForm(true)}
-                      className="w-full sm:w-auto text-xs px-6 sm:px-8 py-2.5 flex items-center justify-center gap-1.5 text-red-400 border-red-500/20 hover:bg-red-950/20 hover:border-red-500/40 active:scale-[0.98]"
+                      className="w-full sm:w-auto text-xs px-6 sm:px-8 py-2.5 flex items-center justify-center gap-1.5"
                     >
                       <X className="w-4 h-4" />
                       <span>Reject</span>
@@ -938,6 +1142,7 @@ export default function ReviewsPage() {
         ) : null}
       </ExpandableCasePanel>
     </div>
-    </>
+  </div>
+</div>
   );
 }

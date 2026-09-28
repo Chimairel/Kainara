@@ -184,14 +184,21 @@ export default function MealLibraryPage() {
         }
       />
 
-      <nav aria-label="Library sections" className="flex gap-2">
+      <nav
+        aria-label="Library sections"
+        className="flex w-fit items-center gap-1.5 rounded-2xl border border-brand-border/70 bg-brand-surface/75 p-1.5 shadow-sm backdrop-blur-md"
+      >
         {(['recipes', 'coverage'] as const).map((value) => (
           <button
             key={value}
             type="button"
             onClick={() => setSection(value)}
             aria-pressed={section === value}
-            className="rounded-xl border border-brand-border px-4 py-2 text-sm font-semibold aria-pressed:bg-brand-accent aria-pressed:text-[#07100d]"
+            className={`group relative flex items-center justify-center gap-1.5 rounded-xl px-4 py-2 font-display text-xs font-extrabold outline-none transition-all duration-200 focus-visible:ring-2 focus-visible:ring-brand-green ${
+              section === value
+                ? 'bg-brand-accent text-[#07100d] font-black shadow-sm'
+                : 'text-brand-muted hover:bg-brand-bgAlt/80 hover:text-brand-text'
+            }`}
           >
             {value === 'recipes' ? 'Recipes' : 'Serving coverage'}
           </button>
