@@ -20,7 +20,7 @@ export function DashboardMealSchedule({ activeDate, approvedMeals, onStatusToggl
     pendingReview?.meals.filter(
       (meal) => activeDate && getManilaDateKey(meal.scheduledDate) === getManilaDateKey(activeDate)
     ) ?? [];
-  const mealCards = approvedMeals.map((meal) => (
+  const mealCards = approvedMeals.map((meal, index) => (
     <MealCard
       key={meal.id}
       id={meal.id}
@@ -42,6 +42,7 @@ export function DashboardMealSchedule({ activeDate, approvedMeals, onStatusToggl
       image={meal.image}
       nutritionistNote={meal.nutritionistNote}
       reviewedAt={meal.reviewedAt}
+      index={index}
       onCardClick={() => router.push(`/dashboard/${meal.id}`)}
     />
   ));
@@ -52,7 +53,7 @@ export function DashboardMealSchedule({ activeDate, approvedMeals, onStatusToggl
         <ClinicalReviewBanner pendingCount={pendingReview.meals.length} />
         <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
           {pendingMeals.map((meal, index) => (
-            <PendingMealPreviewCard key={`${meal.scheduledDate}-${meal.mealType}-${index}`} meal={meal} />
+            <PendingMealPreviewCard key={`${meal.scheduledDate}-${meal.mealType}-${index}`} meal={meal} index={index} />
           ))}
         </div>
         {approvedMeals.length > 0 && (

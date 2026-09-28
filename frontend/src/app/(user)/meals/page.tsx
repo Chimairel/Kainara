@@ -478,9 +478,9 @@ export default function WeeklyPlanPage() {
                         </div>
                       </div>
 
-                      <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+                      <div className="grid grid-cols-1 gap-8 pt-4 md:grid-cols-3 md:gap-5 sm:pt-6 overflow-visible">
                         {day.mealsList.map((meal, index) => (
-                          <PendingMealPreviewCard key={`${meal.scheduledDate}-${meal.mealType}-${index}`} meal={meal} />
+                          <PendingMealPreviewCard key={`${meal.scheduledDate}-${meal.mealType}-${index}`} meal={meal} index={index} />
                         ))}
                       </div>
                     </div>
@@ -512,7 +512,7 @@ export default function WeeklyPlanPage() {
                 .map((day) => (
                   <section
                     key={day.dateKey}
-                    className="overflow-hidden rounded-[26px] border border-brand-border/70 bg-brand-surface shadow-sm"
+                    className="overflow-visible rounded-[26px] border border-brand-border/70 bg-brand-surface shadow-sm"
                   >
                     {/* Day Header with sum targets */}
                     <div className="flex flex-col justify-between gap-3 border-b border-brand-border/60 bg-brand-bgAlt/35 px-4 py-4 md:flex-row md:items-center sm:px-5">
@@ -562,8 +562,8 @@ export default function WeeklyPlanPage() {
                     </div>
 
                     {/* Day's 3 Meals Column Stack */}
-                    <div className="grid grid-cols-1 gap-4 p-4 md:grid-cols-3 sm:p-5">
-                      {day.mealsList.map((meal) => (
+                    <div className="grid grid-cols-1 gap-8 p-4 pt-6 md:grid-cols-3 md:gap-5 sm:p-6 sm:pt-8 overflow-visible">
+                      {day.mealsList.map((meal, index) => (
                         <MealCard
                           key={meal.id}
                           id={meal.id}
@@ -588,6 +588,7 @@ export default function WeeklyPlanPage() {
                           cookingLink={meal.cookingLink}
                           nutritionistNote={meal.nutritionistNote}
                           reviewedAt={meal.reviewedAt}
+                          index={index}
                         />
                       ))}
                     </div>
@@ -599,7 +600,7 @@ export default function WeeklyPlanPage() {
                   .map((day) => (
                     <section
                       key={`pending-${day.dateKey}`}
-                      className="rounded-[26px] bg-status-pending-bg/20 p-4 shadow-sm sm:p-5"
+                      className="overflow-visible rounded-[26px] bg-status-pending-bg/20 p-4 shadow-sm sm:p-5"
                     >
                       <div className="mb-4 flex flex-col gap-2 border-b border-brand-border/50 pb-4 sm:flex-row sm:items-center sm:justify-between">
                         <div>
@@ -611,9 +612,9 @@ export default function WeeklyPlanPage() {
                           </p>
                         </div>
                       </div>
-                      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                      <div className="grid grid-cols-1 gap-8 pt-4 md:grid-cols-3 md:gap-5 sm:pt-6 overflow-visible">
                         {day.mealsList.map((meal, index) => (
-                          <PendingMealPreviewCard key={`${meal.scheduledDate}-${meal.mealType}-${index}`} meal={meal} />
+                          <PendingMealPreviewCard key={`${meal.scheduledDate}-${meal.mealType}-${index}`} meal={meal} index={index} />
                         ))}
                       </div>
                     </section>

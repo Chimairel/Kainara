@@ -4,10 +4,10 @@ import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { CalendarDays, Clock3, Coffee, MoonStar, ShieldAlert, SunMedium, Soup, Apple, X } from 'lucide-react';
-import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import MealImage from './MealImage';
 import MealVerificationBadge from './MealVerificationBadge';
+import { getMealTheme } from './MealCard';
 import type { PublicMealImage, MealCookingLink } from '@/types';
 
 export interface PendingMealPreview {
@@ -25,7 +25,14 @@ export interface PendingMealPreview {
   planType?: 'STARTER' | 'WEEKLY';
 }
 
-export default function PendingMealPreviewCard({ meal }: { meal: PendingMealPreview }) {
+export default function PendingMealPreviewCard({
+  meal,
+  index = 0,
+}: {
+  meal: PendingMealPreview;
+  index?: number;
+}) {
+  const theme = getMealTheme(meal.mealType, index);
   const [isOpen, setIsOpen] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
 
@@ -113,59 +120,64 @@ export default function PendingMealPreviewCard({ meal }: { meal: PendingMealPrev
           }
         }}
         aria-label={`Open ${meal.mealName} details`}
-        className="group block h-full w-full cursor-pointer select-none text-left outline-none focus-visible:ring-2 focus-visible:ring-brand-green focus-visible:ring-offset-2 focus-visible:ring-offset-brand-bg"
+        className="group relative block h-full w-full cursor-pointer select-none text-left outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-brand-bg pt-12 sm:pt-14"
       >
-        <Card
-          interactive
-          className="border border-brand-border/70 bg-brand-surface h-full transition-all duration-300 hover:-translate-y-0.5 hover:border-brand-green/30 hover:shadow-card-hover"
-          contentClassName="flex h-full flex-col justify-between p-4 sm:p-5"
+        <div
+          className={`relative flex h-full flex-col justify-between rounded-3xl border p-5 pt-16 sm:pt-20 transition-all duration-300 hover:-translate-y-1 ${theme.cardBg} ${theme.borderColor} ${theme.shadow} ${theme.hoverShadow}`}
         >
-          {/* Card Top: Image with Upper Right Verification Badge */}
-          <div className="relative mb-3.5 h-36 w-full">
-            <motion.div layoutId={`image-wrap-${layoutId}`} className="h-full w-full">
+          {/* Circular Overhanging Dish at Top Center */}
+          <div
+            className={`absolute -top-12 sm:-top-14 left-1/2 -translate-x-1/2 h-28 w-28 sm:h-32 sm:w-32 shrink-0 rounded-full p-1.5 sm:p-2 bg-white dark:bg-[#12362c] shadow-[0_16px_36px_-6px_rgba(0,0,0,0.28),0_4px_12px_rgba(0,0,0,0.12)] dark:shadow-[0_18px_40px_rgba(0,0,0,0.7)] ${theme.plateRim} z-20 transition-transform duration-300 group-hover:scale-105`}
+          >
+            <div className="relative h-full w-full rounded-full overflow-hidden">
               <MealImage
                 image={meal.image}
                 mealName={meal.mealName}
                 mealType={meal.mealType}
-                className="h-full w-full"
-                variant="compact"
+                className="!rounded-full !border-0 h-full w-full object-cover"
+                variant="thumbnail"
+                hideRepresentativeBadge
                 ingredients={meal.ingredients}
               />
-            </motion.div>
-            <MealVerificationBadge status="PENDING_REVIEW" className="absolute top-2.5 right-2.5 z-10" />
+            </div>
           </div>
 
-          {/* Card Meta Row: Meal Type & Sleek Preview Pill */}
-          <div className="flex items-center justify-between gap-3 mb-2.5">
-            <div className="flex items-center gap-2">
-              <MealTypeIcon className={`h-4 w-4 ${typeStyle.iconClassName}`} />
-              <span className="text-[10px] font-extrabold tracking-wider text-brand-muted uppercase">
+          {/* Card Top: Meal Type & Verification/Preview Badges */}
+          <div className="flex items-center justify-between gap-2 mb-2 w-full">
+            <div className="flex items-center gap-1.5 text-white/80">
+              <MealTypeIcon className="h-3.5 w-3.5" />
+              <span className="text-[11px] font-extrabold tracking-wider uppercase">
                 {typeStyle.label}
               </span>
             </div>
 
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/20 dark:border-[#173e33] bg-emerald-500/5 dark:bg-[#0e271f] px-2.5 py-0.5 font-mono text-[9px] font-medium text-brand-muted">
-              <Clock3 className="h-2.5 w-2.5 text-amber-400/80" /> Preview
-            </span>
-          </div>
-
-          {/* Card Body: Meal Title & Nutrition Summary */}
-          <div className="flex-1 flex flex-col justify-between">
-            <h3 className="text-sm font-extrabold font-display tracking-tight leading-snug mb-1 text-brand-text line-clamp-2">
-              {meal.mealName}
-            </h3>
-
-            <div className="mt-3 flex items-center justify-between border-t border-brand-border/40 pt-2.5">
-              <span className="text-[11px] font-bold text-brand-muted">
-                {Math.round(meal.calories)} kcal · {Math.round(meal.proteinG)}g P · {Math.round(meal.carbsG)}g C ·{' '}
-                {Math.round(meal.fatG)}g F
-              </span>
-              <span className="text-[11px] font-extrabold text-brand-green group-hover:translate-x-0.5 transition-transform">
-                View &rarr;
+            <div className="flex items-center gap-1.5">
+              <MealVerificationBadge status="PENDING_REVIEW" className="scale-90" />
+              <span className="inline-flex items-center gap-1 rounded-full border border-white/30 bg-black/25 px-2.5 py-0.5 font-mono text-[9px] font-medium text-white backdrop-blur-md">
+                <Clock3 className="h-2.5 w-2.5 text-amber-300" /> Preview
               </span>
             </div>
           </div>
-        </Card>
+
+          {/* Card Center: Meal Name & Nutrition */}
+          <div className="flex-1 flex flex-col justify-between my-2 text-center w-full">
+            <h3 className="text-base sm:text-lg font-bold font-display tracking-tight leading-snug text-white line-clamp-2">
+              {meal.mealName}
+            </h3>
+
+            <div className="mt-2 text-xs font-semibold text-white/90">
+              <strong className="text-white font-extrabold">{Math.round(meal.calories)} kcal</strong> · {Math.round(meal.proteinG)}g P · {Math.round(meal.carbsG)}g C · {Math.round(meal.fatG)}g F
+            </div>
+          </div>
+
+          {/* Enhanced Action Pill Button at bottom */}
+          <div className="mt-4 flex w-full items-center justify-center">
+            <span className="inline-flex min-h-9 items-center justify-center gap-1.5 rounded-full bg-white px-5 py-2 text-xs font-bold text-gray-900 shadow-md group-hover:bg-white/95 group-hover:shadow-lg group-hover:-translate-y-0.5 transition-all duration-200">
+              <span>Preview details</span>
+              <span className="text-gray-400 group-hover:translate-x-0.5 transition-transform">&rarr;</span>
+            </span>
+          </div>
+        </div>
       </motion.div>
 
       {/* Expandable Modal Dialog using Watermelon Expandable-Card Animation Pattern */}

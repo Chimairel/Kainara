@@ -3,7 +3,6 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'motion/react';
-import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import { MealType, MealPlanStatus, AIConfidenceFlag, PublicVerifier, MealExplanation, PublicMealImage, MealCookingLink } from '@/types';
 import { cookingAction } from '@/lib/meal-cooking-link';
@@ -63,6 +62,56 @@ interface MealCardProps {
   cookingLink?: MealCookingLink | null;
   nutritionistNote?: string | null;
   reviewedAt?: string | Date | null;
+  index?: number;
+}
+
+export interface MealThemeConfig {
+  cardBg: string;
+  borderColor: string;
+  shadow: string;
+  hoverShadow: string;
+  plateRim: string;
+}
+
+const THEMES: Record<string, MealThemeConfig> = {
+  BREAKFAST: {
+    cardBg: 'bg-gradient-to-br from-[#eb6a38] via-[#e25c28] to-[#c74614] dark:from-[#8d3210] dark:via-[#752609] dark:to-[#571b05]',
+    borderColor: 'border-[#f27e50]/40 dark:border-[#a63e17]/50',
+    shadow: 'shadow-[0_12px_28px_-6px_rgba(235,106,56,0.35),0_4px_12px_rgba(235,106,56,0.15)] dark:shadow-[0_14px_32px_rgba(0,0,0,0.65)]',
+    hoverShadow: 'hover:shadow-[0_16px_36px_-4px_rgba(235,106,56,0.45),0_6px_16px_rgba(235,106,56,0.2)] dark:hover:shadow-[0_18px_40px_rgba(0,0,0,0.8)]',
+    plateRim: 'border-2 border-[#ffeedd] dark:border-[#963713]',
+  },
+  LUNCH: {
+    cardBg: 'bg-gradient-to-br from-[#08705b] via-[#065e4c] to-[#044c3d] dark:from-[#083e33] dark:via-[#06332a] dark:to-[#04241d]',
+    borderColor: 'border-[#129177]/40 dark:border-[#0e6351]/50',
+    shadow: 'shadow-[0_12px_28px_-6px_rgba(8,112,91,0.35),0_4px_12px_rgba(8,112,91,0.15)] dark:shadow-[0_14px_32px_rgba(0,0,0,0.65)]',
+    hoverShadow: 'hover:shadow-[0_16px_36px_-4px_rgba(8,112,91,0.45),0_6px_16px_rgba(8,112,91,0.2)] dark:hover:shadow-[0_18px_40px_rgba(0,0,0,0.8)]',
+    plateRim: 'border-2 border-[#e6f7f2] dark:border-[#0e6351]',
+  },
+  DINNER: {
+    cardBg: 'bg-gradient-to-br from-[#4f46e5] via-[#4338ca] to-[#3730a3] dark:from-[#2e265c] dark:via-[#241e4a] dark:to-[#1a1538]',
+    borderColor: 'border-[#6b6bf1]/40 dark:border-[#4f46e5]/50',
+    shadow: 'shadow-[0_12px_28px_-6px_rgba(79,70,229,0.35),0_4px_12px_rgba(79,70,229,0.15)] dark:shadow-[0_14px_32px_rgba(0,0,0,0.65)]',
+    hoverShadow: 'hover:shadow-[0_16px_36px_-4px_rgba(79,70,229,0.45),0_6px_16px_rgba(79,70,229,0.2)] dark:hover:shadow-[0_18px_40px_rgba(0,0,0,0.8)]',
+    plateRim: 'border-2 border-[#ede9fe] dark:border-[#4338ca]',
+  },
+  SNACK: {
+    cardBg: 'bg-gradient-to-br from-[#db4d6d] via-[#c43b5b] to-[#a62a48] dark:from-[#6b1e32] dark:via-[#541626] dark:to-[#3e0f1b]',
+    borderColor: 'border-[#ea6383]/40 dark:border-[#8b2b44]/50',
+    shadow: 'shadow-[0_12px_28px_-6px_rgba(219,77,109,0.35),0_4px_12px_rgba(219,77,109,0.15)] dark:shadow-[0_14px_32px_rgba(0,0,0,0.65)]',
+    hoverShadow: 'hover:shadow-[0_16px_36px_-4px_rgba(219,77,109,0.45),0_6px_16px_rgba(219,77,109,0.2)] dark:hover:shadow-[0_18px_40px_rgba(0,0,0,0.8)]',
+    plateRim: 'border-2 border-[#ffe4e9] dark:border-[#8b2b44]',
+  },
+};
+
+export function getMealTheme(mealType?: string, index = 0): MealThemeConfig {
+  const norm = (mealType || '').toUpperCase();
+  if (norm.includes('BREAKFAST')) return THEMES.BREAKFAST;
+  if (norm.includes('LUNCH')) return THEMES.LUNCH;
+  if (norm.includes('DINNER')) return THEMES.DINNER;
+  if (norm.includes('SNACK')) return THEMES.SNACK;
+  const list = [THEMES.BREAKFAST, THEMES.LUNCH, THEMES.DINNER, THEMES.SNACK];
+  return list[index % list.length];
 }
 
 export default function MealCard({
@@ -88,7 +137,9 @@ export default function MealCard({
   cookingLink,
   nutritionistNote,
   reviewedAt,
+  index = 0,
 }: MealCardProps) {
+  const theme = getMealTheme(mealType, index);
   const [isOpen, setIsOpen] = useState(false);
   const [isVerifierOpen, setIsVerifierOpen] = useState(false);
   const [verifierModalTab, setVerifierModalTab] = useState<'card' | 'notes'>('card');
@@ -203,93 +254,89 @@ export default function MealCard({
             }
           }
         }}
-        className="group block h-full w-full cursor-pointer select-none text-left outline-none focus-visible:ring-2 focus-visible:ring-brand-green focus-visible:ring-offset-2 focus-visible:ring-offset-brand-bg"
+        className="group relative block h-full w-full cursor-pointer select-none text-left outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-brand-bg pt-12 sm:pt-14"
       >
-        <Card
-          interactive
-          className={`
-            border border-brand-border/70 bg-brand-surface h-full transition-all duration-300 hover:-translate-y-0.5 hover:border-brand-green/30 hover:shadow-card-hover
-            ${isCompleted ? 'border-brand-green/40 shadow-lg shadow-brand-green/5 opacity-80' : ''}
-            ${isSkipped ? 'border-red-500/20 opacity-60' : ''}
-          `}
-          contentClassName="flex h-full flex-col justify-between p-4 sm:p-5"
+        <div
+          className={`relative flex h-full flex-col justify-between rounded-3xl border p-5 pt-16 sm:pt-20 transition-all duration-300 hover:-translate-y-1 ${theme.cardBg} ${theme.borderColor} ${theme.shadow} ${theme.hoverShadow}`}
         >
-          {/* Card Top: Image with Verification Badge in upper right corner */}
-          <div className="relative mb-3.5 h-36 w-full">
-            <motion.div layoutId={`image-wrap-${layoutId}`} className="h-full w-full">
+          {/* Circular Overhanging Dish at Top Center */}
+          <div
+            className={`absolute -top-12 sm:-top-14 left-1/2 -translate-x-1/2 h-28 w-28 sm:h-32 sm:w-32 shrink-0 rounded-full p-1.5 sm:p-2 bg-white dark:bg-[#12362c] shadow-[0_16px_36px_-6px_rgba(0,0,0,0.28),0_4px_12px_rgba(0,0,0,0.12)] dark:shadow-[0_18px_40px_rgba(0,0,0,0.7)] ${theme.plateRim} z-20 transition-transform duration-300 group-hover:scale-105`}
+          >
+            <div className="relative h-full w-full rounded-full overflow-hidden">
               <MealImage
                 image={image}
                 mealName={mealName}
                 mealType={mealType}
-                className="h-full w-full"
-                variant="compact"
+                className="!rounded-full !border-0 h-full w-full object-cover"
+                variant="thumbnail"
+                hideRepresentativeBadge
                 ingredients={ingredients}
               />
-            </motion.div>
-            <MealVerificationBadge
-              status={status}
-              hasVerifier={Boolean(verifier)}
-              className="absolute top-2.5 right-2.5 z-10"
-            />
+            </div>
           </div>
 
-          {/* Card Top Row */}
-          <div className="flex items-center justify-between gap-3 mb-2.5">
-            <div className="flex items-center gap-2">
-              <Icon className="h-4 w-4 text-brand-green" />
-              <span className="text-[10px] font-extrabold tracking-wider text-brand-muted uppercase">
+          {/* Card Top: Meal Type & Verification/Status Badges */}
+          <div className="flex items-center justify-between gap-2 mb-2 w-full">
+            <div className="flex items-center gap-1.5 text-white/80">
+              <Icon className="h-3.5 w-3.5" />
+              <span className="text-[11px] font-extrabold tracking-wider uppercase">
                 {activeLabel.label}
               </span>
             </div>
 
-            {/* Status Indicator Badges */}
             <div className="flex items-center gap-1.5">
+              <MealVerificationBadge
+                status={status}
+                hasVerifier={Boolean(verifier)}
+                className="scale-90"
+              />
               {isCompleted && (
-                <span className="inline-flex items-center gap-1 rounded-full border border-brand-accent/40 bg-brand-accent/15 px-2.5 py-0.5 font-mono text-[9px] font-extrabold uppercase tracking-wider text-brand-accent dark:shadow-[0_0_8px_rgba(84,199,190,0.2)]">
+                <span className="inline-flex items-center gap-1 rounded-full border border-emerald-300/40 bg-emerald-500/35 px-2.5 py-0.5 font-mono text-[9px] font-extrabold uppercase tracking-wider text-white backdrop-blur-md">
                   <Check className="h-2.5 w-2.5 stroke-[3]" /> Eaten
                 </span>
               )}
               {isSkipped && (
-                <span className="inline-flex items-center gap-1 rounded-full border border-rose-500/30 bg-rose-500/10 px-2.5 py-0.5 font-mono text-[9px] font-bold uppercase tracking-wider text-rose-700 dark:text-rose-300">
+                <span className="inline-flex items-center gap-1 rounded-full border border-rose-300/40 bg-rose-500/30 px-2.5 py-0.5 font-mono text-[9px] font-bold uppercase tracking-wider text-white backdrop-blur-md">
                   <X className="h-2.5 w-2.5 stroke-[2.5]" /> Skipped
                 </span>
               )}
               {isUnloggedPastMeal && (
-                <span className="inline-flex items-center gap-1 rounded-full border border-[#a64600]/30 bg-[#8c3b00] px-2.5 py-0.5 font-mono text-[9px] font-bold uppercase tracking-wider text-white shadow-xs">
+                <span className="inline-flex items-center gap-1 rounded-full border border-amber-300/30 bg-black/40 px-2.5 py-0.5 font-mono text-[9px] font-bold uppercase tracking-wider text-amber-200 backdrop-blur-md">
                   <Clock3 className="h-2.5 w-2.5" /> Unlogged
                 </span>
               )}
               {status === 'PENDING_REVIEW' && !isLogged && (
-                <span className="inline-flex items-center gap-1 rounded-full border border-emerald-500/20 dark:border-[#173e33] bg-emerald-500/5 dark:bg-[#0e271f] px-2.5 py-0.5 font-mono text-[9px] font-medium text-brand-muted">
-                  <Clock3 className="h-2.5 w-2.5 text-amber-400/80" /> Preview
+                <span className="inline-flex items-center gap-1 rounded-full border border-white/30 bg-black/25 px-2.5 py-0.5 font-mono text-[9px] font-medium text-white backdrop-blur-md">
+                  <Clock3 className="h-2.5 w-2.5 text-amber-300" /> Preview
                 </span>
               )}
             </div>
           </div>
 
-          {/* Card Content */}
-          <div className="flex-1 flex flex-col justify-between">
+          {/* Card Center: Meal Name & Nutrition */}
+          <div className="flex-1 flex flex-col justify-between my-2 text-center w-full">
             <h3
-              className={`
-                text-sm font-extrabold font-display tracking-tight leading-snug mb-1
-                ${isCompleted ? 'line-through text-brand-muted' : 'text-brand-text'}
-                ${isSkipped ? 'text-brand-muted' : ''}
-              `}
+              className={`text-base sm:text-lg font-bold font-display tracking-tight leading-snug text-white line-clamp-2 ${
+                isCompleted ? 'line-through text-white/70' : ''
+              }`}
             >
               {mealName}
             </h3>
 
-            <div className="mt-3 flex items-center justify-between border-t border-brand-border/40 pt-2.5">
-              <span className="text-[11px] font-bold text-brand-muted">
-                {Math.round(calories)} kcal · {Math.round(proteinG)}g P · {Math.round(carbsG)}g C · {Math.round(fatG)}g
-                F
-              </span>
-              <span className="text-[11px] font-extrabold text-brand-green group-hover:translate-x-0.5 transition-transform">
-                View &rarr;
-              </span>
+            <div className="mt-2 text-xs font-semibold text-white/90">
+              <strong className="text-white font-extrabold">{Math.round(calories)} kcal</strong> · {Math.round(proteinG)}g P · {Math.round(carbsG)}g C · {Math.round(fatG)}g F
             </div>
           </div>
-        </Card>
+
+          {/* Enhanced Action Pill Button at bottom */}
+          <div className="mt-4 flex w-full items-center justify-center">
+            <span className="inline-flex min-h-9 items-center justify-center gap-1.5 rounded-full bg-white px-5 py-2 text-xs font-bold text-gray-900 shadow-md group-hover:bg-white/95 group-hover:shadow-lg group-hover:-translate-y-0.5 transition-all duration-200">
+              <span>{isCompleted ? '✓ Eaten' : 'View details'}</span>
+              {!isCompleted && <span className="text-gray-400 group-hover:translate-x-0.5 transition-transform">&rarr;</span>}
+            </span>
+          </div>
+        </div>
       </motion.div>
 
       {/* Detailed Info Dialog Popup Modal -> Expandable Card Animation Pattern */}
