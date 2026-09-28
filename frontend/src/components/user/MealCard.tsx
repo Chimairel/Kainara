@@ -65,6 +65,41 @@ interface MealCardProps {
   index?: number;
 }
 
+export interface MealBannerTheme {
+  bannerBg: string;
+  plateBorder: string;
+}
+
+export const BANNER_THEMES: Record<string, MealBannerTheme> = {
+  BREAKFAST: {
+    bannerBg: 'bg-gradient-to-br from-[#fedcd2] via-[#ffe7df] to-[#ffdcd0] dark:from-[#3a1a0f] dark:via-[#2f1309] dark:to-[#220c05]',
+    plateBorder: 'border-white dark:border-[#4d2416]',
+  },
+  LUNCH: {
+    bannerBg: 'bg-gradient-to-br from-[#d7f3e8] via-[#e5f8f0] to-[#c8eedf] dark:from-[#0d3329] dark:via-[#092920] dark:to-[#051c15]',
+    plateBorder: 'border-white dark:border-[#13493b]',
+  },
+  DINNER: {
+    bannerBg: 'bg-gradient-to-br from-[#e4e1fd] via-[#edeaff] to-[#d8d5fb] dark:from-[#231f47] dark:via-[#1c1839] dark:to-[#131028]',
+    plateBorder: 'border-white dark:border-[#352e66]',
+  },
+  SNACK: {
+    bannerBg: 'bg-gradient-to-br from-[#fee0e8] via-[#feeef2] to-[#fdd3dd] dark:from-[#3b1522] dark:via-[#2f0f1a] dark:to-[#210911]',
+    plateBorder: 'border-white dark:border-[#4d1d2e]',
+  },
+};
+
+export function getMealBannerTheme(mealType?: string, index = 0): MealBannerTheme {
+  const norm = (mealType || '').toUpperCase();
+  if (norm.includes('BREAKFAST')) return BANNER_THEMES.BREAKFAST;
+  if (norm.includes('LUNCH')) return BANNER_THEMES.LUNCH;
+  if (norm.includes('DINNER')) return BANNER_THEMES.DINNER;
+  if (norm.includes('SNACK')) return BANNER_THEMES.SNACK;
+  const list = [BANNER_THEMES.BREAKFAST, BANNER_THEMES.LUNCH, BANNER_THEMES.DINNER, BANNER_THEMES.SNACK];
+  return list[index % list.length];
+}
+
+// Backward compatibility
 export interface MealThemeConfig {
   cardBg: string;
   borderColor: string;
@@ -73,45 +108,8 @@ export interface MealThemeConfig {
   plateRim: string;
 }
 
-const THEMES: Record<string, MealThemeConfig> = {
-  BREAKFAST: {
-    cardBg: 'bg-gradient-to-br from-[#eb6a38] via-[#e25c28] to-[#c74614] dark:from-[#8d3210] dark:via-[#752609] dark:to-[#571b05]',
-    borderColor: 'border-[#f27e50]/40 dark:border-[#a63e17]/50',
-    shadow: 'shadow-[0_12px_28px_-6px_rgba(235,106,56,0.35),0_4px_12px_rgba(235,106,56,0.15)] dark:shadow-[0_14px_32px_rgba(0,0,0,0.65)]',
-    hoverShadow: 'hover:shadow-[0_16px_36px_-4px_rgba(235,106,56,0.45),0_6px_16px_rgba(235,106,56,0.2)] dark:hover:shadow-[0_18px_40px_rgba(0,0,0,0.8)]',
-    plateRim: 'border-2 border-[#ffeedd] dark:border-[#963713]',
-  },
-  LUNCH: {
-    cardBg: 'bg-gradient-to-br from-[#08705b] via-[#065e4c] to-[#044c3d] dark:from-[#083e33] dark:via-[#06332a] dark:to-[#04241d]',
-    borderColor: 'border-[#129177]/40 dark:border-[#0e6351]/50',
-    shadow: 'shadow-[0_12px_28px_-6px_rgba(8,112,91,0.35),0_4px_12px_rgba(8,112,91,0.15)] dark:shadow-[0_14px_32px_rgba(0,0,0,0.65)]',
-    hoverShadow: 'hover:shadow-[0_16px_36px_-4px_rgba(8,112,91,0.45),0_6px_16px_rgba(8,112,91,0.2)] dark:hover:shadow-[0_18px_40px_rgba(0,0,0,0.8)]',
-    plateRim: 'border-2 border-[#e6f7f2] dark:border-[#0e6351]',
-  },
-  DINNER: {
-    cardBg: 'bg-gradient-to-br from-[#4f46e5] via-[#4338ca] to-[#3730a3] dark:from-[#2e265c] dark:via-[#241e4a] dark:to-[#1a1538]',
-    borderColor: 'border-[#6b6bf1]/40 dark:border-[#4f46e5]/50',
-    shadow: 'shadow-[0_12px_28px_-6px_rgba(79,70,229,0.35),0_4px_12px_rgba(79,70,229,0.15)] dark:shadow-[0_14px_32px_rgba(0,0,0,0.65)]',
-    hoverShadow: 'hover:shadow-[0_16px_36px_-4px_rgba(79,70,229,0.45),0_6px_16px_rgba(79,70,229,0.2)] dark:hover:shadow-[0_18px_40px_rgba(0,0,0,0.8)]',
-    plateRim: 'border-2 border-[#ede9fe] dark:border-[#4338ca]',
-  },
-  SNACK: {
-    cardBg: 'bg-gradient-to-br from-[#db4d6d] via-[#c43b5b] to-[#a62a48] dark:from-[#6b1e32] dark:via-[#541626] dark:to-[#3e0f1b]',
-    borderColor: 'border-[#ea6383]/40 dark:border-[#8b2b44]/50',
-    shadow: 'shadow-[0_12px_28px_-6px_rgba(219,77,109,0.35),0_4px_12px_rgba(219,77,109,0.15)] dark:shadow-[0_14px_32px_rgba(0,0,0,0.65)]',
-    hoverShadow: 'hover:shadow-[0_16px_36px_-4px_rgba(219,77,109,0.45),0_6px_16px_rgba(219,77,109,0.2)] dark:hover:shadow-[0_18px_40px_rgba(0,0,0,0.8)]',
-    plateRim: 'border-2 border-[#ffe4e9] dark:border-[#8b2b44]',
-  },
-};
-
-export function getMealTheme(mealType?: string, index = 0): MealThemeConfig {
-  const norm = (mealType || '').toUpperCase();
-  if (norm.includes('BREAKFAST')) return THEMES.BREAKFAST;
-  if (norm.includes('LUNCH')) return THEMES.LUNCH;
-  if (norm.includes('DINNER')) return THEMES.DINNER;
-  if (norm.includes('SNACK')) return THEMES.SNACK;
-  const list = [THEMES.BREAKFAST, THEMES.LUNCH, THEMES.DINNER, THEMES.SNACK];
-  return list[index % list.length];
+export function getMealTheme(mealType?: string, index = 0): MealBannerTheme {
+  return getMealBannerTheme(mealType, index);
 }
 
 export default function MealCard({
@@ -139,7 +137,7 @@ export default function MealCard({
   reviewedAt,
   index = 0,
 }: MealCardProps) {
-  const theme = getMealTheme(mealType, index);
+  const bannerTheme = getMealBannerTheme(mealType, index);
   const [isOpen, setIsOpen] = useState(false);
   const [isVerifierOpen, setIsVerifierOpen] = useState(false);
   const [verifierModalTab, setVerifierModalTab] = useState<'card' | 'notes'>('card');
@@ -254,87 +252,92 @@ export default function MealCard({
             }
           }
         }}
-        className="group relative block h-full w-full cursor-pointer select-none text-left outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-brand-bg pt-12 sm:pt-14"
+        className="group relative block h-full w-full cursor-pointer select-none text-left outline-none focus-visible:ring-2 focus-visible:ring-brand-green focus-visible:ring-offset-2 focus-visible:ring-offset-brand-bg rounded-3xl"
       >
-        <div
-          className={`relative flex h-full flex-col justify-between rounded-3xl border p-5 pt-16 sm:pt-20 transition-all duration-300 hover:-translate-y-1 ${theme.cardBg} ${theme.borderColor} ${theme.shadow} ${theme.hoverShadow}`}
-        >
-          {/* Circular Overhanging Dish at Top Center */}
-          <div
-            className={`absolute -top-12 sm:-top-14 left-1/2 -translate-x-1/2 h-28 w-28 sm:h-32 sm:w-32 shrink-0 rounded-full p-1.5 sm:p-2 bg-white dark:bg-[#12362c] shadow-[0_16px_36px_-6px_rgba(0,0,0,0.28),0_4px_12px_rgba(0,0,0,0.12)] dark:shadow-[0_18px_40px_rgba(0,0,0,0.7)] ${theme.plateRim} z-20 transition-transform duration-300 group-hover:scale-105`}
-          >
-            <div className="relative h-full w-full rounded-full overflow-hidden">
-              <MealImage
-                image={image}
-                mealName={mealName}
-                mealType={mealType}
-                className="!rounded-full !border-0 h-full w-full object-cover"
-                variant="thumbnail"
-                hideRepresentativeBadge
-                ingredients={ingredients}
-              />
+        <div className="relative flex h-full flex-col justify-between rounded-3xl border border-brand-border/70 bg-brand-surface p-3.5 sm:p-4 shadow-[0_4px_20px_rgba(0,0,0,0.04)] dark:shadow-[0_8px_24px_rgba(0,0,0,0.4)] transition-all duration-300 hover:-translate-y-1 hover:border-brand-green/40 hover:shadow-card-hover">
+          {/* Upper Pastel Banner with Circular Food Plate on Left */}
+          <div className={`relative h-36 sm:h-40 w-full overflow-hidden rounded-2xl ${bannerTheme.bannerBg}`}>
+            {/* Circular Plate on Left */}
+            <div className={`absolute -left-3 top-1/2 -translate-y-1/2 h-32 w-32 sm:h-36 sm:w-36 rounded-full border-4 ${bannerTheme.plateBorder} bg-white dark:bg-[#071914] shadow-[0_8px_20px_rgba(0,0,0,0.12)] dark:shadow-[0_8px_24px_rgba(0,0,0,0.5)] p-1 overflow-hidden transition-transform duration-300 group-hover:scale-105`}>
+              <div className="relative h-full w-full rounded-full overflow-hidden">
+                <MealImage
+                  image={image}
+                  mealName={mealName}
+                  mealType={mealType}
+                  className="!rounded-full !border-0 h-full w-full object-cover"
+                  variant="thumbnail"
+                  hideRepresentativeBadge
+                  ingredients={ingredients}
+                />
+              </div>
             </div>
-          </div>
 
-          {/* Card Top: Meal Type & Verification/Status Badges */}
-          <div className="flex items-center justify-between gap-2 mb-2 w-full">
-            <div className="flex items-center gap-1.5 text-white/80">
-              <Icon className="h-3.5 w-3.5" />
-              <span className="text-[11px] font-extrabold tracking-wider uppercase">
+            {/* Top Right Badges */}
+            <div className="absolute top-2.5 right-2.5 flex flex-col items-end gap-1.5 z-10">
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-white/90 dark:bg-black/60 px-2.5 py-1 text-[11px] font-extrabold uppercase tracking-wider text-brand-text shadow-xs backdrop-blur-md">
+                <Icon className="h-3 w-3 text-brand-green" />
                 {activeLabel.label}
               </span>
-            </div>
-
-            <div className="flex items-center gap-1.5">
               <MealVerificationBadge
                 status={status}
                 hasVerifier={Boolean(verifier)}
-                className="scale-90"
+                className="scale-90 origin-right"
               />
               {isCompleted && (
-                <span className="inline-flex items-center gap-1 rounded-full border border-emerald-300/40 bg-emerald-500/35 px-2.5 py-0.5 font-mono text-[9px] font-extrabold uppercase tracking-wider text-white backdrop-blur-md">
+                <span className="inline-flex items-center gap-1 rounded-full border border-emerald-400/40 bg-emerald-500/90 px-2 py-0.5 font-mono text-[9px] font-extrabold uppercase tracking-wider text-white shadow-xs">
                   <Check className="h-2.5 w-2.5 stroke-[3]" /> Eaten
                 </span>
               )}
               {isSkipped && (
-                <span className="inline-flex items-center gap-1 rounded-full border border-rose-300/40 bg-rose-500/30 px-2.5 py-0.5 font-mono text-[9px] font-bold uppercase tracking-wider text-white backdrop-blur-md">
+                <span className="inline-flex items-center gap-1 rounded-full border border-rose-400/40 bg-rose-500/90 px-2 py-0.5 font-mono text-[9px] font-bold uppercase tracking-wider text-white shadow-xs">
                   <X className="h-2.5 w-2.5 stroke-[2.5]" /> Skipped
                 </span>
               )}
               {isUnloggedPastMeal && (
-                <span className="inline-flex items-center gap-1 rounded-full border border-amber-300/30 bg-black/40 px-2.5 py-0.5 font-mono text-[9px] font-bold uppercase tracking-wider text-amber-200 backdrop-blur-md">
+                <span className="inline-flex items-center gap-1 rounded-full border border-amber-300/40 bg-amber-500/90 px-2 py-0.5 font-mono text-[9px] font-bold uppercase tracking-wider text-white shadow-xs">
                   <Clock3 className="h-2.5 w-2.5" /> Unlogged
                 </span>
               )}
               {status === 'PENDING_REVIEW' && !isLogged && (
-                <span className="inline-flex items-center gap-1 rounded-full border border-white/30 bg-black/25 px-2.5 py-0.5 font-mono text-[9px] font-medium text-white backdrop-blur-md">
+                <span className="inline-flex items-center gap-1 rounded-full border border-amber-300/40 bg-black/50 px-2 py-0.5 font-mono text-[9px] font-medium text-amber-200 backdrop-blur-md">
                   <Clock3 className="h-2.5 w-2.5 text-amber-300" /> Preview
                 </span>
               )}
             </div>
           </div>
 
-          {/* Card Center: Meal Name & Nutrition */}
-          <div className="flex-1 flex flex-col justify-between my-2 text-center w-full">
-            <h3
-              className={`text-base sm:text-lg font-bold font-display tracking-tight leading-snug text-white line-clamp-2 ${
-                isCompleted ? 'line-through text-white/70' : ''
-              }`}
-            >
-              {mealName}
-            </h3>
-
-            <div className="mt-2 text-xs font-semibold text-white/90">
-              <strong className="text-white font-extrabold">{Math.round(calories)} kcal</strong> · {Math.round(proteinG)}g P · {Math.round(carbsG)}g C · {Math.round(fatG)}g F
+          {/* Lower Details: Title, Description, and Colorful Macro Pills */}
+          <div className="flex-1 flex flex-col justify-between mt-3">
+            <div>
+              <h3
+                className={`text-base font-bold font-display tracking-tight text-brand-text leading-snug line-clamp-1 ${
+                  isCompleted ? 'line-through text-brand-muted' : ''
+                }`}
+              >
+                {mealName}
+              </h3>
+              <p className="text-xs text-brand-muted line-clamp-1 mt-0.5">
+                {ingredients.length > 0
+                  ? `Prepared with ${ingredients.map((i) => i.ingredientName).join(', ')}`
+                  : 'Nutrient-balanced Filipino recipe'}
+              </p>
             </div>
-          </div>
 
-          {/* Enhanced Action Pill Button at bottom */}
-          <div className="mt-4 flex w-full items-center justify-center">
-            <span className="inline-flex min-h-9 items-center justify-center gap-1.5 rounded-full bg-white px-5 py-2 text-xs font-bold text-gray-900 shadow-md group-hover:bg-white/95 group-hover:shadow-lg group-hover:-translate-y-0.5 transition-all duration-200">
-              <span>{isCompleted ? '✓ Eaten' : 'View details'}</span>
-              {!isCompleted && <span className="text-gray-400 group-hover:translate-x-0.5 transition-transform">&rarr;</span>}
-            </span>
+            {/* Macro Chips Row - Matching reference [★ 4.9] [⏱ 35 mins] [📶 Medium] */}
+            <div className="mt-3 flex flex-wrap items-center gap-1.5 sm:gap-2">
+              <span className="inline-flex items-center gap-1 rounded-full bg-[#ffedd5] dark:bg-[#431e0c] px-2.5 py-1 text-[11px] font-bold text-[#c2410c] dark:text-[#fb923c] border border-[#fed7aa]/60 dark:border-[#9a3412]/40">
+                <span className="text-[10px]">🔥</span> {Math.round(calories)} kcal
+              </span>
+              <span className="inline-flex items-center gap-1 rounded-full bg-[#ede9fe] dark:bg-[#2e2354] px-2.5 py-1 text-[11px] font-bold text-[#6d28d9] dark:text-[#c4b5fd] border border-[#ddd6fe]/60 dark:border-[#5b21b6]/40">
+                {Math.round(proteinG)}g P
+              </span>
+              <span className="inline-flex items-center gap-1 rounded-full bg-[#dcfce7] dark:bg-[#0e3b24] px-2.5 py-1 text-[11px] font-bold text-[#15803d] dark:text-[#86efac] border border-[#bbf7d0]/60 dark:border-[#166534]/40">
+                {Math.round(carbsG)}g C
+              </span>
+              <span className="inline-flex items-center gap-1 rounded-full bg-[#fce7f3] dark:bg-[#3d132c] px-2.5 py-1 text-[11px] font-bold text-[#be185d] dark:text-[#f472b6] border border-[#fbcfe8]/60 dark:border-[#9d174d]/40">
+                {Math.round(fatG)}g F
+              </span>
+            </div>
           </div>
         </div>
       </motion.div>

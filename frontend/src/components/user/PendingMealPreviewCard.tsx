@@ -7,7 +7,7 @@ import { CalendarDays, Clock3, Coffee, MoonStar, ShieldAlert, SunMedium, Soup, A
 import Button from '@/components/ui/Button';
 import MealImage from './MealImage';
 import MealVerificationBadge from './MealVerificationBadge';
-import { getMealTheme } from './MealCard';
+import { getMealBannerTheme } from './MealCard';
 import type { PublicMealImage, MealCookingLink } from '@/types';
 
 export interface PendingMealPreview {
@@ -32,7 +32,7 @@ export default function PendingMealPreviewCard({
   meal: PendingMealPreview;
   index?: number;
 }) {
-  const theme = getMealTheme(meal.mealType, index);
+  const bannerTheme = getMealBannerTheme(meal.mealType, index);
   const [isOpen, setIsOpen] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
 
@@ -120,62 +120,65 @@ export default function PendingMealPreviewCard({
           }
         }}
         aria-label={`Open ${meal.mealName} details`}
-        className="group relative block h-full w-full cursor-pointer select-none text-left outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-brand-bg pt-12 sm:pt-14"
+        className="group relative block h-full w-full cursor-pointer select-none text-left outline-none focus-visible:ring-2 focus-visible:ring-brand-green focus-visible:ring-offset-2 focus-visible:ring-offset-brand-bg rounded-3xl"
       >
-        <div
-          className={`relative flex h-full flex-col justify-between rounded-3xl border p-5 pt-16 sm:pt-20 transition-all duration-300 hover:-translate-y-1 ${theme.cardBg} ${theme.borderColor} ${theme.shadow} ${theme.hoverShadow}`}
-        >
-          {/* Circular Overhanging Dish at Top Center */}
-          <div
-            className={`absolute -top-12 sm:-top-14 left-1/2 -translate-x-1/2 h-28 w-28 sm:h-32 sm:w-32 shrink-0 rounded-full p-1.5 sm:p-2 bg-white dark:bg-[#12362c] shadow-[0_16px_36px_-6px_rgba(0,0,0,0.28),0_4px_12px_rgba(0,0,0,0.12)] dark:shadow-[0_18px_40px_rgba(0,0,0,0.7)] ${theme.plateRim} z-20 transition-transform duration-300 group-hover:scale-105`}
-          >
-            <div className="relative h-full w-full rounded-full overflow-hidden">
-              <MealImage
-                image={meal.image}
-                mealName={meal.mealName}
-                mealType={meal.mealType}
-                className="!rounded-full !border-0 h-full w-full object-cover"
-                variant="thumbnail"
-                hideRepresentativeBadge
-                ingredients={meal.ingredients}
-              />
+        <div className="relative flex h-full flex-col justify-between rounded-3xl border border-brand-border/70 bg-brand-surface p-3.5 sm:p-4 shadow-[0_4px_20px_rgba(0,0,0,0.04)] dark:shadow-[0_8px_24px_rgba(0,0,0,0.4)] transition-all duration-300 hover:-translate-y-1 hover:border-brand-green/40 hover:shadow-card-hover">
+          {/* Upper Pastel Banner with Circular Plate on Left */}
+          <div className={`relative h-36 sm:h-40 w-full overflow-hidden rounded-2xl ${bannerTheme.bannerBg}`}>
+            {/* Circular Plate on Left */}
+            <div className={`absolute -left-3 top-1/2 -translate-y-1/2 h-32 w-32 sm:h-36 sm:w-36 rounded-full border-4 ${bannerTheme.plateBorder} bg-white dark:bg-[#071914] shadow-[0_8px_20px_rgba(0,0,0,0.12)] dark:shadow-[0_8px_24px_rgba(0,0,0,0.5)] p-1 overflow-hidden transition-transform duration-300 group-hover:scale-105`}>
+              <div className="relative h-full w-full rounded-full overflow-hidden">
+                <MealImage
+                  image={meal.image}
+                  mealName={meal.mealName}
+                  mealType={meal.mealType}
+                  className="!rounded-full !border-0 h-full w-full object-cover"
+                  variant="thumbnail"
+                  hideRepresentativeBadge
+                  ingredients={meal.ingredients}
+                />
+              </div>
             </div>
-          </div>
 
-          {/* Card Top: Meal Type & Verification/Preview Badges */}
-          <div className="flex items-center justify-between gap-2 mb-2 w-full">
-            <div className="flex items-center gap-1.5 text-white/80">
-              <MealTypeIcon className="h-3.5 w-3.5" />
-              <span className="text-[11px] font-extrabold tracking-wider uppercase">
+            {/* Top Right Badges */}
+            <div className="absolute top-2.5 right-2.5 flex flex-col items-end gap-1.5 z-10">
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-white/90 dark:bg-black/60 px-2.5 py-1 text-[11px] font-extrabold uppercase tracking-wider text-brand-text shadow-xs backdrop-blur-md">
+                <MealTypeIcon className="h-3 w-3 text-brand-green" />
                 {typeStyle.label}
               </span>
-            </div>
-
-            <div className="flex items-center gap-1.5">
-              <MealVerificationBadge status="PENDING_REVIEW" className="scale-90" />
-              <span className="inline-flex items-center gap-1 rounded-full border border-white/30 bg-black/25 px-2.5 py-0.5 font-mono text-[9px] font-medium text-white backdrop-blur-md">
+              <MealVerificationBadge status="PENDING_REVIEW" className="scale-90 origin-right" />
+              <span className="inline-flex items-center gap-1 rounded-full border border-amber-300/40 bg-black/50 px-2 py-0.5 font-mono text-[9px] font-medium text-amber-200 backdrop-blur-md">
                 <Clock3 className="h-2.5 w-2.5 text-amber-300" /> Preview
               </span>
             </div>
           </div>
 
-          {/* Card Center: Meal Name & Nutrition */}
-          <div className="flex-1 flex flex-col justify-between my-2 text-center w-full">
-            <h3 className="text-base sm:text-lg font-bold font-display tracking-tight leading-snug text-white line-clamp-2">
-              {meal.mealName}
-            </h3>
-
-            <div className="mt-2 text-xs font-semibold text-white/90">
-              <strong className="text-white font-extrabold">{Math.round(meal.calories)} kcal</strong> · {Math.round(meal.proteinG)}g P · {Math.round(meal.carbsG)}g C · {Math.round(meal.fatG)}g F
+          {/* Lower Details: Title, Description, and Colorful Macro Pills */}
+          <div className="flex-1 flex flex-col justify-between mt-3">
+            <div>
+              <h3 className="text-base font-bold font-display tracking-tight text-brand-text leading-snug line-clamp-1">
+                {meal.mealName}
+              </h3>
+              <p className="text-xs text-brand-muted line-clamp-1 mt-0.5">
+                {meal.description || (meal.ingredients.length > 0 ? meal.ingredients.slice(0, 3).map((i) => i.ingredientName).join(', ') : 'AI candidate awaiting clinical review')}
+              </p>
             </div>
-          </div>
 
-          {/* Enhanced Action Pill Button at bottom */}
-          <div className="mt-4 flex w-full items-center justify-center">
-            <span className="inline-flex min-h-9 items-center justify-center gap-1.5 rounded-full bg-white px-5 py-2 text-xs font-bold text-gray-900 shadow-md group-hover:bg-white/95 group-hover:shadow-lg group-hover:-translate-y-0.5 transition-all duration-200">
-              <span>Preview details</span>
-              <span className="text-gray-400 group-hover:translate-x-0.5 transition-transform">&rarr;</span>
-            </span>
+            {/* Macro Chips Row - Matching reference [★ 4.9] [⏱ 35 mins] [📶 Medium] */}
+            <div className="mt-3 flex flex-wrap items-center gap-1.5 sm:gap-2">
+              <span className="inline-flex items-center gap-1 rounded-full bg-[#ffedd5] dark:bg-[#431e0c] px-2.5 py-1 text-[11px] font-bold text-[#c2410c] dark:text-[#fb923c] border border-[#fed7aa]/60 dark:border-[#9a3412]/40">
+                <span className="text-[10px]">🔥</span> {Math.round(meal.calories)} kcal
+              </span>
+              <span className="inline-flex items-center gap-1 rounded-full bg-[#ede9fe] dark:bg-[#2e2354] px-2.5 py-1 text-[11px] font-bold text-[#6d28d9] dark:text-[#c4b5fd] border border-[#ddd6fe]/60 dark:border-[#5b21b6]/40">
+                {Math.round(meal.proteinG)}g P
+              </span>
+              <span className="inline-flex items-center gap-1 rounded-full bg-[#dcfce7] dark:bg-[#0e3b24] px-2.5 py-1 text-[11px] font-bold text-[#15803d] dark:text-[#86efac] border border-[#bbf7d0]/60 dark:border-[#166534]/40">
+                {Math.round(meal.carbsG)}g C
+              </span>
+              <span className="inline-flex items-center gap-1 rounded-full bg-[#fce7f3] dark:bg-[#3d132c] px-2.5 py-1 text-[11px] font-bold text-[#be185d] dark:text-[#f472b6] border border-[#fbcfe8]/60 dark:border-[#9d174d]/40">
+                {Math.round(meal.fatG)}g F
+              </span>
+            </div>
           </div>
         </div>
       </motion.div>

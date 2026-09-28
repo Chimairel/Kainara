@@ -459,9 +459,9 @@ export default function WeeklyPlanPage() {
                   .map((day, dayIndex) => (
                     <div
                       key={day.dateKey}
-                      className="rounded-[30px] border border-brand-border/60 bg-brand-surface/45 p-4 shadow-card md:p-5"
+                      className="space-y-4"
                     >
-                      <div className="mb-5 flex flex-col gap-3 border-b border-brand-border/50 pb-4 md:flex-row md:items-center md:justify-between">
+                      <div className="flex flex-col gap-3 px-1 md:flex-row md:items-center md:justify-between">
                         <div className="flex items-center gap-3">
                           <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-brand-green/20 bg-brand-green/10 font-display text-sm font-black text-brand-green">
                             {String(selectedPlanDayIndex + dayIndex + 1).padStart(2, '0')}
@@ -478,7 +478,7 @@ export default function WeeklyPlanPage() {
                         </div>
                       </div>
 
-                      <div className="grid grid-cols-1 gap-8 pt-4 md:grid-cols-3 md:gap-5 sm:pt-6 overflow-visible">
+                      <div className="grid grid-cols-1 gap-5 md:grid-cols-3">
                         {day.mealsList.map((meal, index) => (
                           <PendingMealPreviewCard key={`${meal.scheduledDate}-${meal.mealType}-${index}`} meal={meal} index={index} />
                         ))}
@@ -506,16 +506,13 @@ export default function WeeklyPlanPage() {
               />
             )
           ) : (
-            <div className="flex flex-col gap-4 text-left">
+            <div className="flex flex-col gap-6 text-left">
               {groupedDays
                 .filter((day) => day.dateKey === selectedPlanDay?.dateKey)
                 .map((day) => (
-                  <section
-                    key={day.dateKey}
-                    className="overflow-visible rounded-[26px] border border-brand-border/70 bg-brand-surface shadow-sm"
-                  >
+                  <div key={day.dateKey} className="space-y-4">
                     {/* Day Header with sum targets */}
-                    <div className="flex flex-col justify-between gap-3 border-b border-brand-border/60 bg-brand-bgAlt/35 px-4 py-4 md:flex-row md:items-center sm:px-5">
+                    <div className="flex flex-col justify-between gap-3 px-1 md:flex-row md:items-center">
                       <div>
                         <h3 className="text-base font-extrabold font-display text-brand-green uppercase leading-none">
                           {day.weekday}
@@ -524,12 +521,12 @@ export default function WeeklyPlanPage() {
                       </div>
 
                       {/* Macros summing indicators */}
-                      <div className="flex gap-3 flex-wrap text-[10px] font-bold text-brand-text">
-                        <span className="rounded-full border border-brand-border bg-brand-bgAlt px-2.5 py-1 font-mono text-[10px] font-bold uppercase tracking-[0.08em] text-brand-green">
+                      <div className="flex gap-2 sm:gap-3 flex-wrap text-[10px] font-bold text-brand-text">
+                        <span className="rounded-full border border-brand-border bg-brand-surface px-2.5 py-1 font-mono text-[10px] font-bold uppercase tracking-[0.08em] text-brand-green shadow-xs">
                           {pendingReview ? 'Approved subtotal' : 'Planned'}: {Math.round(day.dayCalories)} kcal
                         </span>
                         <span
-                          className="rounded-full border px-2.5 py-1 font-mono text-[10px] font-bold uppercase tracking-[0.08em]"
+                          className="rounded-full border px-2.5 py-1 font-mono text-[10px] font-bold uppercase tracking-[0.08em] shadow-xs"
                           style={{
                             backgroundColor: 'var(--macro-protein-bg)',
                             borderColor: 'var(--macro-protein-border)',
@@ -539,7 +536,7 @@ export default function WeeklyPlanPage() {
                           {Math.round(day.dayProtein)}g Protein
                         </span>
                         <span
-                          className="rounded-full border px-2.5 py-1 font-mono text-[10px] font-bold uppercase tracking-[0.08em]"
+                          className="rounded-full border px-2.5 py-1 font-mono text-[10px] font-bold uppercase tracking-[0.08em] shadow-xs"
                           style={{
                             backgroundColor: 'var(--macro-carbs-bg)',
                             borderColor: 'var(--macro-carbs-border)',
@@ -549,7 +546,7 @@ export default function WeeklyPlanPage() {
                           {Math.round(day.dayCarbs)}g Carbs
                         </span>
                         <span
-                          className="rounded-full border px-2.5 py-1 font-mono text-[10px] font-bold uppercase tracking-[0.08em]"
+                          className="rounded-full border px-2.5 py-1 font-mono text-[10px] font-bold uppercase tracking-[0.08em] shadow-xs"
                           style={{
                             backgroundColor: 'var(--macro-fat-bg)',
                             borderColor: 'var(--macro-fat-border)',
@@ -561,8 +558,8 @@ export default function WeeklyPlanPage() {
                       </div>
                     </div>
 
-                    {/* Day's 3 Meals Column Stack */}
-                    <div className="grid grid-cols-1 gap-8 p-4 pt-6 md:grid-cols-3 md:gap-5 sm:p-6 sm:pt-8 overflow-visible">
+                    {/* Day's 3 Floating Meals Column Stack */}
+                    <div className="grid grid-cols-1 gap-5 md:grid-cols-3">
                       {day.mealsList.map((meal, index) => (
                         <MealCard
                           key={meal.id}
@@ -592,17 +589,14 @@ export default function WeeklyPlanPage() {
                         />
                       ))}
                     </div>
-                  </section>
+                  </div>
                 ))}
               {pendingReview &&
                 groupedPendingDays
                   .filter((day) => day.dateKey === selectedPlanDay?.dateKey)
                   .map((day) => (
-                    <section
-                      key={`pending-${day.dateKey}`}
-                      className="overflow-visible rounded-[26px] bg-status-pending-bg/20 p-4 shadow-sm sm:p-5"
-                    >
-                      <div className="mb-4 flex flex-col gap-2 border-b border-brand-border/50 pb-4 sm:flex-row sm:items-center sm:justify-between">
+                    <div key={`pending-${day.dateKey}`} className="space-y-4 pt-2">
+                      <div className="flex flex-col gap-1 px-1 sm:flex-row sm:items-center sm:justify-between">
                         <div>
                           <h3 className="font-display text-base font-extrabold text-brand-text">
                             Awaiting nutritionist review
@@ -612,12 +606,12 @@ export default function WeeklyPlanPage() {
                           </p>
                         </div>
                       </div>
-                      <div className="grid grid-cols-1 gap-8 pt-4 md:grid-cols-3 md:gap-5 sm:pt-6 overflow-visible">
+                      <div className="grid grid-cols-1 gap-5 md:grid-cols-3">
                         {day.mealsList.map((meal, index) => (
                           <PendingMealPreviewCard key={`${meal.scheduledDate}-${meal.mealType}-${index}`} meal={meal} index={index} />
                         ))}
                       </div>
-                    </section>
+                    </div>
                   ))}
             </div>
           ))}
