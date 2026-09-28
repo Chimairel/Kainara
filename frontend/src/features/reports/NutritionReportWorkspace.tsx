@@ -229,11 +229,11 @@ export default function NutritionReportPage() {
 
   if (!report) {
     return (
-      <div className="min-h-screen bg-white flex items-center justify-center p-6 text-center text-slate-900">
-        <Card className="max-w-md p-8 border-slate-300 bg-white">
+      <div className="min-h-[70vh] flex items-center justify-center p-6 text-center text-foreground">
+        <Card className="max-w-md p-8 border-border bg-card shadow-card-lg">
           <AlertTriangle className="w-12 h-12 text-status-error-text mx-auto mb-4" />
-          <h3 className="mb-2 text-lg font-bold text-slate-900">Report Resolution Failed</h3>
-          <p className="mb-6 text-sm leading-relaxed text-slate-700">{error || 'An unexpected error occurred.'}</p>
+          <h3 className="mb-2 text-lg font-bold text-foreground">Report Resolution Failed</h3>
+          <p className="mb-6 text-sm leading-relaxed text-muted-foreground">{error || 'An unexpected error occurred.'}</p>
           <Button variant="primary" onClick={() => window.location.reload()}>
             Try Again
           </Button>
@@ -251,12 +251,12 @@ export default function NutritionReportPage() {
 
   if (!reportMatchesCurrentProfile) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-white p-6 text-center text-slate-900">
-        <Card className="max-w-lg border-slate-300 bg-white p-8 shadow-card-lg">
+      <div className="flex min-h-[70vh] items-center justify-center p-6 text-center text-foreground">
+        <Card className="max-w-lg border-border bg-card p-8 shadow-card-lg">
           <AlertTriangle className="mx-auto mb-4 h-12 w-12 text-status-pending-text" />
-          <p className="text-xs font-semibold uppercase tracking-wide text-amber-800">Health context changed</p>
-          <h1 className="mt-3 text-2xl font-bold text-slate-900">Your nutrition guidance needs an update</h1>
-          <p className="mt-3 text-sm leading-6 text-slate-700">
+          <p className="text-xs font-semibold uppercase tracking-wide text-amber-600 dark:text-amber-400">Health context changed</p>
+          <h1 className="mt-3 text-2xl font-bold text-foreground">Your nutrition guidance needs an update</h1>
+          <p className="mt-3 text-sm leading-6 text-muted-foreground">
             Your conditions, allergies, intolerances, or avoided foods changed after this report was created. The older
             guidance is hidden so it cannot conflict with your current health profile.
           </p>
