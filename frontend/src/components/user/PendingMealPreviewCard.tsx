@@ -122,7 +122,7 @@ export default function PendingMealPreviewCard({
         aria-label={`Open ${meal.mealName} details`}
         className="group relative block h-full w-full cursor-pointer select-none text-left outline-none focus-visible:ring-2 focus-visible:ring-brand-green focus-visible:ring-offset-2 focus-visible:ring-offset-brand-bg rounded-3xl"
       >
-        <div className={`relative flex h-full flex-col justify-between rounded-3xl bg-brand-surface p-3.5 sm:p-4 ${bannerTheme.shadow} ${bannerTheme.hoverShadow} transition-all duration-300 hover:-translate-y-1`}>
+        <div className={`relative flex h-full flex-col justify-between rounded-3xl bg-brand-surface p-2 sm:p-2.5 ${bannerTheme.shadow} ${bannerTheme.hoverShadow} transition-all duration-300 hover:-translate-y-1`}>
           {/* Upper Banner with Cropped Circular Plate on Left */}
           <div className={`relative h-40 sm:h-44 w-full overflow-hidden rounded-2xl ${bannerTheme.bannerBg}`}>
             {/* Circular Plate on Left - Enlarge and crop so parts cut out */}
@@ -146,6 +146,9 @@ export default function PendingMealPreviewCard({
                 <MealTypeIcon className="h-3.5 w-3.5 text-brand-green" />
                 {typeStyle.label}
               </span>
+              <span className="inline-flex items-center gap-1 rounded-full border border-amber-300/40 bg-amber-500/90 px-2 py-0.5 font-mono text-[9px] font-bold uppercase tracking-wider text-white shadow-xs backdrop-blur-md">
+                <Clock3 className="h-2.5 w-2.5" /> Unlogged
+              </span>
               <MealVerificationBadge status="PENDING_REVIEW" className="scale-90 origin-right" />
               <span className="inline-flex items-center gap-1 rounded-full border border-amber-300/40 bg-black/50 px-2 py-0.5 font-mono text-[9px] font-medium text-amber-200 backdrop-blur-md">
                 <Clock3 className="h-2.5 w-2.5 text-amber-300" /> Preview
@@ -154,7 +157,7 @@ export default function PendingMealPreviewCard({
           </div>
 
           {/* Lower Details: Title, Description, and Colorful Macro Pills */}
-          <div className="flex-1 flex flex-col justify-between mt-3">
+          <div className="flex-1 flex flex-col justify-between p-2 pt-2.5">
             <div>
               <h3 className="text-base font-bold font-display tracking-tight text-brand-text leading-snug line-clamp-1">
                 {meal.mealName}
@@ -164,18 +167,18 @@ export default function PendingMealPreviewCard({
               </p>
             </div>
 
-            {/* Macro Chips Row - Matching reference [★ 4.9] [⏱ 35 mins] [📶 Medium] */}
+            {/* Macro Chips Row - Theme Colors */}
             <div className="mt-3 flex flex-wrap items-center gap-1.5 sm:gap-2">
-              <span className="inline-flex items-center gap-1 rounded-full bg-[#ffedd5] dark:bg-[#431e0c] px-2.5 py-1 text-[11px] font-bold text-[#c2410c] dark:text-[#fb923c] border border-[#fed7aa]/60 dark:border-[#9a3412]/40">
+              <span className="inline-flex items-center gap-1 rounded-full bg-black/[0.04] dark:bg-white/[0.06] px-2.5 py-1 text-[11px] font-bold text-brand-text border border-black/10 dark:border-white/10">
                 <span className="text-[10px]">🔥</span> {Math.round(meal.calories)} kcal
               </span>
-              <span className="inline-flex items-center gap-1 rounded-full bg-[#ede9fe] dark:bg-[#2e2354] px-2.5 py-1 text-[11px] font-bold text-[#6d28d9] dark:text-[#c4b5fd] border border-[#ddd6fe]/60 dark:border-[#5b21b6]/40">
+              <span className="inline-flex items-center gap-1 rounded-full bg-[#08705b]/10 dark:bg-[#10b981]/15 px-2.5 py-1 text-[11px] font-bold text-[#08705b] dark:text-[#34d399] border border-[#08705b]/20 dark:border-[#10b981]/30">
                 {Math.round(meal.proteinG)}g P
               </span>
-              <span className="inline-flex items-center gap-1 rounded-full bg-[#dcfce7] dark:bg-[#0e3b24] px-2.5 py-1 text-[11px] font-bold text-[#15803d] dark:text-[#86efac] border border-[#bbf7d0]/60 dark:border-[#166534]/40">
+              <span className="inline-flex items-center gap-1 rounded-full bg-[#18b9d2]/10 dark:bg-[#38bdf8]/15 px-2.5 py-1 text-[11px] font-bold text-[#0b7788] dark:text-[#38bdf8] border border-[#18b9d2]/20 dark:border-[#38bdf8]/30">
                 {Math.round(meal.carbsG)}g C
               </span>
-              <span className="inline-flex items-center gap-1 rounded-full bg-[#fce7f3] dark:bg-[#3d132c] px-2.5 py-1 text-[11px] font-bold text-[#be185d] dark:text-[#f472b6] border border-[#fbcfe8]/60 dark:border-[#9d174d]/40">
+              <span className="inline-flex items-center gap-1 rounded-full bg-[#eb6a38]/10 dark:bg-[#eb6a38]/15 px-2.5 py-1 text-[11px] font-bold text-[#c74614] dark:text-[#f09e6c] border border-[#eb6a38]/20 dark:border-[#eb6a38]/30">
                 {Math.round(meal.fatG)}g F
               </span>
             </div>
