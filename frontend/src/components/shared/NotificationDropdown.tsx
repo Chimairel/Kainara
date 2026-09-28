@@ -18,6 +18,7 @@ import api from '@/lib/axios';
 import { readSessionResource } from '@/lib/session-resource-cache';
 import { formatManilaDate, getManilaDateKey, manilaDateFromKey } from '@/lib/manila-date';
 import type { PlanningReadiness } from '@/types/planning-readiness';
+import { formatBadgeCount } from '@/lib/badge-count';
 
 interface CachedPlanInfo {
   isStarterPlan?: boolean;
@@ -189,8 +190,8 @@ export default function NotificationDropdown() {
         <Bell className="h-[18px] w-[18px]" />
 
         {unreadCount > 0 ? (
-          <span className="absolute -right-0.5 -top-0.5 flex h-4 w-4 items-center justify-center rounded-full border-2 border-brand-bg bg-brand-accent text-[8px] font-bold text-[#07100d]">
-            {unreadCount > 9 ? '9+' : unreadCount}
+          <span className="absolute -right-1 -top-1 flex min-h-4 min-w-4 items-center justify-center rounded-full border-2 border-brand-bg bg-brand-accent px-0.5 text-[8px] font-bold text-[#07100d]">
+            {formatBadgeCount(unreadCount)}
           </span>
         ) : user?.role === 'USER' && (!prerequisitesComplete || planningReadiness?.canRequestPlan === false) ? (
           <span className="absolute -right-0.5 -top-0.5 flex h-2.5 w-2.5 rounded-full border-2 border-brand-bg bg-amber-500" />
@@ -371,7 +372,7 @@ export default function NotificationDropdown() {
                 <div>
                   <p className="text-sm font-bold text-brand-text">No new notifications</p>
                   <p className="mt-1 text-[11px] leading-relaxed text-brand-muted">
-                    Meal-plan and account updates will appear here.
+                    Your account and review updates will appear here.
                   </p>
                 </div>
               </div>

@@ -11,6 +11,7 @@ import { createOrReuseLibraryDraftFromApprovedPlan } from './meal-library-public
  */
 export class NutritionistService {
   static readonly getReviewQueue = NutritionistReviewService.getReviewQueue.bind(NutritionistReviewService);
+  static readonly getReviewQueueCount = NutritionistReviewService.getReviewQueueCount.bind(NutritionistReviewService);
   static readonly getReviewCardDetails = NutritionistReviewService.getReviewCardDetails.bind(NutritionistReviewService);
   static readonly releaseReviewClaim = NutritionistReviewService.releaseReviewClaim.bind(NutritionistReviewService);
   static readonly approveMealPlan = NutritionistReviewService.approveMealPlan.bind(NutritionistReviewService);

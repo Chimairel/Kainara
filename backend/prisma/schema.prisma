@@ -2367,6 +2367,8 @@ model Notification {
   type      NotificationType
   isRead    Boolean          @default(false)
   createdAt DateTime         @default(now())
+
+  @@index([userId, isRead, createdAt])
 }
 
 enum MealLibraryStatus {

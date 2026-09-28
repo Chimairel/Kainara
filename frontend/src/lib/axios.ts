@@ -67,7 +67,14 @@ const processQueue = (error: unknown, token: string | null = null) => {
 
 // Response interceptor to manage routing dynamically upon session expiration
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    if (typeof window !== 'undefined' &&
+        ['post', 'patch', 'put', 'delete'].includes(response.config.method?.toLowerCase() ?? '') &&
+        response.config.url?.startsWith('/nutritionist/')) {
+      window.dispatchEvent(new Event('nutrimind:review-work-updated'));
+    }
+    return response;
+  },
   async (error) => {
     const originalRequest = error.config;
 

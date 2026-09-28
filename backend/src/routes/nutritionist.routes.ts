@@ -36,6 +36,7 @@ import { flagMealApproval, getMealApprovalCaseDetails, listDueProfileApprovals, 
 import { clinicalDocumentIdParamsSchema, clinicalDocumentReviewSchema } from '@/validation/clinical-evidence.schemas';
 import { MealBaseVerificationService } from '@/services/meal-base-verification.service';
 import { flagWholeMeal, releaseWholeMeal } from '@/services/meal-wide-flag.service';
+import { NutritionistWorkCountsService } from '@/services/nutritionist-work-counts.service';
 
 const router = Router();
 
@@ -62,6 +63,10 @@ const profileReviewDecision = z.object({
     ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['area'], message: 'Select the clinical area for the document request.' });
   }
 });
+
+router.get('/review-work-counts', asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+  res.json({ success: true, data: await NutritionistWorkCountsService.get(req.nutritionistProfileId!) });
+}));
 
 router.get('/profile-reviews', asyncHandler(async (_req: AuthenticatedRequest, res: Response) => {
   res.json({ success: true, data: await ClinicalProfileReviewService.queue() });

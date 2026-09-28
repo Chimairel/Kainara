@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import api from '@/lib/axios';
 import { useAuth } from '@/hooks/useAuth';
 
@@ -13,35 +13,43 @@ interface Notification {
 
 export function useNotifications() {
   const { user } = useAuth();
-  const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [unreadCount, setUnreadCount] = useState(0);
+  const [inbox, setInbox] = useState<{
+    accountId: string;
+    notifications: Notification[];
+    unreadCount: number;
+  } | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Only USER role accounts have notifications; skip for NUTRITIONIST/ADMIN
-  const isUserRole = user?.role === 'USER';
+  const accountId = user?.userId;
+  const currentAccountId = useRef(accountId);
+  currentAccountId.current = accountId;
 
   const fetchNotifications = useCallback(async () => {
-    if (!isUserRole) {
+    if (!accountId) {
+      setInbox(null);
       setIsLoading(false);
       return;
     }
     try {
-      const res = await api.get('/user/notifications');
-      if (res.data?.success) {
-        setNotifications(res.data.data.notifications);
-        setUnreadCount(res.data.data.unreadCount);
+      const res = await api.get('/notifications');
+      if (currentAccountId.current === accountId && res.data?.success) {
+        setInbox({ accountId, notifications: res.data.data.notifications, unreadCount: res.data.data.unreadCount });
       }
     } catch (err) {
       console.warn('[useNotifications] Fetch failed:', err);
+      if (currentAccountId.current === accountId) {
+        setInbox((previous) => previous?.accountId === accountId ? previous :
+          { accountId, notifications: [], unreadCount: 0 });
+      }
     } finally {
-      setIsLoading(false);
+      if (currentAccountId.current === accountId) setIsLoading(false);
     }
-  }, [isUserRole]);
+  }, [accountId]);
 
   useEffect(() => {
     fetchNotifications();
 
-    if (!isUserRole) return;
+    if (!accountId) return;
 
     // Auto-refresh every 60 seconds
     const interval = setInterval(() => {
@@ -58,21 +66,32 @@ export function useNotifications() {
       window.removeEventListener('focus', handleFocus);
       window.removeEventListener('nutrimind:notifications-updated', handleFocus);
     };
-  }, [fetchNotifications, isUserRole]);
+  }, [fetchNotifications, accountId]);
 
   const markAsRead = async (id: string) => {
-    await api.patch(`/user/notifications/${id}/read`);
-    setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, isRead: true } : n)));
-    setUnreadCount((c) => Math.max(0, c - 1));
+    await api.patch(`/notifications/${id}/read`);
+    setInbox((previous) => previous && previous.accountId === accountId ? {
+      ...previous,
+      notifications: previous.notifications.map((notification) =>
+        notification.id === id ? { ...notification, isRead: true } : notification),
+      unreadCount: Math.max(0, previous.unreadCount - 1),
+    } : previous);
   };
 
   const markAllAsRead = async () => {
-    const unreadIds = notifications.filter((n) => !n.isRead).map((n) => n.id);
-    await Promise.all(unreadIds.map((id) => api.patch(`/user/notifications/${id}/read`)));
+    await api.patch('/notifications/read-all');
 
-    setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
-    setUnreadCount(0);
+    setInbox((previous) => previous && previous.accountId === accountId ? {
+      ...previous, notifications: previous.notifications.map((notification) => ({ ...notification, isRead: true })),
+      unreadCount: 0,
+    } : previous);
   };
 
-  return { notifications, unreadCount, isLoading, markAsRead, markAllAsRead, refresh: fetchNotifications };
+  const visibleInbox = inbox?.accountId === accountId ? inbox : null;
+  return {
+    notifications: visibleInbox?.notifications ?? [],
+    unreadCount: visibleInbox?.unreadCount ?? 0,
+    isLoading: Boolean(accountId) && !visibleInbox ? true : isLoading,
+    markAsRead, markAllAsRead, refresh: fetchNotifications,
+  };
 }

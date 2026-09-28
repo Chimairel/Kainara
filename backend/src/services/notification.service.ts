@@ -31,6 +31,13 @@ export class NotificationService {
     });
   }
 
+  static async markAllAsRead(userId: string) {
+    return prisma.notification.updateMany({
+      where: { userId, isRead: false },
+      data: { isRead: true },
+    });
+  }
+
   /**
    * Creates a notification for a user.
    */

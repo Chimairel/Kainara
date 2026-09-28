@@ -28,6 +28,7 @@ import GovernanceQueuePanel from './GovernanceQueuePanel';
 import ClinicalEvidenceReviewPanel from './ClinicalEvidenceReviewPanel';
 import ClinicalProfileReviewPanel from './ClinicalProfileReviewPanel';
 import WorkspaceTabs, { type ReviewWorkspace } from './WorkspaceTabs';
+import { useReviewWorkCounts } from '@/features/nutritionist-reviews/useReviewWorkCounts';
 import MealVerificationPanel from './MealVerificationPanel';
 import OutsideMealReviewsPage from '../outside-meals/page';
 import ApprovedReviewsPage from '../approved/page';
@@ -36,6 +37,7 @@ import api from '@/lib/axios';
 import { toast } from '@/components/ui/Sonner';
 
 export default function ReviewsPage() {
+  const workCounts = useReviewWorkCounts();
   const [workspace, setWorkspace] = useState<ReviewWorkspace>('case');
   const [profileTab, setProfileTab] = useState<'profiles' | 'documents'>('profiles');
   const [caseFilter, setCaseFilter] = useState<'pending' | 'second' | 'audit' | 'disputed' | 'outside' | 'completed'>('pending');
@@ -85,7 +87,7 @@ export default function ReviewsPage() {
     caseFilter === 'second' ? meal.requiresIndependentSecondReview : !meal.requiresIndependentSecondReview
   );
 
-  const navigation = <WorkspaceTabs value={workspace} onChange={(next) => { setWorkspace(next); setExpanded(false); }} />;
+  const navigation = <WorkspaceTabs value={workspace} counts={workCounts} onChange={(next) => { setWorkspace(next); setExpanded(false); }} />;
   if (workspace === 'meal') return <>{navigation}<MealVerificationPanel /></>;
   if (workspace === 'profile') return <>{navigation}<div className="flex gap-2 px-4 py-3" aria-label="Profile queue filters"><button type="button" aria-pressed={profileTab === 'profiles'} onClick={() => setProfileTab('profiles')} className={`rounded-lg border border-brand-border px-3 py-2 text-xs font-bold ${profileTab === 'profiles' ? 'bg-brand-green text-[#07100d]' : 'text-brand-muted'}`}>Profiles</button><button type="button" aria-pressed={profileTab === 'documents'} onClick={() => setProfileTab('documents')} className={`rounded-lg border border-brand-border px-3 py-2 text-xs font-bold ${profileTab === 'documents' ? 'bg-brand-green text-[#07100d]' : 'text-brand-muted'}`}>Clinical documents</button></div>{profileTab === 'profiles' ? <ClinicalProfileReviewPanel /> : <ClinicalEvidenceReviewPanel />}</>;
   const caseFilters = <div className="flex flex-wrap gap-2 px-4 py-3" aria-label="Case approval filters">{([

@@ -85,7 +85,67 @@ export async function assertObservedSourceStillAvailable(tx: Prisma.TransactionC
     throw new Error('This observed recipe was withdrawn. Replace the candidate before approving.');
 }
 
+async function reviewReadinessByUser(userIds: string[]) {
+  const [conditions, documents, contexts] = userIds.length
+    ? await Promise.all([
+        prisma.healthCondition.findMany({
+          where: { userId: { in: userIds } }, select: { userId: true, condition: true },
+        }),
+        prisma.clinicalDocument.findMany({
+          where: { userId: { in: userIds } },
+          select: { userId: true, id: true, area: true, status: true, validUntil: true,
+            revision: true, sha256: true, createdAt: true },
+        }),
+        prisma.clinicalContextResponse.findMany({
+          where: { userId: { in: userIds }, area: ClinicalEvidenceArea.DIABETES },
+          select: { userId: true, responses: true },
+        }),
+      ])
+    : [[], [], []];
+  return new Map(userIds.map((userId) => [
+    userId,
+    evaluateClinicalEvidenceRequirements({
+      conditions: conditions.filter((item) => item.userId === userId).map((item) => item.condition),
+      documents: documents.filter((item) => item.userId === userId),
+      diabetesContext:
+        (contexts.find((item) => item.userId === userId)?.responses as DiabetesContext | undefined) ?? null,
+    }).every((requirement) => requirement.state === 'READY'),
+  ]));
+}
+
 export class NutritionistReviewService {
+  static async getReviewQueueCount(nutritionistProfileId: string) {
+    const reviewer = await prisma.nutritionistProfile.findUnique({
+      where: { id: nutritionistProfileId }, select: { canLeadReview: true },
+    });
+    const plans = await prisma.mealPlan.findMany({
+      where: getNutritionistReviewableMealPlanWhere(),
+      select: { id: true, userId: true, reviewWorkKey: true, highRiskReviewRequired: true,
+        reviewApprovalCount: true, firstApprovedByNutritionistId: true,
+        candidateProvenance: true, baseRecipeSignature: true },
+    });
+    const readiness = await reviewReadinessByUser([...new Set(plans.map((plan) => plan.userId))]);
+    const generatedSignatures = [...new Set(plans.flatMap((plan) =>
+      plan.candidateProvenance === 'AI_FROM_SCRATCH' && plan.baseRecipeSignature ? [plan.baseRecipeSignature] : []))];
+    const verifiedGenerated = generatedSignatures.length ? await prisma.mealBaseVerification.findMany({
+      where: { targetKind: 'GENERATED_RECIPE', status: 'VERIFIED', targetId: { in: generatedSignatures } },
+      select: { targetId: true, revisionKey: true },
+    }) : [];
+    const verifiedSignatures = new Set(verifiedGenerated.filter((item) =>
+      item.targetId === item.revisionKey).map((item) => item.targetId));
+    const work = new Set<string>();
+    for (const plan of plans) {
+      if (readiness.get(plan.userId) === false ||
+        (plan.candidateProvenance === 'AI_FROM_SCRATCH' &&
+          (!plan.baseRecipeSignature || !verifiedSignatures.has(plan.baseRecipeSignature)))) continue;
+      const secondReview = plan.highRiskReviewRequired && plan.reviewApprovalCount === 1;
+      if (secondReview && (!reviewer?.canLeadReview ||
+        plan.firstApprovedByNutritionistId === nutritionistProfileId)) continue;
+      work.add(plan.reviewWorkKey ?? `PLAN:${plan.id}`);
+    }
+    return work.size;
+  }
+
   static async getReviewQueue(nutritionistProfileId?: string) {
     const now = new Date();
     const claimCutoff = getReviewClaimCutoff(now);
@@ -121,42 +181,7 @@ export class NutritionistReviewService {
     });
 
     const userIds = [...new Set(pendingMeals.map((meal) => meal.userId))];
-    const [conditions, documents, contexts] = userIds.length
-      ? await Promise.all([
-          prisma.healthCondition.findMany({
-            where: { userId: { in: userIds } },
-            select: { userId: true, condition: true },
-          }),
-          prisma.clinicalDocument.findMany({
-            where: { userId: { in: userIds } },
-            select: {
-              userId: true,
-              id: true,
-              area: true,
-              status: true,
-              validUntil: true,
-              revision: true,
-              sha256: true,
-              createdAt: true,
-            },
-          }),
-          prisma.clinicalContextResponse.findMany({
-            where: { userId: { in: userIds }, area: ClinicalEvidenceArea.DIABETES },
-            select: { userId: true, responses: true },
-          }),
-        ])
-      : [[], [], []];
-    const readinessByUser = new Map(
-      userIds.map((userId) => [
-        userId,
-        evaluateClinicalEvidenceRequirements({
-          conditions: conditions.filter((item) => item.userId === userId).map((item) => item.condition),
-          documents: documents.filter((item) => item.userId === userId),
-          diabetesContext:
-            (contexts.find((item) => item.userId === userId)?.responses as DiabetesContext | undefined) ?? null,
-        }).every((requirement) => requirement.state === 'READY'),
-      ])
-    );
+    const readinessByUser = await reviewReadinessByUser(userIds);
     const generatedSignatures = [...new Set(pendingMeals.flatMap((meal) =>
       meal.candidateProvenance === 'AI_FROM_SCRATCH' && meal.baseRecipeSignature ? [meal.baseRecipeSignature] : []))];
     const verifiedGenerated = generatedSignatures.length ? await prisma.mealBaseVerification.findMany({
