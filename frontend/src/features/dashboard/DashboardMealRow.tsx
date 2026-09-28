@@ -22,7 +22,7 @@ export function DashboardMealRow(props: Props) {
   const skipped = !props.pending && props.meal.mealLogs?.some((log) => log.status === 'SKIPPED');
   const content = (
     <>
-      <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-2xl">
+      <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-2xl shadow-md ring-1 ring-black/5 dark:ring-white/10">
         <MealImage
           mealName={meal.mealName}
           mealType={meal.mealType}
@@ -47,7 +47,7 @@ export function DashboardMealRow(props: Props) {
   );
   if (props.pending)
     return (
-      <details className="dashboard-meal group p-4">
+      <details className="dashboard-meal group p-4 sm:p-5">
         <summary className="flex cursor-pointer list-none items-center gap-3 rounded-xl [&::-webkit-details-marker]:hidden">
           {content}
           <ChevronDown className="h-4 w-4 shrink-0 text-brand-muted group-open:rotate-180" />
@@ -63,7 +63,7 @@ export function DashboardMealRow(props: Props) {
       </details>
     );
   return (
-    <article className="dashboard-meal p-4">
+    <article className="dashboard-meal p-4 sm:p-5">
       <button
         type="button"
         onClick={props.onOpen}

@@ -215,46 +215,30 @@ export function CockpitDashboard({
         </section>
         <section
           aria-label="Scheduled meals"
-          className="relative overflow-hidden flex min-h-full min-w-0 flex-col rounded-3xl border border-[#dce4e0] dark:border-[#173e33] bg-[#faf8f5] dark:bg-[#0e271f] p-5 sm:p-6 shadow-card"
+          className="flex min-h-full min-w-0 flex-col justify-between"
         >
-          {/* Flowing Retro Wave Ribbon - Connected with Daily Intake card & flowing down through menu */}
-          <div className="pointer-events-none absolute inset-y-0 left-0 w-48 sm:w-56 overflow-hidden rounded-l-3xl z-0">
-            <svg viewBox="0 0 200 800" className="h-full w-full" preserveAspectRatio="none" fill="none" aria-hidden="true">
-              {/* Terracotta outer band */}
-              <path
-                d="M0,115 C35,140 90,195 105,250 C113,285 97,390 90,450 C85,500 58,680 48,800 L70,800 C80,680 110,500 115,450 C122,390 138,285 130,250 C115,200 45,180 0,150 Z"
-                fill="#eb6a38"
-              />
-              {/* Peach middle band */}
-              <path
-                d="M0,80 C25,100 65,190 78,250 C86,285 72,390 65,450 C60,500 36,680 26,800 L48,800 C58,680 85,500 90,450 C97,390 113,285 105,250 C90,195 35,140 0,115 Z"
-                fill="#f09e6c"
-              />
-            </svg>
-          </div>
-
-          <div className="relative z-10 mb-5 flex flex-wrap items-start justify-between gap-3">
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-3 px-1">
             <div>
               <p className="text-xs font-semibold text-brand-green">
                 {formatManilaDate(activeDate, { weekday: 'long', month: 'short', day: 'numeric' })}
               </p>
-              <h2 className="mt-1 font-display text-xl font-bold text-brand-text">On your menu</h2>
+              <h2 className="mt-0.5 font-display text-2xl font-bold tracking-tight text-brand-text">On your menu</h2>
             </div>
             <button
               type="button"
               onClick={onOpenWeeklyPlan}
-              className="inline-flex min-h-10 items-center gap-2 rounded-xl bg-brand-bgAlt px-3 text-xs font-bold text-brand-green"
+              className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-brand-border/80 dark:border-[#173e33] bg-brand-surface dark:bg-[#0e271f] px-3.5 text-xs font-bold text-brand-green shadow-xs hover:border-brand-green hover:shadow-sm transition-all"
             >
               <Calendar className="h-4 w-4" /> Weekly plan
             </button>
           </div>
           {pendingMeals.length > 0 && (
-            <p className="relative z-10 mb-4 rounded-2xl bg-status-pending-bg/50 p-3.5 text-xs leading-relaxed text-status-pending-text">
+            <p className="mb-4 rounded-2xl border border-status-pending-text/20 bg-status-pending-bg/50 p-3.5 text-xs leading-relaxed text-status-pending-text">
               Awaiting review: pending meals are previews. Open a preview to see its ingredients; logging becomes
               available after approval.
             </p>
           )}
-          <div className="relative z-10 space-y-3">
+          <div className="space-y-3.5 flex-1">
             {meals.map((meal) => (
               <DashboardMealRow
                 key={meal.id}
@@ -268,7 +252,7 @@ export function CockpitDashboard({
             ))}
           </div>
           {meals.length === 0 && pendingMeals.length === 0 && (
-            <p className="relative z-10 rounded-2xl bg-brand-bgAlt p-5 text-sm text-brand-muted">
+            <p className="rounded-2xl border border-brand-border/70 bg-brand-surface p-6 text-sm text-brand-muted text-center shadow-card">
               No meals scheduled for this day. Open your weekly plan to view another day.
             </p>
           )}

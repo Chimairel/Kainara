@@ -277,17 +277,24 @@ th {
 
 .dashboard-meal {
   border: 1px solid var(--brand-border);
-  border-radius: 1.25rem;
-  background: color-mix(in srgb, var(--brand-surface) 75%, var(--brand-bg-alt));
+  border-radius: 1.5rem;
+  background: var(--brand-surface);
+  box-shadow:
+    0 2px 4px rgb(5 18 14 / 2%),
+    0 10px 24px rgb(5 18 14 / 5%);
   transition:
-    border-color 150ms ease,
-    box-shadow 150ms ease;
+    border-color 200ms ease,
+    box-shadow 200ms ease,
+    transform 200ms ease;
 }
 
 .dashboard-meal:focus-within,
 .dashboard-meal:hover {
-  border-color: var(--brand-green);
-  box-shadow: 0 3px 12px rgb(5 18 14 / 5%);
+  border-color: rgba(235, 106, 56, 0.45);
+  box-shadow:
+    0 4px 8px rgb(5 18 14 / 4%),
+    0 16px 32px rgb(5 18 14 / 9%);
+  transform: translateY(-2px);
 }
 
 .dashboard-action {
