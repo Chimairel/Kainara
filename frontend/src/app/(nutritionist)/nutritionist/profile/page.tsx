@@ -25,7 +25,6 @@ import {
   Copy,
   FileCheck2,
   ArrowRight,
-  ChevronRight,
   LogOut,
   Building2,
   CheckCircle2,
@@ -550,44 +549,6 @@ export default function NutritionistProfilePage() {
                   Patients view this official credential card on meal plan audits, recipes, and clinical disclaimers.
                 </p>
               </div>
-
-              {/* Quick Portal Navigation */}
-              <Card className="space-y-4 p-5">
-                <p className="portal-section-label">Quick Links</p>
-                <div className="space-y-2">
-                  <Link
-                    href="/nutritionist/reviews"
-                    className="flex items-center justify-between rounded-xl border border-brand-border/60 bg-brand-bgAlt/40 p-3 text-xs font-bold text-brand-text hover:border-brand-green/30 hover:bg-brand-bgAlt transition-all group"
-                  >
-                    <div className="flex items-center gap-2.5">
-                      <div className="rounded-lg bg-brand-green/10 p-2 text-brand-green group-hover:scale-105 transition-transform">
-                        <FileCheck2 className="h-4 w-4" />
-                      </div>
-                      <div>
-                        <p className="text-xs font-bold text-brand-text">Patient Review Queue</p>
-                        <p className="text-[10px] text-brand-muted font-normal">Audit pending meal plans and cases</p>
-                      </div>
-                    </div>
-                    <ChevronRight className="h-4 w-4 text-brand-muted group-hover:text-brand-text group-hover:translate-x-0.5 transition-all" />
-                  </Link>
-
-                  <Link
-                    href="/nutritionist/library"
-                    className="flex items-center justify-between rounded-xl border border-brand-border/60 bg-brand-bgAlt/40 p-3 text-xs font-bold text-brand-text hover:border-brand-green/30 hover:bg-brand-bgAlt transition-all group"
-                  >
-                    <div className="flex items-center gap-2.5">
-                      <div className="rounded-lg bg-brand-cyan/10 p-2 text-brand-cyan group-hover:scale-105 transition-transform">
-                        <Stethoscope className="h-4 w-4" />
-                      </div>
-                      <div>
-                        <p className="text-xs font-bold text-brand-text">Verified Meal Library</p>
-                        <p className="text-[10px] text-brand-muted font-normal">Browse and manage certified recipes</p>
-                      </div>
-                    </div>
-                    <ChevronRight className="h-4 w-4 text-brand-muted group-hover:text-brand-text group-hover:translate-x-0.5 transition-all" />
-                  </Link>
-                </div>
-              </Card>
 
               {/* Account Session Card */}
               <div className="rounded-2xl border border-brand-border/70 bg-brand-surface p-5 space-y-3">

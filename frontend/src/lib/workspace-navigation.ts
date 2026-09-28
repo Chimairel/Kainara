@@ -168,6 +168,13 @@ export const workspaceTools: Record<WorkspaceRole, WorkspaceTool[]> = {
       group: 'Content & evidence',
       icon: ImageIcon,
     },
+    {
+      label: 'Admin profile',
+      href: '/admin/profile',
+      description: 'Account security, appearance, and administrative session controls.',
+      group: 'Platform',
+      icon: User,
+    },
   ],
 };
 

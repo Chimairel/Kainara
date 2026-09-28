@@ -79,7 +79,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ className = '' }) => {
   const homeHref =
     user.role === 'USER' ? '/dashboard' : user.role === 'NUTRITIONIST' ? '/nutritionist/reviews' : '/admin/overview';
   const profileHref =
-    user.role === 'NUTRITIONIST' ? '/nutritionist/profile' : user.role === 'USER' ? '/profile' : '/admin/overview';
+    user.role === 'NUTRITIONIST' ? '/nutritionist/profile' : user.role === 'USER' ? '/profile' : '/admin/profile';
   const profileActive = pathname === profileHref || pathname.startsWith(`${profileHref}/`);
   const roleLabel =
     user.role === 'NUTRITIONIST' ? 'Clinical portal' : user.role === 'ADMIN' ? 'Control center' : 'Personal portal';

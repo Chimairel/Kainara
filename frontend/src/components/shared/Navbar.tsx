@@ -157,6 +157,9 @@ const getBreadcrumbSegments = (
     if (pathname === '/admin/images') {
       return [{ label: 'Media Library', current: true }];
     }
+    if (pathname === '/admin/profile') {
+      return [{ label: 'Admin Profile', current: true }];
+    }
   }
 
   const matchedTool = [...workspaceTools[role]]
