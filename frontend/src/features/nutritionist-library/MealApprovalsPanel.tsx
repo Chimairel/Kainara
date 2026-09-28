@@ -164,7 +164,7 @@ export function MealApprovalsPanel({ mealId }: {
     const caseUser = caseDetails?.linkedUserCurrentProfile;
     const reviewedMeal = caseDetails?.originatingPlan ?? caseDetails?.meal;
     return (
-      <ExpandableCasePanel expanded={expanded} onExpandedChange={setExpanded} className="space-y-5 rounded-2xl border border-brand-border bg-brand-surface/60 p-5">
+      <ExpandableCasePanel expanded={expanded} onExpandedChange={setExpanded} className="rounded-2xl border border-brand-border bg-brand-surface/60 overflow-hidden" contentClassName="space-y-5 p-5">
         <Button variant="ghost" size="sm" onClick={() => { setExpanded(false); setSelected(null); setCaseDetails(null); setFlagTarget(null); setRecheckTarget(null); }}>
           ← Back to approvals
         </Button>

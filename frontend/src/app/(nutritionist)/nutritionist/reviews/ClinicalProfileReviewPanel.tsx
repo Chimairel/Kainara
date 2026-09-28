@@ -7,7 +7,7 @@ import Button from '@/components/ui/Button';
 import Badge from '@/components/ui/Badge';
 import Avatar from '@/components/ui/Avatar';
 import ExpandableCasePanel from '@/features/nutritionist-reviews/ExpandableCasePanel';
-import { ArrowLeft, CheckCircle, RefreshCw, UserCheck } from 'lucide-react';
+import { CheckCircle, RefreshCw, UserCheck } from 'lucide-react';
 
 type QueueItem = {
   userId: string;
@@ -204,21 +204,12 @@ export default function ClinicalProfileReviewPanel() {
         expanded={expanded}
         onExpandedChange={setExpanded}
         canExpand={detail !== null}
-        className={`${detail ? 'flex' : 'hidden md:flex'} h-full min-w-0 flex-1 flex-col overflow-y-auto bg-transparent p-4 custom-scrollbar sm:p-6`}
+        onBack={() => {
+          setDetail(null);
+          setExpanded(false);
+        }}
+        className={`${detail ? 'flex' : 'hidden md:flex'} h-full min-w-0 flex-1 flex-col overflow-hidden bg-transparent`}
       >
-        {detail && (
-          <button
-            type="button"
-            onClick={() => {
-              setDetail(null);
-              setExpanded(false);
-            }}
-            className="mb-4 inline-flex w-fit items-center gap-2 rounded-xl border border-brand-border bg-brand-surface px-3 py-2 text-xs font-bold text-brand-text outline-none transition hover:border-brand-green/35 focus-visible:ring-2 focus-visible:ring-brand-green/40 md:hidden"
-          >
-            <ArrowLeft className="h-4 w-4" aria-hidden="true" />
-            Back to profile queue
-          </button>
-        )}
 
         {!detail ? (
           <div className="space-y-6 py-2">

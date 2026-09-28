@@ -18,7 +18,6 @@ import {
   ShieldAlert,
   ShieldCheck,
   Info,
-  ArrowLeft,
   Sparkles,
 } from 'lucide-react';
 import PortalPageHeader from '@/components/shared/PortalPageHeader';
@@ -450,18 +449,14 @@ export default function ReviewsPage() {
       </div>
 
       {/* Details View Panel */}
-      <ExpandableCasePanel expanded={expanded} onExpandedChange={setExpanded} canExpand={selectedMealId !== null} headerLeft={claimHeader}
-        className={`${selectedMealId ? 'flex' : 'hidden md:flex'} h-full min-w-0 flex-1 flex-col overflow-y-auto bg-transparent p-4 custom-scrollbar sm:p-6`}>
-        {selectedMealId !== null && (
-          <button
-            type="button"
-            onClick={() => setSelectedMealId(null)}
-            className="mb-4 inline-flex w-fit items-center gap-2 rounded-xl border border-brand-border bg-brand-surface px-3 py-2 text-xs font-bold text-brand-text outline-none transition hover:border-brand-green/35 focus-visible:ring-2 focus-visible:ring-brand-green/40 md:hidden"
-          >
-            <ArrowLeft className="h-4 w-4" aria-hidden="true" />
-            Back to review queue
-          </button>
-        )}
+      <ExpandableCasePanel
+        expanded={expanded}
+        onExpandedChange={setExpanded}
+        canExpand={selectedMealId !== null}
+        headerLeft={claimHeader}
+        onBack={() => setSelectedMealId(null)}
+        className={`${selectedMealId ? 'flex' : 'hidden md:flex'} h-full min-w-0 flex-1 flex-col overflow-hidden bg-transparent`}
+      >
         {selectedMealId === null ? (
           <div className="space-y-6 py-2">
             <div className="rounded-3xl border border-brand-border/80 bg-brand-surface/90 p-6 sm:p-8 shadow-card-lg backdrop-blur-xl space-y-6">

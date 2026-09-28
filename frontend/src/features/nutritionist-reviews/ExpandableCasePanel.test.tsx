@@ -50,4 +50,25 @@ describe('shared case viewer', () => {
     expect(screen.getByRole('button', { name: 'Back to split view' })).toBeInTheDocument();
     expect(screen.getAllByRole('button', { name: 'Claim review' }).length).toBeGreaterThanOrEqual(1);
   });
+
+  it('renders mobile back button in mini navbar when onBack is provided', () => {
+    let backClicked = false;
+    render(
+      <ThemeProvider>
+        <ExpandableCasePanel
+          expanded={false}
+          onExpandedChange={() => {}}
+          onBack={() => { backClicked = true; }}
+          headerLeft={<span>Review Case</span>}
+        >
+          <p>Details</p>
+        </ExpandableCasePanel>
+      </ThemeProvider>
+    );
+
+    const backButton = screen.getByRole('button', { name: 'Back to queue' });
+    expect(backButton).toBeInTheDocument();
+    fireEvent.click(backButton);
+    expect(backClicked).toBe(true);
+  });
 });
