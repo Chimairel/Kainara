@@ -20,9 +20,13 @@ import {
   Apple,
   RefreshCw,
   ShieldCheck,
-  ListChecks,
   Clock3,
   CalendarDays,
+  Sparkles,
+  Flame,
+  Info,
+  ExternalLink,
+  UtensilsCrossed,
 } from 'lucide-react';
 import type { LucideProps } from 'lucide-react';
 
@@ -199,6 +203,26 @@ export default function MealCard({
   const isUnloggedPastMeal = isPastDate && !isCompleted && !isSkipped;
   const isLogged = isCompleted || isSkipped;
 
+  const formattedScheduledDate = React.useMemo(() => {
+    if (!scheduledDate) return null;
+    const d = new Date(scheduledDate);
+    if (isNaN(d.getTime())) return String(scheduledDate);
+    return d.toLocaleDateString('en-US', {
+      weekday: 'short',
+      month: 'short',
+      day: 'numeric',
+    });
+  }, [scheduledDate]);
+
+  const proteinKcal = proteinG * 4;
+  const carbsKcal = carbsG * 4;
+  const fatKcal = fatG * 9;
+  const totalMacroKcal = proteinKcal + carbsKcal + fatKcal;
+  const calBase = calories > 0 ? calories : totalMacroKcal > 0 ? totalMacroKcal : 1;
+  const proteinPct = Math.min(100, Math.max(0, Math.round((proteinKcal / calBase) * 100)));
+  const carbsPct = Math.min(100, Math.max(0, Math.round((carbsKcal / calBase) * 100)));
+  const fatPct = Math.min(100, Math.max(0, Math.round((fatKcal / calBase) * 100)));
+
   const handleCheckedChange = async (checked: boolean) => {
     if (!onStatusToggle || isUpdating) return;
 
@@ -368,41 +392,117 @@ export default function MealCard({
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
                   onClick={() => setIsOpen(false)}
-                  className="fixed inset-0 bg-black/80 backdrop-blur-md"
+                  className="fixed inset-0 bg-black/80 backdrop-blur-xl"
                 />
 
                 {/* Expanded Modal Card */}
                 <motion.div
                   layoutId={layoutId}
-                  className="relative z-10 my-auto w-full max-w-2xl overflow-hidden rounded-3xl border border-brand-border/80 bg-brand-surface shadow-2xl max-h-[92vh] flex flex-col text-left select-none"
+                  className="relative z-10 my-auto w-full max-w-2xl overflow-hidden rounded-[28px] sm:rounded-[32px] border border-white/20 dark:border-white/10 bg-brand-surface shadow-[0_25px_70px_rgba(0,0,0,0.45)] dark:shadow-[0_25px_80px_rgba(0,0,0,0.85)] max-h-[92vh] flex flex-col text-left select-none ring-1 ring-black/5 dark:ring-white/5"
                 >
-                  {/* Floating Close Button */}
-                  <button
-                    type="button"
-                    onClick={() => setIsOpen(false)}
-                    className="absolute top-3 right-3 sm:top-4 sm:right-4 z-20 flex h-9 w-9 items-center justify-center rounded-full border border-emerald-500/20 dark:border-[#173e33] bg-[#071914]/80 text-white backdrop-blur-md hover:bg-[#071914] hover:border-emerald-500/40 transition-colors shadow-lg"
-                    aria-label="Close modal"
-                  >
-                    <X className="h-4 w-4" />
-                  </button>
-
                   {/* Hero Image Container */}
-                  <div className="relative h-48 sm:h-64 w-full shrink-0 overflow-hidden">
+                  <div className="relative h-60 sm:h-72 w-full shrink-0 overflow-hidden bg-black/40">
                     <motion.div layoutId={`image-wrap-${layoutId}`} className="h-full w-full">
                       <MealImage
                         image={image}
                         mealName={mealName}
                         mealType={mealType}
-                        className="h-full w-full rounded-none"
+                        className="h-full w-full rounded-none object-cover"
                         variant="hero"
                         ingredients={ingredients}
                       />
                     </motion.div>
-                    <MealVerificationBadge
-                      status={status}
-                      hasVerifier={Boolean(verifier)}
-                      className="absolute top-3 left-3 sm:top-4 sm:left-4 z-10"
-                    />
+
+                    {/* Gradient overlays for contrast & seamless blending */}
+                    <div className="absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-black/80 via-black/40 to-transparent pointer-events-none" />
+                    <div className="absolute inset-x-0 bottom-0 h-36 bg-gradient-to-t from-black/90 via-black/55 to-transparent pointer-events-none" />
+
+                    {/* Top Floating Bar */}
+                    <div className="absolute top-3.5 inset-x-3.5 sm:top-4 sm:inset-x-4 flex items-center justify-between z-20">
+                      {/* Left: Badges */}
+                      <div className="flex flex-wrap items-center gap-1.5 max-w-[80%]">
+                        <span className="inline-flex items-center gap-1.5 rounded-full bg-black/60 backdrop-blur-md px-3 py-1 text-xs font-black uppercase tracking-wider text-white border border-white/20 shadow-md">
+                          <Icon className="h-3.5 w-3.5 text-brand-green" />
+                          {activeLabel.label}
+                        </span>
+
+                        {!isLogged && (
+                          <span className="inline-flex items-center gap-1 rounded-full border border-amber-300/40 bg-amber-500/90 px-2.5 py-1 font-mono text-[10px] font-bold uppercase tracking-wider text-white shadow-md backdrop-blur-md">
+                            <Clock3 className="h-2.5 w-2.5" /> Unlogged
+                          </span>
+                        )}
+
+                        {status === 'APPROVED' && !verifier && (
+                          <span className="inline-flex items-center gap-1 rounded-full border border-emerald-400/40 bg-emerald-500/90 px-2.5 py-1 font-mono text-[10px] font-extrabold uppercase tracking-wider text-white shadow-md backdrop-blur-md">
+                            <Check className="h-2.5 w-2.5 stroke-[3]" /> Ready
+                          </span>
+                        )}
+
+                        {verifier && (
+                          <span className="inline-flex items-center gap-1 rounded-full border border-emerald-400/40 bg-emerald-600/90 px-2.5 py-1 font-mono text-[10px] font-extrabold uppercase tracking-wider text-white shadow-md backdrop-blur-md">
+                            <ShieldCheck className="h-3 w-3" /> RND Approved
+                          </span>
+                        )}
+
+                        {status === 'PENDING_REVIEW' && (
+                          <span className="inline-flex items-center gap-1 rounded-full border border-amber-300/40 bg-amber-500/90 px-2.5 py-1 font-mono text-[10px] font-bold uppercase tracking-wider text-white shadow-md backdrop-blur-md">
+                            <Clock3 className="h-2.5 w-2.5" /> Awaiting Review
+                          </span>
+                        )}
+
+                        {isCompleted && (
+                          <span className="inline-flex items-center gap-1 rounded-full border border-emerald-400/40 bg-emerald-500/90 px-2.5 py-1 font-mono text-[10px] font-extrabold uppercase tracking-wider text-white shadow-md backdrop-blur-md">
+                            <Check className="h-2.5 w-2.5 stroke-[3]" /> Eaten
+                          </span>
+                        )}
+
+                        {isSkipped && (
+                          <span className="inline-flex items-center gap-1 rounded-full border border-rose-400/40 bg-rose-500/90 px-2.5 py-1 font-mono text-[10px] font-bold uppercase tracking-wider text-white shadow-md backdrop-blur-md">
+                            <X className="h-2.5 w-2.5 stroke-[2.5]" /> Skipped
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Right: Floating Close Button */}
+                      <button
+                        type="button"
+                        onClick={() => setIsOpen(false)}
+                        className="flex h-9 w-9 items-center justify-center rounded-full bg-black/60 hover:bg-black/90 text-white/90 hover:text-white backdrop-blur-md border border-white/20 transition-all hover:scale-105 shadow-xl shrink-0"
+                        aria-label="Close modal"
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
+                    </div>
+
+                    {/* Bottom Title & Meta Overlay */}
+                    <div className="absolute bottom-3.5 inset-x-4 sm:bottom-4 sm:inset-x-6 z-20">
+                      <h3 className="text-xl sm:text-2xl md:text-3xl font-black font-display text-white tracking-tight leading-tight drop-shadow-[0_2px_10px_rgba(0,0,0,0.8)] line-clamp-2">
+                        {mealName}
+                      </h3>
+                      <div className="mt-2 flex flex-wrap items-center gap-2">
+                        <span className="inline-flex items-center gap-1.5 rounded-full bg-white/20 backdrop-blur-md px-2.5 py-0.5 text-xs font-bold text-white border border-white/25 shadow-xs">
+                          <Flame className="h-3.5 w-3.5 text-amber-300" />
+                          {Math.round(calories)} kcal Total Energy
+                        </span>
+                        {formattedScheduledDate && (
+                          <span className="inline-flex items-center gap-1 rounded-full bg-black/40 backdrop-blur-md px-2.5 py-0.5 text-xs font-semibold text-white/90 border border-white/15 shadow-xs">
+                            <CalendarDays className="h-3 w-3 text-brand-green" />
+                            {formattedScheduledDate}
+                          </span>
+                        )}
+                        {image?.attribution.sourcePageUrl && (
+                          <a
+                            href={image.attribution.sourcePageUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1 rounded-full bg-black/40 hover:bg-black/70 backdrop-blur-md px-2.5 py-0.5 text-[11px] font-semibold text-emerald-300 hover:text-emerald-200 border border-emerald-400/30 transition-colors shadow-xs"
+                          >
+                            <span>View image source</span>
+                            <ExternalLink className="h-2.5 w-2.5" />
+                          </a>
+                        )}
+                      </div>
+                    </div>
                   </div>
 
                   {/* Modal Body */}
@@ -411,138 +511,133 @@ export default function MealCard({
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
                     transition={{ duration: 0.15 }}
-                    className="p-4 sm:p-6 overflow-y-auto custom-scrollbar flex-1 flex flex-col gap-4 sm:gap-5"
+                    className="p-5 sm:p-7 overflow-y-auto custom-scrollbar flex-1 flex flex-col gap-5"
                   >
-                    {/* Header / Meta Row */}
-                    <div>
-                      <div className="flex flex-wrap items-center gap-2 mb-1.5">
-                        <Icon className="h-4 w-4 text-brand-green" />
-                        <span className="text-xs font-extrabold uppercase tracking-wider text-brand-muted">
-                          {activeLabel.label}
-                        </span>
-                        {scheduledDate && (
-                          <>
-                            <span className="text-xs text-brand-muted">·</span>
-                            <span className="flex items-center gap-1 text-xs font-semibold text-brand-muted">
-                              <CalendarDays className="h-3 w-3" />
-                              {scheduledDate}
-                            </span>
-                          </>
-                        )}
-                      </div>
-                      <h3 className="text-xl sm:text-2xl font-black font-display text-brand-text tracking-tight leading-tight">
-                        {mealName}
-                      </h3>
-                      <span className="text-xs font-bold text-brand-muted mt-1 block">
-                        {Math.round(calories)} kcal Total Energy
-                      </span>
-                      {image?.attribution.sourcePageUrl && (
-                        <a
-                          href={image.attribution.sourcePageUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="mt-1 inline-block text-xs font-semibold text-brand-green underline"
-                        >
-                          View image source
-                        </a>
-                      )}
-                    </div>
-
-                    {/* Macro Badges Grid */}
-                    <div className="grid grid-cols-3 gap-2 sm:gap-3">
-                      <div
-                        className="border rounded-2xl p-2.5 sm:p-3 text-center"
-                        style={{
-                          backgroundColor: 'var(--macro-protein-bg)',
-                          borderColor: 'var(--macro-protein-border)',
-                        }}
-                      >
-                        <span
-                          className="block text-base font-extrabold font-display"
-                          style={{ color: 'var(--macro-protein)' }}
-                        >
-                          {Math.round(proteinG)}g
-                        </span>
-                        <span
-                          className="block text-[9px] uppercase font-bold mt-0.5"
-                          style={{ color: 'var(--macro-protein)' }}
-                        >
-                          Protein
+                    {/* Premium Macro Breakdown Cockpit */}
+                    <div className="rounded-2xl sm:rounded-3xl border border-brand-border/70 bg-gradient-to-b from-brand-surface to-brand-bgAlt/50 p-4 sm:p-5 shadow-xs">
+                      <div className="flex items-center justify-between gap-3 mb-3">
+                        <div className="flex items-center gap-2">
+                          <div className="flex h-6 w-6 items-center justify-center rounded-lg bg-amber-500/15 text-amber-600 dark:text-amber-400">
+                            <Flame className="h-3.5 w-3.5" />
+                          </div>
+                          <span className="text-[11px] font-black uppercase tracking-wider text-brand-muted">
+                            Macro Distribution
+                          </span>
+                        </div>
+                        <span className="text-xs font-bold text-brand-muted">
+                          {Math.round(calories)} kcal
                         </span>
                       </div>
 
-                      <div
-                        className="border rounded-2xl p-2.5 sm:p-3 text-center"
-                        style={{
-                          backgroundColor: 'var(--macro-carbs-bg)',
-                          borderColor: 'var(--macro-carbs-border)',
-                        }}
-                      >
-                        <span
-                          className="block text-base font-extrabold font-display"
-                          style={{ color: 'var(--macro-carbs)' }}
-                        >
-                          {Math.round(carbsG)}g
-                        </span>
-                        <span
-                          className="block text-[9px] uppercase font-bold mt-0.5"
-                          style={{ color: 'var(--macro-carbs)' }}
-                        >
-                          Carbs
-                        </span>
+                      {/* Segmented Macro Balance Bar */}
+                      <div className="h-2 w-full overflow-hidden rounded-full bg-black/5 dark:bg-white/10 flex mb-4">
+                        <div
+                          style={{ width: `${proteinPct}%` }}
+                          className="bg-[#08705b] dark:bg-[#10b981] transition-all duration-500"
+                          title={`Protein: ${proteinPct}%`}
+                        />
+                        <div
+                          style={{ width: `${carbsPct}%` }}
+                          className="bg-[#18b9d2] dark:bg-[#38bdf8] transition-all duration-500"
+                          title={`Carbs: ${carbsPct}%`}
+                        />
+                        <div
+                          style={{ width: `${fatPct}%` }}
+                          className="bg-[#eb6a38] transition-all duration-500"
+                          title={`Fat: ${fatPct}%`}
+                        />
                       </div>
 
-                      <div
-                        className="border rounded-2xl p-2.5 sm:p-3 text-center"
-                        style={{
-                          backgroundColor: 'var(--macro-fat-bg)',
-                          borderColor: 'var(--macro-fat-border)',
-                        }}
-                      >
-                        <span
-                          className="block text-base font-extrabold font-display"
-                          style={{ color: 'var(--macro-fat)' }}
-                        >
-                          {Math.round(fatG)}g
-                        </span>
-                        <span
-                          className="block text-[9px] uppercase font-bold mt-0.5"
-                          style={{ color: 'var(--macro-fat)' }}
-                        >
-                          Fat
-                        </span>
+                      {/* 3 Interactive Metric Cards */}
+                      <div className="grid grid-cols-3 gap-2.5 sm:gap-3.5">
+                        {/* Protein Card */}
+                        <div className="rounded-2xl border border-[#08705b]/20 dark:border-[#10b981]/30 bg-gradient-to-b from-[#08705b]/10 to-[#08705b]/[0.02] dark:from-[#10b981]/15 dark:to-transparent p-3 sm:p-4 text-center transition-all hover:border-[#08705b]/40 shadow-xs">
+                          <div className="flex items-center justify-center gap-1.5 text-[10px] sm:text-[11px] font-black uppercase tracking-wider text-[#08705b] dark:text-[#34d399]">
+                            <span className="h-2 w-2 rounded-full bg-[#08705b] dark:bg-[#34d399]" />
+                            Protein
+                          </div>
+                          <span className="block text-2xl sm:text-3xl font-black font-display text-[#08705b] dark:text-[#34d399] tracking-tight mt-1">
+                            {Math.round(proteinG)}g
+                          </span>
+                          <span className="block text-[10px] font-bold text-brand-muted mt-0.5">
+                            {proteinPct}% of kcal
+                          </span>
+                        </div>
+
+                        {/* Carbs Card */}
+                        <div className="rounded-2xl border border-[#18b9d2]/20 dark:border-[#38bdf8]/30 bg-gradient-to-b from-[#18b9d2]/10 to-[#18b9d2]/[0.02] dark:from-[#38bdf8]/15 dark:to-transparent p-3 sm:p-4 text-center transition-all hover:border-[#18b9d2]/40 shadow-xs">
+                          <div className="flex items-center justify-center gap-1.5 text-[10px] sm:text-[11px] font-black uppercase tracking-wider text-[#0b7788] dark:text-[#38bdf8]">
+                            <span className="h-2 w-2 rounded-full bg-[#18b9d2] dark:bg-[#38bdf8]" />
+                            Carbs
+                          </div>
+                          <span className="block text-2xl sm:text-3xl font-black font-display text-[#0b7788] dark:text-[#38bdf8] tracking-tight mt-1">
+                            {Math.round(carbsG)}g
+                          </span>
+                          <span className="block text-[10px] font-bold text-brand-muted mt-0.5">
+                            {carbsPct}% of kcal
+                          </span>
+                        </div>
+
+                        {/* Fat Card */}
+                        <div className="rounded-2xl border border-[#eb6a38]/20 dark:border-[#eb6a38]/30 bg-gradient-to-b from-[#eb6a38]/10 to-[#eb6a38]/[0.02] dark:from-[#eb6a38]/15 dark:to-transparent p-3 sm:p-4 text-center transition-all hover:border-[#eb6a38]/40 shadow-xs">
+                          <div className="flex items-center justify-center gap-1.5 text-[10px] sm:text-[11px] font-black uppercase tracking-wider text-[#c74614] dark:text-[#f09e6c]">
+                            <span className="h-2 w-2 rounded-full bg-[#eb6a38] dark:bg-[#f09e6c]" />
+                            Fat
+                          </div>
+                          <span className="block text-2xl sm:text-3xl font-black font-display text-[#c74614] dark:text-[#f09e6c] tracking-tight mt-1">
+                            {Math.round(fatG)}g
+                          </span>
+                          <span className="block text-[10px] font-bold text-brand-muted mt-0.5">
+                            {fatPct}% of kcal
+                          </span>
+                        </div>
                       </div>
                     </div>
 
                     {/* Description Text */}
-                    <p className="text-xs text-brand-muted leading-relaxed">
-                      {description ||
-                        'This meal is part of your AI generation plan. Check ingredients and follow the instructions to prepare it.'}
-                    </p>
+                    {description && (
+                      <div className="rounded-2xl border border-brand-border/60 bg-brand-bgAlt/40 p-4 text-xs sm:text-sm text-brand-muted leading-relaxed">
+                        {description}
+                      </div>
+                    )}
 
+                    {/* Why this meal? - Clinical Matching Intelligence */}
                     {explanation && (
                       <section
-                        className="rounded-2xl border border-brand-border/70 bg-brand-bgAlt/50 p-4"
+                        className="rounded-2xl sm:rounded-3xl border border-brand-border/80 bg-brand-bgAlt/50 dark:bg-white/[0.02] p-4 sm:p-5 shadow-xs"
                         aria-label="Why this meal"
                       >
-                        <div className="flex items-center justify-between gap-2">
-                          <div className="flex items-center gap-2 text-xs font-extrabold text-brand-text">
-                            <ListChecks className="h-4 w-4 text-brand-green" />
-                            Why this meal?
+                        <div className="flex items-center justify-between gap-2 border-b border-brand-border/50 pb-3">
+                          <div className="flex items-center gap-2.5">
+                            <div className="flex h-7 w-7 items-center justify-center rounded-xl bg-brand-green/15 text-brand-green shadow-xs">
+                              <Sparkles className="h-4 w-4" />
+                            </div>
+                            <div>
+                              <h4 className="text-xs sm:text-sm font-black font-display text-brand-text">
+                                Why this meal?
+                              </h4>
+                              <p className="text-[10px] text-brand-muted">
+                                Algorithmic &amp; clinical matching rationale
+                              </p>
+                            </div>
                           </div>
                           {verifier && (
-                            <span className="inline-flex items-center gap-1 rounded-full bg-brand-green/10 px-2 py-0.5 text-[9px] font-extrabold text-brand-green border border-brand-green/20">
-                              <ShieldCheck className="h-3 w-3" /> RND reviewed recipe or case
+                            <span className="inline-flex items-center gap-1 rounded-full bg-brand-green/10 px-2.5 py-1 text-[10px] font-extrabold text-brand-green border border-brand-green/20">
+                              <ShieldCheck className="h-3.5 w-3.5" /> RND reviewed recipe or case
                             </span>
                           )}
                         </div>
-                        <ul className="mt-3 space-y-2 text-[11px] leading-relaxed text-brand-muted">
+
+                        <ul className="mt-3.5 space-y-2">
                           {explanation.bullets.map((bullet) => {
                             const isReviewerBullet = verifier && bullet.toLowerCase().includes('reviewed by');
                             return (
-                              <li key={bullet} className="flex items-start justify-between gap-2">
-                                <div className="flex items-start gap-2 min-w-0">
-                                  <Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-brand-green" />
+                              <li
+                                key={bullet}
+                                className="flex items-start justify-between gap-2.5 rounded-xl bg-brand-surface/80 dark:bg-black/30 border border-brand-border/50 p-2.5 text-xs text-brand-text/90 leading-relaxed shadow-2xs"
+                              >
+                                <div className="flex items-start gap-2.5 min-w-0">
+                                  <Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-brand-green stroke-[3]" />
                                   <span className="break-words">{bullet}</span>
                                 </div>
                                 {isReviewerBullet && (
@@ -562,14 +657,17 @@ export default function MealCard({
                             );
                           })}
                         </ul>
+
                         {explanation.limitation && (
-                          <p className="mt-3 border-t border-brand-border/60 pt-3 text-[10px] text-brand-muted">
-                            {explanation.limitation}
-                          </p>
+                          <div className="mt-3 pt-3 border-t border-brand-border/60 flex items-start gap-2 text-[11px] text-brand-muted">
+                            <Info className="h-3.5 w-3.5 shrink-0 text-brand-muted mt-0.5" />
+                            <span>{explanation.limitation}</span>
+                          </div>
                         )}
                       </section>
                     )}
 
+                    {/* Clinician Verifier Endorsement */}
                     {verifier && (
                       <button
                         type="button"
@@ -578,20 +676,20 @@ export default function MealCard({
                           setIsOpen(false);
                           setIsVerifierOpen(true);
                         }}
-                        className="group relative flex w-full flex-col gap-2.5 rounded-2xl border border-brand-green/30 bg-gradient-to-br from-brand-green/[0.08] via-brand-green/[0.03] to-transparent p-3.5 text-left transition hover:border-brand-green/60 hover:shadow-sm"
+                        className="group relative flex w-full flex-col gap-3 rounded-2xl sm:rounded-3xl border border-brand-green/30 bg-gradient-to-br from-brand-green/[0.08] via-brand-green/[0.03] to-transparent p-4 text-left transition hover:border-brand-green/60 hover:shadow-md"
                         aria-label={`View clinical credentials for ${verifier.name}`}
                       >
                         <div className="flex items-center justify-between gap-3">
-                          <div className="flex items-center gap-2.5 min-w-0">
+                          <div className="flex items-center gap-3 min-w-0">
                             {verifier.image ? (
                               // eslint-disable-next-line @next/next/no-img-element
                               <img
                                 src={verifier.image}
                                 alt={verifier.name}
-                                className="h-10 w-10 rounded-full object-cover border-2 border-brand-green/30 shadow-sm shrink-0"
+                                className="h-11 w-11 rounded-full object-cover border-2 border-brand-green/30 shadow-sm shrink-0"
                               />
                             ) : (
-                              <div className="h-10 w-10 rounded-full bg-brand-green/15 border-2 border-brand-green/30 flex items-center justify-center text-brand-green font-display font-bold text-xs shrink-0">
+                              <div className="h-11 w-11 rounded-full bg-brand-green/15 border-2 border-brand-green/30 flex items-center justify-center text-brand-green font-display font-bold text-sm shrink-0">
                                 {verifier.name
                                   .split(' ')
                                   .map((n) => n[0])
@@ -601,40 +699,44 @@ export default function MealCard({
                             )}
                             <div className="min-w-0">
                               <div className="flex items-center gap-1.5 flex-wrap">
-                                <span className="font-display font-extrabold text-xs text-brand-text truncate">
+                                <span className="font-display font-black text-sm text-brand-text truncate">
                                   {verifier.name.endsWith('RND') ? verifier.name : `${verifier.name}, RND`}
                                 </span>
-                                <span className="inline-flex items-center gap-0.5 rounded-full bg-brand-green/15 px-1.5 py-0.5 text-[9px] font-extrabold text-brand-green">
+                                <span className="inline-flex items-center gap-1 rounded-full bg-brand-green/15 px-2 py-0.5 text-[9px] font-black text-brand-green border border-brand-green/20">
                                   <ShieldCheck className="h-3 w-3" /> PRC-Verified
                                 </span>
                               </div>
-                              <p className="text-[10px] text-brand-muted truncate">
+                              <p className="text-[11px] text-brand-muted truncate mt-0.5">
                                 {verifier.specialization || 'Clinical Dietetics & Nutrition'} •{' '}
                                 {maskPrcLicenseNumber(verifier.prcLicenseNumber)}
                               </p>
                             </div>
                           </div>
-                          <span className="shrink-0 text-[11px] font-bold text-brand-green group-hover:translate-x-0.5 transition-transform flex items-center gap-1">
+                          <span className="shrink-0 text-xs font-bold text-brand-green group-hover:translate-x-0.5 transition-transform flex items-center gap-1">
                             Credentials ↗
                           </span>
                         </div>
 
                         {nutritionistNote && (
-                          <div className="rounded-xl bg-brand-bgAlt/80 border border-brand-border/60 px-2.5 py-1.5 text-[10px] text-brand-muted italic line-clamp-2">
-                            <span className="font-bold not-italic text-brand-text mr-1">RND Note:</span>
+                          <div className="rounded-xl bg-brand-surface/90 dark:bg-black/40 border border-brand-green/20 px-3 py-2 text-xs text-brand-muted italic">
+                            <span className="font-bold not-italic text-brand-green mr-1.5">RND Note:</span>
                             &ldquo;{nutritionistNote}&rdquo;
                           </div>
                         )}
                       </button>
                     )}
 
-                    {/* Prefer the original recipe source when the meal has one. */}
-                    <div className="bg-red-500/5 border border-red-500/15 rounded-2xl p-4 flex items-center justify-between gap-4">
-                      <div className="flex items-center gap-3">
-                        <span className="text-2xl shrink-0">{cookingLink?.kind === 'PANLASANG_RECIPE' ? '📖' : '📺'}</span>
-                        <div>
-                          <h5 className="text-xs font-bold text-brand-text leading-tight">Need cooking help?</h5>
-                          <p className="text-[10px] text-brand-muted mt-1 leading-snug">
+                    {/* Cooking & Recipe Guide */}
+                    <div className="rounded-2xl border border-brand-border/70 bg-brand-bgAlt/50 dark:bg-white/[0.02] p-4 flex items-center justify-between gap-4">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <span className="text-2xl shrink-0 p-2 rounded-xl bg-brand-surface dark:bg-black/30 border border-brand-border/60">
+                          {cookingLink?.kind === 'PANLASANG_RECIPE' ? '📖' : '📺'}
+                        </span>
+                        <div className="min-w-0">
+                          <h5 className="text-xs sm:text-sm font-bold text-brand-text leading-tight">
+                            Need cooking help?
+                          </h5>
+                          <p className="text-[11px] text-brand-muted mt-0.5 leading-snug line-clamp-1">
                             {cooking.description}
                           </p>
                         </div>
@@ -643,23 +745,26 @@ export default function MealCard({
                         href={cooking.href}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className={`px-4 py-2 text-white text-xs font-bold rounded-full transition-colors flex items-center gap-1.5 shrink-0 select-none cursor-pointer outline-none ${cookingLink?.kind === 'PANLASANG_RECIPE' ? 'bg-brand-green hover:brightness-90' : 'bg-[#ff0000] hover:bg-[#cc0000]'}`}
+                        className={`px-4 py-2 text-white text-xs font-bold rounded-full transition-all shadow-sm flex items-center gap-1.5 shrink-0 select-none cursor-pointer outline-none hover:scale-105 active:scale-95 ${cookingLink?.kind === 'PANLASANG_RECIPE' ? 'bg-brand-green hover:brightness-95' : 'bg-[#ff0000] hover:bg-[#cc0000]'}`}
                       >
                         {cooking.label}
                       </a>
                     </div>
 
-                    {/* Ingredients list */}
+                    {/* Ingredients List */}
                     {ingredients.length > 0 && (
                       <div>
-                        <span className="text-[9px] tracking-wider font-extrabold text-brand-muted uppercase block mb-2">
-                          Ingredients List
-                        </span>
+                        <div className="flex items-center gap-2 mb-2.5">
+                          <UtensilsCrossed className="h-3.5 w-3.5 text-brand-green" />
+                          <span className="text-[11px] tracking-wider font-extrabold text-brand-muted uppercase">
+                            Ingredients ({ingredients.length})
+                          </span>
+                        </div>
                         <div className="flex flex-wrap gap-1.5">
                           {ingredients.map((ing) => (
                             <span
                               key={ing.id}
-                              className="text-[10px] bg-brand-bgAlt border border-brand-border/60 text-brand-text px-2.5 py-1.5 rounded-lg leading-none font-semibold"
+                              className="text-xs bg-brand-surface dark:bg-black/30 border border-brand-border/70 text-brand-text px-3 py-1.5 rounded-xl font-medium shadow-2xs hover:border-brand-green/30 transition-colors"
                             >
                               {ing.ingredientName}
                             </span>
@@ -670,7 +775,7 @@ export default function MealCard({
 
                     {/* Clinical Warning Banner (Legal layer 3 & 4) */}
                     {status === 'PENDING_REVIEW' && (
-                      <div className="p-3 rounded-xl bg-status-pending-bg/10 border border-status-pending-text/30 text-status-pending-text text-[10px] font-semibold leading-relaxed flex items-start gap-2">
+                      <div className="p-3.5 rounded-2xl bg-status-pending-bg/10 border border-status-pending-text/30 text-status-pending-text text-xs font-semibold leading-relaxed flex items-start gap-2.5">
                         <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
                         <span>
                           <strong>AI Estimation Warning</strong>: This plan is still pending verification by a licensed
@@ -679,10 +784,10 @@ export default function MealCard({
                       </div>
                     )}
 
-                    {/* Action Buttons Panel */}
-                    <div className="border-t border-brand-border/60 pt-4 mt-1">
+                    {/* Sticky Action Footer */}
+                    <div className="sticky bottom-0 z-20 -mx-5 -mb-5 sm:-mx-7 sm:-mb-7 p-4 sm:p-5 bg-brand-surface/95 dark:bg-[#071914]/95 backdrop-blur-md border-t border-brand-border/80 shadow-lg mt-2">
                       {isUnloggedPastMeal && !isPastGracePeriod && (
-                        <div className="mb-3 p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-[11px] text-amber-700 dark:text-amber-300 font-semibold flex items-center gap-2">
+                        <div className="mb-3 p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-xs text-amber-700 dark:text-amber-300 font-semibold flex items-center gap-2">
                           <Clock3 className="h-4 w-4 shrink-0" />
                           <span>
                             Missed this meal? You can still catch up and record whether you ate or skipped it.
@@ -690,7 +795,7 @@ export default function MealCard({
                         </div>
                       )}
                       {isPastGracePeriod && (
-                        <div className="mb-3 p-2.5 rounded-xl bg-red-500/10 border border-red-500/20 text-[11px] text-red-600 dark:text-red-400 font-semibold flex items-center gap-2">
+                        <div className="mb-3 p-2.5 rounded-xl bg-red-500/10 border border-red-500/20 text-xs text-red-600 dark:text-red-400 font-semibold flex items-center gap-2">
                           <AlertCircle className="h-4 w-4 shrink-0" />
                           <span>The 7-day logging grace period for this scheduled meal has passed.</span>
                         </div>
@@ -701,19 +806,20 @@ export default function MealCard({
                         </p>
                       )}
                       {!isLogged ? (
-                        <div className="flex flex-col gap-3">
+                        <div className="flex flex-col gap-2.5">
                           {/* Primary: Mark as Eaten */}
                           <Button
                             variant="primary"
                             onClick={() => handleCheckedChange(true)}
                             disabled={isUpdating || isPastGracePeriod || isFutureDate}
-                            className="w-full font-bold py-2.5 text-xs"
+                            className="w-full font-bold py-3 text-xs sm:text-sm flex items-center justify-center gap-2 shadow-md hover:shadow-lg transition-all"
                           >
+                            <Check className="h-4 w-4 stroke-[3]" />
                             Mark as Eaten
                           </Button>
 
                           {/* Secondary: Swap and Skip side-by-side */}
-                          <div className="flex gap-3">
+                          <div className="flex gap-2.5">
                             {onSwapClick && (
                               <Button
                                 variant="secondary"
@@ -722,19 +828,19 @@ export default function MealCard({
                                   onSwapClick(id);
                                 }}
                                 disabled={isPastDate}
-                                className="flex-1 font-bold text-xs py-2 h-9 border-brand-border flex items-center justify-center gap-1 disabled:opacity-40 disabled:cursor-not-allowed"
+                                className="flex-1 font-bold text-xs py-2.5 h-10 border-brand-border flex items-center justify-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed"
                                 title={isPastDate ? 'Past scheduled meals cannot be swapped.' : undefined}
                               >
-                                <RefreshCw className="h-3 w-3 animate-spin-hover" /> Swap Meal
+                                <RefreshCw className="h-3.5 w-3.5 animate-spin-hover" /> Swap Meal
                               </Button>
                             )}
                             <Button
                               variant="ghost"
                               onClick={handleSkipMeal}
                               disabled={isUpdating || isPastGracePeriod || isFutureDate}
-                              className="flex-1 font-bold text-xs py-2 h-9 bg-red-500/10 border border-red-500/25 text-red-500 hover:bg-red-600 hover:text-white"
+                              className="flex-1 font-bold text-xs py-2.5 h-10 bg-red-500/10 border border-red-500/25 text-red-500 hover:bg-red-600 hover:text-white transition-colors"
                             >
-                              Skip Meal
+                              <X className="h-3.5 w-3.5" /> Skip Meal
                             </Button>
                           </div>
                         </div>
@@ -744,9 +850,9 @@ export default function MealCard({
                           variant="secondary"
                           onClick={() => handleCheckedChange(false)}
                           disabled={isUpdating || isPastGracePeriod || isFutureDate}
-                          className="w-full font-bold py-2.5 text-xs border-amber-500/30 text-amber-600 bg-amber-500/5 hover:bg-amber-500/10 hover:border-amber-500/50"
+                          className="w-full font-bold py-3 text-xs sm:text-sm border-amber-500/30 text-amber-600 dark:text-amber-400 bg-amber-500/10 hover:bg-amber-500/20 hover:border-amber-500/50 shadow-xs"
                         >
-                          Reset Meal Status
+                          <RefreshCw className="h-3.5 w-3.5 mr-2" /> Reset Meal Status
                         </Button>
                       )}
                     </div>

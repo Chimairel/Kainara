@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'motion/react';
-import { CalendarDays, Clock3, Coffee, MoonStar, ShieldAlert, SunMedium, Soup, Apple, X } from 'lucide-react';
+import { CalendarDays, Clock3, Coffee, MoonStar, ShieldAlert, SunMedium, Soup, Apple, X, Flame, ExternalLink, UtensilsCrossed } from 'lucide-react';
 import Button from '@/components/ui/Button';
 import MealImage from './MealImage';
 import MealVerificationBadge from './MealVerificationBadge';
@@ -106,6 +106,15 @@ export default function PendingMealPreviewCard({
     };
   }, [isOpen]);
 
+  const proteinKcal = meal.proteinG * 4;
+  const carbsKcal = meal.carbsG * 4;
+  const fatKcal = meal.fatG * 9;
+  const totalMacroKcal = proteinKcal + carbsKcal + fatKcal;
+  const calBase = meal.calories > 0 ? meal.calories : totalMacroKcal > 0 ? totalMacroKcal : 1;
+  const proteinPct = Math.min(100, Math.max(0, Math.round((proteinKcal / calBase) * 100)));
+  const carbsPct = Math.min(100, Math.max(0, Math.round((carbsKcal / calBase) * 100)));
+  const fatPct = Math.min(100, Math.max(0, Math.round((fatKcal / calBase) * 100)));
+
   return (
     <>
       <motion.div
@@ -198,37 +207,87 @@ export default function PendingMealPreviewCard({
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
                   onClick={() => setIsOpen(false)}
-                  className="fixed inset-0 bg-black/80 backdrop-blur-md"
+                  className="fixed inset-0 bg-black/80 backdrop-blur-xl"
                 />
 
                 {/* Expanded Modal Card */}
                 <motion.div
                   layoutId={layoutId}
-                  className="relative z-10 my-auto w-full max-w-2xl overflow-hidden rounded-3xl border border-brand-border/80 bg-brand-surface shadow-2xl max-h-[92vh] flex flex-col text-left select-none"
+                  className="relative z-10 my-auto w-full max-w-2xl overflow-hidden rounded-[28px] sm:rounded-[32px] border border-white/20 dark:border-white/10 bg-brand-surface shadow-[0_25px_70px_rgba(0,0,0,0.45)] dark:shadow-[0_25px_80px_rgba(0,0,0,0.85)] max-h-[92vh] flex flex-col text-left select-none ring-1 ring-black/5 dark:ring-white/5"
                 >
-                  {/* Floating Close Button */}
-                  <button
-                    type="button"
-                    onClick={() => setIsOpen(false)}
-                    className="absolute top-4 right-4 z-20 flex h-9 w-9 items-center justify-center rounded-full border border-emerald-500/20 dark:border-[#173e33] bg-[#071914]/80 text-white backdrop-blur-md hover:bg-[#071914] hover:border-emerald-500/40 transition-colors shadow-lg"
-                    aria-label="Close modal"
-                  >
-                    <X className="h-4 w-4" />
-                  </button>
-
                   {/* Hero Image Container */}
-                  <div className="relative h-52 sm:h-64 w-full shrink-0 overflow-hidden">
+                  <div className="relative h-60 sm:h-72 w-full shrink-0 overflow-hidden bg-black/40">
                     <motion.div layoutId={`image-wrap-${layoutId}`} className="h-full w-full">
                       <MealImage
                         image={meal.image}
                         mealName={meal.mealName}
                         mealType={meal.mealType}
-                        className="h-full w-full rounded-none"
+                        className="h-full w-full rounded-none object-cover"
                         variant="hero"
                         ingredients={meal.ingredients}
                       />
                     </motion.div>
-                    <MealVerificationBadge status="PENDING_REVIEW" className="absolute top-4 left-4 z-10" />
+
+                    {/* Gradient overlays for contrast & seamless blending */}
+                    <div className="absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-black/80 via-black/40 to-transparent pointer-events-none" />
+                    <div className="absolute inset-x-0 bottom-0 h-36 bg-gradient-to-t from-black/90 via-black/55 to-transparent pointer-events-none" />
+
+                    {/* Top Floating Bar */}
+                    <div className="absolute top-3.5 inset-x-3.5 sm:top-4 sm:inset-x-4 flex items-center justify-between z-20">
+                      {/* Left: Badges */}
+                      <div className="flex flex-wrap items-center gap-1.5 max-w-[80%]">
+                        <span className="inline-flex items-center gap-1.5 rounded-full bg-black/60 backdrop-blur-md px-3 py-1 text-xs font-black uppercase tracking-wider text-white border border-white/20 shadow-md">
+                          <MealTypeIcon className="h-3.5 w-3.5 text-brand-green" />
+                          {typeStyle.label}
+                        </span>
+
+                        <span className="inline-flex items-center gap-1 rounded-full border border-amber-300/40 bg-amber-500/90 px-2.5 py-1 font-mono text-[10px] font-bold uppercase tracking-wider text-white shadow-md backdrop-blur-md">
+                          <Clock3 className="h-2.5 w-2.5" /> Unlogged
+                        </span>
+
+                        <span className="inline-flex items-center gap-1 rounded-full border border-amber-300/40 bg-black/60 px-2.5 py-1 font-mono text-[10px] font-bold uppercase tracking-wider text-amber-300 shadow-md backdrop-blur-md">
+                          <Clock3 className="h-2.5 w-2.5 text-amber-300" /> Awaiting Review
+                        </span>
+                      </div>
+
+                      {/* Right: Floating Close Button */}
+                      <button
+                        type="button"
+                        onClick={() => setIsOpen(false)}
+                        className="flex h-9 w-9 items-center justify-center rounded-full bg-black/60 hover:bg-black/90 text-white/90 hover:text-white backdrop-blur-md border border-white/20 transition-all hover:scale-105 shadow-xl shrink-0"
+                        aria-label="Close modal"
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
+                    </div>
+
+                    {/* Bottom Title & Meta Overlay */}
+                    <div className="absolute bottom-3.5 inset-x-4 sm:bottom-4 sm:inset-x-6 z-20">
+                      <h3 className="text-xl sm:text-2xl md:text-3xl font-black font-display text-white tracking-tight leading-tight drop-shadow-[0_2px_10px_rgba(0,0,0,0.8)] line-clamp-2">
+                        {meal.mealName}
+                      </h3>
+                      <div className="mt-2 flex flex-wrap items-center gap-2">
+                        <span className="inline-flex items-center gap-1.5 rounded-full bg-white/20 backdrop-blur-md px-2.5 py-0.5 text-xs font-bold text-white border border-white/25 shadow-xs">
+                          <Flame className="h-3.5 w-3.5 text-amber-300" />
+                          {Math.round(meal.calories)} kcal Total Energy
+                        </span>
+                        <span className="inline-flex items-center gap-1 rounded-full bg-black/40 backdrop-blur-md px-2.5 py-0.5 text-xs font-semibold text-white/90 border border-white/15 shadow-xs">
+                          <CalendarDays className="h-3 w-3 text-brand-green" />
+                          {scheduledDate}
+                        </span>
+                        {meal.image?.attribution.sourcePageUrl && (
+                          <a
+                            href={meal.image.attribution.sourcePageUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1 rounded-full bg-black/40 hover:bg-black/70 backdrop-blur-md px-2.5 py-0.5 text-[11px] font-semibold text-emerald-300 hover:text-emerald-200 border border-emerald-400/30 transition-colors shadow-xs"
+                          >
+                            <span>View image source</span>
+                            <ExternalLink className="h-2.5 w-2.5" />
+                          </a>
+                        )}
+                      </div>
+                    </div>
                   </div>
 
                   {/* Modal Body */}
@@ -239,132 +298,137 @@ export default function PendingMealPreviewCard({
                     transition={{ duration: 0.15 }}
                     className="p-5 sm:p-7 overflow-y-auto custom-scrollbar flex-1 flex flex-col gap-5"
                   >
-                    {/* Title & Metadata */}
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-2 mb-1.5">
-                          <MealTypeIcon className={`h-4 w-4 ${typeStyle.iconClassName}`} />
-                          <span className="text-xs font-extrabold uppercase tracking-wider text-brand-muted">
-                            {typeStyle.label}
+                    {/* Premium Macro Breakdown Cockpit */}
+                    <div className="rounded-2xl sm:rounded-3xl border border-brand-border/70 bg-gradient-to-b from-brand-surface to-brand-bgAlt/50 p-4 sm:p-5 shadow-xs">
+                      <div className="flex items-center justify-between gap-3 mb-3">
+                        <div className="flex items-center gap-2">
+                          <div className="flex h-6 w-6 items-center justify-center rounded-lg bg-amber-500/15 text-amber-600 dark:text-amber-400">
+                            <Flame className="h-3.5 w-3.5" />
+                          </div>
+                          <span className="text-[11px] font-black uppercase tracking-wider text-brand-muted">
+                            Macro Distribution
                           </span>
-                          <span className="text-xs text-brand-muted">·</span>
-                          <span className="flex items-center gap-1 text-xs font-semibold text-brand-muted">
-                            <CalendarDays className="h-3 w-3" />
-                            {scheduledDate}
-                          </span>
-                        </div>
-                        <h3 className="text-xl sm:text-2xl font-black font-display text-brand-text tracking-tight">
-                          {meal.mealName}
-                        </h3>
-                      </div>
-                    </div>
-
-                    {meal.description && (
-                      <p className="text-xs sm:text-sm text-brand-muted leading-relaxed">{meal.description}</p>
-                    )}
-                    {meal.cookingLink && (
-                      <a
-                        href={meal.cookingLink.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-xs font-semibold text-brand-green underline"
-                      >
-                        {meal.cookingLink.kind === 'PANLASANG_RECIPE'
-                          ? 'View original Panlasang Pinoy recipe ↗'
-                          : 'Watch original cooking video ↗'}
-                      </a>
-                    )}
-                    {meal.image?.attribution.sourcePageUrl && (
-                      <a
-                        href={meal.image.attribution.sourcePageUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-xs font-semibold text-brand-green underline"
-                      >
-                        View image source
-                      </a>
-                    )}
-
-                    {/* Energy & Macro Breakdown Box */}
-                    <div className="rounded-2xl border border-brand-border/60 bg-brand-bgAlt/55 p-4">
-                      <div className="flex items-end justify-between gap-3 border-b border-brand-border/50 pb-3">
-                        <div>
-                          <p className="text-[10px] font-extrabold uppercase tracking-wider text-brand-muted">
-                            Estimated energy
-                          </p>
-                          <p className="mt-1 font-display text-2xl font-black leading-none text-brand-text">
-                            {Math.round(meal.calories)}
-                            <span className="ml-1 text-xs font-bold uppercase tracking-wider text-brand-muted">
-                              kcal
-                            </span>
-                          </p>
                         </div>
                         <div className="flex items-center gap-1.5 font-mono text-xs font-bold text-amber-400">
-                          <Clock3 className="h-4 w-4" />
-                          Awaiting RND review
+                          <Clock3 className="h-3.5 w-3.5" />
+                          Awaiting RND Review
                         </div>
                       </div>
 
-                      <div className="mt-3 grid grid-cols-3 gap-2 sm:gap-3">
+                      {/* Segmented Macro Balance Bar */}
+                      <div className="h-2 w-full overflow-hidden rounded-full bg-black/5 dark:bg-white/10 flex mb-4">
                         <div
-                          className="rounded-xl border p-2.5 text-center"
-                          style={{
-                            backgroundColor: 'var(--macro-protein-bg)',
-                            borderColor: 'var(--macro-protein-border)',
-                          }}
-                        >
-                          <span
-                            className="block font-display text-base font-black"
-                            style={{ color: 'var(--macro-protein)' }}
-                          >
+                          style={{ width: `${proteinPct}%` }}
+                          className="bg-[#08705b] dark:bg-[#10b981] transition-all duration-500"
+                          title={`Protein: ${proteinPct}%`}
+                        />
+                        <div
+                          style={{ width: `${carbsPct}%` }}
+                          className="bg-[#18b9d2] dark:bg-[#38bdf8] transition-all duration-500"
+                          title={`Carbs: ${carbsPct}%`}
+                        />
+                        <div
+                          style={{ width: `${fatPct}%` }}
+                          className="bg-[#eb6a38] transition-all duration-500"
+                          title={`Fat: ${fatPct}%`}
+                        />
+                      </div>
+
+                      {/* 3 Interactive Metric Cards */}
+                      <div className="grid grid-cols-3 gap-2.5 sm:gap-3.5">
+                        {/* Protein Card */}
+                        <div className="rounded-2xl border border-[#08705b]/20 dark:border-[#10b981]/30 bg-gradient-to-b from-[#08705b]/10 to-[#08705b]/[0.02] dark:from-[#10b981]/15 dark:to-transparent p-3 sm:p-4 text-center transition-all hover:border-[#08705b]/40 shadow-xs">
+                          <div className="flex items-center justify-center gap-1.5 text-[10px] sm:text-[11px] font-black uppercase tracking-wider text-[#08705b] dark:text-[#34d399]">
+                            <span className="h-2 w-2 rounded-full bg-[#08705b] dark:bg-[#34d399]" />
+                            Protein
+                          </div>
+                          <span className="block text-2xl sm:text-3xl font-black font-display text-[#08705b] dark:text-[#34d399] tracking-tight mt-1">
                             {Math.round(meal.proteinG)}g
                           </span>
-                          <span className="mt-0.5 block text-[9px] font-extrabold uppercase tracking-wider text-brand-muted">
-                            Protein
+                          <span className="block text-[10px] font-bold text-brand-muted mt-0.5">
+                            {proteinPct}% of kcal
                           </span>
                         </div>
-                        <div
-                          className="rounded-xl border p-2.5 text-center"
-                          style={{ backgroundColor: 'var(--macro-carbs-bg)', borderColor: 'var(--macro-carbs-border)' }}
-                        >
-                          <span
-                            className="block font-display text-base font-black"
-                            style={{ color: 'var(--macro-carbs)' }}
-                          >
+
+                        {/* Carbs Card */}
+                        <div className="rounded-2xl border border-[#18b9d2]/20 dark:border-[#38bdf8]/30 bg-gradient-to-b from-[#18b9d2]/10 to-[#18b9d2]/[0.02] dark:from-[#38bdf8]/15 dark:to-transparent p-3 sm:p-4 text-center transition-all hover:border-[#18b9d2]/40 shadow-xs">
+                          <div className="flex items-center justify-center gap-1.5 text-[10px] sm:text-[11px] font-black uppercase tracking-wider text-[#0b7788] dark:text-[#38bdf8]">
+                            <span className="h-2 w-2 rounded-full bg-[#18b9d2] dark:bg-[#38bdf8]" />
+                            Carbs
+                          </div>
+                          <span className="block text-2xl sm:text-3xl font-black font-display text-[#0b7788] dark:text-[#38bdf8] tracking-tight mt-1">
                             {Math.round(meal.carbsG)}g
                           </span>
-                          <span className="mt-0.5 block text-[9px] font-extrabold uppercase tracking-wider text-brand-muted">
-                            Carbs
+                          <span className="block text-[10px] font-bold text-brand-muted mt-0.5">
+                            {carbsPct}% of kcal
                           </span>
                         </div>
-                        <div
-                          className="rounded-xl border p-2.5 text-center"
-                          style={{ backgroundColor: 'var(--macro-fat-bg)', borderColor: 'var(--macro-fat-border)' }}
-                        >
-                          <span
-                            className="block font-display text-base font-black"
-                            style={{ color: 'var(--macro-fat)' }}
-                          >
+
+                        {/* Fat Card */}
+                        <div className="rounded-2xl border border-[#eb6a38]/20 dark:border-[#eb6a38]/30 bg-gradient-to-b from-[#eb6a38]/10 to-[#eb6a38]/[0.02] dark:from-[#eb6a38]/15 dark:to-transparent p-3 sm:p-4 text-center transition-all hover:border-[#eb6a38]/40 shadow-xs">
+                          <div className="flex items-center justify-center gap-1.5 text-[10px] sm:text-[11px] font-black uppercase tracking-wider text-[#c74614] dark:text-[#f09e6c]">
+                            <span className="h-2 w-2 rounded-full bg-[#eb6a38] dark:bg-[#f09e6c]" />
+                            Fat
+                          </div>
+                          <span className="block text-2xl sm:text-3xl font-black font-display text-[#c74614] dark:text-[#f09e6c] tracking-tight mt-1">
                             {Math.round(meal.fatG)}g
                           </span>
-                          <span className="mt-0.5 block text-[9px] font-extrabold uppercase tracking-wider text-brand-muted">
-                            Fat
+                          <span className="block text-[10px] font-bold text-brand-muted mt-0.5">
+                            {fatPct}% of kcal
                           </span>
                         </div>
                       </div>
                     </div>
+
+                    {/* Description Text */}
+                    {meal.description && (
+                      <div className="rounded-2xl border border-brand-border/60 bg-brand-bgAlt/40 p-4 text-xs sm:text-sm text-brand-muted leading-relaxed">
+                        {meal.description}
+                      </div>
+                    )}
+
+                    {meal.cookingLink && (
+                      <div className="rounded-2xl border border-brand-border/70 bg-brand-bgAlt/50 dark:bg-white/[0.02] p-4 flex items-center justify-between gap-4">
+                        <div className="flex items-center gap-3 min-w-0">
+                          <span className="text-2xl shrink-0 p-2 rounded-xl bg-brand-surface dark:bg-black/30 border border-brand-border/60">
+                            {meal.cookingLink.kind === 'PANLASANG_RECIPE' ? '📖' : '📺'}
+                          </span>
+                          <div className="min-w-0">
+                            <h5 className="text-xs sm:text-sm font-bold text-brand-text leading-tight">
+                              Need cooking help?
+                            </h5>
+                            <p className="text-[11px] text-brand-muted mt-0.5 leading-snug line-clamp-1">
+                              {meal.cookingLink.kind === 'PANLASANG_RECIPE'
+                                ? 'View original Panlasang Pinoy recipe guide'
+                                : 'Watch original recipe preparation video'}
+                            </p>
+                          </div>
+                        </div>
+                        <a
+                          href={meal.cookingLink.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="px-4 py-2 text-white text-xs font-bold rounded-full bg-brand-green hover:brightness-95 transition-all shadow-sm shrink-0 select-none cursor-pointer outline-none hover:scale-105 active:scale-95"
+                        >
+                          View Recipe ↗
+                        </a>
+                      </div>
+                    )}
 
                     {/* Proposed Ingredients */}
                     {meal.ingredients && meal.ingredients.length > 0 && (
                       <div>
-                        <h4 className="text-xs font-extrabold uppercase tracking-wider text-brand-muted mb-2.5">
-                          Proposed Ingredients ({meal.ingredients.length})
-                        </h4>
+                        <div className="flex items-center gap-2 mb-2.5">
+                          <UtensilsCrossed className="h-3.5 w-3.5 text-brand-green" />
+                          <span className="text-[11px] tracking-wider font-extrabold text-brand-muted uppercase">
+                            Proposed Ingredients ({meal.ingredients.length})
+                          </span>
+                        </div>
                         <div className="flex flex-wrap gap-1.5">
                           {meal.ingredients.map((ing, idx) => (
                             <span
                               key={`${ing.ingredientName}-${idx}`}
-                              className="rounded-full border border-brand-border/70 bg-brand-surface px-3 py-1 text-xs font-semibold text-brand-text"
+                              className="rounded-full border border-brand-border/70 bg-brand-surface dark:bg-black/30 px-3 py-1.5 text-xs font-semibold text-brand-text shadow-2xs hover:border-brand-green/40 transition-colors"
                             >
                               {ing.ingredientName}
                               {ing.category ? (
@@ -386,8 +450,9 @@ export default function PendingMealPreviewCard({
                       </div>
                     </div>
 
-                    <div className="mt-2 flex justify-end">
-                      <Button variant="secondary" onClick={() => setIsOpen(false)} className="text-xs font-bold px-5">
+                    {/* Sticky Action Footer */}
+                    <div className="sticky bottom-0 z-20 -mx-5 -mb-5 sm:-mx-7 sm:-mb-7 p-4 sm:p-5 bg-brand-surface/95 dark:bg-[#071914]/95 backdrop-blur-md border-t border-brand-border/80 shadow-lg mt-2 flex justify-end">
+                      <Button variant="secondary" onClick={() => setIsOpen(false)} className="text-xs font-bold px-6 py-2.5">
                         Close
                       </Button>
                     </div>
