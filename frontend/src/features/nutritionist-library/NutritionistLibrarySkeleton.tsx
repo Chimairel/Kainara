@@ -1,45 +1,51 @@
 import React from 'react';
-import { ImageIcon } from 'lucide-react';
 import Skeleton from '@/components/ui/Skeleton';
 
 export function LibraryGridSkeleton({ count = 6 }: { count?: number }) {
   return (
-    <div className="grid grid-cols-1 gap-4 md:grid-cols-2" aria-label="Loading meal library grid">
+    <div
+      className="grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-3"
+      aria-label="Loading meal library grid"
+    >
       {[...Array(count)].map((_, i) => (
         <div
           key={i}
-          className="flex flex-col justify-between rounded-2xl border border-brand-border/70 bg-brand-surface p-5 shadow-sm space-y-4"
+          className="flex flex-col justify-between rounded-[22px] border border-brand-border/70 bg-brand-surface p-5 shadow-sm space-y-4"
         >
           <div className="space-y-3">
-            <div className="flex items-start justify-between gap-3">
-              <div className="space-y-1.5 flex-1">
-                <div className="flex items-center gap-2">
-                  <Skeleton className="h-4 w-16 rounded-full" />
-                  <Skeleton className="h-4 w-20 rounded-full" />
-                </div>
-                <Skeleton className="h-5 w-4/5 rounded-lg" />
-                <Skeleton className="h-3.5 w-3/5 rounded" />
-              </div>
-              <Skeleton className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl">
-                <ImageIcon className="h-6 w-6 text-brand-muted/30 dark:text-white/20" aria-hidden="true" />
-              </Skeleton>
+            {/* Top image placeholder */}
+            <Skeleton className="h-40 w-full rounded-2xl" />
+
+            {/* Slot & calories header */}
+            <div className="flex items-center justify-between pt-1">
+              <Skeleton className="h-4 w-20 rounded-md" />
+              <Skeleton className="h-4 w-16 rounded-md" />
             </div>
 
-            {/* Macro Pills */}
-            <div className="flex flex-wrap gap-2 pt-1">
-              {[...Array(4)].map((_, j) => (
-                <Skeleton key={j} className="h-5 w-16 rounded-full" />
-              ))}
+            {/* Badges */}
+            <div className="flex items-center gap-2">
+              <Skeleton className="h-5 w-16 rounded-full" />
+              <Skeleton className="h-5 w-20 rounded-full" />
             </div>
+
+            {/* Meal Title & description */}
+            <div className="space-y-2">
+              <Skeleton className="h-5 w-4/5 rounded-lg" />
+              <Skeleton className="h-3.5 w-full rounded" />
+              <Skeleton className="h-3.5 w-2/3 rounded" />
+            </div>
+
+            {/* Macros */}
+            <Skeleton className="h-4 w-44 rounded" />
           </div>
 
           {/* Footer row */}
           <div className="flex items-center justify-between border-t border-brand-border/40 pt-3">
-            <Skeleton className="h-3 w-32 rounded" />
-            <div className="flex items-center gap-2">
-              <Skeleton className="h-8 w-20 rounded-lg" />
-              <Skeleton className="h-8 w-16 rounded-lg" />
+            <div className="space-y-1">
+              <Skeleton className="h-3 w-28 rounded" />
+              <Skeleton className="h-2.5 w-16 rounded" />
             </div>
+            <Skeleton className="h-8 w-16 rounded-xl" />
           </div>
         </div>
       ))}
