@@ -144,10 +144,18 @@ export default function MealLibraryPage() {
             </div>
             {source?.sourceUrl && <a href={source.sourceUrl} target="_blank" rel="noopener noreferrer"
               className="mt-3 inline-block text-sm font-semibold text-brand-green underline">View original recipe ↗</a>}
-            {viewedMeal.status === 'FLAGGED' && <p className="mt-3 text-sm font-bold text-amber-300">Meal flagged · all serving variants and approvals are unavailable for reuse</p>}
+            {viewedMeal.status === 'FLAGGED' && (
+              <p className="mt-3 text-sm font-bold text-amber-800 dark:text-amber-300">
+                Meal flagged · all serving variants and approvals are unavailable for reuse
+              </p>
+            )}
           </div>
-          <a href="#meal-wide-review" className="inline-flex items-center gap-2 rounded-xl border border-amber-500/40 px-4 py-2 text-sm font-bold text-amber-300 hover:bg-amber-500/10 md:ml-auto md:self-start">
-            <ShieldAlert className="h-4 w-4" aria-hidden="true" /> {viewedMeal.status === 'FLAGGED' ? 'Review meal flag' : 'Flag meal'}
+          <a
+            href="#meal-wide-review"
+            className="inline-flex items-center gap-2 rounded-xl border border-amber-600/40 bg-amber-500/10 px-4 py-2 text-sm font-bold text-amber-800 shadow-sm transition-colors hover:bg-amber-500/20 dark:border-amber-500/40 dark:bg-amber-500/15 dark:text-amber-300 dark:hover:bg-amber-500/25 md:ml-auto md:self-start"
+          >
+            <ShieldAlert className="h-4 w-4 text-amber-700 dark:text-amber-400" aria-hidden="true" />
+            {viewedMeal.status === 'FLAGGED' ? 'Review meal flag' : 'Flag meal'}
           </a>
         </header>
         <section className="space-y-5 rounded-2xl border border-brand-border bg-brand-surface/60 p-5" aria-label="Meal details">
@@ -158,7 +166,7 @@ export default function MealLibraryPage() {
           <dl className="grid grid-cols-2 gap-3 sm:grid-cols-4">
             {([['Calories', `${viewedMeal.calories} kcal`], ['Protein', `${viewedMeal.proteinG} g`],
               ['Carbs', `${viewedMeal.carbsG} g`], ['Fat', `${viewedMeal.fatG} g`]] as const).map(([label, value]) => (
-              <div key={label} className="rounded-xl border border-brand-border bg-brand-bg/50 p-3">
+              <div key={label} className="rounded-xl border border-brand-border/70 bg-brand-surface p-3 shadow-xs">
                 <dt className="text-xs text-brand-muted">{label}</dt><dd className="mt-1 font-bold text-brand-text">{value}</dd>
               </div>
             ))}
@@ -168,7 +176,7 @@ export default function MealLibraryPage() {
             <h3 className="text-sm font-bold text-brand-text">Ingredients</h3>
             <ul className="mt-2 grid gap-2 sm:grid-cols-2">
               {(viewedMeal.ingredients || []).map((ingredient) => (
-                <li key={ingredient.id} className="rounded-lg border border-brand-border bg-brand-bg/50 px-3 py-2 text-xs text-brand-text">
+                <li key={ingredient.id} className="rounded-lg border border-brand-border/70 bg-brand-surface px-3 py-2 text-xs text-brand-text shadow-xs">
                   {ingredient.ingredientName}{ingredient.quantity != null ? ` · ${ingredient.quantity} ${ingredient.unit || ''}` : ''}
                 </li>
               ))}
@@ -185,19 +193,35 @@ export default function MealLibraryPage() {
             <>
               <p className="text-sm text-brand-muted">This base meal and every serving variant are unavailable. Recorded approvals remain intact; separately flagged approvals stay flagged after release.</p>
               {viewedMeal.flags?.filter((flag) => flag.status === 'PENDING').map((flag) => (
-                <p key={flag.id} className="rounded-xl border border-amber-500/30 p-3 text-sm text-amber-200">Flag reason: {flag.reason}</p>
+                <p key={flag.id} className="rounded-xl border border-amber-500/40 bg-amber-500/10 p-3 text-sm font-medium text-amber-900 dark:text-amber-200">Flag reason: {flag.reason}</p>
               ))}
               <label htmlFor="meal-release-findings" className="block text-sm font-semibold text-brand-text">Independent review findings</label>
-              <textarea id="meal-release-findings" value={mealReleaseFindings} onChange={(event) => setMealReleaseFindings(event.target.value)} minLength={10} maxLength={1000} rows={3}
-                className="w-full rounded-xl border border-brand-border bg-brand-bg p-3 text-sm text-brand-text" />
+              <textarea
+                id="meal-release-findings"
+                value={mealReleaseFindings}
+                onChange={(event) => setMealReleaseFindings(event.target.value)}
+                minLength={10}
+                maxLength={1000}
+                rows={3}
+                placeholder="Document clinical findings from independent review (at least 10 characters)..."
+                className="w-full rounded-xl border border-brand-border/80 bg-brand-surface p-3 text-sm text-brand-text shadow-sm outline-none transition focus:border-brand-green focus:ring-2 focus:ring-brand-green/20 placeholder:text-brand-muted/70"
+              />
               <Button variant="secondary" disabled={mealFlagBusy || mealReleaseFindings.trim().length < 10} onClick={() => void changeMealFlag('release-flag')}>Release meal flag</Button>
             </>
           ) : (
             <>
               <p className="text-sm text-brand-muted">Flagging pauses this meal, its serving variants, and every associated approval. Current plan slots using it require revalidation.</p>
               <label htmlFor="meal-flag-reason" className="block text-sm font-semibold text-brand-text">Reason for flagging the meal</label>
-              <textarea id="meal-flag-reason" value={mealFlagReason} onChange={(event) => setMealFlagReason(event.target.value)} minLength={10} maxLength={1000} rows={3}
-                className="w-full rounded-xl border border-brand-border bg-brand-bg p-3 text-sm text-brand-text" />
+              <textarea
+                id="meal-flag-reason"
+                value={mealFlagReason}
+                onChange={(event) => setMealFlagReason(event.target.value)}
+                minLength={10}
+                maxLength={1000}
+                rows={3}
+                placeholder="State the reason for flagging this meal (at least 10 characters)..."
+                className="w-full rounded-xl border border-brand-border/80 bg-brand-surface p-3 text-sm text-brand-text shadow-sm outline-none transition focus:border-brand-green focus:ring-2 focus:ring-brand-green/20 placeholder:text-brand-muted/70"
+              />
               <Button variant="secondary" disabled={mealFlagBusy || mealFlagReason.trim().length < 10} onClick={() => void changeMealFlag('flag')}>Flag entire meal</Button>
             </>
           )}
@@ -471,7 +495,7 @@ export default function MealLibraryPage() {
                     setStatus(event.target.value as typeof status);
                     setPage(1);
                   }}
-                  className="rounded-xl border border-brand-border bg-brand-bg px-3 py-1.5 text-xs text-brand-text outline-none focus:border-brand-green"
+                  className="rounded-xl border border-brand-border bg-brand-surface px-3 py-1.5 text-xs text-brand-text shadow-xs outline-none focus:border-brand-green"
                 >
                   <option value="ALL">All meals</option>
                   <option value="APPROVED">Available</option>
@@ -488,7 +512,7 @@ export default function MealLibraryPage() {
                     setAdminDraftsOnly(event.target.checked);
                     setPage(1);
                   }}
-                  className="h-4 w-4 rounded border-brand-border bg-brand-bg text-brand-green focus:ring-brand-green"
+                  className="h-4 w-4 rounded border-brand-border bg-brand-surface text-brand-green focus:ring-brand-green"
                 />
                 Admin drafts awaiting evidence review
               </label>
@@ -505,7 +529,7 @@ export default function MealLibraryPage() {
                     setVerifiedByMe(e.target.checked);
                     setPage(1);
                   }}
-                  className="h-4 w-4 rounded border-brand-border bg-brand-bg text-brand-green focus:ring-brand-green"
+                  className="h-4 w-4 rounded border-brand-border bg-brand-surface text-brand-green focus:ring-brand-green"
                 />
                 Show only meals verified by me
               </label>

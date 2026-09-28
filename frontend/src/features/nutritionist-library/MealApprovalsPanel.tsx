@@ -179,7 +179,7 @@ export function MealApprovalsPanel({ mealId }: {
         {error && <p role="alert" className="rounded-xl border border-red-500/40 p-3 text-red-300">{error}</p>}
         {detailLoading && <p className="text-brand-muted">Loading approval case...</p>}
         {caseDetails && <>
-          {!caseDetails.approvalMatchesCurrentRecipe && <p role="status" className="rounded-xl border border-amber-500/40 p-3 text-sm text-amber-300">The current recipe differs from the version recorded with this approval. Recheck before reuse.</p>}
+          {!caseDetails.approvalMatchesCurrentRecipe && <p role="status" className="rounded-xl border border-amber-500/40 bg-amber-500/10 p-3 text-sm text-amber-900 dark:text-amber-300">The current recipe differs from the version recorded with this approval. Recheck before reuse.</p>}
           <div className="grid gap-4 md:grid-cols-2">
             <section className="space-y-3 rounded-2xl border border-brand-border p-4" aria-label="User health profile">
               <h3 className="font-bold text-brand-text">Reviewed health context</h3>
@@ -193,7 +193,7 @@ export function MealApprovalsPanel({ mealId }: {
               {caseUser ? <>
                 <h4 className="border-t border-brand-border pt-3 text-sm font-bold">Linked user now</h4>
                 <p className="font-semibold">{caseUser.name}{caseUser.age != null ? ` · ${caseUser.age} years` : ''}{caseUser.sex ? ` · ${readable(caseUser.sex)}` : ''}</p>
-                <p className="text-xs text-amber-300">This profile may have changed since approval. The recorded scope and planning targets above are the review context.</p>
+                <p className="text-xs font-semibold text-amber-800 dark:text-amber-300">This profile may have changed since approval. The recorded scope and planning targets above are the review context.</p>
                 <dl className="grid grid-cols-2 gap-3 text-sm">
                   <div><dt className="text-brand-muted">Current conditions</dt><dd>{caseUser.conditions.length ? caseUser.conditions.map(readable).join(', ') : 'None declared'}</dd></div>
                   <div><dt className="text-brand-muted">Current allergies</dt><dd>{caseUser.allergies.length ? caseUser.allergies.map(readable).join(', ') : 'None declared'}</dd></div>
@@ -220,21 +220,21 @@ export function MealApprovalsPanel({ mealId }: {
               {caseDetails.originatingPlan && <p className="text-xs text-brand-muted">Shown from the linked reviewed meal plan.</p>}
             </section>
           </div>
-          {currentApproval.flagReason && <p className="text-sm text-amber-300">Flag reason: {currentApproval.flagReason}</p>}
+          {currentApproval.flagReason && <p className="text-sm font-bold text-amber-800 dark:text-amber-300">Flag reason: {currentApproval.flagReason}</p>}
           {variants.find((variant) => variant.id === selected.variantId)?.status === 'FLAGGED' &&
-            <p className="text-sm text-amber-300">This approval is suspended by a meal-wide flag. Resolve the base meal before reviewing this approval.</p>}
+            <p className="text-sm font-bold text-amber-800 dark:text-amber-300">This approval is suspended by a meal-wide flag. Resolve the base meal before reviewing this approval.</p>}
           <div className="flex flex-wrap gap-2">
             {(currentApproval.status === 'ACTIVE' || currentApproval.status === 'REVIEW_DUE') && <Button variant="secondary" disabled={busy || variants.find((variant) => variant.id === selected.variantId)?.status === 'FLAGGED'} onClick={() => { setFlagTarget({ variantId: selected.variantId, approval: currentApproval }); setReason(''); }}>Flag approval</Button>}
             {(currentApproval.status === 'FLAGGED' || currentApproval.status === 'REVIEW_DUE') && <Button variant="secondary" disabled={busy || variants.find((variant) => variant.id === selected.variantId)?.status === 'FLAGGED'} onClick={() => { setRecheckTarget({ variantId: selected.variantId, approval: currentApproval }); setReviewNote(''); }}>Recheck approval</Button>}
           </div>
           {flagTarget && <div className="rounded-xl border border-amber-600/50 p-4">
             <label htmlFor="approval-flag-reason" className="block text-sm font-semibold">Reason for flagging this approval</label>
-            <textarea id="approval-flag-reason" value={reason} onChange={(event) => setReason(event.target.value)} minLength={10} maxLength={1000} rows={3} className="mt-2 w-full rounded-xl border border-brand-border bg-brand-bg p-3 text-brand-text" />
+            <textarea id="approval-flag-reason" value={reason} onChange={(event) => setReason(event.target.value)} minLength={10} maxLength={1000} rows={3} placeholder="Provide reasons for flagging this approval..." className="mt-2 w-full rounded-xl border border-brand-border/80 bg-brand-surface p-3 text-sm text-brand-text shadow-sm outline-none transition focus:border-brand-green focus:ring-2 focus:ring-brand-green/20 placeholder:text-brand-muted/70" />
             <div className="mt-2 flex gap-2"><Button disabled={busy || reason.trim().length < 10} onClick={() => void flag()}>Submit flag</Button><Button variant="secondary" onClick={() => setFlagTarget(null)}>Cancel</Button></div>
           </div>}
           {recheckTarget && <div className="rounded-xl border border-brand-green/50 p-4">
             <label htmlFor="approval-recheck-note" className="block text-sm font-semibold">Review findings for this approval</label>
-            <textarea id="approval-recheck-note" value={reviewNote} onChange={(event) => setReviewNote(event.target.value)} minLength={10} maxLength={1000} rows={3} className="mt-2 w-full rounded-xl border border-brand-border bg-brand-bg p-3 text-brand-text" />
+            <textarea id="approval-recheck-note" value={reviewNote} onChange={(event) => setReviewNote(event.target.value)} minLength={10} maxLength={1000} rows={3} placeholder="Document findings for this recheck..." className="mt-2 w-full rounded-xl border border-brand-border/80 bg-brand-surface p-3 text-sm text-brand-text shadow-sm outline-none transition focus:border-brand-green focus:ring-2 focus:ring-brand-green/20 placeholder:text-brand-muted/70" />
             <div className="mt-2 flex gap-2"><Button disabled={busy || reviewNote.trim().length < 10} onClick={() => void recheck()}>Submit recheck</Button><Button variant="secondary" onClick={() => setRecheckTarget(null)}>Cancel</Button></div>
           </div>}
         </>}
@@ -252,7 +252,7 @@ export function MealApprovalsPanel({ mealId }: {
         <label className="flex items-center gap-2 text-xs font-semibold text-brand-muted">
           Show
           <select aria-label="Filter approvals" value={filter} onChange={(event) => setFilter(event.target.value as typeof filter)}
-            className="rounded-lg border border-brand-border bg-brand-bg px-3 py-2 text-brand-text">
+            className="rounded-xl border border-brand-border bg-brand-surface px-3 py-1.5 text-xs text-brand-text shadow-xs outline-none focus:border-brand-green">
             <option value="ALL">All approvals</option>
             <option value="ACTIVE">Current</option>
             <option value="FLAGGED">Flagged</option>
@@ -267,7 +267,7 @@ export function MealApprovalsPanel({ mealId }: {
         ) : filteredVariants.map((variant) => variant.approvals.length > 0 && (
           <section key={variant.id} className="space-y-3 rounded-2xl border border-brand-border p-4">
             <div>
-              {variant.status === 'FLAGGED' && <p className="mb-2 text-sm font-semibold text-amber-300">Suspended by meal-wide flag</p>}
+              {variant.status === 'FLAGGED' && <p className="mb-2 text-sm font-semibold text-amber-800 dark:text-amber-300">Suspended by meal-wide flag</p>}
               <p className="text-xs font-semibold uppercase tracking-wide text-brand-muted">Serving variant · {variant.mealName}</p>
               <p className="text-xs text-brand-muted">
                 {variant.nutritionServingDescription || 'Recorded serving'} · {variant.calories} kcal ·
@@ -284,10 +284,10 @@ export function MealApprovalsPanel({ mealId }: {
               </details>
             </div>
             {variant.approvals.map((approval) => (
-              <div key={`${approval.kind}-${approval.id}`} className="rounded-xl border border-brand-border bg-brand-bg/50 p-3">
+              <div key={`${approval.kind}-${approval.id}`} className="rounded-xl border border-brand-border bg-brand-surface p-3 shadow-xs">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <h3 className="text-base font-bold text-brand-text">{contextLabel(approval.caseScope ?? approval.scope)}</h3>
-                  <span className={variant.status === 'APPROVED' && approval.status === 'ACTIVE' ? 'text-brand-green' : 'text-amber-300'}>
+                  <span className={variant.status === 'APPROVED' && approval.status === 'ACTIVE' ? 'text-brand-green font-bold' : 'text-amber-700 dark:text-amber-300 font-bold'}>
                     {variant.status === 'FLAGGED' ? 'Suspended by meal flag' : approval.status.replaceAll('_', ' ')}
                   </span>
                 </div>
@@ -297,8 +297,8 @@ export function MealApprovalsPanel({ mealId }: {
                 </p>
                 {approval.kind === 'CONDITION' && approval.caseScope != null && contextLabel(approval.caseScope) !== contextLabel(approval.scope) &&
                   <p className="mt-1 text-xs text-brand-muted">Approved condition: {contextLabel(approval.scope)} · other case restrictions checked separately</p>}
-                {approval.flagReason && <p className="mt-2 text-xs text-amber-300">Flag reason: {approval.flagReason}</p>}
-                {approval.status === 'STALE' && <p className="mt-2 text-xs text-amber-300">The recipe evidence or reviewer eligibility changed. A fresh approval is required.</p>}
+                {approval.flagReason && <p className="mt-2 text-xs font-semibold text-amber-800 dark:text-amber-300">Flag reason: {approval.flagReason}</p>}
+                {approval.status === 'STALE' && <p className="mt-2 text-xs font-semibold text-amber-800 dark:text-amber-300">The recipe evidence or reviewer eligibility changed. A fresh approval is required.</p>}
                 <div className="mt-3"><Button variant="secondary" size="sm" onClick={() => void viewApproval(variant.id, approval)}>View</Button></div>
               </div>
             ))}

@@ -213,12 +213,12 @@ export default function ClinicalEvidenceWorkspace({ mode = 'profile' }: { mode?:
               <p className="mt-1 text-sm text-brand-muted">These answers help determine whether medication or low blood sugar makes supporting records necessary.</p>
               <div className="mt-4 grid gap-3 sm:grid-cols-2">
                 <label className="text-sm">Medication type
-                  <select value={medicationRisk} onChange={(event) => setMedicationRisk(event.target.value)} className="mt-1 w-full rounded-xl border border-brand-border bg-brand-bg p-3">
+                  <select value={medicationRisk} onChange={(event) => setMedicationRisk(event.target.value)} className="mt-1 w-full rounded-xl border border-brand-border/80 bg-brand-surface p-3 text-sm text-brand-text shadow-xs outline-none focus:border-brand-green">
                     <option value="UNSURE">I am unsure</option><option value="NONE">No diabetes medication</option><option value="INSULIN">Insulin</option><option value="SULFONYLUREA_OR_MEGLITINIDE">Sulfonylurea or meglitinide</option><option value="OTHER">Another medication</option>
                   </select>
                 </label>
                 <label className="text-sm">Repeated low blood sugar episodes
-                  <select value={recurrentHypoglycemia} onChange={(event) => setRecurrentHypoglycemia(event.target.value as 'YES' | 'NO' | 'UNSURE')} className="mt-1 w-full rounded-xl border border-brand-border bg-brand-bg p-3">
+                  <select value={recurrentHypoglycemia} onChange={(event) => setRecurrentHypoglycemia(event.target.value as 'YES' | 'NO' | 'UNSURE')} className="mt-1 w-full rounded-xl border border-brand-border/80 bg-brand-surface p-3 text-sm text-brand-text shadow-xs outline-none focus:border-brand-green">
                     <option value="UNSURE">I am unsure</option><option value="YES">Yes</option><option value="NO">No</option>
                   </select>
                 </label>
@@ -232,30 +232,30 @@ export default function ClinicalEvidenceWorkspace({ mode = 'profile' }: { mode?:
             <p className="mt-1 text-sm text-brand-muted">PDF, JPG, or PNG up to 8 MB. Cover unrelated identifiers before uploading. Do not include records about another person.</p>
             <div className="mt-4 grid gap-3 sm:grid-cols-2">
               <label className="text-sm">Related condition
-                <select required value={area} onChange={(event) => setArea(event.target.value)} className="mt-1 w-full rounded-xl border border-brand-border bg-brand-bg p-3">
+                <select required value={area} onChange={(event) => setArea(event.target.value)} className="mt-1 w-full rounded-xl border border-brand-border/80 bg-brand-surface p-3 text-sm text-brand-text shadow-xs outline-none focus:border-brand-green">
                   {!area && <option value="">Select a condition</option>}
                   {areas.map((item) => <option key={item} value={item}>{friendly(item)}</option>)}
                 </select>
               </label>
               <label className="text-sm">Document type
-                <select value={documentType} onChange={(event) => setDocumentType(event.target.value)} className="mt-1 w-full rounded-xl border border-brand-border bg-brand-bg p-3">
+                <select value={documentType} onChange={(event) => setDocumentType(event.target.value)} className="mt-1 w-full rounded-xl border border-brand-border/80 bg-brand-surface p-3 text-sm text-brand-text shadow-xs outline-none focus:border-brand-green">
                   {documentTypes.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
                 </select>
               </label>
               <label className="text-sm">Document date, if shown
-                <input type="date" value={issuedAt} onChange={(event) => setIssuedAt(event.target.value)} className="mt-1 w-full rounded-xl border border-brand-border bg-brand-bg p-3" />
+                <input type="date" value={issuedAt} onChange={(event) => setIssuedAt(event.target.value)} className="mt-1 w-full rounded-xl border border-brand-border/80 bg-brand-surface p-3 text-sm text-brand-text shadow-xs outline-none focus:border-brand-green" />
               </label>
               <label className="text-sm">Issuer or clinic, if shown
-                <input maxLength={180} value={issuerName} onChange={(event) => setIssuerName(event.target.value)} className="mt-1 w-full rounded-xl border border-brand-border bg-brand-bg p-3" />
+                <input maxLength={180} value={issuerName} onChange={(event) => setIssuerName(event.target.value)} className="mt-1 w-full rounded-xl border border-brand-border/80 bg-brand-surface p-3 text-sm text-brand-text shadow-xs outline-none focus:border-brand-green" />
               </label>
               <label className="text-sm sm:col-span-2">Replace an earlier document, if applicable
-                <select value={supersedesDocumentId} onChange={(event) => setSupersedesDocumentId(event.target.value)} className="mt-1 w-full rounded-xl border border-brand-border bg-brand-bg p-3">
+                <select value={supersedesDocumentId} onChange={(event) => setSupersedesDocumentId(event.target.value)} className="mt-1 w-full rounded-xl border border-brand-border/80 bg-brand-surface p-3 text-sm text-brand-text shadow-xs outline-none focus:border-brand-green">
                   <option value="">New document</option>
                   {workspace?.documents.filter((item) => item.area === area && !['WITHDRAWN', 'SUPERSEDED'].includes(item.status)).map((item) => <option key={item.id} value={item.id}>{item.originalFileName} · {friendly(item.status)}</option>)}
                 </select>
               </label>
               <label className="text-sm sm:col-span-2">Choose file
-                <input required type="file" accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png" onChange={(event) => setFile(event.target.files?.[0] ?? null)} className="mt-1 block w-full rounded-xl border border-brand-border bg-brand-bg p-3" />
+                <input required type="file" accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png" onChange={(event) => setFile(event.target.files?.[0] ?? null)} className="mt-1 block w-full rounded-xl border border-brand-border/80 bg-brand-surface p-3 text-sm text-brand-text shadow-xs outline-none focus:border-brand-green" />
               </label>
             </div>
             <label className="mt-4 flex items-start gap-2 text-sm text-brand-muted">

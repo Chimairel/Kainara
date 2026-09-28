@@ -160,7 +160,7 @@ html.dark [class*='border-brand-border/'] {
 }
 
 body,
-.bg-brand-bg {
+.app-canvas {
   background-color: var(--background) !important;
   background-image:
     radial-gradient(circle at 12% 8%, var(--orb-green), transparent 27%),
@@ -173,6 +173,23 @@ body,
     32px 32px,
     32px 32px !important;
   background-attachment: fixed !important;
+}
+
+/*
+ * Form controls: Ensure inputs, textareas, and selects always have a solid,
+ * opaque surface and never render as transparent or show background grid lines.
+ */
+input:not([type='checkbox']):not([type='radio']):not([type='range']):not([type='submit']):not([type='button']):not([type='reset']),
+textarea,
+select {
+  background-image: none !important;
+}
+
+input.bg-brand-bg,
+textarea.bg-brand-bg,
+select.bg-brand-bg {
+  background-color: var(--brand-surface) !important;
+  background-image: none !important;
 }
 
 body {
