@@ -269,12 +269,12 @@ export default function ReviewsPage() {
         />
         {navigation}
         {caseFilters}
-        <div className="flex min-h-[640px] flex-col overflow-hidden rounded-3xl border border-brand-border/70 bg-brand-surface text-left shadow-card-lg backdrop-blur-xl md:flex-row">
+        <div className="flex md:h-[calc(100vh-270px)] md:min-h-[640px] flex-col overflow-hidden rounded-3xl border border-brand-border/70 bg-brand-surface text-left shadow-card-lg backdrop-blur-xl md:flex-row">
           {/* Master Queue List Panel */}
           <div
-            className={`${selectedMealId ? 'hidden md:flex' : 'flex'} ${expanded ? '!hidden' : ''} h-full w-full min-w-0 flex-col space-y-4 overflow-y-auto border-brand-border/70 bg-brand-surface/75 p-5 custom-scrollbar md:w-[38%] md:min-w-[280px] md:border-r`}
+            className={`${selectedMealId ? 'hidden md:flex' : 'flex'} ${expanded ? '!hidden' : ''} h-full w-full min-w-0 flex-col border-brand-border/70 bg-brand-surface/75 p-5 md:w-[38%] md:min-w-[280px] md:border-r`}
           >
-            <div className="rounded-2xl border border-brand-border/80 bg-brand-surface/90 p-5 text-brand-text shadow-sm backdrop-blur-md">
+            <div className="shrink-0 mb-3 rounded-2xl border border-brand-border/80 bg-brand-surface/90 p-5 text-brand-text shadow-sm backdrop-blur-md">
               <div className="flex items-center justify-between gap-2">
                 <span className="font-mono text-[9px] font-bold uppercase tracking-[0.16em] text-brand-green">
                   Meal-plan review
@@ -303,7 +303,9 @@ export default function ReviewsPage() {
             </div>
 
             {isLoading ? (
-              <ReviewQueueSkeleton count={5} />
+              <div className="flex-1 overflow-y-auto pr-1 space-y-3 custom-scrollbar">
+                <ReviewQueueSkeleton count={5} />
+              </div>
             ) : visibleQueue.length === 0 ? (
               <div className="flex-1 flex flex-col items-center justify-center p-8 text-center space-y-3 rounded-2xl border border-dashed border-brand-border/80 bg-brand-surface/40">
                 <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-brand-green/10 text-brand-green shadow-inner">
@@ -317,7 +319,7 @@ export default function ReviewsPage() {
                 </div>
               </div>
             ) : (
-          <div className="space-y-3">
+              <div className="flex-1 overflow-y-auto pr-1 space-y-3 custom-scrollbar">
             {visibleQueue.map((meal) => {
               const isSelected = selectedMealId === meal.id;
               return (
