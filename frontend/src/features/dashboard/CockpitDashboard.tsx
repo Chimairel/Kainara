@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { Calendar, Droplets, Scale, ClipboardCheck, ArrowUpRight, Plus } from 'lucide-react';
+import { Calendar, Scale, ClipboardCheck, ArrowUpRight } from 'lucide-react';
 import { motion } from 'motion/react';
 import { formatManilaDate } from '@/lib/manila-date';
 import type { MealPlan, MealLocalityPreference } from '@/types';
@@ -152,7 +152,7 @@ export function CockpitDashboard({
               </div>
             </div>
 
-            {/* Macro rows with swatches, rolling numbers and spring progress bars */}
+            {/* Macro and water intake rows with swatches, rolling numbers and spring progress bars */}
             <div className="space-y-4 border-t border-brand-border pt-5">
               {macros.map((macro) => (
                 <div key={macro.label}>
@@ -188,53 +188,54 @@ export function CockpitDashboard({
                   </div>
                 </div>
               ))}
-            </div>
 
-            {/* Integrated Water Log Module */}
-            <div
-              className="mt-5 rounded-2xl border border-brand-border/60 bg-black/20 dark:bg-black/30 p-3.5 backdrop-blur-xs"
-              aria-label="Water log"
-            >
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2.5">
-                  <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-sky-500/15 text-sky-400">
-                    <Droplets className="h-4 w-4" />
+              {/* Water row in the same format as protein, carb, fat */}
+              <div aria-label="Water log">
+                <div className="mb-2 flex items-center justify-between gap-3 text-sm">
+                  <div className="flex items-center gap-2">
+                    <span className="h-2.5 w-2.5 rounded-full shrink-0 bg-sky-400" />
+                    <span className="font-medium text-brand-text">Water</span>
                   </div>
-                  <div>
-                    <p className="text-[10px] font-bold uppercase tracking-wider text-brand-muted">Water intake</p>
-                    <p className="font-display text-base font-bold text-brand-text leading-tight">
-                      <AnimatedValue value={waterIntake} suffix=" mL" />
-                    </p>
+                  <div className="flex items-center gap-2">
+                    <span className="text-brand-muted font-mono text-xs flex items-center gap-1">
+                      <strong className="text-brand-text font-bold">
+                        <AnimatedValue
+                          value={waterIntake}
+                          suffix=" mL"
+                          className="font-bold text-brand-text"
+                        />
+                      </strong>{' '}
+                      / <span className="text-brand-muted">2,000 mL</span>
+                    </span>
+                    <div className="flex items-center gap-1">
+                      <button
+                        type="button"
+                        aria-label="Remove 250 mL of water"
+                        disabled={waterIntake <= 0}
+                        onClick={() => onAddWater(-250)}
+                        className="flex h-5 w-5 items-center justify-center rounded-md border border-brand-border/70 bg-brand-surface/70 text-xs font-bold text-brand-text hover:bg-brand-surface transition-all disabled:opacity-30 disabled:cursor-not-allowed leading-none"
+                        title="Remove 250 mL"
+                      >
+                        −
+                      </button>
+                      <button
+                        type="button"
+                        aria-label="Add 250 mL of water"
+                        onClick={() => onAddWater(250)}
+                        className="flex h-5 w-5 items-center justify-center rounded-md bg-brand-green/20 hover:bg-brand-green/30 text-brand-green border border-brand-green/40 text-xs font-bold transition-all leading-none"
+                        title="Add 250 mL"
+                      >
+                        +
+                      </button>
+                    </div>
                   </div>
                 </div>
-
-                <div className="flex items-center gap-1.5">
-                  <button
-                    type="button"
-                    aria-label="Remove 250 mL of water"
-                    disabled={waterIntake <= 0}
-                    onClick={() => onAddWater(-250)}
-                    className="h-8 rounded-lg border border-brand-border/70 bg-brand-surface/70 px-2.5 text-xs font-bold text-brand-text hover:bg-brand-surface transition-all disabled:opacity-30 disabled:cursor-not-allowed"
-                  >
-                    −250 mL
-                  </button>
-                  <button
-                    type="button"
-                    aria-label="Add 250 mL of water"
-                    onClick={() => onAddWater(250)}
-                    className="h-8 rounded-lg bg-brand-green/20 hover:bg-brand-green/30 text-brand-green border border-brand-green/40 px-2.5 text-xs font-bold transition-all flex items-center gap-1"
-                  >
-                    <Plus className="h-3 w-3" />
-                    250 mL
-                  </button>
-                </div>
-              </div>
-
-              {/* Water progress bar toward 2,000 mL baseline */}
-              <div className="mt-2.5 flex items-center gap-2">
-                <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-brand-border/40 dark:bg-zinc-800">
+                <div
+                  className="h-2 overflow-hidden rounded-full bg-brand-border/60 dark:bg-zinc-800"
+                  aria-hidden="true"
+                >
                   <motion.div
-                    className="h-full rounded-full bg-gradient-to-r from-sky-500 to-teal-400"
+                    className="h-full rounded-full bg-sky-400"
                     initial={{ width: 0 }}
                     animate={{
                       width: `${Math.min(100, Math.max(0, (waterIntake / 2000) * 100))}%`,
@@ -242,9 +243,6 @@ export function CockpitDashboard({
                     transition={{ type: 'spring', bounce: 0, duration: 0.5 }}
                   />
                 </div>
-                <span className="font-mono text-[10px] font-semibold text-brand-muted shrink-0">
-                  {Math.round((waterIntake / 2000) * 100)}%
-                </span>
               </div>
             </div>
           </div>

@@ -82,60 +82,58 @@ export const AdaptiveSlider: React.FC<AdaptiveSliderProps> = ({
   // Calculate percentage (0% to 100%)
   const percentage = ((clampedValue - min) / (max - min)) * 100;
 
-  // NutriMind branded adaptive gradients across stops
+  // NutriMind branded adaptive gradients across stops matching Kainara theme
   const colorSettings = useMemo(() => {
     if (max === 3) {
       switch (clampedValue) {
         case 1:
+          // Stop 1: National — Brand Forest Green to Emerald
           return {
             gradient: 'linear-gradient(to right, #08705b, #10b981)',
             thumbGlow: 'rgba(16, 185, 129, 0.4)',
           };
         case 2:
+          // Stop 2: Regional — Forest Green to Emerald to Warm Peach/Terracotta Transition
           return {
-            gradient: 'linear-gradient(to right, #08705b, #14b8a6, #b8f45f)',
-            thumbGlow: 'rgba(24, 185, 210, 0.45)',
+            gradient: 'linear-gradient(to right, #08705b, #10b981, #f09e6c)',
+            thumbGlow: 'rgba(240, 158, 108, 0.45)',
           };
         case 3:
         default:
+          // Stop 3: Local — Complete Kainara Brand Gradient (Forest Green → Emerald → Peach → Terracotta)
           return {
-            gradient: 'linear-gradient(to right, #10b981, #b8f45f, #7759e8)',
-            thumbGlow: 'rgba(184, 244, 95, 0.55)',
+            gradient: 'linear-gradient(to right, #08705b, #10b981, #f09e6c, #eb6a38)',
+            thumbGlow: 'rgba(235, 106, 56, 0.55)',
           };
       }
     }
 
     switch (clampedValue) {
       case 1:
-        // Stop 1: National — NutriMind Green
         return {
           gradient: 'linear-gradient(to right, #08705b, #10b981)',
           thumbGlow: 'rgba(16, 185, 129, 0.4)',
         };
       case 2:
-        // Stop 2: National & Regional blend — Teal / Cyan
         return {
-          gradient: 'linear-gradient(to right, #08705b, #14b8a6, #18b9d2)',
-          thumbGlow: 'rgba(24, 185, 210, 0.4)',
+          gradient: 'linear-gradient(to right, #08705b, #10b981, #14b8a6)',
+          thumbGlow: 'rgba(20, 184, 166, 0.4)',
         };
       case 3:
-        // Stop 3: Regional — Cyan to Lime Accent
         return {
-          gradient: 'linear-gradient(to right, #08705b, #18b9d2, #b8f45f)',
-          thumbGlow: 'rgba(184, 244, 95, 0.5)',
+          gradient: 'linear-gradient(to right, #08705b, #10b981, #f09e6c)',
+          thumbGlow: 'rgba(240, 158, 108, 0.45)',
         };
       case 4:
-        // Stop 4: Regional & Local blend — Vibrant Lime & Violet
         return {
-          gradient: 'linear-gradient(to right, #18b9d2, #b8f45f, #a78bfa)',
-          thumbGlow: 'rgba(184, 244, 95, 0.55)',
+          gradient: 'linear-gradient(to right, #08705b, #14b8a6, #f09e6c, #eb6a38)',
+          thumbGlow: 'rgba(235, 106, 56, 0.5)',
         };
       case 5:
       default:
-        // Stop 5: Local (Province/HUC) — Full Spectrum Glow
         return {
-          gradient: 'linear-gradient(to right, #10b981, #b8f45f, #7759e8)',
-          thumbGlow: 'rgba(119, 89, 232, 0.55)',
+          gradient: 'linear-gradient(to right, #08705b, #10b981, #f09e6c, #eb6a38)',
+          thumbGlow: 'rgba(235, 106, 56, 0.55)',
         };
     }
   }, [clampedValue, max]);
