@@ -7,7 +7,7 @@ import {
   validateResolvedSafetyEntries,
 } from '../src/domain/safety-intake.policy';
 import { structuredSafetyPreviewSchema, structuredSafetySaveSchema } from '../src/validation/onboarding.schemas';
-import { buildLegacySafetyProjection, SafetyIntakeService } from '../src/services/safety-intake.service';
+import { buildLegacySafetyProjection, mergeSafetyDomains, SafetyIntakeService } from '../src/services/safety-intake.service';
 
 test('structured intake splits documented separators but preserves ordinary spaces', () => {
   assert.deepEqual(splitSafetyInput('chronic kidney disease, gout; soy / sesame\nlactose intolerance'), [
@@ -146,6 +146,21 @@ test('strict API schemas reject forged codes, status, classifications, and uncon
   const forged = resolveSafetyEntries([{ domain: 'CONDITION', value: 'FORGED_CODE', provenance: 'PREDEFINED' }]);
   assert.equal(forged[0]?.supportState, 'INVALID');
   assert.ok(validateResolvedSafetyEntries(forged).length > 0);
+});
+
+test('an allergy-step save cannot erase a condition recorded in the prior onboarding step', () => {
+  const diabetes = { domain: 'CONDITION' as const, value: 'DIABETES', provenance: 'PREDEFINED' as const };
+  const foods = [
+    { domain: 'ALLERGY' as const, value: 'NONE', provenance: 'PREDEFINED' as const },
+    { domain: 'INTOLERANCE' as const, value: 'NONE', provenance: 'PREDEFINED' as const },
+    { domain: 'AVOIDED_INGREDIENT' as const, value: 'NONE', provenance: 'PREDEFINED' as const },
+  ];
+  const domains = ['ALLERGY', 'INTOLERANCE', 'AVOIDED_INGREDIENT'] as const;
+  const merged = mergeSafetyDomains([diabetes], domains, foods);
+  assert.deepEqual(merged, [diabetes, ...foods]);
+  assert.deepEqual(buildLegacySafetyProjection(SafetyIntakeService.preview(merged).entries).conditions, ['DIABETES']);
+  assert.throws(() => mergeSafetyDomains([diabetes], domains, [diabetes]), /selected sections/);
+  assert.equal(structuredSafetySaveSchema.safeParse({ entries: foods, editableDomains: domains, confirmed: true }).success, true);
 });
 
 test('catalogue exposes stable evidence-bearing entries without merging condition and food catalogues', () => {

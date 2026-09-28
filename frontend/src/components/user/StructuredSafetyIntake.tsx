@@ -250,7 +250,8 @@ export default function StructuredSafetyIntake({
 
     setIsBusy(true);
     try {
-      const response = await api.post('/user/onboarding/safety-preview', { entries: inputs });
+      const entries = inputs.filter((entry) => editableDomains.includes(entry.domain));
+      const response = await api.post('/user/onboarding/safety-preview', { entries, editableDomains });
       setPreview(response.data.data);
       setModalConfirmed(false);
       setShowConfirmModal(true);
@@ -266,7 +267,8 @@ export default function StructuredSafetyIntake({
     setIsBusy(true);
     setError(null);
     try {
-      const response = await api.post('/user/onboarding/safety', { entries: inputs, confirmed: true });
+      const entries = inputs.filter((entry) => editableDomains.includes(entry.domain));
+      const response = await api.post('/user/onboarding/safety', { entries, editableDomains, confirmed: true });
       setShowConfirmModal(false);
       await onSaved(response.data.data.entries, response.data.data.changed);
     } catch (caught: unknown) {

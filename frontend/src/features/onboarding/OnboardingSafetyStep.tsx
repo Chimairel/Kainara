@@ -38,7 +38,7 @@ export default function OnboardingSafetyStep({
   const router = useRouter();
   const searchParams = useSearchParams();
   const isFromReview = searchParams.get('from') === 'review';
-  const { profile, isLoading } = useProfile();
+  const { profile, isLoading, error, refresh } = useProfile({ requireFresh: true });
   const { refreshSession } = useAuth();
   const initialEntries = useMemo(() => safetyInputsFromProfile(profile), [profile]);
 
@@ -65,6 +65,13 @@ export default function OnboardingSafetyStep({
           </div>
           {isLoading ? (
             <p className="text-sm text-brand-muted">Loading your safety profile…</p>
+          ) : error || !profile ? (
+            <div role="alert" className="space-y-3 text-sm text-status-error-text">
+              <p>{error || 'Your safety profile could not be loaded.'}</p>
+              <button type="button" onClick={() => void refresh()} className="rounded-lg border border-brand-border px-4 py-2 font-bold">
+                Try again
+              </button>
+            </div>
           ) : (
             <StructuredSafetyIntake
               initialEntries={initialEntries}

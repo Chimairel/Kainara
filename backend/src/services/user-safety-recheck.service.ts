@@ -26,6 +26,7 @@ import {
 import { adaptUserSafetyRestrictions } from '@/domain/structured-restriction.adapter';
 import { classifyMealIngredients } from '@/domain/meal-ingredient-classification.policy';
 import { ProfileCycleAdaptationService } from './profile-cycle-adaptation.service';
+import { ClinicalProfileReviewService } from './clinical-profile-review.service';
 
 export class UserSafetyRecheckService {
   /**
@@ -81,6 +82,35 @@ export class UserSafetyRecheckService {
     });
     const userConditions = safetyRestrictions.conditions;
     const userAllergens = safetyRestrictions.allergies;
+
+    // A changed restricted profile needs a new nutritionist profile decision.
+    // Never turn its old base meals back into approved slots during rechecking.
+    if (!(await ClinicalProfileReviewService.hasCurrentApproval(userId))) {
+      await prisma.$transaction(async (tx) => {
+        await lockUserProfile(tx, userId);
+        await tx.mealPlan.updateMany({
+          where: {
+            userId,
+            scheduledDate: { gte: getStartOfManilaBusinessDay() },
+            status: { in: [MealPlanStatus.APPROVED, MealPlanStatus.PENDING_REVIEW] },
+            mealLogs: { none: { status: { in: [MealLogStatus.DONE, MealLogStatus.SKIPPED] } } },
+          },
+          data: {
+            status: MealPlanStatus.PENDING_REVIEW,
+            requiresSafetyRevalidation: true,
+            reviewApprovalCount: 0,
+            firstApprovedByNutritionistId: null,
+            firstApprovedAt: null,
+            nutritionistId: null,
+            reviewedAt: null,
+            claimedByNutritionistId: null,
+            claimedAt: null,
+          },
+        });
+        await tx.groceryList.updateMany({ where: { userId }, data: { isStale: true } });
+      });
+      return;
+    }
 
     // Revalidate every unconsumed current/future cycle, not only the latest group.
     const remainingMeals = await prisma.mealPlan.findMany({

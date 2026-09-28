@@ -16,15 +16,28 @@ export class UserController {
   }
 
   static async previewStructuredSafety(req: AuthenticatedRequest, res: Response) {
-    const preview = SafetyIntakeService.preview(req.body.entries);
-    return res.status(200).json({ success: true, data: preview });
+    try {
+      const userId = req.user?.userId;
+      if (!userId) return res.status(401).json({ success: false, error: 'Unauthorized.' });
+      const preview = req.body.editableDomains
+        ? await SafetyIntakeService.previewDomains(userId, req.body.editableDomains, req.body.entries)
+        : SafetyIntakeService.preview(req.body.entries);
+      return res.status(200).json({ success: true, data: preview });
+    } catch (error: unknown) {
+      return res.status(400).json({
+        success: false,
+        error: sanitizeErrorMessage(error, 'Unable to preview structured safety entries.'),
+      });
+    }
   }
 
   static async saveStructuredSafety(req: AuthenticatedRequest, res: Response) {
     try {
       const userId = req.user?.userId;
       if (!userId) return res.status(401).json({ success: false, error: 'Unauthorized.' });
-      const saved = await SafetyIntakeService.save(userId, req.body.entries);
+      const saved = req.body.editableDomains
+        ? await SafetyIntakeService.replaceDomains(userId, req.body.editableDomains, req.body.entries)
+        : await SafetyIntakeService.save(userId, req.body.entries);
       if (saved.changed) await UserService.runSafetyRecheck(userId);
       return res.status(200).json({ success: true, data: saved });
     } catch (error: unknown) {

@@ -58,12 +58,12 @@ export interface UserProfileData {
   };
 }
 
-export function useProfile() {
+export function useProfile(options?: { requireFresh?: boolean }) {
   const { user } = useAuth();
   const ownerId = user?.userId;
   const cachedProfile = readSessionResource<UserProfileData>(ownerId, 'user-profile');
   const [profile, setProfile] = useState<UserProfileData | null>(cachedProfile);
-  const [isLoading, setIsLoading] = useState(!cachedProfile);
+  const [isLoading, setIsLoading] = useState(Boolean(options?.requireFresh) || !cachedProfile);
   const [error, setError] = useState<string | null>(null);
 
   const fetchProfile = useCallback(async () => {
@@ -72,6 +72,7 @@ export function useProfile() {
       if (res.data?.success) {
         setProfile(res.data.data);
         writeSessionResource(ownerId, 'user-profile', res.data.data);
+        setError(null);
       }
     } catch (err: unknown) {
       setError(getApiErrorMessage(err, 'Failed to fetch profile'));

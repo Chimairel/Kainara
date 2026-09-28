@@ -43,6 +43,17 @@ function sortedJson(value: readonly Record<string, unknown>[]): string {
   );
 }
 
+export function mergeSafetyDomains(
+  current: readonly SafetyEntryInput[],
+  domains: readonly SafetyEntryInput['domain'][],
+  replacements: readonly SafetyEntryInput[]
+): SafetyEntryInput[] {
+  if (new Set(domains).size !== domains.length || replacements.some((entry) => !domains.includes(entry.domain))) {
+    throw new Error('Safety entries must belong to the selected sections.');
+  }
+  return [...current.filter((entry) => !domains.includes(entry.domain)), ...replacements];
+}
+
 export function buildLegacySafetyProjection(entries: readonly ResolvedSafetyEntry[]) {
   const active = withoutNone(entries);
   const conditions = active
@@ -163,11 +174,20 @@ export class SafetyIntakeService {
     return prisma.$transaction(
       async (tx) => {
         await lockUserProfile(tx, userId);
-        const retained = (await this.getCurrentInputs(userId, tx)).filter((entry) => !domains.includes(entry.domain));
-        return this.save(userId, [...retained, ...replacements], tx);
+        const current = await this.getCurrentInputs(userId, tx);
+        return this.save(userId, mergeSafetyDomains(current, domains, replacements), tx);
       },
       { timeout: 30_000 }
     );
+  }
+
+  static async previewDomains(
+    userId: string,
+    domains: readonly SafetyEntryInput['domain'][],
+    replacements: readonly SafetyEntryInput[]
+  ) {
+    const current = await this.getCurrentInputs(userId);
+    return this.preview(mergeSafetyDomains(current, domains, replacements));
   }
 
   static async save(
