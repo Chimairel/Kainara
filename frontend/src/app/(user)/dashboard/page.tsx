@@ -12,7 +12,7 @@ import { showPendingReviewNoticeOnce, showStarterPlanNoticeOnce } from '@/featur
 import StateNotice from '@/components/shared/StateNotice';
 import CheckinModal from '@/components/user/CheckinModal';
 import MealPlanGenerationProgress from '@/components/user/MealPlanGenerationProgress';
-import { MealPlan, MealType } from '@/types';
+import { MealPlan, MealType, type MealLocalityPreference } from '@/types';
 import { getApiErrorMessage } from '@/lib/api-error';
 import { Calendar, Plus, AlertTriangle, ChevronLeft, ChevronRight } from 'lucide-react';
 import { formatManilaDate, getManilaDateKey } from '@/lib/manila-date';
@@ -385,6 +385,28 @@ export default function DashboardPage() {
     }
   };
 
+  // Handles updating locality preference directly from the dashboard widget
+  const handleUpdateLocality = async (preference: MealLocalityPreference) => {
+    try {
+      const res = await api.put('/user/profile', { mealLocalityPreference: preference });
+      if (res.data && res.data.success) {
+        setUserProfile((prev) => (prev ? { ...prev, mealLocalityPreference: preference } : null));
+        const cached = readSessionResource<UserProfileData>(ownerId, 'user-profile');
+        if (cached && cached.userProfile) {
+          writeSessionResource(ownerId, 'user-profile', {
+            ...cached,
+            userProfile: {
+              ...cached.userProfile,
+              mealLocalityPreference: preference,
+            },
+          });
+        }
+      }
+    } catch (err) {
+      console.error('[Dashboard] Failed to update meal locality preference:', err);
+    }
+  };
+
   // Triggers 7-day meal plan generation
   const handleGeneratePlan = async () => {
     if (generationRequestInFlight.current || pendingReview) return;
@@ -742,6 +764,7 @@ export default function DashboardPage() {
               onMealClick={(mealId) => router.push(`/dashboard/${mealId}`)}
               onStatusToggle={handleMealStatusToggle}
               onOpenWeeklyPlan={() => router.push('/meals')}
+              onUpdateLocality={handleUpdateLocality}
             />
 
             <div className="grid w-full grid-cols-1 gap-6 md:grid-cols-2">

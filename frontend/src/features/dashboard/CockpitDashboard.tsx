@@ -1,13 +1,14 @@
 'use client';
 
 import Link from 'next/link';
-import { Calendar, Droplets, Scale, ClipboardCheck, ArrowUpRight } from 'lucide-react';
+import { Calendar, Droplets, Scale, ClipboardCheck, ArrowUpRight, Plus } from 'lucide-react';
 import { motion } from 'motion/react';
 import { formatManilaDate } from '@/lib/manila-date';
-import type { MealPlan } from '@/types';
+import type { MealPlan, MealLocalityPreference } from '@/types';
 import type { PendingMealPreview } from '@/components/user/PendingMealPreviewCard';
 import type { UserProfileData } from '@/hooks/useProfile';
 import { DailyIntakeDonut, AnimatedValue } from '@/components/watermelon/daily-intake-donut';
+import MealLocalityPreferenceControl from '@/components/user/MealLocalityPreferenceControl';
 import { DashboardMealRow } from './DashboardMealRow';
 
 export interface CockpitDashboardProps {
@@ -35,6 +36,7 @@ export interface CockpitDashboardProps {
   onMealClick: (mealId: string) => void;
   onStatusToggle?: (mealId: string, status: 'DONE' | 'SKIPPED' | 'PENDING') => Promise<void> | void;
   onOpenWeeklyPlan: () => void;
+  onUpdateLocality?: (preference: MealLocalityPreference) => void;
 }
 
 export function CockpitDashboard({
@@ -51,6 +53,7 @@ export function CockpitDashboard({
   onMealClick,
   onStatusToggle,
   onOpenWeeklyPlan,
+  onUpdateLocality,
 }: CockpitDashboardProps) {
   const macros = [
     {
@@ -186,6 +189,64 @@ export function CockpitDashboard({
                 </div>
               ))}
             </div>
+
+            {/* Integrated Water Log Module */}
+            <div
+              className="mt-5 rounded-2xl border border-brand-border/60 bg-black/20 dark:bg-black/30 p-3.5 backdrop-blur-xs"
+              aria-label="Water log"
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2.5">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-sky-500/15 text-sky-400">
+                    <Droplets className="h-4 w-4" />
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-brand-muted">Water intake</p>
+                    <p className="font-display text-base font-bold text-brand-text leading-tight">
+                      <AnimatedValue value={waterIntake} suffix=" mL" />
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-1.5">
+                  <button
+                    type="button"
+                    aria-label="Remove 250 mL of water"
+                    disabled={waterIntake <= 0}
+                    onClick={() => onAddWater(-250)}
+                    className="h-8 rounded-lg border border-brand-border/70 bg-brand-surface/70 px-2.5 text-xs font-bold text-brand-text hover:bg-brand-surface transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+                  >
+                    −250 mL
+                  </button>
+                  <button
+                    type="button"
+                    aria-label="Add 250 mL of water"
+                    onClick={() => onAddWater(250)}
+                    className="h-8 rounded-lg bg-brand-green/20 hover:bg-brand-green/30 text-brand-green border border-brand-green/40 px-2.5 text-xs font-bold transition-all flex items-center gap-1"
+                  >
+                    <Plus className="h-3 w-3" />
+                    250 mL
+                  </button>
+                </div>
+              </div>
+
+              {/* Water progress bar toward 2,000 mL baseline */}
+              <div className="mt-2.5 flex items-center gap-2">
+                <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-brand-border/40 dark:bg-zinc-800">
+                  <motion.div
+                    className="h-full rounded-full bg-gradient-to-r from-sky-500 to-teal-400"
+                    initial={{ width: 0 }}
+                    animate={{
+                      width: `${Math.min(100, Math.max(0, (waterIntake / 2000) * 100))}%`,
+                    }}
+                    transition={{ type: 'spring', bounce: 0, duration: 0.5 }}
+                  />
+                </div>
+                <span className="font-mono text-[10px] font-semibold text-brand-muted shrink-0">
+                  {Math.round((waterIntake / 2000) * 100)}%
+                </span>
+              </div>
+            </div>
           </div>
 
           <div className="mt-6 space-y-3">
@@ -265,33 +326,13 @@ export function CockpitDashboard({
         </section>
       </div>
       <div className="grid gap-4 sm:grid-cols-3">
-        <section className="dashboard-surface dashboard-stat rounded-2xl p-5" aria-label="Water log">
-          <div className="flex items-center gap-2 text-sm font-semibold text-brand-muted">
-            <Droplets className="h-4 w-4 text-brand-green" /> Water log
-          </div>
-          <p className="mt-3 font-display text-2xl font-bold text-brand-text">
-            {waterIntake.toLocaleString()} <span className="text-sm font-medium text-brand-muted">mL</span>
-          </p>
-          <div className="mt-4 flex gap-2">
-            <button
-              type="button"
-              aria-label="Remove 250 mL of water"
-              disabled={waterIntake <= 0}
-              onClick={() => onAddWater(-250)}
-              className="min-h-11 flex-1 rounded-xl border border-brand-border text-sm font-semibold text-brand-text disabled:opacity-40"
-            >
-              −250 mL
-            </button>
-            <button
-              type="button"
-              aria-label="Add 250 mL of water"
-              onClick={() => onAddWater(250)}
-              className="dashboard-action min-h-11 flex-1 rounded-xl text-sm font-semibold"
-            >
-              +250 mL
-            </button>
-          </div>
-        </section>
+        <MealLocalityPreferenceControl
+          value={profile?.mealLocalityPreference ?? 'NATIONAL'}
+          regionName={profile?.planningRegionName ?? ''}
+          provinceHucName={profile?.planningProvinceHucName ?? ''}
+          onChange={onUpdateLocality ?? (() => {})}
+          compact
+        />
         <Link
           href="/progress"
           className="dashboard-surface dashboard-stat group rounded-2xl p-5 transition-colors hover:border-brand-green"

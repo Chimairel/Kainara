@@ -4,11 +4,12 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   AlertCircle,
   AlertTriangle,
+  Camera,
   CheckCircle2,
   ChefHat,
+  Flame,
   Info,
   Loader2,
-  Plus,
   Search,
   Sparkles,
   X,
@@ -82,8 +83,14 @@ const sourceLabels: Record<OutsideMealWarning['items'][number]['source'], string
 
 export function OutsideMealModal(props: Props) {
   return (
-    <Modal isOpen={props.isOpen} onClose={props.onClose} title="MANUALLY LOG A MEAL">
-      <div className="flex max-h-[82vh] flex-col gap-5 overflow-y-auto p-1 sm:p-2 text-left">
+    <Modal
+      isOpen={props.isOpen}
+      onClose={props.onClose}
+      title="MANUALLY LOG A MEAL"
+      size="lg"
+      description="Track street food, restaurant meals, carinderia items, or home-cooked dishes not in your plan."
+    >
+      <div className="flex flex-col gap-5 text-left">
         {props.error && (
           <div className="flex items-center gap-2 rounded-xl border border-status-error-text/25 bg-status-error-bg/10 p-4 text-sm font-semibold text-status-error-text">
             <AlertTriangle className="h-4 w-4 shrink-0" />
@@ -91,7 +98,7 @@ export function OutsideMealModal(props: Props) {
           </div>
         )}
         {props.savedSafety ? (
-          <div className="space-y-4 rounded-xl border border-brand-border p-4 text-sm">
+          <div className="space-y-4 rounded-2xl border border-brand-border bg-brand-surface p-5 text-sm">
             <h3 className="font-bold text-brand-text">Meal recorded</h3>
             <p className="text-brand-muted">
               {props.savedSafety.status === 'CONFLICT_DETECTED'
@@ -482,12 +489,12 @@ function OutsideMealForm(props: Props) {
         e.preventDefault();
         handleSubmit(false);
       }}
-      className="flex flex-col gap-4 text-left"
+      className="flex flex-col gap-3 text-left"
     >
       {/* 1. Meal Category Segmented Control */}
       <fieldset className="flex flex-col gap-1.5">
-        <legend className="text-xs font-bold tracking-wide text-brand-text/90">Meal category (required)</legend>
-        <div className="grid grid-cols-4 gap-2 text-center text-xs font-semibold">
+        <legend className="text-xs font-bold uppercase tracking-wider text-brand-muted">Meal category (required)</legend>
+        <div className="grid grid-cols-4 gap-1.5 p-1 rounded-2xl border border-brand-border/70 bg-brand-bgAlt/50 text-center text-xs font-semibold">
           {(Object.keys(mealLabels) as MealType[]).map((type) => {
             const isSelected = props.mealType === type;
             return (
@@ -495,10 +502,10 @@ function OutsideMealForm(props: Props) {
                 key={type}
                 type="button"
                 onClick={() => props.onMealTypeChange(type)}
-                className={`rounded-xl border py-2 px-1 outline-none transition-all ${
+                className={`rounded-xl py-2 px-1 text-xs font-bold outline-none transition-all duration-150 ${
                   isSelected
-                    ? 'border-brand-green bg-brand-green/15 font-extrabold text-brand-green shadow-sm'
-                    : 'border-brand-border/70 bg-brand-surface/50 text-brand-muted hover:border-brand-border hover:text-brand-text'
+                    ? 'bg-brand-green text-white shadow-xs dark:bg-brand-accent dark:text-[#07100d]'
+                    : 'text-brand-muted hover:text-brand-text hover:bg-brand-surface/70'
                 }`}
               >
                 {mealLabels[type]}
@@ -510,10 +517,13 @@ function OutsideMealForm(props: Props) {
 
       {/* 2. Food or Meal Eaten with Autocomplete */}
       <div ref={searchContainerRef} className="relative flex flex-col gap-1">
-        <label htmlFor="mealNameInput" className="text-xs font-bold tracking-wide text-brand-text/90">
+        <label htmlFor="mealNameInput" className="text-xs font-bold uppercase tracking-wider text-brand-muted">
           Food or Meal Eaten (required)
         </label>
-        <div className="relative">
+        <div className="relative flex items-center">
+          <div className="pointer-events-none absolute left-3.5 text-brand-muted">
+            <Search className="h-4 w-4" />
+          </div>
           <input
             id="mealNameInput"
             type="text"
@@ -525,10 +535,10 @@ function OutsideMealForm(props: Props) {
             }}
             disabled={props.isLoading}
             required
-            className="w-full rounded-xl border border-brand-border/80 bg-brand-surface/80 px-3.5 py-2.5 text-xs text-brand-text placeholder-brand-muted/70 outline-none transition focus:border-brand-green focus:ring-1 focus:ring-brand-green"
+            className="w-full rounded-2xl border border-brand-border/80 bg-brand-surface/90 pl-10 pr-9 py-2 text-xs font-semibold text-brand-text placeholder-brand-muted/60 outline-none transition focus:border-brand-green focus:ring-2 focus:ring-brand-green/20"
           />
           {isSearching ? (
-            <Loader2 className="absolute right-3 top-2.5 h-4 w-4 animate-spin text-brand-green" />
+            <Loader2 className="absolute right-3.5 h-4 w-4 animate-spin text-brand-green" />
           ) : props.mealName ? (
             <button
               type="button"
@@ -544,21 +554,21 @@ function OutsideMealForm(props: Props) {
                 setManual(emptyMacros);
                 setPortionGrams('');
               }}
-              className="absolute right-3 top-2.5 text-brand-muted hover:text-brand-text"
+              className="absolute right-3.5 text-brand-muted hover:text-brand-text"
             >
               <X className="h-4 w-4" />
             </button>
           ) : null}
         </div>
         <p className="mt-0.5 text-[10px] text-brand-muted">
-          For multiple foods, separate each one with a comma. Add a measured portion like <strong>rice (150g)</strong>{' '}
+          For multiple foods, separate each one with a comma. Add a measured portion like <strong className="text-brand-text">rice (150g)</strong>{' '}
           for FNRI matching.
         </p>
 
         {/* Autocomplete Dropdown List */}
         {showDropdown && suggestions.length > 0 && (
-          <div className="absolute left-0 right-0 top-full z-50 mt-1 max-h-56 overflow-y-auto rounded-xl border border-brand-border bg-brand-surface shadow-2xl backdrop-blur-md">
-            <div className="p-1 text-[10px] font-bold uppercase tracking-wider text-brand-muted px-2 pt-1.5 pb-1">
+          <div className="absolute left-0 right-0 top-full z-50 mt-1 max-h-56 overflow-y-auto rounded-2xl border border-brand-border/80 bg-brand-surface shadow-card-lg backdrop-blur-md">
+            <div className="p-1.5 border-b border-brand-border/40 text-[10px] font-bold uppercase tracking-wider text-brand-muted px-3 pt-2 pb-1">
               Matching Recipes & Foods ({suggestions.length})
             </div>
             {suggestions.map((dish) => (
@@ -566,7 +576,7 @@ function OutsideMealForm(props: Props) {
                 key={`${dish.kind}-${dish.id}`}
                 type="button"
                 onClick={() => handleSelectSuggestion(dish)}
-                className="flex w-full items-center justify-between gap-2 border-b border-brand-border/40 px-3 py-2 text-left text-xs transition hover:bg-brand-green/10"
+                className="flex w-full items-center justify-between gap-2 border-b border-brand-border/30 px-3.5 py-2 text-left text-xs transition hover:bg-brand-green/10 last:border-b-0"
               >
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-1.5">
@@ -596,34 +606,37 @@ function OutsideMealForm(props: Props) {
       </div>
 
       {selectedSuggestion?.kind === 'FNRI_FOOD' && baseNutrition && (
-        <div className="flex flex-col gap-1 rounded-xl border border-brand-border/70 bg-brand-surface/50 p-3.5">
+        <div className="flex flex-col gap-1 rounded-2xl border border-brand-border/70 bg-brand-surface/50 p-3">
           <label htmlFor="fnriPortionGrams" className="text-xs font-bold text-brand-text/90">
             Amount eaten (grams)
           </label>
-          <input
-            id="fnriPortionGrams"
-            type="number"
-            min="1"
-            step="1"
-            required
-            value={portionGrams}
-            onChange={(event) => {
-              const grams = event.target.value;
-              setPortionGrams(grams);
-              const factor = Number(grams) / 100;
-              setManual(
-                grams && factor > 0
-                  ? displayMacros({
-                      calories: baseNutrition.calories * factor,
-                      proteinG: baseNutrition.proteinG * factor,
-                      carbsG: baseNutrition.carbsG * factor,
-                      fatG: baseNutrition.fatG * factor,
-                    })
-                  : emptyMacros
-              );
-            }}
-            className="w-full rounded-lg border border-brand-border/80 bg-brand-bgAlt/80 px-3 py-2 text-xs font-bold text-brand-text outline-none focus:border-brand-green"
-          />
+          <div className="relative">
+            <input
+              id="fnriPortionGrams"
+              type="number"
+              min="1"
+              step="1"
+              required
+              value={portionGrams}
+              onChange={(event) => {
+                const grams = event.target.value;
+                setPortionGrams(grams);
+                const factor = Number(grams) / 100;
+                setManual(
+                  grams && factor > 0
+                    ? displayMacros({
+                        calories: baseNutrition.calories * factor,
+                        proteinG: baseNutrition.proteinG * factor,
+                        carbsG: baseNutrition.carbsG * factor,
+                        fatG: baseNutrition.fatG * factor,
+                      })
+                    : emptyMacros
+                );
+              }}
+              className="w-full rounded-xl border border-brand-border/80 bg-brand-bgAlt/80 px-3.5 py-2 text-xs font-bold text-brand-text outline-none focus:border-brand-green focus:ring-1 focus:ring-brand-green"
+            />
+            <span className="absolute right-3.5 top-2 text-xs font-bold text-brand-muted pointer-events-none">g</span>
+          </div>
           <p className="text-[10px] text-brand-muted">FNRI values are per 100 g; this amount scales the estimate.</p>
         </div>
       )}
@@ -633,17 +646,20 @@ function OutsideMealForm(props: Props) {
           <label htmlFor="outsidePortionGrams" className="text-xs font-bold text-brand-text/90">
             Approximate portion in grams (optional)
           </label>
-          <input
-            id="outsidePortionGrams"
-            type="number"
-            min="1"
-            max="5000"
-            step="1"
-            value={portionGrams}
-            onChange={(event) => setPortionGrams(event.target.value)}
-            disabled={props.isLoading}
-            className="w-full rounded-xl border border-brand-border/80 bg-brand-surface/80 px-3.5 py-2.5 text-xs text-brand-text outline-none focus:border-brand-green"
-          />
+          <div className="relative">
+            <input
+              id="outsidePortionGrams"
+              type="number"
+              min="1"
+              max="5000"
+              step="1"
+              value={portionGrams}
+              onChange={(event) => setPortionGrams(event.target.value)}
+              disabled={props.isLoading}
+              className="w-full rounded-2xl border border-brand-border/80 bg-brand-surface/80 px-3.5 py-2 text-xs text-brand-text outline-none focus:border-brand-green focus:ring-1 focus:ring-brand-green"
+            />
+            <span className="absolute right-3.5 top-2 text-xs font-bold text-brand-muted pointer-events-none">g</span>
+          </div>
           <p className="text-[10px] text-brand-muted">
             Record the amount eaten when you know it. This helps a nutritionist review the estimate.
           </p>
@@ -651,11 +667,14 @@ function OutsideMealForm(props: Props) {
       )}
 
       {/* 3. Nutritional Values (Estimated) - Open by default & fully editable */}
-      <div className="rounded-xl border border-brand-border/70 bg-brand-surface/50 p-3.5">
+      <div className="rounded-2xl border border-brand-border/70 bg-brand-surface/60 p-3">
         <div className="mb-2 flex items-center justify-between">
-          <span className="text-xs font-bold text-brand-text/90">Nutritional Values (Estimated)</span>
+          <div className="flex items-center gap-1.5">
+            <Flame className="h-4 w-4 text-brand-green" />
+            <span className="text-xs font-bold text-brand-text">Nutritional Values (Estimated)</span>
+          </div>
           {selectedSuggestion && (
-            <span className="flex items-center gap-1 text-[11px] font-medium text-brand-green">
+            <span className="flex items-center gap-1 text-[11px] font-semibold text-brand-green">
               <CheckCircle2 className="h-3 w-3" />
               {selectedSuggestion.kind === 'ELIGIBLE_LIBRARY'
                 ? 'From verified recipe'
@@ -668,10 +687,13 @@ function OutsideMealForm(props: Props) {
           )}
         </div>
 
-        {/* 4 Numeric Inputs side-by-side */}
-        <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
-          <div>
-            <label className="mb-1 block text-[10px] font-bold text-brand-muted">Calories (kcal)</label>
+        {/* 4 Numeric Inputs side-by-side with theme macro badges */}
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+          <div className="rounded-xl border border-brand-border/60 bg-brand-bgAlt/50 p-2 transition focus-within:border-brand-green focus-within:ring-1 focus-within:ring-brand-green">
+            <label className="mb-0.5 flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-brand-muted">
+              <span className="h-2 w-2 rounded-full bg-brand-green" />
+              Calories (kcal)
+            </label>
             <div className="relative">
               <input
                 type="number"
@@ -680,16 +702,19 @@ function OutsideMealForm(props: Props) {
                 placeholder="0"
                 value={manual.calories}
                 onChange={(e) => setManual((prev) => ({ ...prev, calories: e.target.value }))}
-                className="w-full rounded-lg border border-brand-border/80 bg-brand-bgAlt/80 px-3 py-2 text-xs font-bold text-brand-text outline-none focus:border-brand-green"
+                className="w-full bg-transparent px-1 py-0.5 text-xs font-bold text-brand-text outline-none"
               />
-              <span className="absolute right-2.5 top-2 text-[10px] font-semibold text-brand-muted pointer-events-none">
+              <span className="absolute right-1 top-0.5 text-[10px] font-semibold text-brand-muted pointer-events-none">
                 kcal
               </span>
             </div>
           </div>
 
-          <div>
-            <label className="mb-1 block text-[10px] font-bold text-brand-muted">Protein (g)</label>
+          <div className="rounded-xl border border-brand-border/60 bg-brand-bgAlt/50 p-2 transition focus-within:border-brand-green focus-within:ring-1 focus-within:ring-brand-green">
+            <label className="mb-0.5 flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-brand-muted">
+              <span className="h-2 w-2 rounded-full" style={{ backgroundColor: 'var(--macro-protein)' }} />
+              Protein (g)
+            </label>
             <div className="relative">
               <input
                 type="number"
@@ -698,16 +723,19 @@ function OutsideMealForm(props: Props) {
                 placeholder="0"
                 value={manual.proteinG}
                 onChange={(e) => setManual((prev) => ({ ...prev, proteinG: e.target.value }))}
-                className="w-full rounded-lg border border-brand-border/80 bg-brand-bgAlt/80 px-3 py-2 text-xs font-bold text-macro-protein outline-none focus:border-brand-green"
+                className="w-full bg-transparent px-1 py-0.5 text-xs font-bold text-macro-protein outline-none"
               />
-              <span className="absolute right-2.5 top-2 text-[10px] font-semibold text-brand-muted pointer-events-none">
+              <span className="absolute right-1 top-0.5 text-[10px] font-semibold text-brand-muted pointer-events-none">
                 g
               </span>
             </div>
           </div>
 
-          <div>
-            <label className="mb-1 block text-[10px] font-bold text-brand-muted">Carbs (g)</label>
+          <div className="rounded-xl border border-brand-border/60 bg-brand-bgAlt/50 p-2 transition focus-within:border-brand-green focus-within:ring-1 focus-within:ring-brand-green">
+            <label className="mb-0.5 flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-brand-muted">
+              <span className="h-2 w-2 rounded-full" style={{ backgroundColor: 'var(--macro-carbs)' }} />
+              Carbs (g)
+            </label>
             <div className="relative">
               <input
                 type="number"
@@ -716,16 +744,19 @@ function OutsideMealForm(props: Props) {
                 placeholder="0"
                 value={manual.carbsG}
                 onChange={(e) => setManual((prev) => ({ ...prev, carbsG: e.target.value }))}
-                className="w-full rounded-lg border border-brand-border/80 bg-brand-bgAlt/80 px-3 py-2 text-xs font-bold text-macro-carbs outline-none focus:border-brand-green"
+                className="w-full bg-transparent px-1 py-0.5 text-xs font-bold text-macro-carbs outline-none"
               />
-              <span className="absolute right-2.5 top-2 text-[10px] font-semibold text-brand-muted pointer-events-none">
+              <span className="absolute right-1 top-0.5 text-[10px] font-semibold text-brand-muted pointer-events-none">
                 g
               </span>
             </div>
           </div>
 
-          <div>
-            <label className="mb-1 block text-[10px] font-bold text-brand-muted">Fat (g)</label>
+          <div className="rounded-xl border border-brand-border/60 bg-brand-bgAlt/50 p-2 transition focus-within:border-brand-green focus-within:ring-1 focus-within:ring-brand-green">
+            <label className="mb-0.5 flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-brand-muted">
+              <span className="h-2 w-2 rounded-full" style={{ backgroundColor: 'var(--macro-fat)' }} />
+              Fat (g)
+            </label>
             <div className="relative">
               <input
                 type="number"
@@ -734,9 +765,9 @@ function OutsideMealForm(props: Props) {
                 placeholder="0"
                 value={manual.fatG}
                 onChange={(e) => setManual((prev) => ({ ...prev, fatG: e.target.value }))}
-                className="w-full rounded-lg border border-brand-border/80 bg-brand-bgAlt/80 px-3 py-2 text-xs font-bold text-macro-fat outline-none focus:border-brand-green"
+                className="w-full bg-transparent px-1 py-0.5 text-xs font-bold text-macro-fat outline-none"
               />
-              <span className="absolute right-2.5 top-2 text-[10px] font-semibold text-brand-muted pointer-events-none">
+              <span className="absolute right-1 top-0.5 text-[10px] font-semibold text-brand-muted pointer-events-none">
                 g
               </span>
             </div>
@@ -746,14 +777,14 @@ function OutsideMealForm(props: Props) {
         {/* Portion multiplier pills for easy scaling while keeping inputs editable */}
         {baseNutrition && (
           <div className="mt-2.5 flex items-center justify-between border-t border-brand-border/40 pt-2 text-[11px]">
-            <span className="text-brand-muted">Quick portion scaling:</span>
+            <span className="text-brand-muted font-medium">Quick portion scaling:</span>
             <div className="flex gap-1.5">
               {[0.5, 1, 1.5, 2].map((factor) => (
                 <button
                   key={factor}
                   type="button"
                   onClick={() => applyPortionMultiplier(factor)}
-                  className="rounded-md border border-brand-border/70 bg-brand-surface px-2 py-0.5 font-bold text-brand-muted hover:border-brand-green hover:text-brand-green transition"
+                  className="rounded-full border border-brand-border/70 bg-brand-surface px-2.5 py-0.5 font-bold text-brand-muted hover:border-brand-green hover:text-brand-green transition"
                 >
                   {factor}x
                 </button>
@@ -762,7 +793,7 @@ function OutsideMealForm(props: Props) {
           </div>
         )}
 
-        <p className="mt-2 flex items-center gap-1 text-[10px] text-brand-muted">
+        <p className="mt-2 flex items-center gap-1.5 text-[10px] text-brand-muted">
           <Info className="h-3 w-3 shrink-0" />
           Values are editable. Tweak any numbers above or enter your own nutrition-label or menu values.
         </p>
@@ -797,7 +828,7 @@ function OutsideMealForm(props: Props) {
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         {/* Left: Add Image / Camera Capture */}
         <div className="flex flex-col gap-1">
-          <span className="text-xs font-bold text-brand-text/90">Add photo (optional)</span>
+          <span className="text-xs font-bold uppercase tracking-wider text-brand-muted">Add photo (optional)</span>
           <input
             ref={fileInputRef}
             type="file"
@@ -808,17 +839,17 @@ function OutsideMealForm(props: Props) {
           />
           <div
             onClick={() => fileInputRef.current?.click()}
-            className="group relative flex h-28 cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-brand-border/70 bg-brand-surface/40 p-3 text-center transition hover:border-brand-green/60 hover:bg-brand-surface/60 overflow-hidden"
+            className="group relative flex h-24 cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed border-brand-border/70 bg-brand-surface/40 p-2.5 text-center transition hover:border-brand-green/60 hover:bg-brand-surface/60 overflow-hidden"
           >
             {imagePreview ? (
               <>
                 {/* A local blob/data URL preview cannot use the Next image optimizer. */}
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={imagePreview} alt="Meal photo preview" className="h-full w-full object-cover rounded-lg" />
+                <img src={imagePreview} alt="Meal photo preview" className="h-full w-full object-cover rounded-xl" />
                 <button
                   type="button"
                   onClick={handleClearImage}
-                  className="absolute right-2 top-2 rounded-full bg-black/70 p-1 text-white hover:bg-black transition"
+                  className="absolute right-2 top-2 rounded-full bg-black/70 p-1 text-white hover:bg-black transition shadow-sm"
                   title="Remove photo"
                 >
                   <X className="h-3.5 w-3.5" />
@@ -826,10 +857,10 @@ function OutsideMealForm(props: Props) {
               </>
             ) : (
               <>
-                <div className="mb-1 flex h-8 w-8 items-center justify-center rounded-full bg-brand-bgAlt/90 text-brand-muted group-hover:text-brand-green transition">
-                  <Plus className="h-4 w-4" />
+                <div className="mb-1 flex h-7 w-7 items-center justify-center rounded-full bg-brand-bgAlt/90 text-brand-muted group-hover:text-brand-green group-hover:scale-110 transition">
+                  <Camera className="h-4 w-4" />
                 </div>
-                <span className="text-[11px] font-semibold text-brand-muted group-hover:text-brand-text transition">
+                <span className="text-[11px] font-bold text-brand-muted group-hover:text-brand-text transition">
                   Upload Photo or Use Camera (Optional)
                 </span>
                 <span className="text-[9px] text-brand-muted/70">Tap to capture or upload</span>
@@ -841,31 +872,31 @@ function OutsideMealForm(props: Props) {
 
         {/* Right: Notes */}
         <div className="flex flex-col gap-1">
-          <label htmlFor="mealNotes" className="text-xs font-bold text-brand-text/90">
+          <label htmlFor="mealNotes" className="text-xs font-bold uppercase tracking-wider text-brand-muted">
             Notes (optional)
           </label>
           <textarea
             id="mealNotes"
-            rows={4}
+            rows={3}
             placeholder="e.g. restaurant, preparation, serving details"
             value={props.notes}
             onChange={(e) => props.onNotesChange(e.target.value)}
             disabled={props.isLoading}
-            className="h-28 w-full resize-none rounded-xl border border-brand-border/80 bg-brand-surface/80 p-2.5 text-xs text-brand-text placeholder-brand-muted/70 outline-none transition focus:border-brand-green focus:ring-1 focus:ring-brand-green"
+            className="h-24 w-full resize-none rounded-2xl border border-brand-border/80 bg-brand-surface/80 p-2.5 text-xs text-brand-text placeholder-brand-muted/60 outline-none transition focus:border-brand-green focus:ring-2 focus:ring-brand-green/20"
           />
         </div>
       </div>
 
       {/* 5. AI Assistant Fallback ("Still not sure?") */}
-      <div className="rounded-xl border border-brand-border/60 bg-brand-surface/30 p-3 text-center">
-        <span className="mb-1.5 block text-[11px] font-semibold text-brand-muted">Still not sure?</span>
+      <div className="rounded-2xl border border-brand-green/25 bg-gradient-to-br from-brand-green/10 via-brand-surface/60 to-brand-accent/5 p-3 text-center">
+        <span className="mb-1.5 block text-xs font-bold text-brand-muted">Still not sure?</span>
         <button
           type="button"
           onClick={() => handleSubmit(true)}
           disabled={props.isLoading || !props.mealName.trim()}
-          className="inline-flex w-full items-center justify-center gap-1.5 rounded-full border border-brand-green/40 bg-brand-green/10 py-2.5 px-4 text-xs font-extrabold text-brand-green transition hover:bg-brand-green/20 disabled:opacity-50 disabled:cursor-not-allowed"
+          className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-brand-green/50 bg-brand-green/15 py-2 px-4 text-xs font-extrabold text-brand-green transition hover:bg-brand-green/25 disabled:opacity-50 disabled:cursor-not-allowed shadow-xs"
         >
-          <Sparkles className="h-4 w-4" />
+          <Sparkles className="h-4 w-4 text-brand-green" />
           HELP ME FIND VALUES WITH AI
         </button>
         <p className="mt-1.5 text-[10px] text-brand-muted">
@@ -877,7 +908,7 @@ function OutsideMealForm(props: Props) {
       <Button
         type="submit"
         variant="primary"
-        className="w-full py-3.5 text-xs font-extrabold uppercase tracking-wider"
+        className="w-full py-3.5 text-xs font-black uppercase tracking-wider rounded-2xl shadow-neon"
         disabled={
           !props.mealName.trim() ||
           Boolean(imageError) ||

@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useId, useMemo } from 'react';
-import { Globe2, LockKeyhole, Map, MapPin } from 'lucide-react';
+import Link from 'next/link';
+import { ArrowUpRight, Compass, Globe2, LockKeyhole, Map, MapPin } from 'lucide-react';
 import { usePlanningLocations, validPlanningLocation } from '@/hooks/usePlanningLocations';
 import type { MealLocalityPreference } from '@/types';
 import { AdaptiveSlider, AnimatedText } from '@/components/watermelon/adaptive-slider';
@@ -14,6 +15,7 @@ interface MealLocalityPreferenceControlProps {
   provinceHucName: string;
   onChange: (value: MealLocalityPreference) => void;
   disabled?: boolean;
+  compact?: boolean;
 }
 
 export default function MealLocalityPreferenceControl({
@@ -22,6 +24,7 @@ export default function MealLocalityPreferenceControl({
   provinceHucName,
   onChange,
   disabled = false,
+  compact = false,
 }: MealLocalityPreferenceControlProps) {
   const hintId = useId();
   const { options } = usePlanningLocations();
@@ -110,17 +113,122 @@ export default function MealLocalityPreferenceControl({
       ? 'Choose a valid Province or HUC in your Region from the suggestions above to unlock local preferences.'
       : 'All locality levels are available.';
 
+  // Compact Mode: Optimized for Dashboard 3-column bottom grid card
+  if (compact) {
+    return (
+      <section
+        className="dashboard-surface dashboard-stat group relative flex flex-col justify-between rounded-2xl p-5 transition-colors hover:border-brand-green/60"
+        aria-label="Meal locality strength"
+      >
+        <div>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2 text-sm font-semibold text-brand-muted">
+              <Compass className="h-4 w-4 text-brand-green" /> Locality strength
+            </div>
+            <Link
+              href="/profile/planning"
+              className="flex items-center gap-1 text-xs font-semibold text-brand-muted hover:text-brand-green transition-colors"
+              title="View full Philippine map and planning location"
+            >
+              <span>Map</span>
+              <ArrowUpRight className="h-3.5 w-3.5" />
+            </Link>
+          </div>
+
+          <div className="mt-3 flex items-baseline justify-between gap-2">
+            <p className="font-display text-xl sm:text-2xl font-bold text-brand-text truncate">
+              {currentStopData.title}
+            </p>
+            <span className="shrink-0 rounded-full border border-brand-green/30 bg-brand-green/10 px-2 py-0.5 font-mono text-[10px] font-bold text-brand-green">
+              Stop {resolvedStop} of 3
+            </span>
+          </div>
+          <p className="mt-1 text-xs text-brand-muted truncate">
+            {currentStopData.subtitle}
+          </p>
+
+          {/* 3-Stop Adaptive Slider */}
+          <div className="relative mt-3">
+            <AdaptiveSlider
+              value={resolvedStop}
+              min={1}
+              max={3}
+              step={1}
+              maxAllowed={maxStop}
+              disabled={disabled || maxStop === 1}
+              onChange={handleStopChange}
+              aria-label="Meal locality strength"
+              aria-valuetext={currentStopData.buttonName}
+              aria-describedby={hintId}
+            />
+          </div>
+
+          {/* 3 Clickable Stop Buttons (Compact) */}
+          <div className="mt-3 grid grid-cols-3 gap-1.5">
+            {stops.map((stopItem) => {
+              const isSelected = stopItem.stop === resolvedStop;
+              const isUnlocked = stopItem.isAvailable;
+
+              return (
+                <button
+                  key={stopItem.stop}
+                  type="button"
+                  aria-label={stopItem.buttonName}
+                  aria-pressed={isSelected}
+                  disabled={disabled || !isUnlocked}
+                  onClick={() => handleStopChange(stopItem.stop)}
+                  className={`group flex items-center justify-center gap-1.5 rounded-xl py-2 px-1.5 text-xs font-bold transition-all outline-none ${
+                    isSelected
+                      ? 'bg-brand-green/15 text-brand-green border border-brand-green/40 dark:bg-brand-accent/15 dark:text-brand-accent dark:border-brand-accent/40 shadow-xs'
+                      : isUnlocked
+                        ? 'border border-brand-border/60 bg-brand-surface/50 text-brand-muted hover:border-brand-border hover:text-brand-text hover:bg-brand-surface'
+                        : 'border border-brand-border/30 bg-brand-bgAlt/30 text-brand-muted/40 cursor-not-allowed opacity-50'
+                  }`}
+                >
+                  {isUnlocked ? (
+                    <span className="font-mono text-[10px] font-black">{stopItem.stop}</span>
+                  ) : (
+                    <LockKeyhole className="h-3 w-3" />
+                  )}
+                  <span className="truncate text-[11px]">{stopItem.badge}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        <div className="mt-4 pt-2 border-t border-brand-border/40 flex items-center justify-between text-xs">
+          <Link
+            href="/profile/planning"
+            className="text-xs font-semibold text-brand-green hover:underline flex items-center gap-1"
+          >
+            Adjust preferences →
+          </Link>
+          <span className="text-[10px] text-brand-muted truncate max-w-[120px]">
+            {resolvedStop === 1 ? 'Nationwide' : resolvedStop === 2 ? cleanRegion || 'Region' : cleanProvince || 'Local'}
+          </span>
+        </div>
+      </section>
+    );
+  }
+
+  // Full Mode: Used in Health Profile / Planning Journey with Map
   return (
-    <fieldset className="rounded-[24px] border border-brand-border/70 bg-gradient-to-br from-brand-surface via-brand-surface to-brand-green/5 p-5 shadow-sm text-left">
-      <legend className="px-2 text-xs font-extrabold uppercase tracking-[0.13em] text-brand-muted">
-        Meal locality strength
-      </legend>
+    <fieldset className="rounded-[26px] border border-brand-border/80 bg-gradient-to-br from-brand-surface via-brand-surface to-brand-green/5 p-5 sm:p-6 shadow-sm text-left">
+      <div className="flex items-center justify-between mb-1">
+        <legend className="px-1 text-xs font-extrabold uppercase tracking-[0.14em] text-brand-green dark:text-brand-accent">
+          Meal locality strength
+        </legend>
+        <span className="rounded-full border border-brand-green/30 bg-brand-green/10 px-2.5 py-0.5 font-mono text-[10px] font-extrabold uppercase tracking-wider text-brand-green">
+          Level {resolvedStop} of 3
+        </span>
+      </div>
       <p className="mb-5 text-xs leading-relaxed text-brand-muted">
         Choose how strongly KAINARA should favor familiar meals. Safety and nutrition requirements still come first.
       </p>
 
       {/* Embedded Dynamic Interactive Philippine Map */}
-      <div className="mb-5">
+      <div className="mb-5 overflow-hidden rounded-2xl border border-brand-border/70 shadow-sm">
         <PhilippineDynamicMap
           preference={currentStopData.preference}
           regionName={cleanRegion}
@@ -128,7 +236,7 @@ export default function MealLocalityPreferenceControl({
         />
       </div>
 
-      <div className="rounded-[20px] border border-brand-border/80 bg-brand-bgAlt/45 p-4 shadow-inner sm:p-5">
+      <div className="rounded-[22px] border border-brand-border/80 bg-brand-bgAlt/50 p-4 sm:p-5 shadow-xs">
         {/* Top Active Stop Indicator */}
         <div className="mb-4 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-2">
@@ -158,8 +266,8 @@ export default function MealLocalityPreferenceControl({
           />
         </div>
 
-        {/* 3 Stop Selection Labels (Clean, Unboxed) */}
-        <div className="flex items-center justify-between gap-1 pt-1 sm:gap-2">
+        {/* 3 Stop Selection Cards */}
+        <div className="grid grid-cols-1 gap-2 pt-1 sm:grid-cols-3">
           {stops.map((stopItem) => {
             const isSelected = stopItem.stop === resolvedStop;
             const isUnlocked = stopItem.isAvailable;
@@ -173,30 +281,30 @@ export default function MealLocalityPreferenceControl({
                 aria-pressed={isSelected}
                 disabled={disabled || !isUnlocked}
                 onClick={() => handleStopChange(stopItem.stop)}
-                className={`group flex flex-1 items-center gap-2 rounded-xl py-2 px-2.5 transition-all text-left outline-none ${
+                className={`group flex items-center gap-2.5 rounded-2xl border p-2.5 transition-all text-left outline-none ${
                   isSelected
-                    ? 'bg-brand-green/10 text-brand-green dark:bg-brand-accent/15 dark:text-brand-accent'
+                    ? 'border-brand-green/60 bg-brand-green/10 text-brand-green shadow-xs dark:bg-brand-accent/15 dark:text-brand-accent dark:border-brand-accent/40'
                     : isUnlocked
-                      ? 'text-brand-muted hover:text-brand-text hover:bg-brand-surface/70 cursor-pointer'
-                      : 'text-brand-muted/40 cursor-not-allowed opacity-50'
+                      ? 'border-brand-border/70 bg-brand-surface/60 text-brand-muted hover:border-brand-border hover:text-brand-text hover:bg-brand-surface'
+                      : 'border-brand-border/40 bg-brand-bgAlt/30 text-brand-muted/40 cursor-not-allowed opacity-50'
                 }`}
               >
                 <div
-                  className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-mono font-black transition-all ${
+                  className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-xl text-xs font-mono font-black transition-all ${
                     isSelected
-                      ? 'bg-brand-green text-white dark:bg-brand-accent dark:text-black shadow-sm'
+                      ? 'bg-brand-green text-white dark:bg-brand-accent dark:text-black shadow-xs'
                       : isUnlocked
                         ? 'bg-brand-bgAlt border border-brand-border/80 text-brand-muted group-hover:border-brand-green/40'
                         : 'bg-brand-bgAlt/50 text-brand-muted/40'
                   }`}
                 >
-                  {isUnlocked ? stopItem.stop : <LockKeyhole className="h-3 w-3" />}
+                  {isUnlocked ? stopItem.stop : <LockKeyhole className="h-3.5 w-3.5" />}
                 </div>
 
                 <div className="flex min-w-0 flex-col">
-                  <div className="flex items-center gap-1">
-                    <Icon className="h-3 w-3 shrink-0" />
-                    <span className="text-xs font-extrabold leading-tight truncate">{stopItem.badge}</span>
+                  <div className="flex items-center gap-1.5">
+                    <Icon className="h-3.5 w-3.5 shrink-0" />
+                    <span className="text-xs font-bold leading-tight truncate">{stopItem.badge}</span>
                   </div>
                   <span className="text-[10px] leading-tight text-brand-muted truncate">
                     {isUnlocked
@@ -221,7 +329,7 @@ export default function MealLocalityPreferenceControl({
       {/* Detail Explanation Box */}
       <div
         id={hintId}
-        className="mt-4 rounded-2xl border border-brand-border/60 bg-brand-surface/70 px-4 py-3"
+        className="mt-4 rounded-2xl border border-brand-border/70 bg-brand-surface/70 px-4 py-3.5"
         aria-live="polite"
       >
         <div className="flex items-center gap-2">
