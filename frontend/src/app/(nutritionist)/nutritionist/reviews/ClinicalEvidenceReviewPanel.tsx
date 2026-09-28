@@ -5,6 +5,7 @@ import api from '@/lib/axios';
 import { getApiErrorMessage } from '@/lib/api-error';
 import Button from '@/components/ui/Button';
 import Badge from '@/components/ui/Badge';
+import ExpandableCasePanel from '@/features/nutritionist-reviews/ExpandableCasePanel';
 import { ArrowLeft, CheckCircle, Download, FileCheck, RefreshCw } from 'lucide-react';
 
 type QueueItem = {
@@ -45,6 +46,7 @@ const factCodes: Record<string, string[]> = {
 export default function ClinicalEvidenceReviewPanel() {
   const [queue, setQueue] = useState<QueueItem[]>([]);
   const [detail, setDetail] = useState<Detail | null>(null);
+  const [expanded, setExpanded] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [decision, setDecision] = useState<'SUFFICIENT' | 'NEEDS_CLARIFICATION' | 'UNUSABLE'>('NEEDS_CLARIFICATION');
@@ -72,6 +74,7 @@ export default function ClinicalEvidenceReviewPanel() {
   const claim = async (id: string) => {
     setBusy(true);
     setError(null);
+    setExpanded(false);
     try {
       const response = await api.get(`/nutritionist/clinical-evidence/${id}`);
       setDetail(response.data.data);
@@ -117,6 +120,7 @@ export default function ClinicalEvidenceReviewPanel() {
         confirmedFacts,
       });
       setDetail(null);
+      setExpanded(false);
       await refresh();
     } catch (cause) {
       setError(getApiErrorMessage(cause, 'The clinical review could not be saved.'));
@@ -129,7 +133,7 @@ export default function ClinicalEvidenceReviewPanel() {
     <div className="flex md:h-[calc(100vh-270px)] md:min-h-[640px] flex-col overflow-hidden rounded-3xl border border-brand-border/70 bg-brand-surface text-left shadow-card-lg backdrop-blur-xl md:flex-row">
       {/* Master Queue List Panel */}
       <div
-        className={`${detail ? 'hidden md:flex' : 'flex'} h-full w-full min-w-0 flex-col border-brand-border/70 bg-brand-surface/75 p-5 md:w-[38%] md:min-w-[280px] md:border-r`}
+        className={`${detail ? 'hidden md:flex' : 'flex'} ${expanded ? '!hidden' : ''} h-full w-full min-w-0 flex-col border-brand-border/70 bg-brand-surface/75 p-5 md:w-[38%] md:min-w-[280px] md:border-r`}
       >
         <div className="shrink-0 mb-3 rounded-2xl border border-brand-border/80 bg-brand-surface/90 p-5 text-brand-text shadow-sm backdrop-blur-md">
           <div className="flex items-center justify-between gap-2">
@@ -215,13 +219,19 @@ export default function ClinicalEvidenceReviewPanel() {
       </div>
 
       {/* Details View Panel */}
-      <div
+      <ExpandableCasePanel
+        expanded={expanded}
+        onExpandedChange={setExpanded}
+        canExpand={detail !== null}
         className={`${detail ? 'flex' : 'hidden md:flex'} h-full min-w-0 flex-1 flex-col overflow-y-auto bg-transparent p-4 custom-scrollbar sm:p-6`}
       >
         {detail && (
           <button
             type="button"
-            onClick={() => setDetail(null)}
+            onClick={() => {
+              setDetail(null);
+              setExpanded(false);
+            }}
             className="mb-4 inline-flex w-fit items-center gap-2 rounded-xl border border-brand-border bg-brand-surface px-3 py-2 text-xs font-bold text-brand-text outline-none transition hover:border-brand-green/35 focus-visible:ring-2 focus-visible:ring-brand-green/40 md:hidden"
           >
             <ArrowLeft className="h-4 w-4" aria-hidden="true" />
@@ -431,7 +441,7 @@ export default function ClinicalEvidenceReviewPanel() {
             </div>
           </div>
         )}
-      </div>
+      </ExpandableCasePanel>
     </div>
   );
 }
