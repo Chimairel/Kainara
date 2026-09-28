@@ -239,16 +239,22 @@ export function CockpitDashboard({
             </p>
           )}
           <div className="space-y-4 flex-1 pl-7 sm:pl-10 lg:pl-12">
-            {meals.map((meal) => (
+            {meals.map((meal, index) => (
               <DashboardMealRow
                 key={meal.id}
                 meal={meal}
+                index={index}
                 onOpen={() => onMealClick(meal.id)}
                 onStatusToggle={onStatusToggle}
               />
             ))}
             {pendingMeals.map((meal, index) => (
-              <DashboardMealRow key={`${meal.mealType}-${index}`} meal={meal} pending />
+              <DashboardMealRow
+                key={`${meal.mealType}-${index}`}
+                meal={meal}
+                index={meals.length + index}
+                pending
+              />
             ))}
           </div>
           {meals.length === 0 && pendingMeals.length === 0 && (
