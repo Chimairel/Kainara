@@ -1,27 +1,120 @@
 'use client';
 
-import { useEffect, type ReactNode } from 'react';
-import { Maximize2, Minimize2 } from 'lucide-react';
+import { useEffect, useState, type ReactNode } from 'react';
+import { createPortal } from 'react-dom';
+import { ArrowLeft, Maximize2, Minimize2 } from 'lucide-react';
 
-export default function ExpandableCasePanel({ children, className, expanded, onExpandedChange, canExpand = true }: {
+export default function ExpandableCasePanel({
+  children,
+  className,
+  expanded,
+  onExpandedChange,
+  canExpand = true,
+}: {
   children: ReactNode;
   className?: string;
   expanded: boolean;
   onExpandedChange: (value: boolean) => void;
   canExpand?: boolean;
 }) {
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   useEffect(() => {
     if (!expanded) return;
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') onExpandedChange(false);
+      if (event.key === 'Escape') {
+        onExpandedChange(false);
+      }
     };
     window.addEventListener('keydown', onKeyDown);
-    return () => window.removeEventListener('keydown', onKeyDown);
+
+    return () => {
+      document.body.style.overflow = originalOverflow;
+      window.removeEventListener('keydown', onKeyDown);
+    };
   }, [expanded, onExpandedChange]);
-  return <div className={`${className ?? ''} ${expanded ? 'fixed inset-0 z-50 !flex h-screen w-screen flex-col overflow-y-auto bg-brand-bg p-6' : ''}`}>
-    {canExpand && <button type="button" onClick={() => onExpandedChange(!expanded)} aria-label={expanded ? 'Back to split view' : 'Expand case details'} className="mb-3 ml-auto flex items-center gap-2 rounded-lg border border-brand-border px-3 py-2 text-xs font-bold text-brand-text">
-      {expanded ? <><Minimize2 className="h-4 w-4" /> Back to split view</> : <><Maximize2 className="h-4 w-4" /> Expand</>}
-    </button>}
-    {children}
-  </div>;
+
+  const expandButton = canExpand ? (
+    <div className="mb-3 flex justify-end">
+      <button
+        type="button"
+        onClick={() => onExpandedChange(true)}
+        aria-label="Expand case details"
+        className="inline-flex items-center gap-2 rounded-xl border border-brand-border/70 bg-brand-surface/80 px-3.5 py-2 text-xs font-bold text-brand-text shadow-sm backdrop-blur-md transition-all hover:border-brand-accent/50 hover:bg-brand-surface hover:text-brand-accent focus-visible:ring-2 focus-visible:ring-brand-accent"
+      >
+        <Maximize2 className="h-4 w-4" />
+        <span>Expand</span>
+      </button>
+    </div>
+  ) : null;
+
+  if (expanded && mounted) {
+    return (
+      <>
+        {/* Placeholder in document flow so original layout is preserved */}
+        <div className="hidden" aria-hidden="true" />
+        {createPortal(
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-label="Expanded case view"
+            className="fixed inset-0 z-[100] flex h-screen w-screen flex-col overflow-y-auto bg-brand-bg text-brand-text"
+          >
+            {/* Top Navigation Bar with Back Arrow */}
+            <header className="sticky top-0 z-30 flex items-center justify-between border-b border-brand-border/70 bg-brand-surface/95 px-4 py-3 shadow-sm backdrop-blur-xl sm:px-6 md:px-8">
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => onExpandedChange(false)}
+                  aria-label="Back to split view"
+                  className="group inline-flex items-center gap-2.5 rounded-xl border border-brand-border/80 bg-brand-bgAlt/60 px-3.5 py-2 text-xs font-bold text-brand-text shadow-sm transition hover:border-brand-accent/60 hover:bg-brand-surface hover:text-brand-accent focus-visible:ring-2 focus-visible:ring-brand-accent"
+                >
+                  <ArrowLeft className="h-4 w-4 transition-transform group-hover:-translate-x-0.5" />
+                  <span>Back to split view</span>
+                </button>
+                <span className="hidden text-xs font-semibold text-brand-muted sm:inline-block">
+                  Full screen case inspection
+                </span>
+              </div>
+
+              <div className="flex items-center gap-3">
+                <span className="hidden text-[11px] font-medium text-brand-muted md:inline-block">
+                  Press <kbd className="rounded border border-brand-border bg-brand-bg px-1.5 py-0.5 font-mono text-[10px] text-brand-text">Esc</kbd> to exit
+                </span>
+                <button
+                  type="button"
+                  onClick={() => onExpandedChange(false)}
+                  aria-label="Exit full screen"
+                  className="flex h-9 w-9 items-center justify-center rounded-xl border border-brand-border/80 bg-brand-bgAlt/60 text-brand-muted transition hover:border-brand-accent/50 hover:bg-brand-surface hover:text-brand-text"
+                  title="Exit full view (Esc)"
+                >
+                  <Minimize2 className="h-4 w-4" />
+                </button>
+              </div>
+            </header>
+
+            {/* Full Screen Content Canvas */}
+            <main className="mx-auto w-full max-w-7xl flex-1 p-4 sm:p-6 md:p-8 custom-scrollbar">
+              {children}
+            </main>
+          </div>,
+          document.body
+        )}
+      </>
+    );
+  }
+
+  return (
+    <div className={className}>
+      {expandButton}
+      {children}
+    </div>
+  );
 }
