@@ -1,6 +1,5 @@
 import {
   Activity,
-  BookOpen,
   ClipboardList,
   Database,
   Download,
@@ -13,6 +12,7 @@ import {
   Stethoscope,
   User,
   Users,
+  Utensils,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 
@@ -102,7 +102,7 @@ export const workspaceTools: Record<WorkspaceRole, WorkspaceTool[]> = {
       href: '/nutritionist/library',
       description: 'Manage recipes, ingredient evidence, and flags.',
       group: 'Professional tools',
-      icon: BookOpen,
+      icon: Utensils,
     },
     {
       label: 'Professional profile',

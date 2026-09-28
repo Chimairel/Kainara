@@ -5,7 +5,7 @@ import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import Badge from '@/components/ui/Badge';
 import PortalPageHeader from '@/components/shared/PortalPageHeader';
-import { ArrowLeft, BookOpen, ChevronLeft, ChevronRight, Search, Soup, ShieldAlert } from 'lucide-react';
+import { ArrowLeft, ChevronLeft, ChevronRight, Search, Soup, ShieldAlert, Utensils } from 'lucide-react';
 import api from '@/lib/axios';
 import MealImage from '@/components/user/MealImage';
 import type { PublicMealImage } from '@/types';
@@ -236,7 +236,7 @@ export default function MealLibraryPage() {
     <div className="portal-page space-y-6">
       {/* Header */}
       <PortalPageHeader
-        icon={BookOpen}
+        icon={Utensils}
         eyebrow="Meal intelligence"
         title="Meal library"
         description="Browse base recipes and their separate health-context approvals. A flagged base meal and all its approvals are unavailable until independent review releases the meal."
