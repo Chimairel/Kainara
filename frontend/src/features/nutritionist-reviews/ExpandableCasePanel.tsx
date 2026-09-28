@@ -43,15 +43,15 @@ export default function ExpandableCasePanel({
   }, [expanded, onExpandedChange]);
 
   const expandButton = canExpand ? (
-    <div className="mb-3 flex justify-end">
+    <div className="sticky top-2 z-30 flex justify-end pb-2 pointer-events-none">
       <button
         type="button"
         onClick={() => onExpandedChange(true)}
         aria-label="Expand case details"
-        className="inline-flex items-center gap-2 rounded-xl border border-brand-border/70 bg-brand-surface/80 px-3.5 py-2 text-xs font-bold text-brand-text shadow-sm backdrop-blur-md transition-all hover:border-brand-accent/50 hover:bg-brand-surface hover:text-brand-accent focus-visible:ring-2 focus-visible:ring-brand-accent"
+        title="Expand full screen"
+        className="pointer-events-auto inline-flex h-9 w-9 items-center justify-center rounded-xl border border-brand-border/80 bg-brand-surface/95 text-brand-muted shadow-md backdrop-blur-md transition-all hover:border-brand-accent/60 hover:bg-brand-surface hover:text-brand-accent focus-visible:ring-2 focus-visible:ring-brand-accent"
       >
-        <Maximize2 className="h-4 w-4" />
-        <span>Expand</span>
+        <Maximize2 className="h-4 w-4" aria-hidden="true" />
       </button>
     </div>
   ) : null;
