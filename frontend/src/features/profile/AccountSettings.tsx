@@ -170,7 +170,6 @@ export default function AccountSettings({ initialPanel = 'account' }: { initialP
             size="lg"
             src={user.image}
             fallbackText={user.name}
-            showSalakot
             className="h-20 w-20 rounded-full shadow-lg"
           />
           <div className="min-w-0 flex-1">

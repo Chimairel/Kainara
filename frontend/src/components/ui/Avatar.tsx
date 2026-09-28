@@ -106,7 +106,8 @@ export const FILIPINO_AVATAR_PRESETS: FilipinoAvatarPreset[] = [
 ];
 
 export const Avatar = React.forwardRef<React.ElementRef<typeof AvatarPrimitive.Root>, AvatarProps>(
-  ({ className = '', src, seed, name, alt, fallbackText = 'NM', size = 'md', showSalakot = true, ...props }, ref) => {
+  ({ className = '', src, seed, name, alt, fallbackText = 'NM', size = 'md', showSalakot, ...props }, ref) => {
+    void showSalakot;
     const activeSrc = src !== undefined ? src : seed;
     const activeFallback = fallbackText !== 'NM' ? fallbackText : name || fallbackText;
 
@@ -153,7 +154,7 @@ export const Avatar = React.forwardRef<React.ElementRef<typeof AvatarPrimitive.R
       <AvatarPrimitive.Root
         ref={ref}
         className={`
-        relative flex shrink-0 overflow-visible rounded-full bg-brand-surface font-semibold shadow-sm
+        relative flex shrink-0 overflow-hidden rounded-full bg-brand-surface font-semibold shadow-sm
         ${sizeClasses[size]} ${className}
       `}
         {...props}
@@ -170,15 +171,6 @@ export const Avatar = React.forwardRef<React.ElementRef<typeof AvatarPrimitive.R
             {getInitials(activeFallback)}
           </AvatarPrimitive.Fallback>
         </div>
-        {showSalakot && (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src="/icons/salakot.svg"
-            alt=""
-            aria-hidden="true"
-            className="pointer-events-none absolute -top-[12%] -right-[4%] w-[64%] h-auto select-none z-10 drop-shadow-md"
-          />
-        )}
       </AvatarPrimitive.Root>
     );
   }

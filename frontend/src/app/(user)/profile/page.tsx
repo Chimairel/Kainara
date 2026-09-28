@@ -51,7 +51,7 @@ export default function ProfilePage() {
         description="Your information, preferences and account settings."
       />
       <div className="flex items-center gap-4 rounded-2xl border border-brand-border bg-brand-surface p-4">
-        <Avatar src={user?.image} fallbackText={user?.name} size="md" showSalakot />
+        <Avatar src={user?.image} fallbackText={user?.name} size="md" />
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
             <h2 className="font-display text-xl font-bold">{user?.name}</h2>

@@ -15,24 +15,8 @@ describe('Avatar', () => {
     vi.restoreAllMocks();
   });
 
-  it('renders the salakot hat overlay when showSalakot is true', () => {
-    const { container } = render(<Avatar fallbackText="Juan Dela Cruz" showSalakot={true} />);
-
-    const salakotImg = container.querySelector('img[src="/icons/salakot.svg"]');
-    expect(salakotImg).toBeInTheDocument();
-    expect(salakotImg).toHaveClass('pointer-events-none');
-    expect(salakotImg).toHaveClass('absolute');
-  });
-
-  it('renders the salakot overlay by default for every account', () => {
-    const { container } = render(<Avatar fallbackText="Maria Clara" />);
-
-    const salakotImg = container.querySelector('img[src="/icons/salakot.svg"]');
-    expect(salakotImg).toBeInTheDocument();
-  });
-
-  it('allows the salakot overlay to be omitted for a decorative avatar', () => {
-    const { container } = render(<Avatar fallbackText="Maria Clara" showSalakot={false} />);
+  it('renders clean rounded avatar without salakot hat overlay', () => {
+    const { container } = render(<Avatar fallbackText="Juan Dela Cruz" />);
 
     const salakotImg = container.querySelector('img[src="/icons/salakot.svg"]');
     expect(salakotImg).not.toBeInTheDocument();

@@ -9,6 +9,8 @@ import Button from '@/components/ui/Button';
 import Badge from '@/components/ui/Badge';
 import Avatar from '@/components/ui/Avatar';
 import AvatarSettings from '@/features/profile/AvatarSettings';
+import { NutritionistCredentialCard } from '@/components/user/NutritionistCredentialCard';
+import NutritionistCredentialModal from '@/components/user/NutritionistCredentialModal';
 import { useAuth } from '@/hooks/useAuth';
 import PortalPageHeader from '@/components/shared/PortalPageHeader';
 import {
@@ -27,6 +29,7 @@ import {
   LogOut,
   Building2,
   CheckCircle2,
+  Maximize2,
 } from 'lucide-react';
 
 interface NProfile {
@@ -64,6 +67,7 @@ export default function NutritionistProfilePage() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [showModalPreview, setShowModalPreview] = useState(false);
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -202,7 +206,7 @@ export default function NutritionistProfilePage() {
                       </div>
                     ) : (
                       <div className="relative">
-                        <Avatar name={user?.name} seed={user?.image} size="xl" showSalakot />
+                        <Avatar name={user?.name} seed={user?.image} size="xl" />
                         {profile?.isVerified && (
                           <span className="absolute -bottom-1 -right-1 flex h-7 w-7 items-center justify-center rounded-full bg-brand-green text-white shadow-lg ring-2 ring-brand-surface">
                             <Check className="h-4 w-4 stroke-[3]" />
@@ -500,70 +504,52 @@ export default function NutritionistProfilePage() {
             {/* Right Column: Public Patient View & Hub (5 cols) */}
             <div className="lg:col-span-5 space-y-6">
               {/* Live Patient Attribution Preview Card */}
-              <Card className="relative overflow-hidden p-6 border-brand-border/80 bg-brand-surface/90 shadow-md">
-                <div className="flex items-center justify-between border-b border-brand-border/60 pb-3 mb-4">
-                  <span className="font-mono text-[9px] font-extrabold uppercase tracking-widest text-brand-green">
-                    Patient Attribution Card
-                  </span>
-                  <span className="inline-flex items-center gap-1 rounded-full border border-brand-border px-2 py-0.5 text-[9px] font-bold text-brand-muted">
-                    Live Preview
-                  </span>
-                </div>
-
-                {/* Digital Credential Badge */}
-                <div className="rounded-2xl border border-brand-border/70 bg-brand-bgAlt/50 p-5 space-y-4">
-                  <div className="flex items-center gap-3.5">
-                    <div className="relative shrink-0">
-                      {profile?.officialHeadshot ? (
-                        <div className="relative h-14 w-14 rounded-full overflow-hidden border-2 border-brand-green">
-                          {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img
-                            src={profile.officialHeadshot}
-                            alt={user?.name || 'Nutritionist'}
-                            className="h-full w-full object-cover"
-                          />
-                        </div>
-                      ) : (
-                        <Avatar name={user?.name} seed={user?.image} size="md" showSalakot />
-                      )}
-                      <span className="absolute -bottom-0.5 -right-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-brand-green text-white shadow-xs">
-                        <Check className="h-2.5 w-2.5 stroke-[3]" />
-                      </span>
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-1.5">
-                        <p className="font-display font-extrabold text-sm text-brand-text truncate">{user?.name}</p>
-                        <Badge variant="verified" className="text-[8px] px-1.5 py-0">
-                          RND
-                        </Badge>
-                      </div>
-                      <p className="font-mono text-[10px] font-bold text-brand-green truncate">
-                        PRC Lic. {profile?.prcLicenseNumber || 'PRC-RND-NM-0001'}
-                      </p>
-                      <p className="text-[10px] text-brand-muted truncate">
-                        {specialization || profile?.specialization || 'Clinical and Community Nutrition'}
-                      </p>
-                    </div>
+              <div className="space-y-3">
+                <div className="flex items-center justify-between px-1">
+                  <div>
+                    <span className="font-mono text-[10px] font-extrabold uppercase tracking-widest text-brand-green">
+                      Patient Attribution Card
+                    </span>
+                    <p className="text-[11px] text-brand-muted">Official clinical credential card shown to patients</p>
                   </div>
-
-                  <div className="rounded-xl border border-brand-border/50 bg-brand-surface/60 p-3 text-xs leading-relaxed text-brand-muted italic">
-                    &ldquo;
-                    {bio ||
-                      profile?.bio ||
-                      'Dedicated to accessible, culturally grounded nutrition and safe clinical dietary management for Filipinos.'}
-                    &rdquo;
-                  </div>
-
-                  <div className="flex items-center justify-between text-[10px] font-mono text-brand-muted pt-1 border-t border-brand-border/40">
-                    <span className="truncate">{profile?.university || 'University of San Carlos'}</span>
-                    <span className="text-brand-green font-bold shrink-0">PRC Validated ✓</span>
+                  <div className="flex items-center gap-2">
+                    <span className="inline-flex items-center gap-1 rounded-full border border-brand-green/30 bg-brand-green/10 px-2 py-0.5 text-[9px] font-bold text-brand-green">
+                      Live Preview
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setShowModalPreview(true)}
+                      className="inline-flex items-center gap-1 rounded-xl border border-brand-border/70 bg-brand-surface px-2.5 py-1 text-[11px] font-bold text-brand-text hover:border-brand-green/40 hover:text-brand-green transition shadow-xs"
+                      title="Preview full interactive modal dialog"
+                    >
+                      <Maximize2 className="h-3 w-3" />
+                      <span>Full Dialog</span>
+                    </button>
                   </div>
                 </div>
 
-                <p className="mt-3 text-[11px] text-brand-muted leading-relaxed text-center">
-                  Patients view this official credential card on meal plan audits and clinical disclaimers.
+                <NutritionistCredentialCard
+                  verifier={{
+                    name: user?.name || 'Nutritionist',
+                    image: user?.image,
+                    officialHeadshot: profile?.officialHeadshot,
+                    prcLicenseNumber: profile?.prcLicenseNumber || 'PRC-RND-NM-0001',
+                    prcLicenseExpiry: profile?.prcLicenseExpiry || new Date().toISOString(),
+                    specialization: specialization || profile?.specialization || 'Clinical and Community Nutrition',
+                    yearsOfExperience: profile?.yearsOfExperience || 5,
+                    university: profile?.university || 'University of San Carlos',
+                    bio: bio || profile?.bio,
+                  }}
+                  nutritionistNote={bio || profile?.bio}
+                  onViewNotes={() => setShowModalPreview(true)}
+                  layout="vertical"
+                  className="shadow-card"
+                />
+
+                <p className="text-[11px] text-brand-muted leading-relaxed text-center px-2">
+                  Patients view this official credential card on meal plan audits, recipes, and clinical disclaimers.
                 </p>
-              </Card>
+              </div>
 
               {/* Quick Portal Navigation */}
               <Card className="space-y-4 p-5">
@@ -627,6 +613,24 @@ export default function NutritionistProfilePage() {
             <AvatarSettings visible={activeTab === 'avatar'} user={user} updateUserSession={updateUserSession} />
           )}
         </div>
+      )}
+      {showModalPreview && (
+        <NutritionistCredentialModal
+          isOpen={showModalPreview}
+          onClose={() => setShowModalPreview(false)}
+          verifier={{
+            name: user?.name || 'Nutritionist',
+            image: user?.image,
+            officialHeadshot: profile?.officialHeadshot,
+            prcLicenseNumber: profile?.prcLicenseNumber || 'PRC-RND-NM-0001',
+            prcLicenseExpiry: profile?.prcLicenseExpiry || new Date().toISOString(),
+            specialization: specialization || profile?.specialization || 'Clinical and Community Nutrition',
+            yearsOfExperience: profile?.yearsOfExperience || 5,
+            university: profile?.university || 'University of San Carlos',
+            bio: bio || profile?.bio,
+          }}
+          nutritionistNote={bio || profile?.bio || 'Clinical meal supervision and adherence monitoring.'}
+        />
       )}
     </div>
   );

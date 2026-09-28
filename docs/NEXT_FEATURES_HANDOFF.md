@@ -114,7 +114,7 @@ Replace fragile custom condition/allergy strings with a reusable, structured ent
 
 ## 5. Subscription removal decision
 
-- KAINARA has one user access level. Meal planning, compatible swaps, recipe browsing, grocery tools, outside-meal intelligence within fair-use compute quotas, reports, and the Salakot avatar accent are available to every user.
+- KAINARA has one user access level. Meal planning, compatible swaps, recipe browsing, grocery tools, outside-meal intelligence within fair-use compute quotas, and reports are available to every user.
 - The application does not pre-generate or expose a paid next-cycle plan. It generates the active cycle on demand or through the idempotent current-cycle rollover path.
 - The forward cleanup migration removes the abandoned billing, payment, entitlement, and provider projection tables while retaining historical migrations so already-migrated databases remain reproducible.
 - Reintroducing monetization requires a new product decision and a new forward implementation. Historical payment code is available from Git history and is not maintained in the active branch.
