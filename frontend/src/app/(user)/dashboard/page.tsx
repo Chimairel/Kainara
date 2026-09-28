@@ -668,10 +668,10 @@ export default function DashboardPage() {
                     if (currentIndex > 0) setSelectedDayOffset(daySelectors[currentIndex - 1].offset);
                   }}
                   disabled={daySelectors.findIndex((item) => item.offset === selectedDayOffset) === 0}
-                  className="flex h-10 w-10 sm:h-12 sm:w-12 shrink-0 items-center justify-center rounded-xl sm:rounded-2xl border border-brand-border/70 bg-brand-bgAlt/60 text-brand-text outline-none transition hover:border-brand-green/30 hover:text-brand-green focus-visible:ring-2 focus-visible:ring-brand-green disabled:cursor-not-allowed disabled:opacity-30"
+                  className="flex h-10 w-8 sm:h-12 sm:w-10 shrink-0 items-center justify-center text-brand-muted hover:text-brand-text hover:bg-black/[0.04] dark:hover:bg-white/[0.06] rounded-xl sm:rounded-2xl outline-none transition-colors focus-visible:ring-2 focus-visible:ring-brand-green disabled:cursor-not-allowed disabled:opacity-20"
                   aria-label="Previous day"
                 >
-                  <ChevronLeft className="h-4 w-4 sm:h-5 sm:w-5" aria-hidden="true" />
+                  <ChevronLeft className="h-5 w-5" aria-hidden="true" />
                 </button>
 
                 <div className="flex min-w-0 flex-1 gap-1.5 overflow-x-auto scrollbar-none snap-x snap-mandatory scroll-smooth">
@@ -716,10 +716,10 @@ export default function DashboardPage() {
                   disabled={
                     daySelectors.findIndex((item) => item.offset === selectedDayOffset) === daySelectors.length - 1
                   }
-                  className="flex h-10 w-10 sm:h-12 sm:w-12 shrink-0 items-center justify-center rounded-xl sm:rounded-2xl border border-brand-border/70 bg-brand-bgAlt/60 text-brand-text outline-none transition hover:border-brand-green/30 hover:text-brand-green focus-visible:ring-2 focus-visible:ring-brand-green disabled:cursor-not-allowed disabled:opacity-30"
+                  className="flex h-10 w-8 sm:h-12 sm:w-10 shrink-0 items-center justify-center text-brand-muted hover:text-brand-text hover:bg-black/[0.04] dark:hover:bg-white/[0.06] rounded-xl sm:rounded-2xl outline-none transition-colors focus-visible:ring-2 focus-visible:ring-brand-green disabled:cursor-not-allowed disabled:opacity-20"
                   aria-label="Next day"
                 >
-                  <ChevronRight className="h-4 w-4 sm:h-5 sm:w-5" aria-hidden="true" />
+                  <ChevronRight className="h-5 w-5" aria-hidden="true" />
                 </button>
               </div>
             )}

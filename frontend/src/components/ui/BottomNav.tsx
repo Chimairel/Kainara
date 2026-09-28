@@ -67,7 +67,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({ className = '' }) => {
                 active={isActive}
                 className={`transition-colors duration-200 ${
                   isActive
-                    ? 'bg-gradient-to-r from-[#eb6a38] to-[#f09e6c] text-white font-bold shadow-sm'
+                    ? 'bg-[#eb6a38] text-white font-bold shadow-sm'
                     : 'text-brand-muted hover:text-brand-text hover:bg-brand-bgAlt/80 dark:text-white/70 dark:hover:text-white dark:hover:bg-[#163930]'
                 }`}
               >

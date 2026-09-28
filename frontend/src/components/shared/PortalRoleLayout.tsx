@@ -52,7 +52,7 @@ export default function PortalRoleLayout({
                 aria-current={isActive ? 'page' : undefined}
                 className={`flex h-[52px] min-w-0 flex-1 flex-col items-center justify-center gap-1 rounded-2xl px-2 text-[10px] font-bold transition focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand-cyan ${
                   isActive
-                    ? 'bg-gradient-to-r from-[#eb6a38] to-[#f09e6c] text-white shadow-sm'
+                    ? 'bg-[#eb6a38] text-white shadow-sm'
                     : 'text-white/75 hover:bg-white/5 hover:text-white'
                 }`}
               >

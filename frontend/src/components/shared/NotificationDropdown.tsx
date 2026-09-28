@@ -220,19 +220,19 @@ export default function NotificationDropdown() {
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className="relative flex h-10 w-10 items-center justify-center rounded-2xl border border-brand-border/70 bg-brand-surface/80 text-brand-muted shadow-sm outline-none transition-all duration-200 hover:-translate-y-0.5 hover:border-brand-green/30 hover:bg-brand-green/10 hover:text-brand-green focus-visible:ring-2 focus-visible:ring-brand-green/40"
+        className="group relative flex h-10 w-10 items-center justify-center rounded-full text-brand-muted hover:text-brand-text hover:bg-black/[0.05] dark:hover:bg-white/[0.08] active:scale-95 transition-all outline-none focus-visible:ring-2 focus-visible:ring-brand-green/40"
         aria-label="View notifications"
         aria-expanded={isOpen}
         aria-haspopup="dialog"
       >
-        <Bell className="h-[18px] w-[18px]" />
+        <Bell className="h-5 w-5 transition-transform duration-200 group-hover:rotate-12" />
 
         {unreadCount > 0 ? (
-          <span className="absolute -right-1 -top-1 flex min-h-4 min-w-4 items-center justify-center rounded-full border-2 border-brand-bg bg-brand-accent px-1 text-[8px] font-bold text-[#07100d] shadow-sm">
+          <span className="absolute -top-0.5 -right-0.5 flex min-h-4 min-w-4 items-center justify-center rounded-full bg-brand-accent px-1 text-[8px] font-bold text-[#07100d] ring-2 ring-brand-bg shadow-sm">
             {formatBadgeCount(unreadCount)}
           </span>
         ) : user?.role === 'USER' && (!prerequisitesComplete || planningReadiness?.canRequestPlan === false) ? (
-          <span className="absolute -right-0.5 -top-0.5 flex h-2.5 w-2.5 rounded-full border-2 border-brand-bg bg-[#8c3b00]" />
+          <span className="absolute 1 top-1 flex h-2 w-2 rounded-full bg-amber-500 ring-2 ring-brand-bg shadow-sm" />
         ) : null}
       </button>
 

@@ -196,15 +196,19 @@ export const Navbar: React.FC = () => {
       <div className="min-w-0 flex items-center">
         <Breadcrumb1 segments={segments} />
       </div>
-      <div className="ml-auto flex items-center gap-2">
+      <div className="ml-auto flex items-center gap-1.5">
         <button
           type="button"
           onClick={toggleTheme}
-          className="flex h-10 w-10 items-center justify-center rounded-[14px] border border-brand-border/70 bg-brand-surface/75 text-brand-muted shadow-sm outline-none transition hover:-translate-y-0.5 hover:border-brand-green/30 hover:bg-brand-green/10 hover:text-brand-green focus-visible:ring-2 focus-visible:ring-brand-green/40"
+          className="group relative flex h-10 w-10 items-center justify-center rounded-full text-brand-muted hover:text-brand-text hover:bg-black/[0.05] dark:hover:bg-white/[0.08] active:scale-95 transition-all outline-none focus-visible:ring-2 focus-visible:ring-brand-green/40"
           title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
           aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
         >
-          {theme === 'dark' ? <Sun className="h-[18px] w-[18px]" /> : <Moon className="h-[18px] w-[18px]" />}
+          {theme === 'dark' ? (
+            <Sun className="h-5 w-5 text-amber-400 transition-transform duration-300 group-hover:rotate-45" />
+          ) : (
+            <Moon className="h-5 w-5 text-slate-700 dark:text-brand-muted transition-transform duration-300 group-hover:-rotate-12" />
+          )}
         </button>
 
         <NotificationDropdown />

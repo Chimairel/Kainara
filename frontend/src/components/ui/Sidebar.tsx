@@ -161,7 +161,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ className = '' }) => {
                       active={active}
                       className={`transition-colors duration-200 ${
                         active
-                          ? 'bg-gradient-to-r from-[#eb6a38] to-[#f09e6c] text-white font-bold shadow-sm'
+                          ? 'bg-[#eb6a38] text-white font-bold shadow-sm'
                           : 'text-white/60 hover:text-white hover:bg-white/[0.08]'
                       }`}
                     >
@@ -206,7 +206,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ className = '' }) => {
                 <DockItem
                   active={profileActive}
                   className={`rounded-full p-0.5 transition-[box-shadow] duration-150 ${
-                    profileActive ? 'ring-2 ring-[#f09e6c] shadow-sm' : 'hover:ring-2 hover:ring-[#f09e6c]/40'
+                    profileActive ? 'ring-2 ring-[#eb6a38] shadow-sm' : 'hover:ring-2 hover:ring-[#eb6a38]/40'
                   }`}
                 >
                   <DockLabel>Profile · {user.name}</DockLabel>
@@ -306,7 +306,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ className = '' }) => {
                     {active && (
                       <MotionActiveIndicator
                         layoutId="sidebar-active-nav-indicator"
-                        className="rounded-2xl bg-gradient-to-r from-[#eb6a38] to-[#f09e6c] shadow-sm"
+                        className="rounded-2xl bg-[#eb6a38] shadow-sm"
                       />
                     )}
                     <span className="relative z-10 flex w-full items-center gap-3">
