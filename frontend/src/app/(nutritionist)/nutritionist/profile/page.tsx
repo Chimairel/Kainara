@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import api from '@/lib/axios';
-import PortalLoadingState from '@/components/shared/PortalLoadingState';
+import NutritionistProfileSkeleton from '@/features/profile/NutritionistProfileSkeleton';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import Badge from '@/components/ui/Badge';
@@ -73,7 +73,7 @@ export default function NutritionistProfilePage() {
   };
 
   if (isLoading) {
-    return <PortalLoadingState message="Loading professional profile..." />;
+    return <NutritionistProfileSkeleton />;
   }
 
   return (

@@ -5,6 +5,10 @@ import MealPlanSkeleton from '@/features/meals/MealPlanSkeleton';
 import ProgressSkeleton from '@/features/progress/ProgressSkeleton';
 import DashboardSkeleton from '@/features/dashboard/DashboardSkeleton';
 import GrocerySkeleton from '@/features/grocery/GrocerySkeleton';
+import NutritionistReviewsSkeleton from '@/features/nutritionist-reviews/NutritionistReviewsSkeleton';
+import NutritionistLibrarySkeleton from '@/features/nutritionist-library/NutritionistLibrarySkeleton';
+import ApprovedReviewsSkeleton from '@/features/nutritionist-reviews/ApprovedReviewsSkeleton';
+import NutritionistProfileSkeleton from '@/features/profile/NutritionistProfileSkeleton';
 
 describe('Skeleton', () => {
   it('renders with default pulse and custom classes', () => {
@@ -47,5 +51,37 @@ describe('Skeleton', () => {
     expect(region).toBeInTheDocument();
     const pulseElements = container.querySelectorAll('.animate-pulse');
     expect(pulseElements.length).toBeGreaterThan(10);
+  });
+
+  it('renders NutritionistReviewsSkeleton with queue and case inspection placeholders', () => {
+    const { container, getByLabelText } = render(<NutritionistReviewsSkeleton />);
+    const region = getByLabelText('Loading nutritionist review workspace');
+    expect(region).toBeInTheDocument();
+    const pulseElements = container.querySelectorAll('.animate-pulse');
+    expect(pulseElements.length).toBeGreaterThan(10);
+  });
+
+  it('renders NutritionistLibrarySkeleton with search bar and catalog card placeholders', () => {
+    const { container, getByLabelText } = render(<NutritionistLibrarySkeleton />);
+    const region = getByLabelText('Loading meal library catalog');
+    expect(region).toBeInTheDocument();
+    const pulseElements = container.querySelectorAll('.animate-pulse');
+    expect(pulseElements.length).toBeGreaterThan(10);
+  });
+
+  it('renders ApprovedReviewsSkeleton with archive cards grid', () => {
+    const { container, getByLabelText } = render(<ApprovedReviewsSkeleton />);
+    const region = getByLabelText('Loading approved reviews archive');
+    expect(region).toBeInTheDocument();
+    const pulseElements = container.querySelectorAll('.animate-pulse');
+    expect(pulseElements.length).toBeGreaterThan(10);
+  });
+
+  it('renders NutritionistProfileSkeleton with tabs and credential inputs', () => {
+    const { container, getByLabelText } = render(<NutritionistProfileSkeleton />);
+    const region = getByLabelText('Loading professional profile');
+    expect(region).toBeInTheDocument();
+    const pulseElements = container.querySelectorAll('.animate-pulse');
+    expect(pulseElements.length).toBeGreaterThan(5);
   });
 });

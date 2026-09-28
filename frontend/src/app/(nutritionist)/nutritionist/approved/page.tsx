@@ -5,7 +5,7 @@ import api from '@/lib/axios';
 import Card from '@/components/ui/Card';
 import Badge from '@/components/ui/Badge';
 import Avatar from '@/components/ui/Avatar';
-import PortalLoadingState from '@/components/shared/PortalLoadingState';
+import ApprovedReviewsSkeleton from '@/features/nutritionist-reviews/ApprovedReviewsSkeleton';
 import EmptyState from '@/components/shared/EmptyState';
 import PortalPageHeader from '@/components/shared/PortalPageHeader';
 import { Coffee, Sun, Moon, Apple, Soup, CheckCircle, Library } from 'lucide-react';
@@ -78,7 +78,11 @@ export default function NutritionistApprovedPage() {
   }, []);
 
   if (isLoading) {
-    return <PortalLoadingState message="Loading approved reviews..." />;
+    return (
+      <div className="portal-page space-y-6 text-left">
+        <ApprovedReviewsSkeleton />
+      </div>
+    );
   }
 
   const mealTypeLabels: Record<string, { label: string; icon: React.ReactNode }> = {

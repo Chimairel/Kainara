@@ -22,7 +22,7 @@ import {
   Sparkles,
 } from 'lucide-react';
 import PortalPageHeader from '@/components/shared/PortalPageHeader';
-import LoadingSpinner from '@/components/shared/LoadingSpinner';
+import { ReviewQueueSkeleton, ReviewDetailSkeleton } from '@/features/nutritionist-reviews/NutritionistReviewsSkeleton';
 
 import { useNutritionistReviews } from '@/features/nutritionist-reviews/useNutritionistReviews';
 import IngredientEvidenceList from '@/features/nutritionist-reviews/IngredientEvidenceList';
@@ -301,10 +301,7 @@ export default function ReviewsPage() {
             </div>
 
             {isLoading ? (
-              <div className="flex-1 flex flex-col items-center justify-center p-12 text-center space-y-3">
-                <LoadingSpinner size="md" />
-                <span className="text-brand-muted text-xs font-semibold animate-pulse">Loading review queue…</span>
-              </div>
+              <ReviewQueueSkeleton count={5} />
             ) : visibleQueue.length === 0 ? (
               <div className="flex-1 flex flex-col items-center justify-center p-8 text-center space-y-3 rounded-2xl border border-dashed border-brand-border/80 bg-brand-surface/40">
                 <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-brand-green/10 text-brand-green shadow-inner">
@@ -458,8 +455,8 @@ export default function ReviewsPage() {
             </div>
           </div>
         ) : detailLoading ? (
-          <div className="flex-grow flex items-center justify-center">
-            <span className="text-brand-muted animate-pulse text-sm">Loading meal preview...</span>
+          <div className="flex-1">
+            <ReviewDetailSkeleton />
           </div>
         ) : errorMsg && !detailData ? (
           <div className="p-6 bg-red-950/20 border border-red-500/20 rounded-xl space-y-4 max-w-lg mx-auto mt-12 text-center">

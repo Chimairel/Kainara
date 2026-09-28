@@ -13,6 +13,7 @@ import {
   useNutritionistLibrary,
 } from '@/features/nutritionist-library/useNutritionistLibrary';
 import { MealApprovalsPanel } from '@/features/nutritionist-library/MealApprovalsPanel';
+import { LibraryGridSkeleton } from '@/features/nutritionist-library/NutritionistLibrarySkeleton';
 import type { LibraryMeal } from '@/features/nutritionist-library/useNutritionistLibrary';
 
 export default function MealLibraryPage() {
@@ -476,10 +477,7 @@ export default function MealLibraryPage() {
 
         {/* Main Meal Grid / Table */}
         {isLoading ? (
-          <div className="flex flex-col items-center justify-center min-h-[40vh] space-y-3">
-            <div className="w-8 h-8 border-2 border-brand-green/20 border-t-brand-green rounded-full animate-spin"></div>
-            <span className="text-sm text-brand-muted">Fetching meal records...</span>
-          </div>
+          <LibraryGridSkeleton count={6} />
         ) : meals.length === 0 ? (
           <Card className="p-16 text-center border-brand-border/40 bg-brand-surface/30 flex flex-col items-center">
             <Soup className="w-12 h-12 text-brand-muted mb-4" />
