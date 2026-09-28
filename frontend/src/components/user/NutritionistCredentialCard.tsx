@@ -113,14 +113,14 @@ export function NutritionistCredentialCard({
   if (layout === 'vertical') {
     return (
       <div
-        className={`relative overflow-hidden rounded-[26px] border border-[#173e33] bg-[#0e271f] text-slate-100 shadow-xl ${className}`}
+        className={`relative overflow-hidden rounded-[26px] border border-[#dce4e0] dark:border-[#173e33] bg-[#faf8f5] dark:bg-[#0e271f] text-[#0d2820] dark:text-slate-100 shadow-xl ${className}`}
       >
         {/* Retro Wave Organic Corner Accent (Top Left) */}
         <div className="pointer-events-none absolute -top-0.5 -left-0.5 h-32 w-32 overflow-hidden rounded-tl-[26px] z-0">
           <svg viewBox="0 0 160 160" className="h-full w-full" fill="none">
             <path d="M0,0 L160,0 C140,40 105,95 40,135 C20,147 0,155 0,155 Z" fill="#eb6a38" />
             <path d="M0,0 L120,0 C105,30 80,72 30,105 C15,115 0,120 0,120 Z" fill="#f09e6c" />
-            <path d="M0,0 L78,0 C68,20 50,48 18,70 C8,76 0,80 0,80 Z" fill="#164639" />
+            <path d="M0,0 L78,0 C68,20 50,48 18,70 C8,76 0,80 0,80 Z" className="fill-[#1b4e41] dark:fill-[#164639]" />
           </svg>
         </div>
 
@@ -128,11 +128,11 @@ export function NutritionistCredentialCard({
         <div className="relative p-5 sm:p-6 text-center z-10 space-y-3">
           <div className="w-full flex items-center justify-start gap-2 pl-1">
             <KainaraLogo size={22} variant="multicolor" />
-            <span className="font-display font-black text-sm tracking-tight text-white lowercase">kainara</span>
+            <span className="font-display font-black text-sm tracking-tight text-[#0d2820] dark:text-white lowercase">kainara</span>
           </div>
 
           <div className="flex justify-center my-1">
-            <div className="h-28 w-28 rounded-full shadow-lg overflow-hidden flex items-center justify-center border-2 border-[#1a5c48]/50 bg-[#faeedd]">
+            <div className="h-28 w-28 rounded-full shadow-lg overflow-hidden flex items-center justify-center border-2 border-[#1a5c48]/40 dark:border-[#1a5c48]/50 bg-[#faeedd]">
               {verifier.officialHeadshot || verifier.image ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
@@ -147,21 +147,21 @@ export function NutritionistCredentialCard({
           </div>
 
           <div className="space-y-1">
-            <h3 className="font-display text-lg sm:text-xl font-bold text-white tracking-tight">{displayName}</h3>
-            <p className="text-xs font-normal text-[#8ea79d]">Registered Nutritionist - Dietitian</p>
+            <h3 className="font-display text-lg sm:text-xl font-bold text-[#0d2820] dark:text-white tracking-tight">{displayName}</h3>
+            <p className="text-xs font-normal text-[#5a746a] dark:text-[#8ea79d]">Registered Nutritionist – Dietitian</p>
             <div className="pt-1.5 flex justify-center">
-              <span className="inline-flex items-center gap-1.5 rounded-full border border-[#1a5c48] bg-[#0e352b] px-3.5 py-1 text-xs font-semibold text-[#38c172] shadow-sm">
-                <ShieldCheck className="h-3.5 w-3.5 text-[#38c172]" />
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-600/30 dark:border-[#1a5c48] bg-emerald-100/70 dark:bg-[#0e352b] px-3.5 py-1 text-xs font-semibold text-emerald-800 dark:text-[#38c172] shadow-sm">
+                <ShieldCheck className="h-3.5 w-3.5 text-emerald-700 dark:text-[#38c172]" />
                 Verified Nutritionist
               </span>
             </div>
           </div>
 
-          <p className="pt-1 text-center text-xs text-[#8ea79d]">Review attributed to {displayName}</p>
+          <p className="pt-1 text-center text-xs text-[#5a746a] dark:text-[#8ea79d]">Review attributed to {displayName}</p>
         </div>
 
         {/* Dashed Horizontal Divider */}
-        <div className="border-t border-dashed border-[#1a4438] mx-5 sm:mx-6" />
+        <div className="border-t border-dashed border-[#dce4e0] dark:border-[#1a4438] mx-5 sm:mx-6" />
 
         {/* 4 Credentials */}
         <div className="relative p-5 sm:p-6 space-y-4 z-10">
@@ -171,8 +171,8 @@ export function NutritionistCredentialCard({
               <User className="h-4.5 w-4.5 text-white" />
             </div>
             <div className="min-w-0 flex-1">
-              <p className="text-[10px] font-medium text-[#8ea79d]">Specialization</p>
-              <p className="text-xs sm:text-sm font-bold text-white leading-snug mt-0.5">
+              <p className="text-[10px] font-medium text-[#6b857c] dark:text-[#8ea79d]">Specialization</p>
+              <p className="text-xs sm:text-sm font-bold text-[#0d2820] dark:text-white leading-snug mt-0.5">
                 {verifier.specialization || 'Clinical Nutrition, Weight Management, and Metabolic Health'}
               </p>
             </div>
@@ -184,9 +184,9 @@ export function NutritionistCredentialCard({
               <GraduationCap className="h-4.5 w-4.5 text-white" />
             </div>
             <div className="min-w-0 flex-1">
-              <p className="text-[10px] font-medium text-[#8ea79d]">Education</p>
-              <p className="text-xs sm:text-sm font-bold text-white leading-snug mt-0.5">BS Nutrition and Dietetics</p>
-              <p className="text-xs text-[#8ea79d] font-normal mt-0.5">
+              <p className="text-[10px] font-medium text-[#6b857c] dark:text-[#8ea79d]">Education</p>
+              <p className="text-xs sm:text-sm font-bold text-[#0d2820] dark:text-white leading-snug mt-0.5">BS Nutrition and Dietetics</p>
+              <p className="text-xs text-[#5a746a] dark:text-[#8ea79d] font-normal mt-0.5">
                 {verifier.university || 'University of the Philippines'}
               </p>
             </div>
@@ -198,14 +198,14 @@ export function NutritionistCredentialCard({
               <Award className="h-4.5 w-4.5 text-white" />
             </div>
             <div className="min-w-0 flex-1">
-              <p className="text-[10px] font-medium text-[#8ea79d]">Licensure</p>
-              <p className="text-xs sm:text-sm font-bold text-white leading-snug mt-0.5">
+              <p className="text-[10px] font-medium text-[#6b857c] dark:text-[#8ea79d]">Licensure</p>
+              <p className="text-xs sm:text-sm font-bold text-[#0d2820] dark:text-white leading-snug mt-0.5">
                 Registered Nutritionist-Dietitian (RND)
               </p>
               <div className="mt-0.5 flex flex-wrap items-center gap-2">
-                <span className="text-xs text-[#8ea79d] font-normal">{maskedPrc}</span>
-                <span className="inline-flex items-center gap-1 rounded-full border border-emerald-500/30 bg-emerald-950/50 px-2 py-0.5 text-[9px] font-extrabold uppercase tracking-wider text-emerald-300">
-                  <ShieldCheck className="h-2.5 w-2.5 text-emerald-400" />
+                <span className="text-xs text-[#5a746a] dark:text-[#8ea79d] font-normal">{maskedPrc}</span>
+                <span className="inline-flex items-center gap-1 rounded-full border border-emerald-600/30 dark:border-emerald-500/30 bg-emerald-100/80 dark:bg-emerald-950/50 px-2 py-0.5 text-[9px] font-extrabold uppercase tracking-wider text-emerald-800 dark:text-emerald-300">
+                  <ShieldCheck className="h-2.5 w-2.5 text-emerald-700 dark:text-emerald-400" />
                   PRC-Verified
                 </span>
               </div>
@@ -218,18 +218,18 @@ export function NutritionistCredentialCard({
               <Calendar className="h-4.5 w-4.5 text-white" />
             </div>
             <div className="min-w-0 flex-1">
-              <p className="text-[10px] font-medium text-[#8ea79d]">Experience</p>
-              <p className="text-xs sm:text-sm font-bold text-white leading-snug mt-0.5">
+              <p className="text-[10px] font-medium text-[#6b857c] dark:text-[#8ea79d]">Experience</p>
+              <p className="text-xs sm:text-sm font-bold text-[#0d2820] dark:text-white leading-snug mt-0.5">
                 {verifier.yearsOfExperience ?? 5}+ years
               </p>
-              <p className="text-xs text-[#8ea79d] font-normal mt-0.5">in clinical and community nutrition</p>
+              <p className="text-xs text-[#5a746a] dark:text-[#8ea79d] font-normal mt-0.5">in clinical and community nutrition</p>
             </div>
           </div>
 
           {/* Bottom Tagline & Maiden Corner */}
-          <div className="relative pt-3 flex items-end justify-between pr-20 border-t border-[#1a4438]/50">
+          <div className="relative pt-3 flex items-end justify-between pr-20 border-t border-[#dce4e0] dark:border-[#1a4438]/50">
             <div className="space-y-1">
-              <p className="text-xs text-[#8ea79d] leading-relaxed">
+              <p className="text-xs text-[#5a746a] dark:text-[#8ea79d] leading-relaxed">
                 Supporting your health
                 <br />
                 with science-backed nutrition.
@@ -238,7 +238,7 @@ export function NutritionistCredentialCard({
                 <button
                   type="button"
                   onClick={onViewNotes}
-                  className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-400 hover:text-emerald-300 transition underline underline-offset-2 pt-0.5"
+                  className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 hover:text-emerald-800 dark:text-emerald-400 dark:hover:text-emerald-300 transition underline underline-offset-2 pt-0.5"
                 >
                   <span>View Clinical Adjustments</span>
                   <span>↗</span>
@@ -247,7 +247,7 @@ export function NutritionistCredentialCard({
             </div>
 
             <div className="absolute -bottom-2 -right-2 flex items-center justify-center">
-              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-[#133a30] shadow-md border border-[#1d5244]/40 overflow-hidden">
+              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-[#1a4e40] dark:bg-[#133a30] shadow-md border border-[#2a6857]/40 dark:border-[#1d5244]/40 overflow-hidden">
                 <KainaraLogo size={52} variant="multicolor" />
               </div>
             </div>
@@ -260,14 +260,14 @@ export function NutritionistCredentialCard({
   // Horizontal / Responsive (2-column layout as in modal)
   return (
     <div
-      className={`relative overflow-hidden rounded-[28px] sm:rounded-[32px] border border-[#173e33] bg-[#0e271f] text-slate-100 shadow-2xl ${className}`}
+      className={`relative overflow-hidden rounded-[28px] sm:rounded-[32px] border border-[#dce4e0] dark:border-[#173e33] bg-[#faf8f5] dark:bg-[#0e271f] text-[#0d2820] dark:text-slate-100 shadow-2xl ${className}`}
     >
       {/* Retro Wave Organic Corner Accent (Top Left) */}
       <div className="pointer-events-none absolute -top-0.5 -left-0.5 h-36 w-36 sm:h-44 sm:w-44 overflow-hidden rounded-tl-[28px] sm:rounded-tl-[32px] z-0">
         <svg viewBox="0 0 160 160" className="h-full w-full" fill="none">
           <path d="M0,0 L160,0 C140,40 105,95 40,135 C20,147 0,155 0,155 Z" fill="#eb6a38" />
           <path d="M0,0 L120,0 C105,30 80,72 30,105 C15,115 0,120 0,120 Z" fill="#f09e6c" />
-          <path d="M0,0 L78,0 C68,20 50,48 18,70 C8,76 0,80 0,80 Z" fill="#164639" />
+          <path d="M0,0 L78,0 C68,20 50,48 18,70 C8,76 0,80 0,80 Z" className="fill-[#1b4e41] dark:fill-[#164639]" />
         </svg>
       </div>
 
@@ -277,11 +277,11 @@ export function NutritionistCredentialCard({
         <div className="relative flex flex-col items-center justify-between p-6 sm:p-8 text-center z-10">
           <div className="w-full flex items-center justify-start gap-2 pl-2 pt-1">
             <KainaraLogo size={24} variant="multicolor" />
-            <span className="font-display font-black text-lg tracking-tight text-white lowercase">kainara</span>
+            <span className="font-display font-black text-lg tracking-tight text-[#0d2820] dark:text-white lowercase">kainara</span>
           </div>
 
           <div className="my-3 sm:my-4 relative">
-            <div className="h-32 w-32 sm:h-36 sm:w-36 rounded-full shadow-lg overflow-hidden flex items-center justify-center border-2 border-[#1a5c48]/50 bg-[#faeedd]">
+            <div className="h-32 w-32 sm:h-36 sm:w-36 rounded-full shadow-lg overflow-hidden flex items-center justify-center border-2 border-[#1a5c48]/40 dark:border-[#1a5c48]/50 bg-[#faeedd]">
               {verifier.officialHeadshot || verifier.image ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
@@ -296,22 +296,22 @@ export function NutritionistCredentialCard({
           </div>
 
           <div className="space-y-1 w-full">
-            <h3 className="font-display text-xl sm:text-2xl font-bold text-white tracking-tight">{displayName}</h3>
-            <p className="text-xs font-normal text-[#8ea79d]">Registered Nutritionist - Dietitian</p>
+            <h3 className="font-display text-xl sm:text-2xl font-bold text-[#0d2820] dark:text-white tracking-tight">{displayName}</h3>
+            <p className="text-xs font-normal text-[#5a746a] dark:text-[#8ea79d]">Registered Nutritionist - Dietitian</p>
 
             <div className="pt-2 flex justify-center">
-              <span className="inline-flex items-center gap-1.5 rounded-full border border-[#1a5c48] bg-[#0e352b] px-3.5 py-1 text-xs font-semibold text-[#38c172] shadow-sm">
-                <ShieldCheck className="h-3.5 w-3.5 text-[#38c172]" />
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-600/30 dark:border-[#1a5c48] bg-emerald-100/70 dark:bg-[#0e352b] px-3.5 py-1 text-xs font-semibold text-emerald-800 dark:text-[#38c172] shadow-sm">
+                <ShieldCheck className="h-3.5 w-3.5 text-emerald-700 dark:text-[#38c172]" />
                 Verified Nutritionist
               </span>
             </div>
           </div>
 
-          <p className="pt-3 text-center text-xs text-[#8ea79d]">Review attributed to {displayName}</p>
+          <p className="pt-3 text-center text-xs text-[#5a746a] dark:text-[#8ea79d]">Review attributed to {displayName}</p>
         </div>
 
         {/* ──── MIDDLE: Inset Dashed Vertical Divider ──── */}
-        <div className="hidden md:block w-px border-r border-dashed border-[#1a4438] my-8" />
+        <div className="hidden md:block w-px border-r border-dashed border-[#dce4e0] dark:border-[#1a4438] my-8" />
 
         {/* ──── RIGHT PANEL: 4 Credentials & Bottom Maiden ──── */}
         <div className="relative flex flex-col justify-between p-6 sm:p-8 space-y-6 z-10">
@@ -322,8 +322,8 @@ export function NutritionistCredentialCard({
                 <User className="h-5 w-5 text-white" />
               </div>
               <div className="min-w-0 flex-1">
-                <p className="text-[11px] font-medium text-[#8ea79d]">Specialization</p>
-                <p className="text-sm sm:text-[15px] font-bold text-white leading-snug mt-0.5">
+                <p className="text-[11px] font-medium text-[#6b857c] dark:text-[#8ea79d]">Specialization</p>
+                <p className="text-sm sm:text-[15px] font-bold text-[#0d2820] dark:text-white leading-snug mt-0.5">
                   {verifier.specialization || 'Clinical Nutrition, Weight Management, and Metabolic Health'}
                 </p>
               </div>
@@ -335,11 +335,11 @@ export function NutritionistCredentialCard({
                 <GraduationCap className="h-5 w-5 text-white" />
               </div>
               <div className="min-w-0 flex-1">
-                <p className="text-[11px] font-medium text-[#8ea79d]">Education</p>
-                <p className="text-sm sm:text-[15px] font-bold text-white leading-snug mt-0.5">
+                <p className="text-[11px] font-medium text-[#6b857c] dark:text-[#8ea79d]">Education</p>
+                <p className="text-sm sm:text-[15px] font-bold text-[#0d2820] dark:text-white leading-snug mt-0.5">
                   BS Nutrition and Dietetics
                 </p>
-                <p className="text-xs text-[#8ea79d] font-normal mt-0.5">
+                <p className="text-xs text-[#5a746a] dark:text-[#8ea79d] font-normal mt-0.5">
                   {verifier.university || 'University of the Philippines'}
                 </p>
               </div>
@@ -351,14 +351,14 @@ export function NutritionistCredentialCard({
                 <Award className="h-5 w-5 text-white" />
               </div>
               <div className="min-w-0 flex-1">
-                <p className="text-[11px] font-medium text-[#8ea79d]">Licensure</p>
-                <p className="text-sm sm:text-[15px] font-bold text-white leading-snug mt-0.5">
+                <p className="text-[11px] font-medium text-[#6b857c] dark:text-[#8ea79d]">Licensure</p>
+                <p className="text-sm sm:text-[15px] font-bold text-[#0d2820] dark:text-white leading-snug mt-0.5">
                   Registered Nutritionist-Dietitian (RND)
                 </p>
                 <div className="mt-0.5 flex flex-wrap items-center gap-2">
-                  <span className="text-xs text-[#8ea79d] font-normal">{maskedPrc}</span>
-                  <span className="inline-flex items-center gap-1 rounded-full border border-emerald-500/30 bg-emerald-950/50 px-2 py-0.5 text-[9px] font-extrabold uppercase tracking-wider text-emerald-300">
-                    <ShieldCheck className="h-2.5 w-2.5 text-emerald-400" />
+                  <span className="text-xs text-[#5a746a] dark:text-[#8ea79d] font-normal">{maskedPrc}</span>
+                  <span className="inline-flex items-center gap-1 rounded-full border border-emerald-600/30 dark:border-emerald-500/30 bg-emerald-100/80 dark:bg-emerald-950/50 px-2 py-0.5 text-[9px] font-extrabold uppercase tracking-wider text-emerald-800 dark:text-emerald-300">
+                    <ShieldCheck className="h-2.5 w-2.5 text-emerald-700 dark:text-emerald-400" />
                     PRC-Verified
                   </span>
                 </div>
@@ -371,18 +371,18 @@ export function NutritionistCredentialCard({
                 <Calendar className="h-5 w-5 text-white" />
               </div>
               <div className="min-w-0 flex-1">
-                <p className="text-[11px] font-medium text-[#8ea79d]">Experience</p>
-                <p className="text-sm sm:text-[15px] font-bold text-white leading-snug mt-0.5">
+                <p className="text-[11px] font-medium text-[#6b857c] dark:text-[#8ea79d]">Experience</p>
+                <p className="text-sm sm:text-[15px] font-bold text-[#0d2820] dark:text-white leading-snug mt-0.5">
                   {verifier.yearsOfExperience ?? 5}+ years
                 </p>
-                <p className="text-xs text-[#8ea79d] font-normal mt-0.5">in clinical and community nutrition</p>
+                <p className="text-xs text-[#5a746a] dark:text-[#8ea79d] font-normal mt-0.5">in clinical and community nutrition</p>
               </div>
             </div>
           </div>
 
           <div className="relative pt-2 flex items-end justify-between pr-24">
             <div className="space-y-1">
-              <p className="text-xs text-[#8ea79d] leading-relaxed">
+              <p className="text-xs text-[#5a746a] dark:text-[#8ea79d] leading-relaxed">
                 Supporting your health
                 <br />
                 with science-backed nutrition.
@@ -391,7 +391,7 @@ export function NutritionistCredentialCard({
                 <button
                   type="button"
                   onClick={onViewNotes}
-                  className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-400 hover:text-emerald-300 transition underline underline-offset-2 pt-0.5"
+                  className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 hover:text-emerald-800 dark:text-emerald-400 dark:hover:text-emerald-300 transition underline underline-offset-2 pt-0.5"
                 >
                   <span>View Clinical Adjustments</span>
                   <span>↗</span>
@@ -400,7 +400,7 @@ export function NutritionistCredentialCard({
             </div>
 
             <div className="absolute -bottom-4 -right-4 flex items-center justify-center">
-              <div className="flex h-20 w-20 items-center justify-center rounded-full bg-[#133a30] shadow-md border border-[#1d5244]/40 overflow-hidden">
+              <div className="flex h-20 w-20 items-center justify-center rounded-full bg-[#1a4e40] dark:bg-[#133a30] shadow-md border border-[#2a6857]/40 dark:border-[#1d5244]/40 overflow-hidden">
                 <KainaraLogo size={66} variant="multicolor" />
               </div>
             </div>
