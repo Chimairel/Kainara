@@ -29,8 +29,8 @@ export function MealPlanSkeleton() {
                 key={i}
                 className={`flex min-w-[70px] sm:min-w-[88px] flex-1 flex-col items-center justify-center rounded-xl sm:rounded-2xl border px-2 sm:px-3 py-2 sm:py-2.5 gap-1.5 ${
                   i === 0
-                    ? 'border-brand-green/30 bg-brand-green/10 dark:border-brand-accent/40 dark:bg-brand-accent/10'
-                    : 'border-brand-border/60 bg-brand-bgAlt/50 dark:border-white/5 dark:bg-white/[0.02]'
+                    ? 'border-brand-green/30 bg-brand-green/10 dark:border-brand-green/40 dark:bg-brand-green/10'
+                    : 'border-brand-border/60 bg-brand-bgAlt/50 dark:border-[#173e33] dark:bg-[#0e271f]'
                 }`}
               >
                 <Skeleton className="h-2.5 w-8 rounded" />

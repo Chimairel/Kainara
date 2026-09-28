@@ -26,7 +26,7 @@ const SidebarTooltip: React.FC<SidebarTooltipProps> = ({ id, label, placement = 
     id={id}
     role="tooltip"
     className={`
-      pointer-events-none absolute z-50 whitespace-nowrap rounded-xl border border-white/10 bg-[#17201d]/95
+      pointer-events-none absolute z-50 whitespace-nowrap rounded-xl border border-[#173e33] bg-[#071914]/95
       px-3 py-2 font-display text-[11px] font-semibold tracking-tight text-white opacity-0 shadow-[0_12px_34px_rgba(0,0,0,0.38)]
       backdrop-blur-xl transition-all duration-150 group-hover:scale-100 group-hover:opacity-100
       group-focus-within:scale-100 group-focus-within:opacity-100
@@ -40,7 +40,7 @@ const SidebarTooltip: React.FC<SidebarTooltipProps> = ({ id, label, placement = 
     {label}
     <span
       aria-hidden="true"
-      className={`absolute h-2 w-2 rotate-45 border border-white/10 bg-[#17201d] ${
+      className={`absolute h-2 w-2 rotate-45 border border-[#173e33] bg-[#071914] ${
         placement === 'side'
           ? '-left-1 top-1/2 -translate-y-1/2 border-r-0 border-t-0'
           : 'left-4 -top-1 border-b-0 border-r-0'
@@ -107,11 +107,11 @@ export const Sidebar: React.FC<SidebarProps> = ({ className = '' }) => {
               type="button"
               onClick={toggleCollapse}
               aria-label="Open sidebar"
-              className="group/sidebar-toggle relative flex h-12 w-12 cursor-ew-resize items-center justify-center rounded-full outline-none transition-transform duration-200 hover:scale-105 focus-visible:ring-2 focus-visible:ring-brand-accent/40"
+              className="group/sidebar-toggle relative flex h-12 w-12 cursor-ew-resize items-center justify-center rounded-full outline-none transition-transform duration-200 hover:scale-105 focus-visible:ring-2 focus-visible:ring-brand-green/40"
             >
               <div className="relative flex h-full w-full items-center justify-center rounded-full overflow-hidden">
                 <KainaraLogo className="h-12 w-12 transition-all duration-150 group-hover/sidebar-toggle:scale-75 group-hover/sidebar-toggle:opacity-0" />
-                <PanelLeftOpen className="absolute h-7 w-7 scale-75 opacity-0 transition-all duration-150 group-hover/sidebar-toggle:scale-100 group-hover/sidebar-toggle:opacity-100 text-brand-accent" />
+                <PanelLeftOpen className="absolute h-7 w-7 scale-75 opacity-0 transition-all duration-150 group-hover/sidebar-toggle:scale-100 group-hover/sidebar-toggle:opacity-100 text-brand-green" />
               </div>
               <span className="absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full border-2 border-[#0d1713] bg-brand-cyan transition-opacity group-hover/sidebar-toggle:opacity-0" />
               <SidebarTooltip id="sidebar-open-tooltip" label="Open sidebar" placement="side" />
@@ -161,7 +161,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ className = '' }) => {
                       active={active}
                       className={`transition-colors duration-200 ${
                         active
-                          ? 'bg-brand-accent text-white font-bold shadow-sm'
+                          ? 'bg-gradient-to-r from-[#eb6a38] to-[#f09e6c] text-white font-bold shadow-sm'
                           : 'text-white/60 hover:text-white hover:bg-white/[0.08]'
                       }`}
                     >
@@ -206,7 +206,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ className = '' }) => {
                 <DockItem
                   active={profileActive}
                   className={`rounded-full p-0.5 transition-[box-shadow] duration-150 ${
-                    profileActive ? 'ring-2 ring-brand-accent shadow-neon' : 'hover:ring-2 hover:ring-white/30'
+                    profileActive ? 'ring-2 ring-[#f09e6c] shadow-sm' : 'hover:ring-2 hover:ring-[#f09e6c]/40'
                   }`}
                 >
                   <DockLabel>Profile · {user.name}</DockLabel>
@@ -257,7 +257,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ className = '' }) => {
                 aria-describedby="sidebar-close-tooltip"
                 aria-controls="nutrimind-sidebar-navigation"
                 aria-expanded={true}
-                className="flex h-10 w-10 cursor-ew-resize items-center justify-center rounded-xl border border-white/10 bg-white/[0.04] text-white/55 outline-none transition hover:border-white/20 hover:bg-white/[0.08] hover:text-white focus-visible:ring-2 focus-visible:ring-brand-cyan/70"
+                className="flex h-10 w-10 cursor-ew-resize items-center justify-center rounded-xl border border-[#173e33] bg-[#0e271f] text-emerald-400/80 outline-none transition hover:border-[#f09e6c]/40 hover:bg-[#163930] hover:text-white focus-visible:ring-2 focus-visible:ring-brand-cyan/70"
               >
                 <PanelLeftClose className="h-[18px] w-[18px]" />
               </button>
@@ -299,14 +299,14 @@ export const Sidebar: React.FC<SidebarProps> = ({ className = '' }) => {
                     }}
                     aria-label={item.label}
                     aria-current={active ? 'page' : undefined}
-                    className={`group relative flex min-h-12 items-center gap-3 rounded-2xl px-3.5 outline-none transition-colors duration-200 focus-visible:ring-2 focus-visible:ring-brand-accent focus-visible:ring-offset-2 focus-visible:ring-offset-[#071914] ${
+                    className={`group relative flex min-h-12 items-center gap-3 rounded-2xl px-3.5 outline-none transition-colors duration-200 focus-visible:ring-2 focus-visible:ring-brand-green focus-visible:ring-offset-2 focus-visible:ring-offset-[#071914] ${
                       active ? 'text-white' : 'text-white/55 hover:bg-white/[0.055] hover:text-white'
                     }`}
                   >
                     {active && (
                       <MotionActiveIndicator
                         layoutId="sidebar-active-nav-indicator"
-                        className="rounded-2xl bg-brand-accent shadow-sm"
+                        className="rounded-2xl bg-gradient-to-r from-[#eb6a38] to-[#f09e6c] shadow-sm"
                       />
                     )}
                     <span className="relative z-10 flex w-full items-center gap-3">
@@ -320,7 +320,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ className = '' }) => {
             })}
           </nav>
 
-          <div className="relative mt-auto flex flex-col gap-1 border-t border-white/[0.08] pt-3">
+          <div className="relative mt-auto flex flex-col gap-1 border-t border-[#173e33] pt-3">
             <a
               href="/docs"
               target="_blank"

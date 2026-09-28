@@ -33,7 +33,7 @@ export default function PortalRoleLayout({
         </div>
         <nav
           aria-label="Main navigation"
-          className="fixed bottom-3 left-3 right-3 z-40 flex h-16 items-center gap-1 overflow-x-auto rounded-[22px] border border-white/10 bg-[#07100d]/95 px-2 shadow-[0_18px_45px_rgba(1,8,5,0.38)] backdrop-blur-xl md:hidden"
+          className="fixed bottom-3 left-3 right-3 z-40 flex h-16 items-center gap-1 overflow-x-auto rounded-[22px] border border-[#173e33] bg-[#071914]/95 px-2 shadow-[0_18px_45px_rgba(1,8,5,0.38)] backdrop-blur-xl md:hidden"
         >
           {navItems.map((item) => {
             const isActive =
@@ -52,7 +52,7 @@ export default function PortalRoleLayout({
                 aria-current={isActive ? 'page' : undefined}
                 className={`flex h-[52px] min-w-0 flex-1 flex-col items-center justify-center gap-1 rounded-2xl px-2 text-[10px] font-bold transition focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand-cyan ${
                   isActive
-                    ? 'bg-brand-accent text-[#07100d] shadow-neon'
+                    ? 'bg-gradient-to-r from-[#eb6a38] to-[#f09e6c] text-white shadow-sm'
                     : 'text-white/75 hover:bg-white/5 hover:text-white'
                 }`}
               >

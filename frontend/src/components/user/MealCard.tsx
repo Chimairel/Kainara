@@ -260,7 +260,7 @@ export default function MealCard({
                 </span>
               )}
               {status === 'PENDING_REVIEW' && !isLogged && (
-                <span className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-0.5 font-mono text-[9px] font-medium text-brand-muted">
+                <span className="inline-flex items-center gap-1 rounded-full border border-emerald-500/20 dark:border-[#173e33] bg-emerald-500/5 dark:bg-[#0e271f] px-2.5 py-0.5 font-mono text-[9px] font-medium text-brand-muted">
                   <Clock3 className="h-2.5 w-2.5 text-amber-400/80" /> Preview
                 </span>
               )}
@@ -316,7 +316,7 @@ export default function MealCard({
                   <button
                     type="button"
                     onClick={() => setIsOpen(false)}
-                    className="absolute top-3 right-3 sm:top-4 sm:right-4 z-20 flex h-9 w-9 items-center justify-center rounded-full border border-white/20 bg-black/65 text-white backdrop-blur-md hover:bg-black/90 transition-colors shadow-lg"
+                    className="absolute top-3 right-3 sm:top-4 sm:right-4 z-20 flex h-9 w-9 items-center justify-center rounded-full border border-emerald-500/20 dark:border-[#173e33] bg-[#071914]/80 text-white backdrop-blur-md hover:bg-[#071914] hover:border-emerald-500/40 transition-colors shadow-lg"
                     aria-label="Close modal"
                   >
                     <X className="h-4 w-4" />

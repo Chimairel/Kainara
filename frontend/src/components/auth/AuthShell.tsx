@@ -34,7 +34,7 @@ export default function AuthShell({
       <div className="pointer-events-none absolute left-[50%] top-12 h-80 w-80 rounded-full bg-brand-green/10 blur-[140px] dark:bg-brand-cyan/10 hidden sm:block" />
       <div className="pointer-events-none absolute -bottom-24 -left-20 h-80 w-80 rounded-full bg-brand-cyan/10 blur-[140px] dark:bg-brand-accent/10" />
 
-      <div className="mx-auto flex min-h-[100dvh] w-full flex-col justify-between bg-brand-bg/90 transition-colors duration-300 dark:bg-[#07100d] sm:min-h-[calc(100dvh-2rem)] lg:grid lg:h-full lg:min-h-0 lg:max-w-[1500px] lg:grid-cols-[1fr_1fr] lg:overflow-hidden lg:rounded-[36px] lg:border lg:border-brand-border/80 lg:bg-brand-surface/70 lg:shadow-card-lg lg:backdrop-blur-xl dark:lg:border-white/10 dark:lg:bg-[#0a130f]/60 dark:lg:shadow-2xl">
+      <div className="mx-auto flex min-h-[100dvh] w-full flex-col justify-between bg-brand-bg/90 transition-colors duration-300 dark:bg-[#07100d] sm:min-h-[calc(100dvh-2rem)] lg:grid lg:h-full lg:min-h-0 lg:max-w-[1500px] lg:grid-cols-[1fr_1fr] lg:overflow-hidden lg:rounded-[36px] lg:border lg:border-brand-border/80 lg:bg-brand-surface/70 lg:shadow-card-lg lg:backdrop-blur-xl dark:lg:border-[#173e33] dark:lg:bg-[#0a130f]/60 dark:lg:shadow-2xl">
         {/* Left / Hero Section */}
         <section className="relative flex flex-col justify-between overflow-hidden bg-brand-bg/60 px-5 pb-2 pt-6 text-brand-text transition-colors duration-300 dark:bg-[#07100d] dark:text-white sm:px-8 sm:pb-8 sm:pt-8 lg:min-h-0 lg:p-8 xl:p-12 2xl:p-16">
           <div className="pointer-events-none absolute -right-20 -top-20 h-72 w-72 rounded-full bg-brand-green/15 blur-[90px] dark:bg-brand-cyan/15" />
@@ -72,7 +72,7 @@ export default function AuthShell({
 
           {/* Hero Typography & Pills (pointer-events-none allows grid tiles behind text to hover) */}
           <div className="pointer-events-none relative z-10 mb-2 mt-4 sm:my-6 lg:my-auto lg:max-w-xl lg:py-4 xl:py-6">
-            <div className="eyebrow mb-3 hidden items-center gap-2 rounded-full border border-brand-green/25 bg-brand-green/10 px-3 py-1 text-brand-green dark:border-white/10 dark:bg-white/[0.04] dark:text-brand-accent lg:inline-flex">
+            <div className="eyebrow mb-3 hidden items-center gap-2 rounded-full border border-brand-green/25 bg-brand-green/10 px-3 py-1 text-brand-green dark:border-[#173e33] dark:bg-[#0e271f] dark:text-emerald-400 lg:inline-flex">
               <Sparkles className="h-3.5 w-3.5" />
               Your personal nutrition system
             </div>
@@ -94,7 +94,7 @@ export default function AuthShell({
                 return (
                   <div
                     key={label as string}
-                    className="inline-flex items-center gap-1.5 rounded-full border border-brand-border/80 bg-brand-surface/80 px-3 py-1 text-[11px] font-medium text-brand-text/85 sm:text-xs lg:rounded-2xl lg:p-3 lg:text-[11px] lg:font-semibold dark:border-white/10 dark:bg-white/[0.05] dark:text-white/80"
+                    className="inline-flex items-center gap-1.5 rounded-full border border-brand-border/80 bg-brand-surface/80 px-3 py-1 text-[11px] font-medium text-brand-text/85 sm:text-xs lg:rounded-2xl lg:p-3 lg:text-[11px] lg:font-semibold dark:border-[#173e33] dark:bg-[#0e271f] dark:text-white/80"
                   >
                     <FeatureIcon className="h-3 w-3 text-brand-green dark:text-brand-cyan shrink-0" />
                     <span>{label as string}</span>
@@ -113,7 +113,7 @@ export default function AuthShell({
           <div className={`w-full ${wide ? 'max-w-[540px]' : 'max-w-[460px]'}`}>
             {/* White floating card matching reference design with dark mode glow */}
             <div
-              className={`auth-card floating-card-shadow relative rounded-[28px] border border-neutral-200/80 bg-white text-neutral-900 dark:border-white/20 sm:rounded-[32px] ${
+              className={`auth-card floating-card-shadow relative rounded-[28px] border border-neutral-200/80 bg-white text-neutral-900 dark:border-[#173e33] sm:rounded-[32px] ${
                 wide ? 'p-5 sm:p-6 lg:p-5 xl:p-6' : 'p-6 sm:p-8 lg:p-6 xl:p-8'
               }`}
             >

@@ -31,7 +31,7 @@ export function ApplicationSidebar() {
           {applicationStages.map((item, index) => (
             <div
               key={item}
-              className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-xs text-white/70"
+              className="flex items-center gap-3 rounded-2xl border border-emerald-500/20 bg-emerald-950/30 px-4 py-3 text-xs text-white/70"
             >
               <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-brand-accent/10 font-mono text-[10px] text-brand-accent">
                 0{index + 1}

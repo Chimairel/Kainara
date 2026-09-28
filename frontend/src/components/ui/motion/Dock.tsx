@@ -242,7 +242,7 @@ export function DockLabel({ children, className = '', ...rest }: DockLabelProps)
             ...(direction === 'vertical' ? { x: -4 } : { y: 4 }),
           }}
           transition={{ duration: 0.15 }}
-          className={`pointer-events-none absolute z-50 whitespace-nowrap rounded-xl border border-white/10 bg-[#17201d]/95 px-2.5 py-1 font-display text-[11px] font-semibold tracking-tight text-white shadow-[0_12px_34px_rgba(0,0,0,0.38)] backdrop-blur-xl ${placementStyles} ${className}`}
+          className={`pointer-events-none absolute z-50 whitespace-nowrap rounded-xl border border-[#173e33] bg-[#071914]/95 px-2.5 py-1 font-display text-[11px] font-semibold tracking-tight text-white shadow-[0_12px_34px_rgba(0,0,0,0.38)] backdrop-blur-xl ${placementStyles} ${className}`}
           role="tooltip"
         >
           {children}

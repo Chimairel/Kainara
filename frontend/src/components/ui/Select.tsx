@@ -160,12 +160,12 @@ export function Select({
         aria-label={ariaLabel}
         className={`flex h-10 w-full items-center justify-between gap-2 rounded-xl border px-3 text-xs font-semibold transition-all duration-150 outline-none ${
           isOpen
-            ? 'border-brand-green bg-brand-surface text-brand-text shadow-sm ring-2 ring-brand-green/20 dark:border-brand-accent dark:bg-[#121e18] dark:text-white dark:ring-brand-accent/20'
-            : 'border-brand-border/80 bg-brand-bgAlt/60 text-brand-text hover:border-brand-green/40 hover:bg-brand-bgAlt/90 dark:border-white/10 dark:bg-white/5 dark:text-white dark:hover:border-white/20 dark:hover:bg-white/[0.08]'
+            ? 'border-brand-green bg-brand-surface text-brand-text shadow-sm ring-2 ring-brand-green/20 dark:border-brand-green dark:bg-[#0e271f] dark:text-white dark:ring-brand-green/20'
+            : 'border-brand-border bg-brand-surface text-brand-text hover:border-brand-green hover:bg-brand-bgAlt dark:border-[#173e33] dark:bg-[#0e271f] dark:text-white dark:hover:border-emerald-500/40 dark:hover:bg-[#13382c]'
         } ${
           disabled
             ? 'cursor-not-allowed opacity-50'
-            : 'cursor-pointer focus-visible:border-brand-green focus-visible:ring-2 focus-visible:ring-brand-green/20 dark:focus-visible:border-brand-accent dark:focus-visible:ring-brand-accent/20'
+            : 'cursor-pointer focus-visible:border-brand-green focus-visible:ring-2 focus-visible:ring-brand-green/20 dark:focus-visible:border-brand-green dark:focus-visible:ring-brand-green/20'
         } ${triggerClassName}`}
       >
         <span className="flex items-center gap-2 truncate">
@@ -181,7 +181,7 @@ export function Select({
 
         <ChevronDown
           className={`h-3.5 w-3.5 shrink-0 text-brand-muted transition-transform duration-200 dark:text-white/40 ${
-            isOpen ? 'rotate-180 text-brand-green dark:text-brand-accent' : ''
+            isOpen ? 'rotate-180 text-brand-green' : ''
           }`}
           aria-hidden="true"
         />
@@ -190,7 +190,7 @@ export function Select({
       {/* Dropdown Menu Panel */}
       {isOpen && (
         <div
-          className={`absolute left-0 top-full z-50 mt-1.5 min-w-full w-max max-w-[min(100vw-2rem,20rem)] overflow-hidden rounded-xl border border-brand-border/80 bg-brand-surface p-1 shadow-card backdrop-blur-md animate-in fade-in-50 zoom-in-95 duration-100 dark:border-white/10 dark:bg-[#121e18] dark:shadow-[0_12px_32px_rgba(0,0,0,0.75)] ${menuClassName}`}
+          className={`absolute left-0 top-full z-50 mt-1.5 min-w-full w-max max-w-[min(100vw-2rem,20rem)] overflow-hidden rounded-xl border border-brand-border/80 bg-brand-surface p-1 shadow-card backdrop-blur-md animate-in fade-in-50 zoom-in-95 duration-100 dark:border-[#173e33] dark:bg-[#0e271f] dark:shadow-[0_12px_32px_rgba(0,0,0,0.75)] ${menuClassName}`}
         >
           <ul
             ref={listboxRef}

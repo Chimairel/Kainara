@@ -118,7 +118,7 @@ export default function AdminOverviewPage() {
         title="Overview"
         description="Manage people, maintain trusted content, and keep platform operations moving."
         meta={
-          <div className="flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-2">
+          <div className="flex items-center gap-2 rounded-full border border-brand-border/70 bg-brand-surface/60 px-3 py-2 dark:border-[#173e33] dark:bg-[#0e271f]">
             <span className="h-1.5 w-1.5 rounded-full bg-brand-cyan shadow-[0_0_9px_rgba(34,211,238,0.8)]" />
             <span className="text-xs font-medium text-brand-muted">Latest loaded overview</span>
           </div>

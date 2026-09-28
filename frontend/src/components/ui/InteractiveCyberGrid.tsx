@@ -86,8 +86,8 @@ export default function InteractiveCyberGrid({
           let tileClasses = 'border transition-colors duration-1000 ease-in-out hover:duration-0 ';
           if (variant === 'dark') {
             tileClasses += isAccent
-              ? 'border-[#b8f45f]/40 bg-[#00b159]/25 hover:bg-[#b8f45f]/35'
-              : 'border-white/[0.06] hover:border-[#b8f45f]/40 hover:bg-[#b8f45f]/20';
+              ? 'border-[#eb6a38]/40 bg-[#eb6a38]/20 hover:bg-[#eb6a38]/35'
+              : 'border-[#173e33]/50 hover:border-[#eb6a38]/40 hover:bg-[#eb6a38]/15';
           } else if (variant === 'light') {
             tileClasses += isAccent
               ? 'border-emerald-600/30 bg-emerald-600/15 hover:bg-emerald-600/25'
@@ -95,8 +95,8 @@ export default function InteractiveCyberGrid({
           } else {
             // Adaptive (light / dark)
             tileClasses += isAccent
-              ? 'border-emerald-600/30 bg-emerald-600/15 hover:bg-emerald-600/25 dark:border-[#b8f45f]/40 dark:bg-[#00b159]/25 dark:hover:bg-[#b8f45f]/35'
-              : 'border-slate-900/[0.06] hover:border-emerald-600/40 hover:bg-emerald-600/15 dark:border-white/[0.06] dark:hover:border-[#b8f45f]/40 dark:hover:bg-[#b8f45f]/20';
+              ? 'border-emerald-600/30 bg-emerald-600/15 hover:bg-emerald-600/25 dark:border-[#eb6a38]/40 dark:bg-[#eb6a38]/20 dark:hover:bg-[#eb6a38]/35'
+              : 'border-slate-900/[0.06] hover:border-emerald-600/40 hover:bg-emerald-600/15 dark:border-[#173e33]/50 dark:hover:border-[#eb6a38]/40 dark:hover:bg-[#eb6a38]/15';
           }
 
           return <div key={index} data-grid-tile={index} className={tileClasses} />;

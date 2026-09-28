@@ -150,7 +150,7 @@ export default function PlanningLocationFields({
           </button>
 
           {isRegionOpen && filteredRegions.length > 0 && (
-            <div className="absolute left-0 top-full z-50 mt-1 max-h-56 w-full overflow-y-auto rounded-xl border border-brand-border/80 bg-brand-surface p-1 shadow-card backdrop-blur-md animate-in fade-in-50 zoom-in-95 duration-100 dark:border-white/10 dark:bg-[#121e18] dark:shadow-[0_12px_32px_rgba(0,0,0,0.75)] scrollbar-thin">
+            <div className="absolute left-0 top-full z-50 mt-1 max-h-56 w-full overflow-y-auto rounded-xl border border-brand-border/80 bg-brand-surface p-1 shadow-card backdrop-blur-md animate-in fade-in-50 zoom-in-95 duration-100 dark:border-[#173e33] dark:bg-[#0e271f] dark:shadow-[0_12px_32px_rgba(0,0,0,0.75)] scrollbar-thin">
               <ul role="listbox" className="space-y-0.5">
                 {filteredRegions.map((region) => {
                   const isSelected = region.toLowerCase() === canonicalRegion.toLowerCase();
@@ -162,7 +162,7 @@ export default function PlanningLocationFields({
                       onClick={() => selectRegion(region)}
                       className={`flex cursor-pointer items-center justify-between gap-2 rounded-lg px-3 py-2 text-xs font-semibold transition-colors select-none ${
                         isSelected
-                          ? 'bg-brand-green/15 text-brand-green dark:bg-brand-accent/20 dark:text-brand-accent font-bold'
+                          ? 'bg-brand-green/15 text-brand-green dark:bg-brand-green/20 dark:text-brand-green font-bold'
                           : 'text-brand-text/90 hover:bg-brand-bgAlt/80 dark:text-white/80 dark:hover:bg-white/[0.06]'
                       }`}
                     >
@@ -217,7 +217,7 @@ export default function PlanningLocationFields({
           </button>
 
           {isProvinceOpen && regionValid && filteredProvinces.length > 0 && (
-            <div className="absolute left-0 top-full z-50 mt-1 max-h-56 w-full overflow-y-auto rounded-xl border border-brand-border/80 bg-brand-surface p-1 shadow-card backdrop-blur-md animate-in fade-in-50 zoom-in-95 duration-100 dark:border-white/10 dark:bg-[#121e18] dark:shadow-[0_12px_32px_rgba(0,0,0,0.75)] scrollbar-thin">
+            <div className="absolute left-0 top-full z-50 mt-1 max-h-56 w-full overflow-y-auto rounded-xl border border-brand-border/80 bg-brand-surface p-1 shadow-card backdrop-blur-md animate-in fade-in-50 zoom-in-95 duration-100 dark:border-[#173e33] dark:bg-[#0e271f] dark:shadow-[0_12px_32px_rgba(0,0,0,0.75)] scrollbar-thin">
               <ul role="listbox" className="space-y-0.5">
                 {filteredProvinces.map((option) => {
                   const isSelected = option.name.toLowerCase() === provinceHucName.trim().toLowerCase();
@@ -229,7 +229,7 @@ export default function PlanningLocationFields({
                       onClick={() => selectProvince(option.name)}
                       className={`flex cursor-pointer items-center justify-between gap-2 rounded-lg px-3 py-2 text-xs font-semibold transition-colors select-none ${
                         isSelected
-                          ? 'bg-brand-green/15 text-brand-green dark:bg-brand-accent/20 dark:text-brand-accent font-bold'
+                          ? 'bg-brand-green/15 text-brand-green dark:bg-brand-green/20 dark:text-brand-green font-bold'
                           : 'text-brand-text/90 hover:bg-brand-bgAlt/80 dark:text-white/80 dark:hover:bg-white/[0.06]'
                       }`}
                     >

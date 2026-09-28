@@ -17,15 +17,17 @@
   --brand-text: #0d2820;
   --brand-muted: #5a746a;
   --brand-accent: #eb6a38;
+  --brand-accent-soft: #f09e6c;
+  --brand-accent-hover: #df5d2c;
   --brand-cyan: #18b9d2;
   --brand-violet: #7759e8;
   --brand-black: #07100d;
   --brand-dark: #0a1512;
 
-  /* ─── KAINARA Logo Gradient (Light: Forest Jade + Terracotta) ─── */
-  --kainara-logo-grad-start: #08705b;
-  --kainara-logo-grad-mid: #0e9f6e;
-  --kainara-logo-grad-end: #eb6a38;
+  /* ─── KAINARA Logo Gradient (Light: Terracotta + Peach + Jade) ─── */
+  --kainara-logo-grad-start: #eb6a38;
+  --kainara-logo-grad-mid: #f09e6c;
+  --kainara-logo-grad-end: #08705b;
 
   /* ─── Skeleton Loading Tokens ─── */
   --skeleton-bg: rgba(13, 40, 32, 0.075);
@@ -84,6 +86,8 @@ html.dark {
   --brand-text: #eff8f3;
   --brand-muted: #8ea99f;
   --brand-accent: #eb6a38;
+  --brand-accent-soft: #f09e6c;
+  --brand-accent-hover: #df5d2c;
   --brand-cyan: #38bdf8;
   --brand-violet: #a892ff;
   --brand-black: #040d0a;
@@ -135,8 +139,7 @@ html.dark {
 }
 
 /*
- * Tailwind does not emit opacity variants such as border-brand-border/70
- * for a custom color backed by a complete CSS color value.
+ * Tailwind opacity variant fallback safety guards
  */
 :root .border-brand-border,
 :root [class*='border-brand-border/'] {
@@ -145,6 +148,12 @@ html.dark {
 html.dark .border-brand-border,
 html.dark [class*='border-brand-border/'] {
   border-color: #173e33;
+}
+:root [class*='border-brand-green/'] {
+  border-color: color-mix(in srgb, var(--brand-green) 30%, transparent);
+}
+html.dark [class*='border-brand-green/'] {
+  border-color: color-mix(in srgb, var(--brand-green) 30%, transparent);
 }
 [class*='border-status-pending-text/'] {
   border-color: var(--status-pending-text);
@@ -369,17 +378,17 @@ th {
 .portal-page-header [data-button-variant='secondary'],
 .portal-page-header [data-button-variant='ghost'] {
   --tw-ring-offset-color: #07100d;
-  background: rgba(255, 255, 255, 0.045);
-  border-color: rgba(255, 255, 255, 0.16);
+  background: rgba(14, 39, 31, 0.8);
+  border-color: #173e33;
   color: rgba(255, 255, 255, 0.82);
   box-shadow: none;
 }
 
 .portal-page-header [data-button-variant='secondary']:hover:not(:disabled),
 .portal-page-header [data-button-variant='ghost']:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.085);
-  border-color: rgba(235, 106, 56, 0.4);
-  color: #eb6a38;
+  background: rgba(23, 62, 51, 0.9);
+  border-color: #f09e6c;
+  color: #f09e6c;
 }
 
 .portal-kicker {
@@ -420,7 +429,7 @@ th {
 }
 
 .portal-section-label::before {
-  background: linear-gradient(90deg, var(--brand-accent), var(--brand-cyan));
+  background: linear-gradient(90deg, var(--brand-green), var(--brand-cyan));
   border-radius: 999px;
   content: '';
   height: 0.4rem;
@@ -681,6 +690,17 @@ th {
   font-family: inherit;
   font-size: 0.75rem;
   letter-spacing: 0.04em;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.portal-section-label::before {
+  content: '';
+  display: inline-block;
+  width: 0.45rem;
+  height: 0.45rem;
+  border-radius: 9999px;
+  background: linear-gradient(90deg, var(--brand-accent), var(--brand-accent-soft));
 }
 @media (max-width: 767px) {
   .portal-page {
@@ -801,6 +821,6 @@ html.dark .auth-card {
     0 25px 60px -10px rgba(0, 0, 0, 0.95),
     0 0 55px rgba(84, 199, 190, 0.28),
     0 0 20px rgba(184, 244, 95, 0.1) !important;
-  border-color: rgba(255, 255, 255, 0.2) !important;
+  border-color: #173e33 !important;
 }
 

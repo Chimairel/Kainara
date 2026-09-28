@@ -685,7 +685,7 @@ export default function WeeklyPlanPage() {
                   />
 
                   {/* Filters block */}
-                  <div className="flex flex-col items-center justify-between gap-3 rounded-[22px] border border-brand-border/70 bg-brand-surface/90 p-3 shadow-sm md:flex-row dark:border-white/10 dark:bg-white/[0.035]">
+                  <div className="flex flex-col items-center justify-between gap-3 rounded-[22px] border border-brand-border/70 bg-brand-surface/90 p-3 shadow-sm md:flex-row dark:border-[#173e33] dark:bg-[#0e271f]">
                     <form onSubmit={handleHistorySearchSubmit} className="flex w-full gap-2 md:max-w-sm">
                       <label className="relative min-w-0 flex-1">
                         <span className="sr-only">Search meal history</span>
@@ -695,7 +695,7 @@ export default function WeeklyPlanPage() {
                           placeholder="Search history..."
                           value={historySearch}
                           onChange={(e) => setHistorySearch(e.target.value)}
-                          className="h-10 w-full rounded-xl border border-brand-border bg-brand-bgAlt/60 pl-10 pr-3 text-xs text-brand-text outline-none focus:border-brand-green dark:border-white/10 dark:bg-white/5 dark:text-white"
+                          className="h-10 w-full rounded-xl border border-brand-border bg-brand-bgAlt/60 pl-10 pr-3 text-xs text-brand-text outline-none focus:border-brand-green dark:border-[#173e33] dark:bg-[#071914] dark:text-white"
                         />
                       </label>
                       <Button type="submit" variant="secondary" className="h-10 px-4 text-xs">
@@ -733,7 +733,7 @@ export default function WeeklyPlanPage() {
                       <span>{historyError}</span>
                     </div>
                   ) : historyLogs.length === 0 && !hasUnloggedToCatchUp ? (
-                    <div className="p-12 text-center border border-brand-border/40 bg-brand-surface/30 rounded-2xl dark:border-white/10 dark:bg-white/[0.02]">
+                    <div className="p-12 text-center border border-brand-border/40 bg-brand-surface/30 rounded-2xl dark:border-[#173e33] dark:bg-[#0e271f]/50">
                       <FileText className="w-8 h-8 text-brand-green dark:text-brand-accent mx-auto mb-2" />
                       <p className="text-sm text-brand-text dark:text-white font-semibold">No Meal Logs Found</p>
                       <p className="text-xs text-brand-muted mt-1 max-w-sm mx-auto">
@@ -744,7 +744,7 @@ export default function WeeklyPlanPage() {
                     /* Selected Day Section with Macro Summary, Catch-Up Card (if any unlogged), and Logged Meal Cards */
                     <section className="space-y-4">
                       {/* Day Header Banner with Macro Summary */}
-                      <div className="flex flex-col justify-between gap-3 rounded-[24px] border border-brand-border/70 bg-brand-surface p-4 sm:p-5 shadow-sm md:flex-row md:items-center dark:border-white/10 dark:bg-white/[0.035]">
+                      <div className="flex flex-col justify-between gap-3 rounded-[24px] border border-brand-border/70 bg-brand-surface p-4 sm:p-5 shadow-sm md:flex-row md:items-center dark:border-[#173e33] dark:bg-[#0e271f]">
                         <div>
                           <div className="flex items-center gap-2">
                             <span className="text-xs font-extrabold text-brand-green dark:text-brand-accent font-display uppercase tracking-wider">
@@ -763,7 +763,7 @@ export default function WeeklyPlanPage() {
 
                         {/* Day Macro Badges */}
                         <div className="flex flex-wrap gap-2 text-xs font-bold">
-                          <span className="rounded-xl border border-brand-border bg-brand-bgAlt px-2.5 py-1 font-mono text-[10px] uppercase tracking-wider text-brand-green dark:border-white/10 dark:bg-white/5 dark:text-brand-accent">
+                          <span className="rounded-xl border border-brand-border bg-brand-bgAlt px-2.5 py-1 font-mono text-[10px] uppercase tracking-wider text-brand-green dark:border-[#173e33] dark:bg-[#071914] dark:text-brand-accent">
                             {Math.round(activeDay.totalCalories)} kcal
                           </span>
                           <span
@@ -846,7 +846,7 @@ export default function WeeklyPlanPage() {
                     /* Unlogged Scheduled Day (0 meals logged yet, but has plan meals) */
                     <section className="space-y-4">
                       {/* Day Header Banner */}
-                      <div className="flex flex-col justify-between gap-3 rounded-[24px] border border-brand-border/70 bg-brand-surface p-4 sm:p-5 shadow-sm md:flex-row md:items-center dark:border-white/10 dark:bg-white/[0.035]">
+                      <div className="flex flex-col justify-between gap-3 rounded-[24px] border border-brand-border/70 bg-brand-surface p-4 sm:p-5 shadow-sm md:flex-row md:items-center dark:border-[#173e33] dark:bg-[#0e271f]">
                         <div>
                           <div className="flex items-center gap-2">
                             <span className="text-xs font-extrabold text-brand-green dark:text-brand-accent font-display uppercase tracking-wider">
@@ -891,7 +891,7 @@ export default function WeeklyPlanPage() {
                     </section>
                   ) : (
                     /* Empty state when clicking a calendar day that has 0 meals and no planned meals */
-                    <div className="p-8 text-center border border-dashed border-brand-border/80 bg-brand-surface/40 rounded-2xl dark:border-white/10 dark:bg-white/[0.02]">
+                    <div className="p-8 text-center border border-dashed border-brand-border/80 bg-brand-surface/40 rounded-2xl dark:border-[#173e33] dark:bg-[#0e271f]/50">
                       <Calendar className="w-8 h-8 text-brand-muted mx-auto mb-2 opacity-50" />
                       <p className="text-sm text-brand-text dark:text-white font-semibold">
                         No Meals Logged on{' '}

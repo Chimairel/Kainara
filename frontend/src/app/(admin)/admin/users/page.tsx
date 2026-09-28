@@ -107,7 +107,7 @@ export default function AdminUsersPage() {
         title="User management"
         description="Inspect account roles, verification state, onboarding progress, and membership across the platform."
         meta={
-          <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-2 font-mono text-[9px] uppercase tracking-[0.14em] text-brand-muted">
+          <span className="rounded-full border border-brand-border/70 bg-brand-surface/60 px-3 py-2 font-mono text-[9px] uppercase tracking-[0.14em] text-brand-muted dark:border-[#173e33] dark:bg-[#0e271f]">
             {total} accounts
           </span>
         }

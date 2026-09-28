@@ -101,7 +101,7 @@ export default function NutritionistApprovedPage() {
         title="Approved reviews"
         description="A traceable view of meals you reviewed and approved for user plans."
         meta={
-          <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-2 font-mono text-[9px] uppercase tracking-wider text-brand-muted">
+          <span className="rounded-full border border-brand-border/70 bg-brand-surface/60 px-3 py-2 font-mono text-[9px] uppercase tracking-wider text-brand-muted dark:border-[#173e33] dark:bg-[#0e271f]">
             {meals.length} approved
           </span>
         }

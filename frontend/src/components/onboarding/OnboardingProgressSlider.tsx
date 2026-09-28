@@ -34,7 +34,7 @@ export const OnboardingProgressSlider: React.FC<OnboardingProgressSliderProps> =
         aria-valuemin={1}
         aria-valuemax={totalSteps}
         aria-label={`Onboarding progress: Step ${clampedStep} of ${totalSteps}`}
-        className="relative flex h-10 sm:h-11 w-full items-center overflow-hidden rounded-full border border-brand-border/70 bg-[#f1f3f5] shadow-inner transition-colors dark:border-white/10 dark:bg-neutral-900/90"
+        className="relative flex h-10 sm:h-11 w-full items-center overflow-hidden rounded-full border border-brand-border bg-[#f1f3f5] shadow-inner transition-colors dark:border-[#173e33] dark:bg-[#0e271f]"
       >
         {/* Dynamic Multi-stop Gradient Fill */}
         <motion.div

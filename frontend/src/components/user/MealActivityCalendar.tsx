@@ -311,10 +311,10 @@ export default function MealActivityCalendar({
   // Level 3 (3+ meals): Electric lime accent with glow (#b8f45f)
   const getCellColor = (cell: DayCell) => {
     if (cell.isFuture) {
-      return 'border border-dashed border-brand-border/60 bg-[#f4f7f5] opacity-40 cursor-not-allowed dark:border-white/[0.04] dark:bg-white/[0.02] dark:opacity-30';
+      return 'border border-dashed border-brand-border/60 bg-[#f4f7f5] opacity-40 cursor-not-allowed dark:border-[#173e33]/50 dark:bg-[#071914] dark:opacity-30';
     }
     if (cell.mealCount === 0) {
-      return 'border border-[#c6d6ce] bg-[#e8efec] hover:border-brand-green/40 hover:bg-[#dce8e0] dark:border-white/[0.08] dark:bg-[#14221b] dark:hover:border-white/[0.16] dark:hover:bg-white/[0.12]';
+      return 'border border-[#c6d6ce] bg-[#e8efec] hover:border-brand-green/40 hover:bg-[#dce8e0] dark:border-[#173e33] dark:bg-[#0e271f] dark:hover:border-[#f09e6c]/40 dark:hover:bg-[#163930]';
     }
 
     // High activity / 3+ meals: NutriMind Electric Lime Glow
@@ -453,16 +453,16 @@ export default function MealActivityCalendar({
 
   return (
     <div
-      className={`rounded-[26px] border border-brand-border/80 bg-brand-surface p-5 sm:p-6 shadow-card text-left transition-colors dark:border-white/10 dark:bg-[#0c1511] ${className}`}
+      className={`rounded-[26px] border border-brand-border bg-brand-surface p-5 sm:p-6 shadow-card text-left transition-colors dark:border-[#173e33] dark:bg-[#0e271f] ${className}`}
     >
       {/* Top Header */}
-      <div className="flex flex-col gap-4 border-b border-brand-border/60 pb-5 dark:border-white/10 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-col gap-4 border-b border-brand-border/60 pb-5 dark:border-[#173e33] sm:flex-row sm:items-center sm:justify-between">
         <div>
           <div className="flex items-center gap-2">
-            <span className="font-mono text-[9px] font-extrabold uppercase tracking-[0.2em] text-brand-green dark:text-brand-accent">
+            <span className="font-mono text-[9px] font-extrabold uppercase tracking-[0.2em] text-brand-green">
               Intake timeline
             </span>
-            <span className="inline-flex items-center gap-1 rounded-full bg-brand-green/10 px-2 py-0.5 text-[9px] font-bold text-brand-green dark:bg-brand-accent/15 dark:text-brand-accent">
+            <span className="inline-flex items-center gap-1 rounded-full bg-brand-green/10 px-2 py-0.5 text-[9px] font-bold text-brand-green dark:bg-emerald-500/15 dark:text-emerald-400">
               <Sparkles className="h-2.5 w-2.5" />
               {timeRange === 'Month'
                 ? `${threeMonthsData.centerMonth.activeDaysCount} active days (month)`
@@ -475,7 +475,7 @@ export default function MealActivityCalendar({
         </div>
 
         {/* Time Range Filter Pills: Year, Month, Week */}
-        <div className="flex items-center gap-1 rounded-2xl border border-brand-border/70 bg-brand-bgAlt/50 p-1 dark:border-white/10 dark:bg-white/[0.04]">
+        <div className="flex items-center gap-1 rounded-2xl border border-brand-border bg-brand-bgAlt/50 p-1 dark:border-[#173e33] dark:bg-[#0b231c]/60">
           {(['Year', 'Month', 'Week'] as ActivityTimeRange[]).map((mode) => (
             <button
               key={mode}
@@ -483,7 +483,7 @@ export default function MealActivityCalendar({
               onClick={() => setTimeRange(mode)}
               className={`rounded-xl px-3.5 py-1.5 text-xs font-extrabold transition-all duration-150 ${
                 timeRange === mode
-                  ? 'bg-brand-surface text-brand-text shadow-sm border border-brand-border/60 dark:bg-[#15231c] dark:text-white dark:border-white/10'
+                  ? 'bg-brand-surface text-brand-text shadow-sm border border-brand-border dark:bg-[#13382c] dark:text-white dark:border-[#1e5a48]'
                   : 'text-brand-muted hover:text-brand-text dark:text-white/40 dark:hover:text-white'
               }`}
             >
@@ -516,8 +516,8 @@ export default function MealActivityCalendar({
                   aria-pressed={isSelected}
                   className={`group flex flex-col items-center gap-1.5 rounded-2xl border p-2 sm:p-3 transition-all duration-150 text-center outline-none ${
                     isSelected
-                      ? 'border-brand-green bg-brand-green/5 ring-2 ring-brand-green ring-offset-2 ring-offset-brand-surface dark:border-brand-accent dark:bg-brand-accent/5 dark:ring-brand-accent dark:ring-offset-[#0c1511]'
-                      : 'border-brand-border/60 bg-brand-bgAlt/30 hover:border-brand-border hover:bg-brand-bgAlt/60 dark:border-white/5 dark:bg-white/[0.02] dark:hover:bg-white/[0.05]'
+                      ? 'border-brand-green bg-brand-green/5 ring-2 ring-brand-green ring-offset-2 ring-offset-brand-surface dark:border-brand-green dark:bg-emerald-500/10 dark:ring-brand-green dark:ring-offset-[#0e271f]'
+                      : 'border-brand-border/60 bg-brand-bgAlt/30 hover:border-brand-border hover:bg-brand-bgAlt/60 dark:border-[#173e33] dark:bg-[#0e271f]/40 dark:hover:border-emerald-500/40 dark:hover:bg-[#13382c]'
                   }`}
                 >
                   <span className="text-[11px] sm:text-xs font-black uppercase text-brand-muted dark:text-white/40">
@@ -564,7 +564,7 @@ export default function MealActivityCalendar({
                 onClick={handlePrevMonth}
                 aria-label="Previous month"
                 title="Previous month"
-                className="flex h-9 w-9 sm:h-9 sm:w-9 flex-shrink-0 items-center justify-center rounded-full border border-brand-border/70 bg-brand-surface text-brand-text shadow-sm transition-all hover:border-brand-green/60 hover:bg-brand-bgAlt hover:scale-110 active:scale-95 dark:border-white/10 dark:bg-white/[0.04] dark:text-white dark:hover:bg-white/[0.08]"
+                className="flex h-9 w-9 sm:h-9 sm:w-9 flex-shrink-0 items-center justify-center rounded-full border border-brand-border bg-brand-surface text-brand-text shadow-sm transition-all hover:border-brand-green hover:bg-brand-bgAlt hover:scale-110 active:scale-95 dark:border-[#173e33] dark:bg-[#0e271f] dark:text-emerald-300 dark:hover:border-emerald-500/50 dark:hover:bg-[#13382c]"
               >
                 <ChevronLeft className="h-4 w-4 sm:h-5 sm:w-5" />
               </button>
@@ -581,8 +581,8 @@ export default function MealActivityCalendar({
                 title={canGoNext ? 'Next month' : 'Future month is locked'}
                 className={`flex h-9 w-9 sm:h-9 sm:w-9 flex-shrink-0 items-center justify-center rounded-full border transition-all ${
                   canGoNext
-                    ? 'border-brand-border/70 bg-brand-surface text-brand-text shadow-sm hover:border-brand-green/60 hover:bg-brand-bgAlt hover:scale-110 active:scale-95 dark:border-white/10 dark:bg-white/[0.04] dark:text-white dark:hover:bg-white/[0.08]'
-                    : 'border-brand-border/30 bg-brand-bgAlt/20 text-brand-muted/30 cursor-not-allowed opacity-30 shadow-none dark:border-white/5 dark:bg-white/[0.01] dark:text-white/20 pointer-events-none'
+                    ? 'border-brand-border bg-brand-surface text-brand-text shadow-sm hover:border-brand-green hover:bg-brand-bgAlt hover:scale-110 active:scale-95 dark:border-[#173e33] dark:bg-[#0e271f] dark:text-emerald-300 dark:hover:border-emerald-500/50 dark:hover:bg-[#13382c]'
+                    : 'border-brand-border/30 bg-brand-bgAlt/20 text-brand-muted/30 cursor-not-allowed opacity-30 shadow-none dark:border-[#173e33]/50 dark:bg-[#0e271f]/20 dark:text-emerald-400/20 pointer-events-none'
                 }`}
               >
                 <ChevronRight className="h-4 w-4 sm:h-5 sm:w-5" />
@@ -684,12 +684,12 @@ export default function MealActivityCalendar({
         )}
 
         {/* Hover Tooltip Card / Status Bar */}
-        <div className="mt-4 flex flex-col gap-2 rounded-2xl border border-brand-border/50 bg-brand-bgAlt/40 p-3 dark:border-white/5 dark:bg-white/[0.02] sm:flex-row sm:items-center sm:justify-between text-xs">
+        <div className="mt-4 flex flex-col gap-2 rounded-2xl border border-brand-border/50 bg-brand-bgAlt/40 p-3 dark:border-[#173e33] dark:bg-[#0b231c]/60 sm:flex-row sm:items-center sm:justify-between text-xs">
           <div className="flex items-center gap-2">
-            <CalendarIcon className="h-3.5 w-3.5 text-brand-green dark:text-brand-accent" />
+            <CalendarIcon className="h-3.5 w-3.5 text-brand-green" />
             {hoveredCell ? (
               <span className="font-semibold text-brand-text dark:text-white">
-                <span className="font-bold text-brand-green dark:text-brand-accent">
+                <span className="font-bold text-brand-green">
                   {formatManilaDate(hoveredCell.date, { weekday: 'short', month: 'short', day: 'numeric' })}
                 </span>
                 {hoveredCell.isFuture ? (
@@ -704,7 +704,7 @@ export default function MealActivityCalendar({
             ) : selectedDateKey ? (
               <span className="font-semibold text-brand-text dark:text-white">
                 Selected date:{' '}
-                <span className="font-bold text-brand-green dark:text-brand-accent">
+                <span className="font-bold text-brand-green">
                   {formatManilaDate(manilaDateFromKey(selectedDateKey), {
                     weekday: 'long',
                     month: 'short',
@@ -724,7 +724,7 @@ export default function MealActivityCalendar({
           <div className="flex items-center gap-1.5 self-end sm:self-auto text-[10px] font-mono text-brand-muted dark:text-white/40">
             <span>Less</span>
             <span
-              className="h-3 w-3 rounded-[3px] border border-[#c6d6ce] bg-[#e8efec] dark:border-white/[0.08] dark:bg-[#14221b]"
+              className="h-3 w-3 rounded-[3px] border border-[#c6d6ce] bg-[#e8efec] dark:border-[#173e33] dark:bg-[#14221b]"
               title="0 meals"
             />
             <span

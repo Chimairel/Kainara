@@ -30,8 +30,8 @@ export const ThemeToggle: React.FC<ThemeToggleProps> = ({ className = '', size =
     default: `
       border shadow-sm backdrop-blur-md
       border-brand-border/80 bg-brand-surface/80 text-brand-text hover:border-brand-green/40 hover:bg-brand-bgAlt/80
-      dark:border-white/10 dark:bg-white/[0.05] dark:text-white dark:hover:border-white/20 dark:hover:bg-white/[0.1]
-      focus-visible:ring-2 focus-visible:ring-brand-green/50 dark:focus-visible:ring-brand-accent/50
+      dark:border-[#173e33] dark:bg-[#0e271f] dark:text-emerald-400 dark:hover:border-emerald-500/40 dark:hover:bg-[#13382c]
+      focus-visible:ring-2 focus-visible:ring-brand-green/50 dark:focus-visible:ring-brand-green/50
     `,
     hero: `
       border-0 bg-white/[0.08] hover:bg-white/[0.16] active:bg-white/[0.2]

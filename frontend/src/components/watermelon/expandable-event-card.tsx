@@ -71,7 +71,7 @@ export default function ExpandableEventCard({
               <button
                 type="button"
                 onClick={() => setIsOpen(false)}
-                className="absolute top-4 right-4 z-20 flex h-9 w-9 items-center justify-center bg-black/60 hover:bg-black/80 rounded-full border border-white/20 text-white transition-colors backdrop-blur-md"
+                className="absolute top-4 right-4 z-20 flex h-9 w-9 items-center justify-center bg-[#071914]/80 hover:bg-[#071914] rounded-full border border-emerald-500/20 dark:border-[#173e33] hover:border-emerald-500/40 text-white transition-colors backdrop-blur-md"
                 aria-label="Close modal"
               >
                 <svg

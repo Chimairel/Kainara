@@ -67,15 +67,25 @@ export function CockpitDashboard({
       <div className="grid gap-5 xl:grid-cols-[minmax(360px,1fr)_minmax(0,1.4fr)]">
         <section
           aria-label="Nutrition summary"
-          className="daily-intake-card flex min-h-full flex-col justify-between rounded-3xl border p-5 sm:p-6"
+          className="daily-intake-card relative overflow-hidden flex min-h-full flex-col justify-between rounded-3xl border border-brand-border p-5 sm:p-6"
         >
-          <div>
-            <div className="flex items-center justify-between">
-              <p className="text-sm font-semibold text-brand-muted">Your daily intake</p>
-              <span className="rounded-full border border-brand-green/30 bg-brand-green/10 px-2.5 py-0.5 text-[10px] font-bold text-brand-green">
-                Today
-              </span>
-            </div>
+          {/* Retro Wave Organic Corner Accent (Top Right) */}
+          <div className="pointer-events-none absolute -top-0.5 -right-0.5 h-32 w-32 overflow-hidden rounded-tr-3xl z-0">
+            <svg viewBox="0 0 160 160" className="h-full w-full" fill="none" aria-hidden="true">
+              <path d="M160,0 L0,0 C20,40 55,95 120,135 C140,147 160,155 160,155 Z" fill="#eb6a38" />
+              <path d="M160,0 L40,0 C55,30 80,72 130,105 C145,115 160,120 160,120 Z" fill="#f09e6c" />
+              <path d="M160,0 L82,0 C92,20 110,48 142,70 C152,76 160,80 160,80 Z" className="fill-[#1b4e41] dark:fill-[#164639]" />
+            </svg>
+          </div>
+
+          <div className="relative z-10 flex flex-col justify-between h-full">
+            <div>
+              <div className="flex items-center justify-between">
+                <p className="text-sm font-semibold text-brand-muted pl-1">Your daily intake</p>
+                <span className="rounded-full border border-brand-border/70 dark:border-[#173e33] bg-brand-surface/90 dark:bg-[#071914]/90 px-2.5 py-0.5 text-[10px] font-bold text-[#eb6a38] dark:text-[#f09e6c] shadow-xs backdrop-blur-xs">
+                  Today
+                </span>
+              </div>
 
             {/* Donut Gauge & Calorie Telemetry */}
             <div className="my-6 flex items-center gap-5 sm:gap-6">
@@ -200,6 +210,7 @@ export function CockpitDashboard({
                 />
               </span>
             </div>
+          </div>
           </div>
         </section>
         <section

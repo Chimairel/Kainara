@@ -200,7 +200,7 @@ export default function MealPlanGenerationProgress({
             aria-valuemin={0}
             aria-valuemax={100}
             aria-label={`Estimated meal plan generation progress: ${normalizedProgress}%`}
-            className="group relative flex h-12 w-full items-center overflow-hidden rounded-full border border-brand-border/70 bg-[#f1f3f5] shadow-inner transition-colors dark:border-white/10 dark:bg-neutral-900/90"
+            className="group relative flex h-12 w-full items-center overflow-hidden rounded-full border border-brand-border bg-[#f1f3f5] shadow-inner transition-colors dark:border-[#173e33] dark:bg-[#0e271f]"
           >
             {/* Dynamic Multi-stop Gradient Fill */}
             <motion.div

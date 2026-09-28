@@ -148,7 +148,7 @@ export default function MealHistoryCard({
         isExpanded
           ? 'border-brand-green ring-1 ring-brand-green/30 shadow-card'
           : 'border-brand-border/80 hover:border-brand-green/40 hover:shadow-sm'
-      } dark:border-white/10 dark:bg-white/[0.035] ${className}`}
+      } dark:border-[#173e33] dark:bg-[#0e271f] ${className}`}
     >
       {/* Primary Card Row */}
       <div
@@ -267,28 +267,28 @@ export default function MealHistoryCard({
 
       {/* Expandable Drawer: Notes & Detailed Breakdown */}
       {isExpanded && (
-        <div className="border-t border-brand-border/60 bg-brand-bgAlt/30 p-4 sm:p-5 dark:border-white/10 dark:bg-white/[0.015] rounded-b-[24px]">
+        <div className="border-t border-brand-border/60 bg-brand-bgAlt/30 p-4 sm:p-5 dark:border-[#173e33] dark:bg-[#0b231c]/50 rounded-b-[24px]">
           {/* Macros Detailed Strip */}
           <div className="mb-4 grid grid-cols-4 gap-2 text-center text-xs">
-            <div className="rounded-xl border border-brand-border/60 bg-brand-surface p-2 dark:border-white/5 dark:bg-white/[0.04]">
+            <div className="rounded-xl border border-brand-border/60 bg-brand-surface p-2 dark:border-[#173e33] dark:bg-[#0e271f]">
               <span className="font-mono text-[9px] text-brand-muted uppercase tracking-wider block">Calories</span>
               <span className="font-display font-extrabold text-brand-text dark:text-white">
                 {Math.round(log.calories)} kcal
               </span>
             </div>
-            <div className="rounded-xl border border-brand-border/60 bg-brand-surface p-2 dark:border-white/5 dark:bg-white/[0.04]">
+            <div className="rounded-xl border border-brand-border/60 bg-brand-surface p-2 dark:border-[#173e33] dark:bg-[#0e271f]">
               <span className="font-mono text-[9px] text-brand-muted uppercase tracking-wider block">Protein</span>
-              <span className="font-display font-extrabold text-brand-green dark:text-brand-accent">
+              <span className="font-display font-extrabold text-brand-green">
                 {Math.round(log.proteinG)}g
               </span>
             </div>
-            <div className="rounded-xl border border-brand-border/60 bg-brand-surface p-2 dark:border-white/5 dark:bg-white/[0.04]">
+            <div className="rounded-xl border border-brand-border/60 bg-brand-surface p-2 dark:border-[#173e33] dark:bg-[#0e271f]">
               <span className="font-mono text-[9px] text-brand-muted uppercase tracking-wider block">Carbs</span>
               <span className="font-display font-extrabold text-amber-600 dark:text-amber-400">
                 {Math.round(log.carbsG)}g
               </span>
             </div>
-            <div className="rounded-xl border border-brand-border/60 bg-brand-surface p-2 dark:border-white/5 dark:bg-white/[0.04]">
+            <div className="rounded-xl border border-brand-border/60 bg-brand-surface p-2 dark:border-[#173e33] dark:bg-[#0e271f]">
               <span className="font-mono text-[9px] text-brand-muted uppercase tracking-wider block">Fat</span>
               <span className="font-display font-extrabold text-rose-600 dark:text-rose-400">
                 {Math.round(log.fatG)}g
@@ -298,7 +298,7 @@ export default function MealHistoryCard({
 
           {/* Outside Items list if available */}
           {log.outsideItems && log.outsideItems.length > 0 && (
-            <div className="mb-4 rounded-xl border border-brand-border/60 bg-brand-surface/70 p-3 text-xs dark:border-white/5 dark:bg-white/[0.03]">
+            <div className="mb-4 rounded-xl border border-brand-border/60 bg-brand-surface/70 p-3 text-xs dark:border-[#173e33] dark:bg-[#0e271f]">
               <p className="font-bold text-brand-muted uppercase tracking-wider text-[10px] mb-1.5">
                 Logged Food Items
               </p>
@@ -314,7 +314,7 @@ export default function MealHistoryCard({
                 {log.outsideItems.map((item, idx) => (
                   <div
                     key={`${item.name}-${idx}`}
-                    className="rounded-lg border border-brand-border/80 bg-brand-bgAlt px-2.5 py-2 text-xs text-brand-text dark:border-white/10 dark:bg-white/5 dark:text-white"
+                    className="rounded-lg border border-brand-border/80 bg-brand-bgAlt px-2.5 py-2 text-xs text-brand-text dark:border-[#173e33] dark:bg-[#0b231c] dark:text-white"
                   >
                     <div className="flex items-center justify-between gap-2">
                       <span>
@@ -679,13 +679,13 @@ export default function MealHistoryCard({
           )}
 
           {/* Note Editor Area */}
-          <div className="rounded-2xl border border-brand-border/80 bg-brand-surface p-4 shadow-sm dark:border-white/10 dark:bg-[#121e19]">
+          <div className="rounded-2xl border border-brand-border/80 bg-brand-surface p-4 shadow-sm dark:border-[#173e33] dark:bg-[#0e271f]">
             <div className="flex items-center justify-between mb-2">
               <label
                 htmlFor={`meal-note-${log.id}`}
                 className="flex items-center gap-1.5 font-display text-xs font-bold text-brand-text dark:text-white"
               >
-                <FileText className="h-3.5 w-3.5 text-brand-green dark:text-brand-accent" />
+                <FileText className="h-3.5 w-3.5 text-brand-green" />
                 Personal Meal Notes
               </label>
               <span className="font-mono text-[10px] text-brand-muted dark:text-white/40">
@@ -700,14 +700,14 @@ export default function MealHistoryCard({
               value={noteInput}
               onChange={(e) => setNoteInput(e.target.value)}
               placeholder="Add personal note (e.g. portion adjustment, how you felt, substitutions made)..."
-              className="w-full rounded-xl border border-brand-border bg-brand-bgAlt/50 p-3 text-xs text-brand-text outline-none transition focus:border-brand-green focus:bg-brand-surface dark:border-white/10 dark:bg-white/[0.03] dark:text-white dark:focus:border-brand-accent resize-none"
+              className="w-full rounded-xl border border-brand-border bg-brand-bgAlt/50 p-3 text-xs text-brand-text outline-none transition focus:border-brand-green focus:bg-brand-surface dark:border-[#173e33] dark:bg-[#0b231c] dark:text-white dark:focus:border-brand-green resize-none"
             />
 
             {saveError && <p className="mt-1 text-[11px] font-semibold text-status-error-text">{saveError}</p>}
 
             <div className="mt-3 flex items-center justify-between">
               {saveSuccess ? (
-                <span className="inline-flex items-center gap-1 text-xs font-bold text-brand-green dark:text-brand-accent animate-fadeIn">
+                <span className="inline-flex items-center gap-1 text-xs font-bold text-brand-green animate-fadeIn">
                   <Check className="h-3.5 w-3.5 stroke-[3]" /> Note saved
                 </span>
               ) : (

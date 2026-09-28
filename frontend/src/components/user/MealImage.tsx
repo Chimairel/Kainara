@@ -339,7 +339,7 @@ export default function MealImage({
       >
         {/* Subtle decorative ambient glow */}
         <div
-          className="pointer-events-none absolute -right-6 -top-6 h-24 w-24 rounded-full border border-white/5 bg-white/[0.02] blur-sm"
+          className="pointer-events-none absolute -right-6 -top-6 h-24 w-24 rounded-full border border-emerald-500/10 bg-emerald-500/[0.02] blur-sm"
           aria-hidden="true"
         />
 
@@ -351,7 +351,7 @@ export default function MealImage({
             <FallbackIcon className="h-3 w-3" aria-hidden="true" />
             <span>{categoryInfo.label}</span>
           </span>
-          <span className="inline-flex items-center gap-1 rounded-full bg-black/75 px-2 py-0.5 text-[8px] font-bold uppercase tracking-wider text-white backdrop-blur-md border border-white/5">
+          <span className="inline-flex items-center gap-1 rounded-full bg-black/75 px-2 py-0.5 text-[8px] font-bold uppercase tracking-wider text-white backdrop-blur-md border border-emerald-500/20">
             <span className={`h-1.5 w-1.5 rounded-full ${categoryInfo.tone.dot}`} aria-hidden="true" />
             Illustration
           </span>
@@ -377,7 +377,7 @@ export default function MealImage({
   if (variant === 'thumbnail') {
     return (
       <div
-        className={`relative h-full w-full overflow-hidden rounded-2xl border border-white/10 bg-[#09110e] select-none ${className}`}
+        className={`relative h-full w-full overflow-hidden rounded-2xl border border-[#dce4e0] dark:border-[#173e33] bg-[#09110e] select-none ${className}`}
         aria-label={`${mealName} (${effectiveImage.kind === 'REPRESENTATIVE' ? 'representative photo' : 'photo'})`}
       >
         <Image
@@ -434,7 +434,7 @@ export default function MealImage({
 
       {/* Visible Representative Photo Disclosure */}
       {effectiveImage.kind === 'REPRESENTATIVE' && (
-        <figcaption className="absolute bottom-2.5 left-2.5 z-10 flex items-center gap-1.5 rounded-full bg-black/75 px-2.5 py-1 text-[9px] font-bold text-white shadow-md backdrop-blur-md border border-white/10">
+        <figcaption className="absolute bottom-2.5 left-2.5 z-10 flex items-center gap-1.5 rounded-full bg-black/75 px-2.5 py-1 text-[9px] font-bold text-white shadow-md backdrop-blur-md border border-emerald-500/20">
           <span className="h-1.5 w-1.5 rounded-full bg-amber-400" aria-hidden="true" />
           <span>Representative image</span>
         </figcaption>
@@ -443,7 +443,7 @@ export default function MealImage({
       {/* Compact Non-Interactive Attribution Pill (Safe inside clickable cards) */}
       {(effectiveImage.attribution?.creator || effectiveImage.attribution?.licenseCode) && (
         <figcaption
-          className="absolute top-2.5 left-2.5 z-10 max-w-[55%] truncate rounded-full bg-black/75 px-2.5 py-1 text-[9px] font-medium text-white/90 shadow-md backdrop-blur-md border border-white/10"
+          className="absolute top-2.5 left-2.5 z-10 max-w-[55%] truncate rounded-full bg-black/75 px-2.5 py-1 text-[9px] font-medium text-white/90 shadow-md backdrop-blur-md border border-emerald-500/20"
           title={effectiveImage.attribution?.modifications || undefined}
         >
           {[
@@ -460,7 +460,7 @@ export default function MealImage({
       {!isCompact &&
         showAttributionLinks &&
         (effectiveImage.attribution?.sourcePageUrl || effectiveImage.attribution?.licenseUrl) && (
-          <div className="absolute right-2.5 top-2.5 z-10 flex items-center gap-2 rounded-full bg-black/80 px-2.5 py-1 text-[9px] font-bold text-white shadow-md backdrop-blur-md border border-white/10">
+          <div className="absolute right-2.5 top-2.5 z-10 flex items-center gap-2 rounded-full bg-black/80 px-2.5 py-1 text-[9px] font-bold text-white shadow-md backdrop-blur-md border border-emerald-500/20">
             {effectiveImage.attribution.sourcePageUrl && (
               <a
                 className="inline-flex items-center gap-1 underline underline-offset-2 hover:text-brand-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-green focus-visible:ring-offset-1 focus-visible:ring-offset-black rounded-sm"

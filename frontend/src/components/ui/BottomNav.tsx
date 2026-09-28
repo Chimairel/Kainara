@@ -39,7 +39,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({ className = '' }) => {
         distance={110}
         baseSize={44}
         magnification={58}
-        className="rounded-[26px] border border-brand-border/70 bg-brand-surface/90 px-3 py-2 shadow-[0_20px_50px_rgba(0,0,0,0.2)] backdrop-blur-2xl dark:border-white/10 dark:bg-[#07100d]/90 dark:shadow-[0_20px_50px_rgba(0,0,0,0.55)]"
+        className="rounded-[26px] border border-brand-border bg-brand-surface/90 px-3 py-2 shadow-[0_20px_50px_rgba(0,0,0,0.2)] backdrop-blur-2xl dark:border-[#173e33] dark:bg-[#071914]/95 dark:shadow-[0_20px_50px_rgba(0,0,0,0.55)]"
         ariaLabel="Mobile navigation dock"
       >
         {items.map((item) => {
@@ -67,8 +67,8 @@ export const BottomNav: React.FC<BottomNavProps> = ({ className = '' }) => {
                 active={isActive}
                 className={`transition-colors duration-200 ${
                   isActive
-                    ? 'bg-brand-accent text-[#07100d] font-bold shadow-neon'
-                    : 'text-brand-muted hover:text-brand-text hover:bg-brand-bgAlt/80 dark:text-white/70 dark:hover:text-white dark:hover:bg-white/10'
+                    ? 'bg-gradient-to-r from-[#eb6a38] to-[#f09e6c] text-white font-bold shadow-sm'
+                    : 'text-brand-muted hover:text-brand-text hover:bg-brand-bgAlt/80 dark:text-white/70 dark:hover:text-white dark:hover:bg-[#163930]'
                 }`}
               >
                 <DockLabel>{item.label}</DockLabel>

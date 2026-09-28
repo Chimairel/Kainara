@@ -460,9 +460,9 @@ export default function NutritionistProfilePage() {
                     type="button"
                     onClick={handleSave}
                     disabled={saving}
-                    className="rounded-xl bg-[#eb6a38] hover:bg-[#d95b2a] text-white shadow-md text-xs font-bold px-6 py-2.5 transition-all flex items-center gap-2"
+                    className="rounded-xl border border-[#d95d2c] bg-gradient-to-r from-[#eb6a38] via-[#ed7847] to-[#f09e6c] text-white shadow-sm hover:brightness-105 active:scale-[0.98] text-xs font-bold px-6 py-2.5 transition-all flex items-center gap-2"
                   >
-                    {saving && <span className="h-3.5 w-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />}
+                    {saving && <span className="h-3.5 w-3.5 border-2 border-current border-t-transparent rounded-full animate-spin" />}
                     <span>Save Changes</span>
                   </button>
                 </div>

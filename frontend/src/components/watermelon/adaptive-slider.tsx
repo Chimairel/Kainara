@@ -174,7 +174,7 @@ export const AdaptiveSlider: React.FC<AdaptiveSliderProps> = ({
   return (
     <div className={`relative flex w-full flex-col select-none ${className}`}>
       {/* Track Container */}
-      <div className="group relative flex h-12 w-full items-center overflow-hidden rounded-full border border-brand-border/70 bg-[#f1f3f5] transition-colors dark:border-white/10 dark:bg-neutral-900/90">
+      <div className="group relative flex h-12 w-full items-center overflow-hidden rounded-full border border-brand-border bg-[#f1f3f5] transition-colors dark:border-[#173e33] dark:bg-[#0e271f]">
         {/* 5 Dots along track */}
         {!hideDots && (
           <div className="pointer-events-none absolute inset-0 flex items-center justify-between px-5 transition-colors sm:px-6">

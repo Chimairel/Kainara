@@ -104,7 +104,7 @@ export default function PhilippineDynamicMap({
       <div className="pointer-events-none absolute inset-0 opacity-[0.07] bg-[radial-gradient(#10b981_1px,transparent_1px)] [background-size:16px_16px]" />
 
       {/* Top HUD Status Banner */}
-      <div className="relative z-10 flex items-center justify-between border-b border-white/[0.08] bg-white/[0.03] px-3.5 py-2 backdrop-blur-sm">
+      <div className="relative z-10 flex items-center justify-between border-b border-[#173e33] bg-[#0b231c]/50 px-3.5 py-2 backdrop-blur-sm">
         <div className="flex items-center gap-2">
           <div className="flex h-2 w-2 items-center justify-center">
             <span className="relative flex h-2 w-2">
@@ -161,7 +161,7 @@ export default function PhilippineDynamicMap({
       </div>
 
       {/* Bottom Context Badge & Caption */}
-      <div className="border-t border-white/[0.08] bg-[#07110d]/90 px-4 py-3">
+      <div className="border-t border-[#173e33] bg-[#07110d]/90 px-4 py-3">
         <div className="flex items-center gap-2 mb-1">
           <span className="inline-flex items-center gap-1.5 rounded-full border border-brand-green/30 bg-brand-green/10 px-2.5 py-0.5 font-mono text-[10px] font-black uppercase tracking-wider text-brand-green">
             <MapPin className="h-3 w-3" />

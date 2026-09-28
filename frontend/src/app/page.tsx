@@ -176,18 +176,18 @@ export default function Home() {
 
               <div className="surface-panel futuristic-grid relative overflow-hidden rounded-[36px] p-2.5 shadow-card-lg sm:p-4">
                 <div className="scan-line" />
-                <div className="overflow-hidden rounded-[26px] border border-white/10 bg-[#07100d] text-white shadow-2xl">
+                <div className="overflow-hidden rounded-[26px] border border-[#173e33] bg-[#07100d] text-white shadow-2xl">
                   {/* Browser Window Chrome */}
-                  <div className="flex items-center justify-between border-b border-white/10 bg-[#0a1410] px-4 py-3 sm:px-5">
+                  <div className="flex items-center justify-between border-b border-[#173e33] bg-[#0a1410] px-4 py-3 sm:px-5">
                     <div className="flex items-center gap-2">
                       <span className="h-2.5 w-2.5 rounded-full bg-[#ff5f56]/90 shadow-sm" />
                       <span className="h-2.5 w-2.5 rounded-full bg-[#ffbd2e]/90 shadow-sm" />
                       <span className="h-2.5 w-2.5 rounded-full bg-[#27c93f]/90 shadow-sm" />
                       <span className="ml-2 font-mono text-[10px] text-white/40">app.kainara.ph/dashboard</span>
                     </div>
-                    <div className="flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1">
-                      <span className="h-1.5 w-1.5 rounded-full bg-brand-accent shadow-[0_0_10px_rgba(184,244,95,0.85)]" />
-                      <span className="font-mono text-[9px] uppercase tracking-wider text-white/60">Live Cockpit</span>
+                    <div className="flex items-center gap-2 rounded-full border border-[#173e33] bg-[#0e271f] px-2.5 py-1">
+                      <span className="h-1.5 w-1.5 rounded-full bg-brand-accent shadow-[0_0_10px_rgba(235,106,56,0.85)]" />
+                      <span className="font-mono text-[9px] uppercase tracking-wider text-emerald-400">Live Cockpit</span>
                     </div>
                   </div>
 
@@ -268,7 +268,7 @@ export default function Home() {
           <div className="pointer-events-none absolute inset-0 futuristic-grid opacity-40" />
           <div className="relative mx-auto max-w-[1440px] px-5 sm:px-8 lg:px-12">
             <div className="mx-auto max-w-2xl text-center">
-              <div className="eyebrow inline-flex border-white/10 bg-white/5 text-brand-accent">
+              <div className="eyebrow inline-flex border-[#173e33] bg-[#0e271f] text-brand-accent">
                 <CircleDot className="h-3.5 w-3.5" />
                 The intelligence loop
               </div>
@@ -277,7 +277,7 @@ export default function Home() {
               </h2>
             </div>
 
-            <div className="mt-16 grid gap-px overflow-hidden rounded-[30px] border border-white/10 bg-white/10 md:grid-cols-4">
+            <div className="mt-16 grid gap-px overflow-hidden rounded-[30px] border border-[#173e33] bg-[#173e33]/50 md:grid-cols-4">
               {[
                 {
                   icon: Fingerprint,
@@ -321,7 +321,7 @@ export default function Home() {
           <div className="futuristic-grid relative overflow-hidden rounded-[36px] bg-[#07100d] p-8 text-white shadow-card-lg sm:p-12 lg:grid lg:grid-cols-[1.05fr_0.95fr] lg:gap-14 lg:p-16">
             <div className="pointer-events-none absolute right-0 top-0 h-72 w-72 rounded-full bg-brand-cyan/10 blur-[100px]" />
             <div className="relative">
-              <div className="eyebrow inline-flex border-white/10 bg-white/5 text-brand-accent">
+              <div className="eyebrow inline-flex border-[#173e33] bg-[#0e271f] text-brand-accent">
                 <Stethoscope className="h-3.5 w-3.5" />
                 For registered nutritionist-dietitians
               </div>
@@ -336,13 +336,13 @@ export default function Home() {
               <div className="mt-8 flex flex-col gap-3 sm:flex-row">
                 <Link
                   href="/nutritionist-apply"
-                  className="inline-flex min-h-[52px] items-center justify-center gap-3 rounded-2xl bg-brand-accent px-6 text-sm font-extrabold text-[#07100d] shadow-neon transition hover:-translate-y-0.5"
+                  className="inline-flex min-h-[52px] items-center justify-center gap-3 rounded-2xl border border-[#d95d2c] bg-gradient-to-r from-[#eb6a38] via-[#ed7847] to-[#f09e6c] px-6 text-sm font-extrabold text-white shadow-sm transition hover:-translate-y-0.5 hover:brightness-105 active:scale-[0.98]"
                 >
                   Apply as a nutritionist <ArrowRight className="h-4 w-4" />
                 </Link>
                 <Link
                   href="/nutritionist-apply#track"
-                  className="inline-flex min-h-[52px] items-center justify-center gap-3 rounded-2xl border border-white/10 bg-white/[0.04] px-6 text-sm font-bold text-white/70 transition hover:border-brand-cyan/30 hover:text-brand-cyan"
+                  className="inline-flex min-h-[52px] items-center justify-center gap-3 rounded-2xl border border-[#173e33] bg-[#0e271f] px-6 text-sm font-bold text-emerald-400/80 transition hover:border-[#f09e6c]/40 hover:text-white"
                 >
                   Track an application
                 </Link>
@@ -368,7 +368,7 @@ export default function Home() {
               ].map(({ icon: Icon, title, text }, index) => (
                 <div
                   key={title}
-                  className="flex gap-4 rounded-[22px] border border-white/10 bg-white/[0.04] p-5 backdrop-blur-xl"
+                  className="flex gap-4 rounded-[22px] border border-[#173e33] bg-[#0e271f]/80 p-5 backdrop-blur-xl"
                 >
                   <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-brand-accent/10 text-brand-accent">
                     <Icon className="h-5 w-5" />
@@ -462,7 +462,7 @@ export default function Home() {
               <div className="relative grid h-full grid-cols-2 gap-4">
                 <Link
                   href="/docs#clinical-guidelines"
-                  className="group flex flex-col justify-end overflow-hidden rounded-[26px] border border-white/10 bg-[linear-gradient(150deg,rgba(184,244,95,0.18),rgba(255,255,255,0.02))] p-5 transition hover:border-brand-accent/40 hover:bg-white/[0.04]"
+                  className="group flex flex-col justify-end overflow-hidden rounded-[26px] border border-[#173e33] bg-[linear-gradient(150deg,rgba(184,244,95,0.18),rgba(255,255,255,0.02))] p-5 transition hover:border-brand-accent/40 hover:bg-[#0e271f]"
                 >
                   <ShieldCheck className="h-7 w-7 text-brand-accent transition-transform group-hover:scale-110" />
                   <p className="mt-16 font-display text-lg font-bold">Clinical safety & oversight</p>
@@ -473,7 +473,7 @@ export default function Home() {
                 <div className="grid gap-4">
                   <Link
                     href="/docs#meal-planning"
-                    className="group rounded-[26px] border border-white/10 bg-[radial-gradient(circle_at_70%_20%,rgba(34,211,238,0.22),transparent_45%),rgba(255,255,255,0.025)] p-5 transition hover:border-brand-cyan/40 hover:bg-white/[0.04]"
+                    className="group rounded-[26px] border border-[#173e33] bg-[radial-gradient(circle_at_70%_20%,rgba(34,211,238,0.22),transparent_45%),rgba(255,255,255,0.025)] p-5 transition hover:border-brand-cyan/40 hover:bg-[#0e271f]"
                   >
                     <Database className="h-6 w-6 text-brand-cyan transition-transform group-hover:scale-110" />
                     <p className="mt-8 text-sm font-bold">FNRI & macro engine</p>
@@ -483,7 +483,7 @@ export default function Home() {
                   </Link>
                   <Link
                     href="/docs#help"
-                    className="group rounded-[26px] border border-white/10 bg-[radial-gradient(circle_at_20%_90%,rgba(139,92,246,0.22),transparent_48%),rgba(255,255,255,0.025)] p-5 transition hover:border-violet-400/40 hover:bg-white/[0.04]"
+                    className="group rounded-[26px] border border-[#173e33] bg-[radial-gradient(circle_at_20%_90%,rgba(139,92,246,0.22),transparent_48%),rgba(255,255,255,0.025)] p-5 transition hover:border-violet-400/40 hover:bg-[#0e271f]"
                   >
                     <Sparkles className="h-6 w-6 text-violet-300 transition-transform group-hover:scale-110" />
                     <p className="mt-8 text-sm font-bold">User guides & FAQs</p>

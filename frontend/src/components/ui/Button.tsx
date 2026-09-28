@@ -17,19 +17,19 @@ export const Button: React.FC<ButtonProps> = ({
   ...props
 }) => {
   const baseStyles =
-    'inline-flex items-center justify-center gap-2 rounded-2xl font-display font-extrabold tracking-tight transition-all duration-200 active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-brand-green/60 focus:ring-offset-2 focus:ring-offset-brand-bg disabled:pointer-events-none disabled:opacity-45 disabled:active:scale-100';
+    'inline-flex items-center justify-center gap-2 rounded-2xl font-display font-extrabold tracking-tight transition-all duration-200 active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-[#eb6a38]/60 focus:ring-offset-2 focus:ring-offset-brand-bg disabled:pointer-events-none disabled:opacity-45 disabled:active:scale-100';
 
   const variants = {
     primary:
-      'border border-brand-accent/70 bg-brand-accent text-white font-extrabold shadow-sm hover:-translate-y-0.5 hover:brightness-95',
+      'border border-[#d95d2c] bg-gradient-to-r from-[#eb6a38] via-[#ed7847] to-[#f09e6c] text-white font-extrabold shadow-sm hover:-translate-y-0.5 hover:brightness-105 active:scale-[0.98]',
     secondary:
-      'border border-brand-border/80 bg-brand-surface/85 text-brand-text shadow-sm backdrop-blur-md hover:-translate-y-0.5 hover:border-brand-green/35 hover:bg-brand-bgAlt/80',
+      'border border-brand-border bg-brand-surface text-brand-text shadow-sm backdrop-blur-md hover:-translate-y-0.5 hover:border-[#f09e6c]/60 hover:bg-brand-bgAlt dark:border-[#173e33] dark:bg-[#0e271f] dark:text-white',
     accent:
-      'border border-brand-green/70 bg-brand-green text-white shadow-sm shadow-brand-green/20 hover:-translate-y-0.5 hover:bg-brand-greenHover dark:border-brand-accent dark:bg-brand-accent dark:text-white font-bold',
+      'border border-[#d95d2c] bg-gradient-to-r from-[#eb6a38] to-[#f09e6c] text-white shadow-sm hover:-translate-y-0.5 hover:brightness-105 font-bold',
     danger:
-      'border border-status-error-text/70 bg-status-error-text text-white shadow-sm hover:-translate-y-0.5 hover:brightness-90',
+      'border border-status-error-text bg-status-error-text text-white shadow-sm hover:-translate-y-0.5 hover:brightness-90',
     ghost:
-      'border border-transparent bg-transparent text-brand-muted hover:border-brand-border/70 hover:bg-brand-surface/70 hover:text-brand-text',
+      'border border-transparent bg-transparent text-brand-muted hover:border-brand-border hover:bg-brand-surface hover:text-brand-text dark:hover:border-[#173e33]',
   };
 
   const sizes = {

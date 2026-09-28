@@ -60,7 +60,7 @@ export function SystemErrorPanel({
         <div className="pointer-events-auto flex items-center gap-3">
           <Link
             href="/docs"
-            className="hidden items-center gap-1.5 rounded-xl border border-brand-border/70 bg-brand-surface/70 px-3.5 py-2 text-xs font-semibold text-brand-muted backdrop-blur transition hover:text-brand-green dark:border-white/10 dark:bg-white/[0.04] dark:text-white/60 dark:hover:text-white sm:inline-flex"
+            className="hidden items-center gap-1.5 rounded-xl border border-brand-border/70 bg-brand-surface/70 px-3.5 py-2 text-xs font-semibold text-brand-muted backdrop-blur transition hover:text-brand-green dark:border-[#173e33] dark:bg-[#0e271f] dark:text-emerald-400 dark:hover:border-emerald-500/40 dark:hover:bg-[#13382c] sm:inline-flex"
           >
             Project docs
             <ArrowUpRight className="h-3.5 w-3.5" />
@@ -69,7 +69,7 @@ export function SystemErrorPanel({
             <button
               type="button"
               onClick={toggleTheme}
-              className="flex h-10 w-10 items-center justify-center rounded-xl border border-brand-border/80 bg-brand-surface/80 text-brand-muted shadow-sm backdrop-blur transition hover:border-brand-green/40 hover:bg-brand-green/10 hover:text-brand-green dark:border-white/10 dark:bg-white/[0.04] dark:text-white/70 dark:hover:bg-white/[0.08] dark:hover:text-white"
+              className="flex h-10 w-10 items-center justify-center rounded-xl border border-brand-border/80 bg-brand-surface/80 text-brand-muted shadow-sm backdrop-blur transition hover:border-brand-green/40 hover:bg-brand-green/10 hover:text-brand-green dark:border-[#173e33] dark:bg-[#0e271f] dark:text-emerald-400 dark:hover:border-emerald-500/40 dark:hover:bg-[#13382c]"
               title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
               aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
             >
@@ -110,7 +110,7 @@ export function SystemErrorPanel({
 
               <Link
                 href="/"
-                className="inline-flex items-center gap-2 rounded-2xl border border-brand-border/80 bg-brand-surface/70 px-5 py-3.5 text-sm font-bold text-brand-text backdrop-blur transition hover:border-brand-green/40 hover:bg-brand-green/10 dark:border-white/10 dark:bg-white/[0.04] dark:text-white/80 dark:hover:bg-white/[0.08]"
+                className="inline-flex items-center gap-2 rounded-2xl border border-brand-border/80 bg-brand-surface/70 px-5 py-3.5 text-sm font-bold text-brand-text backdrop-blur transition hover:border-brand-green/40 hover:bg-brand-green/10 dark:border-[#173e33] dark:bg-[#0e271f] dark:text-white dark:hover:border-emerald-500/40 dark:hover:bg-[#13382c]"
               >
                 <ArrowLeft className="h-4 w-4" />
                 <span>Back to Home</span>
