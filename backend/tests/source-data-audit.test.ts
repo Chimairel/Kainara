@@ -17,7 +17,7 @@ test('only explicit source text repairs an ingredient amount or unit', () => {
   assert.equal(recoverSourceIngredientMeasurement(half.ingredient, 4).method, null);
 });
 
-test('Codex corrections have an explicit public audit label', () => {
+test('Codex corrections have an explicit backend audit label', () => {
   assert.equal(sourceDataAuditLabel({ dataCompletionAudit: { version: 'CODEX_PANLASANG_DATA_AUDIT_V1',
     operations: ['MISSING_SOURCE_NUTRITION_RECORDED_AS_NULL'] } }),
   'Codex data audit · source nutrition unavailable');
@@ -26,6 +26,6 @@ test('Codex corrections have an explicit public audit label', () => {
   'Codex data audit · source quantities recovered');
   assert.equal(sourceDataAuditLabel({ dataCompletionAudit: { version: 'CODEX_PANLASANG_DATA_AUDIT_V1',
     operations: ['CODEX_SIMILAR_RECIPE_ESTIMATE_V1'] } }),
-  'Codex demo nutrition estimate · review before publishing');
+  'Codex nutrition estimate · comparable recipes');
   assert.equal(sourceDataAuditLabel({ calories: 500 }), null);
 });

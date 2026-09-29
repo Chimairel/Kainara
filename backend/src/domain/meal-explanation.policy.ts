@@ -104,7 +104,7 @@ export function buildMealExplanation(input: MealExplanationInput): MealExplanati
     );
   }
   if (evidence?.dataAdjustment === 'CODEX_PUBLISHED_SERVING_SCALE_V1' && evidence.servingScale) {
-    bullets.push(`Codex adjusted this portion to ${evidence.servingScale}× the published serving. Nutrition and measured ingredient amounts were scaled from the source values.`);
+    bullets.push(`This plan uses ${evidence.servingScale}× the recorded recipe serving. Ingredient amounts and nutrition totals reflect this portion.`);
   }
 
   if (nutritionEvidence === 'ALL_FNRI')

@@ -7,7 +7,6 @@ import type {
   RecipeCandidateProvenance,
 } from './recipe-candidate-provider';
 import { isUnrestrictedPanlasangBaseEligible } from '@/domain/unrestricted-panlasang-base.policy';
-import { allowDemoNutritionPlanning, hasDemoNutritionEstimate } from '@/domain/source-nutrition-estimate.policy';
 
 type Row = Prisma.RawRecipeCandidateGetPayload<{ include: { applicableMealTypes: true } }>;
 
@@ -86,9 +85,7 @@ function project(row: Row): RecipeCandidateProjection {
       candidateId: row.id,
       conditions: [], allergens: [],
       preparedIngredients: parsedIngredients.map((item) => ({ ingredientName: item.name, quantity: item.quantity, unit: item.unit })),
-      allowDemoEstimatedNutrition: allowDemoNutritionPlanning(),
     }),
-    nutritionIsDemoEstimate: hasDemoNutritionEstimate(row.publishedNutrition),
     nutrition,
     servingDescription: row.originalServings ? `Original recipe yields ${row.originalServings} servings` : null,
     riceRole: row.riceRole,

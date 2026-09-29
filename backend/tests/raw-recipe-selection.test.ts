@@ -184,7 +184,7 @@ test('a published breakfast serving can be adjusted without adding source nutrit
     assert.equal(result.meals[0].calories, 770.88);
     assert.equal(result.meals[0].ingredients[0].quantity, 176);
     assert.equal(result.meals[0].servingScale, 1.76);
-    assert.match(result.meals[0].description, /adjusted.*Codex/i);
+    assert.match(result.meals[0].description, /Serving size: 1\.76×/i);
     assert.ok(ranges[0].minimum! < 438);
   } finally {
     databaseRecipeCandidateProvider.list = originalList;

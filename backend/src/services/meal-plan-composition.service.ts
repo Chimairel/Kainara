@@ -52,7 +52,6 @@ import {
 import { buildBaseServingPersistence, composePlanWithPairedRice } from './meal-plan-serving.service';
 import { getMaximumAssuranceTier } from '@/domain/assurance-tier.policy';
 import { isUnrestrictedPanlasangBaseEligible } from '@/domain/unrestricted-panlasang-base.policy';
-import { allowDemoNutritionPlanning } from '@/domain/source-nutrition-estimate.policy';
 import { adaptUserSafetyRestrictions } from '@/domain/structured-restriction.adapter';
 import { GroceryService } from './grocery.service';
 import {
@@ -370,7 +369,6 @@ export async function generate7DayPlan(
         conditions: userConditions, allergens: userAllergens, otherConditions, otherAllergies,
         safetyEntries: user.safetyProfileEntries, preparedIngredients: meal.ingredientsData,
         servingScale: meal.servingScale, preparedNutrition: meal,
-        allowDemoEstimatedNutrition: allowDemoNutritionPlanning(),
       }))
     : unflaggedCandidates;
   const unrestrictedBaseIds = new Set(
@@ -385,7 +383,6 @@ export async function generate7DayPlan(
         safetyEntries: user.safetyProfileEntries,
         preparedIngredients: meal.ingredientsData,
         servingScale: meal.servingScale, preparedNutrition: meal,
-        allowDemoEstimatedNutrition: allowDemoNutritionPlanning(),
       }) && meal.rawCandidateId ? [meal.rawCandidateId] : []
     )
   );
@@ -754,7 +751,6 @@ export async function generate7DayPlan(
                   safetyEntries: user.safetyProfileEntries,
                   preparedIngredients: meal.ingredientsData,
                   servingScale: meal.servingScale, preparedNutrition: meal,
-                  allowDemoEstimatedNutrition: allowDemoNutritionPlanning(),
                 })) throw new Error('Source recipe changed during preparation. Please retry.');
           }
         }

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { allowDemoNutritionPlanning, estimateFromComparableRecipes,
+import { estimateFromComparableRecipes,
   hasDemoNutritionEstimate } from '../src/domain/source-nutrition-estimate.policy';
 import { isUnrestrictedPanlasangBaseEligible } from '../src/domain/unrestricted-panlasang-base.policy';
 
@@ -21,7 +21,7 @@ test('comparable-source estimates are deterministic and preserve their donor IDs
   assert.deepEqual(estimateFromComparableRecipes(target, donors), first);
 });
 
-test('demo-only estimates cannot enter automatic published planning', () => {
+test('backend audit marker does not change meal eligibility or case review', () => {
   const publishedNutrition = { calories: null,
     dataCompletionAudit: { operations: ['CODEX_SIMILAR_RECIPE_ESTIMATE_V1'] } };
   assert.equal(hasDemoNutritionEstimate(publishedNutrition), true);
@@ -30,22 +30,10 @@ test('demo-only estimates cannot enter automatic published planning', () => {
     ingredients: [{ name: 'chicken', quantity: 150, unit: 'g' }] },
     candidateId: 'source-1', conditions: [], allergens: [],
     preparedIngredients: [{ ingredientName: 'chicken', quantity: 150, unit: 'g' }] };
-  assert.equal(isUnrestrictedPanlasangBaseEligible(input), false);
-  assert.equal(isUnrestrictedPanlasangBaseEligible({ ...input, allowDemoEstimatedNutrition: true }), true);
-  assert.equal(isUnrestrictedPanlasangBaseEligible({ ...input, allowDemoEstimatedNutrition: true,
-    conditions: ['DIABETES'] }), false);
-  const oldNode = process.env.NODE_ENV;
-  const oldFlag = process.env.ALLOW_DEMO_RECIPE_ESTIMATES;
-  try {
-    process.env.NODE_ENV = 'production';
-    process.env.ALLOW_DEMO_RECIPE_ESTIMATES = 'true';
-    assert.equal(allowDemoNutritionPlanning(), false);
-    process.env.NODE_ENV = 'development';
-    assert.equal(allowDemoNutritionPlanning(), true);
-  } finally {
-    if (oldNode === undefined) delete process.env.NODE_ENV;
-    else process.env.NODE_ENV = oldNode;
-    if (oldFlag === undefined) delete process.env.ALLOW_DEMO_RECIPE_ESTIMATES;
-    else process.env.ALLOW_DEMO_RECIPE_ESTIMATES = oldFlag;
-  }
+  assert.equal(isUnrestrictedPanlasangBaseEligible(input), true);
+  assert.equal(isUnrestrictedPanlasangBaseEligible({
+    ...input, source: { ...input.source, publishedNutrition: { calories: 500 } },
+  }), true);
+  assert.equal(isUnrestrictedPanlasangBaseEligible({ ...input, conditions: ['DIABETES'] }), false);
+  assert.equal(isUnrestrictedPanlasangBaseEligible({ ...input, allergens: ['SHELLFISH'] }), false);
 });

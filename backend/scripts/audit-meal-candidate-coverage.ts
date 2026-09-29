@@ -1,6 +1,7 @@
 import 'dotenv/config';
-import { DietaryPreference, MealType } from '@prisma/client';
+import { DietaryPreference, MealType, PrismaClient } from '@prisma/client';
 import { sourceRawRecipeCandidates } from '../src/services/raw-recipe-candidate.service';
+import { hasDemoNutritionEstimate } from '../src/domain/source-nutrition-estimate.policy';
 
 async function main() {
   const dailyCalorieTarget = Number(process.env.CANDIDATE_AUDIT_DAILY_KCAL || 2571);
@@ -16,13 +17,25 @@ async function main() {
     slots, dailyCalorieTarget, dietaryPreference: DietaryPreference.OMNIVORE,
     conditions: [], allergens: [], reviewFreeBaseOnly: true,
   });
+  const prisma = new PrismaClient();
+  let demoEstimatesUsed = 0;
+  try {
+    const selected = await prisma.rawRecipeCandidate.findMany({
+      where: { id: { in: result.meals.map((meal) => meal.rawCandidateId) } },
+      select: { id: true, publishedNutrition: true },
+    });
+    const auditedIds = new Set(selected.filter((meal) =>
+      hasDemoNutritionEstimate(meal.publishedNutrition)).map((meal) => meal.id));
+    demoEstimatesUsed = result.meals.filter((meal) => auditedIds.has(meal.rawCandidateId)).length;
+  } finally {
+    await prisma.$disconnect();
+  }
   console.log(JSON.stringify({
     dailyCalorieTarget, requestedSlots: slots.length,
     matchedSlots: result.meals.length, unmatchedSlots: result.remainingSlots.length,
     distinctSourceRecipes: new Set(result.meals.map((meal) => meal.rawCandidateId)).size,
     adjustedPortions: result.meals.filter((meal) => meal.servingScale !== 1).length,
-    demoEstimatesUsed: result.meals.filter((meal) =>
-      meal.description.includes('Codex demo nutrition estimate')).length,
+    demoEstimatesUsed,
     byType: Object.fromEntries(mealTypes.map((type) => [type, {
       matched: result.meals.filter((meal) => meal.mealType === type).length,
       distinct: new Set(result.meals.filter((meal) => meal.mealType === type)

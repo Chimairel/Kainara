@@ -25,7 +25,6 @@ export interface RecipeCandidateProjection {
   }>;
   ingredientsComplete: boolean;
   reviewFreeBaseEligible?: boolean;
-  nutritionIsDemoEstimate?: boolean;
   nutrition: { calories: number; proteinG: number; carbsG: number; fatG: number } | null;
   servingDescription: string | null;
   riceRole: RecipeRiceRole | null;

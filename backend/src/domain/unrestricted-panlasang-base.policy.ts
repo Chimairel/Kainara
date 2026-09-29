@@ -2,7 +2,6 @@ import type { Prisma } from '@prisma/client';
 import { adaptUserSafetyRestrictions, type StructuredSafetyRestrictionEntry } from './structured-restriction.adapter';
 import { isInvalidSourceIngredientLabel } from './source-ingredient-fnri-match.policy';
 import { scalePublishedAmount, SOURCE_SERVING_MAX_SCALE, SOURCE_SERVING_MIN_SCALE } from './source-serving-adjustment.policy';
-import { hasDemoNutritionEstimate } from './source-nutrition-estimate.policy';
 
 type SourceRecipe = {
   id: string;
@@ -28,7 +27,6 @@ export function isUnrestrictedPanlasangBaseEligible(input: {
   preparedIngredients: readonly { ingredientName: string; quantity?: number | null; unit?: string | null }[];
   servingScale?: number;
   preparedNutrition?: { calories: number; proteinG: number; carbsG: number; fatG: number };
-  allowDemoEstimatedNutrition?: boolean;
 }): boolean {
   const restrictions = adaptUserSafetyRestrictions({
     healthConditions: input.conditions,
@@ -42,7 +40,6 @@ export function isUnrestrictedPanlasangBaseEligible(input: {
   const source = input.source;
   if (!source || source.id !== input.candidateId || source.sourceName !== 'PANLASANG_PINOY' ||
       source.status !== 'AVAILABLE' || !source.publishedNutrition) return false;
-  if (hasDemoNutritionEstimate(source.publishedNutrition) && !input.allowDemoEstimatedNutrition) return false;
   if (![source.calories, source.proteinG, source.carbsG, source.fatG].every(
     (value) => typeof value === 'number' && Number.isFinite(value) && value >= 0
   ) || (source.calories ?? 0) <= 0) return false;

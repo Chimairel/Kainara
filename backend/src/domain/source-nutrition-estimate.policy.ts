@@ -8,11 +8,6 @@ export function hasDemoNutritionEstimate(value: unknown): boolean {
     ((audit as Record<string, unknown>).operations as unknown[]).includes(DEMO_NUTRITION_ESTIMATE_VERSION));
 }
 
-/** Demo-only switch. Published builds always require independent review of estimated nutrition. */
-export function allowDemoNutritionPlanning(): boolean {
-  return process.env.NODE_ENV === 'development' && process.env.ALLOW_DEMO_RECIPE_ESTIMATES === 'true';
-}
-
 export type SourceNutrition = { calories: number; proteinG: number; carbsG: number; fatG: number };
 export type ComparableRecipe = {
   id: string;

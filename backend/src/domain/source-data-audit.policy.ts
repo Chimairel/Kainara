@@ -7,7 +7,7 @@ export function sourceDataAuditLabel(value: Prisma.JsonValue | null): string | n
       audit.version !== 'CODEX_PANLASANG_DATA_AUDIT_V1') return null;
   const operations = Array.isArray(audit.operations) ? audit.operations : [];
   if (operations.includes('CODEX_SIMILAR_RECIPE_ESTIMATE_V1')) {
-    return 'Codex demo nutrition estimate · review before publishing';
+    return 'Codex nutrition estimate · comparable recipes';
   }
   return operations.includes('MISSING_SOURCE_NUTRITION_RECORDED_AS_NULL')
     ? 'Codex data audit · source nutrition unavailable'

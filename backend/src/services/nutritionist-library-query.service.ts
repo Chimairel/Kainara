@@ -1,6 +1,5 @@
 import { HealthConditionType, MealLibraryStatus, MealType, Prisma } from '@prisma/client';
 import prisma from '@/lib/prisma';
-import { sourceDataAuditLabel } from '@/domain/source-data-audit.policy';
 import { libraryBaseRevisionKey } from './meal-base-admission.service';
 import { normalizePagination, normalizeSearch } from '@/policies/pagination.policy';
 
@@ -84,7 +83,6 @@ export async function getNutritionistMealLibraryWithFilters(
           sourceUrl: true,
           sourceImageUrl: true,
           contentSignature: true,
-          publishedNutrition: true,
           status: true,
           observedSubmissions: { where: { status: 'ADMITTED_RECIPE' }, select: { id: true }, take: 1 },
         } },
@@ -169,7 +167,6 @@ export async function getNutritionistMealLibraryWithFilters(
           sourceUrl: source.sourceUrl,
           sourceImageUrl: source.sourceImageUrl,
           status: source.status,
-          dataAuditLabel: sourceDataAuditLabel(source.publishedNutrition),
         } : null,
         baseVerification: panlasangSource || verifiedBase || rndCertified
           ? 'VERIFIED' as const : 'REVIEW_PENDING' as const,

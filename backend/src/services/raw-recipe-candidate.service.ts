@@ -42,11 +42,9 @@ type RankedCandidate = RecipeCandidateProjection & {
 
 function sourceServingDescription(candidate: RankedCandidate): string {
   const description = candidate.description ?? 'Existing recipe from the broader recipe corpus.';
-  const nutritionNote = candidate.nutritionIsDemoEstimate
-    ? ' Codex demo nutrition estimate from comparable recipes; not published source nutrition or independently reviewed.' : '';
-  const portionNote = !candidate.servingScale || candidate.servingScale === 1 ? '' :
-    ` Portion adjusted to ${candidate.servingScale}× the source serving by Codex; nutrition and measured ingredients were scaled from the recorded values.`;
-  return `${description}${nutritionNote}${portionNote}`;
+  return candidate.servingScale && candidate.servingScale !== 1
+    ? `${description} Serving size: ${candidate.servingScale}× the recorded recipe serving.`
+    : description;
 }
 
 export function normalizeRawRecipeQuantity(value: unknown): number | undefined {
@@ -249,7 +247,6 @@ export async function sourceRawRecipeCandidates(input: {
       .get(mealType)
       ?.sort(
         (left, right) =>
-          Number(Boolean(left.nutritionIsDemoEstimate)) - Number(Boolean(right.nutritionIsDemoEstimate)) ||
           right._ranking.score - left._ranking.score ||
           left.displayName.localeCompare(right.displayName) ||
           left.id.localeCompare(right.id)

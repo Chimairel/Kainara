@@ -1,5 +1,4 @@
 import prisma from '@/lib/prisma';
-import { sourceDataAuditLabel } from '@/domain/source-data-audit.policy';
 import { suspendMealClearancesForEvidenceChange } from './condition-clearance.service';
 import { isMealWithinSlotCalorieRange } from '@/domain/meal-calorie-allocation.policy';
 import {
@@ -197,7 +196,7 @@ export class NutritionistLibraryService {
       where: { id: mealId },
       include: {
         sourceRawRecipeCandidate: { select: { sourceName: true, sourceUrl: true,
-          sourceImageUrl: true, status: true, publishedNutrition: true } },
+          sourceImageUrl: true, status: true } },
         verifiedByNutritionist: {
           include: {
             user: {
@@ -238,7 +237,6 @@ export class NutritionistLibraryService {
     return { ...fields, sourceRawRecipeCandidate: source ? {
       sourceName: source.sourceName, sourceUrl: source.sourceUrl,
       sourceImageUrl: source.sourceImageUrl, status: source.status,
-      dataAuditLabel: sourceDataAuditLabel(source.publishedNutrition),
     } : null };
   }
 

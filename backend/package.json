@@ -68,6 +68,7 @@
     "meals:estimate-demo-nutrition:dry-run": "tsx scripts/estimate-panlasang-demo-nutrition.ts",
     "meals:estimate-demo-nutrition:apply": "tsx scripts/estimate-panlasang-demo-nutrition.ts --apply",
     "meals:audit-candidate-coverage": "tsx scripts/audit-meal-candidate-coverage.ts",
+    "meals:report-data-audit": "tsx scripts/report-panlasang-data-audit.ts",
     "check:recipe-audit-scripts": "tsc --project tsconfig.recipe-audit.json",
     "meals:reclassify-panlasang:dry-run": "tsx scripts/reclassify-panlasang-corpus.ts",
     "meals:reclassify-panlasang:apply": "tsx scripts/reclassify-panlasang-corpus.ts --apply",

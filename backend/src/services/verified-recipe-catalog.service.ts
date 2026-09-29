@@ -5,8 +5,6 @@ import { adaptUserSafetyRestrictions } from '@/domain/structured-restriction.ada
 import { admittedLibraryBaseIds } from './meal-base-admission.service';
 import { isUnrestrictedPanlasangBaseEligible } from '@/domain/unrestricted-panlasang-base.policy';
 import { parseRecipeCandidateIngredients } from './panlasang-recipe-candidate.provider';
-import { sourceDataAuditLabel } from '@/domain/source-data-audit.policy';
-import { allowDemoNutritionPlanning, hasDemoNutritionEstimate } from '@/domain/source-nutrition-estimate.policy';
 
 /** Browse-only verified bases. This endpoint never grants planning or case clearance. */
 export class VerifiedRecipeCatalogService {
@@ -74,15 +72,12 @@ export class VerifiedRecipeCatalogService {
           const ingredients = parseRecipeCandidateIngredients(source.ingredients);
           const planningReady = isUnrestrictedPanlasangBaseEligible({ source, candidateId: source.id,
             conditions: [], allergens: [], preparedIngredients: ingredients.map((item) => ({
-              ingredientName: item.name, quantity: item.quantity, unit: item.unit })),
-            allowDemoEstimatedNutrition: allowDemoNutritionPlanning() });
+              ingredientName: item.name, quantity: item.quantity, unit: item.unit })) });
           return { id: `raw:${source.id}`, name: source.recipeName, description: source.description,
             mealTypes: source.applicableMealTypes.map((item) => item.mealType),
             calories: source.calories, proteinG: source.proteinG, carbsG: source.carbsG, fatG: source.fatG,
             sourceName: source.sourceName, sourceUrl: source.sourceUrl,
-            imageUrl: source.sourceImageUrl, planningReady,
-            dataAuditLabel: sourceDataAuditLabel(source.publishedNutrition),
-            nutritionEstimated: hasDemoNutritionEstimate(source.publishedNutrition) };
+            imageUrl: source.sourceImageUrl, planningReady };
         }),
         ...manualRows.map((row) => ({ id: row.id, name: row.mealName, description: row.description,
           mealTypes: row.applicableMealTypes.map((item) => item.mealType),
@@ -90,8 +85,7 @@ export class VerifiedRecipeCatalogService {
           sourceName: row.sourceRawRecipeCandidate?.sourceName ?? 'ADMIN_OR_GENERATED',
           sourceUrl: row.sourceRawRecipeCandidate?.sourceUrl ?? null,
           imageUrl: row.sourceRawRecipeCandidate?.sourceImageUrl ?? null,
-          planningReady: row.safetyEvidenceStatus === 'COMPLETE', dataAuditLabel: null,
-          nutritionEstimated: false })),
+          planningReady: row.safetyEvidenceStatus === 'COMPLETE' })),
       ],
     };
   }
