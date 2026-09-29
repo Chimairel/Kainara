@@ -5,6 +5,7 @@ import prisma from '../src/lib/prisma';
 import { MealGenerationService } from '../src/services/meal-generation.service';
 import { queryEligibleLibraryMeals } from '../src/services/meal-library-candidate-query.service';
 import { getNextWeeklyCycleWindow } from '../src/domain/meal-plan-cycle.policy';
+import { SafetyIntakeService } from '../src/services/safety-intake.service';
 
 async function main() {
   const host = new URL(process.env.DATABASE_URL ?? '').hostname;
@@ -58,6 +59,11 @@ async function main() {
       },
     });
     userId = user.id;
+    await SafetyIntakeService.replaceDomains(userId, ['CONDITION', 'ALLERGY'], [
+      { domain: 'CONDITION', value: 'NONE', provenance: 'PREDEFINED' },
+      { domain: 'ALLERGY', value: 'NONE', provenance: 'PREDEFINED' },
+    ]);
+    await prisma.userProfile.update({ where: { userId }, data: { dailyCalorieTarget: 1200 } });
     const profile = await prisma.userProfile.findUniqueOrThrow({ where: { userId } });
     for (const mealType of ['BREAKFAST', 'LUNCH', 'DINNER'] as const) {
       const eligible = await queryEligibleLibraryMeals({

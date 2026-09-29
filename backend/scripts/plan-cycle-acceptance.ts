@@ -13,6 +13,8 @@ import prisma from '@/lib/prisma';
 import { getScheduledMealDate } from '@/domain/meal-plan-cycle.policy';
 import { MealPlanCycleService } from '@/services/meal-plan-cycle.service';
 import { GroceryService } from '@/services/grocery.service';
+import { SafetyIntakeService } from '@/services/safety-intake.service';
+import { libraryBaseRevisionKey } from '@/services/meal-base-admission.service';
 
 async function main() {
   const suffix = randomUUID();
@@ -48,6 +50,10 @@ async function main() {
       },
     });
     userId = user.id;
+    await SafetyIntakeService.replaceDomains(user.id, ['CONDITION', 'ALLERGY'], [
+      { domain: 'CONDITION', value: 'NONE', provenance: 'PREDEFINED' },
+      { domain: 'ALLERGY', value: 'NONE', provenance: 'PREDEFINED' },
+    ]);
 
     const currentId = `acceptance-current-${suffix}`;
     await prisma.mealPlanCycle.create({
@@ -171,6 +177,14 @@ async function main() {
       },
     });
     upcomingLibraryMealId = upcomingLibraryMeal.id;
+    await prisma.mealBaseVerification.create({
+      data: {
+        targetKind: 'LIBRARY_MEAL',
+        targetId: upcomingLibraryMeal.id,
+        revisionKey: libraryBaseRevisionKey(recipeSignature, upcomingLibraryMeal.description),
+        status: 'VERIFIED',
+      },
+    });
     const preparedMeal = await prisma.mealPlan.create({
       data: {
         planGroupId: upcomingId,
@@ -258,7 +272,10 @@ async function main() {
     );
   } finally {
     if (userId) await prisma.user.delete({ where: { id: userId } }).catch(() => undefined);
-    if (upcomingLibraryMealId) await prisma.mealLibrary.deleteMany({ where: { id: upcomingLibraryMealId } });
+    if (upcomingLibraryMealId) {
+      await prisma.mealBaseVerification.deleteMany({ where: { targetKind: 'LIBRARY_MEAL', targetId: upcomingLibraryMealId } });
+      await prisma.mealLibrary.deleteMany({ where: { id: upcomingLibraryMealId } });
+    }
     await prisma.$disconnect();
   }
 }

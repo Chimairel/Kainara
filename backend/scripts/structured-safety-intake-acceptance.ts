@@ -45,6 +45,25 @@ async function main() {
   });
 
   try {
+    const noRestrictionInputs = [
+      { domain: 'CONDITION' as const, value: 'NONE', provenance: 'PREDEFINED' as const },
+      { domain: 'ALLERGY' as const, value: 'NONE', provenance: 'PREDEFINED' as const },
+      { domain: 'INTOLERANCE' as const, value: 'NONE', provenance: 'PREDEFINED' as const },
+      { domain: 'AVOIDED_INGREDIENT' as const, value: 'NONE', provenance: 'PREDEFINED' as const },
+    ];
+    const noRestrictionSave = await SafetyIntakeService.save(user.id, noRestrictionInputs);
+    const firstRevisionCount = await prisma.healthProfileRevision.count({
+      where: { userId: user.id, revisionType: 'STRUCTURED_SAFETY_UPDATED' },
+    });
+    if (!noRestrictionSave.changed || firstRevisionCount !== 1) {
+      throw new Error('The first semantic change did not create exactly one structured revision.');
+    }
+    // The fixture recipe must fit its breakfast slot or the safety recheck
+    // correctly replaces it for calorie fit, obscuring this persistence test.
+    await prisma.userProfile.update({
+      where: { userId: user.id },
+      data: { dailyCalorieTarget: Math.round(certifiedMeal.calories / 0.3) },
+    });
     const cycleStart = new Date();
     await createFixturePlanCycle(prisma, {
       id: fixtureNamespace,
@@ -59,6 +78,8 @@ async function main() {
         planGroupId: fixtureNamespace,
         userId: user.id,
         libraryMealId: certifiedMeal.id,
+        baseRecipeSignature: certifiedMeal.recipeSignature,
+        composedServingSignature: certifiedMeal.recipeSignature,
         nutritionistId: certifiedMeal.verifiedByNutritionistId,
         status: 'APPROVED',
         mealType: certifiedMeal.mealType,
@@ -85,20 +106,6 @@ async function main() {
       },
     });
     const groceryBefore = await GroceryService.generateGroceryList(user.id);
-
-    const noRestrictionInputs = [
-      { domain: 'CONDITION' as const, value: 'NONE', provenance: 'PREDEFINED' as const },
-      { domain: 'ALLERGY' as const, value: 'NONE', provenance: 'PREDEFINED' as const },
-      { domain: 'INTOLERANCE' as const, value: 'NONE', provenance: 'PREDEFINED' as const },
-      { domain: 'AVOIDED_INGREDIENT' as const, value: 'NONE', provenance: 'PREDEFINED' as const },
-    ];
-    const noRestrictionSave = await SafetyIntakeService.save(user.id, noRestrictionInputs);
-    const firstRevisionCount = await prisma.healthProfileRevision.count({
-      where: { userId: user.id, revisionType: 'STRUCTURED_SAFETY_UPDATED' },
-    });
-    if (!noRestrictionSave.changed || firstRevisionCount !== 1) {
-      throw new Error('The first semantic change did not create exactly one structured revision.');
-    }
 
     await UserService.runSafetyRecheck(user.id);
     const [planAfter, groceryAfter] = await Promise.all([

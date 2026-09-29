@@ -1,6 +1,6 @@
 import 'dotenv/config';
 import assert from 'node:assert/strict';
-import { randomUUID } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import prisma from '../src/lib/prisma';
 import { getNextWeeklyCycleWindow } from '../src/domain/meal-plan-cycle.policy';
 import { MealGenerationService } from '../src/services/meal-generation.service';
@@ -8,6 +8,8 @@ import { MealPlanCycleService } from '../src/services/meal-plan-cycle.service';
 import { NutritionistReviewService } from '../src/services/nutritionist-review.service';
 import { UpcomingPlanPreparationService } from '../src/services/upcoming-plan-preparation.service';
 import { aggregateGroceryIngredients, groceryItemKey } from '../src/domain/grocery-quantity.policy';
+import { SafetyIntakeService } from '../src/services/safety-intake.service';
+import { MealBaseVerificationService } from '../src/services/meal-base-verification.service';
 
 async function main() {
   const host = new URL(process.env.DATABASE_URL ?? '').hostname;
@@ -69,6 +71,11 @@ async function main() {
       },
     });
     userId = user.id;
+    await SafetyIntakeService.replaceDomains(userId, ['CONDITION', 'ALLERGY'], [
+      { domain: 'CONDITION', value: 'NONE', provenance: 'PREDEFINED' },
+      { domain: 'ALLERGY', value: 'NONE', provenance: 'PREDEFINED' },
+    ]);
+    await prisma.userProfile.update({ where: { userId }, data: { dailyCalorieTarget: 1200 } });
     const profile = await prisma.userProfile.findUniqueOrThrow({ where: { userId } });
     const window = getNextWeeklyCycleWindow(profile, new Date(Date.now() + 7 * 86_400_000));
     const cycleId = await MealGenerationService.generateWindowOnce(userId, {
@@ -82,6 +89,7 @@ async function main() {
     });
     const beforeList = await prisma.groceryList.findUniqueOrThrow({ where: { planGroupId: cycleId } });
     await prisma.mealPlan.update({ where: { id: original.id }, data: { status: 'CANCELLED' } });
+    const generatedSignature = createHash('sha256').update(id).digest('hex');
     const pending = await prisma.mealPlan.create({
       data: {
         planGroupId: cycleId,
@@ -95,10 +103,16 @@ async function main() {
         fatG: original.fatG,
         scheduledDate: original.scheduledDate,
         aiConfidenceFlag: 'NEEDS_REVIEW',
+        candidateProvenance: 'AI_FROM_SCRATCH',
+        baseRecipeSignature: generatedSignature,
+        composedServingSignature: generatedSignature,
         requiresSafetyRevalidation: true,
       },
     });
     rejectedPlanId = pending.id;
+    await MealBaseVerificationService.claim(reviewer.id, 'GENERATED_RECIPE', generatedSignature);
+    await MealBaseVerificationService.decide(reviewer.id, 'GENERATED_RECIPE', generatedSignature,
+      'VERIFIED', 'Synthetic edible recipe verification before case rejection testing.');
     await NutritionistReviewService.getReviewCardDetails(reviewer.id, pending.id, true);
     const usageBefore = new Map(
       (await prisma.mealLibrary.findMany({ select: { id: true, usageCount: true } })).map((meal) => [
@@ -227,6 +241,7 @@ async function main() {
         },
       },
     });
+    const unavailableSignature = createHash('sha256').update(`unavailable:${id}`).digest('hex');
     const unavailable = await prisma.mealPlan.create({
       data: {
         planGroupId: laterCycleId,
@@ -241,9 +256,15 @@ async function main() {
         fatG: 20,
         scheduledDate: laterWindow.startDate,
         aiConfidenceFlag: 'NEEDS_REVIEW',
+        candidateProvenance: 'AI_FROM_SCRATCH',
+        baseRecipeSignature: unavailableSignature,
+        composedServingSignature: unavailableSignature,
       },
     });
     unavailablePlanId = unavailable.id;
+    await MealBaseVerificationService.claim(reviewer.id, 'GENERATED_RECIPE', unavailableSignature);
+    await MealBaseVerificationService.decide(reviewer.id, 'GENERATED_RECIPE', unavailableSignature,
+      'VERIFIED', 'Synthetic edible high-target recipe before case rejection testing.');
     await NutritionistReviewService.getReviewCardDetails(reviewer.id, unavailable.id, true);
     const unavailableDecision = await NutritionistReviewService.rejectMealPlan(
       reviewer.id,
@@ -274,6 +295,11 @@ async function main() {
       '[Batch 10 RND rejection] PASS: certified fallback, 21 cleared slots and matching groceries; unavailable high-target slot stayed blocked and became incomplete at deadline'
     );
   } finally {
+    await prisma.mealBaseVerification.deleteMany({ where: {
+      targetKind: 'GENERATED_RECIPE',
+      targetId: { in: [createHash('sha256').update(id).digest('hex'),
+        createHash('sha256').update(`unavailable:${id}`).digest('hex')] },
+    } });
     if (userId) {
       await prisma.mealPlanReviewDecision.deleteMany({ where: { mealPlan: { userId } } });
       await prisma.user.delete({ where: { id: userId } });

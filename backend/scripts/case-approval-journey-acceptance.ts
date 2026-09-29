@@ -35,6 +35,14 @@ async function main() {
   const food = await prisma.foodItem.findFirstOrThrow({ where: { source: 'FNRI' } });
 
   // Meal-only verification is independent of admission-quality nutrition evidence.
+  const baselineVerificationCount = await MealBaseVerificationService.count();
+  const legacyMeal = await prisma.mealLibrary.create({ data: {
+    mealName: `Legacy unsigned meal ${marker}`, mealType: 'LUNCH',
+    calories: 500, proteinG: 20, carbsG: 65, fatG: 17, status: 'APPROVED',
+  } });
+  assert.equal(await MealBaseVerificationService.count(), baselineVerificationCount);
+  assert.ok(!(await MealBaseVerificationService.list(rnd.id)).some((row) => row.id === legacyMeal.id),
+    'An old meal without a recipe signature must not break the verification queue.');
   const draft = await AdminMealAuthoringService.create(admin.id, {
     mealName: `Fixture verified meal ${marker}`, mealType: 'LUNCH',
     summary: 'A fictional cooked food for the meal-verification queue.',
@@ -46,10 +54,12 @@ async function main() {
     phosphorusMg: null, saturatedFatG: null,
     ingredients: [{ foodItemId: food.id, gramsPerServing: 100 }],
   });
+  assert.equal(await MealBaseVerificationService.count(), baselineVerificationCount + 1);
   assert.ok((await MealBaseVerificationService.list(rnd.id)).some((row) => row.id === draft.id));
   await MealBaseVerificationService.claim(rnd.id, 'LIBRARY_MEAL', draft.id);
   await MealBaseVerificationService.decide(rnd.id, 'LIBRARY_MEAL', draft.id,
     'VERIFIED', 'Fictional meal-only verification for the isolated acceptance run.');
+  assert.equal(await MealBaseVerificationService.count(), baselineVerificationCount);
   assert.ok(!(await MealBaseVerificationService.list(rnd.id)).some((row) => row.id === draft.id));
   assert.equal((await prisma.mealLibrary.findUniqueOrThrow({ where: { id: draft.id } })).safetyEvidenceStatus,
     'INCOMPLETE', 'Meal verification alone must not make an admin draft planning-ready.');

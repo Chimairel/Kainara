@@ -25,14 +25,14 @@ const baseCases: ProfileCase[] = [
     diet: DietaryPreference.OMNIVORE,
     condition: HealthConditionType.DIABETES,
     allergy: AllergenType.NONE,
-    expectFullWeek: true,
+    expectFullWeek: false,
   },
   {
     label: 'hypertension',
     diet: DietaryPreference.OMNIVORE,
     condition: HealthConditionType.HYPERTENSION,
     allergy: AllergenType.NONE,
-    expectFullWeek: true,
+    expectFullWeek: false,
   },
   {
     label: 'vegetarian',
@@ -53,7 +53,7 @@ const baseCases: ProfileCase[] = [
     diet: DietaryPreference.OMNIVORE,
     condition: HealthConditionType.NONE,
     allergy: AllergenType.EGGS,
-    expectFullWeek: true,
+    expectFullWeek: false,
   },
   {
     label: 'kidney-fail-closed',
@@ -84,7 +84,7 @@ const combinationCases: ProfileCase[] = [
     diet: dimension.diet,
     condition: condition.condition,
     allergy: dimension.allergy,
-    expectFullWeek: true,
+    expectFullWeek: false,
   }))
 );
 
@@ -123,6 +123,10 @@ async function createFixture(profileCase: ProfileCase, passwordHash: string) {
 }
 
 async function main() {
+  const host = new URL(process.env.DATABASE_URL ?? '').hostname;
+  if (process.env.CONDITION_LIBRARY_DISPOSABLE_DB !== '1' || !['127.0.0.1', 'localhost'].includes(host)) {
+    throw new Error('Run the condition-library acceptance only on a disposable local database.');
+  }
   await cleanup();
   const results: Record<string, Record<string, number>> = {};
   const passwordHash = await bcrypt.hash('ConditionLibrary123', 12);
@@ -130,11 +134,13 @@ async function main() {
   try {
     for (const profileCase of cases) {
       const user = await createFixture(profileCase, passwordHash);
-      const compatible = await MealSwapService.getCompatibleLibraryMeals(user.id);
-      const managed = compatible.filter((meal) => catalogueNames.has(meal.mealName));
-      const counts = Object.fromEntries(
-        mealTypes.map((mealType) => [mealType, managed.filter((meal) => meal.mealType === mealType).length])
-      );
+      const compatible = await Promise.all(mealTypes.map((mealType) =>
+        MealSwapService.getCompatibleLibraryMeals(user.id, { mealType, limit: 100 })
+      ));
+      const managed = compatible.flatMap((page) => page.items).filter((meal) => catalogueNames.has(meal.mealName));
+      const counts = Object.fromEntries(mealTypes.map((mealType, index) => [mealType,
+        compatible[index].items.filter((meal) => catalogueNames.has(meal.mealName)).length,
+      ]));
 
       if (profileCase.expectFullWeek) {
         for (const mealType of mealTypes) {
@@ -144,7 +150,8 @@ async function main() {
           );
         }
       } else {
-        assert.equal(managed.length, 0, `${profileCase.label} unexpectedly received baseline catalogue meals.`);
+        assert.equal(managed.length, 0,
+          `${profileCase.label} received a reusable meal before a current case approval.`);
       }
 
       if (profileCase.allergy === AllergenType.EGGS) {
@@ -162,13 +169,13 @@ async function main() {
     }
 
     const coverage = await NutritionistService.getMealLibraryCoverage();
+    assert.ok(coverage.profiles.filter((profile) => ['VEGETARIAN', 'PESCATARIAN'].includes(profile.key))
+      .every((profile) => profile.weekReady), 'Unrestricted dietary coverage regressed.');
+    assert.ok(coverage.profiles.filter((profile) => !['VEGETARIAN', 'PESCATARIAN'].includes(profile.key))
+      .every((profile) => !profile.weekReady), 'Restricted profiles gained unreviewed reusable coverage.');
     assert.ok(
-      coverage.profiles.every((profile) => profile.weekReady),
-      'The nutritionist coverage monitor reported a supported-profile gap.'
-    );
-    assert.ok(
-      coverage.combinationMatrix.every((row) => row.cells.every((cell) => cell.weekReady)),
-      'The nutritionist combination matrix reported a supported-profile gap.'
+      coverage.combinationMatrix.every((row) => row.cells.every((cell) => !cell.weekReady)),
+      'The nutritionist combination matrix exposed a restricted profile without clearance.'
     );
     console.log(
       JSON.stringify(

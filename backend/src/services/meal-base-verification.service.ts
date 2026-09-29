@@ -73,7 +73,7 @@ export class MealBaseVerificationService {
   static async count() {
     const [meals, recipes, generatedPlans] = await Promise.all([
       prisma.mealLibrary.findMany({
-        where: { status: 'APPROVED', OR: [
+        where: { status: 'APPROVED', recipeSignature: { not: null }, OR: [
           { sourceRawRecipeCandidateId: null },
           { sourceRawRecipeCandidate: { sourceName: { not: 'PANLASANG_PINOY' } } },
         ] },
@@ -123,7 +123,7 @@ export class MealBaseVerificationService {
     await requireReviewer(profileId);
     const [meals, recipes, generatedPlans] = await Promise.all([
       prisma.mealLibrary.findMany({
-        where: { status: 'APPROVED', OR: [
+        where: { status: 'APPROVED', recipeSignature: { not: null }, OR: [
           { sourceRawRecipeCandidateId: null },
           { sourceRawRecipeCandidate: { sourceName: { not: 'PANLASANG_PINOY' } } },
         ] },
@@ -143,7 +143,7 @@ export class MealBaseVerificationService {
     const admittedMeals = await admittedLibraryBaseIds(meals);
     const generatedSignatures = [...new Set(generatedPlans.flatMap((plan) => plan.baseRecipeSignature ? [plan.baseRecipeSignature] : []))];
     const candidates = await Promise.all([
-      ...meals.filter((row) => !admittedMeals.has(row.id)).map((row) => target('LIBRARY_MEAL', row.id)),
+      ...meals.filter((row) => row.recipeSignature && !admittedMeals.has(row.id)).map((row) => target('LIBRARY_MEAL', row.id)),
       ...recipes.map((row) => target('RAW_RECIPE', row.id)),
       ...generatedSignatures.map((signature) => target('GENERATED_RECIPE', signature)),
     ]);

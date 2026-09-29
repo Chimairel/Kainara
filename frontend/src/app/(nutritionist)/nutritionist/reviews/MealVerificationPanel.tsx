@@ -163,7 +163,16 @@ export default function MealVerificationPanel() {
           </p>
         </div>
 
-        {!queue.length ? (
+        {error && (
+          <div role="alert" className="mb-3 rounded-xl border border-red-500/30 bg-red-950/20 p-3 text-xs text-red-400">
+            {error}
+            <button type="button" onClick={() => void load()} className="ml-2 font-bold underline">
+              Retry
+            </button>
+          </div>
+        )}
+
+        {!queue.length && !error ? (
           <div className="flex-1 flex flex-col items-center justify-center p-8 text-center space-y-3 rounded-2xl border border-dashed border-brand-border/80 bg-brand-surface/40">
             <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-brand-green/10 text-brand-green shadow-inner">
               <CheckCircle className="w-6 h-6 stroke-[2.2]" />
@@ -175,7 +184,7 @@ export default function MealVerificationPanel() {
               </p>
             </div>
           </div>
-        ) : (
+        ) : queue.length ? (
           <div className="flex-1 overflow-y-auto pr-1 space-y-3 custom-scrollbar">
             {queue.map((item) => {
               const isSelected = selectedId === `${item.kind}:${item.id}`;
@@ -222,7 +231,7 @@ export default function MealVerificationPanel() {
               );
             })}
           </div>
-        )}
+        ) : null}
       </div>
 
       {/* Details View Panel */}

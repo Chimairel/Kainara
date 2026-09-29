@@ -321,6 +321,9 @@ async function main() {
       profile: { userId: patient.id, dietaryPreference: 'OMNIVORE', otherConditions: null, otherAllergies: null },
       search: mealName,
       limit: 10,
+      // Certification recalculates calories from measured ingredients. This
+      // assertion checks admission to the library, not a particular slot fit.
+      skipCalorieFilter: true,
     } as const;
     assert.equal(
       (await queryEligibleLibraryMeals(eligibleQuery)).some((meal) => meal.id === libraryMealId),

@@ -9,6 +9,7 @@ import { MealSwapService } from '../src/services/meal-swap.service';
 import { GroceryService } from '../src/services/grocery.service';
 import { CertifiedSlotFallbackService } from '../src/services/certified-slot-fallback.service';
 import { libraryBaseRevisionKey } from '../src/services/meal-base-admission.service';
+import { SafetyIntakeService } from '../src/services/safety-intake.service';
 
 const day = 86_400_000;
 
@@ -52,6 +53,11 @@ async function main() {
       },
     });
     userId = user.id;
+    await SafetyIntakeService.replaceDomains(user.id, ['CONDITION', 'ALLERGY'], [
+      { domain: 'CONDITION', value: 'NONE', provenance: 'PREDEFINED' },
+      { domain: 'ALLERGY', value: 'NONE', provenance: 'PREDEFINED' },
+    ]);
+    await prisma.userProfile.update({ where: { userId: user.id }, data: { dailyCalorieTarget: 1300 } });
 
     const makeMeal = async (label: string, calories: number, ingredientName: string) => {
       const name = `Batch 6 ${label} ${run}`;
