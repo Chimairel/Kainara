@@ -187,6 +187,9 @@ export class MealBaseVerificationService {
   static async decide(profileId: string, kind: MealVerificationTargetKind, id: string,
     decision: 'VERIFIED' | 'REJECTED', rationale: string) {
     await requireReviewer(profileId);
+    const reviewer = await prisma.nutritionistProfile.findUniqueOrThrow({
+      where: { id: profileId }, select: { userId: true },
+    });
     if (rationale.trim().length < 10) throw new Error('Record at least 10 characters explaining this decision.');
     const row = await target(kind, id);
     return prisma.$transaction(async (tx) => {
@@ -232,7 +235,7 @@ export class MealBaseVerificationService {
           await persistDeterministicLibraryClassification(tx, created.id);
         }
       }
-      await tx.auditEvent.create({ data: { action: `BASE_MEAL_${decision}`, entityType: kind,
+      await tx.auditEvent.create({ data: { actorUserId: reviewer.userId, action: `BASE_MEAL_${decision}`, entityType: kind,
         entityId: id, metadata: { revisionKey: row.revisionKey, reviewerProfileId: profileId } } });
       return { ...row, status: decision };
     });

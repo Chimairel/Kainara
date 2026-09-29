@@ -6,7 +6,6 @@ import api from '@/lib/axios';
 import NutritionistProfileSkeleton from '@/features/profile/NutritionistProfileSkeleton';
 import Badge from '@/components/ui/Badge';
 import Avatar from '@/components/ui/Avatar';
-import AvatarSettings from '@/features/profile/AvatarSettings';
 import { NutritionistCredentialCard } from '@/components/user/NutritionistCredentialCard';
 import NutritionistCredentialModal from '@/components/user/NutritionistCredentialModal';
 import { useAuth } from '@/hooks/useAuth';
@@ -15,7 +14,6 @@ import { readSessionResource, writeSessionResource } from '@/lib/session-resourc
 import {
   Check,
   UserRound,
-  Sparkles,
   ShieldCheck,
   Award,
   Calendar,
@@ -55,12 +53,11 @@ const SPECIALIZATION_SUGGESTIONS = [
 ];
 
 export default function NutritionistProfilePage() {
-  const { logout, user, updateUserSession } = useAuth();
+  const { logout, user } = useAuth();
   const ownerId = user?.userId;
   const cached = readSessionResource<NProfile>(ownerId, 'nutritionist-profile');
   const [profile, setProfile] = useState<NProfile | null>(cached);
   const [isLoading, setIsLoading] = useState(!cached);
-  const [activeTab, setActiveTab] = useState<'credentials' | 'avatar'>('credentials');
   const [bio, setBio] = useState('');
   const [specialization, setSpecialization] = useState('');
   const [saving, setSaving] = useState(false);
@@ -135,37 +132,7 @@ export default function NutritionistProfilePage() {
         description="Manage your PRC credentials, clinical practice focus, and patient-facing identity."
       />
 
-      {/* Tab Navigation */}
-      <div className="flex flex-wrap sm:flex-nowrap gap-2 border-b border-[#dce4e0] dark:border-[#173e33] pb-3">
-        <button
-          type="button"
-          onClick={() => setActiveTab('credentials')}
-          className={`inline-flex flex-1 sm:flex-initial items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-xs font-bold transition-all ${
-            activeTab === 'credentials'
-              ? 'bg-[#eb6a38] text-white shadow-sm'
-              : 'border border-[#dce4e0] dark:border-[#173e33] bg-[#faf8f5] dark:bg-[#0e271f] text-[#5a746a] dark:text-[#8ea99f] hover:text-[#0d2820] dark:hover:text-white'
-          }`}
-        >
-          <ShieldCheck className="h-4 w-4" />
-          <span>Clinical Credentials</span>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => setActiveTab('avatar')}
-          className={`inline-flex flex-1 sm:flex-initial items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-xs font-bold transition-all ${
-            activeTab === 'avatar'
-              ? 'bg-[#eb6a38] text-white shadow-sm'
-              : 'border border-[#dce4e0] dark:border-[#173e33] bg-[#faf8f5] dark:bg-[#0e271f] text-[#5a746a] dark:text-[#8ea99f] hover:text-[#0d2820] dark:hover:text-white'
-          }`}
-        >
-          <Sparkles className="h-4 w-4" />
-          <span>Avatar &amp; Appearance</span>
-        </button>
-      </div>
-
-      {activeTab === 'credentials' ? (
-        <div className="space-y-6">
+      <div className="space-y-6">
           {/* 1. Clinical Credential Hero Card */}
           <div className="relative overflow-hidden rounded-3xl border border-[#dce4e0] dark:border-[#173e33] bg-[#faf8f5] dark:bg-[#0e271f] shadow-card">
             {/* Retro Wave Organic Corner Accent (Top Right) */}
@@ -268,14 +235,6 @@ export default function NutritionistProfilePage() {
 
                 {/* Quick Shortcuts */}
                 <div className="flex flex-row sm:flex-col gap-2 shrink-0 justify-center">
-                  <button
-                    type="button"
-                    onClick={() => setActiveTab('avatar')}
-                    className="inline-flex items-center justify-center gap-2 rounded-xl border border-[#dce4e0] dark:border-[#1a4438] bg-white/70 dark:bg-[#071914] px-3.5 py-2 text-xs font-bold text-[#0d2820] dark:text-white hover:border-[#eb6a38]/50 transition-all shadow-xs"
-                  >
-                    <Sparkles className="h-3.5 w-3.5 text-[#eb6a38]" />
-                    <span>Customize Avatar</span>
-                  </button>
                   <Link
                     href="/nutritionist/reviews"
                     className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#eb6a38]/10 dark:bg-[#eb6a38]/20 border border-[#eb6a38]/30 px-3.5 py-2 text-xs font-bold text-[#c25426] dark:text-[#f09e6c] hover:bg-[#eb6a38]/25 transition-all shadow-xs"
@@ -581,13 +540,6 @@ export default function NutritionistProfilePage() {
             </div>
           </div>
         </div>
-      ) : (
-        <div className="space-y-6">
-          {user && (
-            <AvatarSettings visible={activeTab === 'avatar'} user={user} updateUserSession={updateUserSession} />
-          )}
-        </div>
-      )}
       {showModalPreview && (
         <NutritionistCredentialModal
           isOpen={showModalPreview}

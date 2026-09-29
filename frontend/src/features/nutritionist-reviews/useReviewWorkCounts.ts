@@ -5,6 +5,7 @@ export interface ReviewWorkCounts {
   meal: number;
   case: number;
   profile: number;
+  audit?: number;
 }
 
 export function useReviewWorkCounts() {

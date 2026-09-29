@@ -28,8 +28,7 @@ import type { PublicMealImage } from '@/types';
 import { useNutritionistReviews } from '@/features/nutritionist-reviews/useNutritionistReviews';
 import IngredientEvidenceList from '@/features/nutritionist-reviews/IngredientEvidenceList';
 import GovernanceQueuePanel from './GovernanceQueuePanel';
-import ClinicalEvidenceReviewPanel from './ClinicalEvidenceReviewPanel';
-import ClinicalProfileReviewPanel from './ClinicalProfileReviewPanel';
+import ProfileWorkPanel from './ProfileWorkPanel';
 import WorkspaceTabs, { type ReviewWorkspace } from './WorkspaceTabs';
 import { useReviewWorkCounts } from '@/features/nutritionist-reviews/useReviewWorkCounts';
 import MealVerificationPanel from './MealVerificationPanel';
@@ -42,8 +41,7 @@ import { toast } from '@/components/ui/Sonner';
 export default function ReviewsPage() {
   const workCounts = useReviewWorkCounts();
   const [workspace, setWorkspace] = useState<ReviewWorkspace>('case');
-  const [profileTab, setProfileTab] = useState<'profiles' | 'documents'>('profiles');
-  const [caseFilter, setCaseFilter] = useState<'pending' | 'second' | 'audit' | 'disputed' | 'outside' | 'completed'>('pending');
+  const [caseFilter, setCaseFilter] = useState<'pending' | 'second' | 'disputed' | 'outside' | 'completed'>('pending');
   const [expanded, setExpanded] = useState(false);
   const {
     queue,
@@ -101,38 +99,6 @@ export default function ReviewsPage() {
     />
   );
 
-  const profileFilters = (
-    <div
-      className="flex w-fit items-center gap-1.5 rounded-2xl border border-brand-border/70 bg-brand-surface/75 p-1.5 shadow-sm backdrop-blur-md"
-      aria-label="Profile queue filters"
-    >
-      <button
-        type="button"
-        aria-pressed={profileTab === 'profiles'}
-        onClick={() => setProfileTab('profiles')}
-        className={`group relative flex items-center justify-center gap-1.5 rounded-xl px-4 py-2 font-display text-xs font-extrabold outline-none transition-all duration-200 focus-visible:ring-2 focus-visible:ring-brand-green ${
-          profileTab === 'profiles'
-            ? 'bg-brand-accent text-[#07100d] font-black shadow-sm'
-            : 'text-brand-muted hover:bg-brand-bgAlt/80 hover:text-brand-text'
-        }`}
-      >
-        Profiles
-      </button>
-      <button
-        type="button"
-        aria-pressed={profileTab === 'documents'}
-        onClick={() => setProfileTab('documents')}
-        className={`group relative flex items-center justify-center gap-1.5 rounded-xl px-4 py-2 font-display text-xs font-extrabold outline-none transition-all duration-200 focus-visible:ring-2 focus-visible:ring-brand-green ${
-          profileTab === 'documents'
-            ? 'bg-brand-accent text-[#07100d] font-black shadow-sm'
-            : 'text-brand-muted hover:bg-brand-bgAlt/80 hover:text-brand-text'
-        }`}
-      >
-        Clinical documents
-      </button>
-    </div>
-  );
-
   const caseFilters = (
     <div
       className="flex flex-wrap items-center gap-1.5 rounded-2xl border border-brand-border/70 bg-brand-surface/75 p-1.5 shadow-sm backdrop-blur-md"
@@ -144,7 +110,6 @@ export default function ReviewsPage() {
           ['second', 'Second decision'],
           ['outside', 'Outside food logs'],
           ['completed', 'Completed history'],
-          ['audit', 'Audit and rechecks'],
           ['disputed', 'Needs resolution'],
         ] as const
       ).map(([key, label]) => (
@@ -196,14 +161,13 @@ export default function ReviewsPage() {
             description="Audit AI-generated meal plans, approve health profiles, and verify base recipes."
           />
           {navigation}
-          {profileFilters}
-          {profileTab === 'profiles' ? <ClinicalProfileReviewPanel /> : <ClinicalEvidenceReviewPanel />}
+          <ProfileWorkPanel />
         </div>
       </div>
     );
   }
 
-  if (caseFilter === 'audit' || caseFilter === 'disputed') {
+  if (caseFilter === 'disputed') {
     return (
       <div className="portal-page space-y-5 pb-20 text-brand-text">
         <div className="mx-auto flex max-w-7xl flex-col gap-5">

@@ -491,6 +491,11 @@ export class NutritionistLibraryService {
             },
           });
         }
+        await tx.auditEvent.create({ data: {
+          actorUserId: userId, action: 'MEAL_LIBRARY_FLAGGED',
+          entityType: 'MealLibraryFlag', entityId: createdFlag.id,
+          metadata: { mealLibraryId: mealId },
+        } });
         return createdFlag;
       },
       { isolationLevel: Prisma.TransactionIsolationLevel.Serializable }

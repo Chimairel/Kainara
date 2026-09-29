@@ -135,7 +135,7 @@ export interface NutritionReport {
   id: string;
   userId: string;
   generatedAt: string;
-  acknowledgedAt?: string;
+  acknowledgedAt?: string | null;
   foodsToAvoid: unknown; // JSON structure
   foodsToLimit: unknown; // JSON structure
   foodsRecommended: unknown; // JSON structure

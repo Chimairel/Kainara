@@ -37,6 +37,8 @@ import { clinicalDocumentIdParamsSchema, clinicalDocumentReviewSchema } from '@/
 import { MealBaseVerificationService } from '@/services/meal-base-verification.service';
 import { flagWholeMeal, releaseWholeMeal } from '@/services/meal-wide-flag.service';
 import { NutritionistWorkCountsService } from '@/services/nutritionist-work-counts.service';
+import { NutritionistProfileWorkService } from '@/services/nutritionist-profile-work.service';
+import { NutritionistAuditService } from '@/services/nutritionist-audit.service';
 
 const router = Router();
 
@@ -66,6 +68,19 @@ const profileReviewDecision = z.object({
 
 router.get('/review-work-counts', asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
   res.json({ success: true, data: await NutritionistWorkCountsService.get(req.nutritionistProfileId!) });
+}));
+
+router.get('/profile-work', asyncHandler(async (_req: AuthenticatedRequest, res: Response) => {
+  res.json({ success: true, data: await NutritionistProfileWorkService.queue() });
+}));
+router.get('/profile-work/:userId', validateZodRequest({ params: profileReviewParams }),
+  asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+    res.json({ success: true, data: await NutritionistProfileWorkService.detail(req.params.userId) });
+  }));
+router.get('/audit-history', asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+  res.json({ success: true, data: await NutritionistAuditService.history(
+    Number(req.query.page) || 1, Number(req.query.limit) || 20
+  ) });
 }));
 
 router.get('/profile-reviews', asyncHandler(async (_req: AuthenticatedRequest, res: Response) => {

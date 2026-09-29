@@ -8,6 +8,7 @@ import {
   ImageIcon,
   ShieldCheck,
   ShoppingCart,
+  ScrollText,
   Soup,
   Stethoscope,
   User,
@@ -83,20 +84,6 @@ export const workspaceTools: Record<WorkspaceRole, WorkspaceTool[]> = {
       icon: ClipboardList,
     },
     {
-      label: 'Food logs',
-      href: '/nutritionist/outside-meals',
-      description: 'Verify itemized food logs and correct nutrition estimates.',
-      group: 'Review work',
-      icon: Soup,
-    },
-    {
-      label: 'Approved reviews',
-      href: '/nutritionist/approved',
-      description: 'Revisit your completed meal-plan reviews.',
-      group: 'Review work',
-      icon: ShieldCheck,
-    },
-    {
       label: 'Meal library',
       href: '/nutritionist/library',
       description: 'Manage recipes, ingredient evidence, and flags.',
@@ -104,11 +91,11 @@ export const workspaceTools: Record<WorkspaceRole, WorkspaceTool[]> = {
       icon: Soup,
     },
     {
-      label: 'Professional profile',
-      href: '/nutritionist/profile',
-      description: 'Your credentials, PRC license, and specialization.',
-      group: 'Professional tools',
-      icon: Stethoscope,
+      label: 'Audit',
+      href: '/nutritionist/audit',
+      description: 'Review clinical activity and due rechecks.',
+      group: 'Review work',
+      icon: ScrollText,
     },
   ],
   ADMIN: [
@@ -182,9 +169,7 @@ export const primaryWorkspaceTools: Record<WorkspaceRole, WorkspaceTool[]> = {
   USER: workspaceTools.USER.filter((tool) =>
     ['/dashboard', '/meals', '/grocery', '/progress', '/profile'].includes(tool.href)
   ),
-  NUTRITIONIST: workspaceTools.NUTRITIONIST.filter(
-    (tool) => !['/nutritionist/outside-meals', '/nutritionist/approved'].includes(tool.href)
-  ),
+  NUTRITIONIST: workspaceTools.NUTRITIONIST,
   ADMIN: [
     '/admin/overview',
     '/admin/users',
