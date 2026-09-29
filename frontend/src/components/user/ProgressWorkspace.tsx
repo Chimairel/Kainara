@@ -22,7 +22,6 @@ import PortalPageHeader from '@/components/shared/PortalPageHeader';
 import AnnouncementBanner from '@/components/shared/AnnouncementBanner';
 import StructuredSafetyIntake from '@/components/user/StructuredSafetyIntake';
 import PlanningLocationFields from '@/components/user/PlanningLocationFields';
-import MealLocalityPreferenceControl from '@/components/user/MealLocalityPreferenceControl';
 import api from '@/lib/axios';
 import { safetyInputsFromProfile } from '@/lib/safety-intake';
 import {
@@ -83,8 +82,6 @@ export function ProgressWorkspace({ mode = 'progress' }: { mode?: ProgressWorksp
     setPlanningRegionName,
     planningProvinceHucName,
     setPlanningProvinceHucName,
-    mealLocalityPreference,
-    setMealLocalityPreference,
     shoppingDayOfWeek,
     setShoppingDayOfWeek,
     isSavingBiometrics,
@@ -575,29 +572,17 @@ export function ProgressWorkspace({ mode = 'progress' }: { mode?: ProgressWorksp
                       </div>
                     </div>
 
-                    {/* Location & Dynamic Locality Map (2 Columns) */}
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 mt-1">
-                      <div>
-                        <PlanningLocationFields
-                          level={planningGeographyLevel}
-                          regionName={planningRegionName}
-                          provinceHucName={planningProvinceHucName}
-                          onLevelChange={setPlanningGeographyLevel}
-                          onRegionNameChange={setPlanningRegionName}
-                          onProvinceHucNameChange={setPlanningProvinceHucName}
-                          disabled={isSavingBiometrics}
-                          idPrefix="profile-planning-location"
-                        />
-                      </div>
-                      <div>
-                        <MealLocalityPreferenceControl
-                          value={mealLocalityPreference}
-                          regionName={planningRegionName}
-                          provinceHucName={planningProvinceHucName}
-                          onChange={setMealLocalityPreference}
-                          disabled={isSavingBiometrics}
-                        />
-                      </div>
+                    <div className="mt-1">
+                      <PlanningLocationFields
+                        level={planningGeographyLevel}
+                        regionName={planningRegionName}
+                        provinceHucName={planningProvinceHucName}
+                        onLevelChange={setPlanningGeographyLevel}
+                        onRegionNameChange={setPlanningRegionName}
+                        onProvinceHucNameChange={setPlanningProvinceHucName}
+                        disabled={isSavingBiometrics}
+                        idPrefix="profile-planning-location"
+                      />
                     </div>
                   </>
                 )}

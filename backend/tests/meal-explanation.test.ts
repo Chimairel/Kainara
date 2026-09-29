@@ -9,8 +9,7 @@ const evidence: MealSelectionEvidence = {
   slotCalorieTarget: 720,
   slotCalorieLower: 612,
   slotCalorieUpper: 828,
-  localityPreference: 'REGIONAL',
-  planningLocationLabel: 'Central Visayas regional preference',
+  planningLocationLabel: 'Central Visayas',
   consumptionEvidenceScope: 'Central Visayas',
   consumptionEvidenceRelease: 'FNRI ENNS 2023',
   capturedAt: '2026-09-09T00:00:00.000Z',
@@ -75,7 +74,7 @@ test('[TEST-205] verified-library meals expose certification and all-FNRI eviden
   assert.ok(result.bullets.some((line) => line.includes('Andrea Reyes')));
 });
 
-test('[TEST-206] catalogue fallback copy does not duplicate the preference label', () => {
+test('[TEST-206] catalogue fallback names the planning location', () => {
   const result = buildMealExplanation({
     status: 'APPROVED',
     aiConfidenceFlag: 'SAFE',
@@ -84,9 +83,8 @@ test('[TEST-206] catalogue fallback copy does not duplicate the preference label
     selectionEvidence: {
       ...evidence,
       consumptionEvidenceScope: null,
-      planningLocationLabel: 'Cebu City local preference',
+      planningLocationLabel: 'Cebu City',
     },
   });
-  assert.ok(result.bullets.some((line) => line.includes('with cebu city local preference.')));
-  assert.ok(result.bullets.every((line) => !line.includes('preference preference')));
+  assert.ok(result.bullets.some((line) => line.includes('with cebu city.')));
 });

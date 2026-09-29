@@ -115,7 +115,6 @@ async function main() {
           slotCalorieTarget: 540,
           slotCalorieLower: 459,
           slotCalorieUpper: 621,
-          localityPreference: 'NATIONAL',
           planningLocationLabel: 'Philippines',
           consumptionEvidenceScope: null,
           consumptionEvidenceRelease: null,

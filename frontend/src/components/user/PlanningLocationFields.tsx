@@ -250,7 +250,7 @@ export default function PlanningLocationFields({
       </div>
       {error && (
         <p role="status" className="mt-3 text-xs text-status-error-text">
-          Location suggestions are unavailable. Reload this page to retry; regional and local preferences remain locked
+          Location suggestions are unavailable. Reload this page to retry; regional and local locations remain locked
           until the location is validated.
         </p>
       )}

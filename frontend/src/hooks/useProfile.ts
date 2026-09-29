@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import type { SafetyProfileEntry } from '@/types';
-import type { MealLocalityPreference, PlanningGeographyLevel } from '@/types';
+import type { PlanningGeographyLevel } from '@/types';
 import { useAuth } from '@/hooks/useAuth';
 import { readSessionResource } from '@/lib/session-resource-cache';
 import { getRecentUserProfile, refreshUserProfile } from '@/lib/user-profile-resource';
@@ -35,7 +35,6 @@ export interface UserProfileData {
     planningGeographyLevel?: PlanningGeographyLevel;
     planningRegionName?: string;
     planningProvinceHucName?: string;
-    mealLocalityPreference?: MealLocalityPreference;
     dailyCalorieTarget?: number;
     otherConditions?: string;
     otherAllergies?: string;

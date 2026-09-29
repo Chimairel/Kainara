@@ -3,7 +3,6 @@ import { randomUUID } from 'node:crypto';
 import {
   ActivityLevel,
   Goal,
-  MealLocalityPreference,
   MealPlanCycleStatus,
   MealPlanStatus,
   MealType,
@@ -74,7 +73,6 @@ async function main() {
             dailyCalorieTarget: 2000,
             dailyMacroTargets: {},
             planningGeographyLevel: 'NATIONAL',
-            mealLocalityPreference: MealLocalityPreference.NATIONAL,
             shoppingDayOfWeek: 6,
           },
         },

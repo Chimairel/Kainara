@@ -130,7 +130,6 @@ async function main() {
               planningGeographyLevel: baseProfile.planningGeographyLevel,
               planningRegionName: baseProfile.planningRegionName,
               planningProvinceHucName: baseProfile.planningProvinceHucName,
-              mealLocalityPreference: baseProfile.mealLocalityPreference,
               shoppingDayGroup: baseProfile.shoppingDayGroup,
               shoppingDayOfWeek: baseProfile.shoppingDayOfWeek,
             },

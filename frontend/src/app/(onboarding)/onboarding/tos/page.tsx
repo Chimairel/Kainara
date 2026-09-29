@@ -68,19 +68,6 @@ function formatPlanningLocation(profile?: UserProfileData['userProfile']) {
   return profile.planningRegionName || 'Philippines — national evidence';
 }
 
-function formatMealLocality(profile?: UserProfileData['userProfile']) {
-  if (profile?.mealLocalityPreference === 'NATIONAL_REGIONAL') return `Philippines & ${profile.planningRegionName}`;
-  if (profile?.mealLocalityPreference === 'REGIONAL_LOCAL')
-    return `${profile.planningRegionName} & ${profile.planningProvinceHucName}`;
-  if (profile?.mealLocalityPreference === 'LOCAL' && profile.planningProvinceHucName) {
-    return profile.planningProvinceHucName;
-  }
-  if (profile?.mealLocalityPreference === 'REGIONAL' && profile.planningRegionName) {
-    return profile.planningRegionName;
-  }
-  return 'Philippines';
-}
-
 export default function OnboardingTosPage() {
   const router = useRouter();
   const { refreshSession } = useAuth();
@@ -116,7 +103,6 @@ export default function OnboardingTosPage() {
         ['Rice preference', formatOnboardingValue(userProfile?.ricePreference)],
         ['Food culture', normalizeFoodCulture(userProfile?.foodCulture)],
         ['Meal-planning location', formatPlanningLocation(userProfile)],
-        ['Meal locality strength', formatMealLocality(userProfile)],
       ],
     },
     {

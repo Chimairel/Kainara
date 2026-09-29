@@ -23,7 +23,7 @@ import { earliestMissingDay, missingMealSlots } from '@/domain/meal-generation-g
 import { validateGeneratedMealCandidate, splitCustomRestrictions } from '@/domain/generated-meal-validation.policy';
 import { assertMealSlotCalories, validateGeneratedDayCalories } from '@/domain/generated-plan-calories.policy';
 import { getManilaDateKey } from '@/domain/meal-plan-cycle.policy';
-import { formatMealLocalityPreference } from '@/domain/planning-location.policy';
+import { formatPlanningLocation } from '@/domain/planning-location.policy';
 import { getMealSlotCalorieRange } from '@/domain/meal-calorie-allocation.policy';
 import { getLocalizedFoodConsumptionContext } from './food-consumption-context.service';
 import { prepareGeneratedMealIngredients, type GeneratedMeal } from './meal-generation-ingredient-preparation.service';
@@ -179,7 +179,7 @@ export class MealAiQueueService {
         slots, existingMeals, dailyCalorieTarget: cycle.snapshot!.dailyCalorieTarget,
         goal: cycle.snapshot!.goal,
         dietaryPreference: profile.dietaryPreference || 'OMNIVORE', ricePreference: profile.ricePreference,
-        foodCulture: profile.foodCulture || 'Filipino', planningLocationLabel: formatMealLocalityPreference(profile),
+        foodCulture: profile.foodCulture || 'Filipino', planningLocationLabel: formatPlanningLocation(profile),
         conditions, allergens, otherConditions, otherAllergies, foodReference,
         popularFoodReference: localized.text, consumptionEvidenceScope: localized.matchedScope?.label,
       });
@@ -253,8 +253,7 @@ export class MealAiQueueService {
                 selectionEvidence: {
                   schemaVersion: 1, source: 'AI_GENERATED', dailyCalorieTarget: cycle.snapshot!.dailyCalorieTarget,
                   slotCalorieTarget: range.target, slotCalorieLower: range.minimum, slotCalorieUpper: range.maximum,
-                  localityPreference: profile.mealLocalityPreference,
-                  planningLocationLabel: formatMealLocalityPreference(profile),
+                  planningLocationLabel: formatPlanningLocation(profile),
                   consumptionEvidenceScope: localized.matchedScope?.label ?? null,
                   consumptionEvidenceRelease: localized.releaseLabel,
                   rankingScore: null, rankingReasonCodes: [], capturedAt: new Date().toISOString(),

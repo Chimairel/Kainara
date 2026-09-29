@@ -5,7 +5,6 @@ export interface MealSelectionEvidence {
   slotCalorieTarget: number | null;
   slotCalorieLower: number | null;
   slotCalorieUpper: number | null;
-  localityPreference: 'NATIONAL' | 'NATIONAL_REGIONAL' | 'REGIONAL' | 'REGIONAL_LOCAL' | 'LOCAL';
   planningLocationLabel: string;
   consumptionEvidenceScope: string | null;
   consumptionEvidenceRelease: string | null;

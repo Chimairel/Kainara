@@ -35,7 +35,7 @@ import {
   isPrimaryMealType,
   rankCalorieCompatibleMeals,
 } from '@/domain/meal-calorie-allocation.policy';
-import { formatMealLocalityPreference, rankMealsByLocalizedFoodEvidence } from '@/domain/planning-location.policy';
+import { formatPlanningLocation, rankMealsByLocalizedFoodEvidence } from '@/domain/planning-location.policy';
 import type { MealSelectionEvidence } from '@/domain/meal-explanation.policy';
 import {
   certifiedLibraryMealInclude,
@@ -321,8 +321,7 @@ export async function generate7DayPlan(
       slotCalorieTarget: range?.target ?? null,
       slotCalorieLower: range?.minimum ?? null,
       slotCalorieUpper: range?.maximum ?? null,
-      localityPreference: profile.mealLocalityPreference,
-      planningLocationLabel: formatMealLocalityPreference(profile),
+      planningLocationLabel: formatPlanningLocation(profile),
       consumptionEvidenceScope: localizedConsumption.matchedScope?.label ?? null,
       consumptionEvidenceRelease: localizedConsumption.releaseLabel,
       rankingScore: ranking?.score ?? null,
@@ -581,7 +580,6 @@ export async function generate7DayPlan(
           planningGeographyLevel: profile.planningGeographyLevel,
           planningRegionName: profile.planningRegionName,
           planningProvinceHucName: profile.planningProvinceHucName,
-          mealLocalityPreference: profile.mealLocalityPreference,
           shoppingDayGroup: profile.shoppingDayGroup,
           shoppingDayOfWeek: profile.shoppingDayOfWeek,
         },

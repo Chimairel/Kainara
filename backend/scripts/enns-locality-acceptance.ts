@@ -25,7 +25,6 @@ async function main() {
       planningGeographyLevel: 'PROVINCE_HUC',
       planningRegionName: 'SOCCSKSARGEN',
       planningProvinceHucName: 'General Santos',
-      mealLocalityPreference: 'LOCAL',
     },
     40
   );

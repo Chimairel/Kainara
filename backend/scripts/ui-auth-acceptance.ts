@@ -75,23 +75,20 @@ async function main() {
     assert.equal((await prisma.account.findFirstOrThrow({ where: { userId: user.id } })).access_token, originalPhoto);
     const restored = await request('/user/profile/avatar', { image: 'Default' }, access, 'PUT');
     assert.equal(restored.body.data.image, originalPhoto);
-    for (const preference of ['NATIONAL_REGIONAL', 'REGIONAL_LOCAL'] as const) {
-      const saved = await request(
-        '/user/onboarding/profile',
-        {
-          planningGeographyLevel: 'PROVINCE_HUC',
-          planningRegionName: 'Central Visayas',
-          planningProvinceHucName: 'Cebu City',
-          mealLocalityPreference: preference,
-        },
-        access
-      );
-      assert.equal(saved.status, 200, JSON.stringify(saved.body));
-      assert.equal(
-        (await prisma.userProfile.findUniqueOrThrow({ where: { userId: user.id } })).mealLocalityPreference,
-        preference
-      );
-    }
+    const saved = await request(
+      '/user/onboarding/profile',
+      {
+        planningGeographyLevel: 'PROVINCE_HUC',
+        planningRegionName: 'Central Visayas',
+        planningProvinceHucName: 'Cebu City',
+      },
+      access
+    );
+    assert.equal(saved.status, 200, JSON.stringify(saved.body));
+    assert.equal(
+      (await prisma.userProfile.findUniqueOrThrow({ where: { userId: user.id } })).planningProvinceHucName,
+      'Cebu City'
+    );
     await prisma.user.update({
       where: { id: user.id },
       data: {
@@ -169,7 +166,7 @@ async function main() {
     });
     assert.equal((await request('/auth/reset-password', { token: 'expired', password: oldPassword })).status, 400);
     console.log(
-      'PASS: normalized login, wrong credentials, public password recovery with stale session, one-use reset, session revocation, new-password login, expiry, custom avatar and Google-photo restoration, both saved locality blends, skipped notes, note length and ownership guards. No real email sent.'
+      'PASS: normalized login, wrong credentials, public password recovery with stale session, one-use reset, session revocation, new-password login, expiry, custom avatar and Google-photo restoration, saved planning location, skipped notes, note length and ownership guards. No real email sent.'
     );
   } finally {
     await new Promise<void>((resolve, reject) => server.close((error) => (error ? reject(error) : resolve())));

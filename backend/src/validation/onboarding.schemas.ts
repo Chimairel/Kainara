@@ -7,7 +7,6 @@ const activitySchema = z.enum(['SEDENTARY', 'LIGHTLY_ACTIVE', 'ACTIVE', 'VERY_AC
 const dietarySchema = z.enum(['OMNIVORE', 'VEGETARIAN', 'VEGAN', 'PESCATARIAN']);
 const ricePreferenceSchema = z.enum(['NO_RICE', 'FLEXIBLE', 'WITH_RICE']);
 const planningGeographySchema = z.enum(['NATIONAL', 'REGION', 'PROVINCE_HUC']);
-const mealLocalityPreferenceSchema = z.enum(['NATIONAL', 'NATIONAL_REGIONAL', 'REGIONAL', 'REGIONAL_LOCAL', 'LOCAL']);
 const sexSchema = z.enum(['MALE', 'FEMALE']);
 const conditionSchema = z.enum(['DIABETES', 'HYPERTENSION', 'KIDNEY_DISEASE', 'HEART_CONDITION', 'PREGNANT', 'NONE']);
 const allergySchema = z.enum(['SHELLFISH', 'NUTS', 'DAIRY', 'GLUTEN', 'EGGS', 'NONE']);
@@ -52,7 +51,6 @@ export const onboardingProfileSchema = z
     planningGeographyLevel: planningGeographySchema.optional(),
     planningRegionName: z.string().trim().min(1).max(120).nullable().optional(),
     planningProvinceHucName: z.string().trim().min(1).max(160).nullable().optional(),
-    mealLocalityPreference: mealLocalityPreferenceSchema.optional(),
     shoppingDayOfWeek: z.coerce.number().int().min(0).max(6).optional(),
   })
   .strict()
@@ -107,26 +105,6 @@ export const onboardingProfileSchema = z
         code: 'custom',
         path: ['planningProvinceHucName'],
         message: 'Choose a province/HUC that belongs to the selected region.',
-      });
-    }
-    if (
-      (data.mealLocalityPreference === 'REGIONAL' || data.mealLocalityPreference === 'NATIONAL_REGIONAL') &&
-      data.planningRegionName === null
-    ) {
-      ctx.addIssue({
-        code: 'custom',
-        path: ['mealLocalityPreference'],
-        message: 'Regional locality requires a region.',
-      });
-    }
-    if (
-      (data.mealLocalityPreference === 'LOCAL' || data.mealLocalityPreference === 'REGIONAL_LOCAL') &&
-      (data.planningRegionName === null || data.planningProvinceHucName === null)
-    ) {
-      ctx.addIssue({
-        code: 'custom',
-        path: ['mealLocalityPreference'],
-        message: 'Local locality requires a region and province/HUC.',
       });
     }
     if (data.weightKg === undefined || data.targetWeightKg === undefined || !data.goal) return;

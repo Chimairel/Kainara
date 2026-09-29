@@ -9,7 +9,6 @@ import {
   RicePreference,
   RicePreferenceProvenance,
   ConsumptionGeographyLevel,
-  MealLocalityPreference,
   HealthConditionType,
   HealthProfileRevisionType,
   Prisma,
@@ -33,7 +32,6 @@ interface ProfileUpdateData {
   planningGeographyLevel?: ConsumptionGeographyLevel;
   planningRegionName?: string | null;
   planningProvinceHucName?: string | null;
-  mealLocalityPreference?: MealLocalityPreference;
   shoppingDayOfWeek?: number;
 }
 
@@ -53,7 +51,6 @@ const foodPreferenceFields = new Set<keyof ProfileUpdateData>([
   'planningGeographyLevel',
   'planningRegionName',
   'planningProvinceHucName',
-  'mealLocalityPreference',
 ]);
 
 function classifyProfileChanges(fields: readonly (keyof ProfileUpdateData)[]): ProfileChangeKind[] {
@@ -102,7 +99,6 @@ export class UserProfileService {
       'planningGeographyLevel',
       'planningRegionName',
       'planningProvinceHucName',
-      'mealLocalityPreference',
     ];
     for (const field of supportedFields) {
       if (data[field] !== undefined) {
@@ -136,22 +132,11 @@ export class UserProfileService {
           safeData.planningProvinceHucName !== undefined
             ? safeData.planningProvinceHucName
             : existing?.planningProvinceHucName;
-        const requestedLocality =
-          safeData.mealLocalityPreference ?? existing?.mealLocalityPreference ?? MealLocalityPreference.NATIONAL;
-
         if (effectiveLevel === ConsumptionGeographyLevel.NATIONAL || !effectiveRegion) {
           safeData.planningRegionName = null;
           safeData.planningProvinceHucName = null;
-          safeData.mealLocalityPreference = MealLocalityPreference.NATIONAL;
         } else if (effectiveLevel === ConsumptionGeographyLevel.REGION || !effectiveProvinceHuc) {
           safeData.planningProvinceHucName = null;
-          safeData.mealLocalityPreference =
-            requestedLocality === MealLocalityPreference.LOCAL ||
-            requestedLocality === MealLocalityPreference.REGIONAL_LOCAL
-              ? MealLocalityPreference.REGIONAL
-              : requestedLocality;
-        } else {
-          safeData.mealLocalityPreference = requestedLocality;
         }
 
         const changedFields = Object.entries(safeData)

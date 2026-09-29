@@ -1,7 +1,6 @@
 import prisma from '@/lib/prisma';
 import {
-  resolveConsumptionScopeGroups,
-  interleaveScopeRows,
+  resolveFirstAvailableConsumptionScope,
   type ConsumptionScope,
   type PlanningLocation,
 } from '@/domain/planning-location.policy';
@@ -104,7 +103,7 @@ export async function getLocalizedFoodConsumptionContext(
 ): Promise<LocalizedFoodConsumptionContext> {
   const boundedLimit = Math.max(1, Math.min(limit, 100));
 
-  const groups = await resolveConsumptionScopeGroups(location, (scope) =>
+  const result = await resolveFirstAvailableConsumptionScope(location, (scope) =>
     prisma.foodConsumptionStat.findMany({
       where: {
         release: {
@@ -147,10 +146,10 @@ export async function getLocalizedFoodConsumptionContext(
     })
   );
 
-  if (!groups.length) return { text: '', matchedScope: null, items: [], foodGroups: [], releaseLabel: null };
+  if (!result.scope) return { text: '', matchedScope: null, items: [], foodGroups: [], releaseLabel: null };
 
-  const scope = { ...groups[0].scope, label: groups.map((group) => group.scope.label).join(' + ') };
-  const rows = interleaveScopeRows(groups);
+  const scope = result.scope;
+  const rows = result.rows.map((row) => ({ row, scope }));
 
   const seen = new Set<string>();
   const uniqueRows = rows

@@ -4,11 +4,10 @@ import Link from 'next/link';
 import { Calendar, Scale, ClipboardCheck, ArrowUpRight } from 'lucide-react';
 import { motion } from 'motion/react';
 import { formatManilaDate } from '@/lib/manila-date';
-import type { MealPlan, MealLocalityPreference } from '@/types';
+import type { MealPlan } from '@/types';
 import type { PendingMealPreview } from '@/components/user/PendingMealPreviewCard';
 import type { UserProfileData } from '@/hooks/useProfile';
 import { DailyIntakeDonut, AnimatedValue } from '@/components/watermelon/daily-intake-donut';
-import MealLocalityPreferenceControl from '@/components/user/MealLocalityPreferenceControl';
 import { DashboardMealRow } from './DashboardMealRow';
 
 export interface CockpitDashboardProps {
@@ -36,7 +35,6 @@ export interface CockpitDashboardProps {
   onMealClick: (mealId: string) => void;
   onStatusToggle?: (mealId: string, status: 'DONE' | 'SKIPPED' | 'PENDING') => Promise<void> | void;
   onOpenWeeklyPlan: () => void;
-  onUpdateLocality?: (preference: MealLocalityPreference) => void;
 }
 
 export function CockpitDashboard({
@@ -53,7 +51,6 @@ export function CockpitDashboard({
   onMealClick,
   onStatusToggle,
   onOpenWeeklyPlan,
-  onUpdateLocality,
 }: CockpitDashboardProps) {
   const macros = [
     {
@@ -323,14 +320,7 @@ export function CockpitDashboard({
           )}
         </section>
       </div>
-      <div className="grid gap-4 sm:grid-cols-3">
-        <MealLocalityPreferenceControl
-          value={profile?.mealLocalityPreference ?? 'NATIONAL'}
-          regionName={profile?.planningRegionName ?? ''}
-          provinceHucName={profile?.planningProvinceHucName ?? ''}
-          onChange={onUpdateLocality ?? (() => {})}
-          compact
-        />
+      <div className="grid gap-4 sm:grid-cols-2">
         <Link
           href="/progress"
           className="dashboard-surface dashboard-stat group rounded-2xl p-5 transition-colors hover:border-brand-green"

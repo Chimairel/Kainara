@@ -740,14 +740,6 @@ enum ConsumptionGeographyLevel {
   PROVINCE_HUC
 }
 
-enum MealLocalityPreference {
-  NATIONAL
-  NATIONAL_REGIONAL
-  REGIONAL
-  REGIONAL_LOCAL
-  LOCAL
-}
-
 enum ConsumptionMappingStatus {
   EXACT
   MANUAL
@@ -928,7 +920,6 @@ model UserProfile {
   planningGeographyLevel   ConsumptionGeographyLevel @default(NATIONAL)
   planningRegionName       String?                   @db.VarChar(120)
   planningProvinceHucName  String?                   @db.VarChar(160)
-  mealLocalityPreference   MealLocalityPreference    @default(NATIONAL)
   dailyCalorieTarget       Int?
   otherConditions          String? // Free-text custom health conditions (e.g., "Gout, Celiac")
   otherAllergies           String? // Free-text custom food allergies (e.g., "Soy, Sesame")
@@ -2549,7 +2540,6 @@ model MealPlanCycleSnapshot {
   planningGeographyLevel   ConsumptionGeographyLevel
   planningRegionName       String?
   planningProvinceHucName  String?
-  mealLocalityPreference   MealLocalityPreference
   shoppingDayGroup         ShoppingDayGroup?
   shoppingDayOfWeek        Int?
   generatedAt              DateTime                  @default(now())

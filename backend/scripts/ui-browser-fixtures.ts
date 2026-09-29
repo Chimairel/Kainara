@@ -61,7 +61,6 @@ async function main() {
         planningGeographyLevel: 'PROVINCE_HUC',
         planningRegionName: 'Central Visayas',
         planningProvinceHucName: 'Cebu City',
-        mealLocalityPreference: 'NATIONAL_REGIONAL',
       },
     });
     await prisma.nutritionReport.upsert({

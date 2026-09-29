@@ -189,7 +189,6 @@ async function main() {
             ricePreference: 'FLEXIBLE',
             ricePreferenceProvenance: 'DEFAULTED',
             planningGeographyLevel: 'NATIONAL',
-            mealLocalityPreference: 'NATIONAL',
             shoppingDayOfWeek: 6,
           },
         },
