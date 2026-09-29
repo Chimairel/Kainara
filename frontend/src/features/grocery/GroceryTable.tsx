@@ -11,7 +11,6 @@ import {
 } from 'lucide-react';
 import type { GroceryItem } from './current-grocery';
 import { formatGroceryItemDisplay, getCategoryStyle } from './grocery-display';
-import PurchaseAmountEditor from './PurchaseAmountEditor';
 
 export type GrocerySortField = 'name' | 'category' | 'quantity' | 'status';
 export type GrocerySortOrder = 'asc' | 'desc';
@@ -21,7 +20,6 @@ interface GroceryTableProps {
   canCheckItems: boolean;
   onToggleItem: (itemId: string) => Promise<void>;
   onTogglePantry: (itemId: string) => Promise<void>;
-  onRefresh: () => Promise<void>;
   sortField: GrocerySortField;
   sortOrder: GrocerySortOrder;
   onSort: (field: GrocerySortField) => void;
@@ -34,7 +32,6 @@ export default function GroceryTable({
   canCheckItems,
   onToggleItem,
   onTogglePantry,
-  onRefresh,
   sortField,
   sortOrder,
   onSort,
@@ -121,7 +118,7 @@ export default function GroceryTable({
               </th>
 
               {/* Pantry Status */}
-              <th scope="col" className="w-28 px-3 py-3 text-center border-r border-brand-border/40">
+              <th scope="col" className="w-28 px-3 py-3 text-center">
                 <button
                   type="button"
                   onClick={() => onSort('status')}
@@ -130,11 +127,6 @@ export default function GroceryTable({
                   <span>Pantry</span>
                   {renderSortIndicator('status')}
                 </button>
-              </th>
-
-              {/* Action / Record Exact Amount */}
-              <th scope="col" className="w-24 px-3 py-3 text-right font-bold text-brand-text">
-                <span>Action</span>
               </th>
             </tr>
           </thead>
@@ -237,7 +229,7 @@ export default function GroceryTable({
                   </td>
 
                   {/* Pantry Toggle Button */}
-                  <td className="px-3 py-2.5 text-center align-middle border-r border-brand-border/30">
+                  <td className="px-3 py-2.5 text-center align-middle">
                     <button
                       type="button"
                       onClick={() => onTogglePantry(item.id)}
@@ -254,15 +246,6 @@ export default function GroceryTable({
                       <Archive className="h-3 w-3" />
                       <span>{item.isPantryStaple ? 'Stocked' : 'Pantry'}</span>
                     </button>
-                  </td>
-
-                  {/* Record Exact Amount Action */}
-                  <td className="px-3 py-2.5 text-right align-middle">
-                    {item.quantity !== null && canCheckItems ? (
-                      <PurchaseAmountEditor item={item} onSaved={onRefresh} />
-                    ) : (
-                      <span className="text-[10px] text-brand-muted/60">—</span>
-                    )}
                   </td>
                 </tr>
               );

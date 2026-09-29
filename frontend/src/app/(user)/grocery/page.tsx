@@ -542,7 +542,6 @@ export default function GroceryListPage() {
               canCheckItems={canCheckItems}
               onToggleItem={handleToggleItem}
               onTogglePantry={handleTogglePantry}
-              onRefresh={fetchGroceryList}
               sortField={sortField}
               sortOrder={sortOrder}
               onSort={handleSort}

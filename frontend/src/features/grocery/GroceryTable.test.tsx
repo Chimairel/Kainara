@@ -42,7 +42,6 @@ describe('GroceryTable', () => {
     canCheckItems: true,
     onToggleItem: vi.fn(),
     onTogglePantry: vi.fn(),
-    onRefresh: vi.fn(),
     sortField: 'name' as const,
     sortOrder: 'asc' as const,
     onSort: vi.fn(),
