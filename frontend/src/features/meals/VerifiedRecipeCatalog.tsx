@@ -20,6 +20,8 @@ type Recipe = {
   sourceUrl: string | null;
   imageUrl: string | null;
   planningReady: boolean;
+  dataAuditLabel: string | null;
+  nutritionEstimated: boolean;
 };
 type Page = { items: Recipe[]; total: number; page: number; pageCount: number; restrictedProfile: boolean };
 
@@ -105,8 +107,14 @@ export default function VerifiedRecipeCatalog({ search, mealType }: { search: st
                         Recipe verified
                       </span>
                       <span className="rounded-full border border-white/30 bg-black/40 px-2 py-0.5 text-[9px] font-bold text-white shadow-xs backdrop-blur-md">
-                        {recipe.planningReady ? 'Serving data recorded' : 'Serving evidence pending'}
+                        {recipe.nutritionEstimated ? 'Demo nutrition estimate' :
+                          recipe.planningReady ? 'Serving data recorded' : 'Serving evidence pending'}
                       </span>
+                      {recipe.dataAuditLabel && (
+                        <span className="rounded-full border border-amber-400/50 bg-black/70 px-2 py-0.5 text-[9px] font-bold text-amber-200 shadow-xs backdrop-blur-md">
+                          {recipe.dataAuditLabel}
+                        </span>
+                      )}
                     </div>
                   </div>
 
@@ -125,21 +133,21 @@ export default function VerifiedRecipeCatalog({ search, mealType }: { search: st
                     {recipe.planningReady && recipe.calories !== null ? (
                       <div className="mt-2.5 flex flex-wrap items-center gap-1.5 sm:gap-2">
                         <span className="inline-flex items-center gap-1 rounded-full bg-black/[0.04] dark:bg-white/[0.06] px-2.5 py-1 text-[11px] font-bold text-brand-text border border-black/10 dark:border-white/10">
-                          <span className="text-[10px]">🔥</span> {Math.round(recipe.calories)} kcal
+                          <span className="text-[10px]">🔥</span> {recipe.nutritionEstimated ? '~' : ''}{Math.round(recipe.calories)} kcal
                         </span>
                         {recipe.proteinG !== null && (
                           <span className="inline-flex items-center gap-1 rounded-full bg-[#08705b]/10 dark:bg-[#10b981]/15 px-2.5 py-1 text-[11px] font-bold text-[#08705b] dark:text-[#34d399] border border-[#08705b]/20 dark:border-[#10b981]/30">
-                            {Math.round(recipe.proteinG)}g P
+                            {recipe.nutritionEstimated ? '~' : ''}{Math.round(recipe.proteinG)}g P
                           </span>
                         )}
                         {recipe.carbsG !== null && (
                           <span className="inline-flex items-center gap-1 rounded-full bg-[#18b9d2]/10 dark:bg-[#38bdf8]/15 px-2.5 py-1 text-[11px] font-bold text-[#0b7788] dark:text-[#38bdf8] border border-[#18b9d2]/20 dark:border-[#38bdf8]/30">
-                            {Math.round(recipe.carbsG)}g C
+                            {recipe.nutritionEstimated ? '~' : ''}{Math.round(recipe.carbsG)}g C
                           </span>
                         )}
                         {recipe.fatG !== null && (
                           <span className="inline-flex items-center gap-1 rounded-full bg-[#eb6a38]/10 dark:bg-[#eb6a38]/15 px-2.5 py-1 text-[11px] font-bold text-[#c74614] dark:text-[#f09e6c] border border-[#eb6a38]/20 dark:border-[#eb6a38]/30">
-                            {Math.round(recipe.fatG)}g F
+                            {recipe.nutritionEstimated ? '~' : ''}{Math.round(recipe.fatG)}g F
                           </span>
                         )}
                       </div>

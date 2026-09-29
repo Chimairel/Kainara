@@ -17,7 +17,7 @@ describe('verified recipe catalogue', () => {
       items: [{ id: 'raw:1', name: 'Chicken Tinola', description: 'Published dish',
         mealTypes: ['LUNCH', 'DINNER'], calories: 500, proteinG: 30, carbsG: 20, fatG: 10,
         sourceName: 'PANLASANG_PINOY', sourceUrl: 'https://panlasangpinoy.com/tinola/',
-        imageUrl: null, planningReady: false }],
+        imageUrl: null, planningReady: false, dataAuditLabel: null, nutritionEstimated: false }],
     } } });
     render(<VerifiedRecipeCatalog search="" mealType="All" />);
     await waitFor(() => expect(screen.getByText('Verified recipe catalogue · 1960')).toBeInTheDocument());
@@ -25,6 +25,22 @@ describe('verified recipe catalogue', () => {
     expect(screen.getByText('Serving evidence pending')).toBeInTheDocument();
     expect(screen.getByText('Page 1 of 82')).toBeInTheDocument();
     expect(get).toHaveBeenCalledWith('/user/meals/verified-recipes', { params: { page: 1 } });
+  });
+
+  it('marks Codex demo estimates and shows approximate macros', async () => {
+    get.mockResolvedValue({ data: { data: {
+      total: 1, page: 1, pageCount: 1, restrictedProfile: false,
+      items: [{ id: 'raw:2', name: 'Blueberry Pancake', description: null,
+        mealTypes: ['BREAKFAST'], calories: 505, proteinG: 11, carbsG: 70, fatG: 18,
+        sourceName: 'PANLASANG_PINOY', sourceUrl: null, imageUrl: null,
+        planningReady: true, nutritionEstimated: true,
+        dataAuditLabel: 'Codex demo nutrition estimate · review before publishing' }],
+    } } });
+    render(<VerifiedRecipeCatalog search="" mealType="All" />);
+    await waitFor(() => expect(screen.getByText('Blueberry Pancake')).toBeInTheDocument());
+    expect(screen.getByText('Demo nutrition estimate')).toBeInTheDocument();
+    expect(screen.getByText('Codex demo nutrition estimate · review before publishing')).toBeInTheDocument();
+    expect(screen.getByText(/~505 kcal/)).toBeInTheDocument();
   });
 
   it('does not present unrestricted base recipes to a restricted profile', async () => {

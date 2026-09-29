@@ -1,6 +1,8 @@
 import type { Prisma } from '@prisma/client';
 import { adaptUserSafetyRestrictions, type StructuredSafetyRestrictionEntry } from './structured-restriction.adapter';
 import { isInvalidSourceIngredientLabel } from './source-ingredient-fnri-match.policy';
+import { scalePublishedAmount, SOURCE_SERVING_MAX_SCALE, SOURCE_SERVING_MIN_SCALE } from './source-serving-adjustment.policy';
+import { hasDemoNutritionEstimate } from './source-nutrition-estimate.policy';
 
 type SourceRecipe = {
   id: string;
@@ -24,6 +26,9 @@ export function isUnrestrictedPanlasangBaseEligible(input: {
   otherAllergies?: string | null;
   safetyEntries?: readonly StructuredSafetyRestrictionEntry[];
   preparedIngredients: readonly { ingredientName: string; quantity?: number | null; unit?: string | null }[];
+  servingScale?: number;
+  preparedNutrition?: { calories: number; proteinG: number; carbsG: number; fatG: number };
+  allowDemoEstimatedNutrition?: boolean;
 }): boolean {
   const restrictions = adaptUserSafetyRestrictions({
     healthConditions: input.conditions,
@@ -37,9 +42,17 @@ export function isUnrestrictedPanlasangBaseEligible(input: {
   const source = input.source;
   if (!source || source.id !== input.candidateId || source.sourceName !== 'PANLASANG_PINOY' ||
       source.status !== 'AVAILABLE' || !source.publishedNutrition) return false;
+  if (hasDemoNutritionEstimate(source.publishedNutrition) && !input.allowDemoEstimatedNutrition) return false;
   if (![source.calories, source.proteinG, source.carbsG, source.fatG].every(
     (value) => typeof value === 'number' && Number.isFinite(value) && value >= 0
   ) || (source.calories ?? 0) <= 0) return false;
+  const scale = input.servingScale ?? 1;
+  if (!Number.isFinite(scale) || scale < SOURCE_SERVING_MIN_SCALE || scale > SOURCE_SERVING_MAX_SCALE) return false;
+  if (scale !== 1) {
+    if (!input.preparedNutrition || !(['calories', 'proteinG', 'carbsG', 'fatG'] as const).every((key) =>
+      Math.abs(input.preparedNutrition![key] - scalePublishedAmount(source[key]!, scale)) <= 0.01
+    )) return false;
+  }
   if (!Array.isArray(source.ingredients)) return false;
   if (source.ingredients.some((item) => item && typeof item === 'object' && !Array.isArray(item) &&
       (item as Record<string, unknown>).excludedFromPlanning === true &&
@@ -56,7 +69,8 @@ export function isUnrestrictedPanlasangBaseEligible(input: {
     const prepared = input.preparedIngredients[index];
     const unit = typeof ingredient.unit === 'string' && ingredient.unit.trim() ? ingredient.unit.trim() : undefined;
     const quantity = unit && typeof ingredient.quantity === 'number' &&
-      Number.isFinite(ingredient.quantity) && ingredient.quantity > 0 ? ingredient.quantity : undefined;
+      Number.isFinite(ingredient.quantity) && ingredient.quantity > 0
+      ? scalePublishedAmount(ingredient.quantity, scale) : undefined;
     return typeof ingredient.name === 'string' && ingredient.name.trim().length > 0 &&
       prepared?.ingredientName.normalize('NFKC').trim().toLowerCase() === ingredient.name.normalize('NFKC').trim().toLowerCase() &&
       (prepared.quantity ?? undefined) === quantity &&

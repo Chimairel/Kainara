@@ -11,6 +11,8 @@ export interface MealSelectionEvidence {
   consumptionEvidenceRelease: string | null;
   rankingScore?: number | null;
   rankingReasonCodes?: string[];
+  servingScale?: number;
+  dataAdjustment?: 'CODEX_PUBLISHED_SERVING_SCALE_V1';
   capturedAt: string;
 }
 
@@ -100,6 +102,9 @@ export function buildMealExplanation(input: MealExplanationInput): MealExplanati
     bullets.push(
       `Planner ranking factors: ${evidence.rankingReasonCodes.join(', ').toLowerCase().replace(/_/g, ' ')}.`
     );
+  }
+  if (evidence?.dataAdjustment === 'CODEX_PUBLISHED_SERVING_SCALE_V1' && evidence.servingScale) {
+    bullets.push(`Codex adjusted this portion to ${evidence.servingScale}× the published serving. Nutrition and measured ingredient amounts were scaled from the source values.`);
   }
 
   if (nutritionEvidence === 'ALL_FNRI')

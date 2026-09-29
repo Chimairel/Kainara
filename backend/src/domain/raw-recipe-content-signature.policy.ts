@@ -10,6 +10,7 @@ function normalize(value: unknown): string {
 }
 
 function finite(value: unknown): number | null {
+  if (value === null || value === undefined || value === '') return null;
   const numeric = typeof value === 'number' ? value : Number(value);
   return Number.isFinite(numeric) ? Math.round(numeric * 1000) / 1000 : null;
 }

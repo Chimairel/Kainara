@@ -31,7 +31,7 @@ export interface Verifier {
 
 export interface LibraryMeal {
   id: string;
-  sourceRawRecipeCandidate?: { sourceName: string; sourceUrl: string; sourceImageUrl: string | null; status: string } | null;
+  sourceRawRecipeCandidate?: { sourceName: string; sourceUrl: string; sourceImageUrl: string | null; status: string; dataAuditLabel?: string | null } | null;
   baseVerification: 'VERIFIED' | 'REVIEW_PENDING';
   baseVerificationBasis: 'PANLASANG_PINOY' | 'NUTRITIONIST' | null;
   mealName: string;

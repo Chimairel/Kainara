@@ -129,6 +129,7 @@ export default function MealLibraryPage() {
             <p className="text-xs font-bold uppercase tracking-widest text-brand-green">
               {viewedMeal.mealType} · {source?.sourceName === 'PANLASANG_PINOY' ? 'Panlasang Pinoy base recipe' : 'Recorded recipe'}
             </p>
+            {source?.dataAuditLabel && <p className="text-xs font-semibold text-amber-600 dark:text-amber-300">{source.dataAuditLabel}</p>}
             <h1 className="mt-2 font-display text-3xl font-black text-brand-text">{viewedMeal.mealName}</h1>
             <div className="mt-3 flex flex-wrap items-center gap-2">
               <Badge variant={viewedMeal.baseVerification === 'VERIFIED' ? 'verified' : 'pending'} showIcon={false}>

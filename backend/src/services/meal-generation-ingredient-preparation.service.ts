@@ -25,6 +25,7 @@ export interface GeneratedMeal {
   carbsG: number;
   fatG: number;
   rawCandidateId?: string;
+  servingScale?: number;
   candidateProvenance?: MealCandidateProvenance;
   candidateRank?: number;
   rankingScore?: number;
@@ -42,6 +43,7 @@ export interface PreparedGeneratedMeal {
   scheduledDate: Date;
   aiConfidenceFlag: AIConfidenceFlag;
   rawCandidateId?: string;
+  servingScale?: number;
   candidateProvenance: MealCandidateProvenance;
   candidateRank?: number;
   rankingScore?: number;
@@ -199,6 +201,7 @@ export async function prepareGeneratedMealIngredients(input: {
       scheduledDate,
       aiConfidenceFlag: confidence,
       rawCandidateId: rawMeal.rawCandidateId,
+      servingScale: rawMeal.servingScale,
       candidateProvenance: rawMeal.candidateProvenance ?? MealCandidateProvenance.AI_FROM_SCRATCH,
       candidateRank: rawMeal.candidateRank,
       rankingScore: rawMeal.rankingScore,

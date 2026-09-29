@@ -52,6 +52,7 @@ import {
 import { buildBaseServingPersistence, composePlanWithPairedRice } from './meal-plan-serving.service';
 import { getMaximumAssuranceTier } from '@/domain/assurance-tier.policy';
 import { isUnrestrictedPanlasangBaseEligible } from '@/domain/unrestricted-panlasang-base.policy';
+import { allowDemoNutritionPlanning } from '@/domain/source-nutrition-estimate.policy';
 import { adaptUserSafetyRestrictions } from '@/domain/structured-restriction.adapter';
 import { GroceryService } from './grocery.service';
 import {
@@ -311,7 +312,7 @@ export async function generate7DayPlan(
   const selectionEvidenceFor = (
     source: MealSelectionEvidence['source'],
     mealType: MealType,
-    ranking?: { score?: number | null; reasonCodes?: readonly string[] }
+    ranking?: { score?: number | null; reasonCodes?: readonly string[]; servingScale?: number }
   ): MealSelectionEvidence => {
     const range = isPrimaryMealType(mealType) ? getMealSlotCalorieRange(dailyCalorieTarget, mealType) : null;
     return {
@@ -327,6 +328,9 @@ export async function generate7DayPlan(
       consumptionEvidenceRelease: localizedConsumption.releaseLabel,
       rankingScore: ranking?.score ?? null,
       rankingReasonCodes: [...(ranking?.reasonCodes ?? [])],
+      ...(ranking?.servingScale && ranking.servingScale !== 1
+        ? { servingScale: ranking.servingScale, dataAdjustment: 'CODEX_PUBLISHED_SERVING_SCALE_V1' as const }
+        : {}),
       capturedAt: evidenceCapturedAt,
     };
   };
@@ -365,6 +369,8 @@ export async function generate7DayPlan(
         candidateId: meal.rawCandidateId,
         conditions: userConditions, allergens: userAllergens, otherConditions, otherAllergies,
         safetyEntries: user.safetyProfileEntries, preparedIngredients: meal.ingredientsData,
+        servingScale: meal.servingScale, preparedNutrition: meal,
+        allowDemoEstimatedNutrition: allowDemoNutritionPlanning(),
       }))
     : unflaggedCandidates;
   const unrestrictedBaseIds = new Set(
@@ -378,6 +384,8 @@ export async function generate7DayPlan(
         otherAllergies,
         safetyEntries: user.safetyProfileEntries,
         preparedIngredients: meal.ingredientsData,
+        servingScale: meal.servingScale, preparedNutrition: meal,
+        allowDemoEstimatedNutrition: allowDemoNutritionPlanning(),
       }) && meal.rawCandidateId ? [meal.rawCandidateId] : []
     )
   );
@@ -745,6 +753,8 @@ export async function generate7DayPlan(
                   otherAllergies,
                   safetyEntries: user.safetyProfileEntries,
                   preparedIngredients: meal.ingredientsData,
+                  servingScale: meal.servingScale, preparedNutrition: meal,
+                  allowDemoEstimatedNutrition: allowDemoNutritionPlanning(),
                 })) throw new Error('Source recipe changed during preparation. Please retry.');
           }
         }
@@ -802,7 +812,8 @@ export async function generate7DayPlan(
                 ? 'RAW_RECIPE_CORPUS'
                 : 'AI_GENERATED',
               meal.mealType,
-              { score: meal.rankingScore, reasonCodes: meal.rankingReasonCodes }
+              { score: meal.rankingScore, reasonCodes: meal.rankingReasonCodes,
+                servingScale: meal.servingScale }
             ) as unknown as Prisma.InputJsonValue,
             ingredients: {
               create: meal.ingredientsData,

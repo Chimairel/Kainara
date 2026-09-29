@@ -162,3 +162,31 @@ test('raw sourcing checks the next corpus page before leaving a slot for Gemini'
     databaseRecipeCandidateProvider.list = originalList;
   }
 });
+
+test('a published breakfast serving can be adjusted without adding source nutrition', async () => {
+  const originalList = databaseRecipeCandidateProvider.list;
+  const ranges: Array<{ minimum?: number; maximum?: number }> = [];
+  databaseRecipeCandidateProvider.list = async (input) => {
+    ranges.push({ minimum: input.calorieMinimum, maximum: input.calorieMaximum });
+    const breakfast = candidate('breakfast', 'Pandesal', 'flour');
+    breakfast.applicableMealTypes = [MealType.BREAKFAST];
+    breakfast.nutrition = { calories: 438, proteinG: 12, carbsG: 72, fatG: 10 };
+    breakfast.reviewFreeBaseEligible = true;
+    return { items: [breakfast], nextCursor: null };
+  };
+  try {
+    const result = await sourceRawRecipeCandidates({
+      slots: [{ dayNumber: 1, mealType: MealType.BREAKFAST, scheduledDate: new Date() }],
+      dailyCalorieTarget: 2571, dietaryPreference: DietaryPreference.OMNIVORE,
+      conditions: [], allergens: [], reviewFreeBaseOnly: true,
+    });
+    assert.equal(result.remainingSlots.length, 0);
+    assert.equal(result.meals[0].calories, 770.88);
+    assert.equal(result.meals[0].ingredients[0].quantity, 176);
+    assert.equal(result.meals[0].servingScale, 1.76);
+    assert.match(result.meals[0].description, /adjusted.*Codex/i);
+    assert.ok(ranges[0].minimum! < 438);
+  } finally {
+    databaseRecipeCandidateProvider.list = originalList;
+  }
+});

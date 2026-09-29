@@ -1,0 +1,17 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "rootDir": ".",
+    "declaration": false,
+    "declarationMap": false,
+    "sourceMap": false,
+    "types": ["node"]
+  },
+  "include": [
+    "scripts/audit-panlasang-source-data.ts",
+    "scripts/estimate-panlasang-demo-nutrition.ts",
+    "scripts/audit-meal-candidate-coverage.ts",
+    "scripts/index-raw-recipe-corpus.ts"
+  ]
+}

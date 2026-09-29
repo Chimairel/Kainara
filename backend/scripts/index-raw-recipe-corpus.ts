@@ -6,6 +6,7 @@ import { classifyMealIngredients } from '../src/domain/meal-ingredient-classific
 import { proposeMealTypeApplicability } from '../src/domain/meal-applicability.policy';
 import { proposeRiceRole } from '../src/domain/recipe-rice-role.policy';
 import { buildRawRecipeContentSignature } from '../src/domain/raw-recipe-content-signature.policy';
+import { recoverSourceIngredientMeasurement, SOURCE_INGREDIENT_RECOVERY_VERSION } from '../src/domain/source-ingredient-recovery.policy';
 import {
   createSourceIngredientFnriMatcher,
   isInvalidSourceIngredientLabel,
@@ -43,6 +44,7 @@ function normalize(value: unknown): string {
 }
 
 function finite(value: unknown): number | null {
+  if (value === null || value === undefined || value === '') return null;
   const numeric = typeof value === 'number' ? value : Number(value);
   return Number.isFinite(numeric) ? Math.round(numeric * 1000) / 1000 : null;
 }
@@ -99,7 +101,7 @@ async function main() {
   const rows: Prisma.RawRecipeCandidateCreateManyInput[] = [];
   for (const [contentSignature, recipe] of unique) {
     const rawIngredients = recipe.ingredients1Person ?? [];
-    const ingredients = rawIngredients.map((ingredient) => {
+    const mappedIngredients = rawIngredients.map((ingredient) => {
       const name = String(ingredient.name ?? ingredient.text ?? '').trim();
       const match = fnriMatcher.match(name);
       return {
@@ -118,8 +120,28 @@ async function main() {
         excludedFromPlanning: isInvalidSourceIngredientLabel(name),
       };
     });
+    let recoveredMeasurements = 0;
+    const ingredients = mappedIngredients.map((ingredient) => {
+      const recovered = recoverSourceIngredientMeasurement(ingredient, finite(recipe.originalServings));
+      if (recovered.method) recoveredMeasurements++;
+      return recovered.ingredient as typeof ingredient;
+    });
     const classification = classifyMealIngredients(ingredients);
     const nutrition = recipe.nutritionPerServing ?? null;
+    const missingPublishedCore = ['calories', 'proteinG', 'carbsG', 'fatG'].some(
+      (key) => finite(nutrition?.[key]) === null
+    );
+    const recordedNutrition = missingPublishedCore || recoveredMeasurements
+      ? { ...(nutrition ?? {}), dataCompletionAudit: {
+          actor: 'Codex', version: 'CODEX_PANLASANG_DATA_AUDIT_V1',
+          recordedAt: new Date().toISOString(),
+          operations: [
+            ...(missingPublishedCore ? ['MISSING_SOURCE_NUTRITION_RECORDED_AS_NULL'] : []),
+            ...(recoveredMeasurements ? [SOURCE_INGREDIENT_RECOVERY_VERSION] : []),
+          ],
+          note: 'Source measurements recovered only where explicit in the recipe text; absent published nutrients remain unknown.',
+        } }
+      : nutrition;
     const tags = classification.compatibleDietaryPreferences.length
       ? classification.compatibleDietaryPreferences
       : [DietaryPreference.OMNIVORE];
@@ -148,7 +170,7 @@ async function main() {
       includedRiceG: riceRole.includedRiceG,
       dietaryTags: tags,
       ingredients: ingredients as unknown as Prisma.InputJsonValue,
-      publishedNutrition: nutrition ? (nutrition as Prisma.InputJsonValue) : Prisma.JsonNull,
+      publishedNutrition: recordedNutrition ? (recordedNutrition as Prisma.InputJsonValue) : Prisma.JsonNull,
       calories: finite(nutrition?.calories),
       proteinG: finite(nutrition?.proteinG),
       carbsG: finite(nutrition?.carbsG),

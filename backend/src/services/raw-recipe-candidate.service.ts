@@ -10,6 +10,7 @@ import { getMaximumAssuranceTier } from '@/domain/assurance-tier.policy';
 import { scorePreparationCandidate, type PreparationRankingReasonCode } from '@/domain/upcoming-preparation.policy';
 import { databaseRecipeCandidateProvider } from './panlasang-recipe-candidate.provider';
 import type { RecipeCandidateProjection } from './recipe-candidate-provider';
+import { scalePublishedAmount, sourceServingScale, SOURCE_SERVING_MAX_SCALE, SOURCE_SERVING_MIN_SCALE } from '@/domain/source-serving-adjustment.policy';
 
 export interface RawCandidateSlot {
   dayNumber: number;
@@ -31,11 +32,22 @@ export interface SourcedRawRecipeMeal {
   candidateRank: number;
   rankingScore: number;
   rankingReasonCodes: PreparationRankingReasonCode[];
+  servingScale: number;
 }
 
 type RankedCandidate = RecipeCandidateProjection & {
   _ranking: ReturnType<typeof scorePreparationCandidate>;
+  servingScale?: number;
 };
+
+function sourceServingDescription(candidate: RankedCandidate): string {
+  const description = candidate.description ?? 'Existing recipe from the broader recipe corpus.';
+  const nutritionNote = candidate.nutritionIsDemoEstimate
+    ? ' Codex demo nutrition estimate from comparable recipes; not published source nutrition or independently reviewed.' : '';
+  const portionNote = !candidate.servingScale || candidate.servingScale === 1 ? '' :
+    ` Portion adjusted to ${candidate.servingScale}× the source serving by Codex; nutrition and measured ingredients were scaled from the recorded values.`;
+  return `${description}${nutritionNote}${portionNote}`;
+}
 
 export function normalizeRawRecipeQuantity(value: unknown): number | undefined {
   return typeof value === 'number' && Number.isFinite(value) && value > 0 ? value : undefined;
@@ -100,7 +112,7 @@ export function selectRawRecipeCandidates(input: {
       mealType: slot.mealType,
       rawCandidateId: candidate.id,
       mealName: candidate.displayName,
-      description: candidate.description ?? 'Existing recipe from the broader recipe corpus.',
+      description: sourceServingDescription(candidate),
       calories: candidate.nutrition!.calories,
       proteinG: candidate.nutrition!.proteinG,
       carbsG: candidate.nutrition!.carbsG,
@@ -112,6 +124,7 @@ export function selectRawRecipeCandidates(input: {
       candidateRank: index + 1,
       rankingScore: candidate._ranking.score,
       rankingReasonCodes: candidate._ranking.reasonCodes,
+      servingScale: candidate.servingScale ?? 1,
     });
   }
   return { meals, remainingSlots };
@@ -159,12 +172,12 @@ export function fillRepeatedRawRecipeSlots(input: {
     counts.set(candidate.id, (counts.get(candidate.id) ?? 0) + 1);
     lastByType.set(slot.mealType, candidate.id);
     meals.push({ dayNumber: slot.dayNumber, mealType: slot.mealType, rawCandidateId: candidate.id,
-      mealName: candidate.displayName, description: candidate.description ?? 'Existing recipe from the broader recipe corpus.',
+      mealName: candidate.displayName, description: sourceServingDescription(candidate),
       calories: candidate.nutrition!.calories, proteinG: candidate.nutrition!.proteinG,
       carbsG: candidate.nutrition!.carbsG, fatG: candidate.nutrition!.fatG,
       ingredients: candidate.ingredients.map((ingredient) => ({ ...ingredient, foodItemId: ingredient.foodItemId ?? null })),
       candidateRank: index + 1, rankingScore: candidate._ranking.score,
-      rankingReasonCodes: candidate._ranking.reasonCodes });
+      rankingReasonCodes: candidate._ranking.reasonCodes, servingScale: candidate.servingScale ?? 1 });
   }
   return { meals, remainingSlots };
 }
@@ -195,15 +208,31 @@ export async function sourceRawRecipeCandidates(input: {
   const keyFor = (mealType: MealType, sourceKind: string) => `${mealType}:${sourceKind}`;
   const rank = (candidate: RecipeCandidateProjection, mealType: PrimaryMealType): RankedCandidate => {
     const range = getMealSlotCalorieRange(input.dailyCalorieTarget, mealType);
+    const servingScale = candidate.provenance === 'PANLASANG_PINOY' && candidate.nutrition
+      ? sourceServingScale({ calories: candidate.nutrition.calories,
+          dailyCalorieTarget: input.dailyCalorieTarget, mealType })
+      : 1;
+    const scaled = servingScale && servingScale !== 1 && candidate.nutrition ? {
+      ...candidate,
+      nutrition: {
+        calories: scalePublishedAmount(candidate.nutrition.calories, servingScale),
+        proteinG: scalePublishedAmount(candidate.nutrition.proteinG, servingScale),
+        carbsG: scalePublishedAmount(candidate.nutrition.carbsG, servingScale),
+        fatG: scalePublishedAmount(candidate.nutrition.fatG, servingScale),
+      },
+      ingredients: candidate.ingredients.map((ingredient) => ({ ...ingredient,
+        quantity: ingredient.quantity === undefined ? undefined : scalePublishedAmount(ingredient.quantity, servingScale),
+      })),
+    } : candidate;
     const ranking = scorePreparationCandidate({
       activeClearanceCoverage: false,
       allergenDeclarationsComplete: false,
-      ingredientsResolved: candidate.ingredientsComplete,
-      nutrientsComplete: candidate.nutrition !== null,
+      ingredientsResolved: scaled.ingredientsComplete,
+      nutrientsComplete: scaled.nutrition !== null,
       dietCompatible: true,
       remainingReviews: assuranceTier === AssuranceTier.ENHANCED ? 2 : 1,
-      calorieDeviationRatio: candidate.nutrition
-        ? Math.abs(candidate.nutrition.calories - range.target) / range.target
+      calorieDeviationRatio: scaled.nutrition
+        ? Math.abs(scaled.nutrition.calories - range.target) / range.target
         : 1,
       mealTypeMatch: candidate.applicableMealTypes.includes(mealType),
       riceRole: candidate.riceRole,
@@ -213,13 +242,14 @@ export async function sourceRawRecipeCandidates(input: {
       ),
       usedInRecentCycle: false,
     });
-    return { ...candidate, _ranking: ranking };
+    return { ...scaled, servingScale: servingScale ?? 1, _ranking: ranking };
   };
   const sortPool = (mealType: MealType) =>
     candidatePools
       .get(mealType)
       ?.sort(
         (left, right) =>
+          Number(Boolean(left.nutritionIsDemoEstimate)) - Number(Boolean(right.nutritionIsDemoEstimate)) ||
           right._ranking.score - left._ranking.score ||
           left.displayName.localeCompare(right.displayName) ||
           left.id.localeCompare(right.id)
@@ -231,8 +261,10 @@ export async function sourceRawRecipeCandidates(input: {
       sourceKind,
       mealType,
       dietaryPreference: input.dietaryPreference,
-      calorieMinimum: range.minimum,
-      calorieMaximum: range.maximum,
+      calorieMinimum: sourceKind === 'PANLASANG_PINOY'
+        ? range.minimum / SOURCE_SERVING_MAX_SCALE : range.minimum,
+      calorieMaximum: sourceKind === 'PANLASANG_PINOY'
+        ? range.maximum / SOURCE_SERVING_MIN_SCALE : range.maximum,
       excludeIds: input.excludeCandidateIds,
       cursor: nextCursor.get(key) ?? undefined,
       limit: 120,
@@ -243,7 +275,10 @@ export async function sourceRawRecipeCandidates(input: {
       .get(mealType)
       ?.push(
         ...page.items
-          .filter((candidate) => candidate.dietaryTags.includes(input.dietaryPreference))
+          .filter((candidate) => candidate.dietaryTags.includes(input.dietaryPreference) &&
+            (candidate.provenance !== 'PANLASANG_PINOY' || Boolean(candidate.nutrition &&
+              sourceServingScale({ calories: candidate.nutrition.calories,
+                dailyCalorieTarget: input.dailyCalorieTarget, mealType }) !== null)))
           .map((candidate) => rank(candidate, mealType))
       );
     sortPool(mealType);

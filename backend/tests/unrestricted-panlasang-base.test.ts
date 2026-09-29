@@ -60,3 +60,21 @@ test('health restrictions or missing source nutrition keep the review path', () 
   assert.equal(isUnrestrictedPanlasangBaseEligible({ ...input, otherConditions: 'unclear symptoms' }), false);
   assert.equal(isUnrestrictedPanlasangBaseEligible({ ...input, source: { ...source, publishedNutrition: null } }), false);
 });
+
+test('adjusted source portions require matching measured ingredients and published macros', () => {
+  const adjusted = {
+    ...input,
+    servingScale: 1.5,
+    preparedNutrition: { calories: 630, proteinG: 45, carbsG: 60, fatG: 22.5 },
+    preparedIngredients: [
+      { ingredientName: 'chicken', quantity: 225, unit: 'g' },
+      { ingredientName: 'ginger', quantity: 7.5, unit: 'g' },
+    ],
+  };
+  assert.equal(isUnrestrictedPanlasangBaseEligible(adjusted), true);
+  assert.equal(isUnrestrictedPanlasangBaseEligible({ ...adjusted,
+    preparedNutrition: { ...adjusted.preparedNutrition, calories: 650 } }), false);
+  assert.equal(isUnrestrictedPanlasangBaseEligible({ ...adjusted,
+    preparedIngredients: [adjusted.preparedIngredients[0], { ingredientName: 'ginger', quantity: 8, unit: 'g' }] }), false);
+  assert.equal(isUnrestrictedPanlasangBaseEligible({ ...adjusted, conditions: ['DIABETES'] }), false);
+});

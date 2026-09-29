@@ -39,3 +39,6 @@ codex/toothless.jpg
 # FNRI public-use respondent records are kept locally and reduced to committed aggregates.
 /backend/data/enns/*/source-delivery/
 /backend/data/usda/source-delivery/
+
+# Local rollback snapshots from recipe data audit scripts.
+/backend/.data-audit-backups/

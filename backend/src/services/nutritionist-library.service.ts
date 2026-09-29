@@ -1,4 +1,5 @@
 import prisma from '@/lib/prisma';
+import { sourceDataAuditLabel } from '@/domain/source-data-audit.policy';
 import { suspendMealClearancesForEvidenceChange } from './condition-clearance.service';
 import { isMealWithinSlotCalorieRange } from '@/domain/meal-calorie-allocation.policy';
 import {
@@ -192,9 +193,11 @@ export class NutritionistLibraryService {
    * Get single library meal details
    */
   static async getLibraryMeal(mealId: string) {
-    return prisma.mealLibrary.findUnique({
+    const meal = await prisma.mealLibrary.findUnique({
       where: { id: mealId },
       include: {
+        sourceRawRecipeCandidate: { select: { sourceName: true, sourceUrl: true,
+          sourceImageUrl: true, status: true, publishedNutrition: true } },
         verifiedByNutritionist: {
           include: {
             user: {
@@ -230,6 +233,13 @@ export class NutritionistLibraryService {
         },
       },
     });
+    if (!meal) return null;
+    const { sourceRawRecipeCandidate: source, ...fields } = meal;
+    return { ...fields, sourceRawRecipeCandidate: source ? {
+      sourceName: source.sourceName, sourceUrl: source.sourceUrl,
+      sourceImageUrl: source.sourceImageUrl, status: source.status,
+      dataAuditLabel: sourceDataAuditLabel(source.publishedNutrition),
+    } : null };
   }
 
   /**
