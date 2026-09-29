@@ -11,6 +11,8 @@ import EmptyState from '@/components/shared/EmptyState';
 import MealImage from '@/components/user/MealImage';
 import type { PublicMealImage } from '@/types';
 import { getApiErrorMessage } from '@/lib/api-error';
+import { useAuth } from '@/hooks/useAuth';
+import { readSessionResource, writeSessionResource } from '@/lib/session-resource-cache';
 
 type MealImageItem = {
   id: string;
@@ -36,10 +38,11 @@ const initialForm = {
 };
 
 export default function AdminMealImagesPage() {
-  const [data, setData] = useState<PageData | null>(null);
+  const ownerId = useAuth().user?.userId;
+  const [data, setData] = useState<PageData | null>(readSessionResource<PageData>(ownerId, 'admin-meal-images:1:'));
   const [search, setSearch] = useState('');
   const [query, setQuery] = useState('');
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!data);
   const [selected, setSelected] = useState<MealImageItem | null>(null);
   const [file, setFile] = useState<File | null>(null);
   const [form, setForm] = useState(initialForm);
@@ -48,19 +51,24 @@ export default function AdminMealImagesPage() {
 
   const load = useCallback(
     async (page = 1, quiet = false) => {
-      if (!quiet) setLoading(true);
+      const resource = `admin-meal-images:${page}:${query}`;
+      const previous = readSessionResource<PageData>(ownerId, resource);
+      if (previous) setData(previous);
+      else if (!quiet) setData(null);
+      if (!quiet) setLoading(!previous);
       try {
         const response = await api.get<{ data: PageData }>('/admin/meal-images', {
           params: { page, limit: 18, search: query || undefined },
         });
         setData(response.data.data);
+        writeSessionResource(ownerId, resource, response.data.data);
       } catch (error) {
         setNotice({ tone: 'error', text: getApiErrorMessage(error, 'Could not load meal images.') });
       } finally {
         setLoading(false);
       }
     },
-    [query]
+    [query, ownerId]
   );
 
   useEffect(() => {

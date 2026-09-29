@@ -8,6 +8,8 @@ import Badge from '@/components/ui/Badge';
 import Avatar from '@/components/ui/Avatar';
 import ExpandableCasePanel from '@/features/nutritionist-reviews/ExpandableCasePanel';
 import { CheckCircle, RefreshCw, UserCheck } from 'lucide-react';
+import { useAuth } from '@/hooks/useAuth';
+import { readSessionResource, writeSessionResource } from '@/lib/session-resource-cache';
 
 type QueueItem = {
   userId: string;
@@ -47,7 +49,10 @@ type Detail = QueueItem & {
 };
 
 export default function ClinicalProfileReviewPanel() {
-  const [queue, setQueue] = useState<QueueItem[]>([]);
+  const ownerId = useAuth().user?.userId;
+  const [queue, setQueue] = useState<QueueItem[]>(
+    readSessionResource<QueueItem[]>(ownerId, 'nutritionist-profile-queue', 30_000) ?? []
+  );
   const [detail, setDetail] = useState<Detail | null>(null);
   const [expanded, setExpanded] = useState(false);
   const [notes, setNotes] = useState('');
@@ -58,12 +63,14 @@ export default function ClinicalProfileReviewPanel() {
   const refresh = useCallback(async () => {
     try {
       const response = await api.get('/nutritionist/profile-reviews');
-      setQueue(response.data.data ?? []);
+      const next = response.data.data ?? [];
+      setQueue(next);
+      writeSessionResource(ownerId, 'nutritionist-profile-queue', next);
       setError(null);
     } catch (cause) {
       setError(getApiErrorMessage(cause, 'The profile queue could not be loaded.'));
     }
-  }, []);
+  }, [ownerId]);
 
   useEffect(() => {
     void refresh();

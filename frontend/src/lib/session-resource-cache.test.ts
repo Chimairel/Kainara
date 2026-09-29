@@ -3,6 +3,7 @@ import {
   clearSessionResourceCache,
   invalidateSessionResource,
   readSessionResource,
+  refreshSessionResource,
   writeSessionResource,
 } from './session-resource-cache';
 
@@ -29,6 +30,29 @@ describe('session resource cache', () => {
 
     writeSessionResource('user-a', 'meals', ['lunch']);
     invalidateSessionResource('user-a', 'meals');
+    expect(readSessionResource('user-a', 'meals')).toBeNull();
+  });
+
+  it('shares an in-flight read and keeps a newer local change', async () => {
+    let finish!: (value: string) => void;
+    const fetcher = vi.fn(() => new Promise<string>((resolve) => { finish = resolve; }));
+    const first = refreshSessionResource('user-a', 'profile', fetcher);
+    const second = refreshSessionResource('user-a', 'profile', fetcher);
+    expect(first).toBe(second);
+    expect(fetcher).toHaveBeenCalledTimes(1);
+
+    writeSessionResource('user-a', 'profile', 'newer edit');
+    finish('old server read');
+    await first;
+    expect(readSessionResource('user-a', 'profile')).toBe('newer edit');
+  });
+
+  it('does not restore a private response after logout', async () => {
+    let finish!: (value: string) => void;
+    const request = refreshSessionResource('user-a', 'meals', () => new Promise<string>((resolve) => { finish = resolve; }));
+    clearSessionResourceCache();
+    finish('old account meals');
+    await request;
     expect(readSessionResource('user-a', 'meals')).toBeNull();
   });
 });

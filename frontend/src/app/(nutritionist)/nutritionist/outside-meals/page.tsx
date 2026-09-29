@@ -8,6 +8,8 @@ import Button from '@/components/ui/Button';
 import Card from '@/components/ui/Card';
 import EmptyState from '@/components/shared/EmptyState';
 import PortalPageHeader from '@/components/shared/PortalPageHeader';
+import { useAuth } from '@/hooks/useAuth';
+import { readSessionResource, writeSessionResource } from '@/lib/session-resource-cache';
 
 type QueueRow = {
   id: string;
@@ -66,14 +68,17 @@ type ObservedSubmission = {
 };
 
 const emptyCorrection = { calories: '', proteinG: '', carbsG: '', fatG: '', reason: '' };
+type OutsideQueues = { rows: QueueRow[]; submissions: ObservedSubmission[] };
 
 export default function OutsideMealReviewsPage() {
-  const [rows, setRows] = useState<QueueRow[]>([]);
+  const ownerId = useAuth().user?.userId;
+  const cached = readSessionResource<OutsideQueues>(ownerId, 'nutritionist-outside-queues', 30_000);
+  const [rows, setRows] = useState<QueueRow[]>(cached?.rows ?? []);
   const [selected, setSelected] = useState<QueueRow | null>(null);
   const [correction, setCorrection] = useState(emptyCorrection);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  const [submissions, setSubmissions] = useState<ObservedSubmission[]>([]);
+  const [submissions, setSubmissions] = useState<ObservedSubmission[]>(cached?.submissions ?? []);
   const [observed, setObserved] = useState<ObservedSubmission | null>(null);
   const [observedKind, setObservedKind] = useState<'FOOD_REFERENCE' | 'RECIPE_CANDIDATE'>('FOOD_REFERENCE');
   const [canonicalName, setCanonicalName] = useState('');
@@ -88,12 +93,14 @@ export default function OutsideMealReviewsPage() {
         api.get('/nutritionist/outside-meal-reviews'),
         api.get('/nutritionist/observed-meal-submissions'),
       ]);
-      setRows(reviews.data?.data ?? []);
-      setSubmissions(observations.data?.data ?? []);
+      const next = { rows: reviews.data?.data ?? [], submissions: observations.data?.data ?? [] };
+      setRows(next.rows);
+      setSubmissions(next.submissions);
+      writeSessionResource(ownerId, 'nutritionist-outside-queues', next);
     } catch (err) {
       setError(getApiErrorMessage(err, 'Failed to load outside-meal reviews.'));
     }
-  }, []);
+  }, [ownerId]);
   useEffect(() => {
     void load();
   }, [load]);

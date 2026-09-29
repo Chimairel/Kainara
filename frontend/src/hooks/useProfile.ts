@@ -1,9 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
-import api from '@/lib/axios';
 import type { SafetyProfileEntry } from '@/types';
 import type { MealLocalityPreference, PlanningGeographyLevel } from '@/types';
 import { useAuth } from '@/hooks/useAuth';
-import { readSessionResource, writeSessionResource } from '@/lib/session-resource-cache';
+import { readSessionResource } from '@/lib/session-resource-cache';
+import { getRecentUserProfile, refreshUserProfile } from '@/lib/user-profile-resource';
 import { getApiErrorMessage } from '@/lib/api-error';
 
 export interface UserProfileData {
@@ -66,24 +66,21 @@ export function useProfile(options?: { requireFresh?: boolean }) {
   const [isLoading, setIsLoading] = useState(Boolean(options?.requireFresh) || !cachedProfile);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchProfile = useCallback(async () => {
+  const fetchProfile = useCallback(async (forceFresh = false) => {
     try {
-      const res = await api.get('/user/profile');
-      if (res.data?.success) {
-        setProfile(res.data.data);
-        writeSessionResource(ownerId, 'user-profile', res.data.data);
-        setError(null);
-      }
+      const data = forceFresh || options?.requireFresh ? await refreshUserProfile(ownerId) : await getRecentUserProfile(ownerId);
+      setProfile(data);
+      setError(null);
     } catch (err: unknown) {
       setError(getApiErrorMessage(err, 'Failed to fetch profile'));
     } finally {
       setIsLoading(false);
     }
-  }, [ownerId]);
+  }, [ownerId, options?.requireFresh]);
 
   useEffect(() => {
     if (ownerId) fetchProfile();
   }, [ownerId, fetchProfile]);
 
-  return { profile, isLoading, error, refresh: fetchProfile };
+  return { profile, isLoading, error, refresh: () => fetchProfile(true) };
 }

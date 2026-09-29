@@ -1,7 +1,9 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import api from '@/lib/axios';
 import { getApiErrorMessage } from '@/lib/api-error';
 import type { IngredientEvidenceSource } from './ingredient-evidence';
+import { useAuth } from '@/hooks/useAuth';
+import { invalidateSessionResource, readSessionResource, writeSessionResource } from '@/lib/session-resource-cache';
 
 export interface QueueItem {
   id: string;
@@ -150,8 +152,10 @@ export type ReviewEditForm = {
 };
 
 export function useNutritionistReviews() {
-  const [queue, setQueue] = useState<QueueItem[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const ownerId = useAuth().user?.userId;
+  const cachedQueue = readSessionResource<QueueItem[]>(ownerId, 'nutritionist-case-queue', 30_000);
+  const [queue, setQueue] = useState<QueueItem[]>(cachedQueue ?? []);
+  const [isLoading, setIsLoading] = useState(!cachedQueue);
 
   // Selected Card Details
   const [selectedMealId, setSelectedMealId] = useState<string | null>(null);
@@ -190,27 +194,28 @@ export function useNutritionistReviews() {
     ingredients: [],
   });
 
-  const fetchQueue = async (silent = false) => {
-    if (!silent) setIsLoading(true);
+  const fetchQueue = useCallback(async (silent = false) => {
+    if (!silent && !readSessionResource<QueueItem[]>(ownerId, 'nutritionist-case-queue', 30_000)) setIsLoading(true);
     try {
       const res = await api.get('/nutritionist/queue');
       if (res.data?.success) {
         setQueue(res.data.data);
+        writeSessionResource(ownerId, 'nutritionist-case-queue', res.data.data);
       }
     } catch (err) {
       console.error('Failed to fetch queue:', err);
     } finally {
       if (!silent) setIsLoading(false);
     }
-  };
+  }, [ownerId]);
 
   useEffect(() => {
     fetchQueue();
     const interval = window.setInterval(() => {
       if (document.visibilityState === 'visible') void fetchQueue(true);
-    }, 15_000);
+    }, 30_000);
     return () => window.clearInterval(interval);
-  }, []);
+  }, [fetchQueue]);
 
   const handleSelectMeal = async (id: string) => {
     setSelectedMealId(id);
@@ -297,6 +302,7 @@ export function useNutritionistReviews() {
       }
 
       await api.patch(`/nutritionist/review/${selectedMealId}`, payload);
+      invalidateSessionResource(ownerId, 'nutritionist-case-queue');
       setQueue((prev) => prev.filter((m) => m.id !== selectedMealId));
       setSelectedMealId(null);
       setDetailData(null);
@@ -319,6 +325,7 @@ export function useNutritionistReviews() {
         action: 'reject',
         note: rejectNote.trim(),
       });
+      invalidateSessionResource(ownerId, 'nutritionist-case-queue');
       setQueue((prev) => prev.filter((m) => m.id !== selectedMealId));
       setSelectedMealId(null);
       setDetailData(null);
@@ -365,6 +372,7 @@ export function useNutritionistReviews() {
         note: generalNote.trim() || undefined,
         candidate: candidateMeal,
       });
+      invalidateSessionResource(ownerId, 'nutritionist-case-queue');
       setQueue((prev) => prev.filter((m) => m.id !== selectedMealId));
       setSelectedMealId(null);
       setDetailData(null);

@@ -11,6 +11,7 @@ import { NutritionistCredentialCard } from '@/components/user/NutritionistCreden
 import NutritionistCredentialModal from '@/components/user/NutritionistCredentialModal';
 import { useAuth } from '@/hooks/useAuth';
 import PortalPageHeader from '@/components/shared/PortalPageHeader';
+import { readSessionResource, writeSessionResource } from '@/lib/session-resource-cache';
 import {
   Check,
   UserRound,
@@ -55,8 +56,10 @@ const SPECIALIZATION_SUGGESTIONS = [
 
 export default function NutritionistProfilePage() {
   const { logout, user, updateUserSession } = useAuth();
-  const [profile, setProfile] = useState<NProfile | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const ownerId = user?.userId;
+  const cached = readSessionResource<NProfile>(ownerId, 'nutritionist-profile');
+  const [profile, setProfile] = useState<NProfile | null>(cached);
+  const [isLoading, setIsLoading] = useState(!cached);
   const [activeTab, setActiveTab] = useState<'credentials' | 'avatar'>('credentials');
   const [bio, setBio] = useState('');
   const [specialization, setSpecialization] = useState('');
@@ -73,6 +76,7 @@ export default function NutritionistProfilePage() {
         const res = await api.get('/nutritionist/profile');
         if (res.data?.success && res.data.data) {
           setProfile(res.data.data);
+          writeSessionResource(ownerId, 'nutritionist-profile', res.data.data);
           setBio(res.data.data.bio || '');
           setSpecialization(res.data.data.specialization || '');
         }
@@ -84,7 +88,7 @@ export default function NutritionistProfilePage() {
       }
     };
     fetchProfile();
-  }, []);
+  }, [ownerId]);
 
   const handleSave = async () => {
     setSaving(true);
@@ -93,6 +97,7 @@ export default function NutritionistProfilePage() {
     try {
       await api.patch('/nutritionist/profile', { bio, specialization });
       setProfile((current) => (current ? { ...current, bio, specialization } : current));
+      if (profile) writeSessionResource(ownerId, 'nutritionist-profile', { ...profile, bio, specialization });
       setSuccess('Professional profile updated successfully.');
     } catch (err) {
       console.error('Save failed:', err);

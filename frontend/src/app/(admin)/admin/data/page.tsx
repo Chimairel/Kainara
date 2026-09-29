@@ -13,11 +13,17 @@ import FoodCatalogue from '@/features/admin-data/FoodCatalogue';
 import ReleaseOperations from '@/features/admin-data/ReleaseOperations';
 import type { AdminDataSection, ApiEnvelope, DataWorkspace, FoodPage } from '@/features/admin-data/types';
 import { getApiError } from '@/features/admin-data/types';
+import { useAuth } from '@/hooks/useAuth';
+import { readSessionResource, writeSessionResource } from '@/lib/session-resource-cache';
+
+interface DataSnapshot { workspace: DataWorkspace; foods: FoodPage }
 
 export default function AdminDataPage() {
-  const [workspace, setWorkspace] = useState<DataWorkspace | null>(null);
-  const [foods, setFoods] = useState<FoodPage | null>(null);
-  const [loading, setLoading] = useState(true);
+  const ownerId = useAuth().user?.userId;
+  const cached = readSessionResource<DataSnapshot>(ownerId, 'admin-data-workspace');
+  const [workspace, setWorkspace] = useState<DataWorkspace | null>(cached?.workspace ?? null);
+  const [foods, setFoods] = useState<FoodPage | null>(cached?.foods ?? null);
+  const [loading, setLoading] = useState(!cached);
   const [section, setSection] = useState<AdminDataSection>('overview');
   const [notice, setNotice] = useState<{ tone: 'success' | 'error'; message: string } | null>(null);
 
@@ -28,14 +34,16 @@ export default function AdminDataPage() {
         api.get<ApiEnvelope<DataWorkspace>>('/admin/data'),
         api.get<ApiEnvelope<FoodPage>>('/admin/data/foods', { params: { page: 1, limit: 12 } }),
       ]);
-      setWorkspace(workspaceResponse.data.data);
-      setFoods(foodsResponse.data.data);
+      const next = { workspace: workspaceResponse.data.data, foods: foodsResponse.data.data };
+      setWorkspace(next.workspace);
+      setFoods(next.foods);
+      writeSessionResource(ownerId, 'admin-data-workspace', next);
     } catch (error) {
       setNotice({ tone: 'error', message: getApiError(error, 'Could not load the data administration workspace.') });
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [ownerId]);
 
   useEffect(() => {
     void load();

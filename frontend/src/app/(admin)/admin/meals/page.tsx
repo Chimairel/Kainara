@@ -8,6 +8,8 @@ import { getApiErrorMessage } from '@/lib/api-error';
 import Button from '@/components/ui/Button';
 import Card from '@/components/ui/Card';
 import PortalPageHeader from '@/components/shared/PortalPageHeader';
+import { useAuth } from '@/hooks/useAuth';
+import { readSessionResource, writeSessionResource } from '@/lib/session-resource-cache';
 
 type MealType = 'BREAKFAST' | 'LUNCH' | 'DINNER';
 type OptionalNutrient = 'sodiumMg' | 'sugarG' | 'fiberG' | 'potassiumMg' | 'phosphorusMg' | 'saturatedFatG';
@@ -121,26 +123,37 @@ function FnriIngredientRow({ ingredient, index, onChange, onRemove }: {
 }
 
 export default function AdminMealsPage() {
+  const ownerId = useAuth().user?.userId;
+  const cached = readSessionResource<{ items: Draft[]; total: number }>(ownerId, 'admin-meals:1');
   const [form, setForm] = useState<MealForm>(blankForm);
   const [editing, setEditing] = useState<{ id: string; revision: number } | null>(null);
-  const [drafts, setDrafts] = useState<Draft[]>([]);
+  const [drafts, setDrafts] = useState<Draft[]>(cached?.items ?? []);
   const [page, setPage] = useState(1);
-  const [total, setTotal] = useState(0);
-  const [loading, setLoading] = useState(true);
+  const [total, setTotal] = useState(cached?.total ?? 0);
+  const [loading, setLoading] = useState(!cached);
   const [saving, setSaving] = useState(false);
   const [notice, setNotice] = useState<{ kind: 'success' | 'error'; text: string } | null>(null);
 
   const load = useCallback(async () => {
+    const resource = `admin-meals:${page}`;
+    const previous = readSessionResource<{ items: Draft[]; total: number }>(ownerId, resource);
+    if (previous) {
+      setDrafts(previous.items);
+      setTotal(previous.total);
+    }
+    setLoading(!previous);
     try {
       const response = await api.get('/admin/meals', { params: { page } });
-      setDrafts(response.data.data.items ?? []);
-      setTotal(response.data.data.total ?? 0);
+      const next = { items: response.data.data.items ?? [], total: response.data.data.total ?? 0 };
+      setDrafts(next.items);
+      setTotal(next.total);
+      writeSessionResource(ownerId, resource, next);
     } catch (error) {
       setNotice({ kind: 'error', text: getApiErrorMessage(error, 'Could not load admin meal drafts.') });
     } finally {
       setLoading(false);
     }
-  }, [page]);
+  }, [page, ownerId]);
   useEffect(() => { void load(); }, [load]);
 
   function updateIngredient(index: number, next: Ingredient) {

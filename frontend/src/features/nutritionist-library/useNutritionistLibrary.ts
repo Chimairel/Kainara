@@ -1,5 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import api from '@/lib/axios';
+import { useAuth } from '@/hooks/useAuth';
+import { readSessionResource, writeSessionResource } from '@/lib/session-resource-cache';
 
 export interface Flag {
   id: string;
@@ -158,14 +160,24 @@ export const AVAILABLE_DIETS = [
   { label: 'Pescatarian', value: 'PESCATARIAN' },
 ];
 
+type LibraryPageData = { meals: LibraryMeal[]; total: number; limit: number };
+const libraryResource = (search: string, mealType: string, conditionTag: string, verifiedByMe: boolean,
+  adminDraftsOnly: boolean, status: string, page: number) =>
+  `nutritionist-library:${JSON.stringify([search, mealType, conditionTag, verifiedByMe, adminDraftsOnly, status, page])}`;
+
 export function useNutritionistLibrary() {
-  const [meals, setMeals] = useState<LibraryMeal[]>([]);
-  const [totalCount, setTotalCount] = useState(0);
+  const ownerId = useAuth().user?.userId;
+  const firstPage = readSessionResource<LibraryPageData>(ownerId, libraryResource('', 'All', 'All', false, false, 'ALL', 1));
+  const [meals, setMeals] = useState<LibraryMeal[]>(firstPage?.meals ?? []);
+  const [totalCount, setTotalCount] = useState(firstPage?.total ?? 0);
   const [page, setPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-  const [isLoading, setIsLoading] = useState(true);
+  const [totalPages, setTotalPages] = useState(firstPage ? Math.ceil(firstPage.total / firstPage.limit) : 1);
+  const [isLoading, setIsLoading] = useState(!firstPage);
   const [fetchError, setFetchError] = useState<string | null>(null);
-  const [coverage, setCoverage] = useState<LibraryCoverage | null>(null);
+  const [coverage, setCoverage] = useState<LibraryCoverage | null>(
+    readSessionResource<LibraryCoverage>(ownerId, 'nutritionist-library-coverage')
+  );
+  const requestSequence = useRef(0);
 
   // Filter States
   const [searchVal, setSearchVal] = useState('');
@@ -186,7 +198,15 @@ export function useNutritionistLibrary() {
   }, [searchVal]);
 
   const fetchLibrary = async () => {
-    setIsLoading(true);
+    const resource = libraryResource(search, mealType, conditionTag, verifiedByMe, adminDraftsOnly, status, page);
+    const cached = readSessionResource<LibraryPageData>(ownerId, resource);
+    const request = ++requestSequence.current;
+    if (cached) {
+      setMeals(cached.meals);
+      setTotalCount(cached.total);
+      setTotalPages(Math.ceil(cached.total / cached.limit));
+    }
+    setIsLoading(!cached);
     setFetchError(null);
     try {
       const res = await api.get('/nutritionist/library', {
@@ -201,27 +221,31 @@ export function useNutritionistLibrary() {
           limit: 20,
         },
       });
-      if (res.data?.success) {
+      if (res.data?.success && request === requestSequence.current) {
         setMeals(res.data.data.meals);
         setTotalCount(res.data.data.total);
         setTotalPages(Math.ceil(res.data.data.total / res.data.data.limit));
+        writeSessionResource(ownerId, resource, res.data.data);
       }
     } catch (err) {
       console.error('Failed to fetch library:', err);
-      setFetchError('The verified meal library could not be loaded. Please try again.');
+      if (request === requestSequence.current) setFetchError('The verified meal library could not be loaded. Please try again.');
     } finally {
-      setIsLoading(false);
+      if (request === requestSequence.current) setIsLoading(false);
     }
   };
 
   const fetchCoverage = React.useCallback(async () => {
     try {
       const response = await api.get('/nutritionist/library-coverage');
-      if (response.data?.success) setCoverage(response.data.data);
+      if (response.data?.success) {
+        setCoverage(response.data.data);
+        writeSessionResource(ownerId, 'nutritionist-library-coverage', response.data.data);
+      }
     } catch {
-      setCoverage(null);
+      if (!readSessionResource<LibraryCoverage>(ownerId, 'nutritionist-library-coverage')) setCoverage(null);
     }
-  }, []);
+  }, [ownerId]);
 
   useEffect(() => {
     fetchLibrary();

@@ -10,6 +10,8 @@ import { formatManilaDate, getManilaDateKey, manilaDateFromKey } from '@/lib/man
 import { invalidateSessionResource, readSessionResource, writeSessionResource } from '@/lib/session-resource-cache';
 import { useMealGenerationProgress } from '@/features/meals/useMealGenerationProgress';
 import type { CycleMetaSnapshot } from '@/features/dashboard/model';
+import { cachedClinicalProfileStatus, refreshClinicalProfileStatus } from '@/lib/clinical-profile-status';
+import { cachedUserProfile } from '@/lib/user-profile-resource';
 
 export interface SwapOption {
   id: string;
@@ -122,11 +124,14 @@ export function useMealsWorkspace() {
   const cachedPlan = readSessionResource<CurrentPlanSnapshot>(ownerId, currentPlanResource);
   const cachedHistory = readSessionResource<MealHistoryLog[]>(ownerId, historyResource('', 'All', 'All'));
   const cachedLibrary = readSessionResource<SwapOption[]>(ownerId, libraryResource('', 'All'));
+  const cachedProfile = cachedUserProfile(ownerId);
+  const cachedEligibility = cachedClinicalProfileStatus(ownerId, cachedProfile);
+  const profileSafetyRevision = cachedProfile?.userProfile?.safetyRevision;
   // Tab state
   const [activeTab, setActiveTab] = useState<'plan' | 'history' | 'library'>('plan');
 
   // Meal Plan states
-  const hasPlanData = Boolean(cachedPlan && (cachedPlan.meals.length > 0 || cachedPlan.pendingReview));
+  const hasPlanData = Boolean(cachedPlan);
   const [meals, setMeals] = useState<MealPlan[]>(cachedPlan?.meals ?? []);
   const [cycles, setCycles] = useState<{
     current?: CycleMetaSnapshot | null;
@@ -137,7 +142,7 @@ export function useMealsWorkspace() {
   const regenerationProgress = useMealGenerationProgress(isRegenerating);
   const [error, setError] = useState<string | null>(null);
   const [clinicalEvidenceRequired, setClinicalEvidenceRequired] = useState(false);
-  const [profileReviewRequired, setProfileReviewRequired] = useState(false);
+  const [profileReviewRequired, setProfileReviewRequired] = useState(Boolean(cachedEligibility?.required && !cachedEligibility?.approved));
   const [pendingReview, setPendingReview] = useState<PendingReviewState | null>(cachedPlan?.pendingReview ?? null);
   const [awaitingGeneration, setAwaitingGeneration] = useState(cachedPlan?.awaitingGeneration ?? { current: 0, upcoming: 0 });
   const [generationStatus, setGenerationStatus] = useState(cachedPlan?.generationStatus ?? { current: null, upcoming: null });
@@ -148,11 +153,11 @@ export function useMealsWorkspace() {
   useEffect(() => {
     if (!ownerId) return;
     let active = true;
-    void api.get('/user/clinical-profile-review/status').then((response) => {
-      if (active) setProfileReviewRequired(response.data.data.required && !response.data.data.approved);
+    void refreshClinicalProfileStatus(ownerId, cachedUserProfile(ownerId)).then((status) => {
+      if (active) setProfileReviewRequired(status.required && !status.approved);
     }).catch(() => { /* The server generation gate remains authoritative. */ });
     return () => { active = false; };
-  }, [ownerId]);
+  }, [ownerId, profileSafetyRevision]);
 
   // Meal swap states
   const [activeSwapMeal, setActiveSwapMeal] = useState<MealPlan | null>(null);

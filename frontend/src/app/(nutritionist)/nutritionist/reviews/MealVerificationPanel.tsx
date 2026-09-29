@@ -8,6 +8,8 @@ import Badge from '@/components/ui/Badge';
 import MealImage from '@/components/user/MealImage';
 import ExpandableCasePanel from '@/features/nutritionist-reviews/ExpandableCasePanel';
 import { CheckCircle, ChefHat, Eye, RefreshCw, ShieldCheck } from 'lucide-react';
+import { useAuth } from '@/hooks/useAuth';
+import { readSessionResource, writeSessionResource } from '@/lib/session-resource-cache';
 
 type MealCandidate = {
   kind: 'LIBRARY_MEAL' | 'RAW_RECIPE' | 'GENERATED_RECIPE';
@@ -45,7 +47,10 @@ function ingredientText(value: unknown): string {
 }
 
 export default function MealVerificationPanel() {
-  const [queue, setQueue] = useState<MealCandidate[]>([]);
+  const ownerId = useAuth().user?.userId;
+  const [queue, setQueue] = useState<MealCandidate[]>(
+    readSessionResource<MealCandidate[]>(ownerId, 'nutritionist-meal-verification-queue', 30_000) ?? []
+  );
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [expanded, setExpanded] = useState(false);
   const [rationale, setRationale] = useState('');
@@ -55,12 +60,14 @@ export default function MealVerificationPanel() {
   const load = useCallback(async () => {
     try {
       const response = await api.get('/nutritionist/meal-verification');
-      setQueue(response.data.data ?? []);
+      const next = response.data.data ?? [];
+      setQueue(next);
+      writeSessionResource(ownerId, 'nutritionist-meal-verification-queue', next);
       setError(null);
     } catch (cause) {
       setError(getApiErrorMessage(cause, 'Meal verification queue could not be loaded.'));
     }
-  }, []);
+  }, [ownerId]);
 
   useEffect(() => {
     void load();

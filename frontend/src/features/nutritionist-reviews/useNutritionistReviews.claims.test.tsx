@@ -4,6 +4,7 @@ import api from '@/lib/axios';
 import { useNutritionistReviews } from './useNutritionistReviews';
 
 vi.mock('@/lib/axios', () => ({ default: { get: vi.fn(), post: vi.fn() } }));
+vi.mock('@/hooks/useAuth', () => ({ useAuth: () => ({ user: { userId: 'nutritionist-1' } }) }));
 
 const preview = {
   mealPlan: { id: 'meal-1', status: 'PENDING_REVIEW' },

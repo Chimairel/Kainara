@@ -1,10 +1,12 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { AlertTriangle, RefreshCw, ScrollText, ShieldCheck } from 'lucide-react';
 import api from '@/lib/axios';
 import Card from '@/components/ui/Card';
 import PortalPageHeader from '@/components/shared/PortalPageHeader';
+import { useAuth } from '@/hooks/useAuth';
+import { readSessionResource, writeSessionResource } from '@/lib/session-resource-cache';
 
 interface AuditEvent {
   id: string;
@@ -28,15 +30,23 @@ interface StructuredSafetyOperations {
   entries: Array<{ domain: string; supportState: string; count: number }>;
 }
 
+interface OperationsSnapshot {
+  events: AuditEvent[];
+  incidents: SafetyIncident[];
+  structuredSafety: StructuredSafetyOperations | null;
+}
+
 export default function AdminOperationsPage() {
-  const [events, setEvents] = useState<AuditEvent[]>([]);
-  const [incidents, setIncidents] = useState<SafetyIncident[]>([]);
-  const [structuredSafety, setStructuredSafety] = useState<StructuredSafetyOperations | null>(null);
-  const [loading, setLoading] = useState(true);
+  const ownerId = useAuth().user?.userId;
+  const cached = readSessionResource<OperationsSnapshot>(ownerId, 'admin-operations');
+  const [events, setEvents] = useState<AuditEvent[]>(cached?.events ?? []);
+  const [incidents, setIncidents] = useState<SafetyIncident[]>(cached?.incidents ?? []);
+  const [structuredSafety, setStructuredSafety] = useState<StructuredSafetyOperations | null>(cached?.structuredSafety ?? null);
+  const [loading, setLoading] = useState(!cached);
   const [error, setError] = useState('');
 
-  const load = async () => {
-    setLoading(true);
+  const load = useCallback(async () => {
+    setLoading(!readSessionResource<OperationsSnapshot>(ownerId, 'admin-operations'));
     setError('');
     try {
       const [auditResponse, incidentResponse, structuredResponse] = await Promise.all([
@@ -44,19 +54,25 @@ export default function AdminOperationsPage() {
         api.get('/admin/safety-incidents'),
         api.get('/admin/structured-safety-operations'),
       ]);
-      setEvents(auditResponse.data?.data?.events || []);
-      setIncidents(incidentResponse.data?.data || []);
-      setStructuredSafety(structuredResponse.data?.data || null);
+      const next = {
+        events: auditResponse.data?.data?.events || [],
+        incidents: incidentResponse.data?.data || [],
+        structuredSafety: structuredResponse.data?.data || null,
+      };
+      setEvents(next.events);
+      setIncidents(next.incidents);
+      setStructuredSafety(next.structuredSafety);
+      writeSessionResource(ownerId, 'admin-operations', next);
     } catch {
       setError('Could not load operational records.');
     } finally {
       setLoading(false);
     }
-  };
+  }, [ownerId]);
 
   useEffect(() => {
     void load();
-  }, []);
+  }, [load]);
 
   return (
     <div className="portal-page space-y-7">

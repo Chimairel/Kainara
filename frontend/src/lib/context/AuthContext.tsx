@@ -6,6 +6,8 @@ import { Role } from '@/types';
 import { decodeToken, cookieHelper } from '@/lib/auth';
 import api, { setSessionRefreshSuppressed } from '@/lib/axios';
 import { clearSessionResourceCache } from '@/lib/session-resource-cache';
+import { refreshUserProfile } from '@/lib/user-profile-resource';
+import { refreshClinicalProfileStatus } from '@/lib/clinical-profile-status';
 
 export interface UserSession {
   userId: string;
@@ -54,8 +56,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setProfileLoadError(false);
 
     try {
-      const response = await api.get('/user/profile');
-      if (response.data && response.data.success) {
+      const profile = await refreshUserProfile(decodeToken(cookieHelper.get('nutrimind_session') || '')?.userId);
+      if (profile) {
         const {
           id,
           name,
@@ -70,7 +72,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           userProfile,
           nutritionReport,
           onboardingStatus,
-        } = response.data.data;
+        } = profile;
 
         const isReportAcknowledged = Boolean(
           nutritionReport?.acknowledgedAt &&
@@ -99,6 +101,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
         setUser(refreshedUser);
         setProfileLoadError(false);
+        if (role === 'USER' && onboardingDone && tosAccepted && isReportAcknowledged) {
+          void refreshClinicalProfileStatus(id, profile).catch(() => undefined);
+        }
         return refreshedUser;
       }
       if (requestId === sessionRequestId.current) setProfileLoadError(true);

@@ -5,6 +5,7 @@ import { getApiErrorMessage } from '@/lib/api-error';
 import { normalizeFoodCulture } from '@/lib/profile-normalization';
 import { useAuth } from '@/hooks/useAuth';
 import { readSessionResource, writeSessionResource } from '@/lib/session-resource-cache';
+import { getRecentUserProfile } from '@/lib/user-profile-resource';
 import type { UserProfileData } from '@/hooks/useProfile';
 import type { MealLocalityPreference, PlanningGeographyLevel } from '@/types';
 import { getCanonicalRegionName } from '@/lib/philippine-regions';
@@ -110,7 +111,7 @@ export function useProgressWorkspace(mode: ProgressWorkspaceMode) {
               return { data: { success: false, data: null } };
             })
           : Promise.resolve({ data: { success: false, data: null } }),
-        api.get('/user/profile'),
+        getRecentUserProfile(ownerId).then((data) => ({ data: { success: true, data } })),
       ]);
 
       const nextHistory = historyRes.data?.success ? (historyRes.data.data as ProgressHistory) : null;

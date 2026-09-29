@@ -7,6 +7,8 @@ import Button from '@/components/ui/Button';
 import Badge from '@/components/ui/Badge';
 import ExpandableCasePanel from '@/features/nutritionist-reviews/ExpandableCasePanel';
 import { CheckCircle, Download, FileCheck, RefreshCw } from 'lucide-react';
+import { useAuth } from '@/hooks/useAuth';
+import { readSessionResource, writeSessionResource } from '@/lib/session-resource-cache';
 
 type QueueItem = {
   id: string;
@@ -44,7 +46,10 @@ const factCodes: Record<string, string[]> = {
 };
 
 export default function ClinicalEvidenceReviewPanel() {
-  const [queue, setQueue] = useState<QueueItem[]>([]);
+  const ownerId = useAuth().user?.userId;
+  const [queue, setQueue] = useState<QueueItem[]>(
+    readSessionResource<QueueItem[]>(ownerId, 'nutritionist-clinical-evidence-queue', 30_000) ?? []
+  );
   const [detail, setDetail] = useState<Detail | null>(null);
   const [expanded, setExpanded] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -60,12 +65,14 @@ export default function ClinicalEvidenceReviewPanel() {
   const refresh = useCallback(async () => {
     try {
       const response = await api.get('/nutritionist/clinical-evidence');
-      setQueue(response.data.data ?? []);
+      const next = response.data.data ?? [];
+      setQueue(next);
+      writeSessionResource(ownerId, 'nutritionist-clinical-evidence-queue', next);
       setError(null);
     } catch (cause) {
       setError(getApiErrorMessage(cause, 'The clinical queue could not be loaded.'));
     }
-  }, []);
+  }, [ownerId]);
 
   useEffect(() => {
     void refresh();

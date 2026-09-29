@@ -15,12 +15,18 @@ import type {
   NutritionistRow,
   ScheduleDraft,
 } from '@/features/admin-nutritionists/model';
+import { useAuth } from '@/hooks/useAuth';
+import { readSessionResource, writeSessionResource } from '@/lib/session-resource-cache';
+
+interface GovernanceSnapshot { applications: NutritionistApplication[]; nutritionists: NutritionistRow[] }
 
 export default function AdminNutritionistsPage() {
-  const [applications, setApplications] = useState<NutritionistApplication[]>([]);
-  const [nutritionists, setNutritionists] = useState<NutritionistRow[]>([]);
+  const ownerId = useAuth().user?.userId;
+  const cached = readSessionResource<GovernanceSnapshot>(ownerId, 'admin-professional-governance');
+  const [applications, setApplications] = useState<NutritionistApplication[]>(cached?.applications ?? []);
+  const [nutritionists, setNutritionists] = useState<NutritionistRow[]>(cached?.nutritionists ?? []);
   const [tab, setTab] = useState<'applications' | 'professionals'>('applications');
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(!cached);
   const [workingId, setWorkingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
@@ -33,14 +39,19 @@ export default function AdminNutritionistsPage() {
         api.get('/admin/nutritionist-applications'),
         api.get('/admin/nutritionists'),
       ]);
-      setApplications(applicationResponse.data?.data || []);
-      setNutritionists(nutritionistResponse.data?.data || []);
+      const snapshot = {
+        applications: applicationResponse.data?.data || [],
+        nutritionists: nutritionistResponse.data?.data || [],
+      };
+      setApplications(snapshot.applications);
+      setNutritionists(snapshot.nutritionists);
+      writeSessionResource(ownerId, 'admin-professional-governance', snapshot);
     } catch (caught) {
       setError(getAdminApplicationError(caught, 'Professional records could not be loaded.'));
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [ownerId]);
 
   useEffect(() => {
     void fetchData();

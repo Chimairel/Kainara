@@ -68,17 +68,24 @@ export class ClinicalProfileReviewService {
     const user = await prisma.user.findUnique({ where: { id: userId }, include: userInclude });
     if (!user) throw new AppError('User not found.', 404, 'USER_NOT_FOUND');
     const current = context(user);
-    const latest = current.restricted ? await prisma.clinicalProfileReview.findFirst({
-      where: { userId, policyVersion: POLICY_VERSION }, orderBy: { reviewedAt: 'desc' },
-      select: { status: true, profileSnapshot: true, reasonCodes: true, reviewNotes: true },
-    }) : null;
+    const [latest, approvals] = current.restricted ? await Promise.all([
+      prisma.clinicalProfileReview.findFirst({
+        where: { userId, policyVersion: POLICY_VERSION }, orderBy: { reviewedAt: 'desc' },
+        select: { status: true, profileSnapshot: true, reasonCodes: true, reviewNotes: true },
+      }),
+      prisma.clinicalProfileReview.findMany({
+        where: { userId, policyVersion: POLICY_VERSION, status: 'APPROVED' },
+        select: { status: true, profileSnapshot: true },
+      }),
+    ]) : [null, []];
     const request = latest && snapshotKey(latest.profileSnapshot) === current.scopeKey &&
       latest.status === 'DECLINED' && Array.isArray(latest.reasonCodes) &&
       latest.reasonCodes[0] === 'DOCUMENT_REQUESTED' ? latest : null;
     const requestArea = request && Array.isArray(request.reasonCodes) &&
       typeof request.reasonCodes[1] === 'string' ? request.reasonCodes[1] : null;
     return {
-      required: current.restricted, approved: await this.hasCurrentApproval(userId),
+      required: current.restricted,
+      approved: !current.declarationRequired && (!current.restricted || approvals.some((review) => isCurrentApproval(review, current.scopeKey))),
       declarationRequired: current.declarationRequired,
       documentRequest: request ? {
         area: requestArea,

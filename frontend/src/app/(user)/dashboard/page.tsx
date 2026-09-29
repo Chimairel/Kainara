@@ -32,6 +32,8 @@ import {
 } from '@/features/dashboard/model';
 import { invalidateSessionResource, readSessionResource, writeSessionResource } from '@/lib/session-resource-cache';
 import { useMealGenerationProgress } from '@/features/meals/useMealGenerationProgress';
+import { cachedClinicalProfileStatus, refreshClinicalProfileStatus } from '@/lib/clinical-profile-status';
+import { cachedUserProfile, getRecentUserProfile } from '@/lib/user-profile-resource';
 
 interface CurrentPlanSnapshot {
   meals: MealPlan[];
@@ -62,6 +64,8 @@ export default function DashboardPage() {
   const cachedOutsideMeals = readSessionResource<OutsideMealLog[]>(ownerId, 'dashboard-outside-meals');
   const cachedWater = readSessionResource<number>(ownerId, 'dashboard-water');
   const cachedCheckin = readSessionResource<CheckinSnapshot>(ownerId, 'dashboard-checkin');
+  const cachedEligibility = cachedClinicalProfileStatus(ownerId, cachedProfile);
+  const profileSafetyRevision = cachedProfile?.userProfile?.safetyRevision;
   const router = useRouter();
   const [currentMeals, setCurrentMeals] = useState<MealPlan[]>(cachedPlan?.meals ?? []);
   const [selectedDayOffset, setSelectedDayOffset] = useState(0); // Index of selected date in uniqueDates
@@ -79,7 +83,9 @@ export default function DashboardPage() {
   } = useMealGenerationProgress(isGenerating);
   const [error, setError] = useState<string | null>(null);
   const [clinicalEvidenceRequired, setClinicalEvidenceRequired] = useState(false);
-  const [profileReviewStatus, setProfileReviewStatus] = useState<'checking' | 'ready' | 'pending' | 'error'>('checking');
+  const [profileReviewStatus, setProfileReviewStatus] = useState<'checking' | 'ready' | 'pending' | 'error'>(
+    cachedEligibility ? (cachedEligibility.required && !cachedEligibility.approved ? 'pending' : 'ready') : 'checking'
+  );
   const [pendingReview, setPendingReview] = useState<PendingReview | null>(cachedPlan?.pendingReview ?? null);
   const [awaitingGenerationCount, setAwaitingGenerationCount] = useState(cachedPlan?.awaitingGenerationCount ?? 0);
   const [generationStatus, setGenerationStatus] = useState(cachedPlan?.generationStatus ?? null);
@@ -91,13 +97,14 @@ export default function DashboardPage() {
   const [upcomingCycle, setUpcomingCycle] = useState<CycleMetaSnapshot | null>(cachedPlan?.upcomingCycle ?? null);
   const generationRequestInFlight = useRef(false);
   const currentPlanRequestInFlight = useRef(false);
+  const lastPlanRequestAt = useRef(0);
   useEffect(() => {
     if (!ownerId) return;
     let active = true;
     const check = async () => {
       try {
-        const response = await api.get('/user/clinical-profile-review/status');
-        if (active) setProfileReviewStatus(response.data.data.required && !response.data.data.approved ? 'pending' : 'ready');
+        const status = await refreshClinicalProfileStatus(ownerId, cachedUserProfile(ownerId));
+        if (active) setProfileReviewStatus(status.required && !status.approved ? 'pending' : 'ready');
       } catch {
         if (active) setProfileReviewStatus('error');
       }
@@ -105,7 +112,7 @@ export default function DashboardPage() {
     void check();
     const interval = window.setInterval(() => { if (document.visibilityState === 'visible') void check(); }, 30_000);
     return () => { active = false; window.clearInterval(interval); };
-  }, [ownerId]);
+  }, [ownerId, profileSafetyRevision]);
   const isStarterPlan = currentCycle?.planType === 'STARTER' || currentMeals[0]?.planType === 'STARTER';
   const nextCycleDay = React.useMemo(() => {
     if (!isStarterPlan) return null;
@@ -190,11 +197,8 @@ export default function DashboardPage() {
   // Fetch user profile metrics
   const fetchProfile = useCallback(async () => {
     try {
-      const res = await api.get('/user/profile');
-      if (res.data?.success) {
-        setUserProfile(res.data.data.userProfile);
-        writeSessionResource(ownerId, 'user-profile', res.data.data);
-      }
+      const profile = await getRecentUserProfile(ownerId);
+      setUserProfile(profile.userProfile);
     } catch (err) {
       console.warn('[Dashboard] Failed to fetch user profile', err);
     }
@@ -263,6 +267,7 @@ export default function DashboardPage() {
       return;
     }
     currentPlanRequestInFlight.current = true;
+    lastPlanRequestAt.current = Date.now();
     try {
       const res = await api.get('/user/meals/current');
       if (res.data && res.data.success) {
@@ -316,7 +321,7 @@ export default function DashboardPage() {
     if (isLoading || currentCycle || generationStatus === 'FAILED' || isReportPending || clinicalEvidenceRequired || profileReviewStatus !== 'ready' || error) return;
     const interval = window.setInterval(() => {
       if (document.visibilityState === 'visible') void fetchCurrentPlan();
-    }, 5_000);
+    }, 20_000);
     return () => window.clearInterval(interval);
   }, [isLoading, currentCycle, generationStatus, isReportPending, clinicalEvidenceRequired, profileReviewStatus, error, fetchCurrentPlan]);
 
@@ -348,9 +353,12 @@ export default function DashboardPage() {
           fetchCurrentPlan();
         }
       };
-      const refreshOnFocus = () => fetchCurrentPlan();
+      const refreshIfOld = () => {
+        if (Date.now() - lastPlanRequestAt.current >= 15_000) void fetchCurrentPlan();
+      };
+      const refreshOnFocus = () => refreshIfOld();
       const refreshOnVisibility = () => {
-        if (document.visibilityState === 'visible') fetchCurrentPlan();
+        if (document.visibilityState === 'visible') refreshIfOld();
       };
       const rolloverInterval = window.setInterval(refreshForDateRollover, 60_000);
       window.addEventListener('focus', refreshOnFocus);

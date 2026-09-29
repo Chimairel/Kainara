@@ -9,6 +9,8 @@ import ApprovedReviewsSkeleton from '@/features/nutritionist-reviews/ApprovedRev
 import EmptyState from '@/components/shared/EmptyState';
 import PortalPageHeader from '@/components/shared/PortalPageHeader';
 import { Coffee, Sun, Moon, Apple, Soup, CheckCircle, Library } from 'lucide-react';
+import { useAuth } from '@/hooks/useAuth';
+import { readSessionResource, writeSessionResource } from '@/lib/session-resource-cache';
 
 interface ApprovedMeal {
   id: string;
@@ -30,8 +32,10 @@ interface ApprovedMeal {
 }
 
 export default function NutritionistApprovedPage() {
-  const [meals, setMeals] = useState<ApprovedMeal[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const ownerId = useAuth().user?.userId;
+  const cached = readSessionResource<ApprovedMeal[]>(ownerId, 'nutritionist-approved-archive');
+  const [meals, setMeals] = useState<ApprovedMeal[]>(cached ?? []);
+  const [isLoading, setIsLoading] = useState(!cached);
   const [error, setError] = useState(false);
   const [publishingId, setPublishingId] = useState<string | null>(null);
   const [actionMessage, setActionMessage] = useState<string | null>(null);
@@ -47,6 +51,9 @@ export default function NutritionistApprovedPage() {
           meal.id === mealId ? { ...meal, libraryMealId: libraryMealId ?? meal.libraryMealId } : meal
         )
       );
+      writeSessionResource(ownerId, 'nutritionist-approved-archive', meals.map((meal) =>
+        meal.id === mealId ? { ...meal, libraryMealId: libraryMealId ?? meal.libraryMealId } : meal
+      ));
       setActionMessage(
         response.data?.data?.deduplicated
           ? 'An identical reusable recipe already existed and was linked.'
@@ -66,6 +73,7 @@ export default function NutritionistApprovedPage() {
         const res = await api.get('/nutritionist/approved');
         if (res.data?.success) {
           setMeals(res.data.data);
+          writeSessionResource(ownerId, 'nutritionist-approved-archive', res.data.data);
         }
       } catch (err) {
         console.error('Failed to fetch approved meals:', err);
@@ -75,7 +83,7 @@ export default function NutritionistApprovedPage() {
       }
     };
     fetchApproved();
-  }, []);
+  }, [ownerId]);
 
   if (isLoading) {
     return (
