@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { Apple, Check, ChevronDown, Egg, FileText, Flame, Loader2, Save, UtensilsCrossed, X } from 'lucide-react';
 import type { LucideProps } from 'lucide-react';
 import type { MealHistoryLog } from '@/features/meals/useMealsWorkspace';
+import MealImage from '@/components/user/MealImage';
 import api from '@/lib/axios';
 
 interface MealHistoryCardProps {
@@ -118,8 +119,6 @@ export default function MealHistoryCard({
     glowSurface: 'bg-brand-bgAlt border border-brand-border',
   };
 
-  const IconComponent = config.icon;
-
   const handleSaveNotes = async () => {
     if (!onUpdateNotes || isSaving) return;
     setIsSaving(true);
@@ -164,11 +163,14 @@ export default function MealHistoryCard({
         aria-expanded={isExpanded}
         className="flex cursor-pointer items-center justify-between gap-4 p-4 sm:p-5 outline-none focus-visible:ring-2 focus-visible:ring-brand-green rounded-[24px]"
       >
-        {/* Left Glowing Icon Box */}
-        <div
-          className={`relative flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl ${config.glowSurface}`}
-        >
-          <IconComponent className={`h-7 w-7 ${config.iconColor} stroke-[2]`} />
+        {/* Left Meal Image Thumbnail */}
+        <div className="relative flex h-14 w-14 shrink-0 overflow-hidden rounded-2xl border border-brand-border/60 shadow-xs">
+          <MealImage
+            mealName={log.mealName}
+            mealType={mealType}
+            variant="thumbnail"
+            hideRepresentativeBadge
+          />
         </div>
 
         {/* Center Details */}

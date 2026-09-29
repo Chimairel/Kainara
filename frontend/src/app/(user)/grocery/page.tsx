@@ -11,7 +11,7 @@ import UnauthorizedState from '@/components/shared/UnauthorizedState';
 import { getApiErrorMessage } from '@/lib/api-error';
 import { readSessionResource, writeSessionResource } from '@/lib/session-resource-cache';
 import { fetchGroceryWorkspace, type GroceryItem, type GroceryWorkspace } from '@/features/grocery/current-grocery';
-import { AlertTriangle, ChevronDown, Download, Filter, RotateCcw, Search, X } from 'lucide-react';
+import { AlertTriangle, ChevronDown, Download, Filter, Loader2, RotateCcw, Search, X } from 'lucide-react';
 
 type GroceryFilter = 'all' | 'remaining' | 'packed' | 'pantry';
 
@@ -153,13 +153,21 @@ export default function GroceryListPage() {
     }
   };
 
+  const [isDownloadingPdf, setIsDownloadingPdf] = useState(false);
+
   const handleDownloadPDF = async () => {
+    if (!projection || isDownloadingPdf) return;
     try {
-      if (!projection) return;
+      setIsDownloadingPdf(true);
       const response = await api.get('/user/grocery/pdf', {
         params: { cycleId: projection.cycle.id },
         responseType: 'blob',
       });
+      if (response.data && response.data.type === 'application/json') {
+        const text = await response.data.text();
+        const json = JSON.parse(text);
+        throw new Error(json.error || 'Failed to generate PDF.');
+      }
       const file = new Blob([response.data], { type: 'application/pdf' });
       const fileURL = URL.createObjectURL(file);
       const link = document.createElement('a');
@@ -169,9 +177,27 @@ export default function GroceryListPage() {
       link.click();
       document.body.removeChild(link);
       window.setTimeout(() => URL.revokeObjectURL(fileURL), 1000);
-    } catch (err) {
+    } catch (err: unknown) {
       console.error('[Grocery] Failed to download PDF:', err);
-      alert('Failed to generate PDF. Make sure you have an active grocery list.');
+      let message = 'Failed to generate PDF. Make sure you have an active grocery list.';
+      if (
+        typeof err === 'object' &&
+        err !== null &&
+        'response' in err &&
+        (err as { response?: { data?: unknown } }).response?.data instanceof Blob
+      ) {
+        try {
+          const blob = (err as { response: { data: Blob } }).response.data;
+          const text = await blob.text();
+          const json = JSON.parse(text);
+          if (json.error) message = json.error;
+        } catch {}
+      } else if (err instanceof Error && err.message) {
+        message = err.message;
+      }
+      alert(message);
+    } finally {
+      setIsDownloadingPdf(false);
     }
   };
 
@@ -314,20 +340,6 @@ export default function GroceryListPage() {
         title="Groceries"
         description="A simple checklist for the ingredients in your meal plan."
         className="mb-6"
-        actions={
-          groceryList && projection?.actionability.canExportPdf ? (
-            <div className="flex items-center gap-2">
-              <Button
-                variant="secondary"
-                onClick={handleDownloadPDF}
-                className="flex items-center gap-2 text-xs font-semibold py-2"
-              >
-                <Download className="w-4 h-4" />
-                <span>Download PDF</span>
-              </Button>
-            </div>
-          ) : undefined
-        }
       />
 
       {!isLoading && visibleWorkspace ? (
@@ -454,10 +466,15 @@ export default function GroceryListPage() {
                     <Button
                       variant="secondary"
                       onClick={handleDownloadPDF}
+                      disabled={isDownloadingPdf}
                       className="flex items-center gap-1.5 text-xs font-semibold py-2 px-3.5 bg-white/80 dark:bg-black/40 backdrop-blur-sm border-brand-border/60 hover:bg-brand-surface"
                     >
-                      <Download className="w-3.5 h-3.5 text-brand-green dark:text-brand-accent" />
-                      <span>Download PDF</span>
+                      {isDownloadingPdf ? (
+                        <Loader2 className="w-3.5 h-3.5 animate-spin text-brand-green dark:text-brand-accent" />
+                      ) : (
+                        <Download className="w-3.5 h-3.5 text-brand-green dark:text-brand-accent" />
+                      )}
+                      <span>{isDownloadingPdf ? 'Downloading...' : 'Download PDF'}</span>
                     </Button>
                   )}
                 </div>

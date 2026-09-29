@@ -5,6 +5,7 @@ import { Egg, Flame, Apple, UtensilsCrossed, Check, X, Clock3, Loader2 } from 'l
 import type { LucideProps } from 'lucide-react';
 import type { MealPlan } from '@/types';
 import Button from '@/components/ui/Button';
+import MealImage from '@/components/user/MealImage';
 
 interface UnloggedMealCatchUpCardProps {
   meal: MealPlan;
@@ -67,8 +68,6 @@ export default function UnloggedMealCatchUpCard({
     glowSurface: 'bg-brand-bgAlt border border-brand-border',
   };
 
-  const IconComponent = config.icon;
-
   const handleAction = async (status: 'DONE' | 'SKIPPED') => {
     if (isUpdating) return;
     setIsUpdating(status);
@@ -86,8 +85,14 @@ export default function UnloggedMealCatchUpCard({
       className={`group flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-[22px] border border-dashed border-amber-500/30 bg-brand-surface/90 p-4 transition-all hover:border-amber-500/50 hover:shadow-sm dark:border-amber-500/25 dark:bg-white/[0.03] ${className}`}
     >
       <div className="flex items-center gap-3 min-w-0">
-        <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl ${config.glowSurface}`}>
-          <IconComponent className={`h-6 w-6 ${config.iconColor} stroke-[2]`} />
+        <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-2xl border border-brand-border/60 shadow-xs">
+          <MealImage
+            image={meal.image}
+            mealName={meal.mealName}
+            mealType={meal.mealType}
+            variant="thumbnail"
+            hideRepresentativeBadge
+          />
         </div>
 
         <div className="min-w-0 flex-1">
