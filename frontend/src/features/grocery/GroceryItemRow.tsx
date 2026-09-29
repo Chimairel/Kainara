@@ -4,14 +4,12 @@ import React from 'react';
 import { Archive, Check, CircleCheckBig } from 'lucide-react';
 import type { GroceryItem } from './current-grocery';
 import { formatGroceryItemDisplay } from './grocery-display';
-import PurchaseAmountEditor from './PurchaseAmountEditor';
 
 interface GroceryItemRowProps {
   item: GroceryItem;
   canCheckItems: boolean;
   onToggleItem: (itemId: string) => Promise<void>;
   onTogglePantry: (itemId: string) => Promise<void>;
-  onRefresh: () => Promise<void>;
 }
 
 export default function GroceryItemRow({
@@ -19,7 +17,6 @@ export default function GroceryItemRow({
   canCheckItems,
   onToggleItem,
   onTogglePantry,
-  onRefresh,
 }: GroceryItemRowProps) {
   const display = formatGroceryItemDisplay(item);
 
@@ -38,7 +35,7 @@ export default function GroceryItemRow({
           onClick={() => onToggleItem(item.id)}
           disabled={!canCheckItems}
           aria-pressed={item.isChecked}
-          aria-label={`${item.isChecked ? 'Reset purchased amount for' : 'Mark fully purchased:'} ${display.cleanName}`}
+          aria-label={`${item.isChecked ? 'Mark as not bought:' : 'Mark as bought:'} ${display.cleanName}`}
           className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-md border transition-all duration-150 active:scale-95 disabled:cursor-not-allowed disabled:opacity-40 ${
             item.isChecked
               ? 'border-brand-green bg-brand-green text-white shadow-xs'
@@ -84,20 +81,7 @@ export default function GroceryItemRow({
               {display.recipeBadge}
             </span>
 
-            {/* Partial Purchase Info */}
-            {item.purchasedQuantity && item.purchasedQuantity > 0 && !item.isChecked ? (
-              <span className="text-[10px] font-semibold text-brand-accent">
-                · {item.purchasedQuantity} {item.unit || ''} bought
-              </span>
-            ) : null}
           </div>
-
-          {/* Amount Editor for measured ingredients */}
-          {item.quantity !== null && canCheckItems && (
-            <div className="mt-1">
-              <PurchaseAmountEditor item={item} onSaved={onRefresh} />
-            </div>
-          )}
         </div>
       </div>
 

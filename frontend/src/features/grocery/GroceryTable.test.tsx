@@ -90,7 +90,7 @@ describe('GroceryTable', () => {
     const onToggleItem = vi.fn();
     render(<GroceryTable {...defaultProps} onToggleItem={onToggleItem} />);
 
-    const garlicCheckbox = screen.getByRole('checkbox', { name: /Mark fully purchased: Garlic/i });
+    const garlicCheckbox = screen.getByRole('checkbox', { name: /Mark as bought: Garlic/i });
     fireEvent.click(garlicCheckbox);
     expect(onToggleItem).toHaveBeenCalledWith('item-1');
   });
@@ -111,5 +111,16 @@ describe('GroceryTable', () => {
     const selectAllBtn = screen.getByRole('checkbox', { name: /Mark all visible items purchased/i });
     fireEvent.click(selectAllBtn);
     expect(onToggleAllVisible).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps a pending item disabled and sorts Pantry by pantry state', () => {
+    const onSort = vi.fn();
+    render(<GroceryTable {...defaultProps} onSort={onSort} pendingIds={new Set(['item-1'])} />);
+
+    expect(screen.getByRole('checkbox', { name: /Mark as bought: Garlic/i })).toBeDisabled();
+    expect(screen.getByRole('button', { name: /Mark Garlic as in pantry/i })).toBeDisabled();
+    fireEvent.click(screen.getByRole('button', { name: /^Pantry$/i }));
+    expect(onSort).toHaveBeenCalledWith('pantry');
+    expect(screen.queryByText(/bought \/ .* needed/i)).not.toBeInTheDocument();
   });
 });

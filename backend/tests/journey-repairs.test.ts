@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { purchaseState } from '../src/domain/grocery-purchase.policy';
+import { checklistPurchaseState, purchaseState } from '../src/domain/grocery-purchase.policy';
 import { additionalShoppingNeeds } from '../src/domain/swap-shopping.policy';
 import { rankLibraryMeals } from '../src/domain/library-ranking.policy';
 import { reconcileFnriMealTotals } from '../src/domain/fnri-meal-totals.policy';
@@ -12,6 +12,12 @@ test('purchased quantities survive changed requirements and partial purchases ne
   assert.deepEqual(purchaseState(100, 300), { purchasedQuantity: 300, remainingQuantity: 0, isChecked: true });
   assert.throws(() => purchaseState(300, NaN));
   assert.throws(() => purchaseState(300, -1));
+});
+test('a checklist toggle works for measured, unmeasured, and zero-quantity items', () => {
+  assert.deepEqual(checklistPurchaseState(250, true), { isChecked: true, purchasedQuantity: 250 });
+  assert.deepEqual(checklistPurchaseState(null, true), { isChecked: true, purchasedQuantity: 0 });
+  assert.deepEqual(checklistPurchaseState(0, true), { isChecked: true, purchasedQuantity: 0 });
+  assert.deepEqual(checklistPurchaseState(250, false), { isChecked: false, purchasedQuantity: 0 });
 });
 test('shopping preview includes only extra needs and subtracts purchases, with mass normalization', () => {
   const before = [

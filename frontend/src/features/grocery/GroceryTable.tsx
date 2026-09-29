@@ -12,7 +12,7 @@ import type { GroceryItem } from './current-grocery';
 import { formatGroceryItemDisplay, getCategoryStyle } from './grocery-display';
 import { CircularCheckbox } from '@/components/watermelon/checkbox-14';
 
-export type GrocerySortField = 'name' | 'category' | 'quantity' | 'status';
+export type GrocerySortField = 'name' | 'category' | 'quantity' | 'status' | 'pantry';
 export type GrocerySortOrder = 'asc' | 'desc';
 
 interface GroceryTableProps {
@@ -25,6 +25,8 @@ interface GroceryTableProps {
   onSort: (field: GrocerySortField) => void;
   onToggleAllVisible?: () => void;
   allVisibleChecked?: boolean;
+  pendingIds?: ReadonlySet<string>;
+  bulkBusy?: boolean;
 }
 
 export default function GroceryTable({
@@ -37,6 +39,8 @@ export default function GroceryTable({
   onSort,
   onToggleAllVisible,
   allVisibleChecked = false,
+  pendingIds = new Set(),
+  bulkBusy = false,
 }: GroceryTableProps) {
   const renderSortIndicator = (field: GrocerySortField) => {
     if (sortField !== field) {
@@ -62,7 +66,7 @@ export default function GroceryTable({
                   <CircularCheckbox
                     checked={allVisibleChecked}
                     onCheckedChange={() => onToggleAllVisible()}
-                    disabled={!canCheckItems || items.length === 0}
+                    disabled={!canCheckItems || items.length === 0 || bulkBusy || pendingIds.size > 0}
                     aria-label={allVisibleChecked ? 'Uncheck all visible items' : 'Mark all visible items purchased'}
                     title={allVisibleChecked ? 'Uncheck all visible' : 'Mark all visible as bought'}
                     className="mx-auto"
@@ -115,11 +119,11 @@ export default function GroceryTable({
               <th scope="col" className="w-28 px-3 py-3 text-center">
                 <button
                   type="button"
-                  onClick={() => onSort('status')}
+                  onClick={() => onSort('pantry')}
                   className="group inline-flex items-center font-bold text-brand-text hover:text-brand-green transition-colors"
                 >
                   <span>Pantry</span>
-                  {renderSortIndicator('status')}
+                  {renderSortIndicator('pantry')}
                 </button>
               </th>
             </tr>
@@ -147,8 +151,8 @@ export default function GroceryTable({
                     <CircularCheckbox
                       checked={item.isChecked}
                       onCheckedChange={() => onToggleItem(item.id)}
-                      disabled={!canCheckItems}
-                      aria-label={`${item.isChecked ? 'Reset purchased amount for' : 'Mark fully purchased:'} ${display.cleanName}`}
+                      disabled={!canCheckItems || bulkBusy || pendingIds.has(item.id)}
+                      aria-label={`${item.isChecked ? 'Mark as not bought:' : 'Mark as bought:'} ${display.cleanName}`}
                       className="mx-auto"
                     />
                   </td>
@@ -200,11 +204,6 @@ export default function GroceryTable({
                         {display.displayQuantity}
                       </span>
 
-                      {item.purchasedQuantity && item.purchasedQuantity > 0 && !item.isChecked ? (
-                        <span className="mt-0.5 text-[9px] font-semibold text-brand-accent">
-                          {item.purchasedQuantity} {item.unit || ''} bought
-                        </span>
-                      ) : null}
                     </div>
                   </td>
 
@@ -220,7 +219,7 @@ export default function GroceryTable({
                     <button
                       type="button"
                       onClick={() => onTogglePantry(item.id)}
-                      disabled={!canCheckItems}
+                      disabled={!canCheckItems || bulkBusy || pendingIds.has(item.id)}
                       aria-pressed={item.isPantryStaple}
                       aria-label={item.isPantryStaple ? `Mark ${display.cleanName} as need to buy` : `Mark ${display.cleanName} as in pantry`}
                       title={item.isPantryStaple ? 'In pantry (have at home)' : 'Mark as in pantry'}
@@ -247,7 +246,7 @@ export default function GroceryTable({
           Showing <strong className="text-brand-text">{items.length}</strong> items
         </span>
         <span className="font-mono text-[10px]">
-          {items.filter((i) => i.isChecked).length} bought · {items.filter((i) => !i.isChecked).length} to buy
+          {items.filter((i) => i.isChecked && !i.isPantryStaple).length} bought · {items.filter((i) => !i.isChecked && !i.isPantryStaple).length} to buy
         </span>
       </div>
     </div>

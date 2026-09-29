@@ -195,8 +195,9 @@ export const GroceryListPDF = ({
                 <Text style={styles.text}>
                   {item.ingredientName}
                   {item.quantity !== null && item.unit
-                    ? ` — ${Math.max(0, item.quantity - (item.purchasedQuantity ?? 0))} ${item.unit} to buy (${item.purchasedQuantity ?? 0} purchased / ${item.quantity} needed)`
-                    : ''}
+                    ? ` — ${item.quantity} ${item.unit} needed`
+                    : ' — amount not specified'}
+                  {item.isChecked ? ' (bought)' : ''}
                   {item.isPantryStaple ? ' (pantry)' : ''}
                 </Text>
               </View>

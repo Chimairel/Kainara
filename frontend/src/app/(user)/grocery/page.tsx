@@ -1,5 +1,5 @@
 'use client';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import api from '@/lib/axios';
 import Button from '@/components/ui/Button';
@@ -10,7 +10,7 @@ import PortalPageHeader from '@/components/shared/PortalPageHeader';
 import UnauthorizedState from '@/components/shared/UnauthorizedState';
 import { getApiErrorMessage } from '@/lib/api-error';
 import { readSessionResource, writeSessionResource } from '@/lib/session-resource-cache';
-import { fetchGroceryWorkspace, type GroceryWorkspace } from '@/features/grocery/current-grocery';
+import { fetchGroceryWorkspace, type GroceryItem, type GroceryWorkspace } from '@/features/grocery/current-grocery';
 import { AlertTriangle, ChevronDown, Download, Filter, RotateCcw, Search, X } from 'lucide-react';
 
 type GroceryFilter = 'all' | 'remaining' | 'packed' | 'pantry';
@@ -22,6 +22,13 @@ export default function GroceryListPage() {
   const ownerId = user?.userId;
   const cachedPage = readSessionResource<GroceryWorkspace>(ownerId, 'user-grocery-workspace');
   const [workspace, setWorkspace] = useState<GroceryWorkspace | null>(cachedPage ?? null);
+  const [workspaceOwnerId, setWorkspaceOwnerId] = useState(ownerId);
+  const workspaceRef = useRef<GroceryWorkspace | null>(cachedPage ?? null);
+  const requestVersion = useRef(0);
+  const ownerGeneration = useRef(0);
+  const pendingRef = useRef(new Set<string>());
+  const [pendingIds, setPendingIds] = useState<ReadonlySet<string>>(new Set());
+  const [bulkBusy, setBulkBusy] = useState(false);
   const [scope, setScope] = useState<'CURRENT' | 'UPCOMING'>('CURRENT');
   const [isLoading, setIsLoading] = useState(!cachedPage);
   const [error, setError] = useState<string | null>(null);
@@ -30,7 +37,8 @@ export default function GroceryListPage() {
   const [selectedCategory, setSelectedCategory] = useState<string>('ALL');
   const [sortField, setSortField] = useState<GrocerySortField>('status');
   const [sortOrder, setSortOrder] = useState<GrocerySortOrder>('asc');
-  const projection = scope === 'CURRENT' ? (workspace?.current ?? null) : (workspace?.upcoming ?? null);
+  const visibleWorkspace = workspaceOwnerId === ownerId ? workspace : null;
+  const projection = scope === 'CURRENT' ? (visibleWorkspace?.current ?? null) : (visibleWorkspace?.upcoming ?? null);
   const groceryList = projection?.groceryList ?? null;
   const pendingMealCount = projection?.coverage.unresolvedSlotCount ?? 0;
   const canCheckItems = Boolean(projection?.actionability.canCheckItems);
@@ -42,13 +50,39 @@ export default function GroceryListPage() {
     [ownerId]
   );
 
+  const applyItems = useCallback((items: GroceryItem[]) => {
+    const current = workspaceRef.current;
+    if (!current || items.length === 0) return;
+    const byId = new Map(items.map((item) => [item.id, item]));
+    const patch = (cycle: GroceryWorkspace['current']) => cycle?.groceryList ? {
+      ...cycle,
+      groceryList: {
+        ...cycle.groceryList,
+        groceryItems: cycle.groceryList.groceryItems.map((item) => byId.get(item.id) ?? item),
+      },
+    } : cycle;
+    const next = { current: patch(current.current), upcoming: patch(current.upcoming) };
+    workspaceRef.current = next;
+    setWorkspace(next);
+    cachePage(next);
+  }, [cachePage]);
+
+  const setPending = (ids: string[], pending: boolean) => {
+    ids.forEach((id) => pending ? pendingRef.current.add(id) : pendingRef.current.delete(id));
+    setPendingIds(new Set(pendingRef.current));
+  };
+
   // Fetches current user grocery list
   const fetchGroceryList = useCallback(async () => {
     setError(null);
+    const version = requestVersion.current;
     try {
       const snapshot = await fetchGroceryWorkspace();
-      setWorkspace(snapshot);
-      cachePage(snapshot);
+      if (version === requestVersion.current) {
+        workspaceRef.current = snapshot;
+        setWorkspace(snapshot);
+        cachePage(snapshot);
+      }
     } catch (err: unknown) {
       setError(getApiErrorMessage(err, 'Failed to retrieve grocery list.'));
     } finally {
@@ -57,27 +91,64 @@ export default function GroceryListPage() {
   }, [cachePage]);
 
   useEffect(() => {
-    if (user) {
-      fetchGroceryList();
-    }
-  }, [user, fetchGroceryList]);
+    ownerGeneration.current += 1;
+    requestVersion.current += 1;
+    pendingRef.current.clear();
+    setPendingIds(new Set());
+    setBulkBusy(false);
+    setScope('CURRENT');
+    setQuery('');
+    setFilter('all');
+    setSelectedCategory('ALL');
+    const cached = readSessionResource<GroceryWorkspace>(ownerId, 'user-grocery-workspace');
+    workspaceRef.current = cached;
+    setWorkspaceOwnerId(ownerId);
+    setWorkspace(cached);
+    setIsLoading(Boolean(ownerId && !cached));
+    if (ownerId) void fetchGroceryList();
+  }, [ownerId, fetchGroceryList]);
 
   const handleToggleItem = async (itemId: string) => {
+    const item = groceryList?.groceryItems.find((row) => row.id === itemId);
+    if (!canCheckItems || !item || pendingRef.current.has(itemId) || bulkBusy) return;
+    setError(null);
+    requestVersion.current += 1;
+    const generation = ownerGeneration.current;
+    setPending([itemId], true);
+    applyItems([{ ...item, isChecked: !item.isChecked, purchasedQuantity: item.isChecked ? 0 : (item.quantity ?? 0) }]);
     try {
       const response = await api.patch('/user/grocery/items/' + itemId + '/toggle');
-      if (response.data?.success) await fetchGroceryList();
+      if (!response.data?.success || !response.data.data) throw new Error('Checklist update was not confirmed.');
+      if (generation === ownerGeneration.current) applyItems([response.data.data as GroceryItem]);
     } catch (err) {
-      setError(getApiErrorMessage(err, 'Could not save purchase. Refresh the list and try again.'));
+      if (generation === ownerGeneration.current) {
+        applyItems([item]);
+        setError(getApiErrorMessage(err, 'Could not update the checklist. Refresh the list and try again.'));
+      }
+    } finally {
+      if (generation === ownerGeneration.current) setPending([itemId], false);
     }
   };
 
   const handleTogglePantry = async (itemId: string) => {
-    if (!groceryList) return;
+    const item = groceryList?.groceryItems.find((row) => row.id === itemId);
+    if (!canCheckItems || !item || pendingRef.current.has(itemId) || bulkBusy) return;
+    setError(null);
+    requestVersion.current += 1;
+    const generation = ownerGeneration.current;
+    setPending([itemId], true);
+    applyItems([{ ...item, isPantryStaple: !item.isPantryStaple }]);
     try {
-      await api.patch(`/user/grocery/items/${itemId}/pantry`);
-      await fetchGroceryList();
-    } catch {
-      setError('Could not update the pantry item. Refresh and try again.');
+      const response = await api.patch(`/user/grocery/items/${itemId}/pantry`);
+      if (!response.data?.success || !response.data.data) throw new Error('Pantry update was not confirmed.');
+      if (generation === ownerGeneration.current) applyItems([response.data.data as GroceryItem]);
+    } catch (err) {
+      if (generation === ownerGeneration.current) {
+        applyItems([item]);
+        setError(getApiErrorMessage(err, 'Could not update the pantry item. Refresh and try again.'));
+      }
+    } finally {
+      if (generation === ownerGeneration.current) setPending([itemId], false);
     }
   };
 
@@ -96,6 +167,7 @@ export default function GroceryListPage() {
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
+      window.setTimeout(() => URL.revokeObjectURL(fileURL), 1000);
     } catch (err) {
       console.error('[Grocery] Failed to download PDF:', err);
       alert('Failed to generate PDF. Make sure you have an active grocery list.');
@@ -159,6 +231,8 @@ export default function GroceryListPage() {
           diff = (a.quantity ?? 0) - (b.quantity ?? 0);
         } else if (sortField === 'status') {
           diff = Number(a.isChecked) - Number(b.isChecked) || a.ingredientName.localeCompare(b.ingredientName);
+        } else if (sortField === 'pantry') {
+          diff = Number(a.isPantryStaple) - Number(b.isPantryStaple) || a.ingredientName.localeCompare(b.ingredientName);
         }
 
         return sortOrder === 'asc' ? diff : -diff;
@@ -195,17 +269,35 @@ export default function GroceryListPage() {
   const allVisibleChecked = visibleItems.length > 0 && visibleItems.every((item) => item.isChecked);
 
   const handleToggleAllVisible = async () => {
-    if (!canCheckItems || visibleItems.length === 0) return;
+    if (!canCheckItems || visibleItems.length === 0 || pendingRef.current.size > 0 || bulkBusy) return;
     const targetState = !allVisibleChecked;
     const itemsToUpdate = visibleItems.filter((item) => item.isChecked !== targetState);
-
+    if (itemsToUpdate.length === 0) return;
+    setError(null);
+    requestVersion.current += 1;
+    const generation = ownerGeneration.current;
+    setBulkBusy(true);
+    const ids = itemsToUpdate.map((item) => item.id);
+    setPending(ids, true);
+    applyItems(itemsToUpdate.map((item) => ({
+      ...item,
+      isChecked: targetState,
+      purchasedQuantity: targetState ? (item.quantity ?? 0) : 0,
+    })));
     try {
-      await Promise.all(
-        itemsToUpdate.map((item) => api.patch(`/user/grocery/items/${item.id}/toggle`))
-      );
-      await fetchGroceryList();
+      const response = await api.patch('/user/grocery/items/checklist', { itemIds: ids, checked: targetState });
+      if (!response.data?.success || !Array.isArray(response.data.data)) throw new Error('Checklist update was not confirmed.');
+      if (generation === ownerGeneration.current) applyItems(response.data.data as GroceryItem[]);
     } catch (err) {
-      setError(getApiErrorMessage(err, 'Failed to update visible items.'));
+      if (generation === ownerGeneration.current) {
+        applyItems(itemsToUpdate);
+        setError(getApiErrorMessage(err, 'Failed to update visible items.'));
+      }
+    } finally {
+      if (generation === ownerGeneration.current) {
+        setPending(ids, false);
+        setBulkBusy(false);
+      }
     }
   };
 
@@ -219,7 +311,7 @@ export default function GroceryListPage() {
       {/* HEADER SECTION */}
       <PortalPageHeader
         title="Groceries"
-        description="Shopping-cycle totals with purchased amounts and what remains to buy."
+        description="A simple checklist for the ingredients in your meal plan."
         className="mb-6"
         actions={
           groceryList && projection?.actionability.canExportPdf ? (
@@ -237,10 +329,10 @@ export default function GroceryListPage() {
         }
       />
 
-      {!isLoading && workspace ? (
+      {!isLoading && visibleWorkspace ? (
         <div className="mb-5 grid grid-cols-2 gap-2 rounded-2xl border border-brand-border/70 bg-brand-surface/80 p-1.5">
           {(['CURRENT', 'UPCOMING'] as const).map((value) => {
-            const available = value === 'CURRENT' ? workspace.current : workspace.upcoming;
+            const available = value === 'CURRENT' ? visibleWorkspace.current : visibleWorkspace.upcoming;
             return (
               <button
                 key={value}
@@ -359,7 +451,7 @@ export default function GroceryListPage() {
                   )}
                   {groceryList && projection?.actionability.canExportPdf && (
                     <Button
-                      variant="outline"
+                      variant="secondary"
                       onClick={handleDownloadPDF}
                       className="flex items-center gap-1.5 text-xs font-semibold py-2 px-3.5 bg-white/80 dark:bg-black/40 backdrop-blur-sm border-brand-border/60 hover:bg-brand-surface"
                     >
@@ -397,9 +489,14 @@ export default function GroceryListPage() {
                   />
                 </div>
 
-                {pendingMealCount > 0 && (
+                {pendingMealCount > 0 && canCheckItems && (
                   <p className="mt-3 text-xs text-status-pending-text font-medium">
                     {pendingMealCount} unresolved meal slot{pendingMealCount === 1 ? '' : 's'} · {projection.actionability.message}
+                  </p>
+                )}
+                {!canCheckItems && (
+                  <p className="mt-3 text-xs text-status-pending-text font-medium">
+                    {projection.actionability.message}
                   </p>
                 )}
               </div>
@@ -540,6 +637,8 @@ export default function GroceryListPage() {
             <GroceryTable
               items={visibleItems}
               canCheckItems={canCheckItems}
+              pendingIds={pendingIds}
+              bulkBusy={bulkBusy}
               onToggleItem={handleToggleItem}
               onTogglePantry={handleTogglePantry}
               sortField={sortField}

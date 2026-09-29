@@ -25,7 +25,6 @@ interface GroceryCategoryCardProps {
   canCheckItems: boolean;
   onToggleItem: (itemId: string) => Promise<void>;
   onTogglePantry: (itemId: string) => Promise<void>;
-  onRefresh: () => Promise<void>;
 }
 
 export default function GroceryCategoryCard({
@@ -37,7 +36,6 @@ export default function GroceryCategoryCard({
   canCheckItems,
   onToggleItem,
   onTogglePantry,
-  onRefresh,
 }: GroceryCategoryCardProps) {
   const [showPurchased, setShowPurchased] = useState(false);
   const style = getCategoryStyle(category);
@@ -131,7 +129,6 @@ export default function GroceryCategoryCard({
                   canCheckItems={canCheckItems}
                   onToggleItem={onToggleItem}
                   onTogglePantry={onTogglePantry}
-                  onRefresh={onRefresh}
                 />
               ))}
             </div>
@@ -166,7 +163,6 @@ export default function GroceryCategoryCard({
                       canCheckItems={canCheckItems}
                       onToggleItem={onToggleItem}
                       onTogglePantry={onTogglePantry}
-                      onRefresh={onRefresh}
                     />
                   ))}
                 </div>

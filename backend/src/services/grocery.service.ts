@@ -2,7 +2,7 @@ import prisma from '@/lib/prisma';
 import { Prisma } from '@prisma/client';
 import { lockUserProfile } from './profile-revision.service';
 import { MealPlanCycleService } from './meal-plan-cycle.service';
-import { purchaseState } from '@/domain/grocery-purchase.policy';
+import { checklistPurchaseState, purchaseState } from '@/domain/grocery-purchase.policy';
 import { aggregateGroceryIngredients, groceryItemKey } from '@/domain/grocery-quantity.policy';
 import { deriveGroceryActionability } from '@/domain/grocery-actionability.policy';
 import { MealPlanCycleDeadlineOutcome, MealPlanCycleStatus, ProfileCycleAdaptationState } from '@prisma/client';
@@ -339,7 +339,48 @@ export class GroceryService {
     return this.recordPurchase(userId, itemId);
   }
 
-  static async recordPurchase(userId: string, itemId: string, purchasedQuantity?: number) {
+  /** Applies a visible checklist selection in one guarded shopping transaction. */
+  static async setGroceryItemsChecked(userId: string, itemIds: string[], checked: boolean) {
+    return prisma.$transaction(async (tx) => {
+      await lockUserProfile(tx, userId);
+      const first = await tx.groceryItem.findFirst({
+        where: { id: itemIds[0], groceryList: { userId, isStale: false } },
+        include: {
+          groceryList: {
+            select: {
+              id: true,
+              planGroupId: true,
+              isStale: true,
+              cycle: {
+                select: {
+                  status: true,
+                  profileAdaptationState: true,
+                  deadlineOutcome: true,
+                  incompleteAcknowledgedAt: true,
+                  shoppingStartedAt: true,
+                },
+              },
+            },
+          },
+        },
+      });
+      if (!first) throw new Error('Shopping list changed. Refresh before updating the checklist.');
+      this.assertListActionableForShopping(first.groceryList);
+      const ids = [...new Set(itemIds)];
+      const count = await tx.groceryItem.count({ where: { id: { in: ids }, groceryListId: first.groceryList.id } });
+      if (count !== ids.length) throw new Error('Shopping list changed. Refresh before updating the checklist.');
+      await MealPlanCycleService.recordShoppingStarted(tx, userId, first.groceryList.planGroupId);
+      await tx.$executeRaw`
+        UPDATE "GroceryItem"
+        SET "isChecked" = ${checked},
+            "purchasedQuantity" = CASE WHEN ${checked} THEN COALESCE("quantity", 0) ELSE 0 END
+        WHERE "groceryListId" = ${first.groceryList.id} AND "id" IN (${Prisma.join(ids)})
+      `;
+      return tx.groceryItem.findMany({ where: { id: { in: ids }, groceryListId: first.groceryList.id } });
+    });
+  }
+
+  static async recordPurchase(userId: string, itemId: string) {
     return prisma.$transaction(async (tx) => {
       await lockUserProfile(tx, userId);
       const item = await tx.groceryItem.findFirst({
@@ -364,15 +405,11 @@ export class GroceryService {
       });
       if (!item) throw new Error('Shopping list changed. Refresh before recording a purchase.');
       this.assertListActionableForShopping(item.groceryList);
-      if (item.quantity === null && purchasedQuantity !== undefined)
-        throw new Error('This ingredient has no verified quantity. Use the checkbox instead.');
-      const quantity = purchasedQuantity ?? (item.isChecked ? 0 : Math.max(item.purchasedQuantity, item.quantity ?? 0));
-      const { purchasedQuantity: recorded, isChecked } = purchaseState(item.quantity, quantity);
-      const state = { purchasedQuantity: recorded, isChecked };
+      const state = checklistPurchaseState(item.quantity, !item.isChecked);
       await MealPlanCycleService.recordShoppingStarted(tx, userId, item.groceryList.planGroupId);
       return tx.groceryItem.update({
         where: { id: item.id },
-        data: item.quantity === null ? { isChecked: !item.isChecked } : state,
+        data: state,
       });
     });
   }

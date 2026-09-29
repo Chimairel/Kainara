@@ -9,3 +9,8 @@ export function purchaseState(required: number | null, purchased: number) {
   const remainingQuantity = remainingToBuy(required, purchased);
   return { purchasedQuantity: purchased, remainingQuantity, isChecked: remainingQuantity === 0 };
 }
+
+/** Checkbox shopping records an item as obtained, without asking for an exact purchase amount. */
+export function checklistPurchaseState(required: number | null, checked: boolean) {
+  return { isChecked: checked, purchasedQuantity: checked ? Math.max(0, required ?? 0) : 0 };
+}

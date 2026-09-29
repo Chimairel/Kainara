@@ -5,6 +5,7 @@ import { MealPlanCycleStatus, MealPlanStatus, MealType, PlanType } from '@prisma
 import prisma from '../src/lib/prisma';
 import { GroceryService } from '../src/services/grocery.service';
 import { MealPlanCycleService } from '../src/services/meal-plan-cycle.service';
+import { libraryBaseRevisionKey } from '../src/services/meal-base-admission.service';
 
 const day = 86_400_000;
 
@@ -19,6 +20,18 @@ async function main() {
         email: `batch5-${run}@example.invalid`,
         passwordHash: 'disabled',
         emailVerified: true,
+        safetyProfileEntries: { create: [
+          {
+            domain: 'CONDITION', canonicalCode: 'NONE', displayName: 'No diagnosed condition',
+            originalText: 'None', normalizedText: 'none', provenance: 'PREDEFINED',
+            supportState: 'SUPPORTED', policyReference: 'TEST_DECLARATION',
+          },
+          {
+            domain: 'ALLERGY', canonicalCode: 'NONE', displayName: 'No declared allergy',
+            originalText: 'None', normalizedText: 'none', provenance: 'PREDEFINED',
+            supportState: 'SUPPORTED', policyReference: 'TEST_DECLARATION',
+          },
+        ] },
         userProfile: {
           create: {
             age: 30,
@@ -51,6 +64,13 @@ async function main() {
       },
     });
     libraryMealId = libraryMeal.id;
+    await prisma.mealBaseVerification.create({
+      data: {
+        targetKind: 'LIBRARY_MEAL', targetId: libraryMeal.id,
+        revisionKey: libraryBaseRevisionKey(recipeSignature, libraryMeal.description),
+        status: 'VERIFIED',
+      },
+    });
 
     const now = new Date();
     const progressiveId = `batch5-progressive-${run}`;
@@ -157,6 +177,19 @@ async function main() {
       'Chicken',
     ]);
 
+    const readyIds = ready.groceryList!.groceryItems.map((item) => item.id);
+    await assert.rejects(
+      GroceryService.setGroceryItemsChecked(user.id, [...readyIds, 'another-list-item'], true),
+      /Shopping list changed/
+    );
+    assert.equal(await prisma.groceryItem.count({ where: { id: { in: readyIds }, isChecked: true } }), 0);
+    const checked = await GroceryService.setGroceryItemsChecked(user.id, readyIds, true);
+    assert.equal(checked.length, 2);
+    assert.ok(checked.every((item) => item.isChecked && item.purchasedQuantity === item.quantity));
+    const unchecked = await GroceryService.toggleGroceryItem(user.id, readyIds[0]);
+    assert.equal(unchecked.isChecked, false);
+    assert.equal(unchecked.purchasedQuantity, 0);
+
     await MealPlanCycleService.startShopping(user.id, progressiveId, now);
     await prisma.mealPlan.update({
       where: { id: delayedCompeting.id },
@@ -222,7 +255,10 @@ async function main() {
     console.log('[Batch 5 acceptance] PASS');
   } finally {
     if (userId) await prisma.user.delete({ where: { id: userId } }).catch(() => undefined);
-    if (libraryMealId) await prisma.mealLibrary.delete({ where: { id: libraryMealId } }).catch(() => undefined);
+    if (libraryMealId) {
+      await prisma.mealBaseVerification.deleteMany({ where: { targetKind: 'LIBRARY_MEAL', targetId: libraryMealId } }).catch(() => undefined);
+      await prisma.mealLibrary.delete({ where: { id: libraryMealId } }).catch(() => undefined);
+    }
     await prisma.$disconnect();
   }
 }

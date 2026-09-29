@@ -60,7 +60,7 @@ export default function NutritionGuidanceDocument({
       id: selectedVersion.id || report.id,
       version: selectedVersion.version ?? content.version ?? report.version,
       generatedAt: selectedVersion.generatedAt || content.generatedAt || report.generatedAt,
-      acknowledgedAt: selectedVersion.acknowledgedAt ?? content.acknowledgedAt ?? null,
+      acknowledgedAt: content.acknowledgedAt ?? null,
       referenceItems: content.referenceItems || report.referenceItems,
       generalSummary: content.generalSummary || report.generalSummary,
       reportPolicyVersion: content.reportPolicyVersion || content.policyVersion || report.reportPolicyVersion,
@@ -124,7 +124,7 @@ export default function NutritionGuidanceDocument({
                 </Button>
               )}
               <Button
-                variant="outline"
+                variant="secondary"
                 size="sm"
                 onClick={onDownload}
                 className="gap-1.5 text-xs font-semibold bg-white/90 dark:bg-brand-surface border-slate-300 dark:border-brand-border hover:bg-slate-100 dark:hover:bg-brand-surface/80"
@@ -133,7 +133,7 @@ export default function NutritionGuidanceDocument({
                 Download PDF
               </Button>
               <Button
-                variant="outline"
+                variant="secondary"
                 size="sm"
                 onClick={() => window.print()}
                 className="hidden sm:inline-flex gap-1.5 text-xs font-semibold bg-white/90 dark:bg-brand-surface border-slate-300 dark:border-brand-border hover:bg-slate-100 dark:hover:bg-brand-surface/80"

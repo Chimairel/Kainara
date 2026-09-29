@@ -198,6 +198,7 @@ const routes: RouteDocumentation[] = [
   { method: 'post', path: '/api/user/grocery/generate', tag: 'Grocery', summary: 'Rebuild the grocery projection' },
   { method: 'get', path: '/api/user/grocery/pdf', tag: 'Grocery', summary: 'Download grocery PDF' },
   { method: 'patch', path: '/api/user/grocery/items/{id}/toggle', tag: 'Grocery', summary: 'Toggle a grocery item' },
+  { method: 'patch', path: '/api/user/grocery/items/checklist', tag: 'Grocery', summary: 'Check or uncheck visible grocery items together' },
   { method: 'patch', path: '/api/user/grocery/items/{id}/pantry', tag: 'Grocery', summary: 'Toggle pantry ownership' },
   { method: 'get', path: '/api/user/progress/history', tag: 'Tracking', summary: 'Read progress history' },
   { method: 'post', path: '/api/user/progress/weight', tag: 'Tracking', summary: 'Log a weight measurement' },

@@ -53,26 +53,26 @@ router.get(
  * Route: PATCH /api/user/grocery/items/:id/toggle
  * Description: Toggles checked status of a grocery item.
  */
+router.patch('/items/:id/toggle', validateZodRequest({ params: resourceIdParamsSchema }), GroceryController.toggleItem);
 router.patch(
-  '/items/:id/purchase',
+  '/items/checklist',
   validateZodRequest({
-    params: resourceIdParamsSchema,
-    body: z.object({ purchasedQuantity: z.number().finite().min(0).max(1000000) }).strict(),
+    body: z.object({ itemIds: z.array(z.string().min(1).max(200)).min(1).max(1000), checked: z.boolean() }).strict(),
   }),
   async (req: AuthenticatedRequest, res) => {
     try {
       return res.json({
         success: true,
-        data: await GroceryService.recordPurchase(req.user!.userId, req.params.id, req.body.purchasedQuantity),
+        data: await GroceryService.setGroceryItemsChecked(req.user!.userId, req.body.itemIds, req.body.checked),
       });
     } catch (error) {
-      return res
-        .status(409)
-        .json({ success: false, error: error instanceof Error ? error.message : 'Purchase could not be saved.' });
+      return res.status(409).json({
+        success: false,
+        error: error instanceof Error ? error.message : 'Checklist could not be updated.',
+      });
     }
   }
 );
-router.patch('/items/:id/toggle', validateZodRequest({ params: resourceIdParamsSchema }), GroceryController.toggleItem);
 router.patch(
   '/items/:id/pantry',
   validateZodRequest({ params: resourceIdParamsSchema }),
