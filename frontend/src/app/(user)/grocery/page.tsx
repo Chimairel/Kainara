@@ -6,7 +6,7 @@ import api from '@/lib/axios';
 import Button from '@/components/ui/Button';
 import GrocerySkeleton from '@/features/grocery/GrocerySkeleton';
 import GroceryCategoryCard from '@/features/grocery/GroceryCategoryCard';
-import GroceryCostSummary from '@/features/grocery/GroceryCostSummary';
+import KainaraLogo from '@/components/shared/KainaraLogo';
 import PortalPageHeader from '@/components/shared/PortalPageHeader';
 import UnauthorizedState from '@/components/shared/UnauthorizedState';
 import { getApiErrorMessage } from '@/lib/api-error';
@@ -239,7 +239,7 @@ export default function GroceryListPage() {
                 }}
                 className={`rounded-xl px-4 py-3 text-xs font-bold transition ${
                   scope === value
-                    ? 'bg-brand-green text-brand-dark shadow-sm'
+                    ? 'bg-brand-green text-white shadow-sm'
                     : 'text-brand-muted hover:bg-brand-bgAlt hover:text-brand-text'
                 } disabled:cursor-not-allowed disabled:opacity-40`}
               >
@@ -303,39 +303,79 @@ export default function GroceryListPage() {
         />
       ) : (
         <div className="flex flex-col gap-5 text-left">
-          {/* REIMAGINED SHOPPING PROGRESS HERO */}
+          {/* REIMAGINED SHOPPING PROGRESS HERO (WITH RETRO WAVE STRIPES & MODERN FEEL) */}
           <section
-            className={`rounded-2xl border p-5 ${
-              projection.actionability.isFinal
-                ? 'border-brand-green/25 bg-brand-surface shadow-xs'
-                : 'border-status-pending-text/30 bg-status-pending-bg/10'
-            }`}
+            className="relative overflow-hidden rounded-[28px] sm:rounded-[32px] border border-[#dce4e0] dark:border-[#173e33] bg-[#faf8f5] dark:bg-[#0e271f] text-[#0d2820] dark:text-slate-100 shadow-md p-6 sm:p-7"
           >
-            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-              <div className="min-w-0 flex-1">
+            {/* Retro Wave Organic Corner Accent (Top Left) */}
+            <div className="pointer-events-none absolute -top-0.5 -left-0.5 h-28 w-28 sm:h-32 sm:w-32 overflow-hidden rounded-tl-[28px] sm:rounded-tl-[32px] z-0">
+              <svg viewBox="0 0 160 160" className="h-full w-full" fill="none">
+                <path d="M0,0 L160,0 C140,40 105,95 40,135 C20,147 0,155 0,155 Z" fill="#eb6a38" />
+                <path d="M0,0 L120,0 C105,30 80,72 30,105 C15,115 0,120 0,120 Z" fill="#f09e6c" />
+                <path d="M0,0 L78,0 C68,20 50,48 18,70 C8,76 0,80 0,80 Z" className="fill-[#1b4e41] dark:fill-[#164639]" />
+              </svg>
+            </div>
+
+            {/* Bottom Right Decorative Watermark */}
+            <div className="pointer-events-none absolute -bottom-8 -right-8 flex items-center justify-center opacity-10 dark:opacity-15 z-0">
+              <KainaraLogo size={140} variant="multicolor" />
+            </div>
+
+            {/* Main Content inside Card */}
+            <div className="relative z-10 pl-14 sm:pl-24 pr-1 sm:pr-2">
+              {/* Header Badges */}
+              <div className="flex flex-wrap items-center justify-between gap-3">
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className="text-[10px] font-bold uppercase tracking-[0.16em] text-brand-muted">
+                  <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#5a746a] dark:text-[#8ea79d]">
                     {scope === 'CURRENT' ? 'Current cycle' : 'Next cycle'} ·{' '}
                     {projection.cycle.status.replaceAll('_', ' ')}
                   </span>
-                  <span className="inline-flex items-center rounded-full bg-brand-green/10 px-2.5 py-0.5 text-[10px] font-bold text-brand-green">
+                  <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-600/30 dark:border-[#1a5c48] bg-emerald-100/70 dark:bg-[#0e352b] px-3 py-1 text-[10px] font-bold text-emerald-800 dark:text-[#38c172] shadow-xs">
+                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-600 dark:bg-[#38c172]" />
                     {projection.coverage.clearedSlotCount} of {projection.coverage.expectedSlotCount} meals ready
                   </span>
                 </div>
 
-                <div className="mt-2.5 flex items-baseline gap-2.5">
-                  <h2 className="font-display text-lg sm:text-xl font-bold text-brand-text">
-                    {checkedItems} of {shoppingItems.length} items bought
-                  </h2>
-                  <span className="font-mono text-xs font-bold text-brand-accent">
-                    {shoppingItems.length > 0 ? Math.round((checkedItems / shoppingItems.length) * 100) : 0}%
+                <div className="flex flex-wrap items-center gap-2">
+                  {projection.actionability.requiresIncompleteAcknowledgment && (
+                    <Button variant="secondary" onClick={handleAcknowledgeIncomplete} className="text-xs">
+                      Use confirmed subset
+                    </Button>
+                  )}
+                  {groceryList && projection?.actionability.canExportPdf && (
+                    <Button
+                      variant="outline"
+                      onClick={handleDownloadPDF}
+                      className="flex items-center gap-1.5 text-xs font-semibold py-2 px-3.5 bg-white/80 dark:bg-black/40 backdrop-blur-sm border-brand-border/60 hover:bg-brand-surface"
+                    >
+                      <Download className="w-3.5 h-3.5 text-brand-green dark:text-brand-accent" />
+                      <span>Download PDF</span>
+                    </Button>
+                  )}
+                </div>
+              </div>
+
+              {/* Progress Headline & Stats */}
+              <div className="mt-5">
+                <div className="flex flex-wrap items-baseline justify-between gap-2">
+                  <div className="flex items-baseline gap-3">
+                    <h2 className="font-display text-2xl sm:text-3xl font-bold tracking-tight text-[#0d2820] dark:text-white">
+                      {checkedItems} of {shoppingItems.length} items bought
+                    </h2>
+                    <span className="font-mono text-sm sm:text-base font-extrabold text-brand-accent">
+                      {shoppingItems.length > 0 ? Math.round((checkedItems / shoppingItems.length) * 100) : 0}%
+                    </span>
+                  </div>
+
+                  <span className="text-xs font-semibold text-[#5a746a] dark:text-[#8ea79d]">
+                    {remainingItems === 0 ? 'All purchases complete' : `${remainingItems} remaining to buy`}
                   </span>
                 </div>
 
-                {/* Shopping Progress Bar */}
-                <div className="mt-2.5 h-2 w-full max-w-md overflow-hidden rounded-full bg-brand-bgAlt">
+                {/* Modern Gradient Progress Bar with Subtle Shadow */}
+                <div className="mt-3.5 h-3 w-full overflow-hidden rounded-full bg-emerald-950/10 dark:bg-black/40 p-0.5 border border-brand-border/30">
                   <div
-                    className="h-full rounded-full bg-gradient-to-r from-brand-accent to-brand-green transition-all duration-300"
+                    className="h-full rounded-full bg-gradient-to-r from-[#eb6a38] via-[#f09e6c] to-[#08705b] transition-all duration-300 shadow-sm"
                     style={{
                       width: `${shoppingItems.length > 0 ? Math.round((checkedItems / shoppingItems.length) * 100) : 0}%`,
                     }}
@@ -343,34 +383,11 @@ export default function GroceryListPage() {
                 </div>
 
                 {pendingMealCount > 0 && (
-                  <p className="mt-2 text-xs text-status-pending-text font-medium">
+                  <p className="mt-3 text-xs text-status-pending-text font-medium">
                     {pendingMealCount} unresolved meal slot{pendingMealCount === 1 ? '' : 's'} · {projection.actionability.message}
                   </p>
                 )}
               </div>
-
-              <div className="flex flex-wrap items-center gap-2 shrink-0">
-                {projection.actionability.requiresIncompleteAcknowledgment && (
-                  <Button variant="secondary" onClick={handleAcknowledgeIncomplete} className="text-xs">
-                    Use confirmed subset
-                  </Button>
-                )}
-                {groceryList && projection?.actionability.canExportPdf && (
-                  <Button
-                    variant="outline"
-                    onClick={handleDownloadPDF}
-                    className="flex items-center gap-1.5 text-xs font-semibold py-2 px-3"
-                  >
-                    <Download className="w-3.5 h-3.5" />
-                    <span>Download PDF</span>
-                  </Button>
-                )}
-              </div>
-            </div>
-
-            {/* Market Cost Estimate Integration */}
-            <div className="mt-4 pt-3.5 border-t border-brand-border/50">
-              <GroceryCostSummary revision={projection.cycle.id} />
             </div>
           </section>
 
