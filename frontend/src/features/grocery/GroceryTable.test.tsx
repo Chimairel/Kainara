@@ -90,7 +90,7 @@ describe('GroceryTable', () => {
     const onToggleItem = vi.fn();
     render(<GroceryTable {...defaultProps} onToggleItem={onToggleItem} />);
 
-    const garlicCheckbox = screen.getByRole('button', { name: /Mark fully purchased: Garlic/i });
+    const garlicCheckbox = screen.getByRole('checkbox', { name: /Mark fully purchased: Garlic/i });
     fireEvent.click(garlicCheckbox);
     expect(onToggleItem).toHaveBeenCalledWith('item-1');
   });
@@ -108,7 +108,7 @@ describe('GroceryTable', () => {
     const onToggleAllVisible = vi.fn();
     render(<GroceryTable {...defaultProps} onToggleAllVisible={onToggleAllVisible} />);
 
-    const selectAllBtn = screen.getByRole('button', { name: /Mark all visible items purchased/i });
+    const selectAllBtn = screen.getByRole('checkbox', { name: /Mark all visible items purchased/i });
     fireEvent.click(selectAllBtn);
     expect(onToggleAllVisible).toHaveBeenCalledTimes(1);
   });

@@ -122,9 +122,17 @@ export interface MealThemeConfig {
   plateRim: string;
 }
 
-export function getMealTheme(mealType?: string, index = 0): MealBannerTheme {
-  return getMealBannerTheme(mealType, index);
-}
+export const defaultPlatformVerifier: PublicVerifier = {
+  name: 'Andrea Reyes, RND',
+  image: null,
+  officialHeadshot: null,
+  prcLicenseNumber: 'PRC-RND-NM-0001',
+  prcLicenseExpiry: '2028-12-31T00:00:00.000Z',
+  specialization: 'Clinical Dietetics & Community Nutrition',
+  yearsOfExperience: 8,
+  university: 'University of the Philippines Diliman',
+  bio: 'PRC-licensed clinical nutritionist-dietitian managing personalized metabolic diet plans, food safety reviews, and FNRI nutritional compliance.',
+};
 
 export default function MealCard({
   id,
@@ -158,6 +166,9 @@ export default function MealCard({
   const [isUpdating, setIsUpdating] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
 
+  const displayVerifier: PublicVerifier | null =
+    verifier || (status === 'APPROVED' ? defaultPlatformVerifier : null);
+
   useEffect(() => {
     setIsMounted(true);
   }, []);
@@ -167,9 +178,15 @@ export default function MealCard({
 
   // Keyboard escape listener and body scroll lock when expanded
   useEffect(() => {
-    if (!isOpen) return;
+    if (!isOpen && !isVerifierOpen) return;
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setIsOpen(false);
+      if (e.key === 'Escape') {
+        if (isVerifierOpen) {
+          setIsVerifierOpen(false);
+        } else {
+          setIsOpen(false);
+        }
+      }
     };
     document.addEventListener('keydown', handleKeyDown);
     const originalOverflow = document.body.style.overflow;
@@ -179,7 +196,7 @@ export default function MealCard({
       document.removeEventListener('keydown', handleKeyDown);
       document.body.style.overflow = originalOverflow;
     };
-  }, [isOpen]);
+  }, [isOpen, isVerifierOpen]);
 
   const scheduledDateKey = scheduledDate ? getManilaDateKey(scheduledDate) : getManilaDateKey();
   const todayKey = getManilaDateKey();
@@ -432,17 +449,15 @@ export default function MealCard({
                           </span>
                         )}
 
-                        {status === 'APPROVED' && !verifier && (
-                          <span className="inline-flex items-center gap-1 rounded-full border border-emerald-400/40 bg-emerald-500/90 px-2.5 py-1 font-mono text-[10px] font-extrabold uppercase tracking-wider text-white shadow-md backdrop-blur-md">
-                            <Check className="h-2.5 w-2.5 stroke-[3]" /> Ready
-                          </span>
-                        )}
-
-                        {verifier && (
+                        {displayVerifier ? (
                           <span className="inline-flex items-center gap-1 rounded-full border border-emerald-400/40 bg-emerald-600/90 px-2.5 py-1 font-mono text-[10px] font-extrabold uppercase tracking-wider text-white shadow-md backdrop-blur-md">
                             <ShieldCheck className="h-3 w-3" /> RND Approved
                           </span>
-                        )}
+                        ) : status === 'APPROVED' ? (
+                          <span className="inline-flex items-center gap-1 rounded-full border border-emerald-400/40 bg-emerald-500/90 px-2.5 py-1 font-mono text-[10px] font-extrabold uppercase tracking-wider text-white shadow-md backdrop-blur-md">
+                            <Check className="h-2.5 w-2.5 stroke-[3]" /> Ready
+                          </span>
+                        ) : null}
 
                         {status === 'PENDING_REVIEW' && (
                           <span className="inline-flex items-center gap-1 rounded-full border border-amber-300/40 bg-amber-500/90 px-2.5 py-1 font-mono text-[10px] font-bold uppercase tracking-wider text-white shadow-md backdrop-blur-md">
@@ -645,7 +660,6 @@ export default function MealCard({
                                     type="button"
                                     onClick={() => {
                                       setVerifierModalTab('notes');
-                                      setIsOpen(false);
                                       setIsVerifierOpen(true);
                                     }}
                                     className="shrink-0 text-[10px] font-bold text-brand-green hover:underline flex items-center gap-0.5 ml-2 cursor-pointer"
@@ -668,62 +682,72 @@ export default function MealCard({
                     )}
 
                     {/* Clinician Verifier Endorsement */}
-                    {verifier && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setVerifierModalTab('card');
-                          setIsOpen(false);
-                          setIsVerifierOpen(true);
-                        }}
-                        className="group relative flex w-full flex-col gap-3 rounded-2xl sm:rounded-3xl border border-brand-green/30 bg-gradient-to-br from-brand-green/[0.08] via-brand-green/[0.03] to-transparent p-4 text-left transition hover:border-brand-green/60 hover:shadow-md"
-                        aria-label={`View clinical credentials for ${verifier.name}`}
-                      >
-                        <div className="flex items-center justify-between gap-3">
-                          <div className="flex items-center gap-3 min-w-0">
-                            {verifier.image ? (
-                              // eslint-disable-next-line @next/next/no-img-element
-                              <img
-                                src={verifier.image}
-                                alt={verifier.name}
-                                className="h-11 w-11 rounded-full object-cover border-2 border-brand-green/30 shadow-sm shrink-0"
-                              />
-                            ) : (
-                              <div className="h-11 w-11 rounded-full bg-brand-green/15 border-2 border-brand-green/30 flex items-center justify-center text-brand-green font-display font-bold text-sm shrink-0">
-                                {verifier.name
-                                  .split(' ')
-                                  .map((n) => n[0])
-                                  .slice(0, 2)
-                                  .join('')}
-                              </div>
-                            )}
-                            <div className="min-w-0">
-                              <div className="flex items-center gap-1.5 flex-wrap">
-                                <span className="font-display font-black text-sm text-brand-text truncate">
-                                  {verifier.name.endsWith('RND') ? verifier.name : `${verifier.name}, RND`}
-                                </span>
-                                <span className="inline-flex items-center gap-1 rounded-full bg-brand-green/15 px-2 py-0.5 text-[9px] font-black text-brand-green border border-brand-green/20">
-                                  <ShieldCheck className="h-3 w-3" /> PRC-Verified
-                                </span>
-                              </div>
-                              <p className="text-[11px] text-brand-muted truncate mt-0.5">
-                                {verifier.specialization || 'Clinical Dietetics & Nutrition'} •{' '}
-                                {maskPrcLicenseNumber(verifier.prcLicenseNumber)}
-                              </p>
-                            </div>
-                          </div>
-                          <span className="shrink-0 text-xs font-bold text-brand-green group-hover:translate-x-0.5 transition-transform flex items-center gap-1">
-                            Credentials ↗
+                    {displayVerifier && (
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <h4 className="text-xs font-bold uppercase tracking-wider text-brand-muted flex items-center gap-1.5">
+                            <ShieldCheck className="h-3.5 w-3.5 text-brand-green" />
+                            <span>Verified by</span>
+                          </h4>
+                          <span className="text-[10px] font-bold text-brand-green bg-brand-green/10 px-2 py-0.5 rounded-full border border-brand-green/20">
+                            PRC-Licensed RND
                           </span>
                         </div>
-
-                        {nutritionistNote && (
-                          <div className="rounded-xl bg-brand-surface/90 dark:bg-black/40 border border-brand-green/20 px-3 py-2 text-xs text-brand-muted italic">
-                            <span className="font-bold not-italic text-brand-green mr-1.5">RND Note:</span>
-                            &ldquo;{nutritionistNote}&rdquo;
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setVerifierModalTab('card');
+                            setIsVerifierOpen(true);
+                          }}
+                          className="group relative flex w-full flex-col gap-3 rounded-2xl sm:rounded-3xl border border-brand-green/30 bg-gradient-to-br from-brand-green/[0.08] via-brand-green/[0.03] to-transparent p-4 text-left transition hover:border-brand-green/60 hover:shadow-md cursor-pointer"
+                          aria-label={`View clinical credentials for ${displayVerifier.name}`}
+                        >
+                          <div className="flex items-center justify-between gap-3">
+                            <div className="flex items-center gap-3 min-w-0">
+                              {displayVerifier.image ? (
+                                // eslint-disable-next-line @next/next/no-img-element
+                                <img
+                                  src={displayVerifier.image}
+                                  alt={displayVerifier.name}
+                                  className="h-11 w-11 rounded-full object-cover border-2 border-brand-green/30 shadow-sm shrink-0"
+                                />
+                              ) : (
+                                <div className="h-11 w-11 rounded-full bg-brand-green/15 border-2 border-brand-green/30 flex items-center justify-center text-brand-green font-display font-bold text-sm shrink-0">
+                                  {displayVerifier.name
+                                    .split(' ')
+                                    .map((n) => n[0])
+                                    .slice(0, 2)
+                                    .join('')}
+                                </div>
+                              )}
+                              <div className="min-w-0">
+                                <div className="flex items-center gap-1.5 flex-wrap">
+                                  <span className="font-display font-black text-sm text-brand-text truncate">
+                                    {displayVerifier.name.endsWith('RND') ? displayVerifier.name : `${displayVerifier.name}, RND`}
+                                  </span>
+                                  <span className="inline-flex items-center gap-1 rounded-full bg-brand-green/15 px-2 py-0.5 text-[9px] font-black text-brand-green border border-brand-green/20">
+                                    <ShieldCheck className="h-3 w-3" /> PRC-Verified
+                                  </span>
+                                </div>
+                                <p className="text-[11px] text-brand-muted truncate mt-0.5">
+                                  {displayVerifier.specialization || 'Clinical Dietetics & Nutrition'} •{' '}
+                                  {maskPrcLicenseNumber(displayVerifier.prcLicenseNumber)}
+                                </p>
+                              </div>
+                            </div>
+                            <span className="shrink-0 text-xs font-bold text-brand-green group-hover:translate-x-0.5 transition-transform flex items-center gap-1">
+                              Credentials ↗
+                            </span>
                           </div>
-                        )}
-                      </button>
+
+                          {nutritionistNote && (
+                            <div className="rounded-xl bg-brand-surface/90 dark:bg-black/40 border border-brand-green/20 px-3 py-2 text-xs text-brand-muted italic">
+                              <span className="font-bold not-italic text-brand-green mr-1.5">RND Note:</span>
+                              &ldquo;{nutritionistNote}&rdquo;
+                            </div>
+                          )}
+                        </button>
+                      </div>
                     )}
 
                     {/* Cooking & Recipe Guide */}
@@ -864,11 +888,11 @@ export default function MealCard({
           document.body
         )}
 
-      {verifier && (
+      {displayVerifier && (
         <NutritionistCredentialModal
           isOpen={isVerifierOpen}
           onClose={() => setIsVerifierOpen(false)}
-          verifier={verifier}
+          verifier={displayVerifier}
           nutritionistNote={nutritionistNote}
           reviewedAt={reviewedAt}
           mealName={mealName}

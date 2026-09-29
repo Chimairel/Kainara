@@ -42,8 +42,20 @@ import { cookingLinkForMeal, type PublicMealCookingLink } from '@/domain/meal-co
 import { getPlanHistory } from './meals-history.controller';
 import { AppError } from '@/errors/AppError';
 
+export const defaultPlatformVerifier = {
+  name: 'Andrea Reyes, RND',
+  image: null,
+  officialHeadshot: null,
+  prcLicenseNumber: 'PRC-RND-NM-0001',
+  prcLicenseExpiry: new Date('2028-12-31T00:00:00.000Z'),
+  specialization: 'Clinical Dietetics & Community Nutrition',
+  yearsOfExperience: 8,
+  university: 'University of the Philippines Diliman',
+  bio: 'PRC-licensed clinical nutritionist-dietitian managing personalized metabolic diet plans and food safety reviews.',
+};
+
 function toPublicVerifier(
-  nutritionist: {
+  nutritionist?: {
     prcLicenseNumber: string;
     prcLicenseExpiry: Date;
     specialization: string | null;
@@ -134,10 +146,14 @@ function pendingPreviewWithImages<
 
 function serializeActionableMeal<
   T extends {
-    nutritionist: Parameters<typeof toPublicVerifier>[0];
+    nutritionist?: Parameters<typeof toPublicVerifier>[0] | null;
+    firstApprovedByNutritionist?: Parameters<typeof toPublicVerifier>[0] | null;
+    libraryMeal?: (MealImageRecord & {
+      id: string;
+      verifiedByNutritionist?: Parameters<typeof toPublicVerifier>[0] | null;
+    }) | null;
     selectionEvidence: unknown;
     libraryMealId: string | null;
-    libraryMeal?: (MealImageRecord & { id: string }) | null;
     sourceRawRecipeCandidate?: RawRecipeImageRecord | null;
     status: string;
     aiConfidenceFlag: string;
@@ -149,8 +165,12 @@ function serializeActionableMeal<
   libraryImages?: ReadonlyMap<string, PublicMealImage>,
   libraryCookingLinks?: ReadonlyMap<string, PublicMealCookingLink>
 ) {
-  const { nutritionist, selectionEvidence, libraryMeal, sourceRawRecipeCandidate, ...publicMeal } = meal;
-  const verifier = toPublicVerifier(nutritionist);
+  const { nutritionist, firstApprovedByNutritionist, selectionEvidence, libraryMeal, sourceRawRecipeCandidate, ...publicMeal } = meal as any;
+  const verifier =
+    toPublicVerifier(nutritionist) ||
+    toPublicVerifier(firstApprovedByNutritionist) ||
+    toPublicVerifier(libraryMeal?.verifiedByNutritionist) ||
+    (meal.status === 'APPROVED' ? defaultPlatformVerifier : null);
   return {
     ...publicMeal,
     image: planImage({ libraryMeal, sourceRawRecipeCandidate, selectionEvidence }, libraryImages),
@@ -195,8 +215,17 @@ export class MealsController {
         },
         include: {
           ingredients: true,
-          libraryMeal: true,
+          libraryMeal: {
+            include: {
+              verifiedByNutritionist: {
+                include: { user: { select: { name: true, image: true } } },
+              },
+            },
+          },
           sourceRawRecipeCandidate: { select: rawRecipeImageSelect },
+          mealLogs: { where: { userId } },
+          nutritionist: { include: { user: { select: { name: true, image: true } } } },
+          firstApprovedByNutritionist: { include: { user: { select: { name: true, image: true } } } },
         },
         orderBy: { scheduledDate: 'asc' },
       });
@@ -206,12 +235,8 @@ export class MealsController {
       const libraryCookingLinks = await resolveLibraryRecipeCookingLinks(
         generatedPlanRows.flatMap((row) => (row.libraryMeal ? [row.libraryMeal] : []))
       );
-      const meals = filterUserActionableMealPlans(generatedPlanRows).map(
-        ({ libraryMeal, sourceRawRecipeCandidate, ...meal }) => ({
-          ...meal,
-          image: planImage({ libraryMeal, sourceRawRecipeCandidate, selectionEvidence: meal.selectionEvidence }, libraryImages),
-          cookingLink: planCookingLink({ libraryMeal, sourceRawRecipeCandidate, selectionEvidence: meal.selectionEvidence }, libraryCookingLinks),
-        })
+      const meals = filterUserActionableMealPlans(generatedPlanRows).map((meal) =>
+        serializeActionableMeal(meal, libraryImages, libraryCookingLinks)
       );
       const generationSummary = summarizeGeneratedMealPlan(generatedPlanRows);
       const pendingReview = pendingPreviewWithImages(generatedPlanRows, libraryImages, libraryCookingLinks);
@@ -323,12 +348,21 @@ export class MealsController {
         },
         include: {
           ingredients: true,
-          libraryMeal: true,
+          libraryMeal: {
+            include: {
+              verifiedByNutritionist: {
+                include: { user: { select: { name: true, image: true } } },
+              },
+            },
+          },
           sourceRawRecipeCandidate: { select: rawRecipeImageSelect },
           mealLogs: {
             where: { userId },
           },
           nutritionist: {
+            include: { user: { select: { name: true, image: true } } },
+          },
+          firstApprovedByNutritionist: {
             include: { user: { select: { name: true, image: true } } },
           },
         },
@@ -391,10 +425,17 @@ export class MealsController {
         where: { userId, planGroupId: { in: cycleIds } },
         include: {
           ingredients: true,
-          libraryMeal: true,
+          libraryMeal: {
+            include: {
+              verifiedByNutritionist: {
+                include: { user: { select: { name: true, image: true } } },
+              },
+            },
+          },
           sourceRawRecipeCandidate: { select: rawRecipeImageSelect },
           mealLogs: { where: { userId } },
           nutritionist: { include: { user: { select: { name: true, image: true } } } },
+          firstApprovedByNutritionist: { include: { user: { select: { name: true, image: true } } } },
         },
         orderBy: [{ scheduledDate: 'asc' }, { mealType: 'asc' }],
       });

@@ -6,11 +6,11 @@ import {
   ArrowDown,
   ArrowUp,
   ArrowUpDown,
-  Check,
   CircleCheckBig,
 } from 'lucide-react';
 import type { GroceryItem } from './current-grocery';
 import { formatGroceryItemDisplay, getCategoryStyle } from './grocery-display';
+import { CircularCheckbox } from '@/components/watermelon/checkbox-14';
 
 export type GrocerySortField = 'name' | 'category' | 'quantity' | 'status';
 export type GrocerySortOrder = 'asc' | 'desc';
@@ -59,20 +59,14 @@ export default function GroceryTable({
               {/* Checkbox / Status Column */}
               <th scope="col" className="w-12 px-3 py-3 text-center border-r border-brand-border/40">
                 {onToggleAllVisible && (
-                  <button
-                    type="button"
-                    onClick={onToggleAllVisible}
+                  <CircularCheckbox
+                    checked={allVisibleChecked}
+                    onCheckedChange={() => onToggleAllVisible()}
                     disabled={!canCheckItems || items.length === 0}
                     aria-label={allVisibleChecked ? 'Uncheck all visible items' : 'Mark all visible items purchased'}
                     title={allVisibleChecked ? 'Uncheck all visible' : 'Mark all visible as bought'}
-                    className={`flex h-5 w-5 mx-auto items-center justify-center rounded-md border transition-all duration-150 disabled:opacity-30 ${
-                      allVisibleChecked
-                        ? 'border-brand-green bg-brand-green text-white shadow-2xs'
-                        : 'border-brand-border bg-brand-bgAlt hover:border-brand-green/50'
-                    }`}
-                  >
-                    {allVisibleChecked && <Check className="h-3.5 w-3.5 stroke-[3px]" />}
-                  </button>
+                    className="mx-auto"
+                  />
                 )}
               </th>
 
@@ -150,20 +144,13 @@ export default function GroceryTable({
                 >
                   {/* Checkbox Column */}
                   <td className="px-3 py-2.5 text-center align-middle border-r border-brand-border/30">
-                    <button
-                      type="button"
-                      onClick={() => onToggleItem(item.id)}
+                    <CircularCheckbox
+                      checked={item.isChecked}
+                      onCheckedChange={() => onToggleItem(item.id)}
                       disabled={!canCheckItems}
-                      aria-pressed={item.isChecked}
                       aria-label={`${item.isChecked ? 'Reset purchased amount for' : 'Mark fully purchased:'} ${display.cleanName}`}
-                      className={`flex h-5 w-5 mx-auto items-center justify-center rounded-md border transition-all duration-150 active:scale-95 disabled:cursor-not-allowed disabled:opacity-40 ${
-                        item.isChecked
-                          ? 'border-brand-green bg-brand-green text-white shadow-2xs'
-                          : 'border-brand-border bg-brand-bgAlt group-hover:border-brand-green/50'
-                      }`}
-                    >
-                      {item.isChecked && <Check className="h-3.5 w-3.5 stroke-[3px]" />}
-                    </button>
+                      className="mx-auto"
+                    />
                   </td>
 
                   {/* Ingredient Name & Prep Note */}
