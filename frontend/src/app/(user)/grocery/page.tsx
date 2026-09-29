@@ -4,14 +4,15 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import api from '@/lib/axios';
 import Button from '@/components/ui/Button';
-import PurchaseAmountEditor from '@/features/grocery/PurchaseAmountEditor';
 import GrocerySkeleton from '@/features/grocery/GrocerySkeleton';
+import GroceryCategoryCard from '@/features/grocery/GroceryCategoryCard';
+import GroceryCostSummary from '@/features/grocery/GroceryCostSummary';
 import PortalPageHeader from '@/components/shared/PortalPageHeader';
 import UnauthorizedState from '@/components/shared/UnauthorizedState';
 import { getApiErrorMessage } from '@/lib/api-error';
 import { readSessionResource, writeSessionResource } from '@/lib/session-resource-cache';
 import { fetchGroceryWorkspace, type GroceryItem, type GroceryWorkspace } from '@/features/grocery/current-grocery';
-import { AlertTriangle, Check, ChevronDown, CircleCheckBig, Download, Search, ShoppingBasket } from 'lucide-react';
+import { AlertTriangle, Download, Search } from 'lucide-react';
 
 type GroceryFilter = 'all' | 'remaining' | 'packed' | 'pantry';
 
@@ -141,9 +142,6 @@ export default function GroceryListPage() {
 
   const groupedItems = getGroupedItems();
   const totalItems = groceryList?.groceryItems.length || 0;
-  const measuredIngredientNames = new Set((groceryList?.groceryItems ?? [])
-    .filter((item) => item.quantity !== null)
-    .map((item) => item.ingredientName.trim().toLowerCase()));
   const shoppingItems = groceryList?.groceryItems.filter((item) => !item.isPantryStaple) || [];
   const pantryItems = totalItems - shoppingItems.length;
   const checkedItems = shoppingItems.filter((item) => item.isChecked).length;
@@ -305,52 +303,78 @@ export default function GroceryListPage() {
         />
       ) : (
         <div className="flex flex-col gap-5 text-left">
+          {/* REIMAGINED SHOPPING PROGRESS HERO */}
           <section
-            className={`rounded-2xl border p-4 ${
+            className={`rounded-2xl border p-5 ${
               projection.actionability.isFinal
-                ? 'border-brand-green/25 bg-brand-green/[0.06]'
+                ? 'border-brand-green/25 bg-brand-surface shadow-xs'
                 : 'border-status-pending-text/30 bg-status-pending-bg/10'
             }`}
           >
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div>
-                <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-brand-muted">
-                  {scope === 'CURRENT' ? 'Current cycle' : 'Next cycle'} ·{' '}
-                  {projection.cycle.status.replaceAll('_', ' ')}
-                </p>
-                <p className="mt-1 font-display text-base font-bold text-brand-text">
-                  {projection.coverage.clearedSlotCount} of {projection.coverage.expectedSlotCount} meals ready
-                </p>
-                <p className="mt-1 text-xs text-brand-muted">
-                  {projection.coverage.unresolvedSlotCount} unresolved · {projection.actionability.message}
-                </p>
+            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+              <div className="min-w-0 flex-1">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-[10px] font-bold uppercase tracking-[0.16em] text-brand-muted">
+                    {scope === 'CURRENT' ? 'Current cycle' : 'Next cycle'} ·{' '}
+                    {projection.cycle.status.replaceAll('_', ' ')}
+                  </span>
+                  <span className="inline-flex items-center rounded-full bg-brand-green/10 px-2.5 py-0.5 text-[10px] font-bold text-brand-green">
+                    {projection.coverage.clearedSlotCount} of {projection.coverage.expectedSlotCount} meals ready
+                  </span>
+                </div>
+
+                <div className="mt-2.5 flex items-baseline gap-2.5">
+                  <h2 className="font-display text-lg sm:text-xl font-bold text-brand-text">
+                    {checkedItems} of {shoppingItems.length} items bought
+                  </h2>
+                  <span className="font-mono text-xs font-bold text-brand-accent">
+                    {shoppingItems.length > 0 ? Math.round((checkedItems / shoppingItems.length) * 100) : 0}%
+                  </span>
+                </div>
+
+                {/* Shopping Progress Bar */}
+                <div className="mt-2.5 h-2 w-full max-w-md overflow-hidden rounded-full bg-brand-bgAlt">
+                  <div
+                    className="h-full rounded-full bg-gradient-to-r from-brand-accent to-brand-green transition-all duration-300"
+                    style={{
+                      width: `${shoppingItems.length > 0 ? Math.round((checkedItems / shoppingItems.length) * 100) : 0}%`,
+                    }}
+                  />
+                </div>
+
+                {pendingMealCount > 0 && (
+                  <p className="mt-2 text-xs text-status-pending-text font-medium">
+                    {pendingMealCount} unresolved meal slot{pendingMealCount === 1 ? '' : 's'} · {projection.actionability.message}
+                  </p>
+                )}
               </div>
-              {projection.actionability.requiresIncompleteAcknowledgment ? (
-                <Button variant="secondary" onClick={handleAcknowledgeIncomplete} className="text-xs">
-                  Use confirmed subset
-                </Button>
-              ) : null}
+
+              <div className="flex flex-wrap items-center gap-2 shrink-0">
+                {projection.actionability.requiresIncompleteAcknowledgment && (
+                  <Button variant="secondary" onClick={handleAcknowledgeIncomplete} className="text-xs">
+                    Use confirmed subset
+                  </Button>
+                )}
+                {groceryList && projection?.actionability.canExportPdf && (
+                  <Button
+                    variant="outline"
+                    onClick={handleDownloadPDF}
+                    className="flex items-center gap-1.5 text-xs font-semibold py-2 px-3"
+                  >
+                    <Download className="w-3.5 h-3.5" />
+                    <span>Download PDF</span>
+                  </Button>
+                )}
+              </div>
+            </div>
+
+            {/* Market Cost Estimate Integration */}
+            <div className="mt-4 pt-3.5 border-t border-brand-border/50">
+              <GroceryCostSummary revision={projection.cycle.id} />
             </div>
           </section>
-          {pendingMealCount > 0 && (
-            <div className="flex items-start gap-3 rounded-2xl border border-status-pending-text/30 bg-status-pending-bg/10 p-4 text-xs text-status-pending-text">
-              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
-              <p className="leading-5">
-                This {projection.actionability.isFinal ? 'frozen list' : 'preview'} contains cleared meals only.
-                {projection.actionability.quantitiesMayIncrease
-                  ? ` Quantities may increase as the remaining ${pendingMealCount} slot${pendingMealCount === 1 ? '' : 's'} clear review.`
-                  : ` ${pendingMealCount} unresolved slot${pendingMealCount === 1 ? '' : 's'} are not included.`}
-              </p>
-            </div>
-          )}
-          <div className="flex items-center justify-between gap-3 text-sm">
-            <p className="font-semibold">
-              {remainingItems === 0 ? 'Shopping complete' : `${remainingItems} ingredients to buy`}
-            </p>
-            <p className="text-brand-muted">
-              {checkedItems} of {totalItems} bought
-            </p>
-          </div>
+
+          {/* SEARCH & FILTERS TOOLBAR */}
           <section className="rounded-[24px] border border-brand-border/70 bg-brand-surface/90 p-3 shadow-sm backdrop-blur-xl">
             <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
               <label className="relative min-w-0 flex-1">
@@ -382,7 +406,7 @@ export default function GroceryListPage() {
                     type="button"
                     onClick={() => setFilter(value)}
                     aria-pressed={filter === value}
-                    className={`flex h-9 flex-1 items-center justify-center gap-1 rounded-xl px-1.5 text-[11px] whitespace-nowrap font-bold transition lg:flex-none ${
+                    className={`flex h-9 flex-1 items-center justify-center gap-1 rounded-xl px-2.5 text-[11px] whitespace-nowrap font-bold transition lg:flex-none ${
                       filter === value
                         ? 'bg-brand-surface text-brand-text shadow-sm'
                         : 'text-brand-muted hover:text-brand-green'
@@ -390,7 +414,9 @@ export default function GroceryListPage() {
                   >
                     {label}
                     <span
-                      className={`rounded-full px-1.5 py-0.5 font-mono text-[8px] ${filter === value ? 'bg-brand-green/10 text-brand-green' : 'bg-brand-border/50'}`}
+                      className={`rounded-full px-1.5 py-0.5 font-mono text-[9px] ${
+                        filter === value ? 'bg-brand-green/10 text-brand-green' : 'bg-brand-border/50 text-brand-muted'
+                      }`}
                     >
                       {count}
                     </span>
@@ -402,7 +428,7 @@ export default function GroceryListPage() {
                 type="button"
                 onClick={toggleAllVisibleCategories}
                 disabled={visibleGroups.length === 0}
-                className="h-10 shrink-0 rounded-xl px-3 text-[10px] font-bold text-brand-green outline-none transition hover:bg-brand-green/10 focus-visible:ring-2 focus-visible:ring-brand-green/30 disabled:cursor-not-allowed disabled:opacity-40"
+                className="h-10 shrink-0 rounded-xl px-3 text-[11px] font-bold text-brand-green outline-none transition hover:bg-brand-green/10 focus-visible:ring-2 focus-visible:ring-brand-green/30 disabled:cursor-not-allowed disabled:opacity-40"
               >
                 {allVisibleCategoriesExpanded ? 'Collapse all' : 'Expand all'}
               </button>
@@ -412,6 +438,7 @@ export default function GroceryListPage() {
             </p>
           </section>
 
+          {/* DEPARTMENT CATEGORY CARDS (2-COLUMN GRID) */}
           {visibleGroups.length === 0 ? (
             <div className="flex min-h-64 flex-col items-center justify-center rounded-[28px] border border-dashed border-brand-border bg-brand-surface/45 px-6 text-center">
               <Search className="h-7 w-7 text-brand-muted/60" />
@@ -429,106 +456,21 @@ export default function GroceryListPage() {
               </button>
             </div>
           ) : (
-            <div className="space-y-3">
-              {visibleGroups.map(({ category, items, visibleItems }) => {
-                const completedCount = items.filter((item) => item.isChecked).length;
-                const categoryPercent = Math.round((completedCount / items.length) * 100);
-                const isExpanded = expandedCategories.has(category) || Boolean(normalizedQuery);
-
-                return (
-                  <section
-                    key={category}
-                    className="overflow-hidden rounded-[22px] border border-brand-border/70 bg-brand-surface shadow-sm transition hover:border-brand-green/20"
-                  >
-                    <button
-                      type="button"
-                      onClick={() => toggleCategory(category)}
-                      aria-expanded={isExpanded}
-                      className="flex w-full items-center gap-3 px-4 py-4 text-left outline-none transition hover:bg-brand-green/[0.035] focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand-green/30 sm:px-5"
-                    >
-                      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[14px] bg-brand-green/10 text-brand-green">
-                        <ShoppingBasket className="h-[18px] w-[18px]" />
-                      </span>
-                      <span className="min-w-0 flex-1">
-                        <span className="flex items-center justify-between gap-3">
-                          <span className="truncate font-display text-sm font-bold text-brand-text">{category}</span>
-                          <span className="shrink-0 text-[10px] font-bold text-brand-muted">
-                            {completedCount}/{items.length} bought
-                          </span>
-                        </span>
-                        <span className="mt-2 block h-1.5 overflow-hidden rounded-full bg-brand-bgAlt">
-                          <span
-                            className="block h-full rounded-full bg-brand-green transition-all"
-                            style={{ width: `${categoryPercent}%` }}
-                          />
-                        </span>
-                      </span>
-                      <ChevronDown
-                        className={`h-4 w-4 shrink-0 text-brand-muted transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`}
-                      />
-                    </button>
-
-                    {isExpanded && (
-                      <div className="border-t border-brand-border/60 bg-brand-bgAlt/30 p-3 sm:p-4">
-                        <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
-                          {visibleItems.map((item) => (
-                            <div
-                              key={item.id}
-                              className={`group flex min-h-12 items-center gap-3 rounded-[14px] border px-3 py-2.5 text-left outline-none transition focus-visible:ring-2 focus-visible:ring-brand-green/30 ${
-                                item.isChecked
-                                  ? 'border-brand-green/15 bg-brand-green/[0.055] text-brand-muted'
-                                  : 'border-brand-border/65 bg-brand-surface text-brand-text hover:-translate-y-px hover:border-brand-green/25 hover:shadow-sm'
-                              }`}
-                            >
-                              <button
-                                type="button"
-                                onClick={() => handleToggleItem(item.id)}
-                                disabled={!canCheckItems}
-                                aria-pressed={item.isChecked}
-                                aria-label={`${item.isChecked ? 'Reset purchased amount for' : 'Mark fully purchased:'} ${item.ingredientName}`}
-                                className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-md border transition-all duration-150 active:scale-90 motion-reduce:transform-none motion-reduce:transition-none disabled:cursor-not-allowed disabled:opacity-40 ${
-                                  item.isChecked
-                                    ? 'border-brand-green bg-brand-green text-white shadow-sm'
-                                    : 'border-brand-border bg-brand-bgAlt group-hover:border-brand-green/50'
-                                }`}
-                              >
-                                {item.isChecked && (
-                                  <Check className="h-3.5 w-3.5 stroke-[3px] transition-transform duration-150 motion-reduce:transform-none" />
-                                )}
-                              </button>
-                              <span className="min-w-0 flex-1">
-                                <span
-                                  className={`block text-xs font-semibold leading-snug ${item.isChecked ? 'line-through decoration-brand-green/50' : ''}`}
-                                >
-                                  {item.ingredientName}
-                                </span>
-                                <span className="mt-0.5 block text-[9px] font-medium text-brand-muted">
-                                  {item.quantity !== null && item.unit
-                                    ? `${Math.max(0, Math.round((item.quantity - (item.purchasedQuantity ?? 0)) * 1000) / 1000)} ${item.unit} to buy · ${item.purchasedQuantity ?? 0} purchased / ${item.quantity} needed`
-                                    : `${measuredIngredientNames.has(item.ingredientName.trim().toLowerCase()) ? 'Additional amount' : 'Amount'} not recorded · used in ${item.sourceMealCount} meal${item.sourceMealCount === 1 ? '' : 's'}. Check the source recipe.`}
-                                </span>
-                                {item.quantity !== null && canCheckItems && (
-                                  <PurchaseAmountEditor item={item} onSaved={fetchGroceryList} />
-                                )}
-                              </span>
-                              <button
-                                type="button"
-                                onClick={() => handleTogglePantry(item.id)}
-                                disabled={!canCheckItems}
-                                aria-pressed={item.isPantryStaple}
-                                className={`shrink-0 rounded-lg px-2 py-1 text-[8px] font-bold uppercase tracking-wide transition disabled:cursor-not-allowed disabled:opacity-40 ${item.isPantryStaple ? 'bg-brand-green text-white' : 'bg-brand-bgAlt text-brand-muted hover:text-brand-green'}`}
-                              >
-                                Pantry
-                              </button>
-                              {item.isChecked && <CircleCheckBig className="h-3.5 w-3.5 shrink-0 text-brand-green" />}
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </section>
-                );
-              })}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-start">
+              {visibleGroups.map(({ category, items, visibleItems }) => (
+                <GroceryCategoryCard
+                  key={category}
+                  category={category}
+                  items={items}
+                  visibleItems={visibleItems}
+                  isExpanded={expandedCategories.has(category) || Boolean(normalizedQuery)}
+                  onToggleExpand={() => toggleCategory(category)}
+                  canCheckItems={canCheckItems}
+                  onToggleItem={handleToggleItem}
+                  onTogglePantry={handleTogglePantry}
+                  onRefresh={fetchGroceryList}
+                />
+              ))}
             </div>
           )}
         </div>
