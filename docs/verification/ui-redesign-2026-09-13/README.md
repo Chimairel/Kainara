@@ -12,4 +12,4 @@ All records and accounts shown are synthetic, on the isolated worktree preview. 
 - [Admin accounts, mobile](admin-users-mobile.png)
 - [Application, mobile](application-mobile.png)
 
-See the [delivery record](../../UI_REDESIGN_DELIVERY_2026-09-13.md) for interaction results and limits. Public-page decorative overflow is clipped by the owning containers; portal main-container overflow was rechecked after repairs.
+See the [archived delivery record](../../history/PROJECT_EVOLUTION.md#old-docs-ui-redesign-delivery-2026-09-13-md) for interaction results and limits. Public-page decorative overflow is clipped by the owning containers; portal main-container overflow was rechecked after repairs.

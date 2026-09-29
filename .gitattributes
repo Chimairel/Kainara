@@ -4,3 +4,6 @@
 *.cmd text eol=crlf
 *.ps1 text eol=crlf
 
+# Preserve historical source formatting in the consolidated document.
+docs/history/PROJECT_EVOLUTION.md -whitespace
+

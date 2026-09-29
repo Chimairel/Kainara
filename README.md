@@ -2,7 +2,7 @@
 
 NutriMind is a Philippines-focused nutrition and meal-planning capstone application with separate user, internal nutritionist, and administrator experiences. Its plans mix accessible general meals, Filipino food, locally available international food, and appropriate convenience options instead of restricting users to Filipino dishes.
 
-> **Current evidence source:** [`docs/NUTRIMIND_ENGINEERING_RECORD.md`](docs/NUTRIMIND_ENGINEERING_RECORD.md) is the canonical record for implemented behavior, verification level, accepted decisions, known defects, and risks. Older prompts, addenda, handoff notes, and system references are historical or aspirational unless the engineering record confirms their claims.
+> **Current evidence source:** [`docs/NUTRIMIND_ENGINEERING_RECORD.md`](docs/NUTRIMIND_ENGINEERING_RECORD.md) records implemented behavior, verification levels, accepted decisions, known defects, and risks. Older prompts, addenda, and handoff notes are collected as [project history](docs/history/PROJECT_EVOLUTION.md). They are not current specifications.
 
 Operational deployment uses [`docs/PRODUCTION_OPERATIONS_RUNBOOK.md`](docs/PRODUCTION_OPERATIONS_RUNBOOK.md). Public production startup remains gated on the qualified sign-off recorded in [`docs/CLINICAL_POLICY_APPROVAL.md`](docs/CLINICAL_POLICY_APPROVAL.md).
 
@@ -10,21 +10,7 @@ Administrator-managed nutrition sources, aggregate consumption releases, FNRI ma
 
 ## Current verification status
 
-The repository contains substantial frontend and backend implementation. As of September 9, 2026:
-
-- Backend TypeScript no-emit check and production build: **passed**
-- Frontend TypeScript no-emit check and production build: **passed**
-- Prisma schema validation: **passed**
-- Frontend lint: **passed with zero warnings**
-- Backend deterministic unit/policy baseline: **496 pass, 0 fail, 1 external-clinical TODO**
-- Frontend component baseline: **19 pass, 0 fail**
-- Public/adversarial Playwright baseline: **2 pass, 0 fail**
-- Controlled API/database integration and acceptance suites: **passed against disposable loopback PostgreSQL 16.4 databases**
-- Authenticated desktop browser coverage: **passed for current user, nutritionist, administrator, public, and authorization routes; full 390px rerun remains environment-limited**
-- Repository CI configuration: **source quality, dependency audit, backend, frontend, browser smoke, and container-build jobs are present; remote execution is not established by local evidence**
-- The repository's 25 additive database migrations: **rehearsed locally with no datamodel drift; the latest outside-meal and admin-data migrations remain unapplied to shared development**
-- Controlled production integration and local readiness/load smokes: **passed**
-- Clinical review: **not established**
+The application has substantial frontend and backend implementation. Verification results change as work continues; use the latest dated entry in the [engineering record](docs/NUTRIMIND_ENGINEERING_RECORD.md) and rerun the relevant checks for the code you are studying. Automated, browser, and disposable-database tests do not establish clinical approval. The [clinical policy approval record](docs/CLINICAL_POLICY_APPROVAL.md) is the separate release gate.
 
 Use these status terms: Planned, Designed, Partially implemented, Implemented but unverified, Statically verified, Integration tested, End-to-end tested, Deployed, and Clinically reviewed.
 
@@ -63,10 +49,17 @@ Meal generation uses a hybrid retrieval pipeline rather than giving Gemini datab
 | `backend/prisma/migrations/` | Database migration history |
 | `backend/prisma/data/fnri.csv` | FNRI data used by the seed script |
 | `.github/workflows/ci.yml` | Backend and frontend verification on pushes and pull requests |
-| `docs/` | Canonical engineering evidence and cleanup planning |
-| `codex/` | Current coding-agent operating and cleanup instructions |
+| `docs/` | Engineering record, operational references, historical archive, and verification evidence |
+| `AGENTS.md` | Current shared-checkout and change-safety rules for coding agents |
 
 The intended backend layering is route -> validation/policy -> controller -> service -> Prisma/external integration. The current implementation does not enforce this boundary strictly.
+
+## Start reading the code
+
+1. Open `frontend/src/app/layout.tsx` and the route group for the screen you want to understand. Follow its API calls through `frontend/src/lib/axios.ts`.
+2. Find the corresponding endpoint in `backend/src/app.ts` and `backend/src/routes/`, then trace its controller, service, and policy modules.
+3. Use `backend/prisma/schema.prisma` to understand persisted models and `backend/tests/` or `frontend/src/` tests to check intended behavior.
+4. Compare older design ideas with the [project evolution archive](docs/history/PROJECT_EVOLUTION.md) only when you want the history behind a decision. The latest engineering-record entry and code take precedence.
 
 ## Prerequisites
 
@@ -264,8 +257,8 @@ Consult the engineering record for the ranked register. Important limitations in
 ## Documentation map
 
 - [`docs/NUTRIMIND_ENGINEERING_RECORD.md`](docs/NUTRIMIND_ENGINEERING_RECORD.md): canonical current evidence, ADRs, requirements, risks, defects, tests, and change history.
-- [`docs/NUTRIMIND_CLEANUP_PLAN.md`](docs/NUTRIMIND_CLEANUP_PLAN.md): completed Batches 1, 2A, and 3 plus proposed future cleanup batches.
-- [`chatgptcontext.md`](chatgptcontext.md): August 19 audit snapshot; useful context but not the canonical living record.
+- [`docs/history/PROJECT_EVOLUTION.md`](docs/history/PROJECT_EVOLUTION.md): phase-by-phase history and preserved old prompts, plans, audits, and handoffs. Its archived decisions do not override current code.
+- [`AGENTS.md`](AGENTS.md): concise working rules for agents using the shared checkout.
 - Root legacy prompts, addenda, handoff guides, and system references: historical, aspirational, or partially superseded as described by their notices.
 
 ## Contribution rules

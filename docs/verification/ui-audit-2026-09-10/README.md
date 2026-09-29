@@ -1,6 +1,6 @@
 # Browser evidence index
 
-Captured September 10, 2026 on the repaired worktree preview using synthetic accounts. See the [audit and redesign plan](../../UI_UX_AUDIT_AND_REDESIGN_PLAN_2026-09-10.md) for findings and limits. These images show existing UI, not proposed designs. Workspace images capture the internally scrolling viewport; they are not full stitched pages.
+Captured September 10, 2026 on the repaired worktree preview using synthetic accounts. See the [archived audit and redesign plan](../../history/PROJECT_EVOLUTION.md#old-docs-ui-ux-audit-and-redesign-plan-2026-09-10-md) for findings and limits. These images show existing UI, not proposed designs. Workspace images capture the internally scrolling viewport; they are not full stitched pages.
 
 - [Route observations](observations.json)
 - [Additional panel observations](detail-observations.json)
