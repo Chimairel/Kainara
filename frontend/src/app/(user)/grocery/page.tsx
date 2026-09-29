@@ -395,13 +395,13 @@ export default function GroceryListPage() {
         <UnauthorizedState
           imageSrc="/logo/verifying.svg"
           imageAlt="Verifying Meals"
-          eyebrow={pendingMealCount > 0 ? 'Review in progress' : 'Plan preparation'}
-          title={scope === 'UPCOMING' ? 'Next-week Preview Pending' : 'Grocery Checklist Pending'}
+          eyebrow="Plan preparation"
+          title={scope === 'UPCOMING' ? 'Next-week List Preparing' : 'Grocery Checklist Preparing'}
           description={
             projection.cycle.status === 'REVALIDATION_REQUIRED'
               ? projection.actionability.message
               : pendingMealCount > 0
-                ? `${pendingMealCount} meal slot${pendingMealCount === 1 ? '' : 's'} remain unresolved. Ingredients appear only after each slot clears review.`
+                ? `${pendingMealCount} meal slot${pendingMealCount === 1 ? '' : 's'} are not yet ready. Their ingredients are not shown in this checklist.`
                 : 'Your checklist will appear automatically when cleared meal ingredients are available.'
           }
           action={{
@@ -440,7 +440,7 @@ export default function GroceryListPage() {
                   </span>
                   <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-600/30 dark:border-[#1a5c48] bg-emerald-100/70 dark:bg-[#0e352b] px-3 py-1 text-[10px] font-bold text-emerald-800 dark:text-[#38c172] shadow-xs">
                     <span className="h-1.5 w-1.5 rounded-full bg-emerald-600 dark:bg-[#38c172]" />
-                    {projection.coverage.clearedSlotCount} of {projection.coverage.expectedSlotCount} meals ready
+                    {projection.coverage.clearedSlotCount} of {projection.coverage.expectedSlotCount} meal slots included
                   </span>
                 </div>
 
@@ -492,7 +492,7 @@ export default function GroceryListPage() {
 
                 {pendingMealCount > 0 && canCheckItems && (
                   <p className="mt-3 text-xs text-status-pending-text font-medium">
-                    {pendingMealCount} unresolved meal slot{pendingMealCount === 1 ? '' : 's'} · {projection.actionability.message}
+                    {pendingMealCount} meal slot{pendingMealCount === 1 ? '' : 's'} not yet included · {projection.actionability.message}
                   </p>
                 )}
                 {!canCheckItems && (

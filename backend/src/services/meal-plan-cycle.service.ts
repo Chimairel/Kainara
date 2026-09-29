@@ -484,7 +484,7 @@ export class MealPlanCycleService {
         where: { id: cycle.id },
         data: { incompleteAcknowledgedAt: now },
       });
-    });
+    }, { timeout: 90_000 });
   }
 
   static async startShopping(userId: string, cycleId: string, now: Date = new Date()) {
@@ -501,6 +501,6 @@ export class MealPlanCycleService {
         where: { id: cycleId },
         select: mealPlanCycleSummarySelect,
       });
-    });
+    }, { timeout: 90_000 });
   }
 }

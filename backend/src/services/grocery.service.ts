@@ -295,6 +295,7 @@ export class GroceryService {
     const actionability = deriveGroceryActionability({
       ...refreshedCycle,
       listIsStale: Boolean(list?.isStale),
+      unresolvedSlotCount: Math.max(0, cycle.expectedSlotCount - clearedSlotCount),
     });
     const visibleList = list?.isStale ? null : list;
     return {
@@ -317,9 +318,11 @@ export class GroceryService {
     };
   }
 
-  private static assertListActionableForShopping(list: {
+  private static async assertListActionableForShopping(client: Prisma.TransactionClient, userId: string, list: {
+    planGroupId: string;
     isStale: boolean;
     cycle: {
+      expectedSlotCount: number;
       status: MealPlanCycleStatus;
       profileAdaptationState: ProfileCycleAdaptationState;
       deadlineOutcome: MealPlanCycleDeadlineOutcome | null;
@@ -327,9 +330,27 @@ export class GroceryService {
       shoppingStartedAt: Date | null;
     };
   }) {
+    let unresolvedSlotCount: number | undefined;
+    if (list.cycle.deadlineOutcome === MealPlanCycleDeadlineOutcome.INCOMPLETE &&
+        !list.cycle.incompleteAcknowledgedAt && list.cycle.shoppingStartedAt) {
+      // This cycle could start shopping without acknowledging a partial list
+      // only after every slot cleared. Its list is now frozen; a safety change
+      // marks it stale and is rejected below.
+      unresolvedSlotCount = 0;
+    } else if (list.cycle.deadlineOutcome === MealPlanCycleDeadlineOutcome.INCOMPLETE &&
+        !list.cycle.incompleteAcknowledgedAt) {
+      const clearedIds = await MealPlanCycleService.getClearedMealPlanIds(userId, list.planGroupId, new Date(), client);
+      const clearedMeals = await client.mealPlan.findMany({
+        where: { userId, planGroupId: list.planGroupId, id: { in: clearedIds } },
+        select: { scheduledDate: true, mealType: true },
+      });
+      const clearedSlots = new Set(clearedMeals.map((meal) => `${meal.scheduledDate.getTime()}:${meal.mealType}`));
+      unresolvedSlotCount = Math.max(0, list.cycle.expectedSlotCount - clearedSlots.size);
+    }
     const actionability = deriveGroceryActionability({
       ...list.cycle,
       listIsStale: list.isStale,
+      unresolvedSlotCount,
     });
     if (!actionability.canCheckItems) throw new Error(actionability.message);
   }
@@ -356,6 +377,7 @@ export class GroceryService {
               cycle: {
                 select: {
                   status: true,
+                  expectedSlotCount: true,
                   profileAdaptationState: true,
                   deadlineOutcome: true,
                   incompleteAcknowledgedAt: true,
@@ -367,11 +389,12 @@ export class GroceryService {
         },
       });
       if (!first) throw new Error('Shopping list changed. Refresh before updating the checklist.');
-      this.assertListActionableForShopping(first.groceryList);
+      await this.assertListActionableForShopping(tx, userId, first.groceryList);
       const ids = [...new Set(itemIds)];
       const count = await tx.groceryItem.count({ where: { id: { in: ids }, groceryListId: first.groceryList.id } });
       if (count !== ids.length) throw new Error('Shopping list changed. Refresh before updating the checklist.');
-      if (first.groceryList.cycle.status !== MealPlanCycleStatus.PREPARING &&
+      if (!first.groceryList.cycle.shoppingStartedAt &&
+          first.groceryList.cycle.status !== MealPlanCycleStatus.PREPARING &&
           first.groceryList.cycle.status !== MealPlanCycleStatus.UNDER_REVIEW)
         await MealPlanCycleService.recordShoppingStarted(tx, userId, first.groceryList.planGroupId);
       await tx.$executeRaw`
@@ -397,6 +420,7 @@ export class GroceryService {
               cycle: {
                 select: {
                   status: true,
+                  expectedSlotCount: true,
                   profileAdaptationState: true,
                   deadlineOutcome: true,
                   incompleteAcknowledgedAt: true,
@@ -408,9 +432,10 @@ export class GroceryService {
         },
       });
       if (!item) throw new Error('Shopping list changed. Refresh before recording a purchase.');
-      this.assertListActionableForShopping(item.groceryList);
+      await this.assertListActionableForShopping(tx, userId, item.groceryList);
       const state = checklistPurchaseState(item.quantity, !item.isChecked);
-      if (item.groceryList.cycle.status !== MealPlanCycleStatus.PREPARING &&
+      if (!item.groceryList.cycle.shoppingStartedAt &&
+          item.groceryList.cycle.status !== MealPlanCycleStatus.PREPARING &&
           item.groceryList.cycle.status !== MealPlanCycleStatus.UNDER_REVIEW)
         await MealPlanCycleService.recordShoppingStarted(tx, userId, item.groceryList.planGroupId);
       return tx.groceryItem.update({
@@ -433,6 +458,7 @@ export class GroceryService {
               cycle: {
                 select: {
                   status: true,
+                  expectedSlotCount: true,
                   profileAdaptationState: true,
                   deadlineOutcome: true,
                   incompleteAcknowledgedAt: true,
@@ -444,8 +470,9 @@ export class GroceryService {
         },
       });
       if (!item) throw new Error('Grocery item not found or does not belong to user.');
-      this.assertListActionableForShopping(item.groceryList);
-      if (item.groceryList.cycle.status !== MealPlanCycleStatus.PREPARING &&
+      await this.assertListActionableForShopping(tx, userId, item.groceryList);
+      if (!item.groceryList.cycle.shoppingStartedAt &&
+          item.groceryList.cycle.status !== MealPlanCycleStatus.PREPARING &&
           item.groceryList.cycle.status !== MealPlanCycleStatus.UNDER_REVIEW)
         await MealPlanCycleService.recordShoppingStarted(tx, userId, item.groceryList.planGroupId);
       return tx.groceryItem.update({

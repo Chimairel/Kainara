@@ -17,6 +17,8 @@ type GroceryCycleFacts = {
   incompleteAcknowledgedAt: Date | null;
   shoppingStartedAt: Date | null;
   listIsStale: boolean;
+  /** Current evidence-cleared gaps; omitted callers remain conservatively incomplete. */
+  unresolvedSlotCount?: number;
 };
 
 /**
@@ -25,7 +27,10 @@ type GroceryCycleFacts = {
  * these facts; they do not reconstruct lifecycle rules independently.
  */
 export function deriveGroceryActionability(facts: GroceryCycleFacts): GroceryActionability {
-  const isIncomplete = facts.deadlineOutcome === MealPlanCycleDeadlineOutcome.INCOMPLETE;
+  // The missed deadline is permanent audit history, but an unfrozen list can
+  // become complete later. An accepted partial list stays partial and frozen.
+  const isIncomplete = facts.deadlineOutcome === MealPlanCycleDeadlineOutcome.INCOMPLETE &&
+    (facts.incompleteAcknowledgedAt !== null || facts.unresolvedSlotCount !== 0);
   const acknowledgedIncomplete = isIncomplete && facts.incompleteAcknowledgedAt !== null;
 
   if (
@@ -64,6 +69,7 @@ export function deriveGroceryActionability(facts: GroceryCycleFacts): GroceryAct
     facts.status === MealPlanCycleStatus.READY_TO_SHOP ||
     facts.status === MealPlanCycleStatus.SHOPPING_STARTED ||
     facts.status === MealPlanCycleStatus.ACTIVE ||
+    (facts.status === MealPlanCycleStatus.INCOMPLETE_AT_DEADLINE && !isIncomplete) ||
     acknowledgedIncomplete;
   if (finalAndActionable) {
     return {
@@ -89,7 +95,7 @@ export function deriveGroceryActionability(facts: GroceryCycleFacts): GroceryAct
     quantitiesMayIncrease: progressivePreview,
     requiresIncompleteAcknowledgment: false,
     message: progressivePreview
-      ? 'This checklist can be marked now. More ingredients may appear as meal slots complete review.'
+      ? 'Only ready meal ingredients appear here. You can check them now; this list may grow as other slots become ready.'
       : 'This shopping cycle is no longer active.',
   };
 }

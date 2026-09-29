@@ -347,9 +347,12 @@ async function main() {
     assert.equal(await prisma.swapLog.count({ where: { requestKey: `${user.id}:${key}` } }), 1);
     const boughtList = await GroceryService.getGroceryList(user.id);
     const eggItem = boughtList!.groceryItems.find((item) => item.ingredientName === food.name)!;
-    const partial = await GroceryService.recordPurchase(user.id, eggItem.id, 50);
-    assert.equal(partial.purchasedQuantity, 50);
-    assert.equal(partial.isChecked, false);
+    const checked = await GroceryService.recordPurchase(user.id, eggItem.id);
+    assert.equal(checked.purchasedQuantity, 100);
+    assert.equal(checked.isChecked, true);
+    const unchecked = await GroceryService.toggleGroceryItem(user.id, eggItem.id);
+    assert.equal(unchecked.purchasedQuantity, 0);
+    assert.equal(unchecked.isChecked, false);
     const full = await GroceryService.toggleGroceryItem(user.id, eggItem.id);
     assert.equal(full.purchasedQuantity, 100);
     assert.equal(full.isChecked, true);

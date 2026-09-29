@@ -256,6 +256,73 @@ async function main() {
     assert.equal(accepted.actionability.canCheckItems, true);
     assert.equal(accepted.actionability.canExportPdf, true);
 
+    // A missed cutoff remains audit history, but a later complete, unfrozen
+    // list must become usable without accepting a partial subset.
+    const lateCompleteId = `batch5-late-complete-${run}`;
+    const lateStart = new Date(now.getTime() + 4 * day);
+    await prisma.mealPlanCycle.create({
+      data: {
+        id: lateCompleteId,
+        userId: user.id,
+        planType: PlanType.WEEKLY,
+        startDate: lateStart,
+        endDate: new Date(lateStart.getTime() + 6 * day),
+        preparationOpensAt: new Date(now.getTime() - 2 * day),
+        shoppingDeadlineAt: new Date(now.getTime() - 1_000),
+        expectedSlotCount: 2,
+        status: MealPlanCycleStatus.UNDER_REVIEW,
+      },
+    });
+    const lateMeal = {
+      planGroupId: lateCompleteId,
+      userId: user.id,
+      libraryMealId: libraryMeal.id,
+      planType: PlanType.WEEKLY,
+      mealName: libraryMeal.mealName,
+      calories: 450,
+      proteinG: 25,
+      carbsG: 50,
+      fatG: 15,
+      scheduledDate: lateStart,
+      requiresSafetyRevalidation: false,
+      safetyPolicyVersion: 'MEAL_PLAN_SAFETY_V2',
+      baseRecipeSignature: recipeSignature,
+      composedServingSignature: recipeSignature,
+    };
+    await prisma.mealPlan.create({
+      data: {
+        ...lateMeal,
+        status: MealPlanStatus.APPROVED,
+        mealType: MealType.BREAKFAST,
+        reviewedAt: now,
+        ingredients: { create: { ingredientName: 'Eggs', category: 'Protein', quantity: 6, unit: 'piece' } },
+      },
+    });
+    const latePending = await prisma.mealPlan.create({
+      data: {
+        ...lateMeal,
+        status: MealPlanStatus.PENDING_REVIEW,
+        mealType: MealType.LUNCH,
+        ingredients: { create: { ingredientName: 'Rice', category: 'Grain', quantity: 300, unit: 'g' } },
+      },
+    });
+    const latePartial = await GroceryService.getCycleProjection(user.id, lateCompleteId, now);
+    assert.equal(latePartial.actionability.requiresIncompleteAcknowledgment, true);
+    await prisma.mealPlan.update({
+      where: { id: latePending.id },
+      data: { status: MealPlanStatus.APPROVED, reviewedAt: new Date(now.getTime() + 1_000) },
+    });
+    await prisma.groceryList.updateMany({ where: { planGroupId: lateCompleteId }, data: { isStale: true } });
+    const lateComplete = await GroceryService.getCycleProjection(user.id, lateCompleteId, new Date(now.getTime() + 2_000));
+    assert.equal(lateComplete.cycle.deadlineOutcome, 'INCOMPLETE');
+    assert.equal(lateComplete.coverage.unresolvedSlotCount, 0);
+    assert.equal(lateComplete.actionability.requiresIncompleteAcknowledgment, false);
+    assert.equal(lateComplete.actionability.canCheckItems, true);
+    const lateItemId = lateComplete.groceryList!.groceryItems[0].id;
+    assert.equal((await GroceryService.toggleGroceryItem(user.id, lateItemId)).isChecked, true);
+    assert.equal((await GroceryService.toggleGroceryItem(user.id, lateItemId)).isChecked, false);
+    assert.ok((await prisma.mealPlanCycle.findUniqueOrThrow({ where: { id: lateCompleteId } })).shoppingStartedAt);
+
     assert.ok(cleared.id);
     console.log('[Batch 5 acceptance] PASS');
   } finally {
