@@ -1,27 +1,21 @@
 'use client';
-
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import api from '@/lib/axios';
 import Button from '@/components/ui/Button';
 import GrocerySkeleton from '@/features/grocery/GrocerySkeleton';
-import GroceryCategoryCard from '@/features/grocery/GroceryCategoryCard';
+import GroceryTable, { type GrocerySortField, type GrocerySortOrder } from '@/features/grocery/GroceryTable';
 import KainaraLogo from '@/components/shared/KainaraLogo';
 import PortalPageHeader from '@/components/shared/PortalPageHeader';
 import UnauthorizedState from '@/components/shared/UnauthorizedState';
 import { getApiErrorMessage } from '@/lib/api-error';
 import { readSessionResource, writeSessionResource } from '@/lib/session-resource-cache';
-import { fetchGroceryWorkspace, type GroceryItem, type GroceryWorkspace } from '@/features/grocery/current-grocery';
-import { AlertTriangle, Download, Search } from 'lucide-react';
+import { fetchGroceryWorkspace, type GroceryWorkspace } from '@/features/grocery/current-grocery';
+import { AlertTriangle, ChevronDown, Download, Filter, RotateCcw, Search, X } from 'lucide-react';
 
 type GroceryFilter = 'all' | 'remaining' | 'packed' | 'pantry';
 
 const normalizeCategory = (category?: string) => category?.trim() || 'Other';
-
-const getInitialExpandedCategory = (items: GroceryItem[]) => {
-  const firstRemaining = items.find((item) => !item.isChecked);
-  return normalizeCategory(firstRemaining?.category || items[0]?.category);
-};
 
 export default function GroceryListPage() {
   const { user } = useAuth();
@@ -33,11 +27,9 @@ export default function GroceryListPage() {
   const [error, setError] = useState<string | null>(null);
   const [query, setQuery] = useState('');
   const [filter, setFilter] = useState<GroceryFilter>('all');
-  const [expandedCategories, setExpandedCategories] = useState<Set<string>>(
-    cachedPage?.current?.groceryList?.groceryItems.length
-      ? new Set([getInitialExpandedCategory(cachedPage.current.groceryList.groceryItems)])
-      : new Set()
-  );
+  const [selectedCategory, setSelectedCategory] = useState<string>('ALL');
+  const [sortField, setSortField] = useState<GrocerySortField>('status');
+  const [sortOrder, setSortOrder] = useState<GrocerySortOrder>('asc');
   const projection = scope === 'CURRENT' ? (workspace?.current ?? null) : (workspace?.upcoming ?? null);
   const groceryList = projection?.groceryList ?? null;
   const pendingMealCount = projection?.coverage.unresolvedSlotCount ?? 0;
@@ -55,19 +47,14 @@ export default function GroceryListPage() {
     setError(null);
     try {
       const snapshot = await fetchGroceryWorkspace();
-      const nextProjection = scope === 'CURRENT' ? snapshot.current : snapshot.upcoming;
-      const nextList = nextProjection?.groceryList ?? null;
       setWorkspace(snapshot);
       cachePage(snapshot);
-      setExpandedCategories(
-        nextList?.groceryItems?.length ? new Set([getInitialExpandedCategory(nextList.groceryItems)]) : new Set()
-      );
     } catch (err: unknown) {
       setError(getApiErrorMessage(err, 'Failed to retrieve grocery list.'));
     } finally {
       setIsLoading(false);
     }
-  }, [cachePage, scope]);
+  }, [cachePage]);
 
   useEffect(() => {
     if (user) {
@@ -125,72 +112,101 @@ export default function GroceryListPage() {
     }
   };
 
-  const getGroupedItems = () => {
-    if (!groceryList) return {};
-    const grouped: Record<string, GroceryItem[]> = {};
-
-    groceryList.groceryItems.forEach((item) => {
-      const cat = normalizeCategory(item.category);
-      if (!grouped[cat]) {
-        grouped[cat] = [];
-      }
-      grouped[cat].push(item);
-    });
-
-    return grouped;
-  };
-
-  const groupedItems = getGroupedItems();
   const totalItems = groceryList?.groceryItems.length || 0;
   const shoppingItems = groceryList?.groceryItems.filter((item) => !item.isPantryStaple) || [];
   const pantryItems = totalItems - shoppingItems.length;
   const checkedItems = shoppingItems.filter((item) => item.isChecked).length;
   const remainingItems = shoppingItems.length - checkedItems;
   const normalizedQuery = query.trim().toLowerCase();
-  const visibleGroups = Object.entries(groupedItems)
-    .sort(([categoryA], [categoryB]) => categoryA.localeCompare(categoryB))
-    .map(([category, items]) => {
-      const visibleItems = items
-        .filter((item) => {
-          const matchesSearch = !normalizedQuery || item.ingredientName.toLowerCase().includes(normalizedQuery);
-          const matchesFilter =
-            filter === 'all' ||
-            (filter === 'remaining' && !item.isChecked && !item.isPantryStaple) ||
-            (filter === 'packed' && item.isChecked && !item.isPantryStaple) ||
-            (filter === 'pantry' && item.isPantryStaple);
-          return matchesSearch && matchesFilter;
-        })
-        .sort(
-          (itemA, itemB) =>
-            Number(itemA.isChecked) - Number(itemB.isChecked) ||
-            itemA.ingredientName.localeCompare(itemB.ingredientName)
-        );
 
-      return { category, items, visibleItems };
-    })
-    .filter(({ visibleItems }) => visibleItems.length > 0);
-  const visibleItemCount = visibleGroups.reduce((sum, group) => sum + group.visibleItems.length, 0);
-  const allVisibleCategoriesExpanded =
-    visibleGroups.length > 0 && visibleGroups.every(({ category }) => expandedCategories.has(category));
-
-  const toggleCategory = (category: string) => {
-    setExpandedCategories((current) => {
-      const next = new Set(current);
-      if (next.has(category)) next.delete(category);
-      else next.add(category);
-      return next;
+  const allCategories = useMemo(() => {
+    if (!groceryList?.groceryItems) return [];
+    const set = new Set<string>();
+    groceryList.groceryItems.forEach((item) => {
+      set.add(normalizeCategory(item.category));
     });
+    return Array.from(set).sort();
+  }, [groceryList]);
+
+  const visibleItems = useMemo(() => {
+    if (!groceryList?.groceryItems) return [];
+
+    return groceryList.groceryItems
+      .filter((item) => {
+        const matchesQuery =
+          !normalizedQuery ||
+          item.ingredientName.toLowerCase().includes(normalizedQuery) ||
+          (item.category || '').toLowerCase().includes(normalizedQuery);
+
+        const matchesStatus =
+          filter === 'all' ||
+          (filter === 'remaining' && !item.isChecked && !item.isPantryStaple) ||
+          (filter === 'packed' && item.isChecked && !item.isPantryStaple) ||
+          (filter === 'pantry' && item.isPantryStaple);
+
+        const matchesCategory =
+          selectedCategory === 'ALL' || normalizeCategory(item.category) === selectedCategory;
+
+        return matchesQuery && matchesStatus && matchesCategory;
+      })
+      .sort((a, b) => {
+        let diff = 0;
+        if (sortField === 'name') {
+          diff = a.ingredientName.localeCompare(b.ingredientName);
+        } else if (sortField === 'category') {
+          diff = (a.category || '').localeCompare(b.category || '');
+        } else if (sortField === 'quantity') {
+          diff = (a.quantity ?? 0) - (b.quantity ?? 0);
+        } else if (sortField === 'status') {
+          diff = Number(a.isChecked) - Number(b.isChecked) || a.ingredientName.localeCompare(b.ingredientName);
+        }
+
+        return sortOrder === 'asc' ? diff : -diff;
+      });
+  }, [groceryList, normalizedQuery, filter, selectedCategory, sortField, sortOrder]);
+
+  const categoryCounts = useMemo(() => {
+    if (!groceryList?.groceryItems) return {};
+    const counts: Record<string, number> = {};
+    groceryList.groceryItems.forEach((item) => {
+      const cat = normalizeCategory(item.category);
+      counts[cat] = (counts[cat] || 0) + 1;
+    });
+    return counts;
+  }, [groceryList]);
+
+  const isFiltered = query.trim() !== '' || filter !== 'all' || selectedCategory !== 'ALL';
+
+  const handleResetFilters = () => {
+    setQuery('');
+    setFilter('all');
+    setSelectedCategory('ALL');
   };
 
-  const toggleAllVisibleCategories = () => {
-    setExpandedCategories((current) => {
-      const next = new Set(current);
-      visibleGroups.forEach(({ category }) => {
-        if (allVisibleCategoriesExpanded) next.delete(category);
-        else next.add(category);
-      });
-      return next;
-    });
+  const handleSort = (field: GrocerySortField) => {
+    if (sortField === field) {
+      setSortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setSortField(field);
+      setSortOrder('asc');
+    }
+  };
+
+  const allVisibleChecked = visibleItems.length > 0 && visibleItems.every((item) => item.isChecked);
+
+  const handleToggleAllVisible = async () => {
+    if (!canCheckItems || visibleItems.length === 0) return;
+    const targetState = !allVisibleChecked;
+    const itemsToUpdate = visibleItems.filter((item) => item.isChecked !== targetState);
+
+    try {
+      await Promise.all(
+        itemsToUpdate.map((item) => api.patch(`/user/grocery/items/${item.id}/toggle`))
+      );
+      await fetchGroceryList();
+    } catch (err) {
+      setError(getApiErrorMessage(err, 'Failed to update visible items.'));
+    }
   };
 
   const isReportPending = Boolean(
@@ -234,8 +250,7 @@ export default function GroceryListPage() {
                   setScope(value);
                   setQuery('');
                   setFilter('all');
-                  const items = available?.groceryList?.groceryItems ?? [];
-                  setExpandedCategories(items.length ? new Set([getInitialExpandedCategory(items)]) : new Set());
+                  setSelectedCategory('ALL');
                 }}
                 className={`rounded-xl px-4 py-3 text-xs font-bold transition ${
                   scope === value
@@ -392,103 +407,148 @@ export default function GroceryListPage() {
           </section>
 
           {/* SEARCH & FILTERS TOOLBAR */}
-          <section className="rounded-[24px] border border-brand-border/70 bg-brand-surface/90 p-3 shadow-sm backdrop-blur-xl">
-            <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
-              <label className="relative min-w-0 flex-1">
-                <span className="sr-only">Search grocery items</span>
-                <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-brand-muted" />
-                <input
-                  type="search"
-                  value={query}
-                  onChange={(event) => setQuery(event.target.value)}
-                  placeholder="Search ingredients..."
-                  className="h-11 w-full rounded-2xl border border-brand-border/70 bg-brand-bgAlt/60 pl-10 pr-4 text-xs font-semibold text-brand-text outline-none transition placeholder:text-brand-muted/70 focus:border-brand-green/40 focus:ring-2 focus:ring-brand-green/15"
-                />
-              </label>
-
-              <div
-                className="flex min-w-0 items-center gap-1 rounded-2xl bg-brand-bgAlt/70 p-1"
-                aria-label="Filter grocery items"
-              >
-                {(
-                  [
-                    ['all', 'All', totalItems],
-                    ['remaining', 'To buy', remainingItems],
-                    ['packed', 'Bought', checkedItems],
-                    ['pantry', 'Pantry', pantryItems],
-                  ] as const
-                ).map(([value, label, count]) => (
-                  <button
-                    key={value}
-                    type="button"
-                    onClick={() => setFilter(value)}
-                    aria-pressed={filter === value}
-                    className={`flex h-9 flex-1 items-center justify-center gap-1 rounded-xl px-2.5 text-[11px] whitespace-nowrap font-bold transition lg:flex-none ${
-                      filter === value
-                        ? 'bg-brand-surface text-brand-text shadow-sm'
-                        : 'text-brand-muted hover:text-brand-green'
-                    }`}
-                  >
-                    {label}
-                    <span
-                      className={`rounded-full px-1.5 py-0.5 font-mono text-[9px] ${
-                        filter === value ? 'bg-brand-green/10 text-brand-green' : 'bg-brand-border/50 text-brand-muted'
-                      }`}
+          <section className="rounded-[24px] border border-brand-border/70 bg-brand-surface/90 p-4 shadow-sm backdrop-blur-xl">
+            <div className="flex flex-col gap-3">
+              {/* Top Row: Search Input & Category Dropdown */}
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5">
+                {/* Search Bar with Clear Icon */}
+                <div className="relative min-w-0 flex-1">
+                  <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-brand-muted" />
+                  <input
+                    type="search"
+                    value={query}
+                    onChange={(event) => setQuery(event.target.value)}
+                    placeholder="Search ingredients, category..."
+                    className="h-10 w-full rounded-xl border border-brand-border/70 bg-brand-bgAlt/60 pl-10 pr-9 text-xs font-semibold text-brand-text outline-none transition placeholder:text-brand-muted/70 focus:border-brand-green/40 focus:ring-2 focus:ring-brand-green/15 [&::-webkit-search-cancel-button]:hidden"
+                  />
+                  {query && (
+                    <button
+                      type="button"
+                      onClick={() => setQuery('')}
+                      aria-label="Clear search"
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded-md p-1 text-brand-muted hover:text-brand-text transition"
                     >
-                      {count}
-                    </span>
-                  </button>
-                ))}
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  )}
+                </div>
+
+                {/* Category Dropdown */}
+                <div className="relative shrink-0 sm:w-56">
+                  <div className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-brand-muted">
+                    <Filter className="h-3.5 w-3.5" />
+                  </div>
+                  <select
+                    value={selectedCategory}
+                    onChange={(e) => setSelectedCategory(e.target.value)}
+                    aria-label="Filter by department category"
+                    className="h-10 w-full appearance-none rounded-xl border border-brand-border/70 bg-brand-bgAlt/60 pl-10 pr-8 text-xs font-bold text-brand-text outline-none transition focus:border-brand-green/40 focus:ring-2 focus:ring-brand-green/15 cursor-pointer"
+                  >
+                    <option value="ALL">All Departments ({totalItems})</option>
+                    {allCategories.map((cat) => (
+                      <option key={cat} value={cat}>
+                        {cat} ({categoryCounts[cat] || 0})
+                      </option>
+                    ))}
+                  </select>
+                  <div className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-brand-muted">
+                    <ChevronDown className="h-3.5 w-3.5" />
+                  </div>
+                </div>
               </div>
 
-              <button
-                type="button"
-                onClick={toggleAllVisibleCategories}
-                disabled={visibleGroups.length === 0}
-                className="h-10 shrink-0 rounded-xl px-3 text-[11px] font-bold text-brand-green outline-none transition hover:bg-brand-green/10 focus-visible:ring-2 focus-visible:ring-brand-green/30 disabled:cursor-not-allowed disabled:opacity-40"
-              >
-                {allVisibleCategoriesExpanded ? 'Collapse all' : 'Expand all'}
-              </button>
+              {/* Bottom Row: Status Filter Pills & Summary Counter / Reset */}
+              <div className="flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-brand-border/40">
+                <div
+                  className="flex flex-wrap items-center gap-1.5"
+                  aria-label="Filter grocery items by status"
+                >
+                  {(
+                    [
+                      ['all', 'All Items', totalItems],
+                      ['remaining', 'To Buy', remainingItems],
+                      ['packed', 'Bought', checkedItems],
+                      ['pantry', 'In Pantry', pantryItems],
+                    ] as const
+                  ).map(([value, label, count]) => (
+                    <button
+                      key={value}
+                      type="button"
+                      onClick={() => setFilter(value)}
+                      aria-pressed={filter === value}
+                      className={`flex h-8 items-center gap-1.5 rounded-lg px-2.5 text-[11px] font-bold transition ${
+                        filter === value
+                          ? 'bg-brand-green text-white shadow-2xs'
+                          : 'bg-brand-bgAlt/60 text-brand-muted hover:text-brand-text hover:bg-brand-bgAlt'
+                      }`}
+                    >
+                      <span>{label}</span>
+                      <span
+                        className={`rounded-full px-1.5 py-0.2 font-mono text-[9px] ${
+                          filter === value
+                            ? 'bg-white/20 text-white'
+                            : 'bg-brand-border/50 text-brand-muted'
+                        }`}
+                      >
+                        {count}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+
+                <div className="flex items-center gap-3 text-[11px] text-brand-muted font-medium">
+                  <span>
+                    Showing <strong className="text-brand-text font-bold">{visibleItems.length}</strong> of{' '}
+                    {totalItems} items
+                  </span>
+
+                  {isFiltered && (
+                    <button
+                      type="button"
+                      onClick={handleResetFilters}
+                      className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-[11px] font-bold text-brand-accent hover:bg-brand-accent/10 transition"
+                    >
+                      <RotateCcw className="h-3 w-3" />
+                      <span>Reset</span>
+                    </button>
+                  )}
+                </div>
+              </div>
             </div>
-            <p className="mt-2 px-1 text-[10px] text-brand-muted">
-              Showing {visibleItemCount} of {totalItems} ingredients
-            </p>
           </section>
 
-          {/* DEPARTMENT CATEGORY CARDS (2-COLUMN GRID) */}
-          {visibleGroups.length === 0 ? (
-            <div className="flex min-h-64 flex-col items-center justify-center rounded-[28px] border border-dashed border-brand-border bg-brand-surface/45 px-6 text-center">
+          {/* SPREADSHEET DATAGRID TABLE */}
+          {visibleItems.length === 0 ? (
+            <div className="flex min-h-64 flex-col items-center justify-center rounded-[24px] border border-dashed border-brand-border bg-brand-surface/45 px-6 text-center">
               <Search className="h-7 w-7 text-brand-muted/60" />
               <p className="mt-3 text-sm font-bold text-brand-text">No ingredients found</p>
-              <p className="mt-1 text-xs text-brand-muted">Try another search or choose a different status filter.</p>
-              <button
-                type="button"
-                onClick={() => {
-                  setQuery('');
-                  setFilter('all');
-                }}
-                className="mt-4 rounded-xl bg-brand-green/10 px-4 py-2 text-[11px] font-bold text-brand-green transition hover:bg-brand-green/15"
-              >
-                Clear filters
-              </button>
+              <p className="mt-1 text-xs text-brand-muted max-w-sm">
+                No items match your current search query or active filter settings.
+              </p>
+              {isFiltered && (
+                <button
+                  type="button"
+                  onClick={handleResetFilters}
+                  className="mt-4 inline-flex items-center gap-1.5 rounded-xl bg-brand-green/10 px-4 py-2 text-[11px] font-bold text-brand-green transition hover:bg-brand-green/15"
+                >
+                  <RotateCcw className="h-3.5 w-3.5" />
+                  <span>Reset all filters</span>
+                </button>
+              )}
             </div>
           ) : (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-start">
-              {visibleGroups.map(({ category, items, visibleItems }) => (
-                <GroceryCategoryCard
-                  key={category}
-                  category={category}
-                  items={items}
-                  visibleItems={visibleItems}
-                  isExpanded={expandedCategories.has(category) || Boolean(normalizedQuery)}
-                  onToggleExpand={() => toggleCategory(category)}
-                  canCheckItems={canCheckItems}
-                  onToggleItem={handleToggleItem}
-                  onTogglePantry={handleTogglePantry}
-                  onRefresh={fetchGroceryList}
-                />
-              ))}
-            </div>
+            <GroceryTable
+              items={visibleItems}
+              canCheckItems={canCheckItems}
+              onToggleItem={handleToggleItem}
+              onTogglePantry={handleTogglePantry}
+              onRefresh={fetchGroceryList}
+              sortField={sortField}
+              sortOrder={sortOrder}
+              onSort={handleSort}
+              onToggleAllVisible={handleToggleAllVisible}
+              allVisibleChecked={allVisibleChecked}
+            />
           )}
         </div>
       )}
