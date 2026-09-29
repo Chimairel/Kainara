@@ -1,18 +1,42 @@
 import rateLimit from 'express-rate-limit';
 
-/**
- * Rate limiter for authentication routes (login, register, forgot-password).
- * Strict: 10 requests per 15-minute window per IP.
- */
-export const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: process.env.NODE_ENV === 'development' ? 500 : 10,
+/** Failed sign-ins have their own budget; successful sign-ins do not consume it. */
+export const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: process.env.NODE_ENV === 'development' ? 500 : 20,
+  skipSuccessfulRequests: true,
   standardHeaders: true,
   legacyHeaders: false,
   message: {
     success: false,
-    error: 'Too many authentication attempts. Please try again after 15 minutes.',
+    error: 'Too many failed sign-in attempts. Please try again after 15 minutes.',
   },
+});
+
+/** Registration and recovery are limited independently of sign-in. */
+export const accountCreationLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: process.env.NODE_ENV === 'development' ? 500 : 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, error: 'Too many registration attempts. Please try again later.' },
+});
+
+export const passwordRecoveryLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: process.env.NODE_ENV === 'development' ? 500 : 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, error: 'Too many password recovery attempts. Please try again later.' },
+});
+
+/** Refresh and logout remain bounded even though auth bypasses the browsing budget. */
+export const sessionLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: process.env.NODE_ENV === 'development' ? 1000 : 120,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, error: 'Too many session requests. Please try again later.' },
 });
 
 export const verificationAttemptLimiter = rateLimit({
@@ -60,12 +84,11 @@ export const applicationStatusLimiter = rateLimit({
 });
 
 /**
- * Rate limiter for general API endpoints.
- * Moderate: 100 requests per 15-minute window per IP.
+ * Browsing has its own budget. Auth routes are mounted before this middleware.
  */
 export const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: process.env.NODE_ENV === 'production' ? 100 : 500, // Relaxed in dev to avoid hitting limits during hot-reload
+  max: process.env.NODE_ENV === 'production' ? 1200 : 5000,
   standardHeaders: true,
   legacyHeaders: false,
   message: {

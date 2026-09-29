@@ -3,12 +3,14 @@ import { body } from 'express-validator';
 import AuthController from '@/controllers/auth.controller';
 import validate from '@/middleware/validate';
 import authenticate from '@/middleware/auth';
-import { authLimiter, verificationAttemptLimiter, verificationResendLimiter } from '@/middleware/rateLimiter';
+import {
+  accountCreationLimiter, loginLimiter, passwordRecoveryLimiter, sessionLimiter,
+  verificationAttemptLimiter, verificationResendLimiter,
+} from '@/middleware/rateLimiter';
 
 const router = Router();
 
-// NOTE: authLimiter is applied only to brute-force-vulnerable routes (login, register, forgot-password)
-// NOT to verify-email, resend, refresh, or logout (those require auth tokens and aren't brute-force targets)
+// Separate budgets keep onboarding and routine session traffic from exhausting sign-in attempts.
 
 /**
  * Route: POST /api/auth/register
@@ -16,7 +18,7 @@ const router = Router();
  */
 router.post(
   '/register',
-  authLimiter,
+  accountCreationLimiter,
   [
     body('name')
       .trim()
@@ -56,7 +58,7 @@ router.post(
  */
 router.post(
   '/login',
-  authLimiter,
+  loginLimiter,
   [
     body('email').trim().isEmail().withMessage('Please provide a valid email address.'),
     body('password').notEmpty().withMessage('Password is required.'),
@@ -71,13 +73,13 @@ const googleCredentialValidation = [
 ];
 
 /** Existing-account Google sign-in. Never creates a missing account. */
-router.post('/google/login', authLimiter, googleCredentialValidation, AuthController.googleLogin);
+router.post('/google/login', loginLimiter, googleCredentialValidation, AuthController.googleLogin);
 
 /** Explicit Google account creation. Verified Google email skips OTP. */
-router.post('/google/register', authLimiter, googleCredentialValidation, AuthController.googleRegister);
+router.post('/google/register', accountCreationLimiter, googleCredentialValidation, AuthController.googleRegister);
 
 /** Backwards-compatible alias with safe login-only behavior. */
-router.post('/google', authLimiter, googleCredentialValidation, AuthController.googleLogin);
+router.post('/google', loginLimiter, googleCredentialValidation, AuthController.googleLogin);
 
 /**
  * Route: POST /api/auth/verify-email
@@ -111,7 +113,7 @@ router.post('/resend-verification', verificationResendLimiter, authenticate, Aut
  */
 router.post(
   '/forgot-password',
-  authLimiter,
+  passwordRecoveryLimiter,
   [body('email').trim().isEmail().withMessage('Please provide a valid email address.'), validate],
   AuthController.forgotPassword
 );
@@ -122,6 +124,7 @@ router.post(
  */
 router.post(
   '/reset-password',
+  passwordRecoveryLimiter,
   [
     body('token').notEmpty().withMessage('Reset token is required.'),
     body('password')
@@ -144,12 +147,12 @@ router.post(
  * Route: POST /api/auth/refresh
  * Description: Refreshes an expired access token using a valid refresh token.
  */
-router.post('/refresh', AuthController.refresh);
+router.post('/refresh', sessionLimiter, AuthController.refresh);
 
 /**
  * Route: POST /api/auth/logout
  * Description: Logs out and clears server-side session. Requires auth token.
  */
-router.post('/logout', authenticate, AuthController.logout);
+router.post('/logout', sessionLimiter, authenticate, AuthController.logout);
 
 export default router;

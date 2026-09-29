@@ -62,7 +62,10 @@ app.use(cors(createCorsOptions(env.allowedCorsOrigins)));
 app.use('/api/nutritionist-applications', express.json({ limit: '2mb' }));
 app.use(express.json({ limit: '256kb' }));
 app.use(cookieParser());
-app.use('/api', apiLimiter); // Global API rate limit
+// Authentication has endpoint-specific limits. A busy onboarding or browsing
+// session must not prevent the user from signing in or refreshing a session.
+app.use('/api/auth', authRouter);
+app.use('/api', apiLimiter);
 
 // SMTP verification is an explicit startup check because it opens an external
 // connection. Email delivery remains available even when this check is disabled.
@@ -71,7 +74,6 @@ if (env.SMTP_VERIFY_ON_STARTUP) {
 }
 
 // Mount API Routers
-app.use('/api/auth', authRouter);
 app.use('/api/evidence', evidenceRouter);
 app.use('/api/notifications', notificationsRouter);
 // Specific progress routes own their read/write prerequisites; mount before the broader user router.
