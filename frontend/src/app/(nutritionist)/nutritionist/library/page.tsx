@@ -38,8 +38,10 @@ export default function MealLibraryPage() {
   const [mealReleaseFindings, setMealReleaseFindings] = useState('');
   const [mealFlagBusy, setMealFlagBusy] = useState(false);
   const [mealFlagError, setMealFlagError] = useState<string | null>(null);
+  const [viewingMealId, setViewingMealId] = useState<string | null>(null);
+  const [detailError, setDetailError] = useState<string | null>(null);
   const listScrollTop = useRef(0);
-  const workspace = useNutritionistLibrary();
+  const workspace = useNutritionistLibrary(section === 'coverage');
   const {
     meals,
     totalCount,
@@ -73,6 +75,26 @@ export default function MealLibraryPage() {
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   };
+
+  async function openMeal(meal: LibraryMeal) {
+    const main = document.querySelector('main.portal-main');
+    listScrollTop.current = main?.scrollTop ?? 0;
+    setDetailError(null);
+    setViewingMealId(meal.id);
+    try {
+      const response = await api.get(`/nutritionist/library/${meal.id}`);
+      if (!response.data?.success || !response.data.data) throw new Error('Meal details unavailable.');
+      setMealFlagError(null);
+      setMealFlagReason('');
+      setMealReleaseFindings('');
+      setViewedMeal({ ...meal, ...response.data.data });
+      requestAnimationFrame(() => main?.scrollTo({ top: 0 }));
+    } catch {
+      setDetailError('The meal details could not be loaded. Please try again.');
+    } finally {
+      setViewingMealId(null);
+    }
+  }
 
   async function changeMealFlag(action: 'flag' | 'release-flag') {
     if (!viewedMeal) return;
@@ -543,13 +565,13 @@ export default function MealLibraryPage() {
           </div>
         </Card>
 
-        {fetchError && (
+        {(fetchError || detailError) && (
           <div
             role="alert"
             className="flex items-center gap-2 rounded-2xl border border-status-error-text/25 bg-status-error-bg/10 p-4 text-sm font-semibold text-status-error-text"
           >
             <ShieldAlert className="h-4 w-4 shrink-0" aria-hidden="true" />
-            <span>{fetchError}</span>
+            <span>{fetchError || detailError}</span>
           </div>
         )}
 
@@ -670,18 +692,11 @@ export default function MealLibraryPage() {
 
                       <Button
                         variant="secondary"
-                        onClick={() => {
-                          const main = document.querySelector('main.portal-main');
-                          listScrollTop.current = main?.scrollTop ?? 0;
-                          setMealFlagError(null);
-                          setMealFlagReason('');
-                          setMealReleaseFindings('');
-                          setViewedMeal(meal);
-                          requestAnimationFrame(() => main?.scrollTo({ top: 0 }));
-                        }}
+                        disabled={viewingMealId !== null}
+                        onClick={() => void openMeal(meal)}
                         className="!h-8 !px-3.5 text-xs font-semibold"
                       >
-                        View
+                        {viewingMealId === meal.id ? 'Opening…' : 'View'}
                       </Button>
                     </div>
                   </article>

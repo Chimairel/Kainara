@@ -75,7 +75,14 @@ export async function getNutritionistMealLibraryWithFilters(
   });
   const total = groupedIds.length;
   const pageIds = groupedIds.slice(skip, skip + limit);
-  const meals = pageIds.length ? await prisma.mealLibrary.findMany({
+  const pageIdSet = new Set(pageIds);
+  const pageSourceIds = keys.flatMap((row) =>
+    pageIdSet.has(row.id) && row.sourceRawRecipeCandidateId ? [row.sourceRawRecipeCandidateId] : []
+  );
+  // The card details, verification records, and preparation events depend only
+  // on the page IDs. Read them together to avoid three serial remote round trips.
+  const [meals, baseVerifications, preparedEvents] = await Promise.all([
+    pageIds.length ? prisma.mealLibrary.findMany({
       where: { id: { in: pageIds } },
       include: {
         sourceRawRecipeCandidate: { select: {
@@ -84,55 +91,39 @@ export async function getNutritionistMealLibraryWithFilters(
           sourceImageUrl: true,
           contentSignature: true,
           status: true,
-          observedSubmissions: { where: { status: 'ADMITTED_RECIPE' }, select: { id: true }, take: 1 },
         } },
-        verifiedByNutritionist: { include: { user: { select: { name: true } } } },
-        flags: {
-          where: { status: 'PENDING' },
-          include: { flaggedByNutritionist: { include: { user: { select: { name: true } } } } },
-        },
-        ingredients: {
-          orderBy: { position: 'asc' },
-          include: {
-            foodItem: { select: { name: true, source: true, sourceRecordId: true, sourceReferenceUrl: true } },
-          },
-        },
-        safetyDeclarations: true,
         safetyReviews: {
           where: { reasonCode: 'ADMIN_AUTHORED_DRAFT' },
-          select: { id: true, reasonCode: true, evidenceSnapshot: true },
+          select: { id: true, reasonCode: true },
           orderBy: { createdAt: 'desc' },
           take: 1,
         },
-        safetyReviewedByNutritionist: { include: { user: { select: { name: true } } } },
-        applicableMealTypes: { orderBy: { mealType: 'asc' } },
       },
-    }) : [];
+    }) : Promise.resolve([]),
+    pageIds.length ? prisma.mealBaseVerification.findMany({
+      where: { status: 'VERIFIED', OR: [
+        { targetKind: 'LIBRARY_MEAL', targetId: { in: pageIds } },
+        { targetKind: 'RAW_RECIPE', targetId: { in: pageSourceIds } },
+      ] },
+      select: { targetKind: true, targetId: true, revisionKey: true },
+    }) : Promise.resolve([]),
+    pageIds.length ? prisma.auditEvent.findMany({
+      where: {
+        action: 'NUTRITION_EVIDENCE_PREPARED',
+        entityType: 'MealLibrary',
+        entityId: { in: pageIds },
+      },
+      select: { entityId: true, metadata: true },
+      orderBy: { createdAt: 'desc' },
+    }) : Promise.resolve([]),
+  ]);
   const byId = new Map(meals.map((meal) => [meal.id, meal]));
-  const baseVerifications = meals.length ? await prisma.mealBaseVerification.findMany({
-    where: { status: 'VERIFIED', OR: [
-      { targetKind: 'LIBRARY_MEAL', targetId: { in: meals.map((meal) => meal.id) } },
-      { targetKind: 'RAW_RECIPE', targetId: { in: meals.flatMap((meal) => meal.sourceRawRecipeCandidateId ? [meal.sourceRawRecipeCandidateId] : []) } },
-    ] },
-    select: { targetKind: true, targetId: true, revisionKey: true },
-  }) : [];
   const verifiedKeys = new Set(baseVerifications.map((row) => `${row.targetKind}:${row.targetId}:${row.revisionKey}`));
   const orderedMeals = pageIds.flatMap((id) => {
     const meal = byId.get(id);
     return meal ? [meal] : [];
   });
 
-  const preparedEvents = orderedMeals.length
-    ? await prisma.auditEvent.findMany({
-        where: {
-          action: 'NUTRITION_EVIDENCE_PREPARED',
-          entityType: 'MealLibrary',
-          entityId: { in: orderedMeals.map((meal) => meal.id) },
-        },
-        select: { entityId: true, metadata: true },
-        orderBy: { createdAt: 'desc' },
-      })
-    : [];
   const preparedRevision = new Map<string, { revision: number; portionBasis: string | null }>();
   for (const event of preparedEvents) {
     const metadata = event.metadata as Record<string, unknown> | null;

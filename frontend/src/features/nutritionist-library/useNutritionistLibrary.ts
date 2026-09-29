@@ -165,7 +165,7 @@ const libraryResource = (search: string, mealType: string, conditionTag: string,
   adminDraftsOnly: boolean, status: string, page: number) =>
   `nutritionist-library:${JSON.stringify([search, mealType, conditionTag, verifiedByMe, adminDraftsOnly, status, page])}`;
 
-export function useNutritionistLibrary() {
+export function useNutritionistLibrary(loadCoverage = false) {
   const ownerId = useAuth().user?.userId;
   const firstPage = readSessionResource<LibraryPageData>(ownerId, libraryResource('', 'All', 'All', false, false, 'ALL', 1));
   const [meals, setMeals] = useState<LibraryMeal[]>(firstPage?.meals ?? []);
@@ -253,8 +253,8 @@ export function useNutritionistLibrary() {
   }, [search, mealType, conditionTag, verifiedByMe, adminDraftsOnly, status, page]);
 
   useEffect(() => {
-    fetchCoverage();
-  }, [fetchCoverage]);
+    if (loadCoverage) void fetchCoverage();
+  }, [fetchCoverage, loadCoverage]);
 
   return {
     meals, totalCount, page, setPage, totalPages, isLoading, fetchError,
