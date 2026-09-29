@@ -96,9 +96,9 @@ export default function PortalLoadingState({
             />
           </svg>
 
-          {/* Center Brand Tile */}
-          <div className="absolute flex h-14 w-14 sm:h-16 sm:w-16 items-center justify-center rounded-2xl bg-brand-surface/90 shadow-card border border-brand-border/70 backdrop-blur-md">
-            <KainaraLogo size={36} variant="multicolor" ariaLabel="KAINARA" />
+          {/* Center Brand Emblem */}
+          <div className="absolute flex items-center justify-center">
+            <KainaraLogo size={42} variant="multicolor" ariaLabel="KAINARA" />
           </div>
         </div>
 
@@ -110,7 +110,7 @@ export default function PortalLoadingState({
 
           {/* Dynamic Message or Tagline */}
           <p className="mt-1 text-xs sm:text-sm font-medium text-brand-text/90 max-w-xs leading-snug">
-            {message || 'Personalized Clinical Nutrition'}
+            {message || 'Personalized Nutrition and Meal Planner'}
           </p>
         </div>
 
