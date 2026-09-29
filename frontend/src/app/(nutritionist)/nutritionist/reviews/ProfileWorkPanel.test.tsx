@@ -33,7 +33,10 @@ const bothDetail = { userId: 'both', name: 'Both Tasks', profileStatus: 'PENDING
   requirements: [], availableAreas: ['DIABETES'], reports: [report],
   documents: [{ id: 'doc-1', area: 'DIABETES', documentType: 'LAB_RESULT', status: 'UPLOADED',
     originalFileName: 'report.png', mimeType: 'image/png', createdAt: '2026-09-28T00:00:00.000Z', pending: true,
-    latestReview: null }],
+    latestReview: null }, { id: 'old-doc', area: 'DIABETES', documentType: 'LAB_RESULT',
+    status: 'SUFFICIENT_FOR_NUTRITION_REVIEW', originalFileName: 'older.jpg', mimeType: 'image/jpeg',
+    createdAt: '2026-09-27T00:00:00.000Z', pending: false,
+    latestReview: { decision: 'SUFFICIENT', rationale: 'Reviewed before this profile revision.' } }],
 };
 const documentOnlyDetail = { ...bothDetail, userId: 'document-only', name: 'Document Only',
   profileStatus: null, profileReview: null, reports: [],
@@ -53,6 +56,11 @@ describe('unified nutritionist profile work', () => {
         facts: [], user: { contexts: [] },
       } } });
       if (path === '/nutritionist/clinical-evidence/doc-2/file') return Promise.resolve({ data: new Blob(['PDF']) });
+      if (path === '/nutritionist/profile-work/both/documents/old-doc') return Promise.resolve({ data: { data: {
+        id: 'old-doc', area: 'DIABETES', originalFileName: 'older.jpg', mimeType: 'image/jpeg',
+        facts: [], user: { contexts: [] },
+      } } });
+      if (path === '/nutritionist/profile-work/both/documents/old-doc/file') return Promise.resolve({ data: new Blob(['JPG']) });
       throw new Error(`Unexpected GET ${path}`);
     });
     mocks.patch.mockResolvedValue({ data: { success: true } });
@@ -84,5 +92,18 @@ describe('unified nutritionist profile work', () => {
     await waitFor(() => expect(mocks.patch).toHaveBeenCalledWith('/nutritionist/clinical-evidence/doc-2',
       expect.objectContaining({ decision: 'NEEDS_CLARIFICATION', rationale: 'The image needs clarification.' })));
     expect(screen.queryByText('Profile decision')).not.toBeInTheDocument();
+  });
+
+  it('opens a previously reviewed upload through the scoped claim without offering another decision', async () => {
+    render(<ProfileWorkPanel />);
+    fireEvent.click(await screen.findByRole('button', { name: /Both Tasks/ }));
+    await screen.findByTestId('guidance-paper');
+    fireEvent.click(screen.getByRole('button', { name: /older.jpg/ }));
+    expect(await screen.findByAltText('Clinical document older.jpg')).toBeInTheDocument();
+    expect(screen.getByText(/Reviewed before this profile revision/)).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Record document review' })).not.toBeInTheDocument();
+    const urls = mocks.get.mock.calls.map(([path]) => path);
+    expect(urls.indexOf('/nutritionist/profile-work/both/documents/old-doc')).toBeLessThan(
+      urls.indexOf('/nutritionist/profile-work/both/documents/old-doc/file'));
   });
 });

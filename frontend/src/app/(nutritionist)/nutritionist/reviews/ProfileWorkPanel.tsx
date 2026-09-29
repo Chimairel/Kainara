@@ -104,13 +104,15 @@ export default function ProfileWorkPanel() {
   };
 
   const openDocument = async (item: DocumentItem) => {
-    if (!item.pending) return;
+    if (!detail || item.status === 'WITHDRAWN') return;
     setBusy(true); setError(null); setDocumentDetail(null); setFileUrl(null);
     try {
       // The first request obtains the 30-minute document claim; the file endpoint checks
       // that claim again and records access before sending any bytes.
-      const claimed = await api.get(`/nutritionist/clinical-evidence/${item.id}`);
-      const file = await api.get(`/nutritionist/clinical-evidence/${item.id}/file`, { responseType: 'blob' });
+      const path = item.pending ? `/nutritionist/clinical-evidence/${item.id}` :
+        `/nutritionist/profile-work/${detail.userId}/documents/${item.id}`;
+      const claimed = await api.get(path);
+      const file = await api.get(`${path}/file`, { responseType: 'blob' });
       setDocumentDetail(claimed.data.data);
       setFileUrl(URL.createObjectURL(new Blob([file.data], { type: item.mimeType })));
       setSelection({ kind: 'document', id: item.id });
@@ -198,7 +200,7 @@ export default function ProfileWorkPanel() {
               </section>
               <section><h3 className="text-sm font-bold text-brand-text">Documentation</h3>
                 <div className="mt-3 space-y-1">{detail.documents.map((item) => <button type="button" key={item.id}
-                  onClick={() => void openDocument(item)} disabled={busy || !item.pending}
+                  onClick={() => void openDocument(item)} disabled={busy || item.status === 'WITHDRAWN'}
                   aria-pressed={selection?.id === item.id} className={`flex w-full items-start gap-2 rounded-xl px-3 py-2 text-left text-xs ${selection?.id === item.id ? 'bg-brand-bgAlt font-bold text-brand-text' : 'text-brand-muted hover:bg-brand-bgAlt/50'} disabled:cursor-not-allowed disabled:opacity-60`}>
                   <FileText className="mt-0.5 h-3.5 w-3.5 shrink-0" /><span className="min-w-0 break-all">{item.originalFileName}<small className="block">{item.area.replace(/_/g, ' ')} · {item.pending ? 'Review pending' : item.status.replace(/_/g, ' ')}</small></span>
                 </button>)}{!detail.documents.length && <p className="text-xs text-brand-muted">No documents uploaded.</p>}</div>
@@ -211,7 +213,7 @@ export default function ProfileWorkPanel() {
                 generatedAt: selectedReport.generatedAt, acknowledgedAt: selectedReport.acknowledgedAt ?? undefined }}
                 profile={savedProfile(selectedReport, detail.name)} /></>}
               {selectedDocument && documentDetail && <>
-                <div className="rounded-xl border border-brand-border bg-brand-bgAlt/40 p-3 text-xs text-brand-muted">Claimed document: {selectedDocument.originalFileName}. Access to the original is recorded and the claim expires after 30 minutes.</div>
+                <div className="rounded-xl border border-brand-border bg-brand-bgAlt/40 p-3 text-xs text-brand-muted">Claimed document: {selectedDocument.originalFileName} · {selectedDocument.status.replace(/_/g, ' ')}. Access to the original is recorded and the claim expires after 30 minutes.</div>
                 {fileUrl && (selectedDocument.mimeType === 'application/pdf' ?
                   <iframe src={fileUrl} title={`Clinical document ${selectedDocument.originalFileName}`} className="h-[620px] w-full rounded-xl border border-brand-border bg-white" /> :
                   // eslint-disable-next-line @next/next/no-img-element
@@ -219,7 +221,8 @@ export default function ProfileWorkPanel() {
                 {fileUrl && <a href={fileUrl} download={selectedDocument.originalFileName} className="text-xs font-semibold text-brand-green underline">Download claimed original</a>}
                 {documentDetail.user.contexts.filter((item) => item.area === documentDetail.area).map((item) =>
                   <p key={item.area} className="rounded-xl border border-brand-border p-3 text-xs text-brand-muted">Self-reported context: {Object.entries(item.responses).map(([key, value]) => `${key.replace(/_/g, ' ')}: ${String(value)}`).join('; ')}</p>)}
-                <section className="rounded-xl border border-brand-border p-4 text-xs"><h3 className="font-bold text-brand-text">Facts from document</h3>
+                {!selectedDocument.pending && selectedDocument.latestReview && <p className="rounded-xl border border-brand-border p-3 text-xs text-brand-muted">Recorded decision: {selectedDocument.latestReview.decision.replace(/_/g, ' ')}. {selectedDocument.latestReview.rationale}</p>}
+                {selectedDocument.pending && <section className="rounded-xl border border-brand-border p-4 text-xs"><h3 className="font-bold text-brand-text">Facts from document</h3>
                   {documentDetail.facts.map((fact) => <label key={fact.id} className="mt-2 flex items-center gap-2"><input type="checkbox" checked={confirmedFactIds.includes(fact.id)}
                     onChange={(event) => setConfirmedFactIds((ids) => event.target.checked ? [...ids, fact.id] : ids.filter((id) => id !== fact.id))} />
                     {fact.code}: {fact.valueText ?? fact.valueNumber} {fact.unit ?? ''} ({fact.reviewStatus})</label>)}
@@ -228,14 +231,14 @@ export default function ProfileWorkPanel() {
                     <input aria-label="Fact value" value={factValue} onChange={(event) => setFactValue(event.target.value)} placeholder="Exact value shown in record" className="rounded-lg border border-brand-border bg-brand-surface p-2" />
                     <Button size="sm" variant="secondary" disabled={!factValue.trim()} onClick={() => { setConfirmedFacts((items) => [...items, { code: factCode, valueText: factValue.trim() }]); setFactValue(''); }}>Add fact</Button></div>
                   {!!confirmedFacts.length && <p className="mt-2">Confirmed: {confirmedFacts.map((fact) => `${fact.code}: ${fact.valueText}`).join('; ')}</p>}
-                </section>
-                <section className="space-y-3 rounded-xl border border-brand-border p-4 text-xs"><h3 className="font-bold text-brand-text">Document decision</h3>
+                </section>}
+                {selectedDocument.pending && <section className="space-y-3 rounded-xl border border-brand-border p-4 text-xs"><h3 className="font-bold text-brand-text">Document decision</h3>
                   <label className="block">Decision<select value={decision} onChange={(event) => setDecision(event.target.value as typeof decision)} className="mt-1 block w-full rounded-lg border border-brand-border bg-brand-surface p-2">
                     <option value="NEEDS_CLARIFICATION">Needs clarification</option><option value="SUFFICIENT">Sufficient for nutrition review</option><option value="UNUSABLE">Unusable</option></select></label>
                   {decision === 'SUFFICIENT' && <label className="block">Review valid until<input type="date" value={validUntil} onChange={(event) => setValidUntil(event.target.value)} className="mt-1 block w-full rounded-lg border border-brand-border bg-brand-surface p-2" /></label>}
                   <label className="block">Review rationale<textarea value={rationale} onChange={(event) => setRationale(event.target.value)} rows={3} className="mt-1 block w-full rounded-lg border border-brand-border bg-brand-surface p-2" /></label>
                   <Button disabled={busy || rationale.trim().length < 3 || (decision === 'SUFFICIENT' && !validUntil)} onClick={() => void decideDocument()}>Record document review</Button>
-                </section>
+                </section>}
               </>}
               {!selectedReport && !selectedDocument && <p className="rounded-xl border border-dashed border-brand-border p-8 text-sm text-brand-muted">Select a saved guidance version or a pending document.</p>}
               {detail.profileReview && <section className="space-y-3 rounded-xl border border-brand-border bg-brand-surface p-4 text-xs">

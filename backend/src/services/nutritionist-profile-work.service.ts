@@ -12,7 +12,7 @@ export class NutritionistProfileWorkService {
       // The legacy document queue returns only its first 100 records. This
       // lightweight query must include every pending task before grouping.
       prisma.clinicalDocument.findMany({
-        where: { status: { in: ['UPLOADED', 'NEEDS_CLARIFICATION'] } },
+        where: { status: { in: ['UPLOADED', 'NEEDS_CLARIFICATION'] }, user: { role: Role.USER } },
         select: { id: true, user: { select: { id: true, name: true,
           healthConditions: { select: { condition: true } },
           allergies: { select: { allergen: true } },
@@ -43,9 +43,14 @@ export class NutritionistProfileWorkService {
     return [...people.values()];
   }
 
-  static async detail(userId: string) {
+  static async assertQueued(userId: string) {
     const queued = (await this.queue()).find((person) => person.userId === userId);
     if (!queued) throw new AppError('This person has no profile work awaiting review.', 404, 'PROFILE_WORK_NOT_FOUND');
+    return queued;
+  }
+
+  static async detail(userId: string) {
+    const queued = await this.assertQueued(userId);
     const [user, evidence, reports, profileDetail] = await Promise.all([
       prisma.user.findUnique({ where: { id: userId }, include: {
         userProfile: true, healthConditions: true, allergies: true,

@@ -56,6 +56,7 @@ const mealVerificationDecision = z.object({
   rationale: z.string().trim().min(10).max(1000),
 }).strict();
 const profileReviewParams = z.object({ userId: z.string().min(1) }).strict();
+const profileWorkDocumentParams = z.object({ userId: z.string().min(1), id: z.string().min(1) }).strict();
 const profileReviewDecision = z.object({
   decision: z.enum(['APPROVED', 'DECLINED', 'REQUEST_DOCUMENT']),
   notes: z.string().trim().min(10).max(2000),
@@ -76,6 +77,25 @@ router.get('/profile-work', asyncHandler(async (_req: AuthenticatedRequest, res:
 router.get('/profile-work/:userId', validateZodRequest({ params: profileReviewParams }),
   asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
     res.json({ success: true, data: await NutritionistProfileWorkService.detail(req.params.userId) });
+  }));
+router.get('/profile-work/:userId/documents/:id', validateZodRequest({ params: profileWorkDocumentParams }),
+  asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+    await NutritionistProfileWorkService.assertQueued(req.params.userId);
+    res.json({ success: true, data: await ClinicalEvidenceService.claimForProfileWork(
+      req.nutritionistProfileId!, req.params.userId, req.params.id,
+    ) });
+  }));
+router.get('/profile-work/:userId/documents/:id/file', validateZodRequest({ params: profileWorkDocumentParams }),
+  asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+    await NutritionistProfileWorkService.assertQueued(req.params.userId);
+    const file = await ClinicalEvidenceService.fileForClaimedProfileWork(
+      req.nutritionistProfileId!, req.user!.userId, req.params.userId, req.params.id,
+    );
+    res.setHeader('Content-Type', file.mime);
+    res.setHeader('Content-Disposition', `attachment; filename="${file.fileName}"`);
+    res.setHeader('Cache-Control', 'private, no-store');
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.send(file.buffer);
   }));
 router.get('/audit-history', asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
   res.json({ success: true, data: await NutritionistAuditService.history(

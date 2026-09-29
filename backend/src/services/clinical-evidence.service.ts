@@ -362,12 +362,21 @@ export class ClinicalEvidenceService {
   }
 
   static async claimDetail(nutritionistProfileId: string, documentId: string) {
+    return this.claimDocumentDetail(nutritionistProfileId, documentId);
+  }
+
+  static async claimForProfileWork(nutritionistProfileId: string, userId: string, documentId: string) {
+    return this.claimDocumentDetail(nutritionistProfileId, documentId, userId);
+  }
+
+  private static async claimDocumentDetail(nutritionistProfileId: string, documentId: string, userId?: string) {
     const now = new Date();
     const cutoff = new Date(now.getTime() - CLAIM_TTL_MS);
     const claimed = await prisma.clinicalDocument.updateMany({
       where: {
         id: documentId,
-        status: { in: ['UPLOADED', 'NEEDS_CLARIFICATION'] },
+        ...(userId ? { userId, status: { not: ClinicalDocumentStatus.WITHDRAWN } } :
+          { status: { in: ['UPLOADED', 'NEEDS_CLARIFICATION'] as ClinicalDocumentStatus[] } }),
         OR: [{ claimedByNutritionistId: null }, { claimedAt: null }, { claimedAt: { lt: cutoff } }, { claimedByNutritionistId: nutritionistProfileId }],
       },
       data: { claimedByNutritionistId: nutritionistProfileId, claimedAt: now },
@@ -405,6 +414,19 @@ export class ClinicalEvidenceService {
     });
     if (!document) throw new AppError('Open and claim this document before accessing it.', 409, 'CLINICAL_DOCUMENT_CLAIM_REQUIRED');
     await prisma.auditEvent.create({ data: { actorUserId, action: 'CLINICAL_DOCUMENT_ACCESSED', entityType: 'ClinicalDocument', entityId: document.id, metadata: { access: 'RND_REVIEW' } } });
+    return { buffer: decryptClinicalDocument(document), mime: document.mimeType, fileName: document.originalFileName };
+  }
+
+  static async fileForClaimedProfileWork(nutritionistProfileId: string, actorUserId: string,
+    userId: string, documentId: string) {
+    const cutoff = new Date(Date.now() - CLAIM_TTL_MS);
+    const document = await prisma.clinicalDocument.findFirst({ where: {
+      id: documentId, userId, claimedByNutritionistId: nutritionistProfileId,
+      claimedAt: { gte: cutoff }, status: { not: ClinicalDocumentStatus.WITHDRAWN },
+    } });
+    if (!document) throw new AppError('Open and claim this document before accessing it.', 409, 'CLINICAL_DOCUMENT_CLAIM_REQUIRED');
+    await prisma.auditEvent.create({ data: { actorUserId, action: 'CLINICAL_DOCUMENT_ACCESSED',
+      entityType: 'ClinicalDocument', entityId: document.id, metadata: { access: 'RND_PROFILE_WORK' } } });
     return { buffer: decryptClinicalDocument(document), mime: document.mimeType, fileName: document.originalFileName };
   }
 
