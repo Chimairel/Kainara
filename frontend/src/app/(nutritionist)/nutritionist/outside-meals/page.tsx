@@ -212,7 +212,7 @@ export default function OutsideMealReviewsPage() {
       <PortalPageHeader
         icon={ClipboardCheck}
         eyebrow="Nutrition review"
-        title="Outside meal estimates"
+        title="Outside food estimates"
         description="Confirm an intake estimate, correct it, ask for detail, or mark it unverifiable. This does not certify a reusable recipe."
       />
       {error && (

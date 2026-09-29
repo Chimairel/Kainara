@@ -603,7 +603,7 @@ export default function DashboardPage() {
           actions={
             <div className="flex flex-wrap gap-2">
               <Button variant="primary" onClick={() => setIsLogModalOpen(true)}>
-                <Plus className="h-4 w-4" /> Log an outside meal
+                <Plus className="h-4 w-4" /> Log food or snack
               </Button>
               <Button variant="secondary" onClick={() => router.push('/meals')}>
                 <Calendar className="h-4 w-4" /> Weekly plan

@@ -120,13 +120,13 @@ export const docsChapters: DocsChapter[] = [
     ],
   },
   {
-    id: 'outside-meals', title: 'Outside meals', shortTitle: 'Outside meals',
+    id: 'outside-meals', title: 'Food outside your plan', shortTitle: 'Food logging',
     group: 'Use KAINARA', icon: FileText, tone: 'amber',
     summary: 'Log food eaten outside the plan without treating that log as a verified recipe.',
     sections: [
-      { id: 'outside-meals-log', title: 'Recording an outside meal', content: <>
-        <p>Enter the dish, ingredients, and portion as accurately as possible. Nutrition may be estimated or incomplete. An allergy or condition warning is not a substitute for checking the real food, packaging, and preparation.</p>
-        <p>Use an outside log for a meal you actually ate that was not the scheduled plan item. A useful entry identifies the food, any known ingredients, and the amount consumed. Restaurant recipes, sauces, cooking oils, and shared equipment may not be visible to KAINARA, so an estimate should be read as approximate.</p>
+      { id: 'outside-meals-log', title: 'Recording food or a snack', content: <>
+        <p>Record a meal, snack, drink, or individual food you actually consumed outside the plan. Enter known ingredients and portion details when available. Nutrition may be estimated or incomplete. An allergy or condition warning is not a substitute for checking the real food, packaging, and preparation.</p>
+        <p>A useful entry identifies the food and any known ingredients. Grams and preparation notes help narrow an AI estimate but are optional; without them, the estimate assumes a typical serving and remains provisional. Restaurant recipes, sauces, cooking oils, and shared equipment may not be visible to KAINARA.</p>
         <p>If a warning appears, check the food directly and follow the advice of your own healthcare professional for serious allergies or medical restrictions. An absent warning does not prove that an unlisted ingredient or cross-contact is absent.</p>
       </> },
       { id: 'outside-meals-library', title: 'Proposing a reusable recipe', content: <>

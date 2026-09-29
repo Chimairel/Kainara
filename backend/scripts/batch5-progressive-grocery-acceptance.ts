@@ -156,12 +156,16 @@ async function main() {
     const preview = await GroceryService.getCycleProjection(user.id, progressiveId, now);
     assert.equal(preview.coverage.clearedSlotCount, 1);
     assert.equal(preview.coverage.unresolvedSlotCount, 1);
-    assert.equal(preview.actionability.canCheckItems, false);
+    assert.equal(preview.actionability.canCheckItems, true);
     assert.equal(preview.actionability.canExportPdf, false);
     assert.deepEqual(
       preview.groceryList?.groceryItems.map((item) => item.ingredientName),
       ['Chicken']
     );
+    const previewChickenId = preview.groceryList!.groceryItems[0].id;
+    const previewChecked = await GroceryService.toggleGroceryItem(user.id, previewChickenId);
+    assert.equal(previewChecked.isChecked, true);
+    assert.equal((await prisma.mealPlanCycle.findUniqueOrThrow({ where: { id: progressiveId } })).shoppingStartedAt, null);
 
     await prisma.mealPlan.update({
       where: { id: pending.id },
@@ -176,13 +180,14 @@ async function main() {
       'Brown rice',
       'Chicken',
     ]);
+    assert.equal(ready.groceryList?.groceryItems.find((item) => item.id === previewChickenId)?.isChecked, true);
 
     const readyIds = ready.groceryList!.groceryItems.map((item) => item.id);
     await assert.rejects(
       GroceryService.setGroceryItemsChecked(user.id, [...readyIds, 'another-list-item'], true),
       /Shopping list changed/
     );
-    assert.equal(await prisma.groceryItem.count({ where: { id: { in: readyIds }, isChecked: true } }), 0);
+    assert.equal(await prisma.groceryItem.count({ where: { id: { in: readyIds }, isChecked: true } }), 1);
     const checked = await GroceryService.setGroceryItemsChecked(user.id, readyIds, true);
     assert.equal(checked.length, 2);
     assert.ok(checked.every((item) => item.isChecked && item.purchasedQuantity === item.quantity));
@@ -190,7 +195,7 @@ async function main() {
     assert.equal(unchecked.isChecked, false);
     assert.equal(unchecked.purchasedQuantity, 0);
 
-    await MealPlanCycleService.startShopping(user.id, progressiveId, now);
+    assert.ok((await prisma.mealPlanCycle.findUniqueOrThrow({ where: { id: progressiveId } })).shoppingStartedAt);
     await prisma.mealPlan.update({
       where: { id: delayedCompeting.id },
       data: { status: MealPlanStatus.APPROVED, reviewedAt: new Date(now.getTime() + 1_000) },

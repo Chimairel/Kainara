@@ -83,7 +83,7 @@ export const workspaceTools: Record<WorkspaceRole, WorkspaceTool[]> = {
       icon: ClipboardList,
     },
     {
-      label: 'Outside meals',
+      label: 'Food logs',
       href: '/nutritionist/outside-meals',
       description: 'Verify itemized food logs and correct nutrition estimates.',
       group: 'Review work',

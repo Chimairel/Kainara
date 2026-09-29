@@ -86,9 +86,9 @@ export function OutsideMealModal(props: Props) {
     <Modal
       isOpen={props.isOpen}
       onClose={props.onClose}
-      title="MANUALLY LOG A MEAL"
+      title="LOG FOOD OR A MEAL"
       size="lg"
-      description="Track street food, restaurant meals, carinderia items, or home-cooked dishes not in your plan."
+      description="Track meals, snacks, drinks, or individual foods outside your plan."
     >
       <div className="flex flex-col gap-5 text-left">
         {props.error && (
@@ -99,7 +99,7 @@ export function OutsideMealModal(props: Props) {
         )}
         {props.savedSafety ? (
           <div className="space-y-4 rounded-2xl border border-brand-border bg-brand-surface p-5 text-sm">
-            <h3 className="font-bold text-brand-text">Meal recorded</h3>
+            <h3 className="font-bold text-brand-text">Food recorded</h3>
             <p className="text-brand-muted">
               {props.savedSafety.status === 'CONFLICT_DETECTED'
                 ? 'A possible conflict was found in what you recorded. The entry remains in your tracker.'
@@ -437,7 +437,7 @@ function OutsideMealForm(props: Props) {
 
     if (hasManual && !useAi && !useReference) {
       const singleItem: OutsideMealInputItem = {
-        name: selectedName || 'Custom Meal',
+        name: selectedName || 'Custom food',
         ...(measuredGrams ? { portionGrams: measuredGrams } : {}),
         reportedNutrition: {
           calories: Number(manual.calories) || 0,
@@ -493,7 +493,7 @@ function OutsideMealForm(props: Props) {
     >
       {/* 1. Meal Category Segmented Control */}
       <fieldset className="flex flex-col gap-1.5">
-        <legend className="text-xs font-bold uppercase tracking-wider text-brand-muted">Meal category (required)</legend>
+        <legend className="text-xs font-bold uppercase tracking-wider text-brand-muted">When did you eat it? (required)</legend>
         <div className="grid grid-cols-4 gap-1.5 p-1 rounded-2xl border border-brand-border/70 bg-brand-bgAlt/50 text-center text-xs font-semibold">
           {(Object.keys(mealLabels) as MealType[]).map((type) => {
             const isSelected = props.mealType === type;
@@ -661,7 +661,7 @@ function OutsideMealForm(props: Props) {
             <span className="absolute right-3.5 top-2 text-xs font-bold text-brand-muted pointer-events-none">g</span>
           </div>
           <p className="text-[10px] text-brand-muted">
-            Record the amount eaten when you know it. This helps a nutritionist review the estimate.
+            Add grams if you know them. AI can estimate a typical serving from the food name; notes make it more specific.
           </p>
         </div>
       )}
@@ -900,7 +900,7 @@ function OutsideMealForm(props: Props) {
           HELP ME FIND VALUES WITH AI
         </button>
         <p className="mt-1.5 text-[10px] text-brand-muted">
-          Use AI if unresolved — AI values count immediately as provisional and enter nutritionist review.
+          Grams and notes are optional. Without them, AI assumes a typical serving; values are provisional and enter nutritionist review.
         </p>
       </div>
 
@@ -916,7 +916,7 @@ function OutsideMealForm(props: Props) {
         }
         isLoading={props.isLoading}
       >
-        LOG THIS MEAL
+        LOG THIS FOOD
       </Button>
     </form>
   );

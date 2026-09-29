@@ -17,20 +17,23 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   useEffect(() => {
     // Access localStorage safely after hydration
     const savedTheme = localStorage.getItem('nutrimind-theme') as Theme | null;
-    if (savedTheme) {
-      setTheme(savedTheme);
-      document.documentElement.className = savedTheme;
-    } else {
-      // Default to light as configured in root layout
-      document.documentElement.className = 'light';
-    }
+    const current = savedTheme === 'light' || savedTheme === 'dark' ? savedTheme : 'light';
+    setTheme(current);
+    document.documentElement.classList.toggle('dark', current === 'dark');
+    document.documentElement.classList.toggle('light', current === 'light');
   }, []);
 
   const toggleTheme = () => {
-    const nextTheme = theme === 'dark' ? 'light' : 'dark';
+    const root = document.documentElement;
+    const nextTheme = root.classList.contains('dark') ? 'light' : 'dark';
+    root.classList.add('theme-switching');
     setTheme(nextTheme);
     localStorage.setItem('nutrimind-theme', nextTheme);
-    document.documentElement.className = nextTheme;
+    root.classList.toggle('dark', nextTheme === 'dark');
+    root.classList.toggle('light', nextTheme === 'light');
+    window.requestAnimationFrame(() => {
+      window.requestAnimationFrame(() => root.classList.remove('theme-switching'));
+    });
   };
 
   // During SSR or before mounting, render with default dark styles to prevent mismatch

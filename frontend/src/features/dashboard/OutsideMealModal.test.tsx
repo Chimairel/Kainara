@@ -32,10 +32,10 @@ describe('OutsideMealModal', () => {
     vi.clearAllMocks();
   });
 
-  it('renders modal with title MANUALLY LOG A MEAL and 4 meal categories', () => {
+  it('renders food logging with a snack category', () => {
     render(<OutsideMealModal {...defaultProps} />);
 
-    expect(screen.getByText('MANUALLY LOG A MEAL')).toBeDefined();
+    expect(screen.getByText('LOG FOOD OR A MEAL')).toBeDefined();
     expect(screen.getByText('Breakfast')).toBeDefined();
     expect(screen.getByText('Lunch')).toBeDefined();
     expect(screen.getByText('Dinner')).toBeDefined();
@@ -72,7 +72,7 @@ describe('OutsideMealModal', () => {
     expect((fatInput as HTMLInputElement).value).toBe('30');
 
     // Click submit
-    const submitBtn = screen.getByRole('button', { name: /LOG THIS MEAL/i });
+    const submitBtn = screen.getByRole('button', { name: /LOG THIS FOOD/i });
     fireEvent.click(submitBtn);
 
     expect(onSubmit).toHaveBeenCalledWith(
@@ -102,7 +102,7 @@ describe('OutsideMealModal', () => {
     });
     const [, calories] = screen.getAllByRole('spinbutton');
     fireEvent.change(calories, { target: { value: '400' } });
-    fireEvent.click(screen.getByRole('button', { name: /LOG THIS MEAL/i }));
+    fireEvent.click(screen.getByRole('button', { name: /LOG THIS FOOD/i }));
     expect(onSubmit).toHaveBeenCalledWith(
       false,
       expect.objectContaining({
@@ -176,7 +176,7 @@ describe('OutsideMealModal', () => {
     fireEvent.click(await screen.findByText('Chicken Adobo'));
     fireEvent.change(screen.getByLabelText('Cooked rice with this dish'), { target: { value: '150' } });
     expect(screen.getByText(/Plate preview: 494 kcal/)).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: /LOG THIS MEAL/i }));
+    fireEvent.click(screen.getByRole('button', { name: /LOG THIS FOOD/i }));
     expect(onSubmit).toHaveBeenCalledWith(
       false,
       expect.objectContaining({
@@ -215,7 +215,7 @@ describe('OutsideMealModal', () => {
     fireEvent.change(screen.getByLabelText('Food or Meal Eaten (required)'), { target: { value: 'Ric' } });
     fireEvent.click(await screen.findByText('Rice, well-milled, boiled'));
     fireEvent.change(screen.getByLabelText('Amount eaten (grams)'), { target: { value: '150' } });
-    fireEvent.click(screen.getByRole('button', { name: /LOG THIS MEAL/i }));
+    fireEvent.click(screen.getByRole('button', { name: /LOG THIS FOOD/i }));
     expect(onSubmit).toHaveBeenCalledWith(
       false,
       expect.objectContaining({

@@ -54,6 +54,28 @@ describe('grocery checklist', () => {
     expect(get).toHaveBeenCalledTimes(1);
   });
 
+  it('allows a provisional checklist item to be checked before all meal slots clear', async () => {
+    get.mockResolvedValueOnce({ data: { success: true, data: {
+      ...workspace,
+      current: {
+        ...workspace.current,
+        cycle: { ...workspace.current!.cycle, status: 'UNDER_REVIEW' },
+        coverage: { clearedSlotCount: 1, expectedSlotCount: 3, unresolvedSlotCount: 2 },
+        actionability: {
+          ...workspace.current!.actionability,
+          canExportPdf: false,
+          isFinal: false,
+          quantitiesMayIncrease: true,
+        },
+      },
+    } } });
+    patch.mockResolvedValue({ data: { success: true, data: { ...salt, isChecked: true } } });
+    render(<GroceryListPage />);
+    fireEvent.click(await screen.findByRole('checkbox', { name: 'Mark as bought: Salt' }));
+    await waitFor(() => expect(screen.getByRole('checkbox', { name: 'Mark as not bought: Salt' })).not.toBeDisabled());
+    expect(patch).toHaveBeenCalledWith('/user/grocery/items/salt/toggle');
+  });
+
   it('checks all visible items in one request, including an unmeasured ingredient', async () => {
     patch.mockResolvedValue({
       data: { success: true, data: [

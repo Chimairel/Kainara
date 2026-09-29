@@ -142,7 +142,7 @@ export default function ReviewsPage() {
         [
           ['pending', 'Pending'],
           ['second', 'Second decision'],
-          ['outside', 'Outside meal logs'],
+          ['outside', 'Outside food logs'],
           ['completed', 'Completed history'],
           ['audit', 'Audit and rechecks'],
           ['disputed', 'Needs resolution'],

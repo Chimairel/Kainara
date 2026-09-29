@@ -16,7 +16,8 @@ import {
   ProfileCycleAdaptationState,
 } from '@prisma/client';
 
-type CycleClient = Pick<Prisma.TransactionClient, 'mealPlanCycle'>;
+type CycleClient = Pick<Prisma.TransactionClient, 'mealPlanCycle'> &
+  Partial<Pick<Prisma.TransactionClient, 'user' | 'clinicalProfileReview'>>;
 
 export const mealPlanCycleSummarySelect = {
   id: true,
@@ -69,7 +70,10 @@ export class MealPlanCycleService {
   ): Promise<string[]> {
     // Legacy approved slots cannot become actionable before the current
     // restricted profile has received its separate nutritionist review.
-    if (!(await ClinicalProfileReviewService.hasCurrentApproval(userId))) return [];
+    const profileClient = client.user && client.clinicalProfileReview
+      ? client as Pick<Prisma.TransactionClient, 'user' | 'clinicalProfileReview'>
+      : prisma;
+    if (!(await ClinicalProfileReviewService.hasCurrentApproval(userId, profileClient))) return [];
     const cycle = await client.mealPlanCycle.findFirst({
       where: { id: cycleId, userId },
       select: {

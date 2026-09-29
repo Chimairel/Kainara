@@ -221,16 +221,6 @@ export class MealLogService {
     );
 
     if (input.useAiEstimate && unresolvedIndexes.length > 0) {
-      if (
-        unresolvedIndexes.some((index) => !requested[index].portionGrams) ||
-        (input.estimationContext?.trim().length ?? 0) < 12
-      ) {
-        throw new AppError(
-          'For an AI estimate, add an approximate portion for each unresolved item and describe its preparation, ingredients, or sauces.',
-          422,
-          'AI_CONTEXT_REQUIRED'
-        );
-      }
       const now = new Date();
       const dayStart = getManilaMidnight(getManilaDateKey(now));
       const tomorrow = getScheduledMealDate(dayStart, 1);
@@ -272,7 +262,7 @@ export class MealLogService {
       try {
         aiRows = await this.estimateWithAi(
           unresolvedIndexes.map((index) => requested[index]),
-          input.estimationContext!.trim()
+          input.estimationContext?.trim() ?? ''
         );
       } catch (error) {
         await prisma.outsideMealAiUsage.deleteMany({ where: { id: usageReservation.id, userId: input.userId } });
@@ -297,7 +287,11 @@ export class MealLogService {
             calorieLow: Math.min(ai.calorieLow, ai.calories),
             calorieHigh: Math.max(ai.calorieHigh, ai.calories),
             ingredients: ai.ingredients,
-            warnings: ['AI estimate — counted as estimated nutrition; it may be eligible for nutritionist review.'],
+            warnings: [
+              item.portionGrams === null || item.portionGrams === undefined
+                ? 'AI assumed a typical serving because grams were not provided. This is an uncertain estimate pending nutritionist review.'
+                : 'AI estimate — counted as estimated nutrition; it may be eligible for nutritionist review.',
+            ],
           },
           restrictions
         );
@@ -493,7 +487,8 @@ Return exactly one JSON object with this shape and no alternate field names:
 {"items":[{"name":"food name","calories":210,"calorieLow":170,"calorieHigh":260,"proteinG":3,"carbsG":42,"fatG":6,"sodiumMg":120,"sugarsG":18,"ingredients":["ingredient"]}]}
 Every calories, calorieLow, calorieHigh, proteinG, carbsG, and fatG value must be a finite non-negative JSON number. calorieLow must not exceed calories and calorieHigh must not be below calories. ingredients must be an array of plain ingredient-name strings. sodiumMg and sugarsG may be omitted only when they cannot be estimated.
 Foods: ${JSON.stringify(items.map((item) => ({ name: item.name, portionGrams: item.portionGrams ?? null })))}
-Preparation and serving context: ${JSON.stringify(estimationContext)}`,
+Preparation and serving context: ${JSON.stringify(estimationContext)}
+If grams or serving context are absent, estimate one typical consumed serving for the named food and return a wider calorie range that reflects the uncertainty. Do not invent an exact measured portion.`,
       'You estimate nutrition for Filipino foods. Return JSON only. Do not claim clinical certainty.',
       aiResponseSchema,
       { operation: 'OUTSIDE_MEAL_ESTIMATE', purpose: 'OUTSIDE_MEAL_ITEM_ESTIMATION' }

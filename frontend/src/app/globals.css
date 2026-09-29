@@ -210,24 +210,12 @@ body {
   color: #ffffff;
 }
 
-body,
-header,
-aside,
-main,
-footer,
-button,
-input,
-select,
-textarea,
-a,
-tr,
-td,
-th {
-  transition:
-    background-color 0.2s ease,
-    border-color 0.2s ease,
-    color 0.2s ease,
-    box-shadow 0.2s ease;
+/* Theme changes should repaint once. Per-component hover and focus
+   transitions remain available outside the brief theme switch. */
+html.theme-switching *,
+html.theme-switching *::before,
+html.theme-switching *::after {
+  transition: none !important;
 }
 
 /* Custom scrollbar */

@@ -84,9 +84,10 @@ export default function GroceryListPage() {
         cachePage(snapshot);
       }
     } catch (err: unknown) {
-      setError(getApiErrorMessage(err, 'Failed to retrieve grocery list.'));
+      if (version === requestVersion.current)
+        setError(getApiErrorMessage(err, 'Failed to retrieve grocery list.'));
     } finally {
-      setIsLoading(false);
+      if (version === requestVersion.current) setIsLoading(false);
     }
   }, [cachePage]);
 

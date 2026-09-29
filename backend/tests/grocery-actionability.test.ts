@@ -11,12 +11,13 @@ const base = {
   listIsStale: false,
 };
 
-test('[BATCH-5] preparing and under-review groceries remain preview-only', () => {
+test('preparing and under-review groceries allow checklist marks without final export', () => {
   for (const status of [MealPlanCycleStatus.PREPARING, MealPlanCycleStatus.UNDER_REVIEW]) {
     const result = deriveGroceryActionability({ ...base, status });
-    assert.equal(result.canCheckItems, false);
+    assert.equal(result.canCheckItems, true);
     assert.equal(result.canExportPdf, false);
     assert.equal(result.quantitiesMayIncrease, true);
+    assert.equal(result.isFinal, false);
   }
 });
 

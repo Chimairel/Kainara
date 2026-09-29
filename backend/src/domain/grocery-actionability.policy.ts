@@ -79,13 +79,17 @@ export function deriveGroceryActionability(facts: GroceryCycleFacts): GroceryAct
     };
   }
 
+  const progressivePreview = facts.status === MealPlanCycleStatus.PREPARING ||
+    facts.status === MealPlanCycleStatus.UNDER_REVIEW;
   return {
-    canCheckItems: false,
+    canCheckItems: progressivePreview,
     canExportPdf: false,
     isFinal: false,
     isIncomplete,
-    quantitiesMayIncrease: true,
+    quantitiesMayIncrease: progressivePreview,
     requiresIncompleteAcknowledgment: false,
-    message: 'Preview only. Quantities may increase as more meal slots complete review.',
+    message: progressivePreview
+      ? 'This checklist can be marked now. More ingredients may appear as meal slots complete review.'
+      : 'This shopping cycle is no longer active.',
   };
 }
