@@ -37,6 +37,17 @@ export function readSessionResource<T>(
   return entry.value;
 }
 
+/** Check freshness without evicting a snapshot still useful during revalidation. */
+export function isSessionResourceRecent(
+  ownerId: string | undefined,
+  resource: string,
+  maxAgeMs: number
+): boolean {
+  if (!ownerId) return false;
+  const entry = entries.get(cacheKey(ownerId, resource));
+  return Boolean(entry && Date.now() - entry.cachedAt <= maxAgeMs);
+}
+
 export function writeSessionResource<T>(ownerId: string | undefined, resource: string, value: T): void {
   if (!ownerId) return;
   const key = cacheKey(ownerId, resource);

@@ -63,28 +63,6 @@ export interface GroceryWorkspace {
   upcoming: GroceryCycleProjection | null;
 }
 
-export interface GroceryPageSnapshot {
-  groceryList: GroceryList | null;
-  pendingMealCount: number;
-}
-
-/** Both grocery surfaces must validate current approval before displaying a stored projection. */
-export async function fetchCurrentGrocery(): Promise<GroceryPageSnapshot> {
-  const [grocery, meals] = await Promise.all([
-    api.get<{ success: boolean; data: GroceryList | null }>('/user/grocery/current'),
-    api.get<{ success: boolean; data: unknown[]; meta?: { pendingReview?: { mealCount: number } | null } }>(
-      '/user/meals/current'
-    ),
-  ]);
-  if (!grocery.data?.success || !meals.data?.success || !Array.isArray(meals.data.data)) {
-    throw new Error('Could not confirm the current grocery review state.');
-  }
-  return {
-    groceryList: meals.data.data.length > 0 ? (grocery.data.data ?? null) : null,
-    pendingMealCount: meals.data.meta?.pendingReview?.mealCount ?? 0,
-  };
-}
-
 export async function fetchGroceryWorkspace(): Promise<GroceryWorkspace> {
   const response = await api.get<{ success: boolean; data: GroceryWorkspace }>('/user/grocery/workspace');
   if (!response.data?.success || !response.data.data) {

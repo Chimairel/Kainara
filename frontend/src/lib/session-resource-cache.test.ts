@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   clearSessionResourceCache,
   invalidateSessionResource,
+  isSessionResourceRecent,
   readSessionResource,
   refreshSessionResource,
   writeSessionResource,
@@ -31,6 +32,17 @@ describe('session resource cache', () => {
     writeSessionResource('user-a', 'meals', ['lunch']);
     invalidateSessionResource('user-a', 'meals');
     expect(readSessionResource('user-a', 'meals')).toBeNull();
+  });
+
+  it('checks recent data without evicting an older snapshot', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-09-07T00:00:00Z'));
+    writeSessionResource('user-a', 'groceries', { checked: 3 });
+    expect(isSessionResourceRecent('user-a', 'groceries', 30_000)).toBe(true);
+    vi.advanceTimersByTime(30_001);
+    expect(isSessionResourceRecent('user-a', 'groceries', 30_000)).toBe(false);
+    expect(readSessionResource('user-a', 'groceries')).toEqual({ checked: 3 });
+    expect(isSessionResourceRecent('user-b', 'groceries', 30_000)).toBe(false);
   });
 
   it('shares an in-flight read and keeps a newer local change', async () => {

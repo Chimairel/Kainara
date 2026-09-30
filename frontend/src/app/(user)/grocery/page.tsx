@@ -9,7 +9,7 @@ import KainaraLogo from '@/components/shared/KainaraLogo';
 import PortalPageHeader from '@/components/shared/PortalPageHeader';
 import UnauthorizedState from '@/components/shared/UnauthorizedState';
 import { getApiErrorMessage } from '@/lib/api-error';
-import { readSessionResource, writeSessionResource } from '@/lib/session-resource-cache';
+import { readSessionResource, refreshSessionResource, writeSessionResource } from '@/lib/session-resource-cache';
 import { fetchGroceryWorkspace, type GroceryItem, type GroceryWorkspace } from '@/features/grocery/current-grocery';
 import { AlertTriangle, ChevronDown, Download, Filter, Loader2, RotateCcw, Search, X } from 'lucide-react';
 
@@ -77,7 +77,7 @@ export default function GroceryListPage() {
     setError(null);
     const version = requestVersion.current;
     try {
-      const snapshot = await fetchGroceryWorkspace();
+      const snapshot = await refreshSessionResource(ownerId, 'user-grocery-workspace', fetchGroceryWorkspace);
       if (version === requestVersion.current) {
         workspaceRef.current = snapshot;
         setWorkspace(snapshot);
@@ -89,7 +89,7 @@ export default function GroceryListPage() {
     } finally {
       if (version === requestVersion.current) setIsLoading(false);
     }
-  }, [cachePage]);
+  }, [cachePage, ownerId]);
 
   useEffect(() => {
     ownerGeneration.current += 1;

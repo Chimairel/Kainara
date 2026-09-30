@@ -4,8 +4,11 @@ import React, { useEffect, useState } from 'react';
 import { ArrowRight, Check, ShoppingCart, Sparkles } from 'lucide-react';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
-import { readSessionResource, writeSessionResource } from '@/lib/session-resource-cache';
-import { fetchCurrentGrocery, type GroceryPageSnapshot } from '@/features/grocery/current-grocery';
+import { isSessionResourceRecent, readSessionResource, refreshSessionResource } from '@/lib/session-resource-cache';
+import { fetchGroceryWorkspace, type GroceryWorkspace } from '@/features/grocery/current-grocery';
+
+const groceryResource = 'user-grocery-workspace';
+const recentWorkspaceMs = 30_000;
 
 type GroceryPreviewCardProps = {
   ownerId?: string;
@@ -13,27 +16,36 @@ type GroceryPreviewCardProps = {
 };
 
 export function GroceryPreviewCard({ ownerId, onNavigateToGrocery }: GroceryPreviewCardProps) {
-  const cachedPage = readSessionResource<GroceryPageSnapshot>(ownerId, 'user-grocery-page');
-  const [snapshot, setSnapshot] = useState<{ ownerId?: string; data: GroceryPageSnapshot | null }>({
+  const cachedPage = readSessionResource<GroceryWorkspace>(ownerId, groceryResource);
+  const [snapshot, setSnapshot] = useState<{ ownerId?: string; data: GroceryWorkspace | null }>({
     ownerId,
     data: cachedPage,
   });
   const [isLoading, setIsLoading] = useState(!cachedPage && Boolean(ownerId));
   const [error, setError] = useState(false);
   const current = snapshot.ownerId === ownerId ? snapshot.data : cachedPage;
-  const groceryList = current?.groceryList ?? null;
-  const pendingMealCount = current?.pendingMealCount ?? 0;
+  const groceryList = current?.current?.groceryList ?? null;
+  const pendingMealCount = current?.current?.coverage.unresolvedSlotCount ?? 0;
 
   useEffect(() => {
-    if (!ownerId) return;
+    if (!ownerId) {
+      setSnapshot({ ownerId, data: null });
+      setIsLoading(false);
+      setError(false);
+      return;
+    }
     let active = true;
+    const cached = readSessionResource<GroceryWorkspace>(ownerId, groceryResource);
+    setSnapshot({ ownerId, data: cached });
     setError(false);
-    setIsLoading(!readSessionResource(ownerId, 'user-grocery-page'));
-    fetchCurrentGrocery()
+    setIsLoading(!cached);
+    // The full Grocery page just fetched this exact projection. Its mutations
+    // also update the shared cache, so a quick return needs no second request.
+    if (cached && isSessionResourceRecent(ownerId, groceryResource, recentWorkspaceMs)) return;
+    refreshSessionResource(ownerId, groceryResource, fetchGroceryWorkspace)
       .then((data) => {
         if (!active) return;
         setSnapshot({ ownerId, data });
-        writeSessionResource(ownerId, 'user-grocery-page', data);
       })
       .catch(() => {
         if (active) setError(true);
@@ -80,8 +92,7 @@ export function GroceryPreviewCard({ ownerId, onNavigateToGrocery }: GroceryPrev
             role="status"
             className="mb-3 rounded-xl bg-status-pending-bg p-3 text-xs font-semibold text-status-pending-text"
           >
-            {pendingMealCount} meal{pendingMealCount === 1 ? '' : 's'} awaiting review. Pending ingredients are
-            excluded.
+            {pendingMealCount} meal slot{pendingMealCount === 1 ? '' : 's'} unresolved. Their ingredients are excluded.
           </p>
         )}
         {error ? (
