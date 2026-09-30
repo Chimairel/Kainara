@@ -24,8 +24,14 @@ import {
 import PublicHeader from '@/components/shared/PublicHeader';
 import PublicFooter from '@/components/shared/PublicFooter';
 import KainaraLogo from '@/components/shared/KainaraLogo';
-import { LandingWaveHero, SectionWaveBorderTop, SectionWaveBorderBottom } from '@/components/landing/LandingWaveRiver';
 import Image from 'next/image';
+import {
+  LandingWaveHero,
+  SectionWaveBorderTop,
+  SectionWaveBorderBottom,
+  SectionWaveBorderLeft,
+  SectionWaveBorderRight,
+} from '@/components/landing/LandingWaveRiver';
 import { InfiniteSlider } from '@/components/core/infinite-slider';
 import { useAuth } from '@/hooks/useAuth';
 
@@ -637,48 +643,62 @@ export default function Home() {
               </div>
             </motion.div>
 
-            {/* Infinite Looping Slider for Evidence & Recipe Sources */}
-            <div
-              className="relative mt-14 overflow-hidden py-8 sm:py-10"
-              style={{
-                maskImage: 'linear-gradient(to right, transparent, black 5%, black 95%, transparent)',
-                WebkitMaskImage: 'linear-gradient(to right, transparent, black 5%, black 95%, transparent)',
-              }}
-            >
-              <InfiniteSlider gap={32} speed={42} speedOnHover={14} reverse>
-                {[...evidenceSliderSources, ...evidenceSliderSources].map((source, index) => (
-                  <a
-                    key={`${source.id}-${index}`}
-                    href={source.href}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="group flex h-[136px] items-center gap-6 rounded-[28px] border border-brand-border/70 bg-brand-surface/90 px-7 py-4 shadow-xl sm:shadow-2xl shadow-emerald-950/10 dark:shadow-[0_20px_50px_rgba(0,0,0,0.55)] backdrop-blur-md transition-all duration-300 hover:-translate-y-1.5 hover:border-emerald-500/50 hover:bg-brand-surface hover:shadow-[0_25px_60px_-15px_rgba(0,0,0,0.2)] dark:hover:shadow-[0_25px_60px_rgba(0,0,0,0.7)]"
-                    aria-label={`Open citation for ${source.name}`}
-                  >
-                    <div className="flex h-24 w-24 shrink-0 items-center justify-center rounded-2xl bg-white p-2.5 overflow-hidden transition-transform duration-300 group-hover:scale-105">
-                      <Image
-                        src={source.logo}
-                        alt={source.alt}
-                        width={96}
-                        height={96}
-                        unoptimized
-                        className="h-full w-full object-contain"
-                      />
-                    </div>
-                    <div className="flex flex-col pr-3">
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-base sm:text-lg font-black tracking-tight text-brand-text group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors whitespace-nowrap">
-                          {source.name}
-                        </span>
-                        <ArrowUpRight className="h-4 w-4 text-brand-muted/60 opacity-0 -translate-x-1 group-hover:opacity-100 group-hover:translate-x-0 group-hover:text-emerald-500 transition-all" />
+            {/* Dark Pine Showcase Track Cut Directly by Organic Wave Stripes */}
+            <div className="relative mt-14 py-8 sm:py-12 overflow-hidden">
+              {/* Central Dark Pine Body with Top/Bottom Horizontal Borders */}
+              <div className="absolute inset-y-0 left-16 sm:left-24 md:left-32 right-16 sm:right-24 md:right-32 bg-[#071914] border-y border-[#173e33] pointer-events-none" />
+
+              {/* Left and Right Vertical Wave Stripes that Cut the Container */}
+              <SectionWaveBorderLeft />
+              <SectionWaveBorderRight />
+
+              {/* Ambient Glows */}
+              <div className="pointer-events-none absolute left-1/4 top-1/2 -translate-y-1/2 h-64 w-64 rounded-full bg-emerald-500/10 blur-[100px]" />
+              <div className="pointer-events-none absolute right-1/4 top-1/2 -translate-y-1/2 h-64 w-64 rounded-full bg-brand-cyan/10 blur-[100px]" />
+
+              {/* Infinite Looping Slider for Evidence & Recipe Sources */}
+              <div
+                className="relative overflow-hidden py-3"
+                style={{
+                  maskImage: 'linear-gradient(to right, transparent 0px, transparent 100px, black 160px, black calc(100% - 160px), transparent calc(100% - 100px), transparent 100%)',
+                  WebkitMaskImage: 'linear-gradient(to right, transparent 0px, transparent 100px, black 160px, black calc(100% - 160px), transparent calc(100% - 100px), transparent 100%)',
+                }}
+              >
+                <InfiniteSlider gap={32} speed={42} speedOnHover={14} reverse>
+                  {[...evidenceSliderSources, ...evidenceSliderSources].map((source, index) => (
+                    <a
+                      key={`${source.id}-${index}`}
+                      href={source.href}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="group flex h-[136px] items-center gap-6 rounded-[28px] border border-[#173e33] bg-[#0e271f]/95 px-7 py-4 shadow-[0_16px_36px_rgba(0,0,0,0.4)] backdrop-blur-md transition-all duration-300 hover:-translate-y-1.5 hover:border-emerald-500/50 hover:bg-[#0c241d] hover:shadow-[0_24px_50px_rgba(0,0,0,0.6)]"
+                      aria-label={`Open citation for ${source.name}`}
+                    >
+                      <div className="flex h-24 w-24 shrink-0 items-center justify-center rounded-2xl bg-white p-2.5 overflow-hidden transition-transform duration-300 group-hover:scale-105">
+                        <Image
+                          src={source.logo}
+                          alt={source.alt}
+                          width={96}
+                          height={96}
+                          unoptimized
+                          className="h-full w-full object-contain"
+                        />
                       </div>
-                      <span className="mt-1 font-mono text-[11px] font-bold uppercase tracking-wider text-brand-muted whitespace-nowrap">
-                        {source.sub}
-                      </span>
-                    </div>
-                  </a>
-                ))}
-              </InfiniteSlider>
+                      <div className="flex flex-col pr-3">
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-base sm:text-lg font-black tracking-tight text-white group-hover:text-emerald-400 transition-colors whitespace-nowrap">
+                            {source.name}
+                          </span>
+                          <ArrowUpRight className="h-4 w-4 text-emerald-400/60 opacity-0 -translate-x-1 group-hover:opacity-100 group-hover:translate-x-0 group-hover:text-emerald-400 transition-all" />
+                        </div>
+                        <span className="mt-1 font-mono text-[11px] font-bold uppercase tracking-wider text-white/50 whitespace-nowrap">
+                          {source.sub}
+                        </span>
+                      </div>
+                    </a>
+                  ))}
+                </InfiniteSlider>
+              </div>
             </div>
           </div>
         </section>
