@@ -19,6 +19,8 @@ vi.mock('@/hooks/useAuth', () => ({ useAuth: () => ({ user: state.user, isLoadin
 vi.mock('@/components/shared/PublicHeader', () => ({ default: () => <header>Public navigation</header> }));
 vi.mock('motion/react', () => ({
   motion: new Proxy({}, { get: (_target, tag: string) => tag }),
+  useMotionValue: (init = 0) => ({ get: () => init, set: vi.fn() }),
+  animate: vi.fn(() => ({ stop: vi.fn() })),
 }));
 
 describe('public home navigation', () => {

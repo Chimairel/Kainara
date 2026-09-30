@@ -32,8 +32,60 @@ import {
 import PublicHeader from '@/components/shared/PublicHeader';
 import KainaraLogo from '@/components/shared/KainaraLogo';
 import { LandingWaveHero, SectionWaveBorderTop, SectionWaveBorderBottom } from '@/components/landing/LandingWaveRiver';
+import Image from 'next/image';
+import { InfiniteSlider } from '@/components/core/infinite-slider';
 import { useAuth } from '@/hooks/useAuth';
-import { EVIDENCE_SOURCES, SOURCE_PURPOSE_LABELS } from '@/data/evidence-sources';
+
+const evidenceSliderSources = [
+  {
+    id: 'fnri-pdri',
+    name: 'DOST-FNRI PDRI',
+    sub: 'Macronutrient reference ranges',
+    logo: '/sources/dost-fnri.jpg',
+    href: 'https://fnri.dost.gov.ph/images/images/news/PDRI-2018.pdf',
+    alt: 'DOST-FNRI PDRI logo',
+  },
+  {
+    id: 'fnri-enutrition',
+    name: 'eNutrition / PhilFCT',
+    sub: 'Ingredient nutrition references',
+    logo: '/sources/enutrition-logo.png',
+    href: 'https://enutrition.fnri.dost.gov.ph/',
+    alt: 'eNutrition PhilFCT logo',
+  },
+  {
+    id: 'usda-fdc',
+    name: 'USDA FoodData Central',
+    sub: 'Food-composition fallback',
+    logo: '/sources/usda.png',
+    href: 'https://fdc.nal.usda.gov/download-datasets/',
+    alt: 'USDA FoodData Central logo',
+  },
+  {
+    id: 'mifflin',
+    name: 'Mifflin et al. (NIH)',
+    sub: 'Resting-energy estimate',
+    logo: '/sources/nih.webp',
+    href: 'https://pubmed.ncbi.nlm.nih.gov/2305711/',
+    alt: 'NIH PubMed logo',
+  },
+  {
+    id: 'panlasang-pinoy',
+    name: 'Panlasang Pinoy',
+    sub: 'Recipe provenance only',
+    logo: '/sources/panlasang-pinoy.jpg',
+    href: 'https://panlasangpinoy.com/',
+    alt: 'Panlasang Pinoy logo',
+  },
+  {
+    id: 'fnri-enns',
+    name: 'DOST-FNRI ENNS',
+    sub: 'Locality & consumption data',
+    logo: '/sources/dost-fnri.jpg',
+    href: 'https://enutrition.fnri.dost.gov.ph/uploads/2018-2019%20Facts%20and%20Figures%20-%20Food%20Consumption%20Survey.pdf',
+    alt: 'DOST-FNRI ENNS logo',
+  },
+];
 
 const getRoleHome = (role: 'USER' | 'NUTRITIONIST' | 'ADMIN') => {
   if (role === 'ADMIN') return '/admin/overview';
@@ -624,47 +676,48 @@ export default function Home() {
               </div>
             </motion.div>
 
-            <div className="mt-12 grid grid-cols-2 gap-3.5 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6">
-              {EVIDENCE_SOURCES.filter((source) => source.status !== 'DRAFT_REVIEW').map((source, index) => {
-                const markStyles =
-                  source.category === 'PHILIPPINE_NUTRITION'
-                    ? 'border-emerald-500/25 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 group-hover:border-emerald-500/40'
-                    : source.category === 'INTERNATIONAL_FOOD_COMPOSITION'
-                      ? 'border-brand-cyan/30 bg-brand-cyan/10 text-brand-cyan group-hover:border-brand-cyan/50'
-                      : source.category === 'CLINICAL_METHOD'
-                        ? 'border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-amber-400 group-hover:border-amber-500/50'
-                        : source.category === 'SAFETY_GUIDANCE'
-                          ? 'border-brand-accent/30 bg-brand-accent/10 text-brand-accent dark:text-[#f09e6c] group-hover:border-brand-accent/50'
-                          : 'border-teal-500/30 bg-teal-500/10 text-teal-600 dark:text-teal-400 group-hover:border-teal-500/50';
-
-                return (
-                  <motion.a
-                    key={source.id}
+            {/* Infinite Looping Slider for Evidence & Recipe Sources */}
+            <div
+              className="relative mt-14 overflow-hidden py-8 sm:py-10"
+              style={{
+                maskImage: 'linear-gradient(to right, transparent, black 5%, black 95%, transparent)',
+                WebkitMaskImage: 'linear-gradient(to right, transparent, black 5%, black 95%, transparent)',
+              }}
+            >
+              <InfiniteSlider gap={32} speed={42} speedOnHover={14} reverse>
+                {[...evidenceSliderSources, ...evidenceSliderSources].map((source, index) => (
+                  <a
+                    key={`${source.id}-${index}`}
                     href={source.href}
                     target="_blank"
                     rel="noreferrer"
-                    initial={{ opacity: 0, y: 20 }}
-                    whileInView={{ opacity: 1, y: 0 }}
-                    viewport={{ once: true, margin: '-50px' }}
-                    transition={{ duration: 0.4, delay: index * 0.04 }}
-                    whileHover={{ y: -4, transition: { duration: 0.15 } }}
-                    className="group rounded-[22px] border border-brand-border/70 bg-brand-bg/80 p-4 transition hover:border-brand-border hover:shadow-md"
-                    aria-label={`Open ${source.name} source`}
+                    className="group flex h-[136px] items-center gap-6 rounded-[28px] border border-brand-border/70 bg-brand-surface/90 px-7 py-4 shadow-xl sm:shadow-2xl shadow-emerald-950/10 dark:shadow-[0_20px_50px_rgba(0,0,0,0.55)] backdrop-blur-md transition-all duration-300 hover:-translate-y-1.5 hover:border-emerald-500/50 hover:bg-brand-surface hover:shadow-[0_25px_60px_-15px_rgba(0,0,0,0.2)] dark:hover:shadow-[0_25px_60px_rgba(0,0,0,0.7)]"
+                    aria-label={`Open citation for ${source.name}`}
                   >
-                    <span
-                      className={`flex h-10 w-fit min-w-10 items-center justify-center rounded-xl border px-2.5 font-mono text-[10px] font-black tracking-wider transition-colors ${markStyles}`}
-                    >
-                      {source.mark}
-                    </span>
-                    <p className="mt-3.5 text-xs font-extrabold leading-5 text-brand-text group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">
-                      {source.shortName}
-                    </p>
-                    <p className="mt-1.5 font-mono text-[8px] font-bold uppercase leading-4 tracking-[0.08em] text-brand-muted">
-                      {SOURCE_PURPOSE_LABELS[source.id]}
-                    </p>
-                  </motion.a>
-                );
-              })}
+                    <div className="flex h-24 w-24 shrink-0 items-center justify-center rounded-2xl bg-white p-2.5 overflow-hidden transition-transform duration-300 group-hover:scale-105">
+                      <Image
+                        src={source.logo}
+                        alt={source.alt}
+                        width={96}
+                        height={96}
+                        unoptimized
+                        className="h-full w-full object-contain"
+                      />
+                    </div>
+                    <div className="flex flex-col pr-3">
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-base sm:text-lg font-black tracking-tight text-brand-text group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors whitespace-nowrap">
+                          {source.name}
+                        </span>
+                        <ArrowUpRight className="h-4 w-4 text-brand-muted/60 opacity-0 -translate-x-1 group-hover:opacity-100 group-hover:translate-x-0 group-hover:text-emerald-500 transition-all" />
+                      </div>
+                      <span className="mt-1 font-mono text-[11px] font-bold uppercase tracking-wider text-brand-muted whitespace-nowrap">
+                        {source.sub}
+                      </span>
+                    </div>
+                  </a>
+                ))}
+              </InfiniteSlider>
             </div>
           </div>
         </section>
