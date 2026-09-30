@@ -1,7 +1,7 @@
 {
   "name": "KAINARA",
   "short_name": "KAINARA",
-  "description": "AI-Powered Nutrition Planning for Filipinos — Personalized meal plans, clinical nutrition reports, and health tracking.",
+  "description": "Personalized meal planning with Filipino recipes, nutrition references and daily tracking.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#060b09",
@@ -22,5 +22,15 @@
     }
   ],
   "categories": ["health", "food", "lifestyle"],
-  "lang": "en-PH"
+  "lang": "en-PH",
+  "id": "/",
+  "scope": "/",
+  "related_applications": [
+    {
+      "platform": "webapp",
+      "url": "https://kainara.vercel.app/manifest.json",
+      "id": "https://kainara.vercel.app/"
+    }
+  ],
+  "prefer_related_applications": false
 }

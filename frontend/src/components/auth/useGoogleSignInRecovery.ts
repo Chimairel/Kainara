@@ -68,7 +68,7 @@ export function useGoogleSignInRecovery() {
       await navigator.clipboard.writeText(pageUrl);
       setCopyStatus('Link copied. Paste it into Chrome or Safari.');
     } catch {
-      setCopyStatus('Copy the website address below and paste it into Chrome or Safari.');
+      setCopyStatus('Copy the website address shown here and paste it into Chrome or Safari.');
     }
   };
 

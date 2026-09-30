@@ -1,78 +1,85 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import Modal from '@/components/ui/Modal';
 import Button from '@/components/ui/Button';
+import FloatingNotice from './FloatingNotice';
 import { isEmbeddedAppBrowser, isPhoneBrowser } from '@/lib/browser-environment';
 
 interface InstallPromptEvent extends Event {
   prompt(): Promise<void>;
   userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>;
 }
-
-const DISMISS_KEY = 'kainara-install-dismissed-at';
-const REMIND_AFTER_MS = 7 * 24 * 60 * 60 * 1000;
-
-function rememberDismissal() {
+type InstallationNavigator = Navigator & {
+  standalone?: boolean;
+  getInstalledRelatedApps?: () => Promise<{ platform: string; url?: string; id?: string }[]>;
+};
+const INSTALLED_KEY = 'kainara-install-confirmed';
+function rememberInstalled(installed: boolean) {
   try {
-    localStorage.setItem(DISMISS_KEY, String(Date.now()));
+    if (installed) localStorage.setItem(INSTALLED_KEY, 'true');
+    else localStorage.removeItem(INSTALLED_KEY);
   } catch {
-    /* Storage can be disabled. */
+    /* Storage is optional; standalone detection still works. */
   }
 }
 
 export default function MobileInstallPrompt() {
-  const [isOpen, setIsOpen] = useState(false);
+  const [eligible, setEligible] = useState(false);
+  const [available, setAvailable] = useState(false);
+  const [dismissed, setDismissed] = useState(false);
   const [isIOS, setIsIOS] = useState(false);
   const [canInstall, setCanInstall] = useState(false);
   const [isInstalling, setIsInstalling] = useState(false);
   const [error, setError] = useState('');
   const promptRef = useRef<InstallPromptEvent | null>(null);
+  const installationSignal = useRef(0);
 
   useEffect(() => {
-    const ua = navigator.userAgent;
+    const nav = navigator as InstallationNavigator;
     const standalone = window.matchMedia('(display-mode: standalone)');
-    if (
-      !isPhoneBrowser(ua) ||
-      isEmbeddedAppBrowser(ua) ||
-      standalone.matches ||
-      (navigator as Navigator & { standalone?: boolean }).standalone
-    )
+    if (standalone.matches || nav.standalone) {
+      rememberInstalled(true);
       return;
-
-    setIsIOS(/iPhone|iPod/i.test(ua));
-    let dismissed = false;
-    try {
-      const lastDismissed = Number(localStorage.getItem(DISMISS_KEY));
-      dismissed = lastDismissed > 0 && Date.now() - lastDismissed < REMIND_AFTER_MS;
-    } catch {
-      /* Still allow dismissal for this visit without storage. */
     }
-    let timer: number | undefined;
-    let installed = false;
-    const showWhenAvailable = () => {
-      if (installed || dismissed) return;
-      // Don't stack this prompt over login, onboarding, or another active dialog.
-      if (!document.hasFocus() || document.visibilityState !== 'visible' || document.querySelector('[role="dialog"]')) {
-        timer = window.setTimeout(showWhenAvailable, 2000);
-        return;
-      }
-      setIsOpen(true);
-    };
-    if (!dismissed) timer = window.setTimeout(showWhenAvailable, 8000);
-
-    const onBeforeInstall = (event: Event) => {
-      event.preventDefault();
-      promptRef.current = event as InstallPromptEvent;
-      setCanInstall(true);
-    };
+    if (!isPhoneBrowser(nav.userAgent) || isEmbeddedAppBrowser(nav.userAgent)) return;
+    setIsIOS(/iPhone|iPod/i.test(nav.userAgent));
+    let cancelled = false;
+    let ready = false;
+    let hint = false;
+    try {
+      hint = localStorage.getItem(INSTALLED_KEY) === 'true';
+    } catch {
+      /* No storage. */
+    }
+    setEligible(!hint);
+    const updateAvailability = () =>
+      setAvailable(
+        ready &&
+          document.hasFocus() &&
+          document.visibilityState === 'visible' &&
+          !document.querySelector('[role="dialog"], [data-floating-notice="auth"]')
+      );
+    const timer = window.setTimeout(() => {
+      ready = true;
+      updateAvailability();
+    }, 1000);
+    const observer = new MutationObserver(updateAvailability);
+    observer.observe(document.body, { childList: true, subtree: true });
     const onInstalled = () => {
-      installed = true;
-      window.clearTimeout(timer);
+      installationSignal.current += 1;
+      rememberInstalled(true);
       promptRef.current = null;
       setCanInstall(false);
-      setIsOpen(false);
-      rememberDismissal();
+      setEligible(false);
+    };
+    const onBeforeInstall = (event: Event) => {
+      event.preventDefault();
+      installationSignal.current += 1;
+      // A fresh native offer takes precedence over a remembered installation hint.
+      rememberInstalled(false);
+      setEligible(true);
+      promptRef.current = event as InstallPromptEvent;
+      setCanInstall(true);
     };
     const onDisplayModeChange = () => {
       if (standalone.matches) onInstalled();
@@ -80,24 +87,45 @@ export default function MobileInstallPrompt() {
     window.addEventListener('beforeinstallprompt', onBeforeInstall);
     window.addEventListener('appinstalled', onInstalled);
     standalone.addEventListener('change', onDisplayModeChange);
+    window.addEventListener('focus', updateAvailability);
+    window.addEventListener('blur', updateAvailability);
+    document.addEventListener('visibilitychange', updateAvailability);
+    if (nav.getInstalledRelatedApps) {
+      const querySignal = installationSignal.current;
+      // This optional API can distinguish installation from a normal browser visit.
+      // Unsupported browsers use standalone detection and the user's explicit hint.
+      void nav
+        .getInstalledRelatedApps()
+        .then((apps) => {
+          if (cancelled || installationSignal.current !== querySignal) return;
+          const origin = window.location.origin;
+          const installed = apps.some(
+            (app) => app.platform === 'webapp' && (app.id === `${origin}/` || app.url === `${origin}/manifest.json`)
+          );
+          rememberInstalled(installed);
+          setEligible(!installed);
+        })
+        .catch(() => {
+          /* Retain the fallback when browser detection is unavailable. */
+        });
+    }
     return () => {
+      cancelled = true;
       window.clearTimeout(timer);
+      observer.disconnect();
       window.removeEventListener('beforeinstallprompt', onBeforeInstall);
       window.removeEventListener('appinstalled', onInstalled);
       standalone.removeEventListener('change', onDisplayModeChange);
+      window.removeEventListener('focus', updateAvailability);
+      window.removeEventListener('blur', updateAvailability);
+      document.removeEventListener('visibilitychange', updateAvailability);
       promptRef.current = null;
     };
   }, []);
 
-  const dismiss = () => {
-    setIsOpen(false);
-    rememberDismissal();
-  };
-
   const install = async () => {
     const event = promptRef.current;
     if (!event) return;
-    // The browser's install prompt is single-use and requires this user click.
     promptRef.current = null;
     setCanInstall(false);
     setIsInstalling(true);
@@ -105,7 +133,7 @@ export default function MobileInstallPrompt() {
     try {
       await event.prompt();
       await event.userChoice;
-      dismiss();
+      setDismissed(true);
     } catch {
       setError('The install prompt could not open. Use your browser menu to add KAINARA to your Home Screen.');
     } finally {
@@ -113,54 +141,40 @@ export default function MobileInstallPrompt() {
     }
   };
 
+  if (!eligible || !available || dismissed) return null;
   return (
-    <Modal
-      isOpen={isOpen}
-      onClose={dismiss}
-      size="sm"
-      title="Add KAINARA to your Home Screen"
-      description="Open your nutrition workspace from your phone’s Home Screen."
-      footer={
-        <>
-          <Button type="button" variant="ghost" onClick={dismiss}>
-            Not now
-          </Button>
-          {canInstall && (
-            <Button type="button" isLoading={isInstalling} onClick={() => void install()}>
-              Install KAINARA
-            </Button>
-          )}
-          {!canInstall && (
-            <Button type="button" onClick={dismiss}>
-              Got it
-            </Button>
-          )}
-        </>
-      }
-    >
-      <div className="space-y-3">
-        {canInstall ? (
-          <p>Tap Install KAINARA, then confirm in your browser.</p>
-        ) : isIOS ? (
-          <p>
-            In Safari, open the Share menu, choose “Add to Home Screen”, then tap Add. If you’re in another browser,
-            open this page in Safari first.
-          </p>
-        ) : (
-          <p>
-            Open your browser’s menu (⋮) and choose “Install app” or “Add to Home Screen”. The available option depends
-            on your browser.
-          </p>
-        )}
-        <p className="text-brand-muted">
-          KAINARA still needs an internet connection to load your account and save changes.
+    <FloatingNotice kind="install" title="Install KAINARA" onClose={() => setDismissed(true)}>
+      <p>
+        {canInstall
+          ? 'Add KAINARA to your Home Screen for quick access.'
+          : isIOS
+            ? 'In Safari, open the Share menu, choose “Add to Home Screen”, then tap Add.'
+            : 'Open your browser’s menu (⋮) and choose “Install app” or “Add to Home Screen”.'}
+      </p>
+      <p className="text-brand-muted">An internet connection is needed to use your account.</p>
+      {error && (
+        <p role="alert" className="text-status-error-text">
+          {error}
         </p>
-        {error && (
-          <p role="alert" className="text-status-error-text">
-            {error}
-          </p>
+      )}
+      <div className="flex flex-wrap items-center gap-2">
+        {canInstall && (
+          <Button type="button" size="sm" isLoading={isInstalling} onClick={() => void install()}>
+            Install
+          </Button>
         )}
+        <button
+          type="button"
+          className="min-h-10 text-xs font-semibold text-brand-muted underline underline-offset-2"
+          onClick={() => {
+            installationSignal.current += 1;
+            rememberInstalled(true);
+            setEligible(false);
+          }}
+        >
+          Already installed
+        </button>
       </div>
-    </Modal>
+    </FloatingNotice>
   );
 }

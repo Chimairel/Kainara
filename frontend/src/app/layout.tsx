@@ -7,7 +7,6 @@ import { ThemeProvider } from '@/lib/context/ThemeContext';
 import { BreadcrumbProvider } from '@/lib/context/BreadcrumbContext';
 import TopNavigationProgress from '@/components/shared/TopNavigationProgress';
 import { Toaster } from '@/components/ui/Sonner';
-import CapstoneDemoNotice from '@/components/shared/CapstoneDemoNotice';
 import MobileInstallPrompt from '@/components/shared/MobileInstallPrompt';
 
 const dmSans = DM_Sans({
@@ -43,7 +42,7 @@ export const viewport: Viewport = {
 export const metadata: Metadata = {
   title: 'KAINARA | AI Nutrition & Meal Planning',
   description:
-    'AI-powered, culturally aware meal planning validated against the FNRI Philippine Food Composition Table. Personalized nutrition for health-conscious Filipinos.',
+    'Personalized meal planning with Filipino recipes, food-composition references, nutrition tracking and professional review workflows.',
   keywords: ['nutrition', 'meal planning', 'Filipino food', 'FNRI', 'diet', 'health', 'AI nutrition', 'KAINARA'],
   authors: [{ name: 'KAINARA Team' }],
   icons: {
@@ -89,7 +88,6 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         className={`${dmSans.variable} ${plusJakartaSans.variable} ${outfit.variable} ${jetbrainsMono.variable} bg-brand-bg font-sans text-brand-text antialiased`}
       >
         <ThemeProvider>
-          <CapstoneDemoNotice mode={process.env.NUTRIMIND_DEPLOYMENT_MODE} />
           <MobileInstallPrompt />
           <Toaster position="bottom-right" richColors />
           <AuthProvider>

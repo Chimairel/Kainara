@@ -6,7 +6,7 @@ import { useAuth } from '@/hooks/useAuth';
 import api from '@/lib/axios';
 import { getApiErrorCode, getApiErrorMessage } from '@/lib/api-error';
 import { AlertTriangle } from 'lucide-react';
-import Modal from '@/components/ui/Modal';
+import FloatingNotice from '@/components/shared/FloatingNotice';
 import Button from '@/components/ui/Button';
 import { useGoogleSignInRecovery } from './useGoogleSignInRecovery';
 import { isEmbeddedAppBrowser } from '@/lib/browser-environment';
@@ -204,7 +204,7 @@ export default function GoogleSignInButton({
         </div>
       ) : (
         <div
-          className={`relative min-h-[52px] w-full overflow-hidden rounded-2xl border border-brand-border/60 bg-white p-1.5 shadow-sm ${disabled ? 'pointer-events-none opacity-50' : ''}`}
+          className={`relative min-h-[40px] w-full ${disabled ? 'pointer-events-none opacity-50' : ''}`}
           aria-disabled={disabled}
         >
           {!isReady && (
@@ -228,47 +228,37 @@ export default function GoogleSignInButton({
           Google window didn’t open?
         </button>
       )}
-      <Modal
-        isOpen={recovery.reason !== null}
-        onClose={recovery.close}
-        size="sm"
-        title={recovery.reason === 'embedded-browser' ? 'Open in your browser' : 'Popup may be blocked'}
-        description={
-          recovery.reason === 'embedded-browser'
-            ? 'Google sign-in may not work inside Messenger, Facebook, or Instagram’s browser.'
-            : 'If no Google sign-in window appeared, your browser may have blocked it.'
-        }
-        footer={
-          <Button type="button" onClick={recovery.close}>
-            Got it
-          </Button>
-        }
-      >
-        {recovery.reason === 'embedded-browser' ? (
-          <div className="space-y-3">
-            <p>
-              Use the app’s menu (⋯) and choose “Open in browser”, or copy this link and paste it into Chrome or Safari.
-            </p>
-            <p className="break-all rounded-xl border border-brand-border p-3 select-all">{recovery.pageUrl}</p>
-            <Button type="button" variant="secondary" onClick={() => void recovery.copyLink()}>
-              Copy link
-            </Button>
-            <p role="status" className="text-xs text-brand-muted">
-              {recovery.copyStatus}
-            </p>
-            <p>You can also use the email options on this page where available.</p>
-          </div>
-        ) : (
-          <div className="space-y-3">
-            <p>
-              Allow pop-ups and redirects for this website in your browser’s site settings, then close this dialog and
-              click Google sign-in again.
-            </p>
-            <p>If you’re using Messenger or another app’s browser, open the link in Chrome or Safari.</p>
-            <p>If a Google sign-in window is already open, continue there. You can also use email where available.</p>
-          </div>
-        )}
-      </Modal>
+      {recovery.reason !== null && (
+        <FloatingNotice
+          kind="auth"
+          onClose={recovery.close}
+          title={recovery.reason === 'embedded-browser' ? 'Open in your browser' : 'Popup may be blocked'}
+        >
+          {recovery.reason === 'embedded-browser' ? (
+            <>
+              <p>
+                Open KAINARA in Chrome or Safari to sign in with Google. In Messenger, Facebook or Instagram, use the
+                app’s menu and choose “Open in browser”.
+              </p>
+              <Button type="button" size="sm" variant="secondary" onClick={() => void recovery.copyLink()}>
+                Copy link
+              </Button>
+              <p className="break-all select-all text-brand-muted">{recovery.pageUrl}</p>
+              {recovery.copyStatus && <p role="status">{recovery.copyStatus}</p>}
+            </>
+          ) : (
+            <>
+              <p>
+                If Google sign-in didn’t open, allow pop-ups and redirects for this website in your browser’s site
+                settings, then try again.
+              </p>
+              <p className="text-brand-muted">
+                If a Google window is already open, continue there. You can also use email where available.
+              </p>
+            </>
+          )}
+        </FloatingNotice>
+      )}
     </div>
   );
 }

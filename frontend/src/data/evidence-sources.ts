@@ -68,7 +68,7 @@ export const EVIDENCE_SOURCES: readonly EvidenceSource[] = Object.freeze([
     mark: 'ENNS',
     category: 'PHILIPPINE_NUTRITION',
     status: 'USED',
-    role: 'Published aggregate food-consumption evidence used for coarse locality preferences, never individual diagnosis.',
+    role: 'When a published consumption release is configured, aggregate evidence can inform coarse locality preferences. It is not an individual diagnosis.',
     href: 'https://enutrition.fnri.dost.gov.ph/uploads/2018-2019%20Facts%20and%20Figures%20-%20Food%20Consumption%20Survey.pdf',
   },
   {
@@ -378,4 +378,14 @@ export const EVIDENCE_STATUS_LABELS: Readonly<Record<EvidenceSourceStatus, strin
   USED: 'Used in system',
   DRAFT_REVIEW: 'Draft policy · RND approval required',
   PROVENANCE_ONLY: 'Provenance only · no safety authority',
+});
+
+/** Concise roles for the landing page; reference-only policy sources stay in Docs. */
+export const SOURCE_PURPOSE_LABELS: Readonly<Record<string, string>> = Object.freeze({
+  'fnri-pdri': 'Macronutrient reference ranges',
+  'fnri-enutrition': 'Ingredient nutrition references',
+  'fnri-enns': 'Locality data when configured',
+  'usda-fdc': 'Food-composition fallback when configured',
+  mifflin: 'Resting-energy estimate',
+  'panlasang-pinoy': 'Recipe provenance only',
 });

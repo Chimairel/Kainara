@@ -10,25 +10,49 @@ vi.mock('@/hooks/useAuth', () => ({ useAuth: () => ({ user: { userId: authState.
 vi.mock('@/lib/axios', () => ({ default: { get: vi.fn(), patch: vi.fn(), post: vi.fn() } }));
 
 const rice: GroceryItem = {
-  id: 'rice', ingredientName: 'Rice', category: 'Grains', isChecked: false,
-  quantity: 100, purchasedQuantity: 0, unit: 'g', sourceMealCount: 1, isPantryStaple: false,
+  id: 'rice',
+  ingredientName: 'Rice',
+  category: 'Grains',
+  isChecked: false,
+  quantity: 100,
+  purchasedQuantity: 0,
+  unit: 'g',
+  sourceMealCount: 1,
+  isPantryStaple: false,
 };
 const salt: GroceryItem = {
-  id: 'salt', ingredientName: 'Salt', category: 'Condiments', isChecked: false,
-  quantity: null, purchasedQuantity: 0, unit: null, sourceMealCount: 1, isPantryStaple: false,
+  id: 'salt',
+  ingredientName: 'Salt',
+  category: 'Condiments',
+  isChecked: false,
+  quantity: null,
+  purchasedQuantity: 0,
+  unit: null,
+  sourceMealCount: 1,
+  isPantryStaple: false,
 };
 const workspace: GroceryWorkspace = {
   current: {
     scope: 'CURRENT',
     cycle: {
-      id: 'cycle', startDate: '', endDate: '', status: 'READY_TO_SHOP',
-      deadlineOutcome: 'COMPLETE', incompleteAcknowledgedAt: null, shoppingStartedAt: null,
+      id: 'cycle',
+      startDate: '',
+      endDate: '',
+      status: 'READY_TO_SHOP',
+      deadlineOutcome: 'COMPLETE',
+      incompleteAcknowledgedAt: null,
+      shoppingStartedAt: null,
     },
     groceryList: { id: 'list', weekLabel: 'Current', generatedAt: '', groceryItems: [rice, salt] },
     coverage: { clearedSlotCount: 3, expectedSlotCount: 3, unresolvedSlotCount: 0 },
     actionability: {
-      canCheckItems: true, canExportPdf: true, isFinal: true, isIncomplete: false,
-      quantitiesMayIncrease: false, requiresIncompleteAcknowledgment: false, message: 'Ready for shopping.',
+      canCheckItems: true,
+      canExportPdf: true,
+      isFinal: true,
+      isIncomplete: false,
+      quantitiesMayIncrease: false,
+      requiresIncompleteAcknowledgment: false,
+      message: 'Ready for shopping.',
     },
   },
   upcoming: null,
@@ -45,6 +69,21 @@ beforeEach(() => {
 });
 
 describe('grocery checklist', () => {
+  it('lets an empty next week be selected and returns to the existing current list', async () => {
+    render(<GroceryListPage />);
+    const next = await screen.findByRole('button', { name: 'Next week' });
+    expect(next).not.toBeDisabled();
+    fireEvent.click(next);
+    expect(screen.getByText('No grocery list for next week yet')).toBeInTheDocument();
+    expect(next).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.queryByRole('checkbox', { name: 'Mark as bought: Rice' })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Current week' }));
+    expect(screen.getByRole('checkbox', { name: 'Mark as bought: Rice' })).toBeInTheDocument();
+    expect(get).toHaveBeenCalledTimes(1);
+    expect(patch).not.toHaveBeenCalled();
+    expect(api.post).not.toHaveBeenCalled();
+  });
+
   it('checks a measured item without reloading the workspace', async () => {
     patch.mockResolvedValue({ data: { success: true, data: { ...rice, isChecked: true, purchasedQuantity: 100 } } });
     render(<GroceryListPage />);
@@ -55,20 +94,25 @@ describe('grocery checklist', () => {
   });
 
   it('allows a provisional checklist item to be checked before all meal slots clear', async () => {
-    get.mockResolvedValueOnce({ data: { success: true, data: {
-      ...workspace,
-      current: {
-        ...workspace.current,
-        cycle: { ...workspace.current!.cycle, status: 'UNDER_REVIEW' },
-        coverage: { clearedSlotCount: 1, expectedSlotCount: 3, unresolvedSlotCount: 2 },
-        actionability: {
-          ...workspace.current!.actionability,
-          canExportPdf: false,
-          isFinal: false,
-          quantitiesMayIncrease: true,
+    get.mockResolvedValueOnce({
+      data: {
+        success: true,
+        data: {
+          ...workspace,
+          current: {
+            ...workspace.current,
+            cycle: { ...workspace.current!.cycle, status: 'UNDER_REVIEW' },
+            coverage: { clearedSlotCount: 1, expectedSlotCount: 3, unresolvedSlotCount: 2 },
+            actionability: {
+              ...workspace.current!.actionability,
+              canExportPdf: false,
+              isFinal: false,
+              quantitiesMayIncrease: true,
+            },
+          },
         },
       },
-    } } });
+    });
     patch.mockResolvedValue({ data: { success: true, data: { ...salt, isChecked: true } } });
     render(<GroceryListPage />);
     fireEvent.click(await screen.findByRole('checkbox', { name: 'Mark as bought: Salt' }));
@@ -78,17 +122,21 @@ describe('grocery checklist', () => {
 
   it('checks all visible items in one request, including an unmeasured ingredient', async () => {
     patch.mockResolvedValue({
-      data: { success: true, data: [
-        { ...rice, isChecked: true, purchasedQuantity: 100 },
-        { ...salt, isChecked: true, purchasedQuantity: 0 },
-      ] },
+      data: {
+        success: true,
+        data: [
+          { ...rice, isChecked: true, purchasedQuantity: 100 },
+          { ...salt, isChecked: true, purchasedQuantity: 0 },
+        ],
+      },
     });
     render(<GroceryListPage />);
     fireEvent.click(await screen.findByRole('checkbox', { name: 'Mark all visible items purchased' }));
     await waitFor(() => expect(screen.getByRole('checkbox', { name: 'Uncheck all visible items' })).not.toBeDisabled());
     expect(patch).toHaveBeenCalledTimes(1);
     expect(patch).toHaveBeenCalledWith('/user/grocery/items/checklist', {
-      itemIds: ['rice', 'salt'], checked: true,
+      itemIds: ['rice', 'salt'],
+      checked: true,
     });
   });
 

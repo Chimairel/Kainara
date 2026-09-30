@@ -6,7 +6,7 @@ NutriMind is a Philippines-focused nutrition and meal-planning capstone applicat
 
 Operational deployment uses [`docs/PRODUCTION_OPERATIONS_RUNBOOK.md`](docs/PRODUCTION_OPERATIONS_RUNBOOK.md). Public production startup remains gated on the qualified sign-off recorded in [`docs/CLINICAL_POLICY_APPROVAL.md`](docs/CLINICAL_POLICY_APPROVAL.md).
 
-The hosted capstone demonstration uses [`docs/VERCEL_RAILWAY_DEMO_DEPLOYMENT.md`](docs/VERCEL_RAILWAY_DEMO_DEPLOYMENT.md), with normal registration/login and an explicit unapproved-demo notice. It keeps production security enabled and does not constitute clinical approval.
+The hosted capstone demonstration uses [`docs/VERCEL_RAILWAY_DEMO_DEPLOYMENT.md`](docs/VERCEL_RAILWAY_DEMO_DEPLOYMENT.md), with normal registration/login and the existing release-mode startup gates. Public interface wording follows the current engineering-record entry. It keeps production security enabled and does not constitute clinical approval.
 
 Administrator-managed nutrition sources, aggregate consumption releases, FNRI mappings, publication, and rollback use [`docs/ADMIN_REFERENCE_DATA_RUNBOOK.md`](docs/ADMIN_REFERENCE_DATA_RUNBOOK.md).
 

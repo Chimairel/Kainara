@@ -50,25 +50,31 @@ export default function GroceryListPage() {
     [ownerId]
   );
 
-  const applyItems = useCallback((items: GroceryItem[]) => {
-    const current = workspaceRef.current;
-    if (!current || items.length === 0) return;
-    const byId = new Map(items.map((item) => [item.id, item]));
-    const patch = (cycle: GroceryWorkspace['current']) => cycle?.groceryList ? {
-      ...cycle,
-      groceryList: {
-        ...cycle.groceryList,
-        groceryItems: cycle.groceryList.groceryItems.map((item) => byId.get(item.id) ?? item),
-      },
-    } : cycle;
-    const next = { current: patch(current.current), upcoming: patch(current.upcoming) };
-    workspaceRef.current = next;
-    setWorkspace(next);
-    cachePage(next);
-  }, [cachePage]);
+  const applyItems = useCallback(
+    (items: GroceryItem[]) => {
+      const current = workspaceRef.current;
+      if (!current || items.length === 0) return;
+      const byId = new Map(items.map((item) => [item.id, item]));
+      const patch = (cycle: GroceryWorkspace['current']) =>
+        cycle?.groceryList
+          ? {
+              ...cycle,
+              groceryList: {
+                ...cycle.groceryList,
+                groceryItems: cycle.groceryList.groceryItems.map((item) => byId.get(item.id) ?? item),
+              },
+            }
+          : cycle;
+      const next = { current: patch(current.current), upcoming: patch(current.upcoming) };
+      workspaceRef.current = next;
+      setWorkspace(next);
+      cachePage(next);
+    },
+    [cachePage]
+  );
 
   const setPending = (ids: string[], pending: boolean) => {
-    ids.forEach((id) => pending ? pendingRef.current.add(id) : pendingRef.current.delete(id));
+    ids.forEach((id) => (pending ? pendingRef.current.add(id) : pendingRef.current.delete(id)));
     setPendingIds(new Set(pendingRef.current));
   };
 
@@ -84,8 +90,7 @@ export default function GroceryListPage() {
         cachePage(snapshot);
       }
     } catch (err: unknown) {
-      if (version === requestVersion.current)
-        setError(getApiErrorMessage(err, 'Failed to retrieve grocery list.'));
+      if (version === requestVersion.current) setError(getApiErrorMessage(err, 'Failed to retrieve grocery list.'));
     } finally {
       if (version === requestVersion.current) setIsLoading(false);
     }
@@ -243,8 +248,7 @@ export default function GroceryListPage() {
           (filter === 'packed' && item.isChecked && !item.isPantryStaple) ||
           (filter === 'pantry' && item.isPantryStaple);
 
-        const matchesCategory =
-          selectedCategory === 'ALL' || normalizeCategory(item.category) === selectedCategory;
+        const matchesCategory = selectedCategory === 'ALL' || normalizeCategory(item.category) === selectedCategory;
 
         return matchesQuery && matchesStatus && matchesCategory;
       })
@@ -259,7 +263,8 @@ export default function GroceryListPage() {
         } else if (sortField === 'status') {
           diff = Number(a.isChecked) - Number(b.isChecked) || a.ingredientName.localeCompare(b.ingredientName);
         } else if (sortField === 'pantry') {
-          diff = Number(a.isPantryStaple) - Number(b.isPantryStaple) || a.ingredientName.localeCompare(b.ingredientName);
+          diff =
+            Number(a.isPantryStaple) - Number(b.isPantryStaple) || a.ingredientName.localeCompare(b.ingredientName);
         }
 
         return sortOrder === 'asc' ? diff : -diff;
@@ -306,14 +311,17 @@ export default function GroceryListPage() {
     setBulkBusy(true);
     const ids = itemsToUpdate.map((item) => item.id);
     setPending(ids, true);
-    applyItems(itemsToUpdate.map((item) => ({
-      ...item,
-      isChecked: targetState,
-      purchasedQuantity: targetState ? (item.quantity ?? 0) : 0,
-    })));
+    applyItems(
+      itemsToUpdate.map((item) => ({
+        ...item,
+        isChecked: targetState,
+        purchasedQuantity: targetState ? (item.quantity ?? 0) : 0,
+      }))
+    );
     try {
       const response = await api.patch('/user/grocery/items/checklist', { itemIds: ids, checked: targetState });
-      if (!response.data?.success || !Array.isArray(response.data.data)) throw new Error('Checklist update was not confirmed.');
+      if (!response.data?.success || !Array.isArray(response.data.data))
+        throw new Error('Checklist update was not confirmed.');
       if (generation === ownerGeneration.current) applyItems(response.data.data as GroceryItem[]);
     } catch (err) {
       if (generation === ownerGeneration.current) {
@@ -345,12 +353,11 @@ export default function GroceryListPage() {
       {!isLoading && visibleWorkspace ? (
         <div className="mb-5 grid grid-cols-2 gap-2 rounded-2xl border border-brand-border/70 bg-brand-surface/80 p-1.5">
           {(['CURRENT', 'UPCOMING'] as const).map((value) => {
-            const available = value === 'CURRENT' ? visibleWorkspace.current : visibleWorkspace.upcoming;
             return (
               <button
                 key={value}
                 type="button"
-                disabled={!available}
+                aria-pressed={scope === value}
                 onClick={() => {
                   setScope(value);
                   setQuery('');
@@ -361,7 +368,7 @@ export default function GroceryListPage() {
                   scope === value
                     ? 'bg-brand-green text-white shadow-sm'
                     : 'text-brand-muted hover:bg-brand-bgAlt hover:text-brand-text'
-                } disabled:cursor-not-allowed disabled:opacity-40`}
+                }`}
               >
                 {value === 'CURRENT' ? 'Current week' : 'Next week'}
               </button>
@@ -394,11 +401,11 @@ export default function GroceryListPage() {
         <UnauthorizedState
           imageSrc="/logo/verifying.svg"
           imageAlt="Plan preparation"
-          eyebrow={scope === 'UPCOMING' ? 'Preparation opens soon' : 'No active cycle'}
-          title={scope === 'UPCOMING' ? 'Next Week Is Not Preparing Yet' : 'No Current Grocery Cycle'}
+          eyebrow={scope === 'UPCOMING' ? 'Next week' : 'Current week'}
+          title={scope === 'UPCOMING' ? 'No grocery list for next week yet' : 'No grocery list for this week yet'}
           description={
             scope === 'UPCOMING'
-              ? 'The next grocery preview appears automatically when advance meal preparation opens.'
+              ? 'Ingredients will appear here when meals for next week are available.'
               : 'Your current grocery list will appear when an active meal-plan cycle is available.'
           }
           action={{ label: 'View Meal Plan', href: '/meals' }}
@@ -424,15 +431,16 @@ export default function GroceryListPage() {
       ) : (
         <div className="flex flex-col gap-5 text-left">
           {/* REIMAGINED SHOPPING PROGRESS HERO (WITH RETRO WAVE STRIPES & MODERN FEEL) */}
-          <section
-            className="relative overflow-hidden rounded-[28px] sm:rounded-[32px] border border-[#dce4e0] dark:border-[#173e33] bg-[#faf8f5] dark:bg-[#0e271f] text-[#0d2820] dark:text-slate-100 shadow-md p-6 sm:p-7"
-          >
+          <section className="relative overflow-hidden rounded-[28px] sm:rounded-[32px] border border-[#dce4e0] dark:border-[#173e33] bg-[#faf8f5] dark:bg-[#0e271f] text-[#0d2820] dark:text-slate-100 shadow-md p-6 sm:p-7">
             {/* Retro Wave Organic Corner Accent (Top Left) */}
             <div className="pointer-events-none absolute -top-0.5 -left-0.5 h-28 w-28 sm:h-32 sm:w-32 overflow-hidden rounded-tl-[28px] sm:rounded-tl-[32px] z-0">
               <svg viewBox="0 0 160 160" className="h-full w-full" fill="none">
                 <path d="M0,0 L160,0 C140,40 105,95 40,135 C20,147 0,155 0,155 Z" fill="#eb6a38" />
                 <path d="M0,0 L120,0 C105,30 80,72 30,105 C15,115 0,120 0,120 Z" fill="#f09e6c" />
-                <path d="M0,0 L78,0 C68,20 50,48 18,70 C8,76 0,80 0,80 Z" className="fill-[#1b4e41] dark:fill-[#164639]" />
+                <path
+                  d="M0,0 L78,0 C68,20 50,48 18,70 C8,76 0,80 0,80 Z"
+                  className="fill-[#1b4e41] dark:fill-[#164639]"
+                />
               </svg>
             </div>
 
@@ -452,7 +460,8 @@ export default function GroceryListPage() {
                   </span>
                   <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-600/30 dark:border-[#1a5c48] bg-emerald-100/70 dark:bg-[#0e352b] px-3 py-1 text-[10px] font-bold text-emerald-800 dark:text-[#38c172] shadow-xs">
                     <span className="h-1.5 w-1.5 rounded-full bg-emerald-600 dark:bg-[#38c172]" />
-                    {projection.coverage.clearedSlotCount} of {projection.coverage.expectedSlotCount} meal slots included
+                    {projection.coverage.clearedSlotCount} of {projection.coverage.expectedSlotCount} meal slots
+                    included
                   </span>
                 </div>
 
@@ -509,7 +518,8 @@ export default function GroceryListPage() {
 
                 {pendingMealCount > 0 && canCheckItems && (
                   <p className="mt-3 text-xs text-status-pending-text font-medium">
-                    {pendingMealCount} meal slot{pendingMealCount === 1 ? '' : 's'} not yet included · {projection.actionability.message}
+                    {pendingMealCount} meal slot{pendingMealCount === 1 ? '' : 's'} not yet included ·{' '}
+                    {projection.actionability.message}
                   </p>
                 )}
                 {!canCheckItems && (
@@ -574,10 +584,7 @@ export default function GroceryListPage() {
 
               {/* Bottom Row: Status Filter Pills & Summary Counter / Reset */}
               <div className="flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-brand-border/40">
-                <div
-                  className="flex flex-wrap items-center gap-1.5"
-                  aria-label="Filter grocery items by status"
-                >
+                <div className="flex flex-wrap items-center gap-1.5" aria-label="Filter grocery items by status">
                   {(
                     [
                       ['all', 'All Items', totalItems],
@@ -600,9 +607,7 @@ export default function GroceryListPage() {
                       <span>{label}</span>
                       <span
                         className={`rounded-full px-1.5 py-0.2 font-mono text-[9px] ${
-                          filter === value
-                            ? 'bg-white/20 text-white'
-                            : 'bg-brand-border/50 text-brand-muted'
+                          filter === value ? 'bg-white/20 text-white' : 'bg-brand-border/50 text-brand-muted'
                         }`}
                       >
                         {count}
@@ -613,8 +618,8 @@ export default function GroceryListPage() {
 
                 <div className="flex items-center gap-3 text-[11px] text-brand-muted font-medium">
                   <span>
-                    Showing <strong className="text-brand-text font-bold">{visibleItems.length}</strong> of{' '}
-                    {totalItems} items
+                    Showing <strong className="text-brand-text font-bold">{visibleItems.length}</strong> of {totalItems}{' '}
+                    items
                   </span>
 
                   {isFiltered && (

@@ -20,7 +20,10 @@ export default function DocsPage() {
           <div className="pointer-events-none absolute left-[12%] top-10 h-72 w-72 rounded-full bg-brand-accent/10 blur-[110px]" />
           <div className="pointer-events-none absolute right-[8%] top-20 h-72 w-72 rounded-full bg-brand-cyan/10 blur-[110px]" />
           <div className="relative mx-auto max-w-[1320px] px-5 py-20 sm:px-8 lg:px-12 lg:py-28">
-            <Link href="/" className="mb-10 inline-flex items-center gap-2 text-xs font-bold text-brand-muted transition hover:text-brand-green">
+            <Link
+              href="/"
+              className="mb-10 inline-flex items-center gap-2 text-xs font-bold text-brand-muted transition hover:text-brand-green"
+            >
               <ArrowLeft className="h-3.5 w-3.5" />
               Back to experience
             </Link>
@@ -36,11 +39,12 @@ export default function DocsPage() {
               </div>
               <div className="border-l border-brand-border/70 pl-6">
                 <p className="text-sm leading-7 text-brand-muted">
-                  Learn how meals are prepared and reviewed, what the service can and cannot do, and how your information is handled.
+                  Learn how meals are prepared and reviewed, what the service can and cannot do, and how your
+                  information is handled.
                 </p>
                 <div className="mt-5 flex items-center gap-3 text-[10px] font-bold uppercase tracking-[0.15em] text-brand-muted">
                   <span className="h-2 w-2 rounded-full bg-brand-green" />
-                  Updated September 27, 2026
+                  Updated September 30, 2026
                 </div>
               </div>
             </div>

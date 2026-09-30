@@ -26,7 +26,7 @@ import {
 import PublicHeader from '@/components/shared/PublicHeader';
 import KainaraLogo from '@/components/shared/KainaraLogo';
 import { useAuth } from '@/hooks/useAuth';
-import { EVIDENCE_SOURCES, EVIDENCE_STATUS_LABELS } from '@/data/evidence-sources';
+import { EVIDENCE_SOURCES, SOURCE_PURPOSE_LABELS } from '@/data/evidence-sources';
 
 const getRoleHome = (role: 'USER' | 'NUTRITIONIST' | 'ADMIN') => {
   if (role === 'ADMIN') return '/admin/overview';
@@ -39,7 +39,7 @@ const capabilities = [
     icon: Fingerprint,
     number: '01',
     title: 'Built around your health context',
-    text: 'Goals, allergies, preferences, conditions, and shopping routines shape every planning decision—not just a calorie number.',
+    text: 'Your goals, allergies, preferences, conditions and shopping routine shape meal selection.',
     className: 'lg:col-span-2',
     accent: 'from-emerald-500/20 to-brand-green/5',
   },
@@ -47,7 +47,7 @@ const capabilities = [
     icon: Database,
     number: '02',
     title: 'Filipino food intelligence',
-    text: 'Meals are grounded in familiar ingredients and official Philippine Food Composition Tables (FNRI).',
+    text: 'Browse familiar recipes, with ingredient nutrition references from FNRI and configured food-composition sources.',
     className: '',
     accent: 'from-brand-cyan/20 to-sky-500/5',
   },
@@ -55,7 +55,7 @@ const capabilities = [
     icon: ShieldCheck,
     number: '03',
     title: 'Review-aware by design',
-    text: 'AI-created meals remain clearly pending until a nutritionist reviews them. Verification is visible, never implied.',
+    text: 'See recipe verification and meal case-review status. Restricted profiles and meals follow their applicable review requirements.',
     className: '',
     accent: 'from-amber-500/20 to-brand-accent/5',
   },
@@ -63,7 +63,7 @@ const capabilities = [
     icon: Sparkles,
     number: '04',
     title: 'A library that gets smarter',
-    text: 'Verified meals are reusable for compatible health profiles, reducing AI hallucination while growing a clinical database.',
+    text: 'Recorded servings and eligible case approvals can be reused when a later profile matches their reviewed scope.',
     className: 'lg:col-span-2',
     accent: 'from-teal-500/20 to-emerald-500/5',
   },
@@ -73,22 +73,22 @@ const loopSteps = [
   {
     icon: Fingerprint,
     title: 'Profile & Clinical Intake',
-    text: 'Capture health goals, dietary needs, allergies, and lifestyle context with Mifflin-St Jeor precision.',
+    text: 'Record measurements, goals, preferences and restrictions to calculate targets and guide meal selection.',
   },
   {
     icon: Database,
-    title: 'FNRI & Library Matching',
-    text: 'Search compatible verified meals from licensed nutritionists before generating anything new.',
+    title: 'Recipe & Serving Matching',
+    text: 'Search eligible recorded servings and published recipes before generating candidates for remaining slots.',
   },
   {
     icon: WandSparkles,
-    title: 'AI Gap Synthesis',
-    text: 'Use Gemini AI only for plan gaps, with pending clinical status prominently displayed to the user.',
+    title: 'AI-assisted Drafts',
+    text: 'Gemini can draft candidates for unfilled slots. Ingredient evidence and applicable review rules still determine their use.',
   },
   {
     icon: Stethoscope,
-    title: 'Nutritionist Audit',
-    text: 'Route generated meals to registered nutritionist-dietitians to approve, adjust, and expand the library.',
+    title: 'Professional Review',
+    text: 'Nutritionists review profiles, meal cases and submitted recipes, recording decisions within each review’s scope.',
   },
 ];
 
@@ -96,7 +96,7 @@ const rndStages = [
   {
     icon: BadgeCheck,
     title: 'Credential Review',
-    text: 'PRC license details, university credentials, and clinical background are rigorously assessed.',
+    text: 'Administrators review submitted PRC license details, education and professional background.',
   },
   {
     icon: Video,
@@ -106,7 +106,7 @@ const rndStages = [
   {
     icon: ShieldCheck,
     title: 'Controlled Access',
-    text: 'Only verified RNDs receive a private, cryptographic audit account invitation.',
+    text: 'Approved applicants receive an account activation invitation for the nutritionist workspace.',
   },
 ];
 
@@ -116,15 +116,16 @@ export default function Home() {
 
   useEffect(() => {
     if (!isLoading && user?.emailVerified) {
-      const destination = user.role === 'ADMIN'
-        ? '/admin/overview'
-        : user.role === 'NUTRITIONIST'
-          ? '/nutritionist/reviews'
-          : !user.onboardingDone
-            ? user.onboardingNextPath || '/onboarding/stats'
-            : !user.tosAccepted
-              ? '/onboarding/tos'
-              : '/dashboard';
+      const destination =
+        user.role === 'ADMIN'
+          ? '/admin/overview'
+          : user.role === 'NUTRITIONIST'
+            ? '/nutritionist/reviews'
+            : !user.onboardingDone
+              ? user.onboardingNextPath || '/onboarding/stats'
+              : !user.tosAccepted
+                ? '/onboarding/tos'
+                : '/dashboard';
       router.replace(destination);
     }
   }, [user, isLoading, router]);
@@ -179,8 +180,8 @@ export default function Home() {
               </h1>
 
               <p className="mt-5 max-w-xl text-base leading-7 text-brand-muted sm:text-lg sm:leading-8">
-                KAINARA transforms personal biometric and clinical context into culturally authentic Filipino meal plans,
-                coupling Gemini AI with FNRI food tables and licensed nutritionist review.
+                KAINARA brings familiar recipes, calculated nutrition targets and daily tracking into one workspace,
+                with AI-assisted planning and nutritionist review for applicable cases.
               </p>
 
               <div className="mt-8 flex flex-col gap-3.5 sm:flex-row sm:items-center">
@@ -206,7 +207,7 @@ export default function Home() {
                 {[
                   ['7 Days', 'Personalized Cycle', Flame],
                   ['3 Roles', 'Patient, RND & Admin', Activity],
-                  ['100%', 'Transparent Verification', CheckCircle2],
+                  ['Visible', 'Meal Review Status', CheckCircle2],
                 ].map(([value, label, Icon]) => {
                   const StatIcon = Icon as React.ComponentType<{ className?: string }>;
                   return (
@@ -276,7 +277,7 @@ export default function Home() {
                       <span className="h-2.5 w-2.5 rounded-full bg-[#ffbd2e]/90 shadow-sm" />
                       <span className="h-2.5 w-2.5 rounded-full bg-[#27c93f]/90 shadow-sm" />
                       <span className="ml-2 font-mono text-[10px] text-white/50 hidden xs:inline">
-                        app.kainara.ph/dashboard
+                        kainara.vercel.app/dashboard
                       </span>
                     </div>
                     <div className="flex items-center gap-2 rounded-full border border-emerald-500/30 bg-[#0e271f] px-2.5 py-1">
@@ -311,8 +312,8 @@ export default function Home() {
                     <ShieldCheck className="h-5 w-5" />
                   </span>
                   <div>
-                    <p className="text-xs font-bold text-brand-text">Verified RND Review</p>
-                    <p className="text-[10px] text-brand-muted">Clinical safety confirmed</p>
+                    <p className="text-xs font-bold text-brand-text">Meal review status</p>
+                    <p className="text-[10px] text-brand-muted">Recorded decisions and scope</p>
                   </div>
                 </div>
               </motion.div>
@@ -339,8 +340,8 @@ export default function Home() {
               </h2>
             </div>
             <p className="max-w-xl text-sm leading-7 text-brand-muted lg:ml-auto lg:text-base">
-              KAINARA unites the patient everyday routine with licensed nutritionist oversight and administrative
-              governance. Every meal is grounded in verified science, never unchecked generative output.
+              KAINARA unites the patient everyday routine with licensed nutritionist oversight and administrative review
+              workflows. Recipe identity, nutrition estimates and case decisions have distinct roles in planning.
             </p>
           </motion.div>
 
@@ -396,10 +397,11 @@ export default function Home() {
                 The Intelligence Loop
               </div>
               <h2 className="mt-4 font-display text-3xl font-black tracking-[-0.04em] sm:text-5xl">
-                Designed to learn without bypassing the clinical checkpoint.
+                From your profile to a meal plan.
               </h2>
               <p className="mt-4 text-sm sm:text-base text-white/60">
-                A seamless 4-stage pipeline that ensures generative AI stays accountable to licensed professionals.
+                Profile context, recorded recipes, AI assistance and applicable review requirements guide meal
+                selection.
               </p>
             </motion.div>
 
@@ -447,11 +449,12 @@ export default function Home() {
                 For Registered Nutritionist-Dietitians
               </div>
               <h2 className="mt-6 max-w-2xl font-display text-3xl font-black leading-[1.05] tracking-[-0.04em] sm:text-5xl">
-                Help keep AI-assisted nutrition clinically safe.
+                Review recipes and meal suitability.
               </h2>
               <p className="mt-5 max-w-xl text-sm leading-7 text-white/60 sm:text-base">
-                Apply online from anywhere in the Philippines to join KAINARA&apos;s accredited RND review council. Every
-                application undergoes license credential screening and direct verification before audit access is granted.
+                Apply online from anywhere in the Philippines to join KAINARA&apos;s accredited RND review council.
+                Every application undergoes license credential screening and direct verification before audit access is
+                granted.
               </p>
               <div className="mt-8 flex flex-col gap-3.5 sm:flex-row">
                 <Link
@@ -503,16 +506,18 @@ export default function Home() {
             >
               <div>
                 <div className="eyebrow inline-flex items-center gap-2">
-                  <BookOpenText className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" /> Evidence & Data Foundations
+                  <BookOpenText className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" /> Evidence & Data
+                  Foundations
                 </div>
                 <h2 className="mt-4 max-w-xl font-display text-3xl font-black leading-[1.05] tracking-[-0.04em] text-brand-text sm:text-5xl">
-                  Traceable scientific sources, with provenance kept clear.
+                  Food data, calculation methods and recipe sources.
                 </h2>
               </div>
               <div className="max-w-2xl lg:ml-auto">
                 <p className="text-sm leading-7 text-brand-muted sm:text-base">
-                  KAINARA references peer-reviewed methods, FNRI Philippine food composition datasets, DOST clinical
-                  standards, and attributed recipe archives. Provenance is transparently cited for full clinical auditability.
+                  Food-composition records support ingredient matching, published methods support energy estimates, and
+                  recipe links identify the original dish. Available data varies by ingredient and configured source; a
+                  source citation does not approve a meal for a health condition.
                 </p>
                 <Link
                   href="/docs#data-sources"
@@ -524,7 +529,7 @@ export default function Home() {
             </motion.div>
 
             <div className="mt-12 grid grid-cols-2 gap-3.5 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6">
-              {EVIDENCE_SOURCES.map((source, index) => (
+              {EVIDENCE_SOURCES.filter((source) => source.status !== 'DRAFT_REVIEW').map((source, index) => (
                 <motion.a
                   key={source.id}
                   href={source.href}
@@ -545,7 +550,7 @@ export default function Home() {
                     {source.shortName}
                   </p>
                   <p className="mt-1.5 font-mono text-[8px] font-bold uppercase leading-4 tracking-[0.08em] text-brand-muted">
-                    {EVIDENCE_STATUS_LABELS[source.status]}
+                    {SOURCE_PURPOSE_LABELS[source.id]}
                   </p>
                 </motion.a>
               ))}
@@ -571,8 +576,8 @@ export default function Home() {
                 The comprehensive guide to KAINARA.
               </h2>
               <p className="mt-4 max-w-xl text-sm leading-7 text-brand-muted sm:text-base">
-                Explore our clinical safety framework, FNRI Philippine food composition tables, Mifflin-St Jeor macro
-                algorithms, and nutritionist verification workflows.
+                Explore meal planning, energy estimates, food-composition references, nutritionist review, account
+                controls and help for using KAINARA.
               </p>
               <Link
                 href="/docs"
@@ -591,9 +596,9 @@ export default function Home() {
                   className="group flex flex-col justify-end overflow-hidden rounded-[24px] border border-[#173e33] bg-[#091b15] p-5 transition hover:border-emerald-500/40 hover:bg-[#0c241d]"
                 >
                   <ShieldCheck className="h-7 w-7 text-emerald-400 transition-transform group-hover:scale-110" />
-                  <p className="mt-14 font-display text-base font-bold">Clinical Safety & Oversight</p>
+                  <p className="mt-14 font-display text-base font-bold">Restrictions & Review</p>
                   <p className="mt-2 text-xs leading-5 text-white/50">
-                    Contraindication checks, allergy gates, and verified RND review.
+                    Declared restrictions, profile checks and scoped nutritionist decisions.
                   </p>
                 </Link>
                 <div className="grid gap-4">
@@ -602,9 +607,9 @@ export default function Home() {
                     className="group rounded-[24px] border border-[#173e33] bg-[#091b15] p-5 transition hover:border-brand-cyan/40 hover:bg-[#0c241d]"
                   >
                     <Database className="h-6 w-6 text-brand-cyan transition-transform group-hover:scale-110" />
-                    <p className="mt-6 text-sm font-bold">FNRI & Macro Engine</p>
+                    <p className="mt-6 text-sm font-bold">Energy & Food References</p>
                     <p className="mt-1 text-[11px] leading-4 text-white/50">
-                      Mifflin-St Jeor TDEE & Philippine food data.
+                      Resting-energy estimates, activity adjustments and ingredient nutrition.
                     </p>
                   </Link>
                   <Link
@@ -663,7 +668,7 @@ export default function Home() {
             <KainaraLogo size="sm" variant="gradient" />
             KAINARA
           </div>
-          <p>© 2026 KAINARA. AI-assisted Filipino nutrition intelligence with clinical oversight.</p>
+          <p>© 2026 KAINARA. Meal planning, nutrition tracking and professional review workflows.</p>
           <div className="flex gap-6 font-semibold">
             <Link href="/docs" className="transition hover:text-emerald-600 dark:hover:text-emerald-400">
               Documentation
