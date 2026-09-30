@@ -6,7 +6,7 @@ The publicly accessible website itself is the capstone demonstration. Normal reg
 
 ## 1. Select accounts, database and release
 
-- Use a separate demo database or a reviewed sanitized copy. Do not point the demo at a database with real patient records or run test-account seeds against the shared development database.
+- Owner confirmed the existing database is already the capstone demo database. Reuse its current connection and document encryption key after a backup. Local and hosted writes then affect the same records; do not run resets or test-account seeds as part of hosting setup. A separate copy is optional isolation, not a deployment requirement.
 - Prepare demonstration accounts for all three roles and rehearse registration/application journeys. Existing credentials, email/Google identity verification and role prerequisites still apply; demo mode does not create accounts or grant nutritionist/admin roles.
 - Deploy the `demo` release branch on both hosts. Routine `development` pushes do not update it; promote a tested commit to `demo` deliberately. Do not switch branches over another tool's unfinished changes.
 - Review required public assets before release. Untracked `frontend/public/sources/` and `Documentations/` are not automatically included in a Git deployment; do not publish their contents without reviewing them.
@@ -15,14 +15,14 @@ The publicly accessible website itself is the capstone demonstration. Normal reg
 
 Import `Chimairel/nutrimindv1`, select `demo`, set root directory `/backend`, and use the checked-in Dockerfile (Node 24). Start command: `node dist/server.js`. Configure pre-deploy command `npx prisma migrate deploy` with a finite timeout (for example, 300 seconds) after confirming the demo database and taking a backup. Do not use `migrate dev`, `db push`, reset, or automatic seeds on deployment. Configure Railway's healthcheck path as `/ready`; `/health` only confirms the process is alive. Generate a public Railway domain. The server reads Railway's `PORT`, and the Docker healthcheck reads the same value.
 
-Migrations create the schema, not the 2,000-meal catalogue or role accounts. The dedicated demo database also needs reviewed reference/recipe data and demonstration accounts. Wait until its target is known before running any data preparation. A sanitized copy must preserve document encryption keys and reference relationships. This deployment preparation did not copy or seed a database.
+For an empty database, migrations create the schema, not the 2,000-meal catalogue or role accounts. The owner's existing demo database already contains its data; do not reseed it during hosting setup. A future separate copy must preserve document encryption keys and reference relationships. This deployment preparation did not copy or seed a database.
 
 | Railway variable | Demo configuration |
 | --- | --- |
 | `NODE_ENV` | `production`, never `test` or `development` to bypass deployment checks |
 | `NUTRIMIND_DEPLOYMENT_MODE` | `capstone-demo` |
 | `CLINICAL_POLICY_APPROVED_VERSION` | Unset/empty; setting it in demo mode fails startup |
-| `DATABASE_URL` | Dedicated PostgreSQL demo connection, appropriate SSL/pooling settings |
+| `DATABASE_URL` | Existing capstone demo PostgreSQL connection, appropriate SSL/pooling settings |
 | `JWT_SECRET`, `JWT_REFRESH_SECRET`, `CRON_SECRET` | Separately generated secrets of at least 32 characters |
 | `FRONTEND_URL` | Final exact HTTPS Vercel/custom origin, without a trailing slash or path |
 | `CORS_ORIGINS` | Exact approved HTTPS frontend origins; no wildcard, arbitrary preview domain or localhost |
@@ -38,9 +38,9 @@ The database holds encrypted clinical document bytes. Railway local disk is not 
 
 ## 3. Vercel frontend
 
-Import the same repository/release branch. Set root directory `frontend`, framework Next.js, Node 24, install command `npm ci` and build command `npm run build`; let the Next.js integration determine the output. Enable access to source files outside the root directory if required by the existing output tracing configuration. Do not enter a development start command.
+Import the same repository/release branch. Set root directory `frontend`, framework Next.js, Node 24, install command `npm ci` and build command `npm run build`. The checked-in `frontend/vercel.json` explicitly sets Output Directory to `.next-production`, matching the production `distDir` in `next.config.mjs`. Leaving Vercel on `.next` causes a missing `routes-manifest.json` error even after successful compilation. Enable access to source files outside the root directory if required by the existing output tracing configuration. Do not enter a development start command.
 
-In Vercel's Git settings, set the Production Branch to `demo`. Configure the following variables for **Production**. The checked-in `frontend/vercel.json` supplies the framework/install/build settings; selecting the root directory and production branch remains manual.
+In Vercel's **Settings → Environments → Production → Branch Tracking**, set the Production Branch to `demo`. Configure the following variables for **Production**. The checked-in `frontend/vercel.json` supplies the framework/install/build/output settings; selecting the root directory and production branch remains manual. If no `demo` deployment exists yet, use **Deployments → Create Deployment** with the branch `demo`; Redeploy only reruns an existing deployment.
 
 | Vercel variable | Demo configuration |
 | --- | --- |
@@ -101,7 +101,7 @@ Recommended order:
 
 1. Activate Brevo and verify the sender.
 2. Create the Vercel project from `demo`, root `frontend`, and note its stable production origin. The initial deployment is not usable until the Railway origin is configured.
-3. Create the separate demo database and prepare its reviewed data. Create Railway's backend service from `demo`, root `/backend`; enter backend variables with the final Vercel origin and Brevo credentials, then deploy.
+3. Back up the existing capstone demo database, then put its connection in Railway's `DATABASE_URL` and preserve the document encryption key. Create Railway's backend service from `demo`, root `/backend`; enter backend variables with the final Vercel origin and Brevo credentials, then deploy. No new database or reseeding is required for the owner's existing demo data.
 4. Generate Railway's HTTPS domain; set Vercel's `INTERNAL_API_URL` to that origin, set the other frontend variables, then redeploy Vercel.
 5. Add the final Vercel origin to Google's Authorized JavaScript origins, verify both services, and complete the hosted checks above. A Google client ID is public; its client secret is not used by this login flow.
 6. Configure the authenticated daily scheduler separately. Additional Railway services and AI/email usage can consume credits; a running API alone does not install the daily schedule.
