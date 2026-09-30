@@ -3,99 +3,143 @@
 import React from 'react';
 
 /**
- * LandingWaveRiver renders a single, continuous, highly undulating 3-color wave ribbon
- * that flows with dramatic organic S-curves vertically from header to footer.
+ * LandingWaveRiver renders the organic 3-color flowing wave stripe
+ * with the signature left-to-right sweep across the hero and section transitions,
+ * kept clean, balanced, and perfectly weighted without overloading the hero.
  *
- * Saturated, vibrant colors matching the "Your daily intake" card:
- * - Deep Pine Green (#1b4e41 / #12382e in dark)
- * - Terracotta Peach (#f09e6c in light and dark)
- * - Warm Coral Orange (#eb6a38 in light and dark)
+ * Color palette matching the "Your daily intake" card:
+ * - Deep Pine Green (#1b4e41 / #154236 in dark)
+ * - Terracotta Peach (#f09e6c)
+ * - Warm Coral Orange (#eb6a38)
  */
 export default function LandingWaveRiver() {
-  // Center path with pronounced, rolling wave crests and troughs (1440 x 5200 space)
-  const centerD = `
-    M 880 -50
-    C 1080 120, 1340 220, 1360 480
-    C 1380 740, 1420 950, 1430 1150
-    C 1440 1350, 1320 1560, 1140 1740
-    C 960 1920, 680 2050, 360 2250
-    C 140 2420, 120 2680, 360 2920
-    C 620 3160, 1240 3300, 1320 3580
-    C 1400 3860, 1140 4060, 680 4260
-    C 280 4440, 480 4760, 840 4960
-    C 1060 5080, 960 5180, 780 5260
-  `;
-
-  // Left path: offset -42px
-  const leftD = `
-    M 838 -50
-    C 1038 120, 1298 220, 1318 480
-    C 1338 740, 1378 950, 1388 1150
-    C 1398 1350, 1278 1560, 1098 1740
-    C 918 1920, 638 2050, 318 2250
-    C 98 2420, 78 2680, 318 2920
-    C 578 3160, 1198 3300, 1278 3580
-    C 1358 3860, 1098 4060, 638 4260
-    C 238 4440, 438 4760, 798 4960
-    C 1018 5080, 918 5180, 738 5260
-  `;
-
-  // Right path: offset +42px
-  const rightD = `
-    M 922 -50
-    C 1122 120, 1382 220, 1402 480
-    C 1422 740, 1462 950, 1472 1150
-    C 1482 1350, 1362 1560, 1182 1740
-    C 1002 1920, 722 2050, 402 2250
-    C 182 2420, 162 2680, 402 2920
-    C 662 3160, 1282 3300, 1362 3580
-    C 1442 3860, 1182 4060, 722 4260
-    C 322 4440, 522 4760, 882 4960
-    C 1102 5080, 1002 5180, 822 5260
-  `;
-
   return (
     <div
       aria-hidden="true"
       className="pointer-events-none absolute inset-0 overflow-hidden select-none z-0"
     >
-      <svg
-        viewBox="0 0 1440 5200"
-        fill="none"
-        xmlns="http://www.w3.org/2000/svg"
-        className="w-full h-full opacity-100 dark:opacity-90"
-        preserveAspectRatio="none"
-      >
-        {/* Band 1: Deep Pine Green */}
-        <path
-          d={leftD}
-          stroke="#1b4e41"
-          strokeWidth="42"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          className="dark:stroke-[#154236]"
-        />
+      {/* HERO SECTION WAVE (SIGNATURE LEFT-TO-RIGHT SWEEP BEHIND COCKPIT) */}
+      <div className="absolute -top-52 sm:-top-12 left-1/2 -translate-x-1/2 w-[1600px] h-[950px] max-w-none opacity-100 dark:opacity-95">
+        <svg
+          viewBox="0 0 1600 950"
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg"
+          className="w-full h-full"
+        >
+          {/* Main Flowing Ribbon: 3 Parallel Curved Bands */}
+          {/* Band 1: Deep Pine Green (Upper Layer) */}
+          <path
+            d="M 260 -40
+               C 340 100, 480 200, 680 250
+               C 920 310, 1160 480, 1280 640
+               C 1380 770, 1500 810, 1680 840"
+            stroke="#1b4e41"
+            strokeWidth="48"
+            strokeLinecap="round"
+            className="dark:stroke-[#154236]"
+          />
 
-        {/* Band 2: Terracotta Peach (Middle) */}
-        <path
-          d={centerD}
-          stroke="#f09e6c"
-          strokeWidth="42"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          className="dark:stroke-[#f09e6c]"
-        />
+          {/* Band 2: Warm Terracotta Peach (Middle Layer) */}
+          <path
+            d="M 285 -40
+               C 365 100, 505 200, 705 250
+               C 945 310, 1185 480, 1305 640
+               C 1405 770, 1525 810, 1705 840"
+            stroke="#f09e6c"
+            strokeWidth="48"
+            strokeLinecap="round"
+            className="dark:stroke-[#f09e6c]"
+          />
 
-        {/* Band 3: Warm Coral Orange */}
-        <path
-          d={rightD}
-          stroke="#eb6a38"
-          strokeWidth="42"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          className="dark:stroke-[#eb6a38]"
-        />
-      </svg>
+          {/* Band 3: Vibrant Coral Orange (Lower Layer) */}
+          <path
+            d="M 310 -40
+               C 390 100, 530 200, 730 250
+               C 970 310, 1210 480, 1330 640
+               C 1430 770, 1550 810, 1730 840"
+            stroke="#eb6a38"
+            strokeWidth="48"
+            strokeLinecap="round"
+            className="dark:stroke-[#eb6a38]"
+          />
+        </svg>
+      </div>
+
+      {/* MID-PAGE WAVE (TRANSITION INTO THE INTELLIGENCE LOOP) */}
+      <div className="absolute top-[1650px] left-1/2 -translate-x-1/2 w-[1600px] h-[850px] max-w-none opacity-95 dark:opacity-90">
+        <svg
+          viewBox="0 0 1600 850"
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg"
+          className="w-full h-full"
+        >
+          <path
+            d="M -60 220
+               C 280 260, 560 520, 880 480
+               C 1200 440, 1420 200, 1680 160"
+            stroke="#1b4e41"
+            strokeWidth="42"
+            strokeLinecap="round"
+            className="dark:stroke-[#154236]"
+          />
+          <path
+            d="M -60 250
+               C 280 290, 560 550, 880 510
+               C 1200 470, 1420 230, 1680 190"
+            stroke="#f09e6c"
+            strokeWidth="42"
+            strokeLinecap="round"
+            className="dark:stroke-[#f09e6c]"
+          />
+          <path
+            d="M -60 280
+               C 280 320, 560 580, 880 540
+               C 1200 500, 1420 260, 1680 220"
+            stroke="#eb6a38"
+            strokeWidth="42"
+            strokeLinecap="round"
+            className="dark:stroke-[#eb6a38]"
+          />
+        </svg>
+      </div>
+
+      {/* FOOTER SECTION WAVE (BOTTOM SWEEP BEHIND CTA) */}
+      <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[1600px] h-[600px] max-w-none opacity-100 dark:opacity-90">
+        <svg
+          viewBox="0 0 1600 600"
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg"
+          className="w-full h-full"
+        >
+          <path
+            d="M -80 380
+               C 320 260, 740 440, 1120 360
+               C 1340 310, 1520 220, 1680 180"
+            stroke="#1b4e41"
+            strokeWidth="44"
+            strokeLinecap="round"
+            className="dark:stroke-[#154236]"
+          />
+          <path
+            d="M -80 412
+               C 320 292, 740 472, 1120 392
+               C 1340 342, 1520 252, 1680 212"
+            stroke="#f09e6c"
+            strokeWidth="44"
+            strokeLinecap="round"
+            className="dark:stroke-[#f09e6c]"
+          />
+          <path
+            d="M -80 444
+               C 320 324, 740 504, 1120 424
+               C 1340 374, 1520 284, 1680 244"
+            stroke="#eb6a38"
+            strokeWidth="44"
+            strokeLinecap="round"
+            className="dark:stroke-[#eb6a38]"
+          />
+        </svg>
+      </div>
     </div>
   );
 }
