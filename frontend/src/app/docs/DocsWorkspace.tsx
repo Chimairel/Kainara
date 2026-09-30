@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { ArrowRight, ChevronRight, List } from 'lucide-react';
-import KainaraLogo from '@/components/shared/KainaraLogo';
 import { docsChapters } from './DocsChapters';
 
 const groups = ['Start here', 'Use KAINARA', 'Review and evidence', 'Policies and help'] as const;
@@ -118,40 +117,31 @@ export default function DocsWorkspace() {
       {/* ARTICLE CONTENT */}
       <article className="min-w-0" aria-live="polite">
         {chapter ? (
-          <div id={chapter.id} className="scroll-mt-28 space-y-8">
-            {/* Elevated Chapter Header Card */}
-            <header className="relative overflow-hidden rounded-[28px] border border-brand-border/80 bg-brand-surface/90 p-7 sm:p-9 shadow-xl shadow-emerald-950/5 dark:shadow-[0_20px_50px_rgba(0,0,0,0.45)] backdrop-blur-md">
-              {/* Fluid 3-tone gradient stripe accent along top */}
-              <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-[#1b4e41] via-[#f09e6c] to-[#eb6a38]" />
-
-              <div className="mb-5 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div
-                    className={`flex h-12 w-12 items-center justify-center rounded-2xl border shadow-sm ${
-                      chapter.tone === 'cyan'
-                        ? 'border-brand-cyan/30 bg-brand-cyan/15 text-brand-cyan'
-                        : chapter.tone === 'green'
-                          ? 'border-emerald-500/30 bg-emerald-500/15 text-emerald-400'
-                          : chapter.tone === 'amber'
-                            ? 'border-amber-400/30 bg-amber-400/15 text-amber-400'
-                            : 'border-[#f09e6c]/30 bg-[#f09e6c]/15 text-[#f09e6c]'
-                    }`}
-                  >
-                    <chapter.icon className="h-6 w-6" />
-                  </div>
-                  <div>
-                    <span className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-brand-muted block">
-                      Chapter {String(docsChapters.indexOf(chapter) + 1).padStart(2, '0')} / {String(docsChapters.length).padStart(2, '0')}
-                    </span>
-                    <span className="font-display font-bold text-xs text-brand-text block mt-0.5">
-                      {chapter.group}
-                    </span>
-                  </div>
+          <div id={chapter.id} className="scroll-mt-28 space-y-6">
+            {/* Chapter Header (Clean, floating header - not enclosed in a card) */}
+            <header className="border-b border-brand-border/70 pb-8">
+              <div className="mb-5 flex items-center gap-3">
+                <div
+                  className={`flex h-11 w-11 items-center justify-center rounded-2xl border shadow-sm ${
+                    chapter.tone === 'cyan'
+                      ? 'border-brand-cyan/30 bg-brand-cyan/15 text-brand-cyan'
+                      : chapter.tone === 'green'
+                        ? 'border-emerald-500/30 bg-emerald-500/15 text-emerald-400'
+                        : chapter.tone === 'amber'
+                          ? 'border-amber-400/30 bg-amber-400/15 text-amber-400'
+                          : 'border-[#f09e6c]/30 bg-[#f09e6c]/15 text-[#f09e6c]'
+                  }`}
+                >
+                  <chapter.icon className="h-5 w-5" />
                 </div>
-
-                <span className="hidden sm:inline-flex rounded-full border border-brand-border/70 bg-brand-bg/80 px-3 py-1 font-mono text-[9px] font-bold uppercase tracking-wider text-brand-muted">
-                  Clinical Guide
-                </span>
+                <div>
+                  <span className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-brand-muted">
+                    Chapter {String(docsChapters.indexOf(chapter) + 1).padStart(2, '0')} / {String(docsChapters.length).padStart(2, '0')}
+                  </span>
+                  <span className="ml-2.5 rounded-md border border-brand-border/60 bg-brand-bg/60 px-2 py-0.5 font-mono text-[9px] font-bold uppercase text-brand-muted">
+                    {chapter.group}
+                  </span>
+                </div>
               </div>
 
               <h2 className="font-display text-3xl font-black tracking-tight text-brand-text sm:text-4xl">{chapter.title}</h2>
@@ -168,23 +158,14 @@ export default function DocsWorkspace() {
               ))}
             </div>
 
-            {/* Bottom Call to Action Card */}
+            {/* Bottom Call to Action Card (No upper gradient border, no logo/brand pill, single button) */}
             <div className="relative mt-10 overflow-hidden rounded-[28px] border border-[#173e33] bg-[#071914] p-7 sm:p-9 text-white shadow-2xl">
               {/* Ambient blurs */}
               <div className="pointer-events-none absolute -right-16 -top-16 h-48 w-48 rounded-full bg-brand-cyan/20 blur-3xl" />
               <div className="pointer-events-none absolute -left-16 -bottom-16 h-48 w-48 rounded-full bg-emerald-500/15 blur-3xl" />
 
-              {/* Fluid 3-tone gradient stripe accent along top */}
-              <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-[#1b4e41] via-[#f09e6c] to-[#eb6a38]" />
-
               <div className="relative z-10 flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                  <div className="flex items-center gap-2.5 mb-2.5">
-                    <KainaraLogo size={24} variant="multicolor" />
-                    <span className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-emerald-400">
-                      KAINARA Platform
-                    </span>
-                  </div>
                   <h3 className="font-display text-xl font-black text-white sm:text-2xl">
                     Ready to build your meal plan?
                   </h3>
@@ -192,18 +173,12 @@ export default function DocsWorkspace() {
                     Set up your health profile and experience Filipino nutrition planning supervised by licensed dietitians.
                   </p>
                 </div>
-                <div className="flex flex-wrap items-center gap-3">
+                <div className="flex shrink-0 items-center">
                   <Link
                     href="/register"
-                    className="inline-flex min-h-[46px] items-center gap-2 rounded-xl bg-brand-accent px-6 text-xs font-bold text-white shadow-neon transition duration-200 hover:-translate-y-0.5 hover:brightness-110 active:scale-[0.98]"
+                    className="inline-flex min-h-[48px] items-center gap-2.5 rounded-2xl bg-brand-accent px-7 text-xs font-bold text-white shadow-neon transition duration-200 hover:-translate-y-0.5 hover:brightness-110 active:scale-[0.98]"
                   >
                     Build my profile <ArrowRight className="h-3.5 w-3.5" />
-                  </Link>
-                  <Link
-                    href="/dashboard"
-                    className="inline-flex min-h-[46px] items-center gap-2 rounded-xl border border-emerald-500/30 bg-[#0e271f] px-5 text-xs font-bold text-emerald-300 transition duration-200 hover:-translate-y-0.5 hover:border-emerald-500/50 hover:bg-[#13352a]"
-                  >
-                    Go to Dashboard
                   </Link>
                 </div>
               </div>
