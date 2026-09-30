@@ -27,7 +27,7 @@ import {
   Clock,
   Mail,
   MapPin,
-  ShieldAlert,
+  Search,
 } from 'lucide-react';
 import PublicHeader from '@/components/shared/PublicHeader';
 import KainaraLogo from '@/components/shared/KainaraLogo';
@@ -246,11 +246,10 @@ export default function Home() {
                 </Link>
                 <Link
                   href="/docs"
-                  className="group flex min-h-14 items-center justify-center gap-3 rounded-2xl border border-brand-border/80 bg-brand-surface/70 px-6 text-sm font-bold text-brand-text backdrop-blur-xl transition duration-200 hover:-translate-y-1 hover:border-brand-green/40 hover:bg-brand-surface"
+                  className="group flex min-h-14 items-center justify-center gap-2.5 rounded-2xl border border-emerald-500/20 bg-[#071914] px-7 text-sm font-bold text-white shadow-md transition duration-200 hover:-translate-y-1 hover:border-emerald-400/50 hover:bg-[#0e271f] hover:shadow-lg active:scale-[0.98]"
                 >
-                  <BookOpenText className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
                   Explore Documentation
-                  <ArrowUpRight className="h-3.5 w-3.5 text-brand-muted transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+                  <ArrowUpRight className="h-4 w-4 text-emerald-400 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
                 </Link>
               </div>
 
@@ -560,9 +559,11 @@ export default function Home() {
                 </Link>
                 <Link
                   href="/nutritionist-apply#track"
-                  className="inline-flex min-h-[52px] items-center justify-center gap-3 rounded-2xl border border-[#173e33] bg-[#0e271f] px-6 text-sm font-bold text-emerald-400 transition duration-200 hover:border-emerald-400/50 hover:text-white"
+                  className="group inline-flex min-h-[52px] items-center justify-center gap-2.5 rounded-2xl border border-emerald-500/35 bg-emerald-500/15 px-6 text-sm font-bold text-white shadow-md transition duration-200 hover:-translate-y-0.5 hover:border-emerald-400 hover:bg-emerald-500/25 active:scale-[0.98]"
                 >
+                  <Search className="h-4 w-4 text-emerald-400 transition-transform group-hover:scale-110" />
                   Track Application Status
+                  <ArrowRight className="h-4 w-4 text-emerald-400/70 transition-transform group-hover:translate-x-0.5 group-hover:text-emerald-400" />
                 </Link>
               </div>
             </div>
@@ -677,66 +678,162 @@ export default function Home() {
             transition={{ duration: 0.7 }}
             className="grid overflow-hidden rounded-[36px] border border-brand-border/70 bg-brand-surface/80 shadow-2xl backdrop-blur-xl lg:grid-cols-[1.05fr_0.95fr]"
           >
-            <div className="p-8 sm:p-12 lg:p-16">
-              <div className="eyebrow inline-flex items-center gap-2">
-                <BookOpenText className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
-                Documentation & User Guide
+            {/* Left Column: Documentation Overview */}
+            <div className="flex flex-col justify-between p-8 sm:p-12 lg:p-14 xl:p-16">
+              <div>
+                <div className="inline-flex items-center gap-2 rounded-full border border-emerald-500/25 bg-emerald-500/10 px-3.5 py-1 text-xs font-semibold text-emerald-800 dark:text-emerald-400">
+                  <BookOpenText className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
+                  Documentation & User Guide
+                </div>
+                <h2 className="mt-6 max-w-xl font-display text-3xl font-black leading-[1.05] tracking-[-0.04em] sm:text-5xl">
+                  The comprehensive guide to <span className="text-gradient">KAINARA.</span>
+                </h2>
+                <p className="mt-4 max-w-xl text-sm leading-7 text-brand-muted sm:text-base">
+                  Explore meal planning, energy estimates, food-composition references, nutritionist review, account
+                  controls and help for using KAINARA.
+                </p>
+
+                {/* Guide Pillar Tags */}
+                <div className="mt-8 flex flex-wrap gap-2.5">
+                  <span className="inline-flex items-center gap-1.5 rounded-xl border border-brand-border/80 bg-brand-bg/60 px-3 py-1.5 text-xs font-semibold text-brand-text">
+                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                    Clinical Safeguards
+                  </span>
+                  <span className="inline-flex items-center gap-1.5 rounded-xl border border-brand-border/80 bg-brand-bg/60 px-3 py-1.5 text-xs font-semibold text-brand-text">
+                    <span className="h-1.5 w-1.5 rounded-full bg-brand-cyan" />
+                    FNRI / USDA References
+                  </span>
+                  <span className="inline-flex items-center gap-1.5 rounded-xl border border-brand-border/80 bg-brand-bg/60 px-3 py-1.5 text-xs font-semibold text-brand-text">
+                    <span className="h-1.5 w-1.5 rounded-full bg-[#f09e6c]" />
+                    Workflow Handbooks
+                  </span>
+                </div>
               </div>
-              <h2 className="mt-5 max-w-xl font-display text-3xl font-black leading-[1.05] tracking-[-0.04em] sm:text-5xl">
-                The comprehensive guide to KAINARA.
-              </h2>
-              <p className="mt-4 max-w-xl text-sm leading-7 text-brand-muted sm:text-base">
-                Explore meal planning, energy estimates, food-composition references, nutritionist review, account
-                controls and help for using KAINARA.
-              </p>
-              <Link
-                href="/docs"
-                className="group mt-8 inline-flex min-h-12 items-center gap-3 rounded-2xl bg-brand-text px-6 text-sm font-bold text-brand-bg transition hover:-translate-y-0.5"
-              >
-                Explore Documentation
-                <ArrowUpRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
-              </Link>
+
+              <div className="mt-10">
+                <Link
+                  href="/docs"
+                  className="group inline-flex min-h-12 items-center gap-2.5 rounded-2xl border border-emerald-500/20 bg-[#071914] px-7 text-sm font-bold text-white shadow-md transition duration-200 hover:-translate-y-0.5 hover:border-emerald-500/40 hover:bg-[#0e271f] hover:shadow-lg active:scale-[0.98]"
+                >
+                  Explore Documentation
+                  <ArrowUpRight className="h-4 w-4 text-emerald-400 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+                </Link>
+              </div>
             </div>
 
-            <div className="relative min-h-[420px] overflow-hidden bg-[#071914] p-7 text-white sm:p-10 border-t lg:border-t-0 lg:border-l border-[#173e33]">
-              <div className="absolute right-8 top-8 h-32 w-32 rounded-full bg-brand-cyan/15 blur-3xl" />
-              <div className="relative grid h-full grid-cols-2 gap-4">
+            {/* Right Column: Interactive Guides Cockpit */}
+            <div className="relative min-h-[460px] overflow-hidden bg-[#071914] p-7 text-white sm:p-10 border-t lg:border-t-0 lg:border-l border-[#173e33]">
+              {/* Ambient Glows */}
+              <div className="pointer-events-none absolute right-4 top-4 h-48 w-48 rounded-full bg-brand-cyan/15 blur-3xl" />
+              <div className="pointer-events-none absolute left-4 bottom-4 h-48 w-48 rounded-full bg-emerald-500/10 blur-3xl" />
+
+              {/* Watermark Logo */}
+              <div className="pointer-events-none absolute -bottom-8 -right-8 hidden sm:flex items-center justify-center opacity-10">
+                <KainaraLogo size={160} variant="multicolor" />
+              </div>
+
+              <div className="relative z-10 grid h-full grid-cols-1 gap-4 sm:grid-cols-2">
+                {/* Restrictions & Review - Left Tall Card */}
                 <Link
                   href="/docs#clinical-guidelines"
-                  className="group flex flex-col justify-end overflow-hidden rounded-[24px] border border-[#173e33] bg-[#091b15] p-5 transition hover:border-emerald-500/40 hover:bg-[#0c241d]"
+                  className="group relative flex flex-col justify-between overflow-hidden rounded-[24px] border border-[#173e33] bg-[#091b15]/90 p-6 transition duration-200 hover:border-emerald-500/50 hover:bg-[#0c241d] hover:shadow-[0_8px_30px_rgba(16,185,129,0.12)]"
                 >
-                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-emerald-500/30 bg-emerald-500/15 text-emerald-400 transition-transform duration-300 group-hover:scale-110">
-                    <ShieldCheck className="h-6 w-6" />
+                  <div className="flex items-center justify-between">
+                    <span className="font-mono text-[9px] font-bold uppercase tracking-[0.16em] text-emerald-400/90">
+                      Clinical Scope
+                    </span>
+                    <div className="flex h-7 w-7 items-center justify-center rounded-lg border border-emerald-500/20 bg-emerald-500/10 text-emerald-400 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:border-emerald-400/40">
+                      <ArrowUpRight className="h-3.5 w-3.5" />
+                    </div>
                   </div>
-                  <p className="mt-10 font-display text-base font-bold text-white">Restrictions & Review</p>
-                  <p className="mt-2 text-xs leading-5 text-white/50">
-                    Declared restrictions, profile checks and scoped nutritionist decisions.
-                  </p>
+
+                  <div className="my-auto py-6">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-emerald-500/30 bg-emerald-500/15 text-emerald-400 shadow-[0_0_20px_rgba(16,185,129,0.15)] transition-transform duration-300 group-hover:scale-105">
+                      <ShieldCheck className="h-6 w-6" />
+                    </div>
+                    <h3 className="mt-4 font-display text-base font-bold text-white group-hover:text-emerald-300 transition-colors">
+                      Restrictions & Review
+                    </h3>
+                    <p className="mt-2 text-xs leading-5 text-white/60">
+                      Declared restrictions, profile checks and scoped nutritionist decisions.
+                    </p>
+                  </div>
+
+                  <div className="flex flex-wrap gap-1.5 border-t border-[#173e33]/70 pt-3">
+                    <span className="rounded-md border border-emerald-500/20 bg-emerald-500/10 px-2 py-0.5 font-mono text-[9px] text-emerald-300">
+                      Allergies
+                    </span>
+                    <span className="rounded-md border border-emerald-500/20 bg-emerald-500/10 px-2 py-0.5 font-mono text-[9px] text-emerald-300">
+                      Conditions
+                    </span>
+                    <span className="rounded-md border border-emerald-500/20 bg-emerald-500/10 px-2 py-0.5 font-mono text-[9px] text-emerald-300">
+                      RND Audit
+                    </span>
+                  </div>
                 </Link>
+
+                {/* Right Stacked Cards */}
                 <div className="grid gap-4">
+                  {/* Energy & Food References */}
                   <Link
                     href="/docs#meal-planning"
-                    className="group rounded-[24px] border border-[#173e33] bg-[#091b15] p-5 transition hover:border-brand-cyan/40 hover:bg-[#0c241d]"
+                    className="group relative flex flex-col justify-between rounded-[24px] border border-[#173e33] bg-[#091b15]/90 p-5 transition duration-200 hover:border-brand-cyan/50 hover:bg-[#0c241d] hover:shadow-[0_8px_30px_rgba(6,182,212,0.12)]"
                   >
-                    <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-brand-cyan/30 bg-brand-cyan/15 text-brand-cyan transition-transform duration-300 group-hover:scale-110">
-                      <Database className="h-5 w-5" />
+                    <div>
+                      <div className="flex items-center justify-between">
+                        <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-brand-cyan/30 bg-brand-cyan/15 text-brand-cyan transition-transform duration-300 group-hover:scale-105">
+                          <Database className="h-5 w-5" />
+                        </div>
+                        <div className="flex h-7 w-7 items-center justify-center rounded-lg border border-brand-cyan/20 bg-brand-cyan/10 text-brand-cyan transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:border-brand-cyan/40">
+                          <ArrowUpRight className="h-3.5 w-3.5" />
+                        </div>
+                      </div>
+                      <h3 className="mt-3.5 text-sm font-bold text-white group-hover:text-cyan-300 transition-colors">
+                        Energy & Food References
+                      </h3>
+                      <p className="mt-1 text-[11px] leading-4 text-white/60">
+                        Resting-energy estimates, activity adjustments and ingredient nutrition.
+                      </p>
                     </div>
-                    <p className="mt-3.5 text-sm font-bold text-white">Energy & Food References</p>
-                    <p className="mt-1 text-[11px] leading-4 text-white/50">
-                      Resting-energy estimates, activity adjustments and ingredient nutrition.
-                    </p>
+                    <div className="mt-3 flex flex-wrap gap-1.5 border-t border-[#173e33]/70 pt-2.5">
+                      <span className="rounded-md border border-cyan-500/20 bg-cyan-500/10 px-1.5 py-0.5 font-mono text-[9px] text-cyan-300">
+                        FNRI FCT
+                      </span>
+                      <span className="rounded-md border border-cyan-500/20 bg-cyan-500/10 px-1.5 py-0.5 font-mono text-[9px] text-cyan-300">
+                        Mifflin-St Jeor
+                      </span>
+                    </div>
                   </Link>
+
+                  {/* User Guides & FAQs */}
                   <Link
                     href="/docs#help"
-                    className="group rounded-[24px] border border-[#173e33] bg-[#091b15] p-5 transition hover:border-[#f09e6c]/40 hover:bg-[#0c241d]"
+                    className="group relative flex flex-col justify-between rounded-[24px] border border-[#173e33] bg-[#091b15]/90 p-5 transition duration-200 hover:border-[#f09e6c]/50 hover:bg-[#0c241d] hover:shadow-[0_8px_30px_rgba(240,158,108,0.12)]"
                   >
-                    <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-[#f09e6c]/30 bg-[#f09e6c]/15 text-[#f09e6c] transition-transform duration-300 group-hover:scale-110">
-                      <Sparkles className="h-5 w-5" />
+                    <div>
+                      <div className="flex items-center justify-between">
+                        <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-[#f09e6c]/30 bg-[#f09e6c]/15 text-[#f09e6c] transition-transform duration-300 group-hover:scale-105">
+                          <Sparkles className="h-5 w-5" />
+                        </div>
+                        <div className="flex h-7 w-7 items-center justify-center rounded-lg border border-[#f09e6c]/20 bg-[#f09e6c]/10 text-[#f09e6c] transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:border-[#f09e6c]/40">
+                          <ArrowUpRight className="h-3.5 w-3.5" />
+                        </div>
+                      </div>
+                      <h3 className="mt-3.5 text-sm font-bold text-white group-hover:text-[#f09e6c] transition-colors">
+                        User Guides & FAQs
+                      </h3>
+                      <p className="mt-1 text-[11px] leading-4 text-white/60">
+                        Starter bridge plans, meal swaps, and grocery lists.
+                      </p>
                     </div>
-                    <p className="mt-3.5 text-sm font-bold text-white">User Guides & FAQs</p>
-                    <p className="mt-1 text-[11px] leading-4 text-white/50">
-                      Starter bridge plans, meal swaps, and grocery lists.
-                    </p>
+                    <div className="mt-3 flex flex-wrap gap-1.5 border-t border-[#173e33]/70 pt-2.5">
+                      <span className="rounded-md border border-[#f09e6c]/20 bg-[#f09e6c]/10 px-1.5 py-0.5 font-mono text-[9px] text-[#f09e6c]">
+                        Bridge Plans
+                      </span>
+                      <span className="rounded-md border border-[#f09e6c]/20 bg-[#f09e6c]/10 px-1.5 py-0.5 font-mono text-[9px] text-[#f09e6c]">
+                        Meal Swaps
+                      </span>
+                    </div>
                   </Link>
                 </div>
               </div>
@@ -943,52 +1040,8 @@ export default function Home() {
               </div>
             </div>
 
-            {/* Middle Banner Card: Emergency Clinical Safety Hotlines */}
-            <div className="my-8 rounded-[24px] border border-[#173e33] bg-gradient-to-r from-[#091f18] via-[#0b271f] to-[#091f18] p-5 sm:p-6 lg:flex lg:items-center lg:justify-between shadow-xl">
-              <div className="flex items-center gap-3.5 mb-4 lg:mb-0">
-                <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-emerald-500/40 bg-emerald-500/15 text-emerald-400 shadow-sm">
-                  <ShieldAlert className="h-6 w-6" />
-                </span>
-                <div>
-                  <p className="font-display text-base font-extrabold text-white">
-                    Clinical Safety & Emergency Hotlines
-                  </p>
-                  <p className="text-xs text-white/55">
-                    KAINARA is an AI-assisted planning tool with licensed RND review. For acute medical emergencies, contact national hotlines immediately.
-                  </p>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 xs:grid-cols-3 gap-3 sm:gap-6 border-t border-[#173e33] pt-4 lg:border-t-0 lg:pt-0">
-                <div>
-                  <p className="font-mono text-[9px] font-bold uppercase tracking-wider text-emerald-400">
-                    Emergency
-                  </p>
-                  <p className="font-display text-base sm:text-lg font-black text-white">
-                    911
-                  </p>
-                </div>
-                <div>
-                  <p className="font-mono text-[9px] font-bold uppercase tracking-wider text-brand-cyan">
-                    DOH Crisis Line
-                  </p>
-                  <p className="font-display text-base sm:text-lg font-black text-white">
-                    1553
-                  </p>
-                </div>
-                <div>
-                  <p className="font-mono text-[9px] font-bold uppercase tracking-wider text-[#f09e6c]">
-                    UP-PGH Poison Desk
-                  </p>
-                  <p className="font-display text-base sm:text-lg font-black text-white">
-                    (02) 8524-1078
-                  </p>
-                </div>
-              </div>
-            </div>
-
             {/* Bottom Copyright & Legal Row */}
-            <div className="relative z-10 flex flex-col sm:flex-row items-center justify-between gap-4 border-t border-[#173e33] pt-6 pb-6 text-xs text-white/50">
+            <div className="relative z-10 flex flex-col sm:flex-row items-center justify-between gap-4 border-t border-[#173e33] pt-8 pb-6 text-xs text-white/50">
               <p>© 2026 KAINARA. AI-Assisted Filipino Nutrition & Clinical Review. All rights reserved.</p>
 
               <div className="flex items-center gap-6 font-medium">
