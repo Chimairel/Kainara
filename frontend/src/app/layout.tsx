@@ -7,6 +7,7 @@ import { ThemeProvider } from '@/lib/context/ThemeContext';
 import { BreadcrumbProvider } from '@/lib/context/BreadcrumbContext';
 import TopNavigationProgress from '@/components/shared/TopNavigationProgress';
 import { Toaster } from '@/components/ui/Sonner';
+import CapstoneDemoNotice from '@/components/shared/CapstoneDemoNotice';
 
 const dmSans = DM_Sans({
   subsets: ['latin'],
@@ -87,6 +88,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         className={`${dmSans.variable} ${plusJakartaSans.variable} ${outfit.variable} ${jetbrainsMono.variable} bg-brand-bg font-sans text-brand-text antialiased`}
       >
         <ThemeProvider>
+          <CapstoneDemoNotice mode={process.env.NUTRIMIND_DEPLOYMENT_MODE} />
           <Toaster position="bottom-right" richColors />
           <AuthProvider>
             <BreadcrumbProvider>

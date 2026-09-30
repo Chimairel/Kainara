@@ -8,6 +8,7 @@ import { verifyEmailTransporter } from '@/lib/email';
 import prisma from '@/lib/prisma';
 import { randomUUID } from 'crypto';
 import { env } from '@/config/env';
+import { CAPSTONE_DEMO_NOTICE, isCapstoneDemo } from '@/domain/deployment-mode.policy';
 import { errorHandler, notFoundHandler } from '@/middleware/errorHandler';
 import { logger } from '@/lib/logger';
 import swaggerUi from 'swagger-ui-express';
@@ -62,6 +63,11 @@ app.use(cors(createCorsOptions(env.allowedCorsOrigins)));
 app.use('/api/nutritionist-applications', express.json({ limit: '2mb' }));
 app.use(express.json({ limit: '256kb' }));
 app.use(cookieParser());
+// Vercel's external rewrite must never cache personalized API responses.
+app.use('/api', (_req, res, next) => {
+  res.setHeader('Cache-Control', 'private, no-store');
+  next();
+});
 // Authentication has endpoint-specific limits. A busy onboarding or browsing
 // session must not prevent the user from signing in or refreshing a session.
 app.use('/api/auth', authRouter);
@@ -93,6 +99,7 @@ app.get('/health', (req: Request, res: Response) => {
   res.status(200).json({
     success: true,
     message: 'NutriMind API is running',
+    ...(isCapstoneDemo() ? { deploymentMode: 'capstone-demo', notice: CAPSTONE_DEMO_NOTICE } : {}),
   });
 });
 

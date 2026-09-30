@@ -2,6 +2,8 @@
 
 ## Release gate
 
+This release gate applies to a nutrition service. For the hosted capstone demonstration, follow [Vercel/Railway demo deployment](VERCEL_RAILWAY_DEMO_DEPLOYMENT.md); do not represent that exception as clinical approval.
+
 1. Use Node 24 and npm 11.
 2. Configure every backend value documented in `backend/.env.example`; never place secrets in the frontend environment.
 3. Obtain the clinical sign-off recorded in `CLINICAL_POLICY_APPROVAL.md` and set `CLINICAL_POLICY_APPROVED_VERSION` to the exact signed version.

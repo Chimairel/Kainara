@@ -46,6 +46,13 @@ const nextConfig = {
   async headers() {
     return [
       {
+        source: '/api/:path*',
+        headers: [
+          { key: 'Cache-Control', value: 'private, no-store' },
+          { key: 'x-vercel-enable-rewrite-caching', value: '0' },
+        ],
+      },
+      {
         source: '/(.*)',
         headers: [
           { key: 'Content-Security-Policy', value: contentSecurityPolicy },

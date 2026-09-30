@@ -10,6 +10,7 @@ const optionalUrl = z.union([z.literal(''), z.url()]).optional();
 
 const runtimeEnvironmentSchema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
+  NUTRIMIND_DEPLOYMENT_MODE: z.enum(['public', 'capstone-demo']).default('public'),
   PORT: z.coerce.number().int().min(1).max(65_535).default(5000),
   TRUST_PROXY: booleanFromString,
   SMTP_VERIFY_ON_STARTUP: booleanFromString,
