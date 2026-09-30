@@ -24,6 +24,8 @@ const runtimeEnvironmentSchema = z.object({
   CLINICAL_POLICY_APPROVED_VERSION: z.string().optional(),
   GEMINI_API_KEY: z.string().optional(),
   GOOGLE_CLIENT_ID: z.string().optional(),
+  EMAIL_PROVIDER: z.enum(['smtp', 'brevo']).default('smtp'),
+  BREVO_API_KEY: z.string().optional(),
   SMTP_HOST: z.string().default('smtp.gmail.com'),
   SMTP_PORT: z.coerce.number().int().min(1).max(65_535).default(587),
   SMTP_USER: z.string().optional(),

@@ -191,11 +191,13 @@ Only names and purposes are documented. No real values are included.
 | `FRONTEND_URL` | Password-reset email links | Frontend base URL in email; defaults to `http://localhost:3000` |
 | `CORS_ORIGINS` | Browser API access | Comma-separated credentialed browser origins; required explicitly in production |
 | `GOOGLE_CLIENT_ID` | Google sign-in | Expected audience for backend Google ID-token verification |
+| `EMAIL_PROVIDER` | Email delivery | `smtp` (default) or `brevo` HTTPS delivery; Railway Free/Trial/Hobby needs HTTPS |
+| `BREVO_API_KEY` | Brevo email delivery | Server-only API key; account activation and a verified sender are required |
 | `SMTP_HOST` | Email delivery | SMTP hostname; code defaults to Gmail SMTP |
 | `SMTP_PORT` | Email delivery | SMTP port; code defaults to `587` |
 | `SMTP_USER` | Email delivery | SMTP account username |
 | `SMTP_PASS` | Email delivery | SMTP account password or app password |
-| `EMAIL_FROM` | Optional sender override | From address; falls back to `SMTP_USER`, then a placeholder |
+| `EMAIL_FROM` | Sender address | Required verified plain email address for Brevo; SMTP falls back to `SMTP_USER`, then a placeholder |
 | `SMTP_VERIFY_ON_STARTUP` | Optional startup diagnostics | Set to `true` only when API startup should open an SMTP connection; defaults to disabled |
 | `NUTRIMIND_TEST_MAIL_CAPTURE_PATH` | Local automated tests only | Absolute JSONL path used only with `NODE_ENV=test` to capture synthetic OTP/reset/invitation evidence without SMTP |
 | `CLOUDINARY_URL` | Administrator meal-image uploads | Server-only Cloudinary credential URL; never expose it through a `NEXT_PUBLIC_*` variable |
@@ -248,7 +250,7 @@ Deployment is a separate, guarded workflow described in [`docs/DEPLOYMENT.md`](d
 | Google Gemini | Reports, plans, food estimates, replacements | Model/account behavior was not live-tested |
 | FNRI data | Philippine food nutrition lookup | Seed/runtime matching was not executed in the baseline |
 | Google OAuth | Google login/registration | Live OAuth was not tested |
-| SMTP/Nodemailer | OTP, reset, and invitation email | Test-only local capture is verified; live delivery was not tested |
+| Brevo HTTPS or SMTP/Nodemailer | OTP, reset, applicant-status and invitation email | Mocked provider delivery and local capture are verified; live delivery requires provider activation and hosted testing |
 | React PDF | Report and grocery PDFs | Runtime output was not tested |
 | DiceBear | Browser-loaded avatars | Availability/privacy behavior was not integration-tested |
 

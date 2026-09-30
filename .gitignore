@@ -19,6 +19,8 @@
 **/.env.development.local
 **/.env.test.local
 **/.env.production.local
+/deploy/.env.railway.local
+/deploy/.env.vercel.local
 
 # Logs and OS files
 npm-debug.log*

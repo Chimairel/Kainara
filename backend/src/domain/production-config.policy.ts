@@ -23,6 +23,9 @@ export function validateProductionConfig(env: NodeJS.ProcessEnv): ProductionConf
     }
   }
   if (env.NODE_ENV !== 'production') return issues;
+  if (env.EMAIL_PROVIDER && !['smtp', 'brevo'].includes(env.EMAIL_PROVIDER)) {
+    issues.push({ key: 'EMAIL_PROVIDER', reason: 'must be smtp or brevo' });
+  }
   const required = [
     'DATABASE_URL',
     'JWT_SECRET',
@@ -30,6 +33,7 @@ export function validateProductionConfig(env: NodeJS.ProcessEnv): ProductionConf
     'CRON_SECRET',
     'CORS_ORIGINS',
     ...(isCapstoneDemo(env) ? ['FRONTEND_URL'] : ['CLINICAL_POLICY_APPROVED_VERSION']),
+    ...(env.EMAIL_PROVIDER === 'brevo' ? ['BREVO_API_KEY', 'EMAIL_FROM'] : []),
   ];
   for (const key of required) {
     const value = env[key]?.trim();
@@ -39,6 +43,13 @@ export function validateProductionConfig(env: NodeJS.ProcessEnv): ProductionConf
   for (const key of ['JWT_SECRET', 'JWT_REFRESH_SECRET', 'CRON_SECRET']) {
     const value = env[key]?.trim();
     if (value && value.length < 32) issues.push({ key, reason: 'must contain at least 32 characters' });
+  }
+  if (
+    env.EMAIL_PROVIDER === 'brevo' &&
+    env.EMAIL_FROM &&
+    !/^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]+$/.test(env.EMAIL_FROM.trim())
+  ) {
+    issues.push({ key: 'EMAIL_FROM', reason: 'must be the plain verified sender email address' });
   }
   if (env.CORS_ORIGINS?.split(',').some((origin) => origin.trim() === '*')) {
     issues.push({ key: 'CORS_ORIGINS', reason: 'must not allow wildcard origins with credentials' });

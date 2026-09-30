@@ -1,39 +1,13 @@
-import nodemailer from 'nodemailer';
+import { sendTransactionalEmail, verifyEmailTransport } from './email-transport';
 import { appendFile, mkdir } from 'node:fs/promises';
 import path from 'node:path';
 
 /**
- * Email service using Nodemailer + Gmail SMTP.
+ * Email templates shared by SMTP and Brevo HTTPS delivery.
  *
- * REQUIRED .env variables:
- *   SMTP_HOST=smtp.gmail.com
- *   SMTP_PORT=587
- *   SMTP_USER=your.email@gmail.com
- *   SMTP_PASS=your-16-char-app-password
- *   EMAIL_FROM=your.email@gmail.com
+ * SMTP uses SMTP_HOST/PORT/USER/PASS and optional EMAIL_FROM.
+ * Brevo HTTPS uses EMAIL_PROVIDER=brevo, BREVO_API_KEY and verified EMAIL_FROM.
  */
-
-// Lazy-initialized transporter (ensures env vars are loaded before creation)
-type MailTransporter = ReturnType<typeof nodemailer.createTransport>;
-
-let _transporter: MailTransporter | null = null;
-
-function getTransporter(): MailTransporter {
-  if (!_transporter) {
-    _transporter = nodemailer.createTransport({
-      host: process.env.SMTP_HOST || 'smtp.gmail.com',
-      port: parseInt(process.env.SMTP_PORT || '587'),
-      secure: false, // true for 465, false for other ports
-      auth: {
-        user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASS,
-      },
-    });
-  }
-  return _transporter;
-}
-
-const getFromAddress = () => process.env.EMAIL_FROM || process.env.SMTP_USER || 'noreply@kainara.ph';
 
 const escapeHtml = (value: string) =>
   value
@@ -236,8 +210,7 @@ export async function sendVerificationEmail(to: string, otp: string, userName: s
   });
 
   try {
-    await getTransporter().sendMail({
-      from: `"KAINARA" <${getFromAddress()}>`,
+    await sendTransactionalEmail({
       to,
       subject,
       html,
@@ -245,7 +218,7 @@ export async function sendVerificationEmail(to: string, otp: string, userName: s
     console.log(`[Email] Verification OTP sent to ${to}`);
   } catch (error: any) {
     console.error(`[Email] Failed to send verification email to ${to}:`, error.message);
-    throw new Error('Failed to send verification email. Please check SMTP configuration.');
+    throw new Error('Failed to send verification email. Please check email provider configuration.');
   }
 }
 
@@ -282,8 +255,7 @@ export async function sendPasswordResetEmail(to: string, resetToken: string, use
   });
 
   try {
-    await getTransporter().sendMail({
-      from: `"KAINARA" <${getFromAddress()}>`,
+    await sendTransactionalEmail({
       to,
       subject,
       html,
@@ -291,7 +263,7 @@ export async function sendPasswordResetEmail(to: string, resetToken: string, use
     console.log(`[Email] Password reset email sent to ${to}`);
   } catch (error: any) {
     console.error(`[Email] Failed to send password reset email to ${to}:`, error.message);
-    throw new Error('Failed to send password reset email. Please check SMTP configuration.');
+    throw new Error('Failed to send password reset email. Please check email provider configuration.');
   }
 }
 
@@ -330,8 +302,7 @@ export async function sendNutritionistInvitationEmail(
   });
 
   try {
-    await getTransporter().sendMail({
-      from: `"KAINARA" <${getFromAddress()}>`,
+    await sendTransactionalEmail({
       to,
       subject,
       html,
@@ -339,7 +310,7 @@ export async function sendNutritionistInvitationEmail(
     console.log(`[Email] Nutritionist invitation sent to ${to}`);
   } catch (error: any) {
     console.error(`[Email] Failed to send nutritionist invitation to ${to}:`, error.message);
-    throw new Error('Failed to send nutritionist invitation. Please check SMTP configuration.');
+    throw new Error('Failed to send nutritionist invitation. Please check email provider configuration.');
   }
 }
 
@@ -425,8 +396,7 @@ export async function sendNutritionistCallScheduledEmail(params: NutritionistCal
   });
 
   try {
-    await getTransporter().sendMail({
-      from: `"KAINARA" <${getFromAddress()}>`,
+    await sendTransactionalEmail({
       to,
       subject,
       html,
@@ -434,7 +404,7 @@ export async function sendNutritionistCallScheduledEmail(params: NutritionistCal
     console.log(`[Email] Nutritionist call scheduled email sent to ${to} for call at ${formattedDate}`);
   } catch (error: any) {
     console.error(`[Email] Failed to send call scheduled email to ${to}:`, error.message);
-    throw new Error('Failed to send call scheduled email. Please check SMTP configuration.');
+    throw new Error('Failed to send call scheduled email. Please check email provider configuration.');
   }
 }
 
@@ -498,8 +468,7 @@ export async function sendNutritionistApplicationSubmittedEmail(
   });
 
   try {
-    await getTransporter().sendMail({
-      from: `"KAINARA" <${getFromAddress()}>`,
+    await sendTransactionalEmail({
       to,
       subject,
       html,
@@ -507,7 +476,7 @@ export async function sendNutritionistApplicationSubmittedEmail(
     console.log(`[Email] Nutritionist application received email sent to ${to} (ref: ${referenceCode})`);
   } catch (error: any) {
     console.error(`[Email] Failed to send application received email to ${to}:`, error.message);
-    throw new Error('Failed to send application received email. Please check SMTP configuration.');
+    throw new Error('Failed to send application received email. Please check email provider configuration.');
   }
 }
 
@@ -559,8 +528,7 @@ export async function sendNutritionistApplicationRejectedEmail(
   });
 
   try {
-    await getTransporter().sendMail({
-      from: `"KAINARA" <${getFromAddress()}>`,
+    await sendTransactionalEmail({
       to,
       subject,
       html,
@@ -568,25 +536,16 @@ export async function sendNutritionistApplicationRejectedEmail(
     console.log(`[Email] Nutritionist application rejected email sent to ${to} (ref: ${referenceCode})`);
   } catch (error: any) {
     console.error(`[Email] Failed to send application rejected email to ${to}:`, error.message);
-    throw new Error('Failed to send application rejected email. Please check SMTP configuration.');
+    throw new Error('Failed to send application rejected email. Please check email provider configuration.');
   }
 }
 
 /**
- * Verify that the SMTP transporter is properly configured.
+ * Check the selected email transport. Brevo does not send a startup test email.
  * Call this on server start to catch configuration issues early.
  */
 export async function verifyEmailTransporter(): Promise<boolean> {
-  if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
-    console.warn('⚠️ [Email] SMTP_USER or SMTP_PASS not configured. Email sending will fail.');
-    return false;
-  }
-  try {
-    await getTransporter().verify();
-    console.log('✅ [Email] SMTP transporter verified and ready.');
-    return true;
-  } catch (error: any) {
-    console.warn(`⚠️ [Email] SMTP transporter verification failed: ${error.message}`);
-    return false;
-  }
+  const configured = await verifyEmailTransport();
+  if (!configured) console.warn('[Email] Selected email provider is not configured or could not be checked.');
+  return configured;
 }

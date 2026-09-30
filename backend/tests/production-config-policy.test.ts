@@ -83,3 +83,26 @@ test('switching a demo to public restores the clinical approval requirement', ()
     )
   );
 });
+
+test('Brevo production config requires a server key and a plain verified sender address', () => {
+  for (const key of ['BREVO_API_KEY', 'EMAIL_FROM']) {
+    assert.ok(validateProductionConfig({ ...secureDemo, EMAIL_PROVIDER: 'brevo' }).some((issue) => issue.key === key));
+  }
+  assert.deepEqual(
+    validateProductionConfig({
+      ...secureDemo,
+      EMAIL_PROVIDER: 'brevo',
+      BREVO_API_KEY: 'test-only-key',
+      EMAIL_FROM: 'sender@gmail.com',
+    }),
+    []
+  );
+  assert.ok(
+    validateProductionConfig({
+      ...secureDemo,
+      EMAIL_PROVIDER: 'brevo',
+      BREVO_API_KEY: 'test-only-key',
+      EMAIL_FROM: 'Name <sender@gmail.com>',
+    }).some((issue) => issue.key === 'EMAIL_FROM')
+  );
+});
