@@ -151,8 +151,8 @@ router.post('/refresh', sessionLimiter, AuthController.refresh);
 
 /**
  * Route: POST /api/auth/logout
- * Description: Logs out and clears server-side session. Requires auth token.
+ * Description: Revokes the refresh session and clears its cookie, even after access expiry.
  */
-router.post('/logout', sessionLimiter, authenticate, AuthController.logout);
+router.post('/logout', sessionLimiter, AuthController.logout);
 
 export default router;

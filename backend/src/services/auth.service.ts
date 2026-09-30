@@ -698,6 +698,21 @@ export class AuthService {
 
     return { message: 'Logged out successfully.' };
   }
+
+  /** Revokes the current browser session even when its access token has expired. */
+  static async logoutWithRefreshToken(token: string) {
+    let decoded: JWTPayload;
+    try {
+      decoded = verifyRefreshToken(token);
+    } catch {
+      return;
+    }
+
+    const sessionToken = hashSessionToken(token);
+    await prisma.session.deleteMany({
+      where: { userId: decoded.userId, sessionToken },
+    });
+  }
 }
 
 export default AuthService;

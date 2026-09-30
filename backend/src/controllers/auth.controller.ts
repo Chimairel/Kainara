@@ -280,16 +280,15 @@ export class AuthController {
 
   /**
    * POST /api/auth/logout
-   * Clears server-side sessions. Requires authentication.
+   * Clears the current refresh session and browser cookie even if access expired.
    */
-  static async logout(req: AuthenticatedRequest, res: Response) {
+  static async logout(req: Request, res: Response) {
     try {
-      const userId = req.user?.userId;
-      if (userId) {
-        await AuthService.logout(userId);
+      const refreshToken = req.cookies?.[REFRESH_COOKIE_NAME];
+      if (refreshToken) {
+        await AuthService.logoutWithRefreshToken(refreshToken);
       }
 
-      // Clear the HttpOnly refresh cookie
       clearRefreshCookie(res);
 
       return res.status(200).json({
@@ -298,9 +297,9 @@ export class AuthController {
       });
     } catch (_error: any) {
       clearRefreshCookie(res);
-      return res.status(200).json({
-        success: true,
-        data: { message: 'Logged out successfully.' },
+      return res.status(503).json({
+        success: false,
+        error: 'Could not revoke the session right now. Please try again.',
       });
     }
   }
