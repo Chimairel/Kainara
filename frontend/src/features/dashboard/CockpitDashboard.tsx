@@ -1,12 +1,10 @@
 'use client';
 
-import Link from 'next/link';
-import { Calendar, Scale, ClipboardCheck, ArrowUpRight } from 'lucide-react';
+import { Calendar } from 'lucide-react';
 import { motion } from 'motion/react';
 import { formatManilaDate } from '@/lib/manila-date';
 import type { MealPlan } from '@/types';
 import type { PendingMealPreview } from '@/components/user/PendingMealPreviewCard';
-import type { UserProfileData } from '@/hooks/useProfile';
 import { DailyIntakeDonut, AnimatedValue } from '@/components/watermelon/daily-intake-donut';
 import { DashboardMealRow } from './DashboardMealRow';
 
@@ -26,12 +24,8 @@ export interface CockpitDashboardProps {
     provisionalCalories: number;
     unresolvedMealCount: number;
   };
-  profile: UserProfileData['userProfile'];
   waterIntake: number;
-  checkinStreak: number;
-  checkinDue: boolean;
   onAddWater: (amount: number) => void;
-  onOpenCheckin: () => void;
   onMealClick: (mealId: string) => void;
   onStatusToggle?: (mealId: string, status: 'DONE' | 'SKIPPED' | 'PENDING') => Promise<void> | void;
   onOpenWeeklyPlan: () => void;
@@ -42,12 +36,8 @@ export function CockpitDashboard({
   meals,
   pendingMeals = [],
   metrics,
-  profile,
   waterIntake,
-  checkinStreak,
-  checkinDue,
   onAddWater,
-  onOpenCheckin,
   onMealClick,
   onStatusToggle,
   onOpenWeeklyPlan,
@@ -317,48 +307,6 @@ export function CockpitDashboard({
             <p className="rounded-2xl border border-brand-border/70 bg-brand-surface p-6 text-sm text-brand-muted text-center shadow-card ml-7 sm:ml-10 lg:ml-12">
               No meals scheduled for this day. Open your weekly plan to view another day.
             </p>
-          )}
-        </section>
-      </div>
-      <div className="grid gap-4 sm:grid-cols-2">
-        <Link
-          href="/progress"
-          className="dashboard-surface dashboard-stat group rounded-2xl p-5 transition-colors hover:border-brand-green"
-        >
-          <div className="flex items-center gap-2 text-sm font-semibold text-brand-muted">
-            <Scale className="h-4 w-4 text-brand-green" /> Weight & progress{' '}
-            <ArrowUpRight className="ml-auto h-4 w-4" />
-          </div>
-          <p className="mt-3 font-display text-2xl font-bold text-brand-text">
-            {profile?.weightKg ?? '—'} <span className="text-sm font-medium text-brand-muted">kg</span>
-          </p>
-          <p className="mt-2 text-xs text-brand-muted">
-            {profile?.targetWeightKg ? `Goal: ${profile.targetWeightKg} kg` : 'View your weight history and goals'}
-          </p>
-          <p className="mt-4 text-sm font-semibold text-brand-green">Record your progress →</p>
-        </Link>
-        <section className="dashboard-surface dashboard-stat rounded-2xl p-5">
-          <div className="flex items-center gap-2 text-sm font-semibold text-brand-muted">
-            <ClipboardCheck className="h-4 w-4 text-brand-green" /> Weekly check-in
-          </div>
-          <p className="mt-3 font-display text-2xl font-bold text-brand-text">
-            {checkinDue ? 'Ready for you' : 'Up to date'}
-          </p>
-          <p className="mt-2 text-xs text-brand-muted">
-            {checkinStreak} week{checkinStreak === 1 ? '' : 's'} in your check-in streak
-          </p>
-          {checkinDue ? (
-            <button
-              type="button"
-              onClick={onOpenCheckin}
-              className="mt-3 min-h-11 rounded-xl bg-brand-accent px-4 text-sm font-extrabold text-[#07100d] shadow-neon hover:brightness-105 transition-all"
-            >
-              Start check-in →
-            </button>
-          ) : (
-            <Link href="/profile/health" className="mt-4 inline-block text-sm font-semibold text-brand-green">
-              Update health profile →
-            </Link>
           )}
         </section>
       </div>

@@ -46,12 +46,8 @@ function props(): CockpitDashboardProps {
       provisionalCalories: 100,
       unresolvedMealCount: 1,
     },
-    profile: null,
     waterIntake: 250,
-    checkinStreak: 0,
-    checkinDue: true,
     onAddWater: vi.fn(),
-    onOpenCheckin: vi.fn(),
     onMealClick: vi.fn(),
     onStatusToggle: vi.fn(),
     onOpenWeeklyPlan: vi.fn(),
@@ -78,14 +74,14 @@ describe('CockpitDashboard', () => {
     await user.keyboard(' ');
     expect(callbacks.onMealClick).toHaveBeenCalledWith('approved');
   });
-  it('exposes explicit water controls and check-in action', async () => {
+  it('exposes explicit water controls without the removed summary cards', async () => {
     const callbacks = props();
     const user = userEvent.setup();
     render(<CockpitDashboard {...callbacks} />);
     await user.click(screen.getByRole('button', { name: 'Add 250 mL of water' }));
     expect(callbacks.onAddWater).toHaveBeenCalledWith(250);
-    await user.click(screen.getByRole('button', { name: /Start check-in/ }));
-    expect(callbacks.onOpenCheckin).toHaveBeenCalledOnce();
+    expect(screen.queryByText('Weight & progress')).not.toBeInTheDocument();
+    expect(screen.queryByText('Weekly check-in')).not.toBeInTheDocument();
   });
   it('offers expandable pending previews without a logging action and names every macro', () => {
     const { container } = render(<CockpitDashboard {...props()} />);
@@ -94,6 +90,5 @@ describe('CockpitDashboard', () => {
     expect(screen.getByText('Carbs')).toBeInTheDocument();
     expect(screen.getByText('Fat')).toBeInTheDocument();
     expect(screen.getByText('Estimated (Outside)')).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /Weight & progress/ })).toHaveAttribute('href', '/progress');
   });
 });

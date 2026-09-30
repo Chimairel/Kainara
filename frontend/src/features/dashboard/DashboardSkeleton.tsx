@@ -100,26 +100,6 @@ export function DashboardSkeleton() {
           </div>
         </div>
       </div>
-
-      {/* 3. Bottom 2 Cards Grid */}
-      <div className="grid w-full grid-cols-1 gap-6 md:grid-cols-2">
-        <div className="rounded-2xl border border-brand-border/70 bg-brand-surface p-5 shadow-sm">
-          <div className="flex items-center gap-2 mb-3">
-            <Skeleton className="h-4 w-4 rounded-full" />
-            <Skeleton className="h-4 w-36 rounded" />
-          </div>
-          <Skeleton className="h-3 w-full rounded mb-2" />
-          <Skeleton className="h-3 w-3/4 rounded" />
-        </div>
-        <div className="rounded-2xl border border-brand-border/70 bg-brand-surface p-5 shadow-sm">
-          <div className="flex items-center gap-2 mb-3">
-            <Skeleton className="h-4 w-4 rounded-full" />
-            <Skeleton className="h-4 w-32 rounded" />
-          </div>
-          <Skeleton className="h-3 w-full rounded mb-2" />
-          <Skeleton className="h-3 w-2/3 rounded" />
-        </div>
-      </div>
     </div>
   );
 }

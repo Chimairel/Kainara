@@ -18,8 +18,6 @@ import { Calendar, Plus, AlertTriangle, ChevronLeft, ChevronRight } from 'lucide
 import { formatManilaDate, getManilaDateKey } from '@/lib/manila-date';
 import type { UserProfileData } from '@/hooks/useProfile';
 import { CockpitDashboard } from '@/features/dashboard/CockpitDashboard';
-import { NutritionistGuidanceCard } from '@/features/dashboard/NutritionistGuidanceCard';
-import { GroceryPreviewCard } from '@/features/dashboard/GroceryPreviewCard';
 import { OutsideMealModal } from '@/features/dashboard/OutsideMealModal';
 import {
   calculateDashboardMetrics,
@@ -171,7 +169,6 @@ export default function DashboardPage() {
 
   // Check-in status
   const [isCheckinDue, setIsCheckinDue] = useState(Boolean(cachedCheckin?.isDue));
-  const [checkinInfo, setCheckinInfo] = useState<CheckinSnapshot | null>(cachedCheckin);
 
   // User Profile details
   const [userProfile, setUserProfile] = useState<UserProfileData['userProfile']>(cachedProfile?.userProfile ?? null);
@@ -329,7 +326,6 @@ export default function DashboardPage() {
     try {
       const res = await api.get('/user/checkin/status');
       if (res.data?.success) {
-        setCheckinInfo(res.data.data);
         setIsCheckinDue(Boolean(res.data.data?.isDue));
         writeSessionResource(ownerId, 'dashboard-checkin', res.data.data);
       }
@@ -741,21 +737,12 @@ export default function DashboardPage() {
                 ) ?? []
               }
               metrics={metrics}
-              profile={userProfile}
               waterIntake={waterIntake}
-              checkinStreak={checkinInfo?.streak ?? 0}
-              checkinDue={isCheckinDue}
               onAddWater={handleAddWater}
-              onOpenCheckin={() => setIsCheckinDue(true)}
               onMealClick={(mealId) => router.push(`/dashboard/${mealId}`)}
               onStatusToggle={handleMealStatusToggle}
               onOpenWeeklyPlan={() => router.push('/meals')}
             />
-
-            <div className="grid w-full grid-cols-1 gap-6 md:grid-cols-2">
-              <NutritionistGuidanceCard isPendingReview={Boolean(pendingReview)} />
-              <GroceryPreviewCard ownerId={ownerId} onNavigateToGrocery={() => router.push('/grocery')} />
-            </div>
           </>
         )}
       </div>
