@@ -17,7 +17,9 @@ export function cachedUserProfile(ownerId: string | undefined) {
 
 export function refreshUserProfile(ownerId: string | undefined): Promise<SessionProfileData> {
   return refreshSessionResource<SessionProfileData>(ownerId, userProfileResource, async () => {
-    const response = await api.get('/user/profile');
+    // A stalled session check must resolve to the retry state rather than leave
+    // every protected route behind the full-screen loading state indefinitely.
+    const response = await api.get('/user/profile', { timeout: 15_000 });
     if (!response.data?.success) throw new Error('Profile response was unsuccessful.');
     return response.data.data as SessionProfileData;
   });

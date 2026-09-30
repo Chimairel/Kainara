@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useId } from 'react';
+import React from 'react';
 import KainaraLogo from '@/components/shared/KainaraLogo';
 import LoadingSpinner from '@/components/shared/LoadingSpinner';
 
@@ -17,8 +17,9 @@ export default function PortalLoadingState({
   fullScreen = false,
   size = 'lg',
 }: PortalLoadingStateProps) {
-  const reactId = useId();
-  const gradId = `orbital-grad-${reactId.replace(/[:]/g, '')}`;
+  // This full-page fallback is server-rendered before auth hydration. Keep its
+  // SVG reference identical in both renders, including after a dev refresh.
+  const gradId = 'kainara-portal-orbital-gradient';
 
   // If used for a small inline widget
   if (size === 'sm') {

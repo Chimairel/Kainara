@@ -68,7 +68,7 @@ export class UserController {
         return res.status(401).json({ success: false, error: 'Unauthorized: Missing user payload.' });
       }
 
-      const profileDetails = await UserService.getUserProfileDetails(userId);
+      const profileDetails = res.locals.authenticatedProfile ?? await UserService.getUserProfileDetails(userId);
       if (!profileDetails) {
         return res.status(404).json({ success: false, error: 'User details not found.' });
       }

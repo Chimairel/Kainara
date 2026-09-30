@@ -2,12 +2,18 @@ import { Response, NextFunction } from 'express';
 import { verifyAccessToken } from '@/lib/jwt';
 import { AuthenticatedRequest } from '@/types';
 import prisma from '@/lib/prisma';
+import { UserProfileService } from '@/services/user-profile.service';
 
 /**
  * Express middleware to verify the access token from the Authorization header.
  * Attaches the decoded payload to req.user.
  */
-export const authenticate = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+const authenticateRequest = async (
+  req: AuthenticatedRequest,
+  res: Response,
+  next: NextFunction,
+  includeProfile: boolean
+) => {
   try {
     const authHeader = req.headers.authorization;
 
@@ -28,10 +34,12 @@ export const authenticate = async (req: AuthenticatedRequest, res: Response, nex
       return res.status(401).json({ success: false, error: 'Invalid or expired authentication session.' });
     }
 
-    const currentUser = await prisma.user.findUnique({
-      where: { id: decoded.userId },
-      select: { email: true, role: true, isSuspended: true },
-    });
+    const currentUser = includeProfile
+      ? await UserProfileService.getAuthenticatedProfileDetails(decoded.userId)
+      : await prisma.user.findUnique({
+          where: { id: decoded.userId },
+          select: { email: true, role: true, isSuspended: true },
+        });
     if (!currentUser || currentUser.isSuspended) {
       return res.status(401).json({
         success: false,
@@ -45,6 +53,10 @@ export const authenticate = async (req: AuthenticatedRequest, res: Response, nex
       role: currentUser.role,
     };
 
+    if (includeProfile && currentUser && 'profile' in currentUser) {
+      res.locals.authenticatedProfile = currentUser.profile;
+    }
+
     next();
   } catch {
     return res.status(503).json({
@@ -53,5 +65,11 @@ export const authenticate = async (req: AuthenticatedRequest, res: Response, nex
     });
   }
 };
+
+export const authenticate = (req: AuthenticatedRequest, res: Response, next: NextFunction) =>
+  authenticateRequest(req, res, next, false);
+
+export const authenticateProfile = (req: AuthenticatedRequest, res: Response, next: NextFunction) =>
+  authenticateRequest(req, res, next, true);
 
 export default authenticate;

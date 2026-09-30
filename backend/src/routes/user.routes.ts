@@ -1,5 +1,5 @@
 import { Router, Response } from 'express';
-import authenticate from '@/middleware/auth';
+import authenticate, { authenticateProfile } from '@/middleware/auth';
 import requireRole from '@/middleware/rbac';
 import { NutritionReportService } from '@/services/nutrition-report.service';
 import { UserController } from '@/controllers/user.controller';
@@ -77,15 +77,15 @@ const uploadClinicalDocument = asyncHandler(async (req: AuthenticatedRequest, re
   return res.status(201).json({ success: true, data });
 });
 
-// Apply auth on all /api/user routes
-router.use(authenticate);
-
 /**
  * Route: GET /api/user/profile
  * Description: Retrieves full profile and clinical state details.
  * Available to all authenticated roles (USER, NUTRITIONIST, ADMIN).
  */
-router.get('/profile', UserController.getProfile);
+router.get('/profile', authenticateProfile, UserController.getProfile);
+
+// Apply auth on all remaining /api/user routes.
+router.use(authenticate);
 router.put('/profile/avatar', UserController.updateAvatar);
 
 // ──────────────────────────────────────────

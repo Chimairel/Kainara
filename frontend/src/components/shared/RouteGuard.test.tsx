@@ -99,4 +99,12 @@ describe('report access within the profile', () => {
     expect(screen.getByRole('button', { name: 'Try again' })).toBeInTheDocument();
     expect(state.replace).not.toHaveBeenCalled();
   });
+  it('offers a retry when profile loading fails before a session placeholder exists', () => {
+    state.path = '/dashboard';
+    state.user = null as unknown as typeof state.user;
+    state.profileLoadError = true;
+    render(<RouteGuard><p>Workspace</p></RouteGuard>);
+    expect(screen.getByRole('alert')).toHaveTextContent('Could not load your account profile');
+    expect(screen.getByRole('button', { name: 'Try again' })).toBeInTheDocument();
+  });
 });

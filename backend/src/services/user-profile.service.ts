@@ -82,6 +82,57 @@ function evaluateUserOnboardingStatus(user: OnboardingEvaluationUser) {
   });
 }
 
+const profileDetailsSelect = {
+  id: true,
+  name: true,
+  email: true,
+  role: true,
+  isSuspended: true,
+  emailVerified: true,
+  passwordLoginEnabled: true,
+  tosAccepted: true,
+  tosAcceptedAt: true,
+  acceptedTermsVersion: true,
+  acceptedPrivacyVersion: true,
+  healthDataConsentedAt: true,
+  onboardingDone: true,
+  image: true,
+  createdAt: true,
+  updatedAt: true,
+  userProfile: true,
+  healthConditions: { select: { condition: true } },
+  allergies: { select: { allergen: true } },
+  safetyProfileEntries: {
+    orderBy: [{ domain: 'asc' }, { displayName: 'asc' }],
+    select: {
+      domain: true,
+      canonicalCode: true,
+      displayName: true,
+      originalText: true,
+      normalizedText: true,
+      provenance: true,
+      supportState: true,
+      policyReference: true,
+    },
+  },
+  nutritionReport: {
+    select: {
+      id: true,
+      generatedAt: true,
+      acknowledgedAt: true,
+      isStale: true,
+      version: true,
+      profileRevision: true,
+    },
+  },
+  accounts: {
+    where: { provider: 'google' },
+    select: { access_token: true, provider: true },
+  },
+} satisfies Prisma.UserSelect;
+
+type ProfileDetailsUser = Prisma.UserGetPayload<{ select: typeof profileDetailsSelect }>;
+
 export class UserProfileService {
   static async updateUserProfile(userId: string, data: ProfileUpdateData) {
     const safeData: ProfileUpdateData = {};
@@ -325,67 +376,28 @@ export class UserProfileService {
   static async getUserProfileDetails(userId: string) {
     const user = await prisma.user.findUnique({
       where: { id: userId },
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        role: true,
-        emailVerified: true,
-        passwordLoginEnabled: true,
-        tosAccepted: true,
-        tosAcceptedAt: true,
-        acceptedTermsVersion: true,
-        acceptedPrivacyVersion: true,
-        healthDataConsentedAt: true,
-        onboardingDone: true,
-        image: true,
-        createdAt: true,
-        updatedAt: true,
-        userProfile: true,
-        healthConditions: {
-          select: {
-            condition: true,
-          },
-        },
-        allergies: {
-          select: {
-            allergen: true,
-          },
-        },
-        safetyProfileEntries: {
-          orderBy: [{ domain: 'asc' }, { displayName: 'asc' }],
-          select: {
-            domain: true,
-            canonicalCode: true,
-            displayName: true,
-            originalText: true,
-            normalizedText: true,
-            provenance: true,
-            supportState: true,
-            policyReference: true,
-          },
-        },
-        nutritionReport: {
-          select: {
-            id: true,
-            generatedAt: true,
-            acknowledgedAt: true,
-            isStale: true,
-            version: true,
-            profileRevision: true,
-          },
-        },
-        accounts: {
-          where: { provider: 'google' },
-          select: { access_token: true, provider: true },
-        },
-      },
+      select: profileDetailsSelect,
     });
 
-    if (!user) {
-      return null;
-    }
+    return user ? this.formatProfileDetails(user) : null;
+  }
 
+  /** The session bootstrap uses the same read for authorization and profile data. */
+  static async getAuthenticatedProfileDetails(userId: string) {
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: profileDetailsSelect,
+    });
+    if (!user) return null;
+    return {
+      email: user.email,
+      role: user.role,
+      isSuspended: user.isSuspended,
+      profile: this.formatProfileDetails(user),
+    };
+  }
+
+  private static formatProfileDetails(user: ProfileDetailsUser) {
     const onboardingStatus = evaluateUserOnboardingStatus(user);
     const googleAccount = user.accounts?.[0];
     const googleImage = googleProfileImage(googleAccount?.access_token) || googleProfileImage(user.image);

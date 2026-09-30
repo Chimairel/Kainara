@@ -97,7 +97,7 @@ export const RouteGuard: React.FC<RouteGuardProps> = ({ children }) => {
     return <PortalLoadingState fullScreen />;
   }
 
-  if (profileLoadError && user && !isPublicRoute) {
+  if (profileLoadError && !isPublicRoute) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-brand-bg p-6 text-brand-text">
         <div role="alert" className="w-full max-w-md rounded-2xl border border-brand-border bg-brand-surface p-6">
