@@ -7,11 +7,10 @@ import { NutritionistService } from '@/services/nutritionist.service';
 export class NutritionistWorkCountsService {
   static async get(nutritionistProfileId: string) {
     const now = new Date();
-    const reviewer = await prisma.nutritionistProfile.findUniqueOrThrow({
+    const reviewerPromise = prisma.nutritionistProfile.findUniqueOrThrow({
       where: { id: nutritionistProfileId }, select: { canLeadReview: true },
     });
-    const [mealVerifications, caseReviews, profiles, documents, outside, dueAudit, dueProfileApprovals, disputes, disputedPlans] =
-      await Promise.all([
+    const countsPromise = Promise.all([
         MealBaseVerificationService.count(),
         NutritionistService.getReviewQueueCount(nutritionistProfileId),
         ClinicalProfileReviewService.queue(),
@@ -25,9 +24,15 @@ export class NutritionistWorkCountsService {
         prisma.mealLibraryProfileApproval.count({ where: {
           OR: [{ flaggedAt: { not: null } }, { reviewDueAt: { lte: now } }],
         } }),
-        reviewer.canLeadReview ? prisma.mealConditionClearance.count({ where: { state: 'DISPUTED' } }) : Promise.resolve(0),
-        reviewer.canLeadReview ? prisma.mealPlan.count({ where: { status: 'DISPUTED' } }) : Promise.resolve(0),
       ]);
+    const disputesPromise = reviewerPromise.then((reviewer) => reviewer.canLeadReview
+      ? Promise.all([
+          prisma.mealConditionClearance.count({ where: { state: 'DISPUTED' } }),
+          prisma.mealPlan.count({ where: { status: 'DISPUTED' } }),
+        ])
+      : [0, 0]);
+    const [[mealVerifications, caseReviews, profiles, documents, outside, dueAudit, dueProfileApprovals],
+      [disputes, disputedPlans]] = await Promise.all([countsPromise, disputesPromise]);
     return {
       meal: mealVerifications,
       case: caseReviews + outside + disputes + disputedPlans,

@@ -18,18 +18,30 @@ export const requireUserPrerequisites =
         return res.status(401).json({ success: false, error: 'Authentication is required.' });
       }
 
-      const user = await prisma.user.findUnique({
-        where: { id: userId },
-        select: {
-          emailVerified: true,
-          onboardingDone: true,
-          tosAccepted: true,
-          acceptedTermsVersion: true,
-          acceptedPrivacyVersion: true,
-          nutritionReport: { select: { acknowledgedAt: true, isStale: true, profileRevision: true } },
-          userProfile: { select: { revision: true } },
-        },
-      });
+      const authenticatedAccount = res.locals.authenticatedAccount as {
+        emailVerified: boolean;
+        onboardingDone: boolean;
+        tosAccepted: boolean;
+        acceptedTermsVersion: string | null;
+        acceptedPrivacyVersion: string | null;
+        nutritionReport?: { acknowledgedAt: Date | null; isStale: boolean; profileRevision: number } | null;
+        userProfile?: { revision: number } | null;
+      } | undefined;
+      const user = authenticatedAccount && (!options.reportAcknowledged ||
+        ('nutritionReport' in authenticatedAccount && 'userProfile' in authenticatedAccount))
+        ? authenticatedAccount
+        : await prisma.user.findUnique({
+          where: { id: userId },
+          select: {
+            emailVerified: true,
+            onboardingDone: true,
+            tosAccepted: true,
+            acceptedTermsVersion: true,
+            acceptedPrivacyVersion: true,
+            nutritionReport: { select: { acknowledgedAt: true, isStale: true, profileRevision: true } },
+            userProfile: { select: { revision: true } },
+          },
+        });
 
       if (!user) {
         return res.status(401).json({ success: false, error: 'Authenticated account no longer exists.' });

@@ -76,14 +76,15 @@ if (env.SMTP_VERIFY_ON_STARTUP) {
 // Mount API Routers
 app.use('/api/evidence', evidenceRouter);
 app.use('/api/notifications', notificationsRouter);
-// Specific progress routes own their read/write prerequisites; mount before the broader user router.
+// These specific user routers own their auth and readiness checks. Mount them
+// before the broad /api/user router so a request does not run both chains.
 app.use('/api/user/progress', progressRouter);
+app.use('/api/user/meals', mealsRouter);
+app.use('/api/user/grocery', groceryRouter);
 app.use('/api/user', userRouter);
 app.use('/api/nutritionist', nutritionistRouter);
 app.use('/api/admin', adminRouter);
 app.use('/api/fnri', fnriRouter);
-app.use('/api/user/meals', mealsRouter);
-app.use('/api/user/grocery', groceryRouter);
 app.use('/api/cron', cronRouter);
 app.use('/api/nutritionist-applications', nutritionistApplicationRouter);
 

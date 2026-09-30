@@ -10,12 +10,13 @@ export async function requireEligibleNutritionist(req: AuthenticatedRequest, res
       return res.status(401).json({ success: false, error: 'Authentication is required.' });
     }
 
+    const account = res.locals.authenticatedAccount as { emailVerified: boolean } | undefined;
     const [profile, user, application] = await Promise.all([
       prisma.nutritionistProfile.findUnique({
         where: { userId: req.user.userId },
         select: { id: true, isVerified: true, prcLicenseExpiry: true },
       }),
-      prisma.user.findUnique({
+      account ?? prisma.user.findUnique({
         where: { id: req.user.userId },
         select: { emailVerified: true },
       }),

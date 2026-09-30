@@ -51,7 +51,7 @@ export class NutritionistProfileWorkService {
 
   static async detail(userId: string) {
     const queued = await this.assertQueued(userId);
-    const [user, evidence, reports, profileDetail] = await Promise.all([
+    const [user, evidence, reports, profileDetail, currentReport] = await Promise.all([
       prisma.user.findUnique({ where: { id: userId }, include: {
         userProfile: true, healthConditions: true, allergies: true,
       } }),
@@ -62,11 +62,11 @@ export class NutritionistProfileWorkService {
           profileRevision: true, profileSnapshot: true, content: true, policyVersion: true },
       }),
       queued.profileStatus ? ClinicalProfileReviewService.detail(userId) : Promise.resolve(null),
+      prisma.nutritionReport.findUnique({
+        where: { userId }, select: { version: true, isStale: true, profileRevision: true },
+      }),
     ]);
     if (!user || user.role !== Role.USER) throw new AppError('Profile not found.', 404, 'PROFILE_NOT_FOUND');
-    const currentReport = await prisma.nutritionReport.findUnique({
-      where: { userId }, select: { version: true, isStale: true, profileRevision: true },
-    });
     return {
       userId, name: user.name, profileStatus: queued.profileStatus,
       currentProfile: {

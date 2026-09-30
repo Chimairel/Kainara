@@ -4,6 +4,23 @@ import { AuthenticatedRequest } from '@/types';
 import prisma from '@/lib/prisma';
 import { UserProfileService } from '@/services/user-profile.service';
 
+const accountSelect = {
+  email: true,
+  role: true,
+  isSuspended: true,
+  emailVerified: true,
+  onboardingDone: true,
+  tosAccepted: true,
+  acceptedTermsVersion: true,
+  acceptedPrivacyVersion: true,
+} as const;
+
+const userReadinessSelect = {
+  ...accountSelect,
+  nutritionReport: { select: { acknowledgedAt: true, isStale: true, profileRevision: true } },
+  userProfile: { select: { revision: true } },
+} as const;
+
 /**
  * Express middleware to verify the access token from the Authorization header.
  * Attaches the decoded payload to req.user.
@@ -36,10 +53,9 @@ const authenticateRequest = async (
 
     const currentUser = includeProfile
       ? await UserProfileService.getAuthenticatedProfileDetails(decoded.userId)
-      : await prisma.user.findUnique({
-          where: { id: decoded.userId },
-          select: { email: true, role: true, isSuspended: true },
-        });
+      : decoded.role === 'USER'
+        ? await prisma.user.findUnique({ where: { id: decoded.userId }, select: userReadinessSelect })
+        : await prisma.user.findUnique({ where: { id: decoded.userId }, select: accountSelect });
     if (!currentUser || currentUser.isSuspended) {
       return res.status(401).json({
         success: false,
@@ -55,6 +71,10 @@ const authenticateRequest = async (
 
     if (includeProfile && currentUser && 'profile' in currentUser) {
       res.locals.authenticatedProfile = currentUser.profile;
+    } else if (!includeProfile) {
+      // A request-local snapshot only: every new request still checks the live
+      // account, and prerequisite middleware can reuse this same database read.
+      res.locals.authenticatedAccount = currentUser;
     }
 
     next();
