@@ -9,7 +9,6 @@ export default function UserPortalLoading() {
             <Skeleton className="h-7 w-48 rounded-xl" />
             <Skeleton className="h-4 w-64 rounded-lg" />
           </div>
-          <Skeleton className="h-10 w-28 rounded-xl" />
         </div>
         <div className="rounded-[28px] border border-brand-border/70 bg-brand-surface p-6 shadow-card">
           <div className="flex flex-col gap-4">

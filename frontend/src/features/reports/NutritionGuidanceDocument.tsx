@@ -6,7 +6,7 @@ import type { NutritionReport } from '@/types';
 import ReportHistory, { type ReportVersion } from './ReportHistory';
 import Button from '@/components/ui/Button';
 import NutritionGuidancePaper from './NutritionGuidancePaper';
-import { Download, Printer, ShieldAlert, CheckCircle2 } from 'lucide-react';
+import { Download, Loader2, Printer, ShieldAlert, CheckCircle2 } from 'lucide-react';
 
 interface Props {
   report: NutritionReport;
@@ -20,6 +20,7 @@ interface Props {
   isAcknowledging: boolean;
   onAcknowledge: () => void;
   onDownload: () => void;
+  isDownloadingPdf?: boolean;
 }
 
 export default function NutritionGuidanceDocument({
@@ -34,6 +35,7 @@ export default function NutritionGuidanceDocument({
   isAcknowledging,
   onAcknowledge,
   onDownload,
+  isDownloadingPdf = false,
 }: Props) {
   // Assemble complete descending version list
   const allVersions = useMemo(() => {
@@ -105,12 +107,7 @@ export default function NutritionGuidanceDocument({
 
             <div className="flex items-center gap-2">
               {isViewingArchived && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setSelectedVersion(null)}
-                  className="text-xs"
-                >
+                <Button variant="ghost" size="sm" onClick={() => setSelectedVersion(null)} className="text-xs">
                   ← Return to current
                 </Button>
               )}
@@ -118,10 +115,16 @@ export default function NutritionGuidanceDocument({
                 variant="secondary"
                 size="sm"
                 onClick={onDownload}
+                disabled={isDownloadingPdf}
+                aria-busy={isDownloadingPdf}
                 className="gap-1.5 text-xs font-semibold bg-white/90 dark:bg-brand-surface border-slate-300 dark:border-brand-border hover:bg-slate-100 dark:hover:bg-brand-surface/80"
               >
-                <Download className="w-3.5 h-3.5" />
-                Download PDF
+                {isDownloadingPdf ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                ) : (
+                  <Download className="w-3.5 h-3.5" />
+                )}
+                {isDownloadingPdf ? 'Preparing PDF...' : 'Download PDF'}
               </Button>
               <Button
                 variant="secondary"
@@ -159,7 +162,9 @@ export default function NutritionGuidanceDocument({
                       Review & Acknowledgment Required
                     </h3>
                     <p className="mt-1 text-xs text-amber-800/90 dark:text-amber-200/90 leading-relaxed max-w-xl">
-                      Please confirm that the profile below reflects what you entered and that you have read these references. This is educational guidance and does not replace your doctor or Registered Nutritionist-Dietitian.
+                      Please confirm that the profile below reflects what you entered and that you have read these
+                      references. This is educational guidance and does not replace your doctor or Registered
+                      Nutritionist-Dietitian.
                     </p>
                   </div>
                 </div>
@@ -181,14 +186,22 @@ export default function NutritionGuidanceDocument({
             <div className="w-full max-w-3xl mb-4 flex items-center gap-2 text-xs font-medium text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800/50 rounded-lg px-3.5 py-2 print:hidden">
               <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
               <span>
-                Acknowledged on {new Date(report.acknowledgedAt).toLocaleDateString()} · Active clinical reference for your meal planning
+                Acknowledged on {new Date(report.acknowledgedAt).toLocaleDateString()} · Active clinical reference for
+                your meal planning
               </span>
             </div>
           )}
 
-          <NutritionGuidancePaper report={displayedReport} profile={{
-            name, goal, dailyCalorieTarget, conditions, foodRestrictions,
-          }} />
+          <NutritionGuidancePaper
+            report={displayedReport}
+            profile={{
+              name,
+              goal,
+              dailyCalorieTarget,
+              conditions,
+              foodRestrictions,
+            }}
+          />
         </div>
       </div>
     </div>

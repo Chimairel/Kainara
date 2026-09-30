@@ -2,6 +2,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import api from '@/lib/axios';
+import { usePdfDownload } from '@/hooks/usePdfDownload';
 import Button from '@/components/ui/Button';
 import GrocerySkeleton from '@/features/grocery/GrocerySkeleton';
 import GroceryTable, { type GrocerySortField, type GrocerySortOrder } from '@/features/grocery/GroceryTable';
@@ -158,51 +159,16 @@ export default function GroceryListPage() {
     }
   };
 
-  const [isDownloadingPdf, setIsDownloadingPdf] = useState(false);
+  const { isDownloadingPdf, startPdfDownload } = usePdfDownload(ownerId);
 
   const handleDownloadPDF = async () => {
-    if (!projection || isDownloadingPdf) return;
+    if (!projection || !projection.actionability.canExportPdf || isDownloadingPdf) return;
     try {
-      setIsDownloadingPdf(true);
-      const response = await api.get('/user/grocery/pdf', {
+      await startPdfDownload('/user/grocery/pdf', `KAINARA_Grocery_List_${groceryList?.weekLabel || 'Current'}.pdf`, {
         params: { cycleId: projection.cycle.id },
-        responseType: 'blob',
       });
-      if (response.data && response.data.type === 'application/json') {
-        const text = await response.data.text();
-        const json = JSON.parse(text);
-        throw new Error(json.error || 'Failed to generate PDF.');
-      }
-      const file = new Blob([response.data], { type: 'application/pdf' });
-      const fileURL = URL.createObjectURL(file);
-      const link = document.createElement('a');
-      link.href = fileURL;
-      link.setAttribute('download', `KAINARA_Grocery_List_${groceryList?.weekLabel || 'Current'}.pdf`);
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      window.setTimeout(() => URL.revokeObjectURL(fileURL), 1000);
     } catch (err: unknown) {
-      console.error('[Grocery] Failed to download PDF:', err);
-      let message = 'Failed to generate PDF. Make sure you have an active grocery list.';
-      if (
-        typeof err === 'object' &&
-        err !== null &&
-        'response' in err &&
-        (err as { response?: { data?: unknown } }).response?.data instanceof Blob
-      ) {
-        try {
-          const blob = (err as { response: { data: Blob } }).response.data;
-          const text = await blob.text();
-          const json = JSON.parse(text);
-          if (json.error) message = json.error;
-        } catch {}
-      } else if (err instanceof Error && err.message) {
-        message = err.message;
-      }
-      alert(message);
-    } finally {
-      setIsDownloadingPdf(false);
+      setError(err instanceof Error ? err.message : 'Could not download the grocery PDF. Please try again.');
     }
   };
 
@@ -476,6 +442,7 @@ export default function GroceryListPage() {
                       variant="secondary"
                       onClick={handleDownloadPDF}
                       disabled={isDownloadingPdf}
+                      aria-busy={isDownloadingPdf}
                       className="flex items-center gap-1.5 text-xs font-semibold py-2 px-3.5 bg-white/80 dark:bg-black/40 backdrop-blur-sm border-brand-border/60 hover:bg-brand-surface"
                     >
                       {isDownloadingPdf ? (
@@ -483,7 +450,7 @@ export default function GroceryListPage() {
                       ) : (
                         <Download className="w-3.5 h-3.5 text-brand-green dark:text-brand-accent" />
                       )}
-                      <span>{isDownloadingPdf ? 'Downloading...' : 'Download PDF'}</span>
+                      <span>{isDownloadingPdf ? 'Preparing PDF...' : 'Download PDF'}</span>
                     </Button>
                   )}
                 </div>

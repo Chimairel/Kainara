@@ -6,6 +6,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import api from '@/lib/axios';
+import { usePdfDownload } from '@/hooks/usePdfDownload';
 import Button from '@/components/ui/Button';
 import Card from '@/components/ui/Card';
 import PortalLoadingState from '@/components/shared/PortalLoadingState';
@@ -20,6 +21,7 @@ export default function NutritionReportPage() {
   const router = useRouter();
   const { user, refreshSession, updateUserSession } = useAuth();
   const userId = user?.userId;
+  const { isDownloadingPdf, startPdfDownload } = usePdfDownload(userId);
   const [history, setHistory] = useState<
     Array<{ id: string; version: number; generatedAt: string; content: NutritionReport }>
   >([]);
@@ -170,7 +172,11 @@ export default function NutritionReportPage() {
       router.push(
         readiness?.canRequestPlan === false
           ? readiness.actionPath
-          : next === 'regenerate' ? '/meals?regenerate=true' : next === 'dashboard' ? '/dashboard' : '/profile'
+          : next === 'regenerate'
+            ? '/meals?regenerate=true'
+            : next === 'dashboard'
+              ? '/dashboard'
+              : '/profile'
       );
     } catch (err) {
       if ((err as { response?: { status?: number } }).response?.status === 409) {
@@ -204,22 +210,9 @@ export default function NutritionReportPage() {
 
   const handleDownloadPDF = async () => {
     try {
-      // Stream PDF directly from backend PDF endpoint
-      const response = await api.get('/user/nutrition-report/pdf', {
-        responseType: 'blob',
-      });
-      const file = new Blob([response.data], { type: 'application/pdf' });
-      const fileURL = URL.createObjectURL(file);
-      const link = document.createElement('a');
-      link.href = fileURL;
-      link.setAttribute('download', `KAINARA_Nutrition_Report_${user?.name}.pdf`);
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(fileURL);
+      await startPdfDownload('/user/nutrition-report/pdf', `KAINARA_Nutrition_Report_${user?.name || 'User'}.pdf`);
     } catch (err) {
-      console.error('[Nutrition Report] Failed to fetch report PDF:', err);
-      setError('Could not download the current report. Refresh it and try again.');
+      setError(err instanceof Error ? err.message : 'Could not download the current report. Please try again.');
     }
   };
 
@@ -233,7 +226,9 @@ export default function NutritionReportPage() {
         <Card className="max-w-md p-8 border-border bg-card shadow-card-lg">
           <AlertTriangle className="w-12 h-12 text-status-error-text mx-auto mb-4" />
           <h3 className="mb-2 text-lg font-bold text-foreground">Report Resolution Failed</h3>
-          <p className="mb-6 text-sm leading-relaxed text-muted-foreground">{error || 'An unexpected error occurred.'}</p>
+          <p className="mb-6 text-sm leading-relaxed text-muted-foreground">
+            {error || 'An unexpected error occurred.'}
+          </p>
           <Button variant="primary" onClick={() => window.location.reload()}>
             Try Again
           </Button>
@@ -254,7 +249,9 @@ export default function NutritionReportPage() {
       <div className="flex min-h-[70vh] items-center justify-center p-6 text-center text-foreground">
         <Card className="max-w-lg border-border bg-card p-8 shadow-card-lg">
           <AlertTriangle className="mx-auto mb-4 h-12 w-12 text-status-pending-text" />
-          <p className="text-xs font-semibold uppercase tracking-wide text-amber-600 dark:text-amber-400">Health context changed</p>
+          <p className="text-xs font-semibold uppercase tracking-wide text-amber-600 dark:text-amber-400">
+            Health context changed
+          </p>
           <h1 className="mt-3 text-2xl font-bold text-foreground">Your nutrition guidance needs an update</h1>
           <p className="mt-3 text-sm leading-6 text-muted-foreground">
             Your conditions, allergies, intolerances, or avoided foods changed after this report was created. The older
@@ -275,29 +272,42 @@ export default function NutritionReportPage() {
   }
 
   if (report.reportPolicyVersion && report.referenceItems) {
-    return <NutritionGuidanceDocument
-      report={report}
-      name={profileData?.name || user?.name || 'User'}
-      goal={profileData?.goal || 'MAINTAIN'}
-      dailyCalorieTarget={profileData?.dailyCalorieTarget || 0}
-      conditions={profileData?.conditions || []}
-      foodRestrictions={profileData?.allergies || []}
-      history={history}
-      error={error}
-      isAcknowledging={isAcknowledging}
-      onAcknowledge={handleAcknowledge}
-      onDownload={handleDownloadPDF}
-    />;
+    return (
+      <NutritionGuidanceDocument
+        report={report}
+        name={profileData?.name || user?.name || 'User'}
+        goal={profileData?.goal || 'MAINTAIN'}
+        dailyCalorieTarget={profileData?.dailyCalorieTarget || 0}
+        conditions={profileData?.conditions || []}
+        foodRestrictions={profileData?.allergies || []}
+        history={history}
+        error={error}
+        isAcknowledging={isAcknowledging}
+        onAcknowledge={handleAcknowledge}
+        onDownload={handleDownloadPDF}
+        isDownloadingPdf={isDownloadingPdf}
+      />
+    );
   }
 
   return (
     <main className="min-h-screen bg-white p-8 text-slate-900">
       <div className="mx-auto max-w-2xl">
         <h1 className="text-2xl font-bold">Nutrition guidance needs an update</h1>
-        <p className="mt-3">This report uses an older format. Prepare a current, source-linked version before continuing.</p>
-        {error && <p role="alert" className="mt-3 text-red-700">{error}</p>}
-        <button type="button" onClick={handleRegenerate} disabled={isRegenerating}
-          className="mt-5 rounded bg-slate-900 px-5 py-3 text-white disabled:opacity-50">
+        <p className="mt-3">
+          This report uses an older format. Prepare a current, source-linked version before continuing.
+        </p>
+        {error && (
+          <p role="alert" className="mt-3 text-red-700">
+            {error}
+          </p>
+        )}
+        <button
+          type="button"
+          onClick={handleRegenerate}
+          disabled={isRegenerating}
+          className="mt-5 rounded bg-slate-900 px-5 py-3 text-white disabled:opacity-50"
+        >
           {isRegenerating ? 'Preparing...' : 'Prepare current guidance'}
         </button>
         <ReportHistory history={history} />
