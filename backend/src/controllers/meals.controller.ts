@@ -316,16 +316,30 @@ export class MealsController {
    * Returns current active plan meals grouped by date.
    */
   static async getCurrentPlan(req: AuthenticatedRequest, res: Response) {
+    const stages: string[] = [];
+    let stageStartedAt = typeof res.locals.currentPlanRequestStartedAt === 'number'
+      ? res.locals.currentPlanRequestStartedAt : performance.now();
+    const mark = (name: string) => {
+      const now = performance.now();
+      stages.push(`${name};dur=${(now - stageStartedAt).toFixed(1)}`);
+      stageStartedAt = now;
+    };
     try {
       const userId = req.user?.userId;
       if (!userId) {
         return res.status(401).json({ success: false, error: 'Unauthorized.' });
       }
 
-      UpcomingPlanPreparationService.triggerNonBlocking(userId);
+      mark('prerequisites');
+      // Preparation can perform many database reads. Start it after this
+      // response so it does not compete with the user's current-plan read.
+      res.once('finish', () => UpcomingPlanPreparationService.triggerNonBlocking(userId));
       const cycle = await MealPlanCycleService.getCurrentCycle(userId);
+      mark('cycle');
       if (!cycle) {
         const generationJob = await CurrentPlanPreparationService.getCurrentWindowJobStatus(userId);
+        mark('generation');
+        res.setHeader('Server-Timing', stages.join(', '));
         return res.status(200).json({
           success: true,
           data: [],
@@ -368,23 +382,25 @@ export class MealsController {
         },
         orderBy: { scheduledDate: 'asc' },
       });
+      mark('meals');
       const clearedIds = new Set(await MealPlanCycleService.getClearedMealPlanIds(userId, cycle.id));
-      const libraryImages = await resolveLibraryRecipeImages(
-        groupMeals.flatMap((row) => (row.libraryMeal ? [row.libraryMeal] : []))
-      );
-      const libraryCookingLinks = await resolveLibraryRecipeCookingLinks(
-        groupMeals.flatMap((row) => (row.libraryMeal ? [row.libraryMeal] : []))
-      );
+      mark('clearance');
+      const libraryMeals = groupMeals.flatMap((row) => (row.libraryMeal ? [row.libraryMeal] : []));
+      const [libraryImages, libraryCookingLinks, planSnapshot, generationJob] = await Promise.all([
+        resolveLibraryRecipeImages(libraryMeals),
+        resolveLibraryRecipeCookingLinks(libraryMeals),
+        prisma.mealPlanCycleSnapshot.findUnique({ where: { planGroupId: cycle.id } }),
+        prisma.mealPlanGenerationJob.findUnique({
+          where: { planGroupId: cycle.id }, select: { status: true },
+        }),
+      ]);
+      mark('presentation');
       const meals = groupMeals
         .filter((meal) => clearedIds.has(meal.id))
         .map((meal) => serializeActionableMeal(meal, libraryImages, libraryCookingLinks));
-      const planSnapshot = await prisma.mealPlanCycleSnapshot.findUnique({
-        where: { planGroupId: cycle.id },
-      });
-      const generationJob = await prisma.mealPlanGenerationJob.findUnique({
-        where: { planGroupId: cycle.id }, select: { status: true },
-      });
+      mark('serialize');
 
+      res.setHeader('Server-Timing', stages.join(', '));
       return res.status(200).json({
         success: true,
         data: meals,

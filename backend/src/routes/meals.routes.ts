@@ -28,6 +28,12 @@ import {
 } from '@/validation/user-action.schemas';
 
 const router = Router();
+router.use((req, res, next) => {
+  if (req.method === 'GET' && req.path === '/current') {
+    res.locals.currentPlanRequestStartedAt = performance.now();
+  }
+  next();
+});
 const outsideImageUpload = multer({
   storage: multer.memoryStorage(),
   limits: { files: 1, fileSize: 2 * 1024 * 1024 },
