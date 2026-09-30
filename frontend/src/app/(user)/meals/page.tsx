@@ -186,8 +186,6 @@ export default function WeeklyPlanPage() {
           isStarterPlan={isStarterPlan}
           upcomingStart={upcomingStart}
           nextCycleDay={nextCycleDay}
-          pendingReview={pendingReview}
-          handleRegeneratePlan={() => void handleRegeneratePlan()}
         />
 
         {/* Tab Bar */}
