@@ -185,7 +185,7 @@ export class GroceryService {
    * Fetches the user's current grocery list.
    */
   static async getGroceryList(userId: string) {
-    const cycle = await MealPlanCycleService.getCurrentCycle(userId);
+    const { cycle, clearedIds } = await MealPlanCycleService.getCurrentCycleWithClearance(userId);
     if (!cycle) return null;
     const list = await prisma.groceryList.findFirst({
       where: { userId, planGroupId: cycle.id },
@@ -193,7 +193,7 @@ export class GroceryService {
     });
     // A stale flag is durable work: reads retry the projection and never return stale quantities.
     if (!list || list.isStale || !list.planGroupId) {
-      const clearedCount = (await MealPlanCycleService.getClearedMealPlanIds(userId, cycle.id)).length;
+      const clearedCount = clearedIds.length;
       if (!clearedCount || cycle.profileAdaptationState !== ProfileCycleAdaptationState.CURRENT) return null;
       return this.generateGroceryList(userId, undefined, cycle.id);
     }
@@ -206,10 +206,13 @@ export class GroceryService {
    * an under-review subset as a final shopping list.
    */
   static async getGroceryWorkspace(userId: string, now: Date = new Date()) {
-    const cycles = await MealPlanCycleService.getCurrentAndUpcoming(userId, now);
+    const clearedIdsByCycle = new Map<string, string[]>();
+    const cycles = await MealPlanCycleService.getCurrentAndUpcoming(userId, now, clearedIdsByCycle);
     return {
-      current: cycles.current ? await this.buildCycleProjection(userId, cycles.current, 'CURRENT', now) : null,
-      upcoming: cycles.upcoming ? await this.buildCycleProjection(userId, cycles.upcoming, 'UPCOMING', now) : null,
+      current: cycles.current ? await this.buildCycleProjection(userId, cycles.current, 'CURRENT', now,
+        clearedIdsByCycle.get(cycles.current.id)) : null,
+      upcoming: cycles.upcoming ? await this.buildCycleProjection(userId, cycles.upcoming, 'UPCOMING', now,
+        clearedIdsByCycle.get(cycles.upcoming.id)) : null,
     };
   }
 
@@ -251,9 +254,9 @@ export class GroceryService {
       incompleteAcknowledgedAt: Date | null;
       shoppingStartedAt: Date | null;
     },
-  >(userId: string, cycle: T, scope: 'CURRENT' | 'UPCOMING', now: Date) {
+  >(userId: string, cycle: T, scope: 'CURRENT' | 'UPCOMING', now: Date, knownClearedIds?: string[]) {
     const [clearedMealPlanIds, initialList] = await Promise.all([
-      MealPlanCycleService.getClearedMealPlanIds(userId, cycle.id, now),
+      knownClearedIds ?? MealPlanCycleService.getClearedMealPlanIds(userId, cycle.id, now),
       prisma.groceryList.findFirst({
         where: { userId, planGroupId: cycle.id },
         include: { groceryItems: { orderBy: { ingredientName: 'asc' } } },

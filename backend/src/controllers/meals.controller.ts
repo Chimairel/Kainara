@@ -334,7 +334,7 @@ export class MealsController {
       // Preparation can perform many database reads. Start it after this
       // response so it does not compete with the user's current-plan read.
       res.once('finish', () => UpcomingPlanPreparationService.triggerNonBlocking(userId));
-      const cycle = await MealPlanCycleService.getCurrentCycle(userId);
+      const { cycle, clearedIds: cycleClearedIds } = await MealPlanCycleService.getCurrentCycleWithClearance(userId);
       mark('cycle');
       if (!cycle) {
         const generationJob = await CurrentPlanPreparationService.getCurrentWindowJobStatus(userId);
@@ -355,7 +355,11 @@ export class MealsController {
 
       // The cycle row is the authoritative dated identity. Live profile
       // shopping preferences do not move or hide an already-created cycle.
-      const groupMeals = await prisma.mealPlan.findMany({
+      const planSnapshotPromise = prisma.mealPlanCycleSnapshot.findUnique({ where: { planGroupId: cycle.id } });
+      const generationJobPromise = prisma.mealPlanGenerationJob.findUnique({
+        where: { planGroupId: cycle.id }, select: { status: true },
+      });
+      const groupMealsPromise = prisma.mealPlan.findMany({
         where: {
           userId,
           planGroupId: cycle.id,
@@ -382,17 +386,16 @@ export class MealsController {
         },
         orderBy: { scheduledDate: 'asc' },
       });
+      const [groupMeals, planSnapshot, generationJob] = await Promise.all([
+        groupMealsPromise, planSnapshotPromise, generationJobPromise,
+      ]);
       mark('meals');
-      const clearedIds = new Set(await MealPlanCycleService.getClearedMealPlanIds(userId, cycle.id));
+      const clearedIds = new Set(cycleClearedIds);
       mark('clearance');
       const libraryMeals = groupMeals.flatMap((row) => (row.libraryMeal ? [row.libraryMeal] : []));
-      const [libraryImages, libraryCookingLinks, planSnapshot, generationJob] = await Promise.all([
+      const [libraryImages, libraryCookingLinks] = await Promise.all([
         resolveLibraryRecipeImages(libraryMeals),
         resolveLibraryRecipeCookingLinks(libraryMeals),
-        prisma.mealPlanCycleSnapshot.findUnique({ where: { planGroupId: cycle.id } }),
-        prisma.mealPlanGenerationJob.findUnique({
-          where: { planGroupId: cycle.id }, select: { status: true },
-        }),
       ]);
       mark('presentation');
       const meals = groupMeals
@@ -429,8 +432,9 @@ export class MealsController {
     try {
       const userId = req.user?.userId;
       if (!userId) return res.status(401).json({ success: false, error: 'Unauthorized.' });
-      UpcomingPlanPreparationService.triggerNonBlocking(userId);
-      const cycles = await MealPlanCycleService.getCurrentAndUpcoming(userId);
+      res.once('finish', () => UpcomingPlanPreparationService.triggerNonBlocking(userId));
+      const clearedIdsByCycle = new Map<string, string[]>();
+      const cycles = await MealPlanCycleService.getCurrentAndUpcoming(userId, new Date(), clearedIdsByCycle);
       const pendingCurrentJob = cycles.current ? null : await CurrentPlanPreparationService.getCurrentWindowJobStatus(userId);
       const cycleIds = [cycles.current?.id, cycles.upcoming?.id].filter((id): id is string => Boolean(id));
       if (!cycleIds.length) {
@@ -455,9 +459,9 @@ export class MealsController {
         },
         orderBy: [{ scheduledDate: 'asc' }, { mealType: 'asc' }],
       });
-      const clearedByCycle = await Promise.all(
-        cycleIds.map((cycleId) => MealPlanCycleService.getClearedMealPlanIds(userId, cycleId))
-      );
+      const clearedByCycle = await Promise.all(cycleIds.map((cycleId) =>
+        clearedIdsByCycle.get(cycleId) ?? MealPlanCycleService.getClearedMealPlanIds(userId, cycleId)
+      ));
       const generationJobs = await prisma.mealPlanGenerationJob.findMany({
         where: { planGroupId: { in: cycleIds } }, select: { planGroupId: true, status: true },
       });
@@ -504,7 +508,7 @@ export class MealsController {
     try {
       const userId = req.user?.userId;
       if (!userId) return res.status(401).json({ success: false, error: 'Unauthorized.' });
-      UpcomingPlanPreparationService.triggerNonBlocking(userId);
+      res.once('finish', () => UpcomingPlanPreparationService.triggerNonBlocking(userId));
       const cycles = await MealPlanCycleService.getCurrentAndUpcoming(userId);
       return res.status(200).json({ success: true, data: cycles });
     } catch (error) {

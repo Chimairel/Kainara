@@ -30,9 +30,13 @@ export function baseMealAdmissionMatches(meal: LibraryBase, verifiedKeys: Readon
 /** Verification follows the exact recipe revision. It grants no health clearance. */
 export async function admittedLibraryBaseIds(meals: readonly LibraryBase[]): Promise<Set<string>> {
   if (meals.length === 0) return new Set();
-  const signatures = meals.flatMap((meal) => meal.recipeSignature ? [meal.recipeSignature] : []);
-  const ids = meals.map((meal) => meal.id);
-  const rawIds = meals.flatMap((meal) => meal.sourceRawRecipeCandidateId ? [meal.sourceRawRecipeCandidateId] : []);
+  const alreadyAdmitted = new Set(meals.flatMap((meal) =>
+    baseMealAdmissionMatches(meal, new Set()) ? [meal.id] : []));
+  const needsVerification = meals.filter((meal) => !alreadyAdmitted.has(meal.id));
+  if (needsVerification.length === 0) return alreadyAdmitted;
+  const signatures = needsVerification.flatMap((meal) => meal.recipeSignature ? [meal.recipeSignature] : []);
+  const ids = needsVerification.map((meal) => meal.id);
+  const rawIds = needsVerification.flatMap((meal) => meal.sourceRawRecipeCandidateId ? [meal.sourceRawRecipeCandidateId] : []);
   const verified = await prisma.mealBaseVerification.findMany({
     where: {
       status: 'VERIFIED',
@@ -45,5 +49,8 @@ export async function admittedLibraryBaseIds(meals: readonly LibraryBase[]): Pro
     select: { targetKind: true, targetId: true, revisionKey: true },
   });
   const keys = new Set(verified.map((row) => `${row.targetKind}:${row.targetId}:${row.revisionKey}`));
-  return new Set(meals.flatMap((meal) => baseMealAdmissionMatches(meal, keys) ? [meal.id] : []));
+  for (const meal of needsVerification) {
+    if (baseMealAdmissionMatches(meal, keys)) alreadyAdmitted.add(meal.id);
+  }
+  return alreadyAdmitted;
 }

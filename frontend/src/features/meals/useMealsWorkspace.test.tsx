@@ -30,13 +30,21 @@ describe('useMealsWorkspace', () => {
     getMock.mockImplementation(async (url: string) => successfulResponseFor(url));
   });
 
-  it('prefetches history and library totals before either tab is opened', async () => {
+  it('loads history and library only when their tabs are opened', async () => {
     const { result } = renderHook(() => useMealsWorkspace());
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
+    expect(getMock).not.toHaveBeenCalledWith('/user/meals/history', { params: {} });
+    expect(getMock).not.toHaveBeenCalledWith('/user/meals/compatible-library', {
+      params: { date: getManilaDateKey(new Date()), limit: '24' },
+    });
+
+    act(() => result.current.setActiveTab('history'));
     await waitFor(() => expect(result.current.historyTotalCount).toBe(3));
-    expect(result.current.libraryTotalCount).toBe(5);
     expect(getMock).toHaveBeenCalledWith('/user/meals/history', { params: {} });
+
+    act(() => result.current.setActiveTab('library'));
+    await waitFor(() => expect(result.current.libraryTotalCount).toBe(5));
     expect(getMock).toHaveBeenCalledWith('/user/meals/compatible-library', {
       params: { date: getManilaDateKey(new Date()), limit: '24' },
     });

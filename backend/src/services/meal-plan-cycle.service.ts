@@ -255,7 +255,8 @@ export class MealPlanCycleService {
   static async synchronizeLifecycle(
     userId: string,
     now: Date = new Date(),
-    client: CycleClient = prisma
+    client: CycleClient = prisma,
+    clearedIdsByCycle?: Map<string, string[]>
   ): Promise<void> {
     const cycles = await client.mealPlanCycle.findMany({
       where: {
@@ -275,50 +276,14 @@ export class MealPlanCycleService {
         activatedAt: true,
         shoppingStartedAt: true,
         groceryList: { select: { isStale: true } },
-        user: { select: { healthConditions: { select: { condition: true } } } },
         mealPlans: {
           where: { status: { not: MealPlanStatus.CANCELLED } },
           select: {
             id: true,
-            status: true,
             mealType: true,
             scheduledDate: true,
-            requiresSafetyRevalidation: true,
             createdAt: true,
             reviewedAt: true,
-            libraryMealId: true,
-            baseRecipeSignature: true,
-            composedServingSignature: true,
-            safetyPolicyVersion: true,
-            highRiskReviewRequired: true,
-            reviewApprovalCount: true,
-            libraryMeal: {
-              select: {
-                status: true,
-                safetyEvidenceStatus: true,
-                safetyEvidenceRevision: true,
-                recipeSignature: true,
-              },
-            },
-            clearanceUsages: {
-              select: {
-                condition: true,
-                composedServingSignature: true,
-                clearance: {
-                  select: {
-                    state: true,
-                    recipeSignature: true,
-                    evidenceRevision: true,
-                    composedServingSignature: true,
-                    expiresAt: true,
-                  },
-                },
-              },
-            },
-            reviewDecisions: {
-              where: { decision: 'APPROVE' },
-              select: { nutritionistProfileId: true, stage: true },
-            },
           },
         },
       },
@@ -338,7 +303,9 @@ export class MealPlanCycleService {
         }
         continue;
       }
-      const clearedMealPlanIds = new Set(await this.getClearedMealPlanIds(userId, cycle.id, now, client));
+      const clearedIds = await this.getClearedMealPlanIds(userId, cycle.id, now, client);
+      clearedIdsByCycle?.set(cycle.id, clearedIds);
+      const clearedMealPlanIds = new Set(clearedIds);
       const clearedMeals = cycle.mealPlans.filter((meal) => clearedMealPlanIds.has(meal.id));
       const clearedSlots = new Set(clearedMeals.map((meal) => `${meal.scheduledDate.getTime()}:${meal.mealType}`));
       const allSlotsCleared = clearedSlots.size >= cycle.expectedSlotCount;
@@ -392,6 +359,28 @@ export class MealPlanCycleService {
     });
   }
 
+  /** Reuse the clearance already checked during lifecycle synchronization on this read. */
+  static async getCurrentCycleWithClearance(userId: string, now: Date = new Date()) {
+    const clearedIdsByCycle = new Map<string, string[]>();
+    await this.synchronizeLifecycle(userId, now, prisma, clearedIdsByCycle);
+    const businessDay = this.getBusinessDay(now);
+    const cycle = await prisma.mealPlanCycle.findFirst({
+      where: {
+        userId,
+        startDate: { lte: businessDay },
+        endDate: { gte: businessDay },
+        status: { not: MealPlanCycleStatus.SUPERSEDED },
+      },
+      orderBy: [{ startDate: 'desc' }, { cycleRevision: 'desc' }],
+      select: mealPlanCycleSummarySelect,
+    });
+    return {
+      cycle,
+      clearedIds: cycle ? (clearedIdsByCycle.get(cycle.id) ??
+        await this.getClearedMealPlanIds(userId, cycle.id, now)) : [],
+    };
+  }
+
   static async getUpcomingCycle(userId: string, now: Date = new Date()) {
     await this.synchronizeLifecycle(userId, now);
     const businessDay = this.getBusinessDay(now);
@@ -406,8 +395,12 @@ export class MealPlanCycleService {
     });
   }
 
-  static async getCurrentAndUpcoming(userId: string, now: Date = new Date()) {
-    await this.synchronizeLifecycle(userId, now);
+  static async getCurrentAndUpcoming(
+    userId: string,
+    now: Date = new Date(),
+    clearedIdsByCycle?: Map<string, string[]>
+  ) {
+    await this.synchronizeLifecycle(userId, now, prisma, clearedIdsByCycle);
     const businessDay = this.getBusinessDay(now);
     const [current, upcoming] = await Promise.all([
       prisma.mealPlanCycle.findFirst({

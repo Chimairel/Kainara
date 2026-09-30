@@ -40,7 +40,7 @@ export class GroceryController {
         return res.status(401).json({ success: false, error: 'Unauthorized user.' });
       }
 
-      UpcomingPlanPreparationService.triggerNonBlocking(userId);
+      res.once('finish', () => UpcomingPlanPreparationService.triggerNonBlocking(userId));
       const groceryList = await GroceryService.getGroceryList(userId);
       return res.status(200).json({
         success: true,
@@ -60,7 +60,7 @@ export class GroceryController {
     try {
       const userId = req.user?.userId;
       if (!userId) return res.status(401).json({ success: false, error: 'Unauthorized user.' });
-      UpcomingPlanPreparationService.triggerNonBlocking(userId);
+      res.once('finish', () => UpcomingPlanPreparationService.triggerNonBlocking(userId));
       return res.status(200).json({ success: true, data: await GroceryService.getGroceryWorkspace(userId) });
     } catch (error) {
       console.error('[GroceryController] Workspace fetch failed:', error);

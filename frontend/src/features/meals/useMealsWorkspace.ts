@@ -149,7 +149,6 @@ export function useMealsWorkspace() {
   const [isRetryingMissing, setIsRetryingMissing] = useState(false);
   const [selectedPlanDateKey, setSelectedPlanDateKey] = useState<string | null>(null);
   const currentPlanRequestInFlight = useRef(false);
-  const secondaryDataPrefetchedForUserRef = useRef<string | null>(null);
   useEffect(() => {
     if (!ownerId) return;
     let active = true;
@@ -409,18 +408,6 @@ export function useMealsWorkspace() {
       };
     }
   }, [ownerId, fetchMeals]);
-
-  useEffect(() => {
-    if (!ownerId) {
-      secondaryDataPrefetchedForUserRef.current = null;
-      return;
-    }
-
-    if (secondaryDataPrefetchedForUserRef.current === ownerId) return;
-    secondaryDataPrefetchedForUserRef.current = ownerId;
-    fetchHistory();
-    fetchLibrary();
-  }, [ownerId, fetchHistory, fetchLibrary]);
 
   useEffect(() => {
     if (ownerId) {
