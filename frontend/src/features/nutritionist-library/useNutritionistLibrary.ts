@@ -103,6 +103,7 @@ export interface LibraryMeal {
 }
 
 export interface LibraryCoverage {
+  sourceRecipesWithCoreNutrition: number;
   certifiedMeals: number;
   requiredPerSlot: number;
   profiles: Array<{
@@ -110,7 +111,15 @@ export interface LibraryCoverage {
     label: string;
     counts: Record<'BREAKFAST' | 'LUNCH' | 'DINNER', number>;
     total: number;
-    servingCoverage?: Array<{ dailyCalorieTarget: number; counts: Record<string, number>; weekReady: boolean }>;
+    servingCoverage?: Array<{
+      dailyCalorieTarget: number;
+      counts: Record<string, number>;
+      caseReviewCounts: Record<string, number>;
+      weekReady: boolean;
+    }>;
+    caseReviewCounts: Record<'BREAKFAST' | 'LUNCH' | 'DINNER', number>;
+    caseReviewTotal: number;
+    caseReviewMinimumPerSlot: number;
     minimumPerSlot: number;
     weekReady: boolean;
   }>;
@@ -122,6 +131,9 @@ export interface LibraryCoverage {
       key: string;
       label: string;
       counts: Record<'BREAKFAST' | 'LUNCH' | 'DINNER', number>;
+      caseReviewCounts: Record<'BREAKFAST' | 'LUNCH' | 'DINNER', number>;
+      caseReviewTotal: number;
+      caseReviewMinimumPerSlot: number;
       total: number;
       minimumPerSlot: number;
       weekReady: boolean;
@@ -131,6 +143,9 @@ export interface LibraryCoverage {
     key: string;
     label: string;
     counts: Record<'BREAKFAST' | 'LUNCH' | 'DINNER', number>;
+    caseReviewCounts: Record<'BREAKFAST' | 'LUNCH' | 'DINNER', number>;
+    caseReviewTotal: number;
+    caseReviewMinimumPerSlot: number;
     total: number;
     minimumPerSlot: number;
     weekReady: boolean;
@@ -175,7 +190,7 @@ export function useNutritionistLibrary(loadCoverage = false) {
   const [isLoading, setIsLoading] = useState(!firstPage);
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [coverage, setCoverage] = useState<LibraryCoverage | null>(
-    readSessionResource<LibraryCoverage>(ownerId, 'nutritionist-library-coverage')
+    readSessionResource<LibraryCoverage>(ownerId, 'nutritionist-library-coverage-v2')
   );
   const requestSequence = useRef(0);
 
@@ -240,10 +255,10 @@ export function useNutritionistLibrary(loadCoverage = false) {
       const response = await api.get('/nutritionist/library-coverage');
       if (response.data?.success) {
         setCoverage(response.data.data);
-        writeSessionResource(ownerId, 'nutritionist-library-coverage', response.data.data);
+        writeSessionResource(ownerId, 'nutritionist-library-coverage-v2', response.data.data);
       }
     } catch {
-      if (!readSessionResource<LibraryCoverage>(ownerId, 'nutritionist-library-coverage')) setCoverage(null);
+      if (!readSessionResource<LibraryCoverage>(ownerId, 'nutritionist-library-coverage-v2')) setCoverage(null);
     }
   }, [ownerId]);
 

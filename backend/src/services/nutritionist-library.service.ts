@@ -19,6 +19,10 @@ import { SUPPORTED_MEAL_LIBRARY_SAFETY_POLICY_VERSIONS } from '@/domain/meal-lib
 
 import { certifiedLibraryMealInclude, isCertifiedLibraryMealCompatible } from '@/services/meal-swap.service';
 import {
+  isLibraryMealSafeToQueueForCaseReview,
+  isProfileApprovedLibraryMealCompatible,
+} from '@/services/meal-library-candidate-query.service';
+import {
   BASE_LIBRARY_COVERAGE_PROFILES,
   COMBINATION_CONDITIONS,
   COMBINATION_CONSTRAINTS,
@@ -73,21 +77,29 @@ export class NutritionistLibraryService {
     return getNutritionistMealLibraryWithFilters(currentUserId, filters);
   }
 
-  /**
-   * Operational coverage for profiles the reusable library currently supports.
-   * A profile is week-ready only when every main slot has at least seven
-   * current, unflagged, reviewer-eligible meals.
-   */
+  /** Separate source availability, automatic reuse, and candidates needing case review. */
   static async getMealLibraryCoverage() {
-    const meals = await prisma.mealLibrary.findMany({
-      where: {
-        status: MealLibraryStatus.APPROVED,
-        safetyEvidenceStatus: MealLibrarySafetyEvidenceStatus.COMPLETE,
-        safetyPolicyVersion: { in: [...SUPPORTED_MEAL_LIBRARY_SAFETY_POLICY_VERSIONS] },
-        flags: { none: { status: FlagStatus.PENDING } },
-      },
-      include: certifiedLibraryMealInclude,
-    });
+    const [meals, sourceRecipesWithCoreNutrition] = await Promise.all([
+      prisma.mealLibrary.findMany({
+        where: {
+          status: MealLibraryStatus.APPROVED,
+          safetyEvidenceStatus: MealLibrarySafetyEvidenceStatus.COMPLETE,
+          safetyPolicyVersion: { in: [...SUPPORTED_MEAL_LIBRARY_SAFETY_POLICY_VERSIONS] },
+          flags: { none: { status: FlagStatus.PENDING } },
+        },
+        include: certifiedLibraryMealInclude,
+      }),
+      prisma.rawRecipeCandidate.count({
+        where: {
+          sourceName: 'PANLASANG_PINOY',
+          status: 'AVAILABLE',
+          calories: { gt: 0 },
+          proteinG: { not: null },
+          carbsG: { not: null },
+          fatG: { not: null },
+        },
+      }),
+    ]);
     const countProfile = (definition: {
       dietaryPreference: DietaryPreference;
       conditions: readonly HealthConditionType[];
@@ -99,41 +111,53 @@ export class NutritionistLibraryService {
         supportState: string;
       }[];
     }) => {
-      const matching = meals.filter((meal) =>
-        isCertifiedLibraryMealCompatible(meal, definition.conditions, definition.allergens, {
-          dietaryPreference: definition.dietaryPreference,
-          goal: Goal.MAINTAIN,
-          otherConditions: null,
-          otherAllergies: null,
-          safetyEntries: definition.safetyEntries,
-        })
+      const profile = {
+        dietaryPreference: definition.dietaryPreference,
+        goal: Goal.MAINTAIN,
+        otherConditions: null,
+        otherAllergies: null,
+        safetyEntries: definition.safetyEntries,
+      };
+      const automaticallyReusable = meals.filter((meal) =>
+        isCertifiedLibraryMealCompatible(meal, definition.conditions, definition.allergens, profile) ||
+        isProfileApprovedLibraryMealCompatible(meal, definition.conditions, definition.allergens, profile)
       );
-      const counts = Object.fromEntries(
+      const reusableIds = new Set(automaticallyReusable.map((meal) => meal.id));
+      const caseReviewCandidates = meals.filter((meal) =>
+        !reusableIds.has(meal.id) &&
+        isLibraryMealSafeToQueueForCaseReview(meal, definition.conditions, definition.allergens, profile)
+      );
+      const slotCounts = (entries: typeof meals, dailyCalorieTarget?: number) => Object.fromEntries(
         COVERAGE_MEAL_TYPES.map((mealType) => [
           mealType,
-          matching.filter((meal) => meal.applicableMealTypes.some((entry) => entry.mealType === mealType)).length,
+          entries.filter((meal) =>
+            meal.applicableMealTypes.some((entry) => entry.mealType === mealType) &&
+            (dailyCalorieTarget === undefined ||
+              isMealWithinSlotCalorieRange({ ...meal, mealType, dailyCalorieTarget }))
+          ).length,
         ])
       ) as Record<(typeof COVERAGE_MEAL_TYPES)[number], number>;
+      const counts = slotCounts(automaticallyReusable);
+      const caseReviewCounts = slotCounts(caseReviewCandidates);
       const minimumPerSlot = Math.min(...Object.values(counts));
+      const caseReviewMinimumPerSlot = Math.min(...Object.values(caseReviewCounts));
       const servingCoverage = [1400, 1600, 1800, 1900, 2000, 2200, 2400, 2800].map((dailyCalorieTarget) => {
-        const counts = Object.fromEntries(
-          COVERAGE_MEAL_TYPES.map((mealType) => [
-            mealType,
-            matching.filter(
-              (meal) =>
-                meal.applicableMealTypes.some((entry) => entry.mealType === mealType) &&
-                isMealWithinSlotCalorieRange({ ...meal, mealType, dailyCalorieTarget })
-            ).length,
-          ])
-        );
-        return { dailyCalorieTarget, counts, weekReady: Math.min(...Object.values(counts)) >= 7 };
+        const counts = slotCounts(automaticallyReusable, dailyCalorieTarget);
+        const caseReviewCounts = slotCounts(caseReviewCandidates, dailyCalorieTarget);
+        return {
+          dailyCalorieTarget, counts, caseReviewCounts,
+          weekReady: Math.min(...Object.values(counts)) >= 7,
+        };
       });
       return {
         servingCoverage,
         counts,
-        total: matching.length,
+        total: automaticallyReusable.length,
         minimumPerSlot,
         weekReady: minimumPerSlot >= 7,
+        caseReviewCounts,
+        caseReviewTotal: caseReviewCandidates.length,
+        caseReviewMinimumPerSlot,
       };
     };
 
@@ -174,6 +198,7 @@ export class NutritionistLibraryService {
     }));
 
     return {
+      sourceRecipesWithCoreNutrition,
       certifiedMeals: meals.filter(
         (meal) =>
           meal.certifiedEvidenceRevision === meal.safetyEvidenceRevision &&
