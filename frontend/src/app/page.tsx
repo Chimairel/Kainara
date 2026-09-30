@@ -115,18 +115,16 @@ export default function Home() {
   const router = useRouter();
 
   useEffect(() => {
-    if (!isLoading && user) {
-      const destination = !user.emailVerified
-        ? '/verify-email'
-        : user.role === 'ADMIN'
-          ? '/admin/overview'
-          : user.role === 'NUTRITIONIST'
-            ? '/nutritionist/reviews'
-            : !user.onboardingDone
-              ? user.onboardingNextPath || '/onboarding/stats'
-              : !user.tosAccepted
-                ? '/onboarding/tos'
-                : '/dashboard';
+    if (!isLoading && user?.emailVerified) {
+      const destination = user.role === 'ADMIN'
+        ? '/admin/overview'
+        : user.role === 'NUTRITIONIST'
+          ? '/nutritionist/reviews'
+          : !user.onboardingDone
+            ? user.onboardingNextPath || '/onboarding/stats'
+            : !user.tosAccepted
+              ? '/onboarding/tos'
+              : '/dashboard';
       router.replace(destination);
     }
   }, [user, isLoading, router]);
@@ -141,7 +139,9 @@ export default function Home() {
         : 'Open Portal'
     : 'Build my nutrition profile';
 
-  if (user) {
+  // Pending verification can browse the public home page. Its call to action
+  // still leads back to verification; protected routes remain gated.
+  if (user?.emailVerified) {
     return null;
   }
 
