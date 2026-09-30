@@ -295,7 +295,237 @@ export function DocsWaveHero() {
   );
 }
 
+/**
+ * LEFT VERTICAL WAVE BORDER
+ * Organic flowing 3-tone wave border that bounds the left side of the sources showcase track.
+ * Moving cards smoothly disappear under the curved dark shadow and wave stripes without straight cuts.
+ */
+export function SectionWaveBorderLeft() {
+  return (
+    <div
+      aria-hidden="true"
+      className="pointer-events-none absolute left-0 top-0 bottom-0 w-24 sm:w-32 md:w-40 overflow-hidden select-none z-20"
+    >
+      <svg
+        viewBox="0 0 180 300"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+        preserveAspectRatio="none"
+        className="w-full h-full block"
+      >
+        <defs>
+          <filter id="waveShadowLeft" x="-30%" y="-20%" width="180%" height="160%">
+            <feGaussianBlur in="SourceGraphic" stdDeviation="6" />
+          </filter>
+        </defs>
 
+        {/* Seamless dark pine fill covering everything to the left of the curve */}
+        <path
+          d="M -30,-15
+             L 50,-10
+             C 96,35 138,85 124,125
+             C 108,165 46,175 70,215
+             C 96,255 143,265 113,310
+             L -30,315
+             Z"
+          fill="#071914"
+        />
+
+        {/* Curved dark shadow strokes on the inner side of the curve to smoothly fade moving cards */}
+        <path
+          d="M 50,-10
+             C 96,35 138,85 124,125
+             C 108,165 46,175 70,215
+             C 96,255 143,265 113,310"
+          stroke="#071914"
+          strokeWidth="48"
+          strokeLinecap="round"
+          className="opacity-45"
+          filter="url(#waveShadowLeft)"
+          vectorEffect="non-scaling-stroke"
+        />
+        <path
+          d="M 50,-10
+             C 96,35 138,85 124,125
+             C 108,165 46,175 70,215
+             C 96,255 143,265 113,310"
+          stroke="#071914"
+          strokeWidth="28"
+          strokeLinecap="round"
+          className="opacity-75"
+          filter="url(#waveShadowLeft)"
+          vectorEffect="non-scaling-stroke"
+        />
+        <path
+          d="M 50,-10
+             C 96,35 138,85 124,125
+             C 108,165 46,175 70,215
+             C 96,255 143,265 113,310"
+          stroke="#071914"
+          strokeWidth="16"
+          strokeLinecap="round"
+          className="opacity-95"
+          vectorEffect="non-scaling-stroke"
+        />
+
+        {/* Band 1: Deep Pine Green (Outer Boundary / Leftmost) */}
+        <path
+          d="M 22,-10
+             C 68,35 110,85 96,125
+             C 80,165 18,175 42,215
+             C 68,255 115,265 85,310"
+          stroke="#1b4e41"
+          strokeWidth="15"
+          strokeLinecap="round"
+          className="dark:stroke-[#154236]"
+          vectorEffect="non-scaling-stroke"
+        />
+
+        {/* Band 2: Warm Terracotta Peach (Middle) */}
+        <path
+          d="M 36,-10
+             C 82,35 124,85 110,125
+             C 94,165 32,175 56,215
+             C 82,255 129,265 99,310"
+          stroke="#f09e6c"
+          strokeWidth="15"
+          strokeLinecap="round"
+          className="dark:stroke-[#f09e6c]"
+          vectorEffect="non-scaling-stroke"
+        />
+
+        {/* Band 3: Vibrant Coral Orange (Inner / Facing interior) */}
+        <path
+          d="M 50,-10
+             C 96,35 138,85 124,125
+             C 108,165 46,175 70,215
+             C 96,255 143,265 113,310"
+          stroke="#eb6a38"
+          strokeWidth="15"
+          strokeLinecap="round"
+          className="dark:stroke-[#eb6a38]"
+          vectorEffect="non-scaling-stroke"
+        />
+      </svg>
+    </div>
+  );
+}
+
+/**
+ * RIGHT VERTICAL WAVE BORDER
+ * Organic flowing 3-tone wave border that bounds the right side of the sources showcase track.
+ * Moving cards smoothly emerge from under the curved dark shadow and wave stripes without straight cuts.
+ */
+export function SectionWaveBorderRight() {
+  return (
+    <div
+      aria-hidden="true"
+      className="pointer-events-none absolute right-0 top-0 bottom-0 w-24 sm:w-32 md:w-40 overflow-hidden select-none z-20"
+    >
+      <svg
+        viewBox="0 0 180 300"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+        preserveAspectRatio="none"
+        className="w-full h-full block"
+      >
+        <defs>
+          <filter id="waveShadowRight" x="-30%" y="-20%" width="180%" height="160%">
+            <feGaussianBlur in="SourceGraphic" stdDeviation="6" />
+          </filter>
+        </defs>
+
+        {/* Seamless dark pine fill covering everything to the right of the curve */}
+        <path
+          d="M 210,-15
+             L 110,-10
+             C 64,45 17,80 34,135
+             C 50,185 114,180 90,225
+             C 66,270 14,275 44,310
+             L 210,315
+             Z"
+          fill="#071914"
+        />
+
+        {/* Curved dark shadow strokes on the inner side of the curve to smoothly fade moving cards */}
+        <path
+          d="M 110,-10
+             C 64,45 17,80 34,135
+             C 50,185 114,180 90,225
+             C 66,270 14,275 44,310"
+          stroke="#071914"
+          strokeWidth="48"
+          strokeLinecap="round"
+          className="opacity-45"
+          filter="url(#waveShadowRight)"
+          vectorEffect="non-scaling-stroke"
+        />
+        <path
+          d="M 110,-10
+             C 64,45 17,80 34,135
+             C 50,185 114,180 90,225
+             C 66,270 14,275 44,310"
+          stroke="#071914"
+          strokeWidth="28"
+          strokeLinecap="round"
+          className="opacity-75"
+          filter="url(#waveShadowRight)"
+          vectorEffect="non-scaling-stroke"
+        />
+        <path
+          d="M 110,-10
+             C 64,45 17,80 34,135
+             C 50,185 114,180 90,225
+             C 66,270 14,275 44,310"
+          stroke="#071914"
+          strokeWidth="16"
+          strokeLinecap="round"
+          className="opacity-95"
+          vectorEffect="non-scaling-stroke"
+        />
+
+        {/* Band 1: Deep Pine Green (Outer Boundary / Rightmost) */}
+        <path
+          d="M 138,-10
+             C 92,45 45,80 62,135
+             C 78,185 142,180 118,225
+             C 94,270 42,275 72,310"
+          stroke="#1b4e41"
+          strokeWidth="15"
+          strokeLinecap="round"
+          className="dark:stroke-[#154236]"
+          vectorEffect="non-scaling-stroke"
+        />
+
+        {/* Band 2: Warm Terracotta Peach (Middle) */}
+        <path
+          d="M 124,-10
+             C 78,45 31,80 48,135
+             C 64,185 128,180 104,225
+             C 80,270 28,275 58,310"
+          stroke="#f09e6c"
+          strokeWidth="15"
+          strokeLinecap="round"
+          className="dark:stroke-[#f09e6c]"
+          vectorEffect="non-scaling-stroke"
+        />
+
+        {/* Band 3: Vibrant Coral Orange (Inner / Facing interior) */}
+        <path
+          d="M 110,-10
+             C 64,45 17,80 34,135
+             C 50,185 114,180 90,225
+             C 66,270 14,275 44,310"
+          stroke="#eb6a38"
+          strokeWidth="15"
+          strokeLinecap="round"
+          className="dark:stroke-[#eb6a38]"
+          vectorEffect="non-scaling-stroke"
+        />
+      </svg>
+    </div>
+  );
+}
 
 export default function LandingWaveRiver() {
   return (
