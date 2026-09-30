@@ -7,13 +7,10 @@ import { motion } from 'motion/react';
 import {
   ArrowRight,
   ArrowUpRight,
-  BookOpenText,
   BadgeCheck,
-  CircleDot,
   Database,
   Fingerprint,
   HeartPulse,
-  ScanLine,
   ShieldCheck,
   Sparkles,
   Stethoscope,
@@ -266,14 +263,6 @@ export default function Home() {
               transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
               className="relative z-10 max-w-2xl"
             >
-              <div className="inline-flex items-center gap-2.5 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-3.5 py-1.5 text-xs font-semibold text-emerald-800 dark:text-emerald-400 backdrop-blur-md mb-6">
-                <span className="relative flex h-2 w-2">
-                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
-                  <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
-                </span>
-                <span className="tracking-wide">AI-Assisted Filipino Nutrition & Clinical Oversight</span>
-              </div>
-
               <h1 className="font-display text-[clamp(2.75rem,5.5vw,7.2rem)] font-black leading-[0.92] tracking-[-0.06em] text-brand-text">
                 Eat with
                 <span className="text-gradient block pb-2">intention.</span>
@@ -430,11 +419,7 @@ export default function Home() {
             className="grid gap-8 lg:grid-cols-[0.8fr_1.2fr] lg:items-end"
           >
             <div>
-              <div className="eyebrow inline-flex items-center gap-2">
-                <ScanLine className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
-                Platform Intelligence
-              </div>
-              <h2 className="mt-4 max-w-lg font-display text-3xl font-black leading-[1.05] tracking-[-0.04em] text-brand-text sm:text-5xl">
+              <h2 className="max-w-lg font-display text-3xl font-black leading-[1.05] tracking-[-0.04em] text-brand-text sm:text-5xl">
                 Personal enough to matter. Structured enough to trust.
               </h2>
             </div>
@@ -498,11 +483,7 @@ export default function Home() {
                 transition={{ duration: 0.6 }}
                 className="mx-auto max-w-2xl text-center"
               >
-                <div className="eyebrow inline-flex border-[#173e33] bg-[#0e271f] text-emerald-400">
-                  <CircleDot className="h-3.5 w-3.5" />
-                  The Intelligence Loop
-                </div>
-                <h2 className="mt-4 font-display text-3xl font-black tracking-[-0.04em] sm:text-5xl">
+                <h2 className="font-display text-3xl font-black tracking-[-0.04em] sm:text-5xl">
                   From your profile to a meal plan.
                 </h2>
                 <p className="mt-4 text-sm sm:text-base text-white/60">
@@ -578,19 +559,7 @@ export default function Home() {
             </div>
 
             <div className="relative z-10">
-              {/* Kainara Official Council Branding Pill */}
-              <div className="flex items-center gap-2.5 mb-5">
-                <KainaraLogo size={26} variant="multicolor" />
-                <span className="font-display font-extrabold text-xs tracking-[0.18em] uppercase text-emerald-400">
-                  KAINARA Clinical Network
-                </span>
-              </div>
-
-              <div className="eyebrow inline-flex border-[#173e33] bg-[#0e271f] text-emerald-400">
-                <Stethoscope className="h-3.5 w-3.5 text-emerald-400" />
-                For Registered Nutritionist-Dietitians
-              </div>
-              <h2 className="mt-6 max-w-2xl font-display text-3xl font-black leading-[1.05] tracking-[-0.04em] sm:text-5xl">
+              <h2 className="max-w-2xl font-display text-3xl font-black leading-[1.05] tracking-[-0.04em] sm:text-5xl">
                 Review recipes and meal suitability.
               </h2>
               <p className="mt-5 max-w-xl text-sm leading-7 text-white/60 sm:text-base">
@@ -649,11 +618,7 @@ export default function Home() {
               className="grid gap-8 lg:grid-cols-[0.8fr_1.2fr] lg:items-end"
             >
               <div>
-                <div className="eyebrow inline-flex items-center gap-2">
-                  <BookOpenText className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" /> Evidence & Data
-                  Foundations
-                </div>
-                <h2 className="mt-4 max-w-xl font-display text-3xl font-black leading-[1.05] tracking-[-0.04em] text-brand-text sm:text-5xl">
+                <h2 className="max-w-xl font-display text-3xl font-black leading-[1.05] tracking-[-0.04em] text-brand-text sm:text-5xl">
                   Food data, calculation methods and recipe sources.
                 </h2>
               </div>
@@ -730,11 +695,7 @@ export default function Home() {
             {/* Left Column: Documentation Overview */}
             <div className="flex flex-col justify-between p-8 sm:p-12 lg:p-14 xl:p-16">
               <div>
-                <div className="inline-flex items-center gap-2 rounded-full border border-emerald-500/25 bg-emerald-500/10 px-3.5 py-1 text-xs font-semibold text-emerald-800 dark:text-emerald-400">
-                  <BookOpenText className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
-                  Documentation & User Guide
-                </div>
-                <h2 className="mt-6 max-w-xl font-display text-3xl font-black leading-[1.05] tracking-[-0.04em] sm:text-5xl">
+                <h2 className="max-w-xl font-display text-3xl font-black leading-[1.05] tracking-[-0.04em] sm:text-5xl">
                   The comprehensive guide to <span className="text-gradient">KAINARA.</span>
                 </h2>
                 <p className="mt-4 max-w-xl text-sm leading-7 text-brand-muted sm:text-base">
@@ -902,10 +863,7 @@ export default function Home() {
             <div className="pointer-events-none absolute -right-16 -top-20 h-72 w-72 rounded-full border-[50px] border-white/10" />
             <div className="pointer-events-none absolute left-1/3 -bottom-16 h-60 w-60 rounded-full bg-white/5 blur-2xl" />
             <div className="relative">
-              <p className="font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-white/80">
-                Your Next Meal Can Be Intentional
-              </p>
-              <h2 className="mt-3 max-w-2xl font-display text-3xl font-black tracking-[-0.04em] sm:text-4xl text-white">
+              <h2 className="max-w-2xl font-display text-3xl font-black tracking-[-0.04em] sm:text-4xl text-white">
                 A smarter weekly plan starts with understanding you.
               </h2>
               <p className="mt-2 text-sm text-white/80 max-w-xl">
