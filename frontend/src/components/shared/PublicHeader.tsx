@@ -70,7 +70,7 @@ export default function PublicHeader() {
           <button
             type="button"
             onClick={toggleTheme}
-            className="flex h-10 w-10 items-center justify-center rounded-2xl border border-brand-border/70 bg-brand-surface/70 text-brand-muted outline-none transition hover:border-brand-green/30 hover:text-brand-green focus:ring-2 focus:ring-brand-green/30"
+            className="flex h-10 w-10 items-center justify-center rounded-2xl text-brand-muted outline-none transition hover:bg-brand-surface/70 hover:text-brand-text focus:ring-2 focus:ring-brand-green/30"
             aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
             title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
           >

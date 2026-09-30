@@ -25,6 +25,7 @@ import {
 } from 'lucide-react';
 import PublicHeader from '@/components/shared/PublicHeader';
 import KainaraLogo from '@/components/shared/KainaraLogo';
+import LandingWaveRiver from '@/components/landing/LandingWaveRiver';
 import { useAuth } from '@/hooks/useAuth';
 import { EVIDENCE_SOURCES, SOURCE_PURPOSE_LABELS } from '@/data/evidence-sources';
 
@@ -147,7 +148,8 @@ export default function Home() {
   }
 
   return (
-    <div className="min-h-screen text-brand-text selection:bg-brand-accent selection:text-white">
+    <div className="relative min-h-screen bg-brand-bg text-brand-text selection:bg-brand-accent selection:text-white">
+      <LandingWaveRiver />
       <PublicHeader />
 
       <main className="overflow-x-clip">
@@ -267,7 +269,7 @@ export default function Home() {
               </motion.div>
 
               {/* Main Cockpit Frame */}
-              <div className="surface-panel futuristic-grid relative overflow-hidden rounded-[32px] p-2 sm:p-3.5 shadow-2xl border border-brand-border/80">
+              <div className="surface-panel relative overflow-hidden rounded-[32px] p-2 sm:p-3.5 shadow-2xl border border-brand-border/80">
                 <div className="scan-line" />
                 <div className="overflow-hidden rounded-[24px] border border-[#173e33] bg-[#071914] text-white shadow-2xl">
                   {/* Browser Chrome Header */}
@@ -380,7 +382,6 @@ export default function Home() {
           id="process"
           className="relative scroll-mt-20 border-y border-[#173e33] bg-[#071914] py-24 text-white overflow-hidden"
         >
-          <div className="pointer-events-none absolute inset-0 futuristic-grid opacity-30" />
           <div className="pointer-events-none absolute -left-20 top-1/2 -translate-y-1/2 h-96 w-96 rounded-full bg-emerald-500/10 blur-[120px]" />
           <div className="pointer-events-none absolute -right-20 top-1/2 -translate-y-1/2 h-96 w-96 rounded-full bg-brand-cyan/10 blur-[120px]" />
 
@@ -440,7 +441,7 @@ export default function Home() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: '-50px' }}
             transition={{ duration: 0.7 }}
-            className="futuristic-grid relative overflow-hidden rounded-[36px] bg-[#071914] p-8 text-white shadow-2xl sm:p-12 lg:grid lg:grid-cols-[1.05fr_0.95fr] lg:gap-14 lg:p-16 border border-[#173e33]"
+            className="relative overflow-hidden rounded-[36px] bg-[#071914] p-8 text-white shadow-2xl sm:p-12 lg:grid lg:grid-cols-[1.05fr_0.95fr] lg:gap-14 lg:p-16 border border-[#173e33]"
           >
             <div className="pointer-events-none absolute right-0 top-0 h-80 w-80 rounded-full bg-brand-cyan/15 blur-[120px]" />
             <div className="relative">
@@ -588,7 +589,7 @@ export default function Home() {
               </Link>
             </div>
 
-            <div className="relative min-h-[420px] overflow-hidden bg-[#071914] p-7 text-white futuristic-grid sm:p-10 border-t lg:border-t-0 lg:border-l border-[#173e33]">
+            <div className="relative min-h-[420px] overflow-hidden bg-[#071914] p-7 text-white sm:p-10 border-t lg:border-t-0 lg:border-l border-[#173e33]">
               <div className="absolute right-8 top-8 h-32 w-32 rounded-full bg-brand-cyan/15 blur-3xl" />
               <div className="relative grid h-full grid-cols-2 gap-4">
                 <Link
