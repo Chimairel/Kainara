@@ -8,6 +8,7 @@ import { BreadcrumbProvider } from '@/lib/context/BreadcrumbContext';
 import TopNavigationProgress from '@/components/shared/TopNavigationProgress';
 import { Toaster } from '@/components/ui/Sonner';
 import CapstoneDemoNotice from '@/components/shared/CapstoneDemoNotice';
+import MobileInstallPrompt from '@/components/shared/MobileInstallPrompt';
 
 const dmSans = DM_Sans({
   subsets: ['latin'],
@@ -89,6 +90,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
       >
         <ThemeProvider>
           <CapstoneDemoNotice mode={process.env.NUTRIMIND_DEPLOYMENT_MODE} />
+          <MobileInstallPrompt />
           <Toaster position="bottom-right" richColors />
           <AuthProvider>
             <BreadcrumbProvider>

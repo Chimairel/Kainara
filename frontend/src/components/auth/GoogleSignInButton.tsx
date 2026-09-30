@@ -6,6 +6,10 @@ import { useAuth } from '@/hooks/useAuth';
 import api from '@/lib/axios';
 import { getApiErrorCode, getApiErrorMessage } from '@/lib/api-error';
 import { AlertTriangle } from 'lucide-react';
+import Modal from '@/components/ui/Modal';
+import Button from '@/components/ui/Button';
+import { useGoogleSignInRecovery } from './useGoogleSignInRecovery';
+import { isEmbeddedAppBrowser } from '@/lib/browser-environment';
 
 /**
  * Google Identity Services "Sign in with Google" button.
@@ -74,6 +78,7 @@ export default function GoogleSignInButton({
   onCredential,
 }: GoogleSignInButtonProps) {
   const { login } = useAuth();
+  const recovery = useGoogleSignInRecovery();
   const buttonRef = useRef<HTMLDivElement>(null);
   const credentialActionRef = useRef(onCredential);
   const [error, setError] = useState<string | null>(null);
@@ -92,6 +97,7 @@ export default function GoogleSignInButton({
     }
 
     let cancelled = false;
+    if (isEmbeddedAppBrowser(navigator.userAgent)) return;
     activeCredentialHandler = handleGoogleCallback;
 
     void loadGoogleIdentityServices()
@@ -115,6 +121,7 @@ export default function GoogleSignInButton({
           text: label,
           shape: 'rectangular',
           logo_alignment: 'left',
+          click_listener: recovery.startAttempt,
         });
         setIsReady(true);
       })
@@ -124,12 +131,14 @@ export default function GoogleSignInButton({
 
     return () => {
       cancelled = true;
+      recovery.stopAttempt();
       if (activeCredentialHandler === handleGoogleCallback) activeCredentialHandler = null;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleGoogleCallback = async (response: GoogleCredentialResponse) => {
+    recovery.close();
     setError(null);
     setRecoveryLink(null);
     setIsLoading(true);
@@ -183,20 +192,83 @@ export default function GoogleSignInButton({
           ) : null}
         </div>
       )}
-      <div
-        className={`relative min-h-[52px] w-full overflow-hidden rounded-2xl border border-brand-border/60 bg-white p-1.5 shadow-sm ${disabled ? 'pointer-events-none opacity-50' : ''}`}
-        aria-disabled={disabled}
-      >
-        {!isReady && (
-          <span className="pointer-events-none absolute inset-0 flex items-center justify-center text-xs font-semibold text-[#61706b]">
-            Loading Google sign-in…
-          </span>
-        )}
+      {recovery.embeddedBrowser ? (
         <div
-          ref={buttonRef}
-          className={`flex w-full justify-center transition-opacity ${isReady ? 'opacity-100' : 'opacity-0'} ${isLoading ? 'pointer-events-none opacity-50' : ''}`}
-        />
-      </div>
+          className="w-full rounded-xl border border-brand-border bg-brand-bgAlt p-3 text-sm text-brand-text"
+          role="note"
+        >
+          <p>For Google sign-in, open this page in Chrome or Safari using this app’s menu.</p>
+          <Button type="button" variant="secondary" size="sm" className="mt-2" onClick={recovery.showHelp}>
+            How to open in your browser
+          </Button>
+        </div>
+      ) : (
+        <div
+          className={`relative min-h-[52px] w-full overflow-hidden rounded-2xl border border-brand-border/60 bg-white p-1.5 shadow-sm ${disabled ? 'pointer-events-none opacity-50' : ''}`}
+          aria-disabled={disabled}
+        >
+          {!isReady && (
+            <span className="pointer-events-none absolute inset-0 flex items-center justify-center text-xs font-semibold text-[#61706b]">
+              Loading Google sign-in…
+            </span>
+          )}
+          <div
+            ref={buttonRef}
+            className={`flex w-full justify-center transition-opacity ${isReady ? 'opacity-100' : 'opacity-0'} ${isLoading ? 'pointer-events-none opacity-50' : ''}`}
+          />
+        </div>
+      )}
+      {!recovery.embeddedBrowser && (
+        <button
+          type="button"
+          disabled={disabled || isLoading}
+          onClick={recovery.showHelp}
+          className="text-xs text-brand-muted underline underline-offset-2 hover:text-brand-text disabled:opacity-50"
+        >
+          Google window didn’t open?
+        </button>
+      )}
+      <Modal
+        isOpen={recovery.reason !== null}
+        onClose={recovery.close}
+        size="sm"
+        title={recovery.reason === 'embedded-browser' ? 'Open in your browser' : 'Popup may be blocked'}
+        description={
+          recovery.reason === 'embedded-browser'
+            ? 'Google sign-in may not work inside Messenger, Facebook, or Instagram’s browser.'
+            : 'If no Google sign-in window appeared, your browser may have blocked it.'
+        }
+        footer={
+          <Button type="button" onClick={recovery.close}>
+            Got it
+          </Button>
+        }
+      >
+        {recovery.reason === 'embedded-browser' ? (
+          <div className="space-y-3">
+            <p>
+              Use the app’s menu (⋯) and choose “Open in browser”, or copy this link and paste it into Chrome or Safari.
+            </p>
+            <p className="break-all rounded-xl border border-brand-border p-3 select-all">{recovery.pageUrl}</p>
+            <Button type="button" variant="secondary" onClick={() => void recovery.copyLink()}>
+              Copy link
+            </Button>
+            <p role="status" className="text-xs text-brand-muted">
+              {recovery.copyStatus}
+            </p>
+            <p>You can also use the email options on this page where available.</p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            <p>
+              Allow pop-ups and redirects for this website in your browser’s site settings, then close this dialog and
+              click Google sign-in again.
+            </p>
+            <p>If you’re using Messenger or another app’s browser, open the link in Chrome or Safari.</p>
+            <p>If a Google sign-in window is already open, continue there. You can also use email where available.</p>
+          </div>
+        )}
+      </Modal>
     </div>
   );
 }
