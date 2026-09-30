@@ -429,19 +429,30 @@ export class MealsController {
 
   /** GET /api/user/meals/workspace — cleared current and upcoming slots. */
   static async getPlanWorkspace(req: AuthenticatedRequest, res: Response) {
+    const stages: string[] = [];
+    let stageStartedAt = typeof res.locals.currentPlanRequestStartedAt === 'number'
+      ? res.locals.currentPlanRequestStartedAt : performance.now();
+    const mark = (name: string) => {
+      const now = performance.now();
+      stages.push(`${name};dur=${(now - stageStartedAt).toFixed(1)}`);
+      stageStartedAt = now;
+    };
     try {
       const userId = req.user?.userId;
       if (!userId) return res.status(401).json({ success: false, error: 'Unauthorized.' });
+      mark('prerequisites');
       res.once('finish', () => UpcomingPlanPreparationService.triggerNonBlocking(userId));
       const clearedIdsByCycle = new Map<string, string[]>();
       const cycles = await MealPlanCycleService.getCurrentAndUpcoming(userId, new Date(), clearedIdsByCycle);
+      mark('cycles');
       const pendingCurrentJob = cycles.current ? null : await CurrentPlanPreparationService.getCurrentWindowJobStatus(userId);
       const cycleIds = [cycles.current?.id, cycles.upcoming?.id].filter((id): id is string => Boolean(id));
       if (!cycleIds.length) {
+        res.setHeader('Server-Timing', stages.join(', '));
         return res.status(200).json({ success: true, data: [], meta: { cycles, pendingReview: null,
           awaitingGeneration: { current: 0, upcoming: 0 }, generationStatus: { current: pendingCurrentJob?.status ?? 'GENERATING', upcoming: null } } });
       }
-      const rows = await prisma.mealPlan.findMany({
+      const rowsPromise = prisma.mealPlan.findMany({
         where: { userId, planGroupId: { in: cycleIds } },
         include: {
           ingredients: true,
@@ -459,26 +470,32 @@ export class MealsController {
         },
         orderBy: [{ scheduledDate: 'asc' }, { mealType: 'asc' }],
       });
-      const clearedByCycle = await Promise.all(cycleIds.map((cycleId) =>
+      const clearedByCyclePromise = Promise.all(cycleIds.map((cycleId) =>
         clearedIdsByCycle.get(cycleId) ?? MealPlanCycleService.getClearedMealPlanIds(userId, cycleId)
       ));
-      const generationJobs = await prisma.mealPlanGenerationJob.findMany({
+      const generationJobsPromise = prisma.mealPlanGenerationJob.findMany({
         where: { planGroupId: { in: cycleIds } }, select: { planGroupId: true, status: true },
       });
+      const [rows, clearedByCycle, generationJobs] = await Promise.all([
+        rowsPromise, clearedByCyclePromise, generationJobsPromise,
+      ]);
+      mark('meal-data');
       const generationStatusFor = (cycleId?: string | null) => generationJobs.find((job) => job.planGroupId === cycleId)?.status ?? null;
       const clearedIds = new Set(clearedByCycle.flat());
-      const libraryImages = await resolveLibraryRecipeImages(
-        rows.flatMap((row) => (row.libraryMeal ? [row.libraryMeal] : []))
-      );
-      const libraryCookingLinks = await resolveLibraryRecipeCookingLinks(
-        rows.flatMap((row) => (row.libraryMeal ? [row.libraryMeal] : []))
-      );
+      const libraryMeals = rows.flatMap((row) => (row.libraryMeal ? [row.libraryMeal] : []));
+      const [libraryImages, libraryCookingLinks] = await Promise.all([
+        resolveLibraryRecipeImages(libraryMeals),
+        resolveLibraryRecipeCookingLinks(libraryMeals),
+      ]);
+      mark('presentation');
       const meals = rows
         .filter((meal) => clearedIds.has(meal.id))
         .map((meal) => ({
           ...serializeActionableMeal(meal, libraryImages, libraryCookingLinks),
           cycleScope: meal.planGroupId === cycles.upcoming?.id ? 'UPCOMING' : 'CURRENT',
         }));
+      mark('serialize');
+      res.setHeader('Server-Timing', stages.join(', '));
       return res.status(200).json({
         success: true,
         data: meals,

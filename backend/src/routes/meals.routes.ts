@@ -29,7 +29,7 @@ import {
 
 const router = Router();
 router.use((req, res, next) => {
-  if (req.method === 'GET' && req.path === '/current') {
+  if (req.method === 'GET' && (req.path === '/current' || req.path === '/workspace')) {
     res.locals.currentPlanRequestStartedAt = performance.now();
   }
   next();

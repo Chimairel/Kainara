@@ -289,6 +289,16 @@ export class MealPlanCycleService {
       },
     });
 
+    // The current and upcoming cycles have independent clearance evidence.
+    // On a normal read, overlap their remote database reads before applying
+    // lifecycle updates. Keep transaction-backed calls in their original
+    // sequence so a caller's transaction observes its own writes in order.
+    const prefetchedClearance = client === prisma
+      ? new Map(await Promise.all(cycles
+        .filter((cycle) => cycle.profileAdaptationState === ProfileCycleAdaptationState.CURRENT)
+        .map(async (cycle) => [cycle.id, await this.getClearedMealPlanIds(userId, cycle.id, now, client)] as const)))
+      : null;
+
     for (const cycle of cycles) {
       if (cycle.profileAdaptationState !== ProfileCycleAdaptationState.CURRENT) {
         const gatedStatus =
@@ -303,7 +313,8 @@ export class MealPlanCycleService {
         }
         continue;
       }
-      const clearedIds = await this.getClearedMealPlanIds(userId, cycle.id, now, client);
+      const clearedIds = prefetchedClearance?.get(cycle.id) ??
+        await this.getClearedMealPlanIds(userId, cycle.id, now, client);
       clearedIdsByCycle?.set(cycle.id, clearedIds);
       const clearedMealPlanIds = new Set(clearedIds);
       const clearedMeals = cycle.mealPlans.filter((meal) => clearedMealPlanIds.has(meal.id));
