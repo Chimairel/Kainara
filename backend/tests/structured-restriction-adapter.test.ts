@@ -92,6 +92,26 @@ const certifiedMeal = (dietaryTags: string[], conditions: string[], allergenFree
   })),
 });
 
+test('user-scoped condition clearance admits only its intended patient', () => {
+  const base = certifiedMeal(['OMNIVORE'], ['HYPERTENSION'], []);
+  const meal = {
+    ...base,
+    conditionClearances: base.conditionClearances.map((clearance) => ({
+      ...clearance,
+      userScopeId: 'patient-one',
+    })),
+  };
+  const profile = {
+    dietaryPreference: 'OMNIVORE',
+    otherConditions: null,
+    otherAllergies: null,
+    safetyEntries: [entry('CONDITION', 'HYPERTENSION')],
+  };
+  assert.equal(isCertifiedLibraryMealCompatible(meal, ['HYPERTENSION'], [], { ...profile, userId: 'patient-one' }), true);
+  assert.equal(isCertifiedLibraryMealCompatible(meal, ['HYPERTENSION'], [], { ...profile, userId: 'patient-two' }), false);
+  assert.equal(isCertifiedLibraryMealCompatible(meal, ['HYPERTENSION'], [], profile), false);
+});
+
 test('certified USDA fallback can be reused, while an ordinary USDA name match still waits for review', () => {
   const meal = {
     ...certifiedMeal(['OMNIVORE'], [], []),

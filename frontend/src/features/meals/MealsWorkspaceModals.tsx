@@ -17,7 +17,7 @@ import {
   UtensilsCrossed,
 } from 'lucide-react';
 import { formatManilaDate } from '@/lib/manila-date';
-import { useMealsWorkspace, type SwapOption } from './useMealsWorkspace';
+import { useMealsWorkspace } from './useMealsWorkspace';
 
 type Props = { workspace: ReturnType<typeof useMealsWorkspace> };
 
@@ -51,7 +51,6 @@ export function MealsWorkspaceModals({ workspace }: Props) {
     handleSelectSwapOption,
     handleConfirmSwapAnyway,
     toggleSwapFavorite,
-    libraryMeals,
   } = workspace;
 
   // Whenever activeSwapMeal opens or changes, pre-filter mini library to current slot's meal type
@@ -66,22 +65,11 @@ export function MealsWorkspaceModals({ workspace }: Props) {
     }
   }, [activeSwapMeal]);
 
-  // Merge slot swap options with library meals so the mini library is never blank
+  // Only show the options evaluated for this exact plan slot. The general
+  // library can contain recipes that fail its calorie or rice-serving checks.
   const filteredAndSortedOptions = useMemo(() => {
     if (!activeSwapMeal) return [];
-
-    const poolMap = new Map<string, SwapOption>();
-    for (const opt of swapOptions) {
-      if (opt.id !== activeSwapMeal.id) {
-        poolMap.set(opt.id, opt);
-      }
-    }
-    for (const lib of libraryMeals) {
-      if (lib.id !== activeSwapMeal.id && !poolMap.has(lib.id)) {
-        poolMap.set(lib.id, lib);
-      }
-    }
-    let items = Array.from(poolMap.values());
+    let items = swapOptions.filter((option) => option.id !== activeSwapMeal.libraryMealId);
 
     // 1. Filter by mealType
     if (miniMealType !== 'All') {
@@ -130,7 +118,6 @@ export function MealsWorkspaceModals({ workspace }: Props) {
   }, [
     activeSwapMeal,
     swapOptions,
-    libraryMeals,
     miniMealType,
     miniSearch,
     miniRiceRole,
@@ -352,6 +339,7 @@ export function MealsWorkspaceModals({ workspace }: Props) {
                       disabled={
                         isSwapping ||
                         isCheckingPreview ||
+                        !swapPreview ||
                         (Boolean(swapPreview?.groceryDeltaAcknowledgmentRequired) && !groceryDeltaAcknowledged)
                       }
                       className="text-xs font-bold h-8 px-4"

@@ -267,7 +267,7 @@ export class MealSwapService {
       skipCalorieFilter: true,
       userConditions,
       userAllergens,
-      profile: { ...userProfile, safetyEntries: user.safetyProfileEntries },
+      profile: { ...userProfile, userId, safetyEntries: user.safetyProfileEntries },
       excludeIds: [mealPlan.libraryMealId].filter((id): id is string => Boolean(id)),
       limit: 120,
     });
@@ -282,7 +282,7 @@ export class MealSwapService {
         mealType: mealPlan.mealType,
         userConditions,
         userAllergens,
-        profile: { ...userProfile, safetyEntries: user.safetyProfileEntries },
+        profile: { ...userProfile, userId, safetyEntries: user.safetyProfileEntries },
         favoriteOnly: true,
         limit: 60,
       }),
@@ -300,7 +300,7 @@ export class MealSwapService {
         mealType: mealPlan.mealType,
         userConditions,
         userAllergens,
-        profile: { ...userProfile, safetyEntries: user.safetyProfileEntries },
+        profile: { ...userProfile, userId, safetyEntries: user.safetyProfileEntries },
         favoriteOnly: true,
         cursor: favoritePage.nextCursor,
         limit: 60,
@@ -391,6 +391,10 @@ export class MealSwapService {
     // 1. Fetch the current meal plan slot
     const mealPlan = await loadActionableUnloggedMealPlan(client, userId, mealPlanId);
 
+    if (mealPlan.libraryMealId === libraryMealId) {
+      throw new Error('This recipe is already scheduled in the selected slot.');
+    }
+
     // 2. Fetch the proposed replacement library meal
     const libraryMeal = await client.mealLibrary.findUnique({
       where: { id: libraryMealId },
@@ -407,7 +411,7 @@ export class MealSwapService {
         libraryMeal,
         user.healthConditions.map((item) => item.condition),
         user.allergies.map((item) => item.allergen),
-        { ...userProfile, safetyEntries: user.safetyProfileEntries }
+        { ...userProfile, userId, safetyEntries: user.safetyProfileEntries }
       ) && !isProfileApprovedLibraryMealCompatible(
         libraryMeal,
         user.healthConditions.map((item) => item.condition),
@@ -860,7 +864,7 @@ export class MealSwapService {
       mealType: input.mealType,
       userConditions,
       userAllergens,
-      profile: { ...userProfile, safetyEntries: user.safetyProfileEntries },
+      profile: { ...userProfile, userId, safetyEntries: user.safetyProfileEntries },
       search: input.search,
       favoriteOnly: input.favoriteOnly,
       riceRole: input.riceRole,
@@ -881,7 +885,7 @@ export class MealSwapService {
           recipeImages.get(meal.id),
           cookingLinks.get(meal.id),
           isCertifiedLibraryMealCompatible(meal, userConditions, userAllergens, {
-            ...userProfile, safetyEntries: user.safetyProfileEntries,
+            ...userProfile, userId, safetyEntries: user.safetyProfileEntries,
           }, { safetyOnly: true }) ? 'CERTIFIED_RECIPE' : 'PROFILE_MATCHED_APPROVAL',
           mealApprovalSafetyScope({
             conditions: userConditions,

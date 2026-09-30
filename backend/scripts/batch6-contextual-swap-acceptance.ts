@@ -213,6 +213,10 @@ async function main() {
 
     const upcomingOptions = await MealSwapService.getEligibleSwapOptions(user.id, upcoming.id);
     assert.ok(upcomingOptions.swapOptions.some((option) => option.id === favorite.id));
+    await assert.rejects(
+      MealSwapService.getSwapPreview(user.id, upcoming.id, original.id),
+      /already scheduled in the selected slot/
+    );
     await prisma.mealPlanCycle.update({
       where: { id: upcoming.planGroupId },
       data: { shoppingStartedAt: new Date(), status: 'SHOPPING_STARTED' },
