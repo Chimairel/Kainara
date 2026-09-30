@@ -6,6 +6,7 @@ import { usePathname, useSearchParams } from 'next/navigation';
 export default function TopNavigationProgress() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const search = searchParams.toString();
   const [progress, setProgress] = useState(0);
   const [isVisible, setIsVisible] = useState(false);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
@@ -52,7 +53,7 @@ export default function TopNavigationProgress() {
       if (finishTimerRef.current) clearTimeout(finishTimerRef.current);
       if (timerRef.current) clearInterval(timerRef.current);
     };
-  }, [pathname, searchParams]);
+  }, [pathname, search]);
 
   // Global click interceptor to catch any internal route links
   useEffect(() => {
@@ -60,26 +61,22 @@ export default function TopNavigationProgress() {
       if (event.defaultPrevented || event.button !== 0) return;
       if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
 
-      const anchor = (event.target as HTMLElement)?.closest('a');
+      const anchor = event.target instanceof Element ? event.target.closest('a') : null;
       if (!anchor) return;
 
       const href = anchor.getAttribute('href');
       const target = anchor.getAttribute('target');
 
       // Only handle valid internal application routes
-      if (
-        !href ||
-        href.startsWith('#') ||
-        target === '_blank' ||
-        href.startsWith('mailto:') ||
-        href.startsWith('tel:')
-      ) {
+      if (!href || href.startsWith('#') || anchor.hasAttribute('download') || (target && target !== '_self')) {
         return;
       }
 
       // Check if external URL
       try {
         const url = new URL(href, window.location.href);
+        // Blob downloads inherit the site's origin but never change the route.
+        if (url.protocol !== 'http:' && url.protocol !== 'https:') return;
         if (url.origin !== window.location.origin) return;
 
         // If clicking the current page with no param change, ignore
@@ -97,6 +94,8 @@ export default function TopNavigationProgress() {
     document.addEventListener('click', handleGlobalClick, { capture: true });
     return () => {
       document.removeEventListener('click', handleGlobalClick, { capture: true });
+      if (timerRef.current) clearInterval(timerRef.current);
+      if (finishTimerRef.current) clearTimeout(finishTimerRef.current);
     };
   }, []);
 
