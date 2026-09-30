@@ -120,28 +120,10 @@ export default function DocsWorkspace() {
           <div id={chapter.id} className="scroll-mt-28 space-y-6">
             {/* Chapter Header (Clean, floating header - not enclosed in a card) */}
             <header className="border-b border-brand-border/70 pb-8">
-              <div className="mb-5 flex items-center gap-3">
-                <div
-                  className={`flex h-11 w-11 items-center justify-center rounded-2xl border shadow-sm ${
-                    chapter.tone === 'cyan'
-                      ? 'border-brand-cyan/30 bg-brand-cyan/15 text-brand-cyan'
-                      : chapter.tone === 'green'
-                        ? 'border-emerald-500/30 bg-emerald-500/15 text-emerald-400'
-                        : chapter.tone === 'amber'
-                          ? 'border-amber-400/30 bg-amber-400/15 text-amber-400'
-                          : 'border-[#f09e6c]/30 bg-[#f09e6c]/15 text-[#f09e6c]'
-                  }`}
-                >
-                  <chapter.icon className="h-5 w-5" />
-                </div>
-                <div>
-                  <span className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-brand-muted">
-                    Chapter {String(docsChapters.indexOf(chapter) + 1).padStart(2, '0')} / {String(docsChapters.length).padStart(2, '0')}
-                  </span>
-                  <span className="ml-2.5 rounded-md border border-brand-border/60 bg-brand-bg/60 px-2 py-0.5 font-mono text-[9px] font-bold uppercase text-brand-muted">
-                    {chapter.group}
-                  </span>
-                </div>
+              <div className="mb-4">
+                <span className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-brand-muted">
+                  Chapter {String(docsChapters.indexOf(chapter) + 1).padStart(2, '0')} / {String(docsChapters.length).padStart(2, '0')}
+                </span>
               </div>
 
               <h2 className="font-display text-3xl font-black tracking-tight text-brand-text sm:text-4xl">{chapter.title}</h2>
