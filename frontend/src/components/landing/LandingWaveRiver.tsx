@@ -59,55 +59,135 @@ export function LandingWaveHero() {
 }
 
 /**
- * WEAVING PROCESS WAVE (PLATFORM -> THE INTELLIGENCE LOOP)
- * - Tucks BEHIND the Platform section cards (z-20).
- * - Cascades IN FRONT OF the dark green section layer / border of #process.
- * - Sweeps BEHIND the #process text & phase cards (z-10).
- * - Exits into the bottom and tucks BEHIND the Nutritionist section card.
+ * UPPER WAVE BORDER (REPLACES STRAIGHT TOP BORDER)
+ * Replaces the plain horizontal border with the fluid 3-tone wave stripe.
+ * Transitions smoothly from the light platform canvas (#faf8f5)
+ * into the deep pine background (#071914) of The Intelligence Loop.
  */
-export function LandingWaveProcess() {
+export function SectionWaveBorderTop() {
   return (
     <div
       aria-hidden="true"
-      className="pointer-events-none absolute -top-32 sm:-top-40 left-1/2 -translate-x-1/2 w-[1600px] h-[750px] max-w-none opacity-100 select-none z-[5]"
+      className="pointer-events-none relative -mb-1 w-full overflow-hidden select-none z-10"
     >
       <svg
-        viewBox="0 0 1600 750"
+        viewBox="0 0 1440 180"
         fill="none"
         xmlns="http://www.w3.org/2000/svg"
-        className="w-full h-full"
+        preserveAspectRatio="none"
+        className="w-full h-24 sm:h-32 md:h-44 block"
       >
-        {/* Band 1: Deep Pine Green */}
+        {/* Seamless fill below the bottom stripe to connect with #071914 */}
         <path
-          d="M -80 30
-             C 260 50, 540 140, 880 120
-             C 1200 100, 1440 280, 1720 360"
+          d="M -20,62
+             C 360,42 620,152 980,132
+             C 1200,117 1340,67 1460,77
+             L 1460,185 L -20,185 Z"
+          fill="#071914"
+        />
+
+        {/* Band 1: Deep Pine Green (Top / Outer) */}
+        <path
+          d="M -20,18
+             C 360,-2 620,108 980,88
+             C 1200,73 1340,23 1460,33"
           stroke="#1b4e41"
-          strokeWidth="48"
+          strokeWidth="24"
           strokeLinecap="round"
           className="dark:stroke-[#154236]"
+          vectorEffect="non-scaling-stroke"
         />
 
-        {/* Band 2: Warm Terracotta Peach */}
+        {/* Band 2: Warm Terracotta Peach (Middle) */}
         <path
-          d="M -80 62
-             C 260 82, 540 172, 880 152
-             C 1200 132, 1440 312, 1720 392"
+          d="M -20,40
+             C 360,20 620,130 980,110
+             C 1200,95 1340,45 1460,55"
           stroke="#f09e6c"
-          strokeWidth="48"
+          strokeWidth="24"
           strokeLinecap="round"
           className="dark:stroke-[#f09e6c]"
+          vectorEffect="non-scaling-stroke"
         />
 
-        {/* Band 3: Vibrant Coral Orange */}
+        {/* Band 3: Vibrant Coral Orange (Bottom / Transition into dark section) */}
         <path
-          d="M -80 94
-             C 260 114, 540 204, 880 184
-             C 1200 164, 1440 344, 1720 424"
+          d="M -20,62
+             C 360,42 620,152 980,132
+             C 1200,117 1340,67 1460,77"
           stroke="#eb6a38"
-          strokeWidth="48"
+          strokeWidth="24"
           strokeLinecap="round"
           className="dark:stroke-[#eb6a38]"
+          vectorEffect="non-scaling-stroke"
+        />
+      </svg>
+    </div>
+  );
+}
+
+/**
+ * LOWER WAVE BORDER (REPLACES STRAIGHT BOTTOM BORDER)
+ * Replaces the plain bottom border of The Intelligence Loop with an undulating wave stripe.
+ * Transitions smoothly from deep pine (#071914) back out into the light canvas.
+ */
+export function SectionWaveBorderBottom() {
+  return (
+    <div
+      aria-hidden="true"
+      className="pointer-events-none relative -mt-1 w-full overflow-hidden select-none z-10"
+    >
+      <svg
+        viewBox="0 0 1440 180"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+        preserveAspectRatio="none"
+        className="w-full h-24 sm:h-32 md:h-44 block"
+      >
+        {/* Seamless fill from top down to the curve */}
+        <path
+          d="M -20,-5
+             L 1460,-5
+             L 1460,98
+             C 1320,118 1180,48 920,38
+             C 580,28 320,98 -20,58 Z"
+          fill="#071914"
+        />
+
+        {/* Band 3: Vibrant Coral Orange (Top / nearest dark section) */}
+        <path
+          d="M -20,58
+             C 320,98 580,28 920,38
+             C 1180,48 1320,118 1460,98"
+          stroke="#eb6a38"
+          strokeWidth="24"
+          strokeLinecap="round"
+          className="dark:stroke-[#eb6a38]"
+          vectorEffect="non-scaling-stroke"
+        />
+
+        {/* Band 2: Warm Terracotta Peach (Middle) */}
+        <path
+          d="M -20,80
+             C 320,120 580,50 920,60
+             C 1180,70 1320,140 1460,120"
+          stroke="#f09e6c"
+          strokeWidth="24"
+          strokeLinecap="round"
+          className="dark:stroke-[#f09e6c]"
+          vectorEffect="non-scaling-stroke"
+        />
+
+        {/* Band 1: Deep Pine Green (Bottom / nearest light canvas) */}
+        <path
+          d="M -20,102
+             C 320,142 580,72 920,82
+             C 1180,92 1320,162 1460,142"
+          stroke="#1b4e41"
+          strokeWidth="24"
+          strokeLinecap="round"
+          className="dark:stroke-[#154236]"
+          vectorEffect="non-scaling-stroke"
         />
       </svg>
     </div>
@@ -116,8 +196,7 @@ export function LandingWaveProcess() {
 
 /**
  * FOOTER WAVE (CTA & FOOTER JUNCTION)
- * - Tucks BEHIND the floating orange CTA card (z-20).
- * - Sweeps IN FRONT OF the footer top border / background.
+ * Sweeps behind the floating orange CTA card and across the footer boundary.
  */
 export function LandingWaveFooter() {
   return (

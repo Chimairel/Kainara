@@ -25,7 +25,7 @@ import {
 } from 'lucide-react';
 import PublicHeader from '@/components/shared/PublicHeader';
 import KainaraLogo from '@/components/shared/KainaraLogo';
-import { LandingWaveHero, LandingWaveProcess, LandingWaveFooter } from '@/components/landing/LandingWaveRiver';
+import { LandingWaveHero, SectionWaveBorderTop, SectionWaveBorderBottom, LandingWaveFooter } from '@/components/landing/LandingWaveRiver';
 import { useAuth } from '@/hooks/useAuth';
 import { EVIDENCE_SOURCES, SOURCE_PURPOSE_LABELS } from '@/data/evidence-sources';
 
@@ -377,63 +377,68 @@ export default function Home() {
           </div>
         </section>
 
-        {/* THE INTELLIGENCE LOOP (FOREST PINE SECTION) */}
-        <section
-          id="process"
-          className="relative z-10 scroll-mt-20 border-y border-[#173e33] bg-[#071914] py-24 text-white"
-        >
-          <LandingWaveProcess />
-          <div className="pointer-events-none absolute -left-20 top-1/2 -translate-y-1/2 h-96 w-96 rounded-full bg-emerald-500/10 blur-[120px]" />
-          <div className="pointer-events-none absolute -right-20 top-1/2 -translate-y-1/2 h-96 w-96 rounded-full bg-brand-cyan/10 blur-[120px]" />
+        {/* THE INTELLIGENCE LOOP (FOREST PINE CONTINENT WITH ORGANIC WAVE BORDERS) */}
+        <div id="process" className="relative z-10 scroll-mt-20">
+          {/* Upper Wave Border: Replaces straight horizontal border */}
+          <SectionWaveBorderTop />
 
-          <div className="relative z-10 mx-auto max-w-[1440px] px-5 sm:px-8 lg:px-12">
-            <motion.div
-              initial={{ opacity: 0, y: 24 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, margin: '-50px' }}
-              transition={{ duration: 0.6 }}
-              className="mx-auto max-w-2xl text-center"
-            >
-              <div className="eyebrow inline-flex border-[#173e33] bg-[#0e271f] text-emerald-400">
-                <CircleDot className="h-3.5 w-3.5" />
-                The Intelligence Loop
+          {/* Dark Pine Section Body */}
+          <section className="relative bg-[#071914] py-14 sm:py-20 text-white">
+            <div className="pointer-events-none absolute -left-20 top-1/2 -translate-y-1/2 h-96 w-96 rounded-full bg-emerald-500/10 blur-[120px]" />
+            <div className="pointer-events-none absolute -right-20 top-1/2 -translate-y-1/2 h-96 w-96 rounded-full bg-brand-cyan/10 blur-[120px]" />
+
+            <div className="relative z-10 mx-auto max-w-[1440px] px-5 sm:px-8 lg:px-12">
+              <motion.div
+                initial={{ opacity: 0, y: 24 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, margin: '-50px' }}
+                transition={{ duration: 0.6 }}
+                className="mx-auto max-w-2xl text-center"
+              >
+                <div className="eyebrow inline-flex border-[#173e33] bg-[#0e271f] text-emerald-400">
+                  <CircleDot className="h-3.5 w-3.5" />
+                  The Intelligence Loop
+                </div>
+                <h2 className="mt-4 font-display text-3xl font-black tracking-[-0.04em] sm:text-5xl">
+                  From your profile to a meal plan.
+                </h2>
+                <p className="mt-4 text-sm sm:text-base text-white/60">
+                  Profile context, recorded recipes, AI assistance and applicable review requirements guide meal
+                  selection.
+                </p>
+              </motion.div>
+
+              <div className="mt-16 grid gap-px overflow-hidden rounded-[28px] border border-[#173e33] bg-[#173e33]/60 md:grid-cols-4">
+                {loopSteps.map((step, index) => {
+                  const Icon = step.icon;
+                  return (
+                    <motion.article
+                      key={step.title}
+                      initial={{ opacity: 0, y: 30 }}
+                      whileInView={{ opacity: 1, y: 0 }}
+                      viewport={{ once: true, margin: '-50px' }}
+                      transition={{ duration: 0.5, delay: index * 0.12 }}
+                      className="relative bg-[#091b15] p-7 md:min-h-[300px] hover:bg-[#0c241d] transition duration-300"
+                    >
+                      <span className="font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-emerald-400/60">
+                        Phase 0{index + 1}
+                      </span>
+                      <Icon className="mt-8 h-8 w-8 text-emerald-400" />
+                      <h3 className="mt-6 font-display text-lg font-bold text-white">{step.title}</h3>
+                      <p className="mt-2.5 text-xs leading-5 text-white/55">{step.text}</p>
+                      {index < 3 && (
+                        <ArrowRight className="absolute -right-3 top-1/2 -translate-y-1/2 z-10 hidden h-5 w-5 text-emerald-400 md:block" />
+                      )}
+                    </motion.article>
+                  );
+                })}
               </div>
-              <h2 className="mt-4 font-display text-3xl font-black tracking-[-0.04em] sm:text-5xl">
-                From your profile to a meal plan.
-              </h2>
-              <p className="mt-4 text-sm sm:text-base text-white/60">
-                Profile context, recorded recipes, AI assistance and applicable review requirements guide meal
-                selection.
-              </p>
-            </motion.div>
-
-            <div className="mt-16 grid gap-px overflow-hidden rounded-[28px] border border-[#173e33] bg-[#173e33]/60 md:grid-cols-4">
-              {loopSteps.map((step, index) => {
-                const Icon = step.icon;
-                return (
-                  <motion.article
-                    key={step.title}
-                    initial={{ opacity: 0, y: 30 }}
-                    whileInView={{ opacity: 1, y: 0 }}
-                    viewport={{ once: true, margin: '-50px' }}
-                    transition={{ duration: 0.5, delay: index * 0.12 }}
-                    className="relative bg-[#091b15] p-7 md:min-h-[300px] hover:bg-[#0c241d] transition duration-300"
-                  >
-                    <span className="font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-emerald-400/60">
-                      Phase 0{index + 1}
-                    </span>
-                    <Icon className="mt-8 h-8 w-8 text-emerald-400" />
-                    <h3 className="mt-6 font-display text-lg font-bold text-white">{step.title}</h3>
-                    <p className="mt-2.5 text-xs leading-5 text-white/55">{step.text}</p>
-                    {index < 3 && (
-                      <ArrowRight className="absolute -right-3 top-1/2 -translate-y-1/2 z-10 hidden h-5 w-5 text-emerald-400 md:block" />
-                    )}
-                  </motion.article>
-                );
-              })}
             </div>
-          </div>
-        </section>
+          </section>
+
+          {/* Lower Wave Border: Replaces straight bottom border */}
+          <SectionWaveBorderBottom />
+        </div>
 
         {/* NUTRITIONIST RND RECRUITMENT */}
         <section id="nutritionists" className="relative z-20 mx-auto max-w-[1440px] scroll-mt-24 px-5 py-24 sm:px-8 lg:px-12">
