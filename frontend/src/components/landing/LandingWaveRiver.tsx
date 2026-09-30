@@ -242,6 +242,59 @@ export function LandingWaveFooter() {
   );
 }
 
+/**
+ * DOCS WAVE HERO
+ * Elegant 3-tone wave curve sweeping across the docs header.
+ */
+export function DocsWaveHero() {
+  return (
+    <div
+      aria-hidden="true"
+      className="pointer-events-none absolute -top-36 sm:-top-28 right-[-5%] sm:right-[0%] w-[900px] sm:w-[1300px] h-[550px] max-w-none opacity-80 dark:opacity-60 select-none z-0"
+    >
+      <svg
+        viewBox="0 0 1200 550"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+        className="w-full h-full"
+      >
+        {/* Band 1: Deep Pine Green */}
+        <path
+          d="M 120 -40
+             C 320 80, 520 160, 720 180
+             C 960 200, 1100 360, 1260 480"
+          stroke="#1b4e41"
+          strokeWidth="36"
+          strokeLinecap="round"
+          className="dark:stroke-[#154236]"
+        />
+
+        {/* Band 2: Warm Terracotta Peach */}
+        <path
+          d="M 145 -40
+             C 345 80, 545 160, 745 180
+             C 985 200, 1125 360, 1285 480"
+          stroke="#f09e6c"
+          strokeWidth="36"
+          strokeLinecap="round"
+          className="dark:stroke-[#f09e6c]"
+        />
+
+        {/* Band 3: Vibrant Coral Orange */}
+        <path
+          d="M 170 -40
+             C 370 80, 570 160, 770 180
+             C 1010 200, 1150 360, 1310 480"
+          stroke="#eb6a38"
+          strokeWidth="36"
+          strokeLinecap="round"
+          className="dark:stroke-[#eb6a38]"
+        />
+      </svg>
+    </div>
+  );
+}
+
 export default function LandingWaveRiver() {
   return (
     <div
