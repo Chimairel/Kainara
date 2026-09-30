@@ -25,7 +25,7 @@ import {
 } from 'lucide-react';
 import PublicHeader from '@/components/shared/PublicHeader';
 import KainaraLogo from '@/components/shared/KainaraLogo';
-import LandingWaveRiver from '@/components/landing/LandingWaveRiver';
+import { LandingWaveHero, LandingWaveProcess, LandingWaveFooter } from '@/components/landing/LandingWaveRiver';
 import { useAuth } from '@/hooks/useAuth';
 import { EVIDENCE_SOURCES, SOURCE_PURPOSE_LABELS } from '@/data/evidence-sources';
 
@@ -149,12 +149,12 @@ export default function Home() {
 
   return (
     <div className="relative min-h-screen bg-brand-bg text-brand-text selection:bg-brand-accent selection:text-white">
-      <LandingWaveRiver />
       <PublicHeader />
 
       <main className="overflow-x-clip">
         {/* HERO SECTION */}
         <section className="relative overflow-hidden pt-6 pb-16 md:pt-10 md:pb-24">
+          <LandingWaveHero />
           {/* Ambient glow mesh background */}
           <div className="pointer-events-none absolute left-[5%] top-16 h-96 w-96 rounded-full bg-emerald-500/15 blur-[120px] dark:bg-emerald-500/10" />
           <div className="pointer-events-none absolute right-[5%] top-24 h-[420px] w-[420px] rounded-full bg-brand-cyan/15 blur-[140px] dark:bg-brand-cyan/10" />
@@ -324,7 +324,7 @@ export default function Home() {
         </section>
 
         {/* PLATFORM INTELLIGENCE BENTO GRID */}
-        <section id="platform" className="mx-auto max-w-[1440px] scroll-mt-24 px-5 py-20 sm:px-8 lg:px-12">
+        <section id="platform" className="relative z-20 mx-auto max-w-[1440px] scroll-mt-24 px-5 py-20 sm:px-8 lg:px-12">
           <motion.div
             initial={{ opacity: 0, y: 24 }}
             whileInView={{ opacity: 1, y: 0 }}
@@ -380,12 +380,13 @@ export default function Home() {
         {/* THE INTELLIGENCE LOOP (FOREST PINE SECTION) */}
         <section
           id="process"
-          className="relative scroll-mt-20 border-y border-[#173e33] bg-[#071914] py-24 text-white overflow-hidden"
+          className="relative z-10 scroll-mt-20 border-y border-[#173e33] bg-[#071914] py-24 text-white"
         >
+          <LandingWaveProcess />
           <div className="pointer-events-none absolute -left-20 top-1/2 -translate-y-1/2 h-96 w-96 rounded-full bg-emerald-500/10 blur-[120px]" />
           <div className="pointer-events-none absolute -right-20 top-1/2 -translate-y-1/2 h-96 w-96 rounded-full bg-brand-cyan/10 blur-[120px]" />
 
-          <div className="relative mx-auto max-w-[1440px] px-5 sm:px-8 lg:px-12">
+          <div className="relative z-10 mx-auto max-w-[1440px] px-5 sm:px-8 lg:px-12">
             <motion.div
               initial={{ opacity: 0, y: 24 }}
               whileInView={{ opacity: 1, y: 0 }}
@@ -435,7 +436,7 @@ export default function Home() {
         </section>
 
         {/* NUTRITIONIST RND RECRUITMENT */}
-        <section id="nutritionists" className="mx-auto max-w-[1440px] scroll-mt-24 px-5 py-24 sm:px-8 lg:px-12">
+        <section id="nutritionists" className="relative z-20 mx-auto max-w-[1440px] scroll-mt-24 px-5 py-24 sm:px-8 lg:px-12">
           <motion.div
             initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
@@ -630,7 +631,7 @@ export default function Home() {
         </section>
 
         {/* BOTTOM CALL TO ACTION */}
-        <section className="px-5 pb-24 sm:px-8 lg:px-12">
+        <section className="relative z-20 px-5 pb-24 sm:px-8 lg:px-12">
           <motion.div
             initial={{ opacity: 0, scale: 0.98, y: 30 }}
             whileInView={{ opacity: 1, scale: 1, y: 0 }}
@@ -663,8 +664,9 @@ export default function Home() {
       </main>
 
       {/* FOOTER */}
-      <footer className="border-t border-brand-border/70 bg-brand-surface/40">
-        <div className="mx-auto flex max-w-[1440px] flex-col gap-5 px-5 py-8 text-xs text-brand-muted sm:px-8 md:flex-row md:items-center md:justify-between lg:px-12">
+      <footer className="relative z-10 border-t border-brand-border/70 bg-brand-surface/40 overflow-hidden">
+        <LandingWaveFooter />
+        <div className="relative z-10 mx-auto flex max-w-[1440px] flex-col gap-5 px-5 py-8 text-xs text-brand-muted sm:px-8 md:flex-row md:items-center md:justify-between lg:px-12">
           <div className="flex items-center gap-2.5 font-display font-extrabold tracking-[0.14em] text-brand-text">
             <KainaraLogo size="sm" variant="gradient" />
             KAINARA
