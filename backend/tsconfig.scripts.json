@@ -9,6 +9,12 @@
     "types": ["node"]
   },
   "include": [
+    "prisma/seed-common-meal-library.ts",
+    "scripts/full-system-http-acceptance.ts",
+    "scripts/production-integration-smoke.ts",
+    "scripts/raw-corpus-generation-lookup-acceptance.ts",
+    "scripts/gemini-fallback-acceptance.ts",
+    "scripts/case-approval-journey-acceptance.ts",
     "scripts/current-journey-audit.ts",
     "scripts/repair-browser-fixture.ts",
     "scripts/repair-browser-server.ts",

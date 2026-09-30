@@ -407,10 +407,10 @@ export function useMealsWorkspace() {
       setError(null);
       try {
         const res = await api.post('/user/meals/generate', { replaceExisting: meals.length > 0 });
-        if (res.data && res.data.success) {
+        if (!res.data?.success) throw new Error('Could not regenerate the weekly plan.');
+        if (res.data.success) {
           regenerationProgress.complete('Your replacement plan is ready for review.');
           await fetchMeals();
-          setIsRegenerating(false);
         }
       } catch (err: unknown) {
         const msg = getApiErrorMessage(err, 'Gemini failed to regenerate weekly plan.');
@@ -418,6 +418,8 @@ export function useMealsWorkspace() {
           setProfileReviewRequired(true);
         regenerationProgress.fail(msg);
         setError(msg);
+      } finally {
+        setIsRegenerating(false);
       }
     },
     [pendingReview, meals.length, regenerationProgress, fetchMeals]

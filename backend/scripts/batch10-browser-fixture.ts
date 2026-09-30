@@ -6,7 +6,14 @@ import { CURRENT_PRIVACY_VERSION, CURRENT_TERMS_VERSION } from '../src/domain/on
 import { getCurrentWeeklyCycleWindow, getNextWeeklyCycleWindow } from '../src/domain/meal-plan-cycle.policy';
 import { getStartOfManilaBusinessDay } from '../src/domain/meal-actionability.policy';
 import { queryEligibleLibraryMeals } from '../src/services/meal-library-candidate-query.service';
+import { SafetyIntakeService } from '../src/services/safety-intake.service';
 import { GroceryService } from '../src/services/grocery.service';
+
+const databaseTarget = new URL(process.env.DATABASE_URL ?? '');
+assert.ok(
+  process.env.BATCH10_DISPOSABLE_DB === '1' && ['127.0.0.1', 'localhost'].includes(databaseTarget.hostname),
+  'Browser fixture creation/cleanup requires an explicitly disposable loopback database.'
+);
 
 const runId = process.env.BATCH10_BROWSER_RUN_ID;
 assert.ok(runId && /^[a-z0-9-]{8,64}$/.test(runId), 'A unique BATCH10_BROWSER_RUN_ID is required.');
@@ -60,6 +67,7 @@ async function create() {
                     goal: 'MAINTAIN' as const,
                     activityLevel: 'LIGHTLY_ACTIVE' as const,
                     dietaryPreference: 'OMNIVORE' as const,
+                    foodCulture: 'Filipino',
                     dailyCalorieTarget: 1300,
                     shoppingDayOfWeek: 6,
                   },
@@ -84,6 +92,16 @@ async function create() {
         },
       });
       if (role === 'USER') {
+        await SafetyIntakeService.replaceDomains(
+          account.id,
+          ['CONDITION', 'ALLERGY'],
+          [
+            { domain: 'CONDITION', value: 'NONE', provenance: 'PREDEFINED' },
+            { domain: 'ALLERGY', value: 'NONE', provenance: 'PREDEFINED' },
+          ]
+        );
+        await prisma.userProfile.update({ where: { userId: account.id }, data: { dailyCalorieTarget: 1300 } });
+        const profile = await prisma.userProfile.findUniqueOrThrow({ where: { userId: account.id } });
         const report = {
           generalSummary: 'Synthetic report for browser journey testing.',
           foodsToAvoid: [],
@@ -92,7 +110,7 @@ async function create() {
           drinksGuidance: [],
           basedOnConditions: ['NONE'],
           basedOnAllergies: ['NONE'],
-          profileRevision: 0,
+          profileRevision: profile.revision,
           isStale: false,
           acknowledgedAt: new Date(),
           version: 1,
@@ -199,6 +217,7 @@ async function create() {
             goal: 'MAINTAIN',
             activityLevel: 'LIGHTLY_ACTIVE',
             dietaryPreference: 'OMNIVORE',
+            foodCulture: 'Filipino',
             dailyCalorieTarget: 2000,
             shoppingDayOfWeek: 6,
           },
@@ -221,6 +240,20 @@ async function create() {
           },
         },
       },
+    });
+    const reportUser = await prisma.user.findUniqueOrThrow({ where: { email: email('report') } });
+    await SafetyIntakeService.replaceDomains(
+      reportUser.id,
+      ['CONDITION', 'ALLERGY'],
+      [
+        { domain: 'CONDITION', value: 'NONE', provenance: 'PREDEFINED' },
+        { domain: 'ALLERGY', value: 'NONE', provenance: 'PREDEFINED' },
+      ]
+    );
+    const reportProfile = await prisma.userProfile.findUniqueOrThrow({ where: { userId: reportUser.id } });
+    await prisma.nutritionReport.update({
+      where: { userId: reportUser.id },
+      data: { profileRevision: reportProfile.revision, isStale: false },
     });
     console.log('[Batch 10 browser fixture] three role accounts, new patient, and report patient ready');
   } catch (error) {

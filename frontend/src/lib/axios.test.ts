@@ -33,6 +33,65 @@ describe('session recovery during background requests', () => {
     expect(cookieHelper.get('nutrimind_session')).toBe('renewed-session');
   });
 
+  it('bounds ordinary reads and gives generation an explicit longer budget', async () => {
+    const timeouts: number[] = [];
+    const adapter: AxiosAdapter = async (config) => {
+      timeouts.push(config.timeout ?? 0);
+      return { data: {}, status: 200, statusText: 'OK', headers: {}, config };
+    };
+    await api.get('/user/meals/current', { adapter });
+    await api.post('/user/meals/log-outside', {}, { adapter });
+    await api.get('/user/profile', { adapter, timeout: 15_000 });
+    expect(timeouts).toEqual([30_000, 120_000, 15_000]);
+  });
+
+  it('shares one bounded refresh and settles all queued requests after a timeout', async () => {
+    let rejectRefresh!: (error: unknown) => void;
+    const refresh = vi.spyOn(axios, 'post').mockImplementation(
+      () =>
+        new Promise((_resolve, reject) => {
+          rejectRefresh = reject;
+        })
+    );
+    const adapter: AxiosAdapter = async (config) => Promise.reject({ config, response: { status: 401 } });
+    const requests = Promise.allSettled([
+      api.get('/user/meals/current', { adapter }),
+      api.get('/user/grocery/workspace', { adapter }),
+    ]);
+    await vi.waitFor(() => expect(refresh).toHaveBeenCalledTimes(1));
+    expect(refresh).toHaveBeenCalledWith(
+      expect.stringContaining('/auth/refresh'),
+      {},
+      expect.objectContaining({ timeout: 15_000, signal: expect.any(AbortSignal) })
+    );
+    rejectRefresh(new Error('Request timed out'));
+    expect((await requests).every((result) => result.status === 'rejected')).toBe(true);
+  });
+
+  it('aborts an old refresh on logout and prevents it overwriting a newly signed-in account', async () => {
+    let resolveRefresh!: (value: unknown) => void;
+    const refresh = vi.spyOn(axios, 'post').mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          resolveRefresh = resolve;
+        })
+    );
+    const adapter: AxiosAdapter = async (config) => Promise.reject({ config, response: { status: 401 } });
+    const requests = Promise.allSettled([
+      api.get('/user/meals/current', { adapter }),
+      api.get('/user/grocery/workspace', { adapter }),
+    ]);
+    await vi.waitFor(() => expect(refresh).toHaveBeenCalledTimes(1));
+    const signal = refresh.mock.calls[0][2]?.signal;
+    setSessionRefreshSuppressed(true);
+    expect(signal?.aborted).toBe(true);
+    cookieHelper.set('nutrimind_session', 'new-account-session');
+    setSessionRefreshSuppressed(false);
+    resolveRefresh({ data: { success: true, data: { accessToken: 'old-account-session' } } });
+    expect((await requests).every((result) => result.status === 'rejected')).toBe(true);
+    expect(cookieHelper.get('nutrimind_session')).toBe('new-account-session');
+  });
+
   it('does not start a refresh race while a session is being deliberately terminated', async () => {
     cookieHelper.set('nutrimind_session', 'ending-session');
     setSessionRefreshSuppressed(true);

@@ -25,6 +25,7 @@ export function getApiBaseUrl(): string {
 // Create a single pre-configured Axios instance for backend calls
 const api = axios.create({
   baseURL: getApiBaseUrl(),
+  timeout: 30_000,
   withCredentials: true, // Crucial for storing and sending HttpOnly session cookies
   headers: {
     'Content-Type': 'application/json',
@@ -34,6 +35,14 @@ const api = axios.create({
 // Request interceptor: attach JWT token from cookie as Authorization header
 // The backend expects "Authorization: Bearer <token>" on every protected route
 api.interceptors.request.use((config) => {
+  // Provider-backed operations have a longer, bounded budget than ordinary reads.
+  if (
+    config.timeout === api.defaults.timeout &&
+    (/^\/user\/meals\/(generate|log-outside)$/.test(config.url ?? '') ||
+      /^\/nutritionist\/review\/[^/]+\/regenerate-candidate$/.test(config.url ?? ''))
+  ) {
+    config.timeout = 120_000;
+  }
   const token = cookieHelper.get('nutrimind_session');
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
@@ -43,9 +52,18 @@ api.interceptors.request.use((config) => {
 
 let isRefreshing = false;
 let sessionRefreshSuppressed = false;
+let sessionEpoch = 0;
+let refreshController: AbortController | null = null;
 
 export function setSessionRefreshSuppressed(suppressed: boolean) {
   sessionRefreshSuppressed = suppressed;
+  if (suppressed) {
+    sessionEpoch += 1;
+    refreshController?.abort();
+    refreshController = null;
+    isRefreshing = false;
+    processQueue(new Error('The session was ended.'));
+  }
 }
 interface FailedRequest {
   resolve: (token: string | null) => void;
@@ -68,9 +86,11 @@ const processQueue = (error: unknown, token: string | null = null) => {
 // Response interceptor to manage routing dynamically upon session expiration
 api.interceptors.response.use(
   (response) => {
-    if (typeof window !== 'undefined' &&
-        ['post', 'patch', 'put', 'delete'].includes(response.config.method?.toLowerCase() ?? '') &&
-        response.config.url?.startsWith('/nutritionist/')) {
+    if (
+      typeof window !== 'undefined' &&
+      ['post', 'patch', 'put', 'delete'].includes(response.config.method?.toLowerCase() ?? '') &&
+      response.config.url?.startsWith('/nutritionist/')
+    ) {
       window.dispatchEvent(new Event('nutrimind:review-work-updated'));
     }
     return response;
@@ -92,7 +112,13 @@ api.interceptors.response.use(
     }
 
     // Check if error is a 401 and we haven't already retried this request
-    if (error.response && error.response.status === 401 && !originalRequest._retry && !sessionRefreshSuppressed) {
+    if (
+      originalRequest &&
+      error.response &&
+      error.response.status === 401 &&
+      !originalRequest._retry &&
+      !sessionRefreshSuppressed
+    ) {
       // Guard: don't redirect/refresh if we're already on an auth page
       const authPages = [
         '/login',
@@ -110,6 +136,7 @@ api.interceptors.response.use(
       const isRefreshRequest = originalRequest.url && originalRequest.url.includes('/auth/refresh');
 
       if (!isAuthPage && !isRefreshRequest) {
+        const requestEpoch = sessionEpoch;
         if (isRefreshing) {
           originalRequest._retry = true;
           // Queue this failed request while token is being refreshed
@@ -117,6 +144,7 @@ api.interceptors.response.use(
             failedQueue.push({ resolve, reject });
           })
             .then((token) => {
+              if (requestEpoch !== sessionEpoch || sessionRefreshSuppressed) throw new Error('The session was ended.');
               originalRequest.headers.Authorization = `Bearer ${token}`;
               return api(originalRequest);
             })
@@ -127,11 +155,22 @@ api.interceptors.response.use(
 
         originalRequest._retry = true;
         isRefreshing = true;
+        const controller = new AbortController();
+        refreshController = controller;
 
         try {
           // Send refresh request — the HttpOnly cookie is sent automatically
           // by the browser because withCredentials is true on the api instance.
-          const refreshResponse = await axios.post(`${getApiBaseUrl()}/auth/refresh`, {}, { withCredentials: true });
+          const refreshResponse = await axios.post(
+            `${getApiBaseUrl()}/auth/refresh`,
+            {},
+            {
+              withCredentials: true,
+              timeout: 15_000,
+              signal: controller.signal,
+            }
+          );
+          if (requestEpoch !== sessionEpoch || sessionRefreshSuppressed) throw new Error('The session was ended.');
 
           if (refreshResponse.data && refreshResponse.data.success) {
             const { accessToken } = refreshResponse.data.data;
@@ -140,13 +179,16 @@ api.interceptors.response.use(
 
             processQueue(null, accessToken);
             isRefreshing = false;
+            refreshController = null;
 
             return api(originalRequest);
           }
           throw new Error('Session refresh returned an invalid response.');
         } catch (refreshError) {
+          if (requestEpoch !== sessionEpoch) return Promise.reject(refreshError);
           processQueue(refreshError, null);
           isRefreshing = false;
+          refreshController = null;
 
           // Only clear the access token — the backend clears the HttpOnly refresh cookie
           const status = (refreshError as { response?: { status?: number } }).response?.status;

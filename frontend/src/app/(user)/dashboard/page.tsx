@@ -108,8 +108,13 @@ export default function DashboardPage() {
       }
     };
     void check();
-    const interval = window.setInterval(() => { if (document.visibilityState === 'visible') void check(); }, 30_000);
-    return () => { active = false; window.clearInterval(interval); };
+    const interval = window.setInterval(() => {
+      if (document.visibilityState === 'visible') void check();
+    }, 30_000);
+    return () => {
+      active = false;
+      window.clearInterval(interval);
+    };
   }, [ownerId, profileSafetyRevision]);
   const isStarterPlan = currentCycle?.planType === 'STARTER' || currentMeals[0]?.planType === 'STARTER';
   const nextCycleDay = React.useMemo(() => {
@@ -315,12 +320,30 @@ export default function DashboardPage() {
   }, [awaitingGenerationCount, fetchCurrentPlan]);
 
   useEffect(() => {
-    if (isLoading || currentCycle || generationStatus === 'FAILED' || isReportPending || clinicalEvidenceRequired || profileReviewStatus !== 'ready' || error) return;
+    if (
+      isLoading ||
+      currentCycle ||
+      generationStatus === 'FAILED' ||
+      isReportPending ||
+      clinicalEvidenceRequired ||
+      profileReviewStatus !== 'ready' ||
+      error
+    )
+      return;
     const interval = window.setInterval(() => {
       if (document.visibilityState === 'visible') void fetchCurrentPlan();
     }, 20_000);
     return () => window.clearInterval(interval);
-  }, [isLoading, currentCycle, generationStatus, isReportPending, clinicalEvidenceRequired, profileReviewStatus, error, fetchCurrentPlan]);
+  }, [
+    isLoading,
+    currentCycle,
+    generationStatus,
+    isReportPending,
+    clinicalEvidenceRequired,
+    profileReviewStatus,
+    error,
+    fetchCurrentPlan,
+  ]);
 
   const checkCheckinStatus = useCallback(async () => {
     try {
@@ -399,7 +422,8 @@ export default function DashboardPage() {
     setError(null);
     try {
       const res = await api.post('/user/meals/generate');
-      if (res.data && res.data.success) {
+      if (!res.data?.success) throw new Error('Could not generate the weekly plan.');
+      if (res.data.success) {
         completeGenerationProgress();
         await new Promise<void>((resolve) => window.setTimeout(resolve, 700));
         applyCurrentPlan({
@@ -410,22 +434,20 @@ export default function DashboardPage() {
           planSnapshot: res.data.data.planSnapshot ?? null,
           cycle: res.data.data.cycle ?? null,
         });
-        generationRequestInFlight.current = false;
-        setIsGenerating(false);
       }
     } catch (err: unknown) {
       const msg = getApiErrorMessage(err, 'Gemini failed to generate standard plan.');
       if (axios.isAxiosError(err) && err.response?.data?.errorCode === 'CLINICAL_EVIDENCE_REQUIRED') {
         setClinicalEvidenceRequired(true);
-        setIsGenerating(false);
       }
       if (axios.isAxiosError(err) && err.response?.data?.errorCode === 'PROFILE_REVIEW_REQUIRED') {
         setProfileReviewStatus('pending');
-        setIsGenerating(false);
       }
       failGenerationProgress(msg);
       setError(msg);
+    } finally {
       generationRequestInFlight.current = false;
+      setIsGenerating(false);
     }
   };
 
@@ -595,10 +617,25 @@ export default function DashboardPage() {
         />
 
         {!isLoading && awaitingGenerationCount > 0 && !isReportPending && !clinicalEvidenceRequired && (
-          <div role="status" className="rounded-xl border border-status-pending-text/30 bg-status-pending-bg/15 p-4 text-sm text-brand-text">
-            {awaitingGenerationCount} meal slot{awaitingGenerationCount === 1 ? '' : 's'} {generationStatus === 'FAILED' ? 'could not be prepared' : 'still awaiting generation'}. {generationStatus === 'FAILED' ? (currentMeals.length || pendingReview?.meals?.length ? 'Saved candidates remain available.' : 'No meal candidates were saved for this cycle.') : 'The earliest days are first in line.'} Empty slots are not available for shopping or logging.
+          <div
+            role="status"
+            className="rounded-xl border border-status-pending-text/30 bg-status-pending-bg/15 p-4 text-sm text-brand-text"
+          >
+            {awaitingGenerationCount} meal slot{awaitingGenerationCount === 1 ? '' : 's'}{' '}
+            {generationStatus === 'FAILED' ? 'could not be prepared' : 'still awaiting generation'}.{' '}
+            {generationStatus === 'FAILED'
+              ? currentMeals.length || pendingReview?.meals?.length
+                ? 'Saved candidates remain available.'
+                : 'No meal candidates were saved for this cycle.'
+              : 'The earliest days are first in line.'}{' '}
+            Empty slots are not available for shopping or logging.
             {generationStatus === 'FAILED' && currentCycle?.id && (
-              <Button variant="secondary" className="mt-3" onClick={() => void retryMissingGeneration()} disabled={isRetryingMissing}>
+              <Button
+                variant="secondary"
+                className="mt-3"
+                onClick={() => void retryMissingGeneration()}
+                disabled={isRetryingMissing}
+              >
                 {isRetryingMissing ? 'Retrying…' : 'Retry missing slots'}
               </Button>
             )}
@@ -637,26 +674,44 @@ export default function DashboardPage() {
             description="A nutritionist needs to review your declared health profile before meal candidates can be prepared. Each proposed meal will then receive its own case approval."
           />
         ) : profileReviewStatus === 'checking' || profileReviewStatus === 'error' ? (
-          <div role="status" className="rounded-xl border border-brand-border bg-brand-surface p-5 text-sm text-brand-muted">
-            {profileReviewStatus === 'checking' ? 'Checking meal-planning eligibility…' : 'We could not check your meal-planning eligibility. Refresh this page to try again.'}
+          <div
+            role="status"
+            className="rounded-xl border border-brand-border bg-brand-surface p-5 text-sm text-brand-muted"
+          >
+            {profileReviewStatus === 'checking'
+              ? 'Checking meal-planning eligibility…'
+              : 'We could not check your meal-planning eligibility. Refresh this page to try again.'}
           </div>
-        ) : currentMeals.length === 0 && !pendingReview && awaitingGenerationCount > 0 && generationStatus !== 'FAILED' ? (
-          <div role="status" className="rounded-2xl border border-brand-border bg-brand-surface p-6 text-sm text-brand-muted">
-            Your first meal candidates are being prepared. Visit Meals to follow the preview and nutritionist review progress.
+        ) : currentMeals.length === 0 &&
+          !pendingReview &&
+          awaitingGenerationCount > 0 &&
+          generationStatus !== 'FAILED' ? (
+          <div
+            role="status"
+            className="rounded-2xl border border-brand-border bg-brand-surface p-6 text-sm text-brand-muted"
+          >
+            Your first meal candidates are being prepared. Visit Meals to follow the preview and nutritionist review
+            progress.
           </div>
         ) : currentMeals.length === 0 && !pendingReview ? (
           <StateNotice
             variant="no-meal-plan"
             imageAlt="Meal plan preparation"
             title={generationStatus === 'FAILED' ? 'Meal Preparation Paused' : 'Preparing Your First Meal Plan'}
-            description={generationStatus === 'FAILED'
-              ? 'Your first plan could not be prepared. Retry when you are ready; no unreviewed meal has been made available.'
-              : 'Your current meal plan is being prepared automatically. New candidates will appear in Meals as previews and cannot be used until their safety review is complete.'}
-            action={generationStatus === 'FAILED' ? {
-              label: isGenerating ? 'Retrying...' : 'Retry Preparation',
-              onClick: handleGeneratePlan,
-              isLoading: isGenerating,
-            } : null}
+            description={
+              generationStatus === 'FAILED'
+                ? 'Your first plan could not be prepared. Retry when you are ready; no unreviewed meal has been made available.'
+                : 'Your current meal plan is being prepared automatically. New candidates will appear in Meals as previews and cannot be used until their safety review is complete.'
+            }
+            action={
+              generationStatus === 'FAILED'
+                ? {
+                    label: isGenerating ? 'Retrying...' : 'Retry Preparation',
+                    onClick: handleGeneratePlan,
+                    isLoading: isGenerating,
+                  }
+                : null
+            }
           />
         ) : (
           <>

@@ -34,8 +34,11 @@ async function signIn(page: Page, email: string, password: string) {
 test('five profiles and nutritionist case workspace show the recorded approval states', async ({ browser }) => {
   test.setTimeout(120_000);
   for (const [label, restricted] of [
-    ['healthy-omni', false], ['healthy-vegetarian', false], ['hypertension', true],
-    ['diabetes-eggs', true], ['eggs-only', true],
+    ['healthy-omni', false],
+    ['healthy-vegetarian', false],
+    ['hypertension', true],
+    ['diabetes-eggs', true],
+    ['eggs-only', true],
   ] as const) {
     const context = await browser.newContext();
     const page = await context.newPage();
@@ -61,18 +64,20 @@ test('five profiles and nutritionist case workspace show the recorded approval s
   const context = await browser.newContext({ viewport: { width: 1365, height: 900 } });
   const page = await context.newPage();
   await signIn(page, 'nutritionist@gmail.com', 'Nutritionist123');
-  await expect(page.getByRole('button', { name: 'Meal verification' })).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Case approval' })).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Profile queue' })).toBeVisible();
-  await page.getByRole('button', { name: 'Profile queue' }).click();
-  await expect(page.getByRole('heading', { name: 'Health profile review' })).toBeVisible();
+  await expect(page.getByRole('button', { name: /^Meal verification/ })).toBeVisible();
+  await expect(page.getByRole('button', { name: /^Case approval/ })).toBeVisible();
+  await expect(page.getByRole('button', { name: /^Profile queue/ })).toBeVisible();
+  await page.getByRole('button', { name: /^Profile queue/ }).click();
+  await expect(page.getByRole('heading', { name: 'People awaiting review' })).toBeVisible();
   const pendingProfile = page.getByRole('button').filter({ hasText: 'Case flow profile UI' }).first();
   await pendingProfile.click();
   await expect(page.getByText('EGGS', { exact: true }).first()).toBeVisible();
-  await page.getByRole('textbox', { name: 'Review notes' }).fill('Reviewed the fictional egg allergy declaration for planning.');
+  await page
+    .getByRole('textbox', { name: 'Review notes' })
+    .fill('Reviewed the fictional egg allergy declaration for planning.');
   await page.getByRole('button', { name: 'Confirm for planning' }).click();
   await expect(pendingProfile).toHaveCount(0);
-  await page.getByRole('button', { name: 'Case approval' }).click();
+  await page.getByRole('button', { name: /^Case approval/ }).click();
   const card = page.getByRole('button').filter({ hasText: 'Case flow eggs-only' }).first();
   await expect(card).toBeVisible();
   await card.click();

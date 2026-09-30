@@ -71,9 +71,11 @@ test('a new email account completes onboarding with national planning and opens 
   await page.locator('#medicalDisclaimer').check();
   await page.locator('#healthDataProcessing').check();
   await page.locator('#privacyPolicy').check();
-  await page.getByRole('button', { name: 'Complete Onboarding & Go to Dashboard' }).click();
+  await page.getByRole('button', { name: 'Complete Onboarding & Review Report' }).click();
+  await expectStep(/\/profile\/nutrition-report\?next=dashboard$/);
+  await page.getByRole('button', { name: 'Acknowledge and Continue' }).click();
   await expectStep(/\/dashboard$/);
-  await page.goto('/nutrition-report');
+  await page.goto('/profile/nutrition-report');
   await expect(page.getByRole('heading', { name: 'Nutrition report history' })).toBeVisible();
 });
 
@@ -82,9 +84,9 @@ test('an unacknowledged persisted report gates login until the patient acknowled
   await page.getByLabel('Email address').fill(`batch10-browser-report-${runId}@example.invalid`);
   await page.getByLabel(/^Password$/).fill('SyntheticBrowser123!');
   await page.getByRole('button', { name: /^Sign in$/i }).click();
-  await expect(page).toHaveURL(/\/nutrition-report$/, { timeout: 25_000 });
-  await expect(page.getByText('Synthetic unacknowledged report for browser gate testing.')).toBeVisible();
-  await page.getByRole('button', { name: 'I Acknowledge Report' }).click();
+  await expect(page).toHaveURL(/\/profile\/nutrition-report$/, { timeout: 25_000 });
+  await expect(page.getByRole('heading', { name: 'Nutrition Guidance', exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Acknowledge and Continue' }).click();
   await expect(page).toHaveURL(/\/profile$/, { timeout: 25_000 });
   await page.goto('/dashboard');
   await expect(page.getByText('We could not load this page.')).toHaveCount(0);
@@ -99,6 +101,61 @@ test('patient workspace opens the plan, groceries, library, and history at deskt
   await visitAtBothSizes(page, '/grocery');
 });
 
+test('grocery bought state persists through reload, both themes, and PDF download', async ({ page }) => {
+  await signIn(page, 'user');
+  await page.goto('/grocery');
+  const item = page.getByRole('checkbox', { name: /^Mark as bought:/ }).first();
+  await expect(item).toBeVisible();
+  const name = (await item.getAttribute('aria-label'))!.replace('Mark as bought: ', '');
+  await item.check();
+  const bought = page.getByRole('checkbox', { name: `Mark as not bought: ${name}`, exact: true });
+  await expect(bought).toBeChecked();
+  await expect(bought).toBeEnabled();
+  await page.reload();
+  await expect(bought).toBeChecked();
+  await page.getByRole('button', { name: /Switch to .* mode/ }).click();
+  await expect(bought).toBeChecked();
+  await bought.uncheck();
+  await expect(page.getByRole('checkbox', { name: `Mark as bought: ${name}`, exact: true })).toBeEnabled();
+  await page.reload();
+  await expect(page.getByRole('checkbox', { name: `Mark as bought: ${name}`, exact: true })).not.toBeChecked();
+  const download = page.waitForEvent('download');
+  await page.getByRole('button', { name: 'Download PDF' }).click();
+  expect((await download).suggestedFilename()).toMatch(/\.pdf$/i);
+});
+
+test('returning to dashboard keeps the loaded plan visible while it revalidates', async ({ page }) => {
+  await signIn(page, 'user');
+  await expect(page.getByRole('button', { name: /^Open .* details$/ }).first()).toBeVisible();
+  await page.getByRole('link', { name: 'Meals', exact: true }).click();
+  await expect(page).toHaveURL(/\/meals$/);
+  await page.getByRole('link', { name: 'Home', exact: true }).click();
+  await expect(page).toHaveURL(/\/dashboard$/);
+  await expect(page.getByLabel('Loading daily dashboard')).toHaveCount(0);
+  await expect(page.getByRole('button', { name: /^Open .* details$/ }).first()).toBeVisible();
+});
+
+test('dashboard exits generation loading after a server failure and allows retry', async ({ page }) => {
+  await signIn(page, 'user');
+  await page.route('**/api/user/meals/current', (route) =>
+    route.fulfill({
+      json: { success: true, data: [], meta: { generationStatus: 'FAILED', awaitingGenerationCount: 0 } },
+    })
+  );
+  let attempts = 0;
+  await page.route('**/api/user/meals/generate', (route) => {
+    attempts += 1;
+    return route.fulfill({ status: 500, json: { success: false, error: 'Synthetic generation outage' } });
+  });
+  await page.reload();
+  await page.getByRole('button', { name: 'Retry Preparation' }).click();
+  await expect(page.getByText('Synthetic generation outage', { exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Retry Preparation' })).toBeEnabled();
+  await page.getByRole('button', { name: 'Retry Preparation' }).click();
+  await expect(page.getByRole('button', { name: 'Retry Preparation' })).toBeEnabled();
+  expect(attempts).toBe(2);
+});
+
 test('patient swaps a current and prepared upcoming breakfast with a favorite certified meal', async ({ page }) => {
   test.setTimeout(120_000);
   await signIn(page, 'user');
@@ -111,13 +168,29 @@ test('patient swaps a current and prepared upcoming breakfast with a favorite ce
       .click();
     await page.getByRole('button', { name: 'Swap Meal' }).click();
     const dialog = page.getByRole('dialog', { name: /^Swap / });
-    await expect(dialog.getByRole('button', { name: 'Select' }).first()).toBeVisible({ timeout: 25_000 });
-    const firstOption = dialog.locator('h4').first();
+    const favoriteCard = dialog
+      .locator('div[role="button"]')
+      .filter({
+        has: page.getByRole('button', { name: /^Remove .* from favorites$/ }),
+      })
+      .first();
+    const firstOption = favoriteCard.getByRole('heading', { level: 4 });
+    await expect(firstOption).toBeVisible({ timeout: 25_000 });
     const favoriteName = await firstOption.innerText();
-    await expect(firstOption.locator('..')).toContainText('Favorite');
-    await dialog.getByRole('button', { name: 'Select' }).first().click();
-    await expect(dialog.getByRole('button', { name: 'Confirm swap' })).toBeVisible();
-    await dialog.getByRole('button', { name: 'Confirm swap' }).click();
+    await expect(favoriteCard.getByRole('button', { name: /^Remove .* from favorites$/ })).toHaveAttribute(
+      'aria-pressed',
+      'true'
+    );
+    const previewReady = page.waitForResponse(
+      (response) => response.url().includes('/swap-preview') && response.request().method() === 'GET'
+    );
+    await firstOption.click();
+    expect((await previewReady).status()).toBe(200);
+    await expect(dialog.getByRole('button', { name: 'Confirm Swap' })).toBeVisible();
+    const shoppingAcknowledgment = dialog.getByRole('checkbox', { name: /Shopping started/ });
+    if (await shoppingAcknowledgment.isVisible()) await shoppingAcknowledgment.check();
+    await expect(dialog.getByRole('button', { name: 'Confirm Swap' })).toBeEnabled();
+    await dialog.getByRole('button', { name: 'Confirm Swap' }).click();
     await expect(dialog).toHaveCount(0, { timeout: 25_000 });
     await expect(page.getByRole('button', { name: `Open ${favoriteName} details` })).toBeVisible();
     return favoriteName;
@@ -136,6 +209,8 @@ test('nutritionist can open plan, outside meal, and library review workspaces', 
   await visitAtBothSizes(page, '/nutritionist/reviews');
   await visitAtBothSizes(page, '/nutritionist/outside-meals');
   await visitAtBothSizes(page, '/nutritionist/library');
+  await visitAtBothSizes(page, '/nutritionist/audit');
+  await visitAtBothSizes(page, '/nutritionist/profile');
 });
 
 test('administrator can inspect account, nutritionist, and operations workspaces', async ({ page }) => {
@@ -162,18 +237,18 @@ test('patient and nutritionist correct an outside meal and admit a consented rec
   const mealName = `Batch 10 home-cooked stew ${runId}-${Date.now()}`;
   try {
     await signIn(patient, 'user');
-    await patient.getByRole('button', { name: /Log an outside meal/i }).click();
-    const dialog = patient.getByRole('dialog', { name: 'MANUALLY LOG A MEAL' });
+    await patient.getByRole('button', { name: /Log food or snack/i }).click();
+    const dialog = patient.getByRole('dialog', { name: 'LOG FOOD OR A MEAL' });
     await dialog.getByLabel('Food or Meal Eaten (required)').fill(mealName);
     await dialog.getByLabel('Approximate portion in grams (optional)').fill('250');
     await dialog.getByText('Calories (kcal)').locator('..').locator('input').fill('400');
     await dialog.getByText('Protein (g)').locator('..').locator('input').fill('30');
     await dialog.getByText('Carbs (g)').locator('..').locator('input').fill('45');
     await dialog.getByText('Fat (g)').locator('..').locator('input').fill('12');
-    await dialog.getByRole('button', { name: 'LOG THIS MEAL' }).click();
+    await dialog.getByRole('button', { name: 'LOG THIS FOOD' }).click();
     await expect(dialog.getByText('Review before logging')).toBeVisible();
     await dialog.getByRole('button', { name: 'Confirm and log' }).click();
-    await expect(dialog.getByText('Meal recorded')).toBeVisible();
+    await expect(dialog.getByText('Food recorded')).toBeVisible();
     await dialog.getByRole('button', { name: 'Done' }).click();
 
     await patient.goto('/meals?tab=history');

@@ -62,6 +62,13 @@ export class CheckinService {
   static async submitCheckin(userId: string, data: WeeklyCheckinInput) {
     const now = new Date();
     const status = await CheckinService.getCheckinStatus(userId);
+    const cycle = await MealPlanCycleService.getCurrentCycle(userId, now);
+    const existing = cycle
+      ? await prisma.weeklyCheckin.findUnique({
+          where: { userId_cycleStartDate: { userId, cycleStartDate: cycle.startDate } },
+        })
+      : null;
+    if (existing) return { ...existing, duplicate: true };
     if (!status.isDue) {
       throw new Error('Your next weekly check-in is not due yet.');
     }
@@ -75,12 +82,7 @@ export class CheckinService {
     });
     const profile = user?.userProfile;
     if (!profile) throw new Error('User profile must be initialized first.');
-    const cycle = await MealPlanCycleService.getCurrentCycle(userId, now);
     if (!cycle) throw new Error('A current meal-plan cycle is required before a weekly check-in can be recorded.');
-    const existing = await prisma.weeklyCheckin.findUnique({
-      where: { userId_cycleStartDate: { userId, cycleStartDate: cycle.startDate } },
-    });
-    if (existing) return { ...existing, duplicate: true };
 
     const updates = data.changed ? data.updates : {};
     const submittedWeightKg = updates.weightKg;
@@ -131,10 +133,18 @@ export class CheckinService {
     const nextStreak =
       daysSincePreviousCheckin !== null && daysSincePreviousCheckin <= 14 ? profile.checkinStreak + 1 : 1;
 
+    let duplicate = false;
     try {
       const checkin = await prisma.$transaction(
         async (tx) => {
           await lockUserProfile(tx, userId);
+          const recorded = await tx.weeklyCheckin.findUnique({
+            where: { userId_cycleStartDate: { userId, cycleStartDate: cycle.startDate } },
+          });
+          if (recorded) {
+            duplicate = true;
+            return recorded;
+          }
           const currentProfile = await tx.userProfile.findUniqueOrThrow({ where: { userId } });
           if (currentProfile.revision !== profile.revision)
             throw new Error('Your profile changed. Refresh before submitting your check-in.');
@@ -199,6 +209,7 @@ export class CheckinService {
         { isolationLevel: Prisma.TransactionIsolationLevel.Serializable }
       );
 
+      if (duplicate) return { ...checkin, duplicate: true };
       return {
         ...checkin,
         duplicate: false,
@@ -207,7 +218,7 @@ export class CheckinService {
         automaticCalorieAdjustment: adaptation.automaticCalorieAdjustment,
       };
     } catch (error) {
-      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+      if (error instanceof Prisma.PrismaClientKnownRequestError && ['P2002', 'P2034'].includes(error.code)) {
         const duplicate = await prisma.weeklyCheckin.findUnique({
           where: { userId_cycleStartDate: { userId, cycleStartDate: cycle.startDate } },
         });

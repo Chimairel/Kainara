@@ -4,14 +4,14 @@ import { getManilaDateKey } from '@/lib/manila-date';
 import { useMealsWorkspace } from './useMealsWorkspace';
 import { clearSessionResourceCache } from '@/lib/session-resource-cache';
 
-const { getMock } = vi.hoisted(() => ({ getMock: vi.fn() }));
+const { getMock, postMock } = vi.hoisted(() => ({ getMock: vi.fn(), postMock: vi.fn() }));
 
 vi.mock('@/hooks/useAuth', () => ({
   useAuth: () => ({ user: { userId: 'user-1' } }),
 }));
 
 vi.mock('@/lib/axios', () => ({
-  default: { get: getMock },
+  default: { get: getMock, post: postMock },
 }));
 
 const historyRows = Array.from({ length: 3 }, (_, index) => ({ id: `history-${index}` }));
@@ -27,6 +27,7 @@ describe('useMealsWorkspace', () => {
   beforeEach(() => {
     clearSessionResourceCache();
     getMock.mockReset();
+    postMock.mockReset();
     getMock.mockImplementation(async (url: string) => successfulResponseFor(url));
   });
 
@@ -98,5 +99,21 @@ describe('useMealsWorkspace', () => {
     await act(async () => {
       resolveRefresh?.(successfulResponseFor('/user/meals/workspace'));
     });
+  });
+  it.each([
+    ['request failure', () => Promise.reject(new Error('Request timed out'))],
+    ['unsuccessful response', () => Promise.resolve({ data: { success: false } })],
+  ])('clears regeneration loading and permits retry after %s', async (_name, response) => {
+    postMock.mockImplementationOnce(response);
+    const { result } = renderHook(() => useMealsWorkspace());
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    await act(async () => result.current.handleRegeneratePlan({ skipConfirm: true }));
+    expect(result.current.isRegenerating).toBe(false);
+    expect(result.current.error).toBeTruthy();
+    postMock.mockResolvedValueOnce({ data: { success: true } });
+    await act(async () => result.current.handleRegeneratePlan({ skipConfirm: true }));
+    expect(postMock).toHaveBeenCalledTimes(2);
+    expect(result.current.isRegenerating).toBe(false);
+    expect(result.current.error).toBeNull();
   });
 });

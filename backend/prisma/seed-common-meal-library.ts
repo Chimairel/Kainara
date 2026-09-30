@@ -41,7 +41,7 @@ import { libraryBaseRevisionKey } from '../src/services/meal-base-admission.serv
 import { evaluateMealLibrarySafetyEvidence } from '../src/domain/meal-library-safety-evidence.policy';
 import { buildMealLibraryRecipeSignature } from '../src/domain/meal-library-signature.policy';
 import { isNutritionistEligibleForReview } from '../src/domain/nutritionist-review.policy';
-import { isCertifiedLibraryMealCompatible } from '../src/services/meal-swap.service';
+import { isCertifiedLibraryMealCompatible } from '../src/services/meal-library-candidate-query.service';
 import {
   classifyMealIngredients,
   MEAL_INGREDIENT_CLASSIFICATION_VERSION,
@@ -60,15 +60,21 @@ async function ensureCatalogueMealVerification(mealId: string, nutritionistProfi
   });
   if (!meal.recipeSignature) throw new Error(`Catalogue meal ${mealId} has no recipe signature.`);
   const record = await prisma.mealBaseVerification.upsert({
-    where: { targetKind_targetId_revisionKey: {
-      targetKind: 'LIBRARY_MEAL', targetId: mealId,
-      revisionKey: libraryBaseRevisionKey(meal.recipeSignature, meal.description),
-    } },
+    where: {
+      targetKind_targetId_revisionKey: {
+        targetKind: 'LIBRARY_MEAL',
+        targetId: mealId,
+        revisionKey: libraryBaseRevisionKey(meal.recipeSignature, meal.description),
+      },
+    },
     create: {
-      targetKind: 'LIBRARY_MEAL', targetId: mealId,
+      targetKind: 'LIBRARY_MEAL',
+      targetId: mealId,
       revisionKey: libraryBaseRevisionKey(meal.recipeSignature, meal.description),
-      status: 'VERIFIED', reviewedByNutritionistId: nutritionistProfileId,
-      reviewedAt: new Date(), rationale: 'Reviewed common meal catalogue recipe with exact FNRI ingredients and portion evidence.',
+      status: 'VERIFIED',
+      reviewedByNutritionistId: nutritionistProfileId,
+      reviewedAt: new Date(),
+      rationale: 'Reviewed common meal catalogue recipe with exact FNRI ingredients and portion evidence.',
     },
     update: {},
   });
@@ -208,7 +214,7 @@ function projectCertifiedMeal(meal: CommonMealDefinition, foods: ReadonlyMap<str
     status: 'APPROVED',
     safetyEvidenceStatus: 'COMPLETE',
     safetyEvidenceOrigin: 'NUTRITIONIST_REVIEW',
-    conditionDeclarationState: suitableConditions.length > 0 ? 'REVIEWED_WITH_DECLARATIONS' : 'REVIEWED_NONE_DECLARED',
+    conditionDeclarationState: 'NOT_REVIEWED',
     allergenDeclarationState: 'REVIEWED_WITH_DECLARATIONS',
     crossContactAssessment: 'ASSESSED_NO_KNOWN_RISK',
     safetyEvidenceRevision: 1,
@@ -324,7 +330,7 @@ function runOfflineDryRun(counts: Record<string, number>, foods: ReadonlyMap<str
           mealName: meal.mealName,
           mealType: meal.mealType,
           nutrition: meal.nutrition,
-          ingredients: meal.ingredients,
+          ingredients: meal.ingredients.map((item) => ({ ...item })),
           suitableConditions: meal.suitableConditions,
           allergensPresent: meal.allergensPresent,
           allergensReviewedAbsent: meal.allergensReviewedAbsent,
@@ -499,7 +505,7 @@ async function main() {
                 source: SEED_REVIEW_REASON,
                 signature,
                 mealName: meal.mealName,
-                ingredients: meal.ingredients,
+                ingredients: meal.ingredients.map((item) => ({ ...item })),
                 nutrition: { ...macros, sodiumMg },
                 suitableConditions,
               },
@@ -562,7 +568,7 @@ async function main() {
                 source: SEED_REVIEW_REASON,
                 signature,
                 mealName: meal.mealName,
-                ingredients: meal.ingredients,
+                ingredients: meal.ingredients.map((item) => ({ ...item })),
                 nutrition: { ...macros, sodiumMg },
                 suitableConditions,
               },
@@ -600,13 +606,13 @@ async function main() {
     );
     await NutritionistService.certifyLibraryMealSafety(nutritionist.id, mealId, {
       expectedRevision: prepared.revision,
-      conditionDeclarationState:
-        suitableConditions.length > 0 ? 'REVIEWED_WITH_DECLARATIONS' : 'REVIEWED_NONE_DECLARED',
+      conditionDeclarationState: 'NOT_REVIEWED',
       allergenDeclarationState: 'REVIEWED_WITH_DECLARATIONS',
       crossContactAssessment: 'ASSESSED_NO_KNOWN_RISK',
-      suitableConditions,
+      suitableConditions: [],
       allergensPresent: meal.allergensPresent,
       allergensReviewedAbsent,
+      usdaUseAccepted: false,
     });
     await ensureFixtureReviewedMealType(mealId, meal.mealType as MealType);
     await ensureCatalogueMealVerification(mealId, nutritionist.id);

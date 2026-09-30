@@ -26,7 +26,10 @@ import { CheckinService } from '../src/services/checkin.service';
 import { certifyMealLibrarySafetySchema } from '../src/domain/meal-library-safety-review.schema';
 import AuthService from '../src/services/auth.service';
 import { MealLogService } from '../src/services/meal-log.service';
+import { prepareLibraryNutritionEvidence } from '../src/services/nutritionist-library-nutrition-evidence.service';
+import { SafetyIntakeService } from '../src/services/safety-intake.service';
 import { getReviewClaimCutoff } from '../src/domain/nutritionist-review.policy';
+import { getCurrentWeeklyCycleWindow } from '../src/domain/meal-plan-cycle.policy';
 import { createFixturePlanCycle } from './helpers/plan-cycle-fixture';
 
 const runId = randomUUID();
@@ -53,6 +56,11 @@ async function cleanup() {
 }
 
 async function main() {
+  const target = new URL(process.env.DATABASE_URL ?? '');
+  assert.ok(
+    process.env.BATCH10_DISPOSABLE_DB === '1' && ['127.0.0.1', 'localhost'].includes(target.hostname),
+    'Integration mutations require an explicitly disposable loopback database.'
+  );
   const reviewerUsers = await Promise.all(
     [0, 1].map(async (index) =>
       prisma.user.create({
@@ -107,17 +115,24 @@ async function main() {
         },
       },
     },
+    include: { ingredients: true },
   });
   syntheticMealId = syntheticMeal.id;
 
-  const certificationInput = certifyMealLibrarySafetySchema.parse({
+  const prepared = await prepareLibraryNutritionEvidence(reviewer.id, syntheticMeal.id, {
     expectedRevision: 0,
-    conditionDeclarationState: 'REVIEWED_NONE_DECLARED',
-    allergenDeclarationState: 'REVIEWED_NONE_DECLARED',
+    portionBasis: 'Synthetic test serving of 100 edible grams.',
+    ingredients: [{ id: syntheticMeal.ingredients[0].id, foodItemId: food.id, gramsPerServing: 100 }],
+  });
+  const certificationInput = certifyMealLibrarySafetySchema.parse({
+    expectedRevision: prepared.revision,
+    conditionDeclarationState: 'NOT_REVIEWED',
+    usdaUseAccepted: false,
+    allergenDeclarationState: 'REVIEWED_WITH_DECLARATIONS',
     crossContactAssessment: 'ASSESSED_NO_KNOWN_RISK',
     suitableConditions: [],
-    allergensPresent: [],
-    allergensReviewedAbsent: [],
+    allergensPresent: ['EGGS'],
+    allergensReviewedAbsent: ['SHELLFISH', 'NUTS', 'DAIRY', 'GLUTEN'],
   });
   const certified = await NutritionistService.certifyLibraryMealSafety(
     reviewer.id,
@@ -125,8 +140,8 @@ async function main() {
     certificationInput
   );
   assert.equal(certified?.safetyEvidenceStatus, MealLibrarySafetyEvidenceStatus.COMPLETE);
-  assert.equal(certified?.safetyEvidenceRevision, 1);
-  assert.equal(certified?.certifiedEvidenceRevision, 1);
+  assert.ok(certified && certified.safetyEvidenceRevision >= prepared.revision);
+  assert.equal(certified.certifiedEvidenceRevision, certified.safetyEvidenceRevision);
 
   const invalidated = await NutritionistService.editLibraryMeal(
     reviewerUsers[0].id,
@@ -143,7 +158,7 @@ async function main() {
     }
   );
   assert.equal(invalidated.safetyEvidenceStatus, MealLibrarySafetyEvidenceStatus.STALE);
-  assert.equal(invalidated.safetyEvidenceRevision, 2);
+  assert.equal(invalidated.safetyEvidenceRevision, certified.safetyEvidenceRevision + 1);
 
   const syntheticUser = await prisma.user.create({
     data: {
@@ -171,6 +186,14 @@ async function main() {
     },
   });
   syntheticUserId = syntheticUser.id;
+  await SafetyIntakeService.replaceDomains(
+    syntheticUser.id,
+    ['CONDITION', 'ALLERGY'],
+    [
+      { domain: 'CONDITION', value: 'NONE', provenance: 'PREDEFINED' },
+      { domain: 'ALLERGY', value: 'NONE', provenance: 'PREDEFINED' },
+    ]
+  );
 
   const loginResult = await AuthService.login(syntheticUser.email, 'SmokeTest123');
   const rotated = await AuthService.refreshToken(loginResult.refreshToken);
@@ -227,19 +250,23 @@ async function main() {
     confirmationId: outsidePreview.id,
   });
   assert.equal(confirmedOutsideMeal.warningRequired, false);
+  assert.ok('log' in confirmedOutsideMeal);
   assert.equal(confirmedOutsideMeal.log.calories, exactPreviewEstimate.calories);
   assert.equal(confirmedOutsideMeal.log.warningType, 'OUTSIDE_MEAL_REVIEW');
   assert.ok((await prisma.outsideMealPreview.findUnique({ where: { id: outsidePreview.id } }))?.consumedAt);
-  await assert.rejects(
-    () =>
-      MealLogService.logOutsideMeal({
-        userId: syntheticUser.id,
-        mealName: 'Synthetic preview meal',
-        mealType: MealType.LUNCH,
-        warningAcknowledged: true,
-        confirmationId: outsidePreview.id,
-      }),
-    /expired|already used/i
+  const repeatedConfirmation = await MealLogService.logOutsideMeal({
+    userId: syntheticUser.id,
+    mealName: 'Synthetic preview meal',
+    mealType: MealType.LUNCH,
+    warningAcknowledged: true,
+    confirmationId: outsidePreview.id,
+  });
+  assert.equal(repeatedConfirmation.warningRequired, false);
+  assert.ok('log' in repeatedConfirmation);
+  assert.equal(repeatedConfirmation.log.id, confirmedOutsideMeal.log.id);
+  assert.equal(
+    await prisma.mealLog.count({ where: { userId: syntheticUser.id, outsidePreviewId: outsidePreview.id } }),
+    1
   );
 
   const plannedPlanGroupId = `integration-idempotency-${runId}`;
@@ -320,6 +347,9 @@ async function main() {
     endDate: new Date('2099-01-03T00:00:00.000Z'),
     planType: PlanType.WEEKLY,
   });
+  const reviewBase = await prisma.mealLibrary.findFirstOrThrow({
+    where: { safetyEvidenceStatus: 'COMPLETE', recipeSignature: { not: null }, status: 'APPROVED' },
+  });
   const reviewMeal = await prisma.mealPlan.create({
     data: {
       planGroupId: reviewPlanGroupId,
@@ -327,6 +357,9 @@ async function main() {
       status: MealPlanStatus.PENDING_REVIEW,
       mealType: MealType.DINNER,
       mealName: 'Synthetic review claim meal',
+      candidateProvenance: 'CERTIFIED_LIBRARY',
+      libraryMealId: reviewBase.id,
+      baseRecipeSignature: reviewBase.recipeSignature,
       calories: 500,
       proteinG: 25,
       carbsG: 60,
@@ -357,12 +390,23 @@ async function main() {
     nextReviewer.id
   );
 
+  const currentWindow = getCurrentWeeklyCycleWindow(6, new Date());
+  await createFixturePlanCycle(prisma, {
+    id: `integration-checkin-${runId}`,
+    userId: syntheticUser.id,
+    startDate: currentWindow.startDate,
+    endDate: currentWindow.endDate,
+    planType: PlanType.WEEKLY,
+    status: 'ACTIVE',
+  });
   const checkinResults = await Promise.all([
     CheckinService.submitCheckin(syntheticUser.id, { changed: false }),
     CheckinService.submitCheckin(syntheticUser.id, { changed: false }),
   ]);
   assert.equal(checkinResults.filter((result) => result.duplicate === false).length, 1);
   assert.equal(checkinResults.filter((result) => result.duplicate === true).length, 1);
+  assert.equal(await prisma.weeklyCheckin.count({ where: { userId: syntheticUser.id } }), 1);
+  assert.equal((await CheckinService.submitCheckin(syntheticUser.id, { changed: false })).duplicate, true);
   assert.equal(await prisma.weeklyCheckin.count({ where: { userId: syntheticUser.id } }), 1);
 
   const cycleStartDate = new Date('2099-01-01T16:00:00.000Z');

@@ -4,6 +4,7 @@ import { DietaryPreference, MealCandidateProvenance, MealType, PrismaClient } fr
 import { sourceRawRecipeCandidates } from '../src/services/raw-recipe-candidate.service';
 import { prepareGeneratedMealIngredients } from '../src/services/meal-generation-ingredient-preparation.service';
 import { MealGenerationService } from '../src/services/meal-generation.service';
+import { SafetyIntakeService } from '../src/services/safety-intake.service';
 import { getNextWeeklyCycleWindow } from '../src/domain/meal-plan-cycle.policy';
 
 async function main() {
@@ -78,6 +79,7 @@ async function main() {
             dailyCalorieTarget: 2000,
             shoppingDayGroup: 'WEEKEND',
             shoppingDayOfWeek: 6,
+            foodCulture: 'Filipino',
           },
         },
         healthConditions: { create: { condition: 'NONE' } },
@@ -97,7 +99,20 @@ async function main() {
       },
     });
     userId = fixture.id;
+    await SafetyIntakeService.replaceDomains(
+      userId,
+      ['CONDITION', 'ALLERGY'],
+      [
+        { domain: 'CONDITION', value: 'NONE', provenance: 'PREDEFINED' },
+        { domain: 'ALLERGY', value: 'NONE', provenance: 'PREDEFINED' },
+      ]
+    );
+    await prisma.userProfile.update({ where: { userId }, data: { dailyCalorieTarget: 2000 } });
     const profile = await prisma.userProfile.findUniqueOrThrow({ where: { userId } });
+    await prisma.nutritionReport.update({
+      where: { userId },
+      data: { profileRevision: profile.revision, isStale: false, acknowledgedAt: new Date() },
+    });
     const week = getNextWeeklyCycleWindow(profile, new Date(Date.now() + 7 * 86_400_000));
     const planGroupId = await MealGenerationService.generateWindowOnce(userId, {
       planType: 'WEEKLY',
@@ -107,11 +122,8 @@ async function main() {
     const plans = await prisma.mealPlan.findMany({ where: { planGroupId } });
     assert.equal(plans.length, 21);
     assert.ok(
-      plans.every((plan) =>
-        plan.candidateProvenance === 'CERTIFIED_LIBRARY'
-          ? plan.status === 'APPROVED'
-          : plan.status === 'PENDING_REVIEW' && plan.requiresSafetyRevalidation
-      )
+      plans.every((plan) => plan.status === 'APPROVED' && !plan.requiresSafetyRevalidation),
+      'Unrestricted source admission and certified reuse must both be actionable for this declared healthy profile.'
     );
     assert.ok(plans.some((plan) => plan.candidateProvenance === 'RAW_RECIPE_CORPUS'));
     assert.equal(await prisma.aiUsageEvent.count(), beforeAiCalls, 'An ordinary 21-slot plan must not invoke Gemini.');

@@ -12,6 +12,8 @@ export const GEMINI_MODEL_SEQUENCE = [
   'gemini-3.5-flash-lite',
 ] as const;
 
+export const GEMINI_MODEL_TIMEOUT_MS = 15_000;
+
 export type NutriMindGeminiModel = (typeof GEMINI_MODEL_SEQUENCE)[number];
 
 /**

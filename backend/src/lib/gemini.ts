@@ -2,7 +2,11 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 import { ZodType } from 'zod';
 import prisma from '@/lib/prisma';
 import { AiUsageOperation, AiUsageStatus } from '@prisma/client';
-import { buildGeminiGenerationConfig, GEMINI_MODEL_SEQUENCE } from '@/domain/gemini-model.policy';
+import {
+  buildGeminiGenerationConfig,
+  GEMINI_MODEL_SEQUENCE,
+  GEMINI_MODEL_TIMEOUT_MS,
+} from '@/domain/gemini-model.policy';
 import { AiCapacityDeferredError, AiCapacityService } from '@/services/ai-capacity.service';
 
 // Retrieve API Key
@@ -106,10 +110,13 @@ export async function generateGenerativeJSON<T = any>(
       attempts += 1;
       console.log(`[Gemini AI] Attempting prompt execution on model: ${modelName}`);
 
-      const model = genAI.getGenerativeModel({
-        model: modelName,
-        systemInstruction: systemInstruction || undefined,
-      });
+      const model = genAI.getGenerativeModel(
+        {
+          model: modelName,
+          systemInstruction: systemInstruction || undefined,
+        },
+        { timeout: GEMINI_MODEL_TIMEOUT_MS }
+      );
 
       const result = await model.generateContent({
         contents: [{ role: 'user', parts: [{ text: prompt }] }],
@@ -168,7 +175,8 @@ export async function generateGenerativeJSON<T = any>(
       const quotaFault = cause as { status?: unknown; message?: unknown };
       if (
         quotaFault?.status === 429 ||
-        (typeof quotaFault?.message === 'string' && /RESOURCE_EXHAUSTED|quota exceeded|rate limit exceeded/iu.test(quotaFault.message))
+        (typeof quotaFault?.message === 'string' &&
+          /RESOURCE_EXHAUSTED|quota exceeded|rate limit exceeded/iu.test(quotaFault.message))
       ) {
         await recordAiUsage({
           model: modelName,
