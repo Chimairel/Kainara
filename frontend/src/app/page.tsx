@@ -29,8 +29,6 @@ import {
   LandingWaveHero,
   SectionWaveBorderTop,
   SectionWaveBorderBottom,
-  SectionWaveBorderLeft,
-  SectionWaveBorderRight,
 } from '@/components/landing/LandingWaveRiver';
 import { InfiniteSlider } from '@/components/core/infinite-slider';
 import { useAuth } from '@/hooks/useAuth';
@@ -613,55 +611,50 @@ export default function Home() {
           </motion.div>
         </section>
 
-        {/* EVIDENCE AND SOURCES */}
-        <section id="sources" className="border-y border-brand-border/60 bg-brand-surface/30 py-24">
-          <div className="mx-auto max-w-[1440px] px-5 sm:px-8 lg:px-12">
-            <motion.div
-              initial={{ opacity: 0, y: 24 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, margin: '-50px' }}
-              transition={{ duration: 0.6 }}
-              className="grid gap-8 lg:grid-cols-[0.8fr_1.2fr] lg:items-end"
-            >
-              <div>
-                <h2 className="max-w-xl font-display text-3xl font-black leading-[1.05] tracking-[-0.04em] text-brand-text sm:text-5xl">
-                  Food data, calculation methods and recipe sources.
-                </h2>
-              </div>
-              <div className="max-w-2xl lg:ml-auto">
-                <p className="text-sm leading-7 text-brand-muted sm:text-base">
-                  Food-composition records support ingredient matching, published methods support energy estimates, and
-                  recipe links identify the original dish. Available data varies by ingredient and configured source; a
-                  source citation does not approve a meal for a health condition.
-                </p>
-                <Link
-                  href="/docs#data-sources"
-                  className="mt-4 inline-flex items-center gap-2 text-sm font-bold text-emerald-600 dark:text-emerald-400 hover:underline"
-                >
-                  Read the complete evidence register <ArrowUpRight className="h-4 w-4" />
-                </Link>
-              </div>
-            </motion.div>
+        {/* EVIDENCE AND SOURCES (DARK PINE CONTINENT WITH ORGANIC WAVE BORDERS) */}
+        <div id="sources" className="relative z-10 scroll-mt-20">
+          {/* Upper Wave Border */}
+          <SectionWaveBorderTop />
 
-            {/* Dark Pine Showcase Track Cut Directly by Organic Wave Stripes */}
-            <div className="relative mt-14 py-8 sm:py-12 overflow-hidden">
-              {/* Central Dark Pine Body with Top/Bottom Horizontal Borders */}
-              <div className="absolute inset-y-0 left-16 sm:left-24 md:left-32 right-16 sm:right-24 md:right-32 bg-[#071914] border-y border-[#173e33] pointer-events-none" />
+          {/* Dark Pine Section Body */}
+          <section className="relative bg-[#071914] py-14 sm:py-20 text-white">
+            <div className="pointer-events-none absolute -left-20 top-1/2 -translate-y-1/2 h-96 w-96 rounded-full bg-emerald-500/10 blur-[120px]" />
+            <div className="pointer-events-none absolute -right-20 top-1/2 -translate-y-1/2 h-96 w-96 rounded-full bg-brand-cyan/10 blur-[120px]" />
 
-              {/* Left and Right Vertical Wave Stripes that Cut the Container */}
-              <SectionWaveBorderLeft />
-              <SectionWaveBorderRight />
+            <div className="relative z-10 mx-auto max-w-[1440px] px-5 sm:px-8 lg:px-12">
+              <motion.div
+                initial={{ opacity: 0, y: 24 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, margin: '-50px' }}
+                transition={{ duration: 0.6 }}
+                className="grid gap-8 lg:grid-cols-[0.8fr_1.2fr] lg:items-end"
+              >
+                <div>
+                  <h2 className="max-w-xl font-display text-3xl font-black leading-[1.05] tracking-[-0.04em] text-white sm:text-5xl">
+                    Food data, calculation methods and recipe sources.
+                  </h2>
+                </div>
+                <div className="max-w-2xl lg:ml-auto">
+                  <p className="text-sm leading-7 text-white/70 sm:text-base">
+                    Food-composition records support ingredient matching, published methods support energy estimates, and
+                    recipe links identify the original dish. Available data varies by ingredient and configured source; a
+                    source citation does not approve a meal for a health condition.
+                  </p>
+                  <Link
+                    href="/docs#data-sources"
+                    className="mt-4 inline-flex items-center gap-2 text-sm font-bold text-emerald-400 hover:text-emerald-300 hover:underline"
+                  >
+                    Read the complete evidence register <ArrowUpRight className="h-4 w-4" />
+                  </Link>
+                </div>
+              </motion.div>
 
-              {/* Ambient Glows */}
-              <div className="pointer-events-none absolute left-1/4 top-1/2 -translate-y-1/2 h-64 w-64 rounded-full bg-emerald-500/10 blur-[100px]" />
-              <div className="pointer-events-none absolute right-1/4 top-1/2 -translate-y-1/2 h-64 w-64 rounded-full bg-brand-cyan/10 blur-[100px]" />
-
-              {/* Infinite Looping Slider for Evidence & Recipe Sources */}
+              {/* Full-width Infinite Looping Slider for Evidence & Recipe Sources */}
               <div
-                className="relative overflow-hidden py-3"
+                className="relative mt-14 overflow-hidden py-3"
                 style={{
-                  maskImage: 'linear-gradient(to right, transparent 0px, transparent 100px, black 160px, black calc(100% - 160px), transparent calc(100% - 100px), transparent 100%)',
-                  WebkitMaskImage: 'linear-gradient(to right, transparent 0px, transparent 100px, black 160px, black calc(100% - 160px), transparent calc(100% - 100px), transparent 100%)',
+                  maskImage: 'linear-gradient(to right, transparent, black 8%, black 92%, transparent)',
+                  WebkitMaskImage: 'linear-gradient(to right, transparent, black 8%, black 92%, transparent)',
                 }}
               >
                 <InfiniteSlider gap={32} speed={42} speedOnHover={14} reverse>
@@ -700,8 +693,11 @@ export default function Home() {
                 </InfiniteSlider>
               </div>
             </div>
-          </div>
-        </section>
+          </section>
+
+          {/* Lower Wave Border */}
+          <SectionWaveBorderBottom />
+        </div>
 
         {/* DOCUMENTATION & GUIDES */}
         <section className="mx-auto max-w-[1440px] px-5 py-24 sm:px-8 lg:px-12">
