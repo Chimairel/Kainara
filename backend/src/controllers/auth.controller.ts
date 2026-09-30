@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import AuthService, { GoogleAuthFlowError } from '@/services/auth.service';
+import { accountCreationLimiter } from '@/middleware/rateLimiter';
 import { AuthenticatedRequest } from '@/types';
 import { sanitizeErrorMessage } from '@/lib/sanitizeError';
 
@@ -23,6 +24,24 @@ function clearRefreshCookie(res: Response) {
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'lax',
     path: '/',
+  });
+}
+
+/** Run the shared registration budget only once a verified identity needs a new account. */
+function admitGoogleAccountCreation(req: Request, res: Response): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const onFinish = () => reject(new Error('Account creation request was stopped.'));
+    res.once('finish', onFinish);
+    Promise.resolve(
+      accountCreationLimiter(req, res, (error) => {
+        res.removeListener('finish', onFinish);
+        if (error) reject(error);
+        else resolve();
+      })
+    ).catch((error) => {
+      res.removeListener('finish', onFinish);
+      reject(error);
+    });
   });
 }
 
@@ -84,7 +103,7 @@ export class AuthController {
     }
   }
 
-  private static async handleGoogleAuth(req: Request, res: Response, intent: 'LOGIN' | 'REGISTER') {
+  private static async handleGoogleAuth(req: Request, res: Response, intent: 'LOGIN' | 'REGISTER' | 'CONTINUE') {
     try {
       const { idToken } = req.body;
 
@@ -96,7 +115,11 @@ export class AuthController {
       }
 
       const result =
-        intent === 'REGISTER' ? await AuthService.googleRegister(idToken) : await AuthService.googleLogin(idToken);
+        intent === 'CONTINUE'
+          ? await AuthService.googleContinue(idToken, () => admitGoogleAccountCreation(req, res))
+          : intent === 'REGISTER'
+            ? await AuthService.googleRegister(idToken)
+            : await AuthService.googleLogin(idToken);
 
       // Set refresh token as HttpOnly cookie, send only accessToken in body
       setRefreshCookie(res, result.refreshToken);
@@ -109,6 +132,7 @@ export class AuthController {
         },
       });
     } catch (error: any) {
+      if (res.headersSent) return;
       if (error instanceof GoogleAuthFlowError) {
         return res.status(error.status).json({
           success: false,
@@ -121,6 +145,11 @@ export class AuthController {
         error: sanitizeErrorMessage(error, 'Google authentication failed.'),
       });
     }
+  }
+
+  /** Unified Google continuation; only new accounts consume the creation budget. */
+  static async googleContinue(req: Request, res: Response) {
+    return AuthController.handleGoogleAuth(req, res, 'CONTINUE');
   }
 
   /** Authenticates an existing KAINARA account with Google. */

@@ -450,6 +450,12 @@ export const policyChapters: DocsChapter[] = [
         content: (
           <>
             <p>
+              Choose Continue with Google on either account page. Your first sign-in creates a regular account and takes
+              you to onboarding; returning users sign in to their existing account. Google accounts do not need a
+              separate KAINARA password. Profile setup, terms and professional approval still apply where required. If
+              an existing email account cannot be linked automatically, sign in using its original method.
+            </p>
+            <p>
               If no Google window opens, check that pop-ups and redirects are allowed for this website, then try again.
               A “Popup may be blocked” note offers help when the page stays focused; it does not confirm that the
               browser blocked Google. If a Google window is already open, continue there.

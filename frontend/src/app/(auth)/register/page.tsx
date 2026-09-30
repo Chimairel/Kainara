@@ -105,7 +105,7 @@ export default function RegisterPage() {
         </>
       }
     >
-      <AuthFormPrelude googleLabel="signup_with" googleIntent="register" error={error} compact />
+      <AuthFormPrelude error={error} compact />
 
       <HydratedForm onSubmit={handleSubmit} className="flex flex-col gap-3" noValidate>
         <div className="grid grid-cols-2 gap-2.5">

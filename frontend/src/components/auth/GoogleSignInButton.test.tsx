@@ -98,14 +98,28 @@ describe('Google sign-in browser recovery', () => {
     expect(screen.queryByRole('region')).not.toBeInTheDocument();
   });
 
-  it('cancels recovery on success and preserves the existing ID-token endpoint', async () => {
+  it('cancels recovery on success and uses unified continuation', async () => {
     await renderGoogle();
     act(() => clickGoogle());
     await act(async () => credential({ credential: 'fixture-id-token' }));
     act(() => vi.advanceTimersByTime(5000));
     expect(screen.queryByRole('region')).not.toBeInTheDocument();
-    expect(mocks.post).toHaveBeenCalledWith('/auth/google/login', { idToken: 'fixture-id-token' });
+    expect(mocks.post).toHaveBeenCalledWith('/auth/google/continue', { idToken: 'fixture-id-token' });
     expect(mocks.login).toHaveBeenCalledWith('fixture-token');
+  });
+
+  it('uses Continue with Google and offers email recovery for a protected account collision', async () => {
+    mocks.post.mockRejectedValueOnce({
+      response: { data: { errorCode: 'GOOGLE_LINK_REQUIRED', error: 'Use your original sign-in method.' } },
+    });
+    await renderGoogle();
+    expect(window.google?.accounts.id.renderButton).toHaveBeenCalledWith(
+      expect.any(HTMLElement),
+      expect.objectContaining({ text: 'continue_with' })
+    );
+    await act(async () => credential({ credential: 'fixture-id-token' }));
+    expect(screen.getByRole('link', { name: 'Sign in with email' })).toHaveAttribute('href', '/login');
+    expect(mocks.login).not.toHaveBeenCalled();
   });
 
   it('preserves custom credential actions and manual help', async () => {

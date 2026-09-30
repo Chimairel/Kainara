@@ -8,6 +8,7 @@ test('[TEST-148] OpenAPI document covers every primary role and operational boun
   for (const path of [
     '/health',
     '/api/auth/register',
+    '/api/auth/google/continue',
     '/api/auth/google/login',
     '/api/auth/google/register',
     '/api/user/meals/current',

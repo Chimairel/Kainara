@@ -44,11 +44,12 @@ async function createRefreshSession(userId: string, payload: JWTPayload): Promis
   return refreshToken;
 }
 
-export type GoogleAuthIntent = 'LOGIN' | 'REGISTER';
+export type GoogleAuthIntent = 'LOGIN' | 'REGISTER' | 'CONTINUE';
 
 export type VerifiedGoogleIdentity = {
   email: string;
   sub: string;
+  emailAuthoritative?: boolean;
   given_name?: string;
   family_name?: string;
   name?: string;
@@ -57,7 +58,7 @@ export type VerifiedGoogleIdentity = {
 
 export class GoogleAuthFlowError extends Error {
   constructor(
-    public readonly code: 'ACCOUNT_NOT_FOUND' | 'ACCOUNT_EXISTS' | 'GOOGLE_IDENTITY_MISMATCH',
+    public readonly code: 'ACCOUNT_NOT_FOUND' | 'ACCOUNT_EXISTS' | 'GOOGLE_IDENTITY_MISMATCH' | 'GOOGLE_LINK_REQUIRED',
     public readonly status: 404 | 409,
     message: string
   ) {
@@ -163,12 +164,14 @@ export class AuthService {
     }
 
     const payload = ticket.getPayload();
-    if (!payload?.email || !payload.sub || payload.email_verified === false) {
+    if (!payload?.email || !payload.sub || payload.email_verified !== true) {
       throw new Error('Unable to retrieve a verified account identity from Google.');
     }
     return {
       email: payload.email,
       sub: payload.sub,
+      // Google controls Gmail and verified Workspace addresses, not arbitrary third-party mailboxes.
+      emailAuthoritative: payload.email.trim().toLowerCase().endsWith('@gmail.com') || Boolean(payload.hd),
       given_name: payload.given_name,
       family_name: payload.family_name,
       name: payload.name,
@@ -194,12 +197,35 @@ export class AuthService {
     return this.completeGoogleAuth(payload, 'REGISTER');
   }
 
+  /** Sign in or create a regular account after verifying the Google credential. */
+  static async googleContinue(idToken: string, beforeCreate?: () => Promise<void>) {
+    const payload = await this.verifyGoogleIdentity(idToken);
+    let creationAdmitted = false;
+    const admitCreation = async () => {
+      if (creationAdmitted) return;
+      await beforeCreate?.();
+      creationAdmitted = true;
+    };
+    try {
+      return await this.completeGoogleAuth(payload, 'CONTINUE', admitCreation);
+    } catch (error) {
+      // A concurrent request may have created this user/link after our lookup.
+      // Re-read once and apply all identity/access checks to the winning record.
+      if (!error || typeof error !== 'object' || !('code' in error) || error.code !== 'P2002') throw error;
+      return this.completeGoogleAuth(payload, 'CONTINUE', admitCreation);
+    }
+  }
+
   /**
    * Continues the flow after cryptographic Google-token verification. Keeping
    * this boundary explicit makes the login-vs-registration policy testable
    * without weakening token verification at the HTTP boundary.
    */
-  static async completeGoogleAuth(payload: VerifiedGoogleIdentity, intent: GoogleAuthIntent) {
+  static async completeGoogleAuth(
+    payload: VerifiedGoogleIdentity,
+    intent: GoogleAuthIntent,
+    beforeCreate?: () => Promise<void>
+  ) {
     const { email, given_name, family_name, name: googleName, picture, sub } = payload;
     const sanitizedEmail = email.trim().toLowerCase();
     const displayName = [given_name, family_name].filter(Boolean).join(' ') || googleName || 'Google User';
@@ -251,9 +277,16 @@ export class AuthService {
         );
       }
 
-      // A verified Google email may link an existing password account with the
-      // same normalized address. The durable subject link never depends on a
-      // profile picture being present in the Google token.
+      if (!existingGoogleAccount && !payload.emailAuthoritative) {
+        throw new GoogleAuthFlowError(
+          'GOOGLE_LINK_REQUIRED',
+          409,
+          'An account already uses this email. Sign in with your existing account method to prove ownership.'
+        );
+      }
+
+      // Only Google-controlled email addresses may automatically link a local
+      // account. Returning users are matched by their durable Google subject.
       if (existingGoogleAccount) {
         await prisma.account.update({
           where: { id: existingGoogleAccount.id },
@@ -297,7 +330,8 @@ export class AuthService {
         user = { ...user, image: picture };
       }
     } else {
-      // Explicit Google registration. The random password is deliberately
+      await beforeCreate?.();
+      // Google account creation. The random password is deliberately
       // unknowable; this account signs in through its linked Google identity.
       const randomPassword = crypto.randomBytes(32).toString('hex');
       const salt = await bcrypt.genSalt(12);

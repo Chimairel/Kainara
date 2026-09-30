@@ -31,7 +31,6 @@ declare global {
 
 interface GoogleSignInButtonProps {
   label?: string;
-  intent?: 'login' | 'register';
   disabled?: boolean;
   onCredential?: (credential: string) => Promise<void>;
 }
@@ -72,8 +71,7 @@ function loadGoogleIdentityServices(): Promise<void> {
 }
 
 export default function GoogleSignInButton({
-  label = 'signin_with',
-  intent = 'login',
+  label = 'continue_with',
   disabled = false,
   onCredential,
 }: GoogleSignInButtonProps) {
@@ -147,7 +145,7 @@ export default function GoogleSignInButton({
         await credentialActionRef.current(response.credential);
         return;
       }
-      const res = await api.post(`/auth/google/${intent}`, {
+      const res = await api.post('/auth/google/continue', {
         idToken: response.credential,
       });
 
@@ -162,7 +160,9 @@ export default function GoogleSignInButton({
     } catch (err: unknown) {
       setError(getApiErrorMessage(err, 'Google authentication failed. Please try again.'));
       const errorCode = getApiErrorCode(err);
-      if (errorCode === 'ACCOUNT_NOT_FOUND') {
+      if (errorCode === 'GOOGLE_LINK_REQUIRED') {
+        setRecoveryLink({ href: '/login', label: 'Sign in with email' });
+      } else if (errorCode === 'ACCOUNT_NOT_FOUND') {
         setRecoveryLink({ href: '/register', label: 'Create an account with Google' });
       } else if (errorCode === 'ACCOUNT_EXISTS') {
         setRecoveryLink({ href: '/login', label: 'Sign in instead' });

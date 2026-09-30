@@ -99,7 +99,7 @@ export default function LoginPage() {
           Your account and health data were deleted.
         </div>
       ) : null}
-      <AuthFormPrelude googleLabel="signin_with" googleIntent="login" error={error} compact />
+      <AuthFormPrelude error={error} compact />
 
       <HydratedForm onSubmit={handleSubmit} className="flex flex-col gap-4" noValidate>
         <Input

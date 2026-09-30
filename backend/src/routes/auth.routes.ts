@@ -4,8 +4,12 @@ import AuthController from '@/controllers/auth.controller';
 import validate from '@/middleware/validate';
 import authenticate from '@/middleware/auth';
 import {
-  accountCreationLimiter, loginLimiter, passwordRecoveryLimiter, sessionLimiter,
-  verificationAttemptLimiter, verificationResendLimiter,
+  accountCreationLimiter,
+  loginLimiter,
+  passwordRecoveryLimiter,
+  sessionLimiter,
+  verificationAttemptLimiter,
+  verificationResendLimiter,
 } from '@/middleware/rateLimiter';
 
 const router = Router();
@@ -71,6 +75,9 @@ const googleCredentialValidation = [
   body('idToken').isString().isLength({ min: 20, max: 8192 }).withMessage('A valid Google credential is required.'),
   validate,
 ];
+
+/** Unified continuation verifies identity before applying the new-account creation budget. */
+router.post('/google/continue', loginLimiter, googleCredentialValidation, AuthController.googleContinue);
 
 /** Existing-account Google sign-in. Never creates a missing account. */
 router.post('/google/login', loginLimiter, googleCredentialValidation, AuthController.googleLogin);
