@@ -8,6 +8,7 @@ import PortalPageHeader from '@/components/shared/PortalPageHeader';
 import { ArrowLeft, ChevronLeft, ChevronRight, Search, Soup, ShieldAlert } from 'lucide-react';
 import api from '@/lib/axios';
 import MealImage from '@/components/user/MealImage';
+import RecipeLibraryCard from '@/features/meals/RecipeLibraryCard';
 import type { PublicMealImage } from '@/types';
 
 import {
@@ -606,100 +607,55 @@ export default function MealLibraryPage() {
                   : null;
 
                 return (
-                  <article
+                  <RecipeLibraryCard
                     key={meal.id}
-                    className="flex flex-col justify-between rounded-[22px] border border-brand-border/70 bg-brand-surface p-5 shadow-sm transition-all duration-200 hover:border-brand-border-hover hover:shadow-md"
-                  >
-                    <div className="space-y-3.5">
-                      <MealImage
-                        image={image}
-                        mealName={meal.mealName}
-                        mealType={meal.mealType}
-                        className="h-40 w-full rounded-2xl"
-                        showAttributionLinks
-                      />
-
-                      {/* Slot and calories row */}
-                      <div className="flex items-center justify-between text-xs font-bold text-brand-green">
-                        <span className="font-display tracking-wider uppercase">{meal.mealType}</span>
-                        <span className="font-mono">{meal.calories} kcal</span>
-                      </div>
-
-                      {/* Verification & Status Badges */}
-                      <div className="flex flex-wrap items-center gap-1.5">
-                        <Badge
-                          variant={
-                            meal.status === 'FLAGGED'
-                              ? 'pending'
-                              : meal.baseVerification === 'VERIFIED'
-                                ? 'verified'
-                                : 'pending'
-                          }
-                          showIcon={false}
-                          className="text-[10px]"
-                        >
-                          {meal.status === 'FLAGGED'
-                            ? 'Flagged'
-                            : meal.baseVerification === 'VERIFIED'
-                              ? 'Verified'
-                              : 'Review pending'}
-                        </Badge>
-                        {isAdminDraft && (
-                          <span className="rounded-full border border-[#a64600]/30 bg-[#8c3b00] px-2 py-0.5 text-[10px] font-semibold text-white shadow-xs">
-                            Admin draft
-                          </span>
-                        )}
-                        {meal.suitableConditions && meal.suitableConditions.length > 0 && (
-                          <span className="rounded-full border border-brand-border/60 bg-brand-bgAlt/50 px-2 py-0.5 text-[10px] font-semibold text-brand-muted">
-                            {meal.suitableConditions.length}{' '}
-                            {meal.suitableConditions.length === 1 ? 'condition' : 'conditions'}
-                          </span>
-                        )}
-                      </div>
-
-                      {/* Meal Title & Description */}
-                      <div>
-                        <h3 className="font-display text-base font-bold leading-snug text-brand-text">
-                          {meal.mealName}
-                        </h3>
-                        {meal.description && (
-                          <p className="mt-1.5 line-clamp-2 text-xs leading-relaxed text-brand-muted">
-                            {meal.description}
-                          </p>
-                        )}
-                      </div>
-
-                      {/* Macro summary */}
-                      <p className="text-xs font-medium text-brand-muted">
-                        Protein <span className="font-bold text-brand-text">{meal.proteinG}g</span> · Carbs{' '}
-                        <span className="font-bold text-brand-text">{meal.carbsG}g</span> · Fat{' '}
-                        <span className="font-bold text-brand-text">{meal.fatG}g</span>
-                      </p>
-                    </div>
-
-                    {/* Card Footer: Source & View Button */}
-                    <div className="mt-4 flex items-center justify-between border-t border-brand-border/40 pt-3">
-                      <div className="text-[11px] text-brand-muted">
-                        <span className="line-clamp-1 font-medium">
-                          {meal.sourceRawRecipeCandidate?.sourceName === 'PANLASANG_PINOY'
-                            ? 'Panlasang Pinoy base recipe'
-                            : isAdminDraft
-                              ? 'Admin recipe draft'
-                              : 'Recorded recipe'}
-                        </span>
-                        <span className="mt-0.5 block text-[10px] text-brand-muted/80">Used {meal.usageCount}x</span>
-                      </div>
-
-                      <Button
-                        variant="secondary"
-                        disabled={viewingMealId !== null}
-                        onClick={() => void openMeal(meal)}
-                        className="!h-8 !px-3.5 text-xs font-semibold"
+                    variant="nutritionist"
+                    name={meal.mealName}
+                    mealType={meal.mealType}
+                    image={image}
+                    description={meal.description}
+                    calories={meal.calories}
+                    proteinG={meal.proteinG}
+                    carbsG={meal.carbsG}
+                    fatG={meal.fatG}
+                    badges={<>
+                      <Badge
+                        variant={meal.status === 'FLAGGED' ? 'pending' : meal.baseVerification === 'VERIFIED' ? 'verified' : 'pending'}
+                        showIcon={false}
+                        className="text-[10px]"
                       >
-                        {viewingMealId === meal.id ? 'Opening…' : 'View'}
-                      </Button>
-                    </div>
-                  </article>
+                        {meal.status === 'FLAGGED' ? 'Flagged' : meal.baseVerification === 'VERIFIED' ? 'Verified' : 'Review pending'}
+                      </Badge>
+                      {isAdminDraft && (
+                        <span className="rounded-full border border-[#a64600]/30 bg-[#8c3b00] px-2 py-0.5 text-[10px] font-semibold text-white shadow-xs">Admin draft</span>
+                      )}
+                    </>}
+                    details={meal.suitableConditions?.length ? (
+                      <p className="mt-1 text-[11px] text-brand-muted">
+                        {meal.suitableConditions.length} {meal.suitableConditions.length === 1 ? 'condition' : 'conditions'}
+                      </p>
+                    ) : undefined}
+                    footer={
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="text-[11px] text-brand-muted">
+                          <span className="line-clamp-1 font-medium">
+                            {meal.sourceRawRecipeCandidate?.sourceName === 'PANLASANG_PINOY'
+                              ? 'Panlasang Pinoy base recipe'
+                              : isAdminDraft ? 'Admin recipe draft' : 'Recorded recipe'}
+                          </span>
+                          <span className="mt-0.5 block text-[10px] text-brand-muted/80">Used {meal.usageCount}x</span>
+                        </div>
+                        <Button
+                          variant="secondary"
+                          disabled={viewingMealId !== null}
+                          onClick={() => void openMeal(meal)}
+                          className="!h-8 !px-3.5 text-xs font-semibold"
+                        >
+                          {viewingMealId === meal.id ? 'Opening…' : 'View'}
+                        </Button>
+                      </div>
+                    }
+                  />
                 );
               })}
             </div>

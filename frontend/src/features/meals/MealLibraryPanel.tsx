@@ -2,13 +2,12 @@
 import Button from '@/components/ui/Button';
 import LoadingSpinner from '@/components/shared/LoadingSpinner';
 import LibraryMealCard from './LibraryMealCard';
-import MealImage from '@/components/user/MealImage';
 import Link from 'next/link';
 import { AlertTriangle, Heart, Search, Salad } from 'lucide-react';
 import type { useMealsWorkspace } from './useMealsWorkspace';
 import { groupApprovedPlanRecipes } from './approvedPlanRecipes';
 import VerifiedRecipeCatalog from './VerifiedRecipeCatalog';
-import { getMealBannerTheme } from '@/components/user/MealCard';
+import RecipeLibraryCard from './RecipeLibraryCard';
 
 export default function MealLibraryPanel({ workspace }: { workspace: ReturnType<typeof useMealsWorkspace> }) {
   const {
@@ -117,90 +116,36 @@ export default function MealLibraryPanel({ workspace }: { workspace: ReturnType<
           </div>
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
             {approvedInPlan.map(({ meal, occurrences }) => {
-              const bannerTheme = getMealBannerTheme(meal.mealType);
               return (
-                <article
+                <RecipeLibraryCard
                   key={meal.id}
-                  className={`group relative flex h-full flex-col justify-between rounded-3xl bg-brand-surface p-2 sm:p-2.5 ${bannerTheme.shadow} ${bannerTheme.hoverShadow} transition-all duration-300 hover:-translate-y-1`}
-                >
-                  {/* Upper Banner with Cropped Circular Plate on Left */}
-                  <div className={`relative h-40 sm:h-44 w-full overflow-hidden rounded-2xl ${bannerTheme.bannerBg}`}>
-                    {/* Circular Plate on Left - Enlarge and crop so parts cut out */}
-                    <div
-                      className={`absolute -left-9 sm:-left-12 top-1/2 -translate-y-1/2 h-52 w-52 sm:h-56 sm:w-56 rounded-full ${bannerTheme.plateBorder} bg-white dark:bg-[#071914] shadow-[0_6px_16px_rgba(0,0,0,0.12)] dark:shadow-[0_8px_20px_rgba(0,0,0,0.45)] overflow-hidden transition-transform duration-300 group-hover:scale-105`}
-                    >
-                      <div className="relative h-full w-full rounded-full overflow-hidden">
-                        <MealImage
-                          image={meal.image}
-                          mealName={meal.mealName}
-                          mealType={meal.mealType}
-                          className="!rounded-full !border-0 h-full w-full object-cover"
-                          variant="thumbnail"
-                          hideRepresentativeBadge
-                          showAttributionLinks
-                        />
-                      </div>
-                    </div>
-
-                    {/* Top Right Badges */}
-                    <div className="absolute top-2.5 right-2.5 flex flex-col items-end gap-1.5 z-10">
-                      <span className="inline-flex items-center gap-1 rounded-full bg-white/95 dark:bg-black/60 px-3 py-1 text-[11px] font-black uppercase tracking-wider text-brand-text shadow-sm backdrop-blur-md">
-                        {meal.mealType}
-                      </span>
-                      <span className="rounded-full border border-emerald-400/40 bg-emerald-500/90 px-2 py-0.5 font-mono text-[9px] font-extrabold uppercase tracking-wider text-white shadow-xs backdrop-blur-md">
-                        Scheduled for you
-                      </span>
-                      <span className="rounded-full border border-emerald-400/40 bg-emerald-500/90 px-2 py-0.5 font-mono text-[9px] font-extrabold uppercase tracking-wider text-white shadow-xs backdrop-blur-md">
-                        In your plan{occurrences.length > 1 ? ` · ${occurrences.length} times` : ''}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Lower Details */}
-                  <div className="flex-1 flex flex-col justify-between p-2 pt-2.5">
-                    <div>
-                      <h3 className="text-base font-bold font-display tracking-tight text-brand-text leading-snug line-clamp-1">
-                        {meal.mealName}
-                      </h3>
-                      {meal.description && (
-                        <p className="text-xs text-brand-muted line-clamp-1 mt-0.5">{meal.description}</p>
-                      )}
-                    </div>
-
-                    {/* Macro Chips Row - Theme Colors */}
-                    <div className="mt-2.5 flex flex-wrap items-center gap-1.5 sm:gap-2">
-                      <span className="inline-flex items-center gap-1 rounded-full bg-black/[0.04] dark:bg-white/[0.06] px-2.5 py-1 text-[11px] font-bold text-brand-text border border-black/10 dark:border-white/10">
-                        <span className="text-[10px]">🔥</span> {Math.round(meal.calories)} kcal
-                      </span>
-                      <span className="inline-flex items-center gap-1 rounded-full bg-[#08705b]/10 dark:bg-[#10b981]/15 px-2.5 py-1 text-[11px] font-bold text-[#08705b] dark:text-[#34d399] border border-[#08705b]/20 dark:border-[#10b981]/30">
-                        {Math.round(meal.proteinG)}g P
-                      </span>
-                      <span className="inline-flex items-center gap-1 rounded-full bg-[#18b9d2]/10 dark:bg-[#38bdf8]/15 px-2.5 py-1 text-[11px] font-bold text-[#0b7788] dark:text-[#38bdf8] border border-[#18b9d2]/20 dark:border-[#38bdf8]/30">
-                        {Math.round(meal.carbsG)}g C
-                      </span>
-                      <span className="inline-flex items-center gap-1 rounded-full bg-[#eb6a38]/10 dark:bg-[#eb6a38]/15 px-2.5 py-1 text-[11px] font-bold text-[#c74614] dark:text-[#f09e6c] border border-[#eb6a38]/20 dark:border-[#eb6a38]/30">
-                        {Math.round(meal.fatG)}g F
-                      </span>
-                    </div>
-
-                    {/* Occurrences Links */}
-                    <div className="mt-3 pt-2.5 border-t border-brand-border/40 text-xs">
-                      {occurrences.length === 1 ? (
-                        <Link href={`/dashboard/${meal.id}`} className="font-semibold text-brand-green hover:underline">
-                          View planned meal
+                  variant="planned"
+                  name={meal.mealName}
+                  mealType={meal.mealType}
+                  image={meal.image ?? null}
+                  description={meal.description}
+                  calories={meal.calories}
+                  proteinG={meal.proteinG}
+                  carbsG={meal.carbsG}
+                  fatG={meal.fatG}
+                  badges={<>
+                    <span className="rounded-full border border-emerald-400/40 bg-emerald-500/90 px-2 py-0.5 font-mono text-[9px] font-extrabold uppercase tracking-wider text-white shadow-xs backdrop-blur-md">Scheduled for you</span>
+                    <span className="rounded-full border border-emerald-400/40 bg-emerald-500/90 px-2 py-0.5 font-mono text-[9px] font-extrabold uppercase tracking-wider text-white shadow-xs backdrop-blur-md">
+                      In your plan{occurrences.length > 1 ? ` · ${occurrences.length} times` : ''}
+                    </span>
+                  </>}
+                  footer={occurrences.length === 1 ? (
+                    <Link href={`/dashboard/${meal.id}`} className="font-semibold text-brand-green hover:underline">View planned meal</Link>
+                  ) : (
+                    <div className="flex flex-wrap gap-x-4 gap-y-2 font-semibold text-brand-green">
+                      {occurrences.map((slot) => (
+                        <Link key={slot.id} href={`/dashboard/${slot.id}`} className="hover:underline">
+                          {slot.cycleScope === 'UPCOMING' ? 'Next week' : 'This week'} · {new Date(slot.scheduledDate).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', timeZone: 'Asia/Manila' })}
                         </Link>
-                      ) : (
-                        <div className="flex flex-wrap gap-x-4 gap-y-2 font-semibold text-brand-green">
-                          {occurrences.map((slot) => (
-                            <Link key={slot.id} href={`/dashboard/${slot.id}`} className="hover:underline">
-                              {slot.cycleScope === 'UPCOMING' ? 'Next week' : 'This week'} · {new Date(slot.scheduledDate).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', timeZone: 'Asia/Manila' })}
-                            </Link>
-                          ))}
-                        </div>
-                      )}
+                      ))}
                     </div>
-                  </div>
-                </article>
+                  )}
+                />
               );
             })}
           </div>
