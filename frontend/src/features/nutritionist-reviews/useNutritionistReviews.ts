@@ -1,9 +1,9 @@
-import { useCallback, useEffect, useState } from 'react';
-import api from '@/lib/axios';
-import { getApiErrorMessage } from '@/lib/api-error';
-import type { IngredientEvidenceSource } from './ingredient-evidence';
 import { useAuth } from '@/hooks/useAuth';
+import { getApiErrorMessage } from '@/lib/api-error';
+import api from '@/lib/axios';
 import { invalidateSessionResource, readSessionResource, writeSessionResource } from '@/lib/session-resource-cache';
+import { useCallback, useEffect, useState } from 'react';
+import type { IngredientEvidenceSource } from './ingredient-evidence';
 
 export interface QueueItem {
   id: string;
@@ -151,7 +151,7 @@ export type ReviewEditForm = {
   ingredients: { name: string; category: string; dataSource: IngredientEvidenceSource }[];
 };
 
-export function useNutritionistReviews() {
+export function useNutritionistReviews(enabled = true) {
   const ownerId = useAuth().user?.userId;
   const cachedQueue = readSessionResource<QueueItem[]>(ownerId, 'nutritionist-case-queue', 30_000);
   const [queue, setQueue] = useState<QueueItem[]>(cachedQueue ?? []);
@@ -194,28 +194,32 @@ export function useNutritionistReviews() {
     ingredients: [],
   });
 
-  const fetchQueue = useCallback(async (silent = false) => {
-    if (!silent && !readSessionResource<QueueItem[]>(ownerId, 'nutritionist-case-queue', 30_000)) setIsLoading(true);
-    try {
-      const res = await api.get('/nutritionist/queue');
-      if (res.data?.success) {
-        setQueue(res.data.data);
-        writeSessionResource(ownerId, 'nutritionist-case-queue', res.data.data);
+  const fetchQueue = useCallback(
+    async (silent = false) => {
+      if (!silent && !readSessionResource<QueueItem[]>(ownerId, 'nutritionist-case-queue', 30_000)) setIsLoading(true);
+      try {
+        const res = await api.get('/nutritionist/queue');
+        if (res.data?.success) {
+          setQueue(res.data.data);
+          writeSessionResource(ownerId, 'nutritionist-case-queue', res.data.data);
+        }
+      } catch (err) {
+        console.error('Failed to fetch queue:', err);
+      } finally {
+        if (!silent) setIsLoading(false);
       }
-    } catch (err) {
-      console.error('Failed to fetch queue:', err);
-    } finally {
-      if (!silent) setIsLoading(false);
-    }
-  }, [ownerId]);
+    },
+    [ownerId]
+  );
 
   useEffect(() => {
+    if (!enabled) return;
     fetchQueue();
     const interval = window.setInterval(() => {
       if (document.visibilityState === 'visible') void fetchQueue(true);
     }, 30_000);
     return () => window.clearInterval(interval);
-  }, [fetchQueue]);
+  }, [fetchQueue, enabled]);
 
   const handleSelectMeal = async (id: string) => {
     setSelectedMealId(id);
@@ -382,7 +386,9 @@ export function useNutritionistReviews() {
       setIsEditingCandidate(false);
     } catch (err: unknown) {
       console.error('Replacement submission failed:', err);
-      setErrorMsg(getApiErrorMessage(err, 'Failed to submit the replacement for meal verification. Please refresh the queue.'));
+      setErrorMsg(
+        getApiErrorMessage(err, 'Failed to submit the replacement for meal verification. Please refresh the queue.')
+      );
     } finally {
       setActionLoading(null);
     }

@@ -6,6 +6,7 @@ const schema = readFileSync('prisma/schema.prisma', 'utf8');
 const migration = readFileSync('prisma/migrations/20260908120000_outside_meal_intelligence/migration.sql', 'utf8');
 const routes = readFileSync('src/routes/nutritionist.routes.ts', 'utf8');
 const outsideMealModal = readFileSync('../frontend/src/features/dashboard/OutsideMealModal.tsx', 'utf8');
+const outsideMealPreview = readFileSync('../frontend/src/features/dashboard/OutsideMealPreview.tsx', 'utf8');
 const dashboardSummary = readFileSync('../frontend/src/features/dashboard/DashboardSummary.tsx', 'utf8');
 
 test('[TEST-178] outside meals preserve item provenance, revisions, review state, and AI usage', () => {
@@ -31,8 +32,8 @@ test('[TEST-181] user UI explains comma input, sources, provisional totals, and 
   assert.match(outsideMealModal, /separate each one with a comma/);
   assert.match(outsideMealModal, /Grams and notes are optional/);
   assert.match(outsideMealModal, /nutrition-label or menu values/);
-  assert.match(outsideMealModal, /AI estimate/);
-  assert.match(outsideMealModal, /Not counted/);
+  assert.match(outsideMealPreview, /AI estimate/);
+  assert.match(outsideMealPreview, /Not counted/);
   assert.doesNotMatch(outsideMealModal, /split\(['"]and['"]\)/);
   assert.match(dashboardSummary, /provisional kcal/);
   assert.match(dashboardSummary, /unresolved food excluded/);

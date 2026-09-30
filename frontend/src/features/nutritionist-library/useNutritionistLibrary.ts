@@ -1,7 +1,7 @@
-import React, { useEffect, useRef, useState } from 'react';
-import api from '@/lib/axios';
 import { useAuth } from '@/hooks/useAuth';
-import { readSessionResource, writeSessionResource } from '@/lib/session-resource-cache';
+import { useSessionQuery } from '@/hooks/useSessionQuery';
+import api from '@/lib/axios';
+import { useEffect, useState } from 'react';
 
 export interface Flag {
   id: string;
@@ -33,7 +33,12 @@ export interface Verifier {
 
 export interface LibraryMeal {
   id: string;
-  sourceRawRecipeCandidate?: { sourceName: string; sourceUrl: string; sourceImageUrl: string | null; status: string } | null;
+  sourceRawRecipeCandidate?: {
+    sourceName: string;
+    sourceUrl: string;
+    sourceImageUrl: string | null;
+    status: string;
+  } | null;
   baseVerification: 'VERIFIED' | 'REVIEW_PENDING';
   baseVerificationBasis: 'PANLASANG_PINOY' | 'NUTRITIONIST' | null;
   mealName: string;
@@ -176,23 +181,20 @@ export const AVAILABLE_DIETS = [
 ];
 
 type LibraryPageData = { meals: LibraryMeal[]; total: number; limit: number };
-const libraryResource = (search: string, mealType: string, conditionTag: string, verifiedByMe: boolean,
-  adminDraftsOnly: boolean, status: string, page: number) =>
+const libraryResource = (
+  search: string,
+  mealType: string,
+  conditionTag: string,
+  verifiedByMe: boolean,
+  adminDraftsOnly: boolean,
+  status: string,
+  page: number
+) =>
   `nutritionist-library:${JSON.stringify([search, mealType, conditionTag, verifiedByMe, adminDraftsOnly, status, page])}`;
 
 export function useNutritionistLibrary(loadCoverage = false) {
   const ownerId = useAuth().user?.userId;
-  const firstPage = readSessionResource<LibraryPageData>(ownerId, libraryResource('', 'All', 'All', false, false, 'ALL', 1));
-  const [meals, setMeals] = useState<LibraryMeal[]>(firstPage?.meals ?? []);
-  const [totalCount, setTotalCount] = useState(firstPage?.total ?? 0);
   const [page, setPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(firstPage ? Math.ceil(firstPage.total / firstPage.limit) : 1);
-  const [isLoading, setIsLoading] = useState(!firstPage);
-  const [fetchError, setFetchError] = useState<string | null>(null);
-  const [coverage, setCoverage] = useState<LibraryCoverage | null>(
-    readSessionResource<LibraryCoverage>(ownerId, 'nutritionist-library-coverage-v2')
-  );
-  const requestSequence = useRef(0);
 
   // Filter States
   const [searchVal, setSearchVal] = useState('');
@@ -212,19 +214,12 @@ export function useNutritionistLibrary(loadCoverage = false) {
     return () => clearTimeout(timer);
   }, [searchVal]);
 
-  const fetchLibrary = async () => {
-    const resource = libraryResource(search, mealType, conditionTag, verifiedByMe, adminDraftsOnly, status, page);
-    const cached = readSessionResource<LibraryPageData>(ownerId, resource);
-    const request = ++requestSequence.current;
-    if (cached) {
-      setMeals(cached.meals);
-      setTotalCount(cached.total);
-      setTotalPages(Math.ceil(cached.total / cached.limit));
-    }
-    setIsLoading(!cached);
-    setFetchError(null);
-    try {
-      const res = await api.get('/nutritionist/library', {
+  const query = useSessionQuery<LibraryPageData>({
+    ownerId,
+    resource: libraryResource(search, mealType, conditionTag, verifiedByMe, adminDraftsOnly, status, page),
+    errorMessage: 'The verified meal library could not be loaded. Please try again.',
+    fetcher: async () => {
+      const response = await api.get('/nutritionist/library', {
         params: {
           search,
           mealType: mealType === 'All' ? undefined : mealType,
@@ -236,45 +231,49 @@ export function useNutritionistLibrary(loadCoverage = false) {
           limit: 20,
         },
       });
-      if (res.data?.success && request === requestSequence.current) {
-        setMeals(res.data.data.meals);
-        setTotalCount(res.data.data.total);
-        setTotalPages(Math.ceil(res.data.data.total / res.data.data.limit));
-        writeSessionResource(ownerId, resource, res.data.data);
-      }
-    } catch (err) {
-      console.error('Failed to fetch library:', err);
-      if (request === requestSequence.current) setFetchError('The verified meal library could not be loaded. Please try again.');
-    } finally {
-      if (request === requestSequence.current) setIsLoading(false);
-    }
-  };
-
-  const fetchCoverage = React.useCallback(async () => {
-    try {
+      if (!response.data?.success) throw new Error('The verified meal library could not be loaded. Please try again.');
+      return response.data.data;
+    },
+  });
+  const coverageQuery = useSessionQuery<LibraryCoverage>({
+    ownerId,
+    resource: 'nutritionist-library-coverage-v2',
+    enabled: loadCoverage,
+    errorMessage: 'Recipe coverage could not be loaded.',
+    fetcher: async () => {
       const response = await api.get('/nutritionist/library-coverage');
-      if (response.data?.success) {
-        setCoverage(response.data.data);
-        writeSessionResource(ownerId, 'nutritionist-library-coverage-v2', response.data.data);
-      }
-    } catch {
-      if (!readSessionResource<LibraryCoverage>(ownerId, 'nutritionist-library-coverage-v2')) setCoverage(null);
-    }
-  }, [ownerId]);
-
-  useEffect(() => {
-    fetchLibrary();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [search, mealType, conditionTag, verifiedByMe, adminDraftsOnly, status, page]);
-
-  useEffect(() => {
-    if (loadCoverage) void fetchCoverage();
-  }, [fetchCoverage, loadCoverage]);
+      if (!response.data?.success) throw new Error('Recipe coverage could not be loaded.');
+      return response.data.data;
+    },
+  });
+  const meals = query.data?.meals ?? [];
+  const totalCount = query.data?.total ?? 0;
+  const totalPages = query.data ? Math.ceil(query.data.total / query.data.limit) : 1;
+  const { isLoading, error: fetchError, refetch: fetchLibrary } = query;
+  const { data: coverage, refetch: fetchCoverage } = coverageQuery;
 
   return {
-    meals, totalCount, page, setPage, totalPages, isLoading, fetchError,
-    coverage, searchVal, setSearchVal, mealType, setMealType,
-    conditionTag, setConditionTag, verifiedByMe, setVerifiedByMe,
-    adminDraftsOnly, setAdminDraftsOnly, status, setStatus, fetchLibrary, fetchCoverage,
+    meals,
+    totalCount,
+    page,
+    setPage,
+    totalPages,
+    isLoading,
+    fetchError,
+    coverage,
+    searchVal,
+    setSearchVal,
+    mealType,
+    setMealType,
+    conditionTag,
+    setConditionTag,
+    verifiedByMe,
+    setVerifiedByMe,
+    adminDraftsOnly,
+    setAdminDraftsOnly,
+    status,
+    setStatus,
+    fetchLibrary,
+    fetchCoverage,
   };
 }

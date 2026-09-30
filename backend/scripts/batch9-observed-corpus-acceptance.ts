@@ -7,7 +7,7 @@ import { AppError } from '../src/errors/AppError';
 import { ObservedMealService } from '../src/services/observed-meal.service';
 import { OutsideMealCaptureService } from '../src/services/outside-meal-capture.service';
 import { databaseRecipeCandidateProvider } from '../src/services/panlasang-recipe-candidate.provider';
-import { assertObservedSourceStillAvailable } from '../src/services/nutritionist-review.service';
+import { assertObservedSourceStillAvailable } from '../src/services/observed-source-guard.service';
 
 async function rejectsCode(fn: () => Promise<unknown>, code: string) {
   await assert.rejects(fn, (error: unknown) => error instanceof AppError && error.errorCode === code);

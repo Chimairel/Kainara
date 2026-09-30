@@ -1,34 +1,43 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { createPortal } from 'react-dom';
-import { motion, AnimatePresence } from 'motion/react';
 import Button from '@/components/ui/Button';
-import { MealType, MealPlanStatus, AIConfidenceFlag, PublicVerifier, MealExplanation, PublicMealImage, MealCookingLink } from '@/types';
-import { cookingAction } from '@/lib/meal-cooking-link';
-import MealImage from './MealImage';
-import MealVerificationBadge from './MealVerificationBadge';
 import { getManilaDateKey } from '@/lib/manila-date';
-import NutritionistCredentialModal, { maskPrcLicenseNumber } from './NutritionistCredentialModal';
+import { getMealBannerTheme } from '@/lib/meal-banner-theme';
+import { cookingAction } from '@/lib/meal-cooking-link';
 import {
-  Check,
-  X,
+  AIConfidenceFlag,
+  MealCookingLink,
+  MealExplanation,
+  MealPlanStatus,
+  MealType,
+  PublicMealImage,
+  PublicVerifier,
+} from '@/types';
+import type { LucideProps } from 'lucide-react';
+import {
   AlertCircle,
-  Coffee,
-  Sun,
-  Moon,
   Apple,
-  RefreshCw,
-  ShieldCheck,
-  Clock3,
   CalendarDays,
-  Sparkles,
+  Check,
+  Clock3,
+  Coffee,
+  ExternalLink,
   Flame,
   Info,
-  ExternalLink,
+  Moon,
+  RefreshCw,
+  ShieldCheck,
+  Sparkles,
+  Sun,
   UtensilsCrossed,
+  X,
 } from 'lucide-react';
-import type { LucideProps } from 'lucide-react';
+import { AnimatePresence, motion } from 'motion/react';
+import React, { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
+import MealImage from './MealImage';
+import MealVerificationBadge from './MealVerificationBadge';
+import NutritionistCredentialModal, { maskPrcLicenseNumber } from './NutritionistCredentialModal';
 
 interface Ingredient {
   id: string;
@@ -69,71 +78,6 @@ interface MealCardProps {
   index?: number;
 }
 
-export interface MealBannerTheme {
-  bannerBg: string;
-  plateBorder: string;
-  shadow: string;
-  hoverShadow: string;
-}
-
-export const BANNER_THEMES: Record<string, MealBannerTheme> = {
-  BREAKFAST: {
-    bannerBg: 'bg-gradient-to-br from-[#eb6a38] via-[#e25c28] to-[#c74614] dark:from-[#8d3210] dark:via-[#752609] dark:to-[#571b05]',
-    plateBorder: 'border border-white/80 dark:border-white/20',
-    shadow: 'shadow-[0_4px_16px_-3px_rgba(235,106,56,0.12),0_2px_6px_rgba(0,0,0,0.03)] dark:shadow-[0_4px_20px_rgba(0,0,0,0.4)]',
-    hoverShadow: 'hover:shadow-[0_8px_22px_-4px_rgba(235,106,56,0.18),0_4px_10px_rgba(0,0,0,0.05)] dark:hover:shadow-[0_8px_24px_rgba(0,0,0,0.6)]',
-  },
-  LUNCH: {
-    bannerBg: 'bg-gradient-to-br from-[#08705b] via-[#065e4c] to-[#044c3d] dark:from-[#083e33] dark:via-[#06332a] dark:to-[#04241d]',
-    plateBorder: 'border border-white/80 dark:border-white/20',
-    shadow: 'shadow-[0_4px_16px_-3px_rgba(8,112,91,0.12),0_2px_6px_rgba(0,0,0,0.03)] dark:shadow-[0_4px_20px_rgba(0,0,0,0.4)]',
-    hoverShadow: 'hover:shadow-[0_8px_22px_-4px_rgba(8,112,91,0.18),0_4px_10px_rgba(0,0,0,0.05)] dark:hover:shadow-[0_8px_24px_rgba(0,0,0,0.6)]',
-  },
-  DINNER: {
-    bannerBg: 'bg-gradient-to-br from-[#4f46e5] via-[#4338ca] to-[#3730a3] dark:from-[#2e265c] dark:via-[#241e4a] dark:to-[#1a1538]',
-    plateBorder: 'border border-white/80 dark:border-white/20',
-    shadow: 'shadow-[0_4px_16px_-3px_rgba(79,70,229,0.12),0_2px_6px_rgba(0,0,0,0.03)] dark:shadow-[0_4px_20px_rgba(0,0,0,0.4)]',
-    hoverShadow: 'hover:shadow-[0_8px_22px_-4px_rgba(79,70,229,0.18),0_4px_10px_rgba(0,0,0,0.05)] dark:hover:shadow-[0_8px_24px_rgba(0,0,0,0.6)]',
-  },
-  SNACK: {
-    bannerBg: 'bg-gradient-to-br from-[#db4d6d] via-[#c43b5b] to-[#a62a48] dark:from-[#6b1e32] dark:via-[#541626] dark:to-[#3e0f1b]',
-    plateBorder: 'border border-white/80 dark:border-white/20',
-    shadow: 'shadow-[0_4px_16px_-3px_rgba(219,77,109,0.12),0_2px_6px_rgba(0,0,0,0.03)] dark:shadow-[0_4px_20px_rgba(0,0,0,0.4)]',
-    hoverShadow: 'hover:shadow-[0_8px_22px_-4px_rgba(219,77,109,0.18),0_4px_10px_rgba(0,0,0,0.05)] dark:hover:shadow-[0_8px_24px_rgba(0,0,0,0.6)]',
-  },
-};
-
-export function getMealBannerTheme(mealType?: string, index = 0): MealBannerTheme {
-  const norm = (mealType || '').toUpperCase();
-  if (norm.includes('BREAKFAST')) return BANNER_THEMES.BREAKFAST;
-  if (norm.includes('LUNCH')) return BANNER_THEMES.LUNCH;
-  if (norm.includes('DINNER')) return BANNER_THEMES.DINNER;
-  if (norm.includes('SNACK')) return BANNER_THEMES.SNACK;
-  const list = [BANNER_THEMES.BREAKFAST, BANNER_THEMES.LUNCH, BANNER_THEMES.DINNER, BANNER_THEMES.SNACK];
-  return list[index % list.length];
-}
-
-// Backward compatibility
-export interface MealThemeConfig {
-  cardBg: string;
-  borderColor: string;
-  shadow: string;
-  hoverShadow: string;
-  plateRim: string;
-}
-
-export const defaultPlatformVerifier: PublicVerifier = {
-  name: 'Andrea Reyes, RND',
-  image: null,
-  officialHeadshot: null,
-  prcLicenseNumber: 'PRC-RND-NM-0001',
-  prcLicenseExpiry: '2028-12-31T00:00:00.000Z',
-  specialization: 'Clinical Dietetics & Community Nutrition',
-  yearsOfExperience: 8,
-  university: 'University of the Philippines Diliman',
-  bio: 'PRC-licensed clinical nutritionist-dietitian managing personalized metabolic diet plans, food safety reviews, and FNRI nutritional compliance.',
-};
-
 export default function MealCard({
   id,
   mealName,
@@ -166,8 +110,7 @@ export default function MealCard({
   const [isUpdating, setIsUpdating] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
 
-  const displayVerifier: PublicVerifier | null =
-    verifier || (status === 'APPROVED' ? defaultPlatformVerifier : null);
+  const displayVerifier: PublicVerifier | null = verifier ?? null;
 
   useEffect(() => {
     setIsMounted(true);
@@ -305,11 +248,15 @@ export default function MealCard({
         }}
         className="group relative block h-full w-full cursor-pointer select-none text-left outline-none focus-visible:ring-2 focus-visible:ring-brand-green focus-visible:ring-offset-2 focus-visible:ring-offset-brand-bg rounded-3xl"
       >
-        <div className={`relative flex h-full flex-col justify-between rounded-3xl bg-brand-surface p-2 sm:p-2.5 ${bannerTheme.shadow} ${bannerTheme.hoverShadow} transition-all duration-300 hover:-translate-y-1`}>
+        <div
+          className={`relative flex h-full flex-col justify-between rounded-3xl bg-brand-surface p-2 sm:p-2.5 ${bannerTheme.shadow} ${bannerTheme.hoverShadow} transition-all duration-300 hover:-translate-y-1`}
+        >
           {/* Upper Banner with Cropped Circular Food Plate on Left */}
           <div className={`relative h-40 sm:h-44 w-full overflow-hidden rounded-2xl ${bannerTheme.bannerBg}`}>
             {/* Circular Plate on Left - Enlarge and crop so parts cut out */}
-            <div className={`absolute -left-9 sm:-left-12 top-1/2 -translate-y-1/2 h-52 w-52 sm:h-56 sm:w-56 rounded-full ${bannerTheme.plateBorder} bg-white dark:bg-[#071914] shadow-[0_6px_16px_rgba(0,0,0,0.12)] dark:shadow-[0_8px_20px_rgba(0,0,0,0.45)] overflow-hidden transition-transform duration-300 group-hover:scale-105`}>
+            <div
+              className={`absolute -left-9 sm:-left-12 top-1/2 -translate-y-1/2 h-52 w-52 sm:h-56 sm:w-56 rounded-full ${bannerTheme.plateBorder} bg-white dark:bg-[#071914] shadow-[0_6px_16px_rgba(0,0,0,0.12)] dark:shadow-[0_8px_20px_rgba(0,0,0,0.45)] overflow-hidden transition-transform duration-300 group-hover:scale-105`}
+            >
               <div className="relative h-full w-full rounded-full overflow-hidden">
                 <MealImage
                   image={image}
@@ -539,9 +486,7 @@ export default function MealCard({
                             Macro Distribution
                           </span>
                         </div>
-                        <span className="text-xs font-bold text-brand-muted">
-                          {Math.round(calories)} kcal
-                        </span>
+                        <span className="text-xs font-bold text-brand-muted">{Math.round(calories)} kcal</span>
                       </div>
 
                       {/* Segmented Macro Balance Bar */}
@@ -602,9 +547,7 @@ export default function MealCard({
                           <span className="block text-2xl sm:text-3xl font-black font-display text-[#c74614] dark:text-[#f09e6c] tracking-tight mt-1">
                             {Math.round(fatG)}g
                           </span>
-                          <span className="block text-[10px] font-bold text-brand-muted mt-0.5">
-                            {fatPct}% of kcal
-                          </span>
+                          <span className="block text-[10px] font-bold text-brand-muted mt-0.5">{fatPct}% of kcal</span>
                         </div>
                       </div>
                     </div>
@@ -723,7 +666,9 @@ export default function MealCard({
                               <div className="min-w-0">
                                 <div className="flex items-center gap-1.5 flex-wrap">
                                   <span className="font-display font-black text-sm text-brand-text truncate">
-                                    {displayVerifier.name.endsWith('RND') ? displayVerifier.name : `${displayVerifier.name}, RND`}
+                                    {displayVerifier.name.endsWith('RND')
+                                      ? displayVerifier.name
+                                      : `${displayVerifier.name}, RND`}
                                   </span>
                                   <span className="inline-flex items-center gap-1 rounded-full bg-brand-green/15 px-2 py-0.5 text-[9px] font-black text-brand-green border border-brand-green/20">
                                     <ShieldCheck className="h-3 w-3" /> PRC-Verified

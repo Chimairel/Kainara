@@ -1,40 +1,40 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
-import { useBreadcrumb } from '@/lib/context/BreadcrumbContext';
-import { useAuth } from '@/hooks/useAuth';
-import Button from '@/components/ui/Button';
+import MealsWorkspaceHeader from '@/features/meals/MealsWorkspaceHeader';
+
 import LoadingSpinner from '@/components/shared/LoadingSpinner';
-import MealPlanGenerationProgress from '@/components/user/MealPlanGenerationProgress';
-import PortalPageHeader from '@/components/shared/PortalPageHeader';
-import MealCard from '@/components/user/MealCard';
+import StateNotice from '@/components/shared/StateNotice';
+import Button from '@/components/ui/Button';
 import MealActivityCalendar from '@/components/user/MealActivityCalendar';
+import MealCard from '@/components/user/MealCard';
 import MealHistoryCard from '@/components/user/MealHistoryCard';
+import MealPlanGenerationProgress from '@/components/user/MealPlanGenerationProgress';
+import PendingMealPreviewCard from '@/components/user/PendingMealPreviewCard';
 import UnloggedMealCatchUpCard from '@/components/user/UnloggedMealCatchUpCard';
 import MealLibraryPanel from '@/features/meals/MealLibraryPanel';
-import PendingMealPreviewCard from '@/components/user/PendingMealPreviewCard';
-import { showPendingReviewNoticeOnce, showStarterPlanNoticeOnce } from '@/features/meals/plan-status-notice';
-import StateNotice from '@/components/shared/StateNotice';
 import MealPlanSkeleton from '@/features/meals/MealPlanSkeleton';
+import { showPendingReviewNoticeOnce, showStarterPlanNoticeOnce } from '@/features/meals/plan-status-notice';
+import { useAuth } from '@/hooks/useAuth';
+import { useBreadcrumb } from '@/lib/context/BreadcrumbContext';
+import { formatManilaDate, getManilaDateKey, manilaDateFromKey } from '@/lib/manila-date';
 import {
-  Calendar,
-  History,
-  BookOpen,
-  RefreshCw,
   AlertTriangle,
-  Search,
-  FileText,
-  Clock3,
+  BookOpen,
+  Calendar,
   ChevronLeft,
   ChevronRight,
+  Clock3,
+  FileText,
+  History,
+  Search,
 } from 'lucide-react';
-import { formatManilaDate, getManilaDateKey, manilaDateFromKey } from '@/lib/manila-date';
+import { useEffect, useRef } from 'react';
 
-import { HISTORY_SOURCE_OPTIONS, HISTORY_STATUS_OPTIONS } from '@/features/meals/history-filter-options';
-import { useMealsWorkspace } from '@/features/meals/useMealsWorkspace';
-import { MealsWorkspaceModals } from '@/features/meals/MealsWorkspaceModals';
 import MotionActiveIndicator from '@/components/ui/motion/MotionActiveIndicator';
 import { Select } from '@/components/ui/Select';
+import { HISTORY_SOURCE_OPTIONS, HISTORY_STATUS_OPTIONS } from '@/features/meals/history-filter-options';
+import { MealsWorkspaceModals } from '@/features/meals/MealsWorkspaceModals';
+import { useMealsWorkspace } from '@/features/meals/useMealsWorkspace';
 
 export default function WeeklyPlanPage() {
   const { user } = useAuth();
@@ -90,13 +90,16 @@ export default function WeeklyPlanPage() {
     nextCycleDay,
     displayedMealCount,
   } = workspace;
-  const upcomingOnly = !cycles?.current && Boolean(cycles?.upcoming) && (displayedMealCount > 0 || awaitingGeneration.upcoming > 0);
+  const upcomingOnly =
+    !cycles?.current && Boolean(cycles?.upcoming) && (displayedMealCount > 0 || awaitingGeneration.upcoming > 0);
   const awaitingGenerationCount = upcomingOnly ? awaitingGeneration.upcoming : awaitingGeneration.current;
   const activeGenerationStatus = upcomingOnly ? generationStatus.upcoming : generationStatus.current;
   const generationCycleId = upcomingOnly ? cycles?.upcoming?.id : cycles?.current?.id;
   const upcomingStart = cycles?.upcoming?.startDate
     ? formatManilaDate(manilaDateFromKey(getManilaDateKey(cycles.upcoming.startDate)), {
-        weekday: 'long', month: 'short', day: 'numeric',
+        weekday: 'long',
+        month: 'short',
+        day: 'numeric',
       })
     : null;
 
@@ -177,53 +180,14 @@ export default function WeeklyPlanPage() {
       {/* Main Container */}
       <div className="mx-auto flex max-w-6xl flex-col gap-5">
         {/* Header Block */}
-        <PortalPageHeader
-          title={
-            activeTab === 'plan'
-              ? upcomingOnly
-                ? 'Upcoming meal plan preview'
-                : isStarterPlan
-                ? 'Starter meal plan'
-                : 'Weekly meal plan'
-              : activeTab === 'history'
-                ? 'Meal history'
-                : 'Meal library'
-          }
-          description={
-            activeTab === 'plan'
-              ? upcomingOnly
-                ? `Automatically prepared ahead of ${upcomingStart ?? 'your next week'}. These meals are not your active plan.`
-                : isStarterPlan && nextCycleDay
-                ? `Starter kickoff plan. Your full weekly cycle starts ${nextCycleDay}.`
-                : 'Your complete scheduled breakdown, macro targets, and meal review states.'
-              : activeTab === 'history'
-                ? 'Your logged intake history, completion states, and swapped items.'
-                : 'Browse compatible, nutritionist-verified recipes for your profile.'
-          }
-          className="mb-1"
-          actions={
-            activeTab === 'plan' && !pendingReview ? (
-              <details className="relative">
-                <summary className="cursor-pointer rounded-xl border border-brand-border bg-brand-surface px-4 py-2 text-sm font-semibold">
-                  Plan options
-                </summary>
-                <div className="mt-2 max-w-xs rounded-xl border border-brand-border bg-brand-surface p-3">
-                  <p className="mb-3 text-xs text-brand-muted">
-                    Whole-plan replacement is available before shopping or logging. After that, choose individual meal
-                    swaps.
-                  </p>
-                  <Button
-                    variant="secondary"
-                    onClick={() => handleRegeneratePlan()}
-                    className="flex items-center gap-1.5 text-xs font-bold"
-                  >
-                    <RefreshCw className="w-3.5 h-3.5" />
-                    <span>Replace entire plan</span>
-                  </Button>
-                </div>
-              </details>
-            ) : undefined
-          }
+        <MealsWorkspaceHeader
+          activeTab={activeTab}
+          upcomingOnly={upcomingOnly}
+          isStarterPlan={isStarterPlan}
+          upcomingStart={upcomingStart}
+          nextCycleDay={nextCycleDay}
+          pendingReview={pendingReview}
+          handleRegeneratePlan={() => void handleRegeneratePlan()}
         />
 
         {/* Tab Bar */}
@@ -276,27 +240,46 @@ export default function WeeklyPlanPage() {
             <p>
               {generationStatus.current === 'FAILED'
                 ? 'Your first current plan could not be prepared. Its preparation can be retried from your dashboard.'
-                : 'Your first current plan is being prepared automatically. The meals below are next week’s draft, not the active plan.'}
-              {' '}Meals awaiting review are previews and cannot be logged, swapped, or shopped for yet.
+                : 'Your first current plan is being prepared automatically. The meals below are next week’s draft, not the active plan.'}{' '}
+              Meals awaiting review are previews and cannot be logged, swapped, or shopped for yet.
             </p>
           </div>
         )}
 
-        {activeTab === 'plan' && !isLoading && awaitingGenerationCount > 0 && !clinicalEvidenceRequired && !isReportPending && (
-          <div role="status" className="flex items-start gap-3 rounded-xl border border-status-pending-text/30 bg-status-pending-bg/15 px-4 py-3 text-sm text-brand-text">
-            <Clock3 className="mt-0.5 h-4 w-4 shrink-0 text-status-pending-text" />
-            <div>
-              <p>{awaitingGenerationCount} meal slot{awaitingGenerationCount === 1 ? '' : 's'} {activeGenerationStatus === 'FAILED' ? 'could not be prepared' : 'still awaiting generation'}. {activeGenerationStatus === 'FAILED' ? (displayedMealCount > 0 ? 'Saved candidates remain available while you retry the missing slots.' : 'No meal candidates were saved for this cycle.') : 'KAINARA fills the earliest days first as AI capacity becomes available.'} Empty slots cannot be reviewed, logged, swapped, or added to groceries yet.</p>
-              {activeGenerationStatus === 'FAILED' && generationCycleId && (
-                <Button variant="secondary" className="mt-3" onClick={() => void retryMissingGeneration(generationCycleId)} disabled={isRetryingMissing}>
-                  {isRetryingMissing ? 'Retrying…' : 'Retry missing slots'}
-                </Button>
-              )}
+        {activeTab === 'plan' &&
+          !isLoading &&
+          awaitingGenerationCount > 0 &&
+          !clinicalEvidenceRequired &&
+          !isReportPending && (
+            <div
+              role="status"
+              className="flex items-start gap-3 rounded-xl border border-status-pending-text/30 bg-status-pending-bg/15 px-4 py-3 text-sm text-brand-text"
+            >
+              <Clock3 className="mt-0.5 h-4 w-4 shrink-0 text-status-pending-text" />
+              <div>
+                <p>
+                  {awaitingGenerationCount} meal slot{awaitingGenerationCount === 1 ? '' : 's'}{' '}
+                  {activeGenerationStatus === 'FAILED' ? 'could not be prepared' : 'still awaiting generation'}.{' '}
+                  {activeGenerationStatus === 'FAILED'
+                    ? displayedMealCount > 0
+                      ? 'Saved candidates remain available while you retry the missing slots.'
+                      : 'No meal candidates were saved for this cycle.'
+                    : 'KAINARA fills the earliest days first as AI capacity becomes available.'}{' '}
+                  Empty slots cannot be reviewed, logged, swapped, or added to groceries yet.
+                </p>
+                {activeGenerationStatus === 'FAILED' && generationCycleId && (
+                  <Button
+                    variant="secondary"
+                    className="mt-3"
+                    onClick={() => void retryMissingGeneration(generationCycleId)}
+                    disabled={isRetryingMissing}
+                  >
+                    {isRetryingMissing ? 'Retrying…' : 'Retry missing slots'}
+                  </Button>
+                )}
+              </div>
             </div>
-          </div>
-        )}
-
-
+          )}
 
         {activeTab === 'plan' && !isLoading && displayedPlanDays.length > 0 && selectedPlanDay && (
           <section
@@ -306,9 +289,7 @@ export default function WeeklyPlanPage() {
             <button
               type="button"
               onClick={() =>
-                setSelectedPlanDateKey(
-                  displayedPlanDays[selectedPlanDayIndex - 1]?.dateKey ?? selectedPlanDay.dateKey
-                )
+                setSelectedPlanDateKey(displayedPlanDays[selectedPlanDayIndex - 1]?.dateKey ?? selectedPlanDay.dateKey)
               }
               disabled={selectedPlanDayIndex === 0}
               className="flex h-10 w-8 sm:h-12 sm:w-10 shrink-0 items-center justify-center text-brand-muted hover:text-brand-text hover:bg-black/[0.04] dark:hover:bg-white/[0.06] rounded-xl sm:rounded-2xl outline-none transition-colors focus-visible:ring-2 focus-visible:ring-brand-green disabled:cursor-not-allowed disabled:opacity-20"
@@ -359,9 +340,7 @@ export default function WeeklyPlanPage() {
             <button
               type="button"
               onClick={() =>
-                setSelectedPlanDateKey(
-                  displayedPlanDays[selectedPlanDayIndex + 1]?.dateKey ?? selectedPlanDay.dateKey
-                )
+                setSelectedPlanDateKey(displayedPlanDays[selectedPlanDayIndex + 1]?.dateKey ?? selectedPlanDay.dateKey)
               }
               disabled={selectedPlanDayIndex === displayedPlanDays.length - 1}
               className="flex h-10 w-8 sm:h-12 sm:w-10 shrink-0 items-center justify-center text-brand-muted hover:text-brand-text hover:bg-black/[0.04] dark:hover:bg-white/[0.06] rounded-xl sm:rounded-2xl outline-none transition-colors focus-visible:ring-2 focus-visible:ring-brand-green disabled:cursor-not-allowed disabled:opacity-20"
@@ -372,12 +351,15 @@ export default function WeeklyPlanPage() {
           </section>
         )}
 
-        {error && !clinicalEvidenceRequired && !profileReviewRequired && !error.toLowerCase().includes('nutrition report') && (
-          <div className="p-4 rounded-xl bg-status-error-bg/10 border border-status-error-text/25 text-status-error-text text-sm font-semibold flex items-center gap-2 text-left">
-            <AlertTriangle className="w-4 h-4 text-status-error-text shrink-0" />
-            <span>{error}</span>
-          </div>
-        )}
+        {error &&
+          !clinicalEvidenceRequired &&
+          !profileReviewRequired &&
+          !error.toLowerCase().includes('nutrition report') && (
+            <div className="p-4 rounded-xl bg-status-error-bg/10 border border-status-error-text/25 text-status-error-text text-sm font-semibold flex items-center gap-2 text-left">
+              <AlertTriangle className="w-4 h-4 text-status-error-text shrink-0" />
+              <span>{error}</span>
+            </div>
+          )}
 
         {/* Conditional Content Rendering */}
         {activeTab === 'plan' &&
@@ -418,10 +400,7 @@ export default function WeeklyPlanPage() {
                 {groupedPendingDays
                   .filter((day) => day.dateKey === selectedPlanDay?.dateKey)
                   .map((day, dayIndex) => (
-                    <div
-                      key={day.dateKey}
-                      className="space-y-4"
-                    >
+                    <div key={day.dateKey} className="space-y-4">
                       <div className="flex flex-col gap-3 px-1 md:flex-row md:items-center md:justify-between">
                         <div className="flex items-center gap-3">
                           <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-brand-green/20 bg-brand-green/10 font-display text-sm font-black text-brand-green">
@@ -441,29 +420,45 @@ export default function WeeklyPlanPage() {
 
                       <div className="grid grid-cols-1 gap-5 md:grid-cols-3">
                         {day.mealsList.map((meal, index) => (
-                          <PendingMealPreviewCard key={`${meal.scheduledDate}-${meal.mealType}-${index}`} meal={meal} index={index} />
+                          <PendingMealPreviewCard
+                            key={`${meal.scheduledDate}-${meal.mealType}-${index}`}
+                            meal={meal}
+                            index={index}
+                          />
                         ))}
                       </div>
                     </div>
                   ))}
               </section>
             ) : awaitingGenerationCount > 0 && activeGenerationStatus !== 'FAILED' ? (
-              <div role="status" className="rounded-2xl border border-brand-border bg-brand-surface p-6 text-sm text-brand-muted">
-                The first meal candidates are being prepared. Saved candidates and nutritionist review progress will appear here automatically.
+              <div
+                role="status"
+                className="rounded-2xl border border-brand-border bg-brand-surface p-6 text-sm text-brand-muted"
+              >
+                The first meal candidates are being prepared. Saved candidates and nutritionist review progress will
+                appear here automatically.
               </div>
             ) : (
               <StateNotice
                 variant="no-meal-plan"
                 imageAlt="Meal plan preparation"
-                title={generationStatus.current === 'FAILED' ? 'Meal Preparation Paused' : 'Preparing Your First Meal Plan'}
-                description={generationStatus.current === 'FAILED'
-                  ? 'Your first plan could not be prepared. Retry to resume preparation.'
-                  : 'Your current meal plan is being prepared automatically. Candidates will appear here for nutritionist review.'}
-                action={generationStatus.current === 'FAILED' ? {
-                  label: isRegenerating ? 'Retrying...' : 'Retry Preparation',
-                  onClick: handleRegeneratePlan,
-                  isLoading: isRegenerating,
-                } : null}
+                title={
+                  generationStatus.current === 'FAILED' ? 'Meal Preparation Paused' : 'Preparing Your First Meal Plan'
+                }
+                description={
+                  generationStatus.current === 'FAILED'
+                    ? 'Your first plan could not be prepared. Retry to resume preparation.'
+                    : 'Your current meal plan is being prepared automatically. Candidates will appear here for nutritionist review.'
+                }
+                action={
+                  generationStatus.current === 'FAILED'
+                    ? {
+                        label: isRegenerating ? 'Retrying...' : 'Retry Preparation',
+                        onClick: handleRegeneratePlan,
+                        isLoading: isRegenerating,
+                      }
+                    : null
+                }
               />
             )
           ) : (
@@ -569,7 +564,11 @@ export default function WeeklyPlanPage() {
                       </div>
                       <div className="grid grid-cols-1 gap-5 md:grid-cols-3">
                         {day.mealsList.map((meal, index) => (
-                          <PendingMealPreviewCard key={`${meal.scheduledDate}-${meal.mealType}-${index}`} meal={meal} index={index} />
+                          <PendingMealPreviewCard
+                            key={`${meal.scheduledDate}-${meal.mealType}-${index}`}
+                            meal={meal}
+                            index={index}
+                          />
                         ))}
                       </div>
                     </div>

@@ -1,15 +1,16 @@
 'use client';
 
-import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Ban, CheckCircle2, ChevronLeft, ChevronRight, Clock3, RotateCcw, Search, Users, XCircle } from 'lucide-react';
-import api from '@/lib/axios';
+import { useSessionQuery } from '@/hooks/useSessionQuery';
+
+import PortalPageHeader from '@/components/shared/PortalPageHeader';
+import Avatar from '@/components/ui/Avatar';
 import Badge from '@/components/ui/Badge';
 import Button from '@/components/ui/Button';
-import Avatar from '@/components/ui/Avatar';
 import Modal from '@/components/ui/Modal';
-import PortalPageHeader from '@/components/shared/PortalPageHeader';
 import { useAuth } from '@/hooks/useAuth';
-import { readSessionResource, writeSessionResource } from '@/lib/session-resource-cache';
+import api from '@/lib/axios';
+import { Ban, CheckCircle2, ChevronLeft, ChevronRight, Clock3, RotateCcw, Search, Users, XCircle } from 'lucide-react';
+import React, { useState } from 'react';
 
 interface UserRow {
   id: string;
@@ -24,60 +25,39 @@ interface UserRow {
   suspensionReason?: string | null;
 }
 
-interface UsersSnapshot { users: UserRow[]; total: number; totalPages: number }
+interface UsersSnapshot {
+  users: UserRow[];
+  total: number;
+  totalPages: number;
+}
 const usersResource = (page: number, search: string) => `admin-users:${page}:${search}`;
 
 export default function AdminUsersPage() {
   const { user: currentUser } = useAuth();
   const ownerId = currentUser?.userId;
-  const initial = readSessionResource<UsersSnapshot>(ownerId, usersResource(1, ''));
-  const [users, setUsers] = useState<UserRow[]>(initial?.users ?? []);
-  const [total, setTotal] = useState(initial?.total ?? 0);
   const [page, setPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(initial?.totalPages ?? 1);
   const [searchInput, setSearchInput] = useState('');
   const [search, setSearch] = useState('');
-  const [isLoading, setIsLoading] = useState(!initial);
-  const [error, setError] = useState<string | null>(null);
+  const query = useSessionQuery<UsersSnapshot>({
+    ownerId,
+    resource: usersResource(page, search),
+    errorMessage: 'Account records could not be loaded. Please try again.',
+    fetcher: async () => {
+      const params: Record<string, string | number> = { page, limit: 20 };
+      if (search) params.search = search;
+      const response = await api.get('/admin/users', { params });
+      if (!response.data?.success) throw new Error('Account records could not be loaded. Please try again.');
+      return response.data.data;
+    },
+  });
+  const users = query.data?.users ?? [];
+  const total = query.data?.total ?? 0;
+  const totalPages = query.data?.totalPages ?? 1;
+  const { isLoading, error, setError } = query;
+
   const [selectedUser, setSelectedUser] = useState<UserRow | null>(null);
   const [suspensionReason, setSuspensionReason] = useState('');
   const [isUpdatingAccess, setIsUpdatingAccess] = useState(false);
-  const requestSequence = useRef(0);
-
-  const fetchUsers = useCallback(async (requestedPage: number, query: string, forceFresh = false) => {
-    const request = ++requestSequence.current;
-    const resource = usersResource(requestedPage, query);
-    const cached = forceFresh ? null : readSessionResource<UsersSnapshot>(ownerId, resource);
-    if (cached) {
-      setUsers(cached.users);
-      setTotal(cached.total);
-      setTotalPages(cached.totalPages);
-    }
-    setIsLoading(!cached);
-    setError(null);
-    try {
-      const params: Record<string, string | number> = { page: requestedPage, limit: 20 };
-      if (query) params.search = query;
-      const response = await api.get('/admin/users', { params });
-      if (response.data?.success && request === requestSequence.current) {
-        const snapshot = response.data.data as UsersSnapshot;
-        setUsers(snapshot.users);
-        setTotal(snapshot.total);
-        setTotalPages(snapshot.totalPages);
-        writeSessionResource(ownerId, resource, snapshot);
-      }
-    } catch (error) {
-      console.error('Failed to fetch users:', error);
-      if (request === requestSequence.current) setError('Account records could not be loaded. Please try again.');
-    } finally {
-      if (request === requestSequence.current) setIsLoading(false);
-    }
-  }, [ownerId]);
-
-  useEffect(() => {
-    fetchUsers(page, search);
-  }, [page, search, fetchUsers]);
-
   const handleSearch = (event: React.FormEvent) => {
     event.preventDefault();
     setPage(1);
@@ -106,7 +86,7 @@ export default function AdminUsersPage() {
         reason: selectedUser.isSuspended ? undefined : suspensionReason.trim(),
       });
       closeAccessDialog();
-      await fetchUsers(page, search, true);
+      await query.refetch();
     } catch (requestError) {
       console.error('Failed to update account access:', requestError);
       setError('Account access could not be updated. Please try again.');

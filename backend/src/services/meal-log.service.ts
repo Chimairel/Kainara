@@ -1,3 +1,22 @@
+import { normalizeFoodName, selectStrongFNRIMatch } from '@/domain/fnri-match.policy';
+import { getNutritionEligibleMealLogWhere } from '@/domain/meal-actionability.policy';
+import { getManilaDateKey, getManilaMidnight, getScheduledMealDate } from '@/domain/meal-plan-cycle.policy';
+import { outsideReviewQueueReason } from '@/domain/outside-meal-review.policy';
+import { evaluateOutsideMealCompatibility } from '@/domain/outside-meal-safety.policy';
+import {
+  assertValidOutsideMealMacros,
+  outsideMealReviewPriority,
+  parseOutsideMealItems,
+  resolveOutsideMealAiAllowance,
+  resolveOutsideMealAiLimits,
+  scalePer100GramMacros,
+  summarizeOutsideMealNutrition,
+  type OutsideMealMacros,
+} from '@/domain/outside-meal.policy';
+import { adaptUserSafetyRestrictions } from '@/domain/structured-restriction.adapter';
+import { AppError } from '@/errors/AppError';
+import { generateGenerativeJSON } from '@/lib/gemini';
+import prisma from '@/lib/prisma';
 import {
   MealLibrarySafetyEvidenceStatus,
   MealLogDataSource,
@@ -11,26 +30,7 @@ import {
 } from '@prisma/client';
 import { createHash } from 'node:crypto';
 import { z } from 'zod';
-import prisma from '@/lib/prisma';
-import { generateGenerativeJSON } from '@/lib/gemini';
-import { normalizeFoodName, selectStrongFNRIMatch } from '@/domain/fnri-match.policy';
-import {
-  assertValidOutsideMealMacros,
-  outsideMealReviewPriority,
-  parseOutsideMealItems,
-  resolveOutsideMealAiAllowance,
-  resolveOutsideMealAiLimits,
-  scalePer100GramMacros,
-  summarizeOutsideMealNutrition,
-  type OutsideMealMacros,
-} from '@/domain/outside-meal.policy';
-import { certifiedLibraryMealInclude, isCertifiedLibraryMealCompatible } from './meal-swap.service';
-import { adaptUserSafetyRestrictions } from '@/domain/structured-restriction.adapter';
-import { evaluateOutsideMealCompatibility } from '@/domain/outside-meal-safety.policy';
-import { outsideReviewQueueReason } from '@/domain/outside-meal-review.policy';
-import { getManilaDateKey, getManilaMidnight, getScheduledMealDate } from '@/domain/meal-plan-cycle.policy';
-import { AppError } from '@/errors/AppError';
-import { getNutritionEligibleMealLogWhere } from '@/domain/meal-actionability.policy';
+import { certifiedLibraryMealInclude, isCertifiedLibraryMealCompatible } from './meal-library-candidate-query.service';
 
 type InputItem = { name: string; portionGrams?: number; mealLibraryId?: string; reportedNutrition?: OutsideMealMacros };
 

@@ -1,27 +1,25 @@
-import prisma from '@/lib/prisma';
-import { suspendMealClearancesForEvidenceChange } from './condition-clearance.service';
 import { isMealWithinSlotCalorieRange } from '@/domain/meal-calorie-allocation.policy';
+import { SUPPORTED_MEAL_LIBRARY_SAFETY_POLICY_VERSIONS } from '@/domain/meal-library-safety-evidence.policy';
+import { isNutritionistEligibleForReview } from '@/domain/nutritionist-review.policy';
+import prisma from '@/lib/prisma';
+import type { libraryMealEditSchema } from '@/validation/nutritionist.schemas';
 import {
-  MealLibraryStatus,
-  MealLibrarySafetyEvidenceStatus,
-  MealLibrarySafetyReviewOutcome,
-  FlagStatus,
   AllergenType,
   DietaryPreference,
+  FlagStatus,
   Goal,
   HealthConditionType,
-  Prisma,
+  MealLibrarySafetyEvidenceStatus,
+  MealLibrarySafetyReviewOutcome,
+  MealLibraryStatus,
   MealNutritionEvidenceSource,
   MealType,
+  Prisma,
+  type MealLibrary,
 } from '@prisma/client';
-import { isNutritionistEligibleForReview } from '@/domain/nutritionist-review.policy';
-import { SUPPORTED_MEAL_LIBRARY_SAFETY_POLICY_VERSIONS } from '@/domain/meal-library-safety-evidence.policy';
+import type { z } from 'zod';
+import { suspendMealClearancesForEvidenceChange } from './condition-clearance.service';
 
-import { certifiedLibraryMealInclude, isCertifiedLibraryMealCompatible } from '@/services/meal-swap.service';
-import {
-  isLibraryMealSafeToQueueForCaseReview,
-  isProfileApprovedLibraryMealCompatible,
-} from '@/services/meal-library-candidate-query.service';
 import {
   BASE_LIBRARY_COVERAGE_PROFILES,
   COMBINATION_CONDITIONS,
@@ -29,20 +27,49 @@ import {
   COVERAGE_MEAL_TYPES,
   STRUCTURED_COMBINATION_COVERAGE_PROFILES,
 } from '@/domain/nutritionist-library-coverage.profiles';
+import {
+  certifiedLibraryMealInclude,
+  isCertifiedLibraryMealCompatible,
+  isLibraryMealSafeToQueueForCaseReview,
+  isProfileApprovedLibraryMealCompatible,
+} from '@/services/meal-library-candidate-query.service';
 
+import { buildMealLibraryRecipeSignature } from '@/domain/meal-library-signature.policy';
+import { certifyLibraryMealSafety } from './nutritionist-library-certification.service';
 import {
   getNutritionistMealLibrary,
   getNutritionistMealLibraryWithFilters,
   type NutritionistLibraryFilters,
 } from './nutritionist-library-query.service';
-import { buildMealLibraryRecipeSignature } from '@/domain/meal-library-signature.policy';
-import { certifyLibraryMealSafety } from './nutritionist-library-certification.service';
+
+// HTTP edits require all schema fields; trusted internal edits may retain tags or a null description.
+type LibraryMealEditInput = Omit<z.infer<typeof libraryMealEditSchema>, 'description' | 'dietaryTags'> & {
+  description?: string | null;
+  dietaryTags?: z.infer<typeof libraryMealEditSchema>['dietaryTags'];
+} & Partial<
+    Pick<
+      MealLibrary,
+      | 'sodiumMg'
+      | 'sugarG'
+      | 'fiberG'
+      | 'potassiumMg'
+      | 'phosphorusMg'
+      | 'saturatedFatG'
+      | 'nutritionServingDescription'
+      | 'suitableConditions'
+      | 'allergenFree'
+    >
+  >;
 
 export class NutritionistLibraryService {
   static async getMealLibrary(limit = 50) {
     return getNutritionistMealLibrary(limit);
   }
-  static async checkLibraryMealMutationPermission(userId: string, userRole: string, meal: any): Promise<boolean> {
+  static async checkLibraryMealMutationPermission(
+    userId: string,
+    userRole: string,
+    meal: { verifiedByNutritionistId: string | null; verifiedByNutritionist?: { userId: string } | null } | null
+  ): Promise<boolean> {
     if (!meal) return false;
 
     // Check if user is the original verifier
@@ -118,25 +145,29 @@ export class NutritionistLibraryService {
         otherAllergies: null,
         safetyEntries: definition.safetyEntries,
       };
-      const automaticallyReusable = meals.filter((meal) =>
-        isCertifiedLibraryMealCompatible(meal, definition.conditions, definition.allergens, profile) ||
-        isProfileApprovedLibraryMealCompatible(meal, definition.conditions, definition.allergens, profile)
+      const automaticallyReusable = meals.filter(
+        (meal) =>
+          isCertifiedLibraryMealCompatible(meal, definition.conditions, definition.allergens, profile) ||
+          isProfileApprovedLibraryMealCompatible(meal, definition.conditions, definition.allergens, profile)
       );
       const reusableIds = new Set(automaticallyReusable.map((meal) => meal.id));
-      const caseReviewCandidates = meals.filter((meal) =>
-        !reusableIds.has(meal.id) &&
-        isLibraryMealSafeToQueueForCaseReview(meal, definition.conditions, definition.allergens, profile)
+      const caseReviewCandidates = meals.filter(
+        (meal) =>
+          !reusableIds.has(meal.id) &&
+          isLibraryMealSafeToQueueForCaseReview(meal, definition.conditions, definition.allergens, profile)
       );
-      const slotCounts = (entries: typeof meals, dailyCalorieTarget?: number) => Object.fromEntries(
-        COVERAGE_MEAL_TYPES.map((mealType) => [
-          mealType,
-          entries.filter((meal) =>
-            meal.applicableMealTypes.some((entry) => entry.mealType === mealType) &&
-            (dailyCalorieTarget === undefined ||
-              isMealWithinSlotCalorieRange({ ...meal, mealType, dailyCalorieTarget }))
-          ).length,
-        ])
-      ) as Record<(typeof COVERAGE_MEAL_TYPES)[number], number>;
+      const slotCounts = (entries: typeof meals, dailyCalorieTarget?: number) =>
+        Object.fromEntries(
+          COVERAGE_MEAL_TYPES.map((mealType) => [
+            mealType,
+            entries.filter(
+              (meal) =>
+                meal.applicableMealTypes.some((entry) => entry.mealType === mealType) &&
+                (dailyCalorieTarget === undefined ||
+                  isMealWithinSlotCalorieRange({ ...meal, mealType, dailyCalorieTarget }))
+            ).length,
+          ])
+        ) as Record<(typeof COVERAGE_MEAL_TYPES)[number], number>;
       const counts = slotCounts(automaticallyReusable);
       const caseReviewCounts = slotCounts(caseReviewCandidates);
       const minimumPerSlot = Math.min(...Object.values(counts));
@@ -145,7 +176,9 @@ export class NutritionistLibraryService {
         const counts = slotCounts(automaticallyReusable, dailyCalorieTarget);
         const caseReviewCounts = slotCounts(caseReviewCandidates, dailyCalorieTarget);
         return {
-          dailyCalorieTarget, counts, caseReviewCounts,
+          dailyCalorieTarget,
+          counts,
+          caseReviewCounts,
           weekReady: Math.min(...Object.values(counts)) >= 7,
         };
       });
@@ -220,8 +253,7 @@ export class NutritionistLibraryService {
     const meal = await prisma.mealLibrary.findUnique({
       where: { id: mealId },
       include: {
-        sourceRawRecipeCandidate: { select: { sourceName: true, sourceUrl: true,
-          sourceImageUrl: true, status: true } },
+        sourceRawRecipeCandidate: { select: { sourceName: true, sourceUrl: true, sourceImageUrl: true, status: true } },
         verifiedByNutritionist: {
           include: {
             user: {
@@ -259,10 +291,17 @@ export class NutritionistLibraryService {
     });
     if (!meal) return null;
     const { sourceRawRecipeCandidate: source, ...fields } = meal;
-    return { ...fields, sourceRawRecipeCandidate: source ? {
-      sourceName: source.sourceName, sourceUrl: source.sourceUrl,
-      sourceImageUrl: source.sourceImageUrl, status: source.status,
-    } : null };
+    return {
+      ...fields,
+      sourceRawRecipeCandidate: source
+        ? {
+            sourceName: source.sourceName,
+            sourceUrl: source.sourceUrl,
+            sourceImageUrl: source.sourceImageUrl,
+            status: source.status,
+          }
+        : null,
+    };
   }
 
   /**
@@ -275,7 +314,7 @@ export class NutritionistLibraryService {
   /**
    * Update meal details in MealLibrary
    */
-  static async editLibraryMeal(userId: string, userRole: string, mealId: string, updatedFields: any) {
+  static async editLibraryMeal(userId: string, userRole: string, mealId: string, updatedFields: LibraryMealEditInput) {
     const meal = await prisma.mealLibrary.findUnique({
       where: { id: mealId },
       include: { verifiedByNutritionist: true, ingredients: { orderBy: { position: 'asc' } } },
@@ -296,10 +335,10 @@ export class NutritionistLibraryService {
     const primaryMealType = applicableMealTypes?.includes(meal.mealType)
       ? meal.mealType
       : (applicableMealTypes?.[0] ?? meal.mealType);
-    const calories = parseFloat(updatedFields.calories || 0);
-    const proteinG = parseFloat(updatedFields.proteinG || 0);
-    const carbsG = parseFloat(updatedFields.carbsG || 0);
-    const fatG = parseFloat(updatedFields.fatG || 0);
+    const calories = updatedFields.calories;
+    const proteinG = updatedFields.proteinG;
+    const carbsG = updatedFields.carbsG;
+    const fatG = updatedFields.fatG;
     const recipeSignature = buildMealLibraryRecipeSignature({
       mealName: updatedFields.mealName,
       mealType: primaryMealType,
@@ -344,7 +383,7 @@ export class NutritionistLibraryService {
               ? updatedFields.nutritionServingDescription
               : meal.nutritionServingDescription,
             nutritionEvidenceSource: MealNutritionEvidenceSource.NUTRITIONIST_EDITED,
-            dietaryTags: updatedFields.dietaryTags || meal.dietaryTags,
+            dietaryTags: (updatedFields.dietaryTags || meal.dietaryTags) ?? Prisma.JsonNull,
             ...(updatedFields.riceRole
               ? {
                   riceRole: updatedFields.riceRole,
@@ -516,11 +555,15 @@ export class NutritionistLibraryService {
             },
           });
         }
-        await tx.auditEvent.create({ data: {
-          actorUserId: userId, action: 'MEAL_LIBRARY_FLAGGED',
-          entityType: 'MealLibraryFlag', entityId: createdFlag.id,
-          metadata: { mealLibraryId: mealId },
-        } });
+        await tx.auditEvent.create({
+          data: {
+            actorUserId: userId,
+            action: 'MEAL_LIBRARY_FLAGGED',
+            entityType: 'MealLibraryFlag',
+            entityId: createdFlag.id,
+            metadata: { mealLibraryId: mealId },
+          },
+        });
         return createdFlag;
       },
       { isolationLevel: Prisma.TransactionIsolationLevel.Serializable }
@@ -548,7 +591,7 @@ export class NutritionistLibraryService {
     userRole: string,
     mealId: string,
     resolution: 'edit' | 'delete' | 'dismiss',
-    updatedFields?: any
+    updatedFields?: LibraryMealEditInput
   ) {
     const meal = await prisma.mealLibrary.findUnique({
       where: { id: mealId },
@@ -628,13 +671,13 @@ export class NutritionistLibraryService {
           data: {
             mealName: updatedFields.mealName,
             description: updatedFields.description,
-            calories: parseFloat(updatedFields.calories || 0),
-            proteinG: parseFloat(updatedFields.proteinG || 0),
-            carbsG: parseFloat(updatedFields.carbsG || 0),
-            fatG: parseFloat(updatedFields.fatG || 0),
-            suitableConditions: updatedFields.suitableConditions || meal.suitableConditions,
-            allergenFree: updatedFields.allergenFree || meal.allergenFree,
-            dietaryTags: updatedFields.dietaryTags || meal.dietaryTags,
+            calories: updatedFields.calories,
+            proteinG: updatedFields.proteinG,
+            carbsG: updatedFields.carbsG,
+            fatG: updatedFields.fatG,
+            suitableConditions: (updatedFields.suitableConditions || meal.suitableConditions) ?? Prisma.JsonNull,
+            allergenFree: (updatedFields.allergenFree || meal.allergenFree) ?? Prisma.JsonNull,
+            dietaryTags: (updatedFields.dietaryTags || meal.dietaryTags) ?? Prisma.JsonNull,
             status: newStatus,
             safetyEvidenceRevision: { increment: 1 },
             safetyEvidenceStatus:

@@ -72,13 +72,19 @@ describe('MealCard', () => {
   });
 
   it('opens the original Panlasang article when the meal has a direct source', () => {
-    render(<MealCard {...defaultProps} cookingLink={{
-      kind: 'PANLASANG_RECIPE',
-      url: 'https://panlasangpinoy.com/sinigang-na-hipon/',
-    }} />);
+    render(
+      <MealCard
+        {...defaultProps}
+        cookingLink={{
+          kind: 'PANLASANG_RECIPE',
+          url: 'https://panlasangpinoy.com/sinigang-na-hipon/',
+        }}
+      />
+    );
     fireEvent.click(screen.getByRole('button', { name: /open Sinigang na Hipon details/i }));
     expect(screen.getByRole('link', { name: 'View Recipe' })).toHaveAttribute(
-      'href', 'https://panlasangpinoy.com/sinigang-na-hipon/'
+      'href',
+      'https://panlasangpinoy.com/sinigang-na-hipon/'
     );
   });
 
@@ -124,23 +130,11 @@ describe('MealCard', () => {
     expect(screen.getByText('UP Diliman')).toBeInTheDocument();
   });
 
-  it('displays the Verified by section with platform lead nutritionist for approved meals without explicit verifier', () => {
+  it('does not attribute an approved meal to a nutritionist when no reviewer was supplied', () => {
     render(<MealCard {...defaultProps} status="APPROVED" />);
-
-    // Click to open details
-    const cardButton = screen.getByRole('button', { name: /open Sinigang na Hipon details/i });
-    fireEvent.click(cardButton);
-
-    // Verified by section should be present with platform lead clinician
-    expect(screen.getByText('Verified by')).toBeInTheDocument();
-    expect(screen.getByText('PRC-Licensed RND')).toBeInTheDocument();
-    expect(screen.getByText('Andrea Reyes, RND')).toBeInTheDocument();
-
-    // Clicking credentials button opens modal
-    const verifierBtn = screen.getByRole('button', { name: /view clinical credentials for Andrea Reyes, RND/i });
-    fireEvent.click(verifierBtn);
-
-    expect(screen.getByText('Verified Nutritionist')).toBeInTheDocument();
-    expect(screen.getByText('University of the Philippines Diliman')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /open Sinigang na Hipon details/i }));
+    expect(screen.queryByText('Verified by')).not.toBeInTheDocument();
+    expect(screen.queryByText('Andrea Reyes, RND')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /view clinical credentials/i })).not.toBeInTheDocument();
   });
 });

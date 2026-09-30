@@ -1,3 +1,19 @@
+import { conditionAllowsRulesetAutomation, conditionRequiresUserScopedClearance } from '@/domain/assurance-tier.policy';
+import { getApprovedMealLibraryWhere } from '@/domain/meal-actionability.policy';
+import { mealApprovalSafetyScope } from '@/domain/meal-approval-scope.policy';
+import { getMealSlotCalorieRange, isPrimaryMealType } from '@/domain/meal-calorie-allocation.policy';
+import { evaluateMealGenerationLibraryCompatibility } from '@/domain/meal-generation-library-compatibility.adapter';
+import { classifyMealIngredients } from '@/domain/meal-ingredient-classification.policy';
+import type { LibraryCompatibilityCandidate } from '@/domain/meal-library-compatibility.types';
+import { evaluateMealLibrarySafetyEvidence } from '@/domain/meal-library-safety-evidence.policy';
+import { MEAL_PLAN_SAFETY_POLICY_VERSION } from '@/domain/meal-plan-production-safety.policy';
+import { isNutritionistEligibleForReview } from '@/domain/nutritionist-review.policy';
+import {
+  adaptUserSafetyRestrictions,
+  type StructuredSafetyRestrictionEntry,
+} from '@/domain/structured-restriction.adapter';
+import prisma from '@/lib/prisma';
+import { enforceClearanceCircuitBreakers } from '@/services/condition-clearance.service';
 import {
   AllergenType,
   DietaryPreference,
@@ -7,21 +23,6 @@ import {
   MealType,
   Prisma,
 } from '@prisma/client';
-import prisma from '@/lib/prisma';
-import { getMealSlotCalorieRange, isPrimaryMealType } from '@/domain/meal-calorie-allocation.policy';
-import { getApprovedMealLibraryWhere } from '@/domain/meal-actionability.policy';
-import { evaluateMealLibrarySafetyEvidence } from '@/domain/meal-library-safety-evidence.policy';
-import { evaluateMealGenerationLibraryCompatibility } from '@/domain/meal-generation-library-compatibility.adapter';
-import { isNutritionistEligibleForReview } from '@/domain/nutritionist-review.policy';
-import {
-  adaptUserSafetyRestrictions,
-  type StructuredSafetyRestrictionEntry,
-} from '@/domain/structured-restriction.adapter';
-import { conditionAllowsRulesetAutomation, conditionRequiresUserScopedClearance } from '@/domain/assurance-tier.policy';
-import { enforceClearanceCircuitBreakers } from '@/services/condition-clearance.service';
-import { mealApprovalSafetyScope } from '@/domain/meal-approval-scope.policy';
-import { classifyMealIngredients } from '@/domain/meal-ingredient-classification.policy';
-import { MEAL_PLAN_SAFETY_POLICY_VERSION } from '@/domain/meal-plan-production-safety.policy';
 import { admittedLibraryBaseIds } from './meal-base-admission.service';
 
 export const certifiedLibraryMealInclude = {
@@ -86,7 +87,7 @@ export interface LibraryCandidateProfile {
 }
 
 export function isCertifiedLibraryMealCompatible(
-  meal: CertifiedLibraryMeal | any,
+  meal: LibraryCompatibilityCandidate,
   userConditions: readonly string[],
   userAllergens: readonly string[],
   profile: LibraryCandidateProfile,
@@ -116,11 +117,12 @@ export function isCertifiedLibraryMealCompatible(
   const now = new Date();
   const activeClearances = Array.isArray(meal.conditionClearances)
     ? meal.conditionClearances.filter(
-        (clearance: any) =>
+        (clearance) =>
           clearance.state === 'ACTIVE' &&
           clearance.recipeSignature === meal.recipeSignature &&
           clearance.evidenceRevision === meal.safetyEvidenceRevision &&
           (!clearance.expiresAt || clearance.expiresAt > now) &&
+          clearance.auditDueAt !== null &&
           clearance.auditDueAt > now &&
           (!clearance.userScopeId || clearance.userScopeId === profile.userId) &&
           (!conditionRequiresUserScopedClearance(clearance.condition) || clearance.userScopeId === profile.userId) &&
@@ -131,19 +133,19 @@ export function isCertifiedLibraryMealCompatible(
               clearance.rulePolicyVersion?.policyVersion === clearance.policyVersion
             : Array.isArray(clearance.decisions) &&
               clearance.decisions.filter(
-                (decision: any) =>
+                (decision) =>
                   decision.decision === 'APPROVE' && isNutritionistEligibleForReview(decision.nutritionistProfile)
               ).length >= (clearance.assuranceTier === 'ENHANCED' ? 2 : 1) &&
               (clearance.assuranceTier !== 'ENHANCED' ||
                 clearance.decisions.some(
-                  (decision: any) =>
+                  (decision) =>
                     decision.decision === 'APPROVE' &&
                     decision.nutritionistProfile?.canLeadReview === true &&
                     isNutritionistEligibleForReview(decision.nutritionistProfile)
                 )))
       )
     : [];
-  const clearedConditions = new Set(activeClearances.map((clearance: any) => String(clearance.condition)));
+  const clearedConditions = new Set(activeClearances.map((clearance) => String(clearance.condition)));
   const conditionCoverageComplete = requestedConditions.every((condition) => clearedConditions.has(condition));
   const compatibility = evaluateMealGenerationLibraryCompatibility({
     userRestrictions: restrictions.evaluationRestrictions,
@@ -162,8 +164,10 @@ export function isCertifiedLibraryMealCompatible(
   if (!compatibility.eligible) return false;
 
   const tags = Array.isArray(meal.dietaryTags) ? meal.dietaryTags : [];
-  return conditionCoverageComplete &&
-    (options.safetyOnly || !profile.dietaryPreference || tags.includes(profile.dietaryPreference));
+  return (
+    conditionCoverageComplete &&
+    (options.safetyOnly || !profile.dietaryPreference || tags.includes(profile.dietaryPreference))
+  );
 }
 
 /** A reviewed base recipe may be proposed for case review, never used directly. */
@@ -180,12 +184,22 @@ export function isLibraryMealSafeToQueueForCaseReview(
     otherConditions: profile.otherConditions,
     otherAllergies: profile.otherAllergies,
   });
-  if (restrictions.requiresReview || restrictions.customConditions.length ||
-      restrictions.customFoodRestrictions.length ||
-      (!restrictions.conditions.length && !restrictions.allergies.length)) return false;
-  if (!isCertifiedLibraryMealCompatible(meal, [], [], {
-    ...profile, otherConditions: null, otherAllergies: null, safetyEntries: [],
-  })) return false;
+  if (
+    restrictions.requiresReview ||
+    restrictions.customConditions.length ||
+    restrictions.customFoodRestrictions.length ||
+    (!restrictions.conditions.length && !restrictions.allergies.length)
+  )
+    return false;
+  if (
+    !isCertifiedLibraryMealCompatible(meal, [], [], {
+      ...profile,
+      otherConditions: null,
+      otherAllergies: null,
+      safetyEntries: [],
+    })
+  )
+    return false;
   const safety = evaluateMealLibrarySafetyEvidence({
     ...meal,
     reviewerEligible: meal.safetyReviewedByNutritionist
@@ -193,12 +207,16 @@ export function isLibraryMealSafeToQueueForCaseReview(
       : false,
   });
   if (!restrictions.allergies.every((allergen) => safety.allergenFree.includes(allergen))) return false;
-  const classification = classifyMealIngredients(meal.ingredients.flatMap((ingredient) => [
-    { name: ingredient.ingredientName, category: ingredient.category },
-    ...(ingredient.foodItem?.name ? [{ name: ingredient.foodItem.name, category: ingredient.category }] : []),
-  ]));
-  return classification.status === 'COMPLETE' &&
-    !classification.detectedAllergens.some((allergen) => restrictions.allergies.includes(allergen));
+  const classification = classifyMealIngredients(
+    meal.ingredients.flatMap((ingredient) => [
+      { name: ingredient.ingredientName, category: ingredient.category },
+      ...(ingredient.foodItem?.name ? [{ name: ingredient.foodItem.name, category: ingredient.category }] : []),
+    ])
+  );
+  return (
+    classification.status === 'COMPLETE' &&
+    !classification.detectedAllergens.some((allergen) => restrictions.allergies.includes(allergen))
+  );
 }
 
 export function isProfileApprovedLibraryMealCompatible(
@@ -229,20 +247,23 @@ export function isProfileApprovedLibraryMealCompatible(
   });
   if (restrictions.conditions.some((condition) => condition !== 'NONE')) return false;
   if (!meal.ingredients.length) return false;
-  const approved = meal.profileApprovals.some((entry) =>
-    entry.safetyScopeKey === scope.key &&
-    entry.recipeSignature === meal.recipeSignature &&
-    entry.evidenceRevision === meal.safetyEvidenceRevision &&
-    entry.reviewPolicyVersion === MEAL_PLAN_SAFETY_POLICY_VERSION &&
-    !entry.flaggedAt &&
-    entry.reviewDueAt > new Date() &&
-    isNutritionistEligibleForReview(entry.reviewerNutritionist)
+  const approved = meal.profileApprovals.some(
+    (entry) =>
+      entry.safetyScopeKey === scope.key &&
+      entry.recipeSignature === meal.recipeSignature &&
+      entry.evidenceRevision === meal.safetyEvidenceRevision &&
+      entry.reviewPolicyVersion === MEAL_PLAN_SAFETY_POLICY_VERSION &&
+      !entry.flaggedAt &&
+      entry.reviewDueAt > new Date() &&
+      isNutritionistEligibleForReview(entry.reviewerNutritionist)
   );
   if (!approved) return false;
-  const classification = classifyMealIngredients(meal.ingredients.flatMap((ingredient) => [
-    { name: ingredient.ingredientName, category: ingredient.category },
-    ...(ingredient.foodItem?.name ? [{ name: ingredient.foodItem.name, category: ingredient.category }] : []),
-  ]));
+  const classification = classifyMealIngredients(
+    meal.ingredients.flatMap((ingredient) => [
+      { name: ingredient.ingredientName, category: ingredient.category },
+      ...(ingredient.foodItem?.name ? [{ name: ingredient.foodItem.name, category: ingredient.category }] : []),
+    ])
+  );
   if (restrictions.allergies.length && classification.status !== 'COMPLETE') return false;
   return !classification.detectedAllergens.some((allergen) => restrictions.allergies.includes(allergen));
 }
@@ -268,13 +289,16 @@ export async function queryEligibleLibraryMeals(input: {
   const limit = Math.max(1, Math.min(input.limit ?? 80, 120));
   const conditions = positiveValues(input.userConditions);
   const allergens = positiveValues(input.userAllergens);
-  const profileScope = conditions.length === 0 ? mealApprovalSafetyScope({
-    conditions: input.userConditions,
-    allergens: input.userAllergens,
-    otherConditions: input.profile.otherConditions,
-    otherAllergies: input.profile.otherAllergies,
-    safetyEntries: input.profile.safetyEntries,
-  }) : null;
+  const profileScope =
+    conditions.length === 0
+      ? mealApprovalSafetyScope({
+          conditions: input.userConditions,
+          allergens: input.userAllergens,
+          otherConditions: input.profile.otherConditions,
+          otherAllergies: input.profile.otherAllergies,
+          safetyEntries: input.profile.safetyEntries,
+        })
+      : null;
   const and: Prisma.MealLibraryWhereInput[] = [];
   const allergenAnd: Prisma.MealLibraryWhereInput[] = [];
 
@@ -322,12 +346,22 @@ export async function queryEligibleLibraryMeals(input: {
         ...(and.length ? { AND: and } : {}),
       },
       ...(input.includeUnapprovedCaseCandidates && (conditions.length || allergens.length)
-        ? [{ safetyEvidenceStatus: MealLibrarySafetyEvidenceStatus.COMPLETE,
-            ...(allergenAnd.length ? { AND: allergenAnd } : {}) }]
+        ? [
+            {
+              safetyEvidenceStatus: MealLibrarySafetyEvidenceStatus.COMPLETE,
+              ...(allergenAnd.length ? { AND: allergenAnd } : {}),
+            },
+          ]
         : []),
-      ...(profileScope?.supported ? [{ profileApprovals: {
-        some: { safetyScopeKey: profileScope.key, flaggedAt: null, reviewDueAt: { gt: new Date() } },
-      } }] : []),
+      ...(profileScope?.supported
+        ? [
+            {
+              profileApprovals: {
+                some: { safetyScopeKey: profileScope.key, flaggedAt: null, reviewDueAt: { gt: new Date() } },
+              },
+            },
+          ]
+        : []),
     ],
     ...(input.mealType ? { applicableMealTypes: { some: { mealType: input.mealType } } } : {}),
     ...(calorieRange ? { calories: { gte: calorieRange.minimum, lte: calorieRange.maximum } } : {}),
@@ -345,12 +379,13 @@ export async function queryEligibleLibraryMeals(input: {
 
   const admitted = await admittedLibraryBaseIds(candidates);
 
-  return candidates.filter((meal) =>
-    admitted.has(meal.id) &&
-    (isCertifiedLibraryMealCompatible(meal, input.userConditions, input.userAllergens, input.profile) ||
-      isProfileApprovedLibraryMealCompatible(meal, input.userConditions, input.userAllergens, input.profile) ||
-      (input.includeUnapprovedCaseCandidates &&
-        isLibraryMealSafeToQueueForCaseReview(meal, input.userConditions, input.userAllergens, input.profile)))
+  return candidates.filter(
+    (meal) =>
+      admitted.has(meal.id) &&
+      (isCertifiedLibraryMealCompatible(meal, input.userConditions, input.userAllergens, input.profile) ||
+        isProfileApprovedLibraryMealCompatible(meal, input.userConditions, input.userAllergens, input.profile) ||
+        (input.includeUnapprovedCaseCandidates &&
+          isLibraryMealSafeToQueueForCaseReview(meal, input.userConditions, input.userAllergens, input.profile)))
   );
 }
 
@@ -447,7 +482,13 @@ export async function queryEligibleLibraryPage(input: {
         ...(and.length ? { AND: and } : {}),
       },
       ...(profileScope?.supported && conditions.length === 0
-        ? [{ profileApprovals: { some: { safetyScopeKey: profileScope.key, flaggedAt: null, reviewDueAt: { gt: new Date() } } } }]
+        ? [
+            {
+              profileApprovals: {
+                some: { safetyScopeKey: profileScope.key, flaggedAt: null, reviewDueAt: { gt: new Date() } },
+              },
+            },
+          ]
         : []),
     ],
     ...(input.mealType ? { applicableMealTypes: { some: { mealType: input.mealType } } } : {}),
@@ -491,12 +532,15 @@ export async function queryEligibleLibraryPage(input: {
     for (const row of rows) {
       if (
         !admitted.has(row.id) ||
-        !isCertifiedLibraryMealCompatible(row, input.userConditions, input.userAllergens, input.profile, {
+        (!isCertifiedLibraryMealCompatible(row, input.userConditions, input.userAllergens, input.profile, {
           safetyOnly: input.safetyOnly,
         }) &&
-        !(input.includeProfileApproved &&
-          isProfileApprovedLibraryMealCompatible(row, input.userConditions, input.userAllergens, input.profile))
-      ) continue;
+          !(
+            input.includeProfileApproved &&
+            isProfileApprovedLibraryMealCompatible(row, input.userConditions, input.userAllergens, input.profile)
+          ))
+      )
+        continue;
       total += 1;
       if ((!requestedCursor || afterLibraryCursor(row, requestedCursor)) && items.length < pageLimit + 1) {
         items.push({ ...row, isFavorite: row.favorites.length > 0 });

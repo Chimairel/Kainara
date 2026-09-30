@@ -5,7 +5,7 @@ import prisma from '../src/lib/prisma';
 import { COMMON_MEAL_CATALOGUE } from '../src/data/common-meal-catalogue';
 import { MEAL_LIBRARY_SAFETY_POLICY_VERSION } from '../src/domain/meal-library-safety-evidence.policy';
 import { MEAL_PLAN_SAFETY_POLICY_VERSION } from '../src/domain/meal-plan-production-safety.policy';
-import { certifiedLibraryMealInclude } from '../src/services/meal-swap.service';
+import { certifiedLibraryMealInclude } from '../src/services/meal-library-candidate-query.service';
 import { GroceryService } from '../src/services/grocery.service';
 import { SafetyIntakeService } from '../src/services/safety-intake.service';
 import { UserService } from '../src/services/user.service';
@@ -158,8 +158,11 @@ async function main() {
     ]);
     assert.equal(planAfter.status, 'PENDING_REVIEW');
     assert.equal(planAfter.requiresSafetyRevalidation, true);
-    assert.equal(planAfter.libraryMealId, original.id,
-      'The meal must wait for profile review before a replacement is chosen.');
+    assert.equal(
+      planAfter.libraryMealId,
+      original.id,
+      'The meal must wait for profile review before a replacement is chosen.'
+    );
     assert.equal(groceryAfter, null);
     assert.equal(revisionsAfter.length, 1);
     assert.equal(reportAfter?.acknowledgedAt, null);

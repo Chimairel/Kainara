@@ -1,192 +1,34 @@
-import { Response } from 'express';
-import { lockUserProfile } from '@/services/profile-revision.service';
-import { AuthenticatedRequest } from '@/types';
-import { MealGenerationService } from '@/services/meal-generation.service';
-import { MealAiQueueService } from '@/services/meal-ai-queue.service';
-import { MealPlanCycleService } from '@/services/meal-plan-cycle.service';
-import { MealLogService } from '@/services/meal-log.service';
-import { OutsideMealCaptureService } from '@/services/outside-meal-capture.service';
-import { OutsideMealReviewService } from '@/services/outside-meal-review.service';
-import { ObservedMealService } from '@/services/observed-meal.service';
-import { MealSwapService } from '@/services/meal-swap.service';
-import { MealFavoriteService } from '@/services/meal-favorite.service';
-import { UpcomingPlanPreparationService } from '@/services/upcoming-plan-preparation.service';
-import { CurrentPlanPreparationService } from '@/services/current-plan-preparation.service';
-import { GroceryService } from '@/services/grocery.service';
-import prisma from '@/lib/prisma';
-import { MealLogSource, MealLogDataSource, MealLogStatus, MealType, MealPlanStatus } from '@prisma/client';
-import { missingMealSlots } from '@/domain/meal-generation-gap.policy';
-import { sanitizeErrorMessage } from '@/lib/sanitizeError';
 import {
-  assertUserLoggableMealPlan,
   filterUserActionableMealPlans,
   getOwnedMealPlanWhere,
   isMealPlanNotActionableError,
 } from '@/domain/meal-actionability.policy';
-import {
-  buildPendingMealPlanPreview,
-  summarizeGeneratedMealPlan,
-  type PendingMealPreviewInput,
-} from '@/domain/meal-generation-result.policy';
-import { buildMealExplanation } from '@/domain/meal-explanation.policy';
-import {
-  toPublicMealImage,
-  toPublicRawRecipeImage,
-  type MealImageRecord,
-  type PublicMealImage,
-  type RawRecipeImageRecord,
-} from '@/domain/meal-image.policy';
-import { resolveLibraryRecipeImages } from '@/services/library-recipe-image.service';
-import { resolveLibraryRecipeCookingLinks } from '@/services/library-recipe-cooking-link.service';
-import { cookingLinkForMeal, type PublicMealCookingLink } from '@/domain/meal-cooking-link.policy';
-import { getPlanHistory } from './meals-history.controller';
+import { missingMealSlots } from '@/domain/meal-generation-gap.policy';
+import { buildPendingMealPlanPreview, summarizeGeneratedMealPlan } from '@/domain/meal-generation-result.policy';
 import { AppError } from '@/errors/AppError';
-
-export const defaultPlatformVerifier = {
-  name: 'Andrea Reyes, RND',
-  image: null,
-  officialHeadshot: null,
-  prcLicenseNumber: 'PRC-RND-NM-0001',
-  prcLicenseExpiry: new Date('2028-12-31T00:00:00.000Z'),
-  specialization: 'Clinical Dietetics & Community Nutrition',
-  yearsOfExperience: 8,
-  university: 'University of the Philippines Diliman',
-  bio: 'PRC-licensed clinical nutritionist-dietitian managing personalized metabolic diet plans and food safety reviews.',
-};
-
-function toPublicVerifier(
-  nutritionist?: {
-    prcLicenseNumber: string;
-    prcLicenseExpiry: Date;
-    specialization: string | null;
-    yearsOfExperience: number | null;
-    university: string | null;
-    bio: string | null;
-    officialHeadshot?: string | null;
-    user: { name: string; image?: string | null };
-  } | null
-) {
-  if (!nutritionist) return null;
-  return {
-    name: nutritionist.user.name,
-    image: nutritionist.officialHeadshot || nutritionist.user.image || null,
-    officialHeadshot: nutritionist.officialHeadshot || null,
-    prcLicenseNumber: nutritionist.prcLicenseNumber,
-    prcLicenseExpiry: nutritionist.prcLicenseExpiry,
-    specialization: nutritionist.specialization,
-    yearsOfExperience: nutritionist.yearsOfExperience,
-    university: nutritionist.university,
-    bio: nutritionist.bio,
-  };
-}
-
-const rawRecipeImageSelect = {
-  recipeName: true,
-  sourceName: true,
-  sourceUrl: true,
-  sourceImageUrl: true,
-  sourceVideoUrl: true,
-} as const;
-
-function planImage(
-  meal: {
-    libraryMeal?: (MealImageRecord & { id: string }) | null;
-    sourceRawRecipeCandidate?: RawRecipeImageRecord | null;
-    selectionEvidence?: unknown;
-  },
-  libraryImages?: ReadonlyMap<string, PublicMealImage>
-) {
-  const rawRecipe = isUserSwappedMeal(meal.selectionEvidence) ? null : meal.sourceRawRecipeCandidate;
-  const libraryImage = meal.libraryMeal ? toPublicMealImage(meal.libraryMeal) : null;
-  if (libraryImage?.kind === 'EXACT' && meal.libraryMeal?.imagePublicId) return libraryImage;
-  return (
-    (rawRecipe ? toPublicRawRecipeImage(rawRecipe) : null) ||
-    (meal.libraryMeal ? libraryImages?.get(meal.libraryMeal.id) : null) ||
-    libraryImage
-  );
-}
-
-function isUserSwappedMeal(selectionEvidence: unknown): boolean {
-  return typeof selectionEvidence === 'object' && selectionEvidence !== null &&
-    'source' in selectionEvidence && selectionEvidence.source === 'USER_SWAP';
-}
-
-function planCookingLink(
-  meal: {
-    libraryMeal?: (MealImageRecord & { id: string }) | null;
-    sourceRawRecipeCandidate?: RawRecipeImageRecord | null;
-    selectionEvidence?: unknown;
-  },
-  libraryCookingLinks?: ReadonlyMap<string, PublicMealCookingLink>
-): PublicMealCookingLink | null {
-  const rawRecipe = isUserSwappedMeal(meal.selectionEvidence) ? null : meal.sourceRawRecipeCandidate;
-  const rawLink = cookingLinkForMeal({ sourceRawRecipeCandidate: rawRecipe });
-  if (rawLink?.kind === 'PANLASANG_RECIPE') return rawLink;
-  return (meal.libraryMeal ? libraryCookingLinks?.get(meal.libraryMeal.id) : null) ||
-    cookingLinkForMeal({ libraryDescription: meal.libraryMeal?.description }) || rawLink || null;
-}
-
-function pendingPreviewWithImages<
-  T extends PendingMealPreviewInput & {
-    libraryMeal?: (MealImageRecord & { id: string }) | null;
-    sourceRawRecipeCandidate?: RawRecipeImageRecord | null;
-    selectionEvidence?: unknown;
-  },
->(
-  rows: readonly T[],
-  libraryImages?: ReadonlyMap<string, PublicMealImage>,
-  libraryCookingLinks?: ReadonlyMap<string, PublicMealCookingLink>
-) {
-  return buildPendingMealPlanPreview(rows.map((row) => ({
-    ...row,
-    image: planImage(row, libraryImages),
-    cookingLink: planCookingLink(row, libraryCookingLinks),
-  })));
-}
-
-function serializeActionableMeal<
-  T extends {
-    nutritionist?: Parameters<typeof toPublicVerifier>[0] | null;
-    firstApprovedByNutritionist?: Parameters<typeof toPublicVerifier>[0] | null;
-    libraryMeal?: (MealImageRecord & {
-      id: string;
-      verifiedByNutritionist?: Parameters<typeof toPublicVerifier>[0] | null;
-    }) | null;
-    selectionEvidence: unknown;
-    libraryMealId: string | null;
-    sourceRawRecipeCandidate?: RawRecipeImageRecord | null;
-    status: string;
-    aiConfidenceFlag: string;
-    calories: number;
-    ingredients: Array<{ dataSource: string; foodItemId: string | null }>;
-  },
->(
-  meal: T,
-  libraryImages?: ReadonlyMap<string, PublicMealImage>,
-  libraryCookingLinks?: ReadonlyMap<string, PublicMealCookingLink>
-) {
-  const { nutritionist, firstApprovedByNutritionist, selectionEvidence, libraryMeal, sourceRawRecipeCandidate, ...publicMeal } = meal as any;
-  const verifier =
-    toPublicVerifier(nutritionist) ||
-    toPublicVerifier(firstApprovedByNutritionist) ||
-    toPublicVerifier(libraryMeal?.verifiedByNutritionist) ||
-    (meal.status === 'APPROVED' ? defaultPlatformVerifier : null);
-  return {
-    ...publicMeal,
-    image: planImage({ libraryMeal, sourceRawRecipeCandidate, selectionEvidence }, libraryImages),
-    cookingLink: planCookingLink({ libraryMeal, sourceRawRecipeCandidate, selectionEvidence }, libraryCookingLinks),
-    verifier,
-    explanation: buildMealExplanation({
-      libraryMealId: meal.libraryMealId,
-      status: meal.status,
-      aiConfidenceFlag: meal.aiConfidenceFlag,
-      calories: meal.calories,
-      verifierName: verifier?.name,
-      ingredients: meal.ingredients,
-      selectionEvidence,
-    }),
-  };
-}
+import prisma from '@/lib/prisma';
+import { sanitizeErrorMessage } from '@/lib/sanitizeError';
+import { CurrentPlanPreparationService } from '@/services/current-plan-preparation.service';
+import { GroceryService } from '@/services/grocery.service';
+import { resolveLibraryRecipeCookingLinks } from '@/services/library-recipe-cooking-link.service';
+import { resolveLibraryRecipeImages } from '@/services/library-recipe-image.service';
+import { MealAiQueueService } from '@/services/meal-ai-queue.service';
+import { MealFavoriteService } from '@/services/meal-favorite.service';
+import { MealGenerationService } from '@/services/meal-generation.service';
+import { MealPlanCycleService } from '@/services/meal-plan-cycle.service';
+import {
+  pendingPreviewWithImages,
+  rawRecipeImageSelect,
+  serializeActionableMeal,
+} from '@/services/meal-plan-presentation.service';
+import { MealSwapService } from '@/services/meal-swap.service';
+import { updateScheduledMealStatus } from '@/services/scheduled-meal-log.service';
+import { UpcomingPlanPreparationService } from '@/services/upcoming-plan-preparation.service';
+import { AuthenticatedRequest } from '@/types';
+import { MealPlanStatus, MealType } from '@prisma/client';
+import { Response } from 'express';
+import { getPlanHistory } from './meals-history.controller';
+import { OutsideMealsController } from './outside-meals.controller';
 
 export class MealsController {
   /**
@@ -242,12 +84,16 @@ export class MealsController {
       const pendingReview = pendingPreviewWithImages(generatedPlanRows, libraryImages, libraryCookingLinks);
       const planSnapshot = await prisma.mealPlanCycleSnapshot.findUnique({ where: { planGroupId } });
       const cycle = await prisma.mealPlanCycle.findUnique({ where: { id: planGroupId } });
-      const awaitingGenerationCount = cycle ? missingMealSlots(
-        cycle.startDate, cycle.expectedSlotCount,
-        generatedPlanRows.filter((row) => row.status !== MealPlanStatus.CANCELLED)
-      ).length : 0;
+      const awaitingGenerationCount = cycle
+        ? missingMealSlots(
+            cycle.startDate,
+            cycle.expectedSlotCount,
+            generatedPlanRows.filter((row) => row.status !== MealPlanStatus.CANCELLED)
+          ).length
+        : 0;
       const generationJob = await prisma.mealPlanGenerationJob.findUnique({
-        where: { planGroupId }, select: { status: true },
+        where: { planGroupId },
+        select: { status: true },
       });
 
       // The grocery checklist is a projection of the actionable plan, not a
@@ -302,11 +148,14 @@ export class MealsController {
       const queued = await MealAiQueueService.retryForCycle(userId, req.params.cycleId);
       return res.status(queued ? 202 : 409).json({
         success: queued,
-        ...(queued ? { data: { status: 'WAITING_FOR_AI' } } : { error: 'This cycle cannot be retried. Refresh its status or request a new plan.' }),
+        ...(queued
+          ? { data: { status: 'WAITING_FOR_AI' } }
+          : { error: 'This cycle cannot be retried. Refresh its status or request a new plan.' }),
       });
     } catch (error) {
       return res.status(error instanceof AppError ? error.statusCode : 500).json({
-        success: false, error: sanitizeErrorMessage(error, 'Could not retry meal generation.'),
+        success: false,
+        error: sanitizeErrorMessage(error, 'Could not retry meal generation.'),
       });
     }
   }
@@ -317,8 +166,10 @@ export class MealsController {
    */
   static async getCurrentPlan(req: AuthenticatedRequest, res: Response) {
     const stages: string[] = [];
-    let stageStartedAt = typeof res.locals.currentPlanRequestStartedAt === 'number'
-      ? res.locals.currentPlanRequestStartedAt : performance.now();
+    let stageStartedAt =
+      typeof res.locals.currentPlanRequestStartedAt === 'number'
+        ? res.locals.currentPlanRequestStartedAt
+        : performance.now();
     const mark = (name: string) => {
       const now = performance.now();
       stages.push(`${name};dur=${(now - stageStartedAt).toFixed(1)}`);
@@ -357,7 +208,8 @@ export class MealsController {
       // shopping preferences do not move or hide an already-created cycle.
       const planSnapshotPromise = prisma.mealPlanCycleSnapshot.findUnique({ where: { planGroupId: cycle.id } });
       const generationJobPromise = prisma.mealPlanGenerationJob.findUnique({
-        where: { planGroupId: cycle.id }, select: { status: true },
+        where: { planGroupId: cycle.id },
+        select: { status: true },
       });
       const groupMealsPromise = prisma.mealPlan.findMany({
         where: {
@@ -387,7 +239,9 @@ export class MealsController {
         orderBy: { scheduledDate: 'asc' },
       });
       const [groupMeals, planSnapshot, generationJob] = await Promise.all([
-        groupMealsPromise, planSnapshotPromise, generationJobPromise,
+        groupMealsPromise,
+        planSnapshotPromise,
+        generationJobPromise,
       ]);
       mark('meals');
       const clearedIds = new Set(cycleClearedIds);
@@ -412,7 +266,8 @@ export class MealsController {
           pendingReview: pendingPreviewWithImages(groupMeals, libraryImages, libraryCookingLinks),
           planSnapshot,
           awaitingGenerationCount: missingMealSlots(
-            cycle.startDate, cycle.expectedSlotCount,
+            cycle.startDate,
+            cycle.expectedSlotCount,
             groupMeals.filter((row) => row.status !== MealPlanStatus.CANCELLED)
           ).length,
           generationStatus: generationJob?.status ?? null,
@@ -430,8 +285,10 @@ export class MealsController {
   /** GET /api/user/meals/workspace — cleared current and upcoming slots. */
   static async getPlanWorkspace(req: AuthenticatedRequest, res: Response) {
     const stages: string[] = [];
-    let stageStartedAt = typeof res.locals.currentPlanRequestStartedAt === 'number'
-      ? res.locals.currentPlanRequestStartedAt : performance.now();
+    let stageStartedAt =
+      typeof res.locals.currentPlanRequestStartedAt === 'number'
+        ? res.locals.currentPlanRequestStartedAt
+        : performance.now();
     const mark = (name: string) => {
       const now = performance.now();
       stages.push(`${name};dur=${(now - stageStartedAt).toFixed(1)}`);
@@ -445,12 +302,22 @@ export class MealsController {
       const clearedIdsByCycle = new Map<string, string[]>();
       const cycles = await MealPlanCycleService.getCurrentAndUpcoming(userId, new Date(), clearedIdsByCycle);
       mark('cycles');
-      const pendingCurrentJob = cycles.current ? null : await CurrentPlanPreparationService.getCurrentWindowJobStatus(userId);
+      const pendingCurrentJob = cycles.current
+        ? null
+        : await CurrentPlanPreparationService.getCurrentWindowJobStatus(userId);
       const cycleIds = [cycles.current?.id, cycles.upcoming?.id].filter((id): id is string => Boolean(id));
       if (!cycleIds.length) {
         res.setHeader('Server-Timing', stages.join(', '));
-        return res.status(200).json({ success: true, data: [], meta: { cycles, pendingReview: null,
-          awaitingGeneration: { current: 0, upcoming: 0 }, generationStatus: { current: pendingCurrentJob?.status ?? 'GENERATING', upcoming: null } } });
+        return res.status(200).json({
+          success: true,
+          data: [],
+          meta: {
+            cycles,
+            pendingReview: null,
+            awaitingGeneration: { current: 0, upcoming: 0 },
+            generationStatus: { current: pendingCurrentJob?.status ?? 'GENERATING', upcoming: null },
+          },
+        });
       }
       const rowsPromise = prisma.mealPlan.findMany({
         where: { userId, planGroupId: { in: cycleIds } },
@@ -470,17 +337,23 @@ export class MealsController {
         },
         orderBy: [{ scheduledDate: 'asc' }, { mealType: 'asc' }],
       });
-      const clearedByCyclePromise = Promise.all(cycleIds.map((cycleId) =>
-        clearedIdsByCycle.get(cycleId) ?? MealPlanCycleService.getClearedMealPlanIds(userId, cycleId)
-      ));
+      const clearedByCyclePromise = Promise.all(
+        cycleIds.map(
+          (cycleId) => clearedIdsByCycle.get(cycleId) ?? MealPlanCycleService.getClearedMealPlanIds(userId, cycleId)
+        )
+      );
       const generationJobsPromise = prisma.mealPlanGenerationJob.findMany({
-        where: { planGroupId: { in: cycleIds } }, select: { planGroupId: true, status: true },
+        where: { planGroupId: { in: cycleIds } },
+        select: { planGroupId: true, status: true },
       });
       const [rows, clearedByCycle, generationJobs] = await Promise.all([
-        rowsPromise, clearedByCyclePromise, generationJobsPromise,
+        rowsPromise,
+        clearedByCyclePromise,
+        generationJobsPromise,
       ]);
       mark('meal-data');
-      const generationStatusFor = (cycleId?: string | null) => generationJobs.find((job) => job.planGroupId === cycleId)?.status ?? null;
+      const generationStatusFor = (cycleId?: string | null) =>
+        generationJobs.find((job) => job.planGroupId === cycleId)?.status ?? null;
       const clearedIds = new Set(clearedByCycle.flat());
       const libraryMeals = rows.flatMap((row) => (row.libraryMeal ? [row.libraryMeal] : []));
       const [libraryImages, libraryCookingLinks] = await Promise.all([
@@ -503,13 +376,29 @@ export class MealsController {
           cycles,
           pendingReview: pendingPreviewWithImages(rows, libraryImages, libraryCookingLinks),
           awaitingGeneration: {
-            current: cycles.current ? missingMealSlots(cycles.current.startDate, cycles.current.expectedSlotCount,
-              rows.filter((row) => row.planGroupId === cycles.current?.id && row.status !== MealPlanStatus.CANCELLED)).length : 0,
-            upcoming: cycles.upcoming ? missingMealSlots(cycles.upcoming.startDate, cycles.upcoming.expectedSlotCount,
-              rows.filter((row) => row.planGroupId === cycles.upcoming?.id && row.status !== MealPlanStatus.CANCELLED)).length : 0,
+            current: cycles.current
+              ? missingMealSlots(
+                  cycles.current.startDate,
+                  cycles.current.expectedSlotCount,
+                  rows.filter(
+                    (row) => row.planGroupId === cycles.current?.id && row.status !== MealPlanStatus.CANCELLED
+                  )
+                ).length
+              : 0,
+            upcoming: cycles.upcoming
+              ? missingMealSlots(
+                  cycles.upcoming.startDate,
+                  cycles.upcoming.expectedSlotCount,
+                  rows.filter(
+                    (row) => row.planGroupId === cycles.upcoming?.id && row.status !== MealPlanStatus.CANCELLED
+                  )
+                ).length
+              : 0,
           },
           generationStatus: {
-            current: cycles.current ? generationStatusFor(cycles.current.id) : pendingCurrentJob?.status ?? 'GENERATING',
+            current: cycles.current
+              ? generationStatusFor(cycles.current.id)
+              : (pendingCurrentJob?.status ?? 'GENERATING'),
             upcoming: generationStatusFor(cycles.upcoming?.id),
           },
         },
@@ -656,168 +545,16 @@ export class MealsController {
    * POST /api/user/meals/log-outside
    * Logs an outside meal, performing pre-checks.
    */
-  static async logOutsideMeal(req: AuthenticatedRequest, res: Response) {
-    try {
-      const userId = req.user?.userId;
-      if (!userId) {
-        return res.status(401).json({ success: false, error: 'Unauthorized.' });
-      }
-
-      const {
-        mealName,
-        items,
-        mealType,
-        useAiEstimate,
-        requestKey,
-        warningAcknowledged,
-        confirmationId,
-        notes,
-        estimationContext,
-        consumedAt,
-      } = req.body;
-
-      const result = await MealLogService.logOutsideMeal({
-        userId,
-        mealName,
-        items,
-        mealType,
-        useAiEstimate,
-        requestKey,
-        warningAcknowledged,
-        confirmationId,
-        notes,
-        estimationContext,
-        consumedAt,
-      });
-
-      return res.status(200).json({
-        success: true,
-        data: result,
-      });
-    } catch (error: any) {
-      console.error('[MealsController] logOutsideMeal error:', error);
-      const status = typeof error?.statusCode === 'number' ? error.statusCode : 500;
-      return res.status(status).json({
-        success: false,
-        error: sanitizeErrorMessage(error, 'Failed to check or log outside meal.'),
-      });
-    }
-  }
-
-  static async getOutsideSuggestions(req: AuthenticatedRequest, res: Response) {
-    try {
-      return res.json({
-        success: true,
-        data: await OutsideMealCaptureService.suggestions(req.user!.userId, String(req.query.search)),
-      });
-    } catch (error) {
-      return res
-        .status(400)
-        .json({ success: false, error: sanitizeErrorMessage(error, 'Failed to load food suggestions.') });
-    }
-  }
-
-  static async editOutsideItem(req: AuthenticatedRequest, res: Response) {
-    try {
-      const data = await OutsideMealCaptureService.editItem(
-        req.user!.userId,
-        req.params.id,
-        req.params.itemId,
-        req.body
-      );
-      return res.json({ success: true, data });
-    } catch (error: any) {
-      return res
-        .status(error?.statusCode ?? 400)
-        .json({ success: false, error: sanitizeErrorMessage(error, 'Failed to revise outside meal.') });
-    }
-  }
-
-  static async voidOutsideLog(req: AuthenticatedRequest, res: Response) {
-    try {
-      const data = await OutsideMealCaptureService.voidLog(req.user!.userId, req.params.id, req.body.reason);
-      return res.json({ success: true, data });
-    } catch (error: any) {
-      return res
-        .status(error?.statusCode ?? 400)
-        .json({ success: false, error: sanitizeErrorMessage(error, 'Failed to void outside meal.') });
-    }
-  }
-
-  static async requestOutsideItemReview(req: AuthenticatedRequest, res: Response) {
-    try {
-      const data = await OutsideMealReviewService.requestByUser(req.user!.userId, req.params.id, req.params.itemId);
-      return res.json({ success: true, data });
-    } catch (error: any) {
-      return res
-        .status(error?.statusCode ?? 400)
-        .json({ success: false, error: sanitizeErrorMessage(error, 'Could not request outside-meal review.') });
-    }
-  }
-
-  static async replyToOutsideItemReview(req: AuthenticatedRequest, res: Response) {
-    try {
-      const data = await OutsideMealReviewService.replyByUser(
-        req.user!.userId,
-        req.params.id,
-        req.params.itemId,
-        req.body.message
-      );
-      return res.json({ success: true, data });
-    } catch (error: any) {
-      return res
-        .status(error?.statusCode ?? 400)
-        .json({ success: false, error: sanitizeErrorMessage(error, 'Could not send clarification.') });
-    }
-  }
-
-  static async consentToObservedMealReuse(req: AuthenticatedRequest, res: Response) {
-    try {
-      const data = await ObservedMealService.consent(req.user!.userId, req.params.id, req.params.itemId, req.body);
-      return res.json({ success: true, data });
-    } catch (error: any) {
-      return res
-        .status(error?.statusCode ?? 400)
-        .json({ success: false, error: sanitizeErrorMessage(error, 'Could not submit this food for reuse.') });
-    }
-  }
-
-  static async withdrawObservedMealReuse(req: AuthenticatedRequest, res: Response) {
-    try {
-      const data = await ObservedMealService.withdraw(req.user!.userId, req.params.id);
-      return res.json({ success: true, data });
-    } catch (error: any) {
-      return res
-        .status(error?.statusCode ?? 400)
-        .json({ success: false, error: sanitizeErrorMessage(error, 'Could not withdraw reuse permission.') });
-    }
-  }
-
-  static async attachOutsideImage(req: AuthenticatedRequest, res: Response) {
-    try {
-      if (!req.file)
-        return res.status(400).json({ success: false, error: 'Choose a JPG, PNG, or WebP image under 2 MB.' });
-      const data = await OutsideMealCaptureService.attachImage(req.user!.userId, req.params.id, req.file);
-      return res.json({ success: true, data });
-    } catch (error: any) {
-      return res
-        .status(error?.statusCode ?? 400)
-        .json({ success: false, error: sanitizeErrorMessage(error, 'Failed to attach image.') });
-    }
-  }
-
-  static async getOutsideImage(req: AuthenticatedRequest, res: Response) {
-    try {
-      const image = await OutsideMealCaptureService.image(req.user!.userId, req.params.id);
-      res.setHeader('Content-Type', image.mime);
-      res.setHeader('Cache-Control', 'private, no-store');
-      return res.send(image.buffer);
-    } catch (error: any) {
-      return res
-        .status(error?.statusCode ?? 404)
-        .json({ success: false, error: sanitizeErrorMessage(error, 'Image unavailable.') });
-    }
-  }
+  static logOutsideMeal = OutsideMealsController.logOutsideMeal;
+  static getOutsideSuggestions = OutsideMealsController.getOutsideSuggestions;
+  static editOutsideItem = OutsideMealsController.editOutsideItem;
+  static voidOutsideLog = OutsideMealsController.voidOutsideLog;
+  static requestOutsideItemReview = OutsideMealsController.requestOutsideItemReview;
+  static replyToOutsideItemReview = OutsideMealsController.replyToOutsideItemReview;
+  static consentToObservedMealReuse = OutsideMealsController.consentToObservedMealReuse;
+  static withdrawObservedMealReuse = OutsideMealsController.withdrawObservedMealReuse;
+  static attachOutsideImage = OutsideMealsController.attachOutsideImage;
+  static getOutsideImage = OutsideMealsController.getOutsideImage;
 
   /**
    * PATCH /api/user/meals/:id/status
@@ -837,56 +574,7 @@ export class MealsController {
         return res.status(400).json({ success: false, error: 'Invalid or missing status parameter.' });
       }
 
-      const updatedLog = await prisma.$transaction(async (tx) => {
-        await lockUserProfile(tx, userId);
-        // Find the MealPlan item to fetch macros
-        const mealPlan = await tx.mealPlan.findFirst({
-          where: getOwnedMealPlanWhere(userId, mealPlanId),
-        });
-
-        if (!mealPlan) {
-          throw new Error('Meal plan item not found.');
-        }
-
-        assertUserLoggableMealPlan(mealPlan);
-        const clearedIds = await MealPlanCycleService.getClearedMealPlanIds(
-          userId,
-          mealPlan.planGroupId,
-          new Date(),
-          tx
-        );
-        if (!clearedIds.includes(mealPlan.id)) {
-          throw new Error('This meal needs safety revalidation before it can be logged.');
-        }
-
-        return tx.mealLog.upsert({
-          where: { mealPlanId },
-          update: {
-            status: status as MealLogStatus,
-            loggedAt: mealPlan.scheduledDate,
-            ...(mealPlan.mealType ? { mealType: mealPlan.mealType } : {}),
-            ...(notes !== undefined ? { notes: notes ?? null } : {}),
-          },
-          create: {
-            userId,
-            mealPlanId,
-            source: MealLogSource.SYSTEM_GENERATED,
-            mealName: mealPlan.mealName,
-            calories: mealPlan.calories,
-            proteinG: mealPlan.proteinG,
-            carbsG: mealPlan.carbsG,
-            fatG: mealPlan.fatG,
-            dataSource: MealLogDataSource.FNRI, // Plan meals are FNRI validated
-            status: status as MealLogStatus,
-            warningType: null,
-            warningShown: false,
-            warningAcknowledged: false,
-            notes: notes ?? null,
-            mealType: mealPlan.mealType,
-            loggedAt: mealPlan.scheduledDate,
-          },
-        });
-      });
+      const updatedLog = await updateScheduledMealStatus(userId, mealPlanId, status, notes);
 
       return res.status(200).json({
         success: true,

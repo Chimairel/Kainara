@@ -4,7 +4,10 @@ import { DietaryPreference, Goal } from '@prisma/client';
 import prisma from '../src/lib/prisma';
 import { COMMON_MEAL_CATALOGUE } from '../src/data/common-meal-catalogue';
 import { MEAL_LIBRARY_SAFETY_POLICY_VERSION } from '../src/domain/meal-library-safety-evidence.policy';
-import { certifiedLibraryMealInclude, isCertifiedLibraryMealCompatible } from '../src/services/meal-swap.service';
+import {
+  certifiedLibraryMealInclude,
+  isCertifiedLibraryMealCompatible,
+} from '../src/services/meal-library-candidate-query.service';
 
 const profiles = [
   {

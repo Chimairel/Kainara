@@ -3,7 +3,7 @@ import test from 'node:test';
 import { adaptUserSafetyRestrictions } from '../src/domain/structured-restriction.adapter';
 import { evaluateMealGenerationLibraryCompatibility } from '../src/domain/meal-generation-library-compatibility.adapter';
 import { MEAL_LIBRARY_SAFETY_POLICY_VERSION } from '../src/domain/meal-library-safety-evidence.policy';
-import { isCertifiedLibraryMealCompatible } from '../src/services/meal-swap.service';
+import { isCertifiedLibraryMealCompatible } from '../src/services/meal-library-candidate-query.service';
 
 const completeCandidate = (
   conditions: string[] = [],
@@ -107,8 +107,14 @@ test('user-scoped condition clearance admits only its intended patient', () => {
     otherAllergies: null,
     safetyEntries: [entry('CONDITION', 'HYPERTENSION')],
   };
-  assert.equal(isCertifiedLibraryMealCompatible(meal, ['HYPERTENSION'], [], { ...profile, userId: 'patient-one' }), true);
-  assert.equal(isCertifiedLibraryMealCompatible(meal, ['HYPERTENSION'], [], { ...profile, userId: 'patient-two' }), false);
+  assert.equal(
+    isCertifiedLibraryMealCompatible(meal, ['HYPERTENSION'], [], { ...profile, userId: 'patient-one' }),
+    true
+  );
+  assert.equal(
+    isCertifiedLibraryMealCompatible(meal, ['HYPERTENSION'], [], { ...profile, userId: 'patient-two' }),
+    false
+  );
   assert.equal(isCertifiedLibraryMealCompatible(meal, ['HYPERTENSION'], [], profile), false);
 });
 

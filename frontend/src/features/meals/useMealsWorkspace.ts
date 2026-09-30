@@ -1,129 +1,28 @@
-import { summarizeMealIntake } from '@/lib/meal-history-summary';
-import React, { useCallback, useEffect, useRef, useState } from 'react';
-import axios from 'axios';
-import { getApiErrorMessage } from '@/lib/api-error';
-import { useAuth } from '@/hooks/useAuth';
-import api from '@/lib/axios';
-import type { MealPlan, PublicMealImage, PublicVerifier, MealCookingLink } from '@/types';
 import type { PendingMealPreview } from '@/components/user/PendingMealPreviewCard';
+import type { CycleMetaSnapshot } from '@/features/dashboard/model';
+import { useMealGenerationProgress } from '@/features/meals/useMealGenerationProgress';
+import { useAuth } from '@/hooks/useAuth';
+import { getApiErrorMessage } from '@/lib/api-error';
+import api from '@/lib/axios';
+import { cachedClinicalProfileStatus, refreshClinicalProfileStatus } from '@/lib/clinical-profile-status';
 import { formatManilaDate, getManilaDateKey, manilaDateFromKey } from '@/lib/manila-date';
 import { invalidateSessionResource, readSessionResource, writeSessionResource } from '@/lib/session-resource-cache';
-import { useMealGenerationProgress } from '@/features/meals/useMealGenerationProgress';
-import type { CycleMetaSnapshot } from '@/features/dashboard/model';
-import { cachedClinicalProfileStatus, refreshClinicalProfileStatus } from '@/lib/clinical-profile-status';
 import { cachedUserProfile } from '@/lib/user-profile-resource';
+import type { MealPlan, PublicVerifier } from '@/types';
+import axios from 'axios';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import type { CurrentPlanSnapshot, PendingReviewState, SwapOption } from './meals-workspace.types';
+import { useMealHistory } from './useMealHistory';
+import { useMealLibrary } from './useMealLibrary';
 
-export interface SwapOption {
-  id: string;
-  reuseBasis?: 'CERTIFIED_RECIPE' | 'PROFILE_MATCHED_APPROVAL';
-  mealName: string;
-  description?: string;
-  mealType: string;
-  mealTypes: string[];
-  riceRole?: 'PAIR_WITH_RICE' | 'STANDALONE' | 'INCLUDES_RICE' | null;
-  riceRoleReviewStatus?: 'NOT_REVIEWED' | 'PROPOSED' | 'REVIEWED';
-  includedRiceG?: number | null;
-  servingDescription?: string;
-  isFavorite: boolean;
-  alreadyPlannedInCycle?: boolean;
-  matchesDietaryPreference?: boolean;
-  calories: number;
-  proteinG: number;
-  carbsG: number;
-  fatG: number;
-  verifiedBy: string;
-  prcLicenseNumber: string;
-  verifier?: PublicVerifier | null;
-  image?: PublicMealImage | null;
-  cookingLink?: MealCookingLink | null;
-}
-
-export interface MealHistoryLog {
-  id: string;
-  loggedAt: string;
-  mealName: string;
-  source: 'SYSTEM_GENERATED' | 'USER_LOGGED' | 'USER_SWAPPED';
-  status: string;
-  calories: number;
-  proteinG: number;
-  carbsG: number;
-  fatG: number;
-  calorieDelta?: number | null;
-  notes?: string | null;
-  nutritionCompleteness?: 'COMPLETE' | 'PARTIAL' | 'UNRESOLVED';
-  provisionalCalories?: number;
-  hasImage?: boolean;
-  voidedAt?: string | null;
-  mealType?: string | null;
-  outsideItems?: Array<{
-    id: string;
-    name: string;
-    portionGrams?: number | null;
-    calories?: number | null;
-    proteinG?: number | null;
-    carbsG?: number | null;
-    fatG?: number | null;
-    nutritionStatus?: string;
-    source?: string;
-    includedInTotals?: boolean;
-    currentRevision?: number;
-    revisions?: Array<{ revision: number; reason?: string | null }>;
-    observedSubmissions?: Array<{
-      id: string;
-      sourceRevision: number;
-      status: string;
-      imageReuseConsentedAt?: string | null;
-    }>;
-    review?: {
-      id: string;
-      status: string;
-      queueReason?: string | null;
-      reviewedRevision?: number | null;
-      reviewedAt?: string | null;
-      messages: Array<{
-        id: string;
-        sender: 'USER' | 'NUTRITIONIST';
-        itemRevision: number;
-        content: string;
-        createdAt: string;
-      }>;
-    } | null;
-  }>;
-}
-
-interface PendingReviewState {
-  mealCount: number;
-  planType: 'STARTER' | 'WEEKLY';
-  reviewStatus: 'PENDING_REVIEW';
-  meals: PendingMealPreview[];
-}
-
-interface CurrentPlanSnapshot {
-  meals: MealPlan[];
-  pendingReview: PendingReviewState | null;
-  awaitingGeneration?: { current: number; upcoming: number };
-  generationStatus?: { current: string | null; upcoming: string | null };
-  cycles?: {
-    current?: CycleMetaSnapshot | null;
-    upcoming?: CycleMetaSnapshot | null;
-  } | null;
-  isStarterPlan?: boolean;
-  nextCycleDay?: string | null;
-}
+export type { MealHistoryLog, SwapOption } from './meals-workspace.types';
 
 const planResource = 'user-meals-workspace';
-const historyResource = (search: string, source: string, status: string) =>
-  `user-meals-history:${search}:${source}:${status}`;
-const libraryResource = (search: string, mealType: string, favoriteOnly = false, riceRole = 'All') =>
-  `user-meals-library:${search}:${mealType}:${favoriteOnly}:${riceRole}`;
-
 export function useMealsWorkspace() {
   const { user } = useAuth();
   const ownerId = user?.userId;
   const currentPlanResource = planResource;
   const cachedPlan = readSessionResource<CurrentPlanSnapshot>(ownerId, currentPlanResource);
-  const cachedHistory = readSessionResource<MealHistoryLog[]>(ownerId, historyResource('', 'All', 'All'));
-  const cachedLibrary = readSessionResource<SwapOption[]>(ownerId, libraryResource('', 'All'));
   const cachedProfile = cachedUserProfile(ownerId);
   const cachedEligibility = cachedClinicalProfileStatus(ownerId, cachedProfile);
   const profileSafetyRevision = cachedProfile?.userProfile?.safetyRevision;
@@ -142,20 +41,32 @@ export function useMealsWorkspace() {
   const regenerationProgress = useMealGenerationProgress(isRegenerating);
   const [error, setError] = useState<string | null>(null);
   const [clinicalEvidenceRequired, setClinicalEvidenceRequired] = useState(false);
-  const [profileReviewRequired, setProfileReviewRequired] = useState(Boolean(cachedEligibility?.required && !cachedEligibility?.approved));
+  const [profileReviewRequired, setProfileReviewRequired] = useState(
+    Boolean(cachedEligibility?.required && !cachedEligibility?.approved)
+  );
   const [pendingReview, setPendingReview] = useState<PendingReviewState | null>(cachedPlan?.pendingReview ?? null);
-  const [awaitingGeneration, setAwaitingGeneration] = useState(cachedPlan?.awaitingGeneration ?? { current: 0, upcoming: 0 });
-  const [generationStatus, setGenerationStatus] = useState(cachedPlan?.generationStatus ?? { current: null, upcoming: null });
+  const [awaitingGeneration, setAwaitingGeneration] = useState(
+    cachedPlan?.awaitingGeneration ?? { current: 0, upcoming: 0 }
+  );
+  const [generationStatus, setGenerationStatus] = useState(
+    cachedPlan?.generationStatus ?? { current: null, upcoming: null }
+  );
   const [isRetryingMissing, setIsRetryingMissing] = useState(false);
   const [selectedPlanDateKey, setSelectedPlanDateKey] = useState<string | null>(null);
   const currentPlanRequestInFlight = useRef(false);
   useEffect(() => {
     if (!ownerId) return;
     let active = true;
-    void refreshClinicalProfileStatus(ownerId, cachedUserProfile(ownerId)).then((status) => {
-      if (active) setProfileReviewRequired(status.required && !status.approved);
-    }).catch(() => { /* The server generation gate remains authoritative. */ });
-    return () => { active = false; };
+    void refreshClinicalProfileStatus(ownerId, cachedUserProfile(ownerId))
+      .then((status) => {
+        if (active) setProfileReviewRequired(status.required && !status.approved);
+      })
+      .catch(() => {
+        /* The server generation gate remains authoritative. */
+      });
+    return () => {
+      active = false;
+    };
   }, [ownerId, profileSafetyRevision]);
 
   // Meal swap states
@@ -197,27 +108,8 @@ export function useMealsWorkspace() {
   const [isCheckingPreview, setIsCheckingPreview] = useState(false);
   const [previewError, setPreviewError] = useState<string | null>(null);
 
-  // History Tab states
-  const [historyLogs, setHistoryLogs] = useState<MealHistoryLog[]>(cachedHistory ?? []);
-  const [isHistoryLoading, setIsHistoryLoading] = useState(false);
-  const [historyTotalCount, setHistoryTotalCount] = useState<number | null>(cachedHistory?.length ?? null);
-  const [historyError, setHistoryError] = useState<string | null>(null);
-  const [historySearch, setHistorySearch] = useState('');
-  const [historySource, setHistorySource] = useState('All');
-  const [historyStatus, setHistoryStatus] = useState('All');
   const [selectedHistoryDateKey, setSelectedHistoryDateKey] = useState<string | null>(null);
-
-  // Library Tab states
-  const [libraryMeals, setLibraryMeals] = useState<SwapOption[]>(cachedLibrary ?? []);
-  const [isLibraryLoading, setIsLibraryLoading] = useState(false);
-  const [libraryTotalCount, setLibraryTotalCount] = useState<number | null>(cachedLibrary?.length ?? null);
-  const [libraryError, setLibraryError] = useState<string | null>(null);
-  const [librarySearch, setLibrarySearch] = useState('');
   const [selectedVerifier, setSelectedVerifier] = useState<PublicVerifier | null>(null);
-  const [libraryMealType, setLibraryMealType] = useState('All');
-  const [libraryFavoriteOnly, setLibraryFavoriteOnly] = useState(false);
-  const [libraryRiceRole, setLibraryRiceRole] = useState('All');
-  const [libraryNextCursor, setLibraryNextCursor] = useState<string | null>(null);
 
   const applyCurrentPlan = useCallback(
     (snapshot: CurrentPlanSnapshot) => {
@@ -287,88 +179,48 @@ export function useMealsWorkspace() {
     return () => window.clearInterval(interval);
   }, [cycles, generationStatus, error, fetchMeals]);
 
-  const fetchHistory = useCallback(async () => {
-    const resource = historyResource(historySearch, historySource, historyStatus);
-    const cached = readSessionResource<MealHistoryLog[]>(user?.userId, resource);
-    if (cached) setHistoryLogs(cached);
-    setIsHistoryLoading(!cached);
-    setHistoryError(null);
-    try {
-      const params: Record<string, string> = {};
-      if (historySearch) params.search = historySearch;
-      if (historySource !== 'All') params.source = historySource;
-      if (historyStatus !== 'All') params.status = historyStatus;
-
-      const res = await api.get('/user/meals/history', { params });
-      if (res.data && res.data.success) {
-        setHistoryLogs(res.data.data);
-        writeSessionResource(user?.userId, resource, res.data.data);
-        if (!historySearch && historySource === 'All' && historyStatus === 'All') {
-          setHistoryTotalCount(res.data.data.length);
-        }
-      }
-    } catch (err: unknown) {
-      setHistoryError(getApiErrorMessage(err, 'Failed to fetch meal history.'));
-    } finally {
-      setIsHistoryLoading(false);
-    }
-  }, [user?.userId, historySearch, historySource, historyStatus]);
-
+  const history = useMealHistory(ownerId, activeTab === 'history', fetchMeals);
+  const {
+    historyLogs,
+    isHistoryLoading,
+    historyTotalCount,
+    historyError,
+    historySearch,
+    setHistorySearch,
+    historySource,
+    setHistorySource,
+    historyStatus,
+    setHistoryStatus,
+    fetchHistory,
+    groupHistoryByDate,
+    handleUpdateLogNotes,
+    handleEditOutsideItem,
+    handleVoidOutsideLog,
+    handleRequestOutsideReview,
+    handleReplyToOutsideReview,
+    handleObservedConsent,
+    handleObservedWithdraw,
+  } = history;
   const libraryDate = selectedPlanDateKey ?? getManilaDateKey(meals[0]?.scheduledDate ?? new Date());
-  const fetchLibrary = useCallback(
-    async (cursor?: string) => {
-      const resource =
-        libraryResource(librarySearch, libraryMealType, libraryFavoriteOnly, libraryRiceRole) + ':' + libraryDate;
-      const cached = readSessionResource<SwapOption[]>(user?.userId, resource);
-      if (!cursor && cached) setLibraryMeals(cached);
-      setIsLibraryLoading(!cursor && !cached);
-      setLibraryError(null);
-      try {
-        const params: Record<string, string> = {};
-        params.date = libraryDate;
-        if (libraryMealType !== 'All') params.mealType = libraryMealType;
-        if (librarySearch) params.search = librarySearch;
-        if (libraryFavoriteOnly) params.favoriteOnly = 'true';
-        if (libraryRiceRole !== 'All') params.riceRole = libraryRiceRole;
-        if (cursor) params.cursor = cursor;
-        params.limit = '24';
-
-        const res = await api.get('/user/meals/compatible-library', { params });
-        if (res.data && res.data.success) {
-          const incoming: SwapOption[] = Array.isArray(res.data.data) ? res.data.data : [];
-          setLibraryMeals((current) => {
-            const next = cursor
-              ? [...current, ...incoming.filter((meal) => !current.some((existing) => existing.id === meal.id))]
-              : incoming;
-            writeSessionResource(user?.userId, resource, next);
-            return next;
-          });
-          setLibraryTotalCount(Number(res.data.meta?.total ?? incoming.length));
-          setLibraryNextCursor(res.data.meta?.nextCursor ?? null);
-        }
-      } catch (err: unknown) {
-        setLibraryError(getApiErrorMessage(err, 'Failed to load library meals.'));
-      } finally {
-        setIsLibraryLoading(false);
-      }
-    },
-    [user?.userId, libraryMealType, librarySearch, libraryFavoriteOnly, libraryRiceRole, libraryDate]
-  );
-
-  const toggleLibraryFavorite = useCallback(
-    async (meal: SwapOption) => {
-      const nextFavorite = !meal.isFavorite;
-      if (nextFavorite) await api.post(`/user/meals/library/${meal.id}/favorite`);
-      else await api.delete(`/user/meals/library/${meal.id}/favorite`);
-      setLibraryMeals((current) =>
-        current
-          .map((entry) => (entry.id === meal.id ? { ...entry, isFavorite: nextFavorite } : entry))
-          .filter((entry) => !libraryFavoriteOnly || entry.isFavorite)
-      );
-      if (libraryFavoriteOnly && !nextFavorite) setLibraryTotalCount((current) => Math.max(0, (current ?? 1) - 1));
-    },
-    [libraryFavoriteOnly]
-  );
+  const library = useMealLibrary(ownerId, activeTab === 'library', libraryDate);
+  const {
+    libraryMeals,
+    setLibraryMeals,
+    isLibraryLoading,
+    libraryTotalCount,
+    libraryError,
+    librarySearch,
+    setLibrarySearch,
+    libraryMealType,
+    setLibraryMealType,
+    libraryFavoriteOnly,
+    setLibraryFavoriteOnly,
+    libraryRiceRole,
+    setLibraryRiceRole,
+    libraryNextCursor,
+    fetchLibrary,
+    toggleLibraryFavorite,
+  } = library;
 
   const toggleSwapFavorite = async (meal: SwapOption) => {
     if (meal.isFavorite) await api.delete(`/user/meals/library/${meal.id}/favorite`);
@@ -408,16 +260,6 @@ export function useMealsWorkspace() {
       };
     }
   }, [ownerId, fetchMeals]);
-
-  useEffect(() => {
-    if (ownerId) {
-      if (activeTab === 'history') {
-        fetchHistory();
-      } else if (activeTab === 'library') {
-        fetchLibrary();
-      }
-    }
-  }, [ownerId, activeTab, fetchHistory, fetchLibrary]);
 
   useEffect(() => {
     const sourceMeals = [...meals, ...(pendingReview?.meals ?? [])];
@@ -682,103 +524,6 @@ export function useMealsWorkspace() {
       });
   };
 
-  const handleUpdateLogNotes = async (logId: string, notes: string | null) => {
-    try {
-      const res = await api.patch(`/user/meals/logs/${logId}/notes`, { notes });
-      if (res.data?.success) {
-        const updatedNotes = res.data.data.notes;
-        setHistoryLogs((prev) => prev.map((log) => (log.id === logId ? { ...log, notes: updatedNotes } : log)));
-        const resource = historyResource(historySearch, historySource, historyStatus);
-        const cached = readSessionResource<MealHistoryLog[]>(user?.userId, resource);
-        if (cached) {
-          writeSessionResource(
-            user?.userId,
-            resource,
-            cached.map((log) => (log.id === logId ? { ...log, notes: updatedNotes } : log))
-          );
-        }
-      }
-    } catch (err: unknown) {
-      console.error('[useMealsWorkspace] Failed to update log notes:', err);
-      throw err;
-    }
-  };
-
-  const handleEditOutsideItem = async (
-    logId: string,
-    itemId: string,
-    input: {
-      name: string;
-      portionGrams: number | null;
-      reportedNutrition?: { calories: number; proteinG: number; carbsG: number; fatG: number };
-      unresolved?: boolean;
-      reason: string;
-    }
-  ) => {
-    await api.patch(`/user/meals/logs/${logId}/items/${itemId}`, input);
-    await Promise.all([fetchHistory(), fetchMeals()]);
-  };
-
-  const handleVoidOutsideLog = async (logId: string, reason: string) => {
-    await api.post(`/user/meals/logs/${logId}/void`, { reason });
-    await Promise.all([fetchHistory(), fetchMeals()]);
-  };
-
-  const handleRequestOutsideReview = async (logId: string, itemId: string) => {
-    await api.post(`/user/meals/logs/${logId}/items/${itemId}/request-review`);
-    await fetchHistory();
-  };
-
-  const handleReplyToOutsideReview = async (logId: string, itemId: string, message: string) => {
-    await api.post(`/user/meals/logs/${logId}/items/${itemId}/reply`, { message });
-    await fetchHistory();
-  };
-
-  const handleObservedConsent = async (logId: string, itemId: string, imageReuseConsent: boolean) => {
-    await api.post(`/user/meals/logs/${logId}/items/${itemId}/observed-consent`, {
-      detailsConsent: true,
-      imageReuseConsent,
-      imageRightsConfirmed: imageReuseConsent,
-    });
-    await fetchHistory();
-  };
-
-  const handleObservedWithdraw = async (submissionId: string) => {
-    await api.post(`/user/meals/observed-submissions/${submissionId}/withdraw`);
-    await fetchHistory();
-  };
-
-  const groupHistoryByDate = () => {
-    const grouped: Record<string, MealHistoryLog[]> = {};
-    historyLogs.forEach((log) => {
-      const dateKey = getManilaDateKey(log.loggedAt);
-      if (!grouped[dateKey]) {
-        grouped[dateKey] = [];
-      }
-      grouped[dateKey].push(log);
-    });
-
-    return Object.keys(grouped)
-      .sort((a, b) => b.localeCompare(a))
-      .map((dateKey) => {
-        const logsList = grouped[dateKey];
-        const parsedDate = manilaDateFromKey(dateKey);
-        const weekday = formatManilaDate(parsedDate, { weekday: 'long' });
-        const dateStr = formatManilaDate(parsedDate, { month: 'short', day: 'numeric', year: 'numeric' });
-        const { totalCalories, totalProtein, totalCarbs, totalFat } = summarizeMealIntake(logsList);
-        return {
-          dateKey,
-          weekday,
-          dateStr,
-          logsList,
-          totalCalories,
-          totalProtein,
-          totalCarbs,
-          totalFat,
-          mealCount: logsList.length,
-        };
-      });
-  };
   const groupedDays = groupMealsByDate();
   const groupedPendingDays = groupPendingMealsByDate();
   const displayedPlanDays = Array.from(

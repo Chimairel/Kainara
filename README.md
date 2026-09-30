@@ -61,6 +61,19 @@ The intended backend layering is route -> validation/policy -> controller -> ser
 3. Use `backend/prisma/schema.prisma` to understand persisted models and `backend/tests/` or `frontend/src/` tests to check intended behavior.
 4. Compare older design ideas with the [project evolution archive](docs/history/PROJECT_EVOLUTION.md) only when you want the history behind a decision. The latest engineering-record entry and code take precedence.
 
+Useful entry points after the workspace refactor:
+
+| Area | Where to follow the code |
+| --- | --- |
+| Cached lists across roles | `frontend/src/hooks/useSessionQuery.ts` and `frontend/src/lib/session-resource-cache.ts` |
+| Meals tabs | `frontend/src/features/meals/useMealsWorkspace.ts`, `useMealHistory.ts`, and `useMealLibrary.ts` |
+| Case review screen | `frontend/src/features/nutritionist-reviews/CaseReviewWorkspace.tsx`, `CaseReviewQueue.tsx`, and `useNutritionistReviews.ts` |
+| Outside-food capture | `frontend/src/features/dashboard/OutsideMealModal.tsx` and `OutsideMealPreview.tsx`; backend `outside-meals.controller.ts` |
+| Scheduled meal logging and presentation | `backend/src/services/scheduled-meal-log.service.ts` and `meal-plan-presentation.service.ts` |
+| Approval and swaps | `backend/src/services/nutritionist-approval.service.ts`, `meal-swap.service.ts`, and `meal-swap-serving.service.ts` |
+
+These modules separate presentation, client state, and backend operations. Eligibility checks and database transactions remain in the backend services and domain policies.
+
 ## Prerequisites
 
 - Node.js 24 and npm, as pinned by the root `.nvmrc` and used by repository CI.

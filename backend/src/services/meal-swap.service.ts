@@ -1,14 +1,22 @@
-import prisma from '@/lib/prisma';
-import { createHash, createHmac, randomUUID, timingSafeEqual } from 'node:crypto';
-import { lockUserProfile } from './profile-revision.service';
-import { getStartOfManilaBusinessDay } from '@/domain/meal-actionability.policy';
-import {
-  getMealSlotCalorieRange,
-  isMealWithinSlotCalorieRange,
-  isPrimaryMealType,
-} from '@/domain/meal-calorie-allocation.policy';
 import { rankLibraryMeals } from '@/domain/library-ranking.policy';
+import {
+  assertUserSwappableMealPlan,
+  filterUserActionableMealPlans,
+  getApprovedMealPlanStatusWhere,
+  getOwnedMealPlanWhere,
+  getStartOfManilaBusinessDay,
+  isApprovedMealLibraryStatus,
+} from '@/domain/meal-actionability.policy';
+import { mealApprovalSafetyScope } from '@/domain/meal-approval-scope.policy';
+import type { PublicMealCookingLink } from '@/domain/meal-cooking-link.policy';
+import { toPublicMealImage, type PublicMealImage } from '@/domain/meal-image.policy';
+import { MEAL_PLAN_SAFETY_POLICY_VERSION } from '@/domain/meal-plan-production-safety.policy';
+import { resolvePlanTargetCalories } from '@/domain/plan-cycle-target.policy';
+import { rankMealsByLocalizedFoodEvidence } from '@/domain/planning-location.policy';
+import { signSwapPreview, SWAP_PREVIEW_TTL_MS, verifySwapPreview } from '@/domain/swap-preview-token';
 import { buildSwapShoppingDelta } from '@/domain/swap-shopping.policy';
+import { loadUserNutritionContext } from '@/domain/user-nutrition-context';
+import prisma from '@/lib/prisma';
 import {
   HealthConditionType,
   MealPlanCycleStatus,
@@ -17,24 +25,12 @@ import {
   ProfileCycleAdaptationState,
   RecipeRiceRole,
   RicePreference,
-  RiceRoleReviewStatus,
 } from '@prisma/client';
+import { createHash, randomUUID } from 'node:crypto';
+import { getLocalizedFoodConsumptionContext } from './food-consumption-context.service';
 import { GroceryService } from './grocery.service';
-import {
-  assertUserSwappableMealPlan,
-  filterUserActionableMealPlans,
-  getApprovedMealPlanStatusWhere,
-  getOwnedMealPlanWhere,
-  isApprovedMealLibraryStatus,
-} from '@/domain/meal-actionability.policy';
-import { MEAL_PLAN_SAFETY_POLICY_VERSION } from '@/domain/meal-plan-production-safety.policy';
-import { resolvePlanTargetCalories } from '@/domain/plan-cycle-target.policy';
-import { loadUserNutritionContext } from '@/domain/user-nutrition-context';
-import { mealApprovalSafetyScope } from '@/domain/meal-approval-scope.policy';
-import { toPublicMealImage, type PublicMealImage } from '@/domain/meal-image.policy';
-import { resolveLibraryRecipeImages } from './library-recipe-image.service';
 import { resolveLibraryRecipeCookingLinks } from './library-recipe-cooking-link.service';
-import type { PublicMealCookingLink } from '@/domain/meal-cooking-link.policy';
+import { resolveLibraryRecipeImages } from './library-recipe-image.service';
 import {
   certifiedLibraryMealInclude,
   isCertifiedLibraryMealCompatible,
@@ -43,68 +39,13 @@ import {
   queryEligibleLibraryPage,
   type CertifiedLibraryMeal,
 } from './meal-library-candidate-query.service';
-import { composePlanWithPairedRice, replacePlanBaseServing } from './meal-plan-serving.service';
-import { buildComposedServing } from '@/domain/composed-serving.policy';
-import { chooseCookedRicePortionG } from '@/domain/upcoming-preparation.policy';
-import { getLocalizedFoodConsumptionContext } from './food-consumption-context.service';
-import { rankMealsByLocalizedFoodEvidence } from '@/domain/planning-location.policy';
 import { MealPlanCycleService } from './meal-plan-cycle.service';
+import { composePlanWithPairedRice, replacePlanBaseServing } from './meal-plan-serving.service';
 import { recalculateDailyNutritionLog } from './meal-swap-nutrition.service';
+import { resolveReplacementServing } from './meal-swap-serving.service';
+import { lockUserProfile } from './profile-revision.service';
 
 type SwapMealReadClient = Pick<Prisma.TransactionClient, 'mealPlan' | 'mealPlanCycle'>;
-
-type SwapRiceFood = {
-  id: string;
-  name: string;
-  source: string;
-  calories: number;
-  proteinG: number;
-  carbsG: number;
-  fatG: number;
-};
-
-function resolveReplacementServing(input: {
-  meal: CertifiedLibraryMeal;
-  mealType: MealType;
-  dailyTarget: number;
-  ricePreference: RicePreference;
-  hasConditions: boolean;
-  riceFood: SwapRiceFood | null;
-}) {
-  const { meal, mealType, dailyTarget, ricePreference, hasConditions, riceFood } = input;
-  if (!isPrimaryMealType(mealType)) return null;
-  let pairedRiceG: number | null = null;
-  let nutrition = { calories: meal.calories, proteinG: meal.proteinG, carbsG: meal.carbsG, fatG: meal.fatG };
-  if (ricePreference === RicePreference.WITH_RICE && meal.riceRole === RecipeRiceRole.PAIR_WITH_RICE) {
-    // The current condition clearances are scoped to the base serving. A rice
-    // composition requires a separately reviewed composed serving signature.
-    if (
-      hasConditions ||
-      meal.riceRoleReviewStatus !== RiceRoleReviewStatus.REVIEWED ||
-      !riceFood ||
-      !meal.recipeSignature
-    )
-      return null;
-    const range = getMealSlotCalorieRange(dailyTarget, mealType);
-    pairedRiceG = chooseCookedRicePortionG({
-      baseCalories: meal.calories,
-      riceCaloriesPer100G: riceFood.calories,
-      slotTargetCalories: range.target,
-      slotMinimumCalories: range.minimum,
-      slotMaximumCalories: range.maximum,
-    });
-    if (!pairedRiceG) return null;
-    nutrition = buildComposedServing({
-      baseRecipeSignature: meal.recipeSignature,
-      baseNutrition: nutrition,
-      riceFood,
-      cookedRiceG: pairedRiceG,
-    }).total;
-  }
-  if (!isMealWithinSlotCalorieRange({ calories: nutrition.calories, mealType, dailyCalorieTarget: dailyTarget }))
-    return null;
-  return { ...nutrition, pairedRiceG };
-}
 
 async function loadActionableUnloggedMealPlan(client: SwapMealReadClient, userId: string, mealPlanId: string) {
   const mealPlan = await client.mealPlan.findFirst({
@@ -134,44 +75,6 @@ async function loadActionableUnloggedMealPlan(client: SwapMealReadClient, userId
   return mealPlan;
 }
 
-const SWAP_PREVIEW_TTL_MS = 10 * 60 * 1000;
-
-type SwapPreviewTokenPayload = { requestKey: string; snapshotHash: string; expiresAt: number };
-
-function swapPreviewSecret(): string {
-  const secret = process.env.JWT_SECRET;
-  if (!secret) throw new Error('Swap previews are unavailable because the server signing secret is missing.');
-  return secret;
-}
-
-function signSwapPreview(payload: SwapPreviewTokenPayload): string {
-  const encoded = Buffer.from(JSON.stringify(payload), 'utf8').toString('base64url');
-  const signature = createHmac('sha256', swapPreviewSecret()).update(encoded).digest('base64url');
-  return `${encoded}.${signature}`;
-}
-
-function verifySwapPreview(token: string): SwapPreviewTokenPayload {
-  const [encoded, supplied] = token.split('.');
-  if (!encoded || !supplied) throw new Error('Swap preview is invalid. Request a fresh preview.');
-  const expected = createHmac('sha256', swapPreviewSecret()).update(encoded).digest();
-  const suppliedBuffer = Buffer.from(supplied, 'base64url');
-  if (expected.length !== suppliedBuffer.length || !timingSafeEqual(expected, suppliedBuffer)) {
-    throw new Error('Swap preview is invalid. Request a fresh preview.');
-  }
-  let payload: SwapPreviewTokenPayload;
-  try {
-    payload = JSON.parse(Buffer.from(encoded, 'base64url').toString('utf8')) as SwapPreviewTokenPayload;
-  } catch {
-    throw new Error('Swap preview is invalid. Request a fresh preview.');
-  }
-  if (!payload.requestKey || !payload.snapshotHash || payload.expiresAt <= Date.now()) {
-    throw new Error('Swap preview expired. Request a fresh preview.');
-  }
-  return payload;
-}
-
-export { certifiedLibraryMealInclude, isCertifiedLibraryMealCompatible };
-
 export function toPublicSwapOption(
   meal: CertifiedLibraryMeal & { isFavorite?: boolean; alreadyPlannedInCycle?: boolean },
   recipeImage?: PublicMealImage,
@@ -180,9 +83,10 @@ export function toPublicSwapOption(
   profileScopeKey?: string
 ) {
   const assignedImage = toPublicMealImage(meal);
-  const reviewer = reuseBasis === 'PROFILE_MATCHED_APPROVAL'
-    ? meal.profileApprovals.find((entry) => entry.safetyScopeKey === profileScopeKey)?.reviewerNutritionist
-    : meal.safetyReviewedByNutritionist;
+  const reviewer =
+    reuseBasis === 'PROFILE_MATCHED_APPROVAL'
+      ? meal.profileApprovals.find((entry) => entry.safetyScopeKey === profileScopeKey)?.reviewerNutritionist
+      : meal.safetyReviewedByNutritionist;
   return {
     id: meal.id,
     mealName: meal.mealName,
@@ -366,15 +270,24 @@ export class MealSwapService {
         carbsG: mealPlan.carbsG,
         fatG: mealPlan.fatG,
       }).map((meal) => {
-        const certified = isCertifiedLibraryMealCompatible(meal, userConditions, userAllergens,
-          { ...userProfile, userId, safetyEntries: user.safetyProfileEntries });
-        return toPublicSwapOption(meal, recipeImages.get(meal.id), cookingLinks.get(meal.id),
+        const certified = isCertifiedLibraryMealCompatible(meal, userConditions, userAllergens, {
+          ...userProfile,
+          userId,
+          safetyEntries: user.safetyProfileEntries,
+        });
+        return toPublicSwapOption(
+          meal,
+          recipeImages.get(meal.id),
+          cookingLinks.get(meal.id),
           certified ? 'CERTIFIED_RECIPE' : 'PROFILE_MATCHED_APPROVAL',
           mealApprovalSafetyScope({
-            conditions: userConditions, allergens: userAllergens,
-            otherConditions: userProfile.otherConditions, otherAllergies: userProfile.otherAllergies,
+            conditions: userConditions,
+            allergens: userAllergens,
+            otherConditions: userProfile.otherConditions,
+            otherAllergies: userProfile.otherAllergies,
             safetyEntries: user.safetyProfileEntries,
-          }).key);
+          }).key
+        );
       }),
     };
   }
@@ -412,7 +325,8 @@ export class MealSwapService {
         user.healthConditions.map((item) => item.condition),
         user.allergies.map((item) => item.allergen),
         { ...userProfile, userId, safetyEntries: user.safetyProfileEntries }
-      ) && !isProfileApprovedLibraryMealCompatible(
+      ) &&
+      !isProfileApprovedLibraryMealCompatible(
         libraryMeal,
         user.healthConditions.map((item) => item.condition),
         user.allergies.map((item) => item.allergen),
@@ -629,27 +543,39 @@ export class MealSwapService {
         }
 
         const certified = isCertifiedLibraryMealCompatible(libraryMeal, userConditions, userAllergens, {
+          ...userProfile,
+          userId,
+          safetyEntries: user.safetyProfileEntries,
+        });
+        const profileApproved =
+          !certified &&
+          isProfileApprovedLibraryMealCompatible(libraryMeal, userConditions, userAllergens, {
             ...userProfile,
             userId,
             safetyEntries: user.safetyProfileEntries,
           });
-        const profileApproved = !certified && isProfileApprovedLibraryMealCompatible(
-          libraryMeal, userConditions, userAllergens,
-          { ...userProfile, userId, safetyEntries: user.safetyProfileEntries }
-        );
         if (!certified && !profileApproved) {
           throw new Error('Selected meal is not certified for your current health profile.');
         }
-        const profileScope = profileApproved ? mealApprovalSafetyScope({
-          conditions: userConditions, allergens: userAllergens,
-          otherConditions: userProfile.otherConditions, otherAllergies: userProfile.otherAllergies,
-          safetyEntries: user.safetyProfileEntries,
-        }) : null;
-        const approval = profileApproved ? libraryMeal.profileApprovals.find((item) =>
-          item.safetyScopeKey === profileScope?.key && !item.flaggedAt && item.reviewDueAt > new Date() &&
-          item.recipeSignature === libraryMeal.recipeSignature &&
-          item.evidenceRevision === libraryMeal.safetyEvidenceRevision
-        ) : null;
+        const profileScope = profileApproved
+          ? mealApprovalSafetyScope({
+              conditions: userConditions,
+              allergens: userAllergens,
+              otherConditions: userProfile.otherConditions,
+              otherAllergies: userProfile.otherAllergies,
+              safetyEntries: user.safetyProfileEntries,
+            })
+          : null;
+        const approval = profileApproved
+          ? libraryMeal.profileApprovals.find(
+              (item) =>
+                item.safetyScopeKey === profileScope?.key &&
+                !item.flaggedAt &&
+                item.reviewDueAt > new Date() &&
+                item.recipeSignature === libraryMeal.recipeSignature &&
+                item.evidenceRevision === libraryMeal.safetyEvidenceRevision
+            )
+          : null;
         if (profileApproved && !approval) throw new Error('Approval changed during swap. Please retry.');
 
         // A user-selected upcoming slot wins over ordinary pending candidates.
@@ -884,9 +810,19 @@ export class MealSwapService {
           meal,
           recipeImages.get(meal.id),
           cookingLinks.get(meal.id),
-          isCertifiedLibraryMealCompatible(meal, userConditions, userAllergens, {
-            ...userProfile, userId, safetyEntries: user.safetyProfileEntries,
-          }, { safetyOnly: true }) ? 'CERTIFIED_RECIPE' : 'PROFILE_MATCHED_APPROVAL',
+          isCertifiedLibraryMealCompatible(
+            meal,
+            userConditions,
+            userAllergens,
+            {
+              ...userProfile,
+              userId,
+              safetyEntries: user.safetyProfileEntries,
+            },
+            { safetyOnly: true }
+          )
+            ? 'CERTIFIED_RECIPE'
+            : 'PROFILE_MATCHED_APPROVAL',
           mealApprovalSafetyScope({
             conditions: userConditions,
             allergens: userAllergens,
@@ -895,7 +831,8 @@ export class MealSwapService {
             safetyEntries: user.safetyProfileEntries,
           }).key
         ),
-        matchesDietaryPreference: !userProfile.dietaryPreference ||
+        matchesDietaryPreference:
+          !userProfile.dietaryPreference ||
           (Array.isArray(meal.dietaryTags) && meal.dietaryTags.includes(userProfile.dietaryPreference)),
       })),
       nextCursor: page.nextCursor,

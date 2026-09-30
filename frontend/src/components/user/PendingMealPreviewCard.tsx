@@ -1,14 +1,27 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { createPortal } from 'react-dom';
-import { motion, AnimatePresence } from 'motion/react';
-import { CalendarDays, Clock3, Coffee, MoonStar, ShieldAlert, SunMedium, Soup, Apple, X, Flame, ExternalLink, UtensilsCrossed } from 'lucide-react';
 import Button from '@/components/ui/Button';
+import { getMealBannerTheme } from '@/lib/meal-banner-theme';
+import type { MealCookingLink, PublicMealImage } from '@/types';
+import {
+  Apple,
+  CalendarDays,
+  Clock3,
+  Coffee,
+  ExternalLink,
+  Flame,
+  MoonStar,
+  ShieldAlert,
+  Soup,
+  SunMedium,
+  UtensilsCrossed,
+  X,
+} from 'lucide-react';
+import { AnimatePresence, motion } from 'motion/react';
+import React, { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import MealImage from './MealImage';
 import MealVerificationBadge from './MealVerificationBadge';
-import { getMealBannerTheme } from './MealCard';
-import type { PublicMealImage, MealCookingLink } from '@/types';
 
 export interface PendingMealPreview {
   mealName: string;
@@ -25,13 +38,7 @@ export interface PendingMealPreview {
   planType?: 'STARTER' | 'WEEKLY';
 }
 
-export default function PendingMealPreviewCard({
-  meal,
-  index = 0,
-}: {
-  meal: PendingMealPreview;
-  index?: number;
-}) {
+export default function PendingMealPreviewCard({ meal, index = 0 }: { meal: PendingMealPreview; index?: number }) {
   const bannerTheme = getMealBannerTheme(meal.mealType, index);
   const [isOpen, setIsOpen] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
@@ -131,11 +138,15 @@ export default function PendingMealPreviewCard({
         aria-label={`Open ${meal.mealName} details`}
         className="group relative block h-full w-full cursor-pointer select-none text-left outline-none focus-visible:ring-2 focus-visible:ring-brand-green focus-visible:ring-offset-2 focus-visible:ring-offset-brand-bg rounded-3xl"
       >
-        <div className={`relative flex h-full flex-col justify-between rounded-3xl bg-brand-surface p-2 sm:p-2.5 ${bannerTheme.shadow} ${bannerTheme.hoverShadow} transition-all duration-300 hover:-translate-y-1`}>
+        <div
+          className={`relative flex h-full flex-col justify-between rounded-3xl bg-brand-surface p-2 sm:p-2.5 ${bannerTheme.shadow} ${bannerTheme.hoverShadow} transition-all duration-300 hover:-translate-y-1`}
+        >
           {/* Upper Banner with Cropped Circular Plate on Left */}
           <div className={`relative h-40 sm:h-44 w-full overflow-hidden rounded-2xl ${bannerTheme.bannerBg}`}>
             {/* Circular Plate on Left - Enlarge and crop so parts cut out */}
-            <div className={`absolute -left-9 sm:-left-12 top-1/2 -translate-y-1/2 h-52 w-52 sm:h-56 sm:w-56 rounded-full ${bannerTheme.plateBorder} bg-white dark:bg-[#071914] shadow-[0_6px_16px_rgba(0,0,0,0.12)] dark:shadow-[0_8px_20px_rgba(0,0,0,0.45)] overflow-hidden transition-transform duration-300 group-hover:scale-105`}>
+            <div
+              className={`absolute -left-9 sm:-left-12 top-1/2 -translate-y-1/2 h-52 w-52 sm:h-56 sm:w-56 rounded-full ${bannerTheme.plateBorder} bg-white dark:bg-[#071914] shadow-[0_6px_16px_rgba(0,0,0,0.12)] dark:shadow-[0_8px_20px_rgba(0,0,0,0.45)] overflow-hidden transition-transform duration-300 group-hover:scale-105`}
+            >
               <div className="relative h-full w-full rounded-full overflow-hidden">
                 <MealImage
                   image={meal.image}
@@ -172,7 +183,13 @@ export default function PendingMealPreviewCard({
                 {meal.mealName}
               </h3>
               <p className="text-xs text-brand-muted line-clamp-1 mt-0.5">
-                {meal.description || (meal.ingredients.length > 0 ? meal.ingredients.slice(0, 3).map((i) => i.ingredientName).join(', ') : 'AI candidate awaiting clinical review')}
+                {meal.description ||
+                  (meal.ingredients.length > 0
+                    ? meal.ingredients
+                        .slice(0, 3)
+                        .map((i) => i.ingredientName)
+                        .join(', ')
+                    : 'AI candidate awaiting clinical review')}
               </p>
             </div>
 
@@ -373,9 +390,7 @@ export default function PendingMealPreviewCard({
                           <span className="block text-2xl sm:text-3xl font-black font-display text-[#c74614] dark:text-[#f09e6c] tracking-tight mt-1">
                             {Math.round(meal.fatG)}g
                           </span>
-                          <span className="block text-[10px] font-bold text-brand-muted mt-0.5">
-                            {fatPct}% of kcal
-                          </span>
+                          <span className="block text-[10px] font-bold text-brand-muted mt-0.5">{fatPct}% of kcal</span>
                         </div>
                       </div>
                     </div>
@@ -452,7 +467,11 @@ export default function PendingMealPreviewCard({
 
                     {/* Sticky Action Footer */}
                     <div className="sticky bottom-0 z-20 -mx-5 -mb-5 sm:-mx-7 sm:-mb-7 p-4 sm:p-5 bg-brand-surface/95 dark:bg-[#071914]/95 backdrop-blur-md border-t border-brand-border/80 shadow-lg mt-2 flex justify-end">
-                      <Button variant="secondary" onClick={() => setIsOpen(false)} className="text-xs font-bold px-6 py-2.5">
+                      <Button
+                        variant="secondary"
+                        onClick={() => setIsOpen(false)}
+                        className="text-xs font-bold px-6 py-2.5"
+                      >
                         Close
                       </Button>
                     </div>
