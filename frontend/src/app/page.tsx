@@ -42,7 +42,10 @@ const capabilities = [
     title: 'Built around your health context',
     text: 'Your goals, allergies, preferences, conditions and shopping routine shape meal selection.',
     className: 'lg:col-span-2',
-    accent: 'from-emerald-500/20 to-brand-green/5',
+    iconStyles: 'border-emerald-500/30 bg-emerald-500/15 text-emerald-700 dark:text-emerald-400',
+    numberStyles: 'text-emerald-700/20 dark:text-emerald-400/25 group-hover:text-emerald-700/35 dark:group-hover:text-emerald-400/40',
+    hoverBorder: 'hover:border-emerald-500/50',
+    accentBar: 'bg-gradient-to-r from-emerald-500 via-teal-400 to-emerald-300',
   },
   {
     icon: Database,
@@ -50,7 +53,10 @@ const capabilities = [
     title: 'Filipino food intelligence',
     text: 'Browse familiar recipes, with ingredient nutrition references from FNRI and configured food-composition sources.',
     className: '',
-    accent: 'from-brand-cyan/20 to-sky-500/5',
+    iconStyles: 'border-brand-accent/30 bg-brand-accent/15 text-brand-accent dark:text-[#f09e6c]',
+    numberStyles: 'text-brand-accent/25 dark:text-[#f09e6c]/30 group-hover:text-brand-accent/40 dark:group-hover:text-[#f09e6c]/45',
+    hoverBorder: 'hover:border-brand-accent/50',
+    accentBar: 'bg-gradient-to-r from-brand-accent via-[#ed7847] to-[#f09e6c]',
   },
   {
     icon: ShieldCheck,
@@ -58,7 +64,10 @@ const capabilities = [
     title: 'Review-aware by design',
     text: 'See recipe verification and meal case-review status. Restricted profiles and meals follow their applicable review requirements.',
     className: '',
-    accent: 'from-amber-500/20 to-brand-accent/5',
+    iconStyles: 'border-sky-500/30 bg-sky-500/15 text-sky-600 dark:text-cyan-400',
+    numberStyles: 'text-sky-600/25 dark:text-cyan-400/30 group-hover:text-sky-600/40 dark:group-hover:text-cyan-400/45',
+    hoverBorder: 'hover:border-brand-cyan/50',
+    accentBar: 'bg-gradient-to-r from-brand-cyan via-teal-400 to-cyan-300',
   },
   {
     icon: Sparkles,
@@ -66,7 +75,10 @@ const capabilities = [
     title: 'A library that gets smarter',
     text: 'Recorded servings and eligible case approvals can be reused when a later profile matches their reviewed scope.',
     className: 'lg:col-span-2',
-    accent: 'from-teal-500/20 to-emerald-500/5',
+    iconStyles: 'border-amber-500/35 bg-amber-500/15 text-amber-600 dark:text-[#f09e6c]',
+    numberStyles: 'text-amber-600/25 dark:text-amber-400/30 group-hover:text-amber-600/40 dark:group-hover:text-amber-400/45',
+    hoverBorder: 'hover:border-amber-500/50',
+    accentBar: 'bg-gradient-to-r from-[#f09e6c] via-[#eb6a38] to-amber-400',
   },
 ];
 
@@ -75,21 +87,41 @@ const loopSteps = [
     icon: Fingerprint,
     title: 'Profile & Clinical Intake',
     text: 'Record measurements, goals, preferences and restrictions to calculate targets and guide meal selection.',
+    color: 'text-emerald-400',
+    bg: 'border-emerald-500/30 bg-emerald-500/15 text-emerald-400',
+    phaseLabel: 'text-emerald-400',
+    hoverBorder: 'hover:border-emerald-500/40',
+    accentDot: 'bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)]',
   },
   {
     icon: Database,
     title: 'Recipe & Serving Matching',
     text: 'Search eligible recorded servings and published recipes before generating candidates for remaining slots.',
+    color: 'text-brand-cyan',
+    bg: 'border-brand-cyan/30 bg-brand-cyan/15 text-brand-cyan',
+    phaseLabel: 'text-brand-cyan',
+    hoverBorder: 'hover:border-brand-cyan/40',
+    accentDot: 'bg-brand-cyan shadow-[0_0_8px_rgba(45,212,191,0.8)]',
   },
   {
     icon: WandSparkles,
     title: 'AI-assisted Drafts',
     text: 'Gemini can draft candidates for unfilled slots. Ingredient evidence and applicable review rules still determine their use.',
+    color: 'text-[#f09e6c]',
+    bg: 'border-[#f09e6c]/30 bg-[#f09e6c]/15 text-[#f09e6c]',
+    phaseLabel: 'text-[#f09e6c]',
+    hoverBorder: 'hover:border-[#f09e6c]/40',
+    accentDot: 'bg-[#f09e6c] shadow-[0_0_8px_rgba(240,158,108,0.8)]',
   },
   {
     icon: Stethoscope,
     title: 'Professional Review',
     text: 'Nutritionists review profiles, meal cases and submitted recipes, recording decisions within each review’s scope.',
+    color: 'text-brand-accent',
+    bg: 'border-brand-accent/30 bg-brand-accent/15 text-brand-accent',
+    phaseLabel: 'text-brand-accent',
+    hoverBorder: 'hover:border-brand-accent/40',
+    accentDot: 'bg-brand-accent shadow-[0_0_8px_rgba(235,106,56,0.8)]',
   },
 ];
 
@@ -98,16 +130,28 @@ const rndStages = [
     icon: BadgeCheck,
     title: 'Credential Review',
     text: 'Administrators review submitted PRC license details, education and professional background.',
+    color: 'text-emerald-400',
+    bg: 'border-emerald-500/30 bg-emerald-500/15 text-emerald-400',
+    stepColor: 'text-emerald-400',
+    hoverBorder: 'hover:border-emerald-500/40',
   },
   {
     icon: Video,
     title: 'One-on-One Verification',
     text: 'Schedule and complete a direct online verification call with a KAINARA administrator.',
+    color: 'text-brand-cyan',
+    bg: 'border-brand-cyan/30 bg-brand-cyan/15 text-brand-cyan',
+    stepColor: 'text-brand-cyan',
+    hoverBorder: 'hover:border-brand-cyan/40',
   },
   {
     icon: ShieldCheck,
     title: 'Controlled Access',
     text: 'Approved applicants receive an account activation invitation for the nutritionist workspace.',
+    color: 'text-[#f09e6c]',
+    bg: 'border-[#f09e6c]/30 bg-[#f09e6c]/15 text-[#f09e6c]',
+    stepColor: 'text-[#f09e6c]',
+    hoverBorder: 'hover:border-[#f09e6c]/40',
   },
 ];
 
@@ -207,15 +251,15 @@ export default function Home() {
               {/* Trust Indicators */}
               <div className="mt-10 grid max-w-xl grid-cols-3 gap-4 border-t border-brand-border/70 pt-6">
                 {[
-                  ['7 Days', 'Personalized Cycle', Flame],
-                  ['3 Roles', 'Patient, RND & Admin', Activity],
-                  ['Visible', 'Meal Review Status', CheckCircle2],
-                ].map(([value, label, Icon]) => {
+                  ['7 Days', 'Personalized Cycle', Flame, 'text-brand-accent dark:text-[#f09e6c]'],
+                  ['3 Roles', 'Patient, RND & Admin', Activity, 'text-sky-600 dark:text-cyan-400'],
+                  ['Visible', 'Meal Review Status', CheckCircle2, 'text-emerald-600 dark:text-emerald-400'],
+                ].map(([value, label, Icon, colorClass]) => {
                   const StatIcon = Icon as React.ComponentType<{ className?: string }>;
                   return (
                     <div key={label as string} className="flex flex-col">
                       <div className="flex items-center gap-1.5">
-                        <StatIcon className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                        <StatIcon className={`h-4 w-4 ${colorClass as string}`} />
                         <p className="font-display text-lg font-black tracking-tight text-brand-text sm:text-xl">
                           {value as string}
                         </p>
@@ -358,19 +402,25 @@ export default function Home() {
                   viewport={{ once: true, margin: '-50px' }}
                   transition={{ duration: 0.5, delay: index * 0.1 }}
                   whileHover={{ y: -5, transition: { duration: 0.2 } }}
-                  className={`surface-panel group relative min-h-[260px] overflow-hidden rounded-[28px] p-7 transition duration-300 hover:border-emerald-500/40 ${item.className}`}
+                  className={`surface-panel group relative min-h-[260px] overflow-hidden rounded-[28px] p-7 transition duration-300 ${item.hoverBorder} ${item.className}`}
                 >
-                  <div className="absolute right-6 top-3 font-display text-8xl font-black tracking-tighter text-brand-text/[0.04] select-none">
+                  <div
+                    className={`absolute right-6 top-3 font-display text-8xl font-black tracking-tighter select-none transition-colors duration-300 ${item.numberStyles}`}
+                  >
                     {item.number}
                   </div>
-                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-emerald-500/20 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 transition-transform duration-300 group-hover:scale-110">
+                  <div
+                    className={`flex h-12 w-12 items-center justify-center rounded-2xl border transition-transform duration-300 group-hover:scale-110 ${item.iconStyles}`}
+                  >
                     <Icon className="h-5 w-5" />
                   </div>
                   <h3 className="mt-8 max-w-md font-display text-xl font-extrabold tracking-tight text-brand-text">
                     {item.title}
                   </h3>
                   <p className="mt-2.5 max-w-xl text-sm leading-6 text-brand-muted">{item.text}</p>
-                  <div className="absolute bottom-0 left-0 h-1 w-0 bg-gradient-to-r from-brand-accent via-emerald-400 to-brand-cyan transition-all duration-500 group-hover:w-full" />
+                  <div
+                    className={`absolute bottom-0 left-0 h-1 w-0 transition-all duration-500 group-hover:w-full ${item.accentBar}`}
+                  />
                 </motion.article>
               );
             })}
@@ -418,16 +468,23 @@ export default function Home() {
                       whileInView={{ opacity: 1, y: 0 }}
                       viewport={{ once: true, margin: '-50px' }}
                       transition={{ duration: 0.5, delay: index * 0.12 }}
-                      className="relative bg-[#091b15] p-7 md:min-h-[300px] hover:bg-[#0c241d] transition duration-300"
+                      className="group relative bg-[#091b15] p-7 md:min-h-[300px] hover:bg-[#0c241d] transition duration-300"
                     >
-                      <span className="font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-emerald-400/60">
-                        Phase 0{index + 1}
-                      </span>
-                      <Icon className="mt-8 h-8 w-8 text-emerald-400" />
+                      <div className="flex items-center justify-between">
+                        <span className={`font-mono text-[10px] font-bold uppercase tracking-[0.2em] ${step.phaseLabel}`}>
+                          Phase 0{index + 1}
+                        </span>
+                        <span className={`h-2 w-2 rounded-full ${step.accentDot}`} />
+                      </div>
+                      <div
+                        className={`mt-7 flex h-12 w-12 items-center justify-center rounded-2xl border transition-transform duration-300 group-hover:scale-110 ${step.bg}`}
+                      >
+                        <Icon className="h-6 w-6" />
+                      </div>
                       <h3 className="mt-6 font-display text-lg font-bold text-white">{step.title}</h3>
                       <p className="mt-2.5 text-xs leading-5 text-white/55">{step.text}</p>
                       {index < 3 && (
-                        <ArrowRight className="absolute -right-3 top-1/2 -translate-y-1/2 z-10 hidden h-5 w-5 text-emerald-400 md:block" />
+                        <ArrowRight className="absolute -right-3 top-1/2 -translate-y-1/2 z-10 hidden h-5 w-5 text-white/30 md:block transition-colors group-hover:text-white/70" />
                       )}
                     </motion.article>
                   );
@@ -449,10 +506,35 @@ export default function Home() {
             transition={{ duration: 0.7 }}
             className="relative overflow-hidden rounded-[36px] bg-[#071914] p-8 text-white shadow-2xl sm:p-12 lg:grid lg:grid-cols-[1.05fr_0.95fr] lg:gap-14 lg:p-16 border border-[#173e33]"
           >
-            <div className="pointer-events-none absolute right-0 top-0 h-80 w-80 rounded-full bg-brand-cyan/15 blur-[120px]" />
-            <div className="relative">
+            {/* Retro Wave Organic Corner Accent (Hint of stripe inside card) */}
+            <div className="pointer-events-none absolute -top-0.5 -right-0.5 h-48 w-48 sm:h-64 sm:w-64 overflow-hidden rounded-tr-[36px] z-0 opacity-85">
+              <svg viewBox="0 0 160 160" className="h-full w-full" fill="none">
+                <path d="M160,0 L0,0 C20,40 55,95 120,135 C140,147 160,155 160,155 Z" fill="#eb6a38" />
+                <path d="M160,0 L40,0 C55,30 80,72 130,105 C145,115 160,120 160,120 Z" fill="#f09e6c" />
+                <path d="M160,0 L82,0 C92,20 110,48 142,70 C152,76 160,80 160,80 Z" className="fill-[#1b4e41]" />
+              </svg>
+            </div>
+
+            <div className="pointer-events-none absolute left-0 bottom-0 h-80 w-80 rounded-full bg-brand-cyan/10 blur-[120px]" />
+
+            {/* Subtle Watermarked Logo Seal */}
+            <div className="pointer-events-none absolute -bottom-6 -right-6 hidden lg:flex items-center justify-center opacity-25">
+              <div className="flex h-36 w-36 items-center justify-center rounded-full bg-[#0a201a] border border-[#173e33]/80">
+                <KainaraLogo size={90} variant="multicolor" />
+              </div>
+            </div>
+
+            <div className="relative z-10">
+              {/* Kainara Official Council Branding Pill */}
+              <div className="flex items-center gap-2.5 mb-5">
+                <KainaraLogo size={26} variant="multicolor" />
+                <span className="font-display font-extrabold text-xs tracking-[0.18em] uppercase text-emerald-400">
+                  KAINARA Clinical Network
+                </span>
+              </div>
+
               <div className="eyebrow inline-flex border-[#173e33] bg-[#0e271f] text-emerald-400">
-                <Stethoscope className="h-3.5 w-3.5" />
+                <Stethoscope className="h-3.5 w-3.5 text-emerald-400" />
                 For Registered Nutritionist-Dietitians
               </div>
               <h2 className="mt-6 max-w-2xl font-display text-3xl font-black leading-[1.05] tracking-[-0.04em] sm:text-5xl">
@@ -479,17 +561,17 @@ export default function Home() {
               </div>
             </div>
 
-            <div className="relative mt-10 grid gap-3.5 lg:mt-0">
-              {rndStages.map(({ icon: Icon, title, text }, index) => (
+            <div className="relative z-10 mt-10 grid gap-3.5 lg:mt-0">
+              {rndStages.map(({ icon: Icon, title, text, bg, stepColor, hoverBorder }, index) => (
                 <div
                   key={title}
-                  className="flex gap-4 rounded-[22px] border border-[#173e33] bg-[#0e271f]/80 p-5 backdrop-blur-xl transition hover:border-emerald-500/40"
+                  className={`group flex gap-4 rounded-[22px] border border-[#173e33] bg-[#0e271f]/80 p-5 backdrop-blur-xl transition hover:bg-[#0e271f] ${hoverBorder}`}
                 >
-                  <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-emerald-500/10 text-emerald-400">
+                  <span className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border transition-transform duration-300 group-hover:scale-105 ${bg}`}>
                     <Icon className="h-5 w-5" />
                   </span>
                   <div>
-                    <p className="font-mono text-[9px] uppercase tracking-[0.16em] text-emerald-400/70">
+                    <p className={`font-mono text-[9px] uppercase tracking-[0.16em] font-bold ${stepColor}`}>
                       Step 0{index + 1}
                     </p>
                     <h3 className="mt-1 text-sm font-bold text-white">{title}</h3>
@@ -536,31 +618,46 @@ export default function Home() {
             </motion.div>
 
             <div className="mt-12 grid grid-cols-2 gap-3.5 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6">
-              {EVIDENCE_SOURCES.filter((source) => source.status !== 'DRAFT_REVIEW').map((source, index) => (
-                <motion.a
-                  key={source.id}
-                  href={source.href}
-                  target="_blank"
-                  rel="noreferrer"
-                  initial={{ opacity: 0, y: 20 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true, margin: '-50px' }}
-                  transition={{ duration: 0.4, delay: index * 0.04 }}
-                  whileHover={{ y: -4, transition: { duration: 0.15 } }}
-                  className="group rounded-[22px] border border-brand-border/70 bg-brand-bg/80 p-4 transition hover:border-emerald-500/40 hover:shadow-md"
-                  aria-label={`Open ${source.name} source`}
-                >
-                  <span className="flex h-10 w-fit min-w-10 items-center justify-center rounded-xl bg-emerald-500/10 px-2.5 font-mono text-[10px] font-black tracking-wider text-emerald-600 dark:text-emerald-400">
-                    {source.mark}
-                  </span>
-                  <p className="mt-3.5 text-xs font-extrabold leading-5 text-brand-text group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">
-                    {source.shortName}
-                  </p>
-                  <p className="mt-1.5 font-mono text-[8px] font-bold uppercase leading-4 tracking-[0.08em] text-brand-muted">
-                    {SOURCE_PURPOSE_LABELS[source.id]}
-                  </p>
-                </motion.a>
-              ))}
+              {EVIDENCE_SOURCES.filter((source) => source.status !== 'DRAFT_REVIEW').map((source, index) => {
+                const markStyles =
+                  source.category === 'PHILIPPINE_NUTRITION'
+                    ? 'border-emerald-500/25 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 group-hover:border-emerald-500/40'
+                    : source.category === 'INTERNATIONAL_FOOD_COMPOSITION'
+                      ? 'border-brand-cyan/30 bg-brand-cyan/10 text-brand-cyan group-hover:border-brand-cyan/50'
+                      : source.category === 'CLINICAL_METHOD'
+                        ? 'border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-amber-400 group-hover:border-amber-500/50'
+                        : source.category === 'SAFETY_GUIDANCE'
+                          ? 'border-brand-accent/30 bg-brand-accent/10 text-brand-accent dark:text-[#f09e6c] group-hover:border-brand-accent/50'
+                          : 'border-teal-500/30 bg-teal-500/10 text-teal-600 dark:text-teal-400 group-hover:border-teal-500/50';
+
+                return (
+                  <motion.a
+                    key={source.id}
+                    href={source.href}
+                    target="_blank"
+                    rel="noreferrer"
+                    initial={{ opacity: 0, y: 20 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true, margin: '-50px' }}
+                    transition={{ duration: 0.4, delay: index * 0.04 }}
+                    whileHover={{ y: -4, transition: { duration: 0.15 } }}
+                    className="group rounded-[22px] border border-brand-border/70 bg-brand-bg/80 p-4 transition hover:border-brand-border hover:shadow-md"
+                    aria-label={`Open ${source.name} source`}
+                  >
+                    <span
+                      className={`flex h-10 w-fit min-w-10 items-center justify-center rounded-xl border px-2.5 font-mono text-[10px] font-black tracking-wider transition-colors ${markStyles}`}
+                    >
+                      {source.mark}
+                    </span>
+                    <p className="mt-3.5 text-xs font-extrabold leading-5 text-brand-text group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">
+                      {source.shortName}
+                    </p>
+                    <p className="mt-1.5 font-mono text-[8px] font-bold uppercase leading-4 tracking-[0.08em] text-brand-muted">
+                      {SOURCE_PURPOSE_LABELS[source.id]}
+                    </p>
+                  </motion.a>
+                );
+              })}
             </div>
           </div>
         </section>
@@ -602,8 +699,10 @@ export default function Home() {
                   href="/docs#clinical-guidelines"
                   className="group flex flex-col justify-end overflow-hidden rounded-[24px] border border-[#173e33] bg-[#091b15] p-5 transition hover:border-emerald-500/40 hover:bg-[#0c241d]"
                 >
-                  <ShieldCheck className="h-7 w-7 text-emerald-400 transition-transform group-hover:scale-110" />
-                  <p className="mt-14 font-display text-base font-bold">Restrictions & Review</p>
+                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-emerald-500/30 bg-emerald-500/15 text-emerald-400 transition-transform duration-300 group-hover:scale-110">
+                    <ShieldCheck className="h-6 w-6" />
+                  </div>
+                  <p className="mt-10 font-display text-base font-bold text-white">Restrictions & Review</p>
                   <p className="mt-2 text-xs leading-5 text-white/50">
                     Declared restrictions, profile checks and scoped nutritionist decisions.
                   </p>
@@ -613,18 +712,22 @@ export default function Home() {
                     href="/docs#meal-planning"
                     className="group rounded-[24px] border border-[#173e33] bg-[#091b15] p-5 transition hover:border-brand-cyan/40 hover:bg-[#0c241d]"
                   >
-                    <Database className="h-6 w-6 text-brand-cyan transition-transform group-hover:scale-110" />
-                    <p className="mt-6 text-sm font-bold">Energy & Food References</p>
+                    <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-brand-cyan/30 bg-brand-cyan/15 text-brand-cyan transition-transform duration-300 group-hover:scale-110">
+                      <Database className="h-5 w-5" />
+                    </div>
+                    <p className="mt-3.5 text-sm font-bold text-white">Energy & Food References</p>
                     <p className="mt-1 text-[11px] leading-4 text-white/50">
                       Resting-energy estimates, activity adjustments and ingredient nutrition.
                     </p>
                   </Link>
                   <Link
                     href="/docs#help"
-                    className="group rounded-[24px] border border-[#173e33] bg-[#091b15] p-5 transition hover:border-purple-400/40 hover:bg-[#0c241d]"
+                    className="group rounded-[24px] border border-[#173e33] bg-[#091b15] p-5 transition hover:border-[#f09e6c]/40 hover:bg-[#0c241d]"
                   >
-                    <Sparkles className="h-6 w-6 text-purple-400 transition-transform group-hover:scale-110" />
-                    <p className="mt-6 text-sm font-bold">User Guides & FAQs</p>
+                    <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-[#f09e6c]/30 bg-[#f09e6c]/15 text-[#f09e6c] transition-transform duration-300 group-hover:scale-110">
+                      <Sparkles className="h-5 w-5" />
+                    </div>
+                    <p className="mt-3.5 text-sm font-bold text-white">User Guides & FAQs</p>
                     <p className="mt-1 text-[11px] leading-4 text-white/50">
                       Starter bridge plans, meal swaps, and grocery lists.
                     </p>
