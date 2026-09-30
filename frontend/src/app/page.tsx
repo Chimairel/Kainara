@@ -86,6 +86,15 @@ const evidenceSliderSources = [
   },
 ];
 
+// Organic SVG wave masks that terminate the sources showcase track exactly at the outer wave borders
+const leftTrackMaskSvg = `url("data:image/svg+xml,${encodeURIComponent(
+  '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 140 300" preserveAspectRatio="none"><path d="M 22,-10 C 68,35 110,85 96,125 C 80,165 18,175 42,215 C 68,255 115,265 85,310 L 140,310 L 140,-10 Z" fill="#000"/></svg>'
+)}")`;
+
+const rightTrackMaskSvg = `url("data:image/svg+xml,${encodeURIComponent(
+  '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 300" preserveAspectRatio="none"><path d="M 0,-10 L 138,-10 C 92,45 45,80 62,135 C 78,185 142,180 118,225 C 94,270 42,275 72,310 L 0,310 Z" fill="#000"/></svg>'
+)}")`;
+
 const getRoleHome = (role: 'USER' | 'NUTRITIONIST' | 'ADMIN') => {
   if (role === 'ADMIN') return '/admin/overview';
   if (role === 'NUTRITIONIST') return '/nutritionist/reviews';
@@ -643,52 +652,67 @@ export default function Home() {
               </div>
             </motion.div>
 
-            {/* Dark Pine Showcase Track Cut Directly by Organic Wave Stripes */}
-            <div className="relative mt-14 overflow-hidden border-y border-[#173e33] bg-[#071914] py-8 sm:py-12">
-              {/* Left and Right Vertical Wave Stripes with Curved Inner Fade */}
+            {/* Dark Pine Showcase Track Bounded Organically by Wave Stripes */}
+            <div className="relative mt-14">
+              {/* Left and Right Vertical Wave Borders (z-20) forming the organic left and right ends of the card */}
               <SectionWaveBorderLeft />
               <SectionWaveBorderRight />
 
-              {/* Ambient Glows */}
-              <div className="pointer-events-none absolute left-1/4 top-1/2 -translate-y-1/2 h-64 w-64 rounded-full bg-emerald-500/10 blur-[100px]" />
-              <div className="pointer-events-none absolute right-1/4 top-1/2 -translate-y-1/2 h-64 w-64 rounded-full bg-brand-cyan/10 blur-[100px]" />
+              {/* Masked Card Track Body - Terminated precisely at the wave stripes */}
+              <div
+                className="relative overflow-hidden border-y border-[#173e33] bg-[#071914] py-8 sm:py-12"
+                style={{
+                  maskImage: `${leftTrackMaskSvg}, linear-gradient(#000, #000), ${rightTrackMaskSvg}`,
+                  WebkitMaskImage: `${leftTrackMaskSvg}, linear-gradient(#000, #000), ${rightTrackMaskSvg}`,
+                  maskPosition: 'left top, 140px top, right top',
+                  WebkitMaskPosition: 'left top, 140px top, right top',
+                  maskSize: '140px 100%, calc(100% - 300px) 100%, 160px 100%',
+                  WebkitMaskSize: '140px 100%, calc(100% - 300px) 100%, 160px 100%',
+                  maskRepeat: 'no-repeat',
+                  WebkitMaskRepeat: 'no-repeat',
+                }}
+              >
+                {/* Ambient Glows */}
+                <div className="pointer-events-none absolute left-1/4 top-1/2 -translate-y-1/2 h-64 w-64 rounded-full bg-emerald-500/10 blur-[100px]" />
+                <div className="pointer-events-none absolute right-1/4 top-1/2 -translate-y-1/2 h-64 w-64 rounded-full bg-brand-cyan/10 blur-[100px]" />
 
-              {/* Infinite Looping Slider for Evidence & Recipe Sources */}
-              <div className="relative py-3">
-                <InfiniteSlider gap={32} speed={42} speedOnHover={14} reverse>
-                  {[...evidenceSliderSources, ...evidenceSliderSources].map((source, index) => (
-                    <a
-                      key={`${source.id}-${index}`}
-                      href={source.href}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="group flex h-[136px] items-center gap-6 rounded-[28px] border border-[#173e33] bg-[#0e271f]/95 px-7 py-4 shadow-[0_16px_36px_rgba(0,0,0,0.4)] backdrop-blur-md transition-all duration-300 hover:-translate-y-1.5 hover:border-emerald-500/50 hover:bg-[#0c241d] hover:shadow-[0_24px_50px_rgba(0,0,0,0.6)]"
-                      aria-label={`Open citation for ${source.name}`}
-                    >
-                      <div className="flex h-24 w-24 shrink-0 items-center justify-center rounded-2xl bg-white p-2.5 overflow-hidden transition-transform duration-300 group-hover:scale-105">
-                        <Image
-                          src={source.logo}
-                          alt={source.alt}
-                          width={96}
-                          height={96}
-                          unoptimized
-                          className="h-full w-full object-contain"
-                        />
-                      </div>
-                      <div className="flex flex-col pr-3">
-                        <div className="flex items-center gap-1.5">
-                          <span className="text-base sm:text-lg font-black tracking-tight text-white group-hover:text-emerald-400 transition-colors whitespace-nowrap">
-                            {source.name}
-                          </span>
-                          <ArrowUpRight className="h-4 w-4 text-emerald-400/60 opacity-0 -translate-x-1 group-hover:opacity-100 group-hover:translate-x-0 group-hover:text-emerald-400 transition-all" />
+                {/* Infinite Looping Slider for Evidence & Recipe Sources */}
+                <div className="relative py-3">
+                  <InfiniteSlider gap={32} speed={42} speedOnHover={14} reverse>
+                    {[...evidenceSliderSources, ...evidenceSliderSources].map((source, index) => (
+                      <a
+                        key={`${source.id}-${index}`}
+                        href={source.href}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="group flex h-[136px] items-center gap-6 rounded-[28px] border border-[#173e33] bg-[#0e271f]/95 px-7 py-4 shadow-[0_16px_36px_rgba(0,0,0,0.4)] backdrop-blur-md transition-all duration-300 hover:-translate-y-1.5 hover:border-emerald-500/50 hover:bg-[#0c241d] hover:shadow-[0_24px_50px_rgba(0,0,0,0.6)]"
+                        aria-label={`Open citation for ${source.name}`}
+                      >
+                        <div className="flex h-24 w-24 shrink-0 items-center justify-center rounded-2xl bg-white p-2.5 overflow-hidden transition-transform duration-300 group-hover:scale-105">
+                          <Image
+                            src={source.logo}
+                            alt={source.alt}
+                            width={96}
+                            height={96}
+                            unoptimized
+                            className="h-full w-full object-contain"
+                          />
                         </div>
-                        <span className="mt-1 font-mono text-[11px] font-bold uppercase tracking-wider text-white/50 whitespace-nowrap">
-                          {source.sub}
-                        </span>
-                      </div>
-                    </a>
-                  ))}
-                </InfiniteSlider>
+                        <div className="flex flex-col pr-3">
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-base sm:text-lg font-black tracking-tight text-white group-hover:text-emerald-400 transition-colors whitespace-nowrap">
+                              {source.name}
+                            </span>
+                            <ArrowUpRight className="h-4 w-4 text-emerald-400/60 opacity-0 -translate-x-1 group-hover:opacity-100 group-hover:translate-x-0 group-hover:text-emerald-400 transition-all" />
+                          </div>
+                          <span className="mt-1 font-mono text-[11px] font-bold uppercase tracking-wider text-white/50 whitespace-nowrap">
+                            {source.sub}
+                          </span>
+                        </div>
+                      </a>
+                    ))}
+                  </InfiniteSlider>
+                </div>
               </div>
             </div>
           </div>

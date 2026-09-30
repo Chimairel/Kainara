@@ -304,10 +304,10 @@ export function SectionWaveBorderLeft() {
   return (
     <div
       aria-hidden="true"
-      className="pointer-events-none absolute left-0 top-0 bottom-0 w-24 sm:w-32 md:w-40 overflow-hidden select-none z-20"
+      className="pointer-events-none absolute left-0 top-0 bottom-0 w-[140px] overflow-hidden select-none z-20"
     >
       <svg
-        viewBox="0 0 180 300"
+        viewBox="0 0 140 300"
         fill="none"
         xmlns="http://www.w3.org/2000/svg"
         preserveAspectRatio="none"
@@ -319,56 +319,18 @@ export function SectionWaveBorderLeft() {
           </filter>
         </defs>
 
-        {/* Seamless dark pine fill covering everything to the left of the curve */}
-        <path
-          d="M -30,-15
-             L 50,-10
-             C 96,35 138,85 124,125
-             C 108,165 46,175 70,215
-             C 96,255 143,265 113,310
-             L -30,315
-             Z"
-          fill="#071914"
-        />
-
         {/* Curved dark shadow strokes on the inner side of the curve to smoothly fade moving cards */}
         <path
-          d="M 50,-10
-             C 96,35 138,85 124,125
-             C 108,165 46,175 70,215
-             C 96,255 143,265 113,310"
+          d="M 50,-10 C 96,35 138,85 124,125 C 108,165 46,175 70,215 C 96,255 143,265 113,310"
           stroke="#071914"
-          strokeWidth="48"
+          strokeWidth="44"
           strokeLinecap="round"
-          className="opacity-45"
+          className="opacity-60"
           filter="url(#waveShadowLeft)"
-          vectorEffect="non-scaling-stroke"
-        />
-        <path
-          d="M 50,-10
-             C 96,35 138,85 124,125
-             C 108,165 46,175 70,215
-             C 96,255 143,265 113,310"
-          stroke="#071914"
-          strokeWidth="28"
-          strokeLinecap="round"
-          className="opacity-75"
-          filter="url(#waveShadowLeft)"
-          vectorEffect="non-scaling-stroke"
-        />
-        <path
-          d="M 50,-10
-             C 96,35 138,85 124,125
-             C 108,165 46,175 70,215
-             C 96,255 143,265 113,310"
-          stroke="#071914"
-          strokeWidth="16"
-          strokeLinecap="round"
-          className="opacity-95"
           vectorEffect="non-scaling-stroke"
         />
 
-        {/* Band 1: Deep Pine Green (Outer Boundary / Leftmost) */}
+        {/* Band 1: Deep Pine Green (Outer Boundary / Leftmost edge of the card) */}
         <path
           d="M 22,-10
              C 68,35 110,85 96,125
@@ -420,10 +382,10 @@ export function SectionWaveBorderRight() {
   return (
     <div
       aria-hidden="true"
-      className="pointer-events-none absolute right-0 top-0 bottom-0 w-24 sm:w-32 md:w-40 overflow-hidden select-none z-20"
+      className="pointer-events-none absolute right-0 top-0 bottom-0 w-[160px] overflow-hidden select-none z-20"
     >
       <svg
-        viewBox="0 0 180 300"
+        viewBox="0 0 160 300"
         fill="none"
         xmlns="http://www.w3.org/2000/svg"
         preserveAspectRatio="none"
@@ -435,56 +397,18 @@ export function SectionWaveBorderRight() {
           </filter>
         </defs>
 
-        {/* Seamless dark pine fill covering everything to the right of the curve */}
-        <path
-          d="M 210,-15
-             L 110,-10
-             C 64,45 17,80 34,135
-             C 50,185 114,180 90,225
-             C 66,270 14,275 44,310
-             L 210,315
-             Z"
-          fill="#071914"
-        />
-
         {/* Curved dark shadow strokes on the inner side of the curve to smoothly fade moving cards */}
         <path
-          d="M 110,-10
-             C 64,45 17,80 34,135
-             C 50,185 114,180 90,225
-             C 66,270 14,275 44,310"
+          d="M 110,-10 C 64,45 17,80 34,135 C 50,185 114,180 90,225 C 66,270 14,275 44,310"
           stroke="#071914"
-          strokeWidth="48"
+          strokeWidth="44"
           strokeLinecap="round"
-          className="opacity-45"
+          className="opacity-60"
           filter="url(#waveShadowRight)"
-          vectorEffect="non-scaling-stroke"
-        />
-        <path
-          d="M 110,-10
-             C 64,45 17,80 34,135
-             C 50,185 114,180 90,225
-             C 66,270 14,275 44,310"
-          stroke="#071914"
-          strokeWidth="28"
-          strokeLinecap="round"
-          className="opacity-75"
-          filter="url(#waveShadowRight)"
-          vectorEffect="non-scaling-stroke"
-        />
-        <path
-          d="M 110,-10
-             C 64,45 17,80 34,135
-             C 50,185 114,180 90,225
-             C 66,270 14,275 44,310"
-          stroke="#071914"
-          strokeWidth="16"
-          strokeLinecap="round"
-          className="opacity-95"
           vectorEffect="non-scaling-stroke"
         />
 
-        {/* Band 1: Deep Pine Green (Outer Boundary / Rightmost) */}
+        {/* Band 1: Deep Pine Green (Outer Boundary / Rightmost edge of the card) */}
         <path
           d="M 138,-10
              C 92,45 45,80 62,135
