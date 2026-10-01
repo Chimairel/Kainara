@@ -205,251 +205,262 @@ export default function OnboardingStatsPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-brand-bg text-brand-text p-4 sm:p-6 flex flex-col items-center justify-center select-none relative">
-      <div className="absolute top-[20%] left-[50%] translate-x-[-50%] h-[300px] w-[300px] rounded-full bg-[#52B788]/5 blur-[120px] pointer-events-none -z-10" />
+    <div className="w-full max-w-xl flex flex-col gap-4 select-none my-auto">
+      {/* Onboarding progress slider */}
+      <OnboardingProgressSlider currentStep={1} totalSteps={6} />
 
-      <div className="w-full max-w-xl flex flex-col gap-4 my-auto">
-        {/* Onboarding progress slider */}
-        <OnboardingProgressSlider currentStep={1} totalSteps={6} />
+      <Card className="relative overflow-hidden p-6 sm:p-7 glass-panel shadow-2xl border-brand-border/80 dark:border-[#173e33] dark:bg-[#09221b]/90 rounded-3xl">
+        {/* Subtle Brand Wave Accent in Top-Right Corner */}
+        <div className="absolute top-0 right-0 h-16 w-16 pointer-events-none overflow-hidden rounded-tr-3xl">
+          <div className="absolute -top-8 -right-8 h-16 w-16 rounded-full bg-brand-green/10 dark:bg-brand-accent/15 blur-sm" />
+        </div>
 
-        <Card className="p-5 sm:p-6 glass-panel shadow-2xl border-brand-border/80">
-          {isFromReview && (
-            <button
-              type="button"
-              onClick={() => router.push('/onboarding/tos')}
-              className="mb-3 flex items-center gap-1.5 text-xs text-brand-muted hover:text-brand-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-green transition-colors w-fit"
-            >
-              <ArrowLeft className="h-3 w-3 shrink-0" />
-              <span>Back to Review</span>
-            </button>
-          )}
+        {isFromReview && (
+          <button
+            type="button"
+            onClick={() => router.push('/onboarding/tos')}
+            className="mb-3 flex items-center gap-1.5 text-xs text-brand-muted hover:text-brand-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-green transition-colors w-fit"
+          >
+            <ArrowLeft className="h-3 w-3 shrink-0" />
+            <span>Back to Review</span>
+          </button>
+        )}
 
-          <div className="flex flex-col gap-1 mb-3">
-            <h2 className="text-xl sm:text-2xl font-extrabold tracking-tight font-display text-brand-green">
-              PERSONAL METRICS
-            </h2>
-            <p className="text-xs text-brand-muted">
-              Specify your primary fitness objective and body stats to calculate your targets.
-            </p>
+        <div className="flex flex-col gap-1 mb-4">
+          <div className="flex items-center gap-2">
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold uppercase tracking-wider bg-brand-green/10 text-brand-green border border-brand-green/20 dark:bg-brand-accent/15 dark:text-brand-accent dark:border-brand-accent/30">
+              Step 01 / 06 · Biometrics
+            </span>
           </div>
+          <h2 className="text-xl sm:text-2xl font-extrabold tracking-tight font-display text-brand-green">
+            PERSONAL METRICS
+          </h2>
+          <p className="text-xs text-brand-muted">
+            Specify your primary fitness objective and body stats to calculate your daily energy targets.
+          </p>
+        </div>
 
-          {error && (
-            <div className="mb-3 p-3 rounded-xl bg-status-error-bg/10 border border-status-error-text/25 text-status-error-text text-xs font-semibold flex items-center gap-2">
-              <AlertTriangle className="w-4 h-4 text-status-error-text shrink-0" />
-              <span className="leading-tight">{error}</span>
-            </div>
-          )}
+        {error && (
+          <div className="mb-4 p-3 rounded-2xl bg-status-error-bg/10 border border-status-error-text/25 text-status-error-text text-xs font-semibold flex items-center gap-2">
+            <AlertTriangle className="w-4 h-4 text-status-error-text shrink-0" />
+            <span className="leading-tight">{error}</span>
+          </div>
+        )}
 
-          <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-3">
-            {/* Goal Chips */}
-            <div className="flex flex-col gap-2">
-              <label className="text-xs sm:text-sm font-bold tracking-wide text-brand-text/90">Primary Goal</label>
-              <div className="grid grid-cols-2 gap-2.5">
-                {goalsList.map((item) => {
-                  const isSelected = goal === item.value;
-                  return (
-                    <button
-                      key={item.value}
-                      type="button"
-                      aria-pressed={isSelected}
-                      onClick={() => handleGoalChange(item.value)}
-                      className={`
-                        flex items-center gap-2 px-3.5 py-2.5 rounded-xl border-2 font-semibold text-xs sm:text-sm transition-all duration-200 outline-none
-                        ${
-                          isSelected
-                            ? 'border-brand-green bg-brand-green text-white dark:border-brand-accent dark:bg-brand-accent dark:text-black font-bold shadow-md'
-                            : 'border-brand-border bg-brand-bgAlt/50 text-brand-muted hover:text-brand-text'
-                        }
-                      `}
-                    >
-                      <span className={`shrink-0 ${isSelected ? 'text-white dark:text-black' : 'text-brand-green'}`}>
-                        {item.icon}
-                      </span>
-                      <span>{item.label}</span>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            <fieldset className="flex flex-col gap-2">
-              <legend className="text-xs sm:text-sm font-bold tracking-wide text-brand-text/90">
-                Biological sex used for energy calculation
-              </legend>
-              <p className="text-[11px] leading-relaxed text-brand-muted">
-                This input is required by the Mifflin–St Jeor equation and is used only for nutrition-target
-                calculations.
-              </p>
-              <div className="grid grid-cols-2 gap-2.5">
-                {(['MALE', 'FEMALE'] as const).map((value) => {
-                  const selected = biologicalSex === value;
-                  return (
-                    <button
-                      key={value}
-                      type="button"
-                      aria-pressed={selected}
-                      onClick={() => setBiologicalSex(value)}
-                      className={`rounded-xl border-2 px-3.5 py-2.5 text-xs sm:text-sm font-bold transition outline-none ${
-                        selected
-                          ? 'border-brand-green bg-brand-green text-white dark:border-brand-accent dark:bg-brand-accent dark:text-black font-bold shadow-md'
-                          : 'border-brand-border bg-brand-bgAlt/50 text-brand-muted hover:text-brand-text'
+        <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-4">
+          {/* Goal Chips */}
+          <div className="flex flex-col gap-2">
+            <label className="text-xs sm:text-sm font-bold tracking-wide text-brand-text/90">Primary Goal</label>
+            <div className="grid grid-cols-2 gap-2.5">
+              {goalsList.map((item) => {
+                const isSelected = goal === item.value;
+                return (
+                  <button
+                    key={item.value}
+                    type="button"
+                    aria-pressed={isSelected}
+                    onClick={() => handleGoalChange(item.value)}
+                    className={`
+                      flex items-center gap-2.5 px-3.5 py-3 rounded-2xl border-2 font-semibold text-xs sm:text-sm transition-all duration-200 outline-none
+                      ${
+                        isSelected
+                          ? 'border-brand-green bg-brand-green text-white dark:border-brand-accent dark:bg-brand-accent dark:text-black font-bold shadow-md shadow-brand-green/20'
+                          : 'border-brand-border/80 bg-brand-bgAlt/50 text-brand-muted hover:border-brand-border hover:text-brand-text'
+                      }
+                    `}
+                  >
+                    <span
+                      className={`p-1.5 rounded-xl shrink-0 ${
+                        isSelected ? 'bg-white/20 dark:bg-black/15 text-white dark:text-black' : 'bg-brand-border/40 text-brand-green'
                       }`}
                     >
-                      {value === 'MALE' ? 'Male' : 'Female'}
-                    </button>
-                  );
-                })}
-              </div>
-            </fieldset>
+                      {item.icon}
+                    </span>
+                    <span className="flex-1 text-left">{item.label}</span>
+                    {isSelected && <Check className="w-3.5 h-3.5 stroke-[3] shrink-0" />}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
 
-            {/* Inputs Grid */}
-            <div className="grid grid-cols-2 gap-3 sm:gap-4">
-              <Input
-                id="age"
-                label="Age (Years)"
-                type="number"
-                min={18}
-                max={100}
-                placeholder="25"
-                value={age}
-                onChange={(e) => setAge(e.target.value)}
-                disabled={isLoading}
-              />
-              <Input
-                id="height"
-                label="Height (cm)"
-                type="number"
-                min={100}
-                max={250}
-                placeholder="170"
-                value={height}
-                onChange={(e) => setHeight(e.target.value)}
-                disabled={isLoading}
-              />
-              <Input
-                id="weight"
-                label="Weight (kg)"
+          <fieldset className="flex flex-col gap-2">
+            <legend className="text-xs sm:text-sm font-bold tracking-wide text-brand-text/90">
+              Biological sex used for energy calculation
+            </legend>
+            <p className="text-[11px] leading-relaxed text-brand-muted">
+              Required by the Mifflin–St Jeor equation to calculate your resting metabolic rate.
+            </p>
+            <div className="grid grid-cols-2 gap-2.5">
+              {(['MALE', 'FEMALE'] as const).map((value) => {
+                const selected = biologicalSex === value;
+                return (
+                  <button
+                    key={value}
+                    type="button"
+                    aria-pressed={selected}
+                    onClick={() => setBiologicalSex(value)}
+                    className={`flex items-center justify-between rounded-2xl border-2 px-4 py-2.5 text-xs sm:text-sm font-bold transition-all duration-200 outline-none ${
+                      selected
+                        ? 'border-brand-green bg-brand-green text-white dark:border-brand-accent dark:bg-brand-accent dark:text-black font-bold shadow-md shadow-brand-green/20'
+                        : 'border-brand-border/80 bg-brand-bgAlt/50 text-brand-muted hover:border-brand-border hover:text-brand-text'
+                    }`}
+                  >
+                    <span>{value === 'MALE' ? 'Male' : 'Female'}</span>
+                    {selected && <Check className="w-3.5 h-3.5 stroke-[3] shrink-0" />}
+                  </button>
+                );
+              })}
+            </div>
+          </fieldset>
+
+          {/* Inputs Grid */}
+          <div className="grid grid-cols-2 gap-3 sm:gap-4">
+            <Input
+              id="age"
+              label="Age (Years)"
+              type="number"
+              min={18}
+              max={100}
+              placeholder="25"
+              value={age}
+              onChange={(e) => setAge(e.target.value)}
+              disabled={isLoading}
+            />
+            <Input
+              id="height"
+              label="Height (cm)"
+              type="number"
+              min={100}
+              max={250}
+              placeholder="170"
+              value={height}
+              onChange={(e) => setHeight(e.target.value)}
+              disabled={isLoading}
+            />
+            <Input
+              id="weight"
+              label="Weight (kg)"
+              type="number"
+              min={30}
+              max={300}
+              step="0.1"
+              placeholder="68.5"
+              value={weight}
+              onChange={(e) => {
+                setWeight(e.target.value);
+                if (goal === 'MAINTAIN') setTargetWeight(e.target.value);
+              }}
+              disabled={isLoading}
+            />
+
+            {/* Target Weight — smart field with live goal-aware validation */}
+            <div className="flex flex-col gap-1">
+              <label
+                htmlFor="targetWeight"
+                className={`text-xs sm:text-sm font-bold tracking-wide ${
+                  goal === 'MAINTAIN' ? 'text-brand-muted' : 'text-brand-text/90'
+                }`}
+              >
+                Target Weight (kg)
+              </label>
+              <input
+                id="targetWeight"
                 type="number"
                 min={30}
                 max={300}
                 step="0.1"
-                placeholder="68.5"
-                value={weight}
-                onChange={(e) => {
-                  setWeight(e.target.value);
-                  if (goal === 'MAINTAIN') setTargetWeight(e.target.value);
-                }}
-                disabled={isLoading}
-              />
-
-              {/* Target Weight — smart field with live goal-aware validation */}
-              <div className="flex flex-col gap-1">
-                <label
-                  htmlFor="targetWeight"
-                  className={`text-xs sm:text-sm font-bold tracking-wide ${
-                    goal === 'MAINTAIN' ? 'text-brand-muted' : 'text-brand-text/90'
-                  }`}
-                >
-                  Target Weight (kg)
-                </label>
-                <input
-                  id="targetWeight"
-                  type="number"
-                  min={30}
-                  max={300}
-                  step="0.1"
-                  placeholder={goal === 'MAINTAIN' ? 'Same as current weight' : '65.0'}
-                  value={targetWeight}
-                  onChange={(e) => setTargetWeight(e.target.value)}
-                  disabled={isLoading || goal === 'MAINTAIN'}
-                  className={`
-                    w-full px-3.5 py-2.5 rounded-xl border text-xs sm:text-sm font-medium transition-all duration-200 outline-none
-                    bg-brand-bgAlt/50 text-brand-text
-                    ${
-                      goal === 'MAINTAIN'
-                        ? 'border-brand-border/40 opacity-50 cursor-not-allowed text-brand-muted'
-                        : targetWeightState === 'invalid'
-                          ? 'border-status-error-text/60 bg-status-error-bg/5 focus:border-status-error-text'
-                          : targetWeightState === 'valid'
-                            ? 'border-brand-green/60 bg-brand-green/5 focus:border-brand-green'
-                            : 'border-brand-border focus:border-brand-green'
-                    }
-                  `}
-                />
-                <p
-                  className={`text-[10px] font-semibold leading-tight ${
+                placeholder={goal === 'MAINTAIN' ? 'Same as current weight' : '65.0'}
+                value={targetWeight}
+                onChange={(e) => setTargetWeight(e.target.value)}
+                disabled={isLoading || goal === 'MAINTAIN'}
+                className={`
+                  w-full px-3.5 py-2.5 rounded-2xl border text-xs sm:text-sm font-medium transition-all duration-200 outline-none
+                  bg-brand-bgAlt/50 text-brand-text
+                  ${
                     goal === 'MAINTAIN'
-                      ? 'text-brand-muted'
+                      ? 'border-brand-border/40 opacity-50 cursor-not-allowed text-brand-muted'
                       : targetWeightState === 'invalid'
-                        ? 'text-status-error-text'
+                        ? 'border-status-error-text/60 bg-status-error-bg/5 focus:border-status-error-text'
                         : targetWeightState === 'valid'
-                          ? 'text-brand-green'
-                          : 'text-brand-muted'
-                  }`}
-                >
-                  {targetWeightHint}
-                </p>
-              </div>
+                          ? 'border-brand-green/60 bg-brand-green/5 focus:border-brand-green'
+                          : 'border-brand-border focus:border-brand-green'
+                  }
+                `}
+              />
+              <p
+                className={`text-[10px] font-semibold leading-tight ${
+                  goal === 'MAINTAIN'
+                    ? 'text-brand-muted'
+                    : targetWeightState === 'invalid'
+                      ? 'text-status-error-text'
+                      : targetWeightState === 'valid'
+                        ? 'text-brand-green'
+                        : 'text-brand-muted'
+                }`}
+              >
+                {targetWeightHint}
+              </p>
             </div>
+          </div>
 
-            {/* Activity Level Selector */}
-            <div className="flex flex-col gap-1.5">
-              <label className="text-xs sm:text-sm font-bold tracking-wide text-brand-text/90">
-                Daily Activity Level
-              </label>
-              <div className="grid grid-cols-2 gap-2">
-                {activityLevelsList.map((item) => {
-                  const isSelected = activityLevel === item.value;
-                  return (
-                    <button
-                      key={item.value}
-                      type="button"
-                      aria-pressed={isSelected}
-                      onClick={() => setActivityLevel(item.value)}
-                      className={`
-                        flex items-center justify-between px-3 py-2 rounded-xl border-2 text-left transition-all duration-200 outline-none
-                        ${
-                          isSelected
-                            ? 'border-brand-green bg-brand-green text-white dark:border-brand-accent dark:bg-brand-accent dark:text-black font-bold shadow-md'
-                            : 'border-brand-border bg-brand-bgAlt/50 hover:bg-brand-border/40'
-                        }
-                      `}
-                    >
-                      <div className="min-w-0 pr-1">
-                        <h4
-                          className={`text-xs sm:text-sm font-bold tracking-wide ${
-                            isSelected ? 'text-white dark:text-black' : 'text-brand-text'
-                          }`}
-                        >
-                          {item.label}
-                        </h4>
-                        <p
-                          className={`text-[10px] mt-0.5 leading-tight truncate font-semibold ${
-                            isSelected ? 'text-emerald-100 dark:text-neutral-900' : 'text-brand-muted'
-                          }`}
-                        >
-                          {item.desc}
-                        </p>
-                      </div>
-                      {isSelected && <Check className="w-3.5 h-3.5 text-white dark:text-black stroke-[3px] shrink-0" />}
-                    </button>
-                  );
-                })}
-              </div>
+          {/* Activity Level Selector */}
+          <div className="flex flex-col gap-1.5">
+            <label className="text-xs sm:text-sm font-bold tracking-wide text-brand-text/90">
+              Daily Activity Level
+            </label>
+            <div className="grid grid-cols-2 gap-2">
+              {activityLevelsList.map((item) => {
+                const isSelected = activityLevel === item.value;
+                return (
+                  <button
+                    key={item.value}
+                    type="button"
+                    aria-pressed={isSelected}
+                    onClick={() => setActivityLevel(item.value)}
+                    className={`
+                      flex items-center justify-between px-3.5 py-2.5 rounded-2xl border-2 text-left transition-all duration-200 outline-none
+                      ${
+                        isSelected
+                          ? 'border-brand-green bg-brand-green text-white dark:border-brand-accent dark:bg-brand-accent dark:text-black font-bold shadow-md shadow-brand-green/20'
+                          : 'border-brand-border/80 bg-brand-bgAlt/50 hover:bg-brand-border/40 text-brand-text'
+                      }
+                    `}
+                  >
+                    <div className="min-w-0 pr-1">
+                      <h4
+                        className={`text-xs sm:text-sm font-bold tracking-wide ${
+                          isSelected ? 'text-white dark:text-black' : 'text-brand-text'
+                        }`}
+                      >
+                        {item.label}
+                      </h4>
+                      <p
+                        className={`text-[10px] mt-0.5 leading-tight truncate font-semibold ${
+                          isSelected ? 'text-emerald-100 dark:text-neutral-900' : 'text-brand-muted'
+                        }`}
+                      >
+                        {item.desc}
+                      </p>
+                    </div>
+                    {isSelected && <Check className="w-3.5 h-3.5 text-white dark:text-black stroke-[3px] shrink-0" />}
+                  </button>
+                );
+              })}
             </div>
+          </div>
 
-            <Button
-              type="submit"
-              variant="primary"
-              className="w-full py-3 mt-2 text-sm font-bold tracking-wide"
-              isLoading={isLoading}
-              disabled={isHydrating}
-            >
-              {isFromReview ? 'Save & Return to Review' : 'Continue to Step 2'}
-            </Button>
-          </form>
-        </Card>
-      </div>
+          <Button
+            type="submit"
+            variant="primary"
+            className="w-full py-3 mt-2 text-sm font-bold tracking-wide rounded-2xl shadow-lg shadow-brand-green/20 transition-all hover:scale-[1.01] active:scale-[0.99]"
+            isLoading={isLoading}
+            disabled={isHydrating}
+          >
+            {isFromReview ? 'Save & Return to Review' : 'Continue to Step 2 →'}
+          </Button>
+        </form>
+      </Card>
     </div>
   );
 }

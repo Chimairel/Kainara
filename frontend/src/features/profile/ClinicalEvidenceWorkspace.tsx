@@ -176,10 +176,10 @@ export default function ClinicalEvidenceWorkspace({ mode = 'profile' }: { mode?:
 
   const areas = workspace?.availableAreas ?? [];
   return (
-    <div className={mode === 'onboarding' ? 'mx-auto min-h-screen max-w-3xl space-y-5 bg-brand-bg px-4 py-8 text-brand-text' : 'portal-page max-w-4xl space-y-6'}>
+    <div className={mode === 'onboarding' ? 'mx-auto w-full max-w-2xl space-y-5 select-none my-auto' : 'portal-page max-w-4xl space-y-6'}>
       {mode === 'onboarding' && <OnboardingProgressSlider currentStep={3} totalSteps={6} />}
       {mode === 'onboarding'
-        ? <Link href={searchParams.get('from') === 'review' ? '/onboarding/conditions?from=review' : '/onboarding/conditions'} className="text-sm font-semibold text-brand-green">← Back to medical conditions</Link>
+        ? <Link href={searchParams.get('from') === 'review' ? '/onboarding/conditions?from=review' : '/onboarding/conditions'} className="text-xs font-semibold text-brand-muted hover:text-brand-text transition-colors flex items-center gap-1.5 w-fit">← Back to medical conditions</Link>
         : <Link href="/profile/health" className="text-sm font-semibold text-brand-green">← Health & goals</Link>}
       <header>
         <p className="text-xs font-bold uppercase tracking-widest text-brand-green">Private health context</p>
