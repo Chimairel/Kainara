@@ -2,13 +2,7 @@
 
 import React from 'react';
 import Link from 'next/link';
-import {
-  ChevronRight,
-  ChevronUp,
-  Clock,
-  Mail,
-  MapPin,
-} from 'lucide-react';
+import { ChevronRight, ChevronUp, Clock, Mail, MapPin } from 'lucide-react';
 import KainaraLogo from '@/components/shared/KainaraLogo';
 import { SectionWaveBorderTop } from '@/components/landing/LandingWaveRiver';
 
@@ -40,11 +34,13 @@ export default function PublicFooter() {
             {/* Column 1: Brand & Council Credential */}
             <div>
               <div className="flex items-center gap-3.5">
-                <KainaraLogo size={52} variant="multicolor" className="shrink-0 transition-transform duration-300 hover:scale-105" />
+                <KainaraLogo
+                  size={52}
+                  variant="multicolor"
+                  className="shrink-0 transition-transform duration-300 hover:scale-105"
+                />
                 <div>
-                  <span className="font-display font-black text-2xl tracking-tight text-white block">
-                    KAINARA
-                  </span>
+                  <span className="font-display font-black text-2xl tracking-tight text-white block">KAINARA</span>
                   <span className="font-mono text-[9px] uppercase tracking-[0.16em] text-emerald-400 font-bold block">
                     Clinical Nutrition Platform
                   </span>
@@ -52,7 +48,8 @@ export default function PublicFooter() {
               </div>
 
               <p className="mt-4 max-w-sm text-xs leading-6 text-white/60">
-                AI-assisted Filipino meal planning, nutrition tracking and licensed nutritionist-dietitian review workflows.
+                AI-assisted Filipino meal planning, nutrition tracking and licensed nutritionist-dietitian review
+                workflows.
               </p>
 
               <div className="mt-5 inline-flex items-center gap-2 rounded-full border border-emerald-500/30 bg-[#0e271f] px-3 py-1.5 text-[11px] font-semibold text-emerald-400">
@@ -60,15 +57,13 @@ export default function PublicFooter() {
                   <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
                   <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
                 </span>
-                <span>PRC Accredited RND Review Network</span>
+                <span>Credential-reviewed RND access</span>
               </div>
             </div>
 
             {/* Column 2: Quick Links */}
             <div>
-              <p className="font-display text-sm font-black uppercase tracking-[0.14em] text-white mb-4">
-                Quick Links
-              </p>
+              <p className="font-display text-sm font-black uppercase tracking-[0.14em] text-white mb-4">Quick Links</p>
               <ul className="space-y-2.5 text-xs">
                 {[
                   ['Home', '/'],
@@ -119,9 +114,7 @@ export default function PublicFooter() {
 
             {/* Column 4: Workspaces & Access */}
             <div>
-              <p className="font-display text-sm font-black uppercase tracking-[0.14em] text-white mb-4">
-                Workspaces
-              </p>
+              <p className="font-display text-sm font-black uppercase tracking-[0.14em] text-white mb-4">Workspaces</p>
               <ul className="space-y-2.5 text-xs">
                 {[
                   ['Patient Dashboard', '/dashboard'],
@@ -166,10 +159,10 @@ export default function PublicFooter() {
                   <div>
                     <p className="font-bold text-white">Email Inquiries</p>
                     <a
-                      href="mailto:support@kainara.app"
+                      href="mailto:chimairelp@gmail.com"
                       className="text-white/60 hover:text-emerald-400 transition-colors mt-0.5 block"
                     >
-                      support@kainara.app
+                      chimairelp@gmail.com
                     </a>
                   </div>
                 </div>
@@ -180,7 +173,7 @@ export default function PublicFooter() {
                   </span>
                   <div>
                     <p className="font-bold text-white">Review Desk Hours</p>
-                    <p className="text-white/60 mt-0.5">Mon–Fri: 8:00 AM – 5:00 PM PHT</p>
+                    <p className="text-white/60 mt-0.5">Every day: 8:00 AM – 5:00 PM PHT</p>
                   </div>
                 </div>
               </div>
@@ -191,11 +184,11 @@ export default function PublicFooter() {
           <div className="relative z-10 flex flex-col sm:flex-row items-center justify-between gap-4 border-t border-[#173e33] pt-8 pb-6 text-xs text-white/50">
             <p>© 2026 KAINARA. AI-Assisted Filipino Nutrition & Clinical Review. All rights reserved.</p>
 
-            <div className="flex items-center gap-6 font-medium">
-              <Link href="/docs" className="hover:text-emerald-400 transition-colors">
+            <div className="flex flex-wrap items-center justify-center gap-4 sm:gap-6 font-medium">
+              <Link href="/docs#privacy-policy" className="hover:text-emerald-400 transition-colors">
                 Privacy Policy
               </Link>
-              <Link href="/onboarding/tos" className="hover:text-emerald-400 transition-colors">
+              <Link href="/docs#terms-of-service" className="hover:text-emerald-400 transition-colors">
                 Terms of Service
               </Link>
               <Link href="/docs#data-sources" className="hover:text-emerald-400 transition-colors">
@@ -208,7 +201,12 @@ export default function PublicFooter() {
               {/* Back to Top Scroll Button */}
               <button
                 type="button"
-                onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+                onClick={() =>
+                  window.scrollTo({
+                    top: 0,
+                    behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',
+                  })
+                }
                 aria-label="Scroll to top of page"
                 className="flex h-8 w-8 items-center justify-center rounded-xl bg-brand-accent text-white shadow-lg transition-transform hover:-translate-y-1 hover:brightness-110 active:scale-95 ml-2"
               >

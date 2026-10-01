@@ -21,7 +21,6 @@ import { Modal } from '@/components/ui/Modal';
 import PortalPageHeader from '@/components/shared/PortalPageHeader';
 import AnnouncementBanner from '@/components/shared/AnnouncementBanner';
 import StructuredSafetyIntake from '@/components/user/StructuredSafetyIntake';
-import PlanningLocationFields from '@/components/user/PlanningLocationFields';
 import api from '@/lib/axios';
 import { safetyInputsFromProfile } from '@/lib/safety-intake';
 import {
@@ -78,12 +77,6 @@ export function ProgressWorkspace({ mode = 'progress' }: { mode?: ProgressWorksp
     setDietaryPreference,
     ricePreference,
     setRicePreference,
-    planningGeographyLevel,
-    setPlanningGeographyLevel,
-    planningRegionName,
-    setPlanningRegionName,
-    planningProvinceHucName,
-    setPlanningProvinceHucName,
     shoppingDayOfWeek,
     setShoppingDayOfWeek,
     isSavingBiometrics,
@@ -588,19 +581,6 @@ export function ProgressWorkspace({ mode = 'progress' }: { mode?: ProgressWorksp
                           options={SHOPPING_DAY_OPTIONS}
                         />
                       </div>
-                    </div>
-
-                    <div className="mt-1">
-                      <PlanningLocationFields
-                        level={planningGeographyLevel}
-                        regionName={planningRegionName}
-                        provinceHucName={planningProvinceHucName}
-                        onLevelChange={setPlanningGeographyLevel}
-                        onRegionNameChange={setPlanningRegionName}
-                        onProvinceHucNameChange={setPlanningProvinceHucName}
-                        disabled={isSavingBiometrics}
-                        idPrefix="profile-planning-location"
-                      />
                     </div>
                   </>
                 )}

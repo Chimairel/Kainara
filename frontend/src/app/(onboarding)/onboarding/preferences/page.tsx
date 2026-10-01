@@ -12,8 +12,6 @@ import { getApiErrorMessage } from '@/lib/api-error';
 import { useProfile } from '@/hooks/useProfile';
 import { useAuth } from '@/hooks/useAuth';
 import { normalizeFoodCulture } from '@/lib/profile-normalization';
-import PlanningLocationFields from '@/components/user/PlanningLocationFields';
-import type { PlanningGeographyLevel } from '@/types';
 import { writeSessionResource } from '@/lib/session-resource-cache';
 
 export default function OnboardingPreferencesPage() {
@@ -25,9 +23,6 @@ export default function OnboardingPreferencesPage() {
   const [dietary, setDietary] = useState<DietaryPreference>('OMNIVORE');
   const [ricePreference, setRicePreference] = useState<RicePreference>('FLEXIBLE');
   const [culture, setCulture] = useState('Filipino');
-  const [planningLevel, setPlanningLevel] = useState<PlanningGeographyLevel>('NATIONAL');
-  const [planningRegion, setPlanningRegion] = useState('');
-  const [planningProvinceHuc, setPlanningProvinceHuc] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -37,9 +32,6 @@ export default function OnboardingPreferencesPage() {
     if (saved.dietaryPreference) setDietary(saved.dietaryPreference as DietaryPreference);
     if (saved.ricePreference) setRicePreference(saved.ricePreference);
     if (saved.foodCulture) setCulture(normalizeFoodCulture(saved.foodCulture));
-    if (saved.planningGeographyLevel) setPlanningLevel(saved.planningGeographyLevel);
-    setPlanningRegion(saved.planningRegionName || '');
-    setPlanningProvinceHuc(saved.planningProvinceHucName || '');
   }, [profile]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -53,9 +45,6 @@ export default function OnboardingPreferencesPage() {
         dietaryPreference: dietary,
         ricePreference,
         foodCulture: normalizeFoodCulture(culture),
-        planningGeographyLevel: planningLevel,
-        planningRegionName: planningLevel === 'NATIONAL' ? null : planningRegion.trim(),
-        planningProvinceHucName: planningLevel === 'PROVINCE_HUC' ? planningProvinceHuc.trim() : null,
       });
 
       const ownerId = user?.userId || profile?.id;
@@ -212,7 +201,9 @@ export default function OnboardingPreferencesPage() {
                   >
                     <span
                       className={`p-2 rounded-xl shrink-0 ${
-                        isSelected ? 'bg-white/20 dark:bg-black/15 text-white dark:text-black' : 'bg-brand-border/40 text-brand-green'
+                        isSelected
+                          ? 'bg-white/20 dark:bg-black/15 text-white dark:text-black'
+                          : 'bg-brand-border/40 text-brand-green'
                       }`}
                     >
                       {item.icon}
@@ -240,18 +231,6 @@ export default function OnboardingPreferencesPage() {
               updated nutrition report.
             </span>
           </div>
-
-          <PlanningLocationFields
-            level={planningLevel}
-            regionName={planningRegion}
-            provinceHucName={planningProvinceHuc}
-            onLevelChange={setPlanningLevel}
-            onRegionNameChange={setPlanningRegion}
-            onProvinceHucNameChange={setPlanningProvinceHuc}
-            disabled={isLoading}
-            idPrefix="onboarding-planning-location"
-            required
-          />
 
           <Button
             type="submit"

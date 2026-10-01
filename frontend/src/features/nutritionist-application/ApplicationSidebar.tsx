@@ -1,18 +1,11 @@
-import {
-  Stethoscope,
-  BadgeCheck,
-  Video,
-  KeyRound,
-  FileText,
-  ShieldCheck,
-} from 'lucide-react';
+import { Stethoscope, BadgeCheck, Video, KeyRound, FileText, ShieldCheck } from 'lucide-react';
 import KainaraLogo from '@/components/shared/KainaraLogo';
 
 const applicationStages = [
   {
     step: '01',
     title: 'Professional Application',
-    text: 'Submit identity details, verified PRC license, and recent photo.',
+    text: 'Submit identity details, PRC license information, and a recent photo.',
     icon: FileText,
   },
   {
@@ -59,7 +52,7 @@ export function ApplicationSidebar() {
           </span>
           <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/25 bg-emerald-500/10 px-3 py-1 font-mono text-[9px] font-bold uppercase tracking-[0.16em] text-emerald-300">
             <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
-            Accredited RND Network
+            Nutritionist Applications
           </span>
         </div>
 
@@ -104,8 +97,8 @@ export function ApplicationSidebar() {
             Clinical Boundary Standards
           </div>
           <p className="mt-1">
-            Submitting creates an application candidate only. KAINARA strictly governs clinical review authorization in
-            compliance with Republic Act 10862 (Nutrition and Dietetics Law).
+            Submitting creates an application only. Workspace access requires administrator approval after credential
+            review and an identity verification call.
           </p>
         </div>
       </div>

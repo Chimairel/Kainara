@@ -1,6 +1,6 @@
 'use client';
 import React, { useRef } from 'react';
-import { useScroll, useTransform, motion, MotionValue, UseScrollOptions } from 'motion/react';
+import { useScroll, useTransform, useReducedMotion, motion, MotionValue, UseScrollOptions } from 'motion/react';
 
 export const ContainerScroll = ({
   titleComponent,
@@ -21,6 +21,7 @@ export const ContainerScroll = ({
   badgeRight?: React.ReactNode;
   offset?: UseScrollOptions['offset'];
 }) => {
+  const reducedMotion = useReducedMotion();
   const containerRef = useRef<HTMLDivElement>(null);
   const { scrollYProgress } = useScroll({
     target: containerRef,
@@ -58,11 +59,11 @@ export const ContainerScroll = ({
           perspective: '1000px',
         }}
       >
-        <Header translate={translate} titleComponent={titleComponent} />
+        <Header translate={reducedMotion ? 0 : translate} titleComponent={titleComponent} />
         <Card
-          rotate={rotate}
+          rotate={reducedMotion ? 0 : rotate}
           translate={translate}
-          scale={scale}
+          scale={reducedMotion ? (isMobile ? 0.9 : 1) : scale}
           cardClassName={cardClassName}
           innerClassName={innerClassName}
           badgeLeft={badgeLeft}
@@ -79,7 +80,7 @@ export const Header = ({
   translate,
   titleComponent,
 }: {
-  translate: MotionValue<number>;
+  translate: MotionValue<number> | number;
   titleComponent: string | React.ReactNode;
 }) => {
   return (
@@ -103,8 +104,8 @@ export const Card = ({
   badgeLeft,
   badgeRight,
 }: {
-  rotate: MotionValue<number>;
-  scale: MotionValue<number>;
+  rotate: MotionValue<number> | number;
+  scale: MotionValue<number> | number;
   translate?: MotionValue<number>;
   children: React.ReactNode;
   cardClassName?: string;

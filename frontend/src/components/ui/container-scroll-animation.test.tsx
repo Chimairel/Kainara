@@ -4,6 +4,8 @@ import { describe, expect, it, vi } from 'vitest';
 import { ContainerScroll, Card, Header } from './container-scroll-animation';
 
 vi.mock('motion/react', () => ({
+  useReducedMotion: () => false,
+  MotionConfig: ({ children }: { children: React.ReactNode }) => children,
   motion: new Proxy({}, { get: (_target, tag: string) => tag }),
   useMotionValue: (init = 0) => ({ get: () => init, set: vi.fn() }),
   animate: vi.fn(() => ({ stop: vi.fn() })),
@@ -32,7 +34,10 @@ describe('ContainerScroll', () => {
   it('renders Header and Card standalone components cleanly', () => {
     render(
       <div>
-        <Header translate={0 as unknown as import('motion/react').MotionValue<number>} titleComponent={<h2>Header Only</h2>} />
+        <Header
+          translate={0 as unknown as import('motion/react').MotionValue<number>}
+          titleComponent={<h2>Header Only</h2>}
+        />
         <Card
           rotate={0 as unknown as import('motion/react').MotionValue<number>}
           scale={1 as unknown as import('motion/react').MotionValue<number>}

@@ -26,9 +26,7 @@ export function ApplicationTrackingForm(props: Props) {
         </span>
       </div>
 
-      <h2 className="mt-2 font-display text-2xl sm:text-3xl font-black text-brand-text">
-        Track your application
-      </h2>
+      <h2 className="mt-2 font-display text-2xl sm:text-3xl font-black text-brand-text">Track your application</h2>
       <p className="mt-1.5 text-xs sm:text-sm text-brand-muted leading-6">
         Enter the application reference code generated at submission alongside your registered professional email.
       </p>
@@ -53,7 +51,7 @@ export function ApplicationTrackingForm(props: Props) {
             value={props.referenceCode}
             onChange={(event) => props.onReferenceChange(event.target.value.toUpperCase())}
             placeholder="e.g. NM-XXXXXXXXXXXX"
-            helperText="12-character unique code received upon submission."
+            helperText="Use the complete NM- reference code received upon submission."
             required
           />
         </div>
@@ -93,13 +91,13 @@ export function ApplicationTrackingForm(props: Props) {
             <span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-emerald-500/20 text-[9px] font-bold text-emerald-400">
               1
             </span>
-            <span>PRC License verification within 24–48 hours</span>
+            <span>Administrator review of submitted PRC license details</span>
           </div>
           <div className="flex items-start gap-2.5 text-brand-muted">
             <span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-cyan-500/20 text-[9px] font-bold text-cyan-400">
               2
             </span>
-            <span>Invitation to 15-min Google Meet video call</span>
+            <span>Schedule a direct online identity verification call</span>
           </div>
           <div className="flex items-start gap-2.5 text-brand-muted">
             <span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-amber-500/20 text-[9px] font-bold text-amber-400">

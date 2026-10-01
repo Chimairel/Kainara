@@ -18,6 +18,8 @@ vi.mock('next/navigation', () => ({ useRouter: () => ({ replace: state.replace }
 vi.mock('@/hooks/useAuth', () => ({ useAuth: () => ({ user: state.user, isLoading: state.isLoading }) }));
 vi.mock('@/components/shared/PublicHeader', () => ({ default: () => <header>Public navigation</header> }));
 vi.mock('motion/react', () => ({
+  useReducedMotion: () => false,
+  MotionConfig: ({ children }: { children: React.ReactNode }) => children,
   motion: new Proxy({}, { get: (_target, tag: string) => tag }),
   useMotionValue: (init = 0) => ({ get: () => init, set: vi.fn() }),
   animate: vi.fn(() => ({ stop: vi.fn() })),
@@ -37,7 +39,10 @@ describe('public home navigation', () => {
     render(<Home />);
 
     expect(screen.getByText('Public navigation')).toBeInTheDocument();
-    expect(screen.getAllByRole('link', { name: /continue email verification/i })[0]).toHaveAttribute('href', '/verify-email');
+    expect(screen.getAllByRole('link', { name: /continue email verification/i })[0]).toHaveAttribute(
+      'href',
+      '/verify-email'
+    );
     expect(state.replace).not.toHaveBeenCalled();
   });
 

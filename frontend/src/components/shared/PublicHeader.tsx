@@ -108,7 +108,7 @@ export default function PublicHeader() {
             <>
               <Link
                 href="/login"
-                className="rounded-xl px-2 py-2.5 text-xs font-bold text-brand-text transition hover:bg-brand-surface/70 sm:rounded-2xl sm:px-4"
+                className="max-[360px]:hidden rounded-xl px-2 py-2.5 text-xs font-bold text-brand-text transition hover:bg-brand-surface/70 sm:rounded-2xl sm:px-4"
               >
                 Log in
               </Link>

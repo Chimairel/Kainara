@@ -1,7 +1,7 @@
 'use client';
 /* eslint-disable @next/next/no-img-element -- Local data URL preview before upload. */
 
-import { useRef, useState, type DragEvent, type ChangeEvent } from 'react';
+import { useEffect, useRef, useState, type DragEvent, type ChangeEvent } from 'react';
 import { Camera, ImageUp, Trash2, RefreshCw, AlertCircle, CheckCircle2 } from 'lucide-react';
 
 export function PhotoUpload({
@@ -16,10 +16,18 @@ export function PhotoUpload({
   const [fileError, setFileError] = useState('');
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const readerRef = useRef<FileReader | null>(null);
+  const cancelRead = () => {
+    const reader = readerRef.current;
+    readerRef.current = null;
+    reader?.abort();
+  };
+  useEffect(() => cancelRead, []);
 
   const processFile = (file?: File) => {
     setFileError('');
     if (!file) return;
+    cancelRead();
 
     if (!['image/jpeg', 'image/png'].includes(file.type)) {
       setFileError('Please upload a JPEG or PNG photo.');
@@ -31,14 +39,21 @@ export function PhotoUpload({
     }
 
     const reader = new FileReader();
+    readerRef.current = reader;
     reader.onload = () => {
+      if (readerRef.current !== reader) return;
+      readerRef.current = null;
       if (typeof reader.result === 'string') {
         onChange(reader.result);
       } else {
         setFileError('The photo could not be processed.');
       }
     };
-    reader.onerror = () => setFileError('Error reading photo file.');
+    reader.onerror = () => {
+      if (readerRef.current !== reader) return;
+      readerRef.current = null;
+      setFileError('Error reading photo file.');
+    };
     reader.readAsDataURL(file);
   };
 
@@ -65,6 +80,7 @@ export function PhotoUpload({
   const handleFileInputChange = (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     processFile(file);
+    e.target.value = '';
   };
 
   const currentError = fileError || error;
@@ -100,7 +116,7 @@ export function PhotoUpload({
           <div className="flex-1 min-w-0 text-center sm:text-left">
             <p className="text-xs font-bold text-brand-text">Photo attached</p>
             <p className="mt-0.5 text-[11px] leading-4 text-brand-muted">
-              Clear, unobstructed face photo ready for video call verification.
+              An administrator will compare this photo with you during verification.
             </p>
             <div className="mt-3 flex items-center justify-center sm:justify-start gap-3">
               <button
@@ -114,6 +130,8 @@ export function PhotoUpload({
               <button
                 type="button"
                 onClick={() => {
+                  cancelRead();
+                  setFileError('');
                   onChange('');
                   if (fileInputRef.current) fileInputRef.current.value = '';
                 }}
@@ -128,20 +146,33 @@ export function PhotoUpload({
       ) : (
         /* Empty Drag & Drop Zone */
         <div
+          role="button"
+          tabIndex={0}
+          aria-label="Choose identity photo"
+          onKeyDown={(event) => {
+            if (event.key === 'Enter' || event.key === ' ') {
+              event.preventDefault();
+              fileInputRef.current?.click();
+            }
+          }}
           onDragOver={handleDragOver}
           onDragLeave={handleDragLeave}
           onDrop={handleDrop}
           onClick={() => fileInputRef.current?.click()}
-          className={`group flex cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed p-6 text-center transition duration-200 ${
+          className={`group flex cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed p-6 text-center transition duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-accent ${
             isDragging
               ? 'border-brand-accent bg-brand-accent/[0.08] scale-[1.01]'
               : currentError
-              ? 'border-status-error-text/60 bg-status-error-bg/5 hover:border-status-error-text'
-              : 'border-brand-border bg-brand-surface/40 hover:border-brand-accent/60 hover:bg-brand-surface/70'
+                ? 'border-status-error-text/60 bg-status-error-bg/5 hover:border-status-error-text'
+                : 'border-brand-border bg-brand-surface/40 hover:border-brand-accent/60 hover:bg-brand-surface/70'
           }`}
         >
           <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-brand-border bg-brand-bg text-brand-muted transition duration-200 group-hover:scale-105 group-hover:border-brand-accent/40 group-hover:text-brand-accent">
-            {isDragging ? <ImageUp className="h-6 w-6 text-brand-accent animate-bounce" /> : <Camera className="h-6 w-6" />}
+            {isDragging ? (
+              <ImageUp className="h-6 w-6 text-brand-accent animate-bounce" />
+            ) : (
+              <Camera className="h-6 w-6" />
+            )}
           </div>
           <p className="mt-3 text-xs font-bold text-brand-text">
             Drag and drop your photo here, or <span className="text-brand-accent underline">browse</span>

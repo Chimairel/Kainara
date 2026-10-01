@@ -1,8 +1,7 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { useMotionValue, animate, motion } from 'motion/react';
-import useMeasure from 'react-use-measure';
+import React, { useState, useEffect, useRef } from 'react';
+import { useMotionValue, animate, motion, useReducedMotion } from 'motion/react';
 import { cn } from '@/lib/utils';
 
 export type InfiniteSliderProps = {
@@ -25,20 +24,53 @@ export function InfiniteSlider({
   className,
 }: InfiniteSliderProps) {
   const [isHovering, setIsHovering] = useState(false);
-  const currentSpeed = isHovering && speedOnHover ? speedOnHover : speed;
-  const [ref, { width, height }] = useMeasure();
+  const [isFocused, setIsFocused] = useState(false);
+  const reducedMotion = useReducedMotion();
+  const currentSpeed = isHovering && speedOnHover !== undefined ? speedOnHover : speed;
+  const ref = useRef<HTMLDivElement>(null);
+  const duplicateRef = useRef<HTMLDivElement>(null);
+  const [{ width, height }, setSize] = useState({ width: 0, height: 0 });
+  const isStatic = reducedMotion || isFocused;
+
+  useEffect(() => {
+    const element = ref.current;
+    if (!element) return;
+    const measure = () => {
+      const { width, height } = element.getBoundingClientRect();
+      setSize({ width, height });
+    };
+    measure();
+    const observer = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(measure);
+    observer?.observe(element);
+    window.addEventListener('resize', measure);
+    return () => {
+      observer?.disconnect();
+      window.removeEventListener('resize', measure);
+    };
+  }, []);
+
+  useEffect(() => {
+    // The visual repeat stays clickable but must not repeat in keyboard navigation.
+    duplicateRef.current
+      ?.querySelectorAll<HTMLElement>('a, button, input, select, textarea, [tabindex]')
+      .forEach((element) => element.setAttribute('tabindex', '-1'));
+  }, [children, isStatic]);
   const translation = useMotionValue(0);
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [key, setKey] = useState(0);
 
   useEffect(() => {
-    if (typeof animate !== 'function') return;
+    if (isStatic) {
+      translation.set(0);
+      return;
+    }
+    if (typeof animate !== 'function' || currentSpeed <= 0) return;
     let controls: { stop: () => void } | undefined;
     const size = direction === 'horizontal' ? width : height;
     if (!size) return;
     const contentSize = size + gap;
-    const from = reverse ? -contentSize / 2 : 0;
-    const to = reverse ? 0 : -contentSize / 2;
+    const from = reverse ? -contentSize : 0;
+    const to = reverse ? 0 : -contentSize;
 
     const distanceToTravel = Math.abs(to - from);
     const duration = distanceToTravel / currentSpeed;
@@ -69,50 +101,56 @@ export function InfiniteSlider({
     }
 
     return () => controls?.stop();
-  }, [
-    key,
-    translation,
-    currentSpeed,
-    width,
-    height,
-    gap,
-    isTransitioning,
-    direction,
-    reverse,
-  ]);
+  }, [key, isStatic, translation, currentSpeed, width, height, gap, isTransitioning, direction, reverse]);
 
-  const hoverProps = speedOnHover
-    ? {
-        onHoverStart: () => {
-          setIsTransitioning(true);
-          setIsHovering(true);
-        },
-        onHoverEnd: () => {
-          setIsTransitioning(true);
-          setIsHovering(false);
-        },
-      }
-    : {};
+  const hoverProps =
+    speedOnHover !== undefined
+      ? {
+          onHoverStart: () => {
+            setIsTransitioning(true);
+            setIsHovering(true);
+          },
+          onHoverEnd: () => {
+            setIsTransitioning(true);
+            setIsHovering(false);
+          },
+        }
+      : {};
 
   return (
-    <div className={cn('overflow-hidden py-10 -my-10', className)}>
+    <div
+      className={cn(isStatic ? 'overflow-auto' : 'overflow-hidden', 'py-10 -my-10', className)}
+      onFocusCapture={() => setIsFocused(true)}
+      onBlurCapture={(event) => {
+        if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setIsFocused(false);
+      }}
+    >
       <motion.div
-        className={cn(
-          'flex w-max',
-          direction === 'horizontal' && 'items-center py-6'
-        )}
+        className={cn('flex w-max', direction === 'horizontal' && 'items-center py-6')}
         style={{
-          ...(direction === 'horizontal'
-            ? { x: translation }
-            : { y: translation }),
+          ...(direction === 'horizontal' ? { x: translation } : { y: translation }),
           gap: `${gap}px`,
           flexDirection: direction === 'horizontal' ? 'row' : 'column',
         }}
-        ref={ref}
         {...hoverProps}
       >
-        {children}
-        {children}
+        <div
+          ref={ref}
+          className="flex shrink-0"
+          style={{ gap, flexDirection: direction === 'horizontal' ? 'row' : 'column' }}
+        >
+          {children}
+        </div>
+        {!isStatic && (
+          <div
+            ref={duplicateRef}
+            aria-hidden="true"
+            className="flex shrink-0"
+            style={{ gap, flexDirection: direction === 'horizontal' ? 'row' : 'column' }}
+          >
+            {children}
+          </div>
+        )}
       </motion.div>
     </div>
   );

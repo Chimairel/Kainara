@@ -110,7 +110,7 @@ export function ApplicationStatusCard({ application }: { application: PublicAppl
             })}
           </p>
           <p className="mt-1 text-xs text-brand-muted">
-            Have your physical PRC ID card ready for camera presentation during the 15-minute call.
+            Have your physical PRC ID card ready for camera presentation during the verification call.
           </p>
           {application.meetingUrl && (
             <a
@@ -119,7 +119,7 @@ export function ApplicationStatusCard({ application }: { application: PublicAppl
               rel="noreferrer"
               className="mt-4 inline-flex items-center gap-2 rounded-xl bg-brand-cyan px-4 py-2 text-xs font-bold text-[#071914] shadow hover:brightness-110 transition"
             >
-              Open Google Meet Link
+              Open Verification Call Link
               <ExternalLink className="h-3.5 w-3.5" />
             </a>
           )}

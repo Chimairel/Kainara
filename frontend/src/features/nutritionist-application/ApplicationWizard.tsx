@@ -39,7 +39,7 @@ const stepDescriptions = [
   },
   {
     title: 'Verification call availability',
-    subtitle: 'Select at least two schedules for a 15-minute video call with a KAINARA administrator.',
+    subtitle: 'Select at least two schedules for an identity verification call with a KAINARA administrator.',
   },
   {
     title: 'Review your application',
@@ -97,29 +97,17 @@ export function ApplicationWizard(props: Props) {
                   {/* Track bar */}
                   <div
                     className={`h-1.5 w-full rounded-full transition-all duration-500 ${
-                      isCompleted
-                        ? 'bg-emerald-500'
-                        : isCurrent
-                        ? 'bg-brand-accent'
-                        : 'bg-brand-border/60'
+                      isCompleted ? 'bg-emerald-500' : isCurrent ? 'bg-brand-accent' : 'bg-brand-border/60'
                     }`}
                   />
                 </div>
 
                 <div
                   className={`mt-2.5 hidden sm:flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider transition-colors ${
-                    isCompleted
-                      ? 'text-emerald-500'
-                      : isCurrent
-                      ? 'text-brand-accent'
-                      : 'text-brand-muted/70'
+                    isCompleted ? 'text-emerald-500' : isCurrent ? 'text-brand-accent' : 'text-brand-muted/70'
                   }`}
                 >
-                  {isCompleted ? (
-                    <Check className="h-3 w-3 stroke-[3]" />
-                  ) : (
-                    <Icon className="h-3 w-3" />
-                  )}
+                  {isCompleted ? <Check className="h-3 w-3 stroke-[3]" /> : <Icon className="h-3 w-3" />}
                   <span>{item.label}</span>
                 </div>
               </div>
@@ -138,9 +126,7 @@ export function ApplicationWizard(props: Props) {
           <h2 className="mt-2 font-display text-2xl font-black sm:text-3xl text-brand-text">
             {stepDescriptions[step].title}
           </h2>
-          <p className="mt-1 text-xs sm:text-sm text-brand-muted">
-            {stepDescriptions[step].subtitle}
-          </p>
+          <p className="mt-1 text-xs sm:text-sm text-brand-muted">{stepDescriptions[step].subtitle}</p>
         </div>
       </div>
 
@@ -168,13 +154,7 @@ export function ApplicationWizard(props: Props) {
 
       {/* Wizard Navigation Footer */}
       <div className="mt-10 flex items-center justify-between gap-3 border-t border-brand-border/60 pt-6">
-        <Button
-          type="button"
-          variant="secondary"
-          disabled={step === 0 || isLoading}
-          onClick={onBack}
-          className="gap-2"
-        >
+        <Button type="button" variant="secondary" disabled={step === 0 || isLoading} onClick={onBack} className="gap-2">
           <ArrowLeft className="h-4 w-4" />
           Back
         </Button>
@@ -266,9 +246,9 @@ function IdentityFields({ form, errors, onFieldChange }: FieldProps) {
               className="mt-1 h-4 w-4 rounded accent-emerald-500"
             />
             <span className="text-xs leading-5 text-brand-muted">
-              <strong className="text-brand-text">30-Day Photo Attestation:</strong> I attest that this photo was
-              taken within the past 30 days and accurately represents my current appearance. I understand an
-              administrator will compare it with my live video during the 1-on-1 verification call.
+              <strong className="text-brand-text">30-Day Photo Attestation:</strong> I attest that this photo was taken
+              within the past 30 days and accurately represents my current appearance. I understand an administrator
+              will compare it with my live video during the 1-on-1 verification call.
             </span>
           </label>
           {errors.photoRecentAttested && (
@@ -293,7 +273,7 @@ function CredentialFields({ form, errors, onFieldChange }: FieldProps) {
           onChange={(event) => onFieldChange('prcLicenseNumber', event.target.value.toUpperCase())}
           error={errors.prcLicenseNumber}
           placeholder="e.g. 0012345 or RND-0012345"
-          helperText="Official 7-digit PRC registration number."
+          helperText="Enter the registration number shown on your PRC identification card."
           required
         />
         <Input
@@ -322,9 +302,7 @@ function CredentialFields({ form, errors, onFieldChange }: FieldProps) {
 
         {/* Quick-Pick Specialization Chips */}
         <div className="mt-2.5">
-          <p className="text-[10px] font-bold uppercase tracking-wider text-brand-muted">
-            Quick suggestions:
-          </p>
+          <p className="text-[10px] font-bold uppercase tracking-wider text-brand-muted">Quick suggestions:</p>
           <div className="mt-1.5 flex flex-wrap gap-1.5">
             {quickSpecializations.map((spec) => (
               <button
@@ -398,9 +376,7 @@ function ExperienceFields({ form, errors, onFieldChange }: FieldProps) {
 
       {/* University quick chips */}
       <div>
-        <p className="text-[10px] font-bold uppercase tracking-wider text-brand-muted">
-          Common institutions:
-        </p>
+        <p className="text-[10px] font-bold uppercase tracking-wider text-brand-muted">Common institutions:</p>
         <div className="mt-1.5 flex flex-wrap gap-1.5">
           {quickUniversities.map((uni) => (
             <button
@@ -424,11 +400,7 @@ function ExperienceFields({ form, errors, onFieldChange }: FieldProps) {
           <label htmlFor="professionalBio" className="font-display text-xs font-bold text-brand-text/90">
             Professional background & practice profile <span className="text-brand-accent">*</span>
           </label>
-          <span
-            className={`font-mono text-[10px] font-bold ${
-              isBioValid ? 'text-emerald-500' : 'text-amber-400'
-            }`}
-          >
+          <span className={`font-mono text-[10px] font-bold ${isBioValid ? 'text-emerald-500' : 'text-amber-400'}`}>
             {bioLength}/2000 chars {isBioValid ? '✓' : '(min 40)'}
           </span>
         </div>
@@ -459,7 +431,7 @@ function AvailabilityFields({ form, errors, onFieldChange }: FieldProps) {
       <div className="rounded-2xl border border-brand-cyan/25 bg-brand-cyan/[0.06] p-4 text-xs leading-5 text-brand-muted">
         <div className="flex items-center gap-2 font-bold text-brand-text">
           <Video className="h-4 w-4 text-brand-cyan" />
-          15-Minute Direct Verification Video Call
+          Direct Verification Video Call
         </div>
         <p className="mt-1">
           Provide at least two independent dates/times when you are available for a short Google Meet call. An
@@ -492,7 +464,9 @@ function AvailabilityFields({ form, errors, onFieldChange }: FieldProps) {
 
       <div
         className={`rounded-2xl border p-4 transition ${
-          errors.consent ? 'border-status-error-text/50 bg-status-error-bg/10' : 'border-brand-border bg-brand-surface/40'
+          errors.consent
+            ? 'border-status-error-text/50 bg-status-error-bg/10'
+            : 'border-brand-border bg-brand-surface/40'
         }`}
       >
         <label className="flex cursor-pointer items-start gap-3">
@@ -504,13 +478,11 @@ function AvailabilityFields({ form, errors, onFieldChange }: FieldProps) {
           />
           <span className="text-xs leading-5 text-brand-muted">
             <strong className="text-brand-text">Professional Declaration & Consent:</strong> I certify that all
-            information, PRC license records, and educational credentials provided are true and accurate. I consent
-            to identity verification and administrative review under RA 10862 and the KAINARA clinical network terms.
+            information, PRC license records, and educational credentials provided are true and accurate. I consent to
+            credential review and an online identity verification call.
           </span>
         </label>
-        {errors.consent && (
-          <p className="mt-2 text-xs font-semibold text-status-error-text">{errors.consent}</p>
-        )}
+        {errors.consent && <p className="mt-2 text-xs font-semibold text-status-error-text">{errors.consent}</p>}
       </div>
     </>
   );
@@ -554,13 +526,9 @@ function ApplicationReview({ form }: { form: NutritionistApplicationForm }) {
             {form.officialHeadshot ? (
               <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-2xl border-2 border-emerald-400/60 shadow-lg">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={form.officialHeadshot}
-                  alt={form.fullName}
-                  className="h-full w-full object-cover"
-                />
+                <img src={form.officialHeadshot} alt={form.fullName} className="h-full w-full object-cover" />
                 <span className="absolute bottom-0 inset-x-0 bg-emerald-950/90 py-0.5 text-center font-mono text-[8px] font-bold text-emerald-200 uppercase tracking-wider">
-                  Attested
+                  Applicant photo
                 </span>
               </div>
             ) : (
@@ -619,8 +587,9 @@ function ApplicationReview({ form }: { form: NutritionistApplicationForm }) {
           Submission Confirmation
         </div>
         <p className="mt-1">
-          Submitting stores your application in the administrative queue and generates your tracking reference. An
-          email will be sent with next steps for scheduling your verification call.
+          Submitting stores your application in the administrative queue and generates your tracking reference. Approval
+          and a verification call are required before you receive workspace access. Save your reference code to track
+          progress; submission does not create a privileged account.
         </p>
       </div>
     </div>

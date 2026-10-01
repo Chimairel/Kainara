@@ -11,7 +11,6 @@ import Checkbox from '@/components/ui/Checkbox';
 import { AlertTriangle, ArrowLeft, ClipboardCheck, Pencil } from 'lucide-react';
 import { getApiErrorMessage } from '@/lib/api-error';
 import { useProfile } from '@/hooks/useProfile';
-import type { UserProfileData } from '@/hooks/useProfile';
 import { normalizeExclusiveNone, normalizeFoodCulture } from '@/lib/profile-normalization';
 import type { SafetyProfileEntry } from '@/types';
 
@@ -58,16 +57,6 @@ function formatPlanSchedule(dayOfWeek?: number, legacyGroup?: string) {
   return 'Not provided';
 }
 
-function formatPlanningLocation(profile?: UserProfileData['userProfile']) {
-  if (!profile || profile.planningGeographyLevel === 'NATIONAL' || !profile.planningGeographyLevel) {
-    return 'Philippines — national evidence';
-  }
-  if (profile.planningGeographyLevel === 'PROVINCE_HUC' && profile.planningProvinceHucName) {
-    return `${profile.planningProvinceHucName}, ${profile.planningRegionName}`;
-  }
-  return profile.planningRegionName || 'Philippines — national evidence';
-}
-
 export default function OnboardingTosPage() {
   const router = useRouter();
   const { refreshSession } = useAuth();
@@ -102,7 +91,6 @@ export default function OnboardingTosPage() {
         ['Diet', formatOnboardingValue(userProfile?.dietaryPreference)],
         ['Rice preference', formatOnboardingValue(userProfile?.ricePreference)],
         ['Food culture', normalizeFoodCulture(userProfile?.foodCulture)],
-        ['Meal-planning location', formatPlanningLocation(userProfile)],
       ],
     },
     {
@@ -161,7 +149,9 @@ export default function OnboardingTosPage() {
       // before the backend permits meal planning or other protected actions.
       const nextPath = completion.data?.data?.nextPath;
       router.replace(
-        nextPath === '/dashboard' && refreshed?.reportAcknowledged ? '/dashboard' : '/profile/nutrition-report?next=dashboard'
+        nextPath === '/dashboard' && refreshed?.reportAcknowledged
+          ? '/dashboard'
+          : '/profile/nutrition-report?next=dashboard'
       );
     } catch (err) {
       setError(getApiErrorMessage(err, 'An error occurred while finalizing onboarding. Please try again.'));
@@ -223,7 +213,10 @@ export default function OnboardingTosPage() {
           ) : (
             <div className="grid gap-3 sm:grid-cols-2">
               {reviewSections.map((section) => (
-                <div key={section.title} className="rounded-2xl border border-brand-border/70 bg-brand-bgAlt/50 p-3.5 shadow-xs">
+                <div
+                  key={section.title}
+                  className="rounded-2xl border border-brand-border/70 bg-brand-bgAlt/50 p-3.5 shadow-xs"
+                >
                   <div className="mb-2 flex items-center justify-between gap-2">
                     <h2 className="text-[11px] font-extrabold uppercase tracking-[0.14em] text-brand-text">
                       {section.title}
@@ -289,8 +282,8 @@ export default function OnboardingTosPage() {
                   className="font-bold text-brand-green underline decoration-brand-green/40 underline-offset-2 hover:text-brand-greenHover hover:decoration-brand-green"
                 >
                   Clinical Guidelines
-                </a>
-                {' '}and{' '}
+                </a>{' '}
+                and{' '}
                 <a
                   href="/docs#medical-disclaimers"
                   target="_blank"

@@ -37,7 +37,7 @@ export default function OnboardingLayout({ children }: { children: React.ReactNo
             <div className="flex items-center gap-3">
               <div className="hidden sm:flex items-center gap-1.5 text-[11px] font-medium text-brand-muted bg-brand-bgAlt/50 border border-brand-border/60 rounded-full px-2.5 py-1">
                 <ShieldCheck className="w-3.5 h-3.5 text-brand-green" />
-                <span>RA 10173 Encrypted</span>
+                <span>Private health profile</span>
               </div>
               <ThemeToggle size="sm" />
             </div>
@@ -45,9 +45,7 @@ export default function OnboardingLayout({ children }: { children: React.ReactNo
         </header>
 
         {/* Page Content */}
-        <main className="flex-1 flex flex-col items-center justify-center py-6 px-4 sm:px-6">
-          {children}
-        </main>
+        <main className="flex-1 flex flex-col items-center justify-center py-6 px-4 sm:px-6">{children}</main>
       </div>
     </RouteGuard>
   );
