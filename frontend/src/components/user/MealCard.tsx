@@ -366,7 +366,7 @@ export default function MealCard({
                   className="relative z-10 my-auto w-full max-w-2xl overflow-hidden rounded-[28px] sm:rounded-[32px] border border-white/20 dark:border-white/10 bg-brand-surface shadow-[0_25px_70px_rgba(0,0,0,0.45)] dark:shadow-[0_25px_80px_rgba(0,0,0,0.85)] max-h-[92vh] flex flex-col text-left select-none ring-1 ring-black/5 dark:ring-white/5"
                 >
                   {/* Hero Image Container */}
-                  <div className="relative min-h-[268px] sm:min-h-[296px] h-68 sm:h-76 w-full shrink-0 overflow-hidden bg-black/40">
+                  <div className="relative h-[260px] sm:h-[300px] w-full shrink-0 overflow-hidden bg-black/40">
                     <motion.div layoutId={`image-wrap-${layoutId}`} className="h-full w-full">
                       <MealImage
                         image={image}
@@ -380,7 +380,7 @@ export default function MealCard({
 
                     {/* Gradient overlays for contrast & seamless blending */}
                     <div className="absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-black/80 via-black/40 to-transparent pointer-events-none" />
-                    <div className="absolute inset-x-0 bottom-0 h-44 sm:h-48 bg-gradient-to-t from-black/95 via-black/65 to-transparent pointer-events-none" />
+                    <div className="absolute inset-x-0 bottom-0 h-36 sm:h-40 bg-gradient-to-t from-black/90 via-black/55 to-transparent pointer-events-none" />
 
                     {/* Top Floating Bar */}
                     <div className="absolute top-3.5 inset-x-3.5 sm:top-4 sm:inset-x-4 flex items-center justify-between z-20">
