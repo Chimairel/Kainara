@@ -2,8 +2,10 @@
 
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import Link from 'next/link';
+import { ArrowLeft, Search, UserPlus } from 'lucide-react';
 import { getApiErrorMessage } from '@/lib/api-error';
 import PublicHeader from '@/components/shared/PublicHeader';
+import PublicFooter from '@/components/shared/PublicFooter';
 import api from '@/lib/axios';
 import { ApplicationSidebar } from '@/features/nutritionist-application/ApplicationSidebar';
 import { ApplicationStatusCard } from '@/features/nutritionist-application/ApplicationStatusCard';
@@ -117,67 +119,92 @@ export default function NutritionistApplyPage() {
   };
 
   return (
-    <div className="min-h-screen bg-brand-bg text-brand-text">
-      <PublicHeader />
-      <main className="mx-auto max-w-[1240px] px-5 py-6 sm:px-8 lg:px-12 lg:py-16">
-        <div className="grid gap-5 lg:gap-10 lg:grid-cols-[0.7fr_1.3fr]">
-          <ApplicationSidebar />
-          <section>
-            <ModeSelector mode={mode} onChange={switchMode} />
-            {application ? (
-              <ApplicationStatusCard application={application} />
-            ) : mode === 'track' ? (
-              <ApplicationTrackingForm
-                email={trackingEmail}
-                error={error}
-                isLoading={isLoading}
-                onEmailChange={setTrackingEmail}
-                onReferenceChange={setTrackingReference}
-                onSubmit={lookupStatus}
-                referenceCode={trackingReference}
-              />
-            ) : (
-              <ApplicationWizard
-                error={error}
-                errors={errors}
-                form={form}
-                isLoading={isLoading}
-                onBack={() => {
-                  setStep((current) => Math.max(0, current - 1));
-                  setError(null);
-                }}
-                onContinue={nextStep}
-                onFieldChange={setField}
-                onSubmit={submitApplication}
-                step={step}
-              />
-            )}
-          </section>
-        </div>
-      </main>
-      <footer className="border-t border-brand-border px-5 py-8 text-center text-xs text-brand-muted">
-        Need help? Contact the KAINARA administration team through your official application correspondence. ·{' '}
-        <Link href="/" className="font-bold text-brand-green">
-          Return home
-        </Link>
-      </footer>
+    <div className="min-h-screen bg-brand-bg text-brand-text flex flex-col justify-between">
+      <div>
+        <PublicHeader />
+
+        <main className="mx-auto max-w-[1320px] px-5 py-6 sm:px-8 lg:px-12 lg:py-12">
+          {/* Back breadcrumb */}
+          <div className="mb-6">
+            <Link
+              href="/"
+              className="inline-flex items-center gap-2 text-xs font-bold text-brand-muted hover:text-brand-text transition group"
+            >
+              <ArrowLeft className="h-3.5 w-3.5 transition-transform group-hover:-translate-x-1" />
+              Return to KAINARA Platform
+            </Link>
+          </div>
+
+          <div className="grid gap-6 lg:gap-10 lg:grid-cols-[0.8fr_1.2fr] items-start">
+            <ApplicationSidebar />
+
+            <section>
+              <ModeSelector mode={mode} onChange={switchMode} />
+              {application ? (
+                <ApplicationStatusCard application={application} />
+              ) : mode === 'track' ? (
+                <ApplicationTrackingForm
+                  email={trackingEmail}
+                  error={error}
+                  isLoading={isLoading}
+                  onEmailChange={setTrackingEmail}
+                  onReferenceChange={setTrackingReference}
+                  onSubmit={lookupStatus}
+                  referenceCode={trackingReference}
+                />
+              ) : (
+                <ApplicationWizard
+                  error={error}
+                  errors={errors}
+                  form={form}
+                  isLoading={isLoading}
+                  onBack={() => {
+                    setStep((current) => Math.max(0, current - 1));
+                    setError(null);
+                  }}
+                  onContinue={nextStep}
+                  onFieldChange={setField}
+                  onSubmit={submitApplication}
+                  step={step}
+                />
+              )}
+            </section>
+          </div>
+        </main>
+      </div>
+
+      <PublicFooter />
     </div>
   );
 }
 
 function ModeSelector({ mode, onChange }: { mode: 'apply' | 'track'; onChange: (mode: 'apply' | 'track') => void }) {
   return (
-    <div className="mb-6 flex rounded-2xl border border-brand-border bg-brand-surface/60 p-1">
-      {(['apply', 'track'] as const).map((option) => (
-        <button
-          key={option}
-          type="button"
-          onClick={() => onChange(option)}
-          className={`flex-1 rounded-xl px-4 py-3 text-sm font-bold transition ${mode === option ? 'bg-brand-accent text-[#07100d]' : 'text-brand-muted'}`}
-        >
-          {option === 'apply' ? 'Apply online' : 'Track application'}
-        </button>
-      ))}
+    <div className="mb-6 flex rounded-2xl border border-brand-border bg-brand-surface/60 p-1.5 shadow-sm backdrop-blur-sm">
+      <button
+        type="button"
+        onClick={() => onChange('apply')}
+        className={`flex flex-1 items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-bold transition duration-200 ${
+          mode === 'apply'
+            ? 'bg-brand-accent text-white shadow-md shadow-brand-accent/20'
+            : 'text-brand-muted hover:text-brand-text'
+        }`}
+      >
+        <UserPlus className="h-4 w-4" />
+        Apply Online
+      </button>
+      <button
+        type="button"
+        onClick={() => onChange('track')}
+        className={`flex flex-1 items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-bold transition duration-200 ${
+          mode === 'track'
+            ? 'bg-brand-accent text-white shadow-md shadow-brand-accent/20'
+            : 'text-brand-muted hover:text-brand-text'
+        }`}
+      >
+        <Search className="h-4 w-4" />
+        Track Application
+      </button>
     </div>
   );
 }
