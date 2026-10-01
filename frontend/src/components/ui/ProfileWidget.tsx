@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import Avatar from '@/components/ui/Avatar';
 import Badge from '@/components/ui/Badge';
+import ProBadge from '@/components/ui/ProBadge';
 import { useAuth } from '@/hooks/useAuth';
 import { useMembership } from '@/features/membership/MembershipProvider';
 
@@ -122,9 +123,7 @@ export default function ProfileWidget({ onClose, className = '' }: ProfileWidget
               <div className="flex items-center justify-between">
                 <span className="truncate">Membership</span>
                 {membership?.enabled && (membership.level === 'TRIAL' || membership.level === 'MEMBER') ? (
-                  <Badge variant="verified" className="text-[9px] font-bold px-1.5 py-0">
-                    Pro
-                  </Badge>
+                  <ProBadge size="sm" />
                 ) : (
                   <span className="text-[10px] font-bold text-brand-accent">Benefits</span>
                 )}

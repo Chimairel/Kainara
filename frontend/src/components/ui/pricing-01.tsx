@@ -1,8 +1,9 @@
 'use client';
 
 import React from 'react';
-import { ArrowUpRight, Check, Sparkles } from 'lucide-react';
+import { ArrowUpRight, Check } from 'lucide-react';
 import { motion } from 'motion/react';
+import ProBadge from '@/components/ui/ProBadge';
 
 import type { Variants } from 'motion/react';
 
@@ -227,12 +228,7 @@ export default function Pricing({ currentLevel, isEnhanced, limits }: PricingPro
                 <div className="flex flex-col items-start justify-between self-stretch gap-6 w-full sm:w-[46%] shrink-0">
                   <div className="flex flex-col gap-3">
                     <div className="flex items-center gap-2">
-                      <span className="inline-flex items-center gap-1.5 rounded-full bg-gradient-to-r from-[#eb6a38] via-[#f09e6c] to-[#1b4e41] p-[1.5px] shadow-sm">
-                        <span className="flex items-center gap-1 rounded-full bg-[#082e25] px-3 py-1 font-mono text-xs font-bold uppercase tracking-wider text-[#f09e6c]">
-                          <Sparkles className="h-3 w-3 text-[#eb6a38]" />
-                          <span>Pro</span>
-                        </span>
-                      </span>
+                      <ProBadge size="md" />
                       {isEnhanced && (
                         <span className="rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/35 px-2.5 py-0.5 text-[10px] font-bold">
                           {currentLevel === 'MEMBER' ? 'Active Member' : 'Pro Active'}
