@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { motion } from 'motion/react';
 import {
+  ArrowDown,
   ArrowRight,
   ArrowUpRight,
   BadgeCheck,
@@ -201,6 +202,7 @@ const rndStages = [
     bg: 'border-emerald-500/30 bg-emerald-500/15 text-emerald-400',
     stepColor: 'text-emerald-400',
     hoverBorder: 'hover:border-emerald-500/40',
+    accentDot: 'bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)]',
   },
   {
     icon: Video,
@@ -210,6 +212,7 @@ const rndStages = [
     bg: 'border-brand-cyan/30 bg-brand-cyan/15 text-brand-cyan',
     stepColor: 'text-brand-cyan',
     hoverBorder: 'hover:border-brand-cyan/40',
+    accentDot: 'bg-brand-cyan shadow-[0_0_8px_rgba(45,212,191,0.8)]',
   },
   {
     icon: ShieldCheck,
@@ -219,6 +222,7 @@ const rndStages = [
     bg: 'border-[#f09e6c]/30 bg-[#f09e6c]/15 text-[#f09e6c]',
     stepColor: 'text-[#f09e6c]',
     hoverBorder: 'hover:border-[#f09e6c]/40',
+    accentDot: 'bg-[#f09e6c] shadow-[0_0_8px_rgba(240,158,108,0.8)]',
   },
 ];
 
@@ -582,22 +586,32 @@ export default function Home() {
               </div>
             </div>
 
-            <div className="relative z-10 mt-10 grid gap-3.5 lg:mt-0">
-              {rndStages.map(({ icon: Icon, title, text, bg, stepColor, hoverBorder }, index) => (
+            <div className="relative z-10 mt-10 grid gap-px overflow-hidden rounded-[28px] border border-[#173e33] bg-[#173e33]/60 lg:mt-0">
+              {rndStages.map(({ icon: Icon, title, text, bg, stepColor, accentDot }, index) => (
                 <div
                   key={title}
-                  className={`group flex gap-4 rounded-[22px] border border-[#173e33] bg-[#0e271f]/80 p-5 backdrop-blur-xl transition hover:bg-[#0e271f] ${hoverBorder}`}
+                  className="group relative bg-[#091b15] p-5 sm:p-6 transition duration-300 hover:bg-[#0c241d]"
                 >
-                  <span className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border transition-transform duration-300 group-hover:scale-105 ${bg}`}>
-                    <Icon className="h-5 w-5" />
-                  </span>
-                  <div>
-                    <p className={`font-mono text-[9px] uppercase tracking-[0.16em] font-bold ${stepColor}`}>
-                      Step 0{index + 1}
-                    </p>
-                    <h3 className="mt-1 text-sm font-bold text-white">{title}</h3>
-                    <p className="mt-1.5 text-xs leading-5 text-white/50">{text}</p>
+                  <div className="flex items-start gap-4 sm:gap-5">
+                    <span
+                      className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border transition-transform duration-300 group-hover:scale-110 ${bg}`}
+                    >
+                      <Icon className="h-5 w-5" />
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center justify-between">
+                        <span className={`font-mono text-[10px] font-bold uppercase tracking-[0.2em] ${stepColor}`}>
+                          Step 0{index + 1}
+                        </span>
+                        <span className={`h-2 w-2 rounded-full ${accentDot}`} />
+                      </div>
+                      <h3 className="mt-1.5 font-display text-base font-bold text-white">{title}</h3>
+                      <p className="mt-1 text-xs leading-5 text-white/55">{text}</p>
+                    </div>
                   </div>
+                  {index < 2 && (
+                    <ArrowDown className="absolute -bottom-2.5 left-1/2 -translate-x-1/2 z-20 h-5 w-5 text-white/30 transition-colors group-hover:text-white/70" />
+                  )}
                 </div>
               ))}
             </div>
