@@ -106,7 +106,7 @@ export default function MealHistoryCard({
 
   const foodPlate = (
     <div
-      className={`relative -ml-6 sm:-ml-7 md:-ml-8 h-18 w-18 sm:h-20 sm:w-20 md:h-22 md:w-22 shrink-0 rounded-full p-1 sm:p-1.5 bg-white dark:bg-[#12362c] shadow-[0_10px_24px_-3px_rgba(0,0,0,0.22),0_3px_8px_rgba(0,0,0,0.08)] dark:shadow-[0_12px_28px_rgba(0,0,0,0.65)] ${theme.plateRim} z-20 transition-transform duration-300 group-hover:scale-105`}
+      className={`relative -ml-4 sm:-ml-6 md:-ml-7 h-14 w-14 sm:h-16 sm:w-16 md:h-20 md:w-20 shrink-0 rounded-full p-1 sm:p-1.5 bg-white dark:bg-[#12362c] shadow-[0_10px_24px_-3px_rgba(0,0,0,0.22),0_3px_8px_rgba(0,0,0,0.08)] dark:shadow-[0_12px_28px_rgba(0,0,0,0.65)] ${theme.plateRim} z-20 transition-transform duration-300 group-hover:scale-105`}
     >
       <div className="relative h-full w-full rounded-full overflow-hidden">
         <MealImage
@@ -122,7 +122,7 @@ export default function MealHistoryCard({
 
   return (
     <article
-      className={`dashboard-meal group relative overflow-visible py-3 px-3.5 sm:py-3.5 sm:px-4.5 ${theme.cardBg} ${theme.borderColor} ${theme.shadow} ${theme.hoverShadow} ${className}`}
+      className={`dashboard-meal group relative overflow-visible p-3 sm:py-3.5 sm:px-4.5 ${theme.cardBg} ${theme.borderColor} ${theme.shadow} ${theme.hoverShadow} ${className}`}
     >
       {/* Primary Card Row */}
       <div
@@ -140,10 +140,10 @@ export default function MealHistoryCard({
       >
         <div className="flex min-w-0 flex-1 items-center">
           {foodPlate}
-          <div className="min-w-0 flex-1 pl-3 sm:pl-3.5">
+          <div className="min-w-0 flex-1 pl-2.5 sm:pl-3.5">
             {/* Top Label & Source Badges */}
-            <div className="flex items-center gap-2">
-              <span className="block text-[11px] font-bold uppercase tracking-wider text-white/80">
+            <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
+              <span className="block text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-white/80">
                 {mealLabel}
               </span>
               {log.source === 'SYSTEM_GENERATED' && (
@@ -173,26 +173,26 @@ export default function MealHistoryCard({
             </h4>
 
             {/* Macro Line */}
-            <span className="mt-0.5 block text-[11px] sm:text-xs font-medium text-white/90">
+            <span className="mt-0.5 block text-[10.5px] sm:text-xs font-medium text-white/90">
               <span className="font-bold text-white">{Math.round(log.calories)} kcal</span>
-              <span className="mx-1.5">·</span>
+              <span className="mx-1 sm:mx-1.5">·</span>
               <span className="font-bold text-white">{Math.round(log.proteinG)}g protein</span>
-              <span className="mx-1.5">·</span>
+              <span className="mx-1 sm:mx-1.5">·</span>
               <span className="font-bold text-white">{Math.round(log.carbsG ?? 0)}g carbs</span>
-              <span className="mx-1.5">·</span>
+              <span className="mx-1 sm:mx-1.5">·</span>
               <span className="font-bold text-white">{Math.round(log.fatG ?? 0)}g fat</span>
             </span>
 
             {/* Subtext / Notes preview */}
-            <div className="mt-0.5 flex items-center gap-1.5 text-[10.5px] text-white/80">
+            <div className="mt-0.5 flex items-center gap-1.5 text-[10px] sm:text-[10.5px] text-white/80">
               {log.notes ? (
                 <span className="flex items-center gap-1 font-medium text-amber-200">
                   <FileText className="h-3 w-3 shrink-0" />
-                  <span className="truncate max-w-[200px] sm:max-w-md italic">&ldquo;{log.notes}&rdquo;</span>
+                  <span className="truncate max-w-[140px] sm:max-w-md italic">&ldquo;{log.notes}&rdquo;</span>
                 </span>
               ) : (
                 <span className="font-medium text-white/70 hover:underline">
-                  {isDone ? 'Add notes to this meal' : 'View meal details'}
+                  {isDone ? 'Add notes' : 'View details'}
                 </span>
               )}
             </div>
@@ -200,8 +200,8 @@ export default function MealHistoryCard({
         </div>
 
         {/* Right side controls: Status badge at top, Details button at bottom */}
-        <div className="ml-3 flex shrink-0 flex-col items-end justify-between gap-2.5 self-stretch py-0.5">
-          <div className="flex items-center gap-1.5">
+        <div className="ml-2 sm:ml-3 flex shrink-0 flex-col items-end justify-between gap-1.5 sm:gap-2.5 self-stretch py-0.5">
+          <div className="flex items-center gap-1 sm:gap-1.5">
             {hasDelta && log.source === 'USER_SWAPPED' && (
               <span
                 className={`hidden sm:inline-block rounded-full px-2 py-0.5 font-mono text-[9px] font-bold border backdrop-blur-md ${
@@ -214,7 +214,7 @@ export default function MealHistoryCard({
               </span>
             )}
             <span
-              className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold tracking-wide backdrop-blur-md border shadow-xs ${
+              className={`inline-flex items-center gap-1 rounded-full px-1.5 sm:px-2 py-0.5 text-[9px] sm:text-[10px] font-bold tracking-wide backdrop-blur-md border shadow-xs ${
                 isDone
                   ? 'border-emerald-300/40 bg-emerald-500/35 text-white'
                   : isSkipped
@@ -245,8 +245,8 @@ export default function MealHistoryCard({
             </span>
           </div>
 
-          <span className="inline-flex min-h-7 sm:min-h-8 items-center gap-1 rounded-full bg-white/20 hover:bg-white/30 text-white px-2.5 sm:px-3 py-1 text-[11px] font-bold backdrop-blur-md border border-white/30 shadow-xs transition-all duration-200">
-            <span>{isExpanded ? 'Hide details' : 'Details'}</span>
+          <span className="inline-flex min-h-7 sm:min-h-8 items-center gap-1 rounded-full bg-white/20 hover:bg-white/30 text-white px-2 sm:px-3 py-1 text-[10px] sm:text-[11px] font-bold backdrop-blur-md border border-white/30 shadow-xs transition-all duration-200">
+            <span>{isExpanded ? 'Hide' : 'Details'}</span>
             <ChevronDown
               className={`h-3 w-3 stroke-[2.5] transition-transform duration-200 ${
                 isExpanded ? 'rotate-180' : ''
