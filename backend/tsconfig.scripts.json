@@ -9,6 +9,7 @@
     "types": ["node"]
   },
   "include": [
+    "scripts/membership-acceptance.ts",
     "prisma/seed-common-meal-library.ts",
     "scripts/full-system-http-acceptance.ts",
     "scripts/production-integration-smoke.ts",

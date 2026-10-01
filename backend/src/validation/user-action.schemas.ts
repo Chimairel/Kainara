@@ -19,7 +19,9 @@ export const updateMealLogNotesBodySchema = z
   })
   .strict();
 
-export const mealGenerationBodySchema = z.object({ replaceExisting: z.boolean().optional() }).strict();
+export const mealGenerationBodySchema = z
+  .object({ replaceExisting: z.boolean().optional(), requestKey: z.string().min(8).max(200).optional() })
+  .strict();
 
 const outsideMealNutritionSchema = z
   .object({

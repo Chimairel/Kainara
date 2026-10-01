@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { assertProductionConfig } from '@/domain/production-config.policy';
+import { membershipLimits } from '@/domain/membership.policy';
 
 const booleanFromString = z
   .enum(['true', 'false'])
@@ -15,6 +16,7 @@ const runtimeEnvironmentSchema = z.object({
   TRUST_PROXY: booleanFromString,
   SMTP_VERIFY_ON_STARTUP: booleanFromString,
   API_DOCS_ENABLED: booleanFromString,
+  MEMBERSHIP_ENABLED: booleanFromString,
   FRONTEND_URL: optionalUrl.default('http://localhost:3000'),
   CORS_ORIGINS: z.string().default(''),
   DATABASE_URL: z.string().optional(),
@@ -45,6 +47,7 @@ export function parseRuntimeEnvironment(source: NodeJS.ProcessEnv): RuntimeEnvir
   }
 
   assertProductionConfig(source);
+  if (result.data.MEMBERSHIP_ENABLED) membershipLimits(source);
   const configuredOrigins = result.data.CORS_ORIGINS.split(',')
     .map((origin) => origin.trim().replace(/\/$/, ''))
     .filter(Boolean);

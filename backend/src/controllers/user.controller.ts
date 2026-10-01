@@ -9,6 +9,7 @@ import { NutritionReportService } from '@/services/nutrition-report.service';
 import { sanitizeErrorMessage } from '@/lib/sanitizeError';
 import { COMMON_ALLERGIES, COMMON_CONDITIONS } from '@/services/health-validation.service';
 import { SafetyIntakeService } from '@/services/safety-intake.service';
+import { AppError } from '@/errors/AppError';
 
 // The declaration and its fail-closed invalidation commit together. A later
 // recheck failure must never make the API claim that the declaration was lost.
@@ -68,7 +69,7 @@ export class UserController {
         return res.status(401).json({ success: false, error: 'Unauthorized: Missing user payload.' });
       }
 
-      const profileDetails = res.locals.authenticatedProfile ?? await UserService.getUserProfileDetails(userId);
+      const profileDetails = res.locals.authenticatedProfile ?? (await UserService.getUserProfileDetails(userId));
       if (!profileDetails) {
         return res.status(404).json({ success: false, error: 'User details not found.' });
       }
@@ -98,9 +99,11 @@ export class UserController {
       const updatedProfile = await UserService.updateUserProfile(userId, req.body);
 
       const user = await prisma.user.findUnique({ where: { id: userId } });
-      const safetyRecheckRetryNeeded = Boolean(user?.onboardingDone &&
+      const safetyRecheckRetryNeeded = Boolean(
+        user?.onboardingDone &&
         previousProfile?.safetyRevision !== updatedProfile.safetyRevision &&
-        !(await trySafetyRecheck(userId)));
+        !(await trySafetyRecheck(userId))
+      );
 
       const profileDetails = await UserService.getUserProfileDetails(userId);
 
@@ -110,6 +113,8 @@ export class UserController {
       });
     } catch (error: any) {
       console.error('[UserController] updateProfile error:', error);
+      if (error instanceof AppError)
+        return res.status(error.statusCode).json({ success: false, error: error.message, code: error.errorCode });
       return res.status(500).json({ success: false, error: 'Failed to update user profile statistics.' });
     }
   }

@@ -89,6 +89,12 @@ api.interceptors.response.use(
     if (
       typeof window !== 'undefined' &&
       ['post', 'patch', 'put', 'delete'].includes(response.config.method?.toLowerCase() ?? '') &&
+      response.config.url?.startsWith('/user/')
+    )
+      window.dispatchEvent(new Event('kainara:membership-updated'));
+    if (
+      typeof window !== 'undefined' &&
+      ['post', 'patch', 'put', 'delete'].includes(response.config.method?.toLowerCase() ?? '') &&
       response.config.url?.startsWith('/nutritionist/')
     ) {
       window.dispatchEvent(new Event('nutrimind:review-work-updated'));

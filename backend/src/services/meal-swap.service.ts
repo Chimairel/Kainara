@@ -1,4 +1,5 @@
 import { rankLibraryMeals } from '@/domain/library-ranking.policy';
+import { MembershipService } from './membership.service';
 import {
   assertUserSwappableMealPlan,
   filterUserActionableMealPlans,
@@ -521,6 +522,8 @@ export class MealSwapService {
           throw new Error('Shopping has started. Acknowledge the grocery additions and removals before swapping.');
         // 1. Fetch target meal plan slot
         const mealPlan = await loadActionableUnloggedMealPlan(tx, userId, mealPlanId);
+
+        await MembershipService.assertSwap(userId, mealPlan.planGroupId, tx);
 
         // 2. Fetch user profile, health conditions, and allergies
         const { user, profile: userProfile } = await loadUserNutritionContext(tx, userId, 'User profile not found.');

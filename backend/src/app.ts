@@ -27,6 +27,7 @@ import cronRouter from '@/routes/cron.routes';
 import nutritionistApplicationRouter from '@/routes/nutritionist-application.routes';
 import evidenceRouter from '@/routes/evidence.routes';
 import notificationsRouter from '@/routes/notifications.routes';
+import membershipRouter from '@/routes/membership.routes';
 
 // Initialize Express app
 const app = express();
@@ -85,6 +86,7 @@ app.use('/api/notifications', notificationsRouter);
 // These specific user routers own their auth and readiness checks. Mount them
 // before the broad /api/user router so a request does not run both chains.
 app.use('/api/user/progress', progressRouter);
+app.use('/api/user/membership', membershipRouter);
 app.use('/api/user/meals', mealsRouter);
 app.use('/api/user/grocery', groceryRouter);
 app.use('/api/user', userRouter);

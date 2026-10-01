@@ -1,5 +1,6 @@
 import {
   Activity,
+  Sparkles,
   ClipboardList,
   Database,
   Download,
@@ -25,6 +26,13 @@ export const workspaceLabels: Record<WorkspaceRole, string> = {
 };
 export const workspaceTools: Record<WorkspaceRole, WorkspaceTool[]> = {
   USER: [
+    {
+      label: 'Membership',
+      href: '/membership',
+      description: 'Trial status, benefits and remaining allowances.',
+      group: 'Your account',
+      icon: Sparkles,
+    },
     {
       label: 'Home',
       href: '/dashboard',

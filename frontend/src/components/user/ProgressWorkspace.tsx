@@ -43,8 +43,10 @@ import {
 } from 'lucide-react';
 import { Select } from '@/components/ui/Select';
 import { useProgressWorkspace, type ProgressWorkspaceMode } from '@/features/progress/useProgressWorkspace';
+import { useMembership } from '@/features/membership/MembershipProvider';
 
 export function ProgressWorkspace({ mode = 'progress' }: { mode?: ProgressWorkspaceMode }) {
+  const { data: membership } = useMembership();
   const {
     router,
     activeSection,
@@ -118,12 +120,18 @@ export function ProgressWorkspace({ mode = 'progress' }: { mode?: ProgressWorksp
     if (typeof window === 'undefined') return;
     const params = new URLSearchParams(window.location.search);
     const tabParam = params.get('tab');
-    if (tabParam && ['overview', 'history', 'adherence', 'profile', 'safety'].includes(tabParam.toLowerCase())) {
+    const allowed =
+      mode === 'progress'
+        ? ['overview', 'history', 'adherence']
+        : mode === 'health'
+          ? ['profile', 'safety']
+          : ['profile'];
+    if (tabParam && allowed.includes(tabParam.toLowerCase())) {
       const mapped =
         tabParam.toLowerCase() === 'adherence' ? 'history' : (tabParam.toLowerCase() as typeof activeSection);
       setActiveSection(mapped);
     }
-  }, [setActiveSection]);
+  }, [setActiveSection, mode]);
 
   // Sync activeSection with breadcrumb and URL
   useEffect(() => {
@@ -180,6 +188,16 @@ export function ProgressWorkspace({ mode = 'progress' }: { mode?: ProgressWorksp
           ) : undefined
         }
       />
+
+      {mode !== 'progress' && membership?.enabled && (
+        <p className="mb-5 rounded-2xl border border-brand-border bg-brand-surface p-4 text-sm text-brand-muted">
+          Health corrections and new safety restrictions remain available. Optional goal, preference and shopping
+          changes require membership after your trial; an optional replan uses a separate weekly allowance.{' '}
+          <Link href="/membership" className="font-semibold text-brand-green">
+            View your benefits and limits
+          </Link>
+        </p>
+      )}
 
       {error && error.toLowerCase().includes('nutrition report') ? (
         <AnnouncementBanner

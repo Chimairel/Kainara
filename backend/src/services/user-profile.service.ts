@@ -1,5 +1,6 @@
 import { googleProfileImage } from '@/domain/google-profile-image';
 import prisma from '@/lib/prisma';
+import { MembershipService } from './membership.service';
 import { lockUserProfile, advanceProfileRevision, advanceSafetyRevision } from './profile-revision.service';
 import { calculateDailyTarget } from '@/lib/calculations';
 import {
@@ -62,7 +63,10 @@ function classifyProfileChanges(fields: readonly (keyof ProfileUpdateData)[]): P
 }
 
 type OnboardingEvaluationInput = Parameters<typeof evaluateOnboardingStatus>[0];
-type OnboardingEvaluationUser = Omit<OnboardingEvaluationInput, 'profile' | 'conditions' | 'allergies' | 'safetyEntries'> & {
+type OnboardingEvaluationUser = Omit<
+  OnboardingEvaluationInput,
+  'profile' | 'conditions' | 'allergies' | 'safetyEntries'
+> & {
   userProfile: OnboardingEvaluationInput['profile'];
   healthConditions: Array<{ condition: string }>;
   allergies: Array<{ allergen: string }>;
@@ -198,6 +202,28 @@ export class UserProfileService {
           if (provenanceChanged && !changedFields.includes('ricePreference')) changedFields.push('ricePreference');
         }
         if (existing && changedFields.length === 0) return existing;
+
+        const owner = await tx.user.findUniqueOrThrow({ where: { id: userId }, select: { onboardingDone: true } });
+        const optionalFields = [
+          'goal',
+          'targetWeightKg',
+          'activityLevel',
+          'ricePreference',
+          'foodCulture',
+          'planningGeographyLevel',
+          'planningRegionName',
+          'planningProvinceHucName',
+          'shoppingDayOfWeek',
+        ];
+        const optionalChange =
+          changedFields.some(
+            (field) =>
+              optionalFields.includes(field) &&
+              (field !== 'ricePreference' || safeData.ricePreference !== existing?.ricePreference)
+          ) ||
+          (changedFields.includes('dietaryPreference') &&
+            !introducesHardDietRestriction(existing?.dietaryPreference, safeData.dietaryPreference));
+        if (owner.onboardingDone && optionalChange) await MembershipService.assertEnhanced(userId, tx);
 
         const profile = await tx.userProfile.upsert({
           where: { userId },

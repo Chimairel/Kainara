@@ -19,6 +19,7 @@ export type { MealHistoryLog, SwapOption } from './meals-workspace.types';
 
 const planResource = 'user-meals-workspace';
 export function useMealsWorkspace() {
+  const replanRequest = useRef<string | null>(null);
   const { user } = useAuth();
   const ownerId = user?.userId;
   const currentPlanResource = planResource;
@@ -406,9 +407,14 @@ export function useMealsWorkspace() {
       regenerationProgress.begin('Preparing a replacement weekly plan.');
       setError(null);
       try {
-        const res = await api.post('/user/meals/generate', { replaceExisting: meals.length > 0 });
+        replanRequest.current ??= crypto.randomUUID();
+        const res = await api.post('/user/meals/generate', {
+          replaceExisting: meals.length > 0,
+          requestKey: replanRequest.current,
+        });
         if (!res.data?.success) throw new Error('Could not regenerate the weekly plan.');
         if (res.data.success) {
+          replanRequest.current = null;
           regenerationProgress.complete('Your replacement plan is ready for review.');
           await fetchMeals();
         }

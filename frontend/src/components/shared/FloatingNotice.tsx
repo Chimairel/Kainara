@@ -11,7 +11,7 @@ export default function FloatingNotice({
   children,
 }: {
   title: string;
-  kind: 'auth' | 'install';
+  kind: 'auth' | 'install' | 'membership';
   onClose: () => void;
   children: ReactNode;
 }) {

@@ -7,6 +7,7 @@ import { AuthenticatedRequest } from '@/types';
 import { NotificationService } from '@/services/notification.service';
 import { WeightLogService } from '@/services/weight-log.service';
 import { CheckinService } from '@/services/checkin.service';
+import { AppError } from '@/errors/AppError';
 import { body } from 'express-validator';
 import validate from '@/middleware/validate';
 import { sanitizeErrorMessage } from '@/lib/sanitizeError';
@@ -31,6 +32,7 @@ import { getActivePlanningLocationOptions } from '@/services/food-consumption-co
 import multer from 'multer';
 import { ClinicalEvidenceService } from '@/services/clinical-evidence.service';
 import { ClinicalProfileReviewService } from '@/services/clinical-profile-review.service';
+import { requireMembership } from '@/middleware/membership';
 import {
   clinicalDocumentIdParamsSchema,
   clinicalDocumentMetadataSchema,
@@ -72,7 +74,10 @@ const uploadClinicalDocument = asyncHandler(async (req: AuthenticatedRequest, re
     facts,
     consentAccepted: req.body.consentAccepted === 'true',
   });
-  if (!parsed.success) return res.status(400).json({ success: false, error: parsed.error.issues[0]?.message ?? 'Invalid document details.' });
+  if (!parsed.success)
+    return res
+      .status(400)
+      .json({ success: false, error: parsed.error.issues[0]?.message ?? 'Invalid document details.' });
   const data = await ClinicalEvidenceService.upload({ userId: req.user!.userId, file: req.file, ...parsed.data });
   return res.status(201).json({ success: true, data });
 });
@@ -93,9 +98,12 @@ router.put('/profile/avatar', UserController.updateAvatar);
 // ──────────────────────────────────────────
 router.use(requireRole('USER'));
 
-router.get('/clinical-profile-review/status', asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
-  res.json({ success: true, data: await ClinicalProfileReviewService.status(req.user!.userId) });
-}));
+router.get(
+  '/clinical-profile-review/status',
+  asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+    res.json({ success: true, data: await ClinicalProfileReviewService.status(req.user!.userId) });
+  })
+);
 
 /**
  * Onboarding Flow Endpoints
@@ -153,24 +161,39 @@ router.post(
       const profile = await UserService.saveShoppingDay(req.user!.userId, shoppingDayOfWeek);
       return res.status(200).json({ success: true, data: profile });
     } catch (error: any) {
-      return res
-        .status(500)
-        .json({ success: false, error: sanitizeErrorMessage(error, 'Failed to save shopping day preference.') });
+      return res.status(error instanceof AppError ? error.statusCode : 500).json({
+        success: false,
+        error: sanitizeErrorMessage(error, 'Failed to save shopping day preference.'),
+        code: error instanceof AppError ? error.errorCode : undefined,
+      });
     }
   }
 );
 router.post('/onboarding/tos', requireVerifiedUser, validateZodBody(consentSchema), UserController.acceptTos);
-router.get('/onboarding/clinical-evidence', requireVerifiedUser,
+router.get(
+  '/onboarding/clinical-evidence',
+  requireVerifiedUser,
   asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
     res.json({ success: true, data: await ClinicalEvidenceService.workspace(req.user!.userId) });
-  }));
-router.put('/onboarding/clinical-evidence/diabetes-context', requireVerifiedUser,
-  validateZodBody(diabetesContextSchema), asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+  })
+);
+router.put(
+  '/onboarding/clinical-evidence/diabetes-context',
+  requireVerifiedUser,
+  validateZodBody(diabetesContextSchema),
+  asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
     res.json({ success: true, data: await ClinicalEvidenceService.saveDiabetesContext(req.user!.userId, req.body) });
-  }));
-router.post('/onboarding/clinical-evidence/documents', requireVerifiedUser,
-  clinicalDocumentUpload.single('document'), uploadClinicalDocument);
-router.get('/onboarding/clinical-evidence/documents/:id/file', requireVerifiedUser,
+  })
+);
+router.post(
+  '/onboarding/clinical-evidence/documents',
+  requireVerifiedUser,
+  clinicalDocumentUpload.single('document'),
+  uploadClinicalDocument
+);
+router.get(
+  '/onboarding/clinical-evidence/documents/:id/file',
+  requireVerifiedUser,
   validateZodRequest({ params: clinicalDocumentIdParamsSchema }),
   asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
     const file = await ClinicalEvidenceService.fileForUser(req.user!.userId, req.params.id);
@@ -179,12 +202,16 @@ router.get('/onboarding/clinical-evidence/documents/:id/file', requireVerifiedUs
     res.setHeader('Cache-Control', 'private, no-store');
     res.setHeader('X-Content-Type-Options', 'nosniff');
     res.send(file.buffer);
-  }));
-router.delete('/onboarding/clinical-evidence/documents/:id', requireVerifiedUser,
+  })
+);
+router.delete(
+  '/onboarding/clinical-evidence/documents/:id',
+  requireVerifiedUser,
   validateZodRequest({ params: clinicalDocumentIdParamsSchema }),
   asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
     res.json({ success: true, data: await ClinicalEvidenceService.withdraw(req.user!.userId, req.params.id) });
-  }));
+  })
+);
 router.post(
   '/onboarding/complete',
   requireVerifiedUser,
@@ -420,6 +447,7 @@ router.get('/weight-log', async (req: AuthenticatedRequest, res: Response) => {
  */
 router.post(
   '/weight-log',
+  requireMembership,
   [
     body('weightKg').isFloat({ min: 30, max: 300 }).withMessage('Weight must be between 30 and 300 kg.').toFloat(),
     body('note')
@@ -475,7 +503,11 @@ router.post(
       const result = await CheckinService.submitCheckin(req.user!.userId, { changed, updates });
       return res.json({ success: true, data: result });
     } catch (error: any) {
-      return res.status(500).json({ success: false, error: sanitizeErrorMessage(error, 'Failed to submit check-in.') });
+      return res.status(error instanceof AppError ? error.statusCode : 500).json({
+        success: false,
+        error: sanitizeErrorMessage(error, 'Failed to submit check-in.'),
+        code: error instanceof AppError ? error.errorCode : undefined,
+      });
     }
   }
 );
