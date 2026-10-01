@@ -1,6 +1,6 @@
 'use client';
 import Link from 'next/link';
-import { User, HeartPulse, Soup, ClipboardList, ShieldCheck, ChevronRight, LogOut } from 'lucide-react';
+import { User, HeartPulse, Soup, ClipboardList, ShieldCheck, ChevronRight, LogOut, Sparkles } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import Avatar from '@/components/ui/Avatar';
 import Button from '@/components/ui/Button';
@@ -24,7 +24,7 @@ const sections = [
   {
     href: '/profile/planning',
     title: 'Food & planning',
-    description: 'Diet, location, meal preferences and shopping day',
+    description: 'Diet, meal preferences and shopping day',
     icon: Soup,
   },
   {
@@ -32,6 +32,12 @@ const sections = [
     title: 'Nutrition guidance & report',
     description: 'Personalized guidance grounded in your profile, calculated targets, and food restrictions',
     icon: ClipboardList,
+  },
+  {
+    href: '/membership',
+    title: 'Membership',
+    description: 'Your trial status, benefits and usage limits',
+    icon: Sparkles,
   },
   {
     href: '/profile/security',
