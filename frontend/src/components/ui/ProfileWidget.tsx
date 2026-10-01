@@ -48,12 +48,12 @@ export default function ProfileWidget({ onClose, className = '' }: ProfileWidget
           0,
           Math.ceil((new Date(membership.trialEndsAt).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
         );
-        return days > 0 ? `Pro · ${days}d left` : 'Pro';
+        return days > 0 ? `Health trial · ${days}d left` : 'Health trial';
       }
-      return 'Pro';
+      return 'Health trial';
     }
-    if (membership.level === 'TRIAL_PENDING') return 'Pro Pending';
-    if (membership.level === 'MEMBER') return 'Pro';
+    if (membership.level === 'TRIAL_PENDING') return 'Health trial pending';
+    if (membership.level === 'MEMBER') return membership.tier === 'LIFESTYLE' ? 'Lifestyle' : 'Health';
     return 'Free';
   };
 

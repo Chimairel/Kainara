@@ -41,7 +41,7 @@ export async function advanceProfileRevision(
     where: { userId },
     data: { isStale: true, acknowledgedAt: null },
   });
-  if (adaptCycles) {
+  if (adaptCycles && !updated.planningReportVersion) {
     await ProfileCycleAdaptationService.recordOrdinaryChange(tx, userId, updated.revision, changeKinds);
   }
   return updated;

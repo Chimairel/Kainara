@@ -838,6 +838,11 @@ model User {
 }
 
 // Membership V1 is separate from archived billing tables. Checkout stays disabled.
+enum MembershipTier {
+  LIFESTYLE
+  HEALTH
+}
+
 enum MembershipFeature {
   AI_ESTIMATE
   REPLAN
@@ -853,6 +858,7 @@ model MembershipAccount {
 }
 
 model MembershipGrant {
+  tier              MembershipTier @default(HEALTH)
   id                String    @id @default(cuid())
   userId            String
   user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -938,6 +944,7 @@ model Session {
 }
 
 model NutritionReportVersion {
+  confirmationKind String @default("PROFILE_UPDATE") @db.VarChar(40)
   id              String    @id @default(cuid())
   userId          String
   user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -953,6 +960,8 @@ model NutritionReportVersion {
 }
 
 model UserProfile {
+  planningReportVersion       Int?
+  firstReportAcknowledgedAt   DateTime?
   revision                 Int                       @default(0)
   safetyRevision           Int                       @default(0)
   id                       String                    @id @default(cuid())
@@ -2576,6 +2585,7 @@ model MealPlanCycle {
 /// dailyMacroTargets JSON is a derived candidate-total projection that fills
 /// as queued meal slots are saved; live profile edits never rewrite inputs.
 model MealPlanCycleSnapshot {
+  nutritionReportVersion   Int?
   id                       String                    @id @default(cuid())
   planGroupId              String                    @unique
   cycle                    MealPlanCycle             @relation(fields: [planGroupId], references: [id], onDelete: Cascade)
@@ -2603,6 +2613,7 @@ model MealPlanCycleSnapshot {
 }
 
 model WeeklyCheckin {
+  reportVersion          Int?
   id                     String                @id @default(cuid())
   userId                 String
   user                   User                  @relation(fields: [userId], references: [id], onDelete: Cascade)

@@ -1,7 +1,8 @@
 import { getManilaDateKey, getManilaMidnight, getScheduledMealDate } from './meal-plan-cycle.policy';
 
 export const MEMBERSHIP_TRIAL_DAYS = 14;
-export const MEMBERSHIP_POLICY_VERSION = 'KAINARA_MEMBERSHIP_V1';
+export const MEMBERSHIP_POLICY_VERSION = 'KAINARA_MEMBERSHIP_V2';
+export type MembershipTierName = 'FREE' | 'LIFESTYLE' | 'HEALTH';
 export type MembershipLevel = 'FREE' | 'TRIAL_PENDING' | 'TRIAL' | 'MEMBER';
 export type MembershipFeatureName = 'AI_ESTIMATE' | 'REPLAN' | 'PLAN_REVIEW' | 'OUTSIDE_REVIEW';
 
@@ -57,10 +58,16 @@ export function resolveMembershipLevel(input: { at: Date; trialStartedAt: Date |
   return { level, trialEndsAt, enhanced: level !== 'FREE' };
 }
 
-export function membershipFeatureCap(feature: MembershipFeatureName, enhanced: boolean, limits = membershipLimits()) {
+export function membershipFeatureCap(
+  feature: MembershipFeatureName,
+  enhanced: boolean,
+  limits = membershipLimits(),
+  healthAccess = enhanced
+) {
   if (feature === 'AI_ESTIMATE') return enhanced ? limits.memberEstimates : limits.freeEstimates;
   if (!enhanced) return 0;
   if (feature === 'REPLAN') return limits.memberReplans;
-  if (feature === 'PLAN_REVIEW') return limits.memberPlanReviews;
-  return limits.memberOutsideReviews;
+
+  if (!healthAccess) return 0;
+  return feature === 'PLAN_REVIEW' ? limits.memberPlanReviews : limits.memberOutsideReviews;
 }

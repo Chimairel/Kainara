@@ -145,15 +145,11 @@ export function ProgressWorkspace({ mode = 'progress' }: { mode?: ProgressWorksp
 
   return (
     <div className="portal-page max-w-5xl text-brand-text">
-      {mode !== 'progress' && (
-        <PersonalizationTabs activeTab={mode === 'planning' ? 'planning' : 'health'} />
-      )}
+      {mode !== 'progress' && <PersonalizationTabs activeTab={mode === 'planning' ? 'planning' : 'health'} />}
       {/* HEADER SECTION */}
       <PortalPageHeader
         icon={mode === 'health' ? Heart : TrendingUp}
-        eyebrow={
-          mode !== 'progress' ? 'Personalization' : 'Health trajectory'
-        }
+        eyebrow={mode !== 'progress' ? 'Personalization' : 'Health trajectory'}
         title={mode === 'planning' ? 'Food & planning' : mode === 'health' ? 'Health & goals' : 'Progress'}
         description={
           mode === 'health'
@@ -184,8 +180,8 @@ export function ProgressWorkspace({ mode = 'progress' }: { mode?: ProgressWorksp
 
       {mode !== 'progress' && membership?.enabled && (
         <p className="mb-5 rounded-2xl border border-brand-border bg-brand-surface p-4 text-sm text-brand-muted">
-          Health corrections and new safety restrictions remain available. Optional goal, preference and shopping
-          changes require Pro membership; an optional replan uses a separate weekly allowance.{' '}
+          You can save profile updates on any plan. Applying ordinary changes to meal planning requires Lifestyle; case
+          planning and health-context updates require Health. Your first report and unchanged weekly reports are free.{' '}
           <Link href="/membership" className="font-semibold text-brand-green">
             View your benefits and limits
           </Link>
@@ -196,7 +192,7 @@ export function ProgressWorkspace({ mode = 'progress' }: { mode?: ProgressWorksp
         <AnnouncementBanner
           className="mb-6"
           title="Action required:"
-          message="Acknowledge your nutrition report before using this feature."
+          message="Use your nutrition report for meal planning before using this feature."
           action={{
             label: 'View Nutrition Report',
             href: '/profile/nutrition-report',

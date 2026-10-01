@@ -1,4 +1,6 @@
 import type { Prisma } from '@prisma/client';
+import { resolvePlanningProfile } from '@/domain/planning-report.policy';
+import { membershipEnabled } from '@/domain/membership.policy';
 import { adaptUserSafetyRestrictions } from '@/domain/structured-restriction.adapter';
 
 type UserNutritionReadClient = Pick<Prisma.TransactionClient, 'user'>;
@@ -40,4 +42,25 @@ export async function loadUserNutritionContext(
     otherConditions: safetyRestrictions.customConditions.join(', '),
     otherAllergies: safetyRestrictions.customFoodRestrictions.join(', '),
   };
+}
+
+/** All new plan inputs come from the accepted report. Current safety declarations remain visible. */
+export async function loadPlanningNutritionContext(
+  client: UserNutritionReadClient & Pick<Prisma.TransactionClient, 'nutritionReportVersion'>,
+  userId: string,
+  missingProfileMessage: string
+) {
+  const context = await loadUserNutritionContext(client, userId, missingProfileMessage);
+  if (!context.profile.planningReportVersion && !membershipEnabled()) return context;
+  const version = await client.nutritionReportVersion.findFirst({
+    where: {
+      userId,
+      ...(context.profile.planningReportVersion
+        ? { version: context.profile.planningReportVersion }
+        : { acknowledgedAt: { not: null } }),
+    },
+    orderBy: { version: 'desc' },
+  });
+  const profile = resolvePlanningProfile(context.profile, version);
+  return { ...context, profile, user: { ...context.user, userProfile: profile } };
 }

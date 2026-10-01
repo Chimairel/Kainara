@@ -198,6 +198,28 @@ describe('unified nutritionist profile work', () => {
     expect(screen.getByTestId('guidance-paper')).toHaveTextContent('MAINTAIN · DIABETES');
   });
 
+  it('distinguishes a fresh profile draft from the report selected for planning', async () => {
+    const originalGet = mocks.get.getMockImplementation()!;
+    mocks.get.mockImplementation((path: string) =>
+      path === '/nutritionist/profile-work/both'
+        ? Promise.resolve({
+            data: {
+              data: {
+                ...bothDetail,
+                activePlanningReportVersion: 1,
+                reports: [{ ...report, isCurrent: true, isPlanningReport: false }],
+              },
+            },
+          })
+        : originalGet(path)
+    );
+    render(<ProfileWorkPanel />);
+    fireEvent.click(await screen.findByRole('button', { name: /Both Tasks/ }));
+    expect(await screen.findByRole('button', { name: /Version 2.*Current profile draft/ })).toBeInTheDocument();
+    expect(screen.getByText(/Planning uses report version 1/)).toBeInTheDocument();
+    expect(screen.getByText(/Recorded profile:/).parentElement).toHaveTextContent('not selected for planning');
+  });
+
   it('claims a document-only task before file access and records its decision', async () => {
     render(<ProfileWorkPanel />);
     fireEvent.click(await screen.findByRole('button', { name: /Document Only/ }));

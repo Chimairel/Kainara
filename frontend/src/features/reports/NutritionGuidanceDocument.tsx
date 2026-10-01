@@ -15,12 +15,17 @@ interface Props {
   dailyCalorieTarget: number;
   conditions: string[];
   foodRestrictions: string[];
-  history: Array<{ id: string; version: number; generatedAt: string; content: NutritionReport }>;
+  history: ReportVersion[];
   error: string | null;
   isAcknowledging: boolean;
   onAcknowledge: () => void;
   onDownload: () => void;
   isDownloadingPdf?: boolean;
+}
+
+function recordedDeclarations(value: unknown): string[] {
+  const values = Array.isArray(value) ? value : typeof value === 'string' && value.trim() ? [value.trim()] : [];
+  return values.filter((item): item is string => typeof item === 'string' && item !== 'NONE');
 }
 
 export default function NutritionGuidanceDocument({
@@ -62,14 +67,16 @@ export default function NutritionGuidanceDocument({
       id: selectedVersion.id || report.id,
       version: selectedVersion.version ?? content.version ?? report.version,
       generatedAt: selectedVersion.generatedAt || content.generatedAt || report.generatedAt,
-      acknowledgedAt: content.acknowledgedAt ?? null,
-      referenceItems: content.referenceItems || report.referenceItems,
-      generalSummary: content.generalSummary || report.generalSummary,
-      reportPolicyVersion: content.reportPolicyVersion || content.policyVersion || report.reportPolicyVersion,
+      acknowledgedAt: selectedVersion.acknowledgedAt ?? content.acknowledgedAt ?? null,
+      referenceItems: content.referenceItems || [],
+      generalSummary: content.generalSummary || 'No summary recorded for this version.',
+      reportPolicyVersion: selectedVersion.policyVersion || content.reportPolicyVersion || content.policyVersion,
     };
   }, [selectedVersion, report]);
 
   const isViewingArchived = Boolean(selectedVersion && selectedVersion.version !== report.version);
+  const recordedProfile = (selectedVersion ?? history.find((entry) => entry.version === report.version))
+    ?.profileSnapshot;
 
   return (
     <div className="w-full min-h-full py-6 px-3 sm:px-6 lg:px-8">
@@ -78,7 +85,7 @@ export default function NutritionGuidanceDocument({
         <aside className="w-full lg:w-72 xl:w-80 shrink-0 print:hidden">
           <ReportHistory
             history={allVersions}
-            currentVersion={report.version}
+            currentVersion={report.planningContext?.activeVersion ?? report.version}
             selectedVersionNumber={displayedReport.version}
             onSelectVersion={(v) => setSelectedVersion(v.version === report.version ? null : v)}
             borderless
@@ -115,7 +122,12 @@ export default function NutritionGuidanceDocument({
                 variant="secondary"
                 size="sm"
                 onClick={onDownload}
-                disabled={isDownloadingPdf}
+                disabled={isDownloadingPdf || isViewingArchived}
+                title={
+                  isViewingArchived
+                    ? 'Return to the latest report to download its PDF. Printing uses the displayed version.'
+                    : undefined
+                }
                 aria-busy={isDownloadingPdf}
                 className="gap-1.5 text-xs font-semibold bg-white/90 dark:bg-brand-surface border-slate-300 dark:border-brand-border hover:bg-slate-100 dark:hover:bg-brand-surface/80"
               >
@@ -159,12 +171,12 @@ export default function NutritionGuidanceDocument({
                   </div>
                   <div>
                     <h3 className="text-sm font-bold text-amber-900 dark:text-amber-100">
-                      Review & Acknowledgment Required
+                      Choose your planning report
                     </h3>
                     <p className="mt-1 text-xs text-amber-800/90 dark:text-amber-200/90 leading-relaxed max-w-xl">
-                      Please confirm that the profile below reflects what you entered and that you have read these
-                      references. This is educational guidance and does not replace your doctor or Registered
-                      Nutritionist-Dietitian.
+                      This report supplies the profile, targets and restrictions used for meal planning and shared with
+                      your nutritionist. Check that your details are correct before using it. This is educational
+                      guidance and does not replace your doctor or Registered Nutritionist-Dietitian.
                     </p>
                   </div>
                 </div>
@@ -175,7 +187,7 @@ export default function NutritionGuidanceDocument({
                   isLoading={isAcknowledging}
                   className="shrink-0 font-bold shadow-md self-start sm:self-center"
                 >
-                  Acknowledge and Continue
+                  Use this report for meal planning
                 </Button>
               </div>
             </div>
@@ -186,8 +198,8 @@ export default function NutritionGuidanceDocument({
             <div className="w-full max-w-3xl mb-4 flex items-center gap-2 text-xs font-medium text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800/50 rounded-lg px-3.5 py-2 print:hidden">
               <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
               <span>
-                Acknowledged on {new Date(report.acknowledgedAt).toLocaleDateString()} · Active clinical reference for
-                your meal planning
+                Selected on {new Date(report.acknowledgedAt).toLocaleDateString()} · Planning reference for your meal
+                planning
               </span>
             </div>
           )}
@@ -196,10 +208,25 @@ export default function NutritionGuidanceDocument({
             report={displayedReport}
             profile={{
               name,
-              goal,
-              dailyCalorieTarget,
-              conditions,
-              foodRestrictions,
+              goal: recordedProfile?.profile?.goal ?? (isViewingArchived ? 'Not recorded' : goal),
+              dailyCalorieTarget:
+                recordedProfile?.profile?.dailyCalorieTarget ?? (isViewingArchived ? null : dailyCalorieTarget),
+              conditions: recordedProfile
+                ? [
+                    ...(recordedProfile.conditions ?? []),
+                    ...recordedDeclarations(recordedProfile.otherConditions),
+                  ].filter((item) => item !== 'NONE')
+                : isViewingArchived
+                  ? recordedDeclarations(displayedReport.basedOnConditions)
+                  : conditions,
+              foodRestrictions: recordedProfile
+                ? [
+                    ...(recordedProfile.allergens ?? []),
+                    ...recordedDeclarations(recordedProfile.otherAllergies),
+                  ].filter((item) => item !== 'NONE')
+                : isViewingArchived
+                  ? recordedDeclarations(displayedReport.basedOnAllergies)
+                  : foodRestrictions,
             }}
           />
         </div>

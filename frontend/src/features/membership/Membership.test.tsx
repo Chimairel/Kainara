@@ -61,9 +61,13 @@ describe('membership status and gates', () => {
   it('shows remaining allowances and keeps purchases unavailable without a price', () => {
     render(<MembershipPage />);
     expect(screen.getByText('6 of 10')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Purchases opening soon' })).toBeDisabled();
+    expect(screen.getAllByRole('button', { name: 'Purchases opening soon', hidden: true })).toHaveLength(2);
+    screen
+      .getAllByRole('button', { name: 'Purchases opening soon', hidden: true })
+      .forEach((button) => expect(button).toBeDisabled());
     expect(screen.queryByText(/₱|Pay now|Activate premium/)).not.toBeInTheDocument();
-    expect(screen.queryByText(/A starter plan counts/)).not.toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Lifestyle', hidden: true })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Health', hidden: true })).toBeInTheDocument();
   });
   it('explains waiting for a usable plan rather than starting the trial during review', () => {
     state.data = { ...view(), level: 'TRIAL_PENDING', trialStartedAt: null, trialEndsAt: null };

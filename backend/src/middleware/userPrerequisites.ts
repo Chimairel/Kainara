@@ -1,5 +1,7 @@
 import { NextFunction, Response } from 'express';
 import prisma from '@/lib/prisma';
+import { loadPlanningNutritionContext } from '@/domain/user-nutrition-context';
+import { membershipEnabled } from '@/domain/membership.policy';
 import { AuthenticatedRequest } from '@/types';
 import { hasCurrentConsent } from '@/domain/onboarding.policy';
 
@@ -18,30 +20,34 @@ export const requireUserPrerequisites =
         return res.status(401).json({ success: false, error: 'Authentication is required.' });
       }
 
-      const authenticatedAccount = res.locals.authenticatedAccount as {
-        emailVerified: boolean;
-        onboardingDone: boolean;
-        tosAccepted: boolean;
-        acceptedTermsVersion: string | null;
-        acceptedPrivacyVersion: string | null;
-        nutritionReport?: { acknowledgedAt: Date | null; isStale: boolean; profileRevision: number } | null;
-        userProfile?: { revision: number } | null;
-      } | undefined;
-      const user = authenticatedAccount && (!options.reportAcknowledged ||
-        ('nutritionReport' in authenticatedAccount && 'userProfile' in authenticatedAccount))
-        ? authenticatedAccount
-        : await prisma.user.findUnique({
-          where: { id: userId },
-          select: {
-            emailVerified: true,
-            onboardingDone: true,
-            tosAccepted: true,
-            acceptedTermsVersion: true,
-            acceptedPrivacyVersion: true,
-            nutritionReport: { select: { acknowledgedAt: true, isStale: true, profileRevision: true } },
-            userProfile: { select: { revision: true } },
-          },
-        });
+      const authenticatedAccount = res.locals.authenticatedAccount as
+        | {
+            emailVerified: boolean;
+            onboardingDone: boolean;
+            tosAccepted: boolean;
+            acceptedTermsVersion: string | null;
+            acceptedPrivacyVersion: string | null;
+            nutritionReport?: { acknowledgedAt: Date | null; isStale: boolean; profileRevision: number } | null;
+            userProfile?: { revision: number; planningReportVersion?: number | null } | null;
+          }
+        | undefined;
+      const user =
+        authenticatedAccount &&
+        (!options.reportAcknowledged ||
+          ('nutritionReport' in authenticatedAccount && 'userProfile' in authenticatedAccount))
+          ? authenticatedAccount
+          : await prisma.user.findUnique({
+              where: { id: userId },
+              select: {
+                emailVerified: true,
+                onboardingDone: true,
+                tosAccepted: true,
+                acceptedTermsVersion: true,
+                acceptedPrivacyVersion: true,
+                nutritionReport: { select: { acknowledgedAt: true, isStale: true, profileRevision: true } },
+                userProfile: { select: { revision: true, planningReportVersion: true } },
+              },
+            });
 
       if (!user) {
         return res.status(401).json({ success: false, error: 'Authenticated account no longer exists.' });
@@ -67,15 +73,27 @@ export const requireUserPrerequisites =
           errorCode: 'CURRENT_CONSENT_REQUIRED',
         });
       }
+      let activePlanningReport = false;
+      const validatePlanningBaseline = Boolean(membershipEnabled() || user.userProfile?.planningReportVersion);
+      if (options.reportAcknowledged && validatePlanningBaseline) {
+        try {
+          await loadPlanningNutritionContext(prisma, userId, 'Profile missing.');
+          activePlanningReport = true;
+        } catch {
+          /* Return the prerequisite error below without bypassing other gates. */
+        }
+      }
       if (
         options.reportAcknowledged &&
-        (!user.nutritionReport?.acknowledgedAt ||
-          user.nutritionReport.isStale ||
-          user.nutritionReport.profileRevision !== user.userProfile?.revision)
+        (validatePlanningBaseline
+          ? !activePlanningReport
+          : !user.nutritionReport?.acknowledgedAt ||
+            user.nutritionReport.isStale ||
+            user.nutritionReport.profileRevision !== user.userProfile?.revision)
       ) {
         return res.status(409).json({
           success: false,
-          error: 'Acknowledge your nutrition report before using this feature.',
+          error: 'Use a current nutrition report for meal planning before using this feature.',
           errorCode: 'REPORT_ACKNOWLEDGEMENT_REQUIRED',
         });
       }

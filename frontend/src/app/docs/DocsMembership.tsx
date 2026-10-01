@@ -39,14 +39,40 @@ export const membershipChapter: DocsChapter = {
         <>
           <p>
             Accounts without declared conditions or allergies can continue receiving general weekly meal plans using
-            their saved planning profile. Groceries, meal completion, manual outside-food logging, saved records and
-            health corrections remain available. Free access includes a smaller meal-swap and AI estimate allowance.
+            their active nutrition report. Groceries, meal completion, manual outside-food logging, saved records and
+            profile corrections remain available. Free access includes a smaller meal-swap and AI estimate allowance.
           </p>
           <p>
-            Optional goal, preference and shopping changes, optional replans and progress insights require membership.
-            Declared conditions or allergies require membership for new case plans after the trial. Existing eligible
-            active cycles can finish; previously submitted review and clarification work remains available. New safety
-            declarations still invalidate conflicting meals immediately.
+            Saving profile changes is free. Applying ordinary measurement, activity, goal, preference or shopping
+            changes to planning requires Lifestyle or Health after the trial. Optional replans and progress insights
+            also require Lifestyle or Health. Declared conditions or allergies require Health for updated case context
+            and new case plans after the trial. Existing eligible active cycles can finish; previously submitted review
+            and clarification work remains available. New safety declarations still invalidate conflicting meals
+            immediately.
+          </p>
+        </>
+      ),
+    },
+    {
+      id: 'membership-reports',
+      title: 'Reports and weekly check-ins',
+      content: (
+        <>
+          <p>
+            Your first planning report is free. Each weekly “Still the same” check-in creates a new dated report; using
+            it for planning is free when its inputs match your previous planning report. It does not restart the trial
+            or reset allowances.
+          </p>
+          <p>
+            When you save changes, review the new report and choose “Use this report for meal planning.” If membership
+            is required, the app explains Lifestyle or Health access. You can keep a previous eligible planning report
+            for ordinary changes; saved health restrictions cannot be hidden by that choice. Correcting mistaken entries
+            is free.
+          </p>
+          <p>
+            Persistent reminders show overdue check-ins and unapplied updates. The active report supplies planning
+            context to the system and nutritionists; a report does not itself certify a meal or replace professional
+            review.
           </p>
         </>
       ),
@@ -57,10 +83,11 @@ export const membershipChapter: DocsChapter = {
       content: (
         <>
           <p>
-            One membership uses the same allowances for every subscriber. The initial free allowances are 3 swaps per
-            plan cycle and 2 AI estimate requests per week. Membership and trial initially include 6 swaps, 10 AI
-            estimate requests, 2 optional replans, 1 plan-review episode and 1 requested outside-meal review episode per
-            week. The Membership screen shows the current configured limits.
+            Lifestyle and Health have bounded allowances. The initial free allowances are 3 swaps per plan cycle and 2
+            AI estimate requests per week. Lifestyle initially includes 6 swaps, 10 AI estimate requests and 2 optional
+            replans per week. Health includes these benefits plus 1 plan-review episode and 1 requested outside-meal
+            review episode per week. The trial includes Health benefits. The Membership screen shows the current
+            configured limits.
           </p>
           <p>
             Estimate, optional replan and requested outside-review weeks reset Monday at midnight in Manila. Swaps

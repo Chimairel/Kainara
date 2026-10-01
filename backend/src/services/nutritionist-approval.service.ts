@@ -1,5 +1,6 @@
 import { assertMealSlotCalories } from '@/domain/generated-plan-calories.policy';
 import prisma from '@/lib/prisma';
+import { loadPlanningNutritionContext } from '@/domain/user-nutrition-context';
 import { MealIngredientDataSource, MealPlanStatus, NotificationType, Prisma } from '@prisma/client';
 import { lockUserProfile } from './profile-revision.service';
 
@@ -73,6 +74,7 @@ export async function approveMealPlan(
     where: { id: mealPlanId },
     include: {
       ingredients: true,
+      cycle: { include: { snapshot: true } },
       user: {
         include: {
           healthConditions: true,
@@ -135,13 +137,19 @@ export async function approveMealPlan(
   const carbsG = updates?.carbsG !== undefined ? updates.carbsG : plan.carbsG;
   const fatG = updates?.fatG !== undefined ? updates.fatG : plan.fatG;
 
-  assertMealSlotCalories(calories, plan.user.userProfile?.dailyCalorieTarget ?? 2000, plan.mealType);
+  const planning = await loadPlanningNutritionContext(prisma, plan.userId, 'Planning profile missing.');
+  assertMealSlotCalories(
+    calories,
+    plan.cycle.snapshot?.dailyCalorieTarget ?? planning.profile.dailyCalorieTarget ?? 2000,
+    plan.mealType
+  );
 
   if (plan.highRiskReviewRequired && plan.reviewApprovalCount === 0) {
     await prisma.$transaction(
       async (tx) => {
         await lockUserProfile(tx, plan.userId);
         await assertObservedSourceStillAvailable(tx, plan.sourceRawRecipeCandidateId);
+        await loadPlanningNutritionContext(tx, plan.userId, 'Planning profile missing.');
         const currentProfile = await tx.userProfile.findUniqueOrThrow({ where: { userId: plan.userId } });
         if ('user' in plan && currentProfile.revision !== plan.user.userProfile?.revision)
           throw new Error('User information changed. Reopen this review.');
@@ -312,6 +320,7 @@ export async function approveMealPlan(
     async (tx) => {
       await lockUserProfile(tx, plan.userId);
       await assertObservedSourceStillAvailable(tx, plan.sourceRawRecipeCandidateId);
+      await loadPlanningNutritionContext(tx, plan.userId, 'Planning profile missing.');
       const currentProfile = await tx.userProfile.findUniqueOrThrow({ where: { userId: plan.userId } });
       if ('user' in plan && currentProfile.revision !== plan.user.userProfile?.revision)
         throw new Error('User information changed. Reopen this review.');

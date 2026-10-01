@@ -28,7 +28,7 @@ import {
   MEAL_PLAN_SAFETY_POLICY_VERSION,
   requiresEscalatedMealReview,
 } from '@/domain/meal-plan-production-safety.policy';
-import { loadUserNutritionContext } from '@/domain/user-nutrition-context';
+import { loadPlanningNutritionContext } from '@/domain/user-nutrition-context';
 import { mealApprovalSafetyScope } from '@/domain/meal-approval-scope.policy';
 import {
   getMealSlotCalorieRange,
@@ -82,7 +82,11 @@ export async function generate7DayPlan(
     allergens: userAllergens,
     otherConditions,
     otherAllergies,
-  } = await loadUserNutritionContext(prisma, userId, 'User profile must be initialized before generating a meal plan.');
+  } = await loadPlanningNutritionContext(
+    prisma,
+    userId,
+    'User profile must be initialized before generating a meal plan.'
+  );
   const highRiskReviewRequired = requiresEscalatedMealReview(userConditions, otherConditions);
   const restrictions = adaptUserSafetyRestrictions({
     healthConditions: userConditions,
@@ -512,7 +516,7 @@ export async function generate7DayPlan(
   await prisma.$transaction(
     async (tx) => {
       await lockUserProfile(tx, userId);
-      const currentProfileRevision = await tx.userProfile.findUniqueOrThrow({ where: { userId } });
+      const { profile: currentProfileRevision } = await loadPlanningNutritionContext(tx, userId, 'Profile missing.');
       if (currentProfileRevision.revision !== profile.revision)
         throw new Error('Profile changed during generation. Please retry.');
       await assertGenerationIntegrity(tx, userId, startDate, targetPlanEndDate, compositionRevisions);
@@ -583,6 +587,7 @@ export async function generate7DayPlan(
           planGroupId: newPlanGroupId,
           userId,
           profileRevision: profile.revision,
+          nutritionReportVersion: profile.planningReportVersion,
           safetyRevision: profile.safetyRevision,
           weightKg,
           activityLevel,

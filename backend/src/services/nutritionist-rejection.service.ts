@@ -1,4 +1,5 @@
 import prisma from '@/lib/prisma';
+import { loadPlanningNutritionContext } from '@/domain/user-nutrition-context';
 import { lockUserProfile } from './profile-revision.service';
 import { MealPlanStatus, AIConfidenceFlag, NotificationType, MealIngredientDataSource, Prisma } from '@prisma/client';
 import { generateGenerativeJSON } from '@/lib/gemini';
@@ -138,7 +139,7 @@ export async function rejectMealPlan(nutritionistProfileId: string, mealPlanId: 
 
   // Generate a replacement only after the rejection decision commits.
   try {
-    const profile = plan.user.userProfile;
+    const { profile } = await loadPlanningNutritionContext(prisma, plan.userId, 'Planning profile missing.');
     const safetyRestrictions = adaptUserSafetyRestrictions({
       safetyEntries: plan.user.safetyProfileEntries,
       healthConditions: plan.user.healthConditions.map((item) => item.condition),

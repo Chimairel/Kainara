@@ -1,0 +1,14 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "rootDir": ".",
+    "declaration": false,
+    "declarationMap": false
+  },
+  "include": [
+    "scripts/membership-acceptance.ts",
+    "scripts/report-membership-acceptance.ts",
+    "scripts/preview-report-membership.ts"
+  ]
+}

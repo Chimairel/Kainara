@@ -17,7 +17,17 @@ vi.mock('@/features/reports/ReportHistory', () => ({ default: () => <div>Report 
 
 const report = {
   reportPolicyVersion: 'NUTRITION_GUIDANCE_DETERMINISTIC_V1',
-  referenceItems: [{ heading: 'Protein reference', value: '50–75 g/day', explanation: '10–15% of 2000 kcal ÷ 4 kcal/g.', classification: 'CALCULATED_REFERENCE', sourceCode: 'DOST_FNRI_PDRI_2015_REV_2018', sourceTitle: 'DOST FNRI — PDRI', sourceUrl: 'https://fnri.dost.gov.ph/images/images/news/PDRI-2018.pdf' }],
+  referenceItems: [
+    {
+      heading: 'Protein reference',
+      value: '50–75 g/day',
+      explanation: '10–15% of 2000 kcal ÷ 4 kcal/g.',
+      classification: 'CALCULATED_REFERENCE',
+      sourceCode: 'DOST_FNRI_PDRI_2015_REV_2018',
+      sourceTitle: 'DOST FNRI — PDRI',
+      sourceUrl: 'https://fnri.dost.gov.ph/images/images/news/PDRI-2018.pdf',
+    },
+  ],
   version: 3,
   generatedAt: '2026-09-16T00:00:00Z',
   isStale: false,
@@ -55,7 +65,7 @@ describe('nutrition report lifecycle', () => {
   });
   it('loads once despite session object changes, acknowledges the displayed version and returns to profile', async () => {
     render(<NutritionReportWorkspace />);
-    fireEvent.click(await screen.findByRole('button', { name: 'Acknowledge and Continue' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Use this report for meal planning' }));
     await waitFor(() => expect(mocks.push).toHaveBeenCalledWith('/profile'));
     expect(mocks.post).toHaveBeenCalledWith('/user/nutrition-report/acknowledge', { version: 3 });
     expect(mocks.get.mock.calls.filter(([path]) => path === '/user/nutrition-report')).toHaveLength(1);
@@ -63,13 +73,13 @@ describe('nutrition report lifecycle', () => {
   it('continues an explicit regeneration request only after acknowledgment succeeds', async () => {
     window.history.replaceState({}, '', '/profile/nutrition-report?next=regenerate');
     render(<NutritionReportWorkspace />);
-    fireEvent.click(await screen.findByRole('button', { name: 'Acknowledge and Continue' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Use this report for meal planning' }));
     await waitFor(() => expect(mocks.push).toHaveBeenCalledWith('/meals?regenerate=true'));
   });
   it('continues first-time onboarding to the dashboard only after acknowledgment succeeds', async () => {
     window.history.replaceState({}, '', '/nutrition-report?next=dashboard');
     render(<NutritionReportWorkspace />);
-    fireEvent.click(await screen.findByRole('button', { name: 'Acknowledge and Continue' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Use this report for meal planning' }));
     await waitFor(() => expect(mocks.push).toHaveBeenCalledWith('/dashboard'));
   });
   it('does not generate a new report when reading the existing report fails', async () => {
@@ -87,15 +97,71 @@ describe('nutrition report lifecycle', () => {
       path === '/user/nutrition-report' ? Promise.resolve(result({ ...report, isStale: true })) : get(path)
     );
     render(<NutritionReportWorkspace />);
-    await screen.findByRole('button', { name: 'Acknowledge and Continue' });
+    await screen.findByRole('button', { name: 'Use this report for meal planning' });
     expect(mocks.post).toHaveBeenCalledWith('/user/nutrition-report/generate');
   });
   it('does not navigate if the refreshed session cannot confirm acknowledgment', async () => {
     mocks.refresh.mockResolvedValue(null);
     render(<NutritionReportWorkspace />);
-    fireEvent.click(await screen.findByRole('button', { name: 'Acknowledge and Continue' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Use this report for meal planning' }));
     await screen.findByText(/Unable to confirm the current report status/);
     expect(mocks.push).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ['MEMBERSHIP_REQUIRED', 'Lifestyle', false],
+    ['HEALTH_MEMBERSHIP_REQUIRED', 'Health', true],
+  ])(
+    'offers the authoritative tier and preserves only an eligible previous report (%s)',
+    async (errorCode, tier, safetyChanged) => {
+      const get = mocks.get.getMockImplementation()!;
+      mocks.get.mockImplementation((path: string) =>
+        path === '/user/nutrition-report'
+          ? Promise.resolve(
+              result({
+                ...report,
+                planningContext: {
+                  activeVersion: 2,
+                  activeGeneratedAt: report.generatedAt,
+                  pendingChanges: true,
+                  safetyChanged,
+                },
+              })
+            )
+          : get(path)
+      );
+      mocks.post.mockRejectedValueOnce({ response: { status: 403, data: { errorCode } } });
+      render(<NutritionReportWorkspace />);
+      fireEvent.click(await screen.findByRole('button', { name: 'Use this report for meal planning' }));
+      const dialog = await screen.findByRole('dialog', { name: `${tier} membership needed` });
+      expect(dialog).toBeInTheDocument();
+      expect(screen.getByRole('link', { name: `View ${tier} benefits` })).toHaveAttribute(
+        'href',
+        '/membership?tab=plans'
+      );
+      expect(mocks.push).not.toHaveBeenCalled();
+      if (safetyChanged) {
+        expect(screen.queryByRole('button', { name: 'Keep my previous planning report' })).not.toBeInTheDocument();
+        expect(screen.getByRole('link', { name: 'Continue to my saved records' })).toHaveAttribute('href', '/export');
+      } else {
+        mocks.post.mockResolvedValue(result({ activeVersion: 2 }));
+        fireEvent.click(screen.getByRole('button', { name: 'Keep my previous planning report' }));
+        await waitFor(() => expect(mocks.push).toHaveBeenCalledWith('/dashboard'));
+        expect(mocks.post).toHaveBeenCalledWith('/user/nutrition-report/keep-previous', {});
+      }
+    }
+  );
+  it('shows the fresh date for an unchanged report without claiming a new professional review', async () => {
+    const get = mocks.get.getMockImplementation()!;
+    mocks.get.mockImplementation((path: string) =>
+      path === '/user/nutrition-report'
+        ? Promise.resolve(result({ ...report, confirmationKind: 'UNCHANGED_CHECKIN' }))
+        : get(path)
+    );
+    render(<NutritionReportWorkspace />);
+    expect(await screen.findByText(/Profile confirmed unchanged on/)).toHaveTextContent(
+      'does not represent a new nutritionist review'
+    );
   });
   it('explains the evidence layers and consolidates repeated food restrictions', async () => {
     const get = mocks.get.getMockImplementation()!;
@@ -122,8 +188,13 @@ describe('nutrition report lifecycle', () => {
     render(<NutritionReportWorkspace />);
 
     expect(await screen.findByRole('heading', { name: 'Nutrition Guidance' })).toBeInTheDocument();
-    expect(screen.getByText(/Meal eligibility and Registered Nutritionist-Dietitian review are separate checks/i)).toBeInTheDocument();
+    expect(
+      screen.getByText(/Meal eligibility and Registered Nutritionist-Dietitian review are separate checks/i)
+    ).toBeInTheDocument();
     expect(screen.getByText('DAIRY, LACTOSE')).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'DOST FNRI — PDRI' })).toHaveAttribute('href', 'https://fnri.dost.gov.ph/images/images/news/PDRI-2018.pdf');
+    expect(screen.getByRole('link', { name: 'DOST FNRI — PDRI' })).toHaveAttribute(
+      'href',
+      'https://fnri.dost.gov.ph/images/images/news/PDRI-2018.pdf'
+    );
   });
 });

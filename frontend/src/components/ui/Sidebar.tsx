@@ -57,9 +57,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ className = '' }) => {
   const { user } = useAuth();
   const { data: membership } = useMembership();
   const isPro = Boolean(
-    user?.role === 'USER' &&
-    membership?.enabled &&
-    (membership.level === 'TRIAL' || membership.level === 'MEMBER')
+    user?.role === 'USER' && membership?.enabled && (membership.level === 'TRIAL' || membership.level === 'MEMBER')
   );
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
@@ -271,7 +269,12 @@ export const Sidebar: React.FC<SidebarProps> = ({ className = '' }) => {
                         aria-hidden="true"
                       />
                     )}
-                    <DockLabel>Profile · {user.name}{isPro ? ' (Pro)' : ''}</DockLabel>
+                    <DockLabel>
+                      Profile · {user.name}
+                      {isPro
+                        ? ` (${membership?.enabled && membership.tier === 'LIFESTYLE' ? 'Lifestyle' : 'Health'})`
+                        : ''}
+                    </DockLabel>
                     <DockAvatar>
                       <Avatar
                         size="sm"
@@ -459,7 +462,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ className = '' }) => {
                     <p className="truncate text-xs font-semibold text-white/90">{user.name}</p>
                     {isPro && (
                       <span className="rounded bg-[#082e25] border border-[#10b981]/40 px-1 py-0 text-[8px] font-mono font-bold text-[#f09e6c]">
-                        PRO
+                        {membership?.enabled && membership.tier === 'LIFESTYLE' ? 'LIFESTYLE' : 'HEALTH'}
                       </span>
                     )}
                   </div>

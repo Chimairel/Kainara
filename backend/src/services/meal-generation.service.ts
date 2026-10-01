@@ -14,7 +14,7 @@ import {
 } from '@/domain/meal-plan-cycle.policy';
 import { MealPlanCycleService } from './meal-plan-cycle.service';
 
-import { loadUserNutritionContext } from '@/domain/user-nutrition-context';
+import { loadPlanningNutritionContext } from '@/domain/user-nutrition-context';
 
 import { getMaximumAssuranceTier } from '@/domain/assurance-tier.policy';
 
@@ -60,7 +60,7 @@ export class MealGenerationService {
       );
     }
 
-    const profile = await prisma.userProfile.findUnique({ where: { userId } });
+    const { profile } = await loadPlanningNutritionContext(prisma, userId, 'Profile missing.');
     const window = getOnDemandMealPlanWindow(
       {
         shoppingDayOfWeek: profile?.shoppingDayOfWeek,
@@ -111,7 +111,7 @@ export class MealGenerationService {
   ): Promise<{ state: 'NOT_OPEN' | 'EXISTING' | 'PREPARED'; planGroupId: string | null }> {
     await ClinicalEvidenceService.assertReadyForMealPlanning(userId);
     await ClinicalProfileReviewService.assertReadyForMealPlanning(userId);
-    const context = await loadUserNutritionContext(
+    const context = await loadPlanningNutritionContext(
       prisma,
       userId,
       'User profile must be initialized before preparing an upcoming meal plan.'
@@ -344,10 +344,7 @@ export class MealGenerationService {
       return { rolledOver: false, planGroupId: authoritativeCurrent.id };
     }
 
-    const profile = await prisma.userProfile.findUnique({
-      where: { userId },
-      select: { shoppingDayGroup: true, shoppingDayOfWeek: true },
-    });
+    const { profile } = await loadPlanningNutritionContext(prisma, userId, 'Profile missing.');
     if (!profile || (profile.shoppingDayOfWeek === null && !profile.shoppingDayGroup)) {
       return { rolledOver: false, planGroupId: null };
     }

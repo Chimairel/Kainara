@@ -4,11 +4,15 @@ import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import api from '@/lib/axios';
 import { getApiErrorMessage } from '@/lib/api-error';
+import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { useAuth } from '@/hooks/useAuth';
 
 interface CheckinModalProps {
   isOpen: boolean;
   onClose: () => void;
+  profileRevision?: number;
+  hasPendingChanges?: boolean;
 }
 
 type CheckinFormData = { weightKg: string; activityLevel: string; goal: string };
@@ -25,8 +29,14 @@ export function buildDirtyCheckinUpdates(initial: CheckinFormData, current: Chec
   return updates;
 }
 
-export default function CheckinModal({ isOpen, onClose }: CheckinModalProps) {
-  const { updateUserSession } = useAuth();
+export default function CheckinModal({
+  isOpen,
+  onClose,
+  profileRevision,
+  hasPendingChanges = false,
+}: CheckinModalProps) {
+  const { refreshSession } = useAuth();
+  const router = useRouter();
   const [step, setStep] = useState<'PROMPT' | 'FORM'>('PROMPT');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -37,6 +47,13 @@ export default function CheckinModal({ isOpen, onClose }: CheckinModalProps) {
     goal: '',
   });
   const [initialFormData, setInitialFormData] = useState(formData);
+
+  useEffect(() => {
+    if (!isOpen) {
+      setStep('PROMPT');
+      setError(null);
+    }
+  }, [isOpen]);
 
   useEffect(() => {
     if (isOpen && step === 'FORM') {
@@ -65,8 +82,16 @@ export default function CheckinModal({ isOpen, onClose }: CheckinModalProps) {
     setIsSubmitting(true);
     setError(null);
     try {
-      await api.post('/user/checkin/submit', { changed: false });
+      await api.post(
+        '/user/checkin/submit',
+        hasPendingChanges
+          ? { changed: true, updates: {}, profileRevision }
+          : { changed: false, ...(profileRevision !== undefined ? { profileRevision } : {}) }
+      );
+      await refreshSession();
+      window.dispatchEvent(new Event('kainara:checkin-updated'));
       onClose();
+      router.push('/profile/nutrition-report');
     } catch (err) {
       setError(getApiErrorMessage(err, 'Failed to submit check-in.'));
     } finally {
@@ -80,16 +105,21 @@ export default function CheckinModal({ isOpen, onClose }: CheckinModalProps) {
     try {
       const updates = buildDirtyCheckinUpdates(initialFormData, formData);
       if (Object.keys(updates).length === 0) {
-        setError('Change at least one value, or choose “Everything is the same.”');
+        setError('Change at least one value, or choose “Still the same.”');
         return;
       }
 
-      await api.post('/user/checkin/submit', { changed: true, updates });
-
-      updateUserSession({ reportAcknowledged: false });
+      await api.post('/user/checkin/submit', {
+        changed: true,
+        updates,
+        ...(profileRevision !== undefined ? { profileRevision } : {}),
+      });
+      await refreshSession();
+      window.dispatchEvent(new Event('kainara:checkin-updated'));
       onClose();
+      router.push('/profile/nutrition-report');
     } catch (err) {
-      setError(getApiErrorMessage(err, 'Failed to update check-in and regenerate plan.'));
+      setError(getApiErrorMessage(err, 'Failed to save your check-in.'));
     } finally {
       setIsSubmitting(false);
     }
@@ -101,18 +131,27 @@ export default function CheckinModal({ isOpen, onClose }: CheckinModalProps) {
         isOpen={isOpen}
         onClose={onClose}
         title="Weekly Check-in Due"
-        description="It's time for your weekly KAINARA check-in! Let's ensure your meal plan remains accurate for your current progress."
+        description="Review your profile this week. Your response creates a new dated nutrition report."
       >
         <div className="flex flex-col gap-6 py-4 text-center">
           <p className="text-sm text-brand-muted">
-            Has anything changed in the last 7 days regarding your weight, activity level, or fitness goal?
+            Are your measurements, activity, goals, preferences, conditions and allergies still correct?
           </p>
 
           {error && <p className="text-status-error-text text-xs bg-status-error-bg/10 p-2 rounded">{error}</p>}
 
+          {hasPendingChanges && (
+            <p className="text-sm text-brand-muted">
+              Your saved details differ from your active planning report. Confirming creates a new report; applying
+              changes may require Lifestyle or Health.
+            </p>
+          )}
+          <Link href="/profile" onClick={onClose} className="text-sm font-semibold text-brand-green">
+            Review all profile details
+          </Link>
           <div className="flex flex-col gap-3">
             <Button variant="primary" onClick={handleSameSubmit} isLoading={isSubmitting}>
-              Everything is the same
+              {hasPendingChanges ? 'Confirm my saved updates' : 'Still the same'}
             </Button>
             <Button variant="secondary" onClick={() => setStep('FORM')} disabled={isSubmitting}>
               Update my profile
@@ -128,7 +167,7 @@ export default function CheckinModal({ isOpen, onClose }: CheckinModalProps) {
       isOpen={isOpen}
       onClose={onClose}
       title="Update Check-in Details"
-      description="Update your current metrics. KAINARA will use them for the next scheduled plan without discarding your active approved week."
+      description="Save your current measurements and goals. Choose whether to apply them when you review the new nutrition report."
     >
       <div className="flex flex-col gap-5 py-2">
         {error && <p className="text-status-error-text text-xs bg-status-error-bg/10 p-2 rounded">{error}</p>}
@@ -181,7 +220,7 @@ export default function CheckinModal({ isOpen, onClose }: CheckinModalProps) {
             Back
           </Button>
           <Button variant="primary" onClick={handleUpdateSubmit} isLoading={isSubmitting}>
-            Save for Next Plan
+            Save and review report
           </Button>
         </div>
       </div>

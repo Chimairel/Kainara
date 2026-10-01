@@ -7,7 +7,8 @@ import {
   Prisma,
 } from '@prisma/client';
 import prisma from '@/lib/prisma';
-import { loadUserNutritionContext } from '@/domain/user-nutrition-context';
+import { lockUserProfile } from './profile-revision.service';
+import { loadPlanningNutritionContext } from '@/domain/user-nutrition-context';
 import {
   getMealSlotCalorieDeviation,
   isMealWithinSlotCalorieRange,
@@ -54,7 +55,11 @@ export class CertifiedSlotFallbackService {
     });
     if (pinnedSelection) return { replaced: false, replacementPlanId: null };
 
-    const context = await loadUserNutritionContext(prisma, target.userId, 'User profile is unavailable for fallback.');
+    const context = await loadPlanningNutritionContext(
+      prisma,
+      target.userId,
+      'User profile is unavailable for fallback.'
+    );
     const usedIds = new Set(
       (
         await prisma.mealPlan.findMany({
@@ -131,6 +136,13 @@ export class CertifiedSlotFallbackService {
     );
 
     return prisma.$transaction(async (tx) => {
+      await lockUserProfile(tx, target.userId);
+      const currentContext = await loadPlanningNutritionContext(tx, target.userId, 'Planning profile missing.');
+      if (
+        currentContext.profile.revision !== context.profile.revision ||
+        currentContext.profile.safetyRevision !== context.profile.safetyRevision
+      )
+        throw new Error('Planning context changed during fallback selection.');
       const latestTarget = await tx.mealPlan.findUniqueOrThrow({ where: { id: target.id } });
       if (input.expectedStatus && latestTarget.status !== input.expectedStatus) {
         return { replaced: false, replacementPlanId: null };
@@ -151,29 +163,36 @@ export class CertifiedSlotFallbackService {
         include: certifiedLibraryMealInclude,
       });
       const currentProfile = {
-          ...context.profile,
-          userId: target.userId,
-          safetyEntries: context.user.safetyProfileEntries,
+        ...context.profile,
+        userId: target.userId,
+        safetyEntries: context.user.safetyProfileEntries,
       };
       const certified = isCertifiedLibraryMealCompatible(latest, context.conditions, context.allergens, currentProfile);
-      const profileApproved = !certified && isProfileApprovedLibraryMealCompatible(
-        latest, context.conditions, context.allergens, currentProfile
-      );
+      const profileApproved =
+        !certified &&
+        isProfileApprovedLibraryMealCompatible(latest, context.conditions, context.allergens, currentProfile);
       if (!certified && !profileApproved) {
         throw new Error('Certified fallback evidence changed during selection.');
       }
-      const profileScope = profileApproved ? mealApprovalSafetyScope({
-        conditions: context.conditions,
-        allergens: context.allergens,
-        otherConditions: context.profile.otherConditions,
-        otherAllergies: context.profile.otherAllergies,
-        safetyEntries: context.user.safetyProfileEntries,
-      }) : null;
-      const approval = profileApproved ? latest.profileApprovals.find((item) =>
-        item.safetyScopeKey === profileScope?.key && !item.flaggedAt && item.reviewDueAt > new Date() &&
-        item.recipeSignature === latest.recipeSignature &&
-        item.evidenceRevision === latest.safetyEvidenceRevision
-      ) : null;
+      const profileScope = profileApproved
+        ? mealApprovalSafetyScope({
+            conditions: context.conditions,
+            allergens: context.allergens,
+            otherConditions: context.profile.otherConditions,
+            otherAllergies: context.profile.otherAllergies,
+            safetyEntries: context.user.safetyProfileEntries,
+          })
+        : null;
+      const approval = profileApproved
+        ? latest.profileApprovals.find(
+            (item) =>
+              item.safetyScopeKey === profileScope?.key &&
+              !item.flaggedAt &&
+              item.reviewDueAt > new Date() &&
+              item.recipeSignature === latest.recipeSignature &&
+              item.evidenceRevision === latest.safetyEvidenceRevision
+          )
+        : null;
       if (profileApproved && !approval) throw new Error('Approval changed during fallback selection.');
       const ingredients = latest.ingredients.map((ingredient) => ({
         ingredientName: ingredient.ingredientName,

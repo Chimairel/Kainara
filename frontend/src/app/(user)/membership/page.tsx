@@ -87,9 +87,9 @@ export default function MembershipPage() {
 
   const labels = {
     FREE: 'Free account',
-    TRIAL_PENDING: 'Pro waiting for your first usable plan',
-    TRIAL: 'Pro Subscription',
-    MEMBER: 'Active membership',
+    TRIAL_PENDING: 'Health trial waiting for your first usable plan',
+    TRIAL: 'Health trial',
+    MEMBER: data?.enabled && data.tier === 'LIFESTYLE' ? 'Lifestyle membership' : 'Health membership',
   };
 
   return (
@@ -107,8 +107,8 @@ export default function MembershipPage() {
             Membership is being prepared. Your current access has not changed.
           </h2>
           <p className="text-xs leading-relaxed text-brand-muted max-w-2xl">
-            All platform features, meal generation, and clinical safety gates remain open for your account while
-            membership tiers and payment workflows are finalized.
+            Membership restrictions are currently disabled. Normal clinical clearance and safety requirements still
+            apply. Purchases remain unavailable.
           </p>
         </section>
       )}
@@ -182,7 +182,7 @@ export default function MembershipPage() {
                         : data.level === 'TRIAL_PENDING'
                           ? 'Pending kickoff'
                           : data.level === 'TRIAL'
-                            ? 'Pro active'
+                            ? 'Health trial active'
                             : 'Active subscriber'}
                     </span>
                   </span>
@@ -190,11 +190,11 @@ export default function MembershipPage() {
 
                 <p className="mt-1 text-xs text-brand-muted">
                   {data.level === 'TRIAL_PENDING'
-                    ? 'Your Pro access starts when your first cleared current plan is available. A starter plan counts; waiting for review does not.'
+                    ? 'Your Health trial starts when your first cleared current plan is available. A starter plan counts; waiting for review does not.'
                     : data.level === 'MEMBER' && data.paidUntil
-                      ? `Membership available until ${date(data.paidUntil)}. No automatic renewal.`
+                      ? `Membership available until ${date(data.paidUntil)}.${data.tier === 'HEALTH' && data.healthUntil ? ` Health benefits until ${date(data.healthUntil)}.` : ''} No automatic renewal.`
                       : data.trialEndsAt
-                        ? `Pro access ${data.level === 'FREE' ? 'ended' : 'ends'} ${date(data.trialEndsAt)}. Moving to a full weekly plan does not restart it.`
+                        ? `Health trial ${data.level === 'FREE' ? 'ended' : 'ends'} ${date(data.trialEndsAt)}. Moving to a full weekly plan does not restart it.`
                         : ''}
                 </p>
 
@@ -320,9 +320,7 @@ export default function MembershipPage() {
                       <span className="font-display text-2xl font-bold text-brand-text">
                         {data.usage.REPLAN.remaining}
                       </span>
-                      <span className="text-xs text-brand-muted font-medium">
-                        / {data.usage.REPLAN.cap} remaining
-                      </span>
+                      <span className="text-xs text-brand-muted font-medium">/ {data.usage.REPLAN.cap} remaining</span>
                     </div>
                   </div>
 
@@ -451,7 +449,12 @@ export default function MembershipPage() {
         aria-labelledby="tab-plans"
         className={activeTab === 'plans' ? 'space-y-6' : 'hidden'}
       >
-        <Pricing currentLevel={currentLevel} isEnhanced={isEnhanced} limits={limits} />
+        <Pricing
+          currentTier={data?.enabled ? (data.tier ?? (data.enhanced ? 'HEALTH' : 'FREE')) : 'FREE'}
+          currentLevel={currentLevel}
+          isEnhanced={isEnhanced}
+          limits={limits}
+        />
       </div>
     </div>
   );

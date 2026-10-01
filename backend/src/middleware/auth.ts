@@ -18,7 +18,7 @@ const accountSelect = {
 const userReadinessSelect = {
   ...accountSelect,
   nutritionReport: { select: { acknowledgedAt: true, isStale: true, profileRevision: true } },
-  userProfile: { select: { revision: true } },
+  userProfile: { select: { revision: true, planningReportVersion: true } },
 } as const;
 
 /**

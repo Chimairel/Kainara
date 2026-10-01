@@ -5,6 +5,7 @@ import {
   isMealWithinSlotCalorieRange,
 } from '@/domain/meal-calorie-allocation.policy';
 import prisma from '@/lib/prisma';
+import { loadPlanningNutritionContext } from '@/domain/user-nutrition-context';
 import { Prisma, MealPlanStatus, AIConfidenceFlag, MealIngredientDataSource, NotificationType } from '@prisma/client';
 import { lockUserProfile } from './profile-revision.service';
 import { getReviewClaimCutoff } from '@/domain/nutritionist-review.policy';
@@ -36,7 +37,7 @@ export class NutritionistReplacementService {
       );
     }
 
-    const profile = plan.user.userProfile;
+    const { profile } = await loadPlanningNutritionContext(prisma, plan.userId, 'Planning profile missing.');
     if (!isPrimaryMealType(plan.mealType)) throw new Error('Replacement requires a primary meal slot.');
     const slotRange = getMealSlotCalorieRange(profile?.dailyCalorieTarget ?? 2000, plan.mealType);
     const safetyRestrictions = adaptUserSafetyRestrictions({
@@ -135,7 +136,12 @@ export class NutritionistReplacementService {
     if (!reviewer) throw new Error('Nutritionist profile not found.');
 
     const { reason, note, candidate } = payload;
-    assertMealSlotCalories(candidate.calories, plan.user.userProfile?.dailyCalorieTarget ?? 2000, plan.mealType);
+    const { profile: planningProfile } = await loadPlanningNutritionContext(
+      prisma,
+      plan.userId,
+      'Planning profile missing.'
+    );
+    assertMealSlotCalories(candidate.calories, planningProfile.dailyCalorieTarget ?? 2000, plan.mealType);
     // A newly generated recipe must enter meal-only verification before a case decision.
     // The prior claim and its approvals cannot transfer to this replacement.
     let replacementPlanId = '';
@@ -143,6 +149,7 @@ export class NutritionistReplacementService {
     await prisma.$transaction(
       async (tx) => {
         await lockUserProfile(tx, plan.userId);
+        await loadPlanningNutritionContext(tx, plan.userId, 'Planning profile missing.');
         const currentProfile = await tx.userProfile.findUniqueOrThrow({ where: { userId: plan.userId } });
         if ('user' in plan && currentProfile.revision !== plan.user.userProfile?.revision)
           throw new Error('User information changed. Reopen this review.');
@@ -244,7 +251,6 @@ export class NutritionistReplacementService {
             metadata: { replacedMealId: mealPlanId, policyVersion: MEAL_PLAN_SAFETY_POLICY_VERSION },
           },
         });
-
       },
       { isolationLevel: Prisma.TransactionIsolationLevel.Serializable }
     );

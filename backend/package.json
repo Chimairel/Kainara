@@ -97,7 +97,9 @@
     "enns:locality:apply": "tsx scripts/import-enns-food-group-locality.ts --apply",
     "test": "tsc --project tests/tsconfig.json && tsx --test tests/*.test.ts",
     "lint": "eslint src tests scripts",
-    "lint:fix": "eslint src tests scripts --fix"
+    "lint:fix": "eslint src tests scripts --fix",
+    "test:acceptance:report-membership": "tsx scripts/report-membership-acceptance.ts",
+    "check:membership-scripts": "tsc --project tsconfig.membership-scripts.json"
   },
   "dependencies": {
     "@asteasolutions/zod-to-openapi": "^9.1.0",

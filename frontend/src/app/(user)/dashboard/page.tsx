@@ -12,7 +12,6 @@ import DashboardSkeleton from '@/features/dashboard/DashboardSkeleton';
 import PortalPageHeader from '@/components/shared/PortalPageHeader';
 import { showPendingReviewNoticeOnce, showStarterPlanNoticeOnce } from '@/features/meals/plan-status-notice';
 import StateNotice from '@/components/shared/StateNotice';
-import CheckinModal from '@/components/user/CheckinModal';
 import MealPlanGenerationProgress from '@/components/user/MealPlanGenerationProgress';
 import { MealPlan, MealType } from '@/types';
 import { getApiErrorMessage } from '@/lib/api-error';
@@ -48,12 +47,6 @@ interface CurrentPlanSnapshot {
   upcomingCycle?: CycleMetaSnapshot;
 }
 
-interface CheckinSnapshot {
-  isDue: boolean;
-  streak: number;
-  lastCheckinAt: string | null;
-}
-
 const currentPlanResource = 'user-meals-current';
 
 export default function DashboardPage() {
@@ -63,7 +56,6 @@ export default function DashboardPage() {
   const cachedProfile = readSessionResource<UserProfileData>(ownerId, 'user-profile');
   const cachedOutsideMeals = readSessionResource<OutsideMealLog[]>(ownerId, 'dashboard-outside-meals');
   const cachedWater = readSessionResource<number>(ownerId, 'dashboard-water');
-  const cachedCheckin = readSessionResource<CheckinSnapshot>(ownerId, 'dashboard-checkin');
   const cachedEligibility = cachedClinicalProfileStatus(ownerId, cachedProfile);
   const profileSafetyRevision = cachedProfile?.userProfile?.safetyRevision;
   const router = useRouter();
@@ -180,7 +172,6 @@ export default function DashboardPage() {
   const outsideImageFile = useRef<File | null>(null);
 
   // Check-in status
-  const [isCheckinDue, setIsCheckinDue] = useState(Boolean(cachedCheckin?.isDue));
 
   // User Profile details
   const [userProfile, setUserProfile] = useState<UserProfileData['userProfile']>(cachedProfile?.userProfile ?? null);
@@ -351,22 +342,9 @@ export default function DashboardPage() {
     fetchCurrentPlan,
   ]);
 
-  const checkCheckinStatus = useCallback(async () => {
-    try {
-      const res = await api.get('/user/checkin/status');
-      if (res.data?.success) {
-        setIsCheckinDue(Boolean(res.data.data?.isDue));
-        writeSessionResource(ownerId, 'dashboard-checkin', res.data.data);
-      }
-    } catch (err) {
-      console.warn('[Dashboard] Failed to fetch checkin status', err);
-    }
-  }, [ownerId]);
-
   useEffect(() => {
     if (user) {
       fetchCurrentPlan();
-      checkCheckinStatus();
       fetchProfile();
       fetchOutsideMealLogs();
 
@@ -395,7 +373,7 @@ export default function DashboardPage() {
         document.removeEventListener('visibilitychange', refreshOnVisibility);
       };
     }
-  }, [user, fetchCurrentPlan, checkCheckinStatus, fetchProfile, fetchOutsideMealLogs]);
+  }, [user, fetchCurrentPlan, fetchProfile, fetchOutsideMealLogs]);
 
   // Handles scheduled meal checkoff toggles
   const handleMealStatusToggle = async (mealPlanId: string, newStatus: 'DONE' | 'SKIPPED' | 'PENDING') => {
@@ -833,8 +811,6 @@ export default function DashboardPage() {
         warning={warningData}
         savedSafety={savedSafety}
       />
-
-      <CheckinModal isOpen={isCheckinDue} onClose={() => setIsCheckinDue(false)} />
     </div>
   );
 }

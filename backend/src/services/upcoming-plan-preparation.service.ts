@@ -102,7 +102,10 @@ export class UpcomingPlanPreparationService {
           id: afterId ? { gt: afterId } : undefined,
           role: 'USER',
           onboardingDone: true,
-          nutritionReport: { acknowledgedAt: { not: null }, isStale: false },
+          OR: [
+            { userProfile: { planningReportVersion: { not: null } } },
+            { nutritionReport: { acknowledgedAt: { not: null }, isStale: false } },
+          ],
         },
         orderBy: { id: 'asc' },
         select: { id: true },

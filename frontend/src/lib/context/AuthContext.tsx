@@ -74,13 +74,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           onboardingStatus,
         } = profile;
 
-        const isReportAcknowledged = Boolean(
-          nutritionReport?.acknowledgedAt &&
-          !nutritionReport?.isStale &&
-          (nutritionReport?.profileRevision === undefined ||
-            userProfile?.revision === undefined ||
-            nutritionReport?.profileRevision === userProfile?.revision)
-        );
+        const isReportAcknowledged =
+          profile.reportAcknowledged ??
+          Boolean(
+            nutritionReport?.acknowledgedAt &&
+            !nutritionReport?.isStale &&
+            (nutritionReport?.profileRevision === undefined ||
+              userProfile?.revision === undefined ||
+              nutritionReport?.profileRevision === userProfile?.revision)
+          );
 
         const refreshedUser: UserSession = {
           userId: id,

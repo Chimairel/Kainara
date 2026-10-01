@@ -15,12 +15,14 @@ import { NutritionReport } from '@/types';
 import { AlertTriangle } from 'lucide-react';
 import { getApiErrorMessage } from '@/lib/api-error';
 import { hasSameRestrictionContext, normalizeRestrictionContext } from '@/lib/restriction-context';
+import Modal from '@/components/ui/Modal';
+import Link from 'next/link';
 import { toast } from '@/components/ui/Sonner';
 import type { PlanningReadiness } from '@/types/planning-readiness';
 
 export default function NutritionReportPage() {
   const router = useRouter();
-  const { user, refreshSession, updateUserSession } = useAuth();
+  const { user, refreshSession } = useAuth();
   const userId = user?.userId;
   const { isDownloadingPdf, startPdfDownload } = usePdfDownload(userId);
   const [history, setHistory] = useState<
@@ -34,6 +36,7 @@ export default function NutritionReportPage() {
     conditions: string[];
     allergies: string[];
   } | null>(null);
+  const [requiredTier, setRequiredTier] = useState<'Lifestyle' | 'Health' | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isAcknowledging, setIsAcknowledging] = useState(false);
@@ -200,10 +203,15 @@ export default function NutritionReportPage() {
               : '/profile'
       );
     } catch (err) {
+      const failure = (err as { response?: { data?: { errorCode?: string } } }).response?.data?.errorCode;
+      if (failure === 'MEMBERSHIP_REQUIRED' || failure === 'HEALTH_MEMBERSHIP_REQUIRED') {
+        setRequiredTier(failure === 'HEALTH_MEMBERSHIP_REQUIRED' ? 'Health' : 'Lifestyle');
+        return;
+      }
       if ((err as { response?: { status?: number } }).response?.status === 409) {
         setReport((current) => (current ? { ...current, isStale: true } : current));
       }
-      setError(getApiErrorMessage(err, 'Failed to acknowledge the report. Please try again.'));
+      setError(getApiErrorMessage(err, 'Failed to use this report for meal planning. Please try again.'));
     } finally {
       setIsAcknowledging(false);
     }
@@ -218,7 +226,7 @@ export default function NutritionReportPage() {
         throw new Error('The updated report was not returned.');
       }
       setReport(response.data.data);
-      updateUserSession({ reportAcknowledged: false });
+      await refreshSession();
       const profileResponse = await api.get('/user/profile');
       if (profileResponse.data?.success) applyProfile(profileResponse.data.data);
       setHistory((await api.get('/user/nutrition-report/history')).data.data || []);
@@ -226,6 +234,20 @@ export default function NutritionReportPage() {
       setError(getApiErrorMessage(err, 'Unable to regenerate your report. Please try again.'));
     } finally {
       setIsRegenerating(false);
+    }
+  };
+
+  const handleKeepPrevious = async () => {
+    setIsAcknowledging(true);
+    try {
+      await api.post('/user/nutrition-report/keep-previous', {});
+      await refreshSession();
+      setRequiredTier(null);
+      router.push('/dashboard');
+    } catch (err) {
+      setError(getApiErrorMessage(err, 'Your previous report is not eligible for current planning.'));
+    } finally {
+      setIsAcknowledging(false);
     }
   };
 
@@ -294,20 +316,71 @@ export default function NutritionReportPage() {
 
   if (report.reportPolicyVersion && report.referenceItems) {
     return (
-      <NutritionGuidanceDocument
-        report={report}
-        name={profileData?.name || user?.name || 'User'}
-        goal={profileData?.goal || 'MAINTAIN'}
-        dailyCalorieTarget={profileData?.dailyCalorieTarget || 0}
-        conditions={profileData?.conditions || []}
-        foodRestrictions={profileData?.allergies || []}
-        history={history}
-        error={error}
-        isAcknowledging={isAcknowledging}
-        onAcknowledge={handleAcknowledge}
-        onDownload={handleDownloadPDF}
-        isDownloadingPdf={isDownloadingPdf}
-      />
+      <>
+        <div className="mx-auto max-w-3xl px-4 pt-4 text-sm text-brand-muted">
+          {report.confirmationKind === 'UNCHANGED_CHECKIN' && (
+            <p>
+              Profile confirmed unchanged on{' '}
+              {new Date(report.generatedAt).toLocaleDateString('en-PH', { timeZone: 'Asia/Manila' })}. This dated report
+              does not represent a new nutritionist review.
+            </p>
+          )}
+          {report.planningContext?.activeVersion && (
+            <p className="mt-2">
+              Current planning report: version {report.planningContext.activeVersion}, dated{' '}
+              {new Date(report.planningContext.activeGeneratedAt!).toLocaleDateString('en-PH', {
+                timeZone: 'Asia/Manila',
+              })}
+              .{report.planningContext.pendingChanges && ' Your saved updates have not been applied to meal planning.'}
+              {report.planningContext.safetyChanged &&
+                ' Your health context changed; affected recommendations require revalidation.'}
+            </p>
+          )}
+        </div>
+        <Modal
+          isOpen={Boolean(requiredTier)}
+          onClose={() => setRequiredTier(null)}
+          title={`${requiredTier} membership needed`}
+          description={`Your profile updates are saved. ${requiredTier} applies these changes to your meal planning. Purchases are not available yet.`}
+        >
+          <div className="flex flex-col gap-3 py-3">
+            <Link
+              href="/membership?tab=plans"
+              className="rounded-xl bg-brand-green px-4 py-3 text-center font-semibold text-white"
+            >
+              View {requiredTier} benefits
+            </Link>
+            {report.planningContext?.activeVersion && !report.planningContext.safetyChanged ? (
+              <Button onClick={handleKeepPrevious} isLoading={isAcknowledging} variant="secondary">
+                Keep my previous planning report
+              </Button>
+            ) : (
+              <Link href="/export" className="text-center font-semibold text-brand-green">
+                Continue to my saved records
+              </Link>
+            )}
+            {error && (
+              <p role="alert" className="text-status-error-text">
+                {error}
+              </p>
+            )}
+          </div>
+        </Modal>
+        <NutritionGuidanceDocument
+          report={report}
+          name={profileData?.name || user?.name || 'User'}
+          goal={profileData?.goal || 'MAINTAIN'}
+          dailyCalorieTarget={profileData?.dailyCalorieTarget || 0}
+          conditions={profileData?.conditions || []}
+          foodRestrictions={profileData?.allergies || []}
+          history={history}
+          error={error}
+          isAcknowledging={isAcknowledging}
+          onAcknowledge={handleAcknowledge}
+          onDownload={handleDownloadPDF}
+          isDownloadingPdf={isDownloadingPdf}
+        />
+      </>
     );
   }
 

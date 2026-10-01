@@ -1,4 +1,5 @@
 import prisma from '@/lib/prisma';
+import { PLANNING_PROFILE_FIELDS, reportProfile, planningInputsMatch } from '@/domain/planning-report.policy';
 import { AIConfidenceFlag, ClinicalEvidenceArea, MealPlanStatus } from '@prisma/client';
 import { approveMealPlan } from './nutritionist-approval.service';
 
@@ -403,6 +404,7 @@ export class NutritionistReviewService {
         ingredients: {
           include: { foodItem: { select: { id: true, name: true, source: true, sourceReferenceUrl: true } } },
         },
+        cycle: { include: { snapshot: true } },
         user: {
           include: {
             userProfile: true,
@@ -425,13 +427,32 @@ export class NutritionistReviewService {
 
     const warnings: { severity: 'CRITICAL' | 'IMPORTANT' | 'NOTICE'; message: string }[] = [];
     const user = updatedMealPlan.user;
-    const userProfile = user.userProfile;
+    const declaredProfile = user.userProfile;
+    const reportVersion =
+      updatedMealPlan.cycle.snapshot?.nutritionReportVersion ?? declaredProfile?.planningReportVersion;
+    const planningReport = reportVersion
+      ? await prisma.nutritionReportVersion.findFirst({ where: { userId: user.id, version: reportVersion } })
+      : null;
+    const saved = reportProfile(planningReport);
+    const userProfile =
+      declaredProfile && saved
+        ? ({
+            ...declaredProfile,
+            ...Object.fromEntries(PLANNING_PROFILE_FIELDS.map((field) => [field, saved[field] ?? null])),
+          } as typeof declaredProfile)
+        : declaredProfile;
+    if (declaredProfile && planningReport && !planningInputsMatch(declaredProfile, planningReport))
+      warnings.push({
+        severity: 'IMPORTANT',
+        message:
+          'Saved profile updates differ from this planning report. Latest health declarations remain listed below; do not treat older guidance as current health clearance.',
+      });
     const safetyRestrictions = adaptUserSafetyRestrictions({
       safetyEntries: user.safetyProfileEntries,
       healthConditions: user.healthConditions.map((item) => item.condition),
       allergies: user.allergies.map((item) => item.allergen),
-      otherConditions: userProfile?.otherConditions,
-      otherAllergies: userProfile?.otherAllergies,
+      otherConditions: declaredProfile?.otherConditions,
+      otherAllergies: declaredProfile?.otherAllergies,
     });
     const conditions = safetyRestrictions.conditions;
     const allergies = safetyRestrictions.allergies;
@@ -574,6 +595,17 @@ export class NutritionistReviewService {
       },
       user: {
         name: user.name,
+        planningReportVersion: planningReport?.version ?? null,
+        planningReportGeneratedAt: planningReport?.generatedAt ?? null,
+        latestDeclaredProfile: declaredProfile
+          ? {
+              revision: declaredProfile.revision,
+              weightKg: declaredProfile.weightKg,
+              goal: declaredProfile.goal,
+              activityLevel: declaredProfile.activityLevel,
+              dailyCalorieTarget: declaredProfile.dailyCalorieTarget,
+            }
+          : null,
         age: userAge,
         sex: userProfile?.biologicalSex || 'MALE',
         goal: userProfile?.goal || 'MAINTAIN',

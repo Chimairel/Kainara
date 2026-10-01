@@ -74,11 +74,9 @@ async function main() {
     assert.equal((await membership.state(free)).level, 'FREE');
     await membership.assertNewPlan(free, getScheduledMealDate(day, 7));
     await assert.rejects(membership.assertEnhanced(free), { errorCode: 'MEMBERSHIP_REQUIRED' });
-    // Correcting a body measurement remains possible; optional goals stay paid.
+    // Saving body and optional goals remains available; report activation now gates applying them.
     await UserProfileService.updateUserProfile(free, { heightCm: 171 });
-    await assert.rejects(UserProfileService.updateUserProfile(free, { goal: 'LOSE_WEIGHT' }), {
-      errorCode: 'MEMBERSHIP_REQUIRED',
-    });
+    await UserProfileService.updateUserProfile(free, { goal: 'LOSE_WEIGHT' });
 
     const reserve = (key: string, feature: 'AI_ESTIMATE' | 'OUTSIDE_REVIEW' = 'AI_ESTIMATE', owner = free) =>
       prisma.$transaction((tx) => membership.reserve(owner, feature, key, key, tx), { timeout: 15_000 });
@@ -192,6 +190,22 @@ async function main() {
         status: 'REVALIDATION_REQUIRED',
         profileAdaptationState: 'SAFETY_REVALIDATION_REQUIRED',
         pendingProfileChangeKinds: ['SAFETY'],
+      },
+    });
+    // This is follow-up on an already admitted case episode, not a new condition on a general plan.
+    const admittedWeek = membershipWeek(day);
+    await prisma.membershipUsage.create({
+      data: {
+        userId: caseUser,
+        createdAt: now,
+        feature: 'PLAN_REVIEW',
+        requestKey: 'previous-case',
+        payloadHash: '0'.repeat(64),
+        windowStart: admittedWeek.start,
+        windowEnd: admittedWeek.end,
+        reservedUntil: new Date(now.getTime() + 60000),
+        completedAt: now,
+        resultEntityId: cycle.id,
       },
     });
     await membership.assertNewPlan(caseUser, day);

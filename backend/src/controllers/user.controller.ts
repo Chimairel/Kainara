@@ -414,9 +414,10 @@ export class UserController {
       });
     } catch (error: any) {
       console.error('[UserController] acknowledgeReport error:', error);
-      return res.status(409).json({
+      return res.status(error instanceof AppError ? error.statusCode : 409).json({
         success: false,
-        error: sanitizeErrorMessage(error, 'The report changed. Refresh before acknowledging it.'),
+        errorCode: error instanceof AppError ? error.errorCode : undefined,
+        error: sanitizeErrorMessage(error, 'The report changed. Refresh before using it for meal planning.'),
       });
     }
   }

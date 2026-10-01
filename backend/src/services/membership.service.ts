@@ -27,24 +27,41 @@ export class MembershipService {
     const account = await client.membershipAccount.upsert({ where: { userId }, create: { userId }, update: {} });
     const grants = await client.membershipGrant.findMany({ where: { userId, verifiedAt: { lte: at } } });
     // Reuse the historical server-authoritative entitlement resolver, not browser or checkout-return flags.
-    const entitlement = resolveBillingEntitlement({
-      at,
-      grants: grants
-        .filter((grant) => grant.source === 'PAID_INVOICE' || grant.source === 'ADMIN_ADJUSTMENT')
-        .map((grant) => ({
-          id: grant.id,
-          source: grant.source === 'PAID_INVOICE' ? ('PAID_INVOICE' as const) : ('ADMIN_ADJUSTMENT' as const),
-          invoiceStatus: grant.source === 'PAID_INVOICE' ? ('PAID' as const) : null,
-          effectiveFrom: grant.effectiveFrom,
-          effectiveUntil: grant.effectiveUntil,
-          revokedAt: grant.revokedAt,
-        })),
-    });
+    const resolve = (tier: 'LIFESTYLE' | 'HEALTH') =>
+      resolveBillingEntitlement({
+        at,
+        grants: grants
+          .filter(
+            (grant) =>
+              (grant.tier ?? 'HEALTH') === tier &&
+              (grant.source === 'PAID_INVOICE' || grant.source === 'ADMIN_ADJUSTMENT')
+          )
+          .map((grant) => ({
+            id: grant.id,
+            source: grant.source === 'PAID_INVOICE' ? ('PAID_INVOICE' as const) : ('ADMIN_ADJUSTMENT' as const),
+            invoiceStatus: grant.source === 'PAID_INVOICE' ? ('PAID' as const) : null,
+            effectiveFrom: grant.effectiveFrom,
+            effectiveUntil: grant.effectiveUntil,
+            revokedAt: grant.revokedAt,
+          })),
+      });
+    const health = resolve('HEALTH');
+    const lifestyle = resolve('LIFESTYLE');
+    const paidUntil = [health.effectiveUntil, lifestyle.effectiveUntil].reduce<Date | null>(
+      (latest, end) => (end && (!latest || end > latest) ? end : latest),
+      null
+    );
     const current = resolveMembershipLevel({
       at,
       trialStartedAt: account.trialStartedAt,
-      paidUntil: entitlement.effectiveUntil,
+      paidUntil,
     });
+    const healthUntil = [
+      health.effectiveUntil,
+      current.trialEndsAt && current.trialEndsAt > at ? current.trialEndsAt : null,
+    ].reduce<Date | null>((latest, end) => (end && (!latest || end > latest) ? end : latest), null);
+    const healthAccess = account.trialStartedAt === null || Boolean(healthUntil);
+    const tier = healthAccess ? 'HEALTH' : current.enhanced ? 'LIFESTYLE' : 'FREE';
     const restrictions = adaptUserSafetyRestrictions({
       healthConditions: user.healthConditions.map((row) => row.condition),
       allergies: user.allergies.map((row) => row.allergen),
@@ -58,7 +75,16 @@ export class MembershipService {
       restrictions.allergies.some((value) => value !== 'NONE') ||
       restrictions.customConditions.length > 0 ||
       restrictions.customFoodRestrictions.length > 0;
-    return { ...current, account, paidUntil: entitlement.effectiveUntil, requiresCaseReview, user };
+    return {
+      ...current,
+      tier,
+      healthAccess,
+      healthUntil,
+      account,
+      paidUntil,
+      requiresCaseReview,
+      user,
+    };
   }
 
   /** First observed actionable current plan starts a single durable trial. Never start on pending/future rows. */
@@ -82,9 +108,19 @@ export class MembershipService {
     const state = await this.state(userId, new Date(), client);
     if (!state.enhanced)
       throw new AppError(
-        'This feature requires membership. Your saved records and safety updates remain available.',
+        'This feature requires Lifestyle or Health membership. Your saved records and profile corrections remain available.',
         403,
         'MEMBERSHIP_REQUIRED'
+      );
+  }
+
+  static async assertHealth(userId: string, client: Client = prisma) {
+    if (!membershipEnabled()) return;
+    if (!(await this.state(userId, new Date(), client)).healthAccess)
+      throw new AppError(
+        'Health membership is required for updated case planning and nutritionist review.',
+        403,
+        'HEALTH_MEMBERSHIP_REQUIRED'
       );
   }
 
@@ -95,10 +131,10 @@ export class MembershipService {
     if (!state.requiresCaseReview) return;
     // A safety correction may repair the existing active cycle after expiry, never open another week.
     if (await this.isSafetyRepair(userId, startsAt, client, at)) return;
-    const accessEnd = state.level === 'MEMBER' ? state.paidUntil : state.trialEndsAt;
-    if (!state.enhanced || (accessEnd && getManilaMidnight(getManilaDateKey(startsAt)) >= accessEnd))
+    const accessEnd = state.healthUntil;
+    if (!state.healthAccess || (accessEnd && getManilaMidnight(getManilaDateKey(startsAt)) >= accessEnd))
       throw new AppError(
-        'Membership is required for a new plan with case review. Existing eligible active meals remain available.',
+        'Health membership is required for a new plan with case review. Existing eligible active meals remain available.',
         403,
         'CASE_MEMBERSHIP_REQUIRED'
       );
@@ -112,9 +148,15 @@ export class MembershipService {
         endDate: { gte: getManilaMidnight(getManilaDateKey(at)) },
         status: { notIn: ['SUPERSEDED', 'COMPLETED'] },
       },
-      select: { profileAdaptationState: true, pendingProfileChangeKinds: true },
+      select: { id: true, profileAdaptationState: true, pendingProfileChangeKinds: true },
     });
+    const admitted = cycle
+      ? await client.membershipUsage.findFirst({
+          where: { userId, feature: 'PLAN_REVIEW', resultEntityId: cycle.id, completedAt: { not: null } },
+        })
+      : null;
     return Boolean(
+      admitted &&
       cycle &&
       (cycle.profileAdaptationState === 'SAFETY_REVALIDATION_REQUIRED' ||
         cycle.pendingProfileChangeKinds.includes('SAFETY'))
@@ -184,7 +226,7 @@ export class MembershipService {
       await client.membershipUsage.delete({ where: { id: prior.id } });
     }
     const window = membershipWeek(targetWeekAt ?? at);
-    const cap = membershipFeatureCap(feature, state.enhanced);
+    const cap = membershipFeatureCap(feature, state.enhanced, membershipLimits(), state.healthAccess);
     const used = await client.membershipUsage.count({
       where: {
         userId,
@@ -196,7 +238,7 @@ export class MembershipService {
     if (used >= cap)
       throw new AppError(
         cap === 0
-          ? 'This feature requires membership. Follow-up on an existing review remains available.'
+          ? `${feature === 'REPLAN' ? 'Lifestyle or Health' : 'Health'} membership is required. Follow-up on an existing review remains available.`
           : `Your weekly ${feature.toLowerCase().replace(/_/g, ' ')} allowance is used. It resets ${window.end.toISOString()}.`,
         cap === 0 ? 403 : 429,
         cap === 0 ? 'MEMBERSHIP_REQUIRED' : 'MEMBERSHIP_USAGE_LIMIT'
@@ -278,7 +320,7 @@ export class MembershipService {
     const limits = membershipLimits();
     const usage = Object.fromEntries(
       Object.values(MembershipFeature).map((feature) => {
-        const cap = membershipFeatureCap(feature, state.enhanced, limits);
+        const cap = membershipFeatureCap(feature, state.enhanced, limits, state.healthAccess);
         const used = rows.find((row) => row.feature === feature)?._count._all ?? 0;
         return [feature, { used, cap, remaining: Math.max(0, cap - used) }];
       })
@@ -305,6 +347,9 @@ export class MembershipService {
       serverTime: at.toISOString(),
       level: state.level,
       enhanced: state.enhanced,
+      tier: state.tier,
+      healthAccess: state.healthAccess,
+      healthUntil: state.healthUntil?.toISOString() ?? null,
       requiresCaseReview: state.requiresCaseReview,
       trialStartedAt: state.account.trialStartedAt?.toISOString() ?? null,
       trialEndsAt: state.trialEndsAt?.toISOString() ?? null,

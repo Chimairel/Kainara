@@ -5,6 +5,7 @@ import { readSessionResource, refreshSessionResource } from '@/lib/session-resou
 export const userProfileResource = 'user-profile';
 
 export type SessionProfileData = UserProfileData & {
+  reportAcknowledged?: boolean;
   image?: string;
   googleImage?: string;
   authMethods?: { password: boolean; google: boolean };

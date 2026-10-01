@@ -252,6 +252,15 @@ router.post(
   UserController.acknowledgeReport
 );
 
+router.post(
+  '/nutrition-report/keep-previous',
+  requireReportEligible,
+  validateZodBody(emptyBodySchema),
+  asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+    res.json({ success: true, data: await NutritionReportService.keepPreviousReport(req.user!.userId) });
+  })
+);
+
 /**
  * Profile and Account Settings
  * Users must be able to correct the profile that makes a report stale.
@@ -499,8 +508,7 @@ router.post(
   validateZodBody(weeklyCheckinSchema),
   async (req: AuthenticatedRequest, res: Response) => {
     try {
-      const { changed, updates } = req.body;
-      const result = await CheckinService.submitCheckin(req.user!.userId, { changed, updates });
+      const result = await CheckinService.submitCheckin(req.user!.userId, req.body);
       return res.json({ success: true, data: result });
     } catch (error: any) {
       return res.status(error instanceof AppError ? error.statusCode : 500).json({

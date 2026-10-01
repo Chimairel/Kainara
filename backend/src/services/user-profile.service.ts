@@ -1,6 +1,7 @@
+import { loadPlanningNutritionContext } from '@/domain/user-nutrition-context';
+import { membershipEnabled } from '@/domain/membership.policy';
 import { googleProfileImage } from '@/domain/google-profile-image';
 import prisma from '@/lib/prisma';
-import { MembershipService } from './membership.service';
 import { lockUserProfile, advanceProfileRevision, advanceSafetyRevision } from './profile-revision.service';
 import { calculateDailyTarget } from '@/lib/calculations';
 import {
@@ -203,28 +204,6 @@ export class UserProfileService {
         }
         if (existing && changedFields.length === 0) return existing;
 
-        const owner = await tx.user.findUniqueOrThrow({ where: { id: userId }, select: { onboardingDone: true } });
-        const optionalFields = [
-          'goal',
-          'targetWeightKg',
-          'activityLevel',
-          'ricePreference',
-          'foodCulture',
-          'planningGeographyLevel',
-          'planningRegionName',
-          'planningProvinceHucName',
-          'shoppingDayOfWeek',
-        ];
-        const optionalChange =
-          changedFields.some(
-            (field) =>
-              optionalFields.includes(field) &&
-              (field !== 'ricePreference' || safeData.ricePreference !== existing?.ricePreference)
-          ) ||
-          (changedFields.includes('dietaryPreference') &&
-            !introducesHardDietRestriction(existing?.dietaryPreference, safeData.dietaryPreference));
-        if (owner.onboardingDone && optionalChange) await MembershipService.assertEnhanced(userId, tx);
-
         const profile = await tx.userProfile.upsert({
           where: { userId },
           update: {
@@ -419,15 +398,24 @@ export class UserProfileService {
       email: user.email,
       role: user.role,
       isSuspended: user.isSuspended,
-      profile: this.formatProfileDetails(user),
+      profile: await this.formatProfileDetails(user),
     };
   }
 
-  private static formatProfileDetails(user: ProfileDetailsUser) {
+  private static async formatProfileDetails(user: ProfileDetailsUser) {
     const onboardingStatus = evaluateUserOnboardingStatus(user);
     const googleAccount = user.accounts?.[0];
     const googleImage = googleProfileImage(googleAccount?.access_token) || googleProfileImage(user.image);
 
+    let reportAcknowledged: boolean | undefined;
+    if (membershipEnabled() || user.userProfile?.planningReportVersion) {
+      try {
+        await loadPlanningNutritionContext(prisma, user.id, 'Profile missing.');
+        reportAcknowledged = true;
+      } catch {
+        reportAcknowledged = false;
+      }
+    }
     // Transform into clean structure for client
     return {
       id: user.id,
@@ -454,6 +442,7 @@ export class UserProfileService {
       allergies: user.allergies.map((a) => a.allergen),
       safetyEntries: user.safetyProfileEntries,
       nutritionReport: user.nutritionReport,
+      reportAcknowledged,
       onboardingStatus,
     };
   }

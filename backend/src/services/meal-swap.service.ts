@@ -15,7 +15,7 @@ import { MEAL_PLAN_SAFETY_POLICY_VERSION } from '@/domain/meal-plan-production-s
 import { resolvePlanTargetCalories } from '@/domain/plan-cycle-target.policy';
 import { signSwapPreview, SWAP_PREVIEW_TTL_MS, verifySwapPreview } from '@/domain/swap-preview-token';
 import { buildSwapShoppingDelta } from '@/domain/swap-shopping.policy';
-import { loadUserNutritionContext } from '@/domain/user-nutrition-context';
+import { loadPlanningNutritionContext } from '@/domain/user-nutrition-context';
 import prisma from '@/lib/prisma';
 import {
   HealthConditionType,
@@ -131,7 +131,11 @@ export class MealSwapService {
     const mealPlan = await loadActionableUnloggedMealPlan(prisma, userId, mealPlanId);
 
     // 2. Fetch user profile, health conditions, and allergies
-    const { user, profile: userProfile } = await loadUserNutritionContext(prisma, userId, 'User profile not found.');
+    const { user, profile: userProfile } = await loadPlanningNutritionContext(
+      prisma,
+      userId,
+      'User profile not found.'
+    );
     const { healthConditions, allergies } = user;
     const userConditions = healthConditions.map((c) => c.condition);
     const userAllergens = allergies.map((a) => a.allergen);
@@ -309,7 +313,11 @@ export class MealSwapService {
       throw new Error('Selected replacement meal is not available or approved.');
     }
 
-    const { user, profile: userProfile } = await loadUserNutritionContext(client, userId, 'User profile not found.');
+    const { user, profile: userProfile } = await loadPlanningNutritionContext(
+      client,
+      userId,
+      'User profile not found.'
+    );
     if (
       !isCertifiedLibraryMealCompatible(
         libraryMeal,
@@ -516,7 +524,11 @@ export class MealSwapService {
         await MembershipService.assertSwap(userId, mealPlan.planGroupId, tx);
 
         // 2. Fetch user profile, health conditions, and allergies
-        const { user, profile: userProfile } = await loadUserNutritionContext(tx, userId, 'User profile not found.');
+        const { user, profile: userProfile } = await loadPlanningNutritionContext(
+          tx,
+          userId,
+          'User profile not found.'
+        );
         const { healthConditions, allergies } = user;
         const userConditions = healthConditions.map((c) => c.condition);
         const userAllergens = allergies.map((a) => a.allergen);
@@ -772,7 +784,11 @@ export class MealSwapService {
     }
   ) {
     // 1. Fetch user profile, health conditions, and allergies
-    const { user, profile: userProfile } = await loadUserNutritionContext(prisma, userId, 'User profile not found.');
+    const { user, profile: userProfile } = await loadPlanningNutritionContext(
+      prisma,
+      userId,
+      'User profile not found.'
+    );
     const { healthConditions, allergies } = user;
     const userConditions = healthConditions.map((c) => c.condition);
     const userAllergens = allergies.map((a) => a.allergen);

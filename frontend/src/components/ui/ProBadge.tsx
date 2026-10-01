@@ -61,7 +61,7 @@ export const ProBadge: React.FC<ProBadgeProps> = ({
             aria-hidden="true"
           />
         )}
-        <span>{children || 'Pro'}</span>
+        <span>{children || 'Health'}</span>
       </span>
     </span>
   );

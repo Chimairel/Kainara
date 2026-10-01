@@ -22,13 +22,13 @@ export class PlanningReadinessService {
     });
     if (readiness.canRequestPlan && membershipEnabled()) {
       const membership = await MembershipService.state(userId);
-      if (membership.requiresCaseReview && !membership.enhanced)
+      if (membership.requiresCaseReview && !membership.healthAccess)
         return {
           status: 'BLOCKED_MEMBERSHIP',
           canRequestPlan: false,
-          title: 'Membership needed for a new case plan',
+          title: 'Health membership needed for a new case plan',
           message:
-            'Your trial has ended. New plans for conditions or allergies require membership. Existing eligible active meals and submitted reviews remain available.',
+            'Your trial has ended. New plans for conditions or allergies require Health membership. Existing eligible active meals and submitted reviews remain available.',
           actionPath: '/membership',
         };
     }

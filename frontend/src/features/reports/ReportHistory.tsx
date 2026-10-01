@@ -10,6 +10,15 @@ export interface ReportVersion {
   version: number;
   generatedAt: string;
   content: NutritionReport;
+  policyVersion?: string | null;
+  acknowledgedAt?: string | null;
+  profileSnapshot?: {
+    profile?: { goal?: string; dailyCalorieTarget?: number };
+    conditions?: string[];
+    allergens?: string[];
+    otherConditions?: string[] | string;
+    otherAllergies?: string[] | string;
+  };
 }
 
 export interface ReportHistoryProps {
@@ -105,7 +114,10 @@ export default function ReportHistory({
           <p className="mt-3 text-sm">{entry.content.generalSummary}</p>
           {entry.content.referenceItems?.map((item, index) => (
             <p key={`${item.sourceCode}-${index}`} className="mt-2 text-sm">
-              <strong>{item.heading}: {item.value}.</strong> {item.explanation}{' '}
+              <strong>
+                {item.heading}: {item.value}.
+              </strong>{' '}
+              {item.explanation}{' '}
               <a href={item.sourceUrl} target="_blank" rel="noopener noreferrer" className="underline">
                 Source
               </a>

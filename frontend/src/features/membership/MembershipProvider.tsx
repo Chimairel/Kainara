@@ -12,6 +12,9 @@ export type MembershipView =
       enabled: true;
       level: 'FREE' | 'TRIAL_PENDING' | 'TRIAL' | 'MEMBER';
       enhanced: boolean;
+      tier?: 'FREE' | 'LIFESTYLE' | 'HEALTH';
+      healthAccess?: boolean;
+      healthUntil?: string | null;
       requiresCaseReview: boolean;
       serverTime: string;
       trialStartedAt: string | null;

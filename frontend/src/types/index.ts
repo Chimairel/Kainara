@@ -119,6 +119,14 @@ export interface Allergy {
 }
 
 export interface NutritionReport {
+  confirmationKind?: string;
+  planningContext?: {
+    activeVersion: number | null;
+    activeGeneratedAt: string | null;
+    pendingChanges: boolean;
+    safetyChanged: boolean;
+    activationTier: 'LIFESTYLE' | 'HEALTH' | null;
+  };
   reportPolicyVersion?: string | null;
   referenceItems?: Array<{
     heading: string;

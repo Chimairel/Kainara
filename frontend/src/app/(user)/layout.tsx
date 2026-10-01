@@ -9,6 +9,7 @@ import Navbar from '@/components/shared/Navbar';
 import AnnouncementBanner from '@/components/shared/AnnouncementBanner';
 import { useAuth } from '@/hooks/useAuth';
 import { MembershipProvider } from '@/features/membership/MembershipProvider';
+import WeeklyProfileNotice from '@/features/reports/WeeklyProfileNotice';
 import MembershipNotice from '@/features/membership/MembershipNotice';
 
 export default function UserLayout({ children }: { children: React.ReactNode }) {
@@ -30,7 +31,7 @@ export default function UserLayout({ children }: { children: React.ReactNode }) 
               <div className="w-full shrink-0 border-b border-brand-border/40 bg-brand-bg/80 px-4 py-2.5 backdrop-blur-md md:px-5">
                 <AnnouncementBanner
                   title="Action required:"
-                  message="Acknowledge your nutrition report before using this feature."
+                  message="Review your nutrition report and choose it for meal planning."
                   action={{
                     label: 'View Nutrition Report',
                     href: '/profile/nutrition-report',
@@ -38,6 +39,7 @@ export default function UserLayout({ children }: { children: React.ReactNode }) 
                 />
               </div>
             )}
+            <WeeklyProfileNotice />
             <main className="portal-main custom-scrollbar relative flex-1 overflow-y-auto pb-36 md:pb-4">
               {children}
             </main>
