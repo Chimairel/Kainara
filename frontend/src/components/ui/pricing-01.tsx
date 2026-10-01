@@ -96,7 +96,7 @@ export default function Pricing({ currentLevel, isEnhanced, limits }: PricingPro
           <div className="relative flex h-full flex-col justify-between overflow-hidden rounded-3xl border border-brand-border bg-brand-surface p-6 sm:p-8 shadow-xs transition-shadow hover:shadow-sm">
             <div className="flex flex-col sm:flex-row gap-6 md:gap-8 items-start self-stretch h-full w-full">
               {/* Left Column */}
-              <div className="flex flex-col items-start justify-between self-stretch gap-6 sm:w-1/2">
+              <div className="flex flex-col items-start justify-between self-stretch gap-6 w-full sm:w-[46%] shrink-0">
                 <div className="flex flex-col gap-3">
                   <div className="flex items-center gap-2">
                     <span className="inline-flex items-center rounded-full bg-brand-bgAlt border border-brand-border px-3 py-1 font-mono text-xs font-bold uppercase tracking-wider text-brand-muted">
@@ -115,7 +115,7 @@ export default function Pricing({ currentLevel, isEnhanced, limits }: PricingPro
 
                 <div className="flex flex-col gap-3 w-full">
                   <div>
-                    <div className="flex items-baseline gap-1">
+                    <div className="flex items-baseline gap-1.5 flex-wrap">
                       <span className="font-display text-3xl sm:text-4xl font-extrabold text-brand-text">Free</span>
                       <span className="text-xs font-normal text-brand-muted">/ forever</span>
                     </div>
@@ -133,7 +133,7 @@ export default function Pricing({ currentLevel, isEnhanced, limits }: PricingPro
               <div className="sm:hidden block h-[1px] w-full bg-brand-border/70 shrink-0" />
 
               {/* Right Column: Features */}
-              <div className="flex flex-col items-start gap-3 grow sm:w-1/2">
+              <div className="flex flex-col items-start gap-3 grow w-full sm:w-[54%]">
                 <p className="font-display text-sm sm:text-base font-bold text-brand-text">Features</p>
                 <ul className="flex flex-col items-start self-stretch gap-2.5">
                   {basicFeatures.map((feature, idx) => (
@@ -150,7 +150,7 @@ export default function Pricing({ currentLevel, isEnhanced, limits }: PricingPro
           </div>
         </motion.div>
 
-        {/* CARD 2: PRO (WITH STRIPES) */}
+        {/* CARD 2: PRO (WITH KAINARA 3-TONE STRIPES) */}
         <motion.div
           variants={cardVariants}
           initial="hidden"
@@ -158,17 +158,37 @@ export default function Pricing({ currentLevel, isEnhanced, limits }: PricingPro
           custom={1}
           className="w-full flex-1"
         >
-          <div className="relative flex h-full flex-col justify-between overflow-hidden rounded-3xl border-2 border-brand-green/70 dark:border-brand-green/80 bg-brand-surface p-6 sm:p-8 shadow-sm transition-shadow hover:shadow-md">
-            {/* Subtle Diagonal Stripes Texture for Pro */}
+          <div className="relative flex h-full flex-col justify-between overflow-hidden rounded-3xl border border-[#173e33] bg-[#071914] p-6 sm:p-8 text-white shadow-xl transition-shadow hover:shadow-2xl">
+            {/* Top 3-Tone Brand Stripe Header Ribbon */}
+            <div className="absolute top-0 left-0 right-0 h-1.5 flex overflow-hidden rounded-t-3xl z-20">
+              <div className="flex-1 bg-[#1b4e41]" />
+              <div className="flex-1 bg-[#f09e6c]" />
+              <div className="flex-1 bg-[#eb6a38]" />
+            </div>
+
+            {/* Retro Wave Organic Corner Accent (Orange, Peach/Yellow, Green) */}
+            <div className="pointer-events-none absolute -top-0.5 -right-0.5 h-36 w-36 sm:h-48 sm:w-48 overflow-hidden rounded-tr-3xl z-0 opacity-85">
+              <svg viewBox="0 0 160 160" className="h-full w-full" fill="none">
+                <path d="M160,0 L0,0 C20,40 55,95 120,135 C140,147 160,155 160,155 Z" fill="#eb6a38" />
+                <path d="M160,0 L40,0 C55,30 80,72 130,105 C145,115 160,120 160,120 Z" fill="#f09e6c" />
+                <path d="M160,0 L82,0 C92,20 110,48 142,70 C152,76 160,80 160,80 Z" fill="#1b4e41" />
+              </svg>
+            </div>
+
+            {/* Signature 3-Tone Diagonal Stripes Texture across Pro Card */}
             <div
-              className="pointer-events-none absolute inset-0 rounded-3xl opacity-35 dark:opacity-20"
+              className="pointer-events-none absolute inset-0 rounded-3xl opacity-15"
               style={{
                 backgroundImage: `repeating-linear-gradient(
                   -45deg,
-                  rgba(8, 112, 91, 0.12),
-                  rgba(8, 112, 91, 0.12) 12px,
-                  transparent 12px,
-                  transparent 24px
+                  #1b4e41 0px,
+                  #1b4e41 7px,
+                  #f09e6c 7px,
+                  #f09e6c 14px,
+                  #eb6a38 14px,
+                  #eb6a38 21px,
+                  transparent 21px,
+                  transparent 50px
                 )`,
               }}
               aria-hidden="true"
@@ -176,20 +196,22 @@ export default function Pricing({ currentLevel, isEnhanced, limits }: PricingPro
 
             <div className="relative z-10 flex flex-col sm:flex-row gap-6 md:gap-8 items-start self-stretch h-full w-full">
               {/* Left Column */}
-              <div className="flex flex-col items-start justify-between self-stretch gap-6 sm:w-1/2">
+              <div className="flex flex-col items-start justify-between self-stretch gap-6 w-full sm:w-[46%] shrink-0">
                 <div className="flex flex-col gap-3">
                   <div className="flex items-center gap-2">
-                    <span className="inline-flex items-center gap-1 rounded-full bg-brand-green text-white dark:bg-brand-green dark:text-white px-3 py-1 font-mono text-xs font-bold uppercase tracking-wider shadow-xs">
-                      <Sparkles className="h-3 w-3" />
-                      <span>Pro</span>
+                    <span className="inline-flex items-center gap-1.5 rounded-full bg-gradient-to-r from-[#eb6a38] via-[#f09e6c] to-[#1b4e41] p-[1.5px] shadow-sm">
+                      <span className="flex items-center gap-1 rounded-full bg-[#071914] px-3 py-1 font-mono text-xs font-bold uppercase tracking-wider text-[#f09e6c]">
+                        <Sparkles className="h-3 w-3 text-[#eb6a38]" />
+                        <span>Pro</span>
+                      </span>
                     </span>
                     {isEnhanced && (
-                      <span className="rounded-full bg-brand-green/15 text-brand-green border border-brand-green/30 px-2 py-0.5 text-[10px] font-bold">
+                      <span className="rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/35 px-2.5 py-0.5 text-[10px] font-bold">
                         {currentLevel === 'MEMBER' ? 'Active Member' : 'Trial Active'}
                       </span>
                     )}
                   </div>
-                  <p className="text-xs font-normal text-brand-muted leading-relaxed">
+                  <p className="text-xs font-normal text-white/70 leading-relaxed">
                     2x the speed and capabilities. Adaptive weekly replanning, clinical case review, and weight
                     trajectory.
                   </p>
@@ -197,13 +219,13 @@ export default function Pricing({ currentLevel, isEnhanced, limits }: PricingPro
 
                 <div className="flex flex-col gap-3 w-full">
                   <div>
-                    <div className="flex items-baseline gap-1">
-                      <span className="font-display text-3xl sm:text-4xl font-extrabold text-brand-green dark:text-brand-green">
+                    <div className="flex items-baseline gap-1.5 flex-wrap">
+                      <span className="font-display text-2xl sm:text-3xl font-extrabold text-white whitespace-nowrap">
                         14-Day Trial
                       </span>
-                      <span className="text-xs font-normal text-brand-muted">/ included</span>
+                      <span className="text-xs font-normal text-white/60">/ included</span>
                     </div>
-                    <span className="text-[10px] text-brand-muted">Full clinical & AI suite for every account</span>
+                    <span className="text-[10px] text-white/50">Full clinical & AI suite for every account</span>
                   </div>
 
                   <div className="space-y-1.5">
@@ -212,40 +234,49 @@ export default function Pricing({ currentLevel, isEnhanced, limits }: PricingPro
                       type="button"
                       disabled
                       aria-label="Purchases opening soon"
-                      className="relative flex items-center justify-between rounded-full bg-brand-green text-white text-xs font-bold h-11 ps-5 pe-12 group transition-all duration-300 w-fit overflow-hidden cursor-not-allowed opacity-90 shadow-sm"
+                      className="relative flex items-center justify-between rounded-full bg-[#eb6a38] text-white text-xs font-bold h-11 ps-5 pe-12 group transition-all duration-300 w-fit overflow-hidden cursor-not-allowed opacity-95 shadow-md shadow-orange-950/40"
                     >
                       <span className="relative z-10">Purchases opening soon</span>
                       <div className="absolute right-1 w-9 h-9 bg-white/20 text-white rounded-full flex items-center justify-center transition-all duration-300">
                         <ArrowUpRight size={15} />
                       </div>
                     </button>
-                    <p className="text-[10px] text-brand-muted leading-tight">
-                      Pricing and payment setup are being finalized. No charges occur.
+                    <p className="text-[10px] text-white/50 leading-tight">
+                      Pricing and payment setup are being finalized. No payment details are collected and no automatic
+                      charges occur.
                     </p>
                   </div>
                 </div>
               </div>
 
               {/* Divider */}
-              <div className="hidden sm:block w-[1px] self-stretch bg-brand-border/70 shrink-0" />
-              <div className="sm:hidden block h-[1px] w-full bg-brand-border/70 shrink-0" />
+              <div className="hidden sm:block w-[1px] self-stretch bg-white/10 shrink-0" />
+              <div className="sm:hidden block h-[1px] w-full bg-white/10 shrink-0" />
 
               {/* Right Column: Features */}
-              <div className="flex flex-col items-start gap-3 grow sm:w-1/2">
-                <p className="font-display text-sm sm:text-base font-bold text-brand-text">Features</p>
+              <div className="flex flex-col items-start gap-3 grow w-full sm:w-[54%]">
+                <p className="font-display text-sm sm:text-base font-bold text-white">Features</p>
                 <ul className="flex flex-col items-start self-stretch gap-2.5">
                   {proFeatures.map((feature, idx) => (
-                    <li key={idx} className="flex items-start gap-2.5 text-xs text-brand-text leading-snug">
+                    <li key={idx} className="flex items-start gap-2.5 text-xs leading-snug">
                       <div
                         className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-full mt-0.5 ${
                           idx === 0
-                            ? 'bg-transparent text-brand-muted'
-                            : 'bg-brand-green/15 text-brand-green dark:bg-brand-green/20'
+                            ? 'bg-transparent text-white/40'
+                            : 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
                         }`}
                       >
                         <Check size={11} strokeWidth={2.5} aria-hidden="true" />
                       </div>
-                      <span className={idx === 0 ? 'font-bold text-brand-muted' : 'font-medium'}>{feature}</span>
+                      <span
+                        className={
+                          idx === 0
+                            ? 'font-bold text-[#f09e6c]'
+                            : 'text-white/90 font-medium'
+                        }
+                      >
+                        {feature}
+                      </span>
                     </li>
                   ))}
                 </ul>
