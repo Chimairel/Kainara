@@ -543,6 +543,7 @@ export const docsChapters: DocsChapter[] = [
       },
     ],
   },
+  membershipChapter,
   {
     id: 'professional-review',
     title: 'Nutritionist and admin review',
@@ -801,5 +802,4 @@ export const docsChapters: DocsChapter[] = [
     ],
   },
   ...policyChapters,
-  membershipChapter,
 ];

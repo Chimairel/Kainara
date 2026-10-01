@@ -45,7 +45,7 @@ export default function DocsWorkspace() {
     if (!chapter || !scrollTarget) return;
     const frame = window.requestAnimationFrame(() => {
       const target = document.getElementById(scrollTarget.id) ?? document.getElementById(chapter.id);
-      target?.scrollIntoView?.({ block: 'start' });
+      target?.scrollIntoView?.({ block: 'start', behavior: 'smooth' });
     });
     return () => window.cancelAnimationFrame(frame);
   }, [chapter, scrollTarget]);
@@ -90,21 +90,33 @@ export default function DocsWorkspace() {
                       type="button"
                       aria-current={isActive ? 'page' : undefined}
                       onClick={() => navigate(item.id)}
-                      className={`group relative flex w-full items-center gap-3 rounded-2xl px-3.5 py-2.5 text-left text-xs transition-all duration-200 ${
+                      className={`group relative flex w-full items-center gap-3 rounded-2xl border px-3.5 py-2.5 text-left text-xs transition-colors duration-150 ${
                         isActive
-                          ? 'bg-brand-surface font-extrabold text-brand-text shadow-md border border-brand-border/80'
-                          : 'font-medium text-brand-muted hover:bg-brand-surface/70 hover:text-brand-text'
+                          ? 'border-brand-border/80 bg-brand-surface font-semibold text-brand-text shadow-sm dark:border-[#173e33] dark:bg-[#0e271f]'
+                          : 'border-transparent font-medium text-brand-muted hover:bg-brand-surface/60 hover:text-brand-text'
                       }`}
                     >
                       {/* Signature stripe hint indicator for active chapter */}
-                      {isActive && (
-                        <span className="absolute left-0 top-2 bottom-2 w-1 rounded-r-full bg-gradient-to-b from-[#1b4e41] via-[#f09e6c] to-[#eb6a38]" />
-                      )}
-                      <span className={`font-mono text-[10px] ${isActive ? 'text-emerald-500 font-bold' : 'text-brand-muted/70'}`}>
+                      <span
+                        className={`absolute left-0 top-2.5 bottom-2.5 w-1 rounded-r-full bg-gradient-to-b from-[#1b4e41] via-[#f09e6c] to-[#eb6a38] transition-opacity duration-150 ${
+                          isActive ? 'opacity-100' : 'opacity-0'
+                        }`}
+                        aria-hidden="true"
+                      />
+                      <span
+                        className={`font-mono text-[10px] transition-colors duration-150 ${
+                          isActive ? 'font-bold text-emerald-500' : 'text-brand-muted/70 group-hover:text-brand-muted'
+                        }`}
+                      >
                         {number}
                       </span>
                       <span className="min-w-0 flex-1 truncate">{item.shortTitle}</span>
-                      {isActive && <ChevronRight className="h-3.5 w-3.5 shrink-0 text-emerald-500" />}
+                      <ChevronRight
+                        className={`h-3.5 w-3.5 shrink-0 text-emerald-500 transition-opacity duration-150 ${
+                          isActive ? 'opacity-100' : 'opacity-0'
+                        }`}
+                        aria-hidden="true"
+                      />
                     </button>
                   );
                 })}
