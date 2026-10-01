@@ -29,7 +29,7 @@ export const workspaceTools: Record<WorkspaceRole, WorkspaceTool[]> = {
     {
       label: 'Membership',
       href: '/membership',
-      description: 'Trial status, benefits and remaining allowances.',
+      description: 'Pro status, benefits and remaining allowances.',
       group: 'Your account',
       icon: Sparkles,
     },

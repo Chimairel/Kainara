@@ -48,12 +48,12 @@ export default function ProfileWidget({ onClose, className = '' }: ProfileWidget
           0,
           Math.ceil((new Date(membership.trialEndsAt).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
         );
-        return days > 0 ? `Trial · ${days}d left` : 'Trial';
+        return days > 0 ? `Pro · ${days}d left` : 'Pro';
       }
-      return '14-day Trial';
+      return 'Pro';
     }
-    if (membership.level === 'TRIAL_PENDING') return 'Trial Pending';
-    if (membership.level === 'MEMBER') return 'Member';
+    if (membership.level === 'TRIAL_PENDING') return 'Pro Pending';
+    if (membership.level === 'MEMBER') return 'Pro';
     return 'Free';
   };
 
@@ -121,16 +121,16 @@ export default function ProfileWidget({ onClose, className = '' }: ProfileWidget
             <div className="min-w-0 flex-1">
               <div className="flex items-center justify-between">
                 <span className="truncate">Membership</span>
-                {membership?.enabled && membership.level === 'TRIAL' ? (
+                {membership?.enabled && (membership.level === 'TRIAL' || membership.level === 'MEMBER') ? (
                   <Badge variant="verified" className="text-[9px] font-bold px-1.5 py-0">
-                    Trial
+                    Pro
                   </Badge>
                 ) : (
                   <span className="text-[10px] font-bold text-brand-accent">Benefits</span>
                 )}
               </div>
               <p className="truncate text-[10px] text-brand-muted dark:text-white/45 font-normal">
-                Trial status & usage allowances
+                Pro status & usage allowances
               </p>
             </div>
           </button>

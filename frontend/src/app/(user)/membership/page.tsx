@@ -87,8 +87,8 @@ export default function MembershipPage() {
 
   const labels = {
     FREE: 'Free account',
-    TRIAL_PENDING: 'Trial waiting for your first usable plan',
-    TRIAL: '14-day membership trial',
+    TRIAL_PENDING: 'Pro waiting for your first usable plan',
+    TRIAL: 'Pro Subscription',
     MEMBER: 'Active membership',
   };
 
@@ -182,7 +182,7 @@ export default function MembershipPage() {
                         : data.level === 'TRIAL_PENDING'
                           ? 'Pending kickoff'
                           : data.level === 'TRIAL'
-                            ? 'Trial active'
+                            ? 'Pro active'
                             : 'Active subscriber'}
                     </span>
                   </span>
@@ -190,11 +190,11 @@ export default function MembershipPage() {
 
                 <p className="mt-1 text-xs text-brand-muted">
                   {data.level === 'TRIAL_PENDING'
-                    ? 'Your trial starts when your first cleared current plan is available. A starter plan counts; waiting for review does not.'
+                    ? 'Your Pro access starts when your first cleared current plan is available. A starter plan counts; waiting for review does not.'
                     : data.level === 'MEMBER' && data.paidUntil
                       ? `Membership available until ${date(data.paidUntil)}. No automatic renewal.`
                       : data.trialEndsAt
-                        ? `Trial ${data.level === 'FREE' ? 'ended' : 'ends'} ${date(data.trialEndsAt)}. Moving to a full weekly plan does not restart it.`
+                        ? `Pro access ${data.level === 'FREE' ? 'ended' : 'ends'} ${date(data.trialEndsAt)}. Moving to a full weekly plan does not restart it.`
                         : ''}
                 </p>
 

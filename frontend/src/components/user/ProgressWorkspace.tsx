@@ -185,7 +185,7 @@ export function ProgressWorkspace({ mode = 'progress' }: { mode?: ProgressWorksp
       {mode !== 'progress' && membership?.enabled && (
         <p className="mb-5 rounded-2xl border border-brand-border bg-brand-surface p-4 text-sm text-brand-muted">
           Health corrections and new safety restrictions remain available. Optional goal, preference and shopping
-          changes require membership after your trial; an optional replan uses a separate weekly allowance.{' '}
+          changes require Pro membership; an optional replan uses a separate weekly allowance.{' '}
           <Link href="/membership" className="font-semibold text-brand-green">
             View your benefits and limits
           </Link>
