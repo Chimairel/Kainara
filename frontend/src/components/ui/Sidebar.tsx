@@ -247,11 +247,11 @@ export const Sidebar: React.FC<SidebarProps> = ({ className = '' }) => {
                 >
                   <DockItem
                     active={profileActive || isProfileMenuOpen}
-                    className={`rounded-full transition-all duration-150 ${
+                    className={`rounded-full transition-[box-shadow] duration-150 ${
                       isPro
                         ? `relative overflow-hidden p-[2.5px] ${
                             profileActive || isProfileMenuOpen
-                              ? 'shadow-[0_0_14px_rgba(235,106,56,0.6)] scale-105'
+                              ? 'shadow-[0_0_14px_rgba(235,106,56,0.6)]'
                               : 'hover:shadow-[0_0_10px_rgba(235,106,56,0.4)]'
                           }`
                         : `p-0.5 ${
@@ -421,7 +421,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ className = '' }) => {
               >
                 {isPro ? (
                   <div
-                    className={`relative flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full p-[2px] transition-all duration-100 ease-out group-hover:scale-105 ${
+                    className={`relative flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full p-[2px] transition-[box-shadow] duration-150 ${
                       profileActive || isProfileMenuOpen
                         ? 'shadow-[0_0_12px_rgba(235,106,56,0.55)]'
                         : 'group-hover:shadow-[0_0_8px_rgba(235,106,56,0.35)]'
@@ -447,7 +447,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ className = '' }) => {
                     size="sm"
                     src={user.image}
                     fallbackText={user.name}
-                    className={`h-9 w-9 rounded-full ring-2 transition-all duration-100 ease-out group-hover:scale-105 ${
+                    className={`h-9 w-9 rounded-full ring-2 transition-[box-shadow,color] duration-150 ${
                       profileActive || isProfileMenuOpen
                         ? 'ring-[#3b82f6] shadow-[0_0_10px_rgba(59,130,246,0.4)]'
                         : 'ring-transparent group-hover:ring-[#3b82f6]/50'
