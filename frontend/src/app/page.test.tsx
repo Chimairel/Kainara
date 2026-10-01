@@ -21,6 +21,8 @@ vi.mock('motion/react', () => ({
   motion: new Proxy({}, { get: (_target, tag: string) => tag }),
   useMotionValue: (init = 0) => ({ get: () => init, set: vi.fn() }),
   animate: vi.fn(() => ({ stop: vi.fn() })),
+  useScroll: () => ({ scrollYProgress: { get: () => 0 } }),
+  useTransform: (_value: unknown, _input: unknown, output: unknown) => (Array.isArray(output) ? output[0] : 0),
 }));
 
 describe('public home navigation', () => {

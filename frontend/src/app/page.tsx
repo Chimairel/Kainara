@@ -33,6 +33,7 @@ import {
   SectionWaveBorderRight,
 } from '@/components/landing/LandingWaveRiver';
 import { InfiniteSlider } from '@/components/core/infinite-slider';
+import { ContainerScroll } from '@/components/ui/container-scroll-animation';
 import { useAuth } from '@/hooks/useAuth';
 
 const evidenceSliderSources = [
@@ -270,78 +271,13 @@ export default function Home() {
           <div className="pointer-events-none absolute right-[5%] top-24 h-[420px] w-[420px] rounded-full bg-brand-cyan/15 blur-[140px] dark:bg-brand-cyan/10" />
           <div className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 h-[500px] w-[600px] rounded-full bg-brand-accent/10 blur-[160px] dark:bg-brand-accent/5" />
 
-          <div className="mx-auto grid min-h-[calc(100vh-120px)] max-w-[1440px] items-center gap-12 px-5 sm:px-8 md:grid-cols-[0.92fr_1.08fr] lg:gap-16 lg:px-12">
-            {/* Left Column: Headline & Action */}
-            <motion.div
-              initial={{ opacity: 0, y: 30 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
-              className="relative z-10 max-w-2xl"
-            >
-              <h1 className="font-display text-[clamp(2.75rem,5.5vw,7.2rem)] font-black leading-[0.92] tracking-[-0.06em] text-brand-text">
-                Eat with
-                <span className="text-gradient block pb-2">intention.</span>
-              </h1>
-
-              <p className="mt-5 max-w-xl text-base leading-7 text-brand-muted sm:text-lg sm:leading-8">
-                KAINARA brings familiar recipes, calculated nutrition targets and daily tracking into one workspace,
-                with AI-assisted planning and nutritionist review for applicable cases.
-              </p>
-
-              <div className="mt-8 flex flex-col gap-3.5 sm:flex-row sm:items-center">
-                <Link
-                  href={workspaceHref}
-                  className="group flex min-h-14 items-center justify-center gap-3 rounded-2xl bg-brand-accent px-7 text-sm font-extrabold text-white shadow-neon transition duration-200 hover:-translate-y-1 hover:brightness-110 active:scale-[0.98]"
-                >
-                  {workspaceLabel}
-                  <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
-                </Link>
-                <Link
-                  href="/docs"
-                  className="group flex min-h-14 items-center justify-center gap-2.5 rounded-2xl border border-emerald-500/20 bg-[#071914] px-7 text-sm font-bold text-white shadow-md transition duration-200 hover:-translate-y-1 hover:border-emerald-400/50 hover:bg-[#0e271f] hover:shadow-lg active:scale-[0.98]"
-                >
-                  Documentation
-                  <ArrowUpRight className="h-4 w-4 text-emerald-400 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
-                </Link>
-              </div>
-
-              {/* Trust Indicators */}
-              <div className="mt-10 grid max-w-xl grid-cols-3 gap-4 border-t border-brand-border/70 pt-6">
-                {[
-                  ['7 Days', 'Personalized Cycle', Flame, 'text-brand-accent dark:text-[#f09e6c]'],
-                  ['3 Roles', 'Patient, RND & Admin', Activity, 'text-sky-600 dark:text-cyan-400'],
-                  ['Visible', 'Meal Review Status', CheckCircle2, 'text-emerald-600 dark:text-emerald-400'],
-                ].map(([value, label, Icon, colorClass]) => {
-                  const StatIcon = Icon as React.ComponentType<{ className?: string }>;
-                  return (
-                    <div key={label as string} className="flex flex-col">
-                      <div className="flex items-center gap-1.5">
-                        <StatIcon className={`h-4 w-4 ${colorClass as string}`} />
-                        <p className="font-display text-lg font-black tracking-tight text-brand-text sm:text-xl">
-                          {value as string}
-                        </p>
-                      </div>
-                      <p className="mt-1 text-[10px] font-bold uppercase tracking-[0.12em] text-brand-muted">
-                        {label as string}
-                      </p>
-                    </div>
-                  );
-                })}
-              </div>
-            </motion.div>
-
-            {/* Right Column: Dynamic Interactive Hero Mockup */}
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 30 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              transition={{ duration: 0.8, delay: 0.15, ease: [0.16, 1, 0.3, 1] }}
-              className="relative mx-auto w-full max-w-[720px] md:ml-auto"
-            >
-              {/* Floating Health Sync Card (Dashboard Theme) */}
+          <ContainerScroll
+            layout="side-by-side"
+            badgeLeft={
               <motion.div
                 animate={{ y: [0, -8, 0] }}
                 transition={{ duration: 5, repeat: Infinity, ease: 'easeInOut' }}
-                className="absolute -left-6 top-16 z-30 hidden w-48 rounded-2xl border border-emerald-500/30 bg-[#071914]/95 p-4 text-white shadow-2xl backdrop-blur-xl sm:block"
+                className="absolute -left-4 sm:-left-6 top-12 z-30 hidden w-48 rounded-2xl border border-emerald-500/30 bg-[#071914]/95 p-4 text-white shadow-2xl backdrop-blur-xl sm:block"
               >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-emerald-400">
@@ -368,47 +304,12 @@ export default function Home() {
                   </div>
                 </div>
               </motion.div>
-
-              {/* Main Cockpit Frame */}
-              <div className="surface-panel relative overflow-hidden rounded-[32px] p-2 sm:p-3.5 shadow-2xl border border-brand-border/80">
-                <div className="scan-line" />
-                <div className="overflow-hidden rounded-[24px] border border-[#173e33] bg-[#071914] text-white shadow-2xl">
-                  {/* Browser Chrome Header */}
-                  <div className="flex items-center justify-between border-b border-[#173e33] bg-[#0a1b16] px-4 py-3 sm:px-5">
-                    <div className="flex items-center gap-2">
-                      <span className="h-2.5 w-2.5 rounded-full bg-[#ff5f56]/90 shadow-sm" />
-                      <span className="h-2.5 w-2.5 rounded-full bg-[#ffbd2e]/90 shadow-sm" />
-                      <span className="h-2.5 w-2.5 rounded-full bg-[#27c93f]/90 shadow-sm" />
-                      <span className="ml-2 font-mono text-[10px] text-white/50 hidden xs:inline">
-                        kainara.vercel.app/dashboard
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-2 rounded-full border border-emerald-500/30 bg-[#0e271f] px-2.5 py-1">
-                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(16,185,129,0.9)]" />
-                      <span className="font-mono text-[9px] uppercase tracking-wider text-emerald-400 font-bold">
-                        Live Cockpit • Manila, PH
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Dashboard Screenshot Mockup */}
-                  <div className="relative overflow-hidden bg-[#071914]">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src="/dashboard-actual.png"
-                      alt="KAINARA Clinical Nutrition Cockpit"
-                      className="w-full h-auto object-cover object-top transition duration-700 hover:scale-[1.01]"
-                      loading="eager"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Floating Verified Badge (Bottom Right) */}
+            }
+            badgeRight={
               <motion.div
                 animate={{ y: [0, 8, 0] }}
                 transition={{ duration: 4.5, repeat: Infinity, ease: 'easeInOut' }}
-                className="absolute -bottom-6 -right-3 z-30 hidden w-56 rounded-2xl border border-brand-cyan/30 bg-brand-surface/95 p-4 shadow-xl backdrop-blur-xl sm:block"
+                className="absolute -bottom-6 -right-3 sm:-right-6 z-30 hidden w-56 rounded-2xl border border-brand-cyan/30 bg-brand-surface/95 p-4 shadow-xl backdrop-blur-xl sm:block"
               >
                 <div className="flex items-center gap-3">
                   <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-cyan/15 text-brand-cyan">
@@ -420,8 +321,101 @@ export default function Home() {
                   </div>
                 </div>
               </motion.div>
-            </motion.div>
-          </div>
+            }
+            cardClassName="border-[#6C6C6C] bg-[#222222]"
+            innerClassName="p-0 bg-[#071914] border border-[#173e33]/80"
+            titleComponent={
+              <motion.div
+                initial={{ opacity: 0, y: 30 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
+                className="relative z-10 max-w-2xl text-left"
+              >
+                <h1 className="font-display text-[clamp(2.75rem,5.5vw,7.2rem)] font-black leading-[0.92] tracking-[-0.06em] text-brand-text">
+                  Eat with
+                  <span className="text-gradient block pb-2">intention.</span>
+                </h1>
+
+                <p className="mt-5 max-w-xl text-base leading-7 text-brand-muted sm:text-lg sm:leading-8">
+                  KAINARA brings familiar recipes, calculated nutrition targets and daily tracking into one workspace,
+                  with AI-assisted planning and nutritionist review for applicable cases.
+                </p>
+
+                <div className="mt-8 flex flex-col gap-3.5 sm:flex-row sm:items-center">
+                  <Link
+                    href={workspaceHref}
+                    className="group flex min-h-14 items-center justify-center gap-3 rounded-2xl bg-brand-accent px-7 text-sm font-extrabold text-white shadow-neon transition duration-200 hover:-translate-y-1 hover:brightness-110 active:scale-[0.98]"
+                  >
+                    {workspaceLabel}
+                    <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+                  </Link>
+                  <Link
+                    href="/docs"
+                    className="group flex min-h-14 items-center justify-center gap-2.5 rounded-2xl border border-emerald-500/20 bg-[#071914] px-7 text-sm font-bold text-white shadow-md transition duration-200 hover:-translate-y-1 hover:border-emerald-400/50 hover:bg-[#0e271f] hover:shadow-lg active:scale-[0.98]"
+                  >
+                    Documentation
+                    <ArrowUpRight className="h-4 w-4 text-emerald-400 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+                  </Link>
+                </div>
+
+                {/* Trust Indicators */}
+                <div className="mt-10 grid max-w-xl grid-cols-3 gap-4 border-t border-brand-border/70 pt-6">
+                  {[
+                    ['7 Days', 'Personalized Cycle', Flame, 'text-brand-accent dark:text-[#f09e6c]'],
+                    ['3 Roles', 'Patient, RND & Admin', Activity, 'text-sky-600 dark:text-cyan-400'],
+                    ['Visible', 'Meal Review Status', CheckCircle2, 'text-emerald-600 dark:text-emerald-400'],
+                  ].map(([value, label, Icon, colorClass]) => {
+                    const StatIcon = Icon as React.ComponentType<{ className?: string }>;
+                    return (
+                      <div key={label as string} className="flex flex-col">
+                        <div className="flex items-center gap-1.5">
+                          <StatIcon className={`h-4 w-4 ${colorClass as string}`} />
+                          <p className="font-display text-lg font-black tracking-tight text-brand-text sm:text-xl">
+                            {value as string}
+                          </p>
+                        </div>
+                        <p className="mt-1 text-[10px] font-bold uppercase tracking-[0.12em] text-brand-muted">
+                          {label as string}
+                        </p>
+                      </div>
+                    );
+                  })}
+                </div>
+              </motion.div>
+            }
+          >
+            {/* Main Cockpit Inside Container Card */}
+            <div className="flex h-full w-full flex-col overflow-hidden bg-[#071914]">
+              {/* Browser Chrome Header */}
+              <div className="flex shrink-0 items-center justify-between border-b border-[#173e33] bg-[#0a1b16] px-4 py-3 sm:px-5">
+                <div className="flex items-center gap-2">
+                  <span className="h-2.5 w-2.5 rounded-full bg-[#ff5f56]/90 shadow-sm" />
+                  <span className="h-2.5 w-2.5 rounded-full bg-[#ffbd2e]/90 shadow-sm" />
+                  <span className="h-2.5 w-2.5 rounded-full bg-[#27c93f]/90 shadow-sm" />
+                  <span className="ml-2 font-mono text-[10px] text-white/50 hidden xs:inline">
+                    kainara.vercel.app/dashboard
+                  </span>
+                </div>
+                <div className="flex items-center gap-2 rounded-full border border-emerald-500/30 bg-[#0e271f] px-2.5 py-1">
+                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(16,185,129,0.9)]" />
+                  <span className="font-mono text-[9px] uppercase tracking-wider text-emerald-400 font-bold">
+                    Live Cockpit • Manila, PH
+                  </span>
+                </div>
+              </div>
+
+              {/* Dashboard Screenshot Mockup */}
+              <div className="relative overflow-hidden bg-[#071914]">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src="/dashboard-actual.png"
+                  alt="KAINARA Clinical Nutrition Cockpit"
+                  className="w-full h-auto object-cover object-top transition duration-700 hover:scale-[1.01]"
+                  loading="eager"
+                />
+              </div>
+            </div>
+          </ContainerScroll>
         </section>
 
         {/* PLATFORM INTELLIGENCE BENTO GRID */}
