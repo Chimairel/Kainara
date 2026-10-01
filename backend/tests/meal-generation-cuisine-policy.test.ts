@@ -15,7 +15,6 @@ const promptInput = {
   dietaryPreference: 'OMNIVORE',
   ricePreference: 'FLEXIBLE',
   foodCulture: 'Filipino',
-  planningLocationLabel: 'Cebu City, Central Visayas',
   conditions: ['HYPERTENSION'],
   allergens: ['NUTS'],
   otherConditions: 'Gout',
@@ -58,16 +57,16 @@ test('[TEST-044] cuisine variety remains subordinate to recorded clinical constr
   assert.match(prompt, /Clinical safety always overrides cuisine variety, convenience, cost, or user preference/i);
 });
 
-test('[TEST-195] localized grounding is explicit and requires exact retrieved FNRI identities', () => {
-  const { prompt, systemInstruction } = buildMealGenerationPrompt({
+test('[TEST-195] removed consumption and location inputs cannot enter the generation prompt', () => {
+  const legacyInput = {
     ...promptInput,
     foodReference: '- [FNRI_ID=food-egg] Egg, chicken, whole (155 kcal per 100g)',
-    popularFoodReference: '- [FNRI_ID=food-egg] Egg, chicken, whole (rank 2; scope Cebu City, Central Visayas)',
+    planningLocationLabel: 'Cebu City, Central Visayas',
+    popularFoodReference: 'ENNS regional survey popularity',
     consumptionEvidenceScope: 'Cebu City, Central Visayas',
-  });
-
-  assert.match(prompt, /Meal-planning location: Cebu City, Central Visayas/);
-  assert.match(prompt, /ACTIVE AGGREGATE FOOD-CONSUMPTION EVIDENCE — Cebu City, Central Visayas/);
+  };
+  const { prompt, systemInstruction } = buildMealGenerationPrompt(legacyInput);
+  assert.doesNotMatch(prompt, /ENNS|AGGREGATE FOOD-CONSUMPTION|Cebu City|Meal-planning location/i);
   assert.match(prompt, /copy their exact FNRI_ID values into foodItemId/i);
   assert.match(systemInstruction, /"foodItemId": string \| null/);
   assert.match(systemInstruction, /never invent, shorten, or alter an FNRI ID/i);

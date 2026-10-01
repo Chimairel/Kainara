@@ -13,15 +13,12 @@ export interface MealGenerationPromptInput {
   dietaryPreference: string;
   ricePreference: string;
   foodCulture: string;
-  planningLocationLabel: string;
   conditions: string[];
   allergens: string[];
   otherConditions?: string;
   otherAllergies?: string;
   foodReference: string;
   certifiedMealReference?: string;
-  popularFoodReference?: string;
-  consumptionEvidenceScope?: string;
 }
 
 const RESPONSE_CONTRACT = `
@@ -104,7 +101,6 @@ export function buildMealGenerationPrompt(input: MealGenerationPromptInput): {
     `- Dietary Preference: ${input.dietaryPreference}\n` +
     `- Rice Serving Preference: ${input.ricePreference}\n` +
     `- Preferred Food Culture: ${input.foodCulture} (influence only; this does not restrict the plan to one cuisine)\n\n` +
-    `- Meal-planning location: ${input.planningLocationLabel} (coarse locality for availability and familiarity only)\n\n` +
     `[CLINICAL SAFEGUARDS]\n` +
     `- Medical Conditions: ${conditions}${input.otherConditions ? '; Additional: ' + input.otherConditions : ''}\n` +
     `- Food restrictions to EXCLUDE or REVIEW: ${allergens}${input.otherAllergies ? '; Additional: ' + input.otherAllergies : ''}\n\n` +
@@ -114,10 +110,6 @@ export function buildMealGenerationPrompt(input: MealGenerationPromptInput): {
     (input.certifiedMealReference
       ? `[RETRIEVED NUTRITIONIST-CERTIFIED MEAL PATTERNS]\n${input.certifiedMealReference}\n` +
         `Use these as trusted local meal patterns, but still satisfy the requested slot calorie range and patient profile. Any changed recipe remains pending review.\n\n`
-      : '') +
-    (input.popularFoodReference
-      ? `[ACTIVE AGGREGATE FOOD-CONSUMPTION EVIDENCE — ${input.consumptionEvidenceScope || 'available scope'}]\n${input.popularFoodReference}\n` +
-        `Use this only as an accessibility and familiarity signal. It never overrides the patient profile, clinical safeguards, or calorie ranges.\n\n`
       : '') +
     `Hard Rules:\n` +
     `- Prefer the supplied FNRI records and copy their exact FNRI_ID values into foodItemId. Set foodItemId to null for ingredients outside that retrieved set.\n` +

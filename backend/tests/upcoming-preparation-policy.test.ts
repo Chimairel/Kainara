@@ -26,7 +26,6 @@ test('cleared candidates outrank otherwise equivalent pending candidates without
     ricePreference: RicePreference.WITH_RICE,
     riceRole: RecipeRiceRole.PAIR_WITH_RICE,
     riceRoleReviewStatus: RiceRoleReviewStatus.REVIEWED,
-    localityScore: 2,
     usedInRecentCycle: false,
   } as const;
   const cleared = scorePreparationCandidate({

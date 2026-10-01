@@ -1,55 +1,61 @@
 'use client';
 
-import { useEffect, useState, type FormEvent } from 'react';
+import { useState, type FormEvent } from 'react';
+import { useAuth } from '@/hooks/useAuth';
+import { useSessionQuery } from '@/hooks/useSessionQuery';
 import { Search, Tags } from 'lucide-react';
 import api from '@/lib/axios';
 import Button from '@/components/ui/Button';
 import Card from '@/components/ui/Card';
 import CompositionEditor from './CompositionEditor';
 import Input from '@/components/ui/Input';
-import type { ApiEnvelope, FoodItem, FoodPage } from './types';
+import type { ApiEnvelope, FoodItem, FoodPage, FoodSource } from './types';
 import { getApiError } from './types';
 
 interface FoodCatalogueProps {
-  initialFoods: FoodPage;
-  canonicalFoodCount: number;
+  source: FoodSource;
   onChanged: (message: string) => Promise<void>;
   onError: (message: string) => void;
 }
 
-export default function FoodCatalogue({ canonicalFoodCount, initialFoods, onChanged, onError }: FoodCatalogueProps) {
-  const [result, setResult] = useState(initialFoods);
+export default function FoodCatalogue({ source, onChanged, onError }: FoodCatalogueProps) {
+  const ownerId = useAuth().user?.userId;
   const [search, setSearch] = useState('');
+  const [filter, setFilter] = useState({ search: '', page: 1 });
   const [selected, setSelected] = useState<FoodItem | null>(null);
   const [compositionFood, setCompositionFood] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
-
-  useEffect(() => setResult(initialFoods), [initialFoods]);
+  const label = source === 'FNRI' ? 'FNRI' : 'USDA';
+  const query = useSessionQuery<FoodPage>({
+    ownerId,
+    resource: JSON.stringify(['admin-food-catalogue', source, filter]),
+    fetcher: async () => {
+      const response = await api.get<ApiEnvelope<FoodPage>>('/admin/data/foods', {
+        params: { source, page: filter.page, limit: 12, search: filter.search || undefined },
+      });
+      return response.data.data;
+    },
+    errorMessage: `Could not load the ${label} catalogue.`,
+  });
+  const result = query.data;
+  const loading = query.isLoading;
 
   async function findFoods(event?: FormEvent, page = 1) {
     event?.preventDefault();
-    setLoading(true);
-    try {
-      const response = await api.get<ApiEnvelope<FoodPage>>('/admin/data/foods', {
-        params: { page, limit: initialFoods.limit, search: search || undefined },
-      });
-      setResult(response.data.data);
-    } catch (error) {
-      onError(getApiError(error, 'Could not search the food composition catalogue.'));
-    } finally {
-      setLoading(false);
-    }
+    const next = { search: event ? search.trim() : filter.search, page };
+    if (next.search === filter.search && next.page === filter.page) await query.refetch();
+    else setFilter(next);
   }
 
   async function addAlias(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!selected) return;
     const form = new FormData(event.currentTarget);
+    const formElement = event.currentTarget;
     try {
       await api.post('/admin/data/food-aliases', { foodItemId: selected.id, alias: form.get('alias') });
-      event.currentTarget.reset();
+      formElement.reset();
       setSelected(null);
-      await findFoods(undefined, result.page);
+      await query.refetch();
       await onChanged('Verified alias saved. New imports and food lookup can use it.');
     } catch (error) {
       onError(getApiError(error, 'Could not save the alias.'));
@@ -64,7 +70,7 @@ export default function FoodCatalogue({ canonicalFoodCount, initialFoods, onChan
           foodId={compositionFood}
           onClose={() => setCompositionFood(null)}
           onChanged={async () => {
-            await findFoods(undefined, result.page);
+            await query.refetch();
             await onChanged('Composition correction published; affected meals require review.');
           }}
         />
@@ -74,10 +80,11 @@ export default function FoodCatalogue({ canonicalFoodCount, initialFoods, onChan
           <div className="flex items-center gap-3">
             <Tags className="h-5 w-5 text-brand-green" />
             <div>
-              <h2 className="font-display text-lg font-black">Food composition catalogue and aliases</h2>
+              <h2 className="font-display text-lg font-black">{label} catalogue and aliases</h2>
               <p className="text-xs text-brand-muted">
-                {canonicalFoodCount.toLocaleString()} nutrient records remain canonical; admins may add audited search
-                and import labels.
+                {source === 'USDA_FDC'
+                  ? 'Imported FoodData Central snapshot. Nutrient values are read-only; admins may add audited aliases.'
+                  : 'Philippine food-composition records. Admins may review composition and add audited aliases.'}
               </p>
             </div>
           </div>
@@ -85,7 +92,7 @@ export default function FoodCatalogue({ canonicalFoodCount, initialFoods, onChan
       >
         <form className="flex gap-2" onSubmit={findFoods}>
           <Input
-            label="Search food composition catalogue"
+            label={`Search ${label} catalogue`}
             value={search}
             onChange={(event) => setSearch(event.target.value)}
             placeholder="Search canonical names or aliases"
@@ -95,10 +102,16 @@ export default function FoodCatalogue({ canonicalFoodCount, initialFoods, onChan
           </Button>
         </form>
         <p aria-live="polite" className="mt-3 font-mono text-[10px] uppercase tracking-wider text-brand-muted">
-          {result.total.toLocaleString()} matching records
+          {loading ? 'Loading records…' : result ? `${result.total.toLocaleString()} matching records` : ''}
         </p>
+        {query.error && (
+          <p role="alert" className="mt-3 text-sm text-status-error-text">
+            {query.error}
+          </p>
+        )}
+        {result?.total === 0 && <p className="mt-3 text-sm text-brand-muted">No {label} records match this search.</p>}
         <div className="mt-4 grid gap-3 lg:grid-cols-2">
-          {result.foods.map((food) => (
+          {result?.foods.map((food) => (
             <div key={food.id} className="rounded-[22px] border border-brand-border/55 bg-brand-bgAlt/40 p-4">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
@@ -111,6 +124,16 @@ export default function FoodCatalogue({ canonicalFoodCount, initialFoods, onChan
                   <p className="mt-1 text-[11px] text-brand-muted">
                     {food.calories} kcal · P {food.proteinG} g · C {food.carbsG} g · F {food.fatG} g per 100 g
                   </p>
+                  {food.sourceReferenceUrl && (
+                    <a
+                      href={food.sourceReferenceUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="mt-2 inline-block text-xs text-brand-green hover:underline"
+                    >
+                      View source record
+                    </a>
+                  )}
                 </div>
                 {food.source !== 'USDA_FDC' && (
                   <Button size="sm" variant="ghost" onClick={() => setCompositionFood(food.id)}>
@@ -143,7 +166,7 @@ export default function FoodCatalogue({ canonicalFoodCount, initialFoods, onChan
             </div>
           ))}
         </div>
-        {result.totalPages > 1 && (
+        {result && result.totalPages > 1 && (
           <nav aria-label="Food catalogue pages" className="mt-5 flex items-center justify-between gap-3">
             <Button
               type="button"

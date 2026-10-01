@@ -12,21 +12,19 @@ import DataForms from '@/features/admin-data/DataForms';
 import DataWorkspaceOverview from '@/features/admin-data/DataWorkspaceOverview';
 import FoodCatalogue from '@/features/admin-data/FoodCatalogue';
 import ReleaseOperations from '@/features/admin-data/ReleaseOperations';
-import type { AdminDataSection, ApiEnvelope, DataWorkspace, FoodPage } from '@/features/admin-data/types';
+import type { AdminDataSection, ApiEnvelope, DataWorkspace } from '@/features/admin-data/types';
 import { getApiError } from '@/features/admin-data/types';
 import { useAuth } from '@/hooks/useAuth';
 import { readSessionResource, writeSessionResource } from '@/lib/session-resource-cache';
 
 interface DataSnapshot {
   workspace: DataWorkspace;
-  foods: FoodPage;
 }
 
 export default function AdminDataPage() {
   const ownerId = useAuth().user?.userId;
-  const cached = readSessionResource<DataSnapshot>(ownerId, 'admin-data-workspace');
+  const cached = readSessionResource<DataSnapshot>(ownerId, 'admin-data-workspace-v2');
   const [workspace, setWorkspace] = useState<DataWorkspace | null>(cached?.workspace ?? null);
-  const [foods, setFoods] = useState<FoodPage | null>(cached?.foods ?? null);
   const [loading, setLoading] = useState(!cached);
   const [section, setSection] = useState<AdminDataSection>('overview');
   const [notice, setNotice] = useState<{ tone: 'success' | 'error'; message: string } | null>(null);
@@ -35,14 +33,10 @@ export default function AdminDataPage() {
     async (quiet = false) => {
       if (!quiet) setLoading(true);
       try {
-        const [workspaceResponse, foodsResponse] = await Promise.all([
-          api.get<ApiEnvelope<DataWorkspace>>('/admin/data'),
-          api.get<ApiEnvelope<FoodPage>>('/admin/data/foods', { params: { page: 1, limit: 12 } }),
-        ]);
-        const next = { workspace: workspaceResponse.data.data, foods: foodsResponse.data.data };
+        const workspaceResponse = await api.get<ApiEnvelope<DataWorkspace>>('/admin/data');
+        const next = { workspace: workspaceResponse.data.data };
         setWorkspace(next.workspace);
-        setFoods(next.foods);
-        writeSessionResource(ownerId, 'admin-data-workspace', next);
+        writeSessionResource(ownerId, 'admin-data-workspace-v2', next);
       } catch (error) {
         setNotice({ tone: 'error', message: getApiError(error, 'Could not load the data administration workspace.') });
       } finally {
@@ -71,8 +65,8 @@ export default function AdminDataPage() {
     setNotice({ tone: 'error', message });
   }
 
-  if (loading && (!workspace || !foods)) return <PortalLoadingState message="Loading governed nutrition data..." />;
-  if (!workspace || !foods) {
+  if (loading && !workspace) return <PortalLoadingState message="Loading governed nutrition data..." />;
+  if (!workspace) {
     return (
       <div className="portal-page">
         <p className="rounded-2xl bg-red-500/10 p-5 text-sm text-status-error-text">
@@ -134,6 +128,9 @@ export default function AdminDataPage() {
           <TabsTrigger value="catalogue" className="min-w-fit flex-1 gap-2">
             <BookOpen className="h-4 w-4" /> FNRI catalogue
           </TabsTrigger>
+          <TabsTrigger value="usda-catalogue" className="min-w-fit flex-1 gap-2">
+            <BookOpen className="h-4 w-4" /> USDA catalogue
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview">
@@ -156,12 +153,10 @@ export default function AdminDataPage() {
           />
         </TabsContent>
         <TabsContent value="catalogue">
-          <FoodCatalogue
-            initialFoods={foods}
-            canonicalFoodCount={workspace.summary.foodItems}
-            onChanged={changed}
-            onError={failed}
-          />
+          <FoodCatalogue source="FNRI" onChanged={changed} onError={failed} />
+        </TabsContent>
+        <TabsContent value="usda-catalogue">
+          <FoodCatalogue source="USDA_FDC" onChanged={changed} onError={failed} />
         </TabsContent>
       </Tabs>
     </div>

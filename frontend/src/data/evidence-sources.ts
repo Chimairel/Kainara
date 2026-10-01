@@ -62,16 +62,6 @@ export const EVIDENCE_SOURCES: readonly EvidenceSource[] = Object.freeze([
     href: 'https://enutrition.fnri.dost.gov.ph/',
   },
   {
-    id: 'fnri-enns',
-    name: 'Expanded National Nutrition Survey',
-    shortName: 'DOST-FNRI ENNS',
-    mark: 'ENNS',
-    category: 'PHILIPPINE_NUTRITION',
-    status: 'USED',
-    role: 'When a published consumption release is configured, aggregate evidence can inform coarse locality preferences. It is not an individual diagnosis.',
-    href: 'https://enutrition.fnri.dost.gov.ph/uploads/2018-2019%20Facts%20and%20Figures%20-%20Food%20Consumption%20Survey.pdf',
-  },
-  {
     id: 'usda-fdc',
     name: 'USDA FoodData Central',
     shortName: 'USDA FDC',
@@ -367,7 +357,7 @@ export const CLINICAL_POLICY_SUMMARIES: readonly ClinicalPolicySummary[] = Objec
 ]);
 
 export const EVIDENCE_CATEGORY_LABELS: Readonly<Record<EvidenceSourceCategory, string>> = Object.freeze({
-  PHILIPPINE_NUTRITION: 'Philippine nutrition and consumption data',
+  PHILIPPINE_NUTRITION: 'Philippine nutrition references',
   INTERNATIONAL_FOOD_COMPOSITION: 'International food composition fallback',
   CLINICAL_METHOD: 'Calculation methods and condition guidance',
   SAFETY_GUIDANCE: 'Food and pregnancy safety guidance',
@@ -384,7 +374,6 @@ export const EVIDENCE_STATUS_LABELS: Readonly<Record<EvidenceSourceStatus, strin
 export const SOURCE_PURPOSE_LABELS: Readonly<Record<string, string>> = Object.freeze({
   'fnri-pdri': 'Macronutrient reference ranges',
   'fnri-enutrition': 'Ingredient nutrition references',
-  'fnri-enns': 'Locality data when configured',
   'usda-fdc': 'Food-composition fallback when configured',
   mifflin: 'Resting-energy estimate',
   'panlasang-pinoy': 'Recipe provenance only',

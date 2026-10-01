@@ -77,7 +77,8 @@ export interface FoodItem {
   aliases: FoodAlias[];
 }
 
-export type AdminDataSection = 'overview' | 'sources' | 'imports' | 'catalogue';
+export type AdminDataSection = 'overview' | 'sources' | 'imports' | 'catalogue' | 'usda-catalogue';
+export type FoodSource = 'FNRI' | 'USDA_FDC';
 
 export interface FoodPage {
   foods: FoodItem[];

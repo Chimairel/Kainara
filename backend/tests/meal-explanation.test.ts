@@ -12,10 +12,11 @@ const evidence: MealSelectionEvidence = {
   planningLocationLabel: 'Central Visayas',
   consumptionEvidenceScope: 'Central Visayas',
   consumptionEvidenceRelease: 'FNRI ENNS 2023',
+  rankingReasonCodes: ['CALORIE_FIT', 'LOCALITY_EVIDENCE_MATCH'],
   capturedAt: '2026-09-09T00:00:00.000Z',
 };
 
-test('[TEST-203] meal explanation reports persisted calorie, locality, provenance, and review facts', () => {
+test('[TEST-203] meal explanation reports persisted calorie, provenance, and review facts', () => {
   const result = buildMealExplanation({
     status: 'PENDING_REVIEW',
     aiConfidenceFlag: 'CAUTION',
@@ -33,7 +34,7 @@ test('[TEST-203] meal explanation reports persisted calorie, locality, provenanc
   assert.equal(result.reviewState, 'PENDING_REVIEW');
   assert.equal(result.limitation, undefined);
   assert.ok(result.bullets.some((line) => line.includes('612–828 kcal')));
-  assert.ok(result.bullets.some((line) => line.includes('Central Visayas')));
+  assert.ok(result.bullets.every((line) => !/Central Visayas|ENNS|consumption|locality/i.test(line)));
   assert.ok(result.bullets.some((line) => line.includes('1 of 2 ingredients')));
 });
 
@@ -74,7 +75,7 @@ test('[TEST-205] verified-library meals expose certification and all-FNRI eviden
   assert.ok(result.bullets.some((line) => line.includes('Andrea Reyes')));
 });
 
-test('[TEST-206] catalogue fallback names the planning location', () => {
+test('[TEST-206] catalogue fallback omits removed geography and consumption claims', () => {
   const result = buildMealExplanation({
     status: 'APPROVED',
     aiConfidenceFlag: 'SAFE',
@@ -86,5 +87,5 @@ test('[TEST-206] catalogue fallback names the planning location', () => {
       planningLocationLabel: 'Cebu City',
     },
   });
-  assert.ok(result.bullets.some((line) => line.includes('with cebu city.')));
+  assert.ok(result.bullets.every((line) => !/cebu|consumption|locality/i.test(line)));
 });

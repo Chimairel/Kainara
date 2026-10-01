@@ -16,7 +16,6 @@ export function rankLibraryMeals<
     fatG?: number;
     isFavorite?: boolean;
     alreadyPlannedInCycle?: boolean;
-    localityRank?: number;
     ricePreferenceScore?: number;
   },
 >(
@@ -52,8 +51,6 @@ export function rankLibraryMeals<
         if (macroFit) return macroFit;
         const variety = Number(Boolean(a.alreadyPlannedInCycle)) - Number(Boolean(b.alreadyPlannedInCycle));
         if (variety) return variety;
-        const locality = (a.localityRank ?? Number.MAX_SAFE_INTEGER) - (b.localityRank ?? Number.MAX_SAFE_INTEGER);
-        if (locality) return locality;
         const rice = (b.ricePreferenceScore ?? 0) - (a.ricePreferenceScore ?? 0);
         return rice || a.id.localeCompare(b.id);
       })

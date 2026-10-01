@@ -33,7 +33,6 @@ export interface PreparationCandidateScoreInput {
   ricePreference?: RicePreference | null;
   riceRole?: RecipeRiceRole | null;
   riceRoleReviewStatus?: RiceRoleReviewStatus | null;
-  localityScore?: number;
   usedInRecentCycle?: boolean;
 }
 
@@ -82,7 +81,6 @@ export function scorePreparationCandidate(input: PreparationCandidateScoreInput)
           (input.riceRole === RecipeRiceRole.PAIR_WITH_RICE || input.riceRole === RecipeRiceRole.INCLUDES_RICE)
         : reviewedRiceRole;
   add(riceMatches, 5, 'RICE_PREFERENCE_MATCH');
-  add((input.localityScore ?? 0) > 0, Math.min(5, input.localityScore ?? 0), 'LOCALITY_EVIDENCE_MATCH');
   add(!input.usedInRecentCycle, 4, 'VARIETY_PREFERRED');
 
   return { score: Math.round(score * 1000) / 1000, reasonCodes: reasons };

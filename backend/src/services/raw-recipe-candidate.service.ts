@@ -4,7 +4,6 @@ import {
   isPrimaryMealType,
   type PrimaryMealType,
 } from '@/domain/meal-calorie-allocation.policy';
-import { classifyIngredientIntoEnnsFoodGroup, type EnnsFoodGroupCode } from '@/domain/enns-food-group.policy';
 import { splitCustomRestrictions, validateGeneratedMealCandidate } from '@/domain/generated-meal-validation.policy';
 import { getMaximumAssuranceTier } from '@/domain/assurance-tier.policy';
 import { scorePreparationCandidate, type PreparationRankingReasonCode } from '@/domain/upcoming-preparation.policy';
@@ -49,18 +48,6 @@ function sourceServingDescription(candidate: RankedCandidate): string {
 
 export function normalizeRawRecipeQuantity(value: unknown): number | undefined {
   return typeof value === 'number' && Number.isFinite(value) && value > 0 ? value : undefined;
-}
-
-function candidateLocalityScore(
-  candidate: RecipeCandidateProjection,
-  scores: ReadonlyMap<EnnsFoodGroupCode, number>
-): number {
-  const groups = new Set<EnnsFoodGroupCode>();
-  for (const ingredient of candidate.ingredients) {
-    const group = classifyIngredientIntoEnnsFoodGroup({ name: ingredient.name });
-    if (group) groups.add(group);
-  }
-  return [...groups].reduce((total, group) => total + (scores.get(group) ?? 0), 0);
 }
 
 /** Corpus origin supplies a recipe, never a clinical clearance. */
@@ -190,8 +177,6 @@ export async function sourceRawRecipeCandidates(input: {
   otherAllergies?: string | null;
   reviewFreeBaseOnly?: boolean;
   excludeCandidateIds?: readonly string[];
-  localityFoodGroupScores?: ReadonlyMap<EnnsFoodGroupCode, number>;
-  localityEvidenceText?: string;
   recentCandidateIds?: readonly string[];
 }): Promise<{ meals: SourcedRawRecipeMeal[]; remainingSlots: RawCandidateSlot[] }> {
   if (input.slots.length === 0) return { meals: [], remainingSlots: [] };
@@ -234,10 +219,6 @@ export async function sourceRawRecipeCandidates(input: {
         : 1,
       mealTypeMatch: candidate.applicableMealTypes.includes(mealType),
       riceRole: candidate.riceRole,
-      localityScore: candidateLocalityScore(
-        candidate,
-        input.localityFoodGroupScores ?? new Map<EnnsFoodGroupCode, number>()
-      ),
       usedInRecentCycle: false,
     });
     return { ...scaled, servingScale: servingScale ?? 1, _ranking: ranking };

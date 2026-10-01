@@ -104,7 +104,7 @@ export default function DataForms({ sources, onChanged, onError }: DataFormsProp
         }
       >
         <form className="grid gap-4 sm:grid-cols-2" onSubmit={createSource}>
-          <Input name="code" label="Source code" placeholder="DOST_FNRI_ENNS" required />
+          <Input name="code" label="Source code" placeholder="USDA_FDC" required />
           <Input name="agencyName" label="Agency" placeholder="DOST-FNRI" required />
           <Input
             name="name"
