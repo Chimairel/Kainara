@@ -83,12 +83,31 @@ export default function ProfileWidget({ onClose, className = '' }: ProfileWidget
         onClick={() => handleNavigate(profileHref)}
         className="group relative flex w-full items-center gap-3 rounded-xl p-2.5 text-left transition hover:bg-brand-bgAlt/70 dark:hover:bg-white/[0.06] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-green"
       >
-        <Avatar
-          size="sm"
-          src={user.image}
-          fallbackText={user.name}
-          className="h-9 w-9 rounded-full ring-2 ring-brand-border/60 transition group-hover:ring-brand-green/60 dark:ring-white/10"
-        />
+        {isUser && membership?.enabled && (membership.level === 'TRIAL' || membership.level === 'MEMBER') ? (
+          <div className="relative flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full p-[2px] shadow-xs">
+            <span
+              className="pointer-events-none absolute inset-[-150%] animate-[spin_4s_linear_infinite]"
+              style={{
+                background:
+                  'conic-gradient(from 0deg, #eb6a38 0deg, #f09e6c 90deg, #10b981 180deg, #34d399 270deg, #eb6a38 360deg)',
+              }}
+              aria-hidden="true"
+            />
+            <Avatar
+              size="sm"
+              src={user.image}
+              fallbackText={user.name}
+              className="relative z-10 !h-full !w-full rounded-full"
+            />
+          </div>
+        ) : (
+          <Avatar
+            size="sm"
+            src={user.image}
+            fallbackText={user.name}
+            className="h-9 w-9 rounded-full ring-2 ring-blue-500/40 transition group-hover:ring-blue-500 dark:ring-blue-400/30"
+          />
+        )}
         <div className="min-w-0 flex-1">
           <p className="truncate text-xs font-bold text-brand-text group-hover:text-brand-green dark:text-white/95 dark:group-hover:text-emerald-400">
             {user.name}

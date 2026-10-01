@@ -11,6 +11,7 @@ import KainaraLogo from '@/components/shared/KainaraLogo';
 import MotionActiveIndicator from '@/components/ui/motion/MotionActiveIndicator';
 import { Dock, DockItem, DockIcon, DockLabel, DockAvatar } from '@/components/ui/motion';
 import ProfileWidget from '@/components/ui/ProfileWidget';
+import { useMembership } from '@/features/membership/MembershipProvider';
 
 interface SidebarProps {
   className?: string;
@@ -54,6 +55,12 @@ export const Sidebar: React.FC<SidebarProps> = ({ className = '' }) => {
   const pathname = usePathname();
   const router = useRouter();
   const { user } = useAuth();
+  const { data: membership } = useMembership();
+  const isPro = Boolean(
+    user?.role === 'USER' &&
+    membership?.enabled &&
+    (membership.level === 'TRIAL' || membership.level === 'MEMBER')
+  );
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
   const [pendingHref, setPendingHref] = useState<string | null>(null);
@@ -240,19 +247,37 @@ export const Sidebar: React.FC<SidebarProps> = ({ className = '' }) => {
                 >
                   <DockItem
                     active={profileActive || isProfileMenuOpen}
-                    className={`rounded-full p-0.5 transition-[box-shadow] duration-150 ${
-                      profileActive || isProfileMenuOpen
-                        ? 'ring-2 ring-[#eb6a38] shadow-sm'
-                        : 'hover:ring-2 hover:ring-[#eb6a38]/40'
+                    className={`rounded-full transition-all duration-150 ${
+                      isPro
+                        ? `relative overflow-hidden p-[2.5px] ${
+                            profileActive || isProfileMenuOpen
+                              ? 'shadow-[0_0_14px_rgba(235,106,56,0.6)] scale-105'
+                              : 'hover:shadow-[0_0_10px_rgba(235,106,56,0.4)]'
+                          }`
+                        : `p-0.5 ${
+                            profileActive || isProfileMenuOpen
+                              ? 'ring-2 ring-[#3b82f6] shadow-[0_0_10px_rgba(59,130,246,0.4)]'
+                              : 'hover:ring-2 hover:ring-[#3b82f6]/50'
+                          }`
                     }`}
                   >
-                    <DockLabel>Profile · {user.name}</DockLabel>
+                    {isPro && (
+                      <span
+                        className="pointer-events-none absolute inset-[-150%] animate-[spin_4s_linear_infinite]"
+                        style={{
+                          background:
+                            'conic-gradient(from 0deg, #eb6a38 0deg, #f09e6c 90deg, #10b981 180deg, #34d399 270deg, #eb6a38 360deg)',
+                        }}
+                        aria-hidden="true"
+                      />
+                    )}
+                    <DockLabel>Profile · {user.name}{isPro ? ' (Pro)' : ''}</DockLabel>
                     <DockAvatar>
                       <Avatar
                         size="sm"
                         src={user.image}
                         fallbackText={user.name}
-                        className="!h-full !w-full rounded-full"
+                        className="relative z-10 !h-full !w-full rounded-full ring-1 ring-black/20"
                       />
                     </DockAvatar>
                   </DockItem>
@@ -394,14 +419,50 @@ export const Sidebar: React.FC<SidebarProps> = ({ className = '' }) => {
                 aria-current={profileActive ? 'page' : undefined}
                 className="group relative flex w-full items-center gap-3 rounded-2xl p-2 text-left outline-none transition hover:bg-white/[0.06] focus-visible:ring-2 focus-visible:ring-brand-cyan/70 focus-visible:ring-offset-2 focus-visible:ring-offset-[#07100d]"
               >
-                <Avatar
-                  size="sm"
-                  src={user.image}
-                  fallbackText={user.name}
-                  className="h-9 w-9 rounded-full ring-2 ring-transparent transition-all duration-100 ease-out group-hover:scale-105 group-hover:ring-[#eb6a38]/40"
-                />
+                {isPro ? (
+                  <div
+                    className={`relative flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full p-[2px] transition-all duration-100 ease-out group-hover:scale-105 ${
+                      profileActive || isProfileMenuOpen
+                        ? 'shadow-[0_0_12px_rgba(235,106,56,0.55)]'
+                        : 'group-hover:shadow-[0_0_8px_rgba(235,106,56,0.35)]'
+                    }`}
+                  >
+                    <span
+                      className="pointer-events-none absolute inset-[-150%] animate-[spin_4s_linear_infinite]"
+                      style={{
+                        background:
+                          'conic-gradient(from 0deg, #eb6a38 0deg, #f09e6c 90deg, #10b981 180deg, #34d399 270deg, #eb6a38 360deg)',
+                      }}
+                      aria-hidden="true"
+                    />
+                    <Avatar
+                      size="sm"
+                      src={user.image}
+                      fallbackText={user.name}
+                      className="relative z-10 !h-full !w-full rounded-full ring-1 ring-black/20"
+                    />
+                  </div>
+                ) : (
+                  <Avatar
+                    size="sm"
+                    src={user.image}
+                    fallbackText={user.name}
+                    className={`h-9 w-9 rounded-full ring-2 transition-all duration-100 ease-out group-hover:scale-105 ${
+                      profileActive || isProfileMenuOpen
+                        ? 'ring-[#3b82f6] shadow-[0_0_10px_rgba(59,130,246,0.4)]'
+                        : 'ring-transparent group-hover:ring-[#3b82f6]/50'
+                    }`}
+                  />
+                )}
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-xs font-semibold text-white/90">{user.name}</p>
+                  <div className="flex items-center gap-1.5">
+                    <p className="truncate text-xs font-semibold text-white/90">{user.name}</p>
+                    {isPro && (
+                      <span className="rounded bg-[#082e25] border border-[#10b981]/40 px-1 py-0 text-[8px] font-mono font-bold text-[#f09e6c]">
+                        PRO
+                      </span>
+                    )}
+                  </div>
                   <p className="mt-0.5 truncate font-mono text-[9px] uppercase tracking-wider text-white/35">
                     {user.role}
                   </p>
