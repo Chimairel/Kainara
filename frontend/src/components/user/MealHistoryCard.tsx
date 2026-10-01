@@ -106,7 +106,7 @@ export default function MealHistoryCard({
 
   const foodPlate = (
     <div
-      className={`relative -ml-9 sm:-ml-13 lg:-ml-16 h-28 w-28 sm:h-32 sm:w-32 lg:h-36 lg:w-36 shrink-0 rounded-full p-1.5 sm:p-2 bg-white dark:bg-[#12362c] shadow-[0_14px_32px_-4px_rgba(0,0,0,0.25),0_4px_12px_rgba(0,0,0,0.1)] dark:shadow-[0_18px_40px_rgba(0,0,0,0.7)] ${theme.plateRim} z-20 transition-transform duration-300 group-hover:scale-105`}
+      className={`relative -ml-6 sm:-ml-7 md:-ml-8 h-18 w-18 sm:h-20 sm:w-20 md:h-22 md:w-22 shrink-0 rounded-full p-1 sm:p-1.5 bg-white dark:bg-[#12362c] shadow-[0_10px_24px_-3px_rgba(0,0,0,0.22),0_3px_8px_rgba(0,0,0,0.08)] dark:shadow-[0_12px_28px_rgba(0,0,0,0.65)] ${theme.plateRim} z-20 transition-transform duration-300 group-hover:scale-105`}
     >
       <div className="relative h-full w-full rounded-full overflow-hidden">
         <MealImage
@@ -122,7 +122,7 @@ export default function MealHistoryCard({
 
   return (
     <article
-      className={`dashboard-meal group relative overflow-visible p-4 sm:p-5 ${theme.cardBg} ${theme.borderColor} ${theme.shadow} ${theme.hoverShadow} ${className}`}
+      className={`dashboard-meal group relative overflow-visible py-3 px-3.5 sm:py-3.5 sm:px-4.5 ${theme.cardBg} ${theme.borderColor} ${theme.shadow} ${theme.hoverShadow} ${className}`}
     >
       {/* Primary Card Row */}
       <div
@@ -140,10 +140,10 @@ export default function MealHistoryCard({
       >
         <div className="flex min-w-0 flex-1 items-center">
           {foodPlate}
-          <div className="min-w-0 flex-1 pl-3 sm:pl-4">
+          <div className="min-w-0 flex-1 pl-3 sm:pl-3.5">
             {/* Top Label & Source Badges */}
             <div className="flex items-center gap-2">
-              <span className="block text-xs font-bold uppercase tracking-wider text-white/80">
+              <span className="block text-[11px] font-bold uppercase tracking-wider text-white/80">
                 {mealLabel}
               </span>
               {log.source === 'SYSTEM_GENERATED' && (
@@ -165,7 +165,7 @@ export default function MealHistoryCard({
 
             {/* Meal Title */}
             <h4
-              className={`mt-0.5 block font-display text-base font-bold leading-snug text-white sm:text-lg line-clamp-2 ${
+              className={`mt-0.5 block font-display text-sm sm:text-base font-bold leading-snug text-white line-clamp-1 sm:line-clamp-2 ${
                 isSkipped || isVoided ? 'line-through text-white/60' : ''
               }`}
             >
@@ -173,7 +173,7 @@ export default function MealHistoryCard({
             </h4>
 
             {/* Macro Line */}
-            <span className="mt-1 block text-xs font-medium text-white/90">
+            <span className="mt-0.5 block text-[11px] sm:text-xs font-medium text-white/90">
               <span className="font-bold text-white">{Math.round(log.calories)} kcal</span>
               <span className="mx-1.5">·</span>
               <span className="font-bold text-white">{Math.round(log.proteinG)}g protein</span>
@@ -184,7 +184,7 @@ export default function MealHistoryCard({
             </span>
 
             {/* Subtext / Notes preview */}
-            <div className="mt-1 flex items-center gap-2 text-[11px] text-white/80">
+            <div className="mt-0.5 flex items-center gap-1.5 text-[10.5px] text-white/80">
               {log.notes ? (
                 <span className="flex items-center gap-1 font-medium text-amber-200">
                   <FileText className="h-3 w-3 shrink-0" />
@@ -200,11 +200,11 @@ export default function MealHistoryCard({
         </div>
 
         {/* Right side controls: Status badge at top, Details button at bottom */}
-        <div className="ml-3 flex shrink-0 flex-col items-end justify-between gap-3 self-stretch py-0.5">
-          <div className="flex items-center gap-2">
+        <div className="ml-3 flex shrink-0 flex-col items-end justify-between gap-2.5 self-stretch py-0.5">
+          <div className="flex items-center gap-1.5">
             {hasDelta && log.source === 'USER_SWAPPED' && (
               <span
-                className={`hidden sm:inline-block rounded-full px-2 py-0.5 font-mono text-[10px] font-bold border backdrop-blur-md ${
+                className={`hidden sm:inline-block rounded-full px-2 py-0.5 font-mono text-[9px] font-bold border backdrop-blur-md ${
                   deltaVal > 0
                     ? 'border-amber-300/30 bg-amber-400/25 text-amber-100'
                     : 'border-white/30 bg-white/20 text-white'
@@ -214,7 +214,7 @@ export default function MealHistoryCard({
               </span>
             )}
             <span
-              className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-bold tracking-wide backdrop-blur-md border shadow-xs ${
+              className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold tracking-wide backdrop-blur-md border shadow-xs ${
                 isDone
                   ? 'border-emerald-300/40 bg-emerald-500/35 text-white'
                   : isSkipped
@@ -245,10 +245,10 @@ export default function MealHistoryCard({
             </span>
           </div>
 
-          <span className="inline-flex min-h-8 sm:min-h-9 items-center gap-1.5 rounded-full bg-white/20 hover:bg-white/30 text-white px-3 sm:px-3.5 py-1 text-xs font-bold backdrop-blur-md border border-white/30 shadow-xs transition-all duration-200">
+          <span className="inline-flex min-h-7 sm:min-h-8 items-center gap-1 rounded-full bg-white/20 hover:bg-white/30 text-white px-2.5 sm:px-3 py-1 text-[11px] font-bold backdrop-blur-md border border-white/30 shadow-xs transition-all duration-200">
             <span>{isExpanded ? 'Hide details' : 'Details'}</span>
             <ChevronDown
-              className={`h-3.5 w-3.5 stroke-[2.5] transition-transform duration-200 ${
+              className={`h-3 w-3 stroke-[2.5] transition-transform duration-200 ${
                 isExpanded ? 'rotate-180' : ''
               }`}
             />
@@ -258,31 +258,31 @@ export default function MealHistoryCard({
 
       {/* Expandable Drawer: Notes & Detailed Breakdown */}
       {isExpanded && (
-        <div className="mt-3.5 pl-0 sm:pl-3">
-          <div className="rounded-2xl bg-black/35 backdrop-blur-md p-4 sm:p-5 text-white border border-white/20 shadow-inner space-y-4">
+        <div className="mt-3 pl-0 sm:pl-2">
+          <div className="rounded-2xl bg-black/35 backdrop-blur-md p-3.5 sm:p-4 text-white border border-white/20 shadow-inner space-y-3">
             {/* Macros Detailed Strip */}
             <div className="grid grid-cols-4 gap-2 text-center text-xs">
-              <div className="rounded-xl border border-white/15 bg-white/10 p-2.5 backdrop-blur-sm">
+              <div className="rounded-xl border border-white/15 bg-white/10 p-2 backdrop-blur-sm">
                 <span className="font-mono text-[9px] text-white/70 uppercase tracking-wider block">Calories</span>
-                <span className="font-display font-extrabold text-white sm:text-base">
+                <span className="font-display font-extrabold text-white text-xs sm:text-sm">
                   {Math.round(log.calories)} kcal
                 </span>
               </div>
-              <div className="rounded-xl border border-white/15 bg-white/10 p-2.5 backdrop-blur-sm">
+              <div className="rounded-xl border border-white/15 bg-white/10 p-2 backdrop-blur-sm">
                 <span className="font-mono text-[9px] text-emerald-200 uppercase tracking-wider block">Protein</span>
-                <span className="font-display font-extrabold text-emerald-300 sm:text-base">
+                <span className="font-display font-extrabold text-emerald-300 text-xs sm:text-sm">
                   {Math.round(log.proteinG)}g
                 </span>
               </div>
-              <div className="rounded-xl border border-white/15 bg-white/10 p-2.5 backdrop-blur-sm">
+              <div className="rounded-xl border border-white/15 bg-white/10 p-2 backdrop-blur-sm">
                 <span className="font-mono text-[9px] text-amber-200 uppercase tracking-wider block">Carbs</span>
-                <span className="font-display font-extrabold text-amber-300 sm:text-base">
+                <span className="font-display font-extrabold text-amber-300 text-xs sm:text-sm">
                   {Math.round(log.carbsG)}g
                 </span>
               </div>
-              <div className="rounded-xl border border-white/15 bg-white/10 p-2.5 backdrop-blur-sm">
+              <div className="rounded-xl border border-white/15 bg-white/10 p-2 backdrop-blur-sm">
                 <span className="font-mono text-[9px] text-rose-200 uppercase tracking-wider block">Fat</span>
-                <span className="font-display font-extrabold text-rose-300 sm:text-base">
+                <span className="font-display font-extrabold text-rose-300 text-xs sm:text-sm">
                   {Math.round(log.fatG)}g
                 </span>
               </div>
@@ -290,7 +290,7 @@ export default function MealHistoryCard({
 
             {/* Outside Items list if available */}
             {log.outsideItems && log.outsideItems.length > 0 && (
-              <div className="rounded-xl border border-white/15 bg-white/10 p-3.5 text-xs text-white backdrop-blur-sm">
+              <div className="rounded-xl border border-white/15 bg-white/10 p-3 text-xs text-white backdrop-blur-sm">
                 <p className="font-bold text-white/80 uppercase tracking-wider text-[10px] mb-1.5">
                   Logged Food Items
                 </p>
@@ -681,7 +681,7 @@ export default function MealHistoryCard({
             )}
 
             {/* Note Editor Area */}
-            <div className="rounded-xl border border-white/20 bg-black/25 p-4 shadow-sm backdrop-blur-sm">
+            <div className="rounded-xl border border-white/20 bg-black/25 p-3.5 shadow-sm backdrop-blur-sm">
               <div className="flex items-center justify-between mb-2">
                 <label
                   htmlFor={`meal-note-${log.id}`}
@@ -702,12 +702,12 @@ export default function MealHistoryCard({
                 value={noteInput}
                 onChange={(e) => setNoteInput(e.target.value)}
                 placeholder="Add personal note (e.g. portion adjustment, how you felt, substitutions made)..."
-                className="w-full rounded-xl border border-white/20 bg-white/10 p-3 text-xs text-white placeholder:text-white/50 outline-none transition focus:border-white focus:bg-white/15 resize-none"
+                className="w-full rounded-xl border border-white/20 bg-white/10 p-2.5 text-xs text-white placeholder:text-white/50 outline-none transition focus:border-white focus:bg-white/15 resize-none"
               />
 
               {saveError && <p className="mt-1 text-[11px] font-semibold text-rose-300">{saveError}</p>}
 
-              <div className="mt-3 flex items-center justify-between">
+              <div className="mt-2.5 flex items-center justify-between">
                 {saveSuccess ? (
                   <span className="inline-flex items-center gap-1 text-xs font-bold text-emerald-300 animate-fadeIn">
                     <Check className="h-3.5 w-3.5 stroke-[3]" /> Note saved

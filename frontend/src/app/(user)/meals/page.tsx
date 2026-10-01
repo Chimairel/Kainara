@@ -790,7 +790,7 @@ function WeeklyPlanPageContent() {
                               Log within your 7-day grace window to keep your adherence accurate.
                             </span>
                           </div>
-                          <div className="space-y-2.5">
+                          <div className="space-y-3 pl-6 sm:pl-7 md:pl-8">
                             {unloggedScheduledMeals.map((meal) => (
                               <UnloggedMealCatchUpCard
                                 key={meal.id}
@@ -803,7 +803,7 @@ function WeeklyPlanPageContent() {
                       )}
 
                       {/* Logged Meal Cards List with note editor */}
-                      <div className="space-y-4 pl-7 sm:pl-10 lg:pl-12">
+                      <div className="space-y-3 pl-6 sm:pl-7 md:pl-8">
                         {activeDay.logsList.map((log) => (
                           <MealHistoryCard
                             key={log.id}
@@ -855,7 +855,7 @@ function WeeklyPlanPageContent() {
                             Select whether you ate or skipped these meals to record your intake.
                           </span>
                         </div>
-                        <div className="space-y-2.5">
+                        <div className="space-y-3 pl-6 sm:pl-7 md:pl-8">
                           {unloggedScheduledMeals.map((meal) => (
                             <UnloggedMealCatchUpCard
                               key={meal.id}
