@@ -44,6 +44,8 @@ import { Select } from '@/components/ui/Select';
 import { useProgressWorkspace, type ProgressWorkspaceMode } from '@/features/progress/useProgressWorkspace';
 import { useMembership } from '@/features/membership/MembershipProvider';
 
+import PersonalizationTabs from '@/components/user/PersonalizationTabs';
+
 export function ProgressWorkspace({ mode = 'progress' }: { mode?: ProgressWorkspaceMode }) {
   const { data: membership } = useMembership();
   const {
@@ -144,22 +146,20 @@ export function ProgressWorkspace({ mode = 'progress' }: { mode?: ProgressWorksp
   return (
     <div className="portal-page max-w-5xl text-brand-text">
       {mode !== 'progress' && (
-        <Link href="/profile" className="mb-4 inline-block text-sm font-semibold text-brand-green">
-          ← Profile
-        </Link>
+        <PersonalizationTabs activeTab={mode === 'planning' ? 'planning' : 'health'} />
       )}
       {/* HEADER SECTION */}
       <PortalPageHeader
         icon={mode === 'health' ? Heart : TrendingUp}
         eyebrow={
-          mode === 'planning' ? 'Your preferences' : mode === 'health' ? 'Personal health context' : 'Health trajectory'
+          mode !== 'progress' ? 'Personalization' : 'Health trajectory'
         }
         title={mode === 'planning' ? 'Food & planning' : mode === 'health' ? 'Health & goals' : 'Progress'}
         description={
           mode === 'health'
             ? 'Update your body measurements, goals, conditions and allergies whenever they change.'
             : mode === 'planning'
-              ? 'Choose your food preferences, location and shopping schedule.'
+              ? 'Choose your dietary patterns, rice preferences and shopping schedule.'
               : 'Your weight, daily intake and progress over time.'
         }
         className="mb-6"

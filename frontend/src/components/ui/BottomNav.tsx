@@ -6,6 +6,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import { Activity, Home, Soup, ShoppingCart, User } from 'lucide-react';
 import { Dock, DockItem, DockIcon, DockLabel } from '@/components/ui/motion';
+import ProfileWidget from '@/components/ui/ProfileWidget';
 
 interface BottomNavProps {
   className?: string;
@@ -16,9 +17,11 @@ export const BottomNav: React.FC<BottomNavProps> = ({ className = '' }) => {
   const router = useRouter();
   const { user } = useAuth();
   const [pendingHref, setPendingHref] = useState<string | null>(null);
+  const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
 
   useEffect(() => {
     setPendingHref(null);
+    setIsProfileMenuOpen(false);
   }, [pathname]);
 
   // BottomNav only displays for standard authenticated users in mobile layouts
@@ -47,6 +50,36 @@ export const BottomNav: React.FC<BottomNavProps> = ({ className = '' }) => {
           const isPending = pendingHref === item.href;
           const isActive = isPending || (isSelected && !pendingHref);
           const Icon = item.icon;
+
+          if (item.label === 'Profile') {
+            return (
+              <button
+                key={item.href}
+                type="button"
+                onClick={() => setIsProfileMenuOpen((prev) => !prev)}
+                aria-label={item.label}
+                aria-haspopup="menu"
+                aria-expanded={isProfileMenuOpen}
+                aria-current={isActive || isProfileMenuOpen ? 'page' : undefined}
+                className="outline-none active:scale-95 transition-transform duration-75"
+              >
+                <DockItem
+                  active={isActive || isProfileMenuOpen}
+                  className={`transition-colors duration-200 ${
+                    isActive || isProfileMenuOpen
+                      ? 'bg-[#eb6a38] text-white font-bold shadow-sm'
+                      : 'text-brand-muted hover:text-brand-text hover:bg-brand-bgAlt/80 dark:text-white/70 dark:hover:text-white dark:hover:bg-[#163930]'
+                  }`}
+                >
+                  <DockLabel>{item.label}</DockLabel>
+                  <DockIcon>
+                    <Icon className={isActive || isProfileMenuOpen ? 'stroke-[2.5]' : 'stroke-2'} />
+                  </DockIcon>
+                </DockItem>
+              </button>
+            );
+          }
+
           return (
             <Link
               key={item.href}
@@ -80,6 +113,18 @@ export const BottomNav: React.FC<BottomNavProps> = ({ className = '' }) => {
           );
         })}
       </Dock>
+
+      {isProfileMenuOpen && (
+        <>
+          <div
+            className="fixed inset-0 z-40 bg-black/50 backdrop-blur-xs"
+            onClick={() => setIsProfileMenuOpen(false)}
+          />
+          <div className="fixed bottom-20 right-4 z-50 w-72 max-w-[calc(100vw-32px)]">
+            <ProfileWidget onClose={() => setIsProfileMenuOpen(false)} />
+          </div>
+        </>
+      )}
     </div>
   );
 };

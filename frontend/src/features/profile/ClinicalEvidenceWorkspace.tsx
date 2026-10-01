@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import api from '@/lib/axios';
 import { getApiErrorMessage } from '@/lib/api-error';
 import OnboardingProgressSlider from '@/components/onboarding/OnboardingProgressSlider';
+import PersonalizationTabs from '@/components/user/PersonalizationTabs';
 
 type Requirement = {
   area: string;
@@ -177,12 +178,23 @@ export default function ClinicalEvidenceWorkspace({ mode = 'profile' }: { mode?:
   const areas = workspace?.availableAreas ?? [];
   return (
     <div className={mode === 'onboarding' ? 'mx-auto w-full max-w-2xl space-y-5 select-none my-auto' : 'portal-page max-w-4xl space-y-6'}>
-      {mode === 'onboarding' && <OnboardingProgressSlider currentStep={3} totalSteps={6} />}
-      {mode === 'onboarding'
-        ? <Link href={searchParams.get('from') === 'review' ? '/onboarding/conditions?from=review' : '/onboarding/conditions'} className="text-xs font-semibold text-brand-muted hover:text-brand-text transition-colors flex items-center gap-1.5 w-fit">← Back to medical conditions</Link>
-        : <Link href="/profile/health" className="text-sm font-semibold text-brand-green">← Health & goals</Link>}
+      {mode === 'onboarding' ? (
+        <>
+          <OnboardingProgressSlider currentStep={3} totalSteps={6} />
+          <Link
+            href={searchParams.get('from') === 'review' ? '/onboarding/conditions?from=review' : '/onboarding/conditions'}
+            className="text-xs font-semibold text-brand-muted hover:text-brand-text transition-colors flex items-center gap-1.5 w-fit"
+          >
+            ← Back to medical conditions
+          </Link>
+        </>
+      ) : (
+        <PersonalizationTabs activeTab="clinical-evidence" />
+      )}
       <header>
-        <p className="text-xs font-bold uppercase tracking-widest text-brand-green">Private health context</p>
+        <p className="text-xs font-bold uppercase tracking-widest text-brand-green">
+          {mode === 'onboarding' ? 'Private health context' : 'Personalization'}
+        </p>
         <h1 className="mt-2 font-display text-3xl font-black">{mode === 'onboarding' ? 'Supporting health documents (optional)' : 'Clinical documents'}</h1>
         <p className="mt-2 text-sm text-brand-muted">
           {mode === 'onboarding' ? 'You may upload a relevant record now or continue without one. A nutritionist may ask for documentation before confirming your profile; some declared conditions already require reviewed clinical context before meal planning. ' : ''}

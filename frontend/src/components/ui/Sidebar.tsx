@@ -1,15 +1,16 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { Activity, ArrowUpRight, BookOpen, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
+import { Activity, ArrowUpRight, BookOpen, ChevronUp, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
 import { primaryWorkspaceTools } from '@/lib/workspace-navigation';
 import { useAuth } from '@/hooks/useAuth';
 import Avatar from '@/components/ui/Avatar';
 import KainaraLogo from '@/components/shared/KainaraLogo';
 import MotionActiveIndicator from '@/components/ui/motion/MotionActiveIndicator';
 import { Dock, DockItem, DockIcon, DockLabel, DockAvatar } from '@/components/ui/motion';
+import ProfileWidget from '@/components/ui/ProfileWidget';
 
 interface SidebarProps {
   className?: string;
@@ -65,6 +66,38 @@ export const Sidebar: React.FC<SidebarProps> = ({ className = '' }) => {
   useEffect(() => {
     setPendingHref(null);
   }, [pathname]);
+
+  const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
+  const profileMenuRef = useRef<HTMLDivElement>(null);
+  const collapsedMenuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    setIsProfileMenuOpen(false);
+  }, [pathname]);
+
+  useEffect(() => {
+    if (!isProfileMenuOpen) return;
+    const handlePointerDown = (e: MouseEvent) => {
+      const target = e.target as Node;
+      if (
+        profileMenuRef.current &&
+        !profileMenuRef.current.contains(target) &&
+        collapsedMenuRef.current &&
+        !collapsedMenuRef.current.contains(target)
+      ) {
+        setIsProfileMenuOpen(false);
+      }
+    };
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setIsProfileMenuOpen(false);
+    };
+    document.addEventListener('pointerdown', handlePointerDown);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('pointerdown', handlePointerDown);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isProfileMenuOpen]);
 
   if (!user) return null;
 
@@ -194,32 +227,42 @@ export const Sidebar: React.FC<SidebarProps> = ({ className = '' }) => {
                 </DockItem>
               </a>
 
-              <Link
-                href={profileHref}
-                prefetch={true}
-                onMouseEnter={() => router.prefetch(profileHref)}
-                onTouchStart={() => router.prefetch(profileHref)}
-                aria-label={`Profile: ${user.name}`}
-                aria-current={profileActive ? 'page' : undefined}
-                className="flex shrink-0 items-center justify-center outline-none"
-              >
-                <DockItem
-                  active={profileActive}
-                  className={`rounded-full p-0.5 transition-[box-shadow] duration-150 ${
-                    profileActive ? 'ring-2 ring-[#eb6a38] shadow-sm' : 'hover:ring-2 hover:ring-[#eb6a38]/40'
-                  }`}
+              <div className="relative" ref={collapsedMenuRef}>
+                <button
+                  type="button"
+                  role="link"
+                  onClick={() => setIsProfileMenuOpen((prev) => !prev)}
+                  aria-label={`Profile: ${user.name}`}
+                  aria-haspopup="menu"
+                  aria-expanded={isProfileMenuOpen}
+                  aria-current={profileActive ? 'page' : undefined}
+                  className="flex shrink-0 items-center justify-center outline-none"
                 >
-                  <DockLabel>Profile · {user.name}</DockLabel>
-                  <DockAvatar>
-                    <Avatar
-                      size="sm"
-                      src={user.image}
-                      fallbackText={user.name}
-                      className="!h-full !w-full rounded-full"
-                    />
-                  </DockAvatar>
-                </DockItem>
-              </Link>
+                  <DockItem
+                    active={profileActive || isProfileMenuOpen}
+                    className={`rounded-full p-0.5 transition-[box-shadow] duration-150 ${
+                      profileActive || isProfileMenuOpen
+                        ? 'ring-2 ring-[#eb6a38] shadow-sm'
+                        : 'hover:ring-2 hover:ring-[#eb6a38]/40'
+                    }`}
+                  >
+                    <DockLabel>Profile · {user.name}</DockLabel>
+                    <DockAvatar>
+                      <Avatar
+                        size="sm"
+                        src={user.image}
+                        fallbackText={user.name}
+                        className="!h-full !w-full rounded-full"
+                      />
+                    </DockAvatar>
+                  </DockItem>
+                </button>
+                {isProfileMenuOpen && (
+                  <div className="absolute bottom-0 left-full ml-3 z-50">
+                    <ProfileWidget onClose={() => setIsProfileMenuOpen(false)} />
+                  </div>
+                )}
+              </div>
             </div>
           </Dock>
         </div>
@@ -335,28 +378,41 @@ export const Sidebar: React.FC<SidebarProps> = ({ className = '' }) => {
               <ArrowUpRight className="ml-auto h-3.5 w-3.5 text-white/30 transition-colors group-hover:text-white/70" />
             </a>
 
-            <Link
-              href={profileHref}
-              prefetch={true}
-              onMouseEnter={() => router.prefetch(profileHref)}
-              onTouchStart={() => router.prefetch(profileHref)}
-              aria-label={`Profile: ${user.name}`}
-              aria-current={profileActive ? 'page' : undefined}
-              className="group relative flex items-center gap-3 rounded-2xl p-2 outline-none transition hover:bg-white/[0.06] focus-visible:ring-2 focus-visible:ring-brand-cyan/70 focus-visible:ring-offset-2 focus-visible:ring-offset-[#07100d]"
-            >
-              <Avatar
-                size="sm"
-                src={user.image}
-                fallbackText={user.name}
-                className="h-9 w-9 rounded-full transition-transform duration-100 ease-out group-hover:scale-110"
-              />
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-xs font-semibold text-white/90">{user.name}</p>
-                <p className="mt-0.5 truncate font-mono text-[9px] uppercase tracking-wider text-white/35">
-                  {user.role}
-                </p>
-              </div>
-            </Link>
+            <div className="relative" ref={profileMenuRef}>
+              {isProfileMenuOpen && (
+                <div className="absolute bottom-full left-0 mb-2 z-50 w-full min-w-[270px]">
+                  <ProfileWidget onClose={() => setIsProfileMenuOpen(false)} />
+                </div>
+              )}
+              <button
+                type="button"
+                role="link"
+                onClick={() => setIsProfileMenuOpen((prev) => !prev)}
+                aria-label={`Profile: ${user.name}`}
+                aria-haspopup="menu"
+                aria-expanded={isProfileMenuOpen}
+                aria-current={profileActive ? 'page' : undefined}
+                className="group relative flex w-full items-center gap-3 rounded-2xl p-2 text-left outline-none transition hover:bg-white/[0.06] focus-visible:ring-2 focus-visible:ring-brand-cyan/70 focus-visible:ring-offset-2 focus-visible:ring-offset-[#07100d]"
+              >
+                <Avatar
+                  size="sm"
+                  src={user.image}
+                  fallbackText={user.name}
+                  className="h-9 w-9 rounded-full ring-2 ring-transparent transition-all duration-100 ease-out group-hover:scale-105 group-hover:ring-[#eb6a38]/40"
+                />
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-xs font-semibold text-white/90">{user.name}</p>
+                  <p className="mt-0.5 truncate font-mono text-[9px] uppercase tracking-wider text-white/35">
+                    {user.role}
+                  </p>
+                </div>
+                <ChevronUp
+                  className={`h-4 w-4 text-white/40 transition-transform duration-150 ${
+                    isProfileMenuOpen ? 'rotate-180 text-white/80' : 'group-hover:text-white/60'
+                  }`}
+                />
+              </button>
+            </div>
           </div>
         </>
       )}
