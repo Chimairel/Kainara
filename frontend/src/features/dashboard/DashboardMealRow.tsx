@@ -24,7 +24,7 @@ export interface MealThemeConfig {
   plateRim: string;
 }
 
-const THEMES: Record<string, MealThemeConfig> = {
+export const THEMES: Record<string, MealThemeConfig> = {
   BREAKFAST: {
     // Warm Terracotta Orange (Primary Brand Accent)
     cardBg: 'bg-gradient-to-br from-[#eb6a38] via-[#e25c28] to-[#c74614] dark:from-[#8d3210] dark:via-[#752609] dark:to-[#571b05]',
@@ -59,7 +59,7 @@ const THEMES: Record<string, MealThemeConfig> = {
   },
 };
 
-function getMealTheme(mealType?: string, index = 0): MealThemeConfig {
+export function getMealTheme(mealType?: string | null, index = 0): MealThemeConfig {
   const norm = (mealType || '').toUpperCase();
   if (norm.includes('BREAKFAST')) return THEMES.BREAKFAST;
   if (norm.includes('LUNCH')) return THEMES.LUNCH;

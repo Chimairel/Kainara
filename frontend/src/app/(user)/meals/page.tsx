@@ -803,7 +803,7 @@ function WeeklyPlanPageContent() {
                       )}
 
                       {/* Logged Meal Cards List with note editor */}
-                      <div className="space-y-3">
+                      <div className="space-y-4 pl-7 sm:pl-10 lg:pl-12">
                         {activeDay.logsList.map((log) => (
                           <MealHistoryCard
                             key={log.id}

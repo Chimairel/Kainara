@@ -306,27 +306,27 @@ export default function MealActivityCalendar({
 
   // Color mapping using NutriMind's theme palette:
   // Level 0: Muted sage-gray neutral with crisp border
-  // Level 1 (1 meal): Soft mint emerald (#a7f3d0 / dark #064e3b)
-  // Level 2 (2 meals): Signature forest pine (#08705b / dark #08705b)
-  // Level 3 (3+ meals): Electric lime accent with glow (#b8f45f)
+  // Level 1 (1 meal): Soft mint emerald (#dff6ed / dark #13382c)
+  // Level 2 (2 meals): Vibrant herbal jade (#22997d / dark #0c6b55)
+  // Level 3 (3+ meals): Signature brand forest green (#08705b / dark #10b981)
   const getCellColor = (cell: DayCell) => {
     if (cell.isFuture) {
       return 'border border-dashed border-brand-border/60 bg-[#f4f7f5] opacity-40 cursor-not-allowed dark:border-[#173e33]/50 dark:bg-[#071914] dark:opacity-30';
     }
     if (cell.mealCount === 0) {
-      return 'border border-[#c6d6ce] bg-[#e8efec] hover:border-brand-green/40 hover:bg-[#dce8e0] dark:border-[#173e33] dark:bg-[#0e271f] dark:hover:border-[#f09e6c]/40 dark:hover:bg-[#163930]';
+      return 'border border-[#c6d6ce] bg-[#e8efec] hover:border-brand-green/40 hover:bg-[#dce8e0] dark:border-[#173e33] dark:bg-[#0e271f] dark:hover:border-emerald-500/40 dark:hover:bg-[#163930]';
     }
 
-    // High activity / 3+ meals: NutriMind Electric Lime Glow
+    // High activity / 3+ meals: Signature Forest Pine / Emerald Glow
     if (cell.mealCount >= 3 || cell.totalCalories >= 1800) {
-      return 'border border-[#99db3a] bg-[#b8f45f] text-black font-black shadow-[0_0_10px_rgba(184,244,95,0.7)] dark:border-[#b8f45f] dark:bg-[#b8f45f] dark:text-black dark:shadow-[0_0_12px_rgba(184,244,95,0.75)]';
+      return 'border border-[#065947] bg-[#08705b] text-white font-black shadow-sm shadow-[#08705b]/30 dark:border-[#34d399] dark:bg-[#10b981] dark:text-[#040d0a] dark:shadow-[0_0_10px_rgba(16,185,129,0.35)]';
     }
-    // Moderate activity / 2 meals: NutriMind Forest Pine
+    // Moderate activity / 2 meals: Vibrant Herbal Jade
     if (cell.mealCount === 2 || cell.totalCalories >= 1000) {
-      return 'border border-[#065947] bg-[#08705b] text-white dark:border-[#10b981]/60 dark:bg-[#08705b] dark:text-white';
+      return 'border border-[#3fb398] bg-[#22997d] text-white font-bold dark:border-[#10b981]/60 dark:bg-[#0c6b55] dark:text-white';
     }
-    // Light activity / 1 meal: Soft Mint Emerald
-    return 'border border-[#6ee7b7] bg-[#a7f3d0] text-emerald-950 dark:border-[#065f46] dark:bg-[#064e3b] dark:text-emerald-100';
+    // Light activity / 1 meal: Soft Brand Mint
+    return 'border border-[#a3e5cd] bg-[#dff6ed] text-[#08705b] font-bold dark:border-[#164639] dark:bg-[#13382c] dark:text-[#34d399]';
   };
 
   const renderMonthCard = (monthData: MonthColumnData, isCenter: boolean = false) => {
@@ -457,21 +457,16 @@ export default function MealActivityCalendar({
     >
       {/* Top Header */}
       <div className="flex flex-col gap-4 border-b border-brand-border/60 pb-5 dark:border-[#173e33] sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <div className="flex items-center gap-2">
-            <span className="font-mono text-[9px] font-extrabold uppercase tracking-[0.2em] text-brand-green">
-              Intake timeline
-            </span>
-            <span className="inline-flex items-center gap-1 rounded-full bg-brand-green/10 px-2 py-0.5 text-[9px] font-bold text-brand-green dark:bg-emerald-500/15 dark:text-emerald-400">
-              <Sparkles className="h-2.5 w-2.5" />
-              {timeRange === 'Month'
-                ? `${threeMonthsData.centerMonth.activeDaysCount} active days (month)`
-                : `${totalLoggedDays} active days (${timeRange.toLowerCase()})`}
-            </span>
-          </div>
-          <h3 className="mt-1 font-display text-lg sm:text-xl font-black tracking-tight text-brand-text dark:text-white">
+        <div className="flex items-center gap-2.5 flex-wrap">
+          <h3 className="font-display text-lg sm:text-xl font-black tracking-tight text-brand-text dark:text-white">
             Activity Matrix
           </h3>
+          <span className="inline-flex items-center gap-1 rounded-full bg-brand-green/10 px-2.5 py-0.5 text-[10px] font-bold text-brand-green dark:bg-emerald-500/15 dark:text-emerald-400">
+            <Sparkles className="h-3 w-3" />
+            {timeRange === 'Month'
+              ? `${threeMonthsData.centerMonth.activeDaysCount} active days (month)`
+              : `${totalLoggedDays} active days (${timeRange.toLowerCase()})`}
+          </span>
         </div>
 
         {/* Time Range Filter Pills: Year, Month, Week */}
@@ -724,19 +719,19 @@ export default function MealActivityCalendar({
           <div className="flex items-center gap-1.5 self-end sm:self-auto text-[10px] font-mono text-brand-muted dark:text-white/40">
             <span>Less</span>
             <span
-              className="h-3 w-3 rounded-[3px] border border-[#c6d6ce] bg-[#e8efec] dark:border-[#173e33] dark:bg-[#14221b]"
+              className="h-3 w-3 rounded-[3px] border border-[#c6d6ce] bg-[#e8efec] dark:border-[#173e33] dark:bg-[#0e271f]"
               title="0 meals"
             />
             <span
-              className="h-3 w-3 rounded-[3px] border border-[#6ee7b7] bg-[#a7f3d0] dark:border-[#065f46] dark:bg-[#064e3b]"
+              className="h-3 w-3 rounded-[3px] border border-[#a3e5cd] bg-[#dff6ed] dark:border-[#164639] dark:bg-[#13382c]"
               title="1 meal"
             />
             <span
-              className="h-3 w-3 rounded-[3px] border border-[#065947] bg-[#08705b] dark:border-[#10b981]/60 dark:bg-[#08705b]"
+              className="h-3 w-3 rounded-[3px] border border-[#3fb398] bg-[#22997d] dark:border-[#10b981]/60 dark:bg-[#0c6b55]"
               title="2 meals"
             />
             <span
-              className="h-3 w-3 rounded-[3px] border border-[#99db3a] bg-[#b8f45f] shadow-[0_0_6px_rgba(184,244,95,0.65)] dark:border-[#b8f45f] dark:bg-[#b8f45f]"
+              className="h-3 w-3 rounded-[3px] border border-[#065947] bg-[#08705b] shadow-sm shadow-[#08705b]/30 dark:border-[#34d399] dark:bg-[#10b981]"
               title="3+ meals"
             />
             <span>More</span>
