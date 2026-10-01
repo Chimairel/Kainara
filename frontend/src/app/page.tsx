@@ -348,7 +348,7 @@ export default function Home() {
                     className="group flex min-h-14 items-center justify-center gap-2.5 rounded-2xl border border-emerald-500/20 bg-[#071914] px-8 text-sm font-bold text-white shadow-md transition duration-200 hover:-translate-y-1 hover:border-emerald-400/50 hover:bg-[#0e271f] hover:shadow-lg active:scale-[0.98]"
                   >
                     Documentation
-                    <ArrowUpRight className="h-4 w-4 text-emerald-400 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+                    <ArrowUpRight className="h-4 w-4 text-white transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
                   </Link>
                 </div>
 
@@ -743,7 +743,7 @@ export default function Home() {
                   className="group inline-flex min-h-12 items-center gap-2.5 rounded-2xl border border-emerald-500/20 bg-[#071914] px-7 text-sm font-bold text-white shadow-md transition duration-200 hover:-translate-y-0.5 hover:border-emerald-500/40 hover:bg-[#0e271f] hover:shadow-lg active:scale-[0.98]"
                 >
                   Explore Documentation
-                  <ArrowUpRight className="h-4 w-4 text-emerald-400 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+                  <ArrowUpRight className="h-4 w-4 text-white transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
                 </Link>
               </div>
             </div>
@@ -759,105 +759,105 @@ export default function Home() {
                 <KainaraLogo size={160} variant="multicolor" />
               </div>
 
-              <div className="relative z-10 grid h-full grid-cols-1 gap-4 sm:grid-cols-2">
-                {/* Restrictions & Review - Left Tall Card */}
+              <div className="relative z-10 grid h-full grid-cols-1 gap-1.5 sm:grid-cols-2">
+                {/* Restrictions & Review - Left Tall Card (Emerald Theme) */}
                 <Link
                   href="/docs#clinical-guidelines"
-                  className="group relative flex flex-col justify-between overflow-hidden rounded-[24px] border border-[#173e33] bg-[#091b15]/90 p-6 transition duration-200 hover:border-emerald-500/50 hover:bg-[#0c241d] hover:shadow-[0_8px_30px_rgba(16,185,129,0.12)]"
+                  className="group relative flex flex-col justify-between overflow-hidden rounded-[22px] border border-emerald-500/40 bg-gradient-to-br from-[#0d4d3c] via-[#093a2d] to-[#05281e] p-6 shadow-[0_8px_30px_rgba(8,112,91,0.25)] transition duration-200 hover:border-emerald-400/80 hover:from-[#115a46] hover:to-[#073226] hover:shadow-[0_12px_40px_rgba(16,185,129,0.35)]"
                 >
                   <div className="flex items-center justify-between">
-                    <span className="font-mono text-[9px] font-bold uppercase tracking-[0.16em] text-emerald-400/90">
+                    <span className="font-mono text-[9px] font-bold uppercase tracking-[0.16em] text-emerald-300">
                       Clinical Scope
                     </span>
-                    <div className="flex h-7 w-7 items-center justify-center rounded-lg border border-emerald-500/20 bg-emerald-500/10 text-emerald-400 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:border-emerald-400/40">
+                    <div className="flex h-7 w-7 items-center justify-center rounded-lg border border-emerald-400/30 bg-emerald-400/20 text-emerald-200 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:border-emerald-300 group-hover:bg-emerald-400/30">
                       <ArrowUpRight className="h-3.5 w-3.5" />
                     </div>
                   </div>
 
                   <div className="my-auto py-6">
-                    <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-emerald-500/30 bg-emerald-500/15 text-emerald-400 shadow-[0_0_20px_rgba(16,185,129,0.15)] transition-transform duration-300 group-hover:scale-105">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-emerald-400/40 bg-emerald-400/25 text-emerald-100 shadow-[0_0_24px_rgba(16,185,129,0.3)] transition-transform duration-300 group-hover:scale-105">
                       <ShieldCheck className="h-6 w-6" />
                     </div>
-                    <h3 className="mt-4 font-display text-base font-bold text-white group-hover:text-emerald-300 transition-colors">
+                    <h3 className="mt-4 font-display text-base font-bold text-white group-hover:text-emerald-200 transition-colors">
                       Restrictions & Review
                     </h3>
-                    <p className="mt-2 text-xs leading-5 text-white/60">
+                    <p className="mt-2 text-xs leading-5 text-emerald-100/75">
                       Declared restrictions, profile checks and scoped nutritionist decisions.
                     </p>
                   </div>
 
-                  <div className="flex flex-wrap gap-1.5 border-t border-[#173e33]/70 pt-3">
-                    <span className="rounded-md border border-emerald-500/20 bg-emerald-500/10 px-2 py-0.5 font-mono text-[9px] text-emerald-300">
+                  <div className="flex flex-wrap gap-1.5 border-t border-emerald-500/30 pt-3">
+                    <span className="rounded-md border border-emerald-400/30 bg-emerald-950/60 px-2 py-0.5 font-mono text-[9px] text-emerald-200">
                       Allergies
                     </span>
-                    <span className="rounded-md border border-emerald-500/20 bg-emerald-500/10 px-2 py-0.5 font-mono text-[9px] text-emerald-300">
+                    <span className="rounded-md border border-emerald-400/30 bg-emerald-950/60 px-2 py-0.5 font-mono text-[9px] text-emerald-200">
                       Conditions
                     </span>
-                    <span className="rounded-md border border-emerald-500/20 bg-emerald-500/10 px-2 py-0.5 font-mono text-[9px] text-emerald-300">
+                    <span className="rounded-md border border-emerald-400/30 bg-emerald-950/60 px-2 py-0.5 font-mono text-[9px] text-emerald-200">
                       RND Audit
                     </span>
                   </div>
                 </Link>
 
                 {/* Right Stacked Cards */}
-                <div className="grid gap-4">
-                  {/* Energy & Food References */}
+                <div className="grid gap-1.5">
+                  {/* Energy & Food References (Cyan Theme) */}
                   <Link
                     href="/docs#meal-planning"
-                    className="group relative flex flex-col justify-between rounded-[24px] border border-[#173e33] bg-[#091b15]/90 p-5 transition duration-200 hover:border-brand-cyan/50 hover:bg-[#0c241d] hover:shadow-[0_8px_30px_rgba(6,182,212,0.12)]"
+                    className="group relative flex flex-col justify-between rounded-[22px] border border-cyan-500/40 bg-gradient-to-br from-[#0a4155] via-[#073243] to-[#042431] p-5 shadow-[0_8px_30px_rgba(24,185,210,0.25)] transition duration-200 hover:border-cyan-400/80 hover:from-[#0d4f68] hover:to-[#062c3a] hover:shadow-[0_12px_40px_rgba(6,182,212,0.35)]"
                   >
                     <div>
                       <div className="flex items-center justify-between">
-                        <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-brand-cyan/30 bg-brand-cyan/15 text-brand-cyan transition-transform duration-300 group-hover:scale-105">
+                        <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-cyan-400/40 bg-cyan-400/25 text-cyan-100 shadow-[0_0_20px_rgba(24,185,210,0.3)] transition-transform duration-300 group-hover:scale-105">
                           <Database className="h-5 w-5" />
                         </div>
-                        <div className="flex h-7 w-7 items-center justify-center rounded-lg border border-brand-cyan/20 bg-brand-cyan/10 text-brand-cyan transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:border-brand-cyan/40">
+                        <div className="flex h-7 w-7 items-center justify-center rounded-lg border border-cyan-400/30 bg-cyan-400/20 text-cyan-200 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:border-cyan-300 group-hover:bg-cyan-400/30">
                           <ArrowUpRight className="h-3.5 w-3.5" />
                         </div>
                       </div>
-                      <h3 className="mt-3.5 text-sm font-bold text-white group-hover:text-cyan-300 transition-colors">
+                      <h3 className="mt-3.5 text-sm font-bold text-white group-hover:text-cyan-200 transition-colors">
                         Energy & Food References
                       </h3>
-                      <p className="mt-1 text-[11px] leading-4 text-white/60">
+                      <p className="mt-1 text-[11px] leading-4 text-cyan-100/75">
                         Resting-energy estimates, activity adjustments and ingredient nutrition.
                       </p>
                     </div>
-                    <div className="mt-3 flex flex-wrap gap-1.5 border-t border-[#173e33]/70 pt-2.5">
-                      <span className="rounded-md border border-cyan-500/20 bg-cyan-500/10 px-1.5 py-0.5 font-mono text-[9px] text-cyan-300">
+                    <div className="mt-3 flex flex-wrap gap-1.5 border-t border-cyan-500/30 pt-2.5">
+                      <span className="rounded-md border border-cyan-400/30 bg-cyan-950/60 px-1.5 py-0.5 font-mono text-[9px] text-cyan-200">
                         FNRI FCT
                       </span>
-                      <span className="rounded-md border border-cyan-500/20 bg-cyan-500/10 px-1.5 py-0.5 font-mono text-[9px] text-cyan-300">
+                      <span className="rounded-md border border-cyan-400/30 bg-cyan-950/60 px-1.5 py-0.5 font-mono text-[9px] text-cyan-200">
                         Mifflin-St Jeor
                       </span>
                     </div>
                   </Link>
 
-                  {/* User Guides & FAQs */}
+                  {/* User Guides & FAQs (Terracotta Theme) */}
                   <Link
                     href="/docs#help"
-                    className="group relative flex flex-col justify-between rounded-[24px] border border-[#173e33] bg-[#091b15]/90 p-5 transition duration-200 hover:border-[#f09e6c]/50 hover:bg-[#0c241d] hover:shadow-[0_8px_30px_rgba(240,158,108,0.12)]"
+                    className="group relative flex flex-col justify-between rounded-[22px] border border-[#eb6a38]/40 bg-gradient-to-br from-[#522316] via-[#3d190f] to-[#2b1008] p-5 shadow-[0_8px_30px_rgba(235,106,56,0.25)] transition duration-200 hover:border-[#f09e6c]/80 hover:from-[#662c1c] hover:to-[#3b170e] hover:shadow-[0_12px_40px_rgba(235,106,56,0.35)]"
                   >
                     <div>
                       <div className="flex items-center justify-between">
-                        <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-[#f09e6c]/30 bg-[#f09e6c]/15 text-[#f09e6c] transition-transform duration-300 group-hover:scale-105">
+                        <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-[#f09e6c]/40 bg-[#eb6a38]/25 text-[#ffd1b5] shadow-[0_0_20px_rgba(235,106,56,0.3)] transition-transform duration-300 group-hover:scale-105">
                           <Sparkles className="h-5 w-5" />
                         </div>
-                        <div className="flex h-7 w-7 items-center justify-center rounded-lg border border-[#f09e6c]/20 bg-[#f09e6c]/10 text-[#f09e6c] transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:border-[#f09e6c]/40">
+                        <div className="flex h-7 w-7 items-center justify-center rounded-lg border border-[#f09e6c]/30 bg-[#eb6a38]/20 text-[#ffd1b5] transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:border-[#ffd1b5] group-hover:bg-[#eb6a38]/30">
                           <ArrowUpRight className="h-3.5 w-3.5" />
                         </div>
                       </div>
-                      <h3 className="mt-3.5 text-sm font-bold text-white group-hover:text-[#f09e6c] transition-colors">
+                      <h3 className="mt-3.5 text-sm font-bold text-white group-hover:text-[#ffd1b5] transition-colors">
                         User Guides & FAQs
                       </h3>
-                      <p className="mt-1 text-[11px] leading-4 text-white/60">
+                      <p className="mt-1 text-[11px] leading-4 text-orange-100/75">
                         Starter bridge plans, meal swaps, and grocery lists.
                       </p>
                     </div>
-                    <div className="mt-3 flex flex-wrap gap-1.5 border-t border-[#173e33]/70 pt-2.5">
-                      <span className="rounded-md border border-[#f09e6c]/20 bg-[#f09e6c]/10 px-1.5 py-0.5 font-mono text-[9px] text-[#f09e6c]">
+                    <div className="mt-3 flex flex-wrap gap-1.5 border-t border-[#eb6a38]/30 pt-2.5">
+                      <span className="rounded-md border border-[#f09e6c]/30 bg-[#240e06]/70 px-1.5 py-0.5 font-mono text-[9px] text-[#ffd1b5]">
                         Bridge Plans
                       </span>
-                      <span className="rounded-md border border-[#f09e6c]/20 bg-[#f09e6c]/10 px-1.5 py-0.5 font-mono text-[9px] text-[#f09e6c]">
+                      <span className="rounded-md border border-[#f09e6c]/30 bg-[#240e06]/70 px-1.5 py-0.5 font-mono text-[9px] text-[#ffd1b5]">
                         Meal Swaps
                       </span>
                     </div>
