@@ -1,0 +1,259 @@
+'use client';
+
+import React from 'react';
+import { ArrowUpRight, Check, Sparkles } from 'lucide-react';
+import { motion } from 'motion/react';
+
+import type { Variants } from 'motion/react';
+
+export interface PricingProps {
+  currentLevel?: 'FREE' | 'TRIAL_PENDING' | 'TRIAL' | 'MEMBER' | null;
+  isEnhanced?: boolean;
+  limits?: {
+    freeSwaps: number;
+    freeEstimates: number;
+    memberSwaps: number;
+    memberEstimates: number;
+    memberReplans: number;
+    memberPlanReviews: number;
+    memberOutsideReviews: number;
+  };
+}
+
+export default function Pricing({ currentLevel, isEnhanced, limits }: PricingProps) {
+  const defaultLimits = {
+    freeSwaps: 3,
+    freeEstimates: 2,
+    memberSwaps: 6,
+    memberEstimates: 10,
+    memberReplans: 2,
+    memberPlanReviews: 1,
+    memberOutsideReviews: 1,
+  };
+
+  const l = limits || defaultLimits;
+
+  const cardVariants: Variants = {
+    hidden: {
+      opacity: 0,
+      y: 30,
+    },
+    visible: (index: number) => ({
+      opacity: 1,
+      y: 0,
+      transition: {
+        delay: index * 0.15,
+        duration: 0.5,
+        ease: 'easeInOut',
+      },
+    }),
+  };
+
+  const basicFeatures = [
+    'General weekly plans (no declared conditions or allergies)',
+    `${l.freeSwaps} meal swaps per plan cycle`,
+    `${l.freeEstimates} AI outside-meal estimate requests / week`,
+    'Interactive grocery checklists & manual food logging',
+    'Saved records & historical data export',
+    'Always free health corrections & allergy declarations',
+    'Follow-up and completion of admitted reviews',
+  ];
+
+  const proFeatures = [
+    'Everything in Basic, plus:',
+    `${l.memberSwaps} meal swaps per cycle (${Math.round(l.memberSwaps / l.freeSwaps)}x basic allowance)`,
+    `${l.memberEstimates} AI estimate requests / week (${Math.round(l.memberEstimates / l.freeEstimates)}x allowance)`,
+    `${l.memberReplans} optional AI replans per Manila week`,
+    `${l.memberPlanReviews} case plan-review episode per target week`,
+    `${l.memberOutsideReviews} requested outside-meal review episode / week`,
+    'Progress trajectory, weight analytics & adaptive check-ins',
+    'Discretionary goal, preference and shopping updates',
+  ];
+
+  return (
+    <div className="w-full space-y-6">
+      <div className="flex flex-col gap-2 justify-center items-center text-center">
+        <span className="inline-flex items-center gap-1.5 rounded-full border border-brand-border bg-brand-bgAlt px-3 py-1 font-mono text-[11px] font-bold uppercase tracking-wider text-brand-muted">
+          Plan Tiers
+        </span>
+        <h2 className="font-display text-2xl sm:text-3xl font-bold tracking-tight text-brand-text">
+          Pick the plan that fits your health journey
+        </h2>
+        <p className="max-w-lg text-xs text-brand-muted leading-relaxed">
+          Transparent access designed for cultural Filipino meals, clinical precision, and everyday sustainability.
+        </p>
+      </div>
+
+      <div className="flex flex-col lg:flex-row items-stretch justify-center gap-6 w-full">
+        {/* CARD 1: BASIC */}
+        <motion.div
+          variants={cardVariants}
+          initial="hidden"
+          animate="visible"
+          custom={0}
+          className="w-full flex-1"
+        >
+          <div className="relative flex h-full flex-col justify-between overflow-hidden rounded-3xl border border-brand-border bg-brand-surface p-6 sm:p-8 shadow-xs transition-shadow hover:shadow-sm">
+            <div className="flex flex-col sm:flex-row gap-6 md:gap-8 items-start self-stretch h-full w-full">
+              {/* Left Column */}
+              <div className="flex flex-col items-start justify-between self-stretch gap-6 sm:w-1/2">
+                <div className="flex flex-col gap-3">
+                  <div className="flex items-center gap-2">
+                    <span className="inline-flex items-center rounded-full bg-brand-bgAlt border border-brand-border px-3 py-1 font-mono text-xs font-bold uppercase tracking-wider text-brand-muted">
+                      Basic
+                    </span>
+                    {currentLevel === 'FREE' && (
+                      <span className="rounded-full bg-brand-bgAlt border border-brand-border px-2 py-0.5 text-[10px] font-bold text-brand-text">
+                        Current Plan
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xs font-normal text-brand-muted leading-relaxed">
+                    General meal planning based on your starting intake, grocery checklists, and essential tracking.
+                  </p>
+                </div>
+
+                <div className="flex flex-col gap-3 w-full">
+                  <div>
+                    <div className="flex items-baseline gap-1">
+                      <span className="font-display text-3xl sm:text-4xl font-extrabold text-brand-text">Free</span>
+                      <span className="text-xs font-normal text-brand-muted">/ forever</span>
+                    </div>
+                    <span className="text-[10px] text-brand-muted">Included for every registered account</span>
+                  </div>
+
+                  <div className="relative inline-flex items-center justify-center rounded-full border border-brand-border bg-brand-bgAlt/80 text-brand-muted text-xs font-semibold h-11 px-5 w-fit">
+                    <span>{currentLevel === 'FREE' ? 'Current Active Tier' : 'Included Baseline'}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Divider */}
+              <div className="hidden sm:block w-[1px] self-stretch bg-brand-border/70 shrink-0" />
+              <div className="sm:hidden block h-[1px] w-full bg-brand-border/70 shrink-0" />
+
+              {/* Right Column: Features */}
+              <div className="flex flex-col items-start gap-3 grow sm:w-1/2">
+                <p className="font-display text-sm sm:text-base font-bold text-brand-text">Features</p>
+                <ul className="flex flex-col items-start self-stretch gap-2.5">
+                  {basicFeatures.map((feature, idx) => (
+                    <li key={idx} className="flex items-start gap-2.5 text-xs text-brand-text leading-snug">
+                      <div className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-brand-bgAlt border border-brand-border text-brand-muted mt-0.5">
+                        <Check size={11} strokeWidth={2.5} aria-hidden="true" />
+                      </div>
+                      <span>{feature}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          </div>
+        </motion.div>
+
+        {/* CARD 2: PRO (WITH STRIPES) */}
+        <motion.div
+          variants={cardVariants}
+          initial="hidden"
+          animate="visible"
+          custom={1}
+          className="w-full flex-1"
+        >
+          <div className="relative flex h-full flex-col justify-between overflow-hidden rounded-3xl border-2 border-brand-green/70 dark:border-brand-green/80 bg-brand-surface p-6 sm:p-8 shadow-sm transition-shadow hover:shadow-md">
+            {/* Subtle Diagonal Stripes Texture for Pro */}
+            <div
+              className="pointer-events-none absolute inset-0 rounded-3xl opacity-35 dark:opacity-20"
+              style={{
+                backgroundImage: `repeating-linear-gradient(
+                  -45deg,
+                  rgba(8, 112, 91, 0.12),
+                  rgba(8, 112, 91, 0.12) 12px,
+                  transparent 12px,
+                  transparent 24px
+                )`,
+              }}
+              aria-hidden="true"
+            />
+
+            <div className="relative z-10 flex flex-col sm:flex-row gap-6 md:gap-8 items-start self-stretch h-full w-full">
+              {/* Left Column */}
+              <div className="flex flex-col items-start justify-between self-stretch gap-6 sm:w-1/2">
+                <div className="flex flex-col gap-3">
+                  <div className="flex items-center gap-2">
+                    <span className="inline-flex items-center gap-1 rounded-full bg-brand-green text-white dark:bg-brand-green dark:text-white px-3 py-1 font-mono text-xs font-bold uppercase tracking-wider shadow-xs">
+                      <Sparkles className="h-3 w-3" />
+                      <span>Pro</span>
+                    </span>
+                    {isEnhanced && (
+                      <span className="rounded-full bg-brand-green/15 text-brand-green border border-brand-green/30 px-2 py-0.5 text-[10px] font-bold">
+                        {currentLevel === 'MEMBER' ? 'Active Member' : 'Trial Active'}
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xs font-normal text-brand-muted leading-relaxed">
+                    2x the speed and capabilities. Adaptive weekly replanning, clinical case review, and weight
+                    trajectory.
+                  </p>
+                </div>
+
+                <div className="flex flex-col gap-3 w-full">
+                  <div>
+                    <div className="flex items-baseline gap-1">
+                      <span className="font-display text-3xl sm:text-4xl font-extrabold text-brand-green dark:text-brand-green">
+                        14-Day Trial
+                      </span>
+                      <span className="text-xs font-normal text-brand-muted">/ included</span>
+                    </div>
+                    <span className="text-[10px] text-brand-muted">Full clinical & AI suite for every account</span>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    {/* pricing-01 animated pill button (disabled for policy compliance) */}
+                    <button
+                      type="button"
+                      disabled
+                      aria-label="Purchases opening soon"
+                      className="relative flex items-center justify-between rounded-full bg-brand-green text-white text-xs font-bold h-11 ps-5 pe-12 group transition-all duration-300 w-fit overflow-hidden cursor-not-allowed opacity-90 shadow-sm"
+                    >
+                      <span className="relative z-10">Purchases opening soon</span>
+                      <div className="absolute right-1 w-9 h-9 bg-white/20 text-white rounded-full flex items-center justify-center transition-all duration-300">
+                        <ArrowUpRight size={15} />
+                      </div>
+                    </button>
+                    <p className="text-[10px] text-brand-muted leading-tight">
+                      Pricing and payment setup are being finalized. No charges occur.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Divider */}
+              <div className="hidden sm:block w-[1px] self-stretch bg-brand-border/70 shrink-0" />
+              <div className="sm:hidden block h-[1px] w-full bg-brand-border/70 shrink-0" />
+
+              {/* Right Column: Features */}
+              <div className="flex flex-col items-start gap-3 grow sm:w-1/2">
+                <p className="font-display text-sm sm:text-base font-bold text-brand-text">Features</p>
+                <ul className="flex flex-col items-start self-stretch gap-2.5">
+                  {proFeatures.map((feature, idx) => (
+                    <li key={idx} className="flex items-start gap-2.5 text-xs text-brand-text leading-snug">
+                      <div
+                        className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-full mt-0.5 ${
+                          idx === 0
+                            ? 'bg-transparent text-brand-muted'
+                            : 'bg-brand-green/15 text-brand-green dark:bg-brand-green/20'
+                        }`}
+                      >
+                        <Check size={11} strokeWidth={2.5} aria-hidden="true" />
+                      </div>
+                      <span className={idx === 0 ? 'font-bold text-brand-muted' : 'font-medium'}>{feature}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          </div>
+        </motion.div>
+      </div>
+    </div>
+  );
+}

@@ -5,13 +5,13 @@ import Link from 'next/link';
 import PortalPageHeader from '@/components/shared/PortalPageHeader';
 import Button from '@/components/ui/Button';
 import { useMembership } from '@/features/membership/MembershipProvider';
+import Pricing from '@/components/ui/pricing-01';
 import {
   RefreshCw,
   AlertTriangle,
   Clock,
   ArrowRight,
   CheckCircle2,
-  Check,
   UtensilsCrossed,
   Sparkles,
   RefreshCw as ReplanIcon,
@@ -452,121 +452,7 @@ export default function MembershipPage() {
         aria-labelledby="tab-plans"
         className={activeTab === 'plans' ? 'space-y-6' : 'hidden'}
       >
-        <section className="space-y-4">
-          <div>
-            <h2 className="font-display text-lg font-bold text-brand-text">Compare Plan Tiers</h2>
-            <p className="text-xs text-brand-muted">
-              Transparent allowances across all accounts. No hidden credit tiers, and basic health updates are never
-              locked.
-            </p>
-          </div>
-
-          <div className="grid gap-5 md:grid-cols-2 items-stretch">
-            {/* CARD 1: BASIC PLAN */}
-            <div className="flex flex-col justify-between rounded-2xl border border-brand-border bg-brand-surface p-6 sm:p-7 shadow-xs">
-              <div>
-                <div className="flex items-center justify-between mb-3">
-                  <span className="rounded-full bg-brand-bgAlt border border-brand-border px-2.5 py-0.5 text-[10px] font-mono font-bold uppercase tracking-wider text-brand-muted">
-                    Baseline Access
-                  </span>
-                  {currentLevel === 'FREE' && (
-                    <span className="rounded-full bg-brand-bgAlt border border-brand-border px-2 py-0.5 text-[10px] font-bold text-brand-text">
-                      Current Plan
-                    </span>
-                  )}
-                </div>
-
-                <h3 className="font-display text-xl font-bold text-brand-text">Basic Plan</h3>
-                <p className="mt-1 text-xs text-brand-muted leading-relaxed">
-                  General meal planning based on your starting intake, grocery checklists, and essential tracking.
-                </p>
-
-                <div className="mt-5 space-y-3 border-t border-brand-border/60 pt-5">
-                  {[
-                    'General weekly plans (no declared conditions or allergies)',
-                    '3 meal swaps per plan cycle',
-                    '2 AI outside-meal estimate requests / week',
-                    'Interactive grocery checklists & manual food logging',
-                    'Saved records & historical data export',
-                    'Always free health corrections & allergy declarations',
-                    'Follow-up and completion of admitted reviews',
-                  ].map((feat) => (
-                    <div key={feat} className="flex items-start gap-2.5 text-xs text-brand-text">
-                      <div className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-brand-bgAlt border border-brand-border/70 text-brand-muted mt-0.5">
-                        <Check className="h-2.5 w-2.5" />
-                      </div>
-                      <span>{feat}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div className="mt-7 pt-4 border-t border-brand-border/50">
-                <div className="w-full py-2.5 rounded-xl bg-brand-bgAlt border border-brand-border/60 text-center text-xs font-semibold text-brand-muted">
-                  {currentLevel === 'FREE' ? 'Current Active Tier' : 'Included Baseline'}
-                </div>
-              </div>
-            </div>
-
-            {/* CARD 2: KAINARA MEMBERSHIP */}
-            <div className="flex flex-col justify-between rounded-2xl border-2 border-brand-green/70 dark:border-brand-green/80 bg-brand-surface p-6 sm:p-7 shadow-xs relative">
-              <div>
-                <div className="flex items-center justify-between mb-3">
-                  <span className="rounded-full bg-brand-green/10 text-brand-green border border-brand-green/20 px-2.5 py-0.5 text-[10px] font-mono font-bold uppercase tracking-wider">
-                    Full Clinical & AI Suite
-                  </span>
-                  {isEnhanced && (
-                    <span className="rounded-full bg-brand-green text-white px-2 py-0.5 text-[10px] font-bold">
-                      {currentLevel === 'MEMBER' ? 'Active Member' : 'Trial Active'}
-                    </span>
-                  )}
-                </div>
-
-                <h3 className="font-display text-xl font-bold text-brand-text flex items-center gap-1.5">
-                  <span>KAINARA Membership</span>
-                  <Sparkles className="h-4 w-4 text-brand-accent" />
-                </h3>
-                <p className="mt-1 text-xs text-brand-muted leading-relaxed">
-                  Adaptive weekly replanning, clinical case review, weight trajectory insights, and expanded allowances.
-                </p>
-
-                <div className="mt-5 space-y-3 border-t border-brand-border/60 pt-5">
-                  {[
-                    'Everything in Basic, plus:',
-                    `6 meal swaps per cycle (${limits.memberSwaps / limits.freeSwaps}x basic allowance)`,
-                    `${limits.memberEstimates} AI estimate requests / week (${limits.memberEstimates / limits.freeEstimates}x allowance)`,
-                    `${limits.memberReplans} optional AI replans per Manila week`,
-                    `${limits.memberPlanReviews} case plan-review episode per target week`,
-                    `${limits.memberOutsideReviews} requested outside-meal review episode / week`,
-                    'Progress trajectory, weight analytics & adaptive check-ins',
-                    'Discretionary goal, preference and shopping updates',
-                  ].map((feat, idx) => (
-                    <div key={feat} className="flex items-start gap-2.5 text-xs text-brand-text">
-                      <div
-                        className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-full mt-0.5 ${
-                          idx === 0 ? 'bg-transparent text-brand-muted' : 'bg-brand-green/15 text-brand-green'
-                        }`}
-                      >
-                        <Check className="h-2.5 w-2.5 stroke-[2.5]" />
-                      </div>
-                      <span className={idx === 0 ? 'font-bold text-brand-muted' : 'font-medium'}>{feat}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div className="mt-7 pt-4 border-t border-brand-border/50">
-                <Button disabled className="w-full py-2.5 text-xs font-semibold rounded-xl">
-                  Purchases opening soon
-                </Button>
-                <p className="mt-2 text-center text-[10px] text-brand-muted leading-relaxed">
-                  Pricing and payment setup are being finalized. No payment details are collected and no automatic
-                  charges occur.
-                </p>
-              </div>
-            </div>
-          </div>
-        </section>
+        <Pricing currentLevel={currentLevel} isEnhanced={isEnhanced} limits={limits} />
 
         {/* CLINICAL SAFETY REASSURANCE */}
         <section className="rounded-2xl border border-brand-border bg-brand-surface p-5 sm:p-6 shadow-xs space-y-3">
