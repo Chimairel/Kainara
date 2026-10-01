@@ -1,6 +1,5 @@
 'use client';
 
-import Button from '@/components/ui/Button';
 import { getManilaDateKey } from '@/lib/manila-date';
 import { getMealBannerTheme } from '@/lib/meal-banner-theme';
 import { cookingAction } from '@/lib/meal-cooking-link';
@@ -17,11 +16,9 @@ import type { LucideProps } from 'lucide-react';
 import {
   AlertCircle,
   Apple,
-  CalendarDays,
   Check,
   Clock3,
   Coffee,
-  ExternalLink,
   Flame,
   Info,
   Moon,
@@ -177,17 +174,6 @@ export default function MealCard({
   const isSkipped = mealLogs.some((l) => l.status === 'SKIPPED');
   const isUnloggedPastMeal = isPastDate && !isCompleted && !isSkipped;
   const isLogged = isCompleted || isSkipped;
-
-  const formattedScheduledDate = React.useMemo(() => {
-    if (!scheduledDate) return null;
-    const d = new Date(scheduledDate);
-    if (isNaN(d.getTime())) return String(scheduledDate);
-    return d.toLocaleDateString('en-US', {
-      weekday: 'short',
-      month: 'short',
-      day: 'numeric',
-    });
-  }, [scheduledDate]);
 
   const proteinKcal = proteinG * 4;
   const carbsKcal = carbsG * 4;
@@ -380,7 +366,7 @@ export default function MealCard({
                   className="relative z-10 my-auto w-full max-w-2xl overflow-hidden rounded-[28px] sm:rounded-[32px] border border-white/20 dark:border-white/10 bg-brand-surface shadow-[0_25px_70px_rgba(0,0,0,0.45)] dark:shadow-[0_25px_80px_rgba(0,0,0,0.85)] max-h-[92vh] flex flex-col text-left select-none ring-1 ring-black/5 dark:ring-white/5"
                 >
                   {/* Hero Image Container */}
-                  <div className="relative h-60 sm:h-72 w-full shrink-0 overflow-hidden bg-black/40">
+                  <div className="relative min-h-[268px] sm:min-h-[296px] h-68 sm:h-76 w-full shrink-0 overflow-hidden bg-black/40">
                     <motion.div layoutId={`image-wrap-${layoutId}`} className="h-full w-full">
                       <MealImage
                         image={image}
@@ -394,7 +380,7 @@ export default function MealCard({
 
                     {/* Gradient overlays for contrast & seamless blending */}
                     <div className="absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-black/80 via-black/40 to-transparent pointer-events-none" />
-                    <div className="absolute inset-x-0 bottom-0 h-36 bg-gradient-to-t from-black/90 via-black/55 to-transparent pointer-events-none" />
+                    <div className="absolute inset-x-0 bottom-0 h-44 sm:h-48 bg-gradient-to-t from-black/95 via-black/65 to-transparent pointer-events-none" />
 
                     {/* Top Floating Bar */}
                     <div className="absolute top-3.5 inset-x-3.5 sm:top-4 sm:inset-x-4 flex items-center justify-between z-20">
@@ -451,32 +437,87 @@ export default function MealCard({
                       </button>
                     </div>
 
-                    {/* Bottom Title & Meta Overlay */}
+                    {/* Bottom Title & Action Buttons Overlay */}
                     <div className="absolute bottom-3.5 inset-x-4 sm:bottom-4 sm:inset-x-6 z-20">
                       <h3 className="text-xl sm:text-2xl md:text-3xl font-black font-display text-white tracking-tight leading-tight drop-shadow-[0_2px_10px_rgba(0,0,0,0.8)] line-clamp-2">
                         {mealName}
                       </h3>
-                      <div className="mt-2 flex flex-wrap items-center gap-2">
-                        <span className="inline-flex items-center gap-1.5 rounded-full bg-white/20 backdrop-blur-md px-2.5 py-0.5 text-xs font-bold text-white border border-white/25 shadow-xs">
-                          <Flame className="h-3.5 w-3.5 text-amber-300" />
-                          {Math.round(calories)} kcal Total Energy
-                        </span>
-                        {formattedScheduledDate && (
-                          <span className="inline-flex items-center gap-1 rounded-full bg-black/40 backdrop-blur-md px-2.5 py-0.5 text-xs font-semibold text-white/90 border border-white/15 shadow-xs">
-                            <CalendarDays className="h-3 w-3 text-brand-green" />
-                            {formattedScheduledDate}
-                          </span>
-                        )}
-                        {image?.attribution.sourcePageUrl && (
-                          <a
-                            href={image.attribution.sourcePageUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1 rounded-full bg-black/40 hover:bg-black/70 backdrop-blur-md px-2.5 py-0.5 text-[11px] font-semibold text-emerald-300 hover:text-emerald-200 border border-emerald-400/30 transition-colors shadow-xs"
-                          >
-                            <span>View image source</span>
-                            <ExternalLink className="h-2.5 w-2.5" />
-                          </a>
+                      <div className="mt-2.5 sm:mt-3 flex flex-wrap items-center gap-2">
+                        {!isLogged ? (
+                          <>
+                            {/* Primary: Mark as Eaten */}
+                            <button
+                              type="button"
+                              onClick={() => handleCheckedChange(true)}
+                              disabled={isUpdating || isPastGracePeriod || isFutureDate}
+                              aria-label="Mark as eaten"
+                              className="inline-flex items-center justify-center gap-1.5 rounded-2xl bg-gradient-to-r from-[#eb6a38] via-[#ed7847] to-[#f09e6c] px-3.5 py-2 text-xs font-extrabold text-white shadow-md shadow-black/40 hover:brightness-110 active:scale-95 border border-[#eb6a38]/60 transition-all disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+                            >
+                              <Check className="h-3.5 w-3.5 stroke-[3]" />
+                              <span>Mark as Eaten</span>
+                            </button>
+
+                            {/* Secondary: Swap */}
+                            {onSwapClick && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setIsOpen(false);
+                                  onSwapClick(id);
+                                }}
+                                disabled={isPastDate}
+                                aria-label="Swap meal"
+                                className="inline-flex items-center justify-center gap-1.5 rounded-2xl bg-white/15 hover:bg-white/25 text-white px-3.5 py-2 text-xs font-bold backdrop-blur-md border border-white/25 hover:border-white/40 shadow-md shadow-black/30 active:scale-95 transition-all disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+                                title={isPastDate ? 'Past scheduled meals cannot be swapped.' : undefined}
+                              >
+                                <RefreshCw className="h-3.5 w-3.5 text-white/90 animate-spin-hover" />
+                                <span>Swap Meal</span>
+                              </button>
+                            )}
+
+                            {/* Destructive: Skip */}
+                            <button
+                              type="button"
+                              onClick={handleSkipMeal}
+                              disabled={isUpdating || isPastGracePeriod || isFutureDate}
+                              aria-label="Skip meal"
+                              className="inline-flex items-center justify-center gap-1.5 rounded-2xl bg-red-500/20 hover:bg-red-500/35 text-red-200 hover:text-white px-3.5 py-2 text-xs font-bold backdrop-blur-md border border-red-400/30 hover:border-red-400/50 shadow-md shadow-black/30 active:scale-95 transition-all disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+                            >
+                              <X className="h-3.5 w-3.5 stroke-[2.5]" />
+                              <span>Skip Meal</span>
+                            </button>
+                          </>
+                        ) : (
+                          <>
+                            {/* If logged, show Reset Status button */}
+                            <button
+                              type="button"
+                              onClick={() => handleCheckedChange(false)}
+                              disabled={isUpdating || isPastGracePeriod || isFutureDate}
+                              aria-label="Reset meal status"
+                              className="inline-flex items-center justify-center gap-1.5 rounded-2xl bg-amber-500/25 hover:bg-amber-500/40 text-amber-200 hover:text-white px-3.5 py-2 text-xs font-bold backdrop-blur-md border border-amber-400/40 shadow-md shadow-black/30 active:scale-95 transition-all disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+                            >
+                              <RefreshCw className="h-3.5 w-3.5 mr-1 text-amber-300" />
+                              <span>Reset Status ({isCompleted ? 'Eaten' : 'Skipped'})</span>
+                            </button>
+
+                            {onSwapClick && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setIsOpen(false);
+                                  onSwapClick(id);
+                                }}
+                                disabled={isPastDate}
+                                aria-label="Swap meal"
+                                className="inline-flex items-center justify-center gap-1.5 rounded-2xl bg-white/15 hover:bg-white/25 text-white px-3.5 py-2 text-xs font-bold backdrop-blur-md border border-white/25 hover:border-white/40 shadow-md shadow-black/30 active:scale-95 transition-all disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+                                title={isPastDate ? 'Past scheduled meals cannot be swapped.' : undefined}
+                              >
+                                <RefreshCw className="h-3.5 w-3.5 text-white/90 animate-spin-hover" />
+                                <span>Swap Meal</span>
+                              </button>
+                            )}
+                          </>
                         )}
                       </div>
                     </div>
@@ -488,8 +529,28 @@ export default function MealCard({
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
                     transition={{ duration: 0.15 }}
-                    className="p-5 sm:p-7 overflow-y-auto custom-scrollbar flex-1 flex flex-col gap-5"
+                    className="p-5 sm:p-7 pb-8 sm:pb-9 overflow-y-auto custom-scrollbar flex-1 flex flex-col gap-5"
                   >
+                    {/* Notice Banners */}
+                    {isUnloggedPastMeal && !isPastGracePeriod && (
+                      <div className="p-3 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-xs text-amber-700 dark:text-amber-300 font-semibold flex items-center gap-2">
+                        <Clock3 className="h-4 w-4 shrink-0" />
+                        <span>
+                          Missed this meal? You can still catch up and record whether you ate or skipped it.
+                        </span>
+                      </div>
+                    )}
+                    {isPastGracePeriod && (
+                      <div className="p-3 rounded-2xl bg-red-500/10 border border-red-500/20 text-xs text-red-600 dark:text-red-400 font-semibold flex items-center gap-2">
+                        <AlertCircle className="h-4 w-4 shrink-0" />
+                        <span>The 7-day logging grace period for this scheduled meal has passed.</span>
+                      </div>
+                    )}
+                    {isFutureDate && (
+                      <p className="rounded-2xl border border-brand-border/60 bg-brand-bgAlt/40 p-3 text-xs text-brand-muted">
+                        This meal can be viewed or swapped now. Record it on its scheduled date.
+                      </p>
+                    )}
                     {/* Premium Macro Breakdown Cockpit */}
                     <div className="rounded-2xl sm:rounded-3xl border border-brand-border/70 bg-gradient-to-b from-brand-surface to-brand-bgAlt/50 p-4 sm:p-5 shadow-xs">
                       <div className="flex items-center justify-between gap-3 mb-3">
@@ -767,79 +828,6 @@ export default function MealCard({
                         </span>
                       </div>
                     )}
-
-                    {/* Sticky Action Footer */}
-                    <div className="sticky bottom-0 z-20 -mx-5 -mb-5 sm:-mx-7 sm:-mb-7 p-4 sm:p-5 bg-brand-surface/95 dark:bg-[#071914]/95 backdrop-blur-md border-t border-brand-border/80 shadow-lg mt-2">
-                      {isUnloggedPastMeal && !isPastGracePeriod && (
-                        <div className="mb-3 p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-xs text-amber-700 dark:text-amber-300 font-semibold flex items-center gap-2">
-                          <Clock3 className="h-4 w-4 shrink-0" />
-                          <span>
-                            Missed this meal? You can still catch up and record whether you ate or skipped it.
-                          </span>
-                        </div>
-                      )}
-                      {isPastGracePeriod && (
-                        <div className="mb-3 p-2.5 rounded-xl bg-red-500/10 border border-red-500/20 text-xs text-red-600 dark:text-red-400 font-semibold flex items-center gap-2">
-                          <AlertCircle className="h-4 w-4 shrink-0" />
-                          <span>The 7-day logging grace period for this scheduled meal has passed.</span>
-                        </div>
-                      )}
-                      {isFutureDate && (
-                        <p className="mb-3 text-xs text-brand-muted">
-                          This meal can be viewed or swapped now. Record it on its scheduled date.
-                        </p>
-                      )}
-                      {!isLogged ? (
-                        <div className="flex flex-col gap-2.5">
-                          {/* Primary: Mark as Eaten */}
-                          <Button
-                            variant="primary"
-                            onClick={() => handleCheckedChange(true)}
-                            disabled={isUpdating || isPastGracePeriod || isFutureDate}
-                            className="w-full font-bold py-3 text-xs sm:text-sm flex items-center justify-center gap-2 shadow-md hover:shadow-lg transition-all"
-                          >
-                            <Check className="h-4 w-4 stroke-[3]" />
-                            Mark as Eaten
-                          </Button>
-
-                          {/* Secondary: Swap and Skip side-by-side */}
-                          <div className="flex gap-2.5">
-                            {onSwapClick && (
-                              <Button
-                                variant="secondary"
-                                onClick={() => {
-                                  setIsOpen(false);
-                                  onSwapClick(id);
-                                }}
-                                disabled={isPastDate}
-                                className="flex-1 font-bold text-xs py-2.5 h-10 border-brand-border flex items-center justify-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed"
-                                title={isPastDate ? 'Past scheduled meals cannot be swapped.' : undefined}
-                              >
-                                <RefreshCw className="h-3.5 w-3.5 animate-spin-hover" /> Swap Meal
-                              </Button>
-                            )}
-                            <Button
-                              variant="ghost"
-                              onClick={handleSkipMeal}
-                              disabled={isUpdating || isPastGracePeriod || isFutureDate}
-                              className="flex-1 font-bold text-xs py-2.5 h-10 bg-red-500/10 border border-red-500/25 text-red-500 hover:bg-red-600 hover:text-white transition-colors"
-                            >
-                              <X className="h-3.5 w-3.5" /> Skip Meal
-                            </Button>
-                          </div>
-                        </div>
-                      ) : (
-                        /* If logged, show Reset Status button */
-                        <Button
-                          variant="secondary"
-                          onClick={() => handleCheckedChange(false)}
-                          disabled={isUpdating || isPastGracePeriod || isFutureDate}
-                          className="w-full font-bold py-3 text-xs sm:text-sm border-amber-500/30 text-amber-600 dark:text-amber-400 bg-amber-500/10 hover:bg-amber-500/20 hover:border-amber-500/50 shadow-xs"
-                        >
-                          <RefreshCw className="h-3.5 w-3.5 mr-2" /> Reset Meal Status
-                        </Button>
-                      )}
-                    </div>
                   </motion.div>
                 </motion.div>
               </div>
