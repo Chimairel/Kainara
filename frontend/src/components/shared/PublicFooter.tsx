@@ -12,6 +12,51 @@ import {
 import KainaraLogo from '@/components/shared/KainaraLogo';
 import { SectionWaveBorderTop } from '@/components/landing/LandingWaveRiver';
 
+const footerBrandLetters = [
+  {
+    char: 'K',
+    hoverGradient: 'group-hover/footer:from-emerald-400 group-hover/footer:via-emerald-500/80 group-hover/footer:to-emerald-950/20',
+    hoverGlow: 'group-hover/footer:drop-shadow-[0_0_35px_rgba(16,185,129,0.55)]',
+    delay: 'delay-[0ms]',
+  },
+  {
+    char: 'A',
+    hoverGradient: 'group-hover/footer:from-[#f5b287] group-hover/footer:via-[#f09e6c]/80 group-hover/footer:to-amber-950/20',
+    hoverGlow: 'group-hover/footer:drop-shadow-[0_0_35px_rgba(240,158,108,0.55)]',
+    delay: 'delay-[60ms]',
+  },
+  {
+    char: 'I',
+    hoverGradient: 'group-hover/footer:from-[#ff7a45] group-hover/footer:via-[#eb6a38]/80 group-hover/footer:to-rose-950/20',
+    hoverGlow: 'group-hover/footer:drop-shadow-[0_0_35px_rgba(235,106,56,0.55)]',
+    delay: 'delay-[120ms]',
+  },
+  {
+    char: 'N',
+    hoverGradient: 'group-hover/footer:from-cyan-300 group-hover/footer:via-cyan-500/80 group-hover/footer:to-blue-950/20',
+    hoverGlow: 'group-hover/footer:drop-shadow-[0_0_35px_rgba(24,185,210,0.55)]',
+    delay: 'delay-[180ms]',
+  },
+  {
+    char: 'A',
+    hoverGradient: 'group-hover/footer:from-teal-300 group-hover/footer:via-emerald-500/80 group-hover/footer:to-teal-950/20',
+    hoverGlow: 'group-hover/footer:drop-shadow-[0_0_35px_rgba(52,211,153,0.55)]',
+    delay: 'delay-[240ms]',
+  },
+  {
+    char: 'R',
+    hoverGradient: 'group-hover/footer:from-amber-300 group-hover/footer:via-[#f09e6c]/80 group-hover/footer:to-amber-950/20',
+    hoverGlow: 'group-hover/footer:drop-shadow-[0_0_35px_rgba(240,158,108,0.55)]',
+    delay: 'delay-[300ms]',
+  },
+  {
+    char: 'A',
+    hoverGradient: 'group-hover/footer:from-[#ff6b3d] group-hover/footer:via-[#eb6a38]/80 group-hover/footer:to-orange-950/20',
+    hoverGlow: 'group-hover/footer:drop-shadow-[0_0_35px_rgba(235,106,56,0.55)]',
+    delay: 'delay-[360ms]',
+  },
+];
+
 export default function PublicFooter() {
   return (
     <div className="relative z-10">
@@ -19,7 +64,7 @@ export default function PublicFooter() {
       <SectionWaveBorderTop />
 
       {/* Dark Pine Footer Body (no bottom border) */}
-      <footer className="relative bg-[#071914] text-white pt-10 sm:pt-14 overflow-hidden">
+      <footer className="group/footer relative bg-[#071914] text-white pt-10 sm:pt-14 overflow-hidden">
         {/* Ambient Glows */}
         <div className="pointer-events-none absolute -left-20 top-1/4 h-96 w-96 rounded-full bg-emerald-500/10 blur-[130px]" />
         <div className="pointer-events-none absolute -right-20 top-1/3 h-96 w-96 rounded-full bg-brand-cyan/10 blur-[130px]" />
@@ -29,10 +74,8 @@ export default function PublicFooter() {
           <div className="grid grid-cols-1 gap-10 md:grid-cols-2 lg:grid-cols-[1.3fr_0.9fr_1fr_1fr_1.3fr] lg:gap-8 pb-12 border-b border-[#173e33]">
             {/* Column 1: Brand & Council Credential */}
             <div>
-              <div className="flex items-center gap-3">
-                <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-emerald-500/30 bg-[#0e271f] shadow-md">
-                  <KainaraLogo size={32} variant="multicolor" />
-                </div>
+              <div className="flex items-center gap-3.5">
+                <KainaraLogo size={52} variant="multicolor" className="shrink-0 transition-transform duration-300 hover:scale-105" />
                 <div>
                   <span className="font-display font-black text-2xl tracking-tight text-white block">
                     KAINARA
@@ -147,7 +190,7 @@ export default function PublicFooter() {
                   </span>
                   <div>
                     <p className="font-bold text-white">Clinical Operations</p>
-                    <p className="text-white/60 mt-0.5">Metro Manila, Philippines</p>
+                    <p className="text-white/60 mt-0.5">Cebu, Philippines</p>
                   </div>
                 </div>
 
@@ -210,15 +253,20 @@ export default function PublicFooter() {
           </div>
         </div>
 
-        {/* Giant Half-Shown KAINARA Display Text */}
+        {/* Giant Half-Shown KAINARA Display Text with Interactive Wave Lift & Staggered Theme Colors on Hover */}
         <div
           aria-hidden="true"
           className="pointer-events-none relative w-full overflow-hidden select-none -mb-[6.5vw] sm:-mb-[7.5vw] lg:-mb-[8.5vw] mt-2 sm:mt-4"
         >
-          <div className="flex justify-center">
-            <span className="font-display font-black tracking-[-0.04em] uppercase text-[17vw] sm:text-[18vw] lg:text-[19vw] leading-[0.72] text-transparent bg-gradient-to-b from-white/[0.13] via-white/[0.04] to-transparent bg-clip-text select-none block">
-              KAINARA
-            </span>
+          <div className="flex justify-center select-none font-display font-black tracking-[-0.035em] uppercase text-[17vw] sm:text-[18vw] lg:text-[19vw] leading-[0.72]">
+            {footerBrandLetters.map((item, index) => (
+              <span
+                key={`${item.char}-${index}`}
+                className={`inline-block text-transparent bg-clip-text bg-gradient-to-b from-white/[0.13] via-white/[0.04] to-transparent transition-all duration-700 ease-out transform translate-y-0 group-hover/footer:-translate-y-4 sm:group-hover/footer:-translate-y-6 lg:group-hover/footer:-translate-y-8 ${item.hoverGradient} ${item.hoverGlow} ${item.delay}`}
+              >
+                {item.char}
+              </span>
+            ))}
           </div>
         </div>
       </footer>
