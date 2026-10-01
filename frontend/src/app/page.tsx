@@ -750,50 +750,65 @@ export default function Home() {
 
             {/* Right Column: Interactive Guides Cockpit */}
             <div className="relative min-h-[460px] overflow-hidden bg-[#071914] p-7 text-white sm:p-10 border-t lg:border-t-0 lg:border-l border-[#173e33]">
-              {/* Ambient Glows */}
-              <div className="pointer-events-none absolute right-4 top-4 h-48 w-48 rounded-full bg-brand-cyan/15 blur-3xl" />
-              <div className="pointer-events-none absolute left-4 bottom-4 h-48 w-48 rounded-full bg-emerald-500/10 blur-3xl" />
-
               {/* Watermark Logo */}
               <div className="pointer-events-none absolute -bottom-8 -right-8 hidden sm:flex items-center justify-center opacity-10">
                 <KainaraLogo size={160} variant="multicolor" />
               </div>
 
               <div className="relative z-10 grid h-full grid-cols-1 gap-1.5 sm:grid-cols-2">
-                {/* Restrictions & Review - Left Tall Card (Emerald Theme) */}
+                {/* Restrictions & Review - Left Tall Card (Stripe 1: Pine Green #1b4e41) */}
                 <Link
                   href="/docs#clinical-guidelines"
-                  className="group relative flex flex-col justify-between overflow-hidden rounded-[22px] border border-emerald-500/40 bg-gradient-to-br from-[#0d4d3c] via-[#093a2d] to-[#05281e] p-6 shadow-[0_8px_30px_rgba(8,112,91,0.25)] transition duration-200 hover:border-emerald-400/80 hover:from-[#115a46] hover:to-[#073226] hover:shadow-[0_12px_40px_rgba(16,185,129,0.35)]"
+                  className="group relative flex flex-col justify-between overflow-hidden rounded-[22px] border border-[#276a5a] bg-[#1b4e41] p-6 text-white transition duration-200 hover:brightness-105 active:scale-[0.99]"
                 >
-                  <div className="flex items-center justify-between">
-                    <span className="font-mono text-[9px] font-bold uppercase tracking-[0.16em] text-emerald-300">
+                  {/* Yellow Stripe Accent Curve in Corner (#f09e6c) */}
+                  <div
+                    aria-hidden="true"
+                    className="pointer-events-none absolute -bottom-1 -right-1 z-10 h-24 w-24 select-none"
+                  >
+                    <svg
+                      viewBox="0 0 96 96"
+                      fill="none"
+                      className="h-full w-full block"
+                    >
+                      <path
+                        d="M 8 104 C 16 52 52 16 104 8"
+                        stroke="#f09e6c"
+                        strokeWidth="12"
+                        strokeLinecap="round"
+                      />
+                    </svg>
+                  </div>
+
+                  <div className="relative z-20 flex items-center justify-between">
+                    <span className="font-mono text-[9px] font-bold uppercase tracking-[0.16em] text-emerald-200">
                       Clinical Scope
                     </span>
-                    <div className="flex h-7 w-7 items-center justify-center rounded-lg border border-emerald-400/30 bg-emerald-400/20 text-emerald-200 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:border-emerald-300 group-hover:bg-emerald-400/30">
+                    <div className="flex h-7 w-7 items-center justify-center rounded-lg border border-white/20 bg-white/10 text-white transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5">
                       <ArrowUpRight className="h-3.5 w-3.5" />
                     </div>
                   </div>
 
-                  <div className="my-auto py-6">
-                    <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-emerald-400/40 bg-emerald-400/25 text-emerald-100 shadow-[0_0_24px_rgba(16,185,129,0.3)] transition-transform duration-300 group-hover:scale-105">
+                  <div className="relative z-20 my-auto py-6">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-white/20 bg-white/10 text-white transition-transform duration-300 group-hover:scale-105">
                       <ShieldCheck className="h-6 w-6" />
                     </div>
-                    <h3 className="mt-4 font-display text-base font-bold text-white group-hover:text-emerald-200 transition-colors">
+                    <h3 className="mt-4 font-display text-base font-bold text-white">
                       Restrictions & Review
                     </h3>
-                    <p className="mt-2 text-xs leading-5 text-emerald-100/75">
+                    <p className="mt-2 text-xs leading-5 text-emerald-100/80">
                       Declared restrictions, profile checks and scoped nutritionist decisions.
                     </p>
                   </div>
 
-                  <div className="flex flex-wrap gap-1.5 border-t border-emerald-500/30 pt-3">
-                    <span className="rounded-md border border-emerald-400/30 bg-emerald-950/60 px-2 py-0.5 font-mono text-[9px] text-emerald-200">
+                  <div className="relative z-20 flex flex-wrap gap-1.5 border-t border-white/15 pt-3 max-w-[calc(100%-60px)]">
+                    <span className="rounded-md border border-white/15 bg-black/20 px-2 py-0.5 font-mono text-[9px] text-emerald-100">
                       Allergies
                     </span>
-                    <span className="rounded-md border border-emerald-400/30 bg-emerald-950/60 px-2 py-0.5 font-mono text-[9px] text-emerald-200">
+                    <span className="rounded-md border border-white/15 bg-black/20 px-2 py-0.5 font-mono text-[9px] text-emerald-100">
                       Conditions
                     </span>
-                    <span className="rounded-md border border-emerald-400/30 bg-emerald-950/60 px-2 py-0.5 font-mono text-[9px] text-emerald-200">
+                    <span className="rounded-md border border-white/15 bg-black/20 px-2 py-0.5 font-mono text-[9px] text-emerald-100">
                       RND Audit
                     </span>
                   </div>
@@ -801,63 +816,101 @@ export default function Home() {
 
                 {/* Right Stacked Cards */}
                 <div className="grid gap-1.5">
-                  {/* Energy & Food References (Cyan Theme) */}
+                  {/* Energy & Food References (Stripe 2: Warm Peach #f09e6c) */}
                   <Link
                     href="/docs#meal-planning"
-                    className="group relative flex flex-col justify-between rounded-[22px] border border-cyan-500/40 bg-gradient-to-br from-[#0a4155] via-[#073243] to-[#042431] p-5 shadow-[0_8px_30px_rgba(24,185,210,0.25)] transition duration-200 hover:border-cyan-400/80 hover:from-[#0d4f68] hover:to-[#062c3a] hover:shadow-[0_12px_40px_rgba(6,182,212,0.35)]"
+                    className="group relative flex flex-col justify-between overflow-hidden rounded-[22px] border border-[#d88959] bg-[#f09e6c] p-5 text-[#071914] transition duration-200 hover:brightness-105 active:scale-[0.99]"
                   >
-                    <div>
+                    {/* Orange Stripe Accent Curve in Corner (#eb6a38) */}
+                    <div
+                      aria-hidden="true"
+                      className="pointer-events-none absolute -bottom-1 -right-1 z-10 h-20 w-20 select-none"
+                    >
+                      <svg
+                        viewBox="0 0 80 80"
+                        fill="none"
+                        className="h-full w-full block"
+                      >
+                        <path
+                          d="M 6 86 C 12 42 42 12 86 6"
+                          stroke="#eb6a38"
+                          strokeWidth="11"
+                          strokeLinecap="round"
+                        />
+                      </svg>
+                    </div>
+
+                    <div className="relative z-20">
                       <div className="flex items-center justify-between">
-                        <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-cyan-400/40 bg-cyan-400/25 text-cyan-100 shadow-[0_0_20px_rgba(24,185,210,0.3)] transition-transform duration-300 group-hover:scale-105">
+                        <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-[#071914]/20 bg-[#071914]/10 text-[#071914] transition-transform duration-300 group-hover:scale-105">
                           <Database className="h-5 w-5" />
                         </div>
-                        <div className="flex h-7 w-7 items-center justify-center rounded-lg border border-cyan-400/30 bg-cyan-400/20 text-cyan-200 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:border-cyan-300 group-hover:bg-cyan-400/30">
+                        <div className="flex h-7 w-7 items-center justify-center rounded-lg border border-[#071914]/20 bg-[#071914]/10 text-[#071914] transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5">
                           <ArrowUpRight className="h-3.5 w-3.5" />
                         </div>
                       </div>
-                      <h3 className="mt-3.5 text-sm font-bold text-white group-hover:text-cyan-200 transition-colors">
+                      <h3 className="mt-3.5 text-sm font-bold text-[#071914]">
                         Energy & Food References
                       </h3>
-                      <p className="mt-1 text-[11px] leading-4 text-cyan-100/75">
+                      <p className="mt-1 text-[11px] leading-4 text-[#071914]/80">
                         Resting-energy estimates, activity adjustments and ingredient nutrition.
                       </p>
                     </div>
-                    <div className="mt-3 flex flex-wrap gap-1.5 border-t border-cyan-500/30 pt-2.5">
-                      <span className="rounded-md border border-cyan-400/30 bg-cyan-950/60 px-1.5 py-0.5 font-mono text-[9px] text-cyan-200">
+                    <div className="relative z-20 mt-3 flex flex-wrap gap-1.5 border-t border-[#071914]/15 pt-2.5 max-w-[calc(100%-48px)]">
+                      <span className="rounded-md border border-[#071914]/15 bg-[#071914]/10 px-1.5 py-0.5 font-mono text-[9px] text-[#071914] font-semibold">
                         FNRI FCT
                       </span>
-                      <span className="rounded-md border border-cyan-400/30 bg-cyan-950/60 px-1.5 py-0.5 font-mono text-[9px] text-cyan-200">
+                      <span className="rounded-md border border-[#071914]/15 bg-[#071914]/10 px-1.5 py-0.5 font-mono text-[9px] text-[#071914] font-semibold">
                         Mifflin-St Jeor
                       </span>
                     </div>
                   </Link>
 
-                  {/* User Guides & FAQs (Terracotta Theme) */}
+                  {/* User Guides & FAQs (Stripe 3: Vibrant Coral Orange #eb6a38) */}
                   <Link
                     href="/docs#help"
-                    className="group relative flex flex-col justify-between rounded-[22px] border border-[#eb6a38]/40 bg-gradient-to-br from-[#522316] via-[#3d190f] to-[#2b1008] p-5 shadow-[0_8px_30px_rgba(235,106,56,0.25)] transition duration-200 hover:border-[#f09e6c]/80 hover:from-[#662c1c] hover:to-[#3b170e] hover:shadow-[0_12px_40px_rgba(235,106,56,0.35)]"
+                    className="group relative flex flex-col justify-between overflow-hidden rounded-[22px] border border-[#cf5626] bg-[#eb6a38] p-5 text-white transition duration-200 hover:brightness-105 active:scale-[0.99]"
                   >
-                    <div>
+                    {/* Green Stripe Accent Curve in Corner (#1b4e41) */}
+                    <div
+                      aria-hidden="true"
+                      className="pointer-events-none absolute -bottom-1 -right-1 z-10 h-20 w-20 select-none"
+                    >
+                      <svg
+                        viewBox="0 0 80 80"
+                        fill="none"
+                        className="h-full w-full block"
+                      >
+                        <path
+                          d="M 6 86 C 12 42 42 12 86 6"
+                          stroke="#1b4e41"
+                          strokeWidth="11"
+                          strokeLinecap="round"
+                        />
+                      </svg>
+                    </div>
+
+                    <div className="relative z-20">
                       <div className="flex items-center justify-between">
-                        <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-[#f09e6c]/40 bg-[#eb6a38]/25 text-[#ffd1b5] shadow-[0_0_20px_rgba(235,106,56,0.3)] transition-transform duration-300 group-hover:scale-105">
+                        <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/25 bg-white/15 text-white transition-transform duration-300 group-hover:scale-105">
                           <Sparkles className="h-5 w-5" />
                         </div>
-                        <div className="flex h-7 w-7 items-center justify-center rounded-lg border border-[#f09e6c]/30 bg-[#eb6a38]/20 text-[#ffd1b5] transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:border-[#ffd1b5] group-hover:bg-[#eb6a38]/30">
+                        <div className="flex h-7 w-7 items-center justify-center rounded-lg border border-white/25 bg-white/15 text-white transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5">
                           <ArrowUpRight className="h-3.5 w-3.5" />
                         </div>
                       </div>
-                      <h3 className="mt-3.5 text-sm font-bold text-white group-hover:text-[#ffd1b5] transition-colors">
+                      <h3 className="mt-3.5 text-sm font-bold text-white">
                         User Guides & FAQs
                       </h3>
-                      <p className="mt-1 text-[11px] leading-4 text-orange-100/75">
+                      <p className="mt-1 text-[11px] leading-4 text-white/85">
                         Starter bridge plans, meal swaps, and grocery lists.
                       </p>
                     </div>
-                    <div className="mt-3 flex flex-wrap gap-1.5 border-t border-[#eb6a38]/30 pt-2.5">
-                      <span className="rounded-md border border-[#f09e6c]/30 bg-[#240e06]/70 px-1.5 py-0.5 font-mono text-[9px] text-[#ffd1b5]">
+                    <div className="relative z-20 mt-3 flex flex-wrap gap-1.5 border-t border-white/20 pt-2.5 max-w-[calc(100%-48px)]">
+                      <span className="rounded-md border border-white/20 bg-black/15 px-1.5 py-0.5 font-mono text-[9px] text-white">
                         Bridge Plans
                       </span>
-                      <span className="rounded-md border border-[#f09e6c]/30 bg-[#240e06]/70 px-1.5 py-0.5 font-mono text-[9px] text-[#ffd1b5]">
+                      <span className="rounded-md border border-white/20 bg-black/15 px-1.5 py-0.5 font-mono text-[9px] text-white">
                         Meal Swaps
                       </span>
                     </div>

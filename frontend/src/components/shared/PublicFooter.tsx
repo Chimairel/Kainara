@@ -13,48 +13,13 @@ import KainaraLogo from '@/components/shared/KainaraLogo';
 import { SectionWaveBorderTop } from '@/components/landing/LandingWaveRiver';
 
 const footerBrandLetters = [
-  {
-    char: 'K',
-    hoverGradient: 'group-hover/footer:from-emerald-400 group-hover/footer:via-emerald-500/80 group-hover/footer:to-emerald-950/20',
-    hoverGlow: 'group-hover/footer:drop-shadow-[0_0_35px_rgba(16,185,129,0.55)]',
-    delay: 'delay-[0ms]',
-  },
-  {
-    char: 'A',
-    hoverGradient: 'group-hover/footer:from-[#f5b287] group-hover/footer:via-[#f09e6c]/80 group-hover/footer:to-amber-950/20',
-    hoverGlow: 'group-hover/footer:drop-shadow-[0_0_35px_rgba(240,158,108,0.55)]',
-    delay: 'delay-[60ms]',
-  },
-  {
-    char: 'I',
-    hoverGradient: 'group-hover/footer:from-[#ff7a45] group-hover/footer:via-[#eb6a38]/80 group-hover/footer:to-rose-950/20',
-    hoverGlow: 'group-hover/footer:drop-shadow-[0_0_35px_rgba(235,106,56,0.55)]',
-    delay: 'delay-[120ms]',
-  },
-  {
-    char: 'N',
-    hoverGradient: 'group-hover/footer:from-cyan-300 group-hover/footer:via-cyan-500/80 group-hover/footer:to-blue-950/20',
-    hoverGlow: 'group-hover/footer:drop-shadow-[0_0_35px_rgba(24,185,210,0.55)]',
-    delay: 'delay-[180ms]',
-  },
-  {
-    char: 'A',
-    hoverGradient: 'group-hover/footer:from-teal-300 group-hover/footer:via-emerald-500/80 group-hover/footer:to-teal-950/20',
-    hoverGlow: 'group-hover/footer:drop-shadow-[0_0_35px_rgba(52,211,153,0.55)]',
-    delay: 'delay-[240ms]',
-  },
-  {
-    char: 'R',
-    hoverGradient: 'group-hover/footer:from-amber-300 group-hover/footer:via-[#f09e6c]/80 group-hover/footer:to-amber-950/20',
-    hoverGlow: 'group-hover/footer:drop-shadow-[0_0_35px_rgba(240,158,108,0.55)]',
-    delay: 'delay-[300ms]',
-  },
-  {
-    char: 'A',
-    hoverGradient: 'group-hover/footer:from-[#ff6b3d] group-hover/footer:via-[#eb6a38]/80 group-hover/footer:to-orange-950/20',
-    hoverGlow: 'group-hover/footer:drop-shadow-[0_0_35px_rgba(235,106,56,0.55)]',
-    delay: 'delay-[360ms]',
-  },
+  { char: 'K', hoverColor: 'group-hover/footer:text-emerald-400/45' },
+  { char: 'A', hoverColor: 'group-hover/footer:text-[#f09e6c]/50' },
+  { char: 'I', hoverColor: 'group-hover/footer:text-cyan-400/50' },
+  { char: 'N', hoverColor: 'group-hover/footer:text-amber-400/50' },
+  { char: 'A', hoverColor: 'group-hover/footer:text-emerald-400/45' },
+  { char: 'R', hoverColor: 'group-hover/footer:text-[#f09e6c]/50' },
+  { char: 'A', hoverColor: 'group-hover/footer:text-cyan-400/50' },
 ];
 
 export default function PublicFooter() {
@@ -253,7 +218,7 @@ export default function PublicFooter() {
           </div>
         </div>
 
-        {/* Giant Half-Shown KAINARA Display Text with Interactive Wave Lift & Staggered Theme Colors on Hover */}
+        {/* Giant Half-Shown KAINARA Display Text with Minimal Hover Transition Matching Platform Numbers */}
         <div
           aria-hidden="true"
           className="pointer-events-none relative w-full overflow-hidden select-none -mb-[6.5vw] sm:-mb-[7.5vw] lg:-mb-[8.5vw] mt-2 sm:mt-4"
@@ -262,7 +227,7 @@ export default function PublicFooter() {
             {footerBrandLetters.map((item, index) => (
               <span
                 key={`${item.char}-${index}`}
-                className={`inline-block text-transparent bg-clip-text bg-gradient-to-b from-white/[0.13] via-white/[0.04] to-transparent transition-all duration-700 ease-out transform translate-y-0 group-hover/footer:-translate-y-4 sm:group-hover/footer:-translate-y-6 lg:group-hover/footer:-translate-y-8 ${item.hoverGradient} ${item.hoverGlow} ${item.delay}`}
+                className={`inline-block text-white/[0.08] transition-all duration-300 ease-out transform translate-y-0 group-hover/footer:-translate-y-1.5 ${item.hoverColor}`}
               >
                 {item.char}
               </span>
