@@ -1,4 +1,6 @@
 import LiveUpdates from '@/components/shared/LiveUpdates';
+import PageTitle from '@/components/shared/PageTitle';
+import { NotificationsProvider } from '@/hooks/useNotifications';
 import React, { Suspense } from 'react';
 import type { Metadata, Viewport } from 'next';
 import { DM_Sans, Plus_Jakarta_Sans, JetBrains_Mono, Outfit } from 'next/font/google';
@@ -41,7 +43,7 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  title: 'KAINARA | AI Nutrition & Meal Planning',
+  title: 'Kainara',
   description:
     'Personalized meal planning with Filipino recipes, food-composition references, nutrition tracking and professional review workflows.',
   keywords: ['nutrition', 'meal planning', 'Filipino food', 'FNRI', 'diet', 'health', 'AI nutrition', 'KAINARA'],
@@ -57,7 +59,7 @@ export const metadata: Metadata = {
   },
   manifest: '/manifest.json',
   openGraph: {
-    title: 'KAINARA | AI Nutrition & Meal Planning',
+    title: 'Kainara',
     description: 'Personalized AI-powered nutrition for health-conscious Filipinos.',
     type: 'website',
     locale: 'en_PH',
@@ -92,13 +94,18 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
           <MobileInstallPrompt />
           <Toaster position="bottom-right" richColors />
           <AuthProvider>
-            <LiveUpdates />
-            <BreadcrumbProvider>
+            <NotificationsProvider>
+              <LiveUpdates />
               <Suspense fallback={null}>
-                <TopNavigationProgress />
+                <PageTitle />
               </Suspense>
-              {children}
-            </BreadcrumbProvider>
+              <BreadcrumbProvider>
+                <Suspense fallback={null}>
+                  <TopNavigationProgress />
+                </Suspense>
+                {children}
+              </BreadcrumbProvider>
+            </NotificationsProvider>
           </AuthProvider>
         </ThemeProvider>
       </body>

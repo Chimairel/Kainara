@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Account access | KAINARA',
+  title: 'Account access',
   description: 'Securely access your KAINARA nutrition workspace.',
 };
 

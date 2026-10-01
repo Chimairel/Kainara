@@ -1,6 +1,6 @@
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { useNotifications } from './useNotifications';
+import { NotificationsProvider, useNotifications } from './useNotifications';
 
 const mocks = vi.hoisted(() => ({
   get: vi.fn(),
@@ -19,7 +19,7 @@ describe('shared notification inbox', () => {
 
   it.each(['USER', 'NUTRITIONIST', 'ADMIN'])('loads the same account-scoped inbox for %s', async (role) => {
     mocks.user = { userId: 'account-1', role };
-    const { result } = renderHook(() => useNotifications());
+    const { result } = renderHook(() => useNotifications(), { wrapper: NotificationsProvider });
     await waitFor(() => expect(result.current.unreadCount).toBe(125));
     expect(mocks.get).toHaveBeenCalledWith(
       '/notifications',
@@ -29,7 +29,7 @@ describe('shared notification inbox', () => {
 
   it('clears the entire unread inbox with one request, beyond the first 50 displayed items', async () => {
     mocks.user = { userId: 'account-1', role: 'NUTRITIONIST' };
-    const { result } = renderHook(() => useNotifications());
+    const { result } = renderHook(() => useNotifications(), { wrapper: NotificationsProvider });
     await waitFor(() => expect(result.current.unreadCount).toBe(125));
     await act(async () => result.current.markAllAsRead());
     expect(mocks.patch).toHaveBeenCalledTimes(1);
@@ -39,14 +39,14 @@ describe('shared notification inbox', () => {
 
   it('does not request notifications without an account', async () => {
     mocks.user = null;
-    const { result } = renderHook(() => useNotifications());
+    const { result } = renderHook(() => useNotifications(), { wrapper: NotificationsProvider });
     await waitFor(() => expect(result.current.isLoading).toBe(false));
     expect(mocks.get).not.toHaveBeenCalled();
   });
 
   it('does not show one account’s inbox after switching to another account', async () => {
     mocks.user = { userId: 'account-1', role: 'USER' };
-    const { result, rerender } = renderHook(() => useNotifications());
+    const { result, rerender } = renderHook(() => useNotifications(), { wrapper: NotificationsProvider });
     await waitFor(() => expect(result.current.unreadCount).toBe(125));
     let resolveNext!: (value: unknown) => void;
     mocks.get.mockReturnValueOnce(
