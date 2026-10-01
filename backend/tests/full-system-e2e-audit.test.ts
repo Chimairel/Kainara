@@ -158,7 +158,7 @@ test('[TEST-147][DEF-032/035] library reuse follows the catalogue and public cop
   assert.match(script, /example\.invalid/);
   assert.doesNotMatch(script, /assert\.equal\(\s*catalogue\.length,\s*30/);
   assert.doesNotMatch(landing, /budget shapes every planning decision/i);
-  assert.match(landing, /shopping routine shape meal selection/i);
+  assert.match(landing, /calculated nutrition targets and daily tracking/i);
 });
 
 test('[TEST-148][DEF-036] list inputs have stable positive pagination and bounded search', () => {

@@ -1,4 +1,28 @@
-import rateLimit from 'express-rate-limit';
+import rateLimit, { ipKeyGenerator } from 'express-rate-limit';
+import jwt from 'jsonwebtoken';
+import type { Request } from 'express';
+
+/** A signed access identity separates colleagues sharing Wi-Fi. This never grants API access. */
+export function apiBrowsingKey(req: Pick<Request, 'headers' | 'ip'>): string {
+  const header = req.headers.authorization;
+  const secret = process.env.JWT_SECRET;
+  if (secret && typeof header === 'string' && header.startsWith('Bearer ')) {
+    try {
+      const claims = jwt.verify(header.slice(7), secret, { algorithms: ['HS256'] });
+      if (
+        typeof claims === 'object' &&
+        typeof claims.userId === 'string' &&
+        claims.userId.length > 0 &&
+        claims.userId.length <= 100
+      ) {
+        return `account:${claims.userId}`;
+      }
+    } catch {
+      /* Invalid/expired/unsigned tokens keep the anonymous IP budget. */
+    }
+  }
+  return `ip:${ipKeyGenerator(req.ip || 'unknown')}`;
+}
 
 /** Failed sign-ins have their own budget; successful sign-ins do not consume it. */
 export const loginLimiter = rateLimit({
@@ -73,6 +97,7 @@ export const professionalApplicationLimiter = rateLimit({
 });
 
 export const applicationStatusLimiter = rateLimit({
+  skipSuccessfulRequests: true,
   windowMs: 15 * 60 * 1000,
   max: 20,
   standardHeaders: true,
@@ -87,6 +112,7 @@ export const applicationStatusLimiter = rateLimit({
  * Browsing has its own budget. Auth routes are mounted before this middleware.
  */
 export const apiLimiter = rateLimit({
+  keyGenerator: apiBrowsingKey,
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: process.env.NODE_ENV === 'production' ? 1200 : 5000,
   standardHeaders: true,
@@ -110,4 +136,20 @@ export const geminiLimiter = rateLimit({
     success: false,
     error: 'AI generation rate limit reached. Please wait a few minutes before generating again.',
   },
+});
+
+/** Polling is bounded separately from failed reference/email lookups. */
+export const applicationStatusReadLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 180,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, error: 'Application updates paused. Please try again shortly.' },
+});
+export const applicationLicenseLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 60,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, error: 'Too many license checks. Please try again shortly.' },
 });

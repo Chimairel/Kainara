@@ -12,6 +12,7 @@ import {
   Prisma,
 } from '@prisma/client';
 import prisma from '@/lib/prisma';
+import { NotificationService } from './notification.service';
 import { AppError } from '@/errors/AppError';
 import {
   CLINICAL_EVIDENCE_REQUIREMENT_POLICY_VERSION,
@@ -314,6 +315,7 @@ export class ClinicalEvidenceService {
           metadata: { area: input.area, documentType: input.documentType, revision: document.revision, byteSize: document.byteSize },
         },
       });
+      await NotificationService.notifyReviewers('Clinical document awaiting review', 'A new clinical document is ready in the profile review queue.', tx);
       return { ...publicDocument(document), facts: document.facts };
     }, { timeout: 20_000 });
   }

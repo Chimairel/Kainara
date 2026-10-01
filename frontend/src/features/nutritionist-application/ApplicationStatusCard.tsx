@@ -1,3 +1,4 @@
+import { formatPhilippineDateTime } from '@/lib/formatters';
 import { CalendarClock, Check, AlertCircle, Sparkles, ExternalLink } from 'lucide-react';
 import { applicationStatusLabels, applicationStatusOrder, type PublicApplication } from './model';
 
@@ -52,7 +53,11 @@ export function ApplicationStatusCard({ application }: { application: PublicAppl
           <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
           <div className="leading-5">
             {application.decisionReason ||
-              'The administrator recorded a final decision. Contact KAINARA if you need clarification.'}
+              'The administrator recorded a rejection. Review the reason before applying again.'}
+            <p className="mt-2">
+              You may apply again after correcting the issue. Up to 3 submissions per email are allowed in 30 days,
+              including your first application.
+            </p>
           </div>
         </div>
       ) : (
@@ -104,10 +109,7 @@ export function ApplicationStatusCard({ application }: { application: PublicAppl
             Verification Call Scheduled
           </div>
           <p className="mt-2 text-base font-extrabold text-brand-text">
-            {new Date(application.scheduledCallAt).toLocaleString('en-US', {
-              dateStyle: 'full',
-              timeStyle: 'short',
-            })}
+            {formatPhilippineDateTime(application.scheduledCallAt) + ' Philippine time (UTC+8)'}
           </p>
           <p className="mt-1 text-xs text-brand-muted">
             Have your physical PRC ID card ready for camera presentation during the verification call.

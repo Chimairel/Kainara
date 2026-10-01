@@ -1,4 +1,5 @@
 'use client';
+import { LIVE_UPDATE_EVENT } from '@/lib/live-events';
 
 import { useEffect, useRef, useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
@@ -152,7 +153,14 @@ export function useAdminAnalytics() {
     };
 
     void fetchAnalytics();
+    const refresh = () => {
+      if (document.visibilityState === 'visible') void fetchAnalytics();
+    };
+    const interval = window.setInterval(refresh, 15000);
+    window.addEventListener(LIVE_UPDATE_EVENT, refresh);
     return () => {
+      window.clearInterval(interval);
+      window.removeEventListener(LIVE_UPDATE_EVENT, refresh);
       active = false;
     };
   }, [ownerId]);

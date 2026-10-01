@@ -7,7 +7,8 @@ const futureLocalDateTime = z
   .string()
   .min(1, 'Choose a date and time.')
   .refine(
-    (value) => Number.isFinite(new Date(value).getTime()) && new Date(value).getTime() > Date.now(),
+    (value) =>
+      Number.isFinite(new Date(`${value}:00+08:00`).getTime()) && new Date(`${value}:00+08:00`).getTime() > Date.now(),
     'Choose a future date and time.'
   );
 
@@ -32,7 +33,7 @@ export const applicantCredentialSchema = z.object({
   prcLicenseExpiry: z
     .string()
     .min(1, 'License expiration date is required.')
-    .refine((value) => new Date(`${value}T23:59:59`).getTime() > Date.now(), 'PRC license must not be expired.'),
+    .refine((value) => new Date(`${value}T23:59:59+08:00`).getTime() > Date.now(), 'PRC license must not be expired.'),
   specialization: text('Specialization', 120).min(2, 'Specialization must be at least 2 characters.'),
 });
 
@@ -52,7 +53,10 @@ export const applicantAvailabilitySchema = z
     callSlotThree: z
       .string()
       .refine(
-        (value) => !value || (Number.isFinite(new Date(value).getTime()) && new Date(value).getTime() > Date.now()),
+        (value) =>
+          !value ||
+          (Number.isFinite(new Date(`${value}:00+08:00`).getTime()) &&
+            new Date(`${value}:00+08:00`).getTime() > Date.now()),
         'Choose a future date and time.'
       ),
     consent: z.literal(true, { error: 'Confirm the declaration before continuing.' }),

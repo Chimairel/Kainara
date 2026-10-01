@@ -1,4 +1,5 @@
 'use client';
+import { useVisiblePolling } from '@/hooks/useVisiblePolling';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import api from '@/lib/axios';
@@ -114,6 +115,13 @@ export default function GroceryListPage() {
     setIsLoading(Boolean(ownerId && !cached));
     if (ownerId) void fetchGroceryList();
   }, [ownerId, fetchGroceryList]);
+
+  useVisiblePolling(
+    async () => {
+      await fetchGroceryList();
+    },
+    { enabled: Boolean(ownerId) && !bulkBusy && pendingIds.size === 0, immediate: false, scopeKey: ownerId }
+  );
 
   const handleToggleItem = async (itemId: string) => {
     const item = groceryList?.groceryItems.find((row) => row.id === itemId);

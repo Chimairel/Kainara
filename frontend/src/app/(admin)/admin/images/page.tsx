@@ -1,5 +1,6 @@
 'use client';
 
+import { useVisiblePolling } from '@/hooks/useVisiblePolling';
 import { FormEvent, useCallback, useEffect, useState } from 'react';
 import { ImageIcon, RefreshCw, Search, ShieldCheck, Trash2, Upload } from 'lucide-react';
 import api from '@/lib/axios';
@@ -71,6 +72,12 @@ export default function AdminMealImagesPage() {
     [query, ownerId]
   );
 
+  useVisiblePolling(
+    async () => {
+      await load(data?.pagination.page ?? 1, true);
+    },
+    { enabled: !saving, immediate: false, scopeKey: ownerId }
+  );
   useEffect(() => {
     void load();
   }, [load]);

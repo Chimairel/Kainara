@@ -1,3 +1,4 @@
+import { LIVE_UPDATE_EVENT } from '@/lib/live-events';
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import type { FormEvent } from 'react';
@@ -28,7 +29,10 @@ vi.mock('@/hooks/useAuth', () => ({
   useAuth: () => ({ user: { userId: 'fixture-user' }, updateUserSession: vi.fn() }),
 }));
 vi.mock('@/lib/axios', () => ({ default: { put: state.put } }));
-vi.mock('@/lib/user-profile-resource', () => ({ getRecentUserProfile: () => Promise.resolve(state.profile) }));
+vi.mock('@/lib/user-profile-resource', () => ({
+  getRecentUserProfile: () => Promise.resolve(state.profile),
+  refreshUserProfile: () => Promise.resolve(state.profile),
+}));
 vi.mock('@/lib/session-resource-cache', () => ({ readSessionResource: () => null, writeSessionResource: vi.fn() }));
 
 describe('profile saves without hidden location changes', () => {
@@ -45,5 +49,17 @@ describe('profile saves without hidden location changes', () => {
     for (const field of ['planningGeographyLevel', 'planningRegionName', 'planningProvinceHucName'])
       expect(payload).not.toHaveProperty(field);
     expect(result.current.biometricsError).toBeNull();
+  });
+  it('refreshes saved profile data without overwriting unsaved health input', async () => {
+    vi.spyOn(document, 'visibilityState', 'get').mockReturnValue('visible');
+    const { result, unmount } = renderHook(() => useProgressWorkspace('health'));
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    await act(async () => result.current.setWeightKg('72'));
+    await act(async () => {
+      window.dispatchEvent(new Event(LIVE_UPDATE_EVENT));
+    });
+    expect(result.current.weightKg).toBe('72');
+    unmount();
+    vi.restoreAllMocks();
   });
 });

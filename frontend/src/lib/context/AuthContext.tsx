@@ -99,7 +99,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
         if (requestId !== sessionRequestId.current) return null;
 
-        setUser(refreshedUser);
+        setUser((previous) => (JSON.stringify(previous) === JSON.stringify(refreshedUser) ? previous : refreshedUser));
         setProfileLoadError(false);
         if (role === 'USER' && onboardingDone && tosAccepted && isReportAcknowledged) {
           void refreshClinicalProfileStatus(id, profile).catch(() => undefined);

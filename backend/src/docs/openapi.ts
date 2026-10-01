@@ -16,6 +16,12 @@ interface RouteDocumentation {
 const routes: RouteDocumentation[] = [
   {
     method: 'get',
+    path: '/api/live/events',
+    tag: 'Notifications',
+    summary: 'Authenticated server-sent refresh signals without private payloads',
+  },
+  {
+    method: 'get',
     path: '/api/user/membership',
     tag: 'Membership',
     summary: 'Get current trial, verified membership and remaining allowances',
@@ -104,6 +110,13 @@ const routes: RouteDocumentation[] = [
   },
   {
     method: 'post',
+    path: '/api/nutritionist-applications/license-availability',
+    tag: 'Applications',
+    summary: 'Check for an active KAINARA license reservation (not PRC authenticity)',
+    public: true,
+  },
+  {
+    method: 'post',
     path: '/api/nutritionist-applications/status',
     tag: 'Applications',
     summary: 'Check application status',
@@ -111,7 +124,7 @@ const routes: RouteDocumentation[] = [
   },
   {
     method: 'post',
-    path: '/api/nutritionist-applications/invitation',
+    path: '/api/nutritionist-applications/activate',
     tag: 'Applications',
     summary: 'Accept an account invitation',
     public: true,

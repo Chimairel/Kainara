@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import api from '@/lib/axios';
 import { useAuth } from '@/hooks/useAuth';
+import { useVisiblePolling } from '@/hooks/useVisiblePolling';
 
 interface Notification {
   id: string;
@@ -24,67 +25,77 @@ export function useNotifications() {
   const currentAccountId = useRef(accountId);
   currentAccountId.current = accountId;
 
-  const fetchNotifications = useCallback(async () => {
+  const fetchNotifications = useCallback(
+    async (signal?: AbortSignal) => {
+      if (!accountId) {
+        setInbox(null);
+        setIsLoading(false);
+        return;
+      }
+      try {
+        const res = await api.get('/notifications', { signal });
+        if (!signal?.aborted && currentAccountId.current === accountId && res.data?.success) {
+          setInbox({ accountId, notifications: res.data.data.notifications, unreadCount: res.data.data.unreadCount });
+        }
+      } catch (err) {
+        console.warn('[useNotifications] Fetch failed:', err);
+        if (!signal?.aborted && currentAccountId.current === accountId) {
+          setInbox((previous) =>
+            previous?.accountId === accountId ? previous : { accountId, notifications: [], unreadCount: 0 }
+          );
+        }
+      } finally {
+        if (!signal?.aborted && currentAccountId.current === accountId) setIsLoading(false);
+      }
+    },
+    [accountId]
+  );
+
+  useVisiblePolling(fetchNotifications, {
+    enabled: Boolean(accountId),
+    intervalMs: 15000,
+    scopeKey: accountId,
+  });
+  useEffect(() => {
     if (!accountId) {
       setInbox(null);
       setIsLoading(false);
       return;
     }
-    try {
-      const res = await api.get('/notifications');
-      if (currentAccountId.current === accountId && res.data?.success) {
-        setInbox({ accountId, notifications: res.data.data.notifications, unreadCount: res.data.data.unreadCount });
-      }
-    } catch (err) {
-      console.warn('[useNotifications] Fetch failed:', err);
-      if (currentAccountId.current === accountId) {
-        setInbox((previous) => previous?.accountId === accountId ? previous :
-          { accountId, notifications: [], unreadCount: 0 });
-      }
-    } finally {
-      if (currentAccountId.current === accountId) setIsLoading(false);
-    }
-  }, [accountId]);
-
-  useEffect(() => {
-    fetchNotifications();
-
-    if (!accountId) return;
-
-    // Auto-refresh every 60 seconds
-    const interval = setInterval(() => {
-      fetchNotifications();
-    }, 60000);
-
-    // Refresh on window focus
-    const handleFocus = () => fetchNotifications();
-    window.addEventListener('focus', handleFocus);
-    window.addEventListener('nutrimind:notifications-updated', handleFocus);
-
-    return () => {
-      clearInterval(interval);
-      window.removeEventListener('focus', handleFocus);
-      window.removeEventListener('nutrimind:notifications-updated', handleFocus);
+    const refresh = () => {
+      void fetchNotifications();
     };
-  }, [fetchNotifications, accountId]);
+    window.addEventListener('nutrimind:notifications-updated', refresh);
+    return () => window.removeEventListener('nutrimind:notifications-updated', refresh);
+  }, [accountId, fetchNotifications]);
 
   const markAsRead = async (id: string) => {
     await api.patch(`/notifications/${id}/read`);
-    setInbox((previous) => previous && previous.accountId === accountId ? {
-      ...previous,
-      notifications: previous.notifications.map((notification) =>
-        notification.id === id ? { ...notification, isRead: true } : notification),
-      unreadCount: Math.max(0, previous.unreadCount - 1),
-    } : previous);
+    setInbox((previous) =>
+      previous && previous.accountId === accountId
+        ? {
+            ...previous,
+            notifications: previous.notifications.map((notification) =>
+              notification.id === id ? { ...notification, isRead: true } : notification
+            ),
+            unreadCount: Math.max(0, previous.unreadCount - 1),
+          }
+        : previous
+    );
   };
 
   const markAllAsRead = async () => {
     await api.patch('/notifications/read-all');
 
-    setInbox((previous) => previous && previous.accountId === accountId ? {
-      ...previous, notifications: previous.notifications.map((notification) => ({ ...notification, isRead: true })),
-      unreadCount: 0,
-    } : previous);
+    setInbox((previous) =>
+      previous && previous.accountId === accountId
+        ? {
+            ...previous,
+            notifications: previous.notifications.map((notification) => ({ ...notification, isRead: true })),
+            unreadCount: 0,
+          }
+        : previous
+    );
   };
 
   const visibleInbox = inbox?.accountId === accountId ? inbox : null;
@@ -92,6 +103,8 @@ export function useNotifications() {
     notifications: visibleInbox?.notifications ?? [],
     unreadCount: visibleInbox?.unreadCount ?? 0,
     isLoading: Boolean(accountId) && !visibleInbox ? true : isLoading,
-    markAsRead, markAllAsRead, refresh: fetchNotifications,
+    markAsRead,
+    markAllAsRead,
+    refresh: fetchNotifications,
   };
 }

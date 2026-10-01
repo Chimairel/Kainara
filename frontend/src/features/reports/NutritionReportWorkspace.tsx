@@ -1,5 +1,6 @@
 'use client';
 
+import { useVisiblePolling } from '@/hooks/useVisiblePolling';
 import ReportHistory from '@/features/reports/ReportHistory';
 import NutritionGuidanceDocument from '@/features/reports/NutritionGuidanceDocument';
 import React, { useCallback, useEffect, useState } from 'react';
@@ -137,6 +138,26 @@ export default function NutritionReportPage() {
       fetchReport();
     }
   }, [userId, applyProfile]);
+
+  useVisiblePolling(
+    async (signal) => {
+      const [profileRes, historyRes, reportRes] = await Promise.all([
+        api.get('/user/profile', { signal }),
+        api.get('/user/nutrition-report/history', { signal }),
+        api.get('/user/nutrition-report', { signal }),
+      ]);
+      if (signal.aborted) return;
+      if (profileRes.data?.success) applyProfile(profileRes.data.data);
+      setHistory(historyRes.data?.data || []);
+      if (reportRes.data?.success) setReport(reportRes.data.data);
+      // Background updates only read; generation remains an explicit flow.
+    },
+    {
+      enabled: Boolean(userId) && !isLoading && !isAcknowledging && !isRegenerating,
+      immediate: false,
+      scopeKey: userId,
+    }
+  );
 
   const handleAcknowledge = async () => {
     if (!report || report.isStale) return;

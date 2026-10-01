@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import { useSessionQuery } from '@/hooks/useSessionQuery';
+import React, { useState } from 'react';
 import api from '@/lib/axios';
 import Card from '@/components/ui/Card';
 import Badge from '@/components/ui/Badge';
@@ -10,7 +11,6 @@ import EmptyState from '@/components/shared/EmptyState';
 import PortalPageHeader from '@/components/shared/PortalPageHeader';
 import { Coffee, Sun, Moon, Apple, Soup, CheckCircle, Library } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
-import { readSessionResource, writeSessionResource } from '@/lib/session-resource-cache';
 
 interface ApprovedMeal {
   id: string;
@@ -33,10 +33,13 @@ interface ApprovedMeal {
 
 export default function NutritionistApprovedPage() {
   const ownerId = useAuth().user?.userId;
-  const cached = readSessionResource<ApprovedMeal[]>(ownerId, 'nutritionist-approved-archive');
-  const [meals, setMeals] = useState<ApprovedMeal[]>(cached ?? []);
-  const [isLoading, setIsLoading] = useState(!cached);
-  const [error, setError] = useState(false);
+  const { data, isLoading, error, setData } = useSessionQuery<ApprovedMeal[]>({
+    ownerId,
+    resource: 'nutritionist-approved-archive',
+    fetcher: async () => (await api.get('/nutritionist/approved')).data.data,
+    errorMessage: 'Approved reviews could not be refreshed. Please try again.',
+  });
+  const meals = data ?? [];
   const [publishingId, setPublishingId] = useState<string | null>(null);
   const [actionMessage, setActionMessage] = useState<string | null>(null);
 
@@ -46,14 +49,11 @@ export default function NutritionistApprovedPage() {
     try {
       const response = await api.post(`/nutritionist/approved/${mealId}/reusable-draft`);
       const libraryMealId = response.data?.data?.meal?.id as string | undefined;
-      setMeals((current) =>
-        current.map((meal) =>
+      setData(
+        meals.map((meal) =>
           meal.id === mealId ? { ...meal, libraryMealId: libraryMealId ?? meal.libraryMealId } : meal
         )
       );
-      writeSessionResource(ownerId, 'nutritionist-approved-archive', meals.map((meal) =>
-        meal.id === mealId ? { ...meal, libraryMealId: libraryMealId ?? meal.libraryMealId } : meal
-      ));
       setActionMessage(
         response.data?.data?.deduplicated
           ? 'An identical reusable recipe already existed and was linked.'
@@ -66,24 +66,6 @@ export default function NutritionistApprovedPage() {
       setPublishingId(null);
     }
   };
-
-  useEffect(() => {
-    const fetchApproved = async () => {
-      try {
-        const res = await api.get('/nutritionist/approved');
-        if (res.data?.success) {
-          setMeals(res.data.data);
-          writeSessionResource(ownerId, 'nutritionist-approved-archive', res.data.data);
-        }
-      } catch (err) {
-        console.error('Failed to fetch approved meals:', err);
-        setError(true);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    fetchApproved();
-  }, [ownerId]);
 
   if (isLoading) {
     return (

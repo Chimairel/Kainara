@@ -1,3 +1,4 @@
+import { NotificationService } from './notification.service';
 import {
   MealLogDataSource,
   OutsideMealMessageSender,
@@ -172,6 +173,12 @@ export class OutsideMealReviewService {
               priority: Math.max(item.review.priority, 60),
             },
           });
+          if (!item.review.requestedByUserAt)
+            await NotificationService.notifyReviewers(
+              'Outside-meal review requested',
+              'An outside-meal item has been requested for review.',
+              tx
+            );
           await tx.auditEvent.create({
             data: {
               actorUserId: userId,
@@ -215,6 +222,11 @@ export class OutsideMealReviewService {
               },
             });
         if (allowance && !allowance.replayed) await MembershipService.complete(allowance.id, tx);
+        await NotificationService.notifyReviewers(
+          'Outside-meal review requested',
+          'A new or reopened outside-meal review is ready in the review queue.',
+          tx
+        );
         await tx.auditEvent.create({
           data: {
             actorUserId: userId,
@@ -284,6 +296,11 @@ export class OutsideMealReviewService {
             } as Prisma.InputJsonObject,
           },
         });
+        await NotificationService.notifyReviewers(
+          'User replied to a review',
+          'A user supplied clarification. The outside-meal review is available again in the queue.',
+          tx
+        );
         await tx.outsideMealReviewMessage.create({
           data: {
             outsideMealReviewId: review.id,

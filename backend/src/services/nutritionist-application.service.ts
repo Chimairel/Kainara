@@ -58,44 +58,74 @@ export class NutritionistApplicationService {
     const email = input.email.trim().toLowerCase();
     const prcLicenseNumber = input.prcLicenseNumber.trim().toUpperCase();
 
-    const [existingApplication, existingUser, existingProfile] = await Promise.all([
-      prisma.nutritionistApplication.findFirst({
-        where: { OR: [{ email }, { prcLicenseNumber }] },
-        select: { email: true, prcLicenseNumber: true, referenceCode: true },
-      }),
-      prisma.user.findUnique({ where: { email }, select: { id: true } }),
-      prisma.nutritionistProfile.findUnique({ where: { prcLicenseNumber }, select: { id: true } }),
-    ]);
-
-    if (existingApplication) {
-      if (existingApplication.email === email) {
-        throw new Error(
-          `An application already exists for this email. Use reference ${existingApplication.referenceCode} to track it.`
-        );
+    const application = await prisma.$transaction(async (tx) => {
+      // Serialize attempts for either identity, including the rolling-window count.
+      // Ordered transaction locks prevent deadlocks for overlapping applications.
+      for (const key of [`application-email:${email}`, `application-prc:${prcLicenseNumber}`].sort()) {
+        await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${key}, 0))`;
       }
-      throw new Error('This PRC license number is already associated with an application.');
-    }
-    if (existingUser) throw new Error('An account already exists for this email address.');
-    if (existingProfile) throw new Error('This PRC license number is already registered with KAINARA.');
-
-    const application = await prisma.nutritionistApplication.create({
-      data: {
-        referenceCode: makeReferenceCode(),
-        fullName: input.fullName.trim(),
-        email,
-        phoneNumber: input.phoneNumber.trim(),
-        prcLicenseNumber,
-        prcLicenseExpiry: new Date(input.prcLicenseExpiry),
-        specialization: input.specialization.trim(),
-        yearsOfExperience: input.yearsOfExperience,
-        university: input.university.trim(),
-        professionalBio: input.professionalBio.trim(),
-        officialHeadshot: input.officialHeadshot?.trim() || null,
-        photoRecentAttestedAt: new Date(),
-        availableCallSlots: input.availableCallSlots,
-        applicantConsentAt: new Date(),
-      },
-      select: publicApplicationSelect,
+      const [existingApplication, existingUser, existingProfile, attempts] = await Promise.all([
+        tx.nutritionistApplication.findFirst({
+          where: {
+            status: { not: 'REJECTED' },
+            OR: [
+              { email: { equals: email, mode: 'insensitive' } },
+              { prcLicenseNumber: { equals: prcLicenseNumber, mode: 'insensitive' } },
+            ],
+          },
+          select: { id: true },
+        }),
+        tx.user.findUnique({ where: { email }, select: { id: true } }),
+        tx.nutritionistProfile.findFirst({
+          where: { prcLicenseNumber: { equals: prcLicenseNumber, mode: 'insensitive' } },
+          select: { id: true },
+        }),
+        tx.nutritionistApplication.count({
+          where: {
+            email: { equals: email, mode: 'insensitive' },
+            createdAt: { gte: new Date(Date.now() - 30 * 86400000) },
+          },
+        }),
+      ]);
+      if (existingApplication)
+        throw new Error(
+          'A pending or approved application already uses this email or PRC number. Track your existing application.'
+        );
+      if (existingUser) throw new Error('An account already exists for this email address.');
+      if (existingProfile) throw new Error('This PRC license number is already registered with KAINARA.');
+      if (attempts >= 3)
+        throw new Error(
+          'You can submit up to 3 applications per email in 30 days. Please try again once an earlier submission is outside that window.'
+        );
+      const created = await tx.nutritionistApplication.create({
+        data: {
+          referenceCode: makeReferenceCode(),
+          fullName: input.fullName.trim(),
+          email,
+          phoneNumber: input.phoneNumber.trim(),
+          prcLicenseNumber,
+          prcLicenseExpiry: new Date(input.prcLicenseExpiry),
+          specialization: input.specialization.trim(),
+          yearsOfExperience: input.yearsOfExperience,
+          university: input.university.trim(),
+          professionalBio: input.professionalBio.trim(),
+          officialHeadshot: input.officialHeadshot?.trim() || null,
+          photoRecentAttestedAt: new Date(),
+          availableCallSlots: input.availableCallSlots,
+          applicantConsentAt: new Date(),
+        },
+        select: publicApplicationSelect,
+      });
+      const admins = await tx.user.findMany({ where: { role: 'ADMIN', isSuspended: false }, select: { id: true } });
+      await tx.notification.createMany({
+        data: admins.map(({ id }) => ({
+          userId: id,
+          type: 'NUTRITIONIST_APPLICATION' as const,
+          title: 'New nutritionist application',
+          message: 'A new application is ready for credential review. Open Nutritionist onboarding to review it.',
+        })),
+      });
+      return created;
     });
 
     // Send confirmation email asynchronously (non-blocking)
@@ -111,6 +141,22 @@ export class NutritionistApplicationService {
     });
 
     return application;
+  }
+
+  static async checkLicenseAvailability(license: string) {
+    const prcLicenseNumber = license.trim().toUpperCase();
+    const [application, profile] = await Promise.all([
+      prisma.nutritionistApplication.findFirst({
+        where: { prcLicenseNumber: { equals: prcLicenseNumber, mode: 'insensitive' }, status: { not: 'REJECTED' } },
+        select: { id: true },
+      }),
+      prisma.nutritionistProfile.findFirst({
+        where: { prcLicenseNumber: { equals: prcLicenseNumber, mode: 'insensitive' } },
+        select: { id: true },
+      }),
+    ]);
+    // Availability in KAINARA only, never PRC authenticity or applicant identity.
+    return { available: !application && !profile };
   }
 
   static async getPublicStatus(referenceCode: string, email: string) {
@@ -232,7 +278,8 @@ export class NutritionistApplicationService {
         },
         data: { callVerifiedAt: new Date(), callVerifiedByAdminId: adminUserId },
       });
-      if (changed.count !== 1) throw new Error('The scheduled call must occur before identity can be confirmed. Refresh this application.');
+      if (changed.count !== 1)
+        throw new Error('The scheduled call must occur before identity can be confirmed. Refresh this application.');
       await tx.auditEvent.create({
         data: {
           actorUserId: adminUserId,

@@ -1,3 +1,4 @@
+import LiveUpdates from '@/components/shared/LiveUpdates';
 import React, { Suspense } from 'react';
 import type { Metadata, Viewport } from 'next';
 import { DM_Sans, Plus_Jakarta_Sans, JetBrains_Mono, Outfit } from 'next/font/google';
@@ -91,6 +92,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
           <MobileInstallPrompt />
           <Toaster position="bottom-right" richColors />
           <AuthProvider>
+            <LiveUpdates />
             <BreadcrumbProvider>
               <Suspense fallback={null}>
                 <TopNavigationProgress />

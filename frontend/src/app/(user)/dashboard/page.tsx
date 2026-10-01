@@ -1,5 +1,7 @@
 'use client';
 
+import { useVisiblePolling } from '@/hooks/useVisiblePolling';
+import { LIVE_UPDATE_EVENT } from '@/lib/live-events';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import axios from 'axios';
 import { useRouter } from 'next/navigation';
@@ -110,9 +112,14 @@ export default function DashboardPage() {
     void check();
     const interval = window.setInterval(() => {
       if (document.visibilityState === 'visible') void check();
-    }, 30_000);
+    }, 15_000);
+    const refresh = () => {
+      if (document.visibilityState === 'visible') void check();
+    };
+    window.addEventListener(LIVE_UPDATE_EVENT, refresh);
     return () => {
       active = false;
+      window.removeEventListener(LIVE_UPDATE_EVENT, refresh);
       window.clearInterval(interval);
     };
   }, [ownerId, profileSafetyRevision]);
@@ -311,13 +318,12 @@ export default function DashboardPage() {
     }
   }, [applyCurrentPlan, user, ownerId]);
 
-  useEffect(() => {
-    if (awaitingGenerationCount === 0) return;
-    const interval = window.setInterval(() => {
-      if (document.visibilityState === 'visible') void fetchCurrentPlan();
-    }, 30_000);
-    return () => window.clearInterval(interval);
-  }, [awaitingGenerationCount, fetchCurrentPlan]);
+  useVisiblePolling(
+    async () => {
+      await Promise.all([fetchCurrentPlan(), fetchOutsideMealLogs()]);
+    },
+    { enabled: Boolean(ownerId) && !isLogging, immediate: false, scopeKey: ownerId }
+  );
 
   useEffect(() => {
     if (

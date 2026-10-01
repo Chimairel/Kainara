@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { getApiErrorMessage } from '@/lib/api-error';
 import { Stethoscope } from 'lucide-react';
 import api from '@/lib/axios';
@@ -16,9 +16,13 @@ import type {
   ScheduleDraft,
 } from '@/features/admin-nutritionists/model';
 import { useAuth } from '@/hooks/useAuth';
+import { useVisiblePolling } from '@/hooks/useVisiblePolling';
 import { readSessionResource, writeSessionResource } from '@/lib/session-resource-cache';
 
-interface GovernanceSnapshot { applications: NutritionistApplication[]; nutritionists: NutritionistRow[] }
+interface GovernanceSnapshot {
+  applications: NutritionistApplication[];
+  nutritionists: NutritionistRow[];
+}
 
 export default function AdminNutritionistsPage() {
   const ownerId = useAuth().user?.userId;
@@ -33,29 +37,50 @@ export default function AdminNutritionistsPage() {
   const [scheduleDrafts, setScheduleDrafts] = useState<Record<string, ScheduleDraft>>({});
   const [rejectionReasons, setRejectionReasons] = useState<Record<string, string>>({});
 
-  const fetchData = useCallback(async () => {
-    try {
-      const [applicationResponse, nutritionistResponse] = await Promise.all([
-        api.get('/admin/nutritionist-applications'),
-        api.get('/admin/nutritionists'),
-      ]);
-      const snapshot = {
-        applications: applicationResponse.data?.data || [],
-        nutritionists: nutritionistResponse.data?.data || [],
-      };
-      setApplications(snapshot.applications);
-      setNutritionists(snapshot.nutritionists);
-      writeSessionResource(ownerId, 'admin-professional-governance', snapshot);
-    } catch (caught) {
-      setError(getAdminApplicationError(caught, 'Professional records could not be loaded.'));
-    } finally {
-      setIsLoading(false);
-    }
-  }, [ownerId]);
+  const currentOwner = useRef(ownerId);
+  currentOwner.current = ownerId;
+  const requestVersion = useRef(0);
+  const [refreshWarning, setRefreshWarning] = useState(false);
 
-  useEffect(() => {
-    void fetchData();
-  }, [fetchData]);
+  const fetchData = useCallback(
+    async (signal?: AbortSignal) => {
+      if (!ownerId) return;
+      const version = ++requestVersion.current;
+      const isCurrent = () =>
+        !signal?.aborted && version === requestVersion.current && ownerId === currentOwner.current;
+      try {
+        const [applicationResponse, nutritionistResponse] = await Promise.all([
+          api.get('/admin/nutritionist-applications', { signal }),
+          api.get('/admin/nutritionists', { signal }),
+        ]);
+        const snapshot = {
+          applications: applicationResponse.data?.data || [],
+          nutritionists: nutritionistResponse.data?.data || [],
+        };
+        if (!isCurrent()) return;
+        setRefreshWarning(false);
+        setApplications(snapshot.applications);
+        setNutritionists(snapshot.nutritionists);
+        writeSessionResource(ownerId, 'admin-professional-governance', snapshot);
+      } catch (caught) {
+        if (isCurrent()) {
+          if (signal) setRefreshWarning(true);
+          else setError(getAdminApplicationError(caught, 'Professional records could not be loaded.'));
+        }
+      } finally {
+        if (isCurrent()) setIsLoading(false);
+      }
+    },
+    [ownerId]
+  );
+
+  useVisiblePolling(fetchData, { enabled: Boolean(ownerId) && !workingId, immediate: true, scopeKey: ownerId });
+  useEffect(
+    () => () => {
+      currentOwner.current = undefined;
+    },
+    []
+  );
 
   const act = async (
     id: string,
@@ -118,6 +143,11 @@ export default function AdminNutritionistsPage() {
         }
       />
       <PageMessages error={error} notice={notice} />
+      {refreshWarning && (
+        <p role="status" className="text-xs text-brand-muted">
+          Updates paused. Retrying automatically when this page is active.
+        </p>
+      )}
       <TabSelector tab={tab} applicationCount={applications.length} verifiedCount={verified.length} onChange={setTab} />
       {tab === 'applications' ? (
         <>

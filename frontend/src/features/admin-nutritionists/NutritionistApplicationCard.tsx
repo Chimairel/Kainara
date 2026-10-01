@@ -1,3 +1,5 @@
+import { useCallDue } from './useCallDue';
+import { formatPhilippineDateTime } from '@/lib/formatters';
 import {
   BadgeCheck,
   CalendarClock,
@@ -44,9 +46,7 @@ export function NutritionistApplicationCard(props: Props) {
     scheduledCallAt: toLocalInput(application.availableCallSlots?.[0]),
     meetingUrl: '',
   };
-  const callOccurred = Boolean(
-    application.scheduledCallAt && new Date(application.scheduledCallAt).getTime() <= Date.now()
-  );
+  const callOccurred = useCallDue(application.scheduledCallAt);
 
   return (
     <Card className="overflow-hidden p-0">
@@ -134,7 +134,18 @@ export function NutritionistApplicationCard(props: Props) {
                 placeholder="Required before rejecting"
               />
               {application.status === 'CALL_SCHEDULED' && !application.callVerifiedAt && (
-                <button type="button" className="mt-2 text-xs font-semibold text-status-error-text underline" onClick={() => onRejectionReasonChange(application.id, 'The uploaded identity photo did not match the applicant during the verification call.')}>Use photo mismatch reason</button>
+                <button
+                  type="button"
+                  className="mt-2 text-xs font-semibold text-status-error-text underline"
+                  onClick={() =>
+                    onRejectionReasonChange(
+                      application.id,
+                      'The uploaded identity photo did not match the applicant during the verification call.'
+                    )
+                  }
+                >
+                  Use photo mismatch reason
+                </button>
               )}
             </div>
             <Button
@@ -250,7 +261,12 @@ function ApplicationIdentity({ application }: { application: NutritionistApplica
                 </div>
                 <div className="text-xs">
                   <p className="font-bold text-brand-text">Uploaded identity photo</p>
-                  <p className="text-[11px] text-brand-muted">Compare with the applicant during the call. {application.photoRecentAttestedAt ? 'Applicant attested that it was taken within 30 days.' : 'Legacy application photo.'}</p>
+                  <p className="text-[11px] text-brand-muted">
+                    Compare with the applicant during the call.{' '}
+                    {application.photoRecentAttestedAt
+                      ? 'Applicant attested that it was taken within 30 days.'
+                      : 'Legacy application photo.'}
+                  </p>
                 </div>
               </div>
             )}
@@ -280,7 +296,7 @@ function CallScheduler({
               onClick={() => onScheduleChange(application.id, { ...draft, scheduledCallAt: toLocalInput(slot) })}
               className="rounded-xl border border-brand-border bg-brand-surface px-3 py-2 text-[10px] font-semibold text-brand-muted hover:border-brand-green/40"
             >
-              {toLocalInput(slot) ? new Date(slot).toLocaleString() : slot}
+              {toLocalInput(slot) ? formatPhilippineDateTime(slot) + ' PHT' : slot}
             </button>
           ))}
         </div>
@@ -289,7 +305,7 @@ function CallScheduler({
         <Input
           id={`call-${application.id}`}
           type="datetime-local"
-          label="Confirmed call schedule"
+          label="Confirmed call schedule (Philippine time)"
           value={draft.scheduledCallAt}
           onChange={(event) => onScheduleChange(application.id, { ...draft, scheduledCallAt: event.target.value })}
           helperText="Click a suggested slot above or pick any date/time that fits your schedule."
@@ -309,7 +325,7 @@ function CallScheduler({
             application.id,
             () =>
               api.patch(`/admin/nutritionist-applications/${application.id}/schedule`, {
-                scheduledCallAt: new Date(draft.scheduledCallAt).toISOString(),
+                scheduledCallAt: new Date(`${draft.scheduledCallAt}:00+08:00`).toISOString(),
                 meetingUrl: draft.meetingUrl,
               }),
             'Verification call scheduled and meeting invite emailed to applicant.'
@@ -336,7 +352,7 @@ function ScheduledCall({
       <div className="rounded-2xl border border-brand-cyan/20 bg-brand-cyan/[0.06] p-4">
         <p className="flex items-center gap-2 text-sm font-bold text-brand-text">
           <CalendarClock className="h-4 w-4 text-brand-cyan" />
-          {new Date(application.scheduledCallAt!).toLocaleString()}
+          {formatPhilippineDateTime(application.scheduledCallAt!) + ' Philippine time (UTC+8)'}
         </p>
         {application.meetingUrl && (
           <a
@@ -350,19 +366,26 @@ function ScheduledCall({
         )}
       </div>
       <div className="mt-4 flex flex-wrap gap-3">
-        {!application.callVerifiedAt && <Button
-          variant="secondary"
-          onClick={() => void onAction(
-            application.id,
-            () => api.patch(`/admin/nutritionist-applications/${application.id}/call-verification`, { identityMatched: true }),
-            'Completed call and photo match recorded.'
-          )}
-          disabled={!callOccurred}
-          isLoading={workingId === application.id}
-        >
-          <UserCheck className="h-4 w-4" />
-          Confirm call completed and photo matched
-        </Button>}
+        {!application.callVerifiedAt && (
+          <Button
+            variant="secondary"
+            onClick={() =>
+              void onAction(
+                application.id,
+                () =>
+                  api.patch(`/admin/nutritionist-applications/${application.id}/call-verification`, {
+                    identityMatched: true,
+                  }),
+                'Completed call and photo match recorded.'
+              )
+            }
+            disabled={!callOccurred}
+            isLoading={workingId === application.id}
+          >
+            <UserCheck className="h-4 w-4" />
+            Confirm call completed and photo matched
+          </Button>
+        )}
         <Button
           onClick={() =>
             void onAction(
@@ -377,8 +400,12 @@ function ScheduledCall({
           <CheckCircle2 className="h-4 w-4" />
           Approve verified applicant
         </Button>
-        {!callOccurred && (
-          <p className="self-center text-[10px] text-brand-muted">Confirm the completed call and photo match before approval. Reject with a reason if the face does not match.</p>
+        {!application.callVerifiedAt && (
+          <p className="self-center text-[10px] text-brand-muted">
+            {callOccurred
+              ? 'First confirm the completed call and photo match above, then approve the applicant.'
+              : 'Call confirmation becomes available at the scheduled time. After the call, confirm the photo match before approval.'}
+          </p>
         )}
       </div>
     </div>

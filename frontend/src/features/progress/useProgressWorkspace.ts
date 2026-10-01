@@ -1,3 +1,4 @@
+import { useVisiblePolling } from '@/hooks/useVisiblePolling';
 import React, { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import api from '@/lib/axios';
@@ -5,7 +6,7 @@ import { getApiErrorMessage } from '@/lib/api-error';
 import { normalizeFoodCulture } from '@/lib/profile-normalization';
 import { useAuth } from '@/hooks/useAuth';
 import { readSessionResource, writeSessionResource } from '@/lib/session-resource-cache';
-import { getRecentUserProfile } from '@/lib/user-profile-resource';
+import { getRecentUserProfile, refreshUserProfile } from '@/lib/user-profile-resource';
 import type { UserProfileData } from '@/hooks/useProfile';
 
 export type ProgressSection = 'overview' | 'profile' | 'safety' | 'history';
@@ -91,19 +92,20 @@ export function useProgressWorkspace(mode: ProgressWorkspaceMode) {
   const [weightSuccess, setWeightSuccess] = useState<string | null>(null);
 
   // Fetch progress history and profile info
-  const fetchPageData = useCallback(async () => {
+  const fetchPageData = useCallback(async (silent = false, signal?: AbortSignal) => {
     setError(null);
     try {
       const [historyRes, profileRes] = await Promise.all([
         mode === 'progress'
-          ? api.get('/user/progress/history').catch((err: unknown) => {
+          ? api.get('/user/progress/history', { signal }).catch((err: unknown) => {
               setError(getApiErrorMessage(err, 'Failed to fetch progress metrics.'));
               return { data: { success: false, data: null } };
             })
           : Promise.resolve({ data: { success: false, data: null } }),
-        getRecentUserProfile(ownerId).then((data) => ({ data: { success: true, data } })),
+        (silent ? refreshUserProfile(ownerId) : getRecentUserProfile(ownerId)).then((data) => ({ data: { success: true, data } })),
       ]);
 
+      if (signal?.aborted) return;
       const nextHistory = historyRes.data?.success ? (historyRes.data.data as ProgressHistory) : null;
       const nextProfile = profileRes.data?.success ? (profileRes.data.data as ProfileDetails) : null;
 
@@ -115,7 +117,7 @@ export function useProgressWorkspace(mode: ProgressWorkspaceMode) {
         setProfileData(data);
 
         // Pre-populate biometric form states
-        if (data.userProfile) {
+        if (data.userProfile && !silent) {
           setAge(String(data.userProfile.age || ''));
           setHeightCm(String(data.userProfile.heightCm || ''));
           setWeightKg(String(data.userProfile.weightKg || ''));
@@ -152,6 +154,13 @@ export function useProgressWorkspace(mode: ProgressWorkspaceMode) {
       setIsLoading(false);
     }
   }, [ownerId, mode]);
+
+  useVisiblePolling(
+    async (signal) => {
+      await fetchPageData(true, signal);
+    },
+    { enabled: Boolean(ownerId) && !isSavingBiometrics && !isSubmittingWeight, immediate: false, scopeKey: ownerId }
+  );
 
   useEffect(() => {
     if (ownerId) {

@@ -432,6 +432,7 @@ enum MealLogStatus {
 }
 
 enum NotificationType {
+  NUTRITIONIST_APPLICATION
   PLAN_APPROVED
   PLAN_REJECTED
   REVIEW_REQUEST
@@ -1090,9 +1091,9 @@ model NutritionistApplication {
   referenceCode         String                        @unique @db.VarChar(32)
   status                NutritionistApplicationStatus @default(SUBMITTED)
   fullName              String                        @db.VarChar(161)
-  email                 String                        @unique @db.VarChar(254)
+  email                 String                        @db.VarChar(254)
   phoneNumber           String                        @db.VarChar(30)
-  prcLicenseNumber      String                        @unique @db.VarChar(80)
+  prcLicenseNumber      String                        @db.VarChar(80)
   prcLicenseExpiry      DateTime
   specialization        String                        @db.VarChar(120)
   yearsOfExperience     Int
@@ -1122,6 +1123,9 @@ model NutritionistApplication {
   createdAt             DateTime                      @default(now())
   updatedAt             DateTime                      @updatedAt
 
+  // Non-rejected identity uniqueness is enforced by partial indexes in the migration.
+  @@index([email, createdAt])
+  @@index([prcLicenseNumber, status])
   @@index([status, createdAt])
   @@index([scheduledCallAt])
 }

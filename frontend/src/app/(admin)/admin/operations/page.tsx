@@ -1,5 +1,6 @@
 'use client';
 
+import { useVisiblePolling } from '@/hooks/useVisiblePolling';
 import { useCallback, useEffect, useState } from 'react';
 import { AlertTriangle, RefreshCw, ScrollText, ShieldCheck } from 'lucide-react';
 import api from '@/lib/axios';
@@ -41,7 +42,9 @@ export default function AdminOperationsPage() {
   const cached = readSessionResource<OperationsSnapshot>(ownerId, 'admin-operations');
   const [events, setEvents] = useState<AuditEvent[]>(cached?.events ?? []);
   const [incidents, setIncidents] = useState<SafetyIncident[]>(cached?.incidents ?? []);
-  const [structuredSafety, setStructuredSafety] = useState<StructuredSafetyOperations | null>(cached?.structuredSafety ?? null);
+  const [structuredSafety, setStructuredSafety] = useState<StructuredSafetyOperations | null>(
+    cached?.structuredSafety ?? null
+  );
   const [loading, setLoading] = useState(!cached);
   const [error, setError] = useState('');
 
@@ -70,6 +73,12 @@ export default function AdminOperationsPage() {
     }
   }, [ownerId]);
 
+  useVisiblePolling(
+    async () => {
+      await load();
+    },
+    { enabled: true, immediate: false, scopeKey: ownerId }
+  );
   useEffect(() => {
     void load();
   }, [load]);
