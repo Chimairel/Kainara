@@ -1,4 +1,15 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+'use client';
+
+import {
+  createContext,
+  createElement,
+  useContext,
+  useState,
+  useEffect,
+  useCallback,
+  useRef,
+  type ReactNode,
+} from 'react';
 import api from '@/lib/axios';
 import { useAuth } from '@/hooks/useAuth';
 import { useVisiblePolling } from '@/hooks/useVisiblePolling';
@@ -12,7 +23,7 @@ interface Notification {
   createdAt: string;
 }
 
-export function useNotifications() {
+function useNotificationInbox() {
   const { user } = useAuth();
   const [inbox, setInbox] = useState<{
     accountId: string;
@@ -78,7 +89,9 @@ export function useNotifications() {
             notifications: previous.notifications.map((notification) =>
               notification.id === id ? { ...notification, isRead: true } : notification
             ),
-            unreadCount: Math.max(0, previous.unreadCount - 1),
+            unreadCount: previous.notifications.some((notification) => notification.id === id && !notification.isRead)
+              ? Math.max(0, previous.unreadCount - 1)
+              : previous.unreadCount,
           }
         : previous
     );
@@ -107,4 +120,18 @@ export function useNotifications() {
     markAllAsRead,
     refresh: fetchNotifications,
   };
+}
+
+const NotificationContext = createContext<ReturnType<typeof useNotificationInbox> | null>(null);
+
+/** The bell and tab share one account-scoped inbox and refresh loop. */
+export function NotificationsProvider({ children }: { children: ReactNode }) {
+  const inbox = useNotificationInbox();
+  return createElement(NotificationContext.Provider, { value: inbox }, children);
+}
+
+export function useNotifications() {
+  const inbox = useContext(NotificationContext);
+  if (!inbox) throw new Error('useNotifications requires NotificationsProvider');
+  return inbox;
 }
