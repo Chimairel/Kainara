@@ -276,7 +276,7 @@ export default function Home() {
               <motion.div
                 animate={{ y: [0, -8, 0] }}
                 transition={{ duration: 5, repeat: Infinity, ease: 'easeInOut' }}
-                className="absolute -left-4 sm:-left-8 top-12 z-30 hidden w-48 rounded-2xl border border-emerald-500/30 bg-[#071914]/95 p-4 text-white shadow-2xl backdrop-blur-xl sm:block"
+                className="absolute -left-4 sm:-left-8 top-12 z-30 hidden w-52 rounded-2xl border border-emerald-500/30 bg-[#071914]/95 p-4 text-white shadow-2xl backdrop-blur-xl sm:block"
               >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-emerald-400">
@@ -286,20 +286,20 @@ export default function Home() {
                   <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
                 </div>
                 <div className="mt-2.5 flex items-baseline gap-1.5">
-                  <span className="font-display text-2xl font-black text-white">2,150</span>
+                  <span className="font-display text-2xl font-black text-white">2,771</span>
                   <span className="text-[11px] font-semibold text-emerald-300/70">kcal / day</span>
                 </div>
-                {/* Segmented Macro Bar */}
+                {/* Segmented Macro Bar: Green for Protein, Blue for Carbs, Orange-ish for Fat */}
                 <div className="mt-3">
-                  <div className="flex justify-between text-[9px] font-mono text-white/50 mb-1">
-                    <span>C 50%</span>
-                    <span>P 25%</span>
-                    <span>F 25%</span>
+                  <div className="flex justify-between text-[9px] font-mono font-medium mb-1.5">
+                    <span className="text-emerald-400">P 125g</span>
+                    <span className="text-sky-400">C 194g</span>
+                    <span className="text-[#f09e6c]">F 165g</span>
                   </div>
                   <div className="flex h-2 overflow-hidden rounded-full bg-white/10 gap-0.5">
-                    <div className="h-full w-1/2 bg-gradient-to-r from-emerald-400 to-teal-400" />
-                    <div className="h-full w-1/4 bg-brand-accent" />
-                    <div className="h-full w-1/4 bg-brand-cyan" />
+                    <div className="h-full w-[26%] bg-emerald-400" title="Protein 125g" />
+                    <div className="h-full w-[40%] bg-sky-400" title="Carbs 194g" />
+                    <div className="h-full w-[34%] bg-[#f09e6c]" title="Fat 165g" />
                   </div>
                 </div>
               </motion.div>
@@ -635,21 +635,21 @@ export default function Home() {
             </motion.div>
 
             {/* Dark Pine Showcase Track Bounded Organically by Wave Stripes */}
-            <div className="relative mt-14">
+            <div className="relative mt-10 sm:mt-14 [--wave-l:38px] [--wave-r:44px] [--wave-tot:82px] sm:[--wave-l:140px] sm:[--wave-r:160px] sm:[--wave-tot:300px]">
               {/* Left and Right Vertical Wave Borders (z-20) forming the organic left and right ends of the card */}
               <SectionWaveBorderLeft />
               <SectionWaveBorderRight />
 
               {/* Masked Card Track Body - Terminated precisely at the wave stripes */}
               <div
-                className="relative overflow-hidden border-y border-[#173e33] bg-[#071914] py-8 sm:py-12"
+                className="relative overflow-hidden border-y border-[#173e33] bg-[#071914] py-4 sm:py-12"
                 style={{
                   maskImage: `${leftTrackMaskSvg}, linear-gradient(#000, #000), ${rightTrackMaskSvg}`,
                   WebkitMaskImage: `${leftTrackMaskSvg}, linear-gradient(#000, #000), ${rightTrackMaskSvg}`,
-                  maskPosition: 'left top, 140px top, right top',
-                  WebkitMaskPosition: 'left top, 140px top, right top',
-                  maskSize: '140px 100%, calc(100% - 300px) 100%, 160px 100%',
-                  WebkitMaskSize: '140px 100%, calc(100% - 300px) 100%, 160px 100%',
+                  maskPosition: 'left top, var(--wave-l) top, right top',
+                  WebkitMaskPosition: 'left top, var(--wave-l) top, right top',
+                  maskSize: 'var(--wave-l) 100%, calc(100% - var(--wave-tot)) 100%, var(--wave-r) 100%',
+                  WebkitMaskSize: 'var(--wave-l) 100%, calc(100% - var(--wave-tot)) 100%, var(--wave-r) 100%',
                   maskRepeat: 'no-repeat',
                   WebkitMaskRepeat: 'no-repeat',
                 }}
@@ -659,18 +659,18 @@ export default function Home() {
                 <div className="pointer-events-none absolute right-1/4 top-1/2 -translate-y-1/2 h-64 w-64 rounded-full bg-brand-cyan/10 blur-[100px]" />
 
                 {/* Infinite Looping Slider for Evidence & Recipe Sources */}
-                <div className="relative py-3">
-                  <InfiniteSlider gap={32} speed={42} speedOnHover={14} reverse>
+                <div className="relative py-1 sm:py-3">
+                  <InfiniteSlider gap={20} speed={42} speedOnHover={14} reverse>
                     {[...evidenceSliderSources, ...evidenceSliderSources].map((source, index) => (
                       <a
                         key={`${source.id}-${index}`}
                         href={source.href}
                         target="_blank"
                         rel="noreferrer"
-                        className="group flex h-[136px] items-center gap-6 rounded-[28px] border border-[#173e33] bg-[#0e271f]/95 px-7 py-4 shadow-[0_16px_36px_rgba(0,0,0,0.4)] backdrop-blur-md transition-all duration-300 hover:-translate-y-1.5 hover:border-emerald-500/50 hover:bg-[#0c241d] hover:shadow-[0_24px_50px_rgba(0,0,0,0.6)]"
+                        className="group flex h-14 sm:h-[136px] items-center gap-2.5 sm:gap-6 rounded-2xl sm:rounded-[28px] border border-[#173e33] bg-[#0e271f]/95 px-3 sm:px-7 py-2 sm:py-4 shadow-md sm:shadow-[0_16px_36px_rgba(0,0,0,0.4)] backdrop-blur-md transition-all duration-300 hover:-translate-y-1.5 hover:border-emerald-500/50 hover:bg-[#0c241d] hover:shadow-[0_24px_50px_rgba(0,0,0,0.6)]"
                         aria-label={`Open citation for ${source.name}`}
                       >
-                        <div className="flex h-24 w-24 shrink-0 items-center justify-center rounded-2xl bg-white p-2.5 overflow-hidden transition-transform duration-300 group-hover:scale-105">
+                        <div className="flex h-9 w-9 sm:h-24 sm:w-24 shrink-0 items-center justify-center rounded-xl sm:rounded-2xl bg-white p-1 sm:p-2.5 overflow-hidden transition-transform duration-300 group-hover:scale-105">
                           <Image
                             src={source.logo}
                             alt={source.alt}
@@ -680,14 +680,14 @@ export default function Home() {
                             className="h-full w-full object-contain"
                           />
                         </div>
-                        <div className="flex flex-col pr-3">
-                          <div className="flex items-center gap-1.5">
-                            <span className="text-base sm:text-lg font-black tracking-tight text-white group-hover:text-emerald-400 transition-colors whitespace-nowrap">
+                        <div className="flex flex-col pr-1 sm:pr-3">
+                          <div className="flex items-center gap-1 sm:gap-1.5">
+                            <span className="text-xs sm:text-lg font-bold sm:font-black tracking-tight text-white group-hover:text-emerald-400 transition-colors whitespace-nowrap">
                               {source.name}
                             </span>
-                            <ArrowUpRight className="h-4 w-4 text-emerald-400/60 opacity-0 -translate-x-1 group-hover:opacity-100 group-hover:translate-x-0 group-hover:text-emerald-400 transition-all" />
+                            <ArrowUpRight className="h-3 w-3 sm:h-4 sm:w-4 text-emerald-400/60 opacity-0 -translate-x-1 group-hover:opacity-100 group-hover:translate-x-0 group-hover:text-emerald-400 transition-all" />
                           </div>
-                          <span className="mt-1 font-mono text-[11px] font-bold uppercase tracking-wider text-white/50 whitespace-nowrap">
+                          <span className="mt-0.5 sm:mt-1 font-mono text-[9px] sm:text-[11px] font-medium sm:font-bold uppercase tracking-tight sm:tracking-wider text-white/50 whitespace-nowrap">
                             {source.sub}
                           </span>
                         </div>

@@ -300,11 +300,11 @@ export function DocsWaveHero() {
  * Organic flowing 3-tone wave border that bounds the left side of the sources showcase track.
  * Moving cards smoothly disappear under the curved dark shadow and wave stripes without straight cuts.
  */
-export function SectionWaveBorderLeft() {
+export function SectionWaveBorderLeft({ className = '' }: { className?: string } = {}) {
   return (
     <div
       aria-hidden="true"
-      className="pointer-events-none absolute left-0 top-0 bottom-0 w-[140px] overflow-hidden select-none z-20"
+      className={`pointer-events-none absolute left-0 top-0 bottom-0 w-[var(--wave-l,140px)] overflow-hidden select-none z-20 ${className}`}
     >
       <svg
         viewBox="0 0 140 300"
@@ -327,7 +327,6 @@ export function SectionWaveBorderLeft() {
           strokeLinecap="round"
           className="opacity-60"
           filter="url(#waveShadowLeft)"
-          vectorEffect="non-scaling-stroke"
         />
 
         {/* Band 1: Deep Pine Green (Outer Boundary / Leftmost edge of the card) */}
@@ -340,7 +339,6 @@ export function SectionWaveBorderLeft() {
           strokeWidth="15"
           strokeLinecap="round"
           className="dark:stroke-[#154236]"
-          vectorEffect="non-scaling-stroke"
         />
 
         {/* Band 2: Warm Terracotta Peach (Middle) */}
@@ -353,7 +351,6 @@ export function SectionWaveBorderLeft() {
           strokeWidth="15"
           strokeLinecap="round"
           className="dark:stroke-[#f09e6c]"
-          vectorEffect="non-scaling-stroke"
         />
 
         {/* Band 3: Vibrant Coral Orange (Inner / Facing interior) */}
@@ -366,7 +363,6 @@ export function SectionWaveBorderLeft() {
           strokeWidth="15"
           strokeLinecap="round"
           className="dark:stroke-[#eb6a38]"
-          vectorEffect="non-scaling-stroke"
         />
       </svg>
     </div>
@@ -378,11 +374,11 @@ export function SectionWaveBorderLeft() {
  * Organic flowing 3-tone wave border that bounds the right side of the sources showcase track.
  * Moving cards smoothly emerge from under the curved dark shadow and wave stripes without straight cuts.
  */
-export function SectionWaveBorderRight() {
+export function SectionWaveBorderRight({ className = '' }: { className?: string } = {}) {
   return (
     <div
       aria-hidden="true"
-      className="pointer-events-none absolute right-0 top-0 bottom-0 w-[160px] overflow-hidden select-none z-20"
+      className={`pointer-events-none absolute right-0 top-0 bottom-0 w-[var(--wave-r,160px)] overflow-hidden select-none z-20 ${className}`}
     >
       <svg
         viewBox="0 0 160 300"
@@ -405,7 +401,6 @@ export function SectionWaveBorderRight() {
           strokeLinecap="round"
           className="opacity-60"
           filter="url(#waveShadowRight)"
-          vectorEffect="non-scaling-stroke"
         />
 
         {/* Band 1: Deep Pine Green (Outer Boundary / Rightmost edge of the card) */}
@@ -418,7 +413,6 @@ export function SectionWaveBorderRight() {
           strokeWidth="15"
           strokeLinecap="round"
           className="dark:stroke-[#154236]"
-          vectorEffect="non-scaling-stroke"
         />
 
         {/* Band 2: Warm Terracotta Peach (Middle) */}
@@ -431,7 +425,6 @@ export function SectionWaveBorderRight() {
           strokeWidth="15"
           strokeLinecap="round"
           className="dark:stroke-[#f09e6c]"
-          vectorEffect="non-scaling-stroke"
         />
 
         {/* Band 3: Vibrant Coral Orange (Inner / Facing interior) */}
@@ -444,7 +437,6 @@ export function SectionWaveBorderRight() {
           strokeWidth="15"
           strokeLinecap="round"
           className="dark:stroke-[#eb6a38]"
-          vectorEffect="non-scaling-stroke"
         />
       </svg>
     </div>
