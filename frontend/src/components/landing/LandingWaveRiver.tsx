@@ -10,50 +10,53 @@ export function LandingWaveHero() {
   return (
     <div
       aria-hidden="true"
-      className="pointer-events-none absolute -top-8 sm:-top-4 left-1/2 -translate-x-1/2 w-[1600px] h-[1100px] max-w-none select-none z-0 opacity-100 dark:opacity-95"
+      className="pointer-events-none absolute -top-16 sm:-top-8 left-1/2 -translate-x-1/2 w-[2000px] h-[1150px] max-w-none select-none z-0 opacity-100 dark:opacity-95"
     >
       <svg
-        viewBox="0 0 1600 1100"
+        viewBox="0 0 2000 1150"
         fill="none"
         xmlns="http://www.w3.org/2000/svg"
         className="w-full h-full block"
       >
-        {/* Band 1: Deep Pine Green (Inner Layer of U-shape) */}
+        {/* Band 1: Deep Pine Green (Inner Layer - Solid, seamless joint) */}
         <path
-          d="M 94, 60
-             C 162, 236, 260, 452, 280, 668
-             C 298, 786, 488, 846, 800, 846
-             C 1112, 846, 1302, 786, 1320, 668
-             C 1340, 452, 1438, 236, 1506, 60"
+          d="M -58, -36
+             C 240, 184, 444, 436, 506, 658
+             C 536, 786, 716, 862, 1000, 862
+             C 1284, 862, 1464, 786, 1494, 658
+             C 1556, 436, 1760, 184, 2058, -36"
           stroke="#1b4e41"
-          strokeWidth="34"
+          strokeWidth="54"
           strokeLinecap="round"
+          strokeLinejoin="round"
           className="dark:stroke-[#154236]"
         />
 
-        {/* Band 2: Warm Terracotta Peach (Middle Layer of U-shape) */}
+        {/* Band 2: Warm Terracotta Peach (Middle Layer - Solid, seamless joint) */}
         <path
-          d="M 60, 40
-             C 130, 220, 230, 440, 250, 660
-             C 270, 800, 470, 880, 800, 880
-             C 1130, 880, 1330, 800, 1350, 660
-             C 1370, 440, 1470, 220, 1540, 40"
+          d="M -100, -60
+             C 200, 160, 400, 420, 460, 650
+             C 500, 810, 700, 910, 1000, 910
+             C 1300, 910, 1500, 810, 1540, 650
+             C 1600, 420, 1800, 160, 2100, -60"
           stroke="#f09e6c"
-          strokeWidth="34"
+          strokeWidth="54"
           strokeLinecap="round"
+          strokeLinejoin="round"
           className="dark:stroke-[#f09e6c]"
         />
 
-        {/* Band 3: Vibrant Coral Orange (Outer Layer of U-shape) */}
+        {/* Band 3: Vibrant Coral Orange (Outer Layer - Solid, seamless joint) */}
         <path
-          d="M 26, 20
-             C 98, 204, 200, 428, 220, 652
-             C 242, 814, 452, 914, 800, 914
-             C 1148, 914, 1358, 814, 1380, 652
-             C 1400, 428, 1502, 204, 1574, 20"
+          d="M -142, -84
+             C 160, 136, 356, 404, 414, 642
+             C 464, 834, 684, 958, 1000, 958
+             C 1316, 958, 1536, 834, 1586, 642
+             C 1644, 404, 1840, 136, 2142, -84"
           stroke="#eb6a38"
-          strokeWidth="34"
+          strokeWidth="54"
           strokeLinecap="round"
+          strokeLinejoin="round"
           className="dark:stroke-[#eb6a38]"
         />
       </svg>
