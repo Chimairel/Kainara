@@ -16,6 +16,7 @@
     "seed:meal-library": "tsx prisma/seed-common-meal-library.ts",
     "seed:condition-rules": "tsx prisma/seed-condition-rules.ts",
     "test:integration:production": "tsx scripts/production-integration-smoke.ts",
+    "test:acceptance:membership": "tsx scripts/membership-acceptance.ts",
     "test:acceptance:library-reuse": "tsx scripts/library-reuse-acceptance.ts",
     "test:acceptance:condition-library": "tsx scripts/condition-library-acceptance.ts",
     "test:acceptance:combined-library-flow": "tsx scripts/combined-library-flow-acceptance.ts",

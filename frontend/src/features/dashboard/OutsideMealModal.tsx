@@ -4,6 +4,8 @@ import PreviewConfirmation from './OutsideMealPreview';
 import type { OutsideMealModalProps as Props } from './outside-meal-modal.types';
 
 import Button from '@/components/ui/Button';
+import Link from 'next/link';
+import { useMembership } from '@/features/membership/MembershipProvider';
 import Modal from '@/components/ui/Modal';
 import RiceAccompanimentSelect from '@/components/user/RiceAccompanimentSelect';
 import api from '@/lib/axios';
@@ -85,6 +87,8 @@ export function OutsideMealModal(props: Props) {
 }
 
 function OutsideMealForm(props: Props) {
+  const { data: membership } = useMembership();
+  const estimates = membership?.enabled ? membership.usage.AI_ESTIMATE : null;
   // Autocomplete state
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [isSearching, setIsSearching] = useState(false);
@@ -756,16 +760,25 @@ function OutsideMealForm(props: Props) {
         <button
           type="button"
           onClick={() => handleSubmit(true)}
-          disabled={props.isLoading || !props.mealName.trim()}
+          disabled={props.isLoading || !props.mealName.trim() || estimates?.remaining === 0}
           className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-brand-green/50 bg-brand-green/15 py-2 px-4 text-xs font-extrabold text-brand-green transition hover:bg-brand-green/25 disabled:opacity-50 disabled:cursor-not-allowed shadow-xs"
         >
           <Sparkles className="h-4 w-4 text-brand-green" />
           HELP ME FIND VALUES WITH AI
         </button>
         <p className="mt-1.5 text-[10px] text-brand-muted">
-          Grams and notes are optional. Without them, AI assumes a typical serving; values are provisional and enter
-          nutritionist review.
+          Grams and notes are optional. Without them, AI assumes a typical serving. Values remain provisional; review
+          may be required or requested separately.
         </p>
+        {estimates && (
+          <p className="mt-2 text-xs text-brand-muted">
+            {estimates.remaining} of {estimates.cap} AI estimate requests left this week. One request covers this
+            submission. Manual logging remains available.{' '}
+            <Link href="/membership" className="font-semibold text-brand-green">
+              View membership
+            </Link>
+          </p>
+        )}
       </div>
 
       {/* 6. Primary Action: LOG THIS MEAL */}

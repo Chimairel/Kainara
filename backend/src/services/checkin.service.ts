@@ -1,4 +1,6 @@
 import prisma from '@/lib/prisma';
+import { MembershipService } from './membership.service';
+import { membershipEnabled } from '@/domain/membership.policy';
 import { lockUserProfile, advanceProfileRevision } from './profile-revision.service';
 import { calculateDailyTarget } from '@/lib/calculations';
 import { MealPlanCycleService } from './meal-plan-cycle.service';
@@ -16,6 +18,8 @@ import {
 
 export class CheckinService {
   static async getCheckinStatus(userId: string) {
+    if (membershipEnabled() && !(await MembershipService.state(userId)).enhanced)
+      return { isDue: false, streak: 0, lastCheckinAt: null, latestAdaptation: null };
     const profile = await prisma.userProfile.findUnique({
       where: { userId },
       select: {
@@ -145,6 +149,7 @@ export class CheckinService {
             duplicate = true;
             return recorded;
           }
+          await MembershipService.assertEnhanced(userId, tx);
           const currentProfile = await tx.userProfile.findUniqueOrThrow({ where: { userId } });
           if (currentProfile.revision !== profile.revision)
             throw new Error('Your profile changed. Refresh before submitting your check-in.');

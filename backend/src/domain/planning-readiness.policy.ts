@@ -1,7 +1,12 @@
 import type { ClinicalEvidenceRequirement } from './clinical-evidence-requirement.policy';
 
 export type PlanningReadiness = {
-  status: 'BLOCKED_CLINICAL_CONTEXT' | 'BLOCKED_PROFILE_REVIEW' | 'REQUEST_ALLOWED_REVIEW_EXPECTED' | 'REQUEST_ALLOWED';
+  status:
+    | 'BLOCKED_CLINICAL_CONTEXT'
+    | 'BLOCKED_PROFILE_REVIEW'
+    | 'BLOCKED_MEMBERSHIP'
+    | 'REQUEST_ALLOWED_REVIEW_EXPECTED'
+    | 'REQUEST_ALLOWED';
   canRequestPlan: boolean;
   title: string;
   message: string;
@@ -27,9 +32,11 @@ export function determinePlanningReadiness(input: {
 
   if (!input.profileReviewApproved) {
     return {
-      status: 'BLOCKED_PROFILE_REVIEW', canRequestPlan: false,
+      status: 'BLOCKED_PROFILE_REVIEW',
+      canRequestPlan: false,
       title: 'Health profile awaiting nutritionist review',
-      message: 'A nutritionist must review your declared conditions and allergies before meal candidates can be prepared. Individual meals will then need separate case approval.',
+      message:
+        'A nutritionist must review your declared conditions and allergies before meal candidates can be prepared. Individual meals will then need separate case approval.',
       actionPath: '/profile/clinical-evidence',
     };
   }
@@ -40,7 +47,8 @@ export function determinePlanningReadiness(input: {
       status: 'REQUEST_ALLOWED_REVIEW_EXPECTED',
       canRequestPlan: true,
       title: 'Plan request available; meal review may be needed',
-      message: 'You can request a plan. Only meals with matching safety evidence can be used now; other candidates must be reviewed by a nutritionist before use.',
+      message:
+        'You can request a plan. Only meals with matching safety evidence can be used now; other candidates must be reviewed by a nutritionist before use.',
       actionPath: '/meals',
     };
   }
@@ -49,7 +57,8 @@ export function determinePlanningReadiness(input: {
     status: 'REQUEST_ALLOWED',
     canRequestPlan: true,
     title: 'Meal planning is available',
-    message: 'You can request a plan. Meals with matching reviewed evidence are available first; any new candidates wait for nutritionist review before use.',
+    message:
+      'You can request a plan. Meals with matching reviewed evidence are available first; any new candidates wait for nutritionist review before use.',
     actionPath: '/meals',
   };
 }

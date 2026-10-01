@@ -20,6 +20,7 @@ import { getMaximumAssuranceTier } from '@/domain/assurance-tier.policy';
 
 import { getPreparationLeadDays } from '@/domain/upcoming-preparation.policy';
 import { generate7DayPlan } from './meal-plan-composition.service';
+import { MembershipService } from './membership.service';
 import { ClinicalEvidenceService } from './clinical-evidence.service';
 import { ClinicalProfileReviewService } from './clinical-profile-review.service';
 import { missingMealSlots } from '@/domain/meal-generation-gap.policy';
@@ -43,7 +44,7 @@ export class MealGenerationService {
   static async generatePlanForUser(
     userId: string,
     now: Date = new Date(),
-    options: { replaceExisting?: boolean } = {}
+    options: { replaceExisting?: boolean; requestKey?: string } = {}
   ): Promise<string> {
     await ClinicalEvidenceService.assertReadyForMealPlanning(userId);
     await ClinicalProfileReviewService.assertReadyForMealPlanning(userId);
@@ -54,7 +55,8 @@ export class MealGenerationService {
       return MealGenerationService.generateWindowOnce(
         userId,
         { planType: currentCycle.planType, numDays, startDate: currentCycle.startDate },
-        true
+        true,
+        options.requestKey
       );
     }
 
@@ -70,7 +72,12 @@ export class MealGenerationService {
     console.log(
       `[Meal Generation] Generating ${window.planType} plan: ${window.numDays} day(s) from ${getManilaDateKey(window.startDate)}.`
     );
-    return MealGenerationService.generateWindowOnce(userId, window, options.replaceExisting === true);
+    return MealGenerationService.generateWindowOnce(
+      userId,
+      window,
+      options.replaceExisting === true,
+      options.requestKey
+    );
   }
 
   private static async findExistingPlan(
@@ -160,7 +167,8 @@ export class MealGenerationService {
   static async generateWindowOnce(
     userId: string,
     window: MealPlanGenerationWindow,
-    replaceExisting = false
+    replaceExisting = false,
+    requestKey?: string
   ): Promise<string> {
     await ClinicalEvidenceService.assertReadyForMealPlanning(userId);
     await ClinicalProfileReviewService.assertReadyForMealPlanning(userId);
@@ -170,6 +178,9 @@ export class MealGenerationService {
       endDate,
     });
     if (existing && !replaceExisting) return existing;
+    const replay = await MembershipService.replayedPlan(userId, requestKey, window.startDate);
+    if (replay) return replay;
+    await MembershipService.assertNewPlan(userId, window.startDate);
 
     let job = null;
     let claimedNewJob = false;
@@ -216,10 +227,12 @@ export class MealGenerationService {
             { status: MealPlanGenerationJobStatus.FAILED },
             { status: MealPlanGenerationJobStatus.COMPLETED },
             { status: MealPlanGenerationJobStatus.GENERATING, updatedAt: { lt: staleCutoff } },
-            ...(replaceExisting ? [
-              { status: MealPlanGenerationJobStatus.WAITING_FOR_AI },
-              { status: MealPlanGenerationJobStatus.PROCESSING_AI },
-            ] : []),
+            ...(replaceExisting
+              ? [
+                  { status: MealPlanGenerationJobStatus.WAITING_FOR_AI },
+                  { status: MealPlanGenerationJobStatus.PROCESSING_AI },
+                ]
+              : []),
           ],
         },
         data: {
@@ -241,13 +254,22 @@ export class MealGenerationService {
       }
     }
 
+    let membershipReservations: Array<{ id: string; replayed: boolean }> = [];
     try {
+      membershipReservations = await MembershipService.admitPlan(
+        userId,
+        window.startDate,
+        replaceExisting,
+        job.id,
+        requestKey
+      );
       const planGroupId = await MealGenerationService.generate7DayPlan(
         userId,
         window.planType,
         window.numDays,
         window.startDate,
-        job.id
+        job.id,
+        membershipReservations.filter((row) => !row.replayed).map((row) => row.id)
       );
       const cycle = await prisma.mealPlanCycle.findUniqueOrThrow({
         where: { id: planGroupId },
@@ -271,13 +293,17 @@ export class MealGenerationService {
           processingToken: null,
           progressPct: missing.length ? 90 : 100,
           stageCode: missing.length ? 'WAITING_FOR_AI' : 'COMPLETED',
-          stageMessage: missing.length ? `${missing.length} meal slot(s) awaiting generation.` : 'Your plan is ready for review.',
+          stageMessage: missing.length
+            ? `${missing.length} meal slot(s) awaiting generation.`
+            : 'Your plan is ready for review.',
           completedAt: missing.length ? null : new Date(),
         },
       });
       if (missing.length) MealAiQueueService.triggerNonBlocking();
+      await MealPlanCycleService.synchronizeLifecycle(userId);
       return planGroupId;
     } catch (error) {
+      for (const reservation of membershipReservations) await MembershipService.release(reservation.id);
       await prisma.mealPlanGenerationJob.updateMany({
         where: { id: job.id, status: MealPlanGenerationJobStatus.GENERATING },
         data: {

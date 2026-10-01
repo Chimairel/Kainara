@@ -53,6 +53,7 @@ export const RouteGuard: React.FC<RouteGuardProps> = ({ children }) => {
     '/progress',
     '/health-profile',
     '/export',
+    '/membership',
     '/onboarding',
     '/nutrition-report',
   ].some((route) => pathname.startsWith(route));
@@ -78,8 +79,12 @@ export const RouteGuard: React.FC<RouteGuardProps> = ({ children }) => {
       } else if (!isPublicRoute && user.role === 'USER') {
         if (!user.onboardingDone && !isOnboardingPage && !isAccountPrivacyRoute) {
           redirectTarget = user.onboardingNextPath || '/onboarding/stats';
-        } else if (user.onboardingDone && user.onboardingNextPath?.startsWith('/onboarding/') &&
-          !isOnboardingPage && !isAccountPrivacyRoute) {
+        } else if (
+          user.onboardingDone &&
+          user.onboardingNextPath?.startsWith('/onboarding/') &&
+          !isOnboardingPage &&
+          !isAccountPrivacyRoute
+        ) {
           redirectTarget = user.onboardingNextPath;
         } else if (user.onboardingDone && !user.tosAccepted && !pathname.endsWith('/tos') && !isAccountPrivacyRoute) {
           redirectTarget = '/onboarding/tos';

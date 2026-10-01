@@ -1,4 +1,5 @@
 import prisma from '@/lib/prisma';
+import { MembershipService } from './membership.service';
 import { admittedLibraryBaseIds } from './meal-base-admission.service';
 import { ClinicalProfileReviewService } from './clinical-profile-review.service';
 import { adaptUserSafetyRestrictions } from '@/domain/structured-restriction.adapter';
@@ -70,9 +71,10 @@ export class MealPlanCycleService {
   ): Promise<string[]> {
     // Legacy approved slots cannot become actionable before the current
     // restricted profile has received its separate nutritionist review.
-    const profileClient = client.user && client.clinicalProfileReview
-      ? client as Pick<Prisma.TransactionClient, 'user' | 'clinicalProfileReview'>
-      : prisma;
+    const profileClient =
+      client.user && client.clinicalProfileReview
+        ? (client as Pick<Prisma.TransactionClient, 'user' | 'clinicalProfileReview'>)
+        : prisma;
     if (!(await ClinicalProfileReviewService.hasCurrentApproval(userId, profileClient))) return [];
     const cycle = await client.mealPlanCycle.findFirst({
       where: { id: cycleId, userId },
@@ -82,7 +84,9 @@ export class MealPlanCycleService {
             healthConditions: { select: { condition: true } },
             allergies: { select: { allergen: true } },
             userProfile: { select: { otherConditions: true, otherAllergies: true } },
-            safetyProfileEntries: { select: { domain: true, canonicalCode: true, originalText: true, supportState: true } },
+            safetyProfileEntries: {
+              select: { domain: true, canonicalCode: true, originalText: true, supportState: true },
+            },
           },
         },
         mealPlans: {
@@ -99,8 +103,12 @@ export class MealPlanCycleService {
             reviewApprovalCount: true,
             profileApproval: {
               select: {
-                safetyScopeKey: true, recipeSignature: true, evidenceRevision: true,
-                reviewPolicyVersion: true, reviewDueAt: true, flaggedAt: true,
+                safetyScopeKey: true,
+                recipeSignature: true,
+                evidenceRevision: true,
+                reviewPolicyVersion: true,
+                reviewDueAt: true,
+                flaggedAt: true,
                 reviewerNutritionist: {
                   include: { user: { select: { role: true, isSuspended: true } } },
                 },
@@ -108,8 +116,12 @@ export class MealPlanCycleService {
             },
             candidateProvenance: true,
             sourceRawRecipeCandidate: {
-              select: { sourceName: true, status: true, publishedNutrition: true,
-                libraryVariants: { where: { status: 'FLAGGED' }, select: { id: true }, take: 1 } },
+              select: {
+                sourceName: true,
+                status: true,
+                publishedNutrition: true,
+                libraryVariants: { where: { status: 'FLAGGED' }, select: { id: true }, take: 1 },
+              },
             },
             libraryMeal: {
               select: {
@@ -166,16 +178,24 @@ export class MealPlanCycleService {
       otherAllergies: cycle.user.userProfile?.otherAllergies,
       safetyEntries: cycle.user.safetyProfileEntries,
     });
-    const libraries = cycle.mealPlans.flatMap((meal) => meal.libraryMeal ? [meal.libraryMeal] : []);
+    const libraries = cycle.mealPlans.flatMap((meal) => (meal.libraryMeal ? [meal.libraryMeal] : []));
     const admittedLibraries = await admittedLibraryBaseIds(libraries);
-    const generatedSignatures = [...new Set(cycle.mealPlans.flatMap((meal) =>
-      meal.candidateProvenance === 'AI_FROM_SCRATCH' && meal.baseRecipeSignature ? [meal.baseRecipeSignature] : []))];
-    const verifiedGenerated = generatedSignatures.length ? await prisma.mealBaseVerification.findMany({
-      where: { targetKind: 'GENERATED_RECIPE', status: 'VERIFIED', targetId: { in: generatedSignatures } },
-      select: { targetId: true, revisionKey: true },
-    }) : [];
-    const verifiedGeneratedSignatures = new Set(verifiedGenerated.flatMap((row) =>
-      row.targetId === row.revisionKey ? [row.targetId] : []));
+    const generatedSignatures = [
+      ...new Set(
+        cycle.mealPlans.flatMap((meal) =>
+          meal.candidateProvenance === 'AI_FROM_SCRATCH' && meal.baseRecipeSignature ? [meal.baseRecipeSignature] : []
+        )
+      ),
+    ];
+    const verifiedGenerated = generatedSignatures.length
+      ? await prisma.mealBaseVerification.findMany({
+          where: { targetKind: 'GENERATED_RECIPE', status: 'VERIFIED', targetId: { in: generatedSignatures } },
+          select: { targetId: true, revisionKey: true },
+        })
+      : [];
+    const verifiedGeneratedSignatures = new Set(
+      verifiedGenerated.flatMap((row) => (row.targetId === row.revisionKey ? [row.targetId] : []))
+    );
     return cycle.mealPlans
       .filter((meal) => {
         if (
@@ -189,18 +209,25 @@ export class MealPlanCycleService {
         }
         if (meal.libraryMealId) {
           const library = meal.libraryMeal;
-          if (!library || !admittedLibraries.has(library.id) || library.status !== MealLibraryStatus.APPROVED ||
-              library.recipeSignature !== meal.baseRecipeSignature) {
+          if (
+            !library ||
+            !admittedLibraries.has(library.id) ||
+            library.status !== MealLibraryStatus.APPROVED ||
+            library.recipeSignature !== meal.baseRecipeSignature
+          ) {
             return false;
           }
           const profileApproval = meal.profileApproval;
-          const profileApprovalCurrent = profileApproval && profileScope.supported &&
+          const profileApprovalCurrent =
+            profileApproval &&
+            profileScope.supported &&
             safetyRestrictions.conditions.length === 0 &&
             profileApproval.safetyScopeKey === profileScope.key &&
             profileApproval.recipeSignature === library.recipeSignature &&
             profileApproval.evidenceRevision === library.safetyEvidenceRevision &&
             profileApproval.reviewPolicyVersion === MEAL_PLAN_SAFETY_POLICY_VERSION &&
-            !profileApproval.flaggedAt && profileApproval.reviewDueAt > now &&
+            !profileApproval.flaggedAt &&
+            profileApproval.reviewDueAt > now &&
             isNutritionistEligibleForReview(profileApproval.reviewerNutritionist, now);
           const distinctCaseReviewers = new Set(meal.reviewDecisions.map((decision) => decision.nutritionistProfileId));
           const caseReviewComplete = distinctCaseReviewers.size >= (meal.highRiskReviewRequired ? 2 : 1);
@@ -231,20 +258,28 @@ export class MealPlanCycleService {
           );
           const clearedForConditions = [...requiredConditions].every((condition) => validConditions.has(condition));
           const directlyReviewedCase = meal.clearanceUsages.length === 0 && caseReviewComplete;
-          return (clearedForConditions || directlyReviewedCase) &&
-            (!profileApproval || Boolean(profileApprovalCurrent));
+          return (
+            (clearedForConditions || directlyReviewedCase) && (!profileApproval || Boolean(profileApprovalCurrent))
+          );
         }
         if (meal.candidateProvenance === 'RAW_RECIPE_CORPUS' && meal.reviewApprovalCount === 0) {
-          return !safetyRestrictions.requiresReview &&
-            safetyRestrictions.conditions.length === 0 && safetyRestrictions.allergies.length === 0 &&
-            safetyRestrictions.customConditions.length === 0 && safetyRestrictions.customFoodRestrictions.length === 0 &&
+          return (
+            !safetyRestrictions.requiresReview &&
+            safetyRestrictions.conditions.length === 0 &&
+            safetyRestrictions.allergies.length === 0 &&
+            safetyRestrictions.customConditions.length === 0 &&
+            safetyRestrictions.customFoodRestrictions.length === 0 &&
             meal.sourceRawRecipeCandidate?.sourceName === 'PANLASANG_PINOY' &&
             meal.sourceRawRecipeCandidate.status === 'AVAILABLE' &&
             meal.sourceRawRecipeCandidate.libraryVariants.length === 0 &&
-            Boolean(meal.sourceRawRecipeCandidate.publishedNutrition);
+            Boolean(meal.sourceRawRecipeCandidate.publishedNutrition)
+          );
         }
-        if (meal.candidateProvenance === 'AI_FROM_SCRATCH' &&
-          !verifiedGeneratedSignatures.has(meal.baseRecipeSignature)) return false;
+        if (
+          meal.candidateProvenance === 'AI_FROM_SCRATCH' &&
+          !verifiedGeneratedSignatures.has(meal.baseRecipeSignature)
+        )
+          return false;
         const distinctApprovers = new Set(meal.reviewDecisions.map((decision) => decision.nutritionistProfileId));
         const requiredApprovals = meal.highRiskReviewRequired ? 2 : 1;
         return meal.reviewApprovalCount >= requiredApprovals && distinctApprovers.size >= requiredApprovals;
@@ -293,11 +328,18 @@ export class MealPlanCycleService {
     // On a normal read, overlap their remote database reads before applying
     // lifecycle updates. Keep transaction-backed calls in their original
     // sequence so a caller's transaction observes its own writes in order.
-    const prefetchedClearance = client === prisma
-      ? new Map(await Promise.all(cycles
-        .filter((cycle) => cycle.profileAdaptationState === ProfileCycleAdaptationState.CURRENT)
-        .map(async (cycle) => [cycle.id, await this.getClearedMealPlanIds(userId, cycle.id, now, client)] as const)))
-      : null;
+    const prefetchedClearance =
+      client === prisma
+        ? new Map(
+            await Promise.all(
+              cycles
+                .filter((cycle) => cycle.profileAdaptationState === ProfileCycleAdaptationState.CURRENT)
+                .map(
+                  async (cycle) => [cycle.id, await this.getClearedMealPlanIds(userId, cycle.id, now, client)] as const
+                )
+            )
+          )
+        : null;
 
     for (const cycle of cycles) {
       if (cycle.profileAdaptationState !== ProfileCycleAdaptationState.CURRENT) {
@@ -313,11 +355,26 @@ export class MealPlanCycleService {
         }
         continue;
       }
-      const clearedIds = prefetchedClearance?.get(cycle.id) ??
-        await this.getClearedMealPlanIds(userId, cycle.id, now, client);
+      const clearedIds =
+        prefetchedClearance?.get(cycle.id) ?? (await this.getClearedMealPlanIds(userId, cycle.id, now, client));
       clearedIdsByCycle?.set(cycle.id, clearedIds);
       const clearedMealPlanIds = new Set(clearedIds);
       const clearedMeals = cycle.mealPlans.filter((meal) => clearedMealPlanIds.has(meal.id));
+      if (
+        client === prisma &&
+        cycle.status !== MealPlanCycleStatus.COMPLETED &&
+        clearedMeals.length &&
+        cycle.startDate <= getManilaMidnight(getManilaDateKey(now)) &&
+        cycle.endDate >= getManilaMidnight(getManilaDateKey(now))
+      ) {
+        const availableAt = new Date(
+          Math.max(
+            cycle.startDate.getTime(),
+            Math.min(...clearedMeals.map((meal) => (meal.reviewedAt ?? meal.createdAt).getTime()))
+          )
+        );
+        await MembershipService.startTrial(userId, availableAt, now);
+      }
       const clearedSlots = new Set(clearedMeals.map((meal) => `${meal.scheduledDate.getTime()}:${meal.mealType}`));
       const allSlotsCleared = clearedSlots.size >= cycle.expectedSlotCount;
       const groceryProjectionReady = Boolean(cycle.groceryList && !cycle.groceryList.isStale);
@@ -387,8 +444,9 @@ export class MealPlanCycleService {
     });
     return {
       cycle,
-      clearedIds: cycle ? (clearedIdsByCycle.get(cycle.id) ??
-        await this.getClearedMealPlanIds(userId, cycle.id, now)) : [],
+      clearedIds: cycle
+        ? (clearedIdsByCycle.get(cycle.id) ?? (await this.getClearedMealPlanIds(userId, cycle.id, now)))
+        : [],
     };
   }
 
@@ -473,38 +531,44 @@ export class MealPlanCycleService {
   }
 
   static async acknowledgeIncompleteCycle(userId: string, cycleId: string, now: Date = new Date()) {
-    return prisma.$transaction(async (tx) => {
-      await this.synchronizeLifecycle(userId, now, tx);
-      const cycle = await tx.mealPlanCycle.findFirst({ where: { id: cycleId, userId } });
-      if (!cycle) throw new Error('Meal-plan cycle not found.');
-      if (cycle.incompleteAcknowledgedAt) return cycle;
-      if (
-        cycle.status !== MealPlanCycleStatus.INCOMPLETE_AT_DEADLINE &&
-        !(cycle.status === MealPlanCycleStatus.ACTIVE && cycle.deadlineOutcome === 'INCOMPLETE')
-      ) {
-        throw new Error('Only an incomplete-at-deadline cycle can be acknowledged.');
-      }
-      return tx.mealPlanCycle.update({
-        where: { id: cycle.id },
-        data: { incompleteAcknowledgedAt: now },
-      });
-    }, { timeout: 90_000 });
+    return prisma.$transaction(
+      async (tx) => {
+        await this.synchronizeLifecycle(userId, now, tx);
+        const cycle = await tx.mealPlanCycle.findFirst({ where: { id: cycleId, userId } });
+        if (!cycle) throw new Error('Meal-plan cycle not found.');
+        if (cycle.incompleteAcknowledgedAt) return cycle;
+        if (
+          cycle.status !== MealPlanCycleStatus.INCOMPLETE_AT_DEADLINE &&
+          !(cycle.status === MealPlanCycleStatus.ACTIVE && cycle.deadlineOutcome === 'INCOMPLETE')
+        ) {
+          throw new Error('Only an incomplete-at-deadline cycle can be acknowledged.');
+        }
+        return tx.mealPlanCycle.update({
+          where: { id: cycle.id },
+          data: { incompleteAcknowledgedAt: now },
+        });
+      },
+      { timeout: 90_000 }
+    );
   }
 
   static async startShopping(userId: string, cycleId: string, now: Date = new Date()) {
-    return prisma.$transaction(async (tx) => {
-      const grocery = await tx.groceryList.findUnique({
-        where: { planGroupId: cycleId },
-        select: { userId: true, isStale: true },
-      });
-      if (!grocery || grocery.userId !== userId || grocery.isStale) {
-        throw new Error('A current shopping list is required before shopping can start.');
-      }
-      await this.recordShoppingStarted(tx, userId, cycleId, now);
-      return tx.mealPlanCycle.findUniqueOrThrow({
-        where: { id: cycleId },
-        select: mealPlanCycleSummarySelect,
-      });
-    }, { timeout: 90_000 });
+    return prisma.$transaction(
+      async (tx) => {
+        const grocery = await tx.groceryList.findUnique({
+          where: { planGroupId: cycleId },
+          select: { userId: true, isStale: true },
+        });
+        if (!grocery || grocery.userId !== userId || grocery.isStale) {
+          throw new Error('A current shopping list is required before shopping can start.');
+        }
+        await this.recordShoppingStarted(tx, userId, cycleId, now);
+        return tx.mealPlanCycle.findUniqueOrThrow({
+          where: { id: cycleId },
+          select: mealPlanCycleSummarySelect,
+        });
+      },
+      { timeout: 90_000 }
+    );
   }
 }

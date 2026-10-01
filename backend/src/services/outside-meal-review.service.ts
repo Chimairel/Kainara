@@ -12,6 +12,7 @@ import { AppError } from '@/errors/AppError';
 import { summarizeOutsideMealNutrition } from '@/domain/outside-meal.policy';
 import { MealSwapService } from './meal-swap.service';
 import { ObservedMealService } from './observed-meal.service';
+import { MembershipService } from './membership.service';
 
 const CLAIM_MINUTES = 30;
 
@@ -183,6 +184,12 @@ export class OutsideMealReviewService {
           return review;
         }
         if (item.review) await ObservedMealService.invalidateSource(tx, item.id);
+        // Items in the first meal submission share an episode. A new review after a final
+        // decision is another episode; clarification of a still-open review uses the path above.
+        const episodeKey = item.review
+          ? `outside-log:${logId}:reopen:${item.review.id}:${item.currentRevision}`
+          : `outside-log:${logId}`;
+        const allowance = await MembershipService.reserve(userId, 'OUTSIDE_REVIEW', episodeKey, episodeKey, tx);
         const review = item.review
           ? await tx.outsideMealReview.update({
               where: { id: item.review.id },
@@ -207,6 +214,7 @@ export class OutsideMealReviewService {
                 priority: 60,
               },
             });
+        if (allowance && !allowance.replayed) await MembershipService.complete(allowance.id, tx);
         await tx.auditEvent.create({
           data: {
             actorUserId: userId,

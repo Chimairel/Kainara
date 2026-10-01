@@ -5,6 +5,7 @@ import { OutsideMealCaptureService } from '@/services/outside-meal-capture.servi
 import { OutsideMealReviewService } from '@/services/outside-meal-review.service';
 import { AuthenticatedRequest } from '@/types';
 import { Response } from 'express';
+import { AppError } from '@/errors/AppError';
 
 export class OutsideMealsController {
   static async logOutsideMeal(req: AuthenticatedRequest, res: Response) {
@@ -51,6 +52,7 @@ export class OutsideMealsController {
       return res.status(status).json({
         success: false,
         error: sanitizeErrorMessage(error, 'Failed to check or log outside meal.'),
+        code: error instanceof AppError ? error.errorCode : undefined,
       });
     }
   }
@@ -100,9 +102,11 @@ export class OutsideMealsController {
       const data = await OutsideMealReviewService.requestByUser(req.user!.userId, req.params.id, req.params.itemId);
       return res.json({ success: true, data });
     } catch (error: any) {
-      return res
-        .status(error?.statusCode ?? 400)
-        .json({ success: false, error: sanitizeErrorMessage(error, 'Could not request outside-meal review.') });
+      return res.status(error?.statusCode ?? 400).json({
+        success: false,
+        error: sanitizeErrorMessage(error, 'Could not request outside-meal review.'),
+        code: error instanceof AppError ? error.errorCode : undefined,
+      });
     }
   }
 

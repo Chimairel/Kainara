@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { evidenceRegisterSections } from './EvidenceRegister';
 import { policyChapters } from './DocsPolicies';
+import { membershipChapter } from './DocsMembership';
 
 export type DocsSection = { id: string; title: string; content: ReactNode };
 export type DocsChapter = {
@@ -800,4 +801,5 @@ export const docsChapters: DocsChapter[] = [
     ],
   },
   ...policyChapters,
+  membershipChapter,
 ];

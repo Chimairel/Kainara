@@ -8,7 +8,6 @@ import {
   MealPlanStatus,
   AIConfidenceFlag,
   HealthConditionType,
-  NotificationType,
   PlanType,
   MealPlanCycleDeadlineOutcome,
   MealPlanCycleStatus,
@@ -24,6 +23,8 @@ import { assertMealSlotCalories, validateGeneratedDayCalories } from '@/domain/g
 import { getMealPlanCycleTiming, getManilaDateKey, getScheduledMealDate } from '@/domain/meal-plan-cycle.policy';
 import { MealPlanCycleService } from './meal-plan-cycle.service';
 import { ClinicalProfileReviewService } from './clinical-profile-review.service';
+import { MembershipService } from './membership.service';
+import { notifyPreparedPlan } from './meal-plan-notification.service';
 import {
   MEAL_PLAN_SAFETY_POLICY_VERSION,
   requiresEscalatedMealReview,
@@ -45,10 +46,7 @@ import {
   queryEligibleLibraryMeals,
 } from './meal-library-candidate-query.service';
 import { sourceRawRecipeCandidates } from './raw-recipe-candidate.service';
-import {
-  prepareGeneratedMealIngredients,
-  type GeneratedMeal,
-} from './meal-generation-ingredient-preparation.service';
+import { prepareGeneratedMealIngredients, type GeneratedMeal } from './meal-generation-ingredient-preparation.service';
 import { buildBaseServingPersistence, composePlanWithPairedRice } from './meal-plan-serving.service';
 import { getMaximumAssuranceTier } from '@/domain/assurance-tier.policy';
 import { isUnrestrictedPanlasangBaseEligible } from '@/domain/unrestricted-panlasang-base.policy';
@@ -67,8 +65,10 @@ export async function generate7DayPlan(
   planType: PlanType = PlanType.WEEKLY,
   numDays: number = 7,
   startDate: Date = new Date(),
-  generationJobId?: string
+  generationJobId?: string,
+  membershipReservationIds: readonly string[] = []
 ): Promise<string> {
+  await MembershipService.assertNewPlan(userId, startDate);
   await ClinicalProfileReviewService.assertReadyForMealPlanning(userId);
   await updateGenerationProgress(
     generationJobId,
@@ -87,11 +87,17 @@ export async function generate7DayPlan(
   } = await loadUserNutritionContext(prisma, userId, 'User profile must be initialized before generating a meal plan.');
   const highRiskReviewRequired = requiresEscalatedMealReview(userConditions, otherConditions);
   const restrictions = adaptUserSafetyRestrictions({
-    healthConditions: userConditions, allergies: userAllergens, otherConditions, otherAllergies,
+    healthConditions: userConditions,
+    allergies: userAllergens,
+    otherConditions,
+    otherAllergies,
     safetyEntries: user.safetyProfileEntries,
   });
-  const reviewFreeBaseOnly = !restrictions.requiresReview && !restrictions.conditions.length &&
-    !restrictions.allergies.length && !restrictions.customConditions.length &&
+  const reviewFreeBaseOnly =
+    !restrictions.requiresReview &&
+    !restrictions.conditions.length &&
+    !restrictions.allergies.length &&
+    !restrictions.customConditions.length &&
     !restrictions.customFoodRestrictions.length;
   const assuranceTier = getMaximumAssuranceTier(userConditions);
 
@@ -131,12 +137,23 @@ export async function generate7DayPlan(
     )
   ).flat();
   const eligibleLibraryMeals = libraryMeals;
-  const caseReviewCandidateIds = new Set(libraryMeals.filter((meal) =>
-    !isCertifiedLibraryMealCompatible(meal, userConditions, userAllergens,
-      { ...profile, userId, safetyEntries: user.safetyProfileEntries }) &&
-    !isProfileApprovedLibraryMealCompatible(meal, userConditions, userAllergens,
-      { ...profile, userId, safetyEntries: user.safetyProfileEntries })
-  ).map((meal) => meal.id));
+  const caseReviewCandidateIds = new Set(
+    libraryMeals
+      .filter(
+        (meal) =>
+          !isCertifiedLibraryMealCompatible(meal, userConditions, userAllergens, {
+            ...profile,
+            userId,
+            safetyEntries: user.safetyProfileEntries,
+          }) &&
+          !isProfileApprovedLibraryMealCompatible(meal, userConditions, userAllergens, {
+            ...profile,
+            userId,
+            safetyEntries: user.safetyProfileEntries,
+          })
+      )
+      .map((meal) => meal.id)
+  );
   const userHasConditions = userConditions.some((condition) => condition !== HealthConditionType.NONE);
   const cookedRiceFood =
     profile.ricePreference === RicePreference.WITH_RICE && !userHasConditions
@@ -292,11 +309,14 @@ export async function generate7DayPlan(
     reviewFreeBaseOnly,
     localityFoodGroupScores: localizedFoodGroupScores,
     localityEvidenceText: localizedConsumption.text,
-    recentCandidateIds: (await prisma.mealPlan.findMany({
-      where: { userId, sourceRawRecipeCandidateId: { not: null }, status: MealPlanStatus.APPROVED },
-      orderBy: { scheduledDate: 'desc' }, take: 63,
-      select: { sourceRawRecipeCandidateId: true },
-    })).flatMap((meal) => meal.sourceRawRecipeCandidateId ? [meal.sourceRawRecipeCandidateId] : []),
+    recentCandidateIds: (
+      await prisma.mealPlan.findMany({
+        where: { userId, sourceRawRecipeCandidateId: { not: null }, status: MealPlanStatus.APPROVED },
+        orderBy: { scheduledDate: 'desc' },
+        take: 63,
+        select: { sourceRawRecipeCandidateId: true },
+      })
+    ).flatMap((meal) => (meal.sourceRawRecipeCandidateId ? [meal.sourceRawRecipeCandidateId] : [])),
   });
   const rawCorpusMeals: GeneratedMeal[] = rawCorpusResult.meals.map((meal) => ({
     ...meal,
@@ -353,22 +373,31 @@ export async function generate7DayPlan(
   });
   const rawSources = await prisma.rawRecipeCandidate.findMany({
     where: {
-      id: { in: preparedCandidates.flatMap((meal) => meal.rawCandidateId ? [meal.rawCandidateId] : []) },
+      id: { in: preparedCandidates.flatMap((meal) => (meal.rawCandidateId ? [meal.rawCandidateId] : [])) },
       libraryVariants: { none: { status: 'FLAGGED' } },
     },
   });
   const sourceById = new Map(rawSources.map((source) => [source.id, source]));
   // A general-wellness candidate with incomplete source evidence is an empty
   // slot, never a nutritionist review task or an automatically approved plan.
-  const unflaggedCandidates = preparedCandidates.filter((meal) => !meal.rawCandidateId || sourceById.has(meal.rawCandidateId));
+  const unflaggedCandidates = preparedCandidates.filter(
+    (meal) => !meal.rawCandidateId || sourceById.has(meal.rawCandidateId)
+  );
   const preparedAiMeals = reviewFreeBaseOnly
-    ? unflaggedCandidates.filter((meal) => isUnrestrictedPanlasangBaseEligible({
-        source: meal.rawCandidateId ? sourceById.get(meal.rawCandidateId) : null,
-        candidateId: meal.rawCandidateId,
-        conditions: userConditions, allergens: userAllergens, otherConditions, otherAllergies,
-        safetyEntries: user.safetyProfileEntries, preparedIngredients: meal.ingredientsData,
-        servingScale: meal.servingScale, preparedNutrition: meal,
-      }))
+    ? unflaggedCandidates.filter((meal) =>
+        isUnrestrictedPanlasangBaseEligible({
+          source: meal.rawCandidateId ? sourceById.get(meal.rawCandidateId) : null,
+          candidateId: meal.rawCandidateId,
+          conditions: userConditions,
+          allergens: userAllergens,
+          otherConditions,
+          otherAllergies,
+          safetyEntries: user.safetyProfileEntries,
+          preparedIngredients: meal.ingredientsData,
+          servingScale: meal.servingScale,
+          preparedNutrition: meal,
+        })
+      )
     : unflaggedCandidates;
   const unrestrictedBaseIds = new Set(
     preparedAiMeals.flatMap((meal) =>
@@ -381,8 +410,11 @@ export async function generate7DayPlan(
         otherAllergies,
         safetyEntries: user.safetyProfileEntries,
         preparedIngredients: meal.ingredientsData,
-        servingScale: meal.servingScale, preparedNutrition: meal,
-      }) && meal.rawCandidateId ? [meal.rawCandidateId] : []
+        servingScale: meal.servingScale,
+        preparedNutrition: meal,
+      }) && meal.rawCandidateId
+        ? [meal.rawCandidateId]
+        : []
     )
   );
   await updateGenerationProgress(
@@ -477,10 +509,10 @@ export async function generate7DayPlan(
   }, {});
   const now = new Date();
   const businessDay = MealPlanCycleService.getBusinessDay(now);
-  const completeSlotSet = matchedSlots.every((slot) => !slot.requiresCaseApproval) &&
-    preparedAiMeals.every((meal) =>
-    Boolean(meal.rawCandidateId && unrestrictedBaseIds.has(meal.rawCandidateId))
-  ) && matchedSlots.length + preparedAiMeals.length >= cycleTiming.expectedSlotCount;
+  const completeSlotSet =
+    matchedSlots.every((slot) => !slot.requiresCaseApproval) &&
+    preparedAiMeals.every((meal) => Boolean(meal.rawCandidateId && unrestrictedBaseIds.has(meal.rawCandidateId))) &&
+    matchedSlots.length + preparedAiMeals.length >= cycleTiming.expectedSlotCount;
   const deadlinePassed = now.getTime() >= cycleTiming.shoppingDeadlineAt.getTime();
   const cycleStatus =
     cycleTiming.endDate < businessDay
@@ -594,25 +626,32 @@ export async function generate7DayPlan(
           });
           const currentProfile = { ...profile, userId, safetyEntries: user.safetyProfileEntries };
           const certified = isCertifiedLibraryMealCompatible(latest, userConditions, userAllergens, currentProfile);
-          const profileApproved = !certified && isProfileApprovedLibraryMealCompatible(
-            latest, userConditions, userAllergens, currentProfile
-          );
-          const requiresCaseApproval = !certified && !profileApproved &&
-            slot.requiresCaseApproval && isLibraryMealSafeToQueueForCaseReview(
-              latest, userConditions, userAllergens, currentProfile
-            );
-          const scope = profileApproved ? mealApprovalSafetyScope({
-            conditions: userConditions,
-            allergens: userAllergens,
-            otherConditions,
-            otherAllergies,
-            safetyEntries: user.safetyProfileEntries,
-          }) : null;
-          const approval = profileApproved ? latest.profileApprovals.find((item) =>
-            item.safetyScopeKey === scope?.key && !item.flaggedAt && item.reviewDueAt > new Date() &&
-            item.recipeSignature === latest.recipeSignature &&
-            item.evidenceRevision === latest.safetyEvidenceRevision
-          ) : null;
+          const profileApproved =
+            !certified && isProfileApprovedLibraryMealCompatible(latest, userConditions, userAllergens, currentProfile);
+          const requiresCaseApproval =
+            !certified &&
+            !profileApproved &&
+            slot.requiresCaseApproval &&
+            isLibraryMealSafeToQueueForCaseReview(latest, userConditions, userAllergens, currentProfile);
+          const scope = profileApproved
+            ? mealApprovalSafetyScope({
+                conditions: userConditions,
+                allergens: userAllergens,
+                otherConditions,
+                otherAllergies,
+                safetyEntries: user.safetyProfileEntries,
+              })
+            : null;
+          const approval = profileApproved
+            ? latest.profileApprovals.find(
+                (item) =>
+                  item.safetyScopeKey === scope?.key &&
+                  !item.flaggedAt &&
+                  item.reviewDueAt > new Date() &&
+                  item.recipeSignature === latest.recipeSignature &&
+                  item.evidenceRevision === latest.safetyEvidenceRevision
+              )
+            : null;
           if (
             latest.safetyEvidenceRevision !== slot.libraryMeal.safetyEvidenceRevision ||
             latest.status !== 'APPROVED' ||
@@ -645,8 +684,9 @@ export async function generate7DayPlan(
               candidateProvenance: MealCandidateProvenance.CERTIFIED_LIBRARY,
               libraryMealId: slot.libraryMeal.id,
               profileApprovalId: approval?.id ?? null,
-              nutritionistId: requiresCaseApproval ? null :
-                (approval?.reviewerNutritionistId ?? latest.safetyReviewedByNutritionistId),
+              nutritionistId: requiresCaseApproval
+                ? null
+                : (approval?.reviewerNutritionistId ?? latest.safetyReviewedByNutritionistId),
               planType,
               mealType: slot.mealType,
               mealName: latest.mealName,
@@ -661,19 +701,24 @@ export async function generate7DayPlan(
               requiresSafetyRevalidation: requiresCaseApproval,
               safetyPolicyVersion: MEAL_PLAN_SAFETY_POLICY_VERSION,
               highRiskReviewRequired,
-              reviewApprovalCount: requiresCaseApproval ? 0 : (highRiskReviewRequired ? 2 : 1),
-              reviewWorkKey: requiresCaseApproval ? buildReviewWorkKey({
-                recipeSignature: serving.baseRecipeSignature,
-                evidenceRevision: latest.safetyEvidenceRevision,
-                conditions: planConditions,
-                allergens: userAllergens,
-                safetyScopeKey: mealApprovalSafetyScope({
-                  conditions: userConditions, allergens: userAllergens,
-                  otherConditions, otherAllergies, safetyEntries: user.safetyProfileEntries,
-                }).key,
-                policyVersion: MEAL_PLAN_SAFETY_POLICY_VERSION,
-                requiredReviewerCount: highRiskReviewRequired ? 2 : 1,
-              }) : null,
+              reviewApprovalCount: requiresCaseApproval ? 0 : highRiskReviewRequired ? 2 : 1,
+              reviewWorkKey: requiresCaseApproval
+                ? buildReviewWorkKey({
+                    recipeSignature: serving.baseRecipeSignature,
+                    evidenceRevision: latest.safetyEvidenceRevision,
+                    conditions: planConditions,
+                    allergens: userAllergens,
+                    safetyScopeKey: mealApprovalSafetyScope({
+                      conditions: userConditions,
+                      allergens: userAllergens,
+                      otherConditions,
+                      otherAllergies,
+                      safetyEntries: user.safetyProfileEntries,
+                    }).key,
+                    policyVersion: MEAL_PLAN_SAFETY_POLICY_VERSION,
+                    requiredReviewerCount: highRiskReviewRequired ? 2 : 1,
+                  })
+                : null,
               candidateRank: slot.candidateRank,
               rankingScore: slot.rankingScore,
               rankingReasonCodes: slot.rankingReasonCodes,
@@ -736,29 +781,33 @@ export async function generate7DayPlan(
             where: { id: meal.rawCandidateId },
             include: { libraryVariants: { where: { status: 'FLAGGED' }, select: { id: true }, take: 1 } },
           });
-          if (currentSource.libraryVariants.length) throw new Error('Source recipe was flagged during preparation. Please retry.');
+          if (currentSource.libraryVariants.length)
+            throw new Error('Source recipe was flagged during preparation. Please retry.');
           if (autoGeneralBase) {
-            if (currentSource.contentSignature !== sourceById.get(meal.rawCandidateId)?.contentSignature ||
-                !isUnrestrictedPanlasangBaseEligible({
-                  source: currentSource,
-                  candidateId: meal.rawCandidateId,
-                  conditions: userConditions,
-                  allergens: userAllergens,
-                  otherConditions,
-                  otherAllergies,
-                  safetyEntries: user.safetyProfileEntries,
-                  preparedIngredients: meal.ingredientsData,
-                  servingScale: meal.servingScale, preparedNutrition: meal,
-                })) throw new Error('Source recipe changed during preparation. Please retry.');
+            if (
+              currentSource.contentSignature !== sourceById.get(meal.rawCandidateId)?.contentSignature ||
+              !isUnrestrictedPanlasangBaseEligible({
+                source: currentSource,
+                candidateId: meal.rawCandidateId,
+                conditions: userConditions,
+                allergens: userAllergens,
+                otherConditions,
+                otherAllergies,
+                safetyEntries: user.safetyProfileEntries,
+                preparedIngredients: meal.ingredientsData,
+                servingScale: meal.servingScale,
+                preparedNutrition: meal,
+              })
+            )
+              throw new Error('Source recipe changed during preparation. Please retry.');
           }
         }
         const serving = buildBaseServingPersistence({
           ...meal,
           ingredients: meal.ingredientsData,
-          evidenceSource:
-            autoGeneralBase
-              ? 'PANLASANG_PINOY_GENERAL_BASE'
-              : meal.candidateProvenance === MealCandidateProvenance.RAW_RECIPE_CORPUS
+          evidenceSource: autoGeneralBase
+            ? 'PANLASANG_PINOY_GENERAL_BASE'
+            : meal.candidateProvenance === MealCandidateProvenance.RAW_RECIPE_CORPUS
               ? 'RAW_RECIPE_CORPUS_PENDING_REVIEW'
               : 'AI_GENERATED_PENDING_REVIEW',
         });
@@ -806,8 +855,7 @@ export async function generate7DayPlan(
                 ? 'RAW_RECIPE_CORPUS'
                 : 'AI_GENERATED',
               meal.mealType,
-              { score: meal.rankingScore, reasonCodes: meal.rankingReasonCodes,
-                servingScale: meal.servingScale }
+              { score: meal.rankingScore, reasonCodes: meal.rankingReasonCodes, servingScale: meal.servingScale }
             ) as unknown as Prisma.InputJsonValue,
             ingredients: {
               create: meal.ingredientsData,
@@ -817,6 +865,7 @@ export async function generate7DayPlan(
         });
         createdPlansList.push(createdPlan);
       }
+      for (const id of membershipReservationIds) await MembershipService.complete(id, tx, newPlanGroupId);
     },
     { timeout: 30000 }
   );
@@ -836,41 +885,7 @@ export async function generate7DayPlan(
     }
   }
 
-  const needsReview = createdPlansList.some((p) => p.status === MealPlanStatus.PENDING_REVIEW);
-  if (needsReview) {
-    const notificationTitle = 'New Meal Plan Awaiting Verification';
-    await prisma.notification.create({
-      data: {
-        userId,
-        title: notificationTitle,
-        message: 'Your new AI meal plan contains clinical alerts and has been queued for Registered Dietitian review.',
-        type: NotificationType.REVIEW_REQUEST,
-      },
-    });
-  }
-
-  if (planType === PlanType.STARTER && createdPlansList.length > 0) {
-    const nextStart = new Date(cycleTiming.endDate.getTime() + 86_400_000);
-    const dateStr = new Intl.DateTimeFormat('en-US', {
-      timeZone: 'Asia/Manila',
-      weekday: 'long',
-      month: 'short',
-      day: 'numeric',
-    }).format(nextStart);
-    try {
-      await prisma.notification.create({
-        data: {
-          userId,
-          title: 'Starter Meal Plan Preparing',
-          message: `Your kickoff bridge plan has saved candidates. Empty slots and nutritionist reviews may still be pending. Your full 7-day weekly cycle begins on ${dateStr}.`,
-          type: NotificationType.ASSIGNMENT,
-        },
-      });
-    } catch (error) {
-      // The plan has already been committed; a notification failure cannot undo it.
-      console.warn('[Meal Generation] Could not create starter plan notification:', error);
-    }
-  }
+  await notifyPreparedPlan(userId, planType, cycleTiming.endDate, createdPlansList);
 
   return newPlanGroupId;
 }

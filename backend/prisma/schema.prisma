@@ -312,18 +312,18 @@ enum MealVerificationStatus {
 }
 
 model MealBaseVerification {
-  id                String                     @id @default(cuid())
-  targetKind        MealVerificationTargetKind
-  targetId          String
-  revisionKey       String                     @db.VarChar(64)
-  status            MealVerificationStatus     @default(PENDING)
-  claimedByNutritionistId String?
-  claimedAt         DateTime?
+  id                       String                     @id @default(cuid())
+  targetKind               MealVerificationTargetKind
+  targetId                 String
+  revisionKey              String                     @db.VarChar(64)
+  status                   MealVerificationStatus     @default(PENDING)
+  claimedByNutritionistId  String?
+  claimedAt                DateTime?
   reviewedByNutritionistId String?
-  reviewedAt        DateTime?
-  rationale         String?                    @db.VarChar(1000)
-  createdAt         DateTime                   @default(now())
-  updatedAt         DateTime                   @updatedAt
+  reviewedAt               DateTime?
+  rationale                String?                    @db.VarChar(1000)
+  createdAt                DateTime                   @default(now())
+  updatedAt                DateTime                   @updatedAt
 
   @@unique([targetKind, targetId, revisionKey])
   @@index([status, createdAt])
@@ -752,32 +752,35 @@ enum ConsumptionMappingStatus {
 // ═══════════════════════════════════════════════════════════════
 
 model User {
-  id                              String    @id @default(cuid())
+  membershipAccount               MembershipAccount?
+  membershipGrants                MembershipGrant[]
+  membershipUsage                 MembershipUsage[]
+  id                              String             @id @default(cuid())
   name                            String
-  email                           String    @unique
+  email                           String             @unique
   passwordHash                    String
-  passwordLoginEnabled            Boolean   @default(true)
-  role                            Role      @default(USER)
-  emailVerified                   Boolean   @default(false)
+  passwordLoginEnabled            Boolean            @default(true)
+  role                            Role               @default(USER)
+  emailVerified                   Boolean            @default(false)
   emailVerificationToken          String?
   emailVerificationExpiry         DateTime?
-  emailVerificationFailedAttempts Int       @default(0)
+  emailVerificationFailedAttempts Int                @default(0)
   emailVerificationLockedUntil    DateTime?
   emailVerificationLastSentAt     DateTime?
   passwordResetToken              String?
   passwordResetExpiry             DateTime?
-  tosAccepted                     Boolean   @default(false)
+  tosAccepted                     Boolean            @default(false)
   tosAcceptedAt                   DateTime?
   acceptedTermsVersion            String?
   acceptedPrivacyVersion          String?
   healthDataConsentedAt           DateTime?
-  onboardingDone                  Boolean   @default(false)
+  onboardingDone                  Boolean            @default(false)
   image                           String?
-  createdAt                       DateTime  @default(now())
-  updatedAt                       DateTime  @updatedAt
-  isSuspended                     Boolean   @default(false)
+  createdAt                       DateTime           @default(now())
+  updatedAt                       DateTime           @updatedAt
+  isSuspended                     Boolean            @default(false)
   suspendedAt                     DateTime?
-  suspensionReason                String?   @db.VarChar(240)
+  suspensionReason                String?            @db.VarChar(240)
 
   // Relations
   accounts                         Account[]
@@ -831,6 +834,54 @@ model User {
   clinicalDocuments                ClinicalDocument[]
   clinicalContextResponses         ClinicalContextResponse[]
   clinicalFacts                    ClinicalFact[]
+}
+
+// Membership V1 is separate from archived billing tables. Checkout stays disabled.
+enum MembershipFeature {
+  AI_ESTIMATE
+  REPLAN
+  PLAN_REVIEW
+  OUTSIDE_REVIEW
+}
+
+model MembershipAccount {
+  userId         String    @id
+  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  trialStartedAt DateTime?
+  createdAt      DateTime  @default(now())
+}
+
+model MembershipGrant {
+  id                String    @id @default(cuid())
+  userId            String
+  user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  source            String    @db.VarChar(30)
+  evidenceReference String    @unique @db.VarChar(200)
+  verifiedAt        DateTime
+  effectiveFrom     DateTime
+  effectiveUntil    DateTime
+  revokedAt         DateTime?
+  createdAt         DateTime  @default(now())
+
+  @@index([userId, effectiveFrom, effectiveUntil])
+}
+
+model MembershipUsage {
+  id             String            @id @default(cuid())
+  userId         String
+  user           User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  feature        MembershipFeature
+  requestKey     String            @db.VarChar(240)
+  payloadHash    String            @db.VarChar(64)
+  windowStart    DateTime
+  windowEnd      DateTime
+  reservedUntil  DateTime
+  completedAt    DateTime?
+  resultEntityId String?
+  createdAt      DateTime          @default(now())
+
+  @@unique([userId, feature, requestKey])
+  @@index([userId, feature, windowStart])
 }
 
 // Profile review records are scoped to the declared restriction snapshot.
@@ -1035,41 +1086,41 @@ model NutritionistProfile {
 }
 
 model NutritionistApplication {
-  id                  String                        @id @default(cuid())
-  referenceCode       String                        @unique @db.VarChar(32)
-  status              NutritionistApplicationStatus @default(SUBMITTED)
-  fullName            String                        @db.VarChar(161)
-  email               String                        @unique @db.VarChar(254)
-  phoneNumber         String                        @db.VarChar(30)
-  prcLicenseNumber    String                        @unique @db.VarChar(80)
-  prcLicenseExpiry    DateTime
-  specialization      String                        @db.VarChar(120)
-  yearsOfExperience   Int
-  university          String                        @db.VarChar(180)
-  professionalBio     String                        @db.Text
-  officialHeadshot    String?                       @db.Text
-  digitalSignature    String?                       @db.Text
+  id                    String                        @id @default(cuid())
+  referenceCode         String                        @unique @db.VarChar(32)
+  status                NutritionistApplicationStatus @default(SUBMITTED)
+  fullName              String                        @db.VarChar(161)
+  email                 String                        @unique @db.VarChar(254)
+  phoneNumber           String                        @db.VarChar(30)
+  prcLicenseNumber      String                        @unique @db.VarChar(80)
+  prcLicenseExpiry      DateTime
+  specialization        String                        @db.VarChar(120)
+  yearsOfExperience     Int
+  university            String                        @db.VarChar(180)
+  professionalBio       String                        @db.Text
+  officialHeadshot      String?                       @db.Text
+  digitalSignature      String?                       @db.Text
   photoRecentAttestedAt DateTime?
-  availableCallSlots  Json
-  applicantConsentAt  DateTime
-  reviewedByAdminId   String?
-  reviewedByAdmin     User?                         @relation("NutritionistApplicationReviewer", fields: [reviewedByAdminId], references: [id], onDelete: SetNull)
-  scheduledCallAt     DateTime?
-  callVerifiedAt      DateTime?
+  availableCallSlots    Json
+  applicantConsentAt    DateTime
+  reviewedByAdminId     String?
+  reviewedByAdmin       User?                         @relation("NutritionistApplicationReviewer", fields: [reviewedByAdminId], references: [id], onDelete: SetNull)
+  scheduledCallAt       DateTime?
+  callVerifiedAt        DateTime?
   callVerifiedByAdminId String?
-  meetingUrl          String?                       @db.VarChar(500)
-  adminNotes          String?                       @db.Text
-  decisionReason      String?                       @db.VarChar(500)
-  reviewedAt          DateTime?
-  approvedAt          DateTime?
-  invitationTokenHash String?                       @unique @db.VarChar(64)
-  invitationExpiresAt DateTime?
-  invitationSentAt    DateTime?
-  activatedAt         DateTime?
-  invitedUserId       String?                       @unique
-  invitedUser         User?                         @relation("NutritionistApplicationInvitee", fields: [invitedUserId], references: [id], onDelete: SetNull)
-  createdAt           DateTime                      @default(now())
-  updatedAt           DateTime                      @updatedAt
+  meetingUrl            String?                       @db.VarChar(500)
+  adminNotes            String?                       @db.Text
+  decisionReason        String?                       @db.VarChar(500)
+  reviewedAt            DateTime?
+  approvedAt            DateTime?
+  invitationTokenHash   String?                       @unique @db.VarChar(64)
+  invitationExpiresAt   DateTime?
+  invitationSentAt      DateTime?
+  activatedAt           DateTime?
+  invitedUserId         String?                       @unique
+  invitedUser           User?                         @relation("NutritionistApplicationInvitee", fields: [invitedUserId], references: [id], onDelete: SetNull)
+  createdAt             DateTime                      @default(now())
+  updatedAt             DateTime                      @updatedAt
 
   @@index([status, createdAt])
   @@index([scheduledCallAt])

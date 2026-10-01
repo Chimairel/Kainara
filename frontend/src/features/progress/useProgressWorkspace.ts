@@ -249,6 +249,26 @@ export function useProgressWorkspace(mode: ProgressWorkspaceMode) {
         payload.activityLevel = profileData.userProfile.activityLevel;
       }
 
+      if (mode === 'health') {
+        // A body correction must not submit hidden planning controls or derive a new goal.
+        for (const field of [
+          'dietaryPreference',
+          'ricePreference',
+          'planningGeographyLevel',
+          'planningRegionName',
+          'planningProvinceHucName',
+          'shoppingDayOfWeek',
+        ])
+          delete payload[field];
+        if (goal === profileData?.userProfile?.goal) delete payload.goal;
+        if (activityLevel === profileData?.userProfile?.activityLevel) delete payload.activityLevel;
+        const savedTarget =
+          profileData?.userProfile?.targetWeightKg ??
+          (profileData?.userProfile?.goal === 'MAINTAIN' ? profileData?.userProfile?.weightKg : '') ??
+          '';
+        if (targetWeightKg === String(savedTarget)) delete payload.targetWeightKg;
+      }
+
       const profileUpdate = await api.put('/user/profile', payload);
 
       if (profileUpdate.data && profileUpdate.data.success) {

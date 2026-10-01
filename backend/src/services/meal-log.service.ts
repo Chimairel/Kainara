@@ -28,7 +28,9 @@ import {
   OutsideMealNutritionStatus,
   Prisma,
 } from '@prisma/client';
-import { createHash } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
+import { MembershipService } from './membership.service';
+import { membershipEnabled } from '@/domain/membership.policy';
 import { z } from 'zod';
 import { certifiedLibraryMealInclude, isCertifiedLibraryMealCompatible } from './meal-library-candidate-query.service';
 
@@ -215,128 +217,153 @@ export class MealLogService {
       otherConditions: user.userProfile.otherConditions,
       otherAllergies: user.userProfile.otherAllergies,
     });
-    let resolved = await Promise.all(requested.map((item) => this.resolveFreeItem(item, user, restrictions)));
-    const unresolvedIndexes = resolved.flatMap((item, index) =>
-      item.source === OutsideMealItemSource.UNRESOLVED ? [index] : []
-    );
+    let membershipReservation: { id: string; replayed: boolean } | null = null;
+    let aiUsageId: string | null = null;
+    try {
+      let resolved = await Promise.all(requested.map((item) => this.resolveFreeItem(item, user, restrictions)));
+      const unresolvedIndexes = resolved.flatMap((item, index) =>
+        item.source === OutsideMealItemSource.UNRESOLVED ? [index] : []
+      );
 
-    if (input.useAiEstimate && unresolvedIndexes.length > 0) {
-      const now = new Date();
-      const dayStart = getManilaMidnight(getManilaDateKey(now));
-      const tomorrow = getScheduledMealDate(dayStart, 1);
-      const rollingStart = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-      const limits = resolveOutsideMealAiLimits();
-      const usageReservation = await prisma.$transaction(
-        async (tx) => {
-          const [today, rolling] = await Promise.all([
-            tx.outsideMealAiUsage.aggregate({
-              where: { userId: input.userId, createdAt: { gte: dayStart, lt: tomorrow } },
-              _sum: { itemCount: true },
-            }),
-            tx.outsideMealAiUsage.aggregate({
-              where: { userId: input.userId, createdAt: { gte: rollingStart, lte: now } },
-              _sum: { itemCount: true },
-            }),
-          ]);
-          const allowance = resolveOutsideMealAiAllowance({
-            requestedItems: unresolvedIndexes.length,
-            usedToday: today._sum.itemCount ?? 0,
-            usedRolling30Days: rolling._sum.itemCount ?? 0,
-            dailyCap: limits.dailyCap,
-            rolling30DayCap: limits.rolling30DayCap,
-          });
-          if (!allowance.allowed) {
-            throw new AppError(
-              'Your AI estimate limit has been reached. Use nutrition-label values or try again when the quota resets.',
-              429,
-              allowance.reason
+      if (input.useAiEstimate && unresolvedIndexes.length > 0) {
+        const now = new Date();
+        const dayStart = getManilaMidnight(getManilaDateKey(now));
+        const tomorrow = getScheduledMealDate(dayStart, 1);
+        const rollingStart = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+        const limits = resolveOutsideMealAiLimits();
+        const usageReservation = await prisma.$transaction(
+          async (tx) => {
+            membershipReservation = await MembershipService.reserve(
+              input.userId,
+              'AI_ESTIMATE',
+              input.requestKey ?? randomUUID(),
+              payloadHash,
+              tx
             );
-          }
-          return tx.outsideMealAiUsage.create({
-            data: { userId: input.userId, itemCount: unresolvedIndexes.length },
-          });
-        },
-        { isolationLevel: Prisma.TransactionIsolationLevel.Serializable }
-      );
-      let aiRows: z.infer<typeof aiItemSchema>[];
-      try {
-        aiRows = await this.estimateWithAi(
-          unresolvedIndexes.map((index) => requested[index]),
-          input.estimationContext?.trim() ?? ''
-        );
-      } catch (error) {
-        await prisma.outsideMealAiUsage.deleteMany({ where: { id: usageReservation.id, userId: input.userId } });
-        throw error;
-      }
-      resolved = resolved.map((item, index) => {
-        const aiPosition = unresolvedIndexes.indexOf(index);
-        if (aiPosition < 0) return item;
-        const ai = aiRows[aiPosition];
-        return applySafetyWarnings(
-          {
-            ...item,
-            name: ai.name || item.name,
-            source: OutsideMealItemSource.GEMINI_ESTIMATED,
-            nutritionStatus: OutsideMealNutritionStatus.PENDING_REVIEW,
-            compatibilityStatus: OutsideMealCompatibilityStatus.REVIEW_REQUIRED,
-            includedInTotals: true,
-            calories: ai.calories,
-            proteinG: ai.proteinG,
-            carbsG: ai.carbsG,
-            fatG: ai.fatG,
-            calorieLow: Math.min(ai.calorieLow, ai.calories),
-            calorieHigh: Math.max(ai.calorieHigh, ai.calories),
-            ingredients: ai.ingredients,
-            warnings: [
-              item.portionGrams === null || item.portionGrams === undefined
-                ? 'AI assumed a typical serving because grams were not provided. This is an uncertain estimate pending nutritionist review.'
-                : 'AI estimate — counted as estimated nutrition; it may be eligible for nutritionist review.',
-            ],
+            const [today, rolling] = await Promise.all([
+              tx.outsideMealAiUsage.aggregate({
+                where: { userId: input.userId, createdAt: { gte: dayStart, lt: tomorrow } },
+                _sum: { itemCount: true },
+              }),
+              tx.outsideMealAiUsage.aggregate({
+                where: { userId: input.userId, createdAt: { gte: rollingStart, lte: now } },
+                _sum: { itemCount: true },
+              }),
+            ]);
+            const allowance = resolveOutsideMealAiAllowance({
+              requestedItems: unresolvedIndexes.length,
+              usedToday: today._sum.itemCount ?? 0,
+              usedRolling30Days: rolling._sum.itemCount ?? 0,
+              dailyCap: limits.dailyCap,
+              rolling30DayCap: limits.rolling30DayCap,
+            });
+            if (!membershipEnabled() && !allowance.allowed) {
+              throw new AppError(
+                'Your AI estimate limit has been reached. Use nutrition-label values or try again when the quota resets.',
+                429,
+                allowance.reason
+              );
+            }
+            return tx.outsideMealAiUsage.create({
+              data: { userId: input.userId, itemCount: unresolvedIndexes.length },
+            });
           },
-          restrictions
+          {
+            isolationLevel: membershipEnabled()
+              ? Prisma.TransactionIsolationLevel.ReadCommitted
+              : Prisma.TransactionIsolationLevel.Serializable,
+          }
         );
-      });
-    }
+        aiUsageId = usageReservation.id;
+        let aiRows: z.infer<typeof aiItemSchema>[];
+        try {
+          aiRows = await this.estimateWithAi(
+            unresolvedIndexes.map((index) => requested[index]),
+            input.estimationContext?.trim() ?? ''
+          );
+        } catch (error) {
+          await prisma.outsideMealAiUsage.deleteMany({ where: { id: usageReservation.id, userId: input.userId } });
+          throw error;
+        }
+        resolved = resolved.map((item, index) => {
+          const aiPosition = unresolvedIndexes.indexOf(index);
+          if (aiPosition < 0) return item;
+          const ai = aiRows[aiPosition];
+          return applySafetyWarnings(
+            {
+              ...item,
+              name: ai.name || item.name,
+              source: OutsideMealItemSource.GEMINI_ESTIMATED,
+              nutritionStatus: OutsideMealNutritionStatus.PENDING_REVIEW,
+              compatibilityStatus: OutsideMealCompatibilityStatus.REVIEW_REQUIRED,
+              includedInTotals: true,
+              calories: ai.calories,
+              proteinG: ai.proteinG,
+              carbsG: ai.carbsG,
+              fatG: ai.fatG,
+              calorieLow: Math.min(ai.calorieLow, ai.calories),
+              calorieHigh: Math.max(ai.calorieHigh, ai.calories),
+              ingredients: ai.ingredients,
+              warnings: [
+                item.portionGrams === null || item.portionGrams === undefined
+                  ? 'AI assumed a typical serving because grams were not provided. This is an uncertain estimate pending nutritionist review.'
+                  : 'AI estimate — counted as estimated nutrition; it may be eligible for nutritionist review.',
+              ],
+            },
+            restrictions
+          );
+        });
+      }
 
-    resolved = resolved.map((item) => applySafetyWarnings(item, restrictions));
-    const summary = summarizeOutsideMealNutrition(resolved);
-    const dayStart = getManilaMidnight(getManilaDateKey(consumedAt));
-    const tomorrow = getScheduledMealDate(dayStart, 1);
-    const existingLogs = await prisma.mealLog.findMany({
-      where: {
-        userId: input.userId,
-        status: MealLogStatus.DONE,
-        ...getNutritionEligibleMealLogWhere(),
-        loggedAt: { gte: dayStart, lt: tomorrow },
-      },
-      select: { calories: true },
-    });
-    const projectedCalories = existingLogs.reduce((total, row) => total + row.calories, 0) + summary.totals.calories;
-    const warnings = resolved.flatMap((item) => item.warnings);
-    if (projectedCalories > (user.userProfile.dailyCalorieTarget ?? 2_000)) {
-      warnings.push(
-        `This would bring today's recorded intake to ${Math.round(projectedCalories)} kcal, above the current ${user.userProfile.dailyCalorieTarget ?? 2_000} kcal target.`
-      );
+      resolved = resolved.map((item) => applySafetyWarnings(item, restrictions));
+      const summary = summarizeOutsideMealNutrition(resolved);
+      const dayStart = getManilaMidnight(getManilaDateKey(consumedAt));
+      const tomorrow = getScheduledMealDate(dayStart, 1);
+      const existingLogs = await prisma.mealLog.findMany({
+        where: {
+          userId: input.userId,
+          status: MealLogStatus.DONE,
+          ...getNutritionEligibleMealLogWhere(),
+          loggedAt: { gte: dayStart, lt: tomorrow },
+        },
+        select: { calories: true },
+      });
+      const projectedCalories = existingLogs.reduce((total, row) => total + row.calories, 0) + summary.totals.calories;
+      const warnings = resolved.flatMap((item) => item.warnings);
+      if (projectedCalories > (user.userProfile.dailyCalorieTarget ?? 2_000)) {
+        warnings.push(
+          `This would bring today's recorded intake to ${Math.round(projectedCalories)} kcal, above the current ${user.userProfile.dailyCalorieTarget ?? 2_000} kcal target.`
+        );
+      }
+      const preview = await prisma.$transaction(async (tx) => {
+        const saved = await tx.outsideMealPreview.create({
+          data: {
+            userId: input.userId,
+            mealName: requested.map((item) => item.name).join(', '),
+            mealType: input.mealType,
+            estimate: summary.totals,
+            items: resolved as unknown as Prisma.InputJsonValue,
+            warnings,
+            reasons: warnings,
+            notes: input.notes,
+            estimationContext: input.estimationContext?.trim() || null,
+            loggedForAt: consumedAt,
+            requestPayloadHash: payloadHash,
+            requestKey: input.requestKey,
+            usedAi: resolved.some((item) => item.source === OutsideMealItemSource.GEMINI_ESTIMATED),
+            expiresAt: new Date(Date.now() + 20 * 60 * 1000),
+          },
+        });
+        if (membershipReservation && !membershipReservation.replayed)
+          await MembershipService.complete(membershipReservation.id, tx);
+        return saved;
+      });
+      return this.serializePreview(preview);
+    } catch (error) {
+      await MembershipService.release((membershipReservation as { id: string } | null)?.id);
+      if (aiUsageId) await prisma.outsideMealAiUsage.deleteMany({ where: { id: aiUsageId, userId: input.userId } });
+      throw error;
     }
-    const preview = await prisma.outsideMealPreview.create({
-      data: {
-        userId: input.userId,
-        mealName: requested.map((item) => item.name).join(', '),
-        mealType: input.mealType,
-        estimate: summary.totals,
-        items: resolved as unknown as Prisma.InputJsonValue,
-        warnings,
-        reasons: warnings,
-        notes: input.notes,
-        estimationContext: input.estimationContext?.trim() || null,
-        loggedForAt: consumedAt,
-        requestPayloadHash: payloadHash,
-        requestKey: input.requestKey,
-        usedAi: resolved.some((item) => item.source === OutsideMealItemSource.GEMINI_ESTIMATED),
-        expiresAt: new Date(Date.now() + 20 * 60 * 1000),
-      },
-    });
-    return this.serializePreview(preview);
   }
 
   private static async resolveFreeItem(item: InputItem, user: any, restrictions: any): Promise<ResolvedItem> {

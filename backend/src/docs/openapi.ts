@@ -14,6 +14,18 @@ interface RouteDocumentation {
 }
 
 const routes: RouteDocumentation[] = [
+  {
+    method: 'get',
+    path: '/api/user/membership',
+    tag: 'Membership',
+    summary: 'Get current trial, verified membership and remaining allowances',
+  },
+  {
+    method: 'post',
+    path: '/api/user/membership/checkout',
+    tag: 'Membership',
+    summary: 'Purchases unavailable until pricing and payment are configured (503)',
+  },
   { method: 'get', path: '/health', tag: 'Operations', summary: 'Liveness probe', public: true },
   { method: 'get', path: '/ready', tag: 'Operations', summary: 'Database readiness probe', public: true },
   {
