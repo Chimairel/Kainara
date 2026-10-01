@@ -26,6 +26,7 @@ import type { LucideProps } from 'lucide-react';
 import { getApiErrorMessage } from '@/lib/api-error';
 import { MealType, MealPlanStatus, PublicVerifier, MealExplanation, PublicMealImage, MealCookingLink } from '@/types';
 import { cookingAction } from '@/lib/meal-cooking-link';
+import { getManilaDateKey } from '@/lib/manila-date';
 
 interface Ingredient {
   id: string;
@@ -77,14 +78,20 @@ export default function MealDetailPage() {
     try {
       const res = await api.get(`/user/meals/${mealId}`);
       if (res.data && res.data.success) {
-        setMeal(res.data.data);
+        const mealData = res.data.data;
+        const dateKey = mealData?.scheduledDate ? getManilaDateKey(mealData.scheduledDate) : null;
+        if (dateKey) {
+          router.replace(`/meals?date=${dateKey}&mealId=${mealId}`);
+          return;
+        }
+        setMeal(mealData);
       }
     } catch (err: unknown) {
       setError(getApiErrorMessage(err, 'Failed to retrieve meal details.'));
     } finally {
       setIsLoading(false);
     }
-  }, [mealId]);
+  }, [mealId, router]);
 
   useEffect(() => {
     if (mealId) {

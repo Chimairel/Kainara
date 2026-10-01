@@ -28,7 +28,8 @@ import {
   History,
   Search,
 } from 'lucide-react';
-import { useEffect, useRef } from 'react';
+import { Suspense, useEffect, useRef, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 
 import MotionActiveIndicator from '@/components/ui/motion/MotionActiveIndicator';
 import { Select } from '@/components/ui/Select';
@@ -36,9 +37,14 @@ import { HISTORY_SOURCE_OPTIONS, HISTORY_STATUS_OPTIONS } from '@/features/meals
 import { MealsWorkspaceModals } from '@/features/meals/MealsWorkspaceModals';
 import { useMealsWorkspace } from '@/features/meals/useMealsWorkspace';
 
-export default function WeeklyPlanPage() {
+function WeeklyPlanPageContent() {
   const { user } = useAuth();
-  const workspace = useMealsWorkspace();
+  const searchParams = useSearchParams();
+  const dateParam = searchParams.get('date');
+  const mealIdParam = searchParams.get('mealId');
+  const [activeModalMealId, setActiveModalMealId] = useState<string | null>(mealIdParam);
+
+  const workspace = useMealsWorkspace(dateParam ? { initialDateKey: dateParam } : undefined);
   const {
     activeTab,
     setActiveTab,
@@ -114,6 +120,18 @@ export default function WeeklyPlanPage() {
       setActiveTab(tabParam.toLowerCase() as 'plan' | 'history' | 'library');
     }
   }, [setActiveTab]);
+
+  useEffect(() => {
+    if (dateParam) {
+      setSelectedPlanDateKey(dateParam);
+    }
+  }, [dateParam, setSelectedPlanDateKey]);
+
+  useEffect(() => {
+    if (mealIdParam) {
+      setActiveModalMealId(mealIdParam);
+    }
+  }, [mealIdParam]);
 
   // Sync activeTab with breadcrumb and URL
   useEffect(() => {
@@ -540,6 +558,8 @@ export default function WeeklyPlanPage() {
                           nutritionistNote={meal.nutritionistNote}
                           reviewedAt={meal.reviewedAt}
                           index={index}
+                          defaultOpen={meal.id === activeModalMealId}
+                          onCloseModal={() => setActiveModalMealId(null)}
                         />
                       ))}
                     </div>
@@ -566,6 +586,10 @@ export default function WeeklyPlanPage() {
                             key={`${meal.scheduledDate}-${meal.mealType}-${index}`}
                             meal={meal}
                             index={index}
+                            defaultOpen={
+                              meal.mealName.toLowerCase().replace(/[^a-z0-9]+/g, '-') === activeModalMealId ||
+                              meal.mealType === activeModalMealId
+                            }
                           />
                         ))}
                       </div>
@@ -893,5 +917,13 @@ export default function WeeklyPlanPage() {
 
       <MealsWorkspaceModals workspace={workspace} />
     </div>
+  );
+}
+
+export default function WeeklyPlanPage() {
+  return (
+    <Suspense fallback={<MealPlanSkeleton />}>
+      <WeeklyPlanPageContent />
+    </Suspense>
   );
 }

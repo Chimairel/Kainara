@@ -18,7 +18,7 @@ import { useMealLibrary } from './useMealLibrary';
 export type { MealHistoryLog, SwapOption } from './meals-workspace.types';
 
 const planResource = 'user-meals-workspace';
-export function useMealsWorkspace() {
+export function useMealsWorkspace(initialOptions?: { initialDateKey?: string | null }) {
   const replanRequest = useRef<string | null>(null);
   const { user } = useAuth();
   const ownerId = user?.userId;
@@ -53,7 +53,9 @@ export function useMealsWorkspace() {
     cachedPlan?.generationStatus ?? { current: null, upcoming: null }
   );
   const [isRetryingMissing, setIsRetryingMissing] = useState(false);
-  const [selectedPlanDateKey, setSelectedPlanDateKey] = useState<string | null>(null);
+  const [selectedPlanDateKey, setSelectedPlanDateKey] = useState<string | null>(
+    initialOptions?.initialDateKey ?? null
+  );
   const currentPlanRequestInFlight = useRef(false);
   useEffect(() => {
     if (!ownerId) return;

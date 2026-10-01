@@ -38,14 +38,28 @@ export interface PendingMealPreview {
   planType?: 'STARTER' | 'WEEKLY';
 }
 
-export default function PendingMealPreviewCard({ meal, index = 0 }: { meal: PendingMealPreview; index?: number }) {
+export default function PendingMealPreviewCard({
+  meal,
+  index = 0,
+  defaultOpen = false,
+}: {
+  meal: PendingMealPreview;
+  index?: number;
+  defaultOpen?: boolean;
+}) {
   const bannerTheme = getMealBannerTheme(meal.mealType, index);
-  const [isOpen, setIsOpen] = useState(false);
+  const [isOpen, setIsOpen] = useState(defaultOpen);
   const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
     setIsMounted(true);
   }, []);
+
+  useEffect(() => {
+    if (defaultOpen) {
+      setIsOpen(true);
+    }
+  }, [defaultOpen]);
 
   const mealTypeStyles: Record<
     string,

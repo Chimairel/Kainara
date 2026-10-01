@@ -43,7 +43,10 @@ export function DashboardMealSchedule({ activeDate, approvedMeals, onStatusToggl
       nutritionistNote={meal.nutritionistNote}
       reviewedAt={meal.reviewedAt}
       index={index}
-      onCardClick={() => router.push(`/dashboard/${meal.id}`)}
+      onCardClick={() => {
+        const dateKey = meal.scheduledDate ? getManilaDateKey(meal.scheduledDate) : getManilaDateKey(activeDate);
+        router.push(`/meals?date=${dateKey}&mealId=${meal.id}`);
+      }}
     />
   ));
 

@@ -1,6 +1,5 @@
 'use client';
 
-import { Calendar } from 'lucide-react';
 import { motion } from 'motion/react';
 import { formatManilaDate } from '@/lib/manila-date';
 import type { MealPlan } from '@/types';
@@ -28,7 +27,7 @@ export interface CockpitDashboardProps {
   onAddWater: (amount: number) => void;
   onMealClick: (mealId: string) => void;
   onStatusToggle?: (mealId: string, status: 'DONE' | 'SKIPPED' | 'PENDING') => Promise<void> | void;
-  onOpenWeeklyPlan: () => void;
+  onOpenWeeklyPlan?: () => void;
 }
 
 export function CockpitDashboard({
@@ -40,7 +39,6 @@ export function CockpitDashboard({
   onAddWater,
   onMealClick,
   onStatusToggle,
-  onOpenWeeklyPlan,
 }: CockpitDashboardProps) {
   const macros = [
     {
@@ -263,20 +261,13 @@ export function CockpitDashboard({
           aria-label="Scheduled meals"
           className="flex min-h-full min-w-0 flex-col justify-between"
         >
-          <div className="mb-4 flex flex-wrap items-center justify-between gap-3 px-1">
+          <div className="mb-4 flex items-center justify-between gap-3 px-1">
             <div>
               <p className="text-xs font-semibold text-brand-green">
                 {formatManilaDate(activeDate, { weekday: 'long', month: 'short', day: 'numeric' })}
               </p>
               <h2 className="mt-0.5 font-display text-2xl font-bold tracking-tight text-brand-text">On your menu</h2>
             </div>
-            <button
-              type="button"
-              onClick={onOpenWeeklyPlan}
-              className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-brand-border/80 dark:border-[#173e33] bg-brand-surface dark:bg-[#0e271f] px-3.5 text-xs font-bold text-brand-green shadow-xs hover:border-brand-green hover:shadow-sm transition-all"
-            >
-              <Calendar className="h-4 w-4" /> Weekly plan
-            </button>
           </div>
           {pendingMeals.length > 0 && (
             <p className="mb-4 rounded-2xl border border-status-pending-text/20 bg-status-pending-bg/50 p-3.5 text-xs leading-relaxed text-status-pending-text ml-7 sm:ml-10 lg:ml-12">

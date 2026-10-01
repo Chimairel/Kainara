@@ -794,7 +794,13 @@ export default function DashboardPage() {
               metrics={metrics}
               waterIntake={waterIntake}
               onAddWater={handleAddWater}
-              onMealClick={(mealId) => router.push(`/dashboard/${mealId}`)}
+              onMealClick={(mealId) => {
+                const clickedMeal = metrics.mealsList.find((m) => m.id === mealId);
+                const dateKey = clickedMeal?.scheduledDate
+                  ? getManilaDateKey(clickedMeal.scheduledDate)
+                  : getManilaDateKey(activeDate);
+                router.push(`/meals?date=${dateKey}&mealId=${mealId}`);
+              }}
               onStatusToggle={handleMealStatusToggle}
               onOpenWeeklyPlan={() => router.push('/meals')}
             />

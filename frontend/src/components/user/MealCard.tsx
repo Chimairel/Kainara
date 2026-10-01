@@ -33,7 +33,7 @@ import {
   X,
 } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import MealImage from './MealImage';
 import MealVerificationBadge from './MealVerificationBadge';
@@ -76,6 +76,8 @@ interface MealCardProps {
   nutritionistNote?: string | null;
   reviewedAt?: string | Date | null;
   index?: number;
+  defaultOpen?: boolean;
+  onCloseModal?: () => void;
 }
 
 export default function MealCard({
@@ -102,9 +104,11 @@ export default function MealCard({
   nutritionistNote,
   reviewedAt,
   index = 0,
+  defaultOpen = false,
+  onCloseModal,
 }: MealCardProps) {
   const bannerTheme = getMealBannerTheme(mealType, index);
-  const [isOpen, setIsOpen] = useState(false);
+  const [isOpen, setIsOpen] = useState(defaultOpen);
   const [isVerifierOpen, setIsVerifierOpen] = useState(false);
   const [verifierModalTab, setVerifierModalTab] = useState<'card' | 'notes'>('card');
   const [isUpdating, setIsUpdating] = useState(false);
@@ -115,6 +119,17 @@ export default function MealCard({
   useEffect(() => {
     setIsMounted(true);
   }, []);
+
+  useEffect(() => {
+    if (defaultOpen) {
+      setIsOpen(true);
+    }
+  }, [defaultOpen]);
+
+  const handleClose = useCallback(() => {
+    setIsOpen(false);
+    onCloseModal?.();
+  }, [onCloseModal]);
 
   const layoutId = `meal-card-${id || mealName.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`;
   const cooking = cookingAction(mealName, cookingLink);
@@ -127,7 +142,7 @@ export default function MealCard({
         if (isVerifierOpen) {
           setIsVerifierOpen(false);
         } else {
-          setIsOpen(false);
+          handleClose();
         }
       }
     };
@@ -139,7 +154,7 @@ export default function MealCard({
       document.removeEventListener('keydown', handleKeyDown);
       document.body.style.overflow = originalOverflow;
     };
-  }, [isOpen, isVerifierOpen]);
+  }, [isOpen, isVerifierOpen, handleClose]);
 
   const scheduledDateKey = scheduledDate ? getManilaDateKey(scheduledDate) : getManilaDateKey();
   const todayKey = getManilaDateKey();
@@ -355,7 +370,7 @@ export default function MealCard({
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
-                  onClick={() => setIsOpen(false)}
+                  onClick={handleClose}
                   className="fixed inset-0 bg-black/80 backdrop-blur-xl"
                 />
 
@@ -428,7 +443,7 @@ export default function MealCard({
                       {/* Right: Floating Close Button */}
                       <button
                         type="button"
-                        onClick={() => setIsOpen(false)}
+                        onClick={handleClose}
                         className="flex h-9 w-9 items-center justify-center rounded-full bg-black/60 hover:bg-black/90 text-white/90 hover:text-white backdrop-blur-md border border-white/20 transition-all hover:scale-105 shadow-xl shrink-0"
                         aria-label="Close modal"
                       >

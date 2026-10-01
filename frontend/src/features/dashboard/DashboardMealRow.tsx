@@ -112,7 +112,9 @@ export function DashboardMealRow(props: Props) {
               </span>
               <span className="mt-1 block text-xs font-medium text-white/90">
                 <strong className="text-white font-bold">{Math.round(meal.calories)}</strong> kcal ·{' '}
-                <strong className="text-white font-bold">{Math.round(meal.proteinG)}g</strong> protein
+                <strong className="text-white font-bold">{Math.round(meal.proteinG)}g</strong> protein ·{' '}
+                <strong className="text-white font-bold">{Math.round(meal.carbsG ?? 0)}g</strong> carbs ·{' '}
+                <strong className="text-white font-bold">{Math.round(meal.fatG ?? 0)}g</strong> fat
               </span>
             </div>
           </div>
@@ -177,7 +179,9 @@ export function DashboardMealRow(props: Props) {
               </span>
               <span className="mt-1 block text-xs font-medium text-white/90">
                 <strong className="text-white font-bold">{Math.round(meal.calories)}</strong> kcal ·{' '}
-                <strong className="text-white font-bold">{Math.round(meal.proteinG)}g</strong> protein
+                <strong className="text-white font-bold">{Math.round(meal.proteinG)}g</strong> protein ·{' '}
+                <strong className="text-white font-bold">{Math.round(meal.carbsG ?? 0)}g</strong> carbs ·{' '}
+                <strong className="text-white font-bold">{Math.round(meal.fatG ?? 0)}g</strong> fat
               </span>
             </div>
           </button>
