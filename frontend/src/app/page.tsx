@@ -35,6 +35,7 @@ import {
   evidenceSliderSources,
   leftTrackMaskSvg,
   rightTrackMaskSvg,
+  // Capabilities copy: Your goals, allergies, preferences, conditions and shopping routine shape meal selection.
   capabilities,
   loopSteps,
   rndStages,
