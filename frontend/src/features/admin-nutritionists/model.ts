@@ -55,5 +55,5 @@ export function toLocalInput(iso?: string) {
   if (!iso) return '';
   const date = new Date(iso);
   if (!Number.isFinite(date.getTime())) return '';
-  return new Date(date.getTime() - date.getTimezoneOffset() * 60_000).toISOString().slice(0, 16);
+  return new Date(date.getTime() + 8 * 60 * 60_000).toISOString().slice(0, 16);
 }

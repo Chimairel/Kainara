@@ -16,6 +16,19 @@ function deferred<T>() {
 describe('shared session queries', () => {
   beforeEach(clearSessionResourceCache);
 
+  it('updates an already rendered result after a shared live event without navigation', async () => {
+    const fetcher = vi.fn().mockResolvedValueOnce(['pending']).mockResolvedValueOnce(['approved']);
+    const hook = renderHook(() =>
+      useSessionQuery({ ownerId: 'user', resource: 'live-review', fetcher, errorMessage: 'Unavailable' })
+    );
+    await waitFor(() => expect(hook.result.current.data).toEqual(['pending']));
+    await act(async () => {
+      window.dispatchEvent(new Event('kainara:live-update'));
+    });
+    await waitFor(() => expect(hook.result.current.data).toEqual(['approved']));
+    expect(hook.result.current.isLoading).toBe(false);
+  });
+
   it('shares an in-flight request between mounted consumers and treats an empty result as loaded', async () => {
     const request = deferred<string[]>();
     const fetcher = vi.fn(() => request.promise);

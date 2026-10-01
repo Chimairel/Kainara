@@ -1,3 +1,5 @@
+import liveRouter from '@/routes/live.routes';
+import { liveMutationUpdates } from '@/middleware/liveUpdates';
 import express, { Request, Response } from 'express';
 import cors from 'cors';
 import { createCorsOptions } from '@/config/cors';
@@ -73,6 +75,7 @@ app.use('/api', (_req, res, next) => {
 // session must not prevent the user from signing in or refreshing a session.
 app.use('/api/auth', authRouter);
 app.use('/api', apiLimiter);
+app.use('/api', liveMutationUpdates);
 
 // SMTP verification is an explicit startup check because it opens an external
 // connection. Email delivery remains available even when this check is disabled.
@@ -81,6 +84,7 @@ if (env.SMTP_VERIFY_ON_STARTUP) {
 }
 
 // Mount API Routers
+app.use('/api/live', liveRouter);
 app.use('/api/evidence', evidenceRouter);
 app.use('/api/notifications', notificationsRouter);
 // These specific user routers own their auth and readiness checks. Mount them

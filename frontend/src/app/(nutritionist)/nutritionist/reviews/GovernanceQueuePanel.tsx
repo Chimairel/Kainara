@@ -1,5 +1,6 @@
 'use client';
 
+import { useVisiblePolling } from '@/hooks/useVisiblePolling';
 import { useCallback, useEffect, useState } from 'react';
 import Button from '@/components/ui/Button';
 import api from '@/lib/axios';
@@ -31,11 +32,7 @@ type DueProfileApproval = {
   mealLibrary: { mealName: string };
 };
 
-export default function GovernanceQueuePanel({
-  tab,
-}: {
-  tab: 'audit' | 'disputed';
-}) {
+export default function GovernanceQueuePanel({ tab }: { tab: 'audit' | 'disputed' }) {
   const [data, setData] = useState<{
     canLeadReview: boolean;
     clearances: GovernanceClearance[];
@@ -44,7 +41,11 @@ export default function GovernanceQueuePanel({
   const [message, setMessage] = useState<string | null>(null);
   const [dueProfiles, setDueProfiles] = useState<DueProfileApproval[]>([]);
   const [selectedProfile, setSelectedProfile] = useState<DueProfileApproval | null>(null);
-  const [caseDetail, setCaseDetail] = useState<{ recordedScope: unknown; originatingPlan: { mealName: string; calories: number } | null; linkedUserCurrentProfile: { name: string; conditions: string[]; allergies: string[] } | null } | null>(null);
+  const [caseDetail, setCaseDetail] = useState<{
+    recordedScope: unknown;
+    originatingPlan: { mealName: string; calories: number } | null;
+    linkedUserCurrentProfile: { name: string; conditions: string[]; allergies: string[] } | null;
+  } | null>(null);
 
   const load = useCallback(async () => {
     setMessage(null);
@@ -60,6 +61,12 @@ export default function GovernanceQueuePanel({
     }
   }, [tab]);
 
+  useVisiblePolling(
+    async () => {
+      await load();
+    },
+    { enabled: true, immediate: false, scopeKey: tab }
+  );
   useEffect(() => {
     void load();
   }, [load]);
@@ -92,18 +99,31 @@ export default function GovernanceQueuePanel({
     const rationale = window.prompt('Record your findings for this approval recheck (at least 10 characters).');
     if (!rationale || rationale.trim().length < 10) return;
     try {
-      await api.post(`/nutritionist/library/${mealId}/approvals/${approvalId}/recheck`, { kind, rationale: rationale.trim() });
+      await api.post(`/nutritionist/library/${mealId}/approvals/${approvalId}/recheck`, {
+        kind,
+        rationale: rationale.trim(),
+      });
       setMessage('Approval recheck recorded.');
-      setSelectedProfile(null); setCaseDetail(null);
+      setSelectedProfile(null);
+      setCaseDetail(null);
       await load();
-    } catch { setMessage('This approval could not be rechecked. Open its current case evidence and verify reviewer eligibility.'); }
+    } catch {
+      setMessage(
+        'This approval could not be rechecked. Open its current case evidence and verify reviewer eligibility.'
+      );
+    }
   };
   const inspectProfile = async (approval: DueProfileApproval) => {
-    setSelectedProfile(approval); setCaseDetail(null);
+    setSelectedProfile(approval);
+    setCaseDetail(null);
     try {
-      const response = await api.get(`/nutritionist/library/${approval.mealLibraryId}/approvals/PROFILE/${approval.id}`);
+      const response = await api.get(
+        `/nutritionist/library/${approval.mealLibraryId}/approvals/PROFILE/${approval.id}`
+      );
       setCaseDetail(response.data.data);
-    } catch { setMessage('The approval case could not be opened.'); }
+    } catch {
+      setMessage('The approval case could not be opened.');
+    }
   };
 
   return (
@@ -161,27 +181,61 @@ export default function GovernanceQueuePanel({
                           Reject
                         </Button>
                       </>
-                    ) : <>
-                      {(clearance.state === 'REVIEW_DUE' || clearance.state === 'SUSPENDED') && <Button size="sm" onClick={() => void recheck(clearance.mealLibraryId, clearance.id, 'CONDITION')}>Recheck</Button>}
-                      {clearance.state === 'ACTIVE' && <Button size="sm" variant="secondary" onClick={() => void suspend(clearance.id)}>Suspend</Button>}
-                    </>}
+                    ) : (
+                      <>
+                        {(clearance.state === 'REVIEW_DUE' || clearance.state === 'SUSPENDED') && (
+                          <Button
+                            size="sm"
+                            onClick={() => void recheck(clearance.mealLibraryId, clearance.id, 'CONDITION')}
+                          >
+                            Recheck
+                          </Button>
+                        )}
+                        {clearance.state === 'ACTIVE' && (
+                          <Button size="sm" variant="secondary" onClick={() => void suspend(clearance.id)}>
+                            Suspend
+                          </Button>
+                        )}
+                      </>
+                    )}
                   </div>
                 )}
               </div>
             </div>
           ))}
-          {tab === 'audit' && dueProfiles.map((approval) => <div key={approval.id} className="rounded-2xl border border-brand-border bg-brand-surface p-4">
-            <p className="font-bold">{approval.mealLibrary.mealName}</p>
-            <p className="text-xs text-brand-muted">Profile approval · {approval.flaggedAt ? 'Flagged' : `Review due ${new Date(approval.reviewDueAt).toLocaleDateString()}`}</p>
-            {approval.flagReason && <p className="text-xs text-[#8c3b00] dark:text-[#ff8a3d]">{approval.flagReason}</p>}
-            <Button size="sm" variant="secondary" onClick={() => void inspectProfile(approval)}>View case</Button>
-            {selectedProfile?.id === approval.id && caseDetail && <div className="mt-3 rounded-xl border border-brand-border p-3 text-sm">
-              <p>Original meal: {caseDetail.originatingPlan?.mealName ?? approval.mealLibrary.mealName} · {caseDetail.originatingPlan?.calories ?? 'Unknown'} kcal</p>
-              <p>Linked user now: {caseDetail.linkedUserCurrentProfile?.name ?? 'Unavailable'}</p>
-              <p className="text-xs text-brand-muted">Current conditions: {caseDetail.linkedUserCurrentProfile?.conditions.join(', ') || 'none'} · Allergies: {caseDetail.linkedUserCurrentProfile?.allergies.join(', ') || 'none'}. Review the recorded context before renewal.</p>
-              <Button size="sm" onClick={() => void recheck(approval.mealLibraryId, approval.id, 'PROFILE')}>Record recheck</Button>
-            </div>}
-          </div>)}
+          {tab === 'audit' &&
+            dueProfiles.map((approval) => (
+              <div key={approval.id} className="rounded-2xl border border-brand-border bg-brand-surface p-4">
+                <p className="font-bold">{approval.mealLibrary.mealName}</p>
+                <p className="text-xs text-brand-muted">
+                  Profile approval ·{' '}
+                  {approval.flaggedAt ? 'Flagged' : `Review due ${new Date(approval.reviewDueAt).toLocaleDateString()}`}
+                </p>
+                {approval.flagReason && (
+                  <p className="text-xs text-[#8c3b00] dark:text-[#ff8a3d]">{approval.flagReason}</p>
+                )}
+                <Button size="sm" variant="secondary" onClick={() => void inspectProfile(approval)}>
+                  View case
+                </Button>
+                {selectedProfile?.id === approval.id && caseDetail && (
+                  <div className="mt-3 rounded-xl border border-brand-border p-3 text-sm">
+                    <p>
+                      Original meal: {caseDetail.originatingPlan?.mealName ?? approval.mealLibrary.mealName} ·{' '}
+                      {caseDetail.originatingPlan?.calories ?? 'Unknown'} kcal
+                    </p>
+                    <p>Linked user now: {caseDetail.linkedUserCurrentProfile?.name ?? 'Unavailable'}</p>
+                    <p className="text-xs text-brand-muted">
+                      Current conditions: {caseDetail.linkedUserCurrentProfile?.conditions.join(', ') || 'none'} ·
+                      Allergies: {caseDetail.linkedUserCurrentProfile?.allergies.join(', ') || 'none'}. Review the
+                      recorded context before renewal.
+                    </p>
+                    <Button size="sm" onClick={() => void recheck(approval.mealLibraryId, approval.id, 'PROFILE')}>
+                      Record recheck
+                    </Button>
+                  </div>
+                )}
+              </div>
+            ))}
           {tab === 'disputed' &&
             (data.plans || []).map((plan) => (
               <div key={plan.id} className="rounded-2xl border border-status-error-text/25 bg-brand-surface p-4">

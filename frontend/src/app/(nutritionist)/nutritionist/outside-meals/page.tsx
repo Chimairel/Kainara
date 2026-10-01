@@ -1,5 +1,6 @@
 'use client';
 
+import { useVisiblePolling } from '@/hooks/useVisiblePolling';
 import { useCallback, useEffect, useState } from 'react';
 import { AlertTriangle, CheckCircle2, ClipboardCheck, RefreshCw } from 'lucide-react';
 import api from '@/lib/axios';
@@ -86,24 +87,41 @@ export default function OutsideMealReviewsPage() {
   const [preparation, setPreparation] = useState('');
   const [applicableTypes, setApplicableTypes] = useState<string[]>([]);
 
-  const load = useCallback(async () => {
-    setError(null);
-    try {
-      const [reviews, observations] = await Promise.all([
-        api.get('/nutritionist/outside-meal-reviews'),
-        api.get('/nutritionist/observed-meal-submissions'),
-      ]);
-      const next = { rows: reviews.data?.data ?? [], submissions: observations.data?.data ?? [] };
-      setRows(next.rows);
-      setSubmissions(next.submissions);
-      writeSessionResource(ownerId, 'nutritionist-outside-queues', next);
-    } catch (err) {
-      setError(getApiErrorMessage(err, 'Failed to load outside-meal reviews.'));
-    }
-  }, [ownerId]);
+  const load = useCallback(
+    async (signal?: AbortSignal) => {
+      setError(null);
+      try {
+        const [reviews, observations] = await Promise.all([
+          api.get('/nutritionist/outside-meal-reviews', signal ? { signal } : undefined),
+          api.get('/nutritionist/observed-meal-submissions', signal ? { signal } : undefined),
+        ]);
+        if (signal?.aborted) return;
+        const next = { rows: reviews.data?.data ?? [], submissions: observations.data?.data ?? [] };
+        setRows(next.rows);
+        setSubmissions(next.submissions);
+        writeSessionResource(ownerId, 'nutritionist-outside-queues', next);
+      } catch (err) {
+        if (!signal?.aborted) setError(getApiErrorMessage(err, 'Failed to load outside-meal reviews.'));
+      }
+    },
+    [ownerId]
+  );
+  useVisiblePolling(
+    async (signal) => {
+      await load(signal);
+    },
+    { enabled: !busy, immediate: false, scopeKey: ownerId }
+  );
   useEffect(() => {
     void load();
   }, [load]);
+
+  useEffect(() => {
+    setSelected((current) => {
+      const latest = rows.find((row) => row.id === current?.id);
+      return current && latest ? { ...current, ...latest } : current;
+    });
+  }, [rows]);
 
   const claim = async (row: QueueRow) => {
     setBusy(true);

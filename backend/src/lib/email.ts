@@ -1,3 +1,4 @@
+import { formatApplicationTime } from '@/domain/application-time';
 import { sendTransactionalEmail, verifyEmailTransport } from './email-transport';
 import { appendFile, mkdir } from 'node:fs/promises';
 import path from 'node:path';
@@ -338,16 +339,7 @@ export async function sendNutritionistCallScheduledEmail(params: NutritionistCal
   }
 
   const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
-  const callDate = new Date(scheduledCallAt);
-  const formattedDate = callDate.toLocaleDateString('en-PH', {
-    weekday: 'long',
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-    timeZoneName: 'short',
-  });
+  const formattedDate = formatApplicationTime(scheduledCallAt);
 
   const subject = `KAINARA — 1-on-1 Verification Call Scheduled [${referenceCode}]`;
 

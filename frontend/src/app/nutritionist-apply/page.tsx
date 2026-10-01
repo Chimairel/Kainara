@@ -2,6 +2,8 @@
 
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import Link from 'next/link';
+import { useVisiblePolling } from '@/hooks/useVisiblePolling';
+import { useLicenseAvailability } from '@/features/nutritionist-application/useLicenseAvailability';
 import { ArrowLeft, Search, UserPlus } from 'lucide-react';
 import { getApiErrorMessage } from '@/lib/api-error';
 import PublicHeader from '@/components/shared/PublicHeader';
@@ -32,6 +34,43 @@ export default function NutritionistApplyPage() {
   const [trackingReference, setTrackingReference] = useState('');
   const [trackingEmail, setTrackingEmail] = useState('');
 
+  const [refreshWarning, setRefreshWarning] = useState(false);
+  const licenseState = useLicenseAvailability(form.prcLicenseNumber, mode === 'apply' && !application);
+  const licenseError =
+    licenseState === 'taken' ? 'This PRC number already has a pending/approved application or registered account.' : '';
+  const licenseHint =
+    licenseState === 'checking'
+      ? 'Checking for an existing KAINARA application…'
+      : licenseState === 'available'
+        ? 'No active application found. An administrator must still verify your PRC credentials.'
+        : licenseState === 'unavailable'
+          ? 'Availability check unavailable. Your license will be checked when you submit.'
+          : undefined;
+  const referenceCode = application?.referenceCode;
+  const applicantEmail = application?.email;
+  useVisiblePolling(
+    async (signal) => {
+      try {
+        const response = await api.post(
+          '/nutritionist-applications/status',
+          { referenceCode, email: applicantEmail },
+          { signal }
+        );
+        if (!signal.aborted) {
+          setApplication(response.data.data);
+          setRefreshWarning(false);
+        }
+      } catch {
+        if (!signal.aborted) setRefreshWarning(true);
+      }
+    },
+    {
+      enabled: Boolean(application && !['REJECTED', 'ACTIVATED'].includes(application.status)),
+      immediate: false,
+      scopeKey: `${referenceCode}:${applicantEmail}`,
+    }
+  );
+
   useEffect(() => {
     if (window.location.hash === '#track') setMode('track');
   }, []);
@@ -59,6 +98,14 @@ export default function NutritionistApplyPage() {
       setError('Please correct the highlighted fields before continuing.');
       return;
     }
+    if (step === 1 && licenseError) {
+      setErrors({ prcLicenseNumber: licenseError });
+      return;
+    }
+    if (step === 1 && licenseState === 'checking') {
+      setError('Please wait for the license availability check.');
+      return;
+    }
     setErrors({});
     setStep((current) => Math.min(4, current + 1));
   };
@@ -69,7 +116,7 @@ export default function NutritionistApplyPage() {
     try {
       const availableCallSlots = [form.callSlotOne, form.callSlotTwo, form.callSlotThree]
         .filter(Boolean)
-        .map((value) => new Date(value).toISOString());
+        .map((value) => new Date(`${value}:00+08:00`).toISOString());
       const response = await api.post('/nutritionist-applications', {
         fullName: form.fullName.trim(),
         email: form.email.trim().toLowerCase(),
@@ -77,7 +124,7 @@ export default function NutritionistApplyPage() {
         officialHeadshot: form.officialHeadshot || undefined,
         photoRecentAttested: form.photoRecentAttested,
         prcLicenseNumber: form.prcLicenseNumber.trim(),
-        prcLicenseExpiry: new Date(`${form.prcLicenseExpiry}T23:59:59`).toISOString(),
+        prcLicenseExpiry: new Date(`${form.prcLicenseExpiry}T23:59:59+08:00`).toISOString(),
         specialization: form.specialization.trim(),
         yearsOfExperience: Number(form.yearsOfExperience),
         university: form.university.trim(),
@@ -115,6 +162,7 @@ export default function NutritionistApplyPage() {
   const switchMode = (nextMode: 'apply' | 'track') => {
     setMode(nextMode);
     setApplication(null);
+    setRefreshWarning(false);
     setError(null);
   };
 
@@ -141,7 +189,34 @@ export default function NutritionistApplyPage() {
             <section>
               <ModeSelector mode={mode} onChange={switchMode} />
               {application ? (
-                <ApplicationStatusCard application={application} />
+                <>
+                  <ApplicationStatusCard application={application} />
+                  <p role="status" className="mt-3 text-xs text-brand-muted">
+                    {refreshWarning
+                      ? 'Updates paused. Retrying automatically when this page is active.'
+                      : !['REJECTED', 'ACTIVATED'].includes(application.status)
+                        ? 'Application updates automatically while this page is open.'
+                        : ''}
+                  </p>
+                  {application.status === 'REJECTED' && (
+                    <button
+                      type="button"
+                      className="mt-3 text-sm font-bold text-brand-green underline"
+                      onClick={() => {
+                        setForm({
+                          ...initialApplicationForm,
+                          email: application.email,
+                          fullName: application.fullName,
+                        });
+                        setStep(0);
+                        setErrors({});
+                        switchMode('apply');
+                      }}
+                    >
+                      Apply again
+                    </button>
+                  )}
+                </>
               ) : mode === 'track' ? (
                 <ApplicationTrackingForm
                   email={trackingEmail}
@@ -155,7 +230,8 @@ export default function NutritionistApplyPage() {
               ) : (
                 <ApplicationWizard
                   error={error}
-                  errors={errors}
+                  errors={{ ...errors, ...(licenseError ? { prcLicenseNumber: licenseError } : {}) }}
+                  licenseHint={licenseHint}
                   form={form}
                   isLoading={isLoading}
                   onBack={() => {

@@ -1,5 +1,7 @@
 'use client';
 
+import { useVisiblePolling } from '@/hooks/useVisiblePolling';
+
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { BookOpenText, Plus, RefreshCw, ShieldCheck, Trash2 } from 'lucide-react';
@@ -154,6 +156,12 @@ export default function AdminMealsPage() {
       setLoading(false);
     }
   }, [page, ownerId]);
+  useVisiblePolling(
+    async () => {
+      await load();
+    },
+    { enabled: !saving, immediate: false, scopeKey: ownerId }
+  );
   useEffect(() => { void load(); }, [load]);
 
   function updateIngredient(index: number, next: Ingredient) {

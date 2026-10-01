@@ -1,4 +1,6 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useSessionQuery } from '@/hooks/useSessionQuery';
+import { useAuth } from '@/hooks/useAuth';
+import { useEffect } from 'react';
 import api from '@/lib/axios';
 
 export interface ReviewWorkCounts {
@@ -9,28 +11,18 @@ export interface ReviewWorkCounts {
 }
 
 export function useReviewWorkCounts() {
-  const [counts, setCounts] = useState<ReviewWorkCounts | null>(null);
-  const refresh = useCallback(async () => {
-    try {
-      const response = await api.get('/nutritionist/review-work-counts');
-      if (response.data?.success) setCounts(response.data.data);
-    } catch {
-      // Leave the last known counts visible; the next refresh can recover.
-    }
-  }, []);
-
+  const { user } = useAuth();
+  const { data, refetch } = useSessionQuery<ReviewWorkCounts>({
+    ownerId: user?.userId,
+    resource: 'nutritionist-review-work-counts',
+    enabled: user?.role === 'NUTRITIONIST',
+    fetcher: async () => (await api.get('/nutritionist/review-work-counts')).data.data,
+    errorMessage: 'Review counts could not be refreshed.',
+  });
   useEffect(() => {
-    void refresh();
-    const interval = window.setInterval(() => void refresh(), 60_000);
-    const onFocus = () => void refresh();
-    window.addEventListener('focus', onFocus);
-    window.addEventListener('nutrimind:review-work-updated', onFocus);
-    return () => {
-      window.clearInterval(interval);
-      window.removeEventListener('focus', onFocus);
-      window.removeEventListener('nutrimind:review-work-updated', onFocus);
-    };
-  }, [refresh]);
-
-  return counts;
+    const refresh = () => void refetch();
+    window.addEventListener('nutrimind:review-work-updated', refresh);
+    return () => window.removeEventListener('nutrimind:review-work-updated', refresh);
+  }, [refetch]);
+  return data;
 }

@@ -1,5 +1,7 @@
 'use client';
 
+import { useVisiblePolling } from '@/hooks/useVisiblePolling';
+
 import { useCallback, useEffect, useState } from 'react';
 import { ScrollText } from 'lucide-react';
 import api from '@/lib/axios';
@@ -26,6 +28,12 @@ export default function NutritionistAuditPage() {
       setError('Audit history could not be loaded. Try again.');
     }
   }, [page]);
+  useVisiblePolling(
+    async () => {
+      await load();
+    },
+    { enabled: view === 'history', immediate: false, scopeKey: String(page) }
+  );
   useEffect(() => { if (view === 'history') void load(); }, [load, view]);
 
   return <div className="portal-page space-y-5 pb-20 text-brand-text">

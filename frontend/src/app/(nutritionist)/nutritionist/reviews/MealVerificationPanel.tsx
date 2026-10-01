@@ -1,5 +1,6 @@
 'use client';
 
+import { useVisiblePolling } from '@/hooks/useVisiblePolling';
 import { useCallback, useEffect, useState } from 'react';
 import api from '@/lib/axios';
 import { getApiErrorMessage } from '@/lib/api-error';
@@ -57,18 +58,28 @@ export default function MealVerificationPanel() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const load = useCallback(async () => {
-    try {
-      const response = await api.get('/nutritionist/meal-verification');
-      const next = response.data.data ?? [];
-      setQueue(next);
-      writeSessionResource(ownerId, 'nutritionist-meal-verification-queue', next);
-      setError(null);
-    } catch (cause) {
-      setError(getApiErrorMessage(cause, 'Meal verification queue could not be loaded.'));
-    }
-  }, [ownerId]);
+  const load = useCallback(
+    async (signal?: AbortSignal) => {
+      try {
+        const response = await api.get('/nutritionist/meal-verification', signal ? { signal } : undefined);
+        if (signal?.aborted) return;
+        const next = response.data.data ?? [];
+        setQueue(next);
+        writeSessionResource(ownerId, 'nutritionist-meal-verification-queue', next);
+        setError(null);
+      } catch (cause) {
+        if (!signal?.aborted) setError(getApiErrorMessage(cause, 'Meal verification queue could not be loaded.'));
+      }
+    },
+    [ownerId]
+  );
 
+  useVisiblePolling(
+    async (signal) => {
+      await load(signal);
+    },
+    { enabled: !busy, immediate: false, scopeKey: ownerId }
+  );
   useEffect(() => {
     void load();
   }, [load]);
@@ -144,9 +155,7 @@ export default function MealVerificationPanel() {
             </Badge>
           </div>
           <div className="mt-2.5 flex items-center justify-between">
-            <h2 className="font-display text-lg font-black tracking-tight text-brand-text">
-              Meal verification
-            </h2>
+            <h2 className="font-display text-lg font-black tracking-tight text-brand-text">Meal verification</h2>
             <button
               type="button"
               onClick={() => void load()}
@@ -159,7 +168,8 @@ export default function MealVerificationPanel() {
             </button>
           </div>
           <p className="mt-2 text-xs leading-relaxed text-brand-muted">
-            Verify proposed recipes are real, edible preparations. Patient health approvals and planning data are checked separately.
+            Verify proposed recipes are real, edible preparations. Patient health approvals and planning data are
+            checked separately.
           </p>
         </div>
 
@@ -247,7 +257,6 @@ export default function MealVerificationPanel() {
         }}
         className={`${selected ? 'flex' : 'hidden md:flex'} h-full min-w-0 flex-1 flex-col overflow-hidden bg-transparent`}
       >
-
         {!selected ? (
           <div className="space-y-6 py-2">
             <div className="rounded-3xl border border-brand-border/80 bg-brand-surface/90 p-6 sm:p-8 shadow-sm space-y-6">
@@ -259,7 +268,8 @@ export default function MealVerificationPanel() {
                   A clear path to meal verification
                 </h2>
                 <p className="mt-2 text-sm leading-relaxed text-brand-muted">
-                  Inspect proposed recipes to verify kitchen preparation feasibility, macro estimates, and clean ingredient formulations before dishes enter the verified library.
+                  Inspect proposed recipes to verify kitchen preparation feasibility, macro estimates, and clean
+                  ingredient formulations before dishes enter the verified library.
                 </p>
               </div>
               <div className="grid gap-3 pt-2">
@@ -303,8 +313,6 @@ export default function MealVerificationPanel() {
                 {error}
               </div>
             )}
-
-
 
             {selected.claimedByMe && (
               <div className="flex items-center gap-2.5 rounded-xl border border-brand-green/20 bg-brand-green/10 p-3 text-xs text-brand-green">
@@ -378,7 +386,8 @@ export default function MealVerificationPanel() {
             </div>
 
             <div className="rounded-xl border border-[#a64600]/30 bg-[#8c3b00]/10 p-3.5 text-xs text-[#8c3b00] dark:text-[#ff8a3d] font-semibold leading-relaxed">
-              Verification confirms the base dish only. It does not certify nutrition amounts or permit use for a health condition.
+              Verification confirms the base dish only. It does not certify nutrition amounts or permit use for a health
+              condition.
             </div>
 
             {/* Decision Section */}

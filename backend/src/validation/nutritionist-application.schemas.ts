@@ -84,9 +84,13 @@ export const applicationDecisionSchema = z.discriminatedUnion('decision', [
     .strict(),
 ]);
 
-export const applicationCallVerificationSchema = z.object({
-  identityMatched: z.literal(true, { error: 'Confirm that the call took place and the applicant matched the uploaded photo.' }),
-}).strict();
+export const applicationCallVerificationSchema = z
+  .object({
+    identityMatched: z.literal(true, {
+      error: 'Confirm that the call took place and the applicant matched the uploaded photo.',
+    }),
+  })
+  .strict();
 
 export const nutritionistInvitationAcceptanceSchema = z
   .object({
@@ -99,5 +103,13 @@ export const nutritionistInvitationAcceptanceSchema = z
       .regex(/[A-Z]/, 'Password must contain at least one uppercase letter.')
       .regex(/[0-9]/, 'Password must contain at least one number.')
       .regex(/^[^\u0000-\u001F\u007F]+$/u, 'Password cannot contain control characters.'),
+  })
+  .strict();
+
+export const applicationLicenseLookupSchema = z
+  .object({
+    prcLicenseNumber: requiredText('PRC license number', 80)
+      .min(5)
+      .regex(/^[A-Za-z0-9-]+$/),
   })
   .strict();
