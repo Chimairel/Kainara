@@ -272,12 +272,11 @@ export default function Home() {
           <div className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 h-[500px] w-[600px] rounded-full bg-brand-accent/10 blur-[160px] dark:bg-brand-accent/5" />
 
           <ContainerScroll
-            layout="side-by-side"
             badgeLeft={
               <motion.div
                 animate={{ y: [0, -8, 0] }}
                 transition={{ duration: 5, repeat: Infinity, ease: 'easeInOut' }}
-                className="absolute -left-4 sm:-left-6 top-12 z-30 hidden w-48 rounded-2xl border border-emerald-500/30 bg-[#071914]/95 p-4 text-white shadow-2xl backdrop-blur-xl sm:block"
+                className="absolute -left-4 sm:-left-8 top-12 z-30 hidden w-48 rounded-2xl border border-emerald-500/30 bg-[#071914]/95 p-4 text-white shadow-2xl backdrop-blur-xl sm:block"
               >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-emerald-400">
@@ -309,7 +308,7 @@ export default function Home() {
               <motion.div
                 animate={{ y: [0, 8, 0] }}
                 transition={{ duration: 4.5, repeat: Infinity, ease: 'easeInOut' }}
-                className="absolute -bottom-6 -right-3 sm:-right-6 z-30 hidden w-56 rounded-2xl border border-brand-cyan/30 bg-brand-surface/95 p-4 shadow-xl backdrop-blur-xl sm:block"
+                className="absolute -bottom-6 -right-4 sm:-right-8 z-30 hidden w-56 rounded-2xl border border-brand-cyan/30 bg-brand-surface/95 p-4 shadow-xl backdrop-blur-xl sm:block"
               >
                 <div className="flex items-center gap-3">
                   <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-cyan/15 text-brand-cyan">
@@ -322,36 +321,31 @@ export default function Home() {
                 </div>
               </motion.div>
             }
-            cardClassName="border-[#6C6C6C] bg-[#222222]"
-            innerClassName="p-0 bg-[#071914] border border-[#173e33]/80"
+            cardClassName="max-w-5xl border-[#173e33] bg-[#071914]"
+            innerClassName="p-0 bg-[#071914]"
             titleComponent={
-              <motion.div
-                initial={{ opacity: 0, y: 30 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
-                className="relative z-10 max-w-2xl text-left"
-              >
-                <h1 className="font-display text-[clamp(2.75rem,5.5vw,7.2rem)] font-black leading-[0.92] tracking-[-0.06em] text-brand-text">
-                  Eat with
-                  <span className="text-gradient block pb-2">intention.</span>
+              <div className="flex flex-col items-center text-center max-w-4xl mx-auto px-4">
+                <h1 className="font-display text-[clamp(2.5rem,5.5vw,5.5rem)] font-black leading-[0.95] tracking-[-0.05em] text-brand-text">
+                  Eat with{' '}
+                  <span className="text-gradient inline-block pb-1">intention.</span>
                 </h1>
 
-                <p className="mt-5 max-w-xl text-base leading-7 text-brand-muted sm:text-lg sm:leading-8">
+                <p className="mt-5 max-w-2xl mx-auto text-base leading-7 text-brand-muted sm:text-lg sm:leading-8">
                   KAINARA brings familiar recipes, calculated nutrition targets and daily tracking into one workspace,
                   with AI-assisted planning and nutritionist review for applicable cases.
                 </p>
 
-                <div className="mt-8 flex flex-col gap-3.5 sm:flex-row sm:items-center">
+                <div className="mt-8 flex flex-col justify-center gap-3.5 sm:flex-row sm:items-center">
                   <Link
                     href={workspaceHref}
-                    className="group flex min-h-14 items-center justify-center gap-3 rounded-2xl bg-brand-accent px-7 text-sm font-extrabold text-white shadow-neon transition duration-200 hover:-translate-y-1 hover:brightness-110 active:scale-[0.98]"
+                    className="group flex min-h-14 items-center justify-center gap-3 rounded-2xl bg-brand-accent px-8 text-sm font-extrabold text-white shadow-neon transition duration-200 hover:-translate-y-1 hover:brightness-110 active:scale-[0.98]"
                   >
                     {workspaceLabel}
                     <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
                   </Link>
                   <Link
                     href="/docs"
-                    className="group flex min-h-14 items-center justify-center gap-2.5 rounded-2xl border border-emerald-500/20 bg-[#071914] px-7 text-sm font-bold text-white shadow-md transition duration-200 hover:-translate-y-1 hover:border-emerald-400/50 hover:bg-[#0e271f] hover:shadow-lg active:scale-[0.98]"
+                    className="group flex min-h-14 items-center justify-center gap-2.5 rounded-2xl border border-emerald-500/20 bg-[#071914] px-8 text-sm font-bold text-white shadow-md transition duration-200 hover:-translate-y-1 hover:border-emerald-400/50 hover:bg-[#0e271f] hover:shadow-lg active:scale-[0.98]"
                   >
                     Documentation
                     <ArrowUpRight className="h-4 w-4 text-emerald-400 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
@@ -359,7 +353,7 @@ export default function Home() {
                 </div>
 
                 {/* Trust Indicators */}
-                <div className="mt-10 grid max-w-xl grid-cols-3 gap-4 border-t border-brand-border/70 pt-6">
+                <div className="mt-10 flex flex-wrap items-center justify-center gap-8 sm:gap-12 border-t border-brand-border/70 pt-6">
                   {[
                     ['7 Days', 'Personalized Cycle', Flame, 'text-brand-accent dark:text-[#f09e6c]'],
                     ['3 Roles', 'Patient, RND & Admin', Activity, 'text-sky-600 dark:text-cyan-400'],
@@ -367,7 +361,7 @@ export default function Home() {
                   ].map(([value, label, Icon, colorClass]) => {
                     const StatIcon = Icon as React.ComponentType<{ className?: string }>;
                     return (
-                      <div key={label as string} className="flex flex-col">
+                      <div key={label as string} className="flex flex-col items-center">
                         <div className="flex items-center gap-1.5">
                           <StatIcon className={`h-4 w-4 ${colorClass as string}`} />
                           <p className="font-display text-lg font-black tracking-tight text-brand-text sm:text-xl">
@@ -381,13 +375,13 @@ export default function Home() {
                     );
                   })}
                 </div>
-              </motion.div>
+              </div>
             }
           >
             {/* Main Cockpit Inside Container Card */}
             <div className="flex h-full w-full flex-col overflow-hidden bg-[#071914]">
               {/* Browser Chrome Header */}
-              <div className="flex shrink-0 items-center justify-between border-b border-[#173e33] bg-[#0a1b16] px-4 py-3 sm:px-5">
+              <div className="flex shrink-0 items-center border-b border-[#173e33] bg-[#0a1b16] px-4 py-3 sm:px-5">
                 <div className="flex items-center gap-2">
                   <span className="h-2.5 w-2.5 rounded-full bg-[#ff5f56]/90 shadow-sm" />
                   <span className="h-2.5 w-2.5 rounded-full bg-[#ffbd2e]/90 shadow-sm" />
@@ -396,21 +390,15 @@ export default function Home() {
                     kainara.vercel.app/dashboard
                   </span>
                 </div>
-                <div className="flex items-center gap-2 rounded-full border border-emerald-500/30 bg-[#0e271f] px-2.5 py-1">
-                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(16,185,129,0.9)]" />
-                  <span className="font-mono text-[9px] uppercase tracking-wider text-emerald-400 font-bold">
-                    Live Cockpit • Manila, PH
-                  </span>
-                </div>
               </div>
 
               {/* Dashboard Screenshot Mockup */}
-              <div className="relative overflow-hidden bg-[#071914]">
+              <div className="relative flex-1 overflow-hidden bg-[#071914]">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src="/dashboard-actual.png"
                   alt="KAINARA Clinical Nutrition Cockpit"
-                  className="w-full h-auto object-cover object-top transition duration-700 hover:scale-[1.01]"
+                  className="h-full w-full object-cover object-top transition duration-700 hover:scale-[1.01]"
                   loading="eager"
                 />
               </div>

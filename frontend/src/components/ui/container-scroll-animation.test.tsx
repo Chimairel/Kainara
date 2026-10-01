@@ -12,10 +12,9 @@ vi.mock('motion/react', () => ({
 }));
 
 describe('ContainerScroll', () => {
-  it('renders in side-by-side mode with titleComponent and children', () => {
+  it('renders titleComponent, badges, and children inside scroll container', () => {
     render(
       <ContainerScroll
-        layout="side-by-side"
         titleComponent={<h1>Hero Title</h1>}
         badgeLeft={<div>Badge Left</div>}
         badgeRight={<div>Badge Right</div>}
@@ -28,20 +27,6 @@ describe('ContainerScroll', () => {
     expect(screen.getByText('Badge Left')).toBeInTheDocument();
     expect(screen.getByText('Badge Right')).toBeInTheDocument();
     expect(screen.getByText('Mockup Cockpit Content')).toBeInTheDocument();
-  });
-
-  it('renders in stacked mode', () => {
-    render(
-      <ContainerScroll
-        layout="stacked"
-        titleComponent={<h1>Stacked Title</h1>}
-      >
-        <p>Stacked Cockpit</p>
-      </ContainerScroll>
-    );
-
-    expect(screen.getByRole('heading', { level: 1, name: 'Stacked Title' })).toBeInTheDocument();
-    expect(screen.getByText('Stacked Cockpit')).toBeInTheDocument();
   });
 
   it('renders Header and Card standalone components cleanly', () => {
