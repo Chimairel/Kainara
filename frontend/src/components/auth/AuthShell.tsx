@@ -29,12 +29,14 @@ export default function AuthShell({
   wide = false,
 }: AuthShellProps) {
   return (
-    <main className="relative flex min-h-[100dvh] flex-col justify-center overflow-x-clip bg-brand-bg p-0 text-brand-text transition-colors duration-300 dark:bg-[#07100d] dark:text-white sm:p-4 lg:h-[100dvh] lg:min-h-0 lg:overflow-hidden xl:p-6">
+    <main className="relative flex min-h-[100dvh] flex-col justify-center overflow-x-clip bg-brand-bg p-0 text-brand-text transition-colors duration-300 dark:bg-[#07100d] dark:text-white sm:p-4 xl:p-6">
       {/* Background ambient glow */}
-      <div className="pointer-events-none absolute left-[50%] top-12 h-80 w-80 rounded-full bg-brand-green/10 blur-[140px] dark:bg-brand-cyan/10 hidden sm:block" />
-      <div className="pointer-events-none absolute -bottom-24 -left-20 h-80 w-80 rounded-full bg-brand-cyan/10 blur-[140px] dark:bg-brand-accent/10" />
+      <div className="pointer-events-none absolute inset-0 overflow-hidden">
+        <div className="absolute left-[50%] top-12 h-80 w-80 rounded-full bg-brand-green/10 blur-[140px] dark:bg-brand-cyan/10 hidden sm:block" />
+        <div className="absolute -bottom-24 -left-20 h-80 w-80 rounded-full bg-brand-cyan/10 blur-[140px] dark:bg-brand-accent/10" />
+      </div>
 
-      <div className="mx-auto flex min-h-[100dvh] w-full flex-col justify-between bg-brand-bg/90 transition-colors duration-300 dark:bg-[#07100d] sm:min-h-[calc(100dvh-2rem)] lg:grid lg:h-full lg:min-h-0 lg:max-w-[1500px] lg:grid-cols-[1fr_1fr] lg:overflow-hidden lg:rounded-[36px] lg:border lg:border-brand-border/80 lg:bg-brand-surface/70 lg:shadow-card-lg lg:backdrop-blur-xl dark:lg:border-[#173e33] dark:lg:bg-[#0a130f]/60 dark:lg:shadow-2xl">
+      <div className="mx-auto flex min-h-[100dvh] w-full flex-col justify-between bg-brand-bg/90 transition-colors duration-300 dark:bg-[#07100d] sm:min-h-[calc(100dvh-2rem)] lg:grid lg:min-h-[calc(100dvh-2rem)] xl:min-h-[calc(100dvh-3rem)] lg:max-w-[1500px] lg:grid-cols-[1fr_1fr] lg:overflow-hidden lg:rounded-[36px] lg:border lg:border-brand-border/80 lg:bg-brand-surface/70 lg:shadow-card-lg lg:backdrop-blur-xl dark:lg:border-[#173e33] dark:lg:bg-[#0a130f]/60 dark:lg:shadow-2xl">
         {/* Left / Hero Section */}
         <section className="relative flex flex-col justify-between overflow-hidden bg-brand-bg/60 px-5 pb-2 pt-6 text-brand-text transition-colors duration-300 dark:bg-[#07100d] dark:text-white sm:px-8 sm:pb-8 sm:pt-8 lg:min-h-0 lg:p-8 xl:p-12 2xl:p-16">
           <div className="pointer-events-none absolute -right-20 -top-20 h-72 w-72 rounded-full bg-brand-green/15 blur-[90px] dark:bg-brand-cyan/15" />
