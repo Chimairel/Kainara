@@ -23,9 +23,7 @@ import { earliestMissingDay, missingMealSlots } from '@/domain/meal-generation-g
 import { validateGeneratedMealCandidate, splitCustomRestrictions } from '@/domain/generated-meal-validation.policy';
 import { assertMealSlotCalories, validateGeneratedDayCalories } from '@/domain/generated-plan-calories.policy';
 import { getManilaDateKey } from '@/domain/meal-plan-cycle.policy';
-import { formatPlanningLocation } from '@/domain/planning-location.policy';
 import { getMealSlotCalorieRange } from '@/domain/meal-calorie-allocation.policy';
-import { getLocalizedFoodConsumptionContext } from './food-consumption-context.service';
 import { prepareGeneratedMealIngredients, type GeneratedMeal } from './meal-generation-ingredient-preparation.service';
 import { buildBaseServingPersistence } from './meal-plan-serving.service';
 import { buildReviewWorkKey } from '@/domain/upcoming-preparation.policy';
@@ -169,8 +167,7 @@ export class MealAiQueueService {
         calories: meal.calories,
       }));
       const localFoods = await getFNRISubset();
-      const localized = await getLocalizedFoodConsumptionContext(profile);
-      const foods = [...new Map([...localized.items, ...localFoods].map((food) => [food.id, food])).values()].slice(0, 100);
+      const foods = localFoods.slice(0, 100);
       const composition = await prisma.foodItem.findMany({ where: { id: { in: foods.map((food) => food.id) }, source: 'FNRI' } });
       const foodReference = foods.map((f) =>
         `- [FNRI_ID=${f.id}] ${f.name} (Cat: ${f.category}, Cal: ${f.calories}kcal, P: ${f.proteinG}g, C: ${f.carbsG}g, F: ${f.fatG}g per 100g)`
@@ -179,9 +176,8 @@ export class MealAiQueueService {
         slots, existingMeals, dailyCalorieTarget: cycle.snapshot!.dailyCalorieTarget,
         goal: cycle.snapshot!.goal,
         dietaryPreference: profile.dietaryPreference || 'OMNIVORE', ricePreference: profile.ricePreference,
-        foodCulture: profile.foodCulture || 'Filipino', planningLocationLabel: formatPlanningLocation(profile),
+        foodCulture: profile.foodCulture || 'Filipino',
         conditions, allergens, otherConditions, otherAllergies, foodReference,
-        popularFoodReference: localized.text, consumptionEvidenceScope: localized.matchedScope?.label,
       });
       const schema = buildMealGenerationResponseSchema(slots, cycle.snapshot!.dailyCalorieTarget, composition, existingMeals);
       let lastError: unknown;
@@ -253,9 +249,9 @@ export class MealAiQueueService {
                 selectionEvidence: {
                   schemaVersion: 1, source: 'AI_GENERATED', dailyCalorieTarget: cycle.snapshot!.dailyCalorieTarget,
                   slotCalorieTarget: range.target, slotCalorieLower: range.minimum, slotCalorieUpper: range.maximum,
-                  planningLocationLabel: formatPlanningLocation(profile),
-                  consumptionEvidenceScope: localized.matchedScope?.label ?? null,
-                  consumptionEvidenceRelease: localized.releaseLabel,
+                  planningLocationLabel: 'Philippines',
+                  consumptionEvidenceScope: null,
+                  consumptionEvidenceRelease: null,
                   rankingScore: null, rankingReasonCodes: [], capturedAt: new Date().toISOString(),
                 } as Prisma.InputJsonValue,
                 ingredients: { create: meal.ingredientsData }, ...serving,

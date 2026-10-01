@@ -1,6 +1,6 @@
 # USDA FoodData Central composition snapshot
 
-KAINARA uses FNRI first. When an ingredient has no FNRI match, an unambiguous exact USDA FoodData Central name or an admin verified USDA alias may provide **composition per 100 g**. This is nutrient evidence, not a statement that the ingredient is safe for a person's allergy or condition. Missing or ambiguous names remain unresolved. Reusable meal certification still requires FNRI linked ingredients and separate nutritionist review.
+KAINARA uses FNRI first. When an ingredient has no FNRI match, an unambiguous exact USDA FoodData Central name or an admin verified USDA alias may provide **composition per 100 g**. This is nutrient evidence, not a statement that the ingredient is safe for a person's allergy or condition. Missing or ambiguous names remain unresolved. Reusable meal certification requires resolved FNRI or USDA ingredient records, measured edible amounts and separate nutritionist review. USDA use additionally requires explicit reviewer acceptance and a written rationale.
 
 The application uses a checked in, derived catalogue. It does not request or ship a USDA API key. This avoids publishing a secret and avoids live API quota or availability dependencies during meal generation.
 

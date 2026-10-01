@@ -90,16 +90,10 @@ export function buildMealExplanation(input: MealExplanationInput): MealExplanati
       `${Math.round(input.calories)} kcal is ${calorieFit === 'WITHIN_TARGET' ? 'within' : 'outside'} this slot's ${Math.round(evidence.slotCalorieLower)}–${Math.round(evidence.slotCalorieUpper)} kcal planning range.`
     );
   }
-  if (evidence) {
+  const rankingReasons = evidence?.rankingReasonCodes?.filter((reason) => reason !== 'LOCALITY_EVIDENCE_MATCH');
+  if (rankingReasons?.length) {
     bullets.push(
-      evidence.consumptionEvidenceScope
-        ? `Meal selection used active aggregate food-consumption evidence at ${evidence.consumptionEvidenceScope} scope (${evidence.consumptionEvidenceRelease || 'version recorded by the data workspace'}).`
-        : `No active aggregate food-consumption release matched this plan; selection used the governed food catalogue with ${evidence.planningLocationLabel.toLowerCase()}.`
-    );
-  }
-  if (evidence?.rankingReasonCodes?.length) {
-    bullets.push(
-      `Planner ranking factors: ${evidence.rankingReasonCodes.join(', ').toLowerCase().replace(/_/g, ' ')}.`
+      `Planner ranking factors: ${rankingReasons.join(', ').toLowerCase().replace(/_/g, ' ')}.`
     );
   }
   if (evidence?.dataAdjustment === 'CODEX_PUBLISHED_SERVING_SCALE_V1' && evidence.servingScale) {
@@ -128,6 +122,6 @@ export function buildMealExplanation(input: MealExplanationInput): MealExplanati
     bullets,
     ...(evidence
       ? {}
-      : { limitation: 'Exact calorie-slot and locality evidence is unavailable for this legacy meal.' }),
+      : { limitation: 'Exact meal-selection evidence is unavailable for this legacy meal.' }),
   };
 }

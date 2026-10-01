@@ -50,14 +50,6 @@ export const evidenceSliderSources = [
     href: 'https://panlasangpinoy.com/',
     alt: 'Panlasang Pinoy logo',
   },
-  {
-    id: 'fnri-enns',
-    name: 'DOST-FNRI ENNS',
-    sub: 'Locality & consumption data',
-    logo: '/sources/dost-fnri.jpg',
-    href: 'https://enutrition.fnri.dost.gov.ph/uploads/2018-2019%20Facts%20and%20Figures%20-%20Food%20Consumption%20Survey.pdf',
-    alt: 'DOST-FNRI ENNS logo',
-  },
 ];
 
 // Organic SVG wave masks that terminate the sources showcase track exactly at the outer wave borders

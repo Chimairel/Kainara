@@ -2,7 +2,6 @@ import prisma from '@/lib/prisma';
 import { assertGenerationIntegrity } from './generation-integrity.service';
 import { updateGenerationProgress } from './generation-progress.service';
 import { lockUserProfile } from './profile-revision.service';
-import { getLocalizedFoodConsumptionContext } from '@/services/food-consumption-context.service';
 import {
   MealType,
   MealPlanStatus,
@@ -36,7 +35,6 @@ import {
   isPrimaryMealType,
   rankCalorieCompatibleMeals,
 } from '@/domain/meal-calorie-allocation.policy';
-import { formatPlanningLocation, rankMealsByLocalizedFoodEvidence } from '@/domain/planning-location.policy';
 import type { MealSelectionEvidence } from '@/domain/meal-explanation.policy';
 import {
   certifiedLibraryMealInclude,
@@ -105,12 +103,6 @@ export async function generate7DayPlan(
   if (!age || !heightCm || !weightKg || !goal || !activityLevel || !dailyCalorieTarget) {
     throw new Error('Please complete your onboarding profile statistics first.');
   }
-
-  const localizedConsumption = await getLocalizedFoodConsumptionContext(profile);
-  const localizedFoodIds = new Set(localizedConsumption.items.map((food) => food.id));
-  const localizedFoodGroupScores = new Map(
-    localizedConsumption.foodGroups.map((group) => [group.code, group.score] as const)
-  );
 
   // --- STEP 1: Check MealLibrary for pre-verified clinical matches ---
   console.log(`[Meal Generation] Step 1: Checking MealLibrary for pre-verified clinical matches...`);
@@ -218,14 +210,9 @@ export async function generate7DayPlan(
       // also fits this user's allocated meal target. Prefer the closest fit;
       // smaller recipes fall through to personalized generation.
       const calorieEligibleMatches = rankCalorieCompatibleMeals(matches, dailyCalorieTarget, slotType);
-      const localityRanked = rankMealsByLocalizedFoodEvidence(
-        calorieEligibleMatches,
-        localizedFoodIds,
-        localizedFoodGroupScores
-      );
       const range = getMealSlotCalorieRange(dailyCalorieTarget, slotType);
-      const ranked = localityRanked
-        .map((meal, localityIndex) => ({
+      const ranked = calorieEligibleMatches
+        .map((meal) => ({
           meal,
           ranking: scorePreparationCandidate({
             activeClearanceCoverage: !caseReviewCandidateIds.has(meal.id),
@@ -239,7 +226,6 @@ export async function generate7DayPlan(
             ricePreference: profile.ricePreference,
             riceRole: meal.riceRole,
             riceRoleReviewStatus: meal.riceRoleReviewStatus,
-            localityScore: localityIndex === 0 && localityRanked.length > 1 ? 1 : 0,
             usedInRecentCycle: recentlyUsedLibraryIds.has(meal.id),
           }),
         }))
@@ -307,8 +293,6 @@ export async function generate7DayPlan(
     otherConditions,
     otherAllergies,
     reviewFreeBaseOnly,
-    localityFoodGroupScores: localizedFoodGroupScores,
-    localityEvidenceText: localizedConsumption.text,
     recentCandidateIds: (
       await prisma.mealPlan.findMany({
         where: { userId, sourceRawRecipeCandidateId: { not: null }, status: MealPlanStatus.APPROVED },
@@ -341,9 +325,9 @@ export async function generate7DayPlan(
       slotCalorieTarget: range?.target ?? null,
       slotCalorieLower: range?.minimum ?? null,
       slotCalorieUpper: range?.maximum ?? null,
-      planningLocationLabel: formatPlanningLocation(profile),
-      consumptionEvidenceScope: localizedConsumption.matchedScope?.label ?? null,
-      consumptionEvidenceRelease: localizedConsumption.releaseLabel,
+      planningLocationLabel: 'Philippines',
+      consumptionEvidenceScope: null,
+      consumptionEvidenceRelease: null,
       rankingScore: ranking?.score ?? null,
       rankingReasonCodes: [...(ranking?.reasonCodes ?? [])],
       ...(ranking?.servingScale && ranking.servingScale !== 1

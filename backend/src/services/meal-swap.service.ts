@@ -13,7 +13,6 @@ import type { PublicMealCookingLink } from '@/domain/meal-cooking-link.policy';
 import { toPublicMealImage, type PublicMealImage } from '@/domain/meal-image.policy';
 import { MEAL_PLAN_SAFETY_POLICY_VERSION } from '@/domain/meal-plan-production-safety.policy';
 import { resolvePlanTargetCalories } from '@/domain/plan-cycle-target.policy';
-import { rankMealsByLocalizedFoodEvidence } from '@/domain/planning-location.policy';
 import { signSwapPreview, SWAP_PREVIEW_TTL_MS, verifySwapPreview } from '@/domain/swap-preview-token';
 import { buildSwapShoppingDelta } from '@/domain/swap-shopping.policy';
 import { loadUserNutritionContext } from '@/domain/user-nutrition-context';
@@ -28,7 +27,6 @@ import {
   RicePreference,
 } from '@prisma/client';
 import { createHash, randomUUID } from 'node:crypto';
-import { getLocalizedFoodConsumptionContext } from './food-consumption-context.service';
 import { GroceryService } from './grocery.service';
 import { resolveLibraryRecipeCookingLinks } from './library-recipe-cooking-link.service';
 import { resolveLibraryRecipeImages } from './library-recipe-image.service';
@@ -177,7 +175,7 @@ export class MealSwapService {
       limit: 120,
     });
 
-    const [favoriteRows, favoritePage, localizedConsumption] = await Promise.all([
+    const [favoriteRows, favoritePage] = await Promise.all([
       prisma.mealFavorite.findMany({
         where: { userId, mealLibraryId: { in: libraryMeals.map((meal) => meal.id) } },
         select: { mealLibraryId: true },
@@ -191,7 +189,6 @@ export class MealSwapService {
         favoriteOnly: true,
         limit: 60,
       }),
-      getLocalizedFoodConsumptionContext(userProfile),
     ]);
     const favorites = new Set(favoriteRows.map((row) => row.mealLibraryId));
     const candidateById = new Map(libraryMeals.map((meal) => [meal.id, meal]));
@@ -216,12 +213,6 @@ export class MealSwapService {
       }
     }
     const candidates = [...candidateById.values()];
-    const localized = rankMealsByLocalizedFoodEvidence(
-      candidates,
-      new Set(localizedConsumption.items.map((food) => food.id)),
-      new Map(localizedConsumption.foodGroups.map((group) => [group.code, group.score] as const))
-    );
-    const localityRank = new Map(localized.map((meal, index) => [meal.id, index]));
     const ricePreferenceScore = (riceRole: RecipeRiceRole | null) => {
       if (userProfile.ricePreference === RicePreference.NO_RICE) return riceRole === RecipeRiceRole.STANDALONE ? 1 : 0;
       if (userProfile.ricePreference === RicePreference.WITH_RICE)
@@ -250,7 +241,6 @@ export class MealSwapService {
             mealTypes: meal.applicableMealTypes.map((entry) => entry.mealType),
             isFavorite: favorites.has(meal.id),
             alreadyPlannedInCycle: usedLibraryMealIds.has(meal.id),
-            localityRank: localityRank.get(meal.id),
             ricePreferenceScore: ricePreferenceScore(meal.riceRole),
             pairedRiceG: serving.pairedRiceG,
             nutritionServingDescription: serving.pairedRiceG

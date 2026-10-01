@@ -41,7 +41,7 @@ export default function DataWorkspaceOverview({
     },
     {
       title: 'Publish an active version',
-      description: 'Stage the reviewed release, then publish it for meal-planning evidence.',
+      description: 'Stage the reviewed release, then publish a traceable version.',
       complete: summary.activeReleases > 0,
       icon: RadioTower,
     },
@@ -77,7 +77,7 @@ export default function DataWorkspaceOverview({
         </div>
         {activeReleases.length === 0 ? (
           <p className="mt-4 rounded-2xl border border-amber-500/20 bg-amber-500/10 p-4 text-sm text-amber-800 dark:text-amber-200">
-            No active reference-data release. Locality-based meal evidence will fall back to the governed catalogue.
+            No active reference-data release is recorded in this workspace.
           </p>
         ) : (
           <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
@@ -157,8 +157,8 @@ export default function DataWorkspaceOverview({
             can clinically approve meals.
           </p>
           <p className="mt-3 text-xs leading-relaxed text-amber-700 dark:text-amber-300">
-            Food composition corrections require a source and reason and retain a revision history. Publishing a survey
-            release changes supporting evidence; meal approval remains a separate nutritionist decision.
+            Food composition corrections require a source and reason and retain a revision history. Publishing a
+            reference release retains its audit history; meal approval remains a separate nutritionist decision.
           </p>
         </Card>
       </div>
