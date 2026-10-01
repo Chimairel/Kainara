@@ -72,15 +72,16 @@ export default function Pricing({ currentLevel, isEnhanced, limits }: PricingPro
 
   return (
     <div className="w-full space-y-6">
-      <div className="flex flex-col gap-2 justify-center items-center text-center">
+      <div className="flex flex-col gap-3 justify-center items-center text-center">
         <span className="inline-flex items-center gap-1.5 rounded-full border border-brand-border bg-brand-bgAlt px-3 py-1 font-mono text-[11px] font-bold uppercase tracking-wider text-brand-muted">
-          Plan Tiers
+          Tiers & Capabilities
         </span>
-        <h2 className="font-display text-2xl sm:text-3xl font-bold tracking-tight text-brand-text">
-          Pick the plan that fits your health journey
+        <h2 className="font-display text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight text-brand-text max-w-3xl leading-tight">
+          Included Baseline and Pro Capabilities
         </h2>
-        <p className="max-w-lg text-xs text-brand-muted leading-relaxed">
-          Transparent access designed for cultural Filipino meals, clinical precision, and everyday sustainability.
+        <p className="max-w-xl text-xs sm:text-sm text-brand-muted leading-relaxed">
+          Every account begins with our baseline Filipino meal planning. Pro unlocks weekly adaptive replanning,
+          clinical case reviews, and expanded allowances.
         </p>
       </div>
 
@@ -153,7 +154,7 @@ export default function Pricing({ currentLevel, isEnhanced, limits }: PricingPro
           </div>
         </motion.div>
 
-        {/* CARD 2: PRO (DEEP EMERALD PINE TINT WITH CORNER WAVE) */}
+        {/* CARD 2: PRO (DEEP EMERALD PINE TINT WITH ANIMATED BORDER BEAM) */}
         <motion.div
           variants={cardVariants}
           initial="hidden"
@@ -161,77 +162,90 @@ export default function Pricing({ currentLevel, isEnhanced, limits }: PricingPro
           custom={1}
           className="w-full flex-1"
         >
-          <div className="relative flex h-full flex-col justify-between overflow-hidden rounded-3xl border border-[#173e33] bg-gradient-to-br from-[#082e25] to-[#041914] p-6 sm:p-8 text-white shadow-xl transition-shadow hover:shadow-2xl">
-            {/* Top 3-Tone Brand Stripe Header Ribbon */}
-            <div className="absolute top-0 left-0 right-0 h-1.5 flex overflow-hidden rounded-t-3xl z-20">
-              <div className="flex-1 bg-[#1b4e41]" />
-              <div className="flex-1 bg-[#f09e6c]" />
-              <div className="flex-1 bg-[#eb6a38]" />
-            </div>
+          {/* Animated Border Beam Outer Wrapper */}
+          <div className="relative flex h-full flex-col justify-between overflow-hidden rounded-3xl p-[2px] bg-[#173e33]/70 shadow-xl transition-shadow hover:shadow-2xl">
+            {/* The Animated Border Beam */}
+            <div
+              className="pointer-events-none absolute inset-[-150%] animate-[spin_5s_linear_infinite]"
+              style={{
+                background:
+                  'conic-gradient(from 0deg, transparent 0 280deg, #eb6a38 310deg, #f09e6c 335deg, #34d399 355deg, #10b981 360deg)',
+              }}
+              aria-hidden="true"
+            />
 
-            {/* Retro Wave Organic Corner Accent (Orange, Peach/Yellow, Green) */}
-            <div className="pointer-events-none absolute -top-0.5 -right-0.5 h-36 w-36 sm:h-48 sm:w-48 overflow-hidden rounded-tr-3xl z-0 opacity-85">
-              <svg viewBox="0 0 160 160" className="h-full w-full" fill="none">
-                <path d="M160,0 L0,0 C20,40 55,95 120,135 C140,147 160,155 160,155 Z" fill="#eb6a38" />
-                <path d="M160,0 L40,0 C55,30 80,72 130,105 C145,115 160,120 160,120 Z" fill="#f09e6c" />
-                <path d="M160,0 L82,0 C92,20 110,48 142,70 C152,76 160,80 160,80 Z" fill="#1b4e41" />
-              </svg>
-            </div>
+            {/* Inner Pro Card Container */}
+            <div className="relative z-10 flex h-full flex-col justify-between overflow-hidden rounded-[22px] bg-gradient-to-br from-[#082e25] to-[#041914] p-6 sm:p-8 text-white">
+              {/* Top 3-Tone Brand Stripe Header Ribbon */}
+              <div className="absolute top-0 left-0 right-0 h-1.5 flex overflow-hidden rounded-t-[22px] z-20">
+                <div className="flex-1 bg-[#1b4e41]" />
+                <div className="flex-1 bg-[#f09e6c]" />
+                <div className="flex-1 bg-[#eb6a38]" />
+              </div>
 
-            <div className="relative z-10 flex flex-col sm:flex-row gap-6 md:gap-8 items-start self-stretch h-full w-full">
-              {/* Left Column */}
-              <div className="flex flex-col items-start justify-between self-stretch gap-6 w-full sm:w-[46%] shrink-0">
-                <div className="flex flex-col gap-3">
-                  <div className="flex items-center gap-2">
-                    <span className="inline-flex items-center gap-1.5 rounded-full bg-gradient-to-r from-[#eb6a38] via-[#f09e6c] to-[#1b4e41] p-[1.5px] shadow-sm">
-                      <span className="flex items-center gap-1 rounded-full bg-[#082e25] px-3 py-1 font-mono text-xs font-bold uppercase tracking-wider text-[#f09e6c]">
-                        <Sparkles className="h-3 w-3 text-[#eb6a38]" />
-                        <span>Pro</span>
-                      </span>
-                    </span>
-                    {isEnhanced && (
-                      <span className="rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/35 px-2.5 py-0.5 text-[10px] font-bold">
-                        {currentLevel === 'MEMBER' ? 'Active Member' : 'Trial Active'}
-                      </span>
-                    )}
-                  </div>
-                  <p className="text-xs font-normal text-white/70 leading-relaxed">
-                    2x the speed and capabilities. Adaptive weekly replanning, clinical case review, and weight
-                    trajectory.
-                  </p>
-                </div>
+              {/* Retro Wave Organic Corner Accent (Orange, Peach/Yellow, Green) */}
+              <div className="pointer-events-none absolute -top-0.5 -right-0.5 h-36 w-36 sm:h-48 sm:w-48 overflow-hidden rounded-tr-[22px] z-0 opacity-85">
+                <svg viewBox="0 0 160 160" className="h-full w-full" fill="none">
+                  <path d="M160,0 L0,0 C20,40 55,95 120,135 C140,147 160,155 160,155 Z" fill="#eb6a38" />
+                  <path d="M160,0 L40,0 C55,30 80,72 130,105 C145,115 160,120 160,120 Z" fill="#f09e6c" />
+                  <path d="M160,0 L82,0 C92,20 110,48 142,70 C152,76 160,80 160,80 Z" fill="#1b4e41" />
+                </svg>
+              </div>
 
-                <div className="flex flex-col gap-3 w-full">
-                  <div>
-                    <div className="flex items-baseline gap-1.5 flex-wrap">
-                      <span className="font-display text-2xl sm:text-3xl font-extrabold text-white whitespace-nowrap">
-                        14-Day Trial
+              <div className="relative z-10 flex flex-col sm:flex-row gap-6 md:gap-8 items-start self-stretch h-full w-full">
+                {/* Left Column */}
+                <div className="flex flex-col items-start justify-between self-stretch gap-6 w-full sm:w-[46%] shrink-0">
+                  <div className="flex flex-col gap-3">
+                    <div className="flex items-center gap-2">
+                      <span className="inline-flex items-center gap-1.5 rounded-full bg-gradient-to-r from-[#eb6a38] via-[#f09e6c] to-[#1b4e41] p-[1.5px] shadow-sm">
+                        <span className="flex items-center gap-1 rounded-full bg-[#082e25] px-3 py-1 font-mono text-xs font-bold uppercase tracking-wider text-[#f09e6c]">
+                          <Sparkles className="h-3 w-3 text-[#eb6a38]" />
+                          <span>Pro</span>
+                        </span>
                       </span>
-                      <span className="text-xs font-normal text-white/60">/ included</span>
+                      {isEnhanced && (
+                        <span className="rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/35 px-2.5 py-0.5 text-[10px] font-bold">
+                          {currentLevel === 'MEMBER' ? 'Active Member' : 'Pro Active'}
+                        </span>
+                      )}
                     </div>
-                    <span className="text-[10px] text-white/50">Full clinical & AI suite for every account</span>
-                  </div>
-
-                  <div className="space-y-1.5">
-                    {/* pricing-01 animated pill button (disabled for policy compliance) */}
-                    <button
-                      type="button"
-                      disabled
-                      aria-label="Purchases opening soon"
-                      className="relative flex items-center justify-between rounded-full bg-[#eb6a38] text-white text-xs font-bold h-11 ps-5 pe-12 group transition-all duration-300 w-fit overflow-hidden cursor-not-allowed opacity-95 shadow-md shadow-orange-950/40"
-                    >
-                      <span className="relative z-10">Purchases opening soon</span>
-                      <div className="absolute right-1 w-9 h-9 bg-white/20 text-white rounded-full flex items-center justify-center transition-all duration-300">
-                        <ArrowUpRight size={15} />
-                      </div>
-                    </button>
-                    <p className="text-[10px] text-white/50 leading-tight">
-                      Pricing and payment setup are being finalized. No payment details are collected and no automatic
-                      charges occur.
+                    <p className="text-xs font-normal text-white/70 leading-relaxed">
+                      2x the speed and capabilities. Adaptive weekly replanning, clinical case review, and weight
+                      trajectory.
                     </p>
                   </div>
+
+                  <div className="flex flex-col gap-3 w-full">
+                    <div>
+                      <div className="flex items-baseline gap-1.5 flex-wrap">
+                        <span className="font-display text-3xl sm:text-4xl font-extrabold text-white whitespace-nowrap">
+                          Pro
+                        </span>
+                        <span className="text-xs font-normal text-white/60">/ subscription</span>
+                      </div>
+                      <span className="text-[10px] text-white/50">Full clinical & AI suite for your journey</span>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      {/* pricing-01 animated pill button (disabled for policy compliance) */}
+                      <button
+                        type="button"
+                        disabled
+                        aria-label="Purchases opening soon"
+                        className="relative flex items-center justify-between rounded-full bg-[#eb6a38] text-white text-xs font-bold h-11 ps-5 pe-12 group transition-all duration-300 w-fit overflow-hidden cursor-not-allowed opacity-95 shadow-md shadow-orange-950/40"
+                      >
+                        <span className="relative z-10">Purchases opening soon</span>
+                        <div className="absolute right-1 w-9 h-9 bg-white/20 text-white rounded-full flex items-center justify-center transition-all duration-300">
+                          <ArrowUpRight size={15} />
+                        </div>
+                      </button>
+                      <p className="text-[10px] text-white/50 leading-tight">
+                        Pricing and payment setup are being finalized. No payment details are collected and no automatic
+                        charges occur.
+                      </p>
+                    </div>
+                  </div>
                 </div>
-              </div>
 
               {/* Divider */}
               <div className="hidden sm:block w-[1px] self-stretch bg-white/10 shrink-0" />
@@ -267,7 +281,8 @@ export default function Pricing({ currentLevel, isEnhanced, limits }: PricingPro
               </div>
             </div>
           </div>
-        </motion.div>
+        </div>
+      </motion.div>
       </div>
     </div>
   );

@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import Link from 'next/link';
 import PortalPageHeader from '@/components/shared/PortalPageHeader';
 import Button from '@/components/ui/Button';
 import { useMembership } from '@/features/membership/MembershipProvider';
@@ -453,28 +452,6 @@ export default function MembershipPage() {
         className={activeTab === 'plans' ? 'space-y-6' : 'hidden'}
       >
         <Pricing currentLevel={currentLevel} isEnhanced={isEnhanced} limits={limits} />
-
-        {/* CLINICAL SAFETY REASSURANCE */}
-        <section className="rounded-2xl border border-brand-border bg-brand-surface p-5 sm:p-6 shadow-xs space-y-3">
-          <h3 className="font-display text-sm font-bold text-brand-text">
-            Health Corrections & Clinical Safety Are Always Free
-          </h3>
-          <p className="text-xs leading-relaxed text-brand-muted max-w-3xl">
-            Health corrections, safety checks, manual meal logging, groceries and access to existing records remain
-            available. Review can approve, request changes or decline; membership does not guarantee verification or
-            continuous monitoring. Corrections needed to finish an existing review do not spend another allowance. Saved
-            estimates remain estimates unless reviewed.
-          </p>
-          <div>
-            <Link
-              href="/profile/health"
-              className="inline-flex items-center gap-1.5 text-xs font-bold text-brand-green hover:underline"
-            >
-              <span>Update health information</span>
-              <ArrowRight className="h-3.5 w-3.5" />
-            </Link>
-          </div>
-        </section>
       </div>
     </div>
   );
