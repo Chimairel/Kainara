@@ -14,7 +14,6 @@ import {
 } from 'lucide-react';
 import Avatar from '@/components/ui/Avatar';
 import Badge from '@/components/ui/Badge';
-import ProBadge from '@/components/ui/ProBadge';
 import { useAuth } from '@/hooks/useAuth';
 import { useMembership } from '@/features/membership/MembershipProvider';
 
@@ -135,89 +134,46 @@ export default function ProfileWidget({ onClose, className = '' }: ProfileWidget
             onClick={() => handleNavigate('/membership')}
             className="group flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left text-xs font-semibold text-brand-text transition hover:bg-brand-bgAlt/70 dark:text-white/90 dark:hover:bg-white/[0.06] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-green"
           >
-            <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-brand-accent/10 text-brand-accent group-hover:bg-brand-accent/20 transition-colors">
-              <Sparkles className="h-3.5 w-3.5" />
-            </div>
-            <div className="min-w-0 flex-1">
-              <div className="flex items-center justify-between">
-                <span className="truncate">Membership</span>
-                {membership?.enabled && (membership.level === 'TRIAL' || membership.level === 'MEMBER') ? (
-                  <ProBadge size="sm" />
-                ) : (
-                  <span className="text-[10px] font-bold text-brand-accent">Benefits</span>
-                )}
-              </div>
-              <p className="truncate text-[10px] text-brand-muted dark:text-white/45 font-normal">
-                Pro status & usage allowances
-              </p>
-            </div>
+            <Sparkles className="h-3.5 w-3.5 shrink-0 stroke-2 text-brand-muted group-hover:text-brand-green dark:text-white/50" />
+            <span className="flex-1 truncate">Membership</span>
           </button>
 
-          {/* ─── 2. COMBINED PERSONALIZATION (Health, Planning & Clinical Docs) ─── */}
+          {/* ─── 2. PERSONALIZATION ─── */}
           <button
             type="button"
             role="menuitem"
             onClick={() => handleNavigate('/profile/health')}
             className="group flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left text-xs font-semibold text-brand-text transition hover:bg-brand-bgAlt/70 dark:text-white/90 dark:hover:bg-white/[0.06] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-green"
           >
-            <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 group-hover:bg-emerald-500/20 transition-colors">
-              <SlidersHorizontal className="h-3.5 w-3.5" />
-            </div>
-            <div className="min-w-0 flex-1">
-              <p className="truncate font-semibold">Personalization</p>
-              <p className="truncate text-[10px] text-brand-muted dark:text-white/45 font-normal">
-                Health, food planning & clinical docs
-              </p>
-            </div>
+            <SlidersHorizontal className="h-3.5 w-3.5 shrink-0 stroke-2 text-brand-muted group-hover:text-brand-green dark:text-white/50" />
+            <span className="flex-1 truncate">Personalization</span>
           </button>
 
-          {/* ─── 3. NUTRITION GUIDANCE & REPORT ─── */}
+          {/* ─── 3. NUTRITION REPORT ─── */}
           <button
             type="button"
             role="menuitem"
             onClick={() => handleNavigate('/profile/nutrition-report')}
             className="group flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left text-xs font-semibold text-brand-text transition hover:bg-brand-bgAlt/70 dark:text-white/90 dark:hover:bg-white/[0.06] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-green"
           >
-            <div className="relative flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-brand-cyan/10 text-brand-cyan group-hover:bg-brand-cyan/20 transition-colors">
-              <ClipboardList className="h-3.5 w-3.5" />
-              {needsReportAttention && (
-                <span className="absolute -top-0.5 -right-0.5 flex h-2 w-2">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75" />
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500" />
-                </span>
-              )}
-            </div>
-            <div className="min-w-0 flex-1">
-              <div className="flex items-center justify-between">
-                <span className="truncate">Nutrition report</span>
-                {needsReportAttention && (
-                  <Badge variant="pending" className="text-[9px] font-bold px-1.5 py-0">
-                    Action needed
-                  </Badge>
-                )}
-              </div>
-              <p className="truncate text-[10px] text-brand-muted dark:text-white/45 font-normal">
-                Clinical guidance & targets
-              </p>
-            </div>
+            <ClipboardList className="h-3.5 w-3.5 shrink-0 stroke-2 text-brand-muted group-hover:text-brand-green dark:text-white/50" />
+            <span className="flex-1 truncate">Nutrition report</span>
+            {needsReportAttention && (
+              <Badge variant="pending" className="text-[9px] font-bold px-1.5 py-0">
+                Action needed
+              </Badge>
+            )}
           </button>
 
-          {/* ─── 4. SETTINGS & PRIVACY ─── */}
+          {/* ─── 4. SETTINGS ─── */}
           <button
             type="button"
             role="menuitem"
             onClick={() => handleNavigate('/profile/security')}
             className="group flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left text-xs font-semibold text-brand-text transition hover:bg-brand-bgAlt/70 dark:text-white/90 dark:hover:bg-white/[0.06] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-green"
           >
-            <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-brand-muted/10 text-brand-muted group-hover:bg-brand-muted/20 dark:text-white/60 transition-colors">
-              <Settings className="h-3.5 w-3.5" />
-            </div>
-            <div className="min-w-0 flex-1">
-              <p className="truncate font-semibold">Settings</p>
-              <p className="truncate text-[10px] text-brand-muted dark:text-white/45 font-normal">
-                Password & security controls
-              </p>
-            </div>
+            <Settings className="h-3.5 w-3.5 shrink-0 stroke-2 text-brand-muted group-hover:text-brand-green dark:text-white/50" />
+            <span className="flex-1 truncate">Settings</span>
           </button>
         </>
       )}
