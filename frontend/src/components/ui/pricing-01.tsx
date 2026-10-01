@@ -85,7 +85,7 @@ export default function Pricing({ currentLevel, isEnhanced, limits }: PricingPro
       </div>
 
       <div className="flex flex-col lg:flex-row items-stretch justify-center gap-6 w-full">
-        {/* CARD 1: BASIC */}
+        {/* CARD 1: BASIC (SLATE-BLUE TINT PER REFERENCE) */}
         <motion.div
           variants={cardVariants}
           initial="hidden"
@@ -93,22 +93,25 @@ export default function Pricing({ currentLevel, isEnhanced, limits }: PricingPro
           custom={0}
           className="w-full flex-1"
         >
-          <div className="relative flex h-full flex-col justify-between overflow-hidden rounded-3xl border border-brand-border bg-brand-surface p-6 sm:p-8 shadow-xs transition-shadow hover:shadow-sm">
-            <div className="flex flex-col sm:flex-row gap-6 md:gap-8 items-start self-stretch h-full w-full">
+          <div className="relative flex h-full flex-col justify-between overflow-hidden rounded-3xl border border-[#1e2e48] bg-gradient-to-br from-[#0d1b2e] to-[#08111d] p-6 sm:p-8 text-white shadow-xl transition-shadow hover:shadow-2xl">
+            {/* Top Slate-Blue Accent Ribbon */}
+            <div className="absolute top-0 left-0 right-0 h-1.5 bg-blue-500/40 rounded-t-3xl z-20" />
+
+            <div className="relative z-10 flex flex-col sm:flex-row gap-6 md:gap-8 items-start self-stretch h-full w-full">
               {/* Left Column */}
               <div className="flex flex-col items-start justify-between self-stretch gap-6 w-full sm:w-[46%] shrink-0">
                 <div className="flex flex-col gap-3">
                   <div className="flex items-center gap-2">
-                    <span className="inline-flex items-center rounded-full bg-brand-bgAlt border border-brand-border px-3 py-1 font-mono text-xs font-bold uppercase tracking-wider text-brand-muted">
+                    <span className="inline-flex items-center rounded-lg bg-white/10 border border-white/15 px-3 py-1 font-mono text-xs font-bold uppercase tracking-wider text-blue-200">
                       Basic
                     </span>
                     {currentLevel === 'FREE' && (
-                      <span className="rounded-full bg-brand-bgAlt border border-brand-border px-2 py-0.5 text-[10px] font-bold text-brand-text">
+                      <span className="rounded-full bg-blue-500/25 border border-blue-400/30 px-2 py-0.5 text-[10px] font-bold text-blue-100">
                         Current Plan
                       </span>
                     )}
                   </div>
-                  <p className="text-xs font-normal text-brand-muted leading-relaxed">
+                  <p className="text-xs font-normal text-slate-300/80 leading-relaxed">
                     General meal planning based on your starting intake, grocery checklists, and essential tracking.
                   </p>
                 </div>
@@ -116,29 +119,29 @@ export default function Pricing({ currentLevel, isEnhanced, limits }: PricingPro
                 <div className="flex flex-col gap-3 w-full">
                   <div>
                     <div className="flex items-baseline gap-1.5 flex-wrap">
-                      <span className="font-display text-3xl sm:text-4xl font-extrabold text-brand-text">Free</span>
-                      <span className="text-xs font-normal text-brand-muted">/ forever</span>
+                      <span className="font-display text-3xl sm:text-4xl font-extrabold text-white">Free</span>
+                      <span className="text-xs font-normal text-slate-400">/ forever</span>
                     </div>
-                    <span className="text-[10px] text-brand-muted">Included for every registered account</span>
+                    <span className="text-[10px] text-slate-400">Included for every registered account</span>
                   </div>
 
-                  <div className="relative inline-flex items-center justify-center rounded-full border border-brand-border bg-brand-bgAlt/80 text-brand-muted text-xs font-semibold h-11 px-5 w-fit">
+                  <div className="relative inline-flex items-center justify-center rounded-full bg-white text-slate-900 text-xs font-semibold h-11 px-6 w-fit shadow-sm">
                     <span>{currentLevel === 'FREE' ? 'Current Active Tier' : 'Included Baseline'}</span>
                   </div>
                 </div>
               </div>
 
               {/* Divider */}
-              <div className="hidden sm:block w-[1px] self-stretch bg-brand-border/70 shrink-0" />
-              <div className="sm:hidden block h-[1px] w-full bg-brand-border/70 shrink-0" />
+              <div className="hidden sm:block w-[1px] self-stretch bg-white/10 shrink-0" />
+              <div className="sm:hidden block h-[1px] w-full bg-white/10 shrink-0" />
 
               {/* Right Column: Features */}
               <div className="flex flex-col items-start gap-3 grow w-full sm:w-[54%]">
-                <p className="font-display text-sm sm:text-base font-bold text-brand-text">Features</p>
+                <p className="font-display text-sm sm:text-base font-bold text-white">Features</p>
                 <ul className="flex flex-col items-start self-stretch gap-2.5">
                   {basicFeatures.map((feature, idx) => (
-                    <li key={idx} className="flex items-start gap-2.5 text-xs text-brand-text leading-snug">
-                      <div className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-brand-bgAlt border border-brand-border text-brand-muted mt-0.5">
+                    <li key={idx} className="flex items-start gap-2.5 text-xs text-slate-200 leading-snug">
+                      <div className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-blue-500/20 border border-blue-400/30 text-blue-300 mt-0.5">
                         <Check size={11} strokeWidth={2.5} aria-hidden="true" />
                       </div>
                       <span>{feature}</span>
@@ -150,7 +153,7 @@ export default function Pricing({ currentLevel, isEnhanced, limits }: PricingPro
           </div>
         </motion.div>
 
-        {/* CARD 2: PRO (WITH KAINARA 3-TONE STRIPES) */}
+        {/* CARD 2: PRO (DEEP EMERALD PINE TINT WITH CORNER WAVE) */}
         <motion.div
           variants={cardVariants}
           initial="hidden"
@@ -158,7 +161,7 @@ export default function Pricing({ currentLevel, isEnhanced, limits }: PricingPro
           custom={1}
           className="w-full flex-1"
         >
-          <div className="relative flex h-full flex-col justify-between overflow-hidden rounded-3xl border border-[#173e33] bg-[#071914] p-6 sm:p-8 text-white shadow-xl transition-shadow hover:shadow-2xl">
+          <div className="relative flex h-full flex-col justify-between overflow-hidden rounded-3xl border border-[#173e33] bg-gradient-to-br from-[#082e25] to-[#041914] p-6 sm:p-8 text-white shadow-xl transition-shadow hover:shadow-2xl">
             {/* Top 3-Tone Brand Stripe Header Ribbon */}
             <div className="absolute top-0 left-0 right-0 h-1.5 flex overflow-hidden rounded-t-3xl z-20">
               <div className="flex-1 bg-[#1b4e41]" />
@@ -175,32 +178,13 @@ export default function Pricing({ currentLevel, isEnhanced, limits }: PricingPro
               </svg>
             </div>
 
-            {/* Signature 3-Tone Diagonal Stripes Texture across Pro Card */}
-            <div
-              className="pointer-events-none absolute inset-0 rounded-3xl opacity-15"
-              style={{
-                backgroundImage: `repeating-linear-gradient(
-                  -45deg,
-                  #1b4e41 0px,
-                  #1b4e41 7px,
-                  #f09e6c 7px,
-                  #f09e6c 14px,
-                  #eb6a38 14px,
-                  #eb6a38 21px,
-                  transparent 21px,
-                  transparent 50px
-                )`,
-              }}
-              aria-hidden="true"
-            />
-
             <div className="relative z-10 flex flex-col sm:flex-row gap-6 md:gap-8 items-start self-stretch h-full w-full">
               {/* Left Column */}
               <div className="flex flex-col items-start justify-between self-stretch gap-6 w-full sm:w-[46%] shrink-0">
                 <div className="flex flex-col gap-3">
                   <div className="flex items-center gap-2">
                     <span className="inline-flex items-center gap-1.5 rounded-full bg-gradient-to-r from-[#eb6a38] via-[#f09e6c] to-[#1b4e41] p-[1.5px] shadow-sm">
-                      <span className="flex items-center gap-1 rounded-full bg-[#071914] px-3 py-1 font-mono text-xs font-bold uppercase tracking-wider text-[#f09e6c]">
+                      <span className="flex items-center gap-1 rounded-full bg-[#082e25] px-3 py-1 font-mono text-xs font-bold uppercase tracking-wider text-[#f09e6c]">
                         <Sparkles className="h-3 w-3 text-[#eb6a38]" />
                         <span>Pro</span>
                       </span>
@@ -288,3 +272,4 @@ export default function Pricing({ currentLevel, isEnhanced, limits }: PricingPro
     </div>
   );
 }
+
