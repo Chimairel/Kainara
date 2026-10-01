@@ -1,3 +1,4 @@
+import { useVisiblePolling } from '@/hooks/useVisiblePolling';
 import type { PendingMealPreview } from '@/components/user/PendingMealPreviewCard';
 import type { CycleMetaSnapshot } from '@/features/dashboard/model';
 import { useMealGenerationProgress } from '@/features/meals/useMealGenerationProgress';
@@ -164,13 +165,14 @@ export function useMealsWorkspace() {
     }
   }, [applyCurrentPlan, ownerId, currentPlanResource]);
 
-  useEffect(() => {
-    if (awaitingGeneration.current + awaitingGeneration.upcoming === 0) return;
-    const interval = window.setInterval(() => {
-      if (document.visibilityState === 'visible') void fetchMeals();
-    }, 30_000);
-    return () => window.clearInterval(interval);
-  }, [awaitingGeneration, fetchMeals]);
+  useVisiblePolling(
+    async () => {
+      await fetchMeals();
+      const status = await refreshClinicalProfileStatus(ownerId, cachedUserProfile(ownerId));
+      setProfileReviewRequired(status.required && !status.approved);
+    },
+    { enabled: Boolean(ownerId), immediate: false, scopeKey: ownerId }
+  );
 
   useEffect(() => {
     if (!cycles || cycles.current || generationStatus.current === 'FAILED' || error) return;

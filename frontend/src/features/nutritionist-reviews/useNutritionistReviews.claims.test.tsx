@@ -44,7 +44,7 @@ describe('nutritionist review claim controls', () => {
     expect(result.current.selectedMealId).toBe('meal-1');
     vi.mocked(api.get).mockClear();
     rerender({ enabled: true });
-    await waitFor(() => expect(api.get).toHaveBeenCalledWith('/nutritionist/queue'));
+    await waitFor(() => expect(api.get).toHaveBeenCalledWith('/nutritionist/queue', { signal: undefined }));
     expect(result.current.selectedMealId).toBe('meal-1');
   });
 

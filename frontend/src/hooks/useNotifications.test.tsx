@@ -3,7 +3,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { useNotifications } from './useNotifications';
 
 const mocks = vi.hoisted(() => ({
-  get: vi.fn(), patch: vi.fn(),
+  get: vi.fn(),
+  patch: vi.fn(),
   user: { userId: 'account-1', role: 'USER' } as { userId: string; role: string } | null,
 }));
 vi.mock('@/lib/axios', () => ({ default: { get: mocks.get, patch: mocks.patch } }));
@@ -20,7 +21,10 @@ describe('shared notification inbox', () => {
     mocks.user = { userId: 'account-1', role };
     const { result } = renderHook(() => useNotifications());
     await waitFor(() => expect(result.current.unreadCount).toBe(125));
-    expect(mocks.get).toHaveBeenCalledWith('/notifications');
+    expect(mocks.get).toHaveBeenCalledWith(
+      '/notifications',
+      expect.objectContaining({ signal: expect.any(AbortSignal) })
+    );
   });
 
   it('clears the entire unread inbox with one request, beyond the first 50 displayed items', async () => {
@@ -45,7 +49,11 @@ describe('shared notification inbox', () => {
     const { result, rerender } = renderHook(() => useNotifications());
     await waitFor(() => expect(result.current.unreadCount).toBe(125));
     let resolveNext!: (value: unknown) => void;
-    mocks.get.mockReturnValueOnce(new Promise((resolve) => { resolveNext = resolve; }));
+    mocks.get.mockReturnValueOnce(
+      new Promise((resolve) => {
+        resolveNext = resolve;
+      })
+    );
     mocks.user = { userId: 'account-2', role: 'ADMIN' };
     rerender();
     expect(result.current.unreadCount).toBe(0);

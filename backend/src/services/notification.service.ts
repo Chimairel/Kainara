@@ -1,6 +1,23 @@
+import type { Prisma } from '@prisma/client';
 import prisma from '@/lib/prisma';
 
 export class NotificationService {
+  /** Queue alerts carry no patient names or health details. Queue APIs decide access. */
+  static async notifyReviewers(title: string, message: string, db: Prisma.TransactionClient = prisma) {
+    const reviewers = await db.nutritionistProfile.findMany({
+      where: {
+        isVerified: true,
+        prcLicenseExpiry: { gt: new Date() },
+        user: { role: 'NUTRITIONIST', isSuspended: false, emailVerified: true },
+      },
+      select: { userId: true },
+    });
+    if (reviewers.length)
+      await db.notification.createMany({
+        data: reviewers.map(({ userId }) => ({ userId, title, message, type: 'REVIEW_REQUEST' as const })),
+      });
+  }
+
   /**
    * Returns all notifications for a user, ordered newest first.
    */

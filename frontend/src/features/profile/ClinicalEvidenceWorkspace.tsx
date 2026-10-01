@@ -1,5 +1,7 @@
 'use client';
 
+import { useVisiblePolling } from '@/hooks/useVisiblePolling';
+
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -69,7 +71,7 @@ export default function ClinicalEvidenceWorkspace({ mode = 'profile' }: { mode?:
   const [medicationRisk, setMedicationRisk] = useState('UNSURE');
   const [recurrentHypoglycemia, setRecurrentHypoglycemia] = useState<'YES' | 'NO' | 'UNSURE'>('UNSURE');
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (silent = false) => {
     try {
       const [response, profileReview] = await Promise.all([
         api.get(endpoint),
@@ -83,10 +85,12 @@ export default function ClinicalEvidenceWorkspace({ mode = 'profile' }: { mode?:
         const requestedArea = profileReview?.data?.data?.documentRequest?.area;
         setArea(requestedArea && available.includes(requestedArea) ? requestedArea : available[0]);
       }
+      if (!silent) {
       const diabetes = next.contexts.find((item) => item.area === 'DIABETES')?.responses;
       if (diabetes?.medicationRisk) setMedicationRisk(diabetes.medicationRisk);
       if (diabetes?.recurrentHypoglycemia !== undefined)
         setRecurrentHypoglycemia(diabetes.recurrentHypoglycemia === 'UNSURE' ? 'UNSURE' : diabetes.recurrentHypoglycemia ? 'YES' : 'NO');
+      }
     } catch (cause) {
       setError(getApiErrorMessage(cause, 'Clinical information could not be loaded.'));
     } finally {
@@ -94,6 +98,7 @@ export default function ClinicalEvidenceWorkspace({ mode = 'profile' }: { mode?:
     }
   }, [area, endpoint, mode]);
 
+  useVisiblePolling(async () => { await load(true); }, { enabled: !busy, immediate: false, scopeKey: endpoint });
   useEffect(() => {
     void load();
   }, [load]);

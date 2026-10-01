@@ -31,14 +31,15 @@ const stepDescriptions = [
   },
   {
     title: 'PRC credentials and licensure',
-    subtitle: 'Enter your official license information for automated registry validation.',
+    subtitle:
+      'Enter your license information. KAINARA checks for duplicates; an administrator verifies your credentials.',
   },
   {
     title: 'Practice experience & background',
     subtitle: 'Share your clinical background, alma mater, and years in dietetic practice.',
   },
   {
-    title: 'Verification call availability',
+    title: 'Verification call availability (Philippine time)',
     subtitle: 'Select at least two schedules for an identity verification call with a KAINARA administrator.',
   },
   {
@@ -67,6 +68,7 @@ const quickUniversities = [
 ];
 
 type Props = {
+  licenseHint?: string;
   error: string | null;
   errors: Record<string, string>;
   form: NutritionistApplicationForm;
@@ -146,7 +148,9 @@ export function ApplicationWizard(props: Props) {
       {/* Step Form Content */}
       <div className="mt-7 space-y-6">
         {step === 0 && <IdentityFields form={form} errors={errors} onFieldChange={onFieldChange} />}
-        {step === 1 && <CredentialFields form={form} errors={errors} onFieldChange={onFieldChange} />}
+        {step === 1 && (
+          <CredentialFields form={form} errors={errors} onFieldChange={onFieldChange} licenseHint={props.licenseHint} />
+        )}
         {step === 2 && <ExperienceFields form={form} errors={errors} onFieldChange={onFieldChange} />}
         {step === 3 && <AvailabilityFields form={form} errors={errors} onFieldChange={onFieldChange} />}
         {step === 4 && <ApplicationReview form={form} />}
@@ -262,7 +266,7 @@ function IdentityFields({ form, errors, onFieldChange }: FieldProps) {
   );
 }
 
-function CredentialFields({ form, errors, onFieldChange }: FieldProps) {
+function CredentialFields({ form, errors, onFieldChange, licenseHint }: FieldProps & { licenseHint?: string }) {
   return (
     <>
       <div className="grid gap-4 sm:grid-cols-2">
@@ -273,7 +277,7 @@ function CredentialFields({ form, errors, onFieldChange }: FieldProps) {
           onChange={(event) => onFieldChange('prcLicenseNumber', event.target.value.toUpperCase())}
           error={errors.prcLicenseNumber}
           placeholder="e.g. 0012345 or RND-0012345"
-          helperText="Enter the registration number shown on your PRC identification card."
+          helperText={licenseHint || 'Enter the registration number shown on your PRC identification card.'}
           required
         />
         <Input

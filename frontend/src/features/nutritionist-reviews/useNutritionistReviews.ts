@@ -1,3 +1,4 @@
+import { useVisiblePolling } from '@/hooks/useVisiblePolling';
 import { useAuth } from '@/hooks/useAuth';
 import { getApiErrorMessage } from '@/lib/api-error';
 import api from '@/lib/axios';
@@ -195,16 +196,17 @@ export function useNutritionistReviews(enabled = true) {
   });
 
   const fetchQueue = useCallback(
-    async (silent = false) => {
+    async (silent = false, signal?: AbortSignal) => {
       if (!silent && !readSessionResource<QueueItem[]>(ownerId, 'nutritionist-case-queue', 30_000)) setIsLoading(true);
       try {
-        const res = await api.get('/nutritionist/queue');
+        const res = await api.get('/nutritionist/queue', { signal });
+        if (signal?.aborted) return;
         if (res.data?.success) {
           setQueue(res.data.data);
           writeSessionResource(ownerId, 'nutritionist-case-queue', res.data.data);
         }
       } catch (err) {
-        console.error('Failed to fetch queue:', err);
+        if (!signal?.aborted) console.error('Failed to fetch queue:', err);
       } finally {
         if (!silent) setIsLoading(false);
       }
@@ -213,13 +215,18 @@ export function useNutritionistReviews(enabled = true) {
   );
 
   useEffect(() => {
-    if (!enabled) return;
-    fetchQueue();
-    const interval = window.setInterval(() => {
-      if (document.visibilityState === 'visible') void fetchQueue(true);
-    }, 30_000);
-    return () => window.clearInterval(interval);
+    if (enabled) void fetchQueue();
   }, [fetchQueue, enabled]);
+  useVisiblePolling(
+    async (signal) => {
+      await fetchQueue(true, signal);
+      if (selectedMealId && !actionLoading) {
+        const response = await api.get(`/nutritionist/queue/${selectedMealId}`, { signal });
+        if (!signal.aborted && response.data?.success) setDetailData(response.data.data);
+      }
+    },
+    { enabled: enabled && !actionLoading, immediate: false, scopeKey: `${ownerId}:${selectedMealId}` }
+  );
 
   const handleSelectMeal = async (id: string) => {
     setSelectedMealId(id);

@@ -1,5 +1,6 @@
 'use client';
 
+import { useVisiblePolling } from '@/hooks/useVisiblePolling';
 import { useCallback, useEffect, useState } from 'react';
 import { BookOpen, DatabaseZap, FileInput, LayoutDashboard, RefreshCw, ShieldCheck, Waypoints } from 'lucide-react';
 import api from '@/lib/axios';
@@ -16,7 +17,10 @@ import { getApiError } from '@/features/admin-data/types';
 import { useAuth } from '@/hooks/useAuth';
 import { readSessionResource, writeSessionResource } from '@/lib/session-resource-cache';
 
-interface DataSnapshot { workspace: DataWorkspace; foods: FoodPage }
+interface DataSnapshot {
+  workspace: DataWorkspace;
+  foods: FoodPage;
+}
 
 export default function AdminDataPage() {
   const ownerId = useAuth().user?.userId;
@@ -27,24 +31,33 @@ export default function AdminDataPage() {
   const [section, setSection] = useState<AdminDataSection>('overview');
   const [notice, setNotice] = useState<{ tone: 'success' | 'error'; message: string } | null>(null);
 
-  const load = useCallback(async (quiet = false) => {
-    if (!quiet) setLoading(true);
-    try {
-      const [workspaceResponse, foodsResponse] = await Promise.all([
-        api.get<ApiEnvelope<DataWorkspace>>('/admin/data'),
-        api.get<ApiEnvelope<FoodPage>>('/admin/data/foods', { params: { page: 1, limit: 12 } }),
-      ]);
-      const next = { workspace: workspaceResponse.data.data, foods: foodsResponse.data.data };
-      setWorkspace(next.workspace);
-      setFoods(next.foods);
-      writeSessionResource(ownerId, 'admin-data-workspace', next);
-    } catch (error) {
-      setNotice({ tone: 'error', message: getApiError(error, 'Could not load the data administration workspace.') });
-    } finally {
-      setLoading(false);
-    }
-  }, [ownerId]);
+  const load = useCallback(
+    async (quiet = false) => {
+      if (!quiet) setLoading(true);
+      try {
+        const [workspaceResponse, foodsResponse] = await Promise.all([
+          api.get<ApiEnvelope<DataWorkspace>>('/admin/data'),
+          api.get<ApiEnvelope<FoodPage>>('/admin/data/foods', { params: { page: 1, limit: 12 } }),
+        ]);
+        const next = { workspace: workspaceResponse.data.data, foods: foodsResponse.data.data };
+        setWorkspace(next.workspace);
+        setFoods(next.foods);
+        writeSessionResource(ownerId, 'admin-data-workspace', next);
+      } catch (error) {
+        setNotice({ tone: 'error', message: getApiError(error, 'Could not load the data administration workspace.') });
+      } finally {
+        setLoading(false);
+      }
+    },
+    [ownerId]
+  );
 
+  useVisiblePolling(
+    async () => {
+      await load(true);
+    },
+    { enabled: true, immediate: false, scopeKey: ownerId }
+  );
   useEffect(() => {
     void load();
   }, [load]);

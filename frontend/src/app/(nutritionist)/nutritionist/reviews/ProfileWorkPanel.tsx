@@ -1,5 +1,7 @@
 'use client';
 
+import { useVisiblePolling } from '@/hooks/useVisiblePolling';
+
 import { useCallback, useEffect, useState } from 'react';
 import { FileText, RefreshCw, UserCheck } from 'lucide-react';
 import api from '@/lib/axios';
@@ -71,20 +73,34 @@ export default function ProfileWorkPanel() {
   const [factValue, setFactValue] = useState('');
   const [confirmedFacts, setConfirmedFacts] = useState<Array<{ code: string; valueText: string }>>([]);
 
-  const refresh = useCallback(async () => {
-    try {
-      const response = await api.get('/nutritionist/profile-work');
-      const next: Person[] = response.data.data ?? [];
-      setPeople(next);
-      writeSessionResource(ownerId, 'nutritionist-profile-work', next);
-      setError(null);
-      window.dispatchEvent(new Event('nutrimind:review-work-updated'));
-      return next;
-    } catch (cause) {
-      setError(getApiErrorMessage(cause, 'The profile queue could not be loaded.'));
-      return null;
-    }
-  }, [ownerId]);
+  const refresh = useCallback(
+    async (signal?: AbortSignal) => {
+      try {
+        const response = await api.get('/nutritionist/profile-work', signal ? { signal } : undefined);
+        if (signal?.aborted) return null;
+        const next: Person[] = response.data.data ?? [];
+        setPeople(next);
+        writeSessionResource(ownerId, 'nutritionist-profile-work', next);
+        setError(null);
+        window.dispatchEvent(new Event('nutrimind:review-work-updated'));
+        return next;
+      } catch (cause) {
+        if (!signal?.aborted) setError(getApiErrorMessage(cause, 'The profile queue could not be loaded.'));
+        return null;
+      }
+    },
+    [ownerId]
+  );
+  useVisiblePolling(
+    async (signal) => {
+      await refresh(signal);
+      if (!signal.aborted && detail) {
+        const response = await api.get(`/nutritionist/profile-work/${detail.userId}`, { signal });
+        if (!signal.aborted) setDetail(response.data.data);
+      }
+    },
+    { enabled: !busy, immediate: false, scopeKey: `${ownerId}:${detail?.userId}` }
+  );
   useEffect(() => { void refresh(); }, [refresh]);
   useEffect(() => () => { if (fileUrl) URL.revokeObjectURL(fileUrl); }, [fileUrl]);
 

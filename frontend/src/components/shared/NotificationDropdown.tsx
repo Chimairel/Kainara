@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useNotifications } from '@/hooks/useNotifications';
 import { useAuth } from '@/hooks/useAuth';
 import {
@@ -53,6 +54,7 @@ interface CachedPlanInfo {
 }
 
 export default function NotificationDropdown() {
+  const router = useRouter();
   const { user } = useAuth();
   const { notifications, unreadCount, isLoading, markAsRead, markAllAsRead } = useNotifications();
   const [isOpen, setIsOpen] = useState(false);
@@ -69,14 +71,17 @@ export default function NotificationDropdown() {
     if (!isOpen || user?.role !== 'USER' || !prerequisitesComplete) return;
     let active = true;
     setPlanningReadiness(null);
-    api.get('/user/meals/readiness')
+    api
+      .get('/user/meals/readiness')
       .then((response) => {
         if (active && response.data?.success) setPlanningReadiness(response.data.data);
       })
       .catch(() => {
         if (active) setPlanningReadiness(null);
       });
-    return () => { active = false; };
+    return () => {
+      active = false;
+    };
   }, [isOpen, user?.role, user?.userId, prerequisitesComplete]);
 
   const [cycleInfo, setCycleInfo] = useState<{ isStarterPlan: boolean; nextCycleDay: string | null } | null>(() => {
@@ -197,6 +202,7 @@ export default function NotificationDropdown() {
           surface: 'bg-rose-500/10 border-rose-500/20 text-rose-600 dark:text-rose-400',
         };
       case 'OUTSIDE_MEAL_MORE_INFO':
+      case 'NUTRITIONIST_APPLICATION':
       case 'REVIEW_REQUEST':
         return {
           icon: <ClipboardList className="w-4 h-4 text-amber-600 dark:text-amber-400" />,
@@ -310,7 +316,8 @@ export default function NotificationDropdown() {
                         />
                       </div>
                       <span className="text-[10px] text-brand-muted truncate block">
-                        {planningReadiness?.title || (prerequisitesComplete ? 'Checking clinical readiness' : 'Action required')}
+                        {planningReadiness?.title ||
+                          (prerequisitesComplete ? 'Checking clinical readiness' : 'Action required')}
                       </span>
                     </div>
                   </div>
@@ -448,7 +455,14 @@ export default function NotificationDropdown() {
                       key={notif.id}
                       type="button"
                       onClick={() => {
-                        if (!notif.isRead) markAsRead(notif.id);
+                        if (!notif.isRead) void markAsRead(notif.id).catch(() => undefined);
+                        if (notif.type === 'NUTRITIONIST_APPLICATION' && user?.role === 'ADMIN') {
+                          setIsOpen(false);
+                          router.push('/admin/nutritionists');
+                        } else if (notif.type === 'REVIEW_REQUEST' && user?.role === 'NUTRITIONIST') {
+                          setIsOpen(false);
+                          router.push('/nutritionist/reviews');
+                        }
                       }}
                       className={`group relative flex w-full items-start gap-3 rounded-2xl border p-3 text-left outline-none transition-all duration-150 hover:-translate-y-0.5 hover:shadow-sm focus-visible:ring-2 focus-visible:ring-brand-green/35 ${
                         !notif.isRead

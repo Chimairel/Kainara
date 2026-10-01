@@ -4,10 +4,16 @@ import { sanitizeErrorMessage } from '@/lib/sanitizeError';
 import NutritionistApplicationService from '@/services/nutritionist-application.service';
 import {
   applicationStatusLookupSchema,
+  applicationLicenseLookupSchema,
   nutritionistApplicationSchema,
   nutritionistInvitationAcceptanceSchema,
 } from '@/validation/nutritionist-application.schemas';
-import { applicationStatusLimiter, professionalApplicationLimiter } from '@/middleware/rateLimiter';
+import {
+  applicationStatusLimiter,
+  professionalApplicationLimiter,
+  applicationStatusReadLimiter,
+  applicationLicenseLimiter,
+} from '@/middleware/rateLimiter';
 
 const router = Router();
 
@@ -28,7 +34,24 @@ router.post(
 );
 
 router.post(
+  '/license-availability',
+  applicationLicenseLimiter,
+  validateZodBody(applicationLicenseLookupSchema),
+  async (req: Request, res: Response) => {
+    try {
+      const data = await NutritionistApplicationService.checkLicenseAvailability(req.body.prcLicenseNumber);
+      return res.json({ success: true, data });
+    } catch {
+      return res
+        .status(503)
+        .json({ success: false, error: 'License availability could not be checked. Please try again.' });
+    }
+  }
+);
+
+router.post(
   '/status',
+  applicationStatusReadLimiter,
   applicationStatusLimiter,
   validateZodBody(applicationStatusLookupSchema),
   async (req: Request, res: Response) => {

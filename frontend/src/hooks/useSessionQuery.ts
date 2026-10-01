@@ -1,3 +1,4 @@
+import { useVisiblePolling } from './useVisiblePolling';
 import { getApiErrorMessage } from '@/lib/api-error';
 import { readSessionResource, refreshSessionResource, writeSessionResource } from '@/lib/session-resource-cache';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -62,6 +63,13 @@ export function useSessionQuery<T>({
       requestSequence.current += 1;
     };
   }, [enabled, refetch]);
+
+  useVisiblePolling(
+    async () => {
+      await refetch();
+    },
+    { enabled: enabled && Boolean(ownerId), immediate: false, scopeKey: scope }
+  );
 
   const setData = useCallback(
     (value: T) => {

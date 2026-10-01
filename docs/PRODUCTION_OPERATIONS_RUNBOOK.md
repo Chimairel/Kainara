@@ -51,3 +51,16 @@ Invoke only the authenticated `/api/cron/*` routes over HTTPS with `CRON_SECRET`
 
 Users can export their application data as JSON and permanently delete their account after password and phrase confirmation. Administrative database exports are not a substitute for the user-facing export. Test both flows before launch and document any legally required retention exception before implementing it.
 
+
+
+## Live workspace updates
+
+`GET /api/live/events` requires the ordinary bearer session and returns private, uncached SSE refresh signals. Keep proxy response buffering disabled; do not put tokens in query strings or log authorization headers. Streams intentionally end after 25 seconds and reconnect, so access is checked again. Each account can keep five simultaneous streams; extra tabs retain visible-page polling. Clients pause streams and 15-second fallback reads when hidden and refresh on focus.
+
+The channel is process-local. HTTP actions on the same server usually refresh connected role/account workspaces promptly; asynchronous jobs and other replicas converge through fallback reads. This is in-app freshness, not background OS push. Preserve the authenticated REST guards and draft state when adding a workspace. Use `useSessionQuery` for account-scoped readers or `useVisiblePolling` for a read that must keep form drafts separate. Never use a refresh callback to generate plans/reports, spend allowances, claim reviews or approve records.
+
+Before applying `20261002000000_nutritionist_application_retries`, back up and validate the archive. Check for multiple non-rejected applications sharing `lower(btrim(email))` or `upper(btrim(prcLicenseNumber))`; resolve any conflicts through reviewed governance rather than deleting application history. The new indexes permit historical rejected submissions while reserving active email/license identities. Rejected applicants may submit three times per email in a rolling 30 days, including the first submission. Newly sent call schedules display Philippine time (UTC+8); existing email timestamps remain unchanged.
+
+### Migration connection follow-up (2026-10-02)
+
+Use the database's direct connection for Prisma deployment migrations; retain the pooled connection for application traffic. A failed pooled migration runner can leave the migration advisory lock on an idle pool session. Inspect the holder and confirm it belongs to the failed runner, is idle and has no open transaction before terminating that specific session; never clear unrelated active locks. CHG-20261002-01 records the verified backup, incident and successful direct migration.
