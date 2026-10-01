@@ -8,101 +8,56 @@ import React from 'react';
  */
 export function LandingWaveHero() {
   return (
-    <>
-      {/* Left Flank River: Sweeps organically down the left side, framing the hero */}
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute left-0 top-0 w-36 sm:w-64 md:w-80 lg:w-[380px] h-[750px] sm:h-[920px] overflow-hidden select-none z-0 opacity-95 dark:opacity-90"
+    <div
+      aria-hidden="true"
+      className="pointer-events-none absolute -top-8 sm:-top-4 left-1/2 -translate-x-1/2 w-[1600px] h-[1100px] max-w-none select-none z-0 opacity-100 dark:opacity-95"
+    >
+      <svg
+        viewBox="0 0 1600 1100"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+        className="w-full h-full block"
       >
-        <svg
-          viewBox="0 0 360 850"
-          fill="none"
-          xmlns="http://www.w3.org/2000/svg"
-          preserveAspectRatio="none"
-          className="w-full h-full block"
-        >
-          {/* Band 1: Deep Pine Green (Inner Layer) */}
-          <path
-            d="M 24, 40
-               C 180, 160, 308, 360, 298, 550
-               C 288, 710, 170, 790, 24, 850"
-            stroke="#1b4e41"
-            strokeWidth="28"
-            strokeLinecap="round"
-            className="dark:stroke-[#154236]"
-          />
+        {/* Band 1: Deep Pine Green (Inner Layer of U-shape) */}
+        <path
+          d="M 94, 60
+             C 162, 236, 260, 452, 280, 668
+             C 298, 786, 488, 846, 800, 846
+             C 1112, 846, 1302, 786, 1320, 668
+             C 1340, 452, 1438, 236, 1506, 60"
+          stroke="#1b4e41"
+          strokeWidth="34"
+          strokeLinecap="round"
+          className="dark:stroke-[#154236]"
+        />
 
-          {/* Band 2: Warm Terracotta Peach (Middle Layer) */}
-          <path
-            d="M -6, 20
-               C 150, 140, 280, 340, 270, 540
-               C 260, 700, 140, 790, -6, 850"
-            stroke="#f09e6c"
-            strokeWidth="28"
-            strokeLinecap="round"
-            className="dark:stroke-[#f09e6c]"
-          />
+        {/* Band 2: Warm Terracotta Peach (Middle Layer of U-shape) */}
+        <path
+          d="M 60, 40
+             C 130, 220, 230, 440, 250, 660
+             C 270, 800, 470, 880, 800, 880
+             C 1130, 880, 1330, 800, 1350, 660
+             C 1370, 440, 1470, 220, 1540, 40"
+          stroke="#f09e6c"
+          strokeWidth="34"
+          strokeLinecap="round"
+          className="dark:stroke-[#f09e6c]"
+        />
 
-          {/* Band 3: Vibrant Coral Orange (Outer Layer) */}
-          <path
-            d="M -36, 0
-               C 120, 120, 252, 320, 242, 530
-               C 232, 690, 110, 790, -36, 850"
-            stroke="#eb6a38"
-            strokeWidth="28"
-            strokeLinecap="round"
-            className="dark:stroke-[#eb6a38]"
-          />
-        </svg>
-      </div>
-
-      {/* Right Flank River: Sweeps organically down the right side, framing the hero */}
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute right-0 top-0 w-36 sm:w-64 md:w-80 lg:w-[380px] h-[750px] sm:h-[920px] overflow-hidden select-none z-0 opacity-95 dark:opacity-90"
-      >
-        <svg
-          viewBox="0 0 360 850"
-          fill="none"
-          xmlns="http://www.w3.org/2000/svg"
-          preserveAspectRatio="none"
-          className="w-full h-full block"
-        >
-          {/* Band 1: Deep Pine Green (Inner Layer) */}
-          <path
-            d="M 336, 40
-               C 180, 160, 52, 360, 62, 550
-               C 72, 710, 190, 790, 336, 850"
-            stroke="#1b4e41"
-            strokeWidth="28"
-            strokeLinecap="round"
-            className="dark:stroke-[#154236]"
-          />
-
-          {/* Band 2: Warm Terracotta Peach (Middle Layer) */}
-          <path
-            d="M 366, 20
-               C 210, 140, 80, 340, 90, 540
-               C 100, 700, 220, 790, 366, 850"
-            stroke="#f09e6c"
-            strokeWidth="28"
-            strokeLinecap="round"
-            className="dark:stroke-[#f09e6c]"
-          />
-
-          {/* Band 3: Vibrant Coral Orange (Outer Layer) */}
-          <path
-            d="M 396, 0
-               C 240, 120, 108, 320, 118, 530
-               C 128, 690, 250, 790, 396, 850"
-            stroke="#eb6a38"
-            strokeWidth="28"
-            strokeLinecap="round"
-            className="dark:stroke-[#eb6a38]"
-          />
-        </svg>
-      </div>
-    </>
+        {/* Band 3: Vibrant Coral Orange (Outer Layer of U-shape) */}
+        <path
+          d="M 26, 20
+             C 98, 204, 200, 428, 220, 652
+             C 242, 814, 452, 914, 800, 914
+             C 1148, 914, 1358, 814, 1380, 652
+             C 1400, 428, 1502, 204, 1574, 20"
+          stroke="#eb6a38"
+          strokeWidth="34"
+          strokeLinecap="round"
+          className="dark:stroke-[#eb6a38]"
+        />
+      </svg>
+    </div>
   );
 }
 
