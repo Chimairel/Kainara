@@ -8,53 +8,101 @@ import React from 'react';
  */
 export function LandingWaveHero() {
   return (
-    <div
-      aria-hidden="true"
-      className="pointer-events-none absolute -top-52 sm:-top-12 left-1/2 -translate-x-1/2 w-[1600px] h-[950px] max-w-none opacity-100 dark:opacity-95 select-none z-0"
-    >
-      <svg
-        viewBox="0 0 1600 950"
-        fill="none"
-        xmlns="http://www.w3.org/2000/svg"
-        className="w-full h-full"
+    <>
+      {/* Left Flank River: Sweeps organically down the left side, framing the hero */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute left-0 top-0 w-36 sm:w-64 md:w-80 lg:w-[380px] h-[750px] sm:h-[920px] overflow-hidden select-none z-0 opacity-95 dark:opacity-90"
       >
-        {/* Band 1: Deep Pine Green (Upper Layer) */}
-        <path
-          d="M 260 -40
-             C 340 100, 480 200, 680 250
-             C 920 310, 1160 480, 1280 640
-             C 1380 770, 1500 810, 1680 840"
-          stroke="#1b4e41"
-          strokeWidth="48"
-          strokeLinecap="round"
-          className="dark:stroke-[#154236]"
-        />
+        <svg
+          viewBox="0 0 360 850"
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg"
+          preserveAspectRatio="none"
+          className="w-full h-full block"
+        >
+          {/* Band 1: Deep Pine Green (Inner Layer) */}
+          <path
+            d="M 24, 40
+               C 180, 160, 308, 360, 298, 550
+               C 288, 710, 170, 790, 24, 850"
+            stroke="#1b4e41"
+            strokeWidth="28"
+            strokeLinecap="round"
+            className="dark:stroke-[#154236]"
+          />
 
-        {/* Band 2: Warm Terracotta Peach (Middle Layer) */}
-        <path
-          d="M 285 -40
-             C 365 100, 505 200, 705 250
-             C 945 310, 1185 480, 1305 640
-             C 1405 770, 1525 810, 1705 840"
-          stroke="#f09e6c"
-          strokeWidth="48"
-          strokeLinecap="round"
-          className="dark:stroke-[#f09e6c]"
-        />
+          {/* Band 2: Warm Terracotta Peach (Middle Layer) */}
+          <path
+            d="M -6, 20
+               C 150, 140, 280, 340, 270, 540
+               C 260, 700, 140, 790, -6, 850"
+            stroke="#f09e6c"
+            strokeWidth="28"
+            strokeLinecap="round"
+            className="dark:stroke-[#f09e6c]"
+          />
 
-        {/* Band 3: Vibrant Coral Orange (Lower Layer) */}
-        <path
-          d="M 310 -40
-             C 390 100, 530 200, 730 250
-             C 970 310, 1210 480, 1330 640
-             C 1430 770, 1550 810, 1730 840"
-          stroke="#eb6a38"
-          strokeWidth="48"
-          strokeLinecap="round"
-          className="dark:stroke-[#eb6a38]"
-        />
-      </svg>
-    </div>
+          {/* Band 3: Vibrant Coral Orange (Outer Layer) */}
+          <path
+            d="M -36, 0
+               C 120, 120, 252, 320, 242, 530
+               C 232, 690, 110, 790, -36, 850"
+            stroke="#eb6a38"
+            strokeWidth="28"
+            strokeLinecap="round"
+            className="dark:stroke-[#eb6a38]"
+          />
+        </svg>
+      </div>
+
+      {/* Right Flank River: Sweeps organically down the right side, framing the hero */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute right-0 top-0 w-36 sm:w-64 md:w-80 lg:w-[380px] h-[750px] sm:h-[920px] overflow-hidden select-none z-0 opacity-95 dark:opacity-90"
+      >
+        <svg
+          viewBox="0 0 360 850"
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg"
+          preserveAspectRatio="none"
+          className="w-full h-full block"
+        >
+          {/* Band 1: Deep Pine Green (Inner Layer) */}
+          <path
+            d="M 336, 40
+               C 180, 160, 52, 360, 62, 550
+               C 72, 710, 190, 790, 336, 850"
+            stroke="#1b4e41"
+            strokeWidth="28"
+            strokeLinecap="round"
+            className="dark:stroke-[#154236]"
+          />
+
+          {/* Band 2: Warm Terracotta Peach (Middle Layer) */}
+          <path
+            d="M 366, 20
+               C 210, 140, 80, 340, 90, 540
+               C 100, 700, 220, 790, 366, 850"
+            stroke="#f09e6c"
+            strokeWidth="28"
+            strokeLinecap="round"
+            className="dark:stroke-[#f09e6c]"
+          />
+
+          {/* Band 3: Vibrant Coral Orange (Outer Layer) */}
+          <path
+            d="M 396, 0
+               C 240, 120, 108, 320, 118, 530
+               C 128, 690, 250, 790, 396, 850"
+            stroke="#eb6a38"
+            strokeWidth="28"
+            strokeLinecap="round"
+            className="dark:stroke-[#eb6a38]"
+          />
+        </svg>
+      </div>
+    </>
   );
 }
 
