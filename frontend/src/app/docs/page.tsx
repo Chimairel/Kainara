@@ -7,7 +7,7 @@ import { DocsWaveHero } from '@/components/landing/LandingWaveRiver';
 import DocsWorkspace from './DocsWorkspace';
 
 export const metadata: Metadata = {
-  title: 'Documentation & User Guide | KAINARA',
+  title: 'Documentation & user guide',
   description: 'How KAINARA works, clinical guidelines, terms of service, and privacy information.',
 };
 

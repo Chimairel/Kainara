@@ -1,0 +1,51 @@
+const pageTitles: Record<string, string> = {
+  '/login': 'Account access',
+  '/register': 'Account access',
+  '/verify-email': 'Verify email',
+  '/forgot-password': 'Forgot password',
+  '/reset-password': 'Reset password',
+  '/dashboard': 'Dashboard',
+  '/meals': 'Meals',
+  '/grocery': 'Groceries',
+  '/progress': 'Progress',
+  '/progress/reports': 'Progress reports',
+  '/membership': 'Membership',
+  '/export': 'Exports',
+  '/health-profile': 'Health & goals',
+  '/profile': 'Profile',
+  '/profile/personal': 'Personal details',
+  '/profile/health': 'Health & goals',
+  '/profile/planning': 'Food & planning',
+  '/profile/security': 'Security & privacy',
+  '/profile/clinical-evidence': 'Clinical documents',
+  '/profile/nutrition-report': 'Nutrition guidance & report',
+  '/nutrition-report': 'Nutrition guidance & report',
+  '/nutritionist-apply': 'Nutritionist application',
+  '/nutritionist-invitation': 'Nutritionist invitation',
+  '/nutritionist/reviews': 'Reviews',
+  '/nutritionist/library': 'Meal library',
+  '/nutritionist/outside-meals': 'Outside-meal reviews',
+  '/nutritionist/approved': 'Approved plans',
+  '/nutritionist/audit': 'Audit',
+  '/nutritionist/profile': 'Nutritionist profile',
+  '/admin/overview': 'Overview',
+  '/admin/analytics': 'Analytics',
+  '/admin/operations': 'Operations',
+  '/admin/users': 'Users',
+  '/admin/nutritionists': 'Nutritionists',
+  '/admin/data': 'Nutrition data',
+  '/admin/meals': 'Author meals',
+  '/admin/images': 'Meal images',
+  '/admin/profile': 'Admin profile',
+  '/docs': 'Documentation & user guide',
+  '/sources': 'Sources',
+  '/help': 'Help',
+  '/unauthorized': 'Access denied',
+};
+
+export function getPageTitle(pathname: string, unreadCount = 0): string {
+  const path = pathname.replace(/\/+$/, '') || '/';
+  const title = pageTitles[path] ?? (path.startsWith('/onboarding/') ? 'Set up your profile' : 'Kainara');
+  const count = Number.isFinite(unreadCount) ? Math.max(0, Math.floor(unreadCount)) : 0;
+  return count > 0 ? `(${count}) ${title}` : title;
+}
