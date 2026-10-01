@@ -154,7 +154,7 @@ export default function Pricing({ currentLevel, isEnhanced, limits }: PricingPro
           </div>
         </motion.div>
 
-        {/* CARD 2: PRO (DEEP EMERALD PINE TINT WITH ANIMATED BORDER BEAM) */}
+        {/* CARD 2: PRO (DEEP EMERALD PINE TINT WITH RADIANT GLOWING BORDER BEAM) */}
         <motion.div
           variants={cardVariants}
           initial="hidden"
@@ -162,20 +162,50 @@ export default function Pricing({ currentLevel, isEnhanced, limits }: PricingPro
           custom={1}
           className="w-full flex-1"
         >
-          {/* Animated Border Beam Outer Wrapper */}
-          <div className="relative flex h-full flex-col justify-between overflow-hidden rounded-3xl p-[2px] bg-[#173e33]/70 shadow-xl transition-shadow hover:shadow-2xl">
-            {/* The Animated Border Beam */}
+          {/* Glowing Border Beam Container */}
+          <div className="relative flex h-full flex-col justify-between rounded-3xl">
+            {/* 1. Atmospheric Diffuse Glow (Highly Visible in Light Mode & Vibrant in Dark Mode) */}
             <div
-              className="pointer-events-none absolute inset-[-150%] animate-[spin_5s_linear_infinite]"
-              style={{
-                background:
-                  'conic-gradient(from 0deg, transparent 0 280deg, #eb6a38 310deg, #f09e6c 335deg, #34d399 355deg, #10b981 360deg)',
-              }}
+              className="pointer-events-none absolute -inset-2 sm:-inset-3 overflow-hidden rounded-[36px] opacity-85 dark:opacity-70 blur-xl transition-opacity"
               aria-hidden="true"
-            />
+            >
+              <div
+                className="absolute inset-[-150%] animate-[spin_5s_linear_infinite]"
+                style={{
+                  background:
+                    'conic-gradient(from 0deg, transparent 0 240deg, #eb6a38 275deg, #f09e6c 310deg, #10b981 340deg, #34d399 360deg)',
+                }}
+              />
+            </div>
 
-            {/* Inner Pro Card Container */}
-            <div className="relative z-10 flex h-full flex-col justify-between overflow-hidden rounded-[22px] bg-gradient-to-br from-[#082e25] to-[#041914] p-6 sm:p-8 text-white">
+            {/* 2. Secondary Intense Glow Layer */}
+            <div
+              className="pointer-events-none absolute -inset-1 overflow-hidden rounded-[28px] opacity-90 dark:opacity-80 blur-md transition-opacity"
+              aria-hidden="true"
+            >
+              <div
+                className="absolute inset-[-150%] animate-[spin_5s_linear_infinite]"
+                style={{
+                  background:
+                    'conic-gradient(from 0deg, transparent 0 240deg, #eb6a38 275deg, #f09e6c 310deg, #10b981 340deg, #34d399 360deg)',
+                }}
+              />
+            </div>
+
+            {/* 3. Sharp 3px Border Beam Outer Frame */}
+            <div className="relative flex h-full flex-col justify-between overflow-hidden rounded-3xl p-[3px] bg-[#173e33]/90 shadow-2xl">
+              {/* The Sharp Animated Border Beam */}
+              <div
+                className="pointer-events-none absolute inset-[-150%] animate-[spin_5s_linear_infinite]"
+                style={{
+                  background:
+                    'conic-gradient(from 0deg, transparent 0 240deg, #eb6a38 275deg, #f09e6c 310deg, #10b981 340deg, #34d399 360deg)',
+                }}
+                aria-hidden="true"
+              />
+
+              {/* Inner Pro Card Container */}
+              <div className="relative z-10 flex h-full flex-col justify-between overflow-hidden rounded-[21px] bg-gradient-to-br from-[#082e25] to-[#041914] p-6 sm:p-8 text-white">
               {/* Top 3-Tone Brand Stripe Header Ribbon */}
               <div className="absolute top-0 left-0 right-0 h-1.5 flex overflow-hidden rounded-t-[22px] z-20">
                 <div className="flex-1 bg-[#1b4e41]" />
@@ -282,7 +312,8 @@ export default function Pricing({ currentLevel, isEnhanced, limits }: PricingPro
             </div>
           </div>
         </div>
-      </motion.div>
+      </div>
+    </motion.div>
       </div>
     </div>
   );
