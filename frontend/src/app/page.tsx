@@ -642,7 +642,7 @@ export default function Home() {
 
               {/* Masked Card Track Body - Terminated precisely at the wave stripes */}
               <div
-                className="relative overflow-hidden border-y border-[#173e33] bg-[#071914] py-4 sm:py-12"
+                className="relative overflow-hidden border-y border-[#173e33] bg-[#071914] dark:bg-[#faf8f5] dark:border-[#dfd7cc] py-4 sm:py-12"
                 style={{
                   maskImage: `${leftTrackMaskSvg}, linear-gradient(#000, #000), ${rightTrackMaskSvg}`,
                   WebkitMaskImage: `${leftTrackMaskSvg}, linear-gradient(#000, #000), ${rightTrackMaskSvg}`,
@@ -655,8 +655,8 @@ export default function Home() {
                 }}
               >
                 {/* Ambient Glows */}
-                <div className="pointer-events-none absolute left-1/4 top-1/2 -translate-y-1/2 h-64 w-64 rounded-full bg-emerald-500/10 blur-[100px]" />
-                <div className="pointer-events-none absolute right-1/4 top-1/2 -translate-y-1/2 h-64 w-64 rounded-full bg-brand-cyan/10 blur-[100px]" />
+                <div className="pointer-events-none absolute left-1/4 top-1/2 -translate-y-1/2 h-64 w-64 rounded-full bg-emerald-500/10 blur-[100px] dark:opacity-0" />
+                <div className="pointer-events-none absolute right-1/4 top-1/2 -translate-y-1/2 h-64 w-64 rounded-full bg-brand-cyan/10 blur-[100px] dark:opacity-0" />
 
                 {/* Infinite Looping Slider for Evidence & Recipe Sources */}
                 <div className="relative py-1 sm:py-3">

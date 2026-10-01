@@ -325,13 +325,13 @@ export function SectionWaveBorderLeft({ className = '' }: { className?: string }
           </filter>
         </defs>
 
-        {/* Curved dark shadow strokes on the inner side of the curve to smoothly fade moving cards */}
+        {/* Curved dark shadow stroke on the inner side of the curve to smoothly fade moving cards */}
         <path
           d="M 50,-10 C 96,35 138,85 124,125 C 108,165 46,175 70,215 C 96,255 143,265 113,310"
           stroke="#071914"
           strokeWidth="44"
           strokeLinecap="round"
-          className="opacity-60"
+          className="opacity-70 dark:opacity-85"
           filter="url(#waveShadowLeft)"
         />
 
@@ -399,13 +399,13 @@ export function SectionWaveBorderRight({ className = '' }: { className?: string 
           </filter>
         </defs>
 
-        {/* Curved dark shadow strokes on the inner side of the curve to smoothly fade moving cards */}
+        {/* Curved dark shadow stroke on the inner side of the curve to smoothly fade moving cards */}
         <path
           d="M 110,-10 C 64,45 17,80 34,135 C 50,185 114,180 90,225 C 66,270 14,275 44,310"
           stroke="#071914"
           strokeWidth="44"
           strokeLinecap="round"
-          className="opacity-60"
+          className="opacity-70 dark:opacity-85"
           filter="url(#waveShadowRight)"
         />
 
