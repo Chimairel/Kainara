@@ -249,9 +249,9 @@ export default function Pricing({ currentLevel, isEnhanced, limits }: PricingPro
                     <div>
                       <div className="flex items-baseline gap-1.5 flex-wrap">
                         <span className="font-display text-3xl sm:text-4xl font-extrabold text-white whitespace-nowrap">
-                          Pro
+                          999
                         </span>
-                        <span className="text-xs font-normal text-white/60">/ subscription</span>
+                        <span className="text-xs font-normal text-white/60">/ month</span>
                       </div>
                       <span className="text-[10px] text-white/50">Full clinical & AI suite for your journey</span>
                     </div>
