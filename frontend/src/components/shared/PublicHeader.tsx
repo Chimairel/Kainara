@@ -110,7 +110,7 @@ export default function PublicHeader() {
                 <ArrowUpRight className="hidden h-3.5 w-3.5 sm:block" />
               </Link>
             </>
-          ) : !isLoading ? (
+          ) : (
             <>
               <Link
                 href="/login"
@@ -127,8 +127,6 @@ export default function PublicHeader() {
                 <ArrowUpRight className="hidden h-3.5 w-3.5 sm:block" />
               </Link>
             </>
-          ) : (
-            <span className="h-10 w-24 animate-pulse rounded-xl bg-brand-surface/70" aria-hidden="true" />
           )}
 
           {/* Mobile Navigation Toggle */}
@@ -229,7 +227,7 @@ export default function PublicHeader() {
                   </button>
                 )}
               </div>
-            ) : !isLoading ? (
+            ) : (
               <div className="grid grid-cols-2 gap-3 pt-1">
                 <Link
                   href="/login"
@@ -247,7 +245,7 @@ export default function PublicHeader() {
                   <ArrowUpRight className="h-4 w-4" />
                 </Link>
               </div>
-            ) : null}
+            )}
           </nav>
         </div>
       )}
