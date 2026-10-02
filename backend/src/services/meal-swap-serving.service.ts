@@ -5,7 +5,8 @@ import {
   isPrimaryMealType,
 } from '@/domain/meal-calorie-allocation.policy';
 import { chooseCookedRicePortionG } from '@/domain/upcoming-preparation.policy';
-import { MealType, RecipeRiceRole, RicePreference, RiceRoleReviewStatus } from '@prisma/client';
+import { resolveRecipeRiceRole } from '@/domain/recipe-rice-role.policy';
+import { MealType, RecipeRiceRole, RicePreference } from '@prisma/client';
 import { type CertifiedLibraryMeal } from './meal-library-candidate-query.service';
 
 export type SwapRiceFood = {
@@ -30,18 +31,20 @@ export function resolveReplacementServing(input: {
 }) {
   const { meal, mealType, dailyTarget, ricePreference, hasConditions, riceFood } = input;
   if (!isPrimaryMealType(mealType)) return null;
+  const riceRole = resolveRecipeRiceRole(meal);
   let pairedRiceG: number | null = null;
   let nutrition = { calories: meal.calories, proteinG: meal.proteinG, carbsG: meal.carbsG, fatG: meal.fatG };
-  if (ricePreference !== RicePreference.NO_RICE && meal.riceRole === RecipeRiceRole.PAIR_WITH_RICE) {
+  if (ricePreference !== RicePreference.NO_RICE && riceRole.riceRole === RecipeRiceRole.PAIR_WITH_RICE) {
     // The current condition clearances are scoped to the base serving. A rice
     // composition requires a separately reviewed composed serving signature.
-    if (
-      (hasConditions && !input.allowPendingCaseReview) ||
-      meal.riceRoleReviewStatus !== RiceRoleReviewStatus.REVIEWED ||
-      !riceFood ||
-      !meal.recipeSignature
-    )
-      return null;
+    if ((hasConditions && !input.allowPendingCaseReview) || !riceFood || !meal.recipeSignature) {
+      if (ricePreference === RicePreference.WITH_RICE) return null;
+      // EITHER may keep the unchanged, cleared base serving when a new rice
+      // composition is unavailable. Its calorie range remains enforced.
+      return isMealWithinSlotCalorieRange({ calories: meal.calories, mealType, dailyCalorieTarget: dailyTarget })
+        ? { ...nutrition, pairedRiceG }
+        : null;
+    }
     const range = getMealSlotCalorieRange(dailyTarget, mealType);
     pairedRiceG = chooseCookedRicePortionG({
       baseCalories: meal.calories,
@@ -49,8 +52,8 @@ export function resolveReplacementServing(input: {
       slotTargetCalories: range.target,
       slotMinimumCalories: range.minimum,
       slotMaximumCalories: range.maximum,
-      minHalfCups: meal.riceMinHalfCups,
-      maxHalfCups: meal.riceMaxHalfCups,
+      minHalfCups: riceRole.minHalfCups,
+      maxHalfCups: riceRole.maxHalfCups,
     });
     if (!pairedRiceG) {
       if (ricePreference === RicePreference.WITH_RICE) return null;
@@ -63,8 +66,8 @@ export function resolveReplacementServing(input: {
         cookedRiceG: pairedRiceG,
       }).total;
   }
-  if (ricePreference === RicePreference.NO_RICE && meal.riceRole === RecipeRiceRole.INCLUDES_RICE) return null;
-  if (ricePreference === RicePreference.WITH_RICE && meal.riceRole === RecipeRiceRole.STANDALONE) return null;
+  if (ricePreference === RicePreference.NO_RICE && riceRole.riceRole === RecipeRiceRole.INCLUDES_RICE) return null;
+  if (ricePreference === RicePreference.WITH_RICE && riceRole.riceRole === RecipeRiceRole.STANDALONE) return null;
   if (!isMealWithinSlotCalorieRange({ calories: nutrition.calories, mealType, dailyCalorieTarget: dailyTarget }))
     return null;
   return { ...nutrition, pairedRiceG };

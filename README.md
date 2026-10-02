@@ -151,7 +151,7 @@ Validate the managed meal catalogue and project its certified-profile coverage f
 npm run seed:meal-library -- --offline-dry-run
 ```
 
-The ordinary `npm run seed:meal-library` command connects to the configured database for a read-only preflight, while `npm run seed:meal-library -- --apply` writes and certifies managed catalogue records. Both database-backed modes require explicit authorization for the configured target.
+The common catalogue is historical test data. Its offline projection remains available for regression work; `--apply` is disabled. The active baseline uses Panlasang Pinoy recipes, with the existing nutritionist review gates before reuse.
 
 Migrations and seeds modify database state. Confirm the database target and authorization first. Do not use production-like data for development or tests.
 

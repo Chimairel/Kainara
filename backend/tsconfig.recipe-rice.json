@@ -1,0 +1,10 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": { "noEmit": true, "rootDir": ".", "declaration": false, "declarationMap": false },
+  "include": [
+    "scripts/recipe-rice-local-acceptance.ts",
+    "scripts/fixture-retirement-local-acceptance.ts",
+    "scripts/retire-fixture-catalogue.ts"
+  ],
+  "exclude": ["node_modules", "dist"]
+}

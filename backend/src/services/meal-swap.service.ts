@@ -1,4 +1,5 @@
 import { ricePortionLabel } from '@/domain/rice-portion.policy';
+import { resolveRecipeRiceRole } from '@/domain/recipe-rice-role.policy';
 import { rankLibraryMeals } from '@/domain/library-ranking.policy';
 import { MembershipService } from './membership.service';
 import {
@@ -83,6 +84,7 @@ export function toPublicSwapOption(
   profileScopeKey?: string
 ) {
   const assignedImage = toPublicMealImage(meal);
+  const riceRole = resolveRecipeRiceRole(meal);
   const reviewer =
     reuseBasis === 'PROFILE_MATCHED_APPROVAL'
       ? meal.profileApprovals.find((entry) => entry.safetyScopeKey === profileScopeKey)?.reviewerNutritionist
@@ -93,9 +95,10 @@ export function toPublicSwapOption(
     description: meal.description,
     mealType: meal.mealType,
     mealTypes: meal.applicableMealTypes.map((entry) => entry.mealType),
-    riceRole: meal.riceRoleReviewStatus === 'REVIEWED' ? meal.riceRole : null,
+    riceRole: riceRole.riceRole,
+    riceRoleBasis: riceRole.basis,
     riceRoleReviewStatus: meal.riceRoleReviewStatus,
-    includedRiceG: meal.riceRole === 'INCLUDES_RICE' ? meal.includedRiceG : null,
+    includedRiceG: riceRole.riceRole === 'INCLUDES_RICE' ? riceRole.includedRiceG : null,
     servingDescription: meal.nutritionServingDescription || 'One recipe serving',
     isFavorite: 'isFavorite' in meal ? Boolean(meal.isFavorite) : false,
     alreadyPlannedInCycle: 'alreadyPlannedInCycle' in meal ? Boolean(meal.alreadyPlannedInCycle) : false,
@@ -249,7 +252,7 @@ export class MealSwapService {
             mealTypes: meal.applicableMealTypes.map((entry) => entry.mealType),
             isFavorite: favorites.has(meal.id),
             alreadyPlannedInCycle: usedLibraryMealIds.has(meal.id),
-            ricePreferenceScore: ricePreferenceScore(meal.riceRole),
+            ricePreferenceScore: ricePreferenceScore(resolveRecipeRiceRole(meal).riceRole),
             pairedRiceG: serving.pairedRiceG,
             nutritionServingDescription: serving.pairedRiceG
               ? `${meal.nutritionServingDescription || 'One recipe serving'} with ${ricePortionLabel(serving.pairedRiceG)}`

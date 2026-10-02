@@ -343,6 +343,8 @@ function runOfflineDryRun(counts: Record<string, number>, foods: ReadonlyMap<str
 }
 
 async function main() {
+  if (APPLY)
+    throw new Error('The fixture meal catalogue is retired. Use Panlasang Pinoy recipes and genuine review workflows.');
   if (APPLY && OFFLINE_DRY_RUN) {
     throw new Error('--apply and --offline-dry-run cannot be combined.');
   }

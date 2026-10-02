@@ -292,7 +292,7 @@ export default function MealImage({
   variant = 'card',
   ingredients = [],
   allowCanonicalFallback = true,
-  allowMealTypePlaceholder = true,
+  allowMealTypePlaceholder = false,
   hideRepresentativeBadge = false,
 }: MealImageProps) {
   const [failedUrls, setFailedUrls] = useState<Record<string, boolean>>({});

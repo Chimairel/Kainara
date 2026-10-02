@@ -100,7 +100,6 @@ export function DashboardMealRow(props: Props) {
           ingredients={meal.ingredients}
           image={props.pending ? undefined : props.meal.image}
           variant="thumbnail"
-          hideRepresentativeBadge
           className="!rounded-full !border-0 h-full w-full object-cover"
         />
       </div>

@@ -6,6 +6,7 @@ type LibraryBase = {
   recipeSignature: string | null;
   description: string | null;
   sourceRawRecipeCandidateId: string | null;
+  status?: string;
   sourceRawRecipeCandidate?: {
     sourceName: string;
     status: string;
@@ -14,29 +15,40 @@ type LibraryBase = {
 };
 
 export function libraryBaseRevisionKey(recipeSignature: string, description: string | null): string {
-  return createHash('sha256').update(JSON.stringify([recipeSignature, description?.normalize('NFKC').trim() ?? null])).digest('hex');
+  return createHash('sha256')
+    .update(JSON.stringify([recipeSignature, description?.normalize('NFKC').trim() ?? null]))
+    .digest('hex');
 }
 
 export function baseMealAdmissionMatches(meal: LibraryBase, verifiedKeys: ReadonlySet<string>): boolean {
+  if (meal.status && meal.status !== 'APPROVED') return false;
   const source = meal.sourceRawRecipeCandidate;
   if (!meal.recipeSignature) return false;
   if (source?.sourceName === 'PANLASANG_PINOY' && source.status === 'AVAILABLE') return true;
-  return verifiedKeys.has(`LIBRARY_MEAL:${meal.id}:${libraryBaseRevisionKey(meal.recipeSignature, meal.description)}`) ||
+  return (
+    verifiedKeys.has(`LIBRARY_MEAL:${meal.id}:${libraryBaseRevisionKey(meal.recipeSignature, meal.description)}`) ||
     verifiedKeys.has(`GENERATED_RECIPE:${meal.recipeSignature}:${meal.recipeSignature}`) ||
-    Boolean(source?.status === 'AVAILABLE' && meal.sourceRawRecipeCandidateId &&
-      verifiedKeys.has(`RAW_RECIPE:${meal.sourceRawRecipeCandidateId}:${source.contentSignature}`));
+    Boolean(
+      source?.status === 'AVAILABLE' &&
+      meal.sourceRawRecipeCandidateId &&
+      verifiedKeys.has(`RAW_RECIPE:${meal.sourceRawRecipeCandidateId}:${source.contentSignature}`)
+    )
+  );
 }
 
 /** Verification follows the exact recipe revision. It grants no health clearance. */
 export async function admittedLibraryBaseIds(meals: readonly LibraryBase[]): Promise<Set<string>> {
   if (meals.length === 0) return new Set();
-  const alreadyAdmitted = new Set(meals.flatMap((meal) =>
-    baseMealAdmissionMatches(meal, new Set()) ? [meal.id] : []));
+  const alreadyAdmitted = new Set(
+    meals.flatMap((meal) => (baseMealAdmissionMatches(meal, new Set()) ? [meal.id] : []))
+  );
   const needsVerification = meals.filter((meal) => !alreadyAdmitted.has(meal.id));
   if (needsVerification.length === 0) return alreadyAdmitted;
-  const signatures = needsVerification.flatMap((meal) => meal.recipeSignature ? [meal.recipeSignature] : []);
+  const signatures = needsVerification.flatMap((meal) => (meal.recipeSignature ? [meal.recipeSignature] : []));
   const ids = needsVerification.map((meal) => meal.id);
-  const rawIds = needsVerification.flatMap((meal) => meal.sourceRawRecipeCandidateId ? [meal.sourceRawRecipeCandidateId] : []);
+  const rawIds = needsVerification.flatMap((meal) =>
+    meal.sourceRawRecipeCandidateId ? [meal.sourceRawRecipeCandidateId] : []
+  );
   const verified = await prisma.mealBaseVerification.findMany({
     where: {
       status: 'VERIFIED',

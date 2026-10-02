@@ -6,16 +6,7 @@ import MealImage from '@/components/user/MealImage';
 import Modal from '@/components/ui/Modal';
 import LoadingSpinner from '@/components/shared/LoadingSpinner';
 import NutritionistCredentialModal from '@/components/user/NutritionistCredentialModal';
-import {
-  AlertTriangle,
-  ArrowRight,
-  Check,
-  Heart,
-  Search,
-  Sparkles,
-  Soup,
-  UtensilsCrossed,
-} from 'lucide-react';
+import { AlertTriangle, ArrowRight, Check, Heart, Search, Sparkles, Soup, UtensilsCrossed } from 'lucide-react';
 import { formatManilaDate } from '@/lib/manila-date';
 import { useMealsWorkspace } from './useMealsWorkspace';
 
@@ -84,8 +75,7 @@ export function MealsWorkspaceModals({ workspace }: Props) {
       const q = miniSearch.trim().toLowerCase();
       items = items.filter(
         (item) =>
-          item.mealName.toLowerCase().includes(q) ||
-          (item.description && item.description.toLowerCase().includes(q))
+          item.mealName.toLowerCase().includes(q) || (item.description && item.description.toLowerCase().includes(q))
       );
     }
 
@@ -115,15 +105,7 @@ export function MealsWorkspaceModals({ workspace }: Props) {
       if (miniSort === 'alpha') return a.mealName.localeCompare(b.mealName);
       return 0;
     });
-  }, [
-    activeSwapMeal,
-    swapOptions,
-    miniMealType,
-    miniSearch,
-    miniRiceRole,
-    miniFavoriteOnly,
-    miniSort,
-  ]);
+  }, [activeSwapMeal, swapOptions, miniMealType, miniSearch, miniRiceRole, miniFavoriteOnly, miniSort]);
 
   return (
     <>
@@ -172,7 +154,6 @@ export function MealsWorkspaceModals({ workspace }: Props) {
                         mealName={activeSwapMeal.mealName}
                         mealType={activeSwapMeal.mealType}
                         variant="thumbnail"
-                        hideRepresentativeBadge
                       />
                     </div>
                     <div className="min-w-0 flex-1">
@@ -246,7 +227,6 @@ export function MealsWorkspaceModals({ workspace }: Props) {
                           mealName={confirmSwapMeal.mealName}
                           mealType={confirmSwapMeal.mealType ?? undefined}
                           variant="thumbnail"
-                          hideRepresentativeBadge
                         />
                       </div>
                       <div className="min-w-0 flex-1">
@@ -505,7 +485,6 @@ export function MealsWorkspaceModals({ workspace }: Props) {
                                   mealName={option.mealName}
                                   mealType={option.mealType ?? undefined}
                                   variant="thumbnail"
-                                  hideRepresentativeBadge
                                 />
                               </div>
 
@@ -530,7 +509,9 @@ export function MealsWorkspaceModals({ workspace }: Props) {
                                     ? 'Pair with rice'
                                     : option.riceRole === 'INCLUDES_RICE'
                                       ? 'Rice included'
-                                      : 'Standalone'}
+                                      : option.riceRole === 'STANDALONE'
+                                        ? 'Standalone'
+                                        : 'Rice role unavailable'}
                                   {option.alreadyPlannedInCycle ? ' · In plan' : ''}
                                 </p>
                               </div>

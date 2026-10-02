@@ -34,6 +34,7 @@ export interface PreparationCandidateScoreInput {
   ricePreference?: RicePreference | null;
   riceRole?: RecipeRiceRole | null;
   riceRoleReviewStatus?: RiceRoleReviewStatus | null;
+  riceRoleBasis?: 'REVIEWED_RECIPE' | 'INGREDIENT_CLASSIFICATION';
   usedInRecentCycle?: boolean;
 }
 
@@ -73,14 +74,15 @@ export function scorePreparationCandidate(input: PreparationCandidateScoreInput)
   const deviation = Number.isFinite(input.calorieDeviationRatio) ? Math.max(0, input.calorieDeviationRatio) : 1;
   add(deviation <= 0.15, Math.max(0, 12 - deviation * 40), 'CALORIE_FIT');
 
-  const reviewedRiceRole = input.riceRoleReviewStatus === RiceRoleReviewStatus.REVIEWED;
+  const classifiedRiceRole =
+    input.riceRoleReviewStatus === RiceRoleReviewStatus.REVIEWED || input.riceRoleBasis === 'INGREDIENT_CLASSIFICATION';
   const riceMatches =
     input.ricePreference === RicePreference.NO_RICE
-      ? reviewedRiceRole && input.riceRole === RecipeRiceRole.STANDALONE
+      ? classifiedRiceRole && input.riceRole === RecipeRiceRole.STANDALONE
       : input.ricePreference === RicePreference.WITH_RICE
-        ? reviewedRiceRole &&
+        ? classifiedRiceRole &&
           (input.riceRole === RecipeRiceRole.PAIR_WITH_RICE || input.riceRole === RecipeRiceRole.INCLUDES_RICE)
-        : reviewedRiceRole;
+        : classifiedRiceRole;
   add(riceMatches, 5, 'RICE_PREFERENCE_MATCH');
   add(!input.usedInRecentCycle, 4, 'VARIETY_PREFERRED');
 

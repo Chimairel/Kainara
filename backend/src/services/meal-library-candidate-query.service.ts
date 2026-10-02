@@ -1,5 +1,6 @@
 import { conditionAllowsRulesetAutomation, conditionRequiresUserScopedClearance } from '@/domain/assurance-tier.policy';
 import { getApprovedMealLibraryWhere } from '@/domain/meal-actionability.policy';
+import { resolveRecipeRiceRole } from '@/domain/recipe-rice-role.policy';
 import { mealApprovalSafetyScope } from '@/domain/meal-approval-scope.policy';
 import { getMealSlotCalorieRange, isPrimaryMealType } from '@/domain/meal-calorie-allocation.policy';
 import { evaluateMealGenerationLibraryCompatibility } from '@/domain/meal-generation-library-compatibility.adapter';
@@ -493,7 +494,6 @@ export async function queryEligibleLibraryPage(input: {
     ],
     ...(input.mealType ? { applicableMealTypes: { some: { mealType: input.mealType } } } : {}),
     ...(input.search ? { mealName: { contains: input.search, mode: 'insensitive' } } : {}),
-    ...(input.riceRole ? { riceRole: input.riceRole, riceRoleReviewStatus: 'REVIEWED' } : {}),
     ...(input.favoriteOnly ? { favorites: { some: { userId: input.userId } } } : {}),
     ...(!input.safetyOnly && input.profile.dietaryPreference
       ? { dietaryTags: { array_contains: [input.profile.dietaryPreference] } }
@@ -541,6 +541,7 @@ export async function queryEligibleLibraryPage(input: {
           ))
       )
         continue;
+      if (input.riceRole && resolveRecipeRiceRole(row).riceRole !== input.riceRole) continue;
       total += 1;
       if ((!requestedCursor || afterLibraryCursor(row, requestedCursor)) && items.length < pageLimit + 1) {
         items.push({ ...row, isFavorite: row.favorites.length > 0 });

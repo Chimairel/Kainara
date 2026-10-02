@@ -54,6 +54,17 @@ function props(): CockpitDashboardProps {
   };
 }
 describe('CockpitDashboard', () => {
+  it('orders a shuffled mixed menu as breakfast, lunch, dinner without changing input arrays', () => {
+    const input = props();
+    input.meals = [{ ...meal, id: 'dinner', mealName: 'Dinner dish', mealType: 'DINNER' }, meal];
+    input.pendingMeals = [{ ...input.pendingMeals![0], mealName: 'Breakfast dish', mealType: 'BREAKFAST' }];
+    const { container } = render(<CockpitDashboard {...input} />);
+    const text = container.textContent!;
+    expect(text.indexOf('Breakfast dish')).toBeLessThan(text.indexOf('Approved rice plate'));
+    expect(text.indexOf('Approved rice plate')).toBeLessThan(text.indexOf('Dinner dish'));
+    expect(input.meals[0].mealType).toBe('DINNER');
+    expect(screen.queryByRole('button', { name: /Mark Breakfast dish/ })).not.toBeInTheDocument();
+  });
   it('shows pending meals beside approved meals without giving pending previews logging actions', () => {
     render(<CockpitDashboard {...props()} />);
     expect(screen.getByText('Pending soup')).toBeInTheDocument();

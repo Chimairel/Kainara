@@ -67,19 +67,28 @@ describe('MealImage', () => {
     expect(screen.getByText(/Recipe photo coming soon/i)).toBeInTheDocument();
   });
 
-  it('renders authentic culinary photo placeholders for breakfast, lunch, dinner, and snack by default', () => {
-    const { rerender } = render(<MealImage mealName="Chicken Tinola" mealType="LUNCH" />);
+  it('only renders generic culinary photos when explicitly requested', () => {
+    const { rerender } = render(<MealImage mealName="Chicken Tinola" mealType="LUNCH" allowMealTypePlaceholder />);
     expect(screen.getByRole('img')).toHaveAttribute('src', '/meals/placeholder-lunch.jpg');
     expect(screen.getByText('Representative image')).toBeInTheDocument();
 
-    rerender(<MealImage mealName="Tapsilog" mealType="BREAKFAST" />);
+    rerender(<MealImage mealName="Tapsilog" mealType="BREAKFAST" allowMealTypePlaceholder />);
     expect(screen.getByRole('img')).toHaveAttribute('src', '/meals/placeholder-breakfast.jpg');
 
-    rerender(<MealImage mealName="Sinigang na Baboy" mealType="DINNER" />);
+    rerender(<MealImage mealName="Sinigang na Baboy" mealType="DINNER" allowMealTypePlaceholder />);
     expect(screen.getByRole('img')).toHaveAttribute('src', '/meals/placeholder-dinner.jpg');
 
-    rerender(<MealImage mealName="Turon" mealType="SNACK" />);
+    rerender(<MealImage mealName="Turon" mealType="SNACK" allowMealTypePlaceholder />);
     expect(screen.getByRole('img')).toHaveAttribute('src', '/meals/placeholder-snack.jpg');
+  });
+
+  it('never borrows the dinner photograph for unrelated recipes with no assigned image', () => {
+    const { rerender } = render(<MealImage mealName="Munggo Squash Rice Bowl" mealType="DINNER" />);
+    for (const mealName of ['Munggo Squash Rice Bowl', 'Chicken Corn Tomato Rice Bowl', 'Pork Squash Rice Bowl']) {
+      rerender(<MealImage mealName={mealName} mealType="DINNER" />);
+      expect(screen.queryByRole('img')).not.toBeInTheDocument();
+      expect(screen.getByText('Recipe photo coming soon')).toBeInTheDocument();
+    }
   });
 
   it('detects seafood, plant-based, meat, and breakfast categories correctly in fallbacks', () => {

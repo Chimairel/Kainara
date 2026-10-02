@@ -2,6 +2,7 @@ import type { Prisma } from '@prisma/client';
 import { COOKED_RICE_HALF_CUP_GRAMS } from '@/domain/rice-portion.policy';
 import { buildComposedServing } from '@/domain/composed-serving.policy';
 import { buildMealLibraryRecipeSignature } from '@/domain/meal-library-signature.policy';
+import { resolveRecipeRiceRole } from '@/domain/recipe-rice-role.policy';
 
 export interface BaseServingInput {
   mealName: string;
@@ -69,8 +70,8 @@ export async function replacePlanBaseServing(
 }
 
 /**
- * Adds reviewed paired rice to a plan as explicit evidence. Callers must pass
- * the governed FNRI rice identity; this service refuses unreviewed rice roles.
+ * Adds rice to an admitted dish as plan evidence, without a new library recipe.
+ * Explicit reviewed roles override ingredient classification of older dishes.
  */
 export async function composePlanWithPairedRice(
   tx: Prisma.TransactionClient,
@@ -79,25 +80,17 @@ export async function composePlanWithPairedRice(
   const plan = await tx.mealPlan.findUniqueOrThrow({
     where: { id: input.mealPlanId },
     include: {
-      libraryMeal: true,
+      libraryMeal: { include: { ingredients: { include: { foodItem: { select: { name: true } } } } } },
       servingComponents: { orderBy: { position: 'asc' } },
       clearanceUsages: { include: { clearance: { select: { composedServingSignature: true } } } },
     },
   });
-  if (
-    !plan.libraryMeal ||
-    plan.libraryMeal.riceRole !== 'PAIR_WITH_RICE' ||
-    plan.libraryMeal.riceRoleReviewStatus !== 'REVIEWED'
-  ) {
-    throw new Error('Only a reviewed PAIR_WITH_RICE recipe can receive a rice component.');
-  }
+  if (!plan.libraryMeal) throw new Error('Rice requires a linked library recipe.');
+  const riceRole = resolveRecipeRiceRole(plan.libraryMeal);
+  if (riceRole.riceRole !== 'PAIR_WITH_RICE') throw new Error('Only a rice-compatible dish can receive a rice side.');
   const halfCups = input.cookedRiceG / COOKED_RICE_HALF_CUP_GRAMS;
-  if (
-    !Number.isInteger(halfCups) ||
-    halfCups < plan.libraryMeal.riceMinHalfCups ||
-    halfCups > plan.libraryMeal.riceMaxHalfCups
-  ) {
-    throw new Error('Rice must use half-cup steps within the reviewed portion range.');
+  if (!Number.isInteger(halfCups) || halfCups < riceRole.minHalfCups || halfCups > riceRole.maxHalfCups) {
+    throw new Error('Rice must use half-cup steps within the allowed portion range.');
   }
   if (!plan.baseRecipeSignature) throw new Error('Plan has no current base recipe signature.');
   const baseComponent = plan.servingComponents.find((component) => component.componentType === 'BASE_RECIPE');

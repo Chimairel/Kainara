@@ -14,6 +14,7 @@ import { resolveReplacementServing } from '../src/services/meal-swap-serving.ser
 import { certifiedLibraryMealInclude } from '../src/services/meal-library-candidate-query.service';
 import { prepareLibraryNutritionEvidence } from '../src/services/nutritionist-library-nutrition-evidence.service';
 import { recipeDerivationSchema } from '../src/validation/recipe-derivation.schemas';
+import { NUTRITION_GUIDANCE_POLICY_VERSION } from '../src/domain/deterministic-nutrition-report.policy';
 
 async function main() {
   const database = new URL(process.env.DATABASE_URL ?? '');
@@ -212,7 +213,19 @@ async function main() {
       passwordHash: 'disabled',
       onboardingDone: true,
       emailVerified: true,
-      userProfile: { create: { dailyCalorieTarget: 2000, dietaryPreference: 'OMNIVORE' } },
+      userProfile: {
+        create: {
+          dailyCalorieTarget: 2000,
+          dietaryPreference: 'OMNIVORE',
+          age: 25,
+          biologicalSex: 'MALE',
+          weightKg: 65,
+          heightCm: 168,
+          activityLevel: 'SEDENTARY',
+          goal: 'MAINTAIN',
+          planningReportVersion: 1,
+        },
+      },
       safetyProfileEntries: {
         create: ['CONDITION', 'ALLERGY'].map((domain) => ({
           domain: domain as 'CONDITION' | 'ALLERGY',
@@ -228,6 +241,18 @@ async function main() {
     },
   });
   const now = new Date();
+  const planningProfile = await prisma.userProfile.findUniqueOrThrow({ where: { userId: user.id } });
+  await prisma.nutritionReportVersion.create({
+    data: {
+      userId: user.id,
+      version: 1,
+      profileRevision: planningProfile.revision,
+      acknowledgedAt: now,
+      policyVersion: NUTRITION_GUIDANCE_POLICY_VERSION,
+      content: {},
+      profileSnapshot: { profile: JSON.parse(JSON.stringify(planningProfile)) },
+    },
+  });
   const cycle = await prisma.mealPlanCycle.create({
     data: {
       id: `recipe-${run}`,

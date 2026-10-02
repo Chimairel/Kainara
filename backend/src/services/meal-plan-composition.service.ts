@@ -1,4 +1,5 @@
 import { buildComposedServing } from '@/domain/composed-serving.policy';
+import { resolveRecipeRiceRole } from '@/domain/recipe-rice-role.policy';
 import { resolveReplacementServing } from './meal-swap-serving.service';
 import prisma from '@/lib/prisma';
 import { assertGenerationIntegrity } from './generation-integrity.service';
@@ -118,6 +119,7 @@ export async function generate7DayPlan(
         queryEligibleLibraryMeals({
           mealType,
           dailyCalorieTarget,
+          skipCalorieFilter: true,
           userConditions,
           userAllergens,
           profile: { ...profile, userId, safetyEntries: user.safetyProfileEntries },
@@ -237,7 +239,8 @@ export async function generate7DayPlan(
             calorieDeviationRatio: Math.abs(plateById.get(meal.id)!.calories - range.target) / range.target,
             mealTypeMatch: meal.applicableMealTypes.some((entry) => entry.mealType === slotType),
             ricePreference: profile.ricePreference,
-            riceRole: meal.riceRole,
+            riceRole: resolveRecipeRiceRole(meal).riceRole,
+            riceRoleBasis: resolveRecipeRiceRole(meal).basis,
             riceRoleReviewStatus: meal.riceRoleReviewStatus,
             usedInRecentCycle: recentlyUsedLibraryIds.has(meal.id),
           }),
