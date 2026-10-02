@@ -99,9 +99,28 @@ The preview runner optionally reads only the test key, environment and webhook s
 
 The server creates a v2 checkout session, persists its identity and later retrieves that session through PayMongo v1. Test mode, reference, payment/intent identity, amount, currency, paid status, refund/dispute state and timestamps are checked. The creation response need not contain a reference; the retrieval response must match it. Secret keys and provider client keys are not returned or logged.
 
-Anonymous visitors choose a tier/period and continue to login. Account setup, consent and first-report selection precede checkout. Selection is retained for up to 24 hours in session storage; arriving after login opens plans, **never automatically purchases**. A server request key and account lock prevent duplicate creation; a recent open checkout is reused. Closing or abandoning checkout is navigation only and cannot activate access. The return page polls a bounded number of times and offers an explicit retry.
+Anonymous visitors choose a tier/period and continue to login. Account setup, consent and first-report selection precede checkout. Selection is retained for up to 24 hours in session storage; arriving after login opens plans, **never automatically purchases**. The server supplies a reviewed payment summary through `POST /api/user/membership/checkout/quote`. Explicit confirmation supplies its quote ID and a request key to `/checkout`; browser prices, credits and dates are not accepted. An account lock prevents duplicate creation. Only one unfinished checkout can exist per account; the UI offers Resume, Check status and Close unpaid checkout. Leaving the provider page is navigation only and cannot activate access. The return page polls a bounded number of times and offers an explicit retry.
 
-Verified payment is recorded atomically. Duplicate return checks and webhooks do not add another period or notification. Existing applicable trial/paid periods are preserved; a Health upgrade can start immediately over Lifestyle, while a Lifestyle purchase waits for existing Health coverage. A monthly or yearly purchase adds one or twelve Philippine calendar months with end-of-month clamping. No proration, auto-renewal, scheduled debit, real purchase, refund administration or production subscription is implemented.
+Verified payment is recorded atomically. Duplicate return checks and webhooks do not add another period or notification. A monthly or yearly purchase adds one or twelve Philippine calendar months with end-of-month clamping. No automatic renewal, scheduled debit, real purchase, cash-refund administration or production subscription is implemented.
+
+### Plan transitions and membership credit
+
+Apply `20261002220000_membership_transitions`, `20261002220100_membership_credit_settlement` and `20261002220200_membership_credit_evidence` after backup and pending-migration verification. These add reviewed quotes, checkout states, supersession dates and an account-scoped sandbox credit balance. They preserve historical dates, amounts, payment IDs, trial start and weekly usage. Positive charges still require provider evidence; a zero-due paid period requires a fully credit-covered quote and verified activation dates.
+
+| Existing access | New purchase | Result |
+| --- | --- | --- |
+| Health trial | Lifestyle or Health | Full purchased period begins after the trial ends; Health trial benefits continue. |
+| Paid Health | Lifestyle | Downgrade begins after the current Health period ends. |
+| Paid Lifestyle | Health | Immediate upgrade after verified payment, using prorated unused Lifestyle value. |
+| Paid plan | Same tier | Renewal begins at the current period's expiry. |
+| Already paid next period | Any new checkout | Blocked; current and scheduled access are shown. |
+| Trial has not started | Any checkout | Wait until the first usable plan establishes the trial's end date. |
+
+Upgrade credit is the original period's full service value multiplied by remaining time / total time, rounded down to a centavo. Existing account credit is applied as well. Any excess remains as membership credit for a later purchase; it is not cash. If credit covers the entire price, explicit confirmation activates the period atomically without sending a zero-value charge to PayMongo. This credit comes only from previously verified paid access. PayMongo's PHP 1 minimum means a smaller residual due instead uses slightly less credit and retains the remainder. Changing plans does not reset allowances or bypass report activation/clinical clearance.
+
+Quotes last ten minutes and freeze the amount, credit and intended dates. Confirmation checks the account's current payment context and rejects an expired/changed summary. Actual immediate activation starts at verification; a scheduled period retains its promised start unless verification occurs later. Payment received after the summary expires or after a conflicting change is stored as REVIEW, with a notification and support instruction, instead of silently changing benefits. Legacy overlapping paid dates, unresolved payments and trusted grants whose purchase value cannot be determined also block new checkout pending explicit reconciliation; original records are retained.
+
+The UI shows Current, Next, exact Philippine-time dates, credit, contextual upgrade/downgrade/renewal buttons and a payment summary before redirecting. A scheduled payment disables overlapping purchases. Unfinished sessions must be expired through PayMongo and their expired state verified before another checkout; retried closes and paid races preserve the payment receipt. Expired quotes cannot be resumed from the UI, and return-status reconciliation closes their unpaid provider session. [PayMongo hosted sessions remain active until explicit expiry](https://docs.paymongo.com/docs/payment-channels-key-concepts); [expiry API](https://docs.paymongo.com/reference/expire-a-checkout-session); [payment minimums](https://docs.paymongo.com/docs/payment-acceptance-key-concepts).
 
 ### Webhook
 

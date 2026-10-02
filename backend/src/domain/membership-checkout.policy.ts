@@ -6,6 +6,10 @@ export const membershipCheckoutInput = z
     tier: z.enum(['LIFESTYLE', 'HEALTH']),
     period: z.enum(['MONTHLY', 'YEARLY']),
     requestKey: z.uuid(),
+    quoteId: z
+      .string()
+      .regex(/^[a-zA-Z0-9_-]{8,100}$/)
+      .optional(),
   })
   .strict();
 export type CheckoutSelection = z.infer<typeof membershipCheckoutInput>;

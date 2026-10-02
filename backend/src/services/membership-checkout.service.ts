@@ -4,14 +4,16 @@ import { AppError } from '@/errors/AppError';
 import { publishLiveUpdate } from '@/lib/live-updates';
 import { lockUserProfile } from './profile-revision.service';
 import {
-  MEMBERSHIP_PRICES,
   membershipPeriodEnd,
   testCheckoutConfig,
   verifiedTestPayment,
   isPaymongoCheckoutUrl,
   type CheckoutSelection,
 } from '@/domain/membership-checkout.policy';
-import { resolveMembershipLevel } from '@/domain/membership.policy';
+import { Prisma } from '@prisma/client';
+import { quoteTransition, transitionQuoteSchema } from '@/domain/membership-transition.policy';
+import { membershipTransitionContext, assertTransitionAvailable } from './membership-transition.service';
+import { randomUUID } from 'node:crypto';
 
 function config() {
   const value = testCheckoutConfig();
@@ -77,57 +79,57 @@ const sessionCreated = z.object({
 export class MembershipCheckoutService {
   static async create(userId: string, selection: CheckoutSelection) {
     const c = config();
-    const result = await prisma.$transaction(async (tx) => {
-      await lockUserProfile(tx, userId);
-      const user = await tx.user.findUnique({ where: { id: userId } });
-      if (
-        !user ||
-        user.role !== 'USER' ||
-        user.isSuspended ||
-        !user.emailVerified ||
-        !user.onboardingDone ||
-        !user.tosAccepted
-      )
-        throw new AppError(
-          'Complete your account setup before choosing a membership.',
-          403,
-          'MEMBERSHIP_ACCOUNT_INELIGIBLE'
-        );
-      const prior = await tx.membershipTestCheckout.findUnique({
-        where: { userId_requestKey: { userId, requestKey: selection.requestKey } },
-      });
-      if (prior) {
-        if (prior.tier !== selection.tier || prior.period !== selection.period || prior.accountHash !== c.accountHash)
-          throw new AppError('This checkout request belongs to a different selection.', 409, 'REQUEST_KEY_COLLISION');
-        return { row: prior, created: false };
-      }
-      // Repeated clicks/reloads reuse a recent session for this selection.
-      const open = await tx.membershipTestCheckout.findFirst({
-        where: {
-          userId,
-          tier: selection.tier,
-          period: selection.period,
-          accountHash: c.accountHash,
-          status: { in: ['CREATING', 'OPEN'] },
-          createdAt: { gt: new Date(Date.now() - 15 * 60000) },
-        },
-        orderBy: { createdAt: 'desc' },
-      });
-      if (open) return { row: open, created: false };
-      return {
-        row: await tx.membershipTestCheckout.create({
-          data: {
+    if (!selection.quoteId) throw new AppError('Review the payment summary before checkout.', 428, 'QUOTE_REQUIRED');
+    const result = await prisma.$transaction(
+      async (tx) => {
+        await lockUserProfile(tx, userId);
+        const prior = await tx.membershipTestCheckout.findUnique({
+          where: { userId_requestKey: { userId, requestKey: selection.requestKey } },
+        });
+        if (prior) {
+          if (
+            prior.tier !== selection.tier ||
+            prior.period !== selection.period ||
+            prior.accountHash !== c.accountHash ||
+            prior.id !== selection.quoteId
+          )
+            throw new AppError('This request belongs to a different checkout.', 409, 'REQUEST_KEY_COLLISION');
+          return { row: prior, created: false };
+        }
+        const row = await tx.membershipTestCheckout.findFirst({
+          where: {
+            id: selection.quoteId,
             userId,
-            ...selection,
-            amountCentavos: MEMBERSHIP_PRICES[selection.tier][selection.period],
             accountHash: c.accountHash,
+            tier: selection.tier,
+            period: selection.period,
           },
-        }),
-        created: true,
-      };
-    });
+        });
+        if (!row || row.status !== 'QUOTED') throw new AppError('Review a new payment summary.', 409, 'QUOTE_CHANGED');
+        const quote = transitionQuoteSchema.parse(row.quote);
+        await this.assertAccount(tx, userId);
+        const context = await membershipTransitionContext(userId, c.accountHash, tx);
+        assertTransitionAvailable(context);
+        if (new Date(quote.expiresAt) <= new Date() || context.contextHash !== quote.contextHash)
+          throw new AppError(
+            'Your membership or quote changed. Review the updated payment summary.',
+            409,
+            'QUOTE_CHANGED'
+          );
+        return {
+          row: await tx.membershipTestCheckout.update({
+            where: { id: row.id },
+            data: { requestKey: selection.requestKey, status: 'CREATING' },
+          }),
+          created: true,
+        };
+      },
+      { maxWait: 10000, timeout: 30000 }
+    );
     if (!result.created) {
+      if (result.row.status === 'PAID' || result.row.status === 'REVIEW') return this.view(result.row);
       if (result.row.status === 'OPEN' && result.row.checkoutUrl) return this.view(result.row);
+      if (result.row.status === 'CREATING' && result.row.amountCentavos === 0) return this.settle(result.row.id, null);
       throw new AppError(
         'This checkout is already being prepared or completed. Check your membership before trying again.',
         409,
@@ -135,6 +137,17 @@ export class MembershipCheckoutService {
       );
     }
     const row = result.row;
+    if (row.amountCentavos === 0) {
+      try {
+        return await this.settle(row.id, null);
+      } catch (error) {
+        await prisma.membershipTestCheckout.updateMany({
+          where: { id: row.id, status: 'CREATING' },
+          data: { status: 'FAILED' },
+        });
+        throw error;
+      }
+    }
     try {
       const returnUrl = new URL('/membership/checkout', c.frontendOrigin);
       returnUrl.searchParams.set('purchase', row.id);
@@ -165,7 +178,7 @@ export class MembershipCheckoutService {
       );
       if (response.data.attributes.reference_number && response.data.attributes.reference_number !== row.id)
         throw new Error('Mismatched checkout.');
-      return this.view(
+      const opened = this.view(
         await prisma.membershipTestCheckout.update({
           where: { id: row.id },
           data: {
@@ -175,8 +188,11 @@ export class MembershipCheckoutService {
           },
         })
       );
+      publishLiveUpdate({ userId });
+      return opened;
     } catch (error) {
       await prisma.membershipTestCheckout.update({ where: { id: row.id }, data: { status: 'FAILED' } });
+      publishLiveUpdate({ userId });
       if (error instanceof AppError) throw error;
       throw new AppError('PayMongo returned an invalid demo checkout. Please retry.', 502, 'PAYMONGO_INVALID_CHECKOUT');
     }
@@ -186,7 +202,10 @@ export class MembershipCheckoutService {
     const c = config();
     const row = await prisma.membershipTestCheckout.findFirst({ where: { id, userId, accountHash: c.accountHash } });
     if (!row) throw new AppError('Checkout not found.', 404, 'CHECKOUT_NOT_FOUND');
-    if (!row.providerSessionId || row.status === 'FAILED') return this.view(row);
+    if (!row.providerSessionId || row.status === 'FAILED' || row.status === 'PAID' || row.status === 'REVIEW')
+      return this.view(row);
+    if (row.status === 'OPEN' && row.quote && new Date(transitionQuoteSchema.parse(row.quote).expiresAt) <= new Date())
+      return this.close(userId, id);
     return this.reconcile(row.id);
   }
 
@@ -207,66 +226,197 @@ export class MembershipCheckoutService {
       );
     }
     if (!payment) return this.view(row);
+    return this.settle(row.id, payment);
+  }
+
+  private static async assertAccount(tx: Prisma.TransactionClient, userId: string) {
+    const user = await tx.user.findUnique({ where: { id: userId } });
+    if (
+      !user ||
+      user.role !== 'USER' ||
+      user.isSuspended ||
+      !user.emailVerified ||
+      !user.onboardingDone ||
+      !user.tosAccepted
+    )
+      throw new AppError('Complete your account setup before checkout.', 403, 'MEMBERSHIP_ACCOUNT_INELIGIBLE');
+  }
+
+  static async quote(userId: string, selection: Pick<CheckoutSelection, 'tier' | 'period'>) {
+    const c = config();
+    return prisma.$transaction(
+      async (tx) => {
+        await lockUserProfile(tx, userId);
+        await this.assertAccount(tx, userId);
+        const context = await membershipTransitionContext(userId, c.accountHash, tx);
+        assertTransitionAvailable(context);
+        const quote = quoteTransition({
+          ...selection,
+          periods: context.periods,
+          trialEndsAt: context.trial.trialEndsAt,
+          trialPending: context.trial.level === 'TRIAL_PENDING',
+          balanceCentavos: context.balanceCentavos,
+          contextHash: context.contextHash,
+          at: new Date(),
+        });
+        const row = await tx.membershipTestCheckout.create({
+          data: {
+            userId,
+            ...selection,
+            accountHash: c.accountHash,
+            requestKey: randomUUID(),
+            amountCentavos: quote.amountCentavos,
+            status: 'QUOTED',
+            quote: quote as Prisma.InputJsonObject,
+          },
+        });
+        return { ...this.view(row), ...quote };
+      },
+      { maxWait: 10000, timeout: 30000 }
+    );
+  }
+
+  private static async settle(id: string, payment: { id: string; paidAt: Date } | null) {
+    const c = config();
+    const owner = await prisma.membershipTestCheckout.findUniqueOrThrow({ where: { id } });
     let changed = false;
-    const paid = await prisma.$transaction(async (tx) => {
-      await lockUserProfile(tx, row.userId);
-      const current = await tx.membershipTestCheckout.findUniqueOrThrow({ where: { id } });
-      if (current.status === 'PAID') return current;
-      const account = await tx.membershipAccount.findUnique({ where: { userId: row.userId } });
-      const trial = resolveMembershipLevel({
-        at: new Date(),
-        trialStartedAt: account?.trialStartedAt ?? null,
-        paidUntil: null,
-      });
-      const existing = await tx.membershipTestCheckout.findMany({
-        where: {
-          userId: row.userId,
-          accountHash: c.accountHash,
-          status: 'PAID',
-          revokedAt: null,
-          ...(row.tier === 'HEALTH' ? { tier: 'HEALTH' as const } : {}),
-        },
-      });
-      const grants = await tx.membershipGrant.findMany({
-        where: {
-          userId: row.userId,
-          revokedAt: null,
-          verifiedAt: { lte: new Date() },
-          source: { in: ['PAID_INVOICE', 'ADMIN_ADJUSTMENT'] },
-          ...(row.tier === 'HEALTH' ? { tier: 'HEALTH' as const } : {}),
-        },
-      });
-      const start = new Date(
-        Math.max(
-          Date.now(),
-          trial.trialEndsAt?.getTime() ?? 0,
-          ...existing.map((r) => r.effectiveUntil?.getTime() ?? 0),
-          ...grants.map((r) => r.effectiveUntil.getTime())
-        )
-      );
-      await tx.notification.create({
-        data: {
-          userId: row.userId,
-          type: 'MEMBERSHIP_UPDATED',
-          title: 'Payment successful',
-          message: `${row.tier === 'HEALTH' ? 'Health' : 'Lifestyle'} test payment verified. Your test period starts ${start.toLocaleString('en-PH', { timeZone: 'Asia/Manila' })} Philippine time. No real charge or automatic renewal.`,
-        },
-      });
-      changed = true;
-      return tx.membershipTestCheckout.update({
-        where: { id },
-        data: {
-          status: 'PAID',
-          providerPaymentId: payment.id,
-          paidAt: payment.paidAt,
-          verifiedAt: new Date(),
-          effectiveFrom: start,
-          effectiveUntil: membershipPeriodEnd(start, row.period),
-        },
-      });
+    const result = await prisma.$transaction(
+      async (tx) => {
+        await lockUserProfile(tx, owner.userId);
+        const row = await tx.membershipTestCheckout.findUniqueOrThrow({ where: { id } });
+        if (row.accountHash !== c.accountHash) throw new AppError('Checkout not found.', 404, 'CHECKOUT_NOT_FOUND');
+        if (row.status === 'PAID' || row.status === 'REVIEW') return row;
+        // Legacy paid checkouts retain the old date/value evidence and require explicit reconciliation.
+        const quote = row.quote ? transitionQuoteSchema.parse(row.quote) : null;
+        const at = new Date();
+        const context = await membershipTransitionContext(row.userId, c.accountHash, tx, at);
+        const invalid =
+          !quote ||
+          context.needsReconciliation ||
+          context.scheduled.length > 0 ||
+          context.contextHash !== quote.contextHash ||
+          (payment ? payment.paidAt > new Date(quote.expiresAt) : at > new Date(quote.expiresAt)) ||
+          (row.status !== 'OPEN' && row.status !== 'CREATING');
+        if (!payment && (invalid || row.amountCentavos !== 0))
+          throw new AppError('Review a new payment summary.', 409, 'QUOTE_CHANGED');
+        if (invalid) {
+          changed = true;
+          await tx.notification.create({
+            data: {
+              userId: row.userId,
+              type: 'MEMBERSHIP_UPDATED',
+              title: 'Payment needs review',
+              message:
+                'Your payment was received, but the membership dates or quote changed. Contact support; your existing access and payment record are preserved.',
+            },
+          });
+          return tx.membershipTestCheckout.update({
+            where: { id },
+            data: { status: 'REVIEW', providerPaymentId: payment!.id, paidAt: payment!.paidAt, verifiedAt: at },
+          });
+        }
+        const valid = quote!;
+        if (valid.sourceId) {
+          const source = await tx.membershipTestCheckout.findFirst({
+            where: {
+              id: valid.sourceId,
+              userId: row.userId,
+              accountHash: c.accountHash,
+              status: 'PAID',
+              supersededAt: null,
+              revokedAt: null,
+            },
+          });
+          if (!source) throw new AppError('The previous membership changed.', 409, 'QUOTE_CHANGED');
+          await tx.membershipTestCheckout.update({ where: { id: source.id }, data: { supersededAt: at } });
+        }
+        const start = new Date(Math.max(+at, +new Date(valid.startsAt)));
+        await tx.membershipTestBalance.upsert({
+          where: { userId_accountHash: { userId: row.userId, accountHash: c.accountHash } },
+          create: { userId: row.userId, accountHash: c.accountHash, amountCentavos: valid.carryoverCentavos },
+          update: { amountCentavos: valid.carryoverCentavos },
+        });
+        await tx.notification.create({
+          data: {
+            userId: row.userId,
+            type: 'MEMBERSHIP_UPDATED',
+            title: 'Payment successful',
+            message: `${row.tier === 'HEALTH' ? 'Health' : 'Lifestyle'} membership ${start > at ? 'scheduled' : 'active'} from ${start.toLocaleString('en-PH', { timeZone: 'Asia/Manila' })} Philippine time. Test mode; no real charge or automatic renewal.`,
+          },
+        });
+        changed = true;
+        return tx.membershipTestCheckout.update({
+          where: { id },
+          data: {
+            status: 'PAID',
+            providerPaymentId: payment?.id ?? null,
+            paidAt: payment?.paidAt ?? at,
+            verifiedAt: at,
+            effectiveFrom: start,
+            effectiveUntil: membershipPeriodEnd(start, row.period),
+          },
+        });
+      },
+      { maxWait: 10000, timeout: 30000 }
+    );
+    if (changed) publishLiveUpdate({ userId: owner.userId });
+    return this.view(result);
+  }
+
+  static async close(userId: string, id: string) {
+    const c = config();
+    const row = await prisma.membershipTestCheckout.findFirst({ where: { id, userId, accountHash: c.accountHash } });
+    if (!row) throw new AppError('Checkout not found.', 404, 'CHECKOUT_NOT_FOUND');
+    if (row.status === 'PAID' || row.status === 'REVIEW' || row.status === 'CLOSED') return this.view(row);
+    if (row.providerSessionId) {
+      try {
+        await paymongoRequest(`/v1/checkout_sessions/${row.providerSessionId}/expire`, 'POST', c.secret);
+      } catch (error) {
+        const receipt = await this.reconcile(row.id);
+        if (receipt.status === 'PAID' || receipt.status === 'REVIEW') return receipt;
+        // An earlier close may have expired the session before this request retried.
+        const evidence = await paymongoRequest(`/v1/checkout_sessions/${row.providerSessionId}`, 'GET', c.secret);
+        const expired = z
+          .object({
+            data: z.object({
+              id: z.literal(row.providerSessionId),
+              attributes: z.object({
+                livemode: z.literal(false),
+                reference_number: z.literal(row.id),
+                status: z.literal('expired'),
+              }),
+            }),
+          })
+          .safeParse(evidence);
+        if (!expired.success) throw error;
+      }
+      const latest = await this.reconcile(row.id);
+      if (latest.status === 'PAID' || latest.status === 'REVIEW') return latest;
+      const evidence = await paymongoRequest(`/v1/checkout_sessions/${row.providerSessionId}`, 'GET', c.secret);
+      const checked = z
+        .object({
+          data: z.object({
+            id: z.literal(row.providerSessionId),
+            attributes: z.object({
+              livemode: z.literal(false),
+              reference_number: z.literal(row.id),
+              status: z.literal('expired'),
+            }),
+          }),
+        })
+        .safeParse(evidence);
+      if (!checked.success)
+        throw new AppError('Checkout closure could not be confirmed. Try again.', 502, 'CHECKOUT_CLOSE_UNCONFIRMED');
+    } else if (row.status === 'CREATING')
+      throw new AppError('Checkout is being prepared. Try again shortly.', 409, 'CHECKOUT_IN_PROGRESS');
+    const closed = await prisma.$transaction(async (tx) => {
+      await lockUserProfile(tx, userId);
+      const latest = await tx.membershipTestCheckout.findUniqueOrThrow({ where: { id } });
+      if (latest.status === 'PAID' || latest.status === 'REVIEW') return latest;
+      return tx.membershipTestCheckout.update({ where: { id }, data: { status: 'CLOSED' } });
     });
-    if (changed) publishLiveUpdate({ userId: row.userId });
-    return this.view(paid);
+    publishLiveUpdate({ userId });
+    return this.view(closed);
   }
 
   static view(row: {
@@ -278,6 +428,7 @@ export class MembershipCheckoutService {
     checkoutUrl: string | null;
     effectiveFrom: Date | null;
     effectiveUntil: Date | null;
+    quote?: Prisma.JsonValue | null;
   }) {
     return {
       id: row.id,
@@ -291,6 +442,7 @@ export class MembershipCheckoutService {
       effectiveFrom: row.effectiveFrom?.toISOString() ?? null,
       effectiveUntil: row.effectiveUntil?.toISOString() ?? null,
       autoRenews: false,
+      transition: row.quote ? transitionQuoteSchema.parse(row.quote) : null,
     };
   }
 }

@@ -25,13 +25,21 @@ async function main() {
   const { MembershipCheckoutService } = await import('../src/services/membership-checkout.service');
   const users: string[] = [];
   const realFetch = globalThis.fetch;
-  const sessions = new Map<string, { reference: string; amount: number; paid: boolean; unsafe?: boolean }>();
+  const sessions = new Map<
+    string,
+    { reference: string; amount: number; paid: boolean; unsafe?: boolean; expired?: boolean }
+  >();
   let created = 0;
   let providerFailure = false;
   globalThis.fetch = (async (input, init) => {
     const url = typeof input === 'string' ? input : input instanceof URL ? input.toString() : input.url;
     if (!url.startsWith('https://api.paymongo.com/')) return realFetch(input, init);
     if (providerFailure) return new Response('{}', { status: 503, headers: { 'Content-Type': 'application/json' } });
+    if (url.endsWith('/expire')) {
+      const row = sessions.get(url.split('/').at(-2)!)!;
+      row.expired = true;
+      return Response.json({ data: {} });
+    }
     if (init?.method === 'POST') {
       const a = JSON.parse(String(init.body)).data.attributes;
       assert.equal(new URL(a.success_url).origin, 'http://localhost:3108');
@@ -60,7 +68,7 @@ async function main() {
         attributes: {
           livemode: false,
           reference_number: row.reference,
-          status: 'active',
+          status: row.expired ? 'expired' : 'active',
           payment_intent: row.paid
             ? {
                 id: `pi_${id}`,
@@ -127,7 +135,24 @@ async function main() {
     });
     return id;
   };
-  const request = async (userId: string | null, path: string, body?: unknown) => {
+  const request = async (
+    userId: string | null,
+    path: string,
+    body?: unknown
+  ): Promise<{ status: number; body: { data: ReturnType<typeof MembershipCheckoutService.view> } }> => {
+    if (path === '/user/membership/checkout' && userId && userId !== admin && body && typeof body === 'object') {
+      const selected = body as { tier?: string; period?: string; requestKey?: string; quoteId?: string };
+      if (
+        !selected.quoteId &&
+        selected.tier &&
+        selected.period &&
+        Object.keys(body).every((key) => ['tier', 'period', 'requestKey'].includes(key))
+      ) {
+        const summary = await request(userId, path + '/quote', { tier: selected.tier, period: selected.period });
+        if (summary.status !== 200) return summary;
+        body = { ...selected, quoteId: summary.body.data.id };
+      }
+    }
     const token = userId
       ? jwt.sign({ userId, role: userId === admin ? 'ADMIN' : 'USER' }, process.env.JWT_SECRET!, { expiresIn: '15m' })
       : null;
@@ -150,6 +175,11 @@ async function main() {
     assert.equal((await request(null, '/user/membership/checkout', selection)).status, 401);
     assert.equal((await request(admin, '/user/membership/checkout', selection)).status, 403);
     assert.equal((await request(user, '/user/membership/checkout', { ...selection, amount: 1 })).status, 400);
+    Object.assign(selection, {
+      quoteId: (
+        await request(user, '/user/membership/checkout/quote', { tier: selection.tier, period: selection.period })
+      ).body.data.id,
+    });
     const concurrent = await Promise.all([
       request(user, '/user/membership/checkout', selection),
       request(user, '/user/membership/checkout', selection),
@@ -173,6 +203,11 @@ async function main() {
     assert.equal((await MembershipService.state(user)).tier, 'LIFESTYLE');
     assert.equal(await prisma.notification.count({ where: { userId: user, type: 'MEMBERSHIP_UPDATED' } }), 1);
     assert.equal(await prisma.membershipGrant.count({ where: { userId: user } }), 0);
+    const estimate = await prisma.$transaction((tx) =>
+      MembershipService.reserve(user, 'AI_ESTIMATE', randomUUID(), 'fixture estimate', tx)
+    );
+    await MembershipService.complete(estimate!.id);
+    const usageBeforeUpgrade = await prisma.membershipUsage.findUniqueOrThrow({ where: { id: estimate!.id } });
 
     const body = Buffer.from(
       JSON.stringify({
@@ -202,8 +237,13 @@ async function main() {
     assert.equal(await prisma.notification.count({ where: { userId: user, type: 'MEMBERSHIP_UPDATED' } }), 1);
 
     // A customer need not return to the app: a signed notification verifies payment independently.
-    const webhookOnly = (await request(other, '/user/membership/checkout', { ...selection, requestKey: randomUUID() }))
-      .body.data;
+    const webhookOnly = (
+      await request(other, '/user/membership/checkout', {
+        tier: 'LIFESTYLE',
+        period: 'MONTHLY',
+        requestKey: randomUUID(),
+      })
+    ).body.data;
     const webhookLedger = await prisma.membershipTestCheckout.findUniqueOrThrow({ where: { id: webhookOnly.id } });
     sessions.get(webhookLedger.providerSessionId!)!.paid = true;
     const webhookBody = Buffer.from(
@@ -228,7 +268,8 @@ async function main() {
     const health = (
       await request(user, '/user/membership/checkout', { tier: 'HEALTH', period: 'YEARLY', requestKey: randomUUID() })
     ).body.data;
-    assert.equal(health.amountCentavos, 1439000);
+    assert.ok(health.amountCentavos < 1439000);
+    assert.equal(health.amountCentavos + health.transition!.creditCentavos, 1439000);
     const healthLedger = await prisma.membershipTestCheckout.findUniqueOrThrow({ where: { id: health.id } });
     const providerHealth = sessions.get(healthLedger.providerSessionId!)!;
     providerHealth.paid = true;
@@ -238,6 +279,13 @@ async function main() {
     providerHealth.unsafe = false;
     await MembershipCheckoutService.reconcile(health.id);
     assert.equal((await MembershipService.state(user)).tier, 'HEALTH');
+    assert.ok((await prisma.membershipTestCheckout.findUniqueOrThrow({ where: { id: ledger.id } })).supersededAt);
+    assert.deepEqual(
+      await prisma.membershipUsage.findUniqueOrThrow({ where: { id: estimate!.id } }),
+      usageBeforeUpgrade
+    );
+    const usageView = await MembershipService.view(user);
+    assert.equal(usageView.enabled && usageView.usage.AI_ESTIMATE.used, 1);
     const renewal = (
       await request(user, '/user/membership/checkout', { tier: 'HEALTH', period: 'MONTHLY', requestKey: randomUUID() })
     ).body.data;
@@ -250,6 +298,151 @@ async function main() {
         await prisma.membershipTestCheckout.findUniqueOrThrow({ where: { id: health.id } })
       ).effectiveUntil!.toISOString()
     );
+    assert.equal(
+      (await request(user, '/user/membership/checkout/quote', { tier: 'LIFESTYLE', period: 'MONTHLY' })).status,
+      409
+    );
+    const closeUser = await createUser();
+    const unfinished = (
+      await request(closeUser, '/user/membership/checkout', {
+        tier: 'LIFESTYLE',
+        period: 'MONTHLY',
+        requestKey: randomUUID(),
+      })
+    ).body.data;
+    assert.equal(
+      (await request(closeUser, '/user/membership/checkout/quote', { tier: 'HEALTH', period: 'MONTHLY' })).status,
+      409
+    );
+    assert.equal((await request(other, `/user/membership/checkout/${unfinished.id}/close`, {})).status, 404);
+    assert.equal(
+      (await request(closeUser, `/user/membership/checkout/${unfinished.id}/close`, {})).body.data.status,
+      'CLOSED'
+    );
+    assert.equal(
+      (await request(closeUser, `/user/membership/checkout/${unfinished.id}/close`, {})).body.data.status,
+      'CLOSED'
+    );
+    assert.equal(
+      (await request(closeUser, '/user/membership/checkout/quote', { tier: 'HEALTH', period: 'MONTHLY' })).status,
+      200
+    );
+
+    const trialUser = await createUser();
+    await prisma.membershipAccount.update({ where: { userId: trialUser }, data: { trialStartedAt: new Date() } });
+    const trialEnd = (await MembershipService.state(trialUser)).trialEndsAt!;
+    const trialPurchase = (
+      await request(trialUser, '/user/membership/checkout', {
+        tier: 'LIFESTYLE',
+        period: 'MONTHLY',
+        requestKey: randomUUID(),
+      })
+    ).body.data;
+    const trialLedger = await prisma.membershipTestCheckout.findUniqueOrThrow({ where: { id: trialPurchase.id } });
+    sessions.get(trialLedger.providerSessionId!)!.paid = true;
+    const scheduledTrial = await MembershipCheckoutService.reconcile(trialPurchase.id);
+    assert.equal(scheduledTrial.effectiveFrom, trialEnd.toISOString());
+    assert.equal((await MembershipService.state(trialUser)).tier, 'HEALTH');
+    assert.equal(
+      (await request(trialUser, '/user/membership/checkout/quote', { tier: 'HEALTH', period: 'MONTHLY' })).status,
+      409
+    );
+
+    const downgradeUser = await createUser();
+    const healthStart = (
+      await request(downgradeUser, '/user/membership/checkout', {
+        tier: 'HEALTH',
+        period: 'MONTHLY',
+        requestKey: randomUUID(),
+      })
+    ).body.data;
+    const healthSource = await prisma.membershipTestCheckout.findUniqueOrThrow({ where: { id: healthStart.id } });
+    sessions.get(healthSource.providerSessionId!)!.paid = true;
+    const activeHealth = await MembershipCheckoutService.reconcile(healthStart.id);
+    const down = (
+      await request(downgradeUser, '/user/membership/checkout', {
+        tier: 'LIFESTYLE',
+        period: 'YEARLY',
+        requestKey: randomUUID(),
+      })
+    ).body.data;
+    const downRow = await prisma.membershipTestCheckout.findUniqueOrThrow({ where: { id: down.id } });
+    sessions.get(downRow.providerSessionId!)!.paid = true;
+    const downPaid = await MembershipCheckoutService.reconcile(down.id);
+    assert.equal(downPaid.effectiveFrom, activeHealth.effectiveUntil);
+    assert.equal((await MembershipService.state(downgradeUser)).tier, 'HEALTH');
+    assert.equal(
+      (await MembershipService.state(downgradeUser, new Date(+new Date(downPaid.effectiveFrom!) + 1000))).tier,
+      'LIFESTYLE'
+    );
+    const view = await MembershipService.view(downgradeUser);
+    assert.equal(view.enabled && view.transitions?.scheduled[0].id, down.id);
+
+    const changedUser = await createUser();
+    const staleQuote = (
+      await request(changedUser, '/user/membership/checkout/quote', { tier: 'HEALTH', period: 'MONTHLY' })
+    ).body.data;
+    await prisma.membershipAccount.update({ where: { userId: changedUser }, data: { trialStartedAt: new Date() } });
+    assert.equal(
+      (
+        await request(changedUser, '/user/membership/checkout', {
+          tier: 'HEALTH',
+          period: 'MONTHLY',
+          quoteId: staleQuote.id,
+          requestKey: randomUUID(),
+        })
+      ).status,
+      409
+    );
+
+    const creditUser = await createUser();
+    const annual = (
+      await request(creditUser, '/user/membership/checkout', {
+        tier: 'LIFESTYLE',
+        period: 'YEARLY',
+        requestKey: randomUUID(),
+      })
+    ).body.data;
+    const annualLedger = await prisma.membershipTestCheckout.findUniqueOrThrow({ where: { id: annual.id } });
+    sessions.get(annualLedger.providerSessionId!)!.paid = true;
+    await MembershipCheckoutService.reconcile(annual.id);
+    const creditQuote = (
+      await request(creditUser, '/user/membership/checkout/quote', { tier: 'HEALTH', period: 'MONTHLY' })
+    ).body.data;
+    const creditSelection = { tier: 'HEALTH', period: 'MONTHLY', requestKey: randomUUID(), quoteId: creditQuote.id };
+    const providerCount = created;
+    const covered = await request(creditUser, '/user/membership/checkout', creditSelection);
+    assert.equal(covered.status, 200);
+    assert.equal(covered.body.data.status, 'PAID');
+    assert.equal(covered.body.data.amountCentavos, 0);
+    assert.equal(created, providerCount);
+    assert.ok(covered.body.data.transition!.carryoverCentavos > 0);
+    assert.equal(
+      (await request(creditUser, '/user/membership/checkout', creditSelection)).body.data.id,
+      covered.body.data.id
+    );
+    assert.equal(await prisma.notification.count({ where: { userId: creditUser, type: 'MEMBERSHIP_UPDATED' } }), 2);
+
+    const lateUser = await createUser();
+    const late = (
+      await request(lateUser, '/user/membership/checkout', {
+        tier: 'HEALTH',
+        period: 'MONTHLY',
+        requestKey: randomUUID(),
+      })
+    ).body.data;
+    const lateLedger = await prisma.membershipTestCheckout.findUniqueOrThrow({ where: { id: late.id } });
+    await prisma.membershipTestCheckout.update({
+      where: { id: late.id },
+      data: { quote: { ...(lateLedger.quote as object), expiresAt: new Date(Date.now() - 60000).toISOString() } },
+    });
+    sessions.get(lateLedger.providerSessionId!)!.paid = true;
+    assert.equal((await MembershipCheckoutService.reconcile(late.id)).status, 'REVIEW');
+    assert.equal((await MembershipService.state(lateUser)).tier, 'FREE');
+    assert.equal(
+      (await request(lateUser, '/user/membership/checkout/quote', { tier: 'HEALTH', period: 'MONTHLY' })).status,
+      409
+    );
 
     process.env.PAYMONGO_INTEGRATION_ENABLED = 'false';
     assert.equal((await MembershipService.state(user)).tier, 'FREE');
@@ -257,12 +450,18 @@ async function main() {
     process.env.PAYMONGO_INTEGRATION_ENABLED = 'true';
     providerFailure = true;
     assert.equal(
-      (await request(other, '/user/membership/checkout', { ...selection, requestKey: randomUUID() })).status,
+      (
+        await request(other, '/user/membership/checkout', {
+          tier: 'LIFESTYLE',
+          period: 'MONTHLY',
+          requestKey: randomUUID(),
+        })
+      ).status,
       502
     );
     assert.equal(await prisma.membershipGrant.count({ where: { userId: { in: users } } }), 0);
     console.log(
-      'PASS: authenticated selection, server prices, concurrent idempotency, ownership, unpaid/cancelled returns, provider evidence, duplicate reconciliation and signed webhook, one live notification, tier upgrade, renewal dates, disabled-test isolation and provider failure.'
+      'PASS: reviewed quotes, concurrent idempotency, ownership, provider evidence, signed webhook retries, trial preservation, credited upgrade, scheduled renewal, overlap blocking, provider expiration, credit-funded replay, excess credit, late payment review and disabled-test isolation.'
     );
   } finally {
     globalThis.fetch = realFetch;

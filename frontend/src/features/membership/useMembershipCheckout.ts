@@ -5,17 +5,21 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import api from '@/lib/axios';
 import { getPostAuthDestination } from '@/lib/post-auth-destination';
+import { useMembership } from './MembershipProvider';
 import {
   checkoutSelectionKey,
   isCheckoutUrl,
   type MembershipCheckout,
   type MembershipPeriod,
   type PaidMembershipTier,
+  type CheckoutQuote,
 } from './checkout';
 
 export function useMembershipCheckout() {
   const { user } = useAuth();
   const router = useRouter();
+  const membership = useMembership();
+  const [quote, setQuote] = useState<CheckoutQuote | null>(null);
   const busy = useRef(false);
   const keys = useRef(new Map<string, string>());
   const activeRequest = useRef<AbortController | null>(null);
@@ -25,6 +29,7 @@ export function useMembershipCheckout() {
   useEffect(() => {
     keys.current.clear();
     setError(null);
+    setQuote(null);
     return () => activeRequest.current?.abort();
   }, [user?.userId]);
 
@@ -47,34 +52,31 @@ export function useMembershipCheckout() {
     busy.current = true;
     setPendingTier(tier);
     const selection = `${tier}:${period}`;
-    const requestKey = keys.current.get(selection) ?? crypto.randomUUID();
-    keys.current.set(selection, requestKey);
+    keys.current.set(selection, crypto.randomUUID());
     const controller = new AbortController();
     activeRequest.current = controller;
     try {
-      const response = await api.post<{ data: MembershipCheckout }>(
-        '/user/membership/checkout',
-        {
-          tier,
-          period,
-          requestKey,
-        },
+      const response = await api.post<{ data: CheckoutQuote }>(
+        '/user/membership/checkout/quote',
+        { tier, period },
         { signal: controller.signal }
       );
       if (controller.signal.aborted) return;
-      const checkout = response.data.data;
-      if (checkout.mode !== 'TEST' || !checkout.checkoutUrl || !isCheckoutUrl(checkout.checkoutUrl))
+      const summary = response.data.data;
+      if (
+        summary.mode !== 'TEST' ||
+        summary.status !== 'QUOTED' ||
+        !summary.id ||
+        !Number.isSafeInteger(summary.amountCentavos) ||
+        !summary.expiresAt
+      )
         throw new Error('Invalid checkout');
-      try {
-        sessionStorage.removeItem(checkoutSelectionKey);
-      } catch {
-        /* Storage is optional. */
-      }
-      window.location.assign(checkout.checkoutUrl);
+      setQuote(summary);
     } catch (failure) {
       if (controller.signal.aborted) return;
-      // A failed creation needs a new attempt; the server still reuses any recent open session.
+      // Refresh the timeline so an existing or expired checkout can be handled explicitly.
       keys.current.delete(selection);
+      membership.refresh();
       const response = (failure as { response?: { data?: { error?: string; errorCode?: string } } }).response?.data;
       setError(
         response?.errorCode === 'MEMBERSHIP_PURCHASES_UNAVAILABLE'
@@ -88,5 +90,66 @@ export function useMembershipCheckout() {
       setPendingTier(null);
     }
   };
-  return { start, pendingTier, error, professional, user, router };
+  const confirm = async () => {
+    if (!quote || busy.current) return;
+    busy.current = true;
+    setPendingTier(quote.tier);
+    setError(null);
+    const controller = new AbortController();
+    activeRequest.current = controller;
+    try {
+      const selection = `${quote.tier}:${quote.period}`;
+      const response = await api.post<{ data: MembershipCheckout }>(
+        '/user/membership/checkout',
+        {
+          tier: quote.tier,
+          period: quote.period,
+          quoteId: quote.id,
+          requestKey: keys.current.get(selection) ?? crypto.randomUUID(),
+        },
+        { signal: controller.signal }
+      );
+      if (controller.signal.aborted) return;
+      const checkout = response.data.data;
+      if (checkout.mode !== 'TEST') throw new Error('Invalid checkout');
+      try {
+        sessionStorage.removeItem(checkoutSelectionKey);
+      } catch {
+        /* Storage is optional. */
+      }
+      if (checkout.status === 'PAID') {
+        membership.refresh();
+        router.push(`/membership/checkout?purchase=${encodeURIComponent(checkout.id)}`);
+      } else if (checkout.checkoutUrl && isCheckoutUrl(checkout.checkoutUrl)) {
+        window.location.assign(checkout.checkoutUrl);
+      } else throw new Error('Invalid checkout');
+    } catch (failure) {
+      if (!controller.signal.aborted) {
+        setError(
+          (failure as { response?: { data?: { error?: string } } }).response?.data?.error ??
+            'Checkout could not be opened. Review a new payment summary.'
+        );
+        setQuote(null);
+        membership.refresh();
+      }
+    } finally {
+      busy.current = false;
+      setPendingTier(null);
+    }
+  };
+  return {
+    start,
+    confirm,
+    quote,
+    dismissQuote: () => {
+      if (!busy.current) setQuote(null);
+    },
+    membership: membership.data,
+    membershipLoading: membership.isLoading,
+    pendingTier,
+    error,
+    professional,
+    user,
+    router,
+  };
 }

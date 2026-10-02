@@ -13,6 +13,8 @@ import type { MembershipView } from '@/features/membership/MembershipProvider';
 import { useMembershipCheckout } from '@/features/membership/useMembershipCheckout';
 import { checkoutSelectionKey, displayPrices, pendingMembershipSelection } from '@/features/membership/checkout';
 import api from '@/lib/axios';
+import MembershipTimeline, { membershipDate, membershipMoney } from '@/features/membership/MembershipTimeline';
+import Button from '@/components/ui/Button';
 
 export interface PricingProps {
   currentLevel?: 'FREE' | 'TRIAL_PENDING' | 'TRIAL' | 'MEMBER' | null;
@@ -98,6 +100,22 @@ export default function Pricing({
     typeof document === 'undefined' ? null : (document.activeElement as HTMLElement | null)
   );
   const checkout = useMembershipCheckout();
+  const summaryRef = useRef<HTMLElement>(null);
+  useEffect(() => {
+    if (checkout.quote) summaryRef.current?.focus();
+  }, [checkout.quote]);
+  const transitions = checkout.membership?.enabled ? checkout.membership.transitions : null;
+  const purchaseBlocked = Boolean(transitions?.blockedReason || transitions?.openCheckout);
+  const buttonLabel = (tier: 'LIFESTYLE' | 'HEALTH') => {
+    if (transitions?.scheduled.length)
+      return transitions.scheduled.some((p) => p.tier === tier) ? 'Next plan scheduled' : 'Next plan already scheduled';
+    if (transitions?.blockedReason) return 'Checkout unavailable';
+    if (transitions?.openCheckout) return 'Finish existing checkout';
+    if (currentLevel === 'MEMBER' && currentTier === tier) return `Renew ${tier === 'HEALTH' ? 'Health' : 'Lifestyle'}`;
+    if (currentLevel === 'MEMBER' && currentTier === 'HEALTH') return 'Switch to Lifestyle';
+    if (currentLevel === 'MEMBER' && currentTier === 'LIFESTYLE') return 'Upgrade to Health';
+    return `Get ${tier === 'HEALTH' ? 'Health' : 'Lifestyle'}`;
+  };
   const pricingRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -164,7 +182,7 @@ export default function Pricing({
       price: prices.LIFESTYLE.MONTHLY / 100,
       yearlyPrice: prices.LIFESTYLE.YEARLY / 100,
       popular: true,
-      buttonText: 'Get Lifestyle',
+      buttonText: buttonLabel('LIFESTYLE'),
       featuresHeading: 'Everything in Free, plus:',
       features: [
         'Apply changes to biometrics, activity, goals and food preferences',
@@ -182,7 +200,7 @@ export default function Pricing({
       price: prices.HEALTH.MONTHLY / 100,
       yearlyPrice: prices.HEALTH.YEARLY / 100,
       popular: false,
-      buttonText: 'Get Health',
+      buttonText: buttonLabel('HEALTH'),
       featuresHeading: 'Everything in Lifestyle, plus:',
       features: [
         'Apply changes to conditions, allergies and health restrictions',
@@ -283,7 +301,12 @@ export default function Pricing({
             className="pt-2"
           >
             <PricingSwitch
-              onSwitch={togglePricingPeriod}
+              onSwitch={(value) => {
+                if (!checkout.pendingTier) {
+                  checkout.dismissQuote();
+                  togglePricingPeriod(value);
+                }
+              }}
               selected={isYearly ? '1' : '0'}
               className="sm:justify-start justify-center"
             />
@@ -304,124 +327,188 @@ export default function Pricing({
             {checkout.error}
           </p>
         )}
+        <MembershipTimeline />
+        {checkout.quote && (
+          <section
+            ref={summaryRef}
+            tabIndex={-1}
+            aria-label="Payment summary"
+            className="max-w-2xl rounded-2xl border border-brand-border bg-brand-surface p-5 sm:p-7 space-y-4 focus:outline-none focus:ring-2 focus:ring-brand-green"
+          >
+            <h3 className="font-display text-2xl font-bold">Review your payment</h3>
+            <p className="font-bold">
+              {checkout.quote.tier === 'HEALTH' ? 'Health' : 'Lifestyle'} · {checkout.quote.period.toLowerCase()}
+            </p>
+            <p className="text-sm">
+              {checkout.quote.action === 'AFTER_TRIAL'
+                ? 'Your Health trial continues. The purchased plan starts after your trial ends.'
+                : checkout.quote.action === 'DOWNGRADE'
+                  ? 'Your Health benefits continue until your current paid period ends. Lifestyle starts afterwards.'
+                  : checkout.quote.action === 'RENEW'
+                    ? 'This renewal starts after your current paid period ends.'
+                    : checkout.quote.action === 'UPGRADE'
+                      ? 'Health starts once payment is verified. Unused Lifestyle value is credited to this purchase.'
+                      : 'Your plan starts once payment is verified.'}
+            </p>
+            <p className="text-sm">
+              {['START', 'UPGRADE'].includes(checkout.quote.action) ? 'Estimated period' : 'Scheduled period'}:{' '}
+              {membershipDate(checkout.quote.startsAt)} – {membershipDate(checkout.quote.endsAt)} Philippine time.
+            </p>
+            <dl className="grid grid-cols-2 gap-3 text-sm">
+              <dt>Plan price</dt>
+              <dd className="text-right">{membershipMoney(checkout.quote.listPriceCentavos)}</dd>
+              <dt>Membership credit applied</dt>
+              <dd className="text-right">−{membershipMoney(checkout.quote.creditCentavos)}</dd>
+              <dt className="font-bold">Due now</dt>
+              <dd className="text-right font-bold">{membershipMoney(checkout.quote.amountCentavos)}</dd>
+              <dt>Credit remaining after purchase</dt>
+              <dd className="text-right">{membershipMoney(checkout.quote.carryoverCentavos)}</dd>
+            </dl>
+            <p className="text-xs text-brand-muted">
+              Credit is kept for later membership purchases, not refunded as cash. PayMongo requires at least ₱1 when a
+              payment remains; smaller remaining credit is kept in your balance. This summary expires{' '}
+              {membershipDate(checkout.quote.expiresAt)}. Immediate activation dates adjust to the verified payment
+              time.
+            </p>
+            <p className="text-xs text-brand-muted">
+              Test mode. No real charge or automatic renewal. Changing plans does not reset weekly allowances. Health
+              review and clearance requirements still apply.
+            </p>
+            <div className="flex flex-wrap gap-3">
+              <Button onClick={() => void checkout.confirm()} isLoading={Boolean(checkout.pendingTier)}>
+                {checkout.quote.amountCentavos === 0 ? 'Use membership credit' : 'Continue to PayMongo'}
+              </Button>
+              <Button variant="secondary" disabled={Boolean(checkout.pendingTier)} onClick={checkout.dismissQuote}>
+                Back to plans
+              </Button>
+            </div>
+          </section>
+        )}
 
         {/* 3 Plans Grid */}
-        <div className="grid md:grid-cols-3 gap-5 py-4">
-          {plans.map((plan, index) => {
-            const isCurrent = currentTier === plan.tier;
-            return (
-              <TimelineContent
-                key={plan.tier}
-                as="div"
-                animationNum={2 + index}
-                timelineRef={pricingRef}
-                customVariants={revealVariants}
-              >
-                <Card
-                  className={cn(
-                    'relative h-full flex flex-col justify-between rounded-3xl transition-all duration-200 overflow-hidden',
-                    plan.popular
-                      ? 'border-2 border-brand-accent bg-brand-surface text-brand-text shadow-xl ring-1 ring-brand-accent/25'
-                      : 'border border-brand-border bg-brand-surface text-brand-text shadow-sm hover:border-brand-green/30'
-                  )}
+        {!checkout.quote && (
+          <div className="grid md:grid-cols-3 gap-5 py-4">
+            {plans.map((plan, index) => {
+              const isCurrent = currentTier === plan.tier;
+              return (
+                <TimelineContent
+                  key={plan.tier}
+                  as="div"
+                  animationNum={2 + index}
+                  timelineRef={pricingRef}
+                  customVariants={revealVariants}
                 >
-                  <CardHeader className="text-left p-6 sm:p-7">
-                    <div className="flex items-start justify-between gap-2">
-                      <div>
-                        <div className="flex items-baseline gap-1.5">
-                          <h3 className="text-2xl sm:text-3xl font-display font-bold text-brand-text">{plan.name}</h3>
-                          <span className="text-xs font-semibold uppercase tracking-wider text-brand-muted font-mono">
-                            Plan
-                          </span>
+                  <Card
+                    className={cn(
+                      'relative h-full flex flex-col justify-between rounded-3xl transition-all duration-200 overflow-hidden',
+                      plan.popular
+                        ? 'border-2 border-brand-accent bg-brand-surface text-brand-text shadow-xl ring-1 ring-brand-accent/25'
+                        : 'border border-brand-border bg-brand-surface text-brand-text shadow-sm hover:border-brand-green/30'
+                    )}
+                  >
+                    <CardHeader className="text-left p-6 sm:p-7">
+                      <div className="flex items-start justify-between gap-2">
+                        <div>
+                          <div className="flex items-baseline gap-1.5">
+                            <h3 className="text-2xl sm:text-3xl font-display font-bold text-brand-text">{plan.name}</h3>
+                            <span className="text-xs font-semibold uppercase tracking-wider text-brand-muted font-mono">
+                              Plan
+                            </span>
+                          </div>
+                          {isCurrent && (
+                            <span className="mt-1 inline-block text-xs font-bold text-brand-green">
+                              {currentLevel === 'TRIAL'
+                                ? 'Current trial'
+                                : currentLevel === 'TRIAL_PENDING'
+                                  ? 'Trial starts with first usable plan'
+                                  : 'Current plan'}
+                            </span>
+                          )}
                         </div>
-                        {isCurrent && (
-                          <span className="mt-1 inline-block text-xs font-bold text-brand-green">
-                            {currentLevel === 'TRIAL'
-                              ? 'Current trial'
-                              : currentLevel === 'TRIAL_PENDING'
-                                ? 'Trial starts with first usable plan'
-                                : 'Current plan'}
+                        {plan.popular && (
+                          <span className="rounded-full bg-brand-accent text-white px-3 py-1 text-xs font-extrabold uppercase tracking-wider shadow-neon">
+                            Recommended
                           </span>
                         )}
                       </div>
-                      {plan.popular && (
-                        <span className="rounded-full bg-brand-accent text-white px-3 py-1 text-xs font-extrabold uppercase tracking-wider shadow-neon">
-                          Recommended
+
+                      <p className="mt-3 text-xs sm:text-sm min-h-[40px] text-brand-muted">{plan.description}</p>
+
+                      <div className="mt-5 flex items-baseline">
+                        <span className="text-3xl sm:text-4xl font-extrabold font-display text-brand-text">
+                          <NumberFlow
+                            locales="en-PH"
+                            format={{
+                              style: 'currency',
+                              currency: 'PHP',
+                              maximumFractionDigits: 0,
+                              trailingZeroDisplay: 'stripIfInteger',
+                            }}
+                            value={isYearly ? plan.yearlyPrice : plan.price}
+                            className="font-extrabold"
+                          />
                         </span>
-                      )}
-                    </div>
-
-                    <p className="mt-3 text-xs sm:text-sm min-h-[40px] text-brand-muted">{plan.description}</p>
-
-                    <div className="mt-5 flex items-baseline">
-                      <span className="text-3xl sm:text-4xl font-extrabold font-display text-brand-text">
-                        <NumberFlow
-                          locales="en-PH"
-                          format={{
-                            style: 'currency',
-                            currency: 'PHP',
-                            maximumFractionDigits: 0,
-                            trailingZeroDisplay: 'stripIfInteger',
-                          }}
-                          value={isYearly ? plan.yearlyPrice : plan.price}
-                          className="font-extrabold"
-                        />
-                      </span>
-                      <span className="ml-1.5 text-xs sm:text-sm font-medium text-brand-muted">
-                        /{isYearly ? 'year' : 'month'}
-                      </span>
-                    </div>
-                  </CardHeader>
-
-                  <CardContent className="p-6 sm:p-7 pt-0 flex-1 flex flex-col justify-between">
-                    <div>
-                      {plan.tier === 'FREE' ? (
-                        <button
-                          type="button"
-                          disabled={Boolean(checkout.user)}
-                          onClick={() => checkout.router.push('/register')}
-                          className="w-full mb-6 py-3 px-4 rounded-xl text-sm font-bold bg-brand-bg-alt text-brand-text border border-brand-border cursor-pointer disabled:opacity-85 disabled:cursor-default"
-                        >
-                          {plan.buttonText}
-                        </button>
-                      ) : (
-                        <button
-                          type="button"
-                          disabled={Boolean(checkout.pendingTier) || checkout.professional}
-                          aria-busy={checkout.pendingTier === plan.tier}
-                          onClick={() => void checkout.start(plan.tier, isYearly ? 'YEARLY' : 'MONTHLY')}
-                          className={cn(
-                            'w-full mb-6 py-3 px-4 rounded-xl text-sm font-bold shadow-sm transition-all disabled:opacity-85 disabled:cursor-not-allowed',
-                            plan.popular
-                              ? 'bg-brand-accent hover:bg-brand-accent-hover text-white shadow-neon border border-brand-accent-soft/30'
-                              : 'bg-brand-dark hover:bg-black text-white dark:bg-brand-bg-alt dark:hover:bg-brand-surface dark:text-brand-text border border-brand-border'
-                          )}
-                        >
-                          {checkout.pendingTier === plan.tier ? 'Opening checkout…' : plan.buttonText}
-                        </button>
-                      )}
-
-                      <div className="space-y-3 pt-4 border-t border-brand-border/70">
-                        <h4 className="text-xs font-bold uppercase tracking-wider text-brand-text">Features</h4>
-                        <p className="text-xs font-semibold mb-2 text-brand-muted">{plan.featuresHeading}</p>
-                        <ul className="space-y-2.5">
-                          {plan.features.map((feature, idx) => (
-                            <li key={idx} className="flex items-start gap-2.5 text-xs sm:text-sm text-brand-text/90">
-                              <span className="h-4 w-4 shrink-0 rounded-full border border-brand-accent/40 bg-brand-accent/15 text-brand-accent flex items-center justify-center mt-0.5">
-                                <CheckCheck className="h-2.5 w-2.5 stroke-[3]" />
-                              </span>
-                              <span className="leading-snug">{feature}</span>
-                            </li>
-                          ))}
-                        </ul>
+                        <span className="ml-1.5 text-xs sm:text-sm font-medium text-brand-muted">
+                          /{isYearly ? 'year' : 'month'}
+                        </span>
                       </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </TimelineContent>
-            );
-          })}
-        </div>
+                    </CardHeader>
+
+                    <CardContent className="p-6 sm:p-7 pt-0 flex-1 flex flex-col justify-between">
+                      <div>
+                        {plan.tier === 'FREE' ? (
+                          <button
+                            type="button"
+                            disabled={Boolean(checkout.user)}
+                            onClick={() => checkout.router.push('/register')}
+                            className="w-full mb-6 py-3 px-4 rounded-xl text-sm font-bold bg-brand-bg-alt text-brand-text border border-brand-border cursor-pointer disabled:opacity-85 disabled:cursor-default"
+                          >
+                            {plan.buttonText}
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            disabled={
+                              Boolean(checkout.pendingTier) ||
+                              checkout.professional ||
+                              purchaseBlocked ||
+                              Boolean(checkout.user && checkout.membershipLoading)
+                            }
+                            aria-busy={checkout.pendingTier === plan.tier}
+                            onClick={() => void checkout.start(plan.tier, isYearly ? 'YEARLY' : 'MONTHLY')}
+                            className={cn(
+                              'w-full mb-6 py-3 px-4 rounded-xl text-sm font-bold shadow-sm transition-all disabled:opacity-85 disabled:cursor-not-allowed',
+                              plan.popular
+                                ? 'bg-brand-accent hover:bg-brand-accent-hover text-white shadow-neon border border-brand-accent-soft/30'
+                                : 'bg-brand-dark hover:bg-black text-white dark:bg-brand-bg-alt dark:hover:bg-brand-surface dark:text-brand-text border border-brand-border'
+                            )}
+                          >
+                            {checkout.pendingTier === plan.tier ? 'Preparing payment summary…' : plan.buttonText}
+                          </button>
+                        )}
+
+                        <div className="space-y-3 pt-4 border-t border-brand-border/70">
+                          <h4 className="text-xs font-bold uppercase tracking-wider text-brand-text">Features</h4>
+                          <p className="text-xs font-semibold mb-2 text-brand-muted">{plan.featuresHeading}</p>
+                          <ul className="space-y-2.5">
+                            {plan.features.map((feature, idx) => (
+                              <li key={idx} className="flex items-start gap-2.5 text-xs sm:text-sm text-brand-text/90">
+                                <span className="h-4 w-4 shrink-0 rounded-full border border-brand-accent/40 bg-brand-accent/15 text-brand-accent flex items-center justify-center mt-0.5">
+                                  <CheckCheck className="h-2.5 w-2.5 stroke-[3]" />
+                                </span>
+                                <span className="leading-snug">{feature}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </TimelineContent>
+              );
+            })}
+          </div>
+        )}
 
         <p className="mt-6 text-center text-xs text-brand-muted max-w-2xl mx-auto">
           A report confirmation is not nutritionist approval. Case clearance and safety requirements still apply. Test

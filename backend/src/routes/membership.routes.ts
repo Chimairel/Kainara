@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import { z } from 'zod';
 import authenticate from '@/middleware/auth';
 import requireRole from '@/middleware/rbac';
 import { asyncHandler } from '@/middleware/errorHandler';
@@ -20,6 +21,29 @@ router.get(
       data = await MembershipService.view(req.user!.userId);
     }
     res.set('Cache-Control', 'private, no-store').json({ success: true, data });
+  })
+);
+router.post(
+  '/checkout/quote',
+  asyncHandler(async (req: AuthenticatedRequest, res) => {
+    const input = z
+      .object({ tier: z.enum(['LIFESTYLE', 'HEALTH']), period: z.enum(['MONTHLY', 'YEARLY']) })
+      .strict()
+      .safeParse(req.body);
+    if (!input.success) throw new AppError('Choose a plan and billing period.', 400, 'INVALID_CHECKOUT_SELECTION');
+    res
+      .set('Cache-Control', 'private, no-store')
+      .json({ success: true, data: await MembershipCheckoutService.quote(req.user!.userId, input.data) });
+  })
+);
+router.post(
+  '/checkout/:id/close',
+  asyncHandler(async (req: AuthenticatedRequest, res) => {
+    if (!/^[a-zA-Z0-9_-]{8,100}$/.test(req.params.id))
+      throw new AppError('Checkout not found.', 404, 'CHECKOUT_NOT_FOUND');
+    res
+      .set('Cache-Control', 'private, no-store')
+      .json({ success: true, data: await MembershipCheckoutService.close(req.user!.userId, req.params.id) });
   })
 );
 router.post(

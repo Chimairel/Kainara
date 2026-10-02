@@ -758,6 +758,7 @@ model User {
   membershipGrants                MembershipGrant[]
   membershipUsage                 MembershipUsage[]
   membershipTestCheckouts         MembershipTestCheckout[]
+  membershipTestBalances          MembershipTestBalance[]
   id                              String             @id @default(cuid())
   name                            String
   email                           String             @unique
@@ -846,10 +847,13 @@ enum MembershipBillingPeriod {
 }
 
 enum MembershipTestCheckoutStatus {
+  QUOTED
   CREATING
   OPEN
   PAID
   FAILED
+  CLOSED
+  REVIEW
 }
 
 model MembershipTestCheckout {
@@ -871,11 +875,23 @@ model MembershipTestCheckout {
   effectiveFrom       DateTime?
   effectiveUntil      DateTime?
   revokedAt           DateTime?
+  supersededAt        DateTime?
+  quote               Json?
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
 
   @@unique([userId, requestKey])
   @@index([userId, accountHash, status, effectiveUntil])
+}
+
+model MembershipTestBalance {
+  userId         String
+  user           User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accountHash    String @db.VarChar(64)
+  amountCentavos Int @default(0)
+  updatedAt      DateTime @updatedAt
+
+  @@id([userId, accountHash])
 }
 
 enum MembershipTier {

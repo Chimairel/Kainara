@@ -9,13 +9,24 @@ export interface MembershipCheckout {
   id: string;
   tier: PaidMembershipTier;
   period: MembershipPeriod;
-  status: 'CREATING' | 'OPEN' | 'PAID' | 'FAILED';
+  status: 'QUOTED' | 'CREATING' | 'OPEN' | 'PAID' | 'FAILED' | 'CLOSED' | 'REVIEW';
   mode: 'TEST';
   amountCentavos: number;
   checkoutUrl: string | null;
   effectiveFrom: string | null;
   effectiveUntil: string | null;
+  transition?: TransitionDetails | null;
 }
+export interface TransitionDetails {
+  action: 'START' | 'AFTER_TRIAL' | 'RENEW' | 'DOWNGRADE' | 'UPGRADE';
+  listPriceCentavos: number;
+  creditCentavos: number;
+  carryoverCentavos: number;
+  startsAt: string;
+  endsAt: string;
+  expiresAt: string;
+}
+export interface CheckoutQuote extends MembershipCheckout, TransitionDetails {}
 export function isCheckoutUrl(value: string) {
   try {
     const url = new URL(value);

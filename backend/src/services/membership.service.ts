@@ -16,6 +16,7 @@ import {
 import { getManilaDateKey, getManilaMidnight } from '@/domain/meal-plan-cycle.policy';
 import { lockUserProfile } from './profile-revision.service';
 import { testCheckoutConfig } from '@/domain/membership-checkout.policy';
+import { membershipTransitionView } from './membership-transition.service';
 
 type Client = Prisma.TransactionClient;
 const include = { userProfile: true, healthConditions: true, allergies: true, safetyProfileEntries: true };
@@ -53,7 +54,8 @@ export class MembershipService {
                     tier: row.tier,
                     source: 'PAID_INVOICE',
                     effectiveFrom: row.effectiveFrom,
-                    effectiveUntil: row.effectiveUntil,
+                    effectiveUntil:
+                      row.supersededAt && row.supersededAt < row.effectiveUntil ? row.supersededAt : row.effectiveUntil,
                     revokedAt: row.revokedAt,
                   },
                 ]
@@ -379,6 +381,7 @@ export class MembershipService {
             status: 'PAID',
             revokedAt: null,
             effectiveFrom: { gt: at },
+            supersededAt: null,
           },
           select: { id: true, tier: true, effectiveFrom: true, effectiveUntil: true },
           orderBy: { effectiveFrom: 'asc' },
@@ -401,6 +404,7 @@ export class MembershipService {
       purchasesAvailable: Boolean(testCheckoutConfig()),
       checkoutMode: 'TEST' as const,
       scheduledMemberships,
+      transitions: await membershipTransitionView(userId, at),
       price: null,
       autoRenews: false,
       limits,

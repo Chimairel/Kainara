@@ -23,6 +23,32 @@ export type MembershipView =
       resetsAt: string;
       purchasesAvailable: boolean;
       checkoutMode?: 'TEST';
+      transitions?: {
+        current: {
+          id: string;
+          tier: 'LIFESTYLE' | 'HEALTH';
+          period: 'MONTHLY' | 'YEARLY';
+          effectiveFrom: string;
+          effectiveUntil: string;
+        } | null;
+        scheduled: Array<{
+          id: string;
+          tier: 'LIFESTYLE' | 'HEALTH';
+          period: 'MONTHLY' | 'YEARLY';
+          effectiveFrom: string;
+          effectiveUntil: string;
+        }>;
+        creditBalanceCentavos: number;
+        blockedReason: string | null;
+        openCheckout: {
+          id: string;
+          tier: 'LIFESTYLE' | 'HEALTH';
+          period: 'MONTHLY' | 'YEARLY';
+          status: string;
+          checkoutUrl: string | null;
+          quoteExpiresAt?: string | null;
+        } | null;
+      } | null;
       scheduledMemberships?: Array<{
         id: string;
         tier: 'LIFESTYLE' | 'HEALTH';

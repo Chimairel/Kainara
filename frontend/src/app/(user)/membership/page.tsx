@@ -6,6 +6,7 @@ import PortalPageHeader from '@/components/shared/PortalPageHeader';
 import Button from '@/components/ui/Button';
 import { useMembership } from '@/features/membership/MembershipProvider';
 import Pricing from '@/components/ui/pricing';
+import MembershipTimeline from '@/features/membership/MembershipTimeline';
 import {
   RefreshCw,
   AlertTriangle,
@@ -124,6 +125,7 @@ function MembershipContent() {
       )}
 
       {/* 3. ALLOWANCES & USAGE */}
+      <MembershipTimeline />
       {data?.enabled && (
         <section className="rounded-2xl border border-brand-border bg-brand-surface p-5 sm:p-6 shadow-xs space-y-5">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-brand-border/60 pb-4">
@@ -168,12 +170,13 @@ function MembershipContent() {
                   review follow-up remain available.
                 </p>
               )}
-              {data.scheduledMemberships?.map((purchase) => (
-                <p key={purchase.id} className="mt-2 text-xs text-brand-green">
-                  {purchase.tier === 'HEALTH' ? 'Health' : 'Lifestyle'} test membership scheduled:{' '}
-                  {date(purchase.effectiveFrom)} – {date(purchase.effectiveUntil)}. No automatic renewal.
-                </p>
-              ))}
+              {!data.transitions &&
+                data.scheduledMemberships?.map((purchase) => (
+                  <p key={purchase.id} className="mt-2 text-xs text-brand-green">
+                    {purchase.tier === 'HEALTH' ? 'Health' : 'Lifestyle'} test membership scheduled:{' '}
+                    {date(purchase.effectiveFrom)} – {date(purchase.effectiveUntil)}. No automatic renewal.
+                  </p>
+                ))}
             </div>
 
             <div className="flex items-center gap-2 self-start sm:self-center shrink-0">

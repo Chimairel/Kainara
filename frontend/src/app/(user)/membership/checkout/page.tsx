@@ -40,7 +40,7 @@ function CheckoutResult() {
         const result = response.data.data;
         setReceipt({ ownerId: user.userId, purchaseId: id, data: result });
         setError(null);
-        if (result.status === 'PAID' && !notified) {
+        if (['PAID', 'REVIEW', 'CLOSED'].includes(result.status) && !notified) {
           notified = true;
           refresh();
           window.dispatchEvent(new Event('kainara:membership-updated'));
@@ -68,7 +68,15 @@ function CheckoutResult() {
       <Card>
         <p className="mb-2 text-xs font-bold text-brand-green">Kainara membership</p>
         <h1 className="font-display text-2xl font-bold">
-          {data?.status === 'PAID' ? 'Payment successful' : cancelled ? 'Checkout closed' : 'Checking your payment'}
+          {data?.status === 'PAID'
+            ? 'Payment successful'
+            : data?.status === 'REVIEW'
+              ? 'Payment received — review needed'
+              : data?.status === 'CLOSED'
+                ? 'Checkout closed'
+                : cancelled
+                  ? 'Checkout left unfinished'
+                  : 'Checking your payment'}
         </h1>
         <p className="mt-3 text-sm text-brand-muted">
           Test mode · No real money was charged. This purchase does not renew automatically.
@@ -87,12 +95,19 @@ function CheckoutResult() {
           <div className="mt-4 space-y-2 text-sm">
             <p>
               {data.tier === 'HEALTH' ? 'Health' : 'Lifestyle'}: ₱{(data.amountCentavos / 100).toLocaleString('en-PH')}{' '}
-              paid in test mode.
+              {data.amountCentavos === 0 ? 'due; paid with membership credit.' : 'paid in test mode.'}
             </p>
             {data.effectiveFrom && data.effectiveUntil && (
               <p>
-                Membership period: {date(data.effectiveFrom)} – {date(data.effectiveUntil)} Philippine time. Any
-                remaining trial and existing applicable paid period are preserved.
+                {new Date(data.effectiveFrom) > new Date() ? 'Scheduled membership' : 'Active membership'}:{' '}
+                {date(data.effectiveFrom)} – {date(data.effectiveUntil)} Philippine time.
+              </p>
+            )}
+            {data.transition && (
+              <p>
+                Credit applied: ₱{(data.transition.creditCentavos / 100).toLocaleString('en-PH')}. Credit kept for later
+                purchases: ₱{(data.transition.carryoverCentavos / 100).toLocaleString('en-PH')}. Your current benefits
+                continue until a scheduled plan starts. Upgrading does not reset weekly allowances.
               </p>
             )}
           </div>
@@ -101,12 +116,16 @@ function CheckoutResult() {
             <p className="mt-4 text-sm">
               {data.status === 'FAILED'
                 ? 'This checkout could not be created. Choose your plan again to retry.'
-                : 'Payment has not been verified yet. Closing checkout does not confirm a payment or change your membership.'}
+                : data.status === 'REVIEW'
+                  ? 'Your payment is recorded, but the quote or membership dates changed. Your existing access is preserved. Contact support at chimairelp@gmail.com to reconcile this payment before purchasing again.'
+                  : data.status === 'CLOSED'
+                    ? 'This unpaid checkout was closed. Your current membership has not changed.'
+                    : 'Payment has not been verified yet. Closing checkout does not confirm a payment or change your membership.'}
             </p>
           )
         )}
         <div className="mt-5 flex flex-wrap gap-3">
-          {id && data?.status !== 'PAID' && (
+          {id && !['PAID', 'REVIEW', 'CLOSED'].includes(data?.status ?? '') && (
             <Button variant="secondary" onClick={() => setAttempt((n) => n + 1)}>
               Check again
             </Button>

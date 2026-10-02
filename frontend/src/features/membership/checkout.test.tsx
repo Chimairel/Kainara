@@ -73,7 +73,6 @@ describe('membership checkout UI', () => {
     expect(state.post.mock.calls[0][1]).toEqual({
       tier: 'LIFESTYLE',
       period: 'MONTHLY',
-      requestKey: expect.any(String),
     });
     await act(async () => {
       fail({ response: { data: { errorCode: 'MEMBERSHIP_PURCHASES_UNAVAILABLE' } } });
@@ -81,6 +80,40 @@ describe('membership checkout UI', () => {
     });
     expect(hook.result.current.error).toMatch(/not configured/);
     expect(hook.result.current.pendingTier).toBeNull();
+  });
+  it('shows the scheduled trial transition and exact credit before confirming a credit-funded purchase', async () => {
+    state.user = readyUser;
+    const quote = {
+      id: 'quote-fixture',
+      tier: 'HEALTH',
+      period: 'MONTHLY',
+      status: 'QUOTED',
+      mode: 'TEST',
+      action: 'AFTER_TRIAL',
+      amountCentavos: 0,
+      listPriceCentavos: 149900,
+      creditCentavos: 149900,
+      carryoverCentavos: 1000,
+      startsAt: '2026-10-20T12:00:00Z',
+      endsAt: '2026-11-20T12:00:00Z',
+      expiresAt: '2026-10-02T13:00:00Z',
+    };
+    state.post
+      .mockResolvedValueOnce({ data: { data: quote } })
+      .mockResolvedValueOnce({ data: { data: { ...quote, status: 'PAID' } } });
+    render(<Pricing currentTier="HEALTH" currentLevel="TRIAL" />);
+    fireEvent.click(screen.getByRole('button', { name: 'Get Health' }));
+    await screen.findByRole('region', { name: 'Payment summary' });
+    expect(screen.getByText(/Your Health trial continues/)).toBeInTheDocument();
+    expect(state.post).toHaveBeenCalledTimes(1);
+    fireEvent.click(screen.getByRole('button', { name: 'Use membership credit' }));
+    await waitFor(() => expect(state.push).toHaveBeenCalledWith('/membership/checkout?purchase=quote-fixture'));
+    expect(state.post.mock.calls[1][1]).toEqual({
+      tier: 'HEALTH',
+      period: 'MONTHLY',
+      quoteId: 'quote-fixture',
+      requestKey: expect.any(String),
+    });
   });
   it('rejects an unexpected payment redirect', async () => {
     state.user = readyUser;
