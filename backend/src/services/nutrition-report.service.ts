@@ -93,6 +93,9 @@ export class NutritionReportService {
           'REPORT_CHANGED'
         );
       }
+      if (report.acknowledgedAt && (!membershipEnabled() || profile.planningReportVersion === report.version)) {
+        return { acknowledged: report, firstAcknowledgment: false };
+      }
       const previous = await tx.nutritionReportVersion.findFirst({
         where: {
           userId,
@@ -143,8 +146,12 @@ export class NutritionReportService {
       await ProfileCycleAdaptationService.acknowledgeProfileRevision(tx, userId, profile.revision);
       return { acknowledged, firstAcknowledgment };
     });
-    const planningReadiness = await PlanningReadinessService.getForUser(userId);
-    if (result.firstAcknowledgment) {
+    // A post-commit advisory failure cannot turn a saved receipt into a failed save.
+    const planningReadiness = await PlanningReadinessService.getForUser(userId).catch(() => {
+      console.error('[NutritionReportService] Saved acknowledgment; planning-readiness lookup unavailable.');
+      return null;
+    });
+    if (result.firstAcknowledgment && planningReadiness) {
       try {
         await prisma.notification.create({
           data: {
@@ -158,7 +165,7 @@ export class NutritionReportService {
         console.error('[NutritionReportService] Planning-readiness notification failed:', error);
       }
     }
-    UpcomingPlanPreparationService.triggerNonBlocking(userId);
+    if (result.firstAcknowledgment) UpcomingPlanPreparationService.triggerNonBlocking(userId);
     return { report: result.acknowledged, planningReadiness };
   }
 

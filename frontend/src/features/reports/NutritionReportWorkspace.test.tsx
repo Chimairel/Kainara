@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import NutritionReportWorkspace from './NutritionReportWorkspace';
 
@@ -60,13 +60,19 @@ describe('nutrition report lifecycle', () => {
             : report
       )
     );
-    mocks.post.mockResolvedValue(result(report));
+    mocks.post.mockImplementation(async (url: string) =>
+      result(
+        url.endsWith('/acknowledge')
+          ? { acknowledgedAt: '2026-10-02T13:00:00Z', version: 3, planningReadiness: null }
+          : report
+      )
+    );
     mocks.refresh.mockResolvedValue({ reportAcknowledged: true });
   });
-  it('loads once despite session object changes, acknowledges the displayed version and returns to profile', async () => {
+  it('loads once despite session object changes, acknowledges the displayed version and returns home', async () => {
     render(<NutritionReportWorkspace />);
     fireEvent.click(await screen.findByRole('button', { name: 'Use this report for meal planning' }));
-    await waitFor(() => expect(mocks.push).toHaveBeenCalledWith('/profile'));
+    await waitFor(() => expect(mocks.push).toHaveBeenCalledWith('/dashboard'));
     expect(mocks.post).toHaveBeenCalledWith('/user/nutrition-report/acknowledge', { version: 3 });
     expect(mocks.get.mock.calls.filter(([path]) => path === '/user/nutrition-report')).toHaveLength(1);
   });
@@ -196,5 +202,92 @@ describe('nutrition report lifecycle', () => {
       'href',
       'https://fnri.dost.gov.ph/images/images/news/PDRI-2018.pdf'
     );
+  });
+  it('sends only one acknowledgment during repeated clicks and waits for account confirmation', async () => {
+    let saved!: (value: unknown) => void;
+    mocks.post.mockReturnValue(
+      new Promise((resolve) => {
+        saved = resolve;
+      })
+    );
+    render(<NutritionReportWorkspace />);
+    const button = await screen.findByRole('button', { name: 'Use this report for meal planning' });
+    await act(async () => {
+      button.click();
+      button.click();
+      button.click();
+    });
+    expect(mocks.post).toHaveBeenCalledTimes(1);
+    expect(mocks.push).not.toHaveBeenCalled();
+    await act(async () => saved(result({ acknowledgedAt: '2026-10-02T13:00:00Z', version: 3 })));
+    await waitFor(() => expect(mocks.push).toHaveBeenCalledWith('/dashboard'));
+    expect(mocks.refresh).toHaveBeenCalledWith({ showLoader: false });
+  });
+  it('does not turn a saved acknowledgment into a stale report after an account-check failure', async () => {
+    mocks.refresh.mockRejectedValue(new Error('offline'));
+    render(<NutritionReportWorkspace />);
+    fireEvent.click(await screen.findByRole('button', { name: 'Use this report for meal planning' }));
+    await screen.findByText(/Your acknowledgment was saved. The account check/);
+    expect(screen.getByRole('button', { name: 'Continue' })).toBeEnabled();
+    expect(screen.queryByRole('button', { name: 'Prepare updated guidance' })).not.toBeInTheDocument();
+    expect(mocks.push).not.toHaveBeenCalled();
+  });
+  it('retries only account confirmation after a saved receipt', async () => {
+    const get = mocks.get.getMockImplementation()!;
+    mocks.get.mockImplementation((path: string) =>
+      path === '/user/nutrition-report'
+        ? Promise.resolve(result({ ...report, planningContext: { activeVersion: 2 } }))
+        : get(path)
+    );
+    mocks.refresh.mockResolvedValueOnce(null).mockResolvedValue({ reportAcknowledged: true });
+    render(<NutritionReportWorkspace />);
+    fireEvent.click(await screen.findByRole('button', { name: 'Use this report for meal planning' }));
+    await screen.findByText(/Your acknowledgment was saved. Unable to confirm/);
+    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+    await waitFor(() => expect(mocks.push).toHaveBeenCalledWith('/dashboard'));
+    expect(mocks.post).toHaveBeenCalledTimes(1);
+    expect(mocks.refresh).toHaveBeenCalledTimes(2);
+  });
+  it('does not skip activation checks for a previously selected report that is no longer active', async () => {
+    const get = mocks.get.getMockImplementation()!;
+    mocks.get.mockImplementation((path: string) =>
+      path === '/user/nutrition-report'
+        ? Promise.resolve(
+            result({ ...report, acknowledgedAt: report.generatedAt, planningContext: { activeVersion: 2 } })
+          )
+        : get(path)
+    );
+    mocks.post.mockRejectedValueOnce({ response: { status: 403, data: { errorCode: 'MEMBERSHIP_REQUIRED' } } });
+    render(<NutritionReportWorkspace />);
+    fireEvent.click(await screen.findByRole('button', { name: 'Continue' }));
+    await screen.findByRole('dialog', { name: 'Lifestyle membership needed' });
+    expect(mocks.post).toHaveBeenCalledWith('/user/nutrition-report/acknowledge', { version: 3 });
+    expect(mocks.refresh).not.toHaveBeenCalled();
+    expect(mocks.push).not.toHaveBeenCalled();
+  });
+  it('retains the conflict gate when the displayed report really changed', async () => {
+    mocks.post.mockRejectedValue({ response: { status: 409, data: { error: 'This guidance changed.' } } });
+    render(<NutritionReportWorkspace />);
+    fireEvent.click(await screen.findByRole('button', { name: 'Use this report for meal planning' }));
+    await screen.findByRole('button', { name: 'Prepare updated guidance' });
+    expect(mocks.refresh).not.toHaveBeenCalled();
+    expect(mocks.push).not.toHaveBeenCalled();
+  });
+  it('preserves required clinical continuation rather than routing a blocked case home', async () => {
+    mocks.post.mockResolvedValue(
+      result({
+        acknowledgedAt: '2026-10-02T13:00:00Z',
+        version: 3,
+        planningReadiness: {
+          canRequestPlan: false,
+          title: 'Review needed',
+          message: 'Review needed',
+          actionPath: '/profile/clinical-evidence',
+        },
+      })
+    );
+    render(<NutritionReportWorkspace />);
+    fireEvent.click(await screen.findByRole('button', { name: 'Use this report for meal planning' }));
+    await waitFor(() => expect(mocks.push).toHaveBeenCalledWith('/profile/clinical-evidence'));
   });
 });

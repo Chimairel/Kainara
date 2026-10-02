@@ -459,11 +459,13 @@ function WeeklyPlanPageContent() {
                 variant="no-meal-plan"
                 imageAlt="Meal plan preparation"
                 title={
-                  generationStatus.current === 'FAILED' ? 'Meal Preparation Paused' : 'Preparing Your First Meal Plan'
+                  generationStatus.current === 'FAILED'
+                    ? 'Meal plan preparation failed'
+                    : 'Preparing Your First Meal Plan'
                 }
                 description={
                   generationStatus.current === 'FAILED'
-                    ? 'Your first plan could not be prepared. Retry to resume preparation.'
+                    ? 'Your nutrition report is acknowledged, but your first meal plan could not be prepared. Retry preparation to try again.'
                     : 'Your current meal plan is being prepared automatically. Candidates will appear here for nutritionist review.'
                 }
                 action={

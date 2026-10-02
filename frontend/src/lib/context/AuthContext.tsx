@@ -45,10 +45,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [profileLoadError, setProfileLoadError] = useState(false);
   const sessionRequestId = useRef(0);
+  const sessionRefresh = useRef<{
+    ownerId: string | undefined;
+    requestId: number;
+    promise: Promise<UserSession | null>;
+  } | null>(null);
   const router = useRouter();
 
   // Refresh user profile details from backend to ensure state accuracy
-  const refreshSession = async (options?: { showLoader?: boolean }) => {
+  const loadSession = async (options?: { showLoader?: boolean }) => {
     const requestId = ++sessionRequestId.current;
     if (options?.showLoader || !user) {
       setIsLoading(true);
@@ -130,6 +135,23 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  // Live events and explicit continuations join the same authoritative read.
+  const refreshSession = (options?: { showLoader?: boolean }) => {
+    const ownerId = decodeToken(cookieHelper.get('nutrimind_session') || '')?.userId;
+    const pending = sessionRefresh.current;
+    if (pending && pending.ownerId === ownerId && pending.requestId === sessionRequestId.current) {
+      if (options?.showLoader) setIsLoading(true);
+      return pending.promise;
+    }
+    const promise = loadSession(options);
+    const entry = { ownerId, requestId: sessionRequestId.current, promise };
+    sessionRefresh.current = entry;
+    void promise.finally(() => {
+      if (sessionRefresh.current === entry) sessionRefresh.current = null;
+    });
+    return promise;
+  };
+
   useEffect(() => {
     // Initial verification on mount
     const checkAuthCookie = async () => {
@@ -167,6 +189,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   const login = async (token: string) => {
+    sessionRequestId.current += 1;
     setSessionRefreshSuppressed(false);
     clearSessionResourceCache();
     // Save access token in cookie for the client middleware & interceptor

@@ -409,15 +409,16 @@ export class UserController {
         success: true,
         data: {
           acknowledgedAt: report.acknowledgedAt,
+          version: report.version,
           planningReadiness,
         },
       });
     } catch (error: any) {
       console.error('[UserController] acknowledgeReport error:', error);
-      return res.status(error instanceof AppError ? error.statusCode : 409).json({
+      return res.status(error instanceof AppError ? error.statusCode : 503).json({
         success: false,
         errorCode: error instanceof AppError ? error.errorCode : undefined,
-        error: sanitizeErrorMessage(error, 'The report changed. Refresh before using it for meal planning.'),
+        error: sanitizeErrorMessage(error, 'Unable to save acknowledgment right now. Please try again.'),
       });
     }
   }
