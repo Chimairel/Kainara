@@ -1,6 +1,7 @@
 'use client';
 
 import MealsWorkspaceHeader from '@/features/meals/MealsWorkspaceHeader';
+import UnavailableMealsNotice from '@/features/meals/UnavailableMealsNotice';
 import HistoryDaySummary from '@/features/meals/HistoryDaySummary';
 
 import LoadingSpinner from '@/components/shared/LoadingSpinner';
@@ -61,6 +62,8 @@ function WeeklyPlanPageContent() {
     generationStatus,
     isRetryingMissing,
     retryMissingGeneration,
+    repairRetiredMeals,
+    isRepairingRetired,
     cycles,
     setSelectedPlanDateKey,
     historyLogs,
@@ -206,6 +209,21 @@ function WeeklyPlanPageContent() {
           upcomingStart={upcomingStart}
           nextCycleDay={nextCycleDay}
         />
+        {!isLoading && (
+          <UnavailableMealsNotice
+            cycle={cycles?.current ?? null}
+            isRepairing={isRepairingRetired}
+            onRepair={cycles?.current?.id ? () => void repairRetiredMeals(cycles.current!.id!) : undefined}
+          />
+        )}
+        {!isLoading && (
+          <UnavailableMealsNotice
+            cycle={cycles?.upcoming ?? null}
+            upcoming
+            isRepairing={isRepairingRetired}
+            onRepair={cycles?.upcoming?.id ? () => void repairRetiredMeals(cycles.upcoming!.id!) : undefined}
+          />
+        )}
 
         {/* Tab Bar */}
         <nav

@@ -71,6 +71,8 @@ export type CycleMetaSnapshot = {
   startDate?: string | Date | null;
   endDate?: string | Date | null;
   status?: string;
+  unavailableMealCount?: number;
+  retiredMealCount?: number;
 } | null;
 
 /**
@@ -90,11 +92,7 @@ export function getDashboardCycleDates(
 
   const todayKey = getManilaDateKey(now);
   const mealDateKeys = Array.from(
-    new Set(
-      allMeals
-        .map((m) => getManilaDateKey(m.scheduledDate))
-        .filter((k): k is string => Boolean(k))
-    )
+    new Set(allMeals.map((m) => getManilaDateKey(m.scheduledDate)).filter((k): k is string => Boolean(k)))
   ).sort();
 
   if (mealDateKeys.length === 0) return [];

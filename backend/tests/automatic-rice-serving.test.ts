@@ -112,7 +112,7 @@ test('reviewed roles and limits override inference; base case clearance cannot a
   const unchanged = resolveReplacementServing({
     ...input,
     meal: { ...dish, calories: 495 },
-    ricePreference: 'EITHER',
+    ricePreference: 'FLEXIBLE',
     hasConditions: true,
     riceFood: null,
   });

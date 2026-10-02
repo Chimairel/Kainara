@@ -26,6 +26,7 @@ export interface GeneratedMeal {
   fatG: number;
   rawCandidateId?: string;
   servingScale?: number;
+  pairedRiceG?: number | null;
   candidateProvenance?: MealCandidateProvenance;
   candidateRank?: number;
   rankingScore?: number;
@@ -44,6 +45,7 @@ export interface PreparedGeneratedMeal {
   aiConfidenceFlag: AIConfidenceFlag;
   rawCandidateId?: string;
   servingScale?: number;
+  pairedRiceG?: number | null;
   candidateProvenance: MealCandidateProvenance;
   candidateRank?: number;
   rankingScore?: number;
@@ -145,9 +147,7 @@ export async function prepareGeneratedMealIngredients(input: {
       if (food) {
         ingredientsData.push({
           ingredientName:
-            rawMeal.candidateProvenance === MealCandidateProvenance.RAW_RECIPE_CORPUS
-              ? ingredientName
-              : food.name,
+            rawMeal.candidateProvenance === MealCandidateProvenance.RAW_RECIPE_CORPUS ? ingredientName : food.name,
           category: food.category || 'PANTRY',
           foodItemId: food.id,
           dataSource: food.source === 'FNRI' ? MealIngredientDataSource.FNRI : MealIngredientDataSource.USDA_FDC,
@@ -202,6 +202,7 @@ export async function prepareGeneratedMealIngredients(input: {
       aiConfidenceFlag: confidence,
       rawCandidateId: rawMeal.rawCandidateId,
       servingScale: rawMeal.servingScale,
+      pairedRiceG: rawMeal.pairedRiceG,
       candidateProvenance: rawMeal.candidateProvenance ?? MealCandidateProvenance.AI_FROM_SCRATCH,
       candidateRank: rawMeal.candidateRank,
       rankingScore: rawMeal.rankingScore,

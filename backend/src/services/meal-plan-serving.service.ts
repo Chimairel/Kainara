@@ -1,3 +1,6 @@
+import { proposeRiceRole } from '@/domain/recipe-rice-role.policy';
+import { loadPlanningNutritionContext } from '@/domain/user-nutrition-context';
+import { isUnrestrictedPanlasangBaseEligible } from '@/domain/unrestricted-panlasang-base.policy';
 import type { Prisma } from '@prisma/client';
 import { COOKED_RICE_HALF_CUP_GRAMS } from '@/domain/rice-portion.policy';
 import { buildComposedServing } from '@/domain/composed-serving.policy';
@@ -81,12 +84,63 @@ export async function composePlanWithPairedRice(
     where: { id: input.mealPlanId },
     include: {
       libraryMeal: { include: { ingredients: { include: { foodItem: { select: { name: true } } } } } },
+      ingredients: true,
+      sourceRawRecipeCandidate: {
+        include: { libraryVariants: { where: { status: 'FLAGGED' }, select: { id: true }, take: 1 } },
+      },
       servingComponents: { orderBy: { position: 'asc' } },
       clearanceUsages: { include: { clearance: { select: { composedServingSignature: true } } } },
     },
   });
-  if (!plan.libraryMeal) throw new Error('Rice requires a linked library recipe.');
-  const riceRole = resolveRecipeRiceRole(plan.libraryMeal);
+  let riceRole;
+  if (plan.libraryMeal) {
+    if (plan.libraryMeal.status !== 'APPROVED' || plan.libraryMeal.recipeSignature !== plan.baseRecipeSignature)
+      throw new Error('Rice requires a current, available base recipe.');
+    riceRole = resolveRecipeRiceRole(plan.libraryMeal);
+  } else {
+    const source = plan.sourceRawRecipeCandidate;
+    if (
+      plan.candidateProvenance !== 'RAW_RECIPE_CORPUS' ||
+      source?.sourceName !== 'PANLASANG_PINOY' ||
+      source.status !== 'AVAILABLE' ||
+      source.libraryVariants.length
+    )
+      throw new Error('Rice requires an available source recipe.');
+    if (plan.status === 'APPROVED') {
+      const context = await loadPlanningNutritionContext(tx, plan.userId, 'Profile missing.');
+      const evidence = plan.selectionEvidence as { servingScale?: number } | null;
+      const base = plan.servingComponents.find((component) => component.componentType === 'BASE_RECIPE');
+      if (
+        !base ||
+        !isUnrestrictedPanlasangBaseEligible({
+          source,
+          candidateId: source.id,
+          conditions: context.conditions,
+          allergens: context.allergens,
+          otherConditions: context.otherConditions,
+          otherAllergies: context.otherAllergies,
+          safetyEntries: context.user.safetyProfileEntries,
+          preparedIngredients: plan.ingredients,
+          servingScale: evidence?.servingScale,
+          preparedNutrition: base,
+        })
+      )
+        throw new Error('This source serving requires case review before use.');
+    }
+    riceRole = {
+      ...proposeRiceRole({
+        name: plan.mealName,
+        category: source.category,
+        ingredients: plan.ingredients.map((ingredient) => ({
+          name: ingredient.ingredientName,
+          quantity: ingredient.quantity,
+          unit: ingredient.unit,
+        })),
+      }),
+      minHalfCups: 1,
+      maxHalfCups: 3,
+    };
+  }
   if (riceRole.riceRole !== 'PAIR_WITH_RICE') throw new Error('Only a rice-compatible dish can receive a rice side.');
   const halfCups = input.cookedRiceG / COOKED_RICE_HALF_CUP_GRAMS;
   if (!Number.isInteger(halfCups) || halfCups < riceRole.minHalfCups || halfCups > riceRole.maxHalfCups) {
@@ -96,6 +150,8 @@ export async function composePlanWithPairedRice(
   const baseComponent = plan.servingComponents.find((component) => component.componentType === 'BASE_RECIPE');
   if (!baseComponent) throw new Error('Plan has no current base serving component.');
   const rice = await tx.foodItem.findUniqueOrThrow({ where: { id: input.fnriRiceFoodItemId } });
+  if (rice.source !== 'FNRI' || rice.name.toLowerCase() !== 'rice, well-milled, boiled')
+    throw new Error('Select the governed cooked-rice food record.');
   const composed = buildComposedServing({
     baseRecipeSignature: plan.baseRecipeSignature,
     baseNutrition: {

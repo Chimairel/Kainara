@@ -60,11 +60,31 @@ router.get('/readiness', async (req, res) => {
  * Route: POST /api/user/meals/generate
  * Description: Generates a 7-day, 21-meal plan.
  */
-router.post('/generate', requireClinicalEvidenceReady, validateZodRequest({ body: mealGenerationBodySchema }), MealsController.generateMealPlan);
+router.post(
+  '/generate',
+  requireClinicalEvidenceReady,
+  validateZodRequest({ body: mealGenerationBodySchema }),
+  MealsController.generateMealPlan
+);
 router.get('/generation-status', MealsController.getGenerationStatus);
-router.post('/cycles/:cycleId/retry-generation', requireClinicalEvidenceReady,
-  validateZodRequest({ params: z.object({ cycleId: z.string().min(1).max(200) }).strict(), body: z.object({}).strict() }),
-  MealsController.retryMissingGeneration);
+router.post(
+  '/cycles/:cycleId/replace-retired',
+  requireClinicalEvidenceReady,
+  validateZodRequest({
+    params: z.object({ cycleId: z.string().min(1).max(200) }).strict(),
+    body: z.object({}).strict(),
+  }),
+  MealsController.replaceRetiredMeals
+);
+router.post(
+  '/cycles/:cycleId/retry-generation',
+  requireClinicalEvidenceReady,
+  validateZodRequest({
+    params: z.object({ cycleId: z.string().min(1).max(200) }).strict(),
+    body: z.object({}).strict(),
+  }),
+  MealsController.retryMissingGeneration
+);
 
 /**
  * Route: POST /api/user/meals/rollover
@@ -76,14 +96,29 @@ router.post('/rollover', requireClinicalEvidenceReady, MealsController.ensureCur
  * Route: GET /api/user/meals/current
  * Description: Returns current active meal plan items.
  */
-router.get('/current', requireClinicalEvidenceReady, validateZodRequest({ query: z.object({}).strict() }), MealsController.getCurrentPlan);
-router.get('/workspace', requireClinicalEvidenceReady, validateZodRequest({ query: z.object({}).strict() }), MealsController.getPlanWorkspace);
+router.get(
+  '/current',
+  requireClinicalEvidenceReady,
+  validateZodRequest({ query: z.object({}).strict() }),
+  MealsController.getCurrentPlan
+);
+router.get(
+  '/workspace',
+  requireClinicalEvidenceReady,
+  validateZodRequest({ query: z.object({}).strict() }),
+  MealsController.getPlanWorkspace
+);
 
 /**
  * Route: GET /api/user/meals/cycles
  * Description: Returns authoritative current and upcoming cycle identities.
  */
-router.get('/cycles', requireClinicalEvidenceReady, validateZodRequest({ query: z.object({}).strict() }), MealsController.getPlanCycles);
+router.get(
+  '/cycles',
+  requireClinicalEvidenceReady,
+  validateZodRequest({ query: z.object({}).strict() }),
+  MealsController.getPlanCycles
+);
 router.post(
   '/cycles/:cycleId/acknowledge-incomplete',
   requireClinicalEvidenceReady,
@@ -182,19 +217,30 @@ router.get(
   MealsController.getCompatibleLibrary
 );
 
-router.get('/verified-recipes', validateZodRequest({ query: z.object({
-  search: z.string().trim().max(120).optional(),
-  mealType: z.enum(['BREAKFAST', 'LUNCH', 'DINNER']).optional(),
-  page: z.coerce.number().int().min(1).max(1000).optional(),
-}).strict() }), async (req, res, next) => {
-  try {
-    const data = await VerifiedRecipeCatalogService.list((req as AuthenticatedRequest).user!.userId,
-      { search: req.query.search as string | undefined,
+router.get(
+  '/verified-recipes',
+  validateZodRequest({
+    query: z
+      .object({
+        search: z.string().trim().max(120).optional(),
+        mealType: z.enum(['BREAKFAST', 'LUNCH', 'DINNER']).optional(),
+        page: z.coerce.number().int().min(1).max(1000).optional(),
+      })
+      .strict(),
+  }),
+  async (req, res, next) => {
+    try {
+      const data = await VerifiedRecipeCatalogService.list((req as AuthenticatedRequest).user!.userId, {
+        search: req.query.search as string | undefined,
         mealType: req.query.mealType as 'BREAKFAST' | 'LUNCH' | 'DINNER' | undefined,
-        page: req.query.page ? Number(req.query.page) : undefined });
-    res.json({ success: true, data });
-  } catch (error) { next(error); }
-});
+        page: req.query.page ? Number(req.query.page) : undefined,
+      });
+      res.json({ success: true, data });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
 
 router.post(
   '/library/:id/favorite',
@@ -211,13 +257,23 @@ router.delete(
  * Route: GET /api/user/meals/:id
  * Description: Retrieves details of a specific meal plan item.
  */
-router.get('/:id', requireClinicalEvidenceReady, validateZodRequest({ params: resourceIdParamsSchema }), MealsController.getMealDetails);
+router.get(
+  '/:id',
+  requireClinicalEvidenceReady,
+  validateZodRequest({ params: resourceIdParamsSchema }),
+  MealsController.getMealDetails
+);
 
 /**
  * Route: GET /api/user/meals/:id/swap-options
  * Description: Retrieves swap options for a given meal plan slot.
  */
-router.get('/:id/swap-options', requireClinicalEvidenceReady, validateZodRequest({ params: resourceIdParamsSchema }), MealsController.getSwapOptions);
+router.get(
+  '/:id/swap-options',
+  requireClinicalEvidenceReady,
+  validateZodRequest({ params: resourceIdParamsSchema }),
+  MealsController.getSwapOptions
+);
 
 /**
  * Route: GET /api/user/meals/:id/swap-preview

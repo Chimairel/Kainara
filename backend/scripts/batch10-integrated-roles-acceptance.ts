@@ -19,15 +19,14 @@ import { certifyMealLibrarySafetySchema } from '../src/domain/meal-library-safet
 import { queryEligibleLibraryMeals } from '../src/services/meal-library-candidate-query.service';
 import { validateGeneratedMealCandidate } from '../src/domain/generated-meal-validation.policy';
 import { SafetyIntakeService } from '../src/services/safety-intake.service';
-import { prepareLibraryNutritionEvidence } from '../src/services/nutritionist-library-nutrition-evidence.service';
 import { MealBaseVerificationService } from '../src/services/meal-base-verification.service';
+import { createRecipeDerivation } from '../src/services/recipe-derivation.service';
+import { recipeDerivationSchema } from '../src/validation/recipe-derivation.schemas';
 
 async function main() {
   const databaseHost = new URL(process.env.DATABASE_URL ?? '').hostname;
   if (process.env.BATCH10_DISPOSABLE_DB !== '1' || !['127.0.0.1', 'localhost'].includes(databaseHost)) {
-    throw new Error(
-      'This approval journey creates review evidence. Run it only against a disposable local database.'
-    );
+    throw new Error('This approval journey creates review evidence. Run it only against a disposable local database.');
   }
   const marker = randomUUID();
   const accounts: string[] = [];
@@ -36,6 +35,7 @@ async function main() {
   let planId: string | null = null;
   let cycleId: string | null = null;
   let libraryMealId: string | null = null;
+  let parentLibraryMealId: string | null = null;
   async function removePublishedFixture() {
     if (planId) {
       await prisma.mealPlanReviewDecision.deleteMany({ where: { mealPlanId: planId } });
@@ -51,6 +51,10 @@ async function main() {
       await prisma.mealLibrarySafetyReview.deleteMany({ where: { mealLibraryId: libraryMealId } });
       await prisma.mealLibrary.deleteMany({ where: { id: libraryMealId } });
       libraryMealId = null;
+    }
+    if (parentLibraryMealId) {
+      await prisma.mealLibrary.deleteMany({ where: { id: parentLibraryMealId } });
+      parentLibraryMealId = null;
     }
   }
   try {
@@ -74,6 +78,26 @@ async function main() {
       },
     });
     accounts.push(rndUser.id);
+    const peerUser = await prisma.user.create({
+      data: {
+        email: `batch10-peer-${marker}@example.invalid`,
+        name: 'Batch 10 Independent RND',
+        passwordHash: 'disabled',
+        role: 'NUTRITIONIST',
+        emailVerified: true,
+        nutritionistProfile: {
+          create: {
+            prcLicenseNumber: `BATCH10-PEER-${marker}`,
+            prcLicenseExpiry: new Date('2030-12-31T00:00:00Z'),
+            isVerified: true,
+            verifiedAt: new Date(),
+          },
+        },
+      },
+      include: { nutritionistProfile: true },
+    });
+    accounts.push(peerUser.id);
+    const peer = peerUser.nutritionistProfile!;
     const rnd = await prisma.nutritionistProfile.create({
       data: {
         userId: rndUser.id,
@@ -121,10 +145,14 @@ async function main() {
       },
     });
     accounts.push(patient.id);
-    await SafetyIntakeService.replaceDomains(patient.id, ['CONDITION', 'ALLERGY'], [
-      { domain: 'CONDITION', value: 'NONE', provenance: 'PREDEFINED' },
-      { domain: 'ALLERGY', value: 'NONE', provenance: 'PREDEFINED' },
-    ]);
+    await SafetyIntakeService.replaceDomains(
+      patient.id,
+      ['CONDITION', 'ALLERGY'],
+      [
+        { domain: 'CONDITION', value: 'NONE', provenance: 'PREDEFINED' },
+        { domain: 'ALLERGY', value: 'NONE', provenance: 'PREDEFINED' },
+      ]
+    );
     // The fixture intentionally reviews a 420 kcal lunch against a 1,200 kcal day.
     await prisma.userProfile.update({ where: { userId: patient.id }, data: { dailyCalorieTarget: 1200 } });
     const historicalReviewId = randomUUID();
@@ -329,31 +357,60 @@ async function main() {
       (await queryEligibleLibraryMeals(eligibleQuery)).some((meal) => meal.id === libraryMealId),
       false
     );
-    const edited = await NutritionistLibraryService.editLibraryMeal(rndUser.id, 'NUTRITIONIST', libraryMealId, {
-      mealName,
-      description: plan.description,
-      calories: 420,
-      proteinG: 32,
-      carbsG: 46,
-      fatG: 13,
-      applicableMealTypes: [MealType.LUNCH],
-      riceRole: 'PAIR_WITH_RICE',
-    });
-    const draftIngredients = await prisma.mealLibraryIngredient.findMany({ where: { mealLibraryId: libraryMealId } });
-    const prepared = await prepareLibraryNutritionEvidence(rnd.id, libraryMealId, {
-      expectedRevision: edited.safetyEvidenceRevision,
-      portionBasis: 'One bowl with 240 g chicken breast and 50 g carrot.',
-      ingredients: draftIngredients.map((ingredient) => ({
-        id: ingredient.id,
-        foodItemId: ingredient.foodItemId!,
-        gramsPerServing: ingredient.ingredientName === 'Chicken breast' ? 240 : 50,
-      })),
-    });
-    const certified = await certifyLibraryMealSafety(
+    await assert.rejects(
+      () =>
+        NutritionistLibraryService.editLibraryMeal(rndUser.id, 'NUTRITIONIST', libraryMealId!, {
+          mealName,
+          description: plan.description,
+          calories: 420,
+          proteinG: 32,
+          carbsG: 46,
+          fatG: 13,
+          applicableMealTypes: [MealType.LUNCH],
+          riceRole: 'PAIR_WITH_RICE',
+        }),
+      /Create recipe draft/
+    );
+    parentLibraryMealId = libraryMealId;
+    const derived = await createRecipeDerivation(
       rnd.id,
+      parentLibraryMealId,
+      recipeDerivationSchema.parse({
+        expectedRevision: draft.meal.safetyEvidenceRevision,
+        mealName,
+        summary: plan.description,
+        instructions: 'Cook the measured chicken and carrot until fully cooked, then serve warm.',
+        mealType: 'LUNCH',
+        ingredients: [
+          { foodItemId: chicken.id, grams: 240 },
+          { foodItemId: carrot.id, grams: 50 },
+        ],
+        riceRole: 'PAIR_WITH_RICE',
+        riceMinHalfCups: 1,
+        riceMaxHalfCups: 3,
+        imageUrl: null,
+        imageMatchesRecipe: true,
+        rationale: 'Adjust measured ingredient amounts in a separate serving version.',
+      })
+    );
+    libraryMealId = derived.id;
+    await assert.rejects(
+      MealBaseVerificationService.claim(rnd.id, 'LIBRARY_MEAL', libraryMealId),
+      /different nutritionist/
+    );
+    await MealBaseVerificationService.claim(peer.id, 'LIBRARY_MEAL', libraryMealId);
+    await MealBaseVerificationService.decide(
+      peer.id,
+      'LIBRARY_MEAL',
+      libraryMealId,
+      'VERIFIED',
+      'Independently reviewed the complete recipe and measured serving.'
+    );
+    const certified = await certifyLibraryMealSafety(
+      peer.id,
       libraryMealId,
       certifyMealLibrarySafetySchema.parse({
-        expectedRevision: prepared.revision,
+        expectedRevision: derived.safetyEvidenceRevision,
         conditionDeclarationState: 'NOT_REVIEWED',
         allergenDeclarationState: 'REVIEWED_WITH_DECLARATIONS',
         crossContactAssessment: 'ASSESSED_NO_KNOWN_RISK',
@@ -364,9 +421,6 @@ async function main() {
       })
     );
     assert.equal(certified?.safetyEvidenceStatus, 'COMPLETE');
-    await MealBaseVerificationService.claim(rnd.id, 'LIBRARY_MEAL', libraryMealId);
-    await MealBaseVerificationService.decide(rnd.id, 'LIBRARY_MEAL', libraryMealId,
-      'VERIFIED', 'Reviewed the complete recipe as an edible meal.');
     assert.equal(
       (await queryEligibleLibraryMeals(eligibleQuery)).some((meal) => meal.id === libraryMealId),
       true

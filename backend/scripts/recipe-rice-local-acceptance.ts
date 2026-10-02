@@ -15,6 +15,7 @@ import { certifiedLibraryMealInclude } from '../src/services/meal-library-candid
 import { prepareLibraryNutritionEvidence } from '../src/services/nutritionist-library-nutrition-evidence.service';
 import { recipeDerivationSchema } from '../src/validation/recipe-derivation.schemas';
 import { NUTRITION_GUIDANCE_POLICY_VERSION } from '../src/domain/deterministic-nutrition-report.policy';
+import { verifyRawRiceAndRetiredRepair } from './helpers/recipe-rice-audit-fixture';
 
 async function main() {
   const database = new URL(process.env.DATABASE_URL ?? '');
@@ -332,6 +333,7 @@ async function main() {
   assert.deepEqual(after.servingComponents, before.servingComponents);
   assert.equal(after.composedServingSignature, before.composedServingSignature);
   assert.ok((await MealPlanCycleService.getClearedMealPlanIds(user.id, cycle.id)).includes(plan.id));
+  await verifyRawRiceAndRetiredRepair(verifier.id, other, rice);
   await prisma.foodItem.update({ where: { id: rice.id }, data: { compositionRevision: { increment: 1 } } });
   assert.equal((await MealPlanCycleService.getClearedMealPlanIds(user.id, cycle.id)).includes(plan.id), false);
   // A child without a raw-source link still resolves all legacy siblings and their children.
@@ -402,6 +404,20 @@ async function main() {
     'Independent review confirms the unchanged recorded preparation is valid.'
   );
   assert.equal((await prisma.mealPlan.findUniqueOrThrow({ where: { id: plan.id } })).requiresSafetyRevalidation, true);
+  await prisma.user.update({ where: { id: verifier.userId }, data: { isSuspended: true } });
+  await assert.rejects(
+    MealBaseVerificationService.claim(verifier.id, 'LIBRARY_MEAL', adapted.id),
+    /currently verified/
+  );
+  await assert.rejects(certifyLibraryMealSafety(verifier.id, adapted.id, certification), /verified nutritionist/);
+  await assert.rejects(
+    prepareLibraryNutritionEvidence(verifier.id, adapted.id, {
+      expectedRevision: 1,
+      portionBasis: 'One measured serving',
+      ingredients: [],
+    }),
+    /currently verified/
+  );
   console.log(
     'PASS: immutable drafts, independent review, certification, whole-plate rice, approval preservation, stale food rejection, family flag and uninvolved Lead resolution.'
   );

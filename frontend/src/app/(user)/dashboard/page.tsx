@@ -1,4 +1,5 @@
 'use client';
+import UnavailableMealsNotice from '@/features/meals/UnavailableMealsNotice';
 
 import { useVisiblePolling } from '@/hooks/useVisiblePolling';
 import { LIVE_UPDATE_EVENT } from '@/lib/live-events';
@@ -600,6 +601,7 @@ export default function DashboardPage() {
           }
         />
 
+        {!isLoading && <UnavailableMealsNotice cycle={currentCycle} onRepair={() => router.push('/meals')} />}
         {!isLoading && awaitingGenerationCount > 0 && !isReportPending && !clinicalEvidenceRequired && (
           <div
             role="status"

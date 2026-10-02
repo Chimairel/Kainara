@@ -75,12 +75,12 @@ export default function AdminNutritionistsPage() {
   );
 
   useVisiblePolling(fetchData, { enabled: Boolean(ownerId) && !workingId, immediate: true, scopeKey: ownerId });
-  useEffect(
-    () => () => {
+  useEffect(() => {
+    currentOwner.current = ownerId;
+    return () => {
       currentOwner.current = undefined;
-    },
-    []
-  );
+    };
+  }, [ownerId]);
 
   const act = async (
     id: string,

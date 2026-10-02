@@ -44,6 +44,18 @@ export interface CanonicalUserSafetyRestrictions {
   requiresReview: boolean;
 }
 
+/** Any declared restriction needs review of a newly composed serving. */
+export function hasDeclaredSafetyRestrictions(source: UserSafetyRestrictionSource): boolean {
+  const restrictions = adaptUserSafetyRestrictions(source);
+  return Boolean(
+    restrictions.requiresReview ||
+    restrictions.conditions.length ||
+    restrictions.allergies.length ||
+    restrictions.customConditions.length ||
+    restrictions.customFoodRestrictions.length
+  );
+}
+
 const CONDITION_KEYS = new Set<string>(RESTRICTION_CONDITION_KEYS);
 const ALLERGY_KEYS = new Set<string>(RESTRICTION_ALLERGY_KEYS);
 const SUPPORT_STATES = new Set<string>(SAFETY_SUPPORT_STATES);

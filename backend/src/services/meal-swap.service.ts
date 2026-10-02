@@ -1,3 +1,4 @@
+import { hasDeclaredSafetyRestrictions } from '@/domain/structured-restriction.adapter';
 import { ricePortionLabel } from '@/domain/rice-portion.policy';
 import { resolveRecipeRiceRole } from '@/domain/recipe-rice-role.policy';
 import { rankLibraryMeals } from '@/domain/library-ranking.policy';
@@ -241,7 +242,13 @@ export class MealSwapService {
           mealType: mealPlan.mealType,
           dailyTarget,
           ricePreference: userProfile.ricePreference,
-          hasConditions: userConditions.some((condition) => condition !== HealthConditionType.NONE),
+          hasConditions: hasDeclaredSafetyRestrictions({
+            healthConditions: userConditions,
+            allergies: userAllergens,
+            otherConditions: userProfile.otherConditions,
+            otherAllergies: userProfile.otherAllergies,
+            safetyEntries: user.safetyProfileEntries,
+          }),
           riceFood,
         });
         if (!serving) return [];
@@ -363,7 +370,13 @@ export class MealSwapService {
       mealType: mealPlan.mealType,
       dailyTarget,
       ricePreference: userProfile.ricePreference,
-      hasConditions: user.healthConditions.some((item) => item.condition !== HealthConditionType.NONE),
+      hasConditions: hasDeclaredSafetyRestrictions({
+        healthConditions: user.healthConditions.map((item) => item.condition),
+        allergies: user.allergies.map((item) => item.allergen),
+        otherConditions: userProfile.otherConditions,
+        otherAllergies: userProfile.otherAllergies,
+        safetyEntries: user.safetyProfileEntries,
+      }),
       riceFood,
     });
     if (!serving) throw new Error('This serving does not fit your current meal target or rice preference.');

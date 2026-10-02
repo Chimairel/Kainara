@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { membershipSchedules, manilaDate } from './membership-schedule';
 import { ChevronLeft, ChevronRight, Clock } from 'lucide-react';
 import { KainaraLogo } from '@/components/shared/KainaraLogo';
@@ -31,6 +31,10 @@ export default function PlanCalendarCard({ data }: PlanCalendarCardProps) {
   const endTimeStr = formatTime(endDate);
   const initialDay = manilaDate(schedule.start ?? data.serverTime);
   const [currentMonth, setCurrentMonth] = useState(() => new Date(`${initialDay.slice(0, 7)}-01T12:00:00Z`));
+  const periodKey = `${schedule.id}:${schedule.start ?? 'not-started'}`;
+  useEffect(() => {
+    setCurrentMonth(new Date(`${initialDay.slice(0, 7)}-01T12:00:00Z`));
+  }, [periodKey, initialDay]);
 
   const prevMonth = () => {
     setCurrentMonth(new Date(Date.UTC(currentMonth.getUTCFullYear(), currentMonth.getUTCMonth() - 1, 1, 12)));

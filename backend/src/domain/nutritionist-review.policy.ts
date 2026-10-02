@@ -39,8 +39,10 @@ export function canAcquireReviewClaim(
   nutritionistProfileId: string,
   now: Date = new Date()
 ): boolean {
-  return !getReviewClaimCooldownUntil(claim, nutritionistProfileId, now) &&
-    (!isReviewClaimActive(claim, now) || claim.claimedByNutritionistId === nutritionistProfileId);
+  return (
+    !getReviewClaimCooldownUntil(claim, nutritionistProfileId, now) &&
+    (!isReviewClaimActive(claim, now) || claim.claimedByNutritionistId === nutritionistProfileId)
+  );
 }
 
 export function getReviewPriority(flag: AIConfidenceFlag): number {
@@ -58,6 +60,7 @@ export function getReviewPriority(flag: AIConfidenceFlag): number {
 export function isNutritionistEligibleForReview(profile: EligibilityCandidate, now: Date = new Date()): boolean {
   if (!profile.isVerified) return false;
   if (profile.user?.isSuspended === true) return false;
+  if (profile.user?.role && profile.user.role !== 'NUTRITIONIST') return false;
 
   const expiryDate = getManilaBusinessDateKey(profile.prcLicenseExpiry);
   const currentDate = getManilaBusinessDateKey(now);

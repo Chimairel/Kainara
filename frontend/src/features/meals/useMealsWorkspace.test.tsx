@@ -31,6 +31,30 @@ describe('useMealsWorkspace', () => {
     getMock.mockImplementation(async (url: string) => successfulResponseFor(url));
   });
 
+  it('honors an explicit replacement even when every old meal was hidden, and coalesces repeated clicks', async () => {
+    const { result } = renderHook(() => useMealsWorkspace());
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    let resolvePayment: ((value: unknown) => void) | undefined;
+    postMock.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          resolvePayment = resolve;
+        })
+    );
+    let first: Promise<void>;
+    act(() => {
+      first = result.current.handleRegeneratePlan({ replaceExisting: true, skipConfirm: true });
+    });
+    await act(async () => result.current.handleRegeneratePlan({ replaceExisting: true, skipConfirm: true }));
+    expect(postMock).toHaveBeenCalledTimes(1);
+    expect(postMock.mock.calls[0][1].replaceExisting).toBe(true);
+    await act(async () => {
+      resolvePayment?.({ data: { success: true } });
+      await first!;
+    });
+    expect(result.current.isRegenerating).toBe(false);
+  });
+
   it('loads history and library only when their tabs are opened', async () => {
     const { result } = renderHook(() => useMealsWorkspace());
 

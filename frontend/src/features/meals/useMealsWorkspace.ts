@@ -21,6 +21,9 @@ export type { MealHistoryLog, SwapOption } from './meals-workspace.types';
 const planResource = 'user-meals-workspace';
 export function useMealsWorkspace(initialOptions?: { initialDateKey?: string | null }) {
   const replanRequest = useRef<string | null>(null);
+  const regenerationInFlight = useRef(false);
+  const repairInFlight = useRef(false);
+  const [isRepairingRetired, setIsRepairingRetired] = useState(false);
   const { user } = useAuth();
   const ownerId = user?.userId;
   const currentPlanResource = planResource;
@@ -54,9 +57,7 @@ export function useMealsWorkspace(initialOptions?: { initialDateKey?: string | n
     cachedPlan?.generationStatus ?? { current: null, upcoming: null }
   );
   const [isRetryingMissing, setIsRetryingMissing] = useState(false);
-  const [selectedPlanDateKey, setSelectedPlanDateKey] = useState<string | null>(
-    initialOptions?.initialDateKey ?? null
-  );
+  const [selectedPlanDateKey, setSelectedPlanDateKey] = useState<string | null>(initialOptions?.initialDateKey ?? null);
   const currentPlanRequestInFlight = useRef(false);
   useEffect(() => {
     if (!ownerId) return;
@@ -400,20 +401,21 @@ export function useMealsWorkspace(initialOptions?: { initialDateKey?: string | n
   // Triggers full 7-day meal plan regeneration
   const handleRegeneratePlan = useCallback(
     async (options?: { replaceExisting?: boolean; skipConfirm?: boolean }) => {
-      if (pendingReview) return;
+      if (regenerationInFlight.current || pendingReview) return;
 
       if (meals.length > 0 && !options?.skipConfirm) {
         if (!confirm('Are you sure you want to cancel your current plan and generate a completely new 7-day AI plan?'))
           return;
       }
 
+      regenerationInFlight.current = true;
       setIsRegenerating(true);
       regenerationProgress.begin('Preparing a replacement weekly plan.');
       setError(null);
       try {
         replanRequest.current ??= crypto.randomUUID();
         const res = await api.post('/user/meals/generate', {
-          replaceExisting: meals.length > 0,
+          replaceExisting: options?.replaceExisting ?? meals.length > 0,
           requestKey: replanRequest.current,
         });
         if (!res.data?.success) throw new Error('Could not regenerate the weekly plan.');
@@ -429,6 +431,7 @@ export function useMealsWorkspace(initialOptions?: { initialDateKey?: string | n
         regenerationProgress.fail(msg);
         setError(msg);
       } finally {
+        regenerationInFlight.current = false;
         setIsRegenerating(false);
       }
     },
@@ -444,6 +447,22 @@ export function useMealsWorkspace(initialOptions?: { initialDateKey?: string | n
       setError(getApiErrorMessage(err, 'Could not retry the missing meal slots.'));
     } finally {
       setIsRetryingMissing(false);
+    }
+  };
+
+  const repairRetiredMeals = async (cycleId: string) => {
+    if (repairInFlight.current) return;
+    repairInFlight.current = true;
+    setIsRepairingRetired(true);
+    setError(null);
+    try {
+      await api.post(`/user/meals/cycles/${cycleId}/replace-retired`, {});
+      await fetchMeals();
+    } catch (err: unknown) {
+      setError(getApiErrorMessage(err, 'Could not replace retired meals.'));
+    } finally {
+      repairInFlight.current = false;
+      setIsRepairingRetired(false);
     }
   };
 
@@ -629,6 +648,8 @@ export function useMealsWorkspace(initialOptions?: { initialDateKey?: string | n
     generationStatus,
     isRetryingMissing,
     retryMissingGeneration,
+    repairRetiredMeals,
+    isRepairingRetired,
     cycles,
     selectedPlanDateKey,
     setSelectedPlanDateKey,

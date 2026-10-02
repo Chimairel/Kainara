@@ -52,7 +52,7 @@ export async function certifyLibraryMealSafety(
   const now = new Date();
   const reviewer = await prisma.nutritionistProfile.findUnique({
     where: { id: nutritionistProfileId },
-    include: { user: { select: { role: true } } },
+    include: { user: { select: { role: true, isSuspended: true } } },
   });
   if (!reviewer || !isNutritionistEligibleForReview(reviewer, now)) {
     throw new Error('Only a currently verified nutritionist with an unexpired PRC license can certify evidence.');

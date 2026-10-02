@@ -95,7 +95,7 @@ export async function prepareLibraryNutritionEvidence(
 ) {
   const reviewer = await prisma.nutritionistProfile.findUnique({
     where: { id: nutritionistProfileId },
-    include: { user: { select: { role: true } } },
+    include: { user: { select: { role: true, isSuspended: true } } },
   });
   if (!reviewer || !isNutritionistEligibleForReview(reviewer)) {
     throw new Error('Only a currently verified nutritionist can prepare recipe nutrition evidence.');

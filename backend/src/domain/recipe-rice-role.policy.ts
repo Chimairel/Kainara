@@ -66,7 +66,7 @@ export function resolveRecipeRiceRole(meal: {
   if (
     meal.riceRoleReviewStatus === 'REVIEWED' &&
     meal.riceRole &&
-    !(meal.riceRole === 'PAIR_WITH_RICE' && classification.riceRole === 'INCLUDES_RICE')
+    !(classification.riceRole === 'INCLUDES_RICE' && meal.riceRole !== 'INCLUDES_RICE')
   ) {
     return {
       riceRole: meal.riceRole,

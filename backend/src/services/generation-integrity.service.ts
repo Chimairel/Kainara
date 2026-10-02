@@ -1,5 +1,14 @@
 import type { Prisma } from '@prisma/client';
 
+export async function assertFoodCompositionRevisions(tx: Prisma.TransactionClient, revisions: Map<string, number>) {
+  const foods = await tx.foodItem.findMany({
+    where: { id: { in: [...revisions.keys()] } },
+    select: { id: true, compositionRevision: true },
+  });
+  if (foods.length !== revisions.size || foods.some((food) => food.compositionRevision !== revisions.get(food.id)))
+    throw new Error('Food composition changed during generation. Please retry.');
+}
+
 export async function assertGenerationIntegrity(
   tx: Prisma.TransactionClient,
   userId: string,
@@ -7,12 +16,7 @@ export async function assertGenerationIntegrity(
   end: Date,
   revisions: Map<string, number>
 ) {
-  const foods = await tx.foodItem.findMany({
-    where: { id: { in: [...revisions.keys()] } },
-    select: { id: true, compositionRevision: true },
-  });
-  if (foods.length !== revisions.size || foods.some((food) => food.compositionRevision !== revisions.get(food.id)))
-    throw new Error('Food composition changed during generation. Please retry.');
+  await assertFoodCompositionRevisions(tx, revisions);
   const existing = await tx.mealPlan.findMany({
     where: { userId, status: { in: ['APPROVED', 'PENDING_REVIEW'] }, scheduledDate: { gte: start, lte: end } },
     select: { planGroupId: true, mealLogs: { where: { status: { in: ['DONE', 'SKIPPED'] } }, select: { id: true } } },

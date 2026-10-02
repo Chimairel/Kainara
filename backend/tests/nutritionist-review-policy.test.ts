@@ -10,6 +10,18 @@ import {
 } from '../src/domain/nutritionist-review.policy';
 
 const now = new Date('2026-08-30T04:00:00.000Z');
+test('a suspended reviewer or changed account role cannot approve', () => {
+  const profile = { isVerified: true, prcLicenseExpiry: new Date('2031-01-01') };
+  assert.equal(
+    isNutritionistEligibleForReview({ ...profile, user: { role: 'NUTRITIONIST', isSuspended: true } }, now),
+    false
+  );
+  assert.equal(isNutritionistEligibleForReview({ ...profile, user: { role: 'USER', isSuspended: false } }, now), false);
+  assert.equal(
+    isNutritionistEligibleForReview({ ...profile, user: { role: 'NUTRITIONIST', isSuspended: false } }, now),
+    true
+  );
+});
 
 test('[TEST-046][DEF-013] review severity keeps NEEDS_REVIEW ahead of CAUTION and SAFE', () => {
   assert.equal(getReviewPriority(AIConfidenceFlag.NEEDS_REVIEW), 0);
@@ -37,7 +49,10 @@ test('[TEST-048][DEF-013] expired and unclaimed reviews can be acquired', () => 
   assert.equal(isReviewClaimActive(expiredClaim, now), false);
   assert.equal(canAcquireReviewClaim(expiredClaim, 'nutritionist-b', now), true);
   assert.equal(canAcquireReviewClaim(expiredClaim, 'nutritionist-a', now), false);
-  assert.equal(getReviewClaimCooldownUntil(expiredClaim, 'nutritionist-a', now)?.toISOString(), '2026-08-30T04:04:00.000Z');
+  assert.equal(
+    getReviewClaimCooldownUntil(expiredClaim, 'nutritionist-a', now)?.toISOString(),
+    '2026-08-30T04:04:00.000Z'
+  );
   assert.equal(canAcquireReviewClaim(expiredClaim, 'nutritionist-a', new Date(now.getTime() + 4 * 60 * 1000)), true);
   assert.equal(canAcquireReviewClaim({ claimedByNutritionistId: null, claimedAt: null }, 'nutritionist-b', now), true);
 });

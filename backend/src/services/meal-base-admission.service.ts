@@ -6,7 +6,7 @@ type LibraryBase = {
   recipeSignature: string | null;
   description: string | null;
   sourceRawRecipeCandidateId: string | null;
-  status?: string;
+  status: string;
   sourceRawRecipeCandidate?: {
     sourceName: string;
     status: string;
@@ -21,8 +21,9 @@ export function libraryBaseRevisionKey(recipeSignature: string, description: str
 }
 
 export function baseMealAdmissionMatches(meal: LibraryBase, verifiedKeys: ReadonlySet<string>): boolean {
-  if (meal.status && meal.status !== 'APPROVED') return false;
+  if (meal.status !== 'APPROVED') return false;
   const source = meal.sourceRawRecipeCandidate;
+  if (source && source.status !== 'AVAILABLE') return false;
   if (!meal.recipeSignature) return false;
   if (source?.sourceName === 'PANLASANG_PINOY' && source.status === 'AVAILABLE') return true;
   return (

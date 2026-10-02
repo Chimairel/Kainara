@@ -4,10 +4,25 @@ import { baseMealAdmissionMatches, libraryBaseRevisionKey } from '../src/service
 
 const recipe = {
   id: 'meal-1',
+  status: 'APPROVED',
   recipeSignature: 'revision-2',
   description: 'Cook the meal',
   sourceRawRecipeCandidateId: null,
 };
+test('old library verification cannot revive an unavailable linked source', () => {
+  const key = `LIBRARY_MEAL:meal-1:${libraryBaseRevisionKey(recipe.recipeSignature, recipe.description)}`;
+  assert.equal(
+    baseMealAdmissionMatches(
+      {
+        ...recipe,
+        sourceRawRecipeCandidateId: 'source',
+        sourceRawRecipeCandidate: { sourceName: 'PANLASANG_PINOY', status: 'RETIRED', contentSignature: 'old' },
+      },
+      new Set([key])
+    ),
+    false
+  );
+});
 
 test('retired fixture recipes cannot be readmitted by their old verification', () => {
   const key = `LIBRARY_MEAL:meal-1:${libraryBaseRevisionKey('revision-2', 'Cook the meal')}`;

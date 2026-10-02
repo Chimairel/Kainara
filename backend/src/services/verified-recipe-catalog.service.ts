@@ -50,6 +50,7 @@ export class VerifiedRecipeCatalogService {
       },
       select: {
         id: true,
+        status: true,
         recipeSignature: true,
         description: true,
         sourceRawRecipeCandidateId: true,

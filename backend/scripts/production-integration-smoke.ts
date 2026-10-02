@@ -143,22 +143,22 @@ async function main() {
   assert.ok(certified && certified.safetyEvidenceRevision >= prepared.revision);
   assert.equal(certified.certifiedEvidenceRevision, certified.safetyEvidenceRevision);
 
-  const invalidated = await NutritionistService.editLibraryMeal(
-    reviewerUsers[0].id,
-    reviewerUsers[0].role,
-    syntheticMeal.id,
-    {
-      mealName: `${syntheticMeal.mealName} revised`,
-      description: syntheticMeal.description,
-      calories: syntheticMeal.calories,
-      proteinG: syntheticMeal.proteinG,
-      carbsG: syntheticMeal.carbsG,
-      fatG: syntheticMeal.fatG,
-      dietaryTags: [],
-    }
+  await assert.rejects(
+    () =>
+      NutritionistService.editLibraryMeal(reviewerUsers[0].id, reviewerUsers[0].role, syntheticMeal.id, {
+        mealName: `${syntheticMeal.mealName} revised`,
+        description: syntheticMeal.description,
+        calories: syntheticMeal.calories,
+        proteinG: syntheticMeal.proteinG,
+        carbsG: syntheticMeal.carbsG,
+        fatG: syntheticMeal.fatG,
+        dietaryTags: [],
+      }),
+    /Create recipe draft/i
   );
-  assert.equal(invalidated.safetyEvidenceStatus, MealLibrarySafetyEvidenceStatus.STALE);
-  assert.equal(invalidated.safetyEvidenceRevision, certified.safetyEvidenceRevision + 1);
+  const unchanged = await prisma.mealLibrary.findUniqueOrThrow({ where: { id: syntheticMeal.id } });
+  assert.equal(unchanged.safetyEvidenceStatus, MealLibrarySafetyEvidenceStatus.COMPLETE);
+  assert.equal(unchanged.safetyEvidenceRevision, certified.safetyEvidenceRevision);
 
   const syntheticUser = await prisma.user.create({
     data: {

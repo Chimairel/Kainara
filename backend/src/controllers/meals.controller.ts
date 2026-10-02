@@ -4,6 +4,7 @@ import {
   isMealPlanNotActionableError,
 } from '@/domain/meal-actionability.policy';
 import { missingMealSlots } from '@/domain/meal-generation-gap.policy';
+import { unavailablePlanMeals } from '@/domain/unavailable-plan-meals.policy';
 import { buildPendingMealPlanPreview, summarizeGeneratedMealPlan } from '@/domain/meal-generation-result.policy';
 import { AppError } from '@/errors/AppError';
 import { membershipEnabled } from '@/domain/membership.policy';
@@ -23,6 +24,7 @@ import {
   serializeActionableMeal,
 } from '@/services/meal-plan-presentation.service';
 import { MealSwapService } from '@/services/meal-swap.service';
+import { replaceRetiredPlanMeals } from '@/services/retired-plan-repair.service';
 import { updateScheduledMealStatus } from '@/services/scheduled-meal-log.service';
 import { UpcomingPlanPreparationService } from '@/services/upcoming-plan-preparation.service';
 import { AuthenticatedRequest } from '@/types';
@@ -32,6 +34,18 @@ import { getPlanHistory } from './meals-history.controller';
 import { OutsideMealsController } from './outside-meals.controller';
 
 export class MealsController {
+  static async replaceRetiredMeals(req: AuthenticatedRequest, res: Response) {
+    if (!req.user?.userId) return res.status(401).json({ success: false, error: 'Unauthorized.' });
+    try {
+      const data = await replaceRetiredPlanMeals(req.user.userId, req.params.cycleId);
+      return res.json({ success: true, data });
+    } catch (error) {
+      return res.status(error instanceof AppError ? error.statusCode : 500).json({
+        success: false,
+        error: sanitizeErrorMessage(error, 'Could not replace retired meals.'),
+      });
+    }
+  }
   /**
    * POST /api/user/meals/generate
    * Triggers the 7-day plan generation.
@@ -110,7 +124,11 @@ export class MealsController {
       // generation whenever at least one approved meal is available. A retry
       // remains safe because GroceryService replaces the prior projection.
       if (meals.length > 0) {
-        await GroceryService.generateGroceryList(userId, undefined, planGroupId);
+        try {
+          await GroceryService.generateGroceryList(userId, undefined, planGroupId);
+        } catch {
+          console.warn('[MealsController] Plan saved; grocery projection remains available for retry.');
+        }
       }
 
       return res.status(200).json({
@@ -272,7 +290,10 @@ export class MealsController {
         success: true,
         data: meals,
         meta: {
-          cycle,
+          cycle: {
+            ...cycle,
+            ...unavailablePlanMeals(groupMeals, clearedIds, MealPlanCycleService.getBusinessDay(new Date())),
+          },
           pendingReview: pendingPreviewWithImages(groupMeals, libraryImages, libraryCookingLinks),
           planSnapshot,
           awaitingGenerationCount: missingMealSlots(
@@ -384,7 +405,28 @@ export class MealsController {
         success: true,
         data: meals,
         meta: {
-          cycles,
+          cycles: {
+            current: cycles.current
+              ? {
+                  ...cycles.current,
+                  ...unavailablePlanMeals(
+                    rows.filter((row) => row.planGroupId === cycles.current?.id),
+                    clearedIds,
+                    MealPlanCycleService.getBusinessDay(new Date())
+                  ),
+                }
+              : null,
+            upcoming: cycles.upcoming
+              ? {
+                  ...cycles.upcoming,
+                  ...unavailablePlanMeals(
+                    rows.filter((row) => row.planGroupId === cycles.upcoming?.id),
+                    clearedIds,
+                    MealPlanCycleService.getBusinessDay(new Date())
+                  ),
+                }
+              : null,
+          },
           pendingReview: pendingPreviewWithImages(rows, libraryImages, libraryCookingLinks),
           awaitingGeneration: {
             current: cycles.current

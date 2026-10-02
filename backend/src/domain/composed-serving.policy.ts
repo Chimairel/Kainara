@@ -44,12 +44,7 @@ export function buildComposedServing(input: {
     throw new Error('Paired rice nutrition must come from a governed FNRI food record.');
   }
   const riceNutrition = scaleFnriFoodToGrams(input.riceFood, input.cookedRiceG);
-  const total = {
-    calories: round(input.baseNutrition.calories + riceNutrition.calories),
-    proteinG: round(input.baseNutrition.proteinG + riceNutrition.proteinG),
-    carbsG: round(input.baseNutrition.carbsG + riceNutrition.carbsG),
-    fatG: round(input.baseNutrition.fatG + riceNutrition.fatG),
-  };
+  const total = composedNutritionTotal(input.baseNutrition, riceNutrition);
   const canonical = JSON.stringify({
     version: COMPOSED_SERVING_SIGNATURE_VERSION,
     baseRecipeSignature: input.baseRecipeSignature,
@@ -78,4 +73,13 @@ export function includedRiceEvidenceIsEvaluable(input: {
 }): boolean {
   if (input.riceRoleReviewStatus !== 'REVIEWED' || !input.riceRole) return false;
   return input.riceRole !== 'INCLUDES_RICE' || Boolean(input.includedRiceG && input.includedRiceG > 0);
+}
+
+export function composedNutritionTotal(base: Macronutrients, side: Macronutrients): Macronutrients {
+  return {
+    calories: round(base.calories + side.calories),
+    proteinG: round(base.proteinG + side.proteinG),
+    carbsG: round(base.carbsG + side.carbsG),
+    fatG: round(base.fatG + side.fatG),
+  };
 }

@@ -18,6 +18,18 @@ const current = {
 } as Extract<MembershipView, { enabled: true }>;
 
 describe('membership period calendar', () => {
+  it('updates the month when a refreshed membership starts while preserving ordinary month navigation', () => {
+    const { rerender } = render(<PlanCalendarCard data={current} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Previous month' }));
+    rerender(<PlanCalendarCard data={{ ...current, serverTime: '2026-10-03T00:01:00Z' }} />);
+    expect(screen.getByText('September 2026')).toBeInTheDocument();
+    rerender(
+      <PlanCalendarCard
+        data={{ ...current, trialStartedAt: '2026-11-01T13:02:00Z', trialEndsAt: '2026-11-15T13:02:00Z' }}
+      />
+    );
+    expect(screen.getByText('November 2026')).toBeInTheDocument();
+  });
   it('shows Health and switches to already paid Lifestyle without changing current access', () => {
     render(<PlanCalendarCard data={current} />);
     expect(screen.getByRole('combobox', { name: 'Membership period' })).toHaveValue('current');

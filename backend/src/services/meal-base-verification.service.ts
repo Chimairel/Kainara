@@ -29,7 +29,7 @@ export async function isGeneratedBaseVerified(signature: string | null): Promise
 async function requireReviewer(profileId: string) {
   const profile = await prisma.nutritionistProfile.findUnique({
     where: { id: profileId },
-    include: { user: { select: { role: true } } },
+    include: { user: { select: { role: true, isSuspended: true } } },
   });
   if (!profile || !isNutritionistEligibleForReview(profile, new Date())) {
     throw new Error('A currently verified nutritionist is required.');
@@ -160,6 +160,7 @@ export class MealBaseVerificationService {
           id: true,
           recipeSignature: true,
           description: true,
+          status: true,
           sourceRawRecipeCandidateId: true,
           sourceRawRecipeCandidate: { select: { sourceName: true, status: true, contentSignature: true } },
         },
@@ -237,6 +238,7 @@ export class MealBaseVerificationService {
           id: true,
           recipeSignature: true,
           description: true,
+          status: true,
           sourceRawRecipeCandidateId: true,
           sourceRawRecipeCandidate: { select: { sourceName: true, status: true, contentSignature: true } },
         },

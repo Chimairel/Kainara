@@ -51,6 +51,51 @@ async function fixtureSession(page: Page, onboarded = false) {
   });
 }
 
+for (const width of [390, 1440]) {
+  test(`retired-slot warning repairs the existing cycle and refreshes at ${width}px`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 900 });
+    await fixtureSession(page, true);
+    let retiredCount = 2;
+    let repairRequests = 0;
+    const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Manila' });
+    await page.route('**/api/user/meals/workspace', (route) =>
+      route.fulfill({
+        json: {
+          success: true,
+          data: [],
+          meta: {
+            cycles: {
+              current: {
+                id: 'retired-cycle',
+                planType: 'WEEKLY',
+                startDate: `${today}T00:00:00Z`,
+                endDate: `${today}T23:59:59Z`,
+                status: 'ACTIVE',
+                unavailableMealCount: retiredCount,
+                retiredMealCount: retiredCount,
+              },
+              upcoming: null,
+            },
+          },
+        },
+      })
+    );
+    await page.route('**/api/user/meals/cycles/retired-cycle/replace-retired', async (route) => {
+      expect(route.request().method()).toBe('POST');
+      expect(route.request().postDataJSON()).toEqual({});
+      repairRequests++;
+      retiredCount = 0;
+      await route.fulfill({ json: { success: true, data: { replaced: 2, awaitingReplacement: 0 } } });
+    });
+    await page.goto('/meals');
+    await expect(page.getByText('Current plan: 2 unavailable meals')).toBeVisible();
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
+    await page.getByRole('button', { name: 'Replace retired meals', exact: true }).click();
+    await expect(page.getByText('Current plan: 2 unavailable meals')).toBeHidden();
+    expect(repairRequests).toBe(1);
+  });
+}
+
 test('public pages keep legal links and readable layouts at phone and desktop widths', async ({ page }) => {
   const errors: string[] = [];
   page.on('pageerror', (error) => errors.push(error.message));
