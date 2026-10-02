@@ -29,7 +29,11 @@ export class UpcomingPlanPreparationService {
     // Prepare the first usable window before spending candidate-generation
     // capacity on a future week. Both windows retain their own idempotent jobs.
     const current = await CurrentPlanPreparationService.ensureForUser(userId, now);
-    if (current.state === 'NOT_READY') return { state: 'NOT_OPEN' as const, planGroupId: null };
+    if (current.state === 'NOT_READY' || current.state === 'FAILED' || current.state === 'PREPARING') {
+      // Browsing/polling must not repeatedly retry a future job while the first
+      // plan is failed or still running. Explicit current-plan retry remains available.
+      return { state: 'NOT_OPEN' as const, planGroupId: null };
+    }
     const result = await MealGenerationService.ensureUpcomingPlanForUser(userId, now);
     if (result.planGroupId) await this.reconcileDeadline(userId, result.planGroupId, now);
     return result;

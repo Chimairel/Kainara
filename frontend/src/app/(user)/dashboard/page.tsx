@@ -703,10 +703,10 @@ export default function DashboardPage() {
           <StateNotice
             variant="no-meal-plan"
             imageAlt="Meal plan preparation"
-            title={generationStatus === 'FAILED' ? 'Meal Preparation Paused' : 'Preparing Your First Meal Plan'}
+            title={generationStatus === 'FAILED' ? 'Meal plan preparation failed' : 'Preparing Your First Meal Plan'}
             description={
               generationStatus === 'FAILED'
-                ? 'Your first plan could not be prepared. Retry when you are ready; no unreviewed meal has been made available.'
+                ? 'Your nutrition report is acknowledged, but your first meal plan could not be prepared. Retry preparation to try again.'
                 : 'Your current meal plan is being prepared automatically. New candidates will appear in Meals as previews and cannot be used until their safety review is complete.'
             }
             action={

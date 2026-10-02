@@ -6,10 +6,10 @@ describe('live stream framing', () => {
     const parse = createLiveEventParser(refresh);
     parse('event: connec');
     parse('ted\r\ndata: {}\r\n\r\n: keep-alive\n\n');
-    expect(refresh).toHaveBeenCalledTimes(1);
+    expect(refresh).not.toHaveBeenCalled();
     parse('event: refresh\ndata: {}\n');
-    expect(refresh).toHaveBeenCalledTimes(1);
+    expect(refresh).not.toHaveBeenCalled();
     parse('\nevent: unrelated\ndata: ignored\n\n');
-    expect(refresh).toHaveBeenCalledTimes(2);
+    expect(refresh).toHaveBeenCalledTimes(1);
   });
 });

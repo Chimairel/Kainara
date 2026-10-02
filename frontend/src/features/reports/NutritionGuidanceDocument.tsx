@@ -191,6 +191,11 @@ export default function NutritionGuidanceDocument({
               </span>
             </div>
           )}
+          {!isViewingArchived && report.acknowledgedAt && (
+            <Button onClick={onAcknowledge} isLoading={isAcknowledging} className="mb-4 self-start print:hidden">
+              Continue
+            </Button>
+          )}
 
           <NutritionGuidancePaper
             report={displayedReport}

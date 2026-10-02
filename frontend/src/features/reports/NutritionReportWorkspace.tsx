@@ -3,7 +3,7 @@
 import { useVisiblePolling } from '@/hooks/useVisiblePolling';
 import ReportHistory from '@/features/reports/ReportHistory';
 import NutritionGuidanceDocument from '@/features/reports/NutritionGuidanceDocument';
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import api from '@/lib/axios';
@@ -37,6 +37,10 @@ export default function NutritionReportPage() {
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isAcknowledging, setIsAcknowledging] = useState(false);
+  const acknowledgmentInFlight = useRef(false);
+  const acknowledgmentReadiness = useRef<PlanningReadiness | undefined>(undefined);
+  const currentUserId = useRef(userId);
+  currentUserId.current = userId;
   const [isRegenerating, setIsRegenerating] = useState(false);
 
   const extractRestrictionKeys = (values: unknown, objectKey: 'condition' | 'allergen') => {
@@ -160,20 +164,38 @@ export default function NutritionReportPage() {
   );
 
   const handleAcknowledge = async () => {
-    if (!report || report.isStale) return;
+    if (!report || report.isStale || acknowledgmentInFlight.current) return;
+    acknowledgmentInFlight.current = true;
     setError(null);
     setIsAcknowledging(true);
+    let saved = Boolean(report.acknowledgedAt);
+    let navigating = false;
     try {
-      const acknowledgment = await api.post('/user/nutrition-report/acknowledge', { version: report?.version });
+      if (!saved) {
+        const acknowledgment = await api.post('/user/nutrition-report/acknowledge', { version: report.version });
+        const receipt = acknowledgment.data?.data;
+        if (!acknowledgment.data?.success || !receipt?.acknowledgedAt) {
+          throw new Error('The server did not confirm acknowledgment. Please try again.');
+        }
+        if (currentUserId.current !== userId) return;
+        saved = true;
+        acknowledgmentReadiness.current = receipt.planningReadiness ?? undefined;
+        setReport((current) =>
+          current?.version === report.version ? { ...current, acknowledgedAt: receipt.acknowledgedAt } : current
+        );
+      }
 
       // Confirm current server state before continuing to a meal action.
-      const refreshed = await refreshSession();
+      const refreshed = await refreshSession({ showLoader: false });
+      if (currentUserId.current !== userId) return;
       if (!refreshed?.reportAcknowledged) {
-        setError('Unable to confirm the current report status. Please reload before continuing.');
+        setError(
+          'Your acknowledgment was saved. Unable to confirm the current report status. Choose Continue to retry the account check.'
+        );
         return;
       }
 
-      const readiness = acknowledgment.data?.data?.planningReadiness as PlanningReadiness | undefined;
+      const readiness = acknowledgmentReadiness.current;
       if (readiness) {
         const options = {
           description: readiness.message,
@@ -190,26 +212,34 @@ export default function NutritionReportPage() {
 
       // Only support the explicit internal continuation, never an arbitrary redirect URL.
       const next = new URLSearchParams(window.location.search).get('next');
+      navigating = true;
       router.push(
         readiness?.canRequestPlan === false
           ? readiness.actionPath
           : next === 'regenerate'
             ? '/meals?regenerate=true'
-            : next === 'dashboard'
-              ? '/dashboard'
-              : '/profile'
+            : '/dashboard'
       );
     } catch (err) {
-      if ((err as { response?: { status?: number } }).response?.status === 409) {
+      if (currentUserId.current !== userId) return;
+      if (!saved && (err as { response?: { status?: number } }).response?.status === 409) {
         setReport((current) => (current ? { ...current, isStale: true } : current));
       }
-      setError(getApiErrorMessage(err, 'Failed to acknowledge the report. Please try again.'));
+      setError(
+        saved
+          ? 'Your acknowledgment was saved. The account check is temporarily unavailable. Choose Continue to retry.'
+          : getApiErrorMessage(err, 'Failed to acknowledge the report. Please try again.')
+      );
     } finally {
-      setIsAcknowledging(false);
+      if (!navigating) {
+        acknowledgmentInFlight.current = false;
+        setIsAcknowledging(false);
+      }
     }
   };
 
   const handleRegenerate = async () => {
+    if (acknowledgmentInFlight.current) return;
     setError(null);
     setIsRegenerating(true);
     try {
