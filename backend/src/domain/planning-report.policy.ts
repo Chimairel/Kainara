@@ -37,7 +37,13 @@ export function planningInputsMatch(
   );
 }
 
-export function resolvePlanningProfile(live: UserProfile, version: NutritionReportVersion | null): UserProfile {
+export function resolvePlanningProfile(
+  live: UserProfile,
+  version: Pick<
+    NutritionReportVersion,
+    'profileSnapshot' | 'acknowledgedAt' | 'policyVersion' | 'profileRevision'
+  > | null
+): UserProfile {
   const saved = reportProfile(version);
   if (
     !version?.acknowledgedAt ||

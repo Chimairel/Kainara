@@ -1,4 +1,4 @@
-import { loadPlanningNutritionContext } from '@/domain/user-nutrition-context';
+import { resolvePlanningProfile } from '@/domain/planning-report.policy';
 import { membershipEnabled } from '@/domain/membership.policy';
 import { googleProfileImage } from '@/domain/google-profile-image';
 import prisma from '@/lib/prisma';
@@ -410,7 +410,20 @@ export class UserProfileService {
     let reportAcknowledged: boolean | undefined;
     if (membershipEnabled() || user.userProfile?.planningReportVersion) {
       try {
-        await loadPlanningNutritionContext(prisma, user.id, 'Profile missing.');
+        if (!user.userProfile) throw new Error('Profile missing.');
+        // Validate against the same profile snapshot returned to the client. Re-reading
+        // every user relation adds database round trips to every session refresh.
+        const version = await prisma.nutritionReportVersion.findFirst({
+          where: {
+            userId: user.id,
+            ...(user.userProfile.planningReportVersion
+              ? { version: user.userProfile.planningReportVersion }
+              : { acknowledgedAt: { not: null } }),
+          },
+          orderBy: { version: 'desc' },
+          select: { profileSnapshot: true, acknowledgedAt: true, policyVersion: true, profileRevision: true },
+        });
+        resolvePlanningProfile(user.userProfile, version);
         reportAcknowledged = true;
       } catch {
         reportAcknowledged = false;

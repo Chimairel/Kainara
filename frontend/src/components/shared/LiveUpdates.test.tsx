@@ -5,6 +5,8 @@ import { LIVE_UPDATE_EVENT } from '@/lib/live-events';
 
 const session = vi.hoisted(() => ({
   user: { userId: 'fixture-user' } as { userId: string } | null,
+  isLoading: false,
+  profileLoadError: false,
   refreshSession: vi.fn().mockResolvedValue(null),
 }));
 vi.mock('@/hooks/useAuth', () => ({ useAuth: () => session }));
@@ -14,6 +16,9 @@ vi.mock('@/lib/auth', () => ({ cookieHelper: { get: () => 'fixture-bearer' } }))
 describe('authenticated global live connection', () => {
   beforeEach(() => {
     session.user = { userId: 'fixture-user' };
+    session.isLoading = false;
+    session.profileLoadError = false;
+    session.refreshSession.mockClear();
     vi.spyOn(document, 'visibilityState', 'get').mockReturnValue('visible');
   });
   afterEach(() => {
@@ -80,5 +85,51 @@ describe('authenticated global live connection', () => {
     unmount();
     await vi.advanceTimersByTimeAsync(3000);
     expect(fetcher).toHaveBeenCalledTimes(2);
+  });
+
+  it('waits for initial verification and pauses streams while profile verification is unavailable', async () => {
+    session.isLoading = true;
+    const fetcher = vi.fn().mockResolvedValue({ ok: false });
+    vi.stubGlobal('fetch', fetcher);
+    const { rerender, unmount } = render(<LiveUpdates />);
+    expect(fetcher).not.toHaveBeenCalled();
+    session.isLoading = false;
+    session.profileLoadError = true;
+    rerender(<LiveUpdates />);
+    expect(fetcher).not.toHaveBeenCalled();
+    session.profileLoadError = false;
+    rerender(<LiveUpdates />);
+    await waitFor(() => expect(fetcher).toHaveBeenCalledTimes(1));
+    unmount();
+  });
+
+  it('honors rate-limit cooldown even when focus/visibility events repeat', async () => {
+    vi.useFakeTimers();
+    const fetcher = vi.fn().mockResolvedValue(new Response('', { status: 429, headers: { 'Retry-After': '30' } }));
+    vi.stubGlobal('fetch', fetcher);
+    const { unmount } = render(<LiveUpdates />);
+    await act(async () => {});
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(29999);
+      window.dispatchEvent(new Event('focus'));
+      document.dispatchEvent(new Event('visibilitychange'));
+    });
+    expect(fetcher).toHaveBeenCalledTimes(1);
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1);
+    });
+    expect(fetcher).toHaveBeenCalledTimes(2);
+    unmount();
+    await vi.advanceTimersByTimeAsync(60000);
+    expect(fetcher).toHaveBeenCalledTimes(2);
+  });
+
+  it('uses the shared session refresh after an expired stream token', async () => {
+    const fetcher = vi.fn().mockResolvedValue(new Response('', { status: 401 }));
+    vi.stubGlobal('fetch', fetcher);
+    const { unmount } = render(<LiveUpdates />);
+    await waitFor(() => expect(session.refreshSession).toHaveBeenCalledWith({ showLoader: false }));
+    expect(fetcher).toHaveBeenCalledTimes(1);
+    unmount();
   });
 });

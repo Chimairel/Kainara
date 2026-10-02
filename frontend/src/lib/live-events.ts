@@ -8,7 +8,8 @@ export function createLiveEventParser(refresh: () => void) {
     while ((boundary = buffer.indexOf('\n\n')) >= 0) {
       const frame = buffer.slice(0, boundary);
       buffer = buffer.slice(boundary + 2);
-      if (/^event: (?:refresh|connected)$/m.test(frame)) refresh();
+      // Opening/rotating a stream is not a data change; polling covers missed events.
+      if (/^event: refresh$/m.test(frame)) refresh();
     }
     // Malformed/unbounded upstream data must never accumulate indefinitely.
     if (buffer.length > 65536) buffer = '';
