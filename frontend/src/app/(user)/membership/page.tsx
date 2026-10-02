@@ -6,35 +6,20 @@ import PortalPageHeader from '@/components/shared/PortalPageHeader';
 import Button from '@/components/ui/Button';
 import { useMembership } from '@/features/membership/MembershipProvider';
 import Pricing from '@/components/ui/pricing';
-import MembershipTimeline from '@/features/membership/MembershipTimeline';
-import {
-  RefreshCw,
-  AlertTriangle,
-  Clock,
-  ArrowRight,
-  CheckCircle2,
-  UtensilsCrossed,
-  Sparkles,
-  RefreshCw as ReplanIcon,
-  Stethoscope,
-  ClipboardCheck,
-  Layers,
-} from 'lucide-react';
-
-const date = (value: string) =>
-  new Date(value).toLocaleDateString('en-PH', {
-    timeZone: 'Asia/Manila',
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-  });
-
-const allowanceWidth = (remaining: number, cap: number) =>
-  `${cap > 0 ? Math.min(100, Math.max(0, (remaining / cap) * 100)) : 0}%`;
+import MembershipPlanHeader from '@/features/membership/MembershipPlanHeader';
+import PlanStatisticsCard from '@/features/membership/PlanStatisticsCard';
+import PlanCalendarCard from '@/features/membership/PlanCalendarCard';
+import { RefreshCw, AlertTriangle, Layers, CreditCard, ExternalLink } from 'lucide-react';
+import Link from 'next/link';
+import { isCheckoutUrl } from '@/features/membership/checkout';
+import api from '@/lib/axios';
 
 function MembershipContent() {
   const { data, isLoading, error, refresh } = useMembership();
   const [isPlansModalOpen, setIsPlansModalOpen] = useState(false);
+  const [closingCheckout, setClosingCheckout] = useState(false);
+  const [checkoutError, setCheckoutError] = useState<string | null>(null);
+
   const searchParams = useSearchParams();
   const router = useRouter();
   const plansRequested = searchParams.get('tab') === 'plans' || searchParams.get('plans') === 'true';
@@ -45,7 +30,7 @@ function MembershipContent() {
 
   if (isLoading && !data)
     return (
-      <div className="portal-page max-w-5xl mx-auto py-16 text-center" role="status">
+      <div className="portal-page max-w-6xl mx-auto py-16 text-center" role="status">
         <div className="inline-flex flex-col items-center gap-2.5">
           <div className="h-8 w-8 rounded-full bg-brand-green/10 text-brand-green flex items-center justify-center animate-spin">
             <RefreshCw className="h-4 w-4" />
@@ -57,7 +42,7 @@ function MembershipContent() {
 
   if (error && !data)
     return (
-      <div className="portal-page max-w-5xl mx-auto py-8">
+      <div className="portal-page max-w-6xl mx-auto py-8">
         <div className="rounded-2xl border border-status-error-text/30 bg-status-error-bg/20 p-5 text-status-error-text shadow-xs">
           <div className="flex items-center gap-2">
             <AlertTriangle className="h-4 w-4 shrink-0" />
@@ -86,16 +71,30 @@ function MembershipContent() {
   const limits = data?.enabled && data.limits ? data.limits : fallbackLimits;
   const currentLevel = data?.enabled ? data.level : null;
 
-  const labels = {
-    FREE: 'Free account',
-    TRIAL_PENDING: 'Health trial waiting for your first usable plan',
-    TRIAL: 'Health trial',
-    MEMBER: data?.enabled && data.tier === 'LIFESTYLE' ? 'Lifestyle membership' : 'Health membership',
+  // Open checkout handling
+  const openCheckout = data?.enabled ? data.transitions?.openCheckout : null;
+  const isQuoteExpired = Boolean(openCheckout?.quoteExpiresAt && new Date(openCheckout.quoteExpiresAt) <= new Date());
+
+  const handleCloseCheckout = async () => {
+    if (!openCheckout || closingCheckout) return;
+    setClosingCheckout(true);
+    setCheckoutError(null);
+    try {
+      await api.post(`/user/membership/checkout/${encodeURIComponent(openCheckout.id)}/close`, {});
+      refresh();
+    } catch (err) {
+      setCheckoutError(
+        (err as { response?: { data?: { error?: string } } }).response?.data?.error ??
+          'Checkout could not be closed. Please try again.'
+      );
+    } finally {
+      setClosingCheckout(false);
+    }
   };
 
   return (
-    <div className="portal-page mx-auto max-w-5xl space-y-6 pb-28">
-      {/* 1. HEADER */}
+    <div className="portal-page mx-auto max-w-6xl space-y-6 pb-28">
+      {/* 1. PORTAL PAGE HEADER */}
       <PortalPageHeader
         title="KAINARA membership"
         description="Keep your weekly meals practical. Membership adds adaptation, progress insights and professional review when required."
@@ -124,297 +123,83 @@ function MembershipContent() {
         </section>
       )}
 
-      {/* 3. ALLOWANCES & USAGE */}
-      <MembershipTimeline />
-      {data?.enabled && (
-        <section className="rounded-2xl border border-brand-border bg-brand-surface p-5 sm:p-6 shadow-xs space-y-5">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-brand-border/60 pb-4">
-            <div>
-              <div className="flex items-center gap-2">
-                <h2 className="font-display text-lg font-bold text-brand-text">{labels[data.level]}</h2>
-                <span
-                  className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[10px] font-bold ${
-                    data.level === 'FREE'
-                      ? 'bg-brand-bgAlt border border-brand-border text-brand-muted'
-                      : data.level === 'TRIAL_PENDING'
-                        ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20'
-                        : 'bg-brand-green/10 text-brand-green border border-brand-green/20'
-                  }`}
-                >
-                  <CheckCircle2 className="h-3 w-3" />
-                  <span>
-                    {data.level === 'FREE'
-                      ? 'Free tier'
-                      : data.level === 'TRIAL_PENDING'
-                        ? 'Pending kickoff'
-                        : data.level === 'TRIAL'
-                          ? 'Health trial active'
-                          : 'Active subscriber'}
-                  </span>
-                </span>
-              </div>
-
-              <p className="mt-1 text-xs text-brand-muted">
-                {data.level === 'TRIAL_PENDING'
-                  ? 'Your Health trial starts when your first cleared current plan is available. A starter plan counts; waiting for review does not.'
-                  : data.level === 'MEMBER' && data.paidUntil
-                    ? `Membership available until ${date(data.paidUntil)}.${data.tier === 'HEALTH' && data.healthUntil ? ` Health benefits until ${date(data.healthUntil)}.` : ''} No automatic renewal.`
-                    : data.trialEndsAt
-                      ? `Health trial ${data.level === 'FREE' ? 'ended' : 'ends'} ${date(data.trialEndsAt)}. Moving to a full weekly plan does not restart it.`
-                      : ''}
-              </p>
-
-              {data.requiresCaseReview && data.level === 'FREE' && (
-                <p className="mt-2 text-xs font-medium text-status-pending-text">
-                  New plans with case review require membership. Existing eligible active meals and previously submitted
-                  review follow-up remain available.
-                </p>
-              )}
-              {!data.transitions &&
-                data.scheduledMemberships?.map((purchase) => (
-                  <p key={purchase.id} className="mt-2 text-xs text-brand-green">
-                    {purchase.tier === 'HEALTH' ? 'Health' : 'Lifestyle'} test membership scheduled:{' '}
-                    {date(purchase.effectiveFrom)} – {date(purchase.effectiveUntil)}. No automatic renewal.
-                  </p>
-                ))}
-            </div>
-
-            <div className="flex items-center gap-2 self-start sm:self-center shrink-0">
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-brand-bgAlt border border-brand-border/70 px-3 py-1 font-mono text-[11px] text-brand-muted">
-                <Clock className="h-3 w-3 text-brand-green" />
-                <span>Next Manila reset: {date(data.resetsAt)}</span>
-              </span>
-              <button
-                onClick={refresh}
-                aria-label="Refresh membership status"
-                className="flex h-7 w-7 items-center justify-center rounded-lg border border-brand-border/70 bg-brand-bgAlt text-brand-muted hover:text-brand-text transition-colors"
-                title="Refresh allowances"
-              >
-                <RefreshCw className="h-3 w-3" />
-              </button>
-            </div>
+      {/* 3. OPEN CHECKOUT BANNER (if an unpaid checkout is in progress) */}
+      {openCheckout && (
+        <section
+          aria-label="Pending checkout reminder"
+          className="rounded-2xl border border-amber-500/30 bg-amber-500/10 p-4 sm:p-5 text-amber-900 dark:text-amber-200 shadow-xs space-y-2.5"
+        >
+          <div className="flex items-center gap-2">
+            <CreditCard className="h-4 w-4 text-brand-accent shrink-0" />
+            <h3 className="font-display text-sm font-bold">
+              A {openCheckout.tier === 'HEALTH' ? 'Health' : 'Lifestyle'} checkout is currently open
+            </h3>
           </div>
-
-          {/* ALLOWANCES TELEMETRY WITH PROGRESS BARS */}
-          <div className="space-y-3">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-brand-muted">Your remaining allowances</h3>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3.5">
-              {/* 1. Meal Swaps (2 cols) */}
-              <div className="lg:col-span-2 rounded-xl border border-brand-border/70 bg-brand-bgAlt/40 p-4 space-y-2.5 flex flex-col justify-between">
-                <div>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-1.5">
-                      <UtensilsCrossed className="h-3.5 w-3.5 text-brand-green" />
-                      <span className="text-xs font-semibold text-brand-text">Meal swaps</span>
-                    </div>
-                    <span className="rounded bg-brand-surface border border-brand-border/60 px-1.5 py-0.5 text-[9px] font-mono font-medium text-brand-muted">
-                      Cycle
-                    </span>
-                  </div>
-                  <div className="mt-2 flex items-baseline gap-1.5">
-                    <span className="font-display text-2xl font-bold text-brand-text">{data.swaps.remaining}</span>
-                    <span className="text-xs text-brand-muted font-medium">/ {data.swaps.cap} remaining</span>
-                  </div>
-                </div>
-
-                <div>
-                  <p className="text-[11px] text-brand-muted">
-                    Meal swaps:{' '}
-                    <strong className="font-semibold text-brand-text">
-                      {data.swaps.remaining} of {data.swaps.cap}
-                    </strong>{' '}
-                    for your current cycle
-                  </p>
-                  <div className="mt-2 h-1.5 w-full rounded-full bg-brand-border/50 overflow-hidden">
-                    <div
-                      className="h-full bg-brand-green rounded-full transition-all duration-300"
-                      style={{
-                        width: allowanceWidth(data.swaps.remaining, data.swaps.cap),
-                      }}
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* 2. AI Estimate Requests (2 cols) */}
-              <div className="lg:col-span-2 rounded-xl border border-brand-border/70 bg-brand-bgAlt/40 p-4 space-y-2.5 flex flex-col justify-between">
-                <div>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-1.5">
-                      <Sparkles className="h-3.5 w-3.5 text-brand-accent" />
-                      <span className="text-xs font-semibold text-brand-text">AI estimate requests</span>
-                    </div>
-                    <span className="rounded bg-brand-surface border border-brand-border/60 px-1.5 py-0.5 text-[9px] font-mono font-medium text-brand-muted">
-                      Weekly
-                    </span>
-                  </div>
-                  <div className="mt-2 flex items-baseline gap-1.5">
-                    <span className="font-display text-2xl font-bold text-brand-text">
-                      {data.usage.AI_ESTIMATE.remaining}
-                    </span>
-                    <span className="text-xs text-brand-muted font-medium">
-                      / {data.usage.AI_ESTIMATE.cap} remaining
-                    </span>
-                  </div>
-                </div>
-
-                <div>
-                  <p className="text-[11px] text-brand-muted">
-                    AI estimate requests:{' '}
-                    <strong className="font-semibold text-brand-text">
-                      {data.usage.AI_ESTIMATE.remaining} of {data.usage.AI_ESTIMATE.cap}
-                    </strong>
-                  </p>
-                  <div className="mt-2 h-1.5 w-full rounded-full bg-brand-border/50 overflow-hidden">
-                    <div
-                      className="h-full bg-brand-accent rounded-full transition-all duration-300"
-                      style={{
-                        width: allowanceWidth(data.usage.AI_ESTIMATE.remaining, data.usage.AI_ESTIMATE.cap),
-                      }}
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* 3. Optional Replans (2 cols) */}
-              <div className="lg:col-span-2 rounded-xl border border-brand-border/70 bg-brand-bgAlt/40 p-4 space-y-2.5 flex flex-col justify-between">
-                <div>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-1.5">
-                      <ReplanIcon className="h-3.5 w-3.5 text-brand-green" />
-                      <span className="text-xs font-semibold text-brand-text">Optional replans</span>
-                    </div>
-                    <span className="rounded bg-brand-surface border border-brand-border/60 px-1.5 py-0.5 text-[9px] font-mono font-medium text-brand-muted">
-                      Weekly
-                    </span>
-                  </div>
-                  <div className="mt-2 flex items-baseline gap-1.5">
-                    <span className="font-display text-2xl font-bold text-brand-text">
-                      {data.usage.REPLAN.remaining}
-                    </span>
-                    <span className="text-xs text-brand-muted font-medium">/ {data.usage.REPLAN.cap} remaining</span>
-                  </div>
-                </div>
-
-                <div>
-                  <p className="text-[11px] text-brand-muted">
-                    Optional replans:{' '}
-                    <strong className="font-semibold text-brand-text">
-                      {data.usage.REPLAN.remaining} of {data.usage.REPLAN.cap}
-                    </strong>
-                  </p>
-                  <div className="mt-2 h-1.5 w-full rounded-full bg-brand-border/50 overflow-hidden">
-                    <div
-                      className="h-full bg-brand-green rounded-full transition-all duration-300"
-                      style={{
-                        width: allowanceWidth(data.usage.REPLAN.remaining, data.usage.REPLAN.cap),
-                      }}
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* 4. Plan-Review Episodes (3 cols) */}
-              <div className="lg:col-span-3 rounded-xl border border-brand-border/70 bg-brand-bgAlt/40 p-4 space-y-2.5 flex flex-col justify-between">
-                <div>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-1.5">
-                      <Stethoscope className="h-3.5 w-3.5 text-brand-green" />
-                      <span className="text-xs font-semibold text-brand-text">Plan-review episodes</span>
-                    </div>
-                    <span className="rounded bg-brand-surface border border-brand-border/60 px-1.5 py-0.5 text-[9px] font-mono font-medium text-brand-muted">
-                      Target week
-                    </span>
-                  </div>
-                  <div className="mt-2 flex items-baseline gap-1.5">
-                    <span className="font-display text-2xl font-bold text-brand-text">
-                      {data.usage.PLAN_REVIEW.remaining}
-                    </span>
-                    <span className="text-xs text-brand-muted font-medium">
-                      / {data.usage.PLAN_REVIEW.cap} remaining
-                    </span>
-                  </div>
-                </div>
-
-                <div>
-                  <p className="text-[11px] text-brand-muted">
-                    Plan-review episodes:{' '}
-                    <strong className="font-semibold text-brand-text">
-                      {data.usage.PLAN_REVIEW.remaining} of {data.usage.PLAN_REVIEW.cap}
-                    </strong>
-                  </p>
-                  <div className="mt-2 h-1.5 w-full rounded-full bg-brand-border/50 overflow-hidden">
-                    <div
-                      className="h-full bg-brand-green rounded-full transition-all duration-300"
-                      style={{
-                        width: allowanceWidth(data.usage.PLAN_REVIEW.remaining, data.usage.PLAN_REVIEW.cap),
-                      }}
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* 5. Outside-Meal Reviews (3 cols) */}
-              <div className="lg:col-span-3 rounded-xl border border-brand-border/70 bg-brand-bgAlt/40 p-4 space-y-2.5 flex flex-col justify-between">
-                <div>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-1.5">
-                      <ClipboardCheck className="h-3.5 w-3.5 text-brand-green" />
-                      <span className="text-xs font-semibold text-brand-text">Outside-meal reviews</span>
-                    </div>
-                    <span className="rounded bg-brand-surface border border-brand-border/60 px-1.5 py-0.5 text-[9px] font-mono font-medium text-brand-muted">
-                      Weekly
-                    </span>
-                  </div>
-                  <div className="mt-2 flex items-baseline gap-1.5">
-                    <span className="font-display text-2xl font-bold text-brand-text">
-                      {data.usage.OUTSIDE_REVIEW.remaining}
-                    </span>
-                    <span className="text-xs text-brand-muted font-medium">
-                      / {data.usage.OUTSIDE_REVIEW.cap} remaining
-                    </span>
-                  </div>
-                </div>
-
-                <div>
-                  <p className="text-[11px] text-brand-muted">
-                    Outside-meal reviews:{' '}
-                    <strong className="font-semibold text-brand-text">
-                      {data.usage.OUTSIDE_REVIEW.remaining} of {data.usage.OUTSIDE_REVIEW.cap}
-                    </strong>
-                  </p>
-                  <div className="mt-2 h-1.5 w-full rounded-full bg-brand-border/50 overflow-hidden">
-                    <div
-                      className="h-full bg-brand-green rounded-full transition-all duration-300"
-                      style={{
-                        width: allowanceWidth(data.usage.OUTSIDE_REVIEW.remaining, data.usage.OUTSIDE_REVIEW.cap),
-                      }}
-                    />
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2 text-xs text-brand-muted">
-              <p className="leading-relaxed">
-                Estimate, replan and outside-review allowances reset Monday in Manila: {date(data.resetsAt)}. Swaps
-                follow each plan cycle; plan review follows its target week.
-              </p>
-              <button
-                type="button"
-                onClick={() => setIsPlansModalOpen(true)}
-                className="inline-flex items-center gap-1 font-bold text-brand-green hover:underline shrink-0"
+          {isQuoteExpired && (
+            <p className="text-xs text-status-pending-text">
+              The payment summary expired. Close the unpaid checkout and review a fresh summary before paying.
+            </p>
+          )}
+          <p className="text-xs leading-relaxed text-amber-800 dark:text-amber-300">
+            Finish or close this unpaid session before starting another plan upgrade.
+          </p>
+          <div className="flex flex-wrap items-center gap-3 pt-1">
+            {!isQuoteExpired && openCheckout.checkoutUrl && isCheckoutUrl(openCheckout.checkoutUrl) && (
+              <a
+                href={openCheckout.checkoutUrl}
+                className="inline-flex items-center gap-1.5 text-xs font-bold text-brand-green hover:underline"
               >
-                <span>View plans</span>
-                <ArrowRight className="h-3.5 w-3.5" />
-              </button>
-            </div>
+                <span>Resume checkout</span>
+                <ExternalLink className="h-3.5 w-3.5" />
+              </a>
+            )}
+            <Button
+              variant="secondary"
+              onClick={handleCloseCheckout}
+              isLoading={closingCheckout}
+              className="text-xs px-3 py-1.5"
+            >
+              Close unpaid checkout
+            </Button>
+            <Link
+              href={`/membership/checkout?purchase=${encodeURIComponent(openCheckout.id)}`}
+              className="text-xs text-brand-muted hover:text-brand-text underline"
+            >
+              Check payment status
+            </Link>
           </div>
+          {checkoutError && (
+            <p role="alert" className="text-xs text-status-error-text">
+              {checkoutError}
+            </p>
+          )}
         </section>
       )}
 
-      {/* MEMBERSHIP PLANS (Full-screen modal like ChatGPT with 'X' button on upper right) */}
+      {/* 4. CURRENT PLAN HEADER (Header at top telling user's current plan) */}
+      {data?.enabled && (
+        <MembershipPlanHeader
+          data={data}
+          onOpenPlans={() => setIsPlansModalOpen(true)}
+          onRefresh={refresh}
+        />
+      )}
+
+      {/* 5. TWO SECTIONS: PLAN STATISTICS (IMG 3-5) & PLAN CALENDAR (IMG 2) */}
+      {data?.enabled && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch">
+          {/* Left section: Allowances & Usage Statistics with peeking max numbers and pill bars */}
+          <PlanStatisticsCard
+            data={data}
+            onOpenPlans={() => setIsPlansModalOpen(true)}
+          />
+
+          {/* Right section: Plan Schedule Calendar adapted from meeting-scheduler */}
+          <PlanCalendarCard data={data} />
+        </div>
+      )}
+
+      {/* 6. FULL-SCREEN PRICING MODAL (ChatGPT style with 'X' button on upper right) */}
       {isPlansModalOpen ? (
         <Pricing
           currentTier={data?.enabled ? (data.tier ?? (data.enhanced ? 'HEALTH' : 'FREE')) : 'FREE'}
