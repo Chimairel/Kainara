@@ -135,6 +135,14 @@ export class MealPlanCycleService {
                 recipeSignature: true,
               },
             },
+            servingComponents: {
+              select: {
+                componentType: true,
+                foodItemId: true,
+                evidenceSource: true,
+                foodItem: { select: { compositionRevision: true } },
+              },
+            },
             clearanceUsages: {
               select: {
                 condition: true,
@@ -204,6 +212,15 @@ export class MealPlanCycleService {
           !meal.baseRecipeSignature ||
           !meal.composedServingSignature ||
           !meal.safetyPolicyVersion
+        ) {
+          return false;
+        }
+        if (
+          meal.servingComponents?.some(
+            (component) =>
+              component.componentType === 'COOKED_RICE' &&
+              (!component.foodItem || component.evidenceSource !== `FNRI:${component.foodItem.compositionRevision}`)
+          )
         ) {
           return false;
         }

@@ -1,3 +1,4 @@
+import { COOKED_RICE_HALF_CUP_GRAMS } from './rice-portion.policy';
 import { createHash } from 'node:crypto';
 import { AssuranceTier, RecipeRiceRole, RicePreference, RiceRoleReviewStatus } from '@prisma/client';
 
@@ -114,8 +115,17 @@ export function chooseCookedRicePortionG(input: {
   slotTargetCalories: number;
   slotMinimumCalories: number;
   slotMaximumCalories: number;
+  minHalfCups?: number;
+  maxHalfCups?: number;
 }): number | null {
-  const portions = [75, 150, 225] as const;
+  const minimum = input.minHalfCups ?? 1;
+  const maximum = input.maxHalfCups ?? 3;
+  if (!Number.isInteger(minimum) || !Number.isInteger(maximum) || minimum < 1 || maximum > 6 || minimum > maximum)
+    return null;
+  const portions = Array.from(
+    { length: maximum - minimum + 1 },
+    (_, index) => (minimum + index) * COOKED_RICE_HALF_CUP_GRAMS
+  );
   const eligible = portions
     .map((grams) => ({
       grams,

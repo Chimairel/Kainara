@@ -26,22 +26,18 @@ export const formatMembershipDateTime = (value: string) =>
     timeStyle: 'short',
   });
 
-export default function MembershipPlanHeader({
-  data,
-  onOpenPlans,
-  onRefresh,
-}: MembershipPlanHeaderProps) {
+export default function MembershipPlanHeader({ data, onOpenPlans, onRefresh }: MembershipPlanHeaderProps) {
   const planTitles = {
     FREE: 'Free Plan',
-    TRIAL_PENDING: 'Health Trial (Pending Kickoff)',
-    TRIAL: 'Health Trial',
+    TRIAL_PENDING: 'Health',
+    TRIAL: 'Health',
     MEMBER: data.tier === 'LIFESTYLE' ? 'Lifestyle Plan' : 'Health Plan',
   };
 
   const badgeLabels = {
     FREE: 'Free tier',
     TRIAL_PENDING: 'Pending kickoff',
-    TRIAL: 'Health trial active',
+    TRIAL: 'Health active',
     MEMBER: 'Active subscriber',
   };
 
@@ -101,7 +97,7 @@ export default function MembershipPlanHeader({
           {/* Plan validity description */}
           <p className="text-xs sm:text-sm leading-relaxed text-[#5a746a] dark:text-white/70">
             {data.level === 'TRIAL_PENDING'
-              ? 'Your Health trial starts when your first cleared current plan is available. A starter plan counts; waiting for review does not.'
+              ? 'Your 14-day Health plan starts when your first cleared current plan is available. A starter plan counts; waiting for review does not.'
               : data.level === 'MEMBER' && data.paidUntil
                 ? `Membership active until ${formatMembershipDateTime(data.paidUntil)}.${
                     data.tier === 'HEALTH' && data.healthUntil
@@ -109,9 +105,9 @@ export default function MembershipPlanHeader({
                       : ''
                   } No automatic renewal.`
                 : data.trialEndsAt
-                  ? `Health trial ${data.level === 'FREE' ? 'ended' : 'ends'} ${formatMembershipDateTime(
+                  ? `Health plan ${data.level === 'FREE' ? 'ended' : 'ends'} ${formatMembershipDateTime(
                       data.trialEndsAt
-                    )}. Moving to a full weekly plan does not restart it.`
+                    )}. Moving to a full weekly plan does not restart this period.`
                   : 'Get more weekly flexibility and consultation access by upgrading your plan.'}
           </p>
 

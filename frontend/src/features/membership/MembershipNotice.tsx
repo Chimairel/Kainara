@@ -60,7 +60,7 @@ export default function MembershipNotice() {
   return (
     <FloatingNotice
       kind="membership"
-      title={expired ? 'Your trial has ended' : 'Your membership trial'}
+      title={expired ? 'Your Health access has ended' : 'Your Health plan'}
       onClose={() => {
         dismissedKey.current = key;
         try {
@@ -76,7 +76,7 @@ export default function MembershipNotice() {
           ? data.requiresCaseReview
             ? 'New plans with case review need membership. Your existing eligible active cycle can finish.'
             : 'Your general weekly plans continue. Adaptive planning and progress insights are membership benefits.'
-          : `Your trial ends ${new Date(data.trialEndsAt!).toLocaleDateString('en-PH', { timeZone: 'Asia/Manila', month: 'short', day: 'numeric' })}. Membership includes adaptive planning, progress insights and review when required.`}
+          : `Your Health plan ends ${new Date(data.trialEndsAt!).toLocaleDateString('en-PH', { timeZone: 'Asia/Manila', month: 'short', day: 'numeric' })}. Membership includes adaptive planning, progress insights and review when required.`}
       </p>
       <p>View plans to compare benefits and checkout availability.</p>
       <Link href="/membership" className="inline-block font-bold text-brand-green">

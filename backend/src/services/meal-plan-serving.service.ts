@@ -1,4 +1,5 @@
 import type { Prisma } from '@prisma/client';
+import { COOKED_RICE_HALF_CUP_GRAMS } from '@/domain/rice-portion.policy';
 import { buildComposedServing } from '@/domain/composed-serving.policy';
 import { buildMealLibraryRecipeSignature } from '@/domain/meal-library-signature.policy';
 
@@ -89,6 +90,14 @@ export async function composePlanWithPairedRice(
     plan.libraryMeal.riceRoleReviewStatus !== 'REVIEWED'
   ) {
     throw new Error('Only a reviewed PAIR_WITH_RICE recipe can receive a rice component.');
+  }
+  const halfCups = input.cookedRiceG / COOKED_RICE_HALF_CUP_GRAMS;
+  if (
+    !Number.isInteger(halfCups) ||
+    halfCups < plan.libraryMeal.riceMinHalfCups ||
+    halfCups > plan.libraryMeal.riceMaxHalfCups
+  ) {
+    throw new Error('Rice must use half-cup steps within the reviewed portion range.');
   }
   if (!plan.baseRecipeSignature) throw new Error('Plan has no current base recipe signature.');
   const baseComponent = plan.servingComponents.find((component) => component.componentType === 'BASE_RECIPE');

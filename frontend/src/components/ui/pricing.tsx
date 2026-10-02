@@ -289,7 +289,7 @@ export default function Pricing({
             customVariants={revealVariants}
             className="text-sm sm:text-base leading-relaxed max-w-2xl text-brand-muted"
           >
-            The 14-day trial includes Health benefits. Free general planning continues with your saved report. Choose
+            Your first 14 days include the Health plan. Free general planning continues with your saved report. Choose
             Lifestyle for changing goals or Health for case planning and nutritionist review.
           </TimelineContent>
 
@@ -341,7 +341,7 @@ export default function Pricing({
             </p>
             <p className="text-sm">
               {checkout.quote.action === 'AFTER_TRIAL'
-                ? 'Your Health trial continues. The purchased plan starts after your trial ends.'
+                ? 'Your current Health plan continues. The purchased plan starts after these 14 days end.'
                 : checkout.quote.action === 'DOWNGRADE'
                   ? 'Your Health benefits continue until your current paid period ends. Lifestyle starts afterwards.'
                   : checkout.quote.action === 'RENEW'
@@ -418,9 +418,9 @@ export default function Pricing({
                           {isCurrent && (
                             <span className="mt-1 inline-block text-xs font-bold text-brand-green">
                               {currentLevel === 'TRIAL'
-                                ? 'Current trial'
+                                ? 'Current plan'
                                 : currentLevel === 'TRIAL_PENDING'
-                                  ? 'Trial starts with first usable plan'
+                                  ? 'Health starts with first usable plan'
                                   : 'Current plan'}
                             </span>
                           )}

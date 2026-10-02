@@ -24,6 +24,7 @@ export interface PendingMealPreviewInput extends MealGenerationResultRow {
   ingredients: readonly { ingredientName: string; category: string | null }[];
   image?: PublicMealImage | null;
   cookingLink?: PublicMealCookingLink | null;
+  ricePortion?: string | null;
 }
 
 export interface PendingMealPlanPreview extends PendingMealPlanSummary {
@@ -39,6 +40,7 @@ export interface PendingMealPlanPreview extends PendingMealPlanSummary {
     ingredients: { ingredientName: string; category: string }[];
     image: PublicMealImage | null;
     cookingLink: PublicMealCookingLink | null;
+    ricePortion: string | null;
   }[];
 }
 
@@ -80,6 +82,7 @@ export function buildPendingMealPlanPreview(rows: readonly PendingMealPreviewInp
       })),
       image: row.image ?? null,
       cookingLink: row.cookingLink ?? null,
+      ricePortion: row.ricePortion ?? null,
     })),
   };
 }

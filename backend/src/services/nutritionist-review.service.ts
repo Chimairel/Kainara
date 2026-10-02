@@ -404,6 +404,7 @@ export class NutritionistReviewService {
         ingredients: {
           include: { foodItem: { select: { id: true, name: true, source: true, sourceReferenceUrl: true } } },
         },
+        servingComponents: { where: { componentType: 'COOKED_RICE' }, include: { foodItem: true } },
         cycle: { include: { snapshot: true } },
         user: {
           include: {
@@ -616,16 +617,28 @@ export class NutritionistReviewService {
         allergies: allergies,
         safetyEntries: safetyRestrictions.displayEntries,
       },
-      ingredients: updatedMealPlan.ingredients.map((ing) => ({
-        name: ing.ingredientName,
-        source: ing.dataSource,
-        foodItemId: ing.foodItemId,
-        compositionFoodName: ing.foodItem?.name ?? null,
-        compositionSource: ing.foodItem?.source ?? null,
-        compositionSourceUrl: ing.foodItem?.sourceReferenceUrl ?? null,
-        quantity: ing.quantity,
-        unit: ing.unit,
-      })),
+      ingredients: [
+        ...updatedMealPlan.ingredients.map((ing) => ({
+          name: ing.ingredientName,
+          source: ing.dataSource,
+          foodItemId: ing.foodItemId,
+          compositionFoodName: ing.foodItem?.name ?? null,
+          compositionSource: ing.foodItem?.source ?? null,
+          compositionSourceUrl: ing.foodItem?.sourceReferenceUrl ?? null,
+          quantity: ing.quantity,
+          unit: ing.unit,
+        })),
+        ...updatedMealPlan.servingComponents.map((component) => ({
+          name: component.foodItem?.name ?? 'Cooked rice',
+          source: 'FNRI',
+          foodItemId: component.foodItemId,
+          compositionFoodName: component.foodItem?.name ?? null,
+          compositionSource: component.foodItem?.source ?? null,
+          compositionSourceUrl: component.foodItem?.sourceReferenceUrl ?? null,
+          quantity: component.quantityG,
+          unit: 'g',
+        })),
+      ],
       warnings: warnings,
       clinicalEvidence: {
         policyVersion: CLINICAL_EVIDENCE_REQUIREMENT_POLICY_VERSION,

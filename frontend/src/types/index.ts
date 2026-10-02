@@ -189,6 +189,7 @@ export interface MealPlan {
   mealType: MealType;
   mealName: string;
   description?: string;
+  ricePortion?: string | null;
   calories: number;
   proteinG: number;
   carbsG: number;

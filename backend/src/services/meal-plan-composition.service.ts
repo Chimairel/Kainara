@@ -1,3 +1,5 @@
+import { buildComposedServing } from '@/domain/composed-serving.policy';
+import { resolveReplacementServing } from './meal-swap-serving.service';
 import prisma from '@/lib/prisma';
 import { assertGenerationIntegrity } from './generation-integrity.service';
 import { updateGenerationProgress } from './generation-progress.service';
@@ -12,9 +14,7 @@ import {
   MealPlanCycleStatus,
   MealCandidateProvenance,
   AssuranceTier,
-  RecipeRiceRole,
   RicePreference,
-  RiceRoleReviewStatus,
   Prisma,
 } from '@prisma/client';
 import { randomUUID } from 'crypto';
@@ -30,11 +30,7 @@ import {
 } from '@/domain/meal-plan-production-safety.policy';
 import { loadPlanningNutritionContext } from '@/domain/user-nutrition-context';
 import { mealApprovalSafetyScope } from '@/domain/meal-approval-scope.policy';
-import {
-  getMealSlotCalorieRange,
-  isPrimaryMealType,
-  rankCalorieCompatibleMeals,
-} from '@/domain/meal-calorie-allocation.policy';
+import { getMealSlotCalorieRange, isPrimaryMealType } from '@/domain/meal-calorie-allocation.policy';
 import type { MealSelectionEvidence } from '@/domain/meal-explanation.policy';
 import {
   certifiedLibraryMealInclude,
@@ -52,7 +48,6 @@ import { adaptUserSafetyRestrictions } from '@/domain/structured-restriction.ada
 import { GroceryService } from './grocery.service';
 import {
   buildReviewWorkKey,
-  chooseCookedRicePortionG,
   getPreparationLeadDays,
   scorePreparationCandidate,
   UPCOMING_PREPARATION_POLICY_VERSION,
@@ -152,7 +147,7 @@ export async function generate7DayPlan(
   );
   const userHasConditions = userConditions.some((condition) => condition !== HealthConditionType.NONE);
   const cookedRiceFood =
-    profile.ricePreference === RicePreference.WITH_RICE && !userHasConditions
+    profile.ricePreference !== RicePreference.NO_RICE
       ? await prisma.foodItem.findFirst({
           where: { source: 'FNRI', name: { equals: 'Rice, well-milled, boiled', mode: 'insensitive' } },
         })
@@ -213,7 +208,21 @@ export async function generate7DayPlan(
       // A certified base recipe is reusable only when its reviewed serving
       // also fits this user's allocated meal target. Prefer the closest fit;
       // smaller recipes fall through to personalized generation.
-      const calorieEligibleMatches = rankCalorieCompatibleMeals(matches, dailyCalorieTarget, slotType);
+      const plateById = new Map(
+        matches.map((meal) => [
+          meal.id,
+          resolveReplacementServing({
+            meal,
+            mealType: slotType,
+            dailyTarget: dailyCalorieTarget,
+            ricePreference: profile.ricePreference,
+            hasConditions: userHasConditions,
+            riceFood: cookedRiceFood,
+            allowPendingCaseReview: true,
+          }),
+        ])
+      );
+      const calorieEligibleMatches = matches.filter((meal) => plateById.get(meal.id));
       const range = getMealSlotCalorieRange(dailyCalorieTarget, slotType);
       const ranked = calorieEligibleMatches
         .map((meal) => ({
@@ -225,7 +234,7 @@ export async function generate7DayPlan(
             nutrientsComplete: [meal.calories, meal.proteinG, meal.carbsG, meal.fatG].every(Number.isFinite),
             dietCompatible: true,
             remainingReviews: caseReviewCandidateIds.has(meal.id) ? (highRiskReviewRequired ? 2 : 1) : 0,
-            calorieDeviationRatio: Math.abs(meal.calories - range.target) / range.target,
+            calorieDeviationRatio: Math.abs(plateById.get(meal.id)!.calories - range.target) / range.target,
             mealTypeMatch: meal.applicableMealTypes.some((entry) => entry.mealType === slotType),
             ricePreference: profile.ricePreference,
             riceRole: meal.riceRole,
@@ -246,18 +255,7 @@ export async function generate7DayPlan(
 
       if (selected) {
         lastSelectedLibraryDay.set(selected.meal.id, day + 1);
-        const pairedRiceG =
-          cookedRiceFood &&
-          selected.meal.riceRole === RecipeRiceRole.PAIR_WITH_RICE &&
-          selected.meal.riceRoleReviewStatus === RiceRoleReviewStatus.REVIEWED
-            ? chooseCookedRicePortionG({
-                baseCalories: selected.meal.calories,
-                riceCaloriesPer100G: cookedRiceFood.calories,
-                slotTargetCalories: range.target,
-                slotMinimumCalories: range.minimum,
-                slotMaximumCalories: range.maximum,
-              })
-            : null;
+        const pairedRiceG = plateById.get(selected.meal.id)?.pairedRiceG ?? null;
 
         matchedSlots.push({
           dayNumber: day + 1,
@@ -269,7 +267,8 @@ export async function generate7DayPlan(
           rankingReasonCodes: selected.ranking.reasonCodes,
           pairedRiceG,
           fallbackAvailable: ranked.length > 1,
-          requiresCaseApproval: caseReviewCandidateIds.has(selected.meal.id),
+          requiresCaseApproval:
+            caseReviewCandidateIds.has(selected.meal.id) || Boolean(pairedRiceG && userHasConditions),
         });
       } else {
         unmatchedSlots.push({
@@ -618,10 +617,11 @@ export async function generate7DayPlan(
           const profileApproved =
             !certified && isProfileApprovedLibraryMealCompatible(latest, userConditions, userAllergens, currentProfile);
           const requiresCaseApproval =
-            !certified &&
-            !profileApproved &&
-            slot.requiresCaseApproval &&
-            isLibraryMealSafeToQueueForCaseReview(latest, userConditions, userAllergens, currentProfile);
+            Boolean(slot.pairedRiceG && userHasConditions) ||
+            (!certified &&
+              !profileApproved &&
+              slot.requiresCaseApproval &&
+              isLibraryMealSafeToQueueForCaseReview(latest, userConditions, userAllergens, currentProfile));
           const scope = profileApproved
             ? mealApprovalSafetyScope({
                 conditions: userConditions,
@@ -693,7 +693,15 @@ export async function generate7DayPlan(
               reviewApprovalCount: requiresCaseApproval ? 0 : highRiskReviewRequired ? 2 : 1,
               reviewWorkKey: requiresCaseApproval
                 ? buildReviewWorkKey({
-                    recipeSignature: serving.baseRecipeSignature,
+                    recipeSignature:
+                      slot.pairedRiceG && cookedRiceFood
+                        ? buildComposedServing({
+                            baseRecipeSignature: serving.baseRecipeSignature,
+                            baseNutrition: latest,
+                            riceFood: cookedRiceFood,
+                            cookedRiceG: slot.pairedRiceG,
+                          }).composedServingSignature
+                        : serving.baseRecipeSignature,
                     evidenceRevision: latest.safetyEvidenceRevision,
                     conditions: planConditions,
                     allergens: userAllergens,

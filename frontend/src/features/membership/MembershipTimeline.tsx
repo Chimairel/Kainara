@@ -58,9 +58,9 @@ export default function MembershipTimeline() {
       <p>
         <strong>Current: </strong>
         {data.level === 'TRIAL'
-          ? `Health trial — ends ${membershipDate(data.trialEndsAt!)}`
+          ? `Health — ends ${membershipDate(data.trialEndsAt!)}`
           : data.level === 'TRIAL_PENDING'
-            ? 'Health trial waiting for your first usable plan'
+            ? 'Health waiting for your first usable plan'
             : timeline?.current
               ? `${timeline.current.tier === 'HEALTH' ? 'Health' : 'Lifestyle'} ${timeline.current.period.toLowerCase()} — ends ${membershipDate(timeline.current.effectiveUntil)}`
               : data.tier === 'FREE'

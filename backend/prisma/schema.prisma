@@ -1456,6 +1456,15 @@ model MealPlanReviewDecision {
 
 model MealLibrary {
   id                               String                             @id @default(cuid())
+  parentMealId                     String?
+  parentMeal                       MealLibrary?                       @relation("MealDerivation", fields: [parentMealId], references: [id], onDelete: Restrict)
+  derivedMeals                     MealLibrary[]                      @relation("MealDerivation")
+  recipeFamilyId                   String?
+  derivationKind                   String                             @default("ORIGINAL") @db.VarChar(32)
+  authoredByNutritionistId          String?
+  adaptedImageUrl                  String?                            @db.VarChar(2048)
+  riceMinHalfCups                  Int                                @default(1)
+  riceMaxHalfCups                  Int                                @default(3)
   sourceRawRecipeCandidateId       String?
   sourceRawRecipeCandidate         RawRecipeCandidate?                @relation(fields: [sourceRawRecipeCandidateId], references: [id], onDelete: SetNull)
   verifiedByNutritionistId         String?
@@ -1536,6 +1545,8 @@ model MealLibrary {
   @@index([status, safetyEvidenceStatus])
   @@index([safetyReviewedByNutritionistId])
   @@index([sourceRawRecipeCandidateId])
+  @@index([parentMealId])
+  @@index([recipeFamilyId])
 }
 
 /// One qualified RND's approval of an unchanged recipe for an exact recorded

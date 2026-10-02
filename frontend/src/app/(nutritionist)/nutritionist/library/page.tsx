@@ -1,5 +1,8 @@
 'use client';
 
+import LibrarySafetyReview from '@/features/nutritionist-library/LibrarySafetyReview';
+import RecipeDerivationForm from '@/features/nutritionist-library/RecipeDerivationForm';
+
 import { useRef, useState } from 'react';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
@@ -11,10 +14,7 @@ import MealImage from '@/components/user/MealImage';
 import RecipeLibraryCard from '@/features/meals/RecipeLibraryCard';
 import type { PublicMealImage } from '@/types';
 
-import {
-  AVAILABLE_CONDITIONS,
-  useNutritionistLibrary,
-} from '@/features/nutritionist-library/useNutritionistLibrary';
+import { AVAILABLE_CONDITIONS, useNutritionistLibrary } from '@/features/nutritionist-library/useNutritionistLibrary';
 import { MealApprovalsPanel } from '@/features/nutritionist-library/MealApprovalsPanel';
 import { LibraryGridSkeleton } from '@/features/nutritionist-library/NutritionistLibrarySkeleton';
 import type { LibraryMeal } from '@/features/nutritionist-library/useNutritionistLibrary';
@@ -34,7 +34,10 @@ function getPageNumbers(current: number, total: number): (number | 'ellipsis')[]
 
 const coverageSlots = ['BREAKFAST', 'LUNCH', 'DINNER'] as const;
 
-function CoverageSlotCounts({ label, counts }: {
+function CoverageSlotCounts({
+  label,
+  counts,
+}: {
   label: string;
   counts: Record<(typeof coverageSlots)[number], number>;
 }) {
@@ -123,8 +126,10 @@ export default function MealLibraryPage() {
     setMealFlagBusy(true);
     setMealFlagError(null);
     try {
-      await api.post(`/nutritionist/library/${viewedMeal.id}/${action}`, action === 'flag'
-        ? { reason: mealFlagReason.trim() } : { rationale: mealReleaseFindings.trim() });
+      await api.post(
+        `/nutritionist/library/${viewedMeal.id}/${action}`,
+        action === 'flag' ? { reason: mealFlagReason.trim() } : { rationale: mealReleaseFindings.trim() }
+      );
       const response = await api.get(`/nutritionist/library/${viewedMeal.id}`);
       if (response.data?.success) setViewedMeal({ ...viewedMeal, ...response.data.data });
       setMealFlagReason('');
@@ -142,23 +147,28 @@ export default function MealLibraryPage() {
     const source = viewedMeal.sourceRawRecipeCandidate;
     return (
       <div className="portal-page space-y-6">
-        <button type="button" onClick={() => {
-          setViewedMeal(null);
-          requestAnimationFrame(() => document.querySelector('main.portal-main')?.scrollTo({ top: listScrollTop.current }));
-        }}
-          className="inline-flex items-center gap-2 text-sm font-bold text-brand-green hover:underline">
+        <button
+          type="button"
+          onClick={() => {
+            setViewedMeal(null);
+            requestAnimationFrame(() =>
+              document.querySelector('main.portal-main')?.scrollTo({ top: listScrollTop.current })
+            );
+          }}
+          className="inline-flex items-center gap-2 text-sm font-bold text-brand-green hover:underline"
+        >
           <ArrowLeft className="h-4 w-4" aria-hidden="true" /> Back to meal library
         </button>
         <header className="flex flex-col gap-5 rounded-2xl border border-brand-border bg-brand-surface/60 p-5 md:flex-row md:items-center">
           <MealImage
             image={
-              source?.sourceImageUrl
+              viewedMeal.adaptedImageUrl || source?.sourceImageUrl
                 ? {
-                    url: source.sourceImageUrl,
+                    url: viewedMeal.adaptedImageUrl || source!.sourceImageUrl!,
                     altText: viewedMeal.mealName,
                     kind: 'EXACT',
                     attribution: {
-                      sourcePageUrl: source.sourceUrl || undefined,
+                      sourcePageUrl: source?.sourceUrl || undefined,
                     },
                   }
                 : null
@@ -171,7 +181,8 @@ export default function MealLibraryPage() {
           />
           <div>
             <p className="text-xs font-bold uppercase tracking-widest text-brand-green">
-              {viewedMeal.mealType} · {source?.sourceName === 'PANLASANG_PINOY' ? 'Panlasang Pinoy base recipe' : 'Recorded recipe'}
+              {viewedMeal.mealType} ·{' '}
+              {source?.sourceName === 'PANLASANG_PINOY' ? 'Panlasang Pinoy base recipe' : 'Recorded recipe'}
             </p>
             <h1 className="mt-2 font-display text-3xl font-black text-brand-text">{viewedMeal.mealName}</h1>
             <div className="mt-3 flex flex-wrap items-center gap-2">
@@ -186,8 +197,16 @@ export default function MealLibraryPage() {
                 </span>
               )}
             </div>
-            {source?.sourceUrl && <a href={source.sourceUrl} target="_blank" rel="noopener noreferrer"
-              className="mt-3 inline-block text-sm font-semibold text-brand-green underline">View original recipe ↗</a>}
+            {source?.sourceUrl && (
+              <a
+                href={source.sourceUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-3 inline-block text-sm font-semibold text-brand-green underline"
+              >
+                View original recipe ↗
+              </a>
+            )}
             {viewedMeal.status === 'FLAGGED' && (
               <p className="mt-3 text-sm font-bold text-amber-800 dark:text-amber-300">
                 Meal flagged · all serving variants and approvals are unavailable for reuse
@@ -202,44 +221,105 @@ export default function MealLibraryPage() {
             {viewedMeal.status === 'FLAGGED' ? 'Review meal flag' : 'Flag meal'}
           </a>
         </header>
-        <section className="space-y-5 rounded-2xl border border-brand-border bg-brand-surface/60 p-5" aria-label="Meal details">
+        <section
+          className="space-y-5 rounded-2xl border border-brand-border bg-brand-surface/60 p-5"
+          aria-label="Meal details"
+        >
           <div>
             <h2 className="font-display text-xl font-bold text-brand-text">Recipe details</h2>
-            <p className="mt-2 whitespace-pre-line text-sm leading-relaxed text-brand-muted">{viewedMeal.description || 'No description recorded.'}</p>
+            <p className="mt-2 whitespace-pre-line text-sm leading-relaxed text-brand-muted">
+              {viewedMeal.description || 'No description recorded.'}
+            </p>
           </div>
           <dl className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-            {([['Calories', `${viewedMeal.calories} kcal`], ['Protein', `${viewedMeal.proteinG} g`],
-              ['Carbs', `${viewedMeal.carbsG} g`], ['Fat', `${viewedMeal.fatG} g`]] as const).map(([label, value]) => (
+            {(
+              [
+                ['Calories', `${viewedMeal.calories} kcal`],
+                ['Protein', `${viewedMeal.proteinG} g`],
+                ['Carbs', `${viewedMeal.carbsG} g`],
+                ['Fat', `${viewedMeal.fatG} g`],
+              ] as const
+            ).map(([label, value]) => (
               <div key={label} className="rounded-xl border border-brand-border/70 bg-brand-surface p-3 shadow-xs">
-                <dt className="text-xs text-brand-muted">{label}</dt><dd className="mt-1 font-bold text-brand-text">{value}</dd>
+                <dt className="text-xs text-brand-muted">{label}</dt>
+                <dd className="mt-1 font-bold text-brand-text">{value}</dd>
               </div>
             ))}
           </dl>
-          {viewedMeal.nutritionServingDescription && <p className="text-xs text-brand-muted">Serving: {viewedMeal.nutritionServingDescription}</p>}
+          {viewedMeal.nutritionServingDescription && (
+            <p className="text-xs text-brand-muted">Serving: {viewedMeal.nutritionServingDescription}</p>
+          )}
           <div>
             <h3 className="text-sm font-bold text-brand-text">Ingredients</h3>
             <ul className="mt-2 grid gap-2 sm:grid-cols-2">
               {(viewedMeal.ingredients || []).map((ingredient) => (
-                <li key={ingredient.id} className="rounded-lg border border-brand-border/70 bg-brand-surface px-3 py-2 text-xs text-brand-text shadow-xs">
-                  {ingredient.ingredientName}{ingredient.quantity != null ? ` · ${ingredient.quantity} ${ingredient.unit || ''}` : ''}
+                <li
+                  key={ingredient.id}
+                  className="rounded-lg border border-brand-border/70 bg-brand-surface px-3 py-2 text-xs text-brand-text shadow-xs"
+                >
+                  {ingredient.ingredientName}
+                  {ingredient.quantity != null ? ` · ${ingredient.quantity} ${ingredient.unit || ''}` : ''}
                 </li>
               ))}
             </ul>
-            {!viewedMeal.ingredients?.length && <p className="mt-2 text-xs text-brand-muted">No ingredient snapshot recorded.</p>}
+            {!viewedMeal.ingredients?.length && (
+              <p className="mt-2 text-xs text-brand-muted">No ingredient snapshot recorded.</p>
+            )}
           </div>
           {viewedMeal.safetyReviews?.[0]?.evidenceSnapshot?.nutritionBasis && (
-            <p className="text-xs text-brand-muted">Nutrition source notes: {viewedMeal.safetyReviews[0].evidenceSnapshot.nutritionBasis}</p>
+            <p className="text-xs text-brand-muted">
+              Nutrition source notes: {viewedMeal.safetyReviews[0].evidenceSnapshot.nutritionBasis}
+            </p>
           )}
         </section>
-        <section id="meal-wide-review" className="scroll-mt-20 space-y-3 rounded-2xl border border-brand-border bg-brand-surface/60 p-5" aria-label="Meal-wide flag">
+        {viewedMeal.parentMeal && (
+          <p className="text-sm text-brand-muted">
+            {viewedMeal.derivationKind === 'ADAPTED' ? 'Adapted from' : 'Serving version of'}{' '}
+            {viewedMeal.parentMeal.mealName}. This draft has its own review history and approvals.
+          </p>
+        )}
+        <LibrarySafetyReview
+          key={`safety-${viewedMeal.id}-${viewedMeal.safetyEvidenceRevision}`}
+          meal={viewedMeal}
+          refresh={async () => {
+            await openMeal(viewedMeal);
+            await workspace.fetchLibrary();
+          }}
+        />
+        <RecipeDerivationForm
+          key={viewedMeal.id}
+          meal={viewedMeal}
+          onCreated={(id) => {
+            void openMeal({ ...viewedMeal, id });
+            void fetchLibrary();
+          }}
+        />
+        <section
+          id="meal-wide-review"
+          className="scroll-mt-20 space-y-3 rounded-2xl border border-brand-border bg-brand-surface/60 p-5"
+          aria-label="Meal-wide flag"
+        >
           <h2 className="font-display text-xl font-bold text-brand-text">Meal-wide review</h2>
           {viewedMeal.status === 'FLAGGED' ? (
             <>
-              <p className="text-sm text-brand-muted">This base meal and every serving variant are unavailable. Recorded approvals remain intact; separately flagged approvals stay flagged after release.</p>
-              {viewedMeal.flags?.filter((flag) => flag.status === 'PENDING').map((flag) => (
-                <p key={flag.id} className="rounded-xl border border-amber-500/40 bg-amber-500/10 p-3 text-sm font-medium text-amber-900 dark:text-amber-200">Flag reason: {flag.reason}</p>
-              ))}
-              <label htmlFor="meal-release-findings" className="block text-sm font-semibold text-brand-text">Independent review findings</label>
+              <p className="text-sm text-brand-muted">
+                This base meal and every serving variant are unavailable. An uninvolved Lead must resolve the flag;
+                authors, original verifiers and flaggers cannot release it. Recorded approvals remain intact; separately
+                flagged approvals stay flagged after release.
+              </p>
+              {viewedMeal.flags
+                ?.filter((flag) => flag.status === 'PENDING')
+                .map((flag) => (
+                  <p
+                    key={flag.id}
+                    className="rounded-xl border border-amber-500/40 bg-amber-500/10 p-3 text-sm font-medium text-amber-900 dark:text-amber-200"
+                  >
+                    Flag reason: {flag.reason}
+                  </p>
+                ))}
+              <label htmlFor="meal-release-findings" className="block text-sm font-semibold text-brand-text">
+                Independent Lead review findings
+              </label>
               <textarea
                 id="meal-release-findings"
                 value={mealReleaseFindings}
@@ -250,12 +330,23 @@ export default function MealLibraryPage() {
                 placeholder="Document clinical findings from independent review (at least 10 characters)..."
                 className="w-full rounded-xl border border-brand-border/80 bg-brand-surface p-3 text-sm text-brand-text shadow-sm outline-none transition focus:border-brand-green focus:ring-2 focus:ring-brand-green/20 placeholder:text-brand-muted/70"
               />
-              <Button variant="secondary" disabled={mealFlagBusy || mealReleaseFindings.trim().length < 10} onClick={() => void changeMealFlag('release-flag')}>Release meal flag</Button>
+              <Button
+                variant="secondary"
+                disabled={mealFlagBusy || mealReleaseFindings.trim().length < 10}
+                onClick={() => void changeMealFlag('release-flag')}
+              >
+                Release meal flag
+              </Button>
             </>
           ) : (
             <>
-              <p className="text-sm text-brand-muted">Flagging pauses this meal, its serving variants, and every associated approval. Current plan slots using it require revalidation.</p>
-              <label htmlFor="meal-flag-reason" className="block text-sm font-semibold text-brand-text">Reason for flagging the meal</label>
+              <p className="text-sm text-brand-muted">
+                Flagging pauses this meal, its serving variants, and every associated approval. Current plan slots using
+                it require revalidation.
+              </p>
+              <label htmlFor="meal-flag-reason" className="block text-sm font-semibold text-brand-text">
+                Reason for flagging the meal
+              </label>
               <textarea
                 id="meal-flag-reason"
                 value={mealFlagReason}
@@ -266,10 +357,20 @@ export default function MealLibraryPage() {
                 placeholder="State the reason for flagging this meal (at least 10 characters)..."
                 className="w-full rounded-xl border border-brand-border/80 bg-brand-surface p-3 text-sm text-brand-text shadow-sm outline-none transition focus:border-brand-green focus:ring-2 focus:ring-brand-green/20 placeholder:text-brand-muted/70"
               />
-              <Button variant="secondary" disabled={mealFlagBusy || mealFlagReason.trim().length < 10} onClick={() => void changeMealFlag('flag')}>Flag entire meal</Button>
+              <Button
+                variant="secondary"
+                disabled={mealFlagBusy || mealFlagReason.trim().length < 10}
+                onClick={() => void changeMealFlag('flag')}
+              >
+                Flag entire meal
+              </Button>
             </>
           )}
-          {mealFlagError && <p role="alert" className="text-sm text-red-300">{mealFlagError}</p>}
+          {mealFlagError && (
+            <p role="alert" className="text-sm text-red-300">
+              {mealFlagError}
+            </p>
+          )}
         </section>
         <MealApprovalsPanel key={`${viewedMeal.id}-${viewedMeal.status}`} mealId={viewedMeal.id} />
       </div>
@@ -323,13 +424,15 @@ export default function MealLibraryPage() {
               </h2>
             </div>
             <p className="text-xs text-brand-muted">
-              {coverage.sourceRecipesWithCoreNutrition} Panlasang sources with core numbers · {coverage.certifiedMeals} certified library servings
+              {coverage.sourceRecipesWithCoreNutrition} Panlasang sources with core numbers · {coverage.certifiedMeals}{' '}
+              certified library servings
             </p>
           </div>
           <p className="text-xs leading-relaxed text-brand-muted">
-            Source recipes can support general-wellness planning; their numbers may include estimates and do not grant condition or allergy clearance.
-            The counts below use certified library servings only. Automatic reuse needs a current matching clearance or approval.
-            Case-review candidates still need an individual nutritionist decision. The variety target is {coverage.requiredPerSlot} distinct choices per main-meal slot.
+            Source recipes can support general-wellness planning; their numbers may include estimates and do not grant
+            condition or allergy clearance. The counts below use certified library servings only. Automatic reuse needs
+            a current matching clearance or approval. Case-review candidates still need an individual nutritionist
+            decision. The variety target is {coverage.requiredPerSlot} distinct choices per main-meal slot.
           </p>
           <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
             {coverage.profiles.map((profile) => (
@@ -337,7 +440,9 @@ export default function MealLibraryPage() {
                 <div className="flex items-start justify-between gap-2">
                   <div>
                     <p className="text-sm font-extrabold text-brand-text">{profile.label}</p>
-                    <p className="mt-1 text-[10px] text-brand-muted">Auto reuse: {profile.minimumPerSlot} lowest slot</p>
+                    <p className="mt-1 text-[10px] text-brand-muted">
+                      Auto reuse: {profile.minimumPerSlot} lowest slot
+                    </p>
                   </div>
                   <Badge variant={profile.weekReady ? 'verified' : 'pending'} showIcon={false} className="text-[9px]">
                     {profile.weekReady ? 'Auto variety met' : 'Auto reuse below target'}
@@ -350,13 +455,22 @@ export default function MealLibraryPage() {
                 <details className="mt-3 text-xs">
                   <summary>Serving fit by daily target</summary>
                   <p className="my-2 text-brand-muted">
-                    Each line applies the meal-slot calorie range to those servings. Case-review counts are potential review work, not approved meals.
+                    Each line applies the meal-slot calorie range to those servings. Case-review counts are potential
+                    review work, not approved meals.
                   </p>
                   {profile.servingCoverage?.map((row) => (
                     <div key={row.dailyCalorieTarget} className="mt-2 border-t border-brand-border/40 pt-2">
-                      <p>{row.dailyCalorieTarget} kcal/day · {row.weekReady ? 'Auto variety met' : 'Auto reuse below target'}</p>
-                      <p className="text-brand-muted">Auto: B {row.counts.BREAKFAST} · L {row.counts.LUNCH} · D {row.counts.DINNER}</p>
-                      <p className="text-brand-muted">Case review: B {row.caseReviewCounts.BREAKFAST} · L {row.caseReviewCounts.LUNCH} · D {row.caseReviewCounts.DINNER}</p>
+                      <p>
+                        {row.dailyCalorieTarget} kcal/day ·{' '}
+                        {row.weekReady ? 'Auto variety met' : 'Auto reuse below target'}
+                      </p>
+                      <p className="text-brand-muted">
+                        Auto: B {row.counts.BREAKFAST} · L {row.counts.LUNCH} · D {row.counts.DINNER}
+                      </p>
+                      <p className="text-brand-muted">
+                        Case review: B {row.caseReviewCounts.BREAKFAST} · L {row.caseReviewCounts.LUNCH} · D{' '}
+                        {row.caseReviewCounts.DINNER}
+                      </p>
                     </div>
                   ))}
                 </details>
@@ -367,7 +481,8 @@ export default function MealLibraryPage() {
             <div className="border-b border-brand-border/60 px-4 py-3">
               <h3 className="text-sm font-extrabold text-brand-text">Combined restriction matrix</h3>
               <p className="mt-1 text-[11px] text-brand-muted">
-                Each cell shows the lowest breakfast, lunch, or dinner count for automatic reuse and for separate case-review candidates.
+                Each cell shows the lowest breakfast, lunch, or dinner count for automatic reuse and for separate
+                case-review candidates.
               </p>
             </div>
             <div className="overflow-x-auto">
@@ -410,8 +525,12 @@ export default function MealLibraryPage() {
                               aria-label={`${row.label} and ${cell.label}: ${cell.minimumPerSlot} lowest-slot automatic choices, ${cell.caseReviewMinimumPerSlot} lowest-slot case-review candidates. ${detail}.`}
                               className={`inline-flex min-w-[130px] items-center justify-center gap-1 rounded-xl border px-2 py-2 font-mono text-[10px] font-black outline-none transition focus:ring-2 focus:ring-brand-cyan/40 ${cell.weekReady ? 'border-brand-green/35 bg-brand-green/10 text-brand-green' : 'border-status-warning-text/35 bg-status-warning-bg/15 text-status-warning-text'}`}
                             >
-                              <span>Auto {cell.minimumPerSlot}/{coverage.requiredPerSlot}</span>
-                              <span className="ml-1 border-l border-current/30 pl-1">Review {cell.caseReviewMinimumPerSlot}</span>
+                              <span>
+                                Auto {cell.minimumPerSlot}/{coverage.requiredPerSlot}
+                              </span>
+                              <span className="ml-1 border-l border-current/30 pl-1">
+                                Review {cell.caseReviewMinimumPerSlot}
+                              </span>
                             </span>
                           </td>
                         );
@@ -456,7 +575,10 @@ export default function MealLibraryPage() {
                 Search meal name
               </label>
               <div className="relative">
-                <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-brand-muted" aria-hidden="true" />
+                <Search
+                  className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-brand-muted"
+                  aria-hidden="true"
+                />
                 <input
                   id="library-search"
                   name="search"
@@ -527,7 +649,10 @@ export default function MealLibraryPage() {
 
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pt-3 border-t border-brand-border/40">
             <div className="flex flex-wrap items-center gap-4">
-              <label htmlFor="library-meal-status" className="flex items-center gap-2 text-xs font-bold text-brand-text">
+              <label
+                htmlFor="library-meal-status"
+                className="flex items-center gap-2 text-xs font-bold text-brand-text"
+              >
                 Meal status
                 <select
                   id="library-meal-status"
@@ -613,16 +738,17 @@ export default function MealLibraryPage() {
                   meal.safetyEvidenceStatus === 'INCOMPLETE' &&
                   meal.safetyReviews?.some((review) => review.reasonCode === 'ADMIN_AUTHORED_DRAFT');
 
-                const image: PublicMealImage | null = meal.sourceRawRecipeCandidate?.sourceImageUrl
-                  ? {
-                      url: meal.sourceRawRecipeCandidate.sourceImageUrl,
-                      altText: meal.mealName,
-                      kind: 'EXACT',
-                      attribution: {
-                        sourcePageUrl: meal.sourceRawRecipeCandidate.sourceUrl || undefined,
-                      },
-                    }
-                  : null;
+                const image: PublicMealImage | null =
+                  meal.adaptedImageUrl || meal.sourceRawRecipeCandidate?.sourceImageUrl
+                    ? {
+                        url: meal.adaptedImageUrl || meal.sourceRawRecipeCandidate!.sourceImageUrl!,
+                        altText: meal.mealName,
+                        kind: 'EXACT',
+                        attribution: {
+                          sourcePageUrl: meal.sourceRawRecipeCandidate?.sourceUrl || undefined,
+                        },
+                      }
+                    : null;
 
                 return (
                   <RecipeLibraryCard
@@ -636,30 +762,49 @@ export default function MealLibraryPage() {
                     proteinG={meal.proteinG}
                     carbsG={meal.carbsG}
                     fatG={meal.fatG}
-                    badges={<>
-                      <Badge
-                        variant={meal.status === 'FLAGGED' ? 'pending' : meal.baseVerification === 'VERIFIED' ? 'verified' : 'pending'}
-                        showIcon={false}
-                        className="text-[10px]"
-                      >
-                        {meal.status === 'FLAGGED' ? 'Flagged' : meal.baseVerification === 'VERIFIED' ? 'Verified' : 'Review pending'}
-                      </Badge>
-                      {isAdminDraft && (
-                        <span className="rounded-full border border-[#a64600]/30 bg-[#8c3b00] px-2 py-0.5 text-[10px] font-semibold text-white shadow-xs">Admin draft</span>
-                      )}
-                    </>}
-                    details={meal.suitableConditions?.length ? (
-                      <p className="mt-1 text-[11px] text-brand-muted">
-                        {meal.suitableConditions.length} {meal.suitableConditions.length === 1 ? 'condition' : 'conditions'}
-                      </p>
-                    ) : undefined}
+                    badges={
+                      <>
+                        <Badge
+                          variant={
+                            meal.status === 'FLAGGED'
+                              ? 'pending'
+                              : meal.baseVerification === 'VERIFIED'
+                                ? 'verified'
+                                : 'pending'
+                          }
+                          showIcon={false}
+                          className="text-[10px]"
+                        >
+                          {meal.status === 'FLAGGED'
+                            ? 'Flagged'
+                            : meal.baseVerification === 'VERIFIED'
+                              ? 'Verified'
+                              : 'Review pending'}
+                        </Badge>
+                        {isAdminDraft && (
+                          <span className="rounded-full border border-[#a64600]/30 bg-[#8c3b00] px-2 py-0.5 text-[10px] font-semibold text-white shadow-xs">
+                            Admin draft
+                          </span>
+                        )}
+                      </>
+                    }
+                    details={
+                      meal.suitableConditions?.length ? (
+                        <p className="mt-1 text-[11px] text-brand-muted">
+                          {meal.suitableConditions.length}{' '}
+                          {meal.suitableConditions.length === 1 ? 'condition' : 'conditions'}
+                        </p>
+                      ) : undefined
+                    }
                     footer={
                       <div className="flex items-center justify-between gap-2">
                         <div className="text-[11px] text-brand-muted">
                           <span className="line-clamp-1 font-medium">
                             {meal.sourceRawRecipeCandidate?.sourceName === 'PANLASANG_PINOY'
                               ? 'Panlasang Pinoy base recipe'
-                              : isAdminDraft ? 'Admin recipe draft' : 'Recorded recipe'}
+                              : isAdminDraft
+                                ? 'Admin recipe draft'
+                                : 'Recorded recipe'}
                           </span>
                           <span className="mt-0.5 block text-[10px] text-brand-muted/80">Used {meal.usageCount}x</span>
                         </div>

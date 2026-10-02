@@ -53,6 +53,7 @@ interface MealCardProps {
   mealName: string;
   mealType: MealType;
   description?: string;
+  ricePortion?: string | null;
   calories: number;
   proteinG: number;
   carbsG: number;
@@ -82,6 +83,7 @@ export default function MealCard({
   mealName,
   mealType,
   description,
+  ricePortion,
   calories,
   proteinG,
   carbsG,
@@ -319,6 +321,7 @@ export default function MealCard({
               >
                 {mealName}
               </h3>
+              {ricePortion && <p className="text-xs text-brand-green">+ {ricePortion}</p>}
               <p className="text-xs text-brand-muted line-clamp-1 mt-0.5">
                 {ingredients.length > 0
                   ? `Prepared with ${ingredients.map((i) => i.ingredientName).join(', ')}`
@@ -535,9 +538,7 @@ export default function MealCard({
                     {isUnloggedPastMeal && !isPastGracePeriod && (
                       <div className="p-3 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-xs text-amber-700 dark:text-amber-300 font-semibold flex items-center gap-2">
                         <Clock3 className="h-4 w-4 shrink-0" />
-                        <span>
-                          Missed this meal? You can still catch up and record whether you ate or skipped it.
-                        </span>
+                        <span>Missed this meal? You can still catch up and record whether you ate or skipped it.</span>
                       </div>
                     )}
                     {isPastGracePeriod && (
@@ -627,6 +628,12 @@ export default function MealCard({
                         </div>
                       </div>
                     </div>
+
+                    {ricePortion && (
+                      <p className="rounded-xl border border-brand-border bg-brand-bgAlt p-3 text-sm font-bold">
+                        Dish + {ricePortion}. Nutrition totals include rice.
+                      </p>
+                    )}
 
                     {/* Description Text */}
                     {description && (

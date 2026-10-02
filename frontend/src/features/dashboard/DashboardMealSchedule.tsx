@@ -27,6 +27,7 @@ export function DashboardMealSchedule({ activeDate, approvedMeals, onStatusToggl
       mealName={meal.mealName}
       mealType={meal.mealType}
       description={meal.description || undefined}
+      ricePortion={meal.ricePortion}
       calories={meal.calories}
       proteinG={meal.proteinG}
       carbsG={meal.carbsG}

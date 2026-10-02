@@ -15,15 +15,13 @@ async function setup(page: Page, scenario: 'trial' | 'scheduled' | 'upgrade') {
       exp: Math.floor(now / 1000) + 3600,
     })
   ).toString('base64url');
-  await page
-    .context()
-    .addCookies([
-      {
-        name: 'nutrimind_session',
-        value: `fixture.${payload}.fixture`,
-        url: process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:3000',
-      },
-    ]);
+  await page.context().addCookies([
+    {
+      name: 'nutrimind_session',
+      value: `fixture.${payload}.fixture`,
+      url: process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:3000',
+    },
+  ]);
   const usage = { used: 0, cap: 10, remaining: 10 };
   let confirmed = 0;
   const quote = {
@@ -142,7 +140,7 @@ test('trial purchase explains preserved Health benefits before opening payment',
   const dialog = page.getByRole('dialog');
   await dialog.getByRole('button', { name: 'Get Lifestyle' }).click();
   await expect(dialog.getByRole('region', { name: 'Payment summary' })).toBeVisible();
-  await expect(dialog.getByText(/Your Health trial continues/)).toBeVisible();
+  await expect(dialog.getByText(/Your current Health plan continues/)).toBeVisible();
   await expect(dialog.getByText('Due now')).toBeVisible();
   expect(state.confirmed()).toBe(0);
   await dialog.getByRole('button', { name: 'Back to plans' }).click();
@@ -176,3 +174,24 @@ test('mobile upgrade displays credit, keeps confirmation explicit, and returns t
   expect(state.confirmed()).toBe(1);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
 });
+
+for (const width of [1440, 390]) {
+  test(`membership calendar shows current Health and paid next period at ${width}px`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 900 });
+    const errors: string[] = [];
+    page.on('pageerror', (error) => errors.push(error.message));
+    await setup(page, 'scheduled');
+    await page.goto('/membership');
+    const period = page.getByRole('combobox', { name: 'Membership period' });
+    await expect(period).toHaveValue('current');
+    await expect(page.getByRole('heading', { name: 'Health', exact: true })).toBeVisible();
+    await expect(page.getByRole('switch', { name: /auto/i })).toHaveCount(0);
+    await expect(page.getByText(/Health trial/i)).toHaveCount(0);
+    await period.selectOption('next');
+    await expect(page.getByText(/Already paid. This plan starts automatically/)).toBeVisible();
+    await period.selectOption('current');
+    await expect(page.getByText(/Health is active for 14 days/)).toBeVisible();
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+    expect(errors).toEqual([]);
+  });
+}

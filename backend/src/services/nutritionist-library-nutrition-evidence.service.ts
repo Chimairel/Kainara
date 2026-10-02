@@ -112,6 +112,18 @@ export async function prepareLibraryNutritionEvidence(
         if (meal.status !== MealLibraryStatus.APPROVED || meal.flags.length) {
           throw new Error('Flagged or archived meals cannot be prepared for certification.');
         }
+        const [verified, used] = await Promise.all([
+          tx.mealBaseVerification.findFirst({
+            where: { targetKind: 'LIBRARY_MEAL', targetId: mealId, status: 'VERIFIED' },
+            select: { id: true },
+          }),
+          tx.mealPlan.findFirst({ where: { libraryMealId: mealId }, select: { id: true } }),
+        ]);
+        if (verified || used || meal.certifiedEvidenceRevision !== null) {
+          throw new Error(
+            'This recipe has been reviewed or used. Create a new recipe draft to change ingredients, quantities or nutrition.'
+          );
+        }
         if (meal.safetyEvidenceRevision !== input.expectedRevision) {
           throw new Error('Evidence revision conflict. Refresh the meal before editing nutrition evidence.');
         }

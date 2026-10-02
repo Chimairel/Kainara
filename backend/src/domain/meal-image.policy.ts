@@ -1,6 +1,8 @@
 import type { MealImageKind } from '@prisma/client';
 
 export type MealImageRecord = {
+  adaptedImageUrl?: string | null;
+  derivationKind?: string;
   mealName?: string | null;
   description?: string | null;
   sourceVideoUrl?: string | null;
@@ -140,6 +142,19 @@ export function toPublicYouTubeThumbnail(input: {
 }
 
 export function toPublicMealImage(meal: MealImageRecord): PublicMealImage | null {
+  if (meal.adaptedImageUrl)
+    return {
+      url: meal.adaptedImageUrl,
+      altText: meal.mealName || 'Adapted recipe',
+      kind: 'EXACT',
+      attribution: {
+        creator: 'Nutritionist supplied',
+        sourcePageUrl: null,
+        licenseCode: null,
+        licenseUrl: null,
+        modifications: 'Adapted recipe',
+      },
+    };
   let cloudName = process.env.CLOUDINARY_CLOUD_NAME?.trim();
   if (!cloudName && process.env.CLOUDINARY_URL) {
     try {

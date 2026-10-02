@@ -32,6 +32,7 @@ export interface PendingMealPreview {
   carbsG: number;
   fatG: number;
   scheduledDate: string;
+  ricePortion?: string | null;
   ingredients: { ingredientName: string; category: string }[];
   image?: PublicMealImage | null;
   cookingLink?: MealCookingLink | null;
@@ -196,6 +197,7 @@ export default function PendingMealPreviewCard({
               <h3 className="text-base font-bold font-display tracking-tight text-brand-text leading-snug line-clamp-1">
                 {meal.mealName}
               </h3>
+              {meal.ricePortion && <p className="text-xs text-brand-green">+ {meal.ricePortion}</p>}
               <p className="text-xs text-brand-muted line-clamp-1 mt-0.5">
                 {meal.description ||
                   (meal.ingredients.length > 0

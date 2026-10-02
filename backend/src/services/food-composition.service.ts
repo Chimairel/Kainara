@@ -90,6 +90,7 @@ export class FoodCompositionService {
             mealLogs: { none: { status: { in: ['DONE', 'SKIPPED'] } } },
             OR: [
               { ingredients: { some: { foodItemId: draft.foodItemId } } },
+              { servingComponents: { some: { foodItemId: draft.foodItemId } } },
               { libraryMeal: { ingredients: { some: { foodItemId: draft.foodItemId } } } },
             ],
           },

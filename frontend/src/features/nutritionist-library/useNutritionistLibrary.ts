@@ -32,6 +32,18 @@ export interface Verifier {
 }
 
 export interface LibraryMeal {
+  parentMealId?: string | null;
+  recipeFamilyId?: string | null;
+  derivationKind?: 'ORIGINAL' | 'SERVING_VERSION' | 'ADAPTED';
+  parentMeal?: {
+    id: string;
+    mealName: string;
+    sourceRawRecipeCandidate?: { sourceName: string; sourceUrl: string } | null;
+  } | null;
+  authoredByNutritionistId?: string | null;
+  adaptedImageUrl?: string | null;
+  riceMinHalfCups?: number;
+  riceMaxHalfCups?: number;
   id: string;
   sourceRawRecipeCandidate?: {
     sourceName: string;
@@ -98,6 +110,11 @@ export interface LibraryMeal {
     quantity?: number | null;
     unit?: string | null;
     foodItem?: {
+      id?: string;
+      calories?: number;
+      proteinG?: number;
+      carbsG?: number;
+      fatG?: number;
       name: string;
       source: string;
       sourceRecordId?: string | null;

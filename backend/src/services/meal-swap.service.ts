@@ -1,3 +1,4 @@
+import { ricePortionLabel } from '@/domain/rice-portion.policy';
 import { rankLibraryMeals } from '@/domain/library-ranking.policy';
 import { MembershipService } from './membership.service';
 import {
@@ -102,7 +103,10 @@ export function toPublicSwapOption(
     proteinG: meal.proteinG,
     carbsG: meal.carbsG,
     fatG: meal.fatG,
-    image: assignedImage?.kind === 'EXACT' && meal.imagePublicId ? assignedImage : recipeImage || assignedImage,
+    image:
+      assignedImage?.kind === 'EXACT' && (meal.imagePublicId || meal.adaptedImageUrl)
+        ? assignedImage
+        : recipeImage || assignedImage,
     cookingLink: cookingLink || null,
     reuseBasis,
     verifiedBy: reviewer?.user.name || 'System',
@@ -156,7 +160,7 @@ export class MealSwapService {
 
     const [cycleSnapshot, riceFood] = await Promise.all([
       prisma.mealPlanCycleSnapshot.findUnique({ where: { planGroupId: mealPlan.planGroupId } }),
-      userProfile.ricePreference === RicePreference.WITH_RICE &&
+      userProfile.ricePreference !== RicePreference.NO_RICE &&
       !userConditions.some((condition) => condition !== HealthConditionType.NONE)
         ? prisma.foodItem.findFirst({
             where: { source: 'FNRI', name: { equals: 'Rice, well-milled, boiled', mode: 'insensitive' } },
@@ -248,7 +252,7 @@ export class MealSwapService {
             ricePreferenceScore: ricePreferenceScore(meal.riceRole),
             pairedRiceG: serving.pairedRiceG,
             nutritionServingDescription: serving.pairedRiceG
-              ? `${meal.nutritionServingDescription || 'One recipe serving'} with ${serving.pairedRiceG} g cooked rice`
+              ? `${meal.nutritionServingDescription || 'One recipe serving'} with ${ricePortionLabel(serving.pairedRiceG)}`
               : meal.nutritionServingDescription,
           },
         ];
@@ -340,7 +344,7 @@ export class MealSwapService {
     }
     const [cycleSnapshot, riceFood] = await Promise.all([
       client.mealPlanCycleSnapshot.findUnique({ where: { planGroupId: mealPlan.planGroupId } }),
-      userProfile.ricePreference === RicePreference.WITH_RICE
+      userProfile.ricePreference !== RicePreference.NO_RICE
         ? client.foodItem.findFirst({
             where: { source: 'FNRI', name: { equals: 'Rice, well-milled, boiled', mode: 'insensitive' } },
           })
@@ -476,7 +480,7 @@ export class MealSwapService {
         ...serving,
         alreadyPlannedInCycle,
         nutritionServingDescription: serving.pairedRiceG
-          ? `${libraryMeal.nutritionServingDescription || 'One recipe serving'} with ${serving.pairedRiceG} g cooked rice`
+          ? `${libraryMeal.nutritionServingDescription || 'One recipe serving'} with ${ricePortionLabel(serving.pairedRiceG)}`
           : libraryMeal.nutritionServingDescription,
       }),
     };

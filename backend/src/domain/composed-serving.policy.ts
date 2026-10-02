@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto';
 
-export const COMPOSED_SERVING_SIGNATURE_VERSION = 'COMPOSED_SERVING_V1';
+export const COMPOSED_SERVING_SIGNATURE_VERSION = 'COMPOSED_SERVING_V2';
 
 export interface Macronutrients {
   calories: number;
@@ -13,6 +13,7 @@ export interface FnriFoodPer100G extends Macronutrients {
   id: string;
   name: string;
   source: string;
+  compositionRevision?: number;
 }
 
 function round(value: number): number {
@@ -54,7 +55,13 @@ export function buildComposedServing(input: {
     baseRecipeSignature: input.baseRecipeSignature,
     components: [
       { kind: 'BASE_RECIPE', signature: input.baseRecipeSignature },
-      { kind: 'COOKED_RICE', foodItemId: input.riceFood.id, grams: round(input.cookedRiceG) },
+      {
+        kind: 'COOKED_RICE',
+        foodItemId: input.riceFood.id,
+        compositionRevision: input.riceFood.compositionRevision ?? null,
+        nutrition: riceNutrition,
+        grams: round(input.cookedRiceG),
+      },
     ],
   });
   return {

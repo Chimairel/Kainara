@@ -2,6 +2,7 @@ import { isMealWithinSlotCalorieRange } from '@/domain/meal-calorie-allocation.p
 import { SUPPORTED_MEAL_LIBRARY_SAFETY_POLICY_VERSIONS } from '@/domain/meal-library-safety-evidence.policy';
 import { isNutritionistEligibleForReview } from '@/domain/nutritionist-review.policy';
 import prisma from '@/lib/prisma';
+import { flagWholeMeal } from './meal-wide-flag.service';
 import type { libraryMealEditSchema } from '@/validation/nutritionist.schemas';
 import {
   AllergenType,
@@ -12,8 +13,6 @@ import {
   MealLibrarySafetyEvidenceStatus,
   MealLibrarySafetyReviewOutcome,
   MealLibraryStatus,
-  MealNutritionEvidenceSource,
-  MealType,
   Prisma,
   type MealLibrary,
 } from '@prisma/client';
@@ -34,7 +33,7 @@ import {
   isProfileApprovedLibraryMealCompatible,
 } from '@/services/meal-library-candidate-query.service';
 
-import { buildMealLibraryRecipeSignature } from '@/domain/meal-library-signature.policy';
+import { admittedLibraryBaseIds } from './meal-base-admission.service';
 import { certifyLibraryMealSafety } from './nutritionist-library-certification.service';
 import {
   getNutritionistMealLibrary,
@@ -253,7 +252,16 @@ export class NutritionistLibraryService {
     const meal = await prisma.mealLibrary.findUnique({
       where: { id: mealId },
       include: {
-        sourceRawRecipeCandidate: { select: { sourceName: true, sourceUrl: true, sourceImageUrl: true, status: true } },
+        parentMeal: {
+          select: {
+            id: true,
+            mealName: true,
+            sourceRawRecipeCandidate: { select: { sourceName: true, sourceUrl: true } },
+          },
+        },
+        sourceRawRecipeCandidate: {
+          select: { sourceName: true, sourceUrl: true, sourceImageUrl: true, status: true, contentSignature: true },
+        },
         verifiedByNutritionist: {
           include: {
             user: {
@@ -272,7 +280,14 @@ export class NutritionistLibraryService {
             },
           },
         },
-        ingredients: { orderBy: { position: 'asc' } },
+        ingredients: {
+          orderBy: { position: 'asc' },
+          include: {
+            foodItem: {
+              select: { id: true, name: true, source: true, calories: true, proteinG: true, carbsG: true, fatG: true },
+            },
+          },
+        },
         applicableMealTypes: { orderBy: { mealType: 'asc' } },
         safetyDeclarations: true,
         safetyReviewedByNutritionist: {
@@ -290,9 +305,26 @@ export class NutritionistLibraryService {
       },
     });
     if (!meal) return null;
+    const [admitted, prepared] = await Promise.all([
+      admittedLibraryBaseIds([meal]),
+      prisma.auditEvent.findFirst({
+        where: { entityType: 'MealLibrary', entityId: mealId, action: 'NUTRITION_EVIDENCE_PREPARED' },
+        orderBy: { createdAt: 'desc' },
+      }),
+    ]);
+    const preparedData = prepared?.metadata as { revision?: number; portionBasis?: string } | null;
     const { sourceRawRecipeCandidate: source, ...fields } = meal;
     return {
       ...fields,
+      baseVerification: admitted.has(meal.id) ? 'VERIFIED' : 'REVIEW_PENDING',
+      baseVerificationBasis: admitted.has(meal.id)
+        ? meal.sourceRawRecipeCandidate?.sourceName === 'PANLASANG_PINOY'
+          ? 'PANLASANG_PINOY'
+          : 'NUTRITIONIST'
+        : null,
+      preparedNutritionRevision: preparedData?.revision ?? null,
+      preparedNutritionBasis: preparedData?.portionBasis ?? null,
+
       sourceRawRecipeCandidate: source
         ? {
             sourceName: source.sourceName,
@@ -314,127 +346,14 @@ export class NutritionistLibraryService {
   /**
    * Update meal details in MealLibrary
    */
-  static async editLibraryMeal(userId: string, userRole: string, mealId: string, updatedFields: LibraryMealEditInput) {
-    const meal = await prisma.mealLibrary.findUnique({
-      where: { id: mealId },
-      include: { verifiedByNutritionist: true, ingredients: { orderBy: { position: 'asc' } } },
-    });
-
-    if (!meal) throw new Error('Meal not found.');
-
-    const hasPermission = await this.checkLibraryMealMutationPermission(userId, userRole, meal);
-    if (!hasPermission) {
-      throw new Error('Unauthorized: Only the original verifying nutritionist can edit this meal.');
-    }
-
-    const now = new Date();
-    const wasComplete = meal.safetyEvidenceStatus === MealLibrarySafetyEvidenceStatus.COMPLETE;
-    const applicableMealTypes = Array.isArray(updatedFields.applicableMealTypes)
-      ? updatedFields.applicableMealTypes
-      : null;
-    const primaryMealType = applicableMealTypes?.includes(meal.mealType)
-      ? meal.mealType
-      : (applicableMealTypes?.[0] ?? meal.mealType);
-    const calories = updatedFields.calories;
-    const proteinG = updatedFields.proteinG;
-    const carbsG = updatedFields.carbsG;
-    const fatG = updatedFields.fatG;
-    const recipeSignature = buildMealLibraryRecipeSignature({
-      mealName: updatedFields.mealName,
-      mealType: primaryMealType,
-      calories,
-      proteinG,
-      carbsG,
-      fatG,
-      ingredients: meal.ingredients,
-    });
-    return prisma.$transaction(
-      async (tx) => {
-        await tx.$executeRaw`SELECT pg_advisory_xact_lock_shared(741010)`;
-        const updated = await tx.mealLibrary.update({
-          where: { id: mealId },
-          data: {
-            mealName: updatedFields.mealName,
-            description: updatedFields.description,
-            mealType: primaryMealType,
-            calories,
-            proteinG,
-            carbsG,
-            fatG,
-            recipeSignature,
-            sodiumMg: Object.prototype.hasOwnProperty.call(updatedFields, 'sodiumMg')
-              ? updatedFields.sodiumMg
-              : meal.sodiumMg,
-            sugarG: Object.prototype.hasOwnProperty.call(updatedFields, 'sugarG') ? updatedFields.sugarG : meal.sugarG,
-            fiberG: Object.prototype.hasOwnProperty.call(updatedFields, 'fiberG') ? updatedFields.fiberG : meal.fiberG,
-            potassiumMg: Object.prototype.hasOwnProperty.call(updatedFields, 'potassiumMg')
-              ? updatedFields.potassiumMg
-              : meal.potassiumMg,
-            phosphorusMg: Object.prototype.hasOwnProperty.call(updatedFields, 'phosphorusMg')
-              ? updatedFields.phosphorusMg
-              : meal.phosphorusMg,
-            saturatedFatG: Object.prototype.hasOwnProperty.call(updatedFields, 'saturatedFatG')
-              ? updatedFields.saturatedFatG
-              : meal.saturatedFatG,
-            nutritionServingDescription: Object.prototype.hasOwnProperty.call(
-              updatedFields,
-              'nutritionServingDescription'
-            )
-              ? updatedFields.nutritionServingDescription
-              : meal.nutritionServingDescription,
-            nutritionEvidenceSource: MealNutritionEvidenceSource.NUTRITIONIST_EDITED,
-            dietaryTags: (updatedFields.dietaryTags || meal.dietaryTags) ?? Prisma.JsonNull,
-            ...(updatedFields.riceRole
-              ? {
-                  riceRole: updatedFields.riceRole,
-                  riceRoleReviewStatus: 'REVIEWED' as const,
-                  includedRiceG:
-                    updatedFields.riceRole === 'INCLUDES_RICE' ? (updatedFields.includedRiceG ?? null) : null,
-                }
-              : {}),
-            safetyEvidenceRevision: { increment: 1 },
-            ...(wasComplete
-              ? {
-                  safetyEvidenceStatus: MealLibrarySafetyEvidenceStatus.STALE,
-                  safetyInvalidatedAt: now,
-                  safetyInvalidationReason: 'MEAL_CONTENT_CHANGED',
-                }
-              : {}),
-          },
-        });
-
-        if (applicableMealTypes) {
-          await tx.mealLibraryApplicableType.deleteMany({ where: { mealLibraryId: mealId } });
-          await tx.mealLibraryApplicableType.createMany({
-            data: applicableMealTypes.map((mealType: MealType) => ({
-              mealLibraryId: mealId,
-              mealType,
-              source: 'NUTRITIONIST_REVIEW',
-              reviewStatus: 'REVIEWED',
-            })),
-          });
-        }
-
-        if (wasComplete) {
-          await suspendMealClearancesForEvidenceChange(tx, mealId, 'MEAL_CONTENT_CHANGED');
-          await tx.mealLibrarySafetyReview.create({
-            data: {
-              mealLibraryId: mealId,
-              nutritionistProfileId: meal.verifiedByNutritionistId,
-              outcome: MealLibrarySafetyReviewOutcome.INVALIDATED,
-              evidenceRevision: updated.safetyEvidenceRevision,
-              policyVersion: updated.safetyPolicyVersion,
-              reasonCode: 'MEAL_CONTENT_CHANGED',
-              evidenceSnapshot: {
-                priorCertifiedRevision: meal.certifiedEvidenceRevision,
-                currentRevision: updated.safetyEvidenceRevision,
-              },
-            },
-          });
-        }
-        return updated;
-      },
-      { isolationLevel: Prisma.TransactionIsolationLevel.Serializable }
+  static async editLibraryMeal(
+    _userId: string,
+    _userRole: string,
+    _mealId: string,
+    _updatedFields: LibraryMealEditInput
+  ) {
+    throw new Error(
+      'Recipe edits must be submitted as a new serving version or adapted meal using Create recipe draft. Existing approvals cannot transfer to changed ingredients.'
     );
   }
 
@@ -492,246 +411,21 @@ export class NutritionistLibraryService {
    * Flag a library meal for re-review
    */
   static async flagLibraryMeal(userId: string, mealId: string, reason: string) {
-    const meal = await prisma.mealLibrary.findUnique({
-      where: { id: mealId },
-      include: {
-        verifiedByNutritionist: true,
-        flags: { where: { status: FlagStatus.PENDING }, select: { id: true } },
-      },
-    });
-
-    if (!meal) throw new Error('Meal not found.');
-
-    if (meal.verifiedByNutritionist?.userId === userId) {
-      throw new Error('You cannot flag your own verified meal. Edit it directly instead.');
-    }
-    if (meal.status === MealLibraryStatus.ARCHIVED) throw new Error('Archived meals cannot be flagged.');
-    if (meal.flags.length > 0) throw new Error('This meal already has a pending flag.');
-
-    const flaggerProfile = await prisma.nutritionistProfile.findUnique({
-      where: { userId },
-    });
-    if (!flaggerProfile) throw new Error('Flagger profile not found.');
-
-    const flag = await prisma.$transaction(
-      async (tx) => {
-        await tx.$executeRaw`SELECT pg_advisory_xact_lock_shared(741010)`;
-        const createdFlag = await tx.mealLibraryFlag.create({
-          data: {
-            mealLibraryId: mealId,
-            flaggedByNutritionistId: flaggerProfile.id,
-            reason,
-            status: FlagStatus.PENDING,
-          },
-        });
-        const wasComplete = meal.safetyEvidenceStatus === MealLibrarySafetyEvidenceStatus.COMPLETE;
-        const updated = await tx.mealLibrary.update({
-          where: { id: mealId },
-          data: {
-            status: MealLibraryStatus.FLAGGED,
-            // Invalidate narrow profile approvals too; dismissing a flag must
-            // never silently restore the earlier patient's review scope.
-            safetyEvidenceRevision: { increment: 1 },
-            ...(wasComplete
-              ? {
-                  safetyEvidenceStatus: MealLibrarySafetyEvidenceStatus.STALE,
-                  safetyInvalidatedAt: new Date(),
-                  safetyInvalidationReason: 'LIBRARY_FLAGGED',
-                }
-              : {}),
-          },
-        });
-        if (wasComplete) {
-          await suspendMealClearancesForEvidenceChange(tx, mealId, 'LIBRARY_FLAGGED');
-          await tx.mealLibrarySafetyReview.create({
-            data: {
-              mealLibraryId: mealId,
-              nutritionistProfileId: flaggerProfile.id,
-              outcome: MealLibrarySafetyReviewOutcome.INVALIDATED,
-              evidenceRevision: updated.safetyEvidenceRevision,
-              policyVersion: updated.safetyPolicyVersion,
-              reasonCode: 'LIBRARY_FLAGGED',
-              evidenceSnapshot: { flagId: createdFlag.id },
-            },
-          });
-        }
-        await tx.auditEvent.create({
-          data: {
-            actorUserId: userId,
-            action: 'MEAL_LIBRARY_FLAGGED',
-            entityType: 'MealLibraryFlag',
-            entityId: createdFlag.id,
-            metadata: { mealLibraryId: mealId },
-          },
-        });
-        return createdFlag;
-      },
-      { isolationLevel: Prisma.TransactionIsolationLevel.Serializable }
-    );
-
-    if (meal.verifiedByNutritionist?.userId) {
-      await prisma.notification.create({
-        data: {
-          userId: meal.verifiedByNutritionist.userId,
-          title: 'Meal Plan Flagged 🚩',
-          message: `Your verified meal "${meal.mealName}" was flagged for re-review: ${reason}`,
-          type: 'MEAL_FLAGGED',
-        },
-      });
-    }
-
-    return flag;
+    const profile = await prisma.nutritionistProfile.findUnique({ where: { userId }, select: { id: true } });
+    if (!profile) throw new Error('Nutritionist profile not found.');
+    return flagWholeMeal(profile.id, mealId, reason);
   }
 
-  /**
-   * Resolve an active flag (edit, delete, or dismiss)
-   */
   static async resolveLibraryMealFlag(
     userId: string,
     userRole: string,
     mealId: string,
     resolution: 'edit' | 'delete' | 'dismiss',
-    updatedFields?: LibraryMealEditInput
+    _updatedFields?: LibraryMealEditInput
   ) {
-    const meal = await prisma.mealLibrary.findUnique({
-      where: { id: mealId },
-      include: {
-        verifiedByNutritionist: true,
-        flags: {
-          where: { status: 'PENDING' },
-          include: {
-            flaggedByNutritionist: true,
-          },
-        },
-      },
-    });
-
-    if (!meal) throw new Error('Meal not found.');
-
-    const hasPermission = await this.checkLibraryMealMutationPermission(userId, userRole, meal);
-    if (!hasPermission) {
-      throw new Error('Unauthorized: Only the original verifying nutritionist can resolve flags on this meal.');
-    }
-
-    const pendingFlags = meal.flags;
-    const flagIds = pendingFlags.map((f) => f.id);
-
-    if (resolution === 'delete') {
-      await prisma.$transaction(
-        async (tx) => {
-          await tx.$executeRaw`SELECT pg_advisory_xact_lock_shared(741010)`;
-          await tx.mealLibraryFlag.updateMany({
-            where: { id: { in: flagIds } },
-            data: { status: FlagStatus.RESOLVED_REMOVED, resolvedAt: new Date() },
-          });
-          await tx.mealLibrary.update({
-            where: { id: mealId },
-            data: {
-              status: MealLibraryStatus.ARCHIVED,
-              safetyEvidenceStatus:
-                meal.safetyEvidenceStatus === MealLibrarySafetyEvidenceStatus.COMPLETE
-                  ? MealLibrarySafetyEvidenceStatus.STALE
-                  : meal.safetyEvidenceStatus,
-              safetyInvalidatedAt: new Date(),
-              safetyInvalidationReason: 'LIBRARY_ARCHIVED',
-            },
-          });
-        },
-        { isolationLevel: Prisma.TransactionIsolationLevel.Serializable }
-      );
-
-      for (const flag of pendingFlags) {
-        if (flag.flaggedByNutritionist?.userId) {
-          await prisma.notification.create({
-            data: {
-              userId: flag.flaggedByNutritionist.userId,
-              title: 'Flag Resolved: Meal Removed 🗑️',
-              message: `The meal "${meal.mealName}" you flagged has been removed from the library.`,
-              type: 'FLAG_RESOLVED',
-            },
-          });
-        }
-      }
-      return { success: true };
-    }
-
-    const newStatus = MealLibraryStatus.APPROVED;
-    const flagStatus = FlagStatus.RESOLVED_KEPT;
-
-    if (resolution === 'edit') {
-      if (!updatedFields) throw new Error('Updated fields are required for edit resolution.');
-
-      await prisma.$transaction([
-        prisma.mealLibraryFlag.updateMany({
-          where: { id: { in: flagIds } },
-          data: { status: flagStatus, resolvedAt: new Date() },
-        }),
-        prisma.mealLibrary.update({
-          where: { id: mealId },
-          data: {
-            mealName: updatedFields.mealName,
-            description: updatedFields.description,
-            calories: updatedFields.calories,
-            proteinG: updatedFields.proteinG,
-            carbsG: updatedFields.carbsG,
-            fatG: updatedFields.fatG,
-            suitableConditions: (updatedFields.suitableConditions || meal.suitableConditions) ?? Prisma.JsonNull,
-            allergenFree: (updatedFields.allergenFree || meal.allergenFree) ?? Prisma.JsonNull,
-            dietaryTags: (updatedFields.dietaryTags || meal.dietaryTags) ?? Prisma.JsonNull,
-            status: newStatus,
-            safetyEvidenceRevision: { increment: 1 },
-            safetyEvidenceStatus:
-              meal.safetyEvidenceStatus === MealLibrarySafetyEvidenceStatus.COMPLETE
-                ? MealLibrarySafetyEvidenceStatus.STALE
-                : meal.safetyEvidenceStatus,
-            safetyInvalidatedAt: meal.safetyInvalidatedAt || new Date(),
-            safetyInvalidationReason: 'FLAG_RESOLUTION_EDIT',
-          },
-        }),
-      ]);
-
-      for (const flag of pendingFlags) {
-        if (flag.flaggedByNutritionist?.userId) {
-          await prisma.notification.create({
-            data: {
-              userId: flag.flaggedByNutritionist.userId,
-              title: 'Flag Resolved: Meal Updated ✏️',
-              message: `The meal "${meal.mealName}" you flagged has been updated and kept in the library.`,
-              type: 'FLAG_RESOLVED',
-            },
-          });
-        }
-      }
-      return { success: true };
-    }
-
-    if (resolution === 'dismiss') {
-      await prisma.$transaction([
-        prisma.mealLibraryFlag.updateMany({
-          where: { id: { in: flagIds } },
-          data: { status: flagStatus, resolvedAt: new Date() },
-        }),
-        prisma.mealLibrary.update({
-          where: { id: mealId },
-          data: { status: newStatus },
-        }),
-      ]);
-
-      for (const flag of pendingFlags) {
-        if (flag.flaggedByNutritionist?.userId) {
-          await prisma.notification.create({
-            data: {
-              userId: flag.flaggedByNutritionist.userId,
-              title: 'Flag Dismissed ℹ️',
-              message: `Your flag on meal "${meal.mealName}" was dismissed by the original verifier.`,
-              type: 'FLAG_RESOLVED',
-            },
-          });
-        }
-      }
-      return { success: true };
-    }
-
-    throw new Error('Invalid resolution type.');
+    if (resolution === 'delete') return this.deleteLibraryMeal(userId, userRole, mealId);
+    throw new Error(
+      'Create a new recipe draft for corrections. An uninvolved Lead nutritionist must resolve a whole-meal flag.'
+    );
   }
 }

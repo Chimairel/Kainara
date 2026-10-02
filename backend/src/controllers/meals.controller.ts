@@ -65,6 +65,7 @@ export class MealsController {
         },
         include: {
           ingredients: true,
+          servingComponents: { where: { componentType: 'COOKED_RICE' } },
           libraryMeal: {
             include: {
               verifiedByNutritionist: {
@@ -226,6 +227,7 @@ export class MealsController {
         },
         include: {
           ingredients: true,
+          servingComponents: { where: { componentType: 'COOKED_RICE' } },
           libraryMeal: {
             include: {
               verifiedByNutritionist: {
@@ -331,6 +333,7 @@ export class MealsController {
         where: { userId, planGroupId: { in: cycleIds } },
         include: {
           ingredients: true,
+          servingComponents: { where: { componentType: 'COOKED_RICE' } },
           libraryMeal: {
             include: {
               verifiedByNutritionist: {
@@ -508,6 +511,7 @@ export class MealsController {
         where: getOwnedMealPlanWhere(userId, id),
         include: {
           ingredients: true,
+          servingComponents: { where: { componentType: 'COOKED_RICE' } },
           libraryMeal: true,
           sourceRawRecipeCandidate: { select: rawRecipeImageSelect },
           mealLogs: {

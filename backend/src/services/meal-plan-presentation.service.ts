@@ -1,3 +1,4 @@
+import { ricePortionLabel } from '@/domain/rice-portion.policy';
 import { cookingLinkForMeal, type PublicMealCookingLink } from '@/domain/meal-cooking-link.policy';
 import { buildMealExplanation } from '@/domain/meal-explanation.policy';
 import { buildPendingMealPlanPreview, type PendingMealPreviewInput } from '@/domain/meal-generation-result.policy';
@@ -53,7 +54,8 @@ function planImage(
 ) {
   const rawRecipe = isUserSwappedMeal(meal.selectionEvidence) ? null : meal.sourceRawRecipeCandidate;
   const libraryImage = meal.libraryMeal ? toPublicMealImage(meal.libraryMeal) : null;
-  if (libraryImage?.kind === 'EXACT' && meal.libraryMeal?.imagePublicId) return libraryImage;
+  if (libraryImage?.kind === 'EXACT' && (meal.libraryMeal?.imagePublicId || meal.libraryMeal?.adaptedImageUrl))
+    return libraryImage;
   return (
     (rawRecipe ? toPublicRawRecipeImage(rawRecipe) : null) ||
     (meal.libraryMeal ? libraryImages?.get(meal.libraryMeal.id) : null) ||
@@ -78,6 +80,7 @@ function planCookingLink(
   },
   libraryCookingLinks?: ReadonlyMap<string, PublicMealCookingLink>
 ): PublicMealCookingLink | null {
+  if (meal.libraryMeal?.derivationKind === 'ADAPTED') return null;
   const rawRecipe = isUserSwappedMeal(meal.selectionEvidence) ? null : meal.sourceRawRecipeCandidate;
   const rawLink = cookingLinkForMeal({ sourceRawRecipeCandidate: rawRecipe });
   if (rawLink?.kind === 'PANLASANG_RECIPE') return rawLink;
@@ -94,6 +97,7 @@ export function pendingPreviewWithImages<
     libraryMeal?: (MealImageRecord & { id: string }) | null;
     sourceRawRecipeCandidate?: RawRecipeImageRecord | null;
     selectionEvidence?: unknown;
+    servingComponents?: Array<{ componentType: string; quantityG: number | null }>;
   },
 >(
   rows: readonly T[],
@@ -103,6 +107,10 @@ export function pendingPreviewWithImages<
   return buildPendingMealPlanPreview(
     rows.map((row) => ({
       ...row,
+      ricePortion: (() => {
+        const rice = row.servingComponents?.find((item) => item.componentType === 'COOKED_RICE');
+        return rice?.quantityG ? ricePortionLabel(rice.quantityG) : null;
+      })(),
       image: planImage(row, libraryImages),
       cookingLink: planCookingLink(row, libraryCookingLinks),
     }))
@@ -126,12 +134,14 @@ export function serializeActionableMeal<
     aiConfidenceFlag: string;
     calories: number;
     ingredients: Array<{ dataSource: string; foodItemId: string | null }>;
+    servingComponents?: Array<{ componentType: string; quantityG: number | null }>;
   },
 >(
   meal: T,
   libraryImages?: ReadonlyMap<string, PublicMealImage>,
   libraryCookingLinks?: ReadonlyMap<string, PublicMealCookingLink>
 ) {
+  const rice = meal.servingComponents?.find((component) => component.componentType === 'COOKED_RICE');
   const {
     nutritionist,
     firstApprovedByNutritionist,
@@ -146,6 +156,7 @@ export function serializeActionableMeal<
     toPublicVerifier(libraryMeal?.verifiedByNutritionist);
   return {
     ...publicMeal,
+    ricePortion: rice?.quantityG ? ricePortionLabel(rice.quantityG) : null,
     image: planImage({ libraryMeal, sourceRawRecipeCandidate, selectionEvidence }, libraryImages),
     cookingLink: planCookingLink({ libraryMeal, sourceRawRecipeCandidate, selectionEvidence }, libraryCookingLinks),
     verifier,

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useMemo } from 'react';
+import { membershipSchedules, manilaDate } from './membership-schedule';
 import { ChevronLeft, ChevronRight, Clock } from 'lucide-react';
 import { KainaraLogo } from '@/components/shared/KainaraLogo';
 import type { MembershipView } from './MembershipProvider';
@@ -12,78 +13,49 @@ interface PlanCalendarCardProps {
 const DAYS_OF_WEEK = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
 export default function PlanCalendarCard({ data }: PlanCalendarCardProps) {
-  // 1. Resolve Start Date and End Date from membership data
-  const { startDate, endDate, startTimeStr, endTimeStr } = useMemo(() => {
-    let start: Date;
-    let end: Date;
-
-    const currentSchedule = data.transitions?.current;
-    if (data.level === 'TRIAL' || data.level === 'TRIAL_PENDING') {
-      start = data.trialStartedAt ? new Date(data.trialStartedAt) : new Date(data.serverTime || Date.now());
-      end = data.trialEndsAt
-        ? new Date(data.trialEndsAt)
-        : new Date(start.getTime() + 14 * 24 * 60 * 60 * 1000);
-    } else if (currentSchedule) {
-      start = new Date(currentSchedule.effectiveFrom);
-      end = new Date(currentSchedule.effectiveUntil);
-    } else if (data.paidUntil) {
-      end = new Date(data.paidUntil);
-      start = new Date(end.getTime() - 30 * 24 * 60 * 60 * 1000);
-    } else {
-      // Default to current month window
-      const now = new Date(data.serverTime || Date.now());
-      start = new Date(now.getFullYear(), now.getMonth(), 1);
-      end = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-    }
-
-    const formatTime = (d: Date) =>
-      d.toLocaleTimeString('en-PH', {
-        timeZone: 'Asia/Manila',
-        hour: 'numeric',
-        minute: '2-digit',
-        hour12: true,
-      });
-
-    return {
-      startDate: start,
-      endDate: end,
-      startTimeStr: formatTime(start),
-      endTimeStr: formatTime(end),
-    };
-  }, [data]);
-
-  // View state for calendar browsing (defaults to month of start date or current date)
-  const [currentMonth, setCurrentMonth] = useState(() => {
-    return new Date(startDate.getFullYear(), startDate.getMonth(), 1);
-  });
-
-  // Auto-renew toggle switch state
-  const [autoRenew, setAutoRenew] = useState<boolean>(data.autoRenews ?? false);
+  const schedules = membershipSchedules(data);
+  const [selection, setSelection] = useState('current');
+  const schedule = schedules.find((item) => item.id === selection) ?? schedules[0];
+  const startDate = schedule.start ? new Date(schedule.start) : null;
+  const endDate = schedule.end ? new Date(schedule.end) : null;
+  const formatTime = (date: Date | null) =>
+    date
+      ? date.toLocaleTimeString('en-PH', {
+          timeZone: 'Asia/Manila',
+          hour: 'numeric',
+          minute: '2-digit',
+          hour12: true,
+        })
+      : '';
+  const startTimeStr = formatTime(startDate);
+  const endTimeStr = formatTime(endDate);
+  const initialDay = manilaDate(schedule.start ?? data.serverTime);
+  const [currentMonth, setCurrentMonth] = useState(() => new Date(`${initialDay.slice(0, 7)}-01T12:00:00Z`));
 
   const prevMonth = () => {
-    setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1));
+    setCurrentMonth(new Date(Date.UTC(currentMonth.getUTCFullYear(), currentMonth.getUTCMonth() - 1, 1, 12)));
   };
 
   const nextMonth = () => {
-    setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1));
+    setCurrentMonth(new Date(Date.UTC(currentMonth.getUTCFullYear(), currentMonth.getUTCMonth() + 1, 1, 12)));
   };
 
   const monthLabel = currentMonth.toLocaleDateString('en-PH', {
-    timeZone: 'Asia/Manila',
+    timeZone: 'UTC',
     month: 'long',
     year: 'numeric',
   });
 
   // Calculate calendar grid days
   const calendarDays = useMemo(() => {
-    const year = currentMonth.getFullYear();
-    const month = currentMonth.getMonth();
+    const year = currentMonth.getUTCFullYear();
+    const month = currentMonth.getUTCMonth();
 
     // First day of month
-    const firstDay = new Date(year, month, 1);
+    const firstDay = new Date(Date.UTC(year, month, 1, 12));
     // Day of week: 0 = Sun, 1 = Mon, ... 6 = Sat
     // Convert to 0 = Mon, ..., 6 = Sun
-    const dayOfWeek = (firstDay.getDay() + 6) % 7;
+    const dayOfWeek = (firstDay.getUTCDay() + 6) % 7;
 
     // Previous month filler
     const days: Array<{
@@ -95,9 +67,9 @@ export default function PlanCalendarCard({ data }: PlanCalendarCardProps) {
       isToday: boolean;
     }> = [];
 
-    const prevMonthLastDate = new Date(year, month, 0).getDate();
+    const prevMonthLastDate = new Date(Date.UTC(year, month, 0)).getUTCDate();
     for (let i = dayOfWeek - 1; i >= 0; i--) {
-      const d = new Date(year, month - 1, prevMonthLastDate - i);
+      const d = new Date(Date.UTC(year, month - 1, prevMonthLastDate - i, 12));
       days.push({
         date: d,
         isCurrentMonth: false,
@@ -109,20 +81,19 @@ export default function PlanCalendarCard({ data }: PlanCalendarCardProps) {
     }
 
     // Current month days
-    const lastDate = new Date(year, month + 1, 0).getDate();
-    const today = new Date();
-    const todayStr = today.toISOString().split('T')[0];
+    const lastDate = new Date(Date.UTC(year, month + 1, 0)).getUTCDate();
+    const todayStr = manilaDate(data.serverTime);
 
-    const startNorm = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate()).getTime();
-    const endNorm = new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate()).getTime();
+    const startNorm = schedule.start ? manilaDate(schedule.start) : null;
+    const endNorm = schedule.end ? manilaDate(schedule.end) : null;
 
     for (let day = 1; day <= lastDate; day++) {
-      const d = new Date(year, month, day);
-      const dTime = d.getTime();
+      const d = new Date(Date.UTC(year, month, day, 12));
+      const dTime = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
       const isStart = dTime === startNorm;
       const isEnd = dTime === endNorm;
-      const isInRange = dTime >= startNorm && dTime <= endNorm;
-      const isToday = d.toISOString().split('T')[0] === todayStr;
+      const isInRange = !!startNorm && !!endNorm && dTime >= startNorm && dTime <= endNorm;
+      const isToday = dTime === todayStr;
 
       days.push({
         date: d,
@@ -138,7 +109,7 @@ export default function PlanCalendarCard({ data }: PlanCalendarCardProps) {
     const totalCells = days.length <= 35 ? 35 : 42;
     const remaining = totalCells - days.length;
     for (let day = 1; day <= remaining; day++) {
-      const d = new Date(year, month + 1, day);
+      const d = new Date(Date.UTC(year, month + 1, day, 12));
       days.push({
         date: d,
         isCurrentMonth: false,
@@ -150,15 +121,17 @@ export default function PlanCalendarCard({ data }: PlanCalendarCardProps) {
     }
 
     return days;
-  }, [currentMonth, startDate, endDate]);
+  }, [currentMonth, schedule.start, schedule.end, data.serverTime]);
 
-  const formatDateDisplay = (d: Date) =>
-    d.toLocaleDateString('en-PH', {
-      timeZone: 'Asia/Manila',
-      month: 'long',
-      day: 'numeric',
-      year: 'numeric',
-    });
+  const formatDateDisplay = (d: Date | null) =>
+    d
+      ? d.toLocaleDateString('en-PH', {
+          timeZone: 'Asia/Manila',
+          month: 'long',
+          day: 'numeric',
+          year: 'numeric',
+        })
+      : 'Not started';
 
   return (
     <section
@@ -210,6 +183,27 @@ export default function PlanCalendarCard({ data }: PlanCalendarCardProps) {
           </div>
         </div>
 
+        <label className="block text-xs font-semibold mb-2" htmlFor="membership-schedule">
+          Membership period
+        </label>
+        <select
+          id="membership-schedule"
+          value={schedule.id}
+          className="mb-3 w-full rounded-xl border border-brand-border bg-brand-surface p-2 text-sm"
+          onChange={(event) => {
+            setSelection(event.target.value);
+            const next = schedules.find((item) => item.id === event.target.value);
+            const day = manilaDate(next?.start ?? data.serverTime);
+            setCurrentMonth(new Date(`${day.slice(0, 7)}-01T12:00:00Z`));
+          }}
+        >
+          {schedules.map((item) => (
+            <option key={item.id} value={item.id}>
+              {item.label}
+            </option>
+          ))}
+        </select>
+        <p className="mb-4 text-xs text-brand-muted">{schedule.message}</p>
         {/* Main Two-Column Layout (Calendar on left, Details on right) */}
         <div className="mt-5 grid grid-cols-1 md:grid-cols-2 gap-5 items-start">
           {/* Calendar View Sub-card */}
@@ -240,10 +234,7 @@ export default function PlanCalendarCard({ data }: PlanCalendarCardProps) {
             {/* Weekday headers */}
             <div className="grid grid-cols-7 text-center mb-1">
               {DAYS_OF_WEEK.map((day) => (
-                <span
-                  key={day}
-                  className="text-[10px] font-semibold text-[#5a746a] dark:text-emerald-200/60 py-1"
-                >
+                <span key={day} className="text-[10px] font-semibold text-[#5a746a] dark:text-emerald-200/60 py-1">
                   {day}
                 </span>
               ))}
@@ -252,7 +243,7 @@ export default function PlanCalendarCard({ data }: PlanCalendarCardProps) {
             {/* Days grid */}
             <div className="grid grid-cols-7 gap-y-1">
               {calendarDays.map((cell, idx) => {
-                const dayNum = cell.date.getDate();
+                const dayNum = cell.date.getUTCDate();
 
                 if (!cell.isCurrentMonth) {
                   return (
@@ -316,13 +307,11 @@ export default function PlanCalendarCard({ data }: PlanCalendarCardProps) {
             </div>
           </div>
 
-          {/* Right Column: Start Date, End Date, and Auto-renew */}
+          {/* Right Column: Start Date, End Date, and renewal */}
           <div className="space-y-3.5">
             {/* Start Date */}
             <div>
-              <label className="block text-xs font-semibold text-[#0d2820] dark:text-white mb-1.5">
-                Start date<span className="text-brand-accent ml-0.5">*</span>
-              </label>
+              <label className="block text-xs font-semibold text-[#0d2820] dark:text-white mb-1.5">Start date</label>
               <div className="flex items-center justify-between rounded-2xl border border-[#dce4e0] dark:border-[#173e33] bg-white/80 dark:bg-[#0c241d]/70 px-4 py-3 shadow-xs">
                 <span className="text-xs font-semibold text-[#0d2820] dark:text-white">
                   {formatDateDisplay(startDate)}
@@ -335,12 +324,10 @@ export default function PlanCalendarCard({ data }: PlanCalendarCardProps) {
 
             {/* End Date */}
             <div>
-              <label className="block text-xs font-semibold text-[#0d2820] dark:text-white mb-1.5">
-                End date<span className="text-brand-accent ml-0.5">*</span>
-              </label>
+              <label className="block text-xs font-semibold text-[#0d2820] dark:text-white mb-1.5">End date</label>
               <div className="flex items-center justify-between rounded-2xl border border-[#dce4e0] dark:border-[#173e33] bg-white/80 dark:bg-[#0c241d]/70 px-4 py-3 shadow-xs">
                 <span className="text-xs font-semibold text-[#0d2820] dark:text-white">
-                  {formatDateDisplay(endDate)}
+                  {endDate ? formatDateDisplay(endDate) : data.level === 'FREE' ? 'No expiry' : 'Not scheduled'}
                 </span>
                 <span className="rounded-xl border border-[#dce4e0] dark:border-[#173e33] bg-[#faf8f5] dark:bg-[#071914] px-2.5 py-1 font-mono text-[11px] font-bold text-[#0d2820] dark:text-emerald-200 shadow-2xs">
                   {endTimeStr}
@@ -348,37 +335,17 @@ export default function PlanCalendarCard({ data }: PlanCalendarCardProps) {
               </div>
             </div>
 
-            {/* Auto-renew switch (Replaces 'Enable AI notes') */}
-            <div className="pt-2 border-t border-[#dce4e0]/80 dark:border-[#173e33]">
-              <div className="flex items-center justify-between">
-                <div>
-                  <span className="text-xs font-semibold text-[#0d2820] dark:text-white block">
-                    Auto-renew
-                  </span>
-                  <span className="text-[10px] text-[#5a746a] dark:text-white/60 block mt-0.5">
-                    Renew subscription at cycle end
-                  </span>
-                </div>
-                <button
-                  type="button"
-                  role="switch"
-                  aria-checked={autoRenew}
-                  onClick={() => setAutoRenew(!autoRenew)}
-                  className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-brand-green/20 ${
-                    autoRenew ? 'bg-brand-green' : 'bg-neutral-300 dark:bg-neutral-700'
-                  }`}
-                >
-                  <span
-                    aria-hidden="true"
-                    className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out ${
-                      autoRenew ? 'translate-x-5' : 'translate-x-0'
-                    }`}
-                  />
-                </button>
-              </div>
-              <p className="mt-2 text-[10px] leading-relaxed text-[#5a746a] dark:text-white/60">
-                Dates follow Philippine Standard Time (Asia/Manila). Automatic renewal is managed through your payment provider.
+            <div className="pt-2 border-t border-brand-border">
+              <p className="text-xs font-semibold">Manual renewal</p>
+              <p className="mt-2 text-xs text-brand-muted">
+                No automatic renewal or recurring charge. Dates use Philippine time.
               </p>
+              {schedule.id === 'current' && data.level === 'TRIAL' && (
+                <p className="mt-2 text-xs text-brand-muted">
+                  When Health ends, your already-paid next plan starts if scheduled. Otherwise, your account returns to
+                  Free.
+                </p>
+              )}
             </div>
           </div>
         </div>

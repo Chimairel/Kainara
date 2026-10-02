@@ -10,7 +10,6 @@ import { getReviewClaimCutoff } from '@/domain/nutritionist-review.policy';
 import { GroceryService } from '@/services/grocery.service';
 import { ClinicalProfileReviewService } from './clinical-profile-review.service';
 import { isGeneratedBaseVerified } from './meal-base-verification.service';
-import { replacePlanBaseServing } from './meal-plan-serving.service';
 import { publishProfileMatchedMealApproval } from './meal-profile-approval-publication.service';
 
 import { ClinicalEvidenceService } from './clinical-evidence.service';
@@ -74,6 +73,7 @@ export async function approveMealPlan(
     where: { id: mealPlanId },
     include: {
       ingredients: true,
+      servingComponents: true,
       cycle: { include: { snapshot: true } },
       user: {
         include: {
@@ -130,12 +130,14 @@ export async function approveMealPlan(
     throw new Error('Lead review capability is required for this second review.');
   }
 
-  const mealName = updates?.mealName !== undefined ? updates.mealName : plan.mealName;
-  const description = updates?.description !== undefined ? updates.description : plan.description;
-  const calories = updates?.calories !== undefined ? updates.calories : plan.calories;
-  const proteinG = updates?.proteinG !== undefined ? updates.proteinG : plan.proteinG;
-  const carbsG = updates?.carbsG !== undefined ? updates.carbsG : plan.carbsG;
-  const fatG = updates?.fatG !== undefined ? updates.fatG : plan.fatG;
+  // Approval certifies the exact saved plate. Recipe changes must go through
+  // a new draft and independent base verification, never overwrite this plan.
+  if (updates && Object.keys(updates).length) {
+    throw new Error(
+      'Approve the saved recipe unchanged. Create a recipe draft in the meal library for alterations, or replace this case meal with a reviewed recipe.'
+    );
+  }
+  const { mealName, description, calories, proteinG, carbsG, fatG } = plan;
 
   const planning = await loadPlanningNutritionContext(prisma, plan.userId, 'Planning profile missing.');
   assertMealSlotCalories(
@@ -158,6 +160,8 @@ export async function approveMealPlan(
             id: mealPlanId,
             status: MealPlanStatus.PENDING_REVIEW,
             reviewApprovalCount: 0,
+            baseRecipeSignature: plan.baseRecipeSignature,
+            composedServingSignature: plan.composedServingSignature,
             claimedByNutritionistId: nutritionistProfileId,
             claimedAt: { gte: claimCutoff },
           },
@@ -180,32 +184,6 @@ export async function approveMealPlan(
           throw new Error('The active claim expired or this meal was already reviewed. Please refresh the queue.');
         }
 
-        if (updates?.ingredients) {
-          await tx.mealIngredient.deleteMany({ where: { mealPlanId } });
-          await tx.mealIngredient.createMany({
-            data: updates.ingredients.map((ingredient) => ({
-              mealPlanId,
-              ingredientName: ingredient.name,
-              category: ingredient.category || 'PANTRY',
-              dataSource: ingredient.dataSource || MealIngredientDataSource.FNRI,
-            })),
-          });
-        }
-        const reviewedIngredients = await tx.mealIngredient.findMany({
-          where: { mealPlanId },
-          orderBy: { id: 'asc' },
-        });
-        await replacePlanBaseServing(tx, mealPlanId, {
-          mealName,
-          mealType: plan.mealType,
-          calories,
-          proteinG,
-          carbsG,
-          fatG,
-          ingredients: reviewedIngredients,
-          evidenceSource: 'RND_REVIEWED_PLAN',
-        });
-
         await tx.mealPlanReviewDecision.create({
           data: {
             mealPlanId,
@@ -215,6 +193,15 @@ export async function approveMealPlan(
             rationale: note?.trim() || null,
             evidenceSnapshot: {
               mealName,
+              composedServingSignature: plan.composedServingSignature,
+              servingComponents: plan.servingComponents.map(
+                ({ componentType, quantityG, foodItemId, evidenceSource }) => ({
+                  componentType,
+                  quantityG,
+                  foodItemId,
+                  evidenceSource,
+                })
+              ),
               calories,
               proteinG,
               carbsG,
@@ -332,6 +319,9 @@ export async function approveMealPlan(
         where: {
           id: mealPlanId,
           status: MealPlanStatus.PENDING_REVIEW,
+          reviewApprovalCount: plan.reviewApprovalCount,
+          baseRecipeSignature: plan.baseRecipeSignature,
+          composedServingSignature: plan.composedServingSignature,
           claimedByNutritionistId: nutritionistProfileId,
           claimedAt: { gte: claimCutoff },
         },
@@ -358,31 +348,6 @@ export async function approveMealPlan(
         throw new Error('The active claim expired or this meal was already reviewed. Please refresh the queue.');
       }
 
-      if (updates?.ingredients) {
-        await tx.mealIngredient.deleteMany({
-          where: { mealPlanId },
-        });
-        await tx.mealIngredient.createMany({
-          data: updates.ingredients.map((ing) => ({
-            mealPlanId,
-            ingredientName: ing.name,
-            category: ing.category || 'PANTRY',
-            dataSource: ing.dataSource || MealIngredientDataSource.FNRI,
-          })),
-        });
-      }
-      const reviewedIngredients = await tx.mealIngredient.findMany({ where: { mealPlanId }, orderBy: { id: 'asc' } });
-      await replacePlanBaseServing(tx, mealPlanId, {
-        mealName,
-        mealType: plan.mealType,
-        calories,
-        proteinG,
-        carbsG,
-        fatG,
-        ingredients: reviewedIngredients,
-        evidenceSource: 'RND_REVIEWED_PLAN',
-      });
-
       await tx.mealPlanReviewDecision.create({
         data: {
           mealPlanId,
@@ -392,6 +357,15 @@ export async function approveMealPlan(
           rationale: note?.trim() || null,
           evidenceSnapshot: {
             mealName,
+            composedServingSignature: plan.composedServingSignature,
+            servingComponents: plan.servingComponents.map(
+              ({ componentType, quantityG, foodItemId, evidenceSource }) => ({
+                componentType,
+                quantityG,
+                foodItemId,
+                evidenceSource,
+              })
+            ),
             calories,
             proteinG,
             carbsG,

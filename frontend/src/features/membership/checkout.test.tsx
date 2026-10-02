@@ -104,7 +104,7 @@ describe('membership checkout UI', () => {
     render(<Pricing currentTier="HEALTH" currentLevel="TRIAL" />);
     fireEvent.click(screen.getByRole('button', { name: 'Get Health' }));
     await screen.findByRole('region', { name: 'Payment summary' });
-    expect(screen.getByText(/Your Health trial continues/)).toBeInTheDocument();
+    expect(screen.getByText(/Your current Health plan continues/)).toBeInTheDocument();
     expect(state.post).toHaveBeenCalledTimes(1);
     fireEvent.click(screen.getByRole('button', { name: 'Use membership credit' }));
     await waitFor(() => expect(state.push).toHaveBeenCalledWith('/membership/checkout?purchase=quote-fixture'));

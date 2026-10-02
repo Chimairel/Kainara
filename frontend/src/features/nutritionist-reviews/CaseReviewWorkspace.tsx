@@ -9,7 +9,7 @@ import Button from '@/components/ui/Button';
 import MealImage from '@/components/user/MealImage';
 import { ReviewDetailSkeleton } from '@/features/nutritionist-reviews/NutritionistReviewsSkeleton';
 import type { PublicMealImage } from '@/types';
-import { AlertTriangle, Check, Edit, Flame, Info, Plus, ShieldAlert, ShieldCheck, Trash2, X } from 'lucide-react';
+import { AlertTriangle, Check, Flame, Info, Plus, ShieldAlert, ShieldCheck, Trash2, X } from 'lucide-react';
 
 import { toast } from '@/components/ui/Sonner';
 import ExpandableCasePanel from '@/features/nutritionist-reviews/ExpandableCasePanel';
@@ -56,7 +56,6 @@ export default function CaseReviewWorkspace({
     handleClaimMeal,
     handleReleaseMeal,
     handleApprove,
-    startEditing,
     addIngredientField,
     removeIngredientField,
     updateIngredientField,
@@ -665,14 +664,10 @@ export default function CaseReviewWorkspace({
                                   : 'Approve'}
                               </span>
                             </Button>
-                            <Button
-                              variant="secondary"
-                              onClick={startEditing}
-                              className="w-full sm:w-auto text-xs px-6 sm:px-8 py-2.5 flex items-center justify-center gap-1.5"
-                            >
-                              <Edit className="w-4 h-4" />
-                              <span>Edit & Approve</span>
-                            </Button>
+                            <p className="text-xs text-brand-muted">
+                              Approvals cover this exact saved plate. Use case replacement for a different meal, or
+                              create an altered recipe in the meal library for independent review.
+                            </p>
                             <Button
                               variant="danger"
                               onClick={() => setShowRejectForm(true)}

@@ -26,6 +26,11 @@ type MealCandidate = {
   fatG: number | null;
   ingredients: unknown;
   status: 'PENDING' | 'REJECTED';
+  authoredByMe?: boolean;
+  imageUrl?: string | null;
+  riceRole?: string | null;
+  riceMinHalfCups?: number;
+  riceMaxHalfCups?: number;
   claimedByMe: boolean;
   claimedByOther: boolean;
 };
@@ -128,13 +133,13 @@ export default function MealVerificationPanel() {
       <Button
         variant="primary"
         size="sm"
-        disabled={busy || selected.claimedByOther}
+        disabled={busy || selected.claimedByOther || selected.authoredByMe}
         isLoading={busy}
         onClick={() => void act('claim')}
         className="rounded-xl shadow-md text-xs font-bold px-3.5 py-2"
       >
         <ChefHat className="mr-1.5 h-3.5 w-3.5" />
-        Claim verification
+        {selected.authoredByMe ? 'Independent reviewer required' : 'Claim verification'}
       </Button>
     )
   ) : null;
@@ -342,6 +347,22 @@ export default function MealVerificationPanel() {
 
               <div className="overflow-hidden rounded-2xl border border-brand-border/60">
                 <MealImage
+                  image={
+                    selected.imageUrl
+                      ? {
+                          url: selected.imageUrl,
+                          altText: selected.name,
+                          kind: 'EXACT',
+                          attribution: {
+                            creator: 'Nutritionist supplied',
+                            sourcePageUrl: null,
+                            licenseCode: null,
+                            licenseUrl: null,
+                            modifications: 'Adapted recipe',
+                          },
+                        }
+                      : null
+                  }
                   mealName={selected.name}
                   mealType={selected.mealType}
                   variant="card"
@@ -382,6 +403,16 @@ export default function MealVerificationPanel() {
             {/* Recorded Ingredients */}
             <div className="rounded-[24px] border border-brand-border/70 bg-brand-surface/70 p-5 shadow-card space-y-2">
               <h3 className="font-display text-sm font-bold text-brand-text">Recorded ingredients</h3>
+              {selected.riceRole === 'PAIR_WITH_RICE' && (
+                <p className="text-xs text-brand-muted">
+                  Review rice pairing from {(selected.riceMinHalfCups ?? 1) / 2} to{' '}
+                  {(selected.riceMaxHalfCups ?? 3) / 2} cups, in half-cup steps. Cup estimates use 150 g of cooked rice;
+                  the saved grams and food record determine nutrition.
+                </p>
+              )}
+              {selected.riceRole === 'INCLUDES_RICE' && (
+                <p className="text-xs text-brand-muted">Rice is already included. Do not add another rice component.</p>
+              )}
               <p className="text-xs text-brand-muted leading-relaxed">{ingredientText(selected.ingredients)}</p>
             </div>
 

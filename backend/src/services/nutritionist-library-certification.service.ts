@@ -1,3 +1,5 @@
+import { libraryBaseRevisionKey } from './meal-base-admission.service';
+import { assertIndependentRecipeReviewer } from '@/domain/recipe-derivation.policy';
 import prisma from '@/lib/prisma';
 
 import {
@@ -68,6 +70,21 @@ export async function certifyLibraryMealSafety(
         },
       });
       if (!meal) throw new Error('Meal not found.');
+      assertIndependentRecipeReviewer(meal.authoredByNutritionistId, nutritionistProfileId);
+      if (
+        meal.authoredByNutritionistId &&
+        !(await tx.mealBaseVerification.findFirst({
+          where: {
+            targetKind: 'LIBRARY_MEAL',
+            targetId: meal.id,
+            status: 'VERIFIED',
+            revisionKey: libraryBaseRevisionKey(meal.recipeSignature!, meal.description),
+          },
+          select: { id: true },
+        }))
+      ) {
+        throw new Error('This recipe requires independent base verification before reusable certification.');
+      }
       if (meal.status !== MealLibraryStatus.APPROVED || meal.flags.length > 0) {
         throw new Error('Flagged or archived meals cannot be certified. Resolve the operational status first.');
       }

@@ -130,9 +130,9 @@ describe('small trial notice', () => {
   it('is a dismissible floating notice and stays dismissed across refreshes of membership data', () => {
     const notice = render(<MembershipNotice />);
     act(() => vi.advanceTimersByTime(8_000));
-    expect(screen.getByRole('region', { name: 'Your membership trial' })).toBeInTheDocument();
+    expect(screen.getByRole('region', { name: 'Your Health plan' })).toBeInTheDocument();
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'Dismiss Your membership trial' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Dismiss Your Health plan' }));
     state.data = { ...view(), serverTime: '2026-10-01T00:01:00.000Z' };
     notice.rerender(<MembershipNotice />);
     act(() => vi.advanceTimersByTime(32_000));
