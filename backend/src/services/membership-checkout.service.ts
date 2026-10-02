@@ -248,7 +248,7 @@ export class MembershipCheckoutService {
         data: {
           userId: row.userId,
           type: 'MEMBERSHIP_UPDATED',
-          title: 'Demo membership payment verified',
+          title: 'Payment successful',
           message: `${row.tier === 'HEALTH' ? 'Health' : 'Lifestyle'} test payment verified. Your test period starts ${start.toLocaleString('en-PH', { timeZone: 'Asia/Manila' })} Philippine time. No real charge or automatic renewal.`,
         },
       });

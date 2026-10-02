@@ -66,12 +66,12 @@ function CheckoutResult() {
   return (
     <div className="portal-page mx-auto max-w-2xl py-8">
       <Card>
-        <p className="mb-2 text-xs font-bold text-brand-green">PayMongo test payment</p>
+        <p className="mb-2 text-xs font-bold text-brand-green">Kainara membership</p>
         <h1 className="font-display text-2xl font-bold">
-          {data?.status === 'PAID' ? 'Demo payment verified' : cancelled ? 'Checkout closed' : 'Checking your payment'}
+          {data?.status === 'PAID' ? 'Payment successful' : cancelled ? 'Checkout closed' : 'Checking your payment'}
         </h1>
         <p className="mt-3 text-sm text-brand-muted">
-          No real money is charged. This purchase does not renew automatically.
+          Test mode · No real money was charged. This purchase does not renew automatically.
         </p>
         {!id && (
           <p role="alert" className="mt-3">
@@ -91,7 +91,7 @@ function CheckoutResult() {
             </p>
             {data.effectiveFrom && data.effectiveUntil && (
               <p>
-                Test membership period: {date(data.effectiveFrom)} – {date(data.effectiveUntil)} Philippine time. Any
+                Membership period: {date(data.effectiveFrom)} – {date(data.effectiveUntil)} Philippine time. Any
                 remaining trial and existing applicable paid period are preserved.
               </p>
             )}
@@ -116,11 +116,11 @@ function CheckoutResult() {
               className="inline-flex items-center rounded-xl bg-brand-accent px-4 py-2 text-sm font-bold text-white"
               href={data.checkoutUrl}
             >
-              Return to demo checkout
+              Return to checkout
             </a>
           )}
           <Link className="inline-flex items-center text-sm font-bold text-brand-green" href="/membership">
-            View membership
+            Continue to membership
           </Link>
         </div>
       </Card>
