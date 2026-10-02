@@ -16,7 +16,6 @@ import {
   RefreshCw as ReplanIcon,
   Stethoscope,
   ClipboardCheck,
-  BarChart3,
   Layers,
 } from 'lucide-react';
 
@@ -30,14 +29,13 @@ const date = (value: string) =>
 
 export default function MembershipPage() {
   const { data, isLoading, error, refresh } = useMembership();
-  const [activeTab, setActiveTab] = useState<'allowances' | 'plans'>('allowances');
+  const [isPlansModalOpen, setIsPlansModalOpen] = useState(false);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
     const params = new URLSearchParams(window.location.search);
-    const tabParam = params.get('tab');
-    if (tabParam === 'plans' || tabParam === 'allowances') {
-      setActiveTab(tabParam);
+    if (params.get('tab') === 'plans' || params.get('plans') === 'true') {
+      setIsPlansModalOpen(true);
     }
   }, []);
 
@@ -98,6 +96,16 @@ export default function MembershipPage() {
       <PortalPageHeader
         title="KAINARA membership"
         description="Keep your weekly meals practical. Membership adds adaptation, progress insights and professional review when required."
+        actions={
+          <Button
+            onClick={() => setIsPlansModalOpen(true)}
+            variant="secondary"
+            className="inline-flex items-center gap-2 text-xs font-bold px-3.5 py-2 border-brand-border bg-brand-surface hover:bg-brand-bg-alt text-brand-text shadow-xs"
+          >
+            <Layers className="h-4 w-4 text-brand-green" />
+            <span>View plans</span>
+          </Button>
+        }
       />
 
       {/* 2. ROLLOUT NOTICE (if membership is disabled) */}
@@ -113,55 +121,9 @@ export default function MembershipPage() {
         </section>
       )}
 
-      {/* 3. TABS SWITCHER */}
-      <nav
-        aria-label="Membership sections"
-        className="grid grid-cols-2 gap-1.5 rounded-2xl border border-brand-border/80 bg-brand-surface p-1.5 shadow-xs"
-      >
-        <button
-          type="button"
-          role="tab"
-          id="tab-allowances"
-          aria-selected={activeTab === 'allowances'}
-          aria-controls="tabpanel-allowances"
-          onClick={() => setActiveTab('allowances')}
-          className={`flex min-h-11 items-center justify-center gap-2 rounded-xl px-4 text-xs font-bold transition-all ${
-            activeTab === 'allowances'
-              ? 'bg-brand-green text-white shadow-xs'
-              : 'text-brand-muted hover:bg-brand-bgAlt hover:text-brand-text'
-          }`}
-        >
-          <BarChart3 className="h-4 w-4 shrink-0" />
-          <span>Allowances & Usage</span>
-        </button>
-
-        <button
-          type="button"
-          role="tab"
-          id="tab-plans"
-          aria-selected={activeTab === 'plans'}
-          aria-controls="tabpanel-plans"
-          onClick={() => setActiveTab('plans')}
-          className={`flex min-h-11 items-center justify-center gap-2 rounded-xl px-4 text-xs font-bold transition-all ${
-            activeTab === 'plans'
-              ? 'bg-brand-green text-white shadow-xs'
-              : 'text-brand-muted hover:bg-brand-bgAlt hover:text-brand-text'
-          }`}
-        >
-          <Layers className="h-4 w-4 shrink-0" />
-          <span>Membership Plans</span>
-        </button>
-      </nav>
-
-      {/* TAB 1: ALLOWANCES & USAGE */}
-      <div
-        role="tabpanel"
-        id="tabpanel-allowances"
-        aria-labelledby="tab-allowances"
-        className={activeTab === 'allowances' ? 'space-y-6' : 'hidden'}
-      >
-        {data?.enabled && (
-          <section className="rounded-2xl border border-brand-border bg-brand-surface p-5 sm:p-6 shadow-xs space-y-5">
+      {/* 3. ALLOWANCES & USAGE */}
+      {data?.enabled && (
+        <section className="rounded-2xl border border-brand-border bg-brand-surface p-5 sm:p-6 shadow-xs space-y-5">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-brand-border/60 pb-4">
               <div>
                 <div className="flex items-center gap-2">
@@ -430,51 +392,44 @@ export default function MembershipPage() {
                 </p>
                 <button
                   type="button"
-                  onClick={() => setActiveTab('plans')}
+                  onClick={() => setIsPlansModalOpen(true)}
                   className="inline-flex items-center gap-1 font-bold text-brand-green hover:underline shrink-0"
                 >
-                  <span>Compare plan tiers</span>
+                  <span>View plans</span>
                   <ArrowRight className="h-3.5 w-3.5" />
                 </button>
               </div>
             </div>
           </section>
         )}
-      </div>
 
-      {/* TAB 2: MEMBERSHIP PLANS (Full-screen modal like ChatGPT with 'X' button on upper right) */}
-      <div
-        role="tabpanel"
-        id="tabpanel-plans"
-        aria-labelledby="tab-plans"
-        className={activeTab === 'plans' ? 'block' : 'hidden'}
-      >
-        {activeTab === 'plans' ? (
-          <Pricing
-            currentTier={data?.enabled ? (data.tier ?? (data.enhanced ? 'HEALTH' : 'FREE')) : 'FREE'}
-            currentLevel={currentLevel}
-            isEnhanced={isEnhanced}
-            limits={limits}
-            isFullScreenModal={true}
-            isOpen={activeTab === 'plans'}
-            onClose={() => {
-              setActiveTab('allowances');
-              if (typeof window !== 'undefined') {
-                const url = new URL(window.location.href);
-                url.searchParams.delete('tab');
-                window.history.replaceState({}, '', url.toString());
-              }
-            }}
-          />
-        ) : (
-          <div className="hidden" aria-hidden="true">
-            <button type="button" disabled>Purchases opening soon</button>
-            <button type="button" disabled>Purchases opening soon</button>
-            <h3>Lifestyle</h3>
-            <h3>Health</h3>
-          </div>
-        )}
-      </div>
+      {/* MEMBERSHIP PLANS (Full-screen modal like ChatGPT with 'X' button on upper right) */}
+      {isPlansModalOpen ? (
+        <Pricing
+          currentTier={data?.enabled ? (data.tier ?? (data.enhanced ? 'HEALTH' : 'FREE')) : 'FREE'}
+          currentLevel={currentLevel}
+          isEnhanced={isEnhanced}
+          limits={limits}
+          isFullScreenModal={true}
+          isOpen={isPlansModalOpen}
+          onClose={() => {
+            setIsPlansModalOpen(false);
+            if (typeof window !== 'undefined') {
+              const url = new URL(window.location.href);
+              url.searchParams.delete('tab');
+              url.searchParams.delete('plans');
+              window.history.replaceState({}, '', url.toString());
+            }
+          }}
+        />
+      ) : (
+        <div className="hidden" aria-hidden="true">
+          <button type="button" disabled>Purchases opening soon</button>
+          <button type="button" disabled>Purchases opening soon</button>
+          <h3>Lifestyle</h3>
+          <h3>Health</h3>
+        </div>
+      )}
     </div>
   );
 }
