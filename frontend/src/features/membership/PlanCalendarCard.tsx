@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from 'react';
 import { ChevronLeft, ChevronRight, Clock } from 'lucide-react';
+import { KainaraLogo } from '@/components/shared/KainaraLogo';
 import type { MembershipView } from './MembershipProvider';
 
 interface PlanCalendarCardProps {
@@ -162,46 +163,75 @@ export default function PlanCalendarCard({ data }: PlanCalendarCardProps) {
   return (
     <section
       aria-label="Plan schedule and validity"
-      className="rounded-2xl border border-brand-border bg-brand-surface p-5 sm:p-6 shadow-xs flex flex-col justify-between"
+      className="relative overflow-hidden rounded-[28px] sm:rounded-[36px] border border-[#dce4e0] dark:border-[#173e33] bg-[#faf8f5] dark:bg-[#071914] text-[#0d2820] dark:text-white shadow-xl p-6 sm:p-8 flex flex-col justify-between"
     >
-      {/* 1. Header (Adapted from 'Schedule a meeting') */}
-      <div>
-        <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-brand-border bg-brand-bgAlt text-brand-green">
-            <Clock className="h-5 w-5" />
+      {/* 1. Retro Wave Organic Corner Accent (3-tone curved stripes from landing page) */}
+      <div className="pointer-events-none absolute -top-0.5 -right-0.5 h-32 w-32 sm:h-40 sm:w-40 overflow-hidden rounded-tr-[28px] sm:rounded-tr-[36px] z-0 opacity-80 dark:opacity-75">
+        <svg viewBox="0 0 160 160" className="h-full w-full" fill="none">
+          <path d="M160,0 L0,0 C20,40 55,95 120,135 C140,147 160,155 160,155 Z" fill="#eb6a38" />
+          <path d="M160,0 L40,0 C55,30 80,72 130,105 C145,115 160,120 160,120 Z" fill="#f09e6c" />
+          <path
+            d="M160,0 L82,0 C92,20 110,48 142,70 C152,76 160,80 160,80 Z"
+            className="fill-[#1b4e41] dark:fill-[#164639]"
+          />
+        </svg>
+      </div>
+
+      {/* 2. Curved Stripe Accent in Bottom Corner */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute -bottom-1 -left-1 z-0 h-24 w-24 select-none opacity-25 dark:opacity-20"
+      >
+        <svg viewBox="0 0 96 96" fill="none" className="h-full w-full block">
+          <path d="M 88 104 C 80 52 44 16 -8 8" stroke="#f09e6c" strokeWidth="12" strokeLinecap="round" />
+          <path d="M 72 104 C 66 62 34 30 -8 24" stroke="#eb6a38" strokeWidth="10" strokeLinecap="round" />
+        </svg>
+      </div>
+
+      {/* 3. Watermarked Kainara Logo Seal */}
+      <div className="pointer-events-none absolute -bottom-6 -right-6 hidden sm:flex items-center justify-center opacity-10 dark:opacity-15 z-0">
+        <KainaraLogo size={120} variant="multicolor" />
+      </div>
+
+      {/* Main Content inside Card */}
+      <div className="relative z-10">
+        {/* Header (Adapted from 'Schedule a meeting') */}
+        <div className="flex items-center gap-3 pb-3.5 border-b border-[#dce4e0]/80 dark:border-[#173e33]">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl border border-[#dce4e0] dark:border-[#173e33] bg-white/80 dark:bg-[#0a201a] text-brand-green shadow-xs">
+            <Clock className="h-4 w-4" />
           </div>
           <div>
-            <h3 className="font-display text-base sm:text-lg font-bold text-brand-text">
+            <h3 className="font-display text-base sm:text-lg font-black tracking-[-0.02em] text-[#0d2820] dark:text-white">
               Plan Schedule
             </h3>
-            <p className="text-xs text-brand-muted">
+            <p className="text-xs text-[#5a746a] dark:text-white/60">
               Current plan duration, validity, and renewal status.
             </p>
           </div>
         </div>
 
-        {/* 2. Main Two-Column Layout (Calendar on left, Details on right) */}
+        {/* Main Two-Column Layout (Calendar on left, Details on right) */}
         <div className="mt-5 grid grid-cols-1 md:grid-cols-2 gap-5 items-start">
-          {/* Calendar View */}
-          <div className="rounded-xl border border-brand-border/60 bg-brand-bgAlt/30 p-3 sm:p-4">
+          {/* Calendar View Sub-card */}
+          <div className="rounded-[24px] border border-[#dce4e0] dark:border-[#173e33] bg-white/80 dark:bg-[#0c241d]/70 p-3 sm:p-4 shadow-sm backdrop-blur-sm">
             {/* Month Navigation */}
             <div className="flex items-center justify-between mb-3 px-1">
               <button
                 type="button"
                 onClick={prevMonth}
                 aria-label="Previous month"
-                className="flex h-7 w-7 items-center justify-center rounded-lg text-brand-muted hover:text-brand-text hover:bg-brand-bgAlt transition-colors"
+                className="flex h-7 w-7 items-center justify-center rounded-xl text-[#5a746a] dark:text-white/70 hover:text-[#0d2820] dark:hover:text-white hover:bg-neutral-100 dark:hover:bg-[#13382c] transition-colors"
               >
                 <ChevronLeft className="h-4 w-4" />
               </button>
-              <span className="font-display text-xs sm:text-sm font-bold text-brand-text">
+              <span className="font-display text-xs sm:text-sm font-bold text-[#0d2820] dark:text-white">
                 {monthLabel}
               </span>
               <button
                 type="button"
                 onClick={nextMonth}
                 aria-label="Next month"
-                className="flex h-7 w-7 items-center justify-center rounded-lg text-brand-muted hover:text-brand-text hover:bg-brand-bgAlt transition-colors"
+                className="flex h-7 w-7 items-center justify-center rounded-xl text-[#5a746a] dark:text-white/70 hover:text-[#0d2820] dark:hover:text-white hover:bg-neutral-100 dark:hover:bg-[#13382c] transition-colors"
               >
                 <ChevronRight className="h-4 w-4" />
               </button>
@@ -212,7 +242,7 @@ export default function PlanCalendarCard({ data }: PlanCalendarCardProps) {
               {DAYS_OF_WEEK.map((day) => (
                 <span
                   key={day}
-                  className="text-[10px] font-semibold text-brand-muted py-1"
+                  className="text-[10px] font-semibold text-[#5a746a] dark:text-emerald-200/60 py-1"
                 >
                   {day}
                 </span>
@@ -228,7 +258,7 @@ export default function PlanCalendarCard({ data }: PlanCalendarCardProps) {
                   return (
                     <div
                       key={idx}
-                      className="h-8 flex items-center justify-center text-[11px] text-brand-muted/30"
+                      className="h-8 flex items-center justify-center text-[11px] text-neutral-300 dark:text-neutral-700 select-none"
                     >
                       {dayNum}
                     </div>
@@ -239,9 +269,9 @@ export default function PlanCalendarCard({ data }: PlanCalendarCardProps) {
                   return (
                     <div
                       key={idx}
-                      className="h-8 flex items-center justify-center relative bg-brand-green/15 dark:bg-brand-green/25 rounded-l-full"
+                      className="h-8 flex items-center justify-center relative bg-brand-green/20 dark:bg-brand-green/30 rounded-l-full"
                     >
-                      <div className="h-7 w-7 rounded-full bg-white text-neutral-950 font-bold text-[11px] flex items-center justify-center shadow-sm">
+                      <div className="h-7 w-7 rounded-full bg-white text-neutral-950 font-bold text-[11px] flex items-center justify-center shadow-md">
                         {dayNum}
                       </div>
                     </div>
@@ -252,9 +282,9 @@ export default function PlanCalendarCard({ data }: PlanCalendarCardProps) {
                   return (
                     <div
                       key={idx}
-                      className="h-8 flex items-center justify-center relative bg-brand-green/15 dark:bg-brand-green/25 rounded-r-full"
+                      className="h-8 flex items-center justify-center relative bg-brand-green/20 dark:bg-brand-green/30 rounded-r-full"
                     >
-                      <div className="h-7 w-7 rounded-full bg-brand-green text-white font-bold text-[11px] flex items-center justify-center shadow-sm">
+                      <div className="h-7 w-7 rounded-full bg-brand-green text-white font-bold text-[11px] flex items-center justify-center shadow-md">
                         {dayNum}
                       </div>
                     </div>
@@ -265,7 +295,7 @@ export default function PlanCalendarCard({ data }: PlanCalendarCardProps) {
                   return (
                     <div
                       key={idx}
-                      className="h-8 flex items-center justify-center bg-brand-green/15 dark:bg-brand-green/25 text-[11px] font-semibold text-brand-green dark:text-emerald-300"
+                      className="h-8 flex items-center justify-center bg-brand-green/20 dark:bg-brand-green/30 text-[11px] font-bold text-brand-green dark:text-emerald-300"
                     >
                       {dayNum}
                     </div>
@@ -275,7 +305,7 @@ export default function PlanCalendarCard({ data }: PlanCalendarCardProps) {
                 return (
                   <div
                     key={idx}
-                    className={`h-8 flex items-center justify-center text-[11px] text-brand-text transition-colors rounded-full hover:bg-brand-bgAlt/50 ${
+                    className={`h-8 flex items-center justify-center text-[11px] text-[#0d2820] dark:text-white transition-colors rounded-full hover:bg-neutral-100 dark:hover:bg-[#13382c] ${
                       cell.isToday ? 'font-bold underline decoration-brand-green decoration-2' : ''
                     }`}
                   >
@@ -290,14 +320,14 @@ export default function PlanCalendarCard({ data }: PlanCalendarCardProps) {
           <div className="space-y-3.5">
             {/* Start Date */}
             <div>
-              <label className="block text-xs font-semibold text-brand-text mb-1.5">
+              <label className="block text-xs font-semibold text-[#0d2820] dark:text-white mb-1.5">
                 Start date<span className="text-brand-accent ml-0.5">*</span>
               </label>
-              <div className="flex items-center justify-between rounded-xl border border-brand-border bg-brand-bgAlt/60 px-3.5 py-2.5">
-                <span className="text-xs font-medium text-brand-text">
+              <div className="flex items-center justify-between rounded-2xl border border-[#dce4e0] dark:border-[#173e33] bg-white/80 dark:bg-[#0c241d]/70 px-4 py-3 shadow-xs">
+                <span className="text-xs font-semibold text-[#0d2820] dark:text-white">
                   {formatDateDisplay(startDate)}
                 </span>
-                <span className="rounded-md border border-brand-border/70 bg-brand-surface px-2 py-0.5 font-mono text-[11px] font-semibold text-brand-text shadow-xs">
+                <span className="rounded-xl border border-[#dce4e0] dark:border-[#173e33] bg-[#faf8f5] dark:bg-[#071914] px-2.5 py-1 font-mono text-[11px] font-bold text-[#0d2820] dark:text-emerald-200 shadow-2xs">
                   {startTimeStr}
                 </span>
               </div>
@@ -305,27 +335,27 @@ export default function PlanCalendarCard({ data }: PlanCalendarCardProps) {
 
             {/* End Date */}
             <div>
-              <label className="block text-xs font-semibold text-brand-text mb-1.5">
+              <label className="block text-xs font-semibold text-[#0d2820] dark:text-white mb-1.5">
                 End date<span className="text-brand-accent ml-0.5">*</span>
               </label>
-              <div className="flex items-center justify-between rounded-xl border border-brand-border bg-brand-bgAlt/60 px-3.5 py-2.5">
-                <span className="text-xs font-medium text-brand-text">
+              <div className="flex items-center justify-between rounded-2xl border border-[#dce4e0] dark:border-[#173e33] bg-white/80 dark:bg-[#0c241d]/70 px-4 py-3 shadow-xs">
+                <span className="text-xs font-semibold text-[#0d2820] dark:text-white">
                   {formatDateDisplay(endDate)}
                 </span>
-                <span className="rounded-md border border-brand-border/70 bg-brand-surface px-2 py-0.5 font-mono text-[11px] font-semibold text-brand-text shadow-xs">
+                <span className="rounded-xl border border-[#dce4e0] dark:border-[#173e33] bg-[#faf8f5] dark:bg-[#071914] px-2.5 py-1 font-mono text-[11px] font-bold text-[#0d2820] dark:text-emerald-200 shadow-2xs">
                   {endTimeStr}
                 </span>
               </div>
             </div>
 
             {/* Auto-renew switch (Replaces 'Enable AI notes') */}
-            <div className="pt-2 border-t border-brand-border/60">
+            <div className="pt-2 border-t border-[#dce4e0]/80 dark:border-[#173e33]">
               <div className="flex items-center justify-between">
                 <div>
-                  <span className="text-xs font-semibold text-brand-text block">
+                  <span className="text-xs font-semibold text-[#0d2820] dark:text-white block">
                     Auto-renew
                   </span>
-                  <span className="text-[10px] text-brand-muted block mt-0.5">
+                  <span className="text-[10px] text-[#5a746a] dark:text-white/60 block mt-0.5">
                     Renew subscription at cycle end
                   </span>
                 </div>
@@ -335,7 +365,7 @@ export default function PlanCalendarCard({ data }: PlanCalendarCardProps) {
                   aria-checked={autoRenew}
                   onClick={() => setAutoRenew(!autoRenew)}
                   className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-brand-green/20 ${
-                    autoRenew ? 'bg-brand-green' : 'bg-brand-border'
+                    autoRenew ? 'bg-brand-green' : 'bg-neutral-300 dark:bg-neutral-700'
                   }`}
                 >
                   <span
@@ -346,7 +376,7 @@ export default function PlanCalendarCard({ data }: PlanCalendarCardProps) {
                   />
                 </button>
               </div>
-              <p className="mt-2 text-[10px] leading-relaxed text-brand-muted">
+              <p className="mt-2 text-[10px] leading-relaxed text-[#5a746a] dark:text-white/60">
                 Dates follow Philippine Standard Time (Asia/Manila). Automatic renewal is managed through your payment provider.
               </p>
             </div>

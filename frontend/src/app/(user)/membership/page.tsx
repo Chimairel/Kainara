@@ -112,11 +112,11 @@ function MembershipContent() {
 
       {/* 2. ROLLOUT NOTICE (if membership is disabled) */}
       {!data?.enabled && (
-        <section className="rounded-2xl border border-brand-border bg-brand-surface p-5 sm:p-6 shadow-xs space-y-2">
-          <h2 className="font-display text-base font-bold text-brand-text">
+        <section className="rounded-[28px] sm:rounded-[32px] border border-[#dce4e0] dark:border-[#173e33] bg-[#faf8f5] dark:bg-[#071914] p-6 sm:p-7 shadow-lg space-y-2">
+          <h2 className="font-display text-base font-bold text-[#0d2820] dark:text-white">
             Membership is being prepared. Your current access has not changed.
           </h2>
-          <p className="text-xs leading-relaxed text-brand-muted max-w-2xl">
+          <p className="text-xs leading-relaxed text-[#5a746a] dark:text-white/70 max-w-2xl">
             Membership restrictions are currently disabled. Normal clinical clearance and safety requirements still
             apply. Purchases remain unavailable.
           </p>
@@ -127,7 +127,7 @@ function MembershipContent() {
       {openCheckout && (
         <section
           aria-label="Pending checkout reminder"
-          className="rounded-2xl border border-amber-500/30 bg-amber-500/10 p-4 sm:p-5 text-amber-900 dark:text-amber-200 shadow-xs space-y-2.5"
+          className="rounded-[28px] sm:rounded-[32px] border border-amber-500/30 bg-amber-500/10 dark:bg-amber-950/20 p-5 sm:p-6 text-amber-900 dark:text-amber-200 shadow-md space-y-2.5"
         >
           <div className="flex items-center gap-2">
             <CreditCard className="h-4 w-4 text-brand-accent shrink-0" />

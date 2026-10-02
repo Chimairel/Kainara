@@ -2,6 +2,7 @@
 
 import { useMemo } from 'react';
 import { ArrowRight, BarChart3 } from 'lucide-react';
+import { KainaraLogo } from '@/components/shared/KainaraLogo';
 import type { MembershipView } from './MembershipProvider';
 
 interface PlanStatisticsCardProps {
@@ -20,7 +21,7 @@ export default function PlanStatisticsCard({ data, onOpenPlans }: PlanStatistics
         cap: data.swaps.cap,
         remaining: data.swaps.remaining,
         // Emerald / Teal theme
-        numColor: 'text-emerald-500 dark:text-emerald-400',
+        numColor: 'text-emerald-600 dark:text-emerald-400',
         barGradient: 'from-emerald-600 to-emerald-500',
         borderColor: 'border-emerald-500/30',
       },
@@ -32,8 +33,8 @@ export default function PlanStatisticsCard({ data, onOpenPlans }: PlanStatistics
         cap: data.usage.AI_ESTIMATE.cap,
         remaining: data.usage.AI_ESTIMATE.remaining,
         // Terracotta / Orange theme (Brand accent)
-        numColor: 'text-orange-500 dark:text-orange-400',
-        barGradient: 'from-orange-600 to-orange-500',
+        numColor: 'text-[#eb6a38] dark:text-[#eb6a38]',
+        barGradient: 'from-[#cf5626] to-[#eb6a38]',
         borderColor: 'border-orange-500/30',
       },
       {
@@ -44,7 +45,7 @@ export default function PlanStatisticsCard({ data, onOpenPlans }: PlanStatistics
         cap: data.usage.REPLAN.cap,
         remaining: data.usage.REPLAN.remaining,
         // Sky Blue theme
-        numColor: 'text-sky-500 dark:text-sky-400',
+        numColor: 'text-sky-600 dark:text-sky-400',
         barGradient: 'from-sky-600 to-sky-500',
         borderColor: 'border-sky-500/30',
       },
@@ -56,7 +57,7 @@ export default function PlanStatisticsCard({ data, onOpenPlans }: PlanStatistics
         cap: data.usage.PLAN_REVIEW.cap,
         remaining: data.usage.PLAN_REVIEW.remaining,
         // Violet / Purple theme
-        numColor: 'text-purple-500 dark:text-purple-400',
+        numColor: 'text-purple-600 dark:text-purple-400',
         barGradient: 'from-purple-600 to-purple-500',
         borderColor: 'border-purple-500/30',
       },
@@ -68,7 +69,7 @@ export default function PlanStatisticsCard({ data, onOpenPlans }: PlanStatistics
         cap: data.usage.OUTSIDE_REVIEW.cap,
         remaining: data.usage.OUTSIDE_REVIEW.remaining,
         // Lime / Green theme
-        numColor: 'text-lime-500 dark:text-lime-400',
+        numColor: 'text-lime-600 dark:text-lime-400',
         barGradient: 'from-lime-600 to-lime-500',
         borderColor: 'border-lime-500/30',
       },
@@ -84,25 +85,54 @@ export default function PlanStatisticsCard({ data, onOpenPlans }: PlanStatistics
   return (
     <section
       aria-label="Allowances and usage statistics"
-      className="rounded-2xl border border-brand-border bg-brand-surface p-5 sm:p-6 shadow-xs flex flex-col justify-between"
+      className="relative overflow-hidden rounded-[28px] sm:rounded-[36px] border border-[#dce4e0] dark:border-[#173e33] bg-[#faf8f5] dark:bg-[#071914] text-[#0d2820] dark:text-white shadow-xl p-6 sm:p-8 flex flex-col justify-between"
     >
-      <div>
+      {/* 1. Retro Wave Organic Corner Accent (3-tone curved stripes from landing page) */}
+      <div className="pointer-events-none absolute -top-0.5 -right-0.5 h-32 w-32 sm:h-40 sm:w-40 overflow-hidden rounded-tr-[28px] sm:rounded-tr-[36px] z-0 opacity-80 dark:opacity-75">
+        <svg viewBox="0 0 160 160" className="h-full w-full" fill="none">
+          <path d="M160,0 L0,0 C20,40 55,95 120,135 C140,147 160,155 160,155 Z" fill="#eb6a38" />
+          <path d="M160,0 L40,0 C55,30 80,72 130,105 C145,115 160,120 160,120 Z" fill="#f09e6c" />
+          <path
+            d="M160,0 L82,0 C92,20 110,48 142,70 C152,76 160,80 160,80 Z"
+            className="fill-[#1b4e41] dark:fill-[#164639]"
+          />
+        </svg>
+      </div>
+
+      {/* 2. Curved Stripe Accent in Bottom Corner */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute -bottom-1 -left-1 z-0 h-24 w-24 select-none opacity-25 dark:opacity-20"
+      >
+        <svg viewBox="0 0 96 96" fill="none" className="h-full w-full block">
+          <path d="M 88 104 C 80 52 44 16 -8 8" stroke="#f09e6c" strokeWidth="12" strokeLinecap="round" />
+          <path d="M 72 104 C 66 62 34 30 -8 24" stroke="#eb6a38" strokeWidth="10" strokeLinecap="round" />
+        </svg>
+      </div>
+
+      {/* 3. Watermarked Kainara Logo Seal */}
+      <div className="pointer-events-none absolute -bottom-6 -right-6 hidden sm:flex items-center justify-center opacity-10 dark:opacity-15 z-0">
+        <KainaraLogo size={120} variant="multicolor" />
+      </div>
+
+      {/* Main Content inside Card */}
+      <div className="relative z-10">
         {/* Header */}
-        <div className="flex items-center justify-between pb-3 border-b border-brand-border/60">
-          <div className="flex items-center gap-2.5">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-bgAlt border border-brand-border text-brand-green">
+        <div className="flex items-center justify-between pb-3.5 border-b border-[#dce4e0]/80 dark:border-[#173e33]">
+          <div className="flex items-center gap-3">
+            <div className="flex h-9 w-9 items-center justify-center rounded-2xl border border-[#dce4e0] dark:border-[#173e33] bg-white/80 dark:bg-[#0a201a] text-brand-green shadow-xs">
               <BarChart3 className="h-4 w-4" />
             </div>
             <div>
-              <h3 className="font-display text-base font-bold text-brand-text">
+              <h3 className="font-display text-base sm:text-lg font-black tracking-[-0.02em] text-[#0d2820] dark:text-white">
                 Plan Statistics
               </h3>
-              <p className="text-xs text-brand-muted">
+              <p className="text-xs text-[#5a746a] dark:text-white/60">
                 Usage tracking for your active cycle
               </p>
             </div>
           </div>
-          <span className="rounded-full bg-brand-bgAlt border border-brand-border/70 px-2.5 py-1 text-[10px] font-mono font-medium text-brand-muted">
+          <span className="rounded-full bg-white/80 dark:bg-[#0a201a] border border-[#dce4e0] dark:border-[#173e33] px-3 py-1 text-[10px] font-mono font-semibold text-[#5a746a] dark:text-emerald-200/80 shadow-xs">
             Resets {resetDate}
           </span>
         </div>
@@ -124,7 +154,7 @@ export default function PlanStatisticsCard({ data, onOpenPlans }: PlanStatistics
 
           {/* Paper Slit / Pocket Lip with Drop Shadow (Reference Image 4 & 5) */}
           <div className="relative mt-1 mb-5">
-            <div className="h-1 w-full rounded-full bg-brand-border/70 shadow-[0_4px_8px_-1px_rgba(0,0,0,0.18)] dark:shadow-[0_4px_8px_-1px_rgba(0,0,0,0.5)]" />
+            <div className="h-1.5 w-full rounded-full bg-[#dce4e0] dark:bg-[#173e33] shadow-[0_4px_8px_-1px_rgba(0,0,0,0.18)] dark:shadow-[0_4px_8px_-1px_rgba(0,0,0,0.5)]" />
           </div>
 
           {/* Capsule Vertical Pill Bars Section (Reference Image 3 & 5) */}
@@ -139,11 +169,11 @@ export default function PlanStatisticsCard({ data, onOpenPlans }: PlanStatistics
                 <div key={item.id} className="flex flex-col items-center group">
                   {/* The Capsule Pill Bar */}
                   <div
-                    className="relative w-11 sm:w-13 md:w-15 h-44 sm:h-52 rounded-full overflow-hidden border border-brand-border/60 shadow-inner flex flex-col justify-end"
+                    className="relative w-11 sm:w-13 md:w-15 h-44 sm:h-52 rounded-full overflow-hidden border border-[#dce4e0] dark:border-[#173e33] bg-white/70 dark:bg-[#091b15]/90 shadow-inner flex flex-col justify-end"
                     style={{
                       // Diagonal striped pattern for unfilled capacity
                       backgroundImage:
-                        'repeating-linear-gradient(45deg, transparent, transparent 5px, rgba(120, 140, 130, 0.12) 5px, rgba(120, 140, 130, 0.12) 10px)',
+                        'repeating-linear-gradient(45deg, transparent, transparent 5px, rgba(120, 140, 130, 0.14) 5px, rgba(120, 140, 130, 0.14) 10px)',
                     }}
                   >
                     {/* Filled bar representing Usage (rising from bottom) */}
@@ -165,7 +195,7 @@ export default function PlanStatisticsCard({ data, onOpenPlans }: PlanStatistics
                     {/* Display 0 at the base if 0 used */}
                     {item.used === 0 && (
                       <div className="h-7 w-full flex items-center justify-center">
-                        <span className="text-brand-muted/70 font-display font-semibold text-xs select-none">
+                        <span className="text-[#5a746a]/70 dark:text-white/40 font-display font-semibold text-xs select-none">
                           0
                         </span>
                       </div>
@@ -176,15 +206,15 @@ export default function PlanStatisticsCard({ data, onOpenPlans }: PlanStatistics
                   <div className="mt-2.5 text-center w-full px-0.5">
                     <span
                       title={item.name}
-                      className="block text-[10px] sm:text-xs font-semibold text-brand-text text-center leading-tight min-h-[1.75rem] flex items-center justify-center"
+                      className="block text-[10px] sm:text-xs font-semibold text-[#0d2820] dark:text-white text-center leading-tight min-h-[1.75rem] flex items-center justify-center"
                     >
                       {item.name}
                     </span>
-                    <span className="block text-[9px] text-brand-muted font-mono mt-0.5 uppercase tracking-wider">
+                    <span className="block text-[9px] text-[#5a746a] dark:text-emerald-200/60 font-mono mt-0.5 uppercase tracking-wider">
                       {item.cadence}
                     </span>
                     {/* Remaining readout satisfying Vitest '6 of 10' assertion */}
-                    <span className="block text-[10px] text-brand-muted mt-0.5 font-medium">
+                    <span className="block text-[10px] text-[#5a746a] dark:text-white/60 mt-0.5 font-medium">
                       {item.remaining} of {item.cap}
                     </span>
                   </div>
@@ -196,7 +226,7 @@ export default function PlanStatisticsCard({ data, onOpenPlans }: PlanStatistics
       </div>
 
       {/* Footer Info & View plans link */}
-      <div className="mt-4 pt-3 border-t border-brand-border/60 flex items-center justify-between text-xs text-brand-muted">
+      <div className="relative z-10 mt-4 pt-3.5 border-t border-[#dce4e0]/80 dark:border-[#173e33] flex items-center justify-between text-xs text-[#5a746a] dark:text-white/60">
         <p className="text-[11px] leading-relaxed">
           Weekly allowances reset every Monday in Manila.
         </p>
