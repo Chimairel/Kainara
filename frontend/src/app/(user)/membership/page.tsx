@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { Suspense, useState, useEffect } from 'react';
+import { useSearchParams, useRouter } from 'next/navigation';
 import PortalPageHeader from '@/components/shared/PortalPageHeader';
 import Button from '@/components/ui/Button';
 import { useMembership } from '@/features/membership/MembershipProvider';
@@ -27,17 +28,19 @@ const date = (value: string) =>
     year: 'numeric',
   });
 
-export default function MembershipPage() {
+const allowanceWidth = (remaining: number, cap: number) =>
+  `${cap > 0 ? Math.min(100, Math.max(0, (remaining / cap) * 100)) : 0}%`;
+
+function MembershipContent() {
   const { data, isLoading, error, refresh } = useMembership();
   const [isPlansModalOpen, setIsPlansModalOpen] = useState(false);
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const plansRequested = searchParams.get('tab') === 'plans' || searchParams.get('plans') === 'true';
 
   useEffect(() => {
-    if (typeof window === 'undefined') return;
-    const params = new URLSearchParams(window.location.search);
-    if (params.get('tab') === 'plans' || params.get('plans') === 'true') {
-      setIsPlansModalOpen(true);
-    }
-  }, []);
+    if (plansRequested) setIsPlansModalOpen(true);
+  }, [plansRequested]);
 
   if (isLoading && !data)
     return (
@@ -81,7 +84,6 @@ export default function MembershipPage() {
 
   const limits = data?.enabled && data.limits ? data.limits : fallbackLimits;
   const currentLevel = data?.enabled ? data.level : null;
-  const isEnhanced = Boolean(data?.enabled && data.enhanced);
 
   const labels = {
     FREE: 'Free account',
@@ -124,291 +126,296 @@ export default function MembershipPage() {
       {/* 3. ALLOWANCES & USAGE */}
       {data?.enabled && (
         <section className="rounded-2xl border border-brand-border bg-brand-surface p-5 sm:p-6 shadow-xs space-y-5">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-brand-border/60 pb-4">
-              <div>
-                <div className="flex items-center gap-2">
-                  <h2 className="font-display text-lg font-bold text-brand-text">{labels[data.level]}</h2>
-                  <span
-                    className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[10px] font-bold ${
-                      data.level === 'FREE'
-                        ? 'bg-brand-bgAlt border border-brand-border text-brand-muted'
-                        : data.level === 'TRIAL_PENDING'
-                          ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20'
-                          : 'bg-brand-green/10 text-brand-green border border-brand-green/20'
-                    }`}
-                  >
-                    <CheckCircle2 className="h-3 w-3" />
-                    <span>
-                      {data.level === 'FREE'
-                        ? 'Free tier'
-                        : data.level === 'TRIAL_PENDING'
-                          ? 'Pending kickoff'
-                          : data.level === 'TRIAL'
-                            ? 'Health trial active'
-                            : 'Active subscriber'}
-                    </span>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-brand-border/60 pb-4">
+            <div>
+              <div className="flex items-center gap-2">
+                <h2 className="font-display text-lg font-bold text-brand-text">{labels[data.level]}</h2>
+                <span
+                  className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[10px] font-bold ${
+                    data.level === 'FREE'
+                      ? 'bg-brand-bgAlt border border-brand-border text-brand-muted'
+                      : data.level === 'TRIAL_PENDING'
+                        ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20'
+                        : 'bg-brand-green/10 text-brand-green border border-brand-green/20'
+                  }`}
+                >
+                  <CheckCircle2 className="h-3 w-3" />
+                  <span>
+                    {data.level === 'FREE'
+                      ? 'Free tier'
+                      : data.level === 'TRIAL_PENDING'
+                        ? 'Pending kickoff'
+                        : data.level === 'TRIAL'
+                          ? 'Health trial active'
+                          : 'Active subscriber'}
                   </span>
-                </div>
-
-                <p className="mt-1 text-xs text-brand-muted">
-                  {data.level === 'TRIAL_PENDING'
-                    ? 'Your Health trial starts when your first cleared current plan is available. A starter plan counts; waiting for review does not.'
-                    : data.level === 'MEMBER' && data.paidUntil
-                      ? `Membership available until ${date(data.paidUntil)}.${data.tier === 'HEALTH' && data.healthUntil ? ` Health benefits until ${date(data.healthUntil)}.` : ''} No automatic renewal.`
-                      : data.trialEndsAt
-                        ? `Health trial ${data.level === 'FREE' ? 'ended' : 'ends'} ${date(data.trialEndsAt)}. Moving to a full weekly plan does not restart it.`
-                        : ''}
-                </p>
-
-                {data.requiresCaseReview && data.level === 'FREE' && (
-                  <p className="mt-2 text-xs font-medium text-status-pending-text">
-                    New plans with case review require membership. Existing eligible active meals and previously
-                    submitted review follow-up remain available.
-                  </p>
-                )}
-              </div>
-
-              <div className="flex items-center gap-2 self-start sm:self-center shrink-0">
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-brand-bgAlt border border-brand-border/70 px-3 py-1 font-mono text-[11px] text-brand-muted">
-                  <Clock className="h-3 w-3 text-brand-green" />
-                  <span>Next Manila reset: {date(data.resetsAt)}</span>
                 </span>
-                <button
-                  onClick={refresh}
-                  aria-label="Refresh membership status"
-                  className="flex h-7 w-7 items-center justify-center rounded-lg border border-brand-border/70 bg-brand-bgAlt text-brand-muted hover:text-brand-text transition-colors"
-                  title="Refresh allowances"
-                >
-                  <RefreshCw className="h-3 w-3" />
-                </button>
-              </div>
-            </div>
-
-            {/* ALLOWANCES TELEMETRY WITH PROGRESS BARS */}
-            <div className="space-y-3">
-              <h3 className="text-xs font-bold uppercase tracking-wider text-brand-muted">Your remaining allowances</h3>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3.5">
-                {/* 1. Meal Swaps (2 cols) */}
-                <div className="lg:col-span-2 rounded-xl border border-brand-border/70 bg-brand-bgAlt/40 p-4 space-y-2.5 flex flex-col justify-between">
-                  <div>
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-1.5">
-                        <UtensilsCrossed className="h-3.5 w-3.5 text-brand-green" />
-                        <span className="text-xs font-semibold text-brand-text">Meal swaps</span>
-                      </div>
-                      <span className="rounded bg-brand-surface border border-brand-border/60 px-1.5 py-0.5 text-[9px] font-mono font-medium text-brand-muted">
-                        Cycle
-                      </span>
-                    </div>
-                    <div className="mt-2 flex items-baseline gap-1.5">
-                      <span className="font-display text-2xl font-bold text-brand-text">{data.swaps.remaining}</span>
-                      <span className="text-xs text-brand-muted font-medium">/ {data.swaps.cap} remaining</span>
-                    </div>
-                  </div>
-
-                  <div>
-                    <p className="text-[11px] text-brand-muted">
-                      Meal swaps:{' '}
-                      <strong className="font-semibold text-brand-text">
-                        {data.swaps.remaining} of {data.swaps.cap}
-                      </strong>{' '}
-                      for your current cycle
-                    </p>
-                    <div className="mt-2 h-1.5 w-full rounded-full bg-brand-border/50 overflow-hidden">
-                      <div
-                        className="h-full bg-brand-green rounded-full transition-all duration-300"
-                        style={{
-                          width: `${Math.min(100, Math.max(0, (data.swaps.remaining / data.swaps.cap) * 100))}%`,
-                        }}
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                {/* 2. AI Estimate Requests (2 cols) */}
-                <div className="lg:col-span-2 rounded-xl border border-brand-border/70 bg-brand-bgAlt/40 p-4 space-y-2.5 flex flex-col justify-between">
-                  <div>
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-1.5">
-                        <Sparkles className="h-3.5 w-3.5 text-brand-accent" />
-                        <span className="text-xs font-semibold text-brand-text">AI estimate requests</span>
-                      </div>
-                      <span className="rounded bg-brand-surface border border-brand-border/60 px-1.5 py-0.5 text-[9px] font-mono font-medium text-brand-muted">
-                        Weekly
-                      </span>
-                    </div>
-                    <div className="mt-2 flex items-baseline gap-1.5">
-                      <span className="font-display text-2xl font-bold text-brand-text">
-                        {data.usage.AI_ESTIMATE.remaining}
-                      </span>
-                      <span className="text-xs text-brand-muted font-medium">
-                        / {data.usage.AI_ESTIMATE.cap} remaining
-                      </span>
-                    </div>
-                  </div>
-
-                  <div>
-                    <p className="text-[11px] text-brand-muted">
-                      AI estimate requests:{' '}
-                      <strong className="font-semibold text-brand-text">
-                        {data.usage.AI_ESTIMATE.remaining} of {data.usage.AI_ESTIMATE.cap}
-                      </strong>
-                    </p>
-                    <div className="mt-2 h-1.5 w-full rounded-full bg-brand-border/50 overflow-hidden">
-                      <div
-                        className="h-full bg-brand-accent rounded-full transition-all duration-300"
-                        style={{
-                          width: `${Math.min(100, Math.max(0, (data.usage.AI_ESTIMATE.remaining / data.usage.AI_ESTIMATE.cap) * 100))}%`,
-                        }}
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                {/* 3. Optional Replans (2 cols) */}
-                <div className="lg:col-span-2 rounded-xl border border-brand-border/70 bg-brand-bgAlt/40 p-4 space-y-2.5 flex flex-col justify-between">
-                  <div>
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-1.5">
-                        <ReplanIcon className="h-3.5 w-3.5 text-brand-green" />
-                        <span className="text-xs font-semibold text-brand-text">Optional replans</span>
-                      </div>
-                      <span className="rounded bg-brand-surface border border-brand-border/60 px-1.5 py-0.5 text-[9px] font-mono font-medium text-brand-muted">
-                        Weekly
-                      </span>
-                    </div>
-                    <div className="mt-2 flex items-baseline gap-1.5">
-                      <span className="font-display text-2xl font-bold text-brand-text">
-                        {data.usage.REPLAN.remaining}
-                      </span>
-                      <span className="text-xs text-brand-muted font-medium">/ {data.usage.REPLAN.cap} remaining</span>
-                    </div>
-                  </div>
-
-                  <div>
-                    <p className="text-[11px] text-brand-muted">
-                      Optional replans:{' '}
-                      <strong className="font-semibold text-brand-text">
-                        {data.usage.REPLAN.remaining} of {data.usage.REPLAN.cap}
-                      </strong>
-                    </p>
-                    <div className="mt-2 h-1.5 w-full rounded-full bg-brand-border/50 overflow-hidden">
-                      <div
-                        className="h-full bg-brand-green rounded-full transition-all duration-300"
-                        style={{
-                          width: `${Math.min(100, Math.max(0, (data.usage.REPLAN.remaining / data.usage.REPLAN.cap) * 100))}%`,
-                        }}
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                {/* 4. Plan-Review Episodes (3 cols) */}
-                <div className="lg:col-span-3 rounded-xl border border-brand-border/70 bg-brand-bgAlt/40 p-4 space-y-2.5 flex flex-col justify-between">
-                  <div>
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-1.5">
-                        <Stethoscope className="h-3.5 w-3.5 text-brand-green" />
-                        <span className="text-xs font-semibold text-brand-text">Plan-review episodes</span>
-                      </div>
-                      <span className="rounded bg-brand-surface border border-brand-border/60 px-1.5 py-0.5 text-[9px] font-mono font-medium text-brand-muted">
-                        Target week
-                      </span>
-                    </div>
-                    <div className="mt-2 flex items-baseline gap-1.5">
-                      <span className="font-display text-2xl font-bold text-brand-text">
-                        {data.usage.PLAN_REVIEW.remaining}
-                      </span>
-                      <span className="text-xs text-brand-muted font-medium">
-                        / {data.usage.PLAN_REVIEW.cap} remaining
-                      </span>
-                    </div>
-                  </div>
-
-                  <div>
-                    <p className="text-[11px] text-brand-muted">
-                      Plan-review episodes:{' '}
-                      <strong className="font-semibold text-brand-text">
-                        {data.usage.PLAN_REVIEW.remaining} of {data.usage.PLAN_REVIEW.cap}
-                      </strong>
-                    </p>
-                    <div className="mt-2 h-1.5 w-full rounded-full bg-brand-border/50 overflow-hidden">
-                      <div
-                        className="h-full bg-brand-green rounded-full transition-all duration-300"
-                        style={{
-                          width: `${Math.min(100, Math.max(0, (data.usage.PLAN_REVIEW.remaining / data.usage.PLAN_REVIEW.cap) * 100))}%`,
-                        }}
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                {/* 5. Outside-Meal Reviews (3 cols) */}
-                <div className="lg:col-span-3 rounded-xl border border-brand-border/70 bg-brand-bgAlt/40 p-4 space-y-2.5 flex flex-col justify-between">
-                  <div>
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-1.5">
-                        <ClipboardCheck className="h-3.5 w-3.5 text-brand-green" />
-                        <span className="text-xs font-semibold text-brand-text">Outside-meal reviews</span>
-                      </div>
-                      <span className="rounded bg-brand-surface border border-brand-border/60 px-1.5 py-0.5 text-[9px] font-mono font-medium text-brand-muted">
-                        Weekly
-                      </span>
-                    </div>
-                    <div className="mt-2 flex items-baseline gap-1.5">
-                      <span className="font-display text-2xl font-bold text-brand-text">
-                        {data.usage.OUTSIDE_REVIEW.remaining}
-                      </span>
-                      <span className="text-xs text-brand-muted font-medium">
-                        / {data.usage.OUTSIDE_REVIEW.cap} remaining
-                      </span>
-                    </div>
-                  </div>
-
-                  <div>
-                    <p className="text-[11px] text-brand-muted">
-                      Outside-meal reviews:{' '}
-                      <strong className="font-semibold text-brand-text">
-                        {data.usage.OUTSIDE_REVIEW.remaining} of {data.usage.OUTSIDE_REVIEW.cap}
-                      </strong>
-                    </p>
-                    <div className="mt-2 h-1.5 w-full rounded-full bg-brand-border/50 overflow-hidden">
-                      <div
-                        className="h-full bg-brand-green rounded-full transition-all duration-300"
-                        style={{
-                          width: `${Math.min(100, Math.max(0, (data.usage.OUTSIDE_REVIEW.remaining / data.usage.OUTSIDE_REVIEW.cap) * 100))}%`,
-                        }}
-                      />
-                    </div>
-                  </div>
-                </div>
               </div>
 
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2 text-xs text-brand-muted">
-                <p className="leading-relaxed">
-                  Estimate, replan and outside-review allowances reset Monday in Manila: {date(data.resetsAt)}. Swaps
-                  follow each plan cycle; plan review follows its target week.
+              <p className="mt-1 text-xs text-brand-muted">
+                {data.level === 'TRIAL_PENDING'
+                  ? 'Your Health trial starts when your first cleared current plan is available. A starter plan counts; waiting for review does not.'
+                  : data.level === 'MEMBER' && data.paidUntil
+                    ? `Membership available until ${date(data.paidUntil)}.${data.tier === 'HEALTH' && data.healthUntil ? ` Health benefits until ${date(data.healthUntil)}.` : ''} No automatic renewal.`
+                    : data.trialEndsAt
+                      ? `Health trial ${data.level === 'FREE' ? 'ended' : 'ends'} ${date(data.trialEndsAt)}. Moving to a full weekly plan does not restart it.`
+                      : ''}
+              </p>
+
+              {data.requiresCaseReview && data.level === 'FREE' && (
+                <p className="mt-2 text-xs font-medium text-status-pending-text">
+                  New plans with case review require membership. Existing eligible active meals and previously submitted
+                  review follow-up remain available.
                 </p>
-                <button
-                  type="button"
-                  onClick={() => setIsPlansModalOpen(true)}
-                  className="inline-flex items-center gap-1 font-bold text-brand-green hover:underline shrink-0"
-                >
-                  <span>View plans</span>
-                  <ArrowRight className="h-3.5 w-3.5" />
-                </button>
+              )}
+              {data.scheduledMemberships?.map((purchase) => (
+                <p key={purchase.id} className="mt-2 text-xs text-brand-green">
+                  {purchase.tier === 'HEALTH' ? 'Health' : 'Lifestyle'} test membership scheduled:{' '}
+                  {date(purchase.effectiveFrom)} – {date(purchase.effectiveUntil)}. No automatic renewal.
+                </p>
+              ))}
+            </div>
+
+            <div className="flex items-center gap-2 self-start sm:self-center shrink-0">
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-brand-bgAlt border border-brand-border/70 px-3 py-1 font-mono text-[11px] text-brand-muted">
+                <Clock className="h-3 w-3 text-brand-green" />
+                <span>Next Manila reset: {date(data.resetsAt)}</span>
+              </span>
+              <button
+                onClick={refresh}
+                aria-label="Refresh membership status"
+                className="flex h-7 w-7 items-center justify-center rounded-lg border border-brand-border/70 bg-brand-bgAlt text-brand-muted hover:text-brand-text transition-colors"
+                title="Refresh allowances"
+              >
+                <RefreshCw className="h-3 w-3" />
+              </button>
+            </div>
+          </div>
+
+          {/* ALLOWANCES TELEMETRY WITH PROGRESS BARS */}
+          <div className="space-y-3">
+            <h3 className="text-xs font-bold uppercase tracking-wider text-brand-muted">Your remaining allowances</h3>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3.5">
+              {/* 1. Meal Swaps (2 cols) */}
+              <div className="lg:col-span-2 rounded-xl border border-brand-border/70 bg-brand-bgAlt/40 p-4 space-y-2.5 flex flex-col justify-between">
+                <div>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-1.5">
+                      <UtensilsCrossed className="h-3.5 w-3.5 text-brand-green" />
+                      <span className="text-xs font-semibold text-brand-text">Meal swaps</span>
+                    </div>
+                    <span className="rounded bg-brand-surface border border-brand-border/60 px-1.5 py-0.5 text-[9px] font-mono font-medium text-brand-muted">
+                      Cycle
+                    </span>
+                  </div>
+                  <div className="mt-2 flex items-baseline gap-1.5">
+                    <span className="font-display text-2xl font-bold text-brand-text">{data.swaps.remaining}</span>
+                    <span className="text-xs text-brand-muted font-medium">/ {data.swaps.cap} remaining</span>
+                  </div>
+                </div>
+
+                <div>
+                  <p className="text-[11px] text-brand-muted">
+                    Meal swaps:{' '}
+                    <strong className="font-semibold text-brand-text">
+                      {data.swaps.remaining} of {data.swaps.cap}
+                    </strong>{' '}
+                    for your current cycle
+                  </p>
+                  <div className="mt-2 h-1.5 w-full rounded-full bg-brand-border/50 overflow-hidden">
+                    <div
+                      className="h-full bg-brand-green rounded-full transition-all duration-300"
+                      style={{
+                        width: allowanceWidth(data.swaps.remaining, data.swaps.cap),
+                      }}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* 2. AI Estimate Requests (2 cols) */}
+              <div className="lg:col-span-2 rounded-xl border border-brand-border/70 bg-brand-bgAlt/40 p-4 space-y-2.5 flex flex-col justify-between">
+                <div>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-1.5">
+                      <Sparkles className="h-3.5 w-3.5 text-brand-accent" />
+                      <span className="text-xs font-semibold text-brand-text">AI estimate requests</span>
+                    </div>
+                    <span className="rounded bg-brand-surface border border-brand-border/60 px-1.5 py-0.5 text-[9px] font-mono font-medium text-brand-muted">
+                      Weekly
+                    </span>
+                  </div>
+                  <div className="mt-2 flex items-baseline gap-1.5">
+                    <span className="font-display text-2xl font-bold text-brand-text">
+                      {data.usage.AI_ESTIMATE.remaining}
+                    </span>
+                    <span className="text-xs text-brand-muted font-medium">
+                      / {data.usage.AI_ESTIMATE.cap} remaining
+                    </span>
+                  </div>
+                </div>
+
+                <div>
+                  <p className="text-[11px] text-brand-muted">
+                    AI estimate requests:{' '}
+                    <strong className="font-semibold text-brand-text">
+                      {data.usage.AI_ESTIMATE.remaining} of {data.usage.AI_ESTIMATE.cap}
+                    </strong>
+                  </p>
+                  <div className="mt-2 h-1.5 w-full rounded-full bg-brand-border/50 overflow-hidden">
+                    <div
+                      className="h-full bg-brand-accent rounded-full transition-all duration-300"
+                      style={{
+                        width: allowanceWidth(data.usage.AI_ESTIMATE.remaining, data.usage.AI_ESTIMATE.cap),
+                      }}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* 3. Optional Replans (2 cols) */}
+              <div className="lg:col-span-2 rounded-xl border border-brand-border/70 bg-brand-bgAlt/40 p-4 space-y-2.5 flex flex-col justify-between">
+                <div>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-1.5">
+                      <ReplanIcon className="h-3.5 w-3.5 text-brand-green" />
+                      <span className="text-xs font-semibold text-brand-text">Optional replans</span>
+                    </div>
+                    <span className="rounded bg-brand-surface border border-brand-border/60 px-1.5 py-0.5 text-[9px] font-mono font-medium text-brand-muted">
+                      Weekly
+                    </span>
+                  </div>
+                  <div className="mt-2 flex items-baseline gap-1.5">
+                    <span className="font-display text-2xl font-bold text-brand-text">
+                      {data.usage.REPLAN.remaining}
+                    </span>
+                    <span className="text-xs text-brand-muted font-medium">/ {data.usage.REPLAN.cap} remaining</span>
+                  </div>
+                </div>
+
+                <div>
+                  <p className="text-[11px] text-brand-muted">
+                    Optional replans:{' '}
+                    <strong className="font-semibold text-brand-text">
+                      {data.usage.REPLAN.remaining} of {data.usage.REPLAN.cap}
+                    </strong>
+                  </p>
+                  <div className="mt-2 h-1.5 w-full rounded-full bg-brand-border/50 overflow-hidden">
+                    <div
+                      className="h-full bg-brand-green rounded-full transition-all duration-300"
+                      style={{
+                        width: allowanceWidth(data.usage.REPLAN.remaining, data.usage.REPLAN.cap),
+                      }}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* 4. Plan-Review Episodes (3 cols) */}
+              <div className="lg:col-span-3 rounded-xl border border-brand-border/70 bg-brand-bgAlt/40 p-4 space-y-2.5 flex flex-col justify-between">
+                <div>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-1.5">
+                      <Stethoscope className="h-3.5 w-3.5 text-brand-green" />
+                      <span className="text-xs font-semibold text-brand-text">Plan-review episodes</span>
+                    </div>
+                    <span className="rounded bg-brand-surface border border-brand-border/60 px-1.5 py-0.5 text-[9px] font-mono font-medium text-brand-muted">
+                      Target week
+                    </span>
+                  </div>
+                  <div className="mt-2 flex items-baseline gap-1.5">
+                    <span className="font-display text-2xl font-bold text-brand-text">
+                      {data.usage.PLAN_REVIEW.remaining}
+                    </span>
+                    <span className="text-xs text-brand-muted font-medium">
+                      / {data.usage.PLAN_REVIEW.cap} remaining
+                    </span>
+                  </div>
+                </div>
+
+                <div>
+                  <p className="text-[11px] text-brand-muted">
+                    Plan-review episodes:{' '}
+                    <strong className="font-semibold text-brand-text">
+                      {data.usage.PLAN_REVIEW.remaining} of {data.usage.PLAN_REVIEW.cap}
+                    </strong>
+                  </p>
+                  <div className="mt-2 h-1.5 w-full rounded-full bg-brand-border/50 overflow-hidden">
+                    <div
+                      className="h-full bg-brand-green rounded-full transition-all duration-300"
+                      style={{
+                        width: allowanceWidth(data.usage.PLAN_REVIEW.remaining, data.usage.PLAN_REVIEW.cap),
+                      }}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* 5. Outside-Meal Reviews (3 cols) */}
+              <div className="lg:col-span-3 rounded-xl border border-brand-border/70 bg-brand-bgAlt/40 p-4 space-y-2.5 flex flex-col justify-between">
+                <div>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-1.5">
+                      <ClipboardCheck className="h-3.5 w-3.5 text-brand-green" />
+                      <span className="text-xs font-semibold text-brand-text">Outside-meal reviews</span>
+                    </div>
+                    <span className="rounded bg-brand-surface border border-brand-border/60 px-1.5 py-0.5 text-[9px] font-mono font-medium text-brand-muted">
+                      Weekly
+                    </span>
+                  </div>
+                  <div className="mt-2 flex items-baseline gap-1.5">
+                    <span className="font-display text-2xl font-bold text-brand-text">
+                      {data.usage.OUTSIDE_REVIEW.remaining}
+                    </span>
+                    <span className="text-xs text-brand-muted font-medium">
+                      / {data.usage.OUTSIDE_REVIEW.cap} remaining
+                    </span>
+                  </div>
+                </div>
+
+                <div>
+                  <p className="text-[11px] text-brand-muted">
+                    Outside-meal reviews:{' '}
+                    <strong className="font-semibold text-brand-text">
+                      {data.usage.OUTSIDE_REVIEW.remaining} of {data.usage.OUTSIDE_REVIEW.cap}
+                    </strong>
+                  </p>
+                  <div className="mt-2 h-1.5 w-full rounded-full bg-brand-border/50 overflow-hidden">
+                    <div
+                      className="h-full bg-brand-green rounded-full transition-all duration-300"
+                      style={{
+                        width: allowanceWidth(data.usage.OUTSIDE_REVIEW.remaining, data.usage.OUTSIDE_REVIEW.cap),
+                      }}
+                    />
+                  </div>
+                </div>
               </div>
             </div>
-          </section>
-        )}
+
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2 text-xs text-brand-muted">
+              <p className="leading-relaxed">
+                Estimate, replan and outside-review allowances reset Monday in Manila: {date(data.resetsAt)}. Swaps
+                follow each plan cycle; plan review follows its target week.
+              </p>
+              <button
+                type="button"
+                onClick={() => setIsPlansModalOpen(true)}
+                className="inline-flex items-center gap-1 font-bold text-brand-green hover:underline shrink-0"
+              >
+                <span>View plans</span>
+                <ArrowRight className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* MEMBERSHIP PLANS (Full-screen modal like ChatGPT with 'X' button on upper right) */}
       {isPlansModalOpen ? (
         <Pricing
           currentTier={data?.enabled ? (data.tier ?? (data.enhanced ? 'HEALTH' : 'FREE')) : 'FREE'}
           currentLevel={currentLevel}
-          isEnhanced={isEnhanced}
           limits={limits}
           isFullScreenModal={true}
           isOpen={isPlansModalOpen}
@@ -418,18 +425,25 @@ export default function MembershipPage() {
               const url = new URL(window.location.href);
               url.searchParams.delete('tab');
               url.searchParams.delete('plans');
-              window.history.replaceState({}, '', url.toString());
+              router.replace(url.pathname + url.search, { scroll: false });
             }
           }}
         />
-      ) : (
-        <div className="hidden" aria-hidden="true">
-          <button type="button" disabled>Purchases opening soon</button>
-          <button type="button" disabled>Purchases opening soon</button>
-          <h3>Lifestyle</h3>
-          <h3>Health</h3>
-        </div>
-      )}
+      ) : null}
     </div>
+  );
+}
+
+export default function MembershipPage() {
+  return (
+    <Suspense
+      fallback={
+        <p className="portal-page" role="status">
+          Loading membership…
+        </p>
+      }
+    >
+      <MembershipContent />
+    </Suspense>
   );
 }

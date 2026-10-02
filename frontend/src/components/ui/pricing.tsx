@@ -1,20 +1,22 @@
 'use client';
 
-import React, { useEffect, useRef, useState } from 'react';
-import { createPortal } from 'react-dom';
+import React, { useEffect, useId, useRef, useState } from 'react';
+import * as Dialog from '@radix-ui/react-dialog';
 import { Card, CardContent, CardHeader } from '@/components/ui/Card';
 import { TimelineContent } from '@/components/ui/timeline-animation';
 import { VerticalCutReveal } from '@/components/ui/vertical-cut-reveal';
 import { cn } from '@/lib/utils';
 import NumberFlow from '@number-flow/react';
 import { CheckCheck, X } from 'lucide-react';
-import { motion, type Variants } from 'framer-motion';
+import { motion, type Variants } from 'motion/react';
 import type { MembershipView } from '@/features/membership/MembershipProvider';
+import { useMembershipCheckout } from '@/features/membership/useMembershipCheckout';
+import { checkoutSelectionKey, displayPrices, pendingMembershipSelection } from '@/features/membership/checkout';
+import api from '@/lib/axios';
 
 export interface PricingProps {
   currentLevel?: 'FREE' | 'TRIAL_PENDING' | 'TRIAL' | 'MEMBER' | null;
   currentTier?: 'FREE' | 'LIFESTYLE' | 'HEALTH';
-  isEnhanced?: boolean;
   limits?: Extract<MembershipView, { enabled: true }>['limits'];
   onClose?: () => void;
   isFullScreenModal?: boolean;
@@ -24,34 +26,29 @@ export interface PricingProps {
 const PricingSwitch = ({
   onSwitch,
   className,
+  selected,
 }: {
   onSwitch: (value: string) => void;
   className?: string;
-  isModal?: boolean;
+  selected: string;
 }) => {
-  const [selected, setSelected] = useState('0');
-
-  const handleSwitch = (value: string) => {
-    setSelected(value);
-    onSwitch(value);
-  };
+  const switchId = useId();
 
   return (
     <div className={cn('flex justify-center', className)}>
       <div className="relative z-10 flex w-fit rounded-xl p-1 bg-brand-bg-alt border border-brand-border shadow-xs">
         <button
           type="button"
-          onClick={() => handleSwitch('0')}
+          onClick={() => onSwitch('0')}
+          aria-pressed={selected === '0'}
           className={cn(
             'relative z-10 w-fit cursor-pointer h-11 rounded-xl sm:px-6 px-3.5 sm:py-2 py-1 font-semibold transition-colors sm:text-sm text-xs',
-            selected === '0'
-              ? 'text-white'
-              : 'text-brand-muted hover:text-brand-text'
+            selected === '0' ? 'text-white' : 'text-brand-muted hover:text-brand-text'
           )}
         >
           {selected === '0' && (
             <motion.span
-              layoutId="pricing-switch"
+              layoutId={switchId}
               className="absolute top-0 left-0 h-11 w-full rounded-xl border border-brand-accent-soft/40 bg-brand-accent shadow-neon"
               transition={{ type: 'spring', stiffness: 500, damping: 30 }}
             />
@@ -61,17 +58,16 @@ const PricingSwitch = ({
 
         <button
           type="button"
-          onClick={() => handleSwitch('1')}
+          onClick={() => onSwitch('1')}
+          aria-pressed={selected === '1'}
           className={cn(
             'relative z-10 w-fit cursor-pointer h-11 flex-shrink-0 rounded-xl sm:px-6 px-3.5 sm:py-2 py-1 font-semibold transition-colors sm:text-sm text-xs',
-            selected === '1'
-              ? 'text-white'
-              : 'text-brand-muted hover:text-brand-text'
+            selected === '1' ? 'text-white' : 'text-brand-muted hover:text-brand-text'
           )}
         >
           {selected === '1' && (
             <motion.span
-              layoutId="pricing-switch"
+              layoutId={switchId}
               className="absolute top-0 left-0 h-11 w-full rounded-xl border border-brand-accent-soft/40 bg-brand-accent shadow-neon"
               transition={{ type: 'spring', stiffness: 500, damping: 30 }}
             />
@@ -97,30 +93,40 @@ export default function Pricing({
   isOpen = true,
 }: PricingProps) {
   const [isYearly, setIsYearly] = useState(false);
-  const [mounted, setMounted] = useState(false);
+  const [prices, setPrices] = useState(displayPrices);
+  const [returnFocus] = useState(() =>
+    typeof document === 'undefined' ? null : (document.activeElement as HTMLElement | null)
+  );
+  const checkout = useMembershipCheckout();
   const pricingRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  useEffect(() => {
-    if (!isFullScreenModal || !isOpen || !onClose) return;
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isFullScreenModal, isOpen, onClose]);
-
-  useEffect(() => {
-    if (!isFullScreenModal || !isOpen) return;
-    const originalOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    return () => {
-      document.body.style.overflow = originalOverflow;
-    };
-  }, [isFullScreenModal, isOpen]);
+    const selected = pendingMembershipSelection();
+    const period = new URLSearchParams(window.location.search).get('period');
+    setIsYearly((period ?? selected?.period) === 'YEARLY');
+    if (selected && isFullScreenModal) {
+      try {
+        sessionStorage.removeItem(checkoutSelectionKey);
+      } catch {
+        /* Storage is optional. */
+      }
+    }
+    const controller = new AbortController();
+    void api
+      .get('/membership/plans', { signal: controller.signal })
+      .then((response) => {
+        const p = response.data.data?.prices;
+        if (
+          p &&
+          ['LIFESTYLE', 'HEALTH'].every((tier) =>
+            ['MONTHLY', 'YEARLY'].every((period) => Number.isSafeInteger(p[tier]?.[period]) && p[tier][period] > 0)
+          )
+        )
+          setPrices(p);
+      })
+      .catch(() => {});
+    return () => controller.abort();
+  }, [isFullScreenModal]);
 
   const l = limits ?? {
     freeSwaps: 3,
@@ -140,7 +146,7 @@ export default function Pricing({
       price: 0,
       yearlyPrice: 0,
       popular: false,
-      buttonText: currentTier === 'FREE' ? 'Current Plan' : 'Free access continues',
+      buttonText: currentTier === 'FREE' ? 'Current plan' : checkout.user ? 'Free access continues' : 'Get Free',
       featuresHeading: 'Free includes:',
       features: [
         'General plans without declared conditions or allergies',
@@ -155,10 +161,10 @@ export default function Pricing({
       tier: 'LIFESTYLE' as const,
       name: 'Lifestyle',
       description: 'Adapt your everyday planning as your goals and routine change.',
-      price: 249,
-      yearlyPrice: 2390,
+      price: prices.LIFESTYLE.MONTHLY / 100,
+      yearlyPrice: prices.LIFESTYLE.YEARLY / 100,
       popular: true,
-      buttonText: 'Purchases opening soon',
+      buttonText: 'Get Lifestyle',
       featuresHeading: 'Everything in Free, plus:',
       features: [
         'Apply changes to biometrics, activity, goals and food preferences',
@@ -173,10 +179,10 @@ export default function Pricing({
       tier: 'HEALTH' as const,
       name: 'Health',
       description: 'Case planning and bounded nutritionist review for declared health needs.',
-      price: 1499,
-      yearlyPrice: 14390,
+      price: prices.HEALTH.MONTHLY / 100,
+      yearlyPrice: prices.HEALTH.YEARLY / 100,
       popular: false,
-      buttonText: 'Purchases opening soon',
+      buttonText: 'Get Health',
       featuresHeading: 'Everything in Lifestyle, plus:',
       features: [
         'Apply changes to conditions, allergies and health restrictions',
@@ -204,8 +210,7 @@ export default function Pricing({
     },
   };
 
-  const togglePricingPeriod = (value: string) =>
-    setIsYearly(Number.parseInt(value, 10) === 1);
+  const togglePricingPeriod = (value: string) => setIsYearly(Number.parseInt(value, 10) === 1);
 
   const modalBody = (
     <div
@@ -216,9 +221,17 @@ export default function Pricing({
         !isOpen && isFullScreenModal && 'hidden'
       )}
       ref={pricingRef}
-      role="region"
-      aria-label="Membership plans"
+      role={isFullScreenModal ? 'dialog' : 'region'}
+      aria-label={isFullScreenModal ? undefined : 'Membership plans'}
     >
+      {isFullScreenModal && (
+        <>
+          <Dialog.Title className="sr-only">Membership plans</Dialog.Title>
+          <Dialog.Description className="sr-only">
+            Compare Free, Lifestyle and Health. Choose a billing period to open PayMongo demo checkout.
+          </Dialog.Description>
+        </>
+      )}
       {/* ChatGPT-style Upper Right "X" Button */}
       {onClose && (
         <button
@@ -258,8 +271,8 @@ export default function Pricing({
             customVariants={revealVariants}
             className="text-sm sm:text-base leading-relaxed max-w-2xl text-brand-muted"
           >
-            The 14-day trial includes Health benefits. Free planning continues for everyone, with
-            adaptive options and verified nutritionist reviews when you need them.
+            The 14-day trial includes Health benefits. Free general planning continues with your saved report. Choose
+            Lifestyle for changing goals or Health for case planning and nutritionist review.
           </TimelineContent>
 
           <TimelineContent
@@ -271,10 +284,26 @@ export default function Pricing({
           >
             <PricingSwitch
               onSwitch={togglePricingPeriod}
+              selected={isYearly ? '1' : '0'}
               className="sm:justify-start justify-center"
             />
           </TimelineContent>
         </article>
+
+        <p className="mb-3 text-xs text-brand-muted">
+          Demo checkout uses PayMongo test mode. No real charges or automatic renewal.
+        </p>
+        {checkout.professional && (
+          <p className="mb-3 text-xs text-brand-muted">Membership plans are for personal accounts.</p>
+        )}
+        {checkout.error && (
+          <p
+            role="alert"
+            className="mb-3 rounded-xl border border-status-error-text/30 bg-status-error-bg p-3 text-sm text-status-error-text"
+          >
+            {checkout.error}
+          </p>
+        )}
 
         {/* 3 Plans Grid */}
         <div className="grid md:grid-cols-3 gap-5 py-4">
@@ -300,9 +329,7 @@ export default function Pricing({
                     <div className="flex items-start justify-between gap-2">
                       <div>
                         <div className="flex items-baseline gap-1.5">
-                          <h3 className="text-2xl sm:text-3xl font-display font-bold text-brand-text">
-                            {plan.name}
-                          </h3>
+                          <h3 className="text-2xl sm:text-3xl font-display font-bold text-brand-text">{plan.name}</h3>
                           <span className="text-xs font-semibold uppercase tracking-wider text-brand-muted font-mono">
                             Plan
                           </span>
@@ -319,14 +346,12 @@ export default function Pricing({
                       </div>
                       {plan.popular && (
                         <span className="rounded-full bg-brand-accent text-white px-3 py-1 text-xs font-extrabold uppercase tracking-wider shadow-neon">
-                          Popular
+                          Recommended
                         </span>
                       )}
                     </div>
 
-                    <p className="mt-3 text-xs sm:text-sm min-h-[40px] text-brand-muted">
-                      {plan.description}
-                    </p>
+                    <p className="mt-3 text-xs sm:text-sm min-h-[40px] text-brand-muted">{plan.description}</p>
 
                     <div className="mt-5 flex items-baseline">
                       <span className="text-3xl sm:text-4xl font-extrabold font-display text-brand-text">
@@ -353,15 +378,18 @@ export default function Pricing({
                       {plan.tier === 'FREE' ? (
                         <button
                           type="button"
-                          disabled
-                          className="w-full mb-6 py-3 px-4 rounded-xl text-sm font-bold bg-brand-bg-alt text-brand-text border border-brand-border opacity-85 cursor-default"
+                          disabled={Boolean(checkout.user)}
+                          onClick={() => checkout.router.push('/register')}
+                          className="w-full mb-6 py-3 px-4 rounded-xl text-sm font-bold bg-brand-bg-alt text-brand-text border border-brand-border cursor-pointer disabled:opacity-85 disabled:cursor-default"
                         >
                           {plan.buttonText}
                         </button>
                       ) : (
                         <button
                           type="button"
-                          disabled
+                          disabled={Boolean(checkout.pendingTier) || checkout.professional}
+                          aria-busy={checkout.pendingTier === plan.tier}
+                          onClick={() => void checkout.start(plan.tier, isYearly ? 'YEARLY' : 'MONTHLY')}
                           className={cn(
                             'w-full mb-6 py-3 px-4 rounded-xl text-sm font-bold shadow-sm transition-all disabled:opacity-85 disabled:cursor-not-allowed',
                             plan.popular
@@ -369,23 +397,16 @@ export default function Pricing({
                               : 'bg-brand-dark hover:bg-black text-white dark:bg-brand-bg-alt dark:hover:bg-brand-surface dark:text-brand-text border border-brand-border'
                           )}
                         >
-                          {plan.buttonText}
+                          {checkout.pendingTier === plan.tier ? 'Opening checkout…' : plan.buttonText}
                         </button>
                       )}
 
                       <div className="space-y-3 pt-4 border-t border-brand-border/70">
-                        <h4 className="text-xs font-bold uppercase tracking-wider text-brand-text">
-                          Features
-                        </h4>
-                        <p className="text-xs font-semibold mb-2 text-brand-muted">
-                          {plan.featuresHeading}
-                        </p>
+                        <h4 className="text-xs font-bold uppercase tracking-wider text-brand-text">Features</h4>
+                        <p className="text-xs font-semibold mb-2 text-brand-muted">{plan.featuresHeading}</p>
                         <ul className="space-y-2.5">
                           {plan.features.map((feature, idx) => (
-                            <li
-                              key={idx}
-                              className="flex items-start gap-2.5 text-xs sm:text-sm text-brand-text/90"
-                            >
+                            <li key={idx} className="flex items-start gap-2.5 text-xs sm:text-sm text-brand-text/90">
                               <span className="h-4 w-4 shrink-0 rounded-full border border-brand-accent/40 bg-brand-accent/15 text-brand-accent flex items-center justify-center mt-0.5">
                                 <CheckCheck className="h-2.5 w-2.5 stroke-[3]" />
                               </span>
@@ -403,26 +424,36 @@ export default function Pricing({
         </div>
 
         <p className="mt-6 text-center text-xs text-brand-muted max-w-2xl mx-auto">
-          A report confirmation is not nutritionist approval. Case clearance and safety requirements
-          still apply. Purchases remain unavailable during early preview.
+          A report confirmation is not nutritionist approval. Case clearance and safety requirements still apply. Test
+          payment access is only available in the development payment sandbox.
         </p>
       </div>
     </div>
   );
 
-  // When modal is closed or not open, render hidden content for test / DOM accessibility
-  if (isFullScreenModal && !isOpen) {
+  if (isFullScreenModal)
     return (
-      <div className="hidden" aria-hidden="true">
-        {modalBody}
-      </div>
+      <Dialog.Root
+        open={isOpen}
+        onOpenChange={(open) => {
+          if (!open) onClose?.();
+        }}
+      >
+        <Dialog.Portal>
+          <Dialog.Content
+            asChild
+            onCloseAutoFocus={(event) => {
+              if (returnFocus?.isConnected) {
+                event.preventDefault();
+                returnFocus.focus();
+              }
+            }}
+          >
+            {modalBody}
+          </Dialog.Content>
+        </Dialog.Portal>
+      </Dialog.Root>
     );
-  }
-
-  // When open and in full-screen modal mode, portal directly to document.body
-  if (isFullScreenModal && mounted && typeof document !== 'undefined') {
-    return createPortal(modalBody, document.body);
-  }
 
   return modalBody;
 }

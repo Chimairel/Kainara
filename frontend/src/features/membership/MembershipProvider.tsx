@@ -21,7 +21,14 @@ export type MembershipView =
       trialEndsAt: string | null;
       paidUntil: string | null;
       resetsAt: string;
-      purchasesAvailable: false;
+      purchasesAvailable: boolean;
+      checkoutMode?: 'TEST';
+      scheduledMemberships?: Array<{
+        id: string;
+        tier: 'LIFESTYLE' | 'HEALTH';
+        effectiveFrom: string;
+        effectiveUntil: string;
+      }>;
       price: null;
       autoRenews: false;
       limits: {

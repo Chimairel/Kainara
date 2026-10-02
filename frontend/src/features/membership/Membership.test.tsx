@@ -12,7 +12,23 @@ const state = vi.hoisted(() => ({
   refresh: vi.fn(),
 }));
 vi.mock('./MembershipProvider', () => ({ useMembership: () => state }));
-vi.mock('@/hooks/useAuth', () => ({ useAuth: () => ({ user: { userId: 'membership-ui-fixture' } }) }));
+vi.mock('@/hooks/useAuth', () => ({
+  useAuth: () => ({
+    user: {
+      userId: 'membership-ui-fixture',
+      role: 'USER',
+      emailVerified: true,
+      onboardingDone: true,
+      tosAccepted: true,
+      reportAcknowledged: true,
+    },
+  }),
+}));
+vi.mock('@/lib/axios', () => ({ default: { get: vi.fn().mockResolvedValue({ data: { data: {} } }) } }));
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({ push: vi.fn(), replace: vi.fn() }),
+  useSearchParams: () => new URLSearchParams(),
+}));
 function view(): Extract<MembershipView, { enabled: true }> {
   return {
     enabled: true,
@@ -58,16 +74,16 @@ afterEach(() => {
   sessionStorage.clear();
 });
 describe('membership status and gates', () => {
-  it('shows remaining allowances and keeps purchases unavailable without a price', () => {
+  it('keeps plans out of the allowance view and opens the shared accessible plan dialog', () => {
     render(<MembershipPage />);
     expect(screen.getByText('6 of 10')).toBeInTheDocument();
-    expect(screen.getAllByRole('button', { name: 'Purchases opening soon', hidden: true })).toHaveLength(2);
-    screen
-      .getAllByRole('button', { name: 'Purchases opening soon', hidden: true })
-      .forEach((button) => expect(button).toBeDisabled());
-    expect(screen.queryByText(/₱|Pay now|Activate premium/)).not.toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: 'Lifestyle', hidden: true })).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: 'Health', hidden: true })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Get Lifestyle', hidden: true })).not.toBeInTheDocument();
+    fireEvent.click(screen.getAllByRole('button', { name: 'View plans' })[0]);
+    expect(screen.getByRole('dialog', { name: 'Membership plans' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Get Lifestyle' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: 'Get Health' })).toBeEnabled();
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
   it('explains waiting for a usable plan rather than starting the trial during review', () => {
     state.data = { ...view(), level: 'TRIAL_PENDING', trialStartedAt: null, trialEndsAt: null };

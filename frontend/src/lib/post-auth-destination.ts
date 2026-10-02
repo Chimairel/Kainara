@@ -1,4 +1,5 @@
 import type { UserSession } from '@/lib/context/AuthContext';
+import { pendingMembershipSelection } from '@/features/membership/checkout';
 
 export function getPostAuthDestination(
   user: Pick<
@@ -12,5 +13,7 @@ export function getPostAuthDestination(
   if (!user.onboardingDone) return user.onboardingNextPath || '/onboarding/stats';
   if (!user.tosAccepted) return '/onboarding/tos';
   if (!user.reportAcknowledged) return '/profile/nutrition-report';
+  const selected = pendingMembershipSelection();
+  if (selected) return `/membership?plans=true&period=${selected.period}&tier=${selected.tier}`;
   return '/dashboard';
 }

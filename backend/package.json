@@ -99,6 +99,7 @@
     "lint": "eslint src tests scripts",
     "lint:fix": "eslint src tests scripts --fix",
     "test:acceptance:report-membership": "tsx scripts/report-membership-acceptance.ts",
+    "test:acceptance:membership-checkout": "tsx scripts/membership-checkout-acceptance.ts",
     "check:membership-scripts": "tsc --project tsconfig.membership-scripts.json"
   },
   "dependencies": {

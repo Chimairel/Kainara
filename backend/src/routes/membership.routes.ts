@@ -6,6 +6,8 @@ import type { AuthenticatedRequest } from '@/types';
 import { MembershipService } from '@/services/membership.service';
 import { MealPlanCycleService } from '@/services/meal-plan-cycle.service';
 import { AppError } from '@/errors/AppError';
+import { membershipCheckoutInput } from '@/domain/membership-checkout.policy';
+import { MembershipCheckoutService } from '@/services/membership-checkout.service';
 
 const router = Router();
 router.use(authenticate, requireRole('USER'));
@@ -22,12 +24,25 @@ router.get(
 );
 router.post(
   '/checkout',
-  asyncHandler(async () => {
-    throw new AppError(
-      'Purchases are not available yet. Pricing and payment setup are being finalized.',
-      503,
-      'MEMBERSHIP_PURCHASES_UNAVAILABLE'
-    );
+  asyncHandler(async (req: AuthenticatedRequest, res) => {
+    const input = membershipCheckoutInput.safeParse(req.body);
+    if (!input.success)
+      throw new AppError(
+        'Choose Lifestyle or Health and monthly or yearly billing.',
+        400,
+        'INVALID_CHECKOUT_SELECTION'
+      );
+    const data = await MembershipCheckoutService.create(req.user!.userId, input.data);
+    res.set('Cache-Control', 'private, no-store').json({ success: true, data });
+  })
+);
+router.get(
+  '/checkout/:id',
+  asyncHandler(async (req: AuthenticatedRequest, res) => {
+    if (!/^[a-zA-Z0-9_-]{8,100}$/.test(req.params.id))
+      throw new AppError('Checkout not found.', 404, 'CHECKOUT_NOT_FOUND');
+    const data = await MembershipCheckoutService.status(req.user!.userId, req.params.id);
+    res.set('Cache-Control', 'private, no-store').json({ success: true, data });
   })
 );
 export default router;

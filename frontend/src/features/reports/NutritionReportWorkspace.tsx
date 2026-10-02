@@ -5,6 +5,8 @@ import ReportHistory from '@/features/reports/ReportHistory';
 import NutritionGuidanceDocument from '@/features/reports/NutritionGuidanceDocument';
 import React, { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { pendingMembershipSelection } from '@/features/membership/checkout';
+import { getPostAuthDestination } from '@/lib/post-auth-destination';
 import { useAuth } from '@/hooks/useAuth';
 import api from '@/lib/axios';
 import { usePdfDownload } from '@/hooks/usePdfDownload';
@@ -193,14 +195,17 @@ export default function NutritionReportPage() {
 
       // Only support the explicit internal continuation, never an arbitrary redirect URL.
       const next = new URLSearchParams(window.location.search).get('next');
+      const membershipSelection = pendingMembershipSelection();
       router.push(
-        readiness?.canRequestPlan === false
-          ? readiness.actionPath
-          : next === 'regenerate'
-            ? '/meals?regenerate=true'
-            : next === 'dashboard'
-              ? '/dashboard'
-              : '/profile'
+        membershipSelection
+          ? getPostAuthDestination(refreshed)
+          : readiness?.canRequestPlan === false
+            ? readiness.actionPath
+            : next === 'regenerate'
+              ? '/meals?regenerate=true'
+              : next === 'dashboard'
+                ? '/dashboard'
+                : '/profile'
       );
     } catch (err) {
       const failure = (err as { response?: { data?: { errorCode?: string } } }).response?.data?.errorCode;

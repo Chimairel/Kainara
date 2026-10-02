@@ -1,6 +1,13 @@
 # Membership V2 operations
 
-Membership adds a single 14-day trial and bounded Lifestyle and Health benefits to the existing account and meal workflows. Purchases are unavailable until the owner chooses a price and an approved payment adapter is implemented. There is no sandbox purchase, public activation endpoint, automatic renewal or automatic charge.
+Membership adds a single 14-day trial and bounded Lifestyle and Health benefits to the existing account and meal workflows. Public Pricing and signed-in Membership share the same plan component. **Get Lifestyle** and **Get Health** open PayMongo hosted checkout in the isolated development payment sandbox. Real purchases, automatic renewal and automatic charges remain unavailable.
+
+| Plan | Monthly | Yearly, rounded whole peso |
+| --- | --- | --- |
+| Lifestyle | ₱249 | ₱2,390 |
+| Health | ₱1,499 | ₱14,390 |
+
+The annual amount applies the approved 20% discount to twelve months, rounded to the nearest peso. Amounts are owned by the server in centavos. The public catalogue supplies displayed prices; checkout requests contain only the tier, period and request key.
 
 ## Access and allowances
 
@@ -49,7 +56,7 @@ Only the backend needs membership settings:
 
 Manila weeks start Monday at 00:00. Swap limits follow the plan cycle, including starter cycles; revisions do not reset them. Case plan admission is counted against the target plan week. The status page shows current-week usage and the active cycle's swap count. Backend admission remains authoritative when cached frontend status changes or expires.
 
-The feature flag defaults off for staged deployment. Disabled membership bypasses payment/allowance gates. Once an active planning-report pointer exists, its baseline remains authoritative; disabling membership does not discard that pointer. `GET /api/user/membership` requires a regular authenticated user and returns status/allowances without private profile details. `POST /api/user/membership/checkout` always returns `503 MEMBERSHIP_PURCHASES_UNAVAILABLE`.
+The feature flag defaults off for staged deployment. Disabled membership bypasses payment/allowance gates. Once an active planning-report pointer exists, its baseline remains authoritative; disabling membership does not discard that pointer. `GET /api/user/membership` requires a regular authenticated user and returns status/allowances without private profile details. `POST /api/user/membership/checkout` returns `503 MEMBERSHIP_PURCHASES_UNAVAILABLE` outside the configured isolated test environment.
 
 ## Migration and activation
 
@@ -74,4 +81,34 @@ Acceptance covers durable trial start, pending/current/future starter timing, co
 
 To try the profile/report/tier screens without migrating demo, use the disposable local database above and run `npx tsx scripts/preview-report-membership.ts` from `backend`. It binds the API to `127.0.0.1:5018` and provisions three synthetic accounts (`free@preview.invalid`, `lifestyle@preview.invalid`, `health@preview.invalid`) with the fixture password `Development123!`. Existing preview edits are retained across restarts. The runner refuses other database targets and grants no real account access.
 
-Run the isolated frontend on port 3108 with `NEXT_PUBLIC_API_URL=/api` and `INTERNAL_API_URL=http://127.0.0.1:5018`; set those values for its build as well as its start. These settings are process-local; do not replace the shared checkout's environment files. This preview does not send email, process payments or generate provider-backed meal plans. The two acceptance scripts independently verify the business and concurrency rules. Local preview accounts are development fixtures, not clinician-approved records.
+Run the isolated frontend on port 3108 with `NEXT_PUBLIC_API_URL=/api` and `INTERNAL_API_URL=http://127.0.0.1:5018`; set those values for its build as well as its start. These settings are process-local; do not replace the shared checkout's environment files. This preview does not send email or generate provider-backed meal plans. PayMongo test checkout requires the explicit opt-in below. The two acceptance scripts independently verify the business and concurrency rules. Local preview accounts are development fixtures, not clinician-approved records.
+
+
+## PayMongo development checkout
+
+Apply the additive migrations `20261002150000_membership_test_checkout` and `20261002150100_membership_payment_notification` to the disposable database only. This has a separate `MembershipTestCheckout` ledger; successful test payments never create a real `MembershipGrant`.
+
+All of these conditions are required:
+
+- `MEMBERSHIP_ENABLED=true`, `PAYMONGO_INTEGRATION_ENABLED=true`, `PAYMONGO_ENVIRONMENT=TEST`.
+- `NODE_ENV=development` or `test` and a valid backend `sk_test_` key.
+- Database hostname localhost/127.0.0.1 and database name `membership_acceptance`.
+- `FRONTEND_URL` points to the loopback preview, normally `http://localhost:3108`.
+
+The preview runner optionally reads only the test key, environment and webhook secret from a file named by `PAYMONGO_PREVIEW_KEYS_FILE`. It never copies the shared database or provider return URLs. Existing hosted environment files are unchanged. Never commit keys or put them in `NEXT_PUBLIC_*`.
+
+The server creates a v2 checkout session, persists its identity and later retrieves that session through PayMongo v1. Test mode, reference, payment/intent identity, amount, currency, paid status, refund/dispute state and timestamps are checked. The creation response need not contain a reference; the retrieval response must match it. Secret keys and provider client keys are not returned or logged.
+
+Anonymous visitors choose a tier/period and continue to login. Account setup, consent and first-report selection precede checkout. Selection is retained for up to 24 hours in session storage; arriving after login opens plans, **never automatically purchases**. A server request key and account lock prevent duplicate creation; a recent open checkout is reused. Closing or abandoning checkout is navigation only and cannot activate access. The return page polls a bounded number of times and offers an explicit retry.
+
+Verified payment is recorded atomically. Duplicate return checks and webhooks do not add another period or notification. Existing applicable trial/paid periods are preserved; a Health upgrade can start immediately over Lifestyle, while a Lifestyle purchase waits for existing Health coverage. A monthly or yearly purchase adds one or twelve Philippine calendar months with end-of-month clamping. No proration, auto-renewal, scheduled debit, real purchase, refund administration or production subscription is implemented.
+
+### Webhook
+
+The raw-body endpoint is `POST /api/payments/paymongo/webhook`; configure the PayMongo test event `checkout_session.payment.paid` and backend `PAYMONGO_WEBHOOK_SECRET` once a reachable isolated development endpoint is available. It verifies the test `te` HMAC over timestamp and original bytes with a five-minute tolerance, then retrieves the known session directly before recording payment. Unknown/unrelated signed events are acknowledged without granting access. Production/shared-database activation is refused.
+
+Loopback URLs cannot receive PayMongo webhooks from the internet. Local checkout testing uses server retrieval on return instead, so no tunnel or provider webhook registration is required. A production payment release needs a reachable verified webhook and additional approved live-payment/refund/renewal design; do not register the undeployed Railway route for this local-only release.
+
+### Tests and provider evidence
+
+`npm --prefix backend run test:acceptance:membership-checkout` refuses other database targets and uses synthetic provider responses. It tests ownership, role/selection admission, concurrent idempotency, unpaid returns, wrong amounts, duplicate payment/webhook delivery, one notification, renewal dates and isolation. It cleans its synthetic users in `finally` and never calls a real provider. The actual local browser trial also completed a PayMongo hosted test-card payment using the existing test key; this does not establish live merchant readiness or payment collection.

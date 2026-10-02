@@ -30,6 +30,8 @@ import nutritionistApplicationRouter from '@/routes/nutritionist-application.rou
 import evidenceRouter from '@/routes/evidence.routes';
 import notificationsRouter from '@/routes/notifications.routes';
 import membershipRouter from '@/routes/membership.routes';
+import membershipPaymentRouter from '@/routes/membership-payment.routes';
+import { MEMBERSHIP_PRICES, testCheckoutConfig } from '@/domain/membership-checkout.policy';
 
 // Initialize Express app
 const app = express();
@@ -62,6 +64,12 @@ app.use((req, res, next) => {
   next();
 });
 app.use(cors(createCorsOptions(env.allowedCorsOrigins)));
+// The signature covers the original bytes. Keep this before the JSON parser.
+app.use(
+  '/api/payments/paymongo/webhook',
+  express.raw({ type: 'application/json', limit: '64kb' }),
+  membershipPaymentRouter
+);
 // Applicant media is bounded by its schema (1 MB headshot + 500 KB signature).
 app.use('/api/nutritionist-applications', express.json({ limit: '2mb' }));
 app.use(express.json({ limit: '256kb' }));
@@ -87,6 +95,18 @@ if (env.SMTP_VERIFY_ON_STARTUP) {
 app.use('/api/live', liveRouter);
 app.use('/api/evidence', evidenceRouter);
 app.use('/api/notifications', notificationsRouter);
+app.get('/api/membership/plans', (_req, res) => {
+  res.set('Cache-Control', 'no-store').json({
+    success: true,
+    data: {
+      prices: MEMBERSHIP_PRICES,
+      currency: 'PHP',
+      mode: 'TEST',
+      autoRenews: false,
+      purchasesAvailable: Boolean(testCheckoutConfig()),
+    },
+  });
+});
 // These specific user routers own their auth and readiness checks. Mount them
 // before the broad /api/user router so a request does not run both chains.
 app.use('/api/user/progress', progressRouter);

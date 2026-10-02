@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { motion, type Variants } from 'framer-motion';
+import { motion, type Variants } from 'motion/react';
 
 export interface TimelineContentProps {
   as?: keyof typeof motion | 'div' | 'p' | 'span' | 'section' | 'article' | 'h1' | 'h2' | 'h3' | 'a';

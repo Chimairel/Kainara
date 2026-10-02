@@ -191,6 +191,7 @@ export default function NotificationDropdown() {
           surface: 'bg-emerald-500/10 border-emerald-500/20 text-emerald-600 dark:text-emerald-400',
         };
       case 'ASSIGNMENT':
+      case 'MEMBERSHIP_UPDATED':
         return {
           icon: <Sprout className="w-4 h-4 text-brand-green" />,
           surface: 'bg-brand-green/10 border-brand-green/20 text-brand-green',

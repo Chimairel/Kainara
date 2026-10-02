@@ -43,7 +43,8 @@ export type MealLogDataSource =
 
 export type MealLogStatus = 'DONE' | 'PENDING' | 'SKIPPED';
 
-export type NotificationType = 'PLAN_APPROVED' | 'PLAN_REJECTED' | 'REVIEW_REQUEST' | 'ASSIGNMENT' | 'WEEKLY_CHECKIN';
+export type NotificationType =
+  'PLAN_APPROVED' | 'PLAN_REJECTED' | 'REVIEW_REQUEST' | 'ASSIGNMENT' | 'WEEKLY_CHECKIN' | 'MEMBERSHIP_UPDATED';
 
 export type AssignmentStatus = 'PENDING' | 'ACTIVE' | 'ENDED';
 

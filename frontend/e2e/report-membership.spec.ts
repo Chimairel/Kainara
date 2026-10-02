@@ -121,9 +121,10 @@ for (const width of [320, 390, 1440]) {
     await page.goto('/membership?tab=plans');
     await expect(page.getByRole('heading', { name: 'Lifestyle', exact: true })).toBeVisible();
     await expect(page.getByRole('heading', { name: 'Health', exact: true })).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Purchases opening soon' })).toHaveCount(2);
-    for (const button of await page.getByRole('button', { name: 'Purchases opening soon' }).all())
-      await expect(button).toBeDisabled();
+    await expect(page.getByRole('dialog', { name: 'Membership plans' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Get Lifestyle' })).toBeEnabled();
+    await expect(page.getByRole('button', { name: 'Get Health' })).toBeEnabled();
+    await page.getByRole('button', { name: 'Close', exact: true }).click();
     await expect(page.getByRole('status', { name: 'Profile planning status' })).toContainText('3 weeks ago');
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBe(true);
     await page.getByRole('button', { name: 'Complete check-in' }).click();

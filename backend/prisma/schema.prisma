@@ -432,6 +432,7 @@ enum MealLogStatus {
 }
 
 enum NotificationType {
+  MEMBERSHIP_UPDATED
   NUTRITIONIST_APPLICATION
   PLAN_APPROVED
   PLAN_REJECTED
@@ -756,6 +757,7 @@ model User {
   membershipAccount               MembershipAccount?
   membershipGrants                MembershipGrant[]
   membershipUsage                 MembershipUsage[]
+  membershipTestCheckouts         MembershipTestCheckout[]
   id                              String             @id @default(cuid())
   name                            String
   email                           String             @unique
@@ -837,7 +839,45 @@ model User {
   clinicalFacts                    ClinicalFact[]
 }
 
-// Membership V1 is separate from archived billing tables. Checkout stays disabled.
+// Membership is separate from archived billing tables. Test payment evidence cannot create paid grants.
+enum MembershipBillingPeriod {
+  MONTHLY
+  YEARLY
+}
+
+enum MembershipTestCheckoutStatus {
+  CREATING
+  OPEN
+  PAID
+  FAILED
+}
+
+model MembershipTestCheckout {
+  id                  String @id @default(cuid())
+  userId              String
+  user                User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tier                MembershipTier
+  period              MembershipBillingPeriod
+  requestKey          String @db.VarChar(36)
+  amountCentavos      Int
+  currency            String @default("PHP") @db.VarChar(3)
+  accountHash         String @db.VarChar(64)
+  providerSessionId   String? @unique
+  providerPaymentId   String? @unique
+  checkoutUrl         String?
+  status              MembershipTestCheckoutStatus @default(CREATING)
+  verifiedAt          DateTime?
+  paidAt              DateTime?
+  effectiveFrom       DateTime?
+  effectiveUntil      DateTime?
+  revokedAt           DateTime?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  @@unique([userId, requestKey])
+  @@index([userId, accountHash, status, effectiveUntil])
+}
+
 enum MembershipTier {
   LIFESTYLE
   HEALTH

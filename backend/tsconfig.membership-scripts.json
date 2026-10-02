@@ -9,6 +9,7 @@
   "include": [
     "scripts/membership-acceptance.ts",
     "scripts/report-membership-acceptance.ts",
-    "scripts/preview-report-membership.ts"
+    "scripts/preview-report-membership.ts",
+    "scripts/membership-checkout-acceptance.ts"
   ]
 }

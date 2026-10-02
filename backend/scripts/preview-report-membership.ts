@@ -1,5 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import bcrypt from 'bcryptjs';
+import { readFileSync } from 'node:fs';
+import { parse } from 'dotenv';
 
 async function main() {
   const target = new URL(process.env.DATABASE_URL ?? '');
@@ -12,12 +14,19 @@ async function main() {
   process.env.JWT_REFRESH_SECRET = 'isolated-membership-preview-refresh-key';
   process.env.FRONTEND_URL = 'http://localhost:3108';
   process.env.CORS_ORIGINS = 'http://localhost:3108';
+  // Explicit local opt-in; load only test payment settings, never the shared database or return URLs.
+  if (process.env.PAYMONGO_INTEGRATION_ENABLED === 'true' && process.env.PAYMONGO_PREVIEW_KEYS_FILE) {
+    const payment = parse(readFileSync(process.env.PAYMONGO_PREVIEW_KEYS_FILE));
+    for (const key of ['PAYMONGO_SECRET_KEY', 'PAYMONGO_WEBHOOK_SECRET', 'PAYMONGO_ENVIRONMENT']) {
+      process.env[key] = payment[key];
+    }
+  }
   const { default: prisma } = await import('../src/lib/prisma');
   const { default: app } = await import('../src/app');
   const { NutritionReportService } = await import('../src/services/nutrition-report.service');
   const { UpcomingPlanPreparationService } = await import('../src/services/upcoming-plan-preparation.service');
   const { calculateDailyTarget } = await import('../src/lib/calculations');
-  // The preview exercises real profile/report/membership APIs without calling providers or creating meal plans.
+  // Profile/report/membership preview; PayMongo calls require the explicit test opt-in above.
   UpcomingPlanPreparationService.triggerNonBlocking = () => {};
   const now = new Date();
   const past = new Date(now.getTime() - 30 * 86_400_000);
@@ -119,7 +128,9 @@ async function main() {
     console.log('Isolated membership preview API: http://127.0.0.1:5018');
     console.log('Accounts: free@preview.invalid, lifestyle@preview.invalid, health@preview.invalid');
     console.log('Fixture password: Development123!');
-    console.log('These synthetic accounts have no real meal plans; AI, email and payment providers are not enabled.');
+    console.log(
+      `Synthetic accounts only. AI and email are disabled. PayMongo test checkout: ${process.env.PAYMONGO_INTEGRATION_ENABLED === 'true' ? 'opted in' : 'disabled'}.`
+    );
   });
   const stop = () => {
     server.close(() => {

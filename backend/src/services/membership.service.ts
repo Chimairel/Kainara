@@ -15,6 +15,7 @@ import {
 } from '@/domain/membership.policy';
 import { getManilaDateKey, getManilaMidnight } from '@/domain/meal-plan-cycle.policy';
 import { lockUserProfile } from './profile-revision.service';
+import { testCheckoutConfig } from '@/domain/membership-checkout.policy';
 
 type Client = Prisma.TransactionClient;
 const include = { userProfile: true, healthConditions: true, allergies: true, safetyProfileEntries: true };
@@ -26,11 +27,39 @@ export class MembershipService {
       throw new AppError('Membership is unavailable for this account.', 403, 'MEMBERSHIP_ACCOUNT_INELIGIBLE');
     const account = await client.membershipAccount.upsert({ where: { userId }, create: { userId }, update: {} });
     const grants = await client.membershipGrant.findMany({ where: { userId, verifiedAt: { lte: at } } });
+    const checkout = testCheckoutConfig();
+    const testPayments = checkout
+      ? await client.membershipTestCheckout.findMany({
+          where: {
+            userId,
+            accountHash: checkout.accountHash,
+            status: 'PAID',
+            verifiedAt: { lte: at },
+            revokedAt: null,
+          },
+        })
+      : [];
     // Reuse the historical server-authoritative entitlement resolver, not browser or checkout-return flags.
     const resolve = (tier: 'LIFESTYLE' | 'HEALTH') =>
       resolveBillingEntitlement({
         at,
-        grants: grants
+        grants: [
+          ...grants,
+          ...testPayments.flatMap((row) =>
+            row.effectiveFrom && row.effectiveUntil
+              ? [
+                  {
+                    id: row.id,
+                    tier: row.tier,
+                    source: 'PAID_INVOICE',
+                    effectiveFrom: row.effectiveFrom,
+                    effectiveUntil: row.effectiveUntil,
+                    revokedAt: row.revokedAt,
+                  },
+                ]
+              : []
+          ),
+        ]
           .filter(
             (grant) =>
               (grant.tier ?? 'HEALTH') === tier &&
@@ -341,6 +370,20 @@ export class MembershipService {
         })
       : 0;
     const swapsCap = state.enhanced ? limits.memberSwaps : limits.freeSwaps;
+    const checkoutConfig = testCheckoutConfig();
+    const scheduledMemberships = checkoutConfig
+      ? await prisma.membershipTestCheckout.findMany({
+          where: {
+            userId,
+            accountHash: checkoutConfig.accountHash,
+            status: 'PAID',
+            revokedAt: null,
+            effectiveFrom: { gt: at },
+          },
+          select: { id: true, tier: true, effectiveFrom: true, effectiveUntil: true },
+          orderBy: { effectiveFrom: 'asc' },
+        })
+      : [];
     return {
       enabled: true as const,
       policyVersion: MEMBERSHIP_POLICY_VERSION,
@@ -355,7 +398,9 @@ export class MembershipService {
       trialEndsAt: state.trialEndsAt?.toISOString() ?? null,
       paidUntil: state.paidUntil?.toISOString() ?? null,
       resetsAt: window.end.toISOString(),
-      purchasesAvailable: false,
+      purchasesAvailable: Boolean(testCheckoutConfig()),
+      checkoutMode: 'TEST' as const,
+      scheduledMemberships,
       price: null,
       autoRenews: false,
       limits,
