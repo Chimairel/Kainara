@@ -70,6 +70,7 @@ export default function PublicFooter() {
                   ['Platform Intelligence', '/#platform'],
                   ['How It Works', '/#process'],
                   ['For Nutritionists', '/#nutritionists'],
+                  ['Plans & Pricing', '/pricing'],
                   ['Evidence Sources', '/#sources'],
                   ['Documentation', '/docs'],
                 ].map(([label, href]) => (

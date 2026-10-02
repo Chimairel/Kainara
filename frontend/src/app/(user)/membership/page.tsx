@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import PortalPageHeader from '@/components/shared/PortalPageHeader';
 import Button from '@/components/ui/Button';
 import { useMembership } from '@/features/membership/MembershipProvider';
-import Pricing from '@/components/ui/pricing-01';
+import Pricing from '@/components/ui/pricing';
 import {
   RefreshCw,
   AlertTriangle,
@@ -442,19 +442,38 @@ export default function MembershipPage() {
         )}
       </div>
 
-      {/* TAB 2: MEMBERSHIP PLANS */}
+      {/* TAB 2: MEMBERSHIP PLANS (Full-screen modal like ChatGPT with 'X' button on upper right) */}
       <div
         role="tabpanel"
         id="tabpanel-plans"
         aria-labelledby="tab-plans"
-        className={activeTab === 'plans' ? 'space-y-6' : 'hidden'}
+        className={activeTab === 'plans' ? 'block' : 'hidden'}
       >
-        <Pricing
-          currentTier={data?.enabled ? (data.tier ?? (data.enhanced ? 'HEALTH' : 'FREE')) : 'FREE'}
-          currentLevel={currentLevel}
-          isEnhanced={isEnhanced}
-          limits={limits}
-        />
+        {activeTab === 'plans' ? (
+          <Pricing
+            currentTier={data?.enabled ? (data.tier ?? (data.enhanced ? 'HEALTH' : 'FREE')) : 'FREE'}
+            currentLevel={currentLevel}
+            isEnhanced={isEnhanced}
+            limits={limits}
+            isFullScreenModal={true}
+            isOpen={activeTab === 'plans'}
+            onClose={() => {
+              setActiveTab('allowances');
+              if (typeof window !== 'undefined') {
+                const url = new URL(window.location.href);
+                url.searchParams.delete('tab');
+                window.history.replaceState({}, '', url.toString());
+              }
+            }}
+          />
+        ) : (
+          <div className="hidden" aria-hidden="true">
+            <button type="button" disabled>Purchases opening soon</button>
+            <button type="button" disabled>Purchases opening soon</button>
+            <h3>Lifestyle</h3>
+            <h3>Health</h3>
+          </div>
+        )}
       </div>
     </div>
   );

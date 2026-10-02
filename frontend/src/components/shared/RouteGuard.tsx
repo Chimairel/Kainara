@@ -37,9 +37,10 @@ export const RouteGuard: React.FC<RouteGuardProps> = ({ children }) => {
     '/nutritionist-invitation',
     '/docs',
     '/sources',
+    '/pricing',
   ];
   const isPublicRoute = publicRoutes.some((route) => pathname.startsWith(route));
-  const isPublicInformationRoute = pathname === '/docs' || pathname === '/sources';
+  const isPublicInformationRoute = pathname === '/docs' || pathname === '/sources' || pathname === '/pricing';
   const isVerifyPage = pathname.startsWith('/verify-email');
   const isOnboardingPage = pathname.startsWith('/onboarding');
   const isAccountPrivacyRoute = pathname.startsWith('/profile/security');

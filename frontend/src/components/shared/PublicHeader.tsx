@@ -58,6 +58,12 @@ export default function PublicHeader() {
             For nutritionists
           </Link>
           <Link
+            href="/pricing"
+            className={`text-xs font-semibold transition hover:text-brand-text ${pathname === '/pricing' || pathname === '/membership' ? 'font-bold text-brand-accent' : 'text-brand-muted'}`}
+          >
+            Pricing
+          </Link>
+          <Link
             href="/docs"
             className={`text-xs font-semibold transition hover:text-brand-text ${pathname === '/docs' ? 'font-bold text-brand-accent' : 'text-brand-muted'}`}
           >
@@ -168,6 +174,16 @@ export default function PublicHeader() {
               className="flex items-center justify-between rounded-xl px-4 py-3 text-sm font-bold text-brand-text transition hover:bg-brand-surface/80"
             >
               <span>For nutritionists</span>
+              <ArrowRight className="h-4 w-4 text-brand-muted" />
+            </Link>
+            <Link
+              href="/pricing"
+              onClick={() => setIsMobileMenuOpen(false)}
+              className={`flex items-center justify-between rounded-xl px-4 py-3 text-sm font-bold transition hover:bg-brand-surface/80 ${
+                pathname === '/pricing' || pathname === '/membership' ? 'text-brand-accent font-extrabold' : 'text-brand-text'
+              }`}
+            >
+              <span>Pricing</span>
               <ArrowRight className="h-4 w-4 text-brand-muted" />
             </Link>
             <Link
