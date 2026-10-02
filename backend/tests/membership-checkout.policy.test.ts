@@ -21,19 +21,42 @@ const configuration = {
   FRONTEND_URL: 'http://localhost:3108',
   DATABASE_URL: 'postgresql://preview:fixture@127.0.0.1:55472/membership_acceptance',
 };
-test('test checkout is disabled for live keys, production and shared databases', () => {
+test('test checkout supports regular development databases only with explicit sandbox settings', () => {
   assert.ok(testCheckoutConfig(configuration));
+  assert.ok(testCheckoutConfig({ ...configuration, DATABASE_URL: 'postgresql://fixture@db.example.com/app' }));
+  assert.ok(testCheckoutConfig({ ...configuration, FRONTEND_URL: 'https://development.example.com' }));
   for (const change of [
     { PAYMONGO_SECRET_KEY: `sk_live_${'a'.repeat(32)}` },
     { NODE_ENV: 'production' },
     { PAYMONGO_ENVIRONMENT: 'LIVE' },
-    { DATABASE_URL: 'postgresql://preview:fixture@db.example.com/membership_acceptance' },
-    { DATABASE_URL: 'postgresql://preview:fixture@localhost/real_users' },
+    { DATABASE_URL: 'https://db.example.com/app' },
+    { DATABASE_URL: 'postgresql://fixture@db.example.com/' },
     { PAYMONGO_INTEGRATION_ENABLED: 'false' },
-    { FRONTEND_URL: 'https://attacker.example.com' },
+    { FRONTEND_URL: 'http://development.example.com' },
+    { FRONTEND_URL: 'https://user:password@development.example.com' },
+    { FRONTEND_URL: 'https://development.example.com/path' },
+    { FRONTEND_URL: 'https://development.example.com?redirect=other' },
     { MEMBERSHIP_ENABLED: 'false' },
   ])
     assert.equal(testCheckoutConfig({ ...configuration, ...change }), null);
+});
+test('hosted sandbox checkout requires demo deployment mode, HTTPS, and test credentials', () => {
+  const hosted = {
+    ...configuration,
+    NODE_ENV: 'production',
+    NUTRIMIND_DEPLOYMENT_MODE: 'capstone-demo',
+    DATABASE_URL: 'postgresql://fixture@db.example.com/app',
+    FRONTEND_URL: 'https://kainara.vercel.app',
+  };
+  assert.ok(testCheckoutConfig(hosted));
+  for (const change of [
+    { NUTRIMIND_DEPLOYMENT_MODE: 'public' },
+    { FRONTEND_URL: 'http://localhost:3000' },
+    { PAYMONGO_ENVIRONMENT: 'LIVE' },
+    { PAYMONGO_SECRET_KEY: `sk_live_${'a'.repeat(32)}` },
+    { PAYMONGO_INTEGRATION_ENABLED: 'false' },
+  ])
+    assert.equal(testCheckoutConfig({ ...hosted, ...change }), null);
 });
 test('server prices are centavos; requests cannot supply their own price or customer', () => {
   assert.deepEqual(MEMBERSHIP_PRICES, {

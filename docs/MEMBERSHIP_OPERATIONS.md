@@ -1,6 +1,6 @@
 # Membership V2 operations
 
-Membership adds a single 14-day trial and bounded Lifestyle and Health benefits to the existing account and meal workflows. Public Pricing and signed-in Membership share the same plan component. **Get Lifestyle** and **Get Health** open PayMongo hosted checkout in the isolated development payment sandbox. Real purchases, automatic renewal and automatic charges remain unavailable.
+Membership adds a single 14-day trial and bounded Lifestyle and Health benefits to the existing account and meal workflows. Public Pricing and signed-in Membership share the same plan component. **Get Lifestyle** and **Get Health** open PayMongo hosted test checkout when explicitly configured. Regular development databases and the configured hosted demo are supported. Real purchases, automatic renewal and automatic charges remain unavailable.
 
 | Plan | Monthly | Yearly, rounded whole peso |
 | --- | --- | --- |
@@ -56,12 +56,12 @@ Only the backend needs membership settings:
 
 Manila weeks start Monday at 00:00. Swap limits follow the plan cycle, including starter cycles; revisions do not reset them. Case plan admission is counted against the target plan week. The status page shows current-week usage and the active cycle's swap count. Backend admission remains authoritative when cached frontend status changes or expires.
 
-The feature flag defaults off for staged deployment. Disabled membership bypasses payment/allowance gates. Once an active planning-report pointer exists, its baseline remains authoritative; disabling membership does not discard that pointer. `GET /api/user/membership` requires a regular authenticated user and returns status/allowances without private profile details. `POST /api/user/membership/checkout` returns `503 MEMBERSHIP_PURCHASES_UNAVAILABLE` outside the configured isolated test environment.
+The feature flag defaults off for staged deployment. Disabled membership bypasses payment/allowance gates. Once an active planning-report pointer exists, its baseline remains authoritative; disabling membership does not discard that pointer. `GET /api/user/membership` requires a regular authenticated user and returns status/allowances without private profile details. `POST /api/user/membership/checkout` returns `503 MEMBERSHIP_PURCHASES_UNAVAILABLE` unless the explicit test configuration below is valid.
 
 ## Migration and activation
 
 1. Recheck the intended `demo` commit and current Railway database target. The owner's shared database is also used by the hosted application; preserve its encryption key and take a verified backup before migration. Do not seed, reset, or use `db push`.
-2. Review the initial additive migration `20261001120000_membership_trials_and_allowances` and the V2 migration `20261002130000_report_planning_membership_tiers`. V2 adds the tier, planning-report pointer, first-activation date, confirmation kind and report/cycle references; it backfills the latest accepted baseline and maps historical grants to Health. It does not change trial dates, usage, meal rows or old report content. Only deploy V2 to an isolated development database during development testing; the shared Neon database also serves demo. The initial migration creates one enum, three membership tables, indexes, defensive checks and cascading User relations. It does not update existing user/meal rows or recreate the archived billing schema.
+2. Review the initial additive migration `20261001120000_membership_trials_and_allowances` and the V2 migration `20261002130000_report_planning_membership_tiers`. V2 adds the tier, planning-report pointer, first-activation date, confirmation kind and report/cycle references; it backfills the latest accepted baseline and maps historical grants to Health. It does not change trial dates, usage, meal rows or old report content. Verify the target and its existing migration history; the shared Neon database also serves demo. The initial migration creates one enum, three membership tables, indexes, defensive checks and cascading User relations. It does not update existing user/meal rows or recreate the archived billing schema.
 3. Deploy the verified code with `MEMBERSHIP_ENABLED=false`. Confirm Railway's pre-deploy command is `npx prisma migrate deploy`, or run that command against the verified target through the normal controlled deployment process. Confirm the new migration succeeded before activation.
 4. Verify backend `/ready` and the frontend deployment. Set Railway `MEMBERSHIP_ENABLED=true` and apply the variable change. No additional Vercel membership variable is needed.
 5. Confirm a regular user's membership status, trial start, Free/Lifestyle/Health gates and allowances. Confirm nutritionist/admin membership access remains forbidden. Purchases must remain unavailable.
@@ -86,14 +86,14 @@ Run the isolated frontend on port 3108 with `NEXT_PUBLIC_API_URL=/api` and `INTE
 
 ## PayMongo development checkout
 
-Apply the additive migrations `20261002150000_membership_test_checkout` and `20261002150100_membership_payment_notification` to the disposable database only. This has a separate `MembershipTestCheckout` ledger; successful test payments never create a real `MembershipGrant`.
+Apply the additive migrations `20261002150000_membership_test_checkout` and `20261002150100_membership_payment_notification` to the intended database before enabling checkout. Back up and verify a shared target first; do not reset or seed it. This has a separate `MembershipTestCheckout` ledger; successful test payments activate sandbox membership but never create a real `MembershipGrant`.
 
 All of these conditions are required:
 
 - `MEMBERSHIP_ENABLED=true`, `PAYMONGO_INTEGRATION_ENABLED=true`, `PAYMONGO_ENVIRONMENT=TEST`.
-- `NODE_ENV=development` or `test` and a valid backend `sk_test_` key.
-- Database hostname localhost/127.0.0.1 and database name `membership_acceptance`.
-- `FRONTEND_URL` points to the loopback preview, normally `http://localhost:3108`.
+- `NODE_ENV=development` or `test`, or `NODE_ENV=production` with `NUTRIMIND_DEPLOYMENT_MODE=capstone-demo`. Public production mode refuses test entitlements.
+- A valid backend `sk_test_` key and a PostgreSQL database with the checkout migrations applied. Remote development databases are supported.
+- `FRONTEND_URL` is an exact configured origin without paths, credentials, query parameters or fragments. HTTP is permitted only for loopback development; hosted checkout requires HTTPS.
 
 The preview runner optionally reads only the test key, environment and webhook secret from a file named by `PAYMONGO_PREVIEW_KEYS_FILE`. It never copies the shared database or provider return URLs. Existing hosted environment files are unchanged. Never commit keys or put them in `NEXT_PUBLIC_*`.
 
@@ -105,9 +105,9 @@ Verified payment is recorded atomically. Duplicate return checks and webhooks do
 
 ### Webhook
 
-The raw-body endpoint is `POST /api/payments/paymongo/webhook`; configure the PayMongo test event `checkout_session.payment.paid` and backend `PAYMONGO_WEBHOOK_SECRET` once a reachable isolated development endpoint is available. It verifies the test `te` HMAC over timestamp and original bytes with a five-minute tolerance, then retrieves the known session directly before recording payment. Unknown/unrelated signed events are acknowledged without granting access. Production/shared-database activation is refused.
+The raw-body endpoint is `POST /api/payments/paymongo/webhook`; configure the PayMongo test event `checkout_session.payment.paid` and backend `PAYMONGO_WEBHOOK_SECRET` once the handler is deployed at a reachable HTTPS endpoint. For the current Railway service the endpoint is `https://kainara.up.railway.app/api/payments/paymongo/webhook`; keep the PayMongo endpoint disabled until deployment. It verifies the test `te` HMAC over timestamp and original bytes with a five-minute tolerance, then retrieves the known session directly before recording payment. Unknown/unrelated signed events are acknowledged without granting access. The old `PAYMONGO_WEBHOOK_SECRET_VERSION` is unused; populate only the signing secret.
 
-Loopback URLs cannot receive PayMongo webhooks from the internet. Local checkout testing uses server retrieval on return instead, so no tunnel or provider webhook registration is required. A production payment release needs a reachable verified webhook and additional approved live-payment/refund/renewal design; do not register the undeployed Railway route for this local-only release.
+Loopback URLs cannot receive PayMongo webhooks from the internet. Local checkout testing uses server retrieval on return instead, so no tunnel or provider webhook registration is required. Hosted demo checkout uses the same server verification and can receive the signed test webhook after deployment. A real-payment release still requires additional live-payment/refund/renewal design; live keys and live events remain rejected.
 
 ### Tests and provider evidence
 

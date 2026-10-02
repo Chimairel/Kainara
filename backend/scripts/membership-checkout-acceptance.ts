@@ -201,6 +201,30 @@ async function main() {
     assert.equal((await webhook(`t=${timestamp},te=${signature}`)).status, 200);
     assert.equal(await prisma.notification.count({ where: { userId: user, type: 'MEMBERSHIP_UPDATED' } }), 1);
 
+    // A customer need not return to the app: a signed notification verifies payment independently.
+    const webhookOnly = (await request(other, '/user/membership/checkout', { ...selection, requestKey: randomUUID() }))
+      .body.data;
+    const webhookLedger = await prisma.membershipTestCheckout.findUniqueOrThrow({ where: { id: webhookOnly.id } });
+    sessions.get(webhookLedger.providerSessionId!)!.paid = true;
+    const webhookBody = Buffer.from(
+      JSON.stringify({
+        data: {
+          attributes: {
+            type: 'checkout_session.payment.paid',
+            livemode: false,
+            data: { id: webhookLedger.providerSessionId, type: 'checkout_session' },
+          },
+        },
+      })
+    );
+    const webhookSignature = createHmac('sha256', process.env.PAYMONGO_WEBHOOK_SECRET!)
+      .update(`${timestamp}.`)
+      .update(webhookBody)
+      .digest('hex');
+    assert.equal((await webhook(`t=${timestamp},te=${webhookSignature}`, webhookBody)).status, 200);
+    assert.equal((await MembershipService.state(other)).tier, 'LIFESTYLE');
+    assert.equal(await prisma.notification.count({ where: { userId: other, type: 'MEMBERSHIP_UPDATED' } }), 1);
+
     const health = (
       await request(user, '/user/membership/checkout', { tier: 'HEALTH', period: 'YEARLY', requestKey: randomUUID() })
     ).body.data;

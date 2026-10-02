@@ -14,21 +14,28 @@ export const MEMBERSHIP_PRICES = {
   HEALTH: { MONTHLY: 149900, YEARLY: 1439000 },
 } as const;
 
-/** Test access is confined to the disposable database; it never creates a paid MembershipGrant. */
+/** Explicit sandbox opt-in; test receipts never create a real paid MembershipGrant. */
 export function testCheckoutConfig(source: NodeJS.ProcessEnv = process.env) {
   if (source.PAYMONGO_INTEGRATION_ENABLED !== 'true' || source.MEMBERSHIP_ENABLED !== 'true') return null;
   try {
     const database = new URL(source.DATABASE_URL ?? '');
     const frontend = new URL(source.FRONTEND_URL ?? '');
     const secret = source.PAYMONGO_SECRET_KEY ?? '';
+    const environment = source.NODE_ENV ?? 'development';
+    const hostedDemo = environment === 'production' && source.NUTRIMIND_DEPLOYMENT_MODE === 'capstone-demo';
+    const localFrontend = ['localhost', '127.0.0.1'].includes(frontend.hostname);
     if (
-      !['development', 'test'].includes(source.NODE_ENV ?? 'development') ||
+      (!['development', 'test'].includes(environment) && !hostedDemo) ||
       source.PAYMONGO_ENVIRONMENT !== 'TEST' ||
       !/^sk_test_[A-Za-z0-9_-]{24,247}$/.test(secret) ||
-      !['localhost', '127.0.0.1'].includes(database.hostname) ||
-      database.pathname !== '/membership_acceptance' ||
-      !['localhost', '127.0.0.1'].includes(frontend.hostname) ||
+      !['postgres:', 'postgresql:'].includes(database.protocol) ||
+      !database.hostname ||
+      database.pathname.length <= 1 ||
       !['http:', 'https:'].includes(frontend.protocol) ||
+      (frontend.protocol === 'http:' && (!localFrontend || hostedDemo)) ||
+      frontend.pathname !== '/' ||
+      frontend.search ||
+      frontend.hash ||
       frontend.username ||
       frontend.password
     )
@@ -37,7 +44,7 @@ export function testCheckoutConfig(source: NodeJS.ProcessEnv = process.env) {
       secret,
       accountHash: createHash('sha256').update(secret).digest('hex'),
       frontendOrigin: frontend.origin,
-      webhookSecret: source.PAYMONGO_WEBHOOK_SECRET ?? '',
+      webhookSecret: source.PAYMONGO_WEBHOOK_SECRET?.trim() ?? '',
     };
   } catch {
     return null;
