@@ -60,12 +60,22 @@ function formatPlanSchedule(dayOfWeek?: number, legacyGroup?: string) {
 export default function OnboardingTosPage() {
   const router = useRouter();
   const { refreshSession } = useAuth();
-  const { profile, isLoading: isHydrating } = useProfile();
+  const { profile, isLoading: isHydrating, error: profileError, refresh } = useProfile({ requireFresh: true });
   const [medicalDisclaimer, setMedicalDisclaimer] = useState(false);
   const [privacyPolicy, setPrivacyPolicy] = useState(false);
   const [healthDataProcessing, setHealthDataProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+
+  const termsVersion = profile?.onboardingStatus?.currentTermsVersion;
+  const privacyVersion = profile?.onboardingStatus?.currentPrivacyVersion;
+  const consentReady = Boolean(profile && termsVersion && privacyVersion && !profileError && !isHydrating);
+  const profileUnavailable = !isHydrating && !consentReady;
+  const displayedError =
+    error ||
+    (profileUnavailable
+      ? profileError || 'Your saved details and consent versions could not be loaded. Please try again.'
+      : null);
 
   const userProfile = profile?.userProfile;
   const legacyConditions = joinSelections(profile?.healthConditions ?? [], userProfile?.otherConditions);
@@ -123,14 +133,14 @@ export default function OnboardingTosPage() {
       return;
     }
 
+    if (!consentReady || !termsVersion || !privacyVersion) {
+      setError('Your saved details and consent versions could not be loaded. Please try again.');
+      return;
+    }
+
     setIsLoading(true);
     try {
       // 1. Accept ToS
-      const termsVersion = profile?.onboardingStatus?.currentTermsVersion;
-      const privacyVersion = profile?.onboardingStatus?.currentPrivacyVersion;
-      if (!termsVersion || !privacyVersion) {
-        throw new Error('Unable to load the current consent versions. Please refresh and try again.');
-      }
       await api.post('/user/onboarding/tos', {
         termsVersion,
         privacyVersion,
@@ -210,6 +220,8 @@ export default function OnboardingTosPage() {
             >
               Loading your saved onboarding details…
             </div>
+          ) : profileUnavailable ? (
+            <p className="text-xs text-brand-muted">Your saved details are unavailable. Retry loading them below.</p>
           ) : (
             <div className="grid gap-3 sm:grid-cols-2">
               {reviewSections.map((section) => (
@@ -259,10 +271,25 @@ export default function OnboardingTosPage() {
           </p>
         </div>
 
-        {error && (
-          <div className="mb-4 p-3 rounded-2xl bg-status-error-bg/10 border border-status-error-text/25 text-status-error-text text-xs font-semibold flex items-center gap-2">
+        {displayedError && (
+          <div
+            role="alert"
+            className="mb-4 p-3 rounded-2xl bg-status-error-bg/10 border border-status-error-text/25 text-status-error-text text-xs font-semibold flex items-center gap-2"
+          >
             <AlertTriangle className="w-4 h-4 text-status-error-text shrink-0" />
-            <span className="leading-tight">{error}</span>
+            <span className="leading-tight">{displayedError}</span>
+            {profileUnavailable && (
+              <button
+                type="button"
+                className="underline shrink-0"
+                onClick={() => {
+                  setError(null);
+                  void refresh();
+                }}
+              >
+                Try again
+              </button>
+            )}
           </div>
         )}
 
@@ -321,8 +348,11 @@ export default function OnboardingTosPage() {
           />
 
           <div className="rounded-2xl border border-brand-border/60 bg-brand-bgAlt/50 px-3.5 py-2 text-[10px] leading-relaxed text-brand-muted">
-            Consent versions: Terms {profile?.onboardingStatus?.currentTermsVersion || 'loading'} · Privacy{' '}
-            {profile?.onboardingStatus?.currentPrivacyVersion || 'loading'}
+            {isHydrating
+              ? 'Loading consent versions…'
+              : consentReady
+                ? `Consent versions: Terms ${termsVersion} · Privacy ${privacyVersion}`
+                : 'Consent versions unavailable.'}
           </div>
 
           <Checkbox
@@ -359,7 +389,7 @@ export default function OnboardingTosPage() {
             type="submit"
             variant="primary"
             className="w-full py-3.5 mt-2 text-sm font-bold tracking-wide rounded-2xl shadow-xl shadow-brand-green/25 transition-all hover:scale-[1.01] active:scale-[0.99]"
-            disabled={!medicalDisclaimer || !privacyPolicy || !healthDataProcessing || isHydrating}
+            disabled={!medicalDisclaimer || !privacyPolicy || !healthDataProcessing || !consentReady}
             isLoading={isLoading}
           >
             Complete Onboarding & Review Report →

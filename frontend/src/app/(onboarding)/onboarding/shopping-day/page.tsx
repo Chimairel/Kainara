@@ -11,7 +11,7 @@ import { ShoppingCart, Calendar, AlertTriangle, ArrowLeft, Check, Lightbulb } fr
 import { getApiErrorMessage } from '@/lib/api-error';
 import { useProfile } from '@/hooks/useProfile';
 import { useAuth } from '@/hooks/useAuth';
-import { writeSessionResource } from '@/lib/session-resource-cache';
+import { invalidateSessionResource } from '@/lib/session-resource-cache';
 
 const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'] as const;
 const options = dayNames.map((day, index) => ({
@@ -53,11 +53,11 @@ export default function OnboardingShoppingDayPage() {
 
     setIsLoading(true);
     try {
-      const res = await api.post('/user/onboarding/shopping-day', { shoppingDayOfWeek: selected });
+      await api.post('/user/onboarding/shopping-day', { shoppingDayOfWeek: selected });
       const ownerId = user?.userId || profile?.id;
-      if (res.data?.data && ownerId) {
-        writeSessionResource(ownerId, 'user-profile', res.data.data);
-      }
+      // This endpoint returns only UserProfile fields, not the full account,
+      // safety declarations and consent versions expected by useProfile.
+      invalidateSessionResource(ownerId, 'user-profile');
       router.push('/onboarding/tos');
       void refreshSession();
     } catch (err) {
@@ -92,9 +92,7 @@ export default function OnboardingShoppingDayPage() {
               Step 05 / 06 · Schedule
             </span>
           </div>
-          <h2 className="text-2xl font-extrabold tracking-tight font-display text-brand-green">
-            GROCERY SHOPPING DAY
-          </h2>
+          <h2 className="text-2xl font-extrabold tracking-tight font-display text-brand-green">GROCERY SHOPPING DAY</h2>
           <p className="text-xs text-brand-muted">
             This helps us time your weekly meal plan so it&apos;s ready before you shop — keeping your grocery list
             perfectly in sync.
