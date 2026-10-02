@@ -78,7 +78,7 @@ export default function MembershipNotice() {
             : 'Your general weekly plans continue. Adaptive planning and progress insights are membership benefits.'
           : `Your trial ends ${new Date(data.trialEndsAt!).toLocaleDateString('en-PH', { timeZone: 'Asia/Manila', month: 'short', day: 'numeric' })}. Membership includes adaptive planning, progress insights and review when required.`}
       </p>
-      <p>Purchases are not available yet.</p>
+      <p>View plans to compare benefits and checkout availability.</p>
       <Link href="/membership" className="inline-block font-bold text-brand-green">
         View membership →
       </Link>

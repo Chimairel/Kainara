@@ -388,7 +388,7 @@ export default function NutritionReportPage() {
           isOpen={Boolean(requiredTier)}
           onClose={() => setRequiredTier(null)}
           title={`${requiredTier} membership needed`}
-          description={`Your profile updates are saved. ${requiredTier} applies these changes to your meal planning. Purchases are not available yet.`}
+          description={`Your profile updates are saved. ${requiredTier} applies these changes to your meal planning. View plans to compare benefits and checkout availability.`}
         >
           <div className="flex flex-col gap-3 py-3">
             <Link

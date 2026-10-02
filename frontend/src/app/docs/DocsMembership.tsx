@@ -26,8 +26,26 @@ export const membershipChapter: DocsChapter = {
             <Link href="/membership" className="font-semibold text-brand-green underline">
               Membership
             </Link>{' '}
-            for your actual dates, access and remaining allowances. Purchases are currently unavailable while pricing
-            and payment setup are finalized. No payment details are collected and there are no automatic charges.
+            for your actual dates, access and remaining allowances. When test checkout is enabled, payment is handled on
+            PayMongo&apos;s hosted test page. Review your plan, dates, credit and amount before continuing. Test
+            payments do not charge real money, and memberships do not renew automatically.
+          </p>
+        </>
+      ),
+    },
+    {
+      id: 'membership-transitions',
+      title: 'Changing or renewing your plan',
+      content: (
+        <>
+          <p>
+            A purchase during your Health trial starts after the trial ends. Renewals and a switch from Health to
+            Lifestyle start after your current paid period. An upgrade from Lifestyle to Health starts after payment
+            verification and credits the unused Lifestyle period; excess credit stays available for a later purchase.
+          </p>
+          <p>
+            Membership shows your current access and any paid next plan. Finish or close an unfinished checkout before
+            starting another. Changing plans does not restart the trial or reset your used allowances.
           </p>
         </>
       ),
