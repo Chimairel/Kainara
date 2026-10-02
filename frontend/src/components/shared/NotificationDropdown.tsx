@@ -15,6 +15,8 @@ import {
   ArrowRight,
   Sprout,
   CheckCheck,
+  Volume2,
+  VolumeX,
 } from 'lucide-react';
 import api from '@/lib/axios';
 import { readSessionResource } from '@/lib/session-resource-cache';
@@ -56,7 +58,8 @@ interface CachedPlanInfo {
 export default function NotificationDropdown() {
   const router = useRouter();
   const { user } = useAuth();
-  const { notifications, unreadCount, isLoading, markAsRead, markAllAsRead } = useNotifications();
+  const { notifications, unreadCount, isLoading, markAsRead, markAllAsRead, soundEnabled, toggleNotificationSound } =
+    useNotifications();
   const [isOpen, setIsOpen] = useState(false);
   const [planningReadiness, setPlanningReadiness] = useState<PlanningReadiness | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -274,16 +277,31 @@ export default function NotificationDropdown() {
                 </p>
               </div>
             </div>
-            {unreadCount > 0 && (
+            <div className="flex shrink-0 items-center gap-1.5">
               <button
                 type="button"
-                onClick={markAllAsRead}
-                className="group inline-flex items-center gap-1.5 shrink-0 rounded-xl border border-brand-border/80 bg-brand-bgAlt/80 px-2.5 py-1.5 text-[11px] font-semibold text-brand-text/80 transition hover:border-brand-green/30 hover:bg-brand-green/10 hover:text-brand-green active:scale-95"
+                role="switch"
+                aria-label="Notification sound"
+                aria-checked={soundEnabled}
+                title={soundEnabled ? 'Mute notification sound' : 'Enable notification sound'}
+                onClick={toggleNotificationSound}
+                className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border border-brand-border/80 bg-brand-bgAlt/80 text-brand-muted transition hover:border-brand-green/30 hover:bg-brand-green/10 hover:text-brand-green focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-green"
               >
-                <CheckCheck className="h-3.5 w-3.5 text-brand-muted group-hover:text-brand-green transition" />
-                <span>Mark read</span>
+                {soundEnabled ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
               </button>
-            )}
+              {unreadCount > 0 && (
+                <button
+                  type="button"
+                  onClick={markAllAsRead}
+                  aria-label="Mark all notifications as read"
+                  title="Mark all notifications as read"
+                  className="group inline-flex items-center gap-1.5 shrink-0 rounded-xl border border-brand-border/80 bg-brand-bgAlt/80 px-2.5 py-1.5 text-[11px] font-semibold text-brand-text/80 transition hover:border-brand-green/30 hover:bg-brand-green/10 hover:text-brand-green active:scale-95"
+                >
+                  <CheckCheck className="h-3.5 w-3.5 text-brand-muted group-hover:text-brand-green transition" />
+                  <span className="hidden sm:inline">Mark read</span>
+                </button>
+              )}
+            </div>
           </div>
 
           <div className="custom-scrollbar flex-1 overflow-y-auto bg-brand-bgAlt/40 p-3">

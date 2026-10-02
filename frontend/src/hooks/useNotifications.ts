@@ -13,6 +13,7 @@ import {
 import api from '@/lib/axios';
 import { useAuth } from '@/hooks/useAuth';
 import { useVisiblePolling } from '@/hooks/useVisiblePolling';
+import { useNotificationSound } from '@/hooks/useNotificationSound';
 
 interface Notification {
   id: string;
@@ -33,6 +34,7 @@ function useNotificationInbox() {
   const [isLoading, setIsLoading] = useState(true);
 
   const accountId = user?.userId;
+  const { soundEnabled, toggleNotificationSound, observeNotifications } = useNotificationSound(accountId);
   const currentAccountId = useRef(accountId);
   currentAccountId.current = accountId;
 
@@ -46,6 +48,7 @@ function useNotificationInbox() {
       try {
         const res = await api.get('/notifications', { signal });
         if (!signal?.aborted && currentAccountId.current === accountId && res.data?.success) {
+          observeNotifications(res.data.data.notifications);
           setInbox({ accountId, notifications: res.data.data.notifications, unreadCount: res.data.data.unreadCount });
         }
       } catch (err) {
@@ -59,7 +62,7 @@ function useNotificationInbox() {
         if (!signal?.aborted && currentAccountId.current === accountId) setIsLoading(false);
       }
     },
-    [accountId]
+    [accountId, observeNotifications]
   );
 
   useVisiblePolling(fetchNotifications, {
@@ -119,6 +122,8 @@ function useNotificationInbox() {
     markAsRead,
     markAllAsRead,
     refresh: fetchNotifications,
+    soundEnabled,
+    toggleNotificationSound,
   };
 }
 
