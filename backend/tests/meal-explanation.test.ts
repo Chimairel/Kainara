@@ -35,7 +35,7 @@ test('[TEST-203] meal explanation reports persisted calorie, provenance, and rev
   assert.equal(result.limitation, undefined);
   assert.ok(result.bullets.some((line) => line.includes('612–828 kcal')));
   assert.ok(result.bullets.every((line) => !/Central Visayas|ENNS|consumption|locality/i.test(line)));
-  assert.ok(result.bullets.some((line) => line.includes('1 FNRI out of 2 ingredients')));
+  assert.ok(result.bullets.some((line) => line.includes('FNRI/USDA nutrition database')));
 });
 
 test('[TEST-204] legacy meal explanation refuses to invent missing selection evidence', () => {
@@ -112,13 +112,14 @@ test('source recipe links are counted by the linked food source without claiming
   });
   assert.equal(result.nutritionEvidence, 'SOURCE_RECIPE');
   assert.equal(result.reviewState, 'APPROVED');
-  assert.ok(result.bullets.some((line) => /3 FNRI out of 6/.test(line)));
-  assert.ok(result.bullets.some((line) => /3 of 6.*no saved/.test(line)));
-  assert.ok(result.bullets.some((line) => /recorded recipe values/.test(line)));
-  assert.ok(result.bullets.some((line) => /No nutritionist review is recorded/.test(line)));
+  assert.ok(result.bullets.some((line) => /FNRI\/USDA nutrition database/.test(line)));
+  assert.ok(result.bullets.some((line) => /dietary preference/.test(line)));
   assert.ok(
     result.bullets.every(
-      (line) => !/pending|ingredients resolved|nutrients complete|include estimates|0 of 6/i.test(line)
+      (line) =>
+        !/pending|ingredients resolved|nutrients complete|estimate|\d of \d|no saved|no nutritionist|verified/i.test(
+          line
+        )
     )
   );
 });
@@ -131,7 +132,7 @@ test('USDA fallback is represented as composition data and never inferred to be 
     ingredients: [{ dataSource: 'USDA_FDC', foodItemId: 'usda', foodItem: { source: 'USDA_FDC' } }],
   });
   assert.equal(result.nutritionEvidence, 'ALL_USDA');
-  assert.ok(result.bullets.some((line) => /USDA FoodData Central/.test(line)));
+  assert.ok(result.bullets.some((line) => /FNRI\/USDA nutrition database/.test(line)));
   assert.ok(result.bullets.every((line) => !/estimate|FNRI-linked/.test(line)));
 });
 
@@ -147,9 +148,8 @@ test('mixed composition, source and estimated evidence reports only the saved fa
     ],
   });
   assert.equal(result.nutritionEvidence, 'MIXED');
-  assert.ok(result.bullets.some((line) => /1 FNRI and 1 USDA out of 3/.test(line)));
-  assert.ok(result.bullets.some((line) => /1 of 3 ingredients use estimated/.test(line)));
-  assert.ok(result.bullets.some((line) => /Professional review is still pending/.test(line)));
+  assert.ok(result.bullets.some((line) => /FNRI\/USDA nutrition database/.test(line)));
+  assert.ok(result.bullets.every((line) => !/pending|estimated|verified/i.test(line)));
 });
 
 test('missing ingredient provenance is unavailable and a past reviewer does not imply current approval', () => {

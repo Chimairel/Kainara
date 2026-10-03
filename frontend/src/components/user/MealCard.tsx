@@ -643,7 +643,7 @@ export default function MealCard({
                     )}
 
                     {/* Saved selection and nutrition evidence */}
-                    {explanation && (
+                    {explanation && explanation.bullets.length > 0 && (
                       <section
                         className="rounded-2xl sm:rounded-3xl border border-brand-border/80 bg-brand-bgAlt/50 dark:bg-white/[0.02] p-4 sm:p-5 shadow-xs"
                         aria-label="Why this meal"
@@ -657,9 +657,7 @@ export default function MealCard({
                               <h4 className="text-xs sm:text-sm font-black font-display text-brand-text">
                                 Why this meal?
                               </h4>
-                              <p className="text-[10px] text-brand-muted">
-                                Selection, nutrition sources and review status
-                              </p>
+                              <p className="text-[10px] text-brand-muted">How this meal fits your plan</p>
                             </div>
                           </div>
                           {verifier && (
@@ -697,13 +695,6 @@ export default function MealCard({
                             );
                           })}
                         </ul>
-
-                        {explanation.limitation && (
-                          <div className="mt-3 pt-3 border-t border-brand-border/60 flex items-start gap-2 text-[11px] text-brand-muted">
-                            <Info className="h-3.5 w-3.5 shrink-0 text-brand-muted mt-0.5" />
-                            <span>{explanation.limitation}</span>
-                          </div>
-                        )}
                       </section>
                     )}
 

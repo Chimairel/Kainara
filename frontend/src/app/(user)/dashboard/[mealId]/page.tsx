@@ -291,7 +291,7 @@ export default function MealDetailPage() {
             </p>
           </div>
 
-          {meal.explanation && (
+          {meal.explanation && meal.explanation.bullets.length > 0 && (
             <section
               className="rounded-2xl border border-brand-border/70 bg-brand-bgAlt/50 p-4"
               aria-label="Why this meal"
@@ -329,11 +329,6 @@ export default function MealDetailPage() {
                   );
                 })}
               </ul>
-              {meal.explanation.limitation && (
-                <p className="mt-3 border-t border-brand-border/60 pt-3 text-[10px] text-brand-muted">
-                  {meal.explanation.limitation}
-                </p>
-              )}
             </section>
           )}
 
@@ -485,7 +480,7 @@ export default function MealDetailPage() {
                   <p className="text-[10px] text-brand-muted/80">{meal.image.attribution.modifications}</p>
                 )}
                 <p className="border-t border-brand-border/60 pt-2 text-[10px] italic text-brand-muted/70">
-                  Photos illustrate the dish. Nutrition sources and review status are listed under “Why this meal?”
+                  Photos illustrate the dish. Refer to the recorded nutrition totals and meal status for planning.
                 </p>
               </div>
             </section>

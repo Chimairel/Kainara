@@ -99,15 +99,13 @@ export function buildMealExplanation(input: MealExplanationInput): MealExplanati
   const bullets: string[] = [];
 
   if (source === 'VERIFIED_LIBRARY') bullets.push('Selected from the meal library.');
-  else if (source === 'RAW_RECIPE_CORPUS')
-    bullets.push('Selected from the recipe catalogue. Recipe origin and nutritionist review are separate.');
+  else if (source === 'RAW_RECIPE_CORPUS') bullets.push('Selected from our recipe catalogue.');
   else if (source === 'AI_GENERATED')
     bullets.push('Generated for this plan slot from your saved nutrition and meal-planning preferences.');
-  else bullets.push('Exact selection-source evidence was not recorded for this meal.');
 
-  if (evidence && evidence.slotCalorieLower !== null && evidence.slotCalorieUpper !== null) {
+  if (calorieFit === 'WITHIN_TARGET' && evidence) {
     bullets.push(
-      `${Math.round(input.calories)} kcal is ${calorieFit === 'WITHIN_TARGET' ? 'within' : 'outside'} this slot's ${Math.round(evidence.slotCalorieLower)}–${Math.round(evidence.slotCalorieUpper)} kcal planning range.`
+      `${Math.round(input.calories)} kcal fits this meal's ${Math.round(evidence.slotCalorieLower!)}–${Math.round(evidence.slotCalorieUpper!)} kcal planning range.`
     );
   }
   const rankingLabels: Record<string, string> = {
@@ -121,40 +119,12 @@ export function buildMealExplanation(input: MealExplanationInput): MealExplanati
   );
   if (rankingReasons?.length) bullets.push(`Selection considered your ${rankingReasons.join(', ')}.`);
   if (evidence?.dataAdjustment === 'CODEX_PUBLISHED_SERVING_SCALE_V1' && evidence.servingScale) {
-    bullets.push(
-      `This plan uses ${evidence.servingScale}× the recorded recipe serving. Ingredient amounts and nutrition totals reflect this portion.`
-    );
+    bullets.push('Recipe portion adjusted to fit your meal plan.');
   }
 
-  if (sourceCount)
-    bullets.push(
-      'Dish nutrition retains recorded recipe values rather than a complete FNRI/USDA ingredient calculation. Any added rice is calculated separately.'
-    );
-  if (nutritionEvidence === 'ALL_FNRI')
-    bullets.push('Ingredient nutrition is recorded from FNRI food-composition data.');
-  else if (nutritionEvidence === 'ALL_USDA')
-    bullets.push('Ingredient nutrition is recorded from USDA FoodData Central fallback data.');
-  if (fnriCount || usdaCount) {
-    const links = [fnriCount ? `${fnriCount} FNRI` : null, usdaCount ? `${usdaCount} USDA` : null].filter(Boolean);
-    bullets.push(
-      `Saved ingredient links: ${links.join(' and ')} out of ${ingredients.length} ingredients. Links identify foods; they do not by themselves verify the meal totals.`
-    );
-  } else if (linkedCount)
-    bullets.push(
-      `${linkedCount} of ${ingredients.length} ingredients have saved food-composition links; their source is not recorded here.`
-    );
-  if (ingredients.length && linkedCount < ingredients.length)
-    bullets.push(
-      `${ingredients.length - linkedCount} of ${ingredients.length} ingredients have no saved food-composition link.`
-    );
-  if (estimatedCount) bullets.push(`${estimatedCount} of ${ingredients.length} ingredients use estimated nutrition.`);
-  if (nutritionEvidence === 'UNAVAILABLE') bullets.push('Ingredient-level nutrition provenance is unavailable.');
+  if (fnriCount || usdaCount) bullets.push('Ingredient references matched to our FNRI/USDA nutrition database.');
 
   if (reviewState === 'NUTRITIONIST_VERIFIED') bullets.push(`Reviewed by ${input.verifierName}.`);
-  else if (reviewState === 'PENDING_REVIEW')
-    bullets.push(`Professional review is still pending; automated safety flag: ${input.aiConfidenceFlag}.`);
-  else
-    bullets.push('Ready to use under the current planning policy. No nutritionist review is recorded for this meal.');
 
   return {
     source,

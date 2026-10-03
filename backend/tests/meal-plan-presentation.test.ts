@@ -51,7 +51,7 @@ test('the public serializer uses linked composition metadata without exposing th
       },
     ],
   });
-  assert.ok(result.explanation.bullets.some((line) => /1 FNRI out of 1/.test(line)));
+  assert.ok(result.explanation.bullets.some((line) => /FNRI\/USDA nutrition database/.test(line)));
   assert.equal(result.explanation.nutritionEvidence, 'SOURCE_RECIPE');
   assert.deepEqual(result.ingredients, [
     { dataSource: 'SOURCE_RECIPE', foodItemId: 'fixture-food', ingredientName: 'Egg', quantity: 50, unit: 'g' },
