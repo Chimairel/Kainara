@@ -7,7 +7,7 @@ vi.mock('@/components/user/MealImage', () => ({
 }));
 
 const recipe = {
-  name: 'Tinola',
+  name: 'Tinola Recipe',
   mealType: 'LUNCH',
   image: null,
   description: 'Chicken soup',
@@ -25,11 +25,17 @@ describe('shared recipe library card', () => {
         {...recipe}
         variant="nutritionist"
         badges={<span>Review pending</span>}
-        footer={<button type="button" onClick={open}>View</button>}
-      />,
+        footer={
+          <button type="button" onClick={open}>
+            View
+          </button>
+        }
+      />
     );
 
     expect(screen.getByText('Review pending')).toBeInTheDocument();
+    expect(screen.getByText('Tinola')).toBeInTheDocument();
+    expect(screen.getByLabelText('Image of Tinola Recipe')).toBeInTheDocument();
     expect(screen.queryByText('Recipe verified')).not.toBeInTheDocument();
     expect(screen.getByText(/320 kcal/)).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'View' }));
@@ -37,7 +43,9 @@ describe('shared recipe library card', () => {
   });
 
   it('does not invent nutrient values for a recipe without serving evidence', () => {
-    render(<RecipeLibraryCard {...recipe} variant="catalogue" calories={null} proteinG={null} carbsG={null} fatG={null} />);
+    render(
+      <RecipeLibraryCard {...recipe} variant="catalogue" calories={null} proteinG={null} carbsG={null} fatG={null} />
+    );
     expect(screen.getByText('Serving evidence pending clinical portioning')).toBeInTheDocument();
     expect(screen.queryByText('0 kcal')).not.toBeInTheDocument();
   });

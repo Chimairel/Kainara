@@ -1,5 +1,6 @@
 'use client';
 
+import { formatMealTitle } from '@/lib/meal-title';
 import React, { useState } from 'react';
 import { Check, Clock3, Loader2, X } from 'lucide-react';
 import type { MealPlan } from '@/types';
@@ -89,7 +90,7 @@ export default function UnloggedMealCatchUpCard({
 
             {/* Meal Title */}
             <h4 className="mt-0.5 block font-display text-sm sm:text-base font-bold leading-snug text-white line-clamp-1 sm:line-clamp-2">
-              {meal.mealName}
+              {formatMealTitle(meal.mealName)}
             </h4>
 
             {/* Macros */}

@@ -1,3 +1,4 @@
+import { formatMealTitle } from '@/lib/meal-title';
 import Button from '@/components/ui/Button';
 import { AlertCircle, CheckCircle2 } from 'lucide-react';
 import type { OutsideMealWarning } from './model';
@@ -43,7 +44,7 @@ export default function PreviewConfirmation(props: Props & { warning: OutsideMea
           >
             <div className="flex items-start justify-between gap-3">
               <div>
-                <strong className="block text-brand-text">{item.name}</strong>
+                <strong className="block text-brand-text">{formatMealTitle(item.name)}</strong>
                 <span className="text-brand-muted">{sourceLabels[item.source]}</span>
               </div>
               <span className="font-bold text-brand-text">

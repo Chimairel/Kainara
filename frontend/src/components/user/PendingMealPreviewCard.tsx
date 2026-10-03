@@ -1,5 +1,6 @@
 'use client';
 
+import { formatMealTitle } from '@/lib/meal-title';
 import Button from '@/components/ui/Button';
 import { getMealBannerTheme } from '@/lib/meal-banner-theme';
 import type { MealCookingLink, PublicMealImage } from '@/types';
@@ -150,7 +151,7 @@ export default function PendingMealPreviewCard({
             setIsOpen(true);
           }
         }}
-        aria-label={`Open ${meal.mealName} details`}
+        aria-label={`Open ${formatMealTitle(meal.mealName)} details`}
         className="group relative block h-full w-full cursor-pointer select-none text-left outline-none focus-visible:ring-2 focus-visible:ring-brand-green focus-visible:ring-offset-2 focus-visible:ring-offset-brand-bg rounded-3xl"
       >
         <div
@@ -195,7 +196,7 @@ export default function PendingMealPreviewCard({
           <div className="flex-1 flex flex-col justify-between p-2 pt-2.5">
             <div>
               <h3 className="text-base font-bold font-display tracking-tight text-brand-text leading-snug line-clamp-1">
-                {meal.mealName}
+                {formatMealTitle(meal.mealName)}
               </h3>
               {meal.ricePortion && <p className="text-xs text-brand-green">+ {meal.ricePortion}</p>}
               <p className="text-xs text-brand-muted line-clamp-1 mt-0.5">
@@ -297,7 +298,7 @@ export default function PendingMealPreviewCard({
                     {/* Bottom Title & Meta Overlay */}
                     <div className="absolute bottom-3.5 inset-x-4 sm:bottom-4 sm:inset-x-6 z-20">
                       <h3 className="text-xl sm:text-2xl md:text-3xl font-black font-display text-white tracking-tight leading-tight drop-shadow-[0_2px_10px_rgba(0,0,0,0.8)] line-clamp-2">
-                        {meal.mealName}
+                        {formatMealTitle(meal.mealName)}
                       </h3>
                       <div className="mt-2 flex flex-wrap items-center gap-2">
                         <span className="inline-flex items-center gap-1.5 rounded-full bg-white/20 backdrop-blur-md px-2.5 py-0.5 text-xs font-bold text-white border border-white/25 shadow-xs">

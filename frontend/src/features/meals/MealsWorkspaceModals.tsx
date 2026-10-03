@@ -1,5 +1,6 @@
 'use client';
 
+import { formatMealTitle } from '@/lib/meal-title';
 import { useState, useMemo, useEffect } from 'react';
 import Button from '@/components/ui/Button';
 import MealImage from '@/components/user/MealImage';
@@ -102,7 +103,7 @@ export function MealsWorkspaceModals({ workspace }: Props) {
             setSwapOptionsError(null);
             setSwapPreview(null);
           }}
-          title={`Swap ${activeSwapMeal.mealName}`}
+          title={`Swap ${formatMealTitle(activeSwapMeal.mealName)}`}
           description={`Replace the whole ${activeSwapMeal.mealType.toLowerCase()} plate, including any rice. Each option includes a freshly calculated rice portion where suitable; nutrition totals include rice.`}
           size="2xl"
         >
@@ -132,7 +133,7 @@ export function MealsWorkspaceModals({ workspace }: Props) {
                     </div>
                     <div className="min-w-0 flex-1">
                       <h4 className="font-display text-sm font-bold text-brand-text truncate leading-snug">
-                        {activeSwapMeal.mealName}
+                        {formatMealTitle(activeSwapMeal.mealName)}
                       </h4>
                       {activeSwapMeal.ricePortion && (
                         <p className="text-[11px] text-brand-green mt-0.5">+ {activeSwapMeal.ricePortion}</p>
@@ -208,7 +209,7 @@ export function MealsWorkspaceModals({ workspace }: Props) {
                       </div>
                       <div className="min-w-0 flex-1">
                         <h4 className="font-display text-sm font-bold text-brand-text truncate leading-snug">
-                          {confirmSwapMeal.mealName}
+                          {formatMealTitle(confirmSwapMeal.mealName)}
                         </h4>
                         <p className="text-[11px] text-brand-muted mt-0.5">
                           {confirmSwapMeal.servingDescription || 'One recipe serving'}
@@ -434,7 +435,7 @@ export function MealsWorkspaceModals({ workspace }: Props) {
                                 </div>
 
                                 <h4 className="font-display text-xs font-bold text-brand-text truncate leading-snug mt-0.5 group-hover:text-brand-green dark:group-hover:text-brand-accent">
-                                  {option.mealName}
+                                  {formatMealTitle(option.mealName)}
                                 </h4>
 
                                 <p className="text-[10px] text-brand-muted mt-0.5">

@@ -1,3 +1,4 @@
+import { formatMealTitle } from '@/lib/meal-title';
 import MealImage from '@/components/user/MealImage';
 import { getMealBannerTheme } from '@/lib/meal-banner-theme';
 import type { PublicMealImage } from '@/types';
@@ -77,7 +78,7 @@ export default function RecipeLibraryCard({
       <div className="flex flex-1 flex-col justify-between p-2 pt-2.5">
         <div>
           <h3 className="line-clamp-2 font-display text-base font-bold leading-snug tracking-tight text-brand-text">
-            {name}
+            {formatMealTitle(name)}
           </h3>
           {description && <p className="mt-0.5 line-clamp-2 text-xs text-brand-muted">{description}</p>}
           {details}

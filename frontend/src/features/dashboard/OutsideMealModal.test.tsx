@@ -156,7 +156,7 @@ describe('OutsideMealModal', () => {
           eligible: [
             {
               id: 'pp_adobo',
-              name: 'Chicken Adobo',
+              name: 'Chicken Adobo Recipe',
               macros: { calories: 300, proteinG: 20, carbsG: 10, fatG: 15 },
               serving: '1 serving',
               label: 'Panlasang Pinoy estimate',
@@ -177,6 +177,8 @@ describe('OutsideMealModal', () => {
     render(<OutsideMealModal {...defaultProps} mealName="Chicken Adobo" onSubmit={onSubmit} />);
     fireEvent.change(screen.getByLabelText('Food or Meal Eaten (required)'), { target: { value: 'Chicken' } });
     fireEvent.click(await screen.findByText('Chicken Adobo'));
+    expect(defaultProps.onMealNameChange).toHaveBeenLastCalledWith('Chicken Adobo');
+    expect(screen.queryByText('Chicken Adobo Recipe')).not.toBeInTheDocument();
     fireEvent.change(screen.getByLabelText('Cooked rice with this dish'), { target: { value: '150' } });
     expect(screen.getByText(/Plate preview: 494 kcal/)).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: /LOG THIS FOOD/i }));
@@ -186,7 +188,7 @@ describe('OutsideMealModal', () => {
         useAiEstimate: false,
         items: [
           {
-            name: 'Chicken Adobo',
+            name: 'Chicken Adobo Recipe',
             mealLibraryId: 'pp_adobo',
           },
           { name: 'Rice, well-milled, boiled', portionGrams: 150 },

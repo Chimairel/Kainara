@@ -1,5 +1,6 @@
 'use client';
 
+import { formatMealTitle } from '@/lib/meal-title';
 import { useState } from 'react';
 import { Check, ChevronDown } from 'lucide-react';
 import MealImage from '@/components/user/MealImage';
@@ -119,7 +120,7 @@ export function DashboardMealRow(props: Props) {
                 {meal.mealType.toLowerCase()}
               </span>
               <span className="mt-0.5 block font-display text-base font-bold leading-snug text-white sm:text-lg line-clamp-2">
-                {meal.mealName}
+                {formatMealTitle(meal.mealName)}
               </span>
               {meal.ricePortion && (
                 <span className="mt-1 block text-xs font-bold text-white">+ {meal.ricePortion}</span>
@@ -180,7 +181,7 @@ export function DashboardMealRow(props: Props) {
           <button
             type="button"
             onClick={props.onOpen}
-            aria-label={`Open ${meal.mealName} details`}
+            aria-label={`Open ${formatMealTitle(meal.mealName)} details`}
             className="group/details flex min-w-0 flex-1 items-center text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white rounded-xl"
           >
             {foodPlate}
@@ -189,7 +190,7 @@ export function DashboardMealRow(props: Props) {
                 {meal.mealType.toLowerCase()}
               </span>
               <span className="mt-0.5 block font-display text-base font-bold leading-snug text-white sm:text-lg group-hover/details:underline underline-offset-2 line-clamp-2">
-                {meal.mealName}
+                {formatMealTitle(meal.mealName)}
               </span>
               {meal.ricePortion && (
                 <span className="mt-1 block text-xs font-bold text-white">+ {meal.ricePortion}</span>
@@ -241,7 +242,7 @@ export function DashboardMealRow(props: Props) {
             <button
               type="button"
               disabled={saving}
-              aria-label={`Mark ${meal.mealName} as ${completed ? 'not eaten' : 'eaten'}`}
+              aria-label={`Mark ${formatMealTitle(meal.mealName)} as ${completed ? 'not eaten' : 'eaten'}`}
               onClick={async () => {
                 setSaving(true);
                 try {

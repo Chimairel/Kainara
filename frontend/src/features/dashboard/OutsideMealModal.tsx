@@ -1,5 +1,6 @@
 'use client';
 
+import { formatMealTitle } from '@/lib/meal-title';
 import PreviewConfirmation from './OutsideMealPreview';
 import type { OutsideMealModalProps as Props } from './outside-meal-modal.types';
 
@@ -146,7 +147,7 @@ function OutsideMealForm(props: Props) {
       setSuggestions([]);
       setShowDropdown(false);
       props.onMealNameChange(value);
-      if (selectedSuggestion && value.trim() !== selectedSuggestion.name.trim()) {
+      if (selectedSuggestion && value.trim() !== formatMealTitle(selectedSuggestion.name)) {
         setSelectedSuggestion(null);
         setBaseNutrition(null);
         setManual(emptyMacros);
@@ -203,7 +204,7 @@ function OutsideMealForm(props: Props) {
   // Auto-fill values when a dish suggestion is selected
   const handleSelectSuggestion = (dish: Suggestion) => {
     cancelSearch();
-    props.onMealNameChange(dish.name);
+    props.onMealNameChange(formatMealTitle(dish.name));
     setSelectedSuggestion(dish);
     setPortionGrams(dish.kind === 'FNRI_FOOD' ? '100' : '');
     setSelectedRicePairing(dish.ricePairing ?? null);
@@ -485,7 +486,7 @@ function OutsideMealForm(props: Props) {
                       ) : (
                         <Search className="h-3.5 w-3.5 shrink-0 text-brand-muted" />
                       )}
-                      <span className="truncate font-semibold text-brand-text">{dish.name}</span>
+                      <span className="truncate font-semibold text-brand-text">{formatMealTitle(dish.name)}</span>
                     </div>
                     <span className="text-[10px] text-brand-muted">
                       {dish.serving ? `${dish.label} · ${dish.serving}` : dish.label}

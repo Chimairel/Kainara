@@ -1,5 +1,6 @@
 'use client';
 
+import { formatMealTitle } from '@/lib/meal-title';
 import { getManilaDateKey } from '@/lib/manila-date';
 import { getMealBannerTheme } from '@/lib/meal-banner-theme';
 import { cookingAction } from '@/lib/meal-cooking-link';
@@ -231,7 +232,7 @@ export default function MealCard({
         layoutId={layoutId}
         role="button"
         tabIndex={0}
-        aria-label={`Open ${mealName} details`}
+        aria-label={`Open ${formatMealTitle(mealName)} details`}
         onClick={() => {
           if (onCardClick) {
             onCardClick();
@@ -319,7 +320,7 @@ export default function MealCard({
                   isCompleted ? 'line-through text-brand-muted' : ''
                 }`}
               >
-                {mealName}
+                {formatMealTitle(mealName)}
               </h3>
               {ricePortion && <p className="text-xs text-brand-green">+ {ricePortion}</p>}
               <p className="text-xs text-brand-muted line-clamp-1 mt-0.5">
@@ -443,7 +444,7 @@ export default function MealCard({
                     {/* Bottom Title & Action Buttons Overlay */}
                     <div className="absolute bottom-3.5 inset-x-4 sm:bottom-4 sm:inset-x-6 z-20">
                       <h3 className="text-xl sm:text-2xl md:text-3xl font-black font-display text-white tracking-tight leading-tight drop-shadow-[0_2px_10px_rgba(0,0,0,0.8)] line-clamp-2">
-                        {mealName}
+                        {formatMealTitle(mealName)}
                       </h3>
                       <div className="mt-2.5 sm:mt-3 flex flex-wrap items-center gap-2">
                         {!isLogged ? (
