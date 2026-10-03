@@ -8,6 +8,8 @@ import {
   GEMINI_MODEL_TIMEOUT_MS,
 } from '@/domain/gemini-model.policy';
 import { AiCapacityDeferredError, AiCapacityService } from '@/services/ai-capacity.service';
+import { memberSafeGeminiError } from '@/domain/gemini-error.policy';
+import { AppError } from '@/errors/AppError';
 
 // Retrieve API Key
 const apiKey = process.env.GEMINI_API_KEY;
@@ -66,8 +68,8 @@ function cleanJsonString(rawText: string): string {
 
 /**
  * Executes a generative content prompt requesting a strict JSON response.
- * Implements a 4-model cascade rotation fallback sequence in case of rate limits,
- * API faults, or regional quota limitations.
+ * Tries up to four models for provider or validation faults, within the shared
+ * capacity budget. Quota faults stop immediately instead of spending more quota.
  *
  * @param prompt The main text prompt to analyze
  * @param systemInstruction Optional system directives to enforce role behavior
@@ -89,17 +91,16 @@ export async function generateGenerativeJSON<T = any>(
       errorCode: 'MISSING_API_KEY',
       ...usage,
     });
-    throw new Error('🛑 Google Gemini API Key is missing. Please set GEMINI_API_KEY in your .env file.');
+    throw new AppError('AI is unavailable right now. Please try again later.', 503, 'AI_SERVICE_CONFIGURATION');
   }
 
   const genAI = new GoogleGenerativeAI(apiKey);
-  let lastError: any = null;
+  let lastError: AppError | null = null;
   let attempts = 0;
   let lastModel: string | undefined;
 
   // Try each model sequentially in the cascade sequence
   for (const modelName of GEMINI_MODEL_SEQUENCE) {
-    lastModel = modelName;
     let reservationId: string | null = null;
     try {
       reservationId = await AiCapacityService.reserve({
@@ -107,6 +108,7 @@ export async function generateGenerativeJSON<T = any>(
         estimatedTokens: AiCapacityService.estimateTokens(prompt, systemInstruction),
         operation: (usage.operation as AiUsageOperation | undefined) ?? AiUsageOperation.OTHER,
       });
+      lastModel = modelName;
       attempts += 1;
       console.log(`[Gemini AI] Attempting prompt execution on model: ${modelName}`);
 
@@ -171,7 +173,23 @@ export async function generateGenerativeJSON<T = any>(
         throw new Error(`Failed to parse or validate the response from model ${modelName}.`);
       }
     } catch (cause: unknown) {
-      if (cause instanceof AiCapacityDeferredError) throw cause;
+      if (cause instanceof AiCapacityDeferredError) {
+        // A budget pause after overloaded models should keep that useful cause.
+        const deferred =
+          lastError?.errorCode === 'AI_HIGH_DEMAND' && cause.errorCode === 'AI_CAPACITY_BUSY'
+            ? new AiCapacityDeferredError(lastError.message, cause.retryAt, lastError.errorCode)
+            : cause;
+        if (attempts > 0)
+          await recordAiUsage({
+            model: lastModel,
+            status: AiUsageStatus.FAILED,
+            attempts,
+            latencyMs: Date.now() - startedAt,
+            errorCode: deferred.errorCode,
+            ...usage,
+          });
+        throw deferred;
+      }
       const quotaFault = cause as { status?: unknown; message?: unknown };
       if (
         quotaFault?.status === 429 ||
@@ -189,12 +207,12 @@ export async function generateGenerativeJSON<T = any>(
         // A project quota fault is not a reason to spend the same project's
         // remaining allowance on every model in the fallback cascade.
         throw new AiCapacityDeferredError(
-          'Gemini quota is temporarily unavailable. Please try again later.',
-          new Date(Date.now() + 60_000)
+          'The AI provider has temporarily reached its request limit. Please try again later.',
+          new Date(Date.now() + 60_000),
+          'AI_PROVIDER_RATE_LIMIT'
         );
       }
-      const err = new Error('The AI service could not generate a valid meal plan. Please try again later.');
-      lastError = err;
+      lastError = memberSafeGeminiError(cause);
       const providerError = cause as { status?: unknown; statusText?: unknown; message?: unknown };
       const diagnostic = {
         status: typeof providerError?.status === 'number' ? providerError.status : undefined,
@@ -219,10 +237,8 @@ export async function generateGenerativeJSON<T = any>(
     status: AiUsageStatus.FAILED,
     attempts,
     latencyMs: Date.now() - startedAt,
-    errorCode: 'ALL_MODELS_FAILED',
+    errorCode: lastError?.errorCode ?? 'AI_UNAVAILABLE',
     ...usage,
   });
-  throw new Error(
-    `🛑 All Gemini fallback models failed to resolve the request. Last error: ${lastError?.message || lastError}`
-  );
+  throw lastError ?? memberSafeGeminiError(null);
 }

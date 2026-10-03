@@ -131,19 +131,31 @@ export function useOutsideMealLog(onSaved: (log: OutsideMealLog & { id: string }
         toast.dismiss(toastId);
         return;
       }
-      const code = (error as { response?: { data?: { code?: string } } }).response?.data?.code;
+      const failure = error as { code?: string; response?: { data?: { code?: string } } };
+      const code = failure.response?.data?.code;
       if (code === 'PREVIEW_EXPIRED_OR_USED') {
         setWarning(null);
         request.current = null;
       }
       toast.error(
-        error instanceof Error && !(error as { response?: unknown }).response
-          ? error.message
-          : getApiErrorMessage(
-              error,
-              acknowledge ? 'Could not log your food. Please retry.' : 'Could not check your food. Please retry.'
-            ),
-        { id: toastId }
+        !failure.response && ['ECONNABORTED', 'ETIMEDOUT'].includes(failure.code ?? '')
+          ? acknowledge
+            ? 'The request took too long. Retry to check whether your food was saved.'
+            : 'The request took too long. Please try again.'
+          : !failure.response && failure.code === 'ERR_NETWORK'
+            ? 'We could not connect. Check your internet connection and try again.'
+            : error instanceof Error && !failure.response
+              ? error.message
+              : getApiErrorMessage(
+                  error,
+                  acknowledge ? 'Could not log your food. Please retry.' : 'Could not check your food. Please retry.'
+                ),
+        {
+          id: toastId,
+          ...(code?.startsWith('AI_')
+            ? { description: 'Your draft is kept. You can retry or enter nutrition values yourself.' }
+            : {}),
+        }
       );
     } finally {
       inFlight.current = false;

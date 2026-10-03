@@ -1,15 +1,17 @@
 /**
  * Stable Gemini text models used for structured NutriMind generation.
+ * Prefer lightweight routine generation, then older Flash releases before the
+ * newest release. This is an operational preference, not an uptime guarantee.
  *
  * Keep this list pinned to explicit GA model IDs. Moving aliases such as
  * `gemini-flash-latest` make production behavior and audit evidence drift over
  * time without a corresponding code change.
  */
 export const GEMINI_MODEL_SEQUENCE = [
-  'gemini-3.8-flash',
-  'gemini-3.7-flash',
-  'gemini-3.6-flash',
   'gemini-3.5-flash-lite',
+  'gemini-3.6-flash',
+  'gemini-3.7-flash',
+  'gemini-3.8-flash',
 ] as const;
 
 export const GEMINI_MODEL_TIMEOUT_MS = 15_000;

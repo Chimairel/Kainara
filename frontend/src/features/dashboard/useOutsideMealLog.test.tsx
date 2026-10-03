@@ -102,6 +102,57 @@ describe('outside food submission', () => {
     expect(toast.error).toHaveBeenCalledWith('Preview expired', { id: 'log-toast' });
   });
 
+  it('shows high-demand Sonner feedback and preserves the draft for a same-key retry', async () => {
+    vi.mocked(api.post)
+      .mockRejectedValueOnce({
+        response: {
+          data: {
+            code: 'AI_HIGH_DEMAND',
+            error: 'AI is experiencing high demand right now. Please try again shortly.',
+          },
+        },
+      })
+      .mockResolvedValueOnce(response(preview));
+    const onSaved = vi.fn();
+    const { result } = renderHook(() => useOutsideMealLog(onSaved));
+    act(() => {
+      result.current.setIsOpen(true);
+      result.current.onMealNameChange('Food');
+    });
+    await act(() => result.current.onSubmit(false, { ...options, useAiEstimate: true }));
+    expect(toast.error).toHaveBeenCalledWith('AI is experiencing high demand right now. Please try again shortly.', {
+      id: 'log-toast',
+      description: 'Your draft is kept. You can retry or enter nutrition values yourself.',
+    });
+    expect(result.current.isOpen).toBe(true);
+    expect(result.current.mealName).toBe('Food');
+    expect(result.current.isLoading).toBe(false);
+    expect(onSaved).not.toHaveBeenCalled();
+    await act(() => result.current.onSubmit(false, { ...options, useAiEstimate: true }));
+    const calls = vi.mocked(api.post).mock.calls;
+    expect((calls[0][1] as { requestKey: string }).requestKey).toBe((calls[1][1] as { requestKey: string }).requestKey);
+    expect(result.current.warning?.confirmationId).toBe('preview');
+  });
+
+  it('explains connection failures and avoids claiming a timed-out confirmation was not saved', async () => {
+    vi.mocked(api.post)
+      .mockRejectedValueOnce(Object.assign(new Error('Network Error'), { code: 'ERR_NETWORK' }))
+      .mockResolvedValueOnce(response(preview))
+      .mockRejectedValueOnce(Object.assign(new Error('timeout of 120000ms exceeded'), { code: 'ECONNABORTED' }));
+    const { result } = renderHook(() => useOutsideMealLog(vi.fn()));
+    await act(() => result.current.onSubmit(false, options));
+    expect(toast.error).toHaveBeenCalledWith('We could not connect. Check your internet connection and try again.', {
+      id: 'log-toast',
+    });
+    await act(() => result.current.onSubmit(false, options));
+    await act(() => result.current.onSubmit(true));
+    expect(toast.error).toHaveBeenLastCalledWith(
+      'The request took too long. Retry to check whether your food was saved.',
+      { id: 'log-toast' }
+    );
+    expect(result.current.warning?.confirmationId).toBe('preview');
+  });
+
   it('does not present photo-upload failure as a failed meal save', async () => {
     vi.mocked(api.post)
       .mockResolvedValueOnce(response(preview))

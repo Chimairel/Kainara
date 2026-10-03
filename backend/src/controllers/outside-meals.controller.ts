@@ -6,6 +6,7 @@ import { OutsideMealReviewService } from '@/services/outside-meal-review.service
 import { AuthenticatedRequest } from '@/types';
 import { Response } from 'express';
 import { AppError } from '@/errors/AppError';
+import { AiCapacityDeferredError } from '@/services/ai-capacity.service';
 
 export class OutsideMealsController {
   static async logOutsideMeal(req: AuthenticatedRequest, res: Response) {
@@ -49,10 +50,14 @@ export class OutsideMealsController {
     } catch (error: any) {
       console.error('[MealsController] logOutsideMeal error:', error);
       const status = typeof error?.statusCode === 'number' ? error.statusCode : 500;
+      if (error instanceof AiCapacityDeferredError) {
+        res.setHeader('Retry-After', String(Math.max(1, Math.ceil((error.retryAt.getTime() - Date.now()) / 1000))));
+      }
       return res.status(status).json({
         success: false,
         error: sanitizeErrorMessage(error, 'Failed to check or log outside meal.'),
         code: error instanceof AppError ? error.errorCode : undefined,
+        retryAt: error instanceof AiCapacityDeferredError ? error.retryAt.toISOString() : undefined,
       });
     }
   }

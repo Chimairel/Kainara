@@ -1,5 +1,6 @@
 import { AiUsageOperation, Prisma } from '@prisma/client';
 import prisma from '@/lib/prisma';
+import { AppError } from '@/errors/AppError';
 
 const PROVIDER = 'GOOGLE_GEMINI';
 const MINUTE_MS = 60_000;
@@ -11,11 +12,11 @@ function positiveLimit(name: string, fallback: number): number {
   return Number.isSafeInteger(value) && value > 0 ? value : fallback;
 }
 
-export class AiCapacityDeferredError extends Error {
+export class AiCapacityDeferredError extends AppError {
   readonly retryAt: Date;
 
-  constructor(message: string, retryAt: Date) {
-    super(message);
+  constructor(message: string, retryAt: Date, code = 'AI_CAPACITY_BUSY') {
+    super(message, code === 'AI_HIGH_DEMAND' ? 503 : 429, code);
     this.name = 'AiCapacityDeferredError';
     this.retryAt = retryAt;
   }
@@ -53,88 +54,126 @@ export class AiCapacityService {
       throw new Error('The Gemini request exceeds the configured project token budget.');
     }
 
-    return prisma.$transaction(async (tx) => {
-      await tx.$executeRaw`SELECT pg_advisory_xact_lock(741021)`;
-      await tx.aiQuotaReservation.deleteMany({
-        where: { provider: PROVIDER, reservedAt: { lt: new Date(now.getTime() - 2 * DAY_MS) } },
-      });
-      const minuteStart = new Date(now.getTime() - MINUTE_MS);
-      const dayStart = new Date(now.getTime() - DAY_MS);
-      const [minuteCount, dayCount, minuteTokens, inFlight, latestQuotaFault, backgroundMinuteCount, backgroundDayCount] = await Promise.all([
-        tx.aiQuotaReservation.count({ where: { provider: PROVIDER, reservedAt: { gt: minuteStart } } }),
-        tx.aiQuotaReservation.count({ where: { provider: PROVIDER, reservedAt: { gt: dayStart } } }),
-        tx.aiQuotaReservation.aggregate({
-          where: { provider: PROVIDER, reservedAt: { gt: minuteStart } },
-          _sum: { estimatedTokens: true },
-        }),
-        tx.aiQuotaReservation.count({
-          where: { provider: PROVIDER, completedAt: null, reservedAt: { gt: new Date(now.getTime() - LEASE_MS) } },
-        }),
-        tx.aiUsageEvent.findFirst({
-          where: { provider: PROVIDER, errorCode: 'PROVIDER_QUOTA', createdAt: { gt: new Date(now.getTime() - 5 * MINUTE_MS) } },
-          orderBy: { createdAt: 'desc' }, select: { createdAt: true },
-        }),
-        tx.aiQuotaReservation.count({
-          where: { provider: PROVIDER, operation: AiUsageOperation.MEAL_PLAN_GENERATION, reservedAt: { gt: minuteStart } },
-        }),
-        tx.aiQuotaReservation.count({
-          where: { provider: PROVIDER, operation: AiUsageOperation.MEAL_PLAN_GENERATION, reservedAt: { gt: dayStart } },
-        }),
-      ]);
-      const capacityReasons: Date[] = [];
-      if (latestQuotaFault) capacityReasons.push(new Date(latestQuotaFault.createdAt.getTime() + 5 * MINUTE_MS));
-      if (minuteCount >= rpm || (minuteTokens._sum.estimatedTokens ?? 0) + input.estimatedTokens > tpm) {
-        const oldest = await tx.aiQuotaReservation.findFirst({
-          where: { provider: PROVIDER, reservedAt: { gt: minuteStart } },
-          orderBy: { reservedAt: 'asc' },
-          select: { reservedAt: true },
+    return prisma.$transaction(
+      async (tx) => {
+        await tx.$executeRaw`SELECT pg_advisory_xact_lock(741021)`;
+        await tx.aiQuotaReservation.deleteMany({
+          where: { provider: PROVIDER, reservedAt: { lt: new Date(now.getTime() - 2 * DAY_MS) } },
         });
-        capacityReasons.push(new Date((oldest?.reservedAt.getTime() ?? now.getTime()) + MINUTE_MS + 1_000));
-      }
-      if (dayCount >= rpd) {
-        const oldest = await tx.aiQuotaReservation.findFirst({
-          where: { provider: PROVIDER, reservedAt: { gt: dayStart } },
-          orderBy: { reservedAt: 'asc' },
-          select: { reservedAt: true },
-        });
-        capacityReasons.push(new Date((oldest?.reservedAt.getTime() ?? now.getTime()) + DAY_MS + 1_000));
-      }
-      if (inFlight >= maxInFlight) capacityReasons.push(new Date(now.getTime() + 15_000));
-      if (input.operation === AiUsageOperation.MEAL_PLAN_GENERATION && backgroundMinuteCount >= backgroundRpm) {
-        const oldest = await tx.aiQuotaReservation.findFirst({
-          where: { provider: PROVIDER, operation: input.operation, reservedAt: { gt: minuteStart } },
-          orderBy: { reservedAt: 'asc' }, select: { reservedAt: true },
-        });
-        capacityReasons.push(new Date((oldest?.reservedAt.getTime() ?? now.getTime()) + MINUTE_MS + 1_000));
-      }
-      if (input.operation === AiUsageOperation.MEAL_PLAN_GENERATION && backgroundDayCount >= backgroundRpd) {
-        const oldest = await tx.aiQuotaReservation.findFirst({
-          where: { provider: PROVIDER, operation: input.operation, reservedAt: { gt: dayStart } },
-          orderBy: { reservedAt: 'asc' }, select: { reservedAt: true },
-        });
-        capacityReasons.push(new Date((oldest?.reservedAt.getTime() ?? now.getTime()) + DAY_MS + 1_000));
-      }
-      if (capacityReasons.length) {
-        throw new AiCapacityDeferredError(
-          'AI capacity is temporarily unavailable. Please try again later.',
-          new Date(Math.max(...capacityReasons.map((date) => date.getTime())))
-        );
-      }
+        const minuteStart = new Date(now.getTime() - MINUTE_MS);
+        const dayStart = new Date(now.getTime() - DAY_MS);
+        const [
+          minuteCount,
+          dayCount,
+          minuteTokens,
+          inFlight,
+          latestQuotaFault,
+          backgroundMinuteCount,
+          backgroundDayCount,
+        ] = await Promise.all([
+          tx.aiQuotaReservation.count({ where: { provider: PROVIDER, reservedAt: { gt: minuteStart } } }),
+          tx.aiQuotaReservation.count({ where: { provider: PROVIDER, reservedAt: { gt: dayStart } } }),
+          tx.aiQuotaReservation.aggregate({
+            where: { provider: PROVIDER, reservedAt: { gt: minuteStart } },
+            _sum: { estimatedTokens: true },
+          }),
+          tx.aiQuotaReservation.count({
+            where: { provider: PROVIDER, completedAt: null, reservedAt: { gt: new Date(now.getTime() - LEASE_MS) } },
+          }),
+          tx.aiUsageEvent.findFirst({
+            where: {
+              provider: PROVIDER,
+              errorCode: 'PROVIDER_QUOTA',
+              createdAt: { gt: new Date(now.getTime() - 5 * MINUTE_MS) },
+            },
+            orderBy: { createdAt: 'desc' },
+            select: { createdAt: true },
+          }),
+          tx.aiQuotaReservation.count({
+            where: {
+              provider: PROVIDER,
+              operation: AiUsageOperation.MEAL_PLAN_GENERATION,
+              reservedAt: { gt: minuteStart },
+            },
+          }),
+          tx.aiQuotaReservation.count({
+            where: {
+              provider: PROVIDER,
+              operation: AiUsageOperation.MEAL_PLAN_GENERATION,
+              reservedAt: { gt: dayStart },
+            },
+          }),
+        ]);
+        const capacityReasons: Date[] = [];
+        if (latestQuotaFault) capacityReasons.push(new Date(latestQuotaFault.createdAt.getTime() + 5 * MINUTE_MS));
+        if (minuteCount >= rpm || (minuteTokens._sum.estimatedTokens ?? 0) + input.estimatedTokens > tpm) {
+          const oldest = await tx.aiQuotaReservation.findFirst({
+            where: { provider: PROVIDER, reservedAt: { gt: minuteStart } },
+            orderBy: { reservedAt: 'asc' },
+            select: { reservedAt: true },
+          });
+          capacityReasons.push(new Date((oldest?.reservedAt.getTime() ?? now.getTime()) + MINUTE_MS + 1_000));
+        }
+        if (dayCount >= rpd) {
+          const oldest = await tx.aiQuotaReservation.findFirst({
+            where: { provider: PROVIDER, reservedAt: { gt: dayStart } },
+            orderBy: { reservedAt: 'asc' },
+            select: { reservedAt: true },
+          });
+          capacityReasons.push(new Date((oldest?.reservedAt.getTime() ?? now.getTime()) + DAY_MS + 1_000));
+        }
+        if (inFlight >= maxInFlight) capacityReasons.push(new Date(now.getTime() + 15_000));
+        if (input.operation === AiUsageOperation.MEAL_PLAN_GENERATION && backgroundMinuteCount >= backgroundRpm) {
+          const oldest = await tx.aiQuotaReservation.findFirst({
+            where: { provider: PROVIDER, operation: input.operation, reservedAt: { gt: minuteStart } },
+            orderBy: { reservedAt: 'asc' },
+            select: { reservedAt: true },
+          });
+          capacityReasons.push(new Date((oldest?.reservedAt.getTime() ?? now.getTime()) + MINUTE_MS + 1_000));
+        }
+        if (input.operation === AiUsageOperation.MEAL_PLAN_GENERATION && backgroundDayCount >= backgroundRpd) {
+          const oldest = await tx.aiQuotaReservation.findFirst({
+            where: { provider: PROVIDER, operation: input.operation, reservedAt: { gt: dayStart } },
+            orderBy: { reservedAt: 'asc' },
+            select: { reservedAt: true },
+          });
+          capacityReasons.push(new Date((oldest?.reservedAt.getTime() ?? now.getTime()) + DAY_MS + 1_000));
+        }
+        if (capacityReasons.length) {
+          const code =
+            dayCount >= rpd ||
+            (backgroundDayCount >= backgroundRpd && input.operation === AiUsageOperation.MEAL_PLAN_GENERATION)
+              ? 'AI_DAILY_LIMIT'
+              : latestQuotaFault
+                ? 'AI_PROVIDER_RATE_LIMIT'
+                : 'AI_CAPACITY_BUSY';
+          throw new AiCapacityDeferredError(
+            code === 'AI_DAILY_LIMIT'
+              ? 'The shared AI daily request limit has been reached. Please try again later.'
+              : code === 'AI_PROVIDER_RATE_LIMIT'
+                ? 'The AI provider has temporarily reached its request limit. Please try again later.'
+                : 'AI is busy right now. Please try again shortly.',
+            new Date(Math.max(...capacityReasons.map((date) => date.getTime()))),
+            code
+          );
+        }
 
-      const reservation = await tx.aiQuotaReservation.create({
-        data: {
-          provider: PROVIDER,
-          model: input.model,
-          estimatedTokens: input.estimatedTokens,
-          operation: input.operation,
-          reservedAt: now,
-        },
-        select: { id: true },
-      });
-      return reservation.id;
-    // READ COMMITTED takes a fresh snapshot after the advisory lock is
-    // acquired; SERIALIZABLE could keep a pre-wait snapshot of reservations.
-    }, { isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted });
+        const reservation = await tx.aiQuotaReservation.create({
+          data: {
+            provider: PROVIDER,
+            model: input.model,
+            estimatedTokens: input.estimatedTokens,
+            operation: input.operation,
+            reservedAt: now,
+          },
+          select: { id: true },
+        });
+        return reservation.id;
+        // READ COMMITTED takes a fresh snapshot after the advisory lock is
+        // acquired; SERIALIZABLE could keep a pre-wait snapshot of reservations.
+      },
+      { isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted }
+    );
   }
 
   static async finish(reservationId: string): Promise<void> {
