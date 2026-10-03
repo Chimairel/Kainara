@@ -89,7 +89,7 @@ export default function NutritionistApprovedPage() {
         icon={CheckCircle}
         eyebrow="Clinical archive"
         title="Approved reviews"
-        description="A traceable view of meals you reviewed and approved for user plans."
+        description="A traceable view of meals you reviewed and approved for member plans."
         meta={
           <span className="rounded-full border border-brand-border/70 bg-brand-surface/60 px-3 py-2 font-mono text-[9px] uppercase tracking-wider text-brand-muted dark:border-[#173e33] dark:bg-[#0e271f]">
             {meals.length} approved
@@ -180,7 +180,7 @@ export default function NutritionistApprovedPage() {
                     <div className="flex items-center gap-2 text-[10px] text-brand-muted">
                       <Avatar name={meal.user.name} size="sm" />
                       <span>
-                        Patient: <strong className="text-brand-text">{meal.user.name}</strong>
+                        Member: <strong className="text-brand-text">{meal.user.name}</strong>
                       </span>
                       {meal.nutritionistNote && (
                         <span className="ml-2 truncate">

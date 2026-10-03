@@ -7,7 +7,7 @@ export function libraryEvidenceStatus(meal: LibraryMeal) {
   if (meal.safetyEvidenceStatus === 'COMPLETE' && meal.certifiedEvidenceRevision === meal.safetyEvidenceRevision) {
     return {
       label: 'Verified for reuse',
-      next: 'Current recipe evidence was signed off. Each user’s restrictions are still checked.',
+      next: 'Current recipe evidence was signed off. Each member’s restrictions are still checked.',
     };
   }
   if (!meal.ingredients?.length)

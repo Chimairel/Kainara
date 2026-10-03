@@ -149,7 +149,7 @@ export default function NutritionGuidancePaper({
       <section className="mt-7 border-b border-slate-200 pb-6 text-sm">
         <h2 className="text-base font-bold text-slate-900 tracking-tight">Meal planning status</h2>
         <p className="mt-2 text-slate-700 leading-relaxed">
-          Acknowledging this document records that the user reviewed it. Meal eligibility and Registered
+          Acknowledging this document records that the member reviewed it. Meal eligibility and Registered
           Nutritionist-Dietitian review are separate checks. Acknowledgment does not itself clear a meal or a medical
           condition.
         </p>

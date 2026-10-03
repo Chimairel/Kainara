@@ -141,7 +141,7 @@ export default function AdminOperationsPage() {
               Structured restriction review gates
             </p>
             <p className="text-xs font-bold text-brand-muted">
-              {structuredSafety.usersRequiringReview} users require review
+              {structuredSafety.usersRequiringReview} members require review
             </p>
           </div>
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">

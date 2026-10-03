@@ -248,9 +248,7 @@ export default function MealHistoryCard({
           <span className="inline-flex min-h-7 sm:min-h-8 items-center gap-1 rounded-full bg-white/20 hover:bg-white/30 text-white px-2 sm:px-3 py-1 text-[10px] sm:text-[11px] font-bold backdrop-blur-md border border-white/30 shadow-xs transition-all duration-200">
             <span>{isExpanded ? 'Hide' : 'Details'}</span>
             <ChevronDown
-              className={`h-3 w-3 stroke-[2.5] transition-transform duration-200 ${
-                isExpanded ? 'rotate-180' : ''
-              }`}
+              className={`h-3 w-3 stroke-[2.5] transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`}
             />
           </span>
         </div>
@@ -291,9 +289,7 @@ export default function MealHistoryCard({
             {/* Outside Items list if available */}
             {log.outsideItems && log.outsideItems.length > 0 && (
               <div className="rounded-xl border border-white/15 bg-white/10 p-3 text-xs text-white backdrop-blur-sm">
-                <p className="font-bold text-white/80 uppercase tracking-wider text-[10px] mb-1.5">
-                  Logged Food Items
-                </p>
+                <p className="font-bold text-white/80 uppercase tracking-wider text-[10px] mb-1.5">Logged Food Items</p>
                 {log.nutritionCompleteness && log.nutritionCompleteness !== 'COMPLETE' && (
                   <p className="mb-2 text-white/80">
                     Partial total: unresolved items are excluded, not counted as zero.
@@ -359,7 +355,7 @@ export default function MealHistoryCard({
                                         fatG: Number(editDraft.fatG),
                                       },
                                     }),
-                                reason: editDraft.reason || 'User corrected this record',
+                                reason: editDraft.reason || 'Member corrected this record',
                               });
                               setEditingItemId(null);
                             } catch {
@@ -409,7 +405,9 @@ export default function MealHistoryCard({
                                 aria-label={`Corrected ${field}`}
                                 placeholder={field}
                                 value={editDraft[field]}
-                                onChange={(event) => setEditDraft((draft) => ({ ...draft, [field]: event.target.value }))}
+                                onChange={(event) =>
+                                  setEditDraft((draft) => ({ ...draft, [field]: event.target.value }))
+                                }
                               />
                             ))}
                           <input
@@ -503,7 +501,8 @@ export default function MealHistoryCard({
                           )}
                           {!isVoided &&
                             onRequestOutsideReview &&
-                            (!item.review || ['VERIFIED', 'CORRECTED', 'UNVERIFIABLE'].includes(item.review.status)) && (
+                            (!item.review ||
+                              ['VERIFIED', 'CORRECTED', 'UNVERIFIABLE'].includes(item.review.status)) && (
                               <button
                                 type="button"
                                 disabled={isChanging}
@@ -534,8 +533,9 @@ export default function MealHistoryCard({
                               return submission ? (
                                 <div className="text-xs text-white/80">
                                   <p>
-                                    Deidentified food-detail reuse: {submission.status.replaceAll('_', ' ').toLowerCase()}
-                                    . This does not certify a recipe or reuse your private notes.
+                                    Deidentified food-detail reuse:{' '}
+                                    {submission.status.replaceAll('_', ' ').toLowerCase()}. This does not certify a
+                                    recipe or reuse your private notes.
                                   </p>
                                   {onObservedWithdraw && (
                                     <button
@@ -690,9 +690,7 @@ export default function MealHistoryCard({
                   <FileText className="h-3.5 w-3.5 text-emerald-300" />
                   Personal Meal Notes
                 </label>
-                <span className="font-mono text-[10px] text-white/60">
-                  {noteInput.length} / 1000
-                </span>
+                <span className="font-mono text-[10px] text-white/60">{noteInput.length} / 1000</span>
               </div>
 
               <textarea
@@ -713,9 +711,7 @@ export default function MealHistoryCard({
                     <Check className="h-3.5 w-3.5 stroke-[3]" /> Note saved
                   </span>
                 ) : (
-                  <span className="text-[10px] text-white/60">
-                    Notes are private to your personal timeline.
-                  </span>
+                  <span className="text-[10px] text-white/60">Notes are private to your personal timeline.</span>
                 )}
 
                 <button

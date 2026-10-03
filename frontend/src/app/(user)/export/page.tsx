@@ -479,7 +479,7 @@ export default function NutritionExportPage() {
       {/* ================================================================= */}
       <div className="mt-12 pt-8 border-t border-slate-200 text-left page-break-inside-avoid">
         <p className="text-[10px] leading-relaxed text-slate-500">
-          This user-generated export summarizes information stored in KAINARA. It is not a prescription, diagnosis,
+          This member-generated export summarizes information stored in KAINARA. It is not a prescription, diagnosis,
           official medical record, or proof of nutritionist verification. Review labels apply only to the individual
           meal records shown and should not be interpreted as universal medical suitability.
         </p>

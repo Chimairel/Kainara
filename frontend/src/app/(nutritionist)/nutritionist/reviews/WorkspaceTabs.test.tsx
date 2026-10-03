@@ -8,8 +8,8 @@ describe('nutritionist review count badges', () => {
     render(<WorkspaceTabs value="case" onChange={onChange} counts={{ meal: 2, case: 125, profile: 1 }} />);
     expect(screen.getByRole('button', { name: /Meal verification/ })).toHaveTextContent('2');
     expect(screen.getByRole('button', { name: /Case approval/ })).toHaveTextContent('99+');
-    expect(screen.getByRole('button', { name: /Profile queue/ })).toHaveTextContent('1');
-    fireEvent.click(screen.getByRole('button', { name: /Profile queue/ }));
+    expect(screen.getByRole('button', { name: /Member queue/ })).toHaveTextContent('1');
+    fireEvent.click(screen.getByRole('button', { name: /Member queue/ }));
     expect(onChange).toHaveBeenCalledWith('profile');
   });
 

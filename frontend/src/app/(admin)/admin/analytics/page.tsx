@@ -51,7 +51,7 @@ export default function AdminAnalyticsPage() {
     data.totalNutritionists > 0 ? Math.round((data.verifiedNutritionists / data.totalNutritionists) * 100) : 0;
   const people: Metric[] = [
     {
-      label: 'Patient accounts',
+      label: 'Member accounts',
       value: data.totalUsers,
       icon: Users,
       tone: 'bg-brand-cyan/10 text-brand-green dark:text-brand-cyan',

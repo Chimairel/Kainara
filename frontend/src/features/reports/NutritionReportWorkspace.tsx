@@ -86,7 +86,7 @@ export default function NutritionReportPage() {
     const structuredConditions = extractStructuredRestrictions(p.safetyEntries, 'condition');
     const structuredFoodRestrictions = extractStructuredRestrictions(p.safetyEntries, 'food');
     setProfileData({
-      name: typeof p.name === 'string' ? p.name : 'User',
+      name: typeof p.name === 'string' ? p.name : 'Member',
       goal: (p.userProfile as { goal?: string } | undefined)?.goal || 'MAINTAIN',
       dailyCalorieTarget: (p.userProfile as { dailyCalorieTarget?: number } | undefined)?.dailyCalorieTarget || 0,
       conditions: normalizeRestrictionContext(
@@ -300,7 +300,7 @@ export default function NutritionReportPage() {
 
   const handleDownloadPDF = async () => {
     try {
-      await startPdfDownload('/user/nutrition-report/pdf', `KAINARA_Nutrition_Report_${user?.name || 'User'}.pdf`);
+      await startPdfDownload('/user/nutrition-report/pdf', `KAINARA_Nutrition_Report_${user?.name || 'Member'}.pdf`);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not download the current report. Please try again.');
     }
@@ -415,7 +415,7 @@ export default function NutritionReportPage() {
         </Modal>
         <NutritionGuidanceDocument
           report={report}
-          name={profileData?.name || user?.name || 'User'}
+          name={profileData?.name || user?.name || 'Member'}
           goal={profileData?.goal || 'MAINTAIN'}
           dailyCalorieTarget={profileData?.dailyCalorieTarget || 0}
           conditions={profileData?.conditions || []}

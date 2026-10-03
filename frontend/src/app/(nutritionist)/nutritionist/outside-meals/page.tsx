@@ -257,7 +257,7 @@ export default function OutsideMealReviewsPage() {
           {rows.length === 0 ? (
             <EmptyState
               title="No outside-meal estimates waiting"
-              description="User requests and selected uncertain or conflicting entries will appear here."
+              description="Member requests and selected uncertain or conflicting entries will appear here."
             />
           ) : (
             rows.map((row) => (
@@ -349,7 +349,8 @@ export default function OutsideMealReviewsPage() {
                   <p className="font-bold">Clarification history</p>
                   {selected.messages.map((message) => (
                     <p key={message.id}>
-                      <strong>{message.sender === 'NUTRITIONIST' ? 'Nutritionist' : 'User'}:</strong> {message.content}
+                      <strong>{message.sender === 'NUTRITIONIST' ? 'Nutritionist' : 'Member'}:</strong>{' '}
+                      {message.content}
                       <span className="ml-2 text-brand-muted">revision {message.itemRevision}</span>
                     </p>
                   ))}
@@ -418,8 +419,8 @@ export default function OutsideMealReviewsPage() {
       <section className="space-y-3" aria-label="Observed food admissions">
         <h2 className="font-display text-xl font-extrabold">Consented food observations</h2>
         <p className="text-sm text-brand-muted">
-          Only current, confirmed estimates with explicit user permission appear here. Admission creates a reference or
-          an unverified recipe candidate; it never certifies a meal.
+          Only current, confirmed estimates with explicit member permission appear here. Admission creates a reference
+          or an unverified recipe candidate; it never certifies a meal.
         </p>
         <div className="grid gap-4 lg:grid-cols-2">
           <Card className="space-y-2 p-4">

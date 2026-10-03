@@ -315,10 +315,10 @@ export default function ProfileWorkPanel() {
       >
         <div className="mb-4 rounded-2xl border border-brand-border/80 bg-brand-surface p-5">
           <p className="font-mono text-[9px] font-bold uppercase tracking-widest text-brand-green">
-            Clinical profile queue
+            Member profile queue
           </p>
           <div className="mt-2 flex items-center justify-between">
-            <h2 className="font-display text-lg font-black">People awaiting review</h2>
+            <h2 className="font-display text-lg font-black">Members awaiting review</h2>
             <button
               type="button"
               onClick={() => void refresh()}
@@ -651,7 +651,7 @@ export default function ProfileWorkPanel() {
                     >
                       {detail.profileReview.claim?.mine ? 'Release profile' : 'Claim profile'}
                     </Button>
-                    <h4 className="font-bold">User-provided health details</h4>
+                    <h4 className="font-bold">Member-provided health details</h4>
                     {detail.profileReview.healthDetails?.map((item) => (
                       <div key={item.area} className="rounded-lg border border-brand-border p-3">
                         <p className="font-semibold">{item.area.replace(/_/g, ' ')}</p>

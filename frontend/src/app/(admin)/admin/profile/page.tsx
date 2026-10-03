@@ -205,7 +205,7 @@ export default function AdminProfilePage() {
             Access Scope
           </span>
           <p className="mt-2 font-display text-sm font-black text-brand-text">Global Platform Management</p>
-          <p className="text-[11px] text-brand-muted mt-0.5">Users, RNDs, Database &amp; AI</p>
+          <p className="text-[11px] text-brand-muted mt-0.5">Members, RNDs, Database &amp; AI</p>
         </div>
 
         <div className="rounded-2xl border border-brand-border/70 bg-brand-surface p-4 shadow-sm">
@@ -256,7 +256,9 @@ export default function AdminProfilePage() {
               <div>
                 <p className="portal-section-label">Account Details</p>
                 <h3 className="font-display text-base font-bold text-brand-text mt-1">Administrator Identity</h3>
-                <p className="text-xs text-brand-muted mt-0.5">Update your display name visible across administrative logs.</p>
+                <p className="text-xs text-brand-muted mt-0.5">
+                  Update your display name visible across administrative logs.
+                </p>
               </div>
 
               {nameSuccess && (
@@ -317,7 +319,9 @@ export default function AdminProfilePage() {
               <div>
                 <p className="portal-section-label">Account Security</p>
                 <h3 className="font-display text-base font-bold text-brand-text mt-1">Change Password</h3>
-                <p className="text-xs text-brand-muted mt-0.5">Ensure your administrator account uses a strong, unique password.</p>
+                <p className="text-xs text-brand-muted mt-0.5">
+                  Ensure your administrator account uses a strong, unique password.
+                </p>
               </div>
 
               {passwordSuccess && (
@@ -414,7 +418,8 @@ export default function AdminProfilePage() {
               </div>
 
               <p className="text-xs text-brand-muted leading-relaxed">
-                Signing out terminates your current security token and locks access to platform analytics, user accounts, and nutritionist license screening.
+                Signing out terminates your current security token and locks access to platform analytics, accounts, and
+                nutritionist license screening.
               </p>
 
               <Button
@@ -436,7 +441,9 @@ export default function AdminProfilePage() {
               <ul className="text-xs text-brand-muted space-y-2 leading-relaxed">
                 <li className="flex items-start gap-2">
                   <span className="text-brand-green font-bold">•</span>
-                  <span>All user modifications and RND verifications are permanently recorded in system audit logs.</span>
+                  <span>
+                    All account modifications and RND verifications are permanently recorded in system audit logs.
+                  </span>
                 </li>
                 <li className="flex items-start gap-2">
                   <span className="text-brand-green font-bold">•</span>

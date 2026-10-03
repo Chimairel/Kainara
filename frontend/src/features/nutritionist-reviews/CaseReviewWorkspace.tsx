@@ -245,7 +245,7 @@ export default function CaseReviewWorkspace({
                       <Avatar name={detailData.user.name} size="lg" />
                       <div className="min-w-0 flex-1">
                         <h2 className="text-[10px] font-bold text-brand-muted uppercase tracking-wider">
-                          User Health Profile
+                          Member Health Profile
                         </h2>
                         <h3 className="truncate text-base font-extrabold text-brand-text mt-0.5">
                           {detailData.user.name}
@@ -318,7 +318,7 @@ export default function CaseReviewWorkspace({
                         <h4 className="font-bold text-brand-text">Health details reviewed for the profile</h4>
                         {detailData.clinicalEvidence.healthDetails?.map((item) => (
                           <div key={item.area} className="rounded-lg border border-brand-border p-2">
-                            <p className="font-bold">{item.area.replaceAll('_', ' ')} · user-provided</p>
+                            <p className="font-bold">{item.area.replaceAll('_', ' ')} · member-provided</p>
                             {['conditionDetails', 'medications', 'dietaryAdvice', 'recentSymptoms', 'measurements'].map(
                               (field) =>
                                 typeof item.responses[field] === 'string' && item.responses[field] ? (

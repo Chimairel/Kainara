@@ -129,9 +129,9 @@ export const workspaceTools: Record<WorkspaceRole, WorkspaceTool[]> = {
       icon: ShieldCheck,
     },
     {
-      label: 'Users',
+      label: 'Accounts',
       href: '/admin/users',
-      description: 'Search and manage user accounts.',
+      description: 'Search and manage member, nutritionist and admin accounts.',
       group: 'People',
       icon: Users,
     },

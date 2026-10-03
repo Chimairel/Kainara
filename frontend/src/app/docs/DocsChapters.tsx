@@ -77,12 +77,12 @@ export const docsChapters: DocsChapter[] = [
         content: (
           <>
             <p>
-              Users set a profile, view plans, log food, and manage their data. Registered Nutritionist-Dietitians
+              Members set a profile, view plans, log food, and manage their data. Registered Nutritionist-Dietitians
               review clinical profiles, documents, meal cases, and new recipe submissions. Administrators manage
               accounts, nutritionist applications, and source data.
             </p>
             <p>
-              Users are responsible for keeping their declarations current and checking the actual ingredients and
+              Members are responsible for keeping their declarations current and checking the actual ingredients and
               portions they use. Nutritionists make scoped decisions from the evidence available in a review.
               Administrators maintain the platform and verify professional access, but an administrator adding a recipe
               does not make it a nutritionist-approved meal.
@@ -159,8 +159,9 @@ export const docsChapters: DocsChapter[] = [
           <>
             <p>
               Restricted profiles wait for a nutritionist to confirm the recorded planning context. The nutritionist can
-              request a document or correction. This confirmation is separate from approval of a particular meal. Users
-              with no declared condition, allergy, or restriction can use eligible base recipes without a case review.
+              request a document or correction. This confirmation is separate from approval of a particular meal.
+              Members with no declared condition, allergy, or restriction can use eligible base recipes without a case
+              review.
             </p>
             <p>
               The review asks whether the recorded restrictions are specific and supported enough for meal planning. It
@@ -218,8 +219,8 @@ export const docsChapters: DocsChapter[] = [
             <p>
               The planner tries recorded eligible servings first, then other eligible published recipes. It checks
               current restrictions, source availability, ingredient and serving data, and the slot&apos;s energy range.
-              A restricted user&apos;s saved candidate may still need one or two independent case decisions before it is
-              actionable.
+              A restricted member&apos;s saved candidate may still need one or two independent case decisions before it
+              is actionable.
             </p>
             <p>
               A verified base recipe is only a starting point. The planner still needs a usable portion, enough
@@ -228,9 +229,9 @@ export const docsChapters: DocsChapter[] = [
               medically unsafe.
             </p>
             <p>
-              For a user with a restricted profile, a new candidate is a proposal until the required review is complete.
-              KAINARA can show that a meal is awaiting review, but it should not present a pending case as an approved
-              instruction to eat that meal.
+              For a member with a restricted profile, a new candidate is a proposal until the required review is
+              complete. KAINARA can show that a meal is awaiting review, but it should not present a pending case as an
+              approved instruction to eat that meal.
             </p>
           </>
         ),
@@ -246,7 +247,7 @@ export const docsChapters: DocsChapter[] = [
               missing slot is not an instruction to skip eating.
             </p>
             <p>
-              The available set changes with the user&apos;s energy target, diet, allergies, conditions, recipe data,
+              The available set changes with the member&apos;s energy target, diet, allergies, conditions, recipe data,
               and active reviews. To fill more days, the planner can rotate a recipe that already passed those checks;
               it does not relax a restriction simply to avoid a blank slot. This means repetition may be more visible
               when few recipes fit a particular breakfast or serving range.
@@ -288,7 +289,7 @@ export const docsChapters: DocsChapter[] = [
               The labels refer to different records. A base recipe can be browsed because its identity is known, while
               the planner may still lack the portion or ingredient evidence needed to schedule it. A case approval is
               narrower: it applies to a recorded serving and health context and can be reused only when the later
-              user&apos;s relevant context matches the approved scope.
+              member&apos;s relevant context matches the approved scope.
             </p>
           </>
         ),
@@ -428,7 +429,7 @@ export const docsChapters: DocsChapter[] = [
               health-context case approval.
             </p>
             <p>
-              This separation lets you track a meal without publishing it to other users. If you separately propose it
+              This separation lets you track a meal without publishing it to other members. If you separately propose it
               for the catalogue, a nutritionist first checks the submitted dish as a general recipe. Only after that
               meal verification can it join the verified base library, and its ingredient, portion, and nutrition
               evidence still determine whether planning can use it.
@@ -455,7 +456,7 @@ export const docsChapters: DocsChapter[] = [
             <p>
               KAINARA checks current profile restrictions and the destination slot, and warns when the calorie
               difference is substantial. A confirmed swap changes that plan slot and refreshes its grocery data; it does
-              not approve the replacement for every other user.
+              not approve the replacement for every other member.
             </p>
             <p>
               Open the replacement choices from a scheduled meal and inspect the candidate before confirming. The
@@ -568,9 +569,9 @@ export const docsChapters: DocsChapter[] = [
             </p>
             <p>
               For example, an administrator can submit a new recipe for meal verification. That decision establishes
-              whether the dish belongs in the base catalogue. Separately, a user who declares hypertension may need
-              their restriction context confirmed. A proposed serving for that user then receives its own case decision.
-              Passing one stage does not silently grant the other two.
+              whether the dish belongs in the base catalogue. Separately, a member who declares hypertension may need
+              their restriction context confirmed. A proposed serving for that member then receives its own case
+              decision. Passing one stage does not silently grant the other two.
             </p>
             <p>
               Published Panlasang Pinoy recipes carry a source-based verification label because they are established
@@ -587,12 +588,12 @@ export const docsChapters: DocsChapter[] = [
           <>
             <p>
               Nutritionists claim review work and record reasons. Higher risk cases may need an independent second
-              decision. Flags, due reviews, disputes, changed recipes, or changed user profiles can block reuse.
+              decision. Flags, due reviews, disputes, changed recipes, or changed member profiles can block reuse.
               Administrators verify nutritionist applications and can submit new recipes for meal verification.
             </p>
             <p>
               A case decision is tied to the ingredients, serving, and profile evidence inspected at review time.
-              Another user can benefit from a reusable decision only when the relevant context matches its recorded
+              Another member can benefit from a reusable decision only when the relevant context matches its recorded
               scope and the approval is still active. A second decision, when required, must be made independently
               rather than counted twice from one reviewer.
             </p>
@@ -772,7 +773,7 @@ export const docsChapters: DocsChapter[] = [
             </p>
             <p>
               The app helps organize meal choices from the information and evidence recorded in it. A
-              nutritionist&apos;s decision relates to the recipe, serving, and user context presented for that review;
+              nutritionist&apos;s decision relates to the recipe, serving, and member context presented for that review;
               it does not certify an independently prepared dish or replace individualized medical care. AI estimates
               and recipe labels should be read with their stated limits.
             </p>

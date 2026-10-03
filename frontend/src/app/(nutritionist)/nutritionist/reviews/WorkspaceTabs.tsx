@@ -8,7 +8,7 @@ export type ReviewWorkspace = 'meal' | 'case' | 'profile';
 const WORKSPACE_TABS = [
   { key: 'meal', label: 'Meal verification', icon: UtensilsCrossed },
   { key: 'case', label: 'Case approval', icon: ShieldCheck },
-  { key: 'profile', label: 'Profile queue', icon: UserCheck },
+  { key: 'profile', label: 'Member queue', icon: UserCheck },
 ] as const;
 
 export default function WorkspaceTabs({
@@ -35,9 +35,7 @@ export default function WorkspaceTabs({
             aria-current={isActive ? 'page' : undefined}
             onClick={() => onChange(key)}
             className={`group relative flex min-h-12 items-center justify-center gap-2 rounded-2xl px-3 font-display text-xs font-extrabold outline-none transition-colors focus-visible:ring-2 focus-visible:ring-brand-green focus-visible:ring-offset-2 focus-visible:ring-offset-brand-surface sm:text-sm ${
-              isActive
-                ? 'text-[#07100d]'
-                : 'text-brand-muted hover:bg-brand-bgAlt/70 hover:text-brand-text'
+              isActive ? 'text-[#07100d]' : 'text-brand-muted hover:bg-brand-bgAlt/70 hover:text-brand-text'
             }`}
           >
             {isActive && (

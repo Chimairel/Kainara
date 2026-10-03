@@ -134,7 +134,7 @@ export default function GovernanceQueuePanel({ tab }: { tab: 'audit' | 'disputed
         </h1>
         <p className="mt-2 text-sm text-brand-muted">
           {tab === 'audit'
-            ? 'Priority is calculated by suspension, ruleset impact, assurance tier, unique-user exposure, review age, and daily sampling.'
+            ? 'Priority is calculated by suspension, ruleset impact, assurance tier, unique-member exposure, review age, and daily sampling.'
             : 'Disagreements remain blocked until an independent Lead records adjudication.'}
         </p>
       </div>
@@ -156,7 +156,7 @@ export default function GovernanceQueuePanel({ tab }: { tab: 'audit' | 'disputed
                     {clearance.condition} · {clearance.assuranceTier} · {clearance.state}
                   </p>
                   <p className="mt-2 text-xs font-semibold text-[#8c3b00] dark:text-[#ff8a3d]">
-                    {clearance.auditReason || `Used by ${clearance.uniqueUserExposure ?? 0} users`}
+                    {clearance.auditReason || `Used by ${clearance.uniqueUserExposure ?? 0} members`}
                   </p>
                 </div>
                 {data.canLeadReview && (
@@ -223,7 +223,7 @@ export default function GovernanceQueuePanel({ tab }: { tab: 'audit' | 'disputed
                       Original meal: {caseDetail.originatingPlan?.mealName ?? approval.mealLibrary.mealName} ·{' '}
                       {caseDetail.originatingPlan?.calories ?? 'Unknown'} kcal
                     </p>
-                    <p>Linked user now: {caseDetail.linkedUserCurrentProfile?.name ?? 'Unavailable'}</p>
+                    <p>Linked member now: {caseDetail.linkedUserCurrentProfile?.name ?? 'Unavailable'}</p>
                     <p className="text-xs text-brand-muted">
                       Current conditions: {caseDetail.linkedUserCurrentProfile?.conditions.join(', ') || 'none'} ·
                       Allergies: {caseDetail.linkedUserCurrentProfile?.allergies.join(', ') || 'none'}. Review the

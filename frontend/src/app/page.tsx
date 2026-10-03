@@ -686,7 +686,7 @@ export default function Home() {
                       </div>
                     </Link>
 
-                    {/* User Guides & FAQs (Stripe 3: Vibrant Coral Orange #eb6a38) */}
+                    {/* Guides & FAQs (Stripe 3: Vibrant Coral Orange #eb6a38) */}
                     <Link
                       href="/docs#help"
                       className="group relative flex flex-col justify-between overflow-hidden rounded-[22px] border border-[#cf5626] bg-[#eb6a38] p-5 text-white transition duration-200 hover:brightness-105 active:scale-[0.99]"
@@ -710,7 +710,7 @@ export default function Home() {
                             <ArrowUpRight className="h-3.5 w-3.5" />
                           </div>
                         </div>
-                        <h3 className="mt-3.5 text-sm font-bold text-white">User Guides & FAQs</h3>
+                        <h3 className="mt-3.5 text-sm font-bold text-white">Guides & FAQs</h3>
                         <p className="mt-1 text-[11px] leading-4 text-white/85">
                           Starter bridge plans, meal swaps, and grocery lists.
                         </p>

@@ -94,7 +94,7 @@ export default function ClinicalEvidenceWorkspace({ mode = 'profile' }: { mode?:
       invalidateSessionResource(ownerId, `clinical-profile-status:${workspace.safetyRevision}`);
       window.dispatchEvent(new Event(LIVE_UPDATE_EVENT));
       setWorkspace(response.data.data);
-      setMessage('Health details saved for nutritionist review. These answers remain user-provided until reviewed.');
+      setMessage('Health details saved for nutritionist review. These answers remain member-provided until reviewed.');
     } catch (cause) {
       setError(getApiErrorMessage(cause, 'Health details could not be saved.'));
     } finally {

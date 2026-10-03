@@ -140,12 +140,12 @@ const getBreadcrumbSegments = (
       return [{ label: 'Overview', current: true }];
     }
     if (pathname === '/admin/users') {
-      return [{ label: 'Users', current: true }];
+      return [{ label: 'Accounts', current: true }];
     }
     if (pathname.startsWith('/admin/users/')) {
       return [
-        { label: 'Users', href: '/admin/users' },
-        { label: 'User Details', current: true },
+        { label: 'Accounts', href: '/admin/users' },
+        { label: 'Account details', current: true },
       ];
     }
     if (pathname === '/admin/nutritionists') {

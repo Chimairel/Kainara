@@ -181,7 +181,7 @@ export function MealApprovalsPanel({ mealId }: {
         {caseDetails && <>
           {!caseDetails.approvalMatchesCurrentRecipe && <p role="status" className="rounded-xl border border-amber-500/40 bg-amber-500/10 p-3 text-sm text-amber-900 dark:text-amber-300">The current recipe differs from the version recorded with this approval. Recheck before reuse.</p>}
           <div className="grid gap-4 md:grid-cols-2">
-            <section className="space-y-3 rounded-2xl border border-brand-border p-4" aria-label="User health profile">
+            <section className="space-y-3 rounded-2xl border border-brand-border p-4" aria-label="Member health profile">
               <h3 className="font-bold text-brand-text">Reviewed health context</h3>
               <p className="text-sm">Case at review: {contextLabel(caseDetails.recordedCaseScope ?? caseDetails.recordedScope)}</p>
               {caseDetails.reviewedPlanProfile && <dl className="grid grid-cols-2 gap-3 text-sm">
@@ -191,14 +191,14 @@ export function MealApprovalsPanel({ mealId }: {
                 <div><dt className="text-brand-muted">Rice preference at planning</dt><dd>{readable(caseDetails.reviewedPlanProfile.ricePreference)}</dd></div>
               </dl>}
               {caseUser ? <>
-                <h4 className="border-t border-brand-border pt-3 text-sm font-bold">Linked user now</h4>
+                <h4 className="border-t border-brand-border pt-3 text-sm font-bold">Linked member now</h4>
                 <p className="font-semibold">{caseUser.name}{caseUser.age != null ? ` · ${caseUser.age} years` : ''}{caseUser.sex ? ` · ${readable(caseUser.sex)}` : ''}</p>
                 <p className="text-xs font-semibold text-amber-800 dark:text-amber-300">This profile may have changed since approval. The recorded scope and planning targets above are the review context.</p>
                 <dl className="grid grid-cols-2 gap-3 text-sm">
                   <div><dt className="text-brand-muted">Current conditions</dt><dd>{caseUser.conditions.length ? caseUser.conditions.map(readable).join(', ') : 'None declared'}</dd></div>
                   <div><dt className="text-brand-muted">Current allergies</dt><dd>{caseUser.allergies.length ? caseUser.allergies.map(readable).join(', ') : 'None declared'}</dd></div>
                 </dl>
-              </> : <p className="text-sm text-brand-muted">No linked user case is retained for this approval. Review the recorded scope above; do not infer missing patient details.</p>}
+              </> : <p className="text-sm text-brand-muted">No linked member case is retained for this approval. Review the recorded scope above; do not infer missing patient details.</p>}
               {(caseDetails.reviewedClinicalDocuments?.length ?? 0) > 0 && <div className="border-t border-brand-border pt-3 text-sm">
                 <h4 className="font-bold">Reviewed clinical documents at case approval</h4>
                 {caseDetails.reviewedClinicalDocuments?.map((document, index) => <div key={`${document.area}-${index}`} className="mt-2 rounded-lg border border-brand-border p-2">

@@ -6,6 +6,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { Activity, ArrowUpRight, BookOpen, ChevronUp, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
 import { primaryWorkspaceTools } from '@/lib/workspace-navigation';
 import { useAuth } from '@/hooks/useAuth';
+import { getRoleLabel } from '@/lib/role-label';
 import Avatar from '@/components/ui/Avatar';
 import KainaraLogo from '@/components/shared/KainaraLogo';
 import MotionActiveIndicator from '@/components/ui/motion/MotionActiveIndicator';
@@ -164,13 +165,13 @@ export const Sidebar: React.FC<SidebarProps> = ({ className = '' }) => {
             magnification={48}
             spring={{ mass: 0.08, stiffness: 320, damping: 16 }}
             className="flex h-full w-full flex-col items-center justify-start mt-6"
-            ariaLabel={`${user.role.toLowerCase()} navigation`}
+            ariaLabel={`${getRoleLabel(user.role).toLowerCase()} navigation`}
           >
             {/* Center Navigation Tabs */}
             <nav
               id="nutrimind-sidebar-navigation"
               className="flex shrink-0 flex-col items-center gap-3 py-1"
-              aria-label={`${user.role.toLowerCase()} tabs`}
+              aria-label={`${getRoleLabel(user.role).toLowerCase()} tabs`}
             >
               {navItems.map((item) => {
                 const isSelected =
@@ -344,7 +345,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ className = '' }) => {
           <nav
             id="nutrimind-sidebar-navigation"
             className="relative flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto overflow-x-hidden scrollbar-thin [scrollbar-color:rgba(255,255,255,0.15)_transparent] [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-white/15 hover:[&::-webkit-scrollbar-thumb]:bg-white/30 [&::-webkit-scrollbar-track]:bg-transparent"
-            aria-label={`${user.role.toLowerCase()} navigation`}
+            aria-label={`${getRoleLabel(user.role).toLowerCase()} navigation`}
           >
             {navItems.map((item, index) => {
               const isSelected =
@@ -467,7 +468,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ className = '' }) => {
                     )}
                   </div>
                   <p className="mt-0.5 truncate font-mono text-[9px] uppercase tracking-wider text-white/35">
-                    {user.role}
+                    {getRoleLabel(user.role)}
                   </p>
                 </div>
                 <ChevronUp

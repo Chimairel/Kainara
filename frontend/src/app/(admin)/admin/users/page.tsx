@@ -9,6 +9,7 @@ import Button from '@/components/ui/Button';
 import Modal from '@/components/ui/Modal';
 import { useAuth } from '@/hooks/useAuth';
 import api from '@/lib/axios';
+import { getRoleLabel } from '@/lib/role-label';
 import { Ban, CheckCircle2, ChevronLeft, ChevronRight, Clock3, RotateCcw, Search, Users, XCircle } from 'lucide-react';
 import React, { useState } from 'react';
 
@@ -101,7 +102,7 @@ export default function AdminUsersPage() {
       <PortalPageHeader
         icon={Users}
         eyebrow="Identity directory"
-        title="User management"
+        title="Account management"
         description="Inspect account roles, verification state, onboarding progress, and membership across the platform."
         meta={
           <span className="rounded-full border border-brand-border/70 bg-brand-surface/60 px-3 py-2 font-mono text-[9px] uppercase tracking-[0.14em] text-brand-muted dark:border-[#173e33] dark:bg-[#0e271f]">
@@ -163,7 +164,7 @@ export default function AdminUsersPage() {
                         }
                         className="text-[9px]"
                       >
-                        {user.role}
+                        {getRoleLabel(user.role)}
                       </Badge>
                     </div>
                     <p className="break-all text-xs text-brand-muted">{user.email}</p>
@@ -229,7 +230,7 @@ export default function AdminUsersPage() {
                           user.role === 'ADMIN' ? 'rejected' : user.role === 'NUTRITIONIST' ? 'verified' : 'user'
                         }
                       >
-                        {user.role}
+                        {getRoleLabel(user.role)}
                       </Badge>
                     </td>
                     <td className="px-5 py-4 text-center">

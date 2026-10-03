@@ -172,7 +172,7 @@ export const policyChapters: DocsChapter[] = [
             <p>
               A nutritionist reviewing a profile or meal case needs the relevant recorded context to make that decision.
               The original document is treated more narrowly than its status or confirmed facts: access requires the
-              appropriate review claim and leaves an access event. Other users browsing a meal cannot see the patient
+              appropriate review claim and leaves an access event. Other members browsing a meal cannot see the patient
               context behind a private case review.
             </p>
           </>
@@ -320,11 +320,11 @@ export const policyChapters: DocsChapter[] = [
             </p>
             <p>
               Review an export before relying on it as a complete personal archive; some file bytes, such as an original
-              clinical upload, may require a separate download. Deleting a regular user account removes its
-              patient-owned plans and pending meal case-review records. The approval queue updates on its next refresh.
-              Independent shared recipes remain, and another user’s pending case for the same recipe remains available
-              for review. Limited integrity evidence may have a different lifecycle. Backup and audit retention can have
-              a separate lifecycle from active account records.
+              clinical upload, may require a separate download. Deleting a member account removes its patient-owned
+              plans and pending meal case-review records. The approval queue updates on its next refresh. Independent
+              shared recipes remain, and another member’s pending case for the same recipe remains available for review.
+              Limited integrity evidence may have a different lifecycle. Backup and audit retention can have a separate
+              lifecycle from active account records.
             </p>
           </>
         ),

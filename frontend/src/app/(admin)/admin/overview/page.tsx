@@ -43,7 +43,7 @@ export default function AdminOverviewPage() {
 
   const metrics: Metric[] = [
     {
-      label: 'User accounts',
+      label: 'Member accounts',
       value: data.totalUsers,
       icon: Users,
       tone: 'bg-brand-cyan/10 text-brand-green dark:text-brand-cyan',

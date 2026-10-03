@@ -72,7 +72,7 @@ export default function ProfileWidget({ onClose, className = '' }: ProfileWidget
   return (
     <div
       role="menu"
-      aria-label="User account menu"
+      aria-label="Account menu"
       className={`w-72 overflow-hidden rounded-2xl border border-brand-border/90 bg-brand-surface p-1.5 shadow-[0_20px_50px_rgba(0,0,0,0.18)] backdrop-blur-xl transition-all duration-150 dark:border-[#173e33] dark:bg-[#0c1813]/95 dark:shadow-[0_25px_60px_rgba(0,0,0,0.65)] ${className}`}
     >
       {/* ─── USER HEADER ROW (Click to view personal profile) ─── */}
