@@ -162,6 +162,10 @@ export class MembershipService {
     if (!state.requiresCaseReview) return;
     // A safety correction may repair the existing active cycle after expiry, never open another week.
     if (await this.isSafetyRepair(userId, startsAt, client, at)) return;
+    this.assertCasePlanAccess(state, startsAt);
+  }
+
+  private static assertCasePlanAccess(state: Awaited<ReturnType<typeof MembershipService.state>>, startsAt: Date) {
     const accessEnd = state.healthUntil;
     if (!state.healthAccess || (accessEnd && getManilaMidnight(getManilaDateKey(startsAt)) >= accessEnd))
       throw new AppError(
@@ -241,6 +245,21 @@ export class MembershipService {
     if (!membershipEnabled()) return null;
     await lockUserProfile(client, userId);
     const state = await this.state(userId, at, client);
+    return this.reserveWithLockedState(userId, feature, requestKey, payload, client, state, at, targetWeekAt);
+  }
+
+  // Only call after taking the profile lock and reading membership on this same
+  // transaction. Admission can reserve two features without reloading entitlement.
+  private static async reserveWithLockedState(
+    userId: string,
+    feature: MembershipFeatureName,
+    requestKey: string,
+    payload: string,
+    client: Client,
+    state: Awaited<ReturnType<typeof MembershipService.state>>,
+    at: Date,
+    targetWeekAt?: Date
+  ) {
     const payloadHash = createHash('sha256').update(payload).digest('hex');
     const prior = await client.membershipUsage.findUnique({
       where: { userId_feature_requestKey: { userId, feature, requestKey } },
@@ -309,35 +328,43 @@ export class MembershipService {
 
   static async admitPlan(userId: string, startsAt: Date, replaceExisting: boolean, jobId: string, requestKey?: string) {
     if (!membershipEnabled()) return [];
-    return prisma.$transaction(async (tx) => {
-      await lockUserProfile(tx, userId);
-      await this.assertNewPlan(userId, startsAt, tx);
-      const state = await this.state(userId, new Date(), tx);
-      const reservations: Array<{ id: string; replayed: boolean }> = [];
-      const safetyRepair = await this.isSafetyRepair(userId, startsAt, tx);
-      if (replaceExisting) {
-        // Safety replacement is not a discretionary replan. Never spend a credit to repair a safety gate.
-        if (!safetyRepair) {
-          const row = await this.reserve(
-            userId,
-            'REPLAN',
-            requestKey ?? `${jobId}:${randomUUID()}`,
-            startsAt.toISOString(),
-            tx
-          );
-          if (row) reservations.push(row);
+    // Remote database round trips can exceed Prisma's five-second default.
+    // This bounded allowance is specific to admission; recipe/AI work stays outside.
+    return prisma.$transaction(
+      async (tx) => {
+        await lockUserProfile(tx, userId);
+        const at = new Date();
+        const state = await this.state(userId, at, tx);
+        const reservations: Array<{ id: string; replayed: boolean }> = [];
+        const safetyRepair = await this.isSafetyRepair(userId, startsAt, tx, at);
+        if (state.requiresCaseReview && !safetyRepair) this.assertCasePlanAccess(state, startsAt);
+        if (replaceExisting) {
+          // Safety replacement is not a discretionary replan. Never spend a credit to repair a safety gate.
+          if (!safetyRepair) {
+            const row = await this.reserveWithLockedState(
+              userId,
+              'REPLAN',
+              requestKey ?? `${jobId}:${randomUUID()}`,
+              startsAt.toISOString(),
+              tx,
+              state,
+              at
+            );
+            if (row) reservations.push(row);
+          }
         }
-      }
-      if (state.requiresCaseReview && !safetyRepair) {
-        const week = membershipWeek(startsAt);
-        // Replacing a case plan by preference starts new review work. Only repair/follow-up
-        // on the admitted episode is free; an optional replan cannot reuse its review credit.
-        const key = `plan:${week.start.toISOString()}${replaceExisting ? `:replan:${requestKey ?? jobId}` : ''}`;
-        const row = await this.reserve(userId, 'PLAN_REVIEW', key, key, tx, new Date(), startsAt);
-        if (row && !row.replayed) reservations.push(row);
-      }
-      return reservations;
-    });
+        if (state.requiresCaseReview && !safetyRepair) {
+          const week = membershipWeek(startsAt);
+          // Replacing a case plan by preference starts new review work. Only repair/follow-up
+          // on the admitted episode is free; an optional replan cannot reuse its review credit.
+          const key = `plan:${week.start.toISOString()}${replaceExisting ? `:replan:${requestKey ?? jobId}` : ''}`;
+          const row = await this.reserveWithLockedState(userId, 'PLAN_REVIEW', key, key, tx, state, at, startsAt);
+          if (row && !row.replayed) reservations.push(row);
+        }
+        return reservations;
+      },
+      { maxWait: 10_000, timeout: 30_000 }
+    );
   }
 
   static async view(userId: string, at = new Date()) {

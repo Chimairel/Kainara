@@ -10,6 +10,8 @@ async function main() {
   if (!['localhost', '127.0.0.1'].includes(target.hostname) || target.pathname !== '/membership_acceptance')
     throw new Error('Membership acceptance requires the disposable local membership_acceptance database.');
   process.env.MEMBERSHIP_ENABLED = 'true';
+  // This suite verifies unavailable checkout; the separate checkout suite tests payments.
+  process.env.PAYMONGO_INTEGRATION_ENABLED = 'false';
   process.env.NODE_ENV = 'test';
   process.env.JWT_SECRET = 'membership-acceptance-access-fixture';
   process.env.JWT_REFRESH_SECRET = 'membership-acceptance-refresh-fixture';
@@ -389,8 +391,8 @@ async function main() {
       jwt.sign({ userId: id, email: `${id}@example.invalid`, role }, process.env.JWT_SECRET!, { expiresIn: '5m' });
     const checkout = await fetch(`${base}/checkout`, {
       method: 'POST',
-      headers: { Authorization: `Bearer ${token(free, 'USER')}` },
-      body: '{}',
+      headers: { Authorization: `Bearer ${token(free, 'USER')}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ tier: 'HEALTH', period: 'MONTHLY', requestKey: randomUUID() }),
     });
     assert.equal(checkout.status, 503);
     assert.equal(((await checkout.json()) as { errorCode: string }).errorCode, 'MEMBERSHIP_PURCHASES_UNAVAILABLE');
