@@ -21,6 +21,7 @@ import PublicHeader from '@/components/shared/PublicHeader';
 import PublicFooter from '@/components/shared/PublicFooter';
 import KainaraLogo from '@/components/shared/KainaraLogo';
 import Image from 'next/image';
+import LandingHeroMedia from '@/components/landing/LandingHeroMedia';
 import {
   LandingWaveHero,
   SectionWaveBorderTop,
@@ -217,13 +218,7 @@ export default function Home() {
 
                 {/* Dashboard Screenshot Mockup */}
                 <div className="relative flex-1 overflow-hidden bg-[#071914]">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src="/dashboard-actual.png"
-                    alt="Example KAINARA nutrition dashboard"
-                    className="h-full w-full object-cover object-top transition duration-700 hover:scale-[1.01]"
-                    loading="eager"
-                  />
+                  <LandingHeroMedia />
                 </div>
               </div>
             </ContainerScroll>

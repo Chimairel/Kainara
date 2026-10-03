@@ -36,6 +36,7 @@ const pageTitles: Record<string, string> = {
   '/admin/data': 'Nutrition data',
   '/admin/meals': 'Author meals',
   '/admin/images': 'Meal images',
+  '/admin/website': 'Website content',
   '/admin/profile': 'Admin profile',
   '/docs': 'Documentation & user guide',
   '/sources': 'Sources',

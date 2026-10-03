@@ -3015,3 +3015,13 @@ model ApplicationEmailVerification {
   proofHash       String?
   verifiedUntil   DateTime?
 }
+
+/// Administrator-managed public landing media; drafts never appear in the public response.
+model WebsiteContent {
+  id            String    @id @db.VarChar(64)
+  revision      Int       @default(0)
+  draft         Json?
+  published     Json?
+  publishedAt   DateTime?
+  updatedAt     DateTime  @updatedAt
+}

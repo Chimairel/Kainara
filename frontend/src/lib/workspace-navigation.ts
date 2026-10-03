@@ -164,6 +164,13 @@ export const workspaceTools: Record<WorkspaceRole, WorkspaceTool[]> = {
       icon: ImageIcon,
     },
     {
+      label: 'Website content',
+      href: '/admin/website',
+      description: 'Preview and publish the landing-page image or promotional video.',
+      group: 'Content & evidence',
+      icon: ImageIcon,
+    },
+    {
       label: 'Admin profile',
       href: '/admin/profile',
       description: 'Account security, appearance, and administrative session controls.',
@@ -185,6 +192,7 @@ export const primaryWorkspaceTools: Record<WorkspaceRole, WorkspaceTool[]> = {
     '/admin/data',
     '/admin/meals',
     '/admin/images',
+    '/admin/website',
     '/admin/operations',
     '/admin/analytics',
   ].map((href) => {
@@ -196,7 +204,7 @@ export const primaryWorkspaceTools: Record<WorkspaceRole, WorkspaceTool[]> = {
           ? 'Overview'
           : ['/admin/users', '/admin/nutritionists'].includes(href)
             ? 'People'
-            : ['/admin/data', '/admin/meals', '/admin/images'].includes(href)
+            : ['/admin/data', '/admin/meals', '/admin/images', '/admin/website'].includes(href)
               ? 'Content & data'
               : 'Operations',
     };
