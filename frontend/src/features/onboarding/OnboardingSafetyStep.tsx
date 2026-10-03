@@ -21,7 +21,7 @@ interface OnboardingSafetyStepProps {
   guidance: string;
   editableDomains: SafetyEntryDomain[];
   nextHref: string;
-  offerClinicalDocuments?: boolean;
+  offerHealthDetails?: boolean;
 }
 
 export default function OnboardingSafetyStep({
@@ -33,7 +33,7 @@ export default function OnboardingSafetyStep({
   guidance,
   editableDomains,
   nextHref,
-  offerClinicalDocuments = false,
+  offerHealthDetails = false,
 }: OnboardingSafetyStepProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -96,11 +96,9 @@ export default function OnboardingSafetyStep({
             editableDomains={editableDomains}
             submitLabel={isFromReview ? 'Save & Return to Review' : 'Save and continue →'}
             onSaved={async (entries) => {
-              const hasDeclaredCondition = entries.some(
-                (entry) => entry.domain === 'CONDITION' && entry.canonicalCode !== 'NONE'
-              );
+              const hasDeclaredHealthRestriction = entries.some((entry) => entry.canonicalCode !== 'NONE');
               const nextTarget =
-                offerClinicalDocuments && hasDeclaredCondition
+                (offerHealthDetails || isFromReview) && hasDeclaredHealthRestriction
                   ? `/onboarding/clinical-evidence${isFromReview ? '?from=review' : ''}`
                   : isFromReview
                     ? '/onboarding/tos'

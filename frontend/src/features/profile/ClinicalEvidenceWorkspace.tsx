@@ -117,12 +117,12 @@ export default function ClinicalEvidenceWorkspace({ mode = 'profile' }: { mode?:
     >
       {mode === 'onboarding' ? (
         <>
-          <OnboardingProgressSlider currentStep={3} totalSteps={6} />
+          <OnboardingProgressSlider currentStep={4} totalSteps={6} />
           <Link
-            href={params.get('from') === 'review' ? '/onboarding/conditions?from=review' : '/onboarding/conditions'}
+            href={params.get('from') === 'review' ? '/onboarding/tos' : '/onboarding/allergies'}
             className="text-sm text-brand-muted"
           >
-            Back to medical conditions
+            {params.get('from') === 'review' ? 'Back to review' : 'Back to food safety'}
           </Link>
         </>
       ) : (
@@ -237,13 +237,13 @@ export default function ClinicalEvidenceWorkspace({ mode = 'profile' }: { mode?:
             <div className="flex justify-end">
               <button
                 type="button"
-                disabled={busy}
+                disabled={busy || loading || !workspace || pendingAreas.length > 0}
                 onClick={() =>
-                  router.push(params.get('from') === 'review' ? '/onboarding/tos' : '/onboarding/allergies')
+                  router.push(params.get('from') === 'review' ? '/onboarding/tos' : '/onboarding/shopping-day')
                 }
                 className="min-h-12 rounded-xl bg-brand-accent px-5 py-3 font-bold text-white"
               >
-                {params.get('from') === 'review' ? 'Return to review' : 'Continue to food safety'}
+                {params.get('from') === 'review' ? 'Return to review' : 'Continue to shopping day'}
               </button>
             </div>
           )}

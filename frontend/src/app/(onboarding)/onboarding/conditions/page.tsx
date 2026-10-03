@@ -11,7 +11,6 @@ export default function OnboardingConditionsPage() {
       description="Combine common choices with your own terms, then review every entry before saving."
       guidance="Report diagnosed conditions accurately. Vague or unsupported entries require clarification or individual review."
       editableDomains={['CONDITION']}
-      offerClinicalDocuments
       nextHref="/onboarding/allergies"
     />
   );

@@ -1,17 +1,18 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import ClinicalEvidenceWorkspace from './ClinicalEvidenceWorkspace';
-const mocks = vi.hoisted(() => ({ get: vi.fn(), put: vi.fn(), push: vi.fn() }));
+const mocks = vi.hoisted(() => ({ get: vi.fn(), put: vi.fn(), push: vi.fn(), search: '' }));
 vi.mock('@/hooks/useAuth', () => ({ useAuth: () => ({ user: { userId: 'fixture' } }) }));
 vi.mock('@/lib/axios', () => ({ default: mocks }));
 vi.mock('next/navigation', () => ({
   useRouter: () => ({ push: mocks.push }),
-  useSearchParams: () => new URLSearchParams(),
+  useSearchParams: () => new URLSearchParams(mocks.search),
 }));
 const workspace = { safetyRevision: 2, availableAreas: ['HEART_CONDITION'], requirements: [], contexts: [] };
 describe('health details form', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.search = '';
     mocks.get.mockResolvedValue({ data: { data: workspace } });
     mocks.put.mockResolvedValue({ data: { data: workspace } });
   });
@@ -38,8 +39,8 @@ describe('health details form', () => {
       )
     );
     expect(await screen.findByText(/Health details saved/)).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'Continue to food safety' }));
-    expect(mocks.push).toHaveBeenCalledWith('/onboarding/allergies');
+    fireEvent.click(screen.getByRole('button', { name: 'Continue to shopping day' }));
+    expect(mocks.push).toHaveBeenCalledWith('/onboarding/shopping-day');
   });
   it('shows a nutritionist request and restores saved answers', async () => {
     mocks.get.mockImplementation((path: string) =>
@@ -83,6 +84,7 @@ describe('health details form', () => {
     expect(await screen.findByLabelText('Related condition or restriction')).toHaveValue('FOOD_ALLERGY');
     expect(screen.getByText('1 of 2 health detail forms complete.')).toBeInTheDocument();
     expect(screen.getByLabelText('Condition or restriction details')).toHaveValue('');
+    expect(screen.getByRole('button', { name: 'Continue to shopping day' })).toBeDisabled();
     fireEvent.change(screen.getByLabelText('Related condition or restriction'), {
       target: { value: 'HEART_CONDITION' },
     });
@@ -129,5 +131,14 @@ describe('health details form', () => {
     expect(screen.getByLabelText('Condition or restriction details')).toHaveValue('');
     expect(mocks.put).toHaveBeenCalledTimes(1);
     expect(mocks.put.mock.calls[0][1]).toMatchObject({ area: 'HEART_CONDITION', expectedSafetyRevision: 2 });
+  });
+  it('returns completed review edits to the review screen, without changing normal onboarding order', async () => {
+    mocks.search = 'from=review';
+    render(<ClinicalEvidenceWorkspace mode="onboarding" />);
+    const continueButton = await screen.findByRole('button', { name: 'Return to review' });
+    expect(continueButton).toBeEnabled();
+    expect(screen.getByRole('link', { name: 'Back to review' })).toHaveAttribute('href', '/onboarding/tos');
+    fireEvent.click(continueButton);
+    expect(mocks.push).toHaveBeenCalledWith('/onboarding/tos');
   });
 });
