@@ -9,11 +9,9 @@ import { useNutritionistReviews } from '@/features/nutritionist-reviews/useNutri
 
 type Props = { review: ReturnType<typeof useNutritionistReviews>; caseFilter: string; expanded: boolean };
 
-export default function CaseReviewQueue({ review, caseFilter, expanded }: Props) {
+export default function CaseReviewQueue({ review, expanded }: Props) {
   const { queue, fetchQueue, isLoading, selectedMealId, errorMsg, handleSelectMeal } = review;
-  const visibleQueue = queue.filter((meal) =>
-    caseFilter === 'second' ? meal.requiresIndependentSecondReview : !meal.requiresIndependentSecondReview
-  );
+  const visibleQueue = queue;
   return (
     <div
       className={`${selectedMealId ? 'hidden md:flex' : 'flex'} ${expanded ? '!hidden' : ''} h-full w-full min-w-0 flex-col border-brand-border/70 bg-brand-surface/75 p-5 md:w-[38%] md:min-w-[280px] md:border-r`}
@@ -92,12 +90,10 @@ export default function CaseReviewQueue({ review, caseFilter, expanded }: Props)
                 <h3 className="text-sm font-bold text-brand-text truncate mb-1">{meal.mealName}</h3>
                 {meal.highRiskReviewRequired && (
                   <p className="mb-2 text-[9px] font-black uppercase tracking-wider text-[#8c3b00] dark:text-[#ff8a3d]">
-                    {meal.requiresIndependentSecondReview ? 'Independent second review required' : 'Escalated review'}
+                    Review health context
                   </p>
                 )}
-                <p className="mb-2 text-[10px] font-bold text-brand-green">
-                  {meal.reviewApprovalCount}/{meal.highRiskReviewRequired ? 2 : 1} reviews complete
-                </p>
+                <p className="mb-2 text-[10px] font-bold text-brand-green">One nutritionist approval required</p>
                 <div className="mb-2 flex flex-wrap gap-1.5 text-[9px] font-bold uppercase tracking-wide">
                   <span className="rounded-md border border-brand-border px-2 py-1 text-brand-muted">
                     {meal.sourceProvenance.replace(/_/g, ' ')}

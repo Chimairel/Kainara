@@ -137,7 +137,6 @@ export async function publishProfileMatchedMealApproval(input: {
       reviewerNutritionistId: input.nutritionistProfileId,
       reviewPolicyVersion: MEAL_PLAN_SAFETY_POLICY_VERSION,
       sourceProvenance: plan.candidateProvenance,
-      reviewDueAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
       scopeSnapshot: {
         conditions: restrictions.conditions,
         allergens: restrictions.allergies,
@@ -149,7 +148,6 @@ export async function publishProfileMatchedMealApproval(input: {
   });
   if (
     approval.flaggedAt ||
-    approval.reviewDueAt <= new Date() ||
     approval.recipeSignature !== meal.recipeSignature ||
     approval.evidenceRevision !== meal.safetyEvidenceRevision
   )

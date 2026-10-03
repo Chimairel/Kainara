@@ -50,7 +50,7 @@ async function findScopeMatchedPendingPlans(
       });
       return scope.supported && scope.key === safetyScopeKey;
     })
-    .map(({ id, userId, mealName }) => ({ id, userId, mealName }));
+    .map(({ id, userId, mealName, reviewApprovalCount }) => ({ id, userId, mealName, reviewApprovalCount }));
 }
 
 export async function approveMealPlan(
@@ -113,23 +113,11 @@ export async function approveMealPlan(
   if (plan.claimedByNutritionistId !== nutritionistProfileId || !plan.claimedAt || plan.claimedAt < claimCutoff) {
     throw new Error('You must hold an active claim before approving this meal. Please reopen it from the queue.');
   }
-  if (
-    plan.highRiskReviewRequired &&
-    plan.reviewApprovalCount === 1 &&
-    plan.firstApprovedByNutritionistId === nutritionistProfileId
-  ) {
-    throw new Error('A different nutritionist must perform the second high-risk review.');
-  }
-
   const reviewer = await prisma.nutritionistProfile.findUnique({
     where: { id: nutritionistProfileId },
-    select: { userId: true, canLeadReview: true },
+    select: { userId: true },
   });
   if (!reviewer) throw new Error('Nutritionist profile not found.');
-  if (plan.highRiskReviewRequired && plan.reviewApprovalCount === 1 && !reviewer.canLeadReview) {
-    throw new Error('Lead review capability is required for this second review.');
-  }
-
   // Approval certifies the exact saved plate. Recipe changes must go through
   // a new draft and independent base verification, never overwrite this plan.
   if (updates && Object.keys(updates).length) {
@@ -145,171 +133,6 @@ export async function approveMealPlan(
     plan.cycle.snapshot?.dailyCalorieTarget ?? planning.profile.dailyCalorieTarget ?? 2000,
     plan.mealType
   );
-
-  if (plan.highRiskReviewRequired && plan.reviewApprovalCount === 0) {
-    await prisma.$transaction(
-      async (tx) => {
-        await lockUserProfile(tx, plan.userId);
-        if (!(await ClinicalProfileReviewService.hasCurrentApproval(plan.userId, tx)))
-          throw new Error('The health details changed and need a new profile confirmation.');
-        const healthDetails = await tx.clinicalContextResponse.findMany({
-          where: { userId: plan.userId },
-          select: { area: true, responses: true, revision: true },
-        });
-        await assertObservedSourceStillAvailable(tx, plan.sourceRawRecipeCandidateId);
-        await loadPlanningNutritionContext(tx, plan.userId, 'Planning profile missing.');
-        const currentProfile = await tx.userProfile.findUniqueOrThrow({ where: { userId: plan.userId } });
-        if ('user' in plan && currentProfile.revision !== plan.user.userProfile?.revision)
-          throw new Error('User information changed. Reopen this review.');
-        const firstDecision = await tx.mealPlan.updateMany({
-          where: {
-            id: mealPlanId,
-            status: MealPlanStatus.PENDING_REVIEW,
-            reviewApprovalCount: 0,
-            baseRecipeSignature: plan.baseRecipeSignature,
-            composedServingSignature: plan.composedServingSignature,
-            claimedByNutritionistId: nutritionistProfileId,
-            claimedAt: { gte: claimCutoff },
-          },
-          data: {
-            mealName,
-            description,
-            calories,
-            proteinG,
-            carbsG,
-            fatG,
-            nutritionistNote: note || null,
-            reviewApprovalCount: 1,
-            firstApprovedByNutritionistId: nutritionistProfileId,
-            firstApprovedAt: now,
-            claimedByNutritionistId: null,
-            claimedAt: null,
-          },
-        });
-        if (firstDecision.count !== 1) {
-          throw new Error('The active claim expired or this meal was already reviewed. Please refresh the queue.');
-        }
-
-        await tx.mealPlanReviewDecision.create({
-          data: {
-            mealPlanId,
-            nutritionistProfileId,
-            stage: 'PRIMARY',
-            decision: 'APPROVE',
-            rationale: note?.trim() || null,
-            evidenceSnapshot: {
-              mealName,
-              composedServingSignature: plan.composedServingSignature,
-              servingComponents: plan.servingComponents.map(
-                ({ componentType, quantityG, foodItemId, evidenceSource }) => ({
-                  componentType,
-                  quantityG,
-                  foodItemId,
-                  evidenceSource,
-                })
-              ),
-              calories,
-              proteinG,
-              carbsG,
-              fatG,
-              policyVersion: MEAL_PLAN_SAFETY_POLICY_VERSION,
-              healthDetails: healthDetails.map((item) => ({ ...item, provenance: 'USER_REPORTED' })),
-              clinicalDocuments: clinicalDocuments.map(({ id, revision, sha256, area, documentType, validUntil }) => ({
-                id,
-                revision,
-                sha256,
-                area,
-                documentType,
-                validUntil,
-              })),
-            },
-          },
-        });
-        if (clinicalDocuments.length) {
-          await tx.mealPlanClinicalEvidence.createMany({
-            data: clinicalDocuments.map((document) => ({
-              mealPlanId,
-              clinicalDocumentId: document.id,
-              documentRevision: document.revision,
-              documentSha256: document.sha256,
-            })),
-            skipDuplicates: true,
-          });
-        }
-
-        if (plan.reviewWorkKey && !updates && clinicalDocuments.length === 0 && approvedScope.supported) {
-          const dependents = await findScopeMatchedPendingPlans(
-            tx,
-            {
-              id: { not: mealPlanId },
-              ...(healthDetails.length ? { userId: plan.userId } : {}),
-              reviewWorkKey: plan.reviewWorkKey,
-              status: MealPlanStatus.PENDING_REVIEW,
-              reviewApprovalCount: 0,
-              claimedByNutritionistId: null,
-              cycle: { profileAdaptationState: 'CURRENT' },
-            },
-            approvedScope.key
-          );
-          if (dependents.length) {
-            await tx.mealPlan.updateMany({
-              where: { id: { in: dependents.map((item) => item.id) } },
-              data: {
-                reviewApprovalCount: 1,
-                firstApprovedByNutritionistId: nutritionistProfileId,
-                firstApprovedAt: now,
-                claimedByNutritionistId: null,
-                claimedAt: null,
-              },
-            });
-            await tx.mealPlanReviewDecision.createMany({
-              data: dependents.map((item) => ({
-                mealPlanId: item.id,
-                nutritionistProfileId,
-                stage: 'PRIMARY' as const,
-                decision: 'APPROVE' as const,
-                rationale: null,
-                evidenceSnapshot: {
-                  coalescedFromMealPlanId: mealPlanId,
-                  reviewWorkKey: plan.reviewWorkKey,
-                  policyVersion: MEAL_PLAN_SAFETY_POLICY_VERSION,
-                },
-              })),
-            });
-            await tx.notification.createMany({
-              data: dependents.map((item) => ({
-                userId: item.userId,
-                title: 'Additional safety review in progress',
-                message: `Your meal "${item.mealName}" passed its first review and is awaiting an independent second nutritionist review.`,
-                type: NotificationType.REVIEW_REQUEST,
-              })),
-            });
-          }
-        }
-
-        await tx.auditEvent.create({
-          data: {
-            actorUserId: reviewer.userId,
-            action: 'MEAL_PLAN_FIRST_HIGH_RISK_APPROVAL',
-            entityType: 'MealPlan',
-            entityId: mealPlanId,
-            metadata: { policyVersion: MEAL_PLAN_SAFETY_POLICY_VERSION },
-          },
-        });
-        await tx.notification.create({
-          data: {
-            userId: plan.userId,
-            title: 'Additional safety review in progress',
-            message: `Your meal "${mealName}" passed its first review and is awaiting an independent second nutritionist review.`,
-            type: NotificationType.REVIEW_REQUEST,
-          },
-        });
-      },
-      { isolationLevel: Prisma.TransactionIsolationLevel.Serializable }
-    );
-
-    return { success: true, awaitingSecondReview: true };
-  }
 
   const coalescedApprovedUserIds = await prisma.$transaction(
     async (tx) => {
@@ -352,7 +175,7 @@ export async function approveMealPlan(
           reviewedAt: now,
           requiresSafetyRevalidation: false,
           safetyPolicyVersion: MEAL_PLAN_SAFETY_POLICY_VERSION,
-          reviewApprovalCount: plan.highRiskReviewRequired ? 2 : 1,
+          reviewApprovalCount: 1,
           claimedByNutritionistId: null,
           claimedAt: null,
         },
@@ -366,7 +189,7 @@ export async function approveMealPlan(
         data: {
           mealPlanId,
           nutritionistProfileId,
-          stage: plan.highRiskReviewRequired ? 'SECONDARY' : 'PRIMARY',
+          stage: plan.reviewApprovalCount > 0 ? 'RECHECK' : 'PRIMARY',
           decision: 'APPROVE',
           rationale: note?.trim() || null,
           evidenceSnapshot: {
@@ -416,13 +239,10 @@ export async function approveMealPlan(
           ...(healthDetails.length ? { userId: plan.userId } : {}),
           reviewWorkKey: plan.reviewWorkKey,
           status: MealPlanStatus.PENDING_REVIEW,
-          reviewApprovalCount: plan.highRiskReviewRequired ? 1 : 0,
+          reviewApprovalCount: { in: [0, 1] },
           claimedByNutritionistId: null,
           cycle: { profileAdaptationState: 'CURRENT' },
         };
-        if (plan.highRiskReviewRequired) {
-          dependentWhere.firstApprovedByNutritionistId = { not: nutritionistProfileId };
-        }
         const dependents = await findScopeMatchedPendingPlans(tx, dependentWhere, approvedScope.key);
 
         if (dependents.length) {
@@ -436,7 +256,7 @@ export async function approveMealPlan(
               reviewedAt: now,
               requiresSafetyRevalidation: false,
               safetyPolicyVersion: MEAL_PLAN_SAFETY_POLICY_VERSION,
-              reviewApprovalCount: plan.highRiskReviewRequired ? 2 : 1,
+              reviewApprovalCount: 1,
               claimedByNutritionistId: null,
               claimedAt: null,
             },
@@ -445,7 +265,7 @@ export async function approveMealPlan(
             data: dependents.map((item) => ({
               mealPlanId: item.id,
               nutritionistProfileId,
-              stage: plan.highRiskReviewRequired ? ('SECONDARY' as const) : ('PRIMARY' as const),
+              stage: item.reviewApprovalCount > 0 ? ('RECHECK' as const) : ('PRIMARY' as const),
               decision: 'APPROVE' as const,
               rationale: null,
               evidenceSnapshot: {
@@ -500,7 +320,7 @@ export async function approveMealPlan(
       await tx.auditEvent.create({
         data: {
           actorUserId: reviewer.userId,
-          action: plan.highRiskReviewRequired ? 'MEAL_PLAN_SECOND_HIGH_RISK_APPROVAL' : 'MEAL_PLAN_APPROVED',
+          action: 'MEAL_PLAN_APPROVED',
           entityType: 'MealPlan',
           entityId: mealPlanId,
           metadata: {

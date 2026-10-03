@@ -188,7 +188,6 @@ export class CertifiedSlotFallbackService {
             (item) =>
               item.safetyScopeKey === profileScope?.key &&
               !item.flaggedAt &&
-              item.reviewDueAt > new Date() &&
               item.recipeSignature === latest.recipeSignature &&
               item.evidenceRevision === latest.safetyEvidenceRevision
           )
@@ -232,7 +231,7 @@ export class CertifiedSlotFallbackService {
           requiresSafetyRevalidation: false,
           safetyPolicyVersion: MEAL_PLAN_SAFETY_POLICY_VERSION,
           highRiskReviewRequired: target.cycle.assuranceTier === AssuranceTier.ENHANCED,
-          reviewApprovalCount: target.cycle.assuranceTier === AssuranceTier.ENHANCED ? 2 : 1,
+          reviewApprovalCount: 1,
           candidateRank: 1,
           rankingScore: ranking.score,
           rankingReasonCodes: [...ranking.reasonCodes, input.reasonCode],

@@ -40,7 +40,6 @@ interface NProfile {
   officialHeadshot?: string | null;
   isVerified: boolean;
   totalVerified: number;
-  canLeadReview?: boolean;
   verifiedAt?: string | null;
 }
 
@@ -213,11 +212,6 @@ export default function NutritionistProfilePage() {
                     <Badge variant={profile?.isVerified ? 'verified' : 'pending'}>
                       {profile?.isVerified ? 'PRC Verified RND' : 'Verification Pending'}
                     </Badge>
-                    {profile?.canLeadReview && (
-                      <span className="inline-flex items-center gap-1 rounded-full border border-cyan-500/30 bg-cyan-500/10 px-2.5 py-0.5 font-mono text-[9px] font-extrabold uppercase tracking-wider text-cyan-700 dark:text-cyan-300">
-                        <ShieldCheck className="h-3 w-3" /> Lead Reviewer
-                      </span>
-                    )}
                   </div>
 
                   <p className="font-mono text-xs font-bold text-emerald-700 dark:text-emerald-400 flex flex-wrap items-center justify-center sm:justify-start gap-2">
@@ -507,11 +501,9 @@ export default function NutritionistProfilePage() {
                 </div>
                 <div className="rounded-xl border border-[#dce4e0] dark:border-[#173e33] bg-white/60 dark:bg-[#071914] p-3.5 space-y-1">
                   <span className="text-[10px] font-mono uppercase text-[#6b857c] dark:text-[#8ea99f]">
-                    Audit Governance Tier
+                    Review role
                   </span>
-                  <p className="font-bold text-[#0d2820] dark:text-white">
-                    {profile?.canLeadReview ? 'Lead Clinical Reviewer (Tier 2)' : 'Clinical Reviewer (Tier 1)'}
-                  </p>
+                  <p className="font-bold text-[#0d2820] dark:text-white">Registered Nutritionist-Dietitian</p>
                 </div>
               </div>
             </div>

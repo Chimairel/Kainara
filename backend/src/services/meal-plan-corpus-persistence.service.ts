@@ -136,7 +136,7 @@ export async function savePreparedCorpusMeal(
           safetyEntries,
         }).key,
         policyVersion: MEAL_PLAN_SAFETY_POLICY_VERSION,
-        requiredReviewerCount: highRiskReviewRequired ? 2 : 1,
+        requiredReviewerCount: 1,
       }),
       candidateRank: meal.candidateRank ?? 1,
       rankingScore: meal.rankingScore ?? null,

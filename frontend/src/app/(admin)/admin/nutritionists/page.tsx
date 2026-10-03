@@ -181,16 +181,6 @@ export default function AdminNutritionistsPage() {
                 suspended ? 'Nutritionist access revoked. Past reviews are preserved.' : 'Nutritionist access restored.'
               )
             }
-            onToggleLead={(nutritionist) =>
-              void act(
-                nutritionist.id,
-                () =>
-                  api.patch(`/admin/nutritionists/${nutritionist.id}/lead-capability`, {
-                    canLeadReview: !nutritionist.canLeadReview,
-                  }),
-                `Lead capability ${nutritionist.canLeadReview ? 'removed' : 'granted'}.`
-              )
-            }
           />
         </section>
       )}

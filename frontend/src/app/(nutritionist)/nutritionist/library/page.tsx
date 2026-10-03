@@ -303,9 +303,9 @@ export default function MealLibraryPage() {
           {viewedMeal.status === 'FLAGGED' ? (
             <>
               <p className="text-sm text-brand-muted">
-                This base meal and every serving variant are unavailable. An uninvolved Lead must resolve the flag;
-                authors, original verifiers and flaggers cannot release it. Recorded approvals remain intact; separately
-                flagged approvals stay flagged after release.
+                This base meal and every serving variant are unavailable. An uninvolved nutritionist must resolve the
+                flag; authors, original verifiers and flaggers cannot release it. Recorded approvals remain intact;
+                separately flagged approvals stay flagged after release.
               </p>
               {viewedMeal.flags
                 ?.filter((flag) => flag.status === 'PENDING')
@@ -318,7 +318,7 @@ export default function MealLibraryPage() {
                   </p>
                 ))}
               <label htmlFor="meal-release-findings" className="block text-sm font-semibold text-brand-text">
-                Independent Lead review findings
+                Review findings
               </label>
               <textarea
                 id="meal-release-findings"

@@ -26,7 +26,6 @@ type DisputedPlan = {
 type DueProfileApproval = {
   id: string;
   mealLibraryId: string;
-  reviewDueAt: string;
   flaggedAt: string | null;
   flagReason: string | null;
   mealLibrary: { mealName: string };
@@ -34,7 +33,6 @@ type DueProfileApproval = {
 
 export default function GovernanceQueuePanel({ tab }: { tab: 'audit' | 'disputed' }) {
   const [data, setData] = useState<{
-    canLeadReview: boolean;
     clearances: GovernanceClearance[];
     plans?: DisputedPlan[];
   } | null>(null);
@@ -79,7 +77,7 @@ export default function GovernanceQueuePanel({ tab }: { tab: 'audit' | 'disputed
       setMessage('Decision recorded.');
       await load();
     } catch {
-      setMessage('The decision could not be recorded. Check Lead eligibility and reviewer independence.');
+      setMessage('The decision could not be recorded. Check reviewer eligibility and independence.');
     }
   };
 
@@ -91,7 +89,7 @@ export default function GovernanceQueuePanel({ tab }: { tab: 'audit' | 'disputed
       setMessage('Clearance suspended; future matching now fails closed.');
       await load();
     } catch {
-      setMessage('Only an eligible Lead can suspend reusable evidence.');
+      setMessage('A verified nutritionist with a current license is required to suspend this approval.');
     }
   };
 
@@ -103,7 +101,7 @@ export default function GovernanceQueuePanel({ tab }: { tab: 'audit' | 'disputed
         kind,
         rationale: rationale.trim(),
       });
-      setMessage('Approval recheck recorded.');
+      setMessage('Approval review recorded.');
       setSelectedProfile(null);
       setCaseDetail(null);
       await load();
@@ -134,8 +132,8 @@ export default function GovernanceQueuePanel({ tab }: { tab: 'audit' | 'disputed
         </h1>
         <p className="mt-2 text-sm text-brand-muted">
           {tab === 'audit'
-            ? 'Priority is calculated by suspension, ruleset impact, assurance tier, unique-member exposure, review age, and daily sampling.'
-            : 'Disagreements remain blocked until an independent Lead records adjudication.'}
+            ? 'Review manually flagged or suspended approvals and unfinished decisions.'
+            : 'Disagreements remain blocked until an nutritionist who was not involved resolves them.'}
         </p>
       </div>
       {message && (
@@ -159,7 +157,7 @@ export default function GovernanceQueuePanel({ tab }: { tab: 'audit' | 'disputed
                     {clearance.auditReason || `Used by ${clearance.uniqueUserExposure ?? 0} members`}
                   </p>
                 </div>
-                {data.canLeadReview && (
+                {
                   <div className="flex gap-2">
                     {tab === 'disputed' ? (
                       <>
@@ -199,7 +197,7 @@ export default function GovernanceQueuePanel({ tab }: { tab: 'audit' | 'disputed
                       </>
                     )}
                   </div>
-                )}
+                }
               </div>
             </div>
           ))}
@@ -207,10 +205,7 @@ export default function GovernanceQueuePanel({ tab }: { tab: 'audit' | 'disputed
             dueProfiles.map((approval) => (
               <div key={approval.id} className="rounded-2xl border border-brand-border bg-brand-surface p-4">
                 <p className="font-bold">{approval.mealLibrary.mealName}</p>
-                <p className="text-xs text-brand-muted">
-                  Profile approval ·{' '}
-                  {approval.flaggedAt ? 'Flagged' : `Review due ${new Date(approval.reviewDueAt).toLocaleDateString()}`}
-                </p>
+                <p className="text-xs text-brand-muted">Profile approval · Flagged</p>
                 {approval.flagReason && (
                   <p className="text-xs text-[#8c3b00] dark:text-[#ff8a3d]">{approval.flagReason}</p>
                 )}
@@ -230,7 +225,7 @@ export default function GovernanceQueuePanel({ tab }: { tab: 'audit' | 'disputed
                       recorded context before renewal.
                     </p>
                     <Button size="sm" onClick={() => void recheck(approval.mealLibraryId, approval.id, 'PROFILE')}>
-                      Record recheck
+                      Review flagged approval
                     </Button>
                   </div>
                 )}
@@ -243,7 +238,7 @@ export default function GovernanceQueuePanel({ tab }: { tab: 'audit' | 'disputed
                 <p className="mt-1 text-xs text-brand-muted">
                   {plan.user.name} · {plan.mealType}
                 </p>
-                {data.canLeadReview && (
+                {
                   <div className="mt-3 flex gap-2">
                     <Button
                       size="sm"
@@ -259,7 +254,7 @@ export default function GovernanceQueuePanel({ tab }: { tab: 'audit' | 'disputed
                       Reject
                     </Button>
                   </div>
-                )}
+                }
               </div>
             ))}
           {data.clearances.length === 0 && dueProfiles.length === 0 && (data.plans?.length ?? 0) === 0 && (

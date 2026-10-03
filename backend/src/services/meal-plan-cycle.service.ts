@@ -244,10 +244,9 @@ export class MealPlanCycleService {
             profileApproval.evidenceRevision === library.safetyEvidenceRevision &&
             profileApproval.reviewPolicyVersion === MEAL_PLAN_SAFETY_POLICY_VERSION &&
             !profileApproval.flaggedAt &&
-            profileApproval.reviewDueAt > now &&
             isNutritionistEligibleForReview(profileApproval.reviewerNutritionist, now);
           const distinctCaseReviewers = new Set(meal.reviewDecisions.map((decision) => decision.nutritionistProfileId));
-          const caseReviewComplete = distinctCaseReviewers.size >= (meal.highRiskReviewRequired ? 2 : 1);
+          const caseReviewComplete = distinctCaseReviewers.size >= 1;
           // An allergy-absent declaration belongs to the base recipe. Legacy
           // auto-approved allergy plans without a scoped approval or an actual
           // case decision must not remain usable after the policy correction.
@@ -268,7 +267,6 @@ export class MealPlanCycleService {
                   (!usage.clearance.composedServingSignature ||
                     usage.clearance.composedServingSignature === meal.composedServingSignature) &&
                   (!usage.clearance.expiresAt || usage.clearance.expiresAt > now) &&
-                  Boolean(usage.clearance.auditDueAt && usage.clearance.auditDueAt > now) &&
                   (!usage.clearance.userScopeId || usage.clearance.userScopeId === userId)
               )
               .map((usage) => usage.condition)
@@ -298,7 +296,7 @@ export class MealPlanCycleService {
         )
           return false;
         const distinctApprovers = new Set(meal.reviewDecisions.map((decision) => decision.nutritionistProfileId));
-        const requiredApprovals = meal.highRiskReviewRequired ? 2 : 1;
+        const requiredApprovals = 1;
         return meal.reviewApprovalCount >= requiredApprovals && distinctApprovers.size >= requiredApprovals;
       })
       .map((meal) => meal.id);

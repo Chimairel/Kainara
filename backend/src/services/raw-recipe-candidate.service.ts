@@ -1,11 +1,10 @@
-import { AssuranceTier, DietaryPreference, MealType, type RicePreference } from '@prisma/client';
+import { DietaryPreference, MealType, type RicePreference } from '@prisma/client';
 import {
   getMealSlotCalorieRange,
   isPrimaryMealType,
   type PrimaryMealType,
 } from '@/domain/meal-calorie-allocation.policy';
 import { splitCustomRestrictions, validateGeneratedMealCandidate } from '@/domain/generated-meal-validation.policy';
-import { getMaximumAssuranceTier } from '@/domain/assurance-tier.policy';
 import { scorePreparationCandidate, type PreparationRankingReasonCode } from '@/domain/upcoming-preparation.policy';
 import { databaseRecipeCandidateProvider } from './panlasang-recipe-candidate.provider';
 import type { RecipeCandidateProjection } from './recipe-candidate-provider';
@@ -358,7 +357,6 @@ export async function sourceRawRecipeCandidates(
   }
 ): Promise<{ meals: SourcedRawRecipeMeal[]; remainingSlots: RawCandidateSlot[] }> {
   if (input.slots.length === 0) return { meals: [], remainingSlots: [] };
-  const assuranceTier = getMaximumAssuranceTier(input.conditions);
   const mealTypes = [...new Set(input.slots.map((slot) => slot.mealType))];
   const sources = input.reviewFreeBaseOnly
     ? (['PANLASANG_PINOY'] as const)
@@ -382,7 +380,7 @@ export async function sourceRawRecipeCandidates(
       ingredientsResolved: scaled.ingredientsComplete,
       nutrientsComplete: scaled.nutrition !== null,
       dietCompatible: true,
-      remainingReviews: assuranceTier === AssuranceTier.ENHANCED ? 2 : 1,
+      remainingReviews: 1,
       calorieDeviationRatio: scaled.nutrition ? Math.abs(scaled.plateCalories - range.target) / range.target : 1,
       mealTypeMatch: candidate.applicableMealTypes.includes(mealType),
       riceRole: scaled.riceRole,

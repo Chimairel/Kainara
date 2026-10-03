@@ -41,17 +41,9 @@ export async function rejectMealPlan(nutritionistProfileId: string, mealPlanId: 
 
   const reviewer = await prisma.nutritionistProfile.findUnique({
     where: { id: nutritionistProfileId },
-    select: { userId: true, canLeadReview: true },
+    select: { userId: true },
   });
   if (!reviewer) throw new Error('Nutritionist profile not found.');
-  const isSecondReview = plan.highRiskReviewRequired && plan.reviewApprovalCount === 1;
-  if (isSecondReview) {
-    if (!reviewer.canLeadReview) throw new Error('Lead review capability is required for this second review.');
-    if (plan.firstApprovedByNutritionistId === nutritionistProfileId) {
-      throw new Error('A different nutritionist must perform the independent second review.');
-    }
-  }
-
   await prisma.$transaction(
     async (tx) => {
       await lockUserProfile(tx, plan.userId);
@@ -66,7 +58,7 @@ export async function rejectMealPlan(nutritionistProfileId: string, mealPlanId: 
           claimedAt: { gte: claimCutoff },
         },
         data: {
-          status: isSecondReview ? MealPlanStatus.DISPUTED : MealPlanStatus.REJECTED,
+          status: MealPlanStatus.REJECTED,
           nutritionistId: nutritionistProfileId,
           nutritionistNote: reason,
           reviewedAt: now,
@@ -83,7 +75,7 @@ export async function rejectMealPlan(nutritionistProfileId: string, mealPlanId: 
         data: {
           mealPlanId,
           nutritionistProfileId,
-          stage: isSecondReview ? 'SECONDARY' : 'PRIMARY',
+          stage: plan.reviewApprovalCount > 0 ? 'RECHECK' : 'PRIMARY',
           decision: 'REJECT',
           rationale: reason.trim(),
           evidenceSnapshot: {
@@ -100,17 +92,15 @@ export async function rejectMealPlan(nutritionistProfileId: string, mealPlanId: 
       await tx.notification.create({
         data: {
           userId: plan.userId,
-          title: isSecondReview ? 'Meal review requires adjudication' : 'Meal Plan Needs Changes ⚠️',
-          message: isSecondReview
-            ? `Independent reviewers disagreed about "${plan.mealName}". It is blocked pending Lead adjudication.`
-            : `Your meal "${plan.mealName}" was flagged by a dietitian: ${reason.trim().replace(/[.!?]+$/, '')}. We are checking for a safe replacement; this slot is unavailable until one is reviewed.`,
+          title: 'Meal Plan Needs Changes ⚠️',
+          message: `Your meal "${plan.mealName}" needs changes. ${reason}`,
           type: NotificationType.PLAN_REJECTED,
         },
       });
       await tx.auditEvent.create({
         data: {
           actorUserId: reviewer.userId,
-          action: isSecondReview ? 'MEAL_PLAN_REVIEW_DISPUTED' : 'MEAL_PLAN_REJECTED',
+          action: 'MEAL_PLAN_REJECTED',
           entityType: 'MealPlan',
           entityId: mealPlanId,
           metadata: { reason: reason.trim().slice(0, 240) },
@@ -119,8 +109,6 @@ export async function rejectMealPlan(nutritionistProfileId: string, mealPlanId: 
     },
     { isolationLevel: Prisma.TransactionIsolationLevel.Serializable }
   );
-
-  if (isSecondReview) return { success: true, disputed: true };
 
   const certifiedFallback = await CertifiedSlotFallbackService.replaceWithBestCertified({
     mealPlanId,
@@ -218,7 +206,7 @@ export async function rejectMealPlan(nutritionistProfileId: string, mealPlanId: 
                   safetyEntries: plan.user.safetyProfileEntries,
                 }).key,
                 policyVersion: MEAL_PLAN_SAFETY_POLICY_VERSION,
-                requiredReviewerCount: plan.highRiskReviewRequired ? 2 : 1,
+                requiredReviewerCount: 1,
               }),
               candidateRank: meal.candidateRank ?? 1,
               rankingScore: meal.rankingScore,
@@ -331,7 +319,7 @@ export async function rejectMealPlan(nutritionistProfileId: string, mealPlanId: 
               safetyEntries: plan.user.safetyProfileEntries,
             }).key,
             policyVersion: MEAL_PLAN_SAFETY_POLICY_VERSION,
-            requiredReviewerCount: plan.highRiskReviewRequired ? 2 : 1,
+            requiredReviewerCount: 1,
           }),
           candidateRank: 1,
           rankingReasonCodes: ['RND_REJECTION_AI_FALLBACK'],

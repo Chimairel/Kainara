@@ -15,7 +15,6 @@ export class NutritionistProfileService {
         officialHeadshot: true,
         isVerified: true,
         totalVerified: true,
-        canLeadReview: true,
         verifiedAt: true,
       },
     });
@@ -39,7 +38,6 @@ export class NutritionistProfileService {
         officialHeadshot: true,
         isVerified: true,
         totalVerified: true,
-        canLeadReview: true,
         verifiedAt: true,
       },
     });

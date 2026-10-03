@@ -18,7 +18,6 @@ import {
   MealPlanCycleDeadlineOutcome,
   MealPlanCycleStatus,
   MealCandidateProvenance,
-  AssuranceTier,
   RicePreference,
   Prisma,
 } from '@prisma/client';
@@ -253,7 +252,7 @@ export async function generate7DayPlan(
             ingredientsResolved: meal.ingredients.every((ingredient) => Boolean(ingredient.foodItemId)),
             nutrientsComplete: [meal.calories, meal.proteinG, meal.carbsG, meal.fatG].every(Number.isFinite),
             dietCompatible: true,
-            remainingReviews: caseReviewCandidateIds.has(meal.id) ? (highRiskReviewRequired ? 2 : 1) : 0,
+            remainingReviews: caseReviewCandidateIds.has(meal.id) ? 1 : 0,
             calorieDeviationRatio: Math.abs(plateById.get(meal.id)!.calories - range.target) / range.target,
             mealTypeMatch: meal.applicableMealTypes.some((entry) => entry.mealType === slotType),
             ricePreference: profile.ricePreference,
@@ -460,7 +459,7 @@ export async function generate7DayPlan(
         ingredientsResolved: meal.ingredientsData.every((ingredient) => Boolean(ingredient.foodItemId)),
         nutrientsComplete: [meal.calories, meal.proteinG, meal.carbsG, meal.fatG].every(Number.isFinite),
         dietCompatible: true,
-        remainingReviews: assuranceTier === AssuranceTier.ENHANCED ? 2 : 1,
+        remainingReviews: 1,
         calorieDeviationRatio: Math.abs(plateNutrition(meal).calories - range.target) / range.target,
         mealTypeMatch: true,
         ricePreference: profile.ricePreference,
@@ -639,7 +638,6 @@ export async function generate7DayPlan(
                 (item) =>
                   item.safetyScopeKey === scope?.key &&
                   !item.flaggedAt &&
-                  item.reviewDueAt > new Date() &&
                   item.recipeSignature === latest.recipeSignature &&
                   item.evidenceRevision === latest.safetyEvidenceRevision
               )
@@ -693,7 +691,7 @@ export async function generate7DayPlan(
               requiresSafetyRevalidation: requiresCaseApproval,
               safetyPolicyVersion: MEAL_PLAN_SAFETY_POLICY_VERSION,
               highRiskReviewRequired,
-              reviewApprovalCount: requiresCaseApproval ? 0 : highRiskReviewRequired ? 2 : 1,
+              reviewApprovalCount: requiresCaseApproval ? 0 : 1,
               reviewWorkKey: requiresCaseApproval
                 ? buildReviewWorkKey({
                     recipeSignature:
@@ -716,7 +714,7 @@ export async function generate7DayPlan(
                       safetyEntries: user.safetyProfileEntries,
                     }).key,
                     policyVersion: MEAL_PLAN_SAFETY_POLICY_VERSION,
-                    requiredReviewerCount: highRiskReviewRequired ? 2 : 1,
+                    requiredReviewerCount: 1,
                   })
                 : null,
               candidateRank: slot.candidateRank,

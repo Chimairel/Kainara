@@ -425,7 +425,7 @@ export class NutritionistLibraryService {
   ) {
     if (resolution === 'delete') return this.deleteLibraryMeal(userId, userRole, mealId);
     throw new Error(
-      'Create a new recipe draft for corrections. An uninvolved Lead nutritionist must resolve a whole-meal flag.'
+      'Create a new recipe draft for corrections. An uninvolved nutritionist must resolve a whole-meal flag.'
     );
   }
 }

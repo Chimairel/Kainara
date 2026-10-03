@@ -387,7 +387,7 @@ export class MealAiQueueService {
                         otherAllergies,
                         safetyEntries: context.user.safetyProfileEntries,
                       }).key,
-                      requiredReviewerCount: enhanced ? 2 : 1,
+                      requiredReviewerCount: 1,
                     }),
                     candidateRank: 1,
                     fallbackAvailable: false,

@@ -18,9 +18,9 @@ import WorkspaceTabs, { type ReviewWorkspace } from './WorkspaceTabs';
 export default function ReviewsPage() {
   const workCounts = useReviewWorkCounts();
   const [workspace, setWorkspace] = useState<ReviewWorkspace>('case');
-  const [caseFilter, setCaseFilter] = useState<'pending' | 'second' | 'disputed' | 'outside' | 'completed'>('pending');
+  const [caseFilter, setCaseFilter] = useState<'pending' | 'disputed' | 'outside' | 'completed'>('pending');
   const [expanded, setExpanded] = useState(false);
-  const review = useNutritionistReviews(workspace === 'case' && (caseFilter === 'pending' || caseFilter === 'second'));
+  const review = useNutritionistReviews(workspace === 'case' && caseFilter === 'pending');
 
   const navigation = (
     <WorkspaceTabs
@@ -41,7 +41,6 @@ export default function ReviewsPage() {
       {(
         [
           ['pending', 'Pending'],
-          ['second', 'Second decision'],
           ['outside', 'Outside food logs'],
           ['completed', 'Completed history'],
           ['disputed', 'Needs resolution'],

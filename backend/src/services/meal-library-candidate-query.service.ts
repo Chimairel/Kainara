@@ -51,7 +51,6 @@ export const certifiedLibraryMealInclude = {
             select: {
               isVerified: true,
               prcLicenseExpiry: true,
-              canLeadReview: true,
               user: { select: { isSuspended: true } },
             },
           },
@@ -124,8 +123,6 @@ export function isCertifiedLibraryMealCompatible(
           clearance.recipeSignature === meal.recipeSignature &&
           clearance.evidenceRevision === meal.safetyEvidenceRevision &&
           (!clearance.expiresAt || clearance.expiresAt > now) &&
-          clearance.auditDueAt !== null &&
-          clearance.auditDueAt > now &&
           (!clearance.userScopeId || clearance.userScopeId === profile.userId) &&
           (!conditionRequiresUserScopedClearance(clearance.condition) || clearance.userScopeId === profile.userId) &&
           (clearance.provenance === 'APPROVED_RULESET'
@@ -137,14 +134,7 @@ export function isCertifiedLibraryMealCompatible(
               clearance.decisions.filter(
                 (decision) =>
                   decision.decision === 'APPROVE' && isNutritionistEligibleForReview(decision.nutritionistProfile)
-              ).length >= (clearance.assuranceTier === 'ENHANCED' ? 2 : 1) &&
-              (clearance.assuranceTier !== 'ENHANCED' ||
-                clearance.decisions.some(
-                  (decision) =>
-                    decision.decision === 'APPROVE' &&
-                    decision.nutritionistProfile?.canLeadReview === true &&
-                    isNutritionistEligibleForReview(decision.nutritionistProfile)
-                )))
+              ).length >= 1)
       )
     : [];
   const clearedConditions = new Set(activeClearances.map((clearance) => String(clearance.condition)));
@@ -256,7 +246,6 @@ export function isProfileApprovedLibraryMealCompatible(
       entry.evidenceRevision === meal.safetyEvidenceRevision &&
       entry.reviewPolicyVersion === MEAL_PLAN_SAFETY_POLICY_VERSION &&
       !entry.flaggedAt &&
-      entry.reviewDueAt > new Date() &&
       isNutritionistEligibleForReview(entry.reviewerNutritionist)
   );
   if (!approved) return false;
@@ -359,7 +348,7 @@ export async function queryEligibleLibraryMeals(input: {
         ? [
             {
               profileApprovals: {
-                some: { safetyScopeKey: profileScope.key, flaggedAt: null, reviewDueAt: { gt: new Date() } },
+                some: { safetyScopeKey: profileScope.key, flaggedAt: null },
               },
             },
           ]
@@ -492,7 +481,7 @@ export async function queryEligibleLibraryPage(input: {
         ? [
             {
               profileApprovals: {
-                some: { safetyScopeKey: profileScope.key, flaggedAt: null, reviewDueAt: { gt: new Date() } },
+                some: { safetyScopeKey: profileScope.key, flaggedAt: null },
               },
             },
           ]

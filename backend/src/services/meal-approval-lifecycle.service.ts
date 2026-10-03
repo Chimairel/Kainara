@@ -5,23 +5,19 @@ import { isNutritionistEligibleForReview } from '@/domain/nutritionist-review.po
 import { MEAL_PLAN_SAFETY_POLICY_VERSION } from '@/domain/meal-plan-production-safety.policy';
 import { ConditionClearanceService, enforceClearanceCircuitBreakers } from './condition-clearance.service';
 
-const REVIEW_INTERVAL_MS = 365 * 24 * 60 * 60 * 1000;
-
 export async function listDueProfileApprovals(nutritionistProfileId: string) {
   await reviewer(nutritionistProfileId);
-  const now = new Date();
   return prisma.mealLibraryProfileApproval.findMany({
-    where: { OR: [{ flaggedAt: { not: null } }, { reviewDueAt: { lte: now } }] },
+    where: { flaggedAt: { not: null } },
     select: {
       id: true,
       mealLibraryId: true,
-      reviewDueAt: true,
       flaggedAt: true,
       flagReason: true,
       scopeSnapshot: true,
       mealLibrary: { select: { mealName: true, status: true } },
     },
-    orderBy: [{ flaggedAt: 'desc' }, { reviewDueAt: 'asc' }],
+    orderBy: { flaggedAt: 'desc' },
     take: 100,
   });
 }
@@ -82,7 +78,7 @@ export async function listMealApprovals(mealLibraryId: string) {
         caseScope: approval.scopeSnapshot,
         reviewerName: approval.reviewerNutritionist.user.name,
         reviewedAt: approval.approvedAt,
-        reviewDueAt: approval.reviewDueAt,
+        reviewDueAt: null,
         status: approval.flaggedAt
           ? 'FLAGGED'
           : variant.status !== 'APPROVED' ||
@@ -91,9 +87,7 @@ export async function listMealApprovals(mealLibraryId: string) {
               approval.reviewPolicyVersion !== MEAL_PLAN_SAFETY_POLICY_VERSION ||
               !isNutritionistEligibleForReview(approval.reviewerNutritionist)
             ? 'STALE'
-            : approval.reviewDueAt <= new Date()
-              ? 'REVIEW_DUE'
-              : 'ACTIVE',
+            : 'ACTIVE',
         flagReason: approval.flagReason,
       })),
       ...variant.conditionClearances.map((clearance) => ({
@@ -103,18 +97,14 @@ export async function listMealApprovals(mealLibraryId: string) {
         caseScope: recordedCaseScope(clearance.evidenceSnapshot),
         reviewerName: clearance.resolvedByNutritionist?.user.name ?? null,
         reviewedAt: clearance.activatedAt,
-        reviewDueAt: clearance.auditDueAt,
+        reviewDueAt: null,
         status: clearance.suspensionReason?.startsWith('APPROVAL_FLAGGED:')
           ? 'FLAGGED'
           : variant.status !== 'APPROVED' ||
               clearance.recipeSignature !== variant.recipeSignature ||
               clearance.evidenceRevision !== variant.safetyEvidenceRevision
             ? 'STALE'
-            : clearance.state === ConditionClearanceState.ACTIVE &&
-                clearance.auditDueAt &&
-                clearance.auditDueAt <= new Date()
-              ? 'REVIEW_DUE'
-              : clearance.state,
+            : clearance.state,
         flagReason: clearance.suspensionReason?.startsWith('APPROVAL_FLAGGED:')
           ? clearance.suspensionReason.slice('APPROVAL_FLAGGED:'.length)
           : null,
@@ -405,7 +395,7 @@ export async function flagMealApproval(input: {
   );
 }
 
-/** Explicit RND recheck; a flag and an overdue date are cleared together. */
+/** Explicit review of a manually flagged approval; no calendar-based expiry. */
 export async function recheckProfileApproval(input: {
   nutritionistProfileId: string;
   mealLibraryId: string;
@@ -426,7 +416,7 @@ export async function recheckProfileApproval(input: {
       });
       if (!approval || approval.mealLibraryId !== input.mealLibraryId)
         throw new Error('Approval not found for this meal.');
-      if (!approval.flaggedAt && approval.reviewDueAt > now) throw new Error('This approval is already current.');
+      if (!approval.flaggedAt) throw new Error('This approval is already current.');
       if (
         approval.mealLibrary.status !== 'APPROVED' ||
         approval.recipeSignature !== approval.mealLibrary.recipeSignature ||
@@ -439,7 +429,6 @@ export async function recheckProfileApproval(input: {
         data: {
           reviewerNutritionistId: actor.id,
           approvedAt: now,
-          reviewDueAt: new Date(now.getTime() + REVIEW_INTERVAL_MS),
           flaggedAt: null,
           flagReason: null,
           flaggedByNutritionistId: null,

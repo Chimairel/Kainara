@@ -575,7 +575,6 @@ export class MealSwapService {
               (item) =>
                 item.safetyScopeKey === profileScope?.key &&
                 !item.flaggedAt &&
-                item.reviewDueAt > new Date() &&
                 item.recipeSignature === libraryMeal.recipeSignature &&
                 item.evidenceRevision === libraryMeal.safetyEvidenceRevision
             )

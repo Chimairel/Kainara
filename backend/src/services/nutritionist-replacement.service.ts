@@ -92,7 +92,7 @@ export class NutritionistReplacementService {
 
   /**
    * Atomically replaces a rejected meal and records the candidate's first review.
-   * High-risk replacements remain pending for an independent second review.
+   * Replacement plates are finalized by the claiming nutritionist.
    */
   static async replaceAndApproveMealPlan(
     nutritionistProfileId: string,

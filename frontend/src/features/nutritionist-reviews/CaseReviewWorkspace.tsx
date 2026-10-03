@@ -224,9 +224,7 @@ export default function CaseReviewWorkspace({
                 )}
                 {detailData.highRiskReviewRequired && (
                   <div className="rounded-xl border border-amber-500/25 bg-amber-500/10 p-3 text-xs font-semibold text-amber-600 dark:text-amber-400">
-                    {detailData.requiresIndependentSecondReview
-                      ? 'This meal has one approval. You are performing the required independent second review.'
-                      : 'This profile requires two independent nutritionist approvals before the meal becomes actionable.'}
+                    Review the recorded health context before approving this meal.
                   </div>
                 )}
 
@@ -649,11 +647,7 @@ export default function CaseReviewWorkspace({
                               className="w-full sm:w-auto text-xs px-6 sm:px-8 py-2.5 flex items-center justify-center gap-1.5 hover:scale-[1.01] active:scale-[0.98]"
                             >
                               <Check className="w-4 h-4" />
-                              <span>
-                                {detailData.highRiskReviewRequired && detailData.reviewApprovalCount === 0
-                                  ? 'Save first approval'
-                                  : 'Save & Approve'}
-                              </span>
+                              <span>Save & Approve</span>
                             </Button>
                             <Button
                               variant="secondary"
@@ -672,11 +666,7 @@ export default function CaseReviewWorkspace({
                               className="w-full sm:w-auto text-xs px-6 sm:px-8 py-2.5 flex items-center justify-center gap-1.5 hover:scale-[1.01] active:scale-[0.98]"
                             >
                               <Check className="w-4 h-4" />
-                              <span>
-                                {detailData.highRiskReviewRequired && detailData.reviewApprovalCount === 0
-                                  ? 'Submit first approval'
-                                  : 'Approve'}
-                              </span>
+                              <span>Approve</span>
                             </Button>
                             <p className="text-xs text-brand-muted">
                               Approvals cover this exact saved plate. Use case replacement for a different meal, or

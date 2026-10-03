@@ -219,8 +219,8 @@ export const docsChapters: DocsChapter[] = [
             <p>
               The planner tries recorded eligible servings first, then other eligible published recipes. It checks
               current restrictions, source availability, ingredient and serving data, and the slot&apos;s energy range.
-              A restricted member&apos;s saved candidate may still need one or two independent case decisions before it
-              is actionable.
+              A restricted member&apos;s saved candidate may still need one nutritionist case decision before it is
+              actionable.
             </p>
             <p>
               A verified base recipe is only a starting point. The planner still needs a usable portion, enough
@@ -583,25 +583,24 @@ export const docsChapters: DocsChapter[] = [
       },
       {
         id: 'professional-review-decisions',
-        title: 'Decisions and rechecks',
+        title: 'Review decisions',
         content: (
           <>
             <p>
-              Nutritionists claim review work and record reasons. Higher risk cases may need an independent second
-              decision. Flags, due reviews, disputes, changed recipes, or changed member profiles can block reuse.
+              Nutritionists claim review work and record reasons. One nutritionist makes each meal case decision,
+              including higher risk cases. Flags, disputes, changed recipes, or changed member profiles can block reuse.
               Administrators verify nutritionist applications and can submit new recipes for meal verification.
             </p>
             <p>
               A case decision is tied to the ingredients, serving, and profile evidence inspected at review time.
               Another member can benefit from a reusable decision only when the relevant context matches its recorded
-              scope and the approval is still active. A second decision, when required, must be made independently
-              rather than counted twice from one reviewer.
+              scope and the approval is still active. One nutritionist makes the case decision.
             </p>
             <p>
-              Scheduled rechecks ask whether an older approval still has current support. A flag raises a specific
-              concern; a dispute records conflicting decisions that need resolution. These states keep an approval out
-              of reuse while the follow-up is incomplete. A flag on the base meal has a wider effect and pauses its
-              related variants and approvals.
+              A nutritionist’s approval remains current until its supporting recipe or profile changes. A flag raises a
+              specific concern; a dispute records conflicting decisions that need resolution. These states keep an
+              approval out of reuse while the follow-up is incomplete. A flag on the base meal has a wider effect and
+              pauses its related variants and approvals.
             </p>
           </>
         ),
@@ -726,8 +725,7 @@ export const docsChapters: DocsChapter[] = [
             <p>
               These checks are deliberately separate. A verified recipe may still have incomplete nutrition evidence. A
               suitable serving may still lack a case decision. A previously approved case may be paused after a flag,
-              source change, or scheduled recheck. The status shown with the meal indicates which step is still
-              outstanding.
+              source change, or manual flag. The status shown with the meal indicates which step is still outstanding.
             </p>
           </>
         ),

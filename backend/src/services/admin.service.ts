@@ -62,7 +62,6 @@ export class AdminService {
         specialization: true,
         isVerified: true,
         totalVerified: true,
-        canLeadReview: true,
         verifiedAt: true,
         user: { select: { id: true, name: true, email: true, image: true, isSuspended: true, suspensionReason: true } },
       },
@@ -101,39 +100,6 @@ export class AdminService {
     });
 
     return { success: true };
-  }
-
-  static async setNutritionistLeadCapability(
-    adminUserId: string,
-    nutritionistProfileId: string,
-    canLeadReview: boolean
-  ) {
-    const profile = await prisma.nutritionistProfile.findUnique({
-      where: { id: nutritionistProfileId },
-      select: { id: true, isVerified: true, prcLicenseExpiry: true },
-    });
-    if (!profile) throw new Error('Nutritionist profile not found.');
-    if (canLeadReview && (!profile.isVerified || profile.prcLicenseExpiry < new Date())) {
-      throw new Error('Lead capability requires a verified nutritionist with a current PRC license.');
-    }
-    const updated = await prisma.$transaction(async (tx) => {
-      const updated = await tx.nutritionistProfile.update({
-        where: { id: nutritionistProfileId },
-        data: { canLeadReview },
-        select: { id: true, canLeadReview: true },
-      });
-      await tx.auditEvent.create({
-        data: {
-          actorUserId: adminUserId,
-          action: canLeadReview ? 'NUTRITIONIST_LEAD_CAPABILITY_GRANTED' : 'NUTRITIONIST_LEAD_CAPABILITY_REVOKED',
-          entityType: 'NutritionistProfile',
-          entityId: nutritionistProfileId,
-        },
-      });
-      return updated;
-    });
-    if (!canLeadReview) await enforceClearanceCircuitBreakers();
-    return updated;
   }
 
   static async setUserSuspension(adminUserId: string, targetUserId: string, suspended: boolean, reason?: string) {

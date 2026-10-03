@@ -17,7 +17,11 @@ import {
 } from '@prisma/client';
 import { generateGenerativeJSON } from '@/lib/gemini';
 import { GroceryService } from './grocery.service';
-import { isCertifiedLibraryMealCompatible, isProfileApprovedLibraryMealCompatible, queryEligibleLibraryMeals } from './meal-library-candidate-query.service';
+import {
+  isCertifiedLibraryMealCompatible,
+  isProfileApprovedLibraryMealCompatible,
+  queryEligibleLibraryMeals,
+} from './meal-library-candidate-query.service';
 import { mealApprovalSafetyScope } from '@/domain/meal-approval-scope.policy';
 import {
   MEAL_PLAN_SAFETY_POLICY_VERSION,
@@ -179,43 +183,53 @@ export class UserSafetyRecheckService {
         await prisma.$transaction(async (tx) => {
           await lockUserProfile(tx, userId);
           const currentEvidence = await tx.mealLibrary.findUniqueOrThrow({ where: { id: currentCertifiedMeal.id } });
-          const certified = isCertifiedLibraryMealCompatible(
-            currentCertifiedMeal, userConditions, userAllergens,
-            { ...userProfile, userId, safetyEntries: user.safetyProfileEntries }
-          );
-          const profileApproved = !certified && isProfileApprovedLibraryMealCompatible(
-            currentCertifiedMeal, userConditions, userAllergens,
-            { ...userProfile, userId, safetyEntries: user.safetyProfileEntries }
-          );
-          const scope = profileApproved ? mealApprovalSafetyScope({
-            conditions: userConditions,
-            allergens: userAllergens,
-            otherConditions: userProfile.otherConditions,
-            otherAllergies: userProfile.otherAllergies,
+          const certified = isCertifiedLibraryMealCompatible(currentCertifiedMeal, userConditions, userAllergens, {
+            ...userProfile,
+            userId,
             safetyEntries: user.safetyProfileEntries,
-          }) : null;
-          const candidateApproval = profileApproved ? currentCertifiedMeal.profileApprovals.find((entry) =>
-            entry.safetyScopeKey === scope!.key &&
-            entry.recipeSignature === currentCertifiedMeal.recipeSignature &&
-            entry.evidenceRevision === currentCertifiedMeal.safetyEvidenceRevision &&
-            entry.reviewPolicyVersion === MEAL_PLAN_SAFETY_POLICY_VERSION &&
-            !entry.flaggedAt && entry.reviewDueAt > new Date() &&
-            isNutritionistEligibleForReview(entry.reviewerNutritionist)
-          ) : null;
-          const approval = candidateApproval ? await tx.mealLibraryProfileApproval.findFirst({
-            where: {
-              id: candidateApproval.id,
-              safetyScopeKey: scope!.key,
-              recipeSignature: currentCertifiedMeal.recipeSignature!,
-              evidenceRevision: currentCertifiedMeal.safetyEvidenceRevision,
-              reviewPolicyVersion: MEAL_PLAN_SAFETY_POLICY_VERSION,
-              flaggedAt: null,
-              reviewDueAt: { gt: new Date() },
-            },
-            include: { reviewerNutritionist: { include: { user: { select: { role: true, isSuspended: true } } } } },
-          }) : null;
-          const currentApproval = approval && isNutritionistEligibleForReview(approval.reviewerNutritionist)
-            ? approval : null;
+          });
+          const profileApproved =
+            !certified &&
+            isProfileApprovedLibraryMealCompatible(currentCertifiedMeal, userConditions, userAllergens, {
+              ...userProfile,
+              userId,
+              safetyEntries: user.safetyProfileEntries,
+            });
+          const scope = profileApproved
+            ? mealApprovalSafetyScope({
+                conditions: userConditions,
+                allergens: userAllergens,
+                otherConditions: userProfile.otherConditions,
+                otherAllergies: userProfile.otherAllergies,
+                safetyEntries: user.safetyProfileEntries,
+              })
+            : null;
+          const candidateApproval = profileApproved
+            ? currentCertifiedMeal.profileApprovals.find(
+                (entry) =>
+                  entry.safetyScopeKey === scope!.key &&
+                  entry.recipeSignature === currentCertifiedMeal.recipeSignature &&
+                  entry.evidenceRevision === currentCertifiedMeal.safetyEvidenceRevision &&
+                  entry.reviewPolicyVersion === MEAL_PLAN_SAFETY_POLICY_VERSION &&
+                  !entry.flaggedAt &&
+                  isNutritionistEligibleForReview(entry.reviewerNutritionist)
+              )
+            : null;
+          const approval = candidateApproval
+            ? await tx.mealLibraryProfileApproval.findFirst({
+                where: {
+                  id: candidateApproval.id,
+                  safetyScopeKey: scope!.key,
+                  recipeSignature: currentCertifiedMeal.recipeSignature!,
+                  evidenceRevision: currentCertifiedMeal.safetyEvidenceRevision,
+                  reviewPolicyVersion: MEAL_PLAN_SAFETY_POLICY_VERSION,
+                  flaggedAt: null,
+                },
+                include: { reviewerNutritionist: { include: { user: { select: { role: true, isSuspended: true } } } } },
+              })
+            : null;
+          const currentApproval =
+            approval && isNutritionistEligibleForReview(approval.reviewerNutritionist) ? approval : null;
           if (
             currentEvidence.status !== 'APPROVED' ||
             currentEvidence.recipeSignature !== currentCertifiedMeal.recipeSignature ||
@@ -225,7 +239,8 @@ export class UserSafetyRecheckService {
             throw new Error('Recipe evidence changed; revalidation remains pending.');
           // Conditions require a serving-specific clearance usage. A candidate
           // match alone cannot silently recreate that link after a profile edit.
-          const canRestore = userConditions.every((condition) => condition === HealthConditionType.NONE) &&
+          const canRestore =
+            userConditions.every((condition) => condition === HealthConditionType.NONE) &&
             (certified || Boolean(currentApproval));
           await tx.mealPlan.update({
             where: {
@@ -239,8 +254,8 @@ export class UserSafetyRecheckService {
               safetyPolicyVersion: MEAL_PLAN_SAFETY_POLICY_VERSION,
               highRiskReviewRequired: false,
               reviewApprovalCount: canRestore && currentApproval ? 1 : 0,
-              profileApprovalId: canRestore ? currentApproval?.id ?? null : null,
-              nutritionistId: canRestore ? currentApproval?.reviewerNutritionistId ?? null : null,
+              profileApprovalId: canRestore ? (currentApproval?.id ?? null) : null,
+              nutritionistId: canRestore ? (currentApproval?.reviewerNutritionistId ?? null) : null,
               reviewedAt: canRestore && currentApproval ? currentApproval.approvedAt : null,
             },
           });
@@ -303,10 +318,14 @@ export class UserSafetyRecheckService {
         await prisma.$transaction(async (tx) => {
           await lockUserProfile(tx, userId);
           const evidence = await tx.mealLibrary.findUniqueOrThrow({ where: { id: selectedLibraryMeal.id } });
-          const canRestoreBaseMeal = userConditions.every((condition) => condition === HealthConditionType.NONE) &&
+          const canRestoreBaseMeal =
+            userConditions.every((condition) => condition === HealthConditionType.NONE) &&
             userAllergens.every((allergen) => allergen === AllergenType.NONE) &&
-            isCertifiedLibraryMealCompatible(selectedLibraryMeal, userConditions, userAllergens,
-              { ...userProfile, userId, safetyEntries: user.safetyProfileEntries });
+            isCertifiedLibraryMealCompatible(selectedLibraryMeal, userConditions, userAllergens, {
+              ...userProfile,
+              userId,
+              safetyEntries: user.safetyProfileEntries,
+            });
           if (
             evidence.status !== 'APPROVED' ||
             evidence.recipeSignature !== selectedLibraryMeal.recipeSignature ||

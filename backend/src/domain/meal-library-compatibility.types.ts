@@ -1,7 +1,7 @@
 import type { MealLibrarySafetyCandidate } from './meal-library-safety-evidence.policy';
 import type { isNutritionistEligibleForReview } from './nutritionist-review.policy';
 
-type Reviewer = Parameters<typeof isNutritionistEligibleForReview>[0] & { canLeadReview?: boolean };
+type Reviewer = Parameters<typeof isNutritionistEligibleForReview>[0];
 
 /** Only the evidence read by the compatibility predicate; no unrelated Prisma relations required. */
 export interface LibraryClearanceCandidate {

@@ -50,11 +50,7 @@ async function reviewReadinessByUser(userIds: string[]) {
 }
 
 export class NutritionistReviewService {
-  static async getReviewQueueCount(nutritionistProfileId: string) {
-    const reviewer = await prisma.nutritionistProfile.findUnique({
-      where: { id: nutritionistProfileId },
-      select: { canLeadReview: true },
-    });
+  static async getReviewQueueCount(_nutritionistProfileId: string) {
     const plans = await prisma.mealPlan.findMany({
       where: getNutritionistReviewableMealPlanWhere(),
       select: {
@@ -93,9 +89,6 @@ export class NutritionistReviewService {
           (!plan.baseRecipeSignature || !verifiedSignatures.has(plan.baseRecipeSignature)))
       )
         continue;
-      const secondReview = plan.highRiskReviewRequired && plan.reviewApprovalCount === 1;
-      if (secondReview && (!reviewer?.canLeadReview || plan.firstApprovedByNutritionistId === nutritionistProfileId))
-        continue;
       work.add(
         `${readiness.get(plan.userId)?.specific ? plan.userId + ':' : ''}${plan.reviewWorkKey ?? `PLAN:${plan.id}`}`
       );
@@ -107,12 +100,6 @@ export class NutritionistReviewService {
     const now = new Date();
     const claimCutoff = getReviewClaimCutoff(now);
     // Show the whole shared queue, including items actively claimed by peers.
-    const reviewer = nutritionistProfileId
-      ? await prisma.nutritionistProfile.findUnique({
-          where: { id: nutritionistProfileId },
-          select: { canLeadReview: true },
-        })
-      : null;
     const pendingMeals = await prisma.mealPlan.findMany({
       where: getNutritionistReviewableMealPlanWhere(),
       include: {
@@ -167,12 +154,7 @@ export class NutritionistReviewService {
       const key = `${readinessByUser.get(meal.userId)?.specific ? meal.userId + ':' : ''}${meal.reviewWorkKey ?? `PLAN:${meal.id}`}`;
       workCounts.set(key, (workCounts.get(key) ?? 0) + 1);
     }
-    const visibleMeals = clinicallyReadyMeals.filter((meal) => {
-      const secondReview = meal.highRiskReviewRequired && meal.reviewApprovalCount === 1;
-      if (!secondReview) return true;
-      return reviewer?.canLeadReview === true && meal.firstApprovedByNutritionistId !== nutritionistProfileId;
-    });
-    const sorted = visibleMeals.sort((a, b) => {
+    const sorted = clinicallyReadyMeals.sort((a, b) => {
       if (nutritionistProfileId) {
         const aCooling = Boolean(getReviewClaimCooldownUntil(a, nutritionistProfileId, now));
         const bCooling = Boolean(getReviewClaimCooldownUntil(b, nutritionistProfileId, now));
@@ -182,13 +164,13 @@ export class NutritionistReviewService {
         {
           shoppingDeadlineAt: a.cycle.shoppingDeadlineAt,
           scheduledDate: a.scheduledDate,
-          enhancedSecondReview: a.highRiskReviewRequired && a.reviewApprovalCount === 1,
+          enhancedSecondReview: false,
           createdAt: a.createdAt,
         },
         {
           shoppingDeadlineAt: b.cycle.shoppingDeadlineAt,
           scheduledDate: b.scheduledDate,
-          enhancedSecondReview: b.highRiskReviewRequired && b.reviewApprovalCount === 1,
+          enhancedSecondReview: false,
           createdAt: b.createdAt,
         }
       );
@@ -204,7 +186,6 @@ export class NutritionistReviewService {
     });
 
     const result = coalesced.map((meal) => {
-      const isBlindSecondReview = meal.highRiskReviewRequired && meal.reviewApprovalCount === 1;
       const isClaimed = meal.claimedByNutritionistId && meal.claimedAt && meal.claimedAt >= claimCutoff;
       const claimedByMe = isClaimed && meal.claimedByNutritionistId === nutritionistProfileId;
       const claimedByOther = isClaimed && meal.claimedByNutritionistId !== nutritionistProfileId;
@@ -230,7 +211,7 @@ export class NutritionistReviewService {
         aiConfidenceFlag: meal.requiresSafetyRevalidation ? AIConfidenceFlag.NEEDS_REVIEW : meal.aiConfidenceFlag,
         requiresSafetyRevalidation: meal.requiresSafetyRevalidation,
         planType: meal.planType,
-        nutritionistNote: isBlindSecondReview ? null : meal.nutritionistNote,
+        nutritionistNote: meal.nutritionistNote,
         scheduledDate: meal.scheduledDate,
         reviewedAt: meal.reviewedAt,
         createdAt: meal.createdAt,
@@ -238,7 +219,7 @@ export class NutritionistReviewService {
         ingredients: meal.ingredients,
         highRiskReviewRequired: meal.highRiskReviewRequired,
         reviewApprovalCount: meal.reviewApprovalCount,
-        requiresIndependentSecondReview: meal.highRiskReviewRequired && meal.reviewApprovalCount === 1,
+        requiresIndependentSecondReview: false,
         intendedCycle: {
           id: meal.cycle.id,
           startDate: meal.cycle.startDate,
@@ -248,8 +229,8 @@ export class NutritionistReviewService {
         shoppingDeadlineAt: meal.cycle.shoppingDeadlineAt,
         cookDeadlineAt: meal.scheduledDate,
         assuranceTier: meal.cycle.assuranceTier,
-        reviewStage: meal.reviewApprovalCount === 1 ? 'SECONDARY' : 'PRIMARY',
-        remainingReviewers: Math.max(0, (meal.highRiskReviewRequired ? 2 : 1) - meal.reviewApprovalCount),
+        reviewStage: 'PRIMARY',
+        remainingReviewers: 1,
         deterministicFindings: {
           confidence: meal.aiConfidenceFlag,
           estimatedIngredientCount: meal.ingredients.filter(
@@ -285,7 +266,7 @@ export class NutritionistReviewService {
     const [reviewer, reviewTarget] = await Promise.all([
       prisma.nutritionistProfile.findUnique({
         where: { id: nutritionistProfileId },
-        select: { canLeadReview: true },
+        select: { id: true },
       }),
       prisma.mealPlan.findUnique({
         where: { id: mealPlanId },
@@ -309,13 +290,6 @@ export class NutritionistReviewService {
     if (!targetOwner) throw new Error('Meal plan not found.');
     const clinicalRequirements = await ClinicalEvidenceService.assertReadyForMealPlanning(targetOwner.userId);
     await ClinicalProfileReviewService.assertReadyForMealPlanning(targetOwner.userId);
-    if (reviewTarget.highRiskReviewRequired && reviewTarget.reviewApprovalCount === 1) {
-      if (!reviewer.canLeadReview) throw new Error('Lead review capability is required for this second review.');
-      if (reviewTarget.firstApprovedByNutritionistId === nutritionistProfileId) {
-        throw new Error('A different nutritionist must perform the independent second review.');
-      }
-    }
-
     // updateMany supplies a compare-and-set claim: only one reviewer can change
     // an unclaimed/expired row from the shared queue at a time.
     if (acquireClaim) {
@@ -323,11 +297,6 @@ export class NutritionistReviewService {
         where: {
           id: mealPlanId,
           ...getNutritionistReviewableMealPlanWhere(),
-          NOT: {
-            highRiskReviewRequired: true,
-            reviewApprovalCount: 1,
-            firstApprovedByNutritionistId: nutritionistProfileId,
-          },
           OR: [
             { claimedByNutritionistId: null },
             { claimedAt: null },
@@ -633,8 +602,7 @@ export class NutritionistReviewService {
       },
       highRiskReviewRequired: updatedMealPlan.highRiskReviewRequired,
       reviewApprovalCount: updatedMealPlan.reviewApprovalCount,
-      requiresIndependentSecondReview:
-        updatedMealPlan.highRiskReviewRequired && updatedMealPlan.reviewApprovalCount === 1,
+      requiresIndependentSecondReview: false,
       claimStatus: {
         claimedByMe:
           isReviewClaimActive(updatedMealPlan, now) &&

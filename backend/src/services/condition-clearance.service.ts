@@ -1,5 +1,4 @@
 import {
-  AssuranceTier,
   ClinicalEvidenceSourceState,
   ClearanceDecisionStage,
   ClearanceDecisionValue,
@@ -11,7 +10,6 @@ import {
   Prisma,
   RuleApprovalDecision,
 } from '@prisma/client';
-import { createHash } from 'node:crypto';
 import prisma from '@/lib/prisma';
 import { evaluateMealLibrarySafetyEvidence } from '@/domain/meal-library-safety-evidence.policy';
 import { isNutritionistEligibleForReview } from '@/domain/nutritionist-review.policy';
@@ -27,15 +25,7 @@ import { ClinicalProfileReviewService } from './clinical-profile-review.service'
 import { lockUserProfile } from './profile-revision.service';
 import { ClinicalEvidenceService } from './clinical-evidence.service';
 
-const STANDARD_AUDIT_MS = 365 * 24 * 60 * 60 * 1000;
-const ENHANCED_AUDIT_MS = 180 * 24 * 60 * 60 * 1000;
-
-function dailyAuditSampleKey(clearanceId: string, now: Date): string {
-  const day = now.toISOString().slice(0, 10);
-  return createHash('sha256').update(`${day}:${clearanceId}`).digest('hex');
-}
-
-async function requireEligibleReviewer(nutritionistProfileId: string, leadRequired = false) {
+async function requireEligibleReviewer(nutritionistProfileId: string) {
   const reviewer = await prisma.nutritionistProfile.findUnique({
     where: { id: nutritionistProfileId },
     include: { user: { select: { id: true, role: true, isSuspended: true } } },
@@ -43,12 +33,7 @@ async function requireEligibleReviewer(nutritionistProfileId: string, leadRequir
   if (!reviewer || !isNutritionistEligibleForReview(reviewer)) {
     throw new Error('Only a currently verified nutritionist with a current license may perform this action.');
   }
-  if (leadRequired && !reviewer.canLeadReview) throw new Error('Lead review capability is required for this action.');
   return reviewer;
-}
-
-function auditDueAt(tier: AssuranceTier, now: Date): Date {
-  return new Date(now.getTime() + (tier === AssuranceTier.ENHANCED ? ENHANCED_AUDIT_MS : STANDARD_AUDIT_MS));
 }
 
 function evidenceSnapshot(meal: {
@@ -134,13 +119,8 @@ export class ConditionClearanceService {
     });
     if (existing?.state === ConditionClearanceState.ACTIVE)
       throw new Error('An active clearance already exists for this scope.');
-    if (existing?.decisions.some((decision) => decision.nutritionistProfileId === input.nutritionistProfileId)) {
-      throw new Error('The same nutritionist cannot review this clearance twice.');
-    }
-    if (existing?.decisions.length && tier === AssuranceTier.ENHANCED && !reviewer.canLeadReview) {
-      throw new Error('Lead review capability is required for the independent second enhanced review.');
-    }
-
+    if (existing?.state === ConditionClearanceState.DISPUTED)
+      throw new Error('Resolve the recorded dispute before issuing a new clearance.');
     const now = new Date();
     return prisma.$transaction(
       async (tx) => {
@@ -217,7 +197,9 @@ export class ConditionClearanceService {
             skipDuplicates: true,
           });
         }
-        const stage = clearance.decisions.length ? ClearanceDecisionStage.SECONDARY : ClearanceDecisionStage.PRIMARY;
+        // Old partial clearances retain their first decision as history. This
+        // explicit completion does not require a different or lead reviewer.
+        const stage = clearance.decisions.length ? ClearanceDecisionStage.RECHECK : ClearanceDecisionStage.PRIMARY;
         await tx.mealConditionClearanceDecision.create({
           data: {
             clearanceId: clearance.id,
@@ -239,34 +221,18 @@ export class ConditionClearanceService {
           },
         });
 
-        const priorDecision = clearance.decisions[0]?.decision;
-        let state: ConditionClearanceState = ConditionClearanceState.REVIEW_DUE;
-        if (tier === AssuranceTier.STANDARD) {
-          state =
-            input.decision === ClearanceDecisionValue.APPROVE
-              ? ConditionClearanceState.ACTIVE
-              : ConditionClearanceState.REVOKED;
-        } else if (!priorDecision) {
-          state =
-            input.decision === ClearanceDecisionValue.REJECT
-              ? ConditionClearanceState.REVOKED
-              : ConditionClearanceState.REVIEW_DUE;
-        } else if (priorDecision === input.decision) {
-          state =
-            input.decision === ClearanceDecisionValue.APPROVE
-              ? ConditionClearanceState.ACTIVE
-              : ConditionClearanceState.REVOKED;
-        } else {
-          state = ConditionClearanceState.DISPUTED;
-        }
+        const state =
+          input.decision === ClearanceDecisionValue.APPROVE
+            ? ConditionClearanceState.ACTIVE
+            : ConditionClearanceState.REVOKED;
         const updated = await tx.mealConditionClearance.update({
           where: { id: clearance.id },
           data: {
             state,
             activatedAt: state === ConditionClearanceState.ACTIVE ? now : null,
-            auditDueAt: state === ConditionClearanceState.ACTIVE ? auditDueAt(tier, now) : null,
-            suspendedAt: state === ConditionClearanceState.DISPUTED ? now : null,
-            suspensionReason: state === ConditionClearanceState.DISPUTED ? 'INDEPENDENT_REVIEW_DISAGREEMENT' : null,
+            auditDueAt: null,
+            suspendedAt: null,
+            suspensionReason: null,
           },
           include: { decisions: { select: { id: true, stage: true, decision: true, submittedAt: true } } },
         });
@@ -291,7 +257,7 @@ export class ConditionClearanceService {
     decision: ClearanceDecisionValue;
     rationale: string;
   }) {
-    const reviewer = await requireEligibleReviewer(input.nutritionistProfileId, true);
+    const reviewer = await requireEligibleReviewer(input.nutritionistProfileId);
     const clearance = await prisma.mealConditionClearance.findUnique({
       where: { id: input.clearanceId },
       include: { decisions: true },
@@ -324,7 +290,7 @@ export class ConditionClearanceService {
           state,
           resolvedByNutritionistId: input.nutritionistProfileId,
           activatedAt: state === ConditionClearanceState.ACTIVE ? now : null,
-          auditDueAt: state === ConditionClearanceState.ACTIVE ? auditDueAt(clearance.assuranceTier, now) : null,
+          auditDueAt: null,
           suspendedAt: null,
           suspensionReason: null,
         },
@@ -343,7 +309,7 @@ export class ConditionClearanceService {
   }
 
   static async suspendClearance(nutritionistProfileId: string, clearanceId: string, reason: string) {
-    const reviewer = await requireEligibleReviewer(nutritionistProfileId, true);
+    const reviewer = await requireEligibleReviewer(nutritionistProfileId);
     return prisma.$transaction(async (tx) => {
       const clearance = await tx.mealConditionClearance.update({
         where: { id: clearanceId },
@@ -367,8 +333,7 @@ export class ConditionClearanceService {
   }
 
   static async getGovernanceQueue(nutritionistProfileId: string, view: 'audit' | 'disputed') {
-    const reviewer = await requireEligibleReviewer(nutritionistProfileId);
-    const now = new Date();
+    await requireEligibleReviewer(nutritionistProfileId);
     if (view === 'disputed') {
       const [clearances, plans] = await Promise.all([
         prisma.mealConditionClearance.findMany({
@@ -387,11 +352,11 @@ export class ConditionClearanceService {
           take: 100,
         }),
       ]);
-      return { canLeadReview: reviewer.canLeadReview, clearances, plans };
+      return { clearances, plans };
     }
 
     const clearances = await prisma.mealConditionClearance.findMany({
-      where: { state: { in: ['ACTIVE', 'REVIEW_DUE', 'SUSPENDED'] } },
+      where: { state: { in: ['REVIEW_DUE', 'SUSPENDED'] } },
       include: {
         mealLibrary: { select: { mealName: true } },
         _count: { select: { planUsages: true } },
@@ -413,46 +378,21 @@ export class ConditionClearanceService {
     const ranked = clearances
       .map((clearance) => {
         const uniqueUserExposure = usersByClearance.get(clearance.id)?.size ?? 0;
-        const overdue = Boolean(clearance.auditDueAt && clearance.auditDueAt <= now);
-        const priority =
-          clearance.state === 'SUSPENDED'
-            ? 0
-            : clearance.provenance === 'APPROVED_RULESET'
-              ? 1
-              : clearance.assuranceTier === 'ENHANCED'
-                ? 2
-                : uniqueUserExposure >= 100
-                  ? 3
-                  : overdue
-                    ? 4
-                    : 5;
-        const reason =
-          clearance.state === 'SUSPENDED'
-            ? `Suspended: ${clearance.suspensionReason || 'safety circuit breaker'}`
-            : clearance.provenance === 'APPROVED_RULESET'
-              ? `Ruleset-derived evidence · used by ${uniqueUserExposure} users`
-              : clearance.assuranceTier === 'ENHANCED'
-                ? `Enhanced assurance · used by ${uniqueUserExposure} users`
-                : uniqueUserExposure >= 100
-                  ? `High exposure: used by ${uniqueUserExposure} users`
-                  : overdue
-                    ? `Audit overdue since ${clearance.auditDueAt!.toISOString().slice(0, 10)}`
-                    : `Routine sample · used by ${uniqueUserExposure} users`;
         return {
           ...clearance,
           uniqueUserExposure,
-          auditPriority: priority,
-          auditReason: reason,
-          auditSampleKey: dailyAuditSampleKey(clearance.id, now),
+          auditPriority: clearance.state === 'SUSPENDED' ? 0 : 1,
+          auditReason:
+            clearance.state === 'SUSPENDED'
+              ? `Suspended: ${clearance.suspensionReason || 'safety circuit breaker'}`
+              : 'Approval requires a review decision',
         };
       })
       .sort(
         (a, b) =>
-          a.auditPriority - b.auditPriority ||
-          b.uniqueUserExposure - a.uniqueUserExposure ||
-          a.auditSampleKey.localeCompare(b.auditSampleKey)
+          a.auditPriority - b.auditPriority || b.uniqueUserExposure - a.uniqueUserExposure || a.id.localeCompare(b.id)
       );
-    return { canLeadReview: reviewer.canLeadReview, clearances: ranked.slice(0, 100) };
+    return { clearances: ranked.slice(0, 100) };
   }
 
   static async generateRulesetImpact(nutritionistProfileId: string, policyVersionId: string) {
@@ -528,10 +468,10 @@ export class ConditionClearanceService {
     decision: RuleApprovalDecision;
     rationale?: string;
   }) {
-    const reviewer = await requireEligibleReviewer(input.nutritionistProfileId);
+    await requireEligibleReviewer(input.nutritionistProfileId);
     const policy = await prisma.conditionRulePolicyVersion.findUnique({
       where: { id: input.policyVersionId },
-      include: { approvals: { include: { nutritionistProfile: { select: { canLeadReview: true } } } } },
+      include: { approvals: true },
     });
     if (!policy || policy.state !== 'DRAFT') throw new Error('Draft ruleset version not found.');
     if (!policy.impactReport) throw new Error('A dry-run impact report is required before ruleset approval.');
@@ -562,19 +502,15 @@ export class ConditionClearanceService {
       const approvals = [
         ...policy.approvals.map((approval) => ({
           decision: approval.decision,
-          canLeadReview: approval.nutritionistProfile.canLeadReview,
           nutritionistProfileId: approval.nutritionistProfileId,
         })),
         {
           decision: input.decision,
-          canLeadReview: reviewer.canLeadReview,
           nutritionistProfileId: input.nutritionistProfileId,
         },
       ];
       const rejected = approvals.some((approval) => approval.decision === 'REJECT');
-      const mayActivate =
-        approvals.filter((approval) => approval.decision === 'APPROVE').length >= 2 &&
-        approvals.some((approval) => approval.decision === 'APPROVE' && approval.canLeadReview);
+      const mayActivate = approvals.filter((approval) => approval.decision === 'APPROVE').length >= 2;
       if (rejected) {
         return tx.conditionRulePolicyVersion.update({
           where: { id: policy.id },
@@ -582,14 +518,14 @@ export class ConditionClearanceService {
         });
       }
       if (!mayActivate) return tx.conditionRulePolicyVersion.findUniqueOrThrow({ where: { id: policy.id } });
-      const leadApprover = approvals.find((approval) => approval.decision === 'APPROVE' && approval.canLeadReview)!;
+      const activatingReviewerId = input.nutritionistProfileId;
       await Promise.all([
         tx.conditionNutrientRule.updateMany({
           where: { condition: policy.condition, policyVersion: policy.policyVersion },
           data: {
             reviewStatus: 'APPROVED',
             active: true,
-            approvedByNutritionistId: leadApprover.nutritionistProfileId,
+            approvedByNutritionistId: activatingReviewerId,
           },
         }),
         tx.conditionIngredientRule.updateMany({
@@ -597,7 +533,7 @@ export class ConditionClearanceService {
           data: {
             reviewStatus: 'APPROVED',
             active: true,
-            approvedByNutritionistId: leadApprover.nutritionistProfileId,
+            approvedByNutritionistId: activatingReviewerId,
           },
         }),
       ]);
@@ -664,7 +600,7 @@ export class ConditionClearanceService {
               rulePolicyVersionId: policy.id,
             } as unknown as Prisma.InputJsonValue,
             activatedAt,
-            auditDueAt: auditDueAt(policy.assuranceTier, activatedAt),
+            auditDueAt: null,
           });
         }
         for (let offset = 0; offset < automaticClearances.length; offset += 250) {
@@ -679,7 +615,7 @@ export class ConditionClearanceService {
   }
 
   static async suspendRuleset(nutritionistProfileId: string, policyVersionId: string, reason: string) {
-    const reviewer = await requireEligibleReviewer(nutritionistProfileId, true);
+    const reviewer = await requireEligibleReviewer(nutritionistProfileId);
     return prisma.$transaction(async (tx) => {
       const policy = await tx.conditionRulePolicyVersion.update({
         where: { id: policyVersionId },
@@ -758,7 +694,6 @@ export async function enforceClearanceCircuitBreakers(now: Date = new Date()) {
               select: {
                 isVerified: true,
                 prcLicenseExpiry: true,
-                canLeadReview: true,
                 user: { select: { isSuspended: true } },
               },
             },
@@ -776,7 +711,6 @@ export async function enforceClearanceCircuitBreakers(now: Date = new Date()) {
               select: {
                 isVerified: true,
                 prcLicenseExpiry: true,
-                canLeadReview: true,
                 user: { select: { isSuspended: true } },
               },
             },
@@ -786,18 +720,11 @@ export async function enforceClearanceCircuitBreakers(now: Date = new Date()) {
     }),
   ]);
 
-  const overdueIds = manualClearances
-    .filter((clearance) => !clearance.auditDueAt || clearance.auditDueAt <= now)
-    .map((clearance) => clearance.id);
   const ineligibleManualIds = manualClearances
     .filter((clearance) => {
-      if (overdueIds.includes(clearance.id)) return false;
       const eligible = clearance.decisions.filter((decision) =>
         isNutritionistEligibleForReview(decision.nutritionistProfile, now)
       );
-      if (clearance.assuranceTier === AssuranceTier.ENHANCED) {
-        return eligible.length < 2 || !eligible.some((decision) => decision.nutritionistProfile.canLeadReview);
-      }
       return eligible.length < 1;
     })
     .map((clearance) => clearance.id);
@@ -806,11 +733,11 @@ export async function enforceClearanceCircuitBreakers(now: Date = new Date()) {
       const eligible = policy.approvals.filter((approval) =>
         isNutritionistEligibleForReview(approval.nutritionistProfile, now)
       );
-      return eligible.length < 2 || !eligible.some((approval) => approval.nutritionistProfile.canLeadReview);
+      return eligible.length < 2;
     })
     .map((policy) => policy.id);
 
-  if (!overdueIds.length && !ineligibleManualIds.length && !invalidPolicyIds.length) {
+  if (!ineligibleManualIds.length && !invalidPolicyIds.length) {
     return { suspendedClearances: 0, suspendedPolicies: 0 };
   }
 
@@ -822,12 +749,6 @@ export async function enforceClearanceCircuitBreakers(now: Date = new Date()) {
         })
       : [];
     const policyClearanceIds = policyDerived.map((clearance) => clearance.id);
-    if (overdueIds.length) {
-      await tx.mealConditionClearance.updateMany({
-        where: { id: { in: overdueIds }, state: 'ACTIVE' },
-        data: { state: 'SUSPENDED', suspendedAt: now, suspensionReason: 'AUDIT_OVERDUE' },
-      });
-    }
     if (ineligibleManualIds.length) {
       await tx.mealConditionClearance.updateMany({
         where: { id: { in: ineligibleManualIds }, state: 'ACTIVE' },
@@ -858,7 +779,7 @@ export async function enforceClearanceCircuitBreakers(now: Date = new Date()) {
         });
       }
     }
-    const allClearanceIds = [...new Set([...overdueIds, ...ineligibleManualIds, ...policyClearanceIds])];
+    const allClearanceIds = [...new Set([...ineligibleManualIds, ...policyClearanceIds])];
     if (allClearanceIds.length) {
       await tx.mealPlan.updateMany({
         where: { status: 'APPROVED', clearanceUsages: { some: { clearanceId: { in: allClearanceIds } } } },

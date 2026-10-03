@@ -33,7 +33,3 @@ export function conditionAllowsRulesetAutomation(condition: HealthConditionType 
 export function conditionRequiresUserScopedClearance(condition: HealthConditionType | string): boolean {
   return condition === HealthConditionType.KIDNEY_DISEASE || condition === HealthConditionType.HEART_CONDITION;
 }
-
-export function tierRequiresLeadSecondReview(tier: AssuranceTier): boolean {
-  return tier === AssuranceTier.ENHANCED;
-}

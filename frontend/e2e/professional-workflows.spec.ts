@@ -172,6 +172,8 @@ test('administrator can revoke and restore access with records preserved in the 
   });
   await page.goto('/admin/nutritionists');
   await page.getByRole('button', { name: /^Professionals/ }).click();
+  await expect(page.getByText('Lead review capability')).toHaveCount(0);
+  await expect(page.getByRole('button', { name: /Enable Lead|Lead enabled/ })).toHaveCount(0);
   await page.getByRole('button', { name: 'Revoke access', exact: true }).click();
   await expect(page.getByText('Past reviews and audit records are preserved.')).toBeVisible();
   await expect(page.getByRole('button', { name: 'Confirm revocation' })).toBeDisabled();

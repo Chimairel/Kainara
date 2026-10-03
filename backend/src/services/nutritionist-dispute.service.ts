@@ -1,4 +1,5 @@
 import prisma from '@/lib/prisma';
+import { isNutritionistEligibleForReview } from '@/domain/nutritionist-review.policy';
 
 import { MealPlanStatus, NotificationType } from '@prisma/client';
 
@@ -13,10 +14,10 @@ export async function resolveMealPlanDispute(
 ) {
   const reviewer = await prisma.nutritionistProfile.findUnique({
     where: { id: nutritionistProfileId },
-    select: { userId: true, isVerified: true, prcLicenseExpiry: true, canLeadReview: true },
+    include: { user: { select: { role: true, isSuspended: true } } },
   });
-  if (!reviewer || !reviewer.isVerified || reviewer.prcLicenseExpiry < new Date() || !reviewer.canLeadReview) {
-    throw new Error('A currently eligible Lead nutritionist is required for dispute adjudication.');
+  if (!reviewer || !isNutritionistEligibleForReview(reviewer)) {
+    throw new Error('A currently eligible nutritionist is required for dispute adjudication.');
   }
   const plan = await prisma.mealPlan.findUnique({
     where: { id: mealPlanId },
@@ -24,7 +25,7 @@ export async function resolveMealPlanDispute(
   });
   if (!plan || plan.status !== MealPlanStatus.DISPUTED) throw new Error('Disputed meal plan not found.');
   if (plan.reviewDecisions.some((item) => item.nutritionistProfileId === nutritionistProfileId)) {
-    throw new Error('Dispute adjudication requires a Lead who did not submit either disputed decision.');
+    throw new Error('Dispute adjudication requires a nutritionist who did not submit either disputed decision.');
   }
   const now = new Date();
   const status = decision === 'APPROVE' ? MealPlanStatus.APPROVED : MealPlanStatus.REJECTED;
@@ -54,7 +55,7 @@ export async function resolveMealPlanDispute(
         nutritionistNote: rationale.trim(),
         reviewedAt: now,
         requiresSafetyRevalidation: status !== MealPlanStatus.APPROVED,
-        reviewApprovalCount: status === MealPlanStatus.APPROVED ? 2 : plan.reviewApprovalCount,
+        reviewApprovalCount: status === MealPlanStatus.APPROVED ? 1 : plan.reviewApprovalCount,
       },
     });
     await tx.auditEvent.create({
@@ -72,8 +73,8 @@ export async function resolveMealPlanDispute(
         title: decision === 'APPROVE' ? 'Meal review completed' : 'Meal removed after review',
         message:
           decision === 'APPROVE'
-            ? `A Lead dietitian completed adjudication for "${plan.mealName}".`
-            : `A Lead dietitian rejected "${plan.mealName}" after independent review.`,
+            ? `A dietitian completed adjudication for "${plan.mealName}".`
+            : `A dietitian rejected "${plan.mealName}" after independent review.`,
         type: decision === 'APPROVE' ? NotificationType.PLAN_APPROVED : NotificationType.PLAN_REJECTED,
       },
     });

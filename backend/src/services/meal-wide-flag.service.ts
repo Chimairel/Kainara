@@ -127,13 +127,12 @@ export async function releaseWholeMeal(profileId: string, mealId: string, findin
         select: { verifiedByNutritionistId: true, authoredByNutritionistId: true },
       });
       if (
-        !actor.canLeadReview ||
         original.some(
           (meal) => meal.verifiedByNutritionistId === actor.id || meal.authoredByNutritionistId === actor.id
         )
       ) {
         throw new Error(
-          'An uninvolved Lead nutritionist must resolve a disputed meal flag. The author, original verifier and flagger cannot close it.'
+          'An uninvolved nutritionist must resolve a disputed meal flag. The author, original verifier and flagger cannot close it.'
         );
       }
       const changed = await tx.mealLibrary.updateMany({
