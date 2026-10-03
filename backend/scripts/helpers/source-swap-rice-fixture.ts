@@ -4,6 +4,7 @@ import type { FoodItem } from '@prisma/client';
 import prisma from '../../src/lib/prisma';
 import { MealSwapService } from '../../src/services/meal-swap.service';
 import { serializeActionableMeal } from '../../src/services/meal-plan-presentation.service';
+import { proposeRiceRole } from '../../src/domain/recipe-rice-role.policy';
 
 /** Mutations are confined to the same guarded disposable acceptance database. */
 export async function verifySourcePlateSwaps(
@@ -32,6 +33,8 @@ export async function verifySourcePlateSwaps(
         recipeName: `${name} ${run}`,
         normalizedName: `${name} ${run}`,
         category,
+        riceRole: proposeRiceRole({ name, category, ingredients: [{ name: food.name }] }).riceRole,
+        riceRoleReviewStatus: 'PROPOSED',
         cuisines: [],
         dietaryTags: ['OMNIVORE'],
         mealType: 'BREAKFAST',

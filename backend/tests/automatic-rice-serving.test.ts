@@ -7,8 +7,8 @@ import type { CertifiedLibraryMeal } from '../src/services/meal-library-candidat
 const dish = {
   mealName: 'Chicken adobo',
   applicableMealTypes: [{ mealType: 'BREAKFAST' }],
-  riceRole: null,
-  riceRoleReviewStatus: 'NOT_REVIEWED',
+  riceRole: 'PAIR_WITH_RICE',
+  riceRoleReviewStatus: 'PROPOSED',
   includedRiceG: null,
   riceMinHalfCups: 1,
   riceMaxHalfCups: 3,
@@ -38,20 +38,22 @@ const input = {
   riceFood: rice,
 };
 
-test('a verified legacy dish fits with a rice side without changing its recipe or review', () => {
+test('a dish explicitly labeled for rice fits without changing its recipe or review', () => {
   const plate = resolveReplacementServing(input)!;
   assert.equal(plate.pairedRiceG, 150);
   assert.equal(plate.calories, 495);
   assert.equal(plate.carbsG, 52);
   assert.equal(dish.calories, 300);
-  assert.equal(dish.riceRole, null);
-  assert.equal(dish.riceRoleReviewStatus, 'NOT_REVIEWED');
-  assert.equal(resolveRecipeRiceRole(dish).basis, 'INGREDIENT_CLASSIFICATION');
+  assert.equal(dish.riceRole, 'PAIR_WITH_RICE');
+  assert.equal(dish.riceRoleReviewStatus, 'PROPOSED');
+  assert.equal(resolveRecipeRiceRole(dish).basis, 'SAVED_CLASSIFICATION');
 });
 test('included rice is recognized from ingredients and never gets a second side', () => {
   const meal = {
     ...dish,
     calories: 495,
+    riceRole: 'INCLUDES_RICE' as const,
+    includedRiceG: 150,
     ingredients: [
       ...dish.ingredients,
       { ...dish.ingredients[0], ingredientName: 'Rice', quantity: 150, foodItem: { name: rice.name, category: null } },
@@ -77,6 +79,7 @@ test('standalone food and rice derivatives do not become included-rice plates', 
   const meal = {
     ...dish,
     mealName: 'Rice noodle salad',
+    riceRole: 'STANDALONE' as const,
     ingredients: [
       {
         ...dish.ingredients[0],
@@ -88,7 +91,7 @@ test('standalone food and rice derivatives do not become included-rice plates', 
   assert.equal(resolveRecipeRiceRole(meal).riceRole, 'STANDALONE');
   assert.equal(resolveReplacementServing({ ...input, meal }), null);
 });
-test('reviewed roles and limits override inference; base case clearance cannot approve new rice', () => {
+test('saved roles and limits control servings; base case clearance cannot approve new rice', () => {
   assert.equal(
     resolveReplacementServing({
       ...input,

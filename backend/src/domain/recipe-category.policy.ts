@@ -14,7 +14,7 @@ export function isStandaloneRecipe(name: string, category?: string | null): bool
   const text = `${name} ${category ?? ''}`.normalize('NFKC').toLowerCase();
   return (
     isSnackOnlyRecipe(name, category) ||
-    /\b(?:snacks?|merienda|bread|pandesal|oatmeal|pancakes?|shakes?|salads?|sandwich(?:es)?|pasta|noodles?|pancit|bihon|sotanghon|misua|miki|spaghetti|macaroni|lasagna|sweet potato)\b/u.test(
+    /\b(?:snacks?|merienda|bread|pandesal|oatmeal|pancakes?|shakes?|salads?|sandwich(?:es)?|pasta|noodles?|pancit|bihon|sotanghon|misua|miki|spaghetti|macaroni|lasagna|sweet potato|pizza|burgers?|buns?|pies?|empanada|quesadilla|wraps?|tacos?|sauces?|condiment|dips?)\b/u.test(
       text
     )
   );

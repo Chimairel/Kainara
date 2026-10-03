@@ -104,7 +104,7 @@ export async function createRecipeDerivation(profileId: string, parentId: string
         },
         include: { ingredients: true },
       });
-      await persistDeterministicLibraryClassification(tx, meal.id);
+      await persistDeterministicLibraryClassification(tx, meal.id, { preserveRiceRole: true });
       await tx.mealBaseVerification.create({
         data: {
           targetKind: 'LIBRARY_MEAL',

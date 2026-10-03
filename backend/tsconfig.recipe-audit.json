@@ -11,6 +11,7 @@
   "include": [
     "scripts/recipe-rice-local-acceptance.ts",
     "scripts/audit-panlasang-source-data.ts",
+    "scripts/audit-recipe-rice-labels.ts",
     "scripts/estimate-panlasang-demo-nutrition.ts",
     "scripts/audit-meal-candidate-coverage.ts",
     "scripts/report-panlasang-data-audit.ts",

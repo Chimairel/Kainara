@@ -85,7 +85,7 @@ function candidate(
     reviewFreeBaseEligible: true,
     nutrition,
     servingDescription: null,
-    riceRole: null,
+    riceRole: 'PAIR_WITH_RICE',
     imageUrl: null,
     videoUrl: null,
     state: 'ACTIVE',

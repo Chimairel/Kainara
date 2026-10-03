@@ -17,7 +17,11 @@ import { buildMealLibraryRecipeSignature } from '@/domain/meal-library-signature
 import { proposeMealTypeApplicability } from '@/domain/meal-applicability.policy';
 import { proposeRiceRole } from '@/domain/recipe-rice-role.policy';
 
-export async function persistDeterministicLibraryClassification(tx: Prisma.TransactionClient, mealLibraryId: string) {
+export async function persistDeterministicLibraryClassification(
+  tx: Prisma.TransactionClient,
+  mealLibraryId: string,
+  options: { preserveRiceRole?: boolean } = {}
+) {
   const meal = await tx.mealLibrary.findUniqueOrThrow({
     where: { id: mealLibraryId },
     include: { ingredients: { orderBy: { position: 'asc' } } },
@@ -82,9 +86,13 @@ export async function persistDeterministicLibraryClassification(tx: Prisma.Trans
       ingredientClassificationVersion: MEAL_INGREDIENT_CLASSIFICATION_VERSION,
       ingredientClassifiedAt: new Date(),
       ingredientClassificationFindings: classification as unknown as Prisma.InputJsonValue,
-      riceRole: riceRole.riceRole,
-      riceRoleReviewStatus: 'PROPOSED',
-      includedRiceG: riceRole.includedRiceG,
+      ...(!(options.preserveRiceRole || meal.riceRoleReviewStatus === 'REVIEWED')
+        ? {
+            riceRole: riceRole.riceRole,
+            riceRoleReviewStatus: riceRole.riceRole ? ('PROPOSED' as const) : ('NOT_REVIEWED' as const),
+            includedRiceG: riceRole.includedRiceG,
+          }
+        : {}),
     },
   });
   return classification;
@@ -110,10 +118,14 @@ export async function createOrReuseLibraryDraftFromApprovedPlan(
           throw new Error('Only the nutritionist who finalized this user approval can publish its reusable draft.');
         }
         if (!plan.ingredients.length) throw new Error('A reusable recipe requires at least one ingredient.');
-        if (plan.sourceRawRecipeCandidateId && await tx.mealLibrary.findFirst({
-          where: { sourceRawRecipeCandidateId: plan.sourceRawRecipeCandidateId, status: MealLibraryStatus.FLAGGED },
-          select: { id: true },
-        })) throw new Error('This source recipe is flagged and cannot publish a new serving variant.');
+        if (
+          plan.sourceRawRecipeCandidateId &&
+          (await tx.mealLibrary.findFirst({
+            where: { sourceRawRecipeCandidateId: plan.sourceRawRecipeCandidateId, status: MealLibraryStatus.FLAGGED },
+            select: { id: true },
+          }))
+        )
+          throw new Error('This source recipe is flagged and cannot publish a new serving variant.');
 
         const recipeSignature = buildMealLibraryRecipeSignature({
           mealName: plan.mealName,
@@ -126,7 +138,8 @@ export async function createOrReuseLibraryDraftFromApprovedPlan(
         });
         const existing = await tx.mealLibrary.findUnique({ where: { recipeSignature } });
         if (existing) {
-          if (existing.status !== MealLibraryStatus.APPROVED) throw new Error('A flagged or archived meal cannot become reusable evidence.');
+          if (existing.status !== MealLibraryStatus.APPROVED)
+            throw new Error('A flagged or archived meal cannot become reusable evidence.');
           if (plan.sourceRawRecipeCandidateId && !existing.sourceRawRecipeCandidateId) {
             await tx.mealLibrary.update({
               where: { id: existing.id },
@@ -204,11 +217,15 @@ export async function createOrReuseLibraryDraftFromApprovedPlan(
       });
       const recipeSignature = buildMealLibraryRecipeSignature({ ...plan, ingredients: plan.ingredients });
       const existing = await prisma.mealLibrary.findUniqueOrThrow({ where: { recipeSignature } });
-      if (existing.status !== MealLibraryStatus.APPROVED ||
-        (plan.sourceRawRecipeCandidateId && await prisma.mealLibrary.findFirst({
-          where: { sourceRawRecipeCandidateId: plan.sourceRawRecipeCandidateId, status: MealLibraryStatus.FLAGGED },
-          select: { id: true },
-        }))) throw new Error('A flagged source recipe cannot become reusable evidence.');
+      if (
+        existing.status !== MealLibraryStatus.APPROVED ||
+        (plan.sourceRawRecipeCandidateId &&
+          (await prisma.mealLibrary.findFirst({
+            where: { sourceRawRecipeCandidateId: plan.sourceRawRecipeCandidateId, status: MealLibraryStatus.FLAGGED },
+            select: { id: true },
+          })))
+      )
+        throw new Error('A flagged source recipe cannot become reusable evidence.');
       if (plan.sourceRawRecipeCandidateId && !existing.sourceRawRecipeCandidateId) {
         await prisma.mealLibrary.update({
           where: { id: existing.id },

@@ -73,6 +73,7 @@
     "meals:report-data-audit": "tsx scripts/report-panlasang-data-audit.ts",
     "check:recipe-audit-scripts": "tsc --project tsconfig.recipe-audit.json",
     "meals:reclassify-panlasang:dry-run": "tsx scripts/reclassify-panlasang-corpus.ts",
+    "meals:audit-rice-labels": "tsx scripts/audit-recipe-rice-labels.ts",
     "meals:reclassify-panlasang:apply": "tsx scripts/reclassify-panlasang-corpus.ts --apply",
     "meals:certified-signatures:dry-run": "tsx scripts/backfill-certified-recipe-signatures.ts",
     "meals:certified-signatures:apply": "tsx scripts/backfill-certified-recipe-signatures.ts --apply",

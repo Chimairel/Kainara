@@ -79,6 +79,8 @@ export async function verifyRawRiceAndRetiredRepair(reviewerId: string, food: Fo
       normalizedName: `chicken audit fixture ${run}`,
       contentSignature: createHash('sha256').update(run).digest('hex'),
       category: 'Main dish',
+      riceRole: 'PAIR_WITH_RICE',
+      riceRoleReviewStatus: 'PROPOSED',
       cuisines: [],
       dietaryTags: ['OMNIVORE'],
       mealType: 'BREAKFAST',

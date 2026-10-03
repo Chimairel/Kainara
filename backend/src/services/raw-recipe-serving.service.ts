@@ -1,6 +1,6 @@
 import { RicePreference, type MealType } from '@prisma/client';
 import { getMealSlotCalorieRange, isPrimaryMealType } from '@/domain/meal-calorie-allocation.policy';
-import { proposeRiceRole } from '@/domain/recipe-rice-role.policy';
+import { resolveRecipeRiceRole } from '@/domain/recipe-rice-role.policy';
 import { COOKED_RICE_HALF_CUP_GRAMS } from '@/domain/rice-portion.policy';
 import { chooseCookedRicePortionG } from '@/domain/upcoming-preparation.policy';
 import { sourceServingScale, scalePublishedAmount } from '@/domain/source-serving-adjustment.policy';
@@ -83,11 +83,20 @@ function calorieServing(input: ServingInput) {
   )
     return null;
   const preference = input.ricePreference ?? RicePreference.FLEXIBLE;
-  const role = proposeRiceRole({
-    name: candidate.displayName,
-    category: candidate.category,
-    ingredients: candidate.ingredients,
+  const role = resolveRecipeRiceRole({
+    mealName: candidate.displayName,
+    riceRole: candidate.riceRole,
+    riceRoleReviewStatus: candidate.riceRoleReviewStatus ?? 'NOT_REVIEWED',
+    includedRiceG: candidate.includedRiceG ?? null,
+    riceMinHalfCups: 1,
+    riceMaxHalfCups: 3,
+    ingredients: candidate.ingredients.map((i) => ({
+      ingredientName: i.name,
+      quantity: i.quantity ?? null,
+      unit: i.unit ?? null,
+    })),
   }).riceRole;
+  if (preference === 'WITH_RICE' && !role) return null;
   if (preference === 'NO_RICE' && role === 'INCLUDES_RICE') return null;
   if (preference === 'WITH_RICE' && role === 'STANDALONE') return null;
   const range = getMealSlotCalorieRange(dailyCalorieTarget, mealType);

@@ -38,7 +38,8 @@ for (const name of [
       carbsG: 80,
       fatG: 25,
     } as unknown as CertifiedLibraryMeal;
-    assert.equal(resolveRecipeRiceRole(meal).riceRole, RecipeRiceRole.STANDALONE);
+    // Primary-slot admission is separate; rice resolution does not rewrite a stored label.
+    assert.equal(resolveRecipeRiceRole(meal).riceRole, RecipeRiceRole.PAIR_WITH_RICE);
     assert.equal(
       resolveReplacementServing({
         meal,
@@ -108,7 +109,7 @@ test('raw servings cannot turn a breakfast-only recipe into a dinner replacement
   );
 });
 
-test('source projection narrows stale dessert labels without changing the saved source row or approval', () => {
+test('source projection preserves the saved rice label while narrowing stale dessert meal times', () => {
   const row = {
     id: 'brownie',
     recipeName: 'Brownies with Walnuts',
@@ -128,7 +129,7 @@ test('source projection narrows stale dessert labels without changing the saved 
   } as unknown as Parameters<typeof projectRawRecipeCandidate>[0];
   const projected = projectRawRecipeCandidate(row);
   assert.deepEqual(projected.applicableMealTypes, [MealType.SNACK]);
-  assert.equal(projected.riceRole, 'STANDALONE');
+  assert.equal(projected.riceRole, 'PAIR_WITH_RICE');
   assert.equal(row.riceRole, 'PAIR_WITH_RICE');
   assert.deepEqual(
     row.applicableMealTypes.map((entry) => entry.mealType),

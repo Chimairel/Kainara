@@ -23,6 +23,7 @@ async function main() {
       id: true,
       mealName: true,
       mealType: true,
+      riceRoleReviewStatus: true,
       ingredients: { select: { ingredientName: true, category: true, quantity: true, unit: true } },
     },
     orderBy: { id: 'asc' },
@@ -72,9 +73,13 @@ async function main() {
             ingredientClassifiedAt: classifiedAt,
             ingredientClassificationFindings: result as unknown as Prisma.InputJsonValue,
             dietaryTags: result.compatibleDietaryPreferences,
-            riceRole: riceRole.riceRole,
-            riceRoleReviewStatus: 'PROPOSED',
-            includedRiceG: riceRole.includedRiceG,
+            ...(meal.riceRoleReviewStatus !== 'REVIEWED'
+              ? {
+                  riceRole: riceRole.riceRole,
+                  riceRoleReviewStatus: riceRole.riceRole ? ('PROPOSED' as const) : ('NOT_REVIEWED' as const),
+                  includedRiceG: riceRole.includedRiceG,
+                }
+              : {}),
           },
         })
       )

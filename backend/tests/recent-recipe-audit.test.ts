@@ -24,7 +24,7 @@ const dish: RecipeCandidateProjection = {
   reviewFreeBaseEligible: true,
   nutrition: { calories: 400, proteinG: 30, carbsG: 10, fatG: 20 },
   servingDescription: null,
-  riceRole: null,
+  riceRole: 'PAIR_WITH_RICE',
   imageUrl: null,
   videoUrl: null,
   state: 'ACTIVE',
@@ -67,7 +67,7 @@ test('source fallback respects no-rice, included-rice and standalone choices', (
   assert.equal(
     rawRecipeServing({
       ...input,
-      candidate: { ...dish, displayName: 'Apple salad' },
+      candidate: { ...dish, displayName: 'Apple salad', riceRole: 'STANDALONE' },
       ricePreference: RicePreference.WITH_RICE,
     }),
     null

@@ -6,7 +6,10 @@ import { classifyMealIngredients } from '../src/domain/meal-ingredient-classific
 import { proposeMealTypeApplicability } from '../src/domain/meal-applicability.policy';
 import { proposeRiceRole } from '../src/domain/recipe-rice-role.policy';
 import { buildRawRecipeContentSignature } from '../src/domain/raw-recipe-content-signature.policy';
-import { recoverSourceIngredientMeasurement, SOURCE_INGREDIENT_RECOVERY_VERSION } from '../src/domain/source-ingredient-recovery.policy';
+import {
+  recoverSourceIngredientMeasurement,
+  SOURCE_INGREDIENT_RECOVERY_VERSION,
+} from '../src/domain/source-ingredient-recovery.policy';
 import {
   createSourceIngredientFnriMatcher,
   isInvalidSourceIngredientLabel,
@@ -131,17 +134,22 @@ async function main() {
     const missingPublishedCore = ['calories', 'proteinG', 'carbsG', 'fatG'].some(
       (key) => finite(nutrition?.[key]) === null
     );
-    const recordedNutrition = missingPublishedCore || recoveredMeasurements
-      ? { ...(nutrition ?? {}), dataCompletionAudit: {
-          actor: 'Codex', version: 'CODEX_PANLASANG_DATA_AUDIT_V1',
-          recordedAt: new Date().toISOString(),
-          operations: [
-            ...(missingPublishedCore ? ['MISSING_SOURCE_NUTRITION_RECORDED_AS_NULL'] : []),
-            ...(recoveredMeasurements ? [SOURCE_INGREDIENT_RECOVERY_VERSION] : []),
-          ],
-          note: 'Source measurements recovered only where explicit in the recipe text; absent published nutrients remain unknown.',
-        } }
-      : nutrition;
+    const recordedNutrition =
+      missingPublishedCore || recoveredMeasurements
+        ? {
+            ...(nutrition ?? {}),
+            dataCompletionAudit: {
+              actor: 'Codex',
+              version: 'CODEX_PANLASANG_DATA_AUDIT_V1',
+              recordedAt: new Date().toISOString(),
+              operations: [
+                ...(missingPublishedCore ? ['MISSING_SOURCE_NUTRITION_RECORDED_AS_NULL'] : []),
+                ...(recoveredMeasurements ? [SOURCE_INGREDIENT_RECOVERY_VERSION] : []),
+              ],
+              note: 'Source measurements recovered only where explicit in the recipe text; absent published nutrients remain unknown.',
+            },
+          }
+        : nutrition;
     const tags = classification.compatibleDietaryPreferences.length
       ? classification.compatibleDietaryPreferences
       : [DietaryPreference.OMNIVORE];
@@ -166,7 +174,7 @@ async function main() {
       description: recipe.description ? String(recipe.description) : null,
       mealType: primaryMealType,
       riceRole: riceRole.riceRole,
-      riceRoleReviewStatus: 'PROPOSED',
+      riceRoleReviewStatus: riceRole.riceRole ? 'PROPOSED' : 'NOT_REVIEWED',
       includedRiceG: riceRole.includedRiceG,
       dietaryTags: tags,
       ingredients: ingredients as unknown as Prisma.InputJsonValue,
@@ -183,15 +191,35 @@ async function main() {
   // signature. Signature versions can become stricter as the indexer learns to
   // represent more source fields; an existing provider record must receive the
   // new signature instead of being silently left stale by skipDuplicates.
+  const reviewedLabels = await prisma.rawRecipeCandidate.findMany({
+    where: { sourceName: 'PANLASANG_PINOY', riceRoleReviewStatus: 'REVIEWED' },
+    select: {
+      sourceRecordId: true,
+      contentSignature: true,
+      riceRole: true,
+      riceRoleReviewStatus: true,
+      includedRiceG: true,
+    },
+  });
+  const reviewedBySource = new Map(reviewedLabels.map((label) => [label.sourceRecordId, label]));
   for (let offset = 0; offset < rows.length; offset += 50) {
     await Promise.all(
-      rows.slice(offset, offset + 50).map((row) =>
-        prisma.rawRecipeCandidate.upsert({
+      rows.slice(offset, offset + 50).map((row) => {
+        const reviewed = reviewedBySource.get(row.sourceRecordId);
+        const label =
+          reviewed?.contentSignature === row.contentSignature
+            ? {
+                riceRole: reviewed.riceRole,
+                riceRoleReviewStatus: reviewed.riceRoleReviewStatus,
+                includedRiceG: reviewed.includedRiceG,
+              }
+            : {};
+        return prisma.rawRecipeCandidate.upsert({
           where: { sourceRecordId: row.sourceRecordId },
           create: row,
-          update: row,
-        })
-      )
+          update: { ...row, ...label },
+        });
+      })
     );
   }
   await prisma.rawRecipeCandidate.updateMany({

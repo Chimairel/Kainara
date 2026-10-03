@@ -8,7 +8,6 @@ import type {
 } from './recipe-candidate-provider';
 import { isUnrestrictedPanlasangBaseEligible } from '@/domain/unrestricted-panlasang-base.policy';
 import { effectiveRecipeMealTypes } from '@/domain/meal-applicability.policy';
-import { proposeRiceRole } from '@/domain/recipe-rice-role.policy';
 
 type Row = Prisma.RawRecipeCandidateGetPayload<{ include: { applicableMealTypes: true } }>;
 
@@ -99,8 +98,9 @@ export function projectRawRecipeCandidate(row: Row): RecipeCandidateProjection {
     }),
     nutrition,
     servingDescription: row.originalServings ? `Original recipe yields ${row.originalServings} servings` : null,
-    riceRole: proposeRiceRole({ name: row.recipeName, category: row.category, ingredients: parsedIngredients })
-      .riceRole,
+    riceRole: row.riceRole,
+    riceRoleReviewStatus: row.riceRoleReviewStatus,
+    includedRiceG: row.includedRiceG,
     imageUrl: row.sourceImageUrl,
     videoUrl: row.sourceVideoUrl,
     state: row.status === 'AVAILABLE' ? 'ACTIVE' : 'RETIRED',

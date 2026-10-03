@@ -1,4 +1,4 @@
-import type { DietaryPreference, MealType, RecipeRiceRole } from '@prisma/client';
+import type { DietaryPreference, MealType, RecipeRiceRole, RiceRoleReviewStatus } from '@prisma/client';
 
 export type RecipeCandidateProvenance = 'PANLASANG_PINOY' | 'USER_OBSERVED';
 
@@ -28,6 +28,8 @@ export interface RecipeCandidateProjection {
   nutrition: { calories: number; proteinG: number; carbsG: number; fatG: number } | null;
   servingDescription: string | null;
   riceRole: RecipeRiceRole | null;
+  riceRoleReviewStatus?: RiceRoleReviewStatus;
+  includedRiceG?: number | null;
   imageUrl: string | null;
   videoUrl: string | null;
   state: 'ACTIVE' | 'RETIRED';

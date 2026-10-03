@@ -1,4 +1,3 @@
-import { proposeRiceRole } from '@/domain/recipe-rice-role.policy';
 import { loadPlanningNutritionContext } from '@/domain/user-nutrition-context';
 import { isUnrestrictedPanlasangBaseEligible } from '@/domain/unrestricted-panlasang-base.policy';
 import type { Prisma } from '@prisma/client';
@@ -74,7 +73,7 @@ export async function replacePlanBaseServing(
 
 /**
  * Adds rice to an admitted dish as plan evidence, without a new library recipe.
- * Explicit reviewed roles override ingredient classification of older dishes.
+ * Requires the saved rice-pairing label and preserves the ingredient no-double-rice guard.
  */
 export async function composePlanWithPairedRice(
   tx: Prisma.TransactionClient,
@@ -127,19 +126,15 @@ export async function composePlanWithPairedRice(
       )
         throw new Error('This source serving requires case review before use.');
     }
-    riceRole = {
-      ...proposeRiceRole({
-        name: plan.mealName,
-        category: source.category,
-        ingredients: plan.ingredients.map((ingredient) => ({
-          name: ingredient.ingredientName,
-          quantity: ingredient.quantity,
-          unit: ingredient.unit,
-        })),
-      }),
-      minHalfCups: 1,
-      maxHalfCups: 3,
-    };
+    riceRole = resolveRecipeRiceRole({
+      mealName: plan.mealName,
+      riceRole: source.riceRole,
+      riceRoleReviewStatus: source.riceRoleReviewStatus,
+      includedRiceG: source.includedRiceG,
+      riceMinHalfCups: 1,
+      riceMaxHalfCups: 3,
+      ingredients: plan.ingredients,
+    });
   }
   if (riceRole.riceRole !== 'PAIR_WITH_RICE') throw new Error('Only a rice-compatible dish can receive a rice side.');
   const halfCups = input.cookedRiceG / COOKED_RICE_HALF_CUP_GRAMS;

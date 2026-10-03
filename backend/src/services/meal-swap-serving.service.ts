@@ -45,6 +45,7 @@ export function resolveReplacementServing(input: {
   )
     return null;
   const riceRole = resolveRecipeRiceRole(meal);
+  if (ricePreference === RicePreference.WITH_RICE && !riceRole.riceRole) return null;
   let pairedRiceG: number | null = null;
   let nutrition = { calories: meal.calories, proteinG: meal.proteinG, carbsG: meal.carbsG, fatG: meal.fatG };
   if (ricePreference !== RicePreference.NO_RICE && riceRole.riceRole === RecipeRiceRole.PAIR_WITH_RICE) {

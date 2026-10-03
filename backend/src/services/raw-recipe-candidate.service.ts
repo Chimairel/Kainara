@@ -310,7 +310,7 @@ export async function sourceRawRecipeCandidates(
       mealTypeMatch: candidate.applicableMealTypes.includes(mealType),
       riceRole: scaled.riceRole,
       ricePreference: input.ricePreference,
-      riceRoleBasis: 'INGREDIENT_CLASSIFICATION',
+      riceRoleBasis: scaled.riceRole ? 'SAVED_CLASSIFICATION' : undefined,
       usedInRecentCycle: false,
     });
     return { ...scaled, _original: candidate, _ranking: ranking };
