@@ -52,6 +52,124 @@ async function fixtureSession(page: Page, onboarded = false) {
 }
 
 for (const width of [390, 1440]) {
+  test(`whole-plate rice swap shows fresh portions and submits the selected plate at ${width}px`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 900 });
+    await fixtureSession(page, true);
+    const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Manila' });
+    let swapped = false;
+    const current = {
+      id: 'rice-slot',
+      planGroupId: 'rice-cycle',
+      mealName: 'BBQ Baby Back Ribs Recipe',
+      mealType: 'LUNCH',
+      scheduledDate: `${today}T04:00:00Z`,
+      status: 'APPROVED',
+      aiConfidenceFlag: 'CAUTION',
+      calories: 758,
+      proteinG: 51,
+      carbsG: 44,
+      fatG: 42,
+      ingredients: [],
+      mealLogs: [],
+      ricePortion: '½ cup cooked rice (75 g)',
+    };
+    const replacement = {
+      id: 'source:chicken',
+      mealName: 'Chicken dish',
+      mealType: 'LUNCH',
+      mealTypes: ['LUNCH'],
+      calories: 795,
+      proteinG: 44,
+      carbsG: 65,
+      fatG: 20,
+      riceRole: 'PAIR_WITH_RICE',
+      reuseBasis: 'PANLASANG_GENERAL_BASE',
+      pairedRiceG: 150,
+      ricePortionLabel: '1 cup cooked rice (150 g)',
+      canFavorite: false,
+      servingDescription: 'One dish serving + 1 cup cooked rice (150 g)',
+      verifiedBy: 'Panlasang Pinoy source',
+    };
+    await page.route('**/api/user/meals/workspace', (route) =>
+      route.fulfill({
+        json: {
+          success: true,
+          data: [
+            {
+              ...current,
+              ...(swapped
+                ? {
+                    mealName: replacement.mealName,
+                    calories: replacement.calories,
+                    proteinG: replacement.proteinG,
+                    carbsG: replacement.carbsG,
+                    fatG: replacement.fatG,
+                    ricePortion: replacement.ricePortionLabel,
+                  }
+                : {}),
+            },
+          ],
+          meta: {},
+        },
+      })
+    );
+    await page.route('**/api/user/meals/rice-slot/swap-options', (route) =>
+      route.fulfill({
+        json: {
+          success: true,
+          data: { swapOptions: [replacement] },
+        },
+      })
+    );
+    await page.route('**/api/user/meals/rice-slot/swap-preview*', (route) =>
+      route.fulfill({
+        json: {
+          success: true,
+          data: {
+            replacement,
+            previewToken: 'signed-fixture',
+            requestKey: 'rice-swap-key',
+            originalCalories: 758,
+            newCalories: 795,
+            calorieDelta: 37,
+            projectedDayTotal: 2000,
+            dailyTarget: 2000,
+            shoppingStarted: false,
+            groceryDeltaAcknowledgmentRequired: false,
+            warningRequired: false,
+            shoppingNeeds: [],
+            shoppingRemovals: [],
+          },
+        },
+      })
+    );
+    await page.route('**/api/user/meals/rice-slot/swap', async (route) => {
+      const body = route.request().postDataJSON();
+      expect(body.newLibraryMealId).toBe('source:chicken');
+      expect(body.previewToken).toBe('signed-fixture');
+      expect(body.requestKey).toBe('rice-swap-key');
+      swapped = true;
+      await route.fulfill({ json: { success: true } });
+    });
+    const errors: string[] = [];
+    page.on('pageerror', (error) => errors.push(error.message));
+    await page.goto(`/meals?date=${today}&mealId=rice-slot`);
+    await page.getByRole('button', { name: 'Swap meal', exact: true }).click();
+    const dialog = page.getByRole('dialog');
+    await expect(dialog.getByText('+ ½ cup cooked rice (75 g)', { exact: true })).toBeVisible();
+    await expect(dialog.getByText('+ 1 cup cooked rice (150 g)', { exact: true })).toBeVisible();
+    await expect(dialog.getByText(/Source:/)).toBeVisible();
+    await expect(dialog.getByText(/Verified by:/)).toHaveCount(0);
+    await dialog.getByRole('button').filter({ hasText: 'Chicken dish' }).click();
+    await expect(dialog.getByText('One dish serving + 1 cup cooked rice (150 g)', { exact: true })).toBeVisible();
+    await expect(dialog.getByRole('button', { name: 'Confirm Swap', exact: true })).toBeEnabled();
+    await dialog.getByRole('button', { name: 'Confirm Swap', exact: true }).click();
+    await expect(dialog).toBeHidden();
+    await expect(page.getByText('+ 1 cup cooked rice (150 g)', { exact: true })).toBeVisible();
+    expect(swapped).toBe(true);
+    expect(errors).toEqual([]);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
+  });
   test(`retired-slot warning repairs the existing cycle and refreshes at ${width}px`, async ({ page }) => {
     await page.setViewportSize({ width, height: 900 });
     await fixtureSession(page, true);

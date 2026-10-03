@@ -35,6 +35,42 @@ function option(id: string, mealName: string): SwapOption {
 }
 
 describe('meal swap picker', () => {
+  it('shows current rice and fresh whole-plate rice without claiming source certification', () => {
+    const source = {
+      ...option('source:recipe', 'Replacement chicken'),
+      reuseBasis: 'PANLASANG_GENERAL_BASE',
+      canFavorite: false,
+      verifiedBy: 'Panlasang Pinoy source',
+      riceRole: 'PAIR_WITH_RICE',
+      pairedRiceG: 150,
+      ricePortionLabel: '1 cup cooked rice (150 g)',
+      servingDescription: 'One dish serving + 1 cup cooked rice (150 g)',
+    };
+    const workspace = {
+      activeSwapMeal: { ...current, ricePortion: '½ cup cooked rice (75 g)' },
+      swapOptions: [source],
+      confirmSwapMeal: source,
+      swapPreview: null,
+      isOptionsLoading: false,
+      isCheckingPreview: false,
+      setActiveSwapMeal: vi.fn(),
+      setSwapOptions: vi.fn(),
+      setConfirmSwapMeal: vi.fn(),
+      setSwapOptionsError: vi.fn(),
+      setSwapPreview: vi.fn(),
+      handleSelectSwapOption: vi.fn(),
+      toggleSwapFavorite: vi.fn(),
+      setSelectedVerifier: vi.fn(),
+    } as unknown as ReturnType<typeof useMealsWorkspace>;
+    render(<MealsWorkspaceModals workspace={workspace} />);
+    expect(screen.getByText('+ ½ cup cooked rice (75 g)')).toBeInTheDocument();
+    expect(screen.getByText('+ 1 cup cooked rice (150 g)')).toBeInTheDocument();
+    expect(screen.getByText('One dish serving + 1 cup cooked rice (150 g)')).toBeInTheDocument();
+    expect(screen.queryByText(/Verified by/)).not.toBeInTheDocument();
+    expect(screen.getByText(/Source:/)).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Favorite Replacement chicken' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Confirm Swap' })).toBeDisabled();
+  });
   it('shows only slot-approved replacements and keeps confirmation disabled until preview succeeds', () => {
     const eligible = option('recipe-eligible', 'Eligible breakfast');
     const generalOnly = option('recipe-general', 'General library breakfast');

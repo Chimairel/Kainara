@@ -68,7 +68,8 @@ function isUserSwappedMeal(selectionEvidence: unknown): boolean {
     typeof selectionEvidence === 'object' &&
     selectionEvidence !== null &&
     'source' in selectionEvidence &&
-    selectionEvidence.source === 'USER_SWAP'
+    selectionEvidence.source === 'USER_SWAP' &&
+    !('replacementKind' in selectionEvidence && selectionEvidence.replacementKind === 'PANLASANG_SOURCE')
   );
 }
 

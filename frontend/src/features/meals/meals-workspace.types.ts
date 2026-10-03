@@ -4,7 +4,10 @@ import type { MealCookingLink, MealPlan, PublicMealImage, PublicVerifier } from 
 
 export interface SwapOption {
   id: string;
-  reuseBasis?: 'CERTIFIED_RECIPE' | 'PROFILE_MATCHED_APPROVAL';
+  reuseBasis?: 'CERTIFIED_RECIPE' | 'PROFILE_MATCHED_APPROVAL' | 'PANLASANG_GENERAL_BASE';
+  canFavorite?: boolean;
+  pairedRiceG?: number | null;
+  ricePortionLabel?: string | null;
   mealName: string;
   description?: string;
   mealType: string;

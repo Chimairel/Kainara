@@ -9,6 +9,7 @@
     "types": ["node"]
   },
   "include": [
+    "scripts/recipe-rice-local-acceptance.ts",
     "scripts/audit-panlasang-source-data.ts",
     "scripts/estimate-panlasang-demo-nutrition.ts",
     "scripts/audit-meal-candidate-coverage.ts",

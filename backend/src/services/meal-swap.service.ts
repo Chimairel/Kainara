@@ -1,13 +1,18 @@
+import { loadActionableUnloggedMealPlan } from './meal-swap-read.service';
+import {
+  SOURCE_SWAP_PREFIX,
+  listSourceSwapOptions,
+  getSourceSwapPreview,
+  executeSourceSwap,
+} from './meal-swap-source.service';
 import { hasDeclaredSafetyRestrictions } from '@/domain/structured-restriction.adapter';
 import { ricePortionLabel } from '@/domain/rice-portion.policy';
 import { resolveRecipeRiceRole } from '@/domain/recipe-rice-role.policy';
 import { rankLibraryMeals } from '@/domain/library-ranking.policy';
 import { MembershipService } from './membership.service';
 import {
-  assertUserSwappableMealPlan,
   filterUserActionableMealPlans,
   getApprovedMealPlanStatusWhere,
-  getOwnedMealPlanWhere,
   getStartOfManilaBusinessDay,
   isApprovedMealLibraryStatus,
 } from '@/domain/meal-actionability.policy';
@@ -20,15 +25,7 @@ import { signSwapPreview, SWAP_PREVIEW_TTL_MS, verifySwapPreview } from '@/domai
 import { buildSwapShoppingDelta } from '@/domain/swap-shopping.policy';
 import { loadPlanningNutritionContext } from '@/domain/user-nutrition-context';
 import prisma from '@/lib/prisma';
-import {
-  HealthConditionType,
-  MealPlanCycleStatus,
-  MealType,
-  Prisma,
-  ProfileCycleAdaptationState,
-  RecipeRiceRole,
-  RicePreference,
-} from '@prisma/client';
+import { HealthConditionType, MealType, Prisma, RecipeRiceRole, RicePreference } from '@prisma/client';
 import { createHash, randomUUID } from 'node:crypto';
 import { GroceryService } from './grocery.service';
 import { resolveLibraryRecipeCookingLinks } from './library-recipe-cooking-link.service';
@@ -41,44 +38,13 @@ import {
   queryEligibleLibraryPage,
   type CertifiedLibraryMeal,
 } from './meal-library-candidate-query.service';
-import { MealPlanCycleService } from './meal-plan-cycle.service';
 import { composePlanWithPairedRice, replacePlanBaseServing } from './meal-plan-serving.service';
 import { recalculateDailyNutritionLog } from './meal-swap-nutrition.service';
 import { resolveReplacementServing } from './meal-swap-serving.service';
 import { lockUserProfile } from './profile-revision.service';
 
-type SwapMealReadClient = Pick<Prisma.TransactionClient, 'mealPlan' | 'mealPlanCycle'>;
-
-async function loadActionableUnloggedMealPlan(client: SwapMealReadClient, userId: string, mealPlanId: string) {
-  const mealPlan = await client.mealPlan.findFirst({
-    where: getOwnedMealPlanWhere(userId, mealPlanId),
-    include: { mealLogs: { where: { userId } }, cycle: true },
-  });
-  if (!mealPlan) throw new Error('Meal plan slot not found.');
-
-  assertUserSwappableMealPlan(mealPlan);
-  const clearedIds = await MealPlanCycleService.getClearedMealPlanIds(userId, mealPlan.planGroupId, new Date(), client);
-  if (!clearedIds.includes(mealPlan.id)) {
-    throw new Error('This meal needs safety revalidation before it can be swapped.');
-  }
-  if (mealPlan.mealLogs.some((log) => log.status === 'DONE' || log.status === 'SKIPPED')) {
-    throw new Error('Cannot swap a meal that has already been eaten or skipped.');
-  }
-  if (mealPlan.cycle.profileAdaptationState !== ProfileCycleAdaptationState.CURRENT) {
-    throw new Error('This plan is waiting for profile review or safety revalidation.');
-  }
-  if (
-    mealPlan.cycle.status === MealPlanCycleStatus.COMPLETED ||
-    mealPlan.cycle.status === MealPlanCycleStatus.SUPERSEDED ||
-    mealPlan.cycle.status === MealPlanCycleStatus.REVALIDATION_REQUIRED
-  ) {
-    throw new Error('This plan cycle is not open for meal swaps.');
-  }
-  return mealPlan;
-}
-
 export function toPublicSwapOption(
-  meal: CertifiedLibraryMeal & { isFavorite?: boolean; alreadyPlannedInCycle?: boolean },
+  meal: CertifiedLibraryMeal & { isFavorite?: boolean; alreadyPlannedInCycle?: boolean; pairedRiceG?: number | null },
   recipeImage?: PublicMealImage,
   cookingLink?: PublicMealCookingLink,
   reuseBasis: 'CERTIFIED_RECIPE' | 'PROFILE_MATCHED_APPROVAL' = 'CERTIFIED_RECIPE',
@@ -101,6 +67,9 @@ export function toPublicSwapOption(
     riceRoleReviewStatus: meal.riceRoleReviewStatus,
     includedRiceG: riceRole.riceRole === 'INCLUDES_RICE' ? riceRole.includedRiceG : null,
     servingDescription: meal.nutritionServingDescription || 'One recipe serving',
+    pairedRiceG: meal.pairedRiceG ?? null,
+    ricePortionLabel: meal.pairedRiceG ? ricePortionLabel(meal.pairedRiceG) : null,
+    canFavorite: true,
     isFavorite: 'isFavorite' in meal ? Boolean(meal.isFavorite) : false,
     alreadyPlannedInCycle: 'alreadyPlannedInCycle' in meal ? Boolean(meal.alreadyPlannedInCycle) : false,
     calories: meal.calories,
@@ -273,31 +242,37 @@ export class MealSwapService {
       resolveLibraryRecipeCookingLinks(eligibleMeals),
     ]);
 
-    return {
-      swapOptions: rankLibraryMeals(eligibleMeals, dailyTarget, mealPlan.calories, mealPlan.mealType, {
-        proteinG: mealPlan.proteinG,
-        carbsG: mealPlan.carbsG,
-        fatG: mealPlan.fatG,
-      }).map((meal) => {
-        const certified = isCertifiedLibraryMealCompatible(meal, userConditions, userAllergens, {
-          ...userProfile,
-          userId,
+    const sourceOptions = await listSourceSwapOptions(userId, mealPlan);
+    const libraryOptions = rankLibraryMeals(eligibleMeals, dailyTarget, mealPlan.calories, mealPlan.mealType, {
+      proteinG: mealPlan.proteinG,
+      carbsG: mealPlan.carbsG,
+      fatG: mealPlan.fatG,
+    }).map((meal) => {
+      const certified = isCertifiedLibraryMealCompatible(meal, userConditions, userAllergens, {
+        ...userProfile,
+        userId,
+        safetyEntries: user.safetyProfileEntries,
+      });
+      return toPublicSwapOption(
+        meal,
+        recipeImages.get(meal.id),
+        cookingLinks.get(meal.id),
+        certified ? 'CERTIFIED_RECIPE' : 'PROFILE_MATCHED_APPROVAL',
+        mealApprovalSafetyScope({
+          conditions: userConditions,
+          allergens: userAllergens,
+          otherConditions: userProfile.otherConditions,
+          otherAllergies: userProfile.otherAllergies,
           safetyEntries: user.safetyProfileEntries,
-        });
-        return toPublicSwapOption(
-          meal,
-          recipeImages.get(meal.id),
-          cookingLinks.get(meal.id),
-          certified ? 'CERTIFIED_RECIPE' : 'PROFILE_MATCHED_APPROVAL',
-          mealApprovalSafetyScope({
-            conditions: userConditions,
-            allergens: userAllergens,
-            otherConditions: userProfile.otherConditions,
-            otherAllergies: userProfile.otherAllergies,
-            safetyEntries: user.safetyProfileEntries,
-          }).key
-        );
-      }),
+        }).key
+      );
+    });
+    return {
+      swapOptions: [...libraryOptions, ...sourceOptions].sort(
+        (a, b) =>
+          Math.abs(a.calories - mealPlan.calories) - Math.abs(b.calories - mealPlan.calories) ||
+          a.id.localeCompare(b.id)
+      ),
     };
   }
 
@@ -310,6 +285,8 @@ export class MealSwapService {
     libraryMealId: string,
     client: Prisma.TransactionClient = prisma
   ) {
+    if (libraryMealId.startsWith(SOURCE_SWAP_PREFIX))
+      return getSourceSwapPreview(userId, mealPlanId, libraryMealId, client);
     // 1. Fetch the current meal plan slot
     const mealPlan = await loadActionableUnloggedMealPlan(client, userId, mealPlanId);
 
@@ -515,6 +492,16 @@ export class MealSwapService {
     requestKey?: string,
     groceryDeltaAcknowledged?: boolean
   ) {
+    if (newLibraryMealId.startsWith(SOURCE_SWAP_PREFIX))
+      return executeSourceSwap(
+        userId,
+        mealPlanId,
+        newLibraryMealId,
+        previewToken,
+        requestKey,
+        warningAcknowledged,
+        groceryDeltaAcknowledged
+      );
     await prisma.$transaction(
       async (tx) => {
         await lockUserProfile(tx, userId);

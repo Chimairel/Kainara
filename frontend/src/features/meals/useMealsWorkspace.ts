@@ -229,6 +229,7 @@ export function useMealsWorkspace(initialOptions?: { initialDateKey?: string | n
   } = library;
 
   const toggleSwapFavorite = async (meal: SwapOption) => {
+    if (meal.canFavorite === false) return;
     if (meal.isFavorite) await api.delete(`/user/meals/library/${meal.id}/favorite`);
     else await api.post(`/user/meals/library/${meal.id}/favorite`);
     setSwapOptions((current) =>
@@ -308,7 +309,7 @@ export function useMealsWorkspace(initialOptions?: { initialDateKey?: string | n
           const preview = await api.get('/user/meals/' + mealId + '/swap-preview', {
             params: { libraryMealId: preferred.id },
           });
-          setConfirmSwapMeal(preferred);
+          setConfirmSwapMeal({ ...preferred, ...preview.data.data.replacement });
           setSwapPreview(preview.data.data);
         }
       }
@@ -335,6 +336,7 @@ export function useMealsWorkspace(initialOptions?: { initialDateKey?: string | n
       if (res.data?.success) {
         const preview = res.data.data;
         setSwapPreview(preview);
+        if (preview.replacement) setConfirmSwapMeal({ ...option, ...preview.replacement });
       }
     } catch (err: unknown) {
       setPreviewError(getApiErrorMessage(err, 'Failed to check swap preview.'));

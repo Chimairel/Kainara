@@ -8,10 +8,16 @@ import { getManilaDateKey, getManilaMidnight } from '../../src/domain/meal-plan-
 import { GroceryService } from '../../src/services/grocery.service';
 import { NUTRITION_GUIDANCE_POLICY_VERSION } from '../../src/domain/deterministic-nutrition-report.policy';
 import { adaptUserSafetyRestrictions } from '../../src/domain/structured-restriction.adapter';
+import { verifySourcePlateSwaps } from './source-swap-rice-fixture';
 
 export async function verifyRawRiceAndRetiredRepair(reviewerId: string, food: FoodItem, rice: FoodItem) {
   const database = new URL(process.env.DATABASE_URL ?? '');
   assert.ok(['localhost', '127.0.0.1'].includes(database.hostname) && database.pathname === '/recipe_rice_acceptance');
+  // Prior interrupted runs must not compete with this run's retirement fixture.
+  await prisma.rawRecipeCandidate.updateMany({
+    where: { recipeName: { contains: 'swap fixture' } },
+    data: { status: 'RETIRED' },
+  });
   const run = randomUUID();
   const user = await prisma.user.create({
     data: {
@@ -232,6 +238,7 @@ export async function verifyRawRiceAndRetiredRepair(reviewerId: string, food: Fo
   assert.equal(updatedList.groceryItems.find((item) => item.ingredientName === food.name)?.purchasedQuantity, 40);
   assert.equal(updatedList.groceryItems.find((item) => item.ingredientName === rice.name)?.quantity, 300);
   assert.deepEqual(await replaceRetiredPlanMeals(userId, cycle.id), { replaced: 0, awaitingReplacement: 0 });
+  await verifySourcePlateSwaps(userId, replaced.id, cycle.id, food, rice);
   // Explicit synthetic case approval is confined to this disposable database.
   await prisma.safetyProfileEntry.updateMany({
     where: { userId, domain: 'ALLERGY' },

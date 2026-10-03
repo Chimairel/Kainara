@@ -1,0 +1,204 @@
+import assert from 'node:assert/strict';
+import { randomUUID, createHash } from 'node:crypto';
+import type { FoodItem } from '@prisma/client';
+import prisma from '../../src/lib/prisma';
+import { MealSwapService } from '../../src/services/meal-swap.service';
+import { serializeActionableMeal } from '../../src/services/meal-plan-presentation.service';
+
+/** Mutations are confined to the same guarded disposable acceptance database. */
+export async function verifySourcePlateSwaps(
+  userId: string,
+  slotId: string,
+  cycleId: string,
+  food: FoodItem,
+  rice: FoodItem
+) {
+  const database = new URL(process.env.DATABASE_URL ?? '');
+  assert.ok(['127.0.0.1', 'localhost'].includes(database.hostname) && database.pathname === '/recipe_rice_acceptance');
+  const libraryCount = await prisma.mealLibrary.count();
+  const run = randomUUID();
+  const makeSource = async (name: string, category: string, calories: number) =>
+    prisma.rawRecipeCandidate.create({
+      data: {
+        sourceRecordId: `${name}-${run}`,
+        sourceName: 'PANLASANG_PINOY',
+        sourceUrl: `https://panlasangpinoy.com/${name}/`,
+        sourceImageUrl: `https://panlasangpinoy.com/wp-content/uploads/${name}.jpg`,
+        recipeName: `${name} ${run}`,
+        normalizedName: `${name} ${run}`,
+        category,
+        cuisines: [],
+        dietaryTags: ['OMNIVORE'],
+        mealType: 'BREAKFAST',
+        applicableMealTypes: { create: [{ mealType: 'BREAKFAST' }] },
+        contentSignature: createHash('sha256')
+          .update(name + run)
+          .digest('hex'),
+        ingredients: [{ name: food.name, quantity: 100, unit: 'g', foodItemId: food.id }],
+        calories,
+        proteinG: 30,
+        carbsG: 20,
+        fatG: 15,
+        publishedNutrition: { calories, proteinG: 30, carbsG: 20, fatG: 15 },
+      },
+    });
+  const paired = await makeSource('Chicken swap fixture', 'Main dish', 550);
+  const standalone = await makeSource('Salad swap fixture', 'Salad', 600);
+  const unavailable = await makeSource('Archived swap fixture', 'Main dish', 550);
+  await prisma.rawRecipeCandidate.update({ where: { id: unavailable.id }, data: { status: 'RETIRED' } });
+  const { swapOptions: options } = await MealSwapService.getEligibleSwapOptions(userId, slotId);
+  const pairedOption = options.find((item) => item.id === `source:${paired.id}`)!;
+  assert.ok(pairedOption, 'An eligible published source is offered even without a certified library variant.');
+  assert.equal(pairedOption.reuseBasis, 'PANLASANG_GENERAL_BASE');
+  assert.equal(pairedOption.calories, 647.5);
+  assert.equal(pairedOption.pairedRiceG, 75);
+  assert.equal(pairedOption.canFavorite, false);
+  assert.ok(!options.some((item) => item.id === `source:${unavailable.id}`));
+  const list = await prisma.groceryList.findFirstOrThrow({
+    where: { userId, planGroupId: cycleId },
+    include: { groceryItems: true },
+  });
+  const riceItem = list.groceryItems.find((item) => item.ingredientName === rice.name)!;
+  assert.equal(riceItem.quantity, 300);
+  await prisma.groceryItem.update({ where: { id: riceItem.id }, data: { purchasedQuantity: 260 } });
+  let preview = await MealSwapService.getSwapPreview(userId, slotId, pairedOption.id);
+  assert.equal(preview.originalCalories, 595);
+  assert.equal(preview.newCalories, 647.5);
+  assert.equal(preview.pairedRiceG, 75);
+  assert.ok(preview.riceFoodItemId);
+  const riceRevision = (await prisma.foodItem.findUniqueOrThrow({ where: { id: preview.riceFoodItemId } }))
+    .compositionRevision;
+  await prisma.foodItem.update({
+    where: { id: preview.riceFoodItemId },
+    data: { compositionRevision: { increment: 1 } },
+  });
+  await assert.rejects(
+    MealSwapService.swapMeal(
+      userId,
+      slotId,
+      pairedOption.id,
+      true,
+      true,
+      preview.previewToken,
+      preview.requestKey,
+      true
+    ),
+    /changed.*fresh preview|safety revalidation/
+  );
+  assert.equal(await prisma.swapLog.count({ where: { mealPlanId: slotId } }), 0);
+  assert.equal((await prisma.groceryItem.findUniqueOrThrow({ where: { id: riceItem.id } })).quantity, 300);
+  // Restore only this disposable fixture's revision so its old rice plate is actionable again.
+  await prisma.foodItem.update({ where: { id: preview.riceFoodItemId }, data: { compositionRevision: riceRevision } });
+  await prisma.rawRecipeCandidate.update({
+    where: { id: paired.id },
+    data: {
+      contentSignature: createHash('sha256')
+        .update(run + 'source revision changed')
+        .digest('hex'),
+    },
+  });
+  await assert.rejects(
+    MealSwapService.swapMeal(
+      userId,
+      slotId,
+      pairedOption.id,
+      true,
+      true,
+      preview.previewToken,
+      preview.requestKey,
+      true
+    ),
+    /changed.*fresh preview/
+  );
+  preview = await MealSwapService.getSwapPreview(userId, slotId, pairedOption.id);
+  const execute = () =>
+    MealSwapService.swapMeal(
+      userId,
+      slotId,
+      pairedOption.id,
+      true,
+      true,
+      preview.previewToken,
+      preview.requestKey,
+      true
+    );
+  await execute();
+  await execute();
+  const saved = await prisma.mealPlan.findUniqueOrThrow({
+    where: { id: slotId },
+    include: {
+      ingredients: true,
+      servingComponents: true,
+      sourceRawRecipeCandidate: true,
+    },
+  });
+  assert.equal(saved.calories, preview.newCalories);
+  assert.equal(saved.carbsG, 41);
+  assert.equal(saved.sourceRawRecipeCandidateId, paired.id);
+  assert.equal(saved.libraryMealId, null);
+  assert.deepEqual(
+    saved.servingComponents.filter((item) => item.componentType === 'COOKED_RICE').map((item) => item.quantityG),
+    [75]
+  );
+  const presented = serializeActionableMeal(saved);
+  assert.equal(presented.image?.url, new URL(paired.sourceImageUrl!).toString());
+  assert.equal(
+    await prisma.swapLog.count({ where: { mealPlanId: slotId, requestKey: `${userId}:${preview.requestKey}` } }),
+    1
+  );
+  const riceAfter = await prisma.groceryItem.findUniqueOrThrow({ where: { id: riceItem.id } });
+  assert.equal(
+    riceAfter.quantity,
+    225,
+    'The projection removes old 150 g and adds new 75 g, alongside unchanged dinner rice.'
+  );
+  assert.equal(riceAfter.purchasedQuantity, 260, 'Purchased rice survives a smaller requirement.');
+  const noRicePreview = await MealSwapService.getSwapPreview(userId, slotId, `source:${standalone.id}`);
+  assert.equal(noRicePreview.pairedRiceG, null);
+  await MealSwapService.swapMeal(
+    userId,
+    slotId,
+    `source:${standalone.id}`,
+    true,
+    true,
+    noRicePreview.previewToken,
+    noRicePreview.requestKey,
+    true
+  );
+  assert.equal(
+    await prisma.mealPlanServingComponent.count({ where: { mealPlanId: slotId, componentType: 'COOKED_RICE' } }),
+    0
+  );
+  assert.equal((await prisma.groceryItem.findUniqueOrThrow({ where: { id: riceItem.id } })).quantity, 150);
+  assert.equal(await prisma.mealLibrary.count(), libraryCount, 'No composed-plate library entries are created.');
+  await assert.rejects(MealSwapService.getSwapPreview('wrong-owner', slotId, `source:${paired.id}`));
+  await prisma.safetyProfileEntry.updateMany({
+    where: { userId, domain: 'ALLERGY' },
+    data: {
+      canonicalCode: 'EGGS',
+      displayName: 'Eggs',
+      originalText: 'Eggs',
+      normalizedText: 'eggs',
+    },
+  });
+  await assert.rejects(
+    MealSwapService.getSwapPreview(userId, slotId, `source:${paired.id}`),
+    /health or allergy profile|safety revalidation/
+  );
+  await prisma.safetyProfileEntry.updateMany({
+    where: { userId, domain: 'ALLERGY' },
+    data: {
+      canonicalCode: 'NONE',
+      displayName: 'None',
+      originalText: 'None',
+      normalizedText: 'none',
+    },
+  });
+  console.log(
+    'PASS: source whole-plate swaps, fresh half-cup rice, exact image, no library growth, idempotence, grocery rice/purchases and restricted-profile rejection.'
+  );
+  await prisma.rawRecipeCandidate.updateMany({
+    where: { id: { in: [paired.id, standalone.id] } },
+    data: { status: 'RETIRED' },
+  });
+}

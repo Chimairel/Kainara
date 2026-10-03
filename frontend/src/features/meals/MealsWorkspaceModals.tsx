@@ -129,7 +129,7 @@ export function MealsWorkspaceModals({ workspace }: Props) {
             setSwapPreview(null);
           }}
           title={`Swap ${activeSwapMeal.mealName}`}
-          description={`Select a verified replacement meal from your library for ${activeSwapMeal.mealType}.`}
+          description={`Replace the whole ${activeSwapMeal.mealType.toLowerCase()} plate, including any rice. Each option includes a freshly calculated rice portion where suitable; nutrition totals include rice.`}
           size="2xl"
         >
           <div className="space-y-4 text-left">
@@ -160,6 +160,9 @@ export function MealsWorkspaceModals({ workspace }: Props) {
                       <h4 className="font-display text-sm font-bold text-brand-text truncate leading-snug">
                         {activeSwapMeal.mealName}
                       </h4>
+                      {activeSwapMeal.ricePortion && (
+                        <p className="text-[11px] text-brand-green mt-0.5">+ {activeSwapMeal.ricePortion}</p>
+                      )}
                       <p className="text-[11px] text-brand-muted mt-0.5">
                         {formatManilaDate(activeSwapMeal.scheduledDate, {
                           weekday: 'short',
@@ -233,7 +236,7 @@ export function MealsWorkspaceModals({ workspace }: Props) {
                         <h4 className="font-display text-sm font-bold text-brand-text truncate leading-snug">
                           {confirmSwapMeal.mealName}
                         </h4>
-                        <p className="text-[11px] text-brand-muted mt-0.5 line-clamp-1">
+                        <p className="text-[11px] text-brand-muted mt-0.5">
                           {confirmSwapMeal.servingDescription || 'One recipe serving'}
                           {confirmSwapMeal.alreadyPlannedInCycle ? ' · In plan' : ''}
                         </p>
@@ -434,7 +437,7 @@ export function MealsWorkspaceModals({ workspace }: Props) {
                   <div className="flex flex-col items-center py-12 gap-2">
                     <LoadingSpinner size="md" />
                     <span className="text-xs text-brand-muted font-semibold">
-                      Loading compatible library recipes...
+                      Loading compatible replacement plates...
                     </span>
                   </div>
                 ) : swapOptionsError ? (
@@ -444,9 +447,13 @@ export function MealsWorkspaceModals({ workspace }: Props) {
                 ) : filteredAndSortedOptions.length === 0 ? (
                   <div className="p-8 text-center border border-brand-border/40 bg-brand-surface/30 rounded-2xl">
                     <Soup className="w-7 h-7 text-brand-green mx-auto mb-2 opacity-70" />
-                    <p className="text-xs font-bold text-brand-text">No meals match your active filters</p>
+                    <p className="text-xs font-bold text-brand-text">
+                      {swapOptions.length ? 'No meals match your active filters' : 'No eligible replacement plates'}
+                    </p>
                     <p className="text-[11px] text-brand-muted mt-0.5">
-                      Try selecting &apos;All Types&apos; or resetting search and rice role filters.
+                      {swapOptions.length
+                        ? "Try selecting 'All Types' or resetting search and rice role filters."
+                        : 'No available plate meets this meal slot’s calorie, rice preference and review requirements.'}
                     </p>
                   </div>
                 ) : (
@@ -504,14 +511,16 @@ export function MealsWorkspaceModals({ workspace }: Props) {
                                   {option.mealName}
                                 </h4>
 
-                                <p className="text-[10px] text-brand-muted mt-0.5 truncate">
-                                  {option.riceRole === 'PAIR_WITH_RICE'
-                                    ? 'Pair with rice'
-                                    : option.riceRole === 'INCLUDES_RICE'
-                                      ? 'Rice included'
-                                      : option.riceRole === 'STANDALONE'
-                                        ? 'Standalone'
-                                        : 'Rice role unavailable'}
+                                <p className="text-[10px] text-brand-muted mt-0.5">
+                                  {option.ricePortionLabel
+                                    ? `+ ${option.ricePortionLabel}`
+                                    : option.riceRole === 'PAIR_WITH_RICE'
+                                      ? 'Pair with rice'
+                                      : option.riceRole === 'INCLUDES_RICE'
+                                        ? 'Rice included'
+                                        : option.riceRole === 'STANDALONE'
+                                          ? 'Standalone'
+                                          : 'Rice role unavailable'}
                                   {option.alreadyPlannedInCycle ? ' · In plan' : ''}
                                 </p>
                               </div>
@@ -548,7 +557,7 @@ export function MealsWorkspaceModals({ workspace }: Props) {
                             {/* Verifier Badge & Favorite */}
                             <div className="flex items-center justify-between text-[9px] text-brand-muted pt-0.5">
                               <span className="truncate">
-                                Verified by:{' '}
+                                {option.reuseBasis === 'PANLASANG_GENERAL_BASE' ? 'Source: ' : 'Verified by: '}
                                 {option.verifier ? (
                                   <button
                                     type="button"
@@ -567,22 +576,26 @@ export function MealsWorkspaceModals({ workspace }: Props) {
                                 )}
                               </span>
 
-                              <button
-                                type="button"
-                                aria-label={
-                                  option.isFavorite
-                                    ? `Remove ${option.mealName} from favorites`
-                                    : `Favorite ${option.mealName}`
-                                }
-                                aria-pressed={option.isFavorite}
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  toggleSwapFavorite(option);
-                                }}
-                                className="p-1 text-brand-muted hover:text-rose-500 transition-colors"
-                              >
-                                <Heart className={`h-3 w-3 ${option.isFavorite ? 'fill-current text-rose-500' : ''}`} />
-                              </button>
+                              {option.canFavorite !== false && (
+                                <button
+                                  type="button"
+                                  aria-label={
+                                    option.isFavorite
+                                      ? `Remove ${option.mealName} from favorites`
+                                      : `Favorite ${option.mealName}`
+                                  }
+                                  aria-pressed={option.isFavorite}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    toggleSwapFavorite(option);
+                                  }}
+                                  className="p-1 text-brand-muted hover:text-rose-500 transition-colors"
+                                >
+                                  <Heart
+                                    className={`h-3 w-3 ${option.isFavorite ? 'fill-current text-rose-500' : ''}`}
+                                  />
+                                </button>
+                              )}
                             </div>
                           </div>
                         </div>

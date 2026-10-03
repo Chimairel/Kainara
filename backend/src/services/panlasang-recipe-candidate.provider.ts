@@ -58,7 +58,7 @@ function decodeCursor(cursor?: string): { normalizedName: string; id: string } |
   }
 }
 
-function project(row: Row): RecipeCandidateProjection {
+export function projectRawRecipeCandidate(row: Row): RecipeCandidateProjection {
   const parsedIngredients = parseRecipeCandidateIngredients(row.ingredients);
   const nutrition =
     row.calories === null || row.proteinG === null || row.carbsG === null || row.fatG === null
@@ -83,8 +83,13 @@ function project(row: Row): RecipeCandidateProjection {
     reviewFreeBaseEligible: isUnrestrictedPanlasangBaseEligible({
       source: row,
       candidateId: row.id,
-      conditions: [], allergens: [],
-      preparedIngredients: parsedIngredients.map((item) => ({ ingredientName: item.name, quantity: item.quantity, unit: item.unit })),
+      conditions: [],
+      allergens: [],
+      preparedIngredients: parsedIngredients.map((item) => ({
+        ingredientName: item.name,
+        quantity: item.quantity,
+        unit: item.unit,
+      })),
     }),
     nutrition,
     servingDescription: row.originalServings ? `Original recipe yields ${row.originalServings} servings` : null,
@@ -143,7 +148,7 @@ export class DatabaseRecipeCandidateProvider implements RecipeCandidateProvider 
     const hasMore = rows.length > limit;
     const page = rows.slice(0, limit);
     return {
-      items: page.map(project),
+      items: page.map(projectRawRecipeCandidate),
       nextCursor: !input.recentFirst && hasMore && page.length ? encodeCursor(page[page.length - 1]) : null,
     };
   }
