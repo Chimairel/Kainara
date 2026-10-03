@@ -31,6 +31,7 @@ export function MealsWorkspaceModals({ workspace }: Props) {
     confirmSwapMeal,
     setConfirmSwapMeal,
     isSwapping,
+    isRefreshingSwap,
     swapPreview,
     setSwapPreview,
     isCheckingPreview,
@@ -95,6 +96,7 @@ export function MealsWorkspaceModals({ workspace }: Props) {
         <Modal
           isOpen={true}
           onClose={() => {
+            if (isSwapping) return;
             setActiveSwapMeal(null);
             setSwapOptions([]);
             setConfirmSwapMeal(null);
@@ -105,7 +107,24 @@ export function MealsWorkspaceModals({ workspace }: Props) {
           description={`Replace the whole ${activeSwapMeal.mealType.toLowerCase()} plate, including any rice. Each option includes a freshly calculated rice portion where suitable; nutrition totals include rice.`}
           size="2xl"
         >
-          <div className="space-y-4 text-left">
+          <div className="space-y-4 text-left" aria-busy={isSwapping}>
+            {isSwapping && (
+              <div
+                role="status"
+                aria-live="polite"
+                className="sticky top-0 z-10 flex items-center gap-3 rounded-xl border border-brand-green/30 bg-brand-surface p-3 text-sm shadow-sm"
+              >
+                <LoadingSpinner size="sm" />
+                <div>
+                  <p className="font-bold text-brand-text">
+                    {isRefreshingSwap ? 'Meal swapped. Refreshing your plan…' : 'Swapping your meal…'}
+                  </p>
+                  <p className="text-xs text-brand-muted">
+                    {isRefreshingSwap ? 'Loading your updated meal plan.' : 'Updating your meal plan and grocery list.'}
+                  </p>
+                </div>
+              </div>
+            )}
             {/* TOP ROW: COMPARISON SECTION */}
             <div className="grid grid-cols-1 md:grid-cols-[1fr_auto_1fr] items-stretch gap-3 pb-4 border-b border-brand-border/60">
               {/* Left Card: Current Meal */}
@@ -260,6 +279,7 @@ export function MealsWorkspaceModals({ workspace }: Props) {
                         {swapPreview.groceryDeltaAcknowledgmentRequired && (
                           <label className="flex items-start gap-1.5 rounded-lg border border-amber-500/30 bg-amber-500/10 p-2 text-xs font-semibold cursor-pointer">
                             <input
+                              disabled={isSwapping}
                               type="checkbox"
                               checked={groceryDeltaAcknowledged}
                               onChange={(e) => setGroceryDeltaAcknowledged(e.target.checked)}
@@ -299,7 +319,14 @@ export function MealsWorkspaceModals({ workspace }: Props) {
                       }
                       className="text-xs font-bold h-8 px-4"
                     >
-                      {isSwapping ? 'Swapping...' : 'Confirm Swap'}
+                      {isSwapping ? (
+                        <span className="flex items-center gap-2">
+                          <LoadingSpinner size="sm" />
+                          {isRefreshingSwap ? 'Refreshing…' : 'Swapping…'}
+                        </span>
+                      ) : (
+                        'Confirm Swap'
+                      )}
                     </Button>
                   </div>
                 </div>
@@ -330,6 +357,7 @@ export function MealsWorkspaceModals({ workspace }: Props) {
 
               <div className="flex justify-end text-xs">
                 <select
+                  disabled={isSwapping}
                   value={miniSort}
                   onChange={(event) => setMiniSort(event.target.value as MiniSortOption)}
                   className="h-9 rounded-xl border border-brand-border bg-brand-surface px-2.5 text-xs font-medium text-brand-text outline-none focus:border-brand-green"
@@ -385,12 +413,15 @@ export function MealsWorkspaceModals({ workspace }: Props) {
                         <div
                           key={option.id}
                           role="button"
-                          tabIndex={0}
+                          tabIndex={isSwapping ? -1 : 0}
+                          aria-disabled={isSwapping}
                           onClick={() => {
+                            if (isSwapping) return;
                             setGroceryDeltaAcknowledged(false);
                             handleSelectSwapOption(option);
                           }}
                           onKeyDown={(e) => {
+                            if (isSwapping) return;
                             if (e.key === 'Enter' || e.key === ' ') {
                               e.preventDefault();
                               setGroceryDeltaAcknowledged(false);

@@ -12,6 +12,7 @@ import { resolveRecipeRiceRole } from '@/domain/recipe-rice-role.policy';
 import { effectiveRecipeMealTypes } from '@/domain/meal-applicability.policy';
 import { rankLibraryMeals } from '@/domain/library-ranking.policy';
 import { MembershipService } from './membership.service';
+import { recordMealSwapNotification } from './meal-swap-feedback.service';
 import {
   filterUserActionableMealPlans,
   getApprovedMealPlanStatusWhere,
@@ -486,7 +487,7 @@ export class MealSwapService {
         warningAcknowledged,
         groceryDeltaAcknowledged
       );
-    await prisma.$transaction(
+    const result = await prisma.$transaction(
       async (tx) => {
         await lockUserProfile(tx, userId);
         if (!requestKey || !previewToken) throw new Error('Preview this swap before confirming.');
@@ -497,6 +498,7 @@ export class MealSwapService {
             throw new Error('Request key already used for a different swap.');
           return {
             success: true,
+            swapsRemaining: null,
             updatedPlan: await tx.mealPlan.findUniqueOrThrow({ where: { id: mealPlanId } }),
           };
         }
@@ -512,7 +514,7 @@ export class MealSwapService {
         // 1. Fetch target meal plan slot
         const mealPlan = await loadActionableUnloggedMealPlan(tx, userId, mealPlanId);
 
-        await MembershipService.assertSwap(userId, mealPlan.planGroupId, tx);
+        const allowance = await MembershipService.assertSwap(userId, mealPlan.planGroupId, tx);
 
         // 2. Fetch user profile, health conditions, and allergies
         const { user, profile: userProfile } = await loadPlanningNutritionContext(
@@ -747,8 +749,10 @@ export class MealSwapService {
 
         await GroceryService.generateGroceryList(userId, tx, mealPlan.planGroupId, 'EXPLICIT');
         await MealSwapService.recalculateDailyNutritionLog(userId, updatedPlan.scheduledDate, tx);
+        const swapsRemaining = await recordMealSwapNotification(tx, userId, allowance);
         return {
           success: true,
+          swapsRemaining,
           updatedPlan,
         };
       },
@@ -757,6 +761,7 @@ export class MealSwapService {
 
     return {
       success: true,
+      swapsRemaining: result.swapsRemaining,
     };
   }
 

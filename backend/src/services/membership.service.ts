@@ -225,6 +225,7 @@ export class MembershipService {
         429,
         'MEMBERSHIP_SWAP_LIMIT'
       );
+    return { limit: cap, used };
   }
 
   /** Reservations serialize per account and count toward limits while a provider request is in flight. */

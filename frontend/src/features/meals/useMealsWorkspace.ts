@@ -12,6 +12,7 @@ import { cachedUserProfile } from '@/lib/user-profile-resource';
 import type { MealPlan, PublicVerifier } from '@/types';
 import axios from 'axios';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { toast } from 'sonner';
 import type {
   CurrentPlanSnapshot,
   PendingReviewState,
@@ -94,6 +95,8 @@ export function useMealsWorkspace(initialOptions?: { initialDateKey?: string | n
   const [swapOptionsError, setSwapOptionsError] = useState<string | null>(null);
   const [confirmSwapMeal, setConfirmSwapMeal] = useState<SwapOption | null>(null);
   const [isSwapping, setIsSwapping] = useState(false);
+  const [isRefreshingSwap, setIsRefreshingSwap] = useState(false);
+  const swapInFlight = useRef(false);
 
   // Swap preview/warning states
   const [swapPreview, setSwapPreview] = useState<{
@@ -285,6 +288,7 @@ export function useMealsWorkspace(initialOptions?: { initialDateKey?: string | n
 
   // Open Swap options modal and fetch eligible replacement meals
   const handleSwapClick = async (mealId: string, preferred?: SwapOption) => {
+    if (swapInFlight.current) return;
     const meal = meals.find((m) => m.id === mealId);
     if (!meal) return;
 
@@ -317,7 +321,7 @@ export function useMealsWorkspace(initialOptions?: { initialDateKey?: string | n
 
   // Select a replacement meal options and call preview check
   const handleSelectSwapOption = async (option: SwapOption) => {
-    if (!activeSwapMeal) return;
+    if (!activeSwapMeal || swapInFlight.current) return;
 
     setConfirmSwapMeal(option);
     setIsCheckingPreview(true);
@@ -337,16 +341,20 @@ export function useMealsWorkspace(initialOptions?: { initialDateKey?: string | n
       setPreviewError(getApiErrorMessage(err, 'Failed to check swap preview.'));
     } finally {
       setIsCheckingPreview(false);
-      setIsSwapping(false);
     }
   };
 
   // Submits the swap with warning acknowledged
   const handleConfirmSwapAnyway = async (groceryDeltaAcknowledged = false) => {
-    if (!activeSwapMeal || !confirmSwapMeal || !swapPreview) return;
+    if (swapInFlight.current || !activeSwapMeal || !confirmSwapMeal || !swapPreview) return;
 
+    swapInFlight.current = true;
+    const submittingOwner = ownerId;
+    const toastId = `meal-swap-${swapPreview.requestKey}`;
     setIsSwapping(true);
+    setIsRefreshingSwap(false);
     setSwapOptionsError(null);
+    toast.loading('Swapping meal…', { id: toastId, description: 'Updating your meal plan and grocery list.' });
 
     try {
       const res = await api.post(`/user/meals/${activeSwapMeal.id}/swap`, {
@@ -358,18 +366,36 @@ export function useMealsWorkspace(initialOptions?: { initialDateKey?: string | n
         groceryDeltaAcknowledged,
       });
 
-      if (res.data?.success) {
-        setActiveSwapMeal(null);
-        setSwapOptions([]);
-        setConfirmSwapMeal(null);
-        setSwapPreview(null);
-        // Refresh full meals plan
-        await fetchMeals();
+      if (activePlanOwner.current !== submittingOwner) {
+        toast.dismiss(toastId);
+        return;
       }
+      if (!res.data?.success) throw new Error(res.data?.error || 'Failed to complete swap.');
+      const remaining = res.data.data?.swapsRemaining;
+      toast.success('Meal swapped', {
+        id: toastId,
+        description: `${confirmSwapMeal.mealName} is now in your plan.${Number.isInteger(remaining) && remaining >= 0 ? ` ${remaining} ${remaining === 1 ? 'swap' : 'swaps'} left in this plan cycle.` : ''}`,
+      });
+      window.dispatchEvent(new Event('nutrimind:notifications-updated'));
+      setIsRefreshingSwap(true);
+      // Keep visible progress until the authoritative plan read finishes.
+      await fetchMeals();
+      setActiveSwapMeal(null);
+      setSwapOptions([]);
+      setConfirmSwapMeal(null);
+      setSwapPreview(null);
     } catch (err: unknown) {
-      setSwapOptionsError(getApiErrorMessage(err, 'Failed to complete swap.'));
+      if (activePlanOwner.current !== submittingOwner) {
+        toast.dismiss(toastId);
+        return;
+      }
+      const message = getApiErrorMessage(err, 'Failed to complete swap.');
+      setSwapOptionsError(message);
+      toast.error('Could not confirm meal swap', { id: toastId, description: message });
     } finally {
+      swapInFlight.current = false;
       setIsSwapping(false);
+      setIsRefreshingSwap(false);
     }
   };
 
@@ -661,6 +687,7 @@ export function useMealsWorkspace(initialOptions?: { initialDateKey?: string | n
     confirmSwapMeal,
     setConfirmSwapMeal,
     isSwapping,
+    isRefreshingSwap,
     swapPreview,
     setSwapPreview,
     isCheckingPreview,

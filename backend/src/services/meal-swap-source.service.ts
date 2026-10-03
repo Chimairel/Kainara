@@ -28,6 +28,7 @@ import { replacePlanBaseServing, composePlanWithPairedRice } from './meal-plan-s
 import { assertFoodCompositionRevisions } from './generation-integrity.service';
 import { loadActionableUnloggedMealPlan } from './meal-swap-read.service';
 import { MembershipService } from './membership.service';
+import { recordMealSwapNotification } from './meal-swap-feedback.service';
 import { GroceryService } from './grocery.service';
 import { recalculateDailyNutritionLog } from './meal-swap-nutrition.service';
 import { lockUserProfile } from './profile-revision.service';
@@ -393,7 +394,7 @@ export async function executeSourceSwap(
   warningAcknowledged = false,
   groceryDeltaAcknowledged = false
 ) {
-  await prisma.$transaction(
+  const swapsRemaining = await prisma.$transaction(
     async (tx) => {
       await lockUserProfile(tx, userId);
       await tx.$executeRaw`SELECT pg_advisory_xact_lock_shared(741010)`;
@@ -403,7 +404,7 @@ export async function executeSourceSwap(
       if (replay) {
         if (replay.mealPlanId !== slotId || replay.newLibraryMealId !== replacementId)
           throw new Error('Request key already used for a different swap.');
-        return;
+        return null;
       }
       const proof = verifySwapPreview(previewToken);
       const { preview, prepared, slot, compositionRevisions } = await buildSourcePreview(
@@ -418,7 +419,7 @@ export async function executeSourceSwap(
         throw new Error('Acknowledge the current calorie warning before swapping.');
       if (preview.groceryDeltaAcknowledgmentRequired && !groceryDeltaAcknowledged)
         throw new Error('Acknowledge the grocery additions and removals before swapping.');
-      await MembershipService.assertSwap(userId, slot.planGroupId, tx);
+      const allowance = await MembershipService.assertSwap(userId, slot.planGroupId, tx);
       await assertFoodCompositionRevisions(tx, compositionRevisions);
       await tx.mealPlan.updateMany({
         where: {
@@ -516,8 +517,9 @@ export async function executeSourceSwap(
       });
       await GroceryService.generateGroceryList(userId, tx, slot.planGroupId, 'EXPLICIT');
       await recalculateDailyNutritionLog(userId, slot.scheduledDate, tx);
+      return recordMealSwapNotification(tx, userId, allowance);
     },
     { timeout: 30000 }
   );
-  return { success: true };
+  return { success: true, swapsRemaining };
 }

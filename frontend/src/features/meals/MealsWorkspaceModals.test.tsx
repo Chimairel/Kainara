@@ -34,6 +34,26 @@ function option(id: string, mealName: string): SwapOption {
 }
 
 describe('meal swap picker', () => {
+  it('shows swap progress and prevents dismissal and replacement changes while submitting', () => {
+    const select = vi.fn();
+    const close = vi.fn();
+    const workspace = {
+      activeSwapMeal: current,
+      swapOptions: [option('other', 'Other meal')],
+      isSwapping: true,
+      setActiveSwapMeal: close,
+      handleSelectSwapOption: select,
+    } as unknown as ReturnType<typeof useMealsWorkspace>;
+    const { rerender } = render(<MealsWorkspaceModals workspace={workspace} />);
+    expect(screen.getByText('Swapping your meal…')).toBeInTheDocument();
+    expect(screen.getByRole('combobox')).toBeDisabled();
+    fireEvent.click(screen.getByText('Other meal'));
+    expect(select).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+    expect(close).not.toHaveBeenCalled();
+    rerender(<MealsWorkspaceModals workspace={{ ...workspace, isRefreshingSwap: true }} />);
+    expect(screen.getByText('Meal swapped. Refreshing your plan…')).toBeInTheDocument();
+  });
   it('announces limited matches only when every available option leaves macro gaps', () => {
     const workspace = {
       activeSwapMeal: current,
