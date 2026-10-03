@@ -3,7 +3,8 @@ import { expect, test, type Page, type Route } from '@playwright/test';
 async function portalFixture(
   page: Page,
   role: 'USER' | 'ADMIN' | 'NUTRITIONIST',
-  resolve: (path: string, route: Route) => unknown
+  resolve: (path: string, route: Route) => unknown,
+  profileOverrides: Record<string, unknown> = {}
 ) {
   const owner = `professional-workflow-${role.toLowerCase()}`;
   const payload = Buffer.from(
@@ -42,6 +43,7 @@ async function portalFixture(
         healthConditions: [],
         allergies: [],
         safetyEntries: [],
+        ...profileOverrides,
       };
     else if (path === '/user/notifications') data = { notifications: [], unreadCount: 0 };
     else if (path === '/user/membership') data = { enabled: false };
@@ -330,6 +332,49 @@ test('nutritionist sees missing allergy details and an open deleted case closes 
   expect(errors).toEqual([]);
 });
 
+test('onboarding shows separate condition and allergy fields and saves the allergy form', async ({ page }) => {
+  let saved: Record<string, unknown> | undefined;
+  await portalFixture(
+    page,
+    'USER',
+    (path, route) => {
+      if (path === '/user/onboarding/clinical-evidence/details') saved = route.request().postDataJSON();
+      if (path.startsWith('/user/onboarding/clinical-evidence'))
+        return {
+          safetyRevision: 2,
+          availableAreas: ['HEART_CONDITION', 'FOOD_ALLERGY'],
+          requirements: [
+            { area: 'HEART_CONDITION', state: 'READY', message: 'Condition details saved.' },
+            { area: 'FOOD_ALLERGY', state: saved ? 'READY' : 'CONTEXT_REQUIRED', message: 'Allergy details needed.' },
+          ],
+          contexts: [{ area: 'HEART_CONDITION', responses: { conditionDetails: 'Saved synthetic condition' } }],
+        };
+    },
+    { onboardingDone: false, tosAccepted: false }
+  );
+  await page.goto('/onboarding/clinical-evidence?section=conditions');
+  await expect(page.getByRole('heading', { name: 'Condition details' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Allergy details', exact: true })).toHaveCount(0);
+  await expect(page.getByLabel('Condition or restriction details')).toHaveValue('Saved synthetic condition');
+  await expect(page.getByRole('button', { name: 'Continue to allergies' })).toBeEnabled();
+  await page.goto('/onboarding/clinical-evidence?section=allergies');
+  await expect(page.getByRole('heading', { name: 'Allergy details' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'heart condition', exact: true })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Continue to shopping day' })).toBeDisabled();
+  for (const label of [
+    'Food allergies, intolerances or avoided foods and their reactions',
+    'Medication or supplements used for these restrictions',
+    'Dietary advice for these allergies or restrictions',
+    'Recent allergic reactions or food-related symptoms',
+  ])
+    await page.getByLabel(label, { exact: true }).fill('Synthetic allergy details for review');
+  await page.getByRole('button', { name: 'Save health details' }).click();
+  await expect(page.getByRole('button', { name: 'Continue to shopping day' })).toBeEnabled();
+  expect(saved).toMatchObject({ area: 'FOOD_ALLERGY', expectedSafetyRevision: 2 });
+  await page.getByRole('button', { name: 'Continue to shopping day' }).click();
+  await expect(page).toHaveURL(/\/onboarding\/shopping-day$/);
+});
+
 test('member completes separate allergy details without overwriting their saved heart form', async ({ page }) => {
   const answers = {
     conditionDetails: 'Saved synthetic heart condition',
@@ -362,18 +407,21 @@ test('member completes separate allergy details without overwriting their saved 
   });
   await page.goto('/profile/clinical-evidence');
   await expect(page.getByText('1 of 2 health detail forms complete.')).toBeVisible();
-  await expect(page.getByLabel('Related condition or restriction')).toHaveValue('FOOD_ALLERGY');
-  await expect(page.getByLabel('Condition or restriction details')).toHaveValue('');
+  await expect(page.getByRole('button', { name: 'Allergy details', exact: true })).toHaveAttribute(
+    'aria-pressed',
+    'true'
+  );
+  await expect(page.getByLabel('Food allergies, intolerances or avoided foods and their reactions')).toHaveValue('');
   for (const label of [
-    'Condition or restriction details',
-    'Current medication or supplements',
-    'Dietary advice you have received',
-    'Recent symptoms or episodes',
+    'Food allergies, intolerances or avoided foods and their reactions',
+    'Medication or supplements used for these restrictions',
+    'Dietary advice for these allergies or restrictions',
+    'Recent allergic reactions or food-related symptoms',
   ])
     await page.getByLabel(label, { exact: true }).fill('Synthetic allergy information for review');
   await page.getByRole('button', { name: 'Save health details' }).click();
   await expect(page.getByText('2 of 2 health detail forms complete.')).toBeVisible();
   expect(submitted).toMatchObject({ area: 'FOOD_ALLERGY', expectedSafetyRevision: 2 });
-  await page.getByLabel('Related condition or restriction').selectOption('HEART_CONDITION');
+  await page.getByRole('button', { name: 'heart condition', exact: true }).click();
   await expect(page.getByLabel('Condition or restriction details')).toHaveValue(answers.conditionDetails);
 });

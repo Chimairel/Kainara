@@ -9,6 +9,7 @@ vi.mock('next/navigation', () => ({
   useSearchParams: () => new URLSearchParams(mocks.search),
 }));
 const workspace = { safetyRevision: 2, availableAreas: ['HEART_CONDITION'], requirements: [], contexts: [] };
+const allergyDetailsLabel = 'Food allergies, intolerances or avoided foods and their reactions';
 describe('health details form', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -81,16 +82,14 @@ describe('health details form', () => {
       },
     });
     render(<ClinicalEvidenceWorkspace mode="onboarding" />);
-    expect(await screen.findByLabelText('Related condition or restriction')).toHaveValue('FOOD_ALLERGY');
+    expect(await screen.findByRole('button', { name: 'Allergy details' })).toHaveAttribute('aria-pressed', 'true');
     expect(screen.getByText('1 of 2 health detail forms complete.')).toBeInTheDocument();
-    expect(screen.getByLabelText('Condition or restriction details')).toHaveValue('');
+    expect(screen.getByLabelText(allergyDetailsLabel)).toHaveValue('');
     expect(screen.getByRole('button', { name: 'Continue to shopping day' })).toBeDisabled();
-    fireEvent.change(screen.getByLabelText('Related condition or restriction'), {
-      target: { value: 'HEART_CONDITION' },
-    });
+    fireEvent.click(screen.getByRole('button', { name: 'heart condition' }));
     expect(screen.getByLabelText('Condition or restriction details')).toHaveValue('Saved heart condition details');
-    fireEvent.click(screen.getByRole('button', { name: 'Complete food allergy details' }));
-    expect(screen.getByLabelText('Condition or restriction details')).toHaveValue('');
+    fireEvent.click(screen.getByRole('button', { name: 'Allergy details' }));
+    expect(screen.getByLabelText(allergyDetailsLabel)).toHaveValue('');
   });
 
   it('keeps a requested area selected and shows the remaining form after saving it', async () => {
@@ -122,13 +121,13 @@ describe('health details form', () => {
       },
     });
     render(<ClinicalEvidenceWorkspace />);
-    expect(await screen.findByLabelText('Related condition or restriction')).toHaveValue('HEART_CONDITION');
+    expect(await screen.findByRole('button', { name: 'heart condition' })).toHaveAttribute('aria-pressed', 'true');
     fireEvent.submit(screen.getByRole('button', { name: 'Save health details' }).closest('form')!);
     expect(await screen.findByText('1 of 2 health detail forms complete.')).toBeInTheDocument();
     expect(screen.getByText('Still needed: food allergy.')).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'Complete food allergy details' }));
-    expect(screen.getByLabelText('Related condition or restriction')).toHaveValue('FOOD_ALLERGY');
-    expect(screen.getByLabelText('Condition or restriction details')).toHaveValue('');
+    fireEvent.click(screen.getByRole('button', { name: 'Allergy details' }));
+    expect(screen.getByRole('button', { name: 'Allergy details' })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByLabelText(allergyDetailsLabel)).toHaveValue('');
     expect(mocks.put).toHaveBeenCalledTimes(1);
     expect(mocks.put.mock.calls[0][1]).toMatchObject({ area: 'HEART_CONDITION', expectedSafetyRevision: 2 });
   });
@@ -157,8 +156,8 @@ describe('health details form', () => {
     });
     render(<ClinicalEvidenceWorkspace mode="onboarding" />);
     expect(await screen.findByRole('heading', { name: 'Condition details' })).toBeInTheDocument();
-    await screen.findByRole('combobox');
-    expect(screen.queryByRole('option', { name: 'food allergy' })).not.toBeInTheDocument();
+    await screen.findByRole('button', { name: 'heart condition' });
+    expect(screen.queryByRole('button', { name: 'Allergy details' })).not.toBeInTheDocument();
     expect(screen.getByText('1 of 1 health detail forms complete.')).toBeInTheDocument();
     expect(screen.queryByText('Allergy details needed.')).not.toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Back to conditions' })).toHaveAttribute('href', '/onboarding/conditions');
@@ -187,10 +186,10 @@ describe('health details form', () => {
       },
     });
     render(<ClinicalEvidenceWorkspace mode="onboarding" />);
-    await screen.findByRole('combobox');
+    await screen.findByRole('button', { name: 'Allergy details' });
     expect(screen.getByRole('heading', { name: 'Allergy details' })).toBeInTheDocument();
-    expect(screen.queryByRole('option', { name: 'heart condition' })).not.toBeInTheDocument();
-    expect(screen.getByLabelText('Condition or restriction details')).toHaveValue('');
+    expect(screen.queryByRole('button', { name: 'heart condition' })).not.toBeInTheDocument();
+    expect(screen.getByLabelText(allergyDetailsLabel)).toHaveValue('');
     expect(screen.getByRole('button', { name: 'Continue to shopping day' })).toBeDisabled();
     fireEvent.submit(screen.getByRole('button', { name: 'Save health details' }).closest('form')!);
     await waitFor(() => expect(screen.getByRole('button', { name: 'Continue to shopping day' })).toBeEnabled());

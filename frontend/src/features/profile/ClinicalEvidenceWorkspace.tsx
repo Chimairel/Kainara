@@ -40,6 +40,13 @@ const fields: Array<[keyof Answers, string]> = [
 const inSection = (area: string, section: string | null) =>
   section === 'conditions' ? area !== 'FOOD_ALLERGY' : section === 'allergies' ? area === 'FOOD_ALLERGY' : true;
 const friendly = (value: string) => value.replace(/_/g, ' ').toLowerCase();
+const areaLabel = (value: string) => (value === 'FOOD_ALLERGY' ? 'Allergy details' : friendly(value));
+const allergyLabels: Partial<Record<keyof Answers, string>> = {
+  conditionDetails: 'Food allergies, intolerances or avoided foods and their reactions',
+  medications: 'Medication or supplements used for these restrictions',
+  dietaryAdvice: 'Dietary advice for these allergies or restrictions',
+  recentSymptoms: 'Recent allergic reactions or food-related symptoms',
+};
 export default function ClinicalEvidenceWorkspace({ mode = 'profile' }: { mode?: 'profile' | 'onboarding' }) {
   const ownerId = useAuth().user?.userId;
   const router = useRouter();
@@ -192,19 +199,6 @@ export default function ClinicalEvidenceWorkspace({ mode = 'profile' }: { mode?:
               {!!pendingAreas.length && (
                 <p className="text-sm">Still needed: {pendingAreas.map(friendly).join(', ')}.</p>
               )}
-              {pendingAreas
-                .filter((value) => value !== area)
-                .map((value) => (
-                  <button
-                    key={value}
-                    type="button"
-                    disabled={busy}
-                    onClick={() => selectArea(value)}
-                    className="min-h-11 rounded-xl border border-brand-border px-3 py-2 text-sm font-semibold"
-                  >
-                    Complete {friendly(value)} details
-                  </button>
-                ))}
               {requirements.map((item) => (
                 <p key={item.area} className="text-sm">
                   <strong>{friendly(item.area)}: </strong>
@@ -218,24 +212,36 @@ export default function ClinicalEvidenceWorkspace({ mode = 'profile' }: { mode?:
               onSubmit={(event) => void save(event)}
               className="space-y-4 rounded-2xl border border-brand-border bg-brand-surface p-5"
             >
-              <label className="block text-sm">
-                Related condition or restriction
-                <select
-                  value={area}
-                  disabled={busy}
-                  onChange={(event) => selectArea(event.target.value)}
-                  className="mt-1 w-full rounded-xl border border-brand-border bg-brand-surface p-3"
-                >
+              <fieldset>
+                <legend className="text-sm font-semibold">Choose details to complete</legend>
+                <div className="mt-2 flex flex-wrap gap-2">
                   {areas.map((value) => (
-                    <option key={value} value={value}>
-                      {friendly(value)}
-                    </option>
+                    <button
+                      key={value}
+                      type="button"
+                      disabled={busy}
+                      aria-pressed={area === value}
+                      onClick={() => selectArea(value)}
+                      className={`min-h-11 rounded-xl border px-4 py-2 text-sm font-semibold disabled:opacity-50 ${
+                        area === value
+                          ? 'border-brand-accent bg-brand-accent text-white'
+                          : 'border-brand-border bg-brand-surface'
+                      }`}
+                    >
+                      {areaLabel(value)}
+                    </button>
                   ))}
-                </select>
-              </label>
+                </div>
+              </fieldset>
+              {area === 'FOOD_ALLERGY' && (
+                <p className="text-sm text-brand-muted">
+                  Describe your declared food allergies, intolerances and avoided foods, including triggers and
+                  reactions. These answers are saved separately from your condition details.
+                </p>
+              )}
               {fields.map(([field, label]) => (
                 <label key={field} className="block text-sm">
-                  {label}
+                  {area === 'FOOD_ALLERGY' ? (allergyLabels[field] ?? label) : label}
                   <textarea
                     required={field !== 'measurements'}
                     minLength={field === 'conditionDetails' ? 10 : field === 'measurements' ? undefined : 2}
