@@ -6,6 +6,7 @@ import type { CertifiedLibraryMeal } from '../src/services/meal-library-candidat
 
 const dish = {
   mealName: 'Chicken adobo',
+  applicableMealTypes: [{ mealType: 'BREAKFAST' }],
   riceRole: null,
   riceRoleReviewStatus: 'NOT_REVIEWED',
   includedRiceG: null,

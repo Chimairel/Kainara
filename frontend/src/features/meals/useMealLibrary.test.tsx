@@ -12,7 +12,6 @@ const meal = (id: string): SwapOption => ({
   mealName: id,
   mealType: 'LUNCH',
   mealTypes: ['LUNCH'],
-  isFavorite: true,
   calories: 400,
   proteinG: 20,
   carbsG: 40,
@@ -78,20 +77,13 @@ describe('compatible library state', () => {
     expect(hook.result.current.libraryTotalCount).toBe(1);
   });
 
-  it('updates the favorite-only list and its cached total without discarding the cursor', async () => {
+  it('loads the catalogue without requesting a favorites filter', async () => {
     vi.mocked(api.get).mockResolvedValue(page(['a', 'b']));
-    vi.mocked(api.delete).mockResolvedValue({ data: { success: true } });
     const hook = renderHook(() => useMealLibrary('user', true, '2026-09-30'));
     await waitFor(() => expect(hook.result.current.libraryMeals).toHaveLength(2));
-    act(() => hook.result.current.setLibraryFavoriteOnly(true));
-    await waitFor(() => expect(api.get).toHaveBeenCalledTimes(2));
-    await waitFor(() => expect(hook.result.current.isLibraryLoading).toBe(false));
-    await act(async () => {
-      await hook.result.current.toggleLibraryFavorite(meal('a'));
+    expect(api.get).toHaveBeenCalledWith('/user/meals/compatible-library', {
+      params: { date: '2026-09-30', limit: '24' },
     });
-    expect(api.delete).toHaveBeenCalledWith('/user/meals/library/a/favorite');
-    expect(hook.result.current.libraryMeals.map(({ id }) => id)).toEqual(['b']);
-    expect(hook.result.current.libraryTotalCount).toBe(2);
-    expect(hook.result.current.libraryNextCursor).toBe('next');
+    expect(hook.result.current).not.toHaveProperty('toggleLibraryFavorite');
   });
 });

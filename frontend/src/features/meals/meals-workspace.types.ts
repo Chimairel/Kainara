@@ -6,7 +6,6 @@ export interface SwapOption {
   nutritionFitScore?: number;
   id: string;
   reuseBasis?: 'CERTIFIED_RECIPE' | 'PROFILE_MATCHED_APPROVAL' | 'PANLASANG_GENERAL_BASE';
-  canFavorite?: boolean;
   pairedRiceG?: number | null;
   ricePortionLabel?: string | null;
   mealName: string;
@@ -17,7 +16,6 @@ export interface SwapOption {
   riceRoleReviewStatus?: 'NOT_REVIEWED' | 'PROPOSED' | 'REVIEWED';
   includedRiceG?: number | null;
   servingDescription?: string;
-  isFavorite: boolean;
   alreadyPlannedInCycle?: boolean;
   matchesDietaryPreference?: boolean;
   calories: number;

@@ -2,16 +2,13 @@ import 'dotenv/config';
 import { randomUUID } from 'node:crypto';
 import assert from 'node:assert/strict';
 import prisma from '../src/lib/prisma';
-import { MealFavoriteService } from '../src/services/meal-favorite.service';
 import { panlasangRecipeCandidateProvider } from '../src/services/panlasang-recipe-candidate.provider';
 import { queryEligibleLibraryPage } from '../src/services/meal-library-candidate-query.service';
 
 async function main() {
   const run = randomUUID();
   const emailA = `batch3-a-${run}@example.invalid`;
-  const emailB = `batch3-b-${run}@example.invalid`;
   let userAId: string | null = null;
-  let userBId: string | null = null;
   let mealId: string | null = null;
 
   try {
@@ -72,19 +69,13 @@ async function main() {
       );
     }
 
-    const [userA, userB] = await Promise.all([
-      prisma.user.create({
-        data: { name: 'Batch 3 User A', email: emailA, passwordHash: 'disabled', emailVerified: true },
-      }),
-      prisma.user.create({
-        data: { name: 'Batch 3 User B', email: emailB, passwordHash: 'disabled', emailVerified: true },
-      }),
-    ]);
+    const userA = await prisma.user.create({
+      data: { name: 'Batch 3 User A', email: emailA, passwordHash: 'disabled', emailVerified: true },
+    });
     userAId = userA.id;
-    userBId = userB.id;
     const meal = await prisma.mealLibrary.create({
       data: {
-        mealName: `Batch 3 favorite ${run}`,
+        mealName: `Batch 3 catalog ${run}`,
         mealType: 'LUNCH',
         calories: 500,
         proteinG: 25,
@@ -100,14 +91,7 @@ async function main() {
       },
     });
     mealId = meal.id;
-    await MealFavoriteService.add(userA.id, meal.id);
-    await MealFavoriteService.add(userA.id, meal.id);
-    assert.equal(await prisma.mealFavorite.count({ where: { userId: userA.id, mealLibraryId: meal.id } }), 1);
-    await MealFavoriteService.remove(userB.id, meal.id);
-    assert.equal(await prisma.mealFavorite.count({ where: { userId: userA.id, mealLibraryId: meal.id } }), 1);
-
     await prisma.mealLibrary.update({ where: { id: meal.id }, data: { status: 'FLAGGED' } });
-    assert.equal(await prisma.mealFavorite.count({ where: { userId: userA.id, mealLibraryId: meal.id } }), 1);
     const eligible = await queryEligibleLibraryPage({
       userId: userA.id,
       mealType: 'LUNCH',
@@ -115,7 +99,6 @@ async function main() {
       userAllergens: [],
       profile: { userId: userA.id, dietaryPreference: null, otherConditions: null, otherAllergies: null },
       search: run,
-      favoriteOnly: true,
       limit: 10,
     });
     assert.equal(eligible.total, 0);
@@ -123,7 +106,6 @@ async function main() {
 
     await prisma.user.delete({ where: { id: userA.id } });
     userAId = null;
-    assert.equal(await prisma.mealFavorite.count({ where: { mealLibraryId: meal.id } }), 0);
 
     console.log(
       JSON.stringify(
@@ -139,8 +121,7 @@ async function main() {
             firstPage: eligibleFirst.items.length,
             status: 'PASS',
           },
-          favoriteUniqueScopedCascade: 'PASS',
-          favoriteRetainedButIneligibleWhenFlagged: 'PASS',
+          flaggedMealExcluded: 'PASS',
         },
         null,
         2
@@ -148,7 +129,6 @@ async function main() {
     );
   } finally {
     if (userAId) await prisma.user.deleteMany({ where: { id: userAId } });
-    if (userBId) await prisma.user.deleteMany({ where: { id: userBId } });
     if (mealId) await prisma.mealLibrary.deleteMany({ where: { id: mealId } });
     await prisma.$disconnect();
   }

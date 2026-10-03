@@ -1,4 +1,14 @@
 import { MealType, type MealApplicabilityReviewStatus } from '@prisma/client';
+import { isSnackOnlyRecipe } from './recipe-category.policy';
+
+/** Narrow stale primary-slot metadata for identifiable desserts; never grant a new primary slot. */
+export function effectiveRecipeMealTypes(
+  name: string,
+  category: string | null | undefined,
+  declared: readonly MealType[]
+): MealType[] {
+  return isSnackOnlyRecipe(name, category) ? [MealType.SNACK] : [...declared];
+}
 
 export interface PersistedMealApplicability {
   mealType: MealType;
@@ -17,13 +27,14 @@ export function isMealApplicableToType(
   return Boolean(applicableMealTypes?.some((entry) => entry.mealType === requested));
 }
 
-/** Used by import/classification jobs only; never infer from a title per request. */
+/** Import/classification proposal. Request-time guards only narrow persisted slot facts. */
 export function proposeMealTypeApplicability(input: {
   name: string;
   category?: string | null;
   primaryMealType: MealType;
 }): MealType[] {
   const text = `${input.name} ${input.category ?? ''}`.normalize('NFKC').toLowerCase();
+  if (isSnackOnlyRecipe(input.name, input.category)) return [MealType.SNACK];
   const types = new Set<MealType>([input.primaryMealType]);
 
   if (

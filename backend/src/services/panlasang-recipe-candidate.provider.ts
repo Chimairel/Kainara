@@ -7,6 +7,8 @@ import type {
   RecipeCandidateProvenance,
 } from './recipe-candidate-provider';
 import { isUnrestrictedPanlasangBaseEligible } from '@/domain/unrestricted-panlasang-base.policy';
+import { effectiveRecipeMealTypes } from '@/domain/meal-applicability.policy';
+import { proposeRiceRole } from '@/domain/recipe-rice-role.policy';
 
 type Row = Prisma.RawRecipeCandidateGetPayload<{ include: { applicableMealTypes: true } }>;
 
@@ -74,7 +76,11 @@ export function projectRawRecipeCandidate(row: Row): RecipeCandidateProjection {
     description: row.description,
     contentSignature: row.contentSignature,
     sourceUrl: row.sourceUrl,
-    applicableMealTypes: row.applicableMealTypes.map((entry) => entry.mealType),
+    applicableMealTypes: effectiveRecipeMealTypes(
+      row.recipeName,
+      row.category,
+      row.applicableMealTypes.map((entry) => entry.mealType)
+    ),
     dietaryTags: jsonStrings(row.dietaryTags).filter((tag): tag is DietaryPreference =>
       Object.values(DietaryPreference).includes(tag as DietaryPreference)
     ),
@@ -93,7 +99,8 @@ export function projectRawRecipeCandidate(row: Row): RecipeCandidateProjection {
     }),
     nutrition,
     servingDescription: row.originalServings ? `Original recipe yields ${row.originalServings} servings` : null,
-    riceRole: row.riceRole,
+    riceRole: proposeRiceRole({ name: row.recipeName, category: row.category, ingredients: parsedIngredients })
+      .riceRole,
     imageUrl: row.sourceImageUrl,
     videoUrl: row.sourceVideoUrl,
     state: row.status === 'AVAILABLE' ? 'ACTIVE' : 'RETIRED',
@@ -148,7 +155,9 @@ export class DatabaseRecipeCandidateProvider implements RecipeCandidateProvider 
     const hasMore = rows.length > limit;
     const page = rows.slice(0, limit);
     return {
-      items: page.map(projectRawRecipeCandidate),
+      items: page
+        .map(projectRawRecipeCandidate)
+        .filter((candidate) => !input.mealType || candidate.applicableMealTypes.includes(input.mealType)),
       nextCursor: !input.recentFirst && hasMore && page.length ? encodeCursor(page[page.length - 1]) : null,
     };
   }

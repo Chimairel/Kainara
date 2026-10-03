@@ -14,7 +14,6 @@ export function rankLibraryMeals<
     proteinG?: number;
     carbsG?: number;
     fatG?: number;
-    isFavorite?: boolean;
     alreadyPlannedInCycle?: boolean;
     ricePreferenceScore?: number;
   },
@@ -37,8 +36,6 @@ export function rankLibraryMeals<
         const target =
           (typeof slotCalories === 'number' ? slotCalories : slotCalories?.[type]) ??
           (isPrimaryMealType(type) ? getMealSlotCalorieTarget(dailyTarget, type) : 0);
-        const favorite = Number(Boolean(b.isFavorite)) - Number(Boolean(a.isFavorite));
-        if (favorite) return favorite;
         const calorieFit = Math.abs(a.calories - target) - Math.abs(b.calories - target);
         if (calorieFit) return calorieFit;
         const macroDistance = (meal: T) =>

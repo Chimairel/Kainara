@@ -3,7 +3,7 @@ import Button from '@/components/ui/Button';
 import LoadingSpinner from '@/components/shared/LoadingSpinner';
 import LibraryMealCard from './LibraryMealCard';
 import Link from 'next/link';
-import { AlertTriangle, Heart, Search, Salad } from 'lucide-react';
+import { AlertTriangle, Search, Salad } from 'lucide-react';
 import type { useMealsWorkspace } from './useMealsWorkspace';
 import { groupApprovedPlanRecipes } from './approvedPlanRecipes';
 import VerifiedRecipeCatalog from './VerifiedRecipeCatalog';
@@ -20,26 +20,25 @@ export default function MealLibraryPanel({ workspace }: { workspace: ReturnType<
     libraryError,
     libraryMeals,
     setSelectedVerifier,
-    libraryFavoriteOnly,
-    setLibraryFavoriteOnly,
     libraryRiceRole,
     setLibraryRiceRole,
     libraryNextCursor,
     loadMoreLibrary,
-    toggleLibraryFavorite,
     libraryTotalCount,
     meals,
   } = workspace;
   const plannedLibraryIds = new Set(meals.map((meal) => meal.libraryMealId).filter(Boolean));
   const search = librarySearch.trim().toLocaleLowerCase();
-  const approvedInPlan = groupApprovedPlanRecipes(meals.filter((meal) =>
-    meal.status === 'APPROVED' &&
-    !libraryFavoriteOnly &&
-    libraryRiceRole === 'All' &&
-    (libraryMealType === 'All' || meal.mealType === libraryMealType) &&
-    (!search || meal.mealName.toLocaleLowerCase().includes(search)) &&
-    (!meal.libraryMealId || !libraryMeals.some((entry) => entry.id === meal.libraryMealId))
-  ));
+  const approvedInPlan = groupApprovedPlanRecipes(
+    meals.filter(
+      (meal) =>
+        meal.status === 'APPROVED' &&
+        libraryRiceRole === 'All' &&
+        (libraryMealType === 'All' || meal.mealType === libraryMealType) &&
+        (!search || meal.mealName.toLocaleLowerCase().includes(search)) &&
+        (!meal.libraryMealId || !libraryMeals.some((entry) => entry.id === meal.libraryMealId))
+    )
+  );
   return (
     <div className="space-y-6 text-left">
       <div className="flex flex-col items-center justify-between gap-3 rounded-[22px] border border-brand-border/70 bg-brand-surface/90 p-3 shadow-sm md:flex-row">
@@ -77,17 +76,6 @@ export default function MealLibraryPanel({ workspace }: { workspace: ReturnType<
       </div>
 
       <div className="flex flex-wrap items-center gap-2 text-xs">
-        <button
-          type="button"
-          onClick={() => setLibraryFavoriteOnly(!libraryFavoriteOnly)}
-          className={`inline-flex items-center gap-2 rounded-xl border px-3 py-2 font-bold ${
-            libraryFavoriteOnly
-              ? 'border-brand-green bg-brand-green text-black'
-              : 'border-brand-border text-brand-muted'
-          }`}
-        >
-          <Heart className={`h-4 w-4 ${libraryFavoriteOnly ? 'fill-current' : ''}`} /> Favorites
-        </button>
         <label className="flex items-center gap-2 font-semibold text-brand-muted">
           Rice role
           <select
@@ -102,7 +90,10 @@ export default function MealLibraryPanel({ workspace }: { workspace: ReturnType<
           </select>
         </label>
         {libraryTotalCount !== null && (
-          <span className="ml-auto text-brand-muted">{libraryTotalCount} reusable approvals · {approvedInPlan.length} approved {approvedInPlan.length === 1 ? 'recipe' : 'recipes'} in plan</span>
+          <span className="ml-auto text-brand-muted">
+            {libraryTotalCount} reusable approvals · {approvedInPlan.length} approved{' '}
+            {approvedInPlan.length === 1 ? 'recipe' : 'recipes'} in plan
+          </span>
         )}
       </div>
 
@@ -111,7 +102,8 @@ export default function MealLibraryPanel({ workspace }: { workspace: ReturnType<
           <div>
             <h2 className="text-sm font-bold text-brand-text">Meals in your current or upcoming plan</h2>
             <p className="text-xs text-brand-muted">
-              These servings were scheduled for your plan. This does not mean each had a separate nutritionist case approval.
+              These servings were scheduled for your plan. This does not mean each had a separate nutritionist case
+              approval.
             </p>
           </div>
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -128,23 +120,36 @@ export default function MealLibraryPanel({ workspace }: { workspace: ReturnType<
                   proteinG={meal.proteinG}
                   carbsG={meal.carbsG}
                   fatG={meal.fatG}
-                  badges={<>
-                    <span className="rounded-full border border-emerald-400/40 bg-emerald-500/90 px-2 py-0.5 font-mono text-[9px] font-extrabold uppercase tracking-wider text-white shadow-xs backdrop-blur-md">Scheduled for you</span>
-                    <span className="rounded-full border border-emerald-400/40 bg-emerald-500/90 px-2 py-0.5 font-mono text-[9px] font-extrabold uppercase tracking-wider text-white shadow-xs backdrop-blur-md">
-                      In your plan{occurrences.length > 1 ? ` · ${occurrences.length} times` : ''}
-                    </span>
-                  </>}
-                  footer={occurrences.length === 1 ? (
-                    <Link href={`/dashboard/${meal.id}`} className="font-semibold text-brand-green hover:underline">View planned meal</Link>
-                  ) : (
-                    <div className="flex flex-wrap gap-x-4 gap-y-2 font-semibold text-brand-green">
-                      {occurrences.map((slot) => (
-                        <Link key={slot.id} href={`/dashboard/${slot.id}`} className="hover:underline">
-                          {slot.cycleScope === 'UPCOMING' ? 'Next week' : 'This week'} · {new Date(slot.scheduledDate).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', timeZone: 'Asia/Manila' })}
-                        </Link>
-                      ))}
-                    </div>
-                  )}
+                  badges={
+                    <>
+                      <span className="rounded-full border border-emerald-400/40 bg-emerald-500/90 px-2 py-0.5 font-mono text-[9px] font-extrabold uppercase tracking-wider text-white shadow-xs backdrop-blur-md">
+                        Scheduled for you
+                      </span>
+                      <span className="rounded-full border border-emerald-400/40 bg-emerald-500/90 px-2 py-0.5 font-mono text-[9px] font-extrabold uppercase tracking-wider text-white shadow-xs backdrop-blur-md">
+                        In your plan{occurrences.length > 1 ? ` · ${occurrences.length} times` : ''}
+                      </span>
+                    </>
+                  }
+                  footer={
+                    occurrences.length === 1 ? (
+                      <Link href={`/dashboard/${meal.id}`} className="font-semibold text-brand-green hover:underline">
+                        View planned meal
+                      </Link>
+                    ) : (
+                      <div className="flex flex-wrap gap-x-4 gap-y-2 font-semibold text-brand-green">
+                        {occurrences.map((slot) => (
+                          <Link key={slot.id} href={`/dashboard/${slot.id}`} className="hover:underline">
+                            {slot.cycleScope === 'UPCOMING' ? 'Next week' : 'This week'} ·{' '}
+                            {new Date(slot.scheduledDate).toLocaleDateString('en-PH', {
+                              month: 'short',
+                              day: 'numeric',
+                              timeZone: 'Asia/Manila',
+                            })}
+                          </Link>
+                        ))}
+                      </div>
+                    )
+                  }
                 />
               );
             })}
@@ -154,7 +159,9 @@ export default function MealLibraryPanel({ workspace }: { workspace: ReturnType<
 
       <VerifiedRecipeCatalog search={librarySearch} mealType={libraryMealType} />
 
-      {approvedInPlan.length > 0 && <h2 className="text-sm font-bold text-brand-text">Reusable recipes for your profile</h2>}
+      {approvedInPlan.length > 0 && (
+        <h2 className="text-sm font-bold text-brand-text">Reusable recipes for your profile</h2>
+      )}
 
       {isLibraryLoading ? (
         <div className="flex flex-col items-center py-12 gap-2">
@@ -171,7 +178,8 @@ export default function MealLibraryPanel({ workspace }: { workspace: ReturnType<
           <Salad className="w-8 h-8 text-brand-green mx-auto mb-2" />
           <p className="text-sm text-brand-text font-semibold">No reusable approvals for this selection</p>
           <p className="text-xs text-brand-muted mt-1 max-w-sm mx-auto">
-            The published recipe catalogue above is separate from meals with a complete reusable serving or case approval.
+            The published recipe catalogue above is separate from meals with a complete reusable serving or case
+            approval.
           </p>
         </div>
       ) : libraryMeals.length > 0 ? (
@@ -181,7 +189,6 @@ export default function MealLibraryPanel({ workspace }: { workspace: ReturnType<
               key={meal.id}
               meal={{ ...meal, alreadyPlannedInCycle: plannedLibraryIds.has(meal.id) }}
               onVerifier={setSelectedVerifier}
-              onFavorite={toggleLibraryFavorite}
             />
           ))}
         </div>

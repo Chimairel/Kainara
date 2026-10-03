@@ -308,7 +308,6 @@ for (const width of [390, 1440]) {
       reuseBasis: 'PANLASANG_GENERAL_BASE',
       pairedRiceG: 150,
       ricePortionLabel: '1 cup cooked rice (150 g)',
-      canFavorite: false,
       servingDescription: 'One dish serving + 1 cup cooked rice (150 g)',
       verifiedBy: 'Panlasang Pinoy source',
     };
@@ -339,7 +338,18 @@ for (const width of [390, 1440]) {
       route.fulfill({
         json: {
           success: true,
-          data: { swapOptions: [replacement] },
+          data: {
+            swapOptions: [
+              replacement,
+              {
+                ...replacement,
+                id: 'source:breakfast',
+                mealName: 'Breakfast-only dish',
+                mealType: 'BREAKFAST',
+                mealTypes: ['BREAKFAST'],
+              },
+            ],
+          },
         },
       })
     );
@@ -404,6 +414,11 @@ for (const width of [390, 1440]) {
     await expect(dialog.getByText('+ 1 cup cooked rice (150 g)', { exact: true })).toBeVisible();
     await expect(dialog.getByText(/Source:/)).toBeVisible();
     await expect(dialog.getByText(/Verified by:/)).toHaveCount(0);
+    await expect(dialog.getByRole('combobox')).toHaveCount(1);
+    await expect(dialog.getByRole('option')).toHaveText(['Nutrition match', 'Kcal match']);
+    await expect(dialog.getByRole('textbox')).toHaveCount(0);
+    await expect(dialog.getByRole('button', { name: /Favorites|All Types|Breakfast|Lunch|Dinner/ })).toHaveCount(0);
+    await expect(dialog.getByText('Breakfast-only dish', { exact: true })).toHaveCount(0);
     await dialog.getByRole('button').filter({ hasText: 'Chicken dish' }).click();
     await expect(dialog.getByText('One dish serving + 1 cup cooked rice (150 g)', { exact: true })).toBeVisible();
     await expect(dialog.getByText(/Rice, well-milled, boiled: \+75 g/)).toBeVisible();

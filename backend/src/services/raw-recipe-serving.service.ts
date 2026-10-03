@@ -7,6 +7,7 @@ import { sourceServingScale, scalePublishedAmount } from '@/domain/source-servin
 import type { RecipeCandidateProjection } from './recipe-candidate-provider';
 import type { SwapRiceFood } from './meal-swap-serving.service';
 import { nutritionFitScore, type NutritionVector } from '@/domain/meal-macro-target.policy';
+import { effectiveRecipeMealTypes } from '@/domain/meal-applicability.policy';
 
 /** Choose a complete plate while preserving the published dish as its base. */
 type ServingInput = {
@@ -74,6 +75,9 @@ function calorieServing(input: ServingInput) {
     candidate.state !== 'ACTIVE' ||
     !candidate.nutrition ||
     !isPrimaryMealType(mealType) ||
+    !effectiveRecipeMealTypes(candidate.displayName, candidate.category, candidate.applicableMealTypes).includes(
+      mealType
+    ) ||
     !Object.values(candidate.nutrition).every((value) => Number.isFinite(value) && value >= 0) ||
     candidate.nutrition.calories <= 0
   )

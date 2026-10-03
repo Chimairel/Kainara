@@ -28,13 +28,28 @@ function option(id: string, mealName: string): SwapOption {
     proteinG: 19,
     carbsG: 49,
     fatG: 11,
-    isFavorite: false,
     verifiedBy: 'Reviewer',
     prcLicenseNumber: 'fixture',
   };
 }
 
 describe('meal swap picker', () => {
+  it('fixes the meal time and exposes only nutrition and kcal sorting', () => {
+    const breakfast = option('breakfast', 'Suitable breakfast');
+    const dinner = { ...option('dinner', 'Dinner-only dish'), mealType: 'DINNER', mealTypes: ['DINNER'] };
+    const workspace = { activeSwapMeal: current, swapOptions: [breakfast, dinner] } as unknown as ReturnType<
+      typeof useMealsWorkspace
+    >;
+    render(<MealsWorkspaceModals workspace={workspace} />);
+    expect(screen.getByText('Suitable breakfast')).toBeInTheDocument();
+    expect(screen.queryByText('Dinner-only dish')).not.toBeInTheDocument();
+    expect(screen.getAllByRole('combobox')).toHaveLength(1);
+    expect(screen.getAllByRole('option').map((entry) => entry.textContent)).toEqual(['Nutrition match', 'Kcal match']);
+    expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: /Favorites|All Types|Breakfast|Lunch|Dinner/ })
+    ).not.toBeInTheDocument();
+  });
   it('lets users sort whole plates by closest kcal without removing the macro-aware option', () => {
     const nutrition = { ...option('balanced', 'Balanced plate'), calories: 380, nutritionFitScore: 0.1 };
     const kcal = {
@@ -53,7 +68,6 @@ describe('meal swap picker', () => {
       setSwapPreview: vi.fn(),
       setSelectedVerifier: vi.fn(),
       handleSelectSwapOption: vi.fn(),
-      toggleSwapFavorite: vi.fn(),
     } as unknown as ReturnType<typeof useMealsWorkspace>;
     render(<MealsWorkspaceModals workspace={workspace} />);
     const plateButtons = () =>
@@ -65,14 +79,13 @@ describe('meal swap picker', () => {
       target: { value: 'kcal_match' },
     });
     expect(plateButtons()[0]).toHaveTextContent('Closest calorie plate');
-    expect(screen.getByRole('option', { name: 'Best nutrition match' })).toBeInTheDocument();
+    expect(screen.getByRole('option', { name: 'Nutrition match' })).toBeInTheDocument();
     expect(screen.getByText('+ ½ cup cooked rice (75 g)')).toBeInTheDocument();
   });
   it('shows current rice and fresh whole-plate rice without claiming source certification', () => {
     const source = {
       ...option('source:recipe', 'Replacement chicken'),
       reuseBasis: 'PANLASANG_GENERAL_BASE',
-      canFavorite: false,
       verifiedBy: 'Panlasang Pinoy source',
       riceRole: 'PAIR_WITH_RICE',
       pairedRiceG: 150,
@@ -92,7 +105,6 @@ describe('meal swap picker', () => {
       setSwapOptionsError: vi.fn(),
       setSwapPreview: vi.fn(),
       handleSelectSwapOption: vi.fn(),
-      toggleSwapFavorite: vi.fn(),
       setSelectedVerifier: vi.fn(),
     } as unknown as ReturnType<typeof useMealsWorkspace>;
     render(<MealsWorkspaceModals workspace={workspace} />);
@@ -126,7 +138,6 @@ describe('meal swap picker', () => {
       setSelectedVerifier: vi.fn(),
       handleSelectSwapOption: vi.fn(),
       handleConfirmSwapAnyway: vi.fn(),
-      toggleSwapFavorite: vi.fn(),
       libraryMeals: [eligible, generalOnly],
     } as unknown as ReturnType<typeof useMealsWorkspace>;
 

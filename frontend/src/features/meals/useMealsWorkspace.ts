@@ -222,7 +222,6 @@ export function useMealsWorkspace(initialOptions?: { initialDateKey?: string | n
   const library = useMealLibrary(ownerId, activeTab === 'library', libraryDate);
   const {
     libraryMeals,
-    setLibraryMeals,
     isLibraryLoading,
     libraryTotalCount,
     libraryError,
@@ -230,26 +229,11 @@ export function useMealsWorkspace(initialOptions?: { initialDateKey?: string | n
     setLibrarySearch,
     libraryMealType,
     setLibraryMealType,
-    libraryFavoriteOnly,
-    setLibraryFavoriteOnly,
     libraryRiceRole,
     setLibraryRiceRole,
     libraryNextCursor,
     fetchLibrary,
-    toggleLibraryFavorite,
   } = library;
-
-  const toggleSwapFavorite = async (meal: SwapOption) => {
-    if (meal.canFavorite === false) return;
-    if (meal.isFavorite) await api.delete(`/user/meals/library/${meal.id}/favorite`);
-    else await api.post(`/user/meals/library/${meal.id}/favorite`);
-    setSwapOptions((current) =>
-      current.map((entry) => (entry.id === meal.id ? { ...entry, isFavorite: !meal.isFavorite } : entry))
-    );
-    setLibraryMeals((current) =>
-      current.map((entry) => (entry.id === meal.id ? { ...entry, isFavorite: !meal.isFavorite } : entry))
-    );
-  };
 
   useEffect(() => {
     if (ownerId) {
@@ -710,14 +694,10 @@ export function useMealsWorkspace(initialOptions?: { initialDateKey?: string | n
     setSelectedVerifier,
     libraryMealType,
     setLibraryMealType,
-    libraryFavoriteOnly,
-    setLibraryFavoriteOnly,
     libraryRiceRole,
     setLibraryRiceRole,
     libraryNextCursor,
     loadMoreLibrary: () => (libraryNextCursor ? fetchLibrary(libraryNextCursor) : Promise.resolve()),
-    toggleLibraryFavorite,
-    toggleSwapFavorite,
     handleSwapClick,
     handleSelectSwapOption,
     handleConfirmSwapAnyway,

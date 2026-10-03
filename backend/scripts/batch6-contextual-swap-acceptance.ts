@@ -53,10 +53,14 @@ async function main() {
       },
     });
     userId = user.id;
-    await SafetyIntakeService.replaceDomains(user.id, ['CONDITION', 'ALLERGY'], [
-      { domain: 'CONDITION', value: 'NONE', provenance: 'PREDEFINED' },
-      { domain: 'ALLERGY', value: 'NONE', provenance: 'PREDEFINED' },
-    ]);
+    await SafetyIntakeService.replaceDomains(
+      user.id,
+      ['CONDITION', 'ALLERGY'],
+      [
+        { domain: 'CONDITION', value: 'NONE', provenance: 'PREDEFINED' },
+        { domain: 'ALLERGY', value: 'NONE', provenance: 'PREDEFINED' },
+      ]
+    );
     await prisma.userProfile.update({ where: { userId: user.id }, data: { dailyCalorieTarget: 1300 } });
 
     const makeMeal = async (label: string, calories: number, ingredientName: string) => {
@@ -134,9 +138,8 @@ async function main() {
       return row;
     };
     const original = await makeMeal('original', 360, 'Fixture oats');
-    const favorite = await makeMeal('favorite', 380, 'Fixture banana');
+    const replacement = await makeMeal('replacement', 380, 'Fixture banana');
     const other = await makeMeal('other', 360, 'Fixture milk');
-    await prisma.mealFavorite.create({ data: { userId: user.id, mealLibraryId: favorite.id } });
 
     const makeCycle = async (id: string, startDate: Date, status: 'ACTIVE' | 'UNDER_REVIEW') => {
       await prisma.mealPlanCycle.create({
@@ -196,11 +199,11 @@ async function main() {
     });
 
     const currentOptions = await MealSwapService.getEligibleSwapOptions(user.id, current.id);
-    assert.equal(currentOptions.swapOptions[0]?.id, favorite.id, 'Eligible favorite must rank first.');
     assert.ok(
-      currentOptions.swapOptions.some((option) => option.id === favorite.id && option.isFavorite),
-      'Eligible favorite must be offered and identified as a favorite.'
+      currentOptions.swapOptions.some((option) => option.id === replacement.id),
+      'Eligible replacements must be offered.'
     );
+    assert.ok(currentOptions.swapOptions.every((option) => !('isFavorite' in option)));
     assert.ok(currentOptions.swapOptions.some((option) => option.id === other.id));
     assert.ok(currentOptions.swapOptions.every((option) => option.id !== original.id));
     await prisma.mealLibrary.update({ where: { id: other.id }, data: { safetyEvidenceStatus: 'INCOMPLETE' } });
@@ -212,7 +215,7 @@ async function main() {
     await prisma.mealLibrary.update({ where: { id: other.id }, data: { safetyEvidenceStatus: 'COMPLETE' } });
 
     const upcomingOptions = await MealSwapService.getEligibleSwapOptions(user.id, upcoming.id);
-    assert.ok(upcomingOptions.swapOptions.some((option) => option.id === favorite.id));
+    assert.ok(upcomingOptions.swapOptions.some((option) => option.id === replacement.id));
     await assert.rejects(
       MealSwapService.getSwapPreview(user.id, upcoming.id, original.id),
       /already scheduled in the selected slot/
@@ -221,7 +224,7 @@ async function main() {
       where: { id: upcoming.planGroupId },
       data: { shoppingStartedAt: new Date(), status: 'SHOPPING_STARTED' },
     });
-    const upcomingPreview = await MealSwapService.getSwapPreview(user.id, upcoming.id, favorite.id);
+    const upcomingPreview = await MealSwapService.getSwapPreview(user.id, upcoming.id, replacement.id);
     assert.equal(upcomingPreview.groceryDeltaAcknowledgmentRequired, true);
     assert.ok(upcomingPreview.shoppingNeeds.length > 0);
     assert.ok(upcomingPreview.shoppingRemovals.length > 0);
@@ -229,7 +232,7 @@ async function main() {
       MealSwapService.swapMeal(
         user.id,
         upcoming.id,
-        favorite.id,
+        replacement.id,
         false,
         true,
         upcomingPreview.previewToken,
@@ -240,7 +243,7 @@ async function main() {
     await MealSwapService.swapMeal(
       user.id,
       upcoming.id,
-      favorite.id,
+      replacement.id,
       false,
       true,
       upcomingPreview.previewToken,
@@ -250,7 +253,7 @@ async function main() {
     await MealSwapService.swapMeal(
       user.id,
       upcoming.id,
-      favorite.id,
+      replacement.id,
       false,
       true,
       upcomingPreview.previewToken,
@@ -277,18 +280,18 @@ async function main() {
     });
     assert.ok(upcomingList.groceryItems.some((item) => item.ingredientName === 'Fixture banana'));
 
-    const suspendedPreview = await MealSwapService.getSwapPreview(user.id, current.id, favorite.id);
-    await prisma.mealLibrary.update({ where: { id: favorite.id }, data: { status: 'FLAGGED' } });
+    const suspendedPreview = await MealSwapService.getSwapPreview(user.id, current.id, replacement.id);
+    await prisma.mealLibrary.update({ where: { id: replacement.id }, data: { status: 'FLAGGED' } });
     const flaggedOptions = await MealSwapService.getEligibleSwapOptions(user.id, current.id);
     assert.ok(
-      flaggedOptions.swapOptions.every((option) => option.id !== favorite.id),
-      'A flagged favorite cannot cross the hard filter.'
+      flaggedOptions.swapOptions.every((option) => option.id !== replacement.id),
+      'A flagged replacement cannot cross the hard filter.'
     );
     await assert.rejects(
       MealSwapService.swapMeal(
         user.id,
         current.id,
-        favorite.id,
+        replacement.id,
         false,
         true,
         suspendedPreview.previewToken,
@@ -296,7 +299,7 @@ async function main() {
       ),
       /changed|not available|not certified/
     );
-    await prisma.mealLibrary.update({ where: { id: favorite.id }, data: { status: 'APPROVED' } });
+    await prisma.mealLibrary.update({ where: { id: replacement.id }, data: { status: 'APPROVED' } });
     assert.equal((await prisma.mealPlan.findUniqueOrThrow({ where: { id: current.id } })).libraryMealId, original.id);
 
     const rollbackPreview = await MealSwapService.getSwapPreview(user.id, current.id, other.id);

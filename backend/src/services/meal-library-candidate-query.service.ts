@@ -1,6 +1,7 @@
 import { conditionAllowsRulesetAutomation, conditionRequiresUserScopedClearance } from '@/domain/assurance-tier.policy';
 import { getApprovedMealLibraryWhere } from '@/domain/meal-actionability.policy';
 import { resolveRecipeRiceRole } from '@/domain/recipe-rice-role.policy';
+import { effectiveRecipeMealTypes } from '@/domain/meal-applicability.policy';
 import { mealApprovalSafetyScope } from '@/domain/meal-approval-scope.policy';
 import { getMealSlotCalorieRange, isPrimaryMealType } from '@/domain/meal-calorie-allocation.policy';
 import { evaluateMealGenerationLibraryCompatibility } from '@/domain/meal-generation-library-compatibility.adapter';
@@ -69,7 +70,7 @@ export const certifiedLibraryMealInclude = {
 } as const;
 
 export type CertifiedLibraryMeal = Prisma.MealLibraryGetPayload<{ include: typeof certifiedLibraryMealInclude }>;
-export type EligibleLibraryMeal = CertifiedLibraryMeal & { isFavorite: boolean };
+export type EligibleLibraryMeal = CertifiedLibraryMeal;
 
 export interface EligibleLibraryPage {
   items: EligibleLibraryMeal[];
@@ -383,6 +384,12 @@ export async function queryEligibleLibraryMeals(input: {
   return candidates.filter(
     (meal) =>
       admitted.has(meal.id) &&
+      (!input.mealType ||
+        effectiveRecipeMealTypes(
+          meal.mealName,
+          null,
+          meal.applicableMealTypes.map((entry) => entry.mealType)
+        ).includes(input.mealType)) &&
       (isCertifiedLibraryMealCompatible(meal, input.userConditions, input.userAllergens, input.profile) ||
         isProfileApprovedLibraryMealCompatible(meal, input.userConditions, input.userAllergens, input.profile) ||
         (input.includeUnapprovedCaseCandidates &&
@@ -424,7 +431,6 @@ export async function queryEligibleLibraryPage(input: {
   userAllergens: readonly string[];
   profile: LibraryCandidateProfile;
   search?: string;
-  favoriteOnly?: boolean;
   riceRole?: 'PAIR_WITH_RICE' | 'STANDALONE' | 'INCLUDES_RICE';
   cursor?: string;
   limit?: number;
@@ -494,7 +500,6 @@ export async function queryEligibleLibraryPage(input: {
     ],
     ...(input.mealType ? { applicableMealTypes: { some: { mealType: input.mealType } } } : {}),
     ...(input.search ? { mealName: { contains: input.search, mode: 'insensitive' } } : {}),
-    ...(input.favoriteOnly ? { favorites: { some: { userId: input.userId } } } : {}),
     ...(!input.safetyOnly && input.profile.dietaryPreference
       ? { dietaryTags: { array_contains: [input.profile.dietaryPreference] } }
       : {}),
@@ -505,7 +510,7 @@ export async function queryEligibleLibraryPage(input: {
   let scanCursor: { mealName: string; id: string } | null = null;
   const chunkSize = 100;
   for (;;) {
-    const rows: Array<CertifiedLibraryMeal & { favorites: Array<{ id: string }> }> = await prisma.mealLibrary.findMany({
+    const rows: CertifiedLibraryMeal[] = await prisma.mealLibrary.findMany({
       where: {
         ...where,
         ...(scanCursor
@@ -523,13 +528,21 @@ export async function queryEligibleLibraryPage(input: {
       },
       include: {
         ...certifiedLibraryMealInclude,
-        favorites: { where: { userId: input.userId }, select: { id: true } },
       },
       orderBy: [{ mealName: 'asc' }, { id: 'asc' }],
       take: chunkSize,
     });
     const admitted = await admittedLibraryBaseIds(rows);
     for (const row of rows) {
+      if (
+        input.mealType &&
+        !effectiveRecipeMealTypes(
+          row.mealName,
+          null,
+          row.applicableMealTypes.map((entry) => entry.mealType)
+        ).includes(input.mealType)
+      )
+        continue;
       if (
         !admitted.has(row.id) ||
         (!isCertifiedLibraryMealCompatible(row, input.userConditions, input.userAllergens, input.profile, {
@@ -544,11 +557,11 @@ export async function queryEligibleLibraryPage(input: {
       if (input.riceRole && resolveRecipeRiceRole(row).riceRole !== input.riceRole) continue;
       total += 1;
       if ((!requestedCursor || afterLibraryCursor(row, requestedCursor)) && items.length < pageLimit + 1) {
-        items.push({ ...row, isFavorite: row.favorites.length > 0 });
+        items.push(row);
       }
     }
     if (rows.length < chunkSize) break;
-    const last: CertifiedLibraryMeal & { favorites: Array<{ id: string }> } = rows[rows.length - 1];
+    const last: CertifiedLibraryMeal = rows[rows.length - 1];
     scanCursor = { mealName: last.mealName, id: last.id };
   }
 

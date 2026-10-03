@@ -9,6 +9,8 @@ import { resolveRecipeRiceRole } from '@/domain/recipe-rice-role.policy';
 import { MealType, RecipeRiceRole, RicePreference } from '@prisma/client';
 import { type CertifiedLibraryMeal } from './meal-library-candidate-query.service';
 import { nutritionFitScore, type NutritionVector } from '@/domain/meal-macro-target.policy';
+import { isSnackOnlyRecipe } from '@/domain/recipe-category.policy';
+import { effectiveRecipeMealTypes } from '@/domain/meal-applicability.policy';
 
 export type SwapRiceFood = {
   id: string;
@@ -33,6 +35,15 @@ export function resolveReplacementServing(input: {
 }) {
   const { meal, mealType, dailyTarget, ricePreference, hasConditions, riceFood } = input;
   if (!isPrimaryMealType(mealType)) return null;
+  if (isSnackOnlyRecipe(meal.mealName)) return null;
+  if (
+    !effectiveRecipeMealTypes(
+      meal.mealName,
+      null,
+      meal.applicableMealTypes.map((entry) => entry.mealType)
+    ).includes(mealType)
+  )
+    return null;
   const riceRole = resolveRecipeRiceRole(meal);
   let pairedRiceG: number | null = null;
   let nutrition = { calories: meal.calories, proteinG: meal.proteinG, carbsG: meal.carbsG, fatG: meal.fatG };

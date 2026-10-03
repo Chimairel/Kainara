@@ -130,8 +130,7 @@ async function create() {
           limit: 20,
         });
         assert.ok(candidates.length >= 2, 'Browser swap journey needs two existing certified breakfasts.');
-        const [original, favorite] = candidates;
-        await prisma.mealFavorite.create({ data: { userId: account.id, mealLibraryId: favorite.id } });
+        const [original] = candidates;
         const now = new Date();
         const today = getStartOfManilaBusinessDay(now);
         const windows = [getCurrentWeeklyCycleWindow(6, now), getNextWeeklyCycleWindow(6, now)];

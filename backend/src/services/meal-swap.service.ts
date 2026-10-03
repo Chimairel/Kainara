@@ -9,6 +9,7 @@ import {
 import { hasDeclaredSafetyRestrictions } from '@/domain/structured-restriction.adapter';
 import { ricePortionLabel } from '@/domain/rice-portion.policy';
 import { resolveRecipeRiceRole } from '@/domain/recipe-rice-role.policy';
+import { effectiveRecipeMealTypes } from '@/domain/meal-applicability.policy';
 import { rankLibraryMeals } from '@/domain/library-ranking.policy';
 import { MembershipService } from './membership.service';
 import {
@@ -45,7 +46,7 @@ import { resolveReplacementServing } from './meal-swap-serving.service';
 import { lockUserProfile } from './profile-revision.service';
 
 export function toPublicSwapOption(
-  meal: CertifiedLibraryMeal & { isFavorite?: boolean; alreadyPlannedInCycle?: boolean; pairedRiceG?: number | null },
+  meal: CertifiedLibraryMeal & { alreadyPlannedInCycle?: boolean; pairedRiceG?: number | null },
   recipeImage?: PublicMealImage,
   cookingLink?: PublicMealCookingLink,
   reuseBasis: 'CERTIFIED_RECIPE' | 'PROFILE_MATCHED_APPROVAL' = 'CERTIFIED_RECIPE',
@@ -62,7 +63,11 @@ export function toPublicSwapOption(
     mealName: meal.mealName,
     description: meal.description,
     mealType: meal.mealType,
-    mealTypes: meal.applicableMealTypes.map((entry) => entry.mealType),
+    mealTypes: effectiveRecipeMealTypes(
+      meal.mealName,
+      null,
+      meal.applicableMealTypes.map((entry) => entry.mealType)
+    ),
     riceRole: riceRole.riceRole,
     riceRoleBasis: riceRole.basis,
     riceRoleReviewStatus: meal.riceRoleReviewStatus,
@@ -70,8 +75,6 @@ export function toPublicSwapOption(
     servingDescription: meal.nutritionServingDescription || 'One recipe serving',
     pairedRiceG: meal.pairedRiceG ?? null,
     ricePortionLabel: meal.pairedRiceG ? ricePortionLabel(meal.pairedRiceG) : null,
-    canFavorite: true,
-    isFavorite: 'isFavorite' in meal ? Boolean(meal.isFavorite) : false,
     alreadyPlannedInCycle: 'alreadyPlannedInCycle' in meal ? Boolean(meal.alreadyPlannedInCycle) : false,
     calories: meal.calories,
     proteinG: meal.proteinG,
@@ -158,44 +161,6 @@ export class MealSwapService {
       limit: 120,
     });
 
-    const [favoriteRows, favoritePage] = await Promise.all([
-      prisma.mealFavorite.findMany({
-        where: { userId, mealLibraryId: { in: libraryMeals.map((meal) => meal.id) } },
-        select: { mealLibraryId: true },
-      }),
-      queryEligibleLibraryPage({
-        userId,
-        mealType: mealPlan.mealType,
-        userConditions,
-        userAllergens,
-        profile: { ...userProfile, userId, safetyEntries: user.safetyProfileEntries },
-        favoriteOnly: true,
-        limit: 60,
-      }),
-    ]);
-    const favorites = new Set(favoriteRows.map((row) => row.mealLibraryId));
-    const candidateById = new Map(libraryMeals.map((meal) => [meal.id, meal]));
-    for (const meal of favoritePage.items) {
-      favorites.add(meal.id);
-      candidateById.set(meal.id, meal);
-    }
-    if (favoritePage.nextCursor) {
-      const secondFavoritePage = await queryEligibleLibraryPage({
-        userId,
-        mealType: mealPlan.mealType,
-        userConditions,
-        userAllergens,
-        profile: { ...userProfile, userId, safetyEntries: user.safetyProfileEntries },
-        favoriteOnly: true,
-        cursor: favoritePage.nextCursor,
-        limit: 60,
-      });
-      for (const meal of secondFavoritePage.items) {
-        favorites.add(meal.id);
-        candidateById.set(meal.id, meal);
-      }
-    }
-    const candidates = [...candidateById.values()];
     const ricePreferenceScore = (riceRole: RecipeRiceRole | null) => {
       if (userProfile.ricePreference === RicePreference.NO_RICE) return riceRole === RecipeRiceRole.STANDALONE ? 1 : 0;
       if (userProfile.ricePreference === RicePreference.WITH_RICE)
@@ -205,7 +170,7 @@ export class MealSwapService {
 
     // Safety eligibility has already been enforced. Ranking may use preference
     // and variety facts but never promote a meal across a hard filter.
-    const eligibleMeals = candidates
+    const eligibleMeals = libraryMeals
       .filter((meal) => meal.id !== mealPlan.libraryMealId)
       .flatMap((meal) => {
         const serving = resolveReplacementServing({
@@ -229,7 +194,6 @@ export class MealSwapService {
             ...meal,
             ...serving,
             mealTypes: meal.applicableMealTypes.map((entry) => entry.mealType),
-            isFavorite: favorites.has(meal.id),
             alreadyPlannedInCycle: usedLibraryMealIds.has(meal.id),
             ricePreferenceScore: ricePreferenceScore(resolveRecipeRiceRole(meal).riceRole),
             pairedRiceG: serving.pairedRiceG,
@@ -327,7 +291,13 @@ export class MealSwapService {
       throw new Error('Selected replacement meal is not certified for your current health profile.');
     }
 
-    if (!libraryMeal.applicableMealTypes.some((entry) => entry.mealType === mealPlan.mealType)) {
+    if (
+      !effectiveRecipeMealTypes(
+        libraryMeal.mealName,
+        null,
+        libraryMeal.applicableMealTypes.map((entry) => entry.mealType)
+      ).includes(mealPlan.mealType)
+    ) {
       throw new Error('Replacement must match the meal type.');
     }
     const [cycleSnapshot, riceFood] = await Promise.all([
@@ -559,7 +529,13 @@ export class MealSwapService {
           throw new Error('Selected replacement meal is not available or approved.');
         }
 
-        if (!libraryMeal.applicableMealTypes.some((entry) => entry.mealType === mealPlan.mealType)) {
+        if (
+          !effectiveRecipeMealTypes(
+            libraryMeal.mealName,
+            null,
+            libraryMeal.applicableMealTypes.map((entry) => entry.mealType)
+          ).includes(mealPlan.mealType)
+        ) {
           throw new Error('Selected replacement meal type does not match slot meal type.');
         }
 
@@ -793,7 +769,6 @@ export class MealSwapService {
       mealType?: MealType;
       search?: string;
       date?: string;
-      favoriteOnly?: boolean;
       riceRole?: 'PAIR_WITH_RICE' | 'STANDALONE' | 'INCLUDES_RICE';
       cursor?: string;
       limit?: number;
@@ -817,7 +792,6 @@ export class MealSwapService {
       userAllergens,
       profile: { ...userProfile, userId, safetyEntries: user.safetyProfileEntries },
       search: input.search,
-      favoriteOnly: input.favoriteOnly,
       riceRole: input.riceRole,
       cursor: input.cursor,
       limit: input.limit,

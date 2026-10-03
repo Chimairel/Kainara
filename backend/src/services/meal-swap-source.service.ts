@@ -73,8 +73,6 @@ function publicSourceOption(plate: Plate, slot: Slot, alreadyPlannedInCycle = fa
     pairedRiceG: plate.pairedRiceG,
     ricePortionLabel: riceLabel,
     servingDescription: `One dish serving${plate.servingScale !== 1 ? ` (${plate.servingScale}× published portion)` : ''}${riceLabel ? ` + ${riceLabel}` : ''}`,
-    isFavorite: false,
-    canFavorite: false,
     alreadyPlannedInCycle,
     calories: plate.plateCalories,
     proteinG: plate.nutrition!.proteinG,

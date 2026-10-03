@@ -1,4 +1,5 @@
 import { RecipeRiceRole } from '@prisma/client';
+import { isSnackOnlyRecipe, isStandaloneRecipe } from './recipe-category.policy';
 
 export interface RiceRoleProposal {
   riceRole: RecipeRiceRole;
@@ -27,12 +28,7 @@ export function proposeRiceRole(input: {
     return { riceRole: RecipeRiceRole.INCLUDES_RICE, includedRiceG, reasonCode: 'EXPLICIT_RICE_INGREDIENT' };
   }
 
-  const text = `${input.name} ${input.category ?? ''}`.normalize('NFKC').toLowerCase();
-  if (
-    /\b(snack|merienda|dessert|cake|cookies?|bread|pandesal|oatmeal|pancakes?|drink|beverage|smoothie|shake|salad|sandwich|pasta|noodles?|pancit|spaghetti|sweet potato)\b/u.test(
-      text
-    )
-  ) {
+  if (isStandaloneRecipe(input.name, input.category)) {
     return { riceRole: RecipeRiceRole.STANDALONE, includedRiceG: null, reasonCode: 'STANDALONE_CATEGORY' };
   }
   return { riceRole: RecipeRiceRole.PAIR_WITH_RICE, includedRiceG: null, reasonCode: 'ULAM_PAIRING_PROPOSAL' };
@@ -66,6 +62,7 @@ export function resolveRecipeRiceRole(meal: {
   if (
     meal.riceRoleReviewStatus === 'REVIEWED' &&
     meal.riceRole &&
+    !(isSnackOnlyRecipe(meal.mealName) && meal.riceRole === 'PAIR_WITH_RICE') &&
     !(classification.riceRole === 'INCLUDES_RICE' && meal.riceRole !== 'INCLUDES_RICE')
   ) {
     return {

@@ -58,7 +58,7 @@ export async function verifySourcePlateSwaps(
   assert.ok(pairedOption.calories >= 510 && pairedOption.calories <= 690);
   assert.ok([75, 150, 225].includes(pairedOption.pairedRiceG!));
   assert.ok(Number.isFinite(pairedOption.nutritionFitScore));
-  assert.equal(pairedOption.canFavorite, false);
+  assert.ok(!('canFavorite' in pairedOption));
   assert.ok(!options.some((item) => item.id === `source:${unavailable.id}`));
   const list = await prisma.groceryList.findFirstOrThrow({
     where: { userId, planGroupId: cycleId },

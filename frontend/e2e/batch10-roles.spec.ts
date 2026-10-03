@@ -156,7 +156,7 @@ test('dashboard exits generation loading after a server failure and allows retry
   expect(attempts).toBe(2);
 });
 
-test('patient swaps a current and prepared upcoming breakfast with a favorite certified meal', async ({ page }) => {
+test('patient swaps a current and prepared upcoming breakfast with a compatible certified meal', async ({ page }) => {
   test.setTimeout(120_000);
   await signIn(page, 'user');
   await page.goto('/meals');
@@ -168,19 +168,10 @@ test('patient swaps a current and prepared upcoming breakfast with a favorite ce
       .click();
     await page.getByRole('button', { name: 'Swap Meal' }).click();
     const dialog = page.getByRole('dialog', { name: /^Swap / });
-    const favoriteCard = dialog
-      .locator('div[role="button"]')
-      .filter({
-        has: page.getByRole('button', { name: /^Remove .* from favorites$/ }),
-      })
-      .first();
-    const firstOption = favoriteCard.getByRole('heading', { level: 4 });
+    const replacementCard = dialog.locator('div[role="button"]').first();
+    const firstOption = replacementCard.getByRole('heading', { level: 4 });
     await expect(firstOption).toBeVisible({ timeout: 25_000 });
-    const favoriteName = await firstOption.innerText();
-    await expect(favoriteCard.getByRole('button', { name: /^Remove .* from favorites$/ })).toHaveAttribute(
-      'aria-pressed',
-      'true'
-    );
+    const replacementName = await firstOption.innerText();
     const previewReady = page.waitForResponse(
       (response) => response.url().includes('/swap-preview') && response.request().method() === 'GET'
     );
@@ -192,14 +183,14 @@ test('patient swaps a current and prepared upcoming breakfast with a favorite ce
     await expect(dialog.getByRole('button', { name: 'Confirm Swap' })).toBeEnabled();
     await dialog.getByRole('button', { name: 'Confirm Swap' }).click();
     await expect(dialog).toHaveCount(0, { timeout: 25_000 });
-    await expect(page.getByRole('button', { name: `Open ${favoriteName} details` })).toBeVisible();
-    return favoriteName;
+    await expect(page.getByRole('button', { name: `Open ${replacementName} details` })).toBeVisible();
+    return replacementName;
   };
 
-  const favoriteName = await swapVisibleMeal();
+  await swapVisibleMeal();
   await page.getByRole('button', { name: 'Next plan day' }).click();
   await expect(page.getByRole('button', { name: /^Open .* details$/ }).first()).toBeVisible();
-  expect(await swapVisibleMeal()).toBe(favoriteName);
+  await swapVisibleMeal();
   await page.goto('/grocery');
   await expect(page.getByText('We could not load this page.')).toHaveCount(0);
 });

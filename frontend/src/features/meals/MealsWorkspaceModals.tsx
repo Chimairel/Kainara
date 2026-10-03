@@ -6,21 +6,17 @@ import MealImage from '@/components/user/MealImage';
 import Modal from '@/components/ui/Modal';
 import LoadingSpinner from '@/components/shared/LoadingSpinner';
 import NutritionistCredentialModal from '@/components/user/NutritionistCredentialModal';
-import { AlertTriangle, ArrowRight, Check, Heart, Search, Sparkles, Soup, UtensilsCrossed } from 'lucide-react';
+import { AlertTriangle, ArrowRight, Check, Sparkles, Soup, UtensilsCrossed } from 'lucide-react';
 import { formatManilaDate } from '@/lib/manila-date';
 import { useMealsWorkspace } from './useMealsWorkspace';
 import SwapImpactDetails from './SwapImpactDetails';
 
 type Props = { workspace: ReturnType<typeof useMealsWorkspace> };
 
-type MiniSortOption = 'best_match' | 'kcal_match' | 'cal_asc' | 'cal_desc' | 'alpha';
+type MiniSortOption = 'best_match' | 'kcal_match';
 
 export function MealsWorkspaceModals({ workspace }: Props) {
   const [groceryDeltaAcknowledged, setGroceryDeltaAcknowledged] = useState(false);
-  const [miniMealType, setMiniMealType] = useState<string>('All');
-  const [miniSearch, setMiniSearch] = useState<string>('');
-  const [miniRiceRole, setMiniRiceRole] = useState<string>('All');
-  const [miniFavoriteOnly, setMiniFavoriteOnly] = useState<boolean>(false);
   const [miniSort, setMiniSort] = useState<MiniSortOption>('best_match');
 
   const {
@@ -42,16 +38,11 @@ export function MealsWorkspaceModals({ workspace }: Props) {
     setSelectedVerifier,
     handleSelectSwapOption,
     handleConfirmSwapAnyway,
-    toggleSwapFavorite,
   } = workspace;
 
-  // Whenever activeSwapMeal opens or changes, pre-filter mini library to current slot's meal type
+  // Reset the comparison when a different slot opens.
   useEffect(() => {
     if (activeSwapMeal) {
-      setMiniMealType(activeSwapMeal.mealType || 'All');
-      setMiniSearch('');
-      setMiniRiceRole('All');
-      setMiniFavoriteOnly(false);
       setMiniSort('best_match');
       setGroceryDeltaAcknowledged(false);
     }
@@ -63,32 +54,10 @@ export function MealsWorkspaceModals({ workspace }: Props) {
     if (!activeSwapMeal) return [];
     let items = swapOptions.filter((option) => option.id !== activeSwapMeal.libraryMealId);
 
-    // 1. Filter by mealType
-    if (miniMealType !== 'All') {
-      items = items.filter((item) => {
-        const types = (item.mealTypes?.length ? item.mealTypes : [item.mealType]) as string[];
-        return types.includes(miniMealType);
-      });
-    }
-
-    // 2. Filter by search
-    if (miniSearch.trim()) {
-      const q = miniSearch.trim().toLowerCase();
-      items = items.filter(
-        (item) =>
-          item.mealName.toLowerCase().includes(q) || (item.description && item.description.toLowerCase().includes(q))
-      );
-    }
-
-    // 3. Filter by riceRole
-    if (miniRiceRole !== 'All') {
-      items = items.filter((item) => item.riceRole === miniRiceRole);
-    }
-
-    // 4. Filter by favorite
-    if (miniFavoriteOnly) {
-      items = items.filter((item) => item.isFavorite);
-    }
+    // The slot fixes meal time; users cannot broaden it to other meal types.
+    items = items.filter((item) =>
+      (item.mealTypes?.length ? item.mealTypes : [item.mealType]).includes(activeSwapMeal.mealType)
+    );
 
     // Rank against the report estimates for the planned day, including fresh rice.
     const currentCal = activeSwapMeal.calories;
@@ -104,16 +73,11 @@ export function MealsWorkspaceModals({ workspace }: Props) {
         const deltaA = Math.abs(a.calories - currentCal);
         const deltaB = Math.abs(b.calories - currentCal);
         if (deltaA !== deltaB) return deltaA - deltaB;
-        if (a.isFavorite && !b.isFavorite) return -1;
-        if (!a.isFavorite && b.isFavorite) return 1;
         return a.mealName.localeCompare(b.mealName);
       }
-      if (miniSort === 'cal_asc') return a.calories - b.calories;
-      if (miniSort === 'cal_desc') return b.calories - a.calories;
-      if (miniSort === 'alpha') return a.mealName.localeCompare(b.mealName);
       return 0;
     });
-  }, [activeSwapMeal, swapOptions, miniMealType, miniSearch, miniRiceRole, miniFavoriteOnly, miniSort]);
+  }, [activeSwapMeal, swapOptions, miniSort]);
 
   return (
     <>
@@ -353,7 +317,7 @@ export function MealsWorkspaceModals({ workspace }: Props) {
 
             {/* BOTTOM SECTION: MINI MEAL LIBRARY BROWSER */}
             <div className="space-y-3 pt-1">
-              {/* Header with Title and Search */}
+              {/* Header */}
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
                 <div className="flex items-center gap-2">
                   <h3 className="font-display text-sm font-bold text-brand-text">Mini Meal Library</h3>
@@ -361,82 +325,18 @@ export function MealsWorkspaceModals({ workspace }: Props) {
                     {filteredAndSortedOptions.length} available
                   </span>
                 </div>
-
-                {/* Meal Type Filter Chips */}
-                <div className="flex items-center gap-1 overflow-x-auto rounded-xl bg-brand-bgAlt/70 p-1 select-none">
-                  {['All', 'BREAKFAST', 'LUNCH', 'DINNER'].map((type) => (
-                    <button
-                      key={type}
-                      type="button"
-                      onClick={() => setMiniMealType(type)}
-                      className={`whitespace-nowrap rounded-lg px-2.5 py-1 text-xs font-bold transition-all ${
-                        miniMealType === type
-                          ? 'bg-brand-green text-white dark:bg-brand-accent dark:text-black shadow-xs'
-                          : 'text-brand-muted hover:bg-brand-surface hover:text-brand-text'
-                      }`}
-                    >
-                      {type === 'All' ? 'All Types' : type.charAt(0) + type.slice(1).toLowerCase()}
-                    </button>
-                  ))}
-                </div>
               </div>
 
-              {/* Search, Rice Role, Favorites, and Sort Controls */}
-              <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 text-xs">
-                {/* Search */}
-                <div className="relative min-w-0 flex-1">
-                  <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-brand-muted" />
-                  <input
-                    type="text"
-                    placeholder="Search recipes..."
-                    value={miniSearch}
-                    onChange={(e) => setMiniSearch(e.target.value)}
-                    className="h-9 w-full rounded-xl border border-brand-border bg-brand-bgAlt/50 pl-9 pr-3 text-xs text-brand-text outline-none focus:border-brand-green"
-                  />
-                </div>
-
-                <div className="flex flex-wrap items-center gap-2">
-                  {/* Rice Role */}
-                  <select
-                    value={miniRiceRole}
-                    onChange={(e) => setMiniRiceRole(e.target.value)}
-                    className="h-9 rounded-xl border border-brand-border bg-brand-surface px-2.5 text-xs font-medium text-brand-text outline-none focus:border-brand-green"
-                    aria-label="Filter by rice role"
-                  >
-                    <option value="All">All Rice Roles</option>
-                    <option value="PAIR_WITH_RICE">Pair with rice</option>
-                    <option value="INCLUDES_RICE">Rice included</option>
-                    <option value="STANDALONE">Standalone</option>
-                  </select>
-
-                  {/* Favorites only */}
-                  <button
-                    type="button"
-                    onClick={() => setMiniFavoriteOnly(!miniFavoriteOnly)}
-                    className={`inline-flex items-center gap-1.5 h-9 rounded-xl border px-2.5 text-xs font-bold transition-colors ${
-                      miniFavoriteOnly
-                        ? 'border-rose-400 bg-rose-50 text-rose-600 dark:border-rose-700 dark:bg-rose-950/40 dark:text-rose-300'
-                        : 'border-brand-border text-brand-muted hover:text-brand-text'
-                    }`}
-                  >
-                    <Heart className={`h-3.5 w-3.5 ${miniFavoriteOnly ? 'fill-current text-rose-500' : ''}`} />
-                    <span>Favorites</span>
-                  </button>
-
-                  {/* Sort Order */}
-                  <select
-                    value={miniSort}
-                    onChange={(e) => setMiniSort(e.target.value as MiniSortOption)}
-                    className="h-9 rounded-xl border border-brand-border bg-brand-surface px-2.5 text-xs font-medium text-brand-text outline-none focus:border-brand-green"
-                    aria-label="Sort mini library recipes"
-                  >
-                    <option value="best_match">Best nutrition match</option>
-                    <option value="kcal_match">Match kcal</option>
-                    <option value="cal_asc">Calories: Low to High</option>
-                    <option value="cal_desc">Calories: High to Low</option>
-                    <option value="alpha">Recipe Name (A-Z)</option>
-                  </select>
-                </div>
+              <div className="flex justify-end text-xs">
+                <select
+                  value={miniSort}
+                  onChange={(event) => setMiniSort(event.target.value as MiniSortOption)}
+                  className="h-9 rounded-xl border border-brand-border bg-brand-surface px-2.5 text-xs font-medium text-brand-text outline-none focus:border-brand-green"
+                  aria-label="Sort mini library recipes"
+                >
+                  <option value="best_match">Nutrition match</option>
+                  <option value="kcal_match">Kcal match</option>
+                </select>
               </div>
 
               {/* Recipe Cards Grid */}
@@ -455,9 +355,7 @@ export function MealsWorkspaceModals({ workspace }: Props) {
                 ) : filteredAndSortedOptions.length === 0 ? (
                   <div className="p-8 text-center border border-brand-border/40 bg-brand-surface/30 rounded-2xl">
                     <Soup className="w-7 h-7 text-brand-green mx-auto mb-2 opacity-70" />
-                    <p className="text-xs font-bold text-brand-text">
-                      {swapOptions.length ? 'No meals match your active filters' : 'No eligible replacement plates'}
-                    </p>
+                    <p className="text-xs font-bold text-brand-text">No eligible replacement plates</p>
                     <p className="text-[11px] text-brand-muted mt-0.5">
                       {swapOptions.length
                         ? "Try selecting 'All Types' or resetting search and rice role filters."
@@ -562,7 +460,7 @@ export function MealsWorkspaceModals({ workspace }: Props) {
                               </div>
                             </div>
 
-                            {/* Verifier Badge & Favorite */}
+                            {/* Verifier Badge */}
                             <div className="flex items-center justify-between text-[9px] text-brand-muted pt-0.5">
                               <span className="truncate">
                                 {option.reuseBasis === 'PANLASANG_GENERAL_BASE' ? 'Source: ' : 'Verified by: '}
@@ -583,27 +481,6 @@ export function MealsWorkspaceModals({ workspace }: Props) {
                                   </span>
                                 )}
                               </span>
-
-                              {option.canFavorite !== false && (
-                                <button
-                                  type="button"
-                                  aria-label={
-                                    option.isFavorite
-                                      ? `Remove ${option.mealName} from favorites`
-                                      : `Favorite ${option.mealName}`
-                                  }
-                                  aria-pressed={option.isFavorite}
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    toggleSwapFavorite(option);
-                                  }}
-                                  className="p-1 text-brand-muted hover:text-rose-500 transition-colors"
-                                >
-                                  <Heart
-                                    className={`h-3 w-3 ${option.isFavorite ? 'fill-current text-rose-500' : ''}`}
-                                  />
-                                </button>
-                              )}
                             </div>
                           </div>
                         </div>
