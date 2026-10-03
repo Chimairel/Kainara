@@ -15,6 +15,7 @@ import PendingMealPreviewCard from '@/components/user/PendingMealPreviewCard';
 import UnloggedMealCatchUpCard from '@/components/user/UnloggedMealCatchUpCard';
 import MealLibraryPanel from '@/features/meals/MealLibraryPanel';
 import MealPlanSkeleton from '@/features/meals/MealPlanSkeleton';
+import MealPlanEmptyState from '@/features/meals/MealPlanEmptyState';
 import { showPendingReviewNoticeOnce, showStarterPlanNoticeOnce } from '@/features/meals/plan-status-notice';
 import { useAuth } from '@/hooks/useAuth';
 import { useBreadcrumb } from '@/lib/context/BreadcrumbContext';
@@ -61,6 +62,7 @@ function WeeklyPlanPageContent() {
     awaitingGeneration,
     generationStatus,
     isRetryingMissing,
+    retryPlanLoad,
     retryMissingGeneration,
     repairRetiredMeals,
     isRepairingRetired,
@@ -195,6 +197,15 @@ function WeeklyPlanPageContent() {
     (user?.onboardingDone && user?.tosAccepted && !user?.reportAcknowledged) ||
     (error && error.toLowerCase().includes('nutrition report')) ||
     (historyError && historyError.toLowerCase().includes('nutrition report'))
+  );
+  const emptyPlanState = (
+    <MealPlanEmptyState
+      error={error}
+      generationStatus={generationStatus.current}
+      isRegenerating={isRegenerating}
+      onRetryLoad={() => void retryPlanLoad()}
+      onRetryPreparation={() => void handleRegeneratePlan()}
+    />
   );
 
   return (
@@ -429,6 +440,8 @@ function WeeklyPlanPageContent() {
               title="Meal planning isn't available yet"
               description="A nutritionist needs to review your declared health profile before meal candidates can be prepared. Each proposed meal will then receive its own case approval."
             />
+          ) : groupedDays.length === 0 && !pendingReview && error ? (
+            emptyPlanState
           ) : groupedDays.length === 0 ? (
             pendingReview ? (
               <section className="flex flex-col gap-6 text-left" aria-label="Pending meal plan review">
@@ -474,29 +487,7 @@ function WeeklyPlanPageContent() {
                 appear here automatically.
               </div>
             ) : (
-              <StateNotice
-                variant="no-meal-plan"
-                imageAlt="Meal plan preparation"
-                title={
-                  generationStatus.current === 'FAILED'
-                    ? 'Meal plan preparation failed'
-                    : 'Preparing Your First Meal Plan'
-                }
-                description={
-                  generationStatus.current === 'FAILED'
-                    ? 'Your nutrition report is acknowledged, but your first meal plan could not be prepared. Retry preparation to try again.'
-                    : 'Your current meal plan is being prepared automatically. Candidates will appear here for nutritionist review.'
-                }
-                action={
-                  generationStatus.current === 'FAILED'
-                    ? {
-                        label: isRegenerating ? 'Retrying...' : 'Retry Preparation',
-                        onClick: handleRegeneratePlan,
-                        isLoading: isRegenerating,
-                      }
-                    : null
-                }
-              />
+              emptyPlanState
             )
           ) : (
             <div className="flex flex-col gap-6 text-left">

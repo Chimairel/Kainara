@@ -33,16 +33,21 @@ describe('session recovery during background requests', () => {
     expect(cookieHelper.get('nutrimind_session')).toBe('renewed-session');
   });
 
-  it('bounds ordinary reads and gives generation an explicit longer budget', async () => {
+  it('extends only plan reads while preserving ordinary, provider and explicit request budgets', async () => {
     const timeouts: number[] = [];
     const adapter: AxiosAdapter = async (config) => {
       timeouts.push(config.timeout ?? 0);
       return { data: {}, status: 200, statusText: 'OK', headers: {}, config };
     };
     await api.get('/user/meals/current', { adapter });
+    await api.get('/user/meals/workspace', { adapter });
+    await api.get('/user/meals/generation-status', { adapter });
+    await api.get('/user/grocery/workspace', { adapter });
+    await api.get('/user/meals/current', { adapter, timeout: 15_000 });
+    await api.post('/user/meals/current', {}, { adapter });
     await api.post('/user/meals/log-outside', {}, { adapter });
     await api.get('/user/profile', { adapter, timeout: 15_000 });
-    expect(timeouts).toEqual([30_000, 120_000, 15_000]);
+    expect(timeouts).toEqual([90_000, 90_000, 30_000, 30_000, 15_000, 30_000, 120_000, 15_000]);
   });
 
   it('shares one bounded refresh and settles all queued requests after a timeout', async () => {

@@ -96,6 +96,67 @@ describe('useMealsWorkspace', () => {
     });
   });
 
+  it('keeps a failed plan read visible while retrying and clears it only after a valid response', async () => {
+    getMock.mockImplementation(async (url: string) => {
+      if (url === '/user/meals/workspace') throw new Error('Request timed out');
+      return successfulResponseFor(url);
+    });
+    const { result } = renderHook(() => useMealsWorkspace());
+    await waitFor(() => expect(result.current.error).toBe('Failed to fetch weekly plan menu.'));
+    let resolveRetry: ((value: unknown) => void) | undefined;
+    getMock.mockImplementation((url: string) => {
+      if (url !== '/user/meals/workspace') return Promise.resolve(successfulResponseFor(url));
+      return new Promise((resolve) => {
+        resolveRetry = resolve;
+      });
+    });
+    act(() => window.dispatchEvent(new Event('focus')));
+    await waitFor(() => expect(resolveRetry).toBeTypeOf('function'));
+    expect(result.current.error).toBe('Failed to fetch weekly plan menu.');
+    await act(async () => resolveRetry?.({ data: { success: true, data: [], meta: {} } }));
+    expect(result.current.error).toBeNull();
+  });
+
+  it.each([
+    { success: false, data: [] },
+    { success: true, data: null },
+  ])('rejects an unsuccessful or malformed plan read instead of recording an empty plan: %j', async (body) => {
+    getMock.mockImplementation(async (url: string) =>
+      url === '/user/meals/workspace' ? { data: body } : successfulResponseFor(url)
+    );
+    const { result } = renderHook(() => useMealsWorkspace());
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    expect(result.current.error).toBeTruthy();
+    expect(result.current.cycles).toBeNull();
+  });
+
+  it('preserves saved meals and cycle identity when a later refresh times out', async () => {
+    const saved = { id: 'saved-meal', scheduledDate: '2026-10-03', calories: 500, proteinG: 25, carbsG: 60, fatG: 18 };
+    const cycle = { id: 'saved-cycle', status: 'ACTIVE' };
+    getMock.mockImplementation(async (url: string) =>
+      url === '/user/meals/workspace'
+        ? {
+            data: {
+              success: true,
+              data: [saved],
+              meta: { cycles: { current: cycle }, generationStatus: { current: 'COMPLETED', upcoming: null } },
+            },
+          }
+        : successfulResponseFor(url)
+    );
+    const { result } = renderHook(() => useMealsWorkspace());
+    await waitFor(() => expect(result.current.meals).toEqual([saved]));
+    getMock.mockImplementation(async (url: string) => {
+      if (url === '/user/meals/workspace') throw new Error('Request timed out');
+      return successfulResponseFor(url);
+    });
+    act(() => window.dispatchEvent(new Event('focus')));
+    await waitFor(() => expect(result.current.error).toBeTruthy());
+    expect(result.current.meals).toEqual([saved]);
+    expect(result.current.cycles?.current).toEqual(cycle);
+    expect(result.current.generationStatus.current).toBe('COMPLETED');
+  });
+
   it('restores the previous plan immediately after route remount and revalidates silently', async () => {
     getMock.mockImplementation(async (url: string) => {
       if (url === '/user/meals/workspace') {

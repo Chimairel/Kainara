@@ -1,4 +1,4 @@
-import { render, screen, within } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import type { MealPlan } from '@/types';
 import { MealsWorkspaceModals } from './MealsWorkspaceModals';
@@ -35,6 +35,39 @@ function option(id: string, mealName: string): SwapOption {
 }
 
 describe('meal swap picker', () => {
+  it('lets users sort whole plates by closest kcal without removing the macro-aware option', () => {
+    const nutrition = { ...option('balanced', 'Balanced plate'), calories: 380, nutritionFitScore: 0.1 };
+    const kcal = {
+      ...option('closest', 'Closest calorie plate'),
+      calories: 399,
+      nutritionFitScore: 0.8,
+      ricePortionLabel: '½ cup cooked rice (75 g)',
+    };
+    const workspace = {
+      activeSwapMeal: current,
+      swapOptions: [kcal, nutrition],
+      setActiveSwapMeal: vi.fn(),
+      setSwapOptions: vi.fn(),
+      setConfirmSwapMeal: vi.fn(),
+      setSwapOptionsError: vi.fn(),
+      setSwapPreview: vi.fn(),
+      setSelectedVerifier: vi.fn(),
+      handleSelectSwapOption: vi.fn(),
+      toggleSwapFavorite: vi.fn(),
+    } as unknown as ReturnType<typeof useMealsWorkspace>;
+    render(<MealsWorkspaceModals workspace={workspace} />);
+    const plateButtons = () =>
+      screen
+        .getAllByRole('button')
+        .filter((button) => /Balanced plate|Closest calorie plate/.test(button.textContent ?? ''));
+    expect(plateButtons()[0]).toHaveTextContent('Balanced plate');
+    fireEvent.change(screen.getByRole('combobox', { name: 'Sort mini library recipes' }), {
+      target: { value: 'kcal_match' },
+    });
+    expect(plateButtons()[0]).toHaveTextContent('Closest calorie plate');
+    expect(screen.getByRole('option', { name: 'Best nutrition match' })).toBeInTheDocument();
+    expect(screen.getByText('+ ½ cup cooked rice (75 g)')).toBeInTheDocument();
+  });
   it('shows current rice and fresh whole-plate rice without claiming source certification', () => {
     const source = {
       ...option('source:recipe', 'Replacement chicken'),

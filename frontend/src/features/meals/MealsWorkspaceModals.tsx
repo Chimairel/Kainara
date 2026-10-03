@@ -13,7 +13,7 @@ import SwapImpactDetails from './SwapImpactDetails';
 
 type Props = { workspace: ReturnType<typeof useMealsWorkspace> };
 
-type MiniSortOption = 'best_match' | 'cal_asc' | 'cal_desc' | 'alpha';
+type MiniSortOption = 'best_match' | 'kcal_match' | 'cal_asc' | 'cal_desc' | 'alpha';
 
 export function MealsWorkspaceModals({ workspace }: Props) {
   const [groceryDeltaAcknowledged, setGroceryDeltaAcknowledged] = useState(false);
@@ -93,6 +93,11 @@ export function MealsWorkspaceModals({ workspace }: Props) {
     // Rank against the report estimates for the planned day, including fresh rice.
     const currentCal = activeSwapMeal.calories;
     return items.sort((a, b) => {
+      if (miniSort === 'kcal_match') {
+        return (
+          Math.abs(a.calories - currentCal) - Math.abs(b.calories - currentCal) || a.mealName.localeCompare(b.mealName)
+        );
+      }
       if (miniSort === 'best_match') {
         const fit = (a.nutritionFitScore ?? Number.MAX_SAFE_INTEGER) - (b.nutritionFitScore ?? Number.MAX_SAFE_INTEGER);
         if (fit !== 0) return fit;
@@ -426,6 +431,7 @@ export function MealsWorkspaceModals({ workspace }: Props) {
                     aria-label="Sort mini library recipes"
                   >
                     <option value="best_match">Best nutrition match</option>
+                    <option value="kcal_match">Match kcal</option>
                     <option value="cal_asc">Calories: Low to High</option>
                     <option value="cal_desc">Calories: High to Low</option>
                     <option value="alpha">Recipe Name (A-Z)</option>

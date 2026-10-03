@@ -52,6 +52,82 @@ async function fixtureSession(page: Page, onboarded = false) {
 }
 
 for (const width of [390, 1440]) {
+  test(`dashboard and weekly plan agree after a failed workspace read and retry at ${width}px`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 900 });
+    await fixtureSession(page, true);
+    const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Manila' });
+    const cycle = {
+      id: 'read-cycle',
+      planType: 'WEEKLY',
+      startDate: `${today}T00:00:00Z`,
+      endDate: `${today}T23:59:59Z`,
+      status: 'ACTIVE',
+    };
+    const meals = ['BREAKFAST', 'LUNCH', 'DINNER'].map((mealType, index) => ({
+      id: `read-slot-${index}`,
+      planGroupId: cycle.id,
+      mealName: `Saved ${mealType.toLowerCase()} dish`,
+      mealType,
+      scheduledDate: `${today}T04:00:00Z`,
+      status: 'APPROVED',
+      aiConfidenceFlag: 'CAUTION',
+      calories: 500,
+      proteinG: 25,
+      carbsG: 60,
+      fatG: 18,
+      ingredients: [],
+      mealLogs: [],
+      ricePortion: index === 1 ? '½ cup cooked rice (75 g)' : null,
+    }));
+    await page.route('**/api/user/meals/current', (route) =>
+      route.fulfill({
+        json: {
+          success: true,
+          data: meals,
+          meta: { cycle, generationStatus: 'COMPLETED', pendingReview: null },
+        },
+      })
+    );
+    let attempts = 0;
+    let allowRetry: (() => void) | undefined;
+    const retryGate = new Promise<void>((resolve) => {
+      allowRetry = resolve;
+    });
+    await page.route('**/api/user/meals/workspace', async (route) => {
+      attempts++;
+      if (attempts <= 2) {
+        await route.fulfill({ status: 503, json: { success: false, error: 'Saved plan request timed out.' } });
+        return;
+      }
+      await retryGate;
+      await route.fulfill({
+        json: {
+          success: true,
+          data: meals,
+          meta: {
+            cycles: { current: cycle, upcoming: null },
+            generationStatus: { current: 'COMPLETED', upcoming: null },
+            pendingReview: null,
+          },
+        },
+      });
+    });
+    const errors: string[] = [];
+    page.on('pageerror', (error) => errors.push(error.message));
+    await page.goto('/dashboard');
+    for (const meal of meals) await expect(page.getByText(meal.mealName, { exact: true })).toBeVisible();
+    await page.goto('/meals');
+    await expect(page.getByRole('heading', { name: 'Could not load your meal plan' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Preparing Your First Meal Plan' })).toHaveCount(0);
+    await page.getByRole('button', { name: 'Retry loading', exact: true }).click();
+    await expect.poll(() => attempts).toBeGreaterThanOrEqual(3);
+    await expect(page.getByRole('heading', { name: 'Could not load your meal plan' })).toBeVisible();
+    allowRetry?.();
+    for (const meal of meals) await expect(page.getByText(meal.mealName, { exact: true })).toBeVisible();
+    await expect(page.getByText('+ ½ cup cooked rice (75 g)', { exact: true })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Could not load your meal plan' })).toHaveCount(0);
+    expect(errors).toEqual([]);
+  });
   test(`whole-plate rice swap shows fresh portions and submits the selected plate at ${width}px`, async ({ page }) => {
     await page.setViewportSize({ width, height: 900 });
     await fixtureSession(page, true);

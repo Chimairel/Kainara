@@ -137,19 +137,20 @@ export function useMealsWorkspace(initialOptions?: { initialDateKey?: string | n
   const fetchMeals = useCallback(async () => {
     if (currentPlanRequestInFlight.current) return;
     currentPlanRequestInFlight.current = true;
-    setError(null);
     try {
       const res = await api.get('/user/meals/workspace');
-      if (res.data && res.data.success) {
-        setClinicalEvidenceRequired(false);
-        applyCurrentPlan({
-          meals: Array.isArray(res.data.data) ? res.data.data : [],
-          pendingReview: res.data.meta?.pendingReview ?? null,
-          awaitingGeneration: res.data.meta?.awaitingGeneration ?? { current: 0, upcoming: 0 },
-          generationStatus: res.data.meta?.generationStatus ?? { current: null, upcoming: null },
-          cycles: res.data.meta?.cycles ?? null,
-        });
+      if (!res.data?.success || !Array.isArray(res.data.data)) {
+        throw new Error('Invalid meal workspace response.');
       }
+      setError(null);
+      setClinicalEvidenceRequired(false);
+      applyCurrentPlan({
+        meals: res.data.data,
+        pendingReview: res.data.meta?.pendingReview ?? null,
+        awaitingGeneration: res.data.meta?.awaitingGeneration ?? { current: 0, upcoming: 0 },
+        generationStatus: res.data.meta?.generationStatus ?? { current: null, upcoming: null },
+        cycles: res.data.meta?.cycles ?? null,
+      });
     } catch (err: unknown) {
       if (axios.isAxiosError(err) && err.response?.data?.errorCode === 'CLINICAL_EVIDENCE_REQUIRED') {
         setClinicalEvidenceRequired(true);
@@ -655,6 +656,7 @@ export function useMealsWorkspace(initialOptions?: { initialDateKey?: string | n
     awaitingGeneration,
     generationStatus,
     isRetryingMissing,
+    retryPlanLoad: fetchMeals,
     retryMissingGeneration,
     repairRetiredMeals,
     isRepairingRetired,
