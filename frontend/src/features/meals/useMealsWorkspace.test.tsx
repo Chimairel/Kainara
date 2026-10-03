@@ -2,7 +2,13 @@ import { act, renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { getManilaDateKey } from '@/lib/manila-date';
 import { useMealsWorkspace } from './useMealsWorkspace';
-import { clearSessionResourceCache } from '@/lib/session-resource-cache';
+import {
+  clearSessionResourceCache,
+  invalidateSessionResource,
+  readSessionResource,
+  writeSessionResource,
+} from '@/lib/session-resource-cache';
+import { refreshMealsWorkspace } from './meal-workspace-resource';
 
 const { getMock, postMock } = vi.hoisted(() => ({ getMock: vi.fn(), postMock: vi.fn() }));
 
@@ -29,6 +35,68 @@ describe('useMealsWorkspace', () => {
     getMock.mockReset();
     postMock.mockReset();
     getMock.mockImplementation(async (url: string) => successfulResponseFor(url));
+  });
+
+  it('adopts a dashboard preload without starting another workspace request', async () => {
+    let finish!: (value: unknown) => void;
+    getMock.mockImplementation((url: string) =>
+      url === '/user/meals/workspace'
+        ? new Promise((resolve) => {
+            finish = resolve;
+          })
+        : Promise.resolve(successfulResponseFor(url))
+    );
+    const preload = refreshMealsWorkspace('user-1');
+    const { result } = renderHook(() => useMealsWorkspace());
+    expect(getMock.mock.calls.filter(([url]) => url === '/user/meals/workspace')).toHaveLength(1);
+    await act(async () => {
+      finish({ data: { success: true, data: [{ id: 'saved' }], meta: {} } });
+      await preload;
+    });
+    expect(result.current.meals).toEqual([{ id: 'saved' }]);
+    expect(result.current.error).toBeNull();
+  });
+
+  it('keeps a newer swap snapshot when an adopted preload finishes late', async () => {
+    let finish!: (value: unknown) => void;
+    getMock.mockImplementation((url: string) =>
+      url === '/user/meals/workspace'
+        ? new Promise((resolve) => {
+            finish = resolve;
+          })
+        : Promise.resolve(successfulResponseFor(url))
+    );
+    const preload = refreshMealsWorkspace('user-1');
+    const { result } = renderHook(() => useMealsWorkspace());
+    const newest = { meals: [{ id: 'swapped', scheduledDate: '2026-10-03' }], pendingReview: null };
+    writeSessionResource('user-1', 'user-meals-workspace', newest);
+    await act(async () => {
+      finish({ data: { success: true, data: [{ id: 'old' }], meta: {} } });
+      await preload;
+    });
+    expect(result.current.meals).toEqual(newest.meals);
+    expect(readSessionResource('user-1', 'user-meals-workspace')).toEqual(newest);
+  });
+
+  it('rejects an invalidated preload instead of displaying stale meals or a generation state', async () => {
+    let finish!: (value: unknown) => void;
+    getMock.mockImplementation((url: string) =>
+      url === '/user/meals/workspace'
+        ? new Promise((resolve) => {
+            finish = resolve;
+          })
+        : Promise.resolve(successfulResponseFor(url))
+    );
+    const preload = refreshMealsWorkspace('user-1');
+    const { result } = renderHook(() => useMealsWorkspace());
+    invalidateSessionResource('user-1', 'user-meals-workspace');
+    await act(async () => {
+      finish({ data: { success: true, data: [{ id: 'old' }], meta: {} } });
+      await preload;
+    });
+    expect(result.current.meals).toEqual([]);
+    expect(result.current.error).toBeTruthy();
+    expect(readSessionResource('user-1', 'user-meals-workspace')).toBeNull();
   });
 
   it('honors an explicit replacement even when every old meal was hidden, and coalesces repeated clicks', async () => {

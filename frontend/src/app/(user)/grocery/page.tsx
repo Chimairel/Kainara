@@ -85,8 +85,10 @@ export default function GroceryListPage() {
     setError(null);
     const version = requestVersion.current;
     try {
-      const snapshot = await refreshSessionResource(ownerId, 'user-grocery-workspace', fetchGroceryWorkspace);
+      await refreshSessionResource(ownerId, 'user-grocery-workspace', fetchGroceryWorkspace);
       if (version === requestVersion.current) {
+        const snapshot = readSessionResource<GroceryWorkspace>(ownerId, 'user-grocery-workspace');
+        if (!snapshot) throw new Error('The grocery list changed while loading. Please retry loading.');
         workspaceRef.current = snapshot;
         setWorkspace(snapshot);
         cachePage(snapshot);

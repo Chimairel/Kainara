@@ -11,6 +11,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { MembershipProvider } from '@/features/membership/MembershipProvider';
 import WeeklyProfileNotice from '@/features/reports/WeeklyProfileNotice';
 import MembershipNotice from '@/features/membership/MembershipNotice';
+import BackgroundResourceBoundary from '@/features/navigation/BackgroundResourceBoundary';
 
 export default function UserLayout({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
@@ -22,7 +23,8 @@ export default function UserLayout({ children }: { children: React.ReactNode }) 
 
   return (
     <RouteGuard>
-      <MembershipProvider>
+      <MembershipProvider key={user?.userId}>
+        <BackgroundResourceBoundary ownerId={user?.userId} />
         <div className="portal-shell flex h-screen w-full p-0 md:p-4">
           <Sidebar />
           <div className="relative z-10 flex min-w-0 flex-1 flex-col md:pl-4">

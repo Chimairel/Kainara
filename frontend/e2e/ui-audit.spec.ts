@@ -52,6 +52,151 @@ async function fixtureSession(page: Page, onboarded = false) {
 }
 
 for (const width of [390, 1440]) {
+  test(`dashboard preloads meals then groceries and reuses them on navigation at ${width}px`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 900 });
+    await fixtureSession(page, true);
+    const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Manila' });
+    const cycle = {
+      id: 'preload-cycle',
+      planType: 'WEEKLY',
+      startDate: `${today}T00:00:00Z`,
+      endDate: `${today}T23:59:59Z`,
+      status: 'ACTIVE',
+    };
+    const meals = ['BREAKFAST', 'LUNCH', 'DINNER'].map((mealType, index) => ({
+      id: `preload-slot-${index}`,
+      planGroupId: cycle.id,
+      mealName: `Preloaded ${mealType.toLowerCase()} dish`,
+      mealType,
+      scheduledDate: `${today}T04:00:00Z`,
+      status: 'APPROVED',
+      aiConfidenceFlag: 'CAUTION',
+      calories: 500,
+      proteinG: 25,
+      carbsG: 60,
+      fatG: 18,
+      ingredients: [],
+      mealLogs: [],
+      ricePortion: index === 1 ? '½ cup cooked rice (75 g)' : null,
+    }));
+    let finishHistory!: () => void;
+    let finishMeals!: () => void;
+    let finishGroceries!: () => void;
+    const historyGate = new Promise<void>((resolve) => {
+      finishHistory = resolve;
+    });
+    const mealsGate = new Promise<void>((resolve) => {
+      finishMeals = resolve;
+    });
+    const groceryGate = new Promise<void>((resolve) => {
+      finishGroceries = resolve;
+    });
+    let mealReads = 0;
+    let groceryReads = 0;
+    const errors: string[] = [];
+    page.on('pageerror', (error) => errors.push(error.message));
+    await page.route('**/api/user/meals/current', (route) =>
+      route.fulfill({
+        json: {
+          success: true,
+          data: meals,
+          meta: {
+            cycle,
+            generationStatus: 'COMPLETED',
+            planSnapshot: {
+              dailyCalorieTarget: 1500,
+              dailyMacroTargets: { [today]: { calories: 1500, proteinG: 75, carbsG: 180, fatG: 54 } },
+            },
+          },
+        },
+      })
+    );
+    await page.route('**/api/user/meals/history*', async (route) => {
+      await historyGate;
+      await route.fulfill({ json: { success: true, data: [] } });
+    });
+    await page.route('**/api/user/meals/workspace', async (route) => {
+      mealReads++;
+      await mealsGate;
+      await route.fulfill({
+        json: {
+          success: true,
+          data: meals,
+          meta: {
+            cycles: { current: cycle, upcoming: null },
+            generationStatus: { current: 'COMPLETED', upcoming: null },
+            pendingReview: null,
+          },
+        },
+      });
+    });
+    await page.route('**/api/user/grocery/workspace', async (route) => {
+      groceryReads++;
+      await groceryGate;
+      await route.fulfill({
+        json: {
+          success: true,
+          data: {
+            current: {
+              scope: 'CURRENT',
+              cycle: { ...cycle, deadlineOutcome: 'COMPLETE', incompleteAcknowledgedAt: null, shoppingStartedAt: null },
+              groceryList: {
+                id: 'preload-list',
+                weekLabel: 'Current',
+                generatedAt: `${today}T00:00:00Z`,
+                groceryItems: [
+                  {
+                    id: 'rice',
+                    ingredientName: 'Preloaded rice',
+                    category: 'Grains',
+                    isChecked: false,
+                    quantity: 75,
+                    unit: 'g',
+                    sourceMealCount: 1,
+                    isPantryStaple: false,
+                  },
+                ],
+              },
+              coverage: { clearedSlotCount: 3, expectedSlotCount: 3, unresolvedSlotCount: 0 },
+              actionability: {
+                canCheckItems: true,
+                canExportPdf: true,
+                isFinal: true,
+                isIncomplete: false,
+                quantitiesMayIncrease: false,
+                requiresIncompleteAcknowledgment: false,
+                message: 'Ready for shopping.',
+              },
+            },
+            upcoming: null,
+          },
+        },
+      });
+    });
+    await page.goto('/dashboard');
+    await expect(page.getByText(meals[0].mealName, { exact: true })).toBeVisible();
+    // Dashboard is usable, but an essential history read is still pending.
+    await page.waitForTimeout(1_200);
+    expect(mealReads).toBe(0);
+    expect(groceryReads).toBe(0);
+    finishHistory();
+    await expect.poll(() => mealReads).toBe(1);
+    expect(groceryReads).toBe(0);
+    finishMeals();
+    await expect.poll(() => groceryReads).toBe(1);
+    // Navigate during the grocery preload: the mounted page must adopt that request.
+    await page.getByRole('link', { name: 'Groceries', exact: true }).filter({ visible: true }).first().click();
+    await expect(page).toHaveURL(/\/grocery$/);
+    finishGroceries();
+    await expect(page.getByText('Preloaded rice', { exact: true })).toBeVisible();
+    expect(groceryReads).toBe(1);
+    await page.getByRole('link', { name: 'Meals', exact: true }).filter({ visible: true }).first().click();
+    await expect(page).toHaveURL(/\/meals$/);
+    for (const meal of meals) await expect(page.getByText(meal.mealName, { exact: true })).toBeVisible();
+    await expect(page.getByText('+ ½ cup cooked rice (75 g)', { exact: true })).toBeVisible();
+    await expect.poll(() => mealReads).toBe(2); // Cached data renders; the page still revalidates.
+    expect(errors).toEqual([]);
+  });
   test(`dashboard and weekly plan agree after a failed workspace read and retry at ${width}px`, async ({ page }) => {
     await page.setViewportSize({ width, height: 900 });
     await fixtureSession(page, true);

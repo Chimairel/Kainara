@@ -63,8 +63,10 @@ export interface GroceryWorkspace {
   upcoming: GroceryCycleProjection | null;
 }
 
-export async function fetchGroceryWorkspace(): Promise<GroceryWorkspace> {
-  const response = await api.get<{ success: boolean; data: GroceryWorkspace }>('/user/grocery/workspace');
+export async function fetchGroceryWorkspace(signal?: AbortSignal): Promise<GroceryWorkspace> {
+  const response = signal
+    ? await api.get<{ success: boolean; data: GroceryWorkspace }>('/user/grocery/workspace', { signal })
+    : await api.get<{ success: boolean; data: GroceryWorkspace }>('/user/grocery/workspace');
   if (!response.data?.success || !response.data.data) {
     throw new Error('Could not load the current and next grocery cycles.');
   }

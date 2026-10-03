@@ -30,7 +30,6 @@ export function readSessionResource<T>(
 
   if (Date.now() - entry.cachedAt > maxAgeMs) {
     entries.delete(key);
-    if (!pending.has(key)) generations.delete(key);
     return null;
   }
 
@@ -38,11 +37,7 @@ export function readSessionResource<T>(
 }
 
 /** Check freshness without evicting a snapshot still useful during revalidation. */
-export function isSessionResourceRecent(
-  ownerId: string | undefined,
-  resource: string,
-  maxAgeMs: number
-): boolean {
+export function isSessionResourceRecent(ownerId: string | undefined, resource: string, maxAgeMs: number): boolean {
   if (!ownerId) return false;
   const entry = entries.get(cacheKey(ownerId, resource));
   return Boolean(entry && Date.now() - entry.cachedAt <= maxAgeMs);
@@ -63,7 +58,6 @@ function setEntry<T>(key: string, value: T): void {
   if (entries.size > MAX_ENTRIES) {
     const oldest = entries.keys().next().value!;
     entries.delete(oldest);
-    if (!pending.has(oldest)) generations.delete(oldest);
   }
 }
 
@@ -79,15 +73,16 @@ export function refreshSessionResource<T>(
   if (existing) return existing;
   const generation = generations.get(key) ?? 0;
   const epoch = cacheEpoch;
-  const request = fetcher().then((value) => {
-    if (cacheEpoch === epoch && (generations.get(key) ?? 0) === generation) {
-      setEntry(key, value);
-    }
-    return value;
-  }).finally(() => {
-    if (pending.get(key) === request) pending.delete(key);
-    if (!pending.has(key) && !entries.has(key)) generations.delete(key);
-  });
+  const request = fetcher()
+    .then((value) => {
+      if (cacheEpoch === epoch && (generations.get(key) ?? 0) === generation) {
+        setEntry(key, value);
+      }
+      return value;
+    })
+    .finally(() => {
+      if (pending.get(key) === request) pending.delete(key);
+    });
   pending.set(key, request);
   return request;
 }
@@ -95,11 +90,10 @@ export function refreshSessionResource<T>(
 export function invalidateSessionResource(ownerId: string | undefined, resource: string): void {
   if (!ownerId) return;
   const key = cacheKey(ownerId, resource);
-  const hadPending = pending.has(key);
   entries.delete(key);
   pending.delete(key);
-  if (hadPending) generations.set(key, (generations.get(key) ?? 0) + 1);
-  else generations.delete(key);
+  // Keep the revision even after another invalidation: an older orphaned read can still finish.
+  generations.set(key, (generations.get(key) ?? 0) + 1);
 }
 
 export function clearSessionResourceCache(): void {

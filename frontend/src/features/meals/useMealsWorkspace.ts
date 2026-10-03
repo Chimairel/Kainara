@@ -20,10 +20,11 @@ import type {
 } from './meals-workspace.types';
 import { useMealHistory } from './useMealHistory';
 import { useMealLibrary } from './useMealLibrary';
+import { MEALS_WORKSPACE_RESOURCE, refreshMealsWorkspace } from './meal-workspace-resource';
 
 export type { MealHistoryLog, SwapOption } from './meals-workspace.types';
 
-const planResource = 'user-meals-workspace';
+const planResource = MEALS_WORKSPACE_RESOURCE;
 export function useMealsWorkspace(initialOptions?: { initialDateKey?: string | null }) {
   const replanRequest = useRef<string | null>(null);
   const regenerationInFlight = useRef(false);
@@ -64,6 +65,13 @@ export function useMealsWorkspace(initialOptions?: { initialDateKey?: string | n
   const [isRetryingMissing, setIsRetryingMissing] = useState(false);
   const [selectedPlanDateKey, setSelectedPlanDateKey] = useState<string | null>(initialOptions?.initialDateKey ?? null);
   const currentPlanRequestInFlight = useRef(false);
+  const activePlanOwner = useRef(ownerId);
+  useEffect(() => {
+    activePlanOwner.current = ownerId;
+    return () => {
+      activePlanOwner.current = undefined;
+    };
+  }, [ownerId]);
   useEffect(() => {
     if (!ownerId) return;
     let active = true;
@@ -138,20 +146,16 @@ export function useMealsWorkspace(initialOptions?: { initialDateKey?: string | n
     if (currentPlanRequestInFlight.current) return;
     currentPlanRequestInFlight.current = true;
     try {
-      const res = await api.get('/user/meals/workspace');
-      if (!res.data?.success || !Array.isArray(res.data.data)) {
-        throw new Error('Invalid meal workspace response.');
-      }
+      await refreshMealsWorkspace(ownerId);
+      if (activePlanOwner.current !== ownerId) return;
+      // A mutation or live update may have invalidated the read while it was in flight.
+      const snapshot = readSessionResource<CurrentPlanSnapshot>(ownerId, currentPlanResource);
+      if (!snapshot) throw new Error('The meal plan changed while loading. Please retry loading.');
       setError(null);
       setClinicalEvidenceRequired(false);
-      applyCurrentPlan({
-        meals: res.data.data,
-        pendingReview: res.data.meta?.pendingReview ?? null,
-        awaitingGeneration: res.data.meta?.awaitingGeneration ?? { current: 0, upcoming: 0 },
-        generationStatus: res.data.meta?.generationStatus ?? { current: null, upcoming: null },
-        cycles: res.data.meta?.cycles ?? null,
-      });
+      applyCurrentPlan(snapshot);
     } catch (err: unknown) {
+      if (activePlanOwner.current !== ownerId) return;
       if (axios.isAxiosError(err) && err.response?.data?.errorCode === 'CLINICAL_EVIDENCE_REQUIRED') {
         setClinicalEvidenceRequired(true);
         setMeals([]);
@@ -171,7 +175,7 @@ export function useMealsWorkspace(initialOptions?: { initialDateKey?: string | n
       setError(getApiErrorMessage(err, 'Failed to fetch weekly plan menu.'));
     } finally {
       currentPlanRequestInFlight.current = false;
-      setIsLoading(false);
+      if (activePlanOwner.current === ownerId) setIsLoading(false);
     }
   }, [applyCurrentPlan, ownerId, currentPlanResource]);
 

@@ -34,6 +34,7 @@ import { invalidateSessionResource, readSessionResource, writeSessionResource } 
 import { useMealGenerationProgress } from '@/features/meals/useMealGenerationProgress';
 import { cachedClinicalProfileStatus, refreshClinicalProfileStatus } from '@/lib/clinical-profile-status';
 import { cachedUserProfile, getRecentUserProfile } from '@/lib/user-profile-resource';
+import { useDashboardPreload } from '@/features/navigation/useDashboardPreload';
 
 interface CurrentPlanSnapshot {
   meals: MealPlan[];
@@ -63,6 +64,7 @@ export default function DashboardPage() {
   const [currentMeals, setCurrentMeals] = useState<MealPlan[]>(cachedPlan?.meals ?? []);
   const [selectedDayOffset, setSelectedDayOffset] = useState(0); // Index of selected date in uniqueDates
   const [isLoading, setIsLoading] = useState(!cachedPlan);
+  const [initialReadsOwner, setInitialReadsOwner] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const {
     progress: generationProgress,
@@ -206,9 +208,9 @@ export default function DashboardPage() {
   }, [ownerId]);
 
   // Hydration is persisted by the backend using the Manila business day.
-  useEffect(() => {
+  const fetchWater = useCallback(async () => {
     if (!user) return;
-    void api
+    await api
       .get('/user/water/today')
       .then((response) => {
         if (response.data?.success) {
@@ -345,9 +347,11 @@ export default function DashboardPage() {
 
   useEffect(() => {
     if (user) {
-      fetchCurrentPlan();
-      fetchProfile();
-      fetchOutsideMealLogs();
+      let active = true;
+      setInitialReadsOwner(null);
+      void Promise.all([fetchCurrentPlan(), fetchProfile(), fetchOutsideMealLogs(), fetchWater()]).then(() => {
+        if (active && ownerId) setInitialReadsOwner(ownerId);
+      });
 
       let activeDateKey = getManilaDateKey();
       const refreshForDateRollover = () => {
@@ -369,12 +373,26 @@ export default function DashboardPage() {
       document.addEventListener('visibilitychange', refreshOnVisibility);
 
       return () => {
+        active = false;
         window.clearInterval(rolloverInterval);
         window.removeEventListener('focus', refreshOnFocus);
         document.removeEventListener('visibilitychange', refreshOnVisibility);
       };
     }
-  }, [user, fetchCurrentPlan, fetchProfile, fetchOutsideMealLogs]);
+  }, [user, ownerId, fetchCurrentPlan, fetchProfile, fetchOutsideMealLogs, fetchWater]);
+
+  useDashboardPreload(
+    ownerId,
+    Boolean(user?.role === 'USER' && user.onboardingDone && user.tosAccepted && user.reportAcknowledged),
+    initialReadsOwner === ownerId &&
+      !currentPlanRequestInFlight.current &&
+      !isLoading &&
+      !isGenerating &&
+      !error &&
+      !clinicalEvidenceRequired &&
+      !isReportPending &&
+      profileReviewStatus === 'ready'
+  );
 
   // Handles scheduled meal checkoff toggles
   const handleMealStatusToggle = async (mealPlanId: string, newStatus: 'DONE' | 'SKIPPED' | 'PENDING') => {
