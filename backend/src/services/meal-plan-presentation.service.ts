@@ -44,6 +44,10 @@ export const rawRecipeImageSelect = {
   sourceVideoUrl: true,
 } as const;
 
+export const mealExplanationIngredientInclude = {
+  foodItem: { select: { source: true } },
+} as const;
+
 function planImage(
   meal: {
     libraryMeal?: (MealImageRecord & { id: string }) | null;
@@ -134,7 +138,8 @@ export function serializeActionableMeal<
     status: string;
     aiConfidenceFlag: string;
     calories: number;
-    ingredients: Array<{ dataSource: string; foodItemId: string | null }>;
+    candidateProvenance?: string | null;
+    ingredients: Array<{ dataSource: string; foodItemId: string | null; foodItem?: { source: string } | null }>;
     servingComponents?: Array<{ componentType: string; quantityG: number | null }>;
   },
 >(
@@ -157,6 +162,7 @@ export function serializeActionableMeal<
     toPublicVerifier(libraryMeal?.verifiedByNutritionist);
   return {
     ...publicMeal,
+    ingredients: meal.ingredients.map(({ foodItem: _foodItem, ...ingredient }) => ingredient),
     ricePortion: rice?.quantityG ? ricePortionLabel(rice.quantityG) : null,
     image: planImage({ libraryMeal, sourceRawRecipeCandidate, selectionEvidence }, libraryImages),
     cookingLink: planCookingLink({ libraryMeal, sourceRawRecipeCandidate, selectionEvidence }, libraryCookingLinks),
@@ -168,6 +174,7 @@ export function serializeActionableMeal<
       calories: meal.calories,
       verifierName: verifier?.name,
       ingredients: meal.ingredients,
+      candidateProvenance: meal.candidateProvenance,
       selectionEvidence,
     }),
   };

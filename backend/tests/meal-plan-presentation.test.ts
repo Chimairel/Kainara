@@ -35,3 +35,25 @@ test('meal presentation preserves the stored reviewer and strips its internal re
   assert.equal(result.verifier?.name, 'Stored reviewer');
   assert.ok(!('nutritionist' in result));
 });
+
+test('the public serializer uses linked composition metadata without exposing the internal food relation', () => {
+  const result = serializeActionableMeal({
+    ...meal,
+    candidateProvenance: 'RAW_RECIPE_CORPUS',
+    ingredients: [
+      {
+        dataSource: 'SOURCE_RECIPE',
+        foodItemId: 'fixture-food',
+        foodItem: { source: 'FNRI' },
+        ingredientName: 'Egg',
+        quantity: 50,
+        unit: 'g',
+      },
+    ],
+  });
+  assert.ok(result.explanation.bullets.some((line) => /1 FNRI out of 1/.test(line)));
+  assert.equal(result.explanation.nutritionEvidence, 'SOURCE_RECIPE');
+  assert.deepEqual(result.ingredients, [
+    { dataSource: 'SOURCE_RECIPE', foodItemId: 'fixture-food', ingredientName: 'Egg', quantity: 50, unit: 'g' },
+  ]);
+});

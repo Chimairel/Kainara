@@ -21,6 +21,7 @@ import {
   ShieldCheck,
   Camera,
   ExternalLink,
+  Info,
 } from 'lucide-react';
 import type { LucideProps } from 'lucide-react';
 import { getApiErrorMessage } from '@/lib/api-error';
@@ -309,7 +310,7 @@ export default function MealDetailPage() {
                   return (
                     <li key={bullet} className="flex items-start justify-between gap-2">
                       <div className="flex items-start gap-2 min-w-0">
-                        <Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-brand-green" />
+                        <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-brand-muted" />
                         <span className="break-words">{bullet}</span>
                       </div>
                       {isReviewerBullet && (
@@ -399,9 +400,7 @@ export default function MealDetailPage() {
               <span className="text-2xl shrink-0">{meal.cookingLink?.kind === 'PANLASANG_RECIPE' ? '📖' : '📺'}</span>
               <div>
                 <h5 className="text-xs font-bold text-brand-text leading-tight">Need cooking help?</h5>
-                <p className="text-[10px] text-brand-muted mt-1 leading-snug">
-                  {cooking.description}
-                </p>
+                <p className="text-[10px] text-brand-muted mt-1 leading-snug">{cooking.description}</p>
               </div>
             </div>
             <a
@@ -486,8 +485,7 @@ export default function MealDetailPage() {
                   <p className="text-[10px] text-brand-muted/80">{meal.image.attribution.modifications}</p>
                 )}
                 <p className="border-t border-brand-border/60 pt-2 text-[10px] italic text-brand-muted/70">
-                  Nutritional and clinical accuracy is determined solely by FNRI-linked recipe data, not by photograph
-                  contents.
+                  Photos illustrate the dish. Nutrition sources and review status are listed under “Why this meal?”
                 </p>
               </div>
             </section>

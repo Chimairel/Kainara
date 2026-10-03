@@ -21,6 +21,7 @@ import { MealPlanCycleService } from '@/services/meal-plan-cycle.service';
 import {
   pendingPreviewWithImages,
   rawRecipeImageSelect,
+  mealExplanationIngredientInclude,
   serializeActionableMeal,
 } from '@/services/meal-plan-presentation.service';
 import { MealSwapService } from '@/services/meal-swap.service';
@@ -78,7 +79,7 @@ export class MealsController {
           userId,
         },
         include: {
-          ingredients: true,
+          ingredients: { include: mealExplanationIngredientInclude },
           servingComponents: { where: { componentType: 'COOKED_RICE' } },
           libraryMeal: {
             include: {
@@ -248,7 +249,7 @@ export class MealsController {
           planGroupId: cycle.id,
         },
         include: {
-          ingredients: true,
+          ingredients: { include: mealExplanationIngredientInclude },
           servingComponents: { where: { componentType: 'COOKED_RICE' } },
           libraryMeal: {
             include: {
@@ -362,7 +363,7 @@ export class MealsController {
       const rowsPromise = prisma.mealPlan.findMany({
         where: { userId, planGroupId: { in: cycleIds } },
         include: {
-          ingredients: true,
+          ingredients: { include: mealExplanationIngredientInclude },
           servingComponents: { where: { componentType: 'COOKED_RICE' } },
           libraryMeal: {
             include: {
@@ -561,7 +562,7 @@ export class MealsController {
       const meal = await prisma.mealPlan.findFirst({
         where: getOwnedMealPlanWhere(userId, id),
         include: {
-          ingredients: true,
+          ingredients: { include: mealExplanationIngredientInclude },
           servingComponents: { where: { componentType: 'COOKED_RICE' } },
           libraryMeal: true,
           sourceRawRecipeCandidate: { select: rawRecipeImageSelect },

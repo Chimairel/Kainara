@@ -238,9 +238,9 @@ export interface PublicMealImage {
 }
 
 export interface MealExplanation {
-  source: 'VERIFIED_LIBRARY' | 'AI_GENERATED' | 'LEGACY_UNKNOWN';
+  source: 'VERIFIED_LIBRARY' | 'RAW_RECIPE_CORPUS' | 'AI_GENERATED' | 'LEGACY_UNKNOWN';
   reviewState: 'NUTRITIONIST_VERIFIED' | 'APPROVED' | 'PENDING_REVIEW';
-  nutritionEvidence: 'ALL_FNRI' | 'MIXED' | 'ESTIMATED' | 'UNAVAILABLE';
+  nutritionEvidence: 'ALL_FNRI' | 'ALL_USDA' | 'SOURCE_RECIPE' | 'MIXED' | 'ESTIMATED' | 'UNAVAILABLE';
   calorieFit: 'WITHIN_TARGET' | 'OUTSIDE_TARGET' | 'UNAVAILABLE';
   bullets: string[];
   limitation?: string;

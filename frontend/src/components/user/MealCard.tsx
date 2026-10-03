@@ -642,7 +642,7 @@ export default function MealCard({
                       </div>
                     )}
 
-                    {/* Why this meal? - Clinical Matching Intelligence */}
+                    {/* Saved selection and nutrition evidence */}
                     {explanation && (
                       <section
                         className="rounded-2xl sm:rounded-3xl border border-brand-border/80 bg-brand-bgAlt/50 dark:bg-white/[0.02] p-4 sm:p-5 shadow-xs"
@@ -658,7 +658,7 @@ export default function MealCard({
                                 Why this meal?
                               </h4>
                               <p className="text-[10px] text-brand-muted">
-                                Algorithmic &amp; clinical matching rationale
+                                Selection, nutrition sources and review status
                               </p>
                             </div>
                           </div>
@@ -678,7 +678,7 @@ export default function MealCard({
                                 className="flex items-start justify-between gap-2.5 rounded-xl bg-brand-surface/80 dark:bg-black/30 border border-brand-border/50 p-2.5 text-xs text-brand-text/90 leading-relaxed shadow-2xs"
                               >
                                 <div className="flex items-start gap-2.5 min-w-0">
-                                  <Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-brand-green stroke-[3]" />
+                                  <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-brand-muted" />
                                   <span className="break-words">{bullet}</span>
                                 </div>
                                 {isReviewerBullet && (
