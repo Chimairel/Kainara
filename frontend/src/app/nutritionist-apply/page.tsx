@@ -12,6 +12,7 @@ import api from '@/lib/axios';
 import { ApplicationSidebar } from '@/features/nutritionist-application/ApplicationSidebar';
 import { ApplicationStatusCard } from '@/features/nutritionist-application/ApplicationStatusCard';
 import { ApplicationTrackingForm } from '@/features/nutritionist-application/ApplicationTrackingForm';
+import ApplicantEmailVerification from '@/features/nutritionist-application/ApplicantEmailVerification';
 import { ApplicationWizard } from '@/features/nutritionist-application/ApplicationWizard';
 import { initialApplicationForm, type PublicApplication } from '@/features/nutritionist-application/model';
 import {
@@ -26,6 +27,7 @@ import {
 export default function NutritionistApplyPage() {
   const [mode, setMode] = useState<'apply' | 'track'>('apply');
   const [step, setStep] = useState(0);
+  const [emailProof, setEmailProof] = useState<{ email: string; proof: string } | null>(null);
   const [form, setForm] = useState(initialApplicationForm);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [error, setError] = useState<string | null>(null);
@@ -86,6 +88,7 @@ export default function NutritionistApplyPage() {
   );
 
   const setField = (field: keyof NutritionistApplicationForm, value: string | boolean) => {
+    if (field === 'email') setEmailProof(null);
     setForm((current) => ({ ...current, [field]: value }));
     setErrors((current) => ({ ...current, [field]: '' }));
   };
@@ -96,6 +99,10 @@ export default function NutritionistApplyPage() {
     if (result && !result.success) {
       setErrors(issuesToFields(result.error));
       setError('Please correct the highlighted fields before continuing.');
+      return;
+    }
+    if (step === 0 && emailProof?.email !== form.email.trim().toLowerCase()) {
+      setError('Verify your email address before continuing.');
       return;
     }
     if (step === 1 && licenseError) {
@@ -111,6 +118,12 @@ export default function NutritionistApplyPage() {
   };
 
   const submitApplication = async () => {
+    if (isLoading) return;
+    if (!emailProof || emailProof.email !== form.email.trim().toLowerCase()) {
+      setError('Verify your email address first.');
+      setStep(0);
+      return;
+    }
     setIsLoading(true);
     setError(null);
     try {
@@ -120,6 +133,7 @@ export default function NutritionistApplyPage() {
       const response = await api.post('/nutritionist-applications', {
         fullName: form.fullName.trim(),
         email: form.email.trim().toLowerCase(),
+        emailVerificationProof: emailProof.proof,
         phoneNumber: form.phoneNumber.trim(),
         officialHeadshot: form.officialHeadshot || undefined,
         photoRecentAttested: form.photoRecentAttested,
@@ -136,6 +150,13 @@ export default function NutritionistApplyPage() {
       setTrackingReference(response.data.data.referenceCode);
       setTrackingEmail(response.data.data.email);
     } catch (caught) {
+      if (
+        (caught as { response?: { data?: { errorCode?: string } } }).response?.data?.errorCode ===
+        'APPLICANT_EMAIL_UNVERIFIED'
+      ) {
+        setEmailProof(null);
+        setStep(0);
+      }
       setError(getApplicationError(caught, 'Application could not be submitted.'));
     } finally {
       setIsLoading(false);
@@ -231,6 +252,13 @@ export default function NutritionistApplyPage() {
                 <ApplicationWizard
                   error={error}
                   errors={{ ...errors, ...(licenseError ? { prcLicenseNumber: licenseError } : {}) }}
+                  emailVerification={
+                    <ApplicantEmailVerification
+                      email={form.email}
+                      verified={emailProof?.email === form.email.trim().toLowerCase()}
+                      onVerified={(email, proof) => setEmailProof({ email, proof })}
+                    />
+                  }
                   licenseHint={licenseHint}
                   form={form}
                   isLoading={isLoading}

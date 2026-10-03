@@ -29,15 +29,11 @@ import { z } from 'zod';
 import { WaterService } from '@/services/water.service';
 import { UserPrivacyService } from '@/services/user-privacy.service';
 import { getActivePlanningLocationOptions } from '@/services/food-consumption-context.service';
-import multer from 'multer';
+import { healthDetailsSchema } from '@/validation/health-details.schemas';
 import { ClinicalEvidenceService } from '@/services/clinical-evidence.service';
 import { ClinicalProfileReviewService } from '@/services/clinical-profile-review.service';
 import { requireMembership } from '@/middleware/membership';
-import {
-  clinicalDocumentIdParamsSchema,
-  clinicalDocumentMetadataSchema,
-  diabetesContextSchema,
-} from '@/validation/clinical-evidence.schemas';
+import { clinicalDocumentIdParamsSchema, diabetesContextSchema } from '@/validation/clinical-evidence.schemas';
 import { asyncHandler } from '@/middleware/errorHandler';
 
 const router = Router();
@@ -51,37 +47,6 @@ const accountDeletionSchema = z
   .refine((value) => Boolean(value.password || value.googleIdToken), {
     message: 'Reauthenticate with your password or Google account.',
   });
-const clinicalDocumentUpload = multer({
-  storage: multer.memoryStorage(),
-  limits: { files: 1, fileSize: 8 * 1024 * 1024 },
-  fileFilter: (_req, file, callback) =>
-    callback(null, ['application/pdf', 'image/jpeg', 'image/png'].includes(file.mimetype)),
-});
-const uploadClinicalDocument = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
-  if (!req.file) return res.status(400).json({ success: false, error: 'Choose a PDF, JPEG, or PNG document.' });
-  let facts: unknown = [];
-  try {
-    facts = req.body.facts ? JSON.parse(req.body.facts) : [];
-  } catch {
-    return res.status(400).json({ success: false, error: 'Clinical facts must be valid JSON.' });
-  }
-  const parsed = clinicalDocumentMetadataSchema.safeParse({
-    area: req.body.area,
-    documentType: req.body.documentType,
-    issuedAt: req.body.issuedAt || null,
-    issuerName: req.body.issuerName || null,
-    supersedesDocumentId: req.body.supersedesDocumentId || null,
-    facts,
-    consentAccepted: req.body.consentAccepted === 'true',
-  });
-  if (!parsed.success)
-    return res
-      .status(400)
-      .json({ success: false, error: parsed.error.issues[0]?.message ?? 'Invalid document details.' });
-  const data = await ClinicalEvidenceService.upload({ userId: req.user!.userId, file: req.file, ...parsed.data });
-  return res.status(201).json({ success: true, data });
-});
-
 /**
  * Route: GET /api/user/profile
  * Description: Retrieves full profile and clinical state details.
@@ -178,6 +143,14 @@ router.get(
   })
 );
 router.put(
+  '/onboarding/clinical-evidence/details',
+  requireVerifiedUser,
+  validateZodBody(healthDetailsSchema),
+  asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+    res.json({ success: true, data: await ClinicalEvidenceService.saveHealthDetails(req.user!.userId, req.body) });
+  })
+);
+router.put(
   '/onboarding/clinical-evidence/diabetes-context',
   requireVerifiedUser,
   validateZodBody(diabetesContextSchema),
@@ -188,8 +161,9 @@ router.put(
 router.post(
   '/onboarding/clinical-evidence/documents',
   requireVerifiedUser,
-  clinicalDocumentUpload.single('document'),
-  uploadClinicalDocument
+  (_req: AuthenticatedRequest, res: Response) => {
+    res.status(410).json({ success: false, error: 'Use the health details form instead of uploading documents.' });
+  }
 );
 router.get(
   '/onboarding/clinical-evidence/documents/:id/file',
@@ -294,6 +268,14 @@ router.get(
   })
 );
 router.put(
+  '/clinical-evidence/details',
+  requireReportEligible,
+  validateZodBody(healthDetailsSchema),
+  asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+    res.json({ success: true, data: await ClinicalEvidenceService.saveHealthDetails(req.user!.userId, req.body) });
+  })
+);
+router.put(
   '/clinical-evidence/diabetes-context',
   requireReportEligible,
   validateZodBody(diabetesContextSchema),
@@ -301,12 +283,9 @@ router.put(
     res.json({ success: true, data: await ClinicalEvidenceService.saveDiabetesContext(req.user!.userId, req.body) });
   })
 );
-router.post(
-  '/clinical-evidence/documents',
-  requireReportEligible,
-  clinicalDocumentUpload.single('document'),
-  uploadClinicalDocument
-);
+router.post('/clinical-evidence/documents', requireReportEligible, (_req: AuthenticatedRequest, res: Response) => {
+  res.status(410).json({ success: false, error: 'Use the health details form instead of uploading documents.' });
+});
 router.get(
   '/clinical-evidence/documents/:id/file',
   requireReportEligible,

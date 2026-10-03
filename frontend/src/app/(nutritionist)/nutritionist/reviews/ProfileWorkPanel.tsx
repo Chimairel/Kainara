@@ -45,6 +45,10 @@ type DocumentItem = {
   latestReview: { decision: string; rationale: string } | null;
 };
 type ProfileReview = {
+  profileRevision: number;
+  scopeKey: string;
+  claim?: { active: boolean; mine: boolean; expiresAt: string | null };
+  healthDetails?: Array<{ area: string; responses: Record<string, unknown> }>;
   needsClarification: boolean;
   previousReview: { notes: string | null } | null;
   requirements: Array<{ area: string; state: string; message: string }>;
@@ -239,7 +243,22 @@ export default function ProfileWorkPanel() {
       setExpanded(false);
     }
   };
-  const decideProfile = async (outcome: 'APPROVED' | 'DECLINED' | 'REQUEST_DOCUMENT') => {
+  const claimProfile = async (release = false) => {
+    if (!detail || busy) return;
+    setBusy(true);
+    setError(null);
+    try {
+      const response = await api.post(
+        `/nutritionist/profile-reviews/${detail.userId}/${release ? 'release' : 'claim'}`
+      );
+      setDetail((current) => (current ? { ...current, profileReview: response.data.data } : current));
+    } catch (cause) {
+      setError(getApiErrorMessage(cause, 'Could not claim this profile.'));
+    } finally {
+      setBusy(false);
+    }
+  };
+  const decideProfile = async (outcome: 'APPROVED' | 'DECLINED' | 'REQUEST_DETAILS') => {
     if (!detail?.profileReview) return;
     setBusy(true);
     setError(null);
@@ -247,7 +266,9 @@ export default function ProfileWorkPanel() {
       await api.post(`/nutritionist/profile-reviews/${detail.userId}/decision`, {
         decision: outcome,
         notes,
-        ...(outcome === 'REQUEST_DOCUMENT' ? { area: requestArea } : {}),
+        profileRevision: detail.profileReview.profileRevision,
+        scopeKey: detail.profileReview.scopeKey,
+        ...(outcome === 'REQUEST_DETAILS' ? { area: requestArea } : {}),
       });
       setNotes('');
       await afterDecision();
@@ -617,6 +638,34 @@ export default function ProfileWorkPanel() {
                 {detail.profileReview && (
                   <section className="space-y-3 rounded-xl border border-brand-border bg-brand-surface p-4 text-xs">
                     <h3 className="font-bold text-brand-text">Profile decision</h3>
+                    <p className="text-brand-muted">
+                      {detail.profileReview.claim?.mine
+                        ? 'Claimed by you for 30 minutes.'
+                        : detail.profileReview.claim?.active
+                          ? 'Claimed by another nutritionist.'
+                          : 'Claim this profile to record a decision.'}
+                    </p>
+                    <Button
+                      disabled={busy || (!!detail.profileReview.claim?.active && !detail.profileReview.claim?.mine)}
+                      onClick={() => void claimProfile(!!detail.profileReview?.claim?.mine)}
+                    >
+                      {detail.profileReview.claim?.mine ? 'Release profile' : 'Claim profile'}
+                    </Button>
+                    <h4 className="font-bold">User-provided health details</h4>
+                    {detail.profileReview.healthDetails?.map((item) => (
+                      <div key={item.area} className="rounded-lg border border-brand-border p-3">
+                        <p className="font-semibold">{item.area.replace(/_/g, ' ')}</p>
+                        {['conditionDetails', 'medications', 'dietaryAdvice', 'recentSymptoms', 'measurements'].map(
+                          (field) =>
+                            typeof item.responses[field] === 'string' && item.responses[field] ? (
+                              <p key={field} className="mt-2 whitespace-pre-wrap">
+                                <strong>{field.replace(/([A-Z])/g, ' $1')}: </strong>
+                                {String(item.responses[field])}
+                              </p>
+                            ) : null
+                        )}
+                      </div>
+                    ))}
                     {detail.profileReview.previousReview?.notes && (
                       <p className="text-brand-muted">Previous review: {detail.profileReview.previousReview.notes}</p>
                     )}
@@ -627,7 +676,7 @@ export default function ProfileWorkPanel() {
                     ))}
                     {detail.availableAreas.length > 0 && (
                       <label className="block">
-                        Document request area
+                        Details request area
                         <select
                           value={requestArea}
                           onChange={(event) => setRequestArea(event.target.value)}
@@ -652,14 +701,16 @@ export default function ProfileWorkPanel() {
                     </label>
                     <div className="flex flex-wrap gap-2">
                       <Button
-                        disabled={busy || !!profileBlocked || notes.trim().length < 10}
+                        disabled={
+                          busy || !detail.profileReview.claim?.mine || !!profileBlocked || notes.trim().length < 10
+                        }
                         onClick={() => void decideProfile('APPROVED')}
                       >
                         Confirm for planning
                       </Button>
                       <Button
                         variant="secondary"
-                        disabled={busy || notes.trim().length < 10}
+                        disabled={busy || !detail.profileReview.claim?.mine || notes.trim().length < 10}
                         onClick={() => void decideProfile('DECLINED')}
                       >
                         Needs correction
@@ -667,10 +718,10 @@ export default function ProfileWorkPanel() {
                       {!!detail.availableAreas.length && (
                         <Button
                           variant="secondary"
-                          disabled={busy || notes.trim().length < 10}
-                          onClick={() => void decideProfile('REQUEST_DOCUMENT')}
+                          disabled={busy || !detail.profileReview.claim?.mine || notes.trim().length < 10}
+                          onClick={() => void decideProfile('REQUEST_DETAILS')}
                         >
-                          Request document
+                          Request details
                         </Button>
                       )}
                     </div>

@@ -1,0 +1,14 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "rootDir": ".",
+    "declaration": false,
+    "declarationMap": false,
+    "sourceMap": false
+  },
+  "include": [
+    "scripts/nutritionist-application-flow-acceptance.ts",
+    "scripts/professional-profile-workflow-acceptance.ts"
+  ]
+}

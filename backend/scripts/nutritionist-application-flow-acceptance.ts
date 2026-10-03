@@ -22,6 +22,8 @@ async function main() {
   const { AuthService } = await import('../src/services/auth.service');
   const { NutritionistApplicationService: applications } =
     await import('../src/services/nutritionist-application.service');
+  const { ApplicationEmailVerificationService: inbox } =
+    await import('../src/services/application-email-verification.service');
   const { NotificationService } = await import('../src/services/notification.service');
   const server = app.listen(0, '127.0.0.1');
   await new Promise<void>((resolve) => server.once('listening', resolve));
@@ -62,8 +64,17 @@ async function main() {
     throw new Error(`Captured ${type} email did not arrive.`);
   }
 
-  function applicationPayload(email: string, license: string) {
+  async function verifyInbox(address: string) {
+    const email = address.toLowerCase();
+    // Isolated fixture clock advance; the guarded database is never the shared Neon target.
+    await prisma.applicationEmailVerification.updateMany({ where: { email }, data: { sentAt: new Date(0) } });
+    await inbox.send(email);
+    const mail = await waitForMail('EMAIL_VERIFICATION', email);
+    return (await inbox.verify(email, mail.token)).proof;
+  }
+  async function applicationPayload(email: string, license: string) {
     return {
+      emailVerificationProof: await verifyInbox(email),
       fullName: 'Synthetic Nutritionist',
       email,
       phoneNumber: '+63 917 555 0123',
@@ -117,7 +128,7 @@ async function main() {
     const submitted = await request(
       '/nutritionist-applications',
       'POST',
-      applicationPayload(applicantEmail, `PRC-${stamp}`)
+      await applicationPayload(applicantEmail, `PRC-${stamp}`)
     );
     assert.equal(submitted.status, 201, JSON.stringify(submitted.data));
     assert.equal(submitted.data.data.status, 'SUBMITTED');
@@ -143,7 +154,8 @@ async function main() {
     const reference = submitted.data.data.referenceCode as string;
     const application = await prisma.nutritionistApplication.findUniqueOrThrow({ where: { referenceCode: reference } });
     assert.equal(
-      (await request('/nutritionist-applications', 'POST', applicationPayload(applicantEmail, `PRC-${stamp}`))).status,
+      (await request('/nutritionist-applications', 'POST', await applicationPayload(applicantEmail, `PRC-${stamp}`)))
+        .status,
       400
     );
     assert.equal(
@@ -332,7 +344,7 @@ async function main() {
     const rejected = await request(
       '/nutritionist-applications',
       'POST',
-      applicationPayload(rejectedEmail, `REJECT-${stamp}`)
+      await applicationPayload(rejectedEmail, `REJECT-${stamp}`)
     );
     assert.equal(rejected.status, 201, JSON.stringify(rejected.data));
     const rejectedApplication = await prisma.nutritionistApplication.findUniqueOrThrow({
@@ -358,7 +370,7 @@ async function main() {
     await waitForMail('NUTRITIONIST_APPLICATION_REJECTED', rejectedEmail);
 
     assert.deepEqual(await applications.checkLicenseAvailability(`REJECT-${stamp}`), { available: true });
-    const retryPayload = applicationPayload(rejectedEmail.toUpperCase(), `reject-${stamp}`);
+    const retryPayload = await applicationPayload(rejectedEmail.toUpperCase(), `reject-${stamp}`);
     const concurrent = await Promise.allSettled([applications.submit(retryPayload), applications.submit(retryPayload)]);
     assert.equal(
       concurrent.filter((result) => result.status === 'fulfilled').length,
@@ -370,6 +382,7 @@ async function main() {
     });
     assert.notEqual(second.referenceCode, rejectedApplication.referenceCode);
     await applications.decide(admin.id, second.id, { decision: 'reject', reason: 'Synthetic second rejection' });
+    retryPayload.emailVerificationProof = await verifyInbox(rejectedEmail);
     const third = await applications.submit(retryPayload);
     const thirdRecord = await prisma.nutritionistApplication.findUniqueOrThrow({
       where: { referenceCode: third.referenceCode },
@@ -386,12 +399,19 @@ async function main() {
       where: { id: rejectedApplication.id },
       data: { createdAt: new Date(Date.now() - 31 * 86400000) },
     });
+    retryPayload.emailVerificationProof = await verifyInbox(rejectedEmail);
     const outsideWindow = await applications.submit(retryPayload);
     assert.equal(outsideWindow.status, 'SUBMITTED', 'Limit is rolling, not a lifetime block.');
     // Even direct writers cannot create a second active identity after the migration.
     await assert.rejects(
       prisma.nutritionistApplication.create({
-        data: { ...second, id: `duplicate-${stamp}`, referenceCode: `NM-DUP-${stamp}`, status: 'SUBMITTED' },
+        data: {
+          ...second,
+          availableCallSlots: retryPayload.availableCallSlots,
+          id: `duplicate-${stamp}`,
+          referenceCode: `NM-DUP-${stamp}`,
+          status: 'SUBMITTED',
+        },
       }),
       /Unique constraint/
     );
@@ -400,7 +420,7 @@ async function main() {
     const raceSubmitted = await request(
       '/nutritionist-applications',
       'POST',
-      applicationPayload(raceEmail, `RACE-${stamp}`)
+      await applicationPayload(raceEmail, `RACE-${stamp}`)
     );
     assert.equal(raceSubmitted.status, 201);
     const raceApplication = await prisma.nutritionistApplication.findUniqueOrThrow({

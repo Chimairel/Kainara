@@ -26,7 +26,7 @@ export default function PersonalizationTabs({ activeTab }: PersonalizationTabsPr
     },
     {
       id: 'clinical-evidence',
-      label: 'Clinical documents',
+      label: 'Health details',
       shortLabel: 'Documents',
       href: '/profile/clinical-evidence',
       icon: ClipboardList,

@@ -174,10 +174,23 @@ router.patch(
       const data = await NutritionistApplicationService.confirmCall(req.user!.userId, req.params.id);
       return res.json({ success: true, data });
     } catch (error: unknown) {
-      return res.status(400).json({ success: false, error: sanitizeErrorMessage(error, 'Failed to confirm verification call.') });
+      return res
+        .status(400)
+        .json({ success: false, error: sanitizeErrorMessage(error, 'Failed to confirm verification call.') });
     }
   }
 );
+
+router.post('/nutritionist-applications/:id/resend-call-email', async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const data = await NutritionistApplicationService.sendCallReminder(req.user!.userId, req.params.id);
+    return res.json({ success: true, data });
+  } catch (error: unknown) {
+    return res
+      .status(400)
+      .json({ success: false, error: sanitizeErrorMessage(error, 'Failed to send meeting reminder.') });
+  }
+});
 
 router.post('/nutritionist-applications/:id/resend-invitation', async (req: AuthenticatedRequest, res: Response) => {
   try {

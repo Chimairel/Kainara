@@ -328,7 +328,10 @@ function CallScheduler({
                 scheduledCallAt: new Date(`${draft.scheduledCallAt}:00+08:00`).toISOString(),
                 meetingUrl: draft.meetingUrl,
               }),
-            'Verification call scheduled and meeting invite emailed to applicant.'
+            (result) =>
+              result.data?.data?.callEmailSent
+                ? 'Call scheduled. Meeting email sent to the applicant.'
+                : 'Call scheduled, but email delivery was not confirmed. Check email configuration, then resend the meeting email.'
           )
         }
         disabled={!draft.scheduledCallAt || !draft.meetingUrl}
@@ -366,6 +369,31 @@ function ScheduledCall({
         )}
       </div>
       <div className="mt-4 flex flex-wrap gap-3">
+        {!application.callVerifiedAt && (
+          <>
+            <p className="w-full text-xs text-brand-muted">
+              {application.callEmailSentAt
+                ? `Meeting email sent ${formatPhilippineDateTime(application.callEmailSentAt)}.`
+                : 'Meeting email delivery needs attention.'}
+            </p>
+            <Button
+              variant="secondary"
+              disabled={workingId === application.id}
+              onClick={() =>
+                void onAction(
+                  application.id,
+                  () => api.post(`/admin/nutritionist-applications/${application.id}/resend-call-email`),
+                  (result) =>
+                    result.data?.data?.callEmailSent
+                      ? 'Meeting reminder email sent.'
+                      : 'Email delivery was not confirmed. Check email configuration and retry shortly.'
+                )
+              }
+            >
+              Resend meeting email
+            </Button>
+          </>
+        )}
         {!application.callVerifiedAt && (
           <Button
             variant="secondary"

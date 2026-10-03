@@ -315,7 +315,21 @@ export default function CaseReviewWorkspace({
 
                     {detailData.clinicalEvidence && detailData.clinicalEvidence.requirements.length > 0 && (
                       <div className="space-y-2 border-t border-brand-border pt-3 text-xs">
-                        <h4 className="font-bold text-brand-text">Reviewed clinical context</h4>
+                        <h4 className="font-bold text-brand-text">Health details reviewed for the profile</h4>
+                        {detailData.clinicalEvidence.healthDetails?.map((item) => (
+                          <div key={item.area} className="rounded-lg border border-brand-border p-2">
+                            <p className="font-bold">{item.area.replaceAll('_', ' ')} · user-provided</p>
+                            {['conditionDetails', 'medications', 'dietaryAdvice', 'recentSymptoms', 'measurements'].map(
+                              (field) =>
+                                typeof item.responses[field] === 'string' && item.responses[field] ? (
+                                  <p key={field} className="mt-1 whitespace-pre-wrap">
+                                    <strong>{field.replace(/([A-Z])/g, ' $1')}: </strong>
+                                    {String(item.responses[field])}
+                                  </p>
+                                ) : null
+                            )}
+                          </div>
+                        ))}
                         {detailData.clinicalEvidence.requirements.map((item) => (
                           <p key={item.area} className={item.state === 'READY' ? 'text-brand-green' : 'text-amber-500'}>
                             {item.area.replaceAll('_', ' ')}: {item.message}

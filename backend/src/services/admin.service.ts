@@ -64,7 +64,7 @@ export class AdminService {
         totalVerified: true,
         canLeadReview: true,
         verifiedAt: true,
-        user: { select: { id: true, name: true, email: true, image: true } },
+        user: { select: { id: true, name: true, email: true, image: true, isSuspended: true, suspensionReason: true } },
       },
       orderBy: [{ isVerified: 'asc' }, { userId: 'asc' }],
     });
@@ -151,7 +151,24 @@ export class AdminService {
         },
         select: { id: true, isSuspended: true, suspendedAt: true, suspensionReason: true },
       });
-      if (suspended) await tx.session.deleteMany({ where: { userId: targetUserId } });
+      if (suspended) {
+        await tx.session.deleteMany({ where: { userId: targetUserId } });
+        const professional = await tx.nutritionistProfile.findUnique({
+          where: { userId: targetUserId },
+          select: { id: true },
+        });
+        if (professional) {
+          const data = { claimedByNutritionistId: null, claimedAt: null };
+          await tx.clinicalProfileReview.updateMany({ where: { claimedByNutritionistId: professional.id }, data });
+          await tx.clinicalDocument.updateMany({ where: { claimedByNutritionistId: professional.id }, data });
+          await tx.mealPlan.updateMany({ where: { claimedByNutritionistId: professional.id }, data });
+          await tx.mealBaseVerification.updateMany({ where: { claimedByNutritionistId: professional.id }, data });
+          await tx.outsideMealReview.updateMany({
+            where: { claimedByNutritionistId: professional.id, status: 'CLAIMED' },
+            data: { ...data, claimedRevision: null, status: 'PENDING' },
+          });
+        }
+      }
       await tx.auditEvent.create({
         data: {
           actorUserId: adminUserId,

@@ -6,7 +6,7 @@ export interface ClinicalProfileStatus {
   required: boolean;
   approved: boolean;
   declarationRequired?: boolean;
-  documentRequest?: { area: string | null; notes: string | null } | null;
+  detailsRequest?: { area: string | null; notes: string | null } | null;
 }
 
 // A profile safety change gets a different cache key, so an earlier approval

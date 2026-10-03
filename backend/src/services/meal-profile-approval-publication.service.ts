@@ -21,25 +21,41 @@ export async function publishProfileMatchedMealApproval(input: {
     include: {
       ingredients: true,
       clinicalEvidence: { select: { id: true } },
-      cycle: { select: { profileAdaptationState: true, snapshot: { select: { profileRevision: true, safetyRevision: true } } } },
+      cycle: {
+        select: { profileAdaptationState: true, snapshot: { select: { profileRevision: true, safetyRevision: true } } },
+      },
       sourceRawRecipeCandidate: { select: { sourceName: true } },
       user: {
-        include: { userProfile: true, healthConditions: true, allergies: true, safetyProfileEntries: true },
+        include: {
+          userProfile: true,
+          healthConditions: true,
+          allergies: true,
+          safetyProfileEntries: true,
+          clinicalContextResponses: true,
+        },
       },
     },
   });
   if (
-    !plan || plan.status !== MealPlanStatus.APPROVED || plan.requiresSafetyRevalidation ||
+    !plan ||
+    plan.status !== MealPlanStatus.APPROVED ||
+    plan.requiresSafetyRevalidation ||
     plan.nutritionistId !== input.nutritionistProfileId ||
     plan.safetyPolicyVersion !== MEAL_PLAN_SAFETY_POLICY_VERSION ||
     plan.user.userProfile?.revision !== input.approvedProfileRevision ||
     plan.cycle.profileAdaptationState !== 'CURRENT' ||
     plan.cycle.snapshot?.profileRevision !== plan.user.userProfile?.revision ||
     plan.cycle.snapshot?.safetyRevision !== plan.user.userProfile?.safetyRevision ||
-    plan.highRiskReviewRequired || plan.clinicalEvidence.length > 0 ||
-    !plan.baseRecipeSignature || plan.composedServingSignature !== plan.baseRecipeSignature ||
+    plan.highRiskReviewRequired ||
+    plan.clinicalEvidence.length > 0 ||
+    plan.user.clinicalContextResponses.some(
+      (item) => (item.responses as Record<string, unknown>)?.formVersion === 'HEALTH_DETAILS_V1'
+    ) ||
+    !plan.baseRecipeSignature ||
+    plan.composedServingSignature !== plan.baseRecipeSignature ||
     plan.sourceRawRecipeCandidate?.sourceName === 'USER_OBSERVED'
-  ) return false;
+  )
+    return false;
 
   const scope = mealApprovalSafetyScope({
     conditions: plan.user.healthConditions.map((item) => item.condition),
@@ -48,10 +64,19 @@ export async function publishProfileMatchedMealApproval(input: {
     otherAllergies: plan.user.userProfile.otherAllergies,
     safetyEntries: plan.user.safetyProfileEntries,
   });
-  if (!scope.supported || !plan.ingredients.length || !plan.ingredients.every((ingredient) =>
-    typeof ingredient.quantity === 'number' && Number.isFinite(ingredient.quantity) && ingredient.quantity > 0 &&
-    typeof ingredient.unit === 'string' && ingredient.unit.trim().length > 0
-  )) return false;
+  if (
+    !scope.supported ||
+    !plan.ingredients.length ||
+    !plan.ingredients.every(
+      (ingredient) =>
+        typeof ingredient.quantity === 'number' &&
+        Number.isFinite(ingredient.quantity) &&
+        ingredient.quantity > 0 &&
+        typeof ingredient.unit === 'string' &&
+        ingredient.unit.trim().length > 0
+    )
+  )
+    return false;
   const restrictions = adaptUserSafetyRestrictions({
     safetyEntries: plan.user.safetyProfileEntries,
     healthConditions: plan.user.healthConditions.map((item) => item.condition),
@@ -63,10 +88,12 @@ export async function publishProfileMatchedMealApproval(input: {
   // nutrient-limit context to another user.
   if (restrictions.conditions.some((condition) => condition !== 'NONE')) return false;
 
-  const allergyFacts = classifyMealIngredients(plan.ingredients.map((ingredient) => ({
-    name: ingredient.ingredientName,
-    category: ingredient.category,
-  })));
+  const allergyFacts = classifyMealIngredients(
+    plan.ingredients.map((ingredient) => ({
+      name: ingredient.ingredientName,
+      category: ingredient.category,
+    }))
+  );
   const requestedAllergies = new Set(restrictions.allergies);
   if (requestedAllergies.size && allergyFacts.status !== 'COMPLETE') return false;
   if (allergyFacts.detectedAllergens.some((allergen) => requestedAllergies.has(allergen))) return false;
@@ -77,17 +104,23 @@ export async function publishProfileMatchedMealApproval(input: {
     const original = plan.libraryMealId
       ? await prisma.mealLibrary.findUnique({ where: { id: plan.libraryMealId } })
       : null;
-    if (!original || original.status !== MealLibraryStatus.APPROVED ||
-        original.recipeSignature !== plan.baseRecipeSignature) return false;
+    if (
+      !original ||
+      original.status !== MealLibraryStatus.APPROVED ||
+      original.recipeSignature !== plan.baseRecipeSignature
+    )
+      return false;
   }
 
-  const { meal } = await createOrReuseLibraryDraftFromApprovedPlan(
-    input.nutritionistProfileId,
-    input.mealPlanId,
-    { attachPlan: false }
-  );
-  if (!meal.recipeSignature || meal.recipeSignature !== plan.baseRecipeSignature ||
-      meal.status !== MealLibraryStatus.APPROVED) return false;
+  const { meal } = await createOrReuseLibraryDraftFromApprovedPlan(input.nutritionistProfileId, input.mealPlanId, {
+    attachPlan: false,
+  });
+  if (
+    !meal.recipeSignature ||
+    meal.recipeSignature !== plan.baseRecipeSignature ||
+    meal.status !== MealLibraryStatus.APPROVED
+  )
+    return false;
   const approval = await prisma.mealLibraryProfileApproval.upsert({
     where: {
       mealLibraryId_safetyScopeKey_evidenceRevision: {
@@ -114,9 +147,13 @@ export async function publishProfileMatchedMealApproval(input: {
     },
     update: {},
   });
-  if (approval.flaggedAt || approval.reviewDueAt <= new Date() ||
-      approval.recipeSignature !== meal.recipeSignature ||
-      approval.evidenceRevision !== meal.safetyEvidenceRevision) return false;
+  if (
+    approval.flaggedAt ||
+    approval.reviewDueAt <= new Date() ||
+    approval.recipeSignature !== meal.recipeSignature ||
+    approval.evidenceRevision !== meal.safetyEvidenceRevision
+  )
+    return false;
   const linked = await prisma.mealPlan.updateMany({
     where: {
       id: input.mealPlanId,

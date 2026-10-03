@@ -1,3 +1,4 @@
+import AccessControl from './AccessControl';
 import { BadgeCheck } from 'lucide-react';
 import Card from '@/components/ui/Card';
 import Avatar from '@/components/ui/Avatar';
@@ -7,10 +8,12 @@ export function ProfessionalGrid({
   nutritionists,
   workingId,
   onToggleLead,
+  onChangeAccess,
 }: {
   nutritionists: NutritionistRow[];
   workingId?: string | null;
   onToggleLead?: (nutritionist: NutritionistRow) => void;
+  onChangeAccess?: (nutritionist: NutritionistRow, suspended: boolean, reason: string) => Promise<void>;
 }) {
   if (!nutritionists.length) {
     return <Card className="p-10 text-center text-sm text-brand-muted">No activated nutritionists yet.</Card>;
@@ -54,7 +57,7 @@ export function ProfessionalGrid({
             </div>
             <button
               type="button"
-              disabled={!onToggleLead || workingId === nutritionist.id}
+              disabled={!onToggleLead || workingId === nutritionist.id || nutritionist.user.isSuspended}
               onClick={() => onToggleLead?.(nutritionist)}
               className={`rounded-full px-3 py-1.5 text-xs font-bold ${
                 nutritionist.canLeadReview
@@ -65,6 +68,13 @@ export function ProfessionalGrid({
               {workingId === nutritionist.id ? 'Saving…' : nutritionist.canLeadReview ? 'Lead enabled' : 'Enable Lead'}
             </button>
           </div>
+          {onChangeAccess && (
+            <AccessControl
+              professional={nutritionist}
+              busy={workingId === nutritionist.id}
+              onChange={(suspended, reason) => onChangeAccess(nutritionist, suspended, reason)}
+            />
+          )}
         </Card>
       ))}
     </div>

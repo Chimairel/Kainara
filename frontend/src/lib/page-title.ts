@@ -17,7 +17,7 @@ const pageTitles: Record<string, string> = {
   '/profile/health': 'Health & goals',
   '/profile/planning': 'Food & planning',
   '/profile/security': 'Security & privacy',
-  '/profile/clinical-evidence': 'Clinical documents',
+  '/profile/clinical-evidence': 'Health details',
   '/profile/nutrition-report': 'Nutrition guidance & report',
   '/nutrition-report': 'Nutrition guidance & report',
   '/nutritionist-apply': 'Nutritionist application',

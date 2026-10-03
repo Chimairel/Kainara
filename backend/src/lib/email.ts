@@ -183,7 +183,12 @@ function renderKainaraEmailLayout(options: EmailLayoutOptions): string {
 /**
  * Sends a 6-digit OTP verification email to the user's inbox.
  */
-export async function sendVerificationEmail(to: string, otp: string, userName: string): Promise<void> {
+export async function sendVerificationEmail(
+  to: string,
+  otp: string,
+  userName: string,
+  purpose: 'account' | 'application' = 'account'
+): Promise<void> {
   if (await captureTestMail({ type: 'EMAIL_VERIFICATION', to, token: otp })) return;
   const subject = `KAINARA — Verify Your Email Address`;
   const contentHtml = `
@@ -204,10 +209,13 @@ export async function sendVerificationEmail(to: string, otp: string, userName: s
 
   const html = renderKainaraEmailLayout({
     title: 'Verify Your Email Address',
-    kicker: 'Account Verification',
+    kicker: purpose === 'application' ? 'Nutritionist Application' : 'Account Verification',
     recipientName: userName,
     contentHtml,
-    footerNote: 'If you did not create a KAINARA account, you can safely disregard this email.',
+    footerNote:
+      purpose === 'application'
+        ? 'If you did not apply to join KAINARA, you can safely disregard this email.'
+        : 'If you did not create a KAINARA account, you can safely disregard this email.',
   });
 
   try {

@@ -23,6 +23,8 @@ import {
 import { evaluateConditionNutrientRule } from '@/domain/condition-rule-evaluation.policy';
 import { adaptUserSafetyRestrictions } from '@/domain/structured-restriction.adapter';
 import { assertConditionPolicyEvidenceComplete } from '@/domain/condition-policy-evidence.policy';
+import { ClinicalProfileReviewService } from './clinical-profile-review.service';
+import { lockUserProfile } from './profile-revision.service';
 import { ClinicalEvidenceService } from './clinical-evidence.service';
 
 const STANDARD_AUDIT_MS = 365 * 24 * 60 * 60 * 1000;
@@ -93,8 +95,9 @@ export class ConditionClearanceService {
     const clinicalDocuments = input.userScopeId
       ? await ClinicalEvidenceService.getReadyDocumentsForCondition(input.userScopeId, input.condition)
       : [];
-    if (conditionRequiresUserScopedClearance(input.condition) && clinicalDocuments.length === 0) {
-      throw new Error('A current RND-reviewed clinical document is required for this user-scoped clearance.');
+    if (conditionRequiresUserScopedClearance(input.condition)) {
+      await ClinicalEvidenceService.assertReadyForMealPlanning(input.userScopeId!);
+      await ClinicalProfileReviewService.assertReadyForMealPlanning(input.userScopeId!);
     }
     const meal = await prisma.mealLibrary.findUnique({
       where: { id: input.mealLibraryId },
@@ -141,27 +144,41 @@ export class ConditionClearanceService {
     const now = new Date();
     return prisma.$transaction(
       async (tx) => {
+        if (input.userScopeId && conditionRequiresUserScopedClearance(input.condition)) {
+          await lockUserProfile(tx, input.userScopeId);
+          if (!(await ClinicalProfileReviewService.hasCurrentApproval(input.userScopeId, tx)))
+            throw new Error('This profile changed and needs a new nutritionist confirmation.');
+        }
+        const healthDetails = input.userScopeId
+          ? await tx.clinicalContextResponse.findMany({ where: { userId: input.userScopeId } })
+          : [];
         const currentMeal = await tx.mealLibrary.findUnique({ where: { id: meal.id }, select: { status: true } });
         if (currentMeal?.status !== 'APPROVED') throw new Error('This meal was flagged during review.');
-        const scopedUser = input.userScopeId ? await tx.user.findUnique({
-          where: { id: input.userScopeId },
-          include: { userProfile: true, healthConditions: true, allergies: true, safetyProfileEntries: true },
-        }) : null;
+        const scopedUser = input.userScopeId
+          ? await tx.user.findUnique({
+              where: { id: input.userScopeId },
+              include: { userProfile: true, healthConditions: true, allergies: true, safetyProfileEntries: true },
+            })
+          : null;
         if (input.userScopeId && !scopedUser) throw new Error('User-scoped case not found.');
-        const caseRestrictions = scopedUser ? adaptUserSafetyRestrictions({
-          safetyEntries: scopedUser.safetyProfileEntries,
-          healthConditions: scopedUser.healthConditions.map((item) => item.condition),
-          allergies: scopedUser.allergies.map((item) => item.allergen),
-          otherConditions: scopedUser.userProfile?.otherConditions,
-          otherAllergies: scopedUser.userProfile?.otherAllergies,
-        }) : null;
+        const caseRestrictions = scopedUser
+          ? adaptUserSafetyRestrictions({
+              safetyEntries: scopedUser.safetyProfileEntries,
+              healthConditions: scopedUser.healthConditions.map((item) => item.condition),
+              allergies: scopedUser.allergies.map((item) => item.allergen),
+              otherConditions: scopedUser.userProfile?.otherConditions,
+              otherAllergies: scopedUser.userProfile?.otherAllergies,
+            })
+          : null;
         // This is display context at review time, not an extra clinical clearance.
-        const recordedCaseScope = caseRestrictions ? {
-          conditions: caseRestrictions.conditions,
-          allergens: caseRestrictions.allergies,
-          customConditions: caseRestrictions.customConditions,
-          customFoodRestrictions: caseRestrictions.customFoodRestrictions,
-        } : null;
+        const recordedCaseScope = caseRestrictions
+          ? {
+              conditions: caseRestrictions.conditions,
+              allergens: caseRestrictions.allergies,
+              customConditions: caseRestrictions.customConditions,
+              customFoodRestrictions: caseRestrictions.customFoodRestrictions,
+            }
+          : null;
         const clearance =
           existing ??
           (await tx.mealConditionClearance.create({
@@ -175,7 +192,17 @@ export class ConditionClearanceService {
               assuranceTier: tier,
               provenance: ConditionClearanceProvenance.MANUAL_REVIEW,
               state: ConditionClearanceState.REVIEW_DUE,
-              evidenceSnapshot: { ...evidenceSnapshot(meal), clinicalDocuments, recordedCaseScope },
+              evidenceSnapshot: {
+                ...evidenceSnapshot(meal),
+                clinicalDocuments,
+                healthDetails: healthDetails.map((item) => ({
+                  area: item.area,
+                  responses: item.responses,
+                  revision: item.revision,
+                  provenance: 'USER_REPORTED',
+                })),
+                recordedCaseScope,
+              },
             },
             include: { decisions: true },
           }));
@@ -198,7 +225,17 @@ export class ConditionClearanceService {
             stage,
             decision: input.decision,
             rationale: input.rationale?.trim() || null,
-            evidenceSnapshot: { ...evidenceSnapshot(meal), clinicalDocuments, recordedCaseScope },
+            evidenceSnapshot: {
+              ...evidenceSnapshot(meal),
+              clinicalDocuments,
+              healthDetails: healthDetails.map((item) => ({
+                area: item.area,
+                responses: item.responses,
+                revision: item.revision,
+                provenance: 'USER_REPORTED',
+              })),
+              recordedCaseScope,
+            },
           },
         });
 

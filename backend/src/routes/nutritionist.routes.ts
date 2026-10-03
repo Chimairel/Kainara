@@ -61,13 +61,15 @@ const profileReviewParams = z.object({ userId: z.string().min(1) }).strict();
 const profileWorkDocumentParams = z.object({ userId: z.string().min(1), id: z.string().min(1) }).strict();
 const profileReviewDecision = z
   .object({
-    decision: z.enum(['APPROVED', 'DECLINED', 'REQUEST_DOCUMENT']),
+    decision: z.enum(['APPROVED', 'DECLINED', 'REQUEST_DETAILS']),
     notes: z.string().trim().min(10).max(2000),
+    profileRevision: z.number().int().nonnegative(),
+    scopeKey: z.string().min(1).max(10000),
     area: z.nativeEnum(ClinicalEvidenceArea).optional(),
   })
   .strict()
   .superRefine((value, ctx) => {
-    if (value.decision === 'REQUEST_DOCUMENT' && !value.area) {
+    if (value.decision === 'REQUEST_DETAILS' && !value.area) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         path: ['area'],
@@ -93,7 +95,10 @@ router.get(
   '/profile-work/:userId',
   validateZodRequest({ params: profileReviewParams }),
   asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
-    res.json({ success: true, data: await NutritionistProfileWorkService.detail(req.params.userId) });
+    res.json({
+      success: true,
+      data: await NutritionistProfileWorkService.detail(req.params.userId, req.nutritionistProfileId!),
+    });
   })
 );
 router.get(
@@ -149,7 +154,30 @@ router.get(
   '/profile-reviews/:userId',
   validateZodRequest({ params: profileReviewParams }),
   asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
-    res.json({ success: true, data: await ClinicalProfileReviewService.detail(req.params.userId) });
+    res.json({
+      success: true,
+      data: await ClinicalProfileReviewService.detail(req.params.userId, req.nutritionistProfileId!),
+    });
+  })
+);
+router.post(
+  '/profile-reviews/:userId/claim',
+  validateZodRequest({ params: profileReviewParams }),
+  asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+    res.json({
+      success: true,
+      data: await ClinicalProfileReviewService.claim(req.nutritionistProfileId!, req.params.userId),
+    });
+  })
+);
+router.post(
+  '/profile-reviews/:userId/release',
+  validateZodRequest({ params: profileReviewParams }),
+  asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+    res.json({
+      success: true,
+      data: await ClinicalProfileReviewService.claim(req.nutritionistProfileId!, req.params.userId, true),
+    });
   })
 );
 router.post(
@@ -163,7 +191,8 @@ router.post(
         req.params.userId,
         req.body.decision,
         req.body.notes,
-        req.body.area
+        req.body.area,
+        { profileRevision: req.body.profileRevision, scopeKey: req.body.scopeKey }
       ),
     });
   })

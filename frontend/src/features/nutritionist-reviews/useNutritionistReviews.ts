@@ -48,6 +48,7 @@ export interface QueueItem {
 export interface DetailData {
   clinicalEvidence?: {
     policyVersion: string;
+    healthDetails?: Array<{ area: string; responses: Record<string, unknown>; revision: number }>;
     requirements: Array<{ area: string; state: string; message: string }>;
     documents: Array<{
       id: string;

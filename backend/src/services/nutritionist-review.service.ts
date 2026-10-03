@@ -1,6 +1,7 @@
+import { healthDetailsRequirements } from '@/domain/health-details.policy';
 import prisma from '@/lib/prisma';
 import { PLANNING_PROFILE_FIELDS, reportProfile, planningInputsMatch } from '@/domain/planning-report.policy';
-import { AIConfidenceFlag, ClinicalEvidenceArea, MealPlanStatus } from '@prisma/client';
+import { AIConfidenceFlag, MealPlanStatus } from '@prisma/client';
 import { approveMealPlan } from './nutritionist-approval.service';
 
 import { getNutritionistReviewableMealPlanWhere } from '@/domain/meal-actionability.policy';
@@ -21,50 +22,29 @@ import { isGeneratedBaseVerified } from './meal-base-verification.service';
 import { getNutritionistApprovedMeals } from './nutritionist-approved-meals.service';
 import { NutritionistReplacementService } from './nutritionist-replacement.service';
 
-import {
-  CLINICAL_EVIDENCE_REQUIREMENT_POLICY_VERSION,
-  evaluateClinicalEvidenceRequirements,
-  type DiabetesContext,
-} from '@/domain/clinical-evidence-requirement.policy';
+import { CLINICAL_EVIDENCE_REQUIREMENT_POLICY_VERSION } from '@/domain/clinical-evidence-requirement.policy';
 import { ClinicalEvidenceService } from './clinical-evidence.service';
 import { resolveMealPlanDispute } from './nutritionist-dispute.service';
 import { rejectMealPlan } from './nutritionist-rejection.service';
 
 async function reviewReadinessByUser(userIds: string[]) {
-  const [conditions, documents, contexts] = userIds.length
-    ? await Promise.all([
-        prisma.healthCondition.findMany({
-          where: { userId: { in: userIds } },
-          select: { userId: true, condition: true },
-        }),
-        prisma.clinicalDocument.findMany({
-          where: { userId: { in: userIds } },
-          select: {
-            userId: true,
-            id: true,
-            area: true,
-            status: true,
-            validUntil: true,
-            revision: true,
-            sha256: true,
-            createdAt: true,
-          },
-        }),
-        prisma.clinicalContextResponse.findMany({
-          where: { userId: { in: userIds }, area: ClinicalEvidenceArea.DIABETES },
-          select: { userId: true, responses: true },
-        }),
-      ])
-    : [[], [], []];
+  if (!userIds.length) return new Map<string, { ready: boolean; specific: boolean }>();
+  const users = await prisma.user.findMany({
+    where: { id: { in: userIds } },
+    include: {
+      userProfile: true,
+      healthConditions: true,
+      allergies: true,
+      clinicalContextResponses: true,
+    },
+  });
   return new Map(
-    userIds.map((userId) => [
-      userId,
-      evaluateClinicalEvidenceRequirements({
-        conditions: conditions.filter((item) => item.userId === userId).map((item) => item.condition),
-        documents: documents.filter((item) => item.userId === userId),
-        diabetesContext:
-          (contexts.find((item) => item.userId === userId)?.responses as DiabetesContext | undefined) ?? null,
-      }).every((requirement) => requirement.state === 'READY'),
+    users.map((user) => [
+      user.id,
+      {
+        ready: healthDetailsRequirements(user).every((item) => item.state === 'READY'),
+        specific: user.clinicalContextResponses.length > 0,
+      },
     ])
   );
 }
@@ -108,7 +88,7 @@ export class NutritionistReviewService {
     const work = new Set<string>();
     for (const plan of plans) {
       if (
-        readiness.get(plan.userId) === false ||
+        readiness.get(plan.userId)?.ready === false ||
         (plan.candidateProvenance === 'AI_FROM_SCRATCH' &&
           (!plan.baseRecipeSignature || !verifiedSignatures.has(plan.baseRecipeSignature)))
       )
@@ -116,7 +96,9 @@ export class NutritionistReviewService {
       const secondReview = plan.highRiskReviewRequired && plan.reviewApprovalCount === 1;
       if (secondReview && (!reviewer?.canLeadReview || plan.firstApprovedByNutritionistId === nutritionistProfileId))
         continue;
-      work.add(plan.reviewWorkKey ?? `PLAN:${plan.id}`);
+      work.add(
+        `${readiness.get(plan.userId)?.specific ? plan.userId + ':' : ''}${plan.reviewWorkKey ?? `PLAN:${plan.id}`}`
+      );
     }
     return work.size;
   }
@@ -175,14 +157,14 @@ export class NutritionistReviewService {
     );
     const clinicallyReadyMeals = pendingMeals.filter(
       (meal) =>
-        readinessByUser.get(meal.userId) !== false &&
+        readinessByUser.get(meal.userId)?.ready === true &&
         (meal.candidateProvenance !== 'AI_FROM_SCRATCH' ||
           (!!meal.baseRecipeSignature && verifiedSignatures.has(meal.baseRecipeSignature)))
     );
 
     const workCounts = new Map<string, number>();
     for (const meal of clinicallyReadyMeals) {
-      const key = meal.reviewWorkKey ?? `PLAN:${meal.id}`;
+      const key = `${readinessByUser.get(meal.userId)?.specific ? meal.userId + ':' : ''}${meal.reviewWorkKey ?? `PLAN:${meal.id}`}`;
       workCounts.set(key, (workCounts.get(key) ?? 0) + 1);
     }
     const visibleMeals = clinicallyReadyMeals.filter((meal) => {
@@ -215,7 +197,7 @@ export class NutritionistReviewService {
 
     const seenWork = new Set<string>();
     const coalesced = sorted.filter((meal) => {
-      const key = meal.reviewWorkKey ?? `PLAN:${meal.id}`;
+      const key = `${readinessByUser.get(meal.userId)?.specific ? meal.userId + ':' : ''}${meal.reviewWorkKey ?? `PLAN:${meal.id}`}`;
       if (seenWork.has(key)) return false;
       seenWork.add(key);
       return true;
@@ -644,6 +626,10 @@ export class NutritionistReviewService {
         policyVersion: CLINICAL_EVIDENCE_REQUIREMENT_POLICY_VERSION,
         requirements: clinicalRequirements,
         documents: clinicalDocuments,
+        healthDetails: await prisma.clinicalContextResponse.findMany({
+          where: { userId: updatedMealPlan.userId },
+          select: { area: true, responses: true, revision: true },
+        }),
       },
       highRiskReviewRequired: updatedMealPlan.highRiskReviewRequired,
       reviewApprovalCount: updatedMealPlan.reviewApprovalCount,

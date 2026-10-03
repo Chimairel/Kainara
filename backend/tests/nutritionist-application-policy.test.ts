@@ -11,6 +11,7 @@ import {
 
 const future = (days: number) => new Date(Date.now() + days * 86_400_000).toISOString();
 const validApplication = {
+  emailVerificationProof: 'x'.repeat(43),
   fullName: 'Maria Santos',
   email: 'Maria.Santos@example.com',
   phoneNumber: '+63 912 345 6789',
@@ -70,4 +71,9 @@ test('[TEST-070] rejections require a reason and invitation passwords use the ac
     nutritionistInvitationAcceptanceSchema.safeParse({ token: 'private-token', password: 'weakpass' }).success,
     false
   );
+});
+
+test('applications reject missing inbox proof even when the email format is valid', () => {
+  const withoutProof = { ...validApplication, emailVerificationProof: undefined };
+  assert.equal(nutritionistApplicationSchema.safeParse(withoutProof).success, false);
 });

@@ -174,6 +174,13 @@ export default function AdminNutritionistsPage() {
           <ProfessionalGrid
             nutritionists={verified}
             workingId={workingId}
+            onChangeAccess={(nutritionist, suspended, reason) =>
+              act(
+                nutritionist.id,
+                () => api.patch(`/admin/users/${nutritionist.user.id}/suspension`, { suspended, reason }),
+                suspended ? 'Nutritionist access revoked. Past reviews are preserved.' : 'Nutritionist access restored.'
+              )
+            }
             onToggleLead={(nutritionist) =>
               void act(
                 nutritionist.id,
@@ -231,7 +238,7 @@ function TabSelector({
           onClick={() => onChange(option)}
           className={`flex-1 rounded-xl px-4 py-3 text-sm font-bold ${tab === option ? 'bg-brand-accent text-[#07100d]' : 'text-brand-muted'}`}
         >
-          {option === 'applications' ? `Applications (${applicationCount})` : `Active professionals (${verifiedCount})`}
+          {option === 'applications' ? `Applications (${applicationCount})` : `Professionals (${verifiedCount})`}
         </button>
       ))}
     </div>

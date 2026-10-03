@@ -1,303 +1,227 @@
 'use client';
-
-import { useVisiblePolling } from '@/hooks/useVisiblePolling';
-
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import api from '@/lib/axios';
+import { useAuth } from '@/hooks/useAuth';
+import { invalidateSessionResource } from '@/lib/session-resource-cache';
+import { LIVE_UPDATE_EVENT } from '@/lib/live-events';
 import { getApiErrorMessage } from '@/lib/api-error';
 import OnboardingProgressSlider from '@/components/onboarding/OnboardingProgressSlider';
 import PersonalizationTabs from '@/components/user/PersonalizationTabs';
 
-type Requirement = {
-  area: string;
-  condition: string;
-  state: 'READY' | 'CONTEXT_REQUIRED' | 'DOCUMENT_REVIEW_REQUIRED';
-  required: boolean;
-  message: string;
-};
-type Document = {
-  id: string;
-  area: string;
-  documentType: string;
-  status: string;
-  originalFileName: string;
-  issuedAt: string | null;
-  validUntil: string | null;
-  createdAt: string;
-  latestReview: { rationale: string; decision: string } | null;
+type Answers = {
+  conditionDetails: string;
+  medications: string;
+  dietaryAdvice: string;
+  recentSymptoms: string;
+  measurements: string;
 };
 type Workspace = {
-  consentVersion: string;
-  requirements: Requirement[];
+  safetyRevision: number;
   availableAreas: string[];
-  documents: Document[];
-  contexts: Array<{ area: string; responses: { medicationRisk?: string; recurrentHypoglycemia?: boolean | 'UNSURE' } }>;
+  contexts: Array<{ area: string; responses: Partial<Answers> }>;
+  requirements: Array<{ area: string; state: string; message: string }>;
 };
-
-const documentTypes = [
-  ['MEDICAL_ABSTRACT', 'Medical abstract or diagnosis summary'],
-  ['LABORATORY_REPORT', 'Laboratory report'],
-  ['MEDICATION_LIST', 'Prescription or medication list'],
-  ['DIET_ORDER', 'Clinician diet order'],
-  ['DISCHARGE_INSTRUCTIONS', 'Hospital discharge instructions'],
-  ['ALLERGY_ACTION_PLAN', 'Allergy action plan'],
-  ['PRENATAL_SUMMARY', 'Prenatal summary'],
-  ['OTHER', 'Other relevant clinical record'],
-] as const;
-
-function friendly(value: string) {
-  return value.replace(/_/g, ' ').toLowerCase();
-}
-
+const empty: Answers = {
+  conditionDetails: '',
+  medications: '',
+  dietaryAdvice: '',
+  recentSymptoms: '',
+  measurements: '',
+};
+const fields: Array<[keyof Answers, string]> = [
+  ['conditionDetails', 'Condition or restriction details'],
+  ['medications', 'Current medication or supplements'],
+  ['dietaryAdvice', 'Dietary advice you have received'],
+  ['recentSymptoms', 'Recent symptoms or episodes'],
+  ['measurements', 'Recent measurements or lab values (optional)'],
+];
+const friendly = (value: string) => value.replace(/_/g, ' ').toLowerCase();
 export default function ClinicalEvidenceWorkspace({ mode = 'profile' }: { mode?: 'profile' | 'onboarding' }) {
+  const ownerId = useAuth().user?.userId;
   const router = useRouter();
-  const searchParams = useSearchParams();
+  const params = useSearchParams();
   const endpoint = mode === 'onboarding' ? '/user/onboarding/clinical-evidence' : '/user/clinical-evidence';
   const [workspace, setWorkspace] = useState<Workspace | null>(null);
-  const [documentRequest, setDocumentRequest] = useState<{ area: string | null; notes: string | null } | null>(null);
+  const [area, setArea] = useState('');
+  const [answers, setAnswers] = useState<Answers>(empty);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
-  const [area, setArea] = useState('');
-  const [documentType, setDocumentType] = useState<string>(documentTypes[0][0]);
-  const [file, setFile] = useState<File | null>(null);
-  const [issuedAt, setIssuedAt] = useState('');
-  const [issuerName, setIssuerName] = useState('');
-  const [supersedesDocumentId, setSupersedesDocumentId] = useState('');
-  const [consentAccepted, setConsentAccepted] = useState(false);
-  const [medicationRisk, setMedicationRisk] = useState('UNSURE');
-  const [recurrentHypoglycemia, setRecurrentHypoglycemia] = useState<'YES' | 'NO' | 'UNSURE'>('UNSURE');
-
-  const load = useCallback(async (silent = false) => {
-    try {
-      const [response, profileReview] = await Promise.all([
-        api.get(endpoint),
-        mode === 'profile' ? api.get('/user/clinical-profile-review/status').catch(() => null) : Promise.resolve(null),
-      ]);
-      const next = response.data.data as Workspace;
-      setWorkspace(next);
-      setDocumentRequest(profileReview?.data?.data?.documentRequest ?? null);
-      const available = next.availableAreas;
-      if (!area && available.length) {
-        const requestedArea = profileReview?.data?.data?.documentRequest?.area;
-        setArea(requestedArea && available.includes(requestedArea) ? requestedArea : available[0]);
+  const [request, setRequest] = useState<{ area: string | null; notes: string | null } | null>(null);
+  const load = useCallback(
+    async (signal?: AbortSignal) => {
+      try {
+        const [response, status] = await Promise.all([
+          api.get(endpoint, { signal }),
+          mode === 'profile' ? api.get('/user/clinical-profile-review/status', { signal }) : Promise.resolve(null),
+        ]);
+        if (signal?.aborted) return;
+        const next = response.data.data as Workspace;
+        setWorkspace(next);
+        setRequest(status?.data?.data?.detailsRequest ?? null);
+        const initialArea = status?.data?.data?.detailsRequest?.area;
+        const selected = next.availableAreas.includes(initialArea) ? initialArea : (next.availableAreas[0] ?? '');
+        setArea(selected);
+        setAnswers({ ...empty, ...next.contexts.find((item) => item.area === selected)?.responses });
+      } catch (cause) {
+        if (!signal?.aborted) setError(getApiErrorMessage(cause, 'Health details could not be loaded.'));
+      } finally {
+        if (!signal?.aborted) setLoading(false);
       }
-      if (!silent) {
-      const diabetes = next.contexts.find((item) => item.area === 'DIABETES')?.responses;
-      if (diabetes?.medicationRisk) setMedicationRisk(diabetes.medicationRisk);
-      if (diabetes?.recurrentHypoglycemia !== undefined)
-        setRecurrentHypoglycemia(diabetes.recurrentHypoglycemia === 'UNSURE' ? 'UNSURE' : diabetes.recurrentHypoglycemia ? 'YES' : 'NO');
-      }
-    } catch (cause) {
-      setError(getApiErrorMessage(cause, 'Clinical information could not be loaded.'));
-    } finally {
-      setLoading(false);
-    }
-  }, [area, endpoint, mode]);
-
-  useVisiblePolling(async () => { await load(true); }, { enabled: !busy, immediate: false, scopeKey: endpoint });
+    },
+    [endpoint, mode]
+  );
   useEffect(() => {
-    void load();
+    const controller = new AbortController();
+    void load(controller.signal);
+    return () => controller.abort();
   }, [load]);
-
-  const submitContext = async () => {
-    setBusy(true);
-    setError(null);
-    try {
-      await api.put(`${endpoint}/diabetes-context`, {
-        medicationRisk,
-        recurrentHypoglycemia: recurrentHypoglycemia === 'UNSURE' ? 'UNSURE' : recurrentHypoglycemia === 'YES',
-      });
-      setMessage('Diabetes context saved. Current meals will be checked again before use.');
-      await load();
-    } catch (cause) {
-      setError(getApiErrorMessage(cause, 'Diabetes context could not be saved.'));
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const submitDocument = async (event: React.FormEvent<HTMLFormElement>) => {
+  async function save(event: React.FormEvent) {
     event.preventDefault();
-    if (!file || !area || !consentAccepted) return;
+    if (!workspace || busy) return;
     setBusy(true);
     setError(null);
+    setMessage(null);
     try {
-      const form = new FormData();
-      form.append('document', file);
-      form.append('area', area);
-      form.append('documentType', documentType);
-      form.append('issuedAt', issuedAt);
-      form.append('issuerName', issuerName);
-      form.append('supersedesDocumentId', supersedesDocumentId);
-      form.append('facts', '[]');
-      form.append('consentAccepted', 'true');
-      await api.post(`${endpoint}/documents`, form, { headers: { 'Content-Type': 'multipart/form-data' } });
-      setMessage('Document uploaded privately. An RND will review whether it provides enough nutrition context.');
-      setFile(null);
-      setIssuedAt('');
-      setIssuerName('');
-      setSupersedesDocumentId('');
-      setConsentAccepted(false);
-      await load();
+      const response = await api.put(`${endpoint}/details`, {
+        area,
+        expectedSafetyRevision: workspace.safetyRevision,
+        ...Object.fromEntries(fields.map(([field]) => [field, answers[field].trim()])),
+      });
+      invalidateSessionResource(ownerId, `clinical-profile-status:${workspace.safetyRevision}`);
+      window.dispatchEvent(new Event(LIVE_UPDATE_EVENT));
+      setWorkspace(response.data.data);
+      setMessage('Health details saved for nutritionist review. These answers remain user-provided until reviewed.');
     } catch (cause) {
-      setError(getApiErrorMessage(cause, 'Document could not be uploaded.'));
+      setError(getApiErrorMessage(cause, 'Health details could not be saved.'));
     } finally {
       setBusy(false);
     }
-  };
-
-  const download = async (item: Document) => {
-    setError(null);
-    try {
-      const response = await api.get(`${endpoint}/documents/${item.id}/file`, { responseType: 'blob' });
-      const url = URL.createObjectURL(response.data);
-      const anchor = document.createElement('a');
-      anchor.href = url;
-      anchor.download = item.originalFileName;
-      anchor.click();
-      setTimeout(() => URL.revokeObjectURL(url), 30_000);
-    } catch (cause) {
-      setError(getApiErrorMessage(cause, 'Document could not be downloaded.'));
-    }
-  };
-
-  const withdraw = async (document: Document) => {
-    if (!window.confirm('Withdraw this document? Plans and clearances that relied on it will need revalidation.')) return;
-    setBusy(true);
-    setError(null);
-    try {
-      await api.delete(`${endpoint}/documents/${document.id}`);
-      setMessage('Document withdrawn. Affected meals were flagged for revalidation.');
-      await load();
-    } catch (cause) {
-      setError(getApiErrorMessage(cause, 'Document could not be withdrawn.'));
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const areas = workspace?.availableAreas ?? [];
+  }
   return (
-    <div className={mode === 'onboarding' ? 'mx-auto w-full max-w-2xl space-y-5 select-none my-auto' : 'portal-page max-w-4xl space-y-6'}>
+    <div
+      className={
+        mode === 'onboarding' ? 'mx-auto my-auto w-full max-w-2xl space-y-5' : 'portal-page max-w-4xl space-y-6'
+      }
+    >
       {mode === 'onboarding' ? (
         <>
           <OnboardingProgressSlider currentStep={3} totalSteps={6} />
           <Link
-            href={searchParams.get('from') === 'review' ? '/onboarding/conditions?from=review' : '/onboarding/conditions'}
-            className="text-xs font-semibold text-brand-muted hover:text-brand-text transition-colors flex items-center gap-1.5 w-fit"
+            href={params.get('from') === 'review' ? '/onboarding/conditions?from=review' : '/onboarding/conditions'}
+            className="text-sm text-brand-muted"
           >
-            ← Back to medical conditions
+            Back to medical conditions
           </Link>
         </>
       ) : (
         <PersonalizationTabs activeTab="clinical-evidence" />
       )}
       <header>
-        <p className="text-xs font-bold uppercase tracking-widest text-brand-green">
-          {mode === 'onboarding' ? 'Private health context' : 'Personalization'}
-        </p>
-        <h1 className="mt-2 font-display text-3xl font-black">{mode === 'onboarding' ? 'Supporting health documents (optional)' : 'Clinical documents'}</h1>
+        <h1 className="font-display text-3xl font-black">Health details</h1>
         <p className="mt-2 text-sm text-brand-muted">
-          {mode === 'onboarding' ? 'You may upload a relevant record now or continue without one. A nutritionist may ask for documentation before confirming your profile; some declared conditions already require reviewed clinical context before meal planning. ' : ''}
-          Share only the pages relevant to your nutrition plan. An RND checks whether they provide enough context;
-          KAINARA does not diagnose conditions or authenticate medical records.
+          Describe the conditions and restrictions already listed in your profile for a nutritionist to review. Enter
+          “none” or “unknown” where appropriate. No document upload is needed.
         </p>
       </header>
-      {documentRequest && <div role="status" className="rounded-xl border border-amber-500/40 bg-amber-500/10 p-4 text-sm"><p className="font-bold">A nutritionist requested a document{documentRequest.area ? ` for ${friendly(documentRequest.area)}` : ''}.</p>{documentRequest.notes && <p className="mt-1">{documentRequest.notes}</p>}<p className="mt-1 text-brand-muted">Your profile remains unconfirmed until the nutritionist reviews the requested context. If your condition entry is unclear, update Health & goals with its specific name as well.</p></div>}
-      {error && <p role="alert" className="rounded-xl border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-400">{error}</p>}
-      {message && <p role="status" className="rounded-xl border border-brand-green/30 bg-brand-green/10 p-3 text-sm text-brand-green">{message}</p>}
-      {loading ? <p className="text-sm text-brand-muted">Loading clinical information…</p> : (
+      {request && (
+        <div role="status" className="rounded-xl border border-amber-500 p-4">
+          <p className="font-bold">
+            A nutritionist requested more details{request.area ? ` for ${friendly(request.area)}` : ''}.
+          </p>
+          <p>{request.notes}</p>
+        </div>
+      )}
+      {error && (
+        <p role="alert" className="text-sm text-red-500">
+          {error}
+        </p>
+      )}
+      {message && (
+        <p role="status" className="text-sm text-brand-green">
+          {message}
+        </p>
+      )}
+      {loading ? (
+        <p>Loading health details…</p>
+      ) : (
         <>
-          <section className="rounded-2xl border border-brand-border bg-brand-surface p-5">
-            <h2 className="font-bold">What your plan needs</h2>
-            <div className="mt-3 space-y-2">
-              {workspace?.requirements.length ? workspace.requirements.map((item) => (
-                <div key={item.area} className="rounded-xl border border-brand-border p-3 text-sm">
-                  <p className="font-semibold">{friendly(item.condition)} · {item.state === 'READY' ? 'Ready' : item.state === 'CONTEXT_REQUIRED' ? 'Information needed' : 'RND document review needed'}</p>
-                  <p className="mt-1 text-brand-muted">{item.message}</p>
-                </div>
-              )) : <p className="text-sm text-brand-muted">No condition requires a clinical document. Allergy restrictions still apply from your profile.</p>}
-            </div>
-          </section>
-
-          {workspace?.requirements.some((item) => item.area === 'DIABETES') && (
-            <section className="rounded-2xl border border-brand-border bg-brand-surface p-5">
-              <h2 className="font-bold">Diabetes context</h2>
-              <p className="mt-1 text-sm text-brand-muted">These answers help determine whether medication or low blood sugar makes supporting records necessary.</p>
-              <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                <label className="text-sm">Medication type
-                  <select value={medicationRisk} onChange={(event) => setMedicationRisk(event.target.value)} className="mt-1 w-full rounded-xl border border-brand-border/80 bg-brand-surface p-3 text-sm text-brand-text shadow-xs outline-none focus:border-brand-green">
-                    <option value="UNSURE">I am unsure</option><option value="NONE">No diabetes medication</option><option value="INSULIN">Insulin</option><option value="SULFONYLUREA_OR_MEGLITINIDE">Sulfonylurea or meglitinide</option><option value="OTHER">Another medication</option>
-                  </select>
-                </label>
-                <label className="text-sm">Repeated low blood sugar episodes
-                  <select value={recurrentHypoglycemia} onChange={(event) => setRecurrentHypoglycemia(event.target.value as 'YES' | 'NO' | 'UNSURE')} className="mt-1 w-full rounded-xl border border-brand-border/80 bg-brand-surface p-3 text-sm text-brand-text shadow-xs outline-none focus:border-brand-green">
-                    <option value="UNSURE">I am unsure</option><option value="YES">Yes</option><option value="NO">No</option>
-                  </select>
-                </label>
-              </div>
-              <button type="button" disabled={busy} onClick={() => void submitContext()} className="mt-4 rounded-xl bg-brand-accent px-4 py-2 text-sm font-bold text-[#07100d] disabled:opacity-60">Save context</button>
+          {!!workspace?.requirements.length && (
+            <section className="space-y-2 rounded-xl border border-brand-border p-4">
+              {workspace.requirements.map((item) => (
+                <p key={item.area} className="text-sm">
+                  <strong>{friendly(item.area)}: </strong>
+                  {item.message}
+                </p>
+              ))}
             </section>
           )}
-
-          {areas.length > 0 && <form onSubmit={submitDocument} className="rounded-2xl border border-brand-border bg-brand-surface p-5">
-            <h2 className="font-bold">Upload a supporting document</h2>
-            <p className="mt-1 text-sm text-brand-muted">PDF, JPG, or PNG up to 8 MB. Cover unrelated identifiers before uploading. Do not include records about another person.</p>
-            <div className="mt-4 grid gap-3 sm:grid-cols-2">
-              <label className="text-sm">Related condition
-                <select required value={area} onChange={(event) => setArea(event.target.value)} className="mt-1 w-full rounded-xl border border-brand-border/80 bg-brand-surface p-3 text-sm text-brand-text shadow-xs outline-none focus:border-brand-green">
-                  {!area && <option value="">Select a condition</option>}
-                  {areas.map((item) => <option key={item} value={item}>{friendly(item)}</option>)}
+          {!!workspace?.availableAreas.length ? (
+            <form
+              onSubmit={(event) => void save(event)}
+              className="space-y-4 rounded-2xl border border-brand-border bg-brand-surface p-5"
+            >
+              <label className="block text-sm">
+                Related condition or restriction
+                <select
+                  value={area}
+                  onChange={(event) => {
+                    const selected = event.target.value;
+                    setArea(selected);
+                    setAnswers({ ...empty, ...workspace.contexts.find((item) => item.area === selected)?.responses });
+                    setMessage(null);
+                  }}
+                  className="mt-1 w-full rounded-xl border border-brand-border bg-brand-surface p-3"
+                >
+                  {workspace.availableAreas.map((value) => (
+                    <option key={value} value={value}>
+                      {friendly(value)}
+                    </option>
+                  ))}
                 </select>
               </label>
-              <label className="text-sm">Document type
-                <select value={documentType} onChange={(event) => setDocumentType(event.target.value)} className="mt-1 w-full rounded-xl border border-brand-border/80 bg-brand-surface p-3 text-sm text-brand-text shadow-xs outline-none focus:border-brand-green">
-                  {documentTypes.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
-                </select>
-              </label>
-              <label className="text-sm">Document date, if shown
-                <input type="date" value={issuedAt} onChange={(event) => setIssuedAt(event.target.value)} className="mt-1 w-full rounded-xl border border-brand-border/80 bg-brand-surface p-3 text-sm text-brand-text shadow-xs outline-none focus:border-brand-green" />
-              </label>
-              <label className="text-sm">Issuer or clinic, if shown
-                <input maxLength={180} value={issuerName} onChange={(event) => setIssuerName(event.target.value)} className="mt-1 w-full rounded-xl border border-brand-border/80 bg-brand-surface p-3 text-sm text-brand-text shadow-xs outline-none focus:border-brand-green" />
-              </label>
-              <label className="text-sm sm:col-span-2">Replace an earlier document, if applicable
-                <select value={supersedesDocumentId} onChange={(event) => setSupersedesDocumentId(event.target.value)} className="mt-1 w-full rounded-xl border border-brand-border/80 bg-brand-surface p-3 text-sm text-brand-text shadow-xs outline-none focus:border-brand-green">
-                  <option value="">New document</option>
-                  {workspace?.documents.filter((item) => item.area === area && !['WITHDRAWN', 'SUPERSEDED'].includes(item.status)).map((item) => <option key={item.id} value={item.id}>{item.originalFileName} · {friendly(item.status)}</option>)}
-                </select>
-              </label>
-              <label className="text-sm sm:col-span-2">Choose file
-                <input required type="file" accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png" onChange={(event) => setFile(event.target.files?.[0] ?? null)} className="mt-1 block w-full rounded-xl border border-brand-border/80 bg-brand-surface p-3 text-sm text-brand-text shadow-xs outline-none focus:border-brand-green" />
-              </label>
+              {fields.map(([field, label]) => (
+                <label key={field} className="block text-sm">
+                  {label}
+                  <textarea
+                    required={field !== 'measurements'}
+                    minLength={field === 'conditionDetails' ? 10 : field === 'measurements' ? undefined : 2}
+                    maxLength={field === 'measurements' ? 1000 : 2000}
+                    rows={3}
+                    value={answers[field]}
+                    onChange={(event) => setAnswers((current) => ({ ...current, [field]: event.target.value }))}
+                    className="mt-1 w-full rounded-xl border border-brand-border bg-brand-surface p-3"
+                  />
+                </label>
+              ))}
+              <button
+                type="submit"
+                disabled={busy}
+                className="min-h-12 rounded-xl bg-brand-accent px-5 py-3 font-bold text-white disabled:opacity-50"
+              >
+                {busy ? 'Saving…' : 'Save health details'}
+              </button>
+            </form>
+          ) : (
+            <p className="text-sm text-brand-muted">No health details are needed for your current profile.</p>
+          )}
+          {mode === 'onboarding' && (
+            <div className="flex justify-end">
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() =>
+                  router.push(params.get('from') === 'review' ? '/onboarding/tos' : '/onboarding/allergies')
+                }
+                className="min-h-12 rounded-xl bg-brand-accent px-5 py-3 font-bold text-white"
+              >
+                {params.get('from') === 'review' ? 'Return to review' : 'Continue to food safety'}
+              </button>
             </div>
-            <label className="mt-4 flex items-start gap-2 text-sm text-brand-muted">
-              <input type="checkbox" checked={consentAccepted} onChange={(event) => setConsentAccepted(event.target.checked)} className="mt-1" />
-              <span>I consent to KAINARA storing this sensitive document privately for nutrition review and allowing an assigned RND to view it. I can withdraw it later. Consent version: {workspace?.consentVersion}.</span>
-            </label>
-            <button type="submit" disabled={busy || !file || !consentAccepted} className="mt-4 rounded-xl bg-brand-accent px-4 py-2 text-sm font-bold text-[#07100d] disabled:opacity-60">{busy ? 'Saving…' : 'Upload privately'}</button>
-          </form>}
-
-          <section className="rounded-2xl border border-brand-border bg-brand-surface p-5">
-            <h2 className="font-bold">Your documents</h2>
-            {workspace?.documents.length ? <div className="mt-3 space-y-3">{workspace.documents.map((item) => (
-              <div key={item.id} className="rounded-xl border border-brand-border p-3 text-sm">
-                <p className="break-all font-semibold">{item.originalFileName}</p>
-                <p className="mt-1 text-brand-muted">{friendly(item.area)} · {friendly(item.status)} · uploaded {new Date(item.createdAt).toLocaleDateString()}</p>
-                {item.validUntil && <p className="mt-1 text-brand-muted">RND review valid until {new Date(item.validUntil).toLocaleDateString()}</p>}
-                {item.latestReview && <p className="mt-2 text-brand-muted">RND note: {item.latestReview.rationale}</p>}
-                <div className="mt-3 flex gap-3">
-                  <button type="button" onClick={() => void download(item)} className="font-semibold text-brand-green underline">Download</button>
-                  {!['WITHDRAWN', 'SUPERSEDED'].includes(item.status) && <button type="button" disabled={busy} onClick={() => void withdraw(item)} className="font-semibold text-red-400 underline">Withdraw</button>}
-                </div>
-              </div>
-            ))}</div> : <p className="mt-2 text-sm text-brand-muted">No documents uploaded yet.</p>}
-          </section>
-          {mode === 'onboarding' && <div className="flex justify-end"><button type="button" onClick={() => router.push(searchParams.get('from') === 'review' ? '/onboarding/tos' : '/onboarding/allergies')} className="rounded-xl bg-brand-accent px-5 py-3 text-sm font-bold text-[#07100d]">{searchParams.get('from') === 'review' ? 'Return to review' : 'Continue to food safety'}</button></div>}
+          )}
         </>
       )}
     </div>

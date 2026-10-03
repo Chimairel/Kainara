@@ -74,7 +74,15 @@ const bothDetail = {
     conditions: ['DIABETES'],
     allergies: [],
   },
-  profileReview: { needsClarification: false, previousReview: null, requirements: [], availableAreas: ['DIABETES'] },
+  profileReview: {
+    profileRevision: 4,
+    scopeKey: 'scope-v4',
+    claim: { active: true, mine: true, expiresAt: null },
+    needsClarification: false,
+    previousReview: null,
+    requirements: [],
+    availableAreas: ['DIABETES'],
+  },
   requirements: [],
   availableAreas: ['DIABETES'],
   reports: [report],
@@ -156,7 +164,7 @@ describe('unified nutritionist profile work', () => {
     mocks.patch.mockResolvedValue({ data: { success: true } });
   });
 
-  it('can request a document while profile confirmation is blocked by missing evidence', async () => {
+  it('can request details while profile confirmation is blocked by missing context', async () => {
     const originalGet = mocks.get.getMockImplementation()!;
     mocks.get.mockImplementation((path: string) =>
       path === '/nutritionist/profile-work/both'
@@ -176,11 +184,13 @@ describe('unified nutritionist profile work', () => {
     const notes = await screen.findByRole('textbox', { name: 'Review notes' });
     fireEvent.change(notes, { target: { value: 'Please upload your recent diabetes report.' } });
     expect(screen.getByRole('button', { name: 'Confirm for planning' })).toBeDisabled();
-    fireEvent.click(screen.getByRole('button', { name: 'Request document' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Request details' }));
     await waitFor(() =>
       expect(mocks.post).toHaveBeenCalledWith('/nutritionist/profile-reviews/both/decision', {
-        decision: 'REQUEST_DOCUMENT',
+        decision: 'REQUEST_DETAILS',
         notes: 'Please upload your recent diabetes report.',
+        profileRevision: 4,
+        scopeKey: 'scope-v4',
         area: 'DIABETES',
       })
     );
@@ -257,4 +267,25 @@ describe('unified nutritionist profile work', () => {
       urls.indexOf('/nutritionist/profile-work/both/documents/old-doc/file')
     );
   });
+});
+
+it('requires an explicit profile claim before allowing confirmation', async () => {
+  const unclaimed = { ...bothDetail.profileReview, claim: { active: false, mine: false, expiresAt: null } };
+  mocks.get.mockImplementation((url: string) =>
+    Promise.resolve({
+      data: { data: url === '/nutritionist/profile-work' ? people : { ...bothDetail, profileReview: unclaimed } },
+    })
+  );
+  mocks.post.mockResolvedValue({
+    data: { data: { ...unclaimed, claim: { active: true, mine: true, expiresAt: '2030-01-01' } } },
+  });
+  render(<ProfileWorkPanel />);
+  fireEvent.click(await screen.findByRole('button', { name: /Both Tasks/ }));
+  fireEvent.change(await screen.findByRole('textbox', { name: 'Review notes' }), {
+    target: { value: 'Reviewed the submitted health details.' },
+  });
+  expect(screen.getByRole('button', { name: 'Confirm for planning' })).toBeDisabled();
+  fireEvent.click(screen.getByRole('button', { name: 'Claim profile' }));
+  await waitFor(() => expect(screen.getByRole('button', { name: 'Confirm for planning' })).toBeEnabled());
+  expect(mocks.post).toHaveBeenCalledWith('/nutritionist/profile-reviews/both/claim');
 });

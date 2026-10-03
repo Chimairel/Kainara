@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import {
   ArrowLeft,
   ArrowRight,
@@ -68,6 +69,7 @@ const quickUniversities = [
 ];
 
 type Props = {
+  emailVerification?: ReactNode;
   licenseHint?: string;
   error: string | null;
   errors: Record<string, string>;
@@ -147,7 +149,12 @@ export function ApplicationWizard(props: Props) {
 
       {/* Step Form Content */}
       <div className="mt-7 space-y-6">
-        {step === 0 && <IdentityFields form={form} errors={errors} onFieldChange={onFieldChange} />}
+        {step === 0 && (
+          <>
+            <IdentityFields form={form} errors={errors} onFieldChange={onFieldChange} />
+            {props.emailVerification}
+          </>
+        )}
         {step === 1 && (
           <CredentialFields form={form} errors={errors} onFieldChange={onFieldChange} licenseHint={props.licenseHint} />
         )}

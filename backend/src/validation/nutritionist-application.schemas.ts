@@ -11,6 +11,7 @@ const isoFutureDate = (label: string) =>
 
 export const nutritionistApplicationSchema = z
   .object({
+    emailVerificationProof: z.string().regex(/^[A-Za-z0-9_-]{43}$/, 'Verify your email address first.'),
     fullName: requiredText('Full name', 161)
       .regex(/[\p{L}]/u, 'Full name must contain at least one letter.')
       .regex(/^[\p{L}\p{M}'’ .-]+$/u, 'Full name contains unsupported characters.'),

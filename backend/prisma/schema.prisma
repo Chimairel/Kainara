@@ -957,19 +957,21 @@ enum ClinicalProfileReviewStatus {
 }
 
 model ClinicalProfileReview {
-  id              String                      @id
-  userId          String
-  user            User                        @relation(fields: [userId], references: [id], onDelete: Cascade)
-  profileRevision Int
-  policyVersion   String                      @db.VarChar(80)
-  status          ClinicalProfileReviewStatus @default(PENDING)
-  reasonCodes     Json
-  profileSnapshot Json
-  reviewerId      String?
-  reviewer        NutritionistProfile?        @relation(fields: [reviewerId], references: [id], onDelete: Restrict)
-  reviewNotes     String?                     @db.VarChar(2000)
-  createdAt       DateTime                    @default(now())
-  reviewedAt      DateTime?
+  id                      String                      @id
+  userId                  String
+  user                    User                        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  profileRevision         Int
+  policyVersion           String                      @db.VarChar(80)
+  status                  ClinicalProfileReviewStatus @default(PENDING)
+  reasonCodes             Json
+  profileSnapshot         Json
+  reviewerId              String?
+  reviewer                NutritionistProfile?        @relation(fields: [reviewerId], references: [id], onDelete: Restrict)
+  reviewNotes             String?                     @db.VarChar(2000)
+  createdAt               DateTime                    @default(now())
+  reviewedAt              DateTime?
+  claimedByNutritionistId String?
+  claimedAt               DateTime?
 
   @@unique([userId, profileRevision, policyVersion])
   @@index([status, createdAt])
@@ -1187,6 +1189,8 @@ model NutritionistApplication {
   invitedUser           User?                         @relation("NutritionistApplicationInvitee", fields: [invitedUserId], references: [id], onDelete: SetNull)
   createdAt             DateTime                      @default(now())
   updatedAt             DateTime                      @updatedAt
+  callEmailSentAt       DateTime?
+  callEmailAttemptedAt  DateTime?
 
   // Non-rejected identity uniqueness is enforced by partial indexes in the migration.
   @@index([email, createdAt])
@@ -2998,4 +3002,16 @@ model CompensationPayoutEvent {
 
   @@index([payoutId, createdAt])
   @@index([actorUserId, createdAt])
+}
+
+model ApplicationEmailVerification {
+  email           String    @id @db.VarChar(254)
+  codeHash        String
+  expiresAt       DateTime
+  attempts        Int       @default(0)
+  sentAt          DateTime
+  windowStartedAt DateTime
+  sendCount       Int       @default(1)
+  proofHash       String?
+  verifiedUntil   DateTime?
 }

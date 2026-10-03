@@ -2,6 +2,7 @@ import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
 import { Prisma } from '@prisma/client';
 import prisma from '@/lib/prisma';
+import { ApplicationEmailVerificationService } from './application-email-verification.service';
 import {
   sendNutritionistInvitationEmail,
   sendNutritionistCallScheduledEmail,
@@ -17,6 +18,7 @@ const makeReferenceCode = () => `NM-${crypto.randomBytes(6).toString('hex').toUp
 type ApplicationInput = {
   fullName: string;
   email: string;
+  emailVerificationProof: string;
   phoneNumber: string;
   prcLicenseNumber: string;
   prcLicenseExpiry: string;
@@ -97,6 +99,7 @@ export class NutritionistApplicationService {
         throw new Error(
           'You can submit up to 3 applications per email in 30 days. Please try again once an earlier submission is outside that window.'
         );
+      await ApplicationEmailVerificationService.consume(tx, email, input.emailVerificationProof);
       const created = await tx.nutritionistApplication.create({
         data: {
           referenceCode: makeReferenceCode(),
@@ -250,21 +253,51 @@ export class NutritionistApplicationService {
       return result;
     });
 
-    // Send call scheduled notification email asynchronously (non-blocking)
-    void sendNutritionistCallScheduledEmail({
-      to: application.email,
-      applicantName: application.fullName,
-      referenceCode: application.referenceCode,
-      scheduledCallAt: input.scheduledCallAt,
-      meetingUrl: input.meetingUrl.trim(),
-    }).catch((err: any) => {
-      console.error(
-        `[NutritionistApplication] Failed to send call scheduled email to ${application.email}:`,
-        err?.message || err
-      );
-    });
+    const delivery = await this.sendCallReminder(adminUserId, applicationId);
+    return { ...updated, ...delivery };
+  }
 
-    return updated;
+  static async sendCallReminder(adminUserId: string, applicationId: string) {
+    const application = await prisma.$transaction(async (tx) => {
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${`application-call-email:${applicationId}`}, 0))`;
+      const row = await tx.nutritionistApplication.findUniqueOrThrow({ where: { id: applicationId } });
+      if (row.status !== 'CALL_SCHEDULED' || !row.scheduledCallAt || !row.meetingUrl || row.callVerifiedAt)
+        throw new Error('An uncompleted scheduled call is required to send a reminder.');
+      if (row.callEmailAttemptedAt && Date.now() - row.callEmailAttemptedAt.getTime() < 60_000)
+        throw new Error('Wait one minute before resending the meeting email.');
+      await tx.nutritionistApplication.update({
+        where: { id: applicationId },
+        data: { callEmailAttemptedAt: new Date() },
+      });
+      return row;
+    });
+    let callEmailSent = false;
+    try {
+      await sendNutritionistCallScheduledEmail({
+        to: application.email,
+        applicantName: application.fullName,
+        referenceCode: application.referenceCode,
+        scheduledCallAt: application.scheduledCallAt!,
+        meetingUrl: application.meetingUrl!,
+      });
+      callEmailSent = true;
+      await prisma.nutritionistApplication.update({
+        where: { id: applicationId },
+        data: { callEmailSentAt: new Date() },
+      });
+    } catch {
+      console.error('[NutritionistApplication] Meeting email delivery was not confirmed.');
+    }
+    await prisma.auditEvent.create({
+      data: {
+        actorUserId: adminUserId,
+        action: 'NUTRITIONIST_CALL_EMAIL_ATTEMPTED',
+        entityType: 'NutritionistApplication',
+        entityId: applicationId,
+        metadata: { callEmailSent },
+      },
+    });
+    return { callEmailSent };
   }
 
   static async confirmCall(adminUserId: string, applicationId: string) {

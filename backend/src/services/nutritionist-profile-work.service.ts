@@ -72,7 +72,7 @@ export class NutritionistProfileWorkService {
     return queued;
   }
 
-  static async detail(userId: string) {
+  static async detail(userId: string, reviewerId?: string) {
     const queued = await this.assertQueued(userId);
     const [user, evidence, reports, profileDetail, currentReport] = await Promise.all([
       prisma.user.findUnique({
@@ -98,7 +98,7 @@ export class NutritionistProfileWorkService {
           policyVersion: true,
         },
       }),
-      queued.profileStatus ? ClinicalProfileReviewService.detail(userId) : Promise.resolve(null),
+      queued.profileStatus ? ClinicalProfileReviewService.detail(userId, reviewerId) : Promise.resolve(null),
       prisma.nutritionReport.findUnique({
         where: { userId },
         select: { version: true, isStale: true, profileRevision: true },

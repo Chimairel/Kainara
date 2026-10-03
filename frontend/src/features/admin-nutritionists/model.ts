@@ -18,6 +18,7 @@ export interface NutritionistApplication {
   photoRecentAttestedAt?: string | null;
   callVerifiedAt?: string | null;
   availableCallSlots: string[];
+  callEmailSentAt?: string | null;
   scheduledCallAt?: string;
   meetingUrl?: string;
   decisionReason?: string;
@@ -35,11 +36,20 @@ export interface NutritionistRow {
   totalVerified: number;
   canLeadReview: boolean;
   verifiedAt?: string;
-  user: { id: string; name: string; email: string; image?: string | null };
+  user: {
+    id: string;
+    name: string;
+    email: string;
+    image?: string | null;
+    isSuspended?: boolean;
+    suspensionReason?: string | null;
+  };
 }
 
 export type ScheduleDraft = { scheduledCallAt: string; meetingUrl: string };
-export type ApplicationActionResponse = { data?: { data?: { invitationEmailSent?: boolean } } };
+export type ApplicationActionResponse = {
+  data?: { data?: { invitationEmailSent?: boolean; callEmailSent?: boolean } };
+};
 
 export const statusLabel: Record<ApplicationStatus, string> = {
   SUBMITTED: 'Submitted',

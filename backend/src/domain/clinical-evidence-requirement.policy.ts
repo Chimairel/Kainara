@@ -1,6 +1,6 @@
 import { ClinicalDocumentStatus, ClinicalEvidenceArea, HealthConditionType } from '@prisma/client';
 
-export const CLINICAL_EVIDENCE_REQUIREMENT_POLICY_VERSION = 'CLINICAL_CONTEXT_V1';
+export const CLINICAL_EVIDENCE_REQUIREMENT_POLICY_VERSION = 'HEALTH_DETAILS_V1';
 
 export type DiabetesContext = {
   medicationRisk?: 'NONE' | 'INSULIN' | 'SULFONYLUREA_OR_MEGLITINIDE' | 'OTHER' | 'UNSURE';
@@ -68,9 +68,8 @@ export function evaluateClinicalEvidenceRequirements(input: {
       .sort((left, right) => right.createdAt.getTime() - left.createdAt.getTime())[0];
     // A newly supplied record can change the clinical picture. An older reviewed
     // record cannot silently override the latest pending or unusable one.
-    const readyDocumentIds = latestDocument && isCurrentSufficientDocument(latestDocument, now)
-      ? [latestDocument.id]
-      : [];
+    const readyDocumentIds =
+      latestDocument && isCurrentSufficientDocument(latestDocument, now) ? [latestDocument.id] : [];
 
     if (condition === HealthConditionType.KIDNEY_DISEASE || condition === HealthConditionType.HEART_CONDITION) {
       return readyDocumentIds.length
@@ -113,7 +112,8 @@ export function evaluateClinicalEvidenceRequirements(input: {
         context.medicationRisk === 'UNSURE' ||
         context.recurrentHypoglycemia === true ||
         context.recurrentHypoglycemia === 'UNSURE';
-      const newDocumentPending = latestDocument?.status === ClinicalDocumentStatus.UPLOADED ||
+      const newDocumentPending =
+        latestDocument?.status === ClinicalDocumentStatus.UPLOADED ||
         latestDocument?.status === ClinicalDocumentStatus.NEEDS_CLARIFICATION;
       if ((documentRequired || newDocumentPending) && readyDocumentIds.length === 0) {
         return {
@@ -121,7 +121,9 @@ export function evaluateClinicalEvidenceRequirements(input: {
           condition,
           state: 'DOCUMENT_REVIEW_REQUIRED',
           required: true,
-          reasonCode: newDocumentPending ? 'NEW_DIABETES_DOCUMENT_AWAITING_REVIEW' : 'DIABETES_MEDICATION_OR_HYPOGLYCEMIA_RISK',
+          reasonCode: newDocumentPending
+            ? 'NEW_DIABETES_DOCUMENT_AWAITING_REVIEW'
+            : 'DIABETES_MEDICATION_OR_HYPOGLYCEMIA_RISK',
           message: newDocumentPending
             ? 'The newly uploaded diabetes document must be reviewed before meal planning resumes.'
             : 'Medication or low-blood-sugar context requires a current clinical document reviewed for nutrition context.',

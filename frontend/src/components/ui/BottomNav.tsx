@@ -1,32 +1,21 @@
 'use client';
-
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import { Activity, Home, Soup, ShoppingCart, User } from 'lucide-react';
-import { Dock, DockItem, DockIcon, DockLabel } from '@/components/ui/motion';
 import ProfileWidget from '@/components/ui/ProfileWidget';
 
-interface BottomNavProps {
-  className?: string;
-}
-
-export const BottomNav: React.FC<BottomNavProps> = ({ className = '' }) => {
+export const BottomNav: React.FC<{ className?: string }> = ({ className = '' }) => {
   const pathname = usePathname();
-  const router = useRouter();
   const { user } = useAuth();
   const [pendingHref, setPendingHref] = useState<string | null>(null);
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
-
   useEffect(() => {
     setPendingHref(null);
     setIsProfileMenuOpen(false);
   }, [pathname]);
-
-  // BottomNav only displays for standard authenticated users in mobile layouts
   if (!user || user.role !== 'USER') return null;
-
   const items = [
     { label: 'Home', href: '/dashboard', icon: Home },
     { label: 'Meals', href: '/meals', icon: Soup },
@@ -34,99 +23,70 @@ export const BottomNav: React.FC<BottomNavProps> = ({ className = '' }) => {
     { label: 'Progress', href: '/progress', icon: Activity },
     { label: 'Profile', href: '/profile', icon: User },
   ];
-
   return (
-    <div className={`fixed bottom-3 left-1/2 -translate-x-1/2 z-40 max-w-[calc(100vw-24px)] md:hidden ${className}`}>
-      <Dock
-        direction="horizontal"
-        distance={110}
-        baseSize={44}
-        magnification={58}
-        className="rounded-[26px] border border-brand-border bg-brand-surface/90 px-3 py-2 shadow-[0_20px_50px_rgba(0,0,0,0.2)] backdrop-blur-2xl dark:border-[#173e33] dark:bg-[#071914]/95 dark:shadow-[0_20px_50px_rgba(0,0,0,0.55)]"
-        ariaLabel="Mobile navigation dock"
-      >
-        {items.map((item) => {
-          const isSelected = pathname === item.href || pathname.startsWith(`${item.href}/`);
-          const isPending = pendingHref === item.href;
-          const isActive = isPending || (isSelected && !pendingHref);
-          const Icon = item.icon;
-
-          if (item.label === 'Profile') {
-            return (
-              <button
-                key={item.href}
-                type="button"
-                onClick={() => setIsProfileMenuOpen((prev) => !prev)}
-                aria-label={item.label}
-                aria-haspopup="menu"
-                aria-expanded={isProfileMenuOpen}
-                aria-current={isActive || isProfileMenuOpen ? 'page' : undefined}
-                className="outline-none active:scale-95 transition-transform duration-75"
-              >
-                <DockItem
-                  active={isActive || isProfileMenuOpen}
-                  className={`transition-colors duration-200 ${
-                    isActive || isProfileMenuOpen
-                      ? 'bg-[#eb6a38] text-white font-bold shadow-sm'
-                      : 'text-brand-muted hover:text-brand-text hover:bg-brand-bgAlt/80 dark:text-white/70 dark:hover:text-white dark:hover:bg-[#163930]'
-                  }`}
-                >
-                  <DockLabel>{item.label}</DockLabel>
-                  <DockIcon>
-                    <Icon className={isActive || isProfileMenuOpen ? 'stroke-[2.5]' : 'stroke-2'} />
-                  </DockIcon>
-                </DockItem>
-              </button>
-            );
-          }
-
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              prefetch={true}
-              onMouseEnter={() => router.prefetch(item.href)}
-              onTouchStart={() => router.prefetch(item.href)}
-              onClick={() => {
-                if (item.href !== pathname) {
-                  setPendingHref(item.href);
-                }
-              }}
-              aria-label={item.label}
-              aria-current={isActive ? 'page' : undefined}
-              className="outline-none active:scale-95 transition-transform duration-75"
-            >
-              <DockItem
-                active={isActive}
-                className={`transition-colors duration-200 ${
-                  isActive
-                    ? 'bg-[#eb6a38] text-white font-bold shadow-sm'
-                    : 'text-brand-muted hover:text-brand-text hover:bg-brand-bgAlt/80 dark:text-white/70 dark:hover:text-white dark:hover:bg-[#163930]'
-                }`}
-              >
-                <DockLabel>{item.label}</DockLabel>
-                <DockIcon>
-                  <Icon className={isActive ? 'stroke-[2.5]' : 'stroke-2'} />
-                </DockIcon>
-              </DockItem>
-            </Link>
-          );
-        })}
-      </Dock>
-
+    <>
       {isProfileMenuOpen && (
         <>
-          <div
-            className="fixed inset-0 z-40 bg-black/50 backdrop-blur-xs"
+          <button
+            type="button"
+            aria-label="Close profile menu"
+            className="fixed inset-0 z-40 bg-black/50 md:hidden"
             onClick={() => setIsProfileMenuOpen(false)}
           />
-          <div className="fixed bottom-20 right-4 z-50 w-72 max-w-[calc(100vw-32px)]">
+          <div
+            className="fixed right-3 z-50 w-72 max-w-[calc(100vw-24px)] md:hidden"
+            style={{ bottom: 'calc(92px + env(safe-area-inset-bottom))' }}
+          >
             <ProfileWidget onClose={() => setIsProfileMenuOpen(false)} />
           </div>
         </>
       )}
-    </div>
+      <nav
+        aria-label="Mobile navigation"
+        className={`fixed inset-x-3 z-50 mx-auto grid max-w-md grid-cols-5 gap-1 rounded-2xl border border-brand-border bg-brand-surface/95 p-2 shadow-xl backdrop-blur-xl md:hidden ${className}`}
+        style={{ bottom: 'calc(12px + env(safe-area-inset-bottom))' }}
+      >
+        {items.map((item) => {
+          const active = (pendingHref ?? pathname) === item.href || pathname.startsWith(`${item.href}/`);
+          const Icon = item.icon;
+          const classes = `flex min-h-[52px] min-w-[44px] touch-manipulation flex-col items-center justify-center gap-1 rounded-xl text-[10px] font-semibold focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-green ${active || (item.label === 'Profile' && isProfileMenuOpen) ? 'bg-brand-accent text-white' : 'text-brand-muted'}`;
+          const content = (
+            <>
+              <Icon className="pointer-events-none h-5 w-5" />
+              <span className="pointer-events-none">{item.label}</span>
+            </>
+          );
+          return item.label === 'Profile' ? (
+            <button
+              key={item.href}
+              type="button"
+              aria-label="Profile"
+              aria-haspopup="menu"
+              aria-expanded={isProfileMenuOpen}
+              className={classes}
+              onClick={() => setIsProfileMenuOpen((value) => !value)}
+            >
+              {content}
+            </button>
+          ) : (
+            <Link
+              key={item.href}
+              href={item.href}
+              prefetch
+              aria-label={item.label}
+              aria-current={active ? 'page' : undefined}
+              className={classes}
+              onClick={() => {
+                setIsProfileMenuOpen(false);
+                if (pathname !== item.href) setPendingHref(item.href);
+              }}
+            >
+              {content}
+            </Link>
+          );
+        })}
+      </nav>
+    </>
   );
 };
-
 export default BottomNav;

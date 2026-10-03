@@ -150,6 +150,12 @@ export async function approveMealPlan(
     await prisma.$transaction(
       async (tx) => {
         await lockUserProfile(tx, plan.userId);
+        if (!(await ClinicalProfileReviewService.hasCurrentApproval(plan.userId, tx)))
+          throw new Error('The health details changed and need a new profile confirmation.');
+        const healthDetails = await tx.clinicalContextResponse.findMany({
+          where: { userId: plan.userId },
+          select: { area: true, responses: true, revision: true },
+        });
         await assertObservedSourceStillAvailable(tx, plan.sourceRawRecipeCandidateId);
         await loadPlanningNutritionContext(tx, plan.userId, 'Planning profile missing.');
         const currentProfile = await tx.userProfile.findUniqueOrThrow({ where: { userId: plan.userId } });
@@ -207,6 +213,7 @@ export async function approveMealPlan(
               carbsG,
               fatG,
               policyVersion: MEAL_PLAN_SAFETY_POLICY_VERSION,
+              healthDetails: healthDetails.map((item) => ({ ...item, provenance: 'USER_REPORTED' })),
               clinicalDocuments: clinicalDocuments.map(({ id, revision, sha256, area, documentType, validUntil }) => ({
                 id,
                 revision,
@@ -235,6 +242,7 @@ export async function approveMealPlan(
             tx,
             {
               id: { not: mealPlanId },
+              ...(healthDetails.length ? { userId: plan.userId } : {}),
               reviewWorkKey: plan.reviewWorkKey,
               status: MealPlanStatus.PENDING_REVIEW,
               reviewApprovalCount: 0,
@@ -306,6 +314,12 @@ export async function approveMealPlan(
   const coalescedApprovedUserIds = await prisma.$transaction(
     async (tx) => {
       await lockUserProfile(tx, plan.userId);
+      if (!(await ClinicalProfileReviewService.hasCurrentApproval(plan.userId, tx)))
+        throw new Error('The health details changed and need a new profile confirmation.');
+      const healthDetails = await tx.clinicalContextResponse.findMany({
+        where: { userId: plan.userId },
+        select: { area: true, responses: true, revision: true },
+      });
       await assertObservedSourceStillAvailable(tx, plan.sourceRawRecipeCandidateId);
       await loadPlanningNutritionContext(tx, plan.userId, 'Planning profile missing.');
       const currentProfile = await tx.userProfile.findUniqueOrThrow({ where: { userId: plan.userId } });
@@ -371,6 +385,7 @@ export async function approveMealPlan(
             carbsG,
             fatG,
             policyVersion: MEAL_PLAN_SAFETY_POLICY_VERSION,
+            healthDetails: healthDetails.map((item) => ({ ...item, provenance: 'USER_REPORTED' })),
             clinicalDocuments: clinicalDocuments.map(({ id, revision, sha256, area, documentType, validUntil }) => ({
               id,
               revision,
@@ -398,6 +413,7 @@ export async function approveMealPlan(
       if (plan.reviewWorkKey && !updates && clinicalDocuments.length === 0 && approvedScope.supported) {
         const dependentWhere: Prisma.MealPlanWhereInput = {
           id: { not: mealPlanId },
+          ...(healthDetails.length ? { userId: plan.userId } : {}),
           reviewWorkKey: plan.reviewWorkKey,
           status: MealPlanStatus.PENDING_REVIEW,
           reviewApprovalCount: plan.highRiskReviewRequired ? 1 : 0,
