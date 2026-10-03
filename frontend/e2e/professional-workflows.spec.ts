@@ -248,15 +248,132 @@ test('nutritionist claims a profile and confirms the submitted health form', asy
     }
   });
   await page.goto('/nutritionist/reviews');
-  await page.getByRole('button', { name: /Profile queue/ }).click();
+  await page.getByRole('button', { name: /Member queue/ }).click();
   await page.getByRole('button', { name: /Synthetic Patient/ }).click();
   await expect(page.getByText('Synthetic user-reported diabetes context')).toBeVisible();
   await page.getByRole('textbox', { name: 'Review notes' }).fill('Reviewed the synthetic details for planning.');
   await expect(page.getByRole('button', { name: 'Confirm for planning' })).toBeDisabled();
-  await page.getByRole('button', { name: 'Claim profile' }).click();
+  const claim = page.getByRole('button', { name: 'Claim profile' });
+  await expect(claim.locator('xpath=ancestor::header')).toHaveCount(1);
+  await page.getByRole('button', { name: 'Expand case details' }).click();
+  await expect(claim).toBeVisible();
+  await expect(claim.locator('xpath=ancestor::header')).toHaveCount(1);
+  await claim.click();
   await expect(page.getByRole('button', { name: 'Confirm for planning' })).toBeEnabled();
   await page.getByRole('button', { name: 'Confirm for planning' }).click();
   await expect(page.getByText('Profile queue is clear.')).toBeVisible();
   expect(decision).toMatchObject({ decision: 'APPROVED', profileRevision: 4, scopeKey: 'synthetic-scope-4' });
   expect(errors).toEqual([]);
+});
+
+test('nutritionist sees missing allergy details and an open deleted case closes on refresh', async ({ page }) => {
+  const errors: string[] = [];
+  page.on('pageerror', (error) => errors.push(error.message));
+  let deleted = false;
+  const requirements = [
+    { area: 'HEART_CONDITION', state: 'READY', message: 'Heart condition details available.' },
+    { area: 'FOOD_ALLERGY', state: 'CONTEXT_REQUIRED', message: 'Complete food allergy details.' },
+  ];
+  await portalFixture(page, 'NUTRITIONIST', (path) => {
+    if (path === '/nutritionist/review-work-counts') return { case: 0, meal: 0, profile: deleted ? 0 : 1 };
+    if (path === '/nutritionist/profile-work')
+      return deleted
+        ? []
+        : [
+            {
+              userId: 'synthetic-deleted-member',
+              name: 'Synthetic Member',
+              conditions: ['HEART_CONDITION'],
+              allergies: ['NUTS'],
+              profileStatus: 'PENDING',
+              documentCount: 0,
+              documentIds: [],
+            },
+          ];
+    if (path === '/nutritionist/profile-work/synthetic-deleted-member')
+      return {
+        userId: 'synthetic-deleted-member',
+        name: 'Synthetic Member',
+        profileStatus: 'PENDING',
+        currentProfile: { revision: 4, conditions: ['HEART_CONDITION'], allergies: ['NUTS'] },
+        profileReview: {
+          profileRevision: 4,
+          scopeKey: 'synthetic-allergy-scope',
+          claim: { active: true, mine: true, expiresAt: null },
+          needsClarification: false,
+          healthDetails: [
+            { area: 'HEART_CONDITION', responses: { conditionDetails: 'Saved synthetic heart condition details' } },
+          ],
+          requirements,
+          availableAreas: ['HEART_CONDITION', 'FOOD_ALLERGY'],
+        },
+        reports: [],
+        documents: [],
+        requirements,
+        availableAreas: ['HEART_CONDITION', 'FOOD_ALLERGY'],
+      };
+  });
+  await page.goto('/nutritionist/reviews');
+  await page.getByRole('button', { name: /Member queue/ }).click();
+  await page.getByRole('button', { name: /Synthetic Member/ }).click();
+  await page.getByRole('button', { name: 'Expand case details' }).click();
+  await page.getByRole('textbox', { name: 'Review notes' }).fill('Reviewed the saved heart condition details.');
+  await expect(page.getByRole('button', { name: 'Confirm for planning' })).toBeDisabled();
+  await expect(page.getByText('Ask the member to complete and save food allergy details.')).toBeVisible();
+  await expect(page.getByRole('combobox', { name: 'Details request area' })).toHaveValue('FOOD_ALLERGY');
+  await expect(page.getByRole('button', { name: 'Request details' })).toBeEnabled();
+  deleted = true;
+  await page.evaluate(() => window.dispatchEvent(new Event('kainara:live-update')));
+  await expect(page.getByRole('dialog', { name: 'Expanded case view' })).toHaveCount(0);
+  await expect(page.getByText('Profile queue is clear.')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Confirm for planning' })).toHaveCount(0);
+  expect(errors).toEqual([]);
+});
+
+test('member completes separate allergy details without overwriting their saved heart form', async ({ page }) => {
+  const answers = {
+    conditionDetails: 'Saved synthetic heart condition',
+    medications: 'None',
+    dietaryAdvice: 'None',
+    recentSymptoms: 'None',
+  };
+  let allergySaved = false;
+  let submitted: Record<string, unknown> | undefined;
+  await portalFixture(page, 'USER', (path, route) => {
+    if (path === '/user/clinical-evidence/details') {
+      submitted = route.request().postDataJSON();
+      allergySaved = true;
+    }
+    if (path.startsWith('/user/clinical-evidence'))
+      return {
+        safetyRevision: 2,
+        availableAreas: ['HEART_CONDITION', 'FOOD_ALLERGY'],
+        requirements: [
+          { area: 'HEART_CONDITION', state: 'READY', message: 'Heart details available.' },
+          { area: 'FOOD_ALLERGY', state: allergySaved ? 'READY' : 'CONTEXT_REQUIRED', message: 'Allergy form status.' },
+        ],
+        contexts: [
+          { area: 'HEART_CONDITION', responses: answers },
+          ...(allergySaved ? [{ area: 'FOOD_ALLERGY', responses: submitted }] : []),
+        ],
+      };
+    if (path === '/user/clinical-profile-review/status')
+      return { required: true, approved: false, detailsRequest: null };
+  });
+  await page.goto('/profile/clinical-evidence');
+  await expect(page.getByText('1 of 2 health detail forms complete.')).toBeVisible();
+  await expect(page.getByLabel('Related condition or restriction')).toHaveValue('FOOD_ALLERGY');
+  await expect(page.getByLabel('Condition or restriction details')).toHaveValue('');
+  for (const label of [
+    'Condition or restriction details',
+    'Current medication or supplements',
+    'Dietary advice you have received',
+    'Recent symptoms or episodes',
+  ])
+    await page.getByLabel(label, { exact: true }).fill('Synthetic allergy information for review');
+  await page.getByRole('button', { name: 'Save health details' }).click();
+  await expect(page.getByText('2 of 2 health detail forms complete.')).toBeVisible();
+  expect(submitted).toMatchObject({ area: 'FOOD_ALLERGY', expectedSafetyRevision: 2 });
+  await page.getByLabel('Related condition or restriction').selectOption('HEART_CONDITION');
+  await expect(page.getByLabel('Condition or restriction details')).toHaveValue(answers.conditionDetails);
 });

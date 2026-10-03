@@ -1,6 +1,7 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import ProfileWorkPanel from './ProfileWorkPanel';
+import { LIVE_UPDATE_EVENT } from '@/lib/live-events';
 
 const mocks = vi.hoisted(() => ({ get: vi.fn(), post: vi.fn(), patch: vi.fn() }));
 vi.mock('@/lib/axios', () => ({ default: mocks }));
@@ -16,14 +17,17 @@ vi.mock('@/features/reports/NutritionGuidancePaper', () => ({
 vi.mock('@/features/nutritionist-reviews/ExpandableCasePanel', () => ({
   default: ({
     children,
+    headerLeft,
     expanded,
     onExpandedChange,
   }: {
     children: React.ReactNode;
+    headerLeft?: React.ReactNode;
     expanded: boolean;
     onExpandedChange: (value: boolean) => void;
   }) => (
     <div>
+      <header data-testid="profile-toolbar">{headerLeft}</header>
       <button onClick={() => onExpandedChange(!expanded)}>
         {expanded ? 'Back to split view' : 'Expand case details'}
       </button>
@@ -266,6 +270,127 @@ describe('unified nutritionist profile work', () => {
     expect(urls.indexOf('/nutritionist/profile-work/both/documents/old-doc')).toBeLessThan(
       urls.indexOf('/nutritionist/profile-work/both/documents/old-doc/file')
     );
+  });
+  it('explains missing allergy details even when the condition form and notes are complete', async () => {
+    const requirement = { area: 'FOOD_ALLERGY', state: 'CONTEXT_REQUIRED', message: 'Complete food allergy details.' };
+    const originalGet = mocks.get.getMockImplementation()!;
+    mocks.get.mockImplementation((path: string) =>
+      path === '/nutritionist/profile-work/both'
+        ? Promise.resolve({
+            data: {
+              data: {
+                ...bothDetail,
+                requirements: [requirement],
+                availableAreas: ['DIABETES', 'FOOD_ALLERGY'],
+                profileReview: {
+                  ...bothDetail.profileReview,
+                  healthDetails: [{ area: 'DIABETES', responses: { conditionDetails: 'Complete condition details' } }],
+                },
+              },
+            },
+          })
+        : originalGet(path)
+    );
+    render(<ProfileWorkPanel />);
+    fireEvent.click(await screen.findByRole('button', { name: /Both Tasks/ }));
+    fireEvent.change(await screen.findByRole('textbox', { name: 'Review notes' }), {
+      target: { value: 'Reviewed the condition details.' },
+    });
+    expect(screen.getByRole('button', { name: 'Confirm for planning' })).toBeDisabled();
+    expect(screen.getByText('Ask the member to complete and save food allergy details.')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Request details' })).toBeEnabled();
+    expect(
+      within(screen.getByTestId('profile-toolbar')).getByRole('button', { name: 'Release profile' })
+    ).toBeInTheDocument();
+  });
+
+  it('uses fresh requirements from the claim response without waiting for polling', async () => {
+    const missing = [{ area: 'FOOD_ALLERGY', state: 'CONTEXT_REQUIRED', message: 'Complete food allergy details.' }];
+    const unclaimed = {
+      ...bothDetail.profileReview,
+      requirements: missing,
+      claim: { active: false, mine: false, expiresAt: null },
+    };
+    const originalGet = mocks.get.getMockImplementation()!;
+    mocks.get.mockImplementation((path: string) =>
+      path === '/nutritionist/profile-work/both'
+        ? Promise.resolve({ data: { data: { ...bothDetail, requirements: missing, profileReview: unclaimed } } })
+        : originalGet(path)
+    );
+    mocks.post.mockResolvedValue({
+      data: {
+        data: {
+          ...bothDetail.profileReview,
+          requirements: [{ ...missing[0], state: 'READY', message: 'Food allergy details available.' }],
+        },
+      },
+    });
+    render(<ProfileWorkPanel />);
+    fireEvent.click(await screen.findByRole('button', { name: /Both Tasks/ }));
+    fireEvent.change(await screen.findByRole('textbox', { name: 'Review notes' }), {
+      target: { value: 'Reviewed the updated health details.' },
+    });
+    fireEvent.click(within(screen.getByTestId('profile-toolbar')).getByRole('button', { name: 'Claim profile' }));
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Confirm for planning' })).toBeEnabled());
+    expect(screen.queryByText(/Ask the member to complete/)).not.toBeInTheDocument();
+  });
+
+  it('clears a deleted member and their expanded case on a live queue refresh', async () => {
+    render(<ProfileWorkPanel />);
+    fireEvent.click(await screen.findByRole('button', { name: /Both Tasks/ }));
+    await screen.findByTestId('guidance-paper');
+    fireEvent.click(screen.getByRole('button', { name: 'Expand case details' }));
+    const originalGet = mocks.get.getMockImplementation()!;
+    mocks.get.mockImplementation((path: string) =>
+      path === '/nutritionist/profile-work' ? Promise.resolve({ data: { data: [people[1]] } }) : originalGet(path)
+    );
+    fireEvent(window, new Event(LIVE_UPDATE_EVENT));
+    await waitFor(() => expect(screen.queryByTestId('guidance-paper')).not.toBeInTheDocument());
+    expect(screen.queryByRole('button', { name: /Both Tasks/ })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Document Only/ })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Confirm for planning' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Expand case details' })).toBeInTheDocument();
+    expect(mocks.get.mock.calls.filter(([path]) => path === '/nutritionist/profile-work/both')).toHaveLength(1);
+  });
+
+  it('clears a case deleted between the queue and detail reads', async () => {
+    render(<ProfileWorkPanel />);
+    fireEvent.click(await screen.findByRole('button', { name: /Both Tasks/ }));
+    await screen.findByTestId('guidance-paper');
+    let queueReads = 0;
+    mocks.get.mockImplementation((path: string) =>
+      path === '/nutritionist/profile-work'
+        ? Promise.resolve({ data: { data: ++queueReads === 1 ? people : [people[1]] } })
+        : Promise.reject({ response: { data: { errorCode: 'PROFILE_WORK_NOT_FOUND' } } })
+    );
+    fireEvent(window, new Event(LIVE_UPDATE_EVENT));
+    await waitFor(() => expect(screen.queryByRole('button', { name: /Both Tasks/ })).not.toBeInTheDocument());
+    expect(screen.queryByTestId('guidance-paper')).not.toBeInTheDocument();
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Document Only/ })).toBeInTheDocument();
+  });
+
+  it('does not restore a deleted member from a slower older queue response', async () => {
+    render(<ProfileWorkPanel />);
+    fireEvent.click(await screen.findByRole('button', { name: /Both Tasks/ }));
+    await screen.findByTestId('guidance-paper');
+    let resolveOld!: (value: unknown) => void;
+    mocks.get.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          resolveOld = resolve;
+        })
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Refresh profile queue' }));
+    mocks.get.mockImplementation((path: string) =>
+      path === '/nutritionist/profile-work'
+        ? Promise.resolve({ data: { data: [people[1]] } })
+        : Promise.reject(new Error('Unexpected detail request'))
+    );
+    fireEvent(window, new Event(LIVE_UPDATE_EVENT));
+    await waitFor(() => expect(screen.queryByTestId('guidance-paper')).not.toBeInTheDocument());
+    await act(async () => resolveOld({ data: { data: people } }));
+    expect(screen.queryByRole('button', { name: /Both Tasks/ })).not.toBeInTheDocument();
   });
 });
 

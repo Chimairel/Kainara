@@ -65,4 +65,69 @@ describe('health details form', () => {
     expect(await screen.findByRole('alert')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Save health details' })).toBeEnabled();
   });
+  it('opens the missing allergy form first and never copies condition answers into it', async () => {
+    mocks.get.mockResolvedValue({
+      data: {
+        data: {
+          ...workspace,
+          availableAreas: ['HEART_CONDITION', 'FOOD_ALLERGY'],
+          requirements: [
+            { area: 'HEART_CONDITION', state: 'READY', message: 'Heart details available.' },
+            { area: 'FOOD_ALLERGY', state: 'CONTEXT_REQUIRED', message: 'Allergy details needed.' },
+          ],
+          contexts: [{ area: 'HEART_CONDITION', responses: { conditionDetails: 'Saved heart condition details' } }],
+        },
+      },
+    });
+    render(<ClinicalEvidenceWorkspace mode="onboarding" />);
+    expect(await screen.findByLabelText('Related condition or restriction')).toHaveValue('FOOD_ALLERGY');
+    expect(screen.getByText('1 of 2 health detail forms complete.')).toBeInTheDocument();
+    expect(screen.getByLabelText('Condition or restriction details')).toHaveValue('');
+    fireEvent.change(screen.getByLabelText('Related condition or restriction'), {
+      target: { value: 'HEART_CONDITION' },
+    });
+    expect(screen.getByLabelText('Condition or restriction details')).toHaveValue('Saved heart condition details');
+    fireEvent.click(screen.getByRole('button', { name: 'Complete food allergy details' }));
+    expect(screen.getByLabelText('Condition or restriction details')).toHaveValue('');
+  });
+
+  it('keeps a requested area selected and shows the remaining form after saving it', async () => {
+    const multiple = {
+      ...workspace,
+      availableAreas: ['HEART_CONDITION', 'FOOD_ALLERGY'],
+      requirements: ['HEART_CONDITION', 'FOOD_ALLERGY'].map((area) => ({
+        area,
+        state: 'CONTEXT_REQUIRED',
+        message: 'Details needed.',
+      })),
+    };
+    mocks.get.mockImplementation((path: string) =>
+      Promise.resolve({
+        data: {
+          data: path.endsWith('/status')
+            ? { detailsRequest: { area: 'HEART_CONDITION', notes: 'Please complete heart details.' } }
+            : multiple,
+        },
+      })
+    );
+    mocks.put.mockResolvedValue({
+      data: {
+        data: {
+          ...multiple,
+          requirements: [{ ...multiple.requirements[0], state: 'READY' }, multiple.requirements[1]],
+          contexts: [{ area: 'HEART_CONDITION', responses: { conditionDetails: 'Saved heart condition details' } }],
+        },
+      },
+    });
+    render(<ClinicalEvidenceWorkspace />);
+    expect(await screen.findByLabelText('Related condition or restriction')).toHaveValue('HEART_CONDITION');
+    fireEvent.submit(screen.getByRole('button', { name: 'Save health details' }).closest('form')!);
+    expect(await screen.findByText('1 of 2 health detail forms complete.')).toBeInTheDocument();
+    expect(screen.getByText('Still needed: food allergy.')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Complete food allergy details' }));
+    expect(screen.getByLabelText('Related condition or restriction')).toHaveValue('FOOD_ALLERGY');
+    expect(screen.getByLabelText('Condition or restriction details')).toHaveValue('');
+    expect(mocks.put).toHaveBeenCalledTimes(1);
+    expect(mocks.put.mock.calls[0][1]).toMatchObject({ area: 'HEART_CONDITION', expectedSafetyRevision: 2 });
+  });
 });

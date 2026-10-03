@@ -63,7 +63,9 @@ export default function ClinicalEvidenceWorkspace({ mode = 'profile' }: { mode?:
         setWorkspace(next);
         setRequest(status?.data?.data?.detailsRequest ?? null);
         const initialArea = status?.data?.data?.detailsRequest?.area;
-        const selected = next.availableAreas.includes(initialArea) ? initialArea : (next.availableAreas[0] ?? '');
+        const selected = next.availableAreas.includes(initialArea)
+          ? initialArea
+          : (next.requirements.find((item) => item.state !== 'READY')?.area ?? next.availableAreas[0] ?? '');
         setArea(selected);
         setAnswers({ ...empty, ...next.contexts.find((item) => item.area === selected)?.responses });
       } catch (cause) {
@@ -101,6 +103,12 @@ export default function ClinicalEvidenceWorkspace({ mode = 'profile' }: { mode?:
       setBusy(false);
     }
   }
+  const pendingAreas = workspace?.requirements.filter((item) => item.state !== 'READY').map((item) => item.area) ?? [];
+  const selectArea = (selected: string) => {
+    setArea(selected);
+    setAnswers({ ...empty, ...workspace?.contexts.find((item) => item.area === selected)?.responses });
+    setMessage(null);
+  };
   return (
     <div
       className={
@@ -124,7 +132,8 @@ export default function ClinicalEvidenceWorkspace({ mode = 'profile' }: { mode?:
         <h1 className="font-display text-3xl font-black">Health details</h1>
         <p className="mt-2 text-sm text-brand-muted">
           Describe the conditions and restrictions already listed in your profile for a nutritionist to review. Enter
-          “none” or “unknown” where appropriate. No document upload is needed.
+          “none” or “unknown” where appropriate. Complete and save a separate form for each listed condition or
+          restriction.
         </p>
       </header>
       {request && (
@@ -151,6 +160,26 @@ export default function ClinicalEvidenceWorkspace({ mode = 'profile' }: { mode?:
         <>
           {!!workspace?.requirements.length && (
             <section className="space-y-2 rounded-xl border border-brand-border p-4">
+              <p className="text-sm font-bold" role="status">
+                {workspace.requirements.length - pendingAreas.length} of {workspace.requirements.length} health detail
+                forms complete.
+              </p>
+              {!!pendingAreas.length && (
+                <p className="text-sm">Still needed: {pendingAreas.map(friendly).join(', ')}.</p>
+              )}
+              {pendingAreas
+                .filter((value) => value !== area)
+                .map((value) => (
+                  <button
+                    key={value}
+                    type="button"
+                    disabled={busy}
+                    onClick={() => selectArea(value)}
+                    className="min-h-11 rounded-xl border border-brand-border px-3 py-2 text-sm font-semibold"
+                  >
+                    Complete {friendly(value)} details
+                  </button>
+                ))}
               {workspace.requirements.map((item) => (
                 <p key={item.area} className="text-sm">
                   <strong>{friendly(item.area)}: </strong>
@@ -168,12 +197,8 @@ export default function ClinicalEvidenceWorkspace({ mode = 'profile' }: { mode?:
                 Related condition or restriction
                 <select
                   value={area}
-                  onChange={(event) => {
-                    const selected = event.target.value;
-                    setArea(selected);
-                    setAnswers({ ...empty, ...workspace.contexts.find((item) => item.area === selected)?.responses });
-                    setMessage(null);
-                  }}
+                  disabled={busy}
+                  onChange={(event) => selectArea(event.target.value)}
                   className="mt-1 w-full rounded-xl border border-brand-border bg-brand-surface p-3"
                 >
                   {workspace.availableAreas.map((value) => (

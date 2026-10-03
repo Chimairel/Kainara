@@ -2,10 +2,10 @@
 
 import { useVisiblePolling } from '@/hooks/useVisiblePolling';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { FileText, RefreshCw, UserCheck } from 'lucide-react';
 import api from '@/lib/axios';
-import { getApiErrorMessage } from '@/lib/api-error';
+import { getApiErrorCode, getApiErrorMessage } from '@/lib/api-error';
 import { useAuth } from '@/hooks/useAuth';
 import { readSessionResource, writeSessionResource } from '@/lib/session-resource-cache';
 import type { NutritionReport } from '@/types';
@@ -141,30 +141,59 @@ export default function ProfileWorkPanel() {
   const [factValue, setFactValue] = useState('');
   const [confirmedFacts, setConfirmedFacts] = useState<Array<{ code: string; valueText: string }>>([]);
 
+  const detailRef = useRef(detail);
+  detailRef.current = detail;
+  const queueRequest = useRef(0);
+  const selectionRequest = useRef(0);
+  const clearSelection = useCallback(() => {
+    selectionRequest.current += 1;
+    detailRef.current = null;
+    setDetail(null);
+    setSelection(null);
+    setDocumentDetail(null);
+    setFileUrl(null);
+    setExpanded(false);
+    setNotes('');
+  }, []);
+  const noLongerQueued = (cause: unknown) =>
+    ['PROFILE_WORK_NOT_FOUND', 'PROFILE_NOT_FOUND'].includes(getApiErrorCode(cause) ?? '');
+
   const refresh = useCallback(
     async (signal?: AbortSignal) => {
+      const requestId = ++queueRequest.current;
       try {
         const response = await api.get('/nutritionist/profile-work', signal ? { signal } : undefined);
-        if (signal?.aborted) return null;
+        if (signal?.aborted || requestId !== queueRequest.current) return null;
         const next: Person[] = response.data.data ?? [];
+        const selected = detailRef.current;
+        if (selected && !next.some((person) => person.userId === selected.userId)) clearSelection();
         setPeople(next);
         writeSessionResource(ownerId, 'nutritionist-profile-work', next);
         setError(null);
         window.dispatchEvent(new Event('nutrimind:review-work-updated'));
         return next;
       } catch (cause) {
-        if (!signal?.aborted) setError(getApiErrorMessage(cause, 'The profile queue could not be loaded.'));
+        if (!signal?.aborted && requestId === queueRequest.current)
+          setError(getApiErrorMessage(cause, 'The profile queue could not be loaded.'));
         return null;
       }
     },
-    [ownerId]
+    [ownerId, clearSelection]
   );
   useVisiblePolling(
     async (signal) => {
-      await refresh(signal);
-      if (!signal.aborted && detail) {
-        const response = await api.get(`/nutritionist/profile-work/${detail.userId}`, { signal });
-        if (!signal.aborted) setDetail(response.data.data);
+      const next = await refresh(signal);
+      const selected = detailRef.current;
+      if (signal.aborted || !next || !selected) return;
+      try {
+        const response = await api.get(`/nutritionist/profile-work/${selected.userId}`, { signal });
+        if (!signal.aborted && detailRef.current?.userId === selected.userId) setDetail(response.data.data);
+      } catch (cause) {
+        if (signal.aborted || detailRef.current?.userId !== selected.userId) return;
+        if (noLongerQueued(cause)) {
+          clearSelection();
+          await refresh();
+        } else setError(getApiErrorMessage(cause, 'Could not refresh this profile.'));
       }
     },
     { enabled: !busy, immediate: false, scopeKey: `${ownerId}:${detail?.userId}` }
@@ -180,21 +209,29 @@ export default function ProfileWorkPanel() {
   );
 
   const openPerson = async (userId: string, preserveSelection = false) => {
+    const requestId = ++selectionRequest.current;
     setBusy(true);
     setError(null);
     try {
       const response = await api.get(`/nutritionist/profile-work/${userId}`);
+      if (requestId !== selectionRequest.current) return;
       const next: PersonDetail = response.data.data;
+      detailRef.current = next;
       setDetail(next);
       if (!preserveSelection) {
+        setNotes('');
         setSelection(next.reports.length ? { kind: 'report', id: next.reports[0].id } : null);
         setDocumentDetail(null);
         setFileUrl(null);
         setExpanded(false);
       }
-      setRequestArea(next.availableAreas[0] ?? '');
+      setRequestArea(next.requirements.find((item) => item.state !== 'READY')?.area ?? next.availableAreas[0] ?? '');
     } catch (cause) {
-      setError(getApiErrorMessage(cause, 'Could not open this profile.'));
+      if (requestId !== selectionRequest.current) return;
+      if (noLongerQueued(cause)) {
+        clearSelection();
+        await refresh();
+      } else setError(getApiErrorMessage(cause, 'Could not open this profile.'));
     } finally {
       setBusy(false);
     }
@@ -236,11 +273,7 @@ export default function ProfileWorkPanel() {
     if (detail && next?.some((person) => person.userId === detail.userId)) {
       await openPerson(detail.userId, true);
     } else {
-      setDetail(null);
-      setSelection(null);
-      setDocumentDetail(null);
-      setFileUrl(null);
-      setExpanded(false);
+      clearSelection();
     }
   };
   const claimProfile = async (release = false) => {
@@ -251,7 +284,17 @@ export default function ProfileWorkPanel() {
       const response = await api.post(
         `/nutritionist/profile-reviews/${detail.userId}/${release ? 'release' : 'claim'}`
       );
-      setDetail((current) => (current ? { ...current, profileReview: response.data.data } : current));
+      const review: ProfileReview = response.data.data;
+      setDetail((current) =>
+        current?.userId === detail.userId
+          ? {
+              ...current,
+              profileReview: review,
+              requirements: review.requirements,
+              availableAreas: review.availableAreas,
+            }
+          : current
+      );
     } catch (cause) {
       setError(getApiErrorMessage(cause, 'Could not claim this profile.'));
     } finally {
@@ -366,10 +409,27 @@ export default function ProfileWorkPanel() {
         expanded={expanded}
         onExpandedChange={setExpanded}
         canExpand={!!detail}
-        onBack={() => {
-          setDetail(null);
-          setExpanded(false);
-        }}
+        onBack={clearSelection}
+        headerLeft={
+          detail?.profileReview && (
+            <div className="flex items-center gap-3">
+              <Button
+                size="sm"
+                disabled={busy || (!!detail.profileReview.claim?.active && !detail.profileReview.claim?.mine)}
+                onClick={() => void claimProfile(!!detail.profileReview?.claim?.mine)}
+              >
+                {detail.profileReview.claim?.mine ? 'Release profile' : 'Claim profile'}
+              </Button>
+              <span className="text-xs text-brand-muted">
+                {detail.profileReview.claim?.mine
+                  ? 'Claimed by you for 30 minutes.'
+                  : detail.profileReview.claim?.active
+                    ? 'Claimed by another nutritionist.'
+                    : 'Claim before recording a decision.'}
+              </span>
+            </div>
+          )
+        }
         className={`${detail ? 'flex' : 'hidden lg:flex'} min-w-0 flex-1 flex-col overflow-hidden`}
         contentClassName="flex-1 min-h-0 overflow-y-auto p-4 custom-scrollbar sm:p-6"
       >
@@ -638,19 +698,6 @@ export default function ProfileWorkPanel() {
                 {detail.profileReview && (
                   <section className="space-y-3 rounded-xl border border-brand-border bg-brand-surface p-4 text-xs">
                     <h3 className="font-bold text-brand-text">Profile decision</h3>
-                    <p className="text-brand-muted">
-                      {detail.profileReview.claim?.mine
-                        ? 'Claimed by you for 30 minutes.'
-                        : detail.profileReview.claim?.active
-                          ? 'Claimed by another nutritionist.'
-                          : 'Claim this profile to record a decision.'}
-                    </p>
-                    <Button
-                      disabled={busy || (!!detail.profileReview.claim?.active && !detail.profileReview.claim?.mine)}
-                      onClick={() => void claimProfile(!!detail.profileReview?.claim?.mine)}
-                    >
-                      {detail.profileReview.claim?.mine ? 'Release profile' : 'Claim profile'}
-                    </Button>
                     <h4 className="font-bold">Member-provided health details</h4>
                     {detail.profileReview.healthDetails?.map((item) => (
                       <div key={item.area} className="rounded-lg border border-brand-border p-3">
@@ -699,6 +746,32 @@ export default function ProfileWorkPanel() {
                         className="mt-1 block w-full rounded-lg border border-brand-border bg-brand-surface p-2"
                       />
                     </label>
+                    {(!detail.profileReview.claim?.mine || profileBlocked || notes.trim().length < 10) && (
+                      <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-3" role="status">
+                        <strong>Before confirming for planning:</strong>
+                        <ul className="mt-2 list-disc space-y-1 pl-4">
+                          {!detail.profileReview.claim?.mine && (
+                            <li>
+                              {detail.profileReview.claim?.active
+                                ? 'Wait for the current claim to be released or expire.'
+                                : 'Claim this profile using the button above.'}
+                            </li>
+                          )}
+                          {detail.requirements
+                            .filter((item) => item.state !== 'READY')
+                            .map((item) => (
+                              <li key={item.area}>
+                                Ask the member to complete and save {item.area.replace(/_/g, ' ').toLowerCase()}{' '}
+                                details.
+                              </li>
+                            ))}
+                          {detail.profileReview.needsClarification && (
+                            <li>Resolve the profile restrictions that need clarification.</li>
+                          )}
+                          {notes.trim().length < 10 && <li>Add review notes of at least 10 characters.</li>}
+                        </ul>
+                      </div>
+                    )}
                     <div className="flex flex-wrap gap-2">
                       <Button
                         disabled={
