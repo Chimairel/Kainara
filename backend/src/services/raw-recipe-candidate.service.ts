@@ -12,12 +12,9 @@ import type { RecipeCandidateProjection } from './recipe-candidate-provider';
 import { SOURCE_SERVING_MAX_SCALE, SOURCE_SERVING_MIN_SCALE } from '@/domain/source-serving-adjustment.policy';
 import { rawRecipeServing } from './raw-recipe-serving.service';
 import type { SwapRiceFood } from './meal-swap-serving.service';
-import {
-  mealMacroBudget,
-  nutritionFitScore,
-  type PlanningMacroTargets,
-  type NutritionVector,
-} from '@/domain/meal-macro-target.policy';
+import { mealMacroBudget, type PlanningMacroTargets, type NutritionVector } from '@/domain/meal-macro-target.policy';
+import { planningSlotNutritionScore } from '@/domain/swap-nutrition-fit.policy';
+import { composedNutritionTotal, scaleFnriFoodToGrams } from '@/domain/composed-serving.policy';
 
 export interface RawCandidateSlot {
   dayNumber: number;
@@ -58,6 +55,10 @@ type MacroSelectionInput = {
   riceFood?: SwapRiceFood | null;
 };
 
+function wholeNutrition(meal: NutritionVector & { pairedRiceG?: number | null }, rice?: SwapRiceFood | null) {
+  return meal.pairedRiceG && rice ? composedNutritionTotal(meal, scaleFnriFoodToGrams(rice, meal.pairedRiceG)) : meal;
+}
+
 function macroPool(
   input: MacroSelectionInput,
   slot: RawCandidateSlot,
@@ -65,32 +66,15 @@ function macroPool(
   selected: readonly SourcedRawRecipeMeal[]
 ) {
   if (!input.planningTargets) return [...pool];
-  const whole = (meal: SourcedRawRecipeMeal) => ({
-    ...meal,
-    calories: meal.calories + ((input.riceFood?.calories ?? 0) * (meal.pairedRiceG ?? 0)) / 100,
-    proteinG: meal.proteinG + ((input.riceFood?.proteinG ?? 0) * (meal.pairedRiceG ?? 0)) / 100,
-    carbsG: meal.carbsG + ((input.riceFood?.carbsG ?? 0) * (meal.pairedRiceG ?? 0)) / 100,
-    fatG: meal.fatG + ((input.riceFood?.fatG ?? 0) * (meal.pairedRiceG ?? 0)) / 100,
-  });
-  const other = [...(input.existingNutrition ?? []), ...selected.map(whole)].filter(
-    (m) => m.dayNumber === slot.dayNumber
-  );
+  const other = [
+    ...(input.existingNutrition ?? []),
+    ...selected.map((meal) => ({ ...meal, ...wholeNutrition(meal, input.riceFood) })),
+  ].filter((m) => m.dayNumber === slot.dayNumber);
   const budget = mealMacroBudget(input.planningTargets, slot.mealType, other);
   if (!budget) return [...pool];
-  const score = (candidate: RankedCandidate) => {
-    const n = candidate.nutrition!;
-    const g = candidate.pairedRiceG ?? 0;
-    const r = input.riceFood;
-    return nutritionFitScore(
-      {
-        calories: n.calories + ((r?.calories ?? 0) * g) / 100,
-        proteinG: n.proteinG + ((r?.proteinG ?? 0) * g) / 100,
-        carbsG: n.carbsG + ((r?.carbsG ?? 0) * g) / 100,
-        fatG: n.fatG + ((r?.fatG ?? 0) * g) / 100,
-      },
-      budget
-    );
-  };
+  const scoreNutrition = planningSlotNutritionScore(input.planningTargets, slot.mealType, other)!;
+  const score = (candidate: RankedCandidate) =>
+    scoreNutrition(wholeNutrition({ ...candidate.nutrition!, pairedRiceG: candidate.pairedRiceG }, input.riceFood));
   return pool
     .flatMap((candidate) => {
       if (!candidate._original) return [candidate];
@@ -101,6 +85,7 @@ function macroPool(
         ricePreference: input.ricePreference,
         riceFood: input.riceFood,
         macroTarget: budget,
+        scoreNutrition,
       });
       return plate ? [{ ...candidate, ...plate }] : [];
     })
@@ -184,6 +169,98 @@ export function selectRawRecipeCandidates(
     });
   }
   return { meals, remainingSlots };
+}
+
+/** Bounded coordinate refinement of a completed day, before any persistence.
+ * Library selections remain fixed. Only admitted raw candidates may change;
+ * replacements must strictly improve the same daily score used by swaps. */
+export function refineRawRecipeDayMatches(
+  input: Parameters<typeof selectRawRecipeCandidates>[0] & {
+    selected: readonly SourcedRawRecipeMeal[];
+  }
+): SourcedRawRecipeMeal[] {
+  const meals = input.selected.map((meal) => ({ ...meal }));
+  if (!input.planningTargets) return meals;
+  const recent = new Set(input.recentCandidateIds ?? []);
+  const customAllergies = splitCustomRestrictions(input.otherAllergies);
+  const signatures = new Map([...input.candidatesByType.values()].flat().map((c) => [c.id, c.contentSignature]));
+  for (let pass = 0; pass < 3; pass++) {
+    let improved = false;
+    for (let i = 0; i < meals.length; i++) {
+      const current = meals[i];
+      const slot = input.slots.find((s) => s.dayNumber === current.dayNumber && s.mealType === current.mealType);
+      if (!slot) continue;
+      const others = meals.filter((_, index) => index !== i);
+      const day = [
+        ...(input.existingNutrition ?? []),
+        ...others.map((m) => ({ ...m, ...wholeNutrition(m, input.riceFood) })),
+      ].filter((m) => m.dayNumber === slot.dayNumber);
+      if (
+        !['BREAKFAST', 'LUNCH', 'DINNER'].every(
+          (type) => type === slot.mealType || day.some((m) => m.mealType === type)
+        )
+      )
+        continue;
+      const score = planningSlotNutritionScore(input.planningTargets, slot.mealType, day)!;
+      const currentScore = score(wholeNutrition(current, input.riceFood));
+      const usedIds = new Set(others.map((m) => m.rawCandidateId));
+      const usedSignatures = new Set(others.map((m) => signatures.get(m.rawCandidateId)));
+      const candidates = macroPool(input, slot, input.candidatesByType.get(slot.mealType) ?? [], others);
+      const index = candidates.findIndex((candidate) => {
+        if (
+          candidate.id !== current.rawCandidateId &&
+          (usedIds.has(candidate.id) || usedSignatures.has(candidate.contentSignature))
+        )
+          return false;
+        if (!recent.has(current.rawCandidateId) && recent.has(candidate.id)) return false;
+        if (
+          !candidate.applicableMealTypes.includes(slot.mealType) ||
+          !candidate.dietaryTags.includes(input.dietaryPreference)
+        )
+          return false;
+        if (
+          !candidate.nutrition ||
+          !candidate.ingredients.length ||
+          (input.reviewFreeBaseOnly && !candidate.reviewFreeBaseEligible)
+        )
+          return false;
+        if (
+          !validateGeneratedMealCandidate({
+            ingredients: candidate.ingredients,
+            dietaryPreference: input.dietaryPreference,
+            allergens: input.allergens,
+            customAllergies,
+          }).accepted
+        )
+          return false;
+        return (
+          score(wholeNutrition({ ...candidate.nutrition, pairedRiceG: candidate.pairedRiceG }, input.riceFood)) <
+          currentScore - 1e-6
+        );
+      });
+      if (index < 0) continue;
+      const candidate = candidates[index];
+      meals[i] = {
+        ...current,
+        rawCandidateId: candidate.id,
+        mealName: candidate.displayName,
+        description: sourceServingDescription(candidate),
+        ...candidate.nutrition!,
+        ingredients: candidate.ingredients.map((ingredient) => ({
+          ...ingredient,
+          foodItemId: ingredient.foodItemId ?? null,
+        })),
+        candidateRank: index + 1,
+        rankingScore: candidate._ranking.score,
+        rankingReasonCodes: candidate._ranking.reasonCodes,
+        servingScale: candidate.servingScale ?? 1,
+        pairedRiceG: candidate.pairedRiceG ?? null,
+      };
+      improved = true;
+    }
+    if (!improved) break;
+  }
+  return meals;
 }
 
 /** Fill only after all corpus pages have been checked for distinct recipes. */
@@ -410,7 +487,11 @@ export async function sourceRawRecipeCandidates(
     await Promise.all(requests);
     selected = select();
   }
-  if (selected.remainingSlots.length === 0) return selected;
+  if (selected.remainingSlots.length === 0)
+    return {
+      ...selected,
+      meals: refineRawRecipeDayMatches({ ...input, candidatesByType: candidatePools, selected: selected.meals }),
+    };
   const repeated = fillRepeatedRawRecipeSlots({
     ...input,
     slots: selected.remainingSlots,
@@ -418,7 +499,11 @@ export async function sourceRawRecipeCandidates(
     selected: selected.meals,
   });
   return {
-    meals: [...selected.meals, ...repeated.meals].sort(
+    meals: refineRawRecipeDayMatches({
+      ...input,
+      candidatesByType: candidatePools,
+      selected: [...selected.meals, ...repeated.meals],
+    }).sort(
       (a, b) =>
         a.dayNumber - b.dayNumber ||
         Object.values(MealType).indexOf(a.mealType) - Object.values(MealType).indexOf(b.mealType)

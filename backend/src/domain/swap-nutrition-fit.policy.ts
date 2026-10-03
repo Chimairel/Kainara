@@ -1,4 +1,30 @@
-import type { NutritionVector, PlanningMacroTargets } from './meal-macro-target.policy';
+import {
+  addNutrition,
+  mealMacroBudget,
+  zeroNutrition,
+  type NutritionVector,
+  type PlanningMacroTargets,
+} from './meal-macro-target.policy';
+
+/** Initial selection and final day refinement use the same objective as swaps.
+ * Before all slots exist, allocate the remaining budget instead of scoring
+ * missing meals as full-day nutrient deficits. */
+export function planningSlotNutritionScore(
+  target: PlanningMacroTargets | null | undefined,
+  mealType: string,
+  otherMeals: readonly (NutritionVector & { mealType: string })[]
+) {
+  const budget = mealMacroBudget(target ?? null, mealType, otherMeals);
+  if (!target || !budget) return undefined;
+  const complete = ['BREAKFAST', 'LUNCH', 'DINNER'].every(
+    (type) => type === mealType || otherMeals.some((m) => m.mealType === type)
+  );
+  const remaining = otherMeals.reduce(addNutrition, zeroNutrition());
+  return (replacement: NutritionVector) =>
+    complete
+      ? swapNutritionFitScore(addNutrition(remaining, replacement), target)
+      : swapNutritionFitScore(replacement, budget);
+}
 
 // Planning/display tolerances, never clinical clearance or swap admission rules.
 export const SWAP_MACRO_DISPLAY_TOLERANCE = 0.2;

@@ -1,5 +1,6 @@
 import { dailyTargetMap } from './meal-macro-context.service';
-import { mealMacroBudget, nutritionFitScore, type NutritionVector } from '@/domain/meal-macro-target.policy';
+import { mealMacroBudget, type NutritionVector } from '@/domain/meal-macro-target.policy';
+import { planningSlotNutritionScore } from '@/domain/swap-nutrition-fit.policy';
 import { savePreparedCorpusMeal } from './meal-plan-corpus-persistence.service';
 import { buildComposedServing, composedNutritionTotal, scaleFnriFoodToGrams } from '@/domain/composed-serving.policy';
 import { resolveRecipeRiceRole } from '@/domain/recipe-rice-role.policy';
@@ -200,6 +201,11 @@ export async function generate7DayPlan(
         slotType,
         selectedNutrition.filter((m) => m.dayNumber === day + 1)
       );
+      const scoreNutrition = planningSlotNutritionScore(
+        planningTargets,
+        slotType,
+        selectedNutrition.filter((m) => m.dayNumber === day + 1)
+      );
       // Filter in-memory verified library matches
       const matches = eligibleLibraryMeals.filter((meal) => {
         const previousDay = lastSelectedLibraryDay.get(meal.id);
@@ -232,6 +238,7 @@ export async function generate7DayPlan(
             riceFood: cookedRiceFood,
             allowPendingCaseReview: true,
             macroTarget,
+            scoreNutrition,
           }),
         ])
       );
@@ -259,9 +266,8 @@ export async function generate7DayPlan(
         .sort(
           (left, right) =>
             Number(caseReviewCandidateIds.has(left.meal.id)) - Number(caseReviewCandidateIds.has(right.meal.id)) ||
-            (macroTarget
-              ? nutritionFitScore(plateById.get(left.meal.id)!, macroTarget) -
-                nutritionFitScore(plateById.get(right.meal.id)!, macroTarget)
+            (scoreNutrition
+              ? scoreNutrition(plateById.get(left.meal.id)!) - scoreNutrition(plateById.get(right.meal.id)!)
               : 0) ||
             right.ranking.score - left.ranking.score ||
             left.meal.usageCount - right.meal.usageCount ||
