@@ -14,20 +14,19 @@ import PortalPageHeader from '@/components/shared/PortalPageHeader';
 import { showPendingReviewNoticeOnce, showStarterPlanNoticeOnce } from '@/features/meals/plan-status-notice';
 import StateNotice from '@/components/shared/StateNotice';
 import MealPlanGenerationProgress from '@/components/user/MealPlanGenerationProgress';
-import { MealPlan, MealType } from '@/types';
+import { MealPlan } from '@/types';
 import { getApiErrorMessage } from '@/lib/api-error';
 import { Calendar, Plus, AlertTriangle, ChevronLeft, ChevronRight } from 'lucide-react';
 import { formatManilaDate, getManilaDateKey } from '@/lib/manila-date';
 import type { UserProfileData } from '@/hooks/useProfile';
 import { CockpitDashboard } from '@/features/dashboard/CockpitDashboard';
 import { OutsideMealModal } from '@/features/dashboard/OutsideMealModal';
+import { useOutsideMealLog } from '@/features/dashboard/useOutsideMealLog';
 import {
   calculateDashboardMetrics,
   getDashboardCycleDates,
   type CycleMetaSnapshot,
   type OutsideMealLog,
-  type OutsideMealInputItem,
-  type OutsideMealWarning,
   type PendingReview,
 } from '@/features/dashboard/model';
 import { invalidateSessionResource, readSessionResource, writeSessionResource } from '@/lib/session-resource-cache';
@@ -160,19 +159,16 @@ export default function DashboardPage() {
     }
   }, [selectedDayOffset]);
 
-  // Outside Meal Modal State
-  const [isLogModalOpen, setIsLogModalOpen] = useState(false);
-  const [logMealName, setLogMealName] = useState('');
-  const [logMealType, setLogMealType] = useState<MealType>('BREAKFAST');
-  const [logNotes, setLogNotes] = useState('');
-  const [isLogging, setIsLogging] = useState(false);
-  const [logError, setLogError] = useState<string | null>(null);
-  const outsideMealRequestKey = useRef<string | null>(null);
-
-  // Warning Pre-check State
-  const [warningData, setWarningData] = useState<OutsideMealWarning | null>(null);
-  const [savedSafety, setSavedSafety] = useState<{ status: string; messages: string[] } | null>(null);
-  const outsideImageFile = useRef<File | null>(null);
+  const outsideLogsVersion = useRef(0);
+  const outsideLog = useOutsideMealLog((log) => {
+    outsideLogsVersion.current += 1;
+    setOutsideMealLogs((previous) => {
+      const next = [log, ...previous.filter((row) => row.id !== log.id)];
+      writeSessionResource(ownerId, 'dashboard-outside-meals', next);
+      return next;
+    });
+  }, ownerId);
+  const isLogging = outsideLog.isLoading;
 
   // Check-in status
 
@@ -243,11 +239,12 @@ export default function DashboardPage() {
   };
 
   const fetchOutsideMealLogs = useCallback(async () => {
+    const version = outsideLogsVersion.current;
     try {
       const res = await api.get('/user/meals/history', {
         params: { source: 'USER_LOGGED', status: 'DONE' },
       });
-      if (res.data?.success) {
+      if (res.data?.success && version === outsideLogsVersion.current) {
         const logs = Array.isArray(res.data.data) ? res.data.data : [];
         setOutsideMealLogs(logs);
         writeSessionResource(ownerId, 'dashboard-outside-meals', logs);
@@ -467,81 +464,6 @@ export default function DashboardPage() {
     }
   };
 
-  // Submits the outside meal log (handles precheck warning cascades)
-  const handleLogOutsideMeal = async (
-    forceAcknowledge = false,
-    options?: {
-      useAiEstimate: boolean;
-      items: OutsideMealInputItem[];
-      consumedAt?: string;
-      estimationContext?: string;
-      imageFile?: File | null;
-    }
-  ) => {
-    setLogError(null);
-    setIsLogging(true);
-    try {
-      if (!forceAcknowledge) outsideImageFile.current = options?.imageFile ?? null;
-      const res = await api.post('/user/meals/log-outside', {
-        mealName: logMealName.trim(),
-        items: forceAcknowledge ? undefined : options?.items,
-        mealType: logMealType,
-        useAiEstimate: forceAcknowledge ? undefined : options?.useAiEstimate,
-        requestKey: (outsideMealRequestKey.current ??= crypto.randomUUID()),
-        warningAcknowledged: forceAcknowledge,
-        confirmationId: forceAcknowledge ? warningData?.confirmationId : undefined,
-        notes: logNotes.trim(),
-        estimationContext: forceAcknowledge ? undefined : options?.estimationContext,
-        consumedAt: forceAcknowledge ? undefined : options?.consumedAt,
-      });
-
-      if (res.data && res.data.success) {
-        const payload = res.data.data;
-        if (payload.warningRequired) {
-          // Warning detected: trigger conflict view
-          setWarningData({
-            confirmationId: payload.confirmationId,
-            warnings: payload.warnings,
-            reasons: payload.reasons,
-            estimate: payload.estimate,
-            items: payload.items,
-            summary: payload.summary,
-            usedAi: payload.usedAi,
-          });
-        } else {
-          // The retrospective fact is committed before the safety follow-up.
-          let imageUploadFailed = false;
-          if (outsideImageFile.current && payload.log?.id) {
-            const form = new FormData();
-            form.append('image', outsideImageFile.current);
-            try {
-              await api.post(`/user/meals/logs/${payload.log.id}/image`, form);
-            } catch (imageError) {
-              imageUploadFailed = true;
-              setLogError(
-                getApiErrorMessage(imageError, 'Meal was saved, but the optional photo could not be attached.')
-              );
-            }
-          }
-          const followUp = payload.safetyFollowUp as { status: string; messages: string[] } | undefined;
-          if (followUp && followUp.status !== 'NO_KNOWN_CONFLICT') setSavedSafety(followUp);
-          else if (imageUploadFailed) setSavedSafety({ status: 'NO_KNOWN_CONFLICT', messages: [] });
-          else setIsLogModalOpen(false);
-          setLogMealName('');
-          setLogNotes('');
-          setWarningData(null);
-          outsideMealRequestKey.current = null;
-          outsideImageFile.current = null;
-          await Promise.all([fetchCurrentPlan(), fetchOutsideMealLogs()]);
-        }
-      }
-    } catch (err: unknown) {
-      setLogError(getApiErrorMessage(err, 'Failed to check outside meal.'));
-    } finally {
-      setIsLogging(false);
-    }
-  };
-
   if (isGenerating) {
     return (
       <MealPlanGenerationProgress
@@ -580,17 +502,6 @@ export default function DashboardPage() {
     };
   });
 
-  const closeOutsideMealModal = () => {
-    setIsLogModalOpen(false);
-    setWarningData(null);
-    setSavedSafety(null);
-    outsideImageFile.current = null;
-    outsideMealRequestKey.current = null;
-    setLogError(null);
-    setLogMealName('');
-    setLogNotes('');
-  };
-
   return (
     <div className="portal-page select-none pb-32 text-brand-text">
       <div className="mx-auto flex w-full max-w-7xl flex-col gap-6">
@@ -609,7 +520,7 @@ export default function DashboardPage() {
           description="Your meals, daily intake, and next steps — all in one place."
           actions={
             <div className="flex flex-wrap gap-2">
-              <Button variant="primary" onClick={() => setIsLogModalOpen(true)}>
+              <Button variant="primary" onClick={() => outsideLog.setIsOpen(true)}>
                 <Plus className="h-4 w-4" /> Log food or snack
               </Button>
               <Button variant="secondary" onClick={() => router.push('/meals')}>
@@ -812,25 +723,7 @@ export default function DashboardPage() {
         )}
       </div>
 
-      <OutsideMealModal
-        error={logError}
-        isLoading={isLogging}
-        isOpen={isLogModalOpen}
-        mealName={logMealName}
-        mealType={logMealType}
-        notes={logNotes}
-        onClose={closeOutsideMealModal}
-        onMealNameChange={setLogMealName}
-        onMealTypeChange={setLogMealType}
-        onNotesChange={setLogNotes}
-        onSubmit={handleLogOutsideMeal}
-        onWarningCancel={() => {
-          setWarningData(null);
-          outsideMealRequestKey.current = null;
-        }}
-        warning={warningData}
-        savedSafety={savedSafety}
-      />
+      <OutsideMealModal {...outsideLog} />
     </div>
   );
 }

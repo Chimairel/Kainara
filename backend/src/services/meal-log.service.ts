@@ -30,6 +30,7 @@ import {
 } from '@prisma/client';
 import { createHash, randomUUID } from 'node:crypto';
 import { MembershipService } from './membership.service';
+import { recalculateDailyNutritionLog } from './meal-swap-nutrition.service';
 import { membershipEnabled } from '@/domain/membership.policy';
 import { z } from 'zod';
 import { certifiedLibraryMealInclude, isCertifiedLibraryMealCompatible } from './meal-library-candidate-query.service';
@@ -269,6 +270,8 @@ export class MealLogService {
             });
           },
           {
+            maxWait: 10_000,
+            timeout: 30_000,
             isolationLevel: membershipEnabled()
               ? Prisma.TransactionIsolationLevel.ReadCommitted
               : Prisma.TransactionIsolationLevel.Serializable,
@@ -335,33 +338,44 @@ export class MealLogService {
           `This would bring today's recorded intake to ${Math.round(projectedCalories)} kcal, above the current ${user.userProfile.dailyCalorieTarget ?? 2_000} kcal target.`
         );
       }
-      const preview = await prisma.$transaction(async (tx) => {
-        const saved = await tx.outsideMealPreview.create({
-          data: {
-            userId: input.userId,
-            mealName: requested.map((item) => item.name).join(', '),
-            mealType: input.mealType,
-            estimate: summary.totals,
-            items: resolved as unknown as Prisma.InputJsonValue,
-            warnings,
-            reasons: warnings,
-            notes: input.notes,
-            estimationContext: input.estimationContext?.trim() || null,
-            loggedForAt: consumedAt,
-            requestPayloadHash: payloadHash,
-            requestKey: input.requestKey,
-            usedAi: resolved.some((item) => item.source === OutsideMealItemSource.GEMINI_ESTIMATED),
-            expiresAt: new Date(Date.now() + 20 * 60 * 1000),
-          },
-        });
-        if (membershipReservation && !membershipReservation.replayed)
-          await MembershipService.complete(membershipReservation.id, tx);
-        return saved;
-      });
+      const preview = await prisma.$transaction(
+        async (tx) => {
+          const saved = await tx.outsideMealPreview.create({
+            data: {
+              userId: input.userId,
+              mealName: requested.map((item) => item.name).join(', '),
+              mealType: input.mealType,
+              estimate: summary.totals,
+              items: resolved as unknown as Prisma.InputJsonValue,
+              warnings,
+              reasons: warnings,
+              notes: input.notes,
+              estimationContext: input.estimationContext?.trim() || null,
+              loggedForAt: consumedAt,
+              requestPayloadHash: payloadHash,
+              requestKey: input.requestKey,
+              usedAi: resolved.some((item) => item.source === OutsideMealItemSource.GEMINI_ESTIMATED),
+              expiresAt: new Date(Date.now() + 20 * 60 * 1000),
+            },
+          });
+          if (membershipReservation && !membershipReservation.replayed)
+            await MembershipService.complete(membershipReservation.id, tx);
+          return saved;
+        },
+        { maxWait: 10_000, timeout: 30_000 }
+      );
       return this.serializePreview(preview);
     } catch (error) {
       await MembershipService.release((membershipReservation as { id: string } | null)?.id);
       if (aiUsageId) await prisma.outsideMealAiUsage.deleteMany({ where: { id: aiUsageId, userId: input.userId } });
+      if (input.requestKey && error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+        const prior = await prisma.outsideMealPreview.findUnique({ where: { requestKey: input.requestKey } });
+        if (prior?.userId === input.userId && prior.requestPayloadHash === payloadHash) {
+          if (prior.consumedAt)
+            return this.commitPreview({ ...input, confirmationId: prior.id, warningAcknowledged: true });
+          if (prior.expiresAt > new Date()) return this.serializePreview(prior);
+        }
+      }
       throw error;
     }
   }
@@ -423,6 +437,19 @@ export class MealLogService {
             eligibleLibrary && item.mealLibraryId
               ? 'You adjusted the library serving or macros; these values are user-reported.'
               : 'User-reported nutrition-label or menu values; KAINARA has not independently verified them.',
+          ],
+        },
+        restrictions
+      );
+    }
+    if (library && item.portionGrams) {
+      return applySafetyWarnings(
+        {
+          ...emptyResolved(item),
+          mealLibraryId: library.id,
+          ingredients: library.ingredients.map((row) => row.ingredientName),
+          warnings: [
+            'A measured recipe portion needs nutrition for that amount. The saved recipe has no measured serving weight; its full-serving values cannot be used for these grams.',
           ],
         },
         restrictions
@@ -549,147 +576,168 @@ If grams or serving context are absent, estimate one typical consumed serving fo
     };
   }
 
-  private static async commitPreview(input: LogOutsideMealInput) {
+  private static async commitPreview(
+    input: LogOutsideMealInput,
+    attempt = 0
+  ): Promise<{
+    warningRequired: false;
+    log: Prisma.MealLogGetPayload<{ include: { outsideItems: true } }>;
+    summary: ReturnType<typeof summarizeOutsideMealNutrition>;
+    safetyFollowUp: unknown;
+    replayed: boolean;
+  }> {
     if (!input.confirmationId) throw new AppError('Preview confirmation is required.', 400, 'PREVIEW_REQUIRED');
-    return prisma.$transaction(
-      async (tx) => {
-        const previous = await tx.mealLog.findFirst({
-          where: { userId: input.userId, outsidePreviewId: input.confirmationId, source: MealLogSource.USER_LOGGED },
-          include: { outsideItems: true },
-        });
-        if (previous)
-          return {
-            warningRequired: false,
-            log: previous,
-            summary: summarizeOutsideMealNutrition(
-              previous.outsideItems.map((item) => ({
-                source: item.source,
-                nutritionStatus: item.nutritionStatus,
-                includedInTotals: item.includedInTotals,
-                calories: item.calories ?? 0,
-                proteinG: item.proteinG ?? 0,
-                carbsG: item.carbsG ?? 0,
-                fatG: item.fatG ?? 0,
-              }))
-            ),
-            safetyFollowUp: previous.outsideSafetyFollowUp,
-            replayed: true,
+    try {
+      return await prisma.$transaction(
+        async (tx) => {
+          const previous = await tx.mealLog.findFirst({
+            where: { userId: input.userId, outsidePreviewId: input.confirmationId, source: MealLogSource.USER_LOGGED },
+            include: { outsideItems: true },
+          });
+          if (previous)
+            return {
+              warningRequired: false,
+              log: previous,
+              summary: summarizeOutsideMealNutrition(
+                previous.outsideItems.map((item) => ({
+                  source: item.source,
+                  nutritionStatus: item.nutritionStatus,
+                  includedInTotals: item.includedInTotals,
+                  calories: item.calories ?? 0,
+                  proteinG: item.proteinG ?? 0,
+                  carbsG: item.carbsG ?? 0,
+                  fatG: item.fatG ?? 0,
+                }))
+              ),
+              safetyFollowUp: previous.outsideSafetyFollowUp,
+              replayed: true,
+            };
+          const preview = await tx.outsideMealPreview.findFirst({
+            where: { id: input.confirmationId, userId: input.userId, consumedAt: null, expiresAt: { gt: new Date() } },
+          });
+          if (!preview) throw new AppError('This preview expired or was already used.', 409, 'PREVIEW_EXPIRED_OR_USED');
+          if (input.requestKey && preview.requestKey !== input.requestKey)
+            throw new AppError('The confirmation does not match this preview.', 409, 'PREVIEW_KEY_MISMATCH');
+          const items = Array.isArray(preview.items) ? (preview.items as unknown as ResolvedItem[]) : [];
+          if (items.length === 0) throw new AppError('This preview has no item data.', 409, 'INVALID_PREVIEW');
+          const user = await tx.user.findUnique({
+            where: { id: input.userId },
+            include: { userProfile: true, healthConditions: true, allergies: true, safetyProfileEntries: true },
+          });
+          if (!user?.userProfile)
+            throw new AppError('Complete your profile before logging meals.', 422, 'PROFILE_REQUIRED');
+          const restrictions = adaptUserSafetyRestrictions({
+            safetyEntries: user.safetyProfileEntries,
+            healthConditions: user.healthConditions.map((row) => row.condition),
+            allergies: user.allergies.map((row) => row.allergen),
+            otherConditions: user.userProfile.otherConditions,
+            otherAllergies: user.userProfile.otherAllergies,
+          });
+          const committedItems = items.map((item) => applySafetyWarnings(item, restrictions));
+          const summary = summarizeOutsideMealNutrition(committedItems);
+          const conflicts = committedItems.filter(
+            (item) => item.compatibilityStatus === OutsideMealCompatibilityStatus.CONFLICT_DETECTED
+          );
+          const uncertain = committedItems.some(
+            (item) => item.compatibilityStatus !== OutsideMealCompatibilityStatus.NO_KNOWN_CONFLICT
+          );
+          const safetyFollowUp = {
+            status: conflicts.length ? 'CONFLICT_DETECTED' : uncertain ? 'INSUFFICIENT_EVIDENCE' : 'NO_KNOWN_CONFLICT',
+            messages: [...new Set(committedItems.flatMap((item) => item.warnings))],
           };
-        const preview = await tx.outsideMealPreview.findFirst({
-          where: { id: input.confirmationId, userId: input.userId, consumedAt: null, expiresAt: { gt: new Date() } },
-        });
-        if (!preview) throw new AppError('This preview expired or was already used.', 409, 'PREVIEW_EXPIRED_OR_USED');
-        if (input.requestKey && preview.requestKey !== input.requestKey)
-          throw new AppError('The confirmation does not match this preview.', 409, 'PREVIEW_KEY_MISMATCH');
-        const items = Array.isArray(preview.items) ? (preview.items as unknown as ResolvedItem[]) : [];
-        if (items.length === 0) throw new AppError('This preview has no item data.', 409, 'INVALID_PREVIEW');
-        const user = await tx.user.findUnique({
-          where: { id: input.userId },
-          include: { userProfile: true, healthConditions: true, allergies: true, safetyProfileEntries: true },
-        });
-        if (!user?.userProfile)
-          throw new AppError('Complete your profile before logging meals.', 422, 'PROFILE_REQUIRED');
-        const restrictions = adaptUserSafetyRestrictions({
-          safetyEntries: user.safetyProfileEntries,
-          healthConditions: user.healthConditions.map((row) => row.condition),
-          allergies: user.allergies.map((row) => row.allergen),
-          otherConditions: user.userProfile.otherConditions,
-          otherAllergies: user.userProfile.otherAllergies,
-        });
-        const committedItems = items.map((item) => applySafetyWarnings(item, restrictions));
-        const summary = summarizeOutsideMealNutrition(committedItems);
-        const conflicts = committedItems.filter(
-          (item) => item.compatibilityStatus === OutsideMealCompatibilityStatus.CONFLICT_DETECTED
-        );
-        const uncertain = committedItems.some(
-          (item) => item.compatibilityStatus !== OutsideMealCompatibilityStatus.NO_KNOWN_CONFLICT
-        );
-        const safetyFollowUp = {
-          status: conflicts.length ? 'CONFLICT_DETECTED' : uncertain ? 'INSUFFICIENT_EVIDENCE' : 'NO_KNOWN_CONFLICT',
-          messages: [...new Set(committedItems.flatMap((item) => item.warnings))],
-        };
-        const warnings = safetyFollowUp.messages;
-        const log = await tx.mealLog.create({
-          data: {
-            userId: input.userId,
-            outsidePreviewId: preview.id,
-            outsideSafetyFollowUp: safetyFollowUp,
-            source: MealLogSource.USER_LOGGED,
-            mealName: preview.mealName,
-            mealType: preview.mealType,
-            calories: summary.totals.calories,
-            proteinG: summary.totals.proteinG,
-            carbsG: summary.totals.carbsG,
-            fatG: summary.totals.fatG,
-            provisionalCalories: summary.provisionalCalories,
-            nutritionCompleteness: summary.completeness,
-            dataSource: dataSourceFor(items),
-            status: MealLogStatus.DONE,
-            warningType: warnings.length ? 'OUTSIDE_MEAL_REVIEW' : null,
-            warningShown: false,
-            warningAcknowledged: false,
-            notes: preview.notes,
-            estimationContext: preview.estimationContext,
-            loggedAt: preview.loggedForAt ?? new Date(),
-            outsideItems: {
-              create: committedItems.map((item, position) => ({
-                position,
-                name: item.name,
-                portionGrams: item.portionGrams,
-                source: item.source,
-                nutritionStatus: item.nutritionStatus,
-                compatibilityStatus: item.compatibilityStatus,
-                includedInTotals: item.includedInTotals,
-                calories: item.includedInTotals ? item.calories : null,
-                proteinG: item.includedInTotals ? item.proteinG : null,
-                carbsG: item.includedInTotals ? item.carbsG : null,
-                fatG: item.includedInTotals ? item.fatG : null,
-                calorieLow: item.calorieLow,
-                calorieHigh: item.calorieHigh,
-                foodItemId: item.foodItemId,
-                mealLibraryId: item.mealLibraryId,
-                ingredients: item.ingredients,
-                revisions: {
-                  create: {
-                    revision: 0,
-                    source: item.source,
-                    nutritionStatus: item.nutritionStatus,
-                    calories: item.includedInTotals ? item.calories : null,
-                    proteinG: item.includedInTotals ? item.proteinG : null,
-                    carbsG: item.includedInTotals ? item.carbsG : null,
-                    fatG: item.includedInTotals ? item.fatG : null,
-                    calorieLow: item.calorieLow,
-                    calorieHigh: item.calorieHigh,
-                    reason: 'Initial outside-meal record',
-                    snapshot: item as unknown as Prisma.InputJsonValue,
+          const warnings = safetyFollowUp.messages;
+          const log = await tx.mealLog.create({
+            data: {
+              userId: input.userId,
+              outsidePreviewId: preview.id,
+              outsideSafetyFollowUp: safetyFollowUp,
+              source: MealLogSource.USER_LOGGED,
+              mealName: preview.mealName,
+              mealType: preview.mealType,
+              calories: summary.totals.calories,
+              proteinG: summary.totals.proteinG,
+              carbsG: summary.totals.carbsG,
+              fatG: summary.totals.fatG,
+              provisionalCalories: summary.provisionalCalories,
+              nutritionCompleteness: summary.completeness,
+              dataSource: dataSourceFor(items),
+              status: MealLogStatus.DONE,
+              warningType: warnings.length ? 'OUTSIDE_MEAL_REVIEW' : null,
+              warningShown: false,
+              warningAcknowledged: false,
+              notes: preview.notes,
+              estimationContext: preview.estimationContext,
+              loggedAt: preview.loggedForAt ?? new Date(),
+              outsideItems: {
+                create: committedItems.map((item, position) => ({
+                  position,
+                  name: item.name,
+                  portionGrams: item.portionGrams,
+                  source: item.source,
+                  nutritionStatus: item.nutritionStatus,
+                  compatibilityStatus: item.compatibilityStatus,
+                  includedInTotals: item.includedInTotals,
+                  calories: item.includedInTotals ? item.calories : null,
+                  proteinG: item.includedInTotals ? item.proteinG : null,
+                  carbsG: item.includedInTotals ? item.carbsG : null,
+                  fatG: item.includedInTotals ? item.fatG : null,
+                  calorieLow: item.calorieLow,
+                  calorieHigh: item.calorieHigh,
+                  foodItemId: item.foodItemId,
+                  mealLibraryId: item.mealLibraryId,
+                  ingredients: item.ingredients,
+                  revisions: {
+                    create: {
+                      revision: 0,
+                      source: item.source,
+                      nutritionStatus: item.nutritionStatus,
+                      calories: item.includedInTotals ? item.calories : null,
+                      proteinG: item.includedInTotals ? item.proteinG : null,
+                      carbsG: item.includedInTotals ? item.carbsG : null,
+                      fatG: item.includedInTotals ? item.fatG : null,
+                      calorieLow: item.calorieLow,
+                      calorieHigh: item.calorieHigh,
+                      reason: 'Initial outside-meal record',
+                      snapshot: item as unknown as Prisma.InputJsonValue,
+                    },
                   },
-                },
-                ...(outsideReviewQueueReason(item)
-                  ? {
-                      review: {
-                        create: {
-                          queueReason: outsideReviewQueueReason(item),
-                          priority: outsideMealReviewPriority({
-                            compatibilityStatus: item.compatibilityStatus,
-                            warningCount: item.warnings.length,
-                            uncertaintyRatio:
-                              item.calories > 0 && item.calorieHigh !== null && item.calorieLow !== null
-                                ? (item.calorieHigh - item.calorieLow) / item.calories
-                                : null,
-                          }),
+                  ...(outsideReviewQueueReason(item)
+                    ? {
+                        review: {
+                          create: {
+                            queueReason: outsideReviewQueueReason(item),
+                            priority: outsideMealReviewPriority({
+                              compatibilityStatus: item.compatibilityStatus,
+                              warningCount: item.warnings.length,
+                              uncertaintyRatio:
+                                item.calories > 0 && item.calorieHigh !== null && item.calorieLow !== null
+                                  ? (item.calorieHigh - item.calorieLow) / item.calories
+                                  : null,
+                            }),
+                          },
                         },
-                      },
-                    }
-                  : {}),
-              })),
+                      }
+                    : {}),
+                })),
+              },
             },
-          },
-          include: { outsideItems: true },
-        });
-        await tx.outsideMealPreview.update({ where: { id: preview.id }, data: { consumedAt: new Date() } });
-        return { warningRequired: false, log, summary, safetyFollowUp, replayed: false };
-      },
-      { isolationLevel: Prisma.TransactionIsolationLevel.Serializable, maxWait: 15_000, timeout: 60_000 }
-    );
+            include: { outsideItems: true },
+          });
+          await recalculateDailyNutritionLog(input.userId, log.loggedAt, tx);
+          await tx.outsideMealPreview.update({ where: { id: preview.id }, data: { consumedAt: new Date() } });
+          return { warningRequired: false, log, summary, safetyFollowUp, replayed: false };
+        },
+        { isolationLevel: Prisma.TransactionIsolationLevel.Serializable, maxWait: 15_000, timeout: 60_000 }
+      );
+    } catch (error) {
+      if (
+        attempt < 2 &&
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        (error.code === 'P2034' || error.code === 'P2002')
+      ) {
+        return this.commitPreview(input, attempt + 1);
+      }
+      throw error;
+    }
   }
 }

@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { randomUUID } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import {
   MealType,
   OutsideMealCompatibilityStatus,
@@ -9,6 +9,9 @@ import {
 import prisma from '../src/lib/prisma';
 import { AppError } from '../src/errors/AppError';
 import { MealLogService } from '../src/services/meal-log.service';
+import { OutsideMealCaptureService } from '../src/services/outside-meal-capture.service';
+import { getManilaDateKey, getManilaMidnight } from '../src/domain/meal-plan-cycle.policy';
+import { MEAL_LIBRARY_SAFETY_POLICY_VERSION } from '../src/domain/meal-library-safety-evidence.policy';
 import { OutsideMealReviewService } from '../src/services/outside-meal-review.service';
 
 type LogResult = Awaited<ReturnType<typeof MealLogService.logOutsideMeal>>;
@@ -149,6 +152,11 @@ async function main(): Promise<void> {
   assert.equal(preview.summary.totals.calories, 445);
   assert.equal(preview.summary.unresolvedItemCount, 1);
   assert.equal(preview.summary.provisionalCalories, 445);
+  const parallelInputs = { ...input, requestKey: `outside-parallel:${run}` };
+  const parallelPreviews = await Promise.all([1, 2].map(() => MealLogService.logOutsideMeal(parallelInputs)));
+  assertPreview(parallelPreviews[0]);
+  assertPreview(parallelPreviews[1]);
+  assert.equal(parallelPreviews[0].confirmationId, parallelPreviews[1].confirmationId);
   const replay = await MealLogService.logOutsideMeal(input);
   assertPreview(replay);
   assert.equal(replay.confirmationId, preview.confirmationId);
@@ -162,6 +170,20 @@ async function main(): Promise<void> {
       }),
     'REQUEST_KEY_COLLISION'
   );
+
+  const nutritionDay = getManilaMidnight(getManilaDateKey(new Date()));
+  await prisma.dailyNutritionLog.create({
+    data: {
+      userId: user.id,
+      logDate: nutritionDay,
+      totalCalories: 0,
+      totalProteinG: 0,
+      totalCarbsG: 0,
+      totalFatG: 0,
+      targetCalories: 2780,
+      adherencePct: 0,
+    },
+  });
 
   const committed = await MealLogService.logOutsideMeal({
     userId: user.id,
@@ -198,6 +220,157 @@ async function main(): Promise<void> {
         includedInTotals: true,
       },
     })
+  );
+
+  const daily = await prisma.dailyNutritionLog.findUniqueOrThrow({
+    where: { userId_logDate: { userId: user.id, logDate: nutritionDay } },
+  });
+  assert.equal(daily.totalCalories, 445, 'Saving must update the existing daily summary');
+  const concurrentPreview = await MealLogService.logOutsideMeal({
+    userId: user.id,
+    mealType: MealType.SNACK,
+    items: [{ name: 'Concurrent label', reportedNutrition: { calories: 100, proteinG: 5, carbsG: 15, fatG: 2 } }],
+  });
+  assertPreview(concurrentPreview);
+  const concurrent = await Promise.all(
+    [1, 2].map(() =>
+      MealLogService.logOutsideMeal({
+        userId: user.id,
+        mealType: MealType.SNACK,
+        warningAcknowledged: true,
+        confirmationId: concurrentPreview.confirmationId,
+      })
+    )
+  );
+  const committedConcurrent = concurrent.map((result) => {
+    assertCommit(result);
+    return result;
+  });
+  assert.equal(
+    committedConcurrent[0].log.id,
+    committedConcurrent[1].log.id,
+    'Concurrent confirmations must converge on one saved log'
+  );
+  assert.equal(await prisma.mealLog.count({ where: { outsidePreviewId: concurrentPreview.confirmationId } }), 1);
+  const itemToRename = committedConcurrent[0].log.outsideItems[0];
+  await OutsideMealCaptureService.editItem(user.id, committedConcurrent[0].log.id, itemToRename.id, {
+    name: 'Corrected label',
+    reportedNutrition: { calories: 120, proteinG: 5, carbsG: 20, fatG: 2 },
+  });
+  assert.equal(
+    (await prisma.mealLog.findUniqueOrThrow({ where: { id: committedConcurrent[0].log.id } })).mealName,
+    'Corrected label'
+  );
+  await OutsideMealCaptureService.voidLog(user.id, committedConcurrent[0].log.id, 'Synthetic duplicate test cleanup');
+  assert.equal(
+    (
+      await prisma.dailyNutritionLog.findUniqueOrThrow({
+        where: { userId_logDate: { userId: user.id, logDate: nutritionDay } },
+      })
+    ).totalCalories,
+    445
+  );
+
+  const dishFood = await prisma.foodItem.create({
+    data: {
+      name: `Synthetic chicken composition ${run}`,
+      category: 'Meat',
+      source: 'FNRI',
+      calories: 130,
+      proteinG: 2.7,
+      carbsG: 28,
+      fatG: 0.3,
+    },
+  });
+  const library = await prisma.mealLibrary.create({
+    data: {
+      mealName: `Synthetic certified chicken ${run}`,
+      mealType: 'LUNCH',
+      calories: 130,
+      proteinG: 2.7,
+      carbsG: 28,
+      fatG: 0.3,
+      sodiumMg: 1,
+      dietaryTags: ['OMNIVORE'],
+      recipeSignature: createHash('sha256').update(run).digest('hex'),
+      status: 'APPROVED',
+      verifiedByNutritionistId: nutritionists[0].id,
+      safetyReviewedByNutritionistId: nutritionists[0].id,
+      safetyEvidenceStatus: 'COMPLETE',
+      safetyEvidenceOrigin: 'NUTRITIONIST_REVIEW',
+      nutritionEvidenceSource: 'FNRI_RECONCILED',
+      safetyEvidenceRevision: 1,
+      certifiedEvidenceRevision: 1,
+      safetyPolicyVersion: MEAL_LIBRARY_SAFETY_POLICY_VERSION,
+      safetyReviewedAt: new Date(),
+      conditionDeclarationState: 'REVIEWED_NONE_DECLARED',
+      allergenDeclarationState: 'REVIEWED_NONE_DECLARED',
+      crossContactAssessment: 'ASSESSED_NO_KNOWN_RISK',
+      riceRole: 'PAIR_WITH_RICE',
+      riceRoleReviewStatus: 'REVIEWED',
+      ingredients: {
+        create: {
+          position: 0,
+          ingredientName: dishFood.name,
+          foodItemId: dishFood.id,
+          dataSource: 'FNRI',
+          quantity: 100,
+          unit: 'g',
+        },
+      },
+    },
+  });
+  const fullServing = await MealLogService.logOutsideMeal({
+    userId: user.id,
+    mealType: MealType.LUNCH,
+    items: [{ name: library.mealName, mealLibraryId: library.id }],
+  });
+  assertPreview(fullServing);
+  assert.equal(fullServing.items[0].source, 'VERIFIED_LIBRARY');
+  const measuredServing = await MealLogService.logOutsideMeal({
+    userId: user.id,
+    mealType: MealType.LUNCH,
+    items: [{ name: library.mealName, mealLibraryId: library.id, portionGrams: 50 }],
+  });
+  assertPreview(measuredServing);
+  assert.equal(
+    measuredServing.items[0].includedInTotals,
+    false,
+    'Unknown recipe weight must not use full-serving values'
+  );
+  assert.equal(measuredServing.items[0].source, 'UNRESOLVED');
+  await prisma.foodItem.upsert({
+    where: { source_sourceRecordId: { source: 'FNRI', sourceRecordId: 'synthetic-rice' } },
+    update: {},
+    create: {
+      name: 'Rice, well-milled, boiled',
+      source: 'FNRI',
+      sourceRecordId: 'synthetic-rice',
+      calories: 130,
+      proteinG: 2.7,
+      carbsG: 28,
+      fatG: 0.3,
+    },
+  });
+  const suggestions = await OutsideMealCaptureService.suggestions(user.id, 'Synthetic certified');
+  const suggested = [...suggestions.eligible, ...suggestions.otherKnown].find((item) => item.id === library.id) as
+    { riceReference?: unknown; ricePairing?: string } | undefined;
+  assert.ok(suggested?.riceReference, 'Outside capture must receive the saved rice pairing and composition');
+  assert.equal(suggested.ricePairing, 'ULAM');
+  const paired = await MealLogService.logOutsideMeal({
+    userId: user.id,
+    mealType: MealType.LUNCH,
+    items: [
+      { name: library.mealName, mealLibraryId: library.id },
+      { name: 'Rice, well-milled, boiled', portionGrams: 75 },
+    ],
+  });
+  assertPreview(paired);
+  assert.equal(paired.summary.totals.calories, 227.5);
+  assert.equal(
+    await prisma.mealLibrary.count({ where: { mealName: library.mealName } }),
+    1,
+    'Adding rice must not create a library recipe'
   );
 
   const aiPreview = await prisma.outsideMealPreview.create({
@@ -324,6 +497,10 @@ async function main(): Promise<void> {
       provisionalCaloriesBeforeReview: 410,
       correctedCaloriesAfterReview: 330,
       notifications: 1,
+      concurrentConfirmations: true,
+      currentDailySummary: true,
+      measuredRecipeExcludedWithoutWeight: true,
+      savedRicePairing: true,
       geminiCalls,
       geminiProviderAttempts,
     })

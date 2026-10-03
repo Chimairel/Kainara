@@ -8,6 +8,7 @@ import {
   Prisma,
 } from '@prisma/client';
 import prisma from '@/lib/prisma';
+import { resolveRecipeRiceRole } from '@/domain/recipe-rice-role.policy';
 import { AppError } from '@/errors/AppError';
 import {
   assertValidOutsideMealMacros,
@@ -68,6 +69,7 @@ async function summarizeAndPersist(tx: Prisma.TransactionClient, logId: string) 
     where: { id: logId },
     data: {
       ...summary.totals,
+      mealName: items.map((item) => item.name).join(', '),
       provisionalCalories: summary.provisionalCalories,
       nutritionCompleteness: summary.completeness,
       dataSource: aggregateSource(items),
@@ -106,7 +108,29 @@ export class OutsideMealCaptureService {
       search: query,
       limit: 8,
     });
+    const rice = await prisma.foodItem.findFirst({
+      where: { source: 'FNRI', name: { equals: 'Rice, well-milled, boiled', mode: 'insensitive' } },
+      select: { id: true, sourceRecordId: true, name: true, calories: true, proteinG: true, carbsG: true, fatG: true },
+    });
+    const riceMetadata = (meal: Parameters<typeof resolveRecipeRiceRole>[0]) => {
+      const role = resolveRecipeRiceRole(meal).riceRole;
+      const ricePairing =
+        role === 'PAIR_WITH_RICE' ? 'ULAM' : role === 'INCLUDES_RICE' ? 'RICE_INCLUDED' : 'STANDALONE';
+      return {
+        ricePairing,
+        ...(rice && role === 'PAIR_WITH_RICE'
+          ? {
+              riceReference: {
+                fnriCode: rice.sourceRecordId ?? rice.id,
+                name: rice.name,
+                per100g: { calories: rice.calories, proteinG: rice.proteinG, carbsG: rice.carbsG, fatG: rice.fatG },
+              },
+            }
+          : {}),
+      };
+    };
     const eligible = eligiblePage.items.map((meal) => ({
+      ...riceMetadata(meal),
       kind: 'ELIGIBLE_LIBRARY',
       id: meal.id,
       name: meal.mealName,
@@ -129,6 +153,14 @@ export class OutsideMealCaptureService {
           carbsG: true,
           fatG: true,
           nutritionServingDescription: true,
+          riceRole: true,
+          riceRoleReviewStatus: true,
+          includedRiceG: true,
+          riceMinHalfCups: true,
+          riceMaxHalfCups: true,
+          ingredients: {
+            select: { ingredientName: true, quantity: true, unit: true, foodItem: { select: { name: true } } },
+          },
         },
         orderBy: { mealName: 'asc' },
         take: 8,
@@ -166,6 +198,7 @@ export class OutsideMealCaptureService {
         const dietaryConflict =
           user.userProfile?.dietaryPreference && !tags.includes(user.userProfile.dietaryPreference);
         return {
+          ...riceMetadata(meal),
           kind: 'KNOWN_CATALOG',
           id: meal.id,
           name: meal.mealName,
@@ -249,7 +282,7 @@ export class OutsideMealCaptureService {
         }).status;
         const includedInTotals = Boolean(input.reportedNutrition);
         const source =
-          includedInTotals && item.mealLibraryId
+          includedInTotals && input.name === item.name && item.mealLibraryId
             ? OutsideMealItemSource.USER_ADJUSTED_LIBRARY
             : includedInTotals
               ? OutsideMealItemSource.USER_REPORTED
@@ -264,6 +297,8 @@ export class OutsideMealCaptureService {
           nutritionStatus,
           compatibilityStatus,
           ingredients,
+          mealLibraryId: input.name === item.name ? item.mealLibraryId : null,
+          foodItemId: input.name === item.name ? item.foodItemId : null,
           includedInTotals,
           calories: input.reportedNutrition?.calories ?? null,
           proteinG: input.reportedNutrition?.proteinG ?? null,

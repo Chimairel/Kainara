@@ -3,6 +3,7 @@ import type { PendingMealPreview } from '@/components/user/PendingMealPreviewCar
 import { getManilaDateKey, addCalendarDays, manilaDateFromKey } from '@/lib/manila-date';
 
 export interface OutsideMealLog {
+  id?: string;
   loggedAt: string;
   status: string;
   calories: number;

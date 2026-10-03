@@ -29,8 +29,8 @@ export default function PreviewConfirmation(props: Props & { warning: OutsideMea
         </div>
         {summary.provisionalItemCount > 0 && (
           <p className="mt-3 text-xs font-semibold text-status-pending-text">
-            {Math.round(summary.provisionalCalories)} kcal is provisional and will update automatically after
-            nutritionist review.
+            {Math.round(summary.provisionalCalories)} kcal is provisional and will update automatically after any
+            nutritionist correction. These values have not been independently confirmed.
           </p>
         )}
       </div>
@@ -100,7 +100,7 @@ export default function PreviewConfirmation(props: Props & { warning: OutsideMea
           variant="primary"
           className="flex-1 text-xs font-bold"
           onClick={() => props.onSubmit(true)}
-          isLoading={props.isLoading}
+          disabled={props.isLoading}
         >
           Confirm and log
         </Button>

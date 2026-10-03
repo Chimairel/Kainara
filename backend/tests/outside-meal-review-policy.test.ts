@@ -71,3 +71,8 @@ test('[BATCH-8] clarification replies are bounded and cannot be blank', () => {
   assert.equal(outsideMealReplySchema.safeParse({ message: 'One packet, with sauce.' }).success, true);
   assert.equal(outsideMealReplySchema.safeParse({ message: 'x'.repeat(1001) }).success, false);
 });
+
+test('zero calorie records with nonzero macro energy require review', () => {
+  assert.equal(outsideReviewQueueReason({ ...ordinary, calories: 0 }, false), 'IMPLAUSIBLE_VALUES');
+  assert.equal(outsideReviewQueueReason({ ...ordinary, calories: 0, proteinG: 0, carbsG: 0, fatG: 0 }, false), null);
+});

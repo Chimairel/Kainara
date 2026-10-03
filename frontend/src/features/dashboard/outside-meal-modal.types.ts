@@ -10,7 +10,6 @@ export type SubmitOptions = {
 };
 
 export type OutsideMealModalProps = {
-  error: string | null;
   isLoading: boolean;
   isOpen: boolean;
   mealName: string;
@@ -23,5 +22,4 @@ export type OutsideMealModalProps = {
   onSubmit: (acknowledgePreview: boolean, options?: SubmitOptions) => void;
   onWarningCancel: () => void;
   warning: OutsideMealWarning | null;
-  savedSafety?: { status: string; messages: string[] } | null;
 };

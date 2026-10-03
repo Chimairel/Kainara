@@ -1,9 +1,11 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import React from 'react';
+import { waitFor, act } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { OutsideMealModal } from './OutsideMealModal';
 import api from '@/lib/axios';
 
+vi.mock('sonner', () => ({ toast: { error: vi.fn() } }));
 vi.mock('@/lib/axios', () => ({
   default: {
     get: vi.fn(),
@@ -100,8 +102,9 @@ describe('OutsideMealModal', () => {
     fireEvent.change(screen.getByLabelText('Approximate portion in grams (optional)'), {
       target: { value: '250' },
     });
-    const [, calories] = screen.getAllByRole('spinbutton');
+    const [, calories, protein, carbs, fat] = screen.getAllByRole('spinbutton');
     fireEvent.change(calories, { target: { value: '400' } });
+    for (const input of [protein, carbs, fat]) fireEvent.change(input, { target: { value: '0' } });
     fireEvent.click(screen.getByRole('button', { name: /LOG THIS FOOD/i }));
     expect(onSubmit).toHaveBeenCalledWith(
       false,
@@ -223,5 +226,84 @@ describe('OutsideMealModal', () => {
         items: [{ name: 'Rice, well-milled, boiled', portionGrams: 150 }],
       })
     );
+  });
+
+  it('keeps manually entered values when returning from the review preview', () => {
+    const { rerender } = render(<OutsideMealModal {...defaultProps} />);
+    fireEvent.change(screen.getAllByRole('spinbutton')[1], { target: { value: '400' } });
+    const warning = {
+      confirmationId: 'preview',
+      estimate: { calories: 400, proteinG: 0, carbsG: 0, fatG: 0 },
+      items: [],
+      warnings: [],
+      reasons: [],
+      summary: {
+        provisionalCalories: 400,
+        provisionalItemCount: 1,
+        unresolvedItemCount: 0,
+        completeness: 'COMPLETE' as const,
+      },
+      usedAi: false,
+    };
+    rerender(<OutsideMealModal {...defaultProps} warning={warning} />);
+    expect(screen.queryByLabelText('Food or Meal Eaten (required)')).not.toBeVisible();
+    rerender(<OutsideMealModal {...defaultProps} />);
+    expect(screen.getAllByRole('spinbutton')[1]).toHaveValue(400);
+  });
+
+  it('ignores an older autocomplete response after the query changes', async () => {
+    let finishOld!: (value: unknown) => void;
+    vi.mocked(api.get).mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          finishOld = resolve;
+        }) as never
+    );
+    vi.mocked(api.get).mockResolvedValueOnce({
+      data: {
+        success: true,
+        data: {
+          eligible: [{ kind: 'RAW_RECIPE', id: 'new', name: 'New food', label: 'Known recipe' }],
+          otherKnown: [],
+        },
+      },
+    } as never);
+    render(<OutsideMealModal {...defaultProps} />);
+    const input = screen.getByLabelText('Food or Meal Eaten (required)');
+    fireEvent.change(input, { target: { value: 'old' } });
+    await waitFor(() => expect(api.get).toHaveBeenCalledTimes(1));
+    fireEvent.change(input, { target: { value: 'new' } });
+    expect(await screen.findByText('New food')).toBeVisible();
+    await act(async () =>
+      finishOld({
+        data: {
+          success: true,
+          data: {
+            eligible: [{ kind: 'RAW_RECIPE', id: 'old', name: 'Old food', label: 'Known recipe' }],
+            otherKnown: [],
+          },
+        },
+      })
+    );
+    expect(screen.queryByText('Old food')).not.toBeInTheDocument();
+    expect(screen.getByText('New food')).toBeVisible();
+  });
+
+  it('does not manufacture zero macros from blank nutrition fields', () => {
+    const onSubmit = vi.fn();
+    render(<OutsideMealModal {...defaultProps} onSubmit={onSubmit} />);
+    fireEvent.change(screen.getAllByRole('spinbutton')[1], { target: { value: '400' } });
+    fireEvent.click(screen.getByRole('button', { name: /LOG THIS FOOD/i }));
+    expect(onSubmit).not.toHaveBeenCalled();
+  });
+
+  it('disables form controls and uses no second submission spinner while saving', () => {
+    const onSubmit = vi.fn();
+    render(<OutsideMealModal {...defaultProps} isLoading onSubmit={onSubmit} />);
+    expect(screen.getByRole('button', { name: /LOG THIS FOOD/i })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Breakfast', exact: true })).toBeDisabled();
+    expect(screen.queryByText('Processing...')).not.toBeInTheDocument();
+    fireEvent.submit(screen.getByRole('button', { name: /LOG THIS FOOD/i }).closest('form')!);
+    expect(onSubmit).not.toHaveBeenCalled();
   });
 });
