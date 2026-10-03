@@ -9,6 +9,7 @@ import {
   writeSessionResource,
 } from '@/lib/session-resource-cache';
 import { refreshMealsWorkspace } from './meal-workspace-resource';
+import { AxiosError } from 'axios';
 import type { MealPlan } from '@/types';
 import type { SwapOption } from './meals-workspace.types';
 
@@ -86,12 +87,15 @@ describe('useMealsWorkspace', () => {
     expect(readSessionResource('user-1', 'user-meals-workspace')).toEqual(newest);
   });
 
-  it('rejects an invalidated preload instead of displaying stale meals or a generation state', async () => {
+  it('retries an invalidated preload without displaying stale meals, generation state or a transient error', async () => {
     let finish!: (value: unknown) => void;
+    let finishRetry!: (value: unknown) => void;
+    let reads = 0;
     getMock.mockImplementation((url: string) =>
       url === '/user/meals/workspace'
         ? new Promise((resolve) => {
-            finish = resolve;
+            if (++reads === 1) finish = resolve;
+            else finishRetry = resolve;
           })
         : Promise.resolve(successfulResponseFor(url))
     );
@@ -103,8 +107,12 @@ describe('useMealsWorkspace', () => {
       await preload;
     });
     expect(result.current.meals).toEqual([]);
-    expect(result.current.error).toBeTruthy();
+    expect(result.current.error).toBeNull();
+    expect(result.current.isLoading).toBe(true);
     expect(readSessionResource('user-1', 'user-meals-workspace')).toBeNull();
+    await act(async () => finishRetry({ data: { success: true, data: [{ id: 'fresh' }], meta: {} } }));
+    expect(result.current.meals).toEqual([{ id: 'fresh' }]);
+    expect(result.current.error).toBeNull();
   });
 
   it('honors an explicit replacement even when every old meal was hidden, and coalesces repeated clicks', async () => {
@@ -208,7 +216,176 @@ describe('useMealsWorkspace', () => {
     return mounted;
   }
 
-  it('blocks duplicate submissions and announces success before a slow plan refresh finishes', async () => {
+  const updatedMeal = { id: 'slot', mealName: 'Replacement meal', scheduledDate: '2026-10-03' };
+  const updatedResponse = { data: { success: true, data: [updatedMeal], meta: {} } };
+
+  it('makes overlapping plan refresh callers wait for the same read', async () => {
+    const { result } = await prepareSwap();
+    let finish!: (value: unknown) => void;
+    getMock.mockImplementation((url: string) =>
+      url === '/user/meals/workspace'
+        ? new Promise((resolve) => {
+            finish = resolve;
+          })
+        : Promise.resolve(successfulResponseFor(url))
+    );
+    let first!: Promise<void>;
+    let second!: Promise<void>;
+    let returnedEarly = false;
+    act(() => {
+      first = result.current.retryPlanLoad();
+      second = result.current.retryPlanLoad().then(() => {
+        returnedEarly = true;
+      });
+    });
+    await act(async () => {
+      await Promise.resolve();
+    });
+    expect(returnedEarly).toBe(false);
+    await act(async () => {
+      finish(updatedResponse);
+      await Promise.all([first, second]);
+    });
+    expect(result.current.meals).toEqual([updatedMeal]);
+  });
+
+  it.each(['success', 'failure'])(
+    'ignores a pre-swap background read ending in %s while the committed swap refresh runs',
+    async (outcome) => {
+      const { result } = await prepareSwap();
+      let finishOld!: (value: unknown) => void;
+      let failOld!: (reason: unknown) => void;
+      let finishFresh!: (value: unknown) => void;
+      let reads = 0;
+      getMock.mockImplementation((url: string) =>
+        url === '/user/meals/workspace'
+          ? new Promise((resolve, reject) => {
+              if (++reads === 1) {
+                finishOld = resolve;
+                failOld = reject;
+              } else finishFresh = resolve;
+            })
+          : Promise.resolve(successfulResponseFor(url))
+      );
+      let oldRead!: Promise<void>;
+      act(() => {
+        oldRead = result.current.retryPlanLoad();
+      });
+      postMock.mockResolvedValueOnce({ data: { success: true, data: { swapsRemaining: 5 } } });
+      let swap!: Promise<void>;
+      act(() => {
+        swap = result.current.handleConfirmSwapAnyway();
+      });
+      await waitFor(() => expect(reads).toBe(2));
+      await act(async () => {
+        if (outcome === 'success') finishOld({ data: { success: true, data: [{ id: 'old' }], meta: {} } });
+        else failOld(new Error('Old request failed'));
+        await oldRead;
+      });
+      expect(result.current.error).toBeNull();
+      expect(result.current.isSwapping).toBe(true);
+      expect(result.current.meals).not.toEqual([{ id: 'old' }]);
+      await act(async () => {
+        finishFresh(updatedResponse);
+        await swap;
+      });
+      expect(result.current.meals).toEqual([updatedMeal]);
+      expect(result.current.error).toBeNull();
+      expect(postMock).toHaveBeenCalledTimes(1);
+      expect(toastMock.error).not.toHaveBeenCalled();
+    }
+  );
+
+  it.each(['live invalidation', 'network timeout'])(
+    'recovers a post-swap %s without an error flash or another swap',
+    async (failure) => {
+      const { result } = await prepareSwap();
+      let finishFirst!: (value: unknown) => void;
+      let failFirst!: (reason: unknown) => void;
+      let finishRetry!: (value: unknown) => void;
+      let reads = 0;
+      getMock.mockImplementation((url: string) =>
+        url === '/user/meals/workspace'
+          ? new Promise((resolve, reject) => {
+              if (++reads === 1) {
+                finishFirst = resolve;
+                failFirst = reject;
+              } else finishRetry = resolve;
+            })
+          : Promise.resolve(successfulResponseFor(url))
+      );
+      postMock.mockResolvedValueOnce({ data: { success: true } });
+      let swap!: Promise<void>;
+      act(() => {
+        swap = result.current.handleConfirmSwapAnyway();
+      });
+      await waitFor(() => expect(reads).toBe(1));
+      await act(async () => {
+        if (failure === 'live invalidation') {
+          invalidateSessionResource('user-1', 'user-meals-workspace');
+          finishFirst({ data: { success: true, data: [{ id: 'superseded' }], meta: {} } });
+        } else failFirst(new AxiosError('timeout', 'ECONNABORTED'));
+      });
+      expect(reads).toBe(2);
+      expect(result.current.error).toBeNull();
+      expect(result.current.isSwapping).toBe(true);
+      expect(toastMock.error).not.toHaveBeenCalled();
+      await act(async () => {
+        finishRetry(updatedResponse);
+        await swap;
+      });
+      expect(result.current.meals).toEqual([updatedMeal]);
+      expect(postMock).toHaveBeenCalledTimes(1);
+      expect(toastMock.success).toHaveBeenCalled();
+    }
+  );
+
+  it('reports a persistently failed refresh as a saved swap, without resubmitting it', async () => {
+    const { result } = await prepareSwap();
+    getMock.mockImplementation(async (url: string) => {
+      if (url === '/user/meals/workspace') throw new AxiosError('timeout', 'ECONNABORTED');
+      return successfulResponseFor(url);
+    });
+    getMock.mockClear();
+    postMock.mockResolvedValueOnce({ data: { success: true } });
+    await act(async () => result.current.handleConfirmSwapAnyway());
+    expect(getMock.mock.calls.filter(([url]) => url === '/user/meals/workspace')).toHaveLength(2);
+    expect(postMock).toHaveBeenCalledTimes(1);
+    expect(result.current.error).toContain('Meal swapped');
+    expect(result.current.activeSwapMeal).toBeNull();
+    expect(result.current.isSwapping).toBe(false);
+    expect(toastMock.error).toHaveBeenCalledWith('Meal swapped; plan refresh unavailable', expect.anything());
+    expect(toastMock.error).not.toHaveBeenCalledWith('Could not confirm meal swap', expect.anything());
+  });
+
+  it.each(['CLINICAL_EVIDENCE_REQUIRED', 'PROFILE_REVIEW_REQUIRED'])(
+    'preserves the %s gate on a post-swap read without retrying it',
+    async (errorCode) => {
+      const { result } = await prepareSwap();
+      getMock.mockImplementation(async (url: string) => {
+        if (url === '/user/meals/workspace')
+          throw Object.assign(new AxiosError('gate'), {
+            response: { status: 403, data: { errorCode, error: 'Review required' } },
+          });
+        return successfulResponseFor(url);
+      });
+      getMock.mockClear();
+      postMock.mockResolvedValueOnce({ data: { success: true } });
+      await act(async () => result.current.handleConfirmSwapAnyway());
+      expect(getMock.mock.calls.filter(([url]) => url === '/user/meals/workspace')).toHaveLength(1);
+      expect(result.current.meals).toEqual([]);
+      expect(result.current.cycles).toBeNull();
+      expect(
+        errorCode === 'CLINICAL_EVIDENCE_REQUIRED'
+          ? result.current.clinicalEvidenceRequired
+          : result.current.profileReviewRequired
+      ).toBe(true);
+      expect(readSessionResource('user-1', 'user-meals-workspace')).toBeNull();
+      expect(result.current.error).toBeTruthy();
+    }
+  );
+
+  it('blocks duplicate submissions and keeps one toast pending until the fresh plan is displayed', async () => {
     const { result } = await prepareSwap();
     let finishPost!: (value: unknown) => void;
     let finishRead!: (value: unknown) => void;
@@ -237,19 +414,21 @@ describe('useMealsWorkspace', () => {
     expect(toastMock.loading).toHaveBeenCalledWith('Swapping meal…', expect.anything());
     expect(toastMock.success).not.toHaveBeenCalled();
     await act(async () => finishPost({ data: { success: true, data: { swapsRemaining: 5 } } }));
-    await waitFor(() => expect(result.current.isRefreshingSwap).toBe(true));
-    expect(toastMock.success).toHaveBeenCalledWith(
-      'Meal swapped',
-      expect.objectContaining({ description: expect.stringContaining('5 swaps left') })
-    );
+    await waitFor(() => expect(finishRead).toBeTypeOf('function'));
+    expect(toastMock.loading).toHaveBeenLastCalledWith('Meal swapped. Refreshing plan…', expect.anything());
+    expect(result.current.isSwapping).toBe(true);
+    expect(toastMock.success).not.toHaveBeenCalled();
     expect(notificationEvent).toHaveBeenCalledTimes(1);
-    expect(result.current.activeSwapMeal).not.toBeNull();
+    expect(result.current.activeSwapMeal).toBeNull();
     await act(async () => {
       finishRead(successfulResponseFor('/user/meals/workspace'));
       await pending;
     });
+    expect(toastMock.success).toHaveBeenCalledWith(
+      'Meal swapped',
+      expect.objectContaining({ description: expect.stringContaining('5 swaps left') })
+    );
     expect(result.current.isSwapping).toBe(false);
-    expect(result.current.isRefreshingSwap).toBe(false);
     expect(result.current.activeSwapMeal).toBeNull();
     window.removeEventListener('nutrimind:notifications-updated', notificationEvent);
   });

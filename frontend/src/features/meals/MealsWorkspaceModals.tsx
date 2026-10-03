@@ -31,7 +31,6 @@ export function MealsWorkspaceModals({ workspace }: Props) {
     confirmSwapMeal,
     setConfirmSwapMeal,
     isSwapping,
-    isRefreshingSwap,
     swapPreview,
     setSwapPreview,
     isCheckingPreview,
@@ -108,23 +107,6 @@ export function MealsWorkspaceModals({ workspace }: Props) {
           size="2xl"
         >
           <div className="space-y-4 text-left" aria-busy={isSwapping}>
-            {isSwapping && (
-              <div
-                role="status"
-                aria-live="polite"
-                className="sticky top-0 z-10 flex items-center gap-3 rounded-xl border border-brand-green/30 bg-brand-surface p-3 text-sm shadow-sm"
-              >
-                <LoadingSpinner size="sm" />
-                <div>
-                  <p className="font-bold text-brand-text">
-                    {isRefreshingSwap ? 'Meal swapped. Refreshing your plan…' : 'Swapping your meal…'}
-                  </p>
-                  <p className="text-xs text-brand-muted">
-                    {isRefreshingSwap ? 'Loading your updated meal plan.' : 'Updating your meal plan and grocery list.'}
-                  </p>
-                </div>
-              </div>
-            )}
             {/* TOP ROW: COMPARISON SECTION */}
             <div className="grid grid-cols-1 md:grid-cols-[1fr_auto_1fr] items-stretch gap-3 pb-4 border-b border-brand-border/60">
               {/* Left Card: Current Meal */}
@@ -319,14 +301,7 @@ export function MealsWorkspaceModals({ workspace }: Props) {
                       }
                       className="text-xs font-bold h-8 px-4"
                     >
-                      {isSwapping ? (
-                        <span className="flex items-center gap-2">
-                          <LoadingSpinner size="sm" />
-                          {isRefreshingSwap ? 'Refreshing…' : 'Swapping…'}
-                        </span>
-                      ) : (
-                        'Confirm Swap'
-                      )}
+                      Confirm Swap
                     </Button>
                   </div>
                 </div>

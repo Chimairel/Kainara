@@ -65,7 +65,10 @@ export function useMealsWorkspace(initialOptions?: { initialDateKey?: string | n
   );
   const [isRetryingMissing, setIsRetryingMissing] = useState(false);
   const [selectedPlanDateKey, setSelectedPlanDateKey] = useState<string | null>(initialOptions?.initialDateKey ?? null);
-  const currentPlanRequestInFlight = useRef(false);
+  const currentPlanRequestInFlight = useRef<{
+    ownerId: string | undefined;
+    promise: Promise<boolean>;
+  } | null>(null);
   const activePlanOwner = useRef(ownerId);
   useEffect(() => {
     activePlanOwner.current = ownerId;
@@ -95,7 +98,6 @@ export function useMealsWorkspace(initialOptions?: { initialDateKey?: string | n
   const [swapOptionsError, setSwapOptionsError] = useState<string | null>(null);
   const [confirmSwapMeal, setConfirmSwapMeal] = useState<SwapOption | null>(null);
   const [isSwapping, setIsSwapping] = useState(false);
-  const [isRefreshingSwap, setIsRefreshingSwap] = useState(false);
   const swapInFlight = useRef(false);
 
   // Swap preview/warning states
@@ -145,42 +147,93 @@ export function useMealsWorkspace(initialOptions?: { initialDateKey?: string | n
     [ownerId, currentPlanResource]
   );
 
+  const loadCurrentPlan = useCallback(
+    (freshAfterSwap = false): Promise<boolean> => {
+      const existing = currentPlanRequestInFlight.current;
+      if (!freshAfterSwap && existing && existing.ownerId === ownerId) return existing.promise;
+      if (!freshAfterSwap && swapInFlight.current) return Promise.resolve(false);
+      // A committed swap must not adopt a request started before the mutation.
+      if (freshAfterSwap) invalidateSessionResource(ownerId, currentPlanResource);
+      const request = { ownerId, promise: Promise.resolve(false) };
+      currentPlanRequestInFlight.current = request;
+      const isCurrent = () => activePlanOwner.current === ownerId && currentPlanRequestInFlight.current === request;
+      request.promise = (async () => {
+        try {
+          for (let attempt = 0; attempt < 2; attempt++) {
+            try {
+              await refreshMealsWorkspace(ownerId);
+            } catch (err) {
+              if (!isCurrent()) return false;
+              const status = axios.isAxiosError(err) ? err.response?.status : undefined;
+              const cancelled = axios.isCancel(err);
+              const transient =
+                axios.isAxiosError(err) && (!err.response || status === 408 || status === 429 || (status ?? 0) >= 500);
+              if (attempt === 0 && (cancelled || (freshAfterSwap && transient))) continue;
+              throw err;
+            }
+            if (!isCurrent()) return false;
+            // A live event can invalidate this read. Retry once without publishing
+            // stale data or flashing a failure while the replacement read is pending.
+            const snapshot = readSessionResource<CurrentPlanSnapshot>(ownerId, currentPlanResource);
+            if (!snapshot) continue;
+            setError(null);
+            setClinicalEvidenceRequired(false);
+            applyCurrentPlan(snapshot);
+            return true;
+          }
+          throw new Error('The meal plan changed while loading. Please retry loading.');
+        } catch (err: unknown) {
+          if (!isCurrent()) return false;
+          const gate = axios.isAxiosError(err) ? err.response?.data?.errorCode : undefined;
+          if (axios.isAxiosError(err) && err.response?.data?.errorCode === 'CLINICAL_EVIDENCE_REQUIRED') {
+            setClinicalEvidenceRequired(true);
+            setMeals([]);
+            setPendingReview(null);
+            setCycles(null);
+            setAwaitingGeneration({ current: 0, upcoming: 0 });
+            setGenerationStatus({ current: null, upcoming: null });
+            invalidateSessionResource(ownerId, currentPlanResource);
+          }
+          if (axios.isAxiosError(err) && err.response?.data?.errorCode === 'PROFILE_REVIEW_REQUIRED') {
+            setProfileReviewRequired(true);
+            setMeals([]);
+            setPendingReview(null);
+            setCycles(null);
+            invalidateSessionResource(ownerId, currentPlanResource);
+          }
+          // The committed swap will perform its own fresh read. An older background
+          // failure must not overwrite its progress, but safety gates still apply.
+          if (
+            freshAfterSwap ||
+            !swapInFlight.current ||
+            gate === 'CLINICAL_EVIDENCE_REQUIRED' ||
+            gate === 'PROFILE_REVIEW_REQUIRED'
+          ) {
+            setError(
+              getApiErrorMessage(
+                err,
+                freshAfterSwap
+                  ? 'Meal swapped, but the updated plan could not be loaded. Please retry.'
+                  : 'Failed to fetch weekly plan menu.'
+              )
+            );
+          }
+          return false;
+        } finally {
+          if (isCurrent()) {
+            currentPlanRequestInFlight.current = null;
+            setIsLoading(false);
+          }
+        }
+      })();
+      return request.promise;
+    },
+    [applyCurrentPlan, ownerId, currentPlanResource]
+  );
+
   const fetchMeals = useCallback(async () => {
-    if (currentPlanRequestInFlight.current) return;
-    currentPlanRequestInFlight.current = true;
-    try {
-      await refreshMealsWorkspace(ownerId);
-      if (activePlanOwner.current !== ownerId) return;
-      // A mutation or live update may have invalidated the read while it was in flight.
-      const snapshot = readSessionResource<CurrentPlanSnapshot>(ownerId, currentPlanResource);
-      if (!snapshot) throw new Error('The meal plan changed while loading. Please retry loading.');
-      setError(null);
-      setClinicalEvidenceRequired(false);
-      applyCurrentPlan(snapshot);
-    } catch (err: unknown) {
-      if (activePlanOwner.current !== ownerId) return;
-      if (axios.isAxiosError(err) && err.response?.data?.errorCode === 'CLINICAL_EVIDENCE_REQUIRED') {
-        setClinicalEvidenceRequired(true);
-        setMeals([]);
-        setPendingReview(null);
-        setCycles(null);
-        setAwaitingGeneration({ current: 0, upcoming: 0 });
-        setGenerationStatus({ current: null, upcoming: null });
-        invalidateSessionResource(ownerId, currentPlanResource);
-      }
-      if (axios.isAxiosError(err) && err.response?.data?.errorCode === 'PROFILE_REVIEW_REQUIRED') {
-        setProfileReviewRequired(true);
-        setMeals([]);
-        setPendingReview(null);
-        setCycles(null);
-        invalidateSessionResource(ownerId, currentPlanResource);
-      }
-      setError(getApiErrorMessage(err, 'Failed to fetch weekly plan menu.'));
-    } finally {
-      currentPlanRequestInFlight.current = false;
-      if (activePlanOwner.current === ownerId) setIsLoading(false);
-    }
-  }, [applyCurrentPlan, ownerId, currentPlanResource]);
+    await loadCurrentPlan();
+  }, [loadCurrentPlan]);
 
   useVisiblePolling(
     async () => {
@@ -352,7 +405,6 @@ export function useMealsWorkspace(initialOptions?: { initialDateKey?: string | n
     const submittingOwner = ownerId;
     const toastId = `meal-swap-${swapPreview.requestKey}`;
     setIsSwapping(true);
-    setIsRefreshingSwap(false);
     setSwapOptionsError(null);
     toast.loading('Swapping meal…', { id: toastId, description: 'Updating your meal plan and grocery list.' });
 
@@ -372,18 +424,28 @@ export function useMealsWorkspace(initialOptions?: { initialDateKey?: string | n
       }
       if (!res.data?.success) throw new Error(res.data?.error || 'Failed to complete swap.');
       const remaining = res.data.data?.swapsRemaining;
-      toast.success('Meal swapped', {
-        id: toastId,
-        description: `${confirmSwapMeal.mealName} is now in your plan.${Number.isInteger(remaining) && remaining >= 0 ? ` ${remaining} ${remaining === 1 ? 'swap' : 'swaps'} left in this plan cycle.` : ''}`,
-      });
       window.dispatchEvent(new Event('nutrimind:notifications-updated'));
-      setIsRefreshingSwap(true);
-      // Keep visible progress until the authoritative plan read finishes.
-      await fetchMeals();
       setActiveSwapMeal(null);
       setSwapOptions([]);
       setConfirmSwapMeal(null);
       setSwapPreview(null);
+      toast.loading('Meal swapped. Refreshing plan…', { id: toastId, description: 'Loading your updated meal plan.' });
+      const refreshed = await loadCurrentPlan(true);
+      if (activePlanOwner.current !== submittingOwner) {
+        toast.dismiss(toastId);
+        return;
+      }
+      if (refreshed) {
+        toast.success('Meal swapped', {
+          id: toastId,
+          description: `${confirmSwapMeal.mealName} is now in your plan.${Number.isInteger(remaining) && remaining >= 0 ? ` ${remaining} ${remaining === 1 ? 'swap' : 'swaps'} left in this plan cycle.` : ''}`,
+        });
+      } else {
+        toast.error('Meal swapped; plan refresh unavailable', {
+          id: toastId,
+          description: 'Your swap was saved. Reload the plan to see the update.',
+        });
+      }
     } catch (err: unknown) {
       if (activePlanOwner.current !== submittingOwner) {
         toast.dismiss(toastId);
@@ -395,7 +457,6 @@ export function useMealsWorkspace(initialOptions?: { initialDateKey?: string | n
     } finally {
       swapInFlight.current = false;
       setIsSwapping(false);
-      setIsRefreshingSwap(false);
     }
   };
 
@@ -687,7 +748,6 @@ export function useMealsWorkspace(initialOptions?: { initialDateKey?: string | n
     confirmSwapMeal,
     setConfirmSwapMeal,
     isSwapping,
-    isRefreshingSwap,
     swapPreview,
     setSwapPreview,
     isCheckingPreview,
