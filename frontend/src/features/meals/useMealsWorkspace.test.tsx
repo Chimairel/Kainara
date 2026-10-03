@@ -412,6 +412,7 @@ describe('useMealsWorkspace', () => {
     expect(postMock).toHaveBeenCalledTimes(1);
     expect(result.current.isSwapping).toBe(true);
     expect(toastMock.loading).toHaveBeenCalledWith('Swapping meal…', expect.anything());
+    expect(result.current.refreshingSwapMealId).toBeNull();
     expect(toastMock.success).not.toHaveBeenCalled();
     await act(async () => finishPost({ data: { success: true, data: { swapsRemaining: 5 } } }));
     await waitFor(() => expect(finishRead).toBeTypeOf('function'));
@@ -420,6 +421,7 @@ describe('useMealsWorkspace', () => {
     expect(toastMock.success).not.toHaveBeenCalled();
     expect(notificationEvent).toHaveBeenCalledTimes(1);
     expect(result.current.activeSwapMeal).toBeNull();
+    expect(result.current.refreshingSwapMealId).toBe('slot');
     await act(async () => {
       finishRead(successfulResponseFor('/user/meals/workspace'));
       await pending;
@@ -430,6 +432,7 @@ describe('useMealsWorkspace', () => {
     );
     expect(result.current.isSwapping).toBe(false);
     expect(result.current.activeSwapMeal).toBeNull();
+    expect(result.current.refreshingSwapMealId).toBeNull();
     window.removeEventListener('nutrimind:notifications-updated', notificationEvent);
   });
 
@@ -442,6 +445,7 @@ describe('useMealsWorkspace', () => {
     await act(async () => result.current.handleConfirmSwapAnyway());
     expect(result.current.isSwapping).toBe(false);
     expect(result.current.swapOptionsError).toBeTruthy();
+    expect(result.current.refreshingSwapMealId).toBeNull();
     expect(result.current.swapPreview?.requestKey).toBe('key');
     expect(toastMock.success).not.toHaveBeenCalled();
     expect(toastMock.error).toHaveBeenCalled();

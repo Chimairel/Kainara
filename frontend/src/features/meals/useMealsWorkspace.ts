@@ -98,6 +98,7 @@ export function useMealsWorkspace(initialOptions?: { initialDateKey?: string | n
   const [swapOptionsError, setSwapOptionsError] = useState<string | null>(null);
   const [confirmSwapMeal, setConfirmSwapMeal] = useState<SwapOption | null>(null);
   const [isSwapping, setIsSwapping] = useState(false);
+  const [refreshingSwapMealId, setRefreshingSwapMealId] = useState<string | null>(null);
   const swapInFlight = useRef(false);
 
   // Swap preview/warning states
@@ -424,6 +425,7 @@ export function useMealsWorkspace(initialOptions?: { initialDateKey?: string | n
       }
       if (!res.data?.success) throw new Error(res.data?.error || 'Failed to complete swap.');
       const remaining = res.data.data?.swapsRemaining;
+      setRefreshingSwapMealId(activeSwapMeal.id);
       window.dispatchEvent(new Event('nutrimind:notifications-updated'));
       setActiveSwapMeal(null);
       setSwapOptions([]);
@@ -457,6 +459,7 @@ export function useMealsWorkspace(initialOptions?: { initialDateKey?: string | n
     } finally {
       swapInFlight.current = false;
       setIsSwapping(false);
+      if (activePlanOwner.current === submittingOwner) setRefreshingSwapMealId(null);
     }
   };
 
@@ -748,6 +751,7 @@ export function useMealsWorkspace(initialOptions?: { initialDateKey?: string | n
     confirmSwapMeal,
     setConfirmSwapMeal,
     isSwapping,
+    refreshingSwapMealId,
     swapPreview,
     setSwapPreview,
     isCheckingPreview,

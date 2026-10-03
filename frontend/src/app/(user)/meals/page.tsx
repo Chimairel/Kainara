@@ -16,6 +16,7 @@ import UnloggedMealCatchUpCard from '@/components/user/UnloggedMealCatchUpCard';
 import MealLibraryPanel from '@/features/meals/MealLibraryPanel';
 import MealPlanSkeleton from '@/features/meals/MealPlanSkeleton';
 import MealPlanEmptyState from '@/features/meals/MealPlanEmptyState';
+import MealSwapRefresh from '@/features/meals/MealSwapRefresh';
 import { showPendingReviewNoticeOnce, showStarterPlanNoticeOnce } from '@/features/meals/plan-status-notice';
 import { useAuth } from '@/hooks/useAuth';
 import { useBreadcrumb } from '@/lib/context/BreadcrumbContext';
@@ -88,6 +89,7 @@ function WeeklyPlanPageContent() {
     handleObservedConsent,
     handleObservedWithdraw,
     handleSwapClick,
+    refreshingSwapMealId,
     handleMealStatusToggle,
     handleRegeneratePlan,
     setIsRegenerating,
@@ -545,35 +547,40 @@ function WeeklyPlanPageContent() {
                     {/* Day's 3 Floating Meals Column Stack */}
                     <div className="grid grid-cols-1 gap-5 md:grid-cols-3">
                       {day.mealsList.map((meal, index) => (
-                        <MealCard
+                        <MealSwapRefresh
                           key={meal.id}
-                          id={meal.id}
-                          mealName={meal.mealName}
+                          refreshing={refreshingSwapMealId === meal.id}
                           mealType={meal.mealType}
-                          description={meal.description || undefined}
-                          ricePortion={meal.ricePortion}
-                          calories={meal.calories}
-                          proteinG={meal.proteinG}
-                          carbsG={meal.carbsG}
-                          fatG={meal.fatG}
-                          status={meal.status}
-                          aiConfidenceFlag={meal.aiConfidenceFlag}
-                          ingredients={meal.ingredients}
-                          mealLogs={meal.mealLogs}
-                          onStatusToggle={handleMealStatusToggle}
-                          onSwapClick={handleSwapClick}
-                          scheduledDate={meal.scheduledDate}
-                          cycleScope={meal.cycleScope}
-                          verifier={meal.verifier}
-                          explanation={meal.explanation}
-                          image={meal.image}
-                          cookingLink={meal.cookingLink}
-                          nutritionistNote={meal.nutritionistNote}
-                          reviewedAt={meal.reviewedAt}
-                          index={index}
-                          defaultOpen={meal.id === activeModalMealId}
-                          onCloseModal={() => setActiveModalMealId(null)}
-                        />
+                        >
+                          <MealCard
+                            id={meal.id}
+                            mealName={meal.mealName}
+                            mealType={meal.mealType}
+                            description={meal.description || undefined}
+                            ricePortion={meal.ricePortion}
+                            calories={meal.calories}
+                            proteinG={meal.proteinG}
+                            carbsG={meal.carbsG}
+                            fatG={meal.fatG}
+                            status={meal.status}
+                            aiConfidenceFlag={meal.aiConfidenceFlag}
+                            ingredients={meal.ingredients}
+                            mealLogs={meal.mealLogs}
+                            onStatusToggle={handleMealStatusToggle}
+                            onSwapClick={handleSwapClick}
+                            scheduledDate={meal.scheduledDate}
+                            cycleScope={meal.cycleScope}
+                            verifier={meal.verifier}
+                            explanation={meal.explanation}
+                            image={meal.image}
+                            cookingLink={meal.cookingLink}
+                            nutritionistNote={meal.nutritionistNote}
+                            reviewedAt={meal.reviewedAt}
+                            index={index}
+                            defaultOpen={meal.id === activeModalMealId}
+                            onCloseModal={() => setActiveModalMealId(null)}
+                          />
+                        </MealSwapRefresh>
                       ))}
                     </div>
                   </div>
