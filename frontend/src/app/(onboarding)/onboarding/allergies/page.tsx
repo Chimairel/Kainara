@@ -11,7 +11,7 @@ export default function OnboardingAllergiesPage() {
       description="Record allergies, intolerances, and foods or ingredients you avoid as separate entries."
       guidance="Each category is evaluated together. An unsupported entry is retained and routes automatic compatibility to review."
       editableDomains={['ALLERGY', 'INTOLERANCE', 'AVOIDED_INGREDIENT']}
-      offerHealthDetails
+      detailsSection="allergies"
       nextHref="/onboarding/shopping-day"
     />
   );

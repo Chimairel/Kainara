@@ -141,4 +141,61 @@ describe('health details form', () => {
     fireEvent.click(continueButton);
     expect(mocks.push).toHaveBeenCalledWith('/onboarding/tos');
   });
+  it('shows only condition forms and continues to allergies without waiting for allergy details', async () => {
+    mocks.search = 'section=conditions';
+    mocks.get.mockResolvedValue({
+      data: {
+        data: {
+          ...workspace,
+          availableAreas: ['HEART_CONDITION', 'FOOD_ALLERGY'],
+          requirements: [
+            { area: 'HEART_CONDITION', state: 'READY', message: 'Heart details saved.' },
+            { area: 'FOOD_ALLERGY', state: 'CONTEXT_REQUIRED', message: 'Allergy details needed.' },
+          ],
+        },
+      },
+    });
+    render(<ClinicalEvidenceWorkspace mode="onboarding" />);
+    expect(await screen.findByRole('heading', { name: 'Condition details' })).toBeInTheDocument();
+    await screen.findByRole('combobox');
+    expect(screen.queryByRole('option', { name: 'food allergy' })).not.toBeInTheDocument();
+    expect(screen.getByText('1 of 1 health detail forms complete.')).toBeInTheDocument();
+    expect(screen.queryByText('Allergy details needed.')).not.toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Back to conditions' })).toHaveAttribute('href', '/onboarding/conditions');
+    fireEvent.click(screen.getByRole('button', { name: 'Continue to allergies' }));
+    expect(mocks.push).toHaveBeenCalledWith('/onboarding/allergies');
+  });
+
+  it('shows only allergy forms and requires their saved details before continuing', async () => {
+    mocks.search = 'section=allergies';
+    const multiple = {
+      ...workspace,
+      availableAreas: ['HEART_CONDITION', 'FOOD_ALLERGY'],
+      requirements: [
+        { area: 'HEART_CONDITION', state: 'CONTEXT_REQUIRED', message: 'Other condition status' },
+        { area: 'FOOD_ALLERGY', state: 'CONTEXT_REQUIRED', message: 'Allergy details needed.' },
+      ],
+      contexts: [{ area: 'HEART_CONDITION', responses: { conditionDetails: 'Saved condition answers' } }],
+    };
+    mocks.get.mockResolvedValue({ data: { data: multiple } });
+    mocks.put.mockResolvedValue({
+      data: {
+        data: {
+          ...multiple,
+          requirements: [multiple.requirements[0], { ...multiple.requirements[1], state: 'READY' }],
+        },
+      },
+    });
+    render(<ClinicalEvidenceWorkspace mode="onboarding" />);
+    await screen.findByRole('combobox');
+    expect(screen.getByRole('heading', { name: 'Allergy details' })).toBeInTheDocument();
+    expect(screen.queryByRole('option', { name: 'heart condition' })).not.toBeInTheDocument();
+    expect(screen.getByLabelText('Condition or restriction details')).toHaveValue('');
+    expect(screen.getByRole('button', { name: 'Continue to shopping day' })).toBeDisabled();
+    fireEvent.submit(screen.getByRole('button', { name: 'Save health details' }).closest('form')!);
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Continue to shopping day' })).toBeEnabled());
+    expect(mocks.put.mock.calls[0][1]).toMatchObject({ area: 'FOOD_ALLERGY', expectedSafetyRevision: 2 });
+    fireEvent.click(screen.getByRole('button', { name: 'Continue to shopping day' }));
+    expect(mocks.push).toHaveBeenCalledWith('/onboarding/shopping-day');
+  });
 });

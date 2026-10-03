@@ -37,11 +37,16 @@ const fields: Array<[keyof Answers, string]> = [
   ['recentSymptoms', 'Recent symptoms or episodes'],
   ['measurements', 'Recent measurements or lab values (optional)'],
 ];
+const inSection = (area: string, section: string | null) =>
+  section === 'conditions' ? area !== 'FOOD_ALLERGY' : section === 'allergies' ? area === 'FOOD_ALLERGY' : true;
 const friendly = (value: string) => value.replace(/_/g, ' ').toLowerCase();
 export default function ClinicalEvidenceWorkspace({ mode = 'profile' }: { mode?: 'profile' | 'onboarding' }) {
   const ownerId = useAuth().user?.userId;
   const router = useRouter();
   const params = useSearchParams();
+  const requestedSection = params.get('section');
+  const section =
+    mode === 'onboarding' && ['conditions', 'allergies'].includes(requestedSection ?? '') ? requestedSection : null;
   const endpoint = mode === 'onboarding' ? '/user/onboarding/clinical-evidence' : '/user/clinical-evidence';
   const [workspace, setWorkspace] = useState<Workspace | null>(null);
   const [area, setArea] = useState('');
@@ -63,9 +68,12 @@ export default function ClinicalEvidenceWorkspace({ mode = 'profile' }: { mode?:
         setWorkspace(next);
         setRequest(status?.data?.data?.detailsRequest ?? null);
         const initialArea = status?.data?.data?.detailsRequest?.area;
-        const selected = next.availableAreas.includes(initialArea)
+        const areas = next.availableAreas.filter((value) => inSection(value, section));
+        const selected = areas.includes(initialArea)
           ? initialArea
-          : (next.requirements.find((item) => item.state !== 'READY')?.area ?? next.availableAreas[0] ?? '');
+          : (next.requirements.find((item) => inSection(item.area, section) && item.state !== 'READY')?.area ??
+            areas[0] ??
+            '');
         setArea(selected);
         setAnswers({ ...empty, ...next.contexts.find((item) => item.area === selected)?.responses });
       } catch (cause) {
@@ -74,7 +82,7 @@ export default function ClinicalEvidenceWorkspace({ mode = 'profile' }: { mode?:
         if (!signal?.aborted) setLoading(false);
       }
     },
-    [endpoint, mode]
+    [endpoint, mode, section]
   );
   useEffect(() => {
     const controller = new AbortController();
@@ -103,7 +111,9 @@ export default function ClinicalEvidenceWorkspace({ mode = 'profile' }: { mode?:
       setBusy(false);
     }
   }
-  const pendingAreas = workspace?.requirements.filter((item) => item.state !== 'READY').map((item) => item.area) ?? [];
+  const areas = workspace?.availableAreas.filter((value) => inSection(value, section)) ?? [];
+  const requirements = workspace?.requirements.filter((item) => inSection(item.area, section)) ?? [];
+  const pendingAreas = requirements.filter((item) => item.state !== 'READY').map((item) => item.area);
   const selectArea = (selected: string) => {
     setArea(selected);
     setAnswers({ ...empty, ...workspace?.contexts.find((item) => item.area === selected)?.responses });
@@ -117,19 +127,35 @@ export default function ClinicalEvidenceWorkspace({ mode = 'profile' }: { mode?:
     >
       {mode === 'onboarding' ? (
         <>
-          <OnboardingProgressSlider currentStep={4} totalSteps={6} />
+          <OnboardingProgressSlider currentStep={section === 'conditions' ? 3 : 4} totalSteps={6} />
           <Link
-            href={params.get('from') === 'review' ? '/onboarding/tos' : '/onboarding/allergies'}
+            href={
+              params.get('from') === 'review'
+                ? '/onboarding/tos'
+                : section === 'conditions'
+                  ? '/onboarding/conditions'
+                  : '/onboarding/allergies'
+            }
             className="text-sm text-brand-muted"
           >
-            {params.get('from') === 'review' ? 'Back to review' : 'Back to food safety'}
+            {params.get('from') === 'review'
+              ? 'Back to review'
+              : section === 'conditions'
+                ? 'Back to conditions'
+                : 'Back to food safety'}
           </Link>
         </>
       ) : (
         <PersonalizationTabs activeTab="clinical-evidence" />
       )}
       <header>
-        <h1 className="font-display text-3xl font-black">Health details</h1>
+        <h1 className="font-display text-3xl font-black">
+          {section === 'conditions'
+            ? 'Condition details'
+            : section === 'allergies'
+              ? 'Allergy details'
+              : 'Health details'}
+        </h1>
         <p className="mt-2 text-sm text-brand-muted">
           Describe the conditions and restrictions already listed in your profile for a nutritionist to review. Enter
           “none” or “unknown” where appropriate. Complete and save a separate form for each listed condition or
@@ -158,11 +184,10 @@ export default function ClinicalEvidenceWorkspace({ mode = 'profile' }: { mode?:
         <p>Loading health details…</p>
       ) : (
         <>
-          {!!workspace?.requirements.length && (
+          {!!requirements.length && (
             <section className="space-y-2 rounded-xl border border-brand-border p-4">
               <p className="text-sm font-bold" role="status">
-                {workspace.requirements.length - pendingAreas.length} of {workspace.requirements.length} health detail
-                forms complete.
+                {requirements.length - pendingAreas.length} of {requirements.length} health detail forms complete.
               </p>
               {!!pendingAreas.length && (
                 <p className="text-sm">Still needed: {pendingAreas.map(friendly).join(', ')}.</p>
@@ -180,7 +205,7 @@ export default function ClinicalEvidenceWorkspace({ mode = 'profile' }: { mode?:
                     Complete {friendly(value)} details
                   </button>
                 ))}
-              {workspace.requirements.map((item) => (
+              {requirements.map((item) => (
                 <p key={item.area} className="text-sm">
                   <strong>{friendly(item.area)}: </strong>
                   {item.message}
@@ -188,7 +213,7 @@ export default function ClinicalEvidenceWorkspace({ mode = 'profile' }: { mode?:
               ))}
             </section>
           )}
-          {!!workspace?.availableAreas.length ? (
+          {!!areas.length ? (
             <form
               onSubmit={(event) => void save(event)}
               className="space-y-4 rounded-2xl border border-brand-border bg-brand-surface p-5"
@@ -201,7 +226,7 @@ export default function ClinicalEvidenceWorkspace({ mode = 'profile' }: { mode?:
                   onChange={(event) => selectArea(event.target.value)}
                   className="mt-1 w-full rounded-xl border border-brand-border bg-brand-surface p-3"
                 >
-                  {workspace.availableAreas.map((value) => (
+                  {areas.map((value) => (
                     <option key={value} value={value}>
                       {friendly(value)}
                     </option>
@@ -239,11 +264,21 @@ export default function ClinicalEvidenceWorkspace({ mode = 'profile' }: { mode?:
                 type="button"
                 disabled={busy || loading || !workspace || pendingAreas.length > 0}
                 onClick={() =>
-                  router.push(params.get('from') === 'review' ? '/onboarding/tos' : '/onboarding/shopping-day')
+                  router.push(
+                    params.get('from') === 'review'
+                      ? '/onboarding/tos'
+                      : section === 'conditions'
+                        ? '/onboarding/allergies'
+                        : '/onboarding/shopping-day'
+                  )
                 }
                 className="min-h-12 rounded-xl bg-brand-accent px-5 py-3 font-bold text-white"
               >
-                {params.get('from') === 'review' ? 'Return to review' : 'Continue to shopping day'}
+                {params.get('from') === 'review'
+                  ? 'Return to review'
+                  : section === 'conditions'
+                    ? 'Continue to allergies'
+                    : 'Continue to shopping day'}
               </button>
             </div>
           )}
