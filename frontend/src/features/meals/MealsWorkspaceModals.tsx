@@ -10,6 +10,7 @@ import { AlertTriangle, ArrowRight, Check, Sparkles, Soup, UtensilsCrossed } fro
 import { formatManilaDate } from '@/lib/manila-date';
 import { useMealsWorkspace } from './useMealsWorkspace';
 import SwapImpactDetails from './SwapImpactDetails';
+import { swapNutritionLabel } from './swap-nutrition-label';
 
 type Props = { workspace: ReturnType<typeof useMealsWorkspace> };
 
@@ -339,6 +340,19 @@ export function MealsWorkspaceModals({ workspace }: Props) {
                 </select>
               </div>
 
+              <p className="text-[11px] text-brand-muted">
+                {miniSort === 'best_match'
+                  ? 'Ranked against your report targets for the planned day, including rice. The closest option can still leave macro gaps.'
+                  : 'Ranked by calories for the whole plate. Protein, carbs and fat can differ.'}
+              </p>
+              {miniSort === 'best_match' &&
+                filteredAndSortedOptions.length > 0 &&
+                filteredAndSortedOptions.every((option) => option.nutritionMatch === 'GAPS_REMAIN') && (
+                  <p className="text-[11px] font-semibold text-amber-700 dark:text-amber-300">
+                    Closest available — macro gaps remain
+                  </p>
+                )}
+
               {/* Recipe Cards Grid */}
               <div className="max-h-[44vh] overflow-y-auto pr-1 mt-2">
                 {isOptionsLoading ? (
@@ -435,6 +449,13 @@ export function MealsWorkspaceModals({ workspace }: Props) {
 
                           {/* Card Content Bottom: Macros & Verifier */}
                           <div className="mt-2.5 border-t border-brand-border/40 pt-1.5 space-y-1">
+                            {miniSort === 'best_match' && (
+                              <p
+                                className={`text-[10px] ${option.nutritionMatch === 'CLOSE' ? 'text-brand-green dark:text-brand-accent' : 'text-brand-muted'}`}
+                              >
+                                {swapNutritionLabel(option.nutritionMatch)}
+                              </p>
+                            )}
                             <div className="flex items-center justify-between font-mono text-[10px]">
                               <div className="flex items-center gap-1.5">
                                 <span className="font-bold text-brand-text">{Math.round(option.calories)} kcal</span>

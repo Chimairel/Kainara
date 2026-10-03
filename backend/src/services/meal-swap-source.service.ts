@@ -128,7 +128,10 @@ export async function listSourceSwapOptions(userId: string, slot: Slot) {
     select: { sourceRawRecipeCandidateId: true },
   });
   const usedIds = new Set(used.map((meal) => meal.sourceRawRecipeCandidateId));
-  const options: (ReturnType<typeof fullPlateOption> & { nutritionFitScore?: number })[] = [];
+  const options: (ReturnType<typeof fullPlateOption> & {
+    nutritionFitScore: number;
+    nutritionMatch: ReturnType<typeof context.macros.analyze>['nutritionMatch'];
+  })[] = [];
   let cursor: string | undefined;
   const range = getMealSlotCalorieRange(context.dailyTarget, slot.mealType);
   for (let pageNumber = 0; pageNumber < 18 && options.length < 480; pageNumber++) {
@@ -151,6 +154,7 @@ export async function listSourceSwapOptions(userId: string, slot: Slot) {
         ricePreference: context.profile.ricePreference,
         riceFood: context.rice,
         macroTarget: context.macros.budget,
+        scoreNutrition: context.macros.scoreReplacement,
       });
       if (
         !plate ||
@@ -162,7 +166,8 @@ export async function listSourceSwapOptions(userId: string, slot: Slot) {
       )
         continue;
       const option = fullPlateOption(plate, slot, context.rice, usedIds.has(candidate.id));
-      options.push({ ...option, nutritionFitScore: context.macros.analyze(option).fitScore });
+      const analysis = context.macros.analyze(option);
+      options.push({ ...option, nutritionFitScore: analysis.fitScore, nutritionMatch: analysis.nutritionMatch });
     }
     if (!page.nextCursor) break;
     cursor = page.nextCursor;
@@ -212,6 +217,7 @@ async function buildSourcePreview(
     ricePreference: context.profile.ricePreference,
     riceFood: context.rice,
     macroTarget: context.macros.budget,
+    scoreNutrition: context.macros.scoreReplacement,
   });
   if (
     !plate ||

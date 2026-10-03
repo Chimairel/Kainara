@@ -1,4 +1,5 @@
 import type { SwapNutritionAnalysis } from './meals-workspace.types';
+import { swapNutritionLabel } from './swap-nutrition-label';
 
 type GroceryChange = { ingredientName: string; unit: string | null };
 export default function SwapImpactDetails({
@@ -17,6 +18,31 @@ export default function SwapImpactDetails({
       {analysis?.target && (
         <section aria-label="Daily nutrition comparison" className="rounded-lg border border-brand-border/60 p-2">
           <h3 className="font-bold">Planned day compared with report estimates</h3>
+          {analysis.nutritionMatch && (
+            <p className="mt-1 font-semibold">{swapNutritionLabel(analysis.nutritionMatch)}</p>
+          )}
+          {analysis.completeDay && Boolean(analysis.macroChanges?.length) && (
+            <ul aria-label="Effect on daily macros" className="mt-2 space-y-1">
+              {analysis.macroChanges?.map((change) => (
+                <li key={change.nutrient}>
+                  {{ proteinG: 'Protein', carbsG: 'Carbs', fatG: 'Fat' }[change.nutrient]}:{' '}
+                  {
+                    {
+                      CLOSER: 'closer to target',
+                      FURTHER: 'further from target',
+                      UNCHANGED: 'distance from target unchanged',
+                    }[change.direction]
+                  }
+                  {' · '}
+                  {
+                    { WITHIN_ESTIMATE: 'within the planning range', ABOVE: 'above target', BELOW: 'below target' }[
+                      change.status
+                    ]
+                  }
+                </li>
+              ))}
+            </ul>
+          )}
           <div className="overflow-x-auto">
             <table className="mt-2 w-full text-left text-[10px]">
               <thead>

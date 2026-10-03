@@ -187,6 +187,7 @@ export class MealSwapService {
           }),
           riceFood,
           macroTarget: macros.budget,
+          scoreNutrition: macros.scoreReplacement,
         });
         if (!serving) return [];
         return [
@@ -236,7 +237,10 @@ export class MealSwapService {
     });
     return {
       swapOptions: [...libraryOptions, ...sourceOptions]
-        .map((option) => ({ ...option, nutritionFitScore: macros.analyze(option).fitScore }))
+        .map((option) => {
+          const analysis = macros.analyze(option);
+          return { ...option, nutritionFitScore: analysis.fitScore, nutritionMatch: analysis.nutritionMatch };
+        })
         .sort((a, b) => a.nutritionFitScore - b.nutritionFitScore || a.id.localeCompare(b.id)),
     };
   }
@@ -328,6 +332,7 @@ export class MealSwapService {
       }),
       riceFood,
       macroTarget: macros.budget,
+      scoreNutrition: macros.scoreReplacement,
     });
     if (!serving) throw new Error('This serving does not fit your current meal target or rice preference.');
     // 3. Fetch all meals on the same day in the same planGroup

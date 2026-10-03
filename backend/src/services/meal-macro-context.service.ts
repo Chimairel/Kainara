@@ -12,6 +12,7 @@ import {
   type PlanningMacroTargets,
   MEAL_MACRO_POLICY_VERSION,
 } from '@/domain/meal-macro-target.policy';
+import { describeSwapNutritionMatch, swapNutritionFitScore } from '@/domain/swap-nutrition-fit.policy';
 
 export async function cycleMacroTargets(
   client: Pick<Prisma.TransactionClient, 'nutritionReportVersion'>,
@@ -72,11 +73,29 @@ export async function swapMacroContext(
   const before = dayMeals.reduce(addNutrition, zeroNutrition());
   const remaining = otherMeals.reduce(addNutrition, zeroNutrition());
   const completeDay = ['BREAKFAST', 'LUNCH', 'DINNER'].every((type) => dayMeals.some((m) => m.mealType === type));
+  const budget = mealMacroBudget(target, slot.mealType, otherMeals);
+  // Compare every serving combination and the final list by the same objective.
+  // Missing meals use the allocated slot budget, not a fictitious full-day deficit.
+  const scoreReplacement = (replacement: NutritionVector) =>
+    target
+      ? completeDay
+        ? swapNutritionFitScore(addNutrition(remaining, replacement), target)
+        : budget
+          ? swapNutritionFitScore(replacement, budget)
+          : 0
+      : 0;
   return {
     target,
     dayMeals,
-    budget: mealMacroBudget(target, slot.mealType, otherMeals),
-    analyze: (replacement: NutritionVector) =>
-      describeDayNutrition(before, addNutrition(remaining, replacement), target, completeDay),
+    budget,
+    scoreReplacement,
+    analyze: (replacement: NutritionVector) => {
+      const after = addNutrition(remaining, replacement);
+      return {
+        ...describeDayNutrition(before, after, target, completeDay),
+        ...describeSwapNutritionMatch({ before, after, target, completeDay }),
+        fitScore: scoreReplacement(replacement),
+      };
+    },
   };
 }

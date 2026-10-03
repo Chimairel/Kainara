@@ -8,6 +8,7 @@ import type { RecipeCandidateProjection } from './recipe-candidate-provider';
 import type { SwapRiceFood } from './meal-swap-serving.service';
 import { nutritionFitScore, type NutritionVector } from '@/domain/meal-macro-target.policy';
 import { effectiveRecipeMealTypes } from '@/domain/meal-applicability.policy';
+import { composedNutritionTotal, scaleFnriFoodToGrams } from '@/domain/composed-serving.policy';
 
 /** Choose a complete plate while preserving the published dish as its base. */
 type ServingInput = {
@@ -17,6 +18,7 @@ type ServingInput = {
   ricePreference?: RicePreference;
   riceFood?: SwapRiceFood | null;
   macroTarget?: NutritionVector & { goal?: string };
+  scoreNutrition?: (nutrition: NutritionVector) => number;
 };
 
 export function rawRecipeServing(input: ServingInput) {
@@ -30,7 +32,20 @@ export function rawRecipeServing(input: ServingInput) {
     const rice = input.riceFood;
     const riceCalories = rice ? (rice.calories * riceG) / 100 : 0;
     const exact = Math.round(((range.target - riceCalories) / input.candidate.nutrition!.calories) * 1000) / 1000;
-    return [...new Set([0.5, 0.75, 1, 1.25, 1.5, 1.75, 2, exact])]
+    // Swap-only candidates also fit the remaining protein/carbs/fat budget.
+    // Published portion bounds and whole-recipe ingredient scaling still apply.
+    const macroScales = input.scoreNutrition
+      ? (['proteinG', 'carbsG', 'fatG'] as const).flatMap((field) => {
+          const perServing = input.candidate.nutrition![field];
+          return perServing > 0
+            ? [
+                Math.round(((input.macroTarget![field] - ((rice?.[field] ?? 0) * riceG) / 100) / perServing) * 1000) /
+                  1000,
+              ]
+            : [];
+        })
+      : [];
+    return [...new Set([0.5, 0.75, 1, 1.25, 1.5, 1.75, 2, exact, ...macroScales])]
       .filter((scale) => scale >= 0.5 && scale <= 2)
       .flatMap((scale) => {
         const n = input.candidate.nutrition!;
@@ -40,12 +55,15 @@ export function rawRecipeServing(input: ServingInput) {
           carbsG: scalePublishedAmount(n.carbsG, scale),
           fatG: scalePublishedAmount(n.fatG, scale),
         };
-        const total = {
-          calories: nutrition.calories + riceCalories,
-          proteinG: nutrition.proteinG + ((rice?.proteinG ?? 0) * riceG) / 100,
-          carbsG: nutrition.carbsG + ((rice?.carbsG ?? 0) * riceG) / 100,
-          fatG: nutrition.fatG + ((rice?.fatG ?? 0) * riceG) / 100,
-        };
+        const total =
+          input.scoreNutrition && riceG && rice
+            ? composedNutritionTotal(nutrition, scaleFnriFoodToGrams(rice, riceG))
+            : {
+                calories: nutrition.calories + riceCalories,
+                proteinG: nutrition.proteinG + ((rice?.proteinG ?? 0) * riceG) / 100,
+                carbsG: nutrition.carbsG + ((rice?.carbsG ?? 0) * riceG) / 100,
+                fatG: nutrition.fatG + ((rice?.fatG ?? 0) * riceG) / 100,
+              };
         if (total.calories < range.minimum || total.calories > range.maximum) return [];
         return [
           {
@@ -58,7 +76,9 @@ export function rawRecipeServing(input: ServingInput) {
               ...i,
               quantity: i.quantity === undefined ? undefined : scalePublishedAmount(i.quantity, scale),
             })),
-            score: nutritionFitScore(total, input.macroTarget!) + Math.abs(scale - 1) * 0.05,
+            score: input.scoreNutrition
+              ? input.scoreNutrition(total)
+              : nutritionFitScore(total, input.macroTarget!) + Math.abs(scale - 1) * 0.05,
           },
         ];
       });

@@ -34,6 +34,46 @@ function option(id: string, mealName: string): SwapOption {
 }
 
 describe('meal swap picker', () => {
+  it('announces limited matches only when every available option leaves macro gaps', () => {
+    const workspace = {
+      activeSwapMeal: current,
+      swapOptions: [{ ...option('gap', 'Eligible plate'), nutritionMatch: 'GAPS_REMAIN' }],
+    } as unknown as ReturnType<typeof useMealsWorkspace>;
+    const { rerender } = render(<MealsWorkspaceModals workspace={workspace} />);
+    expect(screen.getByText('Closest available — macro gaps remain')).toBeInTheDocument();
+    rerender(
+      <MealsWorkspaceModals
+        workspace={{
+          ...workspace,
+          swapOptions: [...workspace.swapOptions, { ...option('close', 'Close plate'), nutritionMatch: 'CLOSE' }],
+        }}
+      />
+    );
+    expect(screen.queryByText('Closest available — macro gaps remain')).not.toBeInTheDocument();
+    expect(screen.getByText('Close plate')).toBeInTheDocument();
+  });
+  it('labels remaining gaps and unavailable targets without hiding eligible choices', () => {
+    const workspace = {
+      activeSwapMeal: current,
+      swapOptions: [
+        { ...option('close', 'Balanced option'), nutritionFitScore: 0.4, nutritionMatch: 'CLOSE' },
+        { ...option('gap', 'Option with gaps'), nutritionFitScore: 12, nutritionMatch: 'GAPS_REMAIN' },
+        { ...option('partial', 'Incomplete day option'), nutritionMatch: 'PARTIAL_DAY' },
+        option('legacy', 'Option without target'),
+      ],
+    } as unknown as ReturnType<typeof useMealsWorkspace>;
+    render(<MealsWorkspaceModals workspace={workspace} />);
+    expect(screen.getByText('Close daily macro match')).toBeInTheDocument();
+    expect(screen.getByText('Daily macro gaps remain')).toBeInTheDocument();
+    expect(screen.getByText('Partial day — match is provisional')).toBeInTheDocument();
+    expect(screen.getByText('Nutrition match unavailable')).toBeInTheDocument();
+    fireEvent.change(screen.getByRole('combobox'), { target: { value: 'kcal_match' } });
+    expect(screen.queryByText('Close daily macro match')).not.toBeInTheDocument();
+    expect(screen.getByText('Option with gaps')).toBeInTheDocument();
+    expect(
+      screen.getByText('Ranked by calories for the whole plate. Protein, carbs and fat can differ.')
+    ).toBeInTheDocument();
+  });
   it('fixes the meal time and exposes only nutrition and kcal sorting', () => {
     const breakfast = option('breakfast', 'Suitable breakfast');
     const dinner = { ...option('dinner', 'Dinner-only dish'), mealType: 'DINNER', mealTypes: ['DINNER'] };

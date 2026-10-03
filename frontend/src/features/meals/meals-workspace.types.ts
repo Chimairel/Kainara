@@ -2,8 +2,11 @@ import type { PendingMealPreview } from '@/components/user/PendingMealPreviewCar
 import type { CycleMetaSnapshot } from '@/features/dashboard/model';
 import type { MealCookingLink, MealPlan, PublicMealImage, PublicVerifier } from '@/types';
 
+export type SwapNutritionMatch = 'CLOSE' | 'GAPS_REMAIN' | 'PARTIAL_DAY' | 'UNAVAILABLE';
+
 export interface SwapOption {
   nutritionFitScore?: number;
+  nutritionMatch?: SwapNutritionMatch;
   id: string;
   reuseBasis?: 'CERTIFIED_RECIPE' | 'PROFILE_MATCHED_APPROVAL' | 'PANLASANG_GENERAL_BASE';
   pairedRiceG?: number | null;
@@ -42,6 +45,12 @@ export type SwapNutritionAnalysis = {
   } | null;
   completeDay: boolean;
   warnings: string[];
+  nutritionMatch?: SwapNutritionMatch;
+  macroChanges?: Array<{
+    nutrient: 'proteinG' | 'carbsG' | 'fatG';
+    direction: 'CLOSER' | 'FURTHER' | 'UNCHANGED';
+    status: 'WITHIN_ESTIMATE' | 'ABOVE' | 'BELOW';
+  }>;
 };
 
 export interface MealHistoryLog {

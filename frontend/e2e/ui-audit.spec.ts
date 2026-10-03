@@ -301,6 +301,7 @@ for (const width of [390, 1440]) {
       mealTypes: ['LUNCH'],
       calories: 795,
       nutritionFitScore: 0.3,
+      nutritionMatch: 'GAPS_REMAIN',
       proteinG: 44,
       carbsG: 65,
       fatG: 20,
@@ -390,6 +391,12 @@ for (const width of [390, 1440]) {
                 basis: 'MUSCLE_BUILDING_ESTIMATE',
               },
               completeDay: true,
+              nutritionMatch: 'GAPS_REMAIN',
+              macroChanges: [
+                { nutrient: 'proteinG', direction: 'FURTHER', status: 'BELOW' },
+                { nutrient: 'carbsG', direction: 'CLOSER', status: 'WITHIN_ESTIMATE' },
+                { nutrient: 'fatG', direction: 'CLOSER', status: 'ABOVE' },
+              ],
               warnings: ['Protein is below the daily planning estimate.'],
             },
           },
@@ -424,6 +431,9 @@ for (const width of [390, 1440]) {
     await expect(dialog.getByText(/Rice, well-milled, boiled: \+75 g/)).toBeVisible();
     await expect(dialog.getByText('Pork ribs: −100 g')).toBeVisible();
     await expect(dialog.getByText('Protein is below the daily planning estimate.')).toBeVisible();
+    await expect(dialog.getByText('Closest available — macro gaps remain')).toBeVisible();
+    await expect(dialog.getByText('Protein: further from target · below target')).toBeVisible();
+    await expect(dialog.getByText('Carbs: closer to target · within the planning range')).toBeVisible();
     await expect(dialog.getByRole('button', { name: 'Confirm Swap', exact: true })).toBeDisabled();
     await dialog.getByRole('checkbox', { name: /I reviewed the grocery changes above/ }).check();
     await expect(dialog.getByRole('button', { name: 'Confirm Swap', exact: true })).toBeEnabled();

@@ -3,6 +3,38 @@ import { describe, expect, it } from 'vitest';
 import SwapImpactDetails from './SwapImpactDetails';
 
 describe('swap nutrition and shopping impact', () => {
+  it('explains macro direction and remaining gaps even when calories match', () => {
+    render(
+      <SwapImpactDetails
+        analysis={{
+          before: { calories: 2000, proteinG: 111, carbsG: 194, fatG: 82 },
+          after: { calories: 2000, proteinG: 97, carbsG: 285, fatG: 47 },
+          target: {
+            calories: 2000,
+            proteinG: 100,
+            carbsG: 250,
+            fatG: 66,
+            explanation: 'Fixture',
+            basis: 'GENERAL_ADULT_ESTIMATE',
+          },
+          completeDay: true,
+          warnings: ['Fat is below the daily planning estimate.'],
+          nutritionMatch: 'GAPS_REMAIN',
+          macroChanges: [
+            { nutrient: 'proteinG', direction: 'CLOSER', status: 'WITHIN_ESTIMATE' },
+            { nutrient: 'carbsG', direction: 'CLOSER', status: 'WITHIN_ESTIMATE' },
+            { nutrient: 'fatG', direction: 'FURTHER', status: 'BELOW' },
+          ],
+        }}
+        additions={[]}
+        removals={[]}
+      />
+    );
+    expect(screen.getByText('Daily macro gaps remain')).toBeInTheDocument();
+    expect(screen.getByText('Protein: closer to target · within the planning range')).toBeInTheDocument();
+    expect(screen.getByText('Fat: further from target · below target')).toBeInTheDocument();
+    expect(screen.getByText('No changes to remaining groceries.')).toBeInTheDocument();
+  });
   it('shows all four before/after/target values and actual rice additions and removals', () => {
     render(
       <SwapImpactDetails

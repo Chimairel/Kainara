@@ -32,6 +32,7 @@ export function resolveReplacementServing(input: {
   riceFood: SwapRiceFood | null;
   allowPendingCaseReview?: boolean;
   macroTarget?: NutritionVector & { goal?: string };
+  scoreNutrition?: (nutrition: NutritionVector) => number;
 }) {
   const { meal, mealType, dailyTarget, ricePreference, hasConditions, riceFood } = input;
   if (!isPrimaryMealType(mealType)) return null;
@@ -92,7 +93,10 @@ export function resolveReplacementServing(input: {
         .filter((o) => o.total.calories >= range.minimum && o.total.calories <= range.maximum)
         .sort(
           (a, b) =>
-            nutritionFitScore(a.total, input.macroTarget!) - nutritionFitScore(b.total, input.macroTarget!) || a.g - b.g
+            (input.scoreNutrition
+              ? input.scoreNutrition(a.total) - input.scoreNutrition(b.total)
+              : nutritionFitScore(a.total, input.macroTarget!) - nutritionFitScore(b.total, input.macroTarget!)) ||
+            a.g - b.g
         );
       pairedRiceG = options[0]?.g || null;
     }
