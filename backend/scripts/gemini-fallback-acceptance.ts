@@ -65,6 +65,7 @@ async function main() {
     const { generateGenerativeJSON } = await import('../src/lib/gemini');
     const { AiCapacityDeferredError } = await import('../src/services/ai-capacity.service');
     const result = await generateGenerativeJSON('Return {"ok":true}.', undefined, z.object({ ok: z.literal(true) }), {
+      operation: 'MEAL_PLAN_CORPUS_LOOKUP',
       purpose: 'LOCAL_FALLBACK_ACCEPTANCE',
     });
     assert.deepEqual(result, { ok: true });
@@ -87,6 +88,7 @@ async function main() {
     };
     await assert.rejects(
       generateGenerativeJSON('Return {"ok":true}.', undefined, z.object({ ok: z.literal(true) }), {
+        operation: 'MEAL_PLAN_CORPUS_LOOKUP',
         purpose: 'LOCAL_QUOTA_ACCEPTANCE',
       }),
       AiCapacityDeferredError

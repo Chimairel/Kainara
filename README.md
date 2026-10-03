@@ -155,6 +155,12 @@ The common catalogue is historical test data. Its offline projection remains ava
 
 Migrations and seeds modify database state. Confirm the database target and authorization first. Do not use production-like data for development or tests.
 
+### Compare Gemini food estimates
+
+`npm --prefix backend run evaluate:gemini-nutrition` inspects eight weighed portions from the saved FNRI table without making provider calls. Add `-- --live` to make one batch request per configured model, using the same outside-food prompt and validation as the application. Live runs consume up to four API requests, are paced 35 seconds apart, stop on provider quota errors, and save a timestamped report under `docs/verification/`. They send public food descriptions only and do not read member data or write to the database. Use `--output <path>` to explicitly choose the report path.
+
+Reports compare calories, protein, carbs and fat with saved reference composition. A small sample cannot establish clinical accuracy or a model uptime ranking. The application starts routine estimates with Flash-Lite and complex meal generation/replacements with full Flash models; review and eligibility checks still apply.
+
 ## Frontend setup
 
 In a second terminal:

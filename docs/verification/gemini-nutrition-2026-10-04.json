@@ -1,0 +1,253 @@
+{
+  "startedAt": "2026-10-03T17:55:33.601Z",
+  "protocol": "One shared outside-food production prompt per model; eight weighed FNRI portions. Reference answers withheld.",
+  "limitations": "Small exploratory sample; not a clinical validation or uptime ranking. No photos, ambiguous portions or complex restricted-meal generation assessed.",
+  "referencePath": "backend/prisma/data/fnri.csv",
+  "referenceSha256": "669a0dc88284f99719e6a2f3e091fbbc9653447da03edf73e012215c71fc7f24",
+  "promptSha256": "cbfe61e9d1facc70789ad5c7cfe9f8c9b3408e6899b7b148b10b8668fe48fe9b",
+  "providerTimeoutMs": 15000,
+  "minimumRequestIntervalMs": 35000,
+  "results": [
+    {
+      "model": "gemini-3.5-flash-lite",
+      "status": "success",
+      "latencyMs": 4177,
+      "rows": [
+        {
+          "foodId": "A020",
+          "name": "Rice, well-milled, boiled",
+          "portionGrams": 75,
+          "expected": {
+            "calories": 96.75,
+            "proteinG": 1.575,
+            "carbsG": 22.275,
+            "fatG": 0.15
+          },
+          "returnedName": "Rice, well-milled, boiled",
+          "estimated": {
+            "calories": 97,
+            "proteinG": 2,
+            "carbsG": 21,
+            "fatG": 0.2
+          },
+          "absoluteErrors": {
+            "calories": 0.25,
+            "proteinG": 0.42500000000000004,
+            "carbsG": 1.2749999999999986,
+            "fatG": 0.05000000000000002
+          },
+          "calorieRange": [80, 115],
+          "referenceCaloriesInsideRange": true
+        },
+        {
+          "foodId": "A020",
+          "name": "Rice, well-milled, boiled",
+          "portionGrams": 225,
+          "expected": {
+            "calories": 290.25,
+            "proteinG": 4.725,
+            "carbsG": 66.825,
+            "fatG": 0.45
+          },
+          "returnedName": "Rice, well-milled, boiled",
+          "estimated": {
+            "calories": 290,
+            "proteinG": 6,
+            "carbsG": 63,
+            "fatG": 0.6
+          },
+          "absoluteErrors": {
+            "calories": 0.25,
+            "proteinG": 1.2750000000000004,
+            "carbsG": 3.825000000000003,
+            "fatG": 0.14999999999999997
+          },
+          "calorieRange": [240, 345],
+          "referenceCaloriesInsideRange": true
+        },
+        {
+          "foodId": "H004",
+          "name": "Egg, chicken, whole, boiled",
+          "portionGrams": 50,
+          "expected": {
+            "calories": 83,
+            "proteinG": 7,
+            "carbsG": 0.3,
+            "fatG": 6
+          },
+          "returnedName": "Egg, chicken, whole, boiled",
+          "estimated": {
+            "calories": 78,
+            "proteinG": 6.3,
+            "carbsG": 0.6,
+            "fatG": 5.3
+          },
+          "absoluteErrors": {
+            "calories": 5,
+            "proteinG": 0.7000000000000002,
+            "carbsG": 0.3,
+            "fatG": 0.7000000000000002
+          },
+          "calorieRange": [65, 95],
+          "referenceCaloriesInsideRange": true
+        },
+        {
+          "foodId": "C028",
+          "name": "Mung bean seed, green, dried, boiled",
+          "portionGrams": 150,
+          "expected": {
+            "calories": 232.5,
+            "proteinG": 16.5,
+            "carbsG": 40.65,
+            "fatG": 0.45
+          },
+          "returnedName": "Mung bean seed, green, dried, boiled",
+          "estimated": {
+            "calories": 158,
+            "proteinG": 10.5,
+            "carbsG": 28.5,
+            "fatG": 0.8
+          },
+          "absoluteErrors": {
+            "calories": 74.5,
+            "proteinG": 6,
+            "carbsG": 12.149999999999999,
+            "fatG": 0.35000000000000003
+          },
+          "calorieRange": [130, 190],
+          "referenceCaloriesInsideRange": false
+        },
+        {
+          "foodId": "F265",
+          "name": "Chicken, whole, seasoned, roasted",
+          "portionGrams": 100,
+          "expected": {
+            "calories": 226,
+            "proteinG": 24.8,
+            "carbsG": 4.7,
+            "fatG": 12
+          },
+          "returnedName": "Chicken, whole, seasoned, roasted",
+          "estimated": {
+            "calories": 215,
+            "proteinG": 20,
+            "carbsG": 0,
+            "fatG": 14.5
+          },
+          "absoluteErrors": {
+            "calories": 11,
+            "proteinG": 4.800000000000001,
+            "carbsG": 4.7,
+            "fatG": 2.5
+          },
+          "calorieRange": [180, 255],
+          "referenceCaloriesInsideRange": true
+        },
+        {
+          "foodId": "F266",
+          "name": "Chicken, whole, seasoned, roasted, skin and visible fat removed",
+          "portionGrams": 100,
+          "expected": {
+            "calories": 162,
+            "proteinG": 26.2,
+            "carbsG": 2.2,
+            "fatG": 5.4
+          },
+          "returnedName": "Chicken, whole, seasoned, roasted, skin and visible fat removed",
+          "estimated": {
+            "calories": 165,
+            "proteinG": 24,
+            "carbsG": 0,
+            "fatG": 7
+          },
+          "absoluteErrors": {
+            "calories": 3,
+            "proteinG": 2.1999999999999993,
+            "carbsG": 2.2,
+            "fatG": 1.5999999999999996
+          },
+          "calorieRange": [140, 195],
+          "referenceCaloriesInsideRange": true
+        },
+        {
+          "foodId": "G076",
+          "name": "Milkfish, fried",
+          "portionGrams": 100,
+          "expected": {
+            "calories": 188,
+            "proteinG": 23.6,
+            "carbsG": 0,
+            "fatG": 10.4
+          },
+          "returnedName": "Milkfish, fried",
+          "estimated": {
+            "calories": 258,
+            "proteinG": 21,
+            "carbsG": 2,
+            "fatG": 18
+          },
+          "absoluteErrors": {
+            "calories": 70,
+            "proteinG": 2.6000000000000014,
+            "carbsG": 2,
+            "fatG": 7.6
+          },
+          "calorieRange": [215, 310],
+          "referenceCaloriesInsideRange": false
+        },
+        {
+          "foodId": "E015",
+          "name": "Banana, saba, boiled",
+          "portionGrams": 100,
+          "expected": {
+            "calories": 159,
+            "proteinG": 1.2,
+            "carbsG": 38.6,
+            "fatG": 0
+          },
+          "returnedName": "Banana, saba, boiled",
+          "estimated": {
+            "calories": 138,
+            "proteinG": 1.2,
+            "carbsG": 35,
+            "fatG": 0.3
+          },
+          "absoluteErrors": {
+            "calories": 21,
+            "proteinG": 0,
+            "carbsG": 3.6000000000000014,
+            "fatG": 0.3
+          },
+          "calorieRange": [115, 165],
+          "referenceCaloriesInsideRange": true
+        }
+      ],
+      "meanAbsoluteErrors": {
+        "calories": 23.125,
+        "proteinG": 2.25,
+        "carbsG": 3.75625,
+        "fatG": 1.65625
+      },
+      "meanAbsoluteCaloriePercentError": 11.946541990917732,
+      "calorieRangeCoverage": 0.75
+    },
+    {
+      "model": "gemini-3.6-flash",
+      "status": "failed",
+      "latencyMs": 8306,
+      "errorCode": "AI_HIGH_DEMAND"
+    },
+    {
+      "model": "gemini-3.7-flash",
+      "status": "failed",
+      "latencyMs": 9440,
+      "errorCode": "AI_HIGH_DEMAND"
+    },
+    {
+      "model": "gemini-3.8-flash",
+      "status": "failed",
+      "latencyMs": 8579,
+      "errorCode": "AI_HIGH_DEMAND"
+    }
+  ]
+}

@@ -4,7 +4,7 @@ import prisma from '@/lib/prisma';
 import { AiUsageOperation, AiUsageStatus } from '@prisma/client';
 import {
   buildGeminiGenerationConfig,
-  GEMINI_MODEL_SEQUENCE,
+  getGeminiModelSequence,
   GEMINI_MODEL_TIMEOUT_MS,
 } from '@/domain/gemini-model.policy';
 import { AiCapacityDeferredError, AiCapacityService } from '@/services/ai-capacity.service';
@@ -68,7 +68,7 @@ function cleanJsonString(rawText: string): string {
 
 /**
  * Executes a generative content prompt requesting a strict JSON response.
- * Tries up to four models for provider or validation faults, within the shared
+ * Tries the task's models for provider or validation faults, within the shared
  * capacity budget. Quota faults stop immediately instead of spending more quota.
  *
  * @param prompt The main text prompt to analyze
@@ -100,7 +100,7 @@ export async function generateGenerativeJSON<T = any>(
   let lastModel: string | undefined;
 
   // Try each model sequentially in the cascade sequence
-  for (const modelName of GEMINI_MODEL_SEQUENCE) {
+  for (const modelName of getGeminiModelSequence(usage)) {
     let reservationId: string | null = null;
     try {
       reservationId = await AiCapacityService.reserve({

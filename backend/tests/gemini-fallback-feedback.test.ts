@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { z } from 'zod';
-import { GEMINI_MODEL_SEQUENCE } from '../src/domain/gemini-model.policy';
+import { GEMINI_MODEL_SEQUENCE, getGeminiModelSequence } from '../src/domain/gemini-model.policy';
+import { buildOutsideMealAiSchema } from '../src/domain/outside-meal-ai.policy';
 import { AppError } from '../src/errors/AppError';
 
 test('Gemini SDK fallback preserves validation, quota stops and clear overload feedback without live provider calls', async (t) => {
@@ -32,7 +33,7 @@ test('Gemini SDK fallback preserves validation, quota stops and clear overload f
     reservations += 1;
     return `synthetic-${reservations}`;
   });
-  let mode: 'recover' | 'overload' | 'quota' | 'validation' = 'recover';
+  let mode: 'recover' | 'overload' | 'quota' | 'validation' | 'outside-range' | 'outside-count' = 'recover';
   const calls: string[] = [];
   t.mock.method(globalThis, 'fetch', async (input: unknown) => {
     const model = /\/models\/([^:]+):generateContent/.exec(String(input))?.[1];
@@ -47,7 +48,31 @@ test('Gemini SDK fallback preserves validation, quota stops and clear overload f
               {
                 content: {
                   role: 'model',
-                  parts: [{ text: mode === 'validation' && calls.length === 1 ? '{"ok":false}' : '{"ok":true}' }],
+                  parts: [
+                    {
+                      text: mode.startsWith('outside-')
+                        ? JSON.stringify({
+                            items:
+                              mode === 'outside-count' && calls.length === 1
+                                ? []
+                                : [
+                                    {
+                                      name: 'Rice',
+                                      calories: 100,
+                                      calorieLow: mode === 'outside-range' && calls.length === 1 ? 110 : 90,
+                                      calorieHigh: 120,
+                                      proteinG: 2,
+                                      carbsG: 22,
+                                      fatG: 0,
+                                      ingredients: ['rice'],
+                                    },
+                                  ],
+                          })
+                        : mode === 'validation' && calls.length === 1
+                          ? '{"ok":false}'
+                          : '{"ok":true}',
+                    },
+                  ],
                 },
               },
             ],
@@ -113,6 +138,34 @@ test('Gemini SDK fallback preserves validation, quota stops and clear overload f
     reservations = 0;
     assert.deepEqual(await run(), { ok: true });
     assert.deepEqual(calls, GEMINI_MODEL_SEQUENCE.slice(0, 2), 'An invalid candidate is never accepted as a success.');
+
+    mode = 'recover';
+    calls.length = 0;
+    reservations = 0;
+    assert.deepEqual(
+      await generateGenerativeJSON('Return {"ok":true}.', undefined, z.object({ ok: z.literal(true) }), {
+        operation: 'MEAL_REPLACEMENT',
+        purpose: 'PROFILE_SAFETY_RECHECK_REPLACEMENT',
+      }),
+      { ok: true }
+    );
+    assert.deepEqual(calls, getGeminiModelSequence({ operation: 'MEAL_REPLACEMENT' }).slice(0, 2));
+    assert.ok(!calls.includes('gemini-3.5-flash-lite'), 'Safety replacements retain the full Flash model floor.');
+
+    for (const invalidMode of ['outside-range', 'outside-count'] as const) {
+      mode = invalidMode;
+      calls.length = 0;
+      reservations = 0;
+      const response = await generateGenerativeJSON('Estimate rice.', undefined, buildOutsideMealAiSchema(1), {
+        operation: 'OUTSIDE_MEAL_ESTIMATE',
+      });
+      assert.equal(response.items.length, 1);
+      assert.deepEqual(
+        calls,
+        GEMINI_MODEL_SEQUENCE.slice(0, 2),
+        'Malformed estimates must trigger fallback before persistence.'
+      );
+    }
   } finally {
     globals.prisma = priorPrisma;
     if (priorKey === undefined) delete process.env.GEMINI_API_KEY;
