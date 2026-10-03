@@ -1,4 +1,5 @@
 import prisma from '@/lib/prisma';
+import { getWeightHistory } from './weight-history.service';
 import { ProgressService } from './progress.service';
 
 export class WeightLogService {
@@ -6,10 +7,7 @@ export class WeightLogService {
    * Returns all weight log entries for a user, ordered by date.
    */
   static async getWeightHistory(userId: string) {
-    return prisma.weightLog.findMany({
-      where: { userId },
-      orderBy: { loggedAt: 'asc' },
-    });
+    return getWeightHistory(userId);
   }
 
   /**

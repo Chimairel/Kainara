@@ -48,7 +48,7 @@ export default function WeightGraph({ groupedLogs, targetWeight }: WeightGraphPr
   // Create Path commands
   let linePath = '';
   let areaPath = '';
-  if (points.length > 0) {
+  if (points.length > 1) {
     linePath =
       `M ${points[0].x} ${points[0].y} ` +
       points
@@ -59,11 +59,17 @@ export default function WeightGraph({ groupedLogs, targetWeight }: WeightGraphPr
   }
 
   const targetY = targetWeight > 0 ? height - padding - ((targetWeight - minW) / rangeW) * (height - padding * 2) : 0;
+  const baseline = groupedLogs.find((log) => log.source === 'ONBOARDING' || log.source === 'INITIAL_REPORT');
 
   return (
     <div className="w-full bg-brand-surface/30 border border-brand-border/60 p-4 rounded-2xl shadow-inner relative overflow-hidden">
       <div className="absolute top-0 right-0 w-32 h-32 bg-brand-green/5 blur-3xl pointer-events-none rounded-full" />
-      <svg viewBox={`0 0 ${width} ${height}`} className="w-full h-full overflow-visible">
+      <svg
+        viewBox={`0 0 ${width} ${height}`}
+        className="w-full h-full overflow-visible"
+        role="img"
+        aria-label="Weight progress chart"
+      >
         <defs>
           <linearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">
             <stop offset="0%" stopColor="var(--brand-green)" stopOpacity="0.22" />
@@ -168,6 +174,15 @@ export default function WeightGraph({ groupedLogs, targetWeight }: WeightGraphPr
           </g>
         ))}
       </svg>
+      {baseline && (
+        <p className="mt-2 text-xs text-brand-muted">
+          Starting weight: {baseline.weightKg} kg ·{' '}
+          {baseline.source === 'ONBOARDING' ? 'From onboarding' : 'From your first saved report'}
+          {' · '}
+          {new Date(baseline.loggedAt).toLocaleDateString()}.
+          {groupedLogs.length === 1 && ' Log your next weight to see the trend.'}
+        </p>
+      )}
     </div>
   );
 }

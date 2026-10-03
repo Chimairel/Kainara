@@ -1,4 +1,5 @@
 import prisma from '@/lib/prisma';
+import { getWeightHistory } from './weight-history.service';
 import { calculateDailyTarget } from '@/lib/calculations';
 import { HealthConditionType } from '@prisma/client';
 import { lockUserProfile, advanceProfileRevision } from './profile-revision.service';
@@ -56,12 +57,7 @@ export class ProgressService {
    */
   static async getProgressHistory(userId: string) {
     // 1. Fetch weight logs sorted chronologically
-    const weightLogs = await prisma.weightLog.findMany({
-      where: { userId },
-      orderBy: {
-        loggedAt: 'asc',
-      },
-    });
+    const weightLogs = await getWeightHistory(userId);
 
     // 2. Fetch daily nutrition adherence logs sorted chronologically
     const dailyNutritionLogs = await prisma.dailyNutritionLog.findMany({

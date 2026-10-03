@@ -4,6 +4,7 @@ import { AppError } from '@/errors/AppError';
 import { membershipEnabled } from '@/domain/membership.policy';
 import { googleProfileImage } from '@/domain/google-profile-image';
 import prisma from '@/lib/prisma';
+import { recordOnboardingWeight } from './weight-history.service';
 import { lockUserProfile, advanceProfileRevision, advanceSafetyRevision } from './profile-revision.service';
 import { calculateDailyTarget } from '@/lib/calculations';
 import {
@@ -395,6 +396,7 @@ export class UserProfileService {
           reportProfileRevision = revised.revision;
         }
         await tx.user.update({ where: { id: userId }, data: { onboardingDone: true } });
+        await recordOnboardingWeight(tx, userId, current.weightKg!);
 
         // A report created against any pre-completion state must be reviewed again.
         // New accounts normally have no report here; the report workspace creates

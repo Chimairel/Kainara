@@ -8,6 +8,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { readSessionResource, writeSessionResource } from '@/lib/session-resource-cache';
 import { getRecentUserProfile, refreshUserProfile } from '@/lib/user-profile-resource';
 import type { UserProfileData } from '@/hooks/useProfile';
+import { groupWeightObservations } from './weight-chart-data';
 
 export type ProgressSection = 'overview' | 'profile' | 'safety' | 'history';
 export type ProgressWorkspaceMode = 'progress' | 'health' | 'planning';
@@ -17,6 +18,7 @@ export interface WeightLog {
   weightKg: number;
   note: string | null;
   loggedAt: string;
+  source?: 'ONBOARDING' | 'INITIAL_REPORT' | 'LOG';
 }
 
 export interface DailyNutritionLog {
@@ -92,68 +94,73 @@ export function useProgressWorkspace(mode: ProgressWorkspaceMode) {
   const [weightSuccess, setWeightSuccess] = useState<string | null>(null);
 
   // Fetch progress history and profile info
-  const fetchPageData = useCallback(async (silent = false, signal?: AbortSignal) => {
-    setError(null);
-    try {
-      const [historyRes, profileRes] = await Promise.all([
-        mode === 'progress'
-          ? api.get('/user/progress/history', { signal }).catch((err: unknown) => {
-              setError(getApiErrorMessage(err, 'Failed to fetch progress metrics.'));
-              return { data: { success: false, data: null } };
-            })
-          : Promise.resolve({ data: { success: false, data: null } }),
-        (silent ? refreshUserProfile(ownerId) : getRecentUserProfile(ownerId)).then((data) => ({ data: { success: true, data } })),
-      ]);
+  const fetchPageData = useCallback(
+    async (silent = false, signal?: AbortSignal) => {
+      setError(null);
+      try {
+        const [historyRes, profileRes] = await Promise.all([
+          mode === 'progress'
+            ? api.get('/user/progress/history', { signal }).catch((err: unknown) => {
+                setError(getApiErrorMessage(err, 'Failed to fetch progress metrics.'));
+                return { data: { success: false, data: null } };
+              })
+            : Promise.resolve({ data: { success: false, data: null } }),
+          (silent ? refreshUserProfile(ownerId) : getRecentUserProfile(ownerId)).then((data) => ({
+            data: { success: true, data },
+          })),
+        ]);
 
-      if (signal?.aborted) return;
-      const nextHistory = historyRes.data?.success ? (historyRes.data.data as ProgressHistory) : null;
-      const nextProfile = profileRes.data?.success ? (profileRes.data.data as ProfileDetails) : null;
+        if (signal?.aborted) return;
+        const nextHistory = historyRes.data?.success ? (historyRes.data.data as ProgressHistory) : null;
+        const nextProfile = profileRes.data?.success ? (profileRes.data.data as ProfileDetails) : null;
 
-      if (historyRes.data && historyRes.data.success) {
-        setHistory(nextHistory);
-      }
-      if (profileRes.data && profileRes.data.success) {
-        const data = nextProfile as ProfileDetails;
-        setProfileData(data);
-
-        // Pre-populate biometric form states
-        if (data.userProfile && !silent) {
-          setAge(String(data.userProfile.age || ''));
-          setHeightCm(String(data.userProfile.heightCm || ''));
-          setWeightKg(String(data.userProfile.weightKg || ''));
-          setTargetWeightKg(
-            String(
-              data.userProfile.targetWeightKg ??
-                (data.userProfile.goal === 'MAINTAIN' ? data.userProfile.weightKg : '') ??
-                ''
-            )
-          );
-          setBiologicalSex(data.userProfile.biologicalSex || 'MALE');
-          setGoal(data.userProfile.goal || 'MAINTAIN');
-          setActivityLevel(data.userProfile.activityLevel || 'SEDENTARY');
-          setDietaryPreference(data.userProfile.dietaryPreference || 'OMNIVORE');
-          setRicePreference(data.userProfile.ricePreference || 'FLEXIBLE');
-          setFoodCulture(normalizeFoodCulture(data.userProfile.foodCulture));
-          setShoppingDayOfWeek(
-            typeof data.userProfile.shoppingDayOfWeek === 'number'
-              ? data.userProfile.shoppingDayOfWeek
-              : data.userProfile.shoppingDayGroup === 'WEEKDAY'
-                ? 0
-                : 6
-          );
+        if (historyRes.data && historyRes.data.success) {
+          setHistory(nextHistory);
         }
+        if (profileRes.data && profileRes.data.success) {
+          const data = nextProfile as ProfileDetails;
+          setProfileData(data);
+
+          // Pre-populate biometric form states
+          if (data.userProfile && !silent) {
+            setAge(String(data.userProfile.age || ''));
+            setHeightCm(String(data.userProfile.heightCm || ''));
+            setWeightKg(String(data.userProfile.weightKg || ''));
+            setTargetWeightKg(
+              String(
+                data.userProfile.targetWeightKg ??
+                  (data.userProfile.goal === 'MAINTAIN' ? data.userProfile.weightKg : '') ??
+                  ''
+              )
+            );
+            setBiologicalSex(data.userProfile.biologicalSex || 'MALE');
+            setGoal(data.userProfile.goal || 'MAINTAIN');
+            setActivityLevel(data.userProfile.activityLevel || 'SEDENTARY');
+            setDietaryPreference(data.userProfile.dietaryPreference || 'OMNIVORE');
+            setRicePreference(data.userProfile.ricePreference || 'FLEXIBLE');
+            setFoodCulture(normalizeFoodCulture(data.userProfile.foodCulture));
+            setShoppingDayOfWeek(
+              typeof data.userProfile.shoppingDayOfWeek === 'number'
+                ? data.userProfile.shoppingDayOfWeek
+                : data.userProfile.shoppingDayGroup === 'WEEKDAY'
+                  ? 0
+                  : 6
+            );
+          }
+        }
+        writeSessionResource(ownerId, 'user-progress-page', {
+          history: nextHistory,
+          profileData: nextProfile,
+        });
+        if (nextProfile) writeSessionResource(ownerId, 'user-profile', nextProfile);
+      } catch (err: unknown) {
+        setError(getApiErrorMessage(err, 'Failed to fetch progress metrics.'));
+      } finally {
+        setIsLoading(false);
       }
-      writeSessionResource(ownerId, 'user-progress-page', {
-        history: nextHistory,
-        profileData: nextProfile,
-      });
-      if (nextProfile) writeSessionResource(ownerId, 'user-profile', nextProfile);
-    } catch (err: unknown) {
-      setError(getApiErrorMessage(err, 'Failed to fetch progress metrics.'));
-    } finally {
-      setIsLoading(false);
-    }
-  }, [ownerId, mode]);
+    },
+    [ownerId, mode]
+  );
 
   useVisiblePolling(
     async (signal) => {
@@ -331,72 +338,10 @@ export function useProgressWorkspace(mode: ProgressWorkspaceMode) {
     }
   };
 
-  const groupedLogs = React.useMemo(() => {
-    if (!history?.weightLogs || history.weightLogs.length === 0) return [];
-
-    // Group logs
-    const groups: Record<string, { sum: number; count: number; date: Date }> = {};
-
-    history.weightLogs.forEach((log) => {
-      const d = new Date(log.loggedAt);
-      let key = '';
-      if (timeframe === 'week') {
-        const day = d.getDay();
-        const diff = d.getDate() - day;
-        const sunday = new Date(d.setDate(diff));
-        sunday.setHours(0, 0, 0, 0);
-        key = sunday.toDateString();
-      } else if (timeframe === 'month') {
-        key = `${d.getFullYear()}-${d.getMonth()}`;
-      } else {
-        key = `${d.getFullYear()}`;
-      }
-
-      if (!groups[key]) {
-        groups[key] = { sum: 0, count: 0, date: new Date(log.loggedAt) };
-      }
-      groups[key].sum += log.weightKg;
-      groups[key].count += 1;
-    });
-
-    return Object.keys(groups)
-      .sort((a, b) => {
-        if (timeframe === 'week') {
-          return new Date(a).getTime() - new Date(b).getTime();
-        } else if (timeframe === 'month') {
-          const [ay, am] = a.split('-').map(Number);
-          const [by, bm] = b.split('-').map(Number);
-          return ay !== by ? ay - by : am - bm;
-        } else {
-          return Number(a) - Number(b);
-        }
-      })
-      .map((key) => {
-        const item = groups[key];
-        const avgWeight = Math.round((item.sum / item.count) * 10) / 10;
-
-        let label = '';
-        if (timeframe === 'week') {
-          const sunday = new Date(key);
-          label = `Wk of ${sunday.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}`;
-        } else if (timeframe === 'month') {
-          label = item.date.toLocaleDateString(undefined, { month: 'short', year: '2-digit' });
-        } else {
-          label = item.date.getFullYear().toString();
-        }
-
-        return {
-          weightKg: avgWeight,
-          dateLabel: label,
-          loggedAt:
-            timeframe === 'week'
-              ? new Date(key).toISOString()
-              : timeframe === 'month'
-                ? new Date(Number(key.split('-')[0]), Number(key.split('-')[1]), 1).toISOString()
-                : new Date(Number(key), 0, 1).toISOString(),
-        };
-      });
-  }, [history?.weightLogs, timeframe]);
+  const groupedLogs = React.useMemo(
+    () => groupWeightObservations(history?.weightLogs ?? [], timeframe),
+    [history?.weightLogs, timeframe]
+  );
 
   const targetWeight = profileData?.userProfile?.targetWeightKg || 0;
   const currentWeight = profileData?.userProfile?.weightKg || 0;

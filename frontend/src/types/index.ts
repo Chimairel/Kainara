@@ -295,6 +295,7 @@ export interface WeightLog {
   weightKg: number;
   loggedAt: string;
   note?: string;
+  source?: 'ONBOARDING' | 'INITIAL_REPORT' | 'LOG';
 }
 
 export interface DailyNutritionLog {
