@@ -1,3 +1,4 @@
+import { publicCycleSnapshot } from '@/services/meal-macro-context.service';
 import {
   filterUserActionableMealPlans,
   getOwnedMealPlanWhere,
@@ -105,7 +106,11 @@ export class MealsController {
       );
       const generationSummary = summarizeGeneratedMealPlan(generatedPlanRows);
       const pendingReview = pendingPreviewWithImages(generatedPlanRows, libraryImages, libraryCookingLinks);
-      const planSnapshot = await prisma.mealPlanCycleSnapshot.findUnique({ where: { planGroupId } });
+      const planSnapshot = await publicCycleSnapshot(
+        prisma,
+        await prisma.mealPlanCycleSnapshot.findUnique({ where: { planGroupId } }),
+        generatedPlanRows.map((meal) => meal.scheduledDate)
+      );
       const cycle = await prisma.mealPlanCycle.findUnique({ where: { id: planGroupId } });
       const awaitingGenerationCount = cycle
         ? missingMealSlots(
@@ -266,11 +271,16 @@ export class MealsController {
         },
         orderBy: { scheduledDate: 'asc' },
       });
-      const [groupMeals, planSnapshot, generationJob] = await Promise.all([
+      const [groupMeals, rawPlanSnapshot, generationJob] = await Promise.all([
         groupMealsPromise,
         planSnapshotPromise,
         generationJobPromise,
       ]);
+      const planSnapshot = await publicCycleSnapshot(
+        prisma,
+        rawPlanSnapshot,
+        groupMeals.map((meal) => meal.scheduledDate)
+      );
       mark('meals');
       const clearedIds = new Set(cycleClearedIds);
       mark('clearance');

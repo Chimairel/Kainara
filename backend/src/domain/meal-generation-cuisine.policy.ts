@@ -1,3 +1,4 @@
+import type { PlanningMacroTargets } from './meal-macro-target.policy';
 import { getMealSlotCalorieRange, isPrimaryMealType } from './meal-calorie-allocation.policy';
 
 export type MealGenerationSlot = {
@@ -8,7 +9,15 @@ export type MealGenerationSlot = {
 export interface MealGenerationPromptInput {
   slots: readonly MealGenerationSlot[];
   dailyCalorieTarget: number;
-  existingMeals?: readonly { dayNumber: number; mealType: string; calories: number }[];
+  planningTargets?: PlanningMacroTargets | null;
+  existingMeals?: readonly {
+    dayNumber: number;
+    mealType: string;
+    calories: number;
+    proteinG?: number;
+    carbsG?: number;
+    fatG?: number;
+  }[];
   goal: string;
   dietaryPreference: string;
   ricePreference: string;
@@ -98,6 +107,9 @@ export function buildMealGenerationPrompt(input: MealGenerationPromptInput): {
     `[PATIENT NUTRITION PROFILE]\n` +
     `- Daily Target Calories: ${input.dailyCalorieTarget} kcal/day (distribute approximately 30% breakfast, 40% lunch, and 30% dinner)\n` +
     `- Goal Target: ${input.goal}\n` +
+    (input.planningTargets
+      ? `- Daily planning estimates from the accepted report: protein ${input.planningTargets.proteinG.toFixed(1)} g, carbohydrate ${input.planningTargets.carbsG.toFixed(1)} g, fat ${input.planningTargets.fatG.toFixed(1)} g. Balance the whole day including existing meals. ${input.planningTargets.explanation} Never change reported nutrients to manufacture a match.\n`
+      : '') +
     `- Dietary Preference: ${input.dietaryPreference}\n` +
     `- Rice Serving Preference: ${input.ricePreference}\n` +
     `- Preferred Food Culture: ${input.foodCulture} (influence only; this does not restrict the plan to one cuisine)\n\n` +

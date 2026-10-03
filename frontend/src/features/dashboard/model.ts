@@ -133,31 +133,29 @@ export function calculateDashboardMetrics(input: {
 }) {
   const dateKey = getManilaDateKey(input.activeDate);
   const mealsList = input.currentMeals.filter((meal) => getManilaDateKey(meal.scheduledDate) === dateKey);
-  const pendingMeals = input.pendingMeals.filter((meal) => getManilaDateKey(meal.scheduledDate) === dateKey);
   const outsideMeals = input.outsideMealLogs.filter(
     (meal) => meal.status === 'DONE' && getManilaDateKey(meal.loggedAt) === dateKey
   );
   const doneMeals = mealsList.filter((meal) => meal.mealLogs?.some((log) => log.status === 'DONE'));
   const total = (field: 'calories' | 'proteinG' | 'carbsG' | 'fatG') =>
     doneMeals.reduce((sum, meal) => sum + meal[field], 0) + outsideMeals.reduce((sum, meal) => sum + meal[field], 0);
-  const scheduled = [...mealsList, ...pendingMeals];
   const provisionalCalories = outsideMeals.reduce((sum, meal) => sum + (meal.provisionalCalories ?? 0), 0);
   const unresolvedMealCount = outsideMeals.filter(
     (meal) => meal.nutritionCompleteness && meal.nutritionCompleteness !== 'COMPLETE'
   ).length;
   const target = (field: 'calories' | 'proteinG' | 'carbsG' | 'fatG', fallback: number) =>
-    input.dailyMacroTargets?.[dateKey]?.[field] ?? (scheduled.reduce((sum, meal) => sum + meal[field], 0) || fallback);
+    input.dailyMacroTargets?.[dateKey]?.[field] ?? fallback;
 
   return {
     mealsList,
     caloriesConsumed: total('calories'),
     caloriesTarget: input.dailyCalorieTarget || target('calories', 2000),
     proteinConsumed: total('proteinG'),
-    proteinTarget: target('proteinG', 120),
+    proteinTarget: target('proteinG', 0),
     carbsConsumed: total('carbsG'),
-    carbsTarget: target('carbsG', 220),
+    carbsTarget: target('carbsG', 0),
     fatConsumed: total('fatG'),
-    fatTarget: target('fatG', 60),
+    fatTarget: target('fatG', 0),
     provisionalCalories,
     unresolvedMealCount,
   };

@@ -3,6 +3,7 @@ import type { CycleMetaSnapshot } from '@/features/dashboard/model';
 import type { MealCookingLink, MealPlan, PublicMealImage, PublicVerifier } from '@/types';
 
 export interface SwapOption {
+  nutritionFitScore?: number;
   id: string;
   reuseBasis?: 'CERTIFIED_RECIPE' | 'PROFILE_MATCHED_APPROVAL' | 'PANLASANG_GENERAL_BASE';
   canFavorite?: boolean;
@@ -29,6 +30,21 @@ export interface SwapOption {
   image?: PublicMealImage | null;
   cookingLink?: MealCookingLink | null;
 }
+
+export type SwapNutritionAnalysis = {
+  before: { calories: number; proteinG: number; carbsG: number; fatG: number };
+  after: { calories: number; proteinG: number; carbsG: number; fatG: number };
+  target: {
+    calories: number;
+    proteinG: number;
+    carbsG: number;
+    fatG: number;
+    explanation: string;
+    basis: string;
+  } | null;
+  completeDay: boolean;
+  warnings: string[];
+};
 
 export interface MealHistoryLog {
   id: string;

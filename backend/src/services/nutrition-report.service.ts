@@ -13,9 +13,15 @@ import {
 import { ProfileCycleAdaptationService, PROFILE_CHANGE_KIND } from './profile-cycle-adaptation.service';
 import { UpcomingPlanPreparationService } from './upcoming-plan-preparation.service';
 import { PlanningReadinessService } from './planning-readiness.service';
+import {
+  calculatePlanningMacroTargets,
+  reportPlanningMacroTargets,
+  type PlanningMacroTargets,
+} from '@/domain/meal-macro-target.policy';
 
 type StoredNutritionReport = NonNullable<Awaited<ReturnType<typeof prisma.nutritionReport.findUnique>>>;
 type ReportResponse = StoredNutritionReport & {
+  planningTargets: PlanningMacroTargets | null;
   referenceItems: ReturnType<typeof buildDeterministicNutritionGuidance>['referenceItems'];
   reportPolicyVersion: string | null;
   confirmationKind?: string;
@@ -64,6 +70,7 @@ export class NutritionReportService {
           ? (content.referenceItems as ReportResponse['referenceItems'])
           : [],
       reportPolicyVersion: policyVersion,
+      planningTargets: reportPlanningMacroTargets(version),
       confirmationKind: version?.confirmationKind,
       planningContext: {
         activeVersion: active?.version ?? null,
@@ -178,7 +185,18 @@ export class NutritionReportService {
   }
 
   static async getHistory(userId: string) {
-    return prisma.nutritionReportVersion.findMany({ where: { userId }, orderBy: { version: 'desc' }, take: 100 });
+    const versions = await prisma.nutritionReportVersion.findMany({
+      where: { userId },
+      orderBy: { version: 'desc' },
+      take: 100,
+    });
+    return versions.map((version) => ({
+      ...version,
+      content: {
+        ...(version.content as Record<string, unknown>),
+        planningTargets: reportPlanningMacroTargets(version),
+      },
+    }));
   }
 
   static async generateReport(userId: string): Promise<ReportResponse> {
@@ -226,6 +244,10 @@ export class NutritionReportService {
       basedOnConditions: [...conditions, ...safetyRestrictions.customConditions],
       basedOnAllergies: [...allergens, ...safetyRestrictions.customFoodRestrictions],
     };
+    const planningTargets = calculatePlanningMacroTargets({
+      ...profile,
+      restricted: conditions.some((c) => c !== 'NONE') || Boolean(otherConditions),
+    });
     const latest = await tx.nutritionReportVersion.findFirst({ where: { userId }, orderBy: { version: 'desc' } });
     const current = await tx.nutritionReport.findUnique({ where: { userId } });
     const version = Math.max(current?.version ?? 0, latest?.version ?? 0) + 1;
@@ -246,7 +268,7 @@ export class NutritionReportService {
         generatedAt,
         confirmationKind,
         policyVersion: NUTRITION_GUIDANCE_POLICY_VERSION,
-        content: JSON.parse(JSON.stringify({ ...savedReport, ...guidance })) as Prisma.InputJsonObject,
+        content: JSON.parse(JSON.stringify({ ...savedReport, ...guidance, planningTargets })) as Prisma.InputJsonObject,
         profileSnapshot: JSON.parse(
           JSON.stringify({
             profile,
@@ -255,6 +277,7 @@ export class NutritionReportService {
             otherConditions,
             otherAllergies,
             nutritionReferences: guidance.nutritionReferences,
+            planningTargets,
           })
         ) as Prisma.InputJsonObject,
       },

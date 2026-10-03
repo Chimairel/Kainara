@@ -9,6 +9,7 @@ import NutritionistCredentialModal from '@/components/user/NutritionistCredentia
 import { AlertTriangle, ArrowRight, Check, Heart, Search, Sparkles, Soup, UtensilsCrossed } from 'lucide-react';
 import { formatManilaDate } from '@/lib/manila-date';
 import { useMealsWorkspace } from './useMealsWorkspace';
+import SwapImpactDetails from './SwapImpactDetails';
 
 type Props = { workspace: ReturnType<typeof useMealsWorkspace> };
 
@@ -89,10 +90,12 @@ export function MealsWorkspaceModals({ workspace }: Props) {
       items = items.filter((item) => item.isFavorite);
     }
 
-    // 5. Sort options (defaults to best calorie match)
+    // Rank against the report estimates for the planned day, including fresh rice.
     const currentCal = activeSwapMeal.calories;
     return items.sort((a, b) => {
       if (miniSort === 'best_match') {
+        const fit = (a.nutritionFitScore ?? Number.MAX_SAFE_INTEGER) - (b.nutritionFitScore ?? Number.MAX_SAFE_INTEGER);
+        if (fit !== 0) return fit;
         const deltaA = Math.abs(a.calories - currentCal);
         const deltaB = Math.abs(b.calories - currentCal);
         if (deltaA !== deltaB) return deltaA - deltaB;
@@ -279,6 +282,11 @@ export function MealsWorkspaceModals({ workspace }: Props) {
                             </span>
                           </div>
                         )}
+                        <SwapImpactDetails
+                          analysis={swapPreview.nutritionAnalysis}
+                          additions={swapPreview.shoppingNeeds}
+                          removals={swapPreview.shoppingRemovals}
+                        />
                         {swapPreview.groceryDeltaAcknowledgmentRequired && (
                           <label className="flex items-start gap-1.5 rounded-lg border border-amber-500/30 bg-amber-500/10 p-2 text-xs font-semibold cursor-pointer">
                             <input
@@ -287,14 +295,8 @@ export function MealsWorkspaceModals({ workspace }: Props) {
                               onChange={(e) => setGroceryDeltaAcknowledged(e.target.checked)}
                               className="mt-0.5"
                             />
-                            <span>Shopping started. I reviewed my grocery additions/removals.</span>
+                            <span>I reviewed the grocery changes above. Shopping has already started.</span>
                           </label>
-                        )}
-                        {swapPreview.shoppingNeeds.length > 0 && (
-                          <p className="text-[10px] text-brand-muted">
-                            +{swapPreview.shoppingNeeds.length} item
-                            {swapPreview.shoppingNeeds.length > 1 ? 's' : ''} will be added to groceries.
-                          </p>
                         )}
                       </div>
                     ) : null}
@@ -423,7 +425,7 @@ export function MealsWorkspaceModals({ workspace }: Props) {
                     className="h-9 rounded-xl border border-brand-border bg-brand-surface px-2.5 text-xs font-medium text-brand-text outline-none focus:border-brand-green"
                     aria-label="Sort mini library recipes"
                   >
-                    <option value="best_match">Best calorie match</option>
+                    <option value="best_match">Best nutrition match</option>
                     <option value="cal_asc">Calories: Low to High</option>
                     <option value="cal_desc">Calories: High to Low</option>
                     <option value="alpha">Recipe Name (A-Z)</option>

@@ -1,3 +1,5 @@
+import { dailyTargetMap } from './meal-macro-context.service';
+import { mealMacroBudget, nutritionFitScore, type NutritionVector } from '@/domain/meal-macro-target.policy';
 import { savePreparedCorpusMeal } from './meal-plan-corpus-persistence.service';
 import { buildComposedServing, composedNutritionTotal, scaleFnriFoodToGrams } from '@/domain/composed-serving.policy';
 import { resolveRecipeRiceRole } from '@/domain/recipe-rice-role.policy';
@@ -21,7 +23,7 @@ import {
 } from '@prisma/client';
 import { randomUUID } from 'crypto';
 import { assertMealSlotCalories, validateGeneratedDayCalories } from '@/domain/generated-plan-calories.policy';
-import { getMealPlanCycleTiming, getManilaDateKey, getScheduledMealDate } from '@/domain/meal-plan-cycle.policy';
+import { getMealPlanCycleTiming, getScheduledMealDate } from '@/domain/meal-plan-cycle.policy';
 import { MealPlanCycleService } from './meal-plan-cycle.service';
 import { ClinicalProfileReviewService } from './clinical-profile-review.service';
 import { MembershipService } from './membership.service';
@@ -75,6 +77,7 @@ export async function generate7DayPlan(
   const {
     user,
     profile,
+    planningTargets,
     conditions: userConditions,
     allergens: userAllergens,
     otherConditions,
@@ -184,6 +187,7 @@ export async function generate7DayPlan(
     scheduledDate: Date;
   }[] = [];
   const lastSelectedLibraryDay = new Map<string, number>();
+  const selectedNutrition: Array<NutritionVector & { dayNumber: number; mealType: string }> = [];
 
   // Evaluate each individual slot independently
   for (let day = 0; day < numDays; day++) {
@@ -191,6 +195,11 @@ export async function generate7DayPlan(
 
     const slots = [MealType.BREAKFAST, MealType.LUNCH, MealType.DINNER];
     for (const slotType of slots) {
+      const macroTarget = mealMacroBudget(
+        planningTargets,
+        slotType,
+        selectedNutrition.filter((m) => m.dayNumber === day + 1)
+      );
       // Filter in-memory verified library matches
       const matches = eligibleLibraryMeals.filter((meal) => {
         const previousDay = lastSelectedLibraryDay.get(meal.id);
@@ -222,6 +231,7 @@ export async function generate7DayPlan(
             hasConditions: !reviewFreeBaseOnly,
             riceFood: cookedRiceFood,
             allowPendingCaseReview: true,
+            macroTarget,
           }),
         ])
       );
@@ -248,6 +258,11 @@ export async function generate7DayPlan(
         }))
         .sort(
           (left, right) =>
+            Number(caseReviewCandidateIds.has(left.meal.id)) - Number(caseReviewCandidateIds.has(right.meal.id)) ||
+            (macroTarget
+              ? nutritionFitScore(plateById.get(left.meal.id)!, macroTarget) -
+                nutritionFitScore(plateById.get(right.meal.id)!, macroTarget)
+              : 0) ||
             right.ranking.score - left.ranking.score ||
             left.meal.usageCount - right.meal.usageCount ||
             left.meal.id.localeCompare(right.meal.id)
@@ -258,6 +273,7 @@ export async function generate7DayPlan(
       const selected = ranked.find(({ meal }) => !lastSelectedLibraryDay.has(meal.id)) ?? ranked[0];
 
       if (selected) {
+        selectedNutrition.push({ ...plateById.get(selected.meal.id)!, dayNumber: day + 1, mealType: slotType });
         lastSelectedLibraryDay.set(selected.meal.id, day + 1);
         const pairedRiceG = plateById.get(selected.meal.id)?.pairedRiceG ?? null;
 
@@ -293,6 +309,8 @@ export async function generate7DayPlan(
   );
   const rawCorpusResult = await sourceRawRecipeCandidates({
     slots: unmatchedSlots,
+    planningTargets,
+    existingNutrition: selectedNutrition,
     dailyCalorieTarget,
     dietaryPreference: profile.dietaryPreference || 'OMNIVORE',
     conditions: userConditions,
@@ -468,40 +486,10 @@ export async function generate7DayPlan(
   );
   if (finalCalorieIssues.length) throw new Error(finalCalorieIssues.join(' '));
 
-  const cycleMeals = [
-    ...matchedSlots.map((slot) => ({
-      scheduledDate: slot.scheduledDate,
-      calories:
-        slot.libraryMeal.calories +
-        (slot.pairedRiceG && cookedRiceFood ? (cookedRiceFood.calories * slot.pairedRiceG) / 100 : 0),
-      proteinG:
-        slot.libraryMeal.proteinG +
-        (slot.pairedRiceG && cookedRiceFood ? (cookedRiceFood.proteinG * slot.pairedRiceG) / 100 : 0),
-      carbsG:
-        slot.libraryMeal.carbsG +
-        (slot.pairedRiceG && cookedRiceFood ? (cookedRiceFood.carbsG * slot.pairedRiceG) / 100 : 0),
-      fatG:
-        slot.libraryMeal.fatG +
-        (slot.pairedRiceG && cookedRiceFood ? (cookedRiceFood.fatG * slot.pairedRiceG) / 100 : 0),
-    })),
-    ...preparedAiMeals.map((meal) => ({
-      scheduledDate: meal.scheduledDate,
-      ...plateNutrition(meal),
-    })),
-  ];
-  const dailyMacroTargets = cycleMeals.reduce<
-    Record<string, { calories: number; proteinG: number; carbsG: number; fatG: number }>
-  >((days, meal) => {
-    const key = getManilaDateKey(meal.scheduledDate);
-    const current = days[key] ?? { calories: 0, proteinG: 0, carbsG: 0, fatG: 0 };
-    days[key] = {
-      calories: current.calories + meal.calories,
-      proteinG: current.proteinG + meal.proteinG,
-      carbsG: current.carbsG + meal.carbsG,
-      fatG: current.fatG + meal.fatG,
-    };
-    return days;
-  }, {});
+  const dailyMacroTargets = dailyTargetMap(
+    Array.from({ length: numDays }, (_, day) => getScheduledMealDate(startDate, day)),
+    planningTargets
+  );
   const now = new Date();
   const businessDay = MealPlanCycleService.getBusinessDay(now);
   const completeSlotSet =

@@ -76,6 +76,33 @@ export default function NutritionGuidancePaper({
           </div>
         </dl>
       </section>
+      {report.planningTargets && (
+        <section className="mt-7 border-b border-slate-200 pb-6" aria-label="Daily planning estimates">
+          <h2 className="text-base font-bold">Daily planning estimates</h2>
+          <dl className="mt-3 grid grid-cols-2 gap-3 text-sm sm:grid-cols-4">
+            {(
+              [
+                ['calories', 'Energy', 'kcal'],
+                ['proteinG', 'Protein', 'g'],
+                ['carbsG', 'Carbs', 'g'],
+                ['fatG', 'Fat', 'g'],
+              ] as const
+            ).map(([key, label, unit]) => (
+              <div key={key}>
+                <dt className="font-semibold">{label}</dt>
+                <dd>
+                  {Math.round(report.planningTargets![key])} {unit}
+                </dd>
+              </div>
+            ))}
+          </dl>
+          <p className="mt-3 text-sm text-slate-600">{report.planningTargets.explanation}</p>
+          <p className="mt-2 text-xs text-slate-500">
+            Selecting this report supplies these estimates to meal planning and swap comparisons. Actual meal totals are
+            shown separately.
+          </p>
+        </section>
+      )}
       <section className="mt-7 border-b border-slate-200 pb-6">
         <h2 className="text-base font-bold text-slate-900 tracking-tight">What these numbers mean</h2>
         <p className="mt-3 text-sm leading-relaxed text-slate-800">{report.generalSummary}</p>

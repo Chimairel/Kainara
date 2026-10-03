@@ -120,6 +120,16 @@ export interface Allergy {
 }
 
 export interface NutritionReport {
+  planningTargets?: {
+    calories: number;
+    proteinG: number;
+    carbsG: number;
+    fatG: number;
+    policyVersion: string;
+    basis: string;
+    goal: string;
+    explanation: string;
+  } | null;
   confirmationKind?: string;
   planningContext?: {
     activeVersion: number | null;

@@ -162,7 +162,12 @@ export function CockpitDashboard({
                             className="font-bold text-brand-text"
                           />
                         </strong>{' '}
-                        / <AnimatedValue value={Math.round(macro.target)} suffix="g" className="text-brand-muted" />
+                        /{' '}
+                        {macro.target > 0 ? (
+                          <AnimatedValue value={Math.round(macro.target)} suffix="g" className="text-brand-muted" />
+                        ) : (
+                          <span>Estimate unavailable</span>
+                        )}
                       </span>
                     </div>
                     <div

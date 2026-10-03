@@ -12,6 +12,12 @@ import type { RecipeCandidateProjection } from './recipe-candidate-provider';
 import { SOURCE_SERVING_MAX_SCALE, SOURCE_SERVING_MIN_SCALE } from '@/domain/source-serving-adjustment.policy';
 import { rawRecipeServing } from './raw-recipe-serving.service';
 import type { SwapRiceFood } from './meal-swap-serving.service';
+import {
+  mealMacroBudget,
+  nutritionFitScore,
+  type PlanningMacroTargets,
+  type NutritionVector,
+} from '@/domain/meal-macro-target.policy';
 
 export interface RawCandidateSlot {
   dayNumber: number;
@@ -38,10 +44,68 @@ export interface SourcedRawRecipeMeal {
 }
 
 type RankedCandidate = RecipeCandidateProjection & {
+  _original?: RecipeCandidateProjection;
   _ranking: ReturnType<typeof scorePreparationCandidate>;
   servingScale?: number;
   pairedRiceG?: number | null;
 };
+
+type MacroSelectionInput = {
+  planningTargets?: PlanningMacroTargets | null;
+  existingNutrition?: readonly (NutritionVector & { dayNumber: number; mealType: string })[];
+  dailyCalorieTarget?: number;
+  ricePreference?: RicePreference;
+  riceFood?: SwapRiceFood | null;
+};
+
+function macroPool(
+  input: MacroSelectionInput,
+  slot: RawCandidateSlot,
+  pool: readonly RankedCandidate[],
+  selected: readonly SourcedRawRecipeMeal[]
+) {
+  if (!input.planningTargets) return [...pool];
+  const whole = (meal: SourcedRawRecipeMeal) => ({
+    ...meal,
+    calories: meal.calories + ((input.riceFood?.calories ?? 0) * (meal.pairedRiceG ?? 0)) / 100,
+    proteinG: meal.proteinG + ((input.riceFood?.proteinG ?? 0) * (meal.pairedRiceG ?? 0)) / 100,
+    carbsG: meal.carbsG + ((input.riceFood?.carbsG ?? 0) * (meal.pairedRiceG ?? 0)) / 100,
+    fatG: meal.fatG + ((input.riceFood?.fatG ?? 0) * (meal.pairedRiceG ?? 0)) / 100,
+  });
+  const other = [...(input.existingNutrition ?? []), ...selected.map(whole)].filter(
+    (m) => m.dayNumber === slot.dayNumber
+  );
+  const budget = mealMacroBudget(input.planningTargets, slot.mealType, other);
+  if (!budget) return [...pool];
+  const score = (candidate: RankedCandidate) => {
+    const n = candidate.nutrition!;
+    const g = candidate.pairedRiceG ?? 0;
+    const r = input.riceFood;
+    return nutritionFitScore(
+      {
+        calories: n.calories + ((r?.calories ?? 0) * g) / 100,
+        proteinG: n.proteinG + ((r?.proteinG ?? 0) * g) / 100,
+        carbsG: n.carbsG + ((r?.carbsG ?? 0) * g) / 100,
+        fatG: n.fatG + ((r?.fatG ?? 0) * g) / 100,
+      },
+      budget
+    );
+  };
+  return pool
+    .flatMap((candidate) => {
+      if (!candidate._original) return [candidate];
+      const plate = rawRecipeServing({
+        candidate: candidate._original,
+        mealType: slot.mealType,
+        dailyCalorieTarget: input.dailyCalorieTarget ?? input.planningTargets!.calories,
+        ricePreference: input.ricePreference,
+        riceFood: input.riceFood,
+        macroTarget: budget,
+      });
+      return plate ? [{ ...candidate, ...plate }] : [];
+    })
+    .sort((a, b) => score(a) - score(b) || b._ranking.score - a._ranking.score || a.id.localeCompare(b.id));
+}
 
 function sourceServingDescription(candidate: RankedCandidate): string {
   const description = candidate.description ?? 'Existing recipe from the broader recipe corpus.';
@@ -55,15 +119,17 @@ export function normalizeRawRecipeQuantity(value: unknown): number | undefined {
 }
 
 /** Corpus origin supplies a recipe, never a clinical clearance. */
-export function selectRawRecipeCandidates(input: {
-  slots: readonly RawCandidateSlot[];
-  candidatesByType: ReadonlyMap<MealType, readonly RankedCandidate[]>;
-  dietaryPreference: DietaryPreference;
-  allergens: readonly string[];
-  otherAllergies?: string | null;
-  reviewFreeBaseOnly?: boolean;
-  recentCandidateIds?: readonly string[];
-}): { meals: SourcedRawRecipeMeal[]; remainingSlots: RawCandidateSlot[] } {
+export function selectRawRecipeCandidates(
+  input: MacroSelectionInput & {
+    slots: readonly RawCandidateSlot[];
+    candidatesByType: ReadonlyMap<MealType, readonly RankedCandidate[]>;
+    dietaryPreference: DietaryPreference;
+    allergens: readonly string[];
+    otherAllergies?: string | null;
+    reviewFreeBaseOnly?: boolean;
+    recentCandidateIds?: readonly string[];
+  }
+): { meals: SourcedRawRecipeMeal[]; remainingSlots: RawCandidateSlot[] } {
   const meals: SourcedRawRecipeMeal[] = [];
   const usedIds = new Set<string>();
   const usedSignatures = new Set<string>();
@@ -72,7 +138,7 @@ export function selectRawRecipeCandidates(input: {
   const recentIds = new Set(input.recentCandidateIds ?? []);
 
   for (const slot of input.slots) {
-    const candidates = input.candidatesByType.get(slot.mealType) ?? [];
+    const candidates = macroPool(input, slot, input.candidatesByType.get(slot.mealType) ?? [], meals);
     const eligible = (candidate: RankedCandidate) => {
       if (usedIds.has(candidate.id) || usedSignatures.has(candidate.contentSignature)) return false;
       if (!candidate.applicableMealTypes.includes(slot.mealType)) return false;
@@ -121,16 +187,18 @@ export function selectRawRecipeCandidates(input: {
 }
 
 /** Fill only after all corpus pages have been checked for distinct recipes. */
-export function fillRepeatedRawRecipeSlots(input: {
-  slots: readonly RawCandidateSlot[];
-  candidatesByType: ReadonlyMap<MealType, readonly RankedCandidate[]>;
-  selected: readonly SourcedRawRecipeMeal[];
-  dietaryPreference: DietaryPreference;
-  allergens: readonly string[];
-  otherAllergies?: string | null;
-  reviewFreeBaseOnly?: boolean;
-  recentCandidateIds?: readonly string[];
-}): { meals: SourcedRawRecipeMeal[]; remainingSlots: RawCandidateSlot[] } {
+export function fillRepeatedRawRecipeSlots(
+  input: MacroSelectionInput & {
+    slots: readonly RawCandidateSlot[];
+    candidatesByType: ReadonlyMap<MealType, readonly RankedCandidate[]>;
+    selected: readonly SourcedRawRecipeMeal[];
+    dietaryPreference: DietaryPreference;
+    allergens: readonly string[];
+    otherAllergies?: string | null;
+    reviewFreeBaseOnly?: boolean;
+    recentCandidateIds?: readonly string[];
+  }
+): { meals: SourcedRawRecipeMeal[]; remainingSlots: RawCandidateSlot[] } {
   const meals: SourcedRawRecipeMeal[] = [];
   const remainingSlots: RawCandidateSlot[] = [];
   const counts = new Map<string, number>();
@@ -140,7 +208,7 @@ export function fillRepeatedRawRecipeSlots(input: {
   const lastByType = new Map<MealType, string>();
   for (const meal of input.selected) lastByType.set(meal.mealType, meal.rawCandidateId);
   for (const slot of input.slots) {
-    const pool = input.candidatesByType.get(slot.mealType) ?? [];
+    const pool = macroPool(input, slot, input.candidatesByType.get(slot.mealType) ?? [], [...input.selected, ...meals]);
     const eligible = pool
       .map((candidate, index) => ({ candidate, index }))
       .filter(
@@ -196,20 +264,22 @@ export function fillRepeatedRawRecipeSlots(input: {
   return { meals, remainingSlots };
 }
 
-export async function sourceRawRecipeCandidates(input: {
-  slots: readonly RawCandidateSlot[];
-  dailyCalorieTarget: number;
-  dietaryPreference: DietaryPreference;
-  conditions: readonly string[];
-  allergens: readonly string[];
-  otherConditions?: string | null;
-  otherAllergies?: string | null;
-  reviewFreeBaseOnly?: boolean;
-  excludeCandidateIds?: readonly string[];
-  ricePreference?: RicePreference;
-  riceFood?: SwapRiceFood | null;
-  recentCandidateIds?: readonly string[];
-}): Promise<{ meals: SourcedRawRecipeMeal[]; remainingSlots: RawCandidateSlot[] }> {
+export async function sourceRawRecipeCandidates(
+  input: MacroSelectionInput & {
+    slots: readonly RawCandidateSlot[];
+    dailyCalorieTarget: number;
+    dietaryPreference: DietaryPreference;
+    conditions: readonly string[];
+    allergens: readonly string[];
+    otherConditions?: string | null;
+    otherAllergies?: string | null;
+    reviewFreeBaseOnly?: boolean;
+    excludeCandidateIds?: readonly string[];
+    ricePreference?: RicePreference;
+    riceFood?: SwapRiceFood | null;
+    recentCandidateIds?: readonly string[];
+  }
+): Promise<{ meals: SourcedRawRecipeMeal[]; remainingSlots: RawCandidateSlot[] }> {
   if (input.slots.length === 0) return { meals: [], remainingSlots: [] };
   const assuranceTier = getMaximumAssuranceTier(input.conditions);
   const mealTypes = [...new Set(input.slots.map((slot) => slot.mealType))];
@@ -243,7 +313,7 @@ export async function sourceRawRecipeCandidates(input: {
       riceRoleBasis: 'INGREDIENT_CLASSIFICATION',
       usedInRecentCycle: false,
     });
-    return { ...scaled, _ranking: ranking };
+    return { ...scaled, _original: candidate, _ranking: ranking };
   };
   const sortPool = (mealType: MealType) =>
     candidatePools
@@ -297,6 +367,7 @@ export async function sourceRawRecipeCandidates(input: {
   );
   const select = () =>
     selectRawRecipeCandidates({
+      ...input,
       slots: input.slots,
       candidatesByType: candidatePools,
       dietaryPreference: input.dietaryPreference,
@@ -306,6 +377,21 @@ export async function sourceRawRecipeCandidates(input: {
       recentCandidateIds: input.recentCandidateIds,
     });
   let selected = select();
+  // A bounded broader shortlist avoids selecting solely from the first alphabetical page.
+  if (input.planningTargets) {
+    for (let page = 1; page < 4; page++) {
+      const requests = mealTypes.flatMap((mealType) =>
+        isPrimaryMealType(mealType)
+          ? sources
+              .filter((source) => nextCursor.get(keyFor(mealType, source)))
+              .map((source) => loadPage(mealType, source))
+          : []
+      );
+      if (!requests.length) break;
+      await Promise.all(requests);
+    }
+    selected = select();
+  }
   // Read further bounded pages only when the first shortlist cannot fill a slot.
   // Current Panlasang corpus is under 2,000 records; twenty 120-row pages cover it.
   while (selected.remainingSlots.length > 0) {

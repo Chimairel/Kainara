@@ -227,7 +227,12 @@ export async function verifyRawRiceAndRetiredRepair(reviewerId: string, food: Fo
     where: { userId, planGroupId: cycle.id, mealType: 'BREAKFAST', status: 'APPROVED' },
     include: { servingComponents: true },
   });
-  assert.equal(replaced.calories, 595);
+  assert.ok(
+    replaced.calories >= 510 && replaced.calories <= 690,
+    'The macro-ranked complete breakfast stays inside its calorie range.'
+  );
+  const replacementRice = replaced.servingComponents.find((item) => item.componentType === 'COOKED_RICE')!.quantityG!;
+  assert.ok([75, 150, 225].includes(replacementRice));
   assert.equal(replaced.servingComponents.filter((item) => item.componentType === 'COOKED_RICE').length, 1);
   assert.equal(await prisma.mealLibrary.count(), countAfterFixture);
   assert.equal(await prisma.membershipUsage.count({ where: { userId } }), usage);
@@ -236,7 +241,17 @@ export async function verifyRawRiceAndRetiredRepair(reviewerId: string, food: Fo
     include: { groceryItems: true },
   });
   assert.equal(updatedList.groceryItems.find((item) => item.ingredientName === food.name)?.purchasedQuantity, 40);
-  assert.equal(updatedList.groceryItems.find((item) => item.ingredientName === rice.name)?.quantity, 300);
+  assert.equal(
+    updatedList.groceryItems.find((item) => item.ingredientName === rice.name)?.quantity,
+    150 + replacementRice
+  );
+  const macroSnapshot = await prisma.mealPlanCycleSnapshot.findUniqueOrThrow({ where: { planGroupId: cycle.id } });
+  const reportTarget = (
+    macroSnapshot.dailyMacroTargets as Record<string, { proteinG: number; calories: number; policyVersion: string }>
+  )[getManilaDateKey(today)];
+  assert.equal(reportTarget.proteinG, 62.5, 'Report-derived targets do not become the actual food totals.');
+  assert.equal(reportTarget.calories, 2000);
+  assert.equal(reportTarget.policyVersion, 'MEAL_MACRO_PLANNING_V1');
   assert.deepEqual(await replaceRetiredPlanMeals(userId, cycle.id), { replaced: 0, awaitingReplacement: 0 });
   await verifySourcePlateSwaps(userId, replaced.id, cycle.id, food, rice);
   // Explicit synthetic case approval is confined to this disposable database.
@@ -292,7 +307,7 @@ export async function verifyRawRiceAndRetiredRepair(reviewerId: string, food: Fo
     where: { userId, planGroupId: cycle.id, mealType: 'DINNER', status: 'PENDING_REVIEW' },
   });
   assert.equal(caseReplacement.requiresSafetyRevalidation, true);
-  assert.equal(caseReplacement.calories, 595);
+  assert.ok(caseReplacement.calories >= 510 && caseReplacement.calories <= 690);
   assert.equal(
     await prisma.membershipUsage.count({
       where: { userId, feature: 'PLAN_REVIEW', resultEntityId: cycle.id, completedAt: { not: null } },

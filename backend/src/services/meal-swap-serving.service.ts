@@ -8,6 +8,7 @@ import { chooseCookedRicePortionG } from '@/domain/upcoming-preparation.policy';
 import { resolveRecipeRiceRole } from '@/domain/recipe-rice-role.policy';
 import { MealType, RecipeRiceRole, RicePreference } from '@prisma/client';
 import { type CertifiedLibraryMeal } from './meal-library-candidate-query.service';
+import { nutritionFitScore, type NutritionVector } from '@/domain/meal-macro-target.policy';
 
 export type SwapRiceFood = {
   id: string;
@@ -28,6 +29,7 @@ export function resolveReplacementServing(input: {
   hasConditions: boolean;
   riceFood: SwapRiceFood | null;
   allowPendingCaseReview?: boolean;
+  macroTarget?: NutritionVector & { goal?: string };
 }) {
   const { meal, mealType, dailyTarget, ricePreference, hasConditions, riceFood } = input;
   if (!isPrimaryMealType(mealType)) return null;
@@ -55,6 +57,33 @@ export function resolveReplacementServing(input: {
       minHalfCups: riceRole.minHalfCups,
       maxHalfCups: riceRole.maxHalfCups,
     });
+    if (input.macroTarget) {
+      const portions = [
+        ...(ricePreference === 'WITH_RICE' ? [] : [0]),
+        ...Array.from(
+          { length: riceRole.maxHalfCups - riceRole.minHalfCups + 1 },
+          (_, i) => (i + riceRole.minHalfCups) * 75
+        ),
+      ];
+      const options = portions
+        .map((g) => ({
+          g,
+          total: g
+            ? buildComposedServing({
+                baseRecipeSignature: meal.recipeSignature!,
+                baseNutrition: nutrition,
+                riceFood,
+                cookedRiceG: g,
+              }).total
+            : nutrition,
+        }))
+        .filter((o) => o.total.calories >= range.minimum && o.total.calories <= range.maximum)
+        .sort(
+          (a, b) =>
+            nutritionFitScore(a.total, input.macroTarget!) - nutritionFitScore(b.total, input.macroTarget!) || a.g - b.g
+        );
+      pairedRiceG = options[0]?.g || null;
+    }
     if (!pairedRiceG) {
       if (ricePreference === RicePreference.WITH_RICE) return null;
     }

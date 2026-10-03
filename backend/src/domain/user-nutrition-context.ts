@@ -2,6 +2,7 @@ import type { Prisma } from '@prisma/client';
 import { resolvePlanningProfile } from '@/domain/planning-report.policy';
 import { membershipEnabled } from '@/domain/membership.policy';
 import { adaptUserSafetyRestrictions } from '@/domain/structured-restriction.adapter';
+import { calculatePlanningMacroTargets, reportPlanningMacroTargets } from '@/domain/meal-macro-target.policy';
 
 type UserNutritionReadClient = Pick<Prisma.TransactionClient, 'user'>;
 
@@ -51,7 +52,14 @@ export async function loadPlanningNutritionContext(
   missingProfileMessage: string
 ) {
   const context = await loadUserNutritionContext(client, userId, missingProfileMessage);
-  if (!context.profile.planningReportVersion && !membershipEnabled()) return context;
+  if (!context.profile.planningReportVersion && !membershipEnabled())
+    return {
+      ...context,
+      planningTargets: calculatePlanningMacroTargets({
+        ...context.profile,
+        restricted: context.conditions.some((c) => c !== 'NONE') || Boolean(context.otherConditions),
+      }),
+    };
   const version = await client.nutritionReportVersion.findFirst({
     where: {
       userId,
@@ -62,5 +70,10 @@ export async function loadPlanningNutritionContext(
     orderBy: { version: 'desc' },
   });
   const profile = resolvePlanningProfile(context.profile, version);
-  return { ...context, profile, user: { ...context.user, userProfile: profile } };
+  return {
+    ...context,
+    profile,
+    planningTargets: reportPlanningMacroTargets(version),
+    user: { ...context.user, userProfile: profile },
+  };
 }

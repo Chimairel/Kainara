@@ -1,3 +1,4 @@
+import { cycleMacroTargets, dailyTargetMap } from './meal-macro-context.service';
 import { Prisma } from '@prisma/client';
 import prisma from '@/lib/prisma';
 import { AppError } from '@/errors/AppError';
@@ -98,6 +99,7 @@ async function repairRetiredPlanMeals(userId: string, cycleId: string, now: Date
   }));
   const sourced = await sourceRawRecipeCandidates({
     slots,
+    planningTargets: await cycleMacroTargets(prisma, cycle.snapshot, context.planningTargets),
     dailyCalorieTarget: cycle.snapshot.dailyCalorieTarget,
     dietaryPreference: profile.dietaryPreference || 'OMNIVORE',
     conditions,
@@ -202,12 +204,11 @@ async function repairRetiredPlanMeals(userId: string, cycleId: string, now: Date
         const plans = await tx.mealPlan.findMany({
           where: { userId, planGroupId: cycleId, status: { in: ['APPROVED', 'PENDING_REVIEW'] } },
         });
-        const macros: Record<string, { calories: number; proteinG: number; carbsG: number; fatG: number }> = {};
-        for (const plan of plans) {
-          const day = getManilaDateKey(plan.scheduledDate);
-          macros[day] ??= { calories: 0, proteinG: 0, carbsG: 0, fatG: 0 };
-          for (const key of ['calories', 'proteinG', 'carbsG', 'fatG'] as const) macros[day][key] += plan[key];
-        }
+        const macros = dailyTargetMap(
+          plans.map((plan) => plan.scheduledDate),
+          await cycleMacroTargets(tx, cycle.snapshot, context.planningTargets),
+          cycle.snapshot!.dailyMacroTargets
+        );
         await tx.mealPlanCycleSnapshot.update({ where: { planGroupId: cycleId }, data: { dailyMacroTargets: macros } });
         await tx.groceryList.updateMany({ where: { userId, planGroupId: cycleId }, data: { isStale: true } });
         await tx.auditEvent.create({

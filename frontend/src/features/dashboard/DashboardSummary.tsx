@@ -195,7 +195,7 @@ function MacroBar({
           {label}
         </span>
         <span className="text-brand-text">
-          {Math.round(consumed)}g / {Math.round(target)}g
+          {Math.round(consumed)}g / {target > 0 ? `${Math.round(target)}g` : 'Estimate unavailable'}
         </span>
       </div>
       <div

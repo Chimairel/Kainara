@@ -1,3 +1,4 @@
+import { swapMacroContext } from './meal-macro-context.service';
 import { loadActionableUnloggedMealPlan } from './meal-swap-read.service';
 import {
   SOURCE_SWAP_PREFIX,
@@ -108,11 +109,11 @@ export class MealSwapService {
     const mealPlan = await loadActionableUnloggedMealPlan(prisma, userId, mealPlanId);
 
     // 2. Fetch user profile, health conditions, and allergies
-    const { user, profile: userProfile } = await loadPlanningNutritionContext(
-      prisma,
-      userId,
-      'User profile not found.'
-    );
+    const {
+      user,
+      profile: userProfile,
+      planningTargets,
+    } = await loadPlanningNutritionContext(prisma, userId, 'User profile not found.');
     const { healthConditions, allergies } = user;
     const userConditions = healthConditions.map((c) => c.condition);
     const userAllergens = allergies.map((a) => a.allergen);
@@ -145,6 +146,7 @@ export class MealSwapService {
       userProfile.dailyCalorieTarget,
       2000
     );
+    const macros = await swapMacroContext(prisma, userId, mealPlan, planningTargets);
     const libraryMeals = await queryEligibleLibraryMeals({
       mealType: mealPlan.mealType,
       dailyCalorieTarget: dailyTarget,
@@ -219,6 +221,7 @@ export class MealSwapService {
             safetyEntries: user.safetyProfileEntries,
           }),
           riceFood,
+          macroTarget: macros.budget,
         });
         if (!serving) return [];
         return [
@@ -268,11 +271,9 @@ export class MealSwapService {
       );
     });
     return {
-      swapOptions: [...libraryOptions, ...sourceOptions].sort(
-        (a, b) =>
-          Math.abs(a.calories - mealPlan.calories) - Math.abs(b.calories - mealPlan.calories) ||
-          a.id.localeCompare(b.id)
-      ),
+      swapOptions: [...libraryOptions, ...sourceOptions]
+        .map((option) => ({ ...option, nutritionFitScore: macros.analyze(option).fitScore }))
+        .sort((a, b) => a.nutritionFitScore - b.nutritionFitScore || a.id.localeCompare(b.id)),
     };
   }
 
@@ -304,11 +305,11 @@ export class MealSwapService {
       throw new Error('Selected replacement meal is not available or approved.');
     }
 
-    const { user, profile: userProfile } = await loadPlanningNutritionContext(
-      client,
-      userId,
-      'User profile not found.'
-    );
+    const {
+      user,
+      profile: userProfile,
+      planningTargets,
+    } = await loadPlanningNutritionContext(client, userId, 'User profile not found.');
     if (
       !isCertifiedLibraryMealCompatible(
         libraryMeal,
@@ -342,6 +343,7 @@ export class MealSwapService {
       userProfile.dailyCalorieTarget,
       2000
     );
+    const macros = await swapMacroContext(client, userId, mealPlan, planningTargets);
     const serving = resolveReplacementServing({
       meal: libraryMeal,
       mealType: mealPlan.mealType,
@@ -355,6 +357,7 @@ export class MealSwapService {
         safetyEntries: user.safetyProfileEntries,
       }),
       riceFood,
+      macroTarget: macros.budget,
     });
     if (!serving) throw new Error('This serving does not fit your current meal target or rice preference.');
     // 3. Fetch all meals on the same day in the same planGroup
@@ -429,6 +432,7 @@ export class MealSwapService {
     );
     // The signed, expiring token binds confirmation to every input that could
     // change its safety, nutrition, or grocery meaning.
+    const nutritionAnalysis = macros.analyze(serving);
     const snapshotHash = createHash('sha256')
       .update(
         JSON.stringify({
@@ -441,7 +445,9 @@ export class MealSwapService {
           cycleMeals,
           purchases,
           riceFood,
+          macroTarget: macros.budget,
           serving,
+          nutritionAnalysis,
         })
       )
       .digest('hex');
@@ -453,10 +459,13 @@ export class MealSwapService {
       requestKey,
       expiresAt: new Date(expiresAt).toISOString(),
       snapshotHash,
+      nutritionAnalysis,
       shoppingNeeds: shoppingDelta.additions,
       shoppingRemovals: shoppingDelta.removals,
       shoppingStarted: Boolean(mealPlan.cycle.shoppingStartedAt),
-      groceryDeltaAcknowledgmentRequired: Boolean(mealPlan.cycle.shoppingStartedAt),
+      groceryDeltaAcknowledgmentRequired: Boolean(
+        mealPlan.cycle.shoppingStartedAt && (shoppingDelta.additions.length || shoppingDelta.removals.length)
+      ),
       alreadyPlannedInCycle,
       pairedRiceG: serving.pairedRiceG,
       riceFoodItemId: serving.pairedRiceG ? riceFood?.id : null,

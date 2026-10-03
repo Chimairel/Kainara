@@ -71,6 +71,7 @@ export default function NutritionGuidanceDocument({
       referenceItems: content.referenceItems || [],
       generalSummary: content.generalSummary || 'No summary recorded for this version.',
       reportPolicyVersion: selectedVersion.policyVersion || content.reportPolicyVersion || content.policyVersion,
+      planningTargets: content.planningTargets ?? null,
     };
   }, [selectedVersion, report]);
 

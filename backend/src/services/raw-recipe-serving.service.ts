@@ -6,15 +6,69 @@ import { chooseCookedRicePortionG } from '@/domain/upcoming-preparation.policy';
 import { sourceServingScale, scalePublishedAmount } from '@/domain/source-serving-adjustment.policy';
 import type { RecipeCandidateProjection } from './recipe-candidate-provider';
 import type { SwapRiceFood } from './meal-swap-serving.service';
+import { nutritionFitScore, type NutritionVector } from '@/domain/meal-macro-target.policy';
 
 /** Choose a complete plate while preserving the published dish as its base. */
-export function rawRecipeServing(input: {
+type ServingInput = {
   candidate: RecipeCandidateProjection;
   mealType: MealType;
   dailyCalorieTarget: number;
   ricePreference?: RicePreference;
   riceFood?: SwapRiceFood | null;
-}) {
+  macroTarget?: NutritionVector & { goal?: string };
+};
+
+export function rawRecipeServing(input: ServingInput) {
+  const legacy = calorieServing(input);
+  if (!input.macroTarget || !legacy || !input.candidate.nutrition || input.candidate.provenance !== 'PANLASANG_PINOY')
+    return legacy;
+  const range = getMealSlotCalorieRange(input.dailyCalorieTarget, input.mealType as 'BREAKFAST' | 'LUNCH' | 'DINNER');
+  const riceAllowed = legacy.riceRole === 'PAIR_WITH_RICE' && input.ricePreference !== 'NO_RICE' && input.riceFood;
+  const riceAmounts = riceAllowed ? [...(input.ricePreference === 'WITH_RICE' ? [] : [0]), 75, 150, 225] : [0];
+  const options = riceAmounts.flatMap((riceG) => {
+    const rice = input.riceFood;
+    const riceCalories = rice ? (rice.calories * riceG) / 100 : 0;
+    const exact = Math.round(((range.target - riceCalories) / input.candidate.nutrition!.calories) * 1000) / 1000;
+    return [...new Set([0.5, 0.75, 1, 1.25, 1.5, 1.75, 2, exact])]
+      .filter((scale) => scale >= 0.5 && scale <= 2)
+      .flatMap((scale) => {
+        const n = input.candidate.nutrition!;
+        const nutrition = {
+          calories: scalePublishedAmount(n.calories, scale),
+          proteinG: scalePublishedAmount(n.proteinG, scale),
+          carbsG: scalePublishedAmount(n.carbsG, scale),
+          fatG: scalePublishedAmount(n.fatG, scale),
+        };
+        const total = {
+          calories: nutrition.calories + riceCalories,
+          proteinG: nutrition.proteinG + ((rice?.proteinG ?? 0) * riceG) / 100,
+          carbsG: nutrition.carbsG + ((rice?.carbsG ?? 0) * riceG) / 100,
+          fatG: nutrition.fatG + ((rice?.fatG ?? 0) * riceG) / 100,
+        };
+        if (total.calories < range.minimum || total.calories > range.maximum) return [];
+        return [
+          {
+            ...legacy,
+            nutrition,
+            servingScale: scale,
+            pairedRiceG: riceG || null,
+            plateCalories: total.calories,
+            ingredients: input.candidate.ingredients.map((i) => ({
+              ...i,
+              quantity: i.quantity === undefined ? undefined : scalePublishedAmount(i.quantity, scale),
+            })),
+            score: nutritionFitScore(total, input.macroTarget!) + Math.abs(scale - 1) * 0.05,
+          },
+        ];
+      });
+  });
+  return (
+    options.sort((a, b) => a.score - b.score || Math.abs(a.servingScale - 1) - Math.abs(b.servingScale - 1))[0] ??
+    legacy
+  );
+}
+
+function calorieServing(input: ServingInput) {
   const { candidate, mealType, dailyCalorieTarget, riceFood } = input;
   if (
     candidate.state !== 'ACTIVE' ||

@@ -79,6 +79,7 @@ for (const width of [390, 1440]) {
       mealType: 'LUNCH',
       mealTypes: ['LUNCH'],
       calories: 795,
+      nutritionFitScore: 0.3,
       proteinG: 44,
       carbsG: 65,
       fatG: 20,
@@ -134,11 +135,32 @@ for (const width of [390, 1440]) {
             calorieDelta: 37,
             projectedDayTotal: 2000,
             dailyTarget: 2000,
-            shoppingStarted: false,
-            groceryDeltaAcknowledgmentRequired: false,
+            shoppingStarted: true,
+            groceryDeltaAcknowledgmentRequired: true,
             warningRequired: false,
-            shoppingNeeds: [],
-            shoppingRemovals: [],
+            shoppingNeeds: [
+              {
+                ingredientName: 'Rice, well-milled, boiled',
+                unit: 'g',
+                additionalQuantity: 75,
+                remainingQuantity: 225,
+              },
+            ],
+            shoppingRemovals: [{ ingredientName: 'Pork ribs', unit: 'g', removableQuantity: 100 }],
+            nutritionAnalysis: {
+              before: { calories: 1963, proteinG: 82, carbsG: 220, fatG: 95 },
+              after: { calories: 2000, proteinG: 75, carbsG: 241, fatG: 73 },
+              target: {
+                calories: 2000,
+                proteinG: 120,
+                carbsG: 250,
+                fatG: 58,
+                explanation: 'Fixture report estimate',
+                basis: 'MUSCLE_BUILDING_ESTIMATE',
+              },
+              completeDay: true,
+              warnings: ['Protein is below the daily planning estimate.'],
+            },
           },
         },
       })
@@ -148,6 +170,7 @@ for (const width of [390, 1440]) {
       expect(body.newLibraryMealId).toBe('source:chicken');
       expect(body.previewToken).toBe('signed-fixture');
       expect(body.requestKey).toBe('rice-swap-key');
+      expect(body.groceryDeltaAcknowledged).toBe(true);
       swapped = true;
       await route.fulfill({ json: { success: true } });
     });
@@ -162,6 +185,11 @@ for (const width of [390, 1440]) {
     await expect(dialog.getByText(/Verified by:/)).toHaveCount(0);
     await dialog.getByRole('button').filter({ hasText: 'Chicken dish' }).click();
     await expect(dialog.getByText('One dish serving + 1 cup cooked rice (150 g)', { exact: true })).toBeVisible();
+    await expect(dialog.getByText(/Rice, well-milled, boiled: \+75 g/)).toBeVisible();
+    await expect(dialog.getByText('Pork ribs: −100 g')).toBeVisible();
+    await expect(dialog.getByText('Protein is below the daily planning estimate.')).toBeVisible();
+    await expect(dialog.getByRole('button', { name: 'Confirm Swap', exact: true })).toBeDisabled();
+    await dialog.getByRole('checkbox', { name: /I reviewed the grocery changes above/ }).check();
     await expect(dialog.getByRole('button', { name: 'Confirm Swap', exact: true })).toBeEnabled();
     await dialog.getByRole('button', { name: 'Confirm Swap', exact: true }).click();
     await expect(dialog).toBeHidden();

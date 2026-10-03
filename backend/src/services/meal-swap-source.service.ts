@@ -1,3 +1,4 @@
+import { swapMacroContext } from './meal-macro-context.service';
 import { createHash, randomUUID } from 'node:crypto';
 import { Prisma } from '@prisma/client';
 import prisma from '@/lib/prisma';
@@ -53,7 +54,8 @@ async function sourceContext(client: Prisma.TransactionClient, userId: string, s
       : await client.foodItem.findFirst({
           where: { source: 'FNRI', name: { equals: 'Rice, well-milled, boiled', mode: 'insensitive' } },
         });
-  return { ...context, unrestricted, dailyTarget, rice };
+  const macros = await swapMacroContext(client, userId, slot, context.planningTargets);
+  return { ...context, unrestricted, dailyTarget, rice, macros };
 }
 
 function publicSourceOption(plate: Plate, slot: Slot, alreadyPlannedInCycle = false) {
@@ -128,10 +130,10 @@ export async function listSourceSwapOptions(userId: string, slot: Slot) {
     select: { sourceRawRecipeCandidateId: true },
   });
   const usedIds = new Set(used.map((meal) => meal.sourceRawRecipeCandidateId));
-  const options: ReturnType<typeof fullPlateOption>[] = [];
+  const options: (ReturnType<typeof fullPlateOption> & { nutritionFitScore?: number })[] = [];
   let cursor: string | undefined;
   const range = getMealSlotCalorieRange(context.dailyTarget, slot.mealType);
-  for (let pageNumber = 0; pageNumber < 18 && options.length < 120; pageNumber++) {
+  for (let pageNumber = 0; pageNumber < 18 && options.length < 480; pageNumber++) {
     const page = await databaseRecipeCandidateProvider.list({
       sourceKind: 'PANLASANG_PINOY',
       mealType: slot.mealType,
@@ -150,6 +152,7 @@ export async function listSourceSwapOptions(userId: string, slot: Slot) {
         dailyCalorieTarget: context.dailyTarget,
         ricePreference: context.profile.ricePreference,
         riceFood: context.rice,
+        macroTarget: context.macros.budget,
       });
       if (
         !plate ||
@@ -160,15 +163,14 @@ export async function listSourceSwapOptions(userId: string, slot: Slot) {
         }).accepted
       )
         continue;
-      options.push(fullPlateOption(plate, slot, context.rice, usedIds.has(candidate.id)));
+      const option = fullPlateOption(plate, slot, context.rice, usedIds.has(candidate.id));
+      options.push({ ...option, nutritionFitScore: context.macros.analyze(option).fitScore });
     }
     if (!page.nextCursor) break;
     cursor = page.nextCursor;
   }
   return options
-    .sort(
-      (a, b) => Math.abs(a.calories - slot.calories) - Math.abs(b.calories - slot.calories) || a.id.localeCompare(b.id)
-    )
+    .sort((a, b) => (a.nutritionFitScore ?? 0) - (b.nutritionFitScore ?? 0) || a.id.localeCompare(b.id))
     .slice(0, 120);
 }
 
@@ -211,6 +213,7 @@ async function buildSourcePreview(
     dailyCalorieTarget: context.dailyTarget,
     ricePreference: context.profile.ricePreference,
     riceFood: context.rice,
+    macroTarget: context.macros.budget,
   });
   if (
     !plate ||
@@ -317,6 +320,7 @@ async function buildSourcePreview(
   replacement.alreadyPlannedInCycle = plans.some(
     (meal) => meal.id !== slot.id && meal.sourceRawRecipeCandidateId === candidateId
   );
+  const nutritionAnalysis = context.macros.analyze(replacement);
   const snapshotHash = createHash('sha256')
     .update(
       JSON.stringify({
@@ -332,6 +336,7 @@ async function buildSourcePreview(
         plans,
         purchases,
         replacement,
+        nutritionAnalysis,
       })
     )
     .digest('hex');
@@ -342,10 +347,13 @@ async function buildSourcePreview(
     requestKey,
     expiresAt: new Date(expiresAt).toISOString(),
     snapshotHash,
+    nutritionAnalysis,
     shoppingNeeds: delta.additions,
     shoppingRemovals: delta.removals,
     shoppingStarted: Boolean(slot.cycle.shoppingStartedAt),
-    groceryDeltaAcknowledgmentRequired: Boolean(slot.cycle.shoppingStartedAt),
+    groceryDeltaAcknowledgmentRequired: Boolean(
+      slot.cycle.shoppingStartedAt && (delta.additions.length || delta.removals.length)
+    ),
     alreadyPlannedInCycle: replacement.alreadyPlannedInCycle,
     pairedRiceG: plate.pairedRiceG,
     riceFoodItemId: plate.pairedRiceG ? context.rice?.id : null,

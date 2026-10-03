@@ -1,3 +1,4 @@
+import { cycleMacroTargets, dailyTargetMap } from './meal-macro-context.service';
 import { randomUUID } from 'crypto';
 import {
   AiUsageOperation,
@@ -22,7 +23,6 @@ import { buildMealGenerationResponseSchema } from '@/validation/meal-generation-
 import { earliestMissingDay, missingMealSlots } from '@/domain/meal-generation-gap.policy';
 import { validateGeneratedMealCandidate, splitCustomRestrictions } from '@/domain/generated-meal-validation.policy';
 import { assertMealSlotCalories, validateGeneratedDayCalories } from '@/domain/generated-plan-calories.policy';
-import { getManilaDateKey } from '@/domain/meal-plan-cycle.policy';
 import { getMealSlotCalorieRange } from '@/domain/meal-calorie-allocation.policy';
 import { prepareGeneratedMealIngredients, type GeneratedMeal } from './meal-generation-ingredient-preparation.service';
 import { buildBaseServingPersistence } from './meal-plan-serving.service';
@@ -44,7 +44,15 @@ async function loadQueuedCycle(id: string) {
       snapshot: true,
       mealPlans: {
         where: { status: { not: MealPlanStatus.CANCELLED } },
-        select: { id: true, scheduledDate: true, mealType: true, calories: true },
+        select: {
+          id: true,
+          scheduledDate: true,
+          mealType: true,
+          calories: true,
+          proteinG: true,
+          carbsG: true,
+          fatG: true,
+        },
       },
     },
   });
@@ -212,6 +220,9 @@ export class MealAiQueueService {
         dayNumber: Math.round((meal.scheduledDate.getTime() - cycle.startDate.getTime()) / 86_400_000) + 1,
         mealType: meal.mealType,
         calories: meal.calories,
+        proteinG: meal.proteinG,
+        carbsG: meal.carbsG,
+        fatG: meal.fatG,
       }));
       const localFoods = await getFNRISubset();
       const foods = localFoods.slice(0, 100);
@@ -227,6 +238,7 @@ export class MealAiQueueService {
       const { prompt, systemInstruction } = buildMealGenerationPrompt({
         slots,
         existingMeals,
+        planningTargets: await cycleMacroTargets(prisma, cycle.snapshot, context.planningTargets),
         dailyCalorieTarget: cycle.snapshot!.dailyCalorieTarget,
         goal: cycle.snapshot!.goal,
         dietaryPreference: profile.dietaryPreference || 'OMNIVORE',
@@ -285,6 +297,9 @@ export class MealAiQueueService {
               dayNumber: slots[0].dayNumber,
               mealType: meal.mealType,
               calories: meal.calories,
+              proteinG: meal.proteinG,
+              carbsG: meal.carbsG,
+              fatG: meal.fatG,
             })),
           ];
           const calorieIssues = validateGeneratedDayCalories(dayMeals, cycle.snapshot!.dailyCalorieTarget);
@@ -396,27 +411,11 @@ export class MealAiQueueService {
                 });
               }
               const snapshot = await tx.mealPlanCycleSnapshot.findUniqueOrThrow({ where: { planGroupId: cycleId } });
-              const dailyMacroTargets = {
-                ...(snapshot.dailyMacroTargets as Record<
-                  string,
-                  {
-                    calories: number;
-                    proteinG: number;
-                    carbsG: number;
-                    fatG: number;
-                  }
-                >),
-              };
-              for (const meal of preparedMeals) {
-                const key = getManilaDateKey(meal.scheduledDate);
-                const current = dailyMacroTargets[key] ?? { calories: 0, proteinG: 0, carbsG: 0, fatG: 0 };
-                dailyMacroTargets[key] = {
-                  calories: current.calories + meal.calories,
-                  proteinG: current.proteinG + meal.proteinG,
-                  carbsG: current.carbsG + meal.carbsG,
-                  fatG: current.fatG + meal.fatG,
-                };
-              }
+              const dailyMacroTargets = dailyTargetMap(
+                [...cycle.mealPlans, ...preparedMeals].map((meal) => meal.scheduledDate),
+                await cycleMacroTargets(tx, snapshot, context.planningTargets),
+                snapshot.dailyMacroTargets
+              );
               await tx.mealPlanCycleSnapshot.update({
                 where: { planGroupId: cycleId },
                 data: { dailyMacroTargets: dailyMacroTargets as Prisma.InputJsonObject },

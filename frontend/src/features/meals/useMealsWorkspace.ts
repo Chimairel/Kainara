@@ -12,7 +12,12 @@ import { cachedUserProfile } from '@/lib/user-profile-resource';
 import type { MealPlan, PublicVerifier } from '@/types';
 import axios from 'axios';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import type { CurrentPlanSnapshot, PendingReviewState, SwapOption } from './meals-workspace.types';
+import type {
+  CurrentPlanSnapshot,
+  PendingReviewState,
+  SwapOption,
+  SwapNutritionAnalysis,
+} from './meals-workspace.types';
 import { useMealHistory } from './useMealHistory';
 import { useMealLibrary } from './useMealLibrary';
 
@@ -84,6 +89,7 @@ export function useMealsWorkspace(initialOptions?: { initialDateKey?: string | n
 
   // Swap preview/warning states
   const [swapPreview, setSwapPreview] = useState<{
+    nutritionAnalysis?: SwapNutritionAnalysis;
     originalMealName: string;
     originalCalories: number;
     newMealName: string;
