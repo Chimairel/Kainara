@@ -63,6 +63,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     try {
       const profile = await refreshUserProfile(decodeToken(cookieHelper.get('nutrimind_session') || '')?.userId);
       if (profile) {
+        // Missing verification metadata is an unresolved check, not an OTP requirement.
+        if (typeof profile.emailVerified !== 'boolean') throw new Error('Profile verification status is missing.');
         const {
           id,
           name,
@@ -94,7 +96,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           name,
           email,
           role: role as Role,
-          emailVerified: emailVerified ?? false,
+          emailVerified,
           onboardingDone,
           tosAccepted: Boolean(tosAccepted && onboardingStatus?.acceptedCurrentConsent),
           image,

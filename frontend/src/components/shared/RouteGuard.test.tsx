@@ -65,7 +65,11 @@ describe('report access within the profile', () => {
   it.each(['/docs', '/sources'])('keeps the public %s page open without a session', (path) => {
     state.path = path;
     state.user = null as unknown as typeof state.user;
-    render(<RouteGuard><p>Public information</p></RouteGuard>);
+    render(
+      <RouteGuard>
+        <p>Public information</p>
+      </RouteGuard>
+    );
     expect(screen.getByText('Public information')).toBeInTheDocument();
     expect(state.replace).not.toHaveBeenCalled();
   });
@@ -73,7 +77,11 @@ describe('report access within the profile', () => {
     state.path = '/docs';
     state.isLoading = true;
     state.user = null as unknown as typeof state.user;
-    render(<RouteGuard><p>Public information</p></RouteGuard>);
+    render(
+      <RouteGuard>
+        <p>Public information</p>
+      </RouteGuard>
+    );
     expect(screen.getByText('Public information')).toBeInTheDocument();
   });
   it('still rejects a different role', () => {
@@ -103,8 +111,49 @@ describe('report access within the profile', () => {
     state.path = '/dashboard';
     state.user = null as unknown as typeof state.user;
     state.profileLoadError = true;
-    render(<RouteGuard><p>Workspace</p></RouteGuard>);
+    render(
+      <RouteGuard>
+        <p>Workspace</p>
+      </RouteGuard>
+    );
     expect(screen.getByRole('alert')).toHaveTextContent('Could not load your account profile');
     expect(screen.getByRole('button', { name: 'Try again' })).toBeInTheDocument();
+  });
+  it.each(['/login', '/register', '/'])(
+    'blocks the temporary unverified entry redirect on %s after a failed profile read',
+    (path) => {
+      state.path = path;
+      state.user.emailVerified = false;
+      state.profileLoadError = true;
+      render(
+        <RouteGuard>
+          <p>Entry redirect with placeholder</p>
+        </RouteGuard>
+      );
+      expect(screen.getByRole('alert')).toHaveTextContent('Could not load your account profile');
+      expect(screen.queryByText('Entry redirect with placeholder')).not.toBeInTheDocument();
+      expect(state.replace).not.toHaveBeenCalled();
+    }
+  );
+  it('still sends an authoritatively unverified account to OTP', () => {
+    state.path = '/login';
+    state.user.emailVerified = false;
+    render(
+      <RouteGuard>
+        <p>Entry</p>
+      </RouteGuard>
+    );
+    expect(state.replace).toHaveBeenCalledWith('/verify-email');
+  });
+  it('redirects a verified account away from OTP without rendering its form', () => {
+    state.path = '/verify-email';
+    state.user.reportAcknowledged = true;
+    render(
+      <RouteGuard>
+        <p>OTP form</p>
+      </RouteGuard>
+    );
+    expect(state.replace).toHaveBeenCalledWith('/dashboard');
+    expect(screen.queryByText('OTP form')).not.toBeInTheDocument();
   });
 });

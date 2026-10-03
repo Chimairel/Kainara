@@ -41,6 +41,7 @@ export const RouteGuard: React.FC<RouteGuardProps> = ({ children }) => {
   ];
   const isPublicRoute = publicRoutes.some((route) => pathname.startsWith(route));
   const isPublicInformationRoute = pathname === '/docs' || pathname === '/sources' || pathname === '/pricing';
+  const isEntryRoute = pathname === '/' || pathname === '/login' || pathname === '/register';
   const isVerifyPage = pathname.startsWith('/verify-email');
   const isOnboardingPage = pathname.startsWith('/onboarding');
   const isAccountPrivacyRoute = pathname.startsWith('/profile/security');
@@ -64,7 +65,6 @@ export const RouteGuard: React.FC<RouteGuardProps> = ({ children }) => {
     if (!user && !isPublicRoute) {
       redirectTarget = '/login';
     } else if (user) {
-      const isEntryRoute = pathname === '/' || pathname === '/login' || pathname === '/register';
       if (isEntryRoute) {
         redirectTarget = getPostAuthDestination(user);
       } else if (!user.emailVerified && !isVerifyPage && !isPublicRoute && !isAccountPrivacyRoute) {
@@ -103,7 +103,7 @@ export const RouteGuard: React.FC<RouteGuardProps> = ({ children }) => {
     return <PortalLoadingState fullScreen />;
   }
 
-  if (profileLoadError && !isPublicRoute) {
+  if (profileLoadError && (!isPublicRoute || (isEntryRoute && user))) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-brand-bg p-6 text-brand-text">
         <div role="alert" className="w-full max-w-md rounded-2xl border border-brand-border bg-brand-surface p-6">

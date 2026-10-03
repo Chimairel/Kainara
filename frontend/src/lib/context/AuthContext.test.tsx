@@ -102,4 +102,54 @@ describe('authoritative session refresh coordination', () => {
     expect(auth.user).toBeNull();
     expect(mocks.replace).toHaveBeenCalledWith('/login');
   });
+  it('reports a failed post-login profile read as unresolved instead of a confirmed OTP requirement', async () => {
+    mocks.cookie = '';
+    mocks.read.mockRejectedValue(new Error('Synthetic profile timeout'));
+    let auth!: AuthContextType;
+    const Consumer = () => {
+      auth = useContext(AuthContext)!;
+      return null;
+    };
+    render(
+      <AuthProvider>
+        <Consumer />
+      </AuthProvider>
+    );
+    await act(async () => {
+      expect(await auth.login('fixture-token')).toBeNull();
+    });
+    expect(auth.profileLoadError).toBe(true);
+    expect(auth.isLoading).toBe(false);
+    expect(auth.user?.emailVerified).toBe(false);
+    mocks.read.mockResolvedValue({
+      id: 'fixture-owner',
+      email: 'fixture@preview.invalid',
+      role: 'USER',
+      emailVerified: true,
+    });
+    await act(async () => {
+      await auth.refreshSession({ showLoader: true });
+    });
+    expect(auth.profileLoadError).toBe(false);
+    expect(auth.user?.emailVerified).toBe(true);
+  });
+  it('treats omitted verification metadata as a failed check', async () => {
+    mocks.cookie = '';
+    mocks.read.mockResolvedValue({ id: 'fixture-owner', email: 'fixture@preview.invalid', role: 'USER' });
+    let auth!: AuthContextType;
+    const Consumer = () => {
+      auth = useContext(AuthContext)!;
+      return null;
+    };
+    render(
+      <AuthProvider>
+        <Consumer />
+      </AuthProvider>
+    );
+    await act(async () => {
+      await auth.login('fixture-token');
+    });
+    expect(auth.profileLoadError).toBe(true);
+    expect(auth.isLoading).toBe(false);
+  });
 });
