@@ -5,11 +5,12 @@ import TosPage from './page';
 const state = vi.hoisted(() => ({
   post: vi.fn(),
   replace: vi.fn(),
+  push: vi.fn(),
   refreshSession: vi.fn(),
   refresh: vi.fn(),
   useProfile: vi.fn(),
 }));
-vi.mock('next/navigation', () => ({ useRouter: () => ({ push: vi.fn(), replace: state.replace }) }));
+vi.mock('next/navigation', () => ({ useRouter: () => ({ push: state.push, replace: state.replace }) }));
 vi.mock('@/lib/axios', () => ({ default: { post: state.post } }));
 vi.mock('@/hooks/useAuth', () => ({ useAuth: () => ({ refreshSession: state.refreshSession }) }));
 vi.mock('@/hooks/useProfile', () => ({ useProfile: state.useProfile }));
@@ -86,5 +87,33 @@ describe('onboarding final review readiness', () => {
     expect(screen.getByRole('button', { name: /Complete Onboarding/ })).toBeDisabled();
     expect(screen.getByText('Loading consent versions…')).toBeInTheDocument();
     expect(state.post).not.toHaveBeenCalled();
+  });
+
+  it('returns a skipped required allergy form instead of completing onboarding', async () => {
+    state.useProfile.mockReturnValue({
+      profile: {
+        id: 'fixture',
+        userProfile: {},
+        onboardingStatus: { currentTermsVersion: '2026-09-27', currentPrivacyVersion: '2026-09-27' },
+      },
+      isLoading: false,
+      error: null,
+      refresh: state.refresh,
+    });
+    state.post.mockResolvedValueOnce({ data: { success: true } }).mockRejectedValueOnce({
+      response: {
+        data: {
+          error: 'Save allergy details before completing onboarding.',
+          errorCode: 'ONBOARDING_INCOMPLETE',
+          details: { nextPath: '/onboarding/allergy-details' },
+        },
+      },
+    });
+    render(<TosPage />);
+    acceptAll();
+    fireEvent.click(screen.getByRole('button', { name: /Complete Onboarding/ }));
+    await waitFor(() => expect(state.push).toHaveBeenCalledWith('/onboarding/allergy-details'));
+    expect(state.refreshSession).not.toHaveBeenCalled();
+    expect(state.replace).not.toHaveBeenCalled();
   });
 });

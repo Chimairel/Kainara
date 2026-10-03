@@ -95,15 +95,19 @@ export default function OnboardingSafetyStep({
             initialEntries={initialEntries}
             editableDomains={editableDomains}
             submitLabel={isFromReview ? 'Save & Return to Review' : 'Save and continue →'}
-            onSaved={async (entries) => {
+            onSaved={async (entries, _changed, nextHealthDetailsPath) => {
               const hasDeclaredHealthRestriction = entries.some(
                 (entry) => editableDomains.includes(entry.domain) && entry.canonicalCode !== 'NONE'
               );
-              const nextTarget = hasDeclaredHealthRestriction
-                ? `/onboarding/clinical-evidence?section=${detailsSection}${isFromReview ? '&from=review' : ''}`
-                : isFromReview
-                  ? '/onboarding/tos'
-                  : nextHref;
+              const detailsPath =
+                nextHealthDetailsPath ??
+                (detailsSection === 'conditions' ? '/onboarding/condition-details' : '/onboarding/allergy-details');
+              const nextTarget =
+                nextHealthDetailsPath || hasDeclaredHealthRestriction
+                  ? `${detailsPath}${isFromReview ? '?from=review' : ''}`
+                  : isFromReview
+                    ? '/onboarding/tos'
+                    : nextHref;
               router.push(nextTarget);
               void refreshSession();
             }}

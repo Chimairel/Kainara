@@ -5,7 +5,9 @@ export const ONBOARDING_PATHS = [
   '/onboarding/stats',
   '/onboarding/preferences',
   '/onboarding/conditions',
+  '/onboarding/condition-details',
   '/onboarding/allergies',
+  '/onboarding/allergy-details',
   '/onboarding/shopping-day',
   '/onboarding/tos',
 ] as const;
@@ -30,10 +32,14 @@ export interface OnboardingSnapshot {
     foodCulture?: string | null;
     shoppingDayGroup?: string | null;
     shoppingDayOfWeek?: number | null;
+    safetyRevision?: number;
+    otherConditions?: string | null;
+    otherAllergies?: string | null;
   } | null;
   conditions: readonly string[];
   allergies: readonly string[];
   safetyEntries: readonly { domain: string }[];
+  healthDetails?: readonly { area: string; state: string }[];
 }
 
 export interface OnboardingStatus {
@@ -96,6 +102,14 @@ export function evaluateOnboardingStatus(snapshot: OnboardingSnapshot): Onboardi
   const allergiesComplete = snapshot.safetyEntries.some((entry) => entry.domain === 'ALLERGY');
   if (!allergiesComplete) missingFields.push('allergies');
 
+  // Existing completed members keep their profile/review workflow. New members
+  // must save both declared-area forms before finishing onboarding.
+  const details = snapshot.onboardingDone ? [] : (snapshot.healthDetails ?? []);
+  const conditionDetailsComplete = !details.some((item) => item.area !== 'FOOD_ALLERGY' && item.state !== 'READY');
+  const allergyDetailsComplete = !details.some((item) => item.area === 'FOOD_ALLERGY' && item.state !== 'READY');
+  if (!conditionDetailsComplete) missingFields.push('conditionDetails');
+  if (!allergyDetailsComplete) missingFields.push('allergyDetails');
+
   const shoppingDayComplete =
     (typeof profile?.shoppingDayOfWeek === 'number' &&
       profile.shoppingDayOfWeek >= 0 &&
@@ -110,7 +124,9 @@ export function evaluateOnboardingStatus(snapshot: OnboardingSnapshot): Onboardi
   if (!statsComplete) nextPath = '/onboarding/stats';
   else if (!preferencesComplete) nextPath = '/onboarding/preferences';
   else if (!conditionsComplete) nextPath = '/onboarding/conditions';
+  else if (!conditionDetailsComplete) nextPath = '/onboarding/condition-details';
   else if (!allergiesComplete) nextPath = '/onboarding/allergies';
+  else if (!allergyDetailsComplete) nextPath = '/onboarding/allergy-details';
   else if (!shoppingDayComplete) nextPath = '/onboarding/shopping-day';
   else if (!acceptedCurrentConsent) nextPath = '/onboarding/tos';
 

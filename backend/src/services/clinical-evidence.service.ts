@@ -132,6 +132,16 @@ async function invalidateActivePlansForUser(tx: Prisma.TransactionClient, userId
 }
 
 export class ClinicalEvidenceService {
+  static async nextOnboardingDetailsPath(userId: string, domains: readonly string[]) {
+    const areas = await declaredAreas(userId);
+    const conditions = domains.includes('CONDITION');
+    return [...areas].some((area) => (conditions ? area !== 'FOOD_ALLERGY' : area === 'FOOD_ALLERGY'))
+      ? conditions
+        ? '/onboarding/condition-details'
+        : '/onboarding/allergy-details'
+      : null;
+  }
+
   static async requirementsForUser(userId: string, _now = new Date()) {
     const user = await prisma.user.findUnique({
       where: { id: userId },

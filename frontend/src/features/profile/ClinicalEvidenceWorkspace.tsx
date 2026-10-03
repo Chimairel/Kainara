@@ -47,11 +47,17 @@ const allergyLabels: Partial<Record<keyof Answers, string>> = {
   dietaryAdvice: 'Dietary advice for these allergies or restrictions',
   recentSymptoms: 'Recent allergic reactions or food-related symptoms',
 };
-export default function ClinicalEvidenceWorkspace({ mode = 'profile' }: { mode?: 'profile' | 'onboarding' }) {
+export default function ClinicalEvidenceWorkspace({
+  mode = 'profile',
+  detailsSection,
+}: {
+  mode?: 'profile' | 'onboarding';
+  detailsSection?: 'conditions' | 'allergies';
+}) {
   const ownerId = useAuth().user?.userId;
   const router = useRouter();
   const params = useSearchParams();
-  const requestedSection = params.get('section');
+  const requestedSection = detailsSection ?? params.get('section');
   const section =
     mode === 'onboarding' && ['conditions', 'allergies'].includes(requestedSection ?? '') ? requestedSection : null;
   const endpoint = mode === 'onboarding' ? '/user/onboarding/clinical-evidence' : '/user/clinical-evidence';

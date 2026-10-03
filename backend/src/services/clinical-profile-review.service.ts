@@ -79,7 +79,11 @@ function context(user: ProfileUser) {
       snapshot.allergies.some((item) => item !== 'NONE') ||
       snapshot.customConditions.length > 0 ||
       snapshot.customFoodRestrictions.length > 0,
-    needsClarification: restrictions.requiresReview,
+    // A named restriction requiring manual meal review can still receive profile
+    // confirmation. Unmapped/vague declarations must first be clarified.
+    needsClarification: restrictions.displayEntries.some(
+      (entry) => entry.supportState !== 'SUPPORTED' && entry.supportState !== 'RECOGNIZED_UNSUPPORTED'
+    ),
   };
 }
 

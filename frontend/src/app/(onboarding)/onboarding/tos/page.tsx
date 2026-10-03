@@ -166,6 +166,14 @@ export default function OnboardingTosPage() {
     } catch (err) {
       setError(getApiErrorMessage(err, 'An error occurred while finalizing onboarding. Please try again.'));
       setIsLoading(false);
+      const failure = (err as { response?: { data?: { errorCode?: string; details?: { nextPath?: string } } } })
+        ?.response?.data;
+      const path = failure?.details?.nextPath;
+      if (
+        failure?.errorCode === 'ONBOARDING_INCOMPLETE' &&
+        (path === '/onboarding/condition-details' || path === '/onboarding/allergy-details')
+      )
+        router.push(path);
     }
   };
 

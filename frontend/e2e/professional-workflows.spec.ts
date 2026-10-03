@@ -332,6 +332,140 @@ test('nutritionist sees missing allergy details and an open deleted case closes 
   expect(errors).toEqual([]);
 });
 
+test('onboarding declarations always open their separate details page before shopping day', async ({ page }) => {
+  let conditionSaved = false;
+  let allergySaved = false;
+  const overrides: Record<string, unknown> = {
+    onboardingDone: false,
+    tosAccepted: false,
+    safetyEntries: [],
+    healthConditions: [],
+    allergies: [],
+  };
+  const item = (code: string, displayName: string, domains: string[]) => ({
+    code,
+    displayName,
+    domains,
+    aliases: [],
+    searchTerms: [],
+    supportState: 'SUPPORTED',
+    policyReference: 'FIXTURE',
+  });
+  const catalogue = {
+    conditions: [item('HEART_CONDITION', 'Heart condition', ['CONDITION'])],
+    foodSafety: [
+      item('NUTS', 'Peanuts and tree nuts', ['ALLERGY']),
+      item('NONE', 'No food restriction', ['ALLERGY', 'INTOLERANCE', 'AVOIDED_INGREDIENT']),
+    ],
+  };
+  await portalFixture(
+    page,
+    'USER',
+    (path, route) => {
+      if (path.endsWith('/safety-catalogue')) return catalogue;
+      if (path.endsWith('/safety-preview') || path.endsWith('/safety')) {
+        const input = route.request().postDataJSON();
+        const entries = input.entries.map((entry: { domain: string; value: string }) => ({
+          domain: entry.domain,
+          canonicalCode: entry.value,
+          originalText: entry.value,
+          provenance: 'PREDEFINED',
+          displayName: entry.value,
+          supportState: 'SUPPORTED',
+        }));
+        if (path.endsWith('/safety')) {
+          overrides.safetyEntries = [
+            ...(overrides.safetyEntries as Array<{ domain: string }>).filter(
+              (entry) => !input.editableDomains.includes(entry.domain)
+            ),
+            ...entries,
+          ];
+          overrides.healthConditions = ['HEART_CONDITION'];
+          if (!input.editableDomains.includes('CONDITION')) overrides.allergies = ['NUTS'];
+        }
+        return {
+          entries,
+          changed: true,
+          canSave: true,
+          errors: [],
+          requiresReview: false,
+          nextHealthDetailsPath: input.editableDomains.includes('CONDITION')
+            ? '/onboarding/condition-details'
+            : '/onboarding/allergy-details',
+        };
+      }
+      if (path.endsWith('/clinical-evidence/details')) {
+        const input = route.request().postDataJSON();
+        if (input.area === 'HEART_CONDITION') conditionSaved = true;
+        if (input.area === 'FOOD_ALLERGY') allergySaved = true;
+      }
+      if (path.includes('/onboarding/clinical-evidence')) {
+        const hasAllergy = (overrides.allergies as string[]).includes('NUTS');
+        return {
+          safetyRevision: 2,
+          availableAreas: ['HEART_CONDITION', ...(hasAllergy ? ['FOOD_ALLERGY'] : [])],
+          contexts: [],
+          requirements: [
+            {
+              area: 'HEART_CONDITION',
+              state: conditionSaved ? 'READY' : 'CONTEXT_REQUIRED',
+              message: 'Condition form status.',
+            },
+            ...(hasAllergy
+              ? [
+                  {
+                    area: 'FOOD_ALLERGY',
+                    state: allergySaved ? 'READY' : 'CONTEXT_REQUIRED',
+                    message: 'Allergy form status.',
+                  },
+                ]
+              : []),
+          ],
+        };
+      }
+    },
+    overrides
+  );
+  const saveDeclarations = async () => {
+    await page.getByRole('button', { name: 'Save and continue →', exact: true }).click();
+    await page.getByRole('checkbox', { name: /I reviewed these entries/ }).check();
+    await page.getByRole('button', { name: 'Continue', exact: true }).click();
+  };
+  await page.goto('/onboarding/conditions');
+  await page.getByRole('button', { name: 'Heart condition', exact: true }).click();
+  await saveDeclarations();
+  await expect(page).toHaveURL(/\/onboarding\/condition-details$/);
+  for (const label of [
+    'Condition or restriction details',
+    'Current medication or supplements',
+    'Dietary advice you have received',
+    'Recent symptoms or episodes',
+  ])
+    await page.getByLabel(label, { exact: true }).fill('Synthetic condition details for review');
+  await page.getByRole('button', { name: 'Save health details' }).click();
+  await page.getByRole('button', { name: 'Continue to allergies' }).click();
+  await expect(page).toHaveURL(/\/onboarding\/allergies$/);
+  await page.getByRole('button', { name: 'Peanuts and tree nuts', exact: true }).click();
+  await page.getByRole('tab', { name: /^Intolerances/ }).click();
+  await page.getByRole('button', { name: 'No food restriction', exact: true }).click();
+  await page.getByRole('tab', { name: /^Foods to Avoid/ }).click();
+  await page.getByRole('button', { name: 'No food restriction', exact: true }).click();
+  await saveDeclarations();
+  await expect(page).toHaveURL(/\/onboarding\/allergy-details$/);
+  await expect(page.getByRole('button', { name: 'Continue to shopping day' })).toBeDisabled();
+  for (const label of [
+    'Food allergies, intolerances or avoided foods and their reactions',
+    'Medication or supplements used for these restrictions',
+    'Dietary advice for these allergies or restrictions',
+    'Recent allergic reactions or food-related symptoms',
+  ])
+    await page.getByLabel(label, { exact: true }).fill('Synthetic allergy details for review');
+  await page.getByRole('button', { name: 'Save health details' }).click();
+  await page.getByRole('button', { name: 'Continue to shopping day' }).click();
+  await expect(page).toHaveURL(/\/onboarding\/shopping-day$/);
+  expect(conditionSaved && allergySaved).toBe(true);
+});
+
 test('onboarding shows separate condition and allergy fields and saves the allergy form', async ({ page }) => {
   let saved: Record<string, unknown> | undefined;
   await portalFixture(
@@ -352,12 +486,12 @@ test('onboarding shows separate condition and allergy fields and saves the aller
     },
     { onboardingDone: false, tosAccepted: false }
   );
-  await page.goto('/onboarding/clinical-evidence?section=conditions');
+  await page.goto('/onboarding/condition-details');
   await expect(page.getByRole('heading', { name: 'Condition details' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Allergy details', exact: true })).toHaveCount(0);
   await expect(page.getByLabel('Condition or restriction details')).toHaveValue('Saved synthetic condition');
   await expect(page.getByRole('button', { name: 'Continue to allergies' })).toBeEnabled();
-  await page.goto('/onboarding/clinical-evidence?section=allergies');
+  await page.goto('/onboarding/allergy-details');
   await expect(page.getByRole('heading', { name: 'Allergy details' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'heart condition', exact: true })).toHaveCount(0);
   await expect(page.getByRole('button', { name: 'Continue to shopping day' })).toBeDisabled();

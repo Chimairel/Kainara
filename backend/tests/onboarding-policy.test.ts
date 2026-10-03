@@ -74,6 +74,31 @@ test('onboarding status advances in canonical step order', () => {
   assert.equal(status.nextPath, '/onboarding/shopping-day');
 });
 
+test('unfinished onboarding requires separate saved condition and allergy details in order', () => {
+  const snapshot = {
+    ...completeSnapshot,
+    healthDetails: [
+      { area: 'HEART_CONDITION', state: 'CONTEXT_REQUIRED' },
+      { area: 'FOOD_ALLERGY', state: 'CONTEXT_REQUIRED' },
+    ],
+  };
+  assert.equal(evaluateOnboardingStatus(snapshot).nextPath, '/onboarding/condition-details');
+  const conditionSaved = {
+    ...snapshot,
+    healthDetails: [{ ...snapshot.healthDetails[0], state: 'READY' }, snapshot.healthDetails[1]],
+  };
+  assert.equal(evaluateOnboardingStatus(conditionSaved).nextPath, '/onboarding/allergy-details');
+  assert.equal(evaluateOnboardingStatus(conditionSaved).readyToComplete, false);
+  assert.equal(
+    evaluateOnboardingStatus({
+      ...snapshot,
+      healthDetails: snapshot.healthDetails.map((item) => ({ ...item, state: 'READY' })),
+    }).readyToComplete,
+    true
+  );
+  assert.equal(evaluateOnboardingStatus({ ...snapshot, onboardingDone: true }).nextPath, '/nutrition-report');
+});
+
 test('complete current-version data is ready to finalize before report access', () => {
   const status = evaluateOnboardingStatus(completeSnapshot);
   assert.equal(status.readyToComplete, true);

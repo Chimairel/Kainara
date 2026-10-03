@@ -68,7 +68,11 @@ export default function StructuredSafetyIntake({
   initialEntries: SafetyInputValue[];
   editableDomains: SafetyEntryDomain[];
   submitLabel: string;
-  onSaved: (entries: SafetyProfileEntry[], changed: boolean) => void | Promise<void>;
+  onSaved: (
+    entries: SafetyProfileEntry[],
+    changed: boolean,
+    nextHealthDetailsPath?: string | null
+  ) => void | Promise<void>;
 }) {
   const [catalogue, setCatalogue] = useState<CatalogueItem[] | null>(null);
   const [catalogueLoadError, setCatalogueLoadError] = useState(false);
@@ -92,8 +96,12 @@ export default function StructuredSafetyIntake({
         if (items.length) setCatalogue(items);
         else setCatalogueLoadError(true);
       })
-      .catch(() => { if (active) setCatalogueLoadError(true); });
-    return () => { active = false; };
+      .catch(() => {
+        if (active) setCatalogueLoadError(true);
+      });
+    return () => {
+      active = false;
+    };
   }, [catalogueRetry]);
 
   const options = useMemo(
@@ -270,17 +278,41 @@ export default function StructuredSafetyIntake({
       const entries = inputs.filter((entry) => editableDomains.includes(entry.domain));
       const response = await api.post('/user/onboarding/safety', { entries, editableDomains, confirmed: true });
       setShowConfirmModal(false);
-      await onSaved(response.data.data.entries, response.data.data.changed);
+      await onSaved(response.data.data.entries, response.data.data.changed, response.data.data.nextHealthDetailsPath);
     } catch (caught: unknown) {
       setError(getApiErrorMessage(caught, 'Unable to save these entries.'));
       setIsBusy(false);
     }
   };
 
-  if (!catalogue) return <div className="flex min-h-[440px] flex-col items-center justify-center rounded-xl border border-brand-border/60 bg-brand-bgAlt/30 p-6 text-center" role="status" aria-live="polite">
-    {catalogueLoadError ? <><p className="text-sm font-semibold text-status-error-text">Medical and food safety choices could not be loaded.</p><button type="button" onClick={() => { setCatalogueLoadError(false); setCatalogueRetry((value) => value + 1); }} className="mt-3 rounded-lg border border-brand-border px-4 py-2 text-sm font-bold">Try again</button></>
-      : <p className="text-sm text-brand-muted">Loading medical and food safety choices…</p>}
-  </div>;
+  if (!catalogue)
+    return (
+      <div
+        className="flex min-h-[440px] flex-col items-center justify-center rounded-xl border border-brand-border/60 bg-brand-bgAlt/30 p-6 text-center"
+        role="status"
+        aria-live="polite"
+      >
+        {catalogueLoadError ? (
+          <>
+            <p className="text-sm font-semibold text-status-error-text">
+              Medical and food safety choices could not be loaded.
+            </p>
+            <button
+              type="button"
+              onClick={() => {
+                setCatalogueLoadError(false);
+                setCatalogueRetry((value) => value + 1);
+              }}
+              className="mt-3 rounded-lg border border-brand-border px-4 py-2 text-sm font-bold"
+            >
+              Try again
+            </button>
+          </>
+        ) : (
+          <p className="text-sm text-brand-muted">Loading medical and food safety choices…</p>
+        )}
+      </div>
+    );
 
   return (
     <div className="space-y-4 sm:space-y-5">

@@ -1,4 +1,6 @@
 import { resolvePlanningProfile } from '@/domain/planning-report.policy';
+import { healthDetailsRequirements } from '@/domain/health-details.policy';
+import { AppError } from '@/errors/AppError';
 import { membershipEnabled } from '@/domain/membership.policy';
 import { googleProfileImage } from '@/domain/google-profile-image';
 import prisma from '@/lib/prisma';
@@ -11,6 +13,7 @@ import {
   RicePreference,
   RicePreferenceProvenance,
   ConsumptionGeographyLevel,
+  ClinicalEvidenceArea,
   HealthConditionType,
   HealthProfileRevisionType,
   Prisma,
@@ -69,9 +72,10 @@ type OnboardingEvaluationUser = Omit<
   'profile' | 'conditions' | 'allergies' | 'safetyEntries'
 > & {
   userProfile: OnboardingEvaluationInput['profile'];
-  healthConditions: Array<{ condition: string }>;
+  healthConditions: Array<{ condition: HealthConditionType }>;
   allergies: Array<{ allergen: string }>;
   safetyProfileEntries: Array<{ domain: string }>;
+  clinicalContextResponses?: Array<{ area: ClinicalEvidenceArea; responses: unknown }>;
 };
 
 function evaluateUserOnboardingStatus(user: OnboardingEvaluationUser) {
@@ -84,6 +88,19 @@ function evaluateUserOnboardingStatus(user: OnboardingEvaluationUser) {
     conditions: user.healthConditions.map((item) => item.condition),
     allergies: user.allergies.map((item) => item.allergen),
     safetyEntries: user.safetyProfileEntries,
+    healthDetails:
+      user.userProfile && user.clinicalContextResponses
+        ? healthDetailsRequirements({
+            userProfile: {
+              safetyRevision: user.userProfile.safetyRevision ?? 0,
+              otherConditions: user.userProfile.otherConditions ?? null,
+              otherAllergies: user.userProfile.otherAllergies ?? null,
+            },
+            healthConditions: user.healthConditions,
+            allergies: user.allergies,
+            clinicalContextResponses: user.clinicalContextResponses,
+          })
+        : undefined,
   });
 }
 
@@ -107,6 +124,7 @@ const profileDetailsSelect = {
   userProfile: true,
   healthConditions: { select: { condition: true } },
   allergies: { select: { allergen: true } },
+  clinicalContextResponses: { select: { area: true, responses: true } },
   safetyProfileEntries: {
     orderBy: [{ domain: 'asc' }, { displayName: 'asc' }],
     select: {
@@ -294,6 +312,7 @@ export class UserProfileService {
         healthConditions: { select: { condition: true } },
         allergies: { select: { allergen: true } },
         safetyProfileEntries: { select: { domain: true } },
+        clinicalContextResponses: { select: { area: true, responses: true } },
         nutritionReport: { select: { acknowledgedAt: true, isStale: true, profileRevision: true } },
       },
     });
@@ -304,7 +323,12 @@ export class UserProfileService {
 
     const onboardingStatus = evaluateUserOnboardingStatus(user);
     if (!onboardingStatus.readyToComplete) {
-      throw new Error(`Onboarding is incomplete. Continue at ${onboardingStatus.nextPath}.`);
+      throw new AppError(
+        `Onboarding is incomplete. Continue at ${onboardingStatus.nextPath}.`,
+        409,
+        'ONBOARDING_INCOMPLETE',
+        { nextPath: onboardingStatus.nextPath }
+      );
     }
 
     const profile = user.userProfile;
@@ -348,6 +372,23 @@ export class UserProfileService {
         await lockUserProfile(tx, userId);
         const current = await tx.userProfile.findUniqueOrThrow({ where: { userId } });
         if (current.revision !== profile.revision) throw new Error('Profile changed. Retry onboarding completion.');
+        const contexts = await tx.clinicalContextResponse.findMany({ where: { userId } });
+        const pending = healthDetailsRequirements({
+          userProfile: current,
+          healthConditions: user.healthConditions,
+          allergies: user.allergies,
+          clinicalContextResponses: contexts,
+        }).find((item) => item.state !== 'READY');
+        if (pending)
+          throw new AppError(
+            'Review and save your health details before completing onboarding.',
+            409,
+            'ONBOARDING_INCOMPLETE',
+            {
+              nextPath:
+                pending.area === 'FOOD_ALLERGY' ? '/onboarding/allergy-details' : '/onboarding/condition-details',
+            }
+          );
         let reportProfileRevision = current.revision;
         if (current.dailyCalorieTarget !== calculations.dailyCalorieTarget) {
           const revised = await advanceProfileRevision(tx, userId);

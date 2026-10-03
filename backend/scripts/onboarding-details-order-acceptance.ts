@@ -10,6 +10,7 @@ async function main() {
   const { SafetyIntakeService: safety } = await import('../src/services/safety-intake.service');
   const { ClinicalEvidenceService: forms } = await import('../src/services/clinical-evidence.service');
   const { ClinicalProfileReviewService: reviews } = await import('../src/services/clinical-profile-review.service');
+  const { UserProfileService: profiles } = await import('../src/services/user-profile.service');
   const stamp = Date.now();
   try {
     const member = await prisma.user.create({
@@ -20,44 +21,80 @@ async function main() {
         role: 'USER',
         emailVerified: true,
         onboardingDone: false,
-        userProfile: { create: { age: 30, goal: 'MAINTAIN', dietaryPreference: 'OMNIVORE', dailyCalorieTarget: 2000 } },
+        tosAccepted: true,
+        acceptedTermsVersion: '2026-09-27',
+        acceptedPrivacyVersion: '2026-09-27',
+        userProfile: {
+          create: {
+            age: 30,
+            biologicalSex: 'MALE',
+            heightCm: 170,
+            weightKg: 70,
+            targetWeightKg: 70,
+            activityLevel: 'SEDENTARY',
+            goal: 'MAINTAIN',
+            dietaryPreference: 'OMNIVORE',
+            ricePreference: 'FLEXIBLE',
+            foodCulture: 'Filipino',
+            shoppingDayOfWeek: 6,
+            dailyCalorieTarget: 2000,
+          },
+        },
       },
     });
     await safety.replaceDomains(
       member.id,
       ['CONDITION'],
-      [{ domain: 'CONDITION', value: 'DIABETES', provenance: 'PREDEFINED' }]
+      [{ domain: 'CONDITION', value: 'NONE', provenance: 'PREDEFINED' }]
+    );
+    await safety.replaceDomains(
+      member.id,
+      ['CONDITION'],
+      [{ domain: 'CONDITION', value: 'HEART_CONDITION', provenance: 'PREDEFINED' }]
     );
     let workspace = await forms.workspace(member.id);
     const answers = {
-      conditionDetails: 'Synthetic user-provided diabetes details',
+      conditionDetails: 'Synthetic user-provided heart condition details',
       medications: 'None',
       dietaryAdvice: 'Unknown',
       recentSymptoms: 'None',
       measurements: '',
     };
     await forms.saveHealthDetails(member.id, {
-      area: 'DIABETES',
+      area: 'HEART_CONDITION',
       expectedSafetyRevision: workspace.safetyRevision,
       ...answers,
     });
     const before = await prisma.clinicalContextResponse.findUniqueOrThrow({
-      where: { userId_area: { userId: member.id, area: 'DIABETES' } },
+      where: { userId_area: { userId: member.id, area: 'HEART_CONDITION' } },
     });
     await safety.replaceDomains(
       member.id,
       ['ALLERGY', 'INTOLERANCE', 'AVOIDED_INGREDIENT'],
       [
         { domain: 'ALLERGY', value: 'NUTS', provenance: 'PREDEFINED' },
-        { domain: 'INTOLERANCE', value: 'NONE', provenance: 'PREDEFINED' },
-        { domain: 'AVOIDED_INGREDIENT', value: 'NONE', provenance: 'PREDEFINED' },
+        { domain: 'INTOLERANCE', value: 'SOY', provenance: 'PREDEFINED' },
+        { domain: 'AVOIDED_INGREDIENT', value: 'SESAME', provenance: 'PREDEFINED' },
       ]
     );
     workspace = await forms.workspace(member.id);
+    assert.equal(
+      await forms.nextOnboardingDetailsPath(member.id, ['ALLERGY', 'INTOLERANCE', 'AVOIDED_INGREDIENT']),
+      '/onboarding/allergy-details'
+    );
+    assert.equal(
+      (await profiles.getUserProfileDetails(member.id))?.onboardingStatus.nextPath,
+      '/onboarding/allergy-details'
+    );
+    await assert.rejects(
+      () => profiles.completeOnboarding(member.id),
+      (error: unknown) =>
+        error instanceof Error && (error as { errorCode?: string }).errorCode === 'ONBOARDING_INCOMPLETE'
+    );
     assert.deepEqual(
       workspace.requirements.map((item) => [item.area, item.state]),
       [
-        ['DIABETES', 'READY'],
+        ['HEART_CONDITION', 'READY'],
         ['FOOD_ALLERGY', 'CONTEXT_REQUIRED'],
       ]
     );
@@ -82,7 +119,7 @@ async function main() {
       conditionDetails: 'Synthetic nut allergy and reaction details',
     });
     assert.ok((await forms.workspace(member.id)).requirements.every((item) => item.state === 'READY'));
-    await prisma.user.update({ where: { id: member.id }, data: { onboardingDone: true } });
+    assert.equal((await profiles.completeOnboarding(member.id)).onboardingDone, true);
     const reviewer = await prisma.nutritionistProfile.create({
       data: {
         prcLicenseNumber: `ONBOARDING-TEST-${stamp}`,
@@ -101,6 +138,7 @@ async function main() {
     });
     await reviews.claim(reviewer.id, member.id);
     const detail = await reviews.detail(member.id, reviewer.id);
+    assert.equal(detail.needsClarification, false);
     await reviews.decide(
       reviewer.id,
       member.id,
