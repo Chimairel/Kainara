@@ -98,7 +98,7 @@ export function DashboardMealRow(props: Props) {
           mealName={meal.mealName}
           mealType={meal.mealType}
           ingredients={meal.ingredients}
-          image={props.pending ? undefined : props.meal.image}
+          image={meal.image}
           variant="thumbnail"
           className="!rounded-full !border-0 h-full w-full object-cover"
         />
