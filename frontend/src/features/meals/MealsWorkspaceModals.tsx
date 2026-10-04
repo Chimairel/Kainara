@@ -12,6 +12,7 @@ import { formatManilaDate } from '@/lib/manila-date';
 import { useMealsWorkspace } from './useMealsWorkspace';
 import SwapImpactDetails from './SwapImpactDetails';
 import { swapNutritionLabel } from './swap-nutrition-label';
+import { getMealTheme } from '@/features/dashboard/DashboardMealRow';
 
 type Props = { workspace: ReturnType<typeof useMealsWorkspace> };
 
@@ -81,6 +82,9 @@ export function MealsWorkspaceModals({ workspace }: Props) {
     });
   }, [activeSwapMeal, swapOptions, miniSort]);
 
+  const currentTheme = activeSwapMeal ? getMealTheme(activeSwapMeal.mealType) : null;
+  const replacementTheme = confirmSwapMeal ? getMealTheme(confirmSwapMeal.mealType || activeSwapMeal?.mealType) : null;
+
   return (
     <>
       {selectedVerifier && (
@@ -111,37 +115,44 @@ export function MealsWorkspaceModals({ workspace }: Props) {
             {/* TOP ROW: BALANCED COMPARISON STAGE */}
             <div className="grid grid-cols-1 md:grid-cols-[1fr_auto_1fr] items-stretch gap-3 pb-3 border-b border-brand-border/60">
               {/* Left Card: Current Meal */}
-              <div className="flex flex-col justify-between rounded-[22px] border border-brand-border/80 bg-brand-surface/80 dark:bg-[#071914]/80 p-3.5 shadow-xs min-h-[148px]">
+              <div
+                className={`dashboard-meal relative overflow-hidden flex flex-col justify-between rounded-[22px] p-3.5 sm:p-4 text-white shadow-md ${currentTheme?.cardBg} ${currentTheme?.borderColor} min-h-[156px]`}
+              >
                 <div>
                   <div className="flex items-center justify-between gap-2 mb-2">
-                    <span className="inline-flex items-center gap-1.5 text-[10px] font-mono font-bold uppercase tracking-wider text-brand-muted">
-                      <span className="h-1.5 w-1.5 rounded-full bg-brand-muted/70" />
-                      Current Meal
+                    <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-white/80">
+                      {activeSwapMeal.mealType.toLowerCase()}
                     </span>
-                    <span className="rounded-full bg-brand-green/10 dark:bg-brand-accent/15 border border-brand-green/20 dark:border-brand-accent/30 px-2 py-0.5 font-mono text-[9px] font-extrabold uppercase tracking-wider text-brand-green dark:text-brand-accent">
-                      {activeSwapMeal.mealType}
+                    <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold tracking-wide backdrop-blur-md border border-white/25 bg-black/25 text-white shadow-xs">
+                      <span className="h-1.5 w-1.5 rounded-full bg-white/70" />
+                      <span>Current Meal</span>
                     </span>
                   </div>
 
-                  <div className="flex items-start gap-3">
-                    <div className="relative h-15 w-15 shrink-0 overflow-hidden rounded-xl border border-brand-border/60 shadow-xs">
-                      <MealImage
-                        image={activeSwapMeal.image}
-                        mealName={activeSwapMeal.mealName}
-                        mealType={activeSwapMeal.mealType}
-                        variant="thumbnail"
-                      />
+                  <div className="flex items-center gap-3 sm:gap-3.5">
+                    <div
+                      className={`relative h-16 w-16 sm:h-18 sm:w-18 shrink-0 rounded-full p-1 sm:p-1.5 bg-white dark:bg-[#12362c] shadow-[0_8px_20px_-3px_rgba(0,0,0,0.25),0_3px_8px_rgba(0,0,0,0.1)] dark:shadow-[0_10px_24px_rgba(0,0,0,0.7)] ${currentTheme?.plateRim} z-10`}
+                    >
+                      <div className="relative h-full w-full rounded-full overflow-hidden">
+                        <MealImage
+                          image={activeSwapMeal.image}
+                          mealName={activeSwapMeal.mealName}
+                          mealType={activeSwapMeal.mealType}
+                          variant="thumbnail"
+                          className="!rounded-full !border-0 h-full w-full object-cover"
+                        />
+                      </div>
                     </div>
                     <div className="min-w-0 flex-1">
-                      <h4 className="font-display text-sm font-bold text-brand-text truncate leading-snug">
+                      <h4 className="font-display text-sm sm:text-base font-bold text-white line-clamp-2 leading-snug min-h-[2.5rem] flex items-start">
                         {formatMealTitle(activeSwapMeal.mealName)}
                       </h4>
                       {activeSwapMeal.ricePortion && (
-                        <p className="text-[11px] font-medium text-brand-green dark:text-brand-accent mt-0.5">
+                        <p className="text-[11px] font-bold text-white/95 mt-0.5">
                           + {activeSwapMeal.ricePortion}
                         </p>
                       )}
-                      <p className="text-[11px] text-brand-muted mt-0.5">
+                      <p className="text-[10.5px] text-white/75 mt-0.5">
                         {formatManilaDate(activeSwapMeal.scheduledDate, {
                           weekday: 'short',
                           month: 'short',
@@ -152,24 +163,18 @@ export function MealsWorkspaceModals({ workspace }: Props) {
                   </div>
                 </div>
 
-                <div className="mt-2.5 pt-2 border-t border-brand-border/40 flex flex-wrap items-center gap-1.5 font-mono text-[10px] font-bold">
-                  <span className="rounded-md bg-brand-bgAlt px-2 py-0.5 text-brand-text border border-brand-border/40">
-                    {Math.round(activeSwapMeal.calories)} kcal
-                  </span>
-                  <span className="rounded-md px-1.5 py-0.5 text-amber-700 dark:text-amber-400 bg-amber-500/10 border border-amber-500/20">
-                    {Math.round(activeSwapMeal.proteinG)}g P
-                  </span>
-                  <span className="rounded-md px-1.5 py-0.5 text-sky-700 dark:text-sky-400 bg-sky-500/10 border border-sky-500/20">
-                    {Math.round(activeSwapMeal.carbsG)}g C
-                  </span>
-                  <span className="rounded-md px-1.5 py-0.5 text-rose-700 dark:text-rose-400 bg-rose-500/10 border border-rose-500/20">
-                    {Math.round(activeSwapMeal.fatG)}g F
-                  </span>
+                <div className="mt-2.5 pt-2 border-t border-white/20">
+                  <p className="text-[11px] sm:text-xs font-medium text-white/90">
+                    <strong className="text-white font-bold">{Math.round(activeSwapMeal.calories)}</strong> kcal ·{' '}
+                    <strong className="text-white font-bold">{Math.round(activeSwapMeal.proteinG)}g</strong> protein ·{' '}
+                    <strong className="text-white font-bold">{Math.round(activeSwapMeal.carbsG)}g</strong> carbs ·{' '}
+                    <strong className="text-white font-bold">{Math.round(activeSwapMeal.fatG)}g</strong> fat
+                  </p>
                 </div>
               </div>
 
               {/* Center Connector */}
-              <div className="flex md:flex-col items-center justify-center gap-1 py-1 md:py-0 self-center">
+              <div className="flex md:flex-col items-center justify-center gap-1.5 py-1 md:py-0 self-center">
                 <div className="flex h-10 w-10 items-center justify-center rounded-2xl border border-brand-border/80 bg-brand-surface dark:bg-[#0a201a] text-brand-green dark:text-brand-accent shadow-xs">
                   <ArrowRight className="h-4 w-4 hidden md:block" />
                   <ArrowDown className="h-4 w-4 md:hidden" />
@@ -191,94 +196,83 @@ export function MealsWorkspaceModals({ workspace }: Props) {
               </div>
 
               {/* Right Card: Selected Candidate or Prompt */}
-              {confirmSwapMeal ? (
-                <div className="relative overflow-hidden flex flex-col justify-between rounded-[22px] border-2 border-brand-green/70 dark:border-brand-accent/70 bg-brand-green/[0.04] dark:bg-brand-accent/[0.05] p-3.5 shadow-xs min-h-[148px]">
-                  {/* NutriMind Brand Stripes in Corner */}
-                  <div
-                    aria-hidden="true"
-                    className="pointer-events-none absolute -right-2 -top-2 z-0 h-20 w-20 select-none opacity-30 dark:opacity-25"
-                  >
-                    <svg viewBox="0 0 160 160" fill="none" className="h-full w-full block">
-                      <path
-                        d="M160,0 L0,0 C20,38 52,90 115,130 C135,142 155,150 160,150 Z"
-                        className="fill-[#eb6a38] dark:fill-[#cf5626]"
-                      />
-                      <path
-                        d="M160,0 L42,0 C62,32 88,72 130,105 C142,114 154,120 160,120 Z"
-                        className="fill-[#f09e6c] dark:fill-[#d9804e]"
-                      />
-                      <path
-                        d="M160,0 L82,0 C92,20 110,48 142,70 C152,76 160,80 160,80 Z"
-                        className="fill-[#1b4e41] dark:fill-[#164639]"
-                      />
-                    </svg>
-                  </div>
-
-                  <div className="relative z-10">
+              {confirmSwapMeal && replacementTheme ? (
+                <div
+                  className={`dashboard-meal relative overflow-hidden flex flex-col justify-between rounded-[22px] p-3.5 sm:p-4 text-white shadow-md ${replacementTheme.cardBg} ${replacementTheme.borderColor} min-h-[156px]`}
+                >
+                  <div>
                     <div className="flex items-center justify-between gap-2 mb-2">
-                      <span className="inline-flex items-center gap-1 text-[10px] font-mono font-bold uppercase tracking-wider text-brand-green dark:text-brand-accent">
-                        <Sparkles className="h-3 w-3" /> Selected Replacement
+                      <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-white/80">
+                        {(confirmSwapMeal.mealType || activeSwapMeal.mealType).toLowerCase()}
                       </span>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          if (isSwapping) return;
-                          setConfirmSwapMeal(null);
-                          setSwapPreview(null);
-                          setGroceryDeltaAcknowledged(false);
-                        }}
-                        className="relative z-10 flex h-5 w-5 items-center justify-center rounded-full bg-brand-surface/80 dark:bg-brand-surface/40 text-brand-muted hover:text-brand-text border border-brand-border/60 hover:bg-brand-bgAlt transition-colors"
-                        title="Clear selection"
-                        aria-label="Clear selection"
-                      >
-                        <X className="h-3 w-3" />
-                      </button>
+                      <div className="flex items-center gap-1.5">
+                        <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold tracking-wide backdrop-blur-md border border-white/30 bg-white/20 text-white shadow-xs">
+                          <Sparkles className="h-3 w-3 text-amber-300" />
+                          <span>Selected Replacement</span>
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (isSwapping) return;
+                            setConfirmSwapMeal(null);
+                            setSwapPreview(null);
+                            setGroceryDeltaAcknowledged(false);
+                          }}
+                          className="flex h-5 w-5 items-center justify-center rounded-full bg-black/30 hover:bg-black/50 text-white/80 hover:text-white border border-white/20 transition-colors"
+                          title="Clear selection"
+                          aria-label="Clear selection"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </div>
                     </div>
 
-                    <div className="flex items-start gap-3">
-                      <div className="relative h-15 w-15 shrink-0 overflow-hidden rounded-xl border border-brand-border/60 shadow-xs">
-                        <MealImage
-                          image={confirmSwapMeal.image}
-                          mealName={confirmSwapMeal.mealName}
-                          mealType={confirmSwapMeal.mealType ?? undefined}
-                          variant="thumbnail"
-                        />
+                    <div className="flex items-center gap-3 sm:gap-3.5">
+                      <div
+                        className={`relative h-16 w-16 sm:h-18 sm:w-18 shrink-0 rounded-full p-1 sm:p-1.5 bg-white dark:bg-[#12362c] shadow-[0_8px_20px_-3px_rgba(0,0,0,0.25),0_3px_8px_rgba(0,0,0,0.1)] dark:shadow-[0_10px_24px_rgba(0,0,0,0.7)] ${replacementTheme.plateRim} z-10`}
+                      >
+                        <div className="relative h-full w-full rounded-full overflow-hidden">
+                          <MealImage
+                            image={confirmSwapMeal.image}
+                            mealName={confirmSwapMeal.mealName}
+                            mealType={confirmSwapMeal.mealType ?? undefined}
+                            variant="thumbnail"
+                            className="!rounded-full !border-0 h-full w-full object-cover"
+                          />
+                        </div>
                       </div>
                       <div className="min-w-0 flex-1">
-                        <h4 className="font-display text-sm font-bold text-brand-text truncate leading-snug">
+                        <h4 className="font-display text-sm sm:text-base font-bold text-white line-clamp-2 leading-snug min-h-[2.5rem] flex items-start">
                           {formatMealTitle(confirmSwapMeal.mealName)}
                         </h4>
-                        <p className="text-[11px] text-brand-muted mt-0.5 truncate">
+                        <p className="text-[11px] font-bold text-white/95 mt-0.5 truncate">
                           {confirmSwapMeal.servingDescription || 'One recipe serving'}
                           {confirmSwapMeal.alreadyPlannedInCycle ? ' · In plan' : ''}
+                        </p>
+                        <p className="text-[10.5px] text-white/75 mt-0.5 truncate">
+                          Ready to compare & confirm
                         </p>
                       </div>
                     </div>
                   </div>
 
-                  <div className="relative z-10 mt-2.5 pt-2 border-t border-brand-border/40 flex flex-wrap items-center gap-1.5 font-mono text-[10px] font-bold">
-                    <span className="rounded-md bg-brand-bgAlt px-2 py-0.5 text-brand-text border border-brand-border/40">
-                      {Math.round(confirmSwapMeal.calories)} kcal
-                    </span>
-                    <span className="rounded-md px-1.5 py-0.5 text-amber-700 dark:text-amber-400 bg-amber-500/10 border border-amber-500/20">
-                      {Math.round(confirmSwapMeal.proteinG)}g P
-                    </span>
-                    <span className="rounded-md px-1.5 py-0.5 text-sky-700 dark:text-sky-400 bg-sky-500/10 border border-sky-500/20">
-                      {Math.round(confirmSwapMeal.carbsG)}g C
-                    </span>
-                    <span className="rounded-md px-1.5 py-0.5 text-rose-700 dark:text-rose-400 bg-rose-500/10 border border-rose-500/20">
-                      {Math.round(confirmSwapMeal.fatG)}g F
-                    </span>
+                  <div className="mt-2.5 pt-2 border-t border-white/20">
+                    <p className="text-[11px] sm:text-xs font-medium text-white/90">
+                      <strong className="text-white font-bold">{Math.round(confirmSwapMeal.calories)}</strong> kcal ·{' '}
+                      <strong className="text-white font-bold">{Math.round(confirmSwapMeal.proteinG)}g</strong> protein ·{' '}
+                      <strong className="text-white font-bold">{Math.round(confirmSwapMeal.carbsG)}g</strong> carbs ·{' '}
+                      <strong className="text-white font-bold">{Math.round(confirmSwapMeal.fatG)}g</strong> fat
+                    </p>
                   </div>
                 </div>
               ) : (
-                <div className="flex flex-col items-center justify-center rounded-[22px] border border-dashed border-brand-border/90 bg-brand-bgAlt/30 p-4 text-center min-h-[148px]">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-brand-surface border border-brand-border/80 text-brand-muted mb-2 shadow-2xs">
-                    <UtensilsCrossed className="h-5 w-5" />
+                <div className="flex flex-col items-center justify-center rounded-[22px] border-2 border-dashed border-brand-border/90 bg-brand-surface/40 dark:bg-brand-surface/20 p-4 text-center min-h-[156px]">
+                  <div className="flex h-14 w-14 sm:h-16 sm:w-16 items-center justify-center rounded-full border-2 border-dashed border-brand-border/90 bg-brand-surface/80 dark:bg-[#071914] text-brand-muted mb-2 shadow-xs">
+                    <UtensilsCrossed className="h-6 w-6 text-brand-muted/70" />
                   </div>
-                  <p className="text-xs font-bold text-brand-text">Select a replacement meal below</p>
-                  <p className="text-[11px] text-brand-muted mt-0.5 max-w-[240px]">
-                    Click any recipe from the mini library to compare nutrition and confirm your swap.
+                  <p className="text-xs sm:text-sm font-bold text-brand-text">Select a replacement meal below</p>
+                  <p className="text-[11px] text-brand-muted mt-0.5 max-w-[260px] leading-relaxed">
+                    Click any plate from the mini library to compare nutrition and balance your day.
                   </p>
                 </div>
               )}
