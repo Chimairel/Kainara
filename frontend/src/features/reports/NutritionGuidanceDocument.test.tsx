@@ -66,6 +66,8 @@ it('uses the archived report snapshot and keeps PDF downloads tied to the latest
   expect(screen.queryByText('2,000 kcal/day')).not.toBeInTheDocument();
   expect(screen.getByText('HYPERTENSION')).toBeInTheDocument();
   expect(screen.getByText(/EGGS, Sesame intolerance/)).toBeInTheDocument();
-  expect(screen.getByRole('button', { name: 'Download PDF' })).toBeDisabled();
+  fireEvent.click(screen.getByRole('button', { name: 'Options for version 1' }));
+  expect(screen.getByRole('menuitem', { name: /Download PDF/ })).toBeInTheDocument();
+  expect(screen.getByRole('menuitem', { name: /Current version/ })).toBeDisabled();
   expect(screen.getByText(/Selected for planning/)).toBeInTheDocument();
 });

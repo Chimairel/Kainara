@@ -1,9 +1,9 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import type { NutritionReport } from '@/types';
 import { formatManilaDate } from '@/lib/manila-date';
-import { Play } from 'lucide-react';
+import { Check, Download, FileText, Loader2, MoreVertical } from 'lucide-react';
 
 export interface ReportVersion {
   id: string;
@@ -26,6 +26,10 @@ export interface ReportHistoryProps {
   currentVersion?: number;
   selectedVersionNumber?: number;
   onSelectVersion?: (version: ReportVersion) => void;
+  onDownloadVersion?: (version: ReportVersion) => void;
+  onSetAsCurrent?: (version: ReportVersion) => void;
+  isDownloadingPdf?: boolean;
+  downloadingVersion?: number | null;
   borderless?: boolean;
 }
 
@@ -34,61 +38,182 @@ export default function ReportHistory({
   currentVersion,
   selectedVersionNumber,
   onSelectVersion,
+  onDownloadVersion,
+  onSetAsCurrent,
+  isDownloadingPdf = false,
+  downloadingVersion = null,
   borderless = false,
 }: ReportHistoryProps) {
+  const [openMenuVersion, setOpenMenuVersion] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (openMenuVersion === null) return;
+    const handleClickOutside = () => setOpenMenuVersion(null);
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setOpenMenuVersion(null);
+    };
+    window.addEventListener('click', handleClickOutside);
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      window.removeEventListener('click', handleClickOutside);
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [openMenuVersion]);
+
   if (borderless) {
     return (
-      <nav aria-label="Nutrition report history" className="w-full text-left">
-        <h2 className="font-display text-base sm:text-lg font-bold text-foreground tracking-tight">
-          Nutrition report history
-        </h2>
-        <p className="mt-1 text-xs text-muted-foreground leading-relaxed">
-          Saved guidance reflects your information at the time it was generated.
-        </p>
+      <nav aria-label="Nutrition report history" className="flex h-full w-full min-w-0 flex-col">
+        {/* Queue-style header card matching nutritionist review workspace */}
+        <div className="shrink-0 mb-3 rounded-2xl border border-brand-border/80 bg-brand-surface/90 p-4 sm:p-5 text-brand-text shadow-sm backdrop-blur-md">
+          <div className="flex items-center justify-between gap-2">
+            <span className="font-mono text-[9px] font-bold uppercase tracking-[0.16em] text-brand-green">
+              Saved guidance
+            </span>
+            <span className="rounded-md border border-brand-border/80 bg-brand-bgAlt/60 px-2 py-0.5 text-[10px] font-semibold text-brand-muted">
+              {history.length} {history.length === 1 ? 'version' : 'versions'}
+            </span>
+          </div>
+          <div className="mt-2">
+            <h2 className="font-display text-lg font-black tracking-tight text-brand-text">Report history</h2>
+          </div>
+          <p className="mt-1.5 text-xs leading-relaxed text-brand-muted">
+            Select a version to inspect guidance. Older versions reflect saved health records.
+          </p>
+        </div>
 
+        {/* History list */}
         {!history.length ? (
-          <p className="mt-4 text-xs text-muted-foreground italic">No saved reports yet.</p>
+          <div className="flex-1 flex flex-col items-center justify-center p-8 text-center space-y-3 rounded-2xl border border-dashed border-brand-border/80 bg-brand-surface/40">
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-brand-accent/10 text-brand-accent shadow-inner">
+              <FileText className="w-6 h-6 stroke-[2]" />
+            </div>
+            <div className="space-y-1">
+              <p className="font-display text-sm font-extrabold text-brand-text">No saved reports</p>
+              <p className="text-xs text-brand-muted max-w-xs leading-relaxed">
+                No previous reports saved in your history.
+              </p>
+            </div>
+          </div>
         ) : (
-          <div className="mt-4 space-y-1.5">
+          <div className="flex-1 overflow-y-auto pr-1 space-y-2.5 custom-scrollbar">
             {history.map((entry) => {
               const isSelected = selectedVersionNumber === entry.version;
               const isCurrent = currentVersion !== undefined && entry.version === currentVersion;
+              const isMenuOpen = openMenuVersion === entry.version;
+              const isDownloadingThis = Boolean(isDownloadingPdf && downloadingVersion === entry.version);
+
               return (
-                <button
+                <div
                   key={entry.id}
-                  type="button"
-                  onClick={() => onSelectVersion?.(entry)}
-                  className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-left transition-all duration-150 group ${
+                  className={`group relative flex items-center justify-between rounded-2xl border p-3.5 sm:p-4 text-left transition-all duration-150 ${
                     isSelected
-                      ? 'bg-slate-200/80 dark:bg-brand-surface font-semibold text-foreground shadow-sm ring-1 ring-slate-300 dark:ring-brand-border/40'
-                      : 'hover:bg-slate-100/90 dark:hover:bg-brand-surface/40 text-foreground/80 font-normal'
+                      ? 'border-brand-green/60 bg-brand-surface shadow-md ring-1 ring-brand-green/30 dark:border-brand-green/50 dark:bg-brand-surface'
+                      : 'border-brand-border/70 bg-brand-surface/85 hover:border-brand-border hover:bg-brand-surface'
                   }`}
-                  aria-current={isSelected ? 'true' : undefined}
                 >
-                  <div className="flex items-center gap-2 min-w-0">
-                    <Play
-                      className={`w-2.5 h-2.5 shrink-0 fill-current transition-transform duration-150 ${
+                  {/* Card button: Selects version to view */}
+                  <button
+                    type="button"
+                    onClick={() => onSelectVersion?.(entry)}
+                    className="flex min-w-0 flex-1 items-center gap-3 text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-accent rounded-xl"
+                    aria-current={isSelected ? 'true' : undefined}
+                  >
+                    <div
+                      className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border transition-colors ${
                         isSelected
-                          ? 'text-brand-accent scale-110'
-                          : 'text-slate-400 dark:text-slate-500 group-hover:text-slate-600 dark:group-hover:text-slate-300'
+                          ? 'border-brand-green/40 bg-brand-green/10 text-brand-green'
+                          : 'border-brand-border/60 bg-brand-bgAlt/80 text-brand-muted group-hover:border-brand-accent/40 group-hover:text-brand-accent'
                       }`}
-                      aria-hidden="true"
-                    />
-                    <span className="text-xs sm:text-sm truncate">
-                      Version {entry.version} ·{' '}
-                      {formatManilaDate(entry.generatedAt, {
-                        month: 'short',
-                        day: 'numeric',
-                        year: 'numeric',
-                      })}
-                    </span>
+                    >
+                      <FileText className="h-5 w-5" />
+                    </div>
+
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2">
+                        <span className="font-display text-sm font-extrabold tracking-tight text-brand-text">
+                          Version {entry.version}
+                        </span>
+                        {isCurrent && (
+                          <span className="rounded-md border border-brand-green/35 bg-brand-green/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-brand-green">
+                            Current
+                          </span>
+                        )}
+                      </div>
+                      <p className="mt-0.5 text-xs text-brand-muted truncate">
+                        {formatManilaDate(entry.generatedAt, {
+                          month: 'short',
+                          day: 'numeric',
+                          year: 'numeric',
+                        })}
+                      </p>
+                    </div>
+                  </button>
+
+                  {/* 3 vertical dots menu */}
+                  <div className="relative shrink-0 ml-2">
+                    <button
+                      type="button"
+                      aria-label={`Options for version ${entry.version}`}
+                      aria-haspopup="menu"
+                      aria-expanded={isMenuOpen}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setOpenMenuVersion(isMenuOpen ? null : entry.version);
+                      }}
+                      className={`flex h-8 w-8 items-center justify-center rounded-xl border border-transparent text-brand-muted transition hover:border-brand-border hover:bg-brand-bgAlt hover:text-brand-text focus-visible:ring-2 focus-visible:ring-brand-accent ${
+                        isMenuOpen ? 'border-brand-border bg-brand-bgAlt text-brand-text' : ''
+                      }`}
+                    >
+                      <MoreVertical className="h-4 w-4" />
+                    </button>
+
+                    {isMenuOpen && (
+                      <div
+                        role="menu"
+                        aria-orientation="vertical"
+                        className="absolute right-0 top-full mt-1.5 z-40 w-44 rounded-2xl border border-brand-border/80 bg-brand-surface p-1.5 text-xs shadow-xl backdrop-blur-xl animate-in fade-in-50 zoom-in-95"
+                      >
+                        <button
+                          type="button"
+                          role="menuitem"
+                          disabled={isDownloadingThis}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setOpenMenuVersion(null);
+                            onDownloadVersion?.(entry);
+                          }}
+                          className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 font-semibold text-brand-text transition hover:bg-brand-bgAlt hover:text-brand-accent disabled:opacity-50"
+                        >
+                          {isDownloadingThis ? (
+                            <Loader2 className="h-3.5 w-3.5 animate-spin text-brand-muted" />
+                          ) : (
+                            <Download className="h-3.5 w-3.5 text-brand-muted" />
+                          )}
+                          <span>{isDownloadingThis ? 'Downloading...' : 'Download PDF'}</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          role="menuitem"
+                          disabled={isCurrent}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setOpenMenuVersion(null);
+                            onSetAsCurrent?.(entry);
+                          }}
+                          className={`flex w-full items-center gap-2.5 rounded-xl px-3 py-2 font-semibold transition ${
+                            isCurrent
+                              ? 'cursor-default text-brand-muted/70 opacity-60'
+                              : 'text-brand-text hover:bg-brand-bgAlt hover:text-brand-green'
+                          }`}
+                        >
+                          <Check className={`h-3.5 w-3.5 ${isCurrent ? 'text-brand-green' : 'text-brand-muted'}`} />
+                          <span>{isCurrent ? 'Current version' : 'Set as current'}</span>
+                        </button>
+                      </div>
+                    )}
                   </div>
-                  {isCurrent && (
-                    <span className="shrink-0 ml-2 text-[10px] uppercase font-bold tracking-wider px-1.5 py-0.5 rounded bg-brand-accent/20 text-brand-accent">
-                      Current
-                    </span>
-                  )}
-                </button>
+                </div>
               );
             })}
           </div>

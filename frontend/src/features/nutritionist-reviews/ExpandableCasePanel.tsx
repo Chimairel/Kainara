@@ -14,6 +14,9 @@ export default function ExpandableCasePanel({
   canExpand = true,
   headerLeft,
   onBack,
+  expandTitle = 'Full screen case inspection',
+  expandAriaLabel = 'Expanded case view',
+  backLabel = 'Back to queue',
 }: {
   children: ReactNode;
   className?: string;
@@ -23,6 +26,9 @@ export default function ExpandableCasePanel({
   canExpand?: boolean;
   headerLeft?: ReactNode;
   onBack?: () => void;
+  expandTitle?: string;
+  expandAriaLabel?: string;
+  backLabel?: string;
 }) {
   const [mounted, setMounted] = useState(false);
 
@@ -55,8 +61,8 @@ export default function ExpandableCasePanel({
           <button
             type="button"
             onClick={onBack}
-            aria-label="Back to queue"
-            title="Back to queue"
+            aria-label={backLabel}
+            title={backLabel}
             className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-brand-border/80 bg-brand-surface text-brand-muted shadow-sm transition hover:border-brand-accent/60 hover:text-brand-accent md:hidden"
           >
             <ArrowLeft className="h-4 w-4" />
@@ -87,7 +93,7 @@ export default function ExpandableCasePanel({
           <div
             role="dialog"
             aria-modal="true"
-            aria-label="Expanded case view"
+            aria-label={expandAriaLabel}
             className="fixed inset-0 z-[100] flex h-screen w-screen flex-col overflow-y-auto bg-brand-bg text-brand-text"
           >
             {/* Top Navigation Bar with Back Arrow */}
@@ -103,7 +109,7 @@ export default function ExpandableCasePanel({
                   <span>Back to split view</span>
                 </button>
                 <span className="hidden text-xs font-semibold text-brand-muted sm:inline-block">
-                  Full screen case inspection
+                  {expandTitle}
                 </span>
                 {headerLeft && (
                   <div className="hidden sm:flex items-center pl-3 border-l border-brand-border/70">

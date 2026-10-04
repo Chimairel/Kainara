@@ -350,7 +350,11 @@ export class UserController {
         return res.status(401).json({ success: false, error: 'Unauthorized.' });
       }
 
-      const report = await NutritionReportService.getReport(userId);
+      const versionQuery = req.query.version ? parseInt(String(req.query.version), 10) : undefined;
+      const report = versionQuery && !Number.isNaN(versionQuery)
+        ? await NutritionReportService.getVersionReport(userId, versionQuery)
+        : await NutritionReportService.getReport(userId);
+
       if (!report) {
         return res.status(404).json({ success: false, error: 'Report not found.' });
       }
@@ -361,7 +365,7 @@ export class UserController {
       }
 
       const React = await import('react');
-      if (report.isStale || report.profileRevision !== userDetails?.userProfile?.revision)
+      if (!versionQuery && (report.isStale || report.profileRevision !== userDetails?.userProfile?.revision))
         return res
           .status(409)
           .json({ success: false, error: 'Update your report before downloading current guidance.' });
@@ -370,7 +374,7 @@ export class UserController {
       const stream = await streamPdf(document);
 
       res.setHeader('Content-Type', 'application/pdf');
-      res.setHeader('Content-Disposition', 'attachment; filename=nutrimind-report.pdf');
+      res.setHeader('Content-Disposition', `attachment; filename=nutrimind-report-v${report.version}.pdf`);
       stream.pipe(res);
     } catch (error: unknown) {
       console.error('[UserController] downloadNutritionReportPdf error:', error);

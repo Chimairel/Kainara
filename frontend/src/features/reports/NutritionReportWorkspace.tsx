@@ -1,7 +1,7 @@
 'use client';
 
 import { useVisiblePolling } from '@/hooks/useVisiblePolling';
-import ReportHistory from '@/features/reports/ReportHistory';
+import ReportHistory, { type ReportVersion } from '@/features/reports/ReportHistory';
 import NutritionGuidanceDocument from '@/features/reports/NutritionGuidanceDocument';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -27,6 +27,7 @@ export default function NutritionReportPage() {
   const { user, refreshSession } = useAuth();
   const userId = user?.userId;
   const { isDownloadingPdf, startPdfDownload } = usePdfDownload(userId);
+  const [downloadingVersion, setDownloadingVersion] = useState<number | null>(null);
   const [history, setHistory] = useState<
     Array<{ id: string; version: number; generatedAt: string; content: NutritionReport }>
   >([]);
@@ -306,6 +307,41 @@ export default function NutritionReportPage() {
     }
   };
 
+  const handleDownloadVersion = async (versionEntry: ReportVersion) => {
+    if (downloadingVersion) return;
+    setDownloadingVersion(versionEntry.version);
+    try {
+      const url =
+        versionEntry.version === report?.version
+          ? '/user/nutrition-report/pdf'
+          : `/user/nutrition-report/pdf?version=${versionEntry.version}`;
+      await startPdfDownload(url, `KAINARA_Nutrition_Report_v${versionEntry.version}_${user?.name || 'Member'}.pdf`);
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : `Could not download report v${versionEntry.version}. Please try again.`
+      );
+    } finally {
+      setDownloadingVersion(null);
+    }
+  };
+
+  const handleSetAsCurrent = async (versionEntry: ReportVersion) => {
+    const activeVersion = report?.planningContext?.activeVersion;
+    if (versionEntry.version === activeVersion) {
+      toast.info(`Version ${versionEntry.version} is already your active planning report.`);
+      return;
+    }
+    if (versionEntry.version === report?.version) {
+      await handleAcknowledge();
+      return;
+    }
+    toast.info(
+      `Version ${versionEntry.version} is an archived record. Only your current guidance (v${report?.version}) can be set as active for meal planning.`
+    );
+  };
+
   if (isLoading) {
     return <PortalLoadingState fullScreen message="Preparing your nutrition guidance..." />;
   }
@@ -364,26 +400,6 @@ export default function NutritionReportPage() {
   if (report.reportPolicyVersion && report.referenceItems) {
     return (
       <>
-        <div className="mx-auto max-w-3xl px-4 pt-4 text-sm text-brand-muted">
-          {report.confirmationKind === 'UNCHANGED_CHECKIN' && (
-            <p>
-              Profile confirmed unchanged on{' '}
-              {new Date(report.generatedAt).toLocaleDateString('en-PH', { timeZone: 'Asia/Manila' })}. This dated report
-              does not represent a new nutritionist review.
-            </p>
-          )}
-          {report.planningContext?.activeVersion && (
-            <p className="mt-2">
-              Current planning report: version {report.planningContext.activeVersion}, dated{' '}
-              {new Date(report.planningContext.activeGeneratedAt!).toLocaleDateString('en-PH', {
-                timeZone: 'Asia/Manila',
-              })}
-              .{report.planningContext.pendingChanges && ' Your saved updates have not been applied to meal planning.'}
-              {report.planningContext.safetyChanged &&
-                ' Your health context changed; affected recommendations require revalidation.'}
-            </p>
-          )}
-        </div>
         <Modal
           isOpen={Boolean(requiredTier)}
           onClose={() => setRequiredTier(null)}
@@ -425,7 +441,10 @@ export default function NutritionReportPage() {
           isAcknowledging={isAcknowledging}
           onAcknowledge={handleAcknowledge}
           onDownload={handleDownloadPDF}
+          onDownloadVersion={handleDownloadVersion}
+          onSetAsCurrent={handleSetAsCurrent}
           isDownloadingPdf={isDownloadingPdf}
+          downloadingVersion={downloadingVersion}
         />
       </>
     );

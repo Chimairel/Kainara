@@ -82,6 +82,38 @@ export class NutritionReportService {
     };
   }
 
+  static async getVersionReport(userId: string, versionNumber: number): Promise<ReportResponse | null> {
+    const version = await prisma.nutritionReportVersion.findFirst({
+      where: { userId, version: versionNumber },
+    });
+    if (!version) return null;
+    const content = (version.content || {}) as Record<string, unknown>;
+    const policyVersion = version.policyVersion === NUTRITION_GUIDANCE_POLICY_VERSION ? version.policyVersion : null;
+    return {
+      id: version.id,
+      userId: version.userId,
+      version: version.version,
+      generatedAt: version.generatedAt,
+      acknowledgedAt: version.acknowledgedAt,
+      profileRevision: version.profileRevision,
+      isStale: false,
+      generalSummary: typeof content.generalSummary === 'string' ? content.generalSummary : '',
+      foodsToAvoid: Array.isArray(content.foodsToAvoid) ? (content.foodsToAvoid as string[]) : [],
+      foodsToLimit: Array.isArray(content.foodsToLimit) ? (content.foodsToLimit as string[]) : [],
+      foodsRecommended: Array.isArray(content.foodsRecommended) ? (content.foodsRecommended as string[]) : [],
+      drinksGuidance: Array.isArray(content.drinksGuidance) ? (content.drinksGuidance as string[]) : [],
+      basedOnConditions: Array.isArray(content.basedOnConditions) ? (content.basedOnConditions as string[]) : [],
+      basedOnAllergies: Array.isArray(content.basedOnAllergies) ? (content.basedOnAllergies as string[]) : [],
+      referenceItems:
+        policyVersion && Array.isArray(content.referenceItems)
+          ? (content.referenceItems as ReportResponse['referenceItems'])
+          : [],
+      reportPolicyVersion: policyVersion,
+      planningTargets: reportPlanningMacroTargets(version),
+      confirmationKind: version.confirmationKind,
+    };
+  }
+
   static async acknowledgeReport(userId: string, expectedVersion?: number) {
     const result = await prisma.$transaction(async (tx) => {
       await lockUserProfile(tx, userId);
