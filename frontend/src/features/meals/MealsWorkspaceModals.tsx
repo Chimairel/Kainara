@@ -7,7 +7,7 @@ import MealImage from '@/components/user/MealImage';
 import Modal from '@/components/ui/Modal';
 import LoadingSpinner from '@/components/shared/LoadingSpinner';
 import NutritionistCredentialModal from '@/components/user/NutritionistCredentialModal';
-import { AlertTriangle, ArrowRight, Check, Sparkles, Soup, UtensilsCrossed } from 'lucide-react';
+import { AlertTriangle, ArrowDown, ArrowRight, Check, Sparkles, Soup, UtensilsCrossed, X } from 'lucide-react';
 import { formatManilaDate } from '@/lib/manila-date';
 import { useMealsWorkspace } from './useMealsWorkspace';
 import SwapImpactDetails from './SwapImpactDetails';
@@ -105,25 +105,26 @@ export function MealsWorkspaceModals({ workspace }: Props) {
           }}
           title={`Swap ${formatMealTitle(activeSwapMeal.mealName)}`}
           description={`Replace the whole ${activeSwapMeal.mealType.toLowerCase()} plate, including any rice. Each option includes a freshly calculated rice portion where suitable; nutrition totals include rice.`}
-          size="2xl"
+          size="3xl"
         >
           <div className="space-y-4 text-left" aria-busy={isSwapping}>
-            {/* TOP ROW: COMPARISON SECTION */}
-            <div className="grid grid-cols-1 md:grid-cols-[1fr_auto_1fr] items-stretch gap-3 pb-4 border-b border-brand-border/60">
+            {/* TOP ROW: BALANCED COMPARISON STAGE */}
+            <div className="grid grid-cols-1 md:grid-cols-[1fr_auto_1fr] items-stretch gap-3 pb-3 border-b border-brand-border/60">
               {/* Left Card: Current Meal */}
-              <div className="flex flex-col justify-between rounded-2xl border border-brand-border/80 bg-brand-surface/70 p-3.5 shadow-xs">
+              <div className="flex flex-col justify-between rounded-[22px] border border-brand-border/80 bg-brand-surface/80 dark:bg-[#071914]/80 p-3.5 shadow-xs min-h-[148px]">
                 <div>
                   <div className="flex items-center justify-between gap-2 mb-2">
-                    <span className="inline-flex items-center gap-1 text-[10px] font-mono font-bold uppercase tracking-wider text-brand-muted">
+                    <span className="inline-flex items-center gap-1.5 text-[10px] font-mono font-bold uppercase tracking-wider text-brand-muted">
+                      <span className="h-1.5 w-1.5 rounded-full bg-brand-muted/70" />
                       Current Meal
                     </span>
-                    <span className="rounded-full bg-brand-green/10 dark:bg-brand-accent/15 px-2 py-0.5 font-mono text-[9px] font-extrabold uppercase tracking-wider text-brand-green dark:text-brand-accent">
+                    <span className="rounded-full bg-brand-green/10 dark:bg-brand-accent/15 border border-brand-green/20 dark:border-brand-accent/30 px-2 py-0.5 font-mono text-[9px] font-extrabold uppercase tracking-wider text-brand-green dark:text-brand-accent">
                       {activeSwapMeal.mealType}
                     </span>
                   </div>
 
                   <div className="flex items-start gap-3">
-                    <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-xl border border-brand-border/60 shadow-xs">
+                    <div className="relative h-15 w-15 shrink-0 overflow-hidden rounded-xl border border-brand-border/60 shadow-xs">
                       <MealImage
                         image={activeSwapMeal.image}
                         mealName={activeSwapMeal.mealName}
@@ -136,7 +137,9 @@ export function MealsWorkspaceModals({ workspace }: Props) {
                         {formatMealTitle(activeSwapMeal.mealName)}
                       </h4>
                       {activeSwapMeal.ricePortion && (
-                        <p className="text-[11px] text-brand-green mt-0.5">+ {activeSwapMeal.ricePortion}</p>
+                        <p className="text-[11px] font-medium text-brand-green dark:text-brand-accent mt-0.5">
+                          + {activeSwapMeal.ricePortion}
+                        </p>
                       )}
                       <p className="text-[11px] text-brand-muted mt-0.5">
                         {formatManilaDate(activeSwapMeal.scheduledDate, {
@@ -145,61 +148,95 @@ export function MealsWorkspaceModals({ workspace }: Props) {
                           day: 'numeric',
                         })}
                       </p>
-                      <div className="mt-2 flex flex-wrap items-center gap-1.5 font-mono text-[10px] font-bold">
-                        <span className="rounded-md bg-brand-bgAlt px-2 py-0.5 text-brand-text">
-                          {Math.round(activeSwapMeal.calories)} kcal
-                        </span>
-                        <span className="rounded-md px-1.5 py-0.5 text-amber-700 dark:text-amber-400 bg-amber-500/10">
-                          {Math.round(activeSwapMeal.proteinG)}g P
-                        </span>
-                        <span className="rounded-md px-1.5 py-0.5 text-sky-700 dark:text-sky-400 bg-sky-500/10">
-                          {Math.round(activeSwapMeal.carbsG)}g C
-                        </span>
-                        <span className="rounded-md px-1.5 py-0.5 text-rose-700 dark:text-rose-400 bg-rose-500/10">
-                          {Math.round(activeSwapMeal.fatG)}g F
-                        </span>
-                      </div>
                     </div>
                   </div>
                 </div>
+
+                <div className="mt-2.5 pt-2 border-t border-brand-border/40 flex flex-wrap items-center gap-1.5 font-mono text-[10px] font-bold">
+                  <span className="rounded-md bg-brand-bgAlt px-2 py-0.5 text-brand-text border border-brand-border/40">
+                    {Math.round(activeSwapMeal.calories)} kcal
+                  </span>
+                  <span className="rounded-md px-1.5 py-0.5 text-amber-700 dark:text-amber-400 bg-amber-500/10 border border-amber-500/20">
+                    {Math.round(activeSwapMeal.proteinG)}g P
+                  </span>
+                  <span className="rounded-md px-1.5 py-0.5 text-sky-700 dark:text-sky-400 bg-sky-500/10 border border-sky-500/20">
+                    {Math.round(activeSwapMeal.carbsG)}g C
+                  </span>
+                  <span className="rounded-md px-1.5 py-0.5 text-rose-700 dark:text-rose-400 bg-rose-500/10 border border-rose-500/20">
+                    {Math.round(activeSwapMeal.fatG)}g F
+                  </span>
+                </div>
               </div>
 
-              {/* Center Arrow */}
-              <div className="hidden md:flex flex-col items-center justify-center px-1">
-                <div className="flex h-9 w-9 items-center justify-center rounded-full border border-brand-border/80 bg-brand-bgAlt/80 text-brand-green dark:text-brand-accent shadow-xs">
-                  <ArrowRight className="h-4 w-4" />
+              {/* Center Connector */}
+              <div className="flex md:flex-col items-center justify-center gap-1 py-1 md:py-0 self-center">
+                <div className="flex h-10 w-10 items-center justify-center rounded-2xl border border-brand-border/80 bg-brand-surface dark:bg-[#0a201a] text-brand-green dark:text-brand-accent shadow-xs">
+                  <ArrowRight className="h-4 w-4 hidden md:block" />
+                  <ArrowDown className="h-4 w-4 md:hidden" />
                 </div>
+                {confirmSwapMeal && (
+                  <span
+                    className={`rounded-full px-2 py-0.5 font-mono text-[9px] font-extrabold shadow-2xs ${
+                      Math.abs(Math.round(confirmSwapMeal.calories - activeSwapMeal.calories)) <= 50
+                        ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/20'
+                        : Math.round(confirmSwapMeal.calories - activeSwapMeal.calories) > 0
+                          ? 'bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/20'
+                          : 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/20'
+                    }`}
+                  >
+                    {Math.round(confirmSwapMeal.calories - activeSwapMeal.calories) >= 0 ? '+' : ''}
+                    {Math.round(confirmSwapMeal.calories - activeSwapMeal.calories)} kcal
+                  </span>
+                )}
               </div>
 
               {/* Right Card: Selected Candidate or Prompt */}
               {confirmSwapMeal ? (
-                <div className="flex flex-col justify-between rounded-2xl border-2 border-brand-green/60 bg-brand-green/[0.03] dark:border-brand-accent/60 dark:bg-brand-accent/[0.04] p-3.5 shadow-xs">
-                  <div>
+                <div className="relative overflow-hidden flex flex-col justify-between rounded-[22px] border-2 border-brand-green/70 dark:border-brand-accent/70 bg-brand-green/[0.04] dark:bg-brand-accent/[0.05] p-3.5 shadow-xs min-h-[148px]">
+                  {/* NutriMind Brand Stripes in Corner */}
+                  <div
+                    aria-hidden="true"
+                    className="pointer-events-none absolute -right-2 -top-2 z-0 h-20 w-20 select-none opacity-30 dark:opacity-25"
+                  >
+                    <svg viewBox="0 0 160 160" fill="none" className="h-full w-full block">
+                      <path
+                        d="M160,0 L0,0 C20,38 52,90 115,130 C135,142 155,150 160,150 Z"
+                        className="fill-[#eb6a38] dark:fill-[#cf5626]"
+                      />
+                      <path
+                        d="M160,0 L42,0 C62,32 88,72 130,105 C142,114 154,120 160,120 Z"
+                        className="fill-[#f09e6c] dark:fill-[#d9804e]"
+                      />
+                      <path
+                        d="M160,0 L82,0 C92,20 110,48 142,70 C152,76 160,80 160,80 Z"
+                        className="fill-[#1b4e41] dark:fill-[#164639]"
+                      />
+                    </svg>
+                  </div>
+
+                  <div className="relative z-10">
                     <div className="flex items-center justify-between gap-2 mb-2">
                       <span className="inline-flex items-center gap-1 text-[10px] font-mono font-bold uppercase tracking-wider text-brand-green dark:text-brand-accent">
                         <Sparkles className="h-3 w-3" /> Selected Replacement
                       </span>
-                      {(() => {
-                        const delta = Math.round(confirmSwapMeal.calories - activeSwapMeal.calories);
-                        const isNeutral = Math.abs(delta) <= 50;
-                        return (
-                          <span
-                            className={`rounded-full px-2 py-0.5 font-mono text-[10px] font-extrabold ${
-                              isNeutral
-                                ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300'
-                                : delta > 0
-                                  ? 'bg-amber-500/15 text-amber-700 dark:text-amber-300'
-                                  : 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300'
-                            }`}
-                          >
-                            {delta >= 0 ? `+${delta}` : delta} kcal
-                          </span>
-                        );
-                      })()}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (isSwapping) return;
+                          setConfirmSwapMeal(null);
+                          setSwapPreview(null);
+                          setGroceryDeltaAcknowledged(false);
+                        }}
+                        className="relative z-10 flex h-5 w-5 items-center justify-center rounded-full bg-brand-surface/80 dark:bg-brand-surface/40 text-brand-muted hover:text-brand-text border border-brand-border/60 hover:bg-brand-bgAlt transition-colors"
+                        title="Clear selection"
+                        aria-label="Clear selection"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
                     </div>
 
                     <div className="flex items-start gap-3">
-                      <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-xl border border-brand-border/60 shadow-xs">
+                      <div className="relative h-15 w-15 shrink-0 overflow-hidden rounded-xl border border-brand-border/60 shadow-xs">
                         <MealImage
                           image={confirmSwapMeal.image}
                           mealName={confirmSwapMeal.mealName}
@@ -211,113 +248,104 @@ export function MealsWorkspaceModals({ workspace }: Props) {
                         <h4 className="font-display text-sm font-bold text-brand-text truncate leading-snug">
                           {formatMealTitle(confirmSwapMeal.mealName)}
                         </h4>
-                        <p className="text-[11px] text-brand-muted mt-0.5">
+                        <p className="text-[11px] text-brand-muted mt-0.5 truncate">
                           {confirmSwapMeal.servingDescription || 'One recipe serving'}
                           {confirmSwapMeal.alreadyPlannedInCycle ? ' · In plan' : ''}
                         </p>
-                        <div className="mt-2 flex flex-wrap items-center gap-1.5 font-mono text-[10px] font-bold">
-                          <span className="rounded-md bg-brand-bgAlt px-2 py-0.5 text-brand-text">
-                            {Math.round(confirmSwapMeal.calories)} kcal
-                          </span>
-                          <span className="rounded-md px-1.5 py-0.5 text-amber-700 dark:text-amber-400 bg-amber-500/10">
-                            {Math.round(confirmSwapMeal.proteinG)}g P
-                          </span>
-                          <span className="rounded-md px-1.5 py-0.5 text-sky-700 dark:text-sky-400 bg-sky-500/10">
-                            {Math.round(confirmSwapMeal.carbsG)}g C
-                          </span>
-                          <span className="rounded-md px-1.5 py-0.5 text-rose-700 dark:text-rose-400 bg-rose-500/10">
-                            {Math.round(confirmSwapMeal.fatG)}g F
-                          </span>
-                        </div>
                       </div>
                     </div>
-
-                    {/* Preview status & Warnings */}
-                    {isCheckingPreview ? (
-                      <div className="mt-2 flex items-center gap-2 text-xs text-brand-muted py-1">
-                        <LoadingSpinner size="sm" />
-                        <span>Projecting daily balance...</span>
-                      </div>
-                    ) : previewError ? (
-                      <div className="mt-2 rounded-lg border border-red-500/30 bg-red-500/10 p-2 text-[11px] text-red-600 dark:text-red-400">
-                        {previewError}
-                      </div>
-                    ) : swapPreview ? (
-                      <div className="mt-2 space-y-1.5 text-[11px]">
-                        {swapPreview.warningRequired && (
-                          <div className="flex items-center gap-1.5 rounded-lg border border-amber-500/30 bg-amber-500/10 p-2 text-amber-800 dark:text-amber-300">
-                            <AlertTriangle className="h-3.5 w-3.5 shrink-0 text-amber-600 dark:text-amber-400" />
-                            <span>
-                              <span className="font-bold">Notice:</span> Day total will be{' '}
-                              <span className="font-extrabold">{swapPreview.projectedDayTotal} kcal</span> (target:{' '}
-                              {swapPreview.dailyTarget} kcal).
-                            </span>
-                          </div>
-                        )}
-                        <SwapImpactDetails
-                          analysis={swapPreview.nutritionAnalysis}
-                          additions={swapPreview.shoppingNeeds}
-                          removals={swapPreview.shoppingRemovals}
-                        />
-                        {swapPreview.groceryDeltaAcknowledgmentRequired && (
-                          <label className="flex items-start gap-1.5 rounded-lg border border-amber-500/30 bg-amber-500/10 p-2 text-xs font-semibold cursor-pointer">
-                            <input
-                              disabled={isSwapping}
-                              type="checkbox"
-                              checked={groceryDeltaAcknowledged}
-                              onChange={(e) => setGroceryDeltaAcknowledged(e.target.checked)}
-                              className="mt-0.5"
-                            />
-                            <span>I reviewed the grocery changes above. Shopping has already started.</span>
-                          </label>
-                        )}
-                      </div>
-                    ) : null}
                   </div>
 
-                  {/* Confirmation Buttons */}
-                  <div className="mt-3 flex items-center justify-end gap-2 pt-2 border-t border-brand-border/40">
-                    <Button
-                      variant="secondary"
-                      size="sm"
-                      onClick={() => {
-                        setConfirmSwapMeal(null);
-                        setSwapPreview(null);
-                        setGroceryDeltaAcknowledged(false);
-                      }}
-                      disabled={isSwapping}
-                      className="text-xs h-8 px-3"
-                    >
-                      Cancel
-                    </Button>
-                    <Button
-                      variant="primary"
-                      size="sm"
-                      onClick={() => handleConfirmSwapAnyway(groceryDeltaAcknowledged)}
-                      disabled={
-                        isSwapping ||
-                        isCheckingPreview ||
-                        !swapPreview ||
-                        (Boolean(swapPreview?.groceryDeltaAcknowledgmentRequired) && !groceryDeltaAcknowledged)
-                      }
-                      className="text-xs font-bold h-8 px-4"
-                    >
-                      Confirm Swap
-                    </Button>
+                  <div className="relative z-10 mt-2.5 pt-2 border-t border-brand-border/40 flex flex-wrap items-center gap-1.5 font-mono text-[10px] font-bold">
+                    <span className="rounded-md bg-brand-bgAlt px-2 py-0.5 text-brand-text border border-brand-border/40">
+                      {Math.round(confirmSwapMeal.calories)} kcal
+                    </span>
+                    <span className="rounded-md px-1.5 py-0.5 text-amber-700 dark:text-amber-400 bg-amber-500/10 border border-amber-500/20">
+                      {Math.round(confirmSwapMeal.proteinG)}g P
+                    </span>
+                    <span className="rounded-md px-1.5 py-0.5 text-sky-700 dark:text-sky-400 bg-sky-500/10 border border-sky-500/20">
+                      {Math.round(confirmSwapMeal.carbsG)}g C
+                    </span>
+                    <span className="rounded-md px-1.5 py-0.5 text-rose-700 dark:text-rose-400 bg-rose-500/10 border border-rose-500/20">
+                      {Math.round(confirmSwapMeal.fatG)}g F
+                    </span>
                   </div>
                 </div>
               ) : (
-                <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-brand-border/90 bg-brand-bgAlt/30 p-5 text-center">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-brand-surface border border-brand-border/80 text-brand-muted mb-2">
+                <div className="flex flex-col items-center justify-center rounded-[22px] border border-dashed border-brand-border/90 bg-brand-bgAlt/30 p-4 text-center min-h-[148px]">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-brand-surface border border-brand-border/80 text-brand-muted mb-2 shadow-2xs">
                     <UtensilsCrossed className="h-5 w-5" />
                   </div>
                   <p className="text-xs font-bold text-brand-text">Select a replacement meal below</p>
-                  <p className="text-[11px] text-brand-muted mt-0.5 max-w-[220px]">
+                  <p className="text-[11px] text-brand-muted mt-0.5 max-w-[240px]">
                     Click any recipe from the mini library to compare nutrition and confirm your swap.
                   </p>
                 </div>
               )}
             </div>
+
+            {/* DEDICATED SWAP IMPACT SECTION */}
+            {confirmSwapMeal && (
+              <div className="relative overflow-hidden rounded-[24px] border border-brand-border/80 bg-gradient-to-br from-brand-surface via-brand-surface/95 to-brand-bgAlt/50 p-4 sm:p-5 shadow-xs space-y-3.5">
+                {/* Bottom Corner Stripe Accent */}
+                <div
+                  aria-hidden="true"
+                  className="pointer-events-none absolute -bottom-2 -left-2 z-0 h-20 w-20 select-none opacity-20 dark:opacity-15"
+                >
+                  <svg viewBox="0 0 96 96" fill="none" className="h-full w-full block">
+                    <path d="M 88 104 C 80 52 44 16 -8 8" stroke="#f09e6c" strokeWidth="12" strokeLinecap="round" />
+                    <path d="M 72 104 C 66 62 34 30 -8 24" stroke="#eb6a38" strokeWidth="10" strokeLinecap="round" />
+                  </svg>
+                </div>
+
+                <div className="relative z-10 space-y-3">
+                  {/* Preview status & Warnings */}
+                  {isCheckingPreview ? (
+                    <div className="flex items-center justify-center gap-2 py-3 text-xs font-semibold text-brand-muted">
+                      <LoadingSpinner size="sm" />
+                      <span>Projecting daily balance & grocery impact...</span>
+                    </div>
+                  ) : previewError ? (
+                    <div className="flex items-center gap-2 rounded-xl border border-red-500/30 bg-red-500/10 p-2.5 text-xs text-red-600 dark:text-red-400">
+                      <AlertTriangle className="h-4 w-4 shrink-0" />
+                      <span>{previewError}</span>
+                    </div>
+                  ) : swapPreview ? (
+                    <div className="space-y-3">
+                      {swapPreview.warningRequired && (
+                        <div className="flex items-center gap-2 rounded-xl border border-amber-500/30 bg-amber-500/10 p-2.5 text-xs text-amber-800 dark:text-amber-300">
+                          <AlertTriangle className="h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
+                          <span>
+                            <span className="font-bold">Notice:</span> Day total will be{' '}
+                            <span className="font-extrabold">{swapPreview.projectedDayTotal} kcal</span> (target:{' '}
+                            {swapPreview.dailyTarget} kcal).
+                          </span>
+                        </div>
+                      )}
+
+                      <SwapImpactDetails
+                        analysis={swapPreview.nutritionAnalysis}
+                        additions={swapPreview.shoppingNeeds}
+                        removals={swapPreview.shoppingRemovals}
+                      />
+
+                      {swapPreview.groceryDeltaAcknowledgmentRequired && (
+                        <label className="flex items-start gap-2.5 rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-xs font-semibold cursor-pointer text-amber-900 dark:text-amber-200">
+                          <input
+                            disabled={isSwapping}
+                            type="checkbox"
+                            checked={groceryDeltaAcknowledged}
+                            onChange={(e) => setGroceryDeltaAcknowledged(e.target.checked)}
+                            className="mt-0.5 rounded border-amber-400 text-brand-green focus:ring-brand-green"
+                          />
+                          <span>I reviewed the grocery changes above. Shopping has already started.</span>
+                        </label>
+                      )}
+                    </div>
+                  ) : null}
+                </div>
+              </div>
+            )}
 
             {/* BOTTOM SECTION: MINI MEAL LIBRARY BROWSER */}
             <div className="space-y-3 pt-1">
@@ -518,6 +546,64 @@ export function MealsWorkspaceModals({ workspace }: Props) {
                 )}
               </div>
             </div>
+
+            {/* STICKY BOTTOM CONFIRMATION ACTION BAR */}
+            {confirmSwapMeal && (
+              <div className="sticky -bottom-6 -mx-6 px-6 py-3.5 bg-brand-surface/95 dark:bg-[#071914]/95 backdrop-blur-md border-t border-brand-border/80 shadow-lg z-30 flex flex-col sm:flex-row items-center justify-between gap-3">
+                <div className="text-xs text-brand-muted hidden sm:flex items-center gap-2">
+                  {swapPreview?.warningRequired ? (
+                    <span className="flex items-center gap-1.5 text-amber-700 dark:text-amber-300 font-semibold">
+                      <AlertTriangle className="h-3.5 w-3.5 shrink-0 text-amber-600 dark:text-amber-400" />
+                      Notice: Planning estimate differences detected
+                    </span>
+                  ) : isCheckingPreview ? (
+                    <span className="flex items-center gap-1.5 text-brand-muted">
+                      <LoadingSpinner size="sm" />
+                      Calculating daily balance...
+                    </span>
+                  ) : swapPreview?.groceryDeltaAcknowledgmentRequired && !groceryDeltaAcknowledged ? (
+                    <span className="flex items-center gap-1.5 text-amber-700 dark:text-amber-300 font-semibold">
+                      <AlertTriangle className="h-3.5 w-3.5 shrink-0 text-amber-600 dark:text-amber-400" />
+                      Grocery review acknowledgment required
+                    </span>
+                  ) : (
+                    <span className="flex items-center gap-1.5 text-emerald-700 dark:text-emerald-400 font-medium">
+                      <Check className="h-3.5 w-3.5" />
+                      Plate compatible with daily schedule
+                    </span>
+                  )}
+                </div>
+                <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => {
+                      setConfirmSwapMeal(null);
+                      setSwapPreview(null);
+                      setGroceryDeltaAcknowledged(false);
+                    }}
+                    disabled={isSwapping}
+                    className="text-xs h-9 px-4"
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    onClick={() => handleConfirmSwapAnyway(groceryDeltaAcknowledged)}
+                    disabled={
+                      isSwapping ||
+                      isCheckingPreview ||
+                      !swapPreview ||
+                      (Boolean(swapPreview?.groceryDeltaAcknowledgmentRequired) && !groceryDeltaAcknowledged)
+                    }
+                    className="text-xs font-bold h-9 px-5 shadow-sm"
+                  >
+                    Confirm Swap
+                  </Button>
+                </div>
+              </div>
+            )}
           </div>
         </Modal>
       )}
