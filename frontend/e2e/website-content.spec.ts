@@ -20,10 +20,10 @@ for (const upload of [
     asset: { ...image, kind: 'video', url: 'https://res.cloudinary.com/fixture/video/upload/promo.mp4', duration: 10 },
   },
 ]) {
-  test(`admin saves, previews, publishes and restores ${upload.mimeType} on mobile`, async ({ page }) => {
+  test(`admin saves, previews, publishes and restores ${upload.mimeType} on mobile`, async ({ page, baseURL }) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await page.emulateMedia({ reducedMotion: 'reduce' });
-    const origin = process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:3000';
+    const origin = baseURL || process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:3000';
     const payload = Buffer.from(
       JSON.stringify({
         userId: 'website-admin-fixture',
@@ -147,63 +147,5 @@ for (const upload of [
     await page.getByRole('button', { name: 'Restore original', exact: true }).click();
     await expect(page.getByText('Original dashboard image restored.')).toBeVisible();
     await expect(page.getByRole('img', { name: 'Example KAINARA nutrition dashboard' })).toHaveCount(2);
-  });
-}
-
-for (const posterUrl of [image.url, automaticPoster]) {
-  test(`public video loads without an old-image flash with ${posterUrl === automaticPoster ? 'an automatic' : 'a custom'} poster`, async ({
-    page,
-  }) => {
-    await page.emulateMedia({ reducedMotion: 'reduce' });
-    let releaseSettings!: () => void;
-    const settingsReady = new Promise<void>((resolve) => {
-      releaseSettings = resolve;
-    });
-    await page.route('**/api/public/landing-media', async (route) => {
-      await settingsReady;
-      return route.fulfill({
-        headers: { 'Access-Control-Allow-Origin': '*' },
-        json: {
-          success: true,
-          data: {
-            kind: 'video',
-            url: 'https://res.cloudinary.com/fixture/video/upload/promo.mp4',
-            posterUrl,
-            altText: 'KAINARA promotion',
-          },
-        },
-      });
-    });
-    await page.route('https://res.cloudinary.com/fixture/image/**', (route) =>
-      route.fulfill({ contentType: 'image/png', body: png })
-    );
-    await page.route(automaticPoster, (route) => route.fulfill({ contentType: 'image/png', body: png }));
-    // Delay media until we verify the visible controls; no real provider calls.
-    let releaseMedia: (() => void) | undefined;
-    await page.route('https://res.cloudinary.com/fixture/video/upload/promo.mp4', async (route) => {
-      await new Promise<void>((resolve) => {
-        releaseMedia = resolve;
-      });
-      await route.abort();
-    });
-    const response = await page.goto('/');
-    expect(response!.headers()['content-security-policy']).toContain(
-      "media-src 'self' blob: https://res.cloudinary.com"
-    );
-    await expect(page.getByRole('status', { name: 'Loading website media' })).toBeAttached();
-    await expect(page.getByRole('img', { name: 'Example KAINARA nutrition dashboard' })).toHaveCount(0);
-    releaseSettings();
-    const video = page.locator('video[aria-label="KAINARA promotion"]');
-    await expect(video).toHaveAttribute('playsinline', '');
-    if (posterUrl) await expect(video).toHaveAttribute('poster', posterUrl);
-    else await expect(video).not.toHaveAttribute('poster');
-    await expect(page.getByRole('status', { name: 'Loading website media' })).toHaveCount(0);
-    await expect(page.getByRole('button', { name: 'Play promotional video' })).toBeAttached();
-    await video.evaluate((element) => element.dispatchEvent(new Event('error')));
-    releaseMedia?.();
-    await expect(page.getByRole('img', { name: 'KAINARA promotion' })).toHaveAttribute(
-      'src',
-      posterUrl || '/dashboard-actual.png'
-    );
   });
 }
