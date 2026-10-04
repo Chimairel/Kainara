@@ -17,10 +17,12 @@ export default function ExpandableCasePanel({
   expandTitle = 'Full screen case inspection',
   expandAriaLabel = 'Expanded case view',
   backLabel = 'Back to queue',
+  headerClassName = 'border-b border-brand-border/80 bg-brand-surface',
 }: {
   children: ReactNode;
   className?: string;
   contentClassName?: string;
+  headerClassName?: string;
   expanded: boolean;
   onExpandedChange: (value: boolean) => void;
   canExpand?: boolean;
@@ -55,7 +57,7 @@ export default function ExpandableCasePanel({
   }, [expanded, onExpandedChange]);
 
   const miniNavbar = (canExpand || headerLeft || onBack) ? (
-    <header className="shrink-0 flex items-center justify-between min-h-14 border-b border-brand-border/80 bg-brand-surface px-4 py-2.5 sm:px-6 shadow-xs z-20">
+    <header className={`shrink-0 flex items-center justify-between min-h-14 px-4 py-2.5 sm:px-6 shadow-xs z-20 ${headerClassName}`}>
       <div className="flex items-center gap-2.5 min-w-0">
         {onBack && (
           <button

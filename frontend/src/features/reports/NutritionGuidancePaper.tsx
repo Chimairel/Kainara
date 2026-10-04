@@ -3,7 +3,6 @@
 import React from 'react';
 import type { NutritionReport } from '@/types';
 import { formatManilaDate } from '@/lib/manila-date';
-import { KainaraLogo } from '@/components/shared/KainaraLogo';
 import {
   AlertCircle,
   Calendar,
@@ -88,32 +87,10 @@ export default function NutritionGuidancePaper({
   return (
     <article
       aria-label="Nutrition guidance record"
-      className="relative overflow-hidden w-full max-w-4xl rounded-[28px] sm:rounded-[36px] border border-[#dce4e0] dark:border-[#173e33] bg-[#faf8f5] dark:bg-[#071914] text-[#0d2820] dark:text-white shadow-xl p-6 sm:p-9 space-y-6 print:border-none print:shadow-none print:p-0 print:bg-white print:text-black transition-colors"
+      className="mx-auto w-full max-w-4xl rounded-[24px] sm:rounded-[32px] border border-[#dce4e0] dark:border-[#173e33] bg-white dark:bg-[#0a201a] p-6 sm:p-10 shadow-md sm:shadow-lg space-y-7 text-[#0d2820] dark:text-white print:border-none print:shadow-none print:p-0 print:bg-white print:text-black transition-colors"
     >
-      {/* 1. Retro Wave Organic Corner Accent (3-Tone Signature Curved Stripes from Membership Health Card) */}
-      <div className="pointer-events-none absolute -top-0.5 -right-0.5 h-36 w-36 sm:h-48 sm:w-48 overflow-hidden rounded-tr-[28px] sm:rounded-tr-[36px] z-0 opacity-85 print:hidden">
-        <svg viewBox="0 0 160 160" className="h-full w-full" fill="none">
-          <path d="M160,0 L0,0 C20,40 55,95 120,135 C140,147 160,155 160,155 Z" fill="#eb6a38" />
-          <path d="M160,0 L40,0 C55,30 80,72 130,105 C145,115 160,120 160,120 Z" fill="#f09e6c" />
-          <path
-            d="M160,0 L82,0 C92,20 110,48 142,70 C152,76 160,80 160,80 Z"
-            className="fill-[#1b4e41] dark:fill-[#164639]"
-          />
-        </svg>
-      </div>
-
-      {/* 2. Soft Ambient Radial Glow */}
-      <div className="pointer-events-none absolute -bottom-10 -left-10 h-72 w-72 rounded-full bg-brand-green/10 blur-[100px] z-0 print:hidden" />
-
-      {/* 3. Subtle Watermarked Kainara Logo Seal */}
-      <div className="pointer-events-none absolute -bottom-6 -right-6 hidden sm:flex items-center justify-center opacity-10 dark:opacity-15 z-0 print:hidden">
-        <KainaraLogo size={140} variant="multicolor" />
-      </div>
-
-      {/* Card Content (z-10 relative) */}
-      <div className="relative z-10 space-y-6">
-        {/* Header Block */}
-        <header className="border-b border-[#dce4e0]/80 dark:border-[#173e33] pb-5">
+      {/* Header Block */}
+      <header className="border-b border-[#dce4e0]/80 dark:border-[#173e33] pb-5">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="space-y-2 max-w-2xl">
               <span className="font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-brand-green">
@@ -433,7 +410,6 @@ export default function NutritionGuidancePaper({
             <span>VERIFIED PLATFORM RECORD</span>
           </div>
         </footer>
-      </div>
-    </article>
+      </article>
   );
 }

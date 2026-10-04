@@ -7,6 +7,7 @@ import Button from '@/components/ui/Button';
 import NutritionGuidancePaper from './NutritionGuidancePaper';
 import ExpandableCasePanel from '@/features/nutritionist-reviews/ExpandableCasePanel';
 import PortalPageHeader from '@/components/shared/PortalPageHeader';
+import { KainaraLogo } from '@/components/shared/KainaraLogo';
 import { FileText, ShieldAlert } from 'lucide-react';
 
 interface Props {
@@ -156,13 +157,36 @@ export default function NutritionGuidanceDocument({
           description="Review your evidence-based nutrition targets, dietary guidance, and report history."
         />
 
-        {/* Split-view workspace container matching nutritionist review workspace */}
-        <div className="flex md:h-[calc(100vh-210px)] md:min-h-[680px] flex-col overflow-hidden rounded-3xl border border-brand-border/70 bg-brand-surface text-left shadow-sm md:flex-row">
+        {/* The main workspace card holding both left side (list) and right side (nutrition guide) */}
+        <div
+          aria-label="Nutrition workspace"
+          className="relative overflow-hidden flex md:h-[calc(100vh-210px)] md:min-h-[680px] flex-col rounded-[28px] sm:rounded-[36px] border border-[#dce4e0] dark:border-[#173e33] bg-[#faf8f5] dark:bg-[#071914] text-[#0d2820] dark:text-white shadow-xl md:flex-row"
+        >
+          {/* 1. Retro Wave Organic Corner Accent (3-Tone Signature Curved Stripes from Landing Page / Health Membership Card) */}
+          <div className="pointer-events-none absolute -top-0.5 -right-0.5 h-36 w-36 sm:h-52 sm:w-52 overflow-hidden rounded-tr-[28px] sm:rounded-tr-[36px] z-0 opacity-85 print:hidden">
+            <svg viewBox="0 0 160 160" className="h-full w-full" fill="none">
+              <path d="M160,0 L0,0 C20,40 55,95 120,135 C140,147 160,155 160,155 Z" fill="#eb6a38" />
+              <path d="M160,0 L40,0 C55,30 80,72 130,105 C145,115 160,120 160,120 Z" fill="#f09e6c" />
+              <path
+                d="M160,0 L82,0 C92,20 110,48 142,70 C152,76 160,80 160,80 Z"
+                className="fill-[#1b4e41] dark:fill-[#164639]"
+              />
+            </svg>
+          </div>
+
+          {/* 2. Soft Ambient Radial Glow */}
+          <div className="pointer-events-none absolute -bottom-10 -left-10 h-80 w-80 rounded-full bg-brand-green/10 blur-[100px] z-0 print:hidden" />
+
+          {/* 3. Subtle Watermarked Kainara Logo Seal */}
+          <div className="pointer-events-none absolute -bottom-8 -right-8 hidden sm:flex items-center justify-center opacity-10 dark:opacity-15 z-0 print:hidden">
+            <KainaraLogo size={160} variant="multicolor" />
+          </div>
+
           {/* Left Column: Report History Queue */}
           <div
             className={`${mobileView === 'history' ? 'flex' : 'hidden md:flex'} ${
               expanded ? '!hidden' : ''
-            } h-full w-full min-w-0 flex-col md:w-[38%] md:min-w-[300px] md:max-w-[400px] md:border-r border-brand-border/70 p-4 sm:p-5 bg-brand-surface/75`}
+            } relative z-10 h-full w-full min-w-0 flex-col md:w-[38%] md:min-w-[300px] md:max-w-[400px] md:border-r border-[#dce4e0]/80 dark:border-[#173e33] p-4 sm:p-5 bg-white/40 dark:bg-[#071914]/40 backdrop-blur-sm`}
           >
             <ReportHistory
               history={allVersions}
@@ -190,7 +214,8 @@ export default function NutritionGuidanceDocument({
             backLabel="Back to history"
             onBack={() => setMobileView('history')}
             headerLeft={headerLeftContent}
-            className={`${mobileView === 'document' ? 'flex' : 'hidden md:flex'} h-full min-w-0 flex-1 flex-col overflow-hidden bg-transparent`}
+            headerClassName="border-b border-[#dce4e0]/80 dark:border-[#173e33] bg-white/60 dark:bg-[#071914]/60 backdrop-blur-md"
+            className={`${mobileView === 'document' ? 'flex' : 'hidden md:flex'} relative z-10 h-full min-w-0 flex-1 flex-col overflow-hidden bg-transparent`}
             contentClassName="flex-1 min-h-0 overflow-y-auto p-4 custom-scrollbar sm:p-6 lg:p-8"
           >
             {/* Error Message */}
