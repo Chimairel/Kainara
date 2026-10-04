@@ -20,8 +20,8 @@ describe('verified recipe catalogue', () => {
         imageUrl: null, planningReady: false }],
     } } });
     render(<VerifiedRecipeCatalog search="" mealType="All" />);
-    await waitFor(() => expect(screen.getByText('Verified recipe catalogue · 1960')).toBeInTheDocument());
-    expect(screen.getByText('Chicken Tinola')).toBeInTheDocument();
+    await waitFor(() => expect(screen.getByText('Chicken Tinola')).toBeInTheDocument());
+    expect(screen.queryByText(/Verified recipe catalogue/)).not.toBeInTheDocument();
     expect(screen.getByText('Serving evidence pending')).toBeInTheDocument();
     expect(screen.getByText('Page 1 of 82')).toBeInTheDocument();
     expect(get).toHaveBeenCalledWith('/user/meals/verified-recipes', { params: { page: 1 } });

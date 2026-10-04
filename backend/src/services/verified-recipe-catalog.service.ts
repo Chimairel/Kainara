@@ -69,10 +69,11 @@ export class VerifiedRecipeCatalogService {
       prisma.mealLibrary.count({ where: manualWhere }),
     ]);
     const total = rawCount + manualCount;
-    const pageCount = Math.ceil(total / 24);
+    const PAGE_SIZE = 6;
+    const pageCount = Math.ceil(total / PAGE_SIZE);
     const page = Math.min(Math.max(1, input.page ?? 1), Math.max(1, pageCount));
-    const offset = (page - 1) * 24;
-    const rawTake = Math.max(0, Math.min(24, rawCount - offset));
+    const offset = (page - 1) * PAGE_SIZE;
+    const rawTake = Math.max(0, Math.min(PAGE_SIZE, rawCount - offset));
     const rawRows = rawTake
       ? await prisma.rawRecipeCandidate.findMany({
           where: rawWhere,
@@ -97,7 +98,7 @@ export class VerifiedRecipeCatalogService {
           },
         })
       : [];
-    const manualTake = 24 - rawRows.length;
+    const manualTake = PAGE_SIZE - rawRows.length;
     const manualRows = manualTake
       ? await prisma.mealLibrary.findMany({
           where: manualWhere,

@@ -140,9 +140,10 @@ describe('MealActivityCalendar', () => {
     // Switch to Month view
     fireEvent.click(screen.getByText('Month'));
 
-    // September 7 has 2 logged meals
+    // September 7 has 2 logged meals, but displays calendar date 7 instead of meal count
     const activeCell = screen.getByLabelText(/2026-09-07: 2 meals logged/i);
     expect(activeCell).toBeInTheDocument();
+    expect(activeCell).toHaveTextContent('7');
 
     fireEvent.click(activeCell);
     expect(handleSelect).toHaveBeenCalledWith('2026-09-07');

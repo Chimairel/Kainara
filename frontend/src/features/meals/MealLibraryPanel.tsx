@@ -1,9 +1,10 @@
 'use client';
+import { useEffect, useState } from 'react';
 import Button from '@/components/ui/Button';
 import LoadingSpinner from '@/components/shared/LoadingSpinner';
 import LibraryMealCard from './LibraryMealCard';
 import Link from 'next/link';
-import { AlertTriangle, Search, Salad } from 'lucide-react';
+import { AlertTriangle, ChevronDown, Search, Salad } from 'lucide-react';
 import type { useMealsWorkspace } from './useMealsWorkspace';
 import { groupApprovedPlanRecipes } from './approvedPlanRecipes';
 import VerifiedRecipeCatalog from './VerifiedRecipeCatalog';
@@ -24,7 +25,6 @@ export default function MealLibraryPanel({ workspace }: { workspace: ReturnType<
     setLibraryRiceRole,
     libraryNextCursor,
     loadMoreLibrary,
-    libraryTotalCount,
     meals,
   } = workspace;
   const plannedLibraryIds = new Set(meals.map((meal) => meal.libraryMealId).filter(Boolean));
@@ -39,10 +39,20 @@ export default function MealLibraryPanel({ workspace }: { workspace: ReturnType<
         (!meal.libraryMealId || !libraryMeals.some((entry) => entry.id === meal.libraryMealId))
     )
   );
+
+  const [planPage, setPlanPage] = useState(1);
+  const PLAN_PAGE_SIZE = 6;
+  const totalPlanPages = Math.ceil(approvedInPlan.length / PLAN_PAGE_SIZE);
+  const pagedApprovedInPlan = approvedInPlan.slice((planPage - 1) * PLAN_PAGE_SIZE, planPage * PLAN_PAGE_SIZE);
+
+  useEffect(() => {
+    setPlanPage(1);
+  }, [librarySearch, libraryMealType, libraryRiceRole]);
+
   return (
     <div className="space-y-6 text-left">
-      <div className="flex flex-col items-center justify-between gap-3 rounded-[22px] border border-brand-border/70 bg-brand-surface/90 p-3 shadow-sm md:flex-row">
-        <form onSubmit={handleLibrarySearchSubmit} className="flex w-full gap-2 md:max-w-sm">
+      <div className="flex flex-col items-stretch gap-3 rounded-[22px] border border-brand-border/70 bg-brand-surface/90 p-3 shadow-sm md:flex-row md:items-center md:justify-between">
+        <form onSubmit={handleLibrarySearchSubmit} className="flex w-full gap-2 md:max-w-xs lg:max-w-sm">
           <label className="relative min-w-0 flex-1">
             <span className="sr-only">Search verified recipes</span>
             <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-brand-muted" />
@@ -58,6 +68,26 @@ export default function MealLibraryPanel({ workspace }: { workspace: ReturnType<
             Apply
           </Button>
         </form>
+
+        <div className="relative flex items-center shrink-0">
+          <label htmlFor="library-rice-role-select" className="sr-only">
+            Rice role
+          </label>
+          <select
+            id="library-rice-role-select"
+            value={libraryRiceRole}
+            onChange={(event) => setLibraryRiceRole(event.target.value)}
+            aria-label="Rice role"
+            className="h-10 appearance-none rounded-xl border border-brand-border bg-brand-bgAlt/60 pl-3.5 pr-8 text-xs font-bold text-brand-text transition-all outline-none hover:border-brand-green/50 focus:border-brand-green focus:bg-brand-surface dark:bg-[#0e271f] dark:border-[#173e33] dark:text-white cursor-pointer"
+          >
+            <option value="All">All reviewed roles</option>
+            <option value="PAIR_WITH_RICE">Pair with rice</option>
+            <option value="STANDALONE">Standalone</option>
+            <option value="INCLUDES_RICE">Includes rice</option>
+          </select>
+          <ChevronDown className="pointer-events-none absolute right-2.5 h-3.5 w-3.5 text-brand-muted" />
+        </div>
+
         <div className="flex w-full gap-1 overflow-x-auto rounded-xl bg-brand-bgAlt/60 p-1 select-none md:w-auto">
           {['All', 'BREAKFAST', 'LUNCH', 'DINNER'].map((type) => (
             <button
@@ -75,39 +105,10 @@ export default function MealLibraryPanel({ workspace }: { workspace: ReturnType<
         </div>
       </div>
 
-      <div className="flex flex-wrap items-center gap-2 text-xs">
-        <label className="flex items-center gap-2 font-semibold text-brand-muted">
-          Rice role
-          <select
-            value={libraryRiceRole}
-            onChange={(event) => setLibraryRiceRole(event.target.value)}
-            className="rounded-xl border border-brand-border bg-brand-surface px-3 py-2 text-brand-text"
-          >
-            <option value="All">All reviewed roles</option>
-            <option value="PAIR_WITH_RICE">Pair with rice</option>
-            <option value="STANDALONE">Standalone</option>
-            <option value="INCLUDES_RICE">Includes rice</option>
-          </select>
-        </label>
-        {libraryTotalCount !== null && (
-          <span className="ml-auto text-brand-muted">
-            {libraryTotalCount} reusable approvals · {approvedInPlan.length} approved{' '}
-            {approvedInPlan.length === 1 ? 'recipe' : 'recipes'} in plan
-          </span>
-        )}
-      </div>
-
       {approvedInPlan.length > 0 && (
-        <section className="space-y-3" aria-label="Meals approved for your plan">
-          <div>
-            <h2 className="text-sm font-bold text-brand-text">Meals in your current or upcoming plan</h2>
-            <p className="text-xs text-brand-muted">
-              These servings were scheduled for your plan. This does not mean each had a separate nutritionist case
-              approval.
-            </p>
-          </div>
+        <section className="space-y-4" aria-label="Meals approved for your plan">
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {approvedInPlan.map(({ meal, occurrences }) => {
+            {pagedApprovedInPlan.map(({ meal, occurrences }) => {
               return (
                 <RecipeLibraryCard
                   key={meal.id}
@@ -154,14 +155,33 @@ export default function MealLibraryPanel({ workspace }: { workspace: ReturnType<
               );
             })}
           </div>
+          {totalPlanPages > 1 && (
+            <nav aria-label="Planned recipe pages" className="mt-4 flex items-center justify-center gap-4 text-xs font-semibold">
+              <button
+                type="button"
+                disabled={planPage <= 1}
+                onClick={() => setPlanPage((prev) => Math.max(1, prev - 1))}
+                className="rounded-xl border border-brand-border bg-brand-surface px-3 py-2 text-brand-text transition hover:border-brand-green disabled:opacity-40"
+              >
+                Previous
+              </button>
+              <span className="text-brand-muted">
+                Page {planPage} of {totalPlanPages}
+              </span>
+              <button
+                type="button"
+                disabled={planPage >= totalPlanPages}
+                onClick={() => setPlanPage((prev) => Math.min(totalPlanPages, prev + 1))}
+                className="rounded-xl border border-brand-border bg-brand-surface px-3 py-2 text-brand-text transition hover:border-brand-green disabled:opacity-40"
+              >
+                Next
+              </button>
+            </nav>
+          )}
         </section>
       )}
 
       <VerifiedRecipeCatalog search={librarySearch} mealType={libraryMealType} />
-
-      {approvedInPlan.length > 0 && (
-        <h2 className="text-sm font-bold text-brand-text">Reusable recipes for your profile</h2>
-      )}
 
       {isLibraryLoading ? (
         <div className="flex flex-col items-center py-12 gap-2">

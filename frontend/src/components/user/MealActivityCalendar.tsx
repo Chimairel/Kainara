@@ -2,7 +2,7 @@
 
 import { summarizeMealIntake } from '@/lib/meal-history-summary';
 import React, { useMemo, useState } from 'react';
-import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, Lock, Sparkles } from 'lucide-react';
+import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, Lock } from 'lucide-react';
 import { formatManilaDate, getManilaDateKey, manilaDateFromKey } from '@/lib/manila-date';
 import type { MealHistoryLog } from '@/features/meals/useMealsWorkspace';
 
@@ -305,28 +305,28 @@ export default function MealActivityCalendar({
   };
 
   // Color mapping using NutriMind's theme palette:
-  // Level 0: Muted sage-gray neutral with crisp border
-  // Level 1 (1 meal): Soft mint emerald (#dff6ed / dark #13382c)
-  // Level 2 (2 meals): Vibrant herbal jade (#22997d / dark #0c6b55)
-  // Level 3 (3+ meals): Signature brand forest green (#08705b / dark #10b981)
+  // Level 0: Theme neutral (brand-bgAlt/60 and brand-border/80)
+  // Level 1 (1 meal): Brand Forest Green light tint (brand-green/20)
+  // Level 2 (2 meals): Rich Brand Forest Green (brand-green/70)
+  // Level 3 (3+ meals): Signature brand forest green (brand-green)
   const getCellColor = (cell: DayCell) => {
     if (cell.isFuture) {
-      return 'border border-dashed border-brand-border/60 bg-[#f4f7f5] opacity-40 cursor-not-allowed dark:border-[#173e33]/50 dark:bg-[#071914] dark:opacity-30';
+      return 'border border-dashed border-brand-border/50 bg-brand-bgAlt/20 text-brand-muted/30 opacity-40 cursor-not-allowed dark:border-[#173e33]/50 dark:bg-[#071914] dark:opacity-30 dark:text-white/20';
     }
     if (cell.mealCount === 0) {
-      return 'border border-[#c6d6ce] bg-[#e8efec] hover:border-brand-green/40 hover:bg-[#dce8e0] dark:border-[#173e33] dark:bg-[#0e271f] dark:hover:border-emerald-500/40 dark:hover:bg-[#163930]';
+      return 'border border-brand-border/80 bg-brand-bgAlt/60 text-brand-muted/80 hover:border-brand-green/40 hover:bg-brand-bgAlt dark:border-[#173e33] dark:bg-[#0e271f] dark:text-white/50 dark:hover:border-emerald-500/40 dark:hover:bg-[#163930]';
     }
 
     // High activity / 3+ meals: Signature Forest Pine / Emerald Glow
     if (cell.mealCount >= 3 || cell.totalCalories >= 1800) {
-      return 'border border-[#065947] bg-[#08705b] text-white font-black shadow-sm shadow-[#08705b]/30 dark:border-[#34d399] dark:bg-[#10b981] dark:text-[#040d0a] dark:shadow-[0_0_10px_rgba(16,185,129,0.35)]';
+      return 'border border-brand-green bg-brand-green text-white font-black shadow-sm shadow-brand-green/30 dark:border-emerald-300 dark:bg-emerald-500 dark:text-[#040d0a] dark:shadow-[0_0_10px_rgba(16,185,129,0.35)]';
     }
-    // Moderate activity / 2 meals: Vibrant Herbal Jade
+    // Moderate activity / 2 meals: Rich Brand Forest Green
     if (cell.mealCount === 2 || cell.totalCalories >= 1000) {
-      return 'border border-[#3fb398] bg-[#22997d] text-white font-bold dark:border-[#10b981]/60 dark:bg-[#0c6b55] dark:text-white';
+      return 'border border-brand-green/70 bg-brand-green/70 text-white font-bold dark:border-emerald-400 dark:bg-emerald-600 dark:text-white';
     }
-    // Light activity / 1 meal: Soft Brand Mint
-    return 'border border-[#a3e5cd] bg-[#dff6ed] text-[#08705b] font-bold dark:border-[#164639] dark:bg-[#13382c] dark:text-[#34d399]';
+    // Light activity / 1 meal: Warm/rich brand green tint
+    return 'border border-brand-green/40 bg-brand-green/20 text-brand-green font-bold dark:border-emerald-500/40 dark:bg-emerald-500/25 dark:text-emerald-300';
   };
 
   const renderMonthCard = (monthData: MonthColumnData, isCenter: boolean = false) => {
@@ -338,7 +338,7 @@ export default function MealActivityCalendar({
         key={`${monthData.year}-${monthData.monthIndex}`}
         className={`flex flex-col items-center select-none transition-all duration-200 ${
           isCenter
-            ? 'rounded-[22px] border border-brand-green/30 bg-brand-bgAlt/40 p-3 sm:p-4 shadow-sm dark:border-brand-accent/25 dark:bg-white/[0.03] w-full max-w-[320px] md:w-auto'
+            ? 'rounded-[22px] border border-brand-border bg-brand-surface p-3 sm:p-4 shadow-card dark:border-brand-accent/25 dark:bg-white/[0.03] w-full max-w-[320px] md:w-auto'
             : 'hidden md:flex rounded-2xl p-2 sm:p-2.5 opacity-85 hover:opacity-100'
         } ${isLocked ? 'opacity-40 grayscale select-none pointer-events-none cursor-not-allowed' : ''}`}
         aria-label={`${monthData.name} ${monthData.year} calendar`}
@@ -440,7 +440,7 @@ export default function MealActivityCalendar({
                         : 'cursor-not-allowed'
                     }`}
                   >
-                    {cell.mealCount > 0 && !isLocked && <span>{cell.mealCount}</span>}
+                    <span>{cell.date.getDate()}</span>
                   </button>
                 );
               })}
@@ -461,8 +461,7 @@ export default function MealActivityCalendar({
           <h3 className="font-display text-lg sm:text-xl font-black tracking-tight text-brand-text dark:text-white">
             Activity Matrix
           </h3>
-          <span className="inline-flex items-center gap-1 rounded-full bg-brand-green/10 px-2.5 py-0.5 text-[10px] font-bold text-brand-green dark:bg-emerald-500/15 dark:text-emerald-400">
-            <Sparkles className="h-3 w-3" />
+          <span className="inline-flex items-center rounded-full bg-brand-green/10 px-2.5 py-0.5 text-[10px] font-bold text-brand-green dark:bg-emerald-500/15 dark:text-emerald-400">
             {timeRange === 'Month'
               ? `${threeMonthsData.centerMonth.activeDaysCount} active days (month)`
               : `${totalLoggedDays} active days (${timeRange.toLowerCase()})`}
@@ -719,19 +718,19 @@ export default function MealActivityCalendar({
           <div className="flex items-center gap-1.5 self-end sm:self-auto text-[10px] font-mono text-brand-muted dark:text-white/40">
             <span>Less</span>
             <span
-              className="h-3 w-3 rounded-[3px] border border-[#c6d6ce] bg-[#e8efec] dark:border-[#173e33] dark:bg-[#0e271f]"
+              className="h-3 w-3 rounded-[3px] border border-brand-border/80 bg-brand-bgAlt/60 dark:border-[#173e33] dark:bg-[#0e271f]"
               title="0 meals"
             />
             <span
-              className="h-3 w-3 rounded-[3px] border border-[#a3e5cd] bg-[#dff6ed] dark:border-[#164639] dark:bg-[#13382c]"
+              className="h-3 w-3 rounded-[3px] border border-brand-green/40 bg-brand-green/20 dark:border-emerald-500/40 dark:bg-emerald-500/25"
               title="1 meal"
             />
             <span
-              className="h-3 w-3 rounded-[3px] border border-[#3fb398] bg-[#22997d] dark:border-[#10b981]/60 dark:bg-[#0c6b55]"
+              className="h-3 w-3 rounded-[3px] border border-brand-green/70 bg-brand-green/70 dark:border-emerald-400 dark:bg-emerald-600"
               title="2 meals"
             />
             <span
-              className="h-3 w-3 rounded-[3px] border border-[#065947] bg-[#08705b] shadow-sm shadow-[#08705b]/30 dark:border-[#34d399] dark:bg-[#10b981]"
+              className="h-3 w-3 rounded-[3px] border border-brand-green bg-brand-green shadow-sm shadow-brand-green/30 dark:border-emerald-300 dark:bg-emerald-500"
               title="3+ meals"
             />
             <span>More</span>

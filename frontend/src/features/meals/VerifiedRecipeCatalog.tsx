@@ -38,17 +38,12 @@ export default function VerifiedRecipeCatalog({ search, mealType }: { search: st
 
   if (data?.restrictedProfile && !loading && !error) return (
     <section aria-label="Verified base recipes" className="rounded-xl border border-brand-border p-4">
-      <h2 className="text-sm font-bold text-brand-text">Verified recipe catalogue</h2>
-      <p className="mt-1 text-xs text-brand-muted">General base recipes are shown here only for profiles without declared conditions, allergies, or restrictions. Your reusable case approvals appear below.</p>
+      <p className="text-xs text-brand-muted">General base recipes are shown here only for profiles without declared conditions, allergies, or restrictions. Your reusable case approvals appear below.</p>
     </section>
   );
 
   return (
-    <section className="space-y-3" aria-label="Verified base recipes">
-      <div>
-        <h2 className="text-sm font-bold text-brand-text">Verified recipe catalogue{data ? ` · ${data.total}` : ''}</h2>
-        <p className="text-xs text-brand-muted">Published Panlasang Pinoy dishes and individually verified new recipes. A verified recipe is a real dish; it still needs complete serving data and a fit for your plan before KAINARA can schedule it. These cards are for browsing.</p>
-      </div>
+    <section className="space-y-4" aria-label="Verified base recipes">
       {error && <p role="alert" className="rounded-xl border border-red-500/30 p-3 text-xs text-red-400">{error}</p>}
       {loading && <p className="text-xs text-brand-muted">Loading verified recipes…</p>}
       {!loading && data && (
@@ -78,10 +73,10 @@ export default function VerifiedRecipeCatalog({ search, mealType }: { search: st
             })}
           </div>
           {data.pageCount > 1 && (
-            <nav aria-label="Recipe pages" className="mt-4 flex items-center justify-center gap-4 text-xs">
-              <button type="button" disabled={page <= 1} onClick={() => setPage(page - 1)} className="rounded-lg border border-brand-border px-3 py-2 disabled:opacity-40">Previous</button>
-              <span>Page {data.page} of {data.pageCount}</span>
-              <button type="button" disabled={page >= data.pageCount} onClick={() => setPage(page + 1)} className="rounded-lg border border-brand-border px-3 py-2 disabled:opacity-40">Next</button>
+            <nav aria-label="Recipe pages" className="mt-4 flex items-center justify-center gap-4 text-xs font-semibold">
+              <button type="button" disabled={page <= 1} onClick={() => setPage(page - 1)} className="rounded-xl border border-brand-border bg-brand-surface px-3 py-2 text-brand-text transition hover:border-brand-green disabled:opacity-40">Previous</button>
+              <span className="text-brand-muted">Page {data.page} of {data.pageCount}</span>
+              <button type="button" disabled={page >= data.pageCount} onClick={() => setPage(page + 1)} className="rounded-xl border border-brand-border bg-brand-surface px-3 py-2 text-brand-text transition hover:border-brand-green disabled:opacity-40">Next</button>
             </nav>
           )}
         </>

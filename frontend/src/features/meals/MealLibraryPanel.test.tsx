@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import MealLibraryPanel from './MealLibraryPanel';
 import type { useMealsWorkspace } from './useMealsWorkspace';
@@ -95,8 +95,56 @@ describe('Meal Library', () => {
     expect(screen.getAllByText('Chicken Adobo Fried Rice')).toHaveLength(1);
     expect(screen.getByText('In your plan · 2 times')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'This week · Sep 25' })).toHaveAttribute('href', '/dashboard/current-slot');
-    expect(screen.getByRole('link', { name: 'Next week · Oct 2' })).toHaveAttribute('href', '/dashboard/upcoming-slot');
-    expect(screen.getByText('0 reusable approvals · 1 approved recipe in plan')).toBeInTheDocument();
+    expect(screen.queryByText(/reusable approvals/)).not.toBeInTheDocument();
+  });
+
+  it('paginates planned meals 6 at a time with previous and next navigation', () => {
+    const plannedMeals = Array.from({ length: 9 }, (_, i) => ({
+      id: `meal-${i + 1}`,
+      status: 'APPROVED',
+      mealName: `Planned Meal ${i + 1}`,
+      mealType: 'LUNCH',
+      calories: 500,
+      proteinG: 30,
+      carbsG: 40,
+      fatG: 15,
+      libraryMealId: null,
+      cycleScope: 'CURRENT',
+      scheduledDate: '2026-09-25T00:00:00.000Z',
+    }));
+    const workspace = {
+      handleLibrarySearchSubmit: noOp,
+      librarySearch: '',
+      setLibrarySearch: noOp,
+      libraryMealType: 'All',
+      setLibraryMealType: noOp,
+      isLibraryLoading: false,
+      libraryError: null,
+      libraryMeals: [],
+      setSelectedVerifier: noOp,
+      libraryRiceRole: 'All',
+      setLibraryRiceRole: noOp,
+      libraryNextCursor: null,
+      loadMoreLibrary: noOp,
+      libraryTotalCount: 0,
+      meals: plannedMeals,
+    } as unknown as ReturnType<typeof useMealsWorkspace>;
+
+    const { getByText, queryByText, getByRole } = render(<MealLibraryPanel workspace={workspace} />);
+
+    // Page 1 displays first 6 meals
+    expect(getByText('Planned Meal 1')).toBeInTheDocument();
+    expect(getByText('Planned Meal 6')).toBeInTheDocument();
+    expect(queryByText('Planned Meal 7')).not.toBeInTheDocument();
+    expect(getByText('Page 1 of 2')).toBeInTheDocument();
+
+    // Navigate to Page 2
+    const nextBtn = getByRole('button', { name: 'Next' });
+    fireEvent.click(nextBtn);
+    expect(getByText('Page 2 of 2')).toBeInTheDocument();
+    expect(getByText('Planned Meal 7')).toBeInTheDocument();
+    expect(getByText('Planned Meal 9')).toBeInTheDocument();
+    expect(queryByText('Planned Meal 1')).not.toBeInTheDocument();
   });
 
   it('labels profile-matched approvals without presenting them as broad certification', () => {
