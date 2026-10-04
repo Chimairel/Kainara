@@ -88,7 +88,13 @@ export default function WebsiteContentPage() {
         body.append('file', candidate);
         body.append('slot', slot);
         body.append('revision', String(next.revision));
-        next = (await api.post('/admin/website-content/upload', body, { timeout: 120_000 })).data.data;
+        // Override the client's JSON default so Axios preserves the file and the browser adds its boundary.
+        next = (
+          await api.post('/admin/website-content/upload', body, {
+            timeout: 120_000,
+            headers: { 'Content-Type': 'multipart/form-data' },
+          })
+        ).data.data;
         setContent(next);
         if (slot === 'asset') {
           setFile(null);
