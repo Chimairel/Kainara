@@ -821,4 +821,84 @@ html.dark .auth-card {
   }
 }
 
+/* ─── Browser Autofill Overrides (Eliminate Ugly Gray Browser Overlays) ─── */
+.auth-card,
+.auth-card form,
+.auth-card input {
+  color-scheme: light !important;
+}
+
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active,
+textarea:-webkit-autofill,
+select:-webkit-autofill {
+  -webkit-text-fill-color: var(--brand-text) !important;
+  caret-color: var(--brand-text) !important;
+  box-shadow: 0 0 0px 1000px var(--brand-surface) inset !important;
+  -webkit-box-shadow: 0 0 0px 1000px var(--brand-surface) inset !important;
+  transition: background-color 5000000s ease-in-out 0s;
+}
+
+/* Light mode & Auth Card autofill */
+.auth-card input:-webkit-autofill,
+.auth-card input:-webkit-autofill:hover,
+.auth-card input:-webkit-autofill:active {
+  -webkit-text-fill-color: #0d2820 !important;
+  caret-color: #0d2820 !important;
+  box-shadow: 0 0 0px 1000px #ffffff inset !important;
+  -webkit-box-shadow: 0 0 0px 1000px #ffffff inset !important;
+  border-color: rgba(8, 112, 91, 0.45) !important;
+}
+
+.auth-card input:-webkit-autofill:focus {
+  -webkit-text-fill-color: #0d2820 !important;
+  caret-color: #0d2820 !important;
+  border-color: #08705b !important;
+  box-shadow: 0 0 0px 1000px #f4faf7 inset, 0 0 0 4px rgba(8, 112, 91, 0.12) !important;
+  -webkit-box-shadow: 0 0 0px 1000px #f4faf7 inset, 0 0 0 4px rgba(8, 112, 91, 0.12) !important;
+}
+
+/* Dark mode general input autofill */
+html.dark input:-webkit-autofill,
+html.dark input:-webkit-autofill:hover,
+html.dark input:-webkit-autofill:active,
+html.dark textarea:-webkit-autofill,
+html.dark select:-webkit-autofill {
+  -webkit-text-fill-color: #eff8f3 !important;
+  caret-color: #eff8f3 !important;
+  box-shadow: 0 0 0px 1000px #0e271f inset !important;
+  -webkit-box-shadow: 0 0 0px 1000px #0e271f inset !important;
+  border-color: #173e33 !important;
+}
+
+html.dark input:-webkit-autofill:focus {
+  -webkit-text-fill-color: #eff8f3 !important;
+  caret-color: #eff8f3 !important;
+  border-color: #10b981 !important;
+  box-shadow: 0 0 0px 1000px #0e271f inset, 0 0 0 4px rgba(16, 185, 129, 0.15) !important;
+  -webkit-box-shadow: 0 0 0px 1000px #0e271f inset, 0 0 0 4px rgba(16, 185, 129, 0.15) !important;
+}
+
+/* Auth card is always white on the right, so force light autofill even when html has dark */
+html.dark .auth-card input:-webkit-autofill,
+html.dark .auth-card input:-webkit-autofill:hover,
+html.dark .auth-card input:-webkit-autofill:active {
+  -webkit-text-fill-color: #0d2820 !important;
+  caret-color: #0d2820 !important;
+  box-shadow: 0 0 0px 1000px #ffffff inset !important;
+  -webkit-box-shadow: 0 0 0px 1000px #ffffff inset !important;
+  border-color: rgba(8, 112, 91, 0.45) !important;
+}
+
+html.dark .auth-card input:-webkit-autofill:focus {
+  -webkit-text-fill-color: #0d2820 !important;
+  caret-color: #0d2820 !important;
+  border-color: #08705b !important;
+  box-shadow: 0 0 0px 1000px #f4faf7 inset, 0 0 0 4px rgba(8, 112, 91, 0.12) !important;
+  -webkit-box-shadow: 0 0 0px 1000px #f4faf7 inset, 0 0 0 4px rgba(8, 112, 91, 0.12) !important;
+}
+
+
 
