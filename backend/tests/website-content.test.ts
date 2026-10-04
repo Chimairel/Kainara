@@ -105,6 +105,7 @@ test('draft/upload/publish/reset are atomic, protect published media, and reject
     removed.push(id);
     return { result: 'ok' };
   });
+  context.mock.method(cloudinary.api, 'resource', async () => ({ ...providerResult, type: 'upload' }));
   const file = { mimetype: 'image/jpeg', size: 1000, buffer: Buffer.from('synthetic') };
   assert.equal(await Content.getPublic(), null);
   const uploaded = await Content.upload('admin-fixture', 0, 'asset', file);
@@ -145,6 +146,60 @@ test('draft/upload/publish/reset are atomic, protect published media, and reject
   assert.equal((await Content.getAdmin()).revision, 6);
   assert.ok(actions.includes('WEBSITE_MEDIA_PUBLISHED'));
   assert.equal(actions.at(-1), 'WEBSITE_MEDIA_RESET');
+  providerResult = videoResult;
+  const selection = { revision: 6, slot: 'asset' as const, kind: 'video' as const, publicId: videoResult.public_id };
+  await assert.rejects(
+    () => Content.select('admin-fixture', { ...selection, publicId: 'nutrimind/meals/private' }),
+    /saved website/
+  );
+  await assert.rejects(
+    () => Content.select('admin-fixture', { ...selection, slot: 'poster' }),
+    /Posters must be images/
+  );
+  await Content.select('admin-fixture', selection);
+  assert.equal(await Content.getPublic(), null);
+  assert.equal(
+    (await Content.getAdmin()).draft?.posterUrl,
+    landingPosterUrl({ ...config, asset: validateLandingUpload(videoResult, 'video') })
+  );
+  providerResult = imageResult;
+  await Content.select('admin-fixture', {
+    revision: 7,
+    slot: 'poster',
+    kind: 'image',
+    publicId: imageResult.public_id,
+  });
+  assert.equal((await Content.getAdmin()).draft?.posterUrl, image.url);
+  await Content.clearPoster('admin-fixture', 8);
+  assert.equal((await Content.getAdmin()).draft?.poster, null);
+  await Content.publish('admin-fixture', 9);
+  await Content.select('admin-fixture', {
+    revision: 10,
+    slot: 'asset',
+    kind: 'image',
+    publicId: imageResult.public_id,
+  });
+  assert.equal((await Content.getPublic())?.kind, 'video');
+  await assert.rejects(() => Content.select('admin-fixture', { ...selection, revision: 11 }), /Use an image/);
+  await assert.rejects(
+    () =>
+      Content.select('admin-fixture', { revision: 10, slot: 'asset', kind: 'image', publicId: imageResult.public_id }),
+    /another session/
+  );
+  providerResult = videoResult;
+  auditFails = true;
+  await assert.rejects(
+    () => Content.select('admin-fixture', { ...selection, revision: 11 }),
+    /Synthetic audit failure/
+  );
+  assert.equal((await Content.getAdmin()).draft?.asset?.kind, 'image');
+  assert.equal((await Content.getAdmin()).revision, 11);
+  assert.equal(removed.length, 2, 'Reusing or failing to reuse an existing asset never deletes it');
+  assert.ok(actions.includes('WEBSITE_MEDIA_DRAFT_SELECTED'));
+  context.mock.method(cloudinary.api, 'resource', async () => {
+    throw { error: { http_code: 404 } };
+  });
+  await assert.rejects(() => Content.select('admin-fixture', { ...selection, revision: 11 }), /no longer available/);
 });
 
 test('video posters use one-second JPG frames, preserve the upload version and allow a custom override', () => {

@@ -1,6 +1,7 @@
 import { Router, type Request, type Response } from 'express';
 import multer from 'multer';
 import rateLimit from 'express-rate-limit';
+import { getLandingGallery } from '@/services/landing-gallery.service';
 import { WebsiteContentService } from '@/services/website-content.service';
 import {
   landingMimeTypes,
@@ -8,6 +9,7 @@ import {
   landingRevisionSchema,
   landingTextSchema,
   landingUploadSchema,
+  landingSelectionSchema,
 } from '@/domain/landing-media.policy';
 import { AppError } from '@/errors/AppError';
 import type { AuthenticatedRequest } from '@/types';
@@ -55,6 +57,35 @@ function body<S extends { safeParse: (body: unknown) => { success: boolean; data
 router.get('/', async (_req, res) => {
   try {
     return res.json({ success: true, data: await WebsiteContentService.getAdmin() });
+  } catch (error) {
+    return fail(res, error);
+  }
+});
+router.get('/gallery', async (req, res) => {
+  res.setHeader('Cache-Control', 'no-store');
+  try {
+    if (req.query.cursor !== undefined && typeof req.query.cursor !== 'string')
+      throw new AppError('Reload the upload gallery to continue.', 400, 'INVALID_GALLERY_CURSOR');
+    return res.json({ success: true, data: await getLandingGallery(req.query.cursor as string | undefined) });
+  } catch (error) {
+    return fail(res, error);
+  }
+});
+router.post('/select', async (req: AuthenticatedRequest, res) => {
+  try {
+    const parsed = landingSelectionSchema.parse(body(landingSelectionSchema, req));
+    return res.json({ success: true, data: await WebsiteContentService.select(req.user!.userId, parsed) });
+  } catch (error) {
+    return fail(res, error);
+  }
+});
+router.post('/default-poster', async (req: AuthenticatedRequest, res) => {
+  try {
+    const parsed = landingRevisionSchema.parse(body(landingRevisionSchema, req));
+    return res.json({
+      success: true,
+      data: await WebsiteContentService.clearPoster(req.user!.userId, parsed.revision),
+    });
   } catch (error) {
     return fail(res, error);
   }

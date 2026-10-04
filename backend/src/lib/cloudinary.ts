@@ -71,3 +71,19 @@ export async function removeLandingMedia(publicId: string, kind: 'image' | 'vide
   configureCloudinary();
   await cloudinary.uploader.destroy(publicId, { resource_type: kind, invalidate: true });
 }
+
+/** Only the website folder is visible to the administrator's reusable gallery. */
+export async function listLandingMedia(cursor?: string) {
+  configureCloudinary();
+  const query = cloudinary.search
+    .expression('public_id:nutrimind/landing/* AND type:upload AND (resource_type:image OR resource_type:video)')
+    .sort_by('created_at', 'desc')
+    .max_results(24);
+  if (cursor) query.next_cursor(cursor);
+  return query.execute();
+}
+
+export async function getLandingMedia(publicId: string, kind: 'image' | 'video'): Promise<UploadApiResponse> {
+  configureCloudinary();
+  return cloudinary.api.resource(publicId, { resource_type: kind, type: 'upload', media_metadata: true });
+}

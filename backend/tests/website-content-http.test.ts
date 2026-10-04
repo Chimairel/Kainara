@@ -33,6 +33,7 @@ test('public delivery exposes only published data; mutation requires a live ADMI
     published: null,
     publishedAt: null,
   }));
+  context.mock.method(WebsiteContentService, 'select', async () => ({ revision: 1 }));
   const app = express();
   app.use(express.json());
   app.use('/api/admin/website-content', authenticate, requireRole('ADMIN'), adminRouter);
@@ -50,9 +51,24 @@ test('public delivery exposes only published data; mutation requires a live ADMI
   assert.equal('draft' in result.data, false);
   assert.equal('publicId' in result.data, false);
   assert.equal((await fetch(`${base}/api/admin/website-content`)).status, 401);
+  assert.equal((await fetch(`${base}/api/admin/website-content/gallery`)).status, 401);
   const authorization = `Bearer ${signAccessToken({ userId: 'fixture-admin', email: 'fixture@example.invalid', role: 'ADMIN' })}`;
   for (const denied of ['USER', 'NUTRITIONIST'] as const) {
     role = denied;
+    assert.equal(
+      (await fetch(`${base}/api/admin/website-content/gallery`, { headers: { authorization } })).status,
+      403
+    );
+    assert.equal(
+      (
+        await fetch(`${base}/api/admin/website-content/select`, {
+          method: 'POST',
+          headers: { authorization, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ revision: 0, slot: 'asset', kind: 'image', publicId: 'nutrimind/landing/fixture' }),
+        })
+      ).status,
+      403
+    );
     assert.equal(
       (
         await fetch(`${base}/api/admin/website-content/reset`, {
@@ -66,6 +82,26 @@ test('public delivery exposes only published data; mutation requires a live ADMI
   }
   role = 'ADMIN';
   assert.equal((await fetch(`${base}/api/admin/website-content`, { headers: { authorization } })).status, 200);
+  assert.equal(
+    (await fetch(`${base}/api/admin/website-content/gallery?cursor[]=bad`, { headers: { authorization } })).status,
+    400
+  );
+  const selected = await fetch(`${base}/api/admin/website-content/select`, {
+    method: 'POST',
+    headers: { authorization, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ revision: 0, slot: 'asset', kind: 'image', publicId: 'nutrimind/landing/fixture' }),
+  });
+  assert.equal(selected.status, 200);
+  assert.equal(
+    (
+      await fetch(`${base}/api/admin/website-content/select`, {
+        method: 'POST',
+        headers: { authorization, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ revision: 0, slot: 'asset', kind: 'image', publicId: 'nutrimind/meals/private' }),
+      })
+    ).status,
+    400
+  );
   const invalid = await fetch(`${base}/api/admin/website-content/publish`, {
     method: 'POST',
     headers: { authorization, 'Content-Type': 'application/json' },

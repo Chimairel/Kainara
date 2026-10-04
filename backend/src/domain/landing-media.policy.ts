@@ -9,6 +9,13 @@ export const LANDING_VIDEO_SECONDS = 30;
 export const landingMimeTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/avif', 'video/mp4', 'video/webm'];
 export const landingRevisionSchema = z.object({ revision: z.coerce.number().int().min(0) }).strict();
 export const landingUploadSchema = landingRevisionSchema.extend({ slot: z.enum(['asset', 'poster']) });
+export const landingSelectionSchema = landingUploadSchema.extend({
+  kind: z.enum(['image', 'video']),
+  publicId: z
+    .string()
+    .regex(/^nutrimind\/landing\/[A-Za-z0-9_-]+$/)
+    .max(240),
+});
 export const landingTextSchema = landingRevisionSchema.extend({ altText: z.string().trim().min(1).max(240) });
 
 const assetSchema = z

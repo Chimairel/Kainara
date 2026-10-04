@@ -6,6 +6,26 @@ const image = {
   bytes: 1000,
   duration: null,
 };
+const savedImage = {
+  ...image,
+  publicId: 'nutrimind/landing/saved-image',
+  url: 'https://res.cloudinary.com/fixture/image/upload/saved-image.png',
+  createdAt: '2026-10-04T04:00:00Z',
+  posterUrl: null,
+};
+const savedVideo = {
+  ...savedImage,
+  publicId: 'nutrimind/landing/saved-video',
+  kind: 'video',
+  duration: 10,
+  url: 'https://res.cloudinary.com/fixture/video/upload/saved-video.mp4',
+  posterUrl: 'https://res.cloudinary.com/fixture/video/upload/so_1/saved-video.jpg',
+};
+const olderPoster = {
+  ...savedImage,
+  publicId: 'nutrimind/landing/older-poster',
+  url: 'https://res.cloudinary.com/fixture/image/upload/older-poster.png',
+};
 const automaticPoster = 'https://res.cloudinary.com/fixture/video/upload/so_1/promo.jpg';
 const png = Buffer.from(
   'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/lS8AAAAASUVORK5CYII=',
@@ -42,6 +62,7 @@ for (const upload of [
     } | null = null;
     let published: typeof draft = null;
     let publishCount = 0;
+    let uploadCount = 0;
     await page.route('https://res.cloudinary.com/**', (route) =>
       route.fulfill({ contentType: 'image/png', body: png })
     );
@@ -71,8 +92,33 @@ for (const upload of [
         };
       else if (path === '/user/membership') data = { enabled: false };
       else if (path.includes('notifications')) data = { notifications: [], unreadCount: 0 };
+      else if (path.endsWith('/website-content/gallery'))
+        data = new URL(route.request().url()).searchParams.has('cursor')
+          ? { items: [savedImage, olderPoster], nextCursor: null }
+          : { items: [savedVideo, savedImage], nextCursor: 'more' };
       else if (path.startsWith('/admin/website-content')) {
-        if (path.endsWith('/upload')) {
+        if (path.endsWith('/select')) {
+          const body = route.request().postDataJSON();
+          expect(body.revision).toBe(revision);
+          const chosen = [savedImage, savedVideo, olderPoster].find((item) => item.publicId === body.publicId)!;
+          expect(body.kind).toBe(chosen.kind);
+          if (!draft)
+            draft = { asset: chosen, poster: null, posterUrl: chosen.posterUrl, altText: 'KAINARA platform preview' };
+          else if (body.slot === 'poster') {
+            draft.poster = chosen;
+            draft.posterUrl = chosen.url;
+          } else {
+            draft.asset = chosen;
+            draft.posterUrl = draft.poster?.url ?? chosen.posterUrl;
+          }
+          revision++;
+        } else if (path.endsWith('/default-poster')) {
+          expect(route.request().postDataJSON().revision).toBe(revision);
+          draft!.poster = null;
+          draft!.posterUrl = savedVideo.posterUrl;
+          revision++;
+        } else if (path.endsWith('/upload')) {
+          uploadCount++;
           // Check the wire payload: mocked success alone misses Axios serializing FormData as JSON.
           expect(route.request().headers()['content-type']).toMatch(/^multipart\/form-data; boundary=/);
           const body = route.request().postDataBuffer()!;
@@ -147,5 +193,54 @@ for (const upload of [
     await page.getByRole('button', { name: 'Restore original', exact: true }).click();
     await expect(page.getByText('Original dashboard image restored.')).toBeVisible();
     await expect(page.getByRole('img', { name: 'Example KAINARA nutrition dashboard' })).toHaveCount(2);
+    const uploadsBeforeReuse = uploadCount;
+    const gallery = page.getByRole('region', { name: 'Saved uploads', exact: true });
+    await gallery
+      .getByRole('article', { name: 'Video saved-vi' })
+      .getByRole('button', { name: 'Use as display' })
+      .click();
+    await expect(page.getByRole('button', { name: 'Publish', exact: true })).toBeEnabled();
+    expect(published).toBeNull();
+    expect(draft!.asset.url).toBe(savedVideo.url);
+    await gallery.getByRole('button', { name: 'Load more uploads' }).click();
+    await expect(gallery.getByRole('article')).toHaveCount(3);
+    await gallery
+      .getByRole('article', { name: 'Image older-po' })
+      .getByRole('button', { name: 'Use as poster' })
+      .click();
+    await expect(page.getByRole('button', { name: 'Use default poster' })).toBeEnabled();
+    expect(draft!.posterUrl).toBe(olderPoster.url);
+    await page.getByRole('button', { name: 'Use default poster' }).click();
+    await expect(page.getByRole('button', { name: 'Publish', exact: true })).toBeEnabled();
+    expect(draft!.posterUrl).toBe(savedVideo.posterUrl);
+    await page.getByRole('button', { name: 'Publish', exact: true }).click();
+    await expect(gallery.getByText('Published', { exact: true })).toBeVisible();
+    expect(published!.asset.url).toBe(savedVideo.url);
+    await gallery
+      .getByRole('article', { name: 'Image saved-im' })
+      .getByRole('button', { name: 'Use as display' })
+      .click();
+    await expect(page.getByRole('button', { name: 'Publish', exact: true })).toBeEnabled();
+    expect(published!.asset.url).toBe(savedVideo.url);
+    await page.getByRole('button', { name: 'Publish', exact: true }).click();
+    await expect(
+      gallery.getByRole('article', { name: 'Image saved-im' }).getByText('Published', { exact: true })
+    ).toBeVisible();
+    expect(published!.asset.url).toBe(savedImage.url);
+    await gallery
+      .getByRole('article', { name: 'Video saved-vi' })
+      .getByRole('button', { name: 'Use as display' })
+      .click();
+    await expect(page.getByRole('button', { name: 'Publish', exact: true })).toBeEnabled();
+    await page.getByRole('button', { name: 'Publish', exact: true }).click();
+    await expect(
+      gallery.getByRole('article', { name: 'Video saved-vi' }).getByText('Published', { exact: true })
+    ).toBeVisible();
+    expect(published!.asset.url).toBe(savedVideo.url);
+    expect(uploadCount).toBe(uploadsBeforeReuse);
+    if (upload.mimeType === 'image/png') {
+      await gallery.scrollIntoViewIfNeeded();
+      await page.screenshot({ path: 'test-results/website-gallery-mobile.png', fullPage: false });
+    }
   });
 }

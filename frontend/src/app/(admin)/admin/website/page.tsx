@@ -5,8 +5,9 @@ import { toast } from 'sonner';
 import api from '@/lib/axios';
 import { getApiErrorMessage } from '@/lib/api-error';
 import Button from '@/components/ui/Button';
+import LandingUploadGallery from '@/components/landing/LandingUploadGallery';
 import LandingMediaDisplay from '@/components/landing/LandingMediaDisplay';
-import { toLandingMedia, type WebsiteContent } from '@/features/website-content/types';
+import { toLandingMedia, type WebsiteContent, type LandingGalleryItem } from '@/features/website-content/types';
 
 export default function WebsiteContentPage() {
   const fileRef = useRef<HTMLInputElement>(null);
@@ -16,6 +17,7 @@ export default function WebsiteContentPage() {
   const [poster, setPoster] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [altText, setAltText] = useState('KAINARA platform preview');
+  const [galleryVersion, setGalleryVersion] = useState(0);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const acceptContent = (next: WebsiteContent) => {
@@ -96,6 +98,7 @@ export default function WebsiteContentPage() {
           })
         ).data.data;
         setContent(next);
+        setGalleryVersion((value) => value + 1);
         if (slot === 'asset') {
           setFile(null);
           if (fileRef.current) fileRef.current.value = '';
@@ -109,7 +112,45 @@ export default function WebsiteContentPage() {
       acceptContent(next);
     });
   }
+  async function selectUpload(item: LandingGalleryItem, slot: 'asset' | 'poster') {
+    if (!content) return;
+    await run('Selecting saved upload…', 'Added to draft. Publish to update the website.', async () => {
+      const next: WebsiteContent = (
+        await api.post('/admin/website-content/select', {
+          revision: content.revision,
+          slot,
+          kind: item.kind,
+          publicId: item.publicId,
+        })
+      ).data.data;
+      setContent(next);
+      // Keep any description edits; only replace the selected slot's local file.
+      if (slot === 'asset') {
+        setFile(null);
+        if (fileRef.current) fileRef.current.value = '';
+      } else {
+        setPoster(null);
+        if (posterRef.current) posterRef.current.value = '';
+      }
+    });
+  }
   const draft = content?.draft ?? content?.published ?? null;
+  const knownUploads: LandingGalleryItem[] = [content?.draft, content?.published].flatMap((config) =>
+    !config
+      ? []
+      : [config.asset, config.poster].flatMap((asset) =>
+          !asset?.publicId
+            ? []
+            : [
+                {
+                  ...asset,
+                  publicId: asset.publicId,
+                  createdAt: null,
+                  posterUrl: asset.kind === 'video' ? (config.posterUrl ?? null) : null,
+                },
+              ]
+        )
+  );
   const savedPreview = toLandingMedia(draft);
   const preview =
     file && previewUrl
@@ -172,6 +213,24 @@ export default function WebsiteContentPage() {
             <p className="text-xs text-brand-muted">
               Videos use a frame at one second as their poster. Upload an image above to replace it.
             </p>
+            {draft?.asset?.kind === 'video' && draft.poster && (
+              <Button
+                variant="secondary"
+                disabled={busy}
+                onClick={() =>
+                  void run('Restoring default poster…', 'Default video poster restored in the draft.', async () => {
+                    setContent(
+                      (await api.post('/admin/website-content/default-poster', { revision: content.revision })).data
+                        .data
+                    );
+                    setPoster(null);
+                    if (posterRef.current) posterRef.current.value = '';
+                  })
+                }
+              >
+                Use default poster
+              </Button>
+            )}
             <label className="block text-sm font-semibold">
               Media description
               <input
@@ -241,6 +300,16 @@ export default function WebsiteContentPage() {
             </section>
           </div>
         </div>
+      )}
+      {content && (
+        <LandingUploadGallery
+          refreshVersion={galleryVersion}
+          knownUploads={knownUploads}
+          busy={busy}
+          draftId={draft?.asset?.publicId}
+          publishedId={content.published?.asset?.publicId}
+          onSelect={selectUpload}
+        />
       )}
     </div>
   );

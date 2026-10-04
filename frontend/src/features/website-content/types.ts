@@ -6,6 +6,7 @@ export interface LandingMedia {
 }
 export interface LandingAsset {
   kind: 'image' | 'video';
+  publicId?: string;
   url: string;
   bytes: number;
   duration: number | null;
@@ -31,4 +32,14 @@ export function toLandingMedia(config: LandingConfig | null): LandingMedia | nul
         altText: config.altText,
       }
     : null;
+}
+
+export interface LandingGalleryItem extends LandingAsset {
+  publicId: string;
+  createdAt: string | null;
+  posterUrl: string | null;
+}
+export interface LandingGalleryPage {
+  items: LandingGalleryItem[];
+  nextCursor: string | null;
 }
