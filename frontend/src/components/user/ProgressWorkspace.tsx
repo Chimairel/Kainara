@@ -161,19 +161,29 @@ export function ProgressWorkspace({ mode = 'progress' }: { mode?: ProgressWorksp
         className="mb-6"
         actions={
           mode === 'progress' ? (
-            <Button
-              variant="primary"
-              onClick={() => {
-                setIsLogFormOpen(activeSection === 'overview' ? !isLogFormOpen : true);
-                setActiveSection('overview');
-                setWeightFormError(null);
-                setWeightSuccess(null);
-              }}
-              className="text-xs font-bold py-2 shadow-lg shadow-brand-green/10 flex items-center gap-1.5"
-            >
-              <Plus className="w-4 h-4" />
-              <span>Log today&apos;s weight</span>
-            </Button>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                variant="primary"
+                onClick={() => {
+                  setIsLogFormOpen(activeSection === 'overview' ? !isLogFormOpen : true);
+                  setActiveSection('overview');
+                  setWeightFormError(null);
+                  setWeightSuccess(null);
+                }}
+                className="text-xs font-bold py-2 shadow-lg shadow-brand-green/10 flex items-center gap-1.5"
+              >
+                <Plus className="w-4 h-4" />
+                <span>Log today&apos;s weight</span>
+              </Button>
+              <Button
+                variant="secondary"
+                onClick={() => router.push('/profile/health')}
+                className="text-xs font-bold py-2 flex items-center gap-1.5"
+              >
+                <Activity className="w-4 h-4" />
+                <span>Update health</span>
+              </Button>
+            </div>
           ) : undefined
         }
       />
@@ -239,22 +249,6 @@ export function ProgressWorkspace({ mode = 'progress' }: { mode?: ProgressWorksp
             </button>
           ))}
         </nav>
-      )}
-      {mode === 'progress' && (
-        <div className="mb-5 flex flex-wrap gap-2 text-xs font-bold text-brand-green">
-          <Link
-            href="/progress/reports"
-            className="inline-flex items-center gap-1 rounded-xl border border-brand-border/80 bg-brand-surface px-3 py-1.5 text-brand-muted hover:text-brand-green hover:border-brand-green/40 shadow-2xs transition-colors"
-          >
-            Reports &amp; history →
-          </Link>
-          <Link
-            href="/profile/health"
-            className="inline-flex items-center gap-1 rounded-xl border border-brand-border/80 bg-brand-surface px-3 py-1.5 text-brand-muted hover:text-brand-green hover:border-brand-green/40 shadow-2xs transition-colors"
-          >
-            Update health information →
-          </Link>
-        </div>
       )}
 
       {weightSuccess && (

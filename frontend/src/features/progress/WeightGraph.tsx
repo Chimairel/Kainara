@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import { TrendingUp } from 'lucide-react';
 import type { useProgressWorkspace } from './useProgressWorkspace';
 
@@ -41,6 +41,8 @@ function createSmoothCurve(points: { x: number; y: number }[]): string {
 }
 
 export default function WeightGraph({ groupedLogs, targetWeight }: WeightGraphProps) {
+  const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
+
   if (groupedLogs.length === 0) {
     return (
       <div className="flex flex-col h-56 items-center justify-center border border-dashed border-brand-border/80 rounded-2xl bg-brand-surface/20 text-brand-muted text-xs font-semibold p-6 text-center">
@@ -54,14 +56,19 @@ export default function WeightGraph({ groupedLogs, targetWeight }: WeightGraphPr
   }
 
   // Graph Dimensions
-  const width = 600;
-  const height = 230;
-  const paddingLeft = 45;
-  const paddingRight = 35;
-  const paddingTop = 32;
+  const width = 640;
+  const height = 240;
+  const paddingLeft = 65;
+  const paddingRight = 45;
+  const paddingTop = 35;
   const paddingBottom = 48;
   const plotWidth = width - paddingLeft - paddingRight;
   const plotHeight = height - paddingTop - paddingBottom;
+
+  // Inner margin to prevent points from touching Y-axis spine
+  const innerMargin = 28;
+  const plotStartX = paddingLeft + innerMargin;
+  const plotSpanX = plotWidth - innerMargin * 2;
 
   // Resolve min/max weights for scale
   const weights = groupedLogs.map((log) => log.weightKg);
@@ -85,13 +92,24 @@ export default function WeightGraph({ groupedLogs, targetWeight }: WeightGraphPr
     };
   });
 
+  const startWeight = groupedLogs[0]?.weightKg;
+
   // Map logs to coordinates
   const timeRatios = getTimeScaleRatios(groupedLogs.map((log) => log.loggedAt));
   const points = groupedLogs.map((log, index) => {
     const ratio = timeRatios[index];
-    const x = paddingLeft + ratio * plotWidth;
+    const x = plotStartX + ratio * plotSpanX;
     const y = height - paddingBottom - ((log.weightKg - minW) / rangeW) * plotHeight;
-    return { x, y, weight: log.weightKg, date: log.dateLabel };
+    const deltaFromStart = index > 0 && startWeight !== undefined ? log.weightKg - startWeight : null;
+    return {
+      x,
+      y,
+      weight: log.weightKg,
+      date: log.dateLabel,
+      loggedAt: log.loggedAt,
+      deltaFromStart,
+      source: log.source,
+    };
   });
 
   // Create Path commands (smooth curve)
@@ -115,15 +133,71 @@ export default function WeightGraph({ groupedLogs, targetWeight }: WeightGraphPr
   const deltaText =
     delta === 0 ? '0.0 kg' : delta > 0 ? `+${delta.toFixed(1)} kg` : `${delta.toFixed(1)} kg`;
 
+  const activeHoveredPoint = hoveredIdx !== null ? points[hoveredIdx] : null;
+
   return (
     <div className="w-full rounded-2xl border border-brand-border/70 bg-gradient-to-b from-brand-surface to-brand-bgAlt/30 p-4 sm:p-5 shadow-xs relative overflow-hidden">
       {/* Ambient soft glow orbs */}
       <div className="absolute top-0 right-0 w-48 h-48 bg-brand-green/5 blur-3xl pointer-events-none rounded-full" />
       <div className="absolute bottom-0 left-0 w-48 h-48 bg-brand-accent/5 blur-3xl pointer-events-none rounded-full" />
 
+      {/* Interactive Tooltip Card on Hover */}
+      {activeHoveredPoint && (
+        <div
+          className="pointer-events-none absolute z-30 -translate-x-1/2 rounded-xl border border-brand-border bg-brand-surface/95 px-3.5 py-2.5 shadow-2xl backdrop-blur-md transition-all duration-150 text-left text-xs"
+          style={{
+            left: `${(activeHoveredPoint.x / width) * 100}%`,
+            top: `${Math.max(8, (activeHoveredPoint.y / height) * 100 - 36)}%`,
+          }}
+        >
+          <div className="flex items-center gap-1.5 font-bold text-brand-muted text-[10px] uppercase tracking-wider">
+            <span>{activeHoveredPoint.date}</span>
+            <span>·</span>
+            <span>
+              {new Date(activeHoveredPoint.loggedAt).toLocaleDateString(undefined, {
+                month: 'short',
+                day: 'numeric',
+                year: 'numeric',
+              })}
+            </span>
+          </div>
+          <div className="mt-1 flex items-baseline gap-2">
+            <span className="font-display text-xl font-extrabold text-brand-text">
+              {activeHoveredPoint.weight} kg
+            </span>
+            {activeHoveredPoint.deltaFromStart !== null ? (
+              <span
+                className={`text-[11px] font-bold ${
+                  activeHoveredPoint.deltaFromStart > 0
+                    ? 'text-amber-600 dark:text-amber-400'
+                    : activeHoveredPoint.deltaFromStart < 0
+                      ? 'text-emerald-600 dark:text-emerald-400'
+                      : 'text-brand-muted'
+                }`}
+              >
+                {activeHoveredPoint.deltaFromStart > 0
+                  ? `+${activeHoveredPoint.deltaFromStart.toFixed(1)}`
+                  : activeHoveredPoint.deltaFromStart.toFixed(1)}{' '}
+                kg vs start
+              </span>
+            ) : (
+              <span className="text-[10px] font-bold text-brand-green bg-brand-green/10 px-1.5 py-0.5 rounded">
+                Baseline
+              </span>
+            )}
+          </div>
+          {targetWeight > 0 && (
+            <div className="mt-1 text-[11px] text-brand-muted font-medium">
+              Goal: {targetWeight} kg ({Math.abs(targetWeight - activeHoveredPoint.weight).toFixed(1)} kg{' '}
+              {targetWeight > activeHoveredPoint.weight ? 'to gain' : 'to lose'})
+            </div>
+          )}
+        </div>
+      )}
+
       <svg
         viewBox={`0 0 ${width} ${height}`}
-        className="w-full h-auto overflow-visible"
+        className="w-full h-auto overflow-visible select-none"
         role="img"
         aria-label="Weight progress chart"
       >
@@ -139,7 +213,18 @@ export default function WeightGraph({ groupedLogs, targetWeight }: WeightGraphPr
           </linearGradient>
         </defs>
 
-        {/* Horizontal Grid lines & Y-axis labels */}
+        {/* Y-axis Spine Line */}
+        <line
+          x1={paddingLeft}
+          y1={paddingTop - 5}
+          x2={paddingLeft}
+          y2={height - paddingBottom}
+          stroke="var(--brand-border)"
+          strokeWidth="1.2"
+          strokeOpacity="0.8"
+        />
+
+        {/* Horizontal Grid lines, Tick Marks & Y-axis labels */}
         {gridTicks.map((tick, i) => (
           <g key={i}>
             <line
@@ -152,14 +237,24 @@ export default function WeightGraph({ groupedLogs, targetWeight }: WeightGraphPr
               strokeOpacity={i === 0 ? 0.7 : 0.35}
               strokeWidth={i === 0 ? 1.2 : 1}
             />
+            {/* Tick mark on spine */}
+            <line
+              x1={paddingLeft - 4}
+              y1={tick.y}
+              x2={paddingLeft}
+              y2={tick.y}
+              stroke="var(--brand-border)"
+              strokeWidth="1.2"
+            />
+            {/* Number on left */}
             <text
               x={paddingLeft - 8}
-              y={tick.y + 3}
+              y={tick.y + 3.5}
               fill="var(--brand-muted)"
               fontSize="8.5"
-              fontWeight="600"
+              fontWeight="700"
               textAnchor="end"
-              className="select-none"
+              className="select-none font-mono"
             >
               {tick.weight}
             </text>
@@ -224,22 +319,38 @@ export default function WeightGraph({ groupedLogs, targetWeight }: WeightGraphPr
         {points.map((p, idx) => {
           const pillY = p.y - 28 < paddingTop ? p.y + 12 : p.y - 26;
           const textY = pillY + 12;
+          const isHovered = hoveredIdx === idx;
 
           return (
-            <g key={idx} className="group">
+            <g
+              key={idx}
+              className="cursor-pointer"
+              onMouseEnter={() => setHoveredIdx(idx)}
+              onMouseLeave={() => setHoveredIdx(null)}
+              onClick={() => setHoveredIdx(idx)}
+            >
+              {/* Invisible wide hit area for easy hovering */}
+              <rect
+                x={p.x - 22}
+                y={paddingTop}
+                width="44"
+                height={plotHeight + 15}
+                fill="transparent"
+              />
+
               {/* Vertical Guide to X-axis */}
               <line
                 x1={p.x}
                 y1={p.y}
                 x2={p.x}
                 y2={height - paddingBottom}
-                stroke="var(--brand-green)"
+                stroke={isHovered ? 'var(--brand-green)' : 'var(--brand-green)'}
                 strokeDasharray="2 3"
-                strokeOpacity="0.25"
-                strokeWidth="1"
+                strokeOpacity={isHovered ? 0.8 : 0.25}
+                strokeWidth={isHovered ? 1.5 : 1}
               />
 
-              {/* Floating Weight Badge */}
+              {/* Static Floating Weight Badge */}
               <rect
                 x={p.x - 22}
                 y={pillY}
@@ -247,14 +358,14 @@ export default function WeightGraph({ groupedLogs, targetWeight }: WeightGraphPr
                 height="18"
                 rx="6"
                 fill="var(--brand-surface)"
-                stroke="var(--brand-border)"
-                strokeWidth="1.2"
-                className="transition-colors group-hover:stroke-brand-green"
+                stroke={isHovered ? 'var(--brand-green)' : 'var(--brand-border)'}
+                strokeWidth={isHovered ? 1.5 : 1.2}
+                className="transition-colors"
               />
               <text
                 x={p.x}
                 y={textY}
-                fill="var(--brand-text)"
+                fill={isHovered ? 'var(--brand-green)' : 'var(--brand-text)'}
                 fontSize="8.5"
                 fontWeight="800"
                 textAnchor="middle"
@@ -267,20 +378,20 @@ export default function WeightGraph({ groupedLogs, targetWeight }: WeightGraphPr
               <circle
                 cx={p.x}
                 cy={p.y}
-                r="5.5"
+                r={isHovered ? 7.5 : 5.5}
                 fill="var(--brand-surface)"
                 stroke="var(--brand-green)"
-                strokeWidth="3"
-                className="transition-all duration-200 cursor-pointer group-hover:r-7"
+                strokeWidth={isHovered ? 4 : 3}
+                className="transition-all duration-200"
               />
 
               {/* Date Label at X-axis */}
               <text
                 x={p.x}
-                y={height - paddingBottom + 15}
-                fill="var(--brand-muted)"
-                fontSize="8"
-                fontWeight="700"
+                y={height - paddingBottom + 16}
+                fill={isHovered ? 'var(--brand-text)' : 'var(--brand-muted)'}
+                fontSize="8.5"
+                fontWeight={isHovered ? '800' : '700'}
                 textAnchor="middle"
                 className="select-none"
               >
