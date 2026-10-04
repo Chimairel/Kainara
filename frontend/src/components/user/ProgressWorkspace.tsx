@@ -241,9 +241,19 @@ export function ProgressWorkspace({ mode = 'progress' }: { mode?: ProgressWorksp
         </nav>
       )}
       {mode === 'progress' && (
-        <div className="mb-5 flex flex-wrap gap-4 text-sm font-semibold text-brand-green">
-          <Link href="/progress/reports">Reports & history →</Link>
-          <Link href="/profile/health">Update health information →</Link>
+        <div className="mb-5 flex flex-wrap gap-2 text-xs font-bold text-brand-green">
+          <Link
+            href="/progress/reports"
+            className="inline-flex items-center gap-1 rounded-xl border border-brand-border/80 bg-brand-surface px-3 py-1.5 text-brand-muted hover:text-brand-green hover:border-brand-green/40 shadow-2xs transition-colors"
+          >
+            Reports &amp; history →
+          </Link>
+          <Link
+            href="/profile/health"
+            className="inline-flex items-center gap-1 rounded-xl border border-brand-border/80 bg-brand-surface px-3 py-1.5 text-brand-muted hover:text-brand-green hover:border-brand-green/40 shadow-2xs transition-colors"
+          >
+            Update health information →
+          </Link>
         </div>
       )}
 
@@ -313,31 +323,71 @@ export function ProgressWorkspace({ mode = 'progress' }: { mode?: ProgressWorksp
                 </Card>
               )}
 
-              <section className="mb-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
+              <section className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
                 {[
-                  { label: 'Current weight', value: currentWeight ? `${currentWeight} kg` : '--', icon: Scale },
-                  { label: 'Target weight', value: targetWeight ? `${targetWeight} kg` : '--', icon: TrendingUp },
+                  {
+                    label: 'Current weight',
+                    value: currentWeight ? `${currentWeight} kg` : '--',
+                    icon: Scale,
+                    color: 'text-brand-green',
+                    bgColor: 'bg-brand-green/10',
+                    badge: 'Latest log',
+                  },
+                  {
+                    label: 'Target weight',
+                    value: targetWeight ? `${targetWeight} kg` : '--',
+                    icon: TrendingUp,
+                    color: 'text-brand-accent',
+                    bgColor: 'bg-brand-accent/10',
+                    badge: targetWeight > 0 ? 'Goal target' : undefined,
+                  },
                   {
                     label: 'Distance to goal',
                     value:
                       currentWeight && targetWeight ? `${Math.abs(targetWeight - currentWeight).toFixed(1)} kg` : '--',
                     icon: Activity,
+                    color: 'text-brand-cyan',
+                    bgColor: 'bg-brand-cyan/10',
+                    badge:
+                      currentWeight && targetWeight
+                        ? targetWeight > currentWeight
+                          ? 'to gain'
+                          : targetWeight < currentWeight
+                            ? 'to lose'
+                            : 'achieved'
+                        : undefined,
                   },
                   {
                     label: 'Daily calorie target',
                     value: dailyCalorieTarget ? `${dailyCalorieTarget} kcal` : '--',
                     icon: Lightbulb,
+                    color: 'text-amber-500',
+                    bgColor: 'bg-amber-500/10',
+                    badge: 'Metabolic allowance',
                   },
                 ].map((metric) => {
                   const MetricIcon = metric.icon;
                   return (
                     <div
                       key={metric.label}
-                      className="rounded-[20px] border border-brand-border/70 bg-brand-surface p-4 shadow-sm"
+                      className="group relative rounded-2xl border border-brand-border/70 bg-brand-surface p-4 sm:p-5 shadow-sm hover:shadow-md hover:border-brand-border transition-all duration-200"
                     >
-                      <MetricIcon className="h-4 w-4 text-brand-green" />
-                      <p className="mt-4 font-display text-xl font-black text-brand-text">{metric.value}</p>
-                      <p className="mt-1 text-[10px] font-semibold text-brand-muted">{metric.label}</p>
+                      <div className="flex items-center justify-between">
+                        <div
+                          className={`flex h-9 w-9 items-center justify-center rounded-xl ${metric.bgColor} ${metric.color}`}
+                        >
+                          <MetricIcon className="h-4.5 w-4.5" />
+                        </div>
+                        {metric.badge && (
+                          <span className="text-[10px] font-bold tracking-wide uppercase px-2 py-0.5 rounded-full bg-brand-bgAlt text-brand-muted border border-brand-border/50">
+                            {metric.badge}
+                          </span>
+                        )}
+                      </div>
+                      <p className="mt-4 font-display text-2xl font-black text-brand-text tracking-tight">
+                        {metric.value}
+                      </p>
+                      <p className="mt-1 text-xs font-semibold text-brand-muted">{metric.label}</p>
                     </div>
                   );
                 })}
@@ -346,27 +396,52 @@ export function ProgressWorkspace({ mode = 'progress' }: { mode?: ProgressWorksp
               {/* GRAPH & SUMMARY BLOCKS */}
               <div className="mb-8 text-left">
                 {/* Graph Card */}
-                <Card className="p-5 border-brand-border/70 bg-brand-surface shadow-card">
-                  <div className="flex justify-between items-center mb-4">
-                    <h3 className="text-sm font-extrabold text-brand-green uppercase tracking-wide font-display flex items-center gap-1.5">
-                      <Scale className="w-4 h-4 text-brand-green" />
-                      <span>Weight Progress Chart</span>
-                    </h3>
-                    <div className="relative inline-block text-left select-none">
-                      <button
-                        type="button"
-                        onClick={() => setIsTimeframeDropdownOpen(!isTimeframeDropdownOpen)}
-                        className="inline-flex justify-between items-center w-40 rounded-xl border border-brand-border bg-brand-bgAlt px-3 py-1.5 text-xs font-extrabold text-brand-text shadow-sm hover:border-brand-border/80 focus:outline-none transition-all"
-                        aria-haspopup="true"
-                        aria-expanded={isTimeframeDropdownOpen}
-                      >
-                        <span>
-                          {timeframe === 'week' && 'Weekly Progress'}
-                          {timeframe === 'month' && 'Monthly Progress'}
-                          {timeframe === 'year' && 'Yearly Progress'}
+                <Card className="p-5 sm:p-6 border-brand-border/70 bg-brand-surface shadow-card">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-brand-green/10 text-brand-green">
+                          <Scale className="w-4 h-4" />
+                        </div>
+                        <h3 className="text-base font-extrabold text-brand-text font-display">
+                          Weight Progress
+                        </h3>
+                      </div>
+                      <p className="text-xs text-brand-muted mt-1 ml-9">
+                        {targetWeight > 0 ? `Target: ${targetWeight} kg · ` : ''}Real observations over time
+                      </p>
+                    </div>
+
+                    <div className="flex items-center gap-3 self-end sm:self-auto">
+                      {/* Legend */}
+                      <div className="hidden md:flex items-center gap-3 text-[11px] font-bold text-brand-muted mr-1 select-none">
+                        <span className="flex items-center gap-1.5">
+                          <span className="h-2 w-2 rounded-full bg-brand-green" />
+                          Logged weight
                         </span>
-                        <ChevronDown className="w-3.5 h-3.5 text-brand-muted ml-1" />
-                      </button>
+                        {targetWeight > 0 && (
+                          <span className="flex items-center gap-1.5">
+                            <span className="h-1.5 w-3 border-b-2 border-dashed border-brand-accent" />
+                            Target ({targetWeight} kg)
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="relative inline-block text-left select-none">
+                        <button
+                          type="button"
+                          onClick={() => setIsTimeframeDropdownOpen(!isTimeframeDropdownOpen)}
+                          className="inline-flex justify-between items-center w-40 rounded-xl border border-brand-border bg-brand-bgAlt px-3.5 py-2 text-xs font-extrabold text-brand-text shadow-xs hover:border-brand-border/80 focus:outline-none transition-all"
+                          aria-haspopup="true"
+                          aria-expanded={isTimeframeDropdownOpen}
+                        >
+                          <span>
+                            {timeframe === 'week' && 'Weekly Progress'}
+                            {timeframe === 'month' && 'Monthly Progress'}
+                            {timeframe === 'year' && 'Yearly Progress'}
+                          </span>
+                          <ChevronDown className="w-3.5 h-3.5 text-brand-muted ml-1" />
+                        </button>
 
                       {isTimeframeDropdownOpen && (
                         <>
@@ -421,7 +496,8 @@ export function ProgressWorkspace({ mode = 'progress' }: { mode?: ProgressWorksp
                       )}
                     </div>
                   </div>
-                  <WeightGraph groupedLogs={groupedLogs} targetWeight={targetWeight} />
+                </div>
+                <WeightGraph groupedLogs={groupedLogs} targetWeight={targetWeight} />
                 </Card>
               </div>
             </>
