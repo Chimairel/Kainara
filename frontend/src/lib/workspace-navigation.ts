@@ -129,6 +129,13 @@ export const workspaceTools: Record<WorkspaceRole, WorkspaceTool[]> = {
       icon: ShieldCheck,
     },
     {
+      label: 'Audit',
+      href: '/admin/audit',
+      description: 'Administrator activity and nutritionist review history.',
+      group: 'Platform',
+      icon: ScrollText,
+    },
+    {
       label: 'Accounts',
       href: '/admin/users',
       description: 'Search and manage member, nutritionist and admin accounts.',
@@ -194,6 +201,7 @@ export const primaryWorkspaceTools: Record<WorkspaceRole, WorkspaceTool[]> = {
     '/admin/library',
     '/admin/website',
     '/admin/operations',
+    '/admin/audit',
     '/admin/analytics',
   ].map((href) => {
     const tool = workspaceTools.ADMIN.find((entry) => entry.href === href)!;

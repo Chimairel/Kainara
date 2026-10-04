@@ -2,47 +2,50 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import type prisma from '../src/lib/prisma';
 import { NutritionistAuditService } from '../src/services/nutritionist-audit.service';
+import { StaffAuditService } from '../src/services/staff-audit.service';
 
-test('audit history merges older verification actors and meal flags without exposing metadata', async () => {
-  const events = [
-    { id: 'verification', createdAt: new Date('2026-09-29T12:00:00Z'),
-      action: 'BASE_MEAL_VERIFIED', entityType: 'LIBRARY_MEAL', entityId: 'meal-1', actorUser: null,
-      metadata: { reviewerProfileId: 'old-rnd', patientNotes: 'private clinical note' } },
-    { id: 'profile', createdAt: new Date('2026-09-27T12:00:00Z'),
-      action: 'CLINICAL_PROFILE_REVIEWED', entityType: 'ClinicalProfileReview', entityId: 'review-1',
-      actorUser: { name: 'Second Nutritionist' }, metadata: { diagnosis: 'private diagnosis' } },
-  ];
-  const flags = [{ id: 'flag-1', createdAt: new Date('2026-09-28T12:00:00Z'),
-    mealLibrary: { mealName: 'Basilog' }, flaggedByNutritionist: { user: { name: 'Flagging Nutritionist' } } }];
-  let eventWhere: Record<string, unknown> | undefined;
+test('staff history binds search, pagination and dates rather than injecting them into SQL', async () => {
+  const attack = "staff' OR true --";
   const db = {
-    auditEvent: {
-      findMany: async ({ take, where }: { take: number; where: Record<string, unknown> }) => {
-        eventWhere = where;
-        return events.slice(0, take);
-      },
-      count: async () => events.length,
+    $queryRaw: async (query: { strings: string[]; values: unknown[] }) => {
+      assert.ok(!query.strings.join('').includes(attack));
+      assert.ok(query.values.includes(attack));
+      assert.ok(query.values.includes(20));
+      assert.ok(query.values.includes(40));
+      assert.ok(
+        query.values.some((value) => value instanceof Date && value.toISOString() === '2026-10-03T16:00:00.000Z')
+      );
+      return [{ total: 43n, rows: [] }];
     },
-    mealLibraryFlag: { findMany: async ({ take }: { take: number }) => flags.slice(0, take),
-      count: async () => flags.length },
-    nutritionistProfile: { findMany: async () => [{ id: 'old-rnd', user: { name: 'Original Nutritionist' } }] },
-    mealLibrary: { findMany: async () => [{ id: 'meal-1', mealName: 'Adobo' }] },
-    mealPlan: { findMany: async () => [] },
-    rawRecipeCandidate: { findMany: async () => [] },
   } as unknown as typeof prisma;
+  const result = await StaffAuditService.history({ view: 'admin', actor: attack, page: 3, from: '2026-10-04' }, db);
+  assert.equal(result.totalPages, 3);
+  assert.equal(result.page, 3);
+});
 
-  const first = await NutritionistAuditService.history(1, 2, db);
-  assert.equal(first.total, 3);
-  assert.deepEqual(first.rows.map((row) => row.nutritionist), ['Original Nutritionist', 'Flagging Nutritionist']);
-  assert.deepEqual(first.rows.map((row) => row.subject), ['Adobo', 'Basilog']);
-  assert.equal(first.totalPages, 2);
-  assert.ok(!JSON.stringify(first).includes('private clinical note'));
-  assert.ok(!JSON.stringify(first).includes('private diagnosis'));
-  assert.ok(!JSON.stringify(eventWhere).includes('MEAL_LIBRARY_FLAGGED'));
-  assert.ok(!JSON.stringify(eventWhere).includes('ACCOUNT_'));
-
-  const second = await NutritionistAuditService.history(2, 2, db);
-  assert.equal(second.rows.length, 1);
-  assert.equal(second.rows[0].nutritionist, 'Second Nutritionist');
-  assert.equal(second.rows[0].subject, 'Health profile');
+test('nutritionist audit retains its existing presentation contract and includes administrator meal flags', async () => {
+  const db = {
+    $queryRaw: async (query: { strings: string[] }) => {
+      assert.ok(query.strings.join('').includes("role = 'ADMIN' AND \"actionCode\" = 'MEAL_BASE_FLAGGED'"));
+      return [
+        {
+          total: 1n,
+          rows: [
+            {
+              id: 'review',
+              occurredAt: '2026-10-04T12:00:00Z',
+              actor: 'Former reviewer',
+              role: 'NUTRITIONIST',
+              actionCode: 'BASE_MEAL_VERIFIED',
+              subject: 'Adobo',
+            },
+          ],
+        },
+      ];
+    },
+  } as unknown as typeof prisma;
+  const result = await NutritionistAuditService.history(1, 20, db);
+  assert.equal(result.rows[0].nutritionist, 'Former reviewer');
+  assert.equal(result.rows[0].action, 'Verified a meal');
+  assert.equal(result.total, 1);
 });

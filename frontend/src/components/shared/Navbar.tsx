@@ -136,6 +136,7 @@ const getBreadcrumbSegments = (
   }
 
   if (role === 'ADMIN') {
+    if (pathname === '/admin/audit') return [{ label: 'Admin Audit', current: true }];
     if (pathname === '/admin/overview') {
       return [{ label: 'Overview', current: true }];
     }

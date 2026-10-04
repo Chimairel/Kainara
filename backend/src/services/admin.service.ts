@@ -83,21 +83,25 @@ export class AdminService {
       throw new Error('An expired PRC license cannot be verified. Update and re-check the credential first.');
     }
 
-    // Update the nutritionist profile
-    await prisma.nutritionistProfile.update({
-      where: { id: nutritionistProfileId },
-      data: {
-        isVerified: true,
-        verifiedByAdminId: adminUserId,
-        verifiedAt: new Date(),
+    await prisma.$transaction(
+      async (tx) => {
+        const updated = await tx.nutritionistProfile.updateMany({
+          where: { id: nutritionistProfileId, isVerified: false, prcLicenseExpiry: { gte: new Date() } },
+          data: { isVerified: true, verifiedByAdminId: adminUserId, verifiedAt: new Date() },
+        });
+        if (!updated.count) throw new Error('Nutritionist credentials changed. Reload before verifying.');
+        await tx.user.update({ where: { id: profile.userId }, data: { role: 'NUTRITIONIST' } });
+        await tx.auditEvent.create({
+          data: {
+            actorUserId: adminUserId,
+            action: 'NUTRITIONIST_VERIFIED',
+            entityType: 'NutritionistProfile',
+            entityId: profile.id,
+          },
+        });
       },
-    });
-
-    // Update the user's role to NUTRITIONIST
-    await prisma.user.update({
-      where: { id: profile.userId },
-      data: { role: 'NUTRITIONIST' },
-    });
+      { maxWait: 10000, timeout: 30000 }
+    );
 
     return { success: true };
   }

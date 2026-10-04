@@ -2,21 +2,13 @@
 
 import { useVisiblePolling } from '@/hooks/useVisiblePolling';
 import { useCallback, useEffect, useState } from 'react';
-import { AlertTriangle, RefreshCw, ScrollText, ShieldCheck } from 'lucide-react';
+import { AlertTriangle, RefreshCw, ShieldCheck } from 'lucide-react';
 import api from '@/lib/axios';
+import Link from 'next/link';
 import Card from '@/components/ui/Card';
 import PortalPageHeader from '@/components/shared/PortalPageHeader';
 import { useAuth } from '@/hooks/useAuth';
 import { readSessionResource, writeSessionResource } from '@/lib/session-resource-cache';
-
-interface AuditEvent {
-  id: string;
-  action: string;
-  entityType: string;
-  entityId: string | null;
-  createdAt: string;
-  actorUser: { name: string; role: string } | null;
-}
 
 interface SafetyIncident {
   id: string;
@@ -33,7 +25,6 @@ interface StructuredSafetyOperations {
 }
 
 interface OperationsSnapshot {
-  events: AuditEvent[];
   incidents: SafetyIncident[];
   structuredSafety: StructuredSafetyOperations | null;
 }
@@ -41,7 +32,6 @@ interface OperationsSnapshot {
 export default function AdminOperationsPage() {
   const ownerId = useAuth().user?.userId;
   const cached = readSessionResource<OperationsSnapshot>(ownerId, 'admin-operations');
-  const [events, setEvents] = useState<AuditEvent[]>(cached?.events ?? []);
   const [incidents, setIncidents] = useState<SafetyIncident[]>(cached?.incidents ?? []);
   const [structuredSafety, setStructuredSafety] = useState<StructuredSafetyOperations | null>(
     cached?.structuredSafety ?? null
@@ -53,17 +43,14 @@ export default function AdminOperationsPage() {
     setLoading(!readSessionResource<OperationsSnapshot>(ownerId, 'admin-operations'));
     setError('');
     try {
-      const [auditResponse, incidentResponse, structuredResponse] = await Promise.all([
-        api.get('/admin/audit-events?limit=30'),
+      const [incidentResponse, structuredResponse] = await Promise.all([
         api.get('/admin/safety-incidents'),
         api.get('/admin/structured-safety-operations'),
       ]);
       const next = {
-        events: auditResponse.data?.data?.events || [],
         incidents: incidentResponse.data?.data || [],
         structuredSafety: structuredResponse.data?.data || null,
       };
-      setEvents(next.events);
       setIncidents(next.incidents);
       setStructuredSafety(next.structuredSafety);
       writeSessionResource(ownerId, 'admin-operations', next);
@@ -89,8 +76,8 @@ export default function AdminOperationsPage() {
       <PortalPageHeader
         icon={ShieldCheck}
         eyebrow="Governance"
-        title="Safety and audit operations"
-        description="Review pending safety flags and a privacy-conscious record of consequential account and meal-review actions."
+        title="Safety operations"
+        description="Monitor pending safety flags and restriction review requirements."
         meta={
           <button
             type="button"
@@ -163,33 +150,12 @@ export default function AdminOperationsPage() {
         </section>
       )}
 
-      <section>
-        <p className="portal-section-label mb-4">Recent audit events</p>
-        <Card className="overflow-hidden">
-          <div className="divide-y divide-brand-border/60">
-            {!loading && events.length === 0 && (
-              <p className="p-6 text-sm text-brand-muted">No audit events recorded yet.</p>
-            )}
-            {events.map((event) => (
-              <div key={event.id} className="flex items-start gap-4 p-5">
-                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-brand-cyan/10 text-brand-cyan">
-                  <ScrollText className="h-4 w-4" />
-                </span>
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm font-bold text-brand-text">{event.action.replaceAll('_', ' ')}</p>
-                  <p className="mt-1 text-xs text-brand-muted">
-                    {event.actorUser ? `${event.actorUser.name} (${event.actorUser.role})` : 'System'} ·{' '}
-                    {event.entityType}
-                  </p>
-                </div>
-                <time className="shrink-0 text-right font-mono text-[10px] text-brand-muted" dateTime={event.createdAt}>
-                  {new Date(event.createdAt).toLocaleString()}
-                </time>
-              </div>
-            ))}
-          </div>
-        </Card>
-      </section>
+      <Link
+        href="/admin/audit"
+        className="inline-flex min-h-11 items-center rounded-xl border border-brand-border px-4 py-2 text-sm font-bold text-brand-green"
+      >
+        View full audit history →
+      </Link>
     </div>
   );
 }

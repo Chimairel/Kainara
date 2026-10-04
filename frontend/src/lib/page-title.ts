@@ -31,6 +31,7 @@ const pageTitles: Record<string, string> = {
   '/admin/overview': 'Overview',
   '/admin/analytics': 'Analytics',
   '/admin/operations': 'Operations',
+  '/admin/audit': 'Admin Audit',
   '/admin/users': 'Accounts',
   '/admin/nutritionists': 'Nutritionists',
   '/admin/data': 'Nutrition data',

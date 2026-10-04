@@ -1,0 +1,85 @@
+export const nutritionistAuditActions = [
+  'CLINICAL_PROFILE_CLAIMED',
+  'BASE_MEAL_VERIFIED',
+  'BASE_MEAL_REJECTED',
+  'MEAL_LIBRARY_FLAGGED',
+  'MEAL_BASE_FLAG_RELEASED',
+  'MEAL_PLAN_FIRST_HIGH_RISK_APPROVAL',
+  'MEAL_PLAN_SECOND_HIGH_RISK_APPROVAL',
+  'MEAL_PLAN_APPROVED',
+  'MEAL_PLAN_REJECTED',
+  'MEAL_PLAN_REVIEW_DISPUTED',
+  'MEAL_PLAN_DISPUTE_RESOLVED',
+  'MEAL_PLAN_REVIEW_CLAIM_RELEASED',
+  'MEAL_APPROVAL_FLAGGED',
+  'MEAL_APPROVAL_RECHECKED',
+  'CLINICAL_PROFILE_REVIEWED',
+  'CLINICAL_DOCUMENT_ACCESSED',
+  'CLINICAL_DOCUMENT_SUFFICIENT_FOR_NUTRITION_REVIEW',
+  'CLINICAL_DOCUMENT_NEEDS_CLARIFICATION',
+  'CLINICAL_DOCUMENT_UNUSABLE',
+  'CONDITION_CLEARANCE_ACTIVE',
+  'CONDITION_CLEARANCE_REVIEW_DUE',
+  'CONDITION_CLEARANCE_REVOKED',
+  'CONDITION_CLEARANCE_EXPIRED',
+  'CONDITION_CLEARANCE_DISPUTED',
+  'CONDITION_CLEARANCE_DISPUTE_RESOLVED',
+  'CONDITION_CLEARANCE_SUSPENDED',
+  'CONDITION_RULESET_SUSPENDED',
+  'NUTRITION_EVIDENCE_PREPARED',
+  'COALESCED_MEAL_REVIEW_PUBLISHED',
+  'OUTSIDE_MEAL_VERIFY',
+  'OUTSIDE_MEAL_CORRECT',
+  'OUTSIDE_MEAL_NEEDS_MORE_INFO',
+  'OUTSIDE_MEAL_UNVERIFIABLE',
+] as const;
+
+export function auditActionLabel(action: string) {
+  const labels: Record<string, string> = {
+    BASE_MEAL_VERIFIED: 'Verified a meal',
+    BASE_MEAL_REJECTED: 'Rejected meal verification',
+    MEAL_BASE_FLAGGED: 'Flagged an entire meal',
+    MEAL_LIBRARY_FLAGGED: 'Flagged an entire meal',
+    USER_SUSPENDED: 'Suspended an account',
+    USER_REINSTATED: 'Reinstated an account',
+    NUTRITIONIST_ACCESS_REVOKED: 'Revoked nutritionist access',
+    NUTRITIONIST_VERIFIED: 'Verified nutritionist credentials',
+    WEBSITE_MEDIA_DRAFT_UPDATED: 'Saved website media draft',
+    WEBSITE_MEDIA_DRAFT_SELECTED: 'Selected saved website media',
+    WEBSITE_MEDIA_PUBLISHED: 'Published website media',
+    WEBSITE_MEDIA_RESET: 'Restored original website media',
+    CLINICAL_PROFILE_CLAIMED: 'Claimed a health profile',
+    MEAL_BASE_FLAG_RELEASED: 'Released a meal flag',
+    MEAL_PLAN_FIRST_HIGH_RISK_APPROVAL: 'Recorded first case decision',
+    MEAL_PLAN_SECOND_HIGH_RISK_APPROVAL: 'Recorded independent second decision',
+    MEAL_PLAN_APPROVED: 'Approved a case',
+    MEAL_PLAN_REJECTED: 'Rejected a case',
+    MEAL_PLAN_REVIEW_DISPUTED: 'Disputed a case',
+    MEAL_PLAN_DISPUTE_RESOLVED: 'Resolved a dispute',
+    MEAL_APPROVAL_FLAGGED: 'Flagged an approval',
+    MEAL_APPROVAL_RECHECKED: 'Rechecked an approval',
+    CLINICAL_PROFILE_REVIEWED: 'Reviewed a health profile',
+    CLINICAL_DOCUMENT_ACCESSED: 'Opened a claimed clinical document',
+    CLINICAL_DOCUMENT_SUFFICIENT_FOR_NUTRITION_REVIEW: 'Accepted a clinical document',
+    CLINICAL_DOCUMENT_NEEDS_CLARIFICATION: 'Requested document clarification',
+    CLINICAL_DOCUMENT_UNUSABLE: 'Marked a clinical document unusable',
+    CONDITION_CLEARANCE_ACTIVE: 'Activated a condition clearance',
+    CONDITION_CLEARANCE_REVIEW_DUE: 'Set a clearance for recheck',
+    CONDITION_CLEARANCE_DISPUTED: 'Disputed a condition clearance',
+    CONDITION_CLEARANCE_DISPUTE_RESOLVED: 'Resolved a clearance dispute',
+    CONDITION_CLEARANCE_SUSPENDED: 'Suspended a clearance',
+    CONDITION_RULESET_SUSPENDED: 'Suspended a condition ruleset',
+    NUTRITION_EVIDENCE_PREPARED: 'Prepared nutrition evidence',
+    COALESCED_MEAL_REVIEW_PUBLISHED: 'Published a shared meal review',
+  };
+  const words = action.replace(/_/g, ' ').toLowerCase();
+  return labels[action] ?? words.charAt(0).toUpperCase() + words.slice(1);
+}
+
+export function auditOutcomeLabel(action: string) {
+  if (/REJECTED|UNUSABLE|SUSPENDED|FLAGGED|DISPUTED|UNVERIFIABLE|REVOKED|REVIEW_DUE|EXPIRED/.test(action))
+    return 'Needs attention';
+  if (/ACCESSED|CLAIM_RELEASED/.test(action)) return 'Recorded';
+  if (/NEEDS_CLARIFICATION|NEEDS_MORE_INFO/.test(action)) return 'Waiting for information';
+  return 'Completed';
+}

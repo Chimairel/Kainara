@@ -2762,6 +2762,8 @@ enum AiUsageStatus {
 }
 
 model AuditEvent {
+  actorRole   Role?
+  actorName   String?  @db.VarChar(200)
   id          String   @id @default(cuid())
   actorUserId String?
   actorUser   User?    @relation(fields: [actorUserId], references: [id], onDelete: SetNull)
@@ -2774,6 +2776,7 @@ model AuditEvent {
   @@index([entityType, entityId, createdAt])
   @@index([actorUserId, createdAt])
   @@index([action, createdAt])
+  @@index([actorRole, createdAt, id])
 }
 
 model OutsideMealPreview {
