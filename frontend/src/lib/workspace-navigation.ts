@@ -157,11 +157,11 @@ export const workspaceTools: Record<WorkspaceRole, WorkspaceTool[]> = {
       icon: Soup,
     },
     {
-      label: 'Meal images',
-      href: '/admin/images',
-      description: 'Assign and review meal photographs and attribution.',
+      label: 'Meal library',
+      href: '/admin/library',
+      description: 'Browse shared recipes and flag meals for nutritionist review.',
       group: 'Content & evidence',
-      icon: ImageIcon,
+      icon: Soup,
     },
     {
       label: 'Website content',
@@ -191,7 +191,7 @@ export const primaryWorkspaceTools: Record<WorkspaceRole, WorkspaceTool[]> = {
     '/admin/nutritionists',
     '/admin/data',
     '/admin/meals',
-    '/admin/images',
+    '/admin/library',
     '/admin/website',
     '/admin/operations',
     '/admin/analytics',
@@ -204,7 +204,7 @@ export const primaryWorkspaceTools: Record<WorkspaceRole, WorkspaceTool[]> = {
           ? 'Overview'
           : ['/admin/users', '/admin/nutritionists'].includes(href)
             ? 'People'
-            : ['/admin/data', '/admin/meals', '/admin/images', '/admin/website'].includes(href)
+            : ['/admin/data', '/admin/meals', '/admin/library', '/admin/website'].includes(href)
               ? 'Content & data'
               : 'Operations',
     };

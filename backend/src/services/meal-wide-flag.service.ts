@@ -30,9 +30,27 @@ async function mealVariants(tx: Prisma.TransactionClient, mealId: string) {
 
 export async function flagWholeMeal(profileId: string, mealId: string, explanation: string) {
   const actor = await eligibleReviewer(profileId);
+  return flagMeal({ userId: actor.userId, nutritionistId: actor.id }, mealId, explanation);
+}
+
+/** Admins may raise concerns; only an eligible nutritionist can release a meal. */
+export async function flagWholeMealAsAdmin(userId: string, mealId: string, explanation: string) {
+  return flagMeal({ userId, nutritionistId: null }, mealId, explanation);
+}
+
+async function flagMeal(actor: { userId: string; nutritionistId: string | null }, mealId: string, explanation: string) {
   const reason = reviewReason(explanation);
   return prisma.$transaction(
     async (tx) => {
+      if (!actor.nutritionistId) {
+        const account = await tx.user.findUnique({
+          where: { id: actor.userId },
+          select: { role: true, isSuspended: true },
+        });
+        if (!account || account.role !== 'ADMIN' || account.isSuspended) {
+          throw new Error('Only an active administrator may flag a meal here.');
+        }
+      }
       const variants = await mealVariants(tx, mealId);
       if (!variants.length || variants.some((variant) => !['APPROVED', 'FLAGGED'].includes(variant.status))) {
         throw new Error('All serving variants must be available before this meal can be flagged.');
@@ -51,7 +69,8 @@ export async function flagWholeMeal(profileId: string, mealId: string, explanati
       await tx.mealLibraryFlag.createMany({
         data: ids.map((id) => ({
           mealLibraryId: id,
-          flaggedByNutritionistId: actor.id,
+          flaggedByNutritionistId: actor.nutritionistId,
+          flaggedByAdminUserId: actor.nutritionistId ? null : actor.userId,
           reason,
           status: FlagStatus.PENDING,
         })),
@@ -96,7 +115,7 @@ export async function flagWholeMeal(profileId: string, mealId: string, explanati
       });
       return { flaggedAt: now, affectedVariants: ids.length, affectedUsers: users.length };
     },
-    { isolationLevel: Prisma.TransactionIsolationLevel.Serializable }
+    { isolationLevel: Prisma.TransactionIsolationLevel.Serializable, maxWait: 10_000, timeout: 30_000 }
   );
 }
 
@@ -116,10 +135,12 @@ export async function releaseWholeMeal(profileId: string, mealId: string, findin
       const ids = variants.map((variant) => variant.id);
       const flags = await tx.mealLibraryFlag.findMany({
         where: { mealLibraryId: { in: ids }, status: FlagStatus.PENDING },
-        select: { id: true, flaggedByNutritionistId: true },
+        select: { id: true, flaggedByNutritionistId: true, flaggedByAdminUserId: true },
       });
       if (flags.length !== ids.length) throw new Error('The meal flag record is incomplete.');
-      if (flags.some((flag) => flag.flaggedByNutritionistId === actor.id)) {
+      if (
+        flags.some((flag) => flag.flaggedByNutritionistId === actor.id || flag.flaggedByAdminUserId === actor.userId)
+      ) {
         throw new Error('A different nutritionist must review and release this meal flag.');
       }
       const original = await tx.mealLibrary.findMany({
@@ -155,6 +176,6 @@ export async function releaseWholeMeal(profileId: string, mealId: string, findin
       });
       return { releasedVariants: ids.length };
     },
-    { isolationLevel: Prisma.TransactionIsolationLevel.Serializable }
+    { isolationLevel: Prisma.TransactionIsolationLevel.Serializable, maxWait: 10_000, timeout: 30_000 }
   );
 }

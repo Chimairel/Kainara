@@ -171,6 +171,7 @@ export class AdminService {
       include: {
         mealLibrary: { select: { id: true, mealName: true, status: true, safetyEvidenceStatus: true } },
         flaggedByNutritionist: { include: { user: { select: { name: true } } } },
+        flaggedByAdminUser: { select: { name: true } },
       },
     });
   }

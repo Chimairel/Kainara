@@ -41,7 +41,7 @@ export default function PortalRoleLayout({
               pathname === item.href ||
               pathname.startsWith(`${item.href}/`) ||
               (item.href === '/admin/users' && pathname === '/admin/nutritionists') ||
-              (item.href === '/admin/data' && ['/admin/images', '/admin/meals'].includes(pathname)) ||
+              (item.href === '/admin/data' && ['/admin/library', '/admin/meals'].includes(pathname)) ||
               (item.href === '/admin/more' && ['/admin/analytics', '/admin/website'].includes(pathname)) ||
               (item.href === '/nutritionist/reviews' &&
                 ['/nutritionist/outside-meals', '/nutritionist/approved'].includes(pathname));

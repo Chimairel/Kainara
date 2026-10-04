@@ -809,6 +809,7 @@ model User {
   healthProfileRevisions           HealthProfileRevision[]
   safetyProfileEntries             SafetyProfileEntry[]
   auditEvents                      AuditEvent[]
+  submittedAdminMealFlags          MealLibraryFlag[]                @relation("AdminMealFlags")
   outsideMealPreviews              OutsideMealPreview[]
   outsideMealAiUsage               OutsideMealAiUsage[]
   observedMealSubmissions          ObservedMealSubmission[]
@@ -2556,8 +2557,10 @@ model MealLibraryFlag {
   id                      String              @id @default(cuid())
   mealLibraryId           String
   mealLibrary             MealLibrary         @relation("MealFlags", fields: [mealLibraryId], references: [id], onDelete: Cascade)
-  flaggedByNutritionistId String
-  flaggedByNutritionist   NutritionistProfile @relation("SubmittedFlags", fields: [flaggedByNutritionistId], references: [id], onDelete: Cascade)
+  flaggedByNutritionistId String?
+  flaggedByNutritionist   NutritionistProfile? @relation("SubmittedFlags", fields: [flaggedByNutritionistId], references: [id], onDelete: Cascade)
+  flaggedByAdminUserId    String?
+  flaggedByAdminUser      User?                @relation("AdminMealFlags", fields: [flaggedByAdminUserId], references: [id], onDelete: Restrict)
   reason                  String              @db.Text
   status                  FlagStatus          @default(PENDING)
   resolvedAt              DateTime?

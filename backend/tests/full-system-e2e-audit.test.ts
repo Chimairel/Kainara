@@ -153,7 +153,7 @@ test('[TEST-146-EXT] nutritionist application emails capture valid events in tes
 
 test('[TEST-147][DEF-032/035] library reuse follows the catalogue and public copy does not claim budget support', () => {
   const script = require('node:fs').readFileSync('scripts/library-reuse-acceptance.ts', 'utf8');
-  const landing = require('node:fs').readFileSync('../frontend/src/app/page.tsx', 'utf8');
+  const landing = require('node:fs').readFileSync('../frontend/src/components/landing/LandingHome.tsx', 'utf8');
   assert.match(script, /COMMON_MEAL_CATALOGUE\.length/);
   assert.match(script, /example\.invalid/);
   assert.doesNotMatch(script, /assert\.equal\(\s*catalogue\.length,\s*30/);

@@ -271,6 +271,7 @@ export class NutritionistLibraryService {
         },
         flags: {
           include: {
+            flaggedByAdminUser: { select: { name: true } },
             flaggedByNutritionist: {
               include: {
                 user: {

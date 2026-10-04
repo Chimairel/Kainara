@@ -23,7 +23,8 @@ interface SafetyIncident {
   reason: string;
   createdAt: string;
   mealLibrary: { mealName: string; status: string; safetyEvidenceStatus: string };
-  flaggedByNutritionist: { user: { name: string } };
+  flaggedByNutritionist: { user: { name: string } } | null;
+  flaggedByAdminUser?: { name: string } | null;
 }
 
 interface StructuredSafetyOperations {
@@ -124,8 +125,12 @@ export default function AdminOperationsPage() {
                   <p className="font-bold text-brand-text">{incident.mealLibrary.mealName}</p>
                   <p className="mt-1 text-sm text-brand-muted">{incident.reason}</p>
                   <p className="mt-2 font-mono text-[10px] uppercase tracking-wider text-brand-muted">
-                    Flagged by {incident.flaggedByNutritionist.user.name} ·{' '}
-                    {new Date(incident.createdAt).toLocaleString()}
+                    Flagged by{' '}
+                    {incident.flaggedByNutritionist?.user.name ??
+                      (incident.flaggedByAdminUser
+                        ? `${incident.flaggedByAdminUser.name} (admin)`
+                        : 'Former reviewer')}{' '}
+                    · {new Date(incident.createdAt).toLocaleString()}
                   </p>
                 </div>
               </div>

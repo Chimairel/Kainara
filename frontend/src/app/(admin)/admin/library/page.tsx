@@ -1,5 +1,5 @@
 import SharedMealLibraryWorkspace from '@/features/nutritionist-library/SharedMealLibraryWorkspace';
 
-export default function MealLibraryPage() {
-  return <SharedMealLibraryWorkspace />;
+export default function AdminMealLibraryPage() {
+  return <SharedMealLibraryWorkspace role="admin" />;
 }

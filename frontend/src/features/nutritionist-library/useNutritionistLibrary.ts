@@ -12,7 +12,8 @@ export interface Flag {
     user: {
       name: string;
     };
-  };
+  } | null;
+  flaggedByAdminUser?: { name: string } | null;
 }
 
 export interface Verifier {
@@ -209,7 +210,7 @@ const libraryResource = (
 ) =>
   `nutritionist-library:${JSON.stringify([search, mealType, conditionTag, verifiedByMe, adminDraftsOnly, status, page])}`;
 
-export function useNutritionistLibrary(loadCoverage = false) {
+export function useNutritionistLibrary(loadCoverage = false, role: 'nutritionist' | 'admin' = 'nutritionist') {
   const ownerId = useAuth().user?.userId;
   const [page, setPage] = useState(1);
 
@@ -233,10 +234,10 @@ export function useNutritionistLibrary(loadCoverage = false) {
 
   const query = useSessionQuery<LibraryPageData>({
     ownerId,
-    resource: libraryResource(search, mealType, conditionTag, verifiedByMe, adminDraftsOnly, status, page),
+    resource: `${role}:${libraryResource(search, mealType, conditionTag, verifiedByMe, adminDraftsOnly, status, page)}`,
     errorMessage: 'The verified meal library could not be loaded. Please try again.',
     fetcher: async () => {
-      const response = await api.get('/nutritionist/library', {
+      const response = await api.get(`/${role}/library`, {
         params: {
           search,
           mealType: mealType === 'All' ? undefined : mealType,
@@ -254,11 +255,11 @@ export function useNutritionistLibrary(loadCoverage = false) {
   });
   const coverageQuery = useSessionQuery<LibraryCoverage>({
     ownerId,
-    resource: 'nutritionist-library-coverage-v2',
+    resource: `${role}-library-coverage-v2`,
     enabled: loadCoverage,
     errorMessage: 'Recipe coverage could not be loaded.',
     fetcher: async () => {
-      const response = await api.get('/nutritionist/library-coverage');
+      const response = await api.get(role === 'admin' ? '/admin/library/coverage' : '/nutritionist/library-coverage');
       if (!response.data?.success) throw new Error('Recipe coverage could not be loaded.');
       return response.data.data;
     },

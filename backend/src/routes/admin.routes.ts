@@ -16,6 +16,7 @@ import adminDataRouter from '@/routes/admin-data.routes';
 import adminMealImagesRouter from '@/routes/admin-meal-images.routes';
 import adminMealsRouter from '@/routes/admin-meals.routes';
 import adminWebsiteContentRouter from '@/routes/admin-website-content.routes';
+import adminLibraryRouter from '@/routes/admin-library.routes';
 
 const router = Router();
 
@@ -26,6 +27,7 @@ router.use('/data', adminDataRouter);
 router.use('/meal-images', adminMealImagesRouter);
 router.use('/meals', adminMealsRouter);
 router.use('/website-content', adminWebsiteContentRouter);
+router.use('/library', adminLibraryRouter);
 
 /**
  * GET /api/admin/analytics

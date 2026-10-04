@@ -154,8 +154,8 @@ const getBreadcrumbSegments = (
     if (pathname === '/admin/analytics') {
       return [{ label: 'Analytics', current: true }];
     }
-    if (pathname === '/admin/images') {
-      return [{ label: 'Media Library', current: true }];
+    if (pathname === '/admin/library') {
+      return [{ label: 'Meal library', current: true }];
     }
     if (pathname === '/admin/profile') {
       return [{ label: 'Admin Profile', current: true }];

@@ -305,8 +305,8 @@ export default function AdminMealsPage() {
               </p></div>
             <div className="flex flex-wrap gap-2">
               {draft.canEdit && <Button size="sm" variant="secondary" onClick={() => edit(draft)}>Edit draft</Button>}
-              <Link href="/admin/images" className="inline-flex items-center gap-2 rounded-xl border border-brand-border px-3 py-2 text-xs font-bold text-brand-text hover:border-brand-green">
-                <BookOpenText className="h-4 w-4" /> Add photo
+              <Link href="/admin/library" className="inline-flex items-center gap-2 rounded-xl border border-brand-border px-3 py-2 text-xs font-bold text-brand-text hover:border-brand-green">
+                <BookOpenText className="h-4 w-4" /> View library
               </Link>
             </div>
           </Card>

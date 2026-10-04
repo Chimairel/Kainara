@@ -54,7 +54,7 @@ export default function NutritionistAuditPage() {
         <section className="overflow-hidden rounded-2xl border border-brand-border/70 bg-brand-surface shadow-sm">
           <div className="flex items-center justify-between gap-3 border-b border-brand-border/70 p-5">
             <div><h2 className="font-display text-xl font-black">Activity history</h2>
-              <p className="mt-1 text-xs text-brand-muted">Nutritionist review actions across the workspace.</p></div>
+              <p className="mt-1 text-xs text-brand-muted">Review decisions and meal flags across the workspace.</p></div>
             <button type="button" onClick={() => void load()} className="rounded-xl border border-brand-border px-3 py-2 text-xs font-bold hover:border-brand-green">Refresh</button>
           </div>
           {error && <p role="alert" className="p-5 text-sm text-status-error-text">{error}</p>}
@@ -62,7 +62,7 @@ export default function NutritionistAuditPage() {
           {history && <>
             <div className="overflow-x-auto"><table className="w-full min-w-[720px] text-left text-sm">
               <thead className="bg-brand-bgAlt/50 text-[10px] uppercase tracking-wider text-brand-muted"><tr>
-                <th className="p-3">Date and time</th><th className="p-3">Nutritionist</th>
+                <th className="p-3">Date and time</th><th className="p-3">Reviewer</th>
                 <th className="p-3">Action</th><th className="p-3">Subject</th><th className="p-3">Outcome</th>
               </tr></thead>
               <tbody>{history.rows.map((row) => <tr key={row.id} className="border-t border-brand-border/50">
