@@ -4,7 +4,7 @@ import { Prisma, type WebsiteContent } from '@prisma/client';
 import { v2 as cloudinary, type UploadApiResponse } from 'cloudinary';
 import prisma from '../src/lib/prisma';
 import { WebsiteContentService as Content } from '../src/services/website-content.service';
-import { landingConfigSchema, validateLandingUpload } from '../src/domain/landing-media.policy';
+import { landingConfigSchema, landingPosterUrl, validateLandingUpload } from '../src/domain/landing-media.policy';
 
 const imageResult = {
   public_id: 'nutrimind/landing/image-1',
@@ -125,6 +125,11 @@ test('draft/upload/publish/reset are atomic, protect published media, and reject
   await assert.rejects(() => Content.publish('admin-fixture', 3), /another session/);
   await Content.publish('admin-fixture', 4);
   assert.equal((await Content.getPublic())?.kind, 'video');
+  assert.equal(
+    (await Content.getPublic())?.posterUrl,
+    'https://res.cloudinary.com/test/video/upload/so_1/v1/nutrimind/landing/video-1.jpg'
+  );
+  assert.equal((await Content.getAdmin()).draft?.posterUrl, (await Content.getPublic())?.posterUrl);
   await assert.rejects(() => Content.upload('admin-fixture', 4, 'asset', video), /another session/);
   assert.equal(removed.length, 1);
   auditFails = true;
@@ -140,4 +145,22 @@ test('draft/upload/publish/reset are atomic, protect published media, and reject
   assert.equal((await Content.getAdmin()).revision, 6);
   assert.ok(actions.includes('WEBSITE_MEDIA_PUBLISHED'));
   assert.equal(actions.at(-1), 'WEBSITE_MEDIA_RESET');
+});
+
+test('video posters use one-second JPG frames, preserve the upload version and allow a custom override', () => {
+  const video = validateLandingUpload(videoResult, 'video');
+  const videoConfig = { ...config, asset: video };
+  const expected = 'https://res.cloudinary.com/test/video/upload/so_1/v1/nutrimind/landing/video-1.jpg';
+  assert.equal(landingPosterUrl(videoConfig), expected);
+  assert.equal(
+    landingPosterUrl({ ...videoConfig, asset: { ...video, url: video.url.replace('.mp4', '.webm') } }),
+    expected
+  );
+  assert.equal(landingPosterUrl({ ...videoConfig, poster: image }), image.url);
+  assert.equal(
+    landingPosterUrl({ ...videoConfig, asset: { ...video, duration: 0.5 } }),
+    expected.replace('so_1', 'so_0')
+  );
+  assert.equal(landingPosterUrl(config), null);
+  assert.equal(landingPosterUrl(null), null);
 });

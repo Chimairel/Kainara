@@ -92,7 +92,7 @@ export default function LandingMediaDisplay({ media }: { media: LandingMedia | n
         key={media.url}
         ref={videoRef}
         src={media.url}
-        poster={media.posterUrl || '/dashboard-actual.png'}
+        poster={media.posterUrl || undefined}
         muted={muted}
         loop
         playsInline

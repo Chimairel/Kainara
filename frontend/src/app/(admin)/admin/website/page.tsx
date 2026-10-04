@@ -169,6 +169,9 @@ export default function WebsiteContentPage() {
                 className="mt-2 block w-full text-sm"
               />
             </label>
+            <p className="text-xs text-brand-muted">
+              Videos use a frame at one second as their poster. Upload an image above to replace it.
+            </p>
             <label className="block text-sm font-semibold">
               Media description
               <input

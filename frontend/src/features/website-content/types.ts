@@ -13,6 +13,7 @@ export interface LandingAsset {
 export interface LandingConfig {
   asset: LandingAsset | null;
   poster: LandingAsset | null;
+  posterUrl?: string | null;
   altText: string;
 }
 export interface WebsiteContent {
@@ -23,6 +24,11 @@ export interface WebsiteContent {
 }
 export function toLandingMedia(config: LandingConfig | null): LandingMedia | null {
   return config?.asset
-    ? { kind: config.asset.kind, url: config.asset.url, posterUrl: config.poster?.url ?? null, altText: config.altText }
+    ? {
+        kind: config.asset.kind,
+        url: config.asset.url,
+        posterUrl: config.poster?.url ?? config.posterUrl ?? null,
+        altText: config.altText,
+      }
     : null;
 }

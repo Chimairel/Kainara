@@ -69,3 +69,12 @@ it('does not autoplay when reduced motion is requested', () => {
   intersect([{ isIntersecting: true, intersectionRatio: 1 } as IntersectionObserverEntry], {} as IntersectionObserver);
   expect(container.querySelector('video')!.play).not.toHaveBeenCalled();
 });
+
+it('does not use the old screenshot as a missing video poster, but keeps the failure fallback', () => {
+  const { container } = render(<LandingMediaDisplay media={{ ...video, posterUrl: null }} />);
+  const element = container.querySelector('video')!;
+  expect(element).not.toHaveAttribute('poster');
+  expect(screen.queryByRole('img')).not.toBeInTheDocument();
+  fireEvent.error(element);
+  expect(screen.getByRole('img')).toHaveAttribute('src', '/dashboard-actual.png');
+});

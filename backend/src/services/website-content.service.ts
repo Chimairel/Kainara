@@ -8,17 +8,22 @@ import {
   LANDING_VIDEO_BYTES,
   defaultLandingDraft,
   landingConfigSchema,
+  landingPosterUrl,
   landingMimeTypes,
   validateLandingUpload,
   type LandingConfig,
 } from '@/domain/landing-media.policy';
 
 const parse = (value: unknown): LandingConfig | null => (value == null ? null : landingConfigSchema.parse(value));
+const displayConfig = (value: unknown) => {
+  const config = parse(value);
+  return config ? { ...config, posterUrl: landingPosterUrl(config) } : null;
+};
 const json = (value: LandingConfig) => value as unknown as Prisma.InputJsonObject;
 const workspace = (row: { revision: number; draft: unknown; published: unknown; publishedAt: Date | null } | null) => ({
   revision: row?.revision ?? 0,
-  draft: parse(row?.draft),
-  published: parse(row?.published),
+  draft: displayConfig(row?.draft),
+  published: displayConfig(row?.published),
   publishedAt: row?.publishedAt ?? null,
 });
 
@@ -39,7 +44,7 @@ export class WebsiteContentService {
     return {
       kind: config.asset.kind,
       url: config.asset.url,
-      posterUrl: config.poster?.url ?? null,
+      posterUrl: landingPosterUrl(config),
       altText: config.altText,
     };
   }

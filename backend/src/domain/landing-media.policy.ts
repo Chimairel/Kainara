@@ -74,3 +74,16 @@ export function validateLandingUpload(result: UploadApiResponse, kind: 'image' |
     );
   return parsed.data;
 }
+
+/** Cloudinary extracts a JPG frame without storing a second upload in Neon. */
+export function landingPosterUrl(config: LandingConfig | null): string | null {
+  if (config?.poster) return config.poster.url;
+  if (config?.asset?.kind !== 'video') return null;
+  const url = new URL(config.asset.url);
+  // Videos shorter than a second use their opening frame instead of seeking past the end.
+  const offset = config.asset.duration! > 1 ? 1 : 0;
+  url.pathname = url.pathname
+    .replace('/video/upload/', `/video/upload/so_${offset}/`)
+    .replace(/\.(mp4|webm)$/i, '.jpg');
+  return url.toString();
+}
