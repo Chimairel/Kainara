@@ -1,5 +1,5 @@
-import SharedMealLibraryWorkspace from '@/features/nutritionist-library/SharedMealLibraryWorkspace';
+import { redirect } from 'next/navigation';
 
-export default function AdminMealLibraryPage() {
-  return <SharedMealLibraryWorkspace role="admin" />;
+export default function LegacyPage() {
+  redirect('/admin/meals?tab=library');
 }

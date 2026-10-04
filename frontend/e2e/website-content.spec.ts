@@ -54,13 +54,15 @@ for (const upload of [
     ).toString('base64url');
     await page.context().addCookies([{ name: 'nutrimind_session', value: `fixture.${payload}.fixture`, url: origin }]);
     let revision = 0;
-    let draft: {
-      asset: typeof upload.asset;
-      poster: typeof image | null;
+    type FixtureAsset = { kind: string; url: string; bytes: number; duration: number | null };
+    type FixtureDraft = {
+      asset: FixtureAsset;
+      poster: FixtureAsset | null;
       posterUrl?: string | null;
       altText: string;
-    } | null = null;
-    let published: typeof draft = null;
+    };
+    let draft: FixtureDraft | null = null;
+    let published: FixtureDraft | null = null;
     let publishCount = 0;
     let uploadCount = 0;
     await page.route('https://res.cloudinary.com/**', (route) =>

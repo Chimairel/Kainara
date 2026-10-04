@@ -477,7 +477,7 @@ export default function NotificationDropdown() {
                         if (!notif.isRead) void markAsRead(notif.id).catch(() => undefined);
                         if (notif.type === 'NUTRITIONIST_APPLICATION' && user?.role === 'ADMIN') {
                           setIsOpen(false);
-                          router.push('/admin/nutritionists');
+                          router.push('/admin/users?tab=nutritionists');
                         } else if (notif.type === 'REVIEW_REQUEST' && user?.role === 'NUTRITIONIST') {
                           setIsOpen(false);
                           router.push('/nutritionist/reviews');

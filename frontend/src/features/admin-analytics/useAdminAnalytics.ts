@@ -1,12 +1,13 @@
 'use client';
-import { LIVE_UPDATE_EVENT } from '@/lib/live-events';
-
-import { useEffect, useRef, useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
+import { useSessionQuery } from '@/hooks/useSessionQuery';
 import api from '@/lib/axios';
-import { readSessionResource, writeSessionResource } from '@/lib/session-resource-cache';
 
 export interface AdminAnalytics {
+  generatedAt: string;
+  approvedUpcomingMealSlots: number;
+  usdaFoodItems: number;
+  planningAiOperations30d: number;
   totalUsers: number;
   totalNutritionists: number;
   verifiedNutritionists: number;
@@ -38,132 +39,86 @@ export interface AdminAnalytics {
   rawRecipeCandidates: number;
   aiUsageByOperation30d: Array<{ operation: string; purpose: string; status: string; count: number }>;
   planSelectionsByProvenance30d: Array<{ provenance: string; count: number }>;
-  geminiFromScratchSelectionRate30d: number;
-  geminiPlanningInvocationsPer100Selections30d: number;
 }
 
-const CACHE_KEY = 'admin-analytics';
+const countKeys = [
+  'approvedUpcomingMealSlots',
+  'usdaFoodItems',
+  'planningAiOperations30d',
+  'totalUsers',
+  'totalNutritionists',
+  'verifiedNutritionists',
+  'activeMealPlans',
+  'pendingReviews',
+  'libraryCount',
+  'totalMealLogs',
+  'totalFoodItems',
+  'totalAliases',
+  'overdueReviews',
+  'activeReviewClaims',
+  'expiredVerifiedNutritionists',
+  'completeLibraryEvidence',
+  'incompleteLibraryEvidence',
+  'staleLibraryEvidence',
+  'failedGenerationJobs24h',
+  'stuckGenerationJobs',
+  'aiSuccess24h',
+  'aiFailures24h',
+  'adaptationReviews30d',
+  'pendingPlansStartingSoon',
+  'activeConditionClearances',
+  'rawRecipeCandidates',
+] as const;
 
 function objectValue(value: unknown): Record<string, unknown> | null {
   return value && typeof value === 'object' && !Array.isArray(value) ? (value as Record<string, unknown>) : null;
 }
+const validCount = (value: unknown) => typeof value === 'number' && Number.isSafeInteger(value) && value >= 0;
 
-function numberValue(record: Record<string, unknown>, key: string): number {
-  const value = record[key];
-  return typeof value === 'number' && Number.isFinite(value) ? value : 0;
-}
-
-function stringValue(value: unknown, fallback = 'UNKNOWN'): string {
-  return typeof value === 'string' && value.trim() ? value : fallback;
-}
-
+/** An absent metric is unavailable, never an invented zero. Old caches are not accepted. */
 export function normalizeAdminAnalytics(value: unknown): AdminAnalytics | null {
   const record = objectValue(value);
-  if (!record) return null;
-  const clearances = Array.isArray(record.activeClearancesByCondition) ? record.activeClearancesByCondition : [];
-  const aiUsage = Array.isArray(record.aiUsageByOperation30d) ? record.aiUsageByOperation30d : [];
-  const selections = Array.isArray(record.planSelectionsByProvenance30d) ? record.planSelectionsByProvenance30d : [];
-
-  return {
-    totalUsers: numberValue(record, 'totalUsers'),
-    totalNutritionists: numberValue(record, 'totalNutritionists'),
-    verifiedNutritionists: numberValue(record, 'verifiedNutritionists'),
-    activeMealPlans: numberValue(record, 'activeMealPlans'),
-    pendingReviews: numberValue(record, 'pendingReviews'),
-    libraryCount: numberValue(record, 'libraryCount'),
-    totalMealLogs: numberValue(record, 'totalMealLogs'),
-    totalFoodItems: numberValue(record, 'totalFoodItems'),
-    totalAliases: numberValue(record, 'totalAliases'),
-    overdueReviews: numberValue(record, 'overdueReviews'),
-    activeReviewClaims: numberValue(record, 'activeReviewClaims'),
-    expiredVerifiedNutritionists: numberValue(record, 'expiredVerifiedNutritionists'),
-    completeLibraryEvidence: numberValue(record, 'completeLibraryEvidence'),
-    incompleteLibraryEvidence: numberValue(record, 'incompleteLibraryEvidence'),
-    staleLibraryEvidence: numberValue(record, 'staleLibraryEvidence'),
-    failedGenerationJobs24h: numberValue(record, 'failedGenerationJobs24h'),
-    stuckGenerationJobs: numberValue(record, 'stuckGenerationJobs'),
-    aiSuccess24h: numberValue(record, 'aiSuccess24h'),
-    aiFailures24h: numberValue(record, 'aiFailures24h'),
-    adaptationReviews30d: numberValue(record, 'adaptationReviews30d'),
-    pendingPlansStartingSoon: numberValue(record, 'pendingPlansStartingSoon'),
-    activeConditionClearances: numberValue(record, 'activeConditionClearances'),
-    rawRecipeCandidates: numberValue(record, 'rawRecipeCandidates'),
-    geminiFromScratchSelectionRate30d: numberValue(record, 'geminiFromScratchSelectionRate30d'),
-    geminiPlanningInvocationsPer100Selections30d: numberValue(record, 'geminiPlanningInvocationsPer100Selections30d'),
-    activeClearancesByCondition: clearances.flatMap((item) => {
-      const row = objectValue(item);
-      return row
-        ? [
-            {
-              condition: stringValue(row.condition),
-              assuranceTier: stringValue(row.assuranceTier),
-              provenance: stringValue(row.provenance),
-              count: numberValue(row, 'count'),
-            },
-          ]
-        : [];
-    }),
-    aiUsageByOperation30d: aiUsage.flatMap((item) => {
-      const row = objectValue(item);
-      return row
-        ? [
-            {
-              operation: stringValue(row.operation),
-              purpose: stringValue(row.purpose, 'UNSPECIFIED'),
-              status: stringValue(row.status),
-              count: numberValue(row, 'count'),
-            },
-          ]
-        : [];
-    }),
-    planSelectionsByProvenance30d: selections.flatMap((item) => {
-      const row = objectValue(item);
-      return row ? [{ provenance: stringValue(row.provenance), count: numberValue(row, 'count') }] : [];
-    }),
+  if (!record || typeof record.generatedAt !== 'string' || !Number.isFinite(Date.parse(record.generatedAt)))
+    return null;
+  if (countKeys.some((key) => !validCount(record[key]))) return null;
+  const groups = {
+    activeClearancesByCondition: ['condition', 'assuranceTier', 'provenance'],
+    aiUsageByOperation30d: ['operation', 'purpose', 'status'],
+    planSelectionsByProvenance30d: ['provenance'],
   };
+  const normalized = { ...record };
+  for (const [key, fields] of Object.entries(groups)) {
+    if (!Array.isArray(record[key])) return null;
+    const rows = record[key].map((item: unknown) => {
+      const row = objectValue(item);
+      return row
+        ? { ...row, ...(key === 'aiUsageByOperation30d' && row.purpose === null ? { purpose: 'UNSPECIFIED' } : {}) }
+        : null;
+    });
+    if (
+      rows.some(
+        (row: Record<string, unknown> | null) =>
+          !row || !validCount(row.count) || fields.some((field) => typeof row[field] !== 'string' || !row[field])
+      )
+    )
+      return null;
+    normalized[key] = rows;
+  }
+  return normalized as unknown as AdminAnalytics;
 }
 
-export function useAdminAnalytics() {
-  const { user } = useAuth();
-  const ownerId = user?.userId;
-  const initialCached = useRef(normalizeAdminAnalytics(readSessionResource<unknown>(ownerId, CACHE_KEY)));
-  const [data, setData] = useState<AdminAnalytics | null>(initialCached.current);
-  const [isLoading, setIsLoading] = useState(!initialCached.current);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!ownerId) return;
-
-    let active = true;
-    const fetchAnalytics = async () => {
-      try {
-        const response = await api.get('/admin/analytics');
-        if (!active || !response.data?.success) return;
-        const next = normalizeAdminAnalytics(response.data.data);
-        if (!next) throw new Error('Analytics response was malformed.');
-        setData(next);
-        writeSessionResource(ownerId, CACHE_KEY, next);
-        setError(null);
-      } catch (reason) {
-        console.error('Failed to fetch analytics:', reason);
-        if (active && !initialCached.current) setError('Failed to load analytics.');
-      } finally {
-        if (active) setIsLoading(false);
-      }
-    };
-
-    void fetchAnalytics();
-    const refresh = () => {
-      if (document.visibilityState === 'visible') void fetchAnalytics();
-    };
-    const interval = window.setInterval(refresh, 15000);
-    window.addEventListener(LIVE_UPDATE_EVENT, refresh);
-    return () => {
-      window.clearInterval(interval);
-      window.removeEventListener(LIVE_UPDATE_EVENT, refresh);
-      active = false;
-    };
-  }, [ownerId]);
-
-  return { data, error, isLoading };
+export function useAdminAnalytics(active = true) {
+  const ownerId = useAuth().user?.userId;
+  return useSessionQuery<AdminAnalytics>({
+    ownerId,
+    resource: 'admin-analytics-v3',
+    enabled: active,
+    errorMessage: 'Platform statistics could not be refreshed. Please try again.',
+    fetcher: async () => {
+      const response = await api.get('/admin/analytics');
+      const next = response.data?.success ? normalizeAdminAnalytics(response.data.data) : null;
+      if (!next) throw new Error('Platform statistics are incomplete. Please reload or try again later.');
+      return next;
+    },
+  });
 }

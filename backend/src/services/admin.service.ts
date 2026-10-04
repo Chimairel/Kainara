@@ -1,4 +1,6 @@
 import prisma from '@/lib/prisma';
+import { Prisma } from '@prisma/client';
+import { AdminAnalyticsService } from '@/services/admin-analytics.service';
 import { normalizePagination, normalizeSearch } from '@/policies/pagination.policy';
 import { enforceClearanceCircuitBreakers } from '@/services/condition-clearance.service';
 
@@ -63,7 +65,17 @@ export class AdminService {
         isVerified: true,
         totalVerified: true,
         verifiedAt: true,
-        user: { select: { id: true, name: true, email: true, image: true, isSuspended: true, suspensionReason: true } },
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            image: true,
+            role: true,
+            isSuspended: true,
+            suspensionReason: true,
+          },
+        },
       },
       orderBy: [{ isVerified: 'asc' }, { userId: 'asc' }],
     });
@@ -169,15 +181,31 @@ export class AdminService {
   }
 
   static async getSafetyIncidents() {
-    return prisma.mealLibraryFlag.findMany({
-      where: { status: 'PENDING' },
-      orderBy: { createdAt: 'asc' },
-      include: {
-        mealLibrary: { select: { id: true, mealName: true, status: true, safetyEvidenceStatus: true } },
-        flaggedByNutritionist: { include: { user: { select: { name: true } } } },
-        flaggedByAdminUser: { select: { name: true } },
-      },
-    });
+    // A whole-meal flag fans out to every serving. Show one concern with its serving count.
+    const rows = await prisma.$queryRaw<Array<{ incident: Prisma.JsonValue }>>(Prisma.sql`
+      WITH flags AS (
+        SELECT f.*, COALESCE(root."sourceRawRecipeCandidateId", m."sourceRawRecipeCandidateId", m."recipeFamilyId", m.id) AS family,
+          COALESCE(root."mealName", m."mealName") AS "mealName", m.status AS "mealStatus",
+          m."safetyEvidenceStatus", u.name AS "reviewerName", a.name AS "adminName"
+        FROM "MealLibraryFlag" f JOIN "MealLibrary" m ON m.id = f."mealLibraryId"
+        LEFT JOIN "MealLibrary" root ON root.id = m."recipeFamilyId"
+        LEFT JOIN "NutritionistProfile" n ON n.id = f."flaggedByNutritionistId"
+        LEFT JOIN "User" u ON u.id = n."userId" LEFT JOIN "User" a ON a.id = f."flaggedByAdminUserId"
+        WHERE f.status = 'PENDING'
+      ), grouped AS (
+        SELECT *, row_number() OVER concerns AS position, count(*) OVER concerns AS servings
+        FROM flags WINDOW concerns AS (PARTITION BY family, "flaggedByNutritionistId", "flaggedByAdminUserId", "createdAt", reason ORDER BY id
+          ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING)
+      )
+      SELECT jsonb_build_object(
+        'id', id, 'reason', reason, 'createdAt', to_char("createdAt", 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"'),
+        'affectedServingCount', servings,
+        'mealLibrary', jsonb_build_object('id', "mealLibraryId", 'mealName', "mealName", 'status', "mealStatus", 'safetyEvidenceStatus', "safetyEvidenceStatus"),
+        'flaggedByNutritionist', CASE WHEN "flaggedByNutritionistId" IS NOT NULL THEN jsonb_build_object('user', jsonb_build_object('name', "reviewerName")) ELSE NULL END,
+        'flaggedByAdminUser', CASE WHEN "flaggedByAdminUserId" IS NOT NULL THEN jsonb_build_object('name', "adminName") ELSE NULL END
+      ) AS incident FROM grouped WHERE position = 1 ORDER BY "createdAt", id
+    `);
+    return rows.map((row) => row.incident);
   }
 
   static async getStructuredSafetyOperations() {
@@ -185,11 +213,12 @@ export class AdminService {
     const [groupedEntries, reviewUsers] = await Promise.all([
       prisma.safetyProfileEntry.groupBy({
         by: ['domain', 'supportState'],
+        where: { user: { role: 'USER', isSuspended: false } },
         _count: { _all: true },
         orderBy: [{ domain: 'asc' }, { supportState: 'asc' }],
       }),
       prisma.safetyProfileEntry.findMany({
-        where: { supportState: { in: [...reviewStates] } },
+        where: { supportState: { in: [...reviewStates] }, user: { role: 'USER', isSuspended: false } },
         distinct: ['userId'],
         select: { userId: true },
       }),
@@ -204,149 +233,8 @@ export class AdminService {
     };
   }
 
-  /**
-   * Returns aggregate platform analytics.
-   */
-  static async getAnalytics() {
-    const now = new Date();
-    const twoHoursAgo = new Date(now.getTime() - 2 * 60 * 60 * 1000);
-    const thirtyMinutesAgo = new Date(now.getTime() - 30 * 60 * 1000);
-    const twentyMinutesAgo = new Date(now.getTime() - 20 * 60 * 1000);
-    const twentyFourHoursAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
-    const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-    const inFortyEightHours = new Date(now.getTime() + 48 * 60 * 60 * 1000);
-    const [
-      totalUsers,
-      totalNutritionists,
-      verifiedNutritionists,
-      activeMealPlans,
-      pendingReviews,
-      libraryCount,
-      totalMealLogs,
-      totalFoodItems,
-      totalAliases,
-      overdueReviews,
-      activeReviewClaims,
-      expiredVerifiedNutritionists,
-      completeLibraryEvidence,
-      incompleteLibraryEvidence,
-      staleLibraryEvidence,
-      failedGenerationJobs24h,
-      stuckGenerationJobs,
-      aiSuccess24h,
-      aiFailures24h,
-      adaptationReviews30d,
-      pendingPlansStartingSoon,
-      aiUsageByOperation30d,
-      planSelectionsByProvenance30d,
-      activeConditionClearances,
-      activeClearancesByCondition,
-      rawRecipeCandidates,
-    ] = await Promise.all([
-      prisma.user.count({ where: { role: 'USER' } }),
-      prisma.nutritionistProfile.count(),
-      prisma.nutritionistProfile.count({ where: { isVerified: true } }),
-      prisma.mealPlan.count({ where: { status: 'APPROVED' } }),
-      prisma.mealPlan.count({ where: { status: 'PENDING_REVIEW' } }),
-      prisma.mealLibrary.count(),
-      prisma.mealLog.count(),
-      prisma.foodItem.count(),
-      prisma.foodAlias.count(),
-      prisma.mealPlan.count({ where: { status: 'PENDING_REVIEW', createdAt: { lt: twoHoursAgo } } }),
-      prisma.mealPlan.count({
-        where: {
-          status: 'PENDING_REVIEW',
-          claimedByNutritionistId: { not: null },
-          claimedAt: { gte: thirtyMinutesAgo },
-        },
-      }),
-      prisma.nutritionistProfile.count({ where: { isVerified: true, prcLicenseExpiry: { lt: now } } }),
-      prisma.mealLibrary.count({ where: { status: 'APPROVED', safetyEvidenceStatus: 'COMPLETE' } }),
-      prisma.mealLibrary.count({ where: { safetyEvidenceStatus: 'INCOMPLETE' } }),
-      prisma.mealLibrary.count({ where: { safetyEvidenceStatus: 'STALE' } }),
-      prisma.mealPlanGenerationJob.count({ where: { status: 'FAILED', updatedAt: { gte: twentyFourHoursAgo } } }),
-      prisma.mealPlanGenerationJob.count({ where: { status: 'GENERATING', updatedAt: { lt: twentyMinutesAgo } } }),
-      prisma.aiUsageEvent.count({ where: { status: 'SUCCESS', createdAt: { gte: twentyFourHoursAgo } } }),
-      prisma.aiUsageEvent.count({ where: { status: 'FAILED', createdAt: { gte: twentyFourHoursAgo } } }),
-      prisma.weeklyCheckin.count({
-        where: { adaptationState: 'REVIEW_RECOMMENDED', createdAt: { gte: thirtyDaysAgo } },
-      }),
-      prisma.mealPlan.count({
-        where: {
-          status: 'PENDING_REVIEW',
-          scheduledDate: { gte: now, lte: inFortyEightHours },
-        },
-      }),
-      prisma.aiUsageEvent.groupBy({
-        by: ['operation', 'purpose', 'status'],
-        where: { createdAt: { gte: thirtyDaysAgo } },
-        _count: { _all: true },
-      }),
-      prisma.mealPlan.groupBy({
-        by: ['candidateProvenance'],
-        where: { createdAt: { gte: thirtyDaysAgo } },
-        _count: { _all: true },
-      }),
-      prisma.mealConditionClearance.count({ where: { state: 'ACTIVE' } }),
-      prisma.mealConditionClearance.groupBy({
-        by: ['condition', 'assuranceTier', 'provenance'],
-        where: { state: 'ACTIVE' },
-        _count: { _all: true },
-      }),
-      prisma.rawRecipeCandidate.count({ where: { status: 'AVAILABLE' } }),
-    ]);
-
-    const generatedSelections = planSelectionsByProvenance30d.reduce((sum, row) => sum + row._count._all, 0);
-    const aiGeneratedSelections =
-      planSelectionsByProvenance30d.find((row) => row.candidateProvenance === 'AI_FROM_SCRATCH')?._count._all ?? 0;
-    const planningInvocations = aiUsageByOperation30d
-      .filter((row) => row.operation === 'MEAL_PLAN_CORPUS_LOOKUP' || row.operation === 'MEAL_PLAN_GENERATION')
-      .reduce((sum, row) => sum + row._count._all, 0);
-
-    return {
-      totalUsers,
-      totalNutritionists,
-      verifiedNutritionists,
-      activeMealPlans,
-      pendingReviews,
-      libraryCount,
-      totalMealLogs,
-      totalFoodItems,
-      totalAliases,
-      overdueReviews,
-      activeReviewClaims,
-      expiredVerifiedNutritionists,
-      completeLibraryEvidence,
-      incompleteLibraryEvidence,
-      staleLibraryEvidence,
-      failedGenerationJobs24h,
-      stuckGenerationJobs,
-      aiSuccess24h,
-      aiFailures24h,
-      adaptationReviews30d,
-      pendingPlansStartingSoon,
-      activeConditionClearances,
-      activeClearancesByCondition: activeClearancesByCondition.map((row) => ({
-        condition: row.condition,
-        assuranceTier: row.assuranceTier,
-        provenance: row.provenance,
-        count: row._count._all,
-      })),
-      rawRecipeCandidates,
-      aiUsageByOperation30d: aiUsageByOperation30d.map((row) => ({
-        operation: row.operation,
-        purpose: row.purpose ?? 'UNSPECIFIED',
-        status: row.status,
-        count: row._count._all,
-      })),
-      planSelectionsByProvenance30d: planSelectionsByProvenance30d.map((row) => ({
-        provenance: row.candidateProvenance,
-        count: row._count._all,
-      })),
-      geminiFromScratchSelectionRate30d:
-        generatedSelections > 0 ? Math.round((aiGeneratedSelections / generatedSelections) * 10_000) / 100 : 0,
-      geminiPlanningInvocationsPer100Selections30d:
-        generatedSelections > 0 ? Math.round((planningInvocations / generatedSelections) * 10_000) / 100 : 0,
-    };
+  /** Read-only, consistent platform metrics; no lifecycle synchronization writes. */
+  static getAnalytics() {
+    return AdminAnalyticsService.getSnapshot();
   }
 }

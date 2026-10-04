@@ -7,11 +7,9 @@ import {
   HeartPulse,
   Home,
   ImageIcon,
-  ShieldCheck,
   ShoppingCart,
   ScrollText,
   Soup,
-  Stethoscope,
   User,
   Users,
 } from 'lucide-react';
@@ -101,7 +99,7 @@ export const workspaceTools: Record<WorkspaceRole, WorkspaceTool[]> = {
     {
       label: 'Audit',
       href: '/nutritionist/audit',
-      description: 'Review clinical activity and due rechecks.',
+      description: 'Review recorded review activity and flags.',
       group: 'Review work',
       icon: ScrollText,
     },
@@ -110,23 +108,9 @@ export const workspaceTools: Record<WorkspaceRole, WorkspaceTool[]> = {
     {
       label: 'Overview',
       href: '/admin/overview',
-      description: 'Account totals, review queues, and platform signals.',
+      description: 'Platform statistics, AI activity, and safety operations.',
       group: 'Platform',
       icon: Home,
-    },
-    {
-      label: 'Analytics',
-      href: '/admin/analytics',
-      description: 'Explore nutrition and usage trends.',
-      group: 'Platform',
-      icon: Activity,
-    },
-    {
-      label: 'Operations',
-      href: '/admin/operations',
-      description: 'Monitor processing, reconciliation, and operational status.',
-      group: 'Platform',
-      icon: ShieldCheck,
     },
     {
       label: 'Audit',
@@ -136,18 +120,11 @@ export const workspaceTools: Record<WorkspaceRole, WorkspaceTool[]> = {
       icon: ScrollText,
     },
     {
-      label: 'Accounts',
+      label: 'People',
       href: '/admin/users',
-      description: 'Search and manage member, nutritionist and admin accounts.',
+      description: 'Manage accounts, nutritionist applications, and professional access.',
       group: 'People',
       icon: Users,
-    },
-    {
-      label: 'Nutritionists',
-      href: '/admin/nutritionists',
-      description: 'Applications, credential screening, and PRC verification.',
-      group: 'People',
-      icon: Stethoscope,
     },
     {
       label: 'Nutrition data',
@@ -157,16 +134,9 @@ export const workspaceTools: Record<WorkspaceRole, WorkspaceTool[]> = {
       icon: Database,
     },
     {
-      label: 'Author meals',
+      label: 'Meals',
       href: '/admin/meals',
-      description: 'Enter complete recipes for nutritionist evidence review.',
-      group: 'Content & evidence',
-      icon: Soup,
-    },
-    {
-      label: 'Meal library',
-      href: '/admin/library',
-      description: 'Browse shared recipes and flag meals for nutritionist review.',
+      description: 'Browse the shared library, flag meals, and author recipes for review.',
       group: 'Content & evidence',
       icon: Soup,
     },
@@ -192,29 +162,20 @@ export const primaryWorkspaceTools: Record<WorkspaceRole, WorkspaceTool[]> = {
     ['/dashboard', '/meals', '/grocery', '/progress', '/profile'].includes(tool.href)
   ),
   NUTRITIONIST: workspaceTools.NUTRITIONIST,
-  ADMIN: [
-    '/admin/overview',
-    '/admin/users',
-    '/admin/nutritionists',
-    '/admin/data',
-    '/admin/meals',
-    '/admin/library',
-    '/admin/website',
-    '/admin/operations',
-    '/admin/audit',
-    '/admin/analytics',
-  ].map((href) => {
-    const tool = workspaceTools.ADMIN.find((entry) => entry.href === href)!;
-    return {
-      ...tool,
-      group:
-        href === '/admin/overview'
-          ? 'Overview'
-          : ['/admin/users', '/admin/nutritionists'].includes(href)
-            ? 'People'
-            : ['/admin/data', '/admin/meals', '/admin/library', '/admin/website'].includes(href)
-              ? 'Content & data'
-              : 'Operations',
-    };
-  }),
+  ADMIN: ['/admin/overview', '/admin/users', '/admin/data', '/admin/meals', '/admin/website', '/admin/audit'].map(
+    (href) => {
+      const tool = workspaceTools.ADMIN.find((entry) => entry.href === href)!;
+      return {
+        ...tool,
+        group:
+          href === '/admin/overview'
+            ? 'Overview'
+            : ['/admin/users', '/admin/nutritionists'].includes(href)
+              ? 'People'
+              : ['/admin/data', '/admin/meals', '/admin/library', '/admin/website'].includes(href)
+                ? 'Content & data'
+                : 'Operations',
+      };
+    }
+  ),
 };

@@ -25,7 +25,7 @@ describe('equal nutritionist review permissions', () => {
     const prompt = vi.spyOn(window, 'prompt').mockReturnValue('Reviewed the recorded dispute evidence.');
     try {
       render(<GovernanceQueuePanel tab="disputed" />);
-      fireEvent.click(await screen.findByRole('button', { name: 'Approve', exact: true }));
+      fireEvent.click(await screen.findByRole('button', { name: 'Approve' }));
       await waitFor(() =>
         expect(api.post).toHaveBeenCalledWith('/nutritionist/review/legacy-case/dispute-resolution', {
           decision: 'APPROVE',

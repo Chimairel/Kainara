@@ -210,7 +210,11 @@ const libraryResource = (
 ) =>
   `nutritionist-library:${JSON.stringify([search, mealType, conditionTag, verifiedByMe, adminDraftsOnly, status, page])}`;
 
-export function useNutritionistLibrary(loadCoverage = false, role: 'nutritionist' | 'admin' = 'nutritionist') {
+export function useNutritionistLibrary(
+  loadCoverage = false,
+  role: 'nutritionist' | 'admin' = 'nutritionist',
+  active = true
+) {
   const ownerId = useAuth().user?.userId;
   const [page, setPage] = useState(1);
 
@@ -234,6 +238,7 @@ export function useNutritionistLibrary(loadCoverage = false, role: 'nutritionist
 
   const query = useSessionQuery<LibraryPageData>({
     ownerId,
+    enabled: active,
     resource: `${role}:${libraryResource(search, mealType, conditionTag, verifiedByMe, adminDraftsOnly, status, page)}`,
     errorMessage: 'The verified meal library could not be loaded. Please try again.',
     fetcher: async () => {
@@ -256,7 +261,7 @@ export function useNutritionistLibrary(loadCoverage = false, role: 'nutritionist
   const coverageQuery = useSessionQuery<LibraryCoverage>({
     ownerId,
     resource: `${role}-library-coverage-v2`,
-    enabled: loadCoverage,
+    enabled: active && loadCoverage,
     errorMessage: 'Recipe coverage could not be loaded.',
     fetcher: async () => {
       const response = await api.get(role === 'admin' ? '/admin/library/coverage' : '/nutritionist/library-coverage');

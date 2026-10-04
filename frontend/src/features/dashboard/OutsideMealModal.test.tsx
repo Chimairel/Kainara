@@ -303,7 +303,7 @@ describe('OutsideMealModal', () => {
     const onSubmit = vi.fn();
     render(<OutsideMealModal {...defaultProps} isLoading onSubmit={onSubmit} />);
     expect(screen.getByRole('button', { name: /LOG THIS FOOD/i })).toBeDisabled();
-    expect(screen.getByRole('button', { name: 'Breakfast', exact: true })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Breakfast' })).toBeDisabled();
     expect(screen.queryByText('Processing...')).not.toBeInTheDocument();
     fireEvent.submit(screen.getByRole('button', { name: /LOG THIS FOOD/i }).closest('form')!);
     expect(onSubmit).not.toHaveBeenCalled();

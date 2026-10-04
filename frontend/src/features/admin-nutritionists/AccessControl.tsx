@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import Modal from '@/components/ui/Modal';
 import Button from '@/components/ui/Button';
-import type { NutritionistRow } from './model';
+import { professionalAccessLabel, type NutritionistRow } from './model';
 
 export default function AccessControl({
   professional,
@@ -16,10 +16,21 @@ export default function AccessControl({
   const [open, setOpen] = useState(false);
   const [reason, setReason] = useState('');
   const revoked = !!professional.user.isSuspended;
+  if (professional.user.role && professional.user.role !== 'NUTRITIONIST') {
+    return (
+      <div className="mt-3 border-t border-brand-border pt-3 text-xs text-brand-muted">
+        <p className="font-bold">{professionalAccessLabel(professional)}</p>
+        <p className="mt-2">
+          Retained professional record. Professional access requires application verification. Account access is managed
+          in the Accounts tab.
+        </p>
+      </div>
+    );
+  }
   return (
     <div className="mt-3 border-t border-brand-border pt-3">
       <p className={`text-xs font-bold ${revoked ? 'text-red-500' : 'text-brand-green'}`}>
-        {revoked ? 'Access revoked' : 'Access active'}
+        {professionalAccessLabel(professional)}
       </p>
       {revoked && professional.user.suspensionReason && (
         <p className="mt-1 text-xs text-brand-muted">{professional.user.suspensionReason}</p>

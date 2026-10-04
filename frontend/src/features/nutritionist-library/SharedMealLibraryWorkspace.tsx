@@ -34,7 +34,15 @@ function getPageNumbers(current: number, total: number): (number | 'ellipsis')[]
   return [1, 'ellipsis', current - 1, current, current + 1, 'ellipsis', total];
 }
 
-export default function SharedMealLibraryWorkspace({ role = 'nutritionist' }: { role?: 'admin' | 'nutritionist' }) {
+export default function SharedMealLibraryWorkspace({
+  role = 'nutritionist',
+  active = true,
+  embedded = false,
+}: {
+  role?: 'admin' | 'nutritionist';
+  active?: boolean;
+  embedded?: boolean;
+}) {
   const isAdmin = role === 'admin';
   const libraryApi = `/${role}/library`;
   const [section, setSection] = useState<'recipes' | 'coverage'>('recipes');
@@ -46,7 +54,7 @@ export default function SharedMealLibraryWorkspace({ role = 'nutritionist' }: { 
   const [viewingMealId, setViewingMealId] = useState<string | null>(null);
   const [detailError, setDetailError] = useState<string | null>(null);
   const listScrollTop = useRef(0);
-  const workspace = useNutritionistLibrary(section === 'coverage', role);
+  const workspace = useNutritionistLibrary(section === 'coverage', role, active);
   const {
     meals,
     totalCount,
@@ -138,7 +146,7 @@ export default function SharedMealLibraryWorkspace({ role = 'nutritionist' }: { 
   if (viewedMeal) {
     const source = viewedMeal.sourceRawRecipeCandidate;
     return (
-      <div className="portal-page space-y-6">
+      <div className={`${embedded ? '' : 'portal-page '}space-y-6`}>
         <button
           type="button"
           onClick={() => {
@@ -382,9 +390,10 @@ export default function SharedMealLibraryWorkspace({ role = 'nutritionist' }: { 
   }
 
   return (
-    <div className="portal-page space-y-6">
+    <div className={`${embedded ? '' : 'portal-page '}space-y-6`}>
       {/* Header */}
       <PortalPageHeader
+        headingLevel={embedded ? 'h2' : 'h1'}
         icon={Soup}
         eyebrow="Meal intelligence"
         title="Meal library"

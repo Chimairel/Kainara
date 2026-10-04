@@ -1,29 +1,33 @@
 import { describe, expect, it } from 'vitest';
 import { normalizeAdminAnalytics } from './useAdminAnalytics';
-
+import { analyticsFixture } from './analytics-fixture';
 describe('admin analytics response normalization', () => {
-  it('normalizes legacy null AI purposes before the page renders them', () => {
+  it('normalizes legacy null purposes in a complete snapshot', () => {
     const result = normalizeAdminAnalytics({
-      totalUsers: 4,
+      ...analyticsFixture,
       aiUsageByOperation30d: [{ operation: 'OTHER', purpose: null, status: 'SUCCESS', count: 3 }],
     });
-
-    expect(result?.totalUsers).toBe(4);
     expect(result?.aiUsageByOperation30d).toEqual([
       { operation: 'OTHER', purpose: 'UNSPECIFIED', status: 'SUCCESS', count: 3 },
     ]);
   });
-
-  it('fills fields missing from an older session cache with safe empty values', () => {
-    const result = normalizeAdminAnalytics({ totalUsers: 2 });
-
-    expect(result?.rawRecipeCandidates).toBe(0);
-    expect(result?.activeClearancesByCondition).toEqual([]);
-    expect(result?.planSelectionsByProvenance30d).toEqual([]);
+  it('rejects incomplete old caches instead of displaying fabricated zeros', () => {
+    expect(normalizeAdminAnalytics({ totalUsers: 2 })).toBeNull();
+    expect(normalizeAdminAnalytics({ ...analyticsFixture, totalFoodItems: undefined })).toBeNull();
   });
-
-  it('rejects a non-object response', () => {
-    expect(normalizeAdminAnalytics(null)).toBeNull();
-    expect(normalizeAdminAnalytics([])).toBeNull();
+  it('rejects malformed counts, dates and grouped records', () => {
+    for (const invalid of [
+      null,
+      [],
+      { ...analyticsFixture, pendingReviews: -1 },
+      { ...analyticsFixture, generatedAt: 'bad' },
+      { ...analyticsFixture, activeClearancesByCondition: null },
+      { ...analyticsFixture, aiUsageByOperation30d: [{ count: 2 }] },
+    ]) {
+      expect(normalizeAdminAnalytics(invalid)).toBeNull();
+    }
+  });
+  it('accepts real zero counts and complete empty groups', () => {
+    expect(normalizeAdminAnalytics({ ...analyticsFixture, totalUsers: 0 })?.totalUsers).toBe(0);
   });
 });

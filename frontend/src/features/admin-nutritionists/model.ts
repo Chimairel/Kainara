@@ -1,3 +1,5 @@
+import { getManilaDateKey } from '@/lib/manila-date';
+
 export type ApplicationStatus =
   'SUBMITTED' | 'UNDER_REVIEW' | 'CALL_REQUIRED' | 'CALL_SCHEDULED' | 'APPROVED' | 'REJECTED' | 'ACTIVATED';
 
@@ -40,6 +42,7 @@ export interface NutritionistRow {
     name: string;
     email: string;
     image?: string | null;
+    role?: string;
     isSuspended?: boolean;
     suspensionReason?: string | null;
   };
@@ -65,4 +68,15 @@ export function toLocalInput(iso?: string) {
   const date = new Date(iso);
   if (!Number.isFinite(date.getTime())) return '';
   return new Date(date.getTime() + 8 * 60 * 60_000).toISOString().slice(0, 16);
+}
+
+export function professionalAccessLabel(professional: NutritionistRow, now = new Date()): string {
+  if (professional.user.role && professional.user.role !== 'NUTRITIONIST') return 'Nutritionist role not active';
+  if (professional.user.isSuspended) return 'Access revoked';
+  if (!professional.isVerified) return 'Verification pending';
+  const expiry = new Date(professional.prcLicenseExpiry);
+  if (!Number.isFinite(expiry.getTime())) return 'License date unavailable';
+  return getManilaDateKey(expiry) < getManilaDateKey(now)
+    ? 'License expired — review access unavailable'
+    : 'Access active';
 }

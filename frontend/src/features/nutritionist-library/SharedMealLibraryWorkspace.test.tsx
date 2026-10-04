@@ -84,7 +84,7 @@ async function open() {
 describe('shared library permissions and feedback', () => {
   it('admin browses and flags the same recipe with its own API and sees the recorded admin actor', async () => {
     render(<SharedMealLibraryWorkspace role="admin" />);
-    expect(mocks.hook).toHaveBeenCalledWith(false, 'admin');
+    expect(mocks.hook).toHaveBeenCalledWith(false, 'admin', true);
     expect(screen.queryByLabelText('Show only meals verified by me')).not.toBeInTheDocument();
     await open();
     expect(mocks.get).toHaveBeenCalledWith('/admin/library/meal-1');

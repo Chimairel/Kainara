@@ -1,7 +1,7 @@
 import { StrictMode } from 'react';
 import { render, screen } from '@testing-library/react';
 import { beforeEach, expect, it, vi } from 'vitest';
-import AdminNutritionistsPage from '@/app/(admin)/admin/nutritionists/page';
+import AdminNutritionistsPage from '@/features/admin-nutritionists/AdminNutritionistsPanel';
 import { clearSessionResourceCache } from '@/lib/session-resource-cache';
 
 vi.mock('@/hooks/useAuth', () => ({ useAuth: () => ({ user: { userId: 'strict-admin' } }) }));

@@ -137,15 +137,22 @@ const getBreadcrumbSegments = (
 
   if (role === 'ADMIN') {
     if (pathname === '/admin/audit') return [{ label: 'Admin Audit', current: true }];
-    if (pathname === '/admin/overview') {
-      return [{ label: 'Overview', current: true }];
-    }
-    if (pathname === '/admin/users') {
-      return [{ label: 'Accounts', current: true }];
+    const adminSections: Record<string, string> = {
+      '/admin/overview': 'Overview',
+      '/admin/users': 'People',
+      '/admin/meals': 'Meals',
+    };
+    if (adminSections[pathname]) {
+      return subTab
+        ? [
+            { label: adminSections[pathname], href: pathname },
+            { label: subTab, current: true },
+          ]
+        : [{ label: adminSections[pathname], current: true }];
     }
     if (pathname.startsWith('/admin/users/')) {
       return [
-        { label: 'Accounts', href: '/admin/users' },
+        { label: 'People', href: '/admin/users' },
         { label: 'Account details', current: true },
       ];
     }

@@ -2,7 +2,7 @@ import AccessControl from './AccessControl';
 import { BadgeCheck } from 'lucide-react';
 import Card from '@/components/ui/Card';
 import Avatar from '@/components/ui/Avatar';
-import type { NutritionistRow } from './model';
+import { professionalAccessLabel, type NutritionistRow } from './model';
 
 export function ProfessionalGrid({
   nutritionists,
@@ -14,7 +14,7 @@ export function ProfessionalGrid({
   onChangeAccess?: (nutritionist: NutritionistRow, suspended: boolean, reason: string) => Promise<void>;
 }) {
   if (!nutritionists.length) {
-    return <Card className="p-10 text-center text-sm text-brand-muted">No activated nutritionists yet.</Card>;
+    return <Card className="p-10 text-center text-sm text-brand-muted">No saved nutritionist profiles yet.</Card>;
   }
 
   return (
@@ -29,12 +29,14 @@ export function ProfessionalGrid({
                 size="md"
                 className="border border-brand-green/30"
               />
-              <span
-                aria-label="Verified PRC Dietitian"
-                className="absolute -bottom-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full border border-brand-border bg-brand-green text-[#07100d]"
-              >
-                <BadgeCheck className="h-3 w-3" />
-              </span>
+              {professionalAccessLabel(nutritionist) === 'Access active' && (
+                <span
+                  aria-label="Verified PRC Dietitian"
+                  className="absolute -bottom-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full border border-brand-border bg-brand-green text-[#07100d]"
+                >
+                  <BadgeCheck className="h-3 w-3" />
+                </span>
+              )}
             </div>
             <div className="min-w-0 flex-1">
               <h3 className="truncate text-sm font-bold text-brand-text">{nutritionist.user.name}</h3>
@@ -45,7 +47,7 @@ export function ProfessionalGrid({
             </div>
             <div className="text-right shrink-0">
               <p className="font-display text-xl font-black text-brand-green">{nutritionist.totalVerified}</p>
-              <p className="text-[9px] uppercase tracking-wider text-brand-muted">meals verified</p>
+              <p className="text-[9px] uppercase tracking-wider text-brand-muted">recorded verifications</p>
             </div>
           </div>
           {onChangeAccess && (
