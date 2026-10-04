@@ -8,8 +8,8 @@ import { useState } from 'react';
 
 import { useNutritionistReviews } from '@/features/nutritionist-reviews/useNutritionistReviews';
 import { useReviewWorkCounts } from '@/features/nutritionist-reviews/useReviewWorkCounts';
-import ApprovedReviewsPage from '../approved/page';
-import OutsideMealReviewsPage from '../outside-meals/page';
+import NutritionistApprovedPanel from '../approved/NutritionistApprovedPanel';
+import OutsideMealReviewsPanel from '../outside-meals/OutsideMealReviewsPanel';
 import GovernanceQueuePanel from './GovernanceQueuePanel';
 import MealVerificationPanel from './MealVerificationPanel';
 import ProfileWorkPanel from './ProfileWorkPanel';
@@ -56,7 +56,7 @@ export default function ReviewsPage() {
           }}
           className={`group relative flex items-center justify-center gap-1.5 rounded-xl px-3.5 py-2 font-display text-xs font-extrabold outline-none transition-all duration-200 focus-visible:ring-2 focus-visible:ring-brand-green ${
             caseFilter === key
-              ? 'bg-brand-accent text-[#07100d] font-black shadow-sm'
+              ? 'bg-brand-green text-white dark:bg-emerald-500 dark:text-[#07100d] font-bold shadow-sm'
               : 'text-brand-muted hover:bg-brand-bgAlt/80 hover:text-brand-text'
           }`}
         >
@@ -130,7 +130,7 @@ export default function ReviewsPage() {
           />
           {navigation}
           {caseFilters}
-          <OutsideMealReviewsPage />
+          <OutsideMealReviewsPanel embedded />
         </div>
       </div>
     );
@@ -148,7 +148,7 @@ export default function ReviewsPage() {
           />
           {navigation}
           {caseFilters}
-          <ApprovedReviewsPage />
+          <NutritionistApprovedPanel embedded />
         </div>
       </div>
     );

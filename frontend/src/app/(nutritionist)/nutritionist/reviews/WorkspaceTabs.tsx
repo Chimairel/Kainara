@@ -35,13 +35,13 @@ export default function WorkspaceTabs({
             aria-current={isActive ? 'page' : undefined}
             onClick={() => onChange(key)}
             className={`group relative flex min-h-12 items-center justify-center gap-2 rounded-2xl px-3 font-display text-xs font-extrabold outline-none transition-colors focus-visible:ring-2 focus-visible:ring-brand-green focus-visible:ring-offset-2 focus-visible:ring-offset-brand-surface sm:text-sm ${
-              isActive ? 'text-[#07100d]' : 'text-brand-muted hover:bg-brand-bgAlt/70 hover:text-brand-text'
+              isActive ? 'text-white dark:text-[#07100d]' : 'text-brand-muted hover:bg-brand-bgAlt/70 hover:text-brand-text'
             }`}
           >
             {isActive && (
               <MotionActiveIndicator
                 layoutId="nutritionist-workspace-tab-indicator"
-                className="rounded-2xl bg-brand-accent shadow-neon"
+                className="rounded-2xl bg-brand-green shadow-sm dark:bg-emerald-500"
               />
             )}
             <span className="relative z-10 flex items-center justify-center gap-2">
@@ -50,7 +50,7 @@ export default function WorkspaceTabs({
               {count > 0 && (
                 <span
                   className={`rounded-full px-2 py-0.5 font-mono text-[10px] font-black transition-colors ${
-                    isActive ? 'bg-[#07100d]/15 text-[#07100d]' : 'bg-brand-bgAlt text-brand-muted'
+                    isActive ? 'bg-white/25 text-white dark:bg-[#07100d]/20 dark:text-[#07100d]' : 'bg-brand-bgAlt text-brand-muted'
                   }`}
                   aria-label={`${count} outstanding`}
                 >

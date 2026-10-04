@@ -381,7 +381,7 @@ describe('unified nutritionist profile work', () => {
           resolveOld = resolve;
         })
     );
-    fireEvent.click(screen.getByRole('button', { name: 'Refresh profile queue' }));
+    fireEvent(window, new Event('nutrimind:force-profile-work-refresh'));
     mocks.get.mockImplementation((path: string) =>
       path === '/nutritionist/profile-work'
         ? Promise.resolve({ data: { data: [people[1]] } })

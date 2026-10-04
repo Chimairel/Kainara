@@ -3,6 +3,7 @@
 import { useVisiblePolling } from '@/hooks/useVisiblePolling';
 import { useCallback, useEffect, useState } from 'react';
 import Button from '@/components/ui/Button';
+import Skeleton from '@/components/ui/Skeleton';
 import api from '@/lib/axios';
 
 type GovernanceClearance = {
@@ -142,7 +143,20 @@ export default function GovernanceQueuePanel({ tab }: { tab: 'audit' | 'disputed
         </div>
       )}
       {!data ? (
-        <div className="p-8 text-center text-sm text-brand-muted">Loading governance queue…</div>
+        <div className="space-y-3" aria-label="Loading governance queue">
+          {[...Array(3)].map((_, i) => (
+            <div key={i} className="rounded-2xl border border-brand-border/70 bg-brand-surface p-5 space-y-3">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div className="space-y-2 flex-1 min-w-[200px]">
+                  <Skeleton className="h-5 w-48 rounded" />
+                  <Skeleton className="h-3.5 w-64 rounded" />
+                  <Skeleton className="h-3.5 w-36 rounded" />
+                </div>
+                <Skeleton className="h-8 w-24 rounded-xl" />
+              </div>
+            </div>
+          ))}
+        </div>
       ) : (
         <div className="space-y-3">
           {data.clearances.map((clearance) => (

@@ -8,7 +8,8 @@ import Button from '@/components/ui/Button';
 import Badge from '@/components/ui/Badge';
 import MealImage from '@/components/user/MealImage';
 import ExpandableCasePanel from '@/features/nutritionist-reviews/ExpandableCasePanel';
-import { CheckCircle, ChefHat, Eye, RefreshCw, ShieldCheck } from 'lucide-react';
+import { ReviewQueueSkeleton } from '@/features/nutritionist-reviews/NutritionistReviewsSkeleton';
+import { CheckCircle, ChefHat, Eye, ShieldCheck } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { readSessionResource, writeSessionResource } from '@/lib/session-resource-cache';
 
@@ -54,9 +55,9 @@ function ingredientText(value: unknown): string {
 
 export default function MealVerificationPanel() {
   const ownerId = useAuth().user?.userId;
-  const [queue, setQueue] = useState<MealCandidate[]>(
-    readSessionResource<MealCandidate[]>(ownerId, 'nutritionist-meal-verification-queue', 30_000) ?? []
-  );
+  const cachedQueue = readSessionResource<MealCandidate[]>(ownerId, 'nutritionist-meal-verification-queue', 30_000);
+  const [queue, setQueue] = useState<MealCandidate[]>(cachedQueue ?? []);
+  const [isLoading, setIsLoading] = useState(!cachedQueue);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [expanded, setExpanded] = useState(false);
   const [rationale, setRationale] = useState('');
@@ -74,6 +75,8 @@ export default function MealVerificationPanel() {
         setError(null);
       } catch (cause) {
         if (!signal?.aborted) setError(getApiErrorMessage(cause, 'Meal verification queue could not be loaded.'));
+      } finally {
+        setIsLoading(false);
       }
     },
     [ownerId]
@@ -159,18 +162,8 @@ export default function MealVerificationPanel() {
               {queue.length} pending
             </Badge>
           </div>
-          <div className="mt-2.5 flex items-center justify-between">
+          <div className="mt-2.5">
             <h2 className="font-display text-lg font-black tracking-tight text-brand-text">Meal verification</h2>
-            <button
-              type="button"
-              onClick={() => void load()}
-              disabled={busy}
-              className="flex h-8 w-8 items-center justify-center rounded-xl border border-brand-border/60 bg-brand-bgAlt/60 text-brand-muted transition hover:border-brand-green/30 hover:bg-brand-green/10 hover:text-brand-green outline-none focus-visible:ring-2 focus-visible:ring-brand-green disabled:opacity-50"
-              title="Refresh queue"
-              aria-label="Refresh queue"
-            >
-              <RefreshCw className={`w-3.5 h-3.5 ${busy ? 'animate-spin' : ''}`} />
-            </button>
           </div>
           <p className="mt-2 text-xs leading-relaxed text-brand-muted">
             Verify proposed recipes are real, edible preparations. Patient health approvals and planning data are
@@ -187,7 +180,11 @@ export default function MealVerificationPanel() {
           </div>
         )}
 
-        {!queue.length && !error ? (
+        {isLoading ? (
+          <div className="flex-1 overflow-y-auto pr-1 space-y-3 custom-scrollbar">
+            <ReviewQueueSkeleton count={5} />
+          </div>
+        ) : !queue.length && !error ? (
           <div className="flex-1 flex flex-col items-center justify-center p-8 text-center space-y-3 rounded-2xl border border-dashed border-brand-border/80 bg-brand-surface/40">
             <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-brand-green/10 text-brand-green shadow-inner">
               <CheckCircle className="w-6 h-6 stroke-[2.2]" />

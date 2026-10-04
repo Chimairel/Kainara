@@ -202,7 +202,7 @@ export function useNutritionistReviews(enabled = true) {
       try {
         const res = await api.get('/nutritionist/queue', { signal });
         if (signal?.aborted) return;
-        if (res.data?.success) {
+        if (res.data?.success && Array.isArray(res.data.data)) {
           setQueue(res.data.data);
           writeSessionResource(ownerId, 'nutritionist-case-queue', res.data.data);
         }

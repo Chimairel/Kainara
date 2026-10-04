@@ -5,6 +5,7 @@ import { useVisiblePolling } from '@/hooks/useVisiblePolling';
 import { useCallback, useEffect, useState } from 'react';
 import { ScrollText } from 'lucide-react';
 import api from '@/lib/axios';
+import Skeleton from '@/components/ui/Skeleton';
 import PortalPageHeader from '@/components/shared/PortalPageHeader';
 import GovernanceQueuePanel from '../reviews/GovernanceQueuePanel';
 import { useReviewWorkCounts } from '@/features/nutritionist-reviews/useReviewWorkCounts';
@@ -52,13 +53,31 @@ export default function NutritionistAuditPage() {
       </div>
       {view === 'rechecks' ? <GovernanceQueuePanel tab="audit" /> :
         <section className="overflow-hidden rounded-2xl border border-brand-border/70 bg-brand-surface shadow-sm">
-          <div className="flex items-center justify-between gap-3 border-b border-brand-border/70 p-5">
-            <div><h2 className="font-display text-xl font-black">Activity history</h2>
-              <p className="mt-1 text-xs text-brand-muted">Review decisions and meal flags across the workspace.</p></div>
-            <button type="button" onClick={() => void load()} className="rounded-xl border border-brand-border px-3 py-2 text-xs font-bold hover:border-brand-green">Refresh</button>
+          <div className="border-b border-brand-border/70 p-5">
+            <h2 className="font-display text-xl font-black">Activity history</h2>
+            <p className="mt-1 text-xs text-brand-muted">Review decisions and meal flags across the workspace.</p>
           </div>
           {error && <p role="alert" className="p-5 text-sm text-status-error-text">{error}</p>}
-          {!history && !error ? <p className="p-6 text-sm text-brand-muted">Loading activity…</p> : null}
+          {!history && !error ? (
+            <div className="p-6 space-y-3" aria-label="Loading activity">
+              <div className="grid grid-cols-5 gap-4 pb-2 border-b border-brand-border/40">
+                <Skeleton className="h-3.5 w-24 rounded" />
+                <Skeleton className="h-3.5 w-20 rounded" />
+                <Skeleton className="h-3.5 w-20 rounded" />
+                <Skeleton className="h-3.5 w-28 rounded" />
+                <Skeleton className="h-3.5 w-20 rounded" />
+              </div>
+              {[...Array(5)].map((_, i) => (
+                <div key={i} className="grid grid-cols-5 gap-4 py-3 border-b border-brand-border/30">
+                  <Skeleton className="h-4 w-32 rounded" />
+                  <Skeleton className="h-4 w-28 rounded" />
+                  <Skeleton className="h-4 w-24 rounded" />
+                  <Skeleton className="h-4 w-36 rounded" />
+                  <Skeleton className="h-4 w-20 rounded" />
+                </div>
+              ))}
+            </div>
+          ) : null}
           {history && <>
             <div className="overflow-x-auto"><table className="w-full min-w-[720px] text-left text-sm">
               <thead className="bg-brand-bgAlt/50 text-[10px] uppercase tracking-wider text-brand-muted"><tr>

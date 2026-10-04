@@ -3,15 +3,53 @@
 import Avatar from '@/components/ui/Avatar';
 import Badge from '@/components/ui/Badge';
 import { ReviewQueueSkeleton } from '@/features/nutritionist-reviews/NutritionistReviewsSkeleton';
-import { CheckCircle, Eye, RefreshCw } from 'lucide-react';
+import { Apple, CheckCircle, Eye, Moon, Sun, Utensils } from 'lucide-react';
 
 import { useNutritionistReviews } from '@/features/nutritionist-reviews/useNutritionistReviews';
 
 type Props = { review: ReturnType<typeof useNutritionistReviews>; caseFilter: string; expanded: boolean };
 
+function getMealTypeTheme(mealType?: string | null) {
+  const norm = (mealType || '').toUpperCase();
+  if (norm.includes('BREAKFAST')) {
+    return {
+      label: 'Breakfast',
+      icon: Sun,
+      badgeStyle: 'border-amber-500/25 bg-amber-500/10 text-amber-600 dark:text-amber-400',
+    };
+  }
+  if (norm.includes('LUNCH')) {
+    return {
+      label: 'Lunch',
+      icon: Utensils,
+      badgeStyle: 'border-brand-green/25 bg-brand-green/10 text-brand-green dark:text-emerald-400',
+    };
+  }
+  if (norm.includes('DINNER')) {
+    return {
+      label: 'Dinner',
+      icon: Moon,
+      badgeStyle: 'border-indigo-500/25 bg-indigo-500/10 text-indigo-600 dark:text-indigo-400',
+    };
+  }
+  if (norm.includes('SNACK')) {
+    return {
+      label: 'Snack',
+      icon: Apple,
+      badgeStyle: 'border-rose-500/25 bg-rose-500/10 text-rose-600 dark:text-rose-400',
+    };
+  }
+  return {
+    label: mealType || 'Meal',
+    icon: Utensils,
+    badgeStyle: 'border-brand-border/70 bg-brand-bgAlt text-brand-muted',
+  };
+}
+
 export default function CaseReviewQueue({ review, expanded }: Props) {
-  const { queue, fetchQueue, isLoading, selectedMealId, errorMsg, handleSelectMeal } = review;
+  const { queue, isLoading, selectedMealId, errorMsg, handleSelectMeal } = review;
   const visibleQueue = queue;
+
   return (
     <div
       className={`${selectedMealId ? 'hidden md:flex' : 'flex'} ${expanded ? '!hidden' : ''} h-full w-full min-w-0 flex-col border-brand-border/70 bg-brand-surface/75 p-5 md:w-[38%] md:min-w-[280px] md:border-r`}
@@ -25,17 +63,8 @@ export default function CaseReviewQueue({ review, expanded }: Props) {
             {visibleQueue.length} pending
           </Badge>
         </div>
-        <div className="mt-2.5 flex items-center justify-between">
+        <div className="mt-2.5">
           <h2 className="font-display text-lg font-black tracking-tight text-brand-text">Review queue</h2>
-          <button
-            type="button"
-            onClick={() => fetchQueue()}
-            className="flex h-8 w-8 items-center justify-center rounded-xl border border-brand-border/60 bg-brand-bgAlt/60 text-brand-muted transition hover:border-brand-green/30 hover:bg-brand-green/10 hover:text-brand-green outline-none focus-visible:ring-2 focus-visible:ring-brand-green"
-            title="Refresh queue"
-            aria-label="Refresh queue"
-          >
-            <RefreshCw className="w-3.5 h-3.5" />
-          </button>
         </div>
         <p className="mt-2 text-xs leading-relaxed text-brand-muted">
           Select a meal to preview its evidence. Claim it when ready to decide.
@@ -62,6 +91,9 @@ export default function CaseReviewQueue({ review, expanded }: Props) {
         <div className="flex-1 overflow-y-auto pr-1 space-y-3 custom-scrollbar">
           {visibleQueue.map((meal) => {
             const isSelected = selectedMealId === meal.id;
+            const theme = getMealTypeTheme(meal.mealType);
+            const MealIcon = theme.icon;
+
             return (
               <button
                 type="button"
@@ -71,55 +103,92 @@ export default function CaseReviewQueue({ review, expanded }: Props) {
                 onClick={() => {
                   if (!meal.claimStatus.claimedByOther && !meal.claimStatus.coolingDownForMe) handleSelectMeal(meal.id);
                 }}
-                className={`w-full rounded-2xl border p-4 text-left outline-none transition focus-visible:ring-2 focus-visible:ring-brand-green/40 ${
+                className={`group w-full rounded-2xl border p-4 sm:p-5 text-left outline-none transition-all duration-200 focus-visible:ring-2 focus-visible:ring-brand-green/40 ${
                   meal.claimStatus.claimedByOther || meal.claimStatus.coolingDownForMe
                     ? 'cursor-not-allowed opacity-65'
                     : 'cursor-pointer'
                 } ${
                   isSelected
-                    ? 'border-brand-green/40 bg-brand-green/[0.08] shadow-md'
-                    : 'border-brand-border/70 bg-brand-surface hover:-translate-y-0.5 hover:border-brand-green/25'
+                    ? 'border-brand-green bg-brand-green/[0.06] shadow-md ring-1 ring-brand-green/30'
+                    : 'border-brand-border/70 bg-brand-surface hover:-translate-y-0.5 hover:border-brand-green/35 hover:shadow-card'
                 }`}
               >
-                <div className="flex items-start justify-between mb-2">
-                  <span className="text-xs font-bold text-brand-green">{meal.mealType}</span>
-                  <Badge variant="pending" className="text-xs">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-center gap-3 min-w-0 flex-1">
+                    <div
+                      className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border ${theme.badgeStyle} shadow-xs`}
+                    >
+                      <MealIcon className="h-5 w-5" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-1.5 mb-0.5">
+                        <span className="font-semibold text-xs text-brand-green">{meal.mealType}</span>
+                      </div>
+                      <h3 className="truncate font-display text-sm font-bold text-brand-text group-hover:text-brand-green transition-colors">
+                        {meal.mealName}
+                      </h3>
+                    </div>
+                  </div>
+                  <Badge variant="pending" className="text-[10px] shrink-0">
                     {meal.requiresSafetyRevalidation ? 'Recheck needed' : 'Awaiting review'}
                   </Badge>
                 </div>
-                <h3 className="text-sm font-bold text-brand-text truncate mb-1">{meal.mealName}</h3>
+
                 {meal.highRiskReviewRequired && (
-                  <p className="mb-2 text-[9px] font-black uppercase tracking-wider text-[#8c3b00] dark:text-[#ff8a3d]">
+                  <p className="mt-2 text-[9px] font-black uppercase tracking-wider text-[#8c3b00] dark:text-[#ff8a3d]">
                     Review health context
                   </p>
                 )}
-                <p className="mb-2 text-[10px] font-bold text-brand-green">One nutritionist approval required</p>
-                <div className="mb-2 flex flex-wrap gap-1.5 text-[9px] font-bold uppercase tracking-wide">
-                  <span className="rounded-md border border-brand-border px-2 py-1 text-brand-muted">
+
+                <p className="mt-2 text-[10px] font-bold text-brand-green">One nutritionist approval required</p>
+
+                {/* Member UI Macro Pills */}
+                {meal.calories != null && (
+                  <div className="mt-2.5 flex flex-wrap items-center gap-1.5 sm:gap-2">
+                    <span className="inline-flex items-center gap-1 rounded-full border border-black/10 bg-black/[0.04] px-2.5 py-0.5 text-[10px] font-bold text-brand-text dark:border-white/10 dark:bg-white/[0.06]">
+                      🔥 {Math.round(meal.calories)} kcal
+                    </span>
+                    <span className="inline-flex items-center gap-1 rounded-full border border-[#08705b]/20 bg-[#08705b]/10 px-2 py-0.5 text-[10px] font-bold text-[#08705b] dark:border-[#10b981]/30 dark:bg-[#10b981]/15 dark:text-[#34d399]">
+                      {meal.proteinG ?? 0}g P
+                    </span>
+                    <span className="inline-flex items-center gap-1 rounded-full border border-[#18b9d2]/20 bg-[#18b9d2]/10 px-2 py-0.5 text-[10px] font-bold text-[#0b7788] dark:border-[#38bdf8]/30 dark:bg-[#38bdf8]/15 dark:text-[#38bdf8]">
+                      {meal.carbsG ?? 0}g C
+                    </span>
+                    <span className="inline-flex items-center gap-1 rounded-full border border-[#eb6a38]/20 bg-[#eb6a38]/10 px-2 py-0.5 text-[10px] font-bold text-[#c74614] dark:border-[#eb6a38]/30 dark:bg-[#eb6a38]/15 dark:text-[#f09e6c]">
+                      {meal.fatG ?? 0}g F
+                    </span>
+                  </div>
+                )}
+
+                <div className="mt-2.5 flex flex-wrap gap-1.5 text-[9px] font-bold uppercase tracking-wide">
+                  <span className="rounded-md border border-brand-border px-2 py-0.5 text-brand-muted">
                     {meal.sourceProvenance.replace(/_/g, ' ')}
                   </span>
-                  <span className="rounded-md border border-[#a64600]/30 bg-[#8c3b00] px-2 py-1 text-white shadow-xs">
+                  <span className="rounded-md border border-[#a64600]/30 bg-[#8c3b00] px-2 py-0.5 text-white shadow-xs">
                     Shop by {new Date(meal.shoppingDeadlineAt).toLocaleDateString()}
                   </span>
                   {meal.coalescedDependentCount > 1 && (
-                    <span className="rounded-md border border-brand-green/25 bg-brand-green/10 px-2 py-1 text-brand-green">
+                    <span className="rounded-md border border-brand-green/25 bg-brand-green/10 px-2 py-0.5 text-brand-green">
                       {meal.coalescedDependentCount} matching slots
                     </span>
                   )}
                 </div>
-                <p className="mb-2 text-[10px] leading-relaxed text-brand-muted">
+
+                <p className="mt-2 text-[10px] leading-relaxed text-brand-muted">
                   Cook date {new Date(meal.cookDeadlineAt).toLocaleDateString()} · {meal.assuranceTier.toLowerCase()}{' '}
                   assurance · {meal.remainingReviewers} review{meal.remainingReviewers === 1 ? '' : 's'} remaining
                 </p>
-                <div className="flex items-center justify-between gap-2 text-[11px] text-brand-muted">
+
+                <div className="mt-3 flex items-center justify-between gap-2 border-t border-brand-border/40 pt-2.5 text-[11px] text-brand-muted">
                   <span className="flex items-center gap-1.5 min-w-0 truncate">
                     <Avatar name={meal.user.name} size="sm" />
                     <span className="truncate">{meal.user.name}</span>
                   </span>
                   <span className="shrink-0">{new Date(meal.scheduledDate).toLocaleDateString()}</span>
                 </div>
+
                 {meal.claimStatus.claimedByOther && (
-                  <div className="mt-2 flex items-center gap-1 text-[10px] text-[#8c3b00] dark:text-[#ff8a3d] font-bold">
+                  <div className="mt-2.5 flex items-center gap-1 text-[10px] text-[#8c3b00] dark:text-[#ff8a3d] font-bold">
                     <Eye className="w-3.5 h-3.5" />
                     <span>Being reviewed</span>
                   </div>
