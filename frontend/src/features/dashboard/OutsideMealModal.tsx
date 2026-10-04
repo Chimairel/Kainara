@@ -722,7 +722,7 @@ function OutsideMealForm(props: Props) {
         )}
 
         {/* 4. Side-by-Side Reference Block: Photo Upload on Left, Notes on Right */}
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <div className="grid grid-cols-2 gap-2.5 sm:gap-3">
           {/* Photo */}
           <div className="flex flex-col gap-1">
             <span className="text-xs font-semibold text-brand-muted">Photo (optional)</span>
@@ -745,22 +745,22 @@ function OutsideMealForm(props: Props) {
                   <button
                     type="button"
                     onClick={handleClearImage}
-                    className="absolute right-2 top-2 rounded-full bg-black/70 p-1 text-white hover:bg-black transition shadow-sm"
+                    className="absolute right-1.5 top-1.5 rounded-full bg-black/70 p-1 text-white hover:bg-black transition shadow-sm"
                     title="Remove photo"
                   >
                     <X className="h-3.5 w-3.5" />
                   </button>
                 </>
               ) : (
-                <div className="flex items-center gap-2.5">
-                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-bgAlt/90 text-brand-muted group-hover:text-brand-green transition">
-                    <Camera className="h-4 w-4" />
+                <div className="flex flex-col sm:flex-row items-center justify-center gap-1.5 sm:gap-2.5 text-center sm:text-left">
+                  <div className="flex h-7 w-7 sm:h-8 sm:w-8 shrink-0 items-center justify-center rounded-lg bg-brand-bgAlt/90 text-brand-muted group-hover:text-brand-green transition">
+                    <Camera className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                   </div>
-                  <div className="text-left">
-                    <span className="block text-xs font-semibold text-brand-text group-hover:text-brand-green transition">
+                  <div className="min-w-0">
+                    <span className="block text-[11px] sm:text-xs font-semibold text-brand-text group-hover:text-brand-green transition leading-tight">
                       Upload Photo or Use Camera (Optional)
                     </span>
-                    <span className="block text-[10px] text-brand-muted">Tap to capture or upload</span>
+                    <span className="hidden sm:block text-[10px] text-brand-muted">Tap to capture or upload</span>
                   </div>
                 </div>
               )}
@@ -818,20 +818,22 @@ function OutsideMealForm(props: Props) {
           </button>
         </div>
 
-        {/* 6. Primary Action: LOG THIS MEAL */}
-        <Button
-          type="submit"
-          variant="primary"
-          className="w-full py-3 text-xs font-black uppercase tracking-wider rounded-xl shadow-neon"
-          disabled={
-            props.isLoading ||
-            !props.mealName.trim() ||
-            Boolean(imageError) ||
-            (selectedSuggestion?.kind === 'FNRI_FOOD' && !(Number(portionGrams) > 0))
-          }
-        >
-          LOG THIS FOOD
-        </Button>
+        {/* 6. Primary Action: LOG THIS MEAL (Sticky Bottom on Mobile & Small Screens) */}
+        <div className="sticky bottom-0 -mx-6 -mb-6 bg-brand-surface/95 backdrop-blur-md px-6 py-3 border-t border-brand-border/60 z-20 flex flex-col gap-2">
+          <Button
+            type="submit"
+            variant="primary"
+            className="w-full py-3 text-xs font-black uppercase tracking-wider rounded-xl shadow-neon"
+            disabled={
+              props.isLoading ||
+              !props.mealName.trim() ||
+              Boolean(imageError) ||
+              (selectedSuggestion?.kind === 'FNRI_FOOD' && !(Number(portionGrams) > 0))
+            }
+          >
+            LOG THIS FOOD
+          </Button>
+        </div>
       </fieldset>
     </form>
   );
