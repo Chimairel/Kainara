@@ -9,7 +9,7 @@ import Pricing from '@/components/ui/pricing';
 import MembershipPlanHeader from '@/features/membership/MembershipPlanHeader';
 import PlanStatisticsCard from '@/features/membership/PlanStatisticsCard';
 import PlanCalendarCard from '@/features/membership/PlanCalendarCard';
-import { RefreshCw, AlertTriangle, Layers, CreditCard, ExternalLink } from 'lucide-react';
+import { RefreshCw, AlertTriangle, CreditCard, ExternalLink } from 'lucide-react';
 import Link from 'next/link';
 import { isCheckoutUrl } from '@/features/membership/checkout';
 import api from '@/lib/axios';
@@ -98,16 +98,6 @@ function MembershipContent() {
       <PortalPageHeader
         title="KAINARA membership"
         description="Keep your weekly meals practical. Membership adds adaptation, progress insights and professional review when required."
-        actions={
-          <Button
-            onClick={() => setIsPlansModalOpen(true)}
-            variant="secondary"
-            className="inline-flex items-center gap-2 text-xs font-bold px-3.5 py-2 border-brand-border bg-brand-surface hover:bg-brand-bg-alt text-brand-text shadow-xs"
-          >
-            <Layers className="h-4 w-4 text-brand-green" />
-            <span>View plans</span>
-          </Button>
-        }
       />
 
       {/* 2. ROLLOUT NOTICE (if membership is disabled) */}

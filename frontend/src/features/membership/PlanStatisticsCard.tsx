@@ -87,28 +87,7 @@ export default function PlanStatisticsCard({ data, onOpenPlans }: PlanStatistics
       aria-label="Allowances and usage statistics"
       className="relative overflow-hidden rounded-[28px] sm:rounded-[36px] border border-[#dce4e0] dark:border-[#173e33] bg-[#faf8f5] dark:bg-[#071914] text-[#0d2820] dark:text-white shadow-xl p-6 sm:p-8 flex flex-col justify-between"
     >
-      {/* 1. Retro Wave Organic Corner Accent (3-tone curved stripes from landing page) */}
-      <div className="pointer-events-none absolute -top-0.5 -right-0.5 h-32 w-32 sm:h-40 sm:w-40 overflow-hidden rounded-tr-[28px] sm:rounded-tr-[36px] z-0 opacity-80 dark:opacity-75">
-        <svg viewBox="0 0 160 160" className="h-full w-full" fill="none">
-          <path d="M160,0 L0,0 C20,40 55,95 120,135 C140,147 160,155 160,155 Z" fill="#eb6a38" />
-          <path d="M160,0 L40,0 C55,30 80,72 130,105 C145,115 160,120 160,120 Z" fill="#f09e6c" />
-          <path
-            d="M160,0 L82,0 C92,20 110,48 142,70 C152,76 160,80 160,80 Z"
-            className="fill-[#1b4e41] dark:fill-[#164639]"
-          />
-        </svg>
-      </div>
 
-      {/* 2. Curved Stripe Accent in Bottom Corner */}
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute -bottom-1 -left-1 z-0 h-24 w-24 select-none opacity-25 dark:opacity-20"
-      >
-        <svg viewBox="0 0 96 96" fill="none" className="h-full w-full block">
-          <path d="M 88 104 C 80 52 44 16 -8 8" stroke="#f09e6c" strokeWidth="12" strokeLinecap="round" />
-          <path d="M 72 104 C 66 62 34 30 -8 24" stroke="#eb6a38" strokeWidth="10" strokeLinecap="round" />
-        </svg>
-      </div>
 
       {/* 3. Watermarked Kainara Logo Seal */}
       <div className="pointer-events-none absolute -bottom-6 -right-6 hidden sm:flex items-center justify-center opacity-10 dark:opacity-15 z-0">
