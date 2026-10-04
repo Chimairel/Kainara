@@ -109,27 +109,16 @@ export default function LandingHome({ initialMedia }: { initialMedia: LandingMed
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-emerald-400">
                       <HeartPulse className="h-3.5 w-3.5" />
-                      Example target
+                      Personal nutrition
                     </div>
                     <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
                   </div>
-                  <div className="mt-2.5 flex items-baseline gap-1.5">
-                    <span className="font-display text-2xl font-black text-white">1,800</span>
-                    <span className="text-[11px] font-semibold text-emerald-300/70">kcal / day</span>
-                  </div>
-                  {/* Segmented Macro Bar: Green for Protein, Blue for Carbs, Orange-ish for Fat */}
-                  <div className="mt-3">
-                    <div className="flex justify-between text-[9px] font-mono font-medium mb-1.5">
-                      <span className="text-emerald-400">P 90g</span>
-                      <span className="text-sky-400">C 225g</span>
-                      <span className="text-[#f09e6c]">F 60g</span>
-                    </div>
-                    <div className="flex h-2 overflow-hidden rounded-full bg-white/10 gap-0.5">
-                      <div className="h-full w-[20%] bg-emerald-400" title="Protein 90g" />
-                      <div className="h-full w-[50%] bg-sky-400" title="Carbs 225g" />
-                      <div className="h-full w-[30%] bg-[#f09e6c]" title="Fat 60g" />
-                    </div>
-                  </div>
+                  <p className="mt-2.5 font-display text-2xl font-black leading-tight text-white">
+                    Your goals.
+                    <br />
+                    Your pace.
+                  </p>
+                  <p className="mt-3 text-[11px] font-semibold text-emerald-300/70">Plan. Track. Progress.</p>
                 </motion.div>
               }
               badgeRight={
@@ -140,11 +129,11 @@ export default function LandingHome({ initialMedia }: { initialMedia: LandingMed
                 >
                   <div className="flex items-center gap-3">
                     <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-cyan/15 text-brand-cyan">
-                      <ShieldCheck className="h-5 w-5" />
+                      <Sparkles className="h-5 w-5" />
                     </span>
                     <div>
-                      <p className="text-xs font-bold text-brand-text">Meal review status</p>
-                      <p className="text-[10px] text-brand-muted">Recorded decisions and scope</p>
+                      <p className="text-xs font-bold text-brand-text">Made for your routine</p>
+                      <p className="text-[10px] text-brand-muted">One place for your nutrition.</p>
                     </div>
                   </div>
                 </motion.div>
@@ -205,7 +194,7 @@ export default function LandingHome({ initialMedia }: { initialMedia: LandingMed
                 </div>
               }
             >
-              {/* Main Cockpit Inside Container Card */}
+              {/* Published media inside the presentation frame */}
               <div className="flex h-full w-full flex-col overflow-hidden bg-[#071914]">
                 {/* Browser Chrome Header */}
                 <div className="flex shrink-0 items-center border-b border-[#173e33] bg-[#0a1b16] px-4 py-3 sm:px-5">
@@ -213,11 +202,11 @@ export default function LandingHome({ initialMedia }: { initialMedia: LandingMed
                     <span className="h-2.5 w-2.5 rounded-full bg-[#ff5f56]/90 shadow-sm" />
                     <span className="h-2.5 w-2.5 rounded-full bg-[#ffbd2e]/90 shadow-sm" />
                     <span className="h-2.5 w-2.5 rounded-full bg-[#27c93f]/90 shadow-sm" />
-                    <span className="ml-2 font-mono text-[10px] text-white/50">Example dashboard</span>
+                    <span className="ml-2 font-mono text-[10px] text-white/50">KAINARA spotlight</span>
                   </div>
                 </div>
 
-                {/* Dashboard Screenshot Mockup */}
+                {/* Published image or video */}
                 <div className="relative flex-1 overflow-hidden bg-[#071914]">
                   <LandingHeroMedia media={initialMedia} />
                 </div>
