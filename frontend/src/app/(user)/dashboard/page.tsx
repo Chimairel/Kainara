@@ -13,7 +13,6 @@ import DashboardSkeleton from '@/features/dashboard/DashboardSkeleton';
 import PortalPageHeader from '@/components/shared/PortalPageHeader';
 import { showPendingReviewNoticeOnce, showStarterPlanNoticeOnce } from '@/features/meals/plan-status-notice';
 import StateNotice from '@/components/shared/StateNotice';
-import MealPlanGenerationProgress from '@/components/user/MealPlanGenerationProgress';
 import { MealPlan } from '@/types';
 import { getApiErrorMessage } from '@/lib/api-error';
 import { Calendar, Plus, AlertTriangle, ChevronLeft, ChevronRight } from 'lucide-react';
@@ -66,11 +65,6 @@ export default function DashboardPage() {
   const [initialReadsOwner, setInitialReadsOwner] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const {
-    progress: generationProgress,
-    elapsedSeconds: generationElapsedSeconds,
-    stageMessage: generationStageMessage,
-    isFailed: generationIsFailed,
-    errorMessage: generationErrorMessage,
     begin: beginGenerationProgress,
     complete: completeGenerationProgress,
     fail: failGenerationProgress,
@@ -419,6 +413,7 @@ export default function DashboardPage() {
     generationRequestInFlight.current = true;
     beginGenerationProgress();
     setIsGenerating(true);
+    setGenerationStatus('GENERATING');
     setError(null);
     try {
       const res = await api.post('/user/meals/generate');
@@ -444,6 +439,7 @@ export default function DashboardPage() {
         setProfileReviewStatus('pending');
       }
       failGenerationProgress(msg);
+      setGenerationStatus('FAILED');
       setError(msg);
     } finally {
       generationRequestInFlight.current = false;
@@ -463,23 +459,6 @@ export default function DashboardPage() {
       setIsRetryingMissing(false);
     }
   };
-
-  if (isGenerating) {
-    return (
-      <MealPlanGenerationProgress
-        progress={generationProgress}
-        elapsedSeconds={generationElapsedSeconds}
-        stageMessage={generationStageMessage}
-        isFailed={generationIsFailed}
-        errorMessage={generationErrorMessage}
-        onRetry={() => void handleGeneratePlan()}
-        onCancel={() => {
-          generationRequestInFlight.current = false;
-          setIsGenerating(false);
-        }}
-      />
-    );
-  }
 
   const activeDate = uniqueDates[selectedDayOffset] ?? new Date();
   const metrics = calculateDashboardMetrics({
@@ -531,7 +510,11 @@ export default function DashboardPage() {
         />
 
         {!isLoading && <UnavailableMealsNotice cycle={currentCycle} onRepair={() => router.push('/meals')} />}
-        {!isLoading && awaitingGenerationCount > 0 && !isReportPending && !clinicalEvidenceRequired && (
+        {!isLoading &&
+          awaitingGenerationCount > 0 &&
+          !isReportPending &&
+          !clinicalEvidenceRequired &&
+          (currentMeals.length > 0 || Boolean(pendingReview?.meals?.length)) && (
           <div
             role="status"
             className="rounded-xl border border-status-pending-text/30 bg-status-pending-bg/15 p-4 text-sm text-brand-text"
@@ -597,29 +580,21 @@ export default function DashboardPage() {
               ? 'Checking meal-planning eligibility…'
               : 'We could not check your meal-planning eligibility. Refresh this page to try again.'}
           </div>
-        ) : currentMeals.length === 0 &&
-          !pendingReview &&
-          awaitingGenerationCount > 0 &&
-          generationStatus !== 'FAILED' ? (
-          <div
-            role="status"
-            className="rounded-2xl border border-brand-border bg-brand-surface p-6 text-sm text-brand-muted"
-          >
-            Your first meal candidates are being prepared. Visit Meals to follow the preview and nutritionist review
-            progress.
-          </div>
         ) : currentMeals.length === 0 && !pendingReview ? (
           <StateNotice
-            variant="no-meal-plan"
-            imageAlt="Meal plan preparation"
-            title={generationStatus === 'FAILED' ? 'Meal plan preparation failed' : 'Preparing Your First Meal Plan'}
+            variant={generationStatus === 'FAILED' && !isGenerating ? 'preparing-failed' : 'preparing'}
+            title={
+              generationStatus === 'FAILED' && !isGenerating
+                ? 'Meal plan preparation failed'
+                : 'Preparing Your First Meal Plan'
+            }
             description={
-              generationStatus === 'FAILED'
+              generationStatus === 'FAILED' && !isGenerating
                 ? 'Your nutrition report is acknowledged, but your first meal plan could not be prepared. Retry preparation to try again.'
                 : 'Your current meal plan is being prepared automatically. New candidates will appear in Meals as previews and cannot be used until their safety review is complete.'
             }
             action={
-              generationStatus === 'FAILED'
+              generationStatus === 'FAILED' && !isGenerating
                 ? {
                     label: isGenerating ? 'Retrying...' : 'Retry Preparation',
                     onClick: handleGeneratePlan,

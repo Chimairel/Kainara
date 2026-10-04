@@ -151,4 +151,41 @@ describe('StateNotice Component', () => {
     expect(img).toBeInTheDocument();
     expect(img.getAttribute('src')).toContain('sleeping');
   });
+
+  it('renders preparing variant with preparing.svg and text shimmer', () => {
+    render(<StateNotice variant="preparing" />);
+
+    const img = screen.getByAltText('Preparing your meal plan');
+    expect(img).toBeInTheDocument();
+    expect(img.getAttribute('src')).toContain('preparing.svg');
+    expect(screen.getByRole('heading', { name: 'Preparing Your First Meal Plan' })).toBeInTheDocument();
+    expect(
+      screen.getByText(/Your current meal plan is being prepared automatically/i)
+    ).toBeInTheDocument();
+  });
+
+  it('renders preparing-failed variant with preparing-failed.svg', () => {
+    const onRetry = vi.fn();
+    render(
+      <StateNotice
+        variant="preparing-failed"
+        action={{
+          label: 'Retry Preparation',
+          onClick: onRetry,
+        }}
+      />
+    );
+
+    const img = screen.getByAltText('Meal plan preparation failed');
+    expect(img).toBeInTheDocument();
+    expect(img.getAttribute('src')).toContain('preparing-failed.svg');
+    expect(screen.getByRole('heading', { name: 'Meal plan preparation failed' })).toBeInTheDocument();
+    expect(
+      screen.getByText(/Your nutrition report is acknowledged, but your first meal plan could not be prepared/i)
+    ).toBeInTheDocument();
+
+    const button = screen.getByRole('button', { name: /retry preparation/i });
+    fireEvent.click(button);
+    expect(onRetry).toHaveBeenCalledTimes(1);
+  });
 });

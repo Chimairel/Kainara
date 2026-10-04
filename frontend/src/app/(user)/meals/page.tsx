@@ -10,7 +10,6 @@ import Button from '@/components/ui/Button';
 import MealActivityCalendar from '@/components/user/MealActivityCalendar';
 import MealCard from '@/components/user/MealCard';
 import MealHistoryCard from '@/components/user/MealHistoryCard';
-import MealPlanGenerationProgress from '@/components/user/MealPlanGenerationProgress';
 import PendingMealPreviewCard from '@/components/user/PendingMealPreviewCard';
 import UnloggedMealCatchUpCard from '@/components/user/UnloggedMealCatchUpCard';
 import MealLibraryPanel from '@/features/meals/MealLibraryPanel';
@@ -55,7 +54,6 @@ function WeeklyPlanPageContent() {
     meals,
     isLoading,
     isRegenerating,
-    regenerationProgress,
     error,
     clinicalEvidenceRequired,
     profileReviewRequired,
@@ -92,7 +90,6 @@ function WeeklyPlanPageContent() {
     refreshingSwapMealId,
     handleMealStatusToggle,
     handleRegeneratePlan,
-    setIsRegenerating,
     handleHistorySearchSubmit,
     groupHistoryByDate,
     groupedDays,
@@ -181,20 +178,6 @@ function WeeklyPlanPageContent() {
     }
   }, [selectedPlanDay?.dateKey]);
 
-  if (isRegenerating) {
-    return (
-      <MealPlanGenerationProgress
-        progress={regenerationProgress.progress}
-        elapsedSeconds={regenerationProgress.elapsedSeconds}
-        stageMessage={regenerationProgress.stageMessage}
-        isFailed={regenerationProgress.isFailed}
-        errorMessage={regenerationProgress.errorMessage}
-        onRetry={() => void handleRegeneratePlan({ replaceExisting: true, skipConfirm: true })}
-        onCancel={() => setIsRegenerating(false)}
-      />
-    );
-  }
-
   const isReportPending = Boolean(
     (user?.onboardingDone && user?.tosAccepted && !user?.reportAcknowledged) ||
     (error && error.toLowerCase().includes('nutrition report')) ||
@@ -203,8 +186,9 @@ function WeeklyPlanPageContent() {
   const emptyPlanState = (
     <MealPlanEmptyState
       error={error}
-      generationStatus={generationStatus.current}
+      generationStatus={activeGenerationStatus}
       isRegenerating={isRegenerating}
+      awaitingGenerationCount={awaitingGenerationCount}
       onRetryLoad={() => void retryPlanLoad()}
       onRetryPreparation={() => void handleRegeneratePlan()}
     />
@@ -298,7 +282,8 @@ function WeeklyPlanPageContent() {
           !isLoading &&
           awaitingGenerationCount > 0 &&
           !clinicalEvidenceRequired &&
-          !isReportPending && (
+          !isReportPending &&
+          (displayedPlanDays.length > 0 || Boolean(pendingReview)) && (
             <div
               role="status"
               className="flex items-start gap-3 rounded-xl border border-status-pending-text/30 bg-status-pending-bg/15 px-4 py-3 text-sm text-brand-text"
@@ -480,14 +465,6 @@ function WeeklyPlanPageContent() {
                     </div>
                   ))}
               </section>
-            ) : awaitingGenerationCount > 0 && activeGenerationStatus !== 'FAILED' ? (
-              <div
-                role="status"
-                className="rounded-2xl border border-brand-border bg-brand-surface p-6 text-sm text-brand-muted"
-              >
-                The first meal candidates are being prepared. Saved candidates and nutritionist review progress will
-                appear here automatically.
-              </div>
             ) : (
               emptyPlanState
             )

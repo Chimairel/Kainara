@@ -60,8 +60,37 @@ describe('empty plan state', () => {
         onRetryPreparation={generate}
       />
     );
+    expect(screen.getByAltText('Meal plan preparation failed')).toHaveAttribute('src', expect.stringContaining('preparing-failed.svg'));
     fireEvent.click(screen.getByRole('button', { name: 'Retry Preparation' }));
     expect(generate).toHaveBeenCalledOnce();
     expect(read).not.toHaveBeenCalled();
+  });
+
+  it('transitions immediately back to preparing state when isRegenerating is true', () => {
+    render(
+      <MealPlanEmptyState
+        error={null}
+        generationStatus="FAILED"
+        isRegenerating={true}
+        onRetryLoad={vi.fn()}
+        onRetryPreparation={vi.fn()}
+      />
+    );
+    expect(screen.getByRole('heading', { name: 'Preparing Your First Meal Plan' })).toBeInTheDocument();
+    expect(screen.getByAltText('Preparing your meal plan')).toHaveAttribute('src', expect.stringContaining('preparing.svg'));
+    expect(screen.queryByRole('button', { name: 'Retry Preparation' })).not.toBeInTheDocument();
+  });
+
+  it('uses sleeping graphic only for idle empty state', () => {
+    render(
+      <MealPlanEmptyState
+        error={null}
+        generationStatus={null}
+        isRegenerating={false}
+        onRetryLoad={vi.fn()}
+        onRetryPreparation={vi.fn()}
+      />
+    );
+    expect(screen.getByAltText('Meal plan status')).toHaveAttribute('src', expect.stringContaining('sleeping'));
   });
 });

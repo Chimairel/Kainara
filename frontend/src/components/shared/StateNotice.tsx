@@ -5,6 +5,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import Button, { ButtonProps } from '@/components/ui/Button';
 import { useTheme } from '@/lib/context/ThemeContext';
+import TextShimmer from '@/components/ui/motion/TextShimmer';
 
 export type StateNoticeVariant =
   | 'no-meal-plan'
@@ -12,6 +13,8 @@ export type StateNoticeVariant =
   | 'access-denied'
   | 'verifying'
   | 'not-found'
+  | 'preparing'
+  | 'preparing-failed'
   | 'custom';
 
 export type EyebrowVariant = 'amber' | 'emerald' | 'cyan' | 'brand' | 'default';
@@ -31,6 +34,7 @@ export interface StateNoticeProps {
   eyebrow?: React.ReactNode;
   eyebrowVariant?: EyebrowVariant;
   title?: React.ReactNode;
+  titleShimmer?: boolean;
   description?: React.ReactNode;
   action?: StateNoticeAction | null;
   secondaryAction?: StateNoticeAction | null;
@@ -110,6 +114,22 @@ const VARIANT_CONFIGS: Record<StateNoticeVariant, VariantDefaults> = {
       href: '/dashboard',
     },
   },
+  preparing: {
+    getImageSrc: () => '/logo/preparing.svg',
+    imageAlt: 'Preparing your meal plan',
+    eyebrowVariant: 'brand',
+    title: 'Preparing Your First Meal Plan',
+    description:
+      'Your current meal plan is being prepared automatically. New candidates will appear once ready.',
+  },
+  'preparing-failed': {
+    getImageSrc: () => '/logo/preparing-failed.svg',
+    imageAlt: 'Meal plan preparation failed',
+    eyebrowVariant: 'amber',
+    title: 'Meal plan preparation failed',
+    description:
+      'Your nutrition report is acknowledged, but your first meal plan could not be prepared. Retry preparation to try again.',
+  },
   custom: {
     getImageSrc: () => '/logo/unauthorized.svg',
     imageAlt: 'Notice',
@@ -132,6 +152,7 @@ export default function StateNotice({
   eyebrow,
   eyebrowVariant,
   title,
+  titleShimmer,
   description,
   action,
   secondaryAction,
@@ -229,7 +250,11 @@ export default function StateNotice({
 
           {resolvedTitle && (
             <h2 className="mb-3 font-display text-2xl sm:text-3xl lg:text-4xl font-black tracking-tight text-brand-text">
-              {resolvedTitle}
+              {(titleShimmer ?? variant === 'preparing') && typeof resolvedTitle === 'string' ? (
+                <TextShimmer>{resolvedTitle}</TextShimmer>
+              ) : (
+                resolvedTitle
+              )}
             </h2>
           )}
 
