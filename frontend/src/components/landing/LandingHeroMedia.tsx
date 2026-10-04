@@ -10,7 +10,11 @@ export default function LandingHeroMedia() {
   useEffect(() => {
     const controller = new AbortController();
     const timeout = window.setTimeout(() => controller.abort(), 10_000);
-    void fetch(`${getApiBaseUrl()}/public/landing-media`, { signal: controller.signal, credentials: 'omit' })
+    void fetch(`${getApiBaseUrl()}/public/landing-media`, {
+      signal: controller.signal,
+      credentials: 'omit',
+      cache: 'no-store',
+    })
       .then(async (response) => {
         if (!response.ok) return;
         const result = await response.json();

@@ -45,7 +45,7 @@ test('public delivery exposes only published data; mutation requires a live ADMI
   const base = `http://127.0.0.1:${address.port}`;
   const publicResponse = await fetch(`${base}/api/public/landing-media`);
   assert.equal(publicResponse.status, 200);
-  assert.equal(publicResponse.headers.get('cache-control'), 'public, max-age=60');
+  assert.equal(publicResponse.headers.get('cache-control'), 'no-store');
   const result = (await publicResponse.json()) as { data: Record<string, unknown> };
   assert.equal('draft' in result.data, false);
   assert.equal('publicId' in result.data, false);

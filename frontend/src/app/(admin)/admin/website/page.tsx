@@ -187,13 +187,10 @@ export default function WebsiteContentPage() {
               <Button
                 disabled={busy || dirty || !content.draft?.asset}
                 onClick={() =>
-                  void run(
-                    'Publishing website media…',
-                    'Website media published. Visitors will see it within a minute.',
-                    async () =>
-                      acceptContent(
-                        (await api.post('/admin/website-content/publish', { revision: content.revision })).data.data
-                      )
+                  void run('Publishing website media…', 'Website media published.', async () =>
+                    acceptContent(
+                      (await api.post('/admin/website-content/publish', { revision: content.revision })).data.data
+                    )
                   )
                 }
               >

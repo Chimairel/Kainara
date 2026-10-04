@@ -109,7 +109,7 @@ for (const upload of [
     await expect(page.getByRole('button', { name: 'Publish', exact: true })).toBeEnabled();
     expect(publishCount).toBe(0);
     await page.getByRole('button', { name: 'Publish', exact: true }).click();
-    await expect(page.getByText('Website media published. Visitors will see it within a minute.')).toBeVisible();
+    await expect(page.getByText('Website media published.')).toBeVisible();
     expect(publishCount).toBe(1);
     if (upload.asset.kind === 'image')
       await expect(page.getByRole('img', { name: 'Ten-second promotional preview' })).toHaveCount(2);
