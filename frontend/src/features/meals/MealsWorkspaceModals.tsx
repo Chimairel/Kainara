@@ -403,10 +403,11 @@ export function MealsWorkspaceModals({ workspace }: Props) {
                     </p>
                   </div>
                 ) : (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     {filteredAndSortedOptions.map((option) => {
                       const isSelected = confirmSwapMeal?.id === option.id;
                       const delta = Math.round(option.calories - activeSwapMeal.calories);
+                      const optionTheme = getMealTheme(option.mealType || activeSwapMeal.mealType);
                       return (
                         <div
                           key={option.id}
@@ -426,41 +427,64 @@ export function MealsWorkspaceModals({ workspace }: Props) {
                               handleSelectSwapOption(option);
                             }
                           }}
-                          className={`group relative flex flex-col justify-between rounded-xl border p-3 transition-all cursor-pointer text-left outline-none ${
+                          className={`dashboard-meal group relative flex flex-col justify-between rounded-[20px] p-3 sm:p-3.5 transition-all cursor-pointer text-left outline-none text-white shadow-sm ${
+                            optionTheme.cardBg
+                          } ${optionTheme.borderColor} ${
                             isSelected
-                              ? 'border-brand-green ring-2 ring-brand-green/30 bg-brand-green/[0.05] dark:border-brand-accent dark:ring-brand-accent/30 dark:bg-brand-accent/[0.05]'
-                              : 'border-brand-border/80 bg-brand-surface/60 hover:border-brand-green/50 hover:bg-brand-surface shadow-xs'
+                              ? 'ring-2 ring-white/90 shadow-md scale-[1.01]'
+                              : 'hover:brightness-105 hover:shadow-md'
                           }`}
                         >
-                          {/* Card Content Top */}
+                          {/* Card Content Top: Header + Badge */}
                           <div>
-                            <div className="flex items-start gap-2.5">
-                              <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-xl border border-brand-border/60 shadow-xs">
-                                <MealImage
-                                  image={option.image}
-                                  mealName={option.mealName}
-                                  mealType={option.mealType ?? undefined}
-                                  variant="thumbnail"
-                                />
+                            <div className="flex items-center justify-between gap-1.5 mb-2">
+                              <span className="text-[9.5px] sm:text-[10px] font-bold uppercase tracking-wider text-white/80 truncate">
+                                {(option.mealTypes?.length ? option.mealTypes : [option.mealType || activeSwapMeal.mealType])
+                                  .join(' · ')
+                                  .toLowerCase()}
+                              </span>
+                              {isSelected ? (
+                                <span className="inline-flex items-center gap-1 rounded-full bg-white/25 backdrop-blur-md border border-white/40 px-2 py-0.5 font-mono text-[8.5px] font-extrabold uppercase text-white shadow-xs">
+                                  <Check className="h-2.5 w-2.5 stroke-[3]" /> Selected
+                                </span>
+                              ) : (
+                                <span
+                                  className={`inline-flex items-center rounded-full px-2 py-0.5 font-mono text-[9px] font-extrabold backdrop-blur-md border shadow-2xs ${
+                                    Math.abs(delta) <= 50
+                                      ? 'border-white/20 bg-black/25 text-white'
+                                      : delta > 0
+                                        ? 'border-amber-300/30 bg-amber-400/20 text-amber-200'
+                                        : 'border-emerald-300/30 bg-emerald-400/20 text-emerald-200'
+                                  }`}
+                                >
+                                  {delta >= 0 ? `+${delta}` : delta} kcal
+                                </span>
+                              )}
+                            </div>
+
+                            {/* Plate + Info Layout */}
+                            <div className="flex items-center gap-2.5 sm:gap-3">
+                              {/* Signature Circular Food Plate */}
+                              <div
+                                className={`relative h-14 w-14 sm:h-16 sm:w-16 shrink-0 rounded-full p-1 bg-white dark:bg-[#12362c] shadow-[0_6px_16px_-2px_rgba(0,0,0,0.22),0_2px_6px_rgba(0,0,0,0.08)] dark:shadow-[0_8px_20px_rgba(0,0,0,0.65)] ${optionTheme.plateRim} z-10 transition-transform duration-200 group-hover:scale-105`}
+                              >
+                                <div className="relative h-full w-full rounded-full overflow-hidden">
+                                  <MealImage
+                                    image={option.image}
+                                    mealName={option.mealName}
+                                    mealType={option.mealType ?? undefined}
+                                    variant="thumbnail"
+                                    className="!rounded-full !border-0 h-full w-full object-cover"
+                                  />
+                                </div>
                               </div>
 
                               <div className="min-w-0 flex-1">
-                                <div className="flex items-center justify-between gap-1">
-                                  <span className="font-mono text-[9px] font-bold uppercase tracking-wider text-brand-muted truncate">
-                                    {(option.mealTypes?.length ? option.mealTypes : [option.mealType]).join(' · ')}
-                                  </span>
-                                  {isSelected && (
-                                    <span className="inline-flex items-center gap-0.5 rounded-full bg-brand-green px-1.5 py-0.2 font-mono text-[8px] font-extrabold uppercase text-white dark:bg-brand-accent dark:text-black">
-                                      <Check className="h-2.5 w-2.5 stroke-[3]" /> Selected
-                                    </span>
-                                  )}
-                                </div>
-
-                                <h4 className="font-display text-xs font-bold text-brand-text truncate leading-snug mt-0.5 group-hover:text-brand-green dark:group-hover:text-brand-accent">
+                                <h4 className="font-display text-xs sm:text-sm font-bold text-white line-clamp-2 leading-snug group-hover:underline underline-offset-2">
                                   {formatMealTitle(option.mealName)}
                                 </h4>
 
-                                <p className="text-[10px] text-brand-muted mt-0.5">
+                                <p className="text-[10.5px] font-bold text-white/95 mt-0.5 truncate">
                                   {option.ricePortionLabel
                                     ? `+ ${option.ricePortionLabel}`
                                     : option.riceRole === 'PAIR_WITH_RICE'
@@ -472,46 +496,39 @@ export function MealsWorkspaceModals({ workspace }: Props) {
                                           : 'Rice role unavailable'}
                                   {option.alreadyPlannedInCycle ? ' · In plan' : ''}
                                 </p>
+
+                                {miniSort === 'best_match' ? (
+                                  <p
+                                    className={`text-[9.5px] truncate mt-0.5 ${
+                                      option.nutritionMatch === 'CLOSE'
+                                        ? 'text-white font-semibold'
+                                        : 'text-white/75'
+                                    }`}
+                                  >
+                                    {swapNutritionLabel(option.nutritionMatch)}
+                                  </p>
+                                ) : (
+                                  <p className="text-[9.5px] text-white/75 truncate mt-0.5">
+                                    Closest calorie match
+                                  </p>
+                                )}
                               </div>
                             </div>
                           </div>
 
                           {/* Card Content Bottom: Macros & Verifier */}
-                          <div className="mt-2.5 border-t border-brand-border/40 pt-1.5 space-y-1">
-                            {miniSort === 'best_match' && (
-                              <p
-                                className={`text-[10px] ${option.nutritionMatch === 'CLOSE' ? 'text-brand-green dark:text-brand-accent' : 'text-brand-muted'}`}
-                              >
-                                {swapNutritionLabel(option.nutritionMatch)}
+                          <div className="mt-2.5 border-t border-white/20 pt-1.5 space-y-1">
+                            <div className="flex items-center justify-between text-white/90">
+                              <p className="text-[10px] sm:text-[10.5px] font-medium truncate">
+                                <strong className="text-white font-bold">{Math.round(option.calories)}</strong> kcal ·{' '}
+                                <strong className="text-white font-bold">{Math.round(option.proteinG)}g</strong> P ·{' '}
+                                <strong className="text-white font-bold">{Math.round(option.carbsG)}g</strong> C ·{' '}
+                                <strong className="text-white font-bold">{Math.round(option.fatG)}g</strong> F
                               </p>
-                            )}
-                            <div className="flex items-center justify-between font-mono text-[10px]">
-                              <div className="flex items-center gap-1.5">
-                                <span className="font-bold text-brand-text">{Math.round(option.calories)} kcal</span>
-                                <span
-                                  className={`font-extrabold ${
-                                    delta === 0
-                                      ? 'text-brand-muted'
-                                      : delta > 0
-                                        ? 'text-amber-700 dark:text-amber-300'
-                                        : 'text-emerald-700 dark:text-emerald-300'
-                                  }`}
-                                >
-                                  ({delta >= 0 ? `+${delta}` : delta})
-                                </span>
-                              </div>
-
-                              <div className="flex items-center gap-1 text-[9px] font-bold text-brand-muted">
-                                <span>{Math.round(option.proteinG)}P</span>
-                                <span>·</span>
-                                <span>{Math.round(option.carbsG)}C</span>
-                                <span>·</span>
-                                <span>{Math.round(option.fatG)}F</span>
-                              </div>
                             </div>
 
-                            {/* Verifier Badge */}
-                            <div className="flex items-center justify-between text-[9px] text-brand-muted pt-0.5">
+                            {/* Verifier / Source Badge */}
+                            <div className="flex items-center justify-between text-[9px] text-white/75 pt-0.5">
                               <span className="truncate">
                                 {option.reuseBasis === 'PANLASANG_GENERAL_BASE' ? 'Source: ' : 'Verified by: '}
                                 {option.verifier ? (
@@ -521,12 +538,12 @@ export function MealsWorkspaceModals({ workspace }: Props) {
                                       e.stopPropagation();
                                       setSelectedVerifier(option.verifier!);
                                     }}
-                                    className="text-brand-green dark:text-brand-accent font-bold hover:underline"
+                                    className="text-white font-bold underline hover:text-white/90"
                                   >
                                     {option.verifiedBy}
                                   </button>
                                 ) : (
-                                  <span className="text-brand-green dark:text-brand-accent font-bold">
+                                  <span className="text-white font-bold">
                                     {option.verifiedBy || 'KAINARA Clinical'}
                                   </span>
                                 )}
