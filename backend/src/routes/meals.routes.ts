@@ -224,6 +224,7 @@ router.get(
       .object({
         search: z.string().trim().max(120).optional(),
         mealType: z.enum(['BREAKFAST', 'LUNCH', 'DINNER']).optional(),
+        riceRole: z.enum(['PAIR_WITH_RICE', 'STANDALONE', 'INCLUDES_RICE']).optional(),
         page: z.coerce.number().int().min(1).max(1000).optional(),
       })
       .strict(),
@@ -233,6 +234,7 @@ router.get(
       const data = await VerifiedRecipeCatalogService.list((req as AuthenticatedRequest).user!.userId, {
         search: req.query.search as string | undefined,
         mealType: req.query.mealType as 'BREAKFAST' | 'LUNCH' | 'DINNER' | undefined,
+        riceRole: req.query.riceRole as 'PAIR_WITH_RICE' | 'STANDALONE' | 'INCLUDES_RICE' | undefined,
         page: req.query.page ? Number(req.query.page) : undefined,
       });
       res.json({ success: true, data });

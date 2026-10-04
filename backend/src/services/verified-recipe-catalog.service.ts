@@ -8,7 +8,7 @@ import { parseRecipeCandidateIngredients } from './panlasang-recipe-candidate.pr
 
 /** Browse-only verified bases. This endpoint never grants planning or case clearance. */
 export class VerifiedRecipeCatalogService {
-  static async list(userId: string, input: { search?: string; mealType?: MealType; page?: number }) {
+  static async list(userId: string, input: { search?: string; mealType?: MealType; riceRole?: string; page?: number }) {
     const { user, conditions, allergens, otherConditions, otherAllergies } = await loadPlanningNutritionContext(
       prisma,
       userId,
@@ -31,6 +31,47 @@ export class VerifiedRecipeCatalogService {
       return { items: [], total: 0, page: 1, pageCount: 0, restrictedProfile: true };
     }
 
+    // Fetch user's approved plan meals to annotate in-plan status
+    const userPlanMeals = await prisma.mealPlan.findMany({
+      where: {
+        userId,
+        status: 'APPROVED',
+      },
+      select: {
+        id: true,
+        mealName: true,
+        mealType: true,
+        calories: true,
+        proteinG: true,
+        carbsG: true,
+        fatG: true,
+        scheduledDate: true,
+        sourceRawRecipeCandidateId: true,
+        libraryMealId: true,
+      },
+    });
+
+    const planByRawId = new Map<string, typeof userPlanMeals>();
+    const planByLibraryId = new Map<string, typeof userPlanMeals>();
+    const planByName = new Map<string, typeof userPlanMeals>();
+
+    for (const plan of userPlanMeals) {
+      if (plan.sourceRawRecipeCandidateId) {
+        const list = planByRawId.get(plan.sourceRawRecipeCandidateId) ?? [];
+        list.push(plan);
+        planByRawId.set(plan.sourceRawRecipeCandidateId, list);
+      }
+      if (plan.libraryMealId) {
+        const list = planByLibraryId.get(plan.libraryMealId) ?? [];
+        list.push(plan);
+        planByLibraryId.set(plan.libraryMealId, list);
+      }
+      const norm = plan.mealName.trim().toLowerCase();
+      const list = planByName.get(norm) ?? [];
+      list.push(plan);
+      planByName.set(norm, list);
+    }
+
     // Some published source rows have no MealLibrary serving variant. Querying
     // MealLibrary alone would omit those real recipes from this browse-only view.
     const rawWhere: Prisma.RawRecipeCandidateWhereInput = {
@@ -39,6 +80,7 @@ export class VerifiedRecipeCatalogService {
       libraryVariants: { none: { status: 'FLAGGED' } },
       ...(input.search ? { recipeName: { contains: input.search, mode: 'insensitive' } } : {}),
       ...(input.mealType ? { applicableMealTypes: { some: { mealType: input.mealType } } } : {}),
+      ...(input.riceRole && input.riceRole !== 'All' ? { riceRole: input.riceRole as any } : {}),
     };
     const manual = await prisma.mealLibrary.findMany({
       where: {
@@ -63,6 +105,7 @@ export class VerifiedRecipeCatalogService {
       status: 'APPROVED',
       ...(input.search ? { mealName: { contains: input.search, mode: 'insensitive' } } : {}),
       ...(input.mealType ? { applicableMealTypes: { some: { mealType: input.mealType } } } : {}),
+      ...(input.riceRole && input.riceRole !== 'All' ? { riceRole: input.riceRole as any } : {}),
     };
     const [rawCount, manualCount] = await Promise.all([
       prisma.rawRecipeCandidate.count({ where: rawWhere }),
@@ -138,35 +181,59 @@ export class VerifiedRecipeCatalogService {
               unit: item.unit,
             })),
           });
+          const matching =
+            planByRawId.get(source.id) ?? planByName.get(source.recipeName.trim().toLowerCase()) ?? [];
+          const inPlan = matching.length > 0;
+
           return {
             id: `raw:${source.id}`,
             name: source.recipeName,
             description: source.description,
             mealTypes: source.applicableMealTypes.map((item) => item.mealType),
-            calories: source.calories,
-            proteinG: source.proteinG,
-            carbsG: source.carbsG,
-            fatG: source.fatG,
+            calories: inPlan && matching[0].calories ? matching[0].calories : source.calories,
+            proteinG: inPlan && matching[0].proteinG ? matching[0].proteinG : source.proteinG,
+            carbsG: inPlan && matching[0].carbsG ? matching[0].carbsG : source.carbsG,
+            fatG: inPlan && matching[0].fatG ? matching[0].fatG : source.fatG,
             sourceName: source.sourceName,
             sourceUrl: source.sourceUrl,
             imageUrl: source.sourceImageUrl,
             planningReady,
+            inPlan,
+            occurrences: matching.map((m) => ({
+              id: m.id,
+              scheduledDate: m.scheduledDate.toISOString(),
+              cycleScope: null as string | null,
+            })),
+            planMealId: matching[0]?.id ?? null,
           };
         }),
-        ...manualRows.map((row) => ({
-          id: row.id,
-          name: row.mealName,
-          description: row.description,
-          mealTypes: row.applicableMealTypes.map((item) => item.mealType),
-          calories: row.calories,
-          proteinG: row.proteinG,
-          carbsG: row.carbsG,
-          fatG: row.fatG,
-          sourceName: row.sourceRawRecipeCandidate?.sourceName ?? 'ADMIN_OR_GENERATED',
-          sourceUrl: row.sourceRawRecipeCandidate?.sourceUrl ?? null,
-          imageUrl: row.sourceRawRecipeCandidate?.sourceImageUrl ?? null,
-          planningReady: row.safetyEvidenceStatus === 'COMPLETE',
-        })),
+        ...manualRows.map((row) => {
+          const matching =
+            planByLibraryId.get(row.id) ?? planByName.get(row.mealName.trim().toLowerCase()) ?? [];
+          const inPlan = matching.length > 0;
+
+          return {
+            id: row.id,
+            name: row.mealName,
+            description: row.description,
+            mealTypes: row.applicableMealTypes.map((item) => item.mealType),
+            calories: inPlan && matching[0].calories ? matching[0].calories : row.calories,
+            proteinG: inPlan && matching[0].proteinG ? matching[0].proteinG : row.proteinG,
+            carbsG: inPlan && matching[0].carbsG ? matching[0].carbsG : row.carbsG,
+            fatG: inPlan && matching[0].fatG ? matching[0].fatG : row.fatG,
+            sourceName: row.sourceRawRecipeCandidate?.sourceName ?? 'ADMIN_OR_GENERATED',
+            sourceUrl: row.sourceRawRecipeCandidate?.sourceUrl ?? null,
+            imageUrl: row.sourceRawRecipeCandidate?.sourceImageUrl ?? null,
+            planningReady: row.safetyEvidenceStatus === 'COMPLETE',
+            inPlan,
+            occurrences: matching.map((m) => ({
+              id: m.id,
+              scheduledDate: m.scheduledDate.toISOString(),
+              cycleScope: null as string | null,
+            })),
+            planMealId: matching[0]?.id ?? null,
+          };
+        }),
       ],
     };
   }

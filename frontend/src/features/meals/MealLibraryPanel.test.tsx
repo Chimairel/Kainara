@@ -183,4 +183,93 @@ describe('Meal Library', () => {
     expect(screen.getByText('Reviewed for a matching health profile')).toBeInTheDocument();
     expect(screen.queryByText('Reusable certified recipe')).not.toBeInTheDocument();
   });
+
+  it('merges meals in plan and meals not in plan into one alphabetical list with unified 6-item pagination', () => {
+    const planned = [
+      {
+        id: 'plan-1',
+        status: 'APPROVED',
+        mealName: 'Banana Bread',
+        mealType: 'BREAKFAST',
+        calories: 300,
+        proteinG: 6,
+        carbsG: 50,
+        fatG: 10,
+        libraryMealId: null,
+      },
+      {
+        id: 'plan-2',
+        status: 'APPROVED',
+        mealName: 'Egg Fried Rice',
+        mealType: 'LUNCH',
+        calories: 550,
+        proteinG: 18,
+        carbsG: 75,
+        fatG: 16,
+        libraryMealId: null,
+      },
+    ];
+
+    const catalogue = [
+      {
+        id: 'cat-1',
+        mealName: 'Apple Pie',
+        mealType: 'BREAKFAST',
+        mealTypes: ['BREAKFAST'],
+        calories: 400,
+        proteinG: 4,
+        carbsG: 60,
+        fatG: 14,
+      },
+      {
+        id: 'cat-2',
+        mealName: 'Chicken Tinola',
+        mealType: 'DINNER',
+        mealTypes: ['DINNER'],
+        calories: 450,
+        proteinG: 35,
+        carbsG: 15,
+        fatG: 12,
+      },
+    ];
+
+    const workspace = {
+      handleLibrarySearchSubmit: noOp,
+      librarySearch: '',
+      setLibrarySearch: noOp,
+      libraryMealType: 'All',
+      setLibraryMealType: noOp,
+      isLibraryLoading: false,
+      libraryError: null,
+      libraryMeals: catalogue,
+      setSelectedVerifier: noOp,
+      libraryRiceRole: 'All',
+      setLibraryRiceRole: noOp,
+      libraryNextCursor: null,
+      loadMoreLibrary: noOp,
+      libraryTotalCount: 4,
+      meals: planned,
+    } as unknown as ReturnType<typeof useMealsWorkspace>;
+
+    const { getAllByRole, queryAllByRole } = render(<MealLibraryPanel workspace={workspace} />);
+
+    // Verify all 4 articles are in the SAME list
+    const articles = getAllByRole('article');
+    expect(articles).toHaveLength(4);
+
+    // Verify alphabetical order: Apple Pie, Banana Bread, Chicken Tinola, Egg Fried Rice
+    expect(articles[0]).toHaveTextContent('Apple Pie');
+    expect(articles[1]).toHaveTextContent('Banana Bread');
+    expect(articles[2]).toHaveTextContent('Chicken Tinola');
+    expect(articles[3]).toHaveTextContent('Egg Fried Rice');
+
+    // Verify planned meals have in-plan badges while catalogue meals have verified badges
+    expect(articles[1]).toHaveTextContent('In your plan');
+    expect(articles[3]).toHaveTextContent('In your plan');
+    expect(articles[0]).toHaveTextContent('Recipe verified');
+    expect(articles[2]).toHaveTextContent('Recipe verified');
+
+    // Only one pagination control exists (none rendered if <= 6 items)
+    expect(queryAllByRole('navigation', { name: /pages/i })).toHaveLength(0);
+  });
 });

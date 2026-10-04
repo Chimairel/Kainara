@@ -1,14 +1,42 @@
 'use client';
-import { useEffect, useState } from 'react';
+
+import { useEffect, useMemo, useState } from 'react';
 import Button from '@/components/ui/Button';
 import LoadingSpinner from '@/components/shared/LoadingSpinner';
-import LibraryMealCard from './LibraryMealCard';
 import Link from 'next/link';
 import { AlertTriangle, ChevronDown, Search, Salad } from 'lucide-react';
 import type { useMealsWorkspace } from './useMealsWorkspace';
 import { groupApprovedPlanRecipes } from './approvedPlanRecipes';
-import VerifiedRecipeCatalog from './VerifiedRecipeCatalog';
 import RecipeLibraryCard from './RecipeLibraryCard';
+import api from '@/lib/axios';
+import { getApiErrorMessage } from '@/lib/api-error';
+import type { PublicMealImage } from '@/types';
+
+type CatalogRecipe = {
+  id: string;
+  name: string;
+  description: string | null;
+  mealTypes: string[];
+  calories: number | null;
+  proteinG: number | null;
+  carbsG: number | null;
+  fatG: number | null;
+  sourceName: string;
+  sourceUrl: string | null;
+  imageUrl: string | null;
+  planningReady: boolean;
+  inPlan?: boolean;
+  occurrences?: Array<{ id: string; scheduledDate: string; cycleScope: string | null }>;
+  planMealId?: string | null;
+};
+
+type CatalogPage = {
+  items: CatalogRecipe[];
+  total: number;
+  page: number;
+  pageCount: number;
+  restrictedProfile: boolean;
+};
 
 export default function MealLibraryPanel({ workspace }: { workspace: ReturnType<typeof useMealsWorkspace> }) {
   const {
@@ -17,37 +45,189 @@ export default function MealLibraryPanel({ workspace }: { workspace: ReturnType<
     setLibrarySearch,
     libraryMealType,
     setLibraryMealType,
-    isLibraryLoading,
-    libraryError,
-    libraryMeals,
-    setSelectedVerifier,
     libraryRiceRole,
     setLibraryRiceRole,
-    libraryNextCursor,
-    loadMoreLibrary,
     meals,
+    libraryMeals,
   } = workspace;
-  const plannedLibraryIds = new Set(meals.map((meal) => meal.libraryMealId).filter(Boolean));
-  const search = librarySearch.trim().toLocaleLowerCase();
-  const approvedInPlan = groupApprovedPlanRecipes(
-    meals.filter(
-      (meal) =>
-        meal.status === 'APPROVED' &&
-        libraryRiceRole === 'All' &&
-        (libraryMealType === 'All' || meal.mealType === libraryMealType) &&
-        (!search || meal.mealName.toLocaleLowerCase().includes(search)) &&
-        (!meal.libraryMealId || !libraryMeals.some((entry) => entry.id === meal.libraryMealId))
-    )
-  );
 
-  const [planPage, setPlanPage] = useState(1);
-  const PLAN_PAGE_SIZE = 6;
-  const totalPlanPages = Math.ceil(approvedInPlan.length / PLAN_PAGE_SIZE);
-  const pagedApprovedInPlan = approvedInPlan.slice((planPage - 1) * PLAN_PAGE_SIZE, planPage * PLAN_PAGE_SIZE);
+  const [page, setPage] = useState(1);
+  const [catalogData, setCatalogData] = useState<CatalogPage | null>(null);
+  const [catalogLoading, setCatalogLoading] = useState(false);
+  const [catalogError, setCatalogError] = useState<string | null>(null);
+
+  const PAGE_SIZE = 6;
 
   useEffect(() => {
-    setPlanPage(1);
+    setPage(1);
   }, [librarySearch, libraryMealType, libraryRiceRole]);
+
+  useEffect(() => {
+    let active = true;
+    const timer = setTimeout(() => {
+      setCatalogLoading(true);
+      void api
+        .get('/user/meals/verified-recipes', {
+          params: {
+            page,
+            ...(librarySearch.trim() ? { search: librarySearch.trim() } : {}),
+            ...(libraryMealType !== 'All' ? { mealType: libraryMealType } : {}),
+            ...(libraryRiceRole !== 'All' ? { riceRole: libraryRiceRole } : {}),
+          },
+        })
+        .then((response) => {
+          if (active) {
+            setCatalogData(response.data.data);
+            setCatalogError(null);
+          }
+        })
+        .catch((err) => {
+          if (active) {
+            setCatalogError(getApiErrorMessage(err, 'Could not load recipes.'));
+          }
+        })
+        .finally(() => {
+          if (active) setCatalogLoading(false);
+        });
+    }, 250);
+
+    return () => {
+      active = false;
+      clearTimeout(timer);
+    };
+  }, [librarySearch, libraryMealType, libraryRiceRole, page]);
+
+  const search = librarySearch.trim().toLowerCase();
+  const plannedLibraryIds = useMemo(
+    () => new Set(meals.map((meal) => meal.libraryMealId).filter(Boolean)),
+    [meals]
+  );
+
+  const approvedInPlan = useMemo(() => {
+    return groupApprovedPlanRecipes(
+      meals.filter(
+        (meal) =>
+          meal.status === 'APPROVED' &&
+          libraryRiceRole === 'All' &&
+          (libraryMealType === 'All' || meal.mealType === libraryMealType) &&
+          (!search || meal.mealName.toLowerCase().includes(search))
+      )
+    );
+  }, [meals, libraryRiceRole, libraryMealType, search]);
+
+  const filteredLibraryMeals = useMemo(() => {
+    return libraryMeals.filter(
+      (meal) =>
+        (libraryRiceRole === 'All' || meal.riceRole === libraryRiceRole) &&
+        (libraryMealType === 'All' || meal.mealType === libraryMealType || meal.mealTypes?.includes(libraryMealType)) &&
+        (!search || meal.mealName.toLowerCase().includes(search))
+    );
+  }, [libraryMeals, libraryRiceRole, libraryMealType, search]);
+
+  const isServerSource = Boolean(catalogData && !catalogData.restrictedProfile);
+
+  const clientUnifiedItems = useMemo(() => {
+    const plannedItems = approvedInPlan.map(({ meal, occurrences }) => ({
+      id: meal.id,
+      name: meal.mealName,
+      mealType: meal.mealType,
+      mealTypes: [meal.mealType],
+      image: meal.image ?? null,
+      description: meal.description,
+      calories: meal.calories,
+      proteinG: meal.proteinG,
+      carbsG: meal.carbsG,
+      fatG: meal.fatG,
+      inPlan: true,
+      occurrences: occurrences.map((o) => ({
+        id: o.id,
+        scheduledDate: String(o.scheduledDate),
+        cycleScope: o.cycleScope ?? null,
+      })),
+      sourceUrl: null as string | null,
+      reuseBasis: null as string | null,
+      planningReady: true,
+    }));
+
+    const nonPlannedItems = filteredLibraryMeals
+      .filter((lm) => !plannedItems.some((pi) => pi.name.toLowerCase() === lm.mealName.toLowerCase()))
+      .map((meal) => ({
+        id: meal.id,
+        name: meal.mealName,
+        mealType: meal.mealType,
+        mealTypes: meal.mealTypes?.length ? meal.mealTypes : [meal.mealType],
+        image: meal.image ?? null,
+        description: meal.description,
+        calories: meal.calories,
+        proteinG: meal.proteinG,
+        carbsG: meal.carbsG,
+        fatG: meal.fatG,
+        inPlan: plannedLibraryIds.has(meal.id),
+        occurrences: [] as Array<{ id: string; scheduledDate: string; cycleScope: string | null }>,
+        sourceUrl: null as string | null,
+        reuseBasis: meal.reuseBasis ?? null,
+        planningReady: true,
+      }));
+
+    const merged = [...plannedItems, ...nonPlannedItems];
+    merged.sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
+    return merged;
+  }, [approvedInPlan, filteredLibraryMeals, plannedLibraryIds]);
+
+  const totalPages = isServerSource && catalogData
+    ? Math.max(1, catalogData.pageCount)
+    : Math.max(1, Math.ceil(clientUnifiedItems.length / PAGE_SIZE));
+
+  const displayItems = useMemo(() => {
+    if (isServerSource && catalogData) {
+      return catalogData.items.map((recipe) => {
+        const matchingPlan = approvedInPlan.find(
+          (p) =>
+            p.meal.mealName.toLowerCase() === recipe.name.toLowerCase() ||
+            (p.meal.libraryMealId && p.meal.libraryMealId === recipe.id)
+        );
+        const inPlan = Boolean(recipe.inPlan || matchingPlan);
+        const occurrences = matchingPlan
+          ? matchingPlan.occurrences.map((o) => ({
+              id: o.id,
+              scheduledDate: String(o.scheduledDate),
+              cycleScope: o.cycleScope ?? null,
+            }))
+          : recipe.occurrences ?? [];
+
+        const image: PublicMealImage | null =
+          matchingPlan?.meal.image ??
+          (recipe.imageUrl && recipe.imageUrl.startsWith('https://panlasangpinoy.com/wp-content/uploads/')
+            ? {
+                url: recipe.imageUrl,
+                altText: recipe.name,
+                kind: 'EXACT',
+                attribution: { sourcePageUrl: recipe.sourceUrl },
+              }
+            : null);
+
+        return {
+          id: recipe.id,
+          name: recipe.name,
+          mealType: matchingPlan?.meal.mealType ?? recipe.mealTypes[0] ?? 'LUNCH',
+          mealTypes: recipe.mealTypes,
+          image,
+          description: recipe.description,
+          calories: inPlan || recipe.planningReady ? (matchingPlan?.meal.calories ?? recipe.calories) : null,
+          proteinG: matchingPlan?.meal.proteinG ?? recipe.proteinG,
+          carbsG: matchingPlan?.meal.carbsG ?? recipe.carbsG,
+          fatG: matchingPlan?.meal.fatG ?? recipe.fatG,
+          inPlan,
+          occurrences,
+          sourceUrl: recipe.sourceUrl,
+          reuseBasis: null,
+          planningReady: recipe.planningReady,
+        };
+      });
+    }
+
+    return clientUnifiedItems.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  }, [isServerSource, catalogData, approvedInPlan, clientUnifiedItems, page]);
 
   return (
     <div className="space-y-6 text-left">
@@ -105,40 +285,79 @@ export default function MealLibraryPanel({ workspace }: { workspace: ReturnType<
         </div>
       </div>
 
-      {approvedInPlan.length > 0 && (
-        <section className="space-y-4" aria-label="Meals approved for your plan">
+      {catalogError && (
+        <div className="p-4 rounded-xl bg-status-error-bg/10 border border-status-error-text/25 text-status-error-text text-sm font-semibold flex items-center gap-2">
+          <AlertTriangle className="w-4 h-4 text-status-error-text shrink-0" />
+          <span>{catalogError}</span>
+        </div>
+      )}
+
+      {catalogLoading && displayItems.length === 0 ? (
+        <div className="flex flex-col items-center py-12 gap-2">
+          <LoadingSpinner size="md" />
+          <span className="text-xs text-brand-muted">Loading recipes…</span>
+        </div>
+      ) : displayItems.length === 0 ? (
+        <div className="p-12 text-center border border-brand-border/40 bg-brand-surface/30 rounded-xl">
+          <Salad className="w-8 h-8 text-brand-green mx-auto mb-2" />
+          <p className="text-sm text-brand-text font-semibold">No recipes match this selection</p>
+          <p className="text-xs text-brand-muted mt-1 max-w-sm mx-auto">
+            Try adjusting your search query or filters.
+          </p>
+        </div>
+      ) : (
+        <section aria-label="Meal library recipes" className="space-y-4">
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {pagedApprovedInPlan.map(({ meal, occurrences }) => {
-              return (
-                <RecipeLibraryCard
-                  key={meal.id}
-                  variant="planned"
-                  name={meal.mealName}
-                  mealType={meal.mealType}
-                  image={meal.image ?? null}
-                  description={meal.description}
-                  calories={meal.calories}
-                  proteinG={meal.proteinG}
-                  carbsG={meal.carbsG}
-                  fatG={meal.fatG}
-                  badges={
+            {displayItems.map((item) => (
+              <RecipeLibraryCard
+                key={item.id}
+                variant={item.inPlan ? 'planned' : item.reuseBasis ? 'reusable' : 'catalogue'}
+                name={item.name}
+                mealType={item.mealType}
+                mealTypes={item.mealTypes}
+                image={item.image}
+                description={item.description}
+                calories={item.calories}
+                proteinG={item.proteinG}
+                carbsG={item.carbsG}
+                fatG={item.fatG}
+                badges={
+                  item.inPlan ? (
                     <>
                       <span className="rounded-full border border-emerald-400/40 bg-emerald-500/90 px-2 py-0.5 font-mono text-[9px] font-extrabold uppercase tracking-wider text-white shadow-xs backdrop-blur-md">
                         Scheduled for you
                       </span>
                       <span className="rounded-full border border-emerald-400/40 bg-emerald-500/90 px-2 py-0.5 font-mono text-[9px] font-extrabold uppercase tracking-wider text-white shadow-xs backdrop-blur-md">
-                        In your plan{occurrences.length > 1 ? ` · ${occurrences.length} times` : ''}
+                        In your plan{item.occurrences.length > 1 ? ` · ${item.occurrences.length} times` : ''}
                       </span>
                     </>
-                  }
-                  footer={
-                    occurrences.length === 1 ? (
-                      <Link href={`/dashboard/${meal.id}`} className="font-semibold text-brand-green hover:underline">
+                  ) : item.reuseBasis === 'PROFILE_MATCHED_APPROVAL' ? (
+                    <span className="rounded-full border border-emerald-400/40 bg-black/40 px-2 py-0.5 text-[10px] font-bold text-emerald-200 backdrop-blur-md">
+                      Reviewed for a matching health profile
+                    </span>
+                  ) : (
+                    <>
+                      <span className="rounded-full border border-emerald-400/40 bg-emerald-500/90 px-2 py-0.5 font-mono text-[9px] font-extrabold uppercase tracking-wider text-white shadow-xs backdrop-blur-md">
+                        Recipe verified
+                      </span>
+                      <span className="rounded-full border border-white/30 bg-black/40 px-2 py-0.5 text-[9px] font-bold text-white shadow-xs backdrop-blur-md">
+                        {item.planningReady ? 'Serving data recorded' : 'Serving evidence pending'}
+                      </span>
+                    </>
+                  )
+                }
+                footer={
+                  item.inPlan ? (
+                    item.occurrences.length === 1 ? (
+                      <Link
+                        href={`/dashboard/${item.occurrences[0].id}`}
+                        className="font-semibold text-brand-green hover:underline"
+                      >
                         View planned meal
                       </Link>
-                    ) : (
+                    ) : item.occurrences.length > 1 ? (
                       <div className="flex flex-wrap gap-x-4 gap-y-2 font-semibold text-brand-green">
-                        {occurrences.map((slot) => (
+                        {item.occurrences.map((slot) => (
                           <Link key={slot.id} href={`/dashboard/${slot.id}`} className="hover:underline">
                             {slot.cycleScope === 'UPCOMING' ? 'Next week' : 'This week'} ·{' '}
                             {new Date(slot.scheduledDate).toLocaleDateString('en-PH', {
@@ -149,29 +368,49 @@ export default function MealLibraryPanel({ workspace }: { workspace: ReturnType<
                           </Link>
                         ))}
                       </div>
+                    ) : (
+                      <Link
+                        href={`/dashboard/${item.id}`}
+                        className="font-semibold text-brand-green hover:underline"
+                      >
+                        View planned meal
+                      </Link>
                     )
-                  }
-                />
-              );
-            })}
+                  ) : item.sourceUrl?.startsWith('https://') ? (
+                    <a
+                      href={item.sourceUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="font-semibold text-brand-green hover:underline"
+                    >
+                      View source recipe ↗
+                    </a>
+                  ) : undefined
+                }
+              />
+            ))}
           </div>
-          {totalPlanPages > 1 && (
-            <nav aria-label="Planned recipe pages" className="mt-4 flex items-center justify-center gap-4 text-xs font-semibold">
+
+          {totalPages > 1 && (
+            <nav
+              aria-label="Recipe pages"
+              className="mt-4 flex items-center justify-center gap-4 text-xs font-semibold"
+            >
               <button
                 type="button"
-                disabled={planPage <= 1}
-                onClick={() => setPlanPage((prev) => Math.max(1, prev - 1))}
+                disabled={page <= 1}
+                onClick={() => setPage((prev) => Math.max(1, prev - 1))}
                 className="rounded-xl border border-brand-border bg-brand-surface px-3 py-2 text-brand-text transition hover:border-brand-green disabled:opacity-40"
               >
                 Previous
               </button>
               <span className="text-brand-muted">
-                Page {planPage} of {totalPlanPages}
+                Page {page} of {totalPages}
               </span>
               <button
                 type="button"
-                disabled={planPage >= totalPlanPages}
-                onClick={() => setPlanPage((prev) => Math.min(totalPlanPages, prev + 1))}
+                disabled={page >= totalPages}
+                onClick={() => setPage((prev) => Math.min(totalPages, prev + 1))}
                 className="rounded-xl border border-brand-border bg-brand-surface px-3 py-2 text-brand-text transition hover:border-brand-green disabled:opacity-40"
               >
                 Next
@@ -179,46 +418,6 @@ export default function MealLibraryPanel({ workspace }: { workspace: ReturnType<
             </nav>
           )}
         </section>
-      )}
-
-      <VerifiedRecipeCatalog search={librarySearch} mealType={libraryMealType} />
-
-      {isLibraryLoading ? (
-        <div className="flex flex-col items-center py-12 gap-2">
-          <LoadingSpinner size="md" />
-          <span className="text-xs text-brand-muted">Loading recipes...</span>
-        </div>
-      ) : libraryError ? (
-        <div className="p-4 rounded-xl bg-status-error-bg/10 border border-status-error-text/25 text-status-error-text text-sm font-semibold flex items-center gap-2">
-          <AlertTriangle className="w-4 h-4 text-status-error-text shrink-0" />
-          <span>{libraryError}</span>
-        </div>
-      ) : libraryMeals.length === 0 && approvedInPlan.length === 0 ? (
-        <div className="p-12 text-center border border-brand-border/40 bg-brand-surface/30 rounded-xl">
-          <Salad className="w-8 h-8 text-brand-green mx-auto mb-2" />
-          <p className="text-sm text-brand-text font-semibold">No reusable approvals for this selection</p>
-          <p className="text-xs text-brand-muted mt-1 max-w-sm mx-auto">
-            The published recipe catalogue above is separate from meals with a complete reusable serving or case
-            approval.
-          </p>
-        </div>
-      ) : libraryMeals.length > 0 ? (
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {libraryMeals.map((meal) => (
-            <LibraryMealCard
-              key={meal.id}
-              meal={{ ...meal, alreadyPlannedInCycle: plannedLibraryIds.has(meal.id) }}
-              onVerifier={setSelectedVerifier}
-            />
-          ))}
-        </div>
-      ) : null}
-      {libraryNextCursor && !isLibraryLoading && (
-        <div className="flex justify-center">
-          <Button type="button" variant="secondary" onClick={loadMoreLibrary}>
-            Load more recipes
-          </Button>
-        </div>
       )}
     </div>
   );
