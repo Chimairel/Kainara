@@ -13,7 +13,7 @@ import type { MembershipView } from '@/features/membership/MembershipProvider';
 import { useMembershipCheckout } from '@/features/membership/useMembershipCheckout';
 import { checkoutSelectionKey, displayPrices, pendingMembershipSelection } from '@/features/membership/checkout';
 import api from '@/lib/axios';
-import MembershipTimeline, { membershipDate, membershipMoney } from '@/features/membership/MembershipTimeline';
+import { membershipDate, membershipMoney } from '@/features/membership/MembershipTimeline';
 import Button from '@/components/ui/Button';
 
 export interface PricingProps {
@@ -327,7 +327,6 @@ export default function Pricing({
             {checkout.error}
           </p>
         )}
-        <MembershipTimeline />
         {checkout.quote && (
           <section
             ref={summaryRef}
