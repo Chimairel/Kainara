@@ -29,7 +29,6 @@ import {
   type PendingReview,
 } from '@/features/dashboard/model';
 import { invalidateSessionResource, readSessionResource, writeSessionResource } from '@/lib/session-resource-cache';
-import { useMealGenerationProgress } from '@/features/meals/useMealGenerationProgress';
 import { cachedClinicalProfileStatus, refreshClinicalProfileStatus } from '@/lib/clinical-profile-status';
 import { cachedUserProfile, getRecentUserProfile } from '@/lib/user-profile-resource';
 import { useDashboardPreload } from '@/features/navigation/useDashboardPreload';
@@ -64,11 +63,6 @@ export default function DashboardPage() {
   const [isLoading, setIsLoading] = useState(!cachedPlan);
   const [initialReadsOwner, setInitialReadsOwner] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
-  const {
-    begin: beginGenerationProgress,
-    complete: completeGenerationProgress,
-    fail: failGenerationProgress,
-  } = useMealGenerationProgress(isGenerating);
   const [error, setError] = useState<string | null>(null);
   const [clinicalEvidenceRequired, setClinicalEvidenceRequired] = useState(false);
   const [profileReviewStatus, setProfileReviewStatus] = useState<'checking' | 'ready' | 'pending' | 'error'>(
@@ -411,7 +405,6 @@ export default function DashboardPage() {
     if (generationRequestInFlight.current || pendingReview) return;
 
     generationRequestInFlight.current = true;
-    beginGenerationProgress();
     setIsGenerating(true);
     setGenerationStatus('GENERATING');
     setError(null);
@@ -419,8 +412,6 @@ export default function DashboardPage() {
       const res = await api.post('/user/meals/generate');
       if (!res.data?.success) throw new Error('Could not generate the weekly plan.');
       if (res.data.success) {
-        completeGenerationProgress();
-        await new Promise<void>((resolve) => window.setTimeout(resolve, 700));
         applyCurrentPlan({
           meals: res.data.data.meals,
           pendingReview: res.data.data.pendingReview ?? null,
@@ -438,7 +429,6 @@ export default function DashboardPage() {
       if (axios.isAxiosError(err) && err.response?.data?.errorCode === 'PROFILE_REVIEW_REQUIRED') {
         setProfileReviewStatus('pending');
       }
-      failGenerationProgress(msg);
       setGenerationStatus('FAILED');
       setError(msg);
     } finally {

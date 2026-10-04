@@ -94,8 +94,8 @@ describe('StateNotice Component', () => {
         eyebrowVariant="cyan"
         title="Custom State Title"
         description="Custom description explaining this situation."
-        imageSrc="/logo/cooking.svg"
-        imageAlt="Cooking Graphic"
+        imageSrc="/logo/preparing.svg"
+        imageAlt="Custom Graphic"
         action={{
           label: 'Primary Action',
           onClick: onPrimary,
@@ -110,7 +110,7 @@ describe('StateNotice Component', () => {
     expect(screen.getByText('Custom Badge')).toBeInTheDocument();
     expect(screen.getByText('Custom State Title')).toBeInTheDocument();
     expect(screen.getByText('Custom description explaining this situation.')).toBeInTheDocument();
-    expect(screen.getByAltText('Cooking Graphic')).toBeInTheDocument();
+    expect(screen.getByAltText('Custom Graphic')).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: /primary action/i }));
     expect(onPrimary).toHaveBeenCalledTimes(1);
