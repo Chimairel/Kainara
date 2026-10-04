@@ -60,7 +60,10 @@ describe('empty plan state', () => {
         onRetryPreparation={generate}
       />
     );
-    expect(screen.getByAltText('Meal plan preparation failed')).toHaveAttribute('src', expect.stringContaining('preparing-failed.svg'));
+    expect(screen.getByAltText('Meal plan preparation failed')).toHaveAttribute(
+      'src',
+      expect.stringContaining('preparing-failed.svg')
+    );
     fireEvent.click(screen.getByRole('button', { name: 'Retry Preparation' }));
     expect(generate).toHaveBeenCalledOnce();
     expect(read).not.toHaveBeenCalled();
@@ -77,7 +80,10 @@ describe('empty plan state', () => {
       />
     );
     expect(screen.getByRole('heading', { name: 'Preparing Your First Meal Plan' })).toBeInTheDocument();
-    expect(screen.getByAltText('Preparing your meal plan')).toHaveAttribute('src', expect.stringContaining('preparing.svg'));
+    expect(screen.getByAltText('Preparing your meal plan')).toHaveAttribute(
+      'src',
+      expect.stringContaining('preparing.svg')
+    );
     expect(screen.queryByRole('button', { name: 'Retry Preparation' })).not.toBeInTheDocument();
   });
 

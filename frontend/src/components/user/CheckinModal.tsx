@@ -1,3 +1,4 @@
+import Dropdown from '@/components/ui/Dropdown';
 import React, { useState, useEffect } from 'react';
 import Modal from '@/components/ui/Modal';
 import Button from '@/components/ui/Button';
@@ -189,30 +190,30 @@ export default function CheckinModal({
           <label className="block text-xs font-bold text-brand-muted uppercase tracking-wider mb-2">
             Activity Level
           </label>
-          <select
+          <Dropdown
             value={formData.activityLevel}
-            onChange={(e) => setFormData({ ...formData, activityLevel: e.target.value })}
+            onChange={(e) => setFormData({ ...formData, activityLevel: e })}
             className="w-full rounded-xl border border-brand-border bg-brand-surface px-4 py-3 text-sm text-brand-text outline-none transition-all placeholder:text-brand-muted focus:border-brand-green focus:ring-1 focus:ring-brand-green"
           >
             <option value="SEDENTARY">Sedentary (Little or no exercise)</option>
             <option value="LIGHTLY_ACTIVE">Lightly Active (Exercise 1-3 times/week)</option>
             <option value="ACTIVE">Active (Exercise 3-5 times/week)</option>
             <option value="VERY_ACTIVE">Very Active (Daily exercise)</option>
-          </select>
+          </Dropdown>
         </div>
 
         <div>
           <label className="block text-xs font-bold text-brand-muted uppercase tracking-wider mb-2">Primary Goal</label>
-          <select
+          <Dropdown
             value={formData.goal}
-            onChange={(e) => setFormData({ ...formData, goal: e.target.value })}
+            onChange={(e) => setFormData({ ...formData, goal: e })}
             className="w-full rounded-xl border border-brand-border bg-brand-surface px-4 py-3 text-sm text-brand-text outline-none transition-all placeholder:text-brand-muted focus:border-brand-green focus:ring-1 focus:ring-brand-green"
           >
             <option value="LOSE_WEIGHT">Lose Weight</option>
             <option value="MAINTAIN">Maintain Weight</option>
             <option value="GAIN_WEIGHT">Gain Weight</option>
             <option value="BUILD_MUSCLE">Build Muscle</option>
-          </select>
+          </Dropdown>
         </div>
 
         <div className="flex items-center justify-end gap-3 mt-4">

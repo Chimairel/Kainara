@@ -16,7 +16,7 @@ describe('PasswordInput', () => {
     expect(input).toHaveAttribute('type', 'password');
   });
 
-  it('skips visibility toggles when tabbing between password fields', async () => {
+  it('allows keyboard users to reach visibility toggles between password fields', async () => {
     const user = userEvent.setup();
     render(
       <>
@@ -27,6 +27,8 @@ describe('PasswordInput', () => {
 
     await user.tab();
     expect(screen.getByLabelText('Password')).toHaveFocus();
+    await user.tab();
+    expect(screen.getAllByRole('button', { name: 'Show password' })[0]).toHaveFocus();
     await user.tab();
     expect(screen.getByLabelText('Confirm password')).toHaveFocus();
   });

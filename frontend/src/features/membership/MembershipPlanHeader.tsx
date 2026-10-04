@@ -1,8 +1,9 @@
 'use client';
 
+import CardDecoration from '@/components/ui/CardDecoration';
+
 import { CheckCircle2, Clock, Layers, RefreshCw, Sparkles } from 'lucide-react';
 import Button from '@/components/ui/Button';
-import { KainaraLogo } from '@/components/shared/KainaraLogo';
 import type { MembershipView } from './MembershipProvider';
 
 interface MembershipPlanHeaderProps {
@@ -53,24 +54,12 @@ export default function MembershipPlanHeader({ data, onOpenPlans, onRefresh }: M
       className="relative overflow-hidden rounded-[28px] sm:rounded-[36px] border border-[#dce4e0] dark:border-[#173e33] bg-[#faf8f5] dark:bg-[#071914] text-[#0d2820] dark:text-white shadow-xl p-6 sm:p-9"
     >
       {/* 1. Retro Wave Organic Corner Accent (3-Tone Signature Curved Stripes from Landing Page) */}
-      <div className="pointer-events-none absolute -top-0.5 -right-0.5 h-36 w-36 sm:h-48 sm:w-48 overflow-hidden rounded-tr-[28px] sm:rounded-tr-[36px] z-0 opacity-85">
-        <svg viewBox="0 0 160 160" className="h-full w-full" fill="none">
-          <path d="M160,0 L0,0 C20,40 55,95 120,135 C140,147 160,155 160,155 Z" fill="#eb6a38" />
-          <path d="M160,0 L40,0 C55,30 80,72 130,105 C145,115 160,120 160,120 Z" fill="#f09e6c" />
-          <path
-            d="M160,0 L82,0 C92,20 110,48 142,70 C152,76 160,80 160,80 Z"
-            className="fill-[#1b4e41] dark:fill-[#164639]"
-          />
-        </svg>
-      </div>
+      <CardDecoration style="varied" seed="MembershipPlanHeader.tsx" />
 
       {/* 2. Soft Ambient Radial Glow (from Landing Page) */}
       <div className="pointer-events-none absolute -bottom-10 -left-10 h-72 w-72 rounded-full bg-brand-green/10 blur-[100px] z-0" />
 
       {/* 3. Subtle Watermarked Kainara Logo Seal (from Landing Page) */}
-      <div className="pointer-events-none absolute -bottom-6 -right-6 hidden sm:flex items-center justify-center opacity-10 dark:opacity-15 z-0">
-        <KainaraLogo size={130} variant="multicolor" />
-      </div>
 
       {/* Main Content inside Card */}
       <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-5">

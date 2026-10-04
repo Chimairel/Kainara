@@ -1,5 +1,7 @@
 'use client';
 
+import Dropdown from '@/components/ui/Dropdown';
+import NativeSelect from '@/components/ui/NativeSelect';
 import { useState, type FormEvent } from 'react';
 import { FilePlus2, Landmark } from 'lucide-react';
 import api from '@/lib/axios';
@@ -115,17 +117,17 @@ export default function DataForms({ sources, onChanged, onError }: DataFormsProp
           />
           <label className="flex flex-col gap-2 text-xs font-bold text-brand-text/90">
             Domain
-            <select
+            <Dropdown
               className={fieldClassName}
               value={domain}
-              onChange={(event) => setDomain(event.target.value as ReferenceDataDomain)}
+              onChange={(event) => setDomain(event as ReferenceDataDomain)}
             >
               {domains.map((item) => (
                 <option key={item} value={item}>
                   {item.replaceAll('_', ' ')}
                 </option>
               ))}
-            </select>
+            </Dropdown>
           </label>
           <Input name="updateCadence" label="Expected cadence" placeholder="Every 3–5 years" />
           <Input
@@ -208,7 +210,7 @@ export default function DataForms({ sources, onChanged, onError }: DataFormsProp
           <form className="grid gap-4 sm:grid-cols-2" onSubmit={createRelease}>
             <label className="flex flex-col gap-2 text-xs font-bold text-brand-text/90 sm:col-span-2">
               Source
-              <select name="sourceId" className={fieldClassName} required>
+              <NativeSelect name="sourceId" className={fieldClassName} required>
                 <option value="">Select a source</option>
                 {sources
                   .filter((source) => source.isEnabled)
@@ -217,7 +219,7 @@ export default function DataForms({ sources, onChanged, onError }: DataFormsProp
                       {source.code} · {source.name}
                     </option>
                   ))}
-              </select>
+              </NativeSelect>
             </label>
             <Input name="versionLabel" label="Version label" placeholder="2023 national estimates" required />
             <Input name="surveyYear" type="number" min="1970" max="2100" label="Survey year" placeholder="2023" />

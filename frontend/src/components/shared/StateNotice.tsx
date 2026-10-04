@@ -58,8 +58,7 @@ interface VariantDefaults {
 
 const VARIANT_CONFIGS: Record<StateNoticeVariant, VariantDefaults> = {
   'no-meal-plan': {
-    getImageSrc: (theme) =>
-      theme === 'dark' ? '/logo/sleeping-dark.svg' : '/logo/sleeping-light.svg',
+    getImageSrc: (theme) => (theme === 'dark' ? '/logo/sleeping-dark.svg' : '/logo/sleeping-light.svg'),
     imageAlt: 'Meal plan status',
     eyebrowVariant: 'brand',
     title: "Meal planning isn't available yet",
@@ -71,8 +70,7 @@ const VARIANT_CONFIGS: Record<StateNoticeVariant, VariantDefaults> = {
     eyebrow: 'Action Required',
     eyebrowVariant: 'amber',
     title: 'Nutrition Report Pending',
-    description:
-      'Please review and acknowledge your personalized nutrition report before accessing this feature.',
+    description: 'Please review and acknowledge your personalized nutrition report before accessing this feature.',
     action: {
       label: 'View Nutrition Report',
       href: '/profile/nutrition-report',
@@ -119,8 +117,7 @@ const VARIANT_CONFIGS: Record<StateNoticeVariant, VariantDefaults> = {
     imageAlt: 'Preparing your meal plan',
     eyebrowVariant: 'brand',
     title: 'Preparing Your First Meal Plan',
-    description:
-      'Your current meal plan is being prepared automatically. New candidates will appear once ready.',
+    description: 'Your current meal plan is being prepared automatically. New candidates will appear once ready.',
   },
   'preparing-failed': {
     getImageSrc: () => '/logo/preparing-failed.svg',
@@ -180,7 +177,7 @@ export default function StateNotice({
   const resolvedTitle = title !== undefined ? title : config.title;
   const resolvedDescription = description !== undefined ? description : config.description;
 
-  const resolvedAction = action === null ? null : (action !== undefined ? action : config.action);
+  const resolvedAction = action === null ? null : action !== undefined ? action : config.action;
   const resolvedSecondaryAction = secondaryAction;
 
   const containerClass =
@@ -259,9 +256,7 @@ export default function StateNotice({
           )}
 
           {resolvedDescription && (
-            <p className="mb-6 text-sm sm:text-base leading-relaxed text-brand-muted">
-              {resolvedDescription}
-            </p>
+            <p className="mb-6 text-sm sm:text-base leading-relaxed text-brand-muted">{resolvedDescription}</p>
           )}
 
           {(resolvedAction || resolvedSecondaryAction) && (

@@ -34,7 +34,7 @@ import {
 import { Suspense, useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 
-import MotionActiveIndicator from '@/components/ui/motion/MotionActiveIndicator';
+import WorkspaceTabs from '@/components/ui/WorkspaceTabs';
 import { Select } from '@/components/ui/Select';
 import { HISTORY_SOURCE_OPTIONS, HISTORY_STATUS_OPTIONS } from '@/features/meals/history-filter-options';
 import { MealsWorkspaceModals } from '@/features/meals/MealsWorkspaceModals';
@@ -223,48 +223,21 @@ function WeeklyPlanPageContent() {
         )}
 
         {/* Tab Bar */}
-        <nav
-          className="grid grid-cols-3 gap-1 rounded-[22px] border border-brand-border/70 bg-brand-surface/85 p-1.5 text-left shadow-sm"
-          aria-label="Meal workspace sections"
-        >
-          {(
-            [
-              ['plan', 'Plan', Calendar, displayedMealCount],
-              ['history', 'History', History, historyTotalCount ?? '…'],
-              ['library', 'Library', BookOpen, null],
-            ] as const
-          ).map(([value, label, Icon, count]) => (
-            <button
-              key={value}
-              type="button"
-              onClick={() => setActiveTab(value)}
-              aria-pressed={activeTab === value}
-              className={`group relative flex min-h-12 items-center justify-center gap-2 rounded-2xl px-3 font-display text-xs font-extrabold outline-none transition-colors focus-visible:ring-2 focus-visible:ring-brand-green focus-visible:ring-offset-2 focus-visible:ring-offset-brand-surface sm:text-sm ${
-                activeTab === value
-                  ? 'text-[#07100d]'
-                  : 'text-brand-muted hover:bg-brand-bgAlt/70 hover:text-brand-text'
-              }`}
-            >
-              {activeTab === value && (
-                <MotionActiveIndicator
-                  layoutId="meals-workspace-tab-indicator"
-                  className="rounded-2xl bg-brand-accent shadow-neon"
-                />
-              )}
-              <span className="relative z-10 flex items-center justify-center gap-2">
-                <Icon className="h-4 w-4" />
-                <span>{label}</span>
-                <span
-                  className={`hidden rounded-full px-1.5 py-0.5 font-mono text-[8px] sm:inline ${
-                    activeTab === value ? 'bg-[#07100d]/10' : 'bg-brand-bgAlt'
-                  }`}
-                >
-                  {count}
-                </span>
-              </span>
-            </button>
-          ))}
-        </nav>
+        <WorkspaceTabs
+          value={activeTab}
+          onChange={setActiveTab}
+          label="Meal workspace sections"
+          items={[
+            { value: 'plan', label: 'Plan', icon: <Calendar className="h-4 w-4" />, count: displayedMealCount },
+            {
+              value: 'history',
+              label: 'History',
+              icon: <History className="h-4 w-4" />,
+              count: historyTotalCount ?? '…',
+            },
+            { value: 'library', label: 'Library', icon: <BookOpen className="h-4 w-4" /> },
+          ]}
+        />
 
         {activeTab === 'plan' && !isLoading && upcomingOnly && !clinicalEvidenceRequired && !isReportPending && (
           <div className="flex items-start gap-3 rounded-xl border border-status-pending-text/30 bg-status-pending-bg/15 px-4 py-3 text-sm text-brand-text">
@@ -772,11 +745,11 @@ function WeeklyPlanPageContent() {
                             <span className="text-xs font-extrabold text-brand-green dark:text-brand-accent font-display uppercase tracking-wider">
                               {weekday}
                             </span>
-                            <span className="text-xs font-semibold text-brand-muted dark:text-white/40">·</span>
+                            <span className="text-xs font-semibold text-brand-muted dark:text-white/40">Â·</span>
                             <span className="text-xs font-bold text-brand-text dark:text-white/80">{dateStr}</span>
                           </div>
                           <p className="text-xs text-brand-muted dark:text-white/40 mt-0.5">
-                            0 meals logged · {unloggedScheduledMeals.length} planned awaiting log
+                            0 meals logged Â· {unloggedScheduledMeals.length} planned awaiting log
                           </p>
                         </div>
 

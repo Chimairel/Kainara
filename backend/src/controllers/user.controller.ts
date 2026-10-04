@@ -350,10 +350,18 @@ export class UserController {
         return res.status(401).json({ success: false, error: 'Unauthorized.' });
       }
 
-      const versionQuery = req.query.version ? parseInt(String(req.query.version), 10) : undefined;
-      const report = versionQuery && !Number.isNaN(versionQuery)
-        ? await NutritionReportService.getVersionReport(userId, versionQuery)
-        : await NutritionReportService.getReport(userId);
+      const rawVersion = req.query.version;
+      if (
+        rawVersion !== undefined &&
+        (typeof rawVersion !== 'string' || !/^[1-9]\d*$/.test(rawVersion) || !Number.isSafeInteger(Number(rawVersion)))
+      ) {
+        return res.status(400).json({ success: false, error: 'Choose a valid report version before downloading.' });
+      }
+      const versionQuery = rawVersion === undefined ? undefined : Number(rawVersion);
+      const report =
+        versionQuery !== undefined
+          ? await NutritionReportService.getVersionReport(userId, versionQuery)
+          : await NutritionReportService.getReport(userId);
 
       if (!report) {
         return res.status(404).json({ success: false, error: 'Report not found.' });
@@ -370,7 +378,11 @@ export class UserController {
           .status(409)
           .json({ success: false, error: 'Update your report before downloading current guidance.' });
       const { NutritionReportPDF, streamPdf } = await import('@/lib/pdf');
-      const document = React.createElement(NutritionReportPDF, { user: userDetails, report });
+      const document = React.createElement(NutritionReportPDF, {
+        user: userDetails,
+        report,
+        archived: versionQuery !== undefined,
+      });
       const stream = await streamPdf(document);
 
       res.setHeader('Content-Type', 'application/pdf');

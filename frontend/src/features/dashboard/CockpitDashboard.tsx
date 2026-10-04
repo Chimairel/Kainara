@@ -1,7 +1,9 @@
 'use client';
 
+import CardDecoration from '@/components/ui/CardDecoration';
+
 import { motion } from 'motion/react';
-import { formatManilaDate } from '@/lib/manila-date';
+import { formatManilaDate, getManilaDateKey } from '@/lib/manila-date';
 import type { MealPlan } from '@/types';
 import type { PendingMealPreview } from '@/components/user/PendingMealPreviewCard';
 import { DailyIntakeDonut, AnimatedValue } from '@/components/watermelon/daily-intake-donut';
@@ -63,23 +65,16 @@ export function CockpitDashboard({
           className="daily-intake-card relative overflow-hidden flex min-h-full flex-col justify-between rounded-3xl border border-brand-border p-5 sm:p-6"
         >
           {/* Retro Wave Organic Corner Accent (Top Right) - Connected with On your menu card */}
-          <div className="pointer-events-none absolute -top-0.5 -right-0.5 h-32 w-32 overflow-hidden rounded-tr-3xl z-0">
-            <svg viewBox="0 0 160 160" className="h-full w-full" fill="none" aria-hidden="true">
-              <path d="M160,0 L0,0 C20,40 55,95 120,135 C140,147 160,155 160,155 Z" fill="#eb6a38" />
-              <path d="M160,0 L40,0 C55,30 80,72 130,105 C145,115 160,120 160,120 Z" fill="#f09e6c" />
-              <path
-                d="M160,0 L82,0 C92,20 110,48 142,70 C152,76 160,80 160,80 Z"
-                className="fill-[#1b4e41] dark:fill-[#164639]"
-              />
-            </svg>
-          </div>
+          <CardDecoration style="varied" seed="CockpitDashboard.tsx" />
 
           <div className="relative z-10 flex flex-col justify-between h-full">
             <div>
               <div className="flex items-center justify-between">
                 <p className="text-sm font-semibold text-brand-muted pl-1">Your daily intake</p>
                 <span className="rounded-full border border-brand-border/70 dark:border-[#173e33] bg-brand-surface/90 dark:bg-[#071914]/90 px-2.5 py-0.5 text-[10px] font-bold text-[#eb6a38] dark:text-[#f09e6c] shadow-xs backdrop-blur-xs">
-                  Today
+                  {getManilaDateKey(activeDate) === getManilaDateKey(new Date())
+                    ? 'Today'
+                    : formatManilaDate(activeDate, { month: 'short', day: 'numeric' })}
                 </span>
               </div>
 

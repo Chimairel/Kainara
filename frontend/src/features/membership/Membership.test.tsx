@@ -76,7 +76,9 @@ afterEach(() => {
 describe('membership status and gates', () => {
   it('keeps plans out of the allowance view and opens the shared accessible plan dialog', () => {
     render(<MembershipPage />);
-    expect(screen.getByText('6 of 10')).toBeInTheDocument();
+    expect(screen.getByText('6 of 10 left')).toBeInTheDocument();
+    expect(screen.getByRole('meter', { name: 'AI estimates used' })).toHaveAttribute('aria-valuenow', '4');
+    expect(screen.getByRole('meter', { name: 'AI estimates used' })).toHaveAttribute('aria-valuemax', '10');
     expect(screen.queryByRole('button', { name: 'Get Lifestyle', hidden: true })).not.toBeInTheDocument();
     fireEvent.click(screen.getAllByRole('button', { name: 'View plans' })[0]);
     expect(screen.getByRole('dialog', { name: 'Membership plans' })).toBeInTheDocument();

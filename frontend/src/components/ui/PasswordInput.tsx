@@ -87,40 +87,37 @@ export const PasswordInput = forwardRef<HTMLInputElement, PasswordInputProps>(
     }, [isVisible]);
 
     return (
-      <div className="relative w-full">
-        <Input
-          ref={setInputRef}
-          {...props}
-          label={label}
-          type={isVisible ? 'text' : 'password'}
-          disabled={disabled}
-          className={`pr-14 ${className}`}
-        />
-        <button
-          type="button"
-          tabIndex={-1}
-          aria-label={accessibleLabel}
-          aria-pressed={isVisible}
-          disabled={disabled}
-          onPointerDown={(event) => {
-            captureSelection();
-            event.preventDefault();
-          }}
-          onPointerCancel={() => {
-            selectionSnapshotRef.current = null;
-          }}
-          onClick={handleVisibilityToggle}
-          className={`absolute right-2 z-10 inline-flex h-10 w-10 items-center justify-center rounded-full text-brand-muted transition-colors hover:text-brand-green focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-green/60 focus-visible:ring-offset-2 focus-visible:ring-offset-brand-bgAlt disabled:cursor-not-allowed disabled:opacity-40 ${
-            label ? 'top-7' : 'top-1'
-          }`}
-        >
-          {isVisible ? (
-            <EyeOff className="h-5 w-5" aria-hidden="true" />
-          ) : (
-            <Eye className="h-5 w-5" aria-hidden="true" />
-          )}
-        </button>
-      </div>
+      <Input
+        ref={setInputRef}
+        {...props}
+        label={label}
+        type={isVisible ? 'text' : 'password'}
+        disabled={disabled}
+        className={`min-h-11 pr-14 sm:pr-14 ${className}`}
+        trailingControl={
+          <button
+            type="button"
+            aria-label={accessibleLabel}
+            aria-pressed={isVisible}
+            disabled={disabled}
+            onPointerDown={(event) => {
+              captureSelection();
+              event.preventDefault();
+            }}
+            onPointerCancel={() => {
+              selectionSnapshotRef.current = null;
+            }}
+            onClick={handleVisibilityToggle}
+            className="absolute right-1 top-1/2 z-10 inline-flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full text-brand-muted transition-colors hover:text-brand-green focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-green/60 disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            {isVisible ? (
+              <EyeOff className="h-5 w-5" aria-hidden="true" />
+            ) : (
+              <Eye className="h-5 w-5" aria-hidden="true" />
+            )}
+          </button>
+        }
+      />
     );
   }
 );

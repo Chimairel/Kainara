@@ -1,5 +1,5 @@
+import CardDecoration from '@/components/ui/CardDecoration';
 import { Stethoscope, BadgeCheck, Video, KeyRound, FileText, ShieldCheck } from 'lucide-react';
-import KainaraLogo from '@/components/shared/KainaraLogo';
 
 const applicationStages = [
   {
@@ -32,18 +32,9 @@ export function ApplicationSidebar() {
   return (
     <aside className="relative overflow-hidden rounded-[32px] border border-[#173e33] bg-[#071914] p-6 sm:p-8 text-white shadow-2xl">
       {/* Brand Retro Wave Corner Accent (Matching landing page style) */}
-      <div className="pointer-events-none absolute -top-0.5 -right-0.5 h-36 w-36 overflow-hidden rounded-tr-[32px] z-0 opacity-80">
-        <svg viewBox="0 0 160 160" className="h-full w-full" fill="none">
-          <path d="M160,0 L0,0 C20,40 55,95 120,135 C140,147 160,155 160,155 Z" fill="#eb6a38" />
-          <path d="M160,0 L40,0 C55,30 80,72 130,105 C145,115 160,120 160,120 Z" fill="#f09e6c" />
-          <path d="M160,0 L82,0 C92,20 110,48 142,70 C152,76 160,80 160,80 Z" className="fill-[#1b4e41]" />
-        </svg>
-      </div>
+      <CardDecoration style="varied" seed="ApplicationSidebar.tsx" />
 
       {/* Watermark Logo */}
-      <div className="pointer-events-none absolute -bottom-8 -right-8 hidden lg:flex items-center justify-center opacity-10">
-        <KainaraLogo size={140} variant="multicolor" />
-      </div>
 
       <div className="relative z-10">
         <div className="flex items-center gap-3">

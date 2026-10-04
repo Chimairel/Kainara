@@ -497,7 +497,8 @@ function OutsideMealForm(props: Props) {
                       <div className="shrink-0 text-right">
                         <span className="font-extrabold text-brand-green">{Math.round(dish.macros.calories)} kcal</span>
                         <span className="block text-[10px] text-brand-muted">
-                          {Math.round(dish.macros.proteinG * 10) / 10}g P · {Math.round(dish.macros.carbsG * 10) / 10}g C
+                          {Math.round(dish.macros.proteinG * 10) / 10}g P · {Math.round(dish.macros.carbsG * 10) / 10}g
+                          C
                         </span>
                       </div>
                     )}
@@ -570,7 +571,9 @@ function OutsideMealForm(props: Props) {
               <span className="text-[11px] font-semibold text-brand-green flex items-center justify-center gap-1">
                 <CheckCircle2 className="h-3.5 w-3.5" /> 1 serving
               </span>
-              <span className="text-[10px] text-brand-muted truncate">{selectedSuggestion.serving || 'Recipe serving'}</span>
+              <span className="text-[10px] text-brand-muted truncate">
+                {selectedSuggestion.serving || 'Recipe serving'}
+              </span>
             </div>
           )}
         </div>
@@ -702,7 +705,8 @@ function OutsideMealForm(props: Props) {
           <div className="space-y-1.5 rounded-xl border border-brand-border/60 bg-brand-bgAlt/30 p-2.5">
             {selectedRicePairing === 'RICE_INCLUDED' && (
               <p className="text-[11px] text-brand-muted">
-                The recipe estimate already includes its listed rice. If your rice portion differs, edit the nutrition estimate above. Use this field only for rice added beyond the recipe serving.
+                The recipe estimate already includes its listed rice. If your rice portion differs, edit the nutrition
+                estimate above. Use this field only for rice added beyond the recipe serving.
               </p>
             )}
             <RiceAccompanimentSelect
@@ -715,7 +719,8 @@ function OutsideMealForm(props: Props) {
             {ricePlatePreview && (
               <p className="text-xs font-semibold text-brand-text">
                 Plate preview: {Math.round(ricePlatePreview.calories)} kcal ·{' '}
-                {Math.round(ricePlatePreview.carbsG * 10) / 10}g carbs. Rice appears as its own FNRI item in the confirmation.
+                {Math.round(ricePlatePreview.carbsG * 10) / 10}g carbs. Rice appears as its own FNRI item in the
+                confirmation.
               </p>
             )}
           </div>

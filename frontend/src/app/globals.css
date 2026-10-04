@@ -185,7 +185,9 @@ body,
  * Form controls: Ensure inputs, textareas, and selects always have a solid,
  * opaque surface and never render as transparent or show background grid lines.
  */
-input:not([type='checkbox']):not([type='radio']):not([type='range']):not([type='submit']):not([type='button']):not([type='reset']),
+input:not([type='checkbox']):not([type='radio']):not([type='range']):not([type='submit']):not([type='button']):not(
+    [type='reset']
+  ),
 textarea,
 select {
   background-image: none !important;
@@ -800,7 +802,10 @@ html.dark .floating-sidebar-shadow {
   box-shadow:
     0 25px 50px -12px rgba(0, 0, 0, 0.15),
     0 10px 30px -5px rgba(0, 0, 0, 0.08);
-  transition: box-shadow 0.3s ease, border-color 0.3s ease, transform 0.3s ease;
+  transition:
+    box-shadow 0.3s ease,
+    border-color 0.3s ease,
+    transform 0.3s ease;
 }
 
 html.dark .floating-card-shadow,
@@ -856,8 +861,12 @@ select:-webkit-autofill {
   -webkit-text-fill-color: #0d2820 !important;
   caret-color: #0d2820 !important;
   border-color: #08705b !important;
-  box-shadow: 0 0 0px 1000px #f4faf7 inset, 0 0 0 4px rgba(8, 112, 91, 0.12) !important;
-  -webkit-box-shadow: 0 0 0px 1000px #f4faf7 inset, 0 0 0 4px rgba(8, 112, 91, 0.12) !important;
+  box-shadow:
+    0 0 0px 1000px #f4faf7 inset,
+    0 0 0 4px rgba(8, 112, 91, 0.12) !important;
+  -webkit-box-shadow:
+    0 0 0px 1000px #f4faf7 inset,
+    0 0 0 4px rgba(8, 112, 91, 0.12) !important;
 }
 
 /* Dark mode general input autofill */
@@ -877,8 +886,12 @@ html.dark input:-webkit-autofill:focus {
   -webkit-text-fill-color: #eff8f3 !important;
   caret-color: #eff8f3 !important;
   border-color: #10b981 !important;
-  box-shadow: 0 0 0px 1000px #0e271f inset, 0 0 0 4px rgba(16, 185, 129, 0.15) !important;
-  -webkit-box-shadow: 0 0 0px 1000px #0e271f inset, 0 0 0 4px rgba(16, 185, 129, 0.15) !important;
+  box-shadow:
+    0 0 0px 1000px #0e271f inset,
+    0 0 0 4px rgba(16, 185, 129, 0.15) !important;
+  -webkit-box-shadow:
+    0 0 0px 1000px #0e271f inset,
+    0 0 0 4px rgba(16, 185, 129, 0.15) !important;
 }
 
 /* Auth card is always white on the right, so force light autofill even when html has dark */
@@ -896,9 +909,10 @@ html.dark .auth-card input:-webkit-autofill:focus {
   -webkit-text-fill-color: #0d2820 !important;
   caret-color: #0d2820 !important;
   border-color: #08705b !important;
-  box-shadow: 0 0 0px 1000px #f4faf7 inset, 0 0 0 4px rgba(8, 112, 91, 0.12) !important;
-  -webkit-box-shadow: 0 0 0px 1000px #f4faf7 inset, 0 0 0 4px rgba(8, 112, 91, 0.12) !important;
+  box-shadow:
+    0 0 0px 1000px #f4faf7 inset,
+    0 0 0 4px rgba(8, 112, 91, 0.12) !important;
+  -webkit-box-shadow:
+    0 0 0px 1000px #f4faf7 inset,
+    0 0 0 4px rgba(8, 112, 91, 0.12) !important;
 }
-
-
-

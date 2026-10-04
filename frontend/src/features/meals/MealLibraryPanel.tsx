@@ -1,42 +1,18 @@
 'use client';
 
+import Dropdown from '@/components/ui/Dropdown';
+import Pagination from '@/components/ui/Pagination';
+import MealLibraryLayout from '@/components/shared/MealLibraryLayout';
 import { useEffect, useMemo, useState } from 'react';
 import Button from '@/components/ui/Button';
 import LoadingSpinner from '@/components/shared/LoadingSpinner';
 import Link from 'next/link';
-import { AlertTriangle, ChevronDown, Search, Salad } from 'lucide-react';
+import { AlertTriangle, Search, Salad } from 'lucide-react';
 import type { useMealsWorkspace } from './useMealsWorkspace';
 import { groupApprovedPlanRecipes } from './approvedPlanRecipes';
 import RecipeLibraryCard from './RecipeLibraryCard';
-import api from '@/lib/axios';
-import { getApiErrorMessage } from '@/lib/api-error';
+import { useRecipeCatalog } from './useRecipeCatalog';
 import type { PublicMealImage } from '@/types';
-
-type CatalogRecipe = {
-  id: string;
-  name: string;
-  description: string | null;
-  mealTypes: string[];
-  calories: number | null;
-  proteinG: number | null;
-  carbsG: number | null;
-  fatG: number | null;
-  sourceName: string;
-  sourceUrl: string | null;
-  imageUrl: string | null;
-  planningReady: boolean;
-  inPlan?: boolean;
-  occurrences?: Array<{ id: string; scheduledDate: string; cycleScope: string | null }>;
-  planMealId?: string | null;
-};
-
-type CatalogPage = {
-  items: CatalogRecipe[];
-  total: number;
-  page: number;
-  pageCount: number;
-  restrictedProfile: boolean;
-};
 
 export default function MealLibraryPanel({ workspace }: { workspace: ReturnType<typeof useMealsWorkspace> }) {
   const {
@@ -52,56 +28,28 @@ export default function MealLibraryPanel({ workspace }: { workspace: ReturnType<
   } = workspace;
 
   const [page, setPage] = useState(1);
-  const [catalogData, setCatalogData] = useState<CatalogPage | null>(null);
-  const [catalogLoading, setCatalogLoading] = useState(false);
-  const [catalogError, setCatalogError] = useState<string | null>(null);
-
   const PAGE_SIZE = 6;
-
+  const [pendingPage, setPendingPage] = useState<number | null>(null);
+  const [filterKey, setFilterKey] = useState('');
+  const currentFilterKey = JSON.stringify([workspace.ownerId, librarySearch, libraryMealType, libraryRiceRole]);
+  const effectivePage = filterKey === currentFilterKey ? page : 1;
+  const catalog = useRecipeCatalog({
+    search: librarySearch,
+    mealType: libraryMealType,
+    riceRole: libraryRiceRole,
+    ownerId: workspace.ownerId,
+    enabled: workspace.activeTab === undefined || workspace.activeTab === 'library',
+    page: effectivePage,
+  });
+  const catalogData = catalog.data;
+  const catalogLoading = catalog.loading;
+  const catalogError = catalog.error;
   useEffect(() => {
     setPage(1);
-  }, [librarySearch, libraryMealType, libraryRiceRole]);
-
-  useEffect(() => {
-    let active = true;
-    const timer = setTimeout(() => {
-      setCatalogLoading(true);
-      void api
-        .get('/user/meals/verified-recipes', {
-          params: {
-            page,
-            ...(librarySearch.trim() ? { search: librarySearch.trim() } : {}),
-            ...(libraryMealType !== 'All' ? { mealType: libraryMealType } : {}),
-            ...(libraryRiceRole !== 'All' ? { riceRole: libraryRiceRole } : {}),
-          },
-        })
-        .then((response) => {
-          if (active) {
-            setCatalogData(response.data.data);
-            setCatalogError(null);
-          }
-        })
-        .catch((err) => {
-          if (active) {
-            setCatalogError(getApiErrorMessage(err, 'Could not load recipes.'));
-          }
-        })
-        .finally(() => {
-          if (active) setCatalogLoading(false);
-        });
-    }, 250);
-
-    return () => {
-      active = false;
-      clearTimeout(timer);
-    };
-  }, [librarySearch, libraryMealType, libraryRiceRole, page]);
-
+    setFilterKey(currentFilterKey);
+  }, [currentFilterKey]);
   const search = librarySearch.trim().toLowerCase();
-  const plannedLibraryIds = useMemo(
-    () => new Set(meals.map((meal) => meal.libraryMealId).filter(Boolean)),
-    [meals]
-  );
+  const plannedLibraryIds = useMemo(() => new Set(meals.map((meal) => meal.libraryMealId).filter(Boolean)), [meals]);
 
   const approvedInPlan = useMemo(() => {
     return groupApprovedPlanRecipes(
@@ -124,7 +72,7 @@ export default function MealLibraryPanel({ workspace }: { workspace: ReturnType<
     );
   }, [libraryMeals, libraryRiceRole, libraryMealType, search]);
 
-  const isServerSource = Boolean(catalogData && !catalogData.restrictedProfile);
+  const isServerSource = Boolean(catalog.summary && !catalog.summary.restrictedProfile);
 
   const clientUnifiedItems = useMemo(() => {
     const plannedItems = approvedInPlan.map(({ meal, occurrences }) => ({
@@ -150,7 +98,7 @@ export default function MealLibraryPanel({ workspace }: { workspace: ReturnType<
     }));
 
     const nonPlannedItems = filteredLibraryMeals
-      .filter((lm) => !plannedItems.some((pi) => pi.name.toLowerCase() === lm.mealName.toLowerCase()))
+      .filter((meal) => !plannedLibraryIds.has(meal.id))
       .map((meal) => ({
         id: meal.id,
         name: meal.mealName,
@@ -174,18 +122,35 @@ export default function MealLibraryPanel({ workspace }: { workspace: ReturnType<
     return merged;
   }, [approvedInPlan, filteredLibraryMeals, plannedLibraryIds]);
 
-  const totalPages = isServerSource && catalogData
-    ? Math.max(1, catalogData.pageCount)
-    : Math.max(1, Math.ceil(clientUnifiedItems.length / PAGE_SIZE));
+  const totalPages =
+    isServerSource && catalog.summary
+      ? Math.max(1, catalog.summary.pageCount)
+      : Math.max(1, Math.ceil(clientUnifiedItems.length / PAGE_SIZE) + (workspace.libraryNextCursor ? 1 : 0));
 
+  useEffect(() => {
+    if (catalogData && !catalogData.restrictedProfile) setPage(catalogData.page);
+    else if (!catalogLoading && !workspace.isLibraryLoading && !workspace.libraryNextCursor) {
+      setPage((value) => Math.min(value, totalPages));
+    }
+  }, [catalogData, catalogLoading, workspace.isLibraryLoading, workspace.libraryNextCursor, totalPages]);
+
+  useEffect(() => {
+    if (pendingPage !== null && clientUnifiedItems.length > (pendingPage - 1) * PAGE_SIZE) {
+      setPage(pendingPage);
+      setPendingPage(null);
+    }
+  }, [pendingPage, clientUnifiedItems.length]);
+  useEffect(() => {
+    setPendingPage(null);
+  }, [currentFilterKey]);
+  useEffect(() => {
+    if (workspace.libraryError) setPendingPage(null);
+  }, [workspace.libraryError]);
   const displayItems = useMemo(() => {
+    if (isServerSource && !catalogData) return [];
     if (isServerSource && catalogData) {
       return catalogData.items.map((recipe) => {
-        const matchingPlan = approvedInPlan.find(
-          (p) =>
-            p.meal.mealName.toLowerCase() === recipe.name.toLowerCase() ||
-            (p.meal.libraryMealId && p.meal.libraryMealId === recipe.id)
-        );
+        const matchingPlan = approvedInPlan.find((p) => p.meal.libraryMealId && p.meal.libraryMealId === recipe.id);
         const inPlan = Boolean(recipe.inPlan || matchingPlan);
         const occurrences = matchingPlan
           ? matchingPlan.occurrences.map((o) => ({
@@ -193,7 +158,7 @@ export default function MealLibraryPanel({ workspace }: { workspace: ReturnType<
               scheduledDate: String(o.scheduledDate),
               cycleScope: o.cycleScope ?? null,
             }))
-          : recipe.occurrences ?? [];
+          : (recipe.occurrences ?? []);
 
         const image: PublicMealImage | null =
           matchingPlan?.meal.image ??
@@ -226,8 +191,8 @@ export default function MealLibraryPanel({ workspace }: { workspace: ReturnType<
       });
     }
 
-    return clientUnifiedItems.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
-  }, [isServerSource, catalogData, approvedInPlan, clientUnifiedItems, page]);
+    return clientUnifiedItems.slice((effectivePage - 1) * PAGE_SIZE, effectivePage * PAGE_SIZE);
+  }, [isServerSource, catalogData, approvedInPlan, clientUnifiedItems, effectivePage]);
 
   return (
     <div className="space-y-6 text-left">
@@ -253,10 +218,10 @@ export default function MealLibraryPanel({ workspace }: { workspace: ReturnType<
           <label htmlFor="library-rice-role-select" className="sr-only">
             Rice role
           </label>
-          <select
+          <Dropdown
             id="library-rice-role-select"
             value={libraryRiceRole}
-            onChange={(event) => setLibraryRiceRole(event.target.value)}
+            onChange={(event) => setLibraryRiceRole(event)}
             aria-label="Rice role"
             className="h-10 appearance-none rounded-xl border border-brand-border bg-brand-bgAlt/60 pl-3.5 pr-8 text-xs font-bold text-brand-text transition-all outline-none hover:border-brand-green/50 focus:border-brand-green focus:bg-brand-surface dark:bg-[#0e271f] dark:border-[#173e33] dark:text-white cursor-pointer"
           >
@@ -264,8 +229,7 @@ export default function MealLibraryPanel({ workspace }: { workspace: ReturnType<
             <option value="PAIR_WITH_RICE">Pair with rice</option>
             <option value="STANDALONE">Standalone</option>
             <option value="INCLUDES_RICE">Includes rice</option>
-          </select>
-          <ChevronDown className="pointer-events-none absolute right-2.5 h-3.5 w-3.5 text-brand-muted" />
+          </Dropdown>
         </div>
 
         <div className="flex w-full gap-1 overflow-x-auto rounded-xl bg-brand-bgAlt/60 p-1 select-none md:w-auto">
@@ -285,29 +249,37 @@ export default function MealLibraryPanel({ workspace }: { workspace: ReturnType<
         </div>
       </div>
 
-      {catalogError && (
+      {(catalogError || workspace.libraryError) && (
         <div className="p-4 rounded-xl bg-status-error-bg/10 border border-status-error-text/25 text-status-error-text text-sm font-semibold flex items-center gap-2">
           <AlertTriangle className="w-4 h-4 text-status-error-text shrink-0" />
-          <span>{catalogError}</span>
+          <span>{catalogError || workspace.libraryError}</span>
+          <button
+            type="button"
+            className="min-h-11 underline"
+            onClick={() => {
+              catalog.retry();
+              if (workspace.libraryError) void workspace.retryLibrary?.();
+            }}
+          >
+            Retry
+          </button>
         </div>
       )}
 
-      {catalogLoading && displayItems.length === 0 ? (
+      {catalogLoading && (isServerSource || displayItems.length === 0) ? (
         <div className="flex flex-col items-center py-12 gap-2">
           <LoadingSpinner size="md" />
           <span className="text-xs text-brand-muted">Loading recipes…</span>
         </div>
-      ) : displayItems.length === 0 ? (
+      ) : displayItems.length === 0 && (catalogError || workspace.libraryError) ? null : displayItems.length === 0 ? (
         <div className="p-12 text-center border border-brand-border/40 bg-brand-surface/30 rounded-xl">
           <Salad className="w-8 h-8 text-brand-green mx-auto mb-2" />
           <p className="text-sm text-brand-text font-semibold">No recipes match this selection</p>
-          <p className="text-xs text-brand-muted mt-1 max-w-sm mx-auto">
-            Try adjusting your search query or filters.
-          </p>
+          <p className="text-xs text-brand-muted mt-1 max-w-sm mx-auto">Try adjusting your search query or filters.</p>
         </div>
       ) : (
-        <section aria-label="Meal library recipes" className="space-y-4">
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <div className="space-y-4">
+          <MealLibraryLayout>
             {displayItems.map((item) => (
               <RecipeLibraryCard
                 key={item.id}
@@ -369,10 +341,7 @@ export default function MealLibraryPanel({ workspace }: { workspace: ReturnType<
                         ))}
                       </div>
                     ) : (
-                      <Link
-                        href={`/dashboard/${item.id}`}
-                        className="font-semibold text-brand-green hover:underline"
-                      >
+                      <Link href={`/dashboard/${item.id}`} className="font-semibold text-brand-green hover:underline">
                         View planned meal
                       </Link>
                     )
@@ -389,35 +358,29 @@ export default function MealLibraryPanel({ workspace }: { workspace: ReturnType<
                 }
               />
             ))}
-          </div>
+          </MealLibraryLayout>
 
           {totalPages > 1 && (
-            <nav
-              aria-label="Recipe pages"
-              className="mt-4 flex items-center justify-center gap-4 text-xs font-semibold"
-            >
-              <button
-                type="button"
-                disabled={page <= 1}
-                onClick={() => setPage((prev) => Math.max(1, prev - 1))}
-                className="rounded-xl border border-brand-border bg-brand-surface px-3 py-2 text-brand-text transition hover:border-brand-green disabled:opacity-40"
-              >
-                Previous
-              </button>
-              <span className="text-brand-muted">
-                Page {page} of {totalPages}
-              </span>
-              <button
-                type="button"
-                disabled={page >= totalPages}
-                onClick={() => setPage((prev) => Math.min(totalPages, prev + 1))}
-                className="rounded-xl border border-brand-border bg-brand-surface px-3 py-2 text-brand-text transition hover:border-brand-green disabled:opacity-40"
-              >
-                Next
-              </button>
-            </nav>
+            <Pagination
+              page={effectivePage}
+              pageCount={totalPages}
+              busy={(isServerSource && catalogLoading) || workspace.isLibraryLoading}
+              onPageChange={async (nextPage) => {
+                if (
+                  !isServerSource &&
+                  nextPage * PAGE_SIZE > clientUnifiedItems.length &&
+                  workspace.libraryNextCursor
+                ) {
+                  setPendingPage(nextPage);
+                  await workspace.loadMoreLibrary();
+                  return; // Loading adds the next page; a failed request cannot advance to an empty page.
+                }
+                setPage(nextPage);
+              }}
+              label="Recipe pages"
+            />
           )}
-        </section>
+        </div>
       )}
     </div>
   );

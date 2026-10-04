@@ -20,6 +20,10 @@ Codex and Antigravity use `C:\Users\chima\Desktop\Nutrimind` as the shared worki
 5. Record significant architecture, clinical-safety, schema, data, or cross-role decisions and their verification in the engineering record using its existing change IDs. Routine edits need a clear commit and relevant checks.
 6. For simultaneous work on overlapping files, use separate branches or worktrees and review integration explicitly.
 
+## UI reuse
+
+Before adding workspace markup, consult [frontend/src/components/README.md](frontend/src/components/README.md). Reuse the shared card, split pane, dropdown, tabs, meal presentations, library grid, pagination and password field. Keep role-specific authorization and eligibility in existing handlers and services.
+
 ## Change safety
 
 - Read the target files and immediate dependencies before editing. Keep changes focused on the requested behavior and preserve existing UI design unless asked to change it.

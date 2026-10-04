@@ -4,6 +4,7 @@ import VerifiedRecipeCatalog from './VerifiedRecipeCatalog';
 
 const get = vi.hoisted(() => vi.fn());
 vi.mock('@/lib/axios', () => ({ default: { get } }));
+vi.mock('@/hooks/useAuth', () => ({ useAuth: () => ({ user: { userId: 'fixture-member' } }) }));
 vi.mock('@/components/user/MealImage', () => ({
   default: ({ mealName }: { mealName: string }) => <div aria-label={`Image of ${mealName}`} />,
 }));
@@ -12,13 +13,32 @@ describe('verified recipe catalogue', () => {
   beforeEach(() => get.mockReset());
 
   it('shows the complete verified count separately from planning readiness', async () => {
-    get.mockResolvedValue({ data: { data: {
-      total: 1960, page: 1, pageCount: 82, restrictedProfile: false,
-      items: [{ id: 'raw:1', name: 'Chicken Tinola', description: 'Published dish',
-        mealTypes: ['LUNCH', 'DINNER'], calories: 500, proteinG: 30, carbsG: 20, fatG: 10,
-        sourceName: 'PANLASANG_PINOY', sourceUrl: 'https://panlasangpinoy.com/tinola/',
-        imageUrl: null, planningReady: false }],
-    } } });
+    get.mockResolvedValue({
+      data: {
+        data: {
+          total: 1960,
+          page: 1,
+          pageCount: 82,
+          restrictedProfile: false,
+          items: [
+            {
+              id: 'raw:1',
+              name: 'Chicken Tinola',
+              description: 'Published dish',
+              mealTypes: ['LUNCH', 'DINNER'],
+              calories: 500,
+              proteinG: 30,
+              carbsG: 20,
+              fatG: 10,
+              sourceName: 'PANLASANG_PINOY',
+              sourceUrl: 'https://panlasangpinoy.com/tinola/',
+              imageUrl: null,
+              planningReady: false,
+            },
+          ],
+        },
+      },
+    });
     render(<VerifiedRecipeCatalog search="" mealType="All" />);
     await waitFor(() => expect(screen.getByText('Chicken Tinola')).toBeInTheDocument());
     expect(screen.queryByText(/Verified recipe catalogue/)).not.toBeInTheDocument();
@@ -28,13 +48,32 @@ describe('verified recipe catalogue', () => {
   });
 
   it('shows recorded nutrition without exposing backend audit metadata', async () => {
-    get.mockResolvedValue({ data: { data: {
-      total: 1, page: 1, pageCount: 1, restrictedProfile: false,
-      items: [{ id: 'raw:2', name: 'Blueberry Pancake', description: null,
-        mealTypes: ['BREAKFAST'], calories: 505, proteinG: 11, carbsG: 70, fatG: 18,
-        sourceName: 'PANLASANG_PINOY', sourceUrl: null, imageUrl: null,
-        planningReady: true }],
-    } } });
+    get.mockResolvedValue({
+      data: {
+        data: {
+          total: 1,
+          page: 1,
+          pageCount: 1,
+          restrictedProfile: false,
+          items: [
+            {
+              id: 'raw:2',
+              name: 'Blueberry Pancake',
+              description: null,
+              mealTypes: ['BREAKFAST'],
+              calories: 505,
+              proteinG: 11,
+              carbsG: 70,
+              fatG: 18,
+              sourceName: 'PANLASANG_PINOY',
+              sourceUrl: null,
+              imageUrl: null,
+              planningReady: true,
+            },
+          ],
+        },
+      },
+    });
     render(<VerifiedRecipeCatalog search="" mealType="All" />);
     await waitFor(() => expect(screen.getByText('Blueberry Pancake')).toBeInTheDocument());
     expect(screen.getByText('Serving data recorded')).toBeInTheDocument();
@@ -43,9 +82,17 @@ describe('verified recipe catalogue', () => {
   });
 
   it('does not present unrestricted base recipes to a restricted profile', async () => {
-    get.mockResolvedValue({ data: { data: {
-      total: 0, page: 1, pageCount: 0, restrictedProfile: true, items: [],
-    } } });
+    get.mockResolvedValue({
+      data: {
+        data: {
+          total: 0,
+          page: 1,
+          pageCount: 0,
+          restrictedProfile: true,
+          items: [],
+        },
+      },
+    });
     render(<VerifiedRecipeCatalog search="" mealType="All" />);
     await waitFor(() => expect(get).toHaveBeenCalledOnce());
     await waitFor(() => expect(screen.getByText(/General base recipes are shown here only/)).toBeInTheDocument());

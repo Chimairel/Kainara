@@ -1,5 +1,6 @@
 'use client';
 
+import WorkspaceTabs from '@/components/ui/WorkspaceTabs';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { getApiErrorMessage } from '@/lib/api-error';
 import { Stethoscope } from 'lucide-react';
@@ -238,18 +239,15 @@ function TabSelector({
   onChange: (tab: 'applications' | 'professionals') => void;
 }) {
   return (
-    <div className="flex rounded-2xl border border-brand-border bg-brand-surface/60 p-1">
-      {(['applications', 'professionals'] as const).map((option) => (
-        <button
-          key={option}
-          type="button"
-          onClick={() => onChange(option)}
-          className={`flex-1 rounded-xl px-4 py-3 text-sm font-bold ${tab === option ? 'bg-brand-accent text-[#07100d]' : 'text-brand-muted'}`}
-        >
-          {option === 'applications' ? `Applications (${applicationCount})` : `Professional records (${verifiedCount})`}
-        </button>
-      ))}
-    </div>
+    <WorkspaceTabs
+      value={tab}
+      onChange={onChange}
+      label="Nutritionist records"
+      items={[
+        { value: 'applications', label: `Applications (${applicationCount})` },
+        { value: 'professionals', label: `Professional records (${verifiedCount})` },
+      ]}
+    />
   );
 }
 

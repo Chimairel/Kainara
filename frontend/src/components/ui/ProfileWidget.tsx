@@ -83,22 +83,12 @@ export default function ProfileWidget({ onClose, className = '' }: ProfileWidget
         className="group relative flex w-full items-center gap-3 rounded-xl p-2.5 text-left transition hover:bg-brand-bgAlt/70 dark:hover:bg-white/[0.06] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-green"
       >
         {isUser && membership?.enabled && (membership.level === 'TRIAL' || membership.level === 'MEMBER') ? (
-          <div className="relative flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full p-[2px] shadow-xs">
-            <span
-              className="pointer-events-none absolute inset-[-150%] animate-[spin_4s_linear_infinite]"
-              style={{
-                background:
-                  'conic-gradient(from 0deg, #eb6a38 0deg, #f09e6c 90deg, #10b981 180deg, #34d399 270deg, #eb6a38 360deg)',
-              }}
-              aria-hidden="true"
-            />
-            <Avatar
-              size="sm"
-              src={user.image}
-              fallbackText={user.name}
-              className="relative z-10 !h-full !w-full rounded-full"
-            />
-          </div>
+          <Avatar
+            size="sm"
+            src={user.image}
+            fallbackText={user.name}
+            className="h-9 w-9 rounded-full ring-2 ring-brand-green/30"
+          />
         ) : (
           <Avatar
             size="sm"

@@ -1,5 +1,6 @@
 'use client';
 
+import Dropdown from '@/components/ui/Dropdown';
 import { useEffect, useMemo, useState } from 'react';
 import { CheckCircle2, Download, FileSearch, History, Upload, Undo2 } from 'lucide-react';
 import api from '@/lib/axios';
@@ -184,14 +185,14 @@ export default function ReleaseOperations({ releases, csvTemplate, onChanged, on
         <div className="grid gap-4 lg:grid-cols-[1fr_1fr_auto_auto] lg:items-end">
           <label className="flex flex-col gap-2 text-xs font-bold text-brand-text/90">
             Draft release
-            <select className={fieldClassName} value={releaseId} onChange={(event) => setReleaseId(event.target.value)}>
+            <Dropdown className={fieldClassName} value={releaseId} onChange={(event) => setReleaseId(event)}>
               <option value="">Select a draft</option>
               {draftConsumptionReleases.map((release) => (
                 <option key={release.id} value={release.id}>
                   {release.source.code} · {release.versionLabel}
                 </option>
               ))}
-            </select>
+            </Dropdown>
           </label>
           <Input
             type="file"

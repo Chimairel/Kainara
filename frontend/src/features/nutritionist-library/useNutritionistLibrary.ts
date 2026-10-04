@@ -227,14 +227,15 @@ export function useNutritionistLibrary(
   const [adminDraftsOnly, setAdminDraftsOnly] = useState(false);
   const [status, setStatus] = useState<'ALL' | 'APPROVED' | 'FLAGGED'>('ALL');
 
-  // Debounce search query
+  // Only a changed search resets pagination; the initial timer must not undo Next.
   useEffect(() => {
+    if (searchVal === search) return;
     const timer = setTimeout(() => {
       setSearch(searchVal);
       setPage(1);
     }, 400);
     return () => clearTimeout(timer);
-  }, [searchVal]);
+  }, [searchVal, search]);
 
   const query = useSessionQuery<LibraryPageData>({
     ownerId,
@@ -272,6 +273,9 @@ export function useNutritionistLibrary(
   const meals = query.data?.meals ?? [];
   const totalCount = query.data?.total ?? 0;
   const totalPages = query.data ? Math.ceil(query.data.total / query.data.limit) : 1;
+  useEffect(() => {
+    if (query.data && !query.isLoading) setPage((value) => Math.min(value, Math.max(1, totalPages)));
+  }, [query.data, query.isLoading, totalPages]);
   const { isLoading, error: fetchError, refetch: fetchLibrary } = query;
   const { data: coverage, refetch: fetchCoverage } = coverageQuery;
 

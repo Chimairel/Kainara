@@ -191,36 +191,42 @@ export default function NotificationDropdown() {
       case 'FLAG_RESOLVED':
         return {
           icon: <CheckCircle className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />,
-          surface: 'bg-emerald-500/10 border-emerald-500/20 text-emerald-600 dark:bg-emerald-500/15 dark:border-emerald-500/30 dark:text-emerald-400',
+          surface:
+            'bg-emerald-500/10 border-emerald-500/20 text-emerald-600 dark:bg-emerald-500/15 dark:border-emerald-500/30 dark:text-emerald-400',
         };
       case 'ASSIGNMENT':
       case 'MEMBERSHIP_UPDATED':
         return {
           icon: <Sprout className="w-3.5 h-3.5 text-brand-green dark:text-emerald-400" />,
-          surface: 'bg-brand-green/10 border-brand-green/20 text-brand-green dark:bg-emerald-500/15 dark:border-emerald-500/30 dark:text-emerald-400',
+          surface:
+            'bg-brand-green/10 border-brand-green/20 text-brand-green dark:bg-emerald-500/15 dark:border-emerald-500/30 dark:text-emerald-400',
         };
       case 'PLAN_REJECTED':
       case 'MEAL_FLAGGED':
         return {
           icon: <AlertTriangle className="w-3.5 h-3.5 text-rose-600 dark:text-rose-400" />,
-          surface: 'bg-rose-500/10 border-rose-500/20 text-rose-600 dark:bg-rose-500/15 dark:border-rose-500/30 dark:text-rose-400',
+          surface:
+            'bg-rose-500/10 border-rose-500/20 text-rose-600 dark:bg-rose-500/15 dark:border-rose-500/30 dark:text-rose-400',
         };
       case 'OUTSIDE_MEAL_MORE_INFO':
       case 'NUTRITIONIST_APPLICATION':
       case 'REVIEW_REQUEST':
         return {
           icon: <ClipboardList className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />,
-          surface: 'bg-amber-500/10 border-amber-500/20 text-amber-600 dark:bg-amber-500/15 dark:border-amber-500/30 dark:text-amber-400',
+          surface:
+            'bg-amber-500/10 border-amber-500/20 text-amber-600 dark:bg-amber-500/15 dark:border-amber-500/30 dark:text-amber-400',
         };
       case 'WEEKLY_CHECKIN':
         return {
           icon: <Calendar className="w-3.5 h-3.5 text-brand-green dark:text-emerald-400" />,
-          surface: 'bg-brand-green/10 border-brand-green/20 text-brand-green dark:bg-emerald-500/15 dark:border-emerald-500/30 dark:text-emerald-400',
+          surface:
+            'bg-brand-green/10 border-brand-green/20 text-brand-green dark:bg-emerald-500/15 dark:border-emerald-500/30 dark:text-emerald-400',
         };
       default:
         return {
           icon: <Bell className="w-3.5 h-3.5 text-brand-muted dark:text-white/50" />,
-          surface: 'bg-brand-bgAlt border-brand-border/60 text-brand-muted dark:bg-white/[0.05] dark:border-white/[0.08] dark:text-white/60',
+          surface:
+            'bg-brand-bgAlt border-brand-border/60 text-brand-muted dark:bg-white/[0.05] dark:border-white/[0.08] dark:text-white/60',
         };
     }
   };
@@ -325,11 +331,17 @@ export default function NotificationDropdown() {
                           : 'border-amber-500/25 bg-amber-500/10 text-amber-600 dark:border-amber-500/30 dark:bg-amber-500/20 dark:text-amber-400'
                       }`}
                     >
-                      {isPlanningReady ? <ShieldCheck className="h-3.5 w-3.5" /> : <AlertCircle className="h-3.5 w-3.5" />}
+                      {isPlanningReady ? (
+                        <ShieldCheck className="h-3.5 w-3.5" />
+                      ) : (
+                        <AlertCircle className="h-3.5 w-3.5" />
+                      )}
                     </span>
                     <div className="min-w-0">
                       <div className="flex items-center gap-1.5">
-                        <h4 className="text-xs font-bold text-brand-text dark:text-white/95 truncate">Planner Status</h4>
+                        <h4 className="text-xs font-bold text-brand-text dark:text-white/95 truncate">
+                          Planner Status
+                        </h4>
                         <span
                           className={`inline-block h-1.5 w-1.5 rounded-full ${
                             isPlanningReady ? 'bg-emerald-500' : 'bg-amber-500 animate-pulse'
@@ -416,8 +428,12 @@ export default function NotificationDropdown() {
                       <Sprout className="h-3.5 w-3.5" />
                     </span>
                     <div className="min-w-0">
-                      <h4 className="text-xs font-bold text-brand-text dark:text-white/95 truncate">Starter Plan Active</h4>
-                      <span className="text-[10px] text-brand-muted dark:text-white/45 truncate block">Kickoff bridge plan</span>
+                      <h4 className="text-xs font-bold text-brand-text dark:text-white/95 truncate">
+                        Starter Plan Active
+                      </h4>
+                      <span className="text-[10px] text-brand-muted dark:text-white/45 truncate block">
+                        Kickoff bridge plan
+                      </span>
                     </div>
                   </div>
                   <span className="shrink-0 rounded-full border border-brand-green/30 bg-brand-green/10 px-2 py-0.5 font-mono text-[9px] font-bold uppercase tracking-wider text-brand-green dark:border-emerald-500/30 dark:bg-emerald-500/15 dark:text-emerald-400">
@@ -500,7 +516,9 @@ export default function NotificationDropdown() {
                         <span className="flex items-start justify-between gap-1.5">
                           <span
                             className={`text-xs font-semibold leading-snug line-clamp-1 ${
-                              !notif.isRead ? 'text-brand-text dark:text-white/95' : 'text-brand-muted dark:text-white/60'
+                              !notif.isRead
+                                ? 'text-brand-text dark:text-white/95'
+                                : 'text-brand-muted dark:text-white/60'
                             }`}
                           >
                             {notif.title}

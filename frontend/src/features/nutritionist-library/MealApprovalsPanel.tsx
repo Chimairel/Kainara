@@ -1,5 +1,6 @@
 'use client';
 
+import Dropdown from '@/components/ui/Dropdown';
 import { useCallback, useEffect, useState } from 'react';
 import Button from '@/components/ui/Button';
 import api from '@/lib/axios';
@@ -474,17 +475,17 @@ export function MealApprovalsPanel({ mealId }: { mealId: string }) {
         </div>
         <label className="flex items-center gap-2 text-xs font-semibold text-brand-muted">
           Show
-          <select
+          <Dropdown
             aria-label="Filter approvals"
             value={filter}
-            onChange={(event) => setFilter(event.target.value as typeof filter)}
+            onChange={(event) => setFilter(event as typeof filter)}
             className="rounded-xl border border-brand-border bg-brand-surface px-3 py-1.5 text-xs text-brand-text shadow-xs outline-none focus:border-brand-green"
           >
             <option value="ALL">All approvals</option>
             <option value="ACTIVE">Current</option>
             <option value="FLAGGED">Flagged</option>
             <option value="REVIEW_DUE">Pending review</option>
-          </select>
+          </Dropdown>
         </label>
       </div>
       <div className="space-y-4">

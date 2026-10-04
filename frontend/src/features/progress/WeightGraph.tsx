@@ -121,8 +121,7 @@ export default function WeightGraph({ groupedLogs, targetWeight }: WeightGraphPr
     areaPath = `${linePath} L ${points[points.length - 1].x.toFixed(1)} ${baselineY} L ${points[0].x.toFixed(1)} ${baselineY} Z`;
   }
 
-  const targetY =
-    targetWeight > 0 ? height - paddingBottom - ((targetWeight - minW) / rangeW) * plotHeight : -1;
+  const targetY = targetWeight > 0 ? height - paddingBottom - ((targetWeight - minW) / rangeW) * plotHeight : -1;
   const isTargetVisible = targetWeight > 0 && targetY >= paddingTop && targetY <= height - paddingBottom;
 
   const baseline = groupedLogs.find((log) => log.source === 'ONBOARDING' || log.source === 'INITIAL_REPORT');
@@ -130,8 +129,7 @@ export default function WeightGraph({ groupedLogs, targetWeight }: WeightGraphPr
   const firstWeight = groupedLogs[0]?.weightKg;
   const latestWeight = groupedLogs[groupedLogs.length - 1]?.weightKg;
   const delta = latestWeight !== undefined && firstWeight !== undefined ? latestWeight - firstWeight : 0;
-  const deltaText =
-    delta === 0 ? '0.0 kg' : delta > 0 ? `+${delta.toFixed(1)} kg` : `${delta.toFixed(1)} kg`;
+  const deltaText = delta === 0 ? '0.0 kg' : delta > 0 ? `+${delta.toFixed(1)} kg` : `${delta.toFixed(1)} kg`;
 
   const activeHoveredPoint = hoveredIdx !== null ? points[hoveredIdx] : null;
 
@@ -162,9 +160,7 @@ export default function WeightGraph({ groupedLogs, targetWeight }: WeightGraphPr
             </span>
           </div>
           <div className="mt-1 flex items-baseline gap-2">
-            <span className="font-display text-xl font-extrabold text-brand-text">
-              {activeHoveredPoint.weight} kg
-            </span>
+            <span className="font-display text-xl font-extrabold text-brand-text">{activeHoveredPoint.weight} kg</span>
             {activeHoveredPoint.deltaFromStart !== null ? (
               <span
                 className={`text-[11px] font-bold ${
@@ -330,13 +326,7 @@ export default function WeightGraph({ groupedLogs, targetWeight }: WeightGraphPr
               onClick={() => setHoveredIdx(idx)}
             >
               {/* Invisible wide hit area for easy hovering */}
-              <rect
-                x={p.x - 22}
-                y={paddingTop}
-                width="44"
-                height={plotHeight + 15}
-                fill="transparent"
-              />
+              <rect x={p.x - 22} y={paddingTop} width="44" height={plotHeight + 15} fill="transparent" />
 
               {/* Vertical Guide to X-axis */}
               <line

@@ -1,5 +1,6 @@
 'use client';
 
+import Dropdown from '@/components/ui/Dropdown';
 import { useSessionQuery } from '@/hooks/useSessionQuery';
 
 import { useEffect, useState } from 'react';
@@ -326,15 +327,15 @@ export default function AdminMealsPage({ active = true }: { active?: boolean }) 
             </label>
             <label className="text-xs font-bold text-brand-muted">
               Meal type
-              <select
+              <Dropdown
                 className={`${inputClass} mt-1`}
                 value={form.mealType}
-                onChange={(event) => setForm({ ...form, mealType: event.target.value as MealType })}
+                onChange={(event) => setForm({ ...form, mealType: event as MealType })}
               >
                 <option value="BREAKFAST">Breakfast</option>
                 <option value="LUNCH">Lunch</option>
                 <option value="DINNER">Dinner</option>
-              </select>
+              </Dropdown>
             </label>
           </div>
           <label className="block text-xs font-bold text-brand-muted">

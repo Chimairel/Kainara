@@ -318,9 +318,7 @@ export default function NutritionReportPage() {
       await startPdfDownload(url, `KAINARA_Nutrition_Report_v${versionEntry.version}_${user?.name || 'Member'}.pdf`);
     } catch (err) {
       setError(
-        err instanceof Error
-          ? err.message
-          : `Could not download report v${versionEntry.version}. Please try again.`
+        err instanceof Error ? err.message : `Could not download report v${versionEntry.version}. Please try again.`
       );
     } finally {
       setDownloadingVersion(null);

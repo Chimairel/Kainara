@@ -1,5 +1,6 @@
 'use client';
 
+import Dropdown from '@/components/ui/Dropdown';
 import { useVisiblePolling } from '@/hooks/useVisiblePolling';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -624,10 +625,10 @@ export default function ProfileWorkPanel() {
                           </label>
                         ))}
                         <div className="mt-4 grid gap-2 sm:grid-cols-[1fr_2fr_auto]">
-                          <select
+                          <Dropdown
                             aria-label="Fact code"
                             value={factCode}
-                            onChange={(event) => setFactCode(event.target.value)}
+                            onChange={(event) => setFactCode(event)}
                             className="rounded-lg border border-brand-border bg-brand-surface p-2"
                           >
                             {(factCodes[documentDetail.area] ?? ['OTHER']).map((code) => (
@@ -635,7 +636,7 @@ export default function ProfileWorkPanel() {
                                 {code.replace(/_/g, ' ')}
                               </option>
                             ))}
-                          </select>
+                          </Dropdown>
                           <input
                             aria-label="Fact value"
                             value={factValue}
@@ -667,15 +668,15 @@ export default function ProfileWorkPanel() {
                         <h3 className="font-bold text-brand-text">Document decision</h3>
                         <label className="block">
                           Decision
-                          <select
+                          <Dropdown
                             value={decision}
-                            onChange={(event) => setDecision(event.target.value as typeof decision)}
+                            onChange={(event) => setDecision(event as typeof decision)}
                             className="mt-1 block w-full rounded-lg border border-brand-border bg-brand-surface p-2"
                           >
                             <option value="NEEDS_CLARIFICATION">Needs clarification</option>
                             <option value="SUFFICIENT">Sufficient for nutrition review</option>
                             <option value="UNUSABLE">Unusable</option>
-                          </select>
+                          </Dropdown>
                         </label>
                         {decision === 'SUFFICIENT' && (
                           <label className="block">
@@ -741,9 +742,9 @@ export default function ProfileWorkPanel() {
                     {detail.availableAreas.length > 0 && (
                       <label className="block">
                         Details request area
-                        <select
+                        <Dropdown
                           value={requestArea}
-                          onChange={(event) => setRequestArea(event.target.value)}
+                          onChange={(event) => setRequestArea(event)}
                           className="mt-1 block w-full rounded-lg border border-brand-border bg-brand-surface p-2"
                         >
                           {detail.availableAreas.map((area) => (
@@ -751,7 +752,7 @@ export default function ProfileWorkPanel() {
                               {area.replace(/_/g, ' ')}
                             </option>
                           ))}
-                        </select>
+                        </Dropdown>
                       </label>
                     )}
                     <label className="block">

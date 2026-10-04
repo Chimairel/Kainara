@@ -1,8 +1,8 @@
 'use client';
 
+import Card from '@/components/ui/Card';
 import { useMemo } from 'react';
 import { ArrowRight, BarChart3 } from 'lucide-react';
-import { KainaraLogo } from '@/components/shared/KainaraLogo';
 import type { MembershipView } from './MembershipProvider';
 
 interface PlanStatisticsCardProps {
@@ -83,17 +83,13 @@ export default function PlanStatisticsCard({ data, onOpenPlans }: PlanStatistics
   });
 
   return (
-    <section
+    <Card
+      decoration="varied"
+      decorationSeed="plan-statistics"
+      contentClassName="flex h-full flex-col justify-between"
       aria-label="Allowances and usage statistics"
       className="relative overflow-hidden rounded-[28px] sm:rounded-[36px] border border-[#dce4e0] dark:border-[#173e33] bg-[#faf8f5] dark:bg-[#071914] text-[#0d2820] dark:text-white shadow-xl p-6 sm:p-8 flex flex-col justify-between"
     >
-
-
-      {/* 3. Watermarked Kainara Logo Seal */}
-      <div className="pointer-events-none absolute -bottom-6 -right-6 hidden sm:flex items-center justify-center opacity-10 dark:opacity-15 z-0">
-        <KainaraLogo size={120} variant="multicolor" />
-      </div>
-
       {/* Main Content inside Card */}
       <div className="relative z-10">
         {/* Header */}
@@ -106,9 +102,7 @@ export default function PlanStatisticsCard({ data, onOpenPlans }: PlanStatistics
               <h3 className="font-display text-base sm:text-lg font-black tracking-[-0.02em] text-[#0d2820] dark:text-white">
                 Plan Statistics
               </h3>
-              <p className="text-xs text-[#5a746a] dark:text-white/60">
-                Usage tracking for your active cycle
-              </p>
+              <p className="text-xs text-[#5a746a] dark:text-white/60">Usage tracking for your active cycle</p>
             </div>
           </div>
           <span className="rounded-full bg-white/80 dark:bg-[#0a201a] border border-[#dce4e0] dark:border-[#173e33] px-3 py-1 text-[10px] font-mono font-semibold text-[#5a746a] dark:text-emerald-200/80 shadow-xs">
@@ -116,7 +110,6 @@ export default function PlanStatisticsCard({ data, onOpenPlans }: PlanStatistics
           </span>
         </div>
 
-        {/* Peeking Numbers Section (Reference Image 4) */}
         <div className="pt-4 pb-1">
           <div className="grid grid-cols-5 gap-1.5 sm:gap-3 text-center">
             {stats.map((item) => (
@@ -136,18 +129,22 @@ export default function PlanStatisticsCard({ data, onOpenPlans }: PlanStatistics
             <div className="h-1.5 w-full rounded-full bg-[#dce4e0] dark:bg-[#173e33] shadow-[0_4px_8px_-1px_rgba(0,0,0,0.18)] dark:shadow-[0_4px_8px_-1px_rgba(0,0,0,0.5)]" />
           </div>
 
-          {/* Capsule Vertical Pill Bars Section (Reference Image 3 & 5) */}
           <div className="grid grid-cols-5 gap-1.5 sm:gap-3 items-end pt-1">
             {stats.map((item) => {
               // Percentage calculation
               const rawPct = item.cap > 0 ? (item.used / item.cap) * 100 : 0;
-              // If used > 0, give minimum visible height of 22% so the usage number fits comfortably
-              const fillHeightPct = item.used > 0 ? Math.max(22, Math.min(100, rawPct)) : 0;
+              const fillHeightPct = Math.max(0, Math.min(100, rawPct));
 
               return (
                 <div key={item.id} className="flex flex-col items-center group">
                   {/* The Capsule Pill Bar */}
                   <div
+                    role="meter"
+                    aria-label={`${item.name} used`}
+                    aria-valuemin={0}
+                    aria-valuemax={item.cap || 1}
+                    aria-valuenow={Math.min(item.used, item.cap || 1)}
+                    aria-valuetext={`${item.used} used, ${item.remaining} of ${item.cap} left`}
                     className="relative w-11 sm:w-13 md:w-15 h-44 sm:h-52 rounded-full overflow-hidden border border-[#dce4e0] dark:border-[#173e33] bg-white/70 dark:bg-[#091b15]/90 shadow-inner flex flex-col justify-end"
                     style={{
                       // Diagonal striped pattern for unfilled capacity
@@ -160,25 +157,13 @@ export default function PlanStatisticsCard({ data, onOpenPlans }: PlanStatistics
                       className={`w-full bg-gradient-to-t ${item.barGradient} rounded-full transition-all duration-700 ease-out flex items-center justify-center relative shadow-sm`}
                       style={{
                         height: `${fillHeightPct}%`,
-                        minHeight: item.used > 0 ? '2.25rem' : '0',
                       }}
+                    />
+                    <span
+                      className={`absolute inset-x-0 bottom-1.5 text-center font-display font-semibold text-xs select-none ${fillHeightPct >= 15 ? 'text-white' : 'text-[#5a746a] dark:text-white/60'}`}
                     >
-                      {/* Inside the graph: Usage number */}
-                      {item.used > 0 && (
-                        <span className="text-white font-display font-bold text-xs sm:text-sm drop-shadow-sm select-none">
-                          {item.used}
-                        </span>
-                      )}
-                    </div>
-
-                    {/* Display 0 at the base if 0 used */}
-                    {item.used === 0 && (
-                      <div className="h-7 w-full flex items-center justify-center">
-                        <span className="text-[#5a746a]/70 dark:text-white/40 font-display font-semibold text-xs select-none">
-                          0
-                        </span>
-                      </div>
-                    )}
+                      {item.used}
+                    </span>
                   </div>
 
                   {/* Labels at bottom */}
@@ -192,9 +177,9 @@ export default function PlanStatisticsCard({ data, onOpenPlans }: PlanStatistics
                     <span className="block text-[9px] text-[#5a746a] dark:text-emerald-200/60 font-mono mt-0.5 uppercase tracking-wider">
                       {item.cadence}
                     </span>
-                    {/* Remaining readout satisfying Vitest '6 of 10' assertion */}
+                    {/* Remaining allowance */}
                     <span className="block text-[10px] text-[#5a746a] dark:text-white/60 mt-0.5 font-medium">
-                      {item.remaining} of {item.cap}
+                      {item.remaining} of {item.cap} left
                     </span>
                   </div>
                 </div>
@@ -206,9 +191,7 @@ export default function PlanStatisticsCard({ data, onOpenPlans }: PlanStatistics
 
       {/* Footer Info & View plans link */}
       <div className="relative z-10 mt-4 pt-3.5 border-t border-[#dce4e0]/80 dark:border-[#173e33] flex items-center justify-between text-xs text-[#5a746a] dark:text-white/60">
-        <p className="text-[11px] leading-relaxed">
-          Weekly allowances reset every Monday in Manila.
-        </p>
+        <p className="text-[11px] leading-relaxed">Weekly allowances reset every Monday in Manila.</p>
         <button
           type="button"
           onClick={onOpenPlans}
@@ -218,6 +201,6 @@ export default function PlanStatisticsCard({ data, onOpenPlans }: PlanStatistics
           <ArrowRight className="h-3 w-3" />
         </button>
       </div>
-    </section>
+    </Card>
   );
 }

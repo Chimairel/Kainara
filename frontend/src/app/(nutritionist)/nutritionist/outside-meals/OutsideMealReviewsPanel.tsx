@@ -1,17 +1,9 @@
 'use client';
 
+import Dropdown from '@/components/ui/Dropdown';
 import { useVisiblePolling } from '@/hooks/useVisiblePolling';
 import { useCallback, useEffect, useState } from 'react';
-import {
-  AlertTriangle,
-  Apple,
-  CheckCircle2,
-  ClipboardCheck,
-  Eye,
-  Moon,
-  Sun,
-  Utensils,
-} from 'lucide-react';
+import { AlertTriangle, Apple, CheckCircle2, ClipboardCheck, Eye, Moon, Sun, Utensils } from 'lucide-react';
 import api from '@/lib/axios';
 import { getApiErrorMessage } from '@/lib/api-error';
 import Button from '@/components/ui/Button';
@@ -438,7 +430,8 @@ export default function OutsideMealReviewsPanel({ embedded = false }: { embedded
                   A clear path to outside food review
                 </h2>
                 <p className="mt-2 text-sm leading-relaxed text-brand-muted">
-                  Select an outside food estimate to inspect reported nutrition values, verify against reference ranges, and calibrate portions.
+                  Select an outside food estimate to inspect reported nutrition values, verify against reference ranges,
+                  and calibrate portions.
                 </p>
               </div>
               <div className="grid gap-3 pt-2">
@@ -500,11 +493,13 @@ export default function OutsideMealReviewsPanel({ embedded = false }: { embedded
                     {new Date(selected.outsideMealLogItem.mealLog.loggedAt).toLocaleString()}
                   </p>
                 </div>
-                {(selected.outsideMealLogItem.calorieLow !== null || selected.outsideMealLogItem.calorieHigh !== null) && (
+                {(selected.outsideMealLogItem.calorieLow !== null ||
+                  selected.outsideMealLogItem.calorieHigh !== null) && (
                   <div className="inline-flex items-center gap-1.5 rounded-xl border border-brand-border/70 bg-brand-bgAlt/60 px-3 py-1.5 text-xs text-brand-muted">
                     <span className="font-medium">Estimated range:</span>
                     <span className="font-bold text-brand-text">
-                      {selected.outsideMealLogItem.calorieLow ?? '—'}–{selected.outsideMealLogItem.calorieHigh ?? '—'} kcal
+                      {selected.outsideMealLogItem.calorieLow ?? '—'}–{selected.outsideMealLogItem.calorieHigh ?? '—'}{' '}
+                      kcal
                     </span>
                   </div>
                 )}
@@ -560,7 +555,9 @@ export default function OutsideMealReviewsPanel({ embedded = false }: { embedded
                         }`}
                       >
                         <div className="flex items-center justify-between text-[10px] text-brand-muted mb-1">
-                          <span className="font-bold">{message.sender === 'NUTRITIONIST' ? 'Nutritionist' : 'Member'}</span>
+                          <span className="font-bold">
+                            {message.sender === 'NUTRITIONIST' ? 'Nutritionist' : 'Member'}
+                          </span>
                           <span>revision {message.itemRevision}</span>
                         </div>
                         <p>{message.content}</p>
@@ -575,9 +572,7 @@ export default function OutsideMealReviewsPanel({ embedded = false }: { embedded
                 <h3 className="font-display text-sm font-bold text-brand-text">Calibrate macronutrients</h3>
                 <div className="grid grid-cols-2 gap-3">
                   <label className="text-xs font-bold text-brand-text">
-                    <span className="flex items-center gap-1 text-brand-muted mb-1">
-                      🔥 Calories (kcal)
-                    </span>
+                    <span className="flex items-center gap-1 text-brand-muted mb-1">🔥 Calories (kcal)</span>
                     <input
                       type="number"
                       min="0"
@@ -588,9 +583,7 @@ export default function OutsideMealReviewsPanel({ embedded = false }: { embedded
                     />
                   </label>
                   <label className="text-xs font-bold text-brand-text">
-                    <span className="flex items-center gap-1 text-[#08705b] dark:text-[#34d399] mb-1">
-                      Protein (g)
-                    </span>
+                    <span className="flex items-center gap-1 text-[#08705b] dark:text-[#34d399] mb-1">Protein (g)</span>
                     <input
                       type="number"
                       min="0"
@@ -614,9 +607,7 @@ export default function OutsideMealReviewsPanel({ embedded = false }: { embedded
                     />
                   </label>
                   <label className="text-xs font-bold text-brand-text">
-                    <span className="flex items-center gap-1 text-[#c74614] dark:text-[#f09e6c] mb-1">
-                      Fat (g)
-                    </span>
+                    <span className="flex items-center gap-1 text-[#c74614] dark:text-[#f09e6c] mb-1">Fat (g)</span>
                     <input
                       type="number"
                       min="0"
@@ -696,7 +687,9 @@ export default function OutsideMealReviewsPanel({ embedded = false }: { embedded
 
         <div className="grid gap-5 lg:grid-cols-2 items-start">
           <Card className="space-y-3 p-5 rounded-2xl border border-brand-border/70 shadow-xs">
-            <h3 className="font-display text-sm font-bold text-brand-text mb-2">Observations awaiting classification</h3>
+            <h3 className="font-display text-sm font-bold text-brand-text mb-2">
+              Observations awaiting classification
+            </h3>
             {isLoading ? (
               <div className="space-y-2.5">
                 {[...Array(2)].map((_, i) => (
@@ -720,7 +713,9 @@ export default function OutsideMealReviewsPanel({ embedded = false }: { embedded
                       : 'border-brand-border/80 bg-brand-surface hover:border-brand-green/40 hover:bg-brand-bgAlt/50'
                   }`}
                 >
-                  <strong className="block text-brand-text">{row.sourceOutsideMealItem?.name ?? 'Source no longer available'}</strong>
+                  <strong className="block text-brand-text">
+                    {row.sourceOutsideMealItem?.name ?? 'Source no longer available'}
+                  </strong>
                   <span className="mt-1 block text-brand-muted">
                     {row.sourceOutsideMealItem?.portionGrams ?? 'Unknown'} g · revision {row.sourceRevision}
                   </span>
@@ -743,14 +738,14 @@ export default function OutsideMealReviewsPanel({ embedded = false }: { embedded
                 </div>
                 <label className="block text-xs font-bold text-brand-text">
                   Outcome
-                  <select
+                  <Dropdown
                     value={observedKind}
-                    onChange={(event) => setObservedKind(event.target.value as typeof observedKind)}
+                    onChange={(event) => setObservedKind(event as typeof observedKind)}
                     className="mt-1 w-full rounded-xl border border-brand-border bg-brand-surface p-2.5 text-xs text-brand-text focus:border-brand-green focus:outline-none"
                   >
                     <option value="FOOD_REFERENCE">Observed food reference</option>
                     <option value="RECIPE_CANDIDATE">Reproducible recipe candidate</option>
-                  </select>
+                  </Dropdown>
                 </label>
                 <label className="block text-xs font-bold text-brand-text">
                   Deidentified canonical name

@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
+import SectionLink from './SectionLink';
 import { usePathname } from 'next/navigation';
 import { ArrowRight, ArrowUpRight, BookOpenText, LogOut, Menu, Moon, Sun, X } from 'lucide-react';
 import { useTheme } from '@/lib/context/ThemeContext';
@@ -45,18 +46,24 @@ export default function PublicHeader() {
 
         {/* Desktop Navigation */}
         <nav className="hidden items-center gap-7 md:flex" aria-label="Public navigation">
-          <Link href="/#platform" className="text-xs font-semibold text-brand-muted transition hover:text-brand-text">
+          <SectionLink
+            href="/#platform"
+            className="text-xs font-semibold text-brand-muted transition hover:text-brand-text"
+          >
             Platform
-          </Link>
-          <Link href="/#process" className="text-xs font-semibold text-brand-muted transition hover:text-brand-text">
+          </SectionLink>
+          <SectionLink
+            href="/#process"
+            className="text-xs font-semibold text-brand-muted transition hover:text-brand-text"
+          >
             How it works
-          </Link>
-          <Link
+          </SectionLink>
+          <SectionLink
             href="/#nutritionists"
             className="text-xs font-semibold text-brand-muted transition hover:text-brand-text"
           >
             For nutritionists
-          </Link>
+          </SectionLink>
           <Link
             href="/pricing"
             className={`text-xs font-semibold transition hover:text-brand-text ${pathname === '/pricing' || pathname === '/membership' ? 'font-bold text-brand-accent' : 'text-brand-muted'}`}
@@ -150,35 +157,37 @@ export default function PublicHeader() {
       {isMobileMenuOpen && (
         <div className="border-b border-brand-border/70 bg-brand-bg/95 backdrop-blur-2xl px-5 py-5 md:hidden animate-in slide-in-from-top-2 duration-200">
           <nav className="flex flex-col gap-1.5" aria-label="Mobile navigation">
-            <Link
+            <SectionLink
               href="/#platform"
               onClick={() => setIsMobileMenuOpen(false)}
               className="flex items-center justify-between rounded-xl px-4 py-3 text-sm font-bold text-brand-text transition hover:bg-brand-surface/80"
             >
               <span>Platform</span>
               <ArrowRight className="h-4 w-4 text-brand-muted" />
-            </Link>
-            <Link
+            </SectionLink>
+            <SectionLink
               href="/#process"
               onClick={() => setIsMobileMenuOpen(false)}
               className="flex items-center justify-between rounded-xl px-4 py-3 text-sm font-bold text-brand-text transition hover:bg-brand-surface/80"
             >
               <span>How it works</span>
               <ArrowRight className="h-4 w-4 text-brand-muted" />
-            </Link>
-            <Link
+            </SectionLink>
+            <SectionLink
               href="/#nutritionists"
               onClick={() => setIsMobileMenuOpen(false)}
               className="flex items-center justify-between rounded-xl px-4 py-3 text-sm font-bold text-brand-text transition hover:bg-brand-surface/80"
             >
               <span>For nutritionists</span>
               <ArrowRight className="h-4 w-4 text-brand-muted" />
-            </Link>
+            </SectionLink>
             <Link
               href="/pricing"
               onClick={() => setIsMobileMenuOpen(false)}
               className={`flex items-center justify-between rounded-xl px-4 py-3 text-sm font-bold transition hover:bg-brand-surface/80 ${
-                pathname === '/pricing' || pathname === '/membership' ? 'text-brand-accent font-extrabold' : 'text-brand-text'
+                pathname === '/pricing' || pathname === '/membership'
+                  ? 'text-brand-accent font-extrabold'
+                  : 'text-brand-text'
               }`}
             >
               <span>Pricing</span>

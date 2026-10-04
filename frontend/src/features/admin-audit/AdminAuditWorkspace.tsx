@@ -1,5 +1,7 @@
 'use client';
 
+import WorkspaceTabs from '@/components/ui/WorkspaceTabs';
+import Dropdown from '@/components/ui/Dropdown';
 import { useEffect, useState } from 'react';
 import { ScrollText, RefreshCw, ArrowLeft } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
@@ -200,26 +202,19 @@ export default function AdminAuditWorkspace() {
         </Button>
       ) : (
         <>
-          <nav
-            className="flex flex-wrap gap-2 rounded-2xl border border-brand-border bg-brand-surface p-2"
-            aria-label="Audit views"
-          >
-            {(['admin', 'nutritionist'] as const).map((tab) => (
-              <button
-                key={tab}
-                type="button"
-                aria-pressed={view === tab}
-                onClick={() => {
-                  setView(tab);
-                  setMine(false);
-                  setPage(1);
-                }}
-                className={`min-h-11 flex-1 rounded-xl px-4 py-2 text-sm font-bold focus-visible:ring-2 focus-visible:ring-brand-green ${view === tab ? 'bg-brand-accent text-[#07100d]' : 'text-brand-muted hover:bg-brand-bgAlt'}`}
-              >
-                {tab === 'admin' ? 'Admin activity' : 'Nutritionist history'}
-              </button>
-            ))}
-          </nav>
+          <WorkspaceTabs
+            value={view}
+            label="Audit views"
+            onChange={(tab) => {
+              setView(tab);
+              setMine(false);
+              setPage(1);
+            }}
+            items={[
+              { value: 'admin', label: 'Admin activity' },
+              { value: 'nutritionist', label: 'Nutritionist history' },
+            ]}
+          />
           <section aria-label="Audit filters" className="rounded-2xl border border-brand-border bg-brand-surface p-4">
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
               <label className="space-y-2 text-xs font-semibold text-brand-muted">
@@ -236,11 +231,11 @@ export default function AdminAuditWorkspace() {
               </label>
               <label className="space-y-2 text-xs font-semibold text-brand-muted">
                 Action
-                <select
+                <Dropdown
                   aria-label="Action"
                   value={action}
                   onChange={(event) => {
-                    setAction(event.target.value);
+                    setAction(event);
                     setPage(1);
                   }}
                   className={field}
@@ -250,7 +245,7 @@ export default function AdminAuditWorkspace() {
                       {label}
                     </option>
                   ))}
-                </select>
+                </Dropdown>
               </label>
               <label className="space-y-2 text-xs font-semibold text-brand-muted">
                 From

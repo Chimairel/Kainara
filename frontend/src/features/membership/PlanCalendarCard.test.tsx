@@ -32,15 +32,17 @@ describe('membership period calendar', () => {
   });
   it('shows Health and switches to already paid Lifestyle without changing current access', () => {
     render(<PlanCalendarCard data={current} />);
-    expect(screen.getByRole('combobox', { name: 'Membership period' })).toHaveValue('current');
+    expect(screen.getByRole('combobox', { name: 'Membership period' })).toHaveTextContent('Current: Health');
     expect(screen.getByText('October 1, 2026')).toBeInTheDocument();
     expect(screen.getAllByText('9:02 PM')).toHaveLength(2);
     expect(screen.queryByRole('switch')).not.toBeInTheDocument();
     expect(screen.queryByText(/trial/i)).not.toBeInTheDocument();
-    fireEvent.change(screen.getByRole('combobox'), { target: { value: 'next' } });
+    fireEvent.click(screen.getByRole('combobox'));
+    fireEvent.click(screen.getByRole('option', { name: /Next: Lifestyle/ }));
     expect(screen.getByText('November 15, 2026')).toBeInTheDocument();
     expect(screen.getByText(/no additional charge is needed/)).toBeInTheDocument();
-    fireEvent.change(screen.getByRole('combobox'), { target: { value: 'current' } });
+    fireEvent.click(screen.getByRole('combobox'));
+    fireEvent.click(screen.getByRole('option', { name: 'Current: Health' }));
     expect(screen.getByText('October 1, 2026')).toBeInTheDocument();
   });
   it('keeps Free and pending Health dates empty', () => {

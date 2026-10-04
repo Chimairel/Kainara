@@ -1,9 +1,10 @@
 'use client';
 
+import Dropdown from '@/components/ui/Dropdown';
+import Card from '@/components/ui/Card';
 import { useState, useMemo, useEffect } from 'react';
 import { membershipSchedules, manilaDate } from './membership-schedule';
 import { ChevronLeft, ChevronRight, Clock } from 'lucide-react';
-import { KainaraLogo } from '@/components/shared/KainaraLogo';
 import type { MembershipView } from './MembershipProvider';
 
 interface PlanCalendarCardProps {
@@ -138,16 +139,14 @@ export default function PlanCalendarCard({ data }: PlanCalendarCardProps) {
       : 'Not started';
 
   return (
-    <section
+    <Card
+      decoration="varied"
+      decorationSeed="plan-schedule"
+      contentClassName="flex h-full flex-col justify-between"
       aria-label="Plan schedule and validity"
       className="relative overflow-hidden rounded-[28px] sm:rounded-[36px] border border-[#dce4e0] dark:border-[#173e33] bg-[#faf8f5] dark:bg-[#071914] text-[#0d2820] dark:text-white shadow-xl p-6 sm:p-8 flex flex-col justify-between"
     >
-
-
       {/* 3. Watermarked Kainara Logo Seal */}
-      <div className="pointer-events-none absolute -bottom-6 -right-6 hidden sm:flex items-center justify-center opacity-10 dark:opacity-15 z-0">
-        <KainaraLogo size={120} variant="multicolor" />
-      </div>
 
       {/* Main Content inside Card */}
       <div className="relative z-10">
@@ -169,13 +168,13 @@ export default function PlanCalendarCard({ data }: PlanCalendarCardProps) {
         <label className="block text-xs font-semibold mb-2" htmlFor="membership-schedule">
           Membership period
         </label>
-        <select
+        <Dropdown
           id="membership-schedule"
           value={schedule.id}
           className="mb-3 w-full rounded-xl border border-brand-border bg-brand-surface p-2 text-sm"
           onChange={(event) => {
-            setSelection(event.target.value);
-            const next = schedules.find((item) => item.id === event.target.value);
+            setSelection(event);
+            const next = schedules.find((item) => item.id === event);
             const day = manilaDate(next?.start ?? data.serverTime);
             setCurrentMonth(new Date(`${day.slice(0, 7)}-01T12:00:00Z`));
           }}
@@ -185,7 +184,7 @@ export default function PlanCalendarCard({ data }: PlanCalendarCardProps) {
               {item.label}
             </option>
           ))}
-        </select>
+        </Dropdown>
         <p className="mb-4 text-xs text-brand-muted">{schedule.message}</p>
         {/* Main Layout: Wide Calendar with Dates & Renewal underneath */}
         <div className="mt-4 space-y-4">
@@ -217,7 +216,10 @@ export default function PlanCalendarCard({ data }: PlanCalendarCardProps) {
             {/* Weekday headers */}
             <div className="grid grid-cols-7 text-center mb-1">
               {DAYS_OF_WEEK.map((day) => (
-                <span key={day} className="text-[10px] sm:text-[11px] font-semibold text-[#5a746a] dark:text-emerald-200/60 py-1">
+                <span
+                  key={day}
+                  className="text-[10px] sm:text-[11px] font-semibold text-[#5a746a] dark:text-emerald-200/60 py-1"
+                >
                   {day}
                 </span>
               ))}
@@ -333,6 +335,6 @@ export default function PlanCalendarCard({ data }: PlanCalendarCardProps) {
           </div>
         </div>
       </div>
-    </section>
+    </Card>
   );
 }

@@ -1,15 +1,32 @@
 import * as React from 'react';
 import { cn } from '@/lib/utils';
+import CardDecoration, { type CardDecorationStyle } from './CardDecoration';
 
 export interface CardProps extends React.HTMLAttributes<HTMLDivElement> {
   header?: React.ReactNode;
   footer?: React.ReactNode;
   interactive?: boolean;
   contentClassName?: string;
+  decoration?: CardDecorationStyle;
+  decorationSeed?: string;
 }
 
 export const Card = React.forwardRef<HTMLDivElement, CardProps>(
-  ({ className = '', header, footer, interactive = false, contentClassName, children, ...props }, ref) => {
+  (
+    {
+      className = '',
+      header,
+      footer,
+      interactive = false,
+      contentClassName,
+      decoration = 'none',
+      decorationSeed,
+      children,
+      ...props
+    },
+    ref
+  ) => {
+    const instanceId = React.useId();
     const hasCompoundChildren = React.Children.toArray(children).some(
       (child) =>
         React.isValidElement(child) && [CardHeader, CardContent, CardFooter].includes(child.type as typeof CardHeader)
@@ -22,17 +39,18 @@ export const Card = React.forwardRef<HTMLDivElement, CardProps>(
       <div
         ref={ref}
         className={cn(
-          'overflow-hidden rounded-2xl border border-brand-border bg-brand-surface text-brand-text shadow-sm transition-colors duration-150',
+          'relative isolate overflow-hidden rounded-[28px] border border-brand-border bg-brand-surface text-brand-text shadow-card transition-colors duration-150 sm:rounded-[36px]',
           interactive && 'cursor-pointer hover:border-brand-green/40 hover:shadow-md',
           className
         )}
         {...props}
       >
+        <CardDecoration style={decoration} seed={decorationSeed ?? instanceId} />
         {hasLegacySlots ? (
           <>
-            {header && <div className="border-b border-brand-border/45 px-6 pb-4 pt-5">{header}</div>}
-            <div className={resolvedContentClassName}>{children}</div>
-            {footer && <div className="border-t border-brand-border/45 px-6 pb-5 pt-4">{footer}</div>}
+            {header && <div className="relative z-10 border-b border-brand-border/45 px-6 pb-4 pt-5">{header}</div>}
+            <div className={cn('relative z-10', resolvedContentClassName)}>{children}</div>
+            {footer && <div className="relative z-10 border-t border-brand-border/45 px-6 pb-5 pt-4">{footer}</div>}
           </>
         ) : (
           children
@@ -45,7 +63,7 @@ Card.displayName = 'Card';
 
 export const CardHeader = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
   ({ className, ...props }, ref) => (
-    <div ref={ref} className={cn('flex flex-col space-y-1.5 p-6', className)} {...props} />
+    <div ref={ref} className={cn('relative z-10 flex flex-col space-y-1.5 p-6', className)} {...props} />
   )
 );
 CardHeader.displayName = 'CardHeader';
@@ -63,12 +81,14 @@ export const CardDescription = React.forwardRef<HTMLParagraphElement, React.HTML
 CardDescription.displayName = 'CardDescription';
 
 export const CardContent = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
-  ({ className, ...props }, ref) => <div ref={ref} className={cn('p-6 pt-0', className)} {...props} />
+  ({ className, ...props }, ref) => <div ref={ref} className={cn('relative z-10 p-6 pt-0', className)} {...props} />
 );
 CardContent.displayName = 'CardContent';
 
 export const CardFooter = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
-  ({ className, ...props }, ref) => <div ref={ref} className={cn('flex items-center p-6 pt-0', className)} {...props} />
+  ({ className, ...props }, ref) => (
+    <div ref={ref} className={cn('relative z-10 flex items-center p-6 pt-0', className)} {...props} />
+  )
 );
 CardFooter.displayName = 'CardFooter';
 

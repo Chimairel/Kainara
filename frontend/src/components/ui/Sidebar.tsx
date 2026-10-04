@@ -246,30 +246,12 @@ export const Sidebar: React.FC<SidebarProps> = ({ className = '' }) => {
                 >
                   <DockItem
                     active={profileActive || isProfileMenuOpen}
-                    className={`rounded-full transition-[box-shadow] duration-150 ${
-                      isPro
-                        ? `relative overflow-hidden p-[2.5px] ${
-                            profileActive || isProfileMenuOpen
-                              ? 'shadow-[0_0_14px_rgba(235,106,56,0.6)]'
-                              : 'hover:shadow-[0_0_10px_rgba(235,106,56,0.4)]'
-                          }`
-                        : `p-0.5 ${
-                            profileActive || isProfileMenuOpen
-                              ? 'ring-2 ring-[#3b82f6] shadow-[0_0_10px_rgba(59,130,246,0.4)]'
-                              : 'hover:ring-2 hover:ring-[#3b82f6]/50'
-                          }`
-                    }`}
+                    className={`rounded-full transition-[box-shadow] duration-150 ${`p-0.5 ${
+                      profileActive || isProfileMenuOpen
+                        ? 'ring-2 ring-[#3b82f6] shadow-[0_0_10px_rgba(59,130,246,0.4)]'
+                        : 'hover:ring-2 hover:ring-[#3b82f6]/50'
+                    }`}`}
                   >
-                    {isPro && (
-                      <span
-                        className="pointer-events-none absolute inset-[-150%] animate-[spin_4s_linear_infinite]"
-                        style={{
-                          background:
-                            'conic-gradient(from 0deg, #eb6a38 0deg, #f09e6c 90deg, #10b981 180deg, #34d399 270deg, #eb6a38 360deg)',
-                        }}
-                        aria-hidden="true"
-                      />
-                    )}
                     <DockLabel>
                       Profile · {user.name}
                       {isPro
@@ -424,28 +406,12 @@ export const Sidebar: React.FC<SidebarProps> = ({ className = '' }) => {
                 className="group relative flex w-full items-center gap-3 rounded-2xl p-2 text-left outline-none transition hover:bg-white/[0.06] focus-visible:ring-2 focus-visible:ring-brand-cyan/70 focus-visible:ring-offset-2 focus-visible:ring-offset-[#07100d]"
               >
                 {isPro ? (
-                  <div
-                    className={`relative flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full p-[2px] transition-[box-shadow] duration-150 ${
-                      profileActive || isProfileMenuOpen
-                        ? 'shadow-[0_0_12px_rgba(235,106,56,0.55)]'
-                        : 'group-hover:shadow-[0_0_8px_rgba(235,106,56,0.35)]'
-                    }`}
-                  >
-                    <span
-                      className="pointer-events-none absolute inset-[-150%] animate-[spin_4s_linear_infinite]"
-                      style={{
-                        background:
-                          'conic-gradient(from 0deg, #eb6a38 0deg, #f09e6c 90deg, #10b981 180deg, #34d399 270deg, #eb6a38 360deg)',
-                      }}
-                      aria-hidden="true"
-                    />
-                    <Avatar
-                      size="sm"
-                      src={user.image}
-                      fallbackText={user.name}
-                      className="relative z-10 !h-full !w-full rounded-full ring-1 ring-black/20"
-                    />
-                  </div>
+                  <Avatar
+                    size="sm"
+                    src={user.image}
+                    fallbackText={user.name}
+                    className="h-9 w-9 rounded-full ring-2 ring-brand-green/30"
+                  />
                 ) : (
                   <Avatar
                     size="sm"

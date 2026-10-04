@@ -43,7 +43,19 @@ const parseJsonArray = (data: any): string[] => {
   }
 };
 
-export const NutritionReportPDF = ({ user, report }: { user: any; report: any }) => {
+export const NutritionReportPDF = ({
+  user,
+  report,
+  archived = false,
+}: {
+  user: any;
+  report: any;
+  archived?: boolean;
+}) => {
+  const calorieTarget =
+    report.planningTargets?.calories ??
+    report.recordedCalorieTarget ??
+    (archived ? 'Not recorded' : (user.userProfile?.dailyCalorieTarget ?? 'Not recorded'));
   const foodsToAvoid = parseJsonArray(report.foodsToAvoid);
   const foodsToLimit = parseJsonArray(report.foodsToLimit);
   const foodsRecommended = parseJsonArray(report.foodsRecommended);
@@ -56,24 +68,45 @@ export const NutritionReportPDF = ({ user, report }: { user: any; report: any })
       <Document>
         <Page size="A4" style={styles.page}>
           <Text style={styles.header}>KAINARA Nutrition Guidance</Text>
-          <Text style={styles.text}>Version {report.version} | Prepared {new Date(report.generatedAt).toLocaleDateString()}</Text>
+          <Text style={styles.text}>
+            Version {report.version} | Prepared {new Date(report.generatedAt).toLocaleDateString()}
+          </Text>
+          {archived && (
+            <Text style={styles.text}>
+              Archived record. This document does not change your current planning guidance.
+            </Text>
+          )}
           <View style={styles.divider} />
           <Text style={styles.text}>Name: {user.name}</Text>
-          <Text style={styles.text}>Estimated energy target: {user.userProfile?.dailyCalorieTarget || 'TBD'} kcal/day</Text>
-          <Text style={styles.text}>Reported conditions: {conditions.length ? conditions.join(', ') : 'None reported'}</Text>
-          <Text style={styles.text}>Reported food restrictions: {allergies.length ? allergies.join(', ') : 'None reported'}</Text>
+          <Text style={styles.text}>Estimated energy target: {calorieTarget} kcal/day</Text>
+          <Text style={styles.text}>
+            Reported conditions: {conditions.length ? conditions.join(', ') : 'None reported'}
+          </Text>
+          <Text style={styles.text}>
+            Reported food restrictions: {allergies.length ? allergies.join(', ') : 'None reported'}
+          </Text>
           <View style={styles.divider} />
           <Text style={styles.title}>What these numbers mean</Text>
           <Text style={styles.text}>{report.generalSummary}</Text>
-          {report.referenceItems.map((item: { heading: string; value: string; explanation: string; sourceTitle: string; sourceUrl: string }, index: number) => (
-            <View key={index} style={styles.section} wrap={false}>
-              <Text style={styles.title}>{item.heading}: {item.value}</Text>
-              <Text style={styles.text}>{item.explanation}</Text>
-              <Text style={styles.text}>Source: {item.sourceTitle}</Text>
-              <Text style={styles.text}>{item.sourceUrl}</Text>
-            </View>
-          ))}
-          <Text style={styles.text}>Acknowledgment records review of this document. Meal eligibility and Registered Nutritionist-Dietitian review are separate checks.</Text>
+          {report.referenceItems.map(
+            (
+              item: { heading: string; value: string; explanation: string; sourceTitle: string; sourceUrl: string },
+              index: number
+            ) => (
+              <View key={index} style={styles.section} wrap={false}>
+                <Text style={styles.title}>
+                  {item.heading}: {item.value}
+                </Text>
+                <Text style={styles.text}>{item.explanation}</Text>
+                <Text style={styles.text}>Source: {item.sourceTitle}</Text>
+                <Text style={styles.text}>{item.sourceUrl}</Text>
+              </View>
+            )
+          )}
+          <Text style={styles.text}>
+            Acknowledgment records review of this document. Meal eligibility and Registered Nutritionist-Dietitian
+            review are separate checks.
+          </Text>
         </Page>
       </Document>
     );
@@ -83,13 +116,18 @@ export const NutritionReportPDF = ({ user, report }: { user: any; report: any })
     <Document>
       <Page size="A4" style={styles.page}>
         <Text style={styles.header}>KAINARA Personalized Nutrition Guidance</Text>
+        {archived && (
+          <Text style={styles.text}>
+            Archived record. This document does not change your current planning guidance.
+          </Text>
+        )}
 
         <View style={styles.section}>
           <Text style={styles.text}>
             <Text style={styles.bold}>Patient Name:</Text> {user.name}
           </Text>
           <Text style={styles.text}>
-            <Text style={styles.bold}>Daily Target:</Text> {user.userProfile?.dailyCalorieTarget || 'TBD'} kcal
+            <Text style={styles.bold}>Daily Target:</Text> {calorieTarget} kcal
           </Text>
           <Text style={styles.text}>
             <Text style={styles.bold}>Conditions Considered:</Text>{' '}

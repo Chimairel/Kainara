@@ -56,7 +56,6 @@ export function useProgressWorkspace(mode: ProgressWorkspaceMode) {
   const [isLoading, setIsLoading] = useState(!cachedPage);
   const [error, setError] = useState<string | null>(null);
   const [timeframe, setTimeframe] = useState<'week' | 'month' | 'year'>('week');
-  const [isTimeframeDropdownOpen, setIsTimeframeDropdownOpen] = useState(false);
 
   // Form State - Biometrics & Preferences
   const [age, setAge] = useState(String(cachedProfile?.age || ''));
@@ -359,8 +358,6 @@ export function useProgressWorkspace(mode: ProgressWorkspaceMode) {
     error,
     timeframe,
     setTimeframe,
-    isTimeframeDropdownOpen,
-    setIsTimeframeDropdownOpen,
     age,
     setAge,
     heightCm,

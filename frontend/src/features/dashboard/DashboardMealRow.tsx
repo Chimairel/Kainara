@@ -1,5 +1,6 @@
 'use client';
 
+import { compactMealClasses, MealPlate, MealMacros } from '@/components/user/MealCardPresentation';
 import { formatMealTitle } from '@/lib/meal-title';
 import { useState } from 'react';
 import { Check, ChevronDown } from 'lucide-react';
@@ -17,70 +18,8 @@ type Props =
       onStatusToggle?: (id: string, status: 'DONE' | 'SKIPPED' | 'PENDING') => Promise<void> | void;
     };
 
-export interface MealThemeConfig {
-  cardBg: string;
-  borderColor: string;
-  shadow: string;
-  hoverShadow: string;
-  plateRim: string;
-}
-
-export const THEMES: Record<string, MealThemeConfig> = {
-  BREAKFAST: {
-    // Warm Terracotta Orange (Primary Brand Accent)
-    cardBg:
-      'bg-gradient-to-br from-[#eb6a38] via-[#e25c28] to-[#c74614] dark:from-[#8d3210] dark:via-[#752609] dark:to-[#571b05]',
-    borderColor: 'border-[#f27e50]/40 dark:border-[#a63e17]/50',
-    shadow:
-      'shadow-[0_4px_16px_-3px_rgba(235,106,56,0.12),0_2px_6px_rgba(0,0,0,0.03)] dark:shadow-[0_4px_20px_rgba(0,0,0,0.4)]',
-    hoverShadow:
-      'hover:shadow-[0_8px_22px_-4px_rgba(235,106,56,0.18),0_4px_10px_rgba(0,0,0,0.05)] dark:hover:shadow-[0_8px_24px_rgba(0,0,0,0.6)]',
-    plateRim: 'border-2 border-[#ffeedd] dark:border-[#963713]',
-  },
-  LUNCH: {
-    // Fresh Herbal Emerald (Brand Green)
-    cardBg:
-      'bg-gradient-to-br from-[#08705b] via-[#065e4c] to-[#044c3d] dark:from-[#083e33] dark:via-[#06332a] dark:to-[#04241d]',
-    borderColor: 'border-[#129177]/40 dark:border-[#0e6351]/50',
-    shadow:
-      'shadow-[0_4px_16px_-3px_rgba(8,112,91,0.12),0_2px_6px_rgba(0,0,0,0.03)] dark:shadow-[0_4px_20px_rgba(0,0,0,0.4)]',
-    hoverShadow:
-      'hover:shadow-[0_8px_22px_-4px_rgba(8,112,91,0.18),0_4px_10px_rgba(0,0,0,0.05)] dark:hover:shadow-[0_8px_24px_rgba(0,0,0,0.6)]',
-    plateRim: 'border-2 border-[#e6f7f2] dark:border-[#0e6351]',
-  },
-  DINNER: {
-    // Twilight Royal Indigo / Oceanic Spruce
-    cardBg:
-      'bg-gradient-to-br from-[#4f46e5] via-[#4338ca] to-[#3730a3] dark:from-[#2e265c] dark:via-[#241e4a] dark:to-[#1a1538]',
-    borderColor: 'border-[#6b6bf1]/40 dark:border-[#4f46e5]/50',
-    shadow:
-      'shadow-[0_4px_16px_-3px_rgba(79,70,229,0.12),0_2px_6px_rgba(0,0,0,0.03)] dark:shadow-[0_4px_20px_rgba(0,0,0,0.4)]',
-    hoverShadow:
-      'hover:shadow-[0_8px_22px_-4px_rgba(79,70,229,0.18),0_4px_10px_rgba(0,0,0,0.05)] dark:hover:shadow-[0_8px_24px_rgba(0,0,0,0.6)]',
-    plateRim: 'border-2 border-[#ede9fe] dark:border-[#4338ca]',
-  },
-  SNACK: {
-    // Spiced Berry Coral
-    cardBg:
-      'bg-gradient-to-br from-[#db4d6d] via-[#c43b5b] to-[#a62a48] dark:from-[#6b1e32] dark:via-[#541626] dark:to-[#3e0f1b]',
-    borderColor: 'border-[#ea6383]/40 dark:border-[#8b2b44]/50',
-    shadow:
-      'shadow-[0_4px_16px_-3px_rgba(219,77,109,0.12),0_2px_6px_rgba(0,0,0,0.03)] dark:shadow-[0_4px_20px_rgba(0,0,0,0.4)]',
-    hoverShadow:
-      'hover:shadow-[0_8px_22px_-4px_rgba(219,77,109,0.18),0_4px_10px_rgba(0,0,0,0.05)] dark:hover:shadow-[0_8px_24px_rgba(0,0,0,0.6)]',
-    plateRim: 'border-2 border-[#ffe4e9] dark:border-[#8b2b44]',
-  },
-};
-
-export function getMealTheme(mealType?: string | null, index = 0): MealThemeConfig {
-  const norm = (mealType || '').toUpperCase();
-  if (norm.includes('BREAKFAST')) return THEMES.BREAKFAST;
-  if (norm.includes('LUNCH')) return THEMES.LUNCH;
-  if (norm.includes('DINNER')) return THEMES.DINNER;
-  if (norm.includes('SNACK')) return THEMES.SNACK;
-  const list = [THEMES.BREAKFAST, THEMES.LUNCH, THEMES.DINNER, THEMES.SNACK];
-  return list[index % list.length];
-}
+export { getMealTheme, THEMES } from '@/lib/compact-meal-theme';
+import { getMealTheme } from '@/lib/compact-meal-theme';
 
 export function DashboardMealRow(props: Props) {
   const { meal, index = 0 } = props;
@@ -91,27 +30,23 @@ export function DashboardMealRow(props: Props) {
   const theme = getMealTheme(meal.mealType, index);
 
   const foodPlate = (
-    <div
+    <MealPlate
       className={`relative -ml-9 sm:-ml-13 lg:-ml-16 h-28 w-28 sm:h-32 sm:w-32 lg:h-36 lg:w-36 shrink-0 rounded-full p-1.5 sm:p-2 bg-white dark:bg-[#12362c] shadow-[0_14px_32px_-4px_rgba(0,0,0,0.25),0_4px_12px_rgba(0,0,0,0.1)] dark:shadow-[0_18px_40px_rgba(0,0,0,0.7)] ${theme.plateRim} z-20 transition-transform duration-300 group-hover:scale-105`}
     >
-      <div className="relative h-full w-full rounded-full overflow-hidden">
-        <MealImage
-          mealName={meal.mealName}
-          mealType={meal.mealType}
-          ingredients={meal.ingredients}
-          image={meal.image}
-          variant="thumbnail"
-          className="!rounded-full !border-0 h-full w-full object-cover"
-        />
-      </div>
-    </div>
+      <MealImage
+        mealName={meal.mealName}
+        mealType={meal.mealType}
+        ingredients={meal.ingredients}
+        image={meal.image}
+        variant="thumbnail"
+        className="!rounded-full !border-0 h-full w-full object-cover"
+      />
+    </MealPlate>
   );
 
   if (props.pending) {
     return (
-      <details
-        className={`dashboard-meal group relative overflow-visible p-4 sm:p-5 ${theme.cardBg} ${theme.borderColor} ${theme.shadow} ${theme.hoverShadow}`}
-      >
+      <details className={`${compactMealClasses(meal.mealType, index)} p-4 sm:p-5`}>
         <summary className="flex cursor-pointer list-none items-center justify-between text-left [&::-webkit-details-marker]:hidden">
           <div className="flex min-w-0 flex-1 items-center">
             {foodPlate}
@@ -125,12 +60,14 @@ export function DashboardMealRow(props: Props) {
               {meal.ricePortion && (
                 <span className="mt-1 block text-xs font-bold text-white">+ {meal.ricePortion}</span>
               )}
-              <span className="mt-1 block text-xs font-medium text-white/90">
-                <strong className="text-white font-bold">{Math.round(meal.calories)}</strong> kcal ·{' '}
-                <strong className="text-white font-bold">{Math.round(meal.proteinG)}g</strong> protein ·{' '}
-                <strong className="text-white font-bold">{Math.round(meal.carbsG ?? 0)}g</strong> carbs ·{' '}
-                <strong className="text-white font-bold">{Math.round(meal.fatG ?? 0)}g</strong> fat
-              </span>
+              <MealMacros
+                variant="line"
+                calories={meal.calories}
+                proteinG={meal.proteinG}
+                carbsG={meal.carbsG ?? 0}
+                fatG={meal.fatG ?? 0}
+                className="mt-1"
+              />
             </div>
           </div>
           <div className="ml-3 flex shrink-0 flex-col items-end justify-between gap-3 self-stretch py-0.5">
@@ -172,9 +109,7 @@ export function DashboardMealRow(props: Props) {
         : 'Awaiting review';
 
   return (
-    <article
-      className={`dashboard-meal group relative overflow-visible p-4 sm:p-5 ${theme.cardBg} ${theme.borderColor} ${theme.shadow} ${theme.hoverShadow}`}
-    >
+    <article className={`${compactMealClasses(meal.mealType, index)} p-4 sm:p-5`}>
       <div className="flex w-full items-center">
         {/* Clickable details trigger: foodPlate and meal info */}
         <div className="flex min-w-0 flex-1 items-center">
@@ -195,12 +130,14 @@ export function DashboardMealRow(props: Props) {
               {meal.ricePortion && (
                 <span className="mt-1 block text-xs font-bold text-white">+ {meal.ricePortion}</span>
               )}
-              <span className="mt-1 block text-xs font-medium text-white/90">
-                <strong className="text-white font-bold">{Math.round(meal.calories)}</strong> kcal ·{' '}
-                <strong className="text-white font-bold">{Math.round(meal.proteinG)}g</strong> protein ·{' '}
-                <strong className="text-white font-bold">{Math.round(meal.carbsG ?? 0)}g</strong> carbs ·{' '}
-                <strong className="text-white font-bold">{Math.round(meal.fatG ?? 0)}g</strong> fat
-              </span>
+              <MealMacros
+                variant="line"
+                calories={meal.calories}
+                proteinG={meal.proteinG}
+                carbsG={meal.carbsG ?? 0}
+                fatG={meal.fatG ?? 0}
+                className="mt-1"
+              />
             </div>
           </button>
         </div>

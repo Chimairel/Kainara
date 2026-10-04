@@ -92,7 +92,8 @@ describe('meal swap picker', () => {
     expect(screen.getByText('Daily macro gaps remain')).toBeInTheDocument();
     expect(screen.getByText('Partial day — match is provisional')).toBeInTheDocument();
     expect(screen.getByText('Nutrition match unavailable')).toBeInTheDocument();
-    fireEvent.change(screen.getByRole('combobox'), { target: { value: 'kcal_match' } });
+    fireEvent.click(screen.getByRole('combobox'));
+    fireEvent.click(screen.getByRole('option', { name: 'Kcal match' }));
     expect(screen.queryByText('Close daily macro match')).not.toBeInTheDocument();
     expect(screen.getByText('Option with gaps')).toBeInTheDocument();
     expect(
@@ -109,6 +110,7 @@ describe('meal swap picker', () => {
     expect(screen.getByText('Suitable breakfast')).toBeInTheDocument();
     expect(screen.queryByText('Dinner-only dish')).not.toBeInTheDocument();
     expect(screen.getAllByRole('combobox')).toHaveLength(1);
+    fireEvent.click(screen.getByRole('combobox'));
     expect(screen.getAllByRole('option').map((entry) => entry.textContent)).toEqual(['Nutrition match', 'Kcal match']);
     expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
     expect(
@@ -140,10 +142,10 @@ describe('meal swap picker', () => {
         .getAllByRole('button')
         .filter((button) => /Balanced plate|Closest calorie plate/.test(button.textContent ?? ''));
     expect(plateButtons()[0]).toHaveTextContent('Balanced plate');
-    fireEvent.change(screen.getByRole('combobox', { name: 'Sort mini library recipes' }), {
-      target: { value: 'kcal_match' },
-    });
+    fireEvent.click(screen.getByRole('combobox', { name: 'Sort mini library recipes' }));
+    fireEvent.click(screen.getByRole('option', { name: 'Kcal match' }));
     expect(plateButtons()[0]).toHaveTextContent('Closest calorie plate');
+    fireEvent.click(screen.getByRole('combobox', { name: 'Sort mini library recipes' }));
     expect(screen.getByRole('option', { name: 'Nutrition match' })).toBeInTheDocument();
     expect(screen.getByText('+ ½ cup cooked rice (75 g)')).toBeInTheDocument();
   });

@@ -168,21 +168,14 @@ function MembershipContent() {
 
       {/* 4. CURRENT PLAN HEADER (Header at top telling user's current plan) */}
       {data?.enabled && (
-        <MembershipPlanHeader
-          data={data}
-          onOpenPlans={() => setIsPlansModalOpen(true)}
-          onRefresh={refresh}
-        />
+        <MembershipPlanHeader data={data} onOpenPlans={() => setIsPlansModalOpen(true)} onRefresh={refresh} />
       )}
 
       {/* 5. TWO SECTIONS: PLAN STATISTICS (IMG 3-5) & PLAN CALENDAR (IMG 2) */}
       {data?.enabled && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch">
           {/* Left section: Allowances & Usage Statistics with peeking max numbers and pill bars */}
-          <PlanStatisticsCard
-            data={data}
-            onOpenPlans={() => setIsPlansModalOpen(true)}
-          />
+          <PlanStatisticsCard data={data} onOpenPlans={() => setIsPlansModalOpen(true)} />
 
           {/* Right section: Plan Schedule Calendar adapted from meeting-scheduler */}
           <PlanCalendarCard data={data} />

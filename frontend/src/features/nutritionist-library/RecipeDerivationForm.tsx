@@ -1,5 +1,6 @@
 'use client';
 
+import Dropdown from '@/components/ui/Dropdown';
 import { useEffect, useRef, useState } from 'react';
 import api from '@/lib/axios';
 import Button from '@/components/ui/Button';
@@ -230,11 +231,11 @@ export default function RecipeDerivationForm({
           </p>
           <label className="block text-sm">
             Rice pairing
-            <select className={inputClass} value={role} onChange={(e) => setRole(e.target.value as typeof role)}>
+            <Dropdown className={inputClass} value={role} onChange={(e) => setRole(e as typeof role)}>
               <option value="STANDALONE">Complete without rice</option>
               <option value="PAIR_WITH_RICE">Can be paired with rice</option>
               <option value="INCLUDES_RICE">Rice already in recipe</option>
-            </select>
+            </Dropdown>
           </label>
           {role === 'PAIR_WITH_RICE' && (
             <div className="flex gap-3">
@@ -244,17 +245,17 @@ export default function RecipeDerivationForm({
               ].map(([label, value, setter]) => (
                 <label key={label as string} className="text-sm">
                   {label as string}
-                  <select
+                  <Dropdown
                     className={inputClass}
                     value={value as number}
-                    onChange={(e) => (setter as (v: number) => void)(Number(e.target.value))}
+                    onChange={(e) => (setter as (v: number) => void)(Number(e))}
                   >
                     {[1, 2, 3, 4, 5, 6].map((units) => (
                       <option key={units} value={units}>
                         {units / 2} cup{units > 2 ? 's' : ''}
                       </option>
                     ))}
-                  </select>
+                  </Dropdown>
                 </label>
               ))}
             </div>

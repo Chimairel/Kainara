@@ -61,7 +61,8 @@ describe('meal approvals on the recipe detail page', () => {
   it('filters flagged approvals without displaying a scheduled recheck', async () => {
     render(<MealApprovalsPanel mealId="recipe-1" />);
     expect(await screen.findByText('Hypertension')).toBeInTheDocument();
-    fireEvent.change(screen.getByRole('combobox', { name: 'Filter approvals' }), { target: { value: 'FLAGGED' } });
+    fireEvent.click(screen.getByRole('combobox', { name: 'Filter approvals' }));
+    fireEvent.click(screen.getByRole('option', { name: 'Flagged' }));
     expect(screen.getByText('Diabetes')).toBeInTheDocument();
     expect(screen.queryByText('Hypertension')).not.toBeInTheDocument();
     expect(screen.queryByRole('option', { name: 'Scheduled recheck due' })).not.toBeInTheDocument();

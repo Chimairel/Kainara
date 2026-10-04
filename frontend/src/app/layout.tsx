@@ -3,7 +3,7 @@ import PageTitle from '@/components/shared/PageTitle';
 import { NotificationsProvider } from '@/hooks/useNotifications';
 import React, { Suspense } from 'react';
 import type { Metadata, Viewport } from 'next';
-import { DM_Sans, Plus_Jakarta_Sans, JetBrains_Mono, Outfit } from 'next/font/google';
+import localFont from 'next/font/local';
 import './globals.css';
 import { AuthProvider } from '@/lib/context/AuthContext';
 import { ThemeProvider } from '@/lib/context/ThemeContext';
@@ -12,28 +12,32 @@ import TopNavigationProgress from '@/components/shared/TopNavigationProgress';
 import { Toaster } from '@/components/ui/Sonner';
 import MobileInstallPrompt from '@/components/shared/MobileInstallPrompt';
 
-const dmSans = DM_Sans({
-  subsets: ['latin'],
+const dmSans = localFont({
+  src: './fonts/dm-sans.ttf',
   variable: '--font-dm-sans',
-  weight: ['300', '400', '500', '600', '700'],
+  weight: '300 700',
+  display: 'swap',
 });
 
-const plusJakartaSans = Plus_Jakarta_Sans({
-  subsets: ['latin'],
+const plusJakartaSans = localFont({
+  src: './fonts/plus-jakarta-sans.ttf',
   variable: '--font-plus-jakarta-sans',
-  weight: ['400', '500', '600', '700', '800'],
+  weight: '400 800',
+  display: 'swap',
 });
 
-const outfit = Outfit({
-  subsets: ['latin'],
+const outfit = localFont({
+  src: './fonts/outfit.ttf',
   variable: '--font-outfit',
-  weight: ['300', '400', '500', '600', '700', '800', '900'],
+  weight: '300 900',
+  display: 'swap',
 });
 
-const jetbrainsMono = JetBrains_Mono({
-  subsets: ['latin'],
+const jetbrainsMono = localFont({
+  src: './fonts/jetbrains-mono.ttf',
   variable: '--font-jetbrains-mono',
-  weight: ['400', '500', '700'],
+  weight: '400 700',
+  display: 'swap',
 });
 
 export const viewport: Viewport = {

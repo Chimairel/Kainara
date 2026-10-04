@@ -223,10 +223,7 @@ export default function ReportHistory({
                   </div>
 
                   {/* Macro pills and goal summary */}
-                  <div
-                    onClick={() => onSelectVersion?.(entry)}
-                    className="cursor-pointer"
-                  >
+                  <div onClick={() => onSelectVersion?.(entry)} className="cursor-pointer">
                     {calTarget != null && (
                       <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
                         <span className="inline-flex items-center gap-1 rounded-full border border-black/10 bg-black/[0.04] px-2 py-0.5 text-[9px] font-bold text-brand-text dark:border-white/10 dark:bg-white/[0.06]">
@@ -267,7 +264,8 @@ export default function ReportHistory({
                 Immutable Health Records
               </div>
               <p className="text-[10px] leading-relaxed">
-                Each guidance revision preserves your targets and dietary evidence at that point in time. Historical records remain locked for clinical safety.
+                Each guidance revision preserves your targets and dietary evidence at that point in time. Historical
+                records remain locked for clinical safety.
               </p>
             </div>
           </div>

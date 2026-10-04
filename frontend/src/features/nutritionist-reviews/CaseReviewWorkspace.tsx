@@ -1,5 +1,6 @@
 'use client';
 
+import SplitWorkspace from '@/components/shared/SplitWorkspace';
 import CaseReplacementForm from './CaseReplacementForm';
 
 import PortalPageHeader from '@/components/shared/PortalPageHeader';
@@ -117,7 +118,7 @@ export default function CaseReviewWorkspace({
         />
         {navigation}
         {caseFilters}
-        <div className="flex md:h-[calc(100vh-270px)] md:min-h-[640px] flex-col overflow-hidden rounded-3xl border border-brand-border/70 bg-brand-surface text-left shadow-sm md:flex-row">
+        <SplitWorkspace className="flex md:h-[calc(100vh-270px)] md:min-h-[640px] flex-col overflow-hidden rounded-3xl border border-brand-border/70 bg-brand-surface text-left shadow-sm md:flex-row">
           {/* Master Queue List Panel */}
           <CaseReviewQueue review={review} caseFilter={caseFilter} expanded={expanded} />
 
@@ -689,7 +690,7 @@ export default function CaseReviewWorkspace({
               </div>
             ) : null}
           </ExpandableCasePanel>
-        </div>
+        </SplitWorkspace>
       </div>
     </div>
   );

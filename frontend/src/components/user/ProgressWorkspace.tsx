@@ -1,4 +1,5 @@
 'use client';
+import WorkspaceTabs from '@/components/ui/WorkspaceTabs';
 
 import React, { useEffect } from 'react';
 import Link from 'next/link';
@@ -34,8 +35,6 @@ import {
   Heart,
   Settings,
   Scale,
-  ChevronDown,
-  Check,
   Activity,
   ClipboardList,
   Sparkles,
@@ -59,8 +58,6 @@ export function ProgressWorkspace({ mode = 'progress' }: { mode?: ProgressWorksp
     error,
     timeframe,
     setTimeframe,
-    isTimeframeDropdownOpen,
-    setIsTimeframeDropdownOpen,
     age,
     setAge,
     heightCm,
@@ -223,32 +220,23 @@ export function ProgressWorkspace({ mode = 'progress' }: { mode?: ProgressWorksp
       ) : null}
 
       {mode !== 'planning' && (
-        <nav
-          className="mb-6 grid grid-cols-2 gap-1 rounded-[22px] border border-brand-border/70 bg-brand-surface/85 p-1.5 shadow-sm"
-          aria-label={mode === 'health' ? 'Health profile sections' : 'Progress sections'}
-        >
-          {(mode === 'health'
-            ? ([
-                ['profile', 'Body & goals', Settings],
-                ['safety', 'Conditions & allergies', Heart],
-              ] as const)
-            : ([
-                ['overview', 'Overview', TrendingUp],
-                ['history', 'Daily Adherence', ClipboardList],
-              ] as const)
-          ).map(([value, label, Icon]) => (
-            <button
-              key={value}
-              type="button"
-              onClick={() => setActiveSection(value)}
-              aria-current={activeSection === value ? 'page' : undefined}
-              className={`flex min-h-11 items-center justify-center gap-2 rounded-2xl px-3 text-xs font-bold outline-none transition focus-visible:ring-2 focus-visible:ring-brand-green/30 ${activeSection === value ? 'bg-brand-accent text-[#07100d] shadow-neon' : 'text-brand-muted hover:bg-brand-bgAlt hover:text-brand-text'}`}
-            >
-              <Icon className="h-4 w-4" />
-              <span>{label}</span>
-            </button>
-          ))}
-        </nav>
+        <WorkspaceTabs
+          value={activeSection}
+          onChange={setActiveSection}
+          label={mode === 'health' ? 'Health profile sections' : 'Progress sections'}
+          className="mb-6"
+          items={
+            mode === 'health'
+              ? [
+                  { value: 'profile', label: 'Body & goals', icon: <Settings className="h-4 w-4" /> },
+                  { value: 'safety', label: 'Conditions & allergies', icon: <Heart className="h-4 w-4" /> },
+                ]
+              : [
+                  { value: 'overview', label: 'Overview', icon: <TrendingUp className="h-4 w-4" /> },
+                  { value: 'history', label: 'Daily Adherence', icon: <ClipboardList className="h-4 w-4" /> },
+                ]
+          }
+        />
       )}
 
       {weightSuccess && (
@@ -397,9 +385,7 @@ export function ProgressWorkspace({ mode = 'progress' }: { mode?: ProgressWorksp
                         <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-brand-green/10 text-brand-green">
                           <Scale className="w-4 h-4" />
                         </div>
-                        <h3 className="text-base font-extrabold text-brand-text font-display">
-                          Weight Progress
-                        </h3>
+                        <h3 className="text-base font-extrabold text-brand-text font-display">Weight Progress</h3>
                       </div>
                       <p className="text-xs text-brand-muted mt-1 ml-9">
                         {targetWeight > 0 ? `Target: ${targetWeight} kg · ` : ''}Real observations over time
@@ -421,77 +407,20 @@ export function ProgressWorkspace({ mode = 'progress' }: { mode?: ProgressWorksp
                         )}
                       </div>
 
-                      <div className="relative inline-block text-left select-none">
-                        <button
-                          type="button"
-                          onClick={() => setIsTimeframeDropdownOpen(!isTimeframeDropdownOpen)}
-                          className="inline-flex justify-between items-center w-40 rounded-xl border border-brand-border bg-brand-bgAlt px-3.5 py-2 text-xs font-extrabold text-brand-text shadow-xs hover:border-brand-border/80 focus:outline-none transition-all"
-                          aria-haspopup="true"
-                          aria-expanded={isTimeframeDropdownOpen}
-                        >
-                          <span>
-                            {timeframe === 'week' && 'Weekly Progress'}
-                            {timeframe === 'month' && 'Monthly Progress'}
-                            {timeframe === 'year' && 'Yearly Progress'}
-                          </span>
-                          <ChevronDown className="w-3.5 h-3.5 text-brand-muted ml-1" />
-                        </button>
-
-                      {isTimeframeDropdownOpen && (
-                        <>
-                          <div className="fixed inset-0 z-10" onClick={() => setIsTimeframeDropdownOpen(false)} />
-                          <div className="origin-top-right absolute right-0 mt-1.5 w-40 rounded-xl shadow-xl bg-brand-bgAlt border border-brand-border focus:outline-none z-20 overflow-hidden animate-in fade-in slide-in-from-top-1 duration-150">
-                            <div className="py-1">
-                              <button
-                                onClick={() => {
-                                  setTimeframe('week');
-                                  setIsTimeframeDropdownOpen(false);
-                                }}
-                                className={`flex items-center justify-between w-full text-left px-3 py-2 text-xs font-bold transition-colors ${
-                                  timeframe === 'week'
-                                    ? 'bg-brand-green/10 text-brand-green'
-                                    : 'text-brand-text hover:bg-brand-surface/80'
-                                }`}
-                              >
-                                <span>Weekly Progress</span>
-                                {timeframe === 'week' && <Check className="w-3 h-3 text-brand-green" />}
-                              </button>
-                              <button
-                                onClick={() => {
-                                  setTimeframe('month');
-                                  setIsTimeframeDropdownOpen(false);
-                                }}
-                                className={`flex items-center justify-between w-full text-left px-3 py-2 text-xs font-bold transition-colors ${
-                                  timeframe === 'month'
-                                    ? 'bg-brand-green/10 text-brand-green'
-                                    : 'text-brand-text hover:bg-brand-surface/80'
-                                }`}
-                              >
-                                <span>Monthly Progress</span>
-                                {timeframe === 'month' && <Check className="w-3 h-3 text-brand-green" />}
-                              </button>
-                              <button
-                                onClick={() => {
-                                  setTimeframe('year');
-                                  setIsTimeframeDropdownOpen(false);
-                                }}
-                                className={`flex items-center justify-between w-full text-left px-3 py-2 text-xs font-bold transition-colors ${
-                                  timeframe === 'year'
-                                    ? 'bg-brand-green/10 text-brand-green'
-                                    : 'text-brand-text hover:bg-brand-surface/80'
-                                }`}
-                              >
-                                <span>Yearly Progress</span>
-                                {timeframe === 'year' && <Check className="w-3 h-3 text-brand-green" />}
-                              </button>
-                            </div>
-                          </div>
-                        </>
-                      )}
+                      <Select
+                        aria-label="Weight progress period"
+                        value={timeframe}
+                        onChange={(value) => setTimeframe(value as 'week' | 'month' | 'year')}
+                        className="w-40"
+                        options={[
+                          { value: 'week', label: 'Weekly Progress' },
+                          { value: 'month', label: 'Monthly Progress' },
+                          { value: 'year', label: 'Yearly Progress' },
+                        ]}
+                      />
                     </div>
                   </div>
-                </div>
-                <WeightGraph groupedLogs={groupedLogs} targetWeight={targetWeight} />
+                  <WeightGraph groupedLogs={groupedLogs} targetWeight={targetWeight} />
                 </Card>
               </div>
             </>

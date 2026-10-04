@@ -2,6 +2,7 @@ import React, { forwardRef, useId } from 'react';
 import { AlertCircle } from 'lucide-react';
 
 interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
+  trailingControl?: React.ReactNode;
   label?: string;
   error?: string;
   helperText?: string;
@@ -14,6 +15,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
       label,
       error,
       helperText,
+      trailingControl,
       validationState = 'default',
       className = '',
       id,
@@ -39,13 +41,14 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
             {label}
           </label>
         )}
-        <input
-          id={resolvedId}
-          ref={ref}
-          aria-describedby={describedBy}
-          aria-invalid={error ? true : ariaInvalid}
-          data-validation-state={resolvedValidationState}
-          className={`
+        <div className="relative w-full">
+          <input
+            id={resolvedId}
+            ref={ref}
+            aria-describedby={describedBy}
+            aria-invalid={error ? true : ariaInvalid}
+            data-validation-state={resolvedValidationState}
+            className={`
             w-full rounded-xl sm:rounded-2xl border border-brand-border/70 bg-brand-surface/75 px-3.5 py-2 sm:px-4 sm:py-3 text-xs sm:text-sm text-brand-text shadow-sm outline-none backdrop-blur-md placeholder:text-brand-muted/60
             transition-all duration-200
             hover:border-brand-green/25 focus:bg-brand-surface focus:ring-4
@@ -55,8 +58,10 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
             ${resolvedValidationState === 'success' ? 'border-brand-green/70 focus:border-brand-green focus:ring-brand-green/30' : ''}
             ${className}
           `}
-          {...props}
-        />
+            {...props}
+          />
+          {trailingControl}
+        </div>
         {error ? (
           <span
             id={messageId}

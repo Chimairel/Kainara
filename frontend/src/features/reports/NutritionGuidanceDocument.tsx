@@ -1,5 +1,7 @@
 'use client';
 
+import { WorkspaceListPane } from '@/components/shared/SplitWorkspace';
+import SplitWorkspace from '@/components/shared/SplitWorkspace';
 import React, { useMemo, useState } from 'react';
 import type { NutritionReport } from '@/types';
 import ReportHistory, { type ReportVersion } from './ReportHistory';
@@ -7,7 +9,7 @@ import Button from '@/components/ui/Button';
 import NutritionGuidancePaper from './NutritionGuidancePaper';
 import ExpandableCasePanel from '@/features/nutritionist-reviews/ExpandableCasePanel';
 import PortalPageHeader from '@/components/shared/PortalPageHeader';
-import { KainaraLogo } from '@/components/shared/KainaraLogo';
+import CardDecoration from '@/components/ui/CardDecoration';
 import { FileText, ShieldAlert } from 'lucide-react';
 
 interface Props {
@@ -93,10 +95,7 @@ export default function NutritionGuidanceDocument({
   const showContinue = useMemo(() => {
     if (isViewingArchived || !report.acknowledgedAt) return false;
     if (error) return true;
-    if (
-      report.planningContext?.activeVersion &&
-      report.planningContext.activeVersion !== report.version
-    ) {
+    if (report.planningContext?.activeVersion && report.planningContext.activeVersion !== report.version) {
       return true;
     }
     if (typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('next')) {
@@ -158,36 +157,14 @@ export default function NutritionGuidanceDocument({
         />
 
         {/* The main workspace card holding both left side (list) and right side (nutrition guide) */}
-        <div
+        <SplitWorkspace
           aria-label="Nutrition workspace"
           className="relative overflow-hidden flex md:h-[calc(100vh-210px)] md:min-h-[680px] flex-col rounded-[28px] sm:rounded-[36px] border border-[#dce4e0] dark:border-[#173e33] bg-[#faf8f5] dark:bg-[#071914] text-[#0d2820] dark:text-white shadow-xl md:flex-row"
         >
-          {/* 1. Retro Wave Organic Corner Accent (3-Tone Signature Curved Stripes from Landing Page / Health Membership Card) */}
-          <div className="pointer-events-none absolute -top-0.5 -right-0.5 h-36 w-36 sm:h-52 sm:w-52 overflow-hidden rounded-tr-[28px] sm:rounded-tr-[36px] z-0 opacity-85 print:hidden">
-            <svg viewBox="0 0 160 160" className="h-full w-full" fill="none">
-              <path d="M160,0 L0,0 C20,40 55,95 120,135 C140,147 160,155 160,155 Z" fill="#eb6a38" />
-              <path d="M160,0 L40,0 C55,30 80,72 130,105 C145,115 160,120 160,120 Z" fill="#f09e6c" />
-              <path
-                d="M160,0 L82,0 C92,20 110,48 142,70 C152,76 160,80 160,80 Z"
-                className="fill-[#1b4e41] dark:fill-[#164639]"
-              />
-            </svg>
-          </div>
-
-          {/* 2. Soft Ambient Radial Glow */}
-          <div className="pointer-events-none absolute -bottom-10 -left-10 h-80 w-80 rounded-full bg-brand-green/10 blur-[100px] z-0 print:hidden" />
-
-          {/* 3. Subtle Watermarked Kainara Logo Seal */}
-          <div className="pointer-events-none absolute -bottom-8 -right-8 hidden sm:flex items-center justify-center opacity-10 dark:opacity-15 z-0 print:hidden">
-            <KainaraLogo size={160} variant="multicolor" />
-          </div>
+          <CardDecoration style="varied" seed="nutrition-reports" />
 
           {/* Left Column: Report History Queue */}
-          <div
-            className={`${mobileView === 'history' ? 'flex' : 'hidden md:flex'} ${
-              expanded ? '!hidden' : ''
-            } relative z-10 h-full w-full min-w-0 flex-col md:w-[38%] md:min-w-[300px] md:max-w-[400px] md:border-r border-[#dce4e0]/80 dark:border-[#173e33] p-4 sm:p-5 bg-white/40 dark:bg-[#071914]/40 backdrop-blur-sm`}
-          >
+          <WorkspaceListPane visible={mobileView === 'history'} className={expanded ? '!hidden' : ''}>
             <ReportHistory
               history={allVersions}
               currentVersion={report.planningContext?.activeVersion ?? report.version}
@@ -202,7 +179,7 @@ export default function NutritionGuidanceDocument({
               downloadingVersion={downloadingVersion}
               borderless
             />
-          </div>
+          </WorkspaceListPane>
 
           {/* Right Column: Expandable Nutrition Guidance Document Pane */}
           <ExpandableCasePanel
@@ -232,8 +209,8 @@ export default function NutritionGuidanceDocument({
             {report.confirmationKind === 'UNCHANGED_CHECKIN' && (
               <p className="mx-auto max-w-3xl mb-4 text-xs text-brand-muted">
                 Profile confirmed unchanged on{' '}
-                {new Date(report.generatedAt).toLocaleDateString('en-PH', { timeZone: 'Asia/Manila' })}. This dated report
-                does not represent a new nutritionist review.
+                {new Date(report.generatedAt).toLocaleDateString('en-PH', { timeZone: 'Asia/Manila' })}. This dated
+                report does not represent a new nutritionist review.
               </p>
             )}
 
@@ -250,8 +227,8 @@ export default function NutritionGuidanceDocument({
                         Choose your planning report
                       </h3>
                       <p className="mt-1 text-xs text-amber-800/90 dark:text-amber-200/90 leading-relaxed max-w-xl">
-                        This report supplies the profile, targets and restrictions used for meal planning and shared with
-                        your nutritionist. Check that your details are correct before using it. This is educational
+                        This report supplies the profile, targets and restrictions used for meal planning and shared
+                        with your nutritionist. Check that your details are correct before using it. This is educational
                         guidance and does not replace your doctor or Registered Nutritionist-Dietitian.
                       </p>
                     </div>
@@ -307,7 +284,7 @@ export default function NutritionGuidanceDocument({
               />
             </div>
           </ExpandableCasePanel>
-        </div>
+        </SplitWorkspace>
       </div>
     </div>
   );

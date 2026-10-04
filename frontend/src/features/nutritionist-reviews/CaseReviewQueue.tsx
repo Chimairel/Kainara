@@ -1,5 +1,6 @@
 'use client';
 
+import { WorkspaceListPane } from '@/components/shared/SplitWorkspace';
 import Avatar from '@/components/ui/Avatar';
 import Badge from '@/components/ui/Badge';
 import { ReviewQueueSkeleton } from '@/features/nutritionist-reviews/NutritionistReviewsSkeleton';
@@ -51,9 +52,7 @@ export default function CaseReviewQueue({ review, expanded }: Props) {
   const visibleQueue = queue;
 
   return (
-    <div
-      className={`${selectedMealId ? 'hidden md:flex' : 'flex'} ${expanded ? '!hidden' : ''} h-full w-full min-w-0 flex-col border-brand-border/70 bg-brand-surface/75 p-5 md:w-[38%] md:min-w-[280px] md:border-r`}
-    >
+    <WorkspaceListPane visible={!selectedMealId} className={expanded ? '!hidden' : ''}>
       <div className="shrink-0 mb-3 rounded-2xl border border-brand-border/80 bg-brand-surface/90 p-5 text-brand-text shadow-sm backdrop-blur-md">
         <div className="flex items-center justify-between gap-2">
           <span className="font-mono text-[9px] font-bold uppercase tracking-[0.16em] text-brand-green">
@@ -207,6 +206,6 @@ export default function CaseReviewQueue({ review, expanded }: Props) {
           })}
         </div>
       )}
-    </div>
+    </WorkspaceListPane>
   );
 }

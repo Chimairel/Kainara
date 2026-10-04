@@ -1,5 +1,7 @@
 'use client';
 
+import Dropdown from '@/components/ui/Dropdown';
+import { compactMealClasses, MealPlate } from '@/components/user/MealCardPresentation';
 import { formatMealTitle } from '@/lib/meal-title';
 import { useState, useMemo, useEffect } from 'react';
 import Button from '@/components/ui/Button';
@@ -130,27 +132,23 @@ export function MealsWorkspaceModals({ workspace }: Props) {
                   </div>
 
                   <div className="flex items-center gap-3 sm:gap-3.5">
-                    <div
+                    <MealPlate
                       className={`relative h-16 w-16 sm:h-18 sm:w-18 shrink-0 rounded-full p-1 sm:p-1.5 bg-white dark:bg-[#12362c] shadow-[0_8px_20px_-3px_rgba(0,0,0,0.25),0_3px_8px_rgba(0,0,0,0.1)] dark:shadow-[0_10px_24px_rgba(0,0,0,0.7)] ${currentTheme?.plateRim} z-10`}
                     >
-                      <div className="relative h-full w-full rounded-full overflow-hidden">
-                        <MealImage
-                          image={activeSwapMeal.image}
-                          mealName={activeSwapMeal.mealName}
-                          mealType={activeSwapMeal.mealType}
-                          variant="thumbnail"
-                          className="!rounded-full !border-0 h-full w-full object-cover"
-                        />
-                      </div>
-                    </div>
+                      <MealImage
+                        image={activeSwapMeal.image}
+                        mealName={activeSwapMeal.mealName}
+                        mealType={activeSwapMeal.mealType}
+                        variant="thumbnail"
+                        className="!rounded-full !border-0 h-full w-full object-cover"
+                      />
+                    </MealPlate>
                     <div className="min-w-0 flex-1">
                       <h4 className="font-display text-sm sm:text-base font-bold text-white line-clamp-2 leading-snug min-h-[2.5rem] flex items-start">
                         {formatMealTitle(activeSwapMeal.mealName)}
                       </h4>
                       {activeSwapMeal.ricePortion && (
-                        <p className="text-[11px] font-bold text-white/95 mt-0.5">
-                          + {activeSwapMeal.ricePortion}
-                        </p>
+                        <p className="text-[11px] font-bold text-white/95 mt-0.5">+ {activeSwapMeal.ricePortion}</p>
                       )}
                       <p className="text-[10.5px] text-white/75 mt-0.5">
                         {formatManilaDate(activeSwapMeal.scheduledDate, {
@@ -198,7 +196,7 @@ export function MealsWorkspaceModals({ workspace }: Props) {
               {/* Right Card: Selected Candidate or Prompt */}
               {confirmSwapMeal && replacementTheme ? (
                 <div
-                  className={`dashboard-meal relative overflow-hidden flex flex-col justify-between rounded-[22px] p-3.5 sm:p-4 text-white shadow-md ${replacementTheme.cardBg} ${replacementTheme.borderColor} min-h-[156px]`}
+                  className={`${compactMealClasses(confirmSwapMeal.mealType ?? activeSwapMeal.mealType)} flex flex-col justify-between rounded-[22px] p-3.5 sm:p-4 min-h-[156px]`}
                 >
                   <div>
                     <div className="flex items-center justify-between gap-2 mb-2">
@@ -228,19 +226,17 @@ export function MealsWorkspaceModals({ workspace }: Props) {
                     </div>
 
                     <div className="flex items-center gap-3 sm:gap-3.5">
-                      <div
+                      <MealPlate
                         className={`relative h-16 w-16 sm:h-18 sm:w-18 shrink-0 rounded-full p-1 sm:p-1.5 bg-white dark:bg-[#12362c] shadow-[0_8px_20px_-3px_rgba(0,0,0,0.25),0_3px_8px_rgba(0,0,0,0.1)] dark:shadow-[0_10px_24px_rgba(0,0,0,0.7)] ${replacementTheme.plateRim} z-10`}
                       >
-                        <div className="relative h-full w-full rounded-full overflow-hidden">
-                          <MealImage
-                            image={confirmSwapMeal.image}
-                            mealName={confirmSwapMeal.mealName}
-                            mealType={confirmSwapMeal.mealType ?? undefined}
-                            variant="thumbnail"
-                            className="!rounded-full !border-0 h-full w-full object-cover"
-                          />
-                        </div>
-                      </div>
+                        <MealImage
+                          image={confirmSwapMeal.image}
+                          mealName={confirmSwapMeal.mealName}
+                          mealType={confirmSwapMeal.mealType ?? undefined}
+                          variant="thumbnail"
+                          className="!rounded-full !border-0 h-full w-full object-cover"
+                        />
+                      </MealPlate>
                       <div className="min-w-0 flex-1">
                         <h4 className="font-display text-sm sm:text-base font-bold text-white line-clamp-2 leading-snug min-h-[2.5rem] flex items-start">
                           {formatMealTitle(confirmSwapMeal.mealName)}
@@ -249,9 +245,7 @@ export function MealsWorkspaceModals({ workspace }: Props) {
                           {confirmSwapMeal.servingDescription || 'One recipe serving'}
                           {confirmSwapMeal.alreadyPlannedInCycle ? ' · In plan' : ''}
                         </p>
-                        <p className="text-[10.5px] text-white/75 mt-0.5 truncate">
-                          Ready to compare & confirm
-                        </p>
+                        <p className="text-[10.5px] text-white/75 mt-0.5 truncate">Ready to compare & confirm</p>
                       </div>
                     </div>
                   </div>
@@ -259,8 +253,8 @@ export function MealsWorkspaceModals({ workspace }: Props) {
                   <div className="mt-2.5 pt-2 border-t border-white/20">
                     <p className="text-[11px] sm:text-xs font-medium text-white/90">
                       <strong className="text-white font-bold">{Math.round(confirmSwapMeal.calories)}</strong> kcal ·{' '}
-                      <strong className="text-white font-bold">{Math.round(confirmSwapMeal.proteinG)}g</strong> protein ·{' '}
-                      <strong className="text-white font-bold">{Math.round(confirmSwapMeal.carbsG)}g</strong> carbs ·{' '}
+                      <strong className="text-white font-bold">{Math.round(confirmSwapMeal.proteinG)}g</strong> protein
+                      · <strong className="text-white font-bold">{Math.round(confirmSwapMeal.carbsG)}g</strong> carbs ·{' '}
                       <strong className="text-white font-bold">{Math.round(confirmSwapMeal.fatG)}g</strong> fat
                     </p>
                   </div>
@@ -354,16 +348,16 @@ export function MealsWorkspaceModals({ workspace }: Props) {
               </div>
 
               <div className="flex justify-end text-xs">
-                <select
+                <Dropdown
                   disabled={isSwapping}
                   value={miniSort}
-                  onChange={(event) => setMiniSort(event.target.value as MiniSortOption)}
+                  onChange={(event) => setMiniSort(event as MiniSortOption)}
                   className="h-9 rounded-xl border border-brand-border bg-brand-surface px-2.5 text-xs font-medium text-brand-text outline-none focus:border-brand-green"
                   aria-label="Sort mini library recipes"
                 >
                   <option value="best_match">Nutrition match</option>
                   <option value="kcal_match">Kcal match</option>
-                </select>
+                </Dropdown>
               </div>
 
               <p className="text-[11px] text-brand-muted">
@@ -427,9 +421,7 @@ export function MealsWorkspaceModals({ workspace }: Props) {
                               handleSelectSwapOption(option);
                             }
                           }}
-                          className={`dashboard-meal group relative flex flex-col justify-between rounded-[20px] p-3 sm:p-3.5 transition-all cursor-pointer text-left outline-none text-white shadow-sm ${
-                            optionTheme.cardBg
-                          } ${optionTheme.borderColor} ${
+                          className={`${compactMealClasses(option.mealType ?? activeSwapMeal.mealType)} flex flex-col justify-between rounded-[20px] p-3 sm:p-3.5 transition-all cursor-pointer text-left outline-none ${
                             isSelected
                               ? 'ring-2 ring-white/90 shadow-md scale-[1.01]'
                               : 'hover:brightness-105 hover:shadow-md'
@@ -439,7 +431,10 @@ export function MealsWorkspaceModals({ workspace }: Props) {
                           <div>
                             <div className="flex items-center justify-between gap-1.5 mb-2">
                               <span className="text-[9.5px] sm:text-[10px] font-bold uppercase tracking-wider text-white/80 truncate">
-                                {(option.mealTypes?.length ? option.mealTypes : [option.mealType || activeSwapMeal.mealType])
+                                {(option.mealTypes?.length
+                                  ? option.mealTypes
+                                  : [option.mealType || activeSwapMeal.mealType]
+                                )
                                   .join(' · ')
                                   .toLowerCase()}
                               </span>
@@ -465,19 +460,17 @@ export function MealsWorkspaceModals({ workspace }: Props) {
                             {/* Plate + Info Layout */}
                             <div className="flex items-center gap-2.5 sm:gap-3">
                               {/* Signature Circular Food Plate */}
-                              <div
+                              <MealPlate
                                 className={`relative h-14 w-14 sm:h-16 sm:w-16 shrink-0 rounded-full p-1 bg-white dark:bg-[#12362c] shadow-[0_6px_16px_-2px_rgba(0,0,0,0.22),0_2px_6px_rgba(0,0,0,0.08)] dark:shadow-[0_8px_20px_rgba(0,0,0,0.65)] ${optionTheme.plateRim} z-10 transition-transform duration-200 group-hover:scale-105`}
                               >
-                                <div className="relative h-full w-full rounded-full overflow-hidden">
-                                  <MealImage
-                                    image={option.image}
-                                    mealName={option.mealName}
-                                    mealType={option.mealType ?? undefined}
-                                    variant="thumbnail"
-                                    className="!rounded-full !border-0 h-full w-full object-cover"
-                                  />
-                                </div>
-                              </div>
+                                <MealImage
+                                  image={option.image}
+                                  mealName={option.mealName}
+                                  mealType={option.mealType ?? undefined}
+                                  variant="thumbnail"
+                                  className="!rounded-full !border-0 h-full w-full object-cover"
+                                />
+                              </MealPlate>
 
                               <div className="min-w-0 flex-1">
                                 <h4 className="font-display text-xs sm:text-sm font-bold text-white line-clamp-2 leading-snug group-hover:underline underline-offset-2">
@@ -500,17 +493,13 @@ export function MealsWorkspaceModals({ workspace }: Props) {
                                 {miniSort === 'best_match' ? (
                                   <p
                                     className={`text-[9.5px] truncate mt-0.5 ${
-                                      option.nutritionMatch === 'CLOSE'
-                                        ? 'text-white font-semibold'
-                                        : 'text-white/75'
+                                      option.nutritionMatch === 'CLOSE' ? 'text-white font-semibold' : 'text-white/75'
                                     }`}
                                   >
                                     {swapNutritionLabel(option.nutritionMatch)}
                                   </p>
                                 ) : (
-                                  <p className="text-[9.5px] text-white/75 truncate mt-0.5">
-                                    Closest calorie match
-                                  </p>
+                                  <p className="text-[9.5px] text-white/75 truncate mt-0.5">Closest calorie match</p>
                                 )}
                               </div>
                             </div>

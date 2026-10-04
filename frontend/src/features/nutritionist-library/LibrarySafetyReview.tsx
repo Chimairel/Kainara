@@ -1,5 +1,6 @@
 'use client';
 
+import Dropdown from '@/components/ui/Dropdown';
 import { useRef, useState } from 'react';
 import api from '@/lib/axios';
 import { getApiErrorMessage } from '@/lib/api-error';
@@ -74,16 +75,16 @@ export default function LibrarySafetyReview({ meal, refresh }: { meal: LibraryMe
             {allergens.map((key) => (
               <label key={key} className="text-sm">
                 {key.charAt(0) + key.slice(1).toLowerCase()}
-                <select
+                <Dropdown
                   aria-label={`${key} assessment`}
                   value={facts[key] ?? ''}
-                  onChange={(event) => setFacts((old) => ({ ...old, [key]: event.target.value }))}
+                  onChange={(event) => setFacts((old) => ({ ...old, [key]: event }))}
                   className="mt-1 w-full rounded-xl border border-brand-border bg-brand-bg p-2"
                 >
                   <option value="">Not assessed</option>
                   <option value="present">Present</option>
                   <option value="absent">Reviewed absent</option>
-                </select>
+                </Dropdown>
               </label>
             ))}
           </div>

@@ -720,6 +720,7 @@ export function useMealsWorkspace(initialOptions?: { initialDateKey?: string | n
   const displayedMealCount = meals.length + (pendingReview?.mealCount ?? 0);
   const completedMealCount = meals.filter((meal) => meal.mealLogs?.some((log) => log.status === 'DONE')).length;
   return {
+    ownerId,
     user,
     activeTab,
     setActiveTab,
@@ -788,6 +789,7 @@ export function useMealsWorkspace(initialOptions?: { initialDateKey?: string | n
     libraryRiceRole,
     setLibraryRiceRole,
     libraryNextCursor,
+    retryLibrary: () => fetchLibrary(),
     loadMoreLibrary: () => (libraryNextCursor ? fetchLibrary(libraryNextCursor) : Promise.resolve()),
     handleSwapClick,
     handleSelectSwapOption,

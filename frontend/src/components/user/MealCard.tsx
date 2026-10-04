@@ -1,8 +1,8 @@
 'use client';
 
+import { MealTile, MealMacros } from '@/components/user/MealCardPresentation';
 import { formatMealTitle } from '@/lib/meal-title';
 import { getManilaDateKey } from '@/lib/manila-date';
-import { getMealBannerTheme } from '@/lib/meal-banner-theme';
 import { cookingAction } from '@/lib/meal-cooking-link';
 import {
   AIConfidenceFlag,
@@ -107,7 +107,6 @@ export default function MealCard({
   defaultOpen = false,
   onCloseModal,
 }: MealCardProps) {
-  const bannerTheme = getMealBannerTheme(mealType, index);
   const [isOpen, setIsOpen] = useState(defaultOpen);
   const [isVerifierOpen, setIsVerifierOpen] = useState(false);
   const [verifierModalTab, setVerifierModalTab] = useState<'card' | 'notes'>('card');
@@ -252,30 +251,14 @@ export default function MealCard({
         }}
         className="group relative block h-full w-full cursor-pointer select-none text-left outline-none focus-visible:ring-2 focus-visible:ring-brand-green focus-visible:ring-offset-2 focus-visible:ring-offset-brand-bg rounded-3xl"
       >
-        <div
-          className={`relative flex h-full flex-col justify-between rounded-3xl bg-brand-surface p-2 sm:p-2.5 ${bannerTheme.shadow} ${bannerTheme.hoverShadow} transition-all duration-300 hover:-translate-y-1`}
-        >
-          {/* Upper Banner with Cropped Circular Food Plate on Left */}
-          <div className={`relative h-40 sm:h-44 w-full overflow-hidden rounded-2xl ${bannerTheme.bannerBg}`}>
-            {/* Circular Plate on Left - Enlarge and crop so parts cut out */}
-            <div
-              className={`absolute -left-9 sm:-left-12 top-1/2 -translate-y-1/2 h-52 w-52 sm:h-56 sm:w-56 rounded-full ${bannerTheme.plateBorder} bg-white dark:bg-[#071914] shadow-[0_6px_16px_rgba(0,0,0,0.12)] dark:shadow-[0_8px_20px_rgba(0,0,0,0.45)] overflow-hidden transition-transform duration-300 group-hover:scale-105`}
-            >
-              <div className="relative h-full w-full rounded-full overflow-hidden">
-                <MealImage
-                  image={image}
-                  mealName={mealName}
-                  mealType={mealType}
-                  className="!rounded-full !border-0 h-full w-full object-cover"
-                  variant="thumbnail"
-                  hideRepresentativeBadge
-                  ingredients={ingredients}
-                />
-              </div>
-            </div>
-
-            {/* Top Right Badges */}
-            <div className="absolute top-2.5 right-2.5 flex flex-col items-end gap-1.5 z-10">
+        <MealTile
+          mealType={mealType}
+          mealName={mealName}
+          image={image}
+          ingredients={ingredients}
+          index={index}
+          badges={
+            <>
               <span className="inline-flex items-center gap-1.5 rounded-full bg-white/95 dark:bg-black/60 px-3 py-1 text-[11px] font-black uppercase tracking-wider text-brand-text shadow-sm backdrop-blur-md">
                 <Icon className="h-3.5 w-3.5 text-brand-green" />
                 {activeLabel.label}
@@ -309,9 +292,9 @@ export default function MealCard({
                   <Clock3 className="h-2.5 w-2.5 text-amber-300" /> Preview
                 </span>
               )}
-            </div>
-          </div>
-
+            </>
+          }
+        >
           {/* Lower Details: Title, Description, and Colorful Macro Pills */}
           <div className="flex-1 flex flex-col justify-between p-2 pt-2.5">
             <div>
@@ -326,27 +309,14 @@ export default function MealCard({
               <p className="text-xs text-brand-muted line-clamp-1 mt-0.5">
                 {ingredients.length > 0
                   ? `Prepared with ${ingredients.map((i) => i.ingredientName).join(', ')}`
-                  : 'Nutrient-balanced Filipino recipe'}
+                  : 'Open this meal for its recipe details'}
               </p>
             </div>
 
             {/* Macro Chips Row - Theme Colors */}
-            <div className="mt-3 flex flex-wrap items-center gap-1.5 sm:gap-2">
-              <span className="inline-flex items-center gap-1 rounded-full bg-black/[0.04] dark:bg-white/[0.06] px-2.5 py-1 text-[11px] font-bold text-brand-text border border-black/10 dark:border-white/10">
-                <span className="text-[10px]">🔥</span> {Math.round(calories)} kcal
-              </span>
-              <span className="inline-flex items-center gap-1 rounded-full bg-[#08705b]/10 dark:bg-[#10b981]/15 px-2.5 py-1 text-[11px] font-bold text-[#08705b] dark:text-[#34d399] border border-[#08705b]/20 dark:border-[#10b981]/30">
-                {Math.round(proteinG)}g P
-              </span>
-              <span className="inline-flex items-center gap-1 rounded-full bg-[#18b9d2]/10 dark:bg-[#38bdf8]/15 px-2.5 py-1 text-[11px] font-bold text-[#0b7788] dark:text-[#38bdf8] border border-[#18b9d2]/20 dark:border-[#38bdf8]/30">
-                {Math.round(carbsG)}g C
-              </span>
-              <span className="inline-flex items-center gap-1 rounded-full bg-[#eb6a38]/10 dark:bg-[#eb6a38]/15 px-2.5 py-1 text-[11px] font-bold text-[#c74614] dark:text-[#f09e6c] border border-[#eb6a38]/20 dark:border-[#eb6a38]/30">
-                {Math.round(fatG)}g F
-              </span>
-            </div>
+            <MealMacros calories={calories} proteinG={proteinG} carbsG={carbsG} fatG={fatG} className="mt-3" />
           </div>
-        </div>
+        </MealTile>
       </motion.div>
 
       {/* Detailed Info Dialog Popup Modal -> Expandable Card Animation Pattern */}

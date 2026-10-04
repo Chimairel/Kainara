@@ -56,35 +56,38 @@ export default function ExpandableCasePanel({
     };
   }, [expanded, onExpandedChange]);
 
-  const miniNavbar = (canExpand || headerLeft || onBack) ? (
-    <header className={`shrink-0 flex items-center justify-between min-h-14 px-4 py-2.5 sm:px-6 shadow-xs z-20 ${headerClassName}`}>
-      <div className="flex items-center gap-2.5 min-w-0">
-        {onBack && (
+  const miniNavbar =
+    canExpand || headerLeft || onBack ? (
+      <header
+        className={`shrink-0 flex items-center justify-between min-h-14 px-4 py-2.5 sm:px-6 shadow-xs z-20 ${headerClassName}`}
+      >
+        <div className="flex items-center gap-2.5 min-w-0">
+          {onBack && (
+            <button
+              type="button"
+              onClick={onBack}
+              aria-label={backLabel}
+              title={backLabel}
+              className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-brand-border/80 bg-brand-surface text-brand-muted shadow-sm transition hover:border-brand-accent/60 hover:text-brand-accent md:hidden"
+            >
+              <ArrowLeft className="h-4 w-4" />
+            </button>
+          )}
+          {headerLeft}
+        </div>
+        {canExpand && (
           <button
             type="button"
-            onClick={onBack}
-            aria-label={backLabel}
-            title={backLabel}
-            className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-brand-border/80 bg-brand-surface text-brand-muted shadow-sm transition hover:border-brand-accent/60 hover:text-brand-accent md:hidden"
+            onClick={() => onExpandedChange(true)}
+            aria-label="Expand case details"
+            title="Expand full screen"
+            className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-brand-border/80 bg-brand-surface/95 text-brand-muted shadow-sm backdrop-blur-md transition-all hover:border-brand-accent/60 hover:bg-brand-surface hover:text-brand-accent focus-visible:ring-2 focus-visible:ring-brand-accent"
           >
-            <ArrowLeft className="h-4 w-4" />
+            <Maximize2 className="h-4 w-4" aria-hidden="true" />
           </button>
         )}
-        {headerLeft}
-      </div>
-      {canExpand && (
-        <button
-          type="button"
-          onClick={() => onExpandedChange(true)}
-          aria-label="Expand case details"
-          title="Expand full screen"
-          className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-brand-border/80 bg-brand-surface/95 text-brand-muted shadow-sm backdrop-blur-md transition-all hover:border-brand-accent/60 hover:bg-brand-surface hover:text-brand-accent focus-visible:ring-2 focus-visible:ring-brand-accent"
-        >
-          <Maximize2 className="h-4 w-4" aria-hidden="true" />
-        </button>
-      )}
-    </header>
-  ) : null;
+      </header>
+    ) : null;
 
   if (expanded && mounted) {
     return (
@@ -110,20 +113,20 @@ export default function ExpandableCasePanel({
                   <ArrowLeft className="h-4 w-4 transition-transform group-hover:-translate-x-0.5" />
                   <span>Back to split view</span>
                 </button>
-                <span className="hidden text-xs font-semibold text-brand-muted sm:inline-block">
-                  {expandTitle}
-                </span>
+                <span className="hidden text-xs font-semibold text-brand-muted sm:inline-block">{expandTitle}</span>
                 {headerLeft && (
-                  <div className="hidden sm:flex items-center pl-3 border-l border-brand-border/70">
-                    {headerLeft}
-                  </div>
+                  <div className="hidden sm:flex items-center pl-3 border-l border-brand-border/70">{headerLeft}</div>
                 )}
               </div>
 
               <div className="flex items-center gap-2.5">
                 <ThemeToggle size="sm" />
                 <span className="hidden text-[11px] font-medium text-brand-muted md:inline-block">
-                  Press <kbd className="rounded border border-brand-border bg-brand-bg px-1.5 py-0.5 font-mono text-[10px] text-brand-text">Esc</kbd> to exit
+                  Press{' '}
+                  <kbd className="rounded border border-brand-border bg-brand-bg px-1.5 py-0.5 font-mono text-[10px] text-brand-text">
+                    Esc
+                  </kbd>{' '}
+                  to exit
                 </span>
                 <button
                   type="button"
@@ -138,9 +141,7 @@ export default function ExpandableCasePanel({
             </header>
 
             {/* Full Screen Content Canvas */}
-            <main className="mx-auto w-full max-w-7xl flex-1 p-4 sm:p-6 md:p-8 custom-scrollbar">
-              {children}
-            </main>
+            <main className="mx-auto w-full max-w-7xl flex-1 p-4 sm:p-6 md:p-8 custom-scrollbar">{children}</main>
           </div>,
           document.body
         )}
@@ -151,9 +152,7 @@ export default function ExpandableCasePanel({
   return (
     <div className={className}>
       {miniNavbar}
-      <div className={contentClassName ?? 'flex-1 min-h-0 overflow-y-auto p-4 custom-scrollbar sm:p-6'}>
-        {children}
-      </div>
+      <div className={contentClassName ?? 'flex-1 min-h-0 overflow-y-auto p-4 custom-scrollbar sm:p-6'}>{children}</div>
     </div>
   );
 }

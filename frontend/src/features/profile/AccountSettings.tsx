@@ -1,4 +1,5 @@
 'use client';
+import WorkspaceTabs from '@/components/ui/WorkspaceTabs';
 
 import Link from 'next/link';
 import React, { useState, useEffect } from 'react';
@@ -79,16 +80,16 @@ export default function AccountSettings({ initialPanel = 'account' }: { initialP
   const weightKg = profileData?.weightKg;
   const targetWeightKg = profileData?.targetWeightKg;
 
-  const bmi =
-    heightCm && weightKg && heightCm > 0
-      ? Number((weightKg / Math.pow(heightCm / 100, 2)).toFixed(1))
-      : null;
+  const bmi = heightCm && weightKg && heightCm > 0 ? Number((weightKg / Math.pow(heightCm / 100, 2)).toFixed(1)) : null;
 
   const bmiCategory = bmi
     ? bmi < 18.5
       ? { label: 'Underweight', badge: 'border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-amber-400' }
       : bmi < 25
-        ? { label: 'Normal weight', badge: 'border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' }
+        ? {
+            label: 'Normal weight',
+            badge: 'border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400',
+          }
         : bmi < 30
           ? { label: 'Overweight', badge: 'border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-amber-400' }
           : { label: 'Obese', badge: 'border-rose-500/30 bg-rose-500/10 text-rose-600 dark:text-rose-400' }
@@ -103,9 +104,7 @@ export default function AccountSettings({ initialPanel = 'account' }: { initialP
   const insideRatio = totalCompletedMeals > 0 ? Math.round((insideMealsCount / totalCompletedMeals) * 100) : 0;
   const outsideRatio = totalCompletedMeals > 0 ? 100 - insideRatio : 0;
 
-  const trackedDaysCount = new Set(
-    completedLogs.map((m) => (m.loggedAt ? m.loggedAt.split('T')[0] : ''))
-  ).size;
+  const trackedDaysCount = new Set(completedLogs.map((m) => (m.loggedAt ? m.loggedAt.split('T')[0] : ''))).size;
 
   const conditionsCount = profile?.healthConditions?.length ?? 0;
   const allergiesCount = profile?.allergies?.length ?? 0;
@@ -266,12 +265,7 @@ export default function AccountSettings({ initialPanel = 'account' }: { initialP
       <section className="relative overflow-hidden rounded-[28px] border border-brand-border/70 bg-brand-surface p-5 shadow-card sm:p-6">
         <div className="pointer-events-none absolute -right-20 -top-24 h-56 w-56 rounded-full bg-brand-green/10 blur-3xl" />
         <div className="relative flex flex-col gap-5 sm:flex-row sm:items-center">
-          <Avatar
-            size="lg"
-            src={user.image}
-            fallbackText={user.name}
-            className="h-20 w-20 rounded-full shadow-lg"
-          />
+          <Avatar size="lg" src={user.image} fallbackText={user.name} className="h-20 w-20 rounded-full shadow-lg" />
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-2">
               <h2 className="truncate font-display text-2xl font-black tracking-tight text-brand-text">{user.name}</h2>
@@ -291,11 +285,11 @@ export default function AccountSettings({ initialPanel = 'account' }: { initialP
         </div>
       </section>
 
-      <nav
-        className="grid grid-cols-2 gap-1 rounded-[22px] border border-brand-border/70 bg-brand-surface/80 p-1.5 shadow-sm sm:grid-cols-2"
-        aria-label="Profile settings sections"
-      >
-        {(
+      <WorkspaceTabs
+        value={activePanel}
+        onChange={setActivePanel}
+        label="Profile settings sections"
+        items={(
           [
             ['account', 'Account', User],
             ['security', 'Security', Lock],
@@ -306,19 +300,8 @@ export default function AccountSettings({ initialPanel = 'account' }: { initialP
           .filter(([value]) =>
             initialPanel === 'account' ? ['account', 'avatar'].includes(value) : ['security', 'privacy'].includes(value)
           )
-          .map(([value, label, Icon]) => (
-            <button
-              key={value}
-              type="button"
-              onClick={() => setActivePanel(value)}
-              aria-current={activePanel === value ? 'page' : undefined}
-              className={`flex min-h-11 items-center justify-center gap-2 rounded-2xl px-3 text-xs font-bold outline-none transition focus-visible:ring-2 focus-visible:ring-brand-green/30 ${activePanel === value ? 'bg-brand-accent text-[#07100d] shadow-neon' : 'text-brand-muted hover:bg-brand-bgAlt hover:text-brand-text'}`}
-            >
-              <Icon className="h-4 w-4" />
-              <span>{label}</span>
-            </button>
-          ))}
-      </nav>
+          .map(([value, label, Icon]) => ({ value, label, icon: <Icon className="h-4 w-4" /> }))}
+      />
 
       {activePanel === 'account' && (
         <div className="space-y-6">
@@ -326,7 +309,9 @@ export default function AccountSettings({ initialPanel = 'account' }: { initialP
             <div className="space-y-5">
               {/* Header */}
               <div>
-                <h2 className="font-display text-base font-black text-brand-text">Personal Activity & Nutrition Profile</h2>
+                <h2 className="font-display text-base font-black text-brand-text">
+                  Personal Activity & Nutrition Profile
+                </h2>
                 <p className="mt-0.5 text-xs text-brand-muted">
                   Habits, biometric baseline, and meals tracked across your KAINARA journey.
                 </p>
@@ -340,8 +325,12 @@ export default function AccountSettings({ initialPanel = 'account' }: { initialP
                       <Utensils className="h-4 w-4" />
                     </span>
                     <div>
-                      <h3 className="font-display text-sm font-bold text-brand-text">Meals Inside vs Outside KAINARA</h3>
-                      <p className="text-[11px] text-brand-muted">Distribution of planned home nutrition vs logged outside dining</p>
+                      <h3 className="font-display text-sm font-bold text-brand-text">
+                        Meals Inside vs Outside KAINARA
+                      </h3>
+                      <p className="text-[11px] text-brand-muted">
+                        Distribution of planned home nutrition vs logged outside dining
+                      </p>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
@@ -401,7 +390,11 @@ export default function AccountSettings({ initialPanel = 'account' }: { initialP
                 <div className="mt-5 space-y-2">
                   <div className="flex justify-between text-[11px] font-semibold text-brand-muted">
                     <span>Intake Ratio</span>
-                    <span>{totalCompletedMeals > 0 ? `${insideRatio}% KAINARA · ${outsideRatio}% Outside` : 'No completed meals yet'}</span>
+                    <span>
+                      {totalCompletedMeals > 0
+                        ? `${insideRatio}% KAINARA · ${outsideRatio}% Outside`
+                        : 'No completed meals yet'}
+                    </span>
                   </div>
                   <div className="flex h-3 w-full overflow-hidden rounded-full border border-brand-border/60 bg-brand-bgAlt dark:border-white/[0.08] dark:bg-white/[0.04]">
                     {totalCompletedMeals > 0 ? (
@@ -452,7 +445,9 @@ export default function AccountSettings({ initialPanel = 'account' }: { initialP
                       </div>
                     </div>
                     {bmiCategory && (
-                      <span className={`rounded-full px-2 py-0.5 font-mono text-[9px] font-bold uppercase tracking-wider border ${bmiCategory.badge}`}>
+                      <span
+                        className={`rounded-full px-2 py-0.5 font-mono text-[9px] font-bold uppercase tracking-wider border ${bmiCategory.badge}`}
+                      >
                         {bmiCategory.label}
                       </span>
                     )}
@@ -460,7 +455,9 @@ export default function AccountSettings({ initialPanel = 'account' }: { initialP
 
                   <div className="mt-4 grid grid-cols-2 gap-3">
                     <div className="rounded-xl border border-brand-border/60 bg-brand-bgAlt/50 p-3 dark:border-white/[0.06] dark:bg-white/[0.02]">
-                      <span className="text-[10px] font-semibold uppercase tracking-wider text-brand-muted">Current Weight</span>
+                      <span className="text-[10px] font-semibold uppercase tracking-wider text-brand-muted">
+                        Current Weight
+                      </span>
                       <p className="mt-1 font-display text-lg font-black text-brand-text">
                         {weightKg ? `${weightKg} kg` : '—'}
                       </p>
@@ -470,7 +467,9 @@ export default function AccountSettings({ initialPanel = 'account' }: { initialP
                     </div>
 
                     <div className="rounded-xl border border-brand-border/60 bg-brand-bgAlt/50 p-3 dark:border-white/[0.06] dark:bg-white/[0.02]">
-                      <span className="text-[10px] font-semibold uppercase tracking-wider text-brand-muted">Target Weight</span>
+                      <span className="text-[10px] font-semibold uppercase tracking-wider text-brand-muted">
+                        Target Weight
+                      </span>
                       <p className="mt-1 font-display text-lg font-black text-brand-text">
                         {targetWeightKg ? `${targetWeightKg} kg` : 'Maintain'}
                       </p>
@@ -482,19 +481,23 @@ export default function AccountSettings({ initialPanel = 'account' }: { initialP
                     </div>
 
                     <div className="rounded-xl border border-brand-border/60 bg-brand-bgAlt/50 p-3 dark:border-white/[0.06] dark:bg-white/[0.02]">
-                      <span className="text-[10px] font-semibold uppercase tracking-wider text-brand-muted">Estimated BMI</span>
-                      <p className="mt-1 font-display text-lg font-black text-brand-text">
-                        {bmi ? `${bmi}` : '—'}
-                      </p>
+                      <span className="text-[10px] font-semibold uppercase tracking-wider text-brand-muted">
+                        Estimated BMI
+                      </span>
+                      <p className="mt-1 font-display text-lg font-black text-brand-text">{bmi ? `${bmi}` : '—'}</p>
                       <span className="text-[10px] text-brand-muted">
                         {bmi ? 'WHO / FNRI standard' : 'Requires height & weight'}
                       </span>
                     </div>
 
                     <div className="rounded-xl border border-brand-border/60 bg-brand-bgAlt/50 p-3 dark:border-white/[0.06] dark:bg-white/[0.02]">
-                      <span className="text-[10px] font-semibold uppercase tracking-wider text-brand-muted">Daily Target</span>
+                      <span className="text-[10px] font-semibold uppercase tracking-wider text-brand-muted">
+                        Daily Target
+                      </span>
                       <p className="mt-1 font-display text-lg font-black text-brand-text">
-                        {profileData?.dailyCalorieTarget ? `${profileData.dailyCalorieTarget.toLocaleString()} kcal` : '—'}
+                        {profileData?.dailyCalorieTarget
+                          ? `${profileData.dailyCalorieTarget.toLocaleString()} kcal`
+                          : '—'}
                       </p>
                       <span className="text-[10px] text-brand-muted">Metabolic calorie target</span>
                     </div>
@@ -534,7 +537,8 @@ export default function AccountSettings({ initialPanel = 'account' }: { initialP
                       <span className="text-brand-muted">Dietary Pattern</span>
                       <span className="font-bold text-brand-text">
                         {profileData?.dietaryPreference
-                          ? profileData.dietaryPreference.charAt(0) + profileData.dietaryPreference.slice(1).toLowerCase()
+                          ? profileData.dietaryPreference.charAt(0) +
+                            profileData.dietaryPreference.slice(1).toLowerCase()
                           : 'Omnivore'}
                       </span>
                     </div>
@@ -543,7 +547,10 @@ export default function AccountSettings({ initialPanel = 'account' }: { initialP
                       <span className="text-brand-muted">Rice Preference</span>
                       <span className="font-bold text-brand-text">
                         {profileData?.ricePreference
-                          ? profileData.ricePreference.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase())
+                          ? profileData.ricePreference
+                              .replace(/_/g, ' ')
+                              .toLowerCase()
+                              .replace(/\b\w/g, (c) => c.toUpperCase())
                           : 'Flexible'}
                       </span>
                     </div>
@@ -559,21 +566,23 @@ export default function AccountSettings({ initialPanel = 'account' }: { initialP
                     <div className="flex items-center justify-between rounded-xl border border-brand-border/60 bg-brand-bgAlt/40 p-2.5 text-xs dark:border-white/[0.06] dark:bg-white/[0.02]">
                       <span className="text-brand-muted">Clinical Safeguards</span>
                       <span className="font-bold text-brand-text">
-                        {restrictionsCount > 0 ? `${restrictionsCount} active protection${restrictionsCount === 1 ? '' : 's'}` : 'None declared'}
+                        {restrictionsCount > 0
+                          ? `${restrictionsCount} active protection${restrictionsCount === 1 ? '' : 's'}`
+                          : 'None declared'}
                       </span>
                     </div>
 
                     <div className="flex items-center justify-between rounded-xl border border-brand-border/60 bg-brand-bgAlt/40 p-2.5 text-xs dark:border-white/[0.06] dark:bg-white/[0.02]">
                       <span className="text-brand-muted">Membership Tier</span>
-                      <span className="font-bold text-brand-text">
-                        {membershipTitle}
-                      </span>
+                      <span className="font-bold text-brand-text">{membershipTitle}</span>
                     </div>
                   </div>
 
                   <div className="mt-4 flex items-center justify-between border-t border-brand-border/50 pt-3 text-xs">
                     <span className="text-[11px] text-brand-muted">
-                      {profileData?.checkinStreak ? `${profileData.checkinStreak} week check-in streak` : 'Weekly check-in active'}
+                      {profileData?.checkinStreak
+                        ? `${profileData.checkinStreak} week check-in streak`
+                        : 'Weekly check-in active'}
                     </span>
                     <Link
                       href="/profile/nutrition-report"

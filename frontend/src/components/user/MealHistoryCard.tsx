@@ -1,5 +1,8 @@
 'use client';
 
+import { formatMealTitle } from '@/lib/meal-title';
+
+import { compactMealClasses, MealPlate, MealMacros } from '@/components/user/MealCardPresentation';
 import React, { useState } from 'react';
 import { Check, ChevronDown, FileText, Loader2, Save, X } from 'lucide-react';
 import type { MealHistoryLog } from '@/features/meals/useMealsWorkspace';
@@ -105,25 +108,21 @@ export default function MealHistoryCard({
   const hasDelta = deltaVal !== null && deltaVal !== undefined;
 
   const foodPlate = (
-    <div
+    <MealPlate
       className={`relative -ml-4 sm:-ml-6 md:-ml-7 h-14 w-14 sm:h-16 sm:w-16 md:h-20 md:w-20 shrink-0 rounded-full p-1 sm:p-1.5 bg-white dark:bg-[#12362c] shadow-[0_10px_24px_-3px_rgba(0,0,0,0.22),0_3px_8px_rgba(0,0,0,0.08)] dark:shadow-[0_12px_28px_rgba(0,0,0,0.65)] ${theme.plateRim} z-20 transition-transform duration-300 group-hover:scale-105`}
     >
-      <div className="relative h-full w-full rounded-full overflow-hidden">
-        <MealImage
-          mealName={log.mealName}
-          mealType={mealType}
-          variant="thumbnail"
-          hideRepresentativeBadge
-          className="!rounded-full !border-0 h-full w-full object-cover"
-        />
-      </div>
-    </div>
+      <MealImage
+        mealName={formatMealTitle(log.mealName)}
+        mealType={mealType}
+        variant="thumbnail"
+        hideRepresentativeBadge
+        className="!rounded-full !border-0 h-full w-full object-cover"
+      />
+    </MealPlate>
   );
 
   return (
-    <article
-      className={`dashboard-meal group relative overflow-visible p-3 sm:py-3.5 sm:px-4.5 ${theme.cardBg} ${theme.borderColor} ${theme.shadow} ${theme.hoverShadow} ${className}`}
-    >
+    <article className={`${compactMealClasses(mealType)} p-3 sm:py-3.5 sm:px-4.5 ${className}`}>
       {/* Primary Card Row */}
       <div
         role="button"
@@ -173,15 +172,14 @@ export default function MealHistoryCard({
             </h4>
 
             {/* Macro Line */}
-            <span className="mt-0.5 block text-[10.5px] sm:text-xs font-medium text-white/90">
-              <span className="font-bold text-white">{Math.round(log.calories)} kcal</span>
-              <span className="mx-1 sm:mx-1.5">·</span>
-              <span className="font-bold text-white">{Math.round(log.proteinG)}g protein</span>
-              <span className="mx-1 sm:mx-1.5">·</span>
-              <span className="font-bold text-white">{Math.round(log.carbsG ?? 0)}g carbs</span>
-              <span className="mx-1 sm:mx-1.5">·</span>
-              <span className="font-bold text-white">{Math.round(log.fatG ?? 0)}g fat</span>
-            </span>
+            <MealMacros
+              variant="line"
+              calories={log.calories}
+              proteinG={log.proteinG}
+              carbsG={log.carbsG ?? 0}
+              fatG={log.fatG ?? 0}
+              className="mt-1"
+            />
 
             {/* Subtext / Notes preview */}
             <div className="mt-0.5 flex items-center gap-1.5 text-[10px] sm:text-[10.5px] text-white/80">

@@ -1,4 +1,7 @@
 'use client';
+
+import CardDecoration from '@/components/ui/CardDecoration';
+import Dropdown from '@/components/ui/Dropdown';
 import { useVisiblePolling } from '@/hooks/useVisiblePolling';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
@@ -7,7 +10,6 @@ import { usePdfDownload } from '@/hooks/usePdfDownload';
 import Button from '@/components/ui/Button';
 import GrocerySkeleton from '@/features/grocery/GrocerySkeleton';
 import GroceryTable, { type GrocerySortField, type GrocerySortOrder } from '@/features/grocery/GroceryTable';
-import KainaraLogo from '@/components/shared/KainaraLogo';
 import PortalPageHeader from '@/components/shared/PortalPageHeader';
 import UnauthorizedState from '@/components/shared/UnauthorizedState';
 import { getApiErrorMessage } from '@/lib/api-error';
@@ -409,24 +411,12 @@ export default function GroceryListPage() {
           {/* REIMAGINED SHOPPING PROGRESS HERO (WITH RETRO WAVE STRIPES & MODERN FEEL) */}
           <section className="relative overflow-hidden rounded-[28px] sm:rounded-[32px] border border-[#dce4e0] dark:border-[#173e33] bg-[#faf8f5] dark:bg-[#0e271f] text-[#0d2820] dark:text-slate-100 shadow-md p-6 sm:p-7">
             {/* Retro Wave Organic Corner Accent (Top Left) */}
-            <div className="pointer-events-none absolute -top-0.5 -left-0.5 h-28 w-28 sm:h-32 sm:w-32 overflow-hidden rounded-tl-[28px] sm:rounded-tl-[32px] z-0">
-              <svg viewBox="0 0 160 160" className="h-full w-full" fill="none">
-                <path d="M0,0 L160,0 C140,40 105,95 40,135 C20,147 0,155 0,155 Z" fill="#eb6a38" />
-                <path d="M0,0 L120,0 C105,30 80,72 30,105 C15,115 0,120 0,120 Z" fill="#f09e6c" />
-                <path
-                  d="M0,0 L78,0 C68,20 50,48 18,70 C8,76 0,80 0,80 Z"
-                  className="fill-[#1b4e41] dark:fill-[#164639]"
-                />
-              </svg>
-            </div>
+            <CardDecoration style="varied" seed="page.tsx" />
 
             {/* Bottom Right Decorative Watermark */}
-            <div className="pointer-events-none absolute -bottom-8 -right-8 flex items-center justify-center opacity-10 dark:opacity-15 z-0">
-              <KainaraLogo size={140} variant="multicolor" />
-            </div>
 
             {/* Main Content inside Card */}
-            <div className="relative z-10 pl-14 sm:pl-24 pr-1 sm:pr-2">
+            <div className="relative z-10 pr-1 sm:pr-2">
               {/* Header Badges */}
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div className="flex flex-wrap items-center gap-2">
@@ -540,9 +530,9 @@ export default function GroceryListPage() {
                   <div className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-brand-muted">
                     <Filter className="h-3.5 w-3.5" />
                   </div>
-                  <select
+                  <Dropdown
                     value={selectedCategory}
-                    onChange={(e) => setSelectedCategory(e.target.value)}
+                    onChange={(e) => setSelectedCategory(e)}
                     aria-label="Filter by department category"
                     className="h-10 w-full appearance-none rounded-xl border border-brand-border/70 bg-brand-bgAlt/60 pl-10 pr-8 text-xs font-bold text-brand-text outline-none transition focus:border-brand-green/40 focus:ring-2 focus:ring-brand-green/15 cursor-pointer"
                   >
@@ -552,7 +542,7 @@ export default function GroceryListPage() {
                         {cat} ({categoryCounts[cat] || 0})
                       </option>
                     ))}
-                  </select>
+                  </Dropdown>
                   <div className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-brand-muted">
                     <ChevronDown className="h-3.5 w-3.5" />
                   </div>

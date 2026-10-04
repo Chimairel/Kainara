@@ -1,5 +1,7 @@
 'use client';
 
+import Dropdown from '@/components/ui/Dropdown';
+import MealLibraryLayout from '@/components/shared/MealLibraryLayout';
 import LibrarySafetyReview from '@/features/nutritionist-library/LibrarySafetyReview';
 import RecipeDerivationForm from '@/features/nutritionist-library/RecipeDerivationForm';
 
@@ -7,10 +9,11 @@ import { useRef, useState } from 'react';
 import { toast } from 'sonner';
 import SharedLibraryCoverage from './SharedLibraryCoverage';
 import Card from '@/components/ui/Card';
+import Pagination from '@/components/ui/Pagination';
 import Button from '@/components/ui/Button';
 import Badge from '@/components/ui/Badge';
 import PortalPageHeader from '@/components/shared/PortalPageHeader';
-import { ArrowLeft, ChevronLeft, ChevronRight, Search, Soup, ShieldAlert } from 'lucide-react';
+import { ArrowLeft, Search, Soup, ShieldAlert } from 'lucide-react';
 import api from '@/lib/axios';
 import MealImage from '@/components/user/MealImage';
 import RecipeLibraryCard from '@/features/meals/RecipeLibraryCard';
@@ -20,19 +23,6 @@ import { AVAILABLE_CONDITIONS, useNutritionistLibrary } from '@/features/nutriti
 import { MealApprovalsPanel } from '@/features/nutritionist-library/MealApprovalsPanel';
 import { LibraryGridSkeleton } from '@/features/nutritionist-library/NutritionistLibrarySkeleton';
 import type { LibraryMeal } from '@/features/nutritionist-library/useNutritionistLibrary';
-
-function getPageNumbers(current: number, total: number): (number | 'ellipsis')[] {
-  if (total <= 7) {
-    return Array.from({ length: total }, (_, i) => i + 1);
-  }
-  if (current <= 4) {
-    return [1, 2, 3, 4, 5, 'ellipsis', total];
-  }
-  if (current >= total - 3) {
-    return [1, 'ellipsis', total - 4, total - 3, total - 2, total - 1, total];
-  }
-  return [1, 'ellipsis', current - 1, current, current + 1, 'ellipsis', total];
-}
 
 export default function SharedMealLibraryWorkspace({
   role = 'nutritionist',
@@ -472,11 +462,11 @@ export default function SharedMealLibraryWorkspace({
               <label htmlFor="library-meal-type" className="block text-xs font-bold text-brand-muted uppercase mb-1.5">
                 Meal Type
               </label>
-              <select
+              <Dropdown
                 id="library-meal-type"
                 value={mealType}
                 onChange={(e) => {
-                  setMealType(e.target.value);
+                  setMealType(e);
                   setPage(1);
                 }}
                 className="h-11 w-full rounded-2xl border border-brand-border/70 bg-brand-surface/75 px-3 text-xs text-brand-text outline-none transition focus:border-brand-green/60 focus:ring-4 focus:ring-brand-green/10"
@@ -486,7 +476,7 @@ export default function SharedMealLibraryWorkspace({
                 <option value="LUNCH">Lunch</option>
                 <option value="DINNER">Dinner</option>
                 <option value="SNACK">Snack</option>
-              </select>
+              </Dropdown>
             </div>
 
             {/* Condition Tag */}
@@ -494,11 +484,11 @@ export default function SharedMealLibraryWorkspace({
               <label htmlFor="library-condition" className="block text-xs font-bold text-brand-muted uppercase mb-1.5">
                 Condition Tag
               </label>
-              <select
+              <Dropdown
                 id="library-condition"
                 value={conditionTag}
                 onChange={(e) => {
-                  setConditionTag(e.target.value);
+                  setConditionTag(e);
                   setPage(1);
                 }}
                 className="h-11 w-full rounded-2xl border border-brand-border/70 bg-brand-surface/75 px-3 text-xs text-brand-text outline-none transition focus:border-brand-green/60 focus:ring-4 focus:ring-brand-green/10"
@@ -509,7 +499,7 @@ export default function SharedMealLibraryWorkspace({
                     {c.label}
                   </option>
                 ))}
-              </select>
+              </Dropdown>
             </div>
           </div>
 
@@ -520,11 +510,11 @@ export default function SharedMealLibraryWorkspace({
                 className="flex items-center gap-2 text-xs font-bold text-brand-text"
               >
                 Meal status
-                <select
+                <Dropdown
                   id="library-meal-status"
                   value={status}
                   onChange={(event) => {
-                    setStatus(event.target.value as typeof status);
+                    setStatus(event as typeof status);
                     setPage(1);
                   }}
                   className="rounded-xl border border-brand-border bg-brand-surface px-3 py-1.5 text-xs text-brand-text shadow-xs outline-none focus:border-brand-green"
@@ -532,7 +522,7 @@ export default function SharedMealLibraryWorkspace({
                   <option value="ALL">All meals</option>
                   <option value="APPROVED">Available</option>
                   <option value="FLAGGED">Flagged</option>
-                </select>
+                </Dropdown>
               </label>
 
               {/* Owner filter */}
@@ -600,7 +590,7 @@ export default function SharedMealLibraryWorkspace({
           </Card>
         ) : (
           <div className="space-y-6">
-            <div className="grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-3">
+            <MealLibraryLayout>
               {meals.map((meal) => {
                 const isAdminDraft =
                   meal.safetyEvidenceStatus === 'INCOMPLETE' &&
@@ -689,66 +679,18 @@ export default function SharedMealLibraryWorkspace({
                   />
                 );
               })}
-            </div>
+            </MealLibraryLayout>
 
             {/* Pagination Controls */}
             {totalPages > 1 && (
-              <nav
-                aria-label="Meal library pagination"
-                className="flex flex-col items-center justify-between gap-4 border-t border-brand-border/40 pt-6 sm:flex-row"
-              >
-                <p className="text-xs text-brand-muted">
-                  Showing <span className="font-bold text-brand-text">{(page - 1) * 20 + 1}</span> to{' '}
-                  <span className="font-bold text-brand-text">{Math.min(page * 20, totalCount)}</span> of{' '}
-                  <span className="font-bold text-brand-text">{totalCount}</span> recipes
-                </p>
-
-                <div className="flex flex-wrap items-center justify-center gap-1.5">
-                  <Button
-                    variant="secondary"
-                    disabled={page <= 1}
-                    onClick={() => handlePageChange(Math.max(1, page - 1))}
-                    className="!h-8 !px-2.5 text-xs flex items-center gap-1"
-                    aria-label="Go to previous page"
-                  >
-                    <ChevronLeft className="h-3.5 w-3.5" aria-hidden="true" />
-                    <span className="hidden sm:inline">Previous</span>
-                  </Button>
-
-                  {getPageNumbers(page, totalPages).map((p, idx) =>
-                    p === 'ellipsis' ? (
-                      <span key={`ellipsis-${idx}`} className="px-1 text-xs text-brand-muted select-none">
-                        …
-                      </span>
-                    ) : (
-                      <button
-                        key={p}
-                        type="button"
-                        onClick={() => handlePageChange(p)}
-                        aria-current={p === page ? 'page' : undefined}
-                        className={`h-8 min-w-8 rounded-xl px-2 text-xs font-bold transition-all duration-150 ${
-                          p === page
-                            ? 'border border-brand-green bg-brand-green text-white dark:border-brand-accent dark:bg-brand-accent dark:text-black shadow-sm'
-                            : 'border border-brand-border bg-brand-surface text-brand-muted hover:border-brand-border-hover hover:text-brand-text'
-                        }`}
-                      >
-                        {p}
-                      </button>
-                    )
-                  )}
-
-                  <Button
-                    variant="secondary"
-                    disabled={page >= totalPages}
-                    onClick={() => handlePageChange(Math.min(totalPages, page + 1))}
-                    className="!h-8 !px-2.5 text-xs flex items-center gap-1"
-                    aria-label="Go to next page"
-                  >
-                    <span className="hidden sm:inline">Next</span>
-                    <ChevronRight className="h-3.5 w-3.5" aria-hidden="true" />
-                  </Button>
-                </div>
-              </nav>
+              <Pagination
+                page={page}
+                pageCount={totalPages}
+                busy={isLoading}
+                onPageChange={handlePageChange}
+                label="Meal library pagination"
+                showNumbers
+              />
             )}
           </div>
         )}

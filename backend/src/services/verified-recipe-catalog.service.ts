@@ -1,10 +1,11 @@
-import { MealType, Prisma } from '@prisma/client';
+import { MealType, Prisma, RecipeRiceRole } from '@prisma/client';
 import prisma from '@/lib/prisma';
 import { loadPlanningNutritionContext } from '@/domain/user-nutrition-context';
 import { adaptUserSafetyRestrictions } from '@/domain/structured-restriction.adapter';
 import { admittedLibraryBaseIds } from './meal-base-admission.service';
 import { isUnrestrictedPanlasangBaseEligible } from '@/domain/unrestricted-panlasang-base.policy';
 import { parseRecipeCandidateIngredients } from './panlasang-recipe-candidate.provider';
+import { getManilaDateKey, getManilaMidnight } from '@/domain/meal-plan-cycle.policy';
 
 /** Browse-only verified bases. This endpoint never grants planning or case clearance. */
 export class VerifiedRecipeCatalogService {
@@ -31,12 +32,37 @@ export class VerifiedRecipeCatalogService {
       return { items: [], total: 0, page: 1, pageCount: 0, restrictedProfile: true };
     }
 
-    // Fetch user's approved plan meals to annotate in-plan status
+    // Annotate only the current cycle and nearest upcoming cycle. Historical
+    // approvals and superseded candidates must not look like scheduled meals.
+    const businessDay = getManilaMidnight(getManilaDateKey(new Date()));
+    const visibleCycleWhere: Prisma.MealPlanCycleWhereInput = {
+      userId,
+      supersededAt: null,
+      supersededById: null,
+      status: { notIn: ['SUPERSEDED', 'COMPLETED'] },
+    };
+    const [currentCycle, upcomingCycle] = await Promise.all([
+      prisma.mealPlanCycle.findFirst({
+        where: { ...visibleCycleWhere, startDate: { lte: businessDay }, endDate: { gte: businessDay } },
+        orderBy: [{ startDate: 'desc' }, { cycleRevision: 'desc' }],
+        select: { id: true },
+      }),
+      prisma.mealPlanCycle.findFirst({
+        where: { ...visibleCycleWhere, startDate: { gt: businessDay } },
+        orderBy: [{ startDate: 'asc' }, { cycleRevision: 'desc' }],
+        select: { id: true },
+      }),
+    ]);
+    const cycleIds = [currentCycle?.id, upcomingCycle?.id].filter((id): id is string => Boolean(id));
     const userPlanMeals = await prisma.mealPlan.findMany({
       where: {
         userId,
         status: 'APPROVED',
+        planGroupId: { in: cycleIds },
+        requiresSafetyRevalidation: false,
+        supersededByMealPlanId: null,
       },
+      orderBy: [{ scheduledDate: 'asc' }, { id: 'asc' }],
       select: {
         id: true,
         mealName: true,
@@ -48,12 +74,12 @@ export class VerifiedRecipeCatalogService {
         scheduledDate: true,
         sourceRawRecipeCandidateId: true,
         libraryMealId: true,
+        planGroupId: true,
       },
     });
 
     const planByRawId = new Map<string, typeof userPlanMeals>();
     const planByLibraryId = new Map<string, typeof userPlanMeals>();
-    const planByName = new Map<string, typeof userPlanMeals>();
 
     for (const plan of userPlanMeals) {
       if (plan.sourceRawRecipeCandidateId) {
@@ -66,10 +92,6 @@ export class VerifiedRecipeCatalogService {
         list.push(plan);
         planByLibraryId.set(plan.libraryMealId, list);
       }
-      const norm = plan.mealName.trim().toLowerCase();
-      const list = planByName.get(norm) ?? [];
-      list.push(plan);
-      planByName.set(norm, list);
     }
 
     // Some published source rows have no MealLibrary serving variant. Querying
@@ -80,7 +102,7 @@ export class VerifiedRecipeCatalogService {
       libraryVariants: { none: { status: 'FLAGGED' } },
       ...(input.search ? { recipeName: { contains: input.search, mode: 'insensitive' } } : {}),
       ...(input.mealType ? { applicableMealTypes: { some: { mealType: input.mealType } } } : {}),
-      ...(input.riceRole && input.riceRole !== 'All' ? { riceRole: input.riceRole as any } : {}),
+      ...(input.riceRole && input.riceRole in RecipeRiceRole ? { riceRole: input.riceRole as RecipeRiceRole } : {}),
     };
     const manual = await prisma.mealLibrary.findMany({
       where: {
@@ -105,7 +127,7 @@ export class VerifiedRecipeCatalogService {
       status: 'APPROVED',
       ...(input.search ? { mealName: { contains: input.search, mode: 'insensitive' } } : {}),
       ...(input.mealType ? { applicableMealTypes: { some: { mealType: input.mealType } } } : {}),
-      ...(input.riceRole && input.riceRole !== 'All' ? { riceRole: input.riceRole as any } : {}),
+      ...(input.riceRole && input.riceRole in RecipeRiceRole ? { riceRole: input.riceRole as RecipeRiceRole } : {}),
     };
     const [rawCount, manualCount] = await Promise.all([
       prisma.rawRecipeCandidate.count({ where: rawWhere }),
@@ -181,8 +203,7 @@ export class VerifiedRecipeCatalogService {
               unit: item.unit,
             })),
           });
-          const matching =
-            planByRawId.get(source.id) ?? planByName.get(source.recipeName.trim().toLowerCase()) ?? [];
+          const matching = planByRawId.get(source.id) ?? [];
           const inPlan = matching.length > 0;
 
           return {
@@ -190,10 +211,10 @@ export class VerifiedRecipeCatalogService {
             name: source.recipeName,
             description: source.description,
             mealTypes: source.applicableMealTypes.map((item) => item.mealType),
-            calories: inPlan && matching[0].calories ? matching[0].calories : source.calories,
-            proteinG: inPlan && matching[0].proteinG ? matching[0].proteinG : source.proteinG,
-            carbsG: inPlan && matching[0].carbsG ? matching[0].carbsG : source.carbsG,
-            fatG: inPlan && matching[0].fatG ? matching[0].fatG : source.fatG,
+            calories: matching[0]?.calories ?? source.calories,
+            proteinG: matching[0]?.proteinG ?? source.proteinG,
+            carbsG: matching[0]?.carbsG ?? source.carbsG,
+            fatG: matching[0]?.fatG ?? source.fatG,
             sourceName: source.sourceName,
             sourceUrl: source.sourceUrl,
             imageUrl: source.sourceImageUrl,
@@ -202,14 +223,13 @@ export class VerifiedRecipeCatalogService {
             occurrences: matching.map((m) => ({
               id: m.id,
               scheduledDate: m.scheduledDate.toISOString(),
-              cycleScope: null as string | null,
+              cycleScope: m.planGroupId === upcomingCycle?.id ? 'UPCOMING' : 'CURRENT',
             })),
             planMealId: matching[0]?.id ?? null,
           };
         }),
         ...manualRows.map((row) => {
-          const matching =
-            planByLibraryId.get(row.id) ?? planByName.get(row.mealName.trim().toLowerCase()) ?? [];
+          const matching = planByLibraryId.get(row.id) ?? [];
           const inPlan = matching.length > 0;
 
           return {
@@ -217,10 +237,10 @@ export class VerifiedRecipeCatalogService {
             name: row.mealName,
             description: row.description,
             mealTypes: row.applicableMealTypes.map((item) => item.mealType),
-            calories: inPlan && matching[0].calories ? matching[0].calories : row.calories,
-            proteinG: inPlan && matching[0].proteinG ? matching[0].proteinG : row.proteinG,
-            carbsG: inPlan && matching[0].carbsG ? matching[0].carbsG : row.carbsG,
-            fatG: inPlan && matching[0].fatG ? matching[0].fatG : row.fatG,
+            calories: matching[0]?.calories ?? row.calories,
+            proteinG: matching[0]?.proteinG ?? row.proteinG,
+            carbsG: matching[0]?.carbsG ?? row.carbsG,
+            fatG: matching[0]?.fatG ?? row.fatG,
             sourceName: row.sourceRawRecipeCandidate?.sourceName ?? 'ADMIN_OR_GENERATED',
             sourceUrl: row.sourceRawRecipeCandidate?.sourceUrl ?? null,
             imageUrl: row.sourceRawRecipeCandidate?.sourceImageUrl ?? null,
@@ -229,7 +249,7 @@ export class VerifiedRecipeCatalogService {
             occurrences: matching.map((m) => ({
               id: m.id,
               scheduledDate: m.scheduledDate.toISOString(),
-              cycleScope: null as string | null,
+              cycleScope: m.planGroupId === upcomingCycle?.id ? 'UPCOMING' : 'CURRENT',
             })),
             planMealId: matching[0]?.id ?? null,
           };

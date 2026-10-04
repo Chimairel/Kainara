@@ -47,7 +47,8 @@ it('loads admin history, sends My actions and pagination, and switches to read-o
 it('opens a related timeline and restores the prior filters when returning', async () => {
   render(<AdminAuditWorkspace />);
   await screen.findByText('Former staff');
-  fireEvent.change(screen.getByLabelText('Action'), { target: { value: 'FLAGGED' } });
+  fireEvent.click(screen.getByLabelText('Action'));
+  fireEvent.click(screen.getByRole('option', { name: 'Meal flags' }));
   await waitFor(() =>
     expect(mocks.get).toHaveBeenLastCalledWith('/admin/audit-history', {
       params: expect.objectContaining({ action: 'FLAGGED' }),
@@ -60,7 +61,7 @@ it('opens a related timeline and restores the prior filters when returning', asy
   );
   expect(screen.queryByRole('region', { name: 'Audit filters' })).not.toBeInTheDocument();
   fireEvent.click(screen.getByRole('button', { name: 'Back to audit' }));
-  expect(screen.getByLabelText('Action')).toHaveValue('FLAGGED');
+  expect(screen.getByLabelText('Action')).toHaveTextContent('Meal flags');
 });
 
 it('debounces staff search and blocks reversed dates including manual refresh', async () => {

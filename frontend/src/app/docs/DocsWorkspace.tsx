@@ -1,5 +1,6 @@
 'use client';
 
+import Dropdown from '@/components/ui/Dropdown';
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { ArrowRight, ChevronRight, List } from 'lucide-react';
@@ -79,18 +80,18 @@ export default function DocsWorkspace() {
         <label htmlFor="docs-chapter" className="sr-only">
           Choose a documentation chapter
         </label>
-        <select
+        <Dropdown
           id="docs-chapter"
           className="w-full rounded-2xl border border-brand-border/80 bg-brand-surface px-4 py-3 font-semibold text-brand-text shadow-sm lg:hidden"
           value={activeId ?? docsChapters[0].id}
-          onChange={(event) => navigate(event.target.value)}
+          onChange={(event) => navigate(event)}
         >
           {docsChapters.map((item) => (
             <option key={item.id} value={item.id}>
               {item.shortTitle}
             </option>
           ))}
-        </select>
+        </Dropdown>
 
         {/* Desktop grouped chapter list */}
         <div className="hidden space-y-7 lg:block">

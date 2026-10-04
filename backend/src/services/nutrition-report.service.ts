@@ -25,6 +25,7 @@ type ReportResponse = StoredNutritionReport & {
   referenceItems: ReturnType<typeof buildDeterministicNutritionGuidance>['referenceItems'];
   reportPolicyVersion: string | null;
   confirmationKind?: string;
+  recordedCalorieTarget?: number | null;
   planningContext?: {
     activeVersion: number | null;
     activeGeneratedAt: Date | null;
@@ -111,6 +112,10 @@ export class NutritionReportService {
       reportPolicyVersion: policyVersion,
       planningTargets: reportPlanningMacroTargets(version),
       confirmationKind: version.confirmationKind,
+      recordedCalorieTarget:
+        typeof reportProfile(version)?.dailyCalorieTarget === 'number'
+          ? (reportProfile(version)!.dailyCalorieTarget as number)
+          : null,
     };
   }
 

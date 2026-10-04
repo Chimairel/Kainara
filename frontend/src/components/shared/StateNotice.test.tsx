@@ -33,9 +33,7 @@ describe('StateNotice Component', () => {
 
     expect(screen.getByText('Action Required')).toBeInTheDocument();
     expect(screen.getByText('Nutrition Report Pending')).toBeInTheDocument();
-    expect(
-      screen.getByText(/Please review and acknowledge your personalized nutrition report/i)
-    ).toBeInTheDocument();
+    expect(screen.getByText(/Please review and acknowledge your personalized nutrition report/i)).toBeInTheDocument();
 
     const link = screen.getByRole('link', { name: /view nutrition report/i });
     expect(link).toHaveAttribute('href', '/profile/nutrition-report');
@@ -159,9 +157,7 @@ describe('StateNotice Component', () => {
     expect(img).toBeInTheDocument();
     expect(img.getAttribute('src')).toContain('preparing.svg');
     expect(screen.getByRole('heading', { name: 'Preparing Your First Meal Plan' })).toBeInTheDocument();
-    expect(
-      screen.getByText(/Your current meal plan is being prepared automatically/i)
-    ).toBeInTheDocument();
+    expect(screen.getByText(/Your current meal plan is being prepared automatically/i)).toBeInTheDocument();
   });
 
   it('renders preparing-failed variant with preparing-failed.svg', () => {
