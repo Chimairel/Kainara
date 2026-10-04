@@ -49,7 +49,7 @@ export function OutsideMealModal(props: Props) {
         if (!props.isLoading) props.onClose();
       }}
       title="LOG FOOD OR A MEAL"
-      size="lg"
+      size="xl"
       description="Track meals, snacks, drinks, or individual foods outside your plan."
     >
       <div className="flex flex-col gap-5 text-left">
@@ -388,13 +388,13 @@ function OutsideMealForm(props: Props) {
       }}
       className="text-left"
     >
-      <fieldset disabled={props.isLoading} className="flex min-w-0 flex-col gap-3">
+      <fieldset disabled={props.isLoading} className="flex min-w-0 flex-col gap-3.5">
         {/* 1. Meal Category Segmented Control */}
         <fieldset className="flex flex-col gap-1.5">
-          <legend className="text-xs font-bold uppercase tracking-wider text-brand-muted">
-            When did you eat it? (required)
+          <legend className="text-xs font-semibold text-brand-muted">
+            When did you eat it? <span className="text-brand-muted/60 text-[11px] font-normal">(required)</span>
           </legend>
-          <div className="grid grid-cols-4 gap-1.5 p-1 rounded-2xl border border-brand-border/70 bg-brand-bgAlt/50 text-center text-xs font-semibold">
+          <div className="grid grid-cols-4 gap-1 p-1 rounded-xl border border-brand-border/70 bg-brand-bgAlt/50 text-center text-xs font-semibold">
             {(Object.keys(mealLabels) as MealType[]).map((type) => {
               const isSelected = props.mealType === type;
               return (
@@ -402,7 +402,7 @@ function OutsideMealForm(props: Props) {
                   key={type}
                   type="button"
                   onClick={() => props.onMealTypeChange(type)}
-                  className={`rounded-xl py-2 px-1 text-xs font-bold outline-none transition-all duration-150 ${
+                  className={`rounded-lg py-1.5 px-1 text-xs font-bold outline-none transition-all duration-150 ${
                     isSelected
                       ? 'bg-brand-green text-white shadow-xs dark:bg-brand-accent dark:text-[#07100d]'
                       : 'text-brand-muted hover:text-brand-text hover:bg-brand-surface/70'
@@ -415,285 +415,282 @@ function OutsideMealForm(props: Props) {
           </div>
         </fieldset>
 
-        {/* 2. Food or Meal Eaten with Autocomplete */}
-        <div ref={searchContainerRef} className="relative flex flex-col gap-1">
-          <label htmlFor="mealNameInput" className="text-xs font-bold uppercase tracking-wider text-brand-muted">
-            Food or Meal Eaten (required)
-          </label>
-          <div className="relative flex items-center">
-            <div className="pointer-events-none absolute left-3.5 text-brand-muted">
-              <Search className="h-4 w-4" />
-            </div>
-            <input
-              id="mealNameInput"
-              type="text"
-              placeholder="e.g. small apple, chicken adobo (150g), brown rice"
-              value={props.mealName}
-              onChange={(e) => handleInputChange(e.target.value)}
-              onFocus={() => {
-                if (suggestions.length > 0) setShowDropdown(true);
-              }}
-              disabled={props.isLoading}
-              required
-              className="w-full rounded-2xl border border-brand-border/80 bg-brand-surface/90 pl-10 pr-9 py-2 text-xs font-semibold text-brand-text placeholder-brand-muted/60 outline-none transition focus:border-brand-green focus:ring-2 focus:ring-brand-green/20"
-            />
-            {isSearching ? (
-              <Loader2 className="absolute right-3.5 h-4 w-4 animate-spin text-brand-green" />
-            ) : props.mealName ? (
-              <button
-                type="button"
-                onClick={() => {
-                  cancelSearch();
-                  props.onMealNameChange('');
-                  setSuggestions([]);
-                  setShowDropdown(false);
-                  setSelectedSuggestion(null);
-                  setBaseNutrition(null);
-                  setRiceReference(null);
-                  setSelectedRicePairing(null);
-                  setRiceGrams(0);
-                  setManual(emptyMacros);
-                  setPortionGrams('');
-                }}
-                className="absolute right-3.5 text-brand-muted hover:text-brand-text"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            ) : null}
-          </div>
-          <p className="mt-0.5 text-[10px] text-brand-muted">
-            For multiple foods, separate each one with a comma. Add a measured portion like{' '}
-            <strong className="text-brand-text">rice (150g)</strong> for FNRI matching.
-          </p>
-
-          {/* Autocomplete Dropdown List */}
-          {showDropdown && suggestions.length > 0 && (
-            <div className="absolute left-0 right-0 top-full z-50 mt-1 max-h-56 overflow-y-auto rounded-2xl border border-brand-border/80 bg-brand-surface shadow-card-lg backdrop-blur-md">
-              <div className="p-1.5 border-b border-brand-border/40 text-[10px] font-bold uppercase tracking-wider text-brand-muted px-3 pt-2 pb-1">
-                Matching Recipes & Foods ({suggestions.length})
+        {/* 2. Food or Meal Eaten with Autocomplete + Inline Portion */}
+        <div className="grid grid-cols-1 sm:grid-cols-5 gap-3 items-start">
+          <div ref={searchContainerRef} className="sm:col-span-3 relative flex flex-col gap-1">
+            <label htmlFor="mealNameInput" className="text-xs font-semibold text-brand-muted">
+              Food or Meal Eaten (required)
+            </label>
+            <div className="relative flex items-center">
+              <div className="pointer-events-none absolute left-3 text-brand-muted">
+                <Search className="h-4 w-4" />
               </div>
-              {suggestions.map((dish) => (
+              <input
+                id="mealNameInput"
+                type="text"
+                placeholder="e.g. Chicken adobo, apple, brown rice"
+                value={props.mealName}
+                onChange={(e) => handleInputChange(e.target.value)}
+                onFocus={() => {
+                  if (suggestions.length > 0) setShowDropdown(true);
+                }}
+                disabled={props.isLoading}
+                required
+                className="w-full rounded-xl border border-brand-border/80 bg-brand-surface pl-9 pr-8 py-2 text-xs font-semibold text-brand-text placeholder-brand-muted/60 outline-none transition focus:border-brand-green focus:ring-2 focus:ring-brand-green/20"
+              />
+              {isSearching ? (
+                <Loader2 className="absolute right-3 h-4 w-4 animate-spin text-brand-green" />
+              ) : props.mealName ? (
                 <button
-                  key={`${dish.kind}-${dish.id}`}
                   type="button"
-                  onClick={() => handleSelectSuggestion(dish)}
-                  className="flex w-full items-center justify-between gap-2 border-b border-brand-border/30 px-3.5 py-2 text-left text-xs transition hover:bg-brand-green/10 last:border-b-0"
+                  onClick={() => {
+                    cancelSearch();
+                    props.onMealNameChange('');
+                    setSuggestions([]);
+                    setShowDropdown(false);
+                    setSelectedSuggestion(null);
+                    setBaseNutrition(null);
+                    setRiceReference(null);
+                    setSelectedRicePairing(null);
+                    setRiceGrams(0);
+                    setManual(emptyMacros);
+                    setPortionGrams('');
+                  }}
+                  className="absolute right-3 text-brand-muted hover:text-brand-text"
                 >
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-1.5">
-                      {dish.kind === 'ELIGIBLE_LIBRARY' || dish.kind === 'KNOWN_CATALOG' ? (
-                        <ChefHat className="h-3.5 w-3.5 shrink-0 text-brand-green" />
-                      ) : (
-                        <Search className="h-3.5 w-3.5 shrink-0 text-brand-muted" />
-                      )}
-                      <span className="truncate font-semibold text-brand-text">{formatMealTitle(dish.name)}</span>
-                    </div>
-                    <span className="text-[10px] text-brand-muted">
-                      {dish.serving ? `${dish.label} · ${dish.serving}` : dish.label}
-                    </span>
-                  </div>
-                  {dish.macros && (
-                    <div className="shrink-0 text-right">
-                      <span className="font-extrabold text-brand-green">{Math.round(dish.macros.calories)} kcal</span>
-                      <span className="block text-[10px] text-brand-muted">
-                        {Math.round(dish.macros.proteinG * 10) / 10}g P · {Math.round(dish.macros.carbsG * 10) / 10}g C
+                  <X className="h-4 w-4" />
+                </button>
+              ) : null}
+            </div>
+            <p className="mt-0.5 text-[11px] text-brand-muted leading-tight">
+              For multiple foods, separate each one with a comma. Add a measured portion like{' '}
+              <strong className="text-brand-text font-semibold">rice (150g)</strong> for FNRI matching.
+            </p>
+
+            {/* Autocomplete Dropdown List */}
+            {showDropdown && suggestions.length > 0 && (
+              <div className="absolute left-0 right-0 top-full z-50 mt-1 max-h-56 overflow-y-auto rounded-2xl border border-brand-border/80 bg-brand-surface shadow-card-lg backdrop-blur-md">
+                <div className="p-1.5 border-b border-brand-border/40 text-[10px] font-bold uppercase tracking-wider text-brand-muted px-3 pt-2 pb-1">
+                  Matching Recipes & Foods ({suggestions.length})
+                </div>
+                {suggestions.map((dish) => (
+                  <button
+                    key={`${dish.kind}-${dish.id}`}
+                    type="button"
+                    onClick={() => handleSelectSuggestion(dish)}
+                    className="flex w-full items-center justify-between gap-2 border-b border-brand-border/30 px-3.5 py-2 text-left text-xs transition hover:bg-brand-green/10 last:border-b-0"
+                  >
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-1.5">
+                        {dish.kind === 'ELIGIBLE_LIBRARY' || dish.kind === 'KNOWN_CATALOG' ? (
+                          <ChefHat className="h-3.5 w-3.5 shrink-0 text-brand-green" />
+                        ) : (
+                          <Search className="h-3.5 w-3.5 shrink-0 text-brand-muted" />
+                        )}
+                        <span className="truncate font-semibold text-brand-text">{formatMealTitle(dish.name)}</span>
+                      </div>
+                      <span className="text-[10px] text-brand-muted">
+                        {dish.serving ? `${dish.label} · ${dish.serving}` : dish.label}
                       </span>
                     </div>
-                  )}
-                </button>
-              ))}
+                    {dish.macros && (
+                      <div className="shrink-0 text-right">
+                        <span className="font-extrabold text-brand-green">{Math.round(dish.macros.calories)} kcal</span>
+                        <span className="block text-[10px] text-brand-muted">
+                          {Math.round(dish.macros.proteinG * 10) / 10}g P · {Math.round(dish.macros.carbsG * 10) / 10}g C
+                        </span>
+                      </div>
+                    )}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Portion Field */}
+          {selectedSuggestion?.kind === 'FNRI_FOOD' && baseNutrition ? (
+            <div className="sm:col-span-2 flex flex-col gap-1">
+              <label htmlFor="fnriPortionGrams" className="text-xs font-semibold text-brand-muted">
+                Amount eaten (grams)
+              </label>
+              <div className="relative">
+                <input
+                  id="fnriPortionGrams"
+                  type="number"
+                  min="1"
+                  step="1"
+                  required
+                  placeholder="100"
+                  value={portionGrams}
+                  onChange={(event) => {
+                    const grams = event.target.value;
+                    setPortionGrams(grams);
+                    const factor = Number(grams) / 100;
+                    setManual(
+                      grams && factor > 0
+                        ? displayMacros({
+                            calories: baseNutrition.calories * factor,
+                            proteinG: baseNutrition.proteinG * factor,
+                            carbsG: baseNutrition.carbsG * factor,
+                            fatG: baseNutrition.fatG * factor,
+                          })
+                        : emptyMacros
+                    );
+                  }}
+                  className="w-full rounded-xl border border-brand-border/80 bg-brand-surface px-3 py-2 text-xs font-semibold text-brand-text outline-none focus:border-brand-green focus:ring-2 focus:ring-brand-green/20"
+                />
+                <span className="pointer-events-none absolute right-3 top-2 text-xs font-bold text-brand-muted">g</span>
+              </div>
+              <p className="mt-0.5 text-[11px] text-brand-muted leading-tight">Per 100g reference.</p>
+            </div>
+          ) : selectedSuggestion?.kind !== 'ELIGIBLE_LIBRARY' ? (
+            <div className="sm:col-span-2 flex flex-col gap-1">
+              <label htmlFor="outsidePortionGrams" className="text-xs font-semibold text-brand-muted">
+                Approximate portion in grams (optional)
+              </label>
+              <div className="relative">
+                <input
+                  id="outsidePortionGrams"
+                  type="number"
+                  min="1"
+                  max="5000"
+                  step="1"
+                  placeholder="e.g. 200"
+                  value={portionGrams}
+                  onChange={(event) => setPortionGrams(event.target.value)}
+                  disabled={props.isLoading}
+                  className="w-full rounded-xl border border-brand-border/80 bg-brand-surface px-3 py-2 text-xs font-semibold text-brand-text outline-none focus:border-brand-green focus:ring-2 focus:ring-brand-green/20"
+                />
+                <span className="pointer-events-none absolute right-3 top-2 text-xs font-bold text-brand-muted">g</span>
+              </div>
+              <p className="mt-0.5 text-[11px] text-brand-muted leading-tight">Optional measured grams.</p>
+            </div>
+          ) : (
+            <div className="sm:col-span-2 flex flex-col justify-center rounded-xl border border-brand-border/60 bg-brand-bgAlt/40 p-2 text-center h-[58px]">
+              <span className="text-[11px] font-semibold text-brand-green flex items-center justify-center gap-1">
+                <CheckCircle2 className="h-3.5 w-3.5" /> 1 serving
+              </span>
+              <span className="text-[10px] text-brand-muted truncate">{selectedSuggestion.serving || 'Recipe serving'}</span>
             </div>
           )}
         </div>
 
-        {selectedSuggestion?.kind === 'FNRI_FOOD' && baseNutrition && (
-          <div className="flex flex-col gap-1 rounded-2xl border border-brand-border/70 bg-brand-surface/50 p-3">
-            <label htmlFor="fnriPortionGrams" className="text-xs font-bold text-brand-text/90">
-              Amount eaten (grams)
-            </label>
-            <div className="relative">
-              <input
-                id="fnriPortionGrams"
-                type="number"
-                min="1"
-                step="1"
-                required
-                value={portionGrams}
-                onChange={(event) => {
-                  const grams = event.target.value;
-                  setPortionGrams(grams);
-                  const factor = Number(grams) / 100;
-                  setManual(
-                    grams && factor > 0
-                      ? displayMacros({
-                          calories: baseNutrition.calories * factor,
-                          proteinG: baseNutrition.proteinG * factor,
-                          carbsG: baseNutrition.carbsG * factor,
-                          fatG: baseNutrition.fatG * factor,
-                        })
-                      : emptyMacros
-                  );
-                }}
-                className="w-full rounded-xl border border-brand-border/80 bg-brand-bgAlt/80 px-3.5 py-2 text-xs font-bold text-brand-text outline-none focus:border-brand-green focus:ring-1 focus:ring-brand-green"
-              />
-              <span className="absolute right-3.5 top-2 text-xs font-bold text-brand-muted pointer-events-none">g</span>
-            </div>
-            <p className="text-[10px] text-brand-muted">FNRI values are per 100 g; this amount scales the estimate.</p>
-          </div>
-        )}
-
-        {selectedSuggestion?.kind !== 'FNRI_FOOD' && selectedSuggestion?.kind !== 'ELIGIBLE_LIBRARY' && (
-          <div className="flex flex-col gap-1">
-            <label htmlFor="outsidePortionGrams" className="text-xs font-bold text-brand-text/90">
-              Approximate portion in grams (optional)
-            </label>
-            <div className="relative">
-              <input
-                id="outsidePortionGrams"
-                type="number"
-                min="1"
-                max="5000"
-                step="1"
-                value={portionGrams}
-                onChange={(event) => setPortionGrams(event.target.value)}
-                disabled={props.isLoading}
-                className="w-full rounded-2xl border border-brand-border/80 bg-brand-surface/80 px-3.5 py-2 text-xs text-brand-text outline-none focus:border-brand-green focus:ring-1 focus:ring-brand-green"
-              />
-              <span className="absolute right-3.5 top-2 text-xs font-bold text-brand-muted pointer-events-none">g</span>
-            </div>
-            <p className="text-[10px] text-brand-muted">
-              Add grams if you know them. AI can estimate a typical serving from the food name; notes make it more
-              specific.
-            </p>
-          </div>
-        )}
-
-        {/* 3. Nutritional Values (Estimated) - Open by default & fully editable */}
-        <div className="rounded-2xl border border-brand-border/70 bg-brand-surface/60 p-3">
-          <div className="mb-2 flex items-center justify-between">
+        {/* 3. Nutritional Values (Estimated) */}
+        <div className="rounded-2xl border border-brand-border/70 bg-brand-surface/70 p-3">
+          <div className="mb-2 flex flex-wrap items-center justify-between gap-1.5">
             <div className="flex items-center gap-1.5">
               <Flame className="h-4 w-4 text-brand-green" />
               <span className="text-xs font-bold text-brand-text">Nutritional Values (Estimated)</span>
             </div>
-            {selectedSuggestion && (
-              <span className="flex items-center gap-1 text-[11px] font-semibold text-brand-green">
-                <CheckCircle2 className="h-3 w-3" />
-                {selectedSuggestion.kind === 'ELIGIBLE_LIBRARY'
-                  ? 'From verified recipe'
-                  : selectedSuggestion.kind === 'KNOWN_CATALOG'
-                    ? 'From catalog; safety not confirmed'
-                    : selectedSuggestion.kind === 'FNRI_FOOD'
-                      ? 'From FNRI · per 100g reference'
-                      : 'From observed reference'}
-              </span>
-            )}
+            <div className="flex items-center gap-2">
+              {baseNutrition && (
+                <div className="flex items-center gap-1">
+                  <span className="text-[10px] text-brand-muted font-medium mr-0.5 hidden sm:inline">Portion:</span>
+                  {[0.5, 1, 1.5, 2].map((factor) => (
+                    <button
+                      key={factor}
+                      type="button"
+                      onClick={() => applyPortionMultiplier(factor)}
+                      className="rounded-lg border border-brand-border/70 bg-brand-bgAlt/60 px-2 py-0.5 text-[10px] font-bold text-brand-muted hover:border-brand-green hover:text-brand-green transition"
+                    >
+                      {factor}x
+                    </button>
+                  ))}
+                </div>
+              )}
+              {selectedSuggestion && (
+                <span className="flex items-center gap-1 rounded-full bg-brand-green/10 px-2 py-0.5 text-[10px] font-semibold text-brand-green">
+                  <CheckCircle2 className="h-3 w-3" />
+                  {selectedSuggestion.kind === 'ELIGIBLE_LIBRARY'
+                    ? 'Verified recipe'
+                    : selectedSuggestion.kind === 'KNOWN_CATALOG'
+                      ? 'Catalog reference'
+                      : selectedSuggestion.kind === 'FNRI_FOOD'
+                        ? 'FNRI per 100g'
+                        : 'Reference'}
+                </span>
+              )}
+            </div>
           </div>
 
           {/* 4 Numeric Inputs side-by-side with theme macro badges */}
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
             <div className="rounded-xl border border-brand-border/60 bg-brand-bgAlt/50 p-2 transition focus-within:border-brand-green focus-within:ring-1 focus-within:ring-brand-green">
-              <label className="mb-0.5 flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-brand-muted">
-                <span className="h-2 w-2 rounded-full bg-brand-green" />
-                Calories (kcal)
-              </label>
-              <div className="relative">
-                <input
-                  type="number"
-                  min="0"
-                  step="1"
-                  placeholder="0"
-                  value={manual.calories}
-                  onChange={(e) => setManual((prev) => ({ ...prev, calories: e.target.value }))}
-                  className="w-full bg-transparent px-1 py-0.5 text-xs font-bold text-brand-text outline-none"
-                />
-                <span className="absolute right-1 top-0.5 text-[10px] font-semibold text-brand-muted pointer-events-none">
-                  kcal
+              <div className="mb-0.5 flex items-center justify-between text-[10px] font-bold uppercase tracking-wider text-brand-muted">
+                <span className="flex items-center gap-1">
+                  <span className="h-2 w-2 rounded-full bg-brand-green" />
+                  Calories
                 </span>
+                <span className="font-semibold text-brand-muted/70">kcal</span>
               </div>
+              <input
+                type="number"
+                min="0"
+                step="1"
+                placeholder="0"
+                value={manual.calories}
+                onChange={(e) => setManual((prev) => ({ ...prev, calories: e.target.value }))}
+                className="w-full bg-transparent px-0.5 py-0.5 text-xs font-bold text-brand-text outline-none"
+              />
             </div>
 
             <div className="rounded-xl border border-brand-border/60 bg-brand-bgAlt/50 p-2 transition focus-within:border-brand-green focus-within:ring-1 focus-within:ring-brand-green">
-              <label className="mb-0.5 flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-brand-muted">
-                <span className="h-2 w-2 rounded-full" style={{ backgroundColor: 'var(--macro-protein)' }} />
-                Protein (g)
-              </label>
-              <div className="relative">
-                <input
-                  type="number"
-                  min="0"
-                  step="0.1"
-                  placeholder="0"
-                  value={manual.proteinG}
-                  onChange={(e) => setManual((prev) => ({ ...prev, proteinG: e.target.value }))}
-                  className="w-full bg-transparent px-1 py-0.5 text-xs font-bold text-macro-protein outline-none"
-                />
-                <span className="absolute right-1 top-0.5 text-[10px] font-semibold text-brand-muted pointer-events-none">
-                  g
+              <div className="mb-0.5 flex items-center justify-between text-[10px] font-bold uppercase tracking-wider text-brand-muted">
+                <span className="flex items-center gap-1">
+                  <span className="h-2 w-2 rounded-full" style={{ backgroundColor: 'var(--macro-protein)' }} />
+                  Protein
                 </span>
+                <span className="font-semibold text-brand-muted/70">g</span>
               </div>
+              <input
+                type="number"
+                min="0"
+                step="0.1"
+                placeholder="0"
+                value={manual.proteinG}
+                onChange={(e) => setManual((prev) => ({ ...prev, proteinG: e.target.value }))}
+                className="w-full bg-transparent px-0.5 py-0.5 text-xs font-bold text-macro-protein outline-none"
+              />
             </div>
 
             <div className="rounded-xl border border-brand-border/60 bg-brand-bgAlt/50 p-2 transition focus-within:border-brand-green focus-within:ring-1 focus-within:ring-brand-green">
-              <label className="mb-0.5 flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-brand-muted">
-                <span className="h-2 w-2 rounded-full" style={{ backgroundColor: 'var(--macro-carbs)' }} />
-                Carbs (g)
-              </label>
-              <div className="relative">
-                <input
-                  type="number"
-                  min="0"
-                  step="0.1"
-                  placeholder="0"
-                  value={manual.carbsG}
-                  onChange={(e) => setManual((prev) => ({ ...prev, carbsG: e.target.value }))}
-                  className="w-full bg-transparent px-1 py-0.5 text-xs font-bold text-macro-carbs outline-none"
-                />
-                <span className="absolute right-1 top-0.5 text-[10px] font-semibold text-brand-muted pointer-events-none">
-                  g
+              <div className="mb-0.5 flex items-center justify-between text-[10px] font-bold uppercase tracking-wider text-brand-muted">
+                <span className="flex items-center gap-1">
+                  <span className="h-2 w-2 rounded-full" style={{ backgroundColor: 'var(--macro-carbs)' }} />
+                  Carbs
                 </span>
+                <span className="font-semibold text-brand-muted/70">g</span>
               </div>
+              <input
+                type="number"
+                min="0"
+                step="0.1"
+                placeholder="0"
+                value={manual.carbsG}
+                onChange={(e) => setManual((prev) => ({ ...prev, carbsG: e.target.value }))}
+                className="w-full bg-transparent px-0.5 py-0.5 text-xs font-bold text-macro-carbs outline-none"
+              />
             </div>
 
             <div className="rounded-xl border border-brand-border/60 bg-brand-bgAlt/50 p-2 transition focus-within:border-brand-green focus-within:ring-1 focus-within:ring-brand-green">
-              <label className="mb-0.5 flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-brand-muted">
-                <span className="h-2 w-2 rounded-full" style={{ backgroundColor: 'var(--macro-fat)' }} />
-                Fat (g)
-              </label>
-              <div className="relative">
-                <input
-                  type="number"
-                  min="0"
-                  step="0.1"
-                  placeholder="0"
-                  value={manual.fatG}
-                  onChange={(e) => setManual((prev) => ({ ...prev, fatG: e.target.value }))}
-                  className="w-full bg-transparent px-1 py-0.5 text-xs font-bold text-macro-fat outline-none"
-                />
-                <span className="absolute right-1 top-0.5 text-[10px] font-semibold text-brand-muted pointer-events-none">
-                  g
+              <div className="mb-0.5 flex items-center justify-between text-[10px] font-bold uppercase tracking-wider text-brand-muted">
+                <span className="flex items-center gap-1">
+                  <span className="h-2 w-2 rounded-full" style={{ backgroundColor: 'var(--macro-fat)' }} />
+                  Fat
                 </span>
+                <span className="font-semibold text-brand-muted/70">g</span>
               </div>
+              <input
+                type="number"
+                min="0"
+                step="0.1"
+                placeholder="0"
+                value={manual.fatG}
+                onChange={(e) => setManual((prev) => ({ ...prev, fatG: e.target.value }))}
+                className="w-full bg-transparent px-0.5 py-0.5 text-xs font-bold text-macro-fat outline-none"
+              />
             </div>
           </div>
-
-          {/* Portion multiplier pills for easy scaling while keeping inputs editable */}
-          {baseNutrition && (
-            <div className="mt-2.5 flex items-center justify-between border-t border-brand-border/40 pt-2 text-[11px]">
-              <span className="text-brand-muted font-medium">Quick portion scaling:</span>
-              <div className="flex gap-1.5">
-                {[0.5, 1, 1.5, 2].map((factor) => (
-                  <button
-                    key={factor}
-                    type="button"
-                    onClick={() => applyPortionMultiplier(factor)}
-                    className="rounded-full border border-brand-border/70 bg-brand-surface px-2.5 py-0.5 font-bold text-brand-muted hover:border-brand-green hover:text-brand-green transition"
-                  >
-                    {factor}x
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
 
           <p className="mt-2 flex items-center gap-1.5 text-[10px] text-brand-muted">
             <Info className="h-3 w-3 shrink-0" />
@@ -702,11 +699,10 @@ function OutsideMealForm(props: Props) {
         </div>
 
         {riceReference && baseNutrition && (
-          <div className="space-y-2">
+          <div className="space-y-1.5 rounded-xl border border-brand-border/60 bg-brand-bgAlt/30 p-2.5">
             {selectedRicePairing === 'RICE_INCLUDED' && (
-              <p className="text-xs text-brand-muted">
-                The recipe estimate already includes its listed rice. If your rice portion within the dish differs, edit
-                the nutrition estimate above. Use this field only for rice added beyond the recipe serving.
+              <p className="text-[11px] text-brand-muted">
+                The recipe estimate already includes its listed rice. If your rice portion differs, edit the nutrition estimate above. Use this field only for rice added beyond the recipe serving.
               </p>
             )}
             <RiceAccompanimentSelect
@@ -719,18 +715,17 @@ function OutsideMealForm(props: Props) {
             {ricePlatePreview && (
               <p className="text-xs font-semibold text-brand-text">
                 Plate preview: {Math.round(ricePlatePreview.calories)} kcal ·{' '}
-                {Math.round(ricePlatePreview.carbsG * 10) / 10}g carbs. Rice appears as its own FNRI item in the
-                confirmation.
+                {Math.round(ricePlatePreview.carbsG * 10) / 10}g carbs. Rice appears as its own FNRI item in the confirmation.
               </p>
             )}
           </div>
         )}
 
-        {/* 4. Side-by-Side Dual Reference Block: Photo Upload on Left, Notes on Right */}
+        {/* 4. Side-by-Side Reference Block: Photo Upload on Left, Notes on Right */}
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          {/* Left: Add Image / Camera Capture */}
+          {/* Photo */}
           <div className="flex flex-col gap-1">
-            <span className="text-xs font-bold uppercase tracking-wider text-brand-muted">Add photo (optional)</span>
+            <span className="text-xs font-semibold text-brand-muted">Photo (optional)</span>
             <input
               ref={fileInputRef}
               type="file"
@@ -741,13 +736,12 @@ function OutsideMealForm(props: Props) {
             />
             <div
               onClick={() => fileInputRef.current?.click()}
-              className="group relative flex h-24 cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed border-brand-border/70 bg-brand-surface/40 p-2.5 text-center transition hover:border-brand-green/60 hover:bg-brand-surface/60 overflow-hidden"
+              className="group relative flex h-20 cursor-pointer items-center justify-center rounded-xl border border-dashed border-brand-border/80 bg-brand-surface/40 p-2 text-center transition hover:border-brand-green/60 hover:bg-brand-surface/60 overflow-hidden"
             >
               {imagePreview ? (
                 <>
-                  {/* A local blob/data URL preview cannot use the Next image optimizer. */}
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={imagePreview} alt="Meal photo preview" className="h-full w-full object-cover rounded-xl" />
+                  <img src={imagePreview} alt="Meal photo preview" className="h-full w-full object-cover rounded-lg" />
                   <button
                     type="button"
                     onClick={handleClearImage}
@@ -758,69 +752,77 @@ function OutsideMealForm(props: Props) {
                   </button>
                 </>
               ) : (
-                <>
-                  <div className="mb-1 flex h-7 w-7 items-center justify-center rounded-full bg-brand-bgAlt/90 text-brand-muted group-hover:text-brand-green group-hover:scale-110 transition">
+                <div className="flex items-center gap-2.5">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-bgAlt/90 text-brand-muted group-hover:text-brand-green transition">
                     <Camera className="h-4 w-4" />
                   </div>
-                  <span className="text-[11px] font-bold text-brand-muted group-hover:text-brand-text transition">
-                    Upload Photo or Use Camera (Optional)
-                  </span>
-                  <span className="text-[9px] text-brand-muted/70">Tap to capture or upload</span>
-                </>
+                  <div className="text-left">
+                    <span className="block text-xs font-semibold text-brand-text group-hover:text-brand-green transition">
+                      Upload Photo or Use Camera (Optional)
+                    </span>
+                    <span className="block text-[10px] text-brand-muted">Tap to capture or upload</span>
+                  </div>
+                </div>
               )}
             </div>
             {imageError && <span className="text-[10px] text-status-error-text">{imageError}</span>}
           </div>
 
-          {/* Right: Notes */}
+          {/* Notes */}
           <div className="flex flex-col gap-1">
-            <label htmlFor="mealNotes" className="text-xs font-bold uppercase tracking-wider text-brand-muted">
+            <label htmlFor="mealNotes" className="text-xs font-semibold text-brand-muted">
               Notes (optional)
             </label>
             <textarea
               id="mealNotes"
-              rows={3}
+              rows={2}
               placeholder="e.g. restaurant, preparation, serving details"
               value={props.notes}
               onChange={(e) => props.onNotesChange(e.target.value)}
               disabled={props.isLoading}
-              className="h-24 w-full resize-none rounded-2xl border border-brand-border/80 bg-brand-surface/80 p-2.5 text-xs text-brand-text placeholder-brand-muted/60 outline-none transition focus:border-brand-green focus:ring-2 focus:ring-brand-green/20"
+              className="h-20 w-full resize-none rounded-xl border border-brand-border/80 bg-brand-surface/80 p-2.5 text-xs text-brand-text placeholder-brand-muted/60 outline-none transition focus:border-brand-green focus:ring-2 focus:ring-brand-green/20"
             />
           </div>
         </div>
 
-        {/* 5. AI Assistant Fallback ("Still not sure?") */}
-        <div className="rounded-2xl border border-brand-green/25 bg-gradient-to-br from-brand-green/10 via-brand-surface/60 to-brand-accent/5 p-3 text-center">
-          <span className="mb-1.5 block text-xs font-bold text-brand-muted">Still not sure?</span>
+        {/* 5. AI Assistant Fallback */}
+        <div className="rounded-xl border border-brand-green/20 bg-gradient-to-r from-brand-green/10 via-brand-surface to-brand-accent/5 p-2.5 flex flex-col sm:flex-row items-center justify-between gap-2.5">
+          <div className="flex items-center gap-2.5 min-w-0 w-full sm:w-auto">
+            <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-brand-green/15 text-brand-green">
+              <Sparkles className="h-3.5 w-3.5" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-xs font-bold text-brand-text">Need help estimating macros?</p>
+              <p className="text-[11px] text-brand-muted leading-tight">
+                Grams and notes are optional. AI calculates provisional macros from food names.
+                {estimates && (
+                  <span className="ml-1 text-brand-green font-semibold">
+                    ({estimates.remaining}/{estimates.cap} left ·{' '}
+                    <Link href="/membership" className="underline hover:text-brand-green/80">
+                      Plan
+                    </Link>
+                    )
+                  </span>
+                )}
+              </p>
+            </div>
+          </div>
           <button
             type="button"
             onClick={() => handleSubmit(true)}
             disabled={props.isLoading || !props.mealName.trim() || estimates?.remaining === 0}
-            className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-brand-green/50 bg-brand-green/15 py-2 px-4 text-xs font-extrabold text-brand-green transition hover:bg-brand-green/25 disabled:opacity-50 disabled:cursor-not-allowed shadow-xs"
+            className="w-full sm:w-auto shrink-0 flex items-center justify-center gap-1.5 rounded-lg border border-brand-green/40 bg-brand-green/15 hover:bg-brand-green/25 px-3 py-1.5 text-xs font-bold text-brand-green transition disabled:opacity-50 disabled:cursor-not-allowed shadow-xs"
           >
-            <Sparkles className="h-4 w-4 text-brand-green" />
+            <Sparkles className="h-3.5 w-3.5" />
             HELP ME FIND VALUES WITH AI
           </button>
-          <p className="mt-1.5 text-[10px] text-brand-muted">
-            Grams and notes are optional. Without them, AI assumes a typical serving. Values remain provisional; review
-            may be required or requested separately.
-          </p>
-          {estimates && (
-            <p className="mt-2 text-xs text-brand-muted">
-              {estimates.remaining} of {estimates.cap} AI estimate requests left this week. One request covers this
-              submission. Manual logging remains available.{' '}
-              <Link href="/membership" className="font-semibold text-brand-green">
-                View membership
-              </Link>
-            </p>
-          )}
         </div>
 
         {/* 6. Primary Action: LOG THIS MEAL */}
         <Button
           type="submit"
           variant="primary"
-          className="w-full py-3.5 text-xs font-black uppercase tracking-wider rounded-2xl shadow-neon"
+          className="w-full py-3 text-xs font-black uppercase tracking-wider rounded-xl shadow-neon"
           disabled={
             props.isLoading ||
             !props.mealName.trim() ||
