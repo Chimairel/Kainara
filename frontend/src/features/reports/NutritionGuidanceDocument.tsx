@@ -157,12 +157,12 @@ export default function NutritionGuidanceDocument({
         />
 
         {/* Split-view workspace container matching nutritionist review workspace */}
-        <div className="flex md:h-[calc(100vh-270px)] md:min-h-[640px] flex-col overflow-hidden rounded-3xl border border-brand-border/70 bg-brand-surface text-left shadow-sm md:flex-row">
+        <div className="flex md:h-[calc(100vh-210px)] md:min-h-[680px] flex-col overflow-hidden rounded-3xl border border-brand-border/70 bg-brand-surface text-left shadow-sm md:flex-row">
           {/* Left Column: Report History Queue */}
           <div
             className={`${mobileView === 'history' ? 'flex' : 'hidden md:flex'} ${
               expanded ? '!hidden' : ''
-            } h-full w-full min-w-0 flex-col md:w-[36%] md:min-w-[280px] md:max-w-[380px] md:border-r border-brand-border/70`}
+            } h-full w-full min-w-0 flex-col md:w-[38%] md:min-w-[300px] md:max-w-[400px] md:border-r border-brand-border/70 p-4 sm:p-5 bg-brand-surface/75`}
           >
             <ReportHistory
               history={allVersions}
@@ -191,7 +191,7 @@ export default function NutritionGuidanceDocument({
             onBack={() => setMobileView('history')}
             headerLeft={headerLeftContent}
             className={`${mobileView === 'document' ? 'flex' : 'hidden md:flex'} h-full min-w-0 flex-1 flex-col overflow-hidden bg-transparent`}
-            contentClassName="flex-1 min-h-0 overflow-y-auto p-4 custom-scrollbar sm:p-6"
+            contentClassName="flex-1 min-h-0 overflow-y-auto p-4 custom-scrollbar sm:p-6 lg:p-8"
           >
             {/* Error Message */}
             {error && (
