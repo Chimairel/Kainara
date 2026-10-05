@@ -1,7 +1,7 @@
 'use client';
 
 import { summarizeMealIntake } from '@/lib/meal-history-summary';
-import React, { useMemo, useState } from 'react';
+import React, { useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, Lock } from 'lucide-react';
 import { formatManilaDate, getManilaDateKey, manilaDateFromKey } from '@/lib/manila-date';
 import type { MealHistoryLog } from '@/features/meals/useMealsWorkspace';
@@ -48,6 +48,30 @@ export default function MealActivityCalendar({
   const [timeRange, setTimeRange] = useState<ActivityTimeRange>('Year');
   const [hoveredCell, setHoveredCell] = useState<DayCell | null>(null);
   const [monthOffset, setMonthOffset] = useState<number>(0);
+  const yearScrollRef = useRef<HTMLDivElement>(null);
+  const todayCellRef = useRef<HTMLButtonElement>(null);
+
+  useLayoutEffect(() => {
+    if (timeRange !== 'Year') return;
+    const scroller = yearScrollRef.current;
+    const today = todayCellRef.current;
+    if (!scroller || !today) return;
+    const centerToday = () => {
+      const cellBounds = today.getBoundingClientRect();
+      const scrollBounds = scroller.getBoundingClientRect();
+      scroller.scrollLeft = Math.max(
+        0,
+        Math.min(
+          scroller.scrollWidth - scroller.clientWidth,
+          scroller.scrollLeft + cellBounds.left - scrollBounds.left + cellBounds.width / 2 - scroller.clientWidth / 2
+        )
+      );
+    };
+    centerToday();
+    const observer = new ResizeObserver(centerToday);
+    observer.observe(scroller);
+    return () => observer.disconnect();
+  }, [timeRange]);
 
   // Group logs by dateKey for fast O(1) lookup
   const logsByDate = useMemo(() => {
@@ -588,7 +612,7 @@ export default function MealActivityCalendar({
           </div>
         ) : (
           /* Year Mode: Full calendar year matrix */
-          <div className="overflow-x-auto pb-2 scrollbar-thin">
+          <div ref={yearScrollRef} aria-label="Year activity calendar" className="overflow-x-auto pb-2 scrollbar-thin">
             <div className="inline-block min-w-full">
               {/* Grid Container */}
               <div className="flex gap-1.5">
@@ -619,6 +643,8 @@ export default function MealActivityCalendar({
                         return (
                           <button
                             key={cell.dateKey}
+                            ref={cell.isToday ? todayCellRef : undefined}
+                            aria-current={cell.isToday ? 'date' : undefined}
                             type="button"
                             disabled={cell.isFuture}
                             onClick={() => onSelectDateKey(cell.dateKey)}

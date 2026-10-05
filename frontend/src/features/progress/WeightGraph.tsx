@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { TrendingUp } from 'lucide-react';
 import type { useProgressWorkspace } from './useProgressWorkspace';
 
@@ -42,6 +42,17 @@ function createSmoothCurve(points: { x: number; y: number }[]): string {
 
 export default function WeightGraph({ groupedLogs, targetWeight }: WeightGraphProps) {
   const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
+  const chartRef = useRef<SVGSVGElement>(null);
+  const [chartWidth, setChartWidth] = useState<number | null>(null);
+  const hasLogs = groupedLogs.length > 0;
+
+  useEffect(() => {
+    const chart = chartRef.current;
+    if (!chart) return;
+    const observer = new ResizeObserver(([entry]) => setChartWidth(entry.contentRect.width));
+    observer.observe(chart);
+    return () => observer.disconnect();
+  }, [hasLogs]);
 
   if (groupedLogs.length === 0) {
     return (
@@ -56,17 +67,19 @@ export default function WeightGraph({ groupedLogs, targetWeight }: WeightGraphPr
   }
 
   // Graph Dimensions
-  const width = 640;
-  const height = 240;
-  const paddingLeft = 65;
-  const paddingRight = 45;
-  const paddingTop = 35;
-  const paddingBottom = 48;
+  const compact = chartWidth !== null && chartWidth < 480;
+  const width = compact ? Math.max(200, chartWidth) : 640;
+  const height = compact ? 260 : 240;
+  const paddingLeft = compact ? 30 : 65;
+  const paddingRight = compact ? 12 : 45;
+  const paddingTop = compact ? 32 : 35;
+  const paddingBottom = compact ? 38 : 48;
+  const labelSize = compact ? 11 : 8.5;
   const plotWidth = width - paddingLeft - paddingRight;
   const plotHeight = height - paddingTop - paddingBottom;
 
   // Inner margin to prevent points from touching Y-axis spine
-  const innerMargin = 28;
+  const innerMargin = compact ? 18 : 28;
   const plotStartX = paddingLeft + innerMargin;
   const plotSpanX = plotWidth - innerMargin * 2;
 
@@ -134,7 +147,7 @@ export default function WeightGraph({ groupedLogs, targetWeight }: WeightGraphPr
   const activeHoveredPoint = hoveredIdx !== null ? points[hoveredIdx] : null;
 
   return (
-    <div className="w-full rounded-2xl border border-brand-border/70 bg-gradient-to-b from-brand-surface to-brand-bgAlt/30 p-4 sm:p-5 shadow-xs relative overflow-hidden">
+    <div className="w-full rounded-2xl border border-brand-border/70 bg-gradient-to-b from-brand-surface to-brand-bgAlt/30 p-3 sm:p-5 shadow-xs relative overflow-hidden">
       {/* Ambient soft glow orbs */}
       <div className="absolute top-0 right-0 w-48 h-48 bg-brand-green/5 blur-3xl pointer-events-none rounded-full" />
       <div className="absolute bottom-0 left-0 w-48 h-48 bg-brand-accent/5 blur-3xl pointer-events-none rounded-full" />
@@ -144,8 +157,9 @@ export default function WeightGraph({ groupedLogs, targetWeight }: WeightGraphPr
         <div
           className="pointer-events-none absolute z-30 -translate-x-1/2 rounded-xl border border-brand-border bg-brand-surface/95 px-3.5 py-2.5 shadow-2xl backdrop-blur-md transition-all duration-150 text-left text-xs"
           style={{
-            left: `${(activeHoveredPoint.x / width) * 100}%`,
-            top: `${Math.max(8, (activeHoveredPoint.y / height) * 100 - 36)}%`,
+            left: compact ? '50%' : `${(activeHoveredPoint.x / width) * 100}%`,
+            top: compact ? '12px' : `${Math.max(8, (activeHoveredPoint.y / height) * 100 - 36)}%`,
+            maxWidth: 'calc(100% - 24px)',
           }}
         >
           <div className="flex items-center gap-1.5 font-bold text-brand-muted text-[10px] uppercase tracking-wider">
@@ -192,6 +206,7 @@ export default function WeightGraph({ groupedLogs, targetWeight }: WeightGraphPr
       )}
 
       <svg
+        ref={chartRef}
         viewBox={`0 0 ${width} ${height}`}
         className="w-full h-auto overflow-visible select-none"
         role="img"
@@ -247,7 +262,7 @@ export default function WeightGraph({ groupedLogs, targetWeight }: WeightGraphPr
               x={paddingLeft - 8}
               y={tick.y + 3.5}
               fill="var(--brand-muted)"
-              fontSize="8.5"
+              fontSize={labelSize}
               fontWeight="700"
               textAnchor="end"
               className="select-none font-mono"
@@ -286,7 +301,7 @@ export default function WeightGraph({ groupedLogs, targetWeight }: WeightGraphPr
               x={width - paddingRight - 42}
               y={targetY + 3.5}
               fill="var(--brand-accent)"
-              fontSize="8.5"
+              fontSize={compact ? 10 : labelSize}
               fontWeight="bold"
               textAnchor="middle"
               className="select-none"
@@ -316,6 +331,8 @@ export default function WeightGraph({ groupedLogs, targetWeight }: WeightGraphPr
           const pillY = p.y - 28 < paddingTop ? p.y + 12 : p.y - 26;
           const textY = pillY + 12;
           const isHovered = hoveredIdx === idx;
+          const showLabel = !compact || idx === 0 || idx === points.length - 1 || isHovered;
+          const badgeWidth = compact ? 56 : 44;
 
           return (
             <g
@@ -341,28 +358,32 @@ export default function WeightGraph({ groupedLogs, targetWeight }: WeightGraphPr
               />
 
               {/* Static Floating Weight Badge */}
-              <rect
-                x={p.x - 22}
-                y={pillY}
-                width="44"
-                height="18"
-                rx="6"
-                fill="var(--brand-surface)"
-                stroke={isHovered ? 'var(--brand-green)' : 'var(--brand-border)'}
-                strokeWidth={isHovered ? 1.5 : 1.2}
-                className="transition-colors"
-              />
-              <text
-                x={p.x}
-                y={textY}
-                fill={isHovered ? 'var(--brand-green)' : 'var(--brand-text)'}
-                fontSize="8.5"
-                fontWeight="800"
-                textAnchor="middle"
-                className="select-none"
-              >
-                {p.weight} kg
-              </text>
+              {showLabel && (
+                <rect
+                  x={p.x - badgeWidth / 2}
+                  y={pillY}
+                  width={badgeWidth}
+                  height="18"
+                  rx="6"
+                  fill="var(--brand-surface)"
+                  stroke={isHovered ? 'var(--brand-green)' : 'var(--brand-border)'}
+                  strokeWidth={isHovered ? 1.5 : 1.2}
+                  className="transition-colors"
+                />
+              )}
+              {showLabel && (
+                <text
+                  x={p.x}
+                  y={textY}
+                  fill={isHovered ? 'var(--brand-green)' : 'var(--brand-text)'}
+                  fontSize={labelSize}
+                  fontWeight="800"
+                  textAnchor="middle"
+                  className="select-none"
+                >
+                  {p.weight} kg
+                </text>
+              )}
 
               {/* Node Circle (Exactly 1 per point) */}
               <circle
@@ -376,17 +397,27 @@ export default function WeightGraph({ groupedLogs, targetWeight }: WeightGraphPr
               />
 
               {/* Date Label at X-axis */}
-              <text
-                x={p.x}
-                y={height - paddingBottom + 16}
-                fill={isHovered ? 'var(--brand-text)' : 'var(--brand-muted)'}
-                fontSize="8.5"
-                fontWeight={isHovered ? '800' : '700'}
-                textAnchor="middle"
-                className="select-none"
-              >
-                {p.date}
-              </text>
+              {showLabel && (
+                <text
+                  x={p.x}
+                  y={height - paddingBottom + 16}
+                  fill={isHovered ? 'var(--brand-text)' : 'var(--brand-muted)'}
+                  fontSize={labelSize}
+                  fontWeight={isHovered ? '800' : '700'}
+                  textAnchor={
+                    compact && points.length > 1
+                      ? idx === 0
+                        ? 'start'
+                        : idx === points.length - 1
+                          ? 'end'
+                          : 'middle'
+                      : 'middle'
+                  }
+                  className="select-none"
+                >
+                  {compact ? p.date.replace('Starting weight', 'Start').replace('Wk of ', '') : p.date}
+                </text>
+              )}
             </g>
           );
         })}

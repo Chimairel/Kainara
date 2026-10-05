@@ -379,7 +379,7 @@ export function ProgressWorkspace({ mode = 'progress' }: { mode?: ProgressWorksp
               {/* GRAPH & SUMMARY BLOCKS */}
               <div className="mb-8 text-left">
                 {/* Graph Card */}
-                <Card className="p-5 sm:p-6 border-brand-border/70 bg-brand-surface shadow-card">
+                <Card className="p-4 sm:p-6 border-brand-border/70 bg-brand-surface shadow-card">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5">
                     <div>
                       <div className="flex items-center gap-2">
