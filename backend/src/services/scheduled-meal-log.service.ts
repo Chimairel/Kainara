@@ -3,6 +3,7 @@ import prisma from '@/lib/prisma';
 import { MealLogDataSource, MealLogSource, MealLogStatus } from '@prisma/client';
 import { MealPlanCycleService } from './meal-plan-cycle.service';
 import { lockUserProfile } from './profile-revision.service';
+import { AppError } from '@/errors/AppError';
 
 /** Keep ownership, profile locking, clearance and log writes in one transaction. */
 export async function updateScheduledMealStatus(
@@ -19,13 +20,17 @@ export async function updateScheduledMealStatus(
     });
 
     if (!mealPlan) {
-      throw new Error('Meal plan item not found.');
+      throw new AppError('Meal plan item not found.', 404, 'MEAL_PLAN_NOT_FOUND');
     }
 
     assertUserLoggableMealPlan(mealPlan);
     const clearedIds = await MealPlanCycleService.getClearedMealPlanIds(userId, mealPlan.planGroupId, new Date(), tx);
     if (!clearedIds.includes(mealPlan.id)) {
-      throw new Error('This meal needs safety revalidation before it can be logged.');
+      throw new AppError(
+        'This meal needs safety revalidation before it can be logged.',
+        409,
+        'MEAL_SAFETY_REVALIDATION_REQUIRED'
+      );
     }
 
     return tx.mealLog.upsert({

@@ -10,6 +10,7 @@ import { requiresIndividualPlanningReview } from '@/domain/planning-membership.p
 import { assertGenerationIntegrity } from './generation-integrity.service';
 import { updateGenerationProgress } from './generation-progress.service';
 import { lockUserProfile } from './profile-revision.service';
+import { assertEmptyPlanRetry } from './empty-plan-retry.service';
 import {
   MealType,
   MealPlanStatus,
@@ -64,7 +65,8 @@ export async function generate7DayPlan(
   numDays: number = 7,
   startDate: Date = new Date(),
   generationJobId?: string,
-  membershipReservationIds: readonly string[] = []
+  membershipReservationIds: readonly string[] = [],
+  expectedEmptyCycleId?: string
 ): Promise<string> {
   await MembershipService.assertNewPlan(userId, startDate);
   await ClinicalProfileReviewService.assertReadyForMealPlanning(userId);
@@ -521,6 +523,8 @@ export async function generate7DayPlan(
       const { profile: currentProfileRevision } = await loadPlanningNutritionContext(tx, userId, 'Profile missing.');
       if (currentProfileRevision.revision !== profile.revision)
         throw new Error('Profile changed during generation. Please retry.');
+      if (expectedEmptyCycleId)
+        await assertEmptyPlanRetry(tx, userId, expectedEmptyCycleId, profile.revision, profile.safetyRevision);
       await assertGenerationIntegrity(tx, userId, startDate, targetPlanEndDate, compositionRevisions);
       await tx.groceryList.updateMany({ where: { userId }, data: { isStale: true } });
       const overlappingCycles = await tx.mealPlanCycle.findMany({

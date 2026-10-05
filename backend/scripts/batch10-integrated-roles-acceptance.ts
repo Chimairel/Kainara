@@ -4,7 +4,6 @@ import { randomUUID } from 'node:crypto';
 import bcrypt from 'bcryptjs';
 import { MealPlanCycleStatus, MealType } from '@prisma/client';
 import prisma from '../src/lib/prisma';
-import { AdminService } from '../src/services/admin.service';
 import { MealLogService } from '../src/services/meal-log.service';
 import { OutsideMealReviewService } from '../src/services/outside-meal-review.service';
 import { ObservedMealService } from '../src/services/observed-meal.service';
@@ -18,6 +17,8 @@ import { certifyLibraryMealSafety } from '../src/services/nutritionist-library-c
 import { certifyMealLibrarySafetySchema } from '../src/domain/meal-library-safety-review.schema';
 import { queryEligibleLibraryMeals } from '../src/services/meal-library-candidate-query.service';
 import { validateGeneratedMealCandidate } from '../src/domain/generated-meal-validation.policy';
+import { NutritionReportService } from '../src/services/nutrition-report.service';
+import { UpcomingPlanPreparationService } from '../src/services/upcoming-plan-preparation.service';
 import { SafetyIntakeService } from '../src/services/safety-intake.service';
 import { MealBaseVerificationService } from '../src/services/meal-base-verification.service';
 import { createRecipeDerivation } from '../src/services/recipe-derivation.service';
@@ -53,6 +54,7 @@ async function main() {
       libraryMealId = null;
     }
     if (parentLibraryMealId) {
+      await prisma.mealLibrarySafetyReview.deleteMany({ where: { mealLibraryId: parentLibraryMealId } });
       await prisma.mealLibrary.deleteMany({ where: { id: parentLibraryMealId } });
       parentLibraryMealId = null;
     }
@@ -107,18 +109,10 @@ async function main() {
         verifiedAt: new Date(),
       },
     });
-    const lead = await AdminService.setNutritionistLeadCapability(admin.id, rnd.id, true);
-    assert.equal(lead.canLeadReview, true);
-    assert.equal(
-      await prisma.auditEvent.count({
-        where: {
-          actorUserId: admin.id,
-          entityId: rnd.id,
-          action: 'NUTRITIONIST_LEAD_CAPABILITY_GRANTED',
-        },
-      }),
-      1
-    );
+    // All eligible verified nutritionists share review capabilities. The legacy
+    // lead flag no longer grants permissions; keep the historical audit data.
+    assert.equal(rnd.isVerified, true);
+    assert.equal(peer.isVerified, true);
 
     const password = `Batch10-${marker}`;
     const patient = await prisma.user.create({
@@ -155,6 +149,17 @@ async function main() {
     );
     // The fixture intentionally reviews a 420 kcal lunch against a 1,200 kcal day.
     await prisma.userProfile.update({ where: { userId: patient.id }, data: { dailyCalorieTarget: 1200 } });
+    await NutritionReportService.generateReport(patient.id);
+    // This service fixture exercises a specifically constructed observed meal,
+    // not automatic preparation (covered by the system journey HTTP audit).
+    const trigger = UpcomingPlanPreparationService.triggerNonBlocking;
+    try {
+      UpcomingPlanPreparationService.triggerNonBlocking = () => {};
+      await NutritionReportService.acknowledgeReport(patient.id, 1);
+    } finally {
+      UpcomingPlanPreparationService.triggerNonBlocking = trigger;
+    }
+
     const historicalReviewId = randomUUID();
     await prisma.clinicalProfileReview.create({
       data: {
@@ -450,7 +455,7 @@ async function main() {
       1
     );
     console.log(
-      '[Batch 10 integrated roles] PASS: admin Lead, user log, RND clarification/correction, observed candidate plan approval, explicit reusable certification, privacy deletion'
+      '[Batch 10 integrated roles] PASS: verified reviewers, user log, RND clarification/correction, observed candidate plan approval, explicit reusable certification, privacy deletion'
     );
   } finally {
     await removePublishedFixture();

@@ -180,6 +180,8 @@ async function main() {
     const caseUser = await create();
     await setExpired(caseUser);
     await prisma.allergy.create({ data: { userId: caseUser, allergen: 'EGGS' } });
+    // Supported allergies alone use general planning; diabetes makes this a case episode.
+    await prisma.healthCondition.create({ data: { userId: caseUser, condition: 'DIABETES' } });
     await assert.rejects(membership.assertNewPlan(caseUser, day), { errorCode: 'CASE_MEMBERSHIP_REQUIRED' });
     const timing = getMealPlanCycleTiming('WEEKLY', day, 7);
     const cycle = await prisma.mealPlanCycle.create({
@@ -259,6 +261,7 @@ async function main() {
       1
     );
     await prisma.allergy.create({ data: { userId: member, allergen: 'EGGS' } });
+    await prisma.healthCondition.create({ data: { userId: member, condition: 'DIABETES' } });
     await assert.rejects(membership.admitPlan(member, day, true, 'optional-case-replan', 'case-replan-retry'), {
       errorCode: 'MEMBERSHIP_USAGE_LIMIT',
     });

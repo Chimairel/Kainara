@@ -370,68 +370,29 @@ async function main() {
     orderBy: { id: 'asc' },
     take: 2,
   });
-  assert.equal(highRiskSlots.length, 2, 'Two pending meals are needed to test independent review and dispute.');
+  assert.equal(highRiskSlots.length, 2, 'Two pending meals are needed to test approval and rejection.');
   const highRiskCycleId = highRiskSlots[0].planGroupId!;
-  for (const slot of highRiskSlots) {
-    await prisma.mealPlan.update({ where: { id: slot.id }, data: { highRiskReviewRequired: true } });
-    await NutritionistReviewService.getReviewCardDetails(rnd.id, slot.id, true);
-    const first = await NutritionistReviewService.approveMealPlan(
-      rnd.id,
-      slot.id,
-      'Fictional first high-risk decision for isolated workflow testing.'
-    );
-    assert.equal(first.awaitingSecondReview, true);
-    assert.ok(
-      !(await MealPlanCycleService.getClearedMealPlanIds(hypertensionId, highRiskCycleId)).includes(slot.id),
-      'A first high-risk decision must not make the slot actionable.'
-    );
-    await assert.rejects(
-      NutritionistReviewService.getReviewCardDetails(rnd.id, slot.id, true),
-      /Lead review|different nutritionist/i
-    );
-  }
-  await NutritionistReviewService.getReviewCardDetails(lead1.id, highRiskSlots[0].id, true);
-  await NutritionistReviewService.approveMealPlan(
-    lead1.id,
-    highRiskSlots[0].id,
-    'Independent fictional second decision.'
-  );
+  // Current policy: any verified eligible RND may approve one exact saved plate.
+  // The historical lead/two-reviewer dispute sequence is no longer a release gate.
+  const approvedSlot = highRiskSlots[0];
+  await prisma.mealPlan.update({ where: { id: approvedSlot.id }, data: { highRiskReviewRequired: true } });
+  await NutritionistReviewService.getReviewCardDetails(rnd.id, approvedSlot.id, true);
+  await NutritionistReviewService.approveMealPlan(rnd.id, approvedSlot.id, 'Synthetic eligible RND decision.');
   assert.ok(
-    (await MealPlanCycleService.getClearedMealPlanIds(hypertensionId, highRiskCycleId)).includes(highRiskSlots[0].id),
-    'Two independent approvals should release the case.'
+    (await MealPlanCycleService.getClearedMealPlanIds(hypertensionId, highRiskCycleId)).includes(approvedSlot.id)
   );
-
-  await NutritionistReviewService.getReviewCardDetails(lead1.id, highRiskSlots[1].id, true);
+  const rejectedSlot = highRiskSlots[1];
+  await NutritionistReviewService.getReviewCardDetails(lead1.id, rejectedSlot.id, true);
   await NutritionistReviewService.rejectMealPlan(
     lead1.id,
-    highRiskSlots[1].id,
-    'Independent fictional reviewer disagrees.'
+    rejectedSlot.id,
+    'Synthetic ingredient evidence is insufficient.'
   );
-  assert.equal((await prisma.mealPlan.findUniqueOrThrow({ where: { id: highRiskSlots[1].id } })).status, 'DISPUTED');
+  assert.equal((await prisma.mealPlan.findUniqueOrThrow({ where: { id: rejectedSlot.id } })).status, 'REJECTED');
   assert.ok(
-    !(await MealPlanCycleService.getClearedMealPlanIds(hypertensionId, highRiskCycleId)).includes(highRiskSlots[1].id),
-    'A disputed slot must remain blocked.'
+    !(await MealPlanCycleService.getClearedMealPlanIds(hypertensionId, highRiskCycleId)).includes(rejectedSlot.id)
   );
-  await assert.rejects(
-    NutritionistReviewService.resolveMealPlanDispute(
-      lead1.id,
-      highRiskSlots[1].id,
-      'APPROVE',
-      'The disputing reviewer cannot adjudicate.'
-    ),
-    /did not submit/i
-  );
-  await NutritionistReviewService.resolveMealPlanDispute(
-    lead2.id,
-    highRiskSlots[1].id,
-    'APPROVE',
-    'Independent fictional lead adjudication.'
-  );
-  assert.ok(
-    (await MealPlanCycleService.getClearedMealPlanIds(hypertensionId, highRiskCycleId)).includes(highRiskSlots[1].id),
-    'Independent lead resolution should release the case.'
-  );
-  outcomes['high-risk-governance'] = { independentApproval: 'released', dispute: 'blocked then released' };
+  outcomes['high-risk-governance'] = { eligibleReviewerApproval: 'released', rejectedOriginal: 'blocked' };
 
   const eggPlan = await prisma.mealPlan.findFirstOrThrow({
     where: { userId: users.get('eggs-only')!, status: 'APPROVED', profileApprovalId: { not: null } },

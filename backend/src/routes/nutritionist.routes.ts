@@ -1,4 +1,5 @@
 import { Router, Response } from 'express';
+import { AppError } from '@/errors/AppError';
 import { z } from 'zod';
 import authenticate from '@/middleware/auth';
 import requireRole from '@/middleware/rbac';
@@ -616,6 +617,9 @@ router.patch(
       }
     } catch (error: any) {
       const msg = sanitizeErrorMessage(error, 'Failed to process review action.');
+      if (error instanceof AppError) {
+        return res.status(error.statusCode).json({ success: false, error: error.message, code: error.errorCode });
+      }
       if (isNutritionistReviewConflict(msg)) {
         return res.status(409).json({ success: false, error: msg });
       }

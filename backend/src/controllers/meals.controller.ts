@@ -639,6 +639,9 @@ export class MealsController {
       });
     } catch (error: any) {
       console.error('[MealsController] updateMealStatus error:', error);
+      if (error instanceof AppError) {
+        return res.status(error.statusCode).json({ success: false, error: error.message, code: error.errorCode });
+      }
       if (isMealPlanNotActionableError(error)) {
         return res.status(409).json({
           success: false,
@@ -672,6 +675,8 @@ export class MealsController {
       });
     } catch (error: any) {
       console.error('[MealsController] getSwapOptions error:', error);
+      if (error instanceof AppError)
+        return res.status(error.statusCode).json({ success: false, error: error.message, code: error.errorCode });
       if (isMealPlanNotActionableError(error)) {
         return res.status(409).json({ success: false, error: error.message });
       }
@@ -754,6 +759,8 @@ export class MealsController {
       const preview = await MealSwapService.getSwapPreview(userId, mealPlanId, libraryMealId);
       return res.status(200).json({ success: true, data: preview });
     } catch (error: any) {
+      if (error instanceof AppError)
+        return res.status(error.statusCode).json({ success: false, error: error.message, code: error.errorCode });
       if (isMealPlanNotActionableError(error)) {
         return res.status(409).json({ success: false, error: error.message });
       }

@@ -58,7 +58,23 @@ async function main() {
         emailVerified: true,
       },
     });
+    const applicantEmail = `audit-rnd-${run}@example.invalid`;
+    assert.equal(
+      (await request('/api/nutritionist-applications/email/send', 'POST', { email: applicantEmail })).status,
+      200
+    );
+    const readMails = async () =>
+      (await readFile(process.env.NUTRIMIND_TEST_MAIL_CAPTURE_PATH!, 'utf8'))
+        .trim()
+        .split('\n')
+        .map((row) => JSON.parse(row));
+    const code = (await readMails()).find(
+      (row) => row.to === applicantEmail && row.type === 'EMAIL_VERIFICATION'
+    ).token;
+    const inbox = await request('/api/nutritionist-applications/email/verify', 'POST', { email: applicantEmail, code });
+    assert.equal(inbox.status, 200);
     const application = await NutritionistApplicationService.submit({
+      emailVerificationProof: z.object({ data: z.object({ proof: z.string() }) }).parse(inbox.body).data.proof,
       fullName: 'Audit Applicant',
       email: `audit-rnd-${run}@example.invalid`,
       phoneNumber: '09170000000',
@@ -86,7 +102,10 @@ async function main() {
     });
     await NutritionistApplicationService.confirmCall(admin.id, stored.id);
     await NutritionistApplicationService.decide(admin.id, stored.id, { decision: 'approve' });
-    const captured = JSON.parse((await readFile(process.env.NUTRIMIND_TEST_MAIL_CAPTURE_PATH, 'utf8')).trim());
+    const captured = (await readMails()).find(
+      (row) => row.to === applicantEmail && row.type === 'NUTRITIONIST_INVITATION'
+    );
+    assert.ok(captured);
     await NutritionistApplicationService.acceptInvitation(captured.token, password);
     await assert.rejects(() => NutritionistApplicationService.acceptInvitation(captured.token, password));
     observations.nutritionistApplication =

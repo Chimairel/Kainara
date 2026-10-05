@@ -15,6 +15,7 @@ import { publishProfileMatchedMealApproval } from './meal-profile-approval-publi
 import { ClinicalEvidenceService } from './clinical-evidence.service';
 
 import { assertObservedSourceStillAvailable } from './observed-source-guard.service';
+import { AppError } from '@/errors/AppError';
 
 async function findScopeMatchedPendingPlans(
   tx: Prisma.TransactionClient,
@@ -121,8 +122,10 @@ export async function approveMealPlan(
   // Approval certifies the exact saved plate. Recipe changes must go through
   // a new draft and independent base verification, never overwrite this plan.
   if (updates && Object.keys(updates).length) {
-    throw new Error(
-      'Approve the saved recipe unchanged. Create a recipe draft in the meal library for alterations, or replace this case meal with a reviewed recipe.'
+    throw new AppError(
+      'Approve the saved recipe unchanged. Create a recipe draft in the meal library for alterations, or replace this case meal with a reviewed recipe.',
+      422,
+      'MEAL_APPROVAL_RECIPE_CHANGE_NOT_ALLOWED'
     );
   }
   const { mealName, description, calories, proteinG, carbsG, fatG } = plan;

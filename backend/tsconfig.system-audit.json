@@ -1,0 +1,13 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": { "noEmit": true, "rootDir": "." },
+  "include": [
+    "src/**/*.ts",
+    "src/**/*.tsx",
+    "scripts/system-journey-*.ts",
+    "scripts/helpers/system-audit-harness.ts",
+    "scripts/clinical-document-acceptance.ts",
+    "scripts/report-membership-acceptance.ts"
+  ],
+  "exclude": ["node_modules", "dist"]
+}

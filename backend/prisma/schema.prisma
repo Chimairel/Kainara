@@ -2281,6 +2281,8 @@ model GroceryList {
 }
 
 model GroceryItem {
+  // Retain purchases removed from the active recipe projection for later reuse.
+  isObsolete       Boolean     @default(false)
   purchasedQuantity Float       @default(0)
   id                String      @id @default(cuid())
   groceryListId     String

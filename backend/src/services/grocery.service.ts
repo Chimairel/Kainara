@@ -68,7 +68,7 @@ export class GroceryService {
             include: { groceryItems: true },
           });
         }
-        return list;
+        return { ...list, groceryItems: list.groceryItems.filter((item) => !item.isObsolete) };
       }
       // Cycle quantities include consumed meals: purchases are cycle totals, not live pantry stock.
       const clearedMealPlanIds = await MealPlanCycleService.getClearedMealPlanIds(userId, planGroupId, now, tx);
@@ -131,6 +131,7 @@ export class GroceryService {
           quantity: item.quantity,
           unit: item.unit,
           sourceMealCount: item.sourceMealCount,
+          isObsolete: false,
           ...state,
         };
         if (previous) {
@@ -141,6 +142,7 @@ export class GroceryService {
             previous.unit !== data.unit ||
             previous.sourceMealCount !== data.sourceMealCount ||
             previous.purchasedQuantity !== data.purchasedQuantity ||
+            previous.isObsolete ||
             previous.isChecked !== data.isChecked
           ) {
             await tx.groceryItem.update({ where: { id: previous.id }, data });
@@ -153,10 +155,10 @@ export class GroceryService {
       const obsoleteIds: string[] = [];
       for (const previous of old.values()) {
         if (duplicates.has(previous.id) || keys.has(groceryItemKey(previous.ingredientName, previous.unit))) continue;
-        if (previous.purchasedQuantity > 0)
+        if (previous.purchasedQuantity > 0 || previous.isChecked)
           await tx.groceryItem.update({
             where: { id: previous.id },
-            data: { quantity: 0, isChecked: true, sourceMealCount: 0 },
+            data: { isObsolete: true },
           });
         else obsoleteIds.push(previous.id);
       }
@@ -166,6 +168,7 @@ export class GroceryService {
         data: { planGroupId, isStale: false, generatedAt: new Date() },
         include: { groceryItems: true },
       });
+      updated.groceryItems = updated.groceryItems.filter((item) => !item.isObsolete);
       // Publication readiness includes a successfully committed grocery
       // projection. Re-run lifecycle derivation in this same transaction so a
       // failed aggregation cannot leave the cycle marked READY_TO_SHOP.
@@ -194,7 +197,7 @@ export class GroceryService {
     if (!cycle) return null;
     const list = await prisma.groceryList.findFirst({
       where: { userId, planGroupId: cycle.id },
-      include: { groceryItems: { orderBy: { ingredientName: 'asc' } } },
+      include: { groceryItems: { where: { isObsolete: false }, orderBy: { ingredientName: 'asc' } } },
     });
     // A stale flag is durable work: reads retry the projection and never return stale quantities.
     if (!list || list.isStale || !list.planGroupId) {
@@ -278,7 +281,7 @@ export class GroceryService {
       knownClearedIds ?? MealPlanCycleService.getClearedMealPlanIds(userId, cycle.id, now),
       prisma.groceryList.findFirst({
         where: { userId, planGroupId: cycle.id },
-        include: { groceryItems: { orderBy: { ingredientName: 'asc' } } },
+        include: { groceryItems: { where: { isObsolete: false }, orderBy: { ingredientName: 'asc' } } },
       }),
     ]);
     const clearedMeals = await prisma.mealPlan.findMany({
@@ -399,7 +402,7 @@ export class GroceryService {
       async (tx) => {
         await lockUserProfile(tx, userId);
         const first = await tx.groceryItem.findFirst({
-          where: { id: itemIds[0], groceryList: { userId, isStale: false } },
+          where: { id: itemIds[0], isObsolete: false, groceryList: { userId, isStale: false } },
           include: {
             groceryList: {
               select: {
@@ -423,7 +426,9 @@ export class GroceryService {
         if (!first) throw new Error('Shopping list changed. Refresh before updating the checklist.');
         await this.assertListActionableForShopping(tx, userId, first.groceryList);
         const ids = [...new Set(itemIds)];
-        const count = await tx.groceryItem.count({ where: { id: { in: ids }, groceryListId: first.groceryList.id } });
+        const count = await tx.groceryItem.count({
+          where: { id: { in: ids }, isObsolete: false, groceryListId: first.groceryList.id },
+        });
         if (count !== ids.length) throw new Error('Shopping list changed. Refresh before updating the checklist.');
         if (
           !first.groceryList.cycle.shoppingStartedAt &&
@@ -436,9 +441,11 @@ export class GroceryService {
         SET "isChecked" = ${checked},
             "isPantryStaple" = false,
             "purchasedQuantity" = CASE WHEN ${checked} THEN COALESCE("quantity", 0) ELSE 0 END
-        WHERE "groceryListId" = ${first.groceryList.id} AND "id" IN (${Prisma.join(ids)})
+        WHERE "groceryListId" = ${first.groceryList.id} AND "id" IN (${Prisma.join(ids)}) AND "isObsolete" = false
       `;
-        return tx.groceryItem.findMany({ where: { id: { in: ids }, groceryListId: first.groceryList.id } });
+        return tx.groceryItem.findMany({
+          where: { id: { in: ids }, isObsolete: false, groceryListId: first.groceryList.id },
+        });
       },
       { timeout: 90_000 }
     );
@@ -449,7 +456,7 @@ export class GroceryService {
       async (tx) => {
         await lockUserProfile(tx, userId);
         const item = await tx.groceryItem.findFirst({
-          where: { id: itemId, groceryList: { userId, isStale: false } },
+          where: { id: itemId, isObsolete: false, groceryList: { userId, isStale: false } },
           include: {
             groceryList: {
               select: {
@@ -495,7 +502,7 @@ export class GroceryService {
       async (tx) => {
         await lockUserProfile(tx, userId);
         const item = await tx.groceryItem.findFirst({
-          where: { id: itemId, groceryList: { userId } },
+          where: { id: itemId, isObsolete: false, groceryList: { userId } },
           include: {
             groceryList: {
               select: {

@@ -109,6 +109,7 @@ async function main() {
     await prisma.$transaction(async (tx) => {
       await lockUserProfile(tx, user);
       await tx.allergy.create({ data: { userId: user, allergen: 'EGGS' } });
+      await tx.healthCondition.create({ data: { userId: user, condition: 'DIABETES' } });
       await advanceSafetyRevision(tx, user);
     });
     report = await reports.generateReport(user);
@@ -121,6 +122,7 @@ async function main() {
     await prisma.$transaction(async (tx) => {
       await lockUserProfile(tx, user);
       await tx.allergy.deleteMany({ where: { userId: user } });
+      await tx.healthCondition.deleteMany({ where: { userId: user } });
       await advanceSafetyRevision(tx, user);
     });
     await prisma.membershipGrant.update({ where: { id: lifestyle2.id }, data: { revokedAt: new Date() } });
@@ -132,6 +134,7 @@ async function main() {
     await prisma.$transaction(async (tx) => {
       await lockUserProfile(tx, user);
       await tx.allergy.create({ data: { userId: user, allergen: 'EGGS' } });
+      await tx.healthCondition.create({ data: { userId: user, condition: 'DIABETES' } });
       await advanceSafetyRevision(tx, user);
     });
     report = await reports.generateReport(user);
@@ -147,10 +150,11 @@ async function main() {
     assert.equal((await membership.state(user)).tier, 'LIFESTYLE');
     await assert.rejects(membership.assertNewPlan(user, now), { errorCode: 'CASE_MEMBERSHIP_REQUIRED' });
     // Buying Lifestyle before the trial begins does not remove its pending Health trial.
-    // Removing an accepted allergy is still a health-context update, even with no remaining case.
+    // Removing an accepted condition is still a case-context update, even with no remaining case.
     await prisma.$transaction(async (tx) => {
       await lockUserProfile(tx, user);
       await tx.allergy.deleteMany({ where: { userId: user } });
+      await tx.healthCondition.deleteMany({ where: { userId: user } });
       await advanceSafetyRevision(tx, user);
     });
     report = await reports.generateReport(user);

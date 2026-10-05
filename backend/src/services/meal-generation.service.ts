@@ -26,6 +26,8 @@ import { ClinicalEvidenceService } from './clinical-evidence.service';
 import { ClinicalProfileReviewService } from './clinical-profile-review.service';
 import { missingMealSlots } from '@/domain/meal-generation-gap.policy';
 import { MealAiQueueService } from './meal-ai-queue.service';
+import { AppError } from '@/errors/AppError';
+import { emptyFailedPlanWindow } from './empty-plan-retry.service';
 
 export class MealGenerationService {
   private static readonly GENERATION_JOB_TTL_MS = 20 * 60 * 1000;
@@ -51,7 +53,7 @@ export class MealGenerationService {
     await ClinicalEvidenceService.assertReadyForMealPlanning(userId);
     await ClinicalProfileReviewService.assertReadyForMealPlanning(userId);
     const currentCycle = await MealPlanCycleService.getCurrentCycle(userId, now);
-    if (currentCycle) return currentCycle.id;
+    if (currentCycle) return (await this.retryEmptyFailedCycle(userId, currentCycle.id)) ?? currentCycle.id;
 
     const { profile } = await loadPlanningNutritionContext(prisma, userId, 'Profile missing.');
     const window = getOnDemandMealPlanWindow(
@@ -91,6 +93,11 @@ export class MealGenerationService {
     });
 
     return existingCycle?.id ?? null;
+  }
+
+  static async retryEmptyFailedCycle(userId: string, cycleId: string): Promise<string | null> {
+    const window = await emptyFailedPlanWindow(userId, cycleId);
+    return window ? this.generateWindowOnce(userId, window, true, undefined, cycleId) : null;
   }
 
   /**
@@ -161,7 +168,8 @@ export class MealGenerationService {
     userId: string,
     window: MealPlanGenerationWindow,
     replaceExisting = false,
-    requestKey?: string
+    requestKey?: string,
+    expectedEmptyCycleId?: string
   ): Promise<string> {
     await ClinicalEvidenceService.assertReadyForMealPlanning(userId);
     await ClinicalProfileReviewService.assertReadyForMealPlanning(userId);
@@ -241,7 +249,11 @@ export class MealGenerationService {
         },
       });
       if (reclaimed.count !== 1) {
-        throw new Error('Meal plan generation is already in progress for this cycle.');
+        throw new AppError(
+          'Meal plan generation is already in progress for this cycle.',
+          409,
+          'GENERATION_IN_PROGRESS'
+        );
       }
     }
 
@@ -260,7 +272,8 @@ export class MealGenerationService {
         window.numDays,
         window.startDate,
         job.id,
-        membershipReservations.filter((row) => !row.replayed).map((row) => row.id)
+        membershipReservations.filter((row) => !row.replayed).map((row) => row.id),
+        expectedEmptyCycleId
       );
       const cycle = await prisma.mealPlanCycle.findUniqueOrThrow({
         where: { id: planGroupId },

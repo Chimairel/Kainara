@@ -13,6 +13,8 @@ import { buildBaseServingPersistence } from './meal-plan-serving.service';
 
 import { CertifiedSlotFallbackService } from './certified-slot-fallback.service';
 import { sourceRawRecipeCandidates } from './raw-recipe-candidate.service';
+import { savePreparedCorpusMeal } from './meal-plan-corpus-persistence.service';
+import { assertFoodCompositionRevisions } from './generation-integrity.service';
 import { prepareGeneratedMealIngredients } from './meal-generation-ingredient-preparation.service';
 import { splitCustomRestrictions, validateGeneratedMealCandidate } from '@/domain/generated-meal-validation.policy';
 import { buildReviewWorkKey } from '@/domain/upcoming-preparation.policy';
@@ -127,7 +129,19 @@ export async function rejectMealPlan(nutritionistProfileId: string, mealPlanId: 
 
   // Generate a replacement only after the rejection decision commits.
   try {
-    const { profile } = await loadPlanningNutritionContext(prisma, plan.userId, 'Planning profile missing.');
+    const { profile, planningTargets } = await loadPlanningNutritionContext(
+      prisma,
+      plan.userId,
+      'Planning profile missing.'
+    );
+    if (profile.revision !== plan.user.userProfile?.revision)
+      throw new Error('User information changed during replacement. Reopen this review.');
+    const riceFood =
+      profile.ricePreference === 'NO_RICE'
+        ? null
+        : await prisma.foodItem.findFirst({
+            where: { source: 'FNRI', name: { equals: 'Rice, well-milled, boiled', mode: 'insensitive' } },
+          });
     const safetyRestrictions = adaptUserSafetyRestrictions({
       safetyEntries: plan.user.safetyProfileEntries,
       healthConditions: plan.user.healthConditions.map((item) => item.condition),
@@ -146,6 +160,9 @@ export async function rejectMealPlan(nutritionistProfileId: string, mealPlanId: 
       allergens: safetyRestrictions.allergies,
       otherConditions: profile?.otherConditions,
       otherAllergies: profile?.otherAllergies,
+      planningTargets,
+      ricePreference: profile.ricePreference,
+      riceFood,
       excludeCandidateIds: plan.sourceRawRecipeCandidateId ? [plan.sourceRawRecipeCandidateId] : [],
     });
     const rawCandidate = rawResult.meals.find((candidate) => {
@@ -167,68 +184,54 @@ export async function rejectMealPlan(nutritionistProfileId: string, mealPlanId: 
       });
       const meal = prepared.preparedMeals[0];
       if (meal) {
-        const serving = buildBaseServingPersistence({
-          ...meal,
-          ingredients: meal.ingredientsData,
-          evidenceSource: 'RAW_RECIPE_CORPUS_RND_REJECTION_FALLBACK',
-        });
-        const replacement = await prisma.$transaction(async (tx) => {
-          const created = await tx.mealPlan.create({
-            data: {
-              planGroupId: plan.planGroupId,
+        const sourceEvidence = meal.rawCandidateId
+          ? await prisma.rawRecipeCandidate.findUniqueOrThrow({ where: { id: meal.rawCandidateId } })
+          : undefined;
+        if (riceFood) prepared.compositionRevisions.set(riceFood.id, riceFood.compositionRevision);
+        const replacement = await prisma.$transaction(
+          async (tx) => {
+            await lockUserProfile(tx, plan.userId);
+            const latest = await tx.userProfile.findUniqueOrThrow({ where: { userId: plan.userId } });
+            if (latest.revision !== profile.revision || latest.safetyRevision !== profile.safetyRevision)
+              throw new Error('User information changed during replacement. Reopen this review.');
+            await assertFoodCompositionRevisions(tx, prepared.compositionRevisions);
+            const created = await savePreparedCorpusMeal(tx, {
+              meal,
+              autoGeneralBase: false,
+              sourceEvidence,
               userId: plan.userId,
-              status: MealPlanStatus.PENDING_REVIEW,
-              candidateProvenance: 'RAW_RECIPE_CORPUS',
-              sourceRawRecipeCandidateId: meal.rawCandidateId,
+              planGroupId: plan.planGroupId,
               planType: plan.planType,
-              mealType: plan.mealType,
-              mealName: meal.mealName,
-              description: meal.description,
-              calories: meal.calories,
-              proteinG: meal.proteinG,
-              carbsG: meal.carbsG,
-              fatG: meal.fatG,
-              aiConfidenceFlag: meal.aiConfidenceFlag,
-              scheduledDate: plan.scheduledDate,
-              requiresSafetyRevalidation: true,
-              safetyPolicyVersion: MEAL_PLAN_SAFETY_POLICY_VERSION,
               highRiskReviewRequired: plan.highRiskReviewRequired,
-              reviewWorkKey: buildReviewWorkKey({
-                recipeSignature: serving.baseRecipeSignature,
-                evidenceRevision: 1,
-                conditions,
-                allergens,
-                safetyScopeKey: mealApprovalSafetyScope({
-                  conditions: safetyRestrictions.conditions,
-                  allergens: safetyRestrictions.allergies,
-                  otherConditions: profile?.otherConditions,
-                  otherAllergies: profile?.otherAllergies,
-                  safetyEntries: plan.user.safetyProfileEntries,
-                }).key,
-                policyVersion: MEAL_PLAN_SAFETY_POLICY_VERSION,
-                requiredReviewerCount: 1,
-              }),
-              candidateRank: meal.candidateRank ?? 1,
-              rankingScore: meal.rankingScore,
-              rankingReasonCodes: meal.rankingReasonCodes ?? [],
+              userConditions: safetyRestrictions.conditions,
+              userAllergens: safetyRestrictions.allergies,
+              planConditions: conditions,
+              otherConditions: profile.otherConditions,
+              otherAllergies: profile.otherAllergies,
+              safetyEntries: plan.user.safetyProfileEntries,
+              riceFood,
               selectionEvidence: {
                 schemaVersion: 1,
                 source: 'RAW_RECIPE_CORPUS',
                 fallbackReasonCode: 'RND_REJECTION_RAW_CORPUS_CANDIDATE',
-                rankingScore: meal.rankingScore,
+                rankingScore: meal.rankingScore ?? null,
                 rankingReasonCodes: meal.rankingReasonCodes ?? [],
                 capturedAt: new Date().toISOString(),
               },
-              ingredients: { create: meal.ingredientsData },
-              ...serving,
-            },
-          });
-          await tx.mealPlan.update({
-            where: { id: plan.id },
-            data: { supersededByMealPlanId: created.id, fallbackAvailable: true },
-          });
-          return created;
-        });
+            });
+            const linked = await tx.mealPlan.updateMany({
+              where: { id: plan.id, status: MealPlanStatus.REJECTED, supersededByMealPlanId: null },
+              data: { supersededByMealPlanId: created.id, fallbackAvailable: true },
+            });
+            if (linked.count !== 1) throw new Error('Rejected slot changed during replacement. Refresh the queue.');
+            await tx.groceryList.updateMany({
+              where: { userId: plan.userId, planGroupId: plan.planGroupId },
+              data: { isStale: true },
+            });
+            return created;
+          },
+          { isolationLevel: Prisma.TransactionIsolationLevel.Serializable }
+        );
         return { success: true, replacementPlanId: replacement.id, source: 'RAW_RECIPE_CORPUS' };
       }
     }

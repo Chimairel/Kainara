@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import type { Prisma } from '@prisma/client';
+import { AppError } from '../src/errors/AppError';
 import prisma from '../src/lib/prisma';
 import { MealPlanCycleService } from '../src/services/meal-plan-cycle.service';
 import { updateScheduledMealStatus } from '../src/services/scheduled-meal-log.service';
@@ -64,7 +65,12 @@ for (const scenario of ['missing', 'pending', 'uncleared', 'ready'] as const) {
     if (scenario !== 'ready') {
       await assert.rejects(
         () => updateScheduledMealStatus('patient', 'slot', 'DONE'),
-        scenario === 'missing' ? /not found/ : scenario === 'pending' ? /not currently loggable/ : /safety revalidation/
+        scenario === 'pending'
+          ? /not currently loggable/
+          : (error: unknown) =>
+              error instanceof AppError &&
+              error.statusCode === (scenario === 'missing' ? 404 : 409) &&
+              error.errorCode === (scenario === 'missing' ? 'MEAL_PLAN_NOT_FOUND' : 'MEAL_SAFETY_REVALIDATION_REQUIRED')
       );
       assert.equal(written, undefined);
     } else {

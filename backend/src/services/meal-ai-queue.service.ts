@@ -33,6 +33,7 @@ import {
   requiresEscalatedMealReview,
 } from '@/domain/meal-plan-production-safety.policy';
 import { MealPlanCycleService } from './meal-plan-cycle.service';
+import { MealGenerationService } from './meal-generation.service';
 
 const LEASE_MS = 20 * 60_000;
 const FAIR_TURN_MS = 5_000;
@@ -91,6 +92,7 @@ export class MealAiQueueService {
       !missingMealSlots(cycle.startDate, cycle.expectedSlotCount, cycle.mealPlans).length
     )
       return false;
+    if (!cycle.mealPlans.length && (await MealGenerationService.retryEmptyFailedCycle(userId, cycleId))) return true;
     const updated = await prisma.mealPlanGenerationJob.updateMany({
       where: { userId, planGroupId: cycleId, status: MealPlanGenerationJobStatus.FAILED },
       data: {
