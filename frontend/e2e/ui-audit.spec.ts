@@ -119,7 +119,7 @@ for (const width of [390, 1440]) {
     const item = {
       id: 'stocked-salt',
       ingredientName: 'Stocked salt',
-      category: 'Condiments',
+      category: 'Pantry',
       isChecked: false,
       isPantryStaple: true,
       quantity: 2,
@@ -173,6 +173,11 @@ for (const width of [390, 1440]) {
     const ready = page.getByRole('checkbox', { name: 'Mark as needed: Stocked salt', exact: true });
     await expect(ready).toBeChecked();
     await expect(page.getByRole('columnheader', { name: 'Pantry' })).toHaveCount(0);
+    await expect(page.getByRole('cell', { name: 'Other', exact: true })).toBeVisible();
+    await page.getByRole('combobox', { name: 'Filter by department category', exact: true }).click();
+    await expect(page.getByRole('option', { name: /Pantry/ })).toHaveCount(0);
+    await page.getByRole('option', { name: 'Other (1)', exact: true }).click();
+    await expect(ready).toBeVisible();
     const currentTab = page
       .getByRole('navigation', { name: 'Grocery week', exact: true })
       .getByRole('button', { name: 'Current week', exact: true });

@@ -151,7 +151,7 @@ describe('grocery checklist', () => {
   });
 
   it('shows saved pantry stock as available and clears it through the checkbox', async () => {
-    const stocked = { ...salt, isPantryStaple: true };
+    const stocked = { ...salt, category: 'Pantry', isPantryStaple: true };
     get.mockResolvedValueOnce({
       data: {
         success: true,
@@ -171,6 +171,8 @@ describe('grocery checklist', () => {
     render(<GroceryListPage />);
     expect(await screen.findByRole('checkbox', { name: 'Mark as needed: Salt' })).toBeChecked();
     expect(screen.getByText('1 of 2 items ready')).toBeInTheDocument();
+    expect(screen.getByText('Other')).toBeInTheDocument();
+    expect(screen.queryByText('Pantry')).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: /Have it/ }));
     expect(screen.queryByRole('checkbox', { name: 'Mark as available: Rice' })).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole('checkbox', { name: 'Mark as needed: Salt' }));

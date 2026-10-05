@@ -3,6 +3,7 @@
 import CardDecoration from '@/components/ui/CardDecoration';
 import Dropdown from '@/components/ui/Dropdown';
 import WorkspaceTabs from '@/components/ui/WorkspaceTabs';
+import { normalizeGroceryCategory as normalizeCategory } from '@/features/grocery/grocery-display';
 import { useVisiblePolling } from '@/hooks/useVisiblePolling';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
@@ -24,8 +25,6 @@ import {
 import { AlertTriangle, ChevronDown, Download, Filter, Loader2, RotateCcw, Search, X } from 'lucide-react';
 
 type GroceryFilter = 'all' | 'remaining' | 'available';
-
-const normalizeCategory = (category?: string) => category?.trim() || 'Other';
 
 export default function GroceryListPage() {
   const { user } = useAuth();
@@ -203,7 +202,7 @@ export default function GroceryListPage() {
         const matchesQuery =
           !normalizedQuery ||
           item.ingredientName.toLowerCase().includes(normalizedQuery) ||
-          (item.category || '').toLowerCase().includes(normalizedQuery);
+          normalizeCategory(item.category).toLowerCase().includes(normalizedQuery);
 
         const matchesStatus =
           filter === 'all' ||
@@ -219,7 +218,7 @@ export default function GroceryListPage() {
         if (sortField === 'name') {
           diff = a.ingredientName.localeCompare(b.ingredientName);
         } else if (sortField === 'category') {
-          diff = (a.category || '').localeCompare(b.category || '');
+          diff = normalizeCategory(a.category).localeCompare(normalizeCategory(b.category));
         } else if (sortField === 'quantity') {
           diff = (a.quantity ?? 0) - (b.quantity ?? 0);
         } else if (sortField === 'status') {

@@ -27,7 +27,7 @@ const mockItems: GroceryItem[] = [
   {
     id: 'item-3',
     ingredientName: 'Soy sauce',
-    category: 'Condiments',
+    category: 'Pantry',
     isChecked: false,
     quantity: 2,
     unit: 'tbsp',
@@ -61,7 +61,8 @@ describe('GroceryTable', () => {
     // Categories
     expect(screen.getByText('Produce')).toBeInTheDocument();
     expect(screen.getByText('Meat & Poultry')).toBeInTheDocument();
-    expect(screen.getByText('Condiments')).toBeInTheDocument();
+    expect(screen.getByText('Other')).toBeInTheDocument();
+    expect(screen.queryByText('Pantry')).not.toBeInTheDocument();
 
     // Summary count
     expect(screen.getByText(/Showing/)).toBeInTheDocument();

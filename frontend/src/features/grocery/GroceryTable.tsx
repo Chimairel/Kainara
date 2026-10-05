@@ -3,7 +3,7 @@
 import React from 'react';
 import { ArrowDown, ArrowUp, ArrowUpDown, CircleCheckBig } from 'lucide-react';
 import { isGroceryItemAvailable, type GroceryItem } from './current-grocery';
-import { formatGroceryItemDisplay, getCategoryStyle } from './grocery-display';
+import { formatGroceryItemDisplay, getCategoryStyle, normalizeGroceryCategory } from './grocery-display';
 import { CircularCheckbox } from '@/components/watermelon/checkbox-14';
 
 export type GrocerySortField = 'name' | 'category' | 'quantity' | 'status';
@@ -118,7 +118,8 @@ export default function GroceryTable({
           <tbody className="divide-y divide-brand-border/40 font-medium">
             {items.map((item, idx) => {
               const display = formatGroceryItemDisplay(item);
-              const catStyle = getCategoryStyle(item.category || 'Other');
+              const category = normalizeGroceryCategory(item.category);
+              const catStyle = getCategoryStyle(category);
               const available = isGroceryItemAvailable(item);
 
               return (
@@ -171,7 +172,7 @@ export default function GroceryTable({
                     <span
                       className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[10px] font-bold ${catStyle.badgeBg}`}
                     >
-                      {item.category || 'Other'}
+                      {category}
                     </span>
                   </td>
 

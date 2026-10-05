@@ -8,6 +8,11 @@ export interface FormattedGroceryDisplay {
   isMeasured: boolean;
 }
 
+export function normalizeGroceryCategory(category?: string): string {
+  const value = category?.trim() || 'Other';
+  return /^pantry(?:\s+staples)?$/i.test(value) ? 'Other' : value;
+}
+
 // Map common decimal fractions to clean typographic fractions
 function formatFraction(val: number): string {
   if (val <= 0) return '0';
