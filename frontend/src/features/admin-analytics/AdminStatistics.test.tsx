@@ -40,3 +40,39 @@ it('does not present zero metrics when loading has failed', () => {
   fireEvent.click(screen.getByRole('button', { name: 'Retry' }));
   expect(mocks.query.refetch).toHaveBeenCalledOnce();
 });
+
+it('switches between Platform Totals, Review signals + Library evidence, and Recorded AI activity tabs', () => {
+  const { container } = render(<AdminStatistics />);
+  const totalsTab = screen.getByRole('button', { name: /Platform Totals/i });
+  const reviewTab = screen.getByRole('button', { name: /Review & preparation signals/i });
+  const aiTab = screen.getByRole('button', { name: /Recorded AI activity/i });
+
+  expect(totalsTab).toBeInTheDocument();
+  expect(reviewTab).toBeInTheDocument();
+  expect(aiTab).toBeInTheDocument();
+
+  // Initially on Platform Totals
+  const totalsPanel = container.querySelector('#analytics-tab-totals');
+  const reviewPanel = container.querySelector('#analytics-tab-review-signals');
+  const aiPanel = container.querySelector('#analytics-tab-ai-activity');
+
+  expect(totalsPanel).not.toHaveAttribute('hidden');
+  expect(reviewPanel).toHaveAttribute('hidden');
+  expect(aiPanel).toHaveAttribute('hidden');
+
+  // Switch to Review & preparation signals
+  fireEvent.click(reviewTab);
+  expect(totalsPanel).toHaveAttribute('hidden');
+  expect(reviewPanel).not.toHaveAttribute('hidden');
+  expect(aiPanel).toHaveAttribute('hidden');
+
+  // Library evidence is inside the same tab panel as review & prep signals
+  expect(reviewPanel).toContainElement(screen.getByText('Recorded library evidence'));
+
+  // Switch to Recorded AI activity
+  fireEvent.click(aiTab);
+  expect(totalsPanel).toHaveAttribute('hidden');
+  expect(reviewPanel).toHaveAttribute('hidden');
+  expect(aiPanel).not.toHaveAttribute('hidden');
+});
+

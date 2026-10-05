@@ -79,10 +79,16 @@ export default function AdminSafetyPanel({ active = true }: { active?: boolean }
         <p className="portal-section-label mb-4">Pending safety flags</p>
         <div className="space-y-3">
           {!loading && query.data && incidents.length === 0 && (
-            <Card className="p-6 text-sm text-brand-muted">No pending meal-library safety flags.</Card>
+            <Card variant="subtle" className="flex flex-col items-center justify-center p-8 text-center text-sm text-brand-muted">
+              <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-brand-green/10 text-brand-green mb-3">
+                <ShieldCheck className="h-5 w-5" />
+              </span>
+              <p className="font-bold text-brand-text">No pending meal-library safety flags</p>
+              <p className="mt-1 text-xs text-brand-muted">All active library meals are currently cleared without unresolved reports.</p>
+            </Card>
           )}
           {incidents.map((incident) => (
-            <Card key={incident.id} className="p-5">
+            <Card key={incident.id} variant="signal" className="border-amber-500/30 p-5">
               <div className="flex items-start gap-4">
                 <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-amber-500/10 text-amber-500">
                   <AlertTriangle className="h-5 w-5" />
@@ -122,11 +128,11 @@ export default function AdminSafetyPanel({ active = true }: { active?: boolean }
           </div>
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             {structuredSafety.entries.map((entry) => (
-              <Card key={`${entry.domain}-${entry.supportState}`} className="p-4">
+              <Card key={`${entry.domain}-${entry.supportState}`} variant="metric" className="p-4 sm:p-5">
                 <p className="font-mono text-[9px] font-bold uppercase tracking-wider text-brand-muted">
                   {entry.domain.replaceAll('_', ' ')}
                 </p>
-                <p className="mt-2 text-2xl font-black text-brand-text">{entry.count}</p>
+                <p className="mt-2 font-display text-2xl font-black text-brand-text">{entry.count}</p>
                 <p className="mt-1 text-xs font-semibold text-brand-muted">{entry.supportState.replaceAll('_', ' ')}</p>
               </Card>
             ))}
@@ -134,12 +140,15 @@ export default function AdminSafetyPanel({ active = true }: { active?: boolean }
         </section>
       )}
 
-      <Link
-        href="/admin/audit"
-        className="inline-flex min-h-11 items-center rounded-xl border border-brand-border px-4 py-2 text-sm font-bold text-brand-green"
-      >
-        View full audit history →
-      </Link>
+      <div>
+        <Link
+          href="/admin/audit"
+          className="inline-flex min-h-11 items-center gap-1.5 rounded-2xl border border-brand-border bg-brand-surface px-4 py-2.5 text-xs font-bold text-brand-green shadow-xs hover:border-brand-green/40 hover:underline"
+        >
+          <span>View full audit history</span>
+          <span>→</span>
+        </Link>
+      </div>
     </div>
   );
 }

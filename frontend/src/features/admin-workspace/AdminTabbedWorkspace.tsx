@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, type ReactNode } from 'react';
+import type { LucideIcon } from 'lucide-react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/Tabs';
 import PortalPageHeader from '@/components/shared/PortalPageHeader';
@@ -10,6 +11,7 @@ import { useAuth } from '@/hooks/useAuth';
 export interface AdminWorkspaceTab {
   id: string;
   label: string;
+  icon?: LucideIcon;
   render: (active: boolean) => ReactNode;
 }
 
@@ -48,11 +50,15 @@ export default function AdminTabbedWorkspace({
         }}
       >
         <TabsList aria-label={`${title} sections`} className="overflow-x-auto">
-          {tabs.map((tab) => (
-            <TabsTrigger key={tab.id} value={tab.id} className="min-h-11 flex-1">
-              {tab.label}
-            </TabsTrigger>
-          ))}
+          {tabs.map((tab) => {
+            const Icon = tab.icon;
+            return (
+              <TabsTrigger key={tab.id} value={tab.id} className="min-h-11 flex-1 gap-2">
+                {Icon && <Icon className="h-4 w-4 shrink-0" aria-hidden="true" />}
+                <span>{tab.label}</span>
+              </TabsTrigger>
+            );
+          })}
         </TabsList>
         {/* Retain visited forms. Inactive panels disable polling through their active prop. */}
         {tabs
