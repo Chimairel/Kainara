@@ -23,7 +23,7 @@ export const Button: React.FC<ButtonProps> = ({
     primary:
       'border border-[#d95d2c] bg-gradient-to-r from-[#eb6a38] via-[#ed7847] to-[#f09e6c] text-white font-extrabold shadow-sm hover:-translate-y-0.5 hover:brightness-105 active:scale-[0.98]',
     secondary:
-      'border border-brand-border bg-brand-surface text-brand-text shadow-sm backdrop-blur-md hover:-translate-y-0.5 hover:border-[#f09e6c]/60 hover:bg-brand-bgAlt dark:border-[#173e33] dark:bg-[#0e271f] dark:text-white',
+      'border border-brand-border bg-gradient-to-r from-brand-green/[0.09] via-brand-surface/60 to-brand-surface dark:from-[#091f19] dark:via-[#0e271f] dark:to-[#173e33] text-brand-text shadow-sm backdrop-blur-md hover:-translate-y-0.5 hover:border-[#f09e6c]/60 hover:from-brand-green/[0.13] hover:to-brand-surface dark:hover:from-[#0c2a22] dark:hover:to-[#1a473b] dark:border-[#173e33] dark:text-white',
     accent:
       'border border-[#d95d2c] bg-gradient-to-r from-[#eb6a38] to-[#f09e6c] text-white shadow-sm hover:-translate-y-0.5 hover:brightness-105 font-bold',
     danger:

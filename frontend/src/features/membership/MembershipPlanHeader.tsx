@@ -128,7 +128,7 @@ export default function MembershipPlanHeader({ data, onOpenPlans, onRefresh }: M
             onClick={onRefresh}
             aria-label="Refresh membership status"
             title="Refresh membership status"
-            className="flex h-9 w-9 items-center justify-center rounded-2xl border border-[#dce4e0] dark:border-[#173e33] bg-white/80 dark:bg-[#0a201a] text-[#5a746a] dark:text-white/80 hover:text-brand-text hover:bg-white dark:hover:bg-[#0e271f] transition-all shadow-xs"
+            className="flex h-9 w-9 items-center justify-center rounded-2xl border border-[#dce4e0] dark:border-[#173e33] bg-gradient-to-r from-brand-green/[0.09] via-white/80 to-white dark:from-[#091f19] dark:via-[#0a201a] dark:to-[#173e33] text-[#5a746a] dark:text-white/80 hover:text-brand-text hover:border-[#f09e6c]/60 transition-all shadow-xs"
           >
             <RefreshCw className="h-4 w-4" />
           </button>
