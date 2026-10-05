@@ -32,7 +32,7 @@ export function ApplicationSidebar() {
   return (
     <aside className="relative overflow-hidden rounded-[32px] border border-[#173e33] bg-[#071914] p-6 sm:p-8 text-white shadow-2xl">
       {/* Brand Retro Wave Corner Accent (Matching landing page style) */}
-      <CardDecoration style="varied" seed="ApplicationSidebar.tsx" />
+      <CardDecoration variant="application" />
 
       {/* Watermark Logo */}
 

@@ -36,8 +36,8 @@ describe('MealHistoryCard', () => {
 
     expect(screen.getByText('Breakfast')).toBeInTheDocument();
     expect(screen.getByText('Hearty Pandesal with Peanut Butter, Boiled Eggs, and Butter')).toBeInTheDocument();
-    expect(screen.getByText('859 kcal')).toBeInTheDocument();
-    expect(screen.getByText('40g protein')).toBeInTheDocument();
+    expect(screen.getByRole('article')).toHaveTextContent('859 kcal');
+    expect(screen.getByRole('article')).toHaveTextContent('40g protein');
     expect(screen.getByText(/Felt very energized after eating/i)).toBeInTheDocument();
     expect(screen.getByText('DONE')).toBeInTheDocument();
   });

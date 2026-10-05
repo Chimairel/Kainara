@@ -1,7 +1,7 @@
 'use client';
 
 import Dropdown from '@/components/ui/Dropdown';
-import { compactMealClasses, MealPlate } from '@/components/user/MealCardPresentation';
+import { dashboardMealCardClasses, DashboardMealPlate } from '@/components/user/DashboardMealCardSurface';
 import { formatMealTitle } from '@/lib/meal-title';
 import { useState, useMemo, useEffect } from 'react';
 import Button from '@/components/ui/Button';
@@ -132,7 +132,7 @@ export function MealsWorkspaceModals({ workspace }: Props) {
                   </div>
 
                   <div className="flex items-center gap-3 sm:gap-3.5">
-                    <MealPlate
+                    <DashboardMealPlate
                       className={`relative h-16 w-16 sm:h-18 sm:w-18 shrink-0 rounded-full p-1 sm:p-1.5 bg-white dark:bg-[#12362c] shadow-[0_8px_20px_-3px_rgba(0,0,0,0.25),0_3px_8px_rgba(0,0,0,0.1)] dark:shadow-[0_10px_24px_rgba(0,0,0,0.7)] ${currentTheme?.plateRim} z-10`}
                     >
                       <MealImage
@@ -142,7 +142,7 @@ export function MealsWorkspaceModals({ workspace }: Props) {
                         variant="thumbnail"
                         className="!rounded-full !border-0 h-full w-full object-cover"
                       />
-                    </MealPlate>
+                    </DashboardMealPlate>
                     <div className="min-w-0 flex-1">
                       <h4 className="font-display text-sm sm:text-base font-bold text-white line-clamp-2 leading-snug min-h-[2.5rem] flex items-start">
                         {formatMealTitle(activeSwapMeal.mealName)}
@@ -196,7 +196,7 @@ export function MealsWorkspaceModals({ workspace }: Props) {
               {/* Right Card: Selected Candidate or Prompt */}
               {confirmSwapMeal && replacementTheme ? (
                 <div
-                  className={`${compactMealClasses(confirmSwapMeal.mealType ?? activeSwapMeal.mealType)} flex flex-col justify-between rounded-[22px] p-3.5 sm:p-4 min-h-[156px]`}
+                  className={`${dashboardMealCardClasses(confirmSwapMeal.mealType ?? activeSwapMeal.mealType)} flex flex-col justify-between rounded-[22px] p-3.5 sm:p-4 min-h-[156px]`}
                 >
                   <div>
                     <div className="flex items-center justify-between gap-2 mb-2">
@@ -226,7 +226,7 @@ export function MealsWorkspaceModals({ workspace }: Props) {
                     </div>
 
                     <div className="flex items-center gap-3 sm:gap-3.5">
-                      <MealPlate
+                      <DashboardMealPlate
                         className={`relative h-16 w-16 sm:h-18 sm:w-18 shrink-0 rounded-full p-1 sm:p-1.5 bg-white dark:bg-[#12362c] shadow-[0_8px_20px_-3px_rgba(0,0,0,0.25),0_3px_8px_rgba(0,0,0,0.1)] dark:shadow-[0_10px_24px_rgba(0,0,0,0.7)] ${replacementTheme.plateRim} z-10`}
                       >
                         <MealImage
@@ -236,7 +236,7 @@ export function MealsWorkspaceModals({ workspace }: Props) {
                           variant="thumbnail"
                           className="!rounded-full !border-0 h-full w-full object-cover"
                         />
-                      </MealPlate>
+                      </DashboardMealPlate>
                       <div className="min-w-0 flex-1">
                         <h4 className="font-display text-sm sm:text-base font-bold text-white line-clamp-2 leading-snug min-h-[2.5rem] flex items-start">
                           {formatMealTitle(confirmSwapMeal.mealName)}
@@ -421,7 +421,7 @@ export function MealsWorkspaceModals({ workspace }: Props) {
                               handleSelectSwapOption(option);
                             }
                           }}
-                          className={`${compactMealClasses(option.mealType ?? activeSwapMeal.mealType)} flex flex-col justify-between rounded-[20px] p-3 sm:p-3.5 transition-all cursor-pointer text-left outline-none ${
+                          className={`${dashboardMealCardClasses(option.mealType ?? activeSwapMeal.mealType)} flex flex-col justify-between rounded-[20px] p-3 sm:p-3.5 transition-all cursor-pointer text-left outline-none ${
                             isSelected
                               ? 'ring-2 ring-white/90 shadow-md scale-[1.01]'
                               : 'hover:brightness-105 hover:shadow-md'
@@ -460,7 +460,7 @@ export function MealsWorkspaceModals({ workspace }: Props) {
                             {/* Plate + Info Layout */}
                             <div className="flex items-center gap-2.5 sm:gap-3">
                               {/* Signature Circular Food Plate */}
-                              <MealPlate
+                              <DashboardMealPlate
                                 className={`relative h-14 w-14 sm:h-16 sm:w-16 shrink-0 rounded-full p-1 bg-white dark:bg-[#12362c] shadow-[0_6px_16px_-2px_rgba(0,0,0,0.22),0_2px_6px_rgba(0,0,0,0.08)] dark:shadow-[0_8px_20px_rgba(0,0,0,0.65)] ${optionTheme.plateRim} z-10 transition-transform duration-200 group-hover:scale-105`}
                               >
                                 <MealImage
@@ -470,7 +470,7 @@ export function MealsWorkspaceModals({ workspace }: Props) {
                                   variant="thumbnail"
                                   className="!rounded-full !border-0 h-full w-full object-cover"
                                 />
-                              </MealPlate>
+                              </DashboardMealPlate>
 
                               <div className="min-w-0 flex-1">
                                 <h4 className="font-display text-xs sm:text-sm font-bold text-white line-clamp-2 leading-snug group-hover:underline underline-offset-2">

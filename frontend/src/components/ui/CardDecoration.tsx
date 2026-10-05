@@ -1,3 +1,5 @@
+import { CARD_DECORATION_VARIANTS, type CardDecorationVariant } from './CardDecorationVariants';
+export type { CardDecorationVariant } from './CardDecorationVariants';
 import { KainaraLogo } from '@/components/shared/KainaraLogo';
 
 export type CardDecorationStyle = 'none' | 'stripes' | 'logo' | 'both' | 'varied';
@@ -12,7 +14,25 @@ export function resolveCardDecoration(
   return (['none', 'stripes', 'logo', 'both'] as const)[hash % 4];
 }
 
-export default function CardDecoration({ style = 'none', seed = '' }: { style?: CardDecorationStyle; seed?: string }) {
+export default function CardDecoration({
+  style = 'none',
+  seed = '',
+  variant = 'default',
+}: {
+  style?: CardDecorationStyle;
+  seed?: string;
+  variant?: CardDecorationVariant;
+}) {
+  if (variant !== 'default')
+    return (
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 z-0 overflow-hidden rounded-[inherit] print:hidden"
+        data-card-decoration-variant={variant}
+      >
+        {CARD_DECORATION_VARIANTS[variant]}
+      </div>
+    );
   const decoration = resolveCardDecoration(style, seed);
   return (
     <div

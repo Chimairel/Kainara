@@ -140,8 +140,7 @@ export default function PlanCalendarCard({ data }: PlanCalendarCardProps) {
 
   return (
     <Card
-      decoration="varied"
-      decorationSeed="plan-schedule"
+      decorationVariant="schedule"
       contentClassName="flex h-full flex-col justify-between"
       aria-label="Plan schedule and validity"
       className="relative overflow-hidden rounded-[28px] sm:rounded-[36px] border border-[#dce4e0] dark:border-[#173e33] bg-[#faf8f5] dark:bg-[#071914] text-[#0d2820] dark:text-white shadow-xl p-6 sm:p-8 flex flex-col justify-between"

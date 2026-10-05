@@ -1,4 +1,5 @@
-import { MealTile, MealMacros } from '@/components/user/MealCardPresentation';
+import { PlanMealCardSurface } from '@/components/user/PlanMealCardSurface';
+import { MealMacros } from '@/components/user/MealMacros';
 import { formatMealTitle } from '@/lib/meal-title';
 import type { PublicMealImage } from '@/types';
 import type { ReactNode } from 'react';
@@ -39,7 +40,7 @@ export default function RecipeLibraryCard({
 
   return (
     <article data-library-variant={variant} className="h-full">
-      <MealTile
+      <PlanMealCardSurface
         mealType={mealType}
         mealName={name}
         image={image}
@@ -71,7 +72,7 @@ export default function RecipeLibraryCard({
             {footer && <div className="mt-3 border-t border-brand-border/40 pt-2.5 text-xs">{footer}</div>}
           </div>
         </div>
-      </MealTile>
+      </PlanMealCardSurface>
     </article>
   );
 }

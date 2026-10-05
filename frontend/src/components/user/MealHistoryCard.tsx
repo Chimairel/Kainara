@@ -2,7 +2,8 @@
 
 import { formatMealTitle } from '@/lib/meal-title';
 
-import { compactMealClasses, MealPlate, MealMacros } from '@/components/user/MealCardPresentation';
+import { DashboardMealCardSurface, DashboardMealPlate } from '@/components/user/DashboardMealCardSurface';
+import { MealMacros } from '@/components/user/MealMacros';
 import React, { useState } from 'react';
 import { Check, ChevronDown, FileText, Loader2, Save, X } from 'lucide-react';
 import type { MealHistoryLog } from '@/features/meals/useMealsWorkspace';
@@ -108,7 +109,7 @@ export default function MealHistoryCard({
   const hasDelta = deltaVal !== null && deltaVal !== undefined;
 
   const foodPlate = (
-    <MealPlate
+    <DashboardMealPlate
       className={`relative -ml-4 sm:-ml-6 md:-ml-7 h-14 w-14 sm:h-16 sm:w-16 md:h-20 md:w-20 shrink-0 rounded-full p-1 sm:p-1.5 bg-white dark:bg-[#12362c] shadow-[0_10px_24px_-3px_rgba(0,0,0,0.22),0_3px_8px_rgba(0,0,0,0.08)] dark:shadow-[0_12px_28px_rgba(0,0,0,0.65)] ${theme.plateRim} z-20 transition-transform duration-300 group-hover:scale-105`}
     >
       <MealImage
@@ -118,11 +119,11 @@ export default function MealHistoryCard({
         hideRepresentativeBadge
         className="!rounded-full !border-0 h-full w-full object-cover"
       />
-    </MealPlate>
+    </DashboardMealPlate>
   );
 
   return (
-    <article className={`${compactMealClasses(mealType)} p-3 sm:py-3.5 sm:px-4.5 ${className}`}>
+    <DashboardMealCardSurface mealType={mealType} className={`p-3 sm:py-3.5 sm:px-4.5 ${className}`}>
       {/* Primary Card Row */}
       <div
         role="button"
@@ -726,6 +727,6 @@ export default function MealHistoryCard({
           </div>
         </div>
       )}
-    </article>
+    </DashboardMealCardSurface>
   );
 }

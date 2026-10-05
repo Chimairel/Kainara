@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { cn } from '@/lib/utils';
-import CardDecoration, { type CardDecorationStyle } from './CardDecoration';
+import CardDecoration, { type CardDecorationStyle, type CardDecorationVariant } from './CardDecoration';
 
 export interface CardProps extends React.HTMLAttributes<HTMLDivElement> {
   header?: React.ReactNode;
@@ -9,6 +9,7 @@ export interface CardProps extends React.HTMLAttributes<HTMLDivElement> {
   contentClassName?: string;
   decoration?: CardDecorationStyle;
   decorationSeed?: string;
+  decorationVariant?: CardDecorationVariant;
 }
 
 export const Card = React.forwardRef<HTMLDivElement, CardProps>(
@@ -21,6 +22,7 @@ export const Card = React.forwardRef<HTMLDivElement, CardProps>(
       contentClassName,
       decoration = 'none',
       decorationSeed,
+      decorationVariant = 'default',
       children,
       ...props
     },
@@ -45,7 +47,7 @@ export const Card = React.forwardRef<HTMLDivElement, CardProps>(
         )}
         {...props}
       >
-        <CardDecoration style={decoration} seed={decorationSeed ?? instanceId} />
+        <CardDecoration variant={decorationVariant} style={decoration} seed={decorationSeed ?? instanceId} />
         {hasLegacySlots ? (
           <>
             {header && <div className="relative z-10 border-b border-brand-border/45 px-6 pb-4 pt-5">{header}</div>}

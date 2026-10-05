@@ -9,8 +9,8 @@ Use these components before copying markup from another page. Role authorization
 | Queue/history with detail pane | `shared/SplitWorkspace`, `WorkspaceListPane` | Nutritionist cases, nutrition guidance |
 | Controlled dropdown | `ui/Select`, `ui/Dropdown` | Progress period, meal/report/review filters |
 | Required or uncontrolled form select | `ui/NativeSelect` | Admin authoring and reference-data forms |
-| Plan/library meal tile | `user/MealCardPresentation` (`MealTile`, `MealMacros`) | MealCard, PendingMealPreviewCard, RecipeLibraryCard |
-| Compact meal presentation | `MealPlate`, `compactMealClasses`, `MealMacros` | Dashboard rows, food history, swap comparison |
+| Plan/library meal tile | `user/PlanMealCardSurface`, `user/MealMacros` | MealCard, PendingMealPreviewCard, RecipeLibraryCard |
+| Compact meal presentation | `user/DashboardMealCardSurface`, `DashboardMealPlate`, `MealMacros` | Dashboard rows, food history, swap comparison |
 | Meal library grid | `shared/MealLibraryLayout` | Member, nutritionist and admin libraries |
 | Tabs or section links | `ui/WorkspaceTabs` | Meals, progress, reviews, settings, admin audit |
 | Password field | `ui/PasswordInput` | Authentication and profile security |
@@ -22,6 +22,8 @@ Card keeps both its existing header/footer props and compound CardHeader/CardCon
 
 Decorations are optional: `none` (default), `stripes`, `logo`, `both`, or `varied`. Use `varied` with a stable `decorationSeed` such as a card or record ID. A seed picks one of the four variants, including no decoration. This varies cards without hydration differences or flickering on rerenders; don't call Math.random during render. Decorations are hidden from assistive technology and print, and cannot intercept clicks.
 
+Fixed original accents use `decorationVariant` on Card or `variant` on CardDecoration: `intake`, `grocery`, `membership`, `statistics`, `schedule`, `report`, and `application`. These preserve each design’s original stripe placement, size, watermark and glow. Keep `default` for optional/varied decorations on ordinary cards. Existing surface gradient classes stay on their dedicated designs.
+
 ## Dropdowns and tabs
 
 Select accepts `{value,label,disabled}` options and a string onChange. Dropdown adapts existing option children to the same menu. Menus use a portal so card overflow doesn't cut them off, reposition on scroll/resize, and support keyboard selection and Escape. Keep NativeSelect for a form that needs browser required validation, FormData, or defaultValue.
@@ -32,7 +34,7 @@ PasswordInput uses Input's trailingControl slot; never position a visibility but
 
 ## Meals and libraries
 
-MealTile owns the shared curved image, slot theme and frame. MealCard, PendingMealPreviewCard and RecipeLibraryCard provide their specific status badges, body details and actions. Compact rows reuse MealPlate and macro formatting. Shared presentation never implies that a library recipe is approved for a particular member.
+PlanMealCardSurface preserves the Meals tile design with its cropped circular image, colored banner and macro pills. DashboardMealCardSurface preserves the separate compact design with a full colored gradient and an overlapping circular plate. These dedicated meal components do not inherit the default Card surface or its decorations. MealCard, PendingMealPreviewCard and RecipeLibraryCard provide their specific status badges, body details and actions. History and swap rows reuse the compact design and DashboardMealPlate, with caller-specific sizes and actions. Shared presentation never implies that a library recipe is approved for a particular member.
 
 MealLibraryLayout is only the grid. Member catalogue requests use useRecipeCatalog, scoped to owner, search, filters and page; staff use their existing role endpoints and account-scoped cache. Both use Pagination. Do not identify recipes by display name, or slice the first API page as if it contains the whole library. Cursor-based compatible pages advance only once the next batch arrives.
 

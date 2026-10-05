@@ -65,7 +65,7 @@ export function CockpitDashboard({
           className="daily-intake-card relative overflow-hidden flex min-h-full flex-col justify-between rounded-3xl border border-brand-border p-5 sm:p-6"
         >
           {/* Retro Wave Organic Corner Accent (Top Right) - Connected with On your menu card */}
-          <CardDecoration style="varied" seed="CockpitDashboard.tsx" />
+          <CardDecoration variant="intake" />
 
           <div className="relative z-10 flex flex-col justify-between h-full">
             <div>

@@ -411,12 +411,12 @@ export default function GroceryListPage() {
           {/* REIMAGINED SHOPPING PROGRESS HERO (WITH RETRO WAVE STRIPES & MODERN FEEL) */}
           <section className="relative overflow-hidden rounded-[28px] sm:rounded-[32px] border border-[#dce4e0] dark:border-[#173e33] bg-[#faf8f5] dark:bg-[#0e271f] text-[#0d2820] dark:text-slate-100 shadow-md p-6 sm:p-7">
             {/* Retro Wave Organic Corner Accent (Top Left) */}
-            <CardDecoration style="varied" seed="page.tsx" />
+            <CardDecoration variant="grocery" />
 
             {/* Bottom Right Decorative Watermark */}
 
             {/* Main Content inside Card */}
-            <div className="relative z-10 pr-1 sm:pr-2">
+            <div className="relative z-10 pl-14 sm:pl-24 pr-1 sm:pr-2">
               {/* Header Badges */}
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div className="flex flex-wrap items-center gap-2">

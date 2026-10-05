@@ -161,7 +161,7 @@ export default function NutritionGuidanceDocument({
           aria-label="Nutrition workspace"
           className="relative overflow-hidden flex md:h-[calc(100vh-210px)] md:min-h-[680px] flex-col rounded-[28px] sm:rounded-[36px] border border-[#dce4e0] dark:border-[#173e33] bg-[#faf8f5] dark:bg-[#071914] text-[#0d2820] dark:text-white shadow-xl md:flex-row"
         >
-          <CardDecoration style="varied" seed="nutrition-reports" />
+          <CardDecoration variant="report" />
 
           {/* Left Column: Report History Queue */}
           <WorkspaceListPane visible={mobileView === 'history'} className={expanded ? '!hidden' : ''}>

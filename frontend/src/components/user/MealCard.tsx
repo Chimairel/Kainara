@@ -1,6 +1,7 @@
 'use client';
 
-import { MealTile, MealMacros } from '@/components/user/MealCardPresentation';
+import { PlanMealCardSurface } from '@/components/user/PlanMealCardSurface';
+import { MealMacros } from '@/components/user/MealMacros';
 import { formatMealTitle } from '@/lib/meal-title';
 import { getManilaDateKey } from '@/lib/manila-date';
 import { cookingAction } from '@/lib/meal-cooking-link';
@@ -251,7 +252,7 @@ export default function MealCard({
         }}
         className="group relative block h-full w-full cursor-pointer select-none text-left outline-none focus-visible:ring-2 focus-visible:ring-brand-green focus-visible:ring-offset-2 focus-visible:ring-offset-brand-bg rounded-3xl"
       >
-        <MealTile
+        <PlanMealCardSurface
           mealType={mealType}
           mealName={mealName}
           image={image}
@@ -316,7 +317,7 @@ export default function MealCard({
             {/* Macro Chips Row - Theme Colors */}
             <MealMacros calories={calories} proteinG={proteinG} carbsG={carbsG} fatG={fatG} className="mt-3" />
           </div>
-        </MealTile>
+        </PlanMealCardSurface>
       </motion.div>
 
       {/* Detailed Info Dialog Popup Modal -> Expandable Card Animation Pattern */}

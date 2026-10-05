@@ -1,6 +1,7 @@
 'use client';
 
-import { compactMealClasses, MealPlate, MealMacros } from '@/components/user/MealCardPresentation';
+import { DashboardMealCardSurface, DashboardMealPlate } from '@/components/user/DashboardMealCardSurface';
+import { MealMacros } from '@/components/user/MealMacros';
 import { formatMealTitle } from '@/lib/meal-title';
 import { useState } from 'react';
 import { Check, ChevronDown } from 'lucide-react';
@@ -30,7 +31,7 @@ export function DashboardMealRow(props: Props) {
   const theme = getMealTheme(meal.mealType, index);
 
   const foodPlate = (
-    <MealPlate
+    <DashboardMealPlate
       className={`relative -ml-9 sm:-ml-13 lg:-ml-16 h-28 w-28 sm:h-32 sm:w-32 lg:h-36 lg:w-36 shrink-0 rounded-full p-1.5 sm:p-2 bg-white dark:bg-[#12362c] shadow-[0_14px_32px_-4px_rgba(0,0,0,0.25),0_4px_12px_rgba(0,0,0,0.1)] dark:shadow-[0_18px_40px_rgba(0,0,0,0.7)] ${theme.plateRim} z-20 transition-transform duration-300 group-hover:scale-105`}
     >
       <MealImage
@@ -41,12 +42,12 @@ export function DashboardMealRow(props: Props) {
         variant="thumbnail"
         className="!rounded-full !border-0 h-full w-full object-cover"
       />
-    </MealPlate>
+    </DashboardMealPlate>
   );
 
   if (props.pending) {
     return (
-      <details className={`${compactMealClasses(meal.mealType, index)} p-4 sm:p-5`}>
+      <DashboardMealCardSurface as="details" mealType={meal.mealType} index={index} className="p-4 sm:p-5">
         <summary className="flex cursor-pointer list-none items-center justify-between text-left [&::-webkit-details-marker]:hidden">
           <div className="flex min-w-0 flex-1 items-center">
             {foodPlate}
@@ -96,7 +97,7 @@ export function DashboardMealRow(props: Props) {
             </p>
           </div>
         </div>
-      </details>
+      </DashboardMealCardSurface>
     );
   }
 
@@ -109,7 +110,7 @@ export function DashboardMealRow(props: Props) {
         : 'Awaiting review';
 
   return (
-    <article className={`${compactMealClasses(meal.mealType, index)} p-4 sm:p-5`}>
+    <DashboardMealCardSurface mealType={meal.mealType} index={index} className="p-4 sm:p-5">
       <div className="flex w-full items-center">
         {/* Clickable details trigger: foodPlate and meal info */}
         <div className="flex min-w-0 flex-1 items-center">
@@ -200,6 +201,6 @@ export function DashboardMealRow(props: Props) {
           )}
         </div>
       </div>
-    </article>
+    </DashboardMealCardSurface>
   );
 }

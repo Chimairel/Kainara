@@ -1,6 +1,7 @@
 'use client';
 
-import { MealTile, MealMacros } from '@/components/user/MealCardPresentation';
+import { PlanMealCardSurface } from '@/components/user/PlanMealCardSurface';
+import { MealMacros } from '@/components/user/MealMacros';
 import { formatMealTitle } from '@/lib/meal-title';
 import Button from '@/components/ui/Button';
 import type { MealCookingLink, PublicMealImage } from '@/types';
@@ -153,7 +154,7 @@ export default function PendingMealPreviewCard({
         aria-label={`Open ${formatMealTitle(meal.mealName)} details`}
         className="group relative block h-full w-full cursor-pointer select-none text-left outline-none focus-visible:ring-2 focus-visible:ring-brand-green focus-visible:ring-offset-2 focus-visible:ring-offset-brand-bg rounded-3xl"
       >
-        <MealTile
+        <PlanMealCardSurface
           mealType={meal.mealType}
           mealName={meal.mealName}
           image={meal.image}
@@ -202,7 +203,7 @@ export default function PendingMealPreviewCard({
               className="mt-3"
             />
           </div>
-        </MealTile>
+        </PlanMealCardSurface>
       </motion.div>
 
       {/* Expandable Modal Dialog using Watermelon Expandable-Card Animation Pattern */}
