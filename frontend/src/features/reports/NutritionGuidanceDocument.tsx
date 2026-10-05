@@ -121,8 +121,8 @@ export default function NutritionGuidanceDocument({
   };
 
   const headerLeftContent = (
-    <div className="flex items-center gap-2">
-      <span className="rounded-xl border border-brand-border/80 bg-brand-surface/90 px-2.5 py-1 text-xs font-extrabold text-brand-text shadow-xs">
+    <div className="flex min-w-0 flex-wrap items-center gap-2">
+      <span className="shrink-0 rounded-xl border border-brand-border/80 bg-brand-surface/90 px-2.5 py-1 text-xs font-extrabold text-brand-text shadow-xs">
         Version {displayedReport.version}
       </span>
       {isViewingArchived ? (
@@ -138,7 +138,7 @@ export default function NutritionGuidanceDocument({
         <button
           type="button"
           onClick={() => setSelectedVersion(null)}
-          className="ml-2 text-xs font-semibold text-brand-accent hover:underline transition-colors"
+          className="text-left text-xs font-semibold text-brand-accent hover:underline transition-colors"
         >
           ← Return to current
         </button>
@@ -159,12 +159,17 @@ export default function NutritionGuidanceDocument({
         {/* The main workspace card holding both left side (list) and right side (nutrition guide) */}
         <SplitWorkspace
           aria-label="Nutrition workspace"
-          className="relative overflow-hidden flex md:h-[calc(100vh-210px)] md:min-h-[680px] flex-col rounded-[28px] sm:rounded-[36px] border border-[#dce4e0] dark:border-[#173e33] bg-[#faf8f5] dark:bg-[#071914] text-[#0d2820] dark:text-white shadow-xl md:flex-row"
+          splitAt="xl"
+          className="xl:h-[calc(100vh-210px)] xl:min-h-[680px] border border-[#dce4e0] dark:border-[#173e33] bg-[#faf8f5] dark:bg-[#071914] text-[#0d2820] dark:text-white shadow-xl"
         >
           <CardDecoration variant="report" />
 
           {/* Left Column: Report History Queue */}
-          <WorkspaceListPane visible={mobileView === 'history'} className={expanded ? '!hidden' : ''}>
+          <WorkspaceListPane
+            splitAt="xl"
+            visible={mobileView === 'history'}
+            className={expanded ? '!hidden' : 'min-h-0'}
+          >
             <ReportHistory
               history={allVersions}
               currentVersion={report.planningContext?.activeVersion ?? report.version}
@@ -189,11 +194,12 @@ export default function NutritionGuidanceDocument({
             expandTitle="Full screen nutrition guidance"
             expandAriaLabel="Expanded nutrition guidance"
             backLabel="Back to history"
+            backBreakpoint="xl"
             onBack={() => setMobileView('history')}
             headerLeft={headerLeftContent}
             headerClassName="border-b border-[#dce4e0]/80 dark:border-[#173e33] bg-white/60 dark:bg-[#071914]/60 backdrop-blur-md"
-            className={`${mobileView === 'document' ? 'flex' : 'hidden md:flex'} relative z-10 h-full min-w-0 flex-1 flex-col overflow-hidden bg-transparent`}
-            contentClassName="flex-1 min-h-0 overflow-y-auto p-4 custom-scrollbar sm:p-6 lg:p-8"
+            className={`${mobileView === 'document' ? 'flex' : 'hidden xl:flex'} relative z-10 min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-transparent`}
+            contentClassName="min-h-0 p-3 custom-scrollbar sm:p-5 xl:flex-1 xl:overflow-y-auto xl:p-6"
           >
             {/* Error Message */}
             {error && (

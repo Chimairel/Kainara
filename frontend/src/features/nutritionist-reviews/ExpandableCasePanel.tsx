@@ -17,6 +17,7 @@ export default function ExpandableCasePanel({
   expandTitle = 'Full screen case inspection',
   expandAriaLabel = 'Expanded case view',
   backLabel = 'Back to queue',
+  backBreakpoint = 'md',
   headerClassName = 'border-b border-brand-border/80 bg-brand-surface',
 }: {
   children: ReactNode;
@@ -31,6 +32,7 @@ export default function ExpandableCasePanel({
   expandTitle?: string;
   expandAriaLabel?: string;
   backLabel?: string;
+  backBreakpoint?: 'md' | 'xl';
 }) {
   const [mounted, setMounted] = useState(false);
 
@@ -59,16 +61,16 @@ export default function ExpandableCasePanel({
   const miniNavbar =
     canExpand || headerLeft || onBack ? (
       <header
-        className={`shrink-0 flex items-center justify-between min-h-14 px-4 py-2.5 sm:px-6 shadow-xs z-20 ${headerClassName}`}
+        className={`shrink-0 flex items-center justify-between gap-3 min-h-14 px-4 py-2.5 sm:px-6 shadow-xs z-20 ${headerClassName}`}
       >
-        <div className="flex items-center gap-2.5 min-w-0">
+        <div className="flex flex-1 items-center gap-2.5 min-w-0">
           {onBack && (
             <button
               type="button"
               onClick={onBack}
               aria-label={backLabel}
               title={backLabel}
-              className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-brand-border/80 bg-brand-surface text-brand-muted shadow-sm transition hover:border-brand-accent/60 hover:text-brand-accent md:hidden"
+              className={`inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-brand-border/80 bg-brand-surface text-brand-muted shadow-sm transition hover:border-brand-accent/60 hover:text-brand-accent ${backBreakpoint === 'xl' ? 'xl:hidden' : 'md:hidden'}`}
             >
               <ArrowLeft className="h-4 w-4" />
             </button>

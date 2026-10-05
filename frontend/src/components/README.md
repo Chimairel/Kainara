@@ -42,6 +42,8 @@ MealCard and PendingMealPreviewCard share MealMotion: details open and close imm
 
 MealLibraryLayout is only the grid. Member catalogue requests use useRecipeCatalog, scoped to owner, search, filters and page; staff use their existing role endpoints and account-scoped cache. Both use Pagination. Do not identify recipes by display name, or slice the first API page as if it contains the whole library. Cursor-based compatible pages advance only once the next batch arrives.
 
+SplitWorkspace and WorkspaceListPane use the same `splitAt` breakpoint (`md` by default). Nutrition guidance uses `xl` so report history and the document occupy separate views on phones and tablets. Match ExpandableCasePanel's `backBreakpoint` to keep the history button available until both panes fit.
+
 ## Landing links
 
 SectionLink scrolls a same-page public section without writing a URL hash. Its real href remains available for modified clicks, copied links and cross-page navigation.

@@ -89,8 +89,8 @@ export default function NutritionGuidancePaper({
     >
       {/* Header Block */}
       <header className="border-b border-[#dce4e0]/80 dark:border-[#173e33] pb-5">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="space-y-2 max-w-2xl">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div className="min-w-0 flex-1 basis-60 space-y-2 max-w-2xl">
             <span className="font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-brand-green">
               KAINARA · Personal record
             </span>
@@ -102,7 +102,7 @@ export default function NutritionGuidancePaper({
             </p>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2.5 self-start sm:self-auto print:hidden">
+          <div className="flex shrink-0 flex-wrap items-center gap-2.5 self-start print:hidden">
             <span className="inline-flex items-center gap-1.5 rounded-full bg-white/80 dark:bg-[#0a201a] border border-[#dce4e0] dark:border-[#173e33] px-3.5 py-1.5 font-mono text-[11px] text-[#5a746a] dark:text-emerald-200/80 shadow-xs">
               <Calendar className="w-3.5 h-3.5 text-brand-green" />
               Prepared {prepared}
@@ -173,7 +173,7 @@ export default function NutritionGuidancePaper({
           aria-label="Daily planning estimates"
           className="rounded-2xl sm:rounded-3xl border border-[#dce4e0] dark:border-[#173e33] bg-white/80 dark:bg-[#0c241d]/80 p-5 sm:p-6 shadow-xs backdrop-blur-sm space-y-4 print:border-none print:shadow-none print:p-0"
         >
-          <div className="flex items-center justify-between border-b border-[#dce4e0]/70 dark:border-[#173e33] pb-3">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#dce4e0]/70 dark:border-[#173e33] pb-3">
             <div className="flex items-center gap-2.5">
               <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-brand-green/15 text-brand-green">
                 <Flame className="h-4 w-4" />
@@ -187,7 +187,7 @@ export default function NutritionGuidancePaper({
             </span>
           </div>
 
-          <dl className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <dl className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,7rem),1fr))] gap-3">
             <div className="rounded-2xl border border-[#dce4e0]/80 dark:border-[#173e33]/80 bg-[#faf8f5]/80 dark:bg-[#071914]/80 p-4 text-center">
               <dt className="text-xs font-semibold text-[#5a746a] dark:text-white/70">Energy</dt>
               <dd className="mt-1 font-display text-xl font-black text-[#0d2820] dark:text-white font-mono">
@@ -325,7 +325,7 @@ export default function NutritionGuidancePaper({
 
       {/* Calculated references and review notes */}
       <section className="rounded-2xl sm:rounded-3xl border border-[#dce4e0] dark:border-[#173e33] bg-white/80 dark:bg-[#0c241d]/80 p-5 sm:p-6 shadow-xs backdrop-blur-sm space-y-4 print:border-none print:shadow-none print:p-0">
-        <div className="flex items-center justify-between border-b border-[#dce4e0]/70 dark:border-[#173e33] pb-3">
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#dce4e0]/70 dark:border-[#173e33] pb-3">
           <h2 className="font-display text-base font-bold text-[#0d2820] dark:text-white tracking-tight">
             Calculated references and review notes
           </h2>

@@ -143,6 +143,98 @@ async function setup(page: Page, safetyChanged = false, weightOnly = false) {
     else if (path.endsWith('/notifications')) data = { notifications: [], unreadCount: 0 };
     await route.fulfill({ json: { success: true, data } });
   });
+  return report;
+}
+
+for (const width of [320, 400, 768, 1024, 1280, 1440]) {
+  test(`nutrition guidance and history fit without overlapping at ${width}px`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 808 });
+    const base = await setup(page);
+    const report = {
+      ...base,
+      acknowledgedAt: '2026-10-02T00:00:00Z',
+      planningContext: { ...base.planningContext, activeVersion: 2, pendingChanges: false },
+      planningTargets: { calories: 2786, proteinG: 87, carbsG: 435, fatG: 77, goal: 'GAIN_WEIGHT' },
+    };
+    await page.route('**/api/user/nutrition-report', (route) =>
+      route.fulfill({ json: { success: true, data: report } })
+    );
+    await page.route('**/api/user/nutrition-report/history', (route) =>
+      route.fulfill({
+        json: {
+          success: true,
+          data: [{ id: 'older', version: 1, generatedAt: '2026-09-29T00:00:00Z', content: { ...report, version: 1 } }],
+        },
+      })
+    );
+    await page.goto('/profile/nutrition-report');
+    const paper = page.getByRole('article', { name: 'Nutrition guidance record' });
+    await expect(paper).toBeVisible();
+    const checkFit = async () => {
+      await page.screenshot({ path: test.info().outputPath('report-layout.png') });
+      const overflow = await paper.evaluate((article) => {
+        const bounds = article.getBoundingClientRect();
+        return [...article.querySelectorAll('h1,h2,h3,dt,dd,p,span')]
+          .filter((node) => {
+            const rect = node.getBoundingClientRect();
+            return rect.width && (rect.left < bounds.left - 1 || rect.right > bounds.right + 1);
+          })
+          .map((node) => node.textContent?.slice(0, 80));
+      });
+      expect(overflow).toEqual([]);
+      const controls = page.getByRole('button', { name: 'Expand case details' });
+      const overlaps = await controls.evaluate((button) => {
+        const control = button.getBoundingClientRect();
+        const header = button.closest('header')!;
+        return [...header.querySelectorAll('span,button')]
+          .filter((node) => node !== button)
+          .some((node) => {
+            const rect = node.getBoundingClientRect();
+            return (
+              rect.width > 0 &&
+              rect.right > control.left &&
+              rect.left < control.right &&
+              rect.bottom > control.top &&
+              rect.top < control.bottom
+            );
+          });
+      });
+      expect(overlaps).toBe(false);
+    };
+    await checkFit();
+    if (width < 1280) {
+      await page.getByRole('button', { name: 'Back to history' }).click();
+      await expect(paper).not.toBeVisible();
+    }
+    await page.getByRole('button', { name: /^Version 1/ }).click();
+    await expect(paper).toBeVisible();
+    await checkFit();
+    await page.getByRole('button', { name: /Return to current/ }).click();
+    await expect(paper).toContainText('Version 2');
+    await page.getByRole('button', { name: 'Expand case details' }).click();
+    await expect(page.getByRole('dialog', { name: 'Expanded nutrition guidance' })).toBeVisible();
+    await expect(paper).toBeVisible();
+    await page.keyboard.press('Escape');
+    await expect(page.getByRole('dialog', { name: 'Expanded nutrition guidance' })).toHaveCount(0);
+    await paper.locator('footer').scrollIntoViewIfNeeded();
+    if (width < 768) {
+      await page.locator('main.portal-main').evaluate((main) => {
+        main.scrollTop = main.scrollHeight;
+      });
+      const footer = await paper.locator('footer').boundingBox();
+      const navigation = await page.getByRole('navigation', { name: 'Mobile navigation' }).boundingBox();
+      expect(footer!.y + footer!.height).toBeLessThanOrEqual(navigation!.y);
+      await page.getByRole('button', { name: 'Back to history' }).click();
+      const historyNote = page.getByText('Immutable Health Records');
+      await historyNote.scrollIntoViewIfNeeded();
+      await page.locator('main.portal-main').evaluate((main) => {
+        main.scrollTop = main.scrollHeight;
+      });
+      expect((await historyNote.boundingBox())!.y + (await historyNote.boundingBox())!.height).toBeLessThan(
+        navigation!.y
+      );
+    }
+  });
 }
 for (const width of [320, 390, 1440]) {
   test(`Free, Lifestyle and Health remain usable at ${width}px`, async ({ page }) => {
