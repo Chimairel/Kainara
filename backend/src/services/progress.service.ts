@@ -16,40 +16,43 @@ export class ProgressService {
     }
     const normalizedNote = normalizeWeightNote(note);
 
-    return prisma.$transaction(async (tx) => {
-      await lockUserProfile(tx, userId);
-      const profile = await tx.userProfile.findUnique({ where: { userId } });
-      if (!profile) throw new Error('Profile not found.');
+    return prisma.$transaction(
+      async (tx) => {
+        await lockUserProfile(tx, userId);
+        const profile = await tx.userProfile.findUnique({ where: { userId } });
+        if (!profile) throw new Error('Profile not found.');
 
-      const { age, heightCm, goal, activityLevel } = profile;
-      let dailyCalorieTarget = profile.dailyCalorieTarget;
-      if (age && heightCm && goal && activityLevel) {
-        const healthConditions = await tx.healthCondition.findMany({ where: { userId } });
-        const hasPregnantCondition = healthConditions.some(
-          (condition) => condition.condition === HealthConditionType.PREGNANT
-        );
-        dailyCalorieTarget = calculateDailyTarget({
-          age,
-          heightCm,
-          weightKg,
-          goal,
-          activityLevel,
-          biologicalSex: profile.biologicalSex as 'MALE' | 'FEMALE' | undefined,
-          hasPregnantCondition,
-        }).dailyCalorieTarget;
-      }
+        const { age, heightCm, goal, activityLevel } = profile;
+        let dailyCalorieTarget = profile.dailyCalorieTarget;
+        if (age && heightCm && goal && activityLevel) {
+          const healthConditions = await tx.healthCondition.findMany({ where: { userId } });
+          const hasPregnantCondition = healthConditions.some(
+            (condition) => condition.condition === HealthConditionType.PREGNANT
+          );
+          dailyCalorieTarget = calculateDailyTarget({
+            age,
+            heightCm,
+            weightKg,
+            goal,
+            activityLevel,
+            biologicalSex: profile.biologicalSex as 'MALE' | 'FEMALE' | undefined,
+            hasPregnantCondition,
+          }).dailyCalorieTarget;
+        }
 
-      await tx.userProfile.update({
-        where: { userId },
-        data: { weightKg, dailyCalorieTarget },
-      });
+        await tx.userProfile.update({
+          where: { userId },
+          data: { weightKg, dailyCalorieTarget },
+        });
 
-      if (profile.weightKg !== weightKg || profile.dailyCalorieTarget !== dailyCalorieTarget)
-        await advanceProfileRevision(tx, userId);
-      return tx.weightLog.create({
-        data: { userId, weightKg, note: normalizedNote },
-      });
-    });
+        if (profile.weightKg !== weightKg || profile.dailyCalorieTarget !== dailyCalorieTarget)
+          await advanceProfileRevision(tx, userId);
+        return tx.weightLog.create({
+          data: { userId, weightKg, note: normalizedNote },
+        });
+      },
+      { maxWait: 10000, timeout: 30000 }
+    );
   }
 
   /**

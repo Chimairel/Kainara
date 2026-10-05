@@ -124,73 +124,76 @@ export class NutritionReportService {
   }
 
   static async acknowledgeReport(userId: string, expectedVersion?: number) {
-    const result = await prisma.$transaction(async (tx) => {
-      await lockUserProfile(tx, userId);
-      const report = await tx.nutritionReport.findUniqueOrThrow({ where: { userId } });
-      const profile = await tx.userProfile.findUniqueOrThrow({ where: { userId } });
-      const version = await tx.nutritionReportVersion.findFirst({ where: { userId, version: report.version } });
-      if (
-        report.isStale ||
-        report.profileRevision !== profile.revision ||
-        expectedVersion !== report.version ||
-        version?.policyVersion !== NUTRITION_GUIDANCE_POLICY_VERSION
-      ) {
-        throw new AppError(
-          'This report changed or is out of date. Refresh and review the current version.',
-          409,
-          'REPORT_CHANGED'
-        );
-      }
-      if (report.acknowledgedAt && (!membershipEnabled() || profile.planningReportVersion === report.version)) {
-        return { acknowledged: report, firstAcknowledgment: false };
-      }
-      const previous = await tx.nutritionReportVersion.findFirst({
-        where: {
-          userId,
-          ...(profile.planningReportVersion
-            ? { version: profile.planningReportVersion }
-            : { acknowledgedAt: { not: null } }),
-        },
-        orderBy: { version: 'desc' },
-      });
-      const sameInputs = reportInputsMatch(version, previous);
-      // First-ever activation and unchanged confirmations are free. The client cannot assert unchanged inputs.
-      if ((previous || profile.firstReportAcknowledgedAt) && !sameInputs && membershipEnabled()) {
-        const membership = await MembershipService.state(userId, new Date(), tx);
-        const tier = reportActivationTier(version, previous, membership.requiresCaseReview);
-        if (tier === 'HEALTH') await MembershipService.assertHealth(userId, tx);
-        else if (tier === 'LIFESTYLE') await MembershipService.assertEnhanced(userId, tx);
-      }
-      const acknowledgedAt = report.acknowledgedAt ?? new Date();
-      const firstAcknowledgment = !report.acknowledgedAt;
-      await tx.nutritionReportVersion.updateMany({
-        where: { userId, version: report.version },
-        data: { acknowledgedAt },
-      });
-      const acknowledged = await tx.nutritionReport.update({ where: { userId }, data: { acknowledgedAt } });
-      await tx.userProfile.update({
-        where: { userId },
-        data: {
-          planningReportVersion: report.version,
-          firstReportAcknowledgedAt: profile.firstReportAcknowledgedAt ?? previous?.acknowledgedAt ?? acknowledgedAt,
-        },
-      });
-      if (previous && !sameInputs && reportProfile(previous)?.safetyRevision === profile.safetyRevision) {
-        const priorProfile = reportProfile(previous);
-        const kinds: Array<(typeof PROFILE_CHANGE_KIND)[keyof typeof PROFILE_CHANGE_KIND]> = [
-          PROFILE_CHANGE_KIND.BODY_TARGETS,
-          PROFILE_CHANGE_KIND.FOOD_PREFERENCES,
-        ];
+    const result = await prisma.$transaction(
+      async (tx) => {
+        await lockUserProfile(tx, userId);
+        const report = await tx.nutritionReport.findUniqueOrThrow({ where: { userId } });
+        const profile = await tx.userProfile.findUniqueOrThrow({ where: { userId } });
+        const version = await tx.nutritionReportVersion.findFirst({ where: { userId, version: report.version } });
         if (
-          priorProfile?.shoppingDayOfWeek !== profile.shoppingDayOfWeek ||
-          priorProfile?.shoppingDayGroup !== profile.shoppingDayGroup
-        )
-          kinds.push(PROFILE_CHANGE_KIND.SHOPPING_SCHEDULE);
-        await ProfileCycleAdaptationService.recordOrdinaryChange(tx, userId, profile.revision, kinds);
-      }
-      await ProfileCycleAdaptationService.acknowledgeProfileRevision(tx, userId, profile.revision);
-      return { acknowledged, firstAcknowledgment };
-    });
+          report.isStale ||
+          report.profileRevision !== profile.revision ||
+          expectedVersion !== report.version ||
+          version?.policyVersion !== NUTRITION_GUIDANCE_POLICY_VERSION
+        ) {
+          throw new AppError(
+            'This report changed or is out of date. Refresh and review the current version.',
+            409,
+            'REPORT_CHANGED'
+          );
+        }
+        if (report.acknowledgedAt && (!membershipEnabled() || profile.planningReportVersion === report.version)) {
+          return { acknowledged: report, firstAcknowledgment: false };
+        }
+        const previous = await tx.nutritionReportVersion.findFirst({
+          where: {
+            userId,
+            ...(profile.planningReportVersion
+              ? { version: profile.planningReportVersion }
+              : { acknowledgedAt: { not: null } }),
+          },
+          orderBy: { version: 'desc' },
+        });
+        const sameInputs = reportInputsMatch(version, previous);
+        // First-ever activation and unchanged confirmations are free. The client cannot assert unchanged inputs.
+        if ((previous || profile.firstReportAcknowledgedAt) && !sameInputs && membershipEnabled()) {
+          const membership = await MembershipService.state(userId, new Date(), tx);
+          const tier = reportActivationTier(version, previous, membership.requiresCaseReview);
+          if (tier === 'HEALTH') await MembershipService.assertHealth(userId, tx);
+          else if (tier === 'LIFESTYLE') await MembershipService.assertEnhanced(userId, tx);
+        }
+        const acknowledgedAt = report.acknowledgedAt ?? new Date();
+        const firstAcknowledgment = !report.acknowledgedAt;
+        await tx.nutritionReportVersion.updateMany({
+          where: { userId, version: report.version },
+          data: { acknowledgedAt },
+        });
+        const acknowledged = await tx.nutritionReport.update({ where: { userId }, data: { acknowledgedAt } });
+        await tx.userProfile.update({
+          where: { userId },
+          data: {
+            planningReportVersion: report.version,
+            firstReportAcknowledgedAt: profile.firstReportAcknowledgedAt ?? previous?.acknowledgedAt ?? acknowledgedAt,
+          },
+        });
+        if (previous && !sameInputs && reportProfile(previous)?.safetyRevision === profile.safetyRevision) {
+          const priorProfile = reportProfile(previous);
+          const kinds: Array<(typeof PROFILE_CHANGE_KIND)[keyof typeof PROFILE_CHANGE_KIND]> = [
+            PROFILE_CHANGE_KIND.BODY_TARGETS,
+            PROFILE_CHANGE_KIND.FOOD_PREFERENCES,
+          ];
+          if (
+            priorProfile?.shoppingDayOfWeek !== profile.shoppingDayOfWeek ||
+            priorProfile?.shoppingDayGroup !== profile.shoppingDayGroup
+          )
+            kinds.push(PROFILE_CHANGE_KIND.SHOPPING_SCHEDULE);
+          await ProfileCycleAdaptationService.recordOrdinaryChange(tx, userId, profile.revision, kinds);
+        }
+        await ProfileCycleAdaptationService.acknowledgeProfileRevision(tx, userId, profile.revision);
+        return { acknowledged, firstAcknowledgment };
+      },
+      { maxWait: 10000, timeout: 30000 }
+    );
     // A post-commit advisory failure cannot turn a saved receipt into a failed save.
     const planningReadiness = await PlanningReadinessService.getForUser(userId).catch(() => {
       console.error('[NutritionReportService] Saved acknowledgment; planning-readiness lookup unavailable.');

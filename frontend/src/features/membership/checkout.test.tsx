@@ -41,6 +41,31 @@ beforeEach(() => {
 });
 
 describe('membership checkout UI', () => {
+  it('allows purchase when a saved update needs membership before its report can be acknowledged', async () => {
+    state.user = { ...readyUser, reportAcknowledged: false };
+    state.post.mockResolvedValue({
+      data: {
+        data: {
+          id: 'pending-report-quote',
+          mode: 'TEST',
+          status: 'QUOTED',
+          amountCentavos: 24900,
+          tier: 'LIFESTYLE',
+          period: 'MONTHLY',
+          expiresAt: '2026-10-06T12:00:00Z',
+        },
+      },
+    });
+    const hook = renderHook(useMembershipCheckout);
+    await act(async () => hook.result.current.start('LIFESTYLE', 'MONTHLY'));
+    expect(state.post).toHaveBeenCalledWith(
+      '/user/membership/checkout/quote',
+      { tier: 'LIFESTYLE', period: 'MONTHLY' },
+      expect.anything()
+    );
+    expect(hook.result.current.quote?.id).toBe('pending-report-quote');
+    expect(state.push).not.toHaveBeenCalled();
+  });
   it('public pricing has no current account labels and remembers the selected yearly plan through login', async () => {
     render(<Pricing />);
     expect(screen.queryByText('Current plan')).not.toBeInTheDocument();

@@ -5,7 +5,6 @@ import { ProgressController } from '@/controllers/progress.controller';
 import { requireReadyUser, requireUserPrerequisites } from '@/middleware/userPrerequisites';
 import { validateZodBody } from '@/middleware/validateZod';
 import { weightEntryBodySchema } from '@/validation/user-action.schemas';
-import { requireMembership } from '@/middleware/membership';
 
 const router = Router();
 
@@ -13,7 +12,6 @@ const router = Router();
 router.use(authenticate);
 router.use(requireRole('USER'));
 router.use(requireUserPrerequisites({ emailVerified: true, onboardingDone: true, currentConsent: true }));
-router.use(requireMembership);
 
 /**
  * Route: POST /api/user/progress/weight

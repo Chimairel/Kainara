@@ -6,6 +6,7 @@ import { useProgressWorkspace } from './useProgressWorkspace';
 
 const state = vi.hoisted(() => ({
   put: vi.fn(),
+  post: vi.fn(),
   get: vi.fn(),
   profile: {
     id: 'fixture-user',
@@ -29,7 +30,7 @@ vi.mock('next/navigation', () => ({ useRouter: () => ({ push: vi.fn() }) }));
 vi.mock('@/hooks/useAuth', () => ({
   useAuth: () => ({ user: { userId: 'fixture-user' }, updateUserSession: vi.fn() }),
 }));
-vi.mock('@/lib/axios', () => ({ default: { put: state.put, get: state.get } }));
+vi.mock('@/lib/axios', () => ({ default: { put: state.put, get: state.get, post: state.post } }));
 vi.mock('@/lib/user-profile-resource', () => ({
   getRecentUserProfile: () => Promise.resolve(state.profile),
   refreshUserProfile: () => Promise.resolve(state.profile),
@@ -37,6 +38,21 @@ vi.mock('@/lib/user-profile-resource', () => ({
 vi.mock('@/lib/session-resource-cache', () => ({ readSessionResource: () => null, writeSessionResource: vi.fn() }));
 
 describe('profile saves without hidden location changes', () => {
+  it('logs weight with no note without sending a null value rejected by the API', async () => {
+    state.post.mockResolvedValue({ data: { success: true, data: { weightKg: 66 } } });
+    state.get.mockImplementation(async (path: string) => ({
+      data: {
+        success: true,
+        data: path === '/user/profile' ? state.profile : { weightLogs: [], dailyNutritionLogs: [] },
+      },
+    }));
+    const { result } = renderHook(() => useProgressWorkspace('progress'));
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    await act(async () => result.current.setWeightInput('66'));
+    await act(async () => result.current.handleLogWeightSubmit({ preventDefault: vi.fn() } as unknown as FormEvent));
+    expect(state.post).toHaveBeenCalledWith('/user/progress/weight', { weightKg: 66 });
+    expect(result.current.weightFormError).toBeNull();
+  });
   it('loads the starting observation from history while keeping the current profile weight separate', async () => {
     state.get.mockResolvedValue({
       data: {

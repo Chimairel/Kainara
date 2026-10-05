@@ -20,7 +20,9 @@ export default function MembershipGate({ children, benefit }: { children: ReactN
     return (
       <div className="portal-page max-w-4xl mx-auto py-8">
         <div className="rounded-2xl border border-status-error-text/30 bg-status-error-bg/20 p-5 text-status-error-text">
-          <p role="alert" className="text-sm font-semibold">{error}</p>
+          <p role="alert" className="text-sm font-semibold">
+            {error}
+          </p>
           <Button onClick={refresh} variant="secondary" className="mt-4 text-xs">
             Retry
           </Button>
@@ -32,7 +34,7 @@ export default function MembershipGate({ children, benefit }: { children: ReactN
     const isProgress = benefit.toLowerCase().includes('progress');
     const title = isProgress ? 'Follow your progress with membership' : `${benefit} is a membership benefit`;
     const description = isProgress
-      ? 'Membership includes progress insights, weight tracking and adaptive check-ins.'
+      ? 'Membership includes progress insights and adaptive check-ins. Weight tracking is available on every plan.'
       : 'Membership adds optional planning changes, progress insights and case review when required.';
 
     return (

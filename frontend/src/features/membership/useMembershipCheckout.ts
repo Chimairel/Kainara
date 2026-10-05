@@ -40,7 +40,7 @@ export function useMembershipCheckout() {
       setError('Membership plans are for personal accounts.');
       return;
     }
-    if (!user || !user.emailVerified || !user.onboardingDone || !user.tosAccepted || !user.reportAcknowledged) {
+    if (!user || !user.emailVerified || !user.onboardingDone || !user.tosAccepted) {
       try {
         sessionStorage.setItem(checkoutSelectionKey, JSON.stringify({ tier, period, savedAt: Date.now() }));
       } catch {

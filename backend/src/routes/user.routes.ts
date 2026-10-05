@@ -32,7 +32,6 @@ import { getActivePlanningLocationOptions } from '@/services/food-consumption-co
 import { healthDetailsSchema } from '@/validation/health-details.schemas';
 import { ClinicalEvidenceService } from '@/services/clinical-evidence.service';
 import { ClinicalProfileReviewService } from '@/services/clinical-profile-review.service';
-import { requireMembership } from '@/middleware/membership';
 import { clinicalDocumentIdParamsSchema, diabetesContextSchema } from '@/validation/clinical-evidence.schemas';
 import { asyncHandler } from '@/middleware/errorHandler';
 
@@ -435,7 +434,6 @@ router.get('/weight-log', async (req: AuthenticatedRequest, res: Response) => {
  */
 router.post(
   '/weight-log',
-  requireMembership,
   [
     body('weightKg').isFloat({ min: 30, max: 300 }).withMessage('Weight must be between 30 and 300 kg.').toFloat(),
     body('note')

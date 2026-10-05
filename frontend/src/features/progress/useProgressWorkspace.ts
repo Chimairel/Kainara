@@ -299,7 +299,7 @@ export function useProgressWorkspace(mode: ProgressWorkspaceMode) {
     try {
       const res = await api.post('/user/progress/weight', {
         weightKg: weightNum,
-        note: noteInput || null,
+        ...(noteInput.trim() ? { note: noteInput.trim() } : {}),
       });
 
       if (res.data && res.data.success) {
