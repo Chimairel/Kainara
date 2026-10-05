@@ -15,9 +15,10 @@ test('applicant uploads a recent photo without camera or signature controls', as
       'base64'
     ),
   });
-  await expect(page.getByAltText('Uploaded identity photo preview')).toBeVisible();
-  await page.getByLabel(/I confirm this photo was taken within the past 30 days/).check();
-  await page.getByRole('button', { name: 'Continue' }).click();
-  await expect(page.getByRole('heading', { name: 'Professional credentials' })).toBeVisible();
+  await expect(page.getByAltText('Uploaded headshot preview')).toBeVisible();
+  await page.getByRole('checkbox', { name: /30-Day Photo Attestation/ }).check();
+  await page.getByRole('button', { name: 'Continue to Credentials' }).click();
+  await expect(page.getByText('Verify your email address before continuing.')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Your professional identity' })).toBeVisible();
   await expect(page.getByText(/signature/i)).toHaveCount(0);
 });

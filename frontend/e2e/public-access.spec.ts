@@ -25,6 +25,8 @@ test('registration rejects empty, whitespace-only, and mismatched input', async 
   await password.fill('ValidPassword1');
   await password.focus();
   await page.keyboard.press('Tab');
+  await expect(page.getByRole('button', { name: 'Show password', exact: true }).first()).toBeFocused();
+  await page.keyboard.press('Tab');
   await expect(confirmation).toBeFocused();
 
   await confirmation.fill('DifferentPassword1');

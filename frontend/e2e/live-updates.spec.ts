@@ -126,6 +126,22 @@ test('applicants see updated decisions without refreshing and can start a fresh 
 });
 
 test('a duplicate PRC number is reported while typing, before submission', async ({ page }) => {
+  await page.route('**/api/nutritionist-applications/email/*', async (route) => {
+    const headers = {
+      'Access-Control-Allow-Origin': process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:3000',
+      'Access-Control-Allow-Credentials': 'true',
+      'Access-Control-Allow-Headers': 'Authorization, Content-Type',
+      'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    };
+    if (route.request().method() === 'OPTIONS') return route.fulfill({ status: 204, headers });
+    return route.fulfill({
+      headers,
+      json: {
+        success: true,
+        data: route.request().url().endsWith('/send') ? { resendAfterSeconds: 60 } : { proof: 'x'.repeat(43) },
+      },
+    });
+  });
   await page.route('**/api/nutritionist-applications/license-availability', async (route) => {
     const { prcLicenseNumber } = route.request().postDataJSON();
     return route.fulfill({ json: { success: true, data: { available: prcLicenseNumber !== 'TAKEN-PRC' } } });
@@ -145,6 +161,11 @@ test('a duplicate PRC number is reported while typing, before submission', async
   await expect(page.getByAltText('Uploaded headshot preview')).toBeVisible();
   await page.getByRole('checkbox').check();
   await page.getByRole('button', { name: /^Continue to/ }).click();
+  await page.getByRole('button', { name: 'Send verification code' }).click();
+  await page.getByLabel('Verification code', { exact: true }).fill('123456');
+  await page.getByRole('button', { name: 'Verify email', exact: true }).click();
+  await expect(page.getByText('Email verified', { exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Continue to Credentials' }).click();
   await page.locator('#prcLicenseNumber').fill('TAKEN-PRC');
   await page.locator('#prcLicenseExpiry').fill('2030-12-31');
   await page.locator('#specialization').fill('Clinical nutrition');
