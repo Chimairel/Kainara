@@ -2,6 +2,7 @@ import { render, screen, fireEvent, act } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import NotificationDropdown from './NotificationDropdown';
 import type { UserSession } from '@/lib/context/AuthContext';
+import api from '@/lib/axios';
 
 interface TestNotification {
   id: string;
@@ -48,24 +49,7 @@ vi.mock('next/navigation', () => ({
 }));
 
 vi.mock('@/lib/axios', () => ({
-  default: {
-    get: vi.fn((url: string) => {
-      if (url === '/user/meals/readiness') {
-        return Promise.resolve({
-          data: {
-            success: true,
-            data: {
-              canRequestPlan: true,
-              actionPath: '/meals',
-              title: 'Ready',
-              message: 'Clinical readiness confirmed.',
-            },
-          },
-        });
-      }
-      return Promise.resolve({ data: { success: true, data: {} } });
-    }),
-  },
+  default: { get: vi.fn() },
 }));
 
 const baseUser: UserSession = {
@@ -126,6 +110,12 @@ describe('NotificationDropdown', () => {
     expect(screen.getByText('Weekly Plan Approved')).toBeInTheDocument();
     expect(screen.getByText('Outside Meal Recorded')).toBeInTheDocument();
     expect(screen.getByText(/2 new/i)).toBeInTheDocument();
+    expect(screen.queryByText('Planner Status')).not.toBeInTheDocument();
+    expect(screen.queryByText('Starter Plan Active')).not.toBeInTheDocument();
+    expect(api.get).not.toHaveBeenCalled();
+    mocks.markAsRead.mockResolvedValueOnce(undefined);
+    fireEvent.click(screen.getByRole('button', { name: /Weekly Plan Approved/ }));
+    expect(mocks.markAsRead).toHaveBeenCalledWith('n1');
   });
 
   it('allows marking all notifications as read and toggling sound', async () => {
@@ -178,5 +168,12 @@ describe('NotificationDropdown', () => {
 
     expect(screen.getByText(/no notifications yet/i)).toBeInTheDocument();
     expect(screen.getByText(/all caught up with updates/i)).toBeInTheDocument();
+    expect(screen.queryByText('Planner Status')).not.toBeInTheDocument();
+    expect(api.get).not.toHaveBeenCalled();
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(screen.queryByRole('dialog', { name: /notifications/i })).not.toBeInTheDocument();
+    fireEvent.click(bellButton);
+    expect(screen.getByText(/no notifications yet/i)).toBeInTheDocument();
+    expect(api.get).not.toHaveBeenCalled();
   });
 });

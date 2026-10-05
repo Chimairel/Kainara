@@ -57,6 +57,7 @@ async function setup(page: Page) {
       createdAt: new Date(now - 60000).toISOString(),
     },
   ];
+  let plannerRequests = 0;
   await page.route('**/api/**', async (route) => {
     const path = new URL(route.request().url()).pathname;
     const headers = {
@@ -67,6 +68,7 @@ async function setup(page: Page) {
     };
     if (route.request().method() === 'OPTIONS' || path.includes('/live/'))
       return route.fulfill({ status: 204, headers });
+    if (path.endsWith('/meals/readiness') || path.endsWith('/meals/cycles')) plannerRequests++;
     let data: unknown = [];
     if (path.endsWith('/notifications')) data = { notifications, unreadCount: notifications.length };
     else if (path.endsWith('/user/profile'))
@@ -95,6 +97,7 @@ async function setup(page: Page) {
   const refresh = () => page.evaluate(() => window.dispatchEvent(new Event('kainara:live-update')));
   return {
     refresh,
+    plannerRequests: () => plannerRequests,
     async add(id: string) {
       notifications = [
         {
@@ -124,6 +127,9 @@ for (const width of [1440, 390]) {
     await page.goto('/profile/security');
     await page.getByRole('button', { name: 'View notifications' }).click();
     await expect(page.getByText('Old fixture alert', { exact: true })).toBeVisible();
+    await expect(page.getByText('Planner Status', { exact: true })).toHaveCount(0);
+    await expect(page.getByText('Starter Plan Active', { exact: true })).toHaveCount(0);
+    expect(fixture.plannerRequests()).toBe(0);
     await expect.poll(async () => (await stats()).duration).toBeGreaterThan(0);
     expect((await stats()).plays).toBe(0);
     await fixture.add('first');
@@ -145,6 +151,7 @@ for (const width of [1440, 390]) {
     await expect.poll(async () => (await stats()).duration).toBeGreaterThan(0);
     await fixture.add('enabled');
     await expect.poll(async () => (await stats()).plays).toBe(1);
+    expect(fixture.plannerRequests()).toBe(0);
     expect(errors).toEqual([]);
   });
 }

@@ -1,5 +1,4 @@
 import React, { useState, useRef, useEffect } from 'react';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useNotifications } from '@/hooks/useNotifications';
 import { useAuth } from '@/hooks/useAuth';
@@ -10,18 +9,11 @@ import {
   Calendar,
   Bell,
   Inbox,
-  ShieldCheck,
-  AlertCircle,
-  ArrowRight,
   Sprout,
   CheckCheck,
   Volume2,
   VolumeX,
 } from 'lucide-react';
-import api from '@/lib/axios';
-import { readSessionResource } from '@/lib/session-resource-cache';
-import { formatManilaDate, getManilaDateKey, manilaDateFromKey } from '@/lib/manila-date';
-import type { PlanningReadiness } from '@/types/planning-readiness';
 import { formatBadgeCount } from '@/lib/badge-count';
 
 function formatRelativeTime(dateString: string): string {
@@ -43,127 +35,13 @@ function formatRelativeTime(dateString: string): string {
   });
 }
 
-interface CachedPlanInfo {
-  isStarterPlan?: boolean;
-  nextCycleDay?: string | null;
-  cycles?: {
-    current?: { planType?: string; endDate?: string | Date } | null;
-    upcoming?: { startDate?: string | Date } | null;
-  } | null;
-  cycle?: { planType?: string; endDate?: string | Date } | null;
-  meals?: Array<{ planType?: string }>;
-  pendingReview?: { planType?: string } | null;
-}
-
 export default function NotificationDropdown() {
   const router = useRouter();
   const { user } = useAuth();
   const { notifications, unreadCount, isLoading, markAsRead, markAllAsRead, soundEnabled, toggleNotificationSound } =
     useNotifications();
   const [isOpen, setIsOpen] = useState(false);
-  const [planningReadiness, setPlanningReadiness] = useState<PlanningReadiness | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
-
-  const isOnboardingDone = Boolean(user?.onboardingDone);
-  const isTosAccepted = Boolean(user?.tosAccepted);
-  const isReportAcknowledged = Boolean(user?.reportAcknowledged);
-  const prerequisitesComplete = isOnboardingDone && isTosAccepted && isReportAcknowledged;
-  const isPlanningReady = prerequisitesComplete && planningReadiness?.canRequestPlan === true;
-
-  useEffect(() => {
-    if (!isOpen || user?.role !== 'USER' || !prerequisitesComplete) return;
-    let active = true;
-    setPlanningReadiness(null);
-    api
-      .get('/user/meals/readiness')
-      .then((response) => {
-        if (active && response.data?.success) setPlanningReadiness(response.data.data);
-      })
-      .catch(() => {
-        if (active) setPlanningReadiness(null);
-      });
-    return () => {
-      active = false;
-    };
-  }, [isOpen, user?.role, user?.userId, prerequisitesComplete]);
-
-  const [cycleInfo, setCycleInfo] = useState<{ isStarterPlan: boolean; nextCycleDay: string | null } | null>(() => {
-    const cached =
-      readSessionResource<CachedPlanInfo>(user?.userId, 'user-meals-current') ||
-      readSessionResource<CachedPlanInfo>(user?.userId, 'user-meals-workspace') ||
-      readSessionResource<CachedPlanInfo>(user?.userId, 'current-meal-plan');
-    if (cached) {
-      const isStarter =
-        cached.isStarterPlan ??
-        (cached.cycles?.current?.planType === 'STARTER' ||
-          cached.cycle?.planType === 'STARTER' ||
-          cached.meals?.[0]?.planType === 'STARTER' ||
-          cached.pendingReview?.planType === 'STARTER');
-      const nextDay =
-        cached.nextCycleDay ??
-        (cached.cycles?.upcoming?.startDate
-          ? formatManilaDate(manilaDateFromKey(getManilaDateKey(cached.cycles.upcoming.startDate)), {
-              weekday: 'long',
-              month: 'short',
-              day: 'numeric',
-            })
-          : null);
-      return { isStarterPlan: Boolean(isStarter), nextCycleDay: nextDay };
-    }
-    return null;
-  });
-
-  useEffect(() => {
-    if (isOpen && user?.role === 'USER') {
-      const cached =
-        readSessionResource<CachedPlanInfo>(user?.userId, 'user-meals-current') ||
-        readSessionResource<CachedPlanInfo>(user?.userId, 'user-meals-workspace') ||
-        readSessionResource<CachedPlanInfo>(user?.userId, 'current-meal-plan');
-      if (cached) {
-        const isStarter =
-          cached.isStarterPlan ??
-          (cached.cycles?.current?.planType === 'STARTER' ||
-            cached.cycle?.planType === 'STARTER' ||
-            cached.meals?.[0]?.planType === 'STARTER' ||
-            cached.pendingReview?.planType === 'STARTER');
-        const nextDay =
-          cached.nextCycleDay ??
-          (cached.cycles?.upcoming?.startDate
-            ? formatManilaDate(manilaDateFromKey(getManilaDateKey(cached.cycles.upcoming.startDate)), {
-                weekday: 'long',
-                month: 'short',
-                day: 'numeric',
-              })
-            : null);
-        setCycleInfo({ isStarterPlan: Boolean(isStarter), nextCycleDay: nextDay });
-      } else {
-        api
-          .get('/user/meals/cycles')
-          .then((res) => {
-            if (res.data?.success && res.data?.data) {
-              const { current, upcoming } = res.data.data;
-              const isStarter = current?.planType === 'STARTER';
-              let nextDay: string | null = null;
-              if (upcoming?.startDate) {
-                nextDay = formatManilaDate(manilaDateFromKey(getManilaDateKey(upcoming.startDate)), {
-                  weekday: 'long',
-                  month: 'short',
-                  day: 'numeric',
-                });
-              } else if (current?.endDate) {
-                const dayAfter = new Date(current.endDate);
-                dayAfter.setDate(dayAfter.getDate() + 1);
-                nextDay = formatManilaDate(dayAfter, { weekday: 'long', month: 'short', day: 'numeric' });
-              }
-              setCycleInfo({ isStarterPlan: Boolean(isStarter), nextCycleDay: nextDay });
-            }
-          })
-          .catch(() => {
-            // silent fallback
-          });
-      }
-    }
-  }, [isOpen, user?.role, user?.userId]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -247,8 +125,6 @@ export default function NotificationDropdown() {
           <span className="absolute -top-0.5 -right-0.5 flex min-h-4 min-w-4 items-center justify-center rounded-full bg-brand-accent px-1 text-[8px] font-bold text-[#07100d] ring-2 ring-brand-bg shadow-sm">
             {formatBadgeCount(unreadCount)}
           </span>
-        ) : user?.role === 'USER' && (!prerequisitesComplete || planningReadiness?.canRequestPlan === false) ? (
-          <span className="absolute 1 top-1 flex h-2 w-2 rounded-full bg-amber-500 ring-2 ring-brand-bg shadow-sm" />
         ) : null}
       </button>
 
@@ -313,155 +189,6 @@ export default function NotificationDropdown() {
           <div className="my-1 h-px bg-brand-border/60 dark:bg-white/[0.07]" />
 
           <div className="custom-scrollbar flex-1 overflow-y-auto px-1 py-1 space-y-1.5">
-            {/* Planner Status Section */}
-            {user?.role === 'USER' && (
-              <div
-                className={`rounded-xl border p-2.5 text-left transition-all ${
-                  isPlanningReady
-                    ? 'border-brand-green/20 bg-brand-green/[0.04] dark:border-[#173e33] dark:bg-emerald-950/20'
-                    : 'border-amber-500/25 bg-amber-500/[0.06] dark:border-amber-500/30 dark:bg-amber-950/25'
-                }`}
-              >
-                <div className="flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-2 min-w-0">
-                    <span
-                      className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border ${
-                        isPlanningReady
-                          ? 'border-brand-green/20 bg-brand-green/10 text-brand-green dark:border-emerald-500/30 dark:bg-emerald-500/15 dark:text-emerald-400'
-                          : 'border-amber-500/25 bg-amber-500/10 text-amber-600 dark:border-amber-500/30 dark:bg-amber-500/20 dark:text-amber-400'
-                      }`}
-                    >
-                      {isPlanningReady ? (
-                        <ShieldCheck className="h-3.5 w-3.5" />
-                      ) : (
-                        <AlertCircle className="h-3.5 w-3.5" />
-                      )}
-                    </span>
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-1.5">
-                        <h4 className="text-xs font-bold text-brand-text dark:text-white/95 truncate">
-                          Planner Status
-                        </h4>
-                        <span
-                          className={`inline-block h-1.5 w-1.5 rounded-full ${
-                            isPlanningReady ? 'bg-emerald-500' : 'bg-amber-500 animate-pulse'
-                          }`}
-                        />
-                      </div>
-                      <span className="text-[10px] text-brand-muted dark:text-white/45 truncate block">
-                        {planningReadiness?.title ||
-                          (prerequisitesComplete ? 'Checking clinical readiness' : 'Action required')}
-                      </span>
-                    </div>
-                  </div>
-                  <span
-                    className={`shrink-0 rounded-full px-2 py-0.5 font-mono text-[9px] font-bold uppercase tracking-wider border ${
-                      isPlanningReady
-                        ? 'border-brand-green/30 bg-brand-green/10 text-brand-green dark:border-emerald-500/30 dark:bg-emerald-500/15 dark:text-emerald-400'
-                        : 'border-amber-500/30 bg-amber-500/15 text-amber-600 dark:border-amber-500/30 dark:bg-amber-500/20 dark:text-amber-400'
-                    }`}
-                  >
-                    {isPlanningReady ? 'Ready' : planningReadiness?.canRequestPlan === false ? 'Blocked' : 'Pending'}
-                  </span>
-                </div>
-
-                <p className="mt-1.5 text-[11px] leading-relaxed text-brand-muted dark:text-white/60">
-                  {prerequisitesComplete
-                    ? planningReadiness?.message || 'Checking current clinical context and meal-planning requirements.'
-                    : !isReportAcknowledged
-                      ? 'Please review and acknowledge your personalized nutrition report before meal plans can be generated or viewed.'
-                      : !isTosAccepted
-                        ? 'Please accept the clinical disclaimer and Terms of Service to enable meal planning.'
-                        : 'Please complete your health intake onboarding to enable personalized meal planning.'}
-                </p>
-
-                {(!isPlanningReady || planningReadiness?.status === 'REQUEST_ALLOWED_REVIEW_EXPECTED') && (
-                  <div className="mt-2 pt-1.5 border-t border-brand-border/40 dark:border-white/[0.06]">
-                    {planningReadiness && prerequisitesComplete ? (
-                      <Link
-                        href={planningReadiness.actionPath || '/meals'}
-                        onClick={() => setIsOpen(false)}
-                        className="inline-flex items-center gap-1 text-[11px] font-bold text-brand-green hover:underline dark:text-emerald-400"
-                      >
-                        <span>{planningReadiness.canRequestPlan ? 'View meal plan' : 'Review clinical context'}</span>
-                        <ArrowRight className="h-3 w-3" />
-                      </Link>
-                    ) : !isReportAcknowledged ? (
-                      <Link
-                        href="/profile/nutrition-report"
-                        onClick={() => setIsOpen(false)}
-                        className="inline-flex items-center gap-1 text-[11px] font-bold text-brand-green hover:underline dark:text-emerald-400"
-                      >
-                        <span>View nutrition report</span>
-                        <ArrowRight className="h-3 w-3" />
-                      </Link>
-                    ) : !isTosAccepted ? (
-                      <Link
-                        href="/onboarding/tos"
-                        onClick={() => setIsOpen(false)}
-                        className="inline-flex items-center gap-1 text-[11px] font-bold text-brand-green hover:underline dark:text-emerald-400"
-                      >
-                        <span>Accept Terms of Service</span>
-                        <ArrowRight className="h-3 w-3" />
-                      </Link>
-                    ) : (
-                      <Link
-                        href="/onboarding/stats"
-                        onClick={() => setIsOpen(false)}
-                        className="inline-flex items-center gap-1 text-[11px] font-bold text-brand-green hover:underline dark:text-emerald-400"
-                      >
-                        <span>Complete onboarding</span>
-                        <ArrowRight className="h-3 w-3" />
-                      </Link>
-                    )}
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Starter Plan Status Card */}
-            {user?.role === 'USER' && cycleInfo?.isStarterPlan && (
-              <div className="rounded-xl border border-brand-green/20 bg-brand-green/[0.04] p-2.5 text-left dark:border-[#173e33] dark:bg-emerald-950/20">
-                <div className="flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-2 min-w-0">
-                    <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-brand-green/20 bg-brand-green/10 text-brand-green dark:border-emerald-500/30 dark:bg-emerald-500/15 dark:text-emerald-400">
-                      <Sprout className="h-3.5 w-3.5" />
-                    </span>
-                    <div className="min-w-0">
-                      <h4 className="text-xs font-bold text-brand-text dark:text-white/95 truncate">
-                        Starter Plan Active
-                      </h4>
-                      <span className="text-[10px] text-brand-muted dark:text-white/45 truncate block">
-                        Kickoff bridge plan
-                      </span>
-                    </div>
-                  </div>
-                  <span className="shrink-0 rounded-full border border-brand-green/30 bg-brand-green/10 px-2 py-0.5 font-mono text-[9px] font-bold uppercase tracking-wider text-brand-green dark:border-emerald-500/30 dark:bg-emerald-500/15 dark:text-emerald-400">
-                    Starter
-                  </span>
-                </div>
-
-                <p className="mt-1.5 text-[11px] leading-relaxed text-brand-muted dark:text-white/60">
-                  You are currently on a starter bridge plan. Your full 7-day weekly cycle begins{' '}
-                  <span className="font-semibold text-brand-text dark:text-white/90">
-                    {cycleInfo.nextCycleDay ? `on ${cycleInfo.nextCycleDay}` : 'after this bridge plan ends'}
-                  </span>
-                  .
-                </p>
-
-                <div className="mt-2 pt-1.5 border-t border-brand-border/40 dark:border-white/[0.06]">
-                  <Link
-                    href="/meals"
-                    onClick={() => setIsOpen(false)}
-                    className="inline-flex items-center gap-1 text-[11px] font-bold text-brand-green hover:underline dark:text-emerald-400"
-                  >
-                    <span>View meal plan</span>
-                    <ArrowRight className="h-3 w-3" />
-                  </Link>
-                </div>
-              </div>
-            )}
-
             {isLoading ? (
               <div className="space-y-1.5 py-1" aria-label="Loading notifications">
                 {[0, 1, 2].map((item) => (
