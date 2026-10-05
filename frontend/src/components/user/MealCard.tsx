@@ -31,7 +31,7 @@ import {
   UtensilsCrossed,
   X,
 } from 'lucide-react';
-import { AnimatePresence, motion } from 'motion/react';
+import { MealMotionDiv, MealMotionPresence, useMealMotion } from './MealMotion';
 import React, { useCallback, useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import MealImage from './MealImage';
@@ -108,6 +108,7 @@ export default function MealCard({
   defaultOpen = false,
   onCloseModal,
 }: MealCardProps) {
+  const animateMeal = useMealMotion();
   const [isOpen, setIsOpen] = useState(defaultOpen);
   const [isVerifierOpen, setIsVerifierOpen] = useState(false);
   const [verifierModalTab, setVerifierModalTab] = useState<'card' | 'notes'>('card');
@@ -228,7 +229,8 @@ export default function MealCard({
   return (
     <>
       {/* Simplified Meal Card inside Grid with Expandable Motion */}
-      <motion.div
+      <MealMotionDiv
+        enabled={animateMeal}
         layoutId={layoutId}
         role="button"
         tabIndex={0}
@@ -318,31 +320,33 @@ export default function MealCard({
             <MealMacros calories={calories} proteinG={proteinG} carbsG={carbsG} fatG={fatG} className="mt-3" />
           </div>
         </PlanMealCardSurface>
-      </motion.div>
+      </MealMotionDiv>
 
       {/* Detailed Info Dialog Popup Modal -> Expandable Card Animation Pattern */}
       {isMounted &&
         createPortal(
-          <AnimatePresence>
+          <MealMotionPresence enabled={animateMeal}>
             {isOpen && (
               <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 overflow-y-auto">
                 {/* Backdrop */}
-                <motion.div
+                <MealMotionDiv
+                  enabled={animateMeal}
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
                   onClick={handleClose}
-                  className="fixed inset-0 bg-black/80 backdrop-blur-xl"
+                  className="fixed inset-0 bg-black/80 md:backdrop-blur-xl"
                 />
 
                 {/* Expanded Modal Card */}
-                <motion.div
+                <MealMotionDiv
+                  enabled={animateMeal}
                   layoutId={layoutId}
                   className="relative z-10 my-auto w-full max-w-2xl overflow-hidden rounded-[28px] sm:rounded-[32px] border border-white/20 dark:border-white/10 bg-brand-surface shadow-[0_25px_70px_rgba(0,0,0,0.45)] dark:shadow-[0_25px_80px_rgba(0,0,0,0.85)] max-h-[92vh] flex flex-col text-left select-none ring-1 ring-black/5 dark:ring-white/5"
                 >
                   {/* Hero Image Container */}
                   <div className="relative h-[260px] sm:h-[300px] w-full shrink-0 overflow-hidden bg-black/40">
-                    <motion.div layoutId={`image-wrap-${layoutId}`} className="h-full w-full">
+                    <MealMotionDiv enabled={animateMeal} layoutId={`image-wrap-${layoutId}`} className="h-full w-full">
                       <MealImage
                         image={image}
                         mealName={mealName}
@@ -351,7 +355,7 @@ export default function MealCard({
                         variant="hero"
                         ingredients={ingredients}
                       />
-                    </motion.div>
+                    </MealMotionDiv>
 
                     {/* Gradient overlays for contrast & seamless blending */}
                     <div className="absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-black/80 via-black/40 to-transparent pointer-events-none" />
@@ -499,7 +503,8 @@ export default function MealCard({
                   </div>
 
                   {/* Modal Body */}
-                  <motion.div
+                  <MealMotionDiv
+                    enabled={animateMeal}
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
@@ -798,11 +803,11 @@ export default function MealCard({
                         </span>
                       </div>
                     )}
-                  </motion.div>
-                </motion.div>
+                  </MealMotionDiv>
+                </MealMotionDiv>
               </div>
             )}
-          </AnimatePresence>,
+          </MealMotionPresence>,
           document.body
         )}
 

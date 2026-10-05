@@ -38,6 +38,8 @@ PasswordInput uses Input's trailingControl slot; never position a visibility but
 
 PlanMealCardSurface preserves the Meals tile design with its cropped circular image, colored banner and macro pills. DashboardMealCardSurface preserves the separate compact design with a full colored gradient and an overlapping circular plate. These dedicated meal components do not inherit the default Card surface or its decorations. MealCard, PendingMealPreviewCard and RecipeLibraryCard provide their specific status badges, body details and actions. History and swap rows reuse the compact design and DashboardMealPlate, with caller-specific sizes and actions. Shared presentation never implies that a library recipe is approved for a particular member.
 
+MealCard and PendingMealPreviewCard share MealMotion: details open and close immediately below 768 px and when reduced motion is enabled. Keep expanding-card animations and background blur on desktop only.
+
 MealLibraryLayout is only the grid. Member catalogue requests use useRecipeCatalog, scoped to owner, search, filters and page; staff use their existing role endpoints and account-scoped cache. Both use Pagination. Do not identify recipes by display name, or slice the first API page as if it contains the whole library. Cursor-based compatible pages advance only once the next batch arrives.
 
 ## Landing links
