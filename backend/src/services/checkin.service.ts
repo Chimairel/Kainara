@@ -152,7 +152,7 @@ export class CheckinService {
           effectiveActivityLevel !== profile.activityLevel ||
           dailyCalorieTarget !== profile.dailyCalorieTarget;
         if (changed) await advanceProfileRevision(tx, userId);
-        if (enhanced && updates.weightKg !== undefined)
+        if (updates.weightKg !== undefined)
           await tx.weightLog.create({ data: { userId, weightKg: updates.weightKg, note: 'Weekly check-in' } });
         const report = await NutritionReportService.publishInTransaction(
           tx,

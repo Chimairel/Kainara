@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto';
 import { Prisma } from '@prisma/client';
 import prisma from '@/lib/prisma';
+import { requiresIndividualPlanningReview } from '@/domain/planning-membership.policy';
 import { AppError } from '@/errors/AppError';
 import { resolveBillingEntitlement } from '@/domain/billing-entitlement.policy';
 import { adaptUserSafetyRestrictions } from '@/domain/structured-restriction.adapter';
@@ -103,12 +104,7 @@ export class MembershipService {
       otherConditions: user.userProfile?.otherConditions,
       otherAllergies: user.userProfile?.otherAllergies,
     });
-    const requiresCaseReview =
-      restrictions.requiresReview ||
-      restrictions.conditions.some((value) => value !== 'NONE') ||
-      restrictions.allergies.some((value) => value !== 'NONE') ||
-      restrictions.customConditions.length > 0 ||
-      restrictions.customFoodRestrictions.length > 0;
+    const requiresCaseReview = requiresIndividualPlanningReview(restrictions);
     return {
       ...current,
       tier,

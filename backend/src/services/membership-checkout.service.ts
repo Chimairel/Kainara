@@ -1,5 +1,7 @@
 import { z } from 'zod';
 import prisma from '@/lib/prisma';
+import { MembershipService } from './membership.service';
+import { HEALTH_PLANNING_REQUIRED_MESSAGE } from '@/domain/planning-membership.policy';
 import { AppError } from '@/errors/AppError';
 import { publishLiveUpdate } from '@/lib/live-updates';
 import { lockUserProfile } from './profile-revision.service';
@@ -83,6 +85,7 @@ export class MembershipCheckoutService {
     const result = await prisma.$transaction(
       async (tx) => {
         await lockUserProfile(tx, userId);
+        await this.assertSelection(tx, userId, selection.tier);
         const prior = await tx.membershipTestCheckout.findUnique({
           where: { userId_requestKey: { userId, requestKey: selection.requestKey } },
         });
@@ -242,12 +245,18 @@ export class MembershipCheckoutService {
       throw new AppError('Complete your account setup before checkout.', 403, 'MEMBERSHIP_ACCOUNT_INELIGIBLE');
   }
 
+  private static async assertSelection(tx: Prisma.TransactionClient, userId: string, tier: 'LIFESTYLE' | 'HEALTH') {
+    if (tier === 'LIFESTYLE' && (await MembershipService.state(userId, new Date(), tx)).requiresCaseReview)
+      throw new AppError(HEALTH_PLANNING_REQUIRED_MESSAGE, 403, 'HEALTH_PLANNING_REQUIRED');
+  }
+
   static async quote(userId: string, selection: Pick<CheckoutSelection, 'tier' | 'period'>) {
     const c = config();
     return prisma.$transaction(
       async (tx) => {
         await lockUserProfile(tx, userId);
         await this.assertAccount(tx, userId);
+        await this.assertSelection(tx, userId, selection.tier);
         const context = await membershipTransitionContext(userId, c.accountHash, tx);
         assertTransitionAvailable(context);
         const quote = quoteTransition({

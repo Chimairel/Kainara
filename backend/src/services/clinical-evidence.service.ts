@@ -133,7 +133,7 @@ async function invalidateActivePlansForUser(tx: Prisma.TransactionClient, userId
 
 export class ClinicalEvidenceService {
   static async nextOnboardingDetailsPath(userId: string, domains: readonly string[]) {
-    const areas = await declaredAreas(userId);
+    const areas = (await this.requirementsForUser(userId)).map((requirement) => requirement.area);
     const conditions = domains.includes('CONDITION');
     return [...areas].some((area) => (conditions ? area !== 'FOOD_ALLERGY' : area === 'FOOD_ALLERGY'))
       ? conditions
@@ -150,6 +150,7 @@ export class ClinicalEvidenceService {
         healthConditions: true,
         allergies: true,
         clinicalContextResponses: true,
+        safetyProfileEntries: true,
       },
     });
     if (!user) throw new AppError('User not found.', 404, 'USER_NOT_FOUND');

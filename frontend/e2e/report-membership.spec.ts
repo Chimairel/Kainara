@@ -1,7 +1,10 @@
 import { expect, test, type Page } from '@playwright/test';
 
 // Browser fixtures cover presentation. The guarded PostgreSQL scripts cover authorization and writes.
-async function setup(page: Page, safetyChanged = false) {
+async function setup(page: Page, safetyChanged = false, weightOnly = false) {
+  const errors: string[] = [];
+  page.on('pageerror', (error) => errors.push(error.message));
+  page.on('close', () => expect(errors).toEqual([]));
   const user = {
     id: 'report-browser-fixture',
     name: 'Test User',
@@ -58,11 +61,32 @@ async function setup(page: Page, safetyChanged = false) {
       activeGeneratedAt: '2026-09-01T00:00:00Z',
       pendingChanges: true,
       safetyChanged,
+      activationTier: weightOnly ? null : safetyChanged ? 'HEALTH' : 'LIFESTYLE',
     },
   };
+  let acknowledged = false;
   await page.route('**/api/**', async (route) => {
     const path = new URL(route.request().url()).pathname;
     if (path.includes('/live/')) return route.fulfill({ status: 204 });
+    if (path.endsWith('/nutrition-report/acknowledge') && weightOnly) {
+      acknowledged = true;
+      return route.fulfill({
+        json: {
+          success: true,
+          data: {
+            version: report.version,
+            acknowledgedAt: '2026-10-05T00:00:00Z',
+            planningReadiness: {
+              status: 'REQUEST_ALLOWED',
+              canRequestPlan: true,
+              title: 'Meal planning is available',
+              message: 'Ready',
+              actionPath: '/meals',
+            },
+          },
+        },
+      });
+    }
     if (path.endsWith('/nutrition-report/acknowledge'))
       return route.fulfill({
         status: 403,
@@ -77,7 +101,14 @@ async function setup(page: Page, safetyChanged = false) {
     else if (path.endsWith('/clinical-profile-review/status')) data = { required: false, approved: true };
     else if (path.endsWith('/checkin/status'))
       data = { isDue: true, hasPendingChanges: true, safetyChanged, weeksSinceConfirmation: 3, profileRevision: 2 };
-    else if (path.endsWith('/nutrition-report')) data = report;
+    else if (path.endsWith('/nutrition-report'))
+      data = acknowledged
+        ? {
+            ...report,
+            acknowledgedAt: '2026-10-05T00:00:00Z',
+            planningContext: { ...report.planningContext, activeVersion: 2, pendingChanges: false },
+          }
+        : report;
     else if (path.endsWith('/user/membership'))
       data = {
         enabled: true,
@@ -124,6 +155,14 @@ for (const width of [320, 390, 1440]) {
     await expect(page.getByRole('dialog', { name: 'Membership plans' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Get Lifestyle' })).toBeEnabled();
     await expect(page.getByRole('button', { name: 'Get Health' })).toBeEnabled();
+    await expect
+      .poll(async () => (await page.getByRole('article', { name: 'Health plan' }).ariaSnapshot()).replace(/\s/g, ''))
+      .toContain('₱999/month');
+    await page.getByRole('button', { name: /Yearly Billing/ }).click();
+    await expect
+      .poll(async () => (await page.getByRole('article', { name: 'Health plan' }).ariaSnapshot()).replace(/\s/g, ''))
+      .toContain('₱9,590/year');
+    await page.getByRole('button', { name: 'Monthly Billing' }).click();
     await expect(page.getByText('10 meal swaps per cycle', { exact: true })).toBeVisible();
     await expect(page.getByText('21 meal swaps per cycle', { exact: true })).toBeVisible();
     await expect(
@@ -140,7 +179,7 @@ for (const width of [320, 390, 1440]) {
     const lifestyleInfo = page.getByRole('button', { name: 'Lifestyle planning details' });
     if (width === 1440) await lifestyleInfo.hover();
     else await lifestyleInfo.click();
-    await expect(page.getByRole('tooltip')).toContainText('Weight, height, activity level');
+    await expect(page.getByRole('tooltip')).toContainText('Activity level, weight loss');
     await page.keyboard.press('Escape');
     await expect(page.getByRole('tooltip')).toHaveCount(0);
     await expect(page.getByRole('dialog', { name: 'Membership plans' })).toBeVisible();
@@ -194,4 +233,14 @@ test('declared health needs recommend Health on the plan comparison', async ({ p
     page.getByRole('article', { name: 'Lifestyle plan' }).getByText('Recommended', { exact: true })
   ).toHaveCount(0);
   await expect(page.getByText(/Your first 30 days include the Health plan/)).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Health plan needed' })).toBeDisabled();
+  await expect(page.getByText(/Your health details require nutritionist review/)).toBeVisible();
+});
+
+test('Free weight-only report activation does not open a membership gate', async ({ page }) => {
+  await setup(page, false, true);
+  await page.goto('/profile/nutrition-report');
+  await page.getByRole('button', { name: 'Use this report for meal planning' }).click();
+  await expect(page.getByRole('dialog', { name: /membership needed/ })).toHaveCount(0);
+  await expect(page).toHaveURL(/\/dashboard$/);
 });

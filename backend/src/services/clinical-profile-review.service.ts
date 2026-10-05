@@ -1,6 +1,7 @@
 import { createHash, randomUUID } from 'node:crypto';
 import { ClinicalEvidenceArea, ClinicalProfileReviewStatus, NotificationType, Prisma, Role } from '@prisma/client';
 import prisma from '@/lib/prisma';
+import { requiresIndividualPlanningReview } from '@/domain/planning-membership.policy';
 import { AppError } from '@/errors/AppError';
 import { adaptUserSafetyRestrictions } from '@/domain/structured-restriction.adapter';
 import { isNutritionistEligibleForReview } from '@/domain/nutritionist-review.policy';
@@ -74,11 +75,7 @@ function context(user: ProfileUser) {
     declarationRequired:
       !user.safetyProfileEntries.some((item) => item.domain === 'CONDITION') ||
       !user.safetyProfileEntries.some((item) => item.domain === 'ALLERGY'),
-    restricted:
-      snapshot.conditions.some((item) => item !== 'NONE') ||
-      snapshot.allergies.some((item) => item !== 'NONE') ||
-      snapshot.customConditions.length > 0 ||
-      snapshot.customFoodRestrictions.length > 0,
+    restricted: requiresIndividualPlanningReview(restrictions),
     // A named restriction requiring manual meal review can still receive profile
     // confirmation. Unmapped/vague declarations must first be clarified.
     needsClarification: restrictions.displayEntries.some(

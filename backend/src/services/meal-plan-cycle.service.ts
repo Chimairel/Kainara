@@ -1,4 +1,5 @@
 import prisma from '@/lib/prisma';
+import { isCertifiedLibraryMealCompatible, certifiedLibraryMealInclude } from './meal-library-candidate-query.service';
 import { MembershipService } from './membership.service';
 import { admittedLibraryBaseIds } from './meal-base-admission.service';
 import { ClinicalProfileReviewService } from './clinical-profile-review.service';
@@ -123,18 +124,7 @@ export class MealPlanCycleService {
                 libraryVariants: { where: { status: 'FLAGGED' }, select: { id: true }, take: 1 },
               },
             },
-            libraryMeal: {
-              select: {
-                id: true,
-                description: true,
-                sourceRawRecipeCandidateId: true,
-                sourceRawRecipeCandidate: { select: { sourceName: true, status: true, contentSignature: true } },
-                status: true,
-                safetyEvidenceStatus: true,
-                safetyEvidenceRevision: true,
-                recipeSignature: true,
-              },
-            },
+            libraryMeal: { include: certifiedLibraryMealInclude },
             servingComponents: {
               select: {
                 componentType: true,
@@ -247,10 +237,25 @@ export class MealPlanCycleService {
             isNutritionistEligibleForReview(profileApproval.reviewerNutritionist, now);
           const distinctCaseReviewers = new Set(meal.reviewDecisions.map((decision) => decision.nutritionistProfileId));
           const caseReviewComplete = distinctCaseReviewers.size >= 1;
-          // An allergy-absent declaration belongs to the base recipe. Legacy
-          // auto-approved allergy plans without a scoped approval or an actual
-          // case decision must not remain usable after the policy correction.
-          if (safetyRestrictions.allergies.length && !profileApprovalCurrent) {
+          // Allergy-only profiles may reuse complete reviewed recipe evidence.
+          // Incomplete evidence and combined condition cases still need a scoped
+          // approval or an actual case decision.
+          const allergyEvidenceCompatible =
+            safetyRestrictions.allergies.length > 0 &&
+            isCertifiedLibraryMealCompatible(
+              library,
+              safetyRestrictions.conditions,
+              safetyRestrictions.allergies,
+              {
+                userId,
+                dietaryPreference: null,
+                otherConditions: cycle.user.userProfile?.otherConditions ?? null,
+                otherAllergies: cycle.user.userProfile?.otherAllergies ?? null,
+                safetyEntries: cycle.user.safetyProfileEntries,
+              },
+              { safetyOnly: true }
+            );
+          if (safetyRestrictions.allergies.length && !profileApprovalCurrent && !allergyEvidenceCompatible) {
             if (!caseReviewComplete) return false;
           }
           if (!profileApprovalCurrent && library.safetyEvidenceStatus !== MealLibrarySafetyEvidenceStatus.COMPLETE) {

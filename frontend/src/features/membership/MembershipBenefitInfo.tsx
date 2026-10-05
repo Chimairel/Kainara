@@ -6,9 +6,13 @@ export default function MembershipBenefitInfo({ tier }: { tier: 'LIFESTYLE' | 'H
       {tier === 'LIFESTYLE' ? (
         <div className="space-y-2">
           <p className="font-bold">Everyday planning</p>
-          <p>Weight, height, activity level, weight loss, maintenance or muscle gain, and dietary preferences.</p>
+          <p>
+            Activity level, weight loss, maintenance or muscle gain, and dietary preferences. Weight updates are
+            included in Free.
+          </p>
           <p className="text-brand-muted">
-            Condition-specific planning and declared allergies currently require Health review.
+            Supported allergy changes: shellfish (including shrimp), peanuts and tree nuts, dairy, gluten and eggs. Only
+            recipes with complete reviewed ingredient and allergen evidence qualify.
           </p>
         </div>
       ) : (
@@ -26,8 +30,9 @@ export default function MembershipBenefitInfo({ tier }: { tier: 'LIFESTYLE' | 'H
             celiac disease, PCOS and GERD.
           </p>
           <p className="text-brand-muted">
-            Other conditions, allergies and restrictions can be submitted for assessment. Planning depends on
-            nutritionist clearance.
+            Other conditions, allergies and restrictions can be submitted for assessment. Unknown ingredients are
+            excluded; filtering cannot guarantee against cross-contact during cooking. Planning depends on nutritionist
+            clearance.
           </p>
         </div>
       )}

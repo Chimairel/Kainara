@@ -4,6 +4,8 @@ import { adaptUserSafetyRestrictions } from '../src/domain/structured-restrictio
 import { evaluateMealGenerationLibraryCompatibility } from '../src/domain/meal-generation-library-compatibility.adapter';
 import { MEAL_LIBRARY_SAFETY_POLICY_VERSION } from '../src/domain/meal-library-safety-evidence.policy';
 import { isCertifiedLibraryMealCompatible } from '../src/services/meal-library-candidate-query.service';
+import { MealPlanCycleService } from '../src/services/meal-plan-cycle.service';
+import { ClinicalProfileReviewService } from '../src/services/clinical-profile-review.service';
 
 const completeCandidate = (
   conditions: string[] = [],
@@ -23,7 +25,7 @@ const completeCandidate = (
     conditionRuleMatches: conditions,
     conditionDomainReviewed: true,
   },
-  ingredients: [{ dataSource: 'FNRI', foodItemId: 'food-1', quantity: 100, unit: 'g' }],
+  ingredients: [{ ingredientName: 'Rice', dataSource: 'FNRI', foodItemId: 'food-1', quantity: 100, unit: 'g' }],
   nutritionEvidenceSource: 'FNRI_RECONCILED',
 });
 
@@ -58,7 +60,7 @@ const certifiedMeal = (dietaryTags: string[], conditions: string[], allergenFree
     isVerified: true,
     prcLicenseExpiry: new Date('2999-12-31T00:00:00.000Z'),
   },
-  ingredients: [{ dataSource: 'FNRI', foodItemId: 'food-1', quantity: 100, unit: 'g' }],
+  ingredients: [{ ingredientName: 'Rice', dataSource: 'FNRI', foodItemId: 'food-1', quantity: 100, unit: 'g' }],
   safetyDeclarations: [
     ...allergenFree.map((canonicalKey) => ({
       declarationType: 'ALLERGEN_REVIEWED_ABSENT',
@@ -90,6 +92,83 @@ const certifiedMeal = (dietaryTags: string[], conditions: string[], allergenFree
       },
     ],
   })),
+});
+
+test('supported allergy-only profiles reuse complete reviewed absence evidence without case approval', () => {
+  const meal = certifiedMeal(['OMNIVORE'], [], ['SHELLFISH']);
+  const profile = { dietaryPreference: 'OMNIVORE', otherConditions: null, otherAllergies: null };
+  assert.equal(isCertifiedLibraryMealCompatible(meal, [], ['SHELLFISH'], profile), true);
+  for (const changed of [
+    ...['Shrimp', 'Alamang', 'Mystery sauce'].map((ingredientName) => ({
+      ...meal,
+      ingredients: [{ ...meal.ingredients[0], ingredientName }],
+    })),
+    { ...meal, ingredients: [{ ...meal.ingredients[0], foodItem: { name: 'Shrimp' } }] },
+    { ...meal, safetyEvidenceStatus: 'INCOMPLETE' },
+    { ...meal, crossContactAssessment: 'NOT_ASSESSED' },
+    { ...meal, safetyDeclarations: [] },
+    { ...meal, safetyInvalidatedAt: new Date() },
+    { ...meal, ingredients: [{ ingredientName: 'Shrimp paste', dataSource: 'GEMINI_ESTIMATED', foodItemId: null }] },
+  ])
+    assert.equal(isCertifiedLibraryMealCompatible(changed, [], ['SHELLFISH'], profile), false);
+  assert.equal(isCertifiedLibraryMealCompatible(meal, [], ['SOY'], profile), false);
+  assert.equal(
+    isCertifiedLibraryMealCompatible(meal, [], ['SHELLFISH'], { ...profile, otherAllergies: 'unknown allergen' }),
+    false
+  );
+});
+
+test('cycle actionability rechecks allergy-only recipe evidence and rejects changed or incomplete evidence', async (t) => {
+  const library = {
+    ...certifiedMeal(['OMNIVORE'], [], ['SHELLFISH']),
+    id: 'reviewed-rice',
+    description: null,
+    sourceRawRecipeCandidateId: 'source-rice',
+    sourceRawRecipeCandidate: { sourceName: 'PANLASANG_PINOY', status: 'AVAILABLE', contentSignature: 'b'.repeat(64) },
+  };
+  const cycle = {
+    user: {
+      healthConditions: [] as Array<{ condition: string }>,
+      allergies: [{ allergen: 'SHELLFISH' }],
+      userProfile: { otherConditions: null, otherAllergies: null },
+      safetyProfileEntries: [entry('CONDITION', 'NONE'), entry('ALLERGY', 'SHELLFISH')],
+    },
+    mealPlans: [
+      {
+        id: 'meal-rice',
+        status: 'APPROVED',
+        requiresSafetyRevalidation: false,
+        candidateProvenance: 'CERTIFIED_LIBRARY',
+        libraryMealId: library.id,
+        libraryMeal: library,
+        baseRecipeSignature: library.recipeSignature,
+        composedServingSignature: 'c'.repeat(64),
+        safetyPolicyVersion: 'fixture',
+        profileApproval: null,
+        reviewDecisions: [],
+        clearanceUsages: [],
+        servingComponents: [],
+      },
+    ],
+  };
+  const client = { mealPlanCycle: { findFirst: async () => cycle } } as unknown as Parameters<
+    typeof MealPlanCycleService.getClearedMealPlanIds
+  >[3];
+  t.mock.method(ClinicalProfileReviewService, 'hasCurrentApproval', async () => true);
+  const cleared = () => MealPlanCycleService.getClearedMealPlanIds('fixture', 'cycle', new Date(), client);
+  assert.deepEqual(await cleared(), ['meal-rice']);
+  library.ingredients[0].ingredientName = 'Shrimp';
+  assert.deepEqual(await cleared(), []);
+  library.ingredients[0].ingredientName = 'Rice';
+  library.safetyEvidenceStatus = 'INCOMPLETE';
+  assert.deepEqual(await cleared(), []);
+  library.safetyEvidenceStatus = 'COMPLETE';
+  cycle.mealPlans[0].requiresSafetyRevalidation = true;
+  assert.deepEqual(await cleared(), []);
+  cycle.mealPlans[0].requiresSafetyRevalidation = false;
+  cycle.user.healthConditions = [{ condition: 'DIABETES' }];
+  cycle.user.safetyProfileEntries[0] = entry('CONDITION', 'DIABETES');
+  assert.deepEqual(await cleared(), [], 'Allergy-only automation cannot waive condition clearance.');
 });
 
 test('user-scoped condition clearance admits only its intended patient', () => {

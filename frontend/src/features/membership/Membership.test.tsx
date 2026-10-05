@@ -13,6 +13,10 @@ const state = vi.hoisted(() => ({
   refresh: vi.fn(),
 }));
 vi.mock('./MembershipProvider', () => ({ useMembership: () => state }));
+// The real custom-element animation is exercised in Chromium.
+vi.mock('@number-flow/react', () => ({
+  default: ({ value }: { value: number }) => <span>₱{value.toLocaleString('en-PH')}</span>,
+}));
 vi.mock('@/hooks/useAuth', () => ({
   useAuth: () => ({
     user: {
@@ -78,15 +82,15 @@ describe('membership status and gates', () => {
     render(<MembershipPage />);
     fireEvent.click(screen.getAllByRole('button', { name: 'View plans' })[0]);
     fireEvent.click(screen.getByRole('button', { name: 'Lifestyle planning details' }));
-    expect(screen.getByRole('tooltip')).toHaveTextContent('Weight, height, activity level');
-    expect(screen.getByRole('tooltip')).toHaveTextContent('declared allergies currently require Health review');
+    expect(screen.getByRole('tooltip')).toHaveTextContent('Activity level, weight loss');
+    expect(screen.getByRole('tooltip')).toHaveTextContent('Supported allergy changes: shellfish');
     fireEvent.keyDown(document, { key: 'Escape' });
     expect(screen.getByRole('dialog', { name: 'Membership plans' })).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Health planning details' }));
     expect(screen.getByRole('tooltip')).toHaveTextContent('shellfish (including shrimp)');
     expect(screen.getByRole('tooltip')).toHaveTextContent('Individual assessment: kidney disease');
     expect(screen.getByRole('tooltip')).toHaveTextContent('Planning depends on nutritionist clearance');
-    fireEvent.click(screen.getByRole('button', { name: 'Close', exact: true }));
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }));
     expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
   });
   it('keeps plans out of the allowance view and opens the shared accessible plan dialog', () => {
@@ -128,6 +132,11 @@ describe('membership status and gates', () => {
     expect(
       within(screen.getByRole('article', { name: 'Lifestyle plan' })).queryByText('Recommended')
     ).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Health plan needed' })).toBeDisabled();
+    expect(screen.getByText(/Your health details require nutritionist review/)).toBeInTheDocument();
+    expect(within(screen.getByRole('article', { name: 'Health plan' })).getByText('₱999')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /Yearly Billing/ }));
+    expect(within(screen.getByRole('article', { name: 'Health plan' })).getByText('₱9,590')).toBeInTheDocument();
     state.data = { ...view(), requiresCaseReview: false };
     rendered.rerender(<MembershipPage />);
     expect(

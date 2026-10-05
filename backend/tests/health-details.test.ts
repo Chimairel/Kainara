@@ -52,3 +52,17 @@ test('health details reject omitted medication context and client-supplied verif
   assert.equal(healthDetailsSchema.safeParse({ ...body, medications: '' }).success, false);
   assert.equal(healthDetailsSchema.safeParse({ ...body, verified: true }).success, false);
 });
+
+test('supported allergy-only planning needs no clinical form; unknown allergies still require details', () => {
+  const allergyOnly = { ...user, healthConditions: [], allergies: [{ allergen: 'SHELLFISH' }] };
+  assert.deepEqual(healthDetailsRequirements(allergyOnly), []);
+  assert.equal(
+    healthDetailsRequirements({ ...allergyOnly, allergies: [{ allergen: 'SOY' }] })[0].state,
+    'CONTEXT_REQUIRED'
+  );
+  assert.equal(
+    healthDetailsRequirements({ ...allergyOnly, userProfile: { ...user.userProfile, otherAllergies: 'sesame' } })[0]
+      .state,
+    'CONTEXT_REQUIRED'
+  );
+});

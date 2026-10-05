@@ -3,7 +3,7 @@ export type MembershipPeriod = 'MONTHLY' | 'YEARLY';
 export const checkoutSelectionKey = 'kainara:membership-selection';
 export const displayPrices = {
   LIFESTYLE: { MONTHLY: 24900, YEARLY: 239000 },
-  HEALTH: { MONTHLY: 149900, YEARLY: 1439000 },
+  HEALTH: { MONTHLY: 99900, YEARLY: 959000 },
 };
 export interface MembershipCheckout {
   id: string;

@@ -268,8 +268,8 @@ async function main() {
     const health = (
       await request(user, '/user/membership/checkout', { tier: 'HEALTH', period: 'YEARLY', requestKey: randomUUID() })
     ).body.data;
-    assert.ok(health.amountCentavos < 1439000);
-    assert.equal(health.amountCentavos + health.transition!.creditCentavos, 1439000);
+    assert.ok(health.amountCentavos < 959000);
+    assert.equal(health.amountCentavos + health.transition!.creditCentavos, 959000);
     const healthLedger = await prisma.membershipTestCheckout.findUniqueOrThrow({ where: { id: health.id } });
     const providerHealth = sessions.get(healthLedger.providerSessionId!)!;
     providerHealth.paid = true;

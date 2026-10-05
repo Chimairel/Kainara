@@ -79,6 +79,14 @@ export function reportInputsMatch(
   const a = reportProfile(current),
     b = reportProfile(previous);
   if (!a || !b || !PLANNING_PROFILE_FIELDS.every((field) => (a[field] ?? null) === (b[field] ?? null))) return false;
+  return reportDeclarationsMatch(current, previous);
+}
+
+export function reportDeclarationsMatch(
+  current: Pick<NutritionReportVersion, 'profileSnapshot'> | null,
+  previous: Pick<NutritionReportVersion, 'profileSnapshot'> | null
+) {
+  if (!current || !previous) return false;
   const left = current!.profileSnapshot as Record<string, unknown>;
   const right = previous!.profileSnapshot as Record<string, unknown>;
   return ['conditions', 'allergens', 'otherConditions', 'otherAllergies'].every((key) => {

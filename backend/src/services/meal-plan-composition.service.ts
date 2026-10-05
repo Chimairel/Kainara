@@ -6,6 +6,7 @@ import { buildComposedServing, composedNutritionTotal, scaleFnriFoodToGrams } fr
 import { resolveRecipeRiceRole } from '@/domain/recipe-rice-role.policy';
 import { resolveReplacementServing } from './meal-swap-serving.service';
 import prisma from '@/lib/prisma';
+import { requiresIndividualPlanningReview } from '@/domain/planning-membership.policy';
 import { assertGenerationIntegrity } from './generation-integrity.service';
 import { updateGenerationProgress } from './generation-progress.service';
 import { lockUserProfile } from './profile-revision.service';
@@ -101,6 +102,7 @@ export async function generate7DayPlan(
     !restrictions.allergies.length &&
     !restrictions.customConditions.length &&
     !restrictions.customFoodRestrictions.length;
+  const individualReviewRequired = requiresIndividualPlanningReview(restrictions);
   const assuranceTier = getMaximumAssuranceTier(userConditions);
 
   const { age, heightCm, weightKg, goal, activityLevel, dailyCalorieTarget } = profile;
@@ -128,7 +130,7 @@ export async function generate7DayPlan(
           userAllergens,
           profile: { ...profile, userId, safetyEntries: user.safetyProfileEntries },
           limit: 120,
-          includeUnapprovedCaseCandidates: true,
+          includeUnapprovedCaseCandidates: individualReviewRequired,
         })
       )
     )
@@ -233,7 +235,7 @@ export async function generate7DayPlan(
             mealType: slotType,
             dailyTarget: dailyCalorieTarget,
             ricePreference: profile.ricePreference,
-            hasConditions: !reviewFreeBaseOnly,
+            hasConditions: individualReviewRequired,
             riceFood: cookedRiceFood,
             allowPendingCaseReview: true,
             macroTarget,
@@ -293,7 +295,7 @@ export async function generate7DayPlan(
           pairedRiceG,
           fallbackAvailable: ranked.length > 1,
           requiresCaseApproval:
-            caseReviewCandidateIds.has(selected.meal.id) || Boolean(pairedRiceG && !reviewFreeBaseOnly),
+            caseReviewCandidateIds.has(selected.meal.id) || Boolean(pairedRiceG && individualReviewRequired),
         });
       } else {
         unmatchedSlots.push({
@@ -399,7 +401,7 @@ export async function generate7DayPlan(
   const unflaggedCandidates = preparedCandidates.filter(
     (meal) => !meal.rawCandidateId || sourceById.has(meal.rawCandidateId)
   );
-  const preparedAiMeals = reviewFreeBaseOnly
+  const preparedAiMeals = !individualReviewRequired
     ? unflaggedCandidates.filter((meal) =>
         isUnrestrictedPanlasangBaseEligible({
           source: meal.rawCandidateId ? sourceById.get(meal.rawCandidateId) : null,
@@ -619,7 +621,7 @@ export async function generate7DayPlan(
           const profileApproved =
             !certified && isProfileApprovedLibraryMealCompatible(latest, userConditions, userAllergens, currentProfile);
           const requiresCaseApproval =
-            Boolean(slot.pairedRiceG && !reviewFreeBaseOnly) ||
+            Boolean(slot.pairedRiceG && individualReviewRequired) ||
             (!certified &&
               !profileApproved &&
               slot.requiresCaseApproval &&
@@ -664,8 +666,8 @@ export async function generate7DayPlan(
             evidenceSource: 'CERTIFIED_LIBRARY',
           });
 
-          // Base verification permits a case candidate, but an allergy case is
-          // not actionable until a nutritionist records its own decision.
+          // Only fully compatible evidence is actionable immediately.
+          // Other clinical candidates still need their case review decision.
           const createdPlan = await tx.mealPlan.create({
             data: {
               planGroupId: newPlanGroupId,

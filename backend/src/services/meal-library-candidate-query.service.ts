@@ -111,10 +111,30 @@ export function isCertifiedLibraryMealCompatible(
     otherAllergies: profile.otherAllergies,
   });
   const requestedConditions = restrictions.conditions.filter((condition) => condition !== 'NONE');
-  // Base recipe verification and allergen-absence evidence do not constitute a
-  // nutritionist's approval of this user's allergy case. A scoped approval (or
-  // a direct meal-plan review) is required before the recipe is actionable.
-  if (restrictions.allergies.length || restrictions.customFoodRestrictions.length) return false;
+  // Supported allergy-only profiles use explicit reviewed absence evidence.
+  // Conditions and custom restrictions retain their existing clinical gates.
+  if (
+    restrictions.requiresReview ||
+    restrictions.customFoodRestrictions.length ||
+    (restrictions.allergies.length > 0 && requestedConditions.length > 0)
+  )
+    return false;
+  if (restrictions.allergies.length > 0) {
+    if (!Array.isArray(meal.ingredients) || !meal.ingredients.length) return false;
+    const names: Array<{ name: string; category?: string | null }> = [];
+    for (const ingredient of meal.ingredients) {
+      if (!ingredient || typeof ingredient !== 'object' || typeof ingredient.ingredientName !== 'string') return false;
+      names.push({ name: ingredient.ingredientName });
+      const food = ingredient.foodItem;
+      if (food && typeof food === 'object' && typeof food.name === 'string') names.push({ name: food.name });
+    }
+    const classification = classifyMealIngredients(names);
+    if (
+      classification.status !== 'COMPLETE' ||
+      classification.detectedAllergens.some((allergen) => restrictions.allergies.includes(allergen))
+    )
+      return false;
+  }
   const now = new Date();
   const activeClearances = Array.isArray(meal.conditionClearances)
     ? meal.conditionClearances.filter(

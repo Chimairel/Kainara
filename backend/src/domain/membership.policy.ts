@@ -2,7 +2,7 @@ import { AppError } from '@/errors/AppError';
 import { getManilaDateKey, getManilaMidnight, getScheduledMealDate } from './meal-plan-cycle.policy';
 
 export const MEMBERSHIP_TRIAL_DAYS = 30;
-export const MEMBERSHIP_POLICY_VERSION = 'KAINARA_MEMBERSHIP_V3';
+export const MEMBERSHIP_POLICY_VERSION = 'KAINARA_MEMBERSHIP_V4';
 export type MembershipTierName = 'FREE' | 'LIFESTYLE' | 'HEALTH';
 export type MembershipLevel = 'FREE' | 'TRIAL_PENDING' | 'TRIAL' | 'MEMBER';
 // REPLAN remains a historical database value, but no longer grants access.

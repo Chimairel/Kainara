@@ -15,7 +15,7 @@ export const membershipCheckoutInput = z
 export type CheckoutSelection = z.infer<typeof membershipCheckoutInput>;
 export const MEMBERSHIP_PRICES = {
   LIFESTYLE: { MONTHLY: 24900, YEARLY: 239000 },
-  HEALTH: { MONTHLY: 149900, YEARLY: 1439000 },
+  HEALTH: { MONTHLY: 99900, YEARLY: 959000 },
 } as const;
 
 /** Explicit sandbox opt-in; test receipts never create a real paid MembershipGrant. */

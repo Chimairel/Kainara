@@ -56,16 +56,17 @@ export const membershipChapter: DocsChapter = {
       content: (
         <>
           <p>
-            Accounts without declared conditions or allergies can continue receiving general weekly meal plans using
+            Accounts without needs requiring individual review can continue receiving general weekly meal plans using
             their active nutrition report. Groceries, meal completion, manual outside-food logging, saved records and
             profile corrections remain available. Free access includes a smaller meal-swap and AI estimate allowance.
           </p>
           <p>
-            Saving profile changes is free. Applying ordinary measurement, activity, goal, preference or shopping
-            changes to planning requires Lifestyle or Health after the trial. Progress insights also require Lifestyle
-            or Health. Declared conditions or allergies require Health for updated case context and new case plans after
-            the trial. Existing eligible active cycles can finish; previously submitted review and clarification work
-            remains available. New safety declarations still invalidate conflicting meals immediately.
+            Saving profile corrections is free. Weight-only updates can be applied to general planning for Free.
+            Applying activity, goal, preference, supported allergy or shopping changes to planning requires Lifestyle or
+            Health after the trial. Progress insights also require Lifestyle or Health. Conditions and unsupported or
+            unclear restrictions require Health for updated case context and new case plans after the trial. Existing
+            eligible active cycles can finish; previously submitted review and clarification work remains available. New
+            safety declarations still invalidate conflicting meals immediately.
           </p>
         </>
       ),
@@ -100,6 +101,9 @@ export const membershipChapter: DocsChapter = {
       content: (
         <>
           <p>
+            Lifestyle costs ₱249/month or ₱2,390/year. Health costs ₱999/month or ₱9,590/year. Lifestyle supports
+            shellfish, peanuts and tree nuts, dairy, gluten and eggs through complete reviewed ingredient and allergen
+            evidence. Ingredient exclusion checks apply on every tier; missing evidence is never treated as safe.
             Lifestyle and Health have bounded allowances. The initial free allowances are 3 swaps per plan cycle and 2
             AI estimate requests per week. Lifestyle includes 10 swaps per plan cycle and 10 AI estimate requests per
             week. Health includes 21 swaps per cycle, plus 1 plan-review episode per target week and 1 requested

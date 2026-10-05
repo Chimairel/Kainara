@@ -1,4 +1,5 @@
 import prisma from '@/lib/prisma';
+import { reportActivationTier } from '@/domain/planning-membership.policy';
 import { NotificationType, Prisma } from '@prisma/client';
 import { AppError } from '@/errors/AppError';
 import { lockUserProfile } from './profile-revision.service';
@@ -60,8 +61,11 @@ export class NutritionReportService {
     const safetyChanged = Boolean(active && reportProfile(active)?.safetyRevision !== profile.safetyRevision);
     let activationTier: 'LIFESTYLE' | 'HEALTH' | null = null;
     if (active && pendingChanges && !reportInputsMatch(version, active) && membershipEnabled()) {
-      activationTier =
-        safetyChanged || (await MembershipService.state(userId)).requiresCaseReview ? 'HEALTH' : 'LIFESTYLE';
+      activationTier = reportActivationTier(
+        version,
+        active,
+        (await MembershipService.state(userId)).requiresCaseReview
+      );
     }
     return {
       ...report,
@@ -153,12 +157,9 @@ export class NutritionReportService {
       // First-ever activation and unchanged confirmations are free. The client cannot assert unchanged inputs.
       if ((previous || profile.firstReportAcknowledgedAt) && !sameInputs && membershipEnabled()) {
         const membership = await MembershipService.state(userId, new Date(), tx);
-        if (
-          membership.requiresCaseReview ||
-          (previous && reportProfile(previous)?.safetyRevision !== profile.safetyRevision)
-        )
-          await MembershipService.assertHealth(userId, tx);
-        else await MembershipService.assertEnhanced(userId, tx);
+        const tier = reportActivationTier(version, previous, membership.requiresCaseReview);
+        if (tier === 'HEALTH') await MembershipService.assertHealth(userId, tx);
+        else if (tier === 'LIFESTYLE') await MembershipService.assertEnhanced(userId, tx);
       }
       const acknowledgedAt = report.acknowledgedAt ?? new Date();
       const firstAcknowledgment = !report.acknowledgedAt;

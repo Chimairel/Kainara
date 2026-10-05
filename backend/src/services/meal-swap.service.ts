@@ -6,7 +6,7 @@ import {
   getSourceSwapPreview,
   executeSourceSwap,
 } from './meal-swap-source.service';
-import { hasDeclaredSafetyRestrictions } from '@/domain/structured-restriction.adapter';
+import { requiresHealthPlanning } from '@/domain/planning-membership.policy';
 import { ricePortionLabel } from '@/domain/rice-portion.policy';
 import { resolveRecipeRiceRole } from '@/domain/recipe-rice-role.policy';
 import { effectiveRecipeMealTypes } from '@/domain/meal-applicability.policy';
@@ -179,7 +179,7 @@ export class MealSwapService {
           mealType: mealPlan.mealType,
           dailyTarget,
           ricePreference: userProfile.ricePreference,
-          hasConditions: hasDeclaredSafetyRestrictions({
+          hasConditions: requiresHealthPlanning({
             healthConditions: userConditions,
             allergies: userAllergens,
             otherConditions: userProfile.otherConditions,
@@ -324,7 +324,7 @@ export class MealSwapService {
       mealType: mealPlan.mealType,
       dailyTarget,
       ricePreference: userProfile.ricePreference,
-      hasConditions: hasDeclaredSafetyRestrictions({
+      hasConditions: requiresHealthPlanning({
         healthConditions: user.healthConditions.map((item) => item.condition),
         allergies: user.allergies.map((item) => item.allergen),
         otherConditions: userProfile.otherConditions,

@@ -2,7 +2,7 @@ import { createHash } from 'node:crypto';
 import { Prisma } from '@prisma/client';
 import prisma from '@/lib/prisma';
 import { AppError } from '@/errors/AppError';
-import { testCheckoutConfig } from '@/domain/membership-checkout.policy';
+import { testCheckoutConfig, MEMBERSHIP_PRICES } from '@/domain/membership-checkout.policy';
 import { resolveMembershipLevel } from '@/domain/membership.policy';
 import { transitionTimeline, transitionQuoteSchema, type PaidPeriod } from '@/domain/membership-transition.policy';
 
@@ -55,6 +55,7 @@ export async function membershipTransitionContext(
     grants.length > 0 ||
     Boolean(timeline.current && trial.trialEndsAt && trial.trialEndsAt > at);
   const fingerprint = JSON.stringify({
+    prices: MEMBERSHIP_PRICES,
     periods,
     trialStartedAt: account?.trialStartedAt ?? null,
     balance: balance?.amountCentavos ?? 0,

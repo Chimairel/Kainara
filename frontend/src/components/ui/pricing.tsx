@@ -116,7 +116,9 @@ export default function Pricing({
   }, [checkout.quote]);
   const transitions = checkout.membership?.enabled ? checkout.membership.transitions : null;
   const purchaseBlocked = Boolean(transitions?.blockedReason || transitions?.openCheckout);
+  const lifestyleBlocked = Boolean(checkout.membership?.enabled && checkout.membership.requiresCaseReview);
   const buttonLabel = (tier: 'LIFESTYLE' | 'HEALTH') => {
+    if (tier === 'LIFESTYLE' && lifestyleBlocked) return 'Health plan needed';
     if (transitions?.scheduled.length)
       return transitions.scheduled.some((p) => p.tier === tier) ? 'Next plan scheduled' : 'Next plan already scheduled';
     if (transitions?.blockedReason) return 'Checkout unavailable';
@@ -177,8 +179,8 @@ export default function Pricing({
       buttonText: currentTier === 'FREE' ? 'Current plan' : checkout.user ? 'Free access continues' : 'Get Free',
       featuresHeading: 'Free includes:',
       features: [
-        'General plans without declared conditions or allergies',
-        'Save profile updates and correct mistakes',
+        'General meal planning with ingredient exclusions',
+        'Apply weight updates to your meal planning',
         'Free first report and unchanged weekly report activation',
         `${l.freeSwaps} meal swaps per cycle`,
         `${l.freeEstimates} AI estimates per week`,
@@ -195,7 +197,8 @@ export default function Pricing({
       buttonText: buttonLabel('LIFESTYLE'),
       featuresHeading: 'Everything in Free, plus:',
       features: [
-        { label: 'Apply changes to biometrics, activity, goals and food preferences', details: 'LIFESTYLE' as const },
+        { label: 'Apply activity, goal and food preference changes', details: 'LIFESTYLE' as const },
+        'Apply supported allergy changes',
         'Apply shopping-day changes through your nutrition report',
         'Progress insights and adaptive weekly check-ins',
         `${l.lifestyleSwaps} meal swaps per cycle`,
@@ -213,7 +216,7 @@ export default function Pricing({
       featuresHeading: 'Everything in Lifestyle, plus:',
       features: [
         `${l.healthSwaps} meal swaps per cycle`,
-        { label: 'Apply changes to conditions, allergies and health restrictions', details: 'HEALTH' as const },
+        { label: 'Planning for conditions and restrictions needing review', details: 'HEALTH' as const },
         'New case plans subject to required clearance',
         `${l.memberPlanReviews} nutritionist plan review${l.memberPlanReviews === 1 ? '' : 's'} per week`,
         `${l.memberOutsideReviews} outside food review${l.memberOutsideReviews === 1 ? '' : 's'} per week`,
@@ -323,6 +326,11 @@ export default function Pricing({
           </TimelineContent>
         </article>
 
+        {lifestyleBlocked && !checkout.quote && (
+          <p className="mb-3 text-sm text-brand-muted">
+            Your health details require nutritionist review. Choose Health to continue personalized meal planning.
+          </p>
+        )}
         {checkout.professional && (
           <p className="mb-3 text-xs text-brand-muted">Membership plans are for personal accounts.</p>
         )}
@@ -480,6 +488,7 @@ export default function Pricing({
                               Boolean(checkout.pendingTier) ||
                               checkout.professional ||
                               purchaseBlocked ||
+                              (plan.tier === 'LIFESTYLE' && lifestyleBlocked) ||
                               Boolean(checkout.user && checkout.membershipLoading)
                             }
                             aria-busy={checkout.pendingTier === plan.tier}

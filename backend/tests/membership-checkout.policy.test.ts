@@ -61,7 +61,7 @@ test('hosted sandbox checkout requires demo deployment mode, HTTPS, and test cre
 test('server prices are centavos; requests cannot supply their own price or customer', () => {
   assert.deepEqual(MEMBERSHIP_PRICES, {
     LIFESTYLE: { MONTHLY: 24900, YEARLY: 239000 },
-    HEALTH: { MONTHLY: 149900, YEARLY: 1439000 },
+    HEALTH: { MONTHLY: 99900, YEARLY: 959000 },
   });
   const input = { tier: 'LIFESTYLE', period: 'YEARLY', requestKey: '384b85e0-a48d-41b8-bdcf-e7a737de8fd7' };
   assert.ok(membershipCheckoutInput.safeParse(input).success);

@@ -49,6 +49,12 @@ export function useMembershipCheckout() {
       router.push(user ? getPostAuthDestination(user) : '/login');
       return;
     }
+    if (tier === 'LIFESTYLE' && membership.data?.enabled && membership.data.requiresCaseReview) {
+      setError(
+        'Your health details require nutritionist review. Choose Health to continue personalized meal planning.'
+      );
+      return;
+    }
     busy.current = true;
     setPendingTier(tier);
     const selection = `${tier}:${period}`;

@@ -8,6 +8,7 @@ import { getApiErrorMessage } from '@/lib/api-error';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/hooks/useAuth';
+import { useMembership } from '@/features/membership/MembershipProvider';
 
 interface CheckinModalProps {
   isOpen: boolean;
@@ -38,6 +39,8 @@ export default function CheckinModal({
 }: CheckinModalProps) {
   const { refreshSession } = useAuth();
   const router = useRouter();
+  const { data: membership } = useMembership();
+  const free = Boolean(membership?.enabled && !membership.enhanced);
   const [step, setStep] = useState<'PROMPT' | 'FORM'>('PROMPT');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -191,6 +194,7 @@ export default function CheckinModal({
             Activity Level
           </label>
           <Dropdown
+            disabled={free}
             value={formData.activityLevel}
             onChange={(e) => setFormData({ ...formData, activityLevel: e })}
             className="w-full rounded-xl border border-brand-border bg-brand-surface px-4 py-3 text-sm text-brand-text outline-none transition-all placeholder:text-brand-muted focus:border-brand-green focus:ring-1 focus:ring-brand-green"
@@ -205,6 +209,7 @@ export default function CheckinModal({
         <div>
           <label className="block text-xs font-bold text-brand-muted uppercase tracking-wider mb-2">Primary Goal</label>
           <Dropdown
+            disabled={free}
             value={formData.goal}
             onChange={(e) => setFormData({ ...formData, goal: e })}
             className="w-full rounded-xl border border-brand-border bg-brand-surface px-4 py-3 text-sm text-brand-text outline-none transition-all placeholder:text-brand-muted focus:border-brand-green focus:ring-1 focus:ring-brand-green"
@@ -216,6 +221,11 @@ export default function CheckinModal({
           </Dropdown>
         </div>
 
+        {free && (
+          <p className="text-xs text-brand-muted">
+            Weight updates are free. Activity and goal changes require Lifestyle or Health.
+          </p>
+        )}
         <div className="flex items-center justify-end gap-3 mt-4">
           <Button variant="secondary" onClick={() => setStep('PROMPT')} disabled={isSubmitting}>
             Back

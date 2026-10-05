@@ -46,7 +46,7 @@ test('immediate upgrade credits unused paid value precisely and keeps excess cre
   assert.equal(result.action, 'UPGRADE');
   assert.equal(result.startsAt, at.toISOString());
   assert.equal(result.creditCentavos, Math.floor((24900 * 17) / 31));
-  assert.equal(result.amountCentavos + result.creditCentavos, 149900);
+  assert.equal(result.amountCentavos + result.creditCentavos, 99900);
   const annual = {
     ...lifestyle,
     period: 'YEARLY' as const,

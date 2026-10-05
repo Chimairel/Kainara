@@ -28,7 +28,7 @@ export class PlanningReadinessService {
           canRequestPlan: false,
           title: 'Health membership needed for a new case plan',
           message:
-            'Your trial has ended. New plans for conditions or allergies require Health membership. Existing eligible active meals and submitted reviews remain available.',
+            'Your trial has ended. New plans requiring individual nutritionist review need Health membership. Existing eligible active meals and submitted reviews remain available.',
           actionPath: '/membership',
         };
     }
