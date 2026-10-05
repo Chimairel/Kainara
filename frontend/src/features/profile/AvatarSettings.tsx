@@ -187,12 +187,7 @@ export default function AvatarSettings({
                   }`}
                 >
                   <div className="relative">
-                    <Avatar
-                      size="sm"
-                      src={preset.name}
-                      fallbackText={preset.name}
-                      className="h-10 w-10 rounded-full"
-                    />
+                    <Avatar size="sm" src={preset.name} fallbackText={preset.name} className="h-10 w-10 rounded-full" />
                     <span
                       className={`absolute -bottom-1 -right-1 rounded-full px-1 text-[8px] font-bold ${
                         preset.gender === 'male' ? 'bg-blue-500/20 text-blue-400' : 'bg-pink-500/20 text-pink-400'

@@ -36,10 +36,13 @@ test('[TEST-061] missing quantities remain honestly unspecified', () => {
     { ingredientName: 'egg', quantity: 2, unit: 'piece' },
     { ingredientName: 'egg', quantity: null, unit: 'piece' },
   ]);
-  assert.deepEqual(items.map(({ key, quantity, unit, sourceMealCount }) => ({ key, quantity, unit, sourceMealCount })), [
-    { key: 'egg|piece', quantity: 2, unit: 'piece', sourceMealCount: 1 },
-    { key: 'egg|unspecified', quantity: null, unit: null, sourceMealCount: 1 },
-  ]);
+  assert.deepEqual(
+    items.map(({ key, quantity, unit, sourceMealCount }) => ({ key, quantity, unit, sourceMealCount })),
+    [
+      { key: 'egg|piece', quantity: 2, unit: 'piece', sourceMealCount: 1 },
+      { key: 'egg|unspecified', quantity: null, unit: null, sourceMealCount: 1 },
+    ]
+  );
 });
 
 test('a measured salt amount remains visible beside additional unmeasured salt', () => {
@@ -49,8 +52,11 @@ test('a measured salt amount remains visible beside additional unmeasured salt',
     { ingredientName: 'salt', quantity: 0.5, unit: 'teaspoon' },
     { ingredientName: 'salt', quantity: 2, unit: null },
   ]);
-  assert.deepEqual(items.map(({ key, quantity, sourceMealCount }) => ({ key, quantity, sourceMealCount })), [
-    { key: 'salt|tsp', quantity: 1.5, sourceMealCount: 2 },
-    { key: 'salt|unspecified', quantity: null, sourceMealCount: 2 },
-  ]);
+  assert.deepEqual(
+    items.map(({ key, quantity, sourceMealCount }) => ({ key, quantity, sourceMealCount })),
+    [
+      { key: 'salt|tsp', quantity: 1.5, sourceMealCount: 2 },
+      { key: 'salt|unspecified', quantity: null, sourceMealCount: 2 },
+    ]
+  );
 });

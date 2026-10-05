@@ -8,10 +8,17 @@ test('missing required clinical context blocks a plan request even after report 
     conditions: ['KIDNEY_DISEASE'],
     profileReviewApproved: false,
     restrictionsRequireReview: false,
-    requirements: [{
-      area: ClinicalEvidenceArea.KIDNEY_DISEASE, condition: HealthConditionType.KIDNEY_DISEASE, state: 'DOCUMENT_REVIEW_REQUIRED',
-      required: true, reasonCode: 'MISSING_DOCUMENT', message: 'Document review required.', readyDocumentIds: [],
-    }],
+    requirements: [
+      {
+        area: ClinicalEvidenceArea.KIDNEY_DISEASE,
+        condition: HealthConditionType.KIDNEY_DISEASE,
+        state: 'DOCUMENT_REVIEW_REQUIRED',
+        required: true,
+        reasonCode: 'MISSING_DOCUMENT',
+        message: 'Document review required.',
+        readyDocumentIds: [],
+      },
+    ],
   });
   assert.equal(readiness.status, 'BLOCKED_CLINICAL_CONTEXT');
   assert.equal(readiness.canRequestPlan, false);
@@ -20,7 +27,10 @@ test('missing required clinical context blocks a plan request even after report 
 
 test('custom restriction waits for profile review before candidate sourcing', () => {
   const readiness = determinePlanningReadiness({
-    conditions: [], restrictionsRequireReview: true, requirements: [], profileReviewApproved: false,
+    conditions: [],
+    restrictionsRequireReview: true,
+    requirements: [],
+    profileReviewApproved: false,
   });
   assert.equal(readiness.status, 'BLOCKED_PROFILE_REVIEW');
   assert.equal(readiness.canRequestPlan, false);
@@ -29,7 +39,10 @@ test('custom restriction waits for profile review before candidate sourcing', ()
 
 test('restricted profile with completed review may source pending case candidates', () => {
   const readiness = determinePlanningReadiness({
-    conditions: ['HYPERTENSION'], restrictionsRequireReview: false, requirements: [], profileReviewApproved: true,
+    conditions: ['HYPERTENSION'],
+    restrictionsRequireReview: false,
+    requirements: [],
+    profileReviewApproved: true,
   });
   assert.equal(readiness.status, 'REQUEST_ALLOWED_REVIEW_EXPECTED');
   assert.equal(readiness.canRequestPlan, true);
@@ -37,7 +50,10 @@ test('restricted profile with completed review may source pending case candidate
 
 test('unrestricted profile may request a plan without implying new candidates are approved', () => {
   const readiness = determinePlanningReadiness({
-    conditions: [], restrictionsRequireReview: false, requirements: [], profileReviewApproved: true,
+    conditions: [],
+    restrictionsRequireReview: false,
+    requirements: [],
+    profileReviewApproved: true,
   });
   assert.equal(readiness.status, 'REQUEST_ALLOWED');
   assert.equal(readiness.canRequestPlan, true);

@@ -14,7 +14,8 @@ export type NullableMacros = {
 export const COOKED_RICE_PORTIONS_GRAMS = [0, 75, 150, 225] as const;
 
 export function ricePlateNutrition(base: NullableMacros, cookedGrams: number, rice: RiceReference) {
-  if (Object.values(base).some((value) => typeof value !== 'number' || !Number.isFinite(value) || value < 0)) return null;
+  if (Object.values(base).some((value) => typeof value !== 'number' || !Number.isFinite(value) || value < 0))
+    return null;
   if (!Number.isFinite(cookedGrams) || cookedGrams < 0) return null;
   const factor = cookedGrams / 100;
   return {

@@ -1,8 +1,15 @@
 import 'dotenv/config';
 import assert from 'node:assert/strict';
 import { createHash, randomUUID } from 'node:crypto';
-import { ClinicalDocumentReviewDecision, ClinicalDocumentType, ClinicalEvidenceArea, ClinicalFactCode,
-  HealthConditionType, MealPlanStatus, PrismaClient } from '@prisma/client';
+import {
+  ClinicalDocumentReviewDecision,
+  ClinicalDocumentType,
+  ClinicalEvidenceArea,
+  ClinicalFactCode,
+  HealthConditionType,
+  MealPlanStatus,
+  PrismaClient,
+} from '@prisma/client';
 import { AdminService } from '../src/services/admin.service';
 import { ConditionClearanceService } from '../src/services/condition-clearance.service';
 import { ClinicalEvidenceService } from '../src/services/clinical-evidence.service';
@@ -15,8 +22,7 @@ const prisma = new PrismaClient();
 
 async function main() {
   const databaseHost = new URL(process.env.DATABASE_URL ?? '').hostname;
-  if (!['localhost', '127.0.0.1'].includes(databaseHost) ||
-      process.env.CHECKPOINT3_DISPOSABLE_DB !== '1') {
+  if (!['localhost', '127.0.0.1'].includes(databaseHost) || process.env.CHECKPOINT3_DISPOSABLE_DB !== '1') {
     throw new Error('Run this governance fixture only in a disposable local database.');
   }
   const marker = `checkpoint3-${randomUUID()}`;
@@ -86,17 +92,23 @@ async function main() {
     });
     conditionId = condition.id;
     const document = await ClinicalEvidenceService.upload({
-      userId: user.id, area: ClinicalEvidenceArea.HEART_CONDITION,
+      userId: user.id,
+      area: ClinicalEvidenceArea.HEART_CONDITION,
       documentType: ClinicalDocumentType.MEDICAL_ABSTRACT,
-      file: { buffer: Buffer.from('%PDF-1.7\nfictional heart-condition fixture'),
-        mimetype: 'application/pdf', originalname: 'fictional-heart-context.pdf' },
+      file: {
+        buffer: Buffer.from('%PDF-1.7\nfictional heart-condition fixture'),
+        mimetype: 'application/pdf',
+        originalname: 'fictional-heart-context.pdf',
+      },
       consentAccepted: true,
     });
     documentId = document.id;
     await ClinicalEvidenceService.claimDetail(regular.id, document.id);
     await ClinicalEvidenceService.review({
-      nutritionistProfileId: regular.id, actorUserId: regular.userId,
-      documentId: document.id, decision: ClinicalDocumentReviewDecision.SUFFICIENT,
+      nutritionistProfileId: regular.id,
+      actorUserId: regular.userId,
+      documentId: document.id,
+      decision: ClinicalDocumentReviewDecision.SUFFICIENT,
       rationale: 'Fictional heart context reviewed for isolated governance testing.',
       validUntil: new Date(Date.now() + 30 * 86_400_000),
       confirmedFacts: [{ code: ClinicalFactCode.HEART_DIAGNOSIS, valueText: 'Fictional test subtype' }],
@@ -237,16 +249,22 @@ async function main() {
       },
     });
     rulesetId = temporaryRuleset.id;
-    const fixtureSource = await prisma.clinicalEvidenceSource.create({ data: {
-      code: `CHECKPOINT3_FIXTURE_${randomUUID()}`,
-      issuingOrganization: 'Isolated acceptance fixture', title: 'Fictional governance source',
-      documentType: 'GOVERNMENT_GUIDANCE', domain: 'DIABETES',
-      canonicalUrl: 'https://example.invalid/checkpoint3-acceptance',
-      sourceVersion: 'TEST_ONLY_V1', retrievedAt: new Date(),
-      population: 'Fictional acceptance records only', jurisdiction: 'TEST_ONLY',
-      exclusionsAndCaveats: 'Never use this fictional source for clinical decisions.',
-      state: 'CURRENT',
-    } });
+    const fixtureSource = await prisma.clinicalEvidenceSource.create({
+      data: {
+        code: `CHECKPOINT3_FIXTURE_${randomUUID()}`,
+        issuingOrganization: 'Isolated acceptance fixture',
+        title: 'Fictional governance source',
+        documentType: 'GOVERNMENT_GUIDANCE',
+        domain: 'DIABETES',
+        canonicalUrl: 'https://example.invalid/checkpoint3-acceptance',
+        sourceVersion: 'TEST_ONLY_V1',
+        retrievedAt: new Date(),
+        population: 'Fictional acceptance records only',
+        jurisdiction: 'TEST_ONLY',
+        exclusionsAndCaveats: 'Never use this fictional source for clinical decisions.',
+        state: 'CURRENT',
+      },
+    });
     sourceId = fixtureSource.id;
     await prisma.conditionNutrientRule.create({
       data: {
@@ -266,7 +284,8 @@ async function main() {
         applicablePopulation: 'Fictional acceptance records only',
         requiredInputs: { serving: ['sodiumMg'] },
         exclusionsAndCaveats: 'Never use this fictional rule for clinical decisions.',
-        evaluationScope: 'SERVING', authorityOutcome: 'REVIEW_REQUIRED',
+        evaluationScope: 'SERVING',
+        authorityOutcome: 'REVIEW_REQUIRED',
         policyVersion: rulesetVersion,
       },
     });

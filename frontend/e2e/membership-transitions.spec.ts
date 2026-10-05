@@ -31,8 +31,8 @@ async function setup(page: Page, scenario: 'trial' | 'scheduled' | 'upgrade') {
     status: 'QUOTED',
     mode: 'TEST',
     action: scenario === 'upgrade' ? 'UPGRADE' : 'AFTER_TRIAL',
-    listPriceCentavos: scenario === 'upgrade' ? 149900 : 24900,
-    creditCentavos: scenario === 'upgrade' ? 149900 : 0,
+    listPriceCentavos: scenario === 'upgrade' ? 99900 : 24900,
+    creditCentavos: scenario === 'upgrade' ? 99900 : 0,
     carryoverCentavos: scenario === 'upgrade' ? 1000 : 0,
     amountCentavos: scenario === 'upgrade' ? 0 : 24900,
     startsAt: scenario === 'upgrade' ? new Date(now).toISOString() : end,
@@ -152,7 +152,7 @@ test('already paid next plan is visible and prevents another purchase', async ({
   await setup(page, 'scheduled');
   await page.goto('/membership?plans=true');
   const dialog = page.getByRole('dialog');
-  await expect(dialog.getByText(/Already paid/)).toBeVisible();
+  await expect(page.getByText(/starts.*Already paid/)).toBeVisible();
   await expect(dialog.getByRole('button', { name: 'Next plan scheduled', exact: true })).toBeDisabled();
   await expect(dialog.getByRole('button', { name: 'Next plan already scheduled', exact: true })).toBeDisabled();
 });
@@ -183,13 +183,15 @@ for (const width of [1440, 390]) {
     await setup(page, 'scheduled');
     await page.goto('/membership');
     const period = page.getByRole('combobox', { name: 'Membership period' });
-    await expect(period).toHaveValue('current');
+    await expect(period).toHaveText('Current: Health');
     await expect(page.getByRole('heading', { name: 'Health', exact: true })).toBeVisible();
     await expect(page.getByRole('switch', { name: /auto/i })).toHaveCount(0);
     await expect(page.getByText(/Health trial/i)).toHaveCount(0);
-    await period.selectOption('next');
+    await period.click();
+    await page.getByRole('option', { name: /Next: Lifestyle/ }).click();
     await expect(page.getByText(/Already paid. This plan starts automatically/)).toBeVisible();
-    await period.selectOption('current');
+    await period.click();
+    await page.getByRole('option', { name: 'Current: Health', exact: true }).click();
     await expect(page.getByText(/Health is active for 30 days/)).toBeVisible();
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
     expect(errors).toEqual([]);

@@ -31,8 +31,10 @@ function approvedYouTubeVideo(candidate: string | null | undefined): string | nu
     const host = url.hostname.toLowerCase().replace(/^www\./, '');
     if (url.protocol !== 'https:' || !['youtube.com', 'm.youtube.com', 'youtu.be'].includes(host)) return null;
     const parts = url.pathname.split('/').filter(Boolean);
-    const id = host === 'youtu.be' ? parts[0] : url.searchParams.get('v') ||
-      (['embed', 'shorts', 'live'].includes(parts[0]) ? parts[1] : null);
+    const id =
+      host === 'youtu.be'
+        ? parts[0]
+        : url.searchParams.get('v') || (['embed', 'shorts', 'live'].includes(parts[0]) ? parts[1] : null);
     return id && /^[A-Za-z0-9_-]{11}$/.test(id) ? `https://www.youtube.com/watch?v=${id}` : null;
   } catch {
     return null;

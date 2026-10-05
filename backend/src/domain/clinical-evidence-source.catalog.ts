@@ -2,12 +2,7 @@ export type ClinicalEvidenceSourceRecord = Readonly<{
   code: string;
   issuingOrganization: string;
   title: string;
-  documentType:
-    | 'GUIDELINE'
-    | 'REGULATION'
-    | 'PEER_REVIEWED_STUDY'
-    | 'GOVERNMENT_GUIDANCE'
-    | 'CONSENSUS_REPORT';
+  documentType: 'GUIDELINE' | 'REGULATION' | 'PEER_REVIEWED_STUDY' | 'GOVERNMENT_GUIDANCE' | 'CONSENSUS_REPORT';
   domain:
     | 'GENERAL_NUTRITION'
     | 'ENERGY_ESTIMATION'
@@ -203,8 +198,7 @@ export const CLINICAL_EVIDENCE_SOURCES: readonly ClinicalEvidenceSourceRecord[] 
     title: 'Food Safety for Moms-to-Be: While You Are Pregnant',
     documentType: 'GOVERNMENT_GUIDANCE',
     domain: 'PREGNANCY',
-    canonicalUrl:
-      'https://www.fda.gov/food/people-risk-foodborne-illness/meat-poultry-seafood-food-safety-moms-be',
+    canonicalUrl: 'https://www.fda.gov/food/people-risk-foodborne-illness/meat-poultry-seafood-food-safety-moms-be',
     sourceVersion: 'Web guidance retrieved 2026-09-25',
     publicationDate: null,
     retrievedAt: '2026-09-25T00:00:00.000Z',
@@ -249,7 +243,8 @@ export const CLINICAL_EVIDENCE_SOURCES: readonly ClinicalEvidenceSourceRecord[] 
   {
     code: 'PH_FDA_AO_2014_0030A',
     issuingOrganization: 'Philippine Food and Drug Administration',
-    title: 'Administrative Order No. 2014-0030-A: Revised Rules and Regulations Governing the Labeling of Prepackaged Food Products',
+    title:
+      'Administrative Order No. 2014-0030-A: Revised Rules and Regulations Governing the Labeling of Prepackaged Food Products',
     documentType: 'REGULATION',
     domain: 'ALLERGEN_LABELING',
     canonicalUrl: 'https://www.fda.gov.ph/administrative-order-no-2014-0030-a/',

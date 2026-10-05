@@ -1,5 +1,9 @@
 import prisma from '@/lib/prisma';
-import { cookingLinkForMeal, panlasangPageFromDescription, type PublicMealCookingLink } from '@/domain/meal-cooking-link.policy';
+import {
+  cookingLinkForMeal,
+  panlasangPageFromDescription,
+  type PublicMealCookingLink,
+} from '@/domain/meal-cooking-link.policy';
 
 type LibraryRecipeReference = { id: string; description: string | null };
 

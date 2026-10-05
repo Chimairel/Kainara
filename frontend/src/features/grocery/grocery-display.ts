@@ -38,7 +38,11 @@ export function formatGroceryItemDisplay(item: GroceryItem): FormattedGroceryDis
   // and the unit is actually the ingredient like "eggs"
   if (name.startsWith('(') && name.endsWith(')')) {
     const inside = name.slice(1, -1).trim();
-    if (item.unit && /^[a-zA-Z\s]+$/.test(item.unit) && !['cup', 'tbsp', 'tsp', 'g', 'kg', 'ml', 'l', 'oz', 'lb'].includes(item.unit.toLowerCase())) {
+    if (
+      item.unit &&
+      /^[a-zA-Z\s]+$/.test(item.unit) &&
+      !['cup', 'tbsp', 'tsp', 'g', 'kg', 'ml', 'l', 'oz', 'lb'].includes(item.unit.toLowerCase())
+    ) {
       name = item.unit.charAt(0).toUpperCase() + item.unit.slice(1);
       prepNote = inside;
       parsedUnit = 'pc';
@@ -157,7 +161,12 @@ export function getCategoryStyle(category: string): {
     };
   }
 
-  if (normalized.includes('dairy') || normalized.includes('egg') || normalized.includes('cheese') || normalized.includes('milk')) {
+  if (
+    normalized.includes('dairy') ||
+    normalized.includes('egg') ||
+    normalized.includes('cheese') ||
+    normalized.includes('milk')
+  ) {
     return {
       colorClasses: 'text-amber-700 dark:text-amber-300',
       badgeBg: 'bg-amber-500/10 dark:bg-amber-500/20 text-amber-600 dark:text-amber-400',
@@ -180,7 +189,12 @@ export function getCategoryStyle(category: string): {
     };
   }
 
-  if (normalized.includes('beverage') || normalized.includes('drink') || normalized.includes('juice') || normalized.includes('water')) {
+  if (
+    normalized.includes('beverage') ||
+    normalized.includes('drink') ||
+    normalized.includes('juice') ||
+    normalized.includes('water')
+  ) {
     return {
       colorClasses: 'text-cyan-700 dark:text-cyan-300',
       badgeBg: 'bg-cyan-500/10 dark:bg-cyan-500/20 text-cyan-600 dark:text-cyan-400',

@@ -40,7 +40,8 @@ function clean(value?: string | null): string | null {
  * coarse and affects familiarity evidence only; it is not a clinical input.
  */
 export function buildConsumptionScopeChain(location?: PlanningLocation | null): ConsumptionScope[] {
-  const level = location?.planningGeographyLevel ??
+  const level =
+    location?.planningGeographyLevel ??
     (location?.planningProvinceHucName ? 'PROVINCE_HUC' : location?.planningRegionName ? 'REGION' : 'NATIONAL');
   const regionName = clean(location?.planningRegionName);
   const provinceHucName = clean(location?.planningProvinceHucName);

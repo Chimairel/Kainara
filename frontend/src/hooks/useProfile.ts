@@ -65,17 +65,21 @@ export function useProfile(options?: { requireFresh?: boolean }) {
   const [isLoading, setIsLoading] = useState(Boolean(options?.requireFresh) || !cachedProfile);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchProfile = useCallback(async (forceFresh = false) => {
-    try {
-      const data = forceFresh || options?.requireFresh ? await refreshUserProfile(ownerId) : await getRecentUserProfile(ownerId);
-      setProfile(data);
-      setError(null);
-    } catch (err: unknown) {
-      setError(getApiErrorMessage(err, 'Failed to fetch profile'));
-    } finally {
-      setIsLoading(false);
-    }
-  }, [ownerId, options?.requireFresh]);
+  const fetchProfile = useCallback(
+    async (forceFresh = false) => {
+      try {
+        const data =
+          forceFresh || options?.requireFresh ? await refreshUserProfile(ownerId) : await getRecentUserProfile(ownerId);
+        setProfile(data);
+        setError(null);
+      } catch (err: unknown) {
+        setError(getApiErrorMessage(err, 'Failed to fetch profile'));
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [ownerId, options?.requireFresh]
+  );
 
   useEffect(() => {
     if (ownerId) fetchProfile();

@@ -134,10 +134,15 @@ export class GroceryService {
           ...state,
         };
         if (previous) {
-          if (previous.ingredientName !== data.ingredientName || previous.category !== data.category ||
-              previous.quantity !== data.quantity || previous.unit !== data.unit ||
-              previous.sourceMealCount !== data.sourceMealCount ||
-              previous.purchasedQuantity !== data.purchasedQuantity || previous.isChecked !== data.isChecked) {
+          if (
+            previous.ingredientName !== data.ingredientName ||
+            previous.category !== data.category ||
+            previous.quantity !== data.quantity ||
+            previous.unit !== data.unit ||
+            previous.sourceMealCount !== data.sourceMealCount ||
+            previous.purchasedQuantity !== data.purchasedQuantity ||
+            previous.isChecked !== data.isChecked
+          ) {
             await tx.groceryItem.update({ where: { id: previous.id }, data });
           }
         } else newItems.push({ ...data, groceryListId: list.id });
@@ -209,10 +214,24 @@ export class GroceryService {
     const clearedIdsByCycle = new Map<string, string[]>();
     const cycles = await MealPlanCycleService.getCurrentAndUpcoming(userId, now, clearedIdsByCycle);
     return {
-      current: cycles.current ? await this.buildCycleProjection(userId, cycles.current, 'CURRENT', now,
-        clearedIdsByCycle.get(cycles.current.id)) : null,
-      upcoming: cycles.upcoming ? await this.buildCycleProjection(userId, cycles.upcoming, 'UPCOMING', now,
-        clearedIdsByCycle.get(cycles.upcoming.id)) : null,
+      current: cycles.current
+        ? await this.buildCycleProjection(
+            userId,
+            cycles.current,
+            'CURRENT',
+            now,
+            clearedIdsByCycle.get(cycles.current.id)
+          )
+        : null,
+      upcoming: cycles.upcoming
+        ? await this.buildCycleProjection(
+            userId,
+            cycles.upcoming,
+            'UPCOMING',
+            now,
+            clearedIdsByCycle.get(cycles.upcoming.id)
+          )
+        : null,
     };
   }
 
@@ -321,27 +340,36 @@ export class GroceryService {
     };
   }
 
-  private static async assertListActionableForShopping(client: Prisma.TransactionClient, userId: string, list: {
-    planGroupId: string;
-    isStale: boolean;
-    cycle: {
-      expectedSlotCount: number;
-      status: MealPlanCycleStatus;
-      profileAdaptationState: ProfileCycleAdaptationState;
-      deadlineOutcome: MealPlanCycleDeadlineOutcome | null;
-      incompleteAcknowledgedAt: Date | null;
-      shoppingStartedAt: Date | null;
-    };
-  }) {
+  private static async assertListActionableForShopping(
+    client: Prisma.TransactionClient,
+    userId: string,
+    list: {
+      planGroupId: string;
+      isStale: boolean;
+      cycle: {
+        expectedSlotCount: number;
+        status: MealPlanCycleStatus;
+        profileAdaptationState: ProfileCycleAdaptationState;
+        deadlineOutcome: MealPlanCycleDeadlineOutcome | null;
+        incompleteAcknowledgedAt: Date | null;
+        shoppingStartedAt: Date | null;
+      };
+    }
+  ) {
     let unresolvedSlotCount: number | undefined;
-    if (list.cycle.deadlineOutcome === MealPlanCycleDeadlineOutcome.INCOMPLETE &&
-        !list.cycle.incompleteAcknowledgedAt && list.cycle.shoppingStartedAt) {
+    if (
+      list.cycle.deadlineOutcome === MealPlanCycleDeadlineOutcome.INCOMPLETE &&
+      !list.cycle.incompleteAcknowledgedAt &&
+      list.cycle.shoppingStartedAt
+    ) {
       // This cycle could start shopping without acknowledging a partial list
       // only after every slot cleared. Its list is now frozen; a safety change
       // marks it stale and is rejected below.
       unresolvedSlotCount = 0;
-    } else if (list.cycle.deadlineOutcome === MealPlanCycleDeadlineOutcome.INCOMPLETE &&
-        !list.cycle.incompleteAcknowledgedAt) {
+    } else if (
+      list.cycle.deadlineOutcome === MealPlanCycleDeadlineOutcome.INCOMPLETE &&
+      !list.cycle.incompleteAcknowledgedAt
+    ) {
       const clearedIds = await MealPlanCycleService.getClearedMealPlanIds(userId, list.planGroupId, new Date(), client);
       const clearedMeals = await client.mealPlan.findMany({
         where: { userId, planGroupId: list.planGroupId, id: { in: clearedIds } },
@@ -367,122 +395,137 @@ export class GroceryService {
 
   /** Applies a visible checklist selection in one guarded shopping transaction. */
   static async setGroceryItemsChecked(userId: string, itemIds: string[], checked: boolean) {
-    return prisma.$transaction(async (tx) => {
-      await lockUserProfile(tx, userId);
-      const first = await tx.groceryItem.findFirst({
-        where: { id: itemIds[0], groceryList: { userId, isStale: false } },
-        include: {
-          groceryList: {
-            select: {
-              id: true,
-              planGroupId: true,
-              isStale: true,
-              cycle: {
-                select: {
-                  status: true,
-                  expectedSlotCount: true,
-                  profileAdaptationState: true,
-                  deadlineOutcome: true,
-                  incompleteAcknowledgedAt: true,
-                  shoppingStartedAt: true,
+    return prisma.$transaction(
+      async (tx) => {
+        await lockUserProfile(tx, userId);
+        const first = await tx.groceryItem.findFirst({
+          where: { id: itemIds[0], groceryList: { userId, isStale: false } },
+          include: {
+            groceryList: {
+              select: {
+                id: true,
+                planGroupId: true,
+                isStale: true,
+                cycle: {
+                  select: {
+                    status: true,
+                    expectedSlotCount: true,
+                    profileAdaptationState: true,
+                    deadlineOutcome: true,
+                    incompleteAcknowledgedAt: true,
+                    shoppingStartedAt: true,
+                  },
                 },
               },
             },
           },
-        },
-      });
-      if (!first) throw new Error('Shopping list changed. Refresh before updating the checklist.');
-      await this.assertListActionableForShopping(tx, userId, first.groceryList);
-      const ids = [...new Set(itemIds)];
-      const count = await tx.groceryItem.count({ where: { id: { in: ids }, groceryListId: first.groceryList.id } });
-      if (count !== ids.length) throw new Error('Shopping list changed. Refresh before updating the checklist.');
-      if (!first.groceryList.cycle.shoppingStartedAt &&
+        });
+        if (!first) throw new Error('Shopping list changed. Refresh before updating the checklist.');
+        await this.assertListActionableForShopping(tx, userId, first.groceryList);
+        const ids = [...new Set(itemIds)];
+        const count = await tx.groceryItem.count({ where: { id: { in: ids }, groceryListId: first.groceryList.id } });
+        if (count !== ids.length) throw new Error('Shopping list changed. Refresh before updating the checklist.');
+        if (
+          !first.groceryList.cycle.shoppingStartedAt &&
           first.groceryList.cycle.status !== MealPlanCycleStatus.PREPARING &&
-          first.groceryList.cycle.status !== MealPlanCycleStatus.UNDER_REVIEW)
-        await MealPlanCycleService.recordShoppingStarted(tx, userId, first.groceryList.planGroupId);
-      await tx.$executeRaw`
+          first.groceryList.cycle.status !== MealPlanCycleStatus.UNDER_REVIEW
+        )
+          await MealPlanCycleService.recordShoppingStarted(tx, userId, first.groceryList.planGroupId);
+        await tx.$executeRaw`
         UPDATE "GroceryItem"
         SET "isChecked" = ${checked},
             "purchasedQuantity" = CASE WHEN ${checked} THEN COALESCE("quantity", 0) ELSE 0 END
         WHERE "groceryListId" = ${first.groceryList.id} AND "id" IN (${Prisma.join(ids)})
       `;
-      return tx.groceryItem.findMany({ where: { id: { in: ids }, groceryListId: first.groceryList.id } });
-    }, { timeout: 90_000 });
+        return tx.groceryItem.findMany({ where: { id: { in: ids }, groceryListId: first.groceryList.id } });
+      },
+      { timeout: 90_000 }
+    );
   }
 
   static async recordPurchase(userId: string, itemId: string) {
-    return prisma.$transaction(async (tx) => {
-      await lockUserProfile(tx, userId);
-      const item = await tx.groceryItem.findFirst({
-        where: { id: itemId, groceryList: { userId, isStale: false } },
-        include: {
-          groceryList: {
-            select: {
-              planGroupId: true,
-              isStale: true,
-              cycle: {
-                select: {
-                  status: true,
-                  expectedSlotCount: true,
-                  profileAdaptationState: true,
-                  deadlineOutcome: true,
-                  incompleteAcknowledgedAt: true,
-                  shoppingStartedAt: true,
+    return prisma.$transaction(
+      async (tx) => {
+        await lockUserProfile(tx, userId);
+        const item = await tx.groceryItem.findFirst({
+          where: { id: itemId, groceryList: { userId, isStale: false } },
+          include: {
+            groceryList: {
+              select: {
+                planGroupId: true,
+                isStale: true,
+                cycle: {
+                  select: {
+                    status: true,
+                    expectedSlotCount: true,
+                    profileAdaptationState: true,
+                    deadlineOutcome: true,
+                    incompleteAcknowledgedAt: true,
+                    shoppingStartedAt: true,
+                  },
                 },
               },
             },
           },
-        },
-      });
-      if (!item) throw new Error('Shopping list changed. Refresh before recording a purchase.');
-      await this.assertListActionableForShopping(tx, userId, item.groceryList);
-      const state = checklistPurchaseState(item.quantity, !item.isChecked);
-      if (!item.groceryList.cycle.shoppingStartedAt &&
+        });
+        if (!item) throw new Error('Shopping list changed. Refresh before recording a purchase.');
+        await this.assertListActionableForShopping(tx, userId, item.groceryList);
+        const state = checklistPurchaseState(item.quantity, !item.isChecked);
+        if (
+          !item.groceryList.cycle.shoppingStartedAt &&
           item.groceryList.cycle.status !== MealPlanCycleStatus.PREPARING &&
-          item.groceryList.cycle.status !== MealPlanCycleStatus.UNDER_REVIEW)
-        await MealPlanCycleService.recordShoppingStarted(tx, userId, item.groceryList.planGroupId);
-      return tx.groceryItem.update({
-        where: { id: item.id },
-        data: state,
-      });
-    }, { timeout: 90_000 });
+          item.groceryList.cycle.status !== MealPlanCycleStatus.UNDER_REVIEW
+        )
+          await MealPlanCycleService.recordShoppingStarted(tx, userId, item.groceryList.planGroupId);
+        return tx.groceryItem.update({
+          where: { id: item.id },
+          data: state,
+        });
+      },
+      { timeout: 90_000 }
+    );
   }
 
   static async togglePantryStaple(userId: string, itemId: string) {
-    return prisma.$transaction(async (tx) => {
-      await lockUserProfile(tx, userId);
-      const item = await tx.groceryItem.findFirst({
-        where: { id: itemId, groceryList: { userId } },
-        include: {
-          groceryList: {
-            select: {
-              planGroupId: true,
-              isStale: true,
-              cycle: {
-                select: {
-                  status: true,
-                  expectedSlotCount: true,
-                  profileAdaptationState: true,
-                  deadlineOutcome: true,
-                  incompleteAcknowledgedAt: true,
-                  shoppingStartedAt: true,
+    return prisma.$transaction(
+      async (tx) => {
+        await lockUserProfile(tx, userId);
+        const item = await tx.groceryItem.findFirst({
+          where: { id: itemId, groceryList: { userId } },
+          include: {
+            groceryList: {
+              select: {
+                planGroupId: true,
+                isStale: true,
+                cycle: {
+                  select: {
+                    status: true,
+                    expectedSlotCount: true,
+                    profileAdaptationState: true,
+                    deadlineOutcome: true,
+                    incompleteAcknowledgedAt: true,
+                    shoppingStartedAt: true,
+                  },
                 },
               },
             },
           },
-        },
-      });
-      if (!item) throw new Error('Grocery item not found or does not belong to user.');
-      await this.assertListActionableForShopping(tx, userId, item.groceryList);
-      if (!item.groceryList.cycle.shoppingStartedAt &&
+        });
+        if (!item) throw new Error('Grocery item not found or does not belong to user.');
+        await this.assertListActionableForShopping(tx, userId, item.groceryList);
+        if (
+          !item.groceryList.cycle.shoppingStartedAt &&
           item.groceryList.cycle.status !== MealPlanCycleStatus.PREPARING &&
-          item.groceryList.cycle.status !== MealPlanCycleStatus.UNDER_REVIEW)
-        await MealPlanCycleService.recordShoppingStarted(tx, userId, item.groceryList.planGroupId);
-      return tx.groceryItem.update({
-        where: { id: itemId },
-        data: { isPantryStaple: !item.isPantryStaple },
-      });
-    }, { timeout: 90_000 });
+          item.groceryList.cycle.status !== MealPlanCycleStatus.UNDER_REVIEW
+        )
+          await MealPlanCycleService.recordShoppingStarted(tx, userId, item.groceryList.planGroupId);
+        return tx.groceryItem.update({
+          where: { id: itemId },
+          data: { isPantryStaple: !item.isPantryStaple },
+        });
+      },
+      { timeout: 90_000 }
+    );
   }
 
   /**

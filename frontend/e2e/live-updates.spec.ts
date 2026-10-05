@@ -11,15 +11,13 @@ test('scheduled confirmation unlocks without reloading; live updates preserve re
   const claims = Buffer.from(
     JSON.stringify({ userId: user.id, email: user.email, role: user.role, exp: Math.floor(Date.now() / 1000) + 3600 })
   ).toString('base64url');
-  await page
-    .context()
-    .addCookies([
-      {
-        name: 'nutrimind_session',
-        value: `eyJhbGciOiJIUzI1NiJ9.${claims}.fixture`,
-        url: new URL(process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:3000').origin,
-      },
-    ]);
+  await page.context().addCookies([
+    {
+      name: 'nutrimind_session',
+      value: `eyJhbGciOiJIUzI1NiJ9.${claims}.fixture`,
+      url: new URL(process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:3000').origin,
+    },
+  ]);
   const stage = 'CALL_SCHEDULED';
   let verifiedAt: string | null = null;
   let scheduledAt: string | undefined;
@@ -136,16 +134,14 @@ test('a duplicate PRC number is reported while typing, before submission', async
   await page.locator('#fullName').fill('Synthetic applicant');
   await page.locator('#applicationEmail').fill('applicant@example.test');
   await page.locator('#phoneNumber').fill('+63 917 555 0123');
-  await page
-    .locator('#official-headshot')
-    .setInputFiles({
-      name: 'fixture.png',
-      mimeType: 'image/png',
-      buffer: Buffer.from(
-        'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/lS8AAAAASUVORK5CYII=',
-        'base64'
-      ),
-    });
+  await page.locator('#official-headshot').setInputFiles({
+    name: 'fixture.png',
+    mimeType: 'image/png',
+    buffer: Buffer.from(
+      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/lS8AAAAASUVORK5CYII=',
+      'base64'
+    ),
+  });
   await expect(page.getByAltText('Uploaded headshot preview')).toBeVisible();
   await page.getByRole('checkbox').check();
   await page.getByRole('button', { name: /^Continue to/ }).click();

@@ -12,12 +12,7 @@ interface GroceryItemRowProps {
   onTogglePantry: (itemId: string) => Promise<void>;
 }
 
-export default function GroceryItemRow({
-  item,
-  canCheckItems,
-  onToggleItem,
-  onTogglePantry,
-}: GroceryItemRowProps) {
+export default function GroceryItemRow({ item, canCheckItems, onToggleItem, onTogglePantry }: GroceryItemRowProps) {
   const display = formatGroceryItemDisplay(item);
 
   return (
@@ -77,10 +72,7 @@ export default function GroceryItemRow({
             </span>
 
             {/* Recipe Usage Tag */}
-            <span className="text-[10px] font-medium text-brand-muted">
-              {display.recipeBadge}
-            </span>
-
+            <span className="text-[10px] font-medium text-brand-muted">{display.recipeBadge}</span>
           </div>
         </div>
       </div>
@@ -103,9 +95,7 @@ export default function GroceryItemRow({
           <span className="hidden sm:inline">Pantry</span>
         </button>
 
-        {item.isChecked && (
-          <CircleCheckBig className="h-4 w-4 text-brand-green shrink-0" aria-label="Checked" />
-        )}
+        {item.isChecked && <CircleCheckBig className="h-4 w-4 text-brand-green shrink-0" aria-label="Checked" />}
       </div>
     </div>
   );

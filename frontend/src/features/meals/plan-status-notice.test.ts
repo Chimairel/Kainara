@@ -12,11 +12,20 @@ describe('plan status notices', () => {
 
   it('shows the same cycle notice once across Home and Meals, then allows a new cycle', () => {
     const currentCycle = {
-      id: 'cycle-a', planType: 'WEEKLY', startDate: '2026-09-28', endDate: '2026-10-04',
+      id: 'cycle-a',
+      planType: 'WEEKLY',
+      startDate: '2026-09-28',
+      endDate: '2026-10-04',
     };
     const pending = { planType: 'WEEKLY', meals: [{ scheduledDate: '2026-09-28T04:00:00.000Z' }] };
     showPendingReviewNoticeOnce({ userId: 'notice-test-1', pending, currentCycle, upcomingCycle: null });
-    showPendingReviewNoticeOnce({ userId: 'notice-test-1', pending, currentCycle, upcomingCycle: null, upcomingOnly: true });
+    showPendingReviewNoticeOnce({
+      userId: 'notice-test-1',
+      pending,
+      currentCycle,
+      upcomingCycle: null,
+      upcomingOnly: true,
+    });
     showPendingReviewNoticeOnce({
       userId: 'notice-test-1',
       pending: { ...pending, meals: [{ scheduledDate: '2026-09-30T04:00:00.000Z' }] },

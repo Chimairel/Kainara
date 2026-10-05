@@ -55,7 +55,11 @@ export const clinicalDocumentReviewSchema = z
     }
     const overlap = value.confirmedFactIds.filter((id) => value.unclearFactIds.includes(id));
     if (overlap.length) {
-      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['unclearFactIds'], message: 'A fact cannot be confirmed and unclear.' });
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['unclearFactIds'],
+        message: 'A fact cannot be confirmed and unclear.',
+      });
     }
   });
 

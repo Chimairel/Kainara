@@ -18,7 +18,9 @@ test('account switch revokes its refresh session without an access token', async
       },
     },
   };
-  t.after(() => { globals.prisma = previous; });
+  t.after(() => {
+    globals.prisma = previous;
+  });
 
   const { signRefreshToken } = await import('../src/lib/jwt');
   const { AuthController } = await import('../src/controllers/auth.controller');
@@ -27,19 +29,30 @@ test('account switch revokes its refresh session without an access token', async
   let status = 0;
   let response: { success?: boolean } = {};
   const res = {
-    clearCookie(name: string) { cleared.push(name); return this; },
-    status(value: number) { status = value; return this; },
-    json(value: typeof response) { response = value; return this; },
+    clearCookie(name: string) {
+      cleared.push(name);
+      return this;
+    },
+    status(value: number) {
+      status = value;
+      return this;
+    },
+    json(value: typeof response) {
+      response = value;
+      return this;
+    },
   } as unknown as Response;
 
   await AuthController.logout({ cookies: { nutrimind_refresh: refreshToken } } as Request, res);
   assert.equal(status, 200);
   assert.equal(response.success, true);
   assert.deepEqual(cleared, ['nutrimind_refresh']);
-  assert.deepEqual(deleted, [{
-    userId: 'switching-user',
-    sessionToken: crypto.createHash('sha256').update(refreshToken).digest('hex'),
-  }]);
+  assert.deepEqual(deleted, [
+    {
+      userId: 'switching-user',
+      sessionToken: crypto.createHash('sha256').update(refreshToken).digest('hex'),
+    },
+  ]);
 
   await AuthController.logout({ cookies: { nutrimind_refresh: 'expired-or-invalid' } } as Request, res);
   assert.equal(status, 200);

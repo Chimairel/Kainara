@@ -1,8 +1,5 @@
 import { createHash } from 'node:crypto';
-import {
-  adaptUserSafetyRestrictions,
-  type StructuredSafetyRestrictionEntry,
-} from './structured-restriction.adapter';
+import { adaptUserSafetyRestrictions, type StructuredSafetyRestrictionEntry } from './structured-restriction.adapter';
 
 export interface MealApprovalSafetyProfile {
   conditions: readonly string[];
@@ -13,7 +10,11 @@ export interface MealApprovalSafetyProfile {
 }
 
 function normalized(values: readonly string[]): string[] {
-  return [...new Set(values.map((value) => value.normalize('NFKC').trim().toUpperCase()).filter((value) => value && value !== 'NONE'))].sort();
+  return [
+    ...new Set(
+      values.map((value) => value.normalize('NFKC').trim().toUpperCase()).filter((value) => value && value !== 'NONE')
+    ),
+  ].sort();
 }
 
 /** The exact recorded safety context; goals and calorie targets are deliberately absent. */
@@ -29,12 +30,17 @@ export function mealApprovalSafetyScope(profile: MealApprovalSafetyProfile): {
     otherAllergies: profile.otherAllergies,
   });
   const entries = profile.safetyEntries?.length
-    ? profile.safetyEntries.map((entry) => ({
-        domain: String(entry.domain ?? ''),
-        code: String(entry.canonicalCode ?? ''),
-        text: String(entry.originalText ?? '').normalize('NFKC').trim().toUpperCase(),
-        state: String(entry.supportState ?? ''),
-      })).sort((a, b) => JSON.stringify(a).localeCompare(JSON.stringify(b)))
+    ? profile.safetyEntries
+        .map((entry) => ({
+          domain: String(entry.domain ?? ''),
+          code: String(entry.canonicalCode ?? ''),
+          text: String(entry.originalText ?? '')
+            .normalize('NFKC')
+            .trim()
+            .toUpperCase(),
+          state: String(entry.supportState ?? ''),
+        }))
+        .sort((a, b) => JSON.stringify(a).localeCompare(JSON.stringify(b)))
     : [];
   const canonical = JSON.stringify({
     version: 'MEAL_APPROVAL_SAFETY_SCOPE_V1',

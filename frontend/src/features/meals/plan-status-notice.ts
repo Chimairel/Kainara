@@ -31,13 +31,17 @@ function showOnce(userId: string | undefined, kind: string, cycleKey: string, me
 
 function pendingCycleKey(pending: NonNullable<PendingPreview>, cycles: readonly NoticeCycle[]): string {
   const pendingDates = pending.meals.map((meal) => getManilaDateKey(meal.scheduledDate)).sort();
-  const matchingCycle = cycles.find((cycle) =>
-    cycle?.startDate && cycle.endDate && pendingDates.some((date) =>
-      date >= getManilaDateKey(cycle.startDate!) && date <= getManilaDateKey(cycle.endDate!)
-    )
+  const matchingCycle = cycles.find(
+    (cycle) =>
+      cycle?.startDate &&
+      cycle.endDate &&
+      pendingDates.some(
+        (date) => date >= getManilaDateKey(cycle.startDate!) && date <= getManilaDateKey(cycle.endDate!)
+      )
   );
   if (matchingCycle?.id) return matchingCycle.id;
-  if (matchingCycle?.startDate) return `${matchingCycle.planType ?? pending.planType}:${getManilaDateKey(matchingCycle.startDate)}`;
+  if (matchingCycle?.startDate)
+    return `${matchingCycle.planType ?? pending.planType}:${getManilaDateKey(matchingCycle.startDate)}`;
   return `${pending.planType}:${pendingDates[0] ?? 'unknown'}`;
 }
 
@@ -66,8 +70,13 @@ export function showStarterPlanNoticeOnce(input: {
   currentCycle: NoticeCycle;
 }) {
   if (!input.isStarterPlan || !input.nextCycleDay) return;
-  const cycleKey = input.currentCycle?.id ||
+  const cycleKey =
+    input.currentCycle?.id ||
     (input.currentCycle?.startDate ? getManilaDateKey(input.currentCycle.startDate) : input.nextCycleDay);
-  showOnce(input.userId, 'starter-plan', cycleKey,
-    `You're on a starter plan. Your full 7-day cycle begins on ${input.nextCycleDay}.`);
+  showOnce(
+    input.userId,
+    'starter-plan',
+    cycleKey,
+    `You're on a starter plan. Your full 7-day cycle begins on ${input.nextCycleDay}.`
+  );
 }

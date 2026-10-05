@@ -5,7 +5,10 @@ test('applicant tracking, validation, invitation screen, and admin application l
   const applicantEmail = process.env.NUTRIMIND_E2E_APPLICANT_EMAIL;
   const reference = process.env.NUTRIMIND_E2E_APPLICATION_REFERENCE;
   const apiBase = process.env.NUTRIMIND_E2E_API_BASE;
-  test.skip(!adminEmail || !applicantEmail || !reference || !apiBase, 'Requires isolated application-journey fixture variables.');
+  test.skip(
+    !adminEmail || !applicantEmail || !reference || !apiBase,
+    'Requires isolated application-journey fixture variables.'
+  );
   expect(new URL(apiBase!).port).toBe('5555');
 
   await page.goto('/nutritionist-apply');
@@ -30,11 +33,17 @@ test('applicant tracking, validation, invitation screen, and admin application l
   const newApplicantEmail = `browser-applicant-${stamp}@example.test`;
   const submitted = await page.request.post(`${apiBase}/nutritionist-applications`, {
     data: {
-      fullName: 'Browser Journey Applicant', email: newApplicantEmail, phoneNumber: '+63 917 555 0123',
-      prcLicenseNumber: `BROWSER-${stamp}`, prcLicenseExpiry: '2029-12-31T23:59:59.000Z',
-      specialization: 'Clinical nutrition', yearsOfExperience: 4, university: 'Synthetic University',
+      fullName: 'Browser Journey Applicant',
+      email: newApplicantEmail,
+      phoneNumber: '+63 917 555 0123',
+      prcLicenseNumber: `BROWSER-${stamp}`,
+      prcLicenseExpiry: '2029-12-31T23:59:59.000Z',
+      specialization: 'Clinical nutrition',
+      yearsOfExperience: 4,
+      university: 'Synthetic University',
       professionalBio: 'Synthetic professional for the isolated browser application journey verification.',
-      officialHeadshot: 'data:image/jpeg;base64,/9j/AA==', photoRecentAttested: true,
+      officialHeadshot: 'data:image/jpeg;base64,/9j/AA==',
+      photoRecentAttested: true,
       availableCallSlots: [new Date(Date.now() + 3600000).toISOString(), new Date(Date.now() + 7200000).toISOString()],
       consent: true,
     },
@@ -51,7 +60,8 @@ test('applicant tracking, validation, invitation screen, and admin application l
   await expect(page.getByText('Active pipeline')).toBeVisible();
   await expect(page.locator('summary').filter({ hasText: 'Completed applications' })).toBeVisible();
   await expect(page.getByText(newApplicantEmail, { exact: true })).toBeVisible();
-  const applicantCard = page.getByText(newApplicantEmail, { exact: true })
+  const applicantCard = page
+    .getByText(newApplicantEmail, { exact: true })
     .locator('xpath=ancestor::div[contains(@class,"shadow-sm")][1]');
   await applicantCard.getByRole('button', { name: 'Begin credential review' }).click();
   await expect(page.getByText('Credential review started.')).toBeVisible();

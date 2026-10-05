@@ -17,10 +17,12 @@ test('failed sign-ins are limited independently of registration and browsing', a
     await once(server, 'listening');
     const { port } = server.address() as AddressInfo;
     const base = `http://127.0.0.1:${port}/api`;
-    const login = (valid: boolean) => fetch(`${base}/auth/login`, {
-      method: 'POST', headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ valid }),
-    });
+    const login = (valid: boolean) =>
+      fetch(`${base}/auth/login`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ valid }),
+      });
     assert.equal((await fetch(`${base}/browse`)).status, 200);
     assert.equal((await login(true)).status, 200);
     const failedAllowance = process.env.NODE_ENV === 'development' ? 500 : 20;
@@ -29,10 +31,10 @@ test('failed sign-ins are limited independently of registration and browsing', a
     }
     const blocked = await login(false);
     assert.equal(blocked.status, 429);
-    assert.match((await blocked.json() as { error: string }).error, /failed sign-in attempts/i);
+    assert.match(((await blocked.json()) as { error: string }).error, /failed sign-in attempts/i);
     assert.equal((await fetch(`${base}/auth/register`, { method: 'POST' })).status, 200);
     assert.equal((await fetch(`${base}/browse`)).status, 200);
   } finally {
-    await new Promise<void>((resolve, reject) => server.close((error) => error ? reject(error) : resolve()));
+    await new Promise<void>((resolve, reject) => server.close((error) => (error ? reject(error) : resolve())));
   }
 });

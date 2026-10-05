@@ -12,12 +12,7 @@ export function LandingWaveHero() {
       aria-hidden="true"
       className="pointer-events-none absolute -top-16 sm:-top-8 left-1/2 -translate-x-1/2 w-[2000px] h-[1150px] max-w-none select-none z-0 opacity-100 dark:opacity-95"
     >
-      <svg
-        viewBox="0 0 2000 1150"
-        fill="none"
-        xmlns="http://www.w3.org/2000/svg"
-        className="w-full h-full block"
-      >
+      <svg viewBox="0 0 2000 1150" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full block">
         {/* Band 1: Deep Pine Green (Inner Layer - Solid, seamless joint) */}
         <path
           d="M -58, -36
@@ -72,10 +67,7 @@ export function LandingWaveHero() {
  */
 export function SectionWaveBorderTop() {
   return (
-    <div
-      aria-hidden="true"
-      className="pointer-events-none relative -mb-1 w-full overflow-hidden select-none z-10"
-    >
+    <div aria-hidden="true" className="pointer-events-none relative -mb-1 w-full overflow-hidden select-none z-10">
       <svg
         viewBox="0 0 1440 180"
         fill="none"
@@ -139,10 +131,7 @@ export function SectionWaveBorderTop() {
  */
 export function SectionWaveBorderBottom() {
   return (
-    <div
-      aria-hidden="true"
-      className="pointer-events-none relative -mt-1 w-full overflow-hidden select-none z-10"
-    >
+    <div aria-hidden="true" className="pointer-events-none relative -mt-1 w-full overflow-hidden select-none z-10">
       <svg
         viewBox="0 0 1440 180"
         fill="none"
@@ -210,12 +199,7 @@ export function LandingWaveFooter() {
       aria-hidden="true"
       className="pointer-events-none absolute -top-40 left-1/2 -translate-x-1/2 w-[1600px] h-[500px] max-w-none opacity-100 select-none z-[5]"
     >
-      <svg
-        viewBox="0 0 1600 500"
-        fill="none"
-        xmlns="http://www.w3.org/2000/svg"
-        className="w-full h-full"
-      >
+      <svg viewBox="0 0 1600 500" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full">
         <path
           d="M -80 280
              C 320 180, 740 360, 1120 280
@@ -258,12 +242,7 @@ export function DocsWaveHero() {
       aria-hidden="true"
       className="pointer-events-none absolute -top-36 sm:-top-28 right-[-5%] sm:right-[0%] w-[900px] sm:w-[1300px] h-[550px] max-w-none opacity-80 dark:opacity-60 select-none z-0"
     >
-      <svg
-        viewBox="0 0 1200 550"
-        fill="none"
-        xmlns="http://www.w3.org/2000/svg"
-        className="w-full h-full"
-      >
+      <svg viewBox="0 0 1200 550" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full">
         {/* Band 1: Deep Pine Green */}
         <path
           d="M 120 -40
@@ -451,10 +430,7 @@ export function SectionWaveBorderRight({ className = '' }: { className?: string 
 
 export default function LandingWaveRiver() {
   return (
-    <div
-      aria-hidden="true"
-      className="pointer-events-none absolute inset-0 overflow-hidden select-none z-0"
-    >
+    <div aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden select-none z-0">
       <LandingWaveHero />
     </div>
   );

@@ -71,12 +71,15 @@ test('review-work identity is stable across restriction ordering and changes whe
 
   assert.equal(first, reordered);
   assert.notEqual(first, changed);
-  assert.notEqual(first, buildReviewWorkKey({
-    ...shared,
-    safetyScopeKey: 'scope-b',
-    conditions: ['KIDNEY_DISEASE', 'PREGNANT'],
-    allergens: ['DAIRY', 'PEANUTS'],
-  }));
+  assert.notEqual(
+    first,
+    buildReviewWorkKey({
+      ...shared,
+      safetyScopeKey: 'scope-b',
+      conditions: ['KIDNEY_DISEASE', 'PREGNANT'],
+      allergens: ['DAIRY', 'PEANUTS'],
+    })
+  );
   assert.match(first, /^[a-f0-9]{64}$/);
 });
 

@@ -78,7 +78,7 @@ describe('getDashboardCycleDates', () => {
     const cycleMeta = {
       planType: 'STARTER',
       startDate: '2026-09-23T16:00:00.000Z', // Sep 24 in Manila
-      endDate: '2026-09-26T16:00:00.000Z',   // Sep 27 in Manila
+      endDate: '2026-09-26T16:00:00.000Z', // Sep 27 in Manila
     };
 
     const dates = getDashboardCycleDates(starterMeals, [], cycleMeta, fixedNow);
@@ -130,11 +130,7 @@ describe('getDashboardCycleDates', () => {
   });
 
   it('works without cycleMeta by deriving 7 days ending at latest meal date', () => {
-    const starterMeals = [
-      mockMeal('2026-09-25'),
-      mockMeal('2026-09-26'),
-      mockMeal('2026-09-27'),
-    ];
+    const starterMeals = [mockMeal('2026-09-25'), mockMeal('2026-09-26'), mockMeal('2026-09-27')];
 
     const dates = getDashboardCycleDates(starterMeals, [], null, fixedNow);
     const dateKeys = dates.map((d) => getManilaDateKey(d));

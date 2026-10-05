@@ -6,11 +6,7 @@ interface LoadingSpinnerProps {
   className?: string;
 }
 
-export const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({
-  size = 'md',
-  fullScreen = false,
-  className = '',
-}) => {
+export const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({ size = 'md', fullScreen = false, className = '' }) => {
   const dimensions = {
     sm: { size: 'h-4 w-4', stroke: 3.5, r: 14 },
     md: { size: 'h-8 w-8', stroke: 3, r: 14 },

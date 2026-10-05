@@ -5,10 +5,7 @@ export function ReviewQueueSkeleton({ count = 5 }: { count?: number }) {
   return (
     <div className="space-y-3" aria-label="Loading review queue items">
       {[...Array(count)].map((_, i) => (
-        <div
-          key={i}
-          className="rounded-2xl border border-brand-border/70 bg-brand-surface/70 p-4 shadow-sm space-y-3"
-        >
+        <div key={i} className="rounded-2xl border border-brand-border/70 bg-brand-surface/70 p-4 shadow-sm space-y-3">
           {/* Top Row: Type and Priority badges */}
           <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-2">
@@ -83,7 +80,10 @@ export function ReviewDetailSkeleton() {
           </div>
           <div className="space-y-2.5 pt-1">
             {[...Array(5)].map((_, i) => (
-              <div key={i} className="flex items-center justify-between rounded-xl border border-brand-border/40 bg-brand-bgAlt/30 p-2.5">
+              <div
+                key={i}
+                className="flex items-center justify-between rounded-xl border border-brand-border/40 bg-brand-bgAlt/30 p-2.5"
+              >
                 <div className="flex items-center gap-2">
                   <Skeleton className="h-4 w-4 rounded" />
                   <Skeleton className="h-3.5 w-28 rounded" />
@@ -153,9 +153,7 @@ export function NutritionistReviewsSkeleton() {
             <div
               key={i}
               className={`flex items-center justify-center gap-2 rounded-xl border py-2.5 px-4 ${
-                i === 0
-                  ? 'border-brand-accent/40 bg-brand-accent/15'
-                  : 'border-transparent bg-transparent'
+                i === 0 ? 'border-brand-accent/40 bg-brand-accent/15' : 'border-transparent bg-transparent'
               }`}
             >
               <Skeleton className="h-4 w-4 rounded-full" />

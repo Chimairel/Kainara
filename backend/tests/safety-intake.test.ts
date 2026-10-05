@@ -7,7 +7,11 @@ import {
   validateResolvedSafetyEntries,
 } from '../src/domain/safety-intake.policy';
 import { structuredSafetyPreviewSchema, structuredSafetySaveSchema } from '../src/validation/onboarding.schemas';
-import { buildLegacySafetyProjection, mergeSafetyDomains, SafetyIntakeService } from '../src/services/safety-intake.service';
+import {
+  buildLegacySafetyProjection,
+  mergeSafetyDomains,
+  SafetyIntakeService,
+} from '../src/services/safety-intake.service';
 
 test('structured intake splits documented separators but preserves ordinary spaces', () => {
   assert.deepEqual(splitSafetyInput('chronic kidney disease, gout; soy / sesame\nlactose intolerance'), [
@@ -160,7 +164,10 @@ test('an allergy-step save cannot erase a condition recorded in the prior onboar
   assert.deepEqual(merged, [diabetes, ...foods]);
   assert.deepEqual(buildLegacySafetyProjection(SafetyIntakeService.preview(merged).entries).conditions, ['DIABETES']);
   assert.throws(() => mergeSafetyDomains([diabetes], domains, [diabetes]), /selected sections/);
-  assert.equal(structuredSafetySaveSchema.safeParse({ entries: foods, editableDomains: domains, confirmed: true }).success, true);
+  assert.equal(
+    structuredSafetySaveSchema.safeParse({ entries: foods, editableDomains: domains, confirmed: true }).success,
+    true
+  );
   assert.equal(structuredSafetySaveSchema.safeParse({ entries: foods, confirmed: true }).success, false);
 });
 

@@ -41,10 +41,7 @@ test('[TEST-200] saved location determines the evidence fallback chain', () => {
     buildConsumptionScopeChain(location).map((s) => s.level),
     ['PROVINCE_HUC', 'REGION', 'NATIONAL']
   );
-  assert.equal(
-    formatPlanningLocation(location),
-    'Cebu City, Central Visayas'
-  );
+  assert.equal(formatPlanningLocation(location), 'Cebu City, Central Visayas');
 });
 
 test('[TEST-196] profile validation accepts only coherent coarse location shapes', () => {

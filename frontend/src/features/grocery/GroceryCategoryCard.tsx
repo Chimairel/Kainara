@@ -1,17 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import {
-  Apple,
-  ChevronDown,
-  Coffee,
-  Drumstick,
-  Egg,
-  Fish,
-  Package,
-  ShoppingBag,
-  Wheat,
-} from 'lucide-react';
+import { Apple, ChevronDown, Coffee, Drumstick, Egg, Fish, Package, ShoppingBag, Wheat } from 'lucide-react';
 import type { GroceryItem } from './current-grocery';
 import { getCategoryStyle } from './grocery-display';
 import GroceryItemRow from './GroceryItemRow';
@@ -86,10 +76,7 @@ export default function GroceryCategoryCard({
           <div className="min-w-0 flex-1">
             <div className="flex items-center justify-between gap-2">
               <h3 className="truncate font-display text-sm font-bold text-brand-text">
-                {category}{' '}
-                <span className="font-sans text-xs font-semibold text-brand-muted">
-                  ({items.length})
-                </span>
+                {category} <span className="font-sans text-xs font-semibold text-brand-muted">({items.length})</span>
               </h3>
               <span className="shrink-0 font-mono text-[11px] font-bold text-brand-muted">
                 {completedCount}/{items.length} bought
@@ -109,9 +96,7 @@ export default function GroceryCategoryCard({
         {/* Expand / Collapse Chevron */}
         <div className="flex shrink-0 items-center pl-1">
           <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-brand-bgAlt/60 text-brand-muted transition-colors hover:text-brand-text">
-            <ChevronDown
-              className={`h-4 w-4 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`}
-            />
+            <ChevronDown className={`h-4 w-4 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`} />
           </span>
         </div>
       </button>

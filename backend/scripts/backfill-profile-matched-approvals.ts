@@ -27,12 +27,16 @@ async function main() {
   });
   const candidates = plans.filter((plan) => {
     const profile = plan.user.userProfile;
-    if (!profile || !plan.nutritionistId ||
+    if (
+      !profile ||
+      !plan.nutritionistId ||
       plan.cycle.profileAdaptationState !== 'CURRENT' ||
       plan.cycle.snapshot?.profileRevision !== profile.revision ||
       plan.cycle.snapshot?.safetyRevision !== profile.safetyRevision ||
       plan.safetyPolicyVersion !== MEAL_PLAN_SAFETY_POLICY_VERSION ||
-      plan.sourceRawRecipeCandidate?.sourceName === 'USER_OBSERVED') return false;
+      plan.sourceRawRecipeCandidate?.sourceName === 'USER_OBSERVED'
+    )
+      return false;
     const safety = {
       conditions: plan.user.healthConditions.map((item) => item.condition),
       allergens: plan.user.allergies.map((item) => item.allergen),
@@ -49,25 +53,38 @@ async function main() {
       otherAllergies: safety.otherAllergies,
     });
     if (restrictions.conditions.some((condition) => condition !== 'NONE')) return false;
-    const facts = classifyMealIngredients(plan.ingredients.map((item) => ({
-      name: item.ingredientName,
-      category: item.category,
-    })));
-    return (!restrictions.allergies.length || facts.status === 'COMPLETE') &&
-      !facts.detectedAllergens.some((allergen) => restrictions.allergies.includes(allergen));
+    const facts = classifyMealIngredients(
+      plan.ingredients.map((item) => ({
+        name: item.ingredientName,
+        category: item.category,
+      }))
+    );
+    return (
+      (!restrictions.allergies.length || facts.status === 'COMPLETE') &&
+      !facts.detectedAllergens.some((allergen) => restrictions.allergies.includes(allergen))
+    );
   });
-  console.log(JSON.stringify({ mode: apply ? 'apply' : 'dry-run', approvedPlans: plans.length, eligibleCandidates: candidates.length }));
+  console.log(
+    JSON.stringify({
+      mode: apply ? 'apply' : 'dry-run',
+      approvedPlans: plans.length,
+      eligibleCandidates: candidates.length,
+    })
+  );
   if (!apply) return;
   let published = 0;
   let skipped = 0;
   let failed = 0;
   for (const plan of candidates) {
     try {
-      if (await publishProfileMatchedMealApproval({
-        mealPlanId: plan.id,
-        nutritionistProfileId: plan.nutritionistId!,
-        approvedProfileRevision: plan.user.userProfile!.revision,
-      })) published += 1;
+      if (
+        await publishProfileMatchedMealApproval({
+          mealPlanId: plan.id,
+          nutritionistProfileId: plan.nutritionistId!,
+          approvedProfileRevision: plan.user.userProfile!.revision,
+        })
+      )
+        published += 1;
       else skipped += 1;
     } catch {
       failed += 1;
@@ -77,7 +94,9 @@ async function main() {
   if (failed) process.exitCode = 1;
 }
 
-main().catch((error) => {
-  console.error(error instanceof Error ? error.message : 'Backfill failed');
-  process.exitCode = 1;
-}).finally(async () => prisma.$disconnect());
+main()
+  .catch((error) => {
+    console.error(error instanceof Error ? error.message : 'Backfill failed');
+    process.exitCode = 1;
+  })
+  .finally(async () => prisma.$disconnect());

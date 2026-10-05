@@ -29,7 +29,8 @@ type GroceryCycleFacts = {
 export function deriveGroceryActionability(facts: GroceryCycleFacts): GroceryActionability {
   // The missed deadline is permanent audit history, but an unfrozen list can
   // become complete later. An accepted partial list stays partial and frozen.
-  const isIncomplete = facts.deadlineOutcome === MealPlanCycleDeadlineOutcome.INCOMPLETE &&
+  const isIncomplete =
+    facts.deadlineOutcome === MealPlanCycleDeadlineOutcome.INCOMPLETE &&
     (facts.incompleteAcknowledgedAt !== null || facts.unresolvedSlotCount !== 0);
   const acknowledgedIncomplete = isIncomplete && facts.incompleteAcknowledgedAt !== null;
 
@@ -85,8 +86,8 @@ export function deriveGroceryActionability(facts: GroceryCycleFacts): GroceryAct
     };
   }
 
-  const progressivePreview = facts.status === MealPlanCycleStatus.PREPARING ||
-    facts.status === MealPlanCycleStatus.UNDER_REVIEW;
+  const progressivePreview =
+    facts.status === MealPlanCycleStatus.PREPARING || facts.status === MealPlanCycleStatus.UNDER_REVIEW;
   return {
     canCheckItems: progressivePreview,
     canExportPdf: false,

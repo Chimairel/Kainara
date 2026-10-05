@@ -59,10 +59,14 @@ async function main() {
       },
     });
     userId = user.id;
-    await SafetyIntakeService.replaceDomains(userId, ['CONDITION', 'ALLERGY'], [
-      { domain: 'CONDITION', value: 'NONE', provenance: 'PREDEFINED' },
-      { domain: 'ALLERGY', value: 'NONE', provenance: 'PREDEFINED' },
-    ]);
+    await SafetyIntakeService.replaceDomains(
+      userId,
+      ['CONDITION', 'ALLERGY'],
+      [
+        { domain: 'CONDITION', value: 'NONE', provenance: 'PREDEFINED' },
+        { domain: 'ALLERGY', value: 'NONE', provenance: 'PREDEFINED' },
+      ]
+    );
     await prisma.userProfile.update({ where: { userId }, data: { dailyCalorieTarget: 1200 } });
     const profile = await prisma.userProfile.findUniqueOrThrow({ where: { userId } });
     for (const mealType of ['BREAKFAST', 'LUNCH', 'DINNER'] as const) {

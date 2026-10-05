@@ -9,7 +9,9 @@ export interface ApprovedPlanRecipe {
 export function groupApprovedPlanRecipes(meals: readonly MealPlan[]): ApprovedPlanRecipe[] {
   const groups = new Map<string, ApprovedPlanRecipe>();
   for (const meal of meals) {
-    const identity = meal.composedServingSignature || meal.baseRecipeSignature ||
+    const identity =
+      meal.composedServingSignature ||
+      meal.baseRecipeSignature ||
       (meal.libraryMealId ? `library:${meal.libraryMealId}` : null);
     const key = identity
       ? JSON.stringify([identity, meal.mealType, meal.calories, meal.proteinG, meal.carbsG, meal.fatG])

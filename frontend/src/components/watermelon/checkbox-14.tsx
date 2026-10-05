@@ -6,15 +6,15 @@ import { Check } from 'lucide-react';
 
 export type Checkbox14Color = 'emerald' | 'coral' | 'blue';
 
-export interface CircularCheckboxProps
-  extends React.ComponentPropsWithoutRef<typeof CheckboxPrimitive.Root> {
+export interface CircularCheckboxProps extends React.ComponentPropsWithoutRef<typeof CheckboxPrimitive.Root> {
   colorVariant?: Checkbox14Color;
   size?: 'sm' | 'md' | 'lg';
 }
 
 const colorStyles: Record<Checkbox14Color, { checked: string; border: string }> = {
   emerald: {
-    checked: 'data-[state=checked]:bg-brand-green data-[state=checked]:border-brand-green dark:data-[state=checked]:bg-brand-accent dark:data-[state=checked]:border-brand-accent',
+    checked:
+      'data-[state=checked]:bg-brand-green data-[state=checked]:border-brand-green dark:data-[state=checked]:bg-brand-accent dark:data-[state=checked]:border-brand-accent',
     border: 'hover:border-brand-green/60 focus-visible:ring-brand-green/20',
   },
   coral: {
@@ -68,9 +68,7 @@ export default function Checkbox14() {
           key={color}
           colorVariant={color}
           checked={checkedItems[color]}
-          onCheckedChange={(checked) =>
-            setCheckedItems((prev) => ({ ...prev, [color]: Boolean(checked) }))
-          }
+          onCheckedChange={(checked) => setCheckedItems((prev) => ({ ...prev, [color]: Boolean(checked) }))}
           aria-label={`Toggle ${color} checkbox`}
         />
       ))}

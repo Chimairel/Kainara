@@ -128,7 +128,9 @@ export function NutritionistCredentialCard({
         <div className="relative p-5 sm:p-6 text-center z-10 space-y-3">
           <div className="w-full flex items-center justify-start gap-2 pl-1">
             <KainaraLogo size={22} variant="multicolor" />
-            <span className="font-display font-black text-sm tracking-tight text-[#0d2820] dark:text-white lowercase">kainara</span>
+            <span className="font-display font-black text-sm tracking-tight text-[#0d2820] dark:text-white lowercase">
+              kainara
+            </span>
           </div>
 
           <div className="flex justify-center my-1">
@@ -147,8 +149,12 @@ export function NutritionistCredentialCard({
           </div>
 
           <div className="space-y-1">
-            <h3 className="font-display text-lg sm:text-xl font-bold text-[#0d2820] dark:text-white tracking-tight">{displayName}</h3>
-            <p className="text-xs font-normal text-[#5a746a] dark:text-[#8ea79d]">Registered Nutritionist – Dietitian</p>
+            <h3 className="font-display text-lg sm:text-xl font-bold text-[#0d2820] dark:text-white tracking-tight">
+              {displayName}
+            </h3>
+            <p className="text-xs font-normal text-[#5a746a] dark:text-[#8ea79d]">
+              Registered Nutritionist – Dietitian
+            </p>
             <div className="pt-1.5 flex justify-center">
               <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-600/30 dark:border-[#1a5c48] bg-emerald-100/70 dark:bg-[#0e352b] px-3.5 py-1 text-xs font-semibold text-emerald-800 dark:text-[#38c172] shadow-sm">
                 <ShieldCheck className="h-3.5 w-3.5 text-emerald-700 dark:text-[#38c172]" />
@@ -157,7 +163,9 @@ export function NutritionistCredentialCard({
             </div>
           </div>
 
-          <p className="pt-1 text-center text-xs text-[#5a746a] dark:text-[#8ea79d]">Review attributed to {displayName}</p>
+          <p className="pt-1 text-center text-xs text-[#5a746a] dark:text-[#8ea79d]">
+            Review attributed to {displayName}
+          </p>
         </div>
 
         {/* Dashed Horizontal Divider */}
@@ -185,7 +193,9 @@ export function NutritionistCredentialCard({
             </div>
             <div className="min-w-0 flex-1">
               <p className="text-[10px] font-medium text-[#6b857c] dark:text-[#8ea79d]">Education</p>
-              <p className="text-xs sm:text-sm font-bold text-[#0d2820] dark:text-white leading-snug mt-0.5">BS Nutrition and Dietetics</p>
+              <p className="text-xs sm:text-sm font-bold text-[#0d2820] dark:text-white leading-snug mt-0.5">
+                BS Nutrition and Dietetics
+              </p>
               <p className="text-xs text-[#5a746a] dark:text-[#8ea79d] font-normal mt-0.5">
                 {verifier.university || 'University of the Philippines'}
               </p>
@@ -222,7 +232,9 @@ export function NutritionistCredentialCard({
               <p className="text-xs sm:text-sm font-bold text-[#0d2820] dark:text-white leading-snug mt-0.5">
                 {verifier.yearsOfExperience ?? 5}+ years
               </p>
-              <p className="text-xs text-[#5a746a] dark:text-[#8ea79d] font-normal mt-0.5">in clinical and community nutrition</p>
+              <p className="text-xs text-[#5a746a] dark:text-[#8ea79d] font-normal mt-0.5">
+                in clinical and community nutrition
+              </p>
             </div>
           </div>
 
@@ -277,7 +289,9 @@ export function NutritionistCredentialCard({
         <div className="relative flex flex-col items-center justify-between p-6 sm:p-8 text-center z-10">
           <div className="w-full flex items-center justify-start gap-2 pl-2 pt-1">
             <KainaraLogo size={24} variant="multicolor" />
-            <span className="font-display font-black text-lg tracking-tight text-[#0d2820] dark:text-white lowercase">kainara</span>
+            <span className="font-display font-black text-lg tracking-tight text-[#0d2820] dark:text-white lowercase">
+              kainara
+            </span>
           </div>
 
           <div className="my-3 sm:my-4 relative">
@@ -296,8 +310,12 @@ export function NutritionistCredentialCard({
           </div>
 
           <div className="space-y-1 w-full">
-            <h3 className="font-display text-xl sm:text-2xl font-bold text-[#0d2820] dark:text-white tracking-tight">{displayName}</h3>
-            <p className="text-xs font-normal text-[#5a746a] dark:text-[#8ea79d]">Registered Nutritionist - Dietitian</p>
+            <h3 className="font-display text-xl sm:text-2xl font-bold text-[#0d2820] dark:text-white tracking-tight">
+              {displayName}
+            </h3>
+            <p className="text-xs font-normal text-[#5a746a] dark:text-[#8ea79d]">
+              Registered Nutritionist - Dietitian
+            </p>
 
             <div className="pt-2 flex justify-center">
               <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-600/30 dark:border-[#1a5c48] bg-emerald-100/70 dark:bg-[#0e352b] px-3.5 py-1 text-xs font-semibold text-emerald-800 dark:text-[#38c172] shadow-sm">
@@ -307,7 +325,9 @@ export function NutritionistCredentialCard({
             </div>
           </div>
 
-          <p className="pt-3 text-center text-xs text-[#5a746a] dark:text-[#8ea79d]">Review attributed to {displayName}</p>
+          <p className="pt-3 text-center text-xs text-[#5a746a] dark:text-[#8ea79d]">
+            Review attributed to {displayName}
+          </p>
         </div>
 
         {/* ──── MIDDLE: Inset Dashed Vertical Divider ──── */}
@@ -375,7 +395,9 @@ export function NutritionistCredentialCard({
                 <p className="text-sm sm:text-[15px] font-bold text-[#0d2820] dark:text-white leading-snug mt-0.5">
                   {verifier.yearsOfExperience ?? 5}+ years
                 </p>
-                <p className="text-xs text-[#5a746a] dark:text-[#8ea79d] font-normal mt-0.5">in clinical and community nutrition</p>
+                <p className="text-xs text-[#5a746a] dark:text-[#8ea79d] font-normal mt-0.5">
+                  in clinical and community nutrition
+                </p>
               </div>
             </div>
           </div>

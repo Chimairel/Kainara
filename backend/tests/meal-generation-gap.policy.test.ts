@@ -14,14 +14,18 @@ test('[TEST-225] AI queue starts at day 1 and never jumps to a later ready-looki
   ];
   const missing = missingMealSlots(monday, 21, occupied);
   assert.equal(missing.length, 18);
-  assert.deepEqual(earliestMissingDay(missing).map((slot) => slot.mealType), [MealType.LUNCH, MealType.DINNER]);
+  assert.deepEqual(
+    earliestMissingDay(missing).map((slot) => slot.mealType),
+    [MealType.LUNCH, MealType.DINNER]
+  );
   assert.ok(missing.slice(2).every((slot) => slot.dayNumber >= 2));
 });
 
 test('[TEST-225] a complete certified/raw cycle has no AI work', () => {
   const occupied = Array.from({ length: 7 }, (_, day) =>
     [MealType.BREAKFAST, MealType.LUNCH, MealType.DINNER].map((mealType) => ({
-      scheduledDate: getScheduledMealDate(monday, day), mealType,
+      scheduledDate: getScheduledMealDate(monday, day),
+      mealType,
     }))
   ).flat();
   assert.deepEqual(missingMealSlots(monday, 21, occupied), []);

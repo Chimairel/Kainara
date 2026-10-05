@@ -38,7 +38,8 @@ test('narrow screens can select a chapter without the desktop outline', async ({
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('/docs');
 
-  await page.getByLabel('Choose a documentation chapter').selectOption('medical-disclaimers');
+  await page.getByRole('combobox', { name: 'Choose a documentation chapter' }).click();
+  await page.getByRole('option', { name: 'Medical Disclaimers', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Medical Disclaimers', exact: true })).toBeVisible();
   await expect(page.getByRole('complementary', { name: 'On this page' })).toBeHidden();
 });
@@ -49,7 +50,7 @@ test('the former Sources page opens the full evidence register in Docs', async (
   await expect(page).toHaveURL(/\/docs#data-sources$/);
   await expect(page.getByRole('heading', { name: 'Sources and evidence', exact: true })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Background guidance and inactive policies' })).toBeVisible();
-  await expect(page.getByRole('heading', { name: 'Philippine nutrition and consumption data' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Philippine nutrition references' })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'How to read source statuses' })).toBeVisible();
   await expect(
     page.getByRole('navigation', { name: 'Public navigation' }).getByRole('link', { name: 'Sources' })

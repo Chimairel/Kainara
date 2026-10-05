@@ -134,13 +134,16 @@ async function main() {
   try {
     for (const profileCase of cases) {
       const user = await createFixture(profileCase, passwordHash);
-      const compatible = await Promise.all(mealTypes.map((mealType) =>
-        MealSwapService.getCompatibleLibraryMeals(user.id, { mealType, limit: 100 })
-      ));
+      const compatible = await Promise.all(
+        mealTypes.map((mealType) => MealSwapService.getCompatibleLibraryMeals(user.id, { mealType, limit: 100 }))
+      );
       const managed = compatible.flatMap((page) => page.items).filter((meal) => catalogueNames.has(meal.mealName));
-      const counts = Object.fromEntries(mealTypes.map((mealType, index) => [mealType,
-        compatible[index].items.filter((meal) => catalogueNames.has(meal.mealName)).length,
-      ]));
+      const counts = Object.fromEntries(
+        mealTypes.map((mealType, index) => [
+          mealType,
+          compatible[index].items.filter((meal) => catalogueNames.has(meal.mealName)).length,
+        ])
+      );
 
       if (profileCase.expectFullWeek) {
         for (const mealType of mealTypes) {
@@ -150,8 +153,11 @@ async function main() {
           );
         }
       } else {
-        assert.equal(managed.length, 0,
-          `${profileCase.label} received a reusable meal before a current case approval.`);
+        assert.equal(
+          managed.length,
+          0,
+          `${profileCase.label} received a reusable meal before a current case approval.`
+        );
       }
 
       if (profileCase.allergy === AllergenType.EGGS) {
@@ -169,10 +175,18 @@ async function main() {
     }
 
     const coverage = await NutritionistService.getMealLibraryCoverage();
-    assert.ok(coverage.profiles.filter((profile) => ['VEGETARIAN', 'PESCATARIAN'].includes(profile.key))
-      .every((profile) => profile.weekReady), 'Unrestricted dietary coverage regressed.');
-    assert.ok(coverage.profiles.filter((profile) => !['VEGETARIAN', 'PESCATARIAN'].includes(profile.key))
-      .every((profile) => !profile.weekReady), 'Restricted profiles gained unreviewed reusable coverage.');
+    assert.ok(
+      coverage.profiles
+        .filter((profile) => ['VEGETARIAN', 'PESCATARIAN'].includes(profile.key))
+        .every((profile) => profile.weekReady),
+      'Unrestricted dietary coverage regressed.'
+    );
+    assert.ok(
+      coverage.profiles
+        .filter((profile) => !['VEGETARIAN', 'PESCATARIAN'].includes(profile.key))
+        .every((profile) => !profile.weekReady),
+      'Restricted profiles gained unreviewed reusable coverage.'
+    );
     assert.ok(
       coverage.combinationMatrix.every((row) => row.cells.every((cell) => !cell.weekReady)),
       'The nutritionist combination matrix exposed a restricted profile without clearance.'

@@ -1,13 +1,7 @@
 'use client';
 
 import React from 'react';
-import {
-  Archive,
-  ArrowDown,
-  ArrowUp,
-  ArrowUpDown,
-  CircleCheckBig,
-} from 'lucide-react';
+import { Archive, ArrowDown, ArrowUp, ArrowUpDown, CircleCheckBig } from 'lucide-react';
 import type { GroceryItem } from './current-grocery';
 import { formatGroceryItemDisplay, getCategoryStyle } from './grocery-display';
 import { CircularCheckbox } from '@/components/watermelon/checkbox-14';
@@ -111,7 +105,10 @@ export default function GroceryTable({
               </th>
 
               {/* Meal Usage */}
-              <th scope="col" className="w-28 px-3 py-3 text-center border-r border-brand-border/40 font-bold text-brand-text">
+              <th
+                scope="col"
+                className="w-28 px-3 py-3 text-center border-r border-brand-border/40 font-bold text-brand-text"
+              >
                 <span>Usage</span>
               </th>
 
@@ -203,7 +200,6 @@ export default function GroceryTable({
                       >
                         {display.displayQuantity}
                       </span>
-
                     </div>
                   </td>
 
@@ -221,7 +217,11 @@ export default function GroceryTable({
                       onClick={() => onTogglePantry(item.id)}
                       disabled={!canCheckItems || bulkBusy || pendingIds.has(item.id)}
                       aria-pressed={item.isPantryStaple}
-                      aria-label={item.isPantryStaple ? `Mark ${display.cleanName} as need to buy` : `Mark ${display.cleanName} as in pantry`}
+                      aria-label={
+                        item.isPantryStaple
+                          ? `Mark ${display.cleanName} as need to buy`
+                          : `Mark ${display.cleanName} as in pantry`
+                      }
                       title={item.isPantryStaple ? 'In pantry (have at home)' : 'Mark as in pantry'}
                       className={`inline-flex items-center gap-1 rounded-lg px-2.5 py-1 text-[10px] font-bold transition disabled:cursor-not-allowed disabled:opacity-40 ${
                         item.isPantryStaple
@@ -246,7 +246,8 @@ export default function GroceryTable({
           Showing <strong className="text-brand-text">{items.length}</strong> items
         </span>
         <span className="font-mono text-[10px]">
-          {items.filter((i) => i.isChecked && !i.isPantryStaple).length} bought · {items.filter((i) => !i.isChecked && !i.isPantryStaple).length} to buy
+          {items.filter((i) => i.isChecked && !i.isPantryStaple).length} bought ·{' '}
+          {items.filter((i) => !i.isChecked && !i.isPantryStaple).length} to buy
         </span>
       </div>
     </div>

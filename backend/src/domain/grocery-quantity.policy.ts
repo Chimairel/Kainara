@@ -66,8 +66,11 @@ export function aggregateGroceryIngredients(
   const aggregated = new Map<string, AggregatedGroceryIngredient>();
 
   for (const ingredient of ingredients) {
-    const cleanName = ingredient.ingredientName.trim().replace(/\s+/g, ' ')
-      .replace(/\s*(?:\(\s*to taste\s*\)|\bto taste\b)\s*$/iu, '').trim();
+    const cleanName = ingredient.ingredientName
+      .trim()
+      .replace(/\s+/g, ' ')
+      .replace(/\s*(?:\(\s*to taste\s*\)|\bto taste\b)\s*$/iu, '')
+      .trim();
     if (!cleanName) continue;
     const originalUnit = normalizeGroceryUnit(ingredient.unit);
     const factor = originalUnit === 'kg' || originalUnit === 'L' ? 1000 : 1;

@@ -1,7 +1,11 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { DietaryPreference, MealType } from '@prisma/client';
-import { fillRepeatedRawRecipeSlots, selectRawRecipeCandidates, sourceRawRecipeCandidates } from '../src/services/raw-recipe-candidate.service';
+import {
+  fillRepeatedRawRecipeSlots,
+  selectRawRecipeCandidates,
+  sourceRawRecipeCandidates,
+} from '../src/services/raw-recipe-candidate.service';
 import type { RecipeCandidateProjection } from '../src/services/recipe-candidate-provider';
 import { databaseRecipeCandidateProvider } from '../src/services/panlasang-recipe-candidate.provider';
 import { parseRecipeCandidateIngredients } from '../src/services/panlasang-recipe-candidate.provider';
@@ -72,13 +76,16 @@ test('raw selection skips definite allergen conflicts and exact duplicate signat
 });
 
 test('a source number without a unit remains an unmeasured grocery ingredient', () => {
-  assert.deepEqual(parseRecipeCandidateIngredients([
-    { name: 'salt', quantity: 1, unit: 'tsp' },
-    { name: 'salt', quantity: 2, unit: null },
-  ]).map(({ name, quantity, unit }) => ({ name, quantity, unit })), [
-    { name: 'salt', quantity: 1, unit: 'tsp' },
-    { name: 'salt', quantity: undefined, unit: undefined },
-  ]);
+  assert.deepEqual(
+    parseRecipeCandidateIngredients([
+      { name: 'salt', quantity: 1, unit: 'tsp' },
+      { name: 'salt', quantity: 2, unit: null },
+    ]).map(({ name, quantity, unit }) => ({ name, quantity, unit })),
+    [
+      { name: 'salt', quantity: 1, unit: 'tsp' },
+      { name: 'salt', quantity: undefined, unit: undefined },
+    ]
+  );
 });
 
 test('raw selection does not treat a dietary tag or blank ingredient list as sufficient', () => {
@@ -108,7 +115,10 @@ test('review-free sourcing skips incomplete recipes without sending them to nutr
     allergens: [],
     reviewFreeBaseOnly: true,
   });
-  assert.deepEqual(selected.meals.map((meal) => meal.rawCandidateId), ['b']);
+  assert.deepEqual(
+    selected.meals.map((meal) => meal.rawCandidateId),
+    ['b']
+  );
 });
 
 test('a new cycle selects a different eligible source before a recently used recipe', () => {
@@ -116,21 +126,37 @@ test('a new cycle selects a different eligible source before a recently used rec
   const selected = selectRawRecipeCandidates({
     slots: [{ dayNumber: 1, mealType: MealType.LUNCH, scheduledDate: new Date() }],
     candidatesByType: new Map([[MealType.LUNCH, options]]),
-    dietaryPreference: DietaryPreference.OMNIVORE, allergens: [], recentCandidateIds: ['a'],
+    dietaryPreference: DietaryPreference.OMNIVORE,
+    allergens: [],
+    recentCandidateIds: ['a'],
   });
   assert.equal(selected.meals[0].rawCandidateId, 'b');
 });
 
 test('limited eligible recipes rotate only after distinct candidates are exhausted', () => {
   const options = [candidate('a', 'First', 'chicken'), candidate('b', 'Second', 'pork')];
-  const slots = [1, 2, 3, 4].map((dayNumber) => ({ dayNumber, mealType: MealType.LUNCH,
-    scheduledDate: new Date(`2031-01-0${dayNumber}T00:00:00Z`) }));
-  const unique = selectRawRecipeCandidates({ slots, candidatesByType: new Map([[MealType.LUNCH, options]]),
-    dietaryPreference: DietaryPreference.OMNIVORE, allergens: [] });
-  const repeated = fillRepeatedRawRecipeSlots({ slots: unique.remainingSlots, selected: unique.meals,
+  const slots = [1, 2, 3, 4].map((dayNumber) => ({
+    dayNumber,
+    mealType: MealType.LUNCH,
+    scheduledDate: new Date(`2031-01-0${dayNumber}T00:00:00Z`),
+  }));
+  const unique = selectRawRecipeCandidates({
+    slots,
     candidatesByType: new Map([[MealType.LUNCH, options]]),
-    dietaryPreference: DietaryPreference.OMNIVORE, allergens: [] });
-  assert.deepEqual([...unique.meals, ...repeated.meals].map((meal) => meal.rawCandidateId), ['a', 'b', 'a', 'b']);
+    dietaryPreference: DietaryPreference.OMNIVORE,
+    allergens: [],
+  });
+  const repeated = fillRepeatedRawRecipeSlots({
+    slots: unique.remainingSlots,
+    selected: unique.meals,
+    candidatesByType: new Map([[MealType.LUNCH, options]]),
+    dietaryPreference: DietaryPreference.OMNIVORE,
+    allergens: [],
+  });
+  assert.deepEqual(
+    [...unique.meals, ...repeated.meals].map((meal) => meal.rawCandidateId),
+    ['a', 'b', 'a', 'b']
+  );
   assert.equal(repeated.remainingSlots.length, 0);
 });
 
@@ -177,8 +203,11 @@ test('a published breakfast serving can be adjusted without adding source nutrit
   try {
     const result = await sourceRawRecipeCandidates({
       slots: [{ dayNumber: 1, mealType: MealType.BREAKFAST, scheduledDate: new Date() }],
-      dailyCalorieTarget: 2571, dietaryPreference: DietaryPreference.OMNIVORE,
-      conditions: [], allergens: [], reviewFreeBaseOnly: true,
+      dailyCalorieTarget: 2571,
+      dietaryPreference: DietaryPreference.OMNIVORE,
+      conditions: [],
+      allergens: [],
+      reviewFreeBaseOnly: true,
     });
     assert.equal(result.remainingSlots.length, 0);
     assert.equal(result.meals[0].calories, 770.88);

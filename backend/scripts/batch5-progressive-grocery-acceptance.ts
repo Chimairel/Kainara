@@ -20,18 +20,30 @@ async function main() {
         email: `batch5-${run}@example.invalid`,
         passwordHash: 'disabled',
         emailVerified: true,
-        safetyProfileEntries: { create: [
-          {
-            domain: 'CONDITION', canonicalCode: 'NONE', displayName: 'No diagnosed condition',
-            originalText: 'None', normalizedText: 'none', provenance: 'PREDEFINED',
-            supportState: 'SUPPORTED', policyReference: 'TEST_DECLARATION',
-          },
-          {
-            domain: 'ALLERGY', canonicalCode: 'NONE', displayName: 'No declared allergy',
-            originalText: 'None', normalizedText: 'none', provenance: 'PREDEFINED',
-            supportState: 'SUPPORTED', policyReference: 'TEST_DECLARATION',
-          },
-        ] },
+        safetyProfileEntries: {
+          create: [
+            {
+              domain: 'CONDITION',
+              canonicalCode: 'NONE',
+              displayName: 'No diagnosed condition',
+              originalText: 'None',
+              normalizedText: 'none',
+              provenance: 'PREDEFINED',
+              supportState: 'SUPPORTED',
+              policyReference: 'TEST_DECLARATION',
+            },
+            {
+              domain: 'ALLERGY',
+              canonicalCode: 'NONE',
+              displayName: 'No declared allergy',
+              originalText: 'None',
+              normalizedText: 'none',
+              provenance: 'PREDEFINED',
+              supportState: 'SUPPORTED',
+              policyReference: 'TEST_DECLARATION',
+            },
+          ],
+        },
         userProfile: {
           create: {
             age: 30,
@@ -66,7 +78,8 @@ async function main() {
     libraryMealId = libraryMeal.id;
     await prisma.mealBaseVerification.create({
       data: {
-        targetKind: 'LIBRARY_MEAL', targetId: libraryMeal.id,
+        targetKind: 'LIBRARY_MEAL',
+        targetId: libraryMeal.id,
         revisionKey: libraryBaseRevisionKey(recipeSignature, libraryMeal.description),
         status: 'VERIFIED',
       },
@@ -165,7 +178,10 @@ async function main() {
     const previewChickenId = preview.groceryList!.groceryItems[0].id;
     const previewChecked = await GroceryService.toggleGroceryItem(user.id, previewChickenId);
     assert.equal(previewChecked.isChecked, true);
-    assert.equal((await prisma.mealPlanCycle.findUniqueOrThrow({ where: { id: progressiveId } })).shoppingStartedAt, null);
+    assert.equal(
+      (await prisma.mealPlanCycle.findUniqueOrThrow({ where: { id: progressiveId } })).shoppingStartedAt,
+      null
+    );
 
     await prisma.mealPlan.update({
       where: { id: pending.id },
@@ -313,7 +329,11 @@ async function main() {
       data: { status: MealPlanStatus.APPROVED, reviewedAt: new Date(now.getTime() + 1_000) },
     });
     await prisma.groceryList.updateMany({ where: { planGroupId: lateCompleteId }, data: { isStale: true } });
-    const lateComplete = await GroceryService.getCycleProjection(user.id, lateCompleteId, new Date(now.getTime() + 2_000));
+    const lateComplete = await GroceryService.getCycleProjection(
+      user.id,
+      lateCompleteId,
+      new Date(now.getTime() + 2_000)
+    );
     assert.equal(lateComplete.cycle.deadlineOutcome, 'INCOMPLETE');
     assert.equal(lateComplete.coverage.unresolvedSlotCount, 0);
     assert.equal(lateComplete.actionability.requiresIncompleteAcknowledgment, false);
@@ -328,7 +348,9 @@ async function main() {
   } finally {
     if (userId) await prisma.user.delete({ where: { id: userId } }).catch(() => undefined);
     if (libraryMealId) {
-      await prisma.mealBaseVerification.deleteMany({ where: { targetKind: 'LIBRARY_MEAL', targetId: libraryMealId } }).catch(() => undefined);
+      await prisma.mealBaseVerification
+        .deleteMany({ where: { targetKind: 'LIBRARY_MEAL', targetId: libraryMealId } })
+        .catch(() => undefined);
       await prisma.mealLibrary.delete({ where: { id: libraryMealId } }).catch(() => undefined);
     }
     await prisma.$disconnect();

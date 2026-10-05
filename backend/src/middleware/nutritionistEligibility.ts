@@ -16,17 +16,23 @@ export async function requireEligibleNutritionist(req: AuthenticatedRequest, res
         where: { userId: req.user.userId },
         select: { id: true, isVerified: true, prcLicenseExpiry: true },
       }),
-      account ?? prisma.user.findUnique({
-        where: { id: req.user.userId },
-        select: { emailVerified: true },
-      }),
+      account ??
+        prisma.user.findUnique({
+          where: { id: req.user.userId },
+          select: { emailVerified: true },
+        }),
       prisma.nutritionistApplication.findUnique({
         where: { invitedUserId: req.user.userId },
         select: { status: true },
       }),
     ]);
 
-    if (!profile || !user?.emailVerified || (application && application.status !== 'ACTIVATED') || !isNutritionistEligibleForReview(profile)) {
+    if (
+      !profile ||
+      !user?.emailVerified ||
+      (application && application.status !== 'ACTIVATED') ||
+      !isNutritionistEligibleForReview(profile)
+    ) {
       return res.status(403).json({
         success: false,
         error: 'An active, verified nutritionist credential is required for this workspace.',

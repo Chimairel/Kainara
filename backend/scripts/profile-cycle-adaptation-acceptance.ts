@@ -319,8 +319,15 @@ async function publishFixtureReport(userId: string, version: number, profileRevi
   const generatedAt = new Date();
   await prisma.$transaction([
     prisma.nutritionReportVersion.create({
-      data: { userId, version, profileRevision, generatedAt, content: {}, profileSnapshot: {},
-        policyVersion: NUTRITION_GUIDANCE_POLICY_VERSION },
+      data: {
+        userId,
+        version,
+        profileRevision,
+        generatedAt,
+        content: {},
+        profileSnapshot: {},
+        policyVersion: NUTRITION_GUIDANCE_POLICY_VERSION,
+      },
     }),
     prisma.nutritionReport.update({
       where: { userId },

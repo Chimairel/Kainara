@@ -68,7 +68,8 @@ async function main() {
       yearsOfExperience: 3,
       university: 'Synthetic University',
       professionalBio: 'Synthetic audit fixture.',
-      officialHeadshot: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/lS8AAAAASUVORK5CYII=',
+      officialHeadshot:
+        'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/lS8AAAAASUVORK5CYII=',
       photoRecentAttested: true,
       availableCallSlots: ['Monday afternoon'],
       consent: true,

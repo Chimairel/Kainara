@@ -18,9 +18,24 @@ const readyAccount = {
 test('automatic current-plan preparation requires an acknowledged, current report and current consent', () => {
   assert.equal(isReadyForAutomaticCurrentPlan(readyAccount), true);
   assert.equal(isReadyForAutomaticCurrentPlan({ ...readyAccount!, nutritionReport: null }), false);
-  assert.equal(isReadyForAutomaticCurrentPlan({ ...readyAccount!, nutritionReport: { ...readyAccount!.nutritionReport!, acknowledgedAt: null } }), false);
-  assert.equal(isReadyForAutomaticCurrentPlan({ ...readyAccount!, nutritionReport: { ...readyAccount!.nutritionReport!, isStale: true } }), false);
-  assert.equal(isReadyForAutomaticCurrentPlan({ ...readyAccount!, userProfile: { ...readyAccount!.userProfile!, revision: 4 } }), false);
+  assert.equal(
+    isReadyForAutomaticCurrentPlan({
+      ...readyAccount!,
+      nutritionReport: { ...readyAccount!.nutritionReport!, acknowledgedAt: null },
+    }),
+    false
+  );
+  assert.equal(
+    isReadyForAutomaticCurrentPlan({
+      ...readyAccount!,
+      nutritionReport: { ...readyAccount!.nutritionReport!, isStale: true },
+    }),
+    false
+  );
+  assert.equal(
+    isReadyForAutomaticCurrentPlan({ ...readyAccount!, userProfile: { ...readyAccount!.userProfile!, revision: 4 } }),
+    false
+  );
   assert.equal(isReadyForAutomaticCurrentPlan({ ...readyAccount!, acceptedTermsVersion: 'old' }), false);
 });
 

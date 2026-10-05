@@ -271,7 +271,9 @@ export default function OnboardingStatsPage() {
                   >
                     <span
                       className={`p-1.5 rounded-xl shrink-0 ${
-                        isSelected ? 'bg-white/20 dark:bg-black/15 text-white dark:text-black' : 'bg-brand-border/40 text-brand-green'
+                        isSelected
+                          ? 'bg-white/20 dark:bg-black/15 text-white dark:text-black'
+                          : 'bg-brand-border/40 text-brand-green'
                       }`}
                     >
                       {item.icon}

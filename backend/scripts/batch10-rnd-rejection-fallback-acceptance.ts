@@ -71,10 +71,14 @@ async function main() {
       },
     });
     userId = user.id;
-    await SafetyIntakeService.replaceDomains(userId, ['CONDITION', 'ALLERGY'], [
-      { domain: 'CONDITION', value: 'NONE', provenance: 'PREDEFINED' },
-      { domain: 'ALLERGY', value: 'NONE', provenance: 'PREDEFINED' },
-    ]);
+    await SafetyIntakeService.replaceDomains(
+      userId,
+      ['CONDITION', 'ALLERGY'],
+      [
+        { domain: 'CONDITION', value: 'NONE', provenance: 'PREDEFINED' },
+        { domain: 'ALLERGY', value: 'NONE', provenance: 'PREDEFINED' },
+      ]
+    );
     await prisma.userProfile.update({ where: { userId }, data: { dailyCalorieTarget: 1200 } });
     const profile = await prisma.userProfile.findUniqueOrThrow({ where: { userId } });
     const window = getNextWeeklyCycleWindow(profile, new Date(Date.now() + 7 * 86_400_000));
@@ -111,8 +115,13 @@ async function main() {
     });
     rejectedPlanId = pending.id;
     await MealBaseVerificationService.claim(reviewer.id, 'GENERATED_RECIPE', generatedSignature);
-    await MealBaseVerificationService.decide(reviewer.id, 'GENERATED_RECIPE', generatedSignature,
-      'VERIFIED', 'Synthetic edible recipe verification before case rejection testing.');
+    await MealBaseVerificationService.decide(
+      reviewer.id,
+      'GENERATED_RECIPE',
+      generatedSignature,
+      'VERIFIED',
+      'Synthetic edible recipe verification before case rejection testing.'
+    );
     await NutritionistReviewService.getReviewCardDetails(reviewer.id, pending.id, true);
     const usageBefore = new Map(
       (await prisma.mealLibrary.findMany({ select: { id: true, usageCount: true } })).map((meal) => [
@@ -263,8 +272,13 @@ async function main() {
     });
     unavailablePlanId = unavailable.id;
     await MealBaseVerificationService.claim(reviewer.id, 'GENERATED_RECIPE', unavailableSignature);
-    await MealBaseVerificationService.decide(reviewer.id, 'GENERATED_RECIPE', unavailableSignature,
-      'VERIFIED', 'Synthetic edible high-target recipe before case rejection testing.');
+    await MealBaseVerificationService.decide(
+      reviewer.id,
+      'GENERATED_RECIPE',
+      unavailableSignature,
+      'VERIFIED',
+      'Synthetic edible high-target recipe before case rejection testing.'
+    );
     await NutritionistReviewService.getReviewCardDetails(reviewer.id, unavailable.id, true);
     const unavailableDecision = await NutritionistReviewService.rejectMealPlan(
       reviewer.id,
@@ -295,11 +309,17 @@ async function main() {
       '[Batch 10 RND rejection] PASS: certified fallback, 21 cleared slots and matching groceries; unavailable high-target slot stayed blocked and became incomplete at deadline'
     );
   } finally {
-    await prisma.mealBaseVerification.deleteMany({ where: {
-      targetKind: 'GENERATED_RECIPE',
-      targetId: { in: [createHash('sha256').update(id).digest('hex'),
-        createHash('sha256').update(`unavailable:${id}`).digest('hex')] },
-    } });
+    await prisma.mealBaseVerification.deleteMany({
+      where: {
+        targetKind: 'GENERATED_RECIPE',
+        targetId: {
+          in: [
+            createHash('sha256').update(id).digest('hex'),
+            createHash('sha256').update(`unavailable:${id}`).digest('hex'),
+          ],
+        },
+      },
+    });
     if (userId) {
       await prisma.mealPlanReviewDecision.deleteMany({ where: { mealPlan: { userId } } });
       await prisma.user.delete({ where: { id: userId } });

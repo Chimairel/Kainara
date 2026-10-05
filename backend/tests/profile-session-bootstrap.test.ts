@@ -43,7 +43,9 @@ test('profile bootstrap checks current account status and returns the profile wi
       },
     },
   };
-  t.after(() => { globals.prisma = previous; });
+  t.after(() => {
+    globals.prisma = previous;
+  });
 
   const { authenticateProfile } = await import('../src/middleware/auth');
   const { UserController } = await import('../src/controllers/user.controller');
@@ -54,14 +56,24 @@ test('profile bootstrap checks current account status and returns the profile wi
   let body: { success?: boolean; data?: Record<string, unknown> } = {};
   const res = {
     locals: {},
-    set() { return this; },
-    status(value: number) { status = value; return this; },
-    json(value: typeof body) { body = value; return this; },
+    set() {
+      return this;
+    },
+    status(value: number) {
+      status = value;
+      return this;
+    },
+    json(value: typeof body) {
+      body = value;
+      return this;
+    },
   } as unknown as Response;
 
   const req = makeRequest();
   let authorized = false;
-  await authenticateProfile(req, res, () => { authorized = true; });
+  await authenticateProfile(req, res, () => {
+    authorized = true;
+  });
   assert.equal(authorized, true);
   await UserController.getProfile(req, res);
   assert.equal(status, 200);
@@ -71,7 +83,9 @@ test('profile bootstrap checks current account status and returns the profile wi
 
   suspended = true;
   authorized = false;
-  await authenticateProfile(makeRequest(), { ...res, locals: {} } as Response, () => { authorized = true; });
+  await authenticateProfile(makeRequest(), { ...res, locals: {} } as Response, () => {
+    authorized = true;
+  });
   assert.equal(authorized, false);
   assert.equal(status, 401);
   assert.equal(reads, 2);

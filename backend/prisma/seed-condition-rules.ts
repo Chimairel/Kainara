@@ -102,7 +102,11 @@ const nutrientRules = [
     evidenceSourceCode: 'NIDDK_CKD_MANAGEMENT_CURRENT_2026_09',
     evidenceLocator: 'Medical nutrition therapy: limit sodium to less than 2,300 mg/day',
     applicablePopulation: 'Adults with CKD under individualized medical nutrition therapy.',
-    requiredInputs: { dailyTotals: ['sodiumMg'], requiredScope: 'DAY', clinicalContext: ['ckdStage', 'dialysisStatus'] },
+    requiredInputs: {
+      dailyTotals: ['sodiumMg'],
+      requiredScope: 'DAY',
+      clinicalContext: ['ckdStage', 'dialysisStatus'],
+    },
     exclusionsAndCaveats:
       'CKD stage, dialysis, laboratory values, medication, and nutritional status remain mandatory review context.',
     evaluationScope: ConditionRuleEvaluationScope.DAY,
@@ -154,7 +158,11 @@ const nutrientRules = [
     evidenceSourceCode: 'AHA_SATURATED_FAT_CURRENT_2026_09',
     evidenceLocator: 'Less than 6% of daily calories when lowering LDL cholesterol is indicated',
     applicablePopulation: 'People for whom lowering LDL cholesterol is clinically indicated.',
-    requiredInputs: { dailyTotals: ['calories', 'saturatedFatG'], requiredScope: 'DAY', clinicalContext: ['heartConditionSubtype'] },
+    requiredInputs: {
+      dailyTotals: ['calories', 'saturatedFatG'],
+      requiredScope: 'DAY',
+      clinicalContext: ['heartConditionSubtype'],
+    },
     exclusionsAndCaveats:
       'Heart condition is too broad for this result to create clearance. The complete daily diet and diagnosis subtype require enhanced review.',
     evaluationScope: ConditionRuleEvaluationScope.DAY,

@@ -38,9 +38,7 @@ export default function PortalLoadingState({
     );
   }
 
-  const heightClass = fullScreen
-    ? 'fixed inset-0 z-50 h-screen w-screen bg-brand-bg'
-    : 'min-h-[50vh] w-full';
+  const heightClass = fullScreen ? 'fixed inset-0 z-50 h-screen w-screen bg-brand-bg' : 'min-h-[50vh] w-full';
 
   return (
     <div

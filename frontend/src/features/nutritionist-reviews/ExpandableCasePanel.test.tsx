@@ -58,7 +58,9 @@ describe('shared case viewer', () => {
         <ExpandableCasePanel
           expanded={false}
           onExpandedChange={() => {}}
-          onBack={() => { backClicked = true; }}
+          onBack={() => {
+            backClicked = true;
+          }}
           headerLeft={<span>Review Case</span>}
         >
           <p>Details</p>

@@ -18,25 +18,36 @@ function failure(res: Response, error: unknown) {
   });
 }
 
-router.get('/foods', validateZodRequest({ query: z.object({ search: z.string().trim().min(2).max(100) }).strict() }),
+router.get(
+  '/foods',
+  validateZodRequest({ query: z.object({ search: z.string().trim().min(2).max(100) }).strict() }),
   async (req: AuthenticatedRequest, res: Response) => {
     try {
-      return res.json({ success: true, data: await AdminMealAuthoringService.searchFnriFoods(req.query.search as string) });
+      return res.json({
+        success: true,
+        data: await AdminMealAuthoringService.searchFnriFoods(req.query.search as string),
+      });
     } catch (error) {
       return failure(res, error);
     }
-  });
+  }
+);
 
-router.get('/', validateZodRequest({ query: z.object({ page: z.coerce.number().int().min(1).max(10000).default(1) }).strict() }),
+router.get(
+  '/',
+  validateZodRequest({ query: z.object({ page: z.coerce.number().int().min(1).max(10000).default(1) }).strict() }),
   async (req: AuthenticatedRequest, res: Response) => {
     try {
       return res.json({ success: true, data: await AdminMealAuthoringService.list(Number(req.query.page)) });
     } catch (error) {
       return failure(res, error);
     }
-  });
+  }
+);
 
-router.post('/', validateZodRequest({ body: adminMealInputSchema }),
+router.post(
+  '/',
+  validateZodRequest({ body: adminMealInputSchema }),
   async (req: AuthenticatedRequest, res: Response) => {
     try {
       const data = await AdminMealAuthoringService.create(req.user!.userId, req.body);
@@ -44,18 +55,23 @@ router.post('/', validateZodRequest({ body: adminMealInputSchema }),
     } catch (error) {
       return failure(res, error);
     }
-  });
-
-router.patch('/:id', validateZodRequest({
-  params: z.object({ id: z.string().trim().min(1).max(191) }).strict(),
-  body: adminMealUpdateSchema,
-}), async (req: AuthenticatedRequest, res: Response) => {
-  try {
-    const data = await AdminMealAuthoringService.update(req.user!.userId, req.params.id, req.body);
-    return res.json({ success: true, data });
-  } catch (error) {
-    return failure(res, error);
   }
-});
+);
+
+router.patch(
+  '/:id',
+  validateZodRequest({
+    params: z.object({ id: z.string().trim().min(1).max(191) }).strict(),
+    body: adminMealUpdateSchema,
+  }),
+  async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const data = await AdminMealAuthoringService.update(req.user!.userId, req.params.id, req.body);
+      return res.json({ success: true, data });
+    } catch (error) {
+      return failure(res, error);
+    }
+  }
+);
 
 export default router;

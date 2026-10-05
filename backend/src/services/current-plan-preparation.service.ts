@@ -60,7 +60,10 @@ export class CurrentPlanPreparationService {
     });
   }
 
-  static async ensureForUser(userId: string, now: Date = new Date()): Promise<{
+  static async ensureForUser(
+    userId: string,
+    now: Date = new Date()
+  ): Promise<{
     state: 'NOT_READY' | 'EXISTING' | 'PREPARING' | 'PREPARED' | 'FAILED';
     planGroupId: string | null;
   }> {
@@ -98,11 +101,12 @@ export class CurrentPlanPreparationService {
       return { state: 'PREPARED', planGroupId };
     } catch (error) {
       const concurrentJob = await CurrentPlanPreparationService.getCurrentWindowJobStatus(userId, now);
-      if (concurrentJob && (
-        concurrentJob.status === MealPlanGenerationJobStatus.GENERATING ||
-        concurrentJob.status === MealPlanGenerationJobStatus.WAITING_FOR_AI ||
-        concurrentJob.status === MealPlanGenerationJobStatus.PROCESSING_AI
-      )) {
+      if (
+        concurrentJob &&
+        (concurrentJob.status === MealPlanGenerationJobStatus.GENERATING ||
+          concurrentJob.status === MealPlanGenerationJobStatus.WAITING_FOR_AI ||
+          concurrentJob.status === MealPlanGenerationJobStatus.PROCESSING_AI)
+      ) {
         return { state: 'PREPARING', planGroupId: null };
       }
       throw error;

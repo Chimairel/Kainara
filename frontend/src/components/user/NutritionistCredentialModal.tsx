@@ -196,7 +196,9 @@ export default function NutritionistCredentialModal({
                   <p className="text-xs font-bold text-[#0d2820] dark:text-slate-300 uppercase tracking-wider">
                     About {verifier.name.replace(/,.*$/, '')}:
                   </p>
-                  <p className="text-xs text-[#5a746a] dark:text-slate-300 leading-relaxed italic">&ldquo;{verifier.bio}&rdquo;</p>
+                  <p className="text-xs text-[#5a746a] dark:text-slate-300 leading-relaxed italic">
+                    &ldquo;{verifier.bio}&rdquo;
+                  </p>
                 </div>
               )}
             </div>
