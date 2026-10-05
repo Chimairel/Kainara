@@ -1,10 +1,10 @@
 'use client';
 
-import { WorkspaceListPane } from '@/components/shared/SplitWorkspace';
 import SplitWorkspace from '@/components/shared/SplitWorkspace';
 import React, { useMemo, useState } from 'react';
 import type { NutritionReport } from '@/types';
-import ReportHistory, { type ReportVersion } from './ReportHistory';
+import type { ReportVersion } from './ReportHistory';
+import ReportVersionPicker from './ReportVersionPicker';
 import Button from '@/components/ui/Button';
 import NutritionGuidancePaper from './NutritionGuidancePaper';
 import ExpandableCasePanel from '@/features/nutritionist-reviews/ExpandableCasePanel';
@@ -53,7 +53,6 @@ export default function NutritionGuidanceDocument({
   downloadingVersion = null,
 }: Props) {
   const [expanded, setExpanded] = useState(false);
-  const [mobileView, setMobileView] = useState<'document' | 'history'>('document');
 
   // Assemble complete descending version list
   const allVersions = useMemo(() => {
@@ -134,16 +133,81 @@ export default function NutritionGuidanceDocument({
           Active guidance
         </span>
       )}
-      {isViewingArchived && (
-        <button
-          type="button"
-          onClick={() => setSelectedVersion(null)}
-          className="text-left text-xs font-semibold text-brand-accent hover:underline transition-colors"
-        >
-          ← Return to current
-        </button>
-      )}
     </div>
+  );
+
+  const versionPicker = (
+    <ReportVersionPicker
+      versions={allVersions}
+      selectedVersion={displayedReport.version}
+      currentVersion={report.planningContext?.activeVersion ?? report.version}
+      onSelect={(version) => setSelectedVersion(version.version === report.version ? null : version)}
+      onDownload={onDownloadVersion || onDownload ? handleDownloadReportVersion : undefined}
+      onSetAsCurrent={isViewingArchived ? handleSetReportAsCurrent : undefined}
+      downloading={isDownloadingPdf && downloadingVersion === displayedReport.version}
+    />
+  );
+
+  const reportActions = (
+    <>
+      {/* Error Message */}
+      {error && (
+        <div
+          role="alert"
+          className="mx-auto w-full max-w-3xl mb-4 border-l-4 border-red-600 bg-red-50 dark:bg-red-950/40 p-3.5 text-sm text-red-800 dark:text-red-200 rounded-r-lg print:hidden"
+        >
+          {error}
+        </div>
+      )}
+
+      {/* Unchanged Check-in Confirmation Notice */}
+      {report.confirmationKind === 'UNCHANGED_CHECKIN' && (
+        <p className="mx-auto max-w-3xl mb-4 text-xs text-brand-muted">
+          Profile confirmed unchanged on{' '}
+          {new Date(report.generatedAt).toLocaleDateString('en-PH', { timeZone: 'Asia/Manila' })}. This dated report
+          does not represent a new nutritionist review.
+        </p>
+      )}
+
+      {/* Acknowledgment Banner (only when viewing current report and not yet acknowledged) */}
+      {!isViewingArchived && !report.acknowledgedAt && (
+        <div className="mx-auto w-full max-w-3xl mb-6 rounded-2xl border border-amber-300/80 bg-amber-50/90 dark:border-amber-500/30 dark:bg-amber-950/40 p-4 sm:p-5 shadow-sm backdrop-blur-sm print:hidden">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="flex items-start gap-3">
+              <div className="p-2 rounded-xl bg-amber-100 dark:bg-amber-900/60 text-amber-700 dark:text-amber-300 shrink-0 mt-0.5">
+                <ShieldAlert className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-sm font-bold text-amber-900 dark:text-amber-100">Choose your planning report</h3>
+                <p className="mt-1 text-xs text-amber-800/90 dark:text-amber-200/90 leading-relaxed max-w-xl">
+                  This report supplies the profile, targets and restrictions used for meal planning and shared with your
+                  nutritionist. Check that your details are correct before using it. This is educational guidance and
+                  does not replace your doctor or Registered Nutritionist-Dietitian.
+                </p>
+              </div>
+            </div>
+            <Button
+              variant="primary"
+              size="md"
+              onClick={onAcknowledge}
+              isLoading={isAcknowledging}
+              className="shrink-0 font-bold shadow-md self-start sm:self-center"
+            >
+              Use this report for meal planning
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* Continue Button (when report is acknowledged and retry/activation is needed) */}
+      {showContinue && (
+        <div className="mx-auto w-full max-w-3xl mb-4 flex items-center justify-start print:hidden">
+          <Button onClick={onAcknowledge} isLoading={isAcknowledging} className="font-bold shadow-md">
+            Continue
+          </Button>
+        </div>
+      )}
+    </>
   );
 
   return (
@@ -156,110 +220,31 @@ export default function NutritionGuidanceDocument({
           description="Review your evidence-based nutrition targets, dietary guidance, and report history."
         />
 
-        {/* The main workspace card holding both left side (list) and right side (nutrition guide) */}
+        {!expanded && reportActions}
+        {!expanded && versionPicker}
+
+        {/* Bounded reader with its own scroll area and optional full-screen view. */}
         <SplitWorkspace
           aria-label="Nutrition workspace"
-          splitAt="xl"
-          className="xl:h-[calc(100vh-210px)] xl:min-h-[680px] border border-[#dce4e0] dark:border-[#173e33] bg-[#faf8f5] dark:bg-[#071914] text-[#0d2820] dark:text-white shadow-xl"
+          className="h-[clamp(20rem,calc(100dvh-22rem),42rem)] border border-[#dce4e0] dark:border-[#173e33] bg-[#faf8f5] dark:bg-[#071914] text-[#0d2820] dark:text-white shadow-xl"
         >
           <CardDecoration variant="report" />
 
-          {/* Left Column: Report History Queue */}
-          <WorkspaceListPane
-            splitAt="xl"
-            visible={mobileView === 'history'}
-            className={expanded ? '!hidden' : 'min-h-0'}
-          >
-            <ReportHistory
-              history={allVersions}
-              currentVersion={report.planningContext?.activeVersion ?? report.version}
-              selectedVersionNumber={displayedReport.version}
-              onSelectVersion={(v) => {
-                setSelectedVersion(v.version === report.version ? null : v);
-                setMobileView('document');
-              }}
-              onDownloadVersion={handleDownloadReportVersion}
-              onSetAsCurrent={handleSetReportAsCurrent}
-              isDownloadingPdf={isDownloadingPdf}
-              downloadingVersion={downloadingVersion}
-              borderless
-            />
-          </WorkspaceListPane>
-
-          {/* Right Column: Expandable Nutrition Guidance Document Pane */}
+          {/* Expandable Nutrition Guidance Document Pane */}
           <ExpandableCasePanel
             expanded={expanded}
             onExpandedChange={setExpanded}
             canExpand={true}
             expandTitle="Full screen nutrition guidance"
             expandAriaLabel="Expanded nutrition guidance"
-            backLabel="Back to history"
-            backBreakpoint="xl"
-            onBack={() => setMobileView('history')}
             headerLeft={headerLeftContent}
             headerClassName="border-b border-[#dce4e0]/80 dark:border-[#173e33] bg-white/60 dark:bg-[#071914]/60 backdrop-blur-md"
-            className={`${mobileView === 'document' ? 'flex' : 'hidden xl:flex'} relative z-10 min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-transparent`}
-            contentClassName="min-h-0 p-3 custom-scrollbar sm:p-5 xl:flex-1 xl:overflow-y-auto xl:p-6"
+            className="relative z-10 flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-transparent"
+            contentKey={displayedReport.version}
+            contentClassName="min-h-0 flex-1 overflow-y-auto overscroll-contain custom-scrollbar p-3 sm:p-5 xl:p-6"
           >
-            {/* Error Message */}
-            {error && (
-              <div
-                role="alert"
-                className="mx-auto w-full max-w-3xl mb-4 border-l-4 border-red-600 bg-red-50 dark:bg-red-950/40 p-3.5 text-sm text-red-800 dark:text-red-200 rounded-r-lg print:hidden"
-              >
-                {error}
-              </div>
-            )}
-
-            {/* Unchanged Check-in Confirmation Notice */}
-            {report.confirmationKind === 'UNCHANGED_CHECKIN' && (
-              <p className="mx-auto max-w-3xl mb-4 text-xs text-brand-muted">
-                Profile confirmed unchanged on{' '}
-                {new Date(report.generatedAt).toLocaleDateString('en-PH', { timeZone: 'Asia/Manila' })}. This dated
-                report does not represent a new nutritionist review.
-              </p>
-            )}
-
-            {/* Acknowledgment Banner (only when viewing current report and not yet acknowledged) */}
-            {!isViewingArchived && !report.acknowledgedAt && (
-              <div className="mx-auto w-full max-w-3xl mb-6 rounded-2xl border border-amber-300/80 bg-amber-50/90 dark:border-amber-500/30 dark:bg-amber-950/40 p-4 sm:p-5 shadow-sm backdrop-blur-sm print:hidden">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                  <div className="flex items-start gap-3">
-                    <div className="p-2 rounded-xl bg-amber-100 dark:bg-amber-900/60 text-amber-700 dark:text-amber-300 shrink-0 mt-0.5">
-                      <ShieldAlert className="w-5 h-5" />
-                    </div>
-                    <div>
-                      <h3 className="text-sm font-bold text-amber-900 dark:text-amber-100">
-                        Choose your planning report
-                      </h3>
-                      <p className="mt-1 text-xs text-amber-800/90 dark:text-amber-200/90 leading-relaxed max-w-xl">
-                        This report supplies the profile, targets and restrictions used for meal planning and shared
-                        with your nutritionist. Check that your details are correct before using it. This is educational
-                        guidance and does not replace your doctor or Registered Nutritionist-Dietitian.
-                      </p>
-                    </div>
-                  </div>
-                  <Button
-                    variant="primary"
-                    size="md"
-                    onClick={onAcknowledge}
-                    isLoading={isAcknowledging}
-                    className="shrink-0 font-bold shadow-md self-start sm:self-center"
-                  >
-                    Use this report for meal planning
-                  </Button>
-                </div>
-              </div>
-            )}
-
-            {/* Continue Button (when report is acknowledged and retry/activation is needed) */}
-            {showContinue && (
-              <div className="mx-auto w-full max-w-3xl mb-4 flex items-center justify-start print:hidden">
-                <Button onClick={onAcknowledge} isLoading={isAcknowledging} className="font-bold shadow-md">
-                  Continue
-                </Button>
-              </div>
-            )}
+            {expanded && <div className="mb-5">{versionPicker}</div>}
+            {expanded && reportActions}
 
             {/* Floating Paper Document */}
             <div className="flex justify-center">

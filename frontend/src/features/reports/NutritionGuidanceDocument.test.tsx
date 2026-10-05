@@ -3,7 +3,7 @@ import { expect, it, vi } from 'vitest';
 import type { NutritionReport } from '@/types';
 import NutritionGuidanceDocument from './NutritionGuidanceDocument';
 
-it('uses the archived report snapshot and keeps PDF downloads tied to the latest report', () => {
+it('preserves archived snapshots and selected-version downloads without changing planning selection', () => {
   const report = {
     version: 2,
     generatedAt: '2026-10-02T00:00:00Z',
@@ -22,13 +22,17 @@ it('uses the archived report snapshot and keeps PDF downloads tied to the latest
       explanation: 'Current muscle estimates',
     },
     planningContext: {
-      activeVersion: 1,
+      activeVersion: 2,
       activeGeneratedAt: '2026-09-20T00:00:00Z',
       pendingChanges: true,
       safetyChanged: false,
       activationTier: 'LIFESTYLE',
     },
   } as unknown as NutritionReport;
+  const download = vi.fn();
+  const downloadVersion = vi.fn();
+  const useCurrent = vi.fn();
+  const setCurrent = vi.fn();
   render(
     <NutritionGuidanceDocument
       report={report}
@@ -55,19 +59,26 @@ it('uses the archived report snapshot and keeps PDF downloads tied to the latest
       ]}
       error={null}
       isAcknowledging={false}
-      onAcknowledge={vi.fn()}
-      onDownload={vi.fn()}
+      onAcknowledge={useCurrent}
+      onDownload={download}
+      onDownloadVersion={downloadVersion}
+      onSetAsCurrent={setCurrent}
     />
   );
   expect(screen.getByRole('region', { name: 'Daily planning estimates' })).toBeInTheDocument();
-  fireEvent.click(screen.getByRole('button', { name: /^Version 1/ }));
+  fireEvent.click(screen.getByRole('combobox', { name: 'Report version' }));
+  fireEvent.click(screen.getByRole('option', { name: /^Version 1/ }));
   expect(screen.queryByRole('region', { name: 'Daily planning estimates' })).not.toBeInTheDocument();
   expect(screen.getByText('1,800 kcal/day')).toBeInTheDocument();
   expect(screen.queryByText('2,000 kcal/day')).not.toBeInTheDocument();
   expect(screen.getByText('HYPERTENSION')).toBeInTheDocument();
   expect(screen.getByText(/EGGS, Sesame intolerance/)).toBeInTheDocument();
-  fireEvent.click(screen.getByRole('button', { name: 'Options for version 1' }));
-  expect(screen.getByRole('menuitem', { name: /Download PDF/ })).toBeInTheDocument();
-  expect(screen.getByRole('menuitem', { name: /Current version/ })).toBeDisabled();
-  expect(screen.getByText(/Selected for planning/)).toBeInTheDocument();
+  fireEvent.click(screen.getByRole('button', { name: 'Download PDF' }));
+  expect(downloadVersion).toHaveBeenCalledWith(expect.objectContaining({ version: 1, id: 'old' }));
+  expect(download).not.toHaveBeenCalled();
+  expect(useCurrent).not.toHaveBeenCalled();
+  expect(setCurrent).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByRole('button', { name: 'Set as current' }));
+  expect(setCurrent).toHaveBeenCalledWith(expect.objectContaining({ version: 1, id: 'old' }));
+  expect(screen.getByText(/selected for planning/i)).toBeInTheDocument();
 });

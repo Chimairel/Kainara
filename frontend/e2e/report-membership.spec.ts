@@ -202,37 +202,54 @@ for (const width of [320, 400, 768, 1024, 1280, 1440]) {
       expect(overlaps).toBe(false);
     };
     await checkFit();
-    if (width < 1280) {
-      await page.getByRole('button', { name: 'Back to history' }).click();
-      await expect(paper).not.toBeVisible();
-    }
-    await page.getByRole('button', { name: /^Version 1/ }).click();
-    await expect(paper).toBeVisible();
+    const workspace = page.locator('[aria-label="Nutrition workspace"]');
+    const previewHeight = (await workspace.boundingBox())!.height;
+    expect(previewHeight).toBeLessThanOrEqual(672);
+    await expect(paper.locator('footer')).not.toBeInViewport();
+    const previewContent = paper.locator('..').locator('..');
+    expect(await previewContent.evaluate((node) => getComputedStyle(node).overflowY)).toBe('auto');
+    const pageScroll = await page.locator('main.portal-main').evaluate((main) => main.scrollTop);
+    await previewContent.evaluate((node) => {
+      node.scrollTop = node.scrollHeight;
+    });
+    await expect(paper.locator('footer')).toBeInViewport();
+    expect(await previewContent.evaluate((node) => node.scrollTop)).toBeGreaterThan(0);
+    expect(await page.locator('main.portal-main').evaluate((main) => main.scrollTop)).toBe(pageScroll);
+    const selectVersion = async (version: number) => {
+      await page.getByRole('combobox', { name: 'Report version' }).click();
+      await page.getByRole('option', { name: new RegExp(`^Version ${version} ·`) }).click();
+    };
+    await selectVersion(1);
+    expect(await previewContent.evaluate((node) => node.scrollTop)).toBe(0);
+    await expect(paper).toContainText('Version 1');
     await checkFit();
-    await page.getByRole('button', { name: /Return to current/ }).click();
-    await expect(paper).toContainText('Version 2');
+    expect((await workspace.boundingBox())!.height).toBe(previewHeight);
+    await selectVersion(2);
     await page.getByRole('button', { name: 'Expand case details' }).click();
-    await expect(page.getByRole('dialog', { name: 'Expanded nutrition guidance' })).toBeVisible();
-    await expect(paper).toBeVisible();
-    await page.keyboard.press('Escape');
-    await expect(page.getByRole('dialog', { name: 'Expanded nutrition guidance' })).toHaveCount(0);
+    const fullView = page.getByRole('dialog', { name: 'Expanded nutrition guidance' });
+    await expect(fullView).toBeVisible();
+    await expect(page.getByRole('combobox', { name: 'Report version' })).toBeVisible();
+    await selectVersion(1);
+    await expect(paper).toContainText('Version 1');
     await paper.locator('footer').scrollIntoViewIfNeeded();
+    await expect(paper.locator('footer')).toBeInViewport();
+    await page.getByRole('combobox', { name: 'Report version' }).scrollIntoViewIfNeeded();
+    await page.getByRole('combobox', { name: 'Report version' }).click();
+    await page.keyboard.press('Escape');
+    await expect(page.getByRole('listbox')).toHaveCount(0);
+    await expect(fullView).toBeVisible();
+    await page.keyboard.press('Escape');
+    await expect(fullView).toHaveCount(0);
+    await expect(page.getByRole('combobox', { name: 'Report version' })).toContainText('Version 1');
+    await expect(paper.locator('footer')).not.toBeInViewport();
+    expect((await workspace.boundingBox())!.height).toBe(previewHeight);
     if (width < 768) {
       await page.locator('main.portal-main').evaluate((main) => {
         main.scrollTop = main.scrollHeight;
       });
-      const footer = await paper.locator('footer').boundingBox();
-      const navigation = await page.getByRole('navigation', { name: 'Mobile navigation' }).boundingBox();
-      expect(footer!.y + footer!.height).toBeLessThanOrEqual(navigation!.y);
-      await page.getByRole('button', { name: 'Back to history' }).click();
-      const historyNote = page.getByText('Immutable Health Records');
-      await historyNote.scrollIntoViewIfNeeded();
-      await page.locator('main.portal-main').evaluate((main) => {
-        main.scrollTop = main.scrollHeight;
-      });
-      expect((await historyNote.boundingBox())!.y + (await historyNote.boundingBox())!.height).toBeLessThan(
-        navigation!.y
-      );
+      const bounds = (await workspace.boundingBox())!;
+      const navigation = (await page.getByRole('navigation', { name: 'Mobile navigation' }).boundingBox())!;
+      expect(bounds.y + bounds.height).toBeLessThanOrEqual(navigation.y);
     }
   });
 }

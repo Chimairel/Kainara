@@ -9,6 +9,7 @@ export default function ExpandableCasePanel({
   children,
   className,
   contentClassName,
+  contentKey,
   expanded,
   onExpandedChange,
   canExpand = true,
@@ -23,6 +24,7 @@ export default function ExpandableCasePanel({
   children: ReactNode;
   className?: string;
   contentClassName?: string;
+  contentKey?: string | number;
   headerClassName?: string;
   expanded: boolean;
   onExpandedChange: (value: boolean) => void;
@@ -46,7 +48,7 @@ export default function ExpandableCasePanel({
     document.body.style.overflow = 'hidden';
 
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
+      if (event.key === 'Escape' && !event.defaultPrevented) {
         onExpandedChange(false);
       }
     };
@@ -154,7 +156,12 @@ export default function ExpandableCasePanel({
   return (
     <div className={className}>
       {miniNavbar}
-      <div className={contentClassName ?? 'flex-1 min-h-0 overflow-y-auto p-4 custom-scrollbar sm:p-6'}>{children}</div>
+      <div
+        key={contentKey}
+        className={contentClassName ?? 'flex-1 min-h-0 overflow-y-auto p-4 custom-scrollbar sm:p-6'}
+      >
+        {children}
+      </div>
     </div>
   );
 }

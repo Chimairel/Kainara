@@ -161,9 +161,11 @@ export function Select({
         break;
 
       case 'Escape':
-        e.preventDefault();
-        setIsOpen(false);
-        triggerRef.current?.focus();
+        if (isOpen) {
+          e.preventDefault();
+          setIsOpen(false);
+          triggerRef.current?.focus();
+        }
         break;
 
       case 'Home':
