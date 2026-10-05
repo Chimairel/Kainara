@@ -100,6 +100,7 @@ export default function VerifiedRecipeCatalog({ search, mealType }: { search: st
               busy={loading}
               onPageChange={setPage}
               label="Recipe pages"
+              showNumbers
             />
           )}
         </>

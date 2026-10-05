@@ -378,6 +378,7 @@ export default function MealLibraryPanel({ workspace }: { workspace: ReturnType<
                 setPage(nextPage);
               }}
               label="Recipe pages"
+              showNumbers
             />
           )}
         </div>

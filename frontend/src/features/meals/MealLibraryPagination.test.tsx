@@ -44,7 +44,7 @@ function workspace() {
 it('keeps the current compatible page until the next cursor batch arrives', async () => {
   const state = workspace();
   const { rerender } = render(<MealLibraryPanel workspace={state} />);
-  fireEvent.click(screen.getByRole('button', { name: 'Next' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Go to page 2' }));
   expect(state.loadMoreLibrary).toHaveBeenCalledOnce();
   expect(screen.getByRole('heading', { name: 'Compatible recipe 0' })).toBeInTheDocument();
   rerender(

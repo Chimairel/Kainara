@@ -52,6 +52,66 @@ async function fixtureSession(page: Page, onboarded = false) {
 }
 
 for (const width of [390, 1440]) {
+  test(`member library reuses numbered pagination at ${width}px`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 900 });
+    await fixtureSession(page, true);
+    await page.route('**/api/user/meals/workspace', (route) =>
+      route.fulfill({
+        json: { success: true, data: [], meta: { cycles: { current: null, upcoming: null } } },
+      })
+    );
+    await page.route('**/api/user/meals/library*', (route) =>
+      route.fulfill({
+        json: { success: true, data: { items: [], nextCursor: null, total: 0 } },
+      })
+    );
+    await page.route('**/api/user/meals/verified-recipes*', async (route) => {
+      const requestedPage = Number(new URL(route.request().url()).searchParams.get('page') || 1);
+      await route.fulfill({
+        json: {
+          success: true,
+          data: {
+            page: requestedPage,
+            pageCount: 327,
+            total: 1962,
+            restrictedProfile: false,
+            items: [
+              {
+                id: `recipe-${requestedPage}`,
+                name: `Recipe on page ${requestedPage}`,
+                mealTypes: ['LUNCH'],
+                calories: 400,
+                proteinG: 20,
+                carbsG: 50,
+                fatG: 12,
+                sourceName: 'Fixture',
+                sourceUrl: null,
+                imageUrl: null,
+                planningReady: true,
+              },
+            ],
+          },
+        },
+      });
+    });
+    await page.goto('/meals?tab=library');
+    await expect(page.getByRole('heading', { name: 'Recipe on page 1', exact: true })).toBeVisible();
+    const pages = page.getByRole('navigation', { name: 'Recipe pages', exact: true });
+    await expect(pages.getByRole('button', { name: 'Previous', exact: true })).toBeDisabled();
+    await pages.getByRole('button', { name: 'Go to page 327', exact: true }).click();
+    await expect(page.getByRole('heading', { name: 'Recipe on page 327', exact: true })).toBeVisible();
+    await expect(pages.getByRole('button', { name: 'Go to page 327', exact: true })).toHaveAttribute(
+      'aria-current',
+      'page'
+    );
+    await expect(pages.getByRole('button', { name: 'Next', exact: true })).toBeDisabled();
+    await pages.getByRole('button', { name: 'Previous', exact: true }).click();
+    await expect(page.getByRole('heading', { name: 'Recipe on page 326', exact: true })).toBeVisible();
+    await pages.getByRole('button', { name: 'Go to page 1', exact: true }).click();
+    await expect(page.getByRole('heading', { name: 'Recipe on page 1', exact: true })).toBeVisible();
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+  });
+
   test(`grocery availability and shared orange highlights at ${width}px`, async ({ page }) => {
     await page.setViewportSize({ width, height: 900 });
     await page.addInitScript(() => localStorage.setItem('nutrimind-sidebar-collapsed', 'true'));

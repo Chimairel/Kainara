@@ -98,7 +98,7 @@ describe('Meal Library', () => {
     expect(screen.queryByText(/reusable approvals/)).not.toBeInTheDocument();
   });
 
-  it('paginates planned meals 6 at a time with previous and next navigation', () => {
+  it('paginates planned meals 6 at a time with numbered navigation', () => {
     const plannedMeals = Array.from({ length: 9 }, (_, i) => ({
       id: `meal-${i + 1}`,
       status: 'APPROVED',
@@ -139,12 +139,16 @@ describe('Meal Library', () => {
     expect(getByText('Page 1 of 2')).toBeInTheDocument();
 
     // Navigate to Page 2
-    const nextBtn = getByRole('button', { name: 'Next' });
+    expect(getByRole('button', { name: 'Go to page 1' })).toHaveAttribute('aria-current', 'page');
+    const nextBtn = getByRole('button', { name: 'Go to page 2' });
     fireEvent.click(nextBtn);
     expect(getByText('Page 2 of 2')).toBeInTheDocument();
     expect(getByText('Planned Meal 7')).toBeInTheDocument();
     expect(getByText('Planned Meal 9')).toBeInTheDocument();
     expect(queryByText('Planned Meal 1')).not.toBeInTheDocument();
+    expect(getByRole('button', { name: 'Go to page 2' })).toHaveAttribute('aria-current', 'page');
+    fireEvent.click(getByRole('button', { name: 'Previous' }));
+    expect(getByText('Planned Meal 1')).toBeInTheDocument();
   });
 
   it('labels profile-matched approvals without presenting them as broad certification', () => {

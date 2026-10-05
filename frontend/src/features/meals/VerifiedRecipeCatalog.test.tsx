@@ -44,6 +44,8 @@ describe('verified recipe catalogue', () => {
     expect(screen.queryByText(/Verified recipe catalogue/)).not.toBeInTheDocument();
     expect(screen.getByText('Serving evidence pending')).toBeInTheDocument();
     expect(screen.getByText('Page 1 of 82')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Go to page 1' })).toHaveAttribute('aria-current', 'page');
+    expect(screen.getByRole('button', { name: 'Go to page 82' })).toBeEnabled();
     expect(get).toHaveBeenCalledWith('/user/meals/verified-recipes', { params: { page: 1 } });
   });
 
