@@ -247,7 +247,7 @@ export function Select({
           <div
             ref={menuRef}
             style={{ position: 'fixed', ...position }}
-            className={`z-[150] max-w-[calc(100vw-1rem)] overflow-hidden rounded-xl border border-brand-border/80 bg-brand-surface p-1 shadow-card backdrop-blur-md dark:border-[#173e33] dark:bg-[#0e271f] ${menuClassName}`}
+            className={`pointer-events-auto z-[150] max-w-[calc(100vw-1rem)] overflow-hidden rounded-xl border border-brand-border/80 bg-brand-surface p-1 shadow-card backdrop-blur-md dark:border-[#173e33] dark:bg-[#0e271f] ${menuClassName}`}
           >
             <ul
               ref={listboxRef}

@@ -115,10 +115,14 @@ export function MealsWorkspaceModals({ workspace }: Props) {
         >
           <div className="space-y-4 text-left" aria-busy={isSwapping}>
             {/* TOP ROW: BALANCED COMPARISON STAGE */}
-            <div className="grid grid-cols-1 md:grid-cols-[1fr_auto_1fr] items-stretch gap-3 pb-3 border-b border-brand-border/60">
+            <div
+              role="group"
+              aria-label="Meal swap comparison"
+              className="grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-stretch gap-3 pb-3 border-b border-brand-border/60"
+            >
               {/* Left Card: Current Meal */}
               <div
-                className={`dashboard-meal relative overflow-hidden flex flex-col justify-between rounded-[22px] p-3.5 sm:p-4 text-white shadow-md ${currentTheme?.cardBg} ${currentTheme?.borderColor} min-h-[156px]`}
+                className={`dashboard-meal relative min-w-0 overflow-hidden flex h-52 flex-col justify-between rounded-[22px] p-3.5 sm:p-4 text-white shadow-md ${currentTheme?.cardBg} ${currentTheme?.borderColor}`}
               >
                 <div>
                   <div className="flex items-center justify-between gap-2 mb-2">
@@ -144,11 +148,19 @@ export function MealsWorkspaceModals({ workspace }: Props) {
                       />
                     </DashboardMealPlate>
                     <div className="min-w-0 flex-1">
-                      <h4 className="font-display text-sm sm:text-base font-bold text-white line-clamp-2 leading-snug min-h-[2.5rem] flex items-start">
+                      <h4
+                        title={formatMealTitle(activeSwapMeal.mealName)}
+                        className="h-10 sm:h-11 font-display text-sm sm:text-base font-bold text-white line-clamp-2 leading-snug break-words"
+                      >
                         {formatMealTitle(activeSwapMeal.mealName)}
                       </h4>
                       {activeSwapMeal.ricePortion && (
-                        <p className="text-[11px] font-bold text-white/95 mt-0.5">+ {activeSwapMeal.ricePortion}</p>
+                        <p
+                          title={activeSwapMeal.ricePortion}
+                          className="text-[11px] font-bold text-white/95 mt-0.5 truncate"
+                        >
+                          + {activeSwapMeal.ricePortion}
+                        </p>
                       )}
                       <p className="text-[10.5px] text-white/75 mt-0.5">
                         {formatManilaDate(activeSwapMeal.scheduledDate, {
@@ -196,11 +208,11 @@ export function MealsWorkspaceModals({ workspace }: Props) {
               {/* Right Card: Selected Candidate or Prompt */}
               {confirmSwapMeal && replacementTheme ? (
                 <div
-                  className={`${dashboardMealCardClasses(confirmSwapMeal.mealType ?? activeSwapMeal.mealType)} flex flex-col justify-between rounded-[22px] p-3.5 sm:p-4 min-h-[156px]`}
+                  className={`${dashboardMealCardClasses(confirmSwapMeal.mealType ?? activeSwapMeal.mealType)} min-w-0 flex h-52 flex-col justify-between rounded-[22px] p-3.5 sm:p-4`}
                 >
                   <div>
                     <div className="flex items-center justify-between gap-2 mb-2">
-                      <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-white/80">
+                      <span className="min-w-0 truncate text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-white/80">
                         {(confirmSwapMeal.mealType || activeSwapMeal.mealType).toLowerCase()}
                       </span>
                       <div className="flex items-center gap-1.5">
@@ -238,10 +250,16 @@ export function MealsWorkspaceModals({ workspace }: Props) {
                         />
                       </DashboardMealPlate>
                       <div className="min-w-0 flex-1">
-                        <h4 className="font-display text-sm sm:text-base font-bold text-white line-clamp-2 leading-snug min-h-[2.5rem] flex items-start">
+                        <h4
+                          title={formatMealTitle(confirmSwapMeal.mealName)}
+                          className="h-10 sm:h-11 font-display text-sm sm:text-base font-bold text-white line-clamp-2 leading-snug break-words"
+                        >
                           {formatMealTitle(confirmSwapMeal.mealName)}
                         </h4>
-                        <p className="text-[11px] font-bold text-white/95 mt-0.5 truncate">
+                        <p
+                          title={confirmSwapMeal.servingDescription || 'One recipe serving'}
+                          className="text-[11px] font-bold text-white/95 mt-0.5 truncate"
+                        >
                           {confirmSwapMeal.servingDescription || 'One recipe serving'}
                           {confirmSwapMeal.alreadyPlannedInCycle ? ' · In plan' : ''}
                         </p>
@@ -260,7 +278,7 @@ export function MealsWorkspaceModals({ workspace }: Props) {
                   </div>
                 </div>
               ) : (
-                <div className="flex flex-col items-center justify-center rounded-[22px] border-2 border-dashed border-brand-border/90 bg-brand-surface/40 dark:bg-brand-surface/20 p-4 text-center min-h-[156px]">
+                <div className="min-w-0 flex h-52 flex-col items-center justify-center rounded-[22px] border-2 border-dashed border-brand-border/90 bg-brand-surface/40 dark:bg-brand-surface/20 p-4 text-center">
                   <div className="flex h-14 w-14 sm:h-16 sm:w-16 items-center justify-center rounded-full border-2 border-dashed border-brand-border/90 bg-brand-surface/80 dark:bg-[#071914] text-brand-muted mb-2 shadow-xs">
                     <UtensilsCrossed className="h-6 w-6 text-brand-muted/70" />
                   </div>
@@ -338,26 +356,25 @@ export function MealsWorkspaceModals({ workspace }: Props) {
             {/* BOTTOM SECTION: MINI MEAL LIBRARY BROWSER */}
             <div className="space-y-3 pt-1">
               {/* Header */}
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
-                <div className="flex items-center gap-2">
+              <div className="flex items-center justify-between gap-2.5">
+                <div className="flex min-w-0 flex-wrap items-center gap-2">
                   <h3 className="font-display text-sm font-bold text-brand-text">Mini Meal Library</h3>
                   <span className="rounded-full bg-brand-bgAlt border border-brand-border/60 px-2 py-0.5 font-mono text-[10px] font-bold text-brand-muted">
                     {filteredAndSortedOptions.length} available
                   </span>
                 </div>
-              </div>
-
-              <div className="flex justify-end text-xs">
-                <Dropdown
-                  disabled={isSwapping}
-                  value={miniSort}
-                  onChange={(event) => setMiniSort(event as MiniSortOption)}
-                  className="h-9 rounded-xl border border-brand-border bg-brand-surface px-2.5 text-xs font-medium text-brand-text outline-none focus:border-brand-green"
-                  aria-label="Sort mini library recipes"
-                >
-                  <option value="best_match">Nutrition match</option>
-                  <option value="kcal_match">Kcal match</option>
-                </Dropdown>
+                <div className="ml-auto w-[152px] shrink-0 text-xs sm:w-40">
+                  <Dropdown
+                    disabled={isSwapping}
+                    value={miniSort}
+                    onChange={(event) => setMiniSort(event as MiniSortOption)}
+                    className="h-9 rounded-xl border border-brand-border bg-brand-surface px-2.5 text-xs font-medium text-brand-text outline-none focus:border-brand-green"
+                    aria-label="Sort mini library recipes"
+                  >
+                    <option value="best_match">Nutrition match</option>
+                    <option value="kcal_match">Kcal match</option>
+                  </Dropdown>
+                </div>
               </div>
 
               <p className="text-[11px] text-brand-muted">
