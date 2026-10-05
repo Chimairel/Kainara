@@ -7,6 +7,8 @@ import authenticate from '../src/middleware/auth';
 import requireRole from '../src/middleware/rbac';
 import { signAccessToken } from '../src/lib/jwt';
 import { StaffAuditService, type StaffAuditFilters } from '../src/services/staff-audit.service';
+import { AuditDetailsService } from '../src/services/audit-details.service';
+import { AppError } from '../src/errors/AppError';
 
 test('admin audit is read-only, checks live roles, validates filters and derives My actions from the session', async (context) => {
   process.env.JWT_SECRET ||= 'synthetic-audit-secret';
@@ -21,6 +23,11 @@ test('admin audit is read-only, checks live roles, validates filters and derives
     prisma.user.findUnique = original;
   });
   const calls: StaffAuditFilters[] = [];
+  context.mock.method(AuditDetailsService, 'detail', async (id: string, view: string) => {
+    assert.equal(view, 'admin');
+    if (id === 'missing') throw new AppError('This audit record is unavailable.', 404);
+    return { facts: [], food: null };
+  });
   context.mock.method(StaffAuditService, 'history', async (filters: StaffAuditFilters) => {
     calls.push(filters);
     return { rows: [], total: 0, page: 1, limit: 20, totalPages: 0 };
@@ -41,6 +48,7 @@ test('admin audit is read-only, checks live roles, validates filters and derives
     role = denied;
     assert.equal((await fetch(base, { headers })).status, 403);
     assert.equal((await fetch(`${base}/record/related`, { headers })).status, 403);
+    assert.equal((await fetch(`${base}/record`, { headers })).status, 403);
   }
   role = 'ADMIN';
   for (const invalid of [
@@ -60,4 +68,10 @@ test('admin audit is read-only, checks live roles, validates filters and derives
   assert.equal(calls[1].relatedTo, 'record');
   assert.equal(calls[1].page, 2);
   assert.equal((await fetch(base, { headers, method: 'POST' })).status, 404);
+  assert.equal((await fetch(`${base}/record?actorId=other`, { headers })).status, 400);
+  assert.equal((await fetch(`${base}/missing`, { headers })).status, 404);
+  const detail = await fetch(`${base}/record`, { headers });
+  assert.equal(detail.status, 200);
+  assert.equal(detail.headers.get('cache-control'), 'private, no-store');
+  assert.equal((await fetch(`${base}/record`, { headers, method: 'PATCH' })).status, 404);
 });

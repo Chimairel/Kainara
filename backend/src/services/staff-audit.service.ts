@@ -13,6 +13,7 @@ export type StaffAuditFilters = {
   from?: string;
   to?: string;
   relatedTo?: string;
+  recordId?: string;
   includeAdminMealFlags?: boolean;
 };
 type AuditRecord = {
@@ -39,6 +40,7 @@ export class StaffAuditService {
           ? Prisma.sql`(role = 'NUTRITIONIST' OR (role = 'ADMIN' AND "actionCode" = 'MEAL_BASE_FLAGGED'))`
           : Prisma.sql`role = 'NUTRITIONIST'`;
     const conditions = [roleWhere];
+    if (filters.recordId) conditions.push(Prisma.sql`id = ${filters.recordId}`);
     if (filters.actorId) conditions.push(Prisma.sql`"actorId" = ${filters.actorId}`);
     if (filters.actor?.trim()) conditions.push(Prisma.sql`strpos(lower(actor), lower(${filters.actor.trim()})) > 0`);
     if (filters.action?.trim())
@@ -81,7 +83,8 @@ export class StaffAuditService {
             WHEN e.action ~ '^(ADMIN_|WEBSITE_|REFERENCE_DATA_|FOOD_CONSUMPTION_|NUTRITIONIST_APPLICATION_|NUTRITIONIST_ACCESS_|NUTRITIONIST_VERIFIED|NUTRITIONIST_CALL_|MEAL_IMAGE_|USER_SUSPENDED|USER_REINSTATED)' THEN 'ADMIN'
             END, u.role::text, 'UNKNOWN') AS role,
           CASE WHEN e.action = 'MEAL_LIBRARY_FLAGGED' THEN 'MEAL_BASE_FLAGGED' ELSE e.action END AS "actionCode",
-          COALESCE(root."mealName", m."mealName", raw."recipeName",
+          COALESCE(CASE WHEN e.action ~ '^(OUTSIDE_MEAL_|BASE_MEAL_)' THEN e.metadata->'food'->>'name' END,
+            root."mealName", m."mealName", raw."recipeName",
             CASE e."entityType" WHEN 'ClinicalProfileReview' THEN 'Health profile' WHEN 'ClinicalDocument' THEN 'Clinical document'
               WHEN 'MealPlan' THEN 'Meal plan case' WHEN 'OutsideMealLogItem' THEN 'Outside food log'
               WHEN 'User' THEN 'Account' WHEN 'NutritionistProfile' THEN 'Nutritionist credentials'

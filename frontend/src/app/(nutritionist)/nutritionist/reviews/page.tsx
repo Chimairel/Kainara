@@ -8,7 +8,6 @@ import { useState } from 'react';
 
 import { useNutritionistReviews } from '@/features/nutritionist-reviews/useNutritionistReviews';
 import { useReviewWorkCounts } from '@/features/nutritionist-reviews/useReviewWorkCounts';
-import NutritionistApprovedPanel from '../approved/NutritionistApprovedPanel';
 import OutsideMealReviewsPanel from '../outside-meals/OutsideMealReviewsPanel';
 import GovernanceQueuePanel from './GovernanceQueuePanel';
 import MealVerificationPanel from './MealVerificationPanel';
@@ -18,7 +17,7 @@ import WorkspaceTabs, { type ReviewWorkspace } from './WorkspaceTabs';
 export default function ReviewsPage() {
   const workCounts = useReviewWorkCounts();
   const [workspace, setWorkspace] = useState<ReviewWorkspace>('case');
-  const [caseFilter, setCaseFilter] = useState<'pending' | 'disputed' | 'outside' | 'completed'>('pending');
+  const [caseFilter, setCaseFilter] = useState<'pending' | 'disputed' | 'outside'>('pending');
   const [expanded, setExpanded] = useState(false);
   const review = useNutritionistReviews(workspace === 'case' && caseFilter === 'pending');
 
@@ -42,7 +41,6 @@ export default function ReviewsPage() {
         [
           ['pending', 'Pending'],
           ['outside', 'Outside food logs'],
-          ['completed', 'Completed history'],
           ['disputed', 'Needs resolution'],
         ] as const
       ).map(([key, label]) => (
@@ -131,24 +129,6 @@ export default function ReviewsPage() {
           {navigation}
           {caseFilters}
           <OutsideMealReviewsPanel embedded />
-        </div>
-      </div>
-    );
-  }
-
-  if (caseFilter === 'completed') {
-    return (
-      <div className="portal-page space-y-5 pb-20 text-brand-text">
-        <div className="mx-auto flex max-w-7xl flex-col gap-5">
-          <PortalPageHeader
-            icon={ShieldCheck}
-            eyebrow="Clinical workspace"
-            title="Reviews"
-            description="Audit AI-generated meal plans, approve health profiles, and verify base recipes."
-          />
-          {navigation}
-          {caseFilters}
-          <NutritionistApprovedPanel embedded />
         </div>
       </div>
     );

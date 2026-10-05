@@ -10,24 +10,13 @@ import PortalPageHeader from '@/components/shared/PortalPageHeader';
 import Button from '@/components/ui/Button';
 import api from '@/lib/axios';
 
-export type AuditRow = {
-  id: string;
-  occurredAt: string;
-  actor: string;
-  role: string;
-  action: string;
-  subject: string;
-  outcome: string;
-};
+import AuditHistoryList, { type AuditRow } from '@/components/shared/AuditHistoryList';
+export { default as AuditHistoryList } from '@/components/shared/AuditHistoryList';
+export type { AuditRow } from '@/components/shared/AuditHistoryList';
+
 type History = { rows: AuditRow[]; total: number; page: number; totalPages: number };
 const field =
   'min-h-11 w-full rounded-xl border border-brand-border bg-brand-surface px-3 text-sm text-brand-text outline-none focus:ring-2 focus:ring-brand-green/40';
-const dateLabel = (value: string) =>
-  new Date(value).toLocaleString('en-PH', {
-    timeZone: 'Asia/Manila',
-    dateStyle: 'medium',
-    timeStyle: 'short',
-  });
 const actions = [
   ['', 'All actions'],
   ['FLAGGED', 'Meal flags'],
@@ -44,46 +33,6 @@ const actions = [
   ['NUTRITIONIST_APPLICATION_', 'Applications'],
 ] as const;
 
-export function AuditHistoryList({ rows, onRelated }: { rows: AuditRow[]; onRelated?: (row: AuditRow) => void }) {
-  return (
-    <div className="divide-y divide-brand-border/60" aria-label="Audit records">
-      {rows.map((row) => (
-        <article key={row.id} className="grid gap-3 p-4 md:grid-cols-[145px_1fr_1.5fr_110px_auto] md:items-center">
-          <time dateTime={row.occurredAt} className="text-xs text-brand-muted">
-            {dateLabel(row.occurredAt)}
-          </time>
-          <div>
-            <p className="text-sm font-semibold text-brand-text">{row.actor}</p>
-            <p className="mt-1 text-xs text-brand-muted">
-              {row.role === 'ADMIN'
-                ? 'Administrator'
-                : row.role === 'NUTRITIONIST'
-                  ? 'Nutritionist'
-                  : 'Role not recorded'}
-            </p>
-          </div>
-          <div>
-            <p className="text-sm font-bold text-brand-text">{row.action}</p>
-            <p className="mt-1 text-xs text-brand-muted">{row.subject}</p>
-          </div>
-          <p className="text-xs text-brand-muted">{row.outcome}</p>
-          {onRelated && (
-            <Button
-              variant="secondary"
-              size="sm"
-              className="!min-h-11"
-              onClick={() => onRelated(row)}
-              aria-label={`Related activity: ${row.action} — ${row.subject}`}
-            >
-              Related activity
-            </Button>
-          )}
-        </article>
-      ))}
-      {!rows.length && <p className="p-6 text-sm text-brand-muted">No activity matches these filters.</p>}
-    </div>
-  );
-}
 function Pagination({ history, page, setPage }: { history: History; page: number; setPage: (page: number) => void }) {
   return (
     <div className="flex flex-wrap items-center justify-between gap-3 border-t border-brand-border p-4 text-xs text-brand-muted">
@@ -319,7 +268,11 @@ export default function AdminAuditWorkspace() {
         {current.data && validDates && (
           <>
             <AuditHistoryList
+              key={`${ownerId}:${related?.id ?? view}:${related ? relatedPage : page}`}
               rows={current.data.rows}
+              ownerId={ownerId}
+              endpoint="/admin/audit-history"
+              canAuthor
               onRelated={
                 related
                   ? undefined

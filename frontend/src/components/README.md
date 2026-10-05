@@ -6,6 +6,7 @@ Use these components before copying markup from another page. Role authorization
 | --- | --- | --- |
 | Default surface | `ui/Card` | Membership statistics/calendar, progress, settings |
 | Curved stripes and logo | `ui/CardDecoration` or Card decoration props | Membership, dashboard, reports, grocery |
+| Expandable staff audit | `shared/AuditHistoryList` | Admin and nutritionist Audit |
 | Queue/history with detail pane | `shared/SplitWorkspace`, `WorkspaceListPane` | Nutritionist cases, nutrition guidance |
 | Controlled dropdown | `ui/Select`, `ui/Dropdown` | Progress period, meal/report/review filters |
 | Required or uncontrolled form select | `ui/NativeSelect` | Admin authoring and reference-data forms |
@@ -41,3 +42,7 @@ MealLibraryLayout is only the grid. Member catalogue requests use useRecipeCatal
 ## Landing links
 
 SectionLink scrolls a same-page public section without writing a URL hash. Its real href remains available for modified clicks, copied links and cross-page navigation.
+
+## Audit details
+
+AuditHistoryList fetches one record on expansion through the caller’s role endpoint. Pass the authenticated ownerId for session-scoped reads. RecordedDetails shows only the server’s food/fact projection, with missing nutrition labeled Not recorded; it never fills older records using current meal values. Admins can open existing meal authoring; no audit action automatically publishes reusable food or ingredients.

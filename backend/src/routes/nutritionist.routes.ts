@@ -35,6 +35,7 @@ import { MealBaseVerificationService } from '@/services/meal-base-verification.s
 import { NutritionistWorkCountsService } from '@/services/nutritionist-work-counts.service';
 import { NutritionistProfileWorkService } from '@/services/nutritionist-profile-work.service';
 import { NutritionistAuditService } from '@/services/nutritionist-audit.service';
+import { AuditDetailsService } from '@/services/audit-details.service';
 
 import libraryRouter from './nutritionist-library.routes';
 
@@ -137,10 +138,34 @@ router.get(
 router.get(
   '/audit-history',
   asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+    const query = z
+      .object({
+        page: z.coerce.number().int().min(1).max(100000).default(1),
+        limit: z.coerce.number().int().min(1).max(50).default(20),
+        mine: z.enum(['true', 'false']).optional(),
+      })
+      .strict()
+      .safeParse(req.query);
+    if (!query.success) return res.status(400).json({ success: false, error: 'Check the audit filters.' });
     res.json({
       success: true,
-      data: await NutritionistAuditService.history(Number(req.query.page) || 1, Number(req.query.limit) || 20),
+      data: await NutritionistAuditService.history(
+        query.data.page,
+        query.data.limit,
+        undefined,
+        query.data.mine === 'true' ? req.user!.userId : undefined
+      ),
     });
+  })
+);
+router.get(
+  '/audit-history/:id',
+  asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+    const id = z.string().min(1).max(200).safeParse(req.params.id);
+    if (!id.success || Object.keys(req.query).length)
+      return res.status(400).json({ success: false, error: 'Invalid audit record.' });
+    res.setHeader('Cache-Control', 'private, no-store');
+    return res.json({ success: true, data: await AuditDetailsService.detail(id.data, 'nutritionist') });
   })
 );
 

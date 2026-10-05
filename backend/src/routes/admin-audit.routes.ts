@@ -3,6 +3,8 @@ import { z } from 'zod';
 import { AuthenticatedRequest } from '@/types';
 import { StaffAuditService } from '@/services/staff-audit.service';
 import { sanitizeErrorMessage } from '@/lib/sanitizeError';
+import { AuditDetailsService } from '@/services/audit-details.service';
+import { AppError } from '@/errors/AppError';
 
 const date = z
   .string()
@@ -58,6 +60,20 @@ router.get('/:id/related', async (req: AuthenticatedRequest, res: Response) => {
     return res
       .status(500)
       .json({ success: false, error: sanitizeErrorMessage(error, 'Related activity could not be loaded.') });
+  }
+});
+router.get('/:id', async (req: AuthenticatedRequest, res: Response) => {
+  const id = z.string().min(1).max(200).safeParse(req.params.id);
+  if (!id.success || Object.keys(req.query).length)
+    return res.status(400).json({ success: false, error: 'Invalid audit record.' });
+  res.setHeader('Cache-Control', 'private, no-store');
+  try {
+    return res.json({ success: true, data: await AuditDetailsService.detail(id.data, 'admin') });
+  } catch (error) {
+    return res.status(error instanceof AppError ? error.statusCode : 500).json({
+      success: false,
+      error: error instanceof AppError ? error.message : 'Audit details could not be loaded. Please try again.',
+    });
   }
 });
 export default router;

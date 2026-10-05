@@ -32,11 +32,17 @@ export const nutritionistAuditActions = [
   'OUTSIDE_MEAL_CORRECT',
   'OUTSIDE_MEAL_NEEDS_MORE_INFO',
   'OUTSIDE_MEAL_UNVERIFIABLE',
+  'OBSERVED_MEAL_ADMITTED',
 ] as const;
 
 export function auditActionLabel(action: string) {
   const labels: Record<string, string> = {
     BASE_MEAL_VERIFIED: 'Verified a meal',
+    OUTSIDE_MEAL_VERIFY: 'Confirmed outside food',
+    OUTSIDE_MEAL_CORRECT: 'Corrected outside food',
+    OUTSIDE_MEAL_NEEDS_MORE_INFO: 'Requested food details',
+    OUTSIDE_MEAL_UNVERIFIABLE: 'Could not confirm outside food',
+    OBSERVED_MEAL_ADMITTED: 'Admitted a food reference',
     BASE_MEAL_REJECTED: 'Rejected meal verification',
     MEAL_BASE_FLAGGED: 'Flagged an entire meal',
     MEAL_LIBRARY_FLAGGED: 'Flagged an entire meal',

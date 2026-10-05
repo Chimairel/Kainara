@@ -13,6 +13,7 @@
     "../src/domain/onboarding.policy.ts",
     "../src/domain/email-verification.policy.ts",
     "../src/validation/onboarding.schemas.ts",
-    "./**/*.ts"
+    "./**/*.ts",
+    "../scripts/audit-details-local-acceptance.ts"
   ]
 }

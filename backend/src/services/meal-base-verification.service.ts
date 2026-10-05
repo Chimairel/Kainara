@@ -498,7 +498,13 @@ export class MealBaseVerificationService {
             action: `BASE_MEAL_${decision}`,
             entityType: kind,
             entityId: id,
-            metadata: { revisionKey: row.revisionKey, reviewerProfileId: profileId },
+            metadata: {
+              revisionKey: row.revisionKey,
+              reviewerProfileId: profileId,
+              reason: rationale.trim(),
+              food: { name: row.name, ingredients: row.ingredients, source: row.source, nutritionStatus: decision },
+              effective: { calories: row.calories, proteinG: row.proteinG, carbsG: row.carbsG, fatG: row.fatG },
+            },
           },
         });
         return { ...row, status: decision };

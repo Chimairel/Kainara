@@ -527,6 +527,13 @@ export class OutsideMealReviewService {
               reason: action.reason,
               previous: { calories: item.calories, proteinG: item.proteinG, carbsG: item.carbsG, fatG: item.fatG },
               effective: values,
+              food: {
+                name: item.name,
+                portionGrams: item.portionGrams,
+                ingredients: item.ingredients ?? null,
+                source: needsInfo || unverifiable ? item.source : OutsideMealItemSource.NUTRITIONIST_REVIEWED,
+                nutritionStatus,
+              },
             },
           },
         });
