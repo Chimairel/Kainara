@@ -79,12 +79,17 @@ export default function AdminSafetyPanel({ active = true }: { active?: boolean }
         <p className="portal-section-label mb-4">Pending safety flags</p>
         <div className="space-y-3">
           {!loading && query.data && incidents.length === 0 && (
-            <Card variant="subtle" className="flex flex-col items-center justify-center p-8 text-center text-sm text-brand-muted">
+            <Card
+              variant="subtle"
+              className="flex flex-col items-center justify-center p-8 text-center text-sm text-brand-muted"
+            >
               <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-brand-green/10 text-brand-green mb-3">
                 <ShieldCheck className="h-5 w-5" />
               </span>
               <p className="font-bold text-brand-text">No pending meal-library safety flags</p>
-              <p className="mt-1 text-xs text-brand-muted">All active library meals are currently cleared without unresolved reports.</p>
+              <p className="mt-1 text-xs text-brand-muted">
+                All active library meals are currently cleared without unresolved reports.
+              </p>
             </Card>
           )}
           {incidents.map((incident) => (

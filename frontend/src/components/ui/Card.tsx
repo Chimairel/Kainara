@@ -17,9 +17,12 @@ export interface CardProps extends React.HTMLAttributes<HTMLDivElement> {
 
 const variantClasses: Record<CardVariant, string> = {
   default: 'rounded-[28px] border border-brand-border bg-brand-surface text-brand-text shadow-card sm:rounded-[36px]',
-  metric: 'rounded-2xl sm:rounded-3xl border border-brand-border/80 bg-brand-surface text-brand-text shadow-xs hover:border-brand-border hover:shadow-card transition-all duration-200',
-  signal: 'rounded-2xl sm:rounded-3xl border border-brand-border/70 bg-brand-surface text-brand-text shadow-xs transition-all duration-150',
-  highlight: 'rounded-[28px] sm:rounded-[36px] border border-brand-green/30 bg-brand-surface text-brand-text shadow-card transition-all duration-200',
+  metric:
+    'rounded-2xl sm:rounded-3xl border border-brand-border/80 bg-brand-surface text-brand-text shadow-xs hover:border-brand-border hover:shadow-card transition-all duration-200',
+  signal:
+    'rounded-2xl sm:rounded-3xl border border-brand-border/70 bg-brand-surface text-brand-text shadow-xs transition-all duration-150',
+  highlight:
+    'rounded-[28px] sm:rounded-[36px] border border-brand-green/30 bg-brand-surface text-brand-text shadow-card transition-all duration-200',
   subtle: 'rounded-2xl border border-brand-border/50 bg-brand-bgAlt/30 text-brand-text',
 };
 

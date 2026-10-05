@@ -10,8 +10,18 @@ export default function AdminOverviewWorkspace() {
       title="Overview"
       description="Platform statistics, usage history, and safety operations in one workspace."
       tabs={[
-        { id: 'summary', label: 'Summary & analytics', icon: BarChart3, render: (active) => <AdminStatistics active={active} /> },
-        { id: 'safety', label: 'Safety operations', icon: ShieldCheck, render: (active) => <AdminSafetyPanel active={active} /> },
+        {
+          id: 'summary',
+          label: 'Summary & analytics',
+          icon: BarChart3,
+          render: (active) => <AdminStatistics active={active} />,
+        },
+        {
+          id: 'safety',
+          label: 'Safety operations',
+          icon: ShieldCheck,
+          render: (active) => <AdminSafetyPanel active={active} />,
+        },
       ]}
     />
   );

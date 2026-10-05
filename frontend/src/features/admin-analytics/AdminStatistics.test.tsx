@@ -75,4 +75,3 @@ it('switches between Platform Totals, Review signals + Library evidence, and Rec
   expect(reviewPanel).toHaveAttribute('hidden');
   expect(aiPanel).not.toHaveAttribute('hidden');
 });
-
