@@ -15,6 +15,7 @@ import { checkoutSelectionKey, displayPrices, pendingMembershipSelection } from 
 import api from '@/lib/axios';
 import { membershipDate, membershipMoney } from '@/features/membership/MembershipTimeline';
 import Button from '@/components/ui/Button';
+import MembershipBenefitInfo from '@/features/membership/MembershipBenefitInfo';
 
 export interface PricingProps {
   currentLevel?: 'FREE' | 'TRIAL_PENDING' | 'TRIAL' | 'MEMBER' | null;
@@ -194,7 +195,7 @@ export default function Pricing({
       buttonText: buttonLabel('LIFESTYLE'),
       featuresHeading: 'Everything in Free, plus:',
       features: [
-        'Apply changes to biometrics, activity, goals and food preferences',
+        { label: 'Apply changes to biometrics, activity, goals and food preferences', details: 'LIFESTYLE' as const },
         'Apply shopping-day changes through your nutrition report',
         'Progress insights and adaptive weekly check-ins',
         `${l.lifestyleSwaps} meal swaps per cycle`,
@@ -212,7 +213,7 @@ export default function Pricing({
       featuresHeading: 'Everything in Lifestyle, plus:',
       features: [
         `${l.healthSwaps} meal swaps per cycle`,
-        'Apply changes to conditions, allergies and health restrictions',
+        { label: 'Apply changes to conditions, allergies and health restrictions', details: 'HEALTH' as const },
         'New case plans subject to required clearance',
         `${l.memberPlanReviews} nutritionist plan review${l.memberPlanReviews === 1 ? '' : 's'} per week`,
         `${l.memberOutsideReviews} outside food review${l.memberOutsideReviews === 1 ? '' : 's'} per week`,
@@ -503,7 +504,10 @@ export default function Pricing({
                                 <span className="h-4 w-4 shrink-0 rounded-full border border-brand-accent/40 bg-brand-accent/15 text-brand-accent flex items-center justify-center mt-0.5">
                                   <CheckCheck className="h-2.5 w-2.5 stroke-[3]" />
                                 </span>
-                                <span className="leading-snug">{feature}</span>
+                                <span className="min-w-0 leading-snug">
+                                  {typeof feature === 'string' ? feature : feature.label}
+                                  {typeof feature !== 'string' && <MembershipBenefitInfo tier={feature.details} />}
+                                </span>
                               </li>
                             ))}
                           </ul>

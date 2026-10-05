@@ -16,6 +16,7 @@ Use these components before copying markup from another page. Role authorization
 | Tabs or section links | `ui/WorkspaceTabs` | Meals, progress, reviews, settings, admin audit |
 | Password field | `ui/PasswordInput` | Authentication and profile security |
 | Pagination | `ui/Pagination` | All three role libraries |
+| Hover, focus or tap explanation | `ui/InfoHint` | Lifestyle and Health planning benefits |
 
 ## Cards
 

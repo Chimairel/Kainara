@@ -74,6 +74,21 @@ afterEach(() => {
   sessionStorage.clear();
 });
 describe('membership status and gates', () => {
+  it('explains each planning benefit without treating individual assessment as guaranteed support', () => {
+    render(<MembershipPage />);
+    fireEvent.click(screen.getAllByRole('button', { name: 'View plans' })[0]);
+    fireEvent.click(screen.getByRole('button', { name: 'Lifestyle planning details' }));
+    expect(screen.getByRole('tooltip')).toHaveTextContent('Weight, height, activity level');
+    expect(screen.getByRole('tooltip')).toHaveTextContent('declared allergies currently require Health review');
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(screen.getByRole('dialog', { name: 'Membership plans' })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Health planning details' }));
+    expect(screen.getByRole('tooltip')).toHaveTextContent('shellfish (including shrimp)');
+    expect(screen.getByRole('tooltip')).toHaveTextContent('Individual assessment: kidney disease');
+    expect(screen.getByRole('tooltip')).toHaveTextContent('Planning depends on nutritionist clearance');
+    fireEvent.click(screen.getByRole('button', { name: 'Close', exact: true }));
+    expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
+  });
   it('keeps plans out of the allowance view and opens the shared accessible plan dialog', () => {
     render(<MembershipPage />);
     expect(screen.getByText('6 of 10 left')).toBeInTheDocument();
