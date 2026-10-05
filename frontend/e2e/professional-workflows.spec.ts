@@ -324,7 +324,7 @@ test('nutritionist sees missing allergy details and an open deleted case closes 
   await page.getByRole('textbox', { name: 'Review notes' }).fill('Reviewed the saved heart condition details.');
   await expect(page.getByRole('button', { name: 'Confirm for planning' })).toBeDisabled();
   await expect(page.getByText('Ask the member to complete and save food allergy details.')).toBeVisible();
-  await expect(page.getByRole('combobox', { name: 'Details request area' })).toHaveValue('FOOD_ALLERGY');
+  await expect(page.getByRole('combobox', { name: 'Details request area' })).toHaveText('FOOD ALLERGY');
   await expect(page.getByRole('button', { name: 'Request details' })).toBeEnabled();
   deleted = true;
   await page.evaluate(() => window.dispatchEvent(new Event('kainara:live-update')));

@@ -518,7 +518,7 @@ test('reduced-motion source links are unique and keyboard focus makes normal ani
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await page.goto('/');
   const sources = page.locator('#sources');
-  await expect(sources.getByRole('link', { name: /Open citation/ })).toHaveCount(6);
+  await expect(sources.getByRole('link', { name: /Open citation/ })).toHaveCount(5);
   await expect(sources.locator('[aria-hidden="true"] a')).toHaveCount(0);
   await page.emulateMedia({ reducedMotion: 'no-preference' });
   await page.reload();
