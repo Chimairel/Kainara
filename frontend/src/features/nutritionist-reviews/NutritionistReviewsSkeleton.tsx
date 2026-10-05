@@ -102,10 +102,7 @@ export function ReviewDetailSkeleton() {
           </div>
           <div className="space-y-3 pt-1">
             {[...Array(3)].map((_, i) => (
-              <div
-                key={i}
-                className="rounded-xl border border-brand-border/40 bg-brand-bgAlt/30 p-3.5 space-y-2"
-              >
+              <div key={i} className="rounded-xl border border-brand-border/40 bg-brand-bgAlt/30 p-3.5 space-y-2">
                 <div className="flex items-center justify-between">
                   <Skeleton className="h-4 w-28 rounded" />
                   <Skeleton className="h-5 w-16 rounded-full" />
@@ -136,8 +133,8 @@ export function NutritionistReviewsSkeleton() {
       </div>
 
       {/* 2. Workspace Filter Strip */}
-      <div className="flex items-center justify-between gap-3 rounded-[24px] border border-brand-border/70 bg-brand-surface/85 p-2 shadow-card">
-        <div className="flex items-center gap-2">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-[24px] border border-brand-border/70 bg-brand-surface/85 p-2 shadow-card">
+        <div className="flex min-w-0 items-center gap-2">
           <Skeleton className="h-9 w-28 rounded-xl" />
           <Skeleton className="h-9 w-32 rounded-xl" />
           <Skeleton className="h-9 w-28 rounded-xl" />

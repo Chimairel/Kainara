@@ -47,6 +47,74 @@ async function setup(page: Page, date = '2026-10-06') {
   });
 }
 
+test('progress loading stays within a narrow mobile workspace', async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 808 });
+  await setup(page);
+  await page.route('**/api/user/progress/history', () => {});
+  await page.goto('/progress');
+  const loading = page.getByLabel('Loading progress data');
+  await expect(loading).toBeVisible();
+  const overflow = await loading.evaluate((node) => {
+    const bounds = node.getBoundingClientRect();
+    return [...node.querySelectorAll('*')]
+      .map((child) => ({ right: child.getBoundingClientRect().right, className: child.className }))
+      .filter((child) => child.right > bounds.right + 1);
+  });
+  expect(overflow).toEqual([]);
+});
+
+test('redesigned weight form can retry a failed save and refresh its history', async ({ page }) => {
+  await page.setViewportSize({ width: 358, height: 808 });
+  await setup(page);
+  let saved = false;
+  let attempts = 0;
+  await page.route('**/api/user/progress/history', (route) =>
+    route.fulfill({
+      json: {
+        success: true,
+        data: {
+          dailyNutritionLogs: [],
+          weightLogs: [
+            { id: 'baseline', weightKg: 57, loggedAt: '2026-09-29T04:00:00Z', source: 'ONBOARDING', note: null },
+            ...(saved
+              ? [{ id: 'saved', weightKg: 58.5, loggedAt: '2026-10-06T05:00:00Z', source: 'LOG', note: null }]
+              : []),
+          ],
+        },
+      },
+    })
+  );
+  await page.route('**/api/user/progress/weight', (route) => {
+    expect(route.request().method()).toBe('POST');
+    expect(route.request().postDataJSON()).toEqual({ weightKg: 58.5 });
+    attempts += 1;
+    saved = attempts > 1;
+    return route.fulfill({
+      status: saved ? 200 : 503,
+      json: saved ? { success: true, data: { weightKg: 58.5 } } : { success: false, error: 'Please retry.' },
+    });
+  });
+  await page.goto('/progress');
+  await page
+    .getByRole('button', { name: /Log.*Weight/i })
+    .first()
+    .click();
+  const weight = page.getByLabel('Weight (kg)', { exact: true });
+  await weight.fill('58.5');
+  await page.getByRole('button', { name: 'Save Reading', exact: true }).click();
+  await expect(page.getByText('Please retry.', { exact: true })).toBeVisible();
+  await expect(weight).toHaveValue('58.5');
+  await page.getByRole('button', { name: 'Save Reading', exact: true }).click();
+  await expect(weight).not.toBeVisible();
+  const rows = page.getByRole('row');
+  await expect(rows.nth(1)).toContainText('58.5');
+  await expect(rows.nth(1)).toContainText('+1.5 kg');
+  await expect(rows.nth(1)).toContainText('Latest');
+  await expect(rows.nth(2)).toContainText('Baseline');
+  await expect(rows.nth(2)).toContainText('Onboarding');
+  expect(attempts).toBe(2);
+});
+
 for (const width of [320, 358, 390, 1440]) {
   test(`weight chart has readable dimensions and labels at ${width}px`, async ({ page }) => {
     await page.setViewportSize({ width, height: 900 });

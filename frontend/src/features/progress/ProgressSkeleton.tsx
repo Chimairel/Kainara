@@ -44,9 +44,9 @@ export function ProgressSkeleton() {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="flex items-center gap-2.5">
             <Skeleton className="h-8 w-8 rounded-xl" />
-            <div className="space-y-1">
+            <div className="min-w-0 space-y-1">
               <Skeleton className="h-5 w-40 rounded-lg" />
-              <Skeleton className="h-3 w-52 rounded" />
+              <Skeleton className="h-3 w-52 max-w-full rounded" />
             </div>
           </div>
           <div className="flex items-center gap-2.5">
@@ -90,9 +90,9 @@ export function ProgressSkeleton() {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-brand-border/50 pb-4">
           <div className="flex items-center gap-2.5">
             <Skeleton className="h-8 w-8 rounded-xl" />
-            <div className="space-y-1">
-              <Skeleton className="h-5 w-48 rounded-lg" />
-              <Skeleton className="h-3 w-64 rounded" />
+            <div className="min-w-0 space-y-1">
+              <Skeleton className="h-5 w-48 max-w-full rounded-lg" />
+              <Skeleton className="h-3 w-64 max-w-full rounded" />
             </div>
           </div>
           <div className="flex items-center gap-2">

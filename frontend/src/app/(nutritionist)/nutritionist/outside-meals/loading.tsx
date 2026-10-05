@@ -15,7 +15,7 @@ export default function OutsideMealsLoading() {
       </div>
 
       {/* 2. 2-column layout */}
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(340px,0.8fr)]">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(340px,0.8fr)]">
         <div className="flex flex-col gap-4">
           {[...Array(4)].map((_, i) => (
             <div
@@ -23,9 +23,9 @@ export default function OutsideMealsLoading() {
               className="rounded-[24px] sm:rounded-[28px] border border-brand-border bg-brand-surface p-5 shadow-card space-y-3.5"
             >
               <div className="flex justify-between items-start gap-3">
-                <div className="space-y-1.5 flex-1">
-                  <Skeleton className="h-5 w-44 rounded-lg" />
-                  <Skeleton className="h-3.5 w-60 rounded" />
+                <div className="min-w-0 space-y-1.5 flex-1">
+                  <Skeleton className="h-5 w-44 max-w-full rounded-lg" />
+                  <Skeleton className="h-3.5 w-60 max-w-full rounded" />
                 </div>
                 <Skeleton className="h-6 w-20 rounded-full" />
               </div>
