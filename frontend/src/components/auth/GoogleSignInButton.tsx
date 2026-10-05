@@ -2,6 +2,7 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
+import { isAxiosError } from 'axios';
 import { useAuth } from '@/hooks/useAuth';
 import api from '@/lib/axios';
 import { getApiErrorCode, getApiErrorMessage } from '@/lib/api-error';
@@ -158,7 +159,11 @@ export default function GoogleSignInButton({
         setError(res.data.error || 'Google sign-in failed.');
       }
     } catch (err: unknown) {
-      setError(getApiErrorMessage(err, 'Google authentication failed. Please try again.'));
+      setError(
+        isAxiosError(err) && !err.response
+          ? 'We can’t reach the sign-in service. Check your connection and try again.'
+          : getApiErrorMessage(err, 'Google authentication failed. Please try again.')
+      );
       const errorCode = getApiErrorCode(err);
       if (errorCode === 'GOOGLE_LINK_REQUIRED') {
         setRecoveryLink({ href: '/login', label: 'Sign in with email' });

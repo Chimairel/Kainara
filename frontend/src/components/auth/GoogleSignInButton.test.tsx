@@ -53,6 +53,16 @@ async function renderGoogle(props = {}) {
 }
 
 describe('Google sign-in browser recovery', () => {
+  it('explains an unreachable sign-in service without blaming the Google identity', async () => {
+    mocks.post.mockRejectedValueOnce({ isAxiosError: true, code: 'ERR_NETWORK' });
+    await renderGoogle();
+    await act(async () => credential({ credential: 'fixture-id-token' }));
+    expect(
+      screen.getByText('We can’t reach the sign-in service. Check your connection and try again.')
+    ).toBeInTheDocument();
+    expect(mocks.login).not.toHaveBeenCalled();
+  });
+
   it('shows an embedded-browser notice without loading Google and preserves copy fallback', async () => {
     vi.spyOn(navigator, 'userAgent', 'get').mockReturnValue('iPhone [FBAN/Messenger;FBAV/1]');
     await renderGoogle();

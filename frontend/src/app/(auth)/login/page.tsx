@@ -16,7 +16,7 @@ import PortalLoadingState from '@/components/shared/PortalLoadingState';
 import { getLoginFieldErrors, type LoginField, type LoginFieldErrors } from '@/validation/auth.schemas';
 
 export default function LoginPage() {
-  const { login, logout, user, isLoading: isAuthLoading } = useAuth();
+  const { login, logout, user, profileLoadError, refreshSession, isLoading: isAuthLoading } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -33,7 +33,12 @@ export default function LoginPage() {
     return isAuthLoading ? (
       <PortalLoadingState fullScreen />
     ) : (
-      <AuthenticatedEntryRedirect user={user} logout={logout} />
+      <AuthenticatedEntryRedirect
+        user={user}
+        logout={logout}
+        profileLoadError={profileLoadError}
+        retryProfile={() => refreshSession({ showLoader: true })}
+      />
     );
   }
 
