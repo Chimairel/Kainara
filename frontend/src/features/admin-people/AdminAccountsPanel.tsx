@@ -114,7 +114,7 @@ export default function AdminUsersPage({ active = true }: { active?: boolean }) 
       />
 
       <form onSubmit={handleSearch} className="portal-filter-panel flex gap-2 p-3">
-        <div className="relative flex-1">
+        <div className="relative min-w-0 flex-1">
           <label htmlFor="admin-user-search" className="sr-only">
             Search accounts by name or email
           </label>
@@ -152,14 +152,14 @@ export default function AdminUsersPage({ active = true }: { active?: boolean }) 
         </div>
       ) : (
         <div className="portal-table-shell">
-          <div className="divide-y divide-brand-border/60 md:hidden">
+          <div className="divide-y divide-brand-border/60 xl:hidden">
             {users.map((user) => (
               <article key={user.id} className="space-y-3 p-4">
                 <div className="flex items-center gap-3">
                   <Avatar name={user.name} seed={user.image} size="md" />
                   <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2">
-                      <h2 className="truncate font-semibold text-brand-text">{user.name}</h2>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <h2 className="min-w-0 break-words font-semibold text-brand-text">{user.name}</h2>
                       <Badge
                         variant={
                           user.role === 'ADMIN' ? 'rejected' : user.role === 'NUTRITIONIST' ? 'verified' : 'user'
@@ -200,17 +200,26 @@ export default function AdminUsersPage({ active = true }: { active?: boolean }) 
               </article>
             ))}
           </div>
-          <div className="hidden overflow-x-auto md:block">
-            <table className="w-full text-sm">
+          <div className="hidden xl:block">
+            <table className="w-full table-fixed text-sm">
+              <colgroup>
+                <col className="w-[24%]" />
+                <col className="w-[26%]" />
+                <col className="w-[12%]" />
+                <col className="w-[7%]" />
+                <col className="w-[8%]" />
+                <col className="w-[11%]" />
+                <col className="w-[12%]" />
+              </colgroup>
               <thead className="bg-[#07100d] text-white">
                 <tr className="font-mono text-[9px] uppercase tracking-[0.14em] text-white/45">
-                  <th className="px-5 py-4 text-left">Name</th>
-                  <th className="px-5 py-4 text-left">Email</th>
-                  <th className="px-5 py-4 text-center">Role</th>
-                  <th className="px-5 py-4 text-center">Verified</th>
-                  <th className="px-5 py-4 text-center">Onboarded</th>
-                  <th className="px-5 py-4 text-left">Joined</th>
-                  <th className="px-5 py-4 text-right">Access</th>
+                  <th className="px-3 py-4 text-left">Name</th>
+                  <th className="px-3 py-4 text-left">Email</th>
+                  <th className="px-2 py-4 text-center">Role</th>
+                  <th className="px-1 py-4 text-center tracking-normal">Verified</th>
+                  <th className="px-1 py-4 text-center tracking-normal">Onboarded</th>
+                  <th className="px-2 py-4 text-left">Joined</th>
+                  <th className="px-2 py-4 text-right">Access</th>
                 </tr>
               </thead>
               <tbody>
@@ -219,15 +228,17 @@ export default function AdminUsersPage({ active = true }: { active?: boolean }) 
                     key={user.id}
                     className="border-b border-brand-border/45 transition last:border-0 hover:bg-brand-green/[0.035]"
                   >
-                    <td className="px-5 py-4 font-semibold text-brand-text">
-                      <div className="flex items-center gap-3">
+                    <td className="px-3 py-4 font-semibold text-brand-text">
+                      <div className="flex min-w-0 items-center gap-2">
                         <Avatar name={user.name} seed={user.image} size="sm" />
-                        <span className="truncate">{user.name}</span>
+                        <span className="min-w-0 break-words [overflow-wrap:anywhere]">{user.name}</span>
                       </div>
                     </td>
-                    <td className="px-5 py-4 text-brand-muted">{user.email}</td>
-                    <td className="px-5 py-4 text-center">
+                    <td className="px-3 py-4 text-xs text-brand-muted [overflow-wrap:anywhere]">{user.email}</td>
+                    <td className="px-2 py-4 text-center">
                       <Badge
+                        showIcon={false}
+                        className="max-w-full px-2 text-[9px] tracking-normal [overflow-wrap:anywhere]"
                         variant={
                           user.role === 'ADMIN' ? 'rejected' : user.role === 'NUTRITIONIST' ? 'verified' : 'user'
                         }
@@ -235,29 +246,29 @@ export default function AdminUsersPage({ active = true }: { active?: boolean }) 
                         {getRoleLabel(user.role)}
                       </Badge>
                     </td>
-                    <td className="px-5 py-4 text-center">
+                    <td className="px-1 py-4 text-center">
                       {user.emailVerified ? (
                         <CheckCircle2 aria-label="Email verified" className="mx-auto h-4 w-4 text-brand-green" />
                       ) : (
                         <XCircle aria-label="Email not verified" className="mx-auto h-4 w-4 text-red-400" />
                       )}
                     </td>
-                    <td className="px-5 py-4 text-center">
+                    <td className="px-1 py-4 text-center">
                       {user.onboardingDone ? (
                         <CheckCircle2 aria-label="Onboarding complete" className="mx-auto h-4 w-4 text-brand-green" />
                       ) : (
                         <Clock3 aria-label="Onboarding incomplete" className="mx-auto h-4 w-4 text-amber-500" />
                       )}
                     </td>
-                    <td className="px-5 py-4 text-xs text-brand-muted">
+                    <td className="px-2 py-4 text-xs text-brand-muted">
                       {new Date(user.createdAt).toLocaleDateString()}
                     </td>
-                    <td className="px-5 py-4 text-right">
+                    <td className="px-2 py-4 text-right">
                       <button
                         type="button"
                         onClick={() => openAccessDialog(user)}
                         disabled={user.id === currentUser?.userId}
-                        className={`inline-flex items-center gap-1.5 rounded-xl px-3 py-2 text-[10px] font-bold transition ${user.isSuspended ? 'bg-brand-green/10 text-brand-green hover:bg-brand-green/15' : 'bg-red-500/10 text-red-400 hover:bg-red-500/15'}`}
+                        className={`inline-flex min-h-11 max-w-full items-center justify-center gap-1 rounded-xl px-2 py-2 text-[10px] font-bold transition ${user.isSuspended ? 'bg-brand-green/10 text-brand-green hover:bg-brand-green/15' : 'bg-red-500/10 text-red-400 hover:bg-red-500/15'}`}
                         title={
                           user.id === currentUser?.userId
                             ? 'You cannot suspend your own administrator account.'
