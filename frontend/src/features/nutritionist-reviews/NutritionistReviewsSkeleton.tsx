@@ -1,165 +1,80 @@
-import React from 'react';
+import Card from '@/components/ui/Card';
 import Skeleton from '@/components/ui/Skeleton';
+import SplitWorkspace, { WorkspaceListPane } from '@/components/shared/SplitWorkspace';
+import { SkeletonHeader, SkeletonMacros, SkeletonTabs } from '@/components/shared/WorkspaceSkeleton';
 
 export function ReviewQueueSkeleton({ count = 5 }: { count?: number }) {
   return (
-    <div className="space-y-3" aria-label="Loading review queue items">
-      {[...Array(count)].map((_, i) => (
-        <div key={i} className="rounded-2xl border border-brand-border/70 bg-brand-surface/70 p-4 shadow-sm space-y-3">
-          {/* Top Row: Type and Priority badges */}
+    <div className="space-y-3" aria-label="Loading review queue items" aria-busy="true">
+      {Array.from({ length: count }, (_, i) => (
+        <Card key={i} className="space-y-3 rounded-2xl p-4">
           <div className="flex items-center justify-between gap-2">
-            <div className="flex items-center gap-2">
-              <Skeleton className="h-5 w-16 rounded-full" />
-              <Skeleton className="h-5 w-20 rounded-full" />
-            </div>
-            <Skeleton className="h-4 w-12 rounded" />
+            <Skeleton className="h-5 w-20 rounded-full" />
+            <Skeleton className="h-5 w-16 rounded-full" />
           </div>
-
-          {/* Title */}
-          <div className="space-y-1.5">
-            <Skeleton className="h-4 w-3/4 rounded-lg" />
-            <Skeleton className="h-3 w-1/2 rounded" />
+          <Skeleton className="h-5 w-3/4" />
+          <Skeleton className="h-4 w-1/2" />
+          <div className="flex items-center gap-2 border-t border-brand-border/40 pt-2.5">
+            <Skeleton className="h-7 w-7 shrink-0 rounded-full" />
+            <Skeleton className="h-3 w-24" />
           </div>
-
-          {/* User info & timestamp */}
-          <div className="flex items-center justify-between border-t border-brand-border/40 pt-2.5">
-            <div className="flex items-center gap-2">
-              <Skeleton className="h-6 w-6 rounded-full" />
-              <Skeleton className="h-3 w-20 rounded" />
-            </div>
-            <Skeleton className="h-3 w-14 rounded" />
-          </div>
-        </div>
+        </Card>
       ))}
     </div>
   );
 }
-
 export function ReviewDetailSkeleton() {
   return (
-    <div className="flex flex-col gap-5 text-left" aria-label="Loading review details">
-      {/* Header card with meal title, author, claim/actions */}
-      <div className="rounded-[28px] sm:rounded-[36px] border border-brand-border bg-brand-surface p-6 shadow-card space-y-5">
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <div className="space-y-2">
-            <div className="flex items-center gap-2.5">
-              <Skeleton className="h-5 w-20 rounded-full" />
-              <Skeleton className="h-5 w-24 rounded-full" />
-            </div>
-            <Skeleton className="h-7 w-64 rounded-xl" />
-            <Skeleton className="h-4 w-44 rounded-lg" />
-          </div>
-          <div className="flex items-center gap-2.5">
-            <Skeleton className="h-10 w-28 rounded-2xl" />
-            <Skeleton className="h-10 w-32 rounded-2xl" />
-          </div>
+    <div className="space-y-5" aria-label="Loading review details" aria-busy="true">
+      <Card className="p-6 sm:p-8">
+        <div className="flex flex-wrap justify-between gap-3">
+          <Skeleton className="h-6 w-28 rounded-full" />
+          <Skeleton className="h-9 w-28 rounded-xl" />
         </div>
-
-        {/* 4 Macro Metrics grid */}
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 pt-2">
-          {[...Array(4)].map((_, i) => (
-            <div
-              key={i}
-              className="flex flex-col gap-1.5 rounded-2xl border border-brand-border/60 bg-brand-bgAlt/50 p-3.5 text-center"
-            >
-              <Skeleton className="h-3 w-16 mx-auto rounded" />
-              <Skeleton className="h-6 w-20 mx-auto rounded-lg" />
-              <Skeleton className="h-2 w-20 mx-auto rounded-full" />
-            </div>
-          ))}
+        <Skeleton className="mt-4 h-7 w-3/4" />
+        <Skeleton className="mt-2 h-4 w-1/2" />
+        <div className="mt-5">
+          <SkeletonMacros />
         </div>
-      </div>
-
-      {/* 2-column content cards: Ingredients & Clinical Check */}
-      <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
-        {/* Ingredients Card */}
-        <div className="rounded-[28px] sm:rounded-[36px] border border-brand-border bg-brand-surface p-6 shadow-card space-y-4">
-          <div className="flex items-center justify-between border-b border-brand-border/50 pb-3">
-            <Skeleton className="h-5 w-36 rounded-lg" />
-            <Skeleton className="h-5 w-14 rounded-full" />
-          </div>
-          <div className="space-y-2.5 pt-1">
-            {[...Array(5)].map((_, i) => (
-              <div
-                key={i}
-                className="flex items-center justify-between rounded-xl border border-brand-border/40 bg-brand-bgAlt/30 p-3"
-              >
-                <div className="flex items-center gap-2.5">
-                  <Skeleton className="h-4 w-4 rounded" />
-                  <Skeleton className="h-4 w-32 rounded" />
-                </div>
-                <Skeleton className="h-3.5 w-16 rounded" />
-              </div>
+      </Card>
+      <div className="grid gap-5 xl:grid-cols-2">
+        {[0, 1].map((i) => (
+          <Card key={i} className="space-y-4 p-6">
+            <Skeleton className="h-5 w-40 max-w-full" />
+            {[0, 1, 2].map((j) => (
+              <Skeleton key={j} className="h-16 w-full rounded-xl" />
             ))}
-          </div>
-        </div>
-
-        {/* Clinical Safety & Allergen checks */}
-        <div className="rounded-[28px] sm:rounded-[36px] border border-brand-border bg-brand-surface p-6 shadow-card space-y-4">
-          <div className="flex items-center justify-between border-b border-brand-border/50 pb-3">
-            <Skeleton className="h-5 w-40 rounded-lg" />
-            <Skeleton className="h-5 w-16 rounded-full" />
-          </div>
-          <div className="space-y-3 pt-1">
-            {[...Array(3)].map((_, i) => (
-              <div key={i} className="rounded-xl border border-brand-border/40 bg-brand-bgAlt/30 p-3.5 space-y-2">
-                <div className="flex items-center justify-between">
-                  <Skeleton className="h-4 w-28 rounded" />
-                  <Skeleton className="h-5 w-16 rounded-full" />
-                </div>
-                <Skeleton className="h-3 w-full rounded" />
-              </div>
-            ))}
-          </div>
-        </div>
+          </Card>
+        ))}
       </div>
     </div>
   );
 }
-
 export function NutritionistReviewsSkeleton() {
   return (
-    <div className="flex flex-col gap-6 text-left" aria-label="Loading nutritionist review workspace">
-      {/* 1. Header Skeleton */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div className="space-y-2">
-          <Skeleton className="h-8 w-60 sm:w-72 rounded-2xl" />
-          <Skeleton className="h-4 w-72 sm:w-96 max-w-full rounded-lg" />
-        </div>
-        <div className="flex items-center gap-2.5">
-          <Skeleton className="h-10 w-28 rounded-2xl" />
-          <Skeleton className="h-10 w-36 rounded-2xl" />
-        </div>
+    <div className="flex flex-col gap-5 text-left" aria-label="Loading nutritionist review workspace" aria-busy="true">
+      <SkeletonHeader />
+      <SkeletonTabs count={3} />
+      <div className="w-full max-w-lg">
+        <SkeletonTabs count={3} />
       </div>
-
-      {/* 2. Workspace Filter Strip */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-[24px] border border-brand-border/70 bg-brand-surface/85 p-2 shadow-card">
-        <div className="flex min-w-0 items-center gap-2">
-          <Skeleton className="h-9 w-28 rounded-xl" />
-          <Skeleton className="h-9 w-32 rounded-xl" />
-          <Skeleton className="h-9 w-28 rounded-xl" />
+      <SplitWorkspace className="md:h-[calc(100vh-270px)] md:min-h-[640px] rounded-3xl">
+        <WorkspaceListPane>
+          <Skeleton className="mb-4 h-5 w-24" />
+          <ReviewQueueSkeleton count={5} />
+        </WorkspaceListPane>
+        <div className="hidden min-w-0 flex-1 p-4 md:block sm:p-6">
+          <Card className="space-y-6 rounded-3xl p-6 sm:p-8">
+            <Skeleton className="h-12 w-12 rounded-2xl" />
+            <Skeleton className="h-7 w-4/5" />
+            <Skeleton className="h-16 w-full rounded-xl" />
+            {[0, 1, 2].map((i) => (
+              <Skeleton key={i} className="h-20 w-full rounded-2xl" />
+            ))}
+          </Card>
         </div>
-        <Skeleton className="h-9 w-40 rounded-xl" />
-      </div>
-
-      {/* 3. Split Workspace Container Skeleton */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
-        {/* Left: Queue Column */}
-        <div className="flex flex-col gap-3 rounded-[28px] sm:rounded-[36px] border border-brand-border bg-brand-surface/70 p-5 shadow-card lg:col-span-4">
-          <div className="flex items-center justify-between border-b border-brand-border/50 pb-3">
-            <Skeleton className="h-5 w-24 rounded-lg" />
-            <Skeleton className="h-5 w-12 rounded-full" />
-          </div>
-          <ReviewQueueSkeleton count={4} />
-        </div>
-
-        {/* Right: Detail Inspection */}
-        <div className="lg:col-span-8">
-          <ReviewDetailSkeleton />
-        </div>
-      </div>
+      </SplitWorkspace>
     </div>
   );
 }
-
 export default NutritionistReviewsSkeleton;

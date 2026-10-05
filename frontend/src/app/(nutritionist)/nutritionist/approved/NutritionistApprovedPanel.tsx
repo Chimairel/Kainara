@@ -69,8 +69,8 @@ export default function NutritionistApprovedPanel({ embedded = false }: { embedd
 
   if (isLoading) {
     return (
-      <div className="portal-page space-y-6 text-left">
-        <ApprovedReviewsSkeleton />
+      <div className="portal-page max-w-5xl space-y-6 text-left">
+        <ApprovedReviewsSkeleton includeHeader={!embedded} />
       </div>
     );
   }

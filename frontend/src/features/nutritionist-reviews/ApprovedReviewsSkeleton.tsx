@@ -1,64 +1,31 @@
-import React from 'react';
+import Card from '@/components/ui/Card';
 import Skeleton from '@/components/ui/Skeleton';
+import { SkeletonHeader, SkeletonMacros } from '@/components/shared/WorkspaceSkeleton';
 
-export function ApprovedReviewsSkeleton() {
+export function ApprovedReviewsSkeleton({ includeHeader = true }: { includeHeader?: boolean }) {
   return (
-    <div className="flex flex-col gap-6 text-left" aria-label="Loading approved reviews archive">
-      {/* 1. Page Header Skeleton */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div className="space-y-2">
-          <Skeleton className="h-8 w-64 rounded-2xl" />
-          <Skeleton className="h-4 w-80 sm:w-96 max-w-full rounded-lg" />
-        </div>
-        <div className="flex items-center gap-2.5">
-          <Skeleton className="h-10 w-32 rounded-2xl" />
-        </div>
-      </div>
-
-      {/* 2. Filter & Search Strip */}
-      <div className="flex items-center justify-between gap-3 rounded-[24px] border border-brand-border/70 bg-brand-surface/90 p-3 shadow-card">
-        <Skeleton className="h-10 flex-1 max-w-md rounded-2xl" />
-        <div className="flex items-center gap-2">
-          <Skeleton className="h-9 w-24 rounded-xl" />
-          <Skeleton className="h-9 w-28 rounded-xl" />
-        </div>
-      </div>
-
-      {/* 3. Grid of approved meal cards */}
-      <div className="grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-3">
-        {[...Array(6)].map((_, i) => (
-          <div
-            key={i}
-            className="flex flex-col justify-between rounded-[28px] sm:rounded-[36px] border border-brand-border bg-brand-surface p-6 shadow-card space-y-4"
-          >
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <Skeleton className="h-6 w-24 rounded-full" />
-                <Skeleton className="h-4 w-20 rounded" />
+    <div className="space-y-6 text-left" aria-label="Loading approved reviews archive" aria-busy="true">
+      {includeHeader && <SkeletonHeader actions={1} />}
+      <div className="space-y-3">
+        {[0, 1, 2, 3].map((i) => (
+          <Card key={i} className="p-5">
+            <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-start sm:gap-4">
+              <div className="min-w-0 flex-1 space-y-3">
+                <Skeleton className="h-4 w-24" />
+                <SkeletonMacros />
+                <Skeleton className="h-5 w-4/5" />
+                <Skeleton className="h-4 w-52 max-w-full" />
+                <Skeleton className="h-3 w-40 max-w-full" />
               </div>
-              <Skeleton className="h-6 w-4/5 rounded-xl" />
-              <div className="flex items-center gap-2.5 pt-1">
-                <Skeleton className="h-7 w-7 rounded-full" />
-                <Skeleton className="h-4 w-32 rounded" />
+              <div className="flex items-center justify-between gap-3 border-t border-brand-border/40 pt-2.5 sm:flex-col sm:items-end sm:border-0 sm:pt-0">
+                <Skeleton className="h-4 w-28" />
+                <Skeleton className="h-8 w-28 rounded-lg" />
               </div>
             </div>
-
-            <div className="space-y-3 border-t border-brand-border/40 pt-3.5">
-              <div className="grid grid-cols-4 gap-2">
-                {[...Array(4)].map((_, j) => (
-                  <Skeleton key={j} className="h-8 rounded-xl" />
-                ))}
-              </div>
-              <div className="flex items-center justify-between pt-1">
-                <Skeleton className="h-3.5 w-28 rounded" />
-                <Skeleton className="h-9 w-24 rounded-2xl" />
-              </div>
-            </div>
-          </div>
+          </Card>
         ))}
       </div>
     </div>
   );
 }
-
 export default ApprovedReviewsSkeleton;

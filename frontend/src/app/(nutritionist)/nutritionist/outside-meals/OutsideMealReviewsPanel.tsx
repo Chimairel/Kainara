@@ -8,6 +8,7 @@ import api from '@/lib/axios';
 import { getApiErrorMessage } from '@/lib/api-error';
 import Button from '@/components/ui/Button';
 import Card from '@/components/ui/Card';
+import { OutsideMealQueueSkeleton } from '@/features/nutritionist-reviews/OutsideMealsSkeleton';
 import Skeleton from '@/components/ui/Skeleton';
 import EmptyState from '@/components/shared/EmptyState';
 import PortalPageHeader from '@/components/shared/PortalPageHeader';
@@ -298,34 +299,7 @@ export default function OutsideMealReviewsPanel({ embedded = false }: { embedded
         {/* Left Column: Outside Food Queue */}
         <div className="flex flex-col gap-3">
           {isLoading ? (
-            <div className="space-y-3" aria-label="Loading outside food estimates">
-              {[...Array(4)].map((_, i) => (
-                <div
-                  key={i}
-                  className="space-y-3 rounded-2xl border border-brand-border/70 bg-brand-surface p-4 sm:p-5 shadow-xs"
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="flex items-center gap-3 flex-1">
-                      <Skeleton className="h-10 w-10 rounded-xl shrink-0" />
-                      <div className="space-y-1.5 flex-1">
-                        <Skeleton className="h-4 w-44 rounded-md" />
-                        <Skeleton className="h-3 w-28 rounded" />
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-1.5">
-                      <Skeleton className="h-5 w-20 rounded-full" />
-                      <Skeleton className="h-5 w-16 rounded-full" />
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2 border-t border-brand-border/40 pt-3">
-                    <Skeleton className="h-6 w-20 rounded-full" />
-                    <Skeleton className="h-6 w-14 rounded-full" />
-                    <Skeleton className="h-6 w-14 rounded-full" />
-                    <Skeleton className="h-6 w-14 rounded-full" />
-                  </div>
-                </div>
-              ))}
-            </div>
+            <OutsideMealQueueSkeleton />
           ) : rows.length === 0 ? (
             <EmptyState
               title="No outside-meal estimates waiting"

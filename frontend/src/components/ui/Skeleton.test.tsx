@@ -45,7 +45,7 @@ describe('Skeleton', () => {
     expect(pulseElements.length).toBeGreaterThan(10);
   });
 
-  it('renders GrocerySkeleton with filter bar and category group placeholders', () => {
+  it('renders GrocerySkeleton with filter bar and checklist table placeholders', () => {
     const { container, getByLabelText } = render(<GrocerySkeleton />);
     const region = getByLabelText('Loading grocery checklist');
     expect(region).toBeInTheDocument();
@@ -69,7 +69,7 @@ describe('Skeleton', () => {
     expect(pulseElements.length).toBeGreaterThan(10);
   });
 
-  it('renders ApprovedReviewsSkeleton with archive cards grid', () => {
+  it('renders ApprovedReviewsSkeleton with archive rows', () => {
     const { container, getByLabelText } = render(<ApprovedReviewsSkeleton />);
     const region = getByLabelText('Loading approved reviews archive');
     expect(region).toBeInTheDocument();
@@ -77,7 +77,7 @@ describe('Skeleton', () => {
     expect(pulseElements.length).toBeGreaterThan(10);
   });
 
-  it('renders NutritionistProfileSkeleton with tabs and credential inputs', () => {
+  it('renders NutritionistProfileSkeleton with identity and credential inputs', () => {
     const { container, getByLabelText } = render(<NutritionistProfileSkeleton />);
     const region = getByLabelText('Loading professional profile');
     expect(region).toBeInTheDocument();

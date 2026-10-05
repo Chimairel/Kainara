@@ -1,125 +1,104 @@
-import React from 'react';
+import Card from '@/components/ui/Card';
 import Skeleton from '@/components/ui/Skeleton';
+import { SkeletonHeader, SkeletonMetrics, SkeletonTable, SkeletonTabs } from '@/components/shared/WorkspaceSkeleton';
 
-export function ProgressSkeleton() {
+type Props = {
+  includeHeader?: boolean;
+  section?: 'overview' | 'history' | 'profile' | 'safety';
+  mode?: 'progress' | 'health' | 'planning';
+};
+export function ProgressSkeleton({ includeHeader = false, section = 'overview', mode = 'progress' }: Props) {
   return (
-    <div className="flex flex-col gap-6 text-left" aria-label="Loading progress data">
-      {/* 1. Page Header Skeleton */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div className="space-y-2">
-          <Skeleton className="h-8 w-48 sm:w-56 rounded-2xl" />
-          <Skeleton className="h-4 w-72 sm:w-96 max-w-full rounded-lg" />
+    <div className="text-left" aria-label="Loading progress data" aria-busy="true">
+      {includeHeader && (
+        <div className="mb-6 space-y-6">
+          <SkeletonHeader actions={2} />
+          <SkeletonTabs count={2} />
         </div>
-        <div className="flex flex-wrap items-center gap-2.5">
-          <Skeleton className="h-10 w-40 rounded-2xl" />
-          <Skeleton className="h-10 w-36 rounded-2xl" />
-        </div>
-      </div>
-
-      {/* 2. Workspace Tabs Skeleton */}
-      <div className="flex gap-2 border-b border-brand-border/60 pb-3">
-        <Skeleton className="h-10 w-36 rounded-2xl" />
-        <Skeleton className="h-10 w-40 rounded-2xl" />
-      </div>
-
-      {/* 3. Metric Cards Grid (4-column) */}
-      <section className="grid grid-cols-2 gap-3.5 lg:grid-cols-4">
-        {[...Array(4)].map((_, i) => (
-          <div
-            key={i}
-            className="rounded-2xl sm:rounded-3xl border border-brand-border/80 bg-brand-surface p-4 sm:p-5 shadow-xs space-y-3"
-          >
-            <div className="flex items-center justify-between">
-              <Skeleton className="h-8 w-8 rounded-xl" />
-              <Skeleton className="h-5 w-20 rounded-full" />
-            </div>
-            <Skeleton className="h-8 w-24 rounded-lg" />
-            <Skeleton className="h-3.5 w-24 rounded" />
+      )}
+      {section === 'overview' ? (
+        <>
+          <div className="mb-6">
+            <SkeletonMetrics />
           </div>
-        ))}
-      </section>
-
-      {/* 4. Weight Progress Graph Card Skeleton */}
-      <div className="rounded-[28px] sm:rounded-[36px] border border-brand-border bg-brand-surface p-6 sm:p-7 shadow-card space-y-5">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div className="flex items-center gap-2.5">
-            <Skeleton className="h-8 w-8 rounded-xl" />
-            <div className="min-w-0 space-y-1">
-              <Skeleton className="h-5 w-40 rounded-lg" />
-              <Skeleton className="h-3 w-52 max-w-full rounded" />
-            </div>
-          </div>
-          <div className="flex items-center gap-2.5">
-            <Skeleton className="h-6 w-24 rounded-full" />
-            <Skeleton className="h-9 w-36 rounded-2xl" />
-          </div>
-        </div>
-
-        {/* Chart Canvas Skeleton */}
-        <div className="flex h-56 w-full flex-col justify-between rounded-2xl border border-brand-border/60 bg-brand-bgAlt/30 dark:bg-brand-surface/20 p-5">
-          <div className="flex justify-between">
-            <Skeleton className="h-3 w-16 rounded" />
-            <Skeleton className="h-3 w-16 rounded" />
-          </div>
-          {/* Simulated chart line */}
-          <div className="flex items-end justify-between gap-3 h-32 px-4">
-            <Skeleton className="h-20 w-8 rounded-t-lg opacity-40" />
-            <Skeleton className="h-24 w-8 rounded-t-lg opacity-50" />
-            <Skeleton className="h-18 w-8 rounded-t-lg opacity-40" />
-            <Skeleton className="h-28 w-8 rounded-t-lg opacity-60" />
-            <Skeleton className="h-22 w-8 rounded-t-lg opacity-50" />
-            <Skeleton className="h-32 w-8 rounded-t-lg opacity-70" />
-            <Skeleton className="h-26 w-8 rounded-t-lg opacity-60" />
-          </div>
-          <div className="flex justify-between">
-            <Skeleton className="h-2.5 w-12 rounded" />
-            <Skeleton className="h-2.5 w-12 rounded" />
-            <Skeleton className="h-2.5 w-12 rounded" />
-            <Skeleton className="h-2.5 w-12 rounded" />
-          </div>
-        </div>
-
-        <div className="flex items-center justify-between border-t border-brand-border/50 pt-3">
-          <Skeleton className="h-3.5 w-48 rounded" />
-          <Skeleton className="h-6 w-24 rounded-full" />
-        </div>
-      </div>
-
-      {/* 5. Weekly Weight Log History Table Skeleton */}
-      <div className="rounded-[28px] sm:rounded-[36px] border border-brand-border bg-brand-surface p-6 sm:p-7 shadow-card space-y-5">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-brand-border/50 pb-4">
-          <div className="flex items-center gap-2.5">
-            <Skeleton className="h-8 w-8 rounded-xl" />
-            <div className="min-w-0 space-y-1">
-              <Skeleton className="h-5 w-48 max-w-full rounded-lg" />
-              <Skeleton className="h-3 w-64 max-w-full rounded" />
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <Skeleton className="h-6 w-20 rounded-full" />
-            <Skeleton className="h-6 w-24 rounded-full" />
-          </div>
-        </div>
-
-        {/* Table rows */}
-        <div className="divide-y divide-brand-border/30">
-          {[...Array(4)].map((_, i) => (
-            <div key={i} className="flex items-center justify-between py-3.5 px-2">
-              <div className="flex items-center gap-3">
-                <Skeleton className="h-4 w-28 rounded" />
-                {i === 0 && <Skeleton className="h-4 w-12 rounded" />}
+          <Card className="mb-6 p-4 sm:p-6">
+            <div className="mb-5 flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
+              <div className="min-w-0">
+                <div className="flex items-center gap-2">
+                  <Skeleton className="h-7 w-7 shrink-0 rounded-lg" />
+                  <Skeleton className="h-5 w-36" />
+                </div>
+                <Skeleton className="mt-1 ml-9 h-4 w-40 max-w-[calc(100%-36px)]" />
               </div>
-              <Skeleton className="h-5 w-16 rounded" />
-              <Skeleton className="h-4 w-14 rounded" />
-              <Skeleton className="h-4 w-14 rounded" />
-              <Skeleton className="h-5 w-20 rounded-full" />
-              <Skeleton className="h-3.5 w-36 rounded hidden md:block" />
+              <Skeleton className="h-11 w-40 self-end rounded-2xl" />
             </div>
-          ))}
+            <div className="rounded-2xl border border-brand-border/70 p-3 sm:p-5">
+              <Skeleton className="h-[260px] w-full rounded-xl sm:h-60" />
+              <div className="mt-4 flex flex-wrap justify-between gap-2 border-t border-brand-border/60 pt-3">
+                <Skeleton className="h-4 w-48 max-w-full" />
+                <Skeleton className="h-5 w-24 rounded-full" />
+              </div>
+            </div>
+          </Card>
+          <Card className="mb-8 p-5 sm:p-6">
+            <div className="mb-5 flex flex-wrap justify-between gap-3 border-b border-brand-border/50 pb-3">
+              <div className="flex min-w-0 items-center gap-2.5">
+                <Skeleton className="h-8 w-8 shrink-0 rounded-xl" />
+                <div className="min-w-0 space-y-1">
+                  <Skeleton className="h-4 w-48 max-w-full" />
+                  <Skeleton className="h-4 w-60 max-w-full" />
+                </div>
+              </div>
+              <Skeleton className="h-6 w-28 rounded-full" />
+            </div>
+            <SkeletonTable columns={6} rows={4} />
+          </Card>
+        </>
+      ) : section === 'history' ? (
+        <div className="space-y-5">
+          <div className="flex justify-end">
+            <Skeleton className="h-11 w-40 rounded-2xl" />
+          </div>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+            {[0, 1, 2].map((i) => (
+              <Card key={i} className="p-4">
+                <Skeleton className="h-4 w-28 max-w-full" />
+                <Skeleton className="mt-3 h-7 w-20" />
+              </Card>
+            ))}
+          </div>
+          <Card className="p-6">
+            <Skeleton className="mb-5 h-5 w-40" />
+            <SkeletonTable columns={6} />
+          </Card>
         </div>
-      </div>
+      ) : (
+        <Card className="mb-8 p-6">
+          <Skeleton className="mb-5 h-5 w-48 max-w-full" />
+          {section === 'safety' ? (
+            <div className="space-y-5">
+              {[0, 1].map((i) => (
+                <div key={i} className="space-y-3">
+                  <Skeleton className="h-4 w-40 max-w-full" />
+                  <Skeleton className="h-11 w-full rounded-2xl" />
+                  <Skeleton className="h-24 w-full rounded-2xl" />
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              {Array.from({ length: mode === 'planning' ? 4 : 8 }, (_, i) => (
+                <div key={i} className="space-y-2">
+                  <Skeleton className="h-4 w-28 max-w-full" />
+                  <Skeleton className="h-11 w-full rounded-2xl" />
+                </div>
+              ))}
+            </div>
+          )}
+          <Skeleton className="mt-6 ml-auto h-11 w-36 rounded-2xl" />
+        </Card>
+      )}
     </div>
   );
 }
-
 export default ProgressSkeleton;

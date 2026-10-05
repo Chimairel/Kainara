@@ -249,7 +249,7 @@ export function ProgressWorkspace({ mode = 'progress' }: { mode?: ProgressWorksp
       )}
 
       {isLoading ? (
-        <ProgressSkeleton />
+        <ProgressSkeleton section={activeSection} mode={mode} />
       ) : (
         <>
           {activeSection === 'overview' && (

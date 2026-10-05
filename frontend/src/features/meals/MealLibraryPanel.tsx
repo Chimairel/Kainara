@@ -5,7 +5,7 @@ import Pagination from '@/components/ui/Pagination';
 import MealLibraryLayout from '@/components/shared/MealLibraryLayout';
 import { useEffect, useMemo, useState } from 'react';
 import Button from '@/components/ui/Button';
-import LoadingSpinner from '@/components/shared/LoadingSpinner';
+import { LibraryGridSkeleton } from '@/features/nutritionist-library/NutritionistLibrarySkeleton';
 import Link from 'next/link';
 import { AlertTriangle, Search, Salad } from 'lucide-react';
 import type { useMealsWorkspace } from './useMealsWorkspace';
@@ -267,10 +267,7 @@ export default function MealLibraryPanel({ workspace }: { workspace: ReturnType<
       )}
 
       {catalogLoading && (isServerSource || displayItems.length === 0) ? (
-        <div className="flex flex-col items-center py-12 gap-2">
-          <LoadingSpinner size="md" />
-          <span className="text-xs text-brand-muted">Loading recipes…</span>
-        </div>
+        <LibraryGridSkeleton variant="member" />
       ) : displayItems.length === 0 && (catalogError || workspace.libraryError) ? null : displayItems.length === 0 ? (
         <div className="p-12 text-center border border-brand-border/40 bg-brand-surface/30 rounded-xl">
           <Salad className="w-8 h-8 text-brand-green mx-auto mb-2" />
