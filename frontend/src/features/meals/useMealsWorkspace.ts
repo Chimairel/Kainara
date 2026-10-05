@@ -235,22 +235,25 @@ export function useMealsWorkspace(initialOptions?: { initialDateKey?: string | n
     await loadCurrentPlan();
   }, [loadCurrentPlan]);
 
+  useVisiblePolling(fetchMeals, {
+    enabled: Boolean(ownerId),
+    intervalMs:
+      isPreparing ||
+      ['GENERATING', 'WAITING_FOR_AI', 'PROCESSING_AI'].includes(generationStatus.current ?? '') ||
+      (!isLoading && !cycles?.current && !error && generationStatus.current !== 'FAILED')
+        ? 3_000
+        : 15_000,
+    immediate: false,
+    scopeKey: ownerId,
+  });
   useVisiblePolling(
-    async () => {
-      await fetchMeals();
+    async (signal) => {
       const status = await refreshClinicalProfileStatus(ownerId, cachedUserProfile(ownerId));
+      if (signal.aborted) return;
       setProfileReviewRequired(status.required && !status.approved);
     },
     { enabled: Boolean(ownerId), immediate: false, scopeKey: ownerId }
   );
-
-  useEffect(() => {
-    if (!cycles || cycles.current || generationStatus.current === 'FAILED' || error) return;
-    const interval = window.setInterval(() => {
-      if (document.visibilityState === 'visible') void fetchMeals();
-    }, 5_000);
-    return () => window.clearInterval(interval);
-  }, [cycles, generationStatus, error, fetchMeals]);
 
   const history = useMealHistory(ownerId, activeTab === 'history', fetchMeals);
   const {

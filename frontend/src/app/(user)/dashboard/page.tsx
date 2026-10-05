@@ -248,87 +248,84 @@ export default function DashboardPage() {
   );
 
   // Load active plan meals
-  const fetchCurrentPlan = useCallback(async () => {
-    if (currentPlanRequestInFlight.current) return;
-    if (user?.onboardingDone && user?.tosAccepted && !user?.reportAcknowledged) {
-      setIsLoading(false);
-      return;
-    }
-    currentPlanRequestInFlight.current = true;
-    lastPlanRequestAt.current = Date.now();
-    try {
-      const res = await api.get('/user/meals/current');
-      if (res.data && res.data.success) {
-        let nextCycle: CycleMetaSnapshot | null = null;
-        if (!res.data.meta?.cycle) {
-          try {
-            const cyclesResponse = await api.get('/user/meals/cycles');
-            nextCycle = cyclesResponse.data?.data?.upcoming ?? null;
-          } catch {
-            // Current-plan rendering still works if upcoming-cycle status is unavailable.
-          }
+  const fetchCurrentPlan = useCallback(
+    async (signal?: AbortSignal) => {
+      if (currentPlanRequestInFlight.current) return;
+      if (user?.onboardingDone && user?.tosAccepted && !user?.reportAcknowledged) {
+        setIsLoading(false);
+        return;
+      }
+      currentPlanRequestInFlight.current = true;
+      lastPlanRequestAt.current = Date.now();
+      try {
+        const res = await api.get('/user/meals/current', { signal });
+        if (signal?.aborted) return;
+        if (res.data && res.data.success) {
+          setError(null);
+          setClinicalEvidenceRequired(false);
+          applyCurrentPlan({
+            meals: Array.isArray(res.data.data) ? res.data.data : [],
+            pendingReview: res.data.meta?.pendingReview ?? null,
+            awaitingGenerationCount: res.data.meta?.awaitingGenerationCount ?? 0,
+            generationStatus: res.data.meta?.generationStatus ?? null,
+            planSnapshot: res.data.meta?.planSnapshot ?? null,
+            cycle: res.data.meta?.cycle ?? null,
+            upcomingCycle:
+              readSessionResource<CurrentPlanSnapshot>(ownerId, currentPlanResource)?.upcomingCycle ?? null,
+          });
         }
-        setError(null);
-        setClinicalEvidenceRequired(false);
-        applyCurrentPlan({
-          meals: Array.isArray(res.data.data) ? res.data.data : [],
-          pendingReview: res.data.meta?.pendingReview ?? null,
-          awaitingGenerationCount: res.data.meta?.awaitingGenerationCount ?? 0,
-          generationStatus: res.data.meta?.generationStatus ?? null,
-          planSnapshot: res.data.meta?.planSnapshot ?? null,
-          cycle: res.data.meta?.cycle ?? null,
-          upcomingCycle: nextCycle,
-        });
+      } catch (err: unknown) {
+        if (signal?.aborted || axios.isCancel(err)) return;
+        if (axios.isAxiosError(err) && err.response?.data?.errorCode === 'CLINICAL_EVIDENCE_REQUIRED') {
+          setClinicalEvidenceRequired(true);
+          setCurrentMeals([]);
+          setPendingReview(null);
+          setCurrentCycle(null);
+          setAwaitingGenerationCount(0);
+          setGenerationStatus(null);
+          invalidateSessionResource(ownerId, currentPlanResource);
+        }
+        setError(getApiErrorMessage(err, "Failed to load today's scheduled plan."));
+      } finally {
+        currentPlanRequestInFlight.current = false;
+        setIsLoading(false);
       }
-    } catch (err: unknown) {
-      if (axios.isAxiosError(err) && err.response?.data?.errorCode === 'CLINICAL_EVIDENCE_REQUIRED') {
-        setClinicalEvidenceRequired(true);
-        setCurrentMeals([]);
-        setPendingReview(null);
-        setCurrentCycle(null);
-        setAwaitingGenerationCount(0);
-        setGenerationStatus(null);
-        invalidateSessionResource(ownerId, currentPlanResource);
-      }
-      setError(getApiErrorMessage(err, "Failed to load today's scheduled plan."));
-    } finally {
-      currentPlanRequestInFlight.current = false;
-      setIsLoading(false);
-    }
-  }, [applyCurrentPlan, user, ownerId]);
-
-  useVisiblePolling(
-    async () => {
-      await Promise.all([fetchCurrentPlan(), fetchOutsideMealLogs()]);
     },
-    { enabled: Boolean(ownerId) && !isLogging, immediate: false, scopeKey: ownerId }
+    [applyCurrentPlan, user, ownerId]
   );
 
-  useEffect(() => {
-    if (
-      isLoading ||
-      currentCycle ||
-      generationStatus === 'FAILED' ||
-      isReportPending ||
-      clinicalEvidenceRequired ||
-      profileReviewStatus !== 'ready' ||
-      error
-    )
-      return;
-    const interval = window.setInterval(() => {
-      if (document.visibilityState === 'visible') void fetchCurrentPlan();
-    }, 20_000);
-    return () => window.clearInterval(interval);
-  }, [
-    isLoading,
-    currentCycle,
-    generationStatus,
-    isReportPending,
-    clinicalEvidenceRequired,
-    profileReviewStatus,
-    error,
-    fetchCurrentPlan,
-  ]);
+  const preparingPlan =
+    !isLoading &&
+    !isReportPending &&
+    !clinicalEvidenceRequired &&
+    profileReviewStatus === 'ready' &&
+    (isGenerating ||
+      ['GENERATING', 'WAITING_FOR_AI', 'PROCESSING_AI'].includes(generationStatus ?? '') ||
+      (!currentMeals.length && !pendingReview && !error && generationStatus !== 'FAILED'));
+
+  useVisiblePolling(fetchCurrentPlan, {
+    enabled: Boolean(ownerId),
+    intervalMs: preparingPlan ? 3_000 : 15_000,
+    immediate: false,
+    scopeKey: ownerId,
+  });
+  useVisiblePolling(fetchOutsideMealLogs, {
+    enabled: Boolean(ownerId) && !isLogging,
+    immediate: false,
+    scopeKey: ownerId,
+  });
+  // Upcoming-cycle notices must not hold up the current plan or its failure state.
+  useVisiblePolling(
+    async (signal) => {
+      const response = await api.get('/user/meals/cycles', { signal });
+      if (signal.aborted || !response.data?.success) return;
+      const upcoming = response.data.data?.upcoming ?? null;
+      setUpcomingCycle(upcoming);
+      const snapshot = readSessionResource<CurrentPlanSnapshot>(ownerId, currentPlanResource);
+      if (snapshot) writeSessionResource(ownerId, currentPlanResource, { ...snapshot, upcomingCycle: upcoming });
+    },
+    { enabled: Boolean(ownerId) && !isLoading && !currentCycle, scopeKey: ownerId }
+  );
 
   useEffect(() => {
     if (user) {
@@ -570,6 +567,13 @@ export default function DashboardPage() {
               ? 'Checking meal-planning eligibility…'
               : 'We could not check your meal-planning eligibility. Refresh this page to try again.'}
           </div>
+        ) : error && currentMeals.length === 0 && !pendingReview && generationStatus !== 'FAILED' && !isGenerating ? (
+          <StateNotice
+            variant="no-meal-plan"
+            title="Could not load your meal plan"
+            description="We could not retrieve the latest preparation status. Retry loading your saved plan."
+            action={{ label: 'Retry loading', onClick: () => void fetchCurrentPlan() }}
+          />
         ) : currentMeals.length === 0 && !pendingReview ? (
           <StateNotice
             variant={generationStatus === 'FAILED' && !isGenerating ? 'preparing-failed' : 'preparing'}
