@@ -11,7 +11,6 @@ import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import PasswordInput from '@/components/ui/PasswordInput';
-import GoogleSignInButton from '@/components/auth/GoogleSignInButton';
 import PortalPageHeader from '@/components/shared/PortalPageHeader';
 import Avatar from '@/components/ui/Avatar';
 import AvatarSettings from '@/features/profile/AvatarSettings';
@@ -113,7 +112,7 @@ export default function AccountSettings({ initialPanel = 'account' }: { initialP
   const membershipTitle =
     membership && membership.enabled
       ? membership.level === 'TRIAL'
-        ? 'Health Trial'
+        ? 'Health'
         : membership.level === 'MEMBER'
           ? membership.tier === 'LIFESTYLE'
             ? 'Lifestyle Member'
@@ -144,9 +143,8 @@ export default function AccountSettings({ initialPanel = 'account' }: { initialP
     deletionConfirmation === ACCOUNT_DELETION_CONFIRMATION || deletionConfirmation === 'DELETE MY NUTRIMIND ACCOUNT';
   const deletionConfirmationMismatch = deletionConfirmation.length > 0 && !deletionConfirmed;
   const passwordLoginEnabled = user?.authMethods?.password !== false;
-  const googleLoginEnabled = Boolean(user?.authMethods?.google);
 
-  const deleteAccount = async (credential: { password?: string; googleIdToken?: string }) => {
+  const deleteAccount = async (credential: { password?: string }) => {
     setSessionRefreshSuppressed(true);
     try {
       await api.delete('/user/account', {
@@ -167,19 +165,7 @@ export default function AccountSettings({ initialPanel = 'account' }: { initialP
     setIsDeleting(true);
     setDeletionError(null);
     try {
-      await deleteAccount({ password: deletionPassword });
-    } catch (error: unknown) {
-      setDeletionError(getApiErrorMessage(error, 'Account deletion failed.'));
-    } finally {
-      setIsDeleting(false);
-    }
-  };
-
-  const handleGoogleDeleteAccount = async (googleIdToken: string) => {
-    setIsDeleting(true);
-    setDeletionError(null);
-    try {
-      await deleteAccount({ googleIdToken });
+      await deleteAccount(passwordLoginEnabled ? { password: deletionPassword } : {});
     } catch (error: unknown) {
       setDeletionError(getApiErrorMessage(error, 'Account deletion failed.'));
     } finally {
@@ -791,38 +777,15 @@ export default function AccountSettings({ initialPanel = 'account' }: { initialP
               error={deletionConfirmationMismatch ? `Type ${ACCOUNT_DELETION_CONFIRMATION} exactly.` : undefined}
               required
             />
-            {passwordLoginEnabled && (
-              <div className="flex justify-end border-t border-brand-border/60 pt-4">
-                <Button
-                  variant="danger"
-                  type="submit"
-                  disabled={isDeleting || !deletionConfirmed || deletionPassword.length < 8}
-                >
-                  {isDeleting ? 'Deleting account...' : 'Permanently delete account'}
-                </Button>
-              </div>
-            )}
-            {googleLoginEnabled && (
-              <>
-                {passwordLoginEnabled && (
-                  <div className="flex items-center gap-3" aria-hidden="true">
-                    <span className="h-px flex-1 bg-brand-border/70" />
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-brand-muted">or</span>
-                    <span className="h-px flex-1 bg-brand-border/70" />
-                  </div>
-                )}
-                <div className="space-y-2">
-                  <p className="text-xs leading-relaxed text-brand-muted">
-                    Reauthenticate with the Google identity connected to this KAINARA account to permanently delete it.
-                  </p>
-                  <GoogleSignInButton
-                    label="continue_with"
-                    disabled={isDeleting || !deletionConfirmed}
-                    onCredential={handleGoogleDeleteAccount}
-                  />
-                </div>
-              </>
-            )}
+            <div className="flex justify-end border-t border-brand-border/60 pt-4">
+              <Button
+                variant="danger"
+                type="submit"
+                disabled={isDeleting || !deletionConfirmed || (passwordLoginEnabled && deletionPassword.length < 8)}
+              >
+                {isDeleting ? 'Deleting account...' : 'Permanently delete account'}
+              </Button>
+            </div>
           </form>
         </Card>
       )}

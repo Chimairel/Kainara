@@ -1,8 +1,9 @@
-import { render, screen, act } from '@testing-library/react';
+import { render, screen, act, fireEvent, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import AccountSettings from './AccountSettings';
 import type { UserSession } from '@/lib/context/AuthContext';
 import type { UserProfileData } from '@/hooks/useProfile';
+import api, { setSessionRefreshSuppressed } from '@/lib/axios';
 
 interface TestMealLog {
   id: string;
@@ -15,13 +16,14 @@ const mocks = vi.hoisted(() => ({
   user: null as UserSession | null,
   profile: null as Partial<UserProfileData> | null,
   mealLogs: [] as TestMealLog[],
+  completeAccountDeletion: vi.fn(),
 }));
 
 vi.mock('@/hooks/useAuth', () => ({
   useAuth: () => ({
     user: mocks.user,
     logout: vi.fn(),
-    completeAccountDeletion: vi.fn(),
+    completeAccountDeletion: mocks.completeAccountDeletion,
     updateUserSession: vi.fn(),
   }),
 }));
@@ -67,6 +69,7 @@ describe('provider-aware account security', () => {
     mocks.user = null;
     mocks.profile = null;
     mocks.mealLogs = [];
+    vi.clearAllMocks();
   });
 
   it('keeps password controls visible but disabled for a Google-only account', async () => {
@@ -91,6 +94,47 @@ describe('provider-aware account security', () => {
     expect(screen.getByLabelText('Current Password')).toBeEnabled();
     expect(screen.getByLabelText('New Password')).toBeEnabled();
     expect(screen.getByRole('button', { name: 'Update Password' })).toBeEnabled();
+  });
+
+  it.each([false, true])('deletes through the same button with password enabled=%s', async (passwordEnabled) => {
+    mocks.user = { ...baseUser, authMethods: { password: passwordEnabled, google: true } };
+    vi.mocked(api.delete).mockResolvedValue({ data: { success: true } });
+    await act(async () => render(<AccountSettings initialPanel="privacy" />));
+    const button = screen.getByRole('button', { name: 'Permanently delete account' });
+    expect(button).toBeDisabled();
+    expect(screen.queryByRole('button', { name: 'Continue with Google' })).not.toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText('Type DELETE MY KAINARA ACCOUNT'), {
+      target: { value: 'DELETE MY KAINARA ACCOUNT' },
+    });
+    if (passwordEnabled) {
+      expect(button).toBeDisabled();
+      fireEvent.change(screen.getByLabelText('Current password'), { target: { value: 'Synthetic!123' } });
+    } else {
+      expect(screen.queryByLabelText('Current password')).not.toBeInTheDocument();
+    }
+    expect(button).toBeEnabled();
+    fireEvent.click(button);
+    await waitFor(() => expect(mocks.completeAccountDeletion).toHaveBeenCalledOnce());
+    expect(api.delete).toHaveBeenCalledWith('/user/account', {
+      data: {
+        confirmation: 'DELETE MY KAINARA ACCOUNT',
+        ...(passwordEnabled ? { password: 'Synthetic!123' } : {}),
+      },
+    });
+    expect(setSessionRefreshSuppressed).toHaveBeenCalledWith(true);
+  });
+
+  it('keeps the session and permits retry when deletion fails', async () => {
+    mocks.user = { ...baseUser, authMethods: { password: false, google: true } };
+    vi.mocked(api.delete).mockRejectedValueOnce(new Error('Unavailable'));
+    await act(async () => render(<AccountSettings initialPanel="privacy" />));
+    fireEvent.change(screen.getByLabelText('Type DELETE MY KAINARA ACCOUNT'), {
+      target: { value: 'DELETE MY KAINARA ACCOUNT' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Permanently delete account' }));
+    await waitFor(() => expect(setSessionRefreshSuppressed).toHaveBeenLastCalledWith(false));
+    expect(mocks.completeAccountDeletion).not.toHaveBeenCalled();
+    expect(screen.getByRole('button', { name: 'Permanently delete account' })).toBeEnabled();
   });
 
   it('renders personal activity, inside/outside meal distribution, and biometric blueprint for USER', async () => {

@@ -1,10 +1,8 @@
 import bcrypt from 'bcryptjs';
 import prisma from '@/lib/prisma';
-import { AuthService } from './auth.service';
 
 type AccountDeletionCredential = {
   password?: string;
-  googleIdToken?: string;
 };
 
 export class UserPrivacyService {
@@ -91,25 +89,18 @@ export class UserPrivacyService {
     });
     if (!user || user.role !== 'USER') throw new Error('Only patient accounts can use self-service deletion.');
 
-    let reauthenticationMethod: 'PASSWORD' | 'GOOGLE';
-    if (
-      user.passwordLoginEnabled &&
-      credential.password &&
-      (await bcrypt.compare(credential.password, user.passwordHash))
-    ) {
-      reauthenticationMethod = 'PASSWORD';
-    } else if (credential.googleIdToken) {
-      const identity = await AuthService.verifyGoogleIdentity(credential.googleIdToken);
-      const verifiedEmail = identity.email?.trim().toLowerCase();
-      const subjectMatches = Boolean(
-        identity.sub && user.accounts.some((account) => account.providerAccountId === identity.sub)
-      );
-      if (!subjectMatches && verifiedEmail !== user.email.trim().toLowerCase()) {
-        throw new Error('Google account does not match the signed-in KAINARA account.');
+    let reauthenticationMethod: 'PASSWORD' | 'AUTHENTICATED_SESSION';
+    if (user.passwordLoginEnabled) {
+      if (!credential.password || !(await bcrypt.compare(credential.password, user.passwordHash))) {
+        throw new Error('Current password is incorrect.');
       }
-      reauthenticationMethod = 'GOOGLE';
+      reauthenticationMethod = 'PASSWORD';
+    } else if (user.accounts.length > 0) {
+      // The authenticated route requires the typed deletion confirmation.
+      // Google-only accounts have no usable password or second sign-in step.
+      reauthenticationMethod = 'AUTHENTICATED_SESSION';
     } else {
-      throw new Error('Current password is incorrect.');
+      throw new Error('Account sign-in method could not be verified.');
     }
 
     const [mealPlans, scopedClearances] = await Promise.all([

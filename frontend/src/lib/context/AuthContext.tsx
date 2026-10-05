@@ -252,8 +252,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     cookieHelper.clear('nutrimind_session');
     clearSessionResourceCache();
     setUser(null);
-    setIsLoading(false);
-    router.replace('/login?accountDeleted=1');
+    // Block the route guard's ordinary signed-out redirect during deletion.
+    // A fresh document also discards any in-flight private workspace state.
+    setIsLoading(true);
+    window.location.replace('/login?accountDeleted=1');
   };
 
   const updateUserSession = (updates: Partial<UserSession>) => {

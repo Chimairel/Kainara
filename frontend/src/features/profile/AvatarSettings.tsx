@@ -3,7 +3,6 @@ import React, { useState } from 'react';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import Avatar, { FILIPINO_AVATAR_PRESETS } from '@/components/ui/Avatar';
-import GoogleSignInButton from '@/components/auth/GoogleSignInButton';
 import api from '@/lib/axios';
 import type { UserSession } from '@/lib/context/AuthContext';
 import { CheckCircle, AlertTriangle } from 'lucide-react';
@@ -18,19 +17,14 @@ export default function AvatarSettings({
   visible?: boolean;
 }) {
   // Avatar customization state
-  const defaultUserImage = user?.googleImage || null;
-  const initialSeed =
-    !user?.image || user.image.toLowerCase() === 'default' || user.image === defaultUserImage ? 'Default' : user.image;
+  const initialSeed = !user?.image || user.image.toLowerCase() === 'default' ? 'Default' : user.image;
   const [avatarSeed, setAvatarSeed] = useState(initialSeed);
   const [isSavingAvatar, setIsSavingAvatar] = useState(false);
   const [avatarMsg, setAvatarMsg] = useState<string | null>(null);
   const [avatarError, setAvatarError] = useState<string | null>(null);
   const [genderFilter, setGenderFilter] = useState<'all' | 'male' | 'female'>('all');
 
-  const isDefaultActive =
-    !avatarSeed ||
-    avatarSeed.toLowerCase() === 'default' ||
-    (Boolean(defaultUserImage) && avatarSeed === defaultUserImage);
+  const isDefaultActive = !avatarSeed || avatarSeed.toLowerCase() === 'default';
 
   const activePresetInfo = FILIPINO_AVATAR_PRESETS.find(
     (p) => !isDefaultActive && p.name.toLowerCase() === avatarSeed.toLowerCase()
@@ -58,9 +52,8 @@ export default function AvatarSettings({
       const res = await api.put('/user/profile/avatar', { image: payloadImage });
       if (res.data.success) {
         setAvatarMsg('Avatar updated successfully!');
-        const savedImage = res.data.data?.image ?? (isDefaultActive ? defaultUserImage : avatarSeed);
-        const googleImage = res.data.data?.googleImage ?? user?.googleImage;
-        updateUserSession({ image: savedImage, googleImage });
+        const savedImage = res.data.data?.image ?? payloadImage;
+        updateUserSession({ image: savedImage });
       }
     } catch {
       setAvatarError('Failed to save avatar.');
@@ -76,7 +69,7 @@ export default function AvatarSettings({
         <div className="flex flex-col items-center justify-center border-b border-brand-border/60 bg-brand-bgAlt/55 p-7 lg:border-b-0 lg:border-r">
           <Avatar
             size="lg"
-            src={isDefaultActive ? defaultUserImage || undefined : avatarSeed}
+            src={isDefaultActive ? undefined : avatarSeed}
             fallbackText={user.name}
             className="h-28 w-28 rounded-full shadow-xl"
           />
@@ -86,7 +79,7 @@ export default function AvatarSettings({
           <div className="mt-2 text-center">
             {isDefaultActive ? (
               <span className="inline-flex items-center gap-1 rounded-full bg-brand-green/10 border border-brand-green/25 px-2.5 py-0.5 text-[10px] font-bold text-brand-green">
-                Default · Google Account
+                Default · Initials
               </span>
             ) : activePresetInfo ? (
               <span
@@ -108,9 +101,7 @@ export default function AvatarSettings({
         <div className="p-5 sm:p-6">
           <div className="mb-5">
             <h2 className="font-display text-base font-black text-brand-text">Profile avatar</h2>
-            <p className="mt-1 text-xs text-brand-muted">
-              Choose your Google account photo, or select an authentic Filipino hand-drawn character.
-            </p>
+            <p className="mt-1 text-xs text-brand-muted">Choose your initials or a Filipino character.</p>
           </div>
           {avatarMsg && (
             <div className="mb-4 flex items-center gap-2 rounded-xl border border-status-verified-text/25 bg-status-verified-bg/10 p-3.5 text-xs font-bold text-status-verified-text">
@@ -164,12 +155,7 @@ export default function AvatarSettings({
                     : 'border-brand-border bg-brand-bgAlt text-brand-muted hover:border-brand-border/80 hover:text-brand-text'
                 }`}
               >
-                <Avatar
-                  size="sm"
-                  src={defaultUserImage || undefined}
-                  fallbackText={user.name}
-                  className="h-10 w-10 rounded-full"
-                />
+                <Avatar size="sm" fallbackText={user.name} className="h-10 w-10 rounded-full" />
                 <span className="mt-2 truncate w-full text-xs font-bold">Default</span>
               </button>
             )}
@@ -212,25 +198,6 @@ export default function AvatarSettings({
               Save Avatar
             </Button>
           </div>
-
-          {!defaultUserImage && (
-            <div className="mt-5 rounded-2xl border border-brand-border/60 bg-brand-bgAlt/50 p-4">
-              <div className="mb-3">
-                <p className="text-xs font-bold text-brand-text">Sync Google profile picture</p>
-                <p className="mt-0.5 text-[11px] leading-relaxed text-brand-muted">
-                  Sign in with Google once to import and use your real Google account profile photo under the{' '}
-                  <strong>Default</strong> option.
-                </p>
-                <p className="mt-1 text-[10px] text-brand-muted/80">
-                  💡 <em>Using Brave?</em> Toggle <strong>Brave Shields to OFF</strong> in your address bar if the
-                  Google profile picture does not load automatically.
-                </p>
-              </div>
-              <div className="max-w-xs">
-                <GoogleSignInButton label="continue_with" />
-              </div>
-            </div>
-          )}
         </div>
       </div>
     </Card>

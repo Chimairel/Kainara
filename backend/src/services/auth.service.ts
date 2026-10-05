@@ -316,13 +316,8 @@ export class AuthService {
         user = { ...user, emailVerified: true };
       }
 
-      // Update profile picture if they don't have one or it was default
-      if (
-        picture &&
-        (!user.image ||
-          user.image.toLowerCase() === 'default' ||
-          user.image.startsWith('https://lh3.googleusercontent.com'))
-      ) {
+      // Refresh an imported profile photo; preserve explicitly chosen initials/avatars.
+      if (picture && (!user.image || user.image.startsWith('https://lh3.googleusercontent.com'))) {
         await prisma.user.update({
           where: { id: user.id },
           data: { image: picture },

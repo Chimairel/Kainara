@@ -39,13 +39,9 @@ const router = Router();
 const accountDeletionSchema = z
   .object({
     password: z.string().min(8).max(128).optional(),
-    googleIdToken: z.string().min(20).max(8192).optional(),
     confirmation: z.union([z.literal('DELETE MY KAINARA ACCOUNT'), z.literal('DELETE MY NUTRIMIND ACCOUNT')]),
   })
-  .strict()
-  .refine((value) => Boolean(value.password || value.googleIdToken), {
-    message: 'Reauthenticate with your password or Google account.',
-  });
+  .strict();
 /**
  * Route: GET /api/user/profile
  * Description: Retrieves full profile and clinical state details.
@@ -325,7 +321,6 @@ router.delete('/account', validateZodBody(accountDeletionSchema), async (req: Au
   try {
     await UserPrivacyService.deleteAccount(req.user!.userId, {
       password: req.body.password,
-      googleIdToken: req.body.googleIdToken,
     });
     res.clearCookie('nutrimind_refresh', {
       httpOnly: true,

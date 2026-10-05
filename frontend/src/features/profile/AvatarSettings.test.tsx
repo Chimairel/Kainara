@@ -10,7 +10,7 @@ const customImage = 'https://api.dicebear.com/10.x/open-peeps/svg?seed=Saved';
 
 describe('shared avatar editor', () => {
   it.each(['USER', 'NUTRITIONIST', 'ADMIN'] as const)(
-    'preserves avatar selection, restores Google default, and updates session for %s',
+    'preserves avatar selection, saves initials without Google controls, and updates session for %s',
     async (role) => {
       const user: UserSession = {
         userId: 'fixture',
@@ -25,7 +25,7 @@ describe('shared avatar editor', () => {
         googleImage,
       };
       const updateUserSession = vi.fn();
-      vi.mocked(api.put).mockResolvedValue({ data: { success: true, data: { image: googleImage, googleImage } } });
+      vi.mocked(api.put).mockResolvedValue({ data: { success: true, data: { image: 'Default' } } });
       const { rerender } = render(<AvatarSettings user={user} updateUserSession={updateUserSession} />);
 
       // Seed input field and Avatar Studio must not exist
@@ -36,6 +36,7 @@ describe('shared avatar editor', () => {
       expect(screen.getByText(/Curated Filipino Avatars/i)).toBeInTheDocument();
       expect(screen.getByRole('button', { name: /Default/ })).toBeInTheDocument();
       expect(screen.getByRole('button', { name: /Chimay/ })).toBeInTheDocument();
+      expect(screen.queryByText(/Google/i)).not.toBeInTheDocument();
 
       // Switch visibility test
       rerender(<AvatarSettings user={user} updateUserSession={updateUserSession} visible={false} />);
@@ -45,7 +46,7 @@ describe('shared avatar editor', () => {
       fireEvent.click(screen.getByRole('button', { name: /Default/ }));
       fireEvent.click(screen.getByRole('button', { name: /Save Avatar/i }));
 
-      await waitFor(() => expect(updateUserSession).toHaveBeenCalledWith({ image: googleImage, googleImage }));
+      await waitFor(() => expect(updateUserSession).toHaveBeenCalledWith({ image: 'Default' }));
       expect(api.put).toHaveBeenCalledWith('/user/profile/avatar', { image: 'Default' });
     }
   );

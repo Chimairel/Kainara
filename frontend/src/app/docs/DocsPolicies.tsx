@@ -81,9 +81,10 @@ export const policyChapters: DocsChapter[] = [
         content: (
           <>
             <p>
-              You can export supported account data and request self-service deletion from Security & privacy after
-              reauthentication. Deletion may leave independent non-patient recipe records and limited audit evidence
-              needed for integrity. These terms do not remove rights granted by applicable Philippine law.
+              You can export supported account data and delete your account from Security & privacy while signed in.
+              Deletion requires typed confirmation and your current password if you have one. Deletion may leave
+              independent non-patient recipe records and limited audit evidence needed for integrity. These terms do not
+              remove rights granted by applicable Philippine law.
             </p>
             <p>
               Use your profile and account settings to correct details that affect planning. If you withdraw a clinical
@@ -186,9 +187,10 @@ export const policyChapters: DocsChapter[] = [
             <p>
               Clinical-document bytes are encrypted in storage by the application, and account APIs require
               authentication. No security measure removes all risk. You may update your profile, withdraw a document,
-              export supported records, or delete your account after reauthentication. A raw clinical file can be
-              downloaded separately while you own it. Backup and audit retention follows the service operator&apos;s
-              retention arrangements; these notices do not specify a universal deletion period. See the{' '}
+              export supported records, or delete your account while signed in after confirming the deletion. A raw
+              clinical file can be downloaded separately while you own it. Backup and audit retention follows the
+              service operator&apos;s retention arrangements; these notices do not specify a universal deletion period.
+              See the{' '}
               <a
                 href="https://privacy.gov.ph/data-subject-rights/"
                 className={inlineLink}
@@ -315,8 +317,9 @@ export const policyChapters: DocsChapter[] = [
               <Link href="/export" className={inlineLink}>
                 Export
               </Link>{' '}
-              page provides supported saved records. Self-service account deletion is available after reauthentication.
-              Read the Privacy Policy for the scope and limits of export and deletion.
+              page provides supported saved records. Self-service account deletion requires a signed-in session, typed
+              confirmation, and your current password if you have one. Read the Privacy Policy for the scope and limits
+              of export and deletion.
             </p>
             <p>
               Review an export before relying on it as a complete personal archive; some file bytes, such as an original

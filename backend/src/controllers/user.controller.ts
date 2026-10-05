@@ -1,4 +1,3 @@
-import { googleProfileImage } from '@/domain/google-profile-image';
 import { Response } from 'express';
 import bcrypt from 'bcryptjs';
 import prisma from '@/lib/prisma';
@@ -557,7 +556,7 @@ export class UserController {
   /**
    * PUT /api/user/profile/avatar
    * Updates User's avatar seed (stored in image field).
-   * If 'default' is passed, restores Google profile picture (if linked) or null.
+   * 'Default' persists the initials choice across subsequent sign-ins.
    */
   static async updateAvatar(req: AuthenticatedRequest, res: Response) {
     try {
@@ -573,26 +572,15 @@ export class UserController {
 
       let targetImage: string | null = typeof image === 'string' ? image.trim() : null;
       if (!targetImage || targetImage.toLowerCase() === 'default') {
-        // Look for user's linked Google OAuth photo
-        const googleAccount = await prisma.account.findFirst({
-          where: { userId, provider: 'google' },
-          select: { access_token: true },
-        });
-        targetImage = googleProfileImage(googleAccount?.access_token);
+        targetImage = 'Default';
       }
 
       const updatedUser = await UserService.updateUserImage(userId, targetImage);
-
-      const googleAccount = await prisma.account.findFirst({
-        where: { userId, provider: 'google' },
-        select: { access_token: true },
-      });
 
       return res.status(200).json({
         success: true,
         data: {
           image: updatedUser.image,
-          googleImage: googleProfileImage(googleAccount?.access_token),
         },
       });
     } catch (error: any) {

@@ -176,6 +176,15 @@ test('Google continuation preserves identity, access and creation boundaries', a
     assert.equal(users[0].emailVerified, false);
   });
 
+  await t.test('Google sign-in preserves explicitly selected initials', async () => {
+    reset();
+    claims.picture = 'https://lh3.googleusercontent.com/fixture-photo';
+    users.push(localUser({ image: 'Default' }));
+    const result = await AuthService.googleContinue(credential);
+    assert.equal(result.user.id, 'existing-user');
+    assert.equal(users[0].image, 'Default');
+  });
+
   await t.test('suspended users, pending invitations and mismatched subjects remain blocked', async () => {
     reset();
     users.push(localUser({ isSuspended: true }));
