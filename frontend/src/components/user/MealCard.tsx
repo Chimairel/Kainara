@@ -479,23 +479,6 @@ export default function MealCard({
                               <RefreshCw className="h-3.5 w-3.5 mr-1 text-amber-300" />
                               <span>Reset Status ({isCompleted ? 'Eaten' : 'Skipped'})</span>
                             </button>
-
-                            {onSwapClick && (
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setIsOpen(false);
-                                  onSwapClick(id);
-                                }}
-                                disabled={isPastDate}
-                                aria-label="Swap meal"
-                                className="inline-flex items-center justify-center gap-1.5 rounded-2xl bg-white/15 hover:bg-white/25 text-white px-3.5 py-2 text-xs font-bold backdrop-blur-md border border-white/25 hover:border-white/40 shadow-md shadow-black/30 active:scale-95 transition-all disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
-                                title={isPastDate ? 'Past scheduled meals cannot be swapped.' : undefined}
-                              >
-                                <RefreshCw className="h-3.5 w-3.5 text-white/90 animate-spin-hover" />
-                                <span>Swap Meal</span>
-                              </button>
-                            )}
                           </>
                         )}
                       </div>

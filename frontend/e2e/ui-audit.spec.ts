@@ -52,6 +52,74 @@ async function fixtureSession(page: Page, onboarded = false) {
 }
 
 for (const width of [390, 1440]) {
+  test(`logged meals hide swap until their status resets at ${width}px`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 900 });
+    await fixtureSession(page, true);
+    const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Manila' });
+    const cycle = {
+      id: 'reset-cycle',
+      planType: 'WEEKLY',
+      startDate: `${today}T00:00:00Z`,
+      endDate: `${today}T23:59:59Z`,
+      status: 'ACTIVE',
+    };
+    let status: 'DONE' | 'PENDING' = 'DONE';
+    let swapReads = 0;
+    await page.route('**/api/user/meals/workspace', (route) =>
+      route.fulfill({
+        json: {
+          success: true,
+          data: [
+            {
+              id: 'reset-slot',
+              planGroupId: cycle.id,
+              mealName: 'Reset fixture meal',
+              mealType: 'BREAKFAST',
+              scheduledDate: `${today}T04:00:00Z`,
+              status: 'APPROVED',
+              aiConfidenceFlag: 'SAFE',
+              calories: 500,
+              proteinG: 25,
+              carbsG: 60,
+              fatG: 18,
+              ingredients: [],
+              mealLogs: [{ id: 'reset-log', status }],
+            },
+          ],
+          meta: {
+            cycles: { current: cycle, upcoming: null },
+            generationStatus: { current: 'COMPLETED', upcoming: null },
+            pendingReview: null,
+          },
+        },
+      })
+    );
+    await page.route('**/api/user/meals/history*', (route) => route.fulfill({ json: { success: true, data: [] } }));
+    await page.route('**/api/user/meals/reset-slot/status', async (route) => {
+      expect(route.request().method()).toBe('PATCH');
+      expect(route.request().postDataJSON()).toEqual({ status: 'PENDING' });
+      status = 'PENDING';
+      await route.fulfill({ json: { success: true, data: { id: 'reset-log', status } } });
+    });
+    await page.route('**/api/user/meals/reset-slot/swap-options*', async (route) => {
+      swapReads++;
+      await route.fulfill({ json: { success: true, data: { swapOptions: [], swapsUsed: 0, swapCap: 3 } } });
+    });
+    await page.goto('/meals');
+    const open = page.getByRole('button', { name: 'Open Reset fixture meal details', exact: true });
+    await open.click();
+    await expect(page.getByRole('button', { name: 'Reset meal status', exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Swap meal', exact: true })).toHaveCount(0);
+    expect(swapReads).toBe(0);
+    await page.getByRole('button', { name: 'Reset meal status', exact: true }).click();
+    await expect(page.getByRole('button', { name: 'Reset meal status', exact: true })).toHaveCount(0);
+    await open.click();
+    await expect(page.getByRole('button', { name: 'Swap meal', exact: true })).toBeEnabled();
+    await page.getByRole('button', { name: 'Swap meal', exact: true }).click();
+    await expect(page.getByRole('dialog', { name: 'Swap Reset fixture meal', exact: true })).toBeVisible();
+    await expect.poll(() => swapReads).toBe(1);
+  });
+
   test(`dashboard preloads meals then groceries and reuses them on navigation at ${width}px`, async ({ page }) => {
     await page.setViewportSize({ width, height: 900 });
     await fixtureSession(page, true);

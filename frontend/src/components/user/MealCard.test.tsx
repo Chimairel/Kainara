@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import React from 'react';
 import { describe, expect, it, vi } from 'vitest';
 import MealCard from './MealCard';
@@ -56,6 +56,26 @@ describe('MealCard', () => {
 
     expect(screen.getByText('Skipped')).toBeInTheDocument();
   });
+
+  it.each(['DONE', 'SKIPPED'] as const)(
+    'hides swap for %s and restores it after the saved status resets',
+    async (status) => {
+      const onStatusToggle = vi.fn().mockResolvedValue(undefined);
+      const onSwapClick = vi.fn();
+      const props = { ...defaultProps, onStatusToggle, onSwapClick };
+      const { rerender } = render(<MealCard {...props} mealLogs={[{ id: 'log-1', status }]} />);
+      const open = () => fireEvent.click(screen.getByRole('button', { name: /open Sinigang na Hipon details/i }));
+      open();
+      expect(screen.queryByRole('button', { name: 'Swap meal' })).not.toBeInTheDocument();
+      fireEvent.click(screen.getByRole('button', { name: 'Reset meal status' }));
+      expect(onStatusToggle).toHaveBeenCalledWith('meal-1', 'PENDING');
+      await waitFor(() => expect(screen.queryByRole('button', { name: 'Reset meal status' })).not.toBeInTheDocument());
+      rerender(<MealCard {...props} mealLogs={[{ id: 'log-1', status: 'PENDING' }]} />);
+      open();
+      fireEvent.click(screen.getByRole('button', { name: 'Swap meal' }));
+      expect(onSwapClick).toHaveBeenCalledWith('meal-1');
+    }
+  );
 
   it('opens expandable modal and reveals details and ingredients on click', () => {
     render(<MealCard {...defaultProps} />);
