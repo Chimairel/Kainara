@@ -27,8 +27,7 @@ export type { MealHistoryLog, SwapOption } from './meals-workspace.types';
 
 const planResource = MEALS_WORKSPACE_RESOURCE;
 export function useMealsWorkspace(initialOptions?: { initialDateKey?: string | null }) {
-  const replanRequest = useRef<string | null>(null);
-  const regenerationInFlight = useRef(false);
+  const preparationInFlight = useRef(false);
   const repairInFlight = useRef(false);
   const [isRepairingRetired, setIsRepairingRetired] = useState(false);
   const { user } = useAuth();
@@ -49,8 +48,8 @@ export function useMealsWorkspace(initialOptions?: { initialDateKey?: string | n
     upcoming?: CycleMetaSnapshot | null;
   } | null>(cachedPlan?.cycles ?? null);
   const [isLoading, setIsLoading] = useState(!hasPlanData);
-  const [isRegenerating, setIsRegenerating] = useState(false);
-  const regenerationProgress = useMealGenerationProgress(isRegenerating);
+  const [isPreparing, setIsPreparing] = useState(false);
+  const preparationProgress = useMealGenerationProgress(isPreparing);
   const [error, setError] = useState<string | null>(null);
   const [clinicalEvidenceRequired, setClinicalEvidenceRequired] = useState(false);
   const [profileReviewRequired, setProfileReviewRequired] = useState(
@@ -485,45 +484,29 @@ export function useMealsWorkspace(initialOptions?: { initialDateKey?: string | n
     }
   };
 
-  // Triggers full 7-day meal plan regeneration
-  const handleRegeneratePlan = useCallback(
-    async (options?: { replaceExisting?: boolean; skipConfirm?: boolean }) => {
-      if (regenerationInFlight.current || pendingReview) return;
-
-      if (meals.length > 0 && !options?.skipConfirm) {
-        if (!confirm('Are you sure you want to cancel your current plan and generate a completely new 7-day AI plan?'))
-          return;
-      }
-
-      regenerationInFlight.current = true;
-      setIsRegenerating(true);
-      regenerationProgress.begin('Preparing a replacement weekly plan.');
-      setError(null);
-      try {
-        replanRequest.current ??= crypto.randomUUID();
-        const res = await api.post('/user/meals/generate', {
-          replaceExisting: options?.replaceExisting ?? meals.length > 0,
-          requestKey: replanRequest.current,
-        });
-        if (!res.data?.success) throw new Error('Could not regenerate the weekly plan.');
-        if (res.data.success) {
-          replanRequest.current = null;
-          regenerationProgress.complete('Your replacement plan is ready for review.');
-          await fetchMeals();
-        }
-      } catch (err: unknown) {
-        const msg = getApiErrorMessage(err, 'Gemini failed to regenerate weekly plan.');
-        if (axios.isAxiosError(err) && err.response?.data?.errorCode === 'PROFILE_REVIEW_REQUIRED')
-          setProfileReviewRequired(true);
-        regenerationProgress.fail(msg);
-        setError(msg);
-      } finally {
-        regenerationInFlight.current = false;
-        setIsRegenerating(false);
-      }
-    },
-    [pendingReview, meals.length, regenerationProgress, fetchMeals]
-  );
+  // Retry first preparation only; existing plans are changed through individual swaps.
+  const handleRetryPreparation = useCallback(async () => {
+    if (preparationInFlight.current || pendingReview || meals.length > 0) return;
+    preparationInFlight.current = true;
+    setIsPreparing(true);
+    preparationProgress.begin('Preparing your meal plan.');
+    setError(null);
+    try {
+      const res = await api.post('/user/meals/generate', {});
+      if (!res.data?.success) throw new Error('Could not prepare your meal plan.');
+      preparationProgress.complete('Your meal plan is ready.');
+      await fetchMeals();
+    } catch (err: unknown) {
+      const msg = getApiErrorMessage(err, 'Could not prepare your meal plan. Please try again.');
+      if (axios.isAxiosError(err) && err.response?.data?.code === 'PROFILE_REVIEW_REQUIRED')
+        setProfileReviewRequired(true);
+      preparationProgress.fail(msg);
+      setError(msg);
+    } finally {
+      preparationInFlight.current = false;
+      setIsPreparing(false);
+    }
+  }, [pendingReview, meals.length, preparationProgress, fetchMeals]);
 
   const retryMissingGeneration = async (cycleId: string) => {
     setIsRetryingMissing(true);
@@ -553,20 +536,14 @@ export function useMealsWorkspace(initialOptions?: { initialDateKey?: string | n
     }
   };
 
-  const autoRegeneratedRef = useRef(false);
   useEffect(() => {
-    if (typeof window === 'undefined' || autoRegeneratedRef.current) return;
-    try {
-      const params = new URLSearchParams(window.location.search);
-      if (params.get('regenerate') === 'true') {
-        autoRegeneratedRef.current = true;
-        window.history.replaceState({}, '', window.location.pathname);
-        handleRegeneratePlan({ replaceExisting: true, skipConfirm: true });
-      }
-    } catch {
-      // Safe fallback in non-browser environments
+    // Retired links must never trigger whole-plan replacement.
+    const url = new URL(window.location.href);
+    if (url.searchParams.has('regenerate')) {
+      url.searchParams.delete('regenerate');
+      window.history.replaceState(window.history.state, '', `${url.pathname}${url.search}${url.hash}`);
     }
-  }, [handleRegeneratePlan]);
+  }, []);
 
   const handleHistorySearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -726,8 +703,8 @@ export function useMealsWorkspace(initialOptions?: { initialDateKey?: string | n
     setActiveTab,
     meals,
     isLoading,
-    isRegenerating,
-    regenerationProgress,
+    isPreparing,
+    preparationProgress,
     error,
     clinicalEvidenceRequired,
     profileReviewRequired,
@@ -795,8 +772,8 @@ export function useMealsWorkspace(initialOptions?: { initialDateKey?: string | n
     handleSelectSwapOption,
     handleConfirmSwapAnyway,
     handleMealStatusToggle,
-    handleRegeneratePlan,
-    setIsRegenerating,
+    handleRetryPreparation,
+    setIsPreparing,
     handleHistorySearchSubmit,
     handleLibrarySearchSubmit,
     groupHistoryByDate,

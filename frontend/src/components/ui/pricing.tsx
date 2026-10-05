@@ -100,6 +100,15 @@ export default function Pricing({
     typeof document === 'undefined' ? null : (document.activeElement as HTMLElement | null)
   );
   const checkout = useMembershipCheckout();
+  const recommendedTier = checkout.professional
+    ? null
+    : !checkout.user
+      ? 'LIFESTYLE'
+      : checkout.membership?.enabled
+        ? checkout.membership.requiresCaseReview
+          ? 'HEALTH'
+          : 'LIFESTYLE'
+        : null;
   const summaryRef = useRef<HTMLElement>(null);
   useEffect(() => {
     if (checkout.quote) summaryRef.current?.focus();
@@ -149,9 +158,9 @@ export default function Pricing({
   const l = limits ?? {
     freeSwaps: 3,
     freeEstimates: 2,
-    memberSwaps: 6,
+    lifestyleSwaps: 10,
+    healthSwaps: 21,
     memberEstimates: 10,
-    memberReplans: 2,
     memberPlanReviews: 1,
     memberOutsideReviews: 1,
   };
@@ -171,7 +180,7 @@ export default function Pricing({
         'Save profile updates and correct mistakes',
         'Free first report and unchanged weekly report activation',
         `${l.freeSwaps} meal swaps per cycle`,
-        `${l.freeEstimates} AI estimates per Manila week`,
+        `${l.freeEstimates} AI estimates per week`,
         'Groceries, manual food logging and saved records',
       ],
     },
@@ -181,16 +190,15 @@ export default function Pricing({
       description: 'Adapt your everyday planning as your goals and routine change.',
       price: prices.LIFESTYLE.MONTHLY / 100,
       yearlyPrice: prices.LIFESTYLE.YEARLY / 100,
-      popular: true,
+      popular: recommendedTier === 'LIFESTYLE',
       buttonText: buttonLabel('LIFESTYLE'),
       featuresHeading: 'Everything in Free, plus:',
       features: [
         'Apply changes to biometrics, activity, goals and food preferences',
         'Apply shopping-day changes through your nutrition report',
         'Progress insights and adaptive weekly check-ins',
-        `${l.memberSwaps} meal swaps per cycle`,
-        `${l.memberEstimates} AI estimates per Manila week`,
-        `${l.memberReplans} optional replans per Manila week`,
+        `${l.lifestyleSwaps} meal swaps per cycle`,
+        `${l.memberEstimates} AI estimates per week`,
       ],
     },
     {
@@ -199,14 +207,15 @@ export default function Pricing({
       description: 'Case planning and bounded nutritionist review for declared health needs.',
       price: prices.HEALTH.MONTHLY / 100,
       yearlyPrice: prices.HEALTH.YEARLY / 100,
-      popular: false,
+      popular: recommendedTier === 'HEALTH',
       buttonText: buttonLabel('HEALTH'),
       featuresHeading: 'Everything in Lifestyle, plus:',
       features: [
+        `${l.healthSwaps} meal swaps per cycle`,
         'Apply changes to conditions, allergies and health restrictions',
         'New case plans subject to required clearance',
-        `${l.memberPlanReviews} case plan-review episode per target week`,
-        `${l.memberOutsideReviews} requested outside-meal review episode per Manila week`,
+        `${l.memberPlanReviews} nutritionist plan review${l.memberPlanReviews === 1 ? '' : 's'} per week`,
+        `${l.memberOutsideReviews} outside food review${l.memberOutsideReviews === 1 ? '' : 's'} per week`,
         'Follow-up on an existing admitted review',
       ],
     },
@@ -289,7 +298,7 @@ export default function Pricing({
             customVariants={revealVariants}
             className="text-sm sm:text-base leading-relaxed max-w-2xl text-brand-muted"
           >
-            Your first 14 days include the Health plan. Free general planning continues with your saved report. Choose
+            Your first 30 days include the Health plan. Free general planning continues with your saved report. Choose
             Lifestyle for changing goals or Health for case planning and nutritionist review.
           </TimelineContent>
 
@@ -313,9 +322,6 @@ export default function Pricing({
           </TimelineContent>
         </article>
 
-        <p className="mb-3 text-xs text-brand-muted">
-          Demo checkout uses PayMongo test mode. No real charges or automatic renewal.
-        </p>
         {checkout.professional && (
           <p className="mb-3 text-xs text-brand-muted">Membership plans are for personal accounts.</p>
         )}
@@ -340,7 +346,7 @@ export default function Pricing({
             </p>
             <p className="text-sm">
               {checkout.quote.action === 'AFTER_TRIAL'
-                ? 'Your current Health plan continues. The purchased plan starts after these 14 days end.'
+                ? 'Your current Health plan continues. The purchased plan starts after these 30 days end.'
                 : checkout.quote.action === 'DOWNGRADE'
                   ? 'Your Health benefits continue until your current paid period ends. Lifestyle starts afterwards.'
                   : checkout.quote.action === 'RENEW'
@@ -398,6 +404,8 @@ export default function Pricing({
                   customVariants={revealVariants}
                 >
                   <Card
+                    role="article"
+                    aria-label={`${plan.name} plan`}
                     className={cn(
                       'relative h-full flex flex-col justify-between rounded-3xl transition-all duration-200 overflow-hidden',
                       plan.popular
@@ -510,8 +518,7 @@ export default function Pricing({
         )}
 
         <p className="mt-6 text-center text-xs text-brand-muted max-w-2xl mx-auto">
-          A report confirmation is not nutritionist approval. Case clearance and safety requirements still apply. Test
-          payment access is only available in the development payment sandbox.
+          Weekly allowances reset every Monday at midnight (Philippine time). Meal swaps renew with each plan cycle.
         </p>
       </div>
     </div>

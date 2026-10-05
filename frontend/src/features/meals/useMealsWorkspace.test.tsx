@@ -39,6 +39,7 @@ function successfulResponseFor(url: string) {
 
 describe('useMealsWorkspace', () => {
   beforeEach(() => {
+    window.history.replaceState({}, '', '/meals');
     clearSessionResourceCache();
     getMock.mockReset();
     postMock.mockReset();
@@ -115,7 +116,7 @@ describe('useMealsWorkspace', () => {
     expect(result.current.error).toBeNull();
   });
 
-  it('honors an explicit replacement even when every old meal was hidden, and coalesces repeated clicks', async () => {
+  it('retries initial preparation without replacing a plan, and coalesces repeated clicks', async () => {
     const { result } = renderHook(() => useMealsWorkspace());
     await waitFor(() => expect(result.current.isLoading).toBe(false));
     let resolvePayment: ((value: unknown) => void) | undefined;
@@ -127,16 +128,32 @@ describe('useMealsWorkspace', () => {
     );
     let first: Promise<void>;
     act(() => {
-      first = result.current.handleRegeneratePlan({ replaceExisting: true, skipConfirm: true });
+      first = result.current.handleRetryPreparation();
     });
-    await act(async () => result.current.handleRegeneratePlan({ replaceExisting: true, skipConfirm: true }));
+    await act(async () => result.current.handleRetryPreparation());
     expect(postMock).toHaveBeenCalledTimes(1);
-    expect(postMock.mock.calls[0][1].replaceExisting).toBe(true);
+    expect(postMock).toHaveBeenCalledWith('/user/meals/generate', {});
     await act(async () => {
       resolvePayment?.({ data: { success: true } });
       await first!;
     });
-    expect(result.current.isRegenerating).toBe(false);
+    expect(result.current.isPreparing).toBe(false);
+  });
+
+  it('does not replace existing meals when preparation is retried', async () => {
+    getMock.mockResolvedValue({ data: { success: true, data: [{ id: 'existing' }], meta: {} } });
+    const { result } = renderHook(() => useMealsWorkspace());
+    await waitFor(() => expect(result.current.meals).toHaveLength(1));
+    await act(async () => result.current.handleRetryPreparation());
+    expect(postMock).not.toHaveBeenCalled();
+  });
+
+  it('ignores retired regeneration links and preserves other query parameters', async () => {
+    window.history.replaceState({}, '', '/meals?regenerate=true&date=2026-10-05');
+    const { result } = renderHook(() => useMealsWorkspace());
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    expect(window.location.search).toBe('?date=2026-10-05');
+    expect(postMock).not.toHaveBeenCalled();
   });
 
   it('loads history and library only when their tabs are opened', async () => {
@@ -526,17 +543,17 @@ describe('useMealsWorkspace', () => {
   it.each([
     ['request failure', () => Promise.reject(new Error('Request timed out'))],
     ['unsuccessful response', () => Promise.resolve({ data: { success: false } })],
-  ])('clears regeneration loading and permits retry after %s', async (_name, response) => {
+  ])('clears preparation loading and permits retry after %s', async (_name, response) => {
     postMock.mockImplementationOnce(response);
     const { result } = renderHook(() => useMealsWorkspace());
     await waitFor(() => expect(result.current.isLoading).toBe(false));
-    await act(async () => result.current.handleRegeneratePlan({ skipConfirm: true }));
-    expect(result.current.isRegenerating).toBe(false);
+    await act(async () => result.current.handleRetryPreparation());
+    expect(result.current.isPreparing).toBe(false);
     expect(result.current.error).toBeTruthy();
     postMock.mockResolvedValueOnce({ data: { success: true } });
-    await act(async () => result.current.handleRegeneratePlan({ skipConfirm: true }));
+    await act(async () => result.current.handleRetryPreparation());
     expect(postMock).toHaveBeenCalledTimes(2);
-    expect(result.current.isRegenerating).toBe(false);
+    expect(result.current.isPreparing).toBe(false);
     expect(result.current.error).toBeNull();
   });
 });

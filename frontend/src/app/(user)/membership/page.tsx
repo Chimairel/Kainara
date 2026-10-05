@@ -61,9 +61,9 @@ function MembershipContent() {
   const fallbackLimits = {
     freeSwaps: 3,
     freeEstimates: 2,
-    memberSwaps: 6,
+    lifestyleSwaps: 10,
+    healthSwaps: 21,
     memberEstimates: 10,
-    memberReplans: 2,
     memberPlanReviews: 1,
     memberOutsideReviews: 1,
   };

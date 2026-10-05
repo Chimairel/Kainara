@@ -10,10 +10,10 @@ const current = {
   tier: 'HEALTH',
   serverTime: '2026-10-03T00:00:00Z',
   trialStartedAt: '2026-10-01T13:02:00Z',
-  trialEndsAt: '2026-10-15T13:02:00Z',
+  trialEndsAt: '2026-10-31T13:02:00Z',
   paidUntil: null,
   scheduledMemberships: [
-    { id: 'next', tier: 'LIFESTYLE', effectiveFrom: '2026-10-15T13:02:00Z', effectiveUntil: '2026-11-15T13:02:00Z' },
+    { id: 'next', tier: 'LIFESTYLE', effectiveFrom: '2026-10-31T13:02:00Z', effectiveUntil: '2026-11-30T13:02:00Z' },
   ],
 } as Extract<MembershipView, { enabled: true }>;
 
@@ -25,7 +25,7 @@ describe('membership period calendar', () => {
     expect(screen.getByText('September 2026')).toBeInTheDocument();
     rerender(
       <PlanCalendarCard
-        data={{ ...current, trialStartedAt: '2026-11-01T13:02:00Z', trialEndsAt: '2026-11-15T13:02:00Z' }}
+        data={{ ...current, trialStartedAt: '2026-11-01T13:02:00Z', trialEndsAt: '2026-11-30T13:02:00Z' }}
       />
     );
     expect(screen.getByText('November 2026')).toBeInTheDocument();
@@ -39,7 +39,7 @@ describe('membership period calendar', () => {
     expect(screen.queryByText(/trial/i)).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole('combobox'));
     fireEvent.click(screen.getByRole('option', { name: /Next: Lifestyle/ }));
-    expect(screen.getByText('November 15, 2026')).toBeInTheDocument();
+    expect(screen.getByText('November 30, 2026')).toBeInTheDocument();
     expect(screen.getByText(/no additional charge is needed/)).toBeInTheDocument();
     fireEvent.click(screen.getByRole('combobox'));
     fireEvent.click(screen.getByRole('option', { name: 'Current: Health' }));

@@ -4,8 +4,8 @@ import { expect, test, type Page } from '@playwright/test';
 async function setup(page: Page, scenario: 'trial' | 'scheduled' | 'upgrade') {
   const now = Date.now();
   const start = new Date(now - 86400000).toISOString();
-  const end = new Date(now + 7 * 86400000).toISOString();
-  const nextEnd = new Date(now + 37 * 86400000).toISOString();
+  const end = new Date(now + 29 * 86400000).toISOString();
+  const nextEnd = new Date(now + 59 * 86400000).toISOString();
   const owner = 'transition-browser-fixture';
   const payload = Buffer.from(
     JSON.stringify({
@@ -105,14 +105,14 @@ async function setup(page: Page, scenario: 'trial' | 'scheduled' | 'upgrade') {
         limits: {
           freeSwaps: 3,
           freeEstimates: 2,
-          memberSwaps: 6,
+          lifestyleSwaps: 10,
+          healthSwaps: 21,
           memberEstimates: 10,
-          memberReplans: 2,
           memberPlanReviews: 1,
           memberOutsideReviews: 1,
         },
-        swaps: { used: 1, cap: 6, remaining: 5 },
-        usage: { AI_ESTIMATE: usage, REPLAN: usage, PLAN_REVIEW: usage, OUTSIDE_REVIEW: usage },
+        swaps: { used: 1, cap: scenario === 'upgrade' ? 10 : 21, remaining: scenario === 'upgrade' ? 9 : 20 },
+        usage: { AI_ESTIMATE: usage, PLAN_REVIEW: usage, OUTSIDE_REVIEW: usage },
         transitions: {
           current:
             scenario === 'upgrade'
@@ -190,7 +190,7 @@ for (const width of [1440, 390]) {
     await period.selectOption('next');
     await expect(page.getByText(/Already paid. This plan starts automatically/)).toBeVisible();
     await period.selectOption('current');
-    await expect(page.getByText(/Health is active for 14 days/)).toBeVisible();
+    await expect(page.getByText(/Health is active for 30 days/)).toBeVisible();
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
     expect(errors).toEqual([]);
   });

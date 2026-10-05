@@ -1,4 +1,5 @@
 import prisma from '@/lib/prisma';
+import { assertMemberPlanPreparation } from '@/domain/membership.policy';
 
 import { PlanType, MealPlanGenerationJobStatus, MealPlanCycleStatus, Prisma } from '@prisma/client';
 
@@ -46,19 +47,11 @@ export class MealGenerationService {
     now: Date = new Date(),
     options: { replaceExisting?: boolean; requestKey?: string } = {}
   ): Promise<string> {
+    assertMemberPlanPreparation(options.replaceExisting);
     await ClinicalEvidenceService.assertReadyForMealPlanning(userId);
     await ClinicalProfileReviewService.assertReadyForMealPlanning(userId);
     const currentCycle = await MealPlanCycleService.getCurrentCycle(userId, now);
-    if (currentCycle) {
-      if (!options.replaceExisting) return currentCycle.id;
-      const numDays = Math.round((currentCycle.endDate.getTime() - currentCycle.startDate.getTime()) / 86_400_000) + 1;
-      return MealGenerationService.generateWindowOnce(
-        userId,
-        { planType: currentCycle.planType, numDays, startDate: currentCycle.startDate },
-        true,
-        options.requestKey
-      );
-    }
+    if (currentCycle) return currentCycle.id;
 
     const { profile } = await loadPlanningNutritionContext(prisma, userId, 'Profile missing.');
     const window = getOnDemandMealPlanWindow(
@@ -178,8 +171,6 @@ export class MealGenerationService {
       endDate,
     });
     if (existing && !replaceExisting) return existing;
-    const replay = await MembershipService.replayedPlan(userId, requestKey, window.startDate);
-    if (replay) return replay;
     await MembershipService.assertNewPlan(userId, window.startDate);
 
     let job = null;

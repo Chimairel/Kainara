@@ -20,7 +20,7 @@ async function main() {
   const { MealPlanCycleService } = await import('../src/services/meal-plan-cycle.service');
   const { UserProfileService } = await import('../src/services/user-profile.service');
   const { MealLogService } = await import('../src/services/meal-log.service');
-  const { membershipWeek } = await import('../src/domain/membership.policy');
+  const { membershipWeek, MEMBERSHIP_TRIAL_DAYS } = await import('../src/domain/membership.policy');
   const { getManilaDateKey, getManilaMidnight, getScheduledMealDate, getMealPlanCycleTiming } =
     await import('../src/domain/meal-plan-cycle.policy');
   const { default: router } = await import('../src/routes/membership.routes');
@@ -28,8 +28,8 @@ async function main() {
   const ids: string[] = [];
   const now = new Date();
   const day = getManilaMidnight(getManilaDateKey(now));
-  const past = new Date(now.getTime() - 30 * 86_400_000);
-  const expired = new Date(now.getTime() - 15 * 86_400_000);
+  const past = new Date(now.getTime() - (MEMBERSHIP_TRIAL_DAYS + 2) * 86_400_000);
+  const expired = new Date(now.getTime() - (MEMBERSHIP_TRIAL_DAYS + 1) * 86_400_000);
   let server: ReturnType<express.Express['listen']> | undefined;
   const create = async (role: 'USER' | 'ADMIN' | 'NUTRITIONIST' = 'USER') => {
     const id = `membership-fixture-${randomUUID()}`;
@@ -263,11 +263,10 @@ async function main() {
       errorCode: 'MEMBERSHIP_USAGE_LIMIT',
     });
     assert.equal(await prisma.membershipUsage.count({ where: { userId: member, feature: 'REPLAN' } }), 0);
-    const replan = await prisma.$transaction((tx) =>
-      membership.reserve(member, 'REPLAN', 'replan-retry', day.toISOString(), tx)
+    await assert.rejects(
+      prisma.$transaction((tx) => membership.reserve(member, 'REPLAN', 'retired-replan', day.toISOString(), tx)),
+      { errorCode: 'PLAN_REPLACEMENT_UNAVAILABLE' }
     );
-    await membership.complete(replan!.id, prisma, 'committed-cycle');
-    assert.equal(await membership.replayedPlan(member, 'replan-retry', day), 'committed-cycle');
     await prisma.membershipGrant.update({ where: { id: grant.id }, data: { revokedAt: new Date() } });
     assert.equal((await membership.state(member)).level, 'FREE');
     // Admitted episode follow-up can finish after expiry, without a second credit.

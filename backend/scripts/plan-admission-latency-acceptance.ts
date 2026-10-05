@@ -79,16 +79,15 @@ async function main() {
     assert.equal(failure?.status === 'rejected' && failure.reason.errorCode, 'MEMBERSHIP_REQUEST_IN_PROGRESS');
     assert.equal(await prisma.membershipUsage.count({ where: { userId: concurrent } }), 1);
 
-    // Two-feature preference replans remain atomic; a review cap failure cannot
-    // leave behind a spent replan reservation.
+    // Internal rebuilds retain case-review admission without creating replan reservations.
     const replan = await create();
     const reservations = await membership.admitPlan(replan, day, true, 'replan-job', 'replan-key');
-    assert.equal(reservations.length, 2);
+    assert.equal(reservations.length, 1);
     for (const row of reservations) await membership.complete(row.id);
     await assert.rejects(membership.admitPlan(replan, day, true, 'other-job', 'other-key'), {
       errorCode: 'MEMBERSHIP_USAGE_LIMIT',
     });
-    assert.equal(await prisma.membershipUsage.count({ where: { userId: replan, feature: 'REPLAN' } }), 1);
+    assert.equal(await prisma.membershipUsage.count({ where: { userId: replan, feature: 'REPLAN' } }), 0);
     assert.equal(await prisma.membershipUsage.count({ where: { userId: replan, feature: 'PLAN_REVIEW' } }), 1);
 
     // Expired case access remains blocked, while admitted safety repair is free.
@@ -96,8 +95,8 @@ async function main() {
     await prisma.membershipAccount.create({
       data: {
         userId: expired,
-        createdAt: new Date(now.getTime() - 30 * 86_400_000),
-        trialStartedAt: new Date(now.getTime() - 30 * 86_400_000),
+        createdAt: new Date(now.getTime() - 31 * 86_400_000),
+        trialStartedAt: new Date(now.getTime() - 31 * 86_400_000),
       },
     });
     await assert.rejects(membership.admitPlan(expired, day, false, 'expired-job'), {

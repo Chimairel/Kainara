@@ -83,7 +83,7 @@ test('unchanged dated reports compare actual context, not client flags or dates'
 });
 test('Lifestyle has planning allowances and zero new review allowance', () => {
   assert.equal(membershipFeatureCap('AI_ESTIMATE', true, undefined, false), 10);
-  assert.equal(membershipFeatureCap('REPLAN', true, undefined, false), 2);
+  assert.equal(membershipFeatureCap('REPLAN', true, undefined, false), 0);
   assert.equal(membershipFeatureCap('PLAN_REVIEW', true, undefined, false), 0);
   assert.equal(membershipFeatureCap('OUTSIDE_REVIEW', true, undefined, false), 0);
   assert.equal(membershipFeatureCap('PLAN_REVIEW', true, undefined, true), 1);

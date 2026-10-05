@@ -19,7 +19,7 @@ async function main() {
   UpcomingPlanPreparationService.triggerNonBlocking = () => {};
   const ids: string[] = [];
   const now = new Date();
-  const past = new Date(now.getTime() - 30 * 86_400_000);
+  const past = new Date(now.getTime() - 31 * 86_400_000);
   const future = new Date(now.getTime() + 30 * 86_400_000);
   const create = async () => {
     const id = `report-tier-fixture-${randomUUID()}`;
@@ -168,7 +168,7 @@ async function main() {
       where: { id: trialHealth.id },
       data: { effectiveUntil: new Date(now.getTime() + 60000) },
     });
-    assert.equal((await membership.state(pending)).healthUntil!.getTime(), trialStart.getTime() + 14 * 86_400_000);
+    assert.equal((await membership.state(pending)).healthUntil!.getTime(), trialStart.getTime() + 30 * 86_400_000);
     // A Health grant cannot borrow the later expiry of an overlapping Lifestyle grant.
     const shortHealth = await grant(user, 'HEALTH');
     const shortEnd = new Date(now.getTime() + 60_000);

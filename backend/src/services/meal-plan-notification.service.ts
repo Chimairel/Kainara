@@ -2,7 +2,7 @@ import { NotificationService } from './notification.service';
 import { MealPlanStatus, NotificationType, PlanType } from '@prisma/client';
 import prisma from '@/lib/prisma';
 
-/** Notifications follow the plan commit. Their failure must not undo a plan or spend another replan credit. */
+/** Notifications follow the plan commit. Their failure must not undo a plan or spend another review allowance. */
 export async function notifyPreparedPlan(
   userId: string,
   planType: PlanType,

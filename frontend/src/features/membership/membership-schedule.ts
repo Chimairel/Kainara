@@ -19,8 +19,8 @@ export function membershipSchedules(data: Extract<MembershipView, { enabled: tru
           end: data.trialEndsAt,
           message:
             data.level === 'TRIAL_PENDING'
-              ? 'Health starts when your first usable plan is available. Your 14 days have not started.'
-              : 'Health is active for 14 days. Moving to a full weekly meal plan does not restart this period.',
+              ? 'Health starts when your first usable plan is available. Your 30 days have not started.'
+              : 'Health is active for 30 days. Moving to a full weekly meal plan does not restart this period.',
         }
       : data.level === 'MEMBER'
         ? {

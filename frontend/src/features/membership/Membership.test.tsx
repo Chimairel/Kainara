@@ -1,7 +1,8 @@
-import { act, fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import MembershipGate from './MembershipGate';
 import MembershipNotice from './MembershipNotice';
+import Pricing from '@/components/ui/pricing';
 import MembershipPage from '@/app/(user)/membership/page';
 import type { MembershipView } from './MembershipProvider';
 
@@ -36,8 +37,8 @@ function view(): Extract<MembershipView, { enabled: true }> {
     enhanced: true,
     requiresCaseReview: false,
     serverTime: '2026-10-01T00:00:00.000Z',
-    trialStartedAt: '2026-09-19T00:00:00.000Z',
-    trialEndsAt: '2026-10-03T00:00:00.000Z',
+    trialStartedAt: '2026-09-02T00:00:00.000Z',
+    trialEndsAt: '2026-10-02T00:00:00.000Z',
     paidUntil: null,
     resetsAt: '2026-10-04T16:00:00.000Z',
     purchasesAvailable: false,
@@ -46,19 +47,18 @@ function view(): Extract<MembershipView, { enabled: true }> {
     limits: {
       freeSwaps: 3,
       freeEstimates: 2,
-      memberSwaps: 6,
+      lifestyleSwaps: 10,
+      healthSwaps: 21,
       memberEstimates: 10,
-      memberReplans: 2,
       memberPlanReviews: 1,
       memberOutsideReviews: 1,
     },
     usage: {
       AI_ESTIMATE: { used: 4, cap: 10, remaining: 6 },
-      REPLAN: { used: 0, cap: 2, remaining: 2 },
       PLAN_REVIEW: { used: 0, cap: 1, remaining: 1 },
       OUTSIDE_REVIEW: { used: 0, cap: 1, remaining: 1 },
     },
-    swaps: { used: 1, cap: 6, remaining: 5 },
+    swaps: { used: 1, cap: 21, remaining: 20 },
   };
 }
 beforeEach(() => {
@@ -77,6 +77,8 @@ describe('membership status and gates', () => {
   it('keeps plans out of the allowance view and opens the shared accessible plan dialog', () => {
     render(<MembershipPage />);
     expect(screen.getByText('6 of 10 left')).toBeInTheDocument();
+    expect(screen.getByText('20 of 21 left')).toBeInTheDocument();
+    expect(screen.queryByText('Replans')).not.toBeInTheDocument();
     expect(screen.getByRole('meter', { name: 'AI estimates used' })).toHaveAttribute('aria-valuenow', '4');
     expect(screen.getByRole('meter', { name: 'AI estimates used' })).toHaveAttribute('aria-valuemax', '10');
     expect(screen.queryByRole('button', { name: 'Get Lifestyle', hidden: true })).not.toBeInTheDocument();
@@ -84,12 +86,51 @@ describe('membership status and gates', () => {
     expect(screen.getByRole('dialog', { name: 'Membership plans' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Get Lifestyle' })).toBeEnabled();
     expect(screen.getByRole('button', { name: 'Get Health' })).toBeEnabled();
+    expect(
+      within(screen.getByRole('article', { name: 'Lifestyle plan' })).getByText('Recommended')
+    ).toBeInTheDocument();
+    expect(
+      within(screen.getByRole('article', { name: 'Health plan' })).queryByText('Recommended')
+    ).not.toBeInTheDocument();
+    expect(screen.getByText('10 meal swaps per cycle')).toBeInTheDocument();
+    expect(screen.getByText('21 meal swaps per cycle')).toBeInTheDocument();
+    expect(screen.queryByText(/optional replans/i)).not.toBeInTheDocument();
+    expect(screen.getByText('10 AI estimates per week')).toBeInTheDocument();
+    expect(screen.getByText('1 nutritionist plan review per week')).toBeInTheDocument();
+    expect(screen.getByText('1 outside food review per week')).toBeInTheDocument();
+    expect(screen.getByText(/Monday at midnight \(Philippine time\)/)).toBeInTheDocument();
+    expect(
+      screen.queryByText(/per Manila week|development payment sandbox|Demo checkout uses/i)
+    ).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Close' }));
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  });
+  it('recommends Health for declared restrictions and updates when the current profile no longer needs case review', () => {
+    state.data = { ...view(), requiresCaseReview: true };
+    const rendered = render(<MembershipPage />);
+    fireEvent.click(screen.getAllByRole('button', { name: 'View plans' })[0]);
+    expect(within(screen.getByRole('article', { name: 'Health plan' })).getByText('Recommended')).toBeInTheDocument();
+    expect(
+      within(screen.getByRole('article', { name: 'Lifestyle plan' })).queryByText('Recommended')
+    ).not.toBeInTheDocument();
+    state.data = { ...view(), requiresCaseReview: false };
+    rendered.rerender(<MembershipPage />);
+    expect(
+      within(screen.getByRole('article', { name: 'Lifestyle plan' })).getByText('Recommended')
+    ).toBeInTheDocument();
+    expect(
+      within(screen.getByRole('article', { name: 'Health plan' })).queryByText('Recommended')
+    ).not.toBeInTheDocument();
+  });
+  it('does not guess a member recommendation when membership profile data is unavailable', () => {
+    state.data = { enabled: false };
+    render(<Pricing />);
+    expect(screen.queryByText('Recommended')).not.toBeInTheDocument();
   });
   it('explains waiting for a usable plan rather than starting the trial during review', () => {
     state.data = { ...view(), level: 'TRIAL_PENDING', trialStartedAt: null, trialEndsAt: null };
     render(<MembershipPage />);
+    expect(screen.getByText(/Your 30-day Health plan starts/)).toBeInTheDocument();
     expect(screen.getByText(/A starter plan counts; waiting for review does not/)).toBeInTheDocument();
   });
   it('gates progress after expiry and preserves links to existing records', () => {

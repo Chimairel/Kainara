@@ -97,15 +97,14 @@ async function setup(page: Page, safetyChanged = false) {
         limits: {
           freeSwaps: 3,
           freeEstimates: 2,
-          memberSwaps: 6,
+          lifestyleSwaps: 10,
+          healthSwaps: 21,
           memberEstimates: 10,
-          memberReplans: 2,
           memberPlanReviews: 1,
           memberOutsideReviews: 1,
         },
         usage: {
           AI_ESTIMATE: { used: 0, cap: 2, remaining: 2 },
-          REPLAN: { used: 0, cap: 0, remaining: 0 },
           PLAN_REVIEW: { used: 0, cap: 0, remaining: 0 },
           OUTSIDE_REVIEW: { used: 0, cap: 0, remaining: 0 },
         },
@@ -119,12 +118,29 @@ for (const width of [320, 390, 1440]) {
     await page.setViewportSize({ width, height: 900 });
     await setup(page);
     await page.goto('/membership?tab=plans');
+    await expect(page.getByText('Replans', { exact: true })).toHaveCount(0);
     await expect(page.getByRole('heading', { name: 'Lifestyle', exact: true })).toBeVisible();
     await expect(page.getByRole('heading', { name: 'Health', exact: true })).toBeVisible();
     await expect(page.getByRole('dialog', { name: 'Membership plans' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Get Lifestyle' })).toBeEnabled();
     await expect(page.getByRole('button', { name: 'Get Health' })).toBeEnabled();
+    await expect(page.getByText('10 meal swaps per cycle', { exact: true })).toBeVisible();
+    await expect(page.getByText('21 meal swaps per cycle', { exact: true })).toBeVisible();
+    await expect(
+      page.getByRole('article', { name: 'Lifestyle plan' }).getByText('Recommended', { exact: true })
+    ).toBeVisible();
+    await expect(
+      page.getByRole('article', { name: 'Health plan' }).getByText('Recommended', { exact: true })
+    ).toHaveCount(0);
+    await expect(page.getByText('10 AI estimates per week', { exact: true })).toBeVisible();
+    await expect(page.getByText(/Your first 30 days include the Health plan/)).toBeVisible();
+    await expect(page.getByText(/Weekly allowances reset every Monday at midnight/)).toBeVisible();
+    await expect(page.getByText(/per Manila week|development payment sandbox|Demo checkout uses/)).toHaveCount(0);
+    await expect(page.getByText(/optional replans/i)).toHaveCount(0);
     await page.getByRole('button', { name: 'Close', exact: true }).click();
+    await expect(page.getByRole('meter')).toHaveCount(4);
+    await page.locator('[aria-label="Allowances and usage statistics"]').scrollIntoViewIfNeeded();
+    await page.screenshot({ path: test.info().outputPath('membership.png'), fullPage: true });
     await expect(page.getByRole('status', { name: 'Profile planning status' })).toContainText('3 weeks ago');
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBe(true);
     await page.getByRole('button', { name: 'Complete check-in' }).click();
@@ -145,4 +161,17 @@ test('new health disclosures offer Health without an older-report bypass', async
   await expect(page.getByRole('dialog', { name: 'Health membership needed' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Keep my previous planning report' })).toHaveCount(0);
   await expect(page.getByRole('link', { name: 'Continue to my saved records' })).toHaveAttribute('href', '/export');
+});
+
+test('declared health needs recommend Health on the plan comparison', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 900 });
+  await setup(page, true);
+  await page.goto('/membership?tab=plans');
+  await expect(
+    page.getByRole('article', { name: 'Health plan' }).getByText('Recommended', { exact: true })
+  ).toBeVisible();
+  await expect(
+    page.getByRole('article', { name: 'Lifestyle plan' }).getByText('Recommended', { exact: true })
+  ).toHaveCount(0);
+  await expect(page.getByText(/Your first 30 days include the Health plan/)).toBeVisible();
 });

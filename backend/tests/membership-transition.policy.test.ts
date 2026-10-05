@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
+import { resolveMembershipLevel } from '../src/domain/membership.policy';
 import { quoteTransition, transitionTimeline, type PaidPeriod } from '../src/domain/membership-transition.policy';
 
 const at = new Date('2026-10-15T12:00:00Z');
@@ -75,4 +76,13 @@ test('pending trial, scheduled payment and legacy overlapping dates block checko
   assert.throws(() => quote({ periods: [lifestyle, { ...lifestyle, id: 'duplicate' }] }), /reconciliation/);
   assert.equal(transitionTimeline([lifestyle, next], at).conflict, false);
   assert.throws(() => quote({ periods: [lifestyle], trialEndsAt: new Date('2026-10-20T12:00:00Z') }), /reconciliation/);
+});
+
+test('a new purchase starts after the full 30-day Health trial', () => {
+  const trial = resolveMembershipLevel({ at, trialStartedAt: new Date('2026-10-01T12:00:00Z'), paidUntil: null });
+  assert.equal(trial.level, 'TRIAL');
+  const result = quote({ trialEndsAt: trial.trialEndsAt });
+  assert.equal(result.action, 'AFTER_TRIAL');
+  assert.equal(result.startsAt, '2026-10-31T12:00:00.000Z');
+  assert.equal(result.endsAt, '2026-11-30T12:00:00.000Z');
 });

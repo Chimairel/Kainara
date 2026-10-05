@@ -53,7 +53,7 @@ function WeeklyPlanPageContent() {
     setActiveTab,
     meals,
     isLoading,
-    isRegenerating,
+    isPreparing,
     error,
     clinicalEvidenceRequired,
     profileReviewRequired,
@@ -89,7 +89,7 @@ function WeeklyPlanPageContent() {
     handleSwapClick,
     refreshingSwapMealId,
     handleMealStatusToggle,
-    handleRegeneratePlan,
+    handleRetryPreparation,
     handleHistorySearchSubmit,
     groupHistoryByDate,
     groupedDays,
@@ -187,10 +187,10 @@ function WeeklyPlanPageContent() {
     <MealPlanEmptyState
       error={error}
       generationStatus={activeGenerationStatus}
-      isRegenerating={isRegenerating}
+      isRegenerating={isPreparing}
       awaitingGenerationCount={awaitingGenerationCount}
       onRetryLoad={() => void retryPlanLoad()}
-      onRetryPreparation={() => void handleRegeneratePlan()}
+      onRetryPreparation={() => void handleRetryPreparation()}
     />
   );
 

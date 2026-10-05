@@ -86,7 +86,7 @@ export default function MembershipPlanHeader({ data, onOpenPlans, onRefresh }: M
           {/* Plan validity description */}
           <p className="text-xs sm:text-sm leading-relaxed text-[#5a746a] dark:text-white/70">
             {data.level === 'TRIAL_PENDING'
-              ? 'Your 14-day Health plan starts when your first cleared current plan is available. A starter plan counts; waiting for review does not.'
+              ? 'Your 30-day Health plan starts when your first cleared current plan is available. A starter plan counts; waiting for review does not.'
               : data.level === 'MEMBER' && data.paidUntil
                 ? `Membership active until ${formatMembershipDateTime(data.paidUntil)}.${
                     data.tier === 'HEALTH' && data.healthUntil

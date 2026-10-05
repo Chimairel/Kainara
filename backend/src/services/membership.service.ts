@@ -1,10 +1,13 @@
-import { createHash, randomUUID } from 'node:crypto';
-import { Prisma, MembershipFeature } from '@prisma/client';
+import { createHash } from 'node:crypto';
+import { Prisma } from '@prisma/client';
 import prisma from '@/lib/prisma';
 import { AppError } from '@/errors/AppError';
 import { resolveBillingEntitlement } from '@/domain/billing-entitlement.policy';
 import { adaptUserSafetyRestrictions } from '@/domain/structured-restriction.adapter';
 import {
+  assertMemberPlanPreparation,
+  ACTIVE_MEMBERSHIP_FEATURES,
+  membershipSwapCap,
   membershipEnabled,
   membershipFeatureCap,
   membershipLimits,
@@ -198,24 +201,11 @@ export class MembershipService {
     );
   }
 
-  static async replayedPlan(userId: string, key: string | undefined, startsAt: Date) {
-    if (!membershipEnabled() || !key) return null;
-    const prior = await prisma.membershipUsage.findUnique({
-      where: {
-        userId_feature_requestKey: { userId, feature: 'REPLAN', requestKey: key },
-      },
-    });
-    if (!prior) return null;
-    if (prior.payloadHash !== createHash('sha256').update(startsAt.toISOString()).digest('hex'))
-      throw new AppError('This request key belongs to a different plan week.', 409, 'REQUEST_KEY_COLLISION');
-    return prior.completedAt ? prior.resultEntityId : null;
-  }
-
   static async assertSwap(userId: string, cycleId: string, client: Client) {
     if (!membershipEnabled()) return;
     const state = await this.state(userId, new Date(), client);
     const limits = membershipLimits();
-    const cap = state.enhanced ? limits.memberSwaps : limits.freeSwaps;
+    const cap = membershipSwapCap(state, limits);
     const cycle = await client.mealPlanCycle.findFirstOrThrow({
       where: { id: cycleId, userId },
       select: { startDate: true, planType: true },
@@ -242,6 +232,7 @@ export class MembershipService {
     at = new Date(),
     targetWeekAt?: Date
   ) {
+    if (feature === 'REPLAN') assertMemberPlanPreparation(true);
     if (!membershipEnabled()) return null;
     await lockUserProfile(client, userId);
     const state = await this.state(userId, at, client);
@@ -289,7 +280,7 @@ export class MembershipService {
     if (used >= cap)
       throw new AppError(
         cap === 0
-          ? `${feature === 'REPLAN' ? 'Lifestyle or Health' : 'Health'} membership is required. Follow-up on an existing review remains available.`
+          ? 'Health membership is required. Follow-up on an existing review remains available.'
           : `Your weekly ${feature.toLowerCase().replace(/_/g, ' ')} allowance is used. It resets ${window.end.toISOString()}.`,
         cap === 0 ? 403 : 429,
         cap === 0 ? 'MEMBERSHIP_REQUIRED' : 'MEMBERSHIP_USAGE_LIMIT'
@@ -338,26 +329,11 @@ export class MembershipService {
         const reservations: Array<{ id: string; replayed: boolean }> = [];
         const safetyRepair = await this.isSafetyRepair(userId, startsAt, tx, at);
         if (state.requiresCaseReview && !safetyRepair) this.assertCasePlanAccess(state, startsAt);
-        if (replaceExisting) {
-          // Safety replacement is not a discretionary replan. Never spend a credit to repair a safety gate.
-          if (!safetyRepair) {
-            const row = await this.reserveWithLockedState(
-              userId,
-              'REPLAN',
-              requestKey ?? `${jobId}:${randomUUID()}`,
-              startsAt.toISOString(),
-              tx,
-              state,
-              at
-            );
-            if (row) reservations.push(row);
-          }
-        }
         if (state.requiresCaseReview && !safetyRepair) {
           const week = membershipWeek(startsAt);
-          // Replacing a case plan by preference starts new review work. Only repair/follow-up
-          // on the admitted episode is free; an optional replan cannot reuse its review credit.
-          const key = `plan:${week.start.toISOString()}${replaceExisting ? `:replan:${requestKey ?? jobId}` : ''}`;
+          // Internal rebuilds keep case-review admission; admitted safety repair remains free.
+          // Members change individual meals through swaps, without replan credits.
+          const key = `plan:${week.start.toISOString()}${replaceExisting ? `:replacement:${requestKey ?? jobId}` : ''}`;
           const row = await this.reserveWithLockedState(userId, 'PLAN_REVIEW', key, key, tx, state, at, startsAt);
           if (row && !row.replayed) reservations.push(row);
         }
@@ -378,7 +354,7 @@ export class MembershipService {
     });
     const limits = membershipLimits();
     const usage = Object.fromEntries(
-      Object.values(MembershipFeature).map((feature) => {
+      ACTIVE_MEMBERSHIP_FEATURES.map((feature) => {
         const cap = membershipFeatureCap(feature, state.enhanced, limits, state.healthAccess);
         const used = rows.find((row) => row.feature === feature)?._count._all ?? 0;
         return [feature, { used, cap, remaining: Math.max(0, cap - used) }];
@@ -399,7 +375,7 @@ export class MembershipService {
           where: { mealPlan: { userId, cycle: { userId, startDate: cycle.startDate, planType: cycle.planType } } },
         })
       : 0;
-    const swapsCap = state.enhanced ? limits.memberSwaps : limits.freeSwaps;
+    const swapsCap = membershipSwapCap(state, limits);
     const checkoutConfig = testCheckoutConfig();
     const scheduledMemberships = checkoutConfig
       ? await prisma.membershipTestCheckout.findMany({

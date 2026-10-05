@@ -13,12 +13,12 @@ export const membershipChapter: DocsChapter = {
   sections: [
     {
       id: 'membership-trial',
-      title: 'Your 14-day trial',
+      title: 'Your 30-day trial',
       content: (
         <>
           <p>
             The trial begins when your first cleared current plan becomes available. A starter plan is included in these
-            14 days; moving to a full weekly plan does not restart the trial. Waiting for profile or meal review and a
+            30 days; moving to a full weekly plan does not restart the trial. Waiting for profile or meal review and a
             future plan do not start the clock.
           </p>
           <p>
@@ -62,11 +62,10 @@ export const membershipChapter: DocsChapter = {
           </p>
           <p>
             Saving profile changes is free. Applying ordinary measurement, activity, goal, preference or shopping
-            changes to planning requires Lifestyle or Health after the trial. Optional replans and progress insights
-            also require Lifestyle or Health. Declared conditions or allergies require Health for updated case context
-            and new case plans after the trial. Existing eligible active cycles can finish; previously submitted review
-            and clarification work remains available. New safety declarations still invalidate conflicting meals
-            immediately.
+            changes to planning requires Lifestyle or Health after the trial. Progress insights also require Lifestyle
+            or Health. Declared conditions or allergies require Health for updated case context and new case plans after
+            the trial. Existing eligible active cycles can finish; previously submitted review and clarification work
+            remains available. New safety declarations still invalidate conflicting meals immediately.
           </p>
         </>
       ),
@@ -102,17 +101,17 @@ export const membershipChapter: DocsChapter = {
         <>
           <p>
             Lifestyle and Health have bounded allowances. The initial free allowances are 3 swaps per plan cycle and 2
-            AI estimate requests per week. Lifestyle initially includes 6 swaps, 10 AI estimate requests and 2 optional
-            replans per week. Health includes these benefits plus 1 plan-review episode and 1 requested outside-meal
-            review episode per week. The trial includes Health benefits. The Membership screen shows the current
-            configured limits.
+            AI estimate requests per week. Lifestyle includes 10 swaps per plan cycle and 10 AI estimate requests per
+            week. Health includes 21 swaps per cycle, plus 1 plan-review episode per target week and 1 requested
+            outside-meal review episode per week. The trial includes Health benefits. The Membership screen shows the
+            current configured limits.
           </p>
           <p>
-            Estimate, optional replan and requested outside-review weeks reset Monday at midnight in Manila. Swaps
-            follow each plan cycle; plan-review episodes follow the target plan week. One outside-review episode covers
-            the items in one logged meal. Failed operations and retries do not spend additional credits. Safety checks
-            and follow-up needed to finish an already admitted review do not spend another review allowance. An optional
-            case replan needs a new plan-review allowance as well as a replan allowance.
+            Estimate and requested outside-review weeks reset Monday at midnight in Manila. Swaps follow each plan
+            cycle; plan-review episodes follow the target plan week. One outside-review episode covers the items in one
+            logged meal. Failed operations and retries do not spend additional credits. Safety checks and follow-up
+            needed to finish an already admitted review do not spend another review allowance. Change individual meals
+            through swaps; whole-plan replacement is not a member action.
           </p>
           <p>
             Professional review is scoped to the recorded meal, serving and current health context. It can approve,

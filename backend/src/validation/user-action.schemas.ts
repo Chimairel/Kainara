@@ -20,7 +20,13 @@ export const updateMealLogNotesBodySchema = z
   .strict();
 
 export const mealGenerationBodySchema = z
-  .object({ replaceExisting: z.boolean().optional(), requestKey: z.string().min(8).max(200).optional() })
+  .object({
+    replaceExisting: z
+      .boolean()
+      .refine((value) => !value, 'To change your plan, swap individual meals instead.')
+      .optional(),
+    requestKey: z.string().min(8).max(200).optional(),
+  })
   .strict();
 
 const outsideMealNutritionSchema = z

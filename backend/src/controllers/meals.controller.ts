@@ -8,7 +8,6 @@ import { missingMealSlots } from '@/domain/meal-generation-gap.policy';
 import { unavailablePlanMeals } from '@/domain/unavailable-plan-meals.policy';
 import { buildPendingMealPlanPreview, summarizeGeneratedMealPlan } from '@/domain/meal-generation-result.policy';
 import { AppError } from '@/errors/AppError';
-import { membershipEnabled } from '@/domain/membership.policy';
 import prisma from '@/lib/prisma';
 import { sanitizeErrorMessage } from '@/lib/sanitizeError';
 import { CurrentPlanPreparationService } from '@/services/current-plan-preparation.service';
@@ -59,12 +58,6 @@ export class MealsController {
       }
 
       console.log('[MealsController] Starting authenticated meal plan generation.');
-      if (
-        membershipEnabled() &&
-        req.body.replaceExisting === true &&
-        (typeof req.body.requestKey !== 'string' || req.body.requestKey.length < 8 || req.body.requestKey.length > 200)
-      )
-        throw new AppError('Provide a request key for this replacement plan.', 400, 'REPLAN_REQUEST_KEY_REQUIRED');
       const planGroupId = await MealGenerationService.generatePlanForUser(userId, new Date(), {
         replaceExisting: req.body.replaceExisting === true,
         requestKey: req.body.requestKey,

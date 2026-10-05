@@ -24,7 +24,10 @@ test('[TEST-150] user action schemas reject unknown, empty, and oversized input'
 
 test('[TEST-151] user action schemas normalize valid boundary input', () => {
   assert.deepEqual(mealGenerationBodySchema.parse({}), {});
-  assert.deepEqual(mealGenerationBodySchema.parse({ replaceExisting: true }), { replaceExisting: true });
+  assert.deepEqual(mealGenerationBodySchema.parse({ replaceExisting: false }), { replaceExisting: false });
+  const replacement = mealGenerationBodySchema.safeParse({ replaceExisting: true });
+  assert.equal(replacement.success, false);
+  if (!replacement.success) assert.match(replacement.error.issues[0].message, /swap individual meals/i);
   assert.deepEqual(mealStatusBodySchema.parse({ status: 'DONE', notes: '  Ate with brown rice  ' }), {
     status: 'DONE',
     notes: 'Ate with brown rice',

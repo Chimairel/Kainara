@@ -76,11 +76,11 @@ describe('nutrition report lifecycle', () => {
     expect(mocks.post).toHaveBeenCalledWith('/user/nutrition-report/acknowledge', { version: 3 });
     expect(mocks.get.mock.calls.filter(([path]) => path === '/user/nutrition-report')).toHaveLength(1);
   });
-  it('continues an explicit regeneration request only after acknowledgment succeeds', async () => {
+  it('opens meals after acknowledging a legacy continuation without requesting replacement', async () => {
     window.history.replaceState({}, '', '/profile/nutrition-report?next=regenerate');
     render(<NutritionReportWorkspace />);
     fireEvent.click(await screen.findByRole('button', { name: 'Use this report for meal planning' }));
-    await waitFor(() => expect(mocks.push).toHaveBeenCalledWith('/meals?regenerate=true'));
+    await waitFor(() => expect(mocks.push).toHaveBeenCalledWith('/meals'));
   });
   it('continues first-time onboarding to the dashboard only after acknowledgment succeeds', async () => {
     window.history.replaceState({}, '', '/nutrition-report?next=dashboard');

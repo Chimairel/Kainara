@@ -238,7 +238,7 @@ export default function NutritionReportPage() {
           : readiness?.canRequestPlan === false
             ? readiness.actionPath
             : next === 'regenerate'
-              ? '/meals?regenerate=true'
+              ? '/meals'
               : '/dashboard'
       );
     } catch (err) {

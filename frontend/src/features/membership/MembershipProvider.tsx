@@ -60,13 +60,13 @@ export type MembershipView =
       limits: {
         freeSwaps: number;
         freeEstimates: number;
-        memberSwaps: number;
+        lifestyleSwaps: number;
+        healthSwaps: number;
         memberEstimates: number;
-        memberReplans: number;
         memberPlanReviews: number;
         memberOutsideReviews: number;
       };
-      usage: Record<'AI_ESTIMATE' | 'REPLAN' | 'PLAN_REVIEW' | 'OUTSIDE_REVIEW', Allowance>;
+      usage: Record<'AI_ESTIMATE' | 'PLAN_REVIEW' | 'OUTSIDE_REVIEW', Allowance>;
       swaps: Allowance;
     };
 type Context = { data: MembershipView | null; isLoading: boolean; error: string | null; refresh: () => void };

@@ -38,18 +38,6 @@ export default function PlanStatisticsCard({ data, onOpenPlans }: PlanStatistics
         borderColor: 'border-orange-500/30',
       },
       {
-        id: 'replan',
-        name: 'Replans',
-        cadence: 'Weekly',
-        used: data.usage.REPLAN.used,
-        cap: data.usage.REPLAN.cap,
-        remaining: data.usage.REPLAN.remaining,
-        // Sky Blue theme
-        numColor: 'text-sky-600 dark:text-sky-400',
-        barGradient: 'from-sky-600 to-sky-500',
-        borderColor: 'border-sky-500/30',
-      },
-      {
         id: 'plan_review',
         name: 'Plan reviews',
         cadence: 'Target week',
@@ -110,7 +98,7 @@ export default function PlanStatisticsCard({ data, onOpenPlans }: PlanStatistics
         </div>
 
         <div className="pt-4 pb-1">
-          <div className="grid grid-cols-5 gap-1.5 sm:gap-3 text-center">
+          <div className="grid grid-cols-4 gap-1.5 sm:gap-3 text-center">
             {stats.map((item) => (
               <div key={item.id} className="flex flex-col items-center">
                 <span
@@ -128,7 +116,7 @@ export default function PlanStatisticsCard({ data, onOpenPlans }: PlanStatistics
             <div className="h-1.5 w-full rounded-full bg-[#dce4e0] dark:bg-[#173e33] shadow-[0_4px_8px_-1px_rgba(0,0,0,0.18)] dark:shadow-[0_4px_8px_-1px_rgba(0,0,0,0.5)]" />
           </div>
 
-          <div className="grid grid-cols-5 gap-1.5 sm:gap-3 items-end pt-1">
+          <div className="grid grid-cols-4 gap-1.5 sm:gap-3 items-end pt-1">
             {stats.map((item) => {
               // Percentage calculation
               const rawPct = item.cap > 0 ? (item.used / item.cap) * 100 : 0;
