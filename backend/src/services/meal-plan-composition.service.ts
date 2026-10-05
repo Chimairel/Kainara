@@ -1,7 +1,7 @@
 import { dailyTargetMap } from './meal-macro-context.service';
 import { mealMacroBudget, type NutritionVector } from '@/domain/meal-macro-target.policy';
 import { planningSlotNutritionScore } from '@/domain/swap-nutrition-fit.policy';
-import { savePreparedCorpusMeal } from './meal-plan-corpus-persistence.service';
+import { savePreparedCorpusMeals } from './meal-plan-corpus-persistence.service';
 import { buildComposedServing, composedNutritionTotal, scaleFnriFoodToGrams } from '@/domain/composed-serving.policy';
 import { resolveRecipeRiceRole } from '@/domain/recipe-rice-role.policy';
 import { resolveReplacementServing } from './meal-swap-serving.service';
@@ -773,9 +773,10 @@ export async function generate7DayPlan(
         }
       }
 
-      for (const meal of preparedAiMeals) {
-        createdPlansList.push(
-          await savePreparedCorpusMeal(tx, {
+      createdPlansList.push(
+        ...(await savePreparedCorpusMeals(
+          tx,
+          preparedAiMeals.map((meal) => ({
             meal,
             autoGeneralBase: Boolean(meal.rawCandidateId && unrestrictedBaseIds.has(meal.rawCandidateId)),
             sourceEvidence: meal.rawCandidateId ? sourceById.get(meal.rawCandidateId) : undefined,
@@ -797,9 +798,9 @@ export async function generate7DayPlan(
               meal.mealType,
               { score: meal.rankingScore, reasonCodes: meal.rankingReasonCodes, servingScale: meal.servingScale }
             ) as unknown as Prisma.InputJsonValue,
-          })
-        );
-      }
+          }))
+        ))
+      );
       for (const id of membershipReservationIds) await MembershipService.complete(id, tx, newPlanGroupId);
     },
     { timeout: 30000 }
