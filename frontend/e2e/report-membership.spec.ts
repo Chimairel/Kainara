@@ -253,6 +253,57 @@ for (const width of [320, 400, 768, 1024, 1280, 1440]) {
     }
   });
 }
+for (const width of [320, 358, 390, 768, 1440]) {
+  test(`plans controls preserve keyboard focus without click rings or heading overlap at ${width}px`, async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width, height: 808 });
+    await setup(page);
+    await page.goto('/membership');
+    const viewPlans = page.getByRole('button', { name: 'View plans', exact: true }).first();
+    await expect(viewPlans).toBeVisible();
+    await viewPlans.hover();
+    const buttonShadow = await viewPlans.evaluate((node) => getComputedStyle(node).boxShadow);
+    await viewPlans.click();
+    const plans = page.getByRole('dialog', { name: 'Membership plans' });
+    await expect(plans).toBeVisible();
+    const close = plans.getByRole('button', { name: 'Close', exact: true });
+    await expect(close).toBeFocused();
+    expect(await close.evaluate((node) => node.matches(':focus-visible'))).toBe(false);
+    const closeShadow = await close.evaluate((node) => getComputedStyle(node).boxShadow);
+    const title = plans.getByRole('heading', { name: "We've got a plan that's perfect for you" });
+    const titleBounds = (await title.boundingBox())!;
+    const closeBounds = (await close.boundingBox())!;
+    expect(
+      titleBounds.x < closeBounds.x + closeBounds.width &&
+        titleBounds.x + titleBounds.width > closeBounds.x &&
+        titleBounds.y < closeBounds.y + closeBounds.height &&
+        titleBounds.y + titleBounds.height > closeBounds.y
+    ).toBe(false);
+    if (width < 640) expect(titleBounds.y).toBeGreaterThanOrEqual(closeBounds.y + closeBounds.height + 8);
+    await expect.poll(() => plans.evaluate((node) => node.scrollWidth <= node.clientWidth + 1)).toBe(true);
+    await page.screenshot({ path: test.info().outputPath('plans-header.png') });
+    await close.click();
+    await expect(plans).toHaveCount(0);
+    await expect(viewPlans).toBeFocused();
+    expect(await viewPlans.evaluate((node) => node.matches(':focus-visible'))).toBe(false);
+    await expect.poll(() => viewPlans.evaluate((node) => getComputedStyle(node).boxShadow)).toBe(buttonShadow);
+
+    await page.keyboard.press('Shift+Tab');
+    await page.keyboard.press('Tab');
+    await expect(viewPlans).toBeFocused();
+    expect(await viewPlans.evaluate((node) => node.matches(':focus-visible'))).toBe(true);
+    await expect.poll(() => viewPlans.evaluate((node) => getComputedStyle(node).boxShadow)).not.toBe(buttonShadow);
+    await page.keyboard.press('Enter');
+    await expect(close).toBeFocused();
+    expect(await close.evaluate((node) => node.matches(':focus-visible'))).toBe(true);
+    await expect.poll(() => close.evaluate((node) => getComputedStyle(node).boxShadow)).not.toBe(closeShadow);
+    await page.keyboard.press('Escape');
+    await expect(plans).toHaveCount(0);
+    await expect(viewPlans).toBeFocused();
+  });
+}
+
 for (const width of [320, 390, 1440]) {
   test(`Free, Lifestyle and Health remain usable at ${width}px`, async ({ page }) => {
     await page.setViewportSize({ width, height: 900 });

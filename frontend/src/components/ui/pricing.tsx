@@ -269,15 +269,20 @@ export default function Pricing({
           type="button"
           onClick={onClose}
           aria-label="Close"
-          className="fixed top-4 right-4 sm:top-6 sm:right-6 z-[110] flex h-10 w-10 items-center justify-center rounded-full bg-brand-surface/90 hover:bg-brand-surface text-brand-text border border-brand-border/80 transition-all shadow-lg backdrop-blur-md focus:outline-none focus:ring-2 focus:ring-brand-accent cursor-pointer"
+          className="fixed top-4 right-4 sm:top-6 sm:right-6 z-[110] flex h-10 w-10 items-center justify-center rounded-full bg-brand-surface/90 hover:bg-brand-surface text-brand-text border border-brand-border/80 transition-all shadow-lg backdrop-blur-md focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-accent cursor-pointer"
         >
           <X className="h-5 w-5 stroke-[2.5]" />
         </button>
       )}
 
-      <div className="w-full max-w-7xl mx-auto pt-2 sm:pt-4">
+      <div className={cn('w-full max-w-7xl mx-auto', isFullScreenModal && onClose ? 'pt-14 sm:pt-4' : 'pt-2 sm:pt-4')}>
         {/* Header Section */}
-        <article className="text-center sm:text-left mb-8 space-y-3 max-w-3xl">
+        <article
+          className={cn(
+            'text-center sm:text-left mb-8 space-y-3 max-w-3xl',
+            isFullScreenModal && onClose && 'sm:pr-14 lg:pr-0'
+          )}
+        >
           <h2 className="text-3xl sm:text-4xl md:text-5xl font-display font-extrabold tracking-tight text-brand-text">
             <VerticalCutReveal
               splitBy="words"
@@ -401,7 +406,7 @@ export default function Pricing({
 
         {/* 3 Plans Grid */}
         {!checkout.quote && (
-          <div className="grid md:grid-cols-3 gap-5 py-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-5 py-4">
             {plans.map((plan, index) => {
               const isCurrent = currentTier === plan.tier;
               return (
@@ -423,9 +428,9 @@ export default function Pricing({
                     )}
                   >
                     <CardHeader className="text-left p-6 sm:p-7">
-                      <div className="flex items-start justify-between gap-2">
+                      <div className="flex flex-wrap items-start justify-between gap-2">
                         <div>
-                          <div className="flex items-baseline gap-1.5">
+                          <div className="flex flex-wrap items-baseline gap-1.5">
                             <h3 className="text-2xl sm:text-3xl font-display font-bold text-brand-text">{plan.name}</h3>
                             <span className="text-xs font-semibold uppercase tracking-wider text-brand-muted font-mono">
                               Plan
