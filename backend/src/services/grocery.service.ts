@@ -434,6 +434,7 @@ export class GroceryService {
         await tx.$executeRaw`
         UPDATE "GroceryItem"
         SET "isChecked" = ${checked},
+            "isPantryStaple" = false,
             "purchasedQuantity" = CASE WHEN ${checked} THEN COALESCE("quantity", 0) ELSE 0 END
         WHERE "groceryListId" = ${first.groceryList.id} AND "id" IN (${Prisma.join(ids)})
       `;
@@ -470,7 +471,10 @@ export class GroceryService {
         });
         if (!item) throw new Error('Shopping list changed. Refresh before recording a purchase.');
         await this.assertListActionableForShopping(tx, userId, item.groceryList);
-        const state = checklistPurchaseState(item.quantity, !item.isChecked);
+        const state = {
+          ...checklistPurchaseState(item.quantity, !(item.isChecked || item.isPantryStaple)),
+          isPantryStaple: false,
+        };
         if (
           !item.groceryList.cycle.shoppingStartedAt &&
           item.groceryList.cycle.status !== MealPlanCycleStatus.PREPARING &&

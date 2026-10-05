@@ -76,9 +76,9 @@ describe('grocery checklist', () => {
     fireEvent.click(next);
     expect(screen.getByText('No grocery list for next week yet')).toBeInTheDocument();
     expect(next).toHaveAttribute('aria-pressed', 'true');
-    expect(screen.queryByRole('checkbox', { name: 'Mark as bought: Rice' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('checkbox', { name: 'Mark as available: Rice' })).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Current week' }));
-    expect(screen.getByRole('checkbox', { name: 'Mark as bought: Rice' })).toBeInTheDocument();
+    expect(screen.getByRole('checkbox', { name: 'Mark as available: Rice' })).toBeInTheDocument();
     expect(get).toHaveBeenCalledTimes(1);
     expect(patch).not.toHaveBeenCalled();
     expect(api.post).not.toHaveBeenCalled();
@@ -87,8 +87,8 @@ describe('grocery checklist', () => {
   it('checks a measured item without reloading the workspace', async () => {
     patch.mockResolvedValue({ data: { success: true, data: { ...rice, isChecked: true, purchasedQuantity: 100 } } });
     render(<GroceryListPage />);
-    fireEvent.click(await screen.findByRole('checkbox', { name: 'Mark as bought: Rice' }));
-    await waitFor(() => expect(screen.getByRole('checkbox', { name: 'Mark as not bought: Rice' })).not.toBeDisabled());
+    fireEvent.click(await screen.findByRole('checkbox', { name: 'Mark as available: Rice' }));
+    await waitFor(() => expect(screen.getByRole('checkbox', { name: 'Mark as needed: Rice' })).not.toBeDisabled());
     expect(patch).toHaveBeenCalledWith('/user/grocery/items/rice/toggle');
     expect(get).toHaveBeenCalledTimes(1);
   });
@@ -115,8 +115,8 @@ describe('grocery checklist', () => {
     });
     patch.mockResolvedValue({ data: { success: true, data: { ...salt, isChecked: true } } });
     render(<GroceryListPage />);
-    fireEvent.click(await screen.findByRole('checkbox', { name: 'Mark as bought: Salt' }));
-    await waitFor(() => expect(screen.getByRole('checkbox', { name: 'Mark as not bought: Salt' })).not.toBeDisabled());
+    fireEvent.click(await screen.findByRole('checkbox', { name: 'Mark as available: Salt' }));
+    await waitFor(() => expect(screen.getByRole('checkbox', { name: 'Mark as needed: Salt' })).not.toBeDisabled());
     expect(patch).toHaveBeenCalledWith('/user/grocery/items/salt/toggle');
   });
 
@@ -131,8 +131,10 @@ describe('grocery checklist', () => {
       },
     });
     render(<GroceryListPage />);
-    fireEvent.click(await screen.findByRole('checkbox', { name: 'Mark all visible items purchased' }));
-    await waitFor(() => expect(screen.getByRole('checkbox', { name: 'Uncheck all visible items' })).not.toBeDisabled());
+    fireEvent.click(await screen.findByRole('checkbox', { name: 'Mark all visible items as available' }));
+    await waitFor(() =>
+      expect(screen.getByRole('checkbox', { name: 'Mark all visible items as needed' })).not.toBeDisabled()
+    );
     expect(patch).toHaveBeenCalledTimes(1);
     expect(patch).toHaveBeenCalledWith('/user/grocery/items/checklist', {
       itemIds: ['rice', 'salt'],
@@ -143,17 +145,48 @@ describe('grocery checklist', () => {
   it('restores an item and shows the error when the server rejects a toggle', async () => {
     patch.mockRejectedValue({ response: { data: { error: 'Shopping list changed' } } });
     render(<GroceryListPage />);
-    fireEvent.click(await screen.findByRole('checkbox', { name: 'Mark as bought: Rice' }));
+    fireEvent.click(await screen.findByRole('checkbox', { name: 'Mark as available: Rice' }));
     expect(await screen.findByText('Shopping list changed')).toBeInTheDocument();
-    expect(screen.getByRole('checkbox', { name: 'Mark as bought: Rice' })).not.toBeDisabled();
+    expect(screen.getByRole('checkbox', { name: 'Mark as available: Rice' })).not.toBeDisabled();
+  });
+
+  it('shows saved pantry stock as available and clears it through the checkbox', async () => {
+    const stocked = { ...salt, isPantryStaple: true };
+    get.mockResolvedValueOnce({
+      data: {
+        success: true,
+        data: {
+          ...workspace,
+          current: {
+            ...workspace.current,
+            groceryList: {
+              ...workspace.current!.groceryList!,
+              groceryItems: [rice, stocked],
+            },
+          },
+        },
+      },
+    });
+    patch.mockResolvedValue({ data: { success: true, data: salt } });
+    render(<GroceryListPage />);
+    expect(await screen.findByRole('checkbox', { name: 'Mark as needed: Salt' })).toBeChecked();
+    expect(screen.getByText('1 of 2 items ready')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /Have it/ }));
+    expect(screen.queryByRole('checkbox', { name: 'Mark as available: Rice' })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Mark as needed: Salt' }));
+    await waitFor(() => expect(patch).toHaveBeenCalledWith('/user/grocery/items/salt/toggle'));
+    fireEvent.click(screen.getByRole('button', { name: /To Buy/ }));
+    await waitFor(() => expect(screen.getByRole('checkbox', { name: 'Mark as available: Salt' })).not.toBeDisabled());
+    expect(screen.getByRole('checkbox', { name: 'Mark as available: Salt' })).not.toBeChecked();
+    expect(screen.getByText('0 of 2 items ready')).toBeInTheDocument();
   });
 
   it('clears the previous account’s grocery rows before the next account loads', async () => {
     const { rerender } = render(<GroceryListPage />);
-    expect(await screen.findByRole('checkbox', { name: 'Mark as bought: Rice' })).toBeInTheDocument();
+    expect(await screen.findByRole('checkbox', { name: 'Mark as available: Rice' })).toBeInTheDocument();
     get.mockImplementationOnce(() => new Promise(() => {}));
     authState.userId = 'another-user';
     rerender(<GroceryListPage />);
-    expect(screen.queryByRole('checkbox', { name: 'Mark as bought: Rice' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('checkbox', { name: 'Mark as available: Rice' })).not.toBeInTheDocument();
   });
 });

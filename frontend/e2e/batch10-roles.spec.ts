@@ -104,11 +104,11 @@ test('patient workspace opens the plan, groceries, library, and history at deskt
 test('grocery bought state persists through reload, both themes, and PDF download', async ({ page }) => {
   await signIn(page, 'user');
   await page.goto('/grocery');
-  const item = page.getByRole('checkbox', { name: /^Mark as bought:/ }).first();
+  const item = page.getByRole('checkbox', { name: /^Mark as available:/ }).first();
   await expect(item).toBeVisible();
-  const name = (await item.getAttribute('aria-label'))!.replace('Mark as bought: ', '');
+  const name = (await item.getAttribute('aria-label'))!.replace('Mark as available: ', '');
   await item.check();
-  const bought = page.getByRole('checkbox', { name: `Mark as not bought: ${name}`, exact: true });
+  const bought = page.getByRole('checkbox', { name: `Mark as needed: ${name}`, exact: true });
   await expect(bought).toBeChecked();
   await expect(bought).toBeEnabled();
   await page.reload();
@@ -116,9 +116,9 @@ test('grocery bought state persists through reload, both themes, and PDF downloa
   await page.getByRole('button', { name: /Switch to .* mode/ }).click();
   await expect(bought).toBeChecked();
   await bought.uncheck();
-  await expect(page.getByRole('checkbox', { name: `Mark as bought: ${name}`, exact: true })).toBeEnabled();
+  await expect(page.getByRole('checkbox', { name: `Mark as available: ${name}`, exact: true })).toBeEnabled();
   await page.reload();
-  await expect(page.getByRole('checkbox', { name: `Mark as bought: ${name}`, exact: true })).not.toBeChecked();
+  await expect(page.getByRole('checkbox', { name: `Mark as available: ${name}`, exact: true })).not.toBeChecked();
   const download = page.waitForEvent('download');
   await page.getByRole('button', { name: 'Download PDF' }).click();
   expect((await download).suggestedFilename()).toMatch(/\.pdf$/i);

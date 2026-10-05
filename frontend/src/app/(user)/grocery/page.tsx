@@ -2,6 +2,7 @@
 
 import CardDecoration from '@/components/ui/CardDecoration';
 import Dropdown from '@/components/ui/Dropdown';
+import WorkspaceTabs from '@/components/ui/WorkspaceTabs';
 import { useVisiblePolling } from '@/hooks/useVisiblePolling';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
@@ -14,10 +15,15 @@ import PortalPageHeader from '@/components/shared/PortalPageHeader';
 import UnauthorizedState from '@/components/shared/UnauthorizedState';
 import { getApiErrorMessage } from '@/lib/api-error';
 import { readSessionResource, refreshSessionResource, writeSessionResource } from '@/lib/session-resource-cache';
-import { fetchGroceryWorkspace, type GroceryItem, type GroceryWorkspace } from '@/features/grocery/current-grocery';
+import {
+  fetchGroceryWorkspace,
+  isGroceryItemAvailable,
+  type GroceryItem,
+  type GroceryWorkspace,
+} from '@/features/grocery/current-grocery';
 import { AlertTriangle, ChevronDown, Download, Filter, Loader2, RotateCcw, Search, X } from 'lucide-react';
 
-type GroceryFilter = 'all' | 'remaining' | 'packed' | 'pantry';
+type GroceryFilter = 'all' | 'remaining' | 'available';
 
 const normalizeCategory = (category?: string) => category?.trim() || 'Other';
 
@@ -134,7 +140,10 @@ export default function GroceryListPage() {
     requestVersion.current += 1;
     const generation = ownerGeneration.current;
     setPending([itemId], true);
-    applyItems([{ ...item, isChecked: !item.isChecked, purchasedQuantity: item.isChecked ? 0 : (item.quantity ?? 0) }]);
+    const checked = !isGroceryItemAvailable(item);
+    applyItems([
+      { ...item, isChecked: checked, isPantryStaple: false, purchasedQuantity: checked ? (item.quantity ?? 0) : 0 },
+    ]);
     try {
       const response = await api.patch('/user/grocery/items/' + itemId + '/toggle');
       if (!response.data?.success || !response.data.data) throw new Error('Checklist update was not confirmed.');
@@ -143,28 +152,6 @@ export default function GroceryListPage() {
       if (generation === ownerGeneration.current) {
         applyItems([item]);
         setError(getApiErrorMessage(err, 'Could not update the checklist. Refresh the list and try again.'));
-      }
-    } finally {
-      if (generation === ownerGeneration.current) setPending([itemId], false);
-    }
-  };
-
-  const handleTogglePantry = async (itemId: string) => {
-    const item = groceryList?.groceryItems.find((row) => row.id === itemId);
-    if (!canCheckItems || !item || pendingRef.current.has(itemId) || bulkBusy) return;
-    setError(null);
-    requestVersion.current += 1;
-    const generation = ownerGeneration.current;
-    setPending([itemId], true);
-    applyItems([{ ...item, isPantryStaple: !item.isPantryStaple }]);
-    try {
-      const response = await api.patch(`/user/grocery/items/${itemId}/pantry`);
-      if (!response.data?.success || !response.data.data) throw new Error('Pantry update was not confirmed.');
-      if (generation === ownerGeneration.current) applyItems([response.data.data as GroceryItem]);
-    } catch (err) {
-      if (generation === ownerGeneration.current) {
-        applyItems([item]);
-        setError(getApiErrorMessage(err, 'Could not update the pantry item. Refresh and try again.'));
       }
     } finally {
       if (generation === ownerGeneration.current) setPending([itemId], false);
@@ -195,10 +182,8 @@ export default function GroceryListPage() {
   };
 
   const totalItems = groceryList?.groceryItems.length || 0;
-  const shoppingItems = groceryList?.groceryItems.filter((item) => !item.isPantryStaple) || [];
-  const pantryItems = totalItems - shoppingItems.length;
-  const checkedItems = shoppingItems.filter((item) => item.isChecked).length;
-  const remainingItems = shoppingItems.length - checkedItems;
+  const checkedItems = groceryList?.groceryItems.filter(isGroceryItemAvailable).length || 0;
+  const remainingItems = totalItems - checkedItems;
   const normalizedQuery = query.trim().toLowerCase();
 
   const allCategories = useMemo(() => {
@@ -222,9 +207,8 @@ export default function GroceryListPage() {
 
         const matchesStatus =
           filter === 'all' ||
-          (filter === 'remaining' && !item.isChecked && !item.isPantryStaple) ||
-          (filter === 'packed' && item.isChecked && !item.isPantryStaple) ||
-          (filter === 'pantry' && item.isPantryStaple);
+          (filter === 'remaining' && !isGroceryItemAvailable(item)) ||
+          (filter === 'available' && isGroceryItemAvailable(item));
 
         const matchesCategory = selectedCategory === 'ALL' || normalizeCategory(item.category) === selectedCategory;
 
@@ -239,10 +223,9 @@ export default function GroceryListPage() {
         } else if (sortField === 'quantity') {
           diff = (a.quantity ?? 0) - (b.quantity ?? 0);
         } else if (sortField === 'status') {
-          diff = Number(a.isChecked) - Number(b.isChecked) || a.ingredientName.localeCompare(b.ingredientName);
-        } else if (sortField === 'pantry') {
           diff =
-            Number(a.isPantryStaple) - Number(b.isPantryStaple) || a.ingredientName.localeCompare(b.ingredientName);
+            Number(isGroceryItemAvailable(a)) - Number(isGroceryItemAvailable(b)) ||
+            a.ingredientName.localeCompare(b.ingredientName);
         }
 
         return sortOrder === 'asc' ? diff : -diff;
@@ -276,12 +259,12 @@ export default function GroceryListPage() {
     }
   };
 
-  const allVisibleChecked = visibleItems.length > 0 && visibleItems.every((item) => item.isChecked);
+  const allVisibleChecked = visibleItems.length > 0 && visibleItems.every(isGroceryItemAvailable);
 
   const handleToggleAllVisible = async () => {
     if (!canCheckItems || visibleItems.length === 0 || pendingRef.current.size > 0 || bulkBusy) return;
     const targetState = !allVisibleChecked;
-    const itemsToUpdate = visibleItems.filter((item) => item.isChecked !== targetState);
+    const itemsToUpdate = visibleItems.filter((item) => isGroceryItemAvailable(item) !== targetState);
     if (itemsToUpdate.length === 0) return;
     setError(null);
     requestVersion.current += 1;
@@ -293,6 +276,7 @@ export default function GroceryListPage() {
       itemsToUpdate.map((item) => ({
         ...item,
         isChecked: targetState,
+        isPantryStaple: false,
         purchasedQuantity: targetState ? (item.quantity ?? 0) : 0,
       }))
     );
@@ -329,30 +313,21 @@ export default function GroceryListPage() {
       />
 
       {!isLoading && visibleWorkspace ? (
-        <div className="mb-5 grid grid-cols-2 gap-2 rounded-2xl border border-brand-border/70 bg-brand-surface/80 p-1.5">
-          {(['CURRENT', 'UPCOMING'] as const).map((value) => {
-            return (
-              <button
-                key={value}
-                type="button"
-                aria-pressed={scope === value}
-                onClick={() => {
-                  setScope(value);
-                  setQuery('');
-                  setFilter('all');
-                  setSelectedCategory('ALL');
-                }}
-                className={`rounded-xl px-4 py-3 text-xs font-bold transition ${
-                  scope === value
-                    ? 'bg-brand-green text-white shadow-sm'
-                    : 'text-brand-muted hover:bg-brand-bgAlt hover:text-brand-text'
-                }`}
-              >
-                {value === 'CURRENT' ? 'Current week' : 'Next week'}
-              </button>
-            );
-          })}
-        </div>
+        <WorkspaceTabs
+          value={scope}
+          label="Grocery week"
+          className="mb-5"
+          onChange={(value) => {
+            setScope(value);
+            setQuery('');
+            setFilter('all');
+            setSelectedCategory('ALL');
+          }}
+          items={[
+            { value: 'CURRENT', label: 'Current week' },
+            { value: 'UPCOMING', label: 'Next week' },
+          ]}
+        />
       ) : null}
 
       {error && !error.toLowerCase().includes('nutrition report') ? (
@@ -461,15 +436,15 @@ export default function GroceryListPage() {
                 <div className="flex flex-wrap items-baseline justify-between gap-2">
                   <div className="flex items-baseline gap-3">
                     <h2 className="font-display text-2xl sm:text-3xl font-bold tracking-tight text-[#0d2820] dark:text-white">
-                      {checkedItems} of {shoppingItems.length} items bought
+                      {checkedItems} of {totalItems} items ready
                     </h2>
                     <span className="font-mono text-sm sm:text-base font-extrabold text-brand-accent">
-                      {shoppingItems.length > 0 ? Math.round((checkedItems / shoppingItems.length) * 100) : 0}%
+                      {totalItems > 0 ? Math.round((checkedItems / totalItems) * 100) : 0}%
                     </span>
                   </div>
 
                   <span className="text-xs font-semibold text-[#5a746a] dark:text-[#8ea79d]">
-                    {remainingItems === 0 ? 'All purchases complete' : `${remainingItems} remaining to buy`}
+                    {remainingItems === 0 ? 'All ingredients ready' : `${remainingItems} remaining to buy`}
                   </span>
                 </div>
 
@@ -478,7 +453,7 @@ export default function GroceryListPage() {
                   <div
                     className="h-full rounded-full bg-gradient-to-r from-[#eb6a38] via-[#f09e6c] to-[#08705b] transition-all duration-300 shadow-sm"
                     style={{
-                      width: `${shoppingItems.length > 0 ? Math.round((checkedItems / shoppingItems.length) * 100) : 0}%`,
+                      width: `${totalItems > 0 ? Math.round((checkedItems / totalItems) * 100) : 0}%`,
                     }}
                   />
                 </div>
@@ -551,36 +526,18 @@ export default function GroceryListPage() {
 
               {/* Bottom Row: Status Filter Pills & Summary Counter / Reset */}
               <div className="flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-brand-border/40">
-                <div className="flex flex-wrap items-center gap-1.5" aria-label="Filter grocery items by status">
-                  {(
-                    [
-                      ['all', 'All Items', totalItems],
-                      ['remaining', 'To Buy', remainingItems],
-                      ['packed', 'Bought', checkedItems],
-                      ['pantry', 'In Pantry', pantryItems],
-                    ] as const
-                  ).map(([value, label, count]) => (
-                    <button
-                      key={value}
-                      type="button"
-                      onClick={() => setFilter(value)}
-                      aria-pressed={filter === value}
-                      className={`flex h-8 items-center gap-1.5 rounded-lg px-2.5 text-[11px] font-bold transition ${
-                        filter === value
-                          ? 'bg-brand-green text-white shadow-2xs'
-                          : 'bg-brand-bgAlt/60 text-brand-muted hover:text-brand-text hover:bg-brand-bgAlt'
-                      }`}
-                    >
-                      <span>{label}</span>
-                      <span
-                        className={`rounded-full px-1.5 py-0.2 font-mono text-[9px] ${
-                          filter === value ? 'bg-white/20 text-white' : 'bg-brand-border/50 text-brand-muted'
-                        }`}
-                      >
-                        {count}
-                      </span>
-                    </button>
-                  ))}
+                <div className="w-full sm:w-auto">
+                  <WorkspaceTabs
+                    value={filter}
+                    onChange={setFilter}
+                    label="Filter grocery items by status"
+                    size="sm"
+                    items={[
+                      { value: 'all', label: 'All Items', count: totalItems },
+                      { value: 'remaining', label: 'To Buy', count: remainingItems },
+                      { value: 'available', label: 'Have it', count: checkedItems },
+                    ]}
+                  />
                 </div>
 
                 <div className="flex items-center gap-3 text-[11px] text-brand-muted font-medium">
@@ -630,7 +587,6 @@ export default function GroceryListPage() {
               pendingIds={pendingIds}
               bulkBusy={bulkBusy}
               onToggleItem={handleToggleItem}
-              onTogglePantry={handleTogglePantry}
               sortField={sortField}
               sortOrder={sortOrder}
               onSort={handleSort}

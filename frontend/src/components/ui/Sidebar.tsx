@@ -248,8 +248,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ className = '' }) => {
                     active={profileActive || isProfileMenuOpen}
                     className={`rounded-full transition-[box-shadow] duration-150 ${`p-0.5 ${
                       profileActive || isProfileMenuOpen
-                        ? 'ring-2 ring-[#3b82f6] shadow-[0_0_10px_rgba(59,130,246,0.4)]'
-                        : 'hover:ring-2 hover:ring-[#3b82f6]/50'
+                        ? 'ring-2 ring-brand-accent'
+                        : 'hover:ring-2 hover:ring-brand-accent/50'
                     }`}`}
                   >
                     <DockLabel>
@@ -403,14 +403,14 @@ export const Sidebar: React.FC<SidebarProps> = ({ className = '' }) => {
                 aria-haspopup="menu"
                 aria-expanded={isProfileMenuOpen}
                 aria-current={profileActive ? 'page' : undefined}
-                className="group relative flex w-full items-center gap-3 rounded-2xl p-2 text-left outline-none transition hover:bg-white/[0.06] focus-visible:ring-2 focus-visible:ring-brand-cyan/70 focus-visible:ring-offset-2 focus-visible:ring-offset-[#07100d]"
+                className="group relative flex w-full items-center gap-3 rounded-2xl p-2 text-left outline-none transition hover:bg-white/[0.06] focus-visible:ring-2 focus-visible:ring-brand-accent/70 focus-visible:ring-offset-2 focus-visible:ring-offset-[#07100d]"
               >
                 {isPro ? (
                   <Avatar
                     size="sm"
                     src={user.image}
                     fallbackText={user.name}
-                    className="h-9 w-9 rounded-full ring-2 ring-brand-green/30"
+                    className={`h-9 w-9 rounded-full ring-2 ${profileActive || isProfileMenuOpen ? 'ring-brand-accent' : 'ring-brand-accent/30'}`}
                   />
                 ) : (
                   <Avatar
@@ -419,8 +419,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ className = '' }) => {
                     fallbackText={user.name}
                     className={`h-9 w-9 rounded-full ring-2 transition-[box-shadow,color] duration-150 ${
                       profileActive || isProfileMenuOpen
-                        ? 'ring-[#3b82f6] shadow-[0_0_10px_rgba(59,130,246,0.4)]'
-                        : 'ring-transparent group-hover:ring-[#3b82f6]/50'
+                        ? 'ring-brand-accent'
+                        : 'ring-transparent group-hover:ring-brand-accent/50'
                     }`}
                   />
                 )}

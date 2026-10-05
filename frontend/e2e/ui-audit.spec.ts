@@ -52,6 +52,100 @@ async function fixtureSession(page: Page, onboarded = false) {
 }
 
 for (const width of [390, 1440]) {
+  test(`grocery availability and shared orange highlights at ${width}px`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 900 });
+    await page.addInitScript(() => localStorage.setItem('nutrimind-sidebar-collapsed', 'true'));
+    await fixtureSession(page, true);
+    const item = {
+      id: 'stocked-salt',
+      ingredientName: 'Stocked salt',
+      category: 'Condiments',
+      isChecked: false,
+      isPantryStaple: true,
+      quantity: 2,
+      unit: 'g',
+      purchasedQuantity: 0,
+      sourceMealCount: 1,
+    };
+    await page.route('**/api/user/grocery/workspace', (route) =>
+      route.fulfill({
+        json: {
+          success: true,
+          data: {
+            current: {
+              scope: 'CURRENT',
+              cycle: {
+                id: 'stock-cycle',
+                startDate: '',
+                endDate: '',
+                status: 'READY_TO_SHOP',
+                deadlineOutcome: 'COMPLETE',
+                incompleteAcknowledgedAt: null,
+                shoppingStartedAt: null,
+              },
+              groceryList: { id: 'stock-list', weekLabel: 'Current', generatedAt: '', groceryItems: [item] },
+              coverage: { clearedSlotCount: 3, expectedSlotCount: 3, unresolvedSlotCount: 0 },
+              actionability: {
+                canCheckItems: true,
+                canExportPdf: true,
+                isFinal: true,
+                isIncomplete: false,
+                quantitiesMayIncrease: false,
+                requiresIncompleteAcknowledgment: false,
+                message: 'Ready.',
+              },
+            },
+            upcoming: null,
+          },
+        },
+      })
+    );
+    let toggles = 0;
+    await page.route('**/api/user/grocery/items/stocked-salt/toggle', async (route) => {
+      expect(route.request().method()).toBe('PATCH');
+      toggles++;
+      item.isChecked = !(item.isChecked || item.isPantryStaple);
+      item.isPantryStaple = false;
+      item.purchasedQuantity = item.isChecked ? 2 : 0;
+      await route.fulfill({ json: { success: true, data: item } });
+    });
+    await page.goto('/grocery');
+    const ready = page.getByRole('checkbox', { name: 'Mark as needed: Stocked salt', exact: true });
+    await expect(ready).toBeChecked();
+    await expect(page.getByRole('columnheader', { name: 'Pantry' })).toHaveCount(0);
+    const currentTab = page
+      .getByRole('navigation', { name: 'Grocery week', exact: true })
+      .getByRole('button', { name: 'Current week', exact: true });
+    const indicator = currentTab.locator('[aria-hidden="true"]');
+    await expect(indicator).toHaveCSS('background-color', 'color(srgb 0.921569 0.415686 0.219608)');
+    await ready.uncheck();
+    const needed = page.getByRole('checkbox', { name: 'Mark as available: Stocked salt', exact: true });
+    await expect(needed).toBeEnabled();
+    await expect(needed).not.toBeChecked();
+    await needed.check();
+    await expect(ready).toBeEnabled();
+    await page.reload();
+    await expect(ready).toBeChecked();
+    expect(toggles).toBe(2);
+    await expect(page.getByText('1 of 1 items ready', { exact: true })).toBeVisible();
+    const statusTab = page
+      .getByRole('navigation', { name: 'Filter grocery items by status', exact: true })
+      .getByRole('button', { name: /Have it/ });
+    await statusTab.click();
+    await expect(ready).toBeChecked();
+    await expect(statusTab.locator('[aria-hidden="true"]')).toHaveCSS(
+      'background-color',
+      'color(srgb 0.921569 0.415686 0.219608)'
+    );
+    if (width === 1440) {
+      const profile = page.getByRole('link', { name: 'Profile: Preview User', exact: true });
+      await profile.click();
+      await expect(profile).toHaveAttribute('aria-expanded', 'true');
+      await expect(profile.locator('[data-active="true"]')).toHaveCSS('--tw-ring-color', /#eb6a38/);
+    }
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+  });
+
   test(`logged meals hide swap until their status resets at ${width}px`, async ({ page }) => {
     await page.setViewportSize({ width, height: 900 });
     await fixtureSession(page, true);

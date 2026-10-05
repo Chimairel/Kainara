@@ -12,6 +12,11 @@ export interface GroceryItem {
   isPantryStaple: boolean;
 }
 
+/** Existing pantry marks and checked items both mean the ingredient is already available. */
+export function isGroceryItemAvailable(item: Pick<GroceryItem, 'isChecked' | 'isPantryStaple'>): boolean {
+  return item.isChecked || item.isPantryStaple;
+}
+
 export interface GroceryList {
   id: string;
   weekLabel: string;

@@ -41,7 +41,6 @@ describe('GroceryTable', () => {
     items: mockItems,
     canCheckItems: true,
     onToggleItem: vi.fn(),
-    onTogglePantry: vi.fn(),
     sortField: 'name' as const,
     sortOrder: 'asc' as const,
     onSort: vi.fn(),
@@ -90,37 +89,35 @@ describe('GroceryTable', () => {
     const onToggleItem = vi.fn();
     render(<GroceryTable {...defaultProps} onToggleItem={onToggleItem} />);
 
-    const garlicCheckbox = screen.getByRole('checkbox', { name: /Mark as bought: Garlic/i });
+    const garlicCheckbox = screen.getByRole('checkbox', { name: /Mark as available: Garlic/i });
     fireEvent.click(garlicCheckbox);
     expect(onToggleItem).toHaveBeenCalledWith('item-1');
   });
 
-  it('calls onTogglePantry when a pantry button is clicked', () => {
-    const onTogglePantry = vi.fn();
-    render(<GroceryTable {...defaultProps} onTogglePantry={onTogglePantry} />);
-
-    const pantryBtn = screen.getByRole('button', { name: /Mark Garlic as in pantry/i });
-    fireEvent.click(pantryBtn);
-    expect(onTogglePantry).toHaveBeenCalledWith('item-1');
+  it('includes saved pantry ingredients in the single availability checkbox', () => {
+    const onToggleItem = vi.fn();
+    render(<GroceryTable {...defaultProps} onToggleItem={onToggleItem} />);
+    const checkbox = screen.getByRole('checkbox', { name: 'Mark as needed: Soy sauce' });
+    expect(checkbox).toBeChecked();
+    fireEvent.click(checkbox);
+    expect(onToggleItem).toHaveBeenCalledWith('item-3');
+    expect(screen.getByText(/2 ready · 1 to buy/)).toBeInTheDocument();
+    expect(screen.queryByRole('columnheader', { name: 'Pantry' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /in pantry/i })).not.toBeInTheDocument();
   });
 
   it('calls onToggleAllVisible when the header select-all button is clicked', () => {
     const onToggleAllVisible = vi.fn();
     render(<GroceryTable {...defaultProps} onToggleAllVisible={onToggleAllVisible} />);
 
-    const selectAllBtn = screen.getByRole('checkbox', { name: /Mark all visible items purchased/i });
+    const selectAllBtn = screen.getByRole('checkbox', { name: /Mark all visible items as available/i });
     fireEvent.click(selectAllBtn);
     expect(onToggleAllVisible).toHaveBeenCalledTimes(1);
   });
 
-  it('keeps a pending item disabled and sorts Pantry by pantry state', () => {
-    const onSort = vi.fn();
-    render(<GroceryTable {...defaultProps} onSort={onSort} pendingIds={new Set(['item-1'])} />);
-
-    expect(screen.getByRole('checkbox', { name: /Mark as bought: Garlic/i })).toBeDisabled();
-    expect(screen.getByRole('button', { name: /Mark Garlic as in pantry/i })).toBeDisabled();
-    fireEvent.click(screen.getByRole('button', { name: /^Pantry$/i }));
-    expect(onSort).toHaveBeenCalledWith('pantry');
-    expect(screen.queryByText(/bought \/ .* needed/i)).not.toBeInTheDocument();
+  it('keeps pending items and bulk actions disabled', () => {
+    render(<GroceryTable {...defaultProps} pendingIds={new Set(['item-1'])} />);
+    expect(screen.getByRole('checkbox', { name: /Mark as available: Garlic/i })).toBeDisabled();
+    expect(screen.getByRole('checkbox', { name: /Mark all visible items as available/i })).toBeDisabled();
   });
 });

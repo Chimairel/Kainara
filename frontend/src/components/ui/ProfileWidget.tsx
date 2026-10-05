@@ -87,14 +87,14 @@ export default function ProfileWidget({ onClose, className = '' }: ProfileWidget
             size="sm"
             src={user.image}
             fallbackText={user.name}
-            className="h-9 w-9 rounded-full ring-2 ring-brand-green/30"
+            className="h-9 w-9 rounded-full ring-2 ring-brand-accent/30"
           />
         ) : (
           <Avatar
             size="sm"
             src={user.image}
             fallbackText={user.name}
-            className="h-9 w-9 rounded-full ring-2 ring-blue-500/40 transition group-hover:ring-blue-500 dark:ring-blue-400/30"
+            className="h-9 w-9 rounded-full ring-2 ring-brand-accent/40 transition group-hover:ring-brand-accent"
           />
         )}
         <div className="min-w-0 flex-1">

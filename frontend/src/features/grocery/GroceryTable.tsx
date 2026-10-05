@@ -1,19 +1,18 @@
 'use client';
 
 import React from 'react';
-import { Archive, ArrowDown, ArrowUp, ArrowUpDown, CircleCheckBig } from 'lucide-react';
-import type { GroceryItem } from './current-grocery';
+import { ArrowDown, ArrowUp, ArrowUpDown, CircleCheckBig } from 'lucide-react';
+import { isGroceryItemAvailable, type GroceryItem } from './current-grocery';
 import { formatGroceryItemDisplay, getCategoryStyle } from './grocery-display';
 import { CircularCheckbox } from '@/components/watermelon/checkbox-14';
 
-export type GrocerySortField = 'name' | 'category' | 'quantity' | 'status' | 'pantry';
+export type GrocerySortField = 'name' | 'category' | 'quantity' | 'status';
 export type GrocerySortOrder = 'asc' | 'desc';
 
 interface GroceryTableProps {
   items: GroceryItem[];
   canCheckItems: boolean;
   onToggleItem: (itemId: string) => Promise<void>;
-  onTogglePantry: (itemId: string) => Promise<void>;
   sortField: GrocerySortField;
   sortOrder: GrocerySortOrder;
   onSort: (field: GrocerySortField) => void;
@@ -27,7 +26,6 @@ export default function GroceryTable({
   items,
   canCheckItems,
   onToggleItem,
-  onTogglePantry,
   sortField,
   sortOrder,
   onSort,
@@ -61,8 +59,10 @@ export default function GroceryTable({
                     checked={allVisibleChecked}
                     onCheckedChange={() => onToggleAllVisible()}
                     disabled={!canCheckItems || items.length === 0 || bulkBusy || pendingIds.size > 0}
-                    aria-label={allVisibleChecked ? 'Uncheck all visible items' : 'Mark all visible items purchased'}
-                    title={allVisibleChecked ? 'Uncheck all visible' : 'Mark all visible as bought'}
+                    aria-label={
+                      allVisibleChecked ? 'Mark all visible items as needed' : 'Mark all visible items as available'
+                    }
+                    title={allVisibleChecked ? 'Mark all visible as needed' : 'Mark all visible as available'}
                     className="mx-auto"
                   />
                 )}
@@ -111,18 +111,6 @@ export default function GroceryTable({
               >
                 <span>Usage</span>
               </th>
-
-              {/* Pantry Status */}
-              <th scope="col" className="w-28 px-3 py-3 text-center">
-                <button
-                  type="button"
-                  onClick={() => onSort('pantry')}
-                  className="group inline-flex items-center font-bold text-brand-text hover:text-brand-green transition-colors"
-                >
-                  <span>Pantry</span>
-                  {renderSortIndicator('pantry')}
-                </button>
-              </th>
             </tr>
           </thead>
 
@@ -131,12 +119,13 @@ export default function GroceryTable({
             {items.map((item, idx) => {
               const display = formatGroceryItemDisplay(item);
               const catStyle = getCategoryStyle(item.category || 'Other');
+              const available = isGroceryItemAvailable(item);
 
               return (
                 <tr
                   key={item.id}
                   className={`group transition-colors duration-100 ${
-                    item.isChecked
+                    available
                       ? 'bg-brand-green/[0.025] dark:bg-brand-green/[0.04] text-brand-muted'
                       : idx % 2 === 0
                         ? 'bg-brand-surface hover:bg-brand-green/[0.035] dark:hover:bg-white/[0.025]'
@@ -146,10 +135,10 @@ export default function GroceryTable({
                   {/* Checkbox Column */}
                   <td className="px-3 py-2.5 text-center align-middle border-r border-brand-border/30">
                     <CircularCheckbox
-                      checked={item.isChecked}
+                      checked={available}
                       onCheckedChange={() => onToggleItem(item.id)}
                       disabled={!canCheckItems || bulkBusy || pendingIds.has(item.id)}
-                      aria-label={`${item.isChecked ? 'Mark as not bought:' : 'Mark as bought:'} ${display.cleanName}`}
+                      aria-label={`${available ? 'Mark as needed:' : 'Mark as available:'} ${display.cleanName}`}
                       className="mx-auto"
                     />
                   </td>
@@ -159,7 +148,7 @@ export default function GroceryTable({
                     <div className="flex flex-wrap items-center gap-1.5">
                       <span
                         className={`text-xs sm:text-[13px] font-bold tracking-tight transition-opacity ${
-                          item.isChecked
+                          available
                             ? 'line-through opacity-60 decoration-brand-green/50 text-brand-muted'
                             : 'text-brand-text'
                         }`}
@@ -173,9 +162,7 @@ export default function GroceryTable({
                         </span>
                       )}
 
-                      {item.isChecked && (
-                        <CircleCheckBig className="inline h-3.5 w-3.5 text-brand-green shrink-0 ml-1" />
-                      )}
+                      {available && <CircleCheckBig className="inline h-3.5 w-3.5 text-brand-green shrink-0 ml-1" />}
                     </div>
                   </td>
 
@@ -193,7 +180,7 @@ export default function GroceryTable({
                     <div className="flex flex-col">
                       <span
                         className={`inline-flex items-center self-start rounded-md px-2 py-0.5 font-mono text-[10px] font-bold ${
-                          item.isChecked
+                          available
                             ? 'bg-brand-bgAlt text-brand-muted/70'
                             : 'bg-brand-green/10 text-brand-green dark:bg-brand-green/20 dark:text-emerald-300'
                         }`}
@@ -209,30 +196,6 @@ export default function GroceryTable({
                       {item.sourceMealCount === 1 ? '1 meal' : `${item.sourceMealCount} meals`}
                     </span>
                   </td>
-
-                  {/* Pantry Toggle Button */}
-                  <td className="px-3 py-2.5 text-center align-middle">
-                    <button
-                      type="button"
-                      onClick={() => onTogglePantry(item.id)}
-                      disabled={!canCheckItems || bulkBusy || pendingIds.has(item.id)}
-                      aria-pressed={item.isPantryStaple}
-                      aria-label={
-                        item.isPantryStaple
-                          ? `Mark ${display.cleanName} as need to buy`
-                          : `Mark ${display.cleanName} as in pantry`
-                      }
-                      title={item.isPantryStaple ? 'In pantry (have at home)' : 'Mark as in pantry'}
-                      className={`inline-flex items-center gap-1 rounded-lg px-2.5 py-1 text-[10px] font-bold transition disabled:cursor-not-allowed disabled:opacity-40 ${
-                        item.isPantryStaple
-                          ? 'bg-brand-green text-white shadow-2xs'
-                          : 'bg-brand-bgAlt text-brand-muted hover:bg-brand-green/10 hover:text-brand-green'
-                      }`}
-                    >
-                      <Archive className="h-3 w-3" />
-                      <span>{item.isPantryStaple ? 'Stocked' : 'Pantry'}</span>
-                    </button>
-                  </td>
                 </tr>
               );
             })}
@@ -246,8 +209,8 @@ export default function GroceryTable({
           Showing <strong className="text-brand-text">{items.length}</strong> items
         </span>
         <span className="font-mono text-[10px]">
-          {items.filter((i) => i.isChecked && !i.isPantryStaple).length} bought ·{' '}
-          {items.filter((i) => !i.isChecked && !i.isPantryStaple).length} to buy
+          {items.filter(isGroceryItemAvailable).length} ready · {items.filter((i) => !isGroceryItemAvailable(i)).length}{' '}
+          to buy
         </span>
       </div>
     </div>

@@ -12,6 +12,7 @@ export default function WorkspaceTabs<T extends string>({
   label,
   className = '',
   tone = 'accent',
+  size = 'md',
 }: {
   value: T;
   onChange?: (value: T) => void;
@@ -26,6 +27,7 @@ export default function WorkspaceTabs<T extends string>({
   label: string;
   className?: string;
   tone?: 'accent' | 'green';
+  size?: 'sm' | 'md';
 }) {
   const id = useId();
   return (
@@ -35,13 +37,13 @@ export default function WorkspaceTabs<T extends string>({
     >
       {items.map((item) => {
         const active = value === item.value;
-        const classes = `group relative flex min-h-12 min-w-0 flex-1 items-center justify-center gap-2 rounded-2xl px-3 font-display text-xs font-extrabold outline-none transition-colors focus-visible:ring-2 focus-visible:ring-brand-green sm:text-sm ${active ? (tone === 'green' ? 'text-white dark:text-[#07100d]' : 'text-[#07100d]') : 'text-brand-muted hover:bg-brand-bgAlt/70 hover:text-brand-text'}`;
+        const classes = `group relative flex min-w-0 flex-1 items-center justify-center gap-2 font-display font-extrabold outline-none transition-colors focus-visible:ring-2 focus-visible:ring-brand-green ${size === 'sm' ? 'min-h-9 rounded-xl px-2.5 text-[11px] sm:text-xs' : 'min-h-12 rounded-2xl px-3 text-xs sm:text-sm'} ${active ? (tone === 'green' ? 'text-white dark:text-[#07100d]' : 'text-[#07100d]') : 'text-brand-muted hover:bg-brand-bgAlt/70 hover:text-brand-text'}`;
         const content = (
           <>
             {active && (
               <MotionActiveIndicator
                 layoutId={`workspace-tabs-${id}`}
-                className={`rounded-2xl shadow-sm ${tone === 'green' ? 'bg-brand-green dark:bg-emerald-500' : 'bg-brand-accent'}`}
+                className={`${size === 'sm' ? 'rounded-xl' : 'rounded-2xl'} shadow-sm ${tone === 'green' ? 'bg-brand-green dark:bg-emerald-500' : 'bg-brand-accent'}`}
               />
             )}
             <span className="relative z-10 flex items-center justify-center gap-2">
