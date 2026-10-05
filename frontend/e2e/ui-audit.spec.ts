@@ -422,7 +422,9 @@ for (const width of [390, 1440]) {
     await expect(dialog.getByText(/Source:/)).toBeVisible();
     await expect(dialog.getByText(/Verified by:/)).toHaveCount(0);
     await expect(dialog.getByRole('combobox')).toHaveCount(1);
-    await expect(dialog.getByRole('option')).toHaveText(['Nutrition match', 'Kcal match']);
+    await dialog.getByRole('combobox').click();
+    await expect(page.getByRole('option')).toHaveText(['Nutrition match', 'Kcal match']);
+    await page.getByRole('option', { name: 'Nutrition match', exact: true }).click();
     await expect(dialog.getByRole('textbox')).toHaveCount(0);
     await expect(dialog.getByRole('button', { name: /Favorites|All Types|Breakfast|Lunch|Dinner/ })).toHaveCount(0);
     await expect(dialog.getByText('Breakfast-only dish', { exact: true })).toHaveCount(0);
