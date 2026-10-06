@@ -3,15 +3,23 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import Avatar from './Avatar';
 
 describe('Avatar', () => {
+  const imageLoadTimers = new Set<ReturnType<typeof setTimeout>>();
+
   beforeEach(() => {
     vi.spyOn(window.Image.prototype, 'src', 'set').mockImplementation(function (this: HTMLImageElement) {
-      setTimeout(() => {
-        this.dispatchEvent(new Event('load'));
+      // Capture the image's own DOM realm before a worker can dispose this environment.
+      const loadEvent = new this.ownerDocument.defaultView!.Event('load');
+      const timer = setTimeout(() => {
+        imageLoadTimers.delete(timer);
+        this.dispatchEvent(loadEvent);
       }, 10);
+      imageLoadTimers.add(timer);
     });
   });
 
   afterEach(() => {
+    for (const timer of imageLoadTimers) clearTimeout(timer);
+    imageLoadTimers.clear();
     vi.restoreAllMocks();
   });
 
