@@ -43,7 +43,7 @@ test('account switch revokes its refresh session without an access token', async
     },
   } as unknown as Response;
 
-  await AuthController.logout({ cookies: { nutrimind_refresh: refreshToken } } as Request, res);
+  await AuthController.logout({ cookies: { nutrimind_refresh: refreshToken } } as unknown as Request, res);
   assert.equal(status, 200);
   assert.equal(response.success, true);
   assert.deepEqual(cleared, ['nutrimind_refresh']);
@@ -54,7 +54,7 @@ test('account switch revokes its refresh session without an access token', async
     },
   ]);
 
-  await AuthController.logout({ cookies: { nutrimind_refresh: 'expired-or-invalid' } } as Request, res);
+  await AuthController.logout({ cookies: { nutrimind_refresh: 'expired-or-invalid' } } as unknown as Request, res);
   assert.equal(status, 200);
   assert.equal(deleted.length, 1);
 });

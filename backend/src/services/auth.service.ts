@@ -32,15 +32,40 @@ function hashSessionToken(token: string): string {
   return crypto.createHash('sha256').update(token).digest('hex');
 }
 
-async function createRefreshSession(userId: string, payload: JWTPayload): Promise<string> {
+async function createRefreshSession(
+  userId: string,
+  payload: JWTPayload,
+  expectedPasswordHash?: string
+): Promise<string> {
   const refreshToken = signRefreshToken(payload);
-  await prisma.session.create({
-    data: {
-      userId,
-      sessionToken: hashSessionToken(refreshToken),
-      expires: new Date(Date.now() + REFRESH_SESSION_TTL_MS),
-    },
-  });
+  if (expectedPasswordHash !== undefined) {
+    await prisma.$transaction(async (tx) => {
+      await tx.$queryRaw`SELECT id FROM "User" WHERE id = ${userId} FOR UPDATE`;
+      const current = await tx.user.findUnique({ where: { id: userId } });
+      if (
+        !current ||
+        current.isSuspended ||
+        !current.passwordLoginEnabled ||
+        current.passwordHash !== expectedPasswordHash
+      )
+        throw new Error('Account credentials changed. Sign in again.');
+      await tx.session.create({
+        data: {
+          userId,
+          sessionToken: hashSessionToken(refreshToken),
+          expires: new Date(Date.now() + REFRESH_SESSION_TTL_MS),
+        },
+      });
+    });
+  } else {
+    await prisma.session.create({
+      data: {
+        userId,
+        sessionToken: hashSessionToken(refreshToken),
+        expires: new Date(Date.now() + REFRESH_SESSION_TTL_MS),
+      },
+    });
+  }
   return refreshToken;
 }
 
@@ -304,16 +329,16 @@ export class AuthService {
         });
       }
 
-      if (!user.emailVerified) {
-        await prisma.user.update({
-          where: { id: user.id },
+      if (!user.emailVerified && sanitizedEmail === user.email && payload.emailAuthoritative !== false) {
+        const verified = await prisma.user.updateMany({
+          where: { id: user.id, email: sanitizedEmail, emailVerified: false },
           data: {
             emailVerified: true,
             emailVerificationToken: null,
             emailVerificationExpiry: null,
           },
         });
-        user = { ...user, emailVerified: true };
+        if (verified.count === 1) user = { ...user, emailVerified: true };
       }
 
       // Refresh an imported profile photo; preserve explicitly chosen initials/avatars.
@@ -427,8 +452,14 @@ export class AuthService {
     }
 
     // Mark email as verified and clear token fields
-    await prisma.user.update({
-      where: { id: userId },
+    const verified = await prisma.user.updateMany({
+      where: {
+        id: userId,
+        email: user.email,
+        emailVerificationToken: user.emailVerificationToken,
+        emailVerificationExpiry: { gt: new Date() },
+        emailVerified: false,
+      },
       data: {
         emailVerified: true,
         emailVerificationToken: null,
@@ -437,6 +468,8 @@ export class AuthService {
         emailVerificationLockedUntil: null,
       },
     });
+
+    if (verified.count !== 1) throw new Error('Verification details changed. Request a new code.');
 
     return { emailVerified: true, message: 'Email verified successfully.' };
   }
@@ -471,8 +504,13 @@ export class AuthService {
     const otpHash = await bcrypt.hash(otp, 10);
     const otpExpiry = new Date(Date.now() + 15 * 60 * 1000);
 
-    await prisma.user.update({
-      where: { id: userId },
+    const sent = await prisma.user.updateMany({
+      where: {
+        id: userId,
+        email: user.email,
+        emailVerified: false,
+        emailVerificationToken: user.emailVerificationToken,
+      },
       data: {
         emailVerificationToken: otpHash,
         emailVerificationExpiry: otpExpiry,
@@ -481,6 +519,8 @@ export class AuthService {
         emailVerificationLastSentAt: new Date(),
       },
     });
+
+    if (sent.count !== 1) throw new Error('Verification details changed. Request a new code.');
 
     await sendVerificationEmail(user.email, otp, user.name);
 
@@ -526,7 +566,7 @@ export class AuthService {
 
     // Generate tokens
     const accessToken = signAccessToken(payload);
-    const refreshToken = await createRefreshSession(user.id, payload);
+    const refreshToken = await createRefreshSession(user.id, payload, user.passwordHash);
 
     return {
       user: {
@@ -571,13 +611,14 @@ export class AuthService {
     const resetTokenHash = await bcrypt.hash(resetToken, 10);
     const resetExpiry = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes
 
-    await prisma.user.update({
-      where: { id: user.id },
+    const issued = await prisma.user.updateMany({
+      where: { id: user.id, email: user.email, passwordHash: user.passwordHash, passwordLoginEnabled: true },
       data: {
         passwordResetToken: resetTokenHash,
         passwordResetExpiry: resetExpiry,
       },
     });
+    if (issued.count !== 1) return { message: 'If an account with that email exists, a reset link has been sent.' };
 
     // Send reset email
     try {

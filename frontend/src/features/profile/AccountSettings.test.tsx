@@ -17,14 +17,16 @@ const mocks = vi.hoisted(() => ({
   profile: null as Partial<UserProfileData> | null,
   mealLogs: [] as TestMealLog[],
   completeAccountDeletion: vi.fn(),
+  logout: vi.fn(),
+  updateUserSession: vi.fn(),
 }));
 
 vi.mock('@/hooks/useAuth', () => ({
   useAuth: () => ({
     user: mocks.user,
-    logout: vi.fn(),
+    logout: mocks.logout,
     completeAccountDeletion: mocks.completeAccountDeletion,
-    updateUserSession: vi.fn(),
+    updateUserSession: mocks.updateUserSession,
   }),
 }));
 vi.mock('@/hooks/useProfile', () => ({
@@ -65,6 +67,33 @@ const baseUser: UserSession = {
 };
 
 describe('provider-aware account security', () => {
+  it('requires a new sign-in after a successful password change', async () => {
+    mocks.user = { ...baseUser, authMethods: { password: true, google: false } };
+    vi.mocked(api.put).mockResolvedValue({ data: { success: true, data: { requiresSignIn: true } } });
+    await act(async () => render(<AccountSettings initialPanel="security" />));
+    fireEvent.change(screen.getByLabelText('Current Password'), { target: { value: 'Current123!' } });
+    fireEvent.change(screen.getByLabelText('New Password'), { target: { value: 'Changed123!' } });
+    fireEvent.change(screen.getByLabelText('Confirm New Password'), { target: { value: 'Changed123!' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Update Password' }));
+    await waitFor(() => expect(mocks.logout).toHaveBeenCalledOnce());
+  });
+
+  it('updates verification state after an inbox change', async () => {
+    mocks.user = { ...baseUser };
+    vi.mocked(api.put).mockResolvedValue({
+      data: { success: true, data: { name: baseUser.name, email: 'new@example.test', emailVerified: false } },
+    });
+    await act(async () => render(<AccountSettings initialPanel="account" />));
+    fireEvent.change(screen.getByLabelText('Email Address'), { target: { value: 'new@example.test' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Save Changes' }));
+    await waitFor(() =>
+      expect(mocks.updateUserSession).toHaveBeenCalledWith({
+        name: baseUser.name,
+        email: 'new@example.test',
+        emailVerified: false,
+      })
+    );
+  });
   afterEach(() => {
     mocks.user = null;
     mocks.profile = null;

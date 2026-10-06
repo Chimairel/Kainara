@@ -62,6 +62,11 @@ test('Google continuation preserves identity, access and creation boundaries', a
           users.find((u) => u.id === where.id),
           data
         ),
+      updateMany: async ({ where, data }: any) => {
+        const matching = users.filter((user) => Object.entries(where).every(([key, value]) => user[key] === value));
+        for (const user of matching) Object.assign(user, data);
+        return { count: matching.length };
+      },
     },
     account: {
       findFirst: async ({ where, include }: any) => {
@@ -98,6 +103,18 @@ test('Google continuation preserves identity, access and creation boundaries', a
     return { getPayload: () => claims } as any;
   });
   const { default: AuthService } = await import('../src/services/auth.service');
+
+  await t.test('returning Google identity cannot verify a changed contact inbox', async () => {
+    reset();
+    users.push(localUser({ email: 'changed@example.test' }));
+    accounts.push({ id: 'link', userId: 'existing-user', provider: 'google', providerAccountId: 'subject-one' });
+    const result = await AuthService.completeGoogleAuth(
+      { email: 'person@gmail.com', sub: 'subject-one', emailAuthoritative: true },
+      'CONTINUE'
+    );
+    assert.equal(result.user.emailVerified, false);
+    assert.equal(users[0].email, 'changed@example.test');
+  });
   const credential = 'verified-fixture-credential';
 
   await t.test('first continuation creates one regular account without completing onboarding or consent', async () => {

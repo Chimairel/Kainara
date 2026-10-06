@@ -1,4 +1,5 @@
 import prisma from '@/lib/prisma';
+import { lockUserProfile } from './profile-revision.service';
 import { getStartOfManilaBusinessDay } from '@/domain/meal-actionability.policy';
 import { UserSafetyRecheckService } from './user-safety-recheck.service';
 import { getNutritionEligibleMealLogWhere } from '@/domain/meal-actionability.policy';
@@ -71,86 +72,95 @@ export class CronService {
     // 3. Process logs per user
     for (const user of users) {
       try {
-        const scheduledPlan = await prisma.mealPlan.findFirst({
-          where: { userId: user.id, scheduledDate: { gte: yesterdayStart, lte: yesterdayEnd } },
-          orderBy: { createdAt: 'desc' },
-          select: { planGroupId: true },
-        });
-        const cycleSnapshot = scheduledPlan
-          ? await prisma.mealPlanCycleSnapshot.findUnique({ where: { planGroupId: scheduledPlan.planGroupId } })
-          : null;
-        const targetCalories = resolvePlanTargetCalories(
-          cycleSnapshot?.dailyCalorieTarget,
-          user.userProfile?.dailyCalorieTarget
+        const saved = await prisma.$transaction(
+          async (tx) => {
+            await lockUserProfile(tx, user.id);
+            const scheduledPlan = await tx.mealPlan.findFirst({
+              where: { userId: user.id, scheduledDate: { gte: yesterdayStart, lte: yesterdayEnd } },
+              orderBy: { createdAt: 'desc' },
+              select: { planGroupId: true },
+            });
+            const cycleSnapshot = scheduledPlan
+              ? await tx.mealPlanCycleSnapshot.findUnique({ where: { planGroupId: scheduledPlan.planGroupId } })
+              : null;
+            const targetCalories = resolvePlanTargetCalories(
+              cycleSnapshot?.dailyCalorieTarget,
+              user.userProfile?.dailyCalorieTarget
+            );
+            if (targetCalories <= 0) {
+              console.log(`[CronService] Skipping user ${user.email} due to missing or invalid calorie targets.`);
+              return null;
+            }
+
+            // Fetch completed meal logs for yesterday
+            const mealLogs = await tx.mealLog.findMany({
+              where: {
+                userId: user.id,
+                status: 'DONE',
+                ...getNutritionEligibleMealLogWhere(),
+                loggedAt: {
+                  gte: yesterdayStart,
+                  lte: yesterdayEnd,
+                },
+              },
+            });
+
+            // Sum yesterday's totals
+            let totalCalories = 0;
+            let totalProteinG = 0;
+            let totalCarbsG = 0;
+            let totalFatG = 0;
+
+            for (const log of mealLogs) {
+              totalCalories += log.calories;
+              totalProteinG += log.proteinG;
+              totalCarbsG += log.carbsG;
+              totalFatG += log.fatG;
+            }
+
+            // Calculate clinical adherence percentage:
+            // Penalizes both over-eating and under-eating to encourage clinical calorie discipline.
+            let adherencePct = 0;
+            if (totalCalories > 0) {
+              const deviationPct = Math.abs((totalCalories - targetCalories) / targetCalories) * 100;
+              adherencePct = Math.max(0, 100 - deviationPct);
+            } else {
+              // If no calories logged, adherence is 0
+              adherencePct = 0;
+            }
+
+            const savedLog = await tx.dailyNutritionLog.upsert({
+              where: {
+                userId_logDate: { userId: user.id, logDate: yesterdayStart },
+              },
+              update: {
+                totalCalories,
+                totalProteinG,
+                totalCarbsG,
+                totalFatG,
+                targetCalories,
+                adherencePct,
+              },
+              create: {
+                userId: user.id,
+                logDate: yesterdayStart,
+                totalCalories,
+                totalProteinG,
+                totalCarbsG,
+                totalFatG,
+                targetCalories,
+                adherencePct,
+              },
+            });
+            console.log(
+              `[CronService] Upserted yesterday's log for ${user.email}: ${adherencePct.toFixed(1)}% Adherence.`
+            );
+
+            return savedLog;
+          },
+          { maxWait: 10_000, timeout: 30_000 }
         );
-        if (targetCalories <= 0) {
-          console.log(`[CronService] Skipping user ${user.email} due to missing or invalid calorie targets.`);
-          continue;
-        }
-
-        // Fetch completed meal logs for yesterday
-        const mealLogs = await prisma.mealLog.findMany({
-          where: {
-            userId: user.id,
-            status: 'DONE',
-            ...getNutritionEligibleMealLogWhere(),
-            loggedAt: {
-              gte: yesterdayStart,
-              lte: yesterdayEnd,
-            },
-          },
-        });
-
-        // Sum yesterday's totals
-        let totalCalories = 0;
-        let totalProteinG = 0;
-        let totalCarbsG = 0;
-        let totalFatG = 0;
-
-        for (const log of mealLogs) {
-          totalCalories += log.calories;
-          totalProteinG += log.proteinG;
-          totalCarbsG += log.carbsG;
-          totalFatG += log.fatG;
-        }
-
-        // Calculate clinical adherence percentage:
-        // Penalizes both over-eating and under-eating to encourage clinical calorie discipline.
-        let adherencePct = 0;
-        if (totalCalories > 0) {
-          const deviationPct = Math.abs((totalCalories - targetCalories) / targetCalories) * 100;
-          adherencePct = Math.max(0, 100 - deviationPct);
-        } else {
-          // If no calories logged, adherence is 0
-          adherencePct = 0;
-        }
-
-        const savedLog = await prisma.dailyNutritionLog.upsert({
-          where: {
-            userId_logDate: { userId: user.id, logDate: yesterdayStart },
-          },
-          update: {
-            totalCalories,
-            totalProteinG,
-            totalCarbsG,
-            totalFatG,
-            targetCalories,
-            adherencePct,
-          },
-          create: {
-            userId: user.id,
-            logDate: yesterdayStart,
-            totalCalories,
-            totalProteinG,
-            totalCarbsG,
-            totalFatG,
-            targetCalories,
-            adherencePct,
-          },
-        });
-        console.log(`[CronService] Upserted yesterday's log for ${user.email}: ${adherencePct.toFixed(1)}% Adherence.`);
-
-        processedLogs.push(savedLog);
+        if (saved) processedLogs.push(saved);
       } catch (userErr) {
         console.error(`[CronService] Failed to process aggregates for user ${user.email}:`, userErr);
       }

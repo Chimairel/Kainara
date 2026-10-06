@@ -1,5 +1,6 @@
 import { Response } from 'express';
-import bcrypt from 'bcryptjs';
+import { updateAccountSettings } from '@/services/account-settings.service';
+import { clearRefreshCookie } from '@/controllers/auth.controller';
 import prisma from '@/lib/prisma';
 
 import { AuthenticatedRequest } from '@/types';
@@ -460,94 +461,24 @@ export class UserController {
         return res.status(401).json({ success: false, error: 'Unauthorized.' });
       }
 
-      const { name, email, currentPassword, newPassword } = req.body;
-
-      // Fetch user to check password and email uniqueness
-      const user = await prisma.user.findUnique({
-        where: { id: userId },
-      });
-
-      if (!user) {
-        return res.status(404).json({ success: false, error: 'User not found.' });
-      }
-
-      const updateData: any = {};
-
-      if (name && typeof name === 'string') {
-        updateData.name = name.trim();
-      }
-
-      if (email && typeof email === 'string') {
-        const sanitizedEmail = email.trim().toLowerCase();
-        if (sanitizedEmail !== user.email) {
-          // Check uniqueness
-          const existingUser = await prisma.user.findUnique({
-            where: { email: sanitizedEmail },
-          });
-          if (existingUser) {
-            return res
-              .status(400)
-              .json({ success: false, error: 'An account with this email address already exists.' });
-          }
-          updateData.email = sanitizedEmail;
-        }
-      }
-
-      // Handle password change if requested
-      if (currentPassword || newPassword) {
-        if (!user.passwordLoginEnabled) {
-          return res.status(400).json({
-            success: false,
-            error: 'This account uses Google sign-in and does not have a KAINARA password.',
-          });
-        }
-        if (!currentPassword || !newPassword) {
-          return res.status(400).json({
-            success: false,
-            error: 'Both current password and new password are required to change your password.',
-          });
-        }
-
-        // Verify current password
-        const isPasswordValid = await bcrypt.compare(currentPassword, user.passwordHash);
-        if (!isPasswordValid) {
-          return res.status(400).json({ success: false, error: 'Incorrect current password.' });
-        }
-
-        // Validate new password strength: length >= 8, >= 1 uppercase, >= 1 number
-        const passwordRegex = /^(?=.*[A-Z])(?=.*\d)[^\u0000-\u001F\u007F]{8,128}$/u;
-        if (!passwordRegex.test(newPassword)) {
-          return res.status(400).json({
-            success: false,
-            error:
-              'New password must be 8 to 128 characters long, contain at least one uppercase letter and number, and contain no control characters.',
-          });
-        }
-
-        // Hash new password
-        const salt = await bcrypt.genSalt(12);
-        updateData.passwordHash = await bcrypt.hash(newPassword, salt);
-      }
-
-      // Save changes
-      const updatedUser = await prisma.user.update({
-        where: { id: userId },
-        data: updateData,
-        select: {
-          id: true,
-          name: true,
-          email: true,
-          role: true,
-          onboardingDone: true,
-        },
-      });
-
+      const result = await updateAccountSettings(userId, req.body);
+      if (result.passwordChanged) clearRefreshCookie(res);
       return res.status(200).json({
         success: true,
-        message: 'Account settings updated successfully.',
-        data: updatedUser,
+        message: result.passwordChanged
+          ? 'Password changed. Sign in again with your new password.'
+          : result.emailChanged
+            ? 'Account updated. Verify your new email address to continue.'
+            : 'Account settings updated successfully.',
+        data: {
+          ...result.user,
+          requiresSignIn: result.passwordChanged,
+          verificationEmailSent: result.verificationEmailSent,
+        },
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
+      if (error instanceof AppError)
+        return res.status(error.statusCode).json({ success: false, error: error.message, code: error.errorCode });
       console.error('[UserController] updateAccountSettings error:', error);
       return res.status(500).json({ success: false, error: 'Failed to update account settings.' });
     }

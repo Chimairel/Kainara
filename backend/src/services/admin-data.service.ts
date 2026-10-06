@@ -15,6 +15,7 @@ import type {
   updateReferenceDataSourceSchema,
 } from '@/validation/admin-data.schemas';
 import type { z } from 'zod';
+import { AppError } from '@/errors/AppError';
 
 type CreateSourceInput = z.infer<typeof createReferenceDataSourceSchema>;
 type UpdateSourceInput = z.infer<typeof updateReferenceDataSourceSchema>;
@@ -371,20 +372,26 @@ export class AdminDataService {
   }
 
   static async activateRelease(adminUserId: string, releaseId: string, action: 'PUBLISH' | 'ROLLBACK') {
-    const release = await prisma.referenceDataRelease.findUnique({
+    const candidate = await prisma.referenceDataRelease.findUnique({
       where: { id: releaseId },
-      include: { source: true },
+      select: { sourceId: true },
     });
-    if (!release) throw new Error('Reference data release not found.');
-    const expected = action === 'PUBLISH' ? ReferenceDataReleaseStatus.STAGED : ReferenceDataReleaseStatus.RETIRED;
-    if (release.status !== expected) {
-      throw new Error(
-        action === 'PUBLISH' ? 'Only a staged release can be published.' : 'Only a retired release can be restored.'
-      );
-    }
-    if (!release.source.isEnabled) throw new Error('A disabled source cannot activate a release.');
-    const now = new Date();
+    if (!candidate) throw new Error('Reference data release not found.');
     return prisma.$transaction(async (tx) => {
+      // Serializes publication and rollback for every release of this source.
+      await tx.$queryRaw`SELECT id FROM "ReferenceDataSource" WHERE id = ${candidate.sourceId} FOR UPDATE`;
+      const release = await tx.referenceDataRelease.findUnique({ where: { id: releaseId }, include: { source: true } });
+      if (!release) throw new Error('Reference data release not found.');
+      const expected = action === 'PUBLISH' ? ReferenceDataReleaseStatus.STAGED : ReferenceDataReleaseStatus.RETIRED;
+      if (release.status !== expected) {
+        throw new AppError(
+          action === 'PUBLISH' ? 'Only a staged release can be published.' : 'Only a retired release can be restored.',
+          409,
+          'REFERENCE_RELEASE_CHANGED'
+        );
+      }
+      if (!release.source.isEnabled) throw new Error('A disabled source cannot activate a release.');
+      const now = new Date();
       const current = await tx.referenceDataRelease.findFirst({
         where: { sourceId: release.sourceId, status: 'ACTIVE' },
       });

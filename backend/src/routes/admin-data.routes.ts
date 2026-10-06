@@ -1,5 +1,6 @@
 import { Router, type Response } from 'express';
 import { FoodCompositionService, compositionDraftSchema } from '@/services/food-composition.service';
+import { AppError } from '@/errors/AppError';
 import { AdminDataService } from '@/services/admin-data.service';
 import { sanitizeErrorMessage } from '@/lib/sanitizeError';
 import { validateZodBody, validateZodRequest } from '@/middleware/validateZod';
@@ -55,6 +56,8 @@ router.post(
 );
 
 function failure(res: Response, error: unknown, fallback: string, status = 400) {
+  if (error instanceof AppError)
+    return res.status(error.statusCode).json({ success: false, error: error.message, code: error.errorCode });
   return res.status(status).json({ success: false, error: sanitizeErrorMessage(error, fallback) });
 }
 

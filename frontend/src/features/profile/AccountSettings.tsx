@@ -191,6 +191,7 @@ export default function AccountSettings({ initialPanel = 'account' }: { initialP
         updateUserSession({
           name: res.data.data.name,
           email: res.data.data.email,
+          emailVerified: res.data.data.emailVerified,
         });
       }
     } catch (err: unknown) {
@@ -219,10 +220,11 @@ export default function AccountSettings({ initialPanel = 'account' }: { initialP
       });
 
       if (res.data && res.data.success) {
-        setPasswordSuccess('Password changed successfully!');
+        setPasswordSuccess('Password changed. Please sign in again.');
         setCurrentPassword('');
         setNewPassword('');
         setConfirmPassword('');
+        await logout();
       }
     } catch (err: unknown) {
       setPasswordError(getApiErrorMessage(err, 'Failed to update password.'));

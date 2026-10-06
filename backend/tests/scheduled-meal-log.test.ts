@@ -49,6 +49,12 @@ for (const scenario of ['missing', 'pending', 'uncleared', 'ready'] as const) {
           return { id: 'log' };
         },
       },
+      dailyNutritionLog: {
+        findFirst: async () => {
+          order.push('aggregate');
+          return null;
+        },
+      },
     };
     context.mock.method(prisma, '$transaction', async (work: (client: Prisma.TransactionClient) => Promise<unknown>) =>
       work(tx as unknown as Prisma.TransactionClient)
@@ -75,7 +81,7 @@ for (const scenario of ['missing', 'pending', 'uncleared', 'ready'] as const) {
       assert.equal(written, undefined);
     } else {
       await updateScheduledMealStatus('patient', 'slot', 'DONE', 'Fixture note');
-      assert.deepEqual(order, ['global lock', 'profile lock', 'owned plan', 'clearance', 'write']);
+      assert.deepEqual(order, ['global lock', 'profile lock', 'owned plan', 'clearance', 'write', 'aggregate']);
       assert.equal(written?.create.loggedAt, scheduledDate);
       assert.equal(written?.update.status, 'DONE');
       assert.equal(written?.create.notes, 'Fixture note');
