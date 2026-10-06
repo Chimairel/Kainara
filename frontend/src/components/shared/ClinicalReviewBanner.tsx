@@ -23,6 +23,7 @@ export default function ClinicalReviewBanner({
 
   return (
     <AnnouncementBanner
+      variant="clinical"
       ariaLabel="Clinical review announcement"
       title="Your plan is in clinical review."
       badge={countBadge}

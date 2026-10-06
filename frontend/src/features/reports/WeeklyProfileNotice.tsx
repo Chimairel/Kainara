@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useSessionQuery } from '@/hooks/useSessionQuery';
 import api from '@/lib/axios';
-import Link from 'next/link';
+import AnnouncementBanner from '@/components/shared/AnnouncementBanner';
 import CheckinModal from '@/components/user/CheckinModal';
 
 type Status = {
@@ -46,33 +46,37 @@ export default function WeeklyProfileNotice() {
       <section
         role="status"
         aria-label="Profile planning status"
-        className="shrink-0 border-b border-brand-border bg-brand-bgAlt px-4 py-3 text-sm text-brand-text md:px-5"
+        className="shrink-0 space-y-2 border-b border-brand-border/40 bg-brand-bg/80 px-4 py-2.5 backdrop-blur-md md:px-5"
       >
         {status.isDue && (
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <p>
-              {weeks >= 2
+          <AnnouncementBanner
+            variant="warning"
+            ariaLabel="Weekly check-in reminder"
+            title={weeks >= 2 ? 'Check-in overdue:' : 'Weekly check-in:'}
+            message={
+              weeks >= 2
                 ? `You last confirmed your profile ${weeks} weeks ago. Review your details to keep your information current.`
-                : 'Your weekly profile check-in is due. Review your details or confirm they are still the same.'}
-            </p>
-            <button type="button" onClick={() => setOpen(true)} className="font-semibold text-brand-green underline">
-              Complete check-in
-            </button>
-          </div>
+                : 'Your profile check-in is due. Review your details or confirm they are still the same.'
+            }
+            action={{ label: 'Complete check-in', onClick: () => setOpen(true) }}
+          />
         )}
         {status.hasPendingChanges && (
-          <div className="mt-1 flex flex-wrap items-center justify-between gap-2">
-            <p>
-              {status.safetyChanged
-                ? 'Your health context changed. Affected recommendations need revalidation.'
-                : 'Your saved profile updates have not been applied to meal planning.'}
-              {status.activeGeneratedAt &&
-                ` Planning report dated ${new Date(status.activeGeneratedAt).toLocaleDateString('en-PH', { timeZone: 'Asia/Manila' })}.`}
-            </p>
-            <Link href="/profile/nutrition-report" className="font-semibold text-brand-green underline">
-              Review report
-            </Link>
-          </div>
+          <AnnouncementBanner
+            variant={status.safetyChanged ? 'warning' : 'info'}
+            ariaLabel="Unapplied profile updates"
+            title={status.safetyChanged ? 'Action required:' : 'Profile updates:'}
+            message={
+              <>
+                {status.safetyChanged
+                  ? 'Your health context changed. Affected recommendations need revalidation.'
+                  : 'Your saved profile updates have not been applied to meal planning.'}
+                {status.activeGeneratedAt &&
+                  ` Planning report dated ${new Date(status.activeGeneratedAt).toLocaleDateString('en-PH', { timeZone: 'Asia/Manila' })}.`}
+              </>
+            }
+            action={{ label: 'Review report', href: '/profile/nutrition-report' }}
+          />
         )}
       </section>
       <CheckinModal

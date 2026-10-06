@@ -3,7 +3,7 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import AnnouncementBanner from './AnnouncementBanner';
 
 describe('AnnouncementBanner', () => {
-  it('renders title, message and uses clinical warm banner styling by default', () => {
+  it('renders title, message and uses required-action warm banner styling by default', () => {
     const { container } = render(
       <AnnouncementBanner
         title="Action required:"

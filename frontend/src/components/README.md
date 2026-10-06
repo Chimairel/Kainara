@@ -44,6 +44,10 @@ MealLibraryLayout is only the grid. Member catalogue requests use useRecipeCatal
 
 SplitWorkspace and WorkspaceListPane use the same `splitAt` breakpoint (`md` by default). Match ExpandableCasePanel's `backBreakpoint` to keep its back button available until both panes fit. Nutrition guidance uses ReportVersionPicker with the shared Select, a bounded internal scroll area, and full-screen reading in ExpandableCasePanel's expanded view. Its `contentKey` resets the internal scroll when the selected version changes.
 
+## Announcement banners
+
+Reuse `shared/AnnouncementBanner` for compact workspace notices and their link/button actions. `warning` (the default) uses brown for required action, including report acknowledgement, due check-ins and safety changes. `info` and `clinical` use teal for saved updates or waiting for review; `success` uses green for completed actions. Color supplements the title/message; preserve the caller's eligibility, persistence and dismissal rules. WeeklyProfileNotice uses this presentation and retains its existing check-in modal and status refresh.
+
 ## Landing links
 
 SectionLink scrolls a same-page public section without writing a URL hash. Its real href remains available for modified clicks, copied links and cross-page navigation.
