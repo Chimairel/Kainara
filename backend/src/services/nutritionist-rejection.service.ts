@@ -21,6 +21,7 @@ import { buildReviewWorkKey } from '@/domain/upcoming-preparation.policy';
 import { mealApprovalSafetyScope } from '@/domain/meal-approval-scope.policy';
 import { candidateMealSchema } from '@/validation/nutritionist.schemas';
 import { isMealWithinSlotCalorieRange, isPrimaryMealType } from '@/domain/meal-calorie-allocation.policy';
+import { assertRecipeNotRejectedForSlot, rejectedSlotRecipes } from './rejected-slot-recipes.service';
 
 export async function rejectMealPlan(nutritionistProfileId: string, mealPlanId: string, reason: string) {
   const now = new Date();
@@ -152,6 +153,7 @@ export async function rejectMealPlan(nutritionistProfileId: string, mealPlanId: 
     const conditions = [...safetyRestrictions.conditions, ...safetyRestrictions.customConditions];
     const allergens = [...safetyRestrictions.allergies, ...safetyRestrictions.customFoodRestrictions];
 
+    const rejectedRecipes = await rejectedSlotRecipes(prisma, plan);
     const rawResult = await sourceRawRecipeCandidates({
       slots: [{ dayNumber: 1, mealType: plan.mealType, scheduledDate: plan.scheduledDate }],
       dailyCalorieTarget: profile?.dailyCalorieTarget || 2000,
@@ -163,7 +165,7 @@ export async function rejectMealPlan(nutritionistProfileId: string, mealPlanId: 
       planningTargets,
       ricePreference: profile.ricePreference,
       riceFood,
-      excludeCandidateIds: plan.sourceRawRecipeCandidateId ? [plan.sourceRawRecipeCandidateId] : [],
+      excludeCandidateIds: [...rejectedRecipes.rawIds],
     });
     const rawCandidate = rawResult.meals.find((candidate) => {
       const validation = validateGeneratedMealCandidate({
@@ -219,6 +221,7 @@ export async function rejectMealPlan(nutritionistProfileId: string, mealPlanId: 
                 capturedAt: new Date().toISOString(),
               },
             });
+            await assertRecipeNotRejectedForSlot(tx, plan, created);
             const linked = await tx.mealPlan.updateMany({
               where: { id: plan.id, status: MealPlanStatus.REJECTED, supersededByMealPlanId: null },
               data: { supersededByMealPlanId: created.id, fallbackAvailable: true },
@@ -291,6 +294,7 @@ export async function rejectMealPlan(nutritionistProfileId: string, mealPlanId: 
       evidenceSource: 'AI_REJECTED_MEAL_REPLACEMENT_PENDING',
     });
     const replacementPlan = await prisma.$transaction(async (tx) => {
+      await lockUserProfile(tx, plan.userId);
       const created = await tx.mealPlan.create({
         data: {
           planGroupId: plan.planGroupId,
@@ -338,10 +342,12 @@ export async function rejectMealPlan(nutritionistProfileId: string, mealPlanId: 
           ...serving,
         },
       });
-      await tx.mealPlan.update({
-        where: { id: plan.id },
+      await assertRecipeNotRejectedForSlot(tx, plan, created);
+      const linked = await tx.mealPlan.updateMany({
+        where: { id: plan.id, status: MealPlanStatus.REJECTED, supersededByMealPlanId: null },
         data: { supersededByMealPlanId: created.id, fallbackAvailable: true },
       });
+      if (linked.count !== 1) throw new Error('Rejected slot changed during replacement. Refresh the queue.');
       return created;
     });
     return { success: true, replacementPlanId: replacementPlan.id, source: 'AI_FROM_SCRATCH' };

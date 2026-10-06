@@ -5,7 +5,18 @@ import test from 'node:test';
 const schema = readFileSync('prisma/schema.prisma', 'utf8');
 const migration = readFileSync('prisma/migrations/20260908120000_outside_meal_intelligence/migration.sql', 'utf8');
 const routes = readFileSync('src/routes/nutritionist.routes.ts', 'utf8');
-const outsideMealModal = readFileSync('../frontend/src/features/dashboard/OutsideMealModal.tsx', 'utf8');
+const outsideMealModal = [
+  '../frontend/src/features/dashboard/OutsideMealModal.tsx',
+  ...[
+    'OutsideMealForm',
+    'OutsideMealSearchSection',
+    'OutsideMealNutritionSection',
+    'OutsideMealConfirmationSection',
+    'useOutsideMealFormModel',
+  ].map((name) => `../frontend/src/features/dashboard/outside-meal/${name}.tsx`),
+]
+  .map((file) => readFileSync(file, 'utf8'))
+  .join('\n');
 const outsideMealPreview = readFileSync('../frontend/src/features/dashboard/OutsideMealPreview.tsx', 'utf8');
 const dashboardSummary = readFileSync('../frontend/src/features/dashboard/DashboardSummary.tsx', 'utf8');
 

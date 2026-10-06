@@ -24,6 +24,7 @@ import { buildBaseServingPersistence } from './meal-plan-serving.service';
 import { MEAL_PLAN_SAFETY_POLICY_VERSION } from '@/domain/meal-plan-production-safety.policy';
 import { scorePreparationCandidate } from '@/domain/upcoming-preparation.policy';
 import { mealApprovalSafetyScope } from '@/domain/meal-approval-scope.policy';
+import { assertRecipeNotRejectedForSlot, rejectedSlotRecipes } from './rejected-slot-recipes.service';
 
 export class CertifiedSlotFallbackService {
   static async replaceWithBestCertified(input: {
@@ -72,6 +73,7 @@ export class CertifiedSlotFallbackService {
         })
       ).flatMap((meal) => (meal.libraryMealId ? [meal.libraryMealId] : []))
     );
+    const rejectedRecipes = await rejectedSlotRecipes(prisma, target);
     const candidates = await queryEligibleLibraryMeals({
       mealType: slotType,
       userConditions: context.conditions,
@@ -81,6 +83,14 @@ export class CertifiedSlotFallbackService {
     });
     const ranked = candidates
       .filter((candidate) => candidate.id !== target.libraryMealId)
+      .filter(
+        (candidate) =>
+          !rejectedRecipes.includes({
+            libraryMealId: candidate.id,
+            sourceRawRecipeCandidateId: candidate.sourceRawRecipeCandidateId,
+            baseRecipeSignature: candidate.recipeSignature,
+          })
+      )
       .filter((candidate) =>
         isMealWithinSlotCalorieRange({
           calories: candidate.calories,
@@ -161,6 +171,11 @@ export class CertifiedSlotFallbackService {
       const latest = await tx.mealLibrary.findUniqueOrThrow({
         where: { id: candidate.id },
         include: certifiedLibraryMealInclude,
+      });
+      await assertRecipeNotRejectedForSlot(tx, target, {
+        libraryMealId: latest.id,
+        sourceRawRecipeCandidateId: latest.sourceRawRecipeCandidateId,
+        baseRecipeSignature: latest.recipeSignature,
       });
       const currentProfile = {
         ...context.profile,
