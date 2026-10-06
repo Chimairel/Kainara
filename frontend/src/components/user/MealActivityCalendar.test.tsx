@@ -1,8 +1,9 @@
 import React from 'react';
-import { render, screen, fireEvent } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { render, renderHook, act, screen, fireEvent } from '@testing-library/react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import MealActivityCalendar from './MealActivityCalendar';
 import type { MealHistoryLog } from '@/features/meals/useMealsWorkspace';
+import { useMealActivityCalendarModel } from '@/features/meal-activity-calendar/useMealActivityCalendarModel';
 
 const mockLogs: MealHistoryLog[] = [
   {
@@ -34,6 +35,43 @@ const mockLogs: MealHistoryLog[] = [
 ];
 
 describe('MealActivityCalendar', () => {
+  beforeEach(() => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date('2026-09-07T12:00:00Z'));
+  });
+
+  afterEach(() => vi.useRealTimers());
+
+  it.each([
+    ['2027-01-01', 5, 31],
+    ['2028-02-29', 2, 29],
+    ['2026-03-08', 0, 31],
+    ['2026-11-01', 0, 30],
+  ])('aligns year, month and week cells at Manila midnight on %s', (dateKey, weekday, daysInMonth) => {
+    vi.setSystemTime(new Date(`${dateKey}T00:05:00+08:00`));
+    const { result } = renderHook(() =>
+      useMealActivityCalendarModel({ logs: [], selectedDateKey: null, onSelectDateKey: vi.fn() })
+    );
+    const yearCell = result.current.weeks.flat().find((cell) => cell.isToday);
+    expect(yearCell?.dateKey).toBe(dateKey);
+    expect(yearCell?.dayOfWeek).toBe(weekday);
+    expect(yearCell?.isOutOfBounds).toBe(false);
+
+    const month = result.current.threeMonthsData.centerMonth;
+    expect(month.year).toBe(Number(dateKey.slice(0, 4)));
+    expect(month.monthIndex).toBe(Number(dateKey.slice(5, 7)) - 1);
+    const row = month.weeks.find((week) => week.some((cell) => cell?.isToday));
+    expect(row?.[weekday]?.dateKey).toBe(dateKey);
+    expect(month.weeks.flat().filter(Boolean)).toHaveLength(daysInMonth);
+
+    act(() => result.current.setTimeRange('Week'));
+    expect(result.current.weeks[0]).toHaveLength(7);
+    expect(result.current.weeks[0][weekday].dateKey).toBe(dateKey);
+    expect(result.current.weeks[0][weekday].isToday).toBe(true);
+    expect(result.current.weeks[0][0].dayOfWeek).toBe(0);
+    expect(result.current.weeks[0][6].dayOfWeek).toBe(6);
+  });
+
   it('keeps skipped activity selectable while excluding its calories', () => {
     const onSelect = vi.fn();
     render(

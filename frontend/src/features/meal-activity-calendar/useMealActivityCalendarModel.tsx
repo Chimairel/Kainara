@@ -2,9 +2,15 @@
 import { summarizeMealIntake } from '@/lib/meal-history-summary';
 import { useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { Lock } from 'lucide-react';
-import { formatManilaDate, getManilaDateKey, manilaDateFromKey } from '@/lib/manila-date';
+import { formatManilaDate, getManilaDateKey } from '@/lib/manila-date';
 
 import { ActivityTimeRange, MonthColumnData, MealActivityCalendarProps, DayCell } from './MealActivityCalendar.shared';
+// Calendar arithmetic uses UTC midnight as a date-only representation of a Manila key.
+// Local getters would shift the day/week/month for visitors in other timezones.
+function calendarDateFromKey(dateKey: string): Date {
+  return new Date(`${dateKey}T00:00:00Z`);
+}
+
 export function useMealActivityCalendarModel({
   logs,
   selectedDateKey,
@@ -57,21 +63,21 @@ export function useMealActivityCalendarModel({
   // Generate weeks based on timeRange (Year = full 52/53-week calendar year, Week = 1 week)
   const { weeks, monthLabels, totalLoggedDays } = useMemo(() => {
     const todayKey = getManilaDateKey();
-    const todayDate = manilaDateFromKey(todayKey);
-    const todayYear = todayDate.getFullYear();
+    const todayDate = calendarDateFromKey(todayKey);
+    const todayYear = todayDate.getUTCFullYear();
 
     if (timeRange === 'Year') {
       // Full calendar year: start from the Sunday of the week containing Jan 1
-      const jan1 = new Date(todayYear, 0, 1);
-      const startDayOfWeek = jan1.getDay(); // 0 = Sunday
+      const jan1 = new Date(Date.UTC(todayYear, 0, 1));
+      const startDayOfWeek = jan1.getUTCDay(); // 0 = Sunday
       const startDate = new Date(jan1);
-      startDate.setDate(jan1.getDate() - startDayOfWeek);
+      startDate.setUTCDate(jan1.getUTCDate() - startDayOfWeek);
 
       // End on the Saturday of the week containing Dec 31
-      const dec31 = new Date(todayYear, 11, 31);
-      const endDayOfWeek = dec31.getDay(); // 0 = Sunday, 6 = Saturday
+      const dec31 = new Date(Date.UTC(todayYear, 11, 31));
+      const endDayOfWeek = dec31.getUTCDay(); // 0 = Sunday, 6 = Saturday
       const endDate = new Date(dec31);
-      endDate.setDate(dec31.getDate() + (6 - endDayOfWeek));
+      endDate.setUTCDate(dec31.getUTCDate() + (6 - endDayOfWeek));
 
       const totalDays = Math.round((endDate.getTime() - startDate.getTime()) / (24 * 60 * 60 * 1000)) + 1;
 
@@ -83,9 +89,9 @@ export function useMealActivityCalendarModel({
 
       for (let i = 0; i < totalDays; i++) {
         const cellDate = new Date(startDate);
-        cellDate.setDate(cellDate.getDate() + i);
+        cellDate.setUTCDate(cellDate.getUTCDate() + i);
 
-        const isCurrentYear = cellDate.getFullYear() === todayYear;
+        const isCurrentYear = cellDate.getUTCFullYear() === todayYear;
         const cellDateKey = getManilaDateKey(cellDate);
         const isToday = isCurrentYear && cellDateKey === todayKey;
         const isFuture = isCurrentYear && cellDateKey > todayKey;
@@ -102,7 +108,7 @@ export function useMealActivityCalendarModel({
 
         // Track the first week column that contains the start of each month in this calendar year
         if (isCurrentYear) {
-          const monthIdx = cellDate.getMonth();
+          const monthIdx = cellDate.getUTCMonth();
           if (!seenMonths.has(monthIdx)) {
             seenMonths.add(monthIdx);
             months.push({
@@ -115,9 +121,9 @@ export function useMealActivityCalendarModel({
         const cell: DayCell = {
           dateKey: cellDateKey,
           date: cellDate,
-          dayOfWeek: cellDate.getDay(),
+          dayOfWeek: cellDate.getUTCDay(),
           monthName: formatManilaDate(cellDate, { month: 'short' }),
-          isCurrentMonth: isCurrentYear && cellDate.getMonth() === todayDate.getMonth(),
+          isCurrentMonth: isCurrentYear && cellDate.getUTCMonth() === todayDate.getUTCMonth(),
           mealCount,
           totalCalories,
           isToday,
@@ -142,16 +148,16 @@ export function useMealActivityCalendarModel({
 
     if (timeRange === 'Week') {
       // Current week from Sunday to Saturday (7 days)
-      const dayOfWeek = todayDate.getDay(); // 0 = Sun
+      const dayOfWeek = todayDate.getUTCDay(); // 0 = Sun
       const startDate = new Date(todayDate);
-      startDate.setDate(todayDate.getDate() - dayOfWeek);
+      startDate.setUTCDate(todayDate.getUTCDate() - dayOfWeek);
 
       const currentWeek: DayCell[] = [];
       let loggedDaysCount = 0;
 
       for (let i = 0; i < 7; i++) {
         const cellDate = new Date(startDate);
-        cellDate.setDate(cellDate.getDate() + i);
+        cellDate.setUTCDate(cellDate.getUTCDate() + i);
 
         const cellDateKey = getManilaDateKey(cellDate);
         const isToday = cellDateKey === todayKey;
@@ -168,9 +174,9 @@ export function useMealActivityCalendarModel({
         currentWeek.push({
           dateKey: cellDateKey,
           date: cellDate,
-          dayOfWeek: cellDate.getDay(),
+          dayOfWeek: cellDate.getUTCDay(),
           monthName: formatManilaDate(cellDate, { month: 'short' }),
-          isCurrentMonth: cellDate.getMonth() === todayDate.getMonth(),
+          isCurrentMonth: cellDate.getUTCMonth() === todayDate.getUTCMonth(),
           mealCount,
           totalCalories,
           isToday,
@@ -201,9 +207,9 @@ export function useMealActivityCalendarModel({
   // 3-Month Carousel computation for Month view
   const threeMonthsData = useMemo(() => {
     const todayKey = getManilaDateKey();
-    const todayDate = manilaDateFromKey(todayKey);
-    const todayYear = todayDate.getFullYear();
-    const todayMonthIndex = todayDate.getMonth();
+    const todayDate = calendarDateFromKey(todayKey);
+    const todayYear = todayDate.getUTCFullYear();
+    const todayMonthIndex = todayDate.getUTCMonth();
 
     const offsets = [-1, 0, 1] as const;
 
@@ -217,18 +223,18 @@ export function useMealActivityCalendarModel({
       const isCurrent = totalTargetMonths === todayYear * 12 + todayMonthIndex;
 
       const firstDayKey = `${targetYear}-${String(targetMonthIndex + 1).padStart(2, '0')}-01`;
-      const firstDayDate = manilaDateFromKey(firstDayKey);
-      const startDayOfWeek = firstDayDate.getDay();
+      const firstDayDate = calendarDateFromKey(firstDayKey);
+      const startDayOfWeek = firstDayDate.getUTCDay();
 
-      const daysInMonth = new Date(targetYear, targetMonthIndex + 1, 0).getDate();
+      const daysInMonth = new Date(Date.UTC(targetYear, targetMonthIndex + 1, 0)).getUTCDate();
 
       const rawWeeks: (DayCell | null)[][] = Array.from({ length: 6 }, () => Array(7).fill(null));
       let activeDays = 0;
 
       for (let dayNum = 1; dayNum <= daysInMonth; dayNum++) {
         const dayKey = `${targetYear}-${String(targetMonthIndex + 1).padStart(2, '0')}-${String(dayNum).padStart(2, '0')}`;
-        const cellDate = manilaDateFromKey(dayKey);
-        const dow = cellDate.getDay();
+        const cellDate = calendarDateFromKey(dayKey);
+        const dow = cellDate.getUTCDay();
 
         const slotIndex = startDayOfWeek + (dayNum - 1);
         const weekRow = Math.floor(slotIndex / 7);
@@ -320,7 +326,7 @@ export function useMealActivityCalendarModel({
   };
 
   const renderMonthCard = (monthData: MonthColumnData, isCenter: boolean = false) => {
-    const todayYear = manilaDateFromKey(getManilaDateKey()).getFullYear();
+    const todayYear = calendarDateFromKey(getManilaDateKey()).getUTCFullYear();
     const isLocked = monthData.isFuture;
 
     return (
@@ -430,7 +436,7 @@ export function useMealActivityCalendarModel({
                         : 'cursor-not-allowed'
                     }`}
                   >
-                    <span>{cell.date.getDate()}</span>
+                    <span>{cell.date.getUTCDate()}</span>
                   </button>
                 );
               })}
