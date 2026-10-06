@@ -15,6 +15,9 @@
     "scripts/estimate-panlasang-demo-nutrition.ts",
     "scripts/audit-meal-candidate-coverage.ts",
     "scripts/report-panlasang-data-audit.ts",
-    "scripts/index-raw-recipe-corpus.ts"
+    "scripts/index-raw-recipe-corpus.ts",
+    "scripts/audit-catalogue-case-candidates.ts",
+    "scripts/repair-catalogue-source-data.ts",
+    "scripts/catalogue-source-repair-local-acceptance.ts"
   ]
 }

@@ -9,6 +9,11 @@ export function sourceDataAuditLabel(value: Prisma.JsonValue | null): string | n
   if (operations.includes('CODEX_SIMILAR_RECIPE_ESTIMATE_V1')) {
     return 'Codex nutrition estimate · comparable recipes';
   }
+  if (operations.includes('SOURCE_NUTRITION_REVIEW_REQUIRED')) return 'Source nutrition requires review';
+  if (operations.includes('SOURCE_FOOD_UNIT_RECOVERY_V1'))
+    return 'Codex data audit · source ingredient identities recovered';
+  if (operations.includes('MAIN_MEAL_APPLICABILITY_NARROWED'))
+    return 'Codex data audit · meal classification corrected';
   return operations.includes('MISSING_SOURCE_NUTRITION_RECORDED_AS_NULL')
     ? 'Codex data audit · source nutrition unavailable'
     : 'Codex data audit · source quantities recovered';

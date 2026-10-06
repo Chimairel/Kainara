@@ -6,6 +6,8 @@ import { classifyMealIngredients } from '../src/domain/meal-ingredient-classific
 import { proposeMealTypeApplicability } from '../src/domain/meal-applicability.policy';
 import { proposeRiceRole } from '../src/domain/recipe-rice-role.policy';
 import { buildRawRecipeContentSignature } from '../src/domain/raw-recipe-content-signature.policy';
+import { recoverSourceIngredientIdentity } from '../src/domain/source-ingredient-identity-recovery.policy';
+import { sourceRecipeNutritionReviewHold } from '../src/domain/source-recipe-review-holds.policy';
 import {
   recoverSourceIngredientMeasurement,
   SOURCE_INGREDIENT_RECOVERY_VERSION,
@@ -75,6 +77,9 @@ async function main() {
       malformed += 1;
       continue;
     }
+    recipe.ingredients1Person = (recipe.ingredients1Person ?? []).map(
+      (ingredient) => recoverSourceIngredientIdentity(ingredient).ingredient
+    );
     const contentSignature = buildRawRecipeContentSignature({
       name: recipe.name,
       category: recipe.category,
@@ -184,7 +189,7 @@ async function main() {
       carbsG: finite(nutrition?.carbsG),
       fatG: finite(nutrition?.fatG),
       originalServings: finite(recipe.originalServings),
-      status: 'AVAILABLE',
+      status: sourceRecipeNutritionReviewHold(String(recipe.sourceUrl)) ? 'RETIRED' : 'AVAILABLE',
     });
   }
   // Upsert by the stable source record rather than only inserting by content
@@ -223,7 +228,11 @@ async function main() {
     );
   }
   await prisma.rawRecipeCandidate.updateMany({
-    where: { sourceName: 'PANLASANG_PINOY', contentSignature: { in: keepSignatures } },
+    where: {
+      sourceName: 'PANLASANG_PINOY',
+      contentSignature: { in: keepSignatures },
+      sourceRecordId: { notIn: rows.filter((row) => row.status === 'RETIRED').map((row) => row.sourceRecordId) },
+    },
     data: { status: 'AVAILABLE' },
   });
   await prisma.rawRecipeCandidate.updateMany({

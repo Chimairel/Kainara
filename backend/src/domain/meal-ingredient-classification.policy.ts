@@ -1,6 +1,6 @@
 import type { DietaryPreference } from '@prisma/client';
 
-export const MEAL_INGREDIENT_CLASSIFICATION_VERSION = 'INGREDIENT_CLASSIFIER_V2';
+export const MEAL_INGREDIENT_CLASSIFICATION_VERSION = 'INGREDIENT_CLASSIFIER_V3';
 
 export type CanonicalAllergen = 'SHELLFISH' | 'NUTS' | 'DAIRY' | 'GLUTEN' | 'EGGS';
 export type IngredientClassificationStatus = 'COMPLETE' | 'NEEDS_REVIEW';
@@ -21,18 +21,20 @@ export interface IngredientClassificationResult {
 
 const ALLERGEN_PATTERNS: Readonly<Record<CanonicalAllergen, readonly RegExp[]>> = Object.freeze({
   SHELLFISH: [
-    /\bshrimp\b/u,
-    /\bprawn\b/u,
-    /\bcrab\b/u,
-    /\blobster\b/u,
+    /\bshrimps?\b/u,
+    /\bprawns?\b/u,
+    /\bcrabs?\b/u,
+    /\bcrabmeat\b/u,
+    /\blobsters?\b/u,
     /\bcrayfish\b/u,
     /\bshellfish\b/u,
-    /\bmussel\b/u,
-    /\boyster\b/u,
-    /\bscallop\b/u,
-    /\bclam\b/u,
-    /\bsquid\b/u,
-    /\boctopus\b/u,
+    /\bmussels?\b/u,
+    /\boysters?\b/u,
+    /\bscallops?\b/u,
+    /\bclams?\b/u,
+    /\bsquids?\b/u,
+    /\bpusit\b/u,
+    /\boctop(?:us|uses)\b/u,
     /\bhipon\b/u,
     /\balimango\b/u,
     /\balimasag\b/u,
@@ -56,6 +58,7 @@ const ALLERGEN_PATTERNS: Readonly<Record<CanonicalAllergen, readonly RegExp[]>> 
   DAIRY: [
     /(?<!coconut |soy |almond |oat |rice )\bmilk\b/u,
     /\bcheese\b/u,
+    /\b(?:cheddar|mozzarella|parmesan|ricotta|paneer|ghee)\b/u,
     /(?<!peanut |cocoa |coconut )\bbutter\b/u,
     /(?<!coconut )\bcream\b/u,
     /\byog(?:h)?urt\b/u,
@@ -71,6 +74,7 @@ const ALLERGEN_PATTERNS: Readonly<Record<CanonicalAllergen, readonly RegExp[]>> 
     /(?<!rice |corn |cassava |tapioca |potato |coconut |almond )\bflour\b/u,
     /\bbread(?:crumbs?)?\b/u,
     /\bpasta\b/u,
+    /\b(?:fettuccine|linguine|rotini|spaghetti|macaroni|lasagna|pancit canton|pancit bato)\b/u,
     /(?<!rice )\bnoodles?\b/u,
     /\bsoy sauce\b/u,
     /\bseitan\b/u,
