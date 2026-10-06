@@ -132,11 +132,10 @@ describe('Google sign-in browser recovery', () => {
     expect(mocks.login).not.toHaveBeenCalled();
   });
 
-  it('preserves custom credential actions and manual help', async () => {
+  it('preserves custom credential actions without permanent help text', async () => {
     const onCredential = vi.fn().mockResolvedValue(undefined);
     await renderGoogle({ onCredential });
-    fireEvent.click(screen.getByRole('button', { name: 'Google window didn’t open?' }));
-    expect(screen.getByRole('region')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Google window didn’t open?' })).not.toBeInTheDocument();
     await act(async () => credential({ credential: 'fixture-id-token' }));
     expect(screen.queryByRole('region')).not.toBeInTheDocument();
     expect(onCredential).toHaveBeenCalledWith('fixture-id-token');

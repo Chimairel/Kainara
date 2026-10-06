@@ -200,6 +200,10 @@ select.bg-brand-bg {
   background-image: none !important;
 }
 
+html {
+  scrollbar-gutter: stable;
+}
+
 body {
   color: var(--foreground);
   font-family: var(--font-dm-sans), sans-serif;

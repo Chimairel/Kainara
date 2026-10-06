@@ -65,8 +65,8 @@ const VARIANT_CONFIGS: Record<StateNoticeVariant, VariantDefaults> = {
     description: 'Complete the required account and health steps before your meal plan can be prepared.',
   },
   'action-needed': {
-    getImageSrc: () => '/logo/unauthorized.svg',
-    imageAlt: 'Access Restricted',
+    getImageSrc: (theme) => (theme === 'dark' ? '/logo/sleeping-dark.svg' : '/logo/sleeping-light.svg'),
+    imageAlt: 'Action required',
     eyebrow: 'Action Required',
     eyebrowVariant: 'amber',
     title: 'Nutrition Report Pending',

@@ -8,6 +8,7 @@ const state = vi.hoisted(() => ({
   put: vi.fn(),
   post: vi.fn(),
   get: vi.fn(),
+  updateUserSession: vi.fn(),
   profile: {
     id: 'fixture-user',
     userProfile: {
@@ -28,7 +29,7 @@ const state = vi.hoisted(() => ({
 }));
 vi.mock('next/navigation', () => ({ useRouter: () => ({ push: vi.fn() }) }));
 vi.mock('@/hooks/useAuth', () => ({
-  useAuth: () => ({ user: { userId: 'fixture-user' }, updateUserSession: vi.fn() }),
+  useAuth: () => ({ user: { userId: 'fixture-user' }, updateUserSession: state.updateUserSession }),
 }));
 vi.mock('@/lib/axios', () => ({ default: { put: state.put, get: state.get, post: state.post } }));
 vi.mock('@/lib/user-profile-resource', () => ({
@@ -38,6 +39,24 @@ vi.mock('@/lib/user-profile-resource', () => ({
 vi.mock('@/lib/session-resource-cache', () => ({ readSessionResource: () => null, writeSessionResource: vi.fn() }));
 
 describe('profile saves without hidden location changes', () => {
+  it('preserves the accepted planning report after a weight change creates a stale draft', async () => {
+    state.updateUserSession.mockClear();
+    state.post.mockResolvedValue({ data: { success: true, data: { weightKg: 66 } } });
+    state.get.mockImplementation(async (path: string) => ({
+      data: {
+        success: true,
+        data:
+          path === '/user/profile'
+            ? { ...state.profile, reportAcknowledged: true, nutritionReport: { isStale: true } }
+            : { weightLogs: [], dailyNutritionLogs: [] },
+      },
+    }));
+    const { result } = renderHook(() => useProgressWorkspace('progress'));
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    await act(async () => result.current.setWeightInput('66'));
+    await act(async () => result.current.handleLogWeightSubmit({ preventDefault: vi.fn() } as unknown as FormEvent));
+    expect(state.updateUserSession).toHaveBeenLastCalledWith({ reportAcknowledged: true });
+  });
   it('logs weight with no note without sending a null value rejected by the API', async () => {
     state.post.mockResolvedValue({ data: { success: true, data: { weightKg: 66 } } });
     state.get.mockImplementation(async (path: string) => ({

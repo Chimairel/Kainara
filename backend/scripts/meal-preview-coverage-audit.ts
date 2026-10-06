@@ -128,7 +128,7 @@ async function main() {
     assert.equal(process.env[key] || '', '');
   const runStartedAt = new Date();
   const phase = process.argv[2] || 'original';
-  assert.ok(['original', 'harder', 'sources', 'reviewers'].includes(phase));
+  assert.ok(['original', 'harder', 'sources', 'reviewers', 'gates'].includes(phase));
   // Each process owns its output; journey batches sharing fixtures must be sequential.
   const lockPath = path.join(directory, phase === 'sources' ? 'sources.lock' : 'journeys.lock');
   const lock = await open(lockPath, 'wx');
@@ -245,6 +245,33 @@ async function main() {
       data: { isVerified: true, prcLicenseExpiry: new Date('2099-12-31') },
     });
     if (phase === 'reviewers') {
+      const allergyOnly = await login('shellfish');
+      const allergyScope = await ClinicalProfileReviewService.status(allergyOnly.id);
+      assert.equal(allergyScope.required, false);
+      const allergyCurrent = ok(await request('/api/user/meals/current', 'GET', undefined, allergyOnly.token));
+      const allergyPlan = await prisma.mealPlan.findFirstOrThrow({
+        where: { userId: allergyOnly.id, planGroupId: allergyCurrent.meta.cycle.id, status: 'PENDING_REVIEW' },
+      });
+      ok(await request(`/api/nutritionist/queue/${allergyPlan.id}/claim`, 'POST', {}, reviewer.token));
+      ok(
+        await request(
+          `/api/nutritionist/review/${allergyPlan.id}`,
+          'PATCH',
+          {
+            action: 'approve',
+            note: 'Synthetic allergy-only workflow approval; no clinical validation.',
+          },
+          reviewer.token
+        )
+      );
+      assert.equal((await prisma.mealPlan.findUniqueOrThrow({ where: { id: allergyPlan.id } })).status, 'APPROVED');
+      const allergyVisible = ok(await request('/api/user/meals/current', 'GET', undefined, allergyOnly.token));
+      assert.ok(allergyVisible.data.some((meal: { id: string }) => meal.id === allergyPlan.id));
+      state.reviewer.push({
+        check: 'Allergy-only candidate approval',
+        profileReviewRequired: false,
+        approvedCandidateActionable: true,
+      });
       const f = await login('hypertension');
       const current = ok(await request('/api/user/meals/current', 'GET', undefined, f.token));
       const plan = await prisma.mealPlan.findFirstOrThrow({
@@ -374,6 +401,60 @@ async function main() {
       console.log('REVIEWER_RESULTS', JSON.stringify(state.reviewer));
       return;
     }
+    if (phase === 'gates') {
+      const f = await login('none');
+      await reset(f);
+      const blockedRoutes: Array<[string, string]> = [
+        ['/api/user/meals/log-outside', 'POST'],
+        ['/api/user/meals/generate', 'POST'],
+        ['/api/user/meals/current', 'GET'],
+        ['/api/user/grocery/current', 'GET'],
+        ['/api/user/water', 'POST'],
+      ];
+      for (const [route, method] of blockedRoutes) {
+        const response = await request(route, method, method === 'POST' ? {} : undefined, f.token);
+        assert.equal(response.status, 409, JSON.stringify(response));
+        assert.equal(response.body.errorCode, 'REPORT_ACKNOWLEDGEMENT_REQUIRED');
+      }
+      ok(
+        await request(
+          '/api/user/progress/weight',
+          'POST',
+          { weightKg: 70.1, note: 'Synthetic pre-ack measurement' },
+          f.token
+        )
+      );
+      ok(await request('/api/user/weight-log', 'POST', { weightKg: 70.2 }, f.token), 201);
+      ok(await request('/api/user/profile', 'PUT', { heightCm: 171 }, f.token));
+      ok(await request('/api/user/progress/history', 'GET', undefined, f.token));
+      const pendingProfile = ok(await request('/api/user/profile', 'GET', undefined, f.token));
+      assert.equal(pendingProfile.data.reportAcknowledged, false);
+      assert.equal(await prisma.mealPlanGenerationJob.count({ where: { userId: f.id } }), 0);
+      ok(await request('/api/user/nutrition-report/generate', 'POST', {}, f.token));
+      const report = await NutritionReportService.getReport(f.id);
+      assert.ok(report);
+      ok(await request('/api/user/nutrition-report/acknowledge', 'POST', { version: report.version }, f.token));
+      await settle(f.id);
+      ok(await request('/api/user/meals/current', 'GET', undefined, f.token));
+      // The same malformed log now reaches validation instead of the prerequisite gate.
+      const validation = await request('/api/user/meals/log-outside', 'POST', {}, f.token);
+      assert.equal(validation.status, 400);
+      ok(await request('/api/user/progress/weight', 'POST', { weightKg: 70.3 }, f.token));
+      const changedWeightProfile = ok(await request('/api/user/profile', 'GET', undefined, f.token));
+      assert.equal(changedWeightProfile.data.reportAcknowledged, true);
+      ok(await request('/api/user/meals/current', 'GET', undefined, f.token));
+      state.reviewer.push({
+        check: 'Acknowledgment action matrix',
+        blocked: blockedRoutes.length,
+        weightPathsAllowed: 2,
+        personalizationAllowed: true,
+        noGenerationBeforeAck: true,
+        actionsReenabledAfterAck: true,
+        acceptedPlanningReportPreservedAfterWeightChange: true,
+      });
+      console.log('GATES_PASS');
+      return;
+    }
     if (phase === 'sources') {
       const riceFood = await prisma.foodItem.findFirst({
         where: { source: 'FNRI', name: { equals: 'Rice, well-milled, boiled', mode: 'insensitive' } },
@@ -388,7 +469,11 @@ async function main() {
       ).flat();
       for (const diet of Object.values(DietaryPreference))
         for (let mask = 0; mask < 32; mask++) {
-          if (state.probes.some((p) => p.diet === diet && p.mask === mask && p.screened)) continue;
+          if (
+            !process.argv.includes('--rerun') &&
+            state.probes.some((p) => p.diet === diet && p.mask === mask && p.screened)
+          )
+            continue;
           const allergens = names.filter((_, i) => mask & (1 << i));
           const result = await sourceRawRecipeCandidates({
             slots,
@@ -424,8 +509,14 @@ async function main() {
       return;
     }
     const cases = phase === 'harder' ? harder : original;
+    const requestedCase = process.argv.find((argument) => argument.startsWith('--case='))?.slice(7);
     for (const scenario of cases) {
-      if (state.results.some((row) => row.key === scenario.key && !row.technicalError)) continue;
+      if (requestedCase && scenario.key !== requestedCase) continue;
+      if (
+        !process.argv.includes('--rerun') &&
+        state.results.some((row) => row.key === scenario.key && !row.technicalError)
+      )
+        continue;
       const started = Date.now();
       console.log('START', scenario.key);
       try {
@@ -534,7 +625,11 @@ async function main() {
           ok(decision);
         }
         await settle(f.id);
-        const current = ok(await request('/api/user/meals/current', 'GET', undefined, f.token));
+        // Reading current can itself enqueue preparation after profile approval.
+        // Wait for that job before recording a terminal delivery outcome.
+        let current = ok(await request('/api/user/meals/current', 'GET', undefined, f.token));
+        await settle(f.id);
+        current = ok(await request('/api/user/meals/current', 'GET', undefined, f.token));
         const cycleId = current.meta.cycle?.id;
         const rows = cycleId
           ? await prisma.mealPlan.findMany({

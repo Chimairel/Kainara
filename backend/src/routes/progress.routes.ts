@@ -2,7 +2,7 @@ import { Router } from 'express';
 import authenticate from '@/middleware/auth';
 import requireRole from '@/middleware/rbac';
 import { ProgressController } from '@/controllers/progress.controller';
-import { requireReadyUser, requireUserPrerequisites } from '@/middleware/userPrerequisites';
+import { requireUserPrerequisites } from '@/middleware/userPrerequisites';
 import { validateZodBody } from '@/middleware/validateZod';
 import { weightEntryBodySchema } from '@/validation/user-action.schemas';
 
@@ -17,7 +17,8 @@ router.use(requireUserPrerequisites({ emailVerified: true, onboardingDone: true,
  * Route: POST /api/user/progress/weight
  * Description: Logs a new weight value, updating profile and recalculating target calories.
  */
-router.post('/weight', requireReadyUser, validateZodBody(weightEntryBodySchema), ProgressController.logWeight);
+// A measurement is a profile input, not a meal action. It may stale an unaccepted report.
+router.post('/weight', validateZodBody(weightEntryBodySchema), ProgressController.logWeight);
 
 /**
  * Route: GET /api/user/progress/history

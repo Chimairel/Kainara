@@ -11,7 +11,7 @@ import { useDashboardWorkspace } from './useDashboardWorkspace';
 
 export default function DashboardWorkspace() {
   const model = useDashboardWorkspace();
-  const { error, clinicalEvidenceRequired, user, outsideLog, router, isLoading, currentCycle } = model;
+  const { error, clinicalEvidenceRequired, user, outsideLog, router, isLoading, currentCycle, isReportPending } = model;
   return (
     <div className="portal-page select-none pb-32 text-brand-text">
       <div className="mx-auto flex w-full max-w-7xl flex-col gap-6">
@@ -29,14 +29,16 @@ export default function DashboardWorkspace() {
           title={<>Mabuhay, {user?.name ? user.name.split(' ')[0] : 'Friend'}.</>}
           description="Your meals, daily intake, and next steps — all in one place."
           actions={
-            <div className="flex flex-wrap gap-2">
-              <Button variant="primary" onClick={() => outsideLog.setIsOpen(true)}>
-                <Plus className="h-4 w-4" /> Log food or snack
-              </Button>
-              <Button variant="secondary" onClick={() => router.push('/meals')}>
-                <Calendar className="h-4 w-4" /> Weekly plan
-              </Button>
-            </div>
+            !isReportPending && user?.reportAcknowledged ? (
+              <div className="flex flex-wrap gap-2">
+                <Button variant="primary" onClick={() => outsideLog.setIsOpen(true)}>
+                  <Plus className="h-4 w-4" /> Log food or snack
+                </Button>
+                <Button variant="secondary" onClick={() => router.push('/meals')}>
+                  <Calendar className="h-4 w-4" /> Weekly plan
+                </Button>
+              </div>
+            ) : null
           }
         />
 
@@ -46,7 +48,7 @@ export default function DashboardWorkspace() {
         <DashboardContent model={model} />
       </div>
 
-      <OutsideMealModal {...outsideLog} />
+      {!isReportPending && user?.reportAcknowledged && <OutsideMealModal {...outsideLog} />}
     </div>
   );
 }

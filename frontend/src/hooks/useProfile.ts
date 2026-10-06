@@ -17,6 +17,7 @@ export interface UserProfileData {
   acceptedPrivacyVersion?: string;
   healthDataConsentedAt?: string;
   onboardingDone: boolean;
+  reportAcknowledged?: boolean;
   createdAt: string;
   userProfile: {
     revision?: number;

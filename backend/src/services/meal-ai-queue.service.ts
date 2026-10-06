@@ -10,7 +10,7 @@ import {
   Prisma,
 } from '@prisma/client';
 import prisma from '@/lib/prisma';
-import { requiresIndividualPlanningReview } from '@/domain/planning-membership.policy';
+import { requiresMealCandidateReview } from '@/domain/meal-candidate-review.policy';
 import { generateGenerativeJSON } from '@/lib/gemini';
 import { getFNRISubset } from '@/lib/fnri';
 import { AiCapacityDeferredError } from './ai-capacity.service';
@@ -206,7 +206,7 @@ export class MealAiQueueService {
         otherAllergies,
         safetyEntries: context.user.safetyProfileEntries,
       });
-      if (!requiresIndividualPlanningReview(restrictions)) {
+      if (!requiresMealCandidateReview(restrictions)) {
         throw new Error('NO_REVIEW_FREE_SOURCE');
       }
       const slots = earliestMissingDay(

@@ -334,6 +334,50 @@ router.delete('/account', validateZodBody(accountDeletionSchema), async (req: Au
   }
 });
 
+/**
+ * GET /api/user/weight-log
+ * Returns weight history for charting.
+ */
+router.get('/weight-log', requireReportEligible, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const history = await WeightLogService.getWeightHistory(req.user!.userId);
+    return res.json({ success: true, data: history });
+  } catch (error: any) {
+    return res
+      .status(500)
+      .json({ success: false, error: sanitizeErrorMessage(error, 'Failed to retrieve weight history.') });
+  }
+});
+
+/**
+ * POST /api/user/weight-log
+ * Logs a new weight entry.
+ */
+router.post(
+  '/weight-log',
+  requireReportEligible,
+  [
+    body('weightKg').isFloat({ min: 30, max: 300 }).withMessage('Weight must be between 30 and 300 kg.').toFloat(),
+    body('note')
+      .optional({ nullable: true })
+      .isString()
+      .isLength({ max: 500 })
+      .withMessage('Weight note must be 500 characters or fewer.'),
+    validate,
+  ],
+  async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const { weightKg, note } = req.body;
+      const entry = await WeightLogService.logWeight(req.user!.userId, weightKg, note);
+      return res.status(201).json({ success: true, data: entry });
+    } catch (error: any) {
+      return res
+        .status(500)
+        .json({ success: false, error: sanitizeErrorMessage(error, 'Failed to log weight entry.') });
+    }
+  }
+);
+
 // Meal-related actions retain the complete readiness chain.
 router.use(requireReadyUser);
 
@@ -403,53 +447,6 @@ router.patch('/notifications/:id/read', async (req: AuthenticatedRequest, res: R
       .json({ success: false, error: sanitizeErrorMessage(error, 'Failed to mark notification as read.') });
   }
 });
-
-// ──────────────────────────────────────────
-// Weight Log
-// ──────────────────────────────────────────
-
-/**
- * GET /api/user/weight-log
- * Returns weight history for charting.
- */
-router.get('/weight-log', async (req: AuthenticatedRequest, res: Response) => {
-  try {
-    const history = await WeightLogService.getWeightHistory(req.user!.userId);
-    return res.json({ success: true, data: history });
-  } catch (error: any) {
-    return res
-      .status(500)
-      .json({ success: false, error: sanitizeErrorMessage(error, 'Failed to retrieve weight history.') });
-  }
-});
-
-/**
- * POST /api/user/weight-log
- * Logs a new weight entry.
- */
-router.post(
-  '/weight-log',
-  [
-    body('weightKg').isFloat({ min: 30, max: 300 }).withMessage('Weight must be between 30 and 300 kg.').toFloat(),
-    body('note')
-      .optional({ nullable: true })
-      .isString()
-      .isLength({ max: 500 })
-      .withMessage('Weight note must be 500 characters or fewer.'),
-    validate,
-  ],
-  async (req: AuthenticatedRequest, res: Response) => {
-    try {
-      const { weightKg, note } = req.body;
-      const entry = await WeightLogService.logWeight(req.user!.userId, weightKg, note);
-      return res.status(201).json({ success: true, data: entry });
-    } catch (error: any) {
-      return res
-        .status(500)
-        .json({ success: false, error: sanitizeErrorMessage(error, 'Failed to log weight entry.') });
-    }
-  }
-);
 
 // ──────────────────────────────────────────
 // Weekly Check-In

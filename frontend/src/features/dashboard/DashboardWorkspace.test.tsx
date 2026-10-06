@@ -76,6 +76,7 @@ let plan: { data: unknown[]; meta: Record<string, unknown> };
 beforeEach(() => {
   clearSessionResourceCache();
   vi.clearAllMocks();
+  fixture.user.reportAcknowledged = true;
   fixture.eligibility = { required: false, approved: true };
   plan = { data: [], meta: { generationStatus: 'GENERATING' } };
   get.mockImplementation(async (url) => {
@@ -94,6 +95,17 @@ async function refresh() {
 }
 
 describe('dashboard route after feature extraction', () => {
+  it('hides food logging and weekly plan actions until the report is acknowledged', async () => {
+    fixture.user.reportAcknowledged = false;
+    const view = render(<DashboardPage />);
+    await screen.findByText("Meal planning isn't available yet");
+    expect(screen.queryByRole('button', { name: /Log food or snack/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Weekly plan/i })).not.toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /View Nutrition Report/i })).toBeInTheDocument();
+    fixture.user.reportAcknowledged = true;
+    view.rerender(<DashboardPage />);
+    expect(await screen.findByRole('button', { name: /Log food or snack/i })).toBeInTheDocument();
+  });
   it('refreshes a preparing page into its saved meals without remounting or manual reload', async () => {
     render(<DashboardPage />);
     await screen.findByText('Preparing Your First Meal Plan');

@@ -267,7 +267,10 @@ export function useProgressWorkspace(mode: ProgressWorkspaceMode) {
 
       if (profileUpdate.data && profileUpdate.data.success) {
         const savedReport = profileUpdate.data.data.nutritionReport;
-        updateUserSession({ reportAcknowledged: !!savedReport?.acknowledgedAt && !savedReport?.isStale });
+        updateUserSession({
+          reportAcknowledged:
+            profileUpdate.data.data.reportAcknowledged ?? (!!savedReport?.acknowledgedAt && !savedReport?.isStale),
+        });
         setBiometricsSuccess('Biometrics and dietary preferences updated successfully! Calorie budget recalculated.');
         setProfileData(profileUpdate.data.data);
         writeSessionResource(ownerId, 'user-progress-page', {
@@ -320,7 +323,10 @@ export function useProgressWorkspace(mode: ProgressWorkspaceMode) {
         if (profileRes.data && profileRes.data.success) {
           setProfileData(profileRes.data.data);
           const savedReport = profileRes.data.data.nutritionReport;
-          updateUserSession({ reportAcknowledged: !!savedReport?.acknowledgedAt && !savedReport?.isStale });
+          updateUserSession({
+            reportAcknowledged:
+              profileRes.data.data.reportAcknowledged ?? (!!savedReport?.acknowledgedAt && !savedReport?.isStale),
+          });
         }
         writeSessionResource(ownerId, 'user-progress-page', {
           history: historyRes.data?.success ? historyRes.data.data : history,

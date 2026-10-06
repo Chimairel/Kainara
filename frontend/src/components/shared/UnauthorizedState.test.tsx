@@ -14,7 +14,7 @@ describe('UnauthorizedState Component', () => {
     ).toBeInTheDocument();
     const actionLink = screen.getByRole('link', { name: /view nutrition report/i });
     expect(actionLink).toHaveAttribute('href', '/profile/nutrition-report');
-    expect(screen.getByAltText('Access Restricted')).toBeInTheDocument();
+    expect(screen.getByAltText('Action required')).toHaveAttribute('src', expect.stringContaining('sleeping'));
   });
 
   it('renders custom eyebrow, title, and description', () => {

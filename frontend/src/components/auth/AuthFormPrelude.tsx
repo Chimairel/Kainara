@@ -8,9 +8,6 @@ export default function AuthFormPrelude({ error, compact = false }: { error?: st
       {process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID &&
         process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID !== 'YOUR_GOOGLE_CLIENT_ID_HERE' && (
           <>
-            <p className="mt-2 text-center text-xs text-brand-muted">
-              New here? Continuing with Google creates your account.
-            </p>
             <div className={`${compact ? 'my-4' : 'my-6'} flex items-center gap-4`}>
               <div className="h-px flex-1 bg-brand-border/70" />
               <span className="font-mono text-[9px] font-bold uppercase tracking-[0.16em] text-brand-muted">

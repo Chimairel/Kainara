@@ -209,7 +209,7 @@ export default function GoogleSignInButton({
         </div>
       ) : (
         <div
-          className={`relative min-h-[40px] w-full ${disabled ? 'pointer-events-none opacity-50' : ''}`}
+          className={`relative h-[44px] w-full ${disabled ? 'pointer-events-none opacity-50' : ''}`}
           aria-disabled={disabled}
         >
           {!isReady && (
@@ -222,16 +222,6 @@ export default function GoogleSignInButton({
             className={`flex w-full justify-center transition-opacity ${isReady ? 'opacity-100' : 'opacity-0'} ${isLoading ? 'pointer-events-none opacity-50' : ''}`}
           />
         </div>
-      )}
-      {!recovery.embeddedBrowser && (
-        <button
-          type="button"
-          disabled={disabled || isLoading}
-          onClick={recovery.showHelp}
-          className="text-xs text-brand-muted underline underline-offset-2 hover:text-brand-text disabled:opacity-50"
-        >
-          Google window didn’t open?
-        </button>
       )}
       {recovery.reason !== null && (
         <FloatingNotice

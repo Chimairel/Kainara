@@ -6,7 +6,7 @@ import { buildComposedServing, composedNutritionTotal, scaleFnriFoodToGrams } fr
 import { resolveRecipeRiceRole } from '@/domain/recipe-rice-role.policy';
 import { resolveReplacementServing } from './meal-swap-serving.service';
 import prisma from '@/lib/prisma';
-import { requiresIndividualPlanningReview } from '@/domain/planning-membership.policy';
+import { requiresMealCandidateReview } from '@/domain/meal-candidate-review.policy';
 import { assertGenerationIntegrity } from './generation-integrity.service';
 import { updateGenerationProgress } from './generation-progress.service';
 import { lockUserProfile } from './profile-revision.service';
@@ -104,7 +104,7 @@ export async function generate7DayPlan(
     !restrictions.allergies.length &&
     !restrictions.customConditions.length &&
     !restrictions.customFoodRestrictions.length;
-  const individualReviewRequired = requiresIndividualPlanningReview(restrictions);
+  const individualReviewRequired = requiresMealCandidateReview(restrictions);
   const assuranceTier = getMaximumAssuranceTier(userConditions);
 
   const { age, heightCm, weightKg, goal, activityLevel, dailyCalorieTarget } = profile;
@@ -398,8 +398,8 @@ export async function generate7DayPlan(
     },
   });
   const sourceById = new Map(rawSources.map((source) => [source.id, source]));
-  // A general-wellness candidate with incomplete source evidence is an empty
-  // slot, never a nutritionist review task or an automatically approved plan.
+  // Unrestricted candidates need published base evidence. Restricted proposals,
+  // including allergy-only profiles, stay pending until a meal review clears them.
   const unflaggedCandidates = preparedCandidates.filter(
     (meal) => !meal.rawCandidateId || sourceById.has(meal.rawCandidateId)
   );

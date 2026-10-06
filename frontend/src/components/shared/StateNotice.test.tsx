@@ -37,7 +37,7 @@ describe('StateNotice Component', () => {
 
     const link = screen.getByRole('link', { name: /view nutrition report/i });
     expect(link).toHaveAttribute('href', '/profile/nutrition-report');
-    expect(screen.getByAltText('Access Restricted')).toBeInTheDocument();
+    expect(screen.getByAltText('Action required')).toHaveAttribute('src', expect.stringContaining('sleeping'));
   });
 
   it('renders access-denied variant with workspace link and secondary action', () => {

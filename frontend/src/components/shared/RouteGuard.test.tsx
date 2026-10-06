@@ -23,6 +23,21 @@ vi.mock('@/hooks/useAuth', () => ({
 }));
 
 describe('report access within the profile', () => {
+  it.each(['/login', '/register', '/forgot-password', '/reset-password'])(
+    'keeps %s mounted during session loading',
+    (path) => {
+      state.path = path;
+      state.isLoading = true;
+      state.user = null as unknown as typeof state.user;
+      render(
+        <RouteGuard>
+          <p>Auth form</p>
+        </RouteGuard>
+      );
+      expect(screen.getByText('Auth form')).toBeInTheDocument();
+      expect(state.replace).not.toHaveBeenCalled();
+    }
+  );
   beforeEach(() => {
     state.replace.mockClear();
     state.profileLoadError = false;

@@ -1,6 +1,6 @@
 import type { DietaryPreference } from '@prisma/client';
 
-export const MEAL_INGREDIENT_CLASSIFICATION_VERSION = 'INGREDIENT_CLASSIFIER_V3';
+export const MEAL_INGREDIENT_CLASSIFICATION_VERSION = 'INGREDIENT_CLASSIFIER_V4';
 
 export type CanonicalAllergen = 'SHELLFISH' | 'NUTS' | 'DAIRY' | 'GLUTEN' | 'EGGS';
 export type IngredientClassificationStatus = 'COMPLETE' | 'NEEDS_REVIEW';
@@ -132,6 +132,7 @@ const ANIMAL_DERIVED_PATTERNS = [
 // unrecognized ingredient keeps the result conservative instead of silently
 // being treated as plant based.
 const RECOGNIZED_NON_ANIMAL_PATTERNS = [
+  /\b(?:sago pearls?|tapioca pearls?|vanilla extract)\b/u,
   /\b(?:rice|corn|oat|quinoa|noodle|pasta|bread|flour|starch|sugar|salt|pepper|spice|seasoning|oil|vinegar|water|stock|broth)\b/u,
   /\b(?:tomato|onion|garlic|ginger|carrots?|potato|sweet potato|kamote|squash|pumpkin|eggplant|okra|cabbage|lettuce|spinach|kangkong|pechay|broccoli|cauliflower|bean|pea|lentil|chickpea|tofu|tempeh|mushroom)\b/u,
   /\b(?:banana|mango|papaya|pineapple|apple|orange|lemon|lime|calamansi|coconut|avocado|strawberry|fruit)\b/u,

@@ -40,7 +40,6 @@ export const RouteGuard: React.FC<RouteGuardProps> = ({ children }) => {
     '/pricing',
   ];
   const isPublicRoute = publicRoutes.some((route) => pathname.startsWith(route));
-  const isPublicInformationRoute = pathname === '/docs' || pathname === '/sources' || pathname === '/pricing';
   const isEntryRoute = pathname === '/' || pathname === '/login' || pathname === '/register';
   const isVerifyPage = pathname.startsWith('/verify-email');
   const isOnboardingPage = pathname.startsWith('/onboarding');
@@ -99,7 +98,9 @@ export const RouteGuard: React.FC<RouteGuardProps> = ({ children }) => {
   }, [redirectTarget, router]);
 
   // Render a full-screen loading spinner while the status is being resolved
-  if ((isLoading && !isPublicInformationRoute) || redirectTarget) {
+  // Public auth forms can stay mounted while the cookie is checked. Their own
+  // readiness controls prevent submission; protected workspaces still wait.
+  if ((isLoading && !isPublicRoute) || redirectTarget) {
     return <PortalLoadingState fullScreen />;
   }
 
