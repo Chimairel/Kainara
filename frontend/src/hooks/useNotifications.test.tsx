@@ -101,7 +101,7 @@ describe('shared notification inbox', () => {
     expect(mocks.play).toHaveBeenCalledOnce();
   });
 
-  it('remembers mute, unlocks on interaction and never replays muted notifications', async () => {
+  it('remembers mute, previews re-enabling sound and never replays muted notifications', async () => {
     mocks.user = { userId: 'account-1', role: 'USER' };
     localStorage.setItem(NOTIFICATION_SOUND_KEY, 'muted');
     mocks.get.mockResolvedValue(response([]));
@@ -117,11 +117,12 @@ describe('shared notification inbox', () => {
     expect(result.current.soundEnabled).toBe(true);
     expect(localStorage.getItem(NOTIFICATION_SOUND_KEY)).toBe('enabled');
     expect(mocks.unlock).toHaveBeenCalledOnce();
-    await act(async () => result.current.refresh());
-    expect(mocks.play).not.toHaveBeenCalled();
-    mocks.get.mockResolvedValue(response([notification('next', 2)]));
+    expect(mocks.play).toHaveBeenCalledOnce();
     await act(async () => result.current.refresh());
     expect(mocks.play).toHaveBeenCalledOnce();
+    mocks.get.mockResolvedValue(response([notification('next', 2)]));
+    await act(async () => result.current.refresh());
+    expect(mocks.play).toHaveBeenCalledTimes(2);
     act(() => result.current.toggleNotificationSound());
     expect(mocks.stop).toHaveBeenCalled();
     expect(localStorage.getItem(NOTIFICATION_SOUND_KEY)).toBe('muted');

@@ -136,4 +136,83 @@ describe('provided MP3 playback', () => {
       unsupported.dispose();
     }).not.toThrow();
   });
+
+  it('plays a new alert that arrives while the real sound download is pending', async () => {
+    let complete!: (response: unknown) => void;
+    fetchSound.mockReturnValueOnce(new Promise((resolve) => (complete = resolve)));
+    const audio = createNotificationAudio();
+    audio.unlock();
+    audio.play();
+    audio.play();
+    expect(contexts[0].sources).toHaveLength(0);
+    complete({ ok: true, arrayBuffer: async () => new ArrayBuffer(1) });
+    await vi.advanceTimersByTimeAsync(0);
+    expect(contexts[0].sources).toHaveLength(1);
+    audio.dispose();
+  });
+
+  it.each(['suspended', 'interrupted'])('resumes a %s context before playing the new alert', async (state) => {
+    const audio = createNotificationAudio();
+    audio.unlock();
+    await vi.advanceTimersByTimeAsync(0);
+    contexts[0].state = state;
+    audio.play();
+    await vi.advanceTimersByTimeAsync(0);
+    expect(contexts[0].resume).toHaveBeenCalledOnce();
+    expect(contexts[0].sources).toHaveLength(1);
+    audio.dispose();
+  });
+
+  it('allows an explicit enable gesture to retry immediately and tolerates synchronous resume rejection', async () => {
+    fetchSound.mockRejectedValueOnce(new Error('offline'));
+    const audio = createNotificationAudio();
+    audio.unlock();
+    await vi.advanceTimersByTimeAsync(0);
+    contexts[0].state = 'suspended';
+    contexts[0].resume.mockImplementationOnce(() => {
+      throw new Error('Device unavailable');
+    });
+    expect(() => audio.unlock(true)).not.toThrow();
+    audio.play();
+    await vi.advanceTimersByTimeAsync(0);
+    expect(fetchSound).toHaveBeenCalledTimes(2);
+    expect(contexts[0].sources).toHaveLength(1);
+    audio.dispose();
+  });
+
+  it.each(['download', 'decode'])(
+    'retries a transient %s failure instead of staying silent for the session',
+    async (failure) => {
+      if (failure === 'download') fetchSound.mockRejectedValueOnce(new Error('offline'));
+      const audio = createNotificationAudio();
+      audio.unlock();
+      if (failure === 'decode') contexts[0].decodeAudioData.mockRejectedValueOnce(new Error('incomplete file'));
+      await vi.advanceTimersByTimeAsync(0);
+      audio.unlock();
+      expect(fetchSound).toHaveBeenCalledOnce();
+      await vi.advanceTimersByTimeAsync(3000);
+      audio.play();
+      await vi.advanceTimersByTimeAsync(0);
+      expect(fetchSound).toHaveBeenCalledTimes(2);
+      expect(contexts[0].sources).toHaveLength(1);
+      audio.dispose();
+    }
+  );
+
+  it.each(['mute', 'hidden', 'expired', 'dispose'])('discards a pending chime after %s', async (reason) => {
+    let complete!: (response: unknown) => void;
+    fetchSound.mockReturnValueOnce(new Promise((resolve) => (complete = resolve)));
+    const audio = createNotificationAudio();
+    audio.unlock();
+    audio.play();
+    if (reason === 'mute') audio.stop();
+    if (reason === 'hidden') vi.spyOn(document, 'visibilityState', 'get').mockReturnValue('hidden');
+    if (reason === 'expired') await vi.advanceTimersByTimeAsync(10001);
+    if (reason === 'dispose') audio.dispose();
+    complete({ ok: true, arrayBuffer: async () => new ArrayBuffer(1) });
+    await vi.advanceTimersByTimeAsync(0);
+    expect(contexts[0].sources).toHaveLength(0);
+    audio.dispose();
+    vi.restoreAllMocks();
+  });
 });

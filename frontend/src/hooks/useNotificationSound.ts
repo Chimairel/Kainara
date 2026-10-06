@@ -72,8 +72,10 @@ export function useNotificationSound(accountId?: string) {
     } catch {
       /* Keep the preference in memory when storage is unavailable. */
     }
-    if (enabled.current) current.current?.audio.unlock();
-    else current.current?.audio.stop();
+    if (enabled.current) {
+      current.current?.audio.unlock(true);
+      current.current?.audio.play();
+    } else current.current?.audio.stop();
   }, []);
 
   return { soundEnabled, toggleNotificationSound, observeNotifications };

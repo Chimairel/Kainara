@@ -115,6 +115,55 @@ async function setup(page: Page) {
 }
 
 for (const width of [1440, 390]) {
+  test(`new alert survives a delayed MP3 download at ${width}px`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 900 });
+    const fixture = await setup(page);
+    let release!: () => void;
+    const download = new Promise<void>((resolve) => (release = resolve));
+    await page.route('**/sounds/notification.mp3', async (route) => {
+      await download;
+      await route.continue();
+    });
+    await page.goto('/profile/security');
+    await page.getByRole('button', { name: 'View notifications' }).click();
+    await expect(page.getByText('Old fixture alert', { exact: true })).toBeVisible();
+    await fixture.add('during-download');
+    const stats = () =>
+      page.evaluate(
+        () => (window as unknown as { notificationAudio: { plays: number; duration: number } }).notificationAudio
+      );
+    expect((await stats()).plays).toBe(0);
+    release();
+    await expect.poll(async () => (await stats()).plays).toBe(1);
+    expect((await stats()).duration).toBeGreaterThan(0);
+    await fixture.refresh();
+    expect((await stats()).plays).toBe(1);
+  });
+
+  test(`enable preview recovers a failed MP3 download at ${width}px`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 900 });
+    await setup(page);
+    let requests = 0;
+    await page.route('**/sounds/notification.mp3', async (route) => {
+      requests++;
+      if (requests === 1) await route.fulfill({ status: 503, body: 'Temporary failure' });
+      else await route.continue();
+    });
+    await page.goto('/profile/security');
+    await page.getByRole('button', { name: 'View notifications' }).click();
+    await expect.poll(() => requests).toBe(1);
+    const sound = page.getByRole('switch', { name: 'Notification sound' });
+    await sound.click();
+    await sound.click();
+    await expect(sound).toHaveAttribute('aria-checked', 'true');
+    await expect
+      .poll(() =>
+        page.evaluate(() => (window as unknown as { notificationAudio: { plays: number } }).notificationAudio.plays)
+      )
+      .toBe(1);
+    expect(requests).toBe(2);
+  });
+
   test(`provided MP3, new alerts and persistent mute at ${width}px`, async ({ page }) => {
     await page.setViewportSize({ width, height: 900 });
     const errors: string[] = [];
@@ -149,8 +198,11 @@ for (const width of [1440, 390]) {
     expect((await stats()).plays).toBe(0);
     await sound.click();
     await expect.poll(async () => (await stats()).duration).toBeGreaterThan(0);
-    await fixture.add('enabled');
     await expect.poll(async () => (await stats()).plays).toBe(1);
+    // The enable confirmation and the next alert are separate, outside the burst limit.
+    await page.waitForTimeout(3100);
+    await fixture.add('enabled');
+    await expect.poll(async () => (await stats()).plays).toBe(2);
     expect(fixture.plannerRequests()).toBe(0);
     expect(errors).toEqual([]);
   });

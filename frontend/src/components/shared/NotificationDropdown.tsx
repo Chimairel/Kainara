@@ -165,7 +165,7 @@ export default function NotificationDropdown() {
                 role="switch"
                 aria-label="Notification sound"
                 aria-checked={soundEnabled}
-                title={soundEnabled ? 'Mute notification sound' : 'Enable notification sound'}
+                title={soundEnabled ? 'Mute notification sound' : 'Enable and preview notification sound'}
                 onClick={toggleNotificationSound}
                 className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-brand-muted transition hover:bg-brand-bgAlt/70 hover:text-brand-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-green dark:text-white/50 dark:hover:bg-white/[0.06] dark:hover:text-white"
               >
