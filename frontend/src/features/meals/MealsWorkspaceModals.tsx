@@ -1,92 +1,42 @@
 'use client';
 
-import Dropdown from '@/components/ui/Dropdown';
-import { dashboardMealCardClasses, DashboardMealPlate } from '@/components/user/DashboardMealCardSurface';
 import { formatMealTitle } from '@/lib/meal-title';
-import { useState, useMemo, useEffect } from 'react';
+
 import Button from '@/components/ui/Button';
-import MealImage from '@/components/user/MealImage';
+
 import Modal from '@/components/ui/Modal';
 import LoadingSpinner from '@/components/shared/LoadingSpinner';
 import NutritionistCredentialModal from '@/components/user/NutritionistCredentialModal';
-import { AlertTriangle, ArrowDown, ArrowRight, Check, Sparkles, Soup, UtensilsCrossed, X } from 'lucide-react';
-import { formatManilaDate } from '@/lib/manila-date';
-import { useMealsWorkspace } from './useMealsWorkspace';
+import { AlertTriangle, Check } from 'lucide-react';
+
 import SwapImpactDetails from './SwapImpactDetails';
-import { swapNutritionLabel } from './swap-nutrition-label';
-import { getMealTheme } from '@/features/dashboard/DashboardMealRow';
 
-type Props = { workspace: ReturnType<typeof useMealsWorkspace> };
+import { Props } from '@/features/meals/swap/MealsWorkspaceModals.shared';
 
-type MiniSortOption = 'best_match' | 'kcal_match';
-
+import { useMealsWorkspaceModalsModel } from '@/features/meals/swap/useMealsWorkspaceModalsModel';
+import SwapMealComparison from '@/features/meals/swap/SwapMealComparison';
+import SwapMealOptions from '@/features/meals/swap/SwapMealOptions';
 export function MealsWorkspaceModals({ workspace }: Props) {
-  const [groceryDeltaAcknowledged, setGroceryDeltaAcknowledged] = useState(false);
-  const [miniSort, setMiniSort] = useState<MiniSortOption>('best_match');
+  const model = useMealsWorkspaceModalsModel({ workspace });
 
   const {
-    activeSwapMeal,
-    setActiveSwapMeal,
-    swapOptions,
-    setSwapOptions,
-    isOptionsLoading,
-    swapOptionsError,
-    setSwapOptionsError,
-    confirmSwapMeal,
-    setConfirmSwapMeal,
-    isSwapping,
-    swapPreview,
-    setSwapPreview,
-    isCheckingPreview,
-    previewError,
     selectedVerifier,
     setSelectedVerifier,
-    handleSelectSwapOption,
+    activeSwapMeal,
+    isSwapping,
+    setActiveSwapMeal,
+    setSwapOptions,
+    setConfirmSwapMeal,
+    setSwapOptionsError,
+    setSwapPreview,
+    confirmSwapMeal,
+    setGroceryDeltaAcknowledged,
+    isCheckingPreview,
+    previewError,
+    swapPreview,
+    groceryDeltaAcknowledged,
     handleConfirmSwapAnyway,
-  } = workspace;
-
-  // Reset the comparison when a different slot opens.
-  useEffect(() => {
-    if (activeSwapMeal) {
-      setMiniSort('best_match');
-      setGroceryDeltaAcknowledged(false);
-    }
-  }, [activeSwapMeal]);
-
-  // Only show the options evaluated for this exact plan slot. The general
-  // library can contain recipes that fail its calorie or rice-serving checks.
-  const filteredAndSortedOptions = useMemo(() => {
-    if (!activeSwapMeal) return [];
-    let items = swapOptions.filter((option) => option.id !== activeSwapMeal.libraryMealId);
-
-    // The slot fixes meal time; users cannot broaden it to other meal types.
-    items = items.filter((item) =>
-      (item.mealTypes?.length ? item.mealTypes : [item.mealType]).includes(activeSwapMeal.mealType)
-    );
-
-    // Rank against the report estimates for the planned day, including fresh rice.
-    const currentCal = activeSwapMeal.calories;
-    return items.sort((a, b) => {
-      if (miniSort === 'kcal_match') {
-        return (
-          Math.abs(a.calories - currentCal) - Math.abs(b.calories - currentCal) || a.mealName.localeCompare(b.mealName)
-        );
-      }
-      if (miniSort === 'best_match') {
-        const fit = (a.nutritionFitScore ?? Number.MAX_SAFE_INTEGER) - (b.nutritionFitScore ?? Number.MAX_SAFE_INTEGER);
-        if (fit !== 0) return fit;
-        const deltaA = Math.abs(a.calories - currentCal);
-        const deltaB = Math.abs(b.calories - currentCal);
-        if (deltaA !== deltaB) return deltaA - deltaB;
-        return a.mealName.localeCompare(b.mealName);
-      }
-      return 0;
-    });
-  }, [activeSwapMeal, swapOptions, miniSort]);
-
-  const currentTheme = activeSwapMeal ? getMealTheme(activeSwapMeal.mealType) : null;
-  const replacementTheme = confirmSwapMeal ? getMealTheme(confirmSwapMeal.mealType || activeSwapMeal?.mealType) : null;
-
+  } = model;
   return (
     <>
       {selectedVerifier && (
@@ -115,180 +65,7 @@ export function MealsWorkspaceModals({ workspace }: Props) {
         >
           <div className="space-y-4 text-left" aria-busy={isSwapping}>
             {/* TOP ROW: BALANCED COMPARISON STAGE */}
-            <div
-              role="group"
-              aria-label="Meal swap comparison"
-              className="grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-stretch gap-3 pb-3 border-b border-brand-border/60"
-            >
-              {/* Left Card: Current Meal */}
-              <div
-                className={`dashboard-meal relative min-w-0 overflow-hidden flex h-52 flex-col justify-between rounded-[22px] p-3.5 sm:p-4 text-white shadow-md ${currentTheme?.cardBg} ${currentTheme?.borderColor}`}
-              >
-                <div>
-                  <div className="flex items-center justify-between gap-2 mb-2">
-                    <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-white/80">
-                      {activeSwapMeal.mealType.toLowerCase()}
-                    </span>
-                    <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold tracking-wide backdrop-blur-md border border-white/25 bg-black/25 text-white shadow-xs">
-                      <span className="h-1.5 w-1.5 rounded-full bg-white/70" />
-                      <span>Current Meal</span>
-                    </span>
-                  </div>
-
-                  <div className="flex items-center gap-3 sm:gap-3.5">
-                    <DashboardMealPlate
-                      className={`relative h-16 w-16 sm:h-18 sm:w-18 shrink-0 rounded-full p-1 sm:p-1.5 bg-white dark:bg-[#12362c] shadow-[0_8px_20px_-3px_rgba(0,0,0,0.25),0_3px_8px_rgba(0,0,0,0.1)] dark:shadow-[0_10px_24px_rgba(0,0,0,0.7)] ${currentTheme?.plateRim} z-10`}
-                    >
-                      <MealImage
-                        image={activeSwapMeal.image}
-                        mealName={activeSwapMeal.mealName}
-                        mealType={activeSwapMeal.mealType}
-                        variant="thumbnail"
-                        className="!rounded-full !border-0 h-full w-full object-cover"
-                      />
-                    </DashboardMealPlate>
-                    <div className="min-w-0 flex-1">
-                      <h4
-                        title={formatMealTitle(activeSwapMeal.mealName)}
-                        className="h-10 sm:h-11 font-display text-sm sm:text-base font-bold text-white line-clamp-2 leading-snug break-words"
-                      >
-                        {formatMealTitle(activeSwapMeal.mealName)}
-                      </h4>
-                      {activeSwapMeal.ricePortion && (
-                        <p
-                          title={activeSwapMeal.ricePortion}
-                          className="text-[11px] font-bold text-white/95 mt-0.5 truncate"
-                        >
-                          + {activeSwapMeal.ricePortion}
-                        </p>
-                      )}
-                      <p className="text-[10.5px] text-white/75 mt-0.5">
-                        {formatManilaDate(activeSwapMeal.scheduledDate, {
-                          weekday: 'short',
-                          month: 'short',
-                          day: 'numeric',
-                        })}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="mt-2.5 pt-2 border-t border-white/20">
-                  <p className="text-[11px] sm:text-xs font-medium text-white/90">
-                    <strong className="text-white font-bold">{Math.round(activeSwapMeal.calories)}</strong> kcal ·{' '}
-                    <strong className="text-white font-bold">{Math.round(activeSwapMeal.proteinG)}g</strong> protein ·{' '}
-                    <strong className="text-white font-bold">{Math.round(activeSwapMeal.carbsG)}g</strong> carbs ·{' '}
-                    <strong className="text-white font-bold">{Math.round(activeSwapMeal.fatG)}g</strong> fat
-                  </p>
-                </div>
-              </div>
-
-              {/* Center Connector */}
-              <div className="flex md:flex-col items-center justify-center gap-1.5 py-1 md:py-0 self-center">
-                <div className="flex h-10 w-10 items-center justify-center rounded-2xl border border-brand-border/80 bg-brand-surface dark:bg-[#0a201a] text-brand-green dark:text-brand-accent shadow-xs">
-                  <ArrowRight className="h-4 w-4 hidden md:block" />
-                  <ArrowDown className="h-4 w-4 md:hidden" />
-                </div>
-                {confirmSwapMeal && (
-                  <span
-                    className={`rounded-full px-2 py-0.5 font-mono text-[9px] font-extrabold shadow-2xs ${
-                      Math.abs(Math.round(confirmSwapMeal.calories - activeSwapMeal.calories)) <= 50
-                        ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/20'
-                        : Math.round(confirmSwapMeal.calories - activeSwapMeal.calories) > 0
-                          ? 'bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/20'
-                          : 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/20'
-                    }`}
-                  >
-                    {Math.round(confirmSwapMeal.calories - activeSwapMeal.calories) >= 0 ? '+' : ''}
-                    {Math.round(confirmSwapMeal.calories - activeSwapMeal.calories)} kcal
-                  </span>
-                )}
-              </div>
-
-              {/* Right Card: Selected Candidate or Prompt */}
-              {confirmSwapMeal && replacementTheme ? (
-                <div
-                  className={`${dashboardMealCardClasses(confirmSwapMeal.mealType ?? activeSwapMeal.mealType)} min-w-0 flex h-52 flex-col justify-between rounded-[22px] p-3.5 sm:p-4`}
-                >
-                  <div>
-                    <div className="flex items-center justify-between gap-2 mb-2">
-                      <span className="min-w-0 truncate text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-white/80">
-                        {(confirmSwapMeal.mealType || activeSwapMeal.mealType).toLowerCase()}
-                      </span>
-                      <div className="flex items-center gap-1.5">
-                        <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold tracking-wide backdrop-blur-md border border-white/30 bg-white/20 text-white shadow-xs">
-                          <Sparkles className="h-3 w-3 text-amber-300" />
-                          <span>Selected Replacement</span>
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            if (isSwapping) return;
-                            setConfirmSwapMeal(null);
-                            setSwapPreview(null);
-                            setGroceryDeltaAcknowledged(false);
-                          }}
-                          className="flex h-5 w-5 items-center justify-center rounded-full bg-black/30 hover:bg-black/50 text-white/80 hover:text-white border border-white/20 transition-colors"
-                          title="Clear selection"
-                          aria-label="Clear selection"
-                        >
-                          <X className="h-3 w-3" />
-                        </button>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-3 sm:gap-3.5">
-                      <DashboardMealPlate
-                        className={`relative h-16 w-16 sm:h-18 sm:w-18 shrink-0 rounded-full p-1 sm:p-1.5 bg-white dark:bg-[#12362c] shadow-[0_8px_20px_-3px_rgba(0,0,0,0.25),0_3px_8px_rgba(0,0,0,0.1)] dark:shadow-[0_10px_24px_rgba(0,0,0,0.7)] ${replacementTheme.plateRim} z-10`}
-                      >
-                        <MealImage
-                          image={confirmSwapMeal.image}
-                          mealName={confirmSwapMeal.mealName}
-                          mealType={confirmSwapMeal.mealType ?? undefined}
-                          variant="thumbnail"
-                          className="!rounded-full !border-0 h-full w-full object-cover"
-                        />
-                      </DashboardMealPlate>
-                      <div className="min-w-0 flex-1">
-                        <h4
-                          title={formatMealTitle(confirmSwapMeal.mealName)}
-                          className="h-10 sm:h-11 font-display text-sm sm:text-base font-bold text-white line-clamp-2 leading-snug break-words"
-                        >
-                          {formatMealTitle(confirmSwapMeal.mealName)}
-                        </h4>
-                        <p
-                          title={confirmSwapMeal.servingDescription || 'One recipe serving'}
-                          className="text-[11px] font-bold text-white/95 mt-0.5 truncate"
-                        >
-                          {confirmSwapMeal.servingDescription || 'One recipe serving'}
-                          {confirmSwapMeal.alreadyPlannedInCycle ? ' · In plan' : ''}
-                        </p>
-                        <p className="text-[10.5px] text-white/75 mt-0.5 truncate">Ready to compare & confirm</p>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="mt-2.5 pt-2 border-t border-white/20">
-                    <p className="text-[11px] sm:text-xs font-medium text-white/90">
-                      <strong className="text-white font-bold">{Math.round(confirmSwapMeal.calories)}</strong> kcal ·{' '}
-                      <strong className="text-white font-bold">{Math.round(confirmSwapMeal.proteinG)}g</strong> protein
-                      · <strong className="text-white font-bold">{Math.round(confirmSwapMeal.carbsG)}g</strong> carbs ·{' '}
-                      <strong className="text-white font-bold">{Math.round(confirmSwapMeal.fatG)}g</strong> fat
-                    </p>
-                  </div>
-                </div>
-              ) : (
-                <div className="min-w-0 flex h-52 flex-col items-center justify-center rounded-[22px] border-2 border-dashed border-brand-border/90 bg-brand-surface/40 dark:bg-brand-surface/20 p-4 text-center">
-                  <div className="flex h-14 w-14 sm:h-16 sm:w-16 items-center justify-center rounded-full border-2 border-dashed border-brand-border/90 bg-brand-surface/80 dark:bg-[#071914] text-brand-muted mb-2 shadow-xs">
-                    <UtensilsCrossed className="h-6 w-6 text-brand-muted/70" />
-                  </div>
-                  <p className="text-xs sm:text-sm font-bold text-brand-text">Select a replacement meal below</p>
-                  <p className="text-[11px] text-brand-muted mt-0.5 max-w-[260px] leading-relaxed">
-                    Click any plate from the mini library to compare nutrition and balance your day.
-                  </p>
-                </div>
-              )}
-            </div>
+            <SwapMealComparison model={model} />
 
             {/* DEDICATED SWAP IMPACT SECTION */}
             {confirmSwapMeal && (
@@ -354,215 +131,7 @@ export function MealsWorkspaceModals({ workspace }: Props) {
             )}
 
             {/* BOTTOM SECTION: MINI MEAL LIBRARY BROWSER */}
-            <div className="space-y-3 pt-1">
-              {/* Header */}
-              <div className="flex items-center justify-between gap-2.5">
-                <div className="flex min-w-0 flex-wrap items-center gap-2">
-                  <h3 className="font-display text-sm font-bold text-brand-text">Mini Meal Library</h3>
-                  <span className="rounded-full bg-brand-bgAlt border border-brand-border/60 px-2 py-0.5 font-mono text-[10px] font-bold text-brand-muted">
-                    {filteredAndSortedOptions.length} available
-                  </span>
-                </div>
-                <div className="ml-auto w-[152px] shrink-0 text-xs sm:w-40">
-                  <Dropdown
-                    disabled={isSwapping}
-                    value={miniSort}
-                    onChange={(event) => setMiniSort(event as MiniSortOption)}
-                    className="h-9 rounded-xl border border-brand-border bg-brand-surface px-2.5 text-xs font-medium text-brand-text outline-none focus:border-brand-green"
-                    aria-label="Sort mini library recipes"
-                  >
-                    <option value="best_match">Nutrition match</option>
-                    <option value="kcal_match">Kcal match</option>
-                  </Dropdown>
-                </div>
-              </div>
-
-              <p className="text-[11px] text-brand-muted">
-                {miniSort === 'best_match'
-                  ? 'Ranked against your report targets for the planned day, including rice. The closest option can still leave macro gaps.'
-                  : 'Ranked by calories for the whole plate. Protein, carbs and fat can differ.'}
-              </p>
-              {miniSort === 'best_match' &&
-                filteredAndSortedOptions.length > 0 &&
-                filteredAndSortedOptions.every((option) => option.nutritionMatch === 'GAPS_REMAIN') && (
-                  <p className="text-[11px] font-semibold text-amber-700 dark:text-amber-300">
-                    Closest available — macro gaps remain
-                  </p>
-                )}
-
-              {/* Recipe Cards Grid */}
-              <div className="max-h-[44vh] overflow-y-auto pr-1 mt-2">
-                {isOptionsLoading ? (
-                  <div className="flex flex-col items-center py-12 gap-2">
-                    <LoadingSpinner size="md" />
-                    <span className="text-xs text-brand-muted font-semibold">
-                      Loading compatible replacement plates...
-                    </span>
-                  </div>
-                ) : swapOptionsError ? (
-                  <div className="p-3 bg-red-950/20 border border-red-900/60 rounded-xl text-xs text-red-400">
-                    {swapOptionsError}
-                  </div>
-                ) : filteredAndSortedOptions.length === 0 ? (
-                  <div className="p-8 text-center border border-brand-border/40 bg-brand-surface/30 rounded-2xl">
-                    <Soup className="w-7 h-7 text-brand-green mx-auto mb-2 opacity-70" />
-                    <p className="text-xs font-bold text-brand-text">No eligible replacement plates</p>
-                    <p className="text-[11px] text-brand-muted mt-0.5">
-                      {swapOptions.length
-                        ? "Try selecting 'All Types' or resetting search and rice role filters."
-                        : 'No available plate meets this meal slot’s calorie, rice preference and review requirements.'}
-                    </p>
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    {filteredAndSortedOptions.map((option) => {
-                      const isSelected = confirmSwapMeal?.id === option.id;
-                      const delta = Math.round(option.calories - activeSwapMeal.calories);
-                      const optionTheme = getMealTheme(option.mealType || activeSwapMeal.mealType);
-                      return (
-                        <div
-                          key={option.id}
-                          role="button"
-                          tabIndex={isSwapping ? -1 : 0}
-                          aria-disabled={isSwapping}
-                          onClick={() => {
-                            if (isSwapping) return;
-                            setGroceryDeltaAcknowledged(false);
-                            handleSelectSwapOption(option);
-                          }}
-                          onKeyDown={(e) => {
-                            if (isSwapping) return;
-                            if (e.key === 'Enter' || e.key === ' ') {
-                              e.preventDefault();
-                              setGroceryDeltaAcknowledged(false);
-                              handleSelectSwapOption(option);
-                            }
-                          }}
-                          className={`${dashboardMealCardClasses(option.mealType ?? activeSwapMeal.mealType)} flex flex-col justify-between rounded-[20px] p-3 sm:p-3.5 transition-all cursor-pointer text-left outline-none ${
-                            isSelected
-                              ? 'ring-2 ring-white/90 shadow-md scale-[1.01]'
-                              : 'hover:brightness-105 hover:shadow-md'
-                          }`}
-                        >
-                          {/* Card Content Top: Header + Badge */}
-                          <div>
-                            <div className="flex items-center justify-between gap-1.5 mb-2">
-                              <span className="text-[9.5px] sm:text-[10px] font-bold uppercase tracking-wider text-white/80 truncate">
-                                {(option.mealTypes?.length
-                                  ? option.mealTypes
-                                  : [option.mealType || activeSwapMeal.mealType]
-                                )
-                                  .join(' · ')
-                                  .toLowerCase()}
-                              </span>
-                              {isSelected ? (
-                                <span className="inline-flex items-center gap-1 rounded-full bg-white/25 backdrop-blur-md border border-white/40 px-2 py-0.5 font-mono text-[8.5px] font-extrabold uppercase text-white shadow-xs">
-                                  <Check className="h-2.5 w-2.5 stroke-[3]" /> Selected
-                                </span>
-                              ) : (
-                                <span
-                                  className={`inline-flex items-center rounded-full px-2 py-0.5 font-mono text-[9px] font-extrabold backdrop-blur-md border shadow-2xs ${
-                                    Math.abs(delta) <= 50
-                                      ? 'border-white/20 bg-black/25 text-white'
-                                      : delta > 0
-                                        ? 'border-amber-300/30 bg-amber-400/20 text-amber-200'
-                                        : 'border-emerald-300/30 bg-emerald-400/20 text-emerald-200'
-                                  }`}
-                                >
-                                  {delta >= 0 ? `+${delta}` : delta} kcal
-                                </span>
-                              )}
-                            </div>
-
-                            {/* Plate + Info Layout */}
-                            <div className="flex items-center gap-2.5 sm:gap-3">
-                              {/* Signature Circular Food Plate */}
-                              <DashboardMealPlate
-                                className={`relative h-14 w-14 sm:h-16 sm:w-16 shrink-0 rounded-full p-1 bg-white dark:bg-[#12362c] shadow-[0_6px_16px_-2px_rgba(0,0,0,0.22),0_2px_6px_rgba(0,0,0,0.08)] dark:shadow-[0_8px_20px_rgba(0,0,0,0.65)] ${optionTheme.plateRim} z-10 transition-transform duration-200 group-hover:scale-105`}
-                              >
-                                <MealImage
-                                  image={option.image}
-                                  mealName={option.mealName}
-                                  mealType={option.mealType ?? undefined}
-                                  variant="thumbnail"
-                                  className="!rounded-full !border-0 h-full w-full object-cover"
-                                />
-                              </DashboardMealPlate>
-
-                              <div className="min-w-0 flex-1">
-                                <h4 className="font-display text-xs sm:text-sm font-bold text-white line-clamp-2 leading-snug group-hover:underline underline-offset-2">
-                                  {formatMealTitle(option.mealName)}
-                                </h4>
-
-                                <p className="text-[10.5px] font-bold text-white/95 mt-0.5 truncate">
-                                  {option.ricePortionLabel
-                                    ? `+ ${option.ricePortionLabel}`
-                                    : option.riceRole === 'PAIR_WITH_RICE'
-                                      ? 'Pair with rice'
-                                      : option.riceRole === 'INCLUDES_RICE'
-                                        ? 'Rice included'
-                                        : option.riceRole === 'STANDALONE'
-                                          ? 'Standalone'
-                                          : 'Rice role unavailable'}
-                                  {option.alreadyPlannedInCycle ? ' · In plan' : ''}
-                                </p>
-
-                                {miniSort === 'best_match' ? (
-                                  <p
-                                    className={`text-[9.5px] truncate mt-0.5 ${
-                                      option.nutritionMatch === 'CLOSE' ? 'text-white font-semibold' : 'text-white/75'
-                                    }`}
-                                  >
-                                    {swapNutritionLabel(option.nutritionMatch)}
-                                  </p>
-                                ) : (
-                                  <p className="text-[9.5px] text-white/75 truncate mt-0.5">Closest calorie match</p>
-                                )}
-                              </div>
-                            </div>
-                          </div>
-
-                          {/* Card Content Bottom: Macros & Verifier */}
-                          <div className="mt-2.5 border-t border-white/20 pt-1.5 space-y-1">
-                            <div className="flex items-center justify-between text-white/90">
-                              <p className="text-[10px] sm:text-[10.5px] font-medium truncate">
-                                <strong className="text-white font-bold">{Math.round(option.calories)}</strong> kcal ·{' '}
-                                <strong className="text-white font-bold">{Math.round(option.proteinG)}g</strong> P ·{' '}
-                                <strong className="text-white font-bold">{Math.round(option.carbsG)}g</strong> C ·{' '}
-                                <strong className="text-white font-bold">{Math.round(option.fatG)}g</strong> F
-                              </p>
-                            </div>
-
-                            {/* Verifier / Source Badge */}
-                            <div className="flex items-center justify-between text-[9px] text-white/75 pt-0.5">
-                              <span className="truncate">
-                                {option.reuseBasis === 'PANLASANG_GENERAL_BASE' ? 'Source: ' : 'Verified by: '}
-                                {option.verifier ? (
-                                  <button
-                                    type="button"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      setSelectedVerifier(option.verifier!);
-                                    }}
-                                    className="text-white font-bold underline hover:text-white/90"
-                                  >
-                                    {option.verifiedBy}
-                                  </button>
-                                ) : (
-                                  <span className="text-white font-bold">
-                                    {option.verifiedBy || 'KAINARA Clinical'}
-                                  </span>
-                                )}
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-            </div>
+            <SwapMealOptions model={model} />
 
             {/* STICKY BOTTOM CONFIRMATION ACTION BAR */}
             {confirmSwapMeal && (

@@ -68,6 +68,9 @@ Useful entry points after the workspace refactor:
 | Area | Where to follow the code |
 | --- | --- |
 | Member page composition | `features/dashboard/DashboardWorkspace.tsx`, `features/meals/MealsWorkspace.tsx`, `features/grocery/GroceryWorkspace.tsx` under `frontend/src/`; see [refactoring plan](docs/REFACTORING_PLAN.md) |
+| Landing sections | `frontend/src/features/landing/`: hero, platform, process, nutritionists, sources, guides and call to action; `components/landing/LandingHome.tsx` composes them |
+| Member detail sections | `frontend/src/features/progress/sections/`, `profile/account/`, `meal-card/`, `meal-history/`, `meal-activity-calendar/`, `dashboard/outside-meal/` and `meals/swap/`; each screen retains its public entry point |
+| Staff and public document sections | `frontend/src/features/nutritionist-profile/`, `nutritionist-profile-review/`, `nutritionist-outside-meals/`, `nutritionist-reviews/sections/`, `nutritionist-library/sections/`, `admin-analytics/sections/`, `nutritionist-application/steps/` and `app/docs/chapters/` |
 | Meal API handlers | `backend/src/controllers/meals/`: plan reads, generation, cycles, scheduled logs and swaps; `meals.controller.ts` preserves route entry points |
 | Authentication workflows | `backend/src/services/auth/`: registration, Google identity, email verification, password auth and sessions; `auth.service.ts` preserves the public API |
 | Cached lists across roles | `frontend/src/hooks/useSessionQuery.ts` and `frontend/src/lib/session-resource-cache.ts` |

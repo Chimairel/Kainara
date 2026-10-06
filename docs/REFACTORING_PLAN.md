@@ -78,6 +78,42 @@ Verification:
 
 No database migration, shared data mutation, dependency change, live provider call or new browser/clinical verification was performed. The UI markup and business operation bodies were preserved. This completes the first structural batch; batches 2–5 remain planned, and large existing modules such as ProgressWorkspace, OutsideMealModal, clinical evidence and meal swap still need their own focused refactors.
 
+## Batch 2 completed — landing and long frontend screens (October 6, 2026)
+
+The landing now composes seven named sections: hero, platform, process, nutritionists, sources, guides and call to action. `useLandingHomeModel` owns the existing authentication redirect and workspace link selection. The public entry remains compatible with its server-provided media prop.
+
+| Entry point | Before | After |
+| --- | ---: | ---: |
+| LandingHome | 753 | 55 |
+| ProgressWorkspace | 899 | 170 |
+| OutsideMealModal | 848 | 30 |
+| ProfileWorkPanel | 829 | 120 |
+| AdminStatistics | 817 | 91 |
+| AccountSettings | 812 | 143 |
+| MealCard | 811 | 135 |
+| DocsChapters | 805 | 33 |
+| OutsideMealReviewsPanel | 785 | 46 |
+| MealActivityCalendar | 769 | 77 |
+| MealHistoryCard | 733 | 106 |
+| SharedMealLibraryWorkspace | 705 | 90 |
+| CaseReviewWorkspace | 698 | 217 |
+| MealsWorkspaceModals | 630 | 199 |
+| ApplicationWizard | 609 | 117 |
+| Nutritionist profile route | 605 | 111 |
+
+These are composition entries, not moved monoliths. Their presentation lives in named feature sections, state/effects/handlers in model hooks, and shared local types/constants in dedicated modules. The application wizard has five step components; the docs registry imports twelve chapter modules and retains the existing membership and policy entries in their original order. Existing UI primitives, card components, API hooks and modal boundaries remain in use.
+
+Each section takes only the model fields it uses. Model hooks retain their existing ordering, including guards that precede calculations. Some hooks still contain bounded rendering helpers or early loading/error views; those are not claimed to be pure transport hooks. The largest new module is the 466-line calendar model, with its existing month-cell renderer and date behavior. Extracted composition files have individual architecture budgets to prevent long implementations returning to them.
+
+Verification:
+
+- Source comparison: 287 original state/effect/handler statements, fifteen rendered trees, six application function bodies and fourteen ordered docs registry entries preserved. Comparison accounts for section calls, equivalent fragments and formatting whitespace.
+- Full frontend suite: 670 tests passed across 148 files, including existing auth, meal status/reset, calendar, outside-food, account, library and staff review coverage.
+- Frontend production build, standalone TypeScript, changed-file lint/formatting, architecture and whitespace checks passed.
+- No API contract, backend behavior, schema, shared database data, provider integration or dependency changes. This is automated/source verification, not new browser E2E or clinical evidence.
+
+This completes the sixteen frontend files selected for this batch. Other large frontend modules under 600 lines and backend core services remain in the phased inventory; batches 2–5 from the original plan are only partially covered by this cross-screen batch.
+
 ## Verification and acceptance
 
 - Read current code and its immediate dependencies before extraction.
