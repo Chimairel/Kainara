@@ -56,6 +56,45 @@ describe('AuthenticatedEntryRedirect', () => {
     expect(replace).toHaveBeenCalledExactlyOnceWith('/verify-email');
   });
 
+  it('keeps an inline pending state until the authoritative profile is resolved', () => {
+    const { rerender } = render(
+      <AuthenticatedEntryRedirect user={unresolvedUser} logout={vi.fn()} isResolving inline />
+    );
+    expect(screen.getByText('Checking your account…')).toBeInTheDocument();
+    expect(replace).not.toHaveBeenCalled();
+    expect(document.querySelector('.fixed.inset-0')).toBeNull();
+    rerender(
+      <AuthenticatedEntryRedirect
+        user={{ ...unresolvedUser, emailVerified: true, onboardingNextPath: '/onboarding/stats' }}
+        logout={vi.fn()}
+        inline
+      />
+    );
+    expect(replace).toHaveBeenCalledExactlyOnceWith('/onboarding/stats');
+    expect(screen.getByText('Redirecting to your workspace...')).toBeInTheDocument();
+    expect(document.querySelector('.fixed.inset-0')).toBeNull();
+  });
+
+  it('keeps failed-profile recovery inline and stops navigation during retry', () => {
+    const retryProfile = vi.fn().mockResolvedValue(null);
+    const { rerender } = render(
+      <AuthenticatedEntryRedirect
+        user={unresolvedUser}
+        logout={vi.fn()}
+        profileLoadError
+        retryProfile={retryProfile}
+        inline
+      />
+    );
+    expect(screen.getByRole('alert')).toHaveTextContent('Could not load your account');
+    fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
+    expect(retryProfile).toHaveBeenCalledOnce();
+    expect(replace).not.toHaveBeenCalled();
+    rerender(<AuthenticatedEntryRedirect user={unresolvedUser} logout={vi.fn()} isResolving inline />);
+    expect(screen.getByText('Checking your account…')).toBeInTheDocument();
+    expect(replace).not.toHaveBeenCalled();
+  });
+
   it('offers recovery instead of leaving a new account on an infinite redirect spinner', async () => {
     render(
       <AuthenticatedEntryRedirect

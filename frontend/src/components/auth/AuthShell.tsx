@@ -16,6 +16,7 @@ interface AuthShellProps {
   children: ReactNode;
   footer?: ReactNode;
   wide?: boolean;
+  transition?: ReactNode;
 }
 
 export default function AuthShell({
@@ -27,6 +28,7 @@ export default function AuthShell({
   children,
   footer,
   wide = false,
+  transition,
 }: AuthShellProps) {
   return (
     <main className="relative flex min-h-[100dvh] flex-col justify-center overflow-x-clip bg-brand-bg p-0 text-brand-text transition-colors duration-300 dark:bg-[#07100d] dark:text-white sm:p-4 xl:p-6">
@@ -119,20 +121,28 @@ export default function AuthShell({
                 wide ? 'p-5 sm:p-6 lg:p-5 xl:p-6' : 'p-6 sm:p-8 lg:p-6 xl:p-8'
               }`}
             >
-              <div className={wide ? 'mb-4' : 'mb-5 sm:mb-6'}>
-                <p className="font-mono text-[10px] sm:text-[11px] font-black uppercase tracking-[0.18em] text-emerald-700">
-                  {eyebrow}
-                </p>
-                <h2
-                  className={`mt-1 font-display font-black tracking-tight text-neutral-900 ${
-                    wide ? 'text-xl sm:text-2xl lg:text-[1.7rem]' : 'text-xl sm:text-2xl lg:text-3xl'
-                  }`}
-                >
-                  {title}
-                </h2>
-                <p className="mt-1 text-xs sm:text-sm text-neutral-500 leading-relaxed">{description}</p>
+              {/* Keep the original card mounted while session/profile/navigation resolve. */}
+              <div inert={transition ? true : undefined}>
+                <div className={wide ? 'mb-4' : 'mb-5 sm:mb-6'}>
+                  <p className="font-mono text-[10px] sm:text-[11px] font-black uppercase tracking-[0.18em] text-emerald-700">
+                    {eyebrow}
+                  </p>
+                  <h2
+                    className={`mt-1 font-display font-black tracking-tight text-neutral-900 ${
+                      wide ? 'text-xl sm:text-2xl lg:text-[1.7rem]' : 'text-xl sm:text-2xl lg:text-3xl'
+                    }`}
+                  >
+                    {title}
+                  </h2>
+                  <p className="mt-1 text-xs sm:text-sm text-neutral-500 leading-relaxed">{description}</p>
+                </div>
+                {children}
               </div>
-              {children}
+              {transition && (
+                <div className="absolute inset-0 z-30 flex items-center justify-center rounded-[inherit] bg-white/95 p-4">
+                  {transition}
+                </div>
+              )}
             </div>
 
             {/* Sub-card Links */}

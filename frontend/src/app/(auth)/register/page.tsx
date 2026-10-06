@@ -12,7 +12,6 @@ import AuthFormPrelude from '@/components/auth/AuthFormPrelude';
 import HydratedForm from '@/components/auth/HydratedForm';
 import AuthShell from '@/components/auth/AuthShell';
 import AuthenticatedEntryRedirect from '@/components/auth/AuthenticatedEntryRedirect';
-import PortalLoadingState from '@/components/shared/PortalLoadingState';
 import {
   getRegistrationFieldErrors,
   type RegistrationField,
@@ -31,19 +30,6 @@ export default function RegisterPage() {
   const [isLoading, setIsLoading] = useState(false);
   const passwordsMismatch = confirmPassword.length > 0 && password !== confirmPassword;
   const passwordsMatch = confirmPassword.length > 0 && password === confirmPassword;
-
-  if (user) {
-    return isAuthLoading ? (
-      <PortalLoadingState fullScreen />
-    ) : (
-      <AuthenticatedEntryRedirect
-        user={user}
-        logout={logout}
-        profileLoadError={profileLoadError}
-        retryProfile={() => refreshSession({ showLoader: true })}
-      />
-    );
-  }
 
   const clearFieldError = (field: RegistrationField) => {
     setFieldErrors((current) => {
@@ -89,6 +75,18 @@ export default function RegisterPage() {
 
   return (
     <AuthShell
+      transition={
+        user ? (
+          <AuthenticatedEntryRedirect
+            user={user}
+            logout={logout}
+            isResolving={isAuthLoading}
+            profileLoadError={profileLoadError}
+            retryProfile={() => refreshSession({ showLoader: true })}
+            inline
+          />
+        ) : undefined
+      }
       eyebrow="Create your profile"
       title="Start with what makes you, you"
       description="Your health context becomes the foundation for every recommendation that follows."

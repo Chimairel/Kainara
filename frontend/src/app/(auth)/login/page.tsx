@@ -12,7 +12,6 @@ import AuthFormPrelude from '@/components/auth/AuthFormPrelude';
 import HydratedForm from '@/components/auth/HydratedForm';
 import AuthShell from '@/components/auth/AuthShell';
 import AuthenticatedEntryRedirect from '@/components/auth/AuthenticatedEntryRedirect';
-import PortalLoadingState from '@/components/shared/PortalLoadingState';
 import { getLoginFieldErrors, type LoginField, type LoginFieldErrors } from '@/validation/auth.schemas';
 
 export default function LoginPage() {
@@ -28,19 +27,6 @@ export default function LoginPage() {
     setIsReady(true);
     setAccountDeleted(new URLSearchParams(window.location.search).get('accountDeleted') === '1');
   }, []);
-
-  if (user) {
-    return isAuthLoading ? (
-      <PortalLoadingState fullScreen />
-    ) : (
-      <AuthenticatedEntryRedirect
-        user={user}
-        logout={logout}
-        profileLoadError={profileLoadError}
-        retryProfile={() => refreshSession({ showLoader: true })}
-      />
-    );
-  }
 
   const clearFieldError = (field: LoginField) => {
     setFieldErrors((current) => {
@@ -79,6 +65,18 @@ export default function LoginPage() {
 
   return (
     <AuthShell
+      transition={
+        user ? (
+          <AuthenticatedEntryRedirect
+            user={user}
+            logout={logout}
+            isResolving={isAuthLoading}
+            profileLoadError={profileLoadError}
+            retryProfile={() => refreshSession({ showLoader: true })}
+            inline
+          />
+        ) : undefined
+      }
       eyebrow="Welcome back"
       title="Enter your workspace"
       description="Continue to your personalized plan, review queue, or platform control center."
