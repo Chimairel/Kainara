@@ -14,3 +14,11 @@ docs/meal-images/generated/
 *.txt
 package-lock.json
 frontend/public/
+# Retain upstream source formatting in the maintained third-party fork.
+frontend/vendor/braces/index.js
+frontend/vendor/braces/lib/compile.js
+frontend/vendor/braces/lib/constants.js
+frontend/vendor/braces/lib/expand.js
+frontend/vendor/braces/lib/parse.js
+frontend/vendor/braces/lib/stringify.js
+frontend/vendor/braces/lib/utils.js

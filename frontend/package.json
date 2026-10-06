@@ -12,7 +12,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint src e2e playwright.config.ts playwright.website-content.config.ts vitest.config.ts next.config.mjs",
-    "test": "vitest run",
+    "test": "node --test scripts/dependency-security.node.cjs && vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test",
     "test:e2e:website": "playwright test --config playwright.website-content.config.ts"
@@ -47,6 +47,7 @@
     "@types/react-dom": "^19.2.7",
     "@vitejs/plugin-react": "^5.2.0",
     "autoprefixer": "^10.5.0",
+    "braces": "file:vendor/braces",
     "eslint": "^8",
     "eslint-config-next": "^15.5.25",
     "jsdom": "^27.4.0",
@@ -58,6 +59,8 @@
   },
   "overrides": {
     "nanoid": "3.3.18",
-    "postcss": "$postcss"
+    "postcss": "$postcss",
+    "postcss-selector-parser": "7.1.6",
+    "braces": "$braces"
   }
 }

@@ -1,7 +1,8 @@
 FROM node:24-bookworm-slim AS build
 
 WORKDIR /app
-COPY package.json package-lock.json ./
+COPY package.json package-lock.json .npmrc ./
+COPY vendor ./vendor
 RUN npm ci
 COPY . .
 ARG NEXT_PUBLIC_API_URL=http://localhost:5000/api
