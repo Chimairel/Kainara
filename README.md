@@ -67,6 +67,9 @@ Useful entry points after the workspace refactor:
 
 | Area | Where to follow the code |
 | --- | --- |
+| Member page composition | `features/dashboard/DashboardWorkspace.tsx`, `features/meals/MealsWorkspace.tsx`, `features/grocery/GroceryWorkspace.tsx` under `frontend/src/`; see [refactoring plan](docs/REFACTORING_PLAN.md) |
+| Meal API handlers | `backend/src/controllers/meals/`: plan reads, generation, cycles, scheduled logs and swaps; `meals.controller.ts` preserves route entry points |
+| Authentication workflows | `backend/src/services/auth/`: registration, Google identity, email verification, password auth and sessions; `auth.service.ts` preserves the public API |
 | Cached lists across roles | `frontend/src/hooks/useSessionQuery.ts` and `frontend/src/lib/session-resource-cache.ts` |
 | Meals tabs | `frontend/src/features/meals/useMealsWorkspace.ts`, `useMealHistory.ts`, and `useMealLibrary.ts` |
 | Case review screen | `frontend/src/features/nutritionist-reviews/CaseReviewWorkspace.tsx`, `CaseReviewQueue.tsx`, and `useNutritionistReviews.ts` |

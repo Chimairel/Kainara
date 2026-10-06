@@ -12,7 +12,9 @@ const identityMigration = readFileSync(
   resolve(process.cwd(), 'prisma/migrations/20260922160000_tighten_live_cycle_identity/migration.sql'),
   'utf8'
 );
-const controller = readFileSync(resolve(process.cwd(), 'src/controllers/meals.controller.ts'), 'utf8');
+const controller = ['meals.controller.ts', 'meals/plan-read.ts', 'meals/cycles.ts']
+  .map((file) => readFileSync(resolve(process.cwd(), 'src/controllers', file), 'utf8'))
+  .join('\n');
 const grocery = readFileSync(resolve(process.cwd(), 'src/services/grocery.service.ts'), 'utf8');
 const checkin = readFileSync(resolve(process.cwd(), 'src/services/checkin.service.ts'), 'utf8');
 const cycleService = readFileSync(resolve(process.cwd(), 'src/services/meal-plan-cycle.service.ts'), 'utf8');
