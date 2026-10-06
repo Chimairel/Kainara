@@ -41,12 +41,12 @@ describe('KainaraLogo', () => {
     expect(stops[0]).toHaveStyle({ stopColor: 'var(--kainara-logo-grad-start, #08705b)' });
   });
 
-  it('renders solid variant with currentColor fill and no defs', () => {
+  it('renders solid variant with currentColor fill and no gradient', () => {
     const { container } = render(<KainaraLogo variant="solid" className="text-emerald-600" />);
-    const defs = container.querySelector('defs');
+    const gradient = container.querySelector('linearGradient');
     const paths = container.querySelectorAll('path');
 
-    expect(defs).not.toBeInTheDocument();
+    expect(gradient).not.toBeInTheDocument();
     expect(paths).toHaveLength(5);
     expect(paths[1]?.getAttribute('fill')).toBe('currentColor');
   });

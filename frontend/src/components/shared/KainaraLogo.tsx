@@ -43,6 +43,7 @@ export const KainaraLogo: React.FC<KainaraLogoProps> = ({
 }) => {
   const reactId = useId();
   const gradientId = `kainara-logo-grad-${reactId.replace(/[:]/g, '')}`;
+  const frameId = `kainara-logo-frame-${reactId.replace(/[:]/g, '')}`;
 
   const isNumericSize = typeof size === 'number';
   const sizeClass = typeof size === 'string' ? SIZE_MAP[size] || '' : '';
@@ -59,39 +60,47 @@ export const KainaraLogo: React.FC<KainaraLogoProps> = ({
       xmlns="http://www.w3.org/2000/svg"
       {...props}
     >
-      {variant === 'gradient' ? (
-        <>
-          <defs>
-            <linearGradient id={gradientId} x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" style={{ stopColor: 'var(--kainara-logo-grad-start, #08705b)' }} />
-              <stop offset="55%" style={{ stopColor: 'var(--kainara-logo-grad-mid, #0e9f6e)' }} />
-              <stop offset="100%" style={{ stopColor: 'var(--kainara-logo-grad-end, #18b9d2)' }} />
-            </linearGradient>
-          </defs>
-          <path d={PATH_HIGHLIGHT} fill="#fbf8f1" />
-          <path d={PATH_GREEN} fill={`url(#${gradientId})`} />
-          <path d={PATH_PEACH} fill="currentColor" />
-          <path d={PATH_GOLD} fill={`url(#${gradientId})`} />
-          <path d={PATH_CORAL} fill="currentColor" />
-        </>
-      ) : variant === 'solid' ? (
-        <>
-          <path d={PATH_HIGHLIGHT} fill="none" />
-          <path d={PATH_GREEN} fill="currentColor" />
-          <path d={PATH_PEACH} fill="currentColor" />
-          <path d={PATH_GOLD} fill="currentColor" />
-          <path d={PATH_CORAL} fill="currentColor" />
-        </>
-      ) : (
-        <>
-          {/* Full-color authentic Kainara maiden */}
-          <path d={PATH_HIGHLIGHT} fill="#fbf8f1" />
-          <path d={PATH_GREEN} fill="#264741" />
-          <path d={PATH_PEACH} fill="#efb48a" />
-          <path d={PATH_GOLD} fill="#f7a249" />
-          <path d={PATH_CORAL} fill="#e05f46" />
-        </>
-      )}
+      <defs>
+        {/* Match the circular crop in auth and navigation, including standalone marks. */}
+        <clipPath id={frameId} clipPathUnits="userSpaceOnUse">
+          <circle cx="515" cy="543" r="225" />
+        </clipPath>
+        {variant === 'gradient' && (
+          <linearGradient id={gradientId} x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" style={{ stopColor: 'var(--kainara-logo-grad-start, #08705b)' }} />
+            <stop offset="55%" style={{ stopColor: 'var(--kainara-logo-grad-mid, #0e9f6e)' }} />
+            <stop offset="100%" style={{ stopColor: 'var(--kainara-logo-grad-end, #18b9d2)' }} />
+          </linearGradient>
+        )}
+      </defs>
+      <g clipPath={`url(#${frameId})`}>
+        {variant === 'gradient' ? (
+          <>
+            <path d={PATH_HIGHLIGHT} fill="#fbf8f1" />
+            <path d={PATH_GREEN} fill={`url(#${gradientId})`} />
+            <path d={PATH_PEACH} fill="currentColor" />
+            <path d={PATH_GOLD} fill={`url(#${gradientId})`} />
+            <path d={PATH_CORAL} fill="currentColor" />
+          </>
+        ) : variant === 'solid' ? (
+          <>
+            <path d={PATH_HIGHLIGHT} fill="none" />
+            <path d={PATH_GREEN} fill="currentColor" />
+            <path d={PATH_PEACH} fill="currentColor" />
+            <path d={PATH_GOLD} fill="currentColor" />
+            <path d={PATH_CORAL} fill="currentColor" />
+          </>
+        ) : (
+          <>
+            {/* Full-color authentic Kainara maiden */}
+            <path d={PATH_HIGHLIGHT} fill="#fbf8f1" />
+            <path d={PATH_GREEN} fill="#264741" />
+            <path d={PATH_PEACH} fill="#efb48a" />
+            <path d={PATH_GOLD} fill="#f7a249" />
+            <path d={PATH_CORAL} fill="#e05f46" />
+          </>
+        )}
+      </g>
     </svg>
   );
 };
