@@ -9,6 +9,7 @@ import api from '@/lib/axios';
 import { getApiErrorMessage } from '@/lib/api-error';
 import MealTimesFields from './MealTimesFields';
 import DeviceNotificationsPanel from './DeviceNotificationsPanel';
+import ReminderTimes from './ReminderTimes';
 import { suggestedMealTimes, mealSchedulePayload, type MealReminderSettings } from './types';
 
 export default function MealReminderSettingsPanel() {
@@ -110,7 +111,10 @@ export default function MealReminderSettingsPanel() {
             className={`ml-2 space-y-3 border-l-2 border-brand-border/70 pl-4 sm:ml-4 sm:pl-5 ${!settings.remindersEnabled ? 'opacity-50' : ''}`}
           >
             <label className="flex min-h-11 items-center justify-between gap-3">
-              <span>Preparation reminder</span>
+              <span className="flex min-w-0 flex-col gap-1 sm:gap-2">
+                <span>Preparation reminder</span>
+                <ReminderTimes settings={settings} kind="prepare" />
+              </span>
               <Switch
                 aria-label="Preparation reminder"
                 checked={settings.prepareEnabled}
@@ -132,7 +136,10 @@ export default function MealReminderSettingsPanel() {
               helperText="Choose 0–180 minutes. Use 0 for a reminder at the eating time."
             />
             <label className="flex min-h-11 items-center justify-between gap-3">
-              <span>Logging reminder</span>
+              <span className="flex min-w-0 flex-col gap-1 sm:gap-2">
+                <span>Logging reminder</span>
+                <ReminderTimes settings={settings} kind="log" />
+              </span>
               <Switch
                 aria-label="Logging reminder"
                 checked={settings.logEnabled}
@@ -143,9 +150,11 @@ export default function MealReminderSettingsPanel() {
           </fieldset>
         </div>
         <p className="text-xs text-brand-muted">
-          Meal times and reminder preferences apply to your account across devices. The breakfast, lunch and dinner
-          fields are your eating times. Preparation follows the lead time above. Reminders only apply to cleared,
-          unlogged meals. Delivery depends on your connection and device notification settings.
+          Times above are scheduled reminder times in your selected timezone; device delivery may arrive later. Save
+          meal times to apply your changes. Meal times and reminder preferences apply to your account across devices.
+          The breakfast, lunch and dinner fields are your eating times. Preparation follows the lead time above.
+          Reminders only apply to cleared, unlogged meals. Delivery depends on your connection and device notification
+          settings.
         </p>
         <Button type="submit" variant="primary" disabled={loading || busy} isLoading={busy}>
           Save meal times

@@ -156,10 +156,22 @@ for (const width of [390, 1280]) {
     await expect(page.getByRole('switch', { name: 'Preparation reminder', exact: true })).toBeEnabled();
     await expect(page.getByRole('switch', { name: 'Logging reminder', exact: true })).toBeEnabled();
     await expect(page.getByRole('switch', { name: 'Preparation reminder', exact: true })).toBeChecked();
+    await page.getByLabel('Dinner', { exact: true }).fill('09:00');
+    await page.getByRole('button', { name: 'Save meal times', exact: true }).click();
+    expect(fixture.schedule.dinnerTime).toBe('18:00');
+    await expect(page.getByText('Choose 5:00–11:00 PM.')).toBeVisible();
+    await page.getByLabel('Dinner', { exact: true }).fill('22:24');
+    await expect(page.getByText('Dinner: 9:24 PM', { exact: true })).toBeVisible();
+    await expect(page.getByText('Dinner: 11:24 PM', { exact: true })).toBeVisible();
     await page.getByLabel('Preparation lead time (minutes before eating)', { exact: true }).fill('15');
+    await expect(page.getByText('Dinner: 10:09 PM', { exact: true })).toBeVisible();
     await page.getByRole('button', { name: 'Save meal times', exact: true }).click();
     await expect(page.getByText('Meal times and reminder preferences saved.')).toBeVisible();
     expect(fixture.schedule.prepareMinutesBefore).toBe(15);
+    expect(fixture.schedule.dinnerTime).toBe('22:24');
+    await page
+      .getByRole('group', { name: 'Meal reminder options', exact: true })
+      .screenshot({ path: testInfo.outputPath('reminder-time-preview.png') });
     await page.getByRole('button', { name: 'Enable on this device', exact: true }).click();
     await expect(page.getByText('Notifications are enabled on this device.')).toBeVisible();
     expect(fixture.subscribed()).toBe(true);

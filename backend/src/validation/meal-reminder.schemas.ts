@@ -3,9 +3,24 @@ import { isAllowedPushEndpoint, validMealTime, validTimeZone } from '@/domain/me
 
 export const mealReminderSettingsSchema = z
   .object({
-    breakfastTime: z.string().refine(validMealTime, 'Choose a valid breakfast time.'),
-    lunchTime: z.string().refine(validMealTime, 'Choose a valid lunch time.'),
-    dinnerTime: z.string().refine(validMealTime, 'Choose a valid dinner time.'),
+    breakfastTime: z
+      .string()
+      .refine(
+        (time) => validMealTime(time) && time >= '05:00' && time <= '10:00',
+        'Choose a breakfast time from 5:00 to 10:00 AM.'
+      ),
+    lunchTime: z
+      .string()
+      .refine(
+        (time) => validMealTime(time) && time >= '11:00' && time <= '15:00',
+        'Choose a lunch time from 11:00 AM to 3:00 PM.'
+      ),
+    dinnerTime: z
+      .string()
+      .refine(
+        (time) => validMealTime(time) && time >= '17:00' && time <= '23:00',
+        'Choose a dinner time from 5:00 to 11:00 PM.'
+      ),
     timeZone: z.string().min(1).max(80).refine(validTimeZone, 'Choose a valid timezone.'),
     remindersEnabled: z.boolean(),
     prepareEnabled: z.boolean(),

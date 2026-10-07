@@ -74,6 +74,28 @@ test('meal schedule rejects malformed times, unknown zones and unsupported field
   for (const minutes of [-1, 181, 1.5, '15'])
     assert.equal(mealReminderSettingsSchema.safeParse({ ...schedule, prepareMinutesBefore: minutes }).success, false);
 });
+test('saved meal times enforce the approved inclusive ranges even when reminders are disabled', () => {
+  const ranges = [
+    ['breakfastTime', '05:00', '10:00', '04:59', '10:01'],
+    ['lunchTime', '11:00', '15:00', '10:59', '15:01'],
+    ['dinnerTime', '17:00', '23:00', '16:59', '23:01'],
+  ] as const;
+  for (const [field, min, max, before, after] of ranges) {
+    for (const remindersEnabled of [true, false]) {
+      for (const value of [min, max])
+        assert.equal(
+          mealReminderSettingsSchema.safeParse({ ...schedule, remindersEnabled, [field]: value }).success,
+          true
+        );
+      for (const value of [before, after]) {
+        const result = mealReminderSettingsSchema.safeParse({ ...schedule, remindersEnabled, [field]: value });
+        assert.equal(result.success, false);
+        if (!result.success) assert.deepEqual(result.error.issues[0].path, [field]);
+      }
+    }
+  }
+  assert.equal(mealReminderSettingsSchema.safeParse({ ...schedule, dinnerTime: '09:00' }).success, false);
+});
 test('custom preparation lead supports meal-time delivery and crosses midnight without changing the meal day', () => {
   const immediate = dueMealReminders({ ...schedule, prepareMinutesBefore: 0 }, new Date('2026-10-06T23:00:00Z'));
   assert.equal(immediate[0].kind, 'PREPARE');

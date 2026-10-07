@@ -2,6 +2,7 @@
 import { useId } from 'react';
 import Input from '@/components/ui/Input';
 import type { MealReminderSettings } from './types';
+import { mealTimeRanges } from './meal-time-presentation';
 
 export default function MealTimesFields({
   value,
@@ -17,12 +18,20 @@ export default function MealTimesFields({
     <fieldset disabled={disabled} className="space-y-3">
       <legend className="mb-3 font-display text-sm font-bold text-brand-text">When do you usually eat?</legend>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-        {(['breakfastTime', 'lunchTime', 'dinnerTime'] as const).map((field, index) => (
+        {(['breakfastTime', 'lunchTime', 'dinnerTime'] as const).map((field) => (
           <Input
             key={field}
             id={`${id}-${field}`}
-            label={['Breakfast', 'Lunch', 'Dinner'][index]}
+            label={mealTimeRanges[field].label}
             type="time"
+            min={mealTimeRanges[field].min}
+            max={mealTimeRanges[field].max}
+            helperText={mealTimeRanges[field].range}
+            error={
+              value[field] && (value[field] < mealTimeRanges[field].min || value[field] > mealTimeRanges[field].max)
+                ? `Choose ${mealTimeRanges[field].range}.`
+                : undefined
+            }
             required
             value={value[field]}
             onChange={(event) => onChange({ ...value, [field]: event.target.value })}

@@ -34,6 +34,30 @@ beforeEach(() => {
 });
 afterEach(() => vi.restoreAllMocks());
 describe('meal times and device notifications', () => {
+  it('updates all scheduled reminder previews from meal times and the preparation lead', async () => {
+    render(<MealReminderSettingsPanel />);
+    await waitFor(() => expect(screen.getByLabelText('Dinner')).toHaveValue('18:00'));
+    fireEvent.click(screen.getByRole('switch', { name: 'Send meal reminders' }));
+    fireEvent.change(screen.getByLabelText('Dinner'), { target: { value: '22:24' } });
+    expect(screen.getByText('Dinner: 9:24 PM')).toBeInTheDocument();
+    expect(screen.getByText('Dinner: 11:24 PM')).toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText('Preparation lead time (minutes before eating)'), {
+      target: { value: '15' },
+    });
+    expect(screen.getByText('Dinner: 10:09 PM')).toBeInTheDocument();
+    expect(screen.getByText('Dinner: 11:24 PM')).toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText('Dinner'), { target: { value: '23:00' } });
+    expect(screen.getByText('Dinner: 12:00 AM (next day)')).toBeInTheDocument();
+    expect(screen.getByLabelText('Breakfast')).toHaveAttribute('min', '05:00');
+    expect(screen.getByLabelText('Breakfast')).toHaveAttribute('max', '10:00');
+    expect(screen.getByLabelText('Lunch')).toHaveAttribute('min', '11:00');
+    expect(screen.getByLabelText('Lunch')).toHaveAttribute('max', '15:00');
+    expect(screen.getByLabelText('Dinner')).toHaveAttribute('min', '17:00');
+    expect(screen.getByLabelText('Dinner')).toHaveAttribute('max', '23:00');
+    fireEvent.change(screen.getByLabelText('Dinner'), { target: { value: '09:00' } });
+    expect(screen.getByText('Choose 5:00–11:00 PM.')).toBeInTheDocument();
+    expect(screen.getByLabelText('Dinner')).toBeInvalid();
+  });
   it('defaults a missing schedule to Philippine time even on a browser in another timezone', async () => {
     const browserOptions = Intl.DateTimeFormat().resolvedOptions();
     vi.spyOn(Intl.DateTimeFormat.prototype, 'resolvedOptions').mockReturnValue({
