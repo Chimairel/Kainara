@@ -29,9 +29,13 @@
   overflow: hidden;
   perspective: 600px;
   mask-image:
-    linear-gradient(to bottom, transparent, #000 12%, #000 85%, transparent),
-    linear-gradient(to right, transparent, #000 5%, #000 95%, transparent);
+    linear-gradient(to bottom, transparent 0%, #000 15%, #000 80%, transparent 100%),
+    linear-gradient(to right, transparent 0%, #000 8%, #000 92%, transparent 100%);
+  -webkit-mask-image:
+    linear-gradient(to bottom, transparent 0%, #000 15%, #000 80%, transparent 100%),
+    linear-gradient(to right, transparent 0%, #000 8%, #000 92%, transparent 100%);
   mask-composite: intersect;
+  -webkit-mask-composite: source-in;
 }
 
 .scene {
@@ -59,16 +63,20 @@
   aspect-ratio: 4 / 5;
 }
 .photo img {
-  filter: brightness(0.88);
+  filter: brightness(0.66) saturate(0.85);
+  transition: filter 0.3s ease;
 }
 .column:nth-child(n + 4) .photo img {
-  filter: brightness(1);
+  filter: brightness(0.68) saturate(0.88);
+}
+.card:hover .photo img {
+  filter: brightness(0.86) saturate(0.98);
 }
 .photo::after {
   content: '';
   position: absolute;
   inset: 0;
-  background: linear-gradient(180deg, transparent 40%, #07191430 55%, #071914e6 100%);
+  background: linear-gradient(180deg, #07191428 0%, transparent 35%, #07191430 55%, #071914e6 100%);
   pointer-events: none;
 }
 .caption {
@@ -98,7 +106,14 @@
 
   .viewport {
     height: 600px;
-    mask-image: linear-gradient(to bottom, #000 85%, transparent), url('/icons/landing-meal-curve-mask.svg');
+    mask-image:
+      linear-gradient(to bottom, transparent 0%, #000 14%, #000 70%, transparent 90%),
+      url('/icons/landing-meal-curve-mask.svg');
+    -webkit-mask-image:
+      linear-gradient(to bottom, transparent 0%, #000 14%, #000 70%, transparent 90%),
+      url('/icons/landing-meal-curve-mask.svg');
+    mask-composite: intersect;
+    -webkit-mask-composite: source-in;
     mask-size: 100% 100%;
     mask-repeat: no-repeat;
   }
