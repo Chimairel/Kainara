@@ -1,4 +1,11 @@
-import { expect, test } from '@playwright/test';
+import { expect, test, type Locator } from '@playwright/test';
+
+// Native focus may scroll a long form without moving its layout.
+const documentBounds = (locator: Locator) =>
+  locator.evaluate((element) => {
+    const { x, y, width, height } = element.getBoundingClientRect();
+    return { x: x + scrollX, y: y + scrollY, width, height };
+  });
 
 // Synthetic SDK cases do not depend on Google's font CDN.
 test.beforeEach(async ({ page }) => {
@@ -88,7 +95,7 @@ for (const width of [1440, 390]) {
         await page.evaluate(() => document.fonts.ready);
         const card = page.locator('.auth-card');
         const originalCard = await card.elementHandle();
-        const before = await card.boundingBox();
+        const before = await documentBounds(card);
         await originalCard!.evaluate((element, authPath) => {
           const tracker = window as typeof window & { missingAuthFrames: number };
           tracker.missingAuthFrames = 0;
@@ -108,7 +115,7 @@ for (const width of [1440, 390]) {
         await expect(card).toBeVisible();
         expect(await originalCard!.evaluate((element) => element.isConnected)).toBe(true);
         await expect(page.getByText('Checking your account…', { exact: true })).toBeVisible();
-        expect(await card.boundingBox()).toEqual(before);
+        expect(await documentBounds(card)).toEqual(before);
         const destinationRequest = page.waitForRequest(
           (request) => new URL(request.url()).pathname === '/onboarding/stats'
         );
@@ -117,7 +124,7 @@ for (const width of [1440, 390]) {
         // Route loading is also delayed, exposing any intermediate full-screen flash.
         await expect(page.getByText('Redirecting to your workspace...', { exact: true })).toBeVisible();
         expect(await originalCard!.evaluate((element) => element.isConnected)).toBe(true);
-        expect(await card.boundingBox()).toEqual(before);
+        expect(await documentBounds(card)).toEqual(before);
         releaseDestination();
         await expect(page).toHaveURL(/\/onboarding\/stats$/);
         await expect(page.getByRole('heading', { name: 'PERSONAL METRICS', exact: true })).toBeVisible();

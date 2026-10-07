@@ -24,9 +24,12 @@ export default defineConfig({
     process.env.NUTRIMIND_REPAIR_E2E === 'true'
       ? undefined
       : {
-          command: 'npm run dev',
+          command: process.env.CI ? 'npm run start' : 'npm run dev',
           // The intercepted GIS layout fixture must render without local OAuth secrets.
-          env: { NEXT_PUBLIC_GOOGLE_CLIENT_ID: 'synthetic-browser-client.apps.googleusercontent.com' },
+          env: {
+            NEXT_PUBLIC_GOOGLE_CLIENT_ID: 'synthetic-browser-client.apps.googleusercontent.com',
+            NEXT_PUBLIC_API_URL: '/api',
+          },
           url: 'http://127.0.0.1:3000',
           reuseExistingServer: !process.env.CI,
           timeout: 120_000,

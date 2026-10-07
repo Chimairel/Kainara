@@ -67,7 +67,7 @@ test('scheduled confirmation unlocks without reloading; live updates preserve re
     }
     return route.fulfill({ json: { success: true, data } });
   });
-  await page.goto('/admin/nutritionists');
+  await page.goto('/admin/users?tab=nutritionists');
   const confirm = page.getByRole('button', { name: 'Confirm call completed and photo matched' });
   await expect(confirm).toBeDisabled();
   await page.getByLabel('Rejection reason').fill('Keep this unsaved draft.');

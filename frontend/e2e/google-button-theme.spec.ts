@@ -1,4 +1,11 @@
-import { expect, test } from '@playwright/test';
+import { expect, test, type Locator } from '@playwright/test';
+
+// Focus scrolls long mobile forms; compare their layout in document coordinates.
+const documentBounds = (locator: Locator) =>
+  locator.evaluate((element) => {
+    const { x, y, width, height } = element.getBoundingClientRect();
+    return { x: x + scrollX, y: y + scrollY, width, height };
+  });
 
 for (const width of [1440, 390]) {
   for (const path of ['/login', '/register']) {
@@ -35,7 +42,7 @@ for (const width of [1440, 390]) {
       await expect.poll(() => frameRequests).toBe(2);
       await page.evaluate(() => document.fonts.ready);
       const card = page.locator('.auth-card');
-      const initial = await card.boundingBox();
+      const initial = await documentBounds(card);
       await page.evaluate(() => {
         (window as typeof window & { originalFrames: Element[] }).originalFrames = [
           ...document.querySelectorAll('[data-google-theme] iframe'),
@@ -62,7 +69,7 @@ for (const width of [1440, 390]) {
         expect(
           await page.evaluate(() => (window as typeof window & { googleClickedTheme: string }).googleClickedTheme)
         ).toBe(next === 'dark' ? 'outline_dark' : 'outline');
-        expect(await card.boundingBox()).toEqual(initial);
+        expect(await documentBounds(card)).toEqual(initial);
       }
       expect(frameRequests).toBe(2);
       expect(

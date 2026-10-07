@@ -454,6 +454,8 @@ for (const width of [390, 1440]) {
     // Navigate during the grocery preload: the mounted page must adopt that request.
     await page.getByRole('link', { name: 'Groceries', exact: true }).filter({ visible: true }).first().click();
     await expect(page).toHaveURL(/\/grocery$/);
+    // A new URL can precede the mounted workspace during App Router navigation.
+    await expect(page.getByLabel('Loading grocery checklist')).toBeVisible();
     finishGroceries();
     await expect(page.getByText('Preloaded rice', { exact: true })).toBeVisible();
     expect(groceryReads).toBe(1);
