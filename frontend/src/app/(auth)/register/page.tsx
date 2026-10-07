@@ -107,100 +107,100 @@ export default function RegisterPage() {
         </>
       }
     >
-      <AuthFormPrelude error={error} compact />
-
-      <HydratedForm onSubmit={handleSubmit} className="flex flex-col gap-3" noValidate>
-        <div className="grid grid-cols-2 gap-2.5">
+      <AuthFormPrelude error={error}>
+        <HydratedForm onSubmit={handleSubmit} className="flex flex-col gap-3" noValidate>
+          <div className="grid grid-cols-2 gap-2.5">
+            <Input
+              id="firstName"
+              name="firstName"
+              label="First name"
+              type="text"
+              placeholder="Juan"
+              value={firstName}
+              onChange={(event) => {
+                setFirstName(event.target.value);
+                clearFieldError('firstName');
+              }}
+              disabled={isLoading}
+              autoComplete="given-name"
+              maxLength={80}
+              error={fieldErrors.firstName}
+              className="sm:py-2.5"
+            />
+            <Input
+              id="lastName"
+              name="lastName"
+              label="Last name"
+              type="text"
+              placeholder="Dela Cruz"
+              value={lastName}
+              onChange={(event) => {
+                setLastName(event.target.value);
+                clearFieldError('lastName');
+              }}
+              disabled={isLoading}
+              autoComplete="family-name"
+              maxLength={80}
+              error={fieldErrors.lastName}
+              className="sm:py-2.5"
+            />
+          </div>
           <Input
-            id="firstName"
-            name="firstName"
-            label="First name"
-            type="text"
-            placeholder="Juan"
-            value={firstName}
+            id="email"
+            name="email"
+            label="Email address"
+            type="email"
+            placeholder="name@example.com"
+            value={email}
             onChange={(event) => {
-              setFirstName(event.target.value);
-              clearFieldError('firstName');
+              setEmail(event.target.value);
+              clearFieldError('email');
             }}
             disabled={isLoading}
-            autoComplete="given-name"
-            maxLength={80}
-            error={fieldErrors.firstName}
+            autoComplete="email"
+            maxLength={254}
+            error={fieldErrors.email}
             className="sm:py-2.5"
           />
-          <Input
-            id="lastName"
-            name="lastName"
-            label="Last name"
-            type="text"
-            placeholder="Dela Cruz"
-            value={lastName}
+          <PasswordInput
+            id="password"
+            name="password"
+            label="Password"
+            placeholder="8+ characters, uppercase, and number"
+            value={password}
             onChange={(event) => {
-              setLastName(event.target.value);
-              clearFieldError('lastName');
+              setPassword(event.target.value);
+              clearFieldError('password');
             }}
             disabled={isLoading}
-            autoComplete="family-name"
-            maxLength={80}
-            error={fieldErrors.lastName}
+            autoComplete="new-password"
+            maxLength={128}
+            error={fieldErrors.password}
+            helperText="Use at least 8 characters with one uppercase letter and one number. Spaces are allowed in passphrases."
             className="sm:py-2.5"
           />
-        </div>
-        <Input
-          id="email"
-          name="email"
-          label="Email address"
-          type="email"
-          placeholder="name@example.com"
-          value={email}
-          onChange={(event) => {
-            setEmail(event.target.value);
-            clearFieldError('email');
-          }}
-          disabled={isLoading}
-          autoComplete="email"
-          maxLength={254}
-          error={fieldErrors.email}
-          className="sm:py-2.5"
-        />
-        <PasswordInput
-          id="password"
-          name="password"
-          label="Password"
-          placeholder="8+ characters, uppercase, and number"
-          value={password}
-          onChange={(event) => {
-            setPassword(event.target.value);
-            clearFieldError('password');
-          }}
-          disabled={isLoading}
-          autoComplete="new-password"
-          maxLength={128}
-          error={fieldErrors.password}
-          helperText="Use at least 8 characters with one uppercase letter and one number. Spaces are allowed in passphrases."
-          className="sm:py-2.5"
-        />
-        <PasswordInput
-          id="confirmPassword"
-          name="confirmPassword"
-          label="Confirm password"
-          placeholder="Re-enter password"
-          value={confirmPassword}
-          onChange={(event) => {
-            setConfirmPassword(event.target.value);
-            clearFieldError('confirmPassword');
-          }}
-          disabled={isLoading}
-          autoComplete="new-password"
-          maxLength={128}
-          error={fieldErrors.confirmPassword || (passwordsMismatch ? 'Passwords do not match.' : undefined)}
-          validationState={passwordsMismatch ? 'error' : passwordsMatch ? 'success' : 'default'}
-          className="sm:py-2.5"
-        />
-        <Button type="submit" variant="primary" size="md" className="w-full" isLoading={isLoading}>
-          Create account
-        </Button>
-      </HydratedForm>
+          <PasswordInput
+            id="confirmPassword"
+            name="confirmPassword"
+            label="Confirm password"
+            placeholder="Re-enter password"
+            value={confirmPassword}
+            onChange={(event) => {
+              setConfirmPassword(event.target.value);
+              clearFieldError('confirmPassword');
+            }}
+            disabled={isLoading}
+            autoComplete="new-password"
+            maxLength={128}
+            error={fieldErrors.confirmPassword || (passwordsMismatch ? 'Passwords do not match.' : undefined)}
+            validationState={passwordsMismatch ? 'error' : passwordsMatch ? 'success' : 'default'}
+            className="sm:py-2.5"
+          />
+          <Button type="submit" variant="primary" size="md" className="w-full" isLoading={isLoading}>
+            Create account
+          </Button>
+        </HydratedForm>
+      </AuthFormPrelude>
     </AuthShell>
   );
 }

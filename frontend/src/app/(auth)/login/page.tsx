@@ -101,57 +101,57 @@ export default function LoginPage() {
           Your account and health data were deleted.
         </div>
       ) : null}
-      <AuthFormPrelude error={error} compact />
-
-      <HydratedForm onSubmit={handleSubmit} className="flex flex-col gap-4" noValidate>
-        <Input
-          id="email"
-          label="Email address"
-          type="email"
-          placeholder="name@example.com"
-          value={email}
-          onChange={(event) => {
-            setEmail(event.target.value);
-            clearFieldError('email');
-          }}
-          disabled={!isReady || isLoading}
-          autoComplete="email"
-          maxLength={254}
-          error={fieldErrors.email}
-        />
-        <PasswordInput
-          id="password"
-          label="Password"
-          placeholder="••••••••"
-          value={password}
-          onChange={(event) => {
-            setPassword(event.target.value);
-            clearFieldError('password');
-          }}
-          disabled={!isReady || isLoading}
-          autoComplete="current-password"
-          maxLength={128}
-          error={fieldErrors.password}
-        />
-        <div className="flex justify-end">
-          <Link
-            href="/forgot-password"
-            className="text-[11px] font-semibold text-brand-muted transition hover:text-brand-green sm:text-xs"
+      <AuthFormPrelude error={error}>
+        <HydratedForm onSubmit={handleSubmit} className="flex flex-col gap-4" noValidate>
+          <Input
+            id="email"
+            label="Email address"
+            type="email"
+            placeholder="name@example.com"
+            value={email}
+            onChange={(event) => {
+              setEmail(event.target.value);
+              clearFieldError('email');
+            }}
+            disabled={!isReady || isLoading}
+            autoComplete="email"
+            maxLength={254}
+            error={fieldErrors.email}
+          />
+          <PasswordInput
+            id="password"
+            label="Password"
+            placeholder="••••••••"
+            value={password}
+            onChange={(event) => {
+              setPassword(event.target.value);
+              clearFieldError('password');
+            }}
+            disabled={!isReady || isLoading}
+            autoComplete="current-password"
+            maxLength={128}
+            error={fieldErrors.password}
+          />
+          <div className="flex justify-end">
+            <Link
+              href="/forgot-password"
+              className="text-[11px] font-semibold text-brand-muted transition hover:text-brand-green sm:text-xs"
+            >
+              Forgot your password?
+            </Link>
+          </div>
+          <Button
+            type="submit"
+            variant="primary"
+            size="lg"
+            className="mt-0.5 w-full min-h-11 sm:min-h-12 text-sm"
+            isLoading={isLoading}
+            disabled={!isReady}
           >
-            Forgot your password?
-          </Link>
-        </div>
-        <Button
-          type="submit"
-          variant="primary"
-          size="lg"
-          className="mt-0.5 w-full min-h-11 sm:min-h-12 text-sm"
-          isLoading={isLoading}
-          disabled={!isReady}
-        >
-          Sign in
-        </Button>
-      </HydratedForm>
+            Sign in
+          </Button>
+        </HydratedForm>
+      </AuthFormPrelude>
     </AuthShell>
   );
 }

@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 1100" fill="none">
+  <defs>
+    <linearGradient id="base" x1="0" y1="0" x2="760" y2="1100" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#103f34"/><stop offset="1" stop-color="#071914"/>
+    </linearGradient>
+    <linearGradient id="peach" x1="0" y1="900" x2="760" y2="250" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#cf4f25"/><stop offset=".45" stop-color="#eb6a38"/><stop offset=".72" stop-color="#fbcfae"/><stop offset="1" stop-color="#ed8951"/>
+    </linearGradient>
+    <linearGradient id="jade" x1="0" y1="1100" x2="760" y2="200" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#08705b"/><stop offset=".6" stop-color="#358c73"/><stop offset="1" stop-color="#8db7a5"/>
+    </linearGradient>
+    <linearGradient id="cream" x1="0" y1="1000" x2="760" y2="300" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#ef9869"/><stop offset=".5" stop-color="#fbe5cd"/><stop offset="1" stop-color="#efb894"/>
+    </linearGradient>
+    <linearGradient id="shade" x1="380" y1="0" x2="380" y2="500" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#071914" stop-opacity=".8"/><stop offset="1" stop-color="#071914" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+  <path fill="url(#base)" d="M0 0h760v1100H0z"/>
+  <path d="M-240 910C-50 625 290 810 385 520S625 140 965 185" stroke="url(#jade)" stroke-width="290"/>
+  <path d="M-200 925C-40 670 295 850 420 540S675 160 940 220" stroke="url(#peach)" stroke-width="180"/>
+  <path d="M-170 1040C55 795 270 952 460 635S635 330 925 335" stroke="url(#cream)" stroke-width="135"/>
+  <path d="M-115 1185C70 900 455 1090 530 805S810 450 985 520" stroke="url(#jade)" stroke-width="165"/>
+  <path d="M-170 1040C55 795 270 952 460 635S635 330 925 335" stroke="#fff3e5" stroke-opacity=".45" stroke-width="2"/>
+  <path fill="url(#shade)" d="M0 0h760v1100H0z"/>
+</svg>

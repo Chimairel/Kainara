@@ -15,6 +15,7 @@ Use these components before copying markup from another page. Role authorization
 | Meal library grid | `shared/MealLibraryLayout` | Member, nutritionist and admin libraries |
 | Tabs or section links | `ui/WorkspaceTabs` | Meals, progress, reviews, settings, admin audit |
 | Password field | `ui/PasswordInput` | Authentication and profile security |
+| Authentication split layout | `ui/sign-in` through `auth/AuthShell` | Login, registration, recovery, verification and invitation activation |
 | Pagination | `ui/Pagination` | All three role libraries |
 | Hover, focus or tap explanation | `ui/InfoHint` | Lifestyle and Health planning benefits |
 
@@ -33,6 +34,8 @@ Select accepts `{value,label,disabled}` options and a string onChange. Dropdown 
 WorkspaceTabs accepts items with value, label, optional icon/count and optional href. Use href for navigation so browser links, new tabs and back navigation work. Use onChange for switching local panels. Each instance owns its animation identifier. Continue hiding or unmounting inactive content in the caller.
 
 PasswordInput uses Input's trailingControl slot; never position a visibility button against the label or full field group. Its 44 px button is centered on the actual input and remains keyboard accessible.
+
+Authentication pages use SignInPage's form-left/artwork-right layout adapted from the supplied 21st.dev reference. AuthShell supplies KAINARA branding, local ribbon artwork and navigation. Existing pages own validation, submission and role routing; pass their real forms as children. Styling is scoped in sign-in.module.css, with the application's existing fonts and theme tokens. Keep the form mounted and inert beneath the transition overlay while authentication resolves. The artwork is hidden on small screens, and tall forms scroll normally. Avoid entry animations, fabricated testimonials and unsupported session options in this flow.
 
 ## Meals and libraries
 

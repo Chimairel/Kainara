@@ -43,7 +43,7 @@ export default function AuthenticatedEntryRedirect({
   if (isResolving || (!profileLoadError && !showRecovery)) {
     const message = isResolving ? 'Checking your account…' : 'Redirecting to your workspace...';
     return inline ? (
-      <div className="flex items-center gap-3 text-center text-sm font-semibold text-neutral-900" aria-live="polite">
+      <div className="flex items-center gap-3 text-center text-sm font-semibold text-brand-text" aria-live="polite">
         <LoadingSpinner size="sm" />
         <p>{message}</p>
       </div>
@@ -57,7 +57,7 @@ export default function AuthenticatedEntryRedirect({
     <Container
       className={
         inline
-          ? 'w-full text-neutral-900'
+          ? 'w-full text-brand-text'
           : 'flex min-h-screen items-center justify-center bg-brand-bg px-5 text-brand-text'
       }
     >
@@ -73,7 +73,7 @@ export default function AuthenticatedEntryRedirect({
         <h1 className="mt-4 font-display text-2xl font-extrabold">
           {profileLoadError ? 'Could not load your account' : 'Your workspace took too long to open'}
         </h1>
-        <p className={`mt-3 text-sm leading-6 ${inline ? 'text-neutral-600' : 'text-brand-muted'}`}>
+        <p className="mt-3 text-sm leading-6 text-brand-muted">
           {profileLoadError
             ? 'Your account is signed in. Try loading your account again to continue.'
             : 'Your account is signed in. Retry the destination, or sign out and return to account access.'}

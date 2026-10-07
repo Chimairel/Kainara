@@ -463,121 +463,6 @@ html.theme-switching *::after {
   box-shadow: 0 18px 60px rgba(5, 18, 14, 0.08);
 }
 
-/* High-contrast Auth Card matching reference design (Image 3) */
-.auth-card {
-  background-color: #ffffff !important;
-  color: #0f172a !important;
-}
-
-.auth-card label {
-  color: #1e293b !important;
-  font-size: 0.75rem !important;
-  font-weight: 700 !important;
-}
-
-.auth-card input {
-  background-color: #f8fafc !important;
-  color: #0f172a !important;
-  border-color: #e2e8f0 !important;
-  border-radius: 0.75rem !important;
-  padding: 0.75rem 1rem !important;
-  font-size: 0.875rem !important;
-  backdrop-filter: none !important;
-  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.04) !important;
-}
-
-.auth-card input::placeholder {
-  color: #94a3b8 !important;
-}
-
-.auth-card input:hover {
-  border-color: #cbd5e1 !important;
-}
-
-.auth-card input:focus {
-  background-color: #ffffff !important;
-  border-color: #10b981 !important;
-  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.15) !important;
-}
-
-.auth-card input[data-validation-state='error'] {
-  border-color: #ef4444 !important;
-  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.15) !important;
-}
-
-.auth-card button[type='button'][aria-label='Show password'],
-.auth-card button[type='button'][aria-label='Hide password'] {
-  color: #64748b !important;
-}
-
-.auth-card button[type='button'][aria-label='Show password']:hover,
-.auth-card button[type='button'][aria-label='Hide password']:hover {
-  color: #0f172a !important;
-}
-
-.auth-card .portal-kicker {
-  color: #047857 !important;
-  font-size: 0.6875rem !important;
-  font-weight: 800 !important;
-  letter-spacing: 0.18em !important;
-}
-
-.auth-card h2 {
-  color: #0f172a !important;
-}
-
-.auth-card p {
-  color: #64748b !important;
-}
-
-.auth-card .text-brand-text {
-  color: #0f172a !important;
-}
-
-.auth-card .text-brand-muted {
-  color: #64748b !important;
-}
-
-.auth-card .text-status-error-text {
-  color: #dc2626 !important;
-}
-
-.auth-card .bg-brand-border\/70 {
-  background-color: #e2e8f0 !important;
-}
-
-.auth-card .border-brand-border\/60 {
-  border-color: #e2e8f0 !important;
-}
-
-.auth-card button[type='submit'] {
-  background-color: #a3e635 !important;
-  color: #022c22 !important;
-  font-weight: 800 !important;
-  border: none !important;
-  border-radius: 0.75rem !important;
-  padding-top: 0.75rem !important;
-  padding-bottom: 0.75rem !important;
-  box-shadow: 0 4px 12px rgba(163, 230, 53, 0.25) !important;
-  transition: all 0.2s ease !important;
-}
-
-.auth-card button[type='submit']:hover {
-  background-color: #84cc16 !important;
-  box-shadow: 0 6px 18px rgba(163, 230, 53, 0.35) !important;
-}
-
-.auth-card button[type='submit']:disabled {
-  opacity: 0.5 !important;
-  cursor: not-allowed !important;
-}
-
-/* Hydration still blocks submission, but must not fade the form out and back in. */
-.auth-card fieldset:disabled input:disabled,
-.auth-card fieldset:disabled button:disabled {
-  opacity: 1 !important;
-}
-
 .futuristic-grid {
   background-image:
     linear-gradient(var(--grid-line) 1px, transparent 1px),
@@ -807,8 +692,7 @@ html.dark .floating-sidebar-shadow {
     0 0 15px rgba(184, 244, 95, 0.07);
 }
 
-.floating-card-shadow,
-.auth-card {
+.floating-card-shadow {
   box-shadow:
     0 25px 50px -12px rgba(0, 0, 0, 0.15),
     0 10px 30px -5px rgba(0, 0, 0, 0.08);
@@ -818,8 +702,7 @@ html.dark .floating-sidebar-shadow {
     transform 0.3s ease;
 }
 
-html.dark .floating-card-shadow,
-html.dark .auth-card {
+html.dark .floating-card-shadow {
   box-shadow:
     0 25px 60px -10px rgba(0, 0, 0, 0.95),
     0 0 55px rgba(84, 199, 190, 0.28),
@@ -837,12 +720,6 @@ html.dark .auth-card {
 }
 
 /* ─── Browser Autofill Overrides (Eliminate Ugly Gray Browser Overlays) ─── */
-.auth-card,
-.auth-card form,
-.auth-card input {
-  color-scheme: light !important;
-}
-
 input:-webkit-autofill,
 input:-webkit-autofill:hover,
 input:-webkit-autofill:focus,
@@ -854,29 +731,6 @@ select:-webkit-autofill {
   box-shadow: 0 0 0px 1000px var(--brand-surface) inset !important;
   -webkit-box-shadow: 0 0 0px 1000px var(--brand-surface) inset !important;
   transition: background-color 5000000s ease-in-out 0s;
-}
-
-/* Light mode & Auth Card autofill */
-.auth-card input:-webkit-autofill,
-.auth-card input:-webkit-autofill:hover,
-.auth-card input:-webkit-autofill:active {
-  -webkit-text-fill-color: #0d2820 !important;
-  caret-color: #0d2820 !important;
-  box-shadow: 0 0 0px 1000px #ffffff inset !important;
-  -webkit-box-shadow: 0 0 0px 1000px #ffffff inset !important;
-  border-color: rgba(8, 112, 91, 0.45) !important;
-}
-
-.auth-card input:-webkit-autofill:focus {
-  -webkit-text-fill-color: #0d2820 !important;
-  caret-color: #0d2820 !important;
-  border-color: #08705b !important;
-  box-shadow:
-    0 0 0px 1000px #f4faf7 inset,
-    0 0 0 4px rgba(8, 112, 91, 0.12) !important;
-  -webkit-box-shadow:
-    0 0 0px 1000px #f4faf7 inset,
-    0 0 0 4px rgba(8, 112, 91, 0.12) !important;
 }
 
 /* Dark mode general input autofill */
@@ -902,27 +756,4 @@ html.dark input:-webkit-autofill:focus {
   -webkit-box-shadow:
     0 0 0px 1000px #0e271f inset,
     0 0 0 4px rgba(16, 185, 129, 0.15) !important;
-}
-
-/* Auth card is always white on the right, so force light autofill even when html has dark */
-html.dark .auth-card input:-webkit-autofill,
-html.dark .auth-card input:-webkit-autofill:hover,
-html.dark .auth-card input:-webkit-autofill:active {
-  -webkit-text-fill-color: #0d2820 !important;
-  caret-color: #0d2820 !important;
-  box-shadow: 0 0 0px 1000px #ffffff inset !important;
-  -webkit-box-shadow: 0 0 0px 1000px #ffffff inset !important;
-  border-color: rgba(8, 112, 91, 0.45) !important;
-}
-
-html.dark .auth-card input:-webkit-autofill:focus {
-  -webkit-text-fill-color: #0d2820 !important;
-  caret-color: #0d2820 !important;
-  border-color: #08705b !important;
-  box-shadow:
-    0 0 0px 1000px #f4faf7 inset,
-    0 0 0 4px rgba(8, 112, 91, 0.12) !important;
-  -webkit-box-shadow:
-    0 0 0px 1000px #f4faf7 inset,
-    0 0 0 4px rgba(8, 112, 91, 0.12) !important;
 }

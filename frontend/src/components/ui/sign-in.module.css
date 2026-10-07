@@ -1,0 +1,55 @@
+/* Auth-only styling: retain the application font faces and theme tokens. */
+.page {
+  isolation: isolate;
+}
+
+.hero h2 span {
+  color: #fbcfae;
+}
+
+.form input {
+  min-height: 52px;
+  border-radius: 1rem;
+  background: color-mix(in srgb, var(--brand-text) 3%, var(--brand-bg));
+  box-shadow: none;
+  backdrop-filter: none;
+  transition:
+    border-color 150ms ease,
+    background-color 150ms ease;
+}
+
+.form input:focus {
+  background: var(--brand-surface);
+}
+
+.form label {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  letter-spacing: 0;
+}
+
+.form button[type='submit'] {
+  min-height: 52px;
+  border-radius: 1rem;
+  background: var(--brand-accent);
+  color: #071914;
+  box-shadow: none;
+  transform: none;
+  transition: background-color 150ms ease;
+}
+
+.form button[type='submit']:hover {
+  background: var(--brand-accent-soft);
+  filter: none;
+  transform: none;
+}
+
+.form button[type='submit']:disabled {
+  opacity: 0.5;
+}
+
+/* Hydration gates interaction without fading the form in and out. */
+.form fieldset:disabled input:disabled,
+.form fieldset:disabled button:disabled {
+  opacity: 1;
+}
