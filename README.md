@@ -1,6 +1,6 @@
-# NutriMind
+# KAINARA
 
-NutriMind is a Philippines-focused nutrition and meal-planning capstone application with separate user, internal nutritionist, and administrator experiences. Its plans mix accessible general meals, Filipino food, locally available international food, and appropriate convenience options instead of restricting users to Filipino dishes.
+KAINARA is a Philippines-focused nutrition and meal-planning capstone application with separate user, internal nutritionist, and administrator experiences. Its plans mix accessible general meals, Filipino food, locally available international food, and appropriate convenience options instead of restricting users to Filipino dishes.
 
 > **Current evidence source:** [`docs/NUTRIMIND_ENGINEERING_RECORD.md`](docs/NUTRIMIND_ENGINEERING_RECORD.md) records implemented behavior, verification levels, accepted decisions, known defects, and risks. Older prompts, addenda, and handoff notes are collected as [project history](docs/history/PROJECT_EVOLUTION.md). They are not current specifications.
 
@@ -276,7 +276,7 @@ Consult the engineering record for the ranked register. Important limitations in
 - Review claims and approve/reject transitions are guarded and transactional in source; concurrent PostgreSQL integration evidence is still required.
 - Refresh JWTs are not robust rotating/revocable persisted sessions.
 - Meal logs and daily aggregates can duplicate; timestamp/provenance behavior is inconsistent.
-- Nutritionists operate as internal NutriMind reviewers through a shared queue; consumer consultation hiring and assigned-patient directories are intentionally outside the product model.
+- Nutritionists operate as internal KAINARA reviewers through a shared queue; consumer consultation hiring and assigned-patient directories are intentionally outside the product model.
 - The PWA has a manifest and icons but no service worker/offline implementation.
 - Grocery data lacks actionable quantities/units.
 - Water tracking is local-only and not user/date scoped in backend persistence.
