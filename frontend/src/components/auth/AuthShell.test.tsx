@@ -18,6 +18,7 @@ describe('AuthShell transition', () => {
       return <input aria-label="Email" defaultValue="kept@example.invalid" />;
     }
     const props = {
+      eyebrow: 'Welcome back',
       title: 'Sign in',
       heroTitle: 'KAINARA',
       heroDescription: 'Your nutrition',
@@ -28,6 +29,7 @@ describe('AuthShell transition', () => {
       </AuthShell>
     );
     const card = container.querySelector('.auth-card');
+    expect(screen.getByText('Welcome back')).toBeVisible();
     const input = screen.getByLabelText('Email');
     rerender(
       <AuthShell {...props} transition={<p role="status">Checking your account</p>}>

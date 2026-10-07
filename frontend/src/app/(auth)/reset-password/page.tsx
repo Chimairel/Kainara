@@ -121,6 +121,7 @@ function ResetPasswordForm() {
 export default function ResetPasswordPage() {
   return (
     <AuthShell
+      eyebrow="Secure reset"
       title="Choose a new password"
       heroTitle={
         <>

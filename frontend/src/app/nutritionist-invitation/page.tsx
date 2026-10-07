@@ -100,6 +100,7 @@ function InvitationForm() {
 export default function NutritionistInvitationPage() {
   return (
     <AuthShell
+      eyebrow="Approved professional"
       title="Activate your workspace"
       heroTitle={
         <>

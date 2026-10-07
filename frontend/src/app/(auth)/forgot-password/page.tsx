@@ -36,6 +36,7 @@ export default function ForgotPasswordPage() {
 
   return (
     <AuthShell
+      eyebrow="Account recovery"
       title={success ? 'Check your inbox' : 'Reset your access'}
       heroTitle={
         <>

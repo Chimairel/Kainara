@@ -65,6 +65,7 @@ export default function LoginPage() {
 
   return (
     <AuthShell
+      eyebrow="Welcome back"
       transition={
         user ? (
           <AuthenticatedEntryRedirect

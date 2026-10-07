@@ -6,7 +6,8 @@ async function expectReachableCard(page: Page) {
   await expect(card).toBeVisible();
   expect(await card.evaluate((element) => element.getBoundingClientRect().top)).toBeGreaterThanOrEqual(0);
   const heading = card.getByRole('heading');
-  await expect(heading.locator('..').locator(':scope > *')).toHaveCount(1);
+  await expect(heading.locator('..').locator(':scope > *')).toHaveCount(2);
+  await expect(heading.locator('..').locator(':scope > p')).toBeVisible();
   await heading.scrollIntoViewIfNeeded();
   await expect(heading).toBeInViewport();
   const home = page.getByRole('link', { name: 'Back to home', exact: true });

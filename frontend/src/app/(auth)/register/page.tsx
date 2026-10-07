@@ -75,6 +75,7 @@ export default function RegisterPage() {
 
   return (
     <AuthShell
+      eyebrow="Create your profile"
       transition={
         user ? (
           <AuthenticatedEntryRedirect

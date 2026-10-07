@@ -127,6 +127,7 @@ export default function VerifyEmailPage() {
 
   return (
     <AuthShell
+      eyebrow="Identity checkpoint"
       title="Verify your email"
       heroTitle={
         <>

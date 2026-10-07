@@ -40,7 +40,64 @@ function provider() {
   return { host, change, load: () => iframe.dispatchEvent(new Event('load')) };
 }
 
+function standardButton(host: HTMLElement) {
+  const button = document.createElement('div');
+  button.setAttribute('role', 'button');
+  button.textContent = 'Continue with Google';
+  host.prepend(button);
+  vi.spyOn(button, 'getBoundingClientRect').mockReturnValue({
+    top: 0,
+    bottom: 40,
+    width: 300,
+    height: 40,
+  } as DOMRect);
+}
+
 describe('Google provider layout handoff', () => {
+  it('keeps the standard button hidden while a loaded frame completes its handoff', async () => {
+    const fixture = provider();
+    standardButton(fixture.host);
+    const ready = vi.fn();
+    const unavailable = vi.fn();
+    observeGoogleButtonLayout(fixture.host, ready, unavailable);
+    fixture.load();
+    vi.advanceTimersByTime(50);
+    expect(ready).not.toHaveBeenCalled();
+    await fixture.change(84, 44);
+    vi.advanceTimersByTime(500);
+    expect(ready).not.toHaveBeenCalled();
+    await fixture.change(44, 44);
+    expect(ready).toHaveBeenCalledOnce();
+    expect(unavailable).not.toHaveBeenCalled();
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it('reveals the standard SDK button when the frame finishes with zero dimensions', () => {
+    const fixture = provider();
+    standardButton(fixture.host);
+    const ready = vi.fn();
+    const unavailable = vi.fn();
+    observeGoogleButtonLayout(fixture.host, ready, unavailable);
+    fixture.load();
+    vi.advanceTimersByTime(50);
+    expect(ready).not.toHaveBeenCalled();
+    vi.advanceTimersByTime(500);
+    expect(ready).toHaveBeenCalledOnce();
+    vi.advanceTimersByTime(10000);
+    expect(unavailable).not.toHaveBeenCalled();
+  });
+
+  it('preserves a usable standard button if the embedded frame never reports load', () => {
+    const fixture = provider();
+    standardButton(fixture.host);
+    const ready = vi.fn();
+    const unavailable = vi.fn();
+    observeGoogleButtonLayout(fixture.host, ready, unavailable);
+    vi.advanceTimersByTime(10000);
+    expect(ready).toHaveBeenCalledOnce();
+    expect(unavailable).not.toHaveBeenCalled();
+  });
+
   it('waits through an empty frame and stacked temporary button before revealing the final frame', async () => {
     const fixture = provider();
     const ready = vi.fn();
