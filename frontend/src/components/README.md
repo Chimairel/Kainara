@@ -67,3 +67,7 @@ AuditHistoryList fetches one record on expansion through the caller’s role end
 ## Illustrated states
 
 StateNotice owns the shared sleeping Nara empty-state presentation. Health details reuses it only after a successful workspace response with no applicable detail forms, with no form instructions or action button. Keep both light/dark SVG layers mounted for a 250 ms opacity crossfade, expose only the active image to assistive technology, and switch immediately for reduced motion. The scoped illustration transition is the only exception to the global theme-switch transition suppression.
+
+## Landing screen presenter
+
+LandingHeroSection uses NaraPresenter in ContainerScroll's backdrop and foreground slots. Keep the complete torso and hair outside the transformed screen and hands inside it; all character layers are decorative and cannot intercept video controls. Do not fade or horizontally crop the back layer. The screen retains scroll-driven tilt, with reduced-motion support. Use a responsive 16:10 presentation and reserve space above it for Nara. Assets and generation prompts are in `frontend/characters/nara-presenter`; the landing hero no longer uses LandingWaveHero, while the other section waves remain unchanged.

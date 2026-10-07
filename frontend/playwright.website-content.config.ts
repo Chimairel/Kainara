@@ -4,7 +4,7 @@ import base from './playwright.config';
 export default defineConfig({
   ...base,
   testIgnore: [],
-  testMatch: ['website-content.spec.ts', 'website-content-ssr.spec.ts'],
+  testMatch: ['website-content.spec.ts', 'website-content-ssr.spec.ts', 'landing-presenter.spec.ts'],
   use: { ...base.use, baseURL: 'http://127.0.0.1:3100' },
   webServer: [
     {

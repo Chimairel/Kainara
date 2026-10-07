@@ -10,6 +10,9 @@ export const ContainerScroll = ({
   cardClassName,
   badgeLeft,
   badgeRight,
+  backdrop,
+  foreground,
+  presentationClassName,
   offset = ['start start', 'end start'],
 }: {
   titleComponent: string | React.ReactNode;
@@ -19,6 +22,9 @@ export const ContainerScroll = ({
   cardClassName?: string;
   badgeLeft?: React.ReactNode;
   badgeRight?: React.ReactNode;
+  backdrop?: React.ReactNode;
+  foreground?: React.ReactNode;
+  presentationClassName?: string;
   offset?: UseScrollOptions['offset'];
 }) => {
   const reducedMotion = useReducedMotion();
@@ -41,6 +47,7 @@ export const ContainerScroll = ({
   }, []);
 
   const scaleDimensions = () => {
+    if (backdrop) return isMobile ? [1, 1] : [1.02, 1];
     return isMobile ? [0.7, 0.9] : [1.05, 1];
   };
 
@@ -63,11 +70,14 @@ export const ContainerScroll = ({
         <Card
           rotate={reducedMotion ? 0 : rotate}
           translate={translate}
-          scale={reducedMotion ? (isMobile ? 0.9 : 1) : scale}
+          scale={reducedMotion ? (isMobile && !backdrop ? 0.9 : 1) : scale}
           cardClassName={cardClassName}
           innerClassName={innerClassName}
           badgeLeft={badgeLeft}
           badgeRight={badgeRight}
+          backdrop={backdrop}
+          foreground={foreground}
+          presentationClassName={presentationClassName}
         >
           {children}
         </Card>
@@ -103,6 +113,9 @@ export const Card = ({
   innerClassName,
   badgeLeft,
   badgeRight,
+  backdrop,
+  foreground,
+  presentationClassName,
 }: {
   rotate: MotionValue<number> | number;
   scale: MotionValue<number> | number;
@@ -112,24 +125,35 @@ export const Card = ({
   innerClassName?: string;
   badgeLeft?: React.ReactNode;
   badgeRight?: React.ReactNode;
+  backdrop?: React.ReactNode;
+  foreground?: React.ReactNode;
+  presentationClassName?: string;
 }) => {
   return (
-    <motion.div
-      style={{
-        rotateX: rotate,
-        scale,
-        boxShadow:
-          '0 0 #0000004d, 0 9px 20px #0000004a, 0 37px 37px #00000042, 0 84px 50px #00000026, 0 149px 60px #0000000a, 0 233px 65px #00000003',
-      }}
-      className={`relative max-w-5xl mt-6 md:mt-10 mx-auto h-[30rem] md:h-[40rem] w-full border-4 border-[#6C6C6C] p-2 md:p-6 bg-[#222222] rounded-[30px] shadow-2xl ${cardClassName || ''}`}
+    <div
+      className={`relative max-w-5xl mt-6 md:mt-10 mx-auto h-[30rem] md:h-[40rem] w-full ${presentationClassName || ''}`}
+      data-scroll-presentation
     >
-      {badgeLeft}
-      <div
-        className={`h-full w-full overflow-hidden rounded-2xl bg-gray-100 dark:bg-zinc-900 md:rounded-2xl ${innerClassName || ''}`}
+      {backdrop}
+      <motion.div
+        style={{
+          rotateX: rotate,
+          scale,
+          boxShadow:
+            '0 0 #0000004d, 0 9px 20px #0000004a, 0 37px 37px #00000042, 0 84px 50px #00000026, 0 149px 60px #0000000a, 0 233px 65px #00000003',
+        }}
+        className={`relative z-10 h-full w-full border-4 border-[#6C6C6C] p-2 md:p-6 bg-[#222222] rounded-[30px] shadow-2xl ${cardClassName || ''}`}
+        data-scroll-screen
       >
-        {children}
-      </div>
-      {badgeRight}
-    </motion.div>
+        {badgeLeft}
+        <div
+          className={`h-full w-full overflow-hidden rounded-2xl bg-gray-100 dark:bg-zinc-900 md:rounded-2xl ${innerClassName || ''}`}
+        >
+          {children}
+        </div>
+        {badgeRight}
+        {foreground}
+      </motion.div>
+    </div>
   );
 };
