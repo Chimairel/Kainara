@@ -15,6 +15,7 @@ import { TrendingUp, Plus, CheckCircle, AlertTriangle, Heart, Settings, Activity
 import { type ProgressWorkspaceMode } from '@/features/progress/useProgressWorkspace';
 
 import PersonalizationTabs from '@/components/user/PersonalizationTabs';
+import MealReminderSettingsPanel from '@/features/meal-reminders/MealReminderSettingsPanel';
 
 import { useProgressWorkspaceModel } from '@/features/progress/sections/useProgressWorkspaceModel';
 import ProgressOverviewSection from '@/features/progress/sections/ProgressOverviewSection';
@@ -153,6 +154,7 @@ export function ProgressWorkspace({ mode = 'progress' }: { mode?: ProgressWorksp
 
           {/* EDITABLE BIOMETRICS & PREFERENCES */}
           <ProgressProfileSection model={model} />
+          {mode === 'planning' && <MealReminderSettingsPanel />}
 
           {/* HEALTH CONDITIONS & CLINICAL SAFETY */}
           <ProgressSafetySection model={model} />

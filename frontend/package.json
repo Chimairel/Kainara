@@ -12,7 +12,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint src e2e playwright.config.ts playwright.website-content.config.ts vitest.config.ts next.config.mjs",
-    "test": "node --test scripts/dependency-security.node.cjs && vitest run",
+    "test": "node --test scripts/dependency-security.node.cjs scripts/notification-worker.node.cjs && vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test",
     "test:e2e:website": "playwright test --config playwright.website-content.config.ts"

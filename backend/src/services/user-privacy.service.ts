@@ -37,6 +37,8 @@ export class UserPrivacyService {
         dailyNutritionLogs: true,
         groceryLists: { include: { groceryItems: true } },
         notifications: true,
+        mealReminderSettings: true,
+        webPushSubscriptions: { select: { id: true, createdAt: true } },
         weeklyCheckins: true,
         healthProfileRevisions: true,
         clinicalContextResponses: true,

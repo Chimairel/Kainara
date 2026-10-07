@@ -17,6 +17,7 @@ export interface UserProfileData {
   acceptedPrivacyVersion?: string;
   healthDataConsentedAt?: string;
   onboardingDone: boolean;
+  mealReminderSettings?: import('@/features/meal-reminders/types').MealReminderSettings | null;
   reportAcknowledged?: boolean;
   createdAt: string;
   userProfile: {

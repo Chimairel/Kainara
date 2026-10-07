@@ -3,9 +3,54 @@ import authenticate from '@/middleware/auth';
 import { AuthenticatedRequest } from '@/types';
 import { NotificationService } from '@/services/notification.service';
 import { asyncHandler } from '@/middleware/errorHandler';
+import validateZodBody from '@/middleware/validateZod';
+import { requireVerifiedUser } from '@/middleware/userPrerequisites';
+import { WebPushService, pushConfiguration } from '@/services/web-push.service';
+import { pushEndpointSchema, pushSubscriptionSchema } from '@/validation/meal-reminder.schemas';
+import prisma from '@/lib/prisma';
 
 const router = Router();
 router.use(authenticate);
+
+router.get('/push/config', requireVerifiedUser, (_req, res) => {
+  const config = pushConfiguration();
+  res.json({ success: true, data: { available: Boolean(config), publicKey: config?.publicKey ?? null } });
+});
+router.post(
+  '/push/subscription',
+  requireVerifiedUser,
+  validateZodBody(pushSubscriptionSchema),
+  asyncHandler(async (req: AuthenticatedRequest, res) => {
+    res.json({ success: true, data: await WebPushService.subscribe(req.user!.userId, req.body) });
+  })
+);
+router.post(
+  '/push/status',
+  validateZodBody(pushEndpointSchema),
+  asyncHandler(async (req: AuthenticatedRequest, res) => {
+    const subscription = await prisma.webPushSubscription.findFirst({
+      where: { userId: req.user!.userId, endpoint: req.body.endpoint },
+      select: { id: true },
+    });
+    res.json({ success: true, data: { subscribed: Boolean(subscription) } });
+  })
+);
+router.delete(
+  '/push/subscription',
+  validateZodBody(pushEndpointSchema),
+  asyncHandler(async (req: AuthenticatedRequest, res) => {
+    await WebPushService.unsubscribe(req.user!.userId, req.body.endpoint);
+    res.json({ success: true });
+  })
+);
+router.post(
+  '/push/test',
+  requireVerifiedUser,
+  validateZodBody(pushEndpointSchema),
+  asyncHandler(async (req: AuthenticatedRequest, res) => {
+    res.json({ success: true, data: await WebPushService.test(req.user!.userId, req.body.endpoint) });
+  })
+);
 
 // The same inbox belongs to the signed-in account, regardless of its role.
 router.get(

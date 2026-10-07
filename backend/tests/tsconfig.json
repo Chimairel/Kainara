@@ -15,6 +15,7 @@
     "../src/validation/onboarding.schemas.ts",
     "./**/*.ts",
     "../scripts/audit-details-local-acceptance.ts",
-    "../scripts/independent-findings-repair-acceptance.ts"
+    "../scripts/independent-findings-repair-acceptance.ts",
+    "../scripts/meal-reminders-local-acceptance.ts"
   ]
 }

@@ -432,6 +432,7 @@ enum MealLogStatus {
 }
 
 enum NotificationType {
+  MEAL_REMINDER
   MEMBERSHIP_UPDATED
   NUTRITIONIST_APPLICATION
   PLAN_APPROVED
@@ -802,6 +803,8 @@ model User {
   dailyNutritionLogs               DailyNutritionLog[]
   groceryLists                     GroceryList[]
   notifications                    Notification[]
+  mealReminderSettings             MealReminderSettings?
+  webPushSubscriptions             WebPushSubscription[]
   mealPlanGenerationJobs           MealPlanGenerationJob[]
   weeklyCheckins                   WeeklyCheckin[]
   mealPlanCycles                   MealPlanCycle[]
@@ -2488,16 +2491,61 @@ model IngredientPriceObservation {
 }
 
 model Notification {
-  id        String           @id @default(cuid())
-  userId    String
-  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
-  title     String
-  message   String
-  type      NotificationType
-  isRead    Boolean          @default(false)
-  createdAt DateTime         @default(now())
+  id               String            @id @default(cuid())
+  userId           String
+  user             User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title            String
+  message          String
+  type             NotificationType
+  isRead           Boolean           @default(false)
+  createdAt        DateTime          @default(now())
+  deduplicationKey String?           @unique
+  targetPath       String?
+  expiresAt        DateTime?
+  context          Json?
+  pushDeliveries   WebPushDelivery[]
 
   @@index([userId, isRead, createdAt])
+}
+
+model MealReminderSettings {
+  userId           String   @id
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  breakfastTime    String   @db.VarChar(5)
+  lunchTime        String   @db.VarChar(5)
+  dinnerTime       String   @db.VarChar(5)
+  timeZone         String   @db.VarChar(80)
+  remindersEnabled Boolean  @default(false)
+  prepareEnabled   Boolean  @default(true)
+  logEnabled       Boolean  @default(true)
+  updatedAt        DateTime @updatedAt
+}
+
+model WebPushSubscription {
+  id         String            @id @default(cuid())
+  userId     String
+  user       User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  endpoint   String            @unique
+  p256dh     String            @db.VarChar(120)
+  auth       String            @db.VarChar(40)
+  createdAt  DateTime          @default(now())
+  deliveries WebPushDelivery[]
+
+  @@index([userId])
+}
+
+model WebPushDelivery {
+  id             String              @id @default(cuid())
+  subscriptionId String
+  subscription   WebPushSubscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+  notificationId String
+  notification   Notification        @relation(fields: [notificationId], references: [id], onDelete: Cascade)
+  status         String              @default("PENDING") @db.VarChar(16)
+  attemptedAt    DateTime?
+  createdAt      DateTime            @default(now())
+
+  @@unique([subscriptionId, notificationId])
+  @@index([status, createdAt])
 }
 
 enum MealLibraryStatus {

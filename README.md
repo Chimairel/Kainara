@@ -82,6 +82,8 @@ Useful entry points after the workspace refactor:
 
 These modules separate presentation, client state, and backend operations. Eligibility checks and database transactions remain in the backend services and domain policies.
 
+For onboarding meal times, device notification permissions, stable VAPID keys and reminder scheduling, see [Device notifications and meal reminders](docs/WEB_PUSH_MEAL_REMINDERS.md).
+
 ## Prerequisites
 
 - Node.js 24 and npm, as pinned by the root `.nvmrc` and used by repository CI.

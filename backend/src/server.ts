@@ -5,14 +5,18 @@ import prisma from '@/lib/prisma';
 import { env } from '@/config/env';
 import { logger } from '@/lib/logger';
 import { MealAiQueueService } from '@/services/meal-ai-queue.service';
+import { triggerMealRemindersInBackground, waitForMealReminders } from '@/services/meal-reminder.service';
 
 const server = app.listen(env.PORT, () => {
   logger.info('server_started', { port: env.PORT, environment: env.NODE_ENV });
   MealAiQueueService.triggerNonBlocking();
+  triggerMealRemindersInBackground();
 });
 
 const mealAiQueueTimer = setInterval(() => MealAiQueueService.triggerNonBlocking(), 30_000);
 mealAiQueueTimer.unref();
+const mealReminderTimer = setInterval(triggerMealRemindersInBackground, 30_000);
+mealReminderTimer.unref();
 
 let shutdownPromise: Promise<void> | null = null;
 
@@ -27,7 +31,9 @@ function shutdown(signal: 'SIGINT' | 'SIGTERM'): Promise<void> {
   shutdownPromise = (async () => {
     logger.info('server_shutdown', { signal, outcome: 'STARTED' });
     clearInterval(mealAiQueueTimer);
+    clearInterval(mealReminderTimer);
     await closeServer();
+    await waitForMealReminders();
     await prisma.$disconnect();
     logger.info('server_shutdown', { signal, outcome: 'COMPLETED' });
   })();

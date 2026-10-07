@@ -29,6 +29,7 @@ test('completing onboarding records the member input inside the existing transac
   };
   profile.dailyCalorieTarget = calculateDailyTarget({ ...profile, biologicalSex: 'MALE' }).dailyCalorieTarget;
   const user = {
+    mealReminderSettings: { breakfastTime: '07:00', lunchTime: '12:00', dinnerTime: '18:00', timeZone: 'Asia/Manila' },
     onboardingDone: false,
     tosAccepted: true,
     acceptedTermsVersion: CURRENT_TERMS_VERSION,

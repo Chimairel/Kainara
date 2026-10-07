@@ -30,6 +30,7 @@ import cronRouter from '@/routes/cron.routes';
 import nutritionistApplicationRouter from '@/routes/nutritionist-application.routes';
 import evidenceRouter from '@/routes/evidence.routes';
 import notificationsRouter from '@/routes/notifications.routes';
+import mealReminderRouter from '@/routes/meal-reminder.routes';
 import membershipRouter from '@/routes/membership.routes';
 import membershipPaymentRouter from '@/routes/membership-payment.routes';
 import { MEMBERSHIP_PRICES, testCheckoutConfig } from '@/domain/membership-checkout.policy';
@@ -111,6 +112,7 @@ app.get('/api/membership/plans', (_req, res) => {
 // These specific user routers own their auth and readiness checks. Mount them
 // before the broad /api/user router so a request does not run both chains.
 app.use('/api/user/progress', progressRouter);
+app.use('/api/user/meal-reminders', mealReminderRouter);
 app.use('/api/user/membership', membershipRouter);
 app.use('/api/user/meals', mealsRouter);
 app.use('/api/user/grocery', groceryRouter);

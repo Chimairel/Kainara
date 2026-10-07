@@ -101,6 +101,10 @@ export default function OnboardingTosPage() {
         ['Diet', formatOnboardingValue(userProfile?.dietaryPreference)],
         ['Rice preference', formatOnboardingValue(userProfile?.ricePreference)],
         ['Food culture', normalizeFoodCulture(userProfile?.foodCulture)],
+        ['Breakfast', profile?.mealReminderSettings?.breakfastTime || 'Not provided'],
+        ['Lunch', profile?.mealReminderSettings?.lunchTime || 'Not provided'],
+        ['Dinner', profile?.mealReminderSettings?.dinnerTime || 'Not provided'],
+        ['Meal timezone', profile?.mealReminderSettings?.timeZone || 'Not provided'],
       ],
     },
     {

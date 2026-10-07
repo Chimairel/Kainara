@@ -15,6 +15,8 @@ import {
   VolumeX,
 } from 'lucide-react';
 import { formatBadgeCount } from '@/lib/badge-count';
+import Modal from '@/components/ui/Modal';
+import DeviceNotificationsPanel from '@/features/meal-reminders/DeviceNotificationsPanel';
 
 function formatRelativeTime(dateString: string): string {
   const date = new Date(dateString);
@@ -41,6 +43,7 @@ export default function NotificationDropdown() {
   const { notifications, unreadCount, isLoading, markAsRead, markAllAsRead, soundEnabled, toggleNotificationSound } =
     useNotifications();
   const [isOpen, setIsOpen] = useState(false);
+  const [deviceSettingsOpen, setDeviceSettingsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -162,6 +165,16 @@ export default function NotificationDropdown() {
             <div className="flex shrink-0 items-center gap-1">
               <button
                 type="button"
+                className="rounded-lg px-2 py-1 text-[10px] font-bold text-brand-green"
+                onClick={() => {
+                  setIsOpen(false);
+                  setDeviceSettingsOpen(true);
+                }}
+              >
+                Device alerts
+              </button>
+              <button
+                type="button"
                 role="switch"
                 aria-label="Notification sound"
                 aria-checked={soundEnabled}
@@ -220,7 +233,10 @@ export default function NotificationDropdown() {
                       type="button"
                       onClick={() => {
                         if (!notif.isRead) void markAsRead(notif.id).catch(() => undefined);
-                        if (notif.type === 'NUTRITIONIST_APPLICATION' && user?.role === 'ADMIN') {
+                        if (notif.type === 'MEAL_REMINDER' && notif.targetPath?.startsWith('/meals?date=')) {
+                          setIsOpen(false);
+                          router.push(notif.targetPath);
+                        } else if (notif.type === 'NUTRITIONIST_APPLICATION' && user?.role === 'ADMIN') {
                           setIsOpen(false);
                           router.push('/admin/users?tab=nutritionists');
                         } else if (notif.type === 'REVIEW_REQUEST' && user?.role === 'NUTRITIONIST') {
@@ -271,6 +287,9 @@ export default function NotificationDropdown() {
           </div>
         </div>
       )}
+      <Modal isOpen={deviceSettingsOpen} onClose={() => setDeviceSettingsOpen(false)} title="Device notifications">
+        {deviceSettingsOpen && <DeviceNotificationsPanel />}
+      </Modal>
     </div>
   );
 }

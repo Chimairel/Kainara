@@ -1,6 +1,8 @@
 import { Router, Request, Response } from 'express';
 import { CronService } from '@/services/cron.service';
 import { timingSafeEqual } from 'crypto';
+import { triggerMealReminders } from '@/services/meal-reminder.service';
+import { asyncHandler } from '@/middleware/errorHandler';
 
 const router = Router();
 
@@ -52,5 +54,15 @@ router.post('/daily-checkin', async (req: Request, res: Response) => {
     });
   }
 });
+
+router.post(
+  '/meal-reminders',
+  asyncHandler(async (req: Request, res: Response) => {
+    if (!hasValidCronCredential(req))
+      return res.status(401).json({ success: false, error: 'Unauthorized cron request.' });
+    const data = await triggerMealReminders();
+    return res.json({ success: true, data });
+  })
+);
 
 export default router;

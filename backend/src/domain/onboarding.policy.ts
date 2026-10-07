@@ -1,3 +1,5 @@
+import { validMealTime, validTimeZone } from './meal-reminder.policy';
+
 export const CURRENT_TERMS_VERSION = '2026-09-27';
 export const CURRENT_PRIVACY_VERSION = '2026-09-27';
 
@@ -15,6 +17,7 @@ export const ONBOARDING_PATHS = [
 export type OnboardingPath = (typeof ONBOARDING_PATHS)[number];
 
 export interface OnboardingSnapshot {
+  mealSchedule?: { breakfastTime: string; lunchTime: string; dinnerTime: string; timeZone: string } | null;
   onboardingDone: boolean;
   tosAccepted: boolean;
   acceptedTermsVersion?: string | null;
@@ -91,6 +94,17 @@ export function evaluateOnboardingStatus(snapshot: OnboardingSnapshot): Onboardi
   const preferencesComplete = Boolean(
     profile?.dietaryPreference && profile.ricePreference && profile.foodCulture?.trim()
   );
+  const mealTimesComplete =
+    snapshot.onboardingDone ||
+    snapshot.mealSchedule === undefined ||
+    Boolean(
+      snapshot.mealSchedule &&
+      [snapshot.mealSchedule.breakfastTime, snapshot.mealSchedule.lunchTime, snapshot.mealSchedule.dinnerTime].every(
+        validMealTime
+      ) &&
+      validTimeZone(snapshot.mealSchedule.timeZone)
+    );
+  if (!mealTimesComplete) missingFields.push('mealTimes');
   if (!preferencesComplete) {
     missingFields.push('dietaryPreference', 'ricePreference', 'foodCulture');
   }
@@ -122,7 +136,7 @@ export function evaluateOnboardingStatus(snapshot: OnboardingSnapshot): Onboardi
 
   let nextPath: OnboardingStatus['nextPath'] = snapshot.onboardingDone ? '/nutrition-report' : '/onboarding/tos';
   if (!statsComplete) nextPath = '/onboarding/stats';
-  else if (!preferencesComplete) nextPath = '/onboarding/preferences';
+  else if (!preferencesComplete || !mealTimesComplete) nextPath = '/onboarding/preferences';
   else if (!conditionsComplete) nextPath = '/onboarding/conditions';
   else if (!conditionDetailsComplete) nextPath = '/onboarding/condition-details';
   else if (!allergiesComplete) nextPath = '/onboarding/allergies';

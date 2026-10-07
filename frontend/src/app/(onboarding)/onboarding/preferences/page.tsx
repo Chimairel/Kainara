@@ -13,6 +13,8 @@ import { useProfile } from '@/hooks/useProfile';
 import { useAuth } from '@/hooks/useAuth';
 import { normalizeFoodCulture } from '@/lib/profile-normalization';
 import { writeSessionResource } from '@/lib/session-resource-cache';
+import MealTimesFields from '@/features/meal-reminders/MealTimesFields';
+import { suggestedMealTimes, mealSchedulePayload, type MealReminderSettings } from '@/features/meal-reminders/types';
 
 export default function OnboardingPreferencesPage() {
   const router = useRouter();
@@ -25,6 +27,7 @@ export default function OnboardingPreferencesPage() {
   const [culture, setCulture] = useState('Filipino');
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [mealTimes, setMealTimes] = useState<MealReminderSettings>(suggestedMealTimes);
 
   useEffect(() => {
     const saved = profile?.userProfile;
@@ -32,6 +35,15 @@ export default function OnboardingPreferencesPage() {
     if (saved.dietaryPreference) setDietary(saved.dietaryPreference as DietaryPreference);
     if (saved.ricePreference) setRicePreference(saved.ricePreference);
     if (saved.foodCulture) setCulture(normalizeFoodCulture(saved.foodCulture));
+    setMealTimes((previous) => {
+      const next = profile?.mealReminderSettings ?? {
+        ...previous,
+        timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+      };
+      return JSON.stringify(mealSchedulePayload(previous)) === JSON.stringify(mealSchedulePayload(next))
+        ? previous
+        : next;
+    });
   }, [profile]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -40,6 +52,7 @@ export default function OnboardingPreferencesPage() {
 
     setIsLoading(true);
     try {
+      await api.put('/user/meal-reminders', mealSchedulePayload(mealTimes));
       // Send preference specs to backend profile endpoint to extend user profile
       const response = await api.post('/user/onboarding/profile', {
         dietaryPreference: dietary,
@@ -223,6 +236,12 @@ export default function OnboardingPreferencesPage() {
               })}
             </div>
           </div>
+
+          <MealTimesFields value={mealTimes} onChange={setMealTimes} disabled={isLoading || isHydrating} />
+          <p className="text-xs leading-relaxed text-brand-muted">
+            These are suggested times—adjust them to your routine. You can enable preparation and logging reminders
+            later in Food & planning.
+          </p>
 
           <div className="flex gap-2.5 rounded-2xl border border-brand-border/70 bg-brand-bgAlt/50 p-3.5 text-[11px] text-brand-muted">
             <Info className="mt-0.5 h-4 w-4 shrink-0 text-brand-green" />

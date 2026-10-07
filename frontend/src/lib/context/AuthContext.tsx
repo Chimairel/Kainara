@@ -8,6 +8,7 @@ import api, { setSessionRefreshSuppressed } from '@/lib/axios';
 import { clearSessionResourceCache } from '@/lib/session-resource-cache';
 import { refreshUserProfile } from '@/lib/user-profile-resource';
 import { refreshClinicalProfileStatus } from '@/lib/clinical-profile-status';
+import { disableDeviceNotifications } from '@/lib/device-notifications';
 
 export interface UserSession {
   userId: string;
@@ -231,6 +232,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setProfileLoadError(false);
     setSessionRefreshSuppressed(true);
     try {
+      await disableDeviceNotifications().catch(() => undefined);
       await api.post('/auth/logout');
     } catch (error) {
       console.error('[AuthContext] Failed backend logout call:', error);

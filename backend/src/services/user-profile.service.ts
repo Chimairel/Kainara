@@ -73,6 +73,7 @@ type OnboardingEvaluationUser = Omit<
   'profile' | 'conditions' | 'allergies' | 'safetyEntries'
 > & {
   userProfile: OnboardingEvaluationInput['profile'];
+  mealReminderSettings?: OnboardingEvaluationInput['mealSchedule'];
   healthConditions: Array<{ condition: HealthConditionType }>;
   allergies: Array<{ allergen: string }>;
   safetyProfileEntries: Array<{ domain: string }>;
@@ -86,6 +87,7 @@ function evaluateUserOnboardingStatus(user: OnboardingEvaluationUser) {
     acceptedTermsVersion: user.acceptedTermsVersion,
     acceptedPrivacyVersion: user.acceptedPrivacyVersion,
     profile: user.userProfile,
+    mealSchedule: user.mealReminderSettings ?? null,
     conditions: user.healthConditions.map((item) => item.condition),
     allergies: user.allergies.map((item) => item.allergen),
     safetyEntries: user.safetyProfileEntries,
@@ -123,6 +125,7 @@ const profileDetailsSelect = {
   createdAt: true,
   updatedAt: true,
   userProfile: true,
+  mealReminderSettings: true,
   healthConditions: { select: { condition: true } },
   allergies: { select: { allergen: true } },
   clinicalContextResponses: { select: { area: true, responses: true } },
@@ -310,6 +313,7 @@ export class UserProfileService {
       where: { id: userId },
       include: {
         userProfile: true,
+        mealReminderSettings: true,
         healthConditions: { select: { condition: true } },
         allergies: { select: { allergen: true } },
         safetyProfileEntries: { select: { domain: true } },
@@ -494,6 +498,7 @@ export class UserProfileService {
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,
       userProfile: user.userProfile,
+      mealReminderSettings: user.mealReminderSettings,
       healthConditions: user.healthConditions.map((c) => c.condition),
       allergies: user.allergies.map((a) => a.allergen),
       safetyEntries: user.safetyProfileEntries,

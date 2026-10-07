@@ -22,6 +22,7 @@ interface Notification {
   type: string;
   isRead: boolean;
   createdAt: string;
+  targetPath?: string | null;
 }
 
 function useNotificationInbox() {

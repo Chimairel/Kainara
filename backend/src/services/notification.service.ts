@@ -23,7 +23,7 @@ export class NotificationService {
    */
   static async getUserNotifications(userId: string, limit = 50) {
     return prisma.notification.findMany({
-      where: { userId },
+      where: { userId, OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }] },
       orderBy: { createdAt: 'desc' },
       take: limit,
     });
@@ -34,7 +34,7 @@ export class NotificationService {
    */
   static async getUnreadCount(userId: string): Promise<number> {
     return prisma.notification.count({
-      where: { userId, isRead: false },
+      where: { userId, isRead: false, OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }] },
     });
   }
 
