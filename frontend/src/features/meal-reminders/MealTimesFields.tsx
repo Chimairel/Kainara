@@ -52,7 +52,7 @@ export default function MealTimesFields({
         ))}
       </datalist>
       <p className="text-xs leading-relaxed text-brand-muted">
-        Times follow this timezone. You can change them later without a new nutrition report.
+        Default: Philippine time (UTC+8). You can change meal times later without a new nutrition report.
       </p>
     </fieldset>
   );

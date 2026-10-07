@@ -38,7 +38,6 @@ export default function MealReminderSettingsPanel() {
       breakfastTime: '',
       lunchTime: '',
       dinnerTime: '',
-      timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
     });
     if (!ownerId) return;
     void api
@@ -51,7 +50,6 @@ export default function MealReminderSettingsPanel() {
               breakfastTime: '',
               lunchTime: '',
               dinnerTime: '',
-              timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
             }
           );
       })
@@ -96,36 +94,54 @@ export default function MealReminderSettingsPanel() {
         }}
       >
         <MealTimesFields value={settings} onChange={setSettings} disabled={loading || busy} />
-        <fieldset disabled={loading || busy} className="space-y-3 text-sm text-brand-text">
-          {(
-            [
-              ['remindersEnabled', 'Send meal reminders'],
-              ['prepareEnabled', 'Preparation reminder'],
-              ['logEnabled', 'Logging reminder'],
-            ] as const
-          ).map(([field, label]) => (
-            <label key={field} className="flex min-h-11 items-center justify-between gap-3">
-              <span>{label}</span>
+        <div className="space-y-3 text-sm text-brand-text">
+          <label className="flex min-h-11 items-center justify-between gap-3">
+            <span>Send meal reminders</span>
+            <Switch
+              aria-label="Send meal reminders"
+              checked={settings.remindersEnabled}
+              disabled={loading || busy}
+              onCheckedChange={(checked) => setSettings({ ...settings, remindersEnabled: checked })}
+            />
+          </label>
+          <fieldset
+            aria-label="Meal reminder options"
+            disabled={loading || busy || !settings.remindersEnabled}
+            className={`ml-2 space-y-3 border-l-2 border-brand-border/70 pl-4 sm:ml-4 sm:pl-5 ${!settings.remindersEnabled ? 'opacity-50' : ''}`}
+          >
+            <label className="flex min-h-11 items-center justify-between gap-3">
+              <span>Preparation reminder</span>
               <Switch
-                aria-label={label}
-                checked={settings[field]}
-                onCheckedChange={(checked) => setSettings({ ...settings, [field]: checked })}
+                aria-label="Preparation reminder"
+                checked={settings.prepareEnabled}
+                onCheckedChange={(checked) => setSettings({ ...settings, prepareEnabled: checked })}
               />
             </label>
-          ))}
-        </fieldset>
-        <Input
-          type="number"
-          min={0}
-          max={180}
-          step={1}
-          required
-          disabled={loading || busy}
-          label="Preparation lead time (minutes before eating)"
-          value={Number.isFinite(settings.prepareMinutesBefore ?? 60) ? (settings.prepareMinutesBefore ?? 60) : ''}
-          onChange={(event) => setSettings({ ...settings, prepareMinutesBefore: event.currentTarget.valueAsNumber })}
-          helperText="Choose 0–180 minutes. Use 0 for a reminder at the eating time. Logging reminders are 60 minutes after eating, if still unlogged."
-        />
+            <Input
+              type="number"
+              min={0}
+              max={180}
+              step={1}
+              required
+              disabled={loading || busy || !settings.remindersEnabled || !settings.prepareEnabled}
+              label="Preparation lead time (minutes before eating)"
+              value={Number.isFinite(settings.prepareMinutesBefore ?? 60) ? (settings.prepareMinutesBefore ?? 60) : ''}
+              onChange={(event) =>
+                setSettings({ ...settings, prepareMinutesBefore: event.currentTarget.valueAsNumber })
+              }
+              helperText="Choose 0–180 minutes. Use 0 for a reminder at the eating time."
+            />
+            <label className="flex min-h-11 items-center justify-between gap-3">
+              <span>Logging reminder</span>
+              <Switch
+                aria-label="Logging reminder"
+                checked={settings.logEnabled}
+                onCheckedChange={(checked) => setSettings({ ...settings, logEnabled: checked })}
+              />
+            </label>
+            <p className="text-xs text-brand-muted">60 minutes after eating, if still unlogged.</p>
+          </fieldset>
+        </div>
         <p className="text-xs text-brand-muted">
           Meal times and reminder preferences apply to your account across devices. The breakfast, lunch and dinner
           fields are your eating times. Preparation follows the lead time above. Reminders only apply to cleared,

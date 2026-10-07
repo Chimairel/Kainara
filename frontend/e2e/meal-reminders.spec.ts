@@ -1,6 +1,8 @@
 import { expect, test, type Page } from '@playwright/test';
 import { createECDH } from 'node:crypto';
 
+test.use({ timezoneId: 'America/New_York' });
+
 const keyPair = createECDH('prime256v1');
 keyPair.generateKeys();
 const publicKey = keyPair.getPublicKey().toString('base64url');
@@ -108,7 +110,7 @@ for (const width of [390, 1280]) {
     await page.getByLabel('Breakfast', { exact: true }).fill('08:30');
     await page.getByLabel('Lunch', { exact: true }).fill('13:15');
     await page.getByLabel('Dinner', { exact: true }).fill('19:45');
-    await page.getByLabel('Timezone', { exact: true }).fill('Asia/Manila');
+    await expect(page.getByLabel('Timezone', { exact: true })).toHaveValue('Asia/Manila');
     await page.getByRole('button', { name: /Continue to Step 3/ }).click();
     await expect(page).toHaveURL(/\/onboarding\/conditions$/);
     expect(fixture.schedule.breakfastTime).toBe('08:30');
@@ -146,8 +148,13 @@ for (const width of [390, 1280]) {
     );
     await page.goto('/profile/planning');
     await expect(page.getByRole('heading', { name: 'Meal times & reminders' })).toBeVisible();
+    await expect(page.getByRole('switch', { name: 'Preparation reminder', exact: true })).toBeDisabled();
+    await expect(page.getByRole('switch', { name: 'Logging reminder', exact: true })).toBeDisabled();
+    await expect(page.getByLabel('Preparation lead time (minutes before eating)', { exact: true })).toBeDisabled();
     await page.getByLabel('Breakfast', { exact: true }).fill('08:30');
     await page.getByRole('switch', { name: 'Send meal reminders', exact: true }).click();
+    await expect(page.getByRole('switch', { name: 'Preparation reminder', exact: true })).toBeEnabled();
+    await expect(page.getByRole('switch', { name: 'Logging reminder', exact: true })).toBeEnabled();
     await expect(page.getByRole('switch', { name: 'Preparation reminder', exact: true })).toBeChecked();
     await page.getByLabel('Preparation lead time (minutes before eating)', { exact: true }).fill('15');
     await page.getByRole('button', { name: 'Save meal times', exact: true }).click();

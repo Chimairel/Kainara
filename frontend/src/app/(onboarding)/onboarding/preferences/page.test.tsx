@@ -35,7 +35,7 @@ describe('onboarding preferences without location collection', () => {
     });
     expect(state.put).toHaveBeenCalledWith(
       '/user/meal-reminders',
-      expect.objectContaining({ breakfastTime: '08:15', remindersEnabled: false })
+      expect.objectContaining({ breakfastTime: '08:15', remindersEnabled: false, timeZone: 'Asia/Manila' })
     );
   });
 });

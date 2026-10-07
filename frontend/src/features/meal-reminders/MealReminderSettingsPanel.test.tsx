@@ -1,5 +1,5 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import MealReminderSettingsPanel from './MealReminderSettingsPanel';
 import DeviceNotificationsPanel from './DeviceNotificationsPanel';
 import { suggestedMealTimes } from './types';
@@ -32,7 +32,47 @@ beforeEach(() => {
   }));
   mocks.put.mockResolvedValue({ data: { success: true } });
 });
+afterEach(() => vi.restoreAllMocks());
 describe('meal times and device notifications', () => {
+  it('defaults a missing schedule to Philippine time even on a browser in another timezone', async () => {
+    const browserOptions = Intl.DateTimeFormat().resolvedOptions();
+    vi.spyOn(Intl.DateTimeFormat.prototype, 'resolvedOptions').mockReturnValue({
+      ...browserOptions,
+      timeZone: 'America/New_York',
+    });
+    mocks.get.mockImplementation(async (path: string) => ({
+      data: { data: path.includes('/push/') ? { available: true, publicKey: 'synthetic-key' } : null },
+    }));
+    render(<MealReminderSettingsPanel />);
+    await waitFor(() => expect(screen.getByLabelText('Timezone')).toHaveValue('Asia/Manila'));
+  });
+  it('keeps child controls disabled until the master is on and preserves their choices while off', async () => {
+    render(<MealReminderSettingsPanel />);
+    await screen.findByRole('switch', { name: 'Send meal reminders' });
+    const master = screen.getByRole('switch', { name: 'Send meal reminders' });
+    const preparation = screen.getByRole('switch', { name: 'Preparation reminder' });
+    const logging = screen.getByRole('switch', { name: 'Logging reminder' });
+    const lead = screen.getByLabelText('Preparation lead time (minutes before eating)');
+    expect(preparation).toBeDisabled();
+    expect(logging).toBeDisabled();
+    expect(lead).toBeDisabled();
+    fireEvent.click(master);
+    expect(preparation).toBeEnabled();
+    expect(logging).toBeEnabled();
+    fireEvent.change(lead, { target: { value: '15' } });
+    fireEvent.click(preparation);
+    expect(lead).toBeDisabled();
+    fireEvent.click(logging);
+    fireEvent.click(master);
+    expect(preparation).toBeDisabled();
+    expect(logging).toBeDisabled();
+    fireEvent.click(master);
+    expect(preparation).toHaveAttribute('aria-checked', 'false');
+    expect(logging).toHaveAttribute('aria-checked', 'false');
+    fireEvent.click(preparation);
+    expect(lead).toBeEnabled();
+    expect(lead).toHaveValue(15);
+  });
   it('edits the saved schedule without sending internal fields or changing the clinical profile', async () => {
     render(<MealReminderSettingsPanel />);
     await waitFor(() => expect(screen.getByLabelText('Breakfast')).toHaveValue('07:00'));

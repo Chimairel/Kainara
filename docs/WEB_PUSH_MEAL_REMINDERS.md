@@ -2,8 +2,8 @@
 
 ## Member setup
 
-1. Save breakfast, lunch and dinner times in onboarding Preferences, or in **Profile → Food & planning → Meal times & reminders**. Times use the selected timezone. Suggested onboarding values are editable; existing completed members do not receive invented saved times or get sent back to onboarding.
-2. Under Food & planning, turn on **Send meal reminders**, choose the preparation/logging toggles and preparation lead time, then save. Times and reminder preferences are account-wide; device permission is separate.
+1. Save breakfast, lunch and dinner times in onboarding Preferences, or in **Profile → Food & planning → Meal times & reminders**. New schedules default to Philippine time (`Asia/Manila`, UTC+8), regardless of the browser timezone. Existing saved timezones are retained. Suggested onboarding values are editable; existing completed members do not receive invented saved times or get sent back to onboarding.
+2. Under Food & planning, turn on **Send meal reminders**, choose its nested preparation/logging toggles and preparation lead time, then save. Child controls are disabled while the master is off; their choices are retained when re-enabled. The lead field is also disabled when preparation is off. Times and reminder preferences are account-wide; device permission is separate.
 3. Choose **Enable on this device** and allow the browser permission. Device alerts can also be managed from **Notifications → Device alerts**, including for admin and nutritionist accounts.
 4. Use **Send test notification** to check the device's notification panel. Permission is per browser/device. On iPhone/iPad, use the installed Home Screen web app (iOS/iPadOS 16.4+).
 

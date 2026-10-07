@@ -36,10 +36,7 @@ export default function OnboardingPreferencesPage() {
     if (saved.ricePreference) setRicePreference(saved.ricePreference);
     if (saved.foodCulture) setCulture(normalizeFoodCulture(saved.foodCulture));
     setMealTimes((previous) => {
-      const next = profile?.mealReminderSettings ?? {
-        ...previous,
-        timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-      };
+      const next = profile?.mealReminderSettings ?? previous;
       return JSON.stringify(mealSchedulePayload(previous)) === JSON.stringify(mealSchedulePayload(next))
         ? previous
         : next;
