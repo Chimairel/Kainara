@@ -7,15 +7,29 @@
   width: calc(100% + var(--stage-extension));
   margin-top: 24px;
   overflow: hidden;
+  container-type: inline-size;
+}
+
+.scene,
+.stage::after {
+  --scene-width: min(
+    calc((100cqw - var(--stage-extension)) * 2.3),
+    calc((100svh - 150px) * 1024 / 765 / 0.55),
+    1600px
+  );
 }
 
 .stage::after {
   content: '';
   position: absolute;
-  inset: 0;
+  top: 0;
+  left: 0;
+  width: 100%;
+  /* The visible house ends at y=699 in the 765 px source, below its center anchor. */
+  height: min(100%, calc(50% + var(--scene-width) * 765 / 1024 * 0.375));
   z-index: 30;
   pointer-events: none;
-  border: 1px solid var(--brand-border);
+  border: 4px solid #57331c;
   border-bottom: 0;
 }
 
@@ -29,11 +43,7 @@
   position: absolute;
   left: calc((100% - var(--stage-extension)) / 2);
   top: 50%;
-  width: min(
-    calc((100% - var(--stage-extension)) * 2.3),
-    calc((100svh - 150px) * 1024 / 765 / 0.55),
-    1600px
-  );
+  width: var(--scene-width);
   aspect-ratio: 1024 / 765;
   /* Center the window, allowing the surrounding roof and walls to crop. */
   transform: translate(-50.45%, -53.9%);
@@ -58,10 +68,10 @@
 .nara {
   position: absolute;
   left: 50%;
-  top: 60%;
-  width: 140%;
+  bottom: -29%;
+  width: 110%;
   aspect-ratio: 1;
-  transform: translate(-50%, -50%);
+  transform: translateX(-50%);
 }
 
 .lamp {
@@ -93,27 +103,27 @@
 }
 
 .glass {
-  fill: #ffe5a1;
-  stroke: #a57c35;
+  fill: #423b28;
+  stroke: #a58b50;
   stroke-width: 2;
-  filter: drop-shadow(0 0 12px rgb(255 204 102 / 55%));
+  filter: none;
 }
 
 .shine {
   fill: none;
-  stroke: #fff6db;
+  stroke: #8b805b;
   stroke-width: 4;
   stroke-linecap: round;
 }
 
 :global(.dark) .glass {
-  fill: #423b28;
-  stroke: #a58b50;
-  filter: none;
+  fill: #ffe5a1;
+  stroke: #a57c35;
+  filter: drop-shadow(0 0 12px rgb(255 204 102 / 55%));
 }
 
 :global(.dark) .shine {
-  stroke: #8b805b;
+  stroke: #fff6db;
 }
 
 .bulbToggle {
