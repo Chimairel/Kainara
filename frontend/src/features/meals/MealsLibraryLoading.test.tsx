@@ -85,5 +85,3 @@ it('waits for restricted-profile compatibility results and counts unique planned
   expect(screen.queryByText('Verified fixture dish')).not.toBeInTheDocument();
   expect(libraryTab()).toHaveTextContent('2');
 });
-
-
