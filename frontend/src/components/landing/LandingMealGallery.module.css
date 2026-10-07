@@ -1,0 +1,88 @@
+.gallery {
+  width: 100%;
+  min-width: 0;
+}
+
+.viewport {
+  position: relative;
+  height: 430px;
+  overflow: hidden;
+  perspective: 600px;
+  mask-image:
+    linear-gradient(to bottom, transparent, #000 12%, #000 80%, transparent),
+    linear-gradient(to right, transparent, #000 5%, #000 95%, transparent);
+  mask-composite: intersect;
+}
+
+.scene {
+  display: flex;
+  width: max-content;
+  gap: 14px;
+  height: 640px;
+  position: absolute;
+  left: 50%;
+  top: -80px;
+  transform: translateX(-50%) translateZ(-60px) rotateX(18deg) rotateY(-12deg) rotateZ(17deg);
+}
+
+.column {
+  width: 174px;
+}
+.card {
+  width: 100%;
+  flex-shrink: 0;
+  border-radius: 18px;
+  box-shadow: 0 10px 26px #07191418;
+}
+.photo {
+  position: relative;
+  aspect-ratio: 5 / 4;
+}
+.credits {
+  flex: 1;
+  padding-top: 12px;
+}
+
+@media (min-width: 1024px) {
+  .gallery {
+    /* Bleed beyond the centered hero to the viewport's right edge. */
+    width: calc(100% + (100vw - min(100vw - 10rem, 64rem)) / 2);
+    margin-top: -120px;
+  }
+
+  .viewport {
+    height: 600px;
+    mask-image:
+      linear-gradient(to bottom, #000 0%, #000 80%, transparent),
+      linear-gradient(to right, transparent, #000 5%, #000 100%);
+  }
+
+  .scene {
+    top: -100px;
+    height: 800px;
+  }
+
+  .column {
+    width: clamp(190px, 18vw, 280px);
+  }
+}
+
+@media (max-width: 639px) {
+  .viewport {
+    height: 300px;
+  }
+  .scene {
+    top: -110px;
+    gap: 10px;
+  }
+  .column {
+    width: 142px;
+    --gap: 12px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pause {
+    display: none;
+  }
+}

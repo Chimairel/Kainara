@@ -6,6 +6,7 @@ export const ContainerScroll = ({
   titleComponent,
   children,
   className,
+  contentClassName,
   innerClassName,
   cardClassName,
   badgeLeft,
@@ -18,6 +19,7 @@ export const ContainerScroll = ({
   titleComponent: string | React.ReactNode;
   children: React.ReactNode;
   className?: string;
+  contentClassName?: string;
   innerClassName?: string;
   cardClassName?: string;
   badgeLeft?: React.ReactNode;
@@ -61,7 +63,7 @@ export const ContainerScroll = ({
       ref={containerRef}
     >
       <div
-        className="py-10 md:py-40 w-full relative"
+        className={`py-10 md:py-40 w-full relative ${contentClassName || ''}`}
         style={{
           perspective: '1000px',
         }}

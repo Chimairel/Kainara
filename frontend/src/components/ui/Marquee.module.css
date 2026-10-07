@@ -1,0 +1,51 @@
+.marquee {
+  --duration: 40s;
+  --gap: 1rem;
+  display: flex;
+  gap: var(--gap);
+  overflow: hidden;
+}
+
+.track {
+  display: flex;
+  flex-shrink: 0;
+  gap: var(--gap);
+  animation: marquee-horizontal var(--duration) linear infinite;
+}
+
+.vertical,
+.vertical .track {
+  flex-direction: column;
+}
+
+.vertical .track {
+  animation-name: marquee-vertical;
+}
+
+.reverse {
+  animation-direction: reverse;
+}
+
+.marquee[data-paused] .track,
+.pauseOnHover:hover .track,
+.pauseOnHover:focus-within .track {
+  animation-play-state: paused;
+}
+
+@keyframes marquee-horizontal {
+  to {
+    transform: translateX(calc(-100% - var(--gap)));
+  }
+}
+
+@keyframes marquee-vertical {
+  to {
+    transform: translateY(calc(-100% - var(--gap)));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .marquee .track {
+    animation: none;
+  }
+}

@@ -1,0 +1,100 @@
+'use client';
+
+import { useState, type CSSProperties } from 'react';
+import Image from 'next/image';
+import { Pause, Play } from 'lucide-react';
+import { Card, CardContent } from '@/components/ui/Card';
+import { Marquee } from '@/components/ui/Marquee';
+import styles from './LandingMealGallery.module.css';
+
+// Public display-only photo mappings already used by the Panlasang library image resolver.
+// This gallery does not imply that a recipe is eligible or approved for a member.
+const meals = [
+  { name: 'Menudo', source: 'menudo-with-raisins-and-green-peas', photo: '2014/04/Filipino-Menudo.jpg' },
+  {
+    name: 'Pancit Malabon',
+    source: 'pancit-malabon-recipe',
+    photo: '2018/01/Pancit-Malabon-Recipe-Panlasang-Pinoy.jpg',
+  },
+  { name: 'Chicken Tinola', source: 'filipino-chicken-tinola-recipe', photo: '2018/11/Chicken-Tinola.jpg' },
+  { name: 'Chicken Sopas', source: 'filipino-chicken-macaroni-sopas', photo: '2014/10/Filipinpo-Chicken-Sopas-YT.jpg' },
+  { name: 'Pork Adobo', source: 'pork-adobo-with-boiled-eggs', photo: '2012/10/Pork-adobo-with-boiled-eggs.jpg' },
+  {
+    name: 'Sinigang na Bangus',
+    source: 'sinigang-na-bangus-recipe',
+    photo: '2018/06/sinigang-na-bangus-recipe-filipino.jpg',
+  },
+  { name: 'Filipino Spaghetti', source: 'filipino-style-spaghetti', photo: '2015/05/Filipino-spaghetti-recipe-1.jpg' },
+];
+
+export default function LandingMealGallery() {
+  const [paused, setPaused] = useState(false);
+  return (
+    <div className={styles.gallery} data-meal-gallery>
+      <div className={styles.viewport} aria-hidden="true">
+        <div className={styles.scene}>
+          {[0, 1, 2].map((column) => (
+            <Marquee
+              key={column}
+              vertical
+              reverse={column === 1}
+              paused={paused}
+              pauseOnHover
+              className={styles.column}
+              style={{ '--duration': `${48 + column * 8}s` } as CSSProperties}
+            >
+              {meals.map((_, index) => {
+                const meal = meals[(index + column * 2) % meals.length];
+                return (
+                  <Card key={meal.name} variant="signal" className={styles.card}>
+                    <CardContent className="!p-0">
+                      <div className={styles.photo}>
+                        <Image
+                          src={`https://panlasangpinoy.com/wp-content/uploads/${meal.photo}`}
+                          alt=""
+                          fill
+                          sizes="200px"
+                          className="object-cover"
+                        />
+                      </div>
+                      <p className="px-3 py-2.5 text-left text-xs font-bold text-brand-text sm:text-sm">{meal.name}</p>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </Marquee>
+          ))}
+        </div>
+      </div>
+      <div className="relative z-10 flex items-start justify-between gap-3 px-3 text-left">
+        <details className={styles.credits}>
+          <summary className="cursor-pointer text-xs text-brand-muted">Recipes & photos: Panlasang Pinoy</summary>
+          <ul className="mt-3 space-y-2 text-xs text-brand-muted">
+            {meals.map(({ name, source }) => (
+              <li key={name}>
+                <a
+                  href={`https://panlasangpinoy.com/${source}/`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="underline"
+                >
+                  {name} — Panlasang Pinoy
+                </a>
+              </li>
+            ))}
+          </ul>
+        </details>
+        <button
+          type="button"
+          className={`${styles.pause} flex min-h-11 shrink-0 items-center gap-2 rounded-full border border-brand-border bg-brand-surface px-3 text-xs font-semibold text-brand-text`}
+          onClick={() => setPaused((value) => !value)}
+          aria-label={paused ? 'Resume meal gallery' : 'Pause meal gallery'}
+          aria-pressed={paused}
+        >
+          {paused ? <Play size={14} aria-hidden="true" /> : <Pause size={14} aria-hidden="true" />}
+          {paused ? 'Resume' : 'Pause'}
+        </button>
+      </div>
+    </div>
+  );
+}

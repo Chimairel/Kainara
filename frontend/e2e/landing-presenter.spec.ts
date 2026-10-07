@@ -19,7 +19,32 @@ for (const width of [1440, 390]) {
     });
     await page.route('**/api/**', (route) => route.fulfill({ status: 401, json: { success: false } }));
     await page.route('https://res.cloudinary.com/**', (route) => route.abort());
+    await page.route('**/_next/image?url=https%3A%2F%2Fpanlasangpinoy.com**', (route) =>
+      route.fulfill({ path: 'public/meals/pork-bowl.jpg', contentType: 'image/jpeg' })
+    );
     await page.goto('/');
+    const gallery = page.locator('[data-meal-gallery]');
+    await expect(gallery).toBeVisible();
+    const tracks = gallery.locator('[data-slot="marquee"] > div');
+    await page.getByRole('button', { name: 'Pause meal gallery' }).click();
+    expect(
+      await tracks.evaluateAll((elements) =>
+        elements.every((el) => getComputedStyle(el).animationPlayState === 'paused')
+      )
+    ).toBe(true);
+    await page.getByRole('button', { name: 'Resume meal gallery' }).click();
+    expect(
+      await tracks.evaluateAll((elements) =>
+        elements.every((el) => getComputedStyle(el).animationPlayState === 'running')
+      )
+    ).toBe(true);
+    await gallery.getByText('Recipes & photos: Panlasang Pinoy').click();
+    await expect(gallery.getByRole('link', { name: 'Menudo — Panlasang Pinoy' })).toHaveAttribute(
+      'href',
+      'https://panlasangpinoy.com/menudo-with-raisins-and-green-peas/'
+    );
+    await gallery.getByText('Recipes & photos: Panlasang Pinoy').click();
+    await page.evaluate(() => window.scrollTo(0, 0));
     const screen = page.locator('[data-scroll-screen]');
     const body = page.locator('[data-nara-presenter="body"]');
     const hands = page.locator('[data-nara-presenter="hands"]');
@@ -29,8 +54,15 @@ for (const width of [1440, 390]) {
     expect(await screen.evaluate((el) => el.contains(document.querySelector('[data-nara-presenter="hands"]')))).toBe(
       true
     );
-    const initialRotation = await screen.evaluate((el) => new DOMMatrixReadOnly(getComputedStyle(el).transform).m23);
-    expect(Math.abs(initialRotation)).toBeGreaterThan(0.2);
+    await expect
+      .poll(() => screen.evaluate((el) => Math.abs(new DOMMatrixReadOnly(getComputedStyle(el).transform).m23)))
+      .toBeGreaterThan(0.2);
+    if (width > 1000) {
+      const galleryBounds = (await gallery.boundingBox())!;
+      const headerBounds = (await page.getByRole('banner').boundingBox())!;
+      expect(Math.abs(galleryBounds.y - (headerBounds.y + headerBounds.height))).toBeLessThan(2);
+      expect(Math.abs(galleryBounds.x + galleryBounds.width - width)).toBeLessThan(10);
+    }
     await screen.evaluate((el) => {
       const hero = el.closest('section')!;
       window.scrollTo(0, hero.getBoundingClientRect().bottom + scrollY - innerHeight);
@@ -49,6 +81,9 @@ for (const width of [1440, 390]) {
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
     await page.screenshot({ path: testInfo.outputPath('presenter.png') });
     await page.emulateMedia({ reducedMotion: 'reduce' });
+    expect(
+      await tracks.evaluateAll((elements) => elements.every((el) => getComputedStyle(el).animationName === 'none'))
+    ).toBe(true);
     await page.evaluate(() => window.scrollTo(0, 0));
     await expect
       .poll(() => screen.evaluate((el) => Math.abs(new DOMMatrixReadOnly(getComputedStyle(el).transform).m23)))
