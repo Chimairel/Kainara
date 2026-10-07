@@ -2,8 +2,9 @@ import { act, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import GoogleSignInButton from './GoogleSignInButton';
 
-const mocks = vi.hoisted(() => ({ login: vi.fn(), post: vi.fn() }));
+const mocks = vi.hoisted(() => ({ login: vi.fn(), post: vi.fn(), theme: 'light' }));
 vi.mock('@/hooks/useAuth', () => ({ useAuth: () => ({ login: mocks.login }) }));
+vi.mock('@/lib/context/ThemeContext', () => ({ useTheme: () => ({ theme: mocks.theme }) }));
 vi.mock('@/lib/axios', () => ({ default: { post: mocks.post } }));
 
 let clickGoogle: () => void;
@@ -12,6 +13,8 @@ let clientNumber = 0;
 
 beforeEach(() => {
   vi.useFakeTimers();
+  mocks.theme = 'light';
+  document.documentElement.classList.remove('dark');
   vi.stubEnv('NEXT_PUBLIC_GOOGLE_CLIENT_ID', `fixture-${++clientNumber}`);
   vi.spyOn(navigator, 'userAgent', 'get').mockReturnValue('Mozilla/5.0 Chrome Desktop');
   vi.spyOn(document, 'hasFocus').mockReturnValue(true);
@@ -38,6 +41,7 @@ beforeEach(() => {
 
 afterEach(() => {
   delete window.google;
+  document.documentElement.classList.remove('dark');
   vi.useRealTimers();
   vi.restoreAllMocks();
   vi.unstubAllEnvs();
@@ -131,12 +135,32 @@ describe('Google sign-in browser recovery', () => {
     expect(vi.mocked(window.google!.accounts.id.renderButton).mock.calls[0][1]).toEqual({
       locale: 'en',
       shape: 'pill',
+      theme: 'outline',
       width: 400,
       click_listener: expect.any(Function),
     });
     await act(async () => credential({ credential: 'fixture-id-token' }));
     expect(screen.getByRole('link', { name: 'Sign in with email' })).toHaveAttribute('href', '/login');
     expect(mocks.login).not.toHaveBeenCalled();
+  });
+
+  it('uses the saved dark theme immediately and responds to theme changes without reinitializing sign-in', async () => {
+    document.documentElement.classList.add('dark');
+    const result = await renderGoogle();
+    const renderButton = vi.mocked(window.google!.accounts.id.renderButton);
+    expect(renderButton.mock.calls[0][1]).toMatchObject({ theme: 'outline_dark', shape: 'pill', width: 400 });
+
+    mocks.theme = 'dark';
+    result.rerender(<GoogleSignInButton />);
+    expect(renderButton).toHaveBeenCalledTimes(1);
+
+    document.documentElement.classList.remove('dark');
+    mocks.theme = 'light';
+    result.rerender(<GoogleSignInButton />);
+    expect(renderButton.mock.lastCall?.[1]).toMatchObject({ theme: 'outline', shape: 'pill', width: 400 });
+    expect(window.google!.accounts.id.initialize).toHaveBeenCalledTimes(1);
+    await act(async () => credential({ credential: 'fixture-id-token' }));
+    expect(mocks.login).toHaveBeenCalledWith('fixture-token');
   });
 
   it('preserves custom credential actions without permanent help text', async () => {

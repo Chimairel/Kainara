@@ -13,6 +13,7 @@ import { useGoogleSignInRecovery } from './useGoogleSignInRecovery';
 import { isEmbeddedAppBrowser } from '@/lib/browser-environment';
 import { loadGoogleIdentityServices } from './google-identity-services';
 import { loadGoogleButtonFont } from './google-button-font';
+import { useTheme } from '@/lib/context/ThemeContext';
 
 /**
  * Google Identity Services "Sign in with Google" button.
@@ -31,8 +32,10 @@ let activeCredentialHandler: ((response: GoogleCredentialResponse) => void) | nu
 
 export default function GoogleSignInButton({ disabled = false, onCredential }: GoogleSignInButtonProps) {
   const { login } = useAuth();
+  const { theme } = useTheme();
   const recovery = useGoogleSignInRecovery();
   const buttonRef = useRef<HTMLDivElement>(null);
+  const renderButtonRef = useRef<(() => void) | null>(null);
   const credentialActionRef = useRef(onCredential);
   const [error, setError] = useState<string | null>(null);
   const [recoveryLink, setRecoveryLink] = useState<{ href: string; label: string } | null>(null);
@@ -71,20 +74,25 @@ export default function GoogleSignInButton({ disabled = false, onCredential }: G
         }
 
         const host = buttonRef.current;
-        let previousWidth = 0;
+        let previousAppearance = '';
         const renderButton = () => {
           if (cancelled || !window.google) return;
           const width = Math.min(400, Math.floor(host.clientWidth) || 400);
-          if (width === previousWidth) return;
-          previousWidth = width;
+          // The root class already reflects the saved theme before React hydrates.
+          const buttonTheme = document.documentElement.classList.contains('dark') ? 'outline_dark' : 'outline';
+          const appearance = `${width}:${buttonTheme}`;
+          if (appearance === previousAppearance) return;
+          previousAppearance = appearance;
           host.replaceChildren();
           window.google.accounts.id.renderButton(host, {
             locale: 'en',
             shape: 'pill',
+            theme: buttonTheme,
             width,
             click_listener: recovery.startAttempt,
           });
         };
+        renderButtonRef.current = renderButton;
         renderButton();
         if (typeof ResizeObserver !== 'undefined') {
           sizeObserver = new ResizeObserver(renderButton);
@@ -97,12 +105,17 @@ export default function GoogleSignInButton({ disabled = false, onCredential }: G
 
     return () => {
       cancelled = true;
+      renderButtonRef.current = null;
       sizeObserver?.disconnect();
       recovery.stopAttempt();
       if (activeCredentialHandler === handleGoogleCallback) activeCredentialHandler = null;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    renderButtonRef.current?.();
+  }, [theme]);
 
   const handleGoogleCallback = async (response: GoogleCredentialResponse) => {
     recovery.close();
@@ -187,7 +200,7 @@ export default function GoogleSignInButton({ disabled = false, onCredential }: G
           <div
             ref={buttonRef}
             inert={disabled || isLoading ? true : undefined}
-            className="flex w-full justify-center"
+            className="flex w-full justify-center overflow-hidden rounded-full"
           />
         </div>
       )}

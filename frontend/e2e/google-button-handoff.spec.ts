@@ -48,7 +48,7 @@ for (const width of [1440, 390]) {
       await expect(standard).toBeVisible();
       expect(
         await page.evaluate(() => (window as typeof window & { googleButtonOptions: string[] }).googleButtonOptions)
-      ).toEqual(['locale', 'shape', 'width', 'click_listener']);
+      ).toEqual(['locale', 'shape', 'theme', 'width', 'click_listener']);
       expect(await standard.evaluate((element) => element.closest('[inert]'))).toBeNull();
       await standard.click();
       expect(
