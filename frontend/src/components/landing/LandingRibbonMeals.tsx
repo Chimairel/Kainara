@@ -8,6 +8,9 @@ export default function LandingRibbonMeals() {
   return (
     <g data-ribbon-meals pointerEvents="none">
       <defs>
+        <filter id={`${id}-bowl-shadow`} x="-30%" y="-30%" width="160%" height="170%" colorInterpolationFilters="sRGB">
+          <feDropShadow dx="4" dy="7" stdDeviation="4" floodColor="#071914" floodOpacity=".28" />
+        </filter>
         <symbol id={`${id}-reference-bowl`} viewBox="0 0 160 110">
           <path d="M12 34C12 8 148 8 148 34V46C144 74 113 86 80 86S16 74 12 46Z" fill="#fff" />
           <ellipse cx="80" cy="34" rx="68" ry="26" fill="#fff" />
@@ -30,6 +33,49 @@ export default function LandingRibbonMeals() {
           <path d="M60 29l10 2m-12 7l12 4" stroke="#c88b54" strokeWidth="3" strokeLinecap="round" />
           <path d="M51 47C56 39 64 43 62 50C71 45 77 51 71 55C63 59 55 57 51 47Z" fill="#3e8253" />
           <circle cx="76" cy="29" r="5" fill="#e96a3d" />
+        </symbol>
+        <symbol id={`${id}-calamansi`} viewBox="0 0 64 64">
+          <ellipse cx="33" cy="49" rx="25" ry="8" fill="#071914" opacity=".16" />
+          <circle cx="31" cy="30" r="25" fill="#4e874d" />
+          <circle cx="31" cy="30" r="21" fill="#f3e6ac" />
+          <circle cx="31" cy="30" r="17" fill="#d1d66f" />
+          <path d="M31 13v34M14 30h34M19 18l24 24M19 42l24-24" stroke="#fff4c9" strokeWidth="2" />
+          <circle cx="31" cy="30" r="3" fill="#fff4c9" />
+        </symbol>
+        <symbol id={`${id}-chili`} viewBox="0 0 64 64">
+          <path d="M17 21C37 14 55 32 39 48C30 57 17 57 7 56C32 47 36 38 17 21Z" fill="#bc4834" />
+          <path d="M23 25C39 24 45 35 34 45" fill="none" stroke="#ef8b57" strokeWidth="3" strokeLinecap="round" />
+          <path d="M16 23l9-7l7 8l-11 5Z" fill="#44744b" />
+          <path d="M25 20q-5-8 3-14" fill="none" stroke="#366242" strokeWidth="4" strokeLinecap="round" />
+        </symbol>
+        <symbol id={`${id}-carrot`} viewBox="0 0 64 64">
+          <path d="M19 22C12 30 25 49 43 60C41 42 37 21 29 20Z" fill="#f5b268" />
+          <path d="M20 25l8 4m-3 7l8 4m0 7l5 3" stroke="#d9773d" strokeWidth="3" strokeLinecap="round" />
+          <path
+            d="M24 23C11 16 10 8 15 5C24 7 24 18 24 23C18 9 26 1 30 4C35 10 28 19 24 23C27 8 38 8 40 13C37 21 28 21 24 23Z"
+            fill="#457b4c"
+          />
+        </symbol>
+        <symbol id={`${id}-garlic`} viewBox="0 0 64 64">
+          <ellipse cx="32" cy="53" rx="23" ry="7" fill="#071914" opacity=".16" />
+          <path d="M27 8h10l-2 13C59 29 58 54 32 55C6 54 5 29 29 21Z" fill="#fff5db" />
+          <path
+            d="M29 22C16 31 17 47 24 53M35 22C48 31 47 47 40 53M32 24v30"
+            fill="none"
+            stroke="#d7c6a0"
+            strokeWidth="2"
+          />
+          <path d="M28 9h8" stroke="#bcb18b" strokeWidth="3" />
+        </symbol>
+        <symbol id={`${id}-greens`} viewBox="0 0 64 64">
+          <path d="M9 56C3 32 13 11 52 7C55 34 37 59 9 56Z" fill="#447c50" />
+          <path
+            d="M10 55L45 15M19 45l-3-13m12 1l-2-12m1 14l14 2"
+            fill="none"
+            stroke="#acd08b"
+            strokeWidth="2.5"
+            strokeLinecap="round"
+          />
         </symbol>
         <symbol id={`${id}-soup`} viewBox="0 0 100 80">
           <ellipse cx="50" cy="69" rx="35" ry="7" fill="#071914" opacity=".18" />
@@ -61,9 +107,22 @@ export default function LandingRibbonMeals() {
       </defs>
       <use href={`#${id}-rice`} x="-630" y="752" width="108" height="88" transform="rotate(-12 -576 796)" />
       <use href={`#${id}-soup`} x="-421" y="833" width="50" height="42" transform="rotate(10 -396 854)" />
-      <use href={`#${id}-reference-bowl`} x="740" y="486" width="205" height="141" transform="rotate(-20 843 548)" />
+      <use
+        href={`#${id}-reference-bowl`}
+        x="740"
+        y="486"
+        width="205"
+        height="141"
+        transform="rotate(-20 843 548)"
+        filter={`url(#${id}-bowl-shadow)`}
+      />
       <use href={`#${id}-noodles`} x="966" y="556" width="48" height="40" transform="rotate(14 990 576)" />
-      <use href={`#${id}-rice`} x="872" y="665" width="68" height="56" transform="rotate(-8 906 693)" />
+      <use href={`#${id}-rice`} x="872" y="628" width="68" height="56" transform="rotate(-8 906 656)" />
+      <use href={`#${id}-garlic`} x="-641" y="870" width="35" height="35" transform="rotate(14 -624 887)" />
+      <use href={`#${id}-carrot`} x="-595" y="916" width="46" height="46" transform="rotate(-24 -572 939)" />
+      <use href={`#${id}-calamansi`} x="960" y="604" width="32" height="32" transform="rotate(-12 976 620)" />
+      <use href={`#${id}-chili`} x="927" y="615" width="38" height="38" transform="rotate(28 946 634)" />
+      <use href={`#${id}-greens`} x="814" y="681" width="42" height="42" transform="rotate(-18 835 702)" />
     </g>
   );
 }
