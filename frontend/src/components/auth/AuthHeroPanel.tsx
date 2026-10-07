@@ -13,6 +13,14 @@ export default function AuthHeroPanel({ header }: { header: ReactNode }) {
       <div className={styles.stage} data-auth-kubo-stage>
         <div className={styles.scene} data-auth-kubo>
           <div className={styles.window} data-auth-kubo-window>
+            <Image
+              src="/photos/capstone-team-window.png"
+              alt="The KAINARA capstone team working together"
+              fill
+              priority
+              sizes="(min-width: 1024px) 560px, 100vw"
+              className={styles.teamPhoto}
+            />
             <div className={styles.nara}>
               <AuthMascot size={1024} />
             </div>

@@ -31,6 +31,9 @@ for (const theme of ['light', 'dark']) {
     await expect(artwork.locator('[data-grid-tile]')).toHaveCount(0);
     const nara = artwork.getByRole('button', { name: 'Boop the Nara' });
     await expect(nara).toBeVisible();
+    const teamPhoto = artwork.getByRole('img', { name: 'The KAINARA capstone team working together' });
+    await expect(teamPhoto).toBeVisible();
+    await expect.poll(() => teamPhoto.evaluate((image: HTMLImageElement) => image.naturalWidth)).toBeGreaterThan(0);
     const stageBounds = (await artwork.locator('[data-auth-kubo-stage]').boundingBox())!;
     const windowBounds = (await artwork.locator('[data-auth-kubo-window]').boundingBox())!;
     expect(windowBounds.width).toBeGreaterThan(stageBounds.width * 0.6);

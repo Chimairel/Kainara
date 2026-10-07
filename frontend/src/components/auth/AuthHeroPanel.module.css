@@ -65,11 +65,18 @@
   outline-offset: -5px;
 }
 
+.teamPhoto {
+  object-fit: cover;
+  object-position: center;
+  pointer-events: none;
+}
+
 .nara {
   position: absolute;
-  left: 50%;
-  bottom: -29%;
-  width: 110%;
+  z-index: 1;
+  left: 16%;
+  bottom: -18%;
+  width: 70%;
   aspect-ratio: 1;
   transform: translateX(-50%);
 }
