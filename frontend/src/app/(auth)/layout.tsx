@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import Script from 'next/script';
+import { GOOGLE_SCRIPT_SRC } from '@/components/auth/google-identity-services';
 
 export const metadata: Metadata = {
   title: 'Account access',
@@ -9,7 +9,7 @@ export const metadata: Metadata = {
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
   return (
     <>
-      <Script src="https://accounts.google.com/gsi/client" strategy="afterInteractive" />
+      <link rel="preload" as="script" href={GOOGLE_SCRIPT_SRC} />
       {children}
     </>
   );

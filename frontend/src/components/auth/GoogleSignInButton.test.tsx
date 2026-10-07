@@ -119,7 +119,7 @@ describe('Google sign-in browser recovery', () => {
     expect(mocks.login).toHaveBeenCalledWith('fixture-token');
   });
 
-  it('uses the themed Google button and offers email recovery for a protected account collision', async () => {
+  it('uses the default Google button at the available width and offers email recovery for a protected account collision', async () => {
     mocks.post.mockRejectedValueOnce({
       response: { data: { errorCode: 'GOOGLE_LINK_REQUIRED', error: 'Use your original sign-in method.' } },
     });
@@ -128,13 +128,9 @@ describe('Google sign-in browser recovery', () => {
       expect.any(HTMLElement),
       expect.objectContaining({ click_listener: expect.any(Function) })
     );
-    expect(vi.mocked(window.google!.accounts.id.renderButton).mock.calls[0][1]).toMatchObject({
-      theme: 'outline',
-      size: 'large',
-      shape: 'pill',
-      text: 'continue_with',
-      locale: 'en',
-      logo_alignment: 'left',
+    expect(vi.mocked(window.google!.accounts.id.renderButton).mock.calls[0][1]).toEqual({
+      width: 400,
+      click_listener: expect.any(Function),
     });
     await act(async () => credential({ credential: 'fixture-id-token' }));
     expect(screen.getByRole('link', { name: 'Sign in with email' })).toHaveAttribute('href', '/login');

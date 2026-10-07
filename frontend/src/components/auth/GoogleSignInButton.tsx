@@ -11,25 +11,12 @@ import FloatingNotice from '@/components/shared/FloatingNotice';
 import Button from '@/components/ui/Button';
 import { useGoogleSignInRecovery } from './useGoogleSignInRecovery';
 import { isEmbeddedAppBrowser } from '@/lib/browser-environment';
-import { observeGoogleButtonLayout } from './google-button-layout';
+import { loadGoogleIdentityServices } from './google-identity-services';
 
 /**
  * Google Identity Services "Sign in with Google" button.
  * Loads the GIS script, renders the button, and handles the callback.
  */
-
-declare global {
-  interface Window {
-    google?: {
-      accounts: {
-        id: {
-          initialize: (config: Record<string, unknown>) => void;
-          renderButton: (element: HTMLElement, config: Record<string, unknown>) => void;
-        };
-      };
-    };
-  }
-}
 
 interface GoogleSignInButtonProps {
   disabled?: boolean;
@@ -38,51 +25,8 @@ interface GoogleSignInButtonProps {
 
 type GoogleCredentialResponse = { credential: string };
 
-const GOOGLE_SCRIPT_SRC = 'https://accounts.google.com/gsi/client';
-let googleScriptPromise: Promise<void> | null = null;
 let initializedClientId: string | null = null;
 let activeCredentialHandler: ((response: GoogleCredentialResponse) => void) | null = null;
-
-function loadGoogleIdentityServices(): Promise<void> {
-  if (typeof window !== 'undefined' && window.google?.accounts?.id) return Promise.resolve();
-  if (googleScriptPromise) return googleScriptPromise;
-
-  googleScriptPromise = new Promise((resolve, reject) => {
-    if (typeof window !== 'undefined' && window.google?.accounts?.id) {
-      resolve();
-      return;
-    }
-
-    const existingScript = document.querySelector<HTMLScriptElement>(`script[src="${GOOGLE_SCRIPT_SRC}"]`);
-    if (existingScript && (existingScript.dataset.loaded === 'true' || window.google?.accounts?.id)) {
-      resolve();
-      return;
-    }
-
-    const script = existingScript ?? document.createElement('script');
-
-    const handleLoad = () => {
-      script.dataset.loaded = 'true';
-      resolve();
-    };
-    const handleError = () => {
-      googleScriptPromise = null;
-      reject(new Error('Google Identity Services failed to load.'));
-    };
-
-    script.addEventListener('load', handleLoad, { once: true });
-    script.addEventListener('error', handleError, { once: true });
-
-    if (!existingScript) {
-      script.src = GOOGLE_SCRIPT_SRC;
-      script.async = true;
-      script.defer = true;
-      document.body.appendChild(script);
-    }
-  });
-
-  return googleScriptPromise;
-}
 
 export default function GoogleSignInButton({ disabled = false, onCredential }: GoogleSignInButtonProps) {
   const { login } = useAuth();
@@ -92,7 +36,6 @@ export default function GoogleSignInButton({ disabled = false, onCredential }: G
   const [error, setError] = useState<string | null>(null);
   const [recoveryLink, setRecoveryLink] = useState<{ href: string; label: string } | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [isReady, setIsReady] = useState(false);
 
   useEffect(() => {
     credentialActionRef.current = onCredential;
@@ -105,7 +48,6 @@ export default function GoogleSignInButton({ disabled = false, onCredential }: G
     }
 
     let cancelled = false;
-    let stopLayoutObserver: (() => void) | undefined;
     if (isEmbeddedAppBrowser(navigator.userAgent)) return;
     activeCredentialHandler = handleGoogleCallback;
 
@@ -124,24 +66,9 @@ export default function GoogleSignInButton({ disabled = false, onCredential }: G
 
         buttonRef.current.replaceChildren();
         window.google.accounts.id.renderButton(buttonRef.current, {
-          theme: 'outline',
-          size: 'large',
-          shape: 'pill',
           width: Math.min(buttonRef.current.clientWidth || 400, 400),
-          text: 'continue_with',
-          locale: 'en',
-          logo_alignment: 'left',
           click_listener: recovery.startAttempt,
         });
-        stopLayoutObserver = observeGoogleButtonLayout(
-          buttonRef.current,
-          () => {
-            if (!cancelled) setIsReady(true);
-          },
-          () => {
-            if (!cancelled) setError('Google sign-in is temporarily unavailable. Please use email instead.');
-          }
-        );
       })
       .catch(() => {
         if (!cancelled) setError('Google sign-in is temporarily unavailable. Please use email instead.');
@@ -149,7 +76,6 @@ export default function GoogleSignInButton({ disabled = false, onCredential }: G
 
     return () => {
       cancelled = true;
-      stopLayoutObserver?.();
       recovery.stopAttempt();
       if (activeCredentialHandler === handleGoogleCallback) activeCredentialHandler = null;
     };
@@ -229,20 +155,14 @@ export default function GoogleSignInButton({ disabled = false, onCredential }: G
         </div>
       ) : (
         <div
-          className={`relative h-[44px] w-full max-w-[400px] overflow-hidden rounded-full ${disabled || isLoading || !isReady ? 'pointer-events-none' : ''}`}
-          aria-disabled={disabled || isLoading || !isReady}
-          aria-busy={!isReady && !error}
+          className={`min-h-[44px] w-full max-w-[400px] ${disabled || isLoading ? 'pointer-events-none' : ''}`}
+          aria-disabled={disabled || isLoading}
+          aria-busy={isLoading}
         >
-          {!isReady && !error && (
-            <div
-              aria-hidden="true"
-              className="absolute inset-x-0 top-[2px] h-10 rounded-full border border-brand-border bg-white"
-            />
-          )}
           <div
             ref={buttonRef}
-            inert={disabled || isLoading || !isReady ? true : undefined}
-            className={`flex w-full justify-center ${isReady ? 'visible' : 'invisible'}`}
+            inert={disabled || isLoading ? true : undefined}
+            className="flex w-full justify-center"
           />
         </div>
       )}
