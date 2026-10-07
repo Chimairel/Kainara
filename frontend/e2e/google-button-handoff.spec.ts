@@ -103,3 +103,56 @@ for (const width of [1440, 390]) {
     await expect(page.getByText('Google sign-in is temporarily unavailable.', { exact: false })).toHaveCount(0);
   });
 }
+
+for (const width of [1440, 390]) {
+  test(`Google's temporary stacked handoff cannot move the form at ${width}px`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 900 });
+    await page.route('**/api/**', (route) => route.fulfill({ status: 401, json: { success: false } }));
+    await page.route('https://accounts.google.com/gsi/client', (route) =>
+      route.fulfill({
+        contentType: 'application/javascript',
+        body: `window.google = { accounts: { id: {
+          initialize() {},
+          renderButton(host, options) {
+            const wrapper = document.createElement('div');
+            wrapper.style.width = '190px';
+            const standard = document.createElement('button');
+            standard.textContent = 'Default Google button';
+            standard.style.cssText = 'display:block;width:190px;height:40px';
+            const replacement = document.createElement('iframe');
+            replacement.title = 'Replacement Google button';
+            replacement.style.cssText = 'display:block;width:190px;height:0;border:0';
+            wrapper.append(standard, replacement);
+            host.append(wrapper);
+            window.googleHandoffPhase = (phase) => {
+              if (phase === 'stacked') replacement.style.height = '40px';
+              if (phase === 'final') standard.remove();
+            };
+          }
+        } } };`,
+      })
+    );
+    await page.goto('/login');
+    await page.evaluate(() => document.fonts.ready);
+    await expect(page.getByRole('button', { name: 'Default Google button' })).toBeVisible();
+    const card = page.locator('.auth-card');
+    const initial = await card.boundingBox();
+    await page.evaluate(() =>
+      (window as typeof window & { googleHandoffPhase: (phase: string) => void }).googleHandoffPhase('stacked')
+    );
+    await expect
+      .poll(() => page.getByTitle('Replacement Google button').evaluate((frame) => frame.parentElement!.clientHeight))
+      .toBe(80);
+    expect(await card.boundingBox()).toEqual(initial);
+    const visibleBottom = await page.getByRole('button', { name: 'Default Google button' }).evaluate((button) => {
+      const slot = button.closest('[aria-busy]')!;
+      return button.getBoundingClientRect().bottom <= slot.getBoundingClientRect().bottom;
+    });
+    expect(visibleBottom).toBe(true);
+    await page.evaluate(() =>
+      (window as typeof window & { googleHandoffPhase: (phase: string) => void }).googleHandoffPhase('final')
+    );
+    await expect(page.getByTitle('Replacement Google button')).toBeVisible();
+    expect(await card.boundingBox()).toEqual(initial);
+  });
+}

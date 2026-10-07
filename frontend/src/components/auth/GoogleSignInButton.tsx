@@ -153,8 +153,10 @@ export default function GoogleSignInButton({ disabled = false, onCredential }: G
           </Button>
         </div>
       ) : (
+        // Google briefly stacks its native button and iframe during replacement.
+        // Keep that provider handoff inside its slot without restyling either control.
         <div
-          className={`min-h-[44px] w-full ${disabled || isLoading ? 'pointer-events-none' : ''}`}
+          className={`h-[44px] w-full overflow-hidden ${disabled || isLoading ? 'pointer-events-none' : ''}`}
           aria-disabled={disabled || isLoading}
           aria-busy={isLoading}
         >
