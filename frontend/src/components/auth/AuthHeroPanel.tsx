@@ -10,7 +10,7 @@ export default function AuthHeroPanel({ header }: { header: ReactNode }) {
   return (
     <div className="flex h-full flex-col p-4 xl:p-6">
       <header className="flex items-center gap-4">{header}</header>
-      <div className="flex min-h-0 flex-1 items-center justify-center">
+      <div className={styles.stage} data-auth-kubo-stage>
         <div className={styles.scene} data-auth-kubo>
           <div className={styles.window} data-auth-kubo-window>
             <div className={styles.nara}>

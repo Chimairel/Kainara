@@ -31,9 +31,14 @@ for (const theme of ['light', 'dark']) {
     await expect(artwork.locator('[data-grid-tile]')).toHaveCount(0);
     const nara = artwork.getByRole('button', { name: 'Boop the Nara' });
     await expect(nara).toBeVisible();
-    const naraBounds = (await artwork.locator('[data-auth-kubo]').boundingBox())!;
-    expect(naraBounds.width).toBeGreaterThan(400);
-    expect(naraBounds.x + naraBounds.width).toBeLessThan((await card.boundingBox())!.x);
+    const stageBounds = (await artwork.locator('[data-auth-kubo-stage]').boundingBox())!;
+    const windowBounds = (await artwork.locator('[data-auth-kubo-window]').boundingBox())!;
+    expect(windowBounds.width).toBeGreaterThan(stageBounds.width * 0.6);
+    expect(windowBounds.x).toBeGreaterThanOrEqual(stageBounds.x);
+    expect(windowBounds.x + windowBounds.width).toBeLessThanOrEqual(stageBounds.x + stageBounds.width);
+    expect(windowBounds.y).toBeGreaterThanOrEqual(stageBounds.y);
+    expect(windowBounds.y + windowBounds.height).toBeLessThanOrEqual(stageBounds.y + stageBounds.height);
+    expect(stageBounds.x + stageBounds.width).toBeLessThan((await card.boundingBox())!.x);
     const submit = page.getByRole('button', { name: 'Sign in', exact: true });
     const google = page.getByRole('button', { name: 'Synthetic Google sign-in' });
     await expect(google).toBeVisible();

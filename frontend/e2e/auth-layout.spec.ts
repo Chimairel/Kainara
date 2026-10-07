@@ -4,6 +4,12 @@ async function expectReachableCard(page: Page) {
   await page.evaluate(() => window.scrollTo(0, 0));
   const card = page.locator('.auth-card');
   await expect(card).toBeVisible();
+  const stage = page.locator('[data-auth-kubo-stage]');
+  if (await stage.isVisible()) {
+    const stageBounds = (await stage.boundingBox())!;
+    const cardBounds = (await card.boundingBox())!;
+    expect(stageBounds.x + stageBounds.width).toBeLessThanOrEqual(cardBounds.x - 24);
+  }
   expect(await card.evaluate((element) => element.getBoundingClientRect().top)).toBeGreaterThanOrEqual(0);
   const heading = card.getByRole('heading');
   await expect(heading.locator('..').locator(':scope > *')).toHaveCount(2);

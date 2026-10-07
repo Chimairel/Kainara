@@ -1,8 +1,42 @@
 /* Coordinates follow the owner's 1024 × 765 house SVG. */
-.scene {
+.stage {
+  --stage-extension: 56px;
   position: relative;
-  width: min(100%, calc((100svh - 150px) * 1024 / 765), 720px);
+  flex: 1;
+  min-height: 0;
+  width: calc(100% + var(--stage-extension));
+  margin-top: 24px;
+  overflow: hidden;
+}
+
+.stage::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 30;
+  pointer-events: none;
+  border: 1px solid var(--brand-border);
+  border-bottom: 0;
+}
+
+@media (min-width: 1280px) {
+  .stage {
+    --stage-extension: 128px;
+  }
+}
+
+.scene {
+  position: absolute;
+  left: calc((100% - var(--stage-extension)) / 2);
+  top: 50%;
+  width: min(
+    calc((100% - var(--stage-extension)) * 2.3),
+    calc((100svh - 150px) * 1024 / 765 / 0.55),
+    1600px
+  );
   aspect-ratio: 1024 / 765;
+  /* Center the window, allowing the surrounding roof and walls to crop. */
+  transform: translate(-50.45%, -53.9%);
   isolation: isolate;
 }
 
@@ -35,7 +69,7 @@
   z-index: 20;
   left: 62.5%;
   top: 16%;
-  width: clamp(52px, 5vw, 68px);
+  width: clamp(52px, 8.5%, 96px);
   aspect-ratio: 72 / 138;
   transform: translateX(-50%);
 }
