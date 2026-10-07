@@ -15,7 +15,7 @@ export interface SignInPageProps {
   transition?: ReactNode;
 }
 
-/** Adapted from the supplied 21st.dev sign-in design; callers own their auth forms. */
+/** Shared split authentication layout; callers own their auth forms and hero content. */
 export function SignInPage({
   title,
   eyebrow,
@@ -29,8 +29,12 @@ export function SignInPage({
 }: SignInPageProps) {
   return (
     <main className={`${styles.page} flex min-h-[100svh] w-full bg-brand-bg text-brand-text`}>
-      <section className="flex min-w-0 flex-1 flex-col px-6 py-6 sm:px-10 lg:px-12 xl:px-20">
-        <header className="mx-auto flex w-full max-w-xl items-center justify-between gap-4">{header}</header>
+      <section className="flex min-w-0 flex-1 flex-col px-6 py-6 sm:px-10 lg:order-2 lg:px-12 xl:px-20">
+        <header
+          className={`mx-auto flex w-full max-w-xl items-center justify-between gap-4 ${heroContent ? 'lg:hidden' : ''}`}
+        >
+          {header}
+        </header>
         <div className="flex flex-1 items-center justify-center py-10 lg:py-8">
           <div className={`w-full ${wide ? 'max-w-lg' : 'max-w-md'}`}>
             {/* Preserve form DOM and dimensions during session/profile/navigation resolution. */}
@@ -61,9 +65,12 @@ export function SignInPage({
         </div>
       </section>
       {(heroImageSrc || heroContent) && (
-        <aside className="sticky top-0 hidden h-[100svh] min-w-0 flex-1 p-4 lg:block" aria-label="About KAINARA">
+        <aside
+          className="sticky top-0 order-first hidden h-[100svh] min-w-0 flex-1 p-4 lg:block"
+          aria-label="About KAINARA"
+        >
           <div
-            className={`${styles.hero} h-full overflow-hidden rounded-[32px] bg-[#103f34] bg-cover bg-center text-white`}
+            className={`${styles.hero} h-full overflow-hidden rounded-[32px] border border-brand-border bg-brand-bg bg-cover bg-center`}
             style={heroImageSrc ? { backgroundImage: `url(${heroImageSrc})` } : undefined}
           >
             {heroContent}

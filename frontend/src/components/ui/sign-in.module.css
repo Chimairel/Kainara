@@ -3,8 +3,8 @@
   isolation: isolate;
 }
 
-.hero h2 span {
-  color: #fbcfae;
+.hero {
+  isolation: isolate;
 }
 
 .form input {

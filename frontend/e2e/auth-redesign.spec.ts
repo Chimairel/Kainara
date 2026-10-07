@@ -27,7 +27,8 @@ for (const theme of ['light', 'dark']) {
     await page.evaluate(() => document.fonts.ready);
     const card = page.locator('.auth-card');
     const artwork = page.getByRole('complementary', { name: 'About KAINARA' });
-    expect((await card.boundingBox())!.x).toBeLessThan((await artwork.boundingBox())!.x);
+    expect((await card.boundingBox())!.x).toBeGreaterThan((await artwork.boundingBox())!.x);
+    await expect(artwork.locator('[data-grid-tile]')).toHaveCount(80);
     const submit = page.getByRole('button', { name: 'Sign in', exact: true });
     const google = page.getByRole('button', { name: 'Synthetic Google sign-in' });
     await expect(google).toBeVisible();
