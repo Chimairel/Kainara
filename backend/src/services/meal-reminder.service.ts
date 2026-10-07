@@ -154,6 +154,9 @@ export class MealReminderService {
           take: 50,
         });
         for (const notification of notifications) {
+          // Manual tests are sent by their request, to its selected device only.
+          // A background claim can otherwise make that request report a false failure.
+          if ((notification.context as { test?: boolean } | null)?.test) continue;
           const eligible = notification.type === 'MEAL_REMINDER' ? () => this.stillEligible(notification) : undefined;
           if (await WebPushService.deliver(subscription.id, notification.id, eligible)) sent++;
         }

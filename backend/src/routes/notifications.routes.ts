@@ -54,7 +54,8 @@ router.post(
   requireVerifiedUser,
   validateZodBody(pushEndpointSchema),
   asyncHandler(async (req: AuthenticatedRequest, res) => {
-    res.json({ success: true, data: await WebPushService.test(req.user!.userId, req.body.endpoint) });
+    const result = await WebPushService.test(req.user!.userId, req.body.endpoint);
+    res.status(result.accepted ? 200 : 202).json({ success: true, data: result });
   })
 );
 

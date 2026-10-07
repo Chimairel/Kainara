@@ -199,6 +199,8 @@ test('push receipts claim once, suppress stale/invalid meals, and retire expired
     sends = 0,
     retired = 0,
     reminder = false,
+    read = false,
+    manualTest = false,
     expired = false;
   const subscription = {
     id: 'device',
@@ -227,7 +229,8 @@ test('push receipts claim once, suppress stale/invalid meals, and retire expired
   stub(context, prisma.notification, 'findUnique', async () => ({
     id: 'alert',
     userId: 'member',
-    isRead: false,
+    isRead: read,
+    context: manualTest ? { test: true } : null,
     type: reminder ? 'MEAL_REMINDER' : 'PLAN_APPROVED',
     title: reminder ? 'Time to prepare breakfast' : 'Private detail',
     message: reminder ? 'Open KAINARA to get ready.' : 'Private health detail',
@@ -254,9 +257,22 @@ test('push receipts claim once, suppress stale/invalid meals, and retire expired
   assert.equal(await WebPushService.deliver('device', 'alert'), true);
   assert.equal(sends, 2);
   status = 'PENDING';
+  read = true;
+  manualTest = true;
+  assert.equal(
+    await WebPushService.deliver('device', 'alert'),
+    true,
+    'Reading the inbox must not cancel a requested test'
+  );
+  assert.equal(sends, 3);
+  status = 'PENDING';
+  manualTest = false;
+  assert.equal(await WebPushService.deliver('device', 'alert'), false, 'Read ordinary alerts remain suppressed');
+  read = false;
+  status = 'PENDING';
   assert.equal(await WebPushService.deliver('device', 'alert', async () => false), false);
   assert.equal(status, 'CANCELLED');
-  assert.equal(sends, 2);
+  assert.equal(sends, 3);
   status = 'PENDING';
   expired = true;
   assert.equal(await WebPushService.deliver('device', 'alert'), false);
@@ -286,5 +302,69 @@ test('device test submits immediately with a five-minute expiry instead of waiti
   assert.deepEqual(await WebPushService.test('member', 'https://fcm.googleapis.com/send/synthetic'), {
     accepted: true,
   });
+  assert.equal(delivered.mock.callCount(), 1);
+});
+
+test('manual test observes an existing send claim without falsely reporting failure or resending', async (context) => {
+  stub(context, prisma.webPushSubscription, 'findFirst', async () => ({ id: 'device' }));
+  stub(context, prisma.webPushDelivery, 'findFirst', async () => null);
+  stub(context, prisma.notification, 'create', async () => ({ id: 'test-alert' }));
+  let status = 'SENT';
+  stub(
+    context,
+    prisma.webPushDelivery,
+    'findUnique',
+    async (query: { where: { subscriptionId_notificationId: { subscriptionId: string; notificationId: string } } }) => {
+      assert.deepEqual(query.where.subscriptionId_notificationId, {
+        subscriptionId: 'device',
+        notificationId: 'test-alert',
+      });
+      return { status };
+    }
+  );
+  const deliver = context.mock.method(WebPushService, 'deliver', async () => false);
+  assert.deepEqual(await WebPushService.test('member', 'https://fcm.googleapis.com/send/synthetic'), {
+    accepted: true,
+  });
+  status = 'SENDING';
+  assert.deepEqual(await WebPushService.test('member', 'https://fcm.googleapis.com/send/synthetic'), {
+    accepted: false,
+    processing: true,
+  });
+  status = 'FAILED';
+  await assert.rejects(WebPushService.test('member', 'https://fcm.googleapis.com/send/synthetic'), {
+    statusCode: 503,
+    errorCode: 'PUSH_SEND_FAILED',
+  });
+  assert.equal(deliver.mock.callCount(), 3, 'Each request tries once; no ambiguous send is replayed');
+});
+
+test('scheduled worker leaves manual tests to their selected-device request', async (context) => {
+  const oldEnv = { ...process.env };
+  const keys = webpush.generateVAPIDKeys();
+  Object.assign(process.env, {
+    WEB_PUSH_ENABLED: 'true',
+    WEB_PUSH_PUBLIC_KEY: keys.publicKey,
+    WEB_PUSH_PRIVATE_KEY: keys.privateKey,
+    WEB_PUSH_SUBJECT: 'https://example.invalid',
+  });
+  context.after(() => {
+    process.env = oldEnv;
+  });
+  context.mock.method(MealReminderService, 'createDueReminders', async () => 0);
+  stub(context, prisma.webPushSubscription, 'findMany', async () => [
+    { id: 'other-device', userId: 'member', createdAt: new Date() },
+  ]);
+  stub(context, prisma.user, 'findUnique', async () => ({ isSuspended: false, emailVerified: true }));
+  stub(context, prisma.notification, 'findMany', async () => [
+    { id: 'manual', type: 'MEAL_REMINDER', context: { test: true } },
+    { id: 'ordinary', type: 'PLAN_APPROVED', context: null },
+  ]);
+  const delivered = context.mock.method(WebPushService, 'deliver', async (device: string, notification: string) => {
+    assert.equal(device, 'other-device');
+    assert.equal(notification, 'ordinary');
+    return true;
+  });
+  assert.deepEqual(await MealReminderService.run(), { enabled: true, created: 0, sent: 1 });
   assert.equal(delivered.mock.callCount(), 1);
 });

@@ -72,12 +72,21 @@ export class WebPushService {
       },
     });
     const sent = await this.deliver(subscription.id, notification.id);
-    if (!sent)
+    if (!sent) {
+      // Another API instance may already have claimed this test during a rolling update.
+      // Observe its receipt without sending a duplicate or claiming OS presentation.
+      const receipt = await prisma.webPushDelivery.findUnique({
+        where: { subscriptionId_notificationId: { subscriptionId: subscription.id, notificationId: notification.id } },
+        select: { status: true },
+      });
+      if (receipt?.status === 'SENT') return { accepted: true };
+      if (receipt?.status === 'SENDING') return { accepted: false, processing: true };
       throw new AppError(
-        'The push service did not confirm delivery. Try enabling this device again.',
+        'The push service did not accept this test. Check the device delivery status before trying again.',
         503,
         'PUSH_SEND_FAILED'
       );
+    }
     return { accepted: true };
   }
 
@@ -109,7 +118,7 @@ export class WebPushService {
       !subscription ||
       !notification ||
       subscription.userId !== notification.userId ||
-      notification.isRead ||
+      (notification.isRead && !(notification.context as { test?: boolean } | null)?.test) ||
       subscription.user.isSuspended ||
       !subscription.user.emailVerified ||
       (notification.expiresAt && notification.expiresAt <= new Date()) ||
@@ -154,7 +163,19 @@ export class WebPushService {
       await finish('SENT');
       return true;
     } catch (error) {
-      const statusCode = (error as { statusCode?: number }).statusCode;
+      const statusCode = (error as { statusCode?: number } | null)?.statusCode;
+      logger.warn('web_push_provider_failed', {
+        statusCode:
+          typeof statusCode === 'number' && Number.isInteger(statusCode) && statusCode >= 100 && statusCode <= 599
+            ? statusCode
+            : null,
+        failure:
+          statusCode === 404 || statusCode === 410
+            ? 'expired_subscription'
+            : statusCode
+              ? 'provider_rejection'
+              : 'transport_error',
+      });
       if (statusCode === 404 || statusCode === 410)
         await prisma.webPushSubscription.deleteMany({
           where: { id: subscriptionId, userId: subscription.userId, endpoint: subscription.endpoint },

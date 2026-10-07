@@ -75,6 +75,33 @@ describe('meal times and device notifications', () => {
     await screen.findByRole('alert');
     expect(screen.queryByRole('button', { name: 'Disable on this device' })).not.toBeInTheDocument();
   });
+  it('explains a push 503 even when the server masks its message', async () => {
+    mocks.current.mockResolvedValue({ endpoint: 'https://fcm.googleapis.com/send/synthetic' });
+    mocks.post.mockImplementation(async (path: string) => {
+      if (path.endsWith('/test'))
+        throw {
+          response: { status: 503, data: { error: 'An unexpected error occurred.', errorCode: 'PUSH_SEND_FAILED' } },
+        };
+      return { data: { data: { subscribed: true, delivery: null } } };
+    });
+    render(<DeviceNotificationsPanel />);
+    await screen.findByText('Device notifications are enabled here.');
+    fireEvent.click(screen.getByRole('button', { name: 'Send test notification' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent('The push service did not accept this test.');
+    expect(screen.queryByText('An unexpected error occurred.')).not.toBeInTheDocument();
+  });
+  it('shows an in-progress test as pending instead of failed or confirmed sent', async () => {
+    mocks.current.mockResolvedValue({ endpoint: 'https://fcm.googleapis.com/send/synthetic' });
+    mocks.post.mockImplementation(async (path: string) => ({
+      data: { data: path.endsWith('/test') ? { accepted: false, processing: true } : { subscribed: true } },
+    }));
+    render(<DeviceNotificationsPanel />);
+    await screen.findByText('Device notifications are enabled here.');
+    fireEvent.click(screen.getByRole('button', { name: 'Send test notification' }));
+    await screen.findByText('The test is already being sent. Refresh delivery status to check the result.');
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    expect(screen.queryByText('Test sent. Check your device notification panel.')).not.toBeInTheDocument();
+  });
   it('enables, tests and disables only the current device', async () => {
     mocks.enable.mockResolvedValue({ endpoint: 'https://fcm.googleapis.com/send/synthetic' });
     mocks.post.mockResolvedValue({ data: { success: true } });

@@ -162,6 +162,27 @@ for (const width of [390, 1280]) {
     await page.getByRole('button', { name: 'Send test notification', exact: true }).click();
     await expect(page.getByText('Test sent. Check your device notification panel.')).toBeVisible();
     expect(fixture.tests()).toBe(1);
+    await page.route('**/api/notifications/push/test', (route) =>
+      route.fulfill({
+        status: 503,
+        json: { success: false, error: 'An unexpected error occurred.', errorCode: 'PUSH_SEND_FAILED' },
+      })
+    );
+    await page.getByRole('button', { name: 'Send test notification', exact: true }).click();
+    const pushFailure = page.getByRole('alert').filter({ hasText: 'The push service did not accept this test.' });
+    await expect(pushFailure).toBeVisible();
+    await expect(page.getByText('An unexpected error occurred.')).toHaveCount(0);
+    await page.route('**/api/notifications/push/test', (route) =>
+      route.fulfill({
+        status: 202,
+        json: { success: true, data: { accepted: false, processing: true } },
+      })
+    );
+    await page.getByRole('button', { name: 'Send test notification', exact: true }).click();
+    await expect(
+      page.getByText('The test is already being sent. Refresh delivery status to check the result.')
+    ).toBeVisible();
+    await expect(pushFailure).toHaveCount(0);
     await page.evaluate(async () => {
       const registration = await navigator.serviceWorker.ready;
       navigator.serviceWorker.dispatchEvent(

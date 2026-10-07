@@ -3,7 +3,7 @@ import { useEffect, useState, useRef } from 'react';
 import Button from '@/components/ui/Button';
 import { useAuth } from '@/hooks/useAuth';
 import api from '@/lib/axios';
-import { getApiErrorMessage } from '@/lib/api-error';
+import { getApiErrorCode, getApiErrorMessage } from '@/lib/api-error';
 import {
   currentDeviceSubscription,
   deviceNotificationsSupported,
@@ -98,14 +98,25 @@ export default function DeviceNotificationsPanel() {
         setBrowserPush(null);
         setMessage('Notifications are disabled on this device.');
       } else if (operation === 'test' && subscription) {
-        await api.post('/notifications/push/test', { endpoint: subscription.endpoint });
+        const response = await api.post('/notifications/push/test', { endpoint: subscription.endpoint });
         if (currentOwner.current !== ownerId) return;
-        setMessage('Test sent. Check your device notification panel.');
+        setMessage(
+          response.data.data?.processing
+            ? 'The test is already being sent. Refresh delivery status to check the result.'
+            : 'Test sent. Check your device notification panel.'
+        );
       }
     } catch (err) {
+      const pushMessage =
+        getApiErrorCode(err) === 'PUSH_SEND_FAILED'
+          ? 'The push service did not accept this test. Refresh delivery status and check your connection before trying again.'
+          : getApiErrorCode(err) === 'PUSH_UNAVAILABLE'
+            ? 'Device notifications are not configured on this server yet.'
+            : null;
       if (currentOwner.current === ownerId)
         setError(
-          getApiErrorMessage(err, err instanceof Error ? err.message : 'Could not update device notifications.')
+          pushMessage ??
+            getApiErrorMessage(err, err instanceof Error ? err.message : 'Could not update device notifications.')
         );
     } finally {
       if (currentOwner.current === ownerId) setBusy(false);
