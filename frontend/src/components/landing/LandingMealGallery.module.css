@@ -53,6 +53,12 @@
   position: relative;
   aspect-ratio: 4 / 5;
 }
+.photo img {
+  filter: brightness(0.88);
+}
+.column:nth-child(n + 4) .photo img {
+  filter: brightness(1);
+}
 .photo::after {
   content: '';
   position: absolute;
