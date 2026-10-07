@@ -130,6 +130,7 @@ describe('Google sign-in browser recovery', () => {
     );
     expect(vi.mocked(window.google!.accounts.id.renderButton).mock.calls[0][1]).toEqual({
       locale: 'en',
+      shape: 'pill',
       width: 400,
       click_listener: expect.any(Function),
     });

@@ -80,6 +80,7 @@ export default function GoogleSignInButton({ disabled = false, onCredential }: G
           host.replaceChildren();
           window.google.accounts.id.renderButton(host, {
             locale: 'en',
+            shape: 'pill',
             width,
             click_listener: recovery.startAttempt,
           });
