@@ -29,7 +29,7 @@ export default function AuthMascot({ size = 120, portrait = false }: { size?: nu
     >
       <div
         className="absolute left-1/2 top-1/2 aspect-square w-full"
-        style={{ transform: `translate(-50%, -50%) scale(${portrait ? 2 : 1})` }}
+        style={{ transform: `translate(-50%, -50%) scale(${portrait ? 1.4 : 1})` }}
       >
         {staticPortrait ? (
           <span
