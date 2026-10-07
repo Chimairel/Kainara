@@ -1,0 +1,26 @@
+.device {
+  z-index: 30;
+  perspective-origin: center center;
+  width: 100% !important;
+  height: auto !important;
+  margin-top: -64px !important;
+  aspect-ratio: 16 / 10;
+}
+
+@media (min-width: 1280px) {
+  .copy {
+    left: -64px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .device {
+    margin-top: -112px !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .device {
+    margin-top: -64px !important;
+  }
+}

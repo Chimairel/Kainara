@@ -14,6 +14,7 @@ export const ContainerScroll = ({
   backdrop,
   foreground,
   presentationClassName,
+  scaleRange,
   offset = ['start start', 'end start'],
 }: {
   titleComponent: string | React.ReactNode;
@@ -27,6 +28,7 @@ export const ContainerScroll = ({
   backdrop?: React.ReactNode;
   foreground?: React.ReactNode;
   presentationClassName?: string;
+  scaleRange?: [number, number];
   offset?: UseScrollOptions['offset'];
 }) => {
   const reducedMotion = useReducedMotion();
@@ -49,6 +51,7 @@ export const ContainerScroll = ({
   }, []);
 
   const scaleDimensions = () => {
+    if (scaleRange) return scaleRange;
     if (backdrop) return isMobile ? [1, 1] : [1.02, 1];
     return isMobile ? [0.7, 0.9] : [1.05, 1];
   };
@@ -72,7 +75,7 @@ export const ContainerScroll = ({
         <Card
           rotate={reducedMotion ? 0 : rotate}
           translate={translate}
-          scale={reducedMotion ? (isMobile && !backdrop ? 0.9 : 1) : scale}
+          scale={reducedMotion ? (scaleRange ? scaleRange[1] : isMobile && !backdrop ? 0.9 : 1) : scale}
           cardClassName={cardClassName}
           innerClassName={innerClassName}
           badgeLeft={badgeLeft}
@@ -135,6 +138,7 @@ export const Card = ({
     <div
       className={`relative max-w-5xl mt-6 md:mt-10 mx-auto h-[30rem] md:h-[40rem] w-full ${presentationClassName || ''}`}
       data-scroll-presentation
+      style={{ perspective: '1000px' }}
     >
       {backdrop}
       <motion.div

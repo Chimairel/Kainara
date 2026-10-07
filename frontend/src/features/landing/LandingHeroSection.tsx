@@ -6,8 +6,8 @@ import { ArrowRight, ArrowUpRight, Activity, Flame, CheckCircle2 } from 'lucide-
 
 import LandingHeroMedia from '@/components/landing/LandingHeroMedia';
 
-import NaraPresenter from '@/components/landing/NaraPresenter';
 import LandingMealGallery from '@/components/landing/LandingMealGallery';
+import styles from './LandingHeroSection.module.css';
 
 import { ContainerScroll } from '@/components/ui/container-scroll-animation';
 
@@ -26,21 +26,20 @@ export default function LandingHeroSection({ model }: SectionProps) {
         <div className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 h-[500px] w-[600px] rounded-full bg-brand-accent/10 blur-[160px] dark:bg-brand-accent/5" />
 
         <ContainerScroll
-          backdrop={<NaraPresenter layer="body" />}
-          foreground={<NaraPresenter layer="hands" />}
+          scaleRange={[1, 1]}
           className="!h-auto !p-4 md:!px-20 md:!py-8"
           contentClassName="!py-8 md:!py-12"
-          presentationClassName="!mt-[clamp(11rem,44vw,34rem)] !w-[88%] md:!w-full !h-auto aspect-[16/10]"
-          offset={['start start', 'end end']}
-          cardClassName="max-w-5xl border-[#173e33] bg-[#071914]"
+          presentationClassName={styles.device}
+          offset={['start start', 'end start']}
+          cardClassName="border-[#173e33] bg-[#071914]"
           innerClassName="p-0 bg-[#071914]"
           titleComponent={
             <div className="grid items-center gap-8 lg:grid-cols-2 lg:items-start lg:gap-12">
               <div
                 data-hero-copy
-                className="relative z-20 flex min-w-0 flex-col items-center text-center px-4 lg:w-[calc(100%+10rem)] lg:max-w-[40rem] lg:items-start lg:px-0 lg:text-left"
+                className={`${styles.copy} relative z-20 flex min-w-0 flex-col items-center text-center px-4 lg:w-[calc(100%+10rem)] lg:max-w-[40rem] lg:items-start lg:px-0 lg:text-left`}
               >
-                <h1 className="font-display text-[clamp(2.5rem,5.5vw,5.5rem)] font-black leading-[0.95] tracking-[-0.05em] text-brand-text">
+                <h1 className="font-display text-[clamp(2.5rem,5.5vw,5rem)] font-black leading-[0.95] tracking-[-0.05em] text-brand-text">
                   Eat with <span className="text-gradient inline-block pb-1">intention.</span>
                 </h1>
 

@@ -1,7 +1,10 @@
 import { test, expect } from '@playwright/test';
 
-for (const width of [1440, 390]) {
-  test(`Nara presents the live screen without blocking controls at ${width}px`, async ({ page, request }, testInfo) => {
+for (const width of [1920, 1440, 390]) {
+  test(`Centered landing device overlaps the gallery and straightens on scroll at ${width}px`, async ({
+    page,
+    request,
+  }, testInfo) => {
     await request.post('http://127.0.0.1:3101/__fixture', { data: { mode: 'automatic' } });
     await page.setViewportSize({ width, height: width > 1000 ? 1000 : 844 });
     await page.emulateMedia({ reducedMotion: 'no-preference' });
@@ -25,50 +28,37 @@ for (const width of [1440, 390]) {
     await page.goto('/');
     const gallery = page.locator('[data-meal-gallery]');
     await expect(gallery).toBeVisible();
-    await expect(gallery.locator('[data-slot="marquee"]')).toHaveCount(4);
+    await expect(gallery.locator('[data-slot="marquee"]')).toHaveCount(5);
     const columnMeals = await gallery
       .locator('[data-slot="marquee"]')
       .evaluateAll((columns) =>
         columns.map((column) => [...column.firstElementChild!.querySelectorAll('p')].map((name) => name.textContent))
       );
-    expect(columnMeals.every((meals) => meals.length === 4)).toBe(true);
+    expect(columnMeals.every((meals) => meals.length >= 3)).toBe(true);
     expect(new Set(columnMeals.flat()).size).toBe(16);
     const tracks = gallery.locator('[data-slot="marquee"] > div');
-    await page.getByRole('button', { name: 'Pause meal gallery' }).click();
-    expect(
-      await tracks.evaluateAll((elements) =>
-        elements.every((el) => getComputedStyle(el).animationPlayState === 'paused')
-      )
-    ).toBe(true);
-    await page.getByRole('button', { name: 'Resume meal gallery' }).click();
+    await expect(gallery.locator('details')).toHaveCount(0);
+    await expect(gallery.getByRole('button')).toHaveCount(0);
+    await expect(page.locator('[data-nara-presenter]')).toHaveCount(0);
     expect(
       await tracks.evaluateAll((elements) =>
         elements.every((el) => getComputedStyle(el).animationPlayState === 'running')
       )
     ).toBe(true);
-    await gallery.getByText('Recipes & photos: Panlasang Pinoy').click();
-    await expect(gallery.getByRole('link', { name: 'Menudo — Panlasang Pinoy' })).toHaveAttribute(
-      'href',
-      'https://panlasangpinoy.com/menudo-with-raisins-and-green-peas/'
-    );
-    await gallery.getByText('Recipes & photos: Panlasang Pinoy').click();
-    await page.evaluate(() => window.scrollTo(0, 0));
     const screen = page.locator('[data-scroll-screen]');
-    const body = page.locator('[data-nara-presenter="body"]');
-    const hands = page.locator('[data-nara-presenter="hands"]');
-    await body.locator('img').evaluate((img: HTMLImageElement) => img.decode());
-    await hands.locator('img').evaluate((img: HTMLImageElement) => img.decode());
-    await expect(hands).toHaveCSS('pointer-events', 'none');
-    expect(await screen.evaluate((el) => el.contains(document.querySelector('[data-nara-presenter="hands"]')))).toBe(
-      true
-    );
+    await page.evaluate(() => document.fonts.ready);
     await expect
       .poll(() => screen.evaluate((el) => Math.abs(new DOMMatrixReadOnly(getComputedStyle(el).transform).m23)))
       .toBeGreaterThan(0.2);
+    const galleryBounds = (await gallery.boundingBox())!;
+    const deviceBounds = (await screen.boundingBox())!;
+    expect(deviceBounds.y).toBeLessThan(galleryBounds.y + galleryBounds.height - 8);
+    const heroBounds = (await page.locator('section').filter({ has: screen }).boundingBox())!;
+    expect(Math.abs(deviceBounds.x + deviceBounds.width / 2 - (heroBounds.x + heroBounds.width / 2))).toBeLessThan(2);
     if (width > 1000) {
-      const galleryBounds = (await gallery.boundingBox())!;
       const headerBounds = (await page.getByRole('banner').boundingBox())!;
       const copyBounds = (await page.locator('[data-hero-copy]').boundingBox())!;
+      expect(copyBounds.y + copyBounds.height).toBeLessThan(deviceBounds.y);
       expect(copyBounds.x + copyBounds.width - galleryBounds.x).toBeGreaterThan(100);
       expect(
         await page.locator('[data-hero-copy] a[href="/docs"]').evaluate((el) => {
@@ -78,11 +68,26 @@ for (const width of [1440, 390]) {
       ).toBe(true);
       expect(Math.abs(galleryBounds.y - (headerBounds.y + headerBounds.height))).toBeLessThan(2);
       expect(Math.abs(galleryBounds.x + galleryBounds.width - width)).toBeLessThan(10);
+      expect(
+        await screen.evaluate((el) => {
+          const gallery = document.querySelector('[data-meal-gallery]')!.getBoundingClientRect();
+          return el.contains(document.elementFromPoint(document.documentElement.clientWidth / 2, gallery.bottom - 10));
+        })
+      ).toBe(true);
     }
-    await screen.evaluate((el) => {
-      const hero = el.closest('section')!;
-      window.scrollTo(0, hero.getBoundingClientRect().bottom + scrollY - innerHeight);
+    const scrollRange = await page.locator('[data-scroll-presentation]').evaluate((el) => {
+      const container = el.parentElement!.parentElement!.getBoundingClientRect();
+      return { start: container.top + scrollY, distance: container.height };
     });
+    await page.evaluate(({ start, distance }) => window.scrollTo(0, start + distance / 2), scrollRange);
+    // Halfway through the original full-container scroll range, retain about 10 degrees of tilt.
+    await expect
+      .poll(() => screen.evaluate((el) => Math.abs(new DOMMatrixReadOnly(getComputedStyle(el).transform).m23)))
+      .toBeGreaterThan(0.12);
+    await expect
+      .poll(() => screen.evaluate((el) => Math.abs(new DOMMatrixReadOnly(getComputedStyle(el).transform).m23)))
+      .toBeLessThan(0.24);
+    await page.evaluate(({ start, distance }) => window.scrollTo(0, start + distance), scrollRange);
     await expect
       .poll(() => screen.evaluate((el) => Math.abs(new DOMMatrixReadOnly(getComputedStyle(el).transform).m23)))
       .toBeLessThan(0.05);
@@ -95,8 +100,10 @@ for (const width of [1440, 390]) {
     await pause.click();
     await expect(page.getByRole('button', { name: 'Play promotional video' })).toBeVisible();
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
-    await page.screenshot({ path: testInfo.outputPath('presenter.png') });
+    await page.screenshot({ path: testInfo.outputPath('device.png') });
     await page.emulateMedia({ reducedMotion: 'reduce' });
+    await page.reload();
+    await expect(gallery).toBeVisible();
     expect(
       await tracks.evaluateAll((elements) => elements.every((el) => getComputedStyle(el).animationName === 'none'))
     ).toBe(true);

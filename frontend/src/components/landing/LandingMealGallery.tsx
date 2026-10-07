@@ -1,8 +1,7 @@
 'use client';
 
-import { useState, type CSSProperties } from 'react';
+import { type CSSProperties } from 'react';
 import Image from 'next/image';
-import { Pause, Play } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/Card';
 import { Marquee } from '@/components/ui/Marquee';
 import styles from './LandingMealGallery.module.css';
@@ -41,10 +40,9 @@ const meals = [
 ];
 
 // Each recipe belongs to exactly one column. Marquee repeats only within that column for its seamless loop.
-const mealColumns = Array.from({ length: 4 }, (_, column) => meals.filter((_, index) => index % 4 === column));
+const mealColumns = Array.from({ length: 5 }, (_, column) => meals.filter((_, index) => index % 5 === column));
 
 export default function LandingMealGallery() {
-  const [paused, setPaused] = useState(false);
   return (
     <div className={styles.gallery} data-meal-gallery>
       <div className={styles.viewport} aria-hidden="true">
@@ -54,7 +52,6 @@ export default function LandingMealGallery() {
               key={column}
               vertical
               reverse={column % 2 === 1}
-              paused={paused}
               pauseOnHover
               className={styles.column}
               style={{ '--duration': `${48 + column * 8}s` } as CSSProperties}
@@ -80,35 +77,6 @@ export default function LandingMealGallery() {
             </Marquee>
           ))}
         </div>
-      </div>
-      <div className="relative z-10 flex items-start justify-between gap-3 px-3 text-left">
-        <details className={styles.credits}>
-          <summary className="cursor-pointer text-xs text-brand-muted">Recipes & photos: Panlasang Pinoy</summary>
-          <ul className="mt-3 space-y-2 text-xs text-brand-muted">
-            {meals.map(({ name, source }) => (
-              <li key={name}>
-                <a
-                  href={`https://panlasangpinoy.com/${source}/`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="underline"
-                >
-                  {name} — Panlasang Pinoy
-                </a>
-              </li>
-            ))}
-          </ul>
-        </details>
-        <button
-          type="button"
-          className={`${styles.pause} flex min-h-11 shrink-0 items-center gap-2 rounded-full border border-brand-border bg-brand-surface px-3 text-xs font-semibold text-brand-text`}
-          onClick={() => setPaused((value) => !value)}
-          aria-label={paused ? 'Resume meal gallery' : 'Pause meal gallery'}
-          aria-pressed={paused}
-        >
-          {paused ? <Play size={14} aria-hidden="true" /> : <Pause size={14} aria-hidden="true" />}
-          {paused ? 'Resume' : 'Pause'}
-        </button>
       </div>
     </div>
   );

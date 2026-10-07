@@ -7,7 +7,7 @@
 .gallery::before {
   content: '';
   position: absolute;
-  inset: 0 0 44px;
+  inset: 0;
   background: radial-gradient(ellipse at 45% 50%, #d6d9d3 0%, #e5e6e1 40%, transparent 72%);
   filter: blur(24px);
   pointer-events: none;
@@ -24,7 +24,7 @@
   overflow: hidden;
   perspective: 600px;
   mask-image:
-    linear-gradient(to bottom, transparent, #000 12%, #000 80%, transparent),
+    linear-gradient(to bottom, transparent, #000 12%, #000 85%, transparent),
     linear-gradient(to right, transparent, #000 5%, #000 95%, transparent);
   mask-composite: intersect;
 }
@@ -76,10 +76,6 @@
   text-wrap: balance;
   text-shadow: 0 1px 6px #07191440;
 }
-.credits {
-  flex: 1;
-  padding-top: 12px;
-}
 
 @media (min-width: 1024px) {
   .gallery {
@@ -92,7 +88,7 @@
   .viewport {
     height: 600px;
     mask-image:
-      linear-gradient(to bottom, #000 0%, #000 80%, transparent),
+      linear-gradient(to bottom, #000 85%, transparent),
       linear-gradient(to right, transparent 0%, transparent 20%, #000 65%, #000 100%);
   }
 
@@ -126,11 +122,5 @@
   }
   .mealName {
     font-size: 14px;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .pause {
-    display: none;
   }
 }

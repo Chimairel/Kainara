@@ -1,5 +1,7 @@
 # Nara landing presenter
 
+Archived artwork: the current landing hero uses the device alone. These assets and prompts are retained for reuse.
+
 Generated with the built-in imagegen tool from the owner's original Nara reference. `presenter.png` retains the initial composition used to extract the hands. `body.png` and `hands.png` are the final transparent sources; `../../public/mascots/nara-presenter-body.webp` and `nara-presenter-hands.webp` are the optimized served assets.
 
 The complete torso and hair render behind the live screen without a horizontal mask or fade. A separate aligned hands layer renders above its bezel inside the screen's existing scroll transform. Scoped SVG alpha filters remove faint generation halos. The decorative layers never capture pointer events. The video remains a live HTML element with its existing playback and audio controls. Reduced motion keeps the screen steady. Mobile uses a 16:10 frame with room for the hands, rather than scaling the screen away from the character. The body is slightly narrower than the hands canvas to keep its long hair inside the viewport.
