@@ -572,6 +572,12 @@ html.theme-switching *::after {
   cursor: not-allowed !important;
 }
 
+/* Hydration still blocks submission, but must not fade the form out and back in. */
+.auth-card fieldset:disabled input:disabled,
+.auth-card fieldset:disabled button:disabled {
+  opacity: 1 !important;
+}
+
 .futuristic-grid {
   background-image:
     linear-gradient(var(--grid-line) 1px, transparent 1px),

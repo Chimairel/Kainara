@@ -12,32 +12,34 @@ import TopNavigationProgress from '@/components/shared/TopNavigationProgress';
 import { Toaster } from '@/components/ui/Sonner';
 import MobileInstallPrompt from '@/components/shared/MobileInstallPrompt';
 
+// Preload local fonts, but retain the fallback when they arrive after the first paint.
+// Late swaps were changing auth heading wrapping during otherwise stable navigation.
 const dmSans = localFont({
   src: './fonts/dm-sans.ttf',
   variable: '--font-dm-sans',
   weight: '300 700',
-  display: 'swap',
+  display: 'optional',
 });
 
 const plusJakartaSans = localFont({
   src: './fonts/plus-jakarta-sans.ttf',
   variable: '--font-plus-jakarta-sans',
   weight: '400 800',
-  display: 'swap',
+  display: 'optional',
 });
 
 const outfit = localFont({
   src: './fonts/outfit.ttf',
   variable: '--font-outfit',
   weight: '300 900',
-  display: 'swap',
+  display: 'optional',
 });
 
 const jetbrainsMono = localFont({
   src: './fonts/jetbrains-mono.ttf',
   variable: '--font-jetbrains-mono',
   weight: '400 700',
-  display: 'swap',
+  display: 'optional',
 });
 
 export const viewport: Viewport = {

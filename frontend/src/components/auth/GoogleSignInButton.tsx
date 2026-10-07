@@ -31,7 +31,6 @@ declare global {
 }
 
 interface GoogleSignInButtonProps {
-  label?: string;
   disabled?: boolean;
   onCredential?: (credential: string) => Promise<void>;
 }
@@ -71,11 +70,7 @@ function loadGoogleIdentityServices(): Promise<void> {
   return googleScriptPromise;
 }
 
-export default function GoogleSignInButton({
-  label = 'continue_with',
-  disabled = false,
-  onCredential,
-}: GoogleSignInButtonProps) {
+export default function GoogleSignInButton({ disabled = false, onCredential }: GoogleSignInButtonProps) {
   const { login } = useAuth();
   const recovery = useGoogleSignInRecovery();
   const buttonRef = useRef<HTMLDivElement>(null);
@@ -83,7 +78,6 @@ export default function GoogleSignInButton({
   const [error, setError] = useState<string | null>(null);
   const [recoveryLink, setRecoveryLink] = useState<{ href: string; label: string } | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [isReady, setIsReady] = useState(false);
 
   useEffect(() => {
     credentialActionRef.current = onCredential;
@@ -114,15 +108,8 @@ export default function GoogleSignInButton({
 
         buttonRef.current.replaceChildren();
         window.google.accounts.id.renderButton(buttonRef.current, {
-          theme: 'outline',
-          size: 'large',
-          width: Math.min(Math.max(buttonRef.current.clientWidth, 280), 400),
-          text: label,
-          shape: 'rectangular',
-          logo_alignment: 'left',
           click_listener: recovery.startAttempt,
         });
-        setIsReady(true);
       })
       .catch(() => {
         if (!cancelled) setError('Google sign-in is temporarily unavailable. Please use email instead.');
@@ -209,17 +196,13 @@ export default function GoogleSignInButton({
         </div>
       ) : (
         <div
-          className={`relative h-[44px] w-full ${disabled ? 'pointer-events-none opacity-50' : ''}`}
-          aria-disabled={disabled}
+          className={`relative h-[44px] w-full ${disabled || isLoading ? 'pointer-events-none' : ''}`}
+          aria-disabled={disabled || isLoading}
         >
-          {!isReady && (
-            <span className="pointer-events-none absolute inset-0 flex items-center justify-center text-xs font-semibold text-[#61706b]">
-              Loading Google sign-in…
-            </span>
-          )}
           <div
             ref={buttonRef}
-            className={`flex w-full justify-center transition-opacity ${isReady ? 'opacity-100' : 'opacity-0'} ${isLoading ? 'pointer-events-none opacity-50' : ''}`}
+            inert={disabled || isLoading ? true : undefined}
+            className="flex w-full justify-center"
           />
         </div>
       )}
