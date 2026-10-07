@@ -1,0 +1,12 @@
+/* Extend the artwork into the gap, ending before the form's desktop padding.
+   Mask the artwork only so branding and hero copy stay crisp. */
+.tiles {
+  position: absolute;
+  top: -1rem;
+  bottom: -1rem;
+  left: -1rem;
+  right: calc(-1 * clamp(2rem, 4vw, 4rem));
+  overflow: hidden;
+  -webkit-mask-image: linear-gradient(to right, #000 0%, #000 55%, rgb(0 0 0 / 65%) 75%, transparent 100%);
+  mask-image: linear-gradient(to right, #000 0%, #000 55%, rgb(0 0 0 / 65%) 75%, transparent 100%);
+}

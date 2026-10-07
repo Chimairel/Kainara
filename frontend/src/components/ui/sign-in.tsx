@@ -70,7 +70,7 @@ export function SignInPage({
           aria-label="About KAINARA"
         >
           <div
-            className={`${styles.hero} h-full overflow-hidden rounded-[32px] border border-brand-border bg-brand-bg bg-cover bg-center`}
+            className={`${styles.hero} h-full ${heroContent ? 'overflow-visible' : 'overflow-hidden rounded-[32px] border border-brand-border bg-brand-bg bg-cover bg-center'}`}
             style={heroImageSrc ? { backgroundImage: `url(${heroImageSrc})` } : undefined}
           >
             {heroContent}

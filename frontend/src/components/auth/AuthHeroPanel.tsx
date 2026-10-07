@@ -3,6 +3,7 @@
 import type { ReactNode } from 'react';
 import { CheckCircle2, ShieldCheck, Sparkles, UtensilsCrossed } from 'lucide-react';
 import InteractiveCyberGrid from '@/components/ui/InteractiveCyberGrid';
+import styles from './AuthHeroPanel.module.css';
 
 export default function AuthHeroPanel({
   header,
@@ -14,9 +15,9 @@ export default function AuthHeroPanel({
   description: string;
 }) {
   return (
-    <div className="relative flex h-full flex-col justify-between overflow-hidden p-8 xl:p-12">
-      <div className="pointer-events-none absolute -right-20 -top-20 h-72 w-72 rounded-full bg-brand-green/15 blur-[90px]" />
-      <div aria-hidden="true">
+    <div className="relative flex h-full flex-col justify-between p-8 xl:p-12">
+      <div className={styles.tiles} aria-hidden="true" data-auth-tiles>
+        <div className="pointer-events-none absolute right-0 top-0 h-72 w-72 rounded-full bg-brand-green/15 blur-[90px]" />
         <InteractiveCyberGrid cols={8} rows={10} accentIndices={[30, 50]} variant="adaptive" withMask />
       </div>
       <header className="relative z-10 flex items-center justify-between gap-4">{header}</header>
