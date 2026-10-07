@@ -47,7 +47,22 @@ export async function enableDeviceNotifications(userId: string, publicKey: strin
     await subscription.unsubscribe();
     subscription = null;
   }
-  subscription ??= await registration.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: key });
+  if (!subscription) {
+    try {
+      subscription = await registration.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: key });
+    } catch (error) {
+      const failure = error as { name?: string; message?: string } | null;
+      if (failure?.name === 'AbortError' || /push service error/i.test(failure?.message ?? ''))
+        throw new Error(
+          'Your browser could not connect to its push service. If you use Brave, open brave://settings/privacy, enable "Use Google services for push messaging", and restart Brave. Then try enabling this device again. If it is already enabled, check your network or VPN connection.'
+        );
+      if (failure?.name === 'NotAllowedError')
+        throw new Error(
+          'Device notifications are blocked. Allow notifications for KAINARA in your browser settings, then try again.'
+        );
+      throw error;
+    }
+  }
   const json = subscription.toJSON();
   try {
     const token = cookieHelper.get('nutrimind_session');

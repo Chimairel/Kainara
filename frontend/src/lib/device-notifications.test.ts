@@ -5,6 +5,8 @@ const mocks = vi.hoisted(() => ({ post: vi.fn(), remove: vi.fn(), owner: 'member
 vi.mock('@/lib/axios', () => ({ default: { post: mocks.post, delete: mocks.remove } }));
 vi.mock('@/lib/auth', () => ({ cookieHelper: { get: () => 'fixture' }, decodeToken: () => ({ userId: mocks.owner }) }));
 const unsubscribe = vi.fn(),
+  subscribe = vi.fn(),
+  getSubscription = vi.fn(),
   register = vi.fn(),
   permission = vi.fn(),
   close = vi.fn();
@@ -24,8 +26,10 @@ beforeEach(() => {
   mocks.post.mockResolvedValue({});
   mocks.remove.mockResolvedValue({});
   permission.mockResolvedValue('granted');
+  getSubscription.mockResolvedValue(subscription);
+  subscribe.mockResolvedValue(subscription);
   const registration = {
-    pushManager: { getSubscription: async () => subscription },
+    pushManager: { getSubscription, subscribe },
     getNotifications: async () => [{ close }],
   };
   register.mockResolvedValue(registration);
@@ -41,6 +45,21 @@ it('permission denial does not register or save a subscription', async () => {
   permission.mockResolvedValue('denied');
   await expect(enableDeviceNotifications('member', 'BA')).rejects.toThrow('not allowed');
   expect(register).not.toHaveBeenCalled();
+  expect(mocks.post).not.toHaveBeenCalled();
+});
+it('a browser push registration failure gives Brave guidance without attempting an API binding and can retry', async () => {
+  getSubscription.mockResolvedValue(null);
+  subscribe.mockRejectedValueOnce(new DOMException('Registration failed - push service error', 'AbortError'));
+  await expect(enableDeviceNotifications('member', 'BA')).rejects.toThrow('brave://settings/privacy');
+  expect(mocks.post).not.toHaveBeenCalled();
+  expect(unsubscribe).not.toHaveBeenCalled();
+  await expect(enableDeviceNotifications('member', 'BA')).resolves.toBe(subscription);
+  expect(mocks.post).toHaveBeenCalledOnce();
+});
+it('permission revoked during browser subscription gives site permission guidance', async () => {
+  getSubscription.mockResolvedValue(null);
+  subscribe.mockRejectedValue(new DOMException('Permission denied', 'NotAllowedError'));
+  await expect(enableDeviceNotifications('member', 'BA')).rejects.toThrow('Allow notifications for KAINARA');
   expect(mocks.post).not.toHaveBeenCalled();
 });
 it('an account change during activation prevents binding and revokes the local endpoint', async () => {

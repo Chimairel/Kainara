@@ -43,4 +43,12 @@ No external push provider account or native mobile application is required for s
 
 Physical-device delivery while the app is backgrounded/closed still needs the member's permission and the live **Send test notification** check. Hosted activation is separate from a development commit; configure the deployment's VAPID environment after promoting the code.
 
+## Browser registration troubleshooting
+
+If enabling a device reports that the browser cannot connect to its push service, registration failed inside PushManager.subscribe before the application's subscription-save request. In Brave, open `brave://settings/privacy`, enable **Use Google services for push messaging**, and restart the browser before trying again. This browser-level setting is separate from the site's notification permission and cannot be enabled by KAINARA. If it is already enabled, check VPN/network restrictions or compare with another supported browser. Do not change VAPID keys or delete saved meal times to troubleshoot this message. The application now gives these instructions and leaves activation available for a retry; this does not establish that the local browser setting was the cause on a particular device.
+
+The **Send meal reminders** preference must also be enabled and saved for scheduled meal prompts. Device activation alone still allows existing inbox alerts and the test notification.
+
+Brave references: [push messaging setting](https://github.com/brave/brave-core/blob/master/app/brave_settings_strings.grdp), [browser push channel](https://github.com/brave/brave-core/blob/master/browser/gcm_driver/brave_gcm_channel_status.cc).
+
 References: [MDN Push API](https://developer.mozilla.org/en-US/docs/Web/API/Push_API), [Apple/WebKit Home Screen Web Push](https://webkit.org/blog/13878/web-push-for-web-apps-on-ios-and-ipados/), [web-push library](https://github.com/web-push-libs/web-push).
