@@ -44,14 +44,27 @@ let initializedClientId: string | null = null;
 let activeCredentialHandler: ((response: GoogleCredentialResponse) => void) | null = null;
 
 function loadGoogleIdentityServices(): Promise<void> {
-  if (window.google) return Promise.resolve();
+  if (typeof window !== 'undefined' && window.google?.accounts?.id) return Promise.resolve();
   if (googleScriptPromise) return googleScriptPromise;
 
   googleScriptPromise = new Promise((resolve, reject) => {
+    if (typeof window !== 'undefined' && window.google?.accounts?.id) {
+      resolve();
+      return;
+    }
+
     const existingScript = document.querySelector<HTMLScriptElement>(`script[src="${GOOGLE_SCRIPT_SRC}"]`);
+    if (existingScript && (existingScript.dataset.loaded === 'true' || window.google?.accounts?.id)) {
+      resolve();
+      return;
+    }
+
     const script = existingScript ?? document.createElement('script');
 
-    const handleLoad = () => resolve();
+    const handleLoad = () => {
+      script.dataset.loaded = 'true';
+      resolve();
+    };
     const handleError = () => {
       googleScriptPromise = null;
       reject(new Error('Google Identity Services failed to load.'));
@@ -114,7 +127,7 @@ export default function GoogleSignInButton({ disabled = false, onCredential }: G
           theme: 'outline',
           size: 'large',
           shape: 'pill',
-          width: Math.min(buttonRef.current.clientWidth, 400),
+          width: Math.min(buttonRef.current.clientWidth || 400, 400),
           text: 'continue_with',
           locale: 'en',
           logo_alignment: 'left',
@@ -223,8 +236,32 @@ export default function GoogleSignInButton({ disabled = false, onCredential }: G
           {!isReady && !error && (
             <div
               aria-hidden="true"
-              className="absolute inset-x-0 top-[2px] h-10 rounded-full border border-brand-border bg-white"
-            />
+              className="absolute inset-x-0 top-[2px] flex h-10 w-full items-center justify-center rounded-full border border-[#dadce0] bg-white px-4 text-sm font-medium text-[#3c4043] select-none shadow-[0_1px_2px_rgba(60,64,67,0.08)] pointer-events-none"
+            >
+              <div className="absolute left-4 flex items-center justify-center">
+                <svg className="h-[18px] w-[18px]" viewBox="0 0 24 24" aria-hidden="true">
+                  <path
+                    fill="#4285F4"
+                    d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.8-2.4 3.66v3.04h3.88c2.27-2.09 3.665-5.17 3.665-9.14z"
+                  />
+                  <path
+                    fill="#34A853"
+                    d="M12 24c3.24 0 6-1.07 8.01-2.91l-3.88-3.04c-1.08.73-2.47 1.16-4.13 1.16-3.18 0-5.87-2.15-6.84-5.04H1.14v3.13C3.18 21.3 7.31 24 12 24z"
+                  />
+                  <path
+                    fill="#FBBC05"
+                    d="M5.16 14.17c-.25-.73-.39-1.52-.39-2.33s.14-1.6.39-2.33V6.38H1.14C.41 7.82 0 9.44 0 11.84s.41 4.02 1.14 5.46l4.02-3.13z"
+                  />
+                  <path
+                    fill="#EA4335"
+                    d="M12 4.77c1.76 0 3.34.61 4.58 1.79l3.43-3.43C17.99 1.19 15.22 0 12 0 7.31 0 3.18 2.7 1.14 6.38l4.02 3.13c.97-2.89 3.66-5.04 6.84-5.04z"
+                  />
+                </svg>
+              </div>
+              <span className="font-sans text-sm font-medium tracking-[0.25px] text-[#3c4043]">
+                Continue with Google
+              </span>
+            </div>
           )}
           <div
             ref={buttonRef}
