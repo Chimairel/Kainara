@@ -14,6 +14,7 @@ import { isEmbeddedAppBrowser } from '@/lib/browser-environment';
 import { loadGoogleIdentityServices } from './google-identity-services';
 import { loadGoogleButtonFont } from './google-button-font';
 import { useTheme } from '@/lib/context/ThemeContext';
+import styles from './GoogleSignInButton.module.css';
 
 /**
  * Google Identity Services "Sign in with Google" button.
@@ -34,8 +35,9 @@ export default function GoogleSignInButton({ disabled = false, onCredential }: G
   const { login } = useAuth();
   const { theme } = useTheme();
   const recovery = useGoogleSignInRecovery();
-  const buttonRef = useRef<HTMLDivElement>(null);
-  const renderButtonRef = useRef<(() => void) | null>(null);
+  const slotRef = useRef<HTMLDivElement>(null);
+  const lightButtonRef = useRef<HTMLDivElement>(null);
+  const darkButtonRef = useRef<HTMLDivElement>(null);
   const credentialActionRef = useRef(onCredential);
   const [error, setError] = useState<string | null>(null);
   const [recoveryLink, setRecoveryLink] = useState<{ href: string; label: string } | null>(null);
@@ -62,7 +64,7 @@ export default function GoogleSignInButton({ disabled = false, onCredential }: G
       loadGoogleButtonFont().catch(() => undefined),
     ])
       .then(() => {
-        if (cancelled || !window.google || !buttonRef.current) return;
+        if (cancelled || !window.google || !slotRef.current || !lightButtonRef.current || !darkButtonRef.current) return;
 
         if (initializedClientId !== clientId) {
           window.google.accounts.id.initialize({
@@ -73,30 +75,35 @@ export default function GoogleSignInButton({ disabled = false, onCredential }: G
           initializedClientId = clientId;
         }
 
-        const host = buttonRef.current;
-        let previousAppearance = '';
+        const slot = slotRef.current;
+        const hosts = { outline: lightButtonRef.current, outline_dark: darkButtonRef.current };
+        let previousWidth = 0;
         const renderButton = () => {
           if (cancelled || !window.google) return;
-          const width = Math.min(400, Math.floor(host.clientWidth) || 400);
-          // The root class already reflects the saved theme before React hydrates.
-          const buttonTheme = document.documentElement.classList.contains('dark') ? 'outline_dark' : 'outline';
-          const appearance = `${width}:${buttonTheme}`;
-          if (appearance === previousAppearance) return;
-          previousAppearance = appearance;
-          host.replaceChildren();
-          window.google.accounts.id.renderButton(host, {
-            locale: 'en',
-            shape: 'pill',
-            theme: buttonTheme,
-            width,
-            click_listener: recovery.startAttempt,
-          });
+          const width = Math.min(400, Math.floor(slot.clientWidth) || 400);
+          if (width === previousWidth) return;
+          previousWidth = width;
+          // Prepare both provider-owned appearances once. Theme switches must not
+          // restart Google's native-control-to-iframe handoff or reload its fonts.
+          const appearances = document.documentElement.classList.contains('dark')
+            ? (['outline_dark', 'outline'] as const)
+            : (['outline', 'outline_dark'] as const);
+          for (const buttonTheme of appearances) {
+            const host = hosts[buttonTheme];
+            host.replaceChildren();
+            window.google.accounts.id.renderButton(host, {
+              locale: 'en',
+              shape: 'pill',
+              theme: buttonTheme,
+              width,
+              click_listener: recovery.startAttempt,
+            });
+          }
         };
-        renderButtonRef.current = renderButton;
         renderButton();
         if (typeof ResizeObserver !== 'undefined') {
           sizeObserver = new ResizeObserver(renderButton);
-          sizeObserver.observe(host);
+          sizeObserver.observe(slot);
         }
       })
       .catch(() => {
@@ -105,17 +112,12 @@ export default function GoogleSignInButton({ disabled = false, onCredential }: G
 
     return () => {
       cancelled = true;
-      renderButtonRef.current = null;
       sizeObserver?.disconnect();
       recovery.stopAttempt();
       if (activeCredentialHandler === handleGoogleCallback) activeCredentialHandler = null;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  useEffect(() => {
-    renderButtonRef.current?.();
-  }, [theme]);
 
   const handleGoogleCallback = async (response: GoogleCredentialResponse) => {
     recovery.close();
@@ -192,15 +194,25 @@ export default function GoogleSignInButton({ disabled = false, onCredential }: G
         // Google briefly stacks its native button and iframe during replacement.
         // Keep that provider handoff inside its slot without restyling either control.
         <div
+          ref={slotRef}
           style={{ lineHeight: 'normal' }}
-          className={`h-[44px] w-full overflow-hidden ${disabled || isLoading ? 'pointer-events-none' : ''}`}
+          className={`relative h-[44px] w-full overflow-hidden ${disabled || isLoading ? 'pointer-events-none' : ''}`}
           aria-disabled={disabled || isLoading}
           aria-busy={isLoading}
         >
           <div
-            ref={buttonRef}
-            inert={disabled || isLoading ? true : undefined}
-            className="flex w-full justify-center overflow-hidden rounded-full"
+            ref={lightButtonRef}
+            data-google-theme="light"
+            aria-hidden={theme !== 'light'}
+            inert={disabled || isLoading || theme !== 'light' ? true : undefined}
+            className={`${styles.lightButton} absolute inset-x-0 top-0 flex w-full justify-center overflow-hidden rounded-full`}
+          />
+          <div
+            ref={darkButtonRef}
+            data-google-theme="dark"
+            aria-hidden={theme !== 'dark'}
+            inert={disabled || isLoading || theme !== 'dark' ? true : undefined}
+            className={`${styles.darkButton} absolute inset-x-0 top-0 flex w-full justify-center overflow-hidden rounded-full`}
           />
         </div>
       )}

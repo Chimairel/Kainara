@@ -54,9 +54,10 @@ for (const width of [1440, 390]) {
       expect(
         await page.evaluate(() => (window as typeof window & { standardGoogleClicked: boolean }).standardGoogleClicked)
       ).toBe(true);
-      await expect(page.getByTitle('Optional personalized Google button')).toBeHidden();
+      const activeFrame = page.locator('[data-google-theme="light"]').getByTitle('Optional personalized Google button');
+      await expect(activeFrame).toBeHidden();
       releaseFrame();
-      await expect(page.getByTitle('Optional personalized Google button')).toBeVisible();
+      await expect(activeFrame).toBeVisible();
       const after = await page.locator('.auth-card').boundingBox();
       expect(after?.width).toEqual(original?.width);
       expect(
@@ -129,7 +130,7 @@ for (const width of [1440, 390]) {
             replacement.style.cssText = 'display:block;width:190px;height:0;border:0';
             wrapper.append(standard, replacement);
             host.append(wrapper);
-            window.googleHandoffPhase = (phase) => {
+            if (options.theme === 'outline') window.googleHandoffPhase = (phase) => {
               if (phase === 'stacked') replacement.style.height = '40px';
               if (phase === 'final') standard.remove();
             };
@@ -146,7 +147,7 @@ for (const width of [1440, 390]) {
       (window as typeof window & { googleHandoffPhase: (phase: string) => void }).googleHandoffPhase('stacked')
     );
     await expect
-      .poll(() => page.getByTitle('Replacement Google button').evaluate((frame) => frame.parentElement!.clientHeight))
+      .poll(() => page.locator('[data-google-theme="light"]').getByTitle('Replacement Google button').evaluate((frame) => frame.parentElement!.clientHeight))
       .toBe(80);
     expect(await card.boundingBox()).toEqual(initial);
     const visibleBottom = await page.getByRole('button', { name: 'Default Google button' }).evaluate((button) => {
@@ -157,7 +158,7 @@ for (const width of [1440, 390]) {
     await page.evaluate(() =>
       (window as typeof window & { googleHandoffPhase: (phase: string) => void }).googleHandoffPhase('final')
     );
-    await expect(page.getByTitle('Replacement Google button')).toBeVisible();
+    await expect(page.locator('[data-google-theme="light"]').getByTitle('Replacement Google button')).toBeVisible();
     expect(await card.boundingBox()).toEqual(initial);
   });
 }

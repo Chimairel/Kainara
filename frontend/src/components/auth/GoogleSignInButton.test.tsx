@@ -144,20 +144,25 @@ describe('Google sign-in browser recovery', () => {
     expect(mocks.login).not.toHaveBeenCalled();
   });
 
-  it('uses the saved dark theme immediately and responds to theme changes without reinitializing sign-in', async () => {
+  it('prepares the saved theme first and reuses both controls across theme changes', async () => {
     document.documentElement.classList.add('dark');
     const result = await renderGoogle();
     const renderButton = vi.mocked(window.google!.accounts.id.renderButton);
     expect(renderButton.mock.calls[0][1]).toMatchObject({ theme: 'outline_dark', shape: 'pill', width: 400 });
+    expect(renderButton.mock.calls[1][1]).toMatchObject({ theme: 'outline', shape: 'pill', width: 400 });
+    const lightButton = screen.getByRole('button', { name: 'Google fixture' });
 
     mocks.theme = 'dark';
     result.rerender(<GoogleSignInButton />);
-    expect(renderButton).toHaveBeenCalledTimes(1);
+    expect(renderButton).toHaveBeenCalledTimes(2);
+    const darkButton = screen.getByRole('button', { name: 'Google fixture' });
+    expect(darkButton).not.toBe(lightButton);
 
     document.documentElement.classList.remove('dark');
     mocks.theme = 'light';
     result.rerender(<GoogleSignInButton />);
-    expect(renderButton.mock.lastCall?.[1]).toMatchObject({ theme: 'outline', shape: 'pill', width: 400 });
+    expect(screen.getByRole('button', { name: 'Google fixture' })).toBe(lightButton);
+    expect(renderButton).toHaveBeenCalledTimes(2);
     expect(window.google!.accounts.id.initialize).toHaveBeenCalledTimes(1);
     await act(async () => credential({ credential: 'fixture-id-token' }));
     expect(mocks.login).toHaveBeenCalledWith('fixture-token');

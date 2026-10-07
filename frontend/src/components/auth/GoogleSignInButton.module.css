@@ -1,0 +1,21 @@
+/* Keep both Google frames mounted and loading; switch only their surrounding
+   layers. The root class also selects the correct appearance before hydration. */
+.lightButton {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.darkButton {
+  opacity: 0;
+  pointer-events: none;
+}
+
+:global(html.dark) .lightButton {
+  opacity: 0;
+  pointer-events: none;
+}
+
+:global(html.dark) .darkButton {
+  opacity: 1;
+  pointer-events: auto;
+}
