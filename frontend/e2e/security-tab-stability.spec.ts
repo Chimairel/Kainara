@@ -22,15 +22,13 @@ for (const width of [390, 1280]) {
     const payload = Buffer.from(
       JSON.stringify({ userId: user.id, email: user.email, role: user.role, exp: 4102444800 })
     ).toString('base64url');
-    await page
-      .context()
-      .addCookies([
-        {
-          name: 'nutrimind_session',
-          value: `fixture.${payload}.fixture`,
-          url: process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:3000',
-        },
-      ]);
+    await page.context().addCookies([
+      {
+        name: 'nutrimind_session',
+        value: `fixture.${payload}.fixture`,
+        url: process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:3000',
+      },
+    ]);
     await page.route('**/api/**', (route) => {
       const path = new URL(route.request().url()).pathname;
       if (path.includes('/live/') || route.request().method() === 'OPTIONS') return route.fulfill({ status: 204 });

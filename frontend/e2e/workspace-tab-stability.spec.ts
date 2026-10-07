@@ -21,15 +21,13 @@ for (const width of [390, 1280]) {
     const payload = Buffer.from(
       JSON.stringify({ userId: user.id, email: user.email, role: user.role, exp: 4102444800 })
     ).toString('base64url');
-    await page
-      .context()
-      .addCookies([
-        {
-          name: 'nutrimind_session',
-          value: `fixture.${payload}.fixture`,
-          url: process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:3000',
-        },
-      ]);
+    await page.context().addCookies([
+      {
+        name: 'nutrimind_session',
+        value: `fixture.${payload}.fixture`,
+        url: process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:3000',
+      },
+    ]);
     const items = Array.from({ length: 40 }, (_, index) => ({
       id: `ingredient-${index}`,
       ingredientName: `Ingredient ${index}`,
