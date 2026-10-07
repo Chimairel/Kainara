@@ -13,46 +13,36 @@ const reducedMotion = () => window.matchMedia(motionQuery).matches;
 const serverMotion = () => true;
 
 /** Local sprite assets only; Nara never reads form values or authentication state. */
-export default function AuthMascot({ size = 120, portrait = false }: { size?: number; portrait?: boolean }) {
+export default function AuthMascot({ size = 120 }: { size?: number }) {
   const staticPortrait = useSyncExternalStore(subscribeMotion, reducedMotion, serverMotion);
   return (
     <div
-      className="relative shrink-0 rounded-2xl has-[:focus-visible]:outline has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-4 has-[:focus-visible]:outline-brand-green"
-      style={{
-        width: '100%',
-        maxWidth: size,
-        aspectRatio: portrait ? '2 / 3' : '1',
-        overflow: portrait ? 'hidden' : undefined,
-      }}
+      className="relative aspect-square w-full shrink-0 rounded-2xl has-[:focus-visible]:outline has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-4 has-[:focus-visible]:outline-brand-green"
+      style={{ maxWidth: size }}
       data-auth-mascot
       title={staticPortrait ? 'Nara' : 'Say hello to Nara'}
     >
-      <div
-        className="absolute left-1/2 top-1/2 aspect-square w-full"
-        style={{ transform: `translate(-50%, -50%) scale(${portrait ? 1.4 : 1})` }}
-      >
-        {staticPortrait ? (
-          <span
-            role="img"
-            aria-label="Nara wearing her tanod costume"
-            className="block h-full w-full"
-            style={{
-              backgroundImage: 'url(/mascots/nara-tanod-directions.webp)',
-              backgroundSize: '300% 300%',
-              backgroundPosition: '50% 50%',
-              backgroundRepeat: 'no-repeat',
-            }}
-          />
-        ) : (
-          <Mascot
-            directions="/mascots/nara-tanod-directions.webp"
-            reactions="/mascots/nara-tanod-reactions.webp"
-            size={size}
-            label="Nara"
-            className="!h-full !w-full rounded-2xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-brand-green"
-          />
-        )}
-      </div>
+      {staticPortrait ? (
+        <span
+          role="img"
+          aria-label="Nara wearing her tanod costume"
+          className="block h-full w-full"
+          style={{
+            backgroundImage: 'url(/mascots/nara-tanod-directions.webp)',
+            backgroundSize: '300% 300%',
+            backgroundPosition: '50% 50%',
+            backgroundRepeat: 'no-repeat',
+          }}
+        />
+      ) : (
+        <Mascot
+          directions="/mascots/nara-tanod-directions.webp"
+          reactions="/mascots/nara-tanod-reactions.webp"
+          size={size}
+          label="Nara"
+          className="!h-full !w-full rounded-2xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-brand-green"
+        />
+      )}
     </div>
   );
 }

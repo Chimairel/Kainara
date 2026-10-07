@@ -21,7 +21,7 @@ interface AuthShellProps {
 }
 
 export default function AuthShell({ footer, ...props }: AuthShellProps) {
-  const header = (
+  const branding = (
     <>
       <Link href="/" className="flex items-center gap-3" aria-label="KAINARA home">
         <KainaraLogo className="h-10 w-10" />
@@ -32,6 +32,11 @@ export default function AuthShell({ footer, ...props }: AuthShellProps) {
           </span>
         </span>
       </Link>
+    </>
+  );
+  const header = (
+    <>
+      {branding}
       <ThemeToggle size="sm" className="rounded-full" />
     </>
   );
@@ -44,7 +49,7 @@ export default function AuthShell({ footer, ...props }: AuthShellProps) {
           <AuthMascot size={160} />
         </div>
       }
-      heroContent={<AuthHeroPanel header={header} />}
+      heroContent={<AuthHeroPanel header={branding} />}
       footer={
         <>
           {footer && <div className="text-center text-sm text-brand-muted">{footer}</div>}

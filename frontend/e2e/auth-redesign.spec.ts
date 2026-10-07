@@ -31,7 +31,7 @@ for (const theme of ['light', 'dark']) {
     await expect(artwork.locator('[data-grid-tile]')).toHaveCount(0);
     const nara = artwork.getByRole('button', { name: 'Boop the Nara' });
     await expect(nara).toBeVisible();
-    const naraBounds = (await artwork.locator('[data-auth-mascot]').boundingBox())!;
+    const naraBounds = (await artwork.locator('[data-auth-kubo]').boundingBox())!;
     expect(naraBounds.width).toBeGreaterThan(400);
     expect(naraBounds.x + naraBounds.width).toBeLessThan((await card.boundingBox())!.x);
     const submit = page.getByRole('button', { name: 'Sign in', exact: true });
@@ -47,6 +47,18 @@ for (const theme of ['light', 'dark']) {
     expect(Math.abs(fieldBounds.y + fieldBounds.height / 2 - toggleBounds.y - toggleBounds.height / 2)).toBeLessThan(1);
     await toggle.click();
     await expect(password).toHaveAttribute('type', 'text');
+    await expect(password).toHaveValue('SyntheticPassword1');
+    const lamp = artwork.locator('[data-auth-bulb]');
+    const themeToggle = lamp.getByRole('button', { name: `Switch to ${theme === 'dark' ? 'light' : 'dark'} mode` });
+    const lampBounds = (await lamp.boundingBox())!;
+    const themeBounds = (await themeToggle.boundingBox())!;
+    expect(themeBounds.width).toBeGreaterThanOrEqual(44);
+    expect(themeBounds.height).toBeGreaterThanOrEqual(44);
+    expect(Math.abs(themeBounds.x + themeBounds.width / 2 - lampBounds.x - lampBounds.width / 2)).toBeLessThan(1);
+    expect(Math.abs(themeBounds.y + themeBounds.height / 2 - lampBounds.y - lampBounds.height * 0.685)).toBeLessThan(1);
+    await themeToggle.focus();
+    await themeToggle.press('Enter');
+    await expect(page.locator('html')).toHaveClass(new RegExp(theme === 'dark' ? 'light' : 'dark'));
     await expect(password).toHaveValue('SyntheticPassword1');
     await page.setViewportSize({ width: 390, height: 844 });
     await expect(artwork).toBeHidden();

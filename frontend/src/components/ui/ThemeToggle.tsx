@@ -7,7 +7,7 @@ import { useTheme } from '@/lib/context/ThemeContext';
 interface ThemeToggleProps {
   className?: string;
   size?: 'sm' | 'md' | 'lg';
-  variant?: 'default' | 'hero';
+  variant?: 'default' | 'hero' | 'bulb';
 }
 
 export const ThemeToggle: React.FC<ThemeToggleProps> = ({ className = '', size = 'md', variant = 'default' }) => {
@@ -27,6 +27,7 @@ export const ThemeToggle: React.FC<ThemeToggleProps> = ({ className = '', size =
   };
 
   const variantClasses = {
+    bulb: 'border-0 bg-transparent text-amber-950 shadow-none hover:bg-amber-700/10 dark:text-amber-200 dark:hover:bg-amber-100/10 focus-visible:ring-2 focus-visible:ring-brand-green',
     default: `
       border shadow-sm backdrop-blur-md
       border-brand-border/80 bg-brand-surface/80 text-brand-text hover:border-brand-green/40 hover:bg-brand-bgAlt/80
