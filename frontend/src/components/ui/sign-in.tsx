@@ -7,6 +7,7 @@ export interface SignInPageProps {
   title: ReactNode;
   eyebrow?: string;
   header?: ReactNode;
+  titleDecoration?: ReactNode;
   children: ReactNode;
   footer?: ReactNode;
   heroImageSrc?: string;
@@ -20,6 +21,7 @@ export function SignInPage({
   title,
   eyebrow,
   header,
+  titleDecoration,
   children,
   footer,
   heroImageSrc,
@@ -40,17 +42,20 @@ export function SignInPage({
             {/* Preserve form DOM and dimensions during session/profile/navigation resolution. */}
             <div className={`auth-card ${styles.form} relative`}>
               <div inert={transition ? true : undefined}>
-                <div className="mb-8">
-                  {eyebrow && (
-                    <p className="mb-3 font-mono text-[10px] font-medium uppercase tracking-[0.18em] text-brand-muted">
-                      {eyebrow}
-                    </p>
-                  )}
-                  <h1
-                    className={`font-display font-bold leading-[1.08] tracking-tight ${wide ? 'text-3xl sm:text-4xl' : 'text-4xl sm:text-5xl'}`}
-                  >
-                    {title}
-                  </h1>
+                <div className="mb-8 flex flex-col-reverse gap-4 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="min-w-0 flex-1">
+                    {eyebrow && (
+                      <p className="mb-3 font-mono text-[10px] font-medium uppercase tracking-[0.18em] text-brand-muted">
+                        {eyebrow}
+                      </p>
+                    )}
+                    <h1
+                      className={`font-display font-bold leading-[1.08] tracking-tight ${wide ? 'text-3xl sm:text-4xl' : 'text-4xl sm:text-5xl'}`}
+                    >
+                      {title}
+                    </h1>
+                  </div>
+                  {titleDecoration}
                 </div>
                 {children}
               </div>

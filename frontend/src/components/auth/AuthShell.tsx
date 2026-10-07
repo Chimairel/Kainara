@@ -7,6 +7,7 @@ import KainaraLogo from '@/components/shared/KainaraLogo';
 import ThemeToggle from '@/components/ui/ThemeToggle';
 import { SignInPage } from '@/components/ui/sign-in';
 import AuthHeroPanel from './AuthHeroPanel';
+import AuthMascot from './AuthMascot';
 
 interface AuthShellProps {
   eyebrow: string;
@@ -38,6 +39,7 @@ export default function AuthShell({ heroTitle, heroDescription, footer, ...props
     <SignInPage
       {...props}
       header={header}
+      titleDecoration={<AuthMascot />}
       heroContent={<AuthHeroPanel header={header} title={heroTitle} description={heroDescription} />}
       footer={
         <>
