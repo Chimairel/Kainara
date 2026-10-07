@@ -34,7 +34,7 @@ for (const width of [390, 1280]) {
         await new Promise<void>(resolve => {
           const sample = () => {
             const button = element.querySelector('button[aria-pressed="true"]')!;
-            const indicator = button.querySelector('[aria-hidden="true"]')!;
+            const indicator = element.querySelector('[data-workspace-tab-indicator]')!;
             maxDrift = Math.max(maxDrift, Math.abs(indicator.getBoundingClientRect().top - button.getBoundingClientRect().top));
             if (performance.now() - start < 400) requestAnimationFrame(sample); else resolve();
           };

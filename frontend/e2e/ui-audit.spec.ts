@@ -203,7 +203,7 @@ for (const width of [390, 1440]) {
     const currentTab = page
       .getByRole('navigation', { name: 'Grocery week', exact: true })
       .getByRole('button', { name: 'Current week', exact: true });
-    const indicator = currentTab.locator('[aria-hidden="true"]');
+    const indicator = currentTab.locator('..').locator('[data-workspace-tab-indicator]');
     await expect(indicator).toHaveCSS('background-color', 'color(srgb 0.921569 0.415686 0.219608)');
     await ready.uncheck();
     const needed = page.getByRole('checkbox', { name: 'Mark as available: Stocked salt', exact: true });
@@ -220,7 +220,7 @@ for (const width of [390, 1440]) {
       .getByRole('button', { name: /Have it/ });
     await statusTab.click();
     await expect(ready).toBeChecked();
-    await expect(statusTab.locator('[aria-hidden="true"]')).toHaveCSS(
+    await expect(statusTab.locator('..').locator('[data-workspace-tab-indicator]')).toHaveCSS(
       'background-color',
       'color(srgb 0.921569 0.415686 0.219608)'
     );

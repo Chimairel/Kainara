@@ -32,7 +32,7 @@ Fixed original accents use `decorationVariant` on Card or `variant` on CardDecor
 
 Select accepts `{value,label,disabled}` options and a string onChange. Dropdown adapts existing option children to the same menu. Menus use a portal so card overflow doesn't cut them off, reposition on scroll/resize, and support keyboard selection and Escape. Keep NativeSelect for a form that needs browser required validation, FormData, or defaultValue.
 
-WorkspaceTabs accepts items with value, label, optional icon/count and optional href. Use href for navigation so browser links, new tabs and back navigation work. Use onChange for switching local panels. Each instance owns its animation identifier. Continue hiding or unmounting inactive content in the caller.
+WorkspaceTabs accepts items with value, label, optional icon/count and optional href. Use href for navigation so browser links, new tabs and back navigation work. Use onChange for switching local panels. Its persistent highlight slides horizontally inside its own rail, without shared page-layout projection; scrolling, filtering and panel-height changes must not animate its vertical position or width. Reduced motion and animateIndicator=false switch it immediately. Continue hiding or unmounting inactive content in the caller.
 
 PasswordInput uses Input's trailingControl slot; never position a visibility button against the label or full field group. Its 44 px button is centered on the actual input and remains keyboard accessible.
 
