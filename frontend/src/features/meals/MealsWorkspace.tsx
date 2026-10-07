@@ -12,6 +12,7 @@ import MealsGenerationNotice from './MealsGenerationNotice';
 import MealsHistorySection from './MealsHistorySection';
 import MealsPlanSection from './MealsPlanSection';
 import { useMealsPage } from './useMealsPage';
+import { useCallback, useState } from 'react';
 
 export default function MealsWorkspace() {
   const model = useMealsPage();
@@ -35,6 +36,13 @@ export default function MealsWorkspace() {
     profileReviewRequired,
     workspace,
   } = model;
+  const libraryScope = JSON.stringify([
+    workspace.ownerId, workspace.librarySearch, workspace.libraryMealType, workspace.libraryRiceRole,
+  ]);
+  const [libraryCount, setLibraryCount] = useState<{ scope: string; value: number | string | null } | null>(null);
+  const handleLibraryCount = useCallback((value: number | string | null) => {
+    setLibraryCount({ scope: libraryScope, value });
+  }, [libraryScope]);
   return (
     <div className="portal-page select-none pb-32 text-brand-text">
       {/* Main Container */}
@@ -76,7 +84,10 @@ export default function MealsWorkspace() {
               icon: <History className="h-4 w-4" />,
               count: historyTotalCount ?? '…',
             },
-            { value: 'library', label: 'Library', icon: <BookOpen className="h-4 w-4" /> },
+            {
+              value: 'library', label: 'Library', icon: <BookOpen className="h-4 w-4" />,
+              count: !isReportPending && libraryCount?.scope === libraryScope ? libraryCount.value ?? '…' : '…',
+            },
           ]}
         />
 
@@ -122,7 +133,7 @@ export default function MealsWorkspace() {
               }}
             />
           ) : (
-            <MealLibraryPanel workspace={workspace} />
+            <MealLibraryPanel workspace={workspace} onCountChange={handleLibraryCount} />
           ))}
       </div>
 

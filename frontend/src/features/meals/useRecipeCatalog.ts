@@ -49,7 +49,7 @@ export function useRecipeCatalog({
     scope: string;
     collection: string;
     data: CatalogPage | null;
-    summary: Pick<CatalogPage, 'pageCount' | 'restrictedProfile'> | null;
+    summary: Pick<CatalogPage, 'total' | 'pageCount' | 'restrictedProfile'> | null;
     loading: boolean;
     error: string | null;
   } | null>(null);

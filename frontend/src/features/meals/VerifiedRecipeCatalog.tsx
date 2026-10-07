@@ -72,9 +72,11 @@ export default function VerifiedRecipeCatalog({ search, mealType }: { search: st
                       <span className="rounded-full border border-emerald-400/40 bg-emerald-500/90 px-2 py-0.5 font-mono text-[9px] font-extrabold uppercase tracking-wider text-white shadow-xs backdrop-blur-md">
                         Recipe verified
                       </span>
-                      <span className="rounded-full border border-white/30 bg-black/40 px-2 py-0.5 text-[9px] font-bold text-white shadow-xs backdrop-blur-md">
-                        {recipe.planningReady ? 'Serving data recorded' : 'Serving evidence pending'}
-                      </span>
+                      {!recipe.planningReady && (
+                        <span className="rounded-full border border-white/30 bg-black/40 px-2 py-0.5 text-[9px] font-bold text-white shadow-xs backdrop-blur-md">
+                          Serving evidence pending
+                        </span>
+                      )}
                     </>
                   }
                   footer={

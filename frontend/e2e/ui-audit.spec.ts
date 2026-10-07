@@ -55,9 +55,15 @@ for (const width of [390, 1440]) {
   test(`member library reuses numbered pagination at ${width}px`, async ({ page }) => {
     await page.setViewportSize({ width, height: 900 });
     await fixtureSession(page, true);
+    let releaseCatalogue!: () => void;
+    const catalogueReady = new Promise<void>((resolve) => { releaseCatalogue = resolve; });
     await page.route('**/api/user/meals/workspace', (route) =>
       route.fulfill({
-        json: { success: true, data: [], meta: { cycles: { current: null, upcoming: null } } },
+        json: { success: true, data: [{
+          id: 'scheduled-library-fixture', mealName: 'Scheduled placeholder dish', mealType: 'LUNCH',
+          status: 'APPROVED', scheduledDate: new Date().toISOString(), calories: 400,
+          proteinG: 20, carbsG: 50, fatG: 12, ingredients: [], mealLogs: [],
+        }], meta: { cycles: { current: null, upcoming: null } } },
       })
     );
     await page.route('**/api/user/meals/library*', (route) =>
@@ -66,6 +72,7 @@ for (const width of [390, 1440]) {
       })
     );
     await page.route('**/api/user/meals/verified-recipes*', async (route) => {
+      await catalogueReady;
       const requestedPage = Number(new URL(route.request().url()).searchParams.get('page') || 1);
       await route.fulfill({
         json: {
@@ -95,11 +102,19 @@ for (const width of [390, 1440]) {
       });
     });
     await page.goto('/meals?tab=library');
+    await expect(page.getByLabel('Loading meal library grid', { exact: true })).toBeVisible();
+    await expect(page.getByText('Scheduled for you', { exact: true })).toHaveCount(0);
+    await expect(page.getByRole('heading', { name: 'Scheduled placeholder dish' })).toHaveCount(0);
+    releaseCatalogue();
     await expect(page.getByRole('heading', { name: 'Recipe on page 1', exact: true })).toBeVisible();
+    const libraryTab = page.getByRole('navigation', { name: 'Meal workspace sections' }).getByRole('button', { name: /Library/ });
+    await expect(libraryTab).toHaveText('Library1962');
+    await expect(page.getByText('Serving data recorded', { exact: true })).toHaveCount(0);
     const pages = page.getByRole('navigation', { name: 'Recipe pages', exact: true });
     await expect(pages.getByRole('button', { name: 'Previous', exact: true })).toBeDisabled();
     await pages.getByRole('button', { name: 'Go to page 327', exact: true }).click();
     await expect(page.getByRole('heading', { name: 'Recipe on page 327', exact: true })).toBeVisible();
+    await expect(libraryTab).toHaveText('Library1962');
     await expect(pages.getByRole('button', { name: 'Go to page 327', exact: true })).toHaveAttribute(
       'aria-current',
       'page'

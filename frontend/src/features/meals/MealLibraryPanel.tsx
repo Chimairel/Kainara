@@ -14,7 +14,10 @@ import RecipeLibraryCard from './RecipeLibraryCard';
 import { useRecipeCatalog } from './useRecipeCatalog';
 import type { PublicMealImage } from '@/types';
 
-export default function MealLibraryPanel({ workspace }: { workspace: ReturnType<typeof useMealsWorkspace> }) {
+export default function MealLibraryPanel({ workspace, onCountChange }: {
+  workspace: ReturnType<typeof useMealsWorkspace>;
+  onCountChange?: (count: number | string | null) => void;
+}) {
   const {
     handleLibrarySearchSubmit,
     librarySearch,
@@ -73,6 +76,7 @@ export default function MealLibraryPanel({ workspace }: { workspace: ReturnType<
   }, [libraryMeals, libraryRiceRole, libraryMealType, search]);
 
   const isServerSource = Boolean(catalog.summary && !catalog.summary.restrictedProfile);
+  const isClientSource = catalog.summary?.restrictedProfile === true;
 
   const clientUnifiedItems = useMemo(() => {
     const plannedItems = approvedInPlan.map(({ meal, occurrences }) => ({
@@ -147,6 +151,7 @@ export default function MealLibraryPanel({ workspace }: { workspace: ReturnType<
     if (workspace.libraryError) setPendingPage(null);
   }, [workspace.libraryError]);
   const displayItems = useMemo(() => {
+    if (!isServerSource && !isClientSource) return [];
     if (isServerSource && !catalogData) return [];
     if (isServerSource && catalogData) {
       return catalogData.items.map((recipe) => {
@@ -192,7 +197,18 @@ export default function MealLibraryPanel({ workspace }: { workspace: ReturnType<
     }
 
     return clientUnifiedItems.slice((effectivePage - 1) * PAGE_SIZE, effectivePage * PAGE_SIZE);
-  }, [isServerSource, catalogData, approvedInPlan, clientUnifiedItems, effectivePage]);
+  }, [isServerSource, isClientSource, catalogData, approvedInPlan, clientUnifiedItems, effectivePage]);
+
+  const waitingForSource = catalogLoading ||
+    (isClientSource && workspace.isLibraryLoading && workspace.libraryTotalCount == null);
+  const libraryCount = isServerSource
+    ? catalog.summary?.total ?? null
+    : isClientSource && !waitingForSource && !workspace.libraryError
+      ? workspace.libraryNextCursor ? `${clientUnifiedItems.length}+` : clientUnifiedItems.length
+      : null;
+  useEffect(() => {
+    onCountChange?.(libraryCount);
+  }, [onCountChange, libraryCount]);
 
   return (
     <div className="space-y-6 text-left">
@@ -266,7 +282,7 @@ export default function MealLibraryPanel({ workspace }: { workspace: ReturnType<
         </div>
       )}
 
-      {catalogLoading && (isServerSource || displayItems.length === 0) ? (
+      {waitingForSource ? (
         <LibraryGridSkeleton variant="member" />
       ) : displayItems.length === 0 && (catalogError || workspace.libraryError) ? null : displayItems.length === 0 ? (
         <div className="p-12 text-center border border-brand-border/40 bg-brand-surface/30 rounded-xl">
@@ -309,9 +325,11 @@ export default function MealLibraryPanel({ workspace }: { workspace: ReturnType<
                       <span className="rounded-full border border-emerald-400/40 bg-emerald-500/90 px-2 py-0.5 font-mono text-[9px] font-extrabold uppercase tracking-wider text-white shadow-xs backdrop-blur-md">
                         Recipe verified
                       </span>
-                      <span className="rounded-full border border-white/30 bg-black/40 px-2 py-0.5 text-[9px] font-bold text-white shadow-xs backdrop-blur-md">
-                        {item.planningReady ? 'Serving data recorded' : 'Serving evidence pending'}
-                      </span>
+                      {!item.planningReady && (
+                        <span className="rounded-full border border-white/30 bg-black/40 px-2 py-0.5 text-[9px] font-bold text-white shadow-xs backdrop-blur-md">
+                          Serving evidence pending
+                        </span>
+                      )}
                     </>
                   )
                 }

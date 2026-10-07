@@ -78,7 +78,8 @@ describe('verified recipe catalogue', () => {
     });
     render(<VerifiedRecipeCatalog search="" mealType="All" />);
     await waitFor(() => expect(screen.getByText('Blueberry Pancake')).toBeInTheDocument());
-    expect(screen.getByText('Serving data recorded')).toBeInTheDocument();
+    expect(screen.getByText('Recipe verified')).toBeInTheDocument();
+    expect(screen.queryByText('Serving data recorded')).not.toBeInTheDocument();
     expect(screen.getByText(/505 kcal/)).toBeInTheDocument();
     expect(screen.queryByText(/Codex|Demo nutrition estimate/)).not.toBeInTheDocument();
   });
