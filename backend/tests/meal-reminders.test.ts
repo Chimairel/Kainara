@@ -368,3 +368,62 @@ test('scheduled worker leaves manual tests to their selected-device request', as
   assert.deepEqual(await MealReminderService.run(), { enabled: true, created: 0, sent: 1 });
   assert.equal(delivered.mock.callCount(), 1);
 });
+
+test('rescheduling dinner creates a new due-time reminder while repeated ticks and matching legacy records stay deduplicated', async (context) => {
+  const saved = { ...schedule, userId: 'member', dinnerTime: '21:30' };
+  stub(context, prisma.mealReminderSettings, 'findMany', async () => [saved]);
+  context.mock.method(MealReminderService, 'eligibleMeal', async () => ({ id: 'slot' }) as never);
+  let legacyExpiry = new Date('2026-10-07T11:33:00Z');
+  stub(context, prisma.notification, 'findUnique', async () => ({ expiresAt: legacyExpiry }));
+  const keys = new Set<string>();
+  stub(
+    context,
+    prisma.notification,
+    'createMany',
+    async (query: { data: Array<{ deduplicationKey: string; context: { dueAt: string } }> }) => {
+      const item = query.data[0];
+      assert.ok(item.deduplicationKey.endsWith(item.context.dueAt));
+      if (keys.has(item.deduplicationKey)) return { count: 0 };
+      keys.add(item.deduplicationKey);
+      return { count: 1 };
+    }
+  );
+  const now = new Date('2026-10-07T12:31:00Z');
+  assert.equal(
+    (
+      await Promise.all([MealReminderService.createDueReminders(now), MealReminderService.createDueReminders(now)])
+    ).reduce((a, b) => a + b),
+    1
+  );
+  assert.equal(await MealReminderService.createDueReminders(now), 0);
+  saved.dinnerTime = '21:35';
+  assert.equal(await MealReminderService.createDueReminders(new Date('2026-10-07T12:35:00Z')), 1);
+  legacyExpiry = new Date('2026-10-07T12:45:00Z');
+  assert.equal(await MealReminderService.createDueReminders(new Date('2026-10-07T12:35:00Z')), 0);
+  assert.equal(keys.size, 2);
+});
+
+test('queued reminders must match the saved due instant, including legacy expiry and changed lead/time', async (context) => {
+  const saved = { ...schedule, dinnerTime: '21:30' };
+  stub(context, prisma.mealReminderSettings, 'findUnique', async () => saved);
+  const eligible = context.mock.method(MealReminderService, 'eligibleMeal', async () => ({ id: 'slot' }) as never);
+  const now = new Date('2026-10-07T12:31:00Z');
+  const reminder = {
+    userId: 'member',
+    context: { mealId: 'slot', day: '2026-10-07', mealType: 'DINNER', kind: 'PREPARE', dueAt: '2026-10-07T12:30:00Z' },
+    expiresAt: new Date('2026-10-07T12:40:00Z'),
+  };
+  assert.equal(await MealReminderService.stillEligible(reminder, now), true);
+  const legacyContext = { ...reminder.context, dueAt: undefined };
+  assert.equal(await MealReminderService.stillEligible({ ...reminder, context: legacyContext }, now), true);
+  saved.dinnerTime = '21:29';
+  assert.equal(
+    await MealReminderService.stillEligible(reminder, now),
+    false,
+    'An overlapping ten-minute window is not the same scheduled instant'
+  );
+  saved.dinnerTime = '21:30';
+  Object.assign(saved, { prepareMinutesBefore: 61 });
+  assert.equal(await MealReminderService.stillEligible({ ...reminder, context: legacyContext }, now), false);
+  assert.equal(eligible.mock.callCount(), 2, 'Outdated due instants must not reach meal delivery');
+});

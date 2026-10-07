@@ -1,6 +1,6 @@
 import prisma from '@/lib/prisma';
 import { hasCurrentConsent } from '@/domain/onboarding.policy';
-import { dueMealReminders, MealSchedule, ReminderMealType } from '@/domain/meal-reminder.policy';
+import { dueMealReminders, MealSchedule, ReminderMealType, REMINDER_WINDOW_MS } from '@/domain/meal-reminder.policy';
 import { getManilaDateKey, getManilaMidnight } from '@/domain/meal-plan-cycle.policy';
 import { UserProfileService } from './user-profile.service';
 import { MealPlanCycleService } from './meal-plan-cycle.service';
@@ -80,7 +80,14 @@ export class MealReminderService {
           const meal = await this.eligibleMeal(schedule.userId, due.day, due.mealType);
           if (!meal) continue;
           const mealLabel = due.mealType.toLowerCase();
-          const key = `meal-reminder:${schedule.userId}:${due.day}:${due.mealType}:${due.kind}`;
+          const previousKey = `meal-reminder:${schedule.userId}:${due.day}:${due.mealType}:${due.kind}`;
+          // Preserve legacy reminders for this exact due time across an update.
+          const legacy = await prisma.notification.findUnique({
+            where: { deduplicationKey: previousKey },
+            select: { expiresAt: true },
+          });
+          if (legacy?.expiresAt?.getTime() === due.expiresAt.getTime()) continue;
+          const key = `${previousKey}:${due.dueAt.toISOString()}`;
           const result = await prisma.notification.createMany({
             skipDuplicates: true,
             data: [
@@ -95,7 +102,13 @@ export class MealReminderService {
                     : 'Your planned meal is still unlogged. Open KAINARA to record it or mark it skipped.',
                 targetPath: `/meals?date=${due.day}`,
                 expiresAt: due.expiresAt,
-                context: { mealId: meal.id, day: due.day, mealType: due.mealType, kind: due.kind },
+                context: {
+                  mealId: meal.id,
+                  day: due.day,
+                  mealType: due.mealType,
+                  kind: due.kind,
+                  dueAt: due.dueAt.toISOString(),
+                },
               },
             ],
           });
@@ -107,20 +120,34 @@ export class MealReminderService {
     return created;
   }
 
-  static async stillEligible(notification: { userId: string; context: unknown }) {
+  static async stillEligible(
+    notification: { userId: string; context: unknown; expiresAt?: Date | null },
+    now = new Date()
+  ) {
     const context = notification.context as {
       mealId?: string;
       day?: string;
       mealType?: ReminderMealType;
       kind?: string;
+      dueAt?: string;
       test?: boolean;
     } | null;
     if (context?.test) return true;
     if (!context?.mealId || !context.day || !context.mealType) return false;
     const settings = await prisma.mealReminderSettings.findUnique({ where: { userId: notification.userId } });
     if (!settings) return false;
-    const due = dueMealReminders(settings, new Date()).some(
-      (item) => item.day === context.day && item.mealType === context.mealType && item.kind === context.kind
+    // Older reminders record the due instant through their fixed expiry window.
+    const originalDueAt = context.dueAt
+      ? Date.parse(context.dueAt)
+      : notification.expiresAt
+        ? notification.expiresAt.getTime() - REMINDER_WINDOW_MS
+        : NaN;
+    const due = dueMealReminders(settings, now).some(
+      (item) =>
+        item.day === context.day &&
+        item.mealType === context.mealType &&
+        item.kind === context.kind &&
+        item.dueAt.getTime() === originalDueAt
     );
     return due && Boolean(await this.eligibleMeal(notification.userId, context.day, context.mealType, context.mealId));
   }

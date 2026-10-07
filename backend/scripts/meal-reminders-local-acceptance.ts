@@ -225,6 +225,44 @@ async function main() {
     ]);
     assert.equal(sends, 1);
     assert.equal(await prisma.webPushDelivery.count({ where: { status: 'SENT' } }), 1);
+    await request('/api/user/meal-reminders', 'PUT', { ...settings, prepareMinutesBefore: 55 });
+    const rescheduledNow = new Date(now.getTime() + 5 * 60_000);
+    assert.equal(await MealReminderService.stillEligible(reminder, rescheduledNow), false);
+    await Promise.all([
+      MealReminderService.createDueReminders(rescheduledNow),
+      MealReminderService.createDueReminders(rescheduledNow),
+    ]);
+    const changed = await prisma.notification.findMany({
+      where: { userId: member.id, type: 'MEAL_REMINDER' },
+      orderBy: { createdAt: 'desc' },
+    });
+    assert.equal(changed.length, 2, 'A changed due time must create a fresh reminder, once.');
+    const changedReminder = changed.find((item) => item.id !== reminder.id)!;
+    await WebPushService.deliver(subscription.id, changedReminder.id, () =>
+      MealReminderService.stillEligible(changedReminder, rescheduledNow)
+    );
+    assert.equal(sends, 2);
+    assert.equal(await MealReminderService.createDueReminders(rescheduledNow), 0);
+    await request('/api/user/meal-reminders', 'PUT', { ...settings, prepareMinutesBefore: 60 });
+    const originalContext = reminder.context as {
+      mealId: string;
+      day: string;
+      mealType: string;
+      kind: string;
+      dueAt?: string;
+    };
+    const legacyContext = { ...originalContext };
+    delete legacyContext.dueAt;
+    const legacyReminder = await prisma.notification.update({
+      where: { id: reminder.id },
+      data: { deduplicationKey: `meal-reminder:${member.id}:${today}:BREAKFAST:PREPARE`, context: legacyContext },
+    });
+    assert.equal(
+      await MealReminderService.createDueReminders(now),
+      0,
+      'A matching legacy reminder must not be duplicated during an update.'
+    );
+    assert.equal(await MealReminderService.stillEligible(legacyReminder, now), true);
     await prisma.mealPlan.update({ where: { id: meal.id }, data: { status: 'PENDING_REVIEW' } });
     assert.equal(await MealReminderService.eligibleMeal(member.id, today, 'BREAKFAST'), null);
     await prisma.mealPlan.update({
