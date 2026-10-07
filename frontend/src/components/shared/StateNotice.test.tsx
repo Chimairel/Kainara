@@ -1,7 +1,7 @@
 import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import StateNotice from './StateNotice';
-import { ThemeProvider } from '@/lib/context/ThemeContext';
+import { ThemeProvider, useTheme } from '@/lib/context/ThemeContext';
 
 describe('StateNotice Component', () => {
   it('renders default no-meal-plan variant correctly', () => {
@@ -148,6 +148,32 @@ describe('StateNotice Component', () => {
     const img = screen.getByAltText('Meal plan status');
     expect(img).toBeInTheDocument();
     expect(img.getAttribute('src')).toContain('sleeping');
+  });
+
+  it('keeps both sleeping images mounted with only the active image exposed when themes switch', () => {
+    localStorage.setItem('nutrimind-theme', 'light');
+    function ThemeControl() {
+      const { toggleTheme } = useTheme();
+      return <button onClick={toggleTheme}>Toggle theme</button>;
+    }
+    const { container } = render(
+      <ThemeProvider>
+        <ThemeControl />
+        <StateNotice />
+      </ThemeProvider>
+    );
+    const light = container.querySelector('img[src*="sleeping-light"]');
+    const dark = container.querySelector('img[src*="sleeping-dark"]');
+    expect(screen.getByAltText('Meal plan status')).toBe(light);
+    expect(light).toHaveStyle({ opacity: '1' });
+    expect(dark).toHaveAttribute('aria-hidden', 'true');
+    fireEvent.click(screen.getByRole('button', { name: 'Toggle theme' }));
+    expect(container.querySelector('img[src*="sleeping-light"]')).toBe(light);
+    expect(container.querySelector('img[src*="sleeping-dark"]')).toBe(dark);
+    expect(screen.getByAltText('Meal plan status')).toBe(dark);
+    expect(dark).toHaveStyle({ opacity: '1' });
+    expect(light).toHaveAttribute('aria-hidden', 'true');
+    localStorage.removeItem('nutrimind-theme');
   });
 
   it('renders preparing variant with preparing.svg and text shimmer', () => {

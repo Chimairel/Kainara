@@ -6,6 +6,7 @@ import Link from 'next/link';
 import Button, { ButtonProps } from '@/components/ui/Button';
 import { useTheme } from '@/lib/context/ThemeContext';
 import TextShimmer from '@/components/ui/motion/TextShimmer';
+import styles from './StateNotice.module.css';
 
 export type StateNoticeVariant =
   | 'no-meal-plan'
@@ -172,6 +173,9 @@ export default function StateNotice({
 
   const resolvedImageSrc = imageSrc || config.getImageSrc(activeTheme);
   const resolvedImageAlt = imageAlt ?? config.imageAlt;
+  const lightImageSrc = config.getImageSrc('light');
+  const darkImageSrc = config.getImageSrc('dark');
+  const imageLayers = !imageSrc && lightImageSrc !== darkImageSrc ? [lightImageSrc, darkImageSrc] : [resolvedImageSrc];
   const resolvedEyebrow = eyebrow !== undefined ? eyebrow : config.eyebrow;
   const resolvedEyebrowVariant = eyebrowVariant ?? config.eyebrowVariant;
   const resolvedTitle = title !== undefined ? title : config.title;
@@ -222,14 +226,19 @@ export default function StateNotice({
             className="relative flex items-center justify-center transition-transform hover:scale-105 duration-500 ease-out w-64 h-64 sm:w-80 sm:h-80 md:w-[360px] md:h-[360px] lg:w-[400px] lg:h-[400px]"
             style={imageSize !== 380 ? { width: imageSize, height: imageSize } : undefined}
           >
-            <Image
-              src={resolvedImageSrc}
-              alt={resolvedImageAlt}
-              width={imageSize}
-              height={imageSize}
-              priority
-              className="h-full w-full object-contain floating-glow-graphic"
-            />
+            {imageLayers.map((src) => (
+              <Image
+                key={src}
+                src={src}
+                alt={src === resolvedImageSrc ? resolvedImageAlt : ''}
+                aria-hidden={src !== resolvedImageSrc || undefined}
+                width={imageSize}
+                height={imageSize}
+                priority
+                className={`${styles.imageLayer} absolute inset-0 h-full w-full object-contain floating-glow-graphic`}
+                style={{ opacity: src === resolvedImageSrc ? 1 : 0 }}
+              />
+            ))}
           </div>
         </div>
 

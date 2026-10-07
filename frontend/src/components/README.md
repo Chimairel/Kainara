@@ -63,3 +63,7 @@ SectionLink scrolls a same-page public section without writing a URL hash. Its r
 ## Audit details
 
 AuditHistoryList fetches one record on expansion through the caller’s role endpoint. Pass the authenticated ownerId for session-scoped reads. RecordedDetails shows only the server’s food/fact projection, with missing nutrition labeled Not recorded; it never fills older records using current meal values. Admins can open existing meal authoring; no audit action automatically publishes reusable food or ingredients.
+
+## Illustrated states
+
+StateNotice owns the shared sleeping Nara empty-state presentation. Health details reuses it only after a successful workspace response with no applicable detail forms, with no form instructions or action button. Keep both light/dark SVG layers mounted for a 250 ms opacity crossfade, expose only the active image to assistive technology, and switch immediately for reduced motion. The scoped illustration transition is the only exception to the global theme-switch transition suppression.

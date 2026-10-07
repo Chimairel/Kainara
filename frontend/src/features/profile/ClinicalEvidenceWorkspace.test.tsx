@@ -17,6 +17,23 @@ describe('health details form', () => {
     mocks.get.mockResolvedValue({ data: { data: workspace } });
     mocks.put.mockResolvedValue({ data: { data: workspace } });
   });
+  it('shows sleeping Nara without form instructions when no health details are needed', async () => {
+    mocks.get.mockResolvedValue({ data: { data: { ...workspace, availableAreas: [] } } });
+    render(<ClinicalEvidenceWorkspace />);
+    expect(
+      await screen.findByRole('heading', { name: 'No health details are needed for your current profile' })
+    ).toBeInTheDocument();
+    expect(screen.getByAltText('Sleeping Nara')).toBeInTheDocument();
+    expect(screen.queryByText(/Describe the conditions and restrictions/)).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Save health details' })).not.toBeInTheDocument();
+    expect(mocks.put).not.toHaveBeenCalled();
+  });
+  it('does not show the no-details state when the workspace request fails', async () => {
+    mocks.get.mockRejectedValue(new Error('Unavailable'));
+    render(<ClinicalEvidenceWorkspace />);
+    await screen.findByRole('alert');
+    expect(screen.queryByAltText('Sleeping Nara')).not.toBeInTheDocument();
+  });
   it('saves structured user-provided details without uploading files', async () => {
     const { container } = render(<ClinicalEvidenceWorkspace mode="onboarding" />);
     await screen.findByLabelText('Condition or restriction details');

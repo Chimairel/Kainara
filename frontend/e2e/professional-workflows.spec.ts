@@ -52,6 +52,42 @@ async function portalFixture(
   });
 }
 
+test('health details empty state reuses sleeping Nara and fades across themes without moving', async ({
+  page,
+}, testInfo) => {
+  await portalFixture(page, 'USER', (path) => {
+    if (path.startsWith('/user/clinical-evidence'))
+      return { safetyRevision: 2, availableAreas: [], requirements: [], contexts: [] };
+    if (path === '/user/clinical-profile-review/status')
+      return { required: false, approved: true, declarationRequired: false, detailsRequest: null };
+  });
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.emulateMedia({ reducedMotion: 'no-preference' });
+  await page.goto('/profile/clinical-evidence');
+  await expect(
+    page.getByRole('heading', { name: 'No health details are needed for your current profile' })
+  ).toBeVisible();
+  const light = page.locator('img[src*="sleeping-light"]');
+  const dark = page.locator('img[src*="sleeping-dark"]');
+  await light.evaluate((img: HTMLImageElement) => img.decode());
+  await dark.evaluate((img: HTMLImageElement) => img.decode());
+  const bounds = await light.boundingBox();
+  await page.screenshot({ path: testInfo.outputPath('health-details-light.png') });
+  await page.getByRole('button', { name: 'Switch to dark mode' }).click();
+  await expect(dark).toHaveCSS('transition-duration', '0.25s');
+  await expect(dark).toHaveCSS('opacity', '1');
+  await expect(light).toHaveCSS('opacity', '0');
+  expect(await dark.boundingBox()).toEqual(bounds);
+  await page.screenshot({ path: testInfo.outputPath('health-details-dark.png') });
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await page.getByRole('button', { name: 'Switch to light mode' }).click();
+  await expect(light).toHaveCSS('transition-duration', '0s');
+  await expect(light).toHaveCSS('opacity', '1');
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect(page.getByAltText('Sleeping Nara')).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+});
+
 // Every API call is intercepted. No application, account, OTP or email is created.
 test('applicant verifies the corrected inbox before leaving the identity step', async ({ page }) => {
   const addresses: string[] = [];

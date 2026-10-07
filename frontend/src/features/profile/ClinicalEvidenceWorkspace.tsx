@@ -9,6 +9,7 @@ import { LIVE_UPDATE_EVENT } from '@/lib/live-events';
 import { getApiErrorMessage } from '@/lib/api-error';
 import OnboardingProgressSlider from '@/components/onboarding/OnboardingProgressSlider';
 import PersonalizationTabs from '@/components/user/PersonalizationTabs';
+import StateNotice from '@/components/shared/StateNotice';
 
 type Answers = {
   conditionDetails: string;
@@ -169,11 +170,13 @@ export default function ClinicalEvidenceWorkspace({
               ? 'Allergy details'
               : 'Health details'}
         </h1>
-        <p className="mt-2 text-sm text-brand-muted">
-          Describe the conditions and restrictions already listed in your profile for a nutritionist to review. Enter
-          “none” or “unknown” where appropriate. Complete and save a separate form for each listed condition or
-          restriction.
-        </p>
+        {(loading || areas.length > 0) && (
+          <p className="mt-2 text-sm text-brand-muted">
+            Describe the conditions and restrictions already listed in your profile for a nutritionist to review. Enter
+            “none” or “unknown” where appropriate. Complete and save a separate form for each listed condition or
+            restriction.
+          </p>
+        )}
       </header>
       {request && (
         <div role="status" className="rounded-xl border border-amber-500 p-4">
@@ -268,7 +271,15 @@ export default function ClinicalEvidenceWorkspace({
               </button>
             </form>
           ) : (
-            <p className="text-sm text-brand-muted">No health details are needed for your current profile.</p>
+            workspace && (
+              <StateNotice
+                variant="no-meal-plan"
+                title="No health details are needed for your current profile"
+                description={null}
+                imageAlt="Sleeping Nara"
+                action={null}
+              />
+            )
           )}
           {mode === 'onboarding' && (
             <div className="flex justify-end">

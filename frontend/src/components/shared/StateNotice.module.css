@@ -1,0 +1,12 @@
+.imageLayer,
+:global(html.theme-switching) .imageLayer {
+  /* Only the illustration fades; the rest of the page still repaints once. */
+  transition: opacity 250ms ease-in-out !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .imageLayer,
+  :global(html.theme-switching) .imageLayer {
+    transition: none !important;
+  }
+}
