@@ -22,7 +22,8 @@ for (const width of [1440, 390]) {
         renderButton(host, options) {
           const button = document.createElement('button');
           button.textContent = 'Continue with Google';
-          button.style.cssText = 'display:block;height:40px;width:' + options.width + 'px';
+          button.style.cssText = 'display:block;height:40px;width:190px';
+          window.googleButtonOptions = Object.keys(options);
           button.onclick = () => { window.standardGoogleClicked = true; };
           const frame = document.createElement('iframe');
           frame.title = 'Optional personalized Google button';
@@ -40,8 +41,9 @@ for (const width of [1440, 390]) {
       const original = await page.locator('.auth-card').boundingBox();
       const standard = page.getByRole('button', { name: 'Continue with Google', exact: true });
       await expect(standard).toBeVisible();
-      const submit = page.getByRole('button', { name: 'Sign in', exact: true });
-      expect((await standard.boundingBox())?.width).toEqual((await submit.boundingBox())?.width);
+      expect(
+        await page.evaluate(() => (window as typeof window & { googleButtonOptions: string[] }).googleButtonOptions)
+      ).toEqual(['click_listener']);
       expect(await standard.evaluate((element) => element.closest('[inert]'))).toBeNull();
       await standard.click();
       expect(

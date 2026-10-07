@@ -66,7 +66,6 @@ export default function GoogleSignInButton({ disabled = false, onCredential }: G
 
         buttonRef.current.replaceChildren();
         window.google.accounts.id.renderButton(buttonRef.current, {
-          width: Math.min(buttonRef.current.clientWidth || 400, 400),
           click_listener: recovery.startAttempt,
         });
       })
@@ -155,7 +154,7 @@ export default function GoogleSignInButton({ disabled = false, onCredential }: G
         </div>
       ) : (
         <div
-          className={`min-h-[44px] w-full max-w-[400px] ${disabled || isLoading ? 'pointer-events-none' : ''}`}
+          className={`min-h-[44px] w-full ${disabled || isLoading ? 'pointer-events-none' : ''}`}
           aria-disabled={disabled || isLoading}
           aria-busy={isLoading}
         >
