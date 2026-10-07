@@ -87,9 +87,7 @@ export default function RegisterPage() {
           />
         ) : undefined
       }
-      eyebrow="Create your profile"
       title="Start with what makes you, you"
-      description="Your health context becomes the foundation for every recommendation that follows."
       heroTitle={
         <>
           Nutrition built for

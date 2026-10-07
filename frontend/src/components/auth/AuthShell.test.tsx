@@ -18,9 +18,7 @@ describe('AuthShell transition', () => {
       return <input aria-label="Email" defaultValue="kept@example.invalid" />;
     }
     const props = {
-      eyebrow: 'Welcome',
       title: 'Sign in',
-      description: 'Access your account',
       heroTitle: 'KAINARA',
       heroDescription: 'Your nutrition',
     };

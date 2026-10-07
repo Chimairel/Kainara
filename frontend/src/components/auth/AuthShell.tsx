@@ -8,9 +8,7 @@ import InteractiveCyberGrid from '@/components/ui/InteractiveCyberGrid';
 import ThemeToggle from '@/components/ui/ThemeToggle';
 
 interface AuthShellProps {
-  eyebrow: string;
   title: string;
-  description: string;
   heroTitle: ReactNode;
   heroDescription: string;
   children: ReactNode;
@@ -20,9 +18,7 @@ interface AuthShellProps {
 }
 
 export default function AuthShell({
-  eyebrow,
   title,
-  description,
   heroTitle,
   heroDescription,
   children,
@@ -124,17 +120,13 @@ export default function AuthShell({
               {/* Keep the original card mounted while session/profile/navigation resolve. */}
               <div inert={transition ? true : undefined}>
                 <div className={wide ? 'mb-4' : 'mb-5 sm:mb-6'}>
-                  <p className="font-mono text-[10px] sm:text-[11px] font-black uppercase tracking-[0.18em] text-emerald-700">
-                    {eyebrow}
-                  </p>
                   <h2
-                    className={`mt-1 font-display font-black tracking-tight text-neutral-900 ${
+                    className={`font-display font-black tracking-tight text-neutral-900 ${
                       wide ? 'text-xl sm:text-2xl lg:text-[1.7rem]' : 'text-xl sm:text-2xl lg:text-3xl'
                     }`}
                   >
                     {title}
                   </h2>
-                  <p className="mt-1 text-xs sm:text-sm text-neutral-500 leading-relaxed">{description}</p>
                 </div>
                 {children}
               </div>

@@ -77,9 +77,7 @@ export default function LoginPage() {
           />
         ) : undefined
       }
-      eyebrow="Welcome back"
       title="Enter your workspace"
-      description="Continue to your personalized plan, review queue, or platform control center."
       heroTitle={
         <>
           Your nutrition.

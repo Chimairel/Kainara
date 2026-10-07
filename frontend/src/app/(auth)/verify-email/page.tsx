@@ -127,9 +127,7 @@ export default function VerifyEmailPage() {
 
   return (
     <AuthShell
-      eyebrow="Identity checkpoint"
       title="Verify your email"
-      description="Enter the 6-digit code sent to the email address below to continue into onboarding."
       heroTitle={
         <>
           One quick check.

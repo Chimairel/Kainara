@@ -11,6 +11,7 @@ import FloatingNotice from '@/components/shared/FloatingNotice';
 import Button from '@/components/ui/Button';
 import { useGoogleSignInRecovery } from './useGoogleSignInRecovery';
 import { isEmbeddedAppBrowser } from '@/lib/browser-environment';
+import { observeGoogleButtonLayout } from './google-button-layout';
 
 /**
  * Google Identity Services "Sign in with Google" button.
@@ -78,6 +79,7 @@ export default function GoogleSignInButton({ disabled = false, onCredential }: G
   const [error, setError] = useState<string | null>(null);
   const [recoveryLink, setRecoveryLink] = useState<{ href: string; label: string } | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [isReady, setIsReady] = useState(false);
 
   useEffect(() => {
     credentialActionRef.current = onCredential;
@@ -90,6 +92,7 @@ export default function GoogleSignInButton({ disabled = false, onCredential }: G
     }
 
     let cancelled = false;
+    let stopLayoutObserver: (() => void) | undefined;
     if (isEmbeddedAppBrowser(navigator.userAgent)) return;
     activeCredentialHandler = handleGoogleCallback;
 
@@ -108,8 +111,24 @@ export default function GoogleSignInButton({ disabled = false, onCredential }: G
 
         buttonRef.current.replaceChildren();
         window.google.accounts.id.renderButton(buttonRef.current, {
+          theme: 'outline',
+          size: 'large',
+          shape: 'pill',
+          width: Math.min(buttonRef.current.clientWidth, 400),
+          text: 'continue_with',
+          locale: 'en',
+          logo_alignment: 'left',
           click_listener: recovery.startAttempt,
         });
+        stopLayoutObserver = observeGoogleButtonLayout(
+          buttonRef.current,
+          () => {
+            if (!cancelled) setIsReady(true);
+          },
+          () => {
+            if (!cancelled) setError('Google sign-in is temporarily unavailable. Please use email instead.');
+          }
+        );
       })
       .catch(() => {
         if (!cancelled) setError('Google sign-in is temporarily unavailable. Please use email instead.');
@@ -117,6 +136,7 @@ export default function GoogleSignInButton({ disabled = false, onCredential }: G
 
     return () => {
       cancelled = true;
+      stopLayoutObserver?.();
       recovery.stopAttempt();
       if (activeCredentialHandler === handleGoogleCallback) activeCredentialHandler = null;
     };
@@ -196,13 +216,20 @@ export default function GoogleSignInButton({ disabled = false, onCredential }: G
         </div>
       ) : (
         <div
-          className={`relative h-[44px] w-full ${disabled || isLoading ? 'pointer-events-none' : ''}`}
-          aria-disabled={disabled || isLoading}
+          className={`relative h-[44px] w-full max-w-[400px] overflow-hidden rounded-full ${disabled || isLoading || !isReady ? 'pointer-events-none' : ''}`}
+          aria-disabled={disabled || isLoading || !isReady}
+          aria-busy={!isReady && !error}
         >
+          {!isReady && !error && (
+            <div
+              aria-hidden="true"
+              className="absolute inset-x-0 top-[2px] h-10 rounded-full border border-brand-border bg-white"
+            />
+          )}
           <div
             ref={buttonRef}
-            inert={disabled || isLoading ? true : undefined}
-            className="flex w-full justify-center"
+            inert={disabled || isLoading || !isReady ? true : undefined}
+            className={`flex w-full justify-center ${isReady ? 'visible' : 'invisible'}`}
           />
         </div>
       )}

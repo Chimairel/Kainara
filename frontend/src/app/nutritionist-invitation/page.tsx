@@ -100,9 +100,7 @@ function InvitationForm() {
 export default function NutritionistInvitationPage() {
   return (
     <AuthShell
-      eyebrow="Approved professional"
       title="Activate your workspace"
-      description="Create your private password to finish the invitation issued after credential and call verification."
       heroTitle={
         <>
           Professional review.

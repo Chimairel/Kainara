@@ -6,6 +6,7 @@ async function expectReachableCard(page: Page) {
   await expect(card).toBeVisible();
   expect(await card.evaluate((element) => element.getBoundingClientRect().top)).toBeGreaterThanOrEqual(0);
   const heading = card.getByRole('heading');
+  await expect(heading.locator('..').locator(':scope > *')).toHaveCount(1);
   await heading.scrollIntoViewIfNeeded();
   await expect(heading).toBeInViewport();
   const home = page.getByRole('link', { name: 'Back to home', exact: true });
@@ -44,7 +45,7 @@ for (const [width, height] of [
   });
 }
 
-for (const path of ['/login', '/forgot-password', '/reset-password', '/verify-email']) {
+for (const path of ['/login', '/forgot-password', '/reset-password', '/verify-email', '/nutritionist-invitation']) {
   test(`${path} keeps its title and footer reachable on a short desktop`, async ({ page }) => {
     await page.setViewportSize({ width: 1280, height: 500 });
     await page.goto(path);

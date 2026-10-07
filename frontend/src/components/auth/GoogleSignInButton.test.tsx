@@ -48,6 +48,7 @@ async function renderGoogle(props = {}) {
   const result = render(<GoogleSignInButton {...props} />);
   await act(async () => {
     await Promise.resolve();
+    vi.advanceTimersByTime(50);
   });
   return result;
 }
@@ -118,7 +119,7 @@ describe('Google sign-in browser recovery', () => {
     expect(mocks.login).toHaveBeenCalledWith('fixture-token');
   });
 
-  it('uses the default Google button and offers email recovery for a protected account collision', async () => {
+  it('uses the themed Google button and offers email recovery for a protected account collision', async () => {
     mocks.post.mockRejectedValueOnce({
       response: { data: { errorCode: 'GOOGLE_LINK_REQUIRED', error: 'Use your original sign-in method.' } },
     });
@@ -127,13 +128,14 @@ describe('Google sign-in browser recovery', () => {
       expect.any(HTMLElement),
       expect.objectContaining({ click_listener: expect.any(Function) })
     );
-    const configuration = vi.mocked(window.google!.accounts.id.renderButton).mock.calls[0][1];
-    expect(configuration).not.toHaveProperty('text');
-    expect(configuration).not.toHaveProperty('theme');
-    expect(configuration).not.toHaveProperty('size');
-    expect(configuration).not.toHaveProperty('width');
-    expect(configuration).not.toHaveProperty('shape');
-    expect(configuration).not.toHaveProperty('logo_alignment');
+    expect(vi.mocked(window.google!.accounts.id.renderButton).mock.calls[0][1]).toMatchObject({
+      theme: 'outline',
+      size: 'large',
+      shape: 'pill',
+      text: 'continue_with',
+      locale: 'en',
+      logo_alignment: 'left',
+    });
     await act(async () => credential({ credential: 'fixture-id-token' }));
     expect(screen.getByRole('link', { name: 'Sign in with email' })).toHaveAttribute('href', '/login');
     expect(mocks.login).not.toHaveBeenCalled();

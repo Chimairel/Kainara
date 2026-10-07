@@ -36,13 +36,7 @@ export default function ForgotPasswordPage() {
 
   return (
     <AuthShell
-      eyebrow="Account recovery"
       title={success ? 'Check your inbox' : 'Reset your access'}
-      description={
-        success
-          ? 'If the account exists, a secure reset link is on its way.'
-          : 'Enter the email connected to your KAINARA account.'
-      }
       heroTitle={
         <>
           A secure route
