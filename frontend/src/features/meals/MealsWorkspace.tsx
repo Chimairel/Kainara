@@ -44,18 +44,26 @@ export default function MealsWorkspace() {
   const router = useRouter();
   const outsideLog = useOutsideMealLog(() => {
     invalidateSessionResource(workspace.ownerId, 'dashboard-outside-meals');
-    invalidateSessionResource(workspace.ownerId,
-      `user-meals-history:${workspace.historySearch}:${workspace.historySource}:${workspace.historyStatus}`);
+    invalidateSessionResource(
+      workspace.ownerId,
+      `user-meals-history:${workspace.historySearch}:${workspace.historySource}:${workspace.historyStatus}`
+    );
     void workspace.refreshHistory();
   }, workspace.ownerId);
   const canLogFood = !isReportPending && Boolean(workspace.user?.reportAcknowledged);
   const libraryScope = JSON.stringify([
-    workspace.ownerId, workspace.librarySearch, workspace.libraryMealType, workspace.libraryRiceRole,
+    workspace.ownerId,
+    workspace.librarySearch,
+    workspace.libraryMealType,
+    workspace.libraryRiceRole,
   ]);
   const [libraryCount, setLibraryCount] = useState<{ scope: string; value: number | string | null } | null>(null);
-  const handleLibraryCount = useCallback((value: number | string | null) => {
-    setLibraryCount({ scope: libraryScope, value });
-  }, [libraryScope]);
+  const handleLibraryCount = useCallback(
+    (value: number | string | null) => {
+      setLibraryCount({ scope: libraryScope, value });
+    },
+    [libraryScope]
+  );
   return (
     <div className="portal-page select-none pb-32 text-brand-text">
       {/* Main Container */}
@@ -67,10 +75,15 @@ export default function MealsWorkspace() {
           isStarterPlan={isStarterPlan}
           upcomingStart={upcomingStart}
           nextCycleDay={nextCycleDay}
-          actions={canLogFood ? (
-            <MemberMealActions destination="grocery" onLogFood={() => outsideLog.setIsOpen(true)}
-              onOpenDestination={() => router.push('/grocery')} />
-          ) : undefined}
+          actions={
+            canLogFood ? (
+              <MemberMealActions
+                destination="grocery"
+                onLogFood={() => outsideLog.setIsOpen(true)}
+                onOpenDestination={() => router.push('/grocery')}
+              />
+            ) : undefined
+          }
         />
         {!isLoading && (
           <UnavailableMealsNotice
@@ -102,8 +115,10 @@ export default function MealsWorkspace() {
               count: historyTotalCount ?? '…',
             },
             {
-              value: 'library', label: 'Library', icon: <BookOpen className="h-4 w-4" />,
-              count: !isReportPending && libraryCount?.scope === libraryScope ? libraryCount.value ?? '…' : '…',
+              value: 'library',
+              label: 'Library',
+              icon: <BookOpen className="h-4 w-4" />,
+              count: !isReportPending && libraryCount?.scope === libraryScope ? (libraryCount.value ?? '…') : '…',
             },
           ]}
         />

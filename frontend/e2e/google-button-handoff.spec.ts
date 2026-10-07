@@ -147,7 +147,12 @@ for (const width of [1440, 390]) {
       (window as typeof window & { googleHandoffPhase: (phase: string) => void }).googleHandoffPhase('stacked')
     );
     await expect
-      .poll(() => page.locator('[data-google-theme="light"]').getByTitle('Replacement Google button').evaluate((frame) => frame.parentElement!.clientHeight))
+      .poll(() =>
+        page
+          .locator('[data-google-theme="light"]')
+          .getByTitle('Replacement Google button')
+          .evaluate((frame) => frame.parentElement!.clientHeight)
+      )
       .toBe(80);
     expect(await card.boundingBox()).toEqual(initial);
     const visibleBottom = await page.getByRole('button', { name: 'Default Google button' }).evaluate((button) => {

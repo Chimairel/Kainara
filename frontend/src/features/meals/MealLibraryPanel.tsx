@@ -14,7 +14,10 @@ import RecipeLibraryCard from './RecipeLibraryCard';
 import { useRecipeCatalog } from './useRecipeCatalog';
 import type { PublicMealImage } from '@/types';
 
-export default function MealLibraryPanel({ workspace, onCountChange }: {
+export default function MealLibraryPanel({
+  workspace,
+  onCountChange,
+}: {
   workspace: ReturnType<typeof useMealsWorkspace>;
   onCountChange?: (count: number | string | null) => void;
 }) {
@@ -199,12 +202,14 @@ export default function MealLibraryPanel({ workspace, onCountChange }: {
     return clientUnifiedItems.slice((effectivePage - 1) * PAGE_SIZE, effectivePage * PAGE_SIZE);
   }, [isServerSource, isClientSource, catalogData, approvedInPlan, clientUnifiedItems, effectivePage]);
 
-  const waitingForSource = catalogLoading ||
-    (isClientSource && workspace.isLibraryLoading && workspace.libraryTotalCount == null);
+  const waitingForSource =
+    catalogLoading || (isClientSource && workspace.isLibraryLoading && workspace.libraryTotalCount == null);
   const libraryCount = isServerSource
-    ? catalog.summary?.total ?? null
+    ? (catalog.summary?.total ?? null)
     : isClientSource && !waitingForSource && !workspace.libraryError
-      ? workspace.libraryNextCursor ? `${clientUnifiedItems.length}+` : clientUnifiedItems.length
+      ? workspace.libraryNextCursor
+        ? `${clientUnifiedItems.length}+`
+        : clientUnifiedItems.length
       : null;
   useEffect(() => {
     onCountChange?.(libraryCount);

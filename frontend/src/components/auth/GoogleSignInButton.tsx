@@ -64,7 +64,8 @@ export default function GoogleSignInButton({ disabled = false, onCredential }: G
       loadGoogleButtonFont().catch(() => undefined),
     ])
       .then(() => {
-        if (cancelled || !window.google || !slotRef.current || !lightButtonRef.current || !darkButtonRef.current) return;
+        if (cancelled || !window.google || !slotRef.current || !lightButtonRef.current || !darkButtonRef.current)
+          return;
 
         if (initializedClientId !== clientId) {
           window.google.accounts.id.initialize({

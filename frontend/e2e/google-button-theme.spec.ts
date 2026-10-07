@@ -45,7 +45,10 @@ for (const width of [1440, 390]) {
       const dark = page.locator('[data-google-theme="dark"]');
       const google = page.getByRole('button', { name: 'Synthetic Google sign-in' });
       for (const next of ['light', 'dark', 'light', 'dark']) {
-        await page.getByRole('button', { name: `Switch to ${next} mode` }).filter({ visible: true }).click();
+        await page
+          .getByRole('button', { name: `Switch to ${next} mode` })
+          .filter({ visible: true })
+          .click();
         const active = next === 'dark' ? dark : light;
         const inactive = next === 'dark' ? light : dark;
         await expect(active).toHaveCSS('opacity', '1');
@@ -56,14 +59,17 @@ for (const width of [1440, 390]) {
         await google.focus();
         await expect(google).toBeFocused();
         await google.click();
-        expect(await page.evaluate(() => (window as typeof window & { googleClickedTheme: string }).googleClickedTheme))
-          .toBe(next === 'dark' ? 'outline_dark' : 'outline');
+        expect(
+          await page.evaluate(() => (window as typeof window & { googleClickedTheme: string }).googleClickedTheme)
+        ).toBe(next === 'dark' ? 'outline_dark' : 'outline');
         expect(await card.boundingBox()).toEqual(initial);
       }
       expect(frameRequests).toBe(2);
-      expect(await page.evaluate(() =>
-        (window as typeof window & { originalFrames: Element[] }).originalFrames.every((frame) => frame.isConnected)
-      )).toBe(true);
+      expect(
+        await page.evaluate(() =>
+          (window as typeof window & { originalFrames: Element[] }).originalFrames.every((frame) => frame.isConnected)
+        )
+      ).toBe(true);
     });
   }
 }

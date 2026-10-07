@@ -3,7 +3,11 @@
 import Button from '@/components/ui/Button';
 import { Calendar, Plus, ShoppingBasket } from 'lucide-react';
 
-export default function MemberMealActions({ onLogFood, onOpenDestination, destination = 'plan' }: {
+export default function MemberMealActions({
+  onLogFood,
+  onOpenDestination,
+  destination = 'plan',
+}: {
   onLogFood: () => void;
   onOpenDestination: () => void;
   destination?: 'plan' | 'grocery';

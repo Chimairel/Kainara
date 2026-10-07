@@ -56,14 +56,30 @@ for (const width of [390, 1440]) {
     await page.setViewportSize({ width, height: 900 });
     await fixtureSession(page, true);
     let releaseCatalogue!: () => void;
-    const catalogueReady = new Promise<void>((resolve) => { releaseCatalogue = resolve; });
+    const catalogueReady = new Promise<void>((resolve) => {
+      releaseCatalogue = resolve;
+    });
     await page.route('**/api/user/meals/workspace', (route) =>
       route.fulfill({
-        json: { success: true, data: [{
-          id: 'scheduled-library-fixture', mealName: 'Scheduled placeholder dish', mealType: 'LUNCH',
-          status: 'APPROVED', scheduledDate: new Date().toISOString(), calories: 400,
-          proteinG: 20, carbsG: 50, fatG: 12, ingredients: [], mealLogs: [],
-        }], meta: { cycles: { current: null, upcoming: null } } },
+        json: {
+          success: true,
+          data: [
+            {
+              id: 'scheduled-library-fixture',
+              mealName: 'Scheduled placeholder dish',
+              mealType: 'LUNCH',
+              status: 'APPROVED',
+              scheduledDate: new Date().toISOString(),
+              calories: 400,
+              proteinG: 20,
+              carbsG: 50,
+              fatG: 12,
+              ingredients: [],
+              mealLogs: [],
+            },
+          ],
+          meta: { cycles: { current: null, upcoming: null } },
+        },
       })
     );
     await page.route('**/api/user/meals/library*', (route) =>
@@ -112,7 +128,9 @@ for (const width of [390, 1440]) {
     await page.getByRole('button', { name: 'Close', exact: true }).click();
     await expect(page.getByRole('button', { name: 'Groceries', exact: true })).toBeVisible();
     await expect(page.getByText(/swaps left in your current plan cycle/)).toHaveCount(0);
-    const libraryTab = page.getByRole('navigation', { name: 'Meal workspace sections' }).getByRole('button', { name: /Library/ });
+    const libraryTab = page
+      .getByRole('navigation', { name: 'Meal workspace sections' })
+      .getByRole('button', { name: /Library/ });
     await expect(libraryTab).toHaveText('Library1962');
     await expect(page.getByText('Serving data recorded', { exact: true })).toHaveCount(0);
     const pages = page.getByRole('navigation', { name: 'Recipe pages', exact: true });

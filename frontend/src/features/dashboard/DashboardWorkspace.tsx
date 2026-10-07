@@ -30,7 +30,10 @@ export default function DashboardWorkspace() {
           description="Your meals, daily intake, and next steps — all in one place."
           actions={
             !isReportPending && user?.reportAcknowledged ? (
-              <MemberMealActions onLogFood={() => outsideLog.setIsOpen(true)} onOpenDestination={() => router.push('/meals')} />
+              <MemberMealActions
+                onLogFood={() => outsideLog.setIsOpen(true)}
+                onOpenDestination={() => router.push('/meals')}
+              />
             ) : null
           }
         />

@@ -7,8 +7,13 @@ vi.mock('@/components/user/MealImage', () => ({
   default: ({ mealName }: { mealName: string }) => <div aria-label={`Image of ${mealName}`} />,
 }));
 vi.mock('./useRecipeCatalog', () => ({
-  useRecipeCatalog: () => ({ data: { items: [], restrictedProfile: true },
-    summary: { restrictedProfile: true }, loading: false, error: null, retry: vi.fn() }),
+  useRecipeCatalog: () => ({
+    data: { items: [], restrictedProfile: true },
+    summary: { restrictedProfile: true },
+    loading: false,
+    error: null,
+    retry: vi.fn(),
+  }),
 }));
 
 const noOp = vi.fn();
