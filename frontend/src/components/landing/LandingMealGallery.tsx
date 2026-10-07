@@ -45,6 +45,18 @@ const mealColumns = Array.from({ length: 5 }, (_, column) => meals.filter((_, in
 export default function LandingMealGallery() {
   return (
     <div className={styles.gallery} data-meal-gallery>
+      <svg
+        className={styles.ribbons}
+        viewBox="0 0 1000 780"
+        preserveAspectRatio="none"
+        fill="none"
+        aria-hidden="true"
+        data-gallery-ribbons
+      >
+        <path d="M520 -58 C880 -58 1075 5 1075 260 C1075 545 1045 675 685 805" stroke="#eb6a38" strokeWidth="36" />
+        <path d="M520 -24 C850 -24 1041 35 1041 260 C1041 520 1015 650 674 773" stroke="#f09e6c" strokeWidth="36" />
+        <path d="M520 10 C820 10 1007 65 1007 260 C1007 495 985 625 663 741" stroke="#1b4e41" strokeWidth="36" />
+      </svg>
       <div className={styles.viewport} aria-hidden="true">
         <div className={styles.scene}>
           {mealColumns.map((columnMeals, column) => (

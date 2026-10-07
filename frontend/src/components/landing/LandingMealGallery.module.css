@@ -13,6 +13,11 @@
   pointer-events: none;
 }
 
+.ribbons {
+  display: none;
+  pointer-events: none;
+}
+
 :global(.dark) .gallery::before {
   display: none;
 }
@@ -93,9 +98,19 @@
 
   .viewport {
     height: 600px;
-    mask-image:
-      linear-gradient(to bottom, #000 85%, transparent),
-      linear-gradient(to right, transparent 0%, transparent 20%, #000 65%, #000 100%);
+    mask-image: linear-gradient(to bottom, #000 85%, transparent), url('/icons/landing-meal-curve-mask.svg');
+    mask-size: 100% 100%;
+    mask-repeat: no-repeat;
+  }
+
+  .ribbons {
+    display: block;
+    position: absolute;
+    z-index: 2;
+    inset: 0 0 auto;
+    width: 100%;
+    height: 780px;
+    overflow: visible;
   }
 
   .scene {
