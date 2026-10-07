@@ -26,17 +26,40 @@
 }
 
 .column {
-  width: 174px;
+  width: 155px;
 }
 .card {
   width: 100%;
   flex-shrink: 0;
-  border-radius: 18px;
-  box-shadow: 0 10px 26px #07191418;
+  border-radius: 24px;
+  box-shadow: 0 8px 24px #07191426;
 }
 .photo {
   position: relative;
-  aspect-ratio: 5 / 4;
+  aspect-ratio: 4 / 5;
+}
+.photo::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, transparent 40%, #07191430 55%, #071914e6 100%);
+  pointer-events: none;
+}
+.caption {
+  position: absolute;
+  z-index: 1;
+  inset: auto 16px 18px;
+  text-align: left;
+}
+.mealName {
+  font-family: var(--font-outfit), sans-serif;
+  font-size: clamp(15px, 1.5vw, 21px);
+  font-weight: 650;
+  letter-spacing: -0.025em;
+  line-height: 1.1;
+  color: #fff;
+  text-wrap: balance;
+  text-shadow: 0 1px 6px #07191440;
 }
 .credits {
   flex: 1;
@@ -64,7 +87,7 @@
   }
 
   .column {
-    width: clamp(190px, 18vw, 280px);
+    width: clamp(170px, 14.5vw, 232px);
   }
 }
 
@@ -77,8 +100,17 @@
     gap: 10px;
   }
   .column {
-    width: 142px;
+    width: 110px;
     --gap: 12px;
+  }
+  .card {
+    border-radius: 18px;
+  }
+  .caption {
+    inset: auto 10px 12px;
+  }
+  .mealName {
+    font-size: 14px;
   }
 }
 

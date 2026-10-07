@@ -25,6 +25,7 @@ for (const width of [1440, 390]) {
     await page.goto('/');
     const gallery = page.locator('[data-meal-gallery]');
     await expect(gallery).toBeVisible();
+    await expect(gallery.locator('[data-slot="marquee"]')).toHaveCount(4);
     const tracks = gallery.locator('[data-slot="marquee"] > div');
     await page.getByRole('button', { name: 'Pause meal gallery' }).click();
     expect(

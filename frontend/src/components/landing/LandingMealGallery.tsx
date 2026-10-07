@@ -33,11 +33,11 @@ export default function LandingMealGallery() {
     <div className={styles.gallery} data-meal-gallery>
       <div className={styles.viewport} aria-hidden="true">
         <div className={styles.scene}>
-          {[0, 1, 2].map((column) => (
+          {[0, 1, 2, 3].map((column) => (
             <Marquee
               key={column}
               vertical
-              reverse={column === 1}
+              reverse={column % 2 === 1}
               paused={paused}
               pauseOnHover
               className={styles.column}
@@ -46,18 +46,20 @@ export default function LandingMealGallery() {
               {meals.map((_, index) => {
                 const meal = meals[(index + column * 2) % meals.length];
                 return (
-                  <Card key={meal.name} variant="signal" className={styles.card}>
+                  <Card key={meal.name} variant="signal" className={`${styles.card} !border-white/15 !bg-transparent`}>
                     <CardContent className="!p-0">
                       <div className={styles.photo}>
                         <Image
                           src={`https://panlasangpinoy.com/wp-content/uploads/${meal.photo}`}
                           alt=""
                           fill
-                          sizes="200px"
+                          sizes="(min-width: 1024px) 15vw, (min-width: 640px) 155px, 110px"
                           className="object-cover"
                         />
+                        <div className={styles.caption}>
+                          <p className={styles.mealName}>{meal.name}</p>
+                        </div>
                       </div>
-                      <p className="px-3 py-2.5 text-left text-xs font-bold text-brand-text sm:text-sm">{meal.name}</p>
                     </CardContent>
                   </Card>
                 );
