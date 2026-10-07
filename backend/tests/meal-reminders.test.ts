@@ -182,6 +182,7 @@ test('push receipts claim once, suppress stale/invalid meals, and retire expired
   let status = 'PENDING',
     sends = 0,
     retired = 0,
+    reminder = false,
     expired = false;
   const subscription = {
     id: 'device',
@@ -211,26 +212,63 @@ test('push receipts claim once, suppress stale/invalid meals, and retire expired
     id: 'alert',
     userId: 'member',
     isRead: false,
-    type: 'PLAN_APPROVED',
-    title: 'Private detail',
-    message: 'Private health detail',
+    type: reminder ? 'MEAL_REMINDER' : 'PLAN_APPROVED',
+    title: reminder ? 'Time to prepare breakfast' : 'Private detail',
+    message: reminder ? 'Open KAINARA to get ready.' : 'Private health detail',
     targetPath: null,
     expiresAt: new Date(Date.now() + 60_000),
   }));
-  context.mock.method(webpush, 'sendNotification', async (_subscription: unknown, payload: string) => {
-    sends++;
-    assert.ok(!payload.includes('Private'));
-    if (expired) throw { statusCode: 410 };
-  });
+  context.mock.method(
+    webpush,
+    'sendNotification',
+    async (device: webpush.PushSubscription, payload: string, options: webpush.RequestOptions) => {
+      sends++;
+      assert.ok(!payload.includes('Private'));
+      const request = webpush.generateRequestDetails(device, payload, options);
+      assert.equal(request.headers.Urgency, reminder ? 'high' : 'normal');
+      assert.ok(Number(request.headers.TTL) > 0 && Number(request.headers.TTL) <= 60);
+      if (expired) throw { statusCode: 410 };
+    }
+  );
   assert.equal(await WebPushService.deliver('device', 'alert'), true);
   assert.equal(await WebPushService.deliver('device', 'alert'), false);
   assert.equal(sends, 1);
   status = 'PENDING';
+  reminder = true;
+  assert.equal(await WebPushService.deliver('device', 'alert'), true);
+  assert.equal(sends, 2);
+  status = 'PENDING';
   assert.equal(await WebPushService.deliver('device', 'alert', async () => false), false);
   assert.equal(status, 'CANCELLED');
-  assert.equal(sends, 1);
+  assert.equal(sends, 2);
   status = 'PENDING';
   expired = true;
   assert.equal(await WebPushService.deliver('device', 'alert'), false);
   assert.equal(retired, 1);
+});
+
+test('device test submits immediately with a five-minute expiry instead of waiting for the scheduled worker', async (context) => {
+  const start = Date.now();
+  stub(context, prisma.webPushSubscription, 'findFirst', async () => ({ id: 'device' }));
+  stub(context, prisma.webPushDelivery, 'findFirst', async () => null);
+  stub(
+    context,
+    prisma.notification,
+    'create',
+    async (query: { data: { expiresAt: Date; context: { test: boolean } } }) => {
+      assert.ok(query.data.expiresAt.getTime() >= start + 299_000);
+      assert.ok(query.data.expiresAt.getTime() <= Date.now() + 300_000);
+      assert.equal(query.data.context.test, true);
+      return { id: 'test-alert' };
+    }
+  );
+  const delivered = context.mock.method(WebPushService, 'deliver', async (device: string, notification: string) => {
+    assert.equal(device, 'device');
+    assert.equal(notification, 'test-alert');
+    return true;
+  });
+  assert.deepEqual(await WebPushService.test('member', 'https://fcm.googleapis.com/send/synthetic'), {
+    accepted: true,
+  });
+  assert.equal(delivered.mock.callCount(), 1);
 });

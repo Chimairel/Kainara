@@ -4,6 +4,7 @@ import prisma from '@/lib/prisma';
 import { AppError } from '@/errors/AppError';
 import { isAllowedPushEndpoint } from '@/domain/meal-reminder.policy';
 import { pushSubscriptionSchema } from '@/validation/meal-reminder.schemas';
+import { logger } from '@/lib/logger';
 
 export function pushConfiguration() {
   const publicKey = process.env.WEB_PUSH_PUBLIC_KEY;
@@ -66,7 +67,7 @@ export class WebPushService {
         title: 'KAINARA notifications are ready',
         message: 'This is a test notification from KAINARA.',
         targetPath: '/profile/planning',
-        expiresAt: new Date(Date.now() + 60_000),
+        expiresAt: new Date(Date.now() + 5 * 60_000),
         context: { test: true },
       },
     });
@@ -121,6 +122,8 @@ export class WebPushService {
     try {
       // Existing inbox messages can contain private context. System banners stay generic.
       const reminder = notification.type === 'MEAL_REMINDER';
+      const urgency = reminder ? 'high' : 'normal';
+      const sendStartedAt = Date.now();
       const ttl = Math.max(
         1,
         Math.min(600, notification.expiresAt ? Math.floor((notification.expiresAt.getTime() - Date.now()) / 1000) : 600)
@@ -140,8 +143,14 @@ export class WebPushService {
                 : '/dashboard'),
           expiresAt: notification.expiresAt?.toISOString() || new Date(Date.now() + ttl * 1000).toISOString(),
         }),
-        { vapidDetails: config, TTL: ttl, timeout: 10_000, urgency: 'normal' }
+        { vapidDetails: config, TTL: ttl, timeout: 10_000, urgency }
       );
+      logger.info('web_push_provider_accepted', {
+        notificationType: notification.type,
+        urgency,
+        providerDurationMs: Date.now() - sendStartedAt,
+        notificationAgeMs: notification.createdAt ? sendStartedAt - notification.createdAt.getTime() : null,
+      });
       await finish('SENT');
       return true;
     } catch (error) {
