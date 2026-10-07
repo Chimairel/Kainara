@@ -40,15 +40,9 @@ for (const width of [1440, 390]) {
       await page.goto('/login', { waitUntil: 'domcontentloaded' });
       const button = page.getByRole('button', { name: 'Synthetic Google sign-in' });
       await expect.poll(() => page.evaluate(() => !!window.google?.accounts?.id)).toBe(true);
-      await page.evaluate(async () => {
-        const card = document.querySelector('.auth-card')!;
-        await Promise.all(
-          [card, ...card.querySelectorAll('h1, label, input, a, button')].map((element) => {
-            const style = getComputedStyle(element);
-            return document.fonts.load(`${style.fontWeight} ${style.fontSize} ${style.fontFamily}`);
-          })
-        );
-      });
+      // Settle fonts used by the page without forcing unused fallback faces to download.
+      // Google Sans is not registered until the held request completes below.
+      await page.evaluate(() => document.fonts.ready);
       const before = await page.locator('.auth-card').boundingBox();
       await expect(button).toHaveCount(0);
       release();
