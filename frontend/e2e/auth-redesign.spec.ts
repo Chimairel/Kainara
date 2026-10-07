@@ -28,7 +28,12 @@ for (const theme of ['light', 'dark']) {
     const card = page.locator('.auth-card');
     const artwork = page.getByRole('complementary', { name: 'About KAINARA' });
     expect((await card.boundingBox())!.x).toBeGreaterThan((await artwork.boundingBox())!.x);
-    await expect(artwork.locator('[data-grid-tile]')).toHaveCount(80);
+    await expect(artwork.locator('[data-grid-tile]')).toHaveCount(0);
+    const nara = artwork.getByRole('button', { name: 'Boop the Nara' });
+    await expect(nara).toBeVisible();
+    const naraBounds = (await nara.boundingBox())!;
+    expect(naraBounds.width).toBeGreaterThan(400);
+    expect(naraBounds.x + naraBounds.width).toBeLessThan((await card.boundingBox())!.x);
     const submit = page.getByRole('button', { name: 'Sign in', exact: true });
     const google = page.getByRole('button', { name: 'Synthetic Google sign-in' });
     await expect(google).toBeVisible();

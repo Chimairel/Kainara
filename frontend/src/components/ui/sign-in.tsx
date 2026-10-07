@@ -42,7 +42,7 @@ export function SignInPage({
             {/* Preserve form DOM and dimensions during session/profile/navigation resolution. */}
             <div className={`auth-card ${styles.form} relative`}>
               <div inert={transition ? true : undefined}>
-                <div className="mb-8 flex flex-col-reverse gap-4 sm:flex-row sm:items-center sm:justify-between">
+                <div className="mb-8 flex flex-col-reverse gap-4">
                   <div className="min-w-0 flex-1">
                     {eyebrow && (
                       <p className="mb-3 font-mono text-[10px] font-medium uppercase tracking-[0.18em] text-brand-muted">

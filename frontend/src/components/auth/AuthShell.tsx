@@ -20,7 +20,7 @@ interface AuthShellProps {
   transition?: ReactNode;
 }
 
-export default function AuthShell({ heroTitle, heroDescription, footer, ...props }: AuthShellProps) {
+export default function AuthShell({ footer, ...props }: AuthShellProps) {
   const header = (
     <>
       <Link href="/" className="flex items-center gap-3" aria-label="KAINARA home">
@@ -39,8 +39,12 @@ export default function AuthShell({ heroTitle, heroDescription, footer, ...props
     <SignInPage
       {...props}
       header={header}
-      titleDecoration={<AuthMascot />}
-      heroContent={<AuthHeroPanel header={header} title={heroTitle} description={heroDescription} />}
+      titleDecoration={
+        <div className="w-[160px] lg:hidden">
+          <AuthMascot size={160} />
+        </div>
+      }
+      heroContent={<AuthHeroPanel header={header} />}
       footer={
         <>
           {footer && <div className="text-center text-sm text-brand-muted">{footer}</div>}

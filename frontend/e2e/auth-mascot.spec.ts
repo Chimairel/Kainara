@@ -36,7 +36,7 @@ test('Nara follows eight pointer directions and reacts to keyboard without chang
     [0, 100, '50% 100%'],
     [100, 100, '100% 100%'],
   ] as const) {
-    await page.mouse.move(bounds.x + 60 + dx, bounds.y + 60 + dy);
+    await page.mouse.move(bounds.x + bounds.width / 2 + dx, bounds.y + bounds.height / 2 + dy);
     await expect(layers.first()).toHaveCSS('background-position', position);
   }
   await page.getByLabel('Email address').fill('fixture@example.invalid');
@@ -60,8 +60,10 @@ for (const theme of ['light', 'dark']) {
     await page.goto('/register');
     await expect(page.getByRole('button', { name: 'Boop the Nara' })).toBeVisible();
     await page.evaluate(() => document.fonts.ready);
-    await page.locator('.auth-card').screenshot({ path: testInfo.outputPath(`nara-${theme}.png`) });
-    await page.locator('[data-auth-mascot]').screenshot({ path: testInfo.outputPath(`nara-${theme}-portrait.png`) });
+    await page.screenshot({ path: testInfo.outputPath(`nara-${theme}.png`), fullPage: true });
+    await page
+      .locator('[data-auth-mascot]:visible')
+      .screenshot({ path: testInfo.outputPath(`nara-${theme}-portrait.png`) });
     await page.emulateMedia({ reducedMotion: 'reduce' });
     const portrait = page.getByRole('img', { name: 'Nara wearing her tanod costume' });
     await expect(portrait).toBeVisible();
