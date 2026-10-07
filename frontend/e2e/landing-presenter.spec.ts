@@ -26,6 +26,13 @@ for (const width of [1440, 390]) {
     const gallery = page.locator('[data-meal-gallery]');
     await expect(gallery).toBeVisible();
     await expect(gallery.locator('[data-slot="marquee"]')).toHaveCount(4);
+    const columnMeals = await gallery
+      .locator('[data-slot="marquee"]')
+      .evaluateAll((columns) =>
+        columns.map((column) => [...column.firstElementChild!.querySelectorAll('p')].map((name) => name.textContent))
+      );
+    expect(columnMeals.every((meals) => meals.length === 4)).toBe(true);
+    expect(new Set(columnMeals.flat()).size).toBe(16);
     const tracks = gallery.locator('[data-slot="marquee"] > div');
     await page.getByRole('button', { name: 'Pause meal gallery' }).click();
     expect(

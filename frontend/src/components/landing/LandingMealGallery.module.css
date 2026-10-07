@@ -1,10 +1,25 @@
 .gallery {
+  position: relative;
   width: 100%;
   min-width: 0;
 }
 
+.gallery::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 44px;
+  background: radial-gradient(ellipse at 45% 50%, #d6d9d3 0%, #e5e6e1 40%, transparent 72%);
+  filter: blur(24px);
+  pointer-events: none;
+}
+
+:global(.dark) .gallery::before {
+  display: none;
+}
+
 .viewport {
   position: relative;
+  z-index: 1;
   height: 430px;
   overflow: hidden;
   perspective: 600px;

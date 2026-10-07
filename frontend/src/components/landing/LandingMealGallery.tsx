@@ -25,7 +25,23 @@ const meals = [
     photo: '2018/06/sinigang-na-bangus-recipe-filipino.jpg',
   },
   { name: 'Filipino Spaghetti', source: 'filipino-style-spaghetti', photo: '2015/05/Filipino-spaghetti-recipe-1.jpg' },
+  { name: 'Sinampalukang Manok', source: 'sinampalukang-manok', photo: '2011/10/Sinampalukang-Manok.jpg' },
+  { name: 'Pata Humba', source: 'pork-pata-humba-ham-hock-filipino-recipe', photo: '2025/08/Pata-humba-recipe.jpg' },
+  { name: 'Pork Steak', source: 'pork-steak-recip', photo: '2011/02/Pork-Steak-Recipe-jpg.webp' },
+  { name: 'Paksiw na Pata', source: 'pata-paksiw-recipe', photo: '2009/07/Paksiw-na-Pata.jpg' },
+  { name: 'Menudo sa Gata', source: 'pork-menudo-sa-gata-recipe', photo: '2021/03/pork-menudo-sa-gata.jpg' },
+  { name: 'Buffalo Chicken Wings', source: 'buffalo-chicken-wings', photo: '2018/08/buffalo-chicken-wing_.jpg' },
+  {
+    name: 'Lengua in Mushroom Sauce',
+    source: 'lengua-in-white-mushroom-sauce',
+    photo: '2017/01/Lengua-in-White-Mushroom-Sauce-Recipe.jpg',
+  },
+  { name: 'Lengua Estofado', source: 'lengua-estofado-recipe', photo: '2016/12/How-to-Cook-Lengua-Estofado_.jpg' },
+  { name: 'Pork & Chicken Adobo', source: 'pork-and-chicken-adobo', photo: '2011/10/Pork-and-Chicken-Adobo-1.jpg' },
 ];
+
+// Each recipe belongs to exactly one column. Marquee repeats only within that column for its seamless loop.
+const mealColumns = Array.from({ length: 4 }, (_, column) => meals.filter((_, index) => index % 4 === column));
 
 export default function LandingMealGallery() {
   const [paused, setPaused] = useState(false);
@@ -33,7 +49,7 @@ export default function LandingMealGallery() {
     <div className={styles.gallery} data-meal-gallery>
       <div className={styles.viewport} aria-hidden="true">
         <div className={styles.scene}>
-          {[0, 1, 2, 3].map((column) => (
+          {mealColumns.map((columnMeals, column) => (
             <Marquee
               key={column}
               vertical
@@ -43,27 +59,24 @@ export default function LandingMealGallery() {
               className={styles.column}
               style={{ '--duration': `${48 + column * 8}s` } as CSSProperties}
             >
-              {meals.map((_, index) => {
-                const meal = meals[(index + column * 2) % meals.length];
-                return (
-                  <Card key={meal.name} variant="signal" className={`${styles.card} !border-white/15 !bg-transparent`}>
-                    <CardContent className="!p-0">
-                      <div className={styles.photo}>
-                        <Image
-                          src={`https://panlasangpinoy.com/wp-content/uploads/${meal.photo}`}
-                          alt=""
-                          fill
-                          sizes="(min-width: 1024px) 15vw, (min-width: 640px) 155px, 110px"
-                          className="object-cover"
-                        />
-                        <div className={styles.caption}>
-                          <p className={styles.mealName}>{meal.name}</p>
-                        </div>
+              {columnMeals.map((meal) => (
+                <Card key={meal.name} variant="signal" className={`${styles.card} !border-white/15 !bg-transparent`}>
+                  <CardContent className="!p-0">
+                    <div className={styles.photo}>
+                      <Image
+                        src={`https://panlasangpinoy.com/wp-content/uploads/${meal.photo}`}
+                        alt=""
+                        fill
+                        sizes="(min-width: 1024px) 15vw, (min-width: 640px) 155px, 110px"
+                        className="object-cover"
+                      />
+                      <div className={styles.caption}>
+                        <p className={styles.mealName}>{meal.name}</p>
                       </div>
-                    </CardContent>
-                  </Card>
-                );
-              })}
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
             </Marquee>
           ))}
         </div>
