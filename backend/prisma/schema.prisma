@@ -2517,6 +2517,7 @@ model MealReminderSettings {
   timeZone         String   @db.VarChar(80)
   remindersEnabled Boolean  @default(false)
   prepareEnabled   Boolean  @default(true)
+  prepareMinutesBefore Int  @default(60)
   logEnabled       Boolean  @default(true)
   updatedAt        DateTime @updatedAt
 }

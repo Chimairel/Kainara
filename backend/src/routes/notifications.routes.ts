@@ -30,9 +30,15 @@ router.post(
   asyncHandler(async (req: AuthenticatedRequest, res) => {
     const subscription = await prisma.webPushSubscription.findFirst({
       where: { userId: req.user!.userId, endpoint: req.body.endpoint },
-      select: { id: true },
+      select: {
+        id: true,
+        deliveries: { orderBy: { createdAt: 'desc' }, take: 1, select: { status: true, attemptedAt: true } },
+      },
     });
-    res.json({ success: true, data: { subscribed: Boolean(subscription) } });
+    res.json({
+      success: true,
+      data: { subscribed: Boolean(subscription), delivery: subscription?.deliveries[0] ?? null },
+    });
   })
 );
 router.delete(

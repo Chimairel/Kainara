@@ -3,11 +3,25 @@ self.addEventListener('push', event => {
   let data;
   try { data = event.data.json(); } catch { return; }
   if (!data || typeof data.title !== 'string' || typeof data.body !== 'string' ||
-      !Number.isFinite(Date.parse(data.expiresAt)) || Date.parse(data.expiresAt) <= Date.now()) return;
-  event.waitUntil(self.registration.showNotification(data.title, {
-    body: data.body, icon: '/icons/icon-192.png', badge: '/icons/icon-192.png',
-    tag: data.tag, renotify: false, data: { path: data.path },
-  }));
+      !Number.isFinite(Date.parse(data.expiresAt))) return;
+  event.waitUntil((async () => {
+    const receivedAt = Date.now();
+    let status = 'EXPIRED';
+    if (Date.parse(data.expiresAt) > receivedAt) {
+      try {
+        await self.registration.showNotification(data.title, {
+          body: data.body, icon: '/icons/icon-192.png', badge: '/icons/icon-192.png',
+          tag: data.tag, renotify: false, data: { path: data.path },
+        });
+        status = 'DISPLAY_REQUESTED';
+      } catch { status = 'DISPLAY_FAILED'; }
+    }
+    // Diagnose the browser stage without transmitting message contents or credentials.
+    try {
+      const windows = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+      windows.forEach(client => client.postMessage({ type: 'KAINARA_PUSH_STATUS', receivedAt, status }));
+    } catch { /* Notification delivery does not depend on an open window. */ }
+  })());
 });
 self.addEventListener('notificationclick', event => {
   event.notification.close();

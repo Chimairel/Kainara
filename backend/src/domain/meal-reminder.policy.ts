@@ -10,6 +10,7 @@ export interface MealSchedule {
   timeZone: string;
   remindersEnabled: boolean;
   prepareEnabled: boolean;
+  prepareMinutesBefore?: number;
   logEnabled: boolean;
 }
 
@@ -55,6 +56,8 @@ export function mealTimeInstant(day: string, time: string, timeZone: string): Da
 
 export function dueMealReminders(schedule: MealSchedule, now: Date) {
   if (!schedule.remindersEnabled || !validTimeZone(schedule.timeZone)) return [];
+  const preparationLead = schedule.prepareMinutesBefore ?? PREPARE_MINUTES;
+  if (!Number.isInteger(preparationLead) || preparationLead < 0 || preparationLead > 180) return [];
   const localDay = localParts(now, schedule.timeZone).day;
   const dayBase = Date.parse(`${localDay}T12:00:00Z`);
   const result: Array<{ day: string; mealType: ReminderMealType; kind: ReminderKind; dueAt: Date; expiresAt: Date }> =
@@ -72,7 +75,7 @@ export function dueMealReminders(schedule: MealSchedule, now: Date) {
       if (!mealAt) continue;
       for (const kind of ['PREPARE', 'LOG'] as const) {
         if (kind === 'PREPARE' ? !schedule.prepareEnabled : !schedule.logEnabled) continue;
-        const dueAt = new Date(mealAt.getTime() + (kind === 'PREPARE' ? -PREPARE_MINUTES : LOG_MINUTES) * 60_000);
+        const dueAt = new Date(mealAt.getTime() + (kind === 'PREPARE' ? -preparationLead : LOG_MINUTES) * 60_000);
         const expiresAt = new Date(dueAt.getTime() + REMINDER_WINDOW_MS);
         if (now >= dueAt && now < expiresAt) result.push({ day, mealType, kind, dueAt, expiresAt });
       }

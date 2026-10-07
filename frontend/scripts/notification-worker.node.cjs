@@ -5,6 +5,7 @@ const assert = require('node:assert/strict'),
 test('push-only worker displays current alerts and confines clicks to the application', async () => {
   const handlers = {},
     shown = [],
+    reports = [],
     opened = [];
   const self = {
     location: { origin: 'https://example.invalid' },
@@ -17,7 +18,7 @@ test('push-only worker displays current alerts and confines clicks to the applic
       },
     },
     clients: {
-      matchAll: async () => [],
+      matchAll: async () => [{ postMessage: (message) => reports.push(message) }],
       openWindow: async (url) => {
         opened.push(url);
       },
@@ -48,6 +49,14 @@ test('push-only worker displays current alerts and confines clicks to the applic
   });
   assert.equal(shown.length, 1);
   assert.equal(shown[0].options.tag, 'meal-event');
+  assert.equal(reports.at(-1).status, 'DISPLAY_REQUESTED');
+  assert.deepEqual(Object.keys(reports.at(-1)).sort(), ['receivedAt', 'status', 'type']);
+  self.registration.showNotification = async () => {
+    throw new Error('Synthetic permission failure');
+  };
+  await dispatch({ title: 'Current', body: 'Open KAINARA.', expiresAt: new Date(Date.now() + 60000).toISOString() });
+  assert.equal(reports.at(-1).status, 'DISPLAY_FAILED');
+  self.clients.matchAll = async () => [];
   let work;
   handlers.notificationclick({
     notification: { close: () => {}, data: { path: 'https://evil.invalid/steal' } },

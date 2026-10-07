@@ -2,6 +2,8 @@
 import { useEffect, useState, useRef } from 'react';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
+import Input from '@/components/ui/Input';
+import Switch from '@/components/ui/Switch';
 import { useAuth } from '@/hooks/useAuth';
 import api from '@/lib/axios';
 import { getApiErrorMessage } from '@/lib/api-error';
@@ -98,24 +100,36 @@ export default function MealReminderSettingsPanel() {
           {(
             [
               ['remindersEnabled', 'Send meal reminders'],
-              ['prepareEnabled', 'Prepare: 60 minutes before eating'],
-              ['logEnabled', 'Log: 60 minutes after eating, if still unlogged'],
+              ['prepareEnabled', 'Preparation reminder'],
+              ['logEnabled', 'Logging reminder'],
             ] as const
           ).map(([field, label]) => (
-            <label key={field} className="flex min-h-11 items-center gap-3">
-              <input
-                type="checkbox"
-                className="h-4 w-4 accent-brand-green"
+            <label key={field} className="flex min-h-11 items-center justify-between gap-3">
+              <span>{label}</span>
+              <Switch
+                aria-label={label}
                 checked={settings[field]}
-                onChange={(event) => setSettings({ ...settings, [field]: event.target.checked })}
+                onCheckedChange={(checked) => setSettings({ ...settings, [field]: checked })}
               />
-              {label}
             </label>
           ))}
         </fieldset>
+        <Input
+          type="number"
+          min={0}
+          max={180}
+          step={1}
+          required
+          disabled={loading || busy}
+          label="Preparation lead time (minutes before eating)"
+          value={Number.isFinite(settings.prepareMinutesBefore ?? 60) ? (settings.prepareMinutesBefore ?? 60) : ''}
+          onChange={(event) => setSettings({ ...settings, prepareMinutesBefore: event.currentTarget.valueAsNumber })}
+          helperText="Choose 0–180 minutes. Use 0 for a reminder at the eating time. Logging reminders are 60 minutes after eating, if still unlogged."
+        />
         <p className="text-xs text-brand-muted">
-          Reminders only apply to cleared, unlogged meals. Delivery depends on your connection and device notification
-          settings.
+          Meal times and reminder preferences apply to your account across devices. The breakfast, lunch and dinner
+          fields are your eating times. Preparation follows the lead time above. Reminders only apply to cleared,
+          unlogged meals. Delivery depends on your connection and device notification settings.
         </p>
         <Button type="submit" variant="primary" disabled={loading || busy} isLoading={busy}>
           Save meal times

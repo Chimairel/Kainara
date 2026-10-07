@@ -5,6 +5,7 @@ export interface MealReminderSettings {
   timeZone: string;
   remindersEnabled: boolean;
   prepareEnabled: boolean;
+  prepareMinutesBefore?: number;
   logEnabled: boolean;
 }
 export const suggestedMealTimes: MealReminderSettings = {
@@ -14,9 +15,19 @@ export const suggestedMealTimes: MealReminderSettings = {
   timeZone: 'Asia/Manila',
   remindersEnabled: false,
   prepareEnabled: true,
+  prepareMinutesBefore: 60,
   logEnabled: true,
 };
 export function mealSchedulePayload(settings: MealReminderSettings): MealReminderSettings {
   const { breakfastTime, lunchTime, dinnerTime, timeZone, remindersEnabled, prepareEnabled, logEnabled } = settings;
-  return { breakfastTime, lunchTime, dinnerTime, timeZone, remindersEnabled, prepareEnabled, logEnabled };
+  return {
+    breakfastTime,
+    lunchTime,
+    dinnerTime,
+    timeZone,
+    remindersEnabled,
+    prepareEnabled,
+    logEnabled,
+    prepareMinutesBefore: settings.prepareMinutesBefore ?? 60,
+  };
 }

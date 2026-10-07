@@ -12,6 +12,7 @@ async function fixtures(page: Page, onboarded: boolean) {
     timeZone: 'Asia/Manila',
     remindersEnabled: false,
     prepareEnabled: true,
+    prepareMinutesBefore: 60,
     logEnabled: true,
   };
   const user = {
@@ -80,10 +81,25 @@ async function fixtures(page: Page, onboarded: boolean) {
     }
     return route.fulfill({ json: { success: true, data } });
   });
-  return { schedule, saves: () => saves, subscribed: () => subscribed, tests: () => tests };
+  return { user, schedule, saves: () => saves, subscribed: () => subscribed, tests: () => tests };
 }
 
 for (const width of [390, 1280]) {
+  test(`a transient profile read retries without bypassing account verification at ${width}px`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 900 });
+    const fixture = await fixtures(page, true);
+    let reads = 0;
+    await page.route('**/api/user/profile', (route) => {
+      reads++;
+      return reads === 1
+        ? route.fulfill({ status: 503, json: { success: false } })
+        : route.fulfill({ json: { success: true, data: fixture.user } });
+    });
+    await page.goto('/profile/planning');
+    await expect(page.getByRole('heading', { name: 'Meal times & reminders' })).toBeVisible();
+    expect(reads).toBe(2);
+    await expect(page.getByText('Could not load your account profile')).toHaveCount(0);
+  });
   test(`onboarding saves editable meal times with preferences at ${width}px`, async ({ page }) => {
     await page.setViewportSize({ width, height: 900 });
     const fixture = await fixtures(page, false);
@@ -131,10 +147,12 @@ for (const width of [390, 1280]) {
     await page.goto('/profile/planning');
     await expect(page.getByRole('heading', { name: 'Meal times & reminders' })).toBeVisible();
     await page.getByLabel('Breakfast', { exact: true }).fill('08:30');
-    await page.getByLabel('Send meal reminders', { exact: true }).check();
-    await expect(page.getByLabel('Prepare: 60 minutes before eating')).toBeChecked();
+    await page.getByRole('switch', { name: 'Send meal reminders', exact: true }).click();
+    await expect(page.getByRole('switch', { name: 'Preparation reminder', exact: true })).toBeChecked();
+    await page.getByLabel('Preparation lead time (minutes before eating)', { exact: true }).fill('15');
     await page.getByRole('button', { name: 'Save meal times', exact: true }).click();
     await expect(page.getByText('Meal times and reminder preferences saved.')).toBeVisible();
+    expect(fixture.schedule.prepareMinutesBefore).toBe(15);
     await page.getByRole('button', { name: 'Enable on this device', exact: true }).click();
     await expect(page.getByText('Notifications are enabled on this device.')).toBeVisible();
     expect(fixture.subscribed()).toBe(true);
@@ -144,6 +162,16 @@ for (const width of [390, 1280]) {
     await page.getByRole('button', { name: 'Send test notification', exact: true }).click();
     await expect(page.getByText('Test sent. Check your device notification panel.')).toBeVisible();
     expect(fixture.tests()).toBe(1);
+    await page.evaluate(async () => {
+      const registration = await navigator.serviceWorker.ready;
+      navigator.serviceWorker.dispatchEvent(
+        new MessageEvent('message', {
+          source: registration.active,
+          data: { type: 'KAINARA_PUSH_STATUS', receivedAt: Date.now(), status: 'DISPLAY_REQUESTED' },
+        })
+      );
+    });
+    await expect(page.getByText(/Browser received a push at/)).toBeVisible();
     await page.screenshot({ path: testInfo.outputPath('meal-reminders.png') });
     await page.getByRole('button', { name: 'Disable on this device', exact: true }).click();
     await expect(page.getByText('Notifications are disabled on this device.')).toBeVisible();

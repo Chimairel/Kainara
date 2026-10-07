@@ -23,10 +23,31 @@ export default function DeviceNotificationsPanel() {
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
+  const [delivery, setDelivery] = useState<{ status: string; attemptedAt: string | null } | null>(null);
+  const [browserPush, setBrowserPush] = useState<{ receivedAt: number; status: string } | null>(null);
+  useEffect(() => {
+    setBrowserPush(null);
+    const worker = navigator.serviceWorker;
+    if (!worker || !ownerId) return;
+    const receive = (event: MessageEvent) => {
+      const source = event.source as ServiceWorker | null;
+      if (
+        source?.scriptURL !== new URL('/kainara-notifications-sw.js', window.location.origin).href ||
+        event.data?.type !== 'KAINARA_PUSH_STATUS' ||
+        !Number.isFinite(event.data.receivedAt) ||
+        !['DISPLAY_REQUESTED', 'DISPLAY_FAILED', 'EXPIRED'].includes(event.data.status)
+      )
+        return;
+      setBrowserPush({ receivedAt: event.data.receivedAt, status: event.data.status });
+    };
+    worker.addEventListener('message', receive);
+    return () => worker.removeEventListener('message', receive);
+  }, [ownerId]);
   useEffect(() => {
     let cancelled = false;
     setConfig(null);
     setSubscription(null);
+    setDelivery(null);
     setMessage('');
     setError('');
     setBusy(false);
@@ -40,6 +61,7 @@ export default function DeviceNotificationsPanel() {
         if (!cancelled) {
           setConfig(response.data.data);
           setSubscription(status?.data.data.subscribed ? local : null);
+          setDelivery(status?.data.data.delivery ?? null);
           setResolvedOwner(ownerId);
         }
       } catch (err) {
@@ -50,13 +72,20 @@ export default function DeviceNotificationsPanel() {
       cancelled = true;
     };
   }, [ownerId]);
-  const perform = async (operation: 'enable' | 'disable' | 'test') => {
+  const perform = async (operation: 'enable' | 'disable' | 'test' | 'refresh') => {
     if (!ownerId) return;
     setBusy(true);
     setError('');
     setMessage('');
     try {
-      if (operation === 'enable' && config?.publicKey) {
+      if (operation === 'refresh') {
+        const local = await currentDeviceSubscription();
+        const response = local ? await api.post('/notifications/push/status', { endpoint: local.endpoint }) : null;
+        if (currentOwner.current !== ownerId) return;
+        setSubscription(response?.data.data.subscribed ? local : null);
+        setDelivery(response?.data.data.delivery ?? null);
+        setMessage('Device status refreshed.');
+      } else if (operation === 'enable' && config?.publicKey) {
         const next = await enableDeviceNotifications(ownerId, config.publicKey);
         if (currentOwner.current !== ownerId) return;
         setSubscription(next);
@@ -65,6 +94,8 @@ export default function DeviceNotificationsPanel() {
         await disableDeviceNotifications();
         if (currentOwner.current !== ownerId) return;
         setSubscription(null);
+        setDelivery(null);
+        setBrowserPush(null);
         setMessage('Notifications are disabled on this device.');
       } else if (operation === 'test' && subscription) {
         await api.post('/notifications/push/test', { endpoint: subscription.endpoint });
@@ -84,9 +115,14 @@ export default function DeviceNotificationsPanel() {
     <section className="space-y-3 border-t border-brand-border/70 pt-5">
       <h3 className="font-display font-bold text-brand-text">Notifications on this device</h3>
       <p className="text-xs leading-relaxed text-brand-muted">
-        Receive KAINARA alerts outside the app. On iPhone or iPad, add KAINARA to your Home Screen first. Signing out
-        disables this device.
+        Enable each browser or device separately to receive KAINARA alerts outside the app. On iPhone or iPad, add
+        KAINARA to your Home Screen first. Signing out disables this device.
       </p>
+      {resolvedOwner === ownerId && (
+        <p className="text-xs font-bold text-brand-text">
+          {subscription ? 'Device notifications are enabled here.' : 'Device notifications are not enabled here.'}
+        </p>
+      )}
       {!supported && (
         <p className="text-xs text-brand-muted">
           Device notifications are unavailable in this browser or installation.
@@ -115,6 +151,30 @@ export default function DeviceNotificationsPanel() {
           </Button>
         )}
       </div>
+      {subscription && resolvedOwner === ownerId && (
+        <Button variant="ghost" disabled={busy} onClick={() => void perform('refresh')}>
+          Refresh delivery status
+        </Button>
+      )}
+      {delivery && resolvedOwner === ownerId && (
+        <p className="text-xs text-brand-muted">
+          Last delivery attempt:{' '}
+          {delivery.attemptedAt ? new Date(delivery.attemptedAt).toLocaleTimeString() : 'Pending'}.{' '}
+          {delivery.status === 'SENT'
+            ? 'Accepted by the push provider; device display is not confirmed.'
+            : `Delivery status: ${delivery.status}.`}
+        </p>
+      )}
+      {browserPush && (
+        <p role="status" className="text-xs text-brand-muted">
+          Browser received a push at {new Date(browserPush.receivedAt).toLocaleTimeString()}.{' '}
+          {browserPush.status === 'DISPLAY_REQUESTED'
+            ? 'Display request accepted. Device settings control the banner and sound.'
+            : browserPush.status === 'EXPIRED'
+              ? 'It had expired and was not displayed.'
+              : 'The browser could not display it. Check the site notification permission.'}
+        </p>
+      )}
       {message && (
         <p role="status" className="text-xs text-brand-green">
           {message}

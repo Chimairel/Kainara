@@ -181,6 +181,17 @@ async function main() {
       logEnabled: false,
     };
     assert.equal((await request('/api/user/meal-reminders', 'PUT', settings)).status, 200);
+    assert.equal(
+      (await request('/api/user/meal-reminders', 'PUT', { ...settings, prepareMinutesBefore: 15 })).status,
+      200
+    );
+    await request('/api/user/meal-reminders', 'PUT', settings);
+    assert.equal(
+      (await prisma.mealReminderSettings.findUniqueOrThrow({ where: { userId: member.id } })).prepareMinutesBefore,
+      15,
+      'Old clients must preserve an existing custom lead.'
+    );
+    await request('/api/user/meal-reminders', 'PUT', { ...settings, prepareMinutesBefore: 60 });
     assert.equal((await request('/api/user/meal-reminders', 'PUT', settings, admin)).status, 403);
     assert.equal((await prisma.userProfile.findUniqueOrThrow({ where: { userId: member.id } })).revision, 1);
     const profile = await UserProfileService.getAuthenticatedProfileDetails(member.id);
@@ -198,6 +209,10 @@ async function main() {
     );
     assert.equal((await request('/api/notifications/push/subscription', 'POST', input)).status, 200);
     const subscription = await prisma.webPushSubscription.findUniqueOrThrow({ where: { endpoint: input.endpoint } });
+    assert.deepEqual(
+      (await request('/api/notifications/push/status', 'POST', { endpoint: input.endpoint }, other)).body.data,
+      { subscribed: false, delivery: null }
+    );
     await request('/api/notifications/push/subscription', 'DELETE', { endpoint: input.endpoint }, other);
     assert.equal(await prisma.webPushSubscription.count(), 1);
     await Promise.all([MealReminderService.createDueReminders(now), MealReminderService.createDueReminders(now)]);

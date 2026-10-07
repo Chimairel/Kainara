@@ -71,6 +71,22 @@ test('meal schedule rejects malformed times, unknown zones and unsupported field
     assert.equal(mealReminderSettingsSchema.safeParse({ ...schedule, breakfastTime: value }).success, false);
   assert.equal(mealReminderSettingsSchema.safeParse({ ...schedule, timeZone: 'Unknown/Place' }).success, false);
   assert.equal(mealReminderSettingsSchema.safeParse({ ...schedule, userId: 'other' }).success, false);
+  for (const minutes of [-1, 181, 1.5, '15'])
+    assert.equal(mealReminderSettingsSchema.safeParse({ ...schedule, prepareMinutesBefore: minutes }).success, false);
+});
+test('custom preparation lead supports meal-time delivery and crosses midnight without changing the meal day', () => {
+  const immediate = dueMealReminders({ ...schedule, prepareMinutesBefore: 0 }, new Date('2026-10-06T23:00:00Z'));
+  assert.equal(immediate[0].kind, 'PREPARE');
+  const early = dueMealReminders({ ...schedule, prepareMinutesBefore: 15 }, new Date('2026-10-06T22:45:00Z'));
+  assert.equal(early[0].kind, 'PREPARE');
+  assert.equal(
+    dueMealReminders(
+      { ...schedule, breakfastTime: '01:00', prepareMinutesBefore: 180 },
+      new Date('2026-10-06T14:00:00Z')
+    )[0].day,
+    '2026-10-07'
+  );
+  assert.equal(dueMealReminders({ ...schedule, prepareMinutesBefore: -1 }, new Date('2026-10-06T22:00:00Z')).length, 0);
 });
 test('push validation cannot target arbitrary servers or malformed encryption material', () => {
   for (const endpoint of [

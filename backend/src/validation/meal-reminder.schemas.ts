@@ -9,6 +9,7 @@ export const mealReminderSettingsSchema = z
     timeZone: z.string().min(1).max(80).refine(validTimeZone, 'Choose a valid timezone.'),
     remindersEnabled: z.boolean(),
     prepareEnabled: z.boolean(),
+    prepareMinutesBefore: z.number().int().min(0).max(180).optional(),
     logEnabled: z.boolean(),
   })
   .strict();

@@ -3,15 +3,17 @@
 ## Member setup
 
 1. Save breakfast, lunch and dinner times in onboarding Preferences, or in **Profile → Food & planning → Meal times & reminders**. Times use the selected timezone. Suggested onboarding values are editable; existing completed members do not receive invented saved times or get sent back to onboarding.
-2. Under Food & planning, choose **Send meal reminders** and the desired preparation/logging options, then save.
+2. Under Food & planning, turn on **Send meal reminders**, choose the preparation/logging toggles and preparation lead time, then save. Times and reminder preferences are account-wide; device permission is separate.
 3. Choose **Enable on this device** and allow the browser permission. Device alerts can also be managed from **Notifications → Device alerts**, including for admin and nutritionist accounts.
 4. Use **Send test notification** to check the device's notification panel. Permission is per browser/device. On iPhone/iPad, use the installed Home Screen web app (iOS/iPadOS 16.4+).
 
-Preparation is **60 minutes before** the saved eating time. Logging is **60 minutes after**, for a cleared meal that has not been recorded as done or skipped. Saving times does not change clinical profile/report revisions, regenerate meals or spend a membership allowance. Existing plan calendar labels continue to use Manila business dates; only reminder wall times use the chosen timezone.
+Preparation uses the chosen lead time, **0–180 minutes before** the saved eating time, with **60 minutes** retained as the default. Zero means a preparation prompt at the eating time. Logging is **60 minutes after**, for a cleared meal that has not been recorded as done or skipped. Saving times does not change clinical profile/report revisions, regenerate meals or spend a membership allowance. Existing plan calendar labels continue to use Manila business dates; only reminder wall times use the chosen timezone.
 
 ## Backend configuration
 
 Apply `20261007100000_meal_reminders_web_push` before running this code. This is additive: three new tables, nullable notification fields and the MEAL_REMINDER enum value. Deploy the matching backend before enabling reminders against a shared database; an older Prisma client may not understand the new notification enum.
+
+Configurable preparation also requires `20261007120000_configurable_meal_preparation`. It adds an integer column with a default of 60 and a database constraint of 0–180. Old clients that omit the field preserve the saved value on updates.
 
 Generate a stable VAPID key pair once using `web-push` and securely configure the backend:
 
@@ -52,7 +54,15 @@ The **Send meal reminders** preference must also be enabled and saved for schedu
 
 On Android, Chrome may also display a silent **Tap to copy the URL for this app** notice while an installed web app is open. That is Chrome's web-app control, not a replacement push payload from KAINARA. The KAINARA test says **This is a test notification from KAINARA**. Browser/OS notification settings control Chrome's own notice independently.
 
-For example, dinner at 18:30 means preparation at 17:30 and logging at 19:30, not an alert at 18:30. For a near-term preparation check, save dinner about 65 minutes from now and expect the prompt about five minutes from now, provided that day's dinner is cleared and unlogged. For sound, manage the actual KAINARA/site notification category in Android and choose alerting rather than silent; server urgency cannot force a muted category to play sound. See [Android notification controls](https://support.google.com/android/answer/9079661?hl=en) and [Chrome's URL-copy notification string](https://chromium.googlesource.com/chromium/src/+/d6514607ce6194e4065b923c288e33a02008e1c8/chrome/android/java/strings/android_chrome_strings.grd).
+For example, dinner at 18:30 with the default 60-minute lead means preparation at 17:30 and logging at 19:30. A 15-minute lead means preparation at 18:15; zero means 18:30. For a near-term preparation check, choose a lead time and save dinner that many minutes plus five minutes from now, provided that day's dinner is cleared and unlogged. A reminder already created for the same meal/day/type is not sent again after changing the schedule. For sound, manage the actual KAINARA/site notification category in Android and choose alerting rather than silent; server urgency cannot force a muted category to play sound. See [Android notification controls](https://support.google.com/android/answer/9079661?hl=en) and [Chrome's URL-copy notification string](https://chromium.googlesource.com/chromium/src/+/d6514607ce6194e4065b923c288e33a02008e1c8/chrome/android/java/strings/android_chrome_strings.grd).
+
+### Locate a missing device banner
+
+- Check **Notifications on this device** on each browser/device. Signing into the same Google account does not subscribe another browser; **Enable on this device** must be completed there.
+- **Refresh delivery status** reads only the authenticated owner's current subscription. **Accepted by the push provider** means the server handed the push to the provider, not that the phone displayed it. FAILED, CANCELLED or SENDING identifies a different server stage.
+- When this settings panel is open, the service worker reports a timestamp for receipt and whether `showNotification` resolved, rejected, or the payload expired. It does not expose notification contents, identifiers or keys. This status is transient and does not recover historical events from when the panel was closed. Even a resolved display request cannot confirm a visible banner or sound.
+- For a delayed test, compare the provider acceptance log's notification age and call duration with the browser receipt time. Connectivity, browser background behavior and OS notification settings remain possible causes after provider acceptance; do not infer a Vercel cron failure from a missing banner. The existing schedule worker runs in the Express API.
+- A transient profile network/timeout/502/503/504 failure receives one fresh retry if the signed-in account is unchanged (45-second first request and 15-second retry timeouts). Authorization failures are not retried here; route admission still requires a fresh successful profile. This improves recovery without establishing the cause of a particular phone error.
 
 Brave references: [push messaging setting](https://github.com/brave/brave-core/blob/master/app/brave_settings_strings.grdp), [browser push channel](https://github.com/brave/brave-core/blob/master/browser/gcm_driver/brave_gcm_channel_status.cc).
 
