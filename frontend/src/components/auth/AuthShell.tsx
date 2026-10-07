@@ -10,7 +10,7 @@ import AuthHeroPanel from './AuthHeroPanel';
 
 interface AuthShellProps {
   eyebrow: string;
-  title: string;
+  title: ReactNode;
   heroTitle: ReactNode;
   heroDescription: string;
   children: ReactNode;

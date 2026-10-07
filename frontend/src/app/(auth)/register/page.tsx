@@ -88,7 +88,13 @@ export default function RegisterPage() {
           />
         ) : undefined
       }
-      title="Start with what makes you, you"
+      title={
+        <>
+          Create your
+          <br />
+          account
+        </>
+      }
       heroTitle={
         <>
           Nutrition built for
@@ -97,7 +103,6 @@ export default function RegisterPage() {
         </>
       }
       heroDescription="Create a profile that connects familiar food, personal goals, clinical context, and a visible nutritionist-review process."
-      wide
       footer={
         <>
           Already have an account?{' '}
