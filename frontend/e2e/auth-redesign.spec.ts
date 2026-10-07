@@ -1,8 +1,9 @@
 import { expect, test } from '@playwright/test';
 
 test.beforeEach(async ({ page }) => {
+  await page.route('https://fonts.gstatic.com/s/googlesans/**', (route) => route.abort());
   await page.route('**/api/**', (route) => route.fulfill({ status: 401, json: { success: false } }));
-  await page.route('https://accounts.google.com/gsi/client', (route) =>
+  await page.route('https://accounts.google.com/gsi/client*', (route) =>
     route.fulfill({
       contentType: 'application/javascript',
       body: `window.google = { accounts: { id: {

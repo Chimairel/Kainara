@@ -1,5 +1,10 @@
 import { expect, test } from '@playwright/test';
 
+// Synthetic SDK cases do not depend on Google's font CDN.
+test.beforeEach(async ({ page }) => {
+  await page.route('https://fonts.gstatic.com/s/googlesans/**', (route) => route.abort());
+});
+
 // Late font downloads must still restore the brand typography on public/auth pages.
 // OAuth layout stabilization must not disable font swapping throughout the app.
 for (const width of [1440, 390]) {
@@ -7,7 +12,7 @@ for (const width of [1440, 390]) {
     test(`${entry} applies brand fonts after a delayed download at ${width}px`, async ({ page }) => {
       await page.setViewportSize({ width, height: 900 });
       await page.route('**/api/**', (route) => route.fulfill({ status: 401, json: { success: false } }));
-      await page.route('https://accounts.google.com/gsi/client', (route) =>
+      await page.route('https://accounts.google.com/gsi/client*', (route) =>
         route.fulfill({
           contentType: 'application/javascript',
           body: `window.google = { accounts: { id: {

@@ -1,4 +1,4 @@
-export const GOOGLE_SCRIPT_SRC = 'https://accounts.google.com/gsi/client';
+export const GOOGLE_SCRIPT_SRC = 'https://accounts.google.com/gsi/client?hl=en';
 
 declare global {
   interface Window {

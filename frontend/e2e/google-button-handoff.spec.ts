@@ -1,5 +1,10 @@
 import { expect, test } from '@playwright/test';
 
+// Synthetic SDK cases do not depend on Google's font CDN.
+test.beforeEach(async ({ page }) => {
+  await page.route('https://fonts.gstatic.com/s/googlesans/**', (route) => route.abort());
+});
+
 for (const width of [1440, 390]) {
   test(`usable standard button is visible while its optional frame is still loading at ${width}px`, async ({
     page,
@@ -43,7 +48,7 @@ for (const width of [1440, 390]) {
       await expect(standard).toBeVisible();
       expect(
         await page.evaluate(() => (window as typeof window & { googleButtonOptions: string[] }).googleButtonOptions)
-      ).toEqual(['click_listener']);
+      ).toEqual(['locale', 'width', 'click_listener']);
       expect(await standard.evaluate((element) => element.closest('[inert]'))).toBeNull();
       await standard.click();
       expect(
@@ -108,7 +113,7 @@ for (const width of [1440, 390]) {
   test(`Google's temporary stacked handoff cannot move the form at ${width}px`, async ({ page }) => {
     await page.setViewportSize({ width, height: 900 });
     await page.route('**/api/**', (route) => route.fulfill({ status: 401, json: { success: false } }));
-    await page.route('https://accounts.google.com/gsi/client', (route) =>
+    await page.route('https://accounts.google.com/gsi/client*', (route) =>
       route.fulfill({
         contentType: 'application/javascript',
         body: `window.google = { accounts: { id: {

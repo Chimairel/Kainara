@@ -23,7 +23,7 @@ const contentSecurityPolicy = [
   "media-src 'self' blob: https://res.cloudinary.com",
   `connect-src 'self' ${apiOrigin} https://accounts.google.com${isDevelopment ? ' ws://localhost:* ws://127.0.0.1:*' : ''}`,
   "frame-src 'self' https://accounts.google.com https://www.google.com https://maps.google.com",
-  "font-src 'self' data:",
+  "font-src 'self' data: https://fonts.gstatic.com",
   ...(isDevelopment ? [] : ['upgrade-insecure-requests']),
 ].join('; ');
 

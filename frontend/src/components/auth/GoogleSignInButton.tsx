@@ -12,6 +12,7 @@ import Button from '@/components/ui/Button';
 import { useGoogleSignInRecovery } from './useGoogleSignInRecovery';
 import { isEmbeddedAppBrowser } from '@/lib/browser-environment';
 import { loadGoogleIdentityServices } from './google-identity-services';
+import { loadGoogleButtonFont } from './google-button-font';
 
 /**
  * Google Identity Services "Sign in with Google" button.
@@ -48,10 +49,15 @@ export default function GoogleSignInButton({ disabled = false, onCredential }: G
     }
 
     let cancelled = false;
+    let sizeObserver: ResizeObserver | undefined;
     if (isEmbeddedAppBrowser(navigator.userAgent)) return;
     activeCredentialHandler = handleGoogleCallback;
 
-    void loadGoogleIdentityServices()
+    void Promise.all([
+      loadGoogleIdentityServices(),
+      // Font/CDN failures must not disable authentication. Google retains its own fallback.
+      loadGoogleButtonFont().catch(() => undefined),
+    ])
       .then(() => {
         if (cancelled || !window.google || !buttonRef.current) return;
 
@@ -64,10 +70,25 @@ export default function GoogleSignInButton({ disabled = false, onCredential }: G
           initializedClientId = clientId;
         }
 
-        buttonRef.current.replaceChildren();
-        window.google.accounts.id.renderButton(buttonRef.current, {
-          click_listener: recovery.startAttempt,
-        });
+        const host = buttonRef.current;
+        let previousWidth = 0;
+        const renderButton = () => {
+          if (cancelled || !window.google) return;
+          const width = Math.min(400, Math.floor(host.clientWidth) || 400);
+          if (width === previousWidth) return;
+          previousWidth = width;
+          host.replaceChildren();
+          window.google.accounts.id.renderButton(host, {
+            locale: 'en',
+            width,
+            click_listener: recovery.startAttempt,
+          });
+        };
+        renderButton();
+        if (typeof ResizeObserver !== 'undefined') {
+          sizeObserver = new ResizeObserver(renderButton);
+          sizeObserver.observe(host);
+        }
       })
       .catch(() => {
         if (!cancelled) setError('Google sign-in is temporarily unavailable. Please use email instead.');
@@ -75,6 +96,7 @@ export default function GoogleSignInButton({ disabled = false, onCredential }: G
 
     return () => {
       cancelled = true;
+      sizeObserver?.disconnect();
       recovery.stopAttempt();
       if (activeCredentialHandler === handleGoogleCallback) activeCredentialHandler = null;
     };
@@ -128,7 +150,7 @@ export default function GoogleSignInButton({ disabled = false, onCredential }: G
   }
 
   return (
-    <div className="w-full flex flex-col items-center gap-2">
+    <div className="w-full max-w-[400px] flex flex-col items-center gap-2">
       {error && (
         <div className="w-full rounded-xl border border-status-error-text/25 bg-status-error-bg/10 p-3 text-xs font-semibold text-status-error-text">
           <div className="flex items-center gap-2">
@@ -156,6 +178,7 @@ export default function GoogleSignInButton({ disabled = false, onCredential }: G
         // Google briefly stacks its native button and iframe during replacement.
         // Keep that provider handoff inside its slot without restyling either control.
         <div
+          style={{ lineHeight: 'normal' }}
           className={`h-[44px] w-full overflow-hidden ${disabled || isLoading ? 'pointer-events-none' : ''}`}
           aria-disabled={disabled || isLoading}
           aria-busy={isLoading}

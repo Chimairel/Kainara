@@ -24,7 +24,7 @@ describe('Google Identity Services script ownership', () => {
     expect(loadGoogleIdentityServices()).toBe(first);
     const scripts = document.querySelectorAll(`script[src="${GOOGLE_SCRIPT_SRC}"]`);
     expect(scripts).toHaveLength(1);
-    expect(GOOGLE_SCRIPT_SRC).toBe('https://accounts.google.com/gsi/client');
+    expect(GOOGLE_SCRIPT_SRC).toBe('https://accounts.google.com/gsi/client?hl=en');
     installSDK();
     scripts[0].dispatchEvent(new Event('load'));
     await expect(first).resolves.toBeUndefined();

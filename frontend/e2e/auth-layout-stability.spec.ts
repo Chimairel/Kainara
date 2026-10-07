@@ -1,5 +1,10 @@
 import { expect, test } from '@playwright/test';
 
+// Synthetic SDK cases do not depend on Google's font CDN.
+test.beforeEach(async ({ page }) => {
+  await page.route('https://fonts.gstatic.com/s/googlesans/**', (route) => route.abort());
+});
+
 // Delay the provider button to reproduce its arrival after the email form paints.
 // No real provider credentials, delivery or account writes are exercised.
 for (const width of [1440, 390]) {
@@ -10,7 +15,7 @@ for (const width of [1440, 390]) {
       const googleReady = new Promise<void>((resolve) => {
         releaseGoogle = resolve;
       });
-      await page.route('https://accounts.google.com/gsi/client', async (request) => {
+      await page.route('https://accounts.google.com/gsi/client*', async (request) => {
         await googleReady;
         await request.fulfill({
           contentType: 'application/javascript',

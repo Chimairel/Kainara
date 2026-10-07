@@ -1,5 +1,10 @@
 import { expect, test } from '@playwright/test';
 
+// Synthetic SDK cases do not depend on Google's font CDN.
+test.beforeEach(async ({ page }) => {
+  await page.route('https://fonts.gstatic.com/s/googlesans/**', (route) => route.abort());
+});
+
 // Exercise the real credential callback/session/router with synthetic HTTP responses.
 // No Google verification, real account, email or database write is performed.
 for (const width of [1440, 390]) {
@@ -26,7 +31,7 @@ for (const width of [1440, 390]) {
           exp: 4102444800,
         })
       ).toString('base64url');
-      await page.route('https://accounts.google.com/gsi/client', (route) =>
+      await page.route('https://accounts.google.com/gsi/client*', (route) =>
         route.fulfill({
           contentType: 'application/javascript',
           body: `window.google = { accounts: { id: {
