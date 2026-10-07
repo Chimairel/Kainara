@@ -4,6 +4,7 @@ import { type CSSProperties } from 'react';
 import Image from 'next/image';
 import { Card, CardContent } from '@/components/ui/Card';
 import { Marquee } from '@/components/ui/Marquee';
+import LandingRibbonMeals from './LandingRibbonMeals';
 import styles from './LandingMealGallery.module.css';
 
 // Public display-only photo mappings already used by the Panlasang library image resolver.
@@ -56,6 +57,7 @@ export default function LandingMealGallery() {
         <path d="M 1200 395 C 780 640 -300 735 -1200 755 L -1200 1045 C -240 1020 840 895 1200 490 Z" fill="#eb6a38" />
         <path d="M 1200 395 C 780 640 -300 735 -1200 755 L -1200 915 C -260 900 820 790 1200 450 Z" fill="#f09e6c" />
         <path d="M 1200 395 C 780 640 -300 735 -1200 755 L -1200 820 C -280 805 800 705 1200 420 Z" fill="#1b4e41" />
+        <LandingRibbonMeals />
       </svg>
       <div className={styles.viewport} aria-hidden="true">
         <div className={styles.scene}>
