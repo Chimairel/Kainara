@@ -14,7 +14,7 @@ export default function AuthHeroPanel({ header }: { header: ReactNode }) {
         <div className={styles.scene} data-auth-kubo>
           <div className={styles.window} data-auth-kubo-window>
             <Image
-              src="/photos/capstone-team-window.png"
+              src="/photos/capstone-team-window-right.png"
               alt="The KAINARA capstone team working together"
               fill
               priority
