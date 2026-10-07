@@ -1,4 +1,4 @@
-/* Fit Nara within the left panel and short desktop viewports. */
+/* A tall stage lets the enlarged portrait fill the panel without covering the form. */
 .mascot {
-  width: min(100%, calc(100svh - 160px), 720px);
+  width: min(100%, calc((100svh - 160px) * 2 / 3), 640px);
 }

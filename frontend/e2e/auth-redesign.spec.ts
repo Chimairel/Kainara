@@ -31,7 +31,7 @@ for (const theme of ['light', 'dark']) {
     await expect(artwork.locator('[data-grid-tile]')).toHaveCount(0);
     const nara = artwork.getByRole('button', { name: 'Boop the Nara' });
     await expect(nara).toBeVisible();
-    const naraBounds = (await nara.boundingBox())!;
+    const naraBounds = (await artwork.locator('[data-auth-mascot]').boundingBox())!;
     expect(naraBounds.width).toBeGreaterThan(400);
     expect(naraBounds.x + naraBounds.width).toBeLessThan((await card.boundingBox())!.x);
     const submit = page.getByRole('button', { name: 'Sign in', exact: true });

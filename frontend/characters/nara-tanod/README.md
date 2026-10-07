@@ -15,7 +15,7 @@ The first generation attempt was rejected for overlapping framing. The second pa
 
 Browser checks cover all eight pointer directions, keyboard reaction without form submission, mobile taps/overflow, live reduced-motion changes, all shared authentication routes, responsive form reachability, existing credential submission and recovery behavior. Reduced motion renders a static central portrait. The component does not inspect inputs, passwords or authentication state.
 
-The subsequent owner-requested layout replaces the tile hero, marketing text and badges with a centered Nara. Her desktop canvas scales up to 720 px, constrained by the panel width and viewport height; mobile keeps a 160 px canvas above the form heading. Light/dark browser screenshots were inspected at the enlarged size, and the 20 authentication browser checks passed again. The same source art is reused; enlargement can soften the raster detail.
+The subsequent owner-requested layout replaces the tile hero, marketing text and badges with a centered Nara. After the owner requested a much larger portrait, the desktop stage uses a tall 2:3 shape (up to 640 px wide) and doubles the inner canvas to remove transparent gutters. The stage is constrained by panel width and viewport height and clipped to keep it away from the form; mobile keeps a 160 px canvas above the form heading. Light/dark browser screenshots were inspected at the enlarged size. The 20 authentication checks passed for the initial hero layout; the eight relevant mascot and form browser checks passed again after enlargement. The same source art is reused; enlargement can soften the raster detail.
 
 ## Final generation prompts
 

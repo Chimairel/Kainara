@@ -10,7 +10,7 @@ export default function AuthHeroPanel({ header }: { header: ReactNode }) {
       <header className="flex items-center justify-between gap-4">{header}</header>
       <div className="flex min-h-0 flex-1 items-center justify-center">
         <div className={styles.mascot}>
-          <AuthMascot size={720} />
+          <AuthMascot size={640} portrait />
         </div>
       </div>
     </div>
