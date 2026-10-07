@@ -181,7 +181,7 @@ npm run dev
 
 The frontend defaults to `http://localhost:3000`. Axios defaults to `http://localhost:5000/api` when `NEXT_PUBLIC_API_URL` is absent.
 
-The development command uses Turbopack to shorten compilation when opening another route. The first route after starting the server still compiles, and `npm run dev:webpack` is available if a development plugin needs Webpack. For timing a finished UI without development compilation, run `npm run build` followed by `npm run start` from `frontend/`; that preview does not reload edits automatically. API-backed screens can still wait on the configured database, especially when a remote database resumes after idling.
+The development command uses Webpack. On the current Windows checkout, Turbopack exits during the first home-page compilation, so `npm run dev` in `frontend/` (or `npm run dev:frontend` at the repository root) uses the verified Webpack path. `npm run dev:webpack` remains an alias, and `npm run dev:turbo` is available for explicit Turbopack troubleshooting. The first route after starting the server still compiles. For timing a finished UI without development compilation, run `npm run build` followed by `npm run start` from `frontend/`; that preview does not reload edits automatically. API-backed screens can still wait on the configured database, especially when a remote database resumes after idling.
 
 The backend reads credentialed CORS origins from `CORS_ORIGINS`, falling back to `FRONTEND_URL` when present and to `http://localhost:3000,http://localhost:3001` in development. Production startup has no implicit origin allowlist.
 
