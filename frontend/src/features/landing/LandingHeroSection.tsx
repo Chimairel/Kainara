@@ -36,7 +36,10 @@ export default function LandingHeroSection({ model }: SectionProps) {
           innerClassName="p-0 bg-[#071914]"
           titleComponent={
             <div className="grid items-center gap-8 lg:grid-cols-2 lg:items-start lg:gap-12">
-              <div className="flex min-w-0 flex-col items-center text-center px-4 lg:items-start lg:px-0 lg:text-left">
+              <div
+                data-hero-copy
+                className="relative z-20 flex min-w-0 flex-col items-center text-center px-4 lg:w-[calc(100%+10rem)] lg:max-w-[40rem] lg:items-start lg:px-0 lg:text-left"
+              >
                 <h1 className="font-display text-[clamp(2.5rem,5.5vw,5.5rem)] font-black leading-[0.95] tracking-[-0.05em] text-brand-text">
                   Eat with <span className="text-gradient inline-block pb-1">intention.</span>
                 </h1>

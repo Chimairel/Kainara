@@ -45,8 +45,9 @@
 
 @media (min-width: 1024px) {
   .gallery {
-    /* Bleed beyond the centered hero to the viewport's right edge. */
-    width: calc(100% + (100vw - min(100vw - 10rem, 64rem)) / 2);
+    /* Continue behind the copy while retaining the right-edge bleed. */
+    width: calc(100% + 10rem + (100vw - min(100vw - 10rem, 64rem)) / 2);
+    margin-left: -10rem;
     margin-top: -120px;
   }
 
@@ -54,7 +55,7 @@
     height: 600px;
     mask-image:
       linear-gradient(to bottom, #000 0%, #000 80%, transparent),
-      linear-gradient(to right, transparent, #000 5%, #000 100%);
+      linear-gradient(to right, transparent 0%, transparent 20%, #000 65%, #000 100%);
   }
 
   .scene {

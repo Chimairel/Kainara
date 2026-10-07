@@ -60,6 +60,14 @@ for (const width of [1440, 390]) {
     if (width > 1000) {
       const galleryBounds = (await gallery.boundingBox())!;
       const headerBounds = (await page.getByRole('banner').boundingBox())!;
+      const copyBounds = (await page.locator('[data-hero-copy]').boundingBox())!;
+      expect(copyBounds.x + copyBounds.width - galleryBounds.x).toBeGreaterThan(100);
+      expect(
+        await page.locator('[data-hero-copy] a[href="/docs"]').evaluate((el) => {
+          const bounds = el.getBoundingClientRect();
+          return document.elementFromPoint(bounds.right - 12, bounds.top + bounds.height / 2)?.closest('a') === el;
+        })
+      ).toBe(true);
       expect(Math.abs(galleryBounds.y - (headerBounds.y + headerBounds.height))).toBeLessThan(2);
       expect(Math.abs(galleryBounds.x + galleryBounds.width - width)).toBeLessThan(10);
     }
