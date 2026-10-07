@@ -3,7 +3,7 @@ import { defineConfig, devices } from '@playwright/test';
 export default defineConfig({
   testDir: './e2e',
   // Server-rendered media uses a dedicated synthetic backend in its own config.
-  testIgnore: ['website-content-ssr.spec.ts'],
+  testIgnore: ['website-content-ssr.spec.ts', 'landing-hero.spec.ts'],
   fullyParallel: false,
   forbidOnly: Boolean(process.env.CI),
   retries: process.env.CI ? 2 : 0,

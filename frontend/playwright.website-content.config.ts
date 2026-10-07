@@ -3,6 +3,8 @@ import base from './playwright.config';
 
 export default defineConfig({
   ...base,
+  // These files share one mutable public-media fixture; isolate its mode/read counters.
+  workers: 1,
   testIgnore: [],
   testMatch: ['website-content.spec.ts', 'website-content-ssr.spec.ts', 'landing-hero.spec.ts'],
   use: { ...base.use, baseURL: 'http://127.0.0.1:3100' },

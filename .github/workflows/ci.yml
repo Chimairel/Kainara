@@ -83,6 +83,9 @@ jobs:
       - run: npm ci
       - run: npx playwright install --with-deps chromium
       - run: npm run test:e2e
+      # SSR media and scroll checks require their own production server and shared fixture.
+      - run: npm run build
+      - run: npm run test:e2e:website
 
   container-build:
     runs-on: ubuntu-latest
