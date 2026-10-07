@@ -1,15 +1,23 @@
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { beforeEach, expect, it, vi } from 'vitest';
 import MealsWorkspace from './MealsWorkspace';
+import { useState } from 'react';
 
-const fixture = vi.hoisted(() => ({ get: vi.fn(), workspace: {} as Record<string, unknown> }));
+const fixture = vi.hoisted(() => ({ get: vi.fn(), push: vi.fn(), saved: () => {}, workspace: {} as Record<string, unknown> }));
+vi.mock('next/navigation', () => ({ useRouter: () => ({ push: fixture.push }) }));
+vi.mock('@/features/dashboard/useOutsideMealLog', () => ({ useOutsideMealLog: (saved: () => void) => {
+  fixture.saved = saved;
+  const [isOpen, setIsOpen] = useState(false);
+  return { isOpen, setIsOpen };
+} }));
+vi.mock('@/features/dashboard/OutsideMealModal', () => ({ OutsideMealModal: ({ isOpen }: { isOpen: boolean }) =>
+  isOpen ? <div role="dialog" aria-label="Food log"><button onClick={() => fixture.saved()}>Save fixture food</button></div> : null }));
 vi.mock('@/lib/axios', () => ({ default: { get: fixture.get } }));
 vi.mock('./useMealsPage', () => ({ useMealsPage: () => ({
   activeTab: 'library', setActiveTab: vi.fn(), isLoading: false, cycles: null,
   displayedMealCount: 15, historyTotalCount: 0, generationStatus: {},
   isReportPending: false, error: null, workspace: fixture.workspace,
 }) }));
-vi.mock('./MealsWorkspaceHeader', () => ({ default: () => null }));
 vi.mock('./UnavailableMealsNotice', () => ({ default: () => null }));
 vi.mock('./MealsGenerationNotice', () => ({ default: () => null }));
 vi.mock('./MealsDateNavigation', () => ({ default: () => null }));
@@ -20,6 +28,7 @@ vi.mock('@/components/user/MealImage', () => ({ default: () => null }));
 
 beforeEach(() => {
   fixture.get.mockReset();
+  fixture.push.mockReset();
   fixture.workspace = {
     ownerId: 'library-fixture', activeTab: 'library', librarySearch: '', libraryMealType: 'All',
     libraryRiceRole: 'All', setLibrarySearch: vi.fn(), setLibraryMealType: vi.fn(),
@@ -29,7 +38,29 @@ beforeEach(() => {
       id: 'scheduled-slot', status: 'APPROVED', mealName: 'Scheduled fixture dish', mealType: 'LUNCH',
       calories: 400, proteinG: 20, carbsG: 40, fatG: 12, libraryMealId: null,
     }],
+    refreshHistory: vi.fn(), historySearch: '', historySource: 'All', historyStatus: 'All',
   };
+});
+
+it('opens the shared food logger, refreshes saved history, and routes the header action to groceries', async () => {
+  fixture.get.mockResolvedValue(catalogue());
+  fixture.workspace = { ...fixture.workspace, user: { reportAcknowledged: true } };
+  render(<MealsWorkspace />);
+  fireEvent.click(screen.getByRole('button', { name: 'Log food or snack' }));
+  expect(screen.getByRole('dialog', { name: 'Food log' })).toBeInTheDocument();
+  fireEvent.click(screen.getByRole('button', { name: 'Save fixture food' }));
+  expect(fixture.workspace.refreshHistory).toHaveBeenCalledOnce();
+  fireEvent.click(screen.getByRole('button', { name: 'Groceries' }));
+  expect(fixture.push).toHaveBeenCalledWith('/grocery');
+  expect(screen.queryByText(/swaps left in your current plan cycle/)).not.toBeInTheDocument();
+});
+
+it('keeps the food-log action and modal unavailable before report acknowledgement', () => {
+  fixture.get.mockResolvedValue(catalogue());
+  fixture.workspace = { ...fixture.workspace, user: { reportAcknowledged: false } };
+  render(<MealsWorkspace />);
+  expect(screen.queryByRole('button', { name: 'Log food or snack' })).not.toBeInTheDocument();
+  expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
 });
 const catalogue = (restrictedProfile = false) => ({ data: { data: {
   restrictedProfile, total: restrictedProfile ? 0 : 1960, page: 1, pageCount: restrictedProfile ? 0 : 327,

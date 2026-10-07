@@ -15,6 +15,7 @@ Use these components before copying markup from another page. Role authorization
 | Meal library grid | `shared/MealLibraryLayout` | Member, nutritionist and admin libraries |
 | Tabs or section links | `ui/WorkspaceTabs` | Meals, progress, reviews, settings, admin audit |
 | Password field | `ui/PasswordInput` | Authentication and profile security |
+| Food log and plan/grocery actions | `user/MemberMealActions` | Dashboard and Meals headers; callers retain report eligibility and logging handlers |
 | Authentication split layout | `ui/sign-in` through `auth/AuthShell` | Login, registration, recovery, verification and invitation activation |
 | Pagination | `ui/Pagination` | All three role libraries |
 | Hover, focus or tap explanation | `ui/InfoHint` | Lifestyle and Health planning benefits |

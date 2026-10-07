@@ -3,8 +3,8 @@
 import UnavailableMealsNotice from '@/features/meals/UnavailableMealsNotice';
 import DashboardContent from './DashboardContent';
 import PortalPageHeader from '@/components/shared/PortalPageHeader';
-import Button from '@/components/ui/Button';
-import { AlertTriangle, Calendar, Plus } from 'lucide-react';
+import MemberMealActions from '@/components/user/MemberMealActions';
+import { AlertTriangle } from 'lucide-react';
 import { OutsideMealModal } from '@/features/dashboard/OutsideMealModal';
 import DashboardPlanNotices from './DashboardPlanNotices';
 import { useDashboardWorkspace } from './useDashboardWorkspace';
@@ -30,14 +30,7 @@ export default function DashboardWorkspace() {
           description="Your meals, daily intake, and next steps — all in one place."
           actions={
             !isReportPending && user?.reportAcknowledged ? (
-              <div className="flex flex-wrap gap-2">
-                <Button variant="primary" onClick={() => outsideLog.setIsOpen(true)}>
-                  <Plus className="h-4 w-4" /> Log food or snack
-                </Button>
-                <Button variant="secondary" onClick={() => router.push('/meals')}>
-                  <Calendar className="h-4 w-4" /> Weekly plan
-                </Button>
-              </div>
+              <MemberMealActions onLogFood={() => outsideLog.setIsOpen(true)} onOpenDestination={() => router.push('/meals')} />
             ) : null
           }
         />

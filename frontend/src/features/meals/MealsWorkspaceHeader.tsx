@@ -1,6 +1,5 @@
 import PortalPageHeader from '@/components/shared/PortalPageHeader';
-import Link from 'next/link';
-import { useMembership } from '@/features/membership/MembershipProvider';
+import type { ReactNode } from 'react';
 
 type Props = {
   activeTab: 'plan' | 'history' | 'library';
@@ -8,6 +7,7 @@ type Props = {
   isStarterPlan: boolean;
   upcomingStart: string | null;
   nextCycleDay: string | null;
+  actions?: ReactNode;
 };
 
 export default function MealsWorkspaceHeader({
@@ -16,8 +16,8 @@ export default function MealsWorkspaceHeader({
   isStarterPlan,
   upcomingStart,
   nextCycleDay,
+  actions,
 }: Props) {
-  const { data } = useMembership();
   return (
     <PortalPageHeader
       title={
@@ -43,13 +43,7 @@ export default function MealsWorkspaceHeader({
             : 'Browse compatible, nutritionist-verified recipes for your profile.'
       }
       className="mb-1"
-      meta={
-        activeTab === 'plan' && data?.enabled ? (
-          <Link href="/membership" className="text-xs font-semibold text-brand-green">
-            {data.swaps.remaining} of {data.swaps.cap} swaps left in your current plan cycle
-          </Link>
-        ) : undefined
-      }
+      actions={actions}
     />
   );
 }

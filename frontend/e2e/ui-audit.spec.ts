@@ -107,6 +107,11 @@ for (const width of [390, 1440]) {
     await expect(page.getByRole('heading', { name: 'Scheduled placeholder dish' })).toHaveCount(0);
     releaseCatalogue();
     await expect(page.getByRole('heading', { name: 'Recipe on page 1', exact: true })).toBeVisible();
+    await page.getByRole('button', { name: 'Log food or snack', exact: true }).click();
+    await expect(page.getByRole('dialog', { name: 'LOG FOOD OR A MEAL' })).toBeVisible();
+    await page.getByRole('button', { name: 'Close', exact: true }).click();
+    await expect(page.getByRole('button', { name: 'Groceries', exact: true })).toBeVisible();
+    await expect(page.getByText(/swaps left in your current plan cycle/)).toHaveCount(0);
     const libraryTab = page.getByRole('navigation', { name: 'Meal workspace sections' }).getByRole('button', { name: /Library/ });
     await expect(libraryTab).toHaveText('Library1962');
     await expect(page.getByText('Serving data recorded', { exact: true })).toHaveCount(0);
@@ -125,6 +130,8 @@ for (const width of [390, 1440]) {
     await pages.getByRole('button', { name: 'Go to page 1', exact: true }).click();
     await expect(page.getByRole('heading', { name: 'Recipe on page 1', exact: true })).toBeVisible();
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+    await page.getByRole('button', { name: 'Groceries', exact: true }).click();
+    await expect(page).toHaveURL(/\/grocery$/);
   });
 
   test(`grocery availability and shared orange highlights at ${width}px`, async ({ page }) => {

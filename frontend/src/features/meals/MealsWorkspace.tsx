@@ -13,6 +13,11 @@ import MealsHistorySection from './MealsHistorySection';
 import MealsPlanSection from './MealsPlanSection';
 import { useMealsPage } from './useMealsPage';
 import { useCallback, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import MemberMealActions from '@/components/user/MemberMealActions';
+import { OutsideMealModal } from '@/features/dashboard/OutsideMealModal';
+import { useOutsideMealLog } from '@/features/dashboard/useOutsideMealLog';
+import { invalidateSessionResource } from '@/lib/session-resource-cache';
 
 export default function MealsWorkspace() {
   const model = useMealsPage();
@@ -36,6 +41,14 @@ export default function MealsWorkspace() {
     profileReviewRequired,
     workspace,
   } = model;
+  const router = useRouter();
+  const outsideLog = useOutsideMealLog(() => {
+    invalidateSessionResource(workspace.ownerId, 'dashboard-outside-meals');
+    invalidateSessionResource(workspace.ownerId,
+      `user-meals-history:${workspace.historySearch}:${workspace.historySource}:${workspace.historyStatus}`);
+    void workspace.refreshHistory();
+  }, workspace.ownerId);
+  const canLogFood = !isReportPending && Boolean(workspace.user?.reportAcknowledged);
   const libraryScope = JSON.stringify([
     workspace.ownerId, workspace.librarySearch, workspace.libraryMealType, workspace.libraryRiceRole,
   ]);
@@ -54,6 +67,10 @@ export default function MealsWorkspace() {
           isStarterPlan={isStarterPlan}
           upcomingStart={upcomingStart}
           nextCycleDay={nextCycleDay}
+          actions={canLogFood ? (
+            <MemberMealActions destination="grocery" onLogFood={() => outsideLog.setIsOpen(true)}
+              onOpenDestination={() => router.push('/grocery')} />
+          ) : undefined}
         />
         {!isLoading && (
           <UnavailableMealsNotice
@@ -138,6 +155,7 @@ export default function MealsWorkspace() {
       </div>
 
       <MealsWorkspaceModals workspace={workspace} />
+      {canLogFood && <OutsideMealModal {...outsideLog} />}
     </div>
   );
 }

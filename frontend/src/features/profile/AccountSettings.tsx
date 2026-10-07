@@ -62,6 +62,7 @@ export default function AccountSettings({ initialPanel = 'account' }: { initialP
         value={activePanel}
         onChange={setActivePanel}
         label="Profile settings sections"
+        animateIndicator={false}
         items={(
           [
             ['account', 'Account', User],

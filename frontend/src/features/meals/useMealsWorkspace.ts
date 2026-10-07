@@ -791,5 +791,6 @@ export function useMealsWorkspace(initialOptions?: { initialDateKey?: string | n
     nextCycleDay,
     displayedMealCount,
     completedMealCount,
+    refreshHistory: fetchHistory,
   };
 }
