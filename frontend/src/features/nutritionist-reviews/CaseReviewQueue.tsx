@@ -130,7 +130,7 @@ export default function CaseReviewQueue({ review, expanded }: Props) {
                     </div>
                   </div>
                   <Badge variant="pending" className="text-[10px] shrink-0">
-                    {meal.requiresSafetyRevalidation ? 'Recheck needed' : 'Awaiting review'}
+                    {meal.requiresSafetyRevalidation ? 'Updated review needed' : 'Awaiting review'}
                   </Badge>
                 </div>
 

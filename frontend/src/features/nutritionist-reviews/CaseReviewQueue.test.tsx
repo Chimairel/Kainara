@@ -18,6 +18,7 @@ describe('single RND case queue', () => {
       cookDeadlineAt: '2026-10-03',
       assuranceTier: 'ENHANCED',
       remainingReviewers: 1,
+      requiresSafetyRevalidation: true,
       user: { id: 'member', name: 'Synthetic Member' },
       calories: 600,
       claimStatus: { claimedByOther: false, claimedByMe: false },
@@ -44,5 +45,7 @@ describe('single RND case queue', () => {
     expect(screen.getByRole('button', { name: /Adobo/ })).toBeDisabled();
     expect(screen.queryByText(/second review/i)).not.toBeInTheDocument();
     expect(screen.getAllByText('One RND approval required')).toHaveLength(2);
+    expect(screen.getAllByText('Updated review needed')).toHaveLength(2);
+    expect(screen.queryByText(/recheck/i)).not.toBeInTheDocument();
   });
 });

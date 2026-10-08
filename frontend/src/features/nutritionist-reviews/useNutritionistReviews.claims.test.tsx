@@ -71,4 +71,29 @@ describe('RND review claim controls', () => {
     expect(result.current.selectedMealId).toBeNull();
     expect(result.current.detailData).toBeNull();
   });
+
+  it('explains a detail timeout and blocks claiming until a successful retry', async () => {
+    const { result } = renderHook(() => useNutritionistReviews());
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    vi.mocked(api.get).mockRejectedValueOnce({ code: 'ECONNABORTED' });
+    const log = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    await act(async () => {
+      await result.current.handleSelectMeal('meal-1');
+    });
+    expect(result.current.errorMsg).toBe('Loading this review took too long. Please retry.');
+    await act(async () => {
+      await result.current.handleClaimMeal();
+    });
+    expect(api.post).not.toHaveBeenCalled();
+    await act(async () => {
+      await result.current.handleSelectMeal('meal-1');
+    });
+    expect(result.current.errorMsg).toBeNull();
+    expect(result.current.detailData?.mealPlan.id).toBe('meal-1');
+    await act(async () => {
+      await result.current.handleClaimMeal();
+    });
+    expect(api.post).toHaveBeenCalledWith('/nutritionist/queue/meal-1/claim');
+    log.mockRestore();
+  });
 });

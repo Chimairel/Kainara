@@ -73,7 +73,7 @@ export function useCaseReviewWorkspaceModel({
         size="sm"
         onClick={handleClaimMeal}
         isLoading={actionLoading === selectedMealId || (detailLoading && !activeClaimStatus)}
-        disabled={Boolean(actionLoading)}
+        disabled={Boolean(actionLoading) || detailLoading || !detailData}
         className="rounded-xl shadow-md text-xs font-bold px-3.5 py-2"
       >
         <ShieldCheck className="mr-1.5 h-3.5 w-3.5" />

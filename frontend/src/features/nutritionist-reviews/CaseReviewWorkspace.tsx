@@ -107,15 +107,23 @@ export default function CaseReviewWorkspace({
                 <ReviewDetailSkeleton />
               </div>
             ) : errorMsg && !detailData ? (
-              <div className="p-6 bg-red-950/20 border border-red-500/20 rounded-xl space-y-4 max-w-lg mx-auto mt-12 text-center">
+              <div
+                role="alert"
+                className="p-6 bg-red-950/20 border border-red-500/20 rounded-xl space-y-4 max-w-lg mx-auto mt-12 text-center"
+              >
                 <ShieldAlert className="w-12 h-12 text-red-500 mx-auto" />
                 <div className="space-y-1">
-                  <h3 className="text-sm font-bold text-brand-text">Access Blocked</h3>
+                  <h3 className="text-sm font-bold text-brand-text">Review details unavailable</h3>
                   <p className="text-xs text-brand-muted">{errorMsg}</p>
                 </div>
-                <Button variant="secondary" onClick={() => setSelectedMealId(null)} className="text-xs px-6">
-                  Back to Queue
-                </Button>
+                <div className="flex flex-wrap justify-center gap-3">
+                  <Button onClick={() => void review.handleSelectMeal(selectedMealId)} className="text-xs px-6">
+                    Retry details
+                  </Button>
+                  <Button variant="secondary" onClick={() => setSelectedMealId(null)} className="text-xs px-6">
+                    Back to Queue
+                  </Button>
+                </div>
               </div>
             ) : detailData ? (
               <div className="space-y-6">

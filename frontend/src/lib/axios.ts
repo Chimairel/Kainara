@@ -35,12 +35,13 @@ const api = axios.create({
 // Request interceptor: attach JWT token from cookie as Authorization header
 // The backend expects "Authorization: Bearer <token>" on every protected route
 api.interceptors.request.use((config) => {
-  // Current/workspace reads revalidate saved cycle and meal evidence. Under
+  // Plan and case-detail reads inspect saved profile and meal evidence. Under
   // database load they can exceed the ordinary 30-second read budget.
   if (
     config.timeout === api.defaults.timeout &&
     config.method === 'get' &&
-    /^\/user\/meals\/(current|workspace)$/.test(config.url ?? '')
+    (/^\/user\/meals\/(current|workspace)$/.test(config.url ?? '') ||
+      /^\/nutritionist\/queue\/[^/]+$/.test(config.url ?? ''))
   ) {
     config.timeout = 90_000;
   }

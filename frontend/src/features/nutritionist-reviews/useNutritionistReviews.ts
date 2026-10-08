@@ -250,14 +250,22 @@ export function useNutritionistReviews(enabled = true) {
       }
     } catch (err: unknown) {
       console.error('Failed to fetch card details:', err);
-      setErrorMsg(getApiErrorMessage(err, 'Failed to load meal card details.'));
+      const code = (err as { code?: string } | null)?.code;
+      setErrorMsg(
+        getApiErrorMessage(
+          err,
+          code === 'ECONNABORTED' || code === 'ETIMEDOUT'
+            ? 'Loading this review took too long. Please retry.'
+            : 'Review details could not be loaded. Please retry.'
+        )
+      );
     } finally {
       setDetailLoading(false);
     }
   };
 
   const handleClaimMeal = async () => {
-    if (!selectedMealId) return;
+    if (!selectedMealId || detailLoading || !detailData) return;
     setActionLoading(selectedMealId);
     setErrorMsg(null);
     try {
