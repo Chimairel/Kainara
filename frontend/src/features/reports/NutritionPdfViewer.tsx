@@ -4,6 +4,7 @@ import React from 'react';
 import { Check, Loader2 } from 'lucide-react';
 import type { NutritionReport } from '@/types';
 import DocumentViewer from '@/components/shared/DocumentViewer';
+import Button from '@/components/ui/Button';
 import type { ReportVersion } from './ReportHistory';
 import NutritionGuidancePaper, { type GuidanceProfileSnapshot } from './NutritionGuidancePaper';
 
@@ -54,23 +55,29 @@ export default function NutritionPdfViewer({
         {isAcknowledging && <Loader2 className="h-4 w-4 animate-spin" />}Set as current
       </button>
     )
+  ) : isAcknowledged ? (
+    <Button
+      variant="primary"
+      size="sm"
+      disabled
+      aria-label="Acknowledged"
+      className="!min-h-10 !rounded-lg !px-3 !text-[#07100d] disabled:!opacity-100"
+    >
+      <Check className="h-4 w-4" />
+      Acknowledged
+    </Button>
   ) : (
     <button
       type="button"
       className={actionClass}
-      disabled={isAcknowledged || isAcknowledging}
-      aria-label={isAcknowledged ? 'Acknowledged' : 'Use this report for meal planning'}
+      disabled={isAcknowledging}
+      aria-label="Use this report for meal planning"
       onClick={() => {
         onExpandedChange(false);
         onAcknowledge();
       }}
     >
-      {isAcknowledged ? (
-        <>
-          <Check className="h-4 w-4" />
-          Acknowledged
-        </>
-      ) : isAcknowledging ? (
+      {isAcknowledging ? (
         <>
           <Loader2 className="h-4 w-4 animate-spin" />
           Acknowledging…
