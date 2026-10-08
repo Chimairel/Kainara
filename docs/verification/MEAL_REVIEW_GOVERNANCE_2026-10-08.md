@@ -48,7 +48,7 @@ The additive migration `202610080002_meal_review_governance` was **not** applied
 
 ## Follow-up: integrated member, routing and two-incident journey
 
-Change ID: CHG-20261008-08. Tested on development commit `902069b8` with the added reusable acceptance helper. The complete acceptance command passed all **11 scenario groups** against a new task-owned PostgreSQL 17 fixture with all 95 migrations. The fixture contained one administrator, ten RNDs and seven members overall; five newly created member profiles supplied the integrated visibility matrix below. All accounts and clinical notes were synthetic, and decisions used actual authenticated HTTP endpoints and database transactions.
+Change ID: CHG-20261008-08. Tested on development commit `902069b8` with the added reusable acceptance helper. The complete acceptance command passed all **11 scenario groups** against a new task-owned PostgreSQL 17 fixture with all 95 migrations. The fixture contained two administrators (including the separate batch owner), ten RNDs and seven members overall; five newly created member profiles supplied the integrated visibility matrix below. All accounts and clinical notes were synthetic, and decisions used actual authenticated HTTP endpoints and database transactions.
 
 | Requested check | Result |
 | --- | --- |
