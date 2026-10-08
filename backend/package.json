@@ -109,6 +109,7 @@
     "test:acceptance:auth-session": "tsx scripts/auth-session-local-acceptance.ts",
     "test:acceptance:meal-governance": "tsx scripts/meal-governance-local-acceptance.ts",
     "test:acceptance:meal-log-audit": "tsx scripts/meal-log-audit-local-acceptance.ts",
+    "test:acceptance:partial-plan": "tsx scripts/partial-plan-local-acceptance.ts",
     "check:meal-log-audit": "tsc --project tsconfig.meal-log-audit.json"
   },
   "dependencies": {

@@ -12,6 +12,12 @@ import { MembershipProvider } from '@/features/membership/MembershipProvider';
 import WeeklyProfileNotice from '@/features/reports/WeeklyProfileNotice';
 import MembershipNotice from '@/features/membership/MembershipNotice';
 import BackgroundResourceBoundary from '@/features/navigation/BackgroundResourceBoundary';
+import {
+  PortalAnnouncementsProvider,
+  PortalAnnouncements,
+  PortalAnnouncement,
+  announcementPriority,
+} from '@/components/shared/PortalAnnouncements';
 
 export default function UserLayout({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
@@ -23,33 +29,36 @@ export default function UserLayout({ children }: { children: React.ReactNode }) 
 
   return (
     <RouteGuard>
-      <MembershipProvider key={user?.userId}>
-        <BackgroundResourceBoundary ownerId={user?.userId} />
-        <div className="portal-shell flex h-screen w-full p-0 md:p-4">
-          <Sidebar />
-          <div className="relative z-10 flex min-w-0 flex-1 flex-col md:pl-4">
-            <Navbar />
-            {isReportPending && (
-              <div className="w-full shrink-0 border-b border-brand-border/40 bg-brand-bg/80 px-4 py-2.5 backdrop-blur-md md:px-5">
-                <AnnouncementBanner
-                  title="Action required:"
-                  message="Review your nutrition report and choose it for meal planning."
-                  action={{
-                    label: 'View Nutrition Report',
-                    href: '/profile/nutrition-report',
-                  }}
-                />
-              </div>
-            )}
-            <WeeklyProfileNotice />
-            <main className="portal-main custom-scrollbar relative flex-1 overflow-y-auto pb-36 md:pb-4">
-              {children}
-            </main>
+      <PortalAnnouncementsProvider key={user?.userId}>
+        <MembershipProvider key={user?.userId}>
+          <BackgroundResourceBoundary ownerId={user?.userId} />
+          <div className="portal-shell flex h-screen w-full p-0 md:p-4">
+            <Sidebar />
+            <div className="relative z-10 flex min-w-0 flex-1 flex-col md:pl-4">
+              <Navbar />
+              {isReportPending && (
+                <PortalAnnouncement priority={announcementPriority.action}>
+                  <AnnouncementBanner
+                    title="Action required:"
+                    message="Review your nutrition report and choose it for meal planning."
+                    action={{
+                      label: 'View Nutrition Report',
+                      href: '/profile/nutrition-report',
+                    }}
+                  />
+                </PortalAnnouncement>
+              )}
+              <WeeklyProfileNotice />
+              <main className="portal-main custom-scrollbar relative flex-1 overflow-y-auto pb-36 md:pb-4">
+                <PortalAnnouncements />
+                {children}
+              </main>
+            </div>
+            <BottomNav />
+            <MembershipNotice />
           </div>
-          <BottomNav />
-          <MembershipNotice />
-        </div>
-      </MembershipProvider>
+        </MembershipProvider>
+      </PortalAnnouncementsProvider>
     </RouteGuard>
   );
 }

@@ -64,7 +64,9 @@ SplitWorkspace and WorkspaceListPane use the same `splitAt` breakpoint (`md` by 
 
 ## Announcement banners
 
-Reuse `shared/AnnouncementBanner` for compact workspace notices and their link/button actions. `warning` (the default) uses brown for required action, including report acknowledgement, due check-ins and safety changes. `info` and `clinical` use teal for saved updates or waiting for review; `success` uses green for completed actions. Color supplements the title/message; preserve the caller's eligibility, persistence and dismissal rules. WeeklyProfileNotice uses this presentation and retains its existing check-in modal and status refresh.
+Reuse `shared/AnnouncementBanner` for compact workspace notices and their link/button actions. `warning` (the default) uses brown for required action and pending RND review. `info` and `clinical` use teal for preparation or saved updates; `blue` identifies starter/upcoming plan information; `success` uses green for completed actions. Button actions may pass `disabled` while a request is running. Color supplements the title/message; preserve the caller's eligibility, persistence and dismissal rules.
+
+The member layout mounts `shared/PortalAnnouncements` as the first child of its scrollable main, immediately below Navbar. It scrolls away with the page. Wrap page-owned notices in `PortalAnnouncement` with `announcementPriority`: safety, required action, RND review, check-in, preparation, plan information, other information. `PortalAnnouncementsProvider` is keyed by authenticated owner; registrations disappear on route/account changes and retain the caller's state and handlers through React portals. Standalone workspaces render notices inline. `features/meals/MealPlanAnnouncements` shares actual pending counts and starter dates between Dashboard and Meals; these replace the earlier one-time pending/starter toasts. WeeklyProfileNotice keeps its check-in modal and status refresh, registering each notice separately so safety warnings precede informational updates.
 
 ## Landing links
 

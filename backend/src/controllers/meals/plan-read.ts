@@ -1,6 +1,6 @@
 import { publicCycleSnapshot } from '@/services/meal-macro-context.service';
 import { getOwnedMealPlanWhere } from '@/domain/meal-actionability.policy';
-import { missingMealSlots } from '@/domain/meal-generation-gap.policy';
+import { remainingGenerationSlots } from '@/domain/meal-generation-continuation.policy';
 import { unavailablePlanMeals } from '@/domain/unavailable-plan-meals.policy';
 import { buildPendingMealPlanPreview } from '@/domain/meal-generation-result.policy';
 
@@ -138,10 +138,11 @@ export async function getCurrentPlan(req: AuthenticatedRequest, res: Response) {
         },
         pendingReview: pendingPreviewWithImages(groupMeals, libraryImages, libraryCookingLinks),
         planSnapshot,
-        awaitingGenerationCount: missingMealSlots(
+        awaitingGenerationCount: remainingGenerationSlots(
           cycle.startDate,
           cycle.expectedSlotCount,
-          groupMeals.filter((row) => row.status !== MealPlanStatus.CANCELLED)
+          groupMeals.filter((row) => row.status !== MealPlanStatus.CANCELLED),
+          new Date()
         ).length,
         generationStatus: generationJob?.status ?? null,
       },
@@ -272,17 +273,21 @@ export async function getPlanWorkspace(req: AuthenticatedRequest, res: Response)
         pendingReview: pendingPreviewWithImages(rows, libraryImages, libraryCookingLinks),
         awaitingGeneration: {
           current: cycles.current
-            ? missingMealSlots(
+            ? remainingGenerationSlots(
                 cycles.current.startDate,
                 cycles.current.expectedSlotCount,
-                rows.filter((row) => row.planGroupId === cycles.current?.id && row.status !== MealPlanStatus.CANCELLED)
+                rows.filter((row) => row.planGroupId === cycles.current?.id && row.status !== MealPlanStatus.CANCELLED),
+                new Date()
               ).length
             : 0,
           upcoming: cycles.upcoming
-            ? missingMealSlots(
+            ? remainingGenerationSlots(
                 cycles.upcoming.startDate,
                 cycles.upcoming.expectedSlotCount,
-                rows.filter((row) => row.planGroupId === cycles.upcoming?.id && row.status !== MealPlanStatus.CANCELLED)
+                rows.filter(
+                  (row) => row.planGroupId === cycles.upcoming?.id && row.status !== MealPlanStatus.CANCELLED
+                ),
+                new Date()
               ).length
             : 0,
         },

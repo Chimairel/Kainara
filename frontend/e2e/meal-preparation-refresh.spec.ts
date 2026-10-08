@@ -49,6 +49,7 @@ async function fixture(page: Page, cycleExists = true) {
     readFailure: false,
     planReads: 0,
     navigations: 0,
+    cycle,
   };
   page.on('framenavigated', (frame) => {
     if (frame === page.mainFrame()) state.navigations++;
@@ -116,11 +117,20 @@ for (const width of [400, 1440]) {
     const state = await fixture(page);
     state.partial = true;
     state.pending = true;
+    state.cycle.planType = 'STARTER';
     await page.goto('/dashboard');
     const preparation = page.getByRole('complementary', { name: 'Meal preparation status' });
     const review = page.getByRole('complementary', { name: 'Meal review status' });
     await expect(preparation).toContainText('2 meal slots still awaiting generation.');
     await expect(review).toContainText('logging becomes available after approval.');
+    const stack = page.getByRole('region', { name: 'Account and meal plan notices' });
+    await expect(stack.getByRole('complementary')).toHaveCount(3);
+    const starter = stack.getByRole('complementary', { name: 'Starter plan status' });
+    await expect(starter).toContainText('You’re on a starter plan.');
+    expect(await stack.evaluate((node) => node.parentElement?.firstElementChild === node)).toBe(true);
+    expect(await stack.evaluate((node) => Boolean(node.closest('main')))).toBe(true);
+    expect((await review.boundingBox())!.y).toBeLessThan((await preparation.boundingBox())!.y);
+    expect((await preparation.boundingBox())!.y).toBeLessThan((await starter.boundingBox())!.y);
     await expect(page.getByRole('button', { name: 'Mark as eaten' })).toHaveCount(0);
     for (const banner of [preparation, review]) {
       const bounds = (await banner.boundingBox())!;
@@ -128,6 +138,16 @@ for (const width of [400, 1440]) {
       expect(bounds.x + bounds.width).toBeLessThanOrEqual(width + 1);
     }
     await page.screenshot({ path: test.info().outputPath('dashboard-banners.png'), fullPage: true });
+    const originalY = (await stack.boundingBox())!.y;
+    const scrolled = await page.locator('main.portal-main').evaluate((main) => {
+      main.scrollTop = 300;
+      return main.scrollTop;
+    });
+    expect(scrolled).toBeGreaterThan(100);
+    await expect.poll(async () => Math.abs((await stack.boundingBox())!.y - originalY + scrolled)).toBeLessThan(1);
+    await page.locator('main.portal-main').evaluate((main) => {
+      main.scrollTop = 0;
+    });
 
     state.status = 'FAILED';
     await expect(preparation).toContainText('2 meal slots could not be prepared.', { timeout: 7_000 });
@@ -139,6 +159,7 @@ for (const width of [400, 1440]) {
     await page.getByRole('button', { name: 'Retry missing slots' }).click();
     await expect(preparation).toHaveCount(0);
     await expect(review).toBeVisible();
+    await expect(stack.getByRole('complementary')).toHaveCount(2);
     await expect(page.getByRole('button', { name: 'Mark as eaten' })).toHaveCount(0);
 
     state.partial = true;
@@ -148,6 +169,9 @@ for (const width of [400, 1440]) {
     await expect(preparation).toContainText(
       'Empty slots cannot be reviewed, logged, swapped, or added to groceries yet.'
     );
+    await page.goto('/profile/nutrition-report');
+    await expect(page.getByRole('complementary', { name: 'Meal preparation status' })).toHaveCount(0);
+    await expect(page.getByRole('complementary', { name: 'Meal review status' })).toHaveCount(0);
   });
 }
 

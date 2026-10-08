@@ -22,6 +22,7 @@
     "../scripts/meal-governance-local-acceptance.ts",
     "../scripts/meal-governance-preview.ts",
     "../scripts/dev-test-accounts.ts",
-    "../scripts/dev-test-accounts-local-acceptance.ts"
+    "../scripts/dev-test-accounts-local-acceptance.ts",
+    "../scripts/partial-plan-local-acceptance.ts"
   ]
 }

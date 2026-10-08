@@ -20,7 +20,7 @@ export interface AnnouncementBannerProps {
   children?: React.ReactNode;
   className?: string;
   ariaLabel?: string;
-  variant?: 'clinical' | 'warning' | 'info' | 'success';
+  variant?: 'clinical' | 'warning' | 'info' | 'blue' | 'success';
 }
 
 const informationStyle = { surface: 'bg-[#075e54] text-white', action: 'text-[#075e54]' };
@@ -28,6 +28,7 @@ const variantStyles = {
   clinical: informationStyle,
   warning: { surface: 'bg-[#8c3b00] text-white', action: 'text-[#8c3b00]' },
   info: informationStyle,
+  blue: { surface: 'bg-[#075985] text-white', action: 'text-[#075985]' },
   success: { surface: 'bg-[#166534] text-white', action: 'text-[#166534]' },
 };
 

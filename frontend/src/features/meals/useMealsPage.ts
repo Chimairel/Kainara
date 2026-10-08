@@ -1,6 +1,5 @@
 'use client';
 
-import { showPendingReviewNoticeOnce, showStarterPlanNoticeOnce } from '@/features/meals/plan-status-notice';
 import { useAuth } from '@/hooks/useAuth';
 import { useBreadcrumb } from '@/lib/context/BreadcrumbContext';
 import { formatManilaDate, getManilaDateKey, manilaDateFromKey } from '@/lib/manila-date';
@@ -121,24 +120,6 @@ export function useMealsPage() {
   }, [activeTab, setSubTab]);
 
   const activePlanPillRef = useRef<HTMLButtonElement | null>(null);
-  useEffect(() => {
-    showPendingReviewNoticeOnce({
-      userId: user?.userId,
-      pending: pendingReview,
-      currentCycle: cycles?.current ?? null,
-      upcomingCycle: cycles?.upcoming ?? null,
-      upcomingOnly,
-    });
-  }, [user?.userId, pendingReview, cycles, upcomingOnly]);
-
-  useEffect(() => {
-    showStarterPlanNoticeOnce({
-      userId: user?.userId,
-      isStarterPlan,
-      nextCycleDay,
-      currentCycle: cycles?.current ?? null,
-    });
-  }, [user?.userId, isStarterPlan, nextCycleDay, cycles]);
 
   useEffect(() => {
     if (activePlanPillRef.current) {

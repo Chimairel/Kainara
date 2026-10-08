@@ -4,7 +4,7 @@ import MealsWorkspaceHeader from '@/features/meals/MealsWorkspaceHeader';
 import UnavailableMealsNotice from '@/features/meals/UnavailableMealsNotice';
 import StateNotice from '@/components/shared/StateNotice';
 import MealLibraryPanel from '@/features/meals/MealLibraryPanel';
-import { AlertTriangle, BookOpen, Calendar, Clock3, History } from 'lucide-react';
+import { AlertTriangle, BookOpen, Calendar, History } from 'lucide-react';
 import WorkspaceTabs from '@/components/ui/WorkspaceTabs';
 import { MealsWorkspaceModals } from '@/features/meals/MealsWorkspaceModals';
 import MealsDateNavigation from './MealsDateNavigation';
@@ -18,6 +18,9 @@ import MemberMealActions from '@/components/user/MemberMealActions';
 import { OutsideMealModal } from '@/features/dashboard/OutsideMealModal';
 import { useOutsideMealLog } from '@/features/dashboard/useOutsideMealLog';
 import { invalidateSessionResource } from '@/lib/session-resource-cache';
+import MealPlanAnnouncements from './MealPlanAnnouncements';
+import AnnouncementBanner from '@/components/shared/AnnouncementBanner';
+import { PortalAnnouncement, announcementPriority } from '@/components/shared/PortalAnnouncements';
 
 export default function MealsWorkspace() {
   const model = useMealsPage();
@@ -124,18 +127,32 @@ export default function MealsWorkspace() {
         />
 
         {activeTab === 'plan' && !isLoading && upcomingOnly && !clinicalEvidenceRequired && !isReportPending && (
-          <div className="flex items-start gap-3 rounded-xl border border-status-pending-text/30 bg-status-pending-bg/15 px-4 py-3 text-sm text-brand-text">
-            <Clock3 className="mt-0.5 h-4 w-4 shrink-0 text-status-pending-text" />
-            <p>
-              {generationStatus.current === 'FAILED'
-                ? 'Your first current plan could not be prepared. Its preparation can be retried from your dashboard.'
-                : 'Your first current plan is being prepared automatically. The meals below are next week’s draft, not the active plan.'}{' '}
-              Meals awaiting review are previews and cannot be logged, swapped, or shopped for yet.
-            </p>
-          </div>
+          <PortalAnnouncement priority={announcementPriority.plan}>
+            <AnnouncementBanner
+              variant="blue"
+              title="Upcoming plan preview:"
+              message={
+                generationStatus.current === 'FAILED'
+                  ? 'Your first current plan could not be prepared. Its preparation can be retried from your dashboard.'
+                  : 'Your first current plan is being prepared automatically. The meals below are next week’s draft, not the active plan.'
+              }
+            />
+          </PortalAnnouncement>
         )}
 
         <MealsGenerationNotice model={model} />
+        {activeTab === 'plan' &&
+          !isLoading &&
+          !isReportPending &&
+          !clinicalEvidenceRequired &&
+          !profileReviewRequired && (
+            <MealPlanAnnouncements
+              pendingCount={model.pendingReview?.mealCount}
+              isStarterPlan={isStarterPlan}
+              nextCycleDay={nextCycleDay}
+              upcomingOnly={upcomingOnly}
+            />
+          )}
 
         <MealsDateNavigation model={model} />
 

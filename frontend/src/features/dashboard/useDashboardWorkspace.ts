@@ -7,7 +7,6 @@ import { LIVE_UPDATE_EVENT } from '@/lib/live-events';
 import axios from 'axios';
 import { useRouter } from 'next/navigation';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { showPendingReviewNoticeOnce, showStarterPlanNoticeOnce } from '@/features/meals/plan-status-notice';
 import { getApiErrorMessage } from '@/lib/api-error';
 import { MealPlan } from '@/types';
 import type { UserProfileData } from '@/hooks/useProfile';
@@ -66,7 +65,6 @@ export function useDashboardWorkspace() {
     cachedPlan?.planSnapshot ?? null
   );
   const [currentCycle, setCurrentCycle] = useState<CycleMetaSnapshot | null>(cachedPlan?.cycle ?? null);
-  const [upcomingCycle, setUpcomingCycle] = useState<CycleMetaSnapshot | null>(cachedPlan?.upcomingCycle ?? null);
   const generationRequestInFlight = useRef(false);
   const currentPlanRequestInFlight = useRef(false);
   const lastPlanRequestAt = useRef(0);
@@ -105,14 +103,6 @@ export function useDashboardWorkspace() {
     }
     return null;
   }, [isStarterPlan, currentCycle?.endDate]);
-
-  useEffect(() => {
-    showPendingReviewNoticeOnce({ userId: user?.userId, pending: pendingReview, currentCycle, upcomingCycle });
-  }, [user?.userId, pendingReview, currentCycle, upcomingCycle]);
-
-  useEffect(() => {
-    showStarterPlanNoticeOnce({ userId: user?.userId, isStarterPlan, nextCycleDay, currentCycle });
-  }, [user?.userId, isStarterPlan, nextCycleDay, currentCycle]);
 
   // Extract unique scheduledDate values in chronological order, keeping full 7-day cycle with past days visible
   const uniqueDates = React.useMemo(() => {
@@ -165,7 +155,6 @@ export function useDashboardWorkspace() {
       setGenerationStatus(snapshot.generationStatus ?? null);
       setPlanSnapshot(snapshot.planSnapshot);
       setCurrentCycle(snapshot.cycle ?? null);
-      setUpcomingCycle(snapshot.upcomingCycle ?? null);
       writeSessionResource(ownerId, currentPlanResource, snapshot);
     },
     [ownerId]
@@ -310,7 +299,6 @@ export function useDashboardWorkspace() {
       const response = await api.get('/user/meals/cycles', { signal });
       if (signal.aborted || !response.data?.success) return;
       const upcoming = response.data.data?.upcoming ?? null;
-      setUpcomingCycle(upcoming);
       const snapshot = readSessionResource<CurrentPlanSnapshot>(ownerId, currentPlanResource);
       if (snapshot) writeSessionResource(ownerId, currentPlanResource, { ...snapshot, upcomingCycle: upcoming });
     },
@@ -466,6 +454,8 @@ export function useDashboardWorkspace() {
     router,
     isLoading,
     currentCycle,
+    isStarterPlan,
+    nextCycleDay,
     awaitingGenerationCount,
     isReportPending,
     currentMeals,

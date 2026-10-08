@@ -6,6 +6,7 @@ import { useSessionQuery } from '@/hooks/useSessionQuery';
 import api from '@/lib/axios';
 import AnnouncementBanner from '@/components/shared/AnnouncementBanner';
 import CheckinModal from '@/components/user/CheckinModal';
+import { PortalAnnouncement, announcementPriority } from '@/components/shared/PortalAnnouncements';
 
 type Status = {
   isDue: boolean;
@@ -43,42 +44,46 @@ export default function WeeklyProfileNotice() {
   const weeks = status.weeksSinceConfirmation ?? 1;
   return (
     <>
-      <section
-        role="status"
-        aria-label="Profile planning status"
-        className="shrink-0 space-y-2 border-b border-brand-border/40 bg-brand-bg/80 px-4 py-2.5 backdrop-blur-md md:px-5"
-      >
-        {status.isDue && (
-          <AnnouncementBanner
-            variant="warning"
-            ariaLabel="Weekly check-in reminder"
-            title={weeks >= 2 ? 'Check-in overdue:' : 'Weekly check-in:'}
-            message={
-              weeks >= 2
-                ? `You last confirmed your profile ${weeks} weeks ago. Review your details to keep your information current.`
-                : 'Your profile check-in is due. Review your details or confirm they are still the same.'
-            }
-            action={{ label: 'Complete check-in', onClick: () => setOpen(true) }}
-          />
-        )}
-        {status.hasPendingChanges && (
-          <AnnouncementBanner
-            variant={status.safetyChanged ? 'warning' : 'info'}
-            ariaLabel="Unapplied profile updates"
-            title={status.safetyChanged ? 'Action required:' : 'Profile updates:'}
-            message={
-              <>
-                {status.safetyChanged
-                  ? 'Your health context changed. Affected recommendations need revalidation.'
-                  : 'Your saved profile updates have not been applied to meal planning.'}
-                {status.activeGeneratedAt &&
-                  ` Planning report dated ${new Date(status.activeGeneratedAt).toLocaleDateString('en-PH', { timeZone: 'Asia/Manila' })}.`}
-              </>
-            }
-            action={{ label: 'Review report', href: '/profile/nutrition-report' }}
-          />
-        )}
-      </section>
+      {status.isDue && (
+        <PortalAnnouncement priority={announcementPriority.checkin}>
+          <div role="status" aria-label="Profile planning status">
+            <AnnouncementBanner
+              variant="warning"
+              ariaLabel="Weekly check-in reminder"
+              title={weeks >= 2 ? 'Check-in overdue:' : 'Weekly check-in:'}
+              message={
+                weeks >= 2
+                  ? `You last confirmed your profile ${weeks} weeks ago. Review your details to keep your information current.`
+                  : 'Your profile check-in is due. Review your details or confirm they are still the same.'
+              }
+              action={{ label: 'Complete check-in', onClick: () => setOpen(true) }}
+            />
+          </div>
+        </PortalAnnouncement>
+      )}
+      {status.hasPendingChanges && (
+        <PortalAnnouncement
+          priority={status.safetyChanged ? announcementPriority.safety : announcementPriority.information}
+        >
+          <div role="status" aria-label="Profile planning status">
+            <AnnouncementBanner
+              variant={status.safetyChanged ? 'warning' : 'info'}
+              ariaLabel="Unapplied profile updates"
+              title={status.safetyChanged ? 'Action required:' : 'Profile updates:'}
+              message={
+                <>
+                  {status.safetyChanged
+                    ? 'Your health context changed. Affected recommendations need revalidation.'
+                    : 'Your saved profile updates have not been applied to meal planning.'}
+                  {status.activeGeneratedAt &&
+                    ` Planning report dated ${new Date(status.activeGeneratedAt).toLocaleDateString('en-PH', { timeZone: 'Asia/Manila' })}.`}
+                </>
+              }
+              action={{ label: 'Review report', href: '/profile/nutrition-report' }}
+            />
+          </div>
+        </PortalAnnouncement>
+      )}
       <CheckinModal
         isOpen={open}
         onClose={() => setOpen(false)}

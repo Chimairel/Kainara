@@ -1,5 +1,6 @@
 import type { CycleMetaSnapshot } from '@/features/dashboard/model';
-import Button from '@/components/ui/Button';
+import AnnouncementBanner from '@/components/shared/AnnouncementBanner';
+import { PortalAnnouncement, announcementPriority } from '@/components/shared/PortalAnnouncements';
 
 export default function UnavailableMealsNotice({
   cycle,
@@ -15,23 +16,23 @@ export default function UnavailableMealsNotice({
   if (!cycle?.unavailableMealCount) return null;
   const retired = cycle.retiredMealCount ?? 0;
   return (
-    <section
-      role="status"
-      className="rounded-xl border border-status-pending-text/30 bg-status-pending-bg/15 p-4 text-sm text-brand-text"
-    >
-      <p className="font-semibold">
-        {upcoming ? 'Upcoming plan' : 'Current plan'}: {cycle.unavailableMealCount} unavailable meal
-        {cycle.unavailableMealCount === 1 ? '' : 's'}
-      </p>
-      <p className="mt-1">
-        {retired > 0 ? 'Old test recipes were removed from planning. ' : ''}These slots are excluded from meals, logging
-        and shopping until suitable replacements are ready. Other cleared meals remain available.
-      </p>
-      {retired > 0 && onRepair && (
-        <Button variant="secondary" className="mt-3" onClick={onRepair} disabled={isRepairing}>
-          {isRepairing ? 'Replacing…' : 'Replace retired meals'}
-        </Button>
-      )}
-    </section>
+    <PortalAnnouncement priority={announcementPriority.safety}>
+      <div role="status">
+        <AnnouncementBanner
+          variant="warning"
+          title={`${upcoming ? 'Upcoming plan' : 'Current plan'}: ${cycle.unavailableMealCount} unavailable meal${cycle.unavailableMealCount === 1 ? '' : 's'}`}
+          message={`${retired > 0 ? 'Old test recipes were removed from planning. ' : ''}These slots are excluded from meals, logging and shopping until suitable replacements are ready. Other cleared meals remain available.`}
+          action={
+            retired > 0 && onRepair
+              ? {
+                  label: isRepairing ? 'Replacing…' : 'Replace retired meals',
+                  onClick: onRepair,
+                  disabled: isRepairing,
+                }
+              : undefined
+          }
+        />
+      </div>
+    </PortalAnnouncement>
   );
 }

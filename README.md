@@ -88,6 +88,14 @@ These modules separate presentation, client state, and backend operations. Eligi
 
 For onboarding meal times, device notification permissions, stable VAPID keys and reminder scheduling, see [Device notifications and meal reminders](docs/WEB_PUSH_MEAL_REMINDERS.md).
 
+## Partially prepared meal plans
+
+The persistent preparation worker runs every 30 seconds and fills at most one earliest remaining calendar day per turn. It tries current source recipes before AI; restricted-profile candidates still need their existing RND approval. Temporary provider outages and quota pauses retain a scheduled retry. Source, ingredient, profile and validation failures never grant approval.
+
+Every five minutes, recovery scans eligible current/future cycles for gaps left behind in completed jobs or source-unavailable failures. It queues fresh replacements without restoring cancelled rows. Frozen shopping plans, accepted incomplete plans, expired cycles and changed profiles are excluded. Passed days are not backdated or counted as meals still awaiting preparation. A new database schema or broader catalogue alone does not fix an already completed job with cancelled slots; this reconciliation addresses that case. Available evidence and calorie constraints can still prevent a suitable replacement.
+
+`npm --prefix backend run test:acceptance:partial-plan` checks progressive filling, concurrent recovery, source evidence, review holds and grocery invalidation. It refuses any database except the fresh disposable loopback target named in its script and requires external provider credentials to be empty. Do not point acceptance scripts at the shared development database.
+
 ## Prerequisites
 
 - Node.js 24 and npm, as pinned by the root `.nvmrc` and used by repository CI.

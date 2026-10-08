@@ -8,6 +8,7 @@ import { AlertTriangle } from 'lucide-react';
 import { OutsideMealModal } from '@/features/dashboard/OutsideMealModal';
 import DashboardPlanNotices from './DashboardPlanNotices';
 import { useDashboardWorkspace } from './useDashboardWorkspace';
+import MealPlanAnnouncements from '@/features/meals/MealPlanAnnouncements';
 
 export default function DashboardWorkspace() {
   const model = useDashboardWorkspace();
@@ -40,6 +41,13 @@ export default function DashboardWorkspace() {
 
         {!isLoading && <UnavailableMealsNotice cycle={currentCycle} onRepair={() => router.push('/meals')} />}
         <DashboardPlanNotices model={model} />
+        {!isLoading && !isReportPending && !clinicalEvidenceRequired && (
+          <MealPlanAnnouncements
+            pendingCount={model.pendingReview?.mealCount}
+            isStarterPlan={model.isStarterPlan}
+            nextCycleDay={model.nextCycleDay}
+          />
+        )}
 
         <DashboardContent model={model} />
       </div>
