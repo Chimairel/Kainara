@@ -45,3 +45,6 @@ codex/toothless.jpg
 # Local rollback snapshots from recipe data audit scripts.
 /backend/.data-audit-backups/
 /.data-audit-backups/
+
+# Local synthetic account credentials (never commit).
+/backend/.local/dev-test-accounts/

@@ -13,6 +13,7 @@
     "start": "node dist/server.js",
     "seed": "tsx prisma/seed.ts",
     "seed:test-accounts": "tsx prisma/seed-test-accounts.ts",
+    "test:accounts": "tsx scripts/dev-test-accounts.ts",
     "seed:meal-library": "tsx prisma/seed-common-meal-library.ts",
     "seed:condition-rules": "tsx prisma/seed-condition-rules.ts",
     "test:integration:production": "tsx scripts/production-integration-smoke.ts",

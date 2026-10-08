@@ -20,6 +20,8 @@
     "../scripts/specialist-routing-local-acceptance.ts",
     "../scripts/auth-session-local-acceptance.ts",
     "../scripts/meal-governance-local-acceptance.ts",
-    "../scripts/meal-governance-preview.ts"
+    "../scripts/meal-governance-preview.ts",
+    "../scripts/dev-test-accounts.ts",
+    "../scripts/dev-test-accounts-local-acceptance.ts"
   ]
 }
