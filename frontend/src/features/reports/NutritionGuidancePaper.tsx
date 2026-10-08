@@ -1,22 +1,8 @@
 'use client';
 
 import React from 'react';
-import RecordPaper from '@/components/shared/RecordPaper';
 import type { NutritionReport } from '@/types';
 import { formatManilaDate } from '@/lib/manila-date';
-import {
-  AlertCircle,
-  Calendar,
-  CheckCircle2,
-  Droplet,
-  ExternalLink,
-  Flame,
-  Info,
-  ShieldCheck,
-  User,
-  Utensils,
-  XCircle,
-} from 'lucide-react';
 
 export type GuidanceProfileSnapshot = {
   name: string;
@@ -50,23 +36,29 @@ function parseList(value: unknown): string[] {
   return [];
 }
 
-/** The modern guidance card styled with the KAINARA Health membership card aesthetic. */
+export interface NutritionGuidancePaperProps {
+  report: NutritionReport;
+  profile: GuidanceProfileSnapshot;
+  activePlanningVersion?: number | null;
+  className?: string;
+}
+
+/**
+ * HTML preview of the saved guidance, arranged as paper sheets. Server PDF export remains separate.
+ */
 export default function NutritionGuidancePaper({
   report,
   profile,
   activePlanningVersion = report.planningContext?.activeVersion,
-}: {
-  report: NutritionReport;
-  profile: GuidanceProfileSnapshot;
-  activePlanningVersion?: number | null;
-}) {
+  className = '',
+}: NutritionGuidancePaperProps) {
   const prepared = report.generatedAt
     ? formatManilaDate(report.generatedAt, {
-        month: 'short',
+        month: 'numeric',
         day: 'numeric',
         year: 'numeric',
       })
-    : 'Recently prepared';
+    : 'Not recorded';
 
   const isPreviouslySelected = Boolean(
     report.acknowledgedAt && activePlanningVersion && activePlanningVersion !== report.version
@@ -78,326 +70,347 @@ export default function NutritionGuidancePaper({
       : 'Selected for planning'
     : 'Not yet selected for planning';
 
+  const isArchived = Boolean(activePlanningVersion && activePlanningVersion !== report.version);
+
+  const referenceItems = Array.isArray(report.referenceItems) ? report.referenceItems : [];
   const recommendedList = parseList(report.foodsRecommended);
   const limitList = parseList(report.foodsToLimit);
   const avoidList = parseList(report.foodsToAvoid);
   const drinksList = parseList(report.drinksGuidance);
 
+  const isPolicyReport = Boolean(report.reportPolicyVersion && referenceItems.length > 0);
+  const totalPages =
+    isPolicyReport && referenceItems.length <= 3 && !limitList.length && !avoidList.length && !drinksList.length
+      ? 1
+      : 2;
+
+  const page1ReferenceItems = isPolicyReport
+    ? referenceItems.length <= 3
+      ? referenceItems
+      : referenceItems.slice(0, 2)
+    : [];
+  const page2ReferenceItems = isPolicyReport && referenceItems.length > 3 ? referenceItems.slice(2) : [];
+
   return (
-    <RecordPaper aria-label="Nutrition guidance record">
-      {/* Header Block */}
-      <header className="border-b border-[#dce4e0]/80 dark:border-[#173e33] pb-3">
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div className="min-w-0 flex-1 basis-60 space-y-1.5 max-w-2xl">
-            <span className="font-mono text-xs font-bold uppercase tracking-[0.2em] text-brand-green">
-              KAINARA · Personal record
-            </span>
-            <h1 className="font-display text-xl leading-tight sm:text-2xl font-black tracking-[-0.03em] text-[#0d2820] dark:text-white">
+    <article
+      aria-label="Nutrition guidance record"
+      className={`w-full max-w-[794px] flex flex-col items-center gap-8 break-words [overflow-wrap:break-word] ${className}`}
+    >
+      {/* ──────────────── PAGE 1 ──────────────── */}
+      <div
+        data-document-page="1"
+        className="relative bg-white text-slate-800 shadow-[0_4px_30px_rgba(0,0,0,0.35)] w-full min-h-[1123px] p-14 flex flex-col justify-between select-text break-words [overflow-wrap:break-word]"
+        style={{ minHeight: '1123px' }}
+      >
+        <div className="space-y-4">
+          {/* Header */}
+          <header>
+            <div className="text-[11px] sm:text-xs font-mono font-bold tracking-[0.2em] text-[#1B4332] uppercase mb-1">
+              KAINARA · Personal Record
+            </div>
+            <h1 className="text-xl sm:text-2xl md:text-[26px] font-bold text-[#1B4332] tracking-tight">
               Nutrition Guidance
             </h1>
-            <p className="text-sm leading-normal text-[#5a746a] dark:text-white/70">
-              Reference summary for the recorded profile
+            <p className="text-xs sm:text-[13px] text-slate-600 mt-1">
+              Version {report.version} | Prepared {prepared} · {statusText}
             </p>
-          </div>
+            {isArchived && (
+              <p className="text-xs text-amber-700 dark:text-amber-600 mt-1 italic">
+                Archived record. This document does not change your current planning guidance.
+              </p>
+            )}
+          </header>
 
-          <div className="flex shrink-0 flex-wrap items-center gap-2.5 self-start print:hidden">
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-white/80 dark:bg-[#0a201a] border border-[#dce4e0] dark:border-[#173e33] px-3.5 py-1.5 font-mono text-xs text-[#5a746a] dark:text-emerald-200/80 shadow-xs">
-              <Calendar className="w-3.5 h-3.5 text-brand-green" />
-              Prepared {prepared}
-            </span>
-          </div>
-        </div>
+          <hr className="border-t border-[#D8F3DC] my-3 sm:my-4" />
 
-        <p className="mt-3 text-sm text-[#5a746a] dark:text-white/60">
-          Version {report.version} · Prepared {prepared} · {statusText}
-        </p>
-      </header>
+          {/* Profile Details */}
+          <section className="space-y-1.5 text-xs sm:text-[13px] text-slate-700">
+            <p>
+              <strong className="text-slate-900 font-semibold">Name:</strong> {profile.name}
+            </p>
+            <p>
+              <strong className="text-slate-900 font-semibold">Estimated energy target:</strong>{' '}
+              <span className="font-semibold text-slate-900">
+                {profile.dailyCalorieTarget === null
+                  ? 'Not recorded'
+                  : `${Number(profile.dailyCalorieTarget).toLocaleString('en-US')} kcal/day`}
+              </span>
+            </p>
+            <p>
+              <strong className="text-slate-900 font-semibold">Reported conditions:</strong>{' '}
+              <span>
+                {profile.conditions.length ? profile.conditions.join(', ').replace(/_/g, ' ') : 'None reported'}
+              </span>
+            </p>
+            <p>
+              <strong className="text-slate-900 font-semibold">Reported food restrictions:</strong>{' '}
+              <span>
+                {profile.foodRestrictions.length
+                  ? profile.foodRestrictions.join(', ').replace(/_/g, ' ')
+                  : 'None reported'}
+              </span>
+            </p>
+            <p>
+              <strong className="text-slate-900 font-semibold">Goal:</strong> {profile.goal.replace(/_/g, ' ')}
+            </p>
+          </section>
 
-      {/* Profile Used for This Guidance */}
-      <section className="rounded-2xl sm:rounded-3xl border border-[#dce4e0] dark:border-[#173e33] bg-white/80 dark:bg-[#0c241d]/80 p-3 sm:p-4 shadow-xs backdrop-blur-sm space-y-3 print:border-none print:shadow-none print:p-0">
-        <div className="flex items-center justify-between border-b border-[#dce4e0]/70 dark:border-[#173e33] pb-3">
-          <div className="flex items-center gap-2.5">
-            <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-xl bg-brand-accent/15 text-brand-accent">
-              <User className="h-4 w-4" />
-            </div>
-            <h2 className="font-display text-sm font-bold text-[#0d2820] dark:text-white tracking-tight">
-              Profile used for this guidance
-            </h2>
-          </div>
-        </div>
+          <hr className="border-t border-[#D8F3DC] my-3 sm:my-4" />
 
-        <dl className="grid grid-cols-2 gap-2 sm:gap-3">
-          <div className="rounded-2xl border border-[#dce4e0]/80 dark:border-[#173e33]/80 bg-[#faf8f5]/80 dark:bg-[#071914]/80 p-2.5 sm:p-3">
-            <dt className="text-xs font-semibold text-[#5a746a] dark:text-white/70">Name</dt>
-            <dd className="mt-1 text-[13px] font-bold text-[#0d2820] dark:text-white">{profile.name}</dd>
-          </div>
-          <div className="rounded-2xl border border-[#dce4e0]/80 dark:border-[#173e33]/80 bg-[#faf8f5]/80 dark:bg-[#071914]/80 p-2.5 sm:p-3">
-            <dt className="text-xs font-semibold text-[#5a746a] dark:text-white/70">Goal</dt>
-            <dd className="mt-1 text-[13px] font-bold capitalize text-[#0d2820] dark:text-white">
-              {profile.goal.replace(/_/g, ' ').toLowerCase()}
-            </dd>
-          </div>
-          <div className="rounded-2xl border border-[#dce4e0]/80 dark:border-[#173e33]/80 bg-[#faf8f5]/80 dark:bg-[#071914]/80 p-2.5 sm:p-3">
-            <dt className="text-xs font-semibold text-[#5a746a] dark:text-white/70">Estimated energy target</dt>
-            <dd className="mt-1 text-[13px] font-bold text-[#0d2820] dark:text-white font-mono">
-              {profile.dailyCalorieTarget === null
-                ? 'Not recorded'
-                : `${profile.dailyCalorieTarget.toLocaleString()} kcal/day`}
-            </dd>
-          </div>
-          <div className="rounded-2xl border border-[#dce4e0]/80 dark:border-[#173e33]/80 bg-[#faf8f5]/80 dark:bg-[#071914]/80 p-2.5 sm:p-3">
-            <dt className="text-xs font-semibold text-[#5a746a] dark:text-white/70">Reported conditions</dt>
-            <dd className="mt-1 text-[13px] font-bold text-[#0d2820] dark:text-white">
-              {profile.conditions.length ? profile.conditions.join(', ').replace(/_/g, ' ') : 'None reported'}
-            </dd>
-          </div>
-          <div className="col-span-2 rounded-2xl border border-[#dce4e0]/80 dark:border-[#173e33]/80 bg-[#faf8f5]/80 dark:bg-[#071914]/80 p-2.5 sm:p-3">
-            <dt className="text-xs font-semibold text-[#5a746a] dark:text-white/70">
-              Reported allergies, intolerances and avoided foods
-            </dt>
-            <dd className="mt-1 text-[13px] font-bold text-[#0d2820] dark:text-white">
-              {profile.foodRestrictions.length
-                ? profile.foodRestrictions.join(', ').replace(/_/g, ' ')
-                : 'None reported'}
-            </dd>
-          </div>
-        </dl>
-      </section>
+          {/* What these numbers mean */}
+          <section className="space-y-1.5 my-3">
+            <h2 className="text-sm sm:text-base font-bold text-[#2D6A4F]">What these numbers mean</h2>
+            <p className="text-xs sm:text-[13px] text-slate-700 leading-relaxed">
+              {report.generalSummary || 'No summary recorded for this version.'}
+            </p>
+          </section>
 
-      {/* Daily Planning Estimates (Macro Cards) */}
-      {report.planningTargets && (
-        <section
-          role="region"
-          aria-label="Daily planning estimates"
-          className="rounded-2xl sm:rounded-3xl border border-[#dce4e0] dark:border-[#173e33] bg-white/80 dark:bg-[#0c241d]/80 p-3 sm:p-4 shadow-xs backdrop-blur-sm space-y-3 print:border-none print:shadow-none print:p-0"
-        >
-          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#dce4e0]/70 dark:border-[#173e33] pb-3">
-            <div className="flex items-center gap-2.5">
-              <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-xl bg-brand-green/15 text-brand-green">
-                <Flame className="h-4 w-4" />
+          {/* Daily planning estimates (macro cards) */}
+          {report.planningTargets && (
+            <section
+              role="region"
+              aria-label="Daily planning estimates"
+              className="my-3 p-3 sm:p-4 rounded-xl border border-[#D8F3DC] bg-[#f7fbf9] space-y-2.5"
+            >
+              <div className="flex items-center justify-between pb-2 border-b border-[#D8F3DC]">
+                <span className="font-bold text-xs sm:text-sm text-[#1B4332]">Daily planning estimates</span>
+                <span className="text-[10px] font-mono font-bold tracking-wider uppercase text-[#1B4332] bg-[#D8F3DC] px-2 py-0.5 rounded">
+                  PDRI Aligned
+                </span>
               </div>
-              <h2 className="font-display text-sm font-bold text-[#0d2820] dark:text-white tracking-tight">
-                Daily planning estimates
-              </h2>
-            </div>
-            <span className="text-xs font-mono font-bold uppercase tracking-wider text-brand-green bg-brand-green/10 border border-brand-green/20 px-2 py-0.5 rounded-md">
-              PDRI Aligned
-            </span>
-          </div>
-
-          <dl className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,7rem),1fr))] gap-3">
-            <div className="rounded-2xl border border-[#dce4e0]/80 dark:border-[#173e33]/80 bg-[#faf8f5]/80 dark:bg-[#071914]/80 p-3 text-center">
-              <dt className="text-xs font-semibold text-[#5a746a] dark:text-white/70">Energy</dt>
-              <dd className="mt-1 font-display text-xl font-black text-[#0d2820] dark:text-white font-mono">
-                {Math.round(report.planningTargets.calories)}{' '}
-                <span className="text-sm font-normal text-[#5a746a] dark:text-white/70">kcal</span>
-              </dd>
-            </div>
-            <div className="rounded-2xl border border-[#08705b]/25 bg-[#08705b]/10 p-3 text-center dark:border-[#10b981]/30 dark:bg-[#10b981]/15">
-              <dt className="text-xs font-semibold text-[#08705b] dark:text-[#34d399]">Protein</dt>
-              <dd className="mt-1 font-display text-xl font-black text-[#08705b] dark:text-[#34d399] font-mono">
-                {Math.round(report.planningTargets.proteinG)} <span className="text-sm font-normal">g</span>
-              </dd>
-            </div>
-            <div className="rounded-2xl border border-[#18b9d2]/25 bg-[#18b9d2]/10 p-3 text-center dark:border-[#38bdf8]/30 dark:bg-[#38bdf8]/15">
-              <dt className="text-xs font-semibold text-[#0b7788] dark:text-[#38bdf8]">Carbs</dt>
-              <dd className="mt-1 font-display text-xl font-black text-[#0b7788] dark:text-[#38bdf8] font-mono">
-                {Math.round(report.planningTargets.carbsG)} <span className="text-sm font-normal">g</span>
-              </dd>
-            </div>
-            <div className="rounded-2xl border border-[#eb6a38]/25 bg-[#eb6a38]/10 p-3 text-center dark:border-[#eb6a38]/30 dark:bg-[#eb6a38]/15">
-              <dt className="text-xs font-semibold text-[#c74614] dark:text-[#f09e6c]">Fat</dt>
-              <dd className="mt-1 font-display text-xl font-black text-[#c74614] dark:text-[#f09e6c] font-mono">
-                {Math.round(report.planningTargets.fatG)} <span className="text-sm font-normal">g</span>
-              </dd>
-            </div>
-          </dl>
-
-          {report.planningTargets.explanation && (
-            <p className="text-sm text-[#5a746a] dark:text-white/70 leading-normal">
-              {report.planningTargets.explanation}
-            </p>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center">
+                <div className="p-2 bg-white rounded-lg border border-[#D8F3DC]">
+                  <div className="text-[10px] text-slate-500 font-medium">Energy</div>
+                  <div className="text-xs sm:text-sm font-bold text-slate-900 font-mono">
+                    {Math.round(report.planningTargets.calories)} kcal
+                  </div>
+                </div>
+                <div className="p-2 bg-white rounded-lg border border-[#08705b]/30">
+                  <div className="text-[10px] text-[#08705b] font-medium">Protein</div>
+                  <div className="text-xs sm:text-sm font-bold text-[#08705b] font-mono">
+                    {Math.round(report.planningTargets.proteinG)} g
+                  </div>
+                </div>
+                <div className="p-2 bg-white rounded-lg border border-[#0b7788]/30">
+                  <div className="text-[10px] text-[#0b7788] font-medium">Carbs</div>
+                  <div className="text-xs sm:text-sm font-bold text-[#0b7788] font-mono">
+                    {Math.round(report.planningTargets.carbsG)} g
+                  </div>
+                </div>
+                <div className="p-2 bg-white rounded-lg border border-[#c74614]/30">
+                  <div className="text-[10px] text-[#c74614] font-medium">Fat</div>
+                  <div className="text-xs sm:text-sm font-bold text-[#c74614] font-mono">
+                    {Math.round(report.planningTargets.fatG)} g
+                  </div>
+                </div>
+              </div>
+              {report.planningTargets.explanation && (
+                <p className="text-xs text-slate-600 leading-normal">{report.planningTargets.explanation}</p>
+              )}
+            </section>
           )}
 
-          <div className="rounded-2xl border border-[#dce4e0]/80 dark:border-[#173e33]/80 bg-[#faf8f5]/80 dark:bg-[#071914]/80 p-2.5 sm:p-3 text-sm text-[#5a746a] dark:text-white/70 leading-normal flex items-start gap-2.5">
-            <Info className="w-4 h-4 text-brand-green shrink-0 mt-0.5" />
-            <p>
-              Selecting this report supplies these estimates to meal planning and swap comparisons. Actual meal totals
-              are shown separately.
-            </p>
-          </div>
-        </section>
-      )}
+          {/* Page 1 Reference Items */}
+          {page1ReferenceItems.length > 0 && (
+            <div className="space-y-4 my-3">
+              {page1ReferenceItems.map((item, index) => (
+                <div key={index} className="space-y-1">
+                  <h3 className="text-sm sm:text-[15px] font-bold text-[#2D6A4F]">
+                    {item.heading}: {item.value}
+                  </h3>
+                  <p className="text-xs sm:text-[13px] text-slate-700 leading-relaxed">{item.explanation}</p>
+                  <p className="text-[11px] sm:text-xs text-slate-600">
+                    {item.classification === 'REQUIRES_INDIVIDUAL_REVIEW'
+                      ? 'Individual review'
+                      : item.classification === 'CALCULATED_REFERENCE'
+                        ? 'Calculated population reference'
+                        : 'General reference'}{' '}
+                    · Source:{' '}
+                    {item.sourceUrl?.startsWith('http') ? (
+                      <a
+                        href={item.sourceUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-[#2D6A4F] font-semibold hover:underline"
+                      >
+                        {item.sourceTitle}
+                      </a>
+                    ) : (
+                      <span>{item.sourceTitle}</span>
+                    )}
+                  </p>
+                  {item.sourceUrl?.startsWith('http') && (
+                    <p className="text-[11px] sm:text-xs text-slate-500 break-all">
+                      <a
+                        href={item.sourceUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="hover:underline hover:text-[#2D6A4F]"
+                      >
+                        {item.sourceUrl}
+                      </a>
+                    </p>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
 
-      {/* Dietary Guidance & Food Selection (when available) */}
-      {(recommendedList.length > 0 || limitList.length > 0 || avoidList.length > 0 || drinksList.length > 0) && (
-        <section className="rounded-2xl sm:rounded-3xl border border-[#dce4e0] dark:border-[#173e33] bg-white/80 dark:bg-[#0c241d]/80 p-3 sm:p-4 shadow-xs backdrop-blur-sm space-y-3 print:border-none print:shadow-none print:p-0">
-          <div className="flex items-center justify-between border-b border-[#dce4e0]/70 dark:border-[#173e33] pb-3">
-            <div className="flex items-center gap-2.5">
-              <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-xl bg-brand-green/15 text-brand-green">
-                <Utensils className="h-4 w-4" />
+          {/* Legacy Food Lists on Page 1 if not policy report */}
+          {recommendedList.length > 0 && (
+            <div className="space-y-2 my-3">
+              <h3 className="text-sm font-bold text-[#2D6A4F]">Recommended Foods</h3>
+              <ul className="text-xs sm:text-[13px] text-slate-700 space-y-1 list-disc list-inside">
+                {recommendedList.map((food, i) => (
+                  <li key={i}>{food}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {/* If single page, render the acknowledgment note at the bottom of Page 1 */}
+          {totalPages === 1 && (
+            <div className="mt-6 pt-4 border-t border-[#D8F3DC]">
+              <p className="text-xs sm:text-[12px] text-slate-600 leading-relaxed">
+                Acknowledgment records review of this document. Meal eligibility and RND review are separate checks.
+                This educational guidance does not replace individualized medical advice, clinical diagnosis, or medical
+                nutrition therapy from a licensed physician or RND.
+              </p>
+            </div>
+          )}
+        </div>
+
+        {/* Page 1 Bottom Bar / Footer */}
+        {totalPages === 1 ? (
+          <footer className="pt-6 mt-8 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-400 font-mono select-none">
+            <span>KAINARA Personal Health Record</span>
+            <span>Page 1 of 1</span>
+          </footer>
+        ) : (
+          <div className="pt-6 mt-8 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-400 font-mono select-none">
+            <span>KAINARA Personal Health Record</span>
+            <span>Page 1 of {totalPages}</span>
+          </div>
+        )}
+      </div>
+
+      {/* ──────────────── PAGE 2 (if needed) ──────────────── */}
+      {totalPages > 1 && (
+        <div
+          data-document-page="2"
+          className="relative bg-white text-slate-800 shadow-[0_4px_30px_rgba(0,0,0,0.35)] w-full min-h-[1123px] p-14 flex flex-col justify-between select-text break-words [overflow-wrap:break-word]"
+          style={{ minHeight: '1123px' }}
+        >
+          <div className="space-y-4">
+            {/* Page 2 Header */}
+            <header className="border-b border-[#D8F3DC] pb-3">
+              <div className="text-[11px] sm:text-xs font-mono font-bold tracking-[0.2em] text-[#1B4332] uppercase mb-1">
+                KAINARA · Personal Record (Continued)
               </div>
-              <h2 className="font-display text-sm font-bold text-[#0d2820] dark:text-white tracking-tight">
-                Dietary guidance &amp; food selection
+              <h2 className="text-base sm:text-lg font-bold text-[#1B4332] tracking-tight">
+                Nutrition Guidance · Version {report.version}
               </h2>
+            </header>
+
+            {/* Overflowing Reference Items on Page 2 */}
+            {page2ReferenceItems.length > 0 && (
+              <div className="space-y-4 my-4">
+                {page2ReferenceItems.map((item, index) => (
+                  <div key={index} className="space-y-1">
+                    <h3 className="text-sm sm:text-[15px] font-bold text-[#2D6A4F]">
+                      {item.heading}: {item.value}
+                    </h3>
+                    <p className="text-xs sm:text-[13px] text-slate-700 leading-relaxed">{item.explanation}</p>
+                    <p className="text-[11px] sm:text-xs text-slate-600">
+                      {item.classification === 'REQUIRES_INDIVIDUAL_REVIEW'
+                        ? 'Individual review'
+                        : item.classification === 'CALCULATED_REFERENCE'
+                          ? 'Calculated population reference'
+                          : 'General reference'}{' '}
+                      · Source:{' '}
+                      {item.sourceUrl?.startsWith('http') ? (
+                        <a
+                          href={item.sourceUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-[#2D6A4F] font-semibold hover:underline"
+                        >
+                          {item.sourceTitle}
+                        </a>
+                      ) : (
+                        <span>{item.sourceTitle}</span>
+                      )}
+                    </p>
+                    {item.sourceUrl?.startsWith('http') && (
+                      <p className="text-[11px] sm:text-xs text-slate-500 break-all">
+                        <a
+                          href={item.sourceUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="hover:underline hover:text-[#2D6A4F]"
+                        >
+                          {item.sourceUrl}
+                        </a>
+                      </p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Legacy Food Lists on Page 2 */}
+            {
+              <div className="space-y-4 my-4">
+                {limitList.length > 0 && (
+                  <div className="space-y-1">
+                    <h3 className="text-sm font-bold text-amber-700">Foods to Limit</h3>
+                    <ul className="text-xs sm:text-[13px] text-slate-700 space-y-1 list-disc list-inside">
+                      {limitList.map((food, i) => (
+                        <li key={i}>{food}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                {avoidList.length > 0 && (
+                  <div className="space-y-1">
+                    <h3 className="text-sm font-bold text-rose-700">Foods to Strictly Avoid</h3>
+                    <ul className="text-xs sm:text-[13px] text-slate-700 space-y-1 list-disc list-inside">
+                      {avoidList.map((food, i) => (
+                        <li key={i}>{food}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                {drinksList.length > 0 && (
+                  <div className="space-y-1">
+                    <h3 className="text-sm font-bold text-[#0b7788]">Drinks & Hydration Guidance</h3>
+                    <ul className="text-xs sm:text-[13px] text-slate-700 space-y-1 list-disc list-inside">
+                      {drinksList.map((food, i) => (
+                        <li key={i}>{food}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            }
+
+            {/* Acknowledgment Notice at Bottom of Page 2 */}
+            <div className="mt-8 pt-4 border-t border-[#D8F3DC]">
+              <p className="text-xs sm:text-[12px] text-slate-600 leading-relaxed">
+                Acknowledgment records review of this document. Meal eligibility and RND review are separate checks.
+                This educational guidance does not replace individualized medical advice, clinical diagnosis, or medical
+                nutrition therapy from a licensed physician or RND.
+              </p>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 sm:gap-3">
-            {recommendedList.length > 0 && (
-              <div className="rounded-2xl border border-brand-green/30 bg-brand-green/[0.04] p-4 space-y-2">
-                <div className="flex items-center gap-2 text-xs font-bold text-brand-green">
-                  <CheckCircle2 className="w-4 h-4" />
-                  Foods recommended
-                </div>
-                <ul className="text-sm text-[#0d2820] dark:text-white/90 space-y-1.5 list-disc list-inside">
-                  {recommendedList.map((item, i) => (
-                    <li key={i} className="leading-normal">
-                      {item}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-            {limitList.length > 0 && (
-              <div className="rounded-2xl border border-amber-500/30 bg-amber-500/[0.04] p-4 space-y-2">
-                <div className="flex items-center gap-2 text-xs font-bold text-amber-600 dark:text-amber-400">
-                  <AlertCircle className="w-4 h-4" />
-                  Foods to limit
-                </div>
-                <ul className="text-sm text-[#0d2820] dark:text-white/90 space-y-1.5 list-disc list-inside">
-                  {limitList.map((item, i) => (
-                    <li key={i} className="leading-normal">
-                      {item}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-            {avoidList.length > 0 && (
-              <div className="rounded-2xl border border-rose-500/30 bg-rose-500/[0.04] p-4 space-y-2">
-                <div className="flex items-center gap-2 text-xs font-bold text-rose-600 dark:text-rose-400">
-                  <XCircle className="w-4 h-4" />
-                  Foods to avoid
-                </div>
-                <ul className="text-sm text-[#0d2820] dark:text-white/90 space-y-1.5 list-disc list-inside">
-                  {avoidList.map((item, i) => (
-                    <li key={i} className="leading-normal">
-                      {item}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-            {drinksList.length > 0 && (
-              <div className="rounded-2xl border border-cyan-500/30 bg-cyan-500/[0.04] p-4 space-y-2">
-                <div className="flex items-center gap-2 text-xs font-bold text-[#0b7788] dark:text-[#38bdf8]">
-                  <Droplet className="w-4 h-4" />
-                  Hydration &amp; drinks guidance
-                </div>
-                <ul className="text-sm text-[#0d2820] dark:text-white/90 space-y-1.5 list-disc list-inside">
-                  {drinksList.map((item, i) => (
-                    <li key={i} className="leading-normal">
-                      {item}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-          </div>
-        </section>
+          {/* Page 2 Footer */}
+          <footer className="pt-6 mt-8 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-400 font-mono select-none">
+            <span>KAINARA Personal Health Record</span>
+            <span>Page 2 of {totalPages}</span>
+          </footer>
+        </div>
       )}
-
-      {/* What these numbers mean */}
-      <section className="rounded-2xl sm:rounded-3xl border border-[#dce4e0] dark:border-[#173e33] bg-white/80 dark:bg-[#0c241d]/80 p-3 sm:p-4 shadow-xs backdrop-blur-sm space-y-3 print:border-none print:shadow-none print:p-0">
-        <h2 className="font-display text-sm font-bold text-[#0d2820] dark:text-white tracking-tight">
-          What these numbers mean
-        </h2>
-        <p className="text-sm leading-normal text-[#0d2820] dark:text-white">{report.generalSummary}</p>
-        <p className="text-sm leading-normal text-[#5a746a] dark:text-white/70">
-          The energy target is a planning estimate based on the saved details. Population references below are
-          calculated from that target. Conditions that need more clinical information are marked for individual review;
-          the report does not assign an unsupported personal limit.
-        </p>
-      </section>
-
-      {/* Calculated references and review notes */}
-      <section className="rounded-2xl sm:rounded-3xl border border-[#dce4e0] dark:border-[#173e33] bg-white/80 dark:bg-[#0c241d]/80 p-3 sm:p-4 shadow-xs backdrop-blur-sm space-y-3 print:border-none print:shadow-none print:p-0">
-        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#dce4e0]/70 dark:border-[#173e33] pb-3">
-          <h2 className="font-display text-sm font-bold text-[#0d2820] dark:text-white tracking-tight">
-            Calculated references and review notes
-          </h2>
-          <span className="text-xs font-semibold text-[#5a746a] dark:text-white/70">
-            {(report.referenceItems ?? []).length} references
-          </span>
-        </div>
-
-        <ol className="divide-y divide-[#dce4e0]/70 dark:border-[#173e33]">
-          {(report.referenceItems ?? []).map((item, index) => (
-            <li key={`${item.sourceCode}-${item.heading}-${index}`} className="py-3 first:pt-1 last:pb-1">
-              <div className="flex flex-wrap items-baseline justify-between gap-2">
-                <h3 className="font-bold text-[#0d2820] dark:text-white text-sm">{item.heading}</h3>
-                <strong className="text-xs font-bold text-brand-green font-mono px-2.5 py-0.5 rounded-full bg-brand-green/10 border border-brand-green/20">
-                  {item.value}
-                </strong>
-              </div>
-              <p className="mt-1 text-sm text-[#5a746a] dark:text-white/70 leading-normal">{item.explanation}</p>
-              <p className="mt-2 text-sm text-[#5a746a]/80 dark:text-white/60">
-                {item.classification === 'REQUIRES_INDIVIDUAL_REVIEW'
-                  ? 'Individual review'
-                  : item.classification === 'CALCULATED_REFERENCE'
-                    ? 'Calculated population reference'
-                    : 'General reference'}{' '}
-                · Source:{' '}
-                {item.sourceUrl?.startsWith('https://') ? (
-                  <a
-                    href={item.sourceUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1 font-semibold text-brand-accent hover:underline"
-                  >
-                    {item.sourceTitle}
-                    <ExternalLink className="w-3 h-3 inline" />
-                  </a>
-                ) : (
-                  item.sourceTitle
-                )}
-              </p>
-            </li>
-          ))}
-        </ol>
-      </section>
-
-      {/* Meal planning status */}
-      <section className="rounded-2xl sm:rounded-3xl border border-[#dce4e0] dark:border-[#173e33] bg-white/80 dark:bg-[#0c241d]/80 p-3 sm:p-4 shadow-xs backdrop-blur-sm space-y-3 print:border-none print:shadow-none print:p-0">
-        <h2 className="font-display text-sm font-bold text-[#0d2820] dark:text-white tracking-tight">
-          Meal planning status
-        </h2>
-        <p className="text-sm text-[#5a746a] dark:text-white/70 leading-normal">
-          Acknowledging this document records that the member reviewed it. Meal eligibility and RND review are separate
-          checks. Acknowledgment does not itself clear a meal or a medical condition.
-        </p>
-      </section>
-
-      {/* Official Clinical & Educational Advisory */}
-      <footer className="rounded-2xl sm:rounded-3xl border border-[#dce4e0]/80 dark:border-[#173e33] bg-white/60 dark:bg-[#0a201a]/60 p-3 sm:p-4 text-sm text-[#5a746a] dark:text-white/70 space-y-3 print:border-none print:p-0">
-        <div className="flex items-center gap-2 font-bold text-[#0d2820] dark:text-white uppercase tracking-wider text-xs">
-          <ShieldCheck className="w-4 h-4 text-brand-green" />
-          Clinical &amp; Educational Advisory
-        </div>
-        <p className="leading-normal">
-          This report is prepared for educational guidance and baseline meal planning referencing DOST-FNRI Philippine
-          Dietary Reference Intakes (PDRI) standards. It does not replace individualized medical advice, clinical
-          diagnosis, or medical nutrition therapy from a licensed physician or RND.
-        </p>
-        <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-[#dce4e0]/60 dark:border-[#173e33]/60 font-mono text-xs text-[#5a746a]/80 dark:text-white/60">
-          <span>
-            RECORD REF: KN-PR-{report.version}-{report.id ? report.id.slice(-6).toUpperCase() : 'AUTH'}
-          </span>
-          <span>DOST-FNRI PDRI 2015 (REV. 2018)</span>
-          <span>VERIFIED PLATFORM RECORD</span>
-        </div>
-      </footer>
-    </RecordPaper>
+    </article>
   );
 }

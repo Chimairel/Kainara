@@ -109,6 +109,15 @@ async function setup(page: Page, safetyChanged = false, weightOnly = false) {
             planningContext: { ...report.planningContext, activeVersion: 2, pendingChanges: false },
           }
         : report;
+    else if (path.endsWith('/user/membership/history'))
+      data = {
+        member: { id: user.id, name: user.name },
+        rows: [],
+        total: 0,
+        page: 1,
+        totalPages: 1,
+        serverTime: '2026-10-02T00:00:00Z',
+      };
     else if (path.endsWith('/user/membership'))
       data = {
         enabled: true,
@@ -149,6 +158,10 @@ async function setup(page: Page, safetyChanged = false, weightOnly = false) {
 for (const width of [320, 400, 768, 1024, 1280, 1440]) {
   test(`nutrition guidance and history fit without overlapping at ${width}px`, async ({ page }) => {
     await page.setViewportSize({ width, height: 808 });
+    await page.addInitScript(
+      (theme) => localStorage.setItem('nutrimind-theme', theme),
+      width >= 1280 ? 'dark' : 'light'
+    );
     const base = await setup(page);
     const report = {
       ...base,
@@ -167,6 +180,24 @@ for (const width of [320, 400, 768, 1024, 1280, 1440]) {
         },
       })
     );
+    await page.route('**/api/user/notifications', (route) =>
+      route.fulfill({
+        json: {
+          success: true,
+          data: {
+            unreadCount: 3,
+            notifications: [1, 2, 3].map((id) => ({
+              id: `notice-${id}`,
+              type: 'MEAL_APPROVED',
+              title: `Review update ${id}`,
+              message: 'Your meal review has been recorded. Open your meal details to view the result.',
+              createdAt: new Date().toISOString(),
+              isRead: false,
+            })),
+          },
+        },
+      })
+    );
     await page.goto('/profile/nutrition-report');
     const paper = page.getByRole('article', { name: 'Nutrition guidance record' });
     await expect(paper).toBeVisible();
@@ -182,7 +213,7 @@ for (const width of [320, 400, 768, 1024, 1280, 1440]) {
           .map((node) => node.textContent?.slice(0, 80));
       });
       expect(overflow).toEqual([]);
-      const controls = page.getByRole('button', { name: 'Expand case details' });
+      const controls = page.getByRole('button', { name: 'Expand document' });
       const overlaps = await controls.evaluate((button) => {
         const control = button.getBoundingClientRect();
         const header = button.closest('header')!;
@@ -202,12 +233,28 @@ for (const width of [320, 400, 768, 1024, 1280, 1440]) {
       expect(overlaps).toBe(false);
     };
     await checkFit();
-    const workspace = page.locator('[aria-label="Nutrition workspace"]');
+    const beforeNotifications = await page.getByRole('region', { name: 'Document viewer', exact: true }).boundingBox();
+    await page.getByRole('button', { name: 'View notifications' }).click();
+    const notifications = page.getByRole('dialog', { name: 'Notifications', exact: true });
+    await expect(notifications).toBeVisible();
+    expect(
+      await notifications.evaluate((panel) => {
+        const rect = panel.getBoundingClientRect();
+        return panel.contains(document.elementFromPoint(rect.left + 20, rect.top + Math.min(rect.height - 10, 90)));
+      })
+    ).toBe(true);
+    await page.keyboard.press('Escape');
+    await expect(notifications).toHaveCount(0);
+    expect(await page.getByRole('region', { name: 'Document viewer', exact: true }).boundingBox()).toEqual(
+      beforeNotifications
+    );
+    const workspace = page.getByRole('region', { name: 'Document viewer', exact: true });
     const previewHeight = (await workspace.boundingBox())!.height;
     expect(previewHeight).toBeLessThanOrEqual(672);
     await expect(paper.locator('footer')).not.toBeInViewport();
     const previewContent = paper.locator('..').locator('..');
     expect(await previewContent.evaluate((node) => getComputedStyle(node).overflowY)).toBe('auto');
+    await workspace.scrollIntoViewIfNeeded();
     const pageScroll = await page.locator('main.portal-main').evaluate((main) => main.scrollTop);
     await previewContent.evaluate((node) => {
       node.scrollTop = node.scrollHeight;
@@ -225,9 +272,41 @@ for (const width of [320, 400, 768, 1024, 1280, 1440]) {
     await checkFit();
     expect((await workspace.boundingBox())!.height).toBe(previewHeight);
     await selectVersion(2);
-    await page.getByRole('button', { name: 'Expand case details' }).click();
-    const fullView = page.getByRole('dialog', { name: 'Expanded nutrition guidance' });
+    await page.getByRole('button', { name: 'Document pages', exact: true }).click();
+    await page.getByRole('button', { name: 'Page 2', exact: true }).click();
+    await expect
+      .poll(async () => {
+        const sheet = (await paper.locator('[data-document-page]').last().boundingBox())!;
+        const canvas = (await previewContent.boundingBox())!;
+        return Math.abs(sheet.y - canvas.y - 16);
+      })
+      .toBeLessThanOrEqual(2);
+    await page.getByRole('button', { name: 'Previous page' }).click();
+    await page.getByRole('button', { name: 'Next page' }).click();
+    await expect(page.getByRole('button', { name: 'Previous page' })).toBeEnabled();
+    await page.getByRole('button', { name: 'Previous page' }).click();
+    await page.getByRole('button', { name: 'Fit to page' }).click();
+    await expect
+      .poll(async () => {
+        const sheet = (await paper.locator('[data-document-page]').first().boundingBox())!;
+        const canvas = (await previewContent.boundingBox())!;
+        return sheet.width <= canvas.width && sheet.height <= canvas.height;
+      })
+      .toBe(true);
+    await page.getByRole('button', { name: 'Reset zoom to 100%' }).click();
+    await page.getByRole('button', { name: 'Zoom in', exact: true }).click();
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+    await page.getByRole('button', { name: 'Fit to width' }).click();
+    await page.getByRole('button', { name: 'Expand document' }).click();
+    const fullView = page.getByRole('dialog', { name: /Nutrition report.*fullscreen/ });
     await expect(fullView).toBeVisible();
+    const fullscreenBounds = (await fullView.boundingBox())!;
+    expect(fullscreenBounds.x).toBe(0);
+    expect(fullscreenBounds.y).toBe(0);
+    expect(fullscreenBounds.width).toBe(width);
+    expect(fullscreenBounds.height).toBe(808);
+    await expect.poll(() => fullView.evaluate((node) => node.scrollWidth <= node.clientWidth)).toBe(true);
+    await page.screenshot({ path: test.info().outputPath('report-fullscreen.png') });
     await expect(page.getByRole('combobox', { name: 'Report version' })).toBeVisible();
     await selectVersion(1);
     await expect(paper).toContainText('Version 1');
@@ -241,7 +320,7 @@ for (const width of [320, 400, 768, 1024, 1280, 1440]) {
     await page.keyboard.press('Escape');
     await expect(fullView).toHaveCount(0);
     await expect(page.getByRole('combobox', { name: 'Report version' })).toContainText('Version 1');
-    await expect(paper.locator('footer')).not.toBeInViewport();
+    await expect(page.getByRole('button', { name: 'Expand document' })).toBeFocused();
     expect((await workspace.boundingBox())!.height).toBe(previewHeight);
     if (width < 768) {
       await page.locator('main.portal-main').evaluate((main) => {
@@ -376,8 +455,10 @@ for (const width of [320, 390, 1440]) {
 test('new health disclosures offer Health without an older-report bypass', async ({ page }) => {
   await setup(page, true);
   await page.goto('/profile/nutrition-report');
+  await page.getByRole('button', { name: 'Expand document' }).click();
   await page.getByRole('button', { name: 'Use this report for meal planning' }).click();
   await expect(page.getByRole('dialog', { name: 'Health membership needed' })).toBeVisible();
+  await expect(page.getByRole('dialog', { name: /Nutrition report.*fullscreen/ })).toHaveCount(0);
   await expect(page.getByRole('button', { name: 'Keep my previous planning report' })).toHaveCount(0);
   await expect(page.getByRole('link', { name: 'Continue to my saved records' })).toHaveAttribute('href', '/export');
 });
@@ -394,7 +475,7 @@ test('declared health needs recommend Health on the plan comparison', async ({ p
   ).toHaveCount(0);
   await expect(page.getByText(/Your first 30 days include the Health plan/)).toBeVisible();
   await expect(page.getByRole('button', { name: 'Health plan needed' })).toBeDisabled();
-  await expect(page.getByText(/Your health details require nutritionist review/)).toBeVisible();
+  await expect(page.getByText(/Your health details require RND review/)).toBeVisible();
 });
 
 test('Free weight-only report activation does not open a membership gate', async ({ page }) => {

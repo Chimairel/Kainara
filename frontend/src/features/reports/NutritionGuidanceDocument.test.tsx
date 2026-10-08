@@ -82,3 +82,41 @@ it('preserves archived snapshots and selected-version downloads without changing
   expect(setCurrent).toHaveBeenCalledWith(expect.objectContaining({ version: 1, id: 'old' }));
   expect(screen.getByText(/selected for planning/i)).toBeInTheDocument();
 });
+
+it('does not fill missing archived content or actions from the latest report', () => {
+  const acknowledge = vi.fn();
+  const download = vi.fn();
+  const report = {
+    id: 'latest',
+    version: 2,
+    generatedAt: '2026-10-09T00:00:00Z',
+    generalSummary: 'Latest-only summary',
+    foodsRecommended: ['Latest-only food'],
+    planningTargets: null,
+  } as unknown as NutritionReport;
+  render(
+    <NutritionGuidanceDocument
+      report={report}
+      name="Member"
+      goal="MAINTAIN"
+      dailyCalorieTarget={2100}
+      conditions={['HEART_CONDITION', 'HEART CONDITION']}
+      foodRestrictions={[]}
+      error={null}
+      isAcknowledging={false}
+      onAcknowledge={acknowledge}
+      onDownload={download}
+      history={[{ id: 'old', version: 1, generatedAt: '2026-09-01T00:00:00Z', content: {} as NutritionReport }]}
+    />
+  );
+  expect(screen.getByText('HEART CONDITION')).toBeInTheDocument();
+  fireEvent.click(screen.getByRole('combobox', { name: 'Report version' }));
+  fireEvent.click(screen.getByRole('option', { name: /^Version 1/ }));
+  expect(screen.queryByText('Latest-only summary')).not.toBeInTheDocument();
+  expect(screen.queryByText('Latest-only food')).not.toBeInTheDocument();
+  expect(screen.queryByText(/2,571/)).not.toBeInTheDocument();
+  expect(screen.queryByRole('button', { name: 'Download PDF' })).not.toBeInTheDocument();
+  expect(screen.queryByRole('button', { name: 'Use this report for meal planning' })).not.toBeInTheDocument();
+  expect(screen.queryByRole('button', { name: 'Set as current' })).not.toBeInTheDocument();
+  expect(acknowledge).not.toHaveBeenCalled();
+});

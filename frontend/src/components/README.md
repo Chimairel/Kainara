@@ -7,8 +7,9 @@ Use these components before copying markup from another page. Role authorization
 | Default surface | `ui/Card` | Membership statistics/calendar, progress, settings |
 | Curved stripes and logo | `ui/CardDecoration` or Card decoration props | Membership, dashboard, reports, grocery |
 | Expandable staff audit | `shared/AuditHistoryList` | Admin and nutritionist Audit |
-| Document surface | `shared/RecordPaper` | Nutrition guidance and immutable recipe review history |
-| Queue/history with detail pane | `shared/SplitWorkspace`, `WorkspaceListPane` | Nutritionist cases, nutrition guidance |
+| Document surface | `shared/RecordPaper` | Immutable recipe review history and admin case records |
+| Paper document reader | `shared/DocumentViewer` | Nutrition guidance through `features/reports/NutritionPdfViewer` |
+| Queue/history with detail pane | `shared/SplitWorkspace`, `WorkspaceListPane` | Nutritionist cases and admin case details |
 | Controlled dropdown | `ui/Select`, `ui/Dropdown` | Progress period, meal/report/review filters |
 | Required or uncontrolled form select | `ui/NativeSelect` | Admin authoring and reference-data forms |
 | Plan/library meal tile | `user/PlanMealCardSurface`, `user/MealMacros` | MealCard, PendingMealPreviewCard, RecipeLibraryCard |
@@ -53,7 +54,13 @@ MealCard and PendingMealPreviewCard share MealMotion: details open and close imm
 
 MealLibraryLayout is only the grid. Member catalogue requests use useRecipeCatalog, scoped to owner, search, filters and page; staff use their existing role endpoints and account-scoped cache. Both use Pagination. Do not identify recipes by display name, or slice the first API page as if it contains the whole library. Cursor-based compatible pages advance only once the next batch arrives.
 
-SplitWorkspace and WorkspaceListPane use the same `splitAt` breakpoint (`md` by default). Match ExpandableCasePanel's `backBreakpoint` to keep its back button available until both panes fit. Nutrition guidance uses ReportVersionPicker with the shared Select, a bounded internal scroll area, and full-screen reading in ExpandableCasePanel's expanded view. Its `contentKey` resets the internal scroll when the selected version changes.
+SplitWorkspace and WorkspaceListPane use the same `splitAt` breakpoint (`md` by default). Match ExpandableCasePanel's `backBreakpoint` to keep its back button available until both panes fit.
+
+## Document reader
+
+`shared/DocumentViewer` owns document controls, local page navigation, zoom, fit to width/page, internal scrolling, and a viewport-sized Radix dialog portaled outside the workspace. Its isolated embedded layers remain below the global notification panel. Supply `title`, `contentKey`, controlled `expanded`/`onExpandedChange`, document children with `data-document-page` on each sheet, and optional `versionControl`, `actions`, `onDownload`, and `downloading`. `paperWidth` defaults to 794 CSS pixels. Sheets can grow vertically to retain long content. `contentKey` resets page/scroll when changing records; navigation queries only this instance. Fullscreen supports keyboard containment, Escape, return focus, and scroll locking. An open version combobox consumes Escape before fullscreen closes. Fit-to-page uses both axes and the actual first sheet height; explicit zoom keeps overflow inside the reader. The page sidebar is navigation, not fabricated PDF thumbnails.
+
+`features/reports/NutritionPdfViewer` is the thin nutrition adapter: ReportVersionPicker retains the shared Select and business actions remain caller-owned. Archived content uses its saved snapshot, with missing fields labeled rather than filled from the latest report. Archived PDF export and planning activation are offered only when the corresponding version-aware callbacks exist. Planning actions close fullscreen before opening any caller-owned confirmation/membership dialog. This is an HTML preview styled as paper; PDF download continues to use the existing server export and is not represented as byte-identical to the preview. Other audit/case readers retain RecordPaper and ExpandableCasePanel.
 
 ## Announcement banners
 
