@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 
-for (const width of [1920, 1440, 390]) {
+for (const width of [1920, 1440, 1180, 1024, 820, 530, 390, 320]) {
   test(`Centered landing device overlaps the gallery and straightens on scroll at ${width}px`, async ({
     page,
     request,
@@ -55,9 +55,9 @@ for (const width of [1920, 1440, 390]) {
     expect(deviceBounds.y).toBeLessThan(galleryBounds.y + galleryBounds.height - 8);
     const heroBounds = (await page.locator('section').filter({ has: screen }).boundingBox())!;
     expect(Math.abs(deviceBounds.x + deviceBounds.width / 2 - (heroBounds.x + heroBounds.width / 2))).toBeLessThan(2);
-    if (width > 1000) {
+    const copyBounds = (await page.locator('[data-hero-copy]').boundingBox())!;
+    if (width >= 1280) {
       const headerBounds = (await page.getByRole('banner').boundingBox())!;
-      const copyBounds = (await page.locator('[data-hero-copy]').boundingBox())!;
       expect(copyBounds.y + copyBounds.height).toBeLessThan(deviceBounds.y);
       expect(copyBounds.x + copyBounds.width - galleryBounds.x).toBeGreaterThan(100);
       expect(
@@ -78,6 +78,37 @@ for (const width of [1920, 1440, 390]) {
           return el.contains(document.elementFromPoint(document.documentElement.clientWidth / 2, gallery.bottom - 10));
         })
       ).toBe(true);
+    } else {
+      const stats = page.locator('[data-hero-stats]');
+      const statsBounds = (await stats.boundingBox())!;
+      expect(galleryBounds.y).toBeLessThan(copyBounds.y);
+      expect(galleryBounds.y + galleryBounds.height).toBeGreaterThan(copyBounds.y + copyBounds.height);
+      await expect(gallery).toHaveCSS('position', 'absolute');
+      await expect(gallery).toHaveCSS('pointer-events', 'none');
+      expect(deviceBounds.y).toBeGreaterThan(statsBounds.y + statsBounds.height);
+      expect(deviceBounds.y - statsBounds.y - statsBounds.height).toBeLessThan(80);
+      expect(
+        await stats
+          .locator(':scope > div')
+          .evaluateAll((items) => new Set(items.map((el) => (el as HTMLElement).offsetTop)).size)
+      ).toBe(1);
+      await expect(page.locator('[data-gallery-ribbons]')).toBeHidden();
+      for (const link of await page.locator('[data-hero-copy] a').all()) {
+        expect(
+          await link.evaluate((el) => {
+            const bounds = el.getBoundingClientRect();
+            return (
+              document.elementFromPoint(bounds.x + bounds.width / 2, bounds.y + bounds.height / 2)?.closest('a') === el
+            );
+          })
+        ).toBe(true);
+      }
+      await page.screenshot({ path: testInfo.outputPath('hero-light.png') });
+      await page.getByRole('button', { name: 'Switch to dark mode' }).click();
+      await expect(page.locator('html')).toHaveClass(/dark/);
+      await expect(gallery).toBeVisible();
+      await page.screenshot({ path: testInfo.outputPath('hero-dark.png') });
+      await page.getByRole('button', { name: 'Switch to light mode' }).click();
     }
     const scrollRange = await page.locator('[data-scroll-presentation]').evaluate((el) => {
       const container = el.parentElement!.parentElement!.getBoundingClientRect();

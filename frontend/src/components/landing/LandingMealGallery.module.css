@@ -96,7 +96,7 @@
   text-shadow: 0 1px 6px #07191440;
 }
 
-@media (min-width: 1024px) {
+@media (min-width: 1280px) {
   .gallery {
     /* Continue behind the copy while retaining the right-edge bleed. */
     width: calc(100% + 10rem + (100vw - min(100vw - 10rem, 64rem)) / 2);
@@ -135,6 +135,55 @@
 
   .column {
     width: clamp(170px, 14.5vw, 232px);
+  }
+}
+
+@media (max-width: 1279px) {
+  .gallery {
+    position: absolute;
+    z-index: 0;
+    top: -72px;
+    bottom: -104px;
+    left: calc((100% - 100vw) / 2);
+    right: calc((100% - 100vw) / 2);
+    width: auto;
+    pointer-events: none;
+  }
+
+  .gallery::before {
+    display: none;
+  }
+
+  .gallery::after {
+    content: '';
+    position: absolute;
+    z-index: 2;
+    inset: 0;
+    background: radial-gradient(
+      ellipse at 50% 45%,
+      color-mix(in srgb, var(--brand-bg) 94%, transparent) 15%,
+      color-mix(in srgb, var(--brand-bg) 88%, transparent) 65%,
+      color-mix(in srgb, var(--brand-bg) 78%, transparent) 100%
+    );
+  }
+
+  .gallery .viewport {
+    height: 100%;
+  }
+
+  .scene {
+    height: 120%;
+    min-height: 640px;
+  }
+}
+
+@media (min-width: 768px) and (max-width: 1279px) {
+  .gallery {
+    top: -120px;
+  }
+
+  .column {
+    width: clamp(155px, 17vw, 210px);
   }
 }
 

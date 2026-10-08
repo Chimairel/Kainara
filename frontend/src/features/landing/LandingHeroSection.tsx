@@ -34,7 +34,7 @@ export default function LandingHeroSection({ model }: SectionProps) {
           cardClassName="border-[#173e33] bg-[#071914]"
           innerClassName="p-0 bg-[#071914]"
           titleComponent={
-            <div className="grid items-center gap-8 lg:grid-cols-2 lg:items-start lg:gap-12">
+            <div className={`${styles.intro} grid items-center gap-8 lg:grid-cols-2 lg:items-start lg:gap-12`}>
               <div
                 data-hero-copy
                 className={`${styles.copy} relative z-20 flex min-w-0 flex-col items-center text-center px-4 lg:w-[calc(100%+10rem)] lg:max-w-[40rem] lg:items-start lg:px-0 lg:text-left`}
@@ -66,7 +66,10 @@ export default function LandingHeroSection({ model }: SectionProps) {
                 </div>
 
                 {/* Trust Indicators */}
-                <div className="mt-10 flex flex-wrap items-center justify-center gap-6 sm:gap-8 border-t border-brand-border/70 pt-6 lg:justify-start">
+                <div
+                  data-hero-stats
+                  className={`${styles.stats} mt-10 flex flex-wrap items-center justify-center gap-6 sm:gap-8 border-t border-brand-border/70 pt-6 lg:justify-start`}
+                >
                   {[
                     ['7 Days', 'Personalized Cycle', Flame, 'text-brand-accent dark:text-[#f09e6c]'],
                     ['3 Roles', 'Patient, RND & Admin', Activity, 'text-sky-600 dark:text-cyan-400'],
