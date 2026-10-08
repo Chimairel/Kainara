@@ -11,6 +11,7 @@ import { buildMealLibraryRecipeSignature } from '../src/domain/meal-library-sign
 import { CURRENT_TERMS_VERSION, CURRENT_PRIVACY_VERSION } from '../src/domain/onboarding.policy';
 import { serializeActionableMeal } from '../src/services/meal-plan-presentation.service';
 import { encryptClinicalDocument } from '../src/lib/clinical-document-crypto';
+import { mealGovernanceRoutedJourney } from './helpers/meal-governance-routed-journey';
 
 async function main() {
   const target = new URL(process.env.DATABASE_URL ?? '');
@@ -729,10 +730,20 @@ async function main() {
       3
     );
     passed('Legacy reports retain unknown incident history; administrators can archive held families');
+    const integratedJourney = await mealGovernanceRoutedJourney({
+      admin,
+      rnds,
+      account,
+      meal,
+      foodId: food.id,
+      request,
+    });
+    passed('Integrated member approval, specialist visibility, corrected re-review, quarantine and admin audit');
     console.log(
       JSON.stringify(
         {
           cases,
+          integratedJourney,
           migrations:
             await prisma.$queryRaw`SELECT count(*)::int AS count FROM "_prisma_migrations" WHERE finished_at IS NOT NULL`,
           realProviderCalls: 0,
