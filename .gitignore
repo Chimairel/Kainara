@@ -48,3 +48,9 @@ codex/toothless.jpg
 
 # Local synthetic account credentials (never commit).
 /backend/.local/dev-test-accounts/
+
+# Private shared-database rollback snapshots (never commit).
+/backend/.local/backups/
+
+# Task-local meal audit verification artifacts.
+/backend/.local/meal-log-audit-*
