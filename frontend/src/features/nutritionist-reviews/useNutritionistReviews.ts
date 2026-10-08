@@ -3,7 +3,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { getApiErrorMessage } from '@/lib/api-error';
 import api from '@/lib/axios';
 import { invalidateSessionResource, readSessionResource, writeSessionResource } from '@/lib/session-resource-cache';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { IngredientEvidenceSource } from './ingredient-evidence';
 
 import type { ReviewRouting } from './review-routing';
@@ -160,6 +160,11 @@ export function useNutritionistReviews(enabled = true) {
   const cachedQueue = readSessionResource<QueueItem[]>(ownerId, 'nutritionist-case-queue', 30_000);
   const [queue, setQueue] = useState<QueueItem[]>(cachedQueue ?? []);
   const [isLoading, setIsLoading] = useState(!cachedQueue);
+  const [queueError, setQueueError] = useState<string | null>(null);
+  const liveOwner = useRef(ownerId);
+  liveOwner.current = ownerId;
+  const queueGeneration = useRef(0);
+  const queueFlight = useRef<{ ownerId: string | undefined; generation: number; request: Promise<void> } | null>(null);
 
   // Selected Card Details
   const [selectedMealId, setSelectedMealId] = useState<string | null>(null);
@@ -199,23 +204,63 @@ export function useNutritionistReviews(enabled = true) {
   });
 
   const fetchQueue = useCallback(
-    async (silent = false, signal?: AbortSignal) => {
-      if (!silent && !readSessionResource<QueueItem[]>(ownerId, 'nutritionist-case-queue', 30_000)) setIsLoading(true);
-      try {
-        const res = await api.get('/nutritionist/queue', { signal });
-        if (signal?.aborted) return;
-        if (res.data?.success && Array.isArray(res.data.data)) {
-          setQueue(res.data.data);
-          writeSessionResource(ownerId, 'nutritionist-case-queue', res.data.data);
+    (silent = false, signal?: AbortSignal, fresh = false) => {
+      if (fresh) queueGeneration.current++;
+      const generation = queueGeneration.current;
+      if (
+        queueFlight.current &&
+        queueFlight.current.ownerId === ownerId &&
+        queueFlight.current.generation === generation
+      )
+        return queueFlight.current.request;
+      const load = async () => {
+        if (!silent) {
+          setQueueError(null);
+          if (!readSessionResource<QueueItem[]>(ownerId, 'nutritionist-case-queue', 30_000)) setIsLoading(true);
         }
-      } catch (err) {
-        if (!signal?.aborted) console.error('Failed to fetch queue:', err);
-      } finally {
-        if (!silent) setIsLoading(false);
-      }
+        try {
+          const res = await api.get('/nutritionist/queue', { signal });
+          if (signal?.aborted || liveOwner.current !== ownerId || generation !== queueGeneration.current) return;
+          if (res.data?.success && Array.isArray(res.data.data)) {
+            setQueue(res.data.data);
+            setQueueError(null);
+            writeSessionResource(ownerId, 'nutritionist-case-queue', res.data.data);
+          } else throw new Error('Unexpected review queue response.');
+        } catch (err) {
+          if (!signal?.aborted && liveOwner.current === ownerId && generation === queueGeneration.current) {
+            const code = (err as { code?: string } | null)?.code;
+            setQueueError(
+              getApiErrorMessage(
+                err,
+                code === 'ECONNABORTED' || code === 'ETIMEDOUT'
+                  ? 'Loading the review queue took too long. Please retry.'
+                  : 'The review queue could not be refreshed. Please retry.'
+              )
+            );
+          }
+        } finally {
+          if (!silent && liveOwner.current === ownerId && generation === queueGeneration.current) setIsLoading(false);
+        }
+      };
+      const request: Promise<void> = load().finally(() => {
+        if (queueFlight.current?.request === request) queueFlight.current = null;
+      });
+      queueFlight.current = { ownerId, generation, request };
+      return request;
     },
     [ownerId]
   );
+
+  useEffect(() => {
+    queueGeneration.current++;
+    queueFlight.current = null;
+    const saved = readSessionResource<QueueItem[]>(ownerId, 'nutritionist-case-queue', 30_000);
+    setQueue(saved ?? []);
+    setQueueError(null);
+    setIsLoading(!saved);
+    setSelectedMealId(null);
+    setDetailData(null);
+  }, [ownerId]);
 
   useEffect(() => {
     if (enabled) void fetchQueue();
@@ -271,10 +316,10 @@ export function useNutritionistReviews(enabled = true) {
     try {
       const res = await api.post(`/nutritionist/queue/${selectedMealId}/claim`);
       if (res.data?.success) setDetailData(res.data.data);
-      await fetchQueue();
+      await fetchQueue(false, undefined, true);
     } catch (err: unknown) {
       setErrorMsg(getApiErrorMessage(err, 'Could not claim this meal. Refresh the queue and try again.'));
-      await fetchQueue();
+      await fetchQueue(false, undefined, true);
     } finally {
       setActionLoading(null);
     }
@@ -291,10 +336,10 @@ export function useNutritionistReviews(enabled = true) {
       setIsEditing(false);
       setShowRejectForm(false);
       setCandidateMeal(null);
-      await fetchQueue();
+      await fetchQueue(false, undefined, true);
     } catch (err: unknown) {
       setErrorMsg(getApiErrorMessage(err, 'Could not release this meal. Refresh the queue and try again.'));
-      await fetchQueue();
+      await fetchQueue(false, undefined, true);
     } finally {
       setActionLoading(null);
     }
@@ -324,6 +369,8 @@ export function useNutritionistReviews(enabled = true) {
       }
 
       await api.patch(`/nutritionist/review/${selectedMealId}`, payload);
+      queueGeneration.current++;
+      queueFlight.current = null;
       invalidateSessionResource(ownerId, 'nutritionist-case-queue');
       setQueue((prev) => prev.filter((m) => m.id !== selectedMealId));
       setSelectedMealId(null);
@@ -347,6 +394,8 @@ export function useNutritionistReviews(enabled = true) {
         action: 'reject',
         note: rejectNote.trim(),
       });
+      queueGeneration.current++;
+      queueFlight.current = null;
       invalidateSessionResource(ownerId, 'nutritionist-case-queue');
       setQueue((prev) => prev.filter((m) => m.id !== selectedMealId));
       setSelectedMealId(null);
@@ -394,6 +443,8 @@ export function useNutritionistReviews(enabled = true) {
         note: generalNote.trim() || undefined,
         candidate: candidateMeal,
       });
+      queueGeneration.current++;
+      queueFlight.current = null;
       invalidateSessionResource(ownerId, 'nutritionist-case-queue');
       setQueue((prev) => prev.filter((m) => m.id !== selectedMealId));
       setSelectedMealId(null);
@@ -504,6 +555,7 @@ export function useNutritionistReviews(enabled = true) {
   };
   return {
     queue,
+    queueError,
     fetchQueue,
     isLoading,
     selectedMealId,

@@ -4,6 +4,7 @@ import { WorkspaceListPane } from '@/components/shared/SplitWorkspace';
 import ReviewRoutingLabel from './ReviewRoutingLabel';
 import Avatar from '@/components/ui/Avatar';
 import Badge from '@/components/ui/Badge';
+import Button from '@/components/ui/Button';
 import { ReviewQueueSkeleton } from '@/features/nutritionist-reviews/NutritionistReviewsSkeleton';
 import { Apple, CheckCircle, Eye, Moon, Sun, Utensils } from 'lucide-react';
 
@@ -49,7 +50,7 @@ function getMealTypeTheme(mealType?: string | null) {
 }
 
 export default function CaseReviewQueue({ review, expanded }: Props) {
-  const { queue, isLoading, selectedMealId, errorMsg, handleSelectMeal } = review;
+  const { queue, queueError, fetchQueue, isLoading, selectedMealId, errorMsg, handleSelectMeal } = review;
   const visibleQueue = queue;
 
   return (
@@ -71,11 +72,26 @@ export default function CaseReviewQueue({ review, expanded }: Props) {
         </p>
       </div>
 
+      {queueError && (
+        <div
+          role="alert"
+          className="mb-3 space-y-3 rounded-2xl border border-amber-500/30 bg-brand-surface p-4 text-sm"
+        >
+          <p>{queueError}</p>
+          {visibleQueue.length > 0 && (
+            <p className="text-xs text-brand-muted">Showing the last loaded queue. Refresh before choosing new work.</p>
+          )}
+          <Button variant="secondary" size="sm" disabled={isLoading} onClick={() => void fetchQueue()}>
+            Retry queue
+          </Button>
+        </div>
+      )}
+
       {isLoading ? (
         <div className="flex-1 overflow-y-auto pr-1 space-y-3 custom-scrollbar">
           <ReviewQueueSkeleton count={5} />
         </div>
-      ) : visibleQueue.length === 0 ? (
+      ) : queueError && visibleQueue.length === 0 ? null : visibleQueue.length === 0 ? (
         <div className="flex-1 flex flex-col items-center justify-center p-8 text-center space-y-3 rounded-2xl border border-dashed border-brand-border/80 bg-brand-surface/40">
           <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-brand-green/10 text-brand-green shadow-inner">
             <CheckCircle className="w-6 h-6 stroke-[2.2]" />

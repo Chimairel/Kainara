@@ -4,6 +4,21 @@ import CaseReviewQueue from './CaseReviewQueue';
 import type { useNutritionistReviews } from './useNutritionistReviews';
 
 describe('single RND case queue', () => {
+  it('offers retry rather than claiming an unavailable queue is clear', () => {
+    const retry = vi.fn();
+    const review = {
+      queue: [],
+      isLoading: false,
+      selectedMealId: null,
+      queueError: 'The review queue could not be refreshed. Please retry.',
+      fetchQueue: retry,
+    } as unknown as ReturnType<typeof useNutritionistReviews>;
+    render(<CaseReviewQueue review={review} caseFilter="pending" expanded={false} />);
+    expect(screen.getByRole('alert')).toHaveTextContent('could not be refreshed');
+    expect(screen.queryByText('Queue clear')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Retry queue' }));
+    expect(retry).toHaveBeenCalledOnce();
+  });
   it('keeps an older partial review selectable while respecting peer claims', () => {
     const select = vi.fn();
     const meal = {

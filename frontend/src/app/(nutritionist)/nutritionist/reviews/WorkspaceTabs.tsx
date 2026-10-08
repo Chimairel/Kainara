@@ -26,7 +26,7 @@ export default function WorkspaceTabs({
       onChange={onChange}
       label="RND review queues"
       tone="green"
-      className="flex-col sm:flex-row"
+      stackOnMobile
       items={WORKSPACE_TABS.map(({ key, label, icon: Icon }) => ({
         value: key,
         label,

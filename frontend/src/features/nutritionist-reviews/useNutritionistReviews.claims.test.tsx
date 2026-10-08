@@ -96,4 +96,62 @@ describe('RND review claim controls', () => {
     expect(api.post).toHaveBeenCalledWith('/nutritionist/queue/meal-1/claim');
     log.mockRestore();
   });
+
+  it('shares an in-flight initial queue read with refresh callers', async () => {
+    let resolve!: (value: unknown) => void;
+    vi.mocked(api.get).mockImplementationOnce(
+      () =>
+        new Promise((done) => {
+          resolve = done;
+        })
+    );
+    const { result } = renderHook(() => useNutritionistReviews());
+    let pending!: Promise<void>;
+    act(() => {
+      pending = result.current.fetchQueue(true);
+      void result.current.fetchQueue();
+    });
+    expect(api.get).toHaveBeenCalledTimes(1);
+    await act(async () => {
+      resolve({ data: { success: true, data: [] } });
+      await pending;
+    });
+    expect(result.current.queueError).toBeNull();
+  });
+
+  it('shows a queue timeout and clears it after retry', async () => {
+    vi.mocked(api.get).mockRejectedValueOnce({ code: 'ECONNABORTED' });
+    const { result } = renderHook(() => useNutritionistReviews());
+    await waitFor(() =>
+      expect(result.current.queueError).toBe('Loading the review queue took too long. Please retry.')
+    );
+    await act(async () => {
+      await result.current.fetchQueue();
+    });
+    expect(result.current.queueError).toBeNull();
+    expect(result.current.isLoading).toBe(false);
+  });
+
+  it('refreshes after a claim and ignores an older queue response', async () => {
+    let resolveOld!: (value: unknown) => void;
+    vi.mocked(api.get).mockImplementationOnce(
+      () =>
+        new Promise((done) => {
+          resolveOld = done;
+        })
+    );
+    const { result } = renderHook(() => useNutritionistReviews());
+    await act(async () => {
+      await result.current.handleSelectMeal('meal-1');
+    });
+    await act(async () => {
+      await result.current.handleClaimMeal();
+    });
+    expect(api.get).toHaveBeenCalledTimes(3);
+    await act(async () => {
+      resolveOld({ data: { success: true, data: [{ id: 'stale-before-claim' }] } });
+    });
+    expect(result.current.queue).toEqual([]);
+    expect(result.current.detailData?.claimStatus.claimedByMe).toBe(true);
+  });
 });
