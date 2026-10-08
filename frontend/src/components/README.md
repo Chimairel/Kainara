@@ -7,6 +7,7 @@ Use these components before copying markup from another page. Role authorization
 | Default surface | `ui/Card` | Membership statistics/calendar, progress, settings |
 | Curved stripes and logo | `ui/CardDecoration` or Card decoration props | Membership, dashboard, reports, grocery |
 | Expandable staff audit | `shared/AuditHistoryList` | Admin and nutritionist Audit |
+| Document surface | `shared/RecordPaper` | Nutrition guidance and immutable recipe review history |
 | Queue/history with detail pane | `shared/SplitWorkspace`, `WorkspaceListPane` | Nutritionist cases, nutrition guidance |
 | Controlled dropdown | `ui/Select`, `ui/Dropdown` | Progress period, meal/report/review filters |
 | Required or uncontrolled form select | `ui/NativeSelect` | Admin authoring and reference-data forms |
@@ -67,6 +68,8 @@ SectionLink scrolls a same-page public section without writing a URL hash. Its r
 AuditHistoryList fetches one record on expansion through the caller’s role endpoint. Pass the authenticated ownerId for session-scoped reads. RecordedDetails shows only the server’s food/fact projection, with missing nutrition labeled Not recorded; it never fills older records using current meal values. Admins can open existing meal authoring; no audit action automatically publishes reusable food or ingredients.
 
 Admin audit details additionally use `features/admin-audit/CaseReviewContext` for read-only related clinical records, with audited access and authenticated-owner response isolation. `features/nutritionist-library/MealReviewPanel`, `MealReviewQueue` and `MealReviewTimeline` share pending/quarantine presentation across admin and RND workspaces; keep clinical confirmations separate from administrative release. Every mutation carries the displayed version and stale history must be refreshed. `user/ReviewedByControl` opens the existing credential modal from member meal cards, labels recipe versus member approval, and stops card-click propagation. Credential cards show recorded values only. `features/admin-meals/AdminMealBatch` handles JSON templates, selected export, preview errors and atomic draft imports. See [meal governance](../../../docs/MEAL_REVIEW_GOVERNANCE.md).
+
+MealReviewTimeline uses RecordPaper's nutrition guidance document surface and the shared Select to choose a recorded change, newest first. The selected record shows its saved actor, date, rationale and nutrition; incident status is the incident's current state. Compare before/after values only for an immediately paired CORRECTION_BEFORE/CORRECTED decision within the same incident and matching serving IDs. Never substitute current recipe values or unrelated older snapshots. Missing values remain Not recorded. Expandable sections retain ingredients, structured flag notes and the complete saved evidence. MealReviewPanel excludes already displayed active concern IDs from the historical notes to avoid duplication. Selecting history never changes the version bound to confirmation, release or archive actions.
 
 ## Illustrated states
 

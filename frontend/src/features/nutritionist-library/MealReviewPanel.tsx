@@ -314,7 +314,11 @@ export default function MealReviewPanel({
               </div>
             </details>
           )}
-          <MealReviewTimeline history={data.history} legacyHistoryUnknown={data.legacyHistoryUnknown} />
+          <MealReviewTimeline
+            history={data.history}
+            legacyHistoryUnknown={data.legacyHistoryUnknown}
+            displayedReportIds={data.incident?.reports.map((report) => report.id)}
+          />
         </>
       )}
     </section>

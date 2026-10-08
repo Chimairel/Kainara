@@ -83,6 +83,29 @@ for (const role of ['ADMIN', 'NUTRITIONIST'] as const) {
         confirmations: [],
         claimedByNutritionistId: null,
       };
+      const priorIncident = {
+        ...incident,
+        id: 'incident-1',
+        number: 1,
+        state: 'RELEASED',
+        reports: [
+          {
+            ...report,
+            id: 'prior-concern',
+            actorSnapshot: { name: 'Prior flagger', role: 'RND' },
+            notes: { ...report.notes, reference: 'Prior recorded composition reference.' },
+          },
+        ],
+        decisions: [
+          {
+            ...decision,
+            id: 'before-correction',
+            action: 'CORRECTION_BEFORE',
+            snapshot: { meals: [{ ...meal, calories: 200 }] },
+          },
+          { ...decision, id: 'after-correction', action: 'CORRECTED', snapshot: { meals: [meal] } },
+        ],
+      };
       let confirmations = 0;
       const mutations: { path: string; body: Record<string, unknown> }[] = [];
       await page.route('**/api/**', async (route) => {
@@ -103,7 +126,7 @@ for (const role of ['ADMIN', 'NUTRITIONIST'] as const) {
             incidentCount: 2,
             legacyHistoryUnknown: false,
             incident,
-            history: [incident],
+            history: [priorIncident, incident],
             validConfirmations: Array.from({ length: confirmations }, () => ({})),
             canAdminRelease: false,
           };
@@ -160,9 +183,16 @@ for (const role of ['ADMIN', 'NUTRITIONIST'] as const) {
         });
         await expect(panel.getByRole('button', { name: 'Release quarantine' })).toHaveCount(0);
       }
-      await panel.getByText(/WITHHELD · Synthetic flagger/).click();
+      await expect(panel.getByRole('heading', { name: 'Recipe withheld', exact: true })).toBeVisible();
       await expect(panel.getByText('Immutable values recorded for this decision.', { exact: false })).toBeVisible();
       await expect(panel.getByText('150 mg sodium', { exact: true })).toBeVisible();
+      await panel.getByRole('combobox', { name: 'Review change' }).click();
+      await page.getByRole('option', { name: /Incident 1 · Recipe corrected/ }).click();
+      const comparison = panel.getByRole('table', { name: 'Recorded correction comparison' });
+      await expect(comparison.getByText('200 kcal')).toBeVisible();
+      await expect(comparison.getByText('300 kcal')).toBeVisible();
+      await panel.getByText(/Prior flagger · nutrition/).click();
+      await expect(panel.getByText('Prior recorded composition reference.')).toBeVisible();
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
       await page.screenshot({ path: testInfo.outputPath(`review-${role}-${width}.png`), fullPage: true });
       expect(errors).toEqual([]);

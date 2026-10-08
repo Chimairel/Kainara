@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import RecordPaper from '@/components/shared/RecordPaper';
 import type { NutritionReport } from '@/types';
 import { formatManilaDate } from '@/lib/manila-date';
 import {
@@ -83,10 +84,7 @@ export default function NutritionGuidancePaper({
   const drinksList = parseList(report.drinksGuidance);
 
   return (
-    <article
-      aria-label="Nutrition guidance record"
-      className="mx-auto w-full max-w-4xl rounded-[24px] sm:rounded-[32px] border border-[#dce4e0] dark:border-[#173e33] bg-white dark:bg-[#0a201a] p-4 sm:p-6 shadow-md sm:shadow-lg space-y-4 leading-normal [overflow-wrap:anywhere] text-[#0d2820] dark:text-white print:border-none print:shadow-none print:p-0 print:bg-white print:text-black transition-colors"
-    >
+    <RecordPaper aria-label="Nutrition guidance record">
       {/* Header Block */}
       <header className="border-b border-[#dce4e0]/80 dark:border-[#173e33] pb-3">
         <div className="flex flex-wrap items-start justify-between gap-4">
@@ -400,6 +398,6 @@ export default function NutritionGuidancePaper({
           <span>VERIFIED PLATFORM RECORD</span>
         </div>
       </footer>
-    </article>
+    </RecordPaper>
   );
 }
