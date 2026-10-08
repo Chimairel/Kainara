@@ -9,6 +9,7 @@ import { useSessionQuery } from '@/hooks/useSessionQuery';
 import PortalPageHeader from '@/components/shared/PortalPageHeader';
 import Button from '@/components/ui/Button';
 import api from '@/lib/axios';
+import AdminSubscriptionHistory from './AdminSubscriptionHistory';
 
 import AuditHistoryList, { type AuditRow } from '@/components/shared/AuditHistoryList';
 export { default as AuditHistoryList } from '@/components/shared/AuditHistoryList';
@@ -65,7 +66,7 @@ function Pagination({ history, page, setPage }: { history: History; page: number
 
 export default function AdminAuditWorkspace() {
   const ownerId = useAuth().user?.userId;
-  const [view, setView] = useState<'admin' | 'nutritionist'>('admin');
+  const [view, setView] = useState<'admin' | 'nutritionist' | 'subscriptions'>('admin');
   const [page, setPage] = useState(1);
   const [staff, setStaff] = useState('');
   const [actor, setActor] = useState('');
@@ -95,7 +96,7 @@ export default function AdminAuditWorkspace() {
   const history = useSessionQuery<History>({
     ownerId,
     resource: `admin-audit:${JSON.stringify(filters)}`,
-    enabled: validDates && !related,
+    enabled: view !== 'subscriptions' && validDates && !related,
     errorMessage: 'Audit history could not be loaded. Please try again.',
     fetcher: async () => {
       const response = await api.get('/admin/audit-history', { params: filters });
@@ -135,13 +136,17 @@ export default function AdminAuditWorkspace() {
         description={
           related
             ? `Activity concerning ${related.subject}. Dates use Philippine time.`
-            : 'Administrator actions and RND review history. Dates use Philippine time.'
+            : view === 'subscriptions'
+              ? 'Member subscription periods and recorded plan changes. Dates use Philippine time.'
+              : 'Administrator actions, RND reviews and member subscription history. Dates use Philippine time.'
         }
         meta={
-          <Button variant="secondary" disabled={!related && !validDates} onClick={() => void current.refetch()}>
-            <RefreshCw className="mr-2 h-4 w-4" />
-            Refresh
-          </Button>
+          view !== 'subscriptions' && (
+            <Button variant="secondary" disabled={!related && !validDates} onClick={() => void current.refetch()}>
+              <RefreshCw className="mr-2 h-4 w-4" />
+              Refresh
+            </Button>
+          )
         }
       />
       {related ? (
@@ -162,132 +167,141 @@ export default function AdminAuditWorkspace() {
             items={[
               { value: 'admin', label: 'Admin activity' },
               { value: 'nutritionist', label: 'RND history' },
+              { value: 'subscriptions', label: 'Member subscriptions' },
             ]}
           />
-          <section aria-label="Audit filters" className="rounded-2xl border border-brand-border bg-brand-surface p-4">
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              <label className="space-y-2 text-xs font-semibold text-brand-muted">
-                Staff name
-                <input
-                  aria-label="Staff name"
-                  type="search"
-                  maxLength={200}
-                  value={staff}
-                  onChange={(event) => setStaff(event.target.value)}
-                  className={field}
-                  placeholder="Search staff"
-                />
-              </label>
-              <label className="space-y-2 text-xs font-semibold text-brand-muted">
-                Action
-                <Dropdown
-                  aria-label="Action"
-                  value={action}
-                  onChange={(event) => {
-                    setAction(event);
-                    setPage(1);
-                  }}
-                  className={field}
-                >
-                  {actions.map(([value, label]) => (
-                    <option key={value} value={value}>
-                      {label}
-                    </option>
-                  ))}
-                </Dropdown>
-              </label>
-              <label className="space-y-2 text-xs font-semibold text-brand-muted">
-                From
-                <input
-                  aria-label="From"
-                  type="date"
-                  value={from}
-                  onChange={(event) => {
-                    setFrom(event.target.value);
-                    setPage(1);
-                  }}
-                  className={field}
-                />
-              </label>
-              <label className="space-y-2 text-xs font-semibold text-brand-muted">
-                To
-                <input
-                  aria-label="To"
-                  type="date"
-                  value={to}
-                  onChange={(event) => {
-                    setTo(event.target.value);
-                    setPage(1);
-                  }}
-                  className={field}
-                />
-              </label>
-            </div>
-            <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
-              {view === 'admin' && (
-                <label className="flex min-h-11 items-center gap-2 text-sm text-brand-text">
+          {view !== 'subscriptions' && (
+            <section aria-label="Audit filters" className="rounded-2xl border border-brand-border bg-brand-surface p-4">
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                <label className="space-y-2 text-xs font-semibold text-brand-muted">
+                  Staff name
                   <input
-                    type="checkbox"
-                    checked={mine}
+                    aria-label="Staff name"
+                    type="search"
+                    maxLength={200}
+                    value={staff}
+                    onChange={(event) => setStaff(event.target.value)}
+                    className={field}
+                    placeholder="Search staff"
+                  />
+                </label>
+                <label className="space-y-2 text-xs font-semibold text-brand-muted">
+                  Action
+                  <Dropdown
+                    aria-label="Action"
+                    value={action}
                     onChange={(event) => {
-                      setMine(event.target.checked);
+                      setAction(event);
                       setPage(1);
                     }}
-                  />
-                  My actions
+                    className={field}
+                  >
+                    {actions.map(([value, label]) => (
+                      <option key={value} value={value}>
+                        {label}
+                      </option>
+                    ))}
+                  </Dropdown>
                 </label>
+                <label className="space-y-2 text-xs font-semibold text-brand-muted">
+                  From
+                  <input
+                    aria-label="From"
+                    type="date"
+                    value={from}
+                    onChange={(event) => {
+                      setFrom(event.target.value);
+                      setPage(1);
+                    }}
+                    className={field}
+                  />
+                </label>
+                <label className="space-y-2 text-xs font-semibold text-brand-muted">
+                  To
+                  <input
+                    aria-label="To"
+                    type="date"
+                    value={to}
+                    onChange={(event) => {
+                      setTo(event.target.value);
+                      setPage(1);
+                    }}
+                    className={field}
+                  />
+                </label>
+              </div>
+              <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
+                {view === 'admin' && (
+                  <label className="flex min-h-11 items-center gap-2 text-sm text-brand-text">
+                    <input
+                      type="checkbox"
+                      checked={mine}
+                      onChange={(event) => {
+                        setMine(event.target.checked);
+                        setPage(1);
+                      }}
+                    />
+                    My actions
+                  </label>
+                )}
+                <Button variant="secondary" size="sm" className="!min-h-11" onClick={clear}>
+                  Clear filters
+                </Button>
+              </div>
+              {!validDates && (
+                <p role="alert" className="mt-2 text-sm text-status-error-text">
+                  The end date must be on or after the start date.
+                </p>
               )}
-              <Button variant="secondary" size="sm" className="!min-h-11" onClick={clear}>
-                Clear filters
-              </Button>
-            </div>
-            {!validDates && (
-              <p role="alert" className="mt-2 text-sm text-status-error-text">
-                The end date must be on or after the start date.
-              </p>
-            )}
-          </section>
+            </section>
+          )}
         </>
       )}
-      <section
-        className="overflow-hidden rounded-2xl border border-brand-border bg-brand-surface"
-        aria-label={related ? 'Related activity' : view === 'admin' ? 'Admin activity records' : 'RND history records'}
-      >
-        {current.error && (
-          <p role="alert" className="p-4 text-sm text-status-error-text">
-            {current.error}
-          </p>
-        )}
-        {current.isLoading && !current.data && (
-          <p role="status" className="p-6 text-sm text-brand-muted">
-            Loading activity...
-          </p>
-        )}
-        {current.data && validDates && (
-          <>
-            <AuditHistoryList
-              key={`${ownerId}:${related?.id ?? view}:${related ? relatedPage : page}`}
-              rows={current.data.rows}
-              ownerId={ownerId}
-              endpoint="/admin/audit-history"
-              canAuthor
-              onRelated={
-                related
-                  ? undefined
-                  : (row) => {
-                      setRelated(row);
-                      setRelatedPage(1);
-                    }
-              }
-            />
-            <Pagination
-              history={current.data}
-              page={related ? relatedPage : page}
-              setPage={related ? setRelatedPage : setPage}
-            />
-          </>
-        )}
-      </section>
+      {view === 'subscriptions' ? (
+        <AdminSubscriptionHistory key={ownerId} />
+      ) : (
+        <section
+          className="overflow-hidden rounded-2xl border border-brand-border bg-brand-surface"
+          aria-label={
+            related ? 'Related activity' : view === 'admin' ? 'Admin activity records' : 'RND history records'
+          }
+        >
+          {current.error && (
+            <p role="alert" className="p-4 text-sm text-status-error-text">
+              {current.error}
+            </p>
+          )}
+          {current.isLoading && !current.data && (
+            <p role="status" className="p-6 text-sm text-brand-muted">
+              Loading activity...
+            </p>
+          )}
+          {current.data && validDates && (
+            <>
+              <AuditHistoryList
+                key={`${ownerId}:${related?.id ?? view}:${related ? relatedPage : page}`}
+                rows={current.data.rows}
+                ownerId={ownerId}
+                endpoint="/admin/audit-history"
+                canAuthor
+                onRelated={
+                  related
+                    ? undefined
+                    : (row) => {
+                        setRelated(row);
+                        setRelatedPage(1);
+                      }
+                }
+              />
+              <Pagination
+                history={current.data}
+                page={related ? relatedPage : page}
+                setPage={related ? setRelatedPage : setPage}
+              />
+            </>
+          )}
+        </section>
+      )}
     </div>
   );
 }

@@ -13,8 +13,11 @@ import { RefreshCw, AlertTriangle, CreditCard, ExternalLink } from 'lucide-react
 import Link from 'next/link';
 import { isCheckoutUrl } from '@/features/membership/checkout';
 import api from '@/lib/axios';
+import { useAuth } from '@/hooks/useAuth';
+import SubscriptionHistoryCard from '@/features/membership/SubscriptionHistoryCard';
 
 function MembershipContent() {
+  const ownerId = useAuth().user?.userId;
   const { data, isLoading, error, refresh } = useMembership();
   const [isPlansModalOpen, setIsPlansModalOpen] = useState(false);
   const [closingCheckout, setClosingCheckout] = useState(false);
@@ -181,6 +184,8 @@ function MembershipContent() {
           <PlanCalendarCard data={data} />
         </div>
       )}
+
+      {data?.enabled && <SubscriptionHistoryCard key={ownerId} ownerId={ownerId} endpoint="/user/membership/history" />}
 
       {/* 6. FULL-SCREEN PRICING MODAL (ChatGPT style with 'X' button on upper right) */}
       {isPlansModalOpen ? (

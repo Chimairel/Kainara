@@ -9,9 +9,11 @@ import { MealPlanCycleService } from '@/services/meal-plan-cycle.service';
 import { AppError } from '@/errors/AppError';
 import { membershipCheckoutInput } from '@/domain/membership-checkout.policy';
 import { MembershipCheckoutService } from '@/services/membership-checkout.service';
+import { memberHistoryRouter } from './membership-history.routes';
 
 const router = Router();
 router.use(authenticate, requireRole('USER'));
+router.use('/history', memberHistoryRouter);
 router.get(
   '/',
   asyncHandler(async (req: AuthenticatedRequest, res) => {

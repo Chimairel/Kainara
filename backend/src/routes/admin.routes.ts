@@ -20,6 +20,7 @@ import adminMealsRouter from '@/routes/admin-meals.routes';
 import adminWebsiteContentRouter from '@/routes/admin-website-content.routes';
 import adminLibraryRouter from '@/routes/admin-library.routes';
 import adminAuditRouter from '@/routes/admin-audit.routes';
+import { adminMembershipHistoryRouter } from './membership-history.routes';
 
 const router = Router();
 
@@ -34,6 +35,7 @@ router.use('/meals', adminMealsRouter);
 router.use('/website-content', adminWebsiteContentRouter);
 router.use('/library', adminLibraryRouter);
 router.use('/audit-history', adminAuditRouter);
+router.use('/membership-history', adminMembershipHistoryRouter);
 
 /**
  * GET /api/admin/analytics
