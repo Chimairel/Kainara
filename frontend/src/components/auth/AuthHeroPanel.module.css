@@ -10,6 +10,10 @@
   container-type: inline-size;
 }
 
+.stage[data-auth-scene-ready='false'] {
+  visibility: hidden;
+}
+
 .scene,
 .stage::after {
   --scene-width: min(calc((100cqw - var(--stage-extension)) * 2.3), calc((100svh - 150px) * 1024 / 765 / 0.55), 1600px);

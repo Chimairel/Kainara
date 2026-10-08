@@ -1,16 +1,42 @@
 'use client';
 
-import type { ReactNode } from 'react';
+import { type ReactNode, useEffect, useState } from 'react';
+import { preload } from 'react-dom';
 import Image from 'next/image';
 import ThemeToggle from '@/components/ui/ThemeToggle';
-import AuthMascot from './AuthMascot';
+import AuthMascot, { authMascotAssets } from './AuthMascot';
 import styles from './AuthHeroPanel.module.css';
 
 export default function AuthHeroPanel({ header }: { header: ReactNode }) {
+  const [houseReady, setHouseReady] = useState(false);
+  const [photoReady, setPhotoReady] = useState(false);
+  const [mascotReady, setMascotReady] = useState(false);
+  const sceneReady = houseReady && photoReady && mascotReady;
+
+  for (const src of Object.values(authMascotAssets)) {
+    preload(src, { as: 'image', fetchPriority: 'high' });
+  }
+
+  useEffect(() => {
+    let active = true;
+    const images = Object.values(authMascotAssets).map((src) => {
+      const image = new window.Image();
+      image.src = src;
+      return image.decode();
+    });
+    // A failed decorative asset must not keep the remaining scene hidden forever.
+    void Promise.allSettled(images).then(() => {
+      if (active) setMascotReady(true);
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
+
   return (
     <div className="flex h-full flex-col p-4 xl:p-6">
       <header className="flex items-center gap-4">{header}</header>
-      <div className={styles.stage} data-auth-kubo-stage>
+      <div className={styles.stage} data-auth-kubo-stage data-auth-scene-ready={sceneReady}>
         <div className={styles.scene} data-auth-kubo>
           <div className={styles.window} data-auth-kubo-window>
             <Image
@@ -20,6 +46,8 @@ export default function AuthHeroPanel({ header }: { header: ReactNode }) {
               priority
               sizes="(min-width: 1024px) 560px, 100vw"
               className={styles.teamPhoto}
+              onLoad={() => setPhotoReady(true)}
+              onError={() => setPhotoReady(true)}
             />
             <div className={styles.nara}>
               <AuthMascot size={1024} />
@@ -33,6 +61,8 @@ export default function AuthHeroPanel({ header }: { header: ReactNode }) {
             priority
             aria-hidden="true"
             className="pointer-events-none absolute inset-0 z-10 h-full w-full select-none"
+            onLoad={() => setHouseReady(true)}
+            onError={() => setHouseReady(true)}
           />
           <div className={styles.lamp} data-auth-bulb>
             <svg viewBox="0 0 72 138" aria-hidden="true" className={styles.bulb}>

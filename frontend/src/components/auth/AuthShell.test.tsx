@@ -6,6 +6,7 @@ import AuthShell from './AuthShell';
 vi.mock('@/components/ui/InteractiveCyberGrid', () => ({ default: () => null }));
 vi.mock('@/components/ui/ThemeToggle', () => ({ default: () => null }));
 vi.mock('./AuthMascot', () => ({ default: () => null }));
+vi.mock('./AuthHeroPanel', () => ({ default: () => null }));
 
 describe('AuthShell transition', () => {
   it('retains the card and form state while blocking interaction behind the transition', () => {

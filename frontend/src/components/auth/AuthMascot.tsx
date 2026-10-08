@@ -3,6 +3,11 @@
 import { useSyncExternalStore } from 'react';
 import { Mascot } from 'page-mascot';
 
+export const authMascotAssets = {
+  directions: '/mascots/nara-tanod-directions.webp',
+  reactions: '/mascots/nara-tanod-reactions.webp',
+};
+
 const motionQuery = '(prefers-reduced-motion: reduce)';
 function subscribeMotion(change: () => void) {
   const query = window.matchMedia(motionQuery);
@@ -28,7 +33,7 @@ export default function AuthMascot({ size = 120 }: { size?: number }) {
           aria-label="Nara wearing her tanod costume"
           className="block h-full w-full"
           style={{
-            backgroundImage: 'url(/mascots/nara-tanod-directions.webp)',
+            backgroundImage: `url(${authMascotAssets.directions})`,
             backgroundSize: '300% 300%',
             backgroundPosition: '50% 50%',
             backgroundRepeat: 'no-repeat',
@@ -36,8 +41,8 @@ export default function AuthMascot({ size = 120 }: { size?: number }) {
         />
       ) : (
         <Mascot
-          directions="/mascots/nara-tanod-directions.webp"
-          reactions="/mascots/nara-tanod-reactions.webp"
+          directions={authMascotAssets.directions}
+          reactions={authMascotAssets.reactions}
           size={size}
           label="Nara"
           className="!h-full !w-full rounded-2xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-brand-green"
