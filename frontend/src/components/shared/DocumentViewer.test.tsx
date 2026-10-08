@@ -62,3 +62,44 @@ it('uses caller PDF export and blocks duplicate download requests', () => {
   );
   expect(screen.getByRole('button', { name: 'Download PDF' })).toBeDisabled();
 });
+
+it('uses one fit button that changes mode and icon', () => {
+  render(<Fixture />);
+  const fitButton = screen.getByRole('button', { name: 'Fit to page' });
+  const widthIcon = fitButton.querySelector('svg')?.getAttribute('class');
+  expect(screen.queryByRole('button', { name: 'Fit to width' })).not.toBeInTheDocument();
+  fireEvent.click(fitButton);
+  expect(screen.getByRole('button', { name: 'Fit to width' })).toBe(fitButton);
+  expect(fitButton.querySelector('svg')?.getAttribute('class')).not.toBe(widthIcon);
+  fireEvent.click(fitButton);
+  expect(screen.getByRole('button', { name: 'Fit to page' })).toBe(fitButton);
+  expect(fitButton.querySelector('svg')?.getAttribute('class')).toBe(widthIcon);
+});
+
+it('renders actual sheets in inert thumbnails without duplicate IDs and keeps the sidebar open', async () => {
+  const { container, rerender } = render(
+    <DocumentViewer title="Preview" contentKey="one" expanded={false} onExpandedChange={vi.fn()}>
+      <div id="original-sheet" data-document-page="1">
+        <h2>Recorded values</h2>
+        <a href="/sources">Original reference</a>
+      </div>
+    </DocumentViewer>
+  );
+  fireEvent.click(screen.getByRole('button', { name: 'Document pages' }));
+  const thumbnail = container.querySelector('[data-document-thumbnail]')!;
+  expect(thumbnail).toHaveTextContent('Recorded values');
+  expect(thumbnail.querySelector('a')).toHaveTextContent('Original reference');
+  expect(thumbnail.querySelector('[id]')).toBeNull();
+  expect(thumbnail.parentElement).toHaveAttribute('inert');
+  expect(thumbnail.parentElement).toHaveAttribute('aria-hidden', 'true');
+  fireEvent.click(screen.getByRole('button', { name: 'Page 1' }));
+  expect(screen.getByRole('complementary', { name: 'Document page navigation' })).toBeInTheDocument();
+  rerender(
+    <DocumentViewer title="Preview" contentKey="one" expanded={false} onExpandedChange={vi.fn()}>
+      <div id="original-sheet" data-document-page="1">
+        <h2>Updated recorded values</h2>
+      </div>
+    </DocumentViewer>
+  );
+  await waitFor(() => expect(thumbnail).toHaveTextContent('Updated recorded values'));
+});

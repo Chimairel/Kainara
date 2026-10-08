@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useLayoutEffect, useRef, useState } from 'react';
+import React, { useCallback, useLayoutEffect, useRef, useState } from 'react';
 import * as Dialog from '@radix-ui/react-dialog';
 import {
   ChevronLeft,
@@ -21,7 +21,6 @@ export interface DocumentViewerProps {
   /** Pages declare data-document-page. Change contentKey when the displayed record changes. */
   contentKey: string;
   children: React.ReactNode;
-  versionControl?: React.ReactNode;
   actions?: React.ReactNode;
   onDownload?: () => void;
   downloading?: boolean;
@@ -35,7 +34,6 @@ export default function DocumentViewer({
   title,
   contentKey,
   children,
-  versionControl,
   actions,
   onDownload,
   downloading = false,
@@ -44,13 +42,19 @@ export default function DocumentViewer({
   paperWidth = 794,
 }: DocumentViewerProps) {
   const canvasRef = useRef<HTMLDivElement>(null);
-  const viewerRef = useRef<HTMLDivElement>(null);
+  const [mountedCanvas, setMountedCanvas] = useState<HTMLDivElement | null>(null);
+  const attachCanvas = useCallback((node: HTMLDivElement | null) => {
+    canvasRef.current = node;
+    setMountedCanvas(node);
+  }, []);
   const paperRef = useRef<HTMLDivElement>(null);
   const expandRef = useRef<HTMLButtonElement>(null);
   const scrollPosition = useRef({ top: 0, left: 0 });
   const [outlineOpen, setOutlineOpen] = useState(false);
   const [page, setPage] = useState(1);
   const [pageCount, setPageCount] = useState(1);
+  const [sheets, setSheets] = useState<Array<{ node: HTMLElement; height: number }>>([]);
+  const [previewRevision, setPreviewRevision] = useState(0);
   const [scale, setScale] = useState(1);
   const previousScale = useRef(1);
   const [fit, setFit] = useState<'width' | 'page' | null>('width');
@@ -81,19 +85,34 @@ export default function DocumentViewer({
     canvas.scrollTop = scrollPosition.current.top;
     canvas.scrollLeft = scrollPosition.current.left;
     const measure = () => {
-      const sheets = Array.from(paper.querySelectorAll<HTMLElement>('[data-document-page]'));
-      setPageCount(Math.max(1, sheets.length));
+      const renderedSheets = Array.from(paper.querySelectorAll<HTMLElement>('[data-document-page]'));
+      setPageCount(Math.max(1, renderedSheets.length));
+      setSheets((previous) => {
+        const next = renderedSheets.map((node) => ({ node, height: node.offsetHeight || 1123 }));
+        return previous.length === next.length &&
+          previous.every((sheet, index) => sheet.node === next[index].node && sheet.height === next[index].height)
+          ? previous
+          : next;
+      });
       if (!fit || !canvas.clientWidth) return;
       const widthScale = (canvas.clientWidth - 32) / paperWidth;
-      const heightScale = (canvas.clientHeight - 32) / (sheets[0]?.offsetHeight || 1123);
-      setScale(Math.max(0.1, Math.min(1, widthScale, fit === 'page' ? heightScale : 1)));
+      const heightScale = (canvas.clientHeight - 32) / (renderedSheets[page - 1]?.offsetHeight || 1123);
+      setScale(Math.max(0.1, fit === 'page' ? Math.min(widthScale, heightScale) : widthScale));
     };
     measure();
     const observer = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(measure);
     observer?.observe(canvas);
     observer?.observe(paper);
-    return () => observer?.disconnect();
-  }, [contentKey, expanded, outlineOpen, fit, paperWidth]);
+    const mutations = new MutationObserver(() => {
+      measure();
+      setPreviewRevision((revision) => revision + 1);
+    });
+    mutations.observe(paper, { subtree: true, childList: true, characterData: true });
+    return () => {
+      observer?.disconnect();
+      mutations.disconnect();
+    };
+  }, [contentKey, expanded, outlineOpen, fit, paperWidth, page, mountedCanvas]);
   useLayoutEffect(() => {
     const canvas = canvasRef.current;
     if (canvas && previousScale.current !== scale) {
@@ -123,7 +142,6 @@ export default function DocumentViewer({
     'flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-slate-200 hover:bg-white/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-white disabled:opacity-40';
   const reader = (
     <div
-      ref={viewerRef}
       role="region"
       aria-label="Document viewer"
       className={`relative isolate flex min-w-0 flex-col overflow-hidden bg-[#323639] text-white ${expanded ? 'h-full w-full' : 'z-0 h-[clamp(24rem,calc(100dvh-20rem),46rem)] w-full rounded-2xl border border-white/10 shadow-xl'}`}
@@ -167,7 +185,6 @@ export default function DocumentViewer({
           </button>
         </div>
         <div className="flex w-full min-w-0 flex-wrap items-center justify-between gap-2 border-t border-white/10 pt-2">
-          {versionControl && <div className="min-w-0 max-w-full flex-1 basis-48 sm:max-w-sm">{versionControl}</div>}
           <div className="flex max-w-full flex-wrap items-center gap-1 text-xs">
             <button
               type="button"
@@ -219,20 +236,11 @@ export default function DocumentViewer({
             <button
               type="button"
               className={iconButton}
-              aria-label="Fit to width"
-              aria-pressed={fit === 'width'}
-              onClick={() => setFit('width')}
+              aria-label={fit === 'page' ? 'Fit to width' : 'Fit to page'}
+              title={fit === 'page' ? 'Fit to width' : 'Fit to page'}
+              onClick={() => setFit(fit === 'page' ? 'width' : 'page')}
             >
-              <StretchHorizontal className="h-4 w-4" />
-            </button>
-            <button
-              type="button"
-              className={iconButton}
-              aria-label="Fit to page"
-              aria-pressed={fit === 'page'}
-              onClick={() => setFit('page')}
-            >
-              <Shrink className="h-4 w-4" />
+              {fit === 'page' ? <Shrink className="h-4 w-4" /> : <StretchHorizontal className="h-4 w-4" />}
             </button>
           </div>
         </div>
@@ -241,27 +249,34 @@ export default function DocumentViewer({
         {outlineOpen && (
           <aside
             aria-label="Document page navigation"
-            className="absolute inset-y-0 left-0 z-10 w-36 overflow-y-auto border-r border-white/10 bg-[#202124] p-3 sm:static sm:shrink-0"
+            className="custom-scrollbar w-28 shrink-0 overflow-y-auto border-r border-white/10 bg-[#202124] p-2 sm:w-48 sm:p-3"
           >
             <p className="mb-3 text-xs font-semibold text-slate-300">Pages</p>
-            {Array.from({ length: pageCount }, (_, index) => (
+            {sheets.map((sheet, index) => (
               <button
                 key={index}
                 type="button"
                 aria-current={page === index + 1 ? 'page' : undefined}
-                className="mb-2 block min-h-11 w-full rounded-lg border border-white/20 px-3 text-left text-sm hover:bg-white/10 aria-[current=page]:bg-white/20"
+                aria-label={`Page ${index + 1}`}
+                className="mb-3 flex min-h-11 w-full flex-col items-center gap-2 rounded-lg border-2 border-transparent p-1 text-sm hover:bg-white/10 focus-visible:outline focus-visible:outline-white aria-[current=page]:border-blue-400"
                 onClick={() => {
                   jump(index + 1);
-                  setOutlineOpen(false);
                 }}
               >
-                Page {index + 1}
+                <PageThumbnail
+                  source={sheet.node}
+                  height={sheet.height}
+                  paperWidth={paperWidth}
+                  contentKey={contentKey}
+                  revision={previewRevision}
+                />
+                <span>{index + 1}</span>
               </button>
             ))}
           </aside>
         )}
         <div
-          ref={canvasRef}
+          ref={attachCanvas}
           role="region"
           aria-label="Document pages scroll area"
           tabIndex={0}
@@ -282,9 +297,6 @@ export default function DocumentViewer({
         <Dialog.Overlay className="fixed inset-0 z-[80] bg-black/60" />
         <Dialog.Content
           aria-describedby={undefined}
-          onEscapeKeyDown={(event) => {
-            if (viewerRef.current?.querySelector('[role="combobox"][aria-expanded="true"]')) event.preventDefault();
-          }}
           onCloseAutoFocus={(event) => {
             event.preventDefault();
             expandRef.current?.focus();
@@ -296,5 +308,61 @@ export default function DocumentViewer({
         </Dialog.Content>
       </Dialog.Portal>
     </Dialog.Root>
+  );
+}
+
+/** A noninteractive scaled copy of the rendered sheet, with no duplicate document IDs. */
+function PageThumbnail({
+  source,
+  height,
+  paperWidth,
+  contentKey,
+  revision,
+}: {
+  source: HTMLElement;
+  height: number;
+  paperWidth: number;
+  contentKey: string;
+  revision: number;
+}) {
+  const previewRef = useRef<HTMLDivElement>(null);
+  const [width, setWidth] = useState(80);
+  useLayoutEffect(() => {
+    const preview = previewRef.current;
+    if (!preview) return;
+    const copy = source.cloneNode(true) as HTMLElement;
+    [copy, ...copy.querySelectorAll<HTMLElement>('*')].forEach((node) => {
+      node.removeAttribute('id');
+      node.removeAttribute('data-document-page');
+    });
+    preview.replaceChildren(copy);
+    return () => preview.replaceChildren();
+  }, [source, height, contentKey, revision]);
+  const containerRef = useRef<HTMLDivElement>(null);
+  useLayoutEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+    const measure = () => {
+      if (container.clientWidth) setWidth(container.clientWidth);
+    };
+    measure();
+    const observer = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(measure);
+    observer?.observe(container);
+    return () => observer?.disconnect();
+  }, []);
+  return (
+    <div
+      ref={containerRef}
+      aria-hidden="true"
+      inert
+      className="pointer-events-none relative w-full max-w-[120px] overflow-hidden bg-white shadow-md"
+      style={{ height: (height * width) / paperWidth }}
+    >
+      <div
+        ref={previewRef}
+        data-document-thumbnail
+        style={{ width: paperWidth, transform: `scale(${width / paperWidth})`, transformOrigin: 'top left' }}
+      />
+    </div>
   );
 }

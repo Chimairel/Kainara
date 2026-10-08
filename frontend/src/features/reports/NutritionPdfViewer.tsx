@@ -6,15 +6,12 @@ import type { NutritionReport } from '@/types';
 import DocumentViewer from '@/components/shared/DocumentViewer';
 import type { ReportVersion } from './ReportHistory';
 import NutritionGuidancePaper, { type GuidanceProfileSnapshot } from './NutritionGuidancePaper';
-import ReportVersionPicker from './ReportVersionPicker';
 
 interface Props {
   report: NutritionReport;
   profile: GuidanceProfileSnapshot;
-  allVersions: ReportVersion[];
   selectedVersion: ReportVersion | null;
   currentVersion: number;
-  onSelectVersion: (version: ReportVersion) => void;
   isAcknowledged: boolean;
   isAcknowledging: boolean;
   onAcknowledge: () => void;
@@ -29,10 +26,8 @@ interface Props {
 export default function NutritionPdfViewer({
   report,
   profile,
-  allVersions,
   selectedVersion,
   currentVersion,
-  onSelectVersion,
   isAcknowledged,
   isAcknowledging,
   onAcknowledge,
@@ -94,14 +89,6 @@ export default function NutritionPdfViewer({
       onDownload={onDownload}
       downloading={isDownloadingPdf}
       actions={actions}
-      versionControl={
-        <ReportVersionPicker
-          versions={allVersions}
-          selectedVersion={report.version}
-          currentVersion={report.planningContext?.activeVersion ?? currentVersion}
-          onSelect={onSelectVersion}
-        />
-      }
     >
       <NutritionGuidancePaper report={report} profile={profile} />
     </DocumentViewer>

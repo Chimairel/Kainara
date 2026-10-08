@@ -5,6 +5,7 @@ import type { NutritionReport } from '@/types';
 import type { ReportVersion } from './ReportHistory';
 import PortalPageHeader from '@/components/shared/PortalPageHeader';
 import NutritionPdfViewer from './NutritionPdfViewer';
+import ReportVersionPicker from './ReportVersionPicker';
 import Button from '@/components/ui/Button';
 import { FileText } from 'lucide-react';
 
@@ -189,13 +190,17 @@ export default function NutritionGuidanceDocument({
         )}
 
         {/* HTML report preview with the existing server PDF export. */}
+        <ReportVersionPicker
+          versions={allVersions}
+          selectedVersion={displayedReport.version}
+          currentVersion={report.planningContext?.activeVersion ?? report.version}
+          onSelect={(version) => setSelectedVersion(version.version === report.version ? null : version)}
+        />
         <NutritionPdfViewer
           report={displayedReport}
           profile={profileSnapshot}
-          allVersions={allVersions}
           selectedVersion={selectedVersion}
           currentVersion={report.version}
-          onSelectVersion={(version) => setSelectedVersion(version.version === report.version ? null : version)}
           isAcknowledged={isAcknowledged}
           isAcknowledging={isAcknowledging}
           onAcknowledge={onAcknowledge}

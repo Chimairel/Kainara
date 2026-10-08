@@ -249,6 +249,7 @@ for (const width of [320, 400, 768, 1024, 1280, 1440]) {
       beforeNotifications
     );
     const workspace = page.getByRole('region', { name: 'Document viewer', exact: true });
+    await expect(workspace.getByRole('combobox', { name: 'Report version' })).toHaveCount(0);
     const previewHeight = (await workspace.boundingBox())!.height;
     expect(previewHeight).toBeLessThanOrEqual(672);
     await expect(paper.locator('footer')).not.toBeInViewport();
@@ -273,12 +274,20 @@ for (const width of [320, 400, 768, 1024, 1280, 1440]) {
     expect((await workspace.boundingBox())!.height).toBe(previewHeight);
     await selectVersion(2);
     await page.getByRole('button', { name: 'Document pages', exact: true }).click();
+    const thumbnails = page
+      .getByRole('complementary', { name: 'Document page navigation' })
+      .locator('[data-document-thumbnail]');
+    await expect(thumbnails).toHaveCount(2);
+    await expect(thumbnails.first()).toContainText('Current profile guidance');
     await page.getByRole('button', { name: 'Page 2', exact: true }).click();
     await expect
       .poll(async () => {
         const sheet = (await paper.locator('[data-document-page]').last().boundingBox())!;
         const canvas = (await previewContent.boundingBox())!;
-        return Math.abs(sheet.y - canvas.y - 16);
+        const atBottom = await previewContent.evaluate(
+          (node) => Math.abs(node.scrollHeight - node.clientHeight - node.scrollTop) <= 1
+        );
+        return atBottom ? 0 : Math.abs(sheet.y - canvas.y - 16);
       })
       .toBeLessThanOrEqual(2);
     await page.getByRole('button', { name: 'Previous page' }).click();
@@ -296,6 +305,7 @@ for (const width of [320, 400, 768, 1024, 1280, 1440]) {
     await page.getByRole('button', { name: 'Reset zoom to 100%' }).click();
     await page.getByRole('button', { name: 'Zoom in', exact: true }).click();
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+    await page.getByRole('button', { name: 'Fit to page' }).click();
     await page.getByRole('button', { name: 'Fit to width' }).click();
     await page.getByRole('button', { name: 'Expand document' }).click();
     const fullView = page.getByRole('dialog', { name: /Nutrition report.*fullscreen/ });
@@ -307,20 +317,37 @@ for (const width of [320, 400, 768, 1024, 1280, 1440]) {
     expect(fullscreenBounds.height).toBe(808);
     await expect.poll(() => fullView.evaluate((node) => node.scrollWidth <= node.clientWidth)).toBe(true);
     await page.screenshot({ path: test.info().outputPath('report-fullscreen.png') });
-    await expect(page.getByRole('combobox', { name: 'Report version' })).toBeVisible();
-    await selectVersion(1);
-    await expect(paper).toContainText('Version 1');
-    await paper.locator('footer').scrollIntoViewIfNeeded();
-    await expect(paper.locator('footer')).toBeInViewport();
-    await page.getByRole('combobox', { name: 'Report version' }).scrollIntoViewIfNeeded();
-    await page.getByRole('combobox', { name: 'Report version' }).click();
-    await page.keyboard.press('Escape');
-    await expect(page.getByRole('listbox')).toHaveCount(0);
-    await expect(fullView).toBeVisible();
+    await expect(fullView.getByRole('combobox', { name: 'Report version' })).toHaveCount(0);
+    const checkWidthFit = async () => {
+      await expect
+        .poll(async () => {
+          const sheet = (await paper.locator('[data-document-page]').first().boundingBox())!;
+          const canvas = (await previewContent.boundingBox())!;
+          return Math.abs(sheet.width - canvas.width + 32);
+        })
+        .toBeLessThanOrEqual(2);
+    };
+    await checkWidthFit();
+    await page.getByRole('button', { name: 'Document pages', exact: true }).click();
+    await checkWidthFit();
+    if (width >= 1280)
+      expect(parseInt(await page.getByRole('button', { name: 'Reset zoom to 100%' }).innerText())).toBeGreaterThan(100);
+    await page.screenshot({ path: test.info().outputPath('report-width-fit.png') });
+    await page.getByRole('button', { name: 'Fit to page' }).click();
+    await expect
+      .poll(async () => {
+        const sheet = (await paper.locator('[data-document-page]').first().boundingBox())!;
+        const canvas = (await previewContent.boundingBox())!;
+        return Math.max(sheet.height / (canvas.height - 32), sheet.width / (canvas.width - 32));
+      })
+      .toBeCloseTo(1, 2);
+    await page.screenshot({ path: test.info().outputPath('report-page-fit.png') });
     await page.keyboard.press('Escape');
     await expect(fullView).toHaveCount(0);
-    await expect(page.getByRole('combobox', { name: 'Report version' })).toContainText('Version 1');
+    await expect(page.getByRole('combobox', { name: 'Report version' })).toContainText('Version 2');
     await expect(page.getByRole('button', { name: 'Expand document' })).toBeFocused();
+    await selectVersion(1);
+    await expect(paper).toContainText('Version 1');
     expect((await workspace.boundingBox())!.height).toBe(previewHeight);
     if (width < 768) {
       await page.locator('main.portal-main').evaluate((main) => {
