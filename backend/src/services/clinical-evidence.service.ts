@@ -1,3 +1,4 @@
+import { ReviewRoutingService } from './review-routing.service';
 import path from 'node:path';
 import { isDeepStrictEqual } from 'node:util';
 import { healthDetailsRequirements } from '@/domain/health-details.policy';
@@ -404,11 +405,12 @@ export class ClinicalEvidenceService {
             },
           },
         });
-        await NotificationService.notifyReviewers(
-          'Clinical document awaiting review',
-          'A new clinical document is ready in the profile review queue.',
-          tx
-        );
+        if (!(await ReviewRoutingService.config(tx)).enabled)
+          await NotificationService.notifyReviewers(
+            'Clinical document awaiting review',
+            'A new clinical document is ready in the profile review queue.',
+            tx
+          );
         return { ...publicDocument(document), facts: document.facts };
       },
       { timeout: 20_000 }
@@ -448,7 +450,7 @@ export class ClinicalEvidenceService {
     );
   }
 
-  static async queue() {
+  static async queue(reviewerId?: string) {
     const cutoff = new Date(Date.now() - CLAIM_TTL_MS);
     const documents = await prisma.clinicalDocument.findMany({
       where: { status: { in: ['UPLOADED', 'NEEDS_CLARIFICATION'] } },
@@ -458,9 +460,14 @@ export class ClinicalEvidenceService {
         facts: { select: { id: true } },
       },
       orderBy: { createdAt: 'asc' },
-      take: 100,
     });
-    return documents.map((document) => ({
+    const visible = reviewerId
+      ? await ReviewRoutingService.filterProfiles(
+          documents.map((document) => ({ ...document, userId: document.user.id })),
+          reviewerId
+        )
+      : documents;
+    return visible.slice(0, 100).map((document) => ({
       ...publicDocument(document),
       user: {
         id: document.user.id,
@@ -485,66 +492,76 @@ export class ClinicalEvidenceService {
   }
 
   private static async claimDocumentDetail(nutritionistProfileId: string, documentId: string, userId?: string) {
-    const now = new Date();
-    const cutoff = new Date(now.getTime() - CLAIM_TTL_MS);
-    const claimed = await prisma.clinicalDocument.updateMany({
-      where: {
-        id: documentId,
-        ...(userId
-          ? { userId, status: { not: ClinicalDocumentStatus.WITHDRAWN } }
-          : { status: { in: ['UPLOADED', 'NEEDS_CLARIFICATION'] as ClinicalDocumentStatus[] } }),
-        OR: [
-          { claimedByNutritionistId: null },
-          { claimedAt: null },
-          { claimedAt: { lt: cutoff } },
-          { claimedByNutritionistId: nutritionistProfileId },
-        ],
+    await ReviewRoutingService.assertDocument(nutritionistProfileId, documentId);
+    return prisma.$transaction(
+      async (tx) => {
+        const target = await tx.clinicalDocument.findUnique({ where: { id: documentId }, select: { userId: true } });
+        if (!target) throw new AppError('Review not found.', 404, 'REVIEW_NOT_FOUND');
+        await lockUserProfile(tx, target.userId);
+        await ReviewRoutingService.assertDocument(nutritionistProfileId, documentId, tx);
+        const now = new Date();
+        const cutoff = new Date(now.getTime() - CLAIM_TTL_MS);
+        const claimed = await tx.clinicalDocument.updateMany({
+          where: {
+            id: documentId,
+            ...(userId
+              ? { userId, status: { not: ClinicalDocumentStatus.WITHDRAWN } }
+              : { status: { in: ['UPLOADED', 'NEEDS_CLARIFICATION'] as ClinicalDocumentStatus[] } }),
+            OR: [
+              { claimedByNutritionistId: null },
+              { claimedAt: null },
+              { claimedAt: { lt: cutoff } },
+              { claimedByNutritionistId: nutritionistProfileId },
+            ],
+          },
+          data: { claimedByNutritionistId: nutritionistProfileId, claimedAt: now },
+        });
+        if (claimed.count !== 1)
+          throw new AppError(
+            'This document is being reviewed by another nutritionist.',
+            409,
+            'CLINICAL_DOCUMENT_CLAIM_CONFLICT'
+          );
+        const document = await tx.clinicalDocument.findUnique({
+          where: { id: documentId },
+          include: {
+            user: {
+              select: { id: true, name: true, healthConditions: true, allergies: true, clinicalContextResponses: true },
+            },
+            facts: { orderBy: { createdAt: 'asc' } },
+          },
+        });
+        if (!document) throw new AppError('Clinical document not found.', 404, 'CLINICAL_DOCUMENT_NOT_FOUND');
+        return {
+          ...publicDocument(document),
+          user: {
+            id: document.user.id,
+            name: document.user.name,
+            conditions: document.user.healthConditions.map((item) => item.condition),
+            allergies: document.user.allergies.map((item) => item.allergen),
+            contexts: document.user.clinicalContextResponses.map((item) => ({
+              area: item.area,
+              responses: item.responses,
+              revision: item.revision,
+            })),
+          },
+          facts: document.facts.map(
+            ({ id, code, valueText, valueNumber, unit, observedAt, pageNumber, provenance, reviewStatus }) => ({
+              id,
+              code,
+              valueText,
+              valueNumber,
+              unit,
+              observedAt,
+              pageNumber,
+              provenance,
+              reviewStatus,
+            })
+          ),
+        };
       },
-      data: { claimedByNutritionistId: nutritionistProfileId, claimedAt: now },
-    });
-    if (claimed.count !== 1)
-      throw new AppError(
-        'This document is being reviewed by another nutritionist.',
-        409,
-        'CLINICAL_DOCUMENT_CLAIM_CONFLICT'
-      );
-    const document = await prisma.clinicalDocument.findUnique({
-      where: { id: documentId },
-      include: {
-        user: {
-          select: { id: true, name: true, healthConditions: true, allergies: true, clinicalContextResponses: true },
-        },
-        facts: { orderBy: { createdAt: 'asc' } },
-      },
-    });
-    if (!document) throw new AppError('Clinical document not found.', 404, 'CLINICAL_DOCUMENT_NOT_FOUND');
-    return {
-      ...publicDocument(document),
-      user: {
-        id: document.user.id,
-        name: document.user.name,
-        conditions: document.user.healthConditions.map((item) => item.condition),
-        allergies: document.user.allergies.map((item) => item.allergen),
-        contexts: document.user.clinicalContextResponses.map((item) => ({
-          area: item.area,
-          responses: item.responses,
-          revision: item.revision,
-        })),
-      },
-      facts: document.facts.map(
-        ({ id, code, valueText, valueNumber, unit, observedAt, pageNumber, provenance, reviewStatus }) => ({
-          id,
-          code,
-          valueText,
-          valueNumber,
-          unit,
-          observedAt,
-          pageNumber,
-          provenance,
-          reviewStatus,
-        })
-      ),
-    };
+      { timeout: 20_000 }
+    );
   }
 
   static async fileForUser(userId: string, documentId: string) {
@@ -563,6 +580,7 @@ export class ClinicalEvidenceService {
   }
 
   static async fileForClaimedReview(nutritionistProfileId: string, actorUserId: string, documentId: string) {
+    await ReviewRoutingService.assertDocument(nutritionistProfileId, documentId);
     const cutoff = new Date(Date.now() - CLAIM_TTL_MS);
     const document = await prisma.clinicalDocument.findFirst({
       where: {
@@ -592,6 +610,7 @@ export class ClinicalEvidenceService {
     userId: string,
     documentId: string
   ) {
+    await ReviewRoutingService.assertDocument(nutritionistProfileId, documentId);
     const cutoff = new Date(Date.now() - CLAIM_TTL_MS);
     const document = await prisma.clinicalDocument.findFirst({
       where: {
@@ -622,6 +641,7 @@ export class ClinicalEvidenceService {
     mealPlanId: string,
     documentId: string
   ) {
+    await ReviewRoutingService.assertMeal(nutritionistProfileId, mealPlanId);
     const cutoff = new Date(Date.now() - CLAIM_TTL_MS);
     const meal = await prisma.mealPlan.findFirst({
       where: {
@@ -672,9 +692,11 @@ export class ClinicalEvidenceService {
     unclearFactIds?: string[];
     confirmedFacts?: ClinicalFactInput[];
   }) {
+    await ReviewRoutingService.assertDocument(input.nutritionistProfileId, input.documentId);
     const cutoff = new Date(Date.now() - CLAIM_TTL_MS);
     return prisma.$transaction(
       async (tx) => {
+        await ReviewRoutingService.assertDocument(input.nutritionistProfileId, input.documentId, tx);
         const document = await tx.clinicalDocument.findFirst({
           where: {
             id: input.documentId,

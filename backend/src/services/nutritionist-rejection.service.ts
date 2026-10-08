@@ -1,3 +1,4 @@
+import { ReviewRoutingService } from './review-routing.service';
 import prisma from '@/lib/prisma';
 import { loadPlanningNutritionContext } from '@/domain/user-nutrition-context';
 import { lockUserProfile } from './profile-revision.service';
@@ -24,6 +25,7 @@ import { isMealWithinSlotCalorieRange, isPrimaryMealType } from '@/domain/meal-c
 import { assertRecipeNotRejectedForSlot, rejectedSlotRecipes } from './rejected-slot-recipes.service';
 
 export async function rejectMealPlan(nutritionistProfileId: string, mealPlanId: string, reason: string) {
+  await ReviewRoutingService.assertMeal(nutritionistProfileId, mealPlanId);
   const now = new Date();
   const claimCutoff = getReviewClaimCutoff(now);
   const plan = await prisma.mealPlan.findUnique({
@@ -50,6 +52,7 @@ export async function rejectMealPlan(nutritionistProfileId: string, mealPlanId: 
   await prisma.$transaction(
     async (tx) => {
       await lockUserProfile(tx, plan.userId);
+      await ReviewRoutingService.assertMeal(nutritionistProfileId, mealPlanId, tx);
       const currentProfile = await tx.userProfile.findUniqueOrThrow({ where: { userId: plan.userId } });
       if ('user' in plan && currentProfile.revision !== plan.user.userProfile?.revision)
         throw new Error('User information changed. Reopen this review.');
@@ -193,6 +196,7 @@ export async function rejectMealPlan(nutritionistProfileId: string, mealPlanId: 
         const replacement = await prisma.$transaction(
           async (tx) => {
             await lockUserProfile(tx, plan.userId);
+            await ReviewRoutingService.assertMeal(nutritionistProfileId, mealPlanId, tx);
             const latest = await tx.userProfile.findUniqueOrThrow({ where: { userId: plan.userId } });
             if (latest.revision !== profile.revision || latest.safetyRevision !== profile.safetyRevision)
               throw new Error('User information changed during replacement. Reopen this review.');
@@ -295,6 +299,7 @@ export async function rejectMealPlan(nutritionistProfileId: string, mealPlanId: 
     });
     const replacementPlan = await prisma.$transaction(async (tx) => {
       await lockUserProfile(tx, plan.userId);
+      await ReviewRoutingService.assertMeal(nutritionistProfileId, mealPlanId, tx);
       const created = await tx.mealPlan.create({
         data: {
           planGroupId: plan.planGroupId,

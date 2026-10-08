@@ -34,6 +34,10 @@ export interface NutritionistRow {
   prcLicenseNumber: string;
   prcLicenseExpiry: string;
   specialization?: string;
+  acceptingReviews?: boolean;
+  verifiedExpertise?: string[];
+  verifiedExperienceYears?: number | null;
+  expertiseEvidence?: string | null;
   isVerified: boolean;
   totalVerified: number;
   verifiedAt?: string;

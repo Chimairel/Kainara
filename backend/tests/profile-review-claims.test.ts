@@ -1,10 +1,14 @@
+import { ReviewRoutingService } from '../src/services/review-routing.service';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import prisma from '../src/lib/prisma';
 import { ClinicalProfileReviewService as Reviews } from '../src/services/clinical-profile-review.service';
 import { ClinicalEvidenceService } from '../src/services/clinical-evidence.service';
 
-test('profile claims serialize reviewers and reject expired, unclaimed, revoked and stale decisions', async () => {
+test('profile claims serialize reviewers and reject expired, unclaimed, revoked and stale decisions', async (t) => {
+  // These claim/evidence fixtures exercise the existing path with routing disabled.
+  // The new routing HTTP acceptance tests cover enabled authorization separately.
+  t.mock.method(ReviewRoutingService, 'config', async () => ({ id: 'global', enabled: false, enabledAt: null }));
   const original = {
     transaction: prisma.$transaction,
     user: prisma.user.findUnique,

@@ -1,3 +1,4 @@
+import { ReviewRoutingService } from './review-routing.service';
 import { cycleMacroTargets, dailyTargetMap } from './meal-macro-context.service';
 import { Prisma } from '@prisma/client';
 import prisma from '@/lib/prisma';
@@ -220,7 +221,7 @@ async function repairRetiredPlanMeals(userId: string, cycleId: string, now: Date
             metadata: { replaced },
           },
         });
-        if (!reviewFree)
+        if (!reviewFree && !(await ReviewRoutingService.config(tx)).enabled)
           await NotificationService.notifyReviewers(
             'Replacement meals awaiting review',
             'Retired recipe replacements are ready in the case review queue.',

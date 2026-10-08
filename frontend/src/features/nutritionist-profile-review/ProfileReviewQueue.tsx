@@ -1,6 +1,7 @@
 'use client';
 
 import Skeleton from '@/components/ui/Skeleton';
+import ReviewRoutingLabel from '@/features/nutritionist-reviews/ReviewRoutingLabel';
 
 import type { useProfileWorkPanelModel } from './useProfileWorkPanelModel';
 type Model = Extract<ReturnType<typeof useProfileWorkPanelModel>, { kind: 'ready' }>;
@@ -46,6 +47,7 @@ export default function ProfileReviewQueue({ model }: SectionProps) {
                 className={`w-full rounded-2xl border p-4 text-left text-xs ${detail?.userId === person.userId ? 'border-brand-green bg-brand-green/10' : 'border-brand-border/70 hover:border-brand-green/40'}`}
               >
                 <strong className="block text-sm text-brand-text">{person.name}</strong>
+                <ReviewRoutingLabel routing={person.routing} />
                 <span className="mt-1 block text-brand-muted">
                   Conditions: {person.conditions.filter((item) => item !== 'NONE').join(', ') || 'none'} · Allergies:{' '}
                   {person.allergies.filter((item) => item !== 'NONE').join(', ') || 'none'}

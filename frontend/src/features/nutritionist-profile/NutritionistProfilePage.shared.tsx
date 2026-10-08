@@ -3,6 +3,10 @@ export interface NProfile {
   prcLicenseNumber: string;
   prcLicenseExpiry: string;
   specialization?: string;
+  acceptingReviews?: boolean;
+  verifiedExpertise?: string[];
+  verifiedExperienceYears?: number | null;
+  expertiseEvidence?: string | null;
   yearsOfExperience?: number;
   university?: string;
   bio?: string;

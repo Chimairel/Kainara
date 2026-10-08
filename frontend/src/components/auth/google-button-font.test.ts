@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const originalFonts = Object.getOwnPropertyDescriptor(document, 'fonts');
-let load: ReturnType<typeof vi.fn>;
+let load: ReturnType<typeof vi.fn<() => Promise<void>>>;
 let add: ReturnType<typeof vi.fn>;
 let faces: { family: string; source: string; descriptors: FontFaceDescriptors }[];
 

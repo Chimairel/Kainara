@@ -1,3 +1,4 @@
+import { ReviewRoutingService } from './review-routing.service';
 import { createHash, randomUUID } from 'node:crypto';
 import { ClinicalEvidenceArea, ClinicalProfileReviewStatus, NotificationType, Prisma, Role } from '@prisma/client';
 import prisma from '@/lib/prisma';
@@ -170,7 +171,7 @@ export class ClinicalProfileReviewService {
     );
   }
 
-  static async queue() {
+  static async queue(reviewerId?: string) {
     const users = await prisma.user.findMany({
       where: {
         role: Role.USER,
@@ -199,7 +200,7 @@ export class ClinicalProfileReviewService {
           orderBy: { createdAt: 'desc' },
         })
       : [];
-    return eligible
+    const people = eligible
       .filter(
         ({ user, current }) =>
           !reviews.some((review) => review.userId === user.id && isCurrentApproval(review, current.scopeKey))
@@ -222,11 +223,14 @@ export class ClinicalProfileReviewService {
             : (review?.status ?? 'PENDING');
         })(),
       }));
+    return reviewerId ? ReviewRoutingService.filterProfiles(people, reviewerId) : people;
   }
 
   static async claim(reviewerId: string, userId: string, release = false) {
+    await ReviewRoutingService.assertProfile(reviewerId, userId);
     await prisma.$transaction(async (tx) => {
       await lockUserProfile(tx, userId);
+      await ReviewRoutingService.assertProfile(reviewerId, userId, tx);
       const reviewer = await tx.nutritionistProfile.findUnique({ where: { id: reviewerId }, include: { user: true } });
       if (!reviewer || !isNutritionistEligibleForReview(reviewer))
         throw new AppError('A currently verified nutritionist is required.', 403, 'NUTRITIONIST_INELIGIBLE');
@@ -285,6 +289,7 @@ export class ClinicalProfileReviewService {
   }
 
   static async detail(userId: string, reviewerId?: string) {
+    if (reviewerId) await ReviewRoutingService.assertProfile(reviewerId, userId);
     const user = await prisma.user.findUnique({ where: { id: userId }, include: userInclude });
     if (!user || user.role !== Role.USER) throw new AppError('Profile not found.', 404, 'PROFILE_NOT_FOUND');
     const current = context(user);
@@ -421,6 +426,7 @@ export class ClinicalProfileReviewService {
     area?: ClinicalEvidenceArea,
     expected?: { profileRevision: number; scopeKey: string }
   ) {
+    await ReviewRoutingService.assertProfile(reviewerId, userId);
     const reviewer = await prisma.nutritionistProfile.findUnique({
       where: { id: reviewerId },
       include: { user: true },
@@ -454,6 +460,7 @@ export class ClinicalProfileReviewService {
     }
     const row = await prisma.$transaction(async (tx) => {
       await lockUserProfile(tx, userId);
+      await ReviewRoutingService.assertProfile(reviewerId, userId, tx);
       const latestUser = await tx.user.findUniqueOrThrow({ where: { id: userId }, include: userInclude });
       const latest = context(latestUser);
       if (latest.scopeKey !== current.scopeKey || latest.profile.revision !== current.profile.revision)

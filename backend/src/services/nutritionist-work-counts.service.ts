@@ -1,6 +1,6 @@
 import prisma from '@/lib/prisma';
 import { MealBaseVerificationService } from '@/services/meal-base-verification.service';
-import { ClinicalProfileReviewService } from '@/services/clinical-profile-review.service';
+import { NutritionistProfileWorkService } from '@/services/nutritionist-profile-work.service';
 import { NutritionistService } from '@/services/nutritionist.service';
 
 /** Counts the work shown in review workspaces and the separate Audit page. */
@@ -9,8 +9,7 @@ export class NutritionistWorkCountsService {
     const countsPromise = Promise.all([
       MealBaseVerificationService.count(),
       NutritionistService.getReviewQueueCount(nutritionistProfileId),
-      ClinicalProfileReviewService.queue(),
-      prisma.clinicalDocument.count({ where: { status: { in: ['UPLOADED', 'NEEDS_CLARIFICATION'] } } }),
+      NutritionistProfileWorkService.queue(nutritionistProfileId),
       prisma.outsideMealReview.count({
         where: {
           status: { in: ['PENDING', 'CLAIMED'] },
@@ -33,13 +32,13 @@ export class NutritionistWorkCountsService {
       prisma.mealPlan.count({ where: { status: 'DISPUTED' } }),
     ]);
     const [
-      [mealVerifications, caseReviews, profiles, documents, outside, dueAudit, dueProfileApprovals],
+      [mealVerifications, caseReviews, profiles, outside, dueAudit, dueProfileApprovals],
       [disputes, disputedPlans],
     ] = await Promise.all([countsPromise, disputesPromise]);
     return {
       meal: mealVerifications,
       case: caseReviews + outside + disputes + disputedPlans,
-      profile: profiles.length + documents,
+      profile: profiles.reduce((total, person) => total + (person.profileStatus ? 1 : 0) + person.documentCount, 0),
       audit: dueAudit + dueProfileApprovals,
     };
   }

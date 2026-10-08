@@ -103,7 +103,8 @@
     "test:acceptance:report-membership": "tsx scripts/report-membership-acceptance.ts",
     "test:acceptance:membership-checkout": "tsx scripts/membership-checkout-acceptance.ts",
     "check:membership-scripts": "tsc --project tsconfig.membership-scripts.json",
-    "test:acceptance:meal-reminders": "tsx scripts/meal-reminders-local-acceptance.ts"
+    "test:acceptance:meal-reminders": "tsx scripts/meal-reminders-local-acceptance.ts",
+    "test:acceptance:specialist-routing": "tsx scripts/specialist-routing-local-acceptance.ts"
   },
   "dependencies": {
     "@asteasolutions/zod-to-openapi": "^9.1.0",

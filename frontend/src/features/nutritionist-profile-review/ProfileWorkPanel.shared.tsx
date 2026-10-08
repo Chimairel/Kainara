@@ -1,7 +1,9 @@
 import type { NutritionReport } from '@/types';
 
 import { type GuidanceProfileSnapshot } from '@/features/reports/NutritionGuidancePaper';
+import type { ReviewRouting } from '@/features/nutritionist-reviews/review-routing';
 export type Person = {
+  routing?: ReviewRouting;
   userId: string;
   name: string;
   conditions: string[];

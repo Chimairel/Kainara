@@ -1,3 +1,4 @@
+import { ReviewRoutingService } from './review-routing.service';
 import { NotificationService } from './notification.service';
 import { MealPlanStatus, NotificationType, PlanType } from '@prisma/client';
 import prisma from '@/lib/prisma';
@@ -23,10 +24,11 @@ export async function notifyPreparedPlan(
       console.warn('[Meal Generation] Could not create review notification:', error);
     }
     try {
-      await NotificationService.notifyReviewers(
-        'New plan awaiting review',
-        'A new meal plan is ready in the case review queue.'
-      );
+      if (!(await ReviewRoutingService.config()).enabled)
+        await NotificationService.notifyReviewers(
+          'New plan awaiting review',
+          'A new meal plan is ready in the case review queue.'
+        );
     } catch (error) {
       console.warn('[Meal Generation] Could not notify reviewers:', error);
     }

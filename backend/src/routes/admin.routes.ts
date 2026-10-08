@@ -1,3 +1,4 @@
+import adminReviewRoutingRouter from './admin-review-routing.routes';
 import { Router, Response } from 'express';
 import authenticate from '@/middleware/auth';
 import requireRole from '@/middleware/rbac';
@@ -24,6 +25,7 @@ const router = Router();
 // Apply auth + ADMIN role restriction
 router.use(authenticate);
 router.use(requireRole('ADMIN'));
+router.use('/review-routing', adminReviewRoutingRouter);
 router.use('/data', adminDataRouter);
 router.use('/meal-images', adminMealImagesRouter);
 router.use('/meals', adminMealsRouter);

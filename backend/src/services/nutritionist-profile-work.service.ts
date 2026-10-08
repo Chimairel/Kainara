@@ -1,3 +1,4 @@
+import { ReviewRoutingService } from './review-routing.service';
 import { Role } from '@prisma/client';
 import prisma from '@/lib/prisma';
 import { AppError } from '@/errors/AppError';
@@ -6,7 +7,7 @@ import { ClinicalProfileReviewService } from './clinical-profile-review.service'
 
 /** One person can have a profile decision, document decisions, or both. */
 export class NutritionistProfileWorkService {
-  static async queue() {
+  static async queue(reviewerId?: string) {
     const [profiles, documents] = await Promise.all([
       ClinicalProfileReviewService.queue(),
       // The legacy document queue returns only its first 100 records. This
@@ -63,17 +64,19 @@ export class NutritionistProfileWorkService {
       person.documentIds.push(document.id);
       people.set(person.userId, person);
     }
-    return [...people.values()];
+    const result = [...people.values()];
+    return reviewerId ? ReviewRoutingService.filterProfiles(result, reviewerId) : result;
   }
 
-  static async assertQueued(userId: string) {
+  static async assertQueued(userId: string, reviewerId?: string) {
+    if (reviewerId) await ReviewRoutingService.assertProfile(reviewerId, userId);
     const queued = (await this.queue()).find((person) => person.userId === userId);
     if (!queued) throw new AppError('This person has no profile work awaiting review.', 404, 'PROFILE_WORK_NOT_FOUND');
     return queued;
   }
 
   static async detail(userId: string, reviewerId?: string) {
-    const queued = await this.assertQueued(userId);
+    const queued = await this.assertQueued(userId, reviewerId);
     const [user, evidence, reports, profileDetail, currentReport] = await Promise.all([
       prisma.user.findUnique({
         where: { id: userId },

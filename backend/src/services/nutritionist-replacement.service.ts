@@ -1,3 +1,4 @@
+import { ReviewRoutingService } from './review-routing.service';
 import { assertMealSlotCalories } from '@/domain/generated-plan-calories.policy';
 import {
   getMealSlotCalorieRange,
@@ -17,6 +18,7 @@ import { buildBaseServingPersistence } from './meal-plan-serving.service';
 
 export class NutritionistReplacementService {
   static async generateReplacementCandidate(nutritionistProfileId: string, mealPlanId: string, reason: string) {
+    await ReviewRoutingService.assertMeal(nutritionistProfileId, mealPlanId);
     const now = new Date();
     const claimCutoff = getReviewClaimCutoff(now);
     const plan = await prisma.mealPlan.findUnique({
@@ -111,6 +113,7 @@ export class NutritionistReplacementService {
       };
     }
   ) {
+    await ReviewRoutingService.assertMeal(nutritionistProfileId, mealPlanId);
     const now = new Date();
     const claimCutoff = getReviewClaimCutoff(now);
     const plan = await prisma.mealPlan.findUnique({
@@ -149,6 +152,7 @@ export class NutritionistReplacementService {
     await prisma.$transaction(
       async (tx) => {
         await lockUserProfile(tx, plan.userId);
+        await ReviewRoutingService.assertMeal(nutritionistProfileId, mealPlanId, tx);
         await loadPlanningNutritionContext(tx, plan.userId, 'Planning profile missing.');
         const currentProfile = await tx.userProfile.findUniqueOrThrow({ where: { userId: plan.userId } });
         if ('user' in plan && currentProfile.revision !== plan.user.userProfile?.revision)

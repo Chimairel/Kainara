@@ -1,3 +1,5 @@
+import { lockUserProfile } from './profile-revision.service';
+import { ReviewRoutingService } from './review-routing.service';
 import { healthDetailsRequirements } from '@/domain/health-details.policy';
 import prisma from '@/lib/prisma';
 import { PLANNING_PROFILE_FIELDS, reportProfile, planningInputsMatch } from '@/domain/planning-report.policy';
@@ -50,7 +52,8 @@ async function reviewReadinessByUser(userIds: string[]) {
 }
 
 export class NutritionistReviewService {
-  static async getReviewQueueCount(_nutritionistProfileId: string) {
+  static async getReviewQueueCount(nutritionistProfileId: string) {
+    if ((await ReviewRoutingService.config()).enabled) return (await this.getReviewQueue(nutritionistProfileId)).length;
     const plans = await prisma.mealPlan.findMany({
       where: getNutritionistReviewableMealPlanWhere(),
       select: {
@@ -96,10 +99,10 @@ export class NutritionistReviewService {
     return work.size;
   }
 
-  static async getReviewQueue(nutritionistProfileId?: string) {
+  static async getReviewQueue(nutritionistProfileId?: string, coalesce = true) {
     const now = new Date();
     const claimCutoff = getReviewClaimCutoff(now);
-    // Show the whole shared queue, including items actively claimed by peers.
+    // Read candidates internally; apply routing before grouping or returning member data.
     const pendingMeals = await prisma.mealPlan.findMany({
       where: getNutritionistReviewableMealPlanWhere(),
       include: {
@@ -142,16 +145,22 @@ export class NutritionistReviewService {
     const verifiedSignatures = new Set(
       verifiedGenerated.filter((item) => item.targetId === item.revisionKey).map((item) => item.targetId)
     );
-    const clinicallyReadyMeals = pendingMeals.filter(
+    const readyMeals = pendingMeals.filter(
       (meal) =>
         readinessByUser.get(meal.userId)?.ready === true &&
         (meal.candidateProvenance !== 'AI_FROM_SCRATCH' ||
           (!!meal.baseRecipeSignature && verifiedSignatures.has(meal.baseRecipeSignature)))
     );
 
+    const clinicallyReadyMeals = nutritionistProfileId
+      ? await ReviewRoutingService.filterMeals(readyMeals, nutritionistProfileId)
+      : readyMeals.map((meal) => ({ ...meal, routing: undefined }));
+    const routed = clinicallyReadyMeals.some((meal) => meal.routing && meal.routing.reason !== 'ROUTING_DISABLED');
+    const workKey = (meal: { id: string; userId: string; reviewWorkKey: string | null }) =>
+      `${routed || readinessByUser.get(meal.userId)?.specific ? meal.userId + ':' : ''}${meal.reviewWorkKey ?? `PLAN:${meal.id}`}`;
     const workCounts = new Map<string, number>();
     for (const meal of clinicallyReadyMeals) {
-      const key = `${readinessByUser.get(meal.userId)?.specific ? meal.userId + ':' : ''}${meal.reviewWorkKey ?? `PLAN:${meal.id}`}`;
+      const key = workKey(meal);
       workCounts.set(key, (workCounts.get(key) ?? 0) + 1);
     }
     const sorted = clinicallyReadyMeals.sort((a, b) => {
@@ -179,8 +188,8 @@ export class NutritionistReviewService {
 
     const seenWork = new Set<string>();
     const coalesced = sorted.filter((meal) => {
-      const key = `${readinessByUser.get(meal.userId)?.specific ? meal.userId + ':' : ''}${meal.reviewWorkKey ?? `PLAN:${meal.id}`}`;
-      if (seenWork.has(key)) return false;
+      const key = workKey(meal);
+      if (coalesce && seenWork.has(key)) return false;
       seenWork.add(key);
       return true;
     });
@@ -196,6 +205,7 @@ export class NutritionistReviewService {
 
       return {
         id: meal.id,
+        routing: meal.routing,
         planGroupId: meal.planGroupId,
         userId: meal.userId,
         nutritionistId: meal.nutritionistId,
@@ -241,7 +251,7 @@ export class NutritionistReviewService {
         fallbackAvailable: meal.fallbackAvailable,
         rankingReasonCodes: meal.rankingReasonCodes,
         deadlinePriorityReason: `Shopping deadline ${meal.cycle.shoppingDeadlineAt.toISOString()}; cook date ${meal.scheduledDate.toISOString()}`,
-        coalescedDependentCount: workCounts.get(meal.reviewWorkKey ?? `PLAN:${meal.id}`) ?? 1,
+        coalescedDependentCount: workCounts.get(workKey(meal)) ?? 1,
         claimStatus: {
           claimedByMe: !!claimedByMe,
           claimedByOther: !!claimedByOther,
@@ -261,6 +271,7 @@ export class NutritionistReviewService {
    * Fetches detailed data for a review card. Claiming is an explicit action.
    */
   static async getReviewCardDetails(nutritionistProfileId: string, mealPlanId: string, acquireClaim = false) {
+    await ReviewRoutingService.assertMeal(nutritionistProfileId, mealPlanId);
     const now = new Date();
     const claimCutoff = getReviewClaimCutoff(now);
     const [reviewer, reviewTarget] = await Promise.all([
@@ -293,26 +304,30 @@ export class NutritionistReviewService {
     // updateMany supplies a compare-and-set claim: only one reviewer can change
     // an unclaimed/expired row from the shared queue at a time.
     if (acquireClaim) {
-      const claimResult = await prisma.mealPlan.updateMany({
-        where: {
-          id: mealPlanId,
-          ...getNutritionistReviewableMealPlanWhere(),
-          OR: [
-            { claimedByNutritionistId: null },
-            { claimedAt: null },
-            {
-              claimedAt: { lt: claimCutoff },
-              NOT: {
-                claimedByNutritionistId: nutritionistProfileId,
-                claimedAt: { gte: new Date(claimCutoff.getTime() - REVIEW_CLAIM_COOLDOWN_MS) },
+      const claimResult = await prisma.$transaction(async (tx) => {
+        await lockUserProfile(tx, targetOwner.userId);
+        await ReviewRoutingService.assertMeal(nutritionistProfileId, mealPlanId, tx);
+        return tx.mealPlan.updateMany({
+          where: {
+            id: mealPlanId,
+            ...getNutritionistReviewableMealPlanWhere(),
+            OR: [
+              { claimedByNutritionistId: null },
+              { claimedAt: null },
+              {
+                claimedAt: { lt: claimCutoff },
+                NOT: {
+                  claimedByNutritionistId: nutritionistProfileId,
+                  claimedAt: { gte: new Date(claimCutoff.getTime() - REVIEW_CLAIM_COOLDOWN_MS) },
+                },
               },
-            },
-          ],
-        },
-        data: {
-          claimedByNutritionistId: nutritionistProfileId,
-          claimedAt: now,
-        },
+            ],
+          },
+          data: {
+            claimedByNutritionistId: nutritionistProfileId,
+            claimedAt: now,
+          },
+        });
       });
 
       if (claimResult.count !== 1) {
@@ -620,6 +635,7 @@ export class NutritionistReviewService {
   }
 
   static async releaseReviewClaim(nutritionistProfileId: string, mealPlanId: string) {
+    await ReviewRoutingService.assertMeal(nutritionistProfileId, mealPlanId);
     const reviewer = await prisma.nutritionistProfile.findUnique({
       where: { id: nutritionistProfileId },
       select: { userId: true },

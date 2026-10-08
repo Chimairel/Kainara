@@ -1,3 +1,4 @@
+import { ReviewRoutingService } from '../src/services/review-routing.service';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import prisma from '../src/lib/prisma';
@@ -5,7 +6,10 @@ import { ClinicalProfileReviewService } from '../src/services/clinical-profile-r
 import { ClinicalEvidenceService } from '../src/services/clinical-evidence.service';
 import { AppError } from '../src/errors/AppError';
 
-test('recognized manual-review restrictions reach health-form validation, while unmapped declarations remain blocked', async () => {
+test('recognized manual-review restrictions reach health-form validation, while unmapped declarations remain blocked', async (t) => {
+  // These claim/evidence fixtures exercise the existing path with routing disabled.
+  // The new routing HTTP acceptance tests cover enabled authorization separately.
+  t.mock.method(ReviewRoutingService, 'config', async () => ({ id: 'global', enabled: false, enabledAt: null }));
   const originalUser = prisma.user.findUnique;
   const originalReviewer = prisma.nutritionistProfile.findUnique;
   const originalReady = ClinicalEvidenceService.assertReadyForMealPlanning;

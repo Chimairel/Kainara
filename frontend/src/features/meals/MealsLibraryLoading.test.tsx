@@ -163,7 +163,7 @@ it('does not substitute planned recipes on catalogue failure and recovers throug
   await waitFor(() => expect(screen.getByText('Could not load recipes.')).toBeInTheDocument());
   expect(screen.queryByText('Scheduled fixture dish')).not.toBeInTheDocument();
   expect(libraryTab()).toHaveTextContent('…');
-  fireEvent.click(screen.getByRole('button', { name: 'Retry', exact: true }));
+  fireEvent.click(screen.getByRole('button', { name: 'Retry' }));
   await waitFor(() => expect(libraryTab()).toHaveTextContent('1960'));
 });
 

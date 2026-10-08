@@ -842,6 +842,7 @@ model User {
   clinicalDocuments                ClinicalDocument[]
   clinicalContextResponses         ClinicalContextResponse[]
   clinicalFacts                    ClinicalFact[]
+  reviewRoutingEpisodes           ReviewRoutingEpisode[]
 }
 
 // Membership is separate from archived billing tables. Test payment evidence cannot create paid grants.
@@ -1155,6 +1156,13 @@ model NutritionistProfile {
   clinicalDocumentReviews  ClinicalDocumentReview[]
   claimedClinicalDocuments ClinicalDocument[]               @relation("ClaimedClinicalDocuments")
   reviewedClinicalFacts    ClinicalFact[]                   @relation("ClinicalFactReviewer")
+  acceptingReviews        Boolean               @default(false)
+  verifiedExpertise       HealthConditionType[] @default([])
+  verifiedExperienceYears Int?
+  expertiseEvidence       String?               @db.VarChar(1500)
+  expertiseVerifiedAt     DateTime?
+  expertiseVerifiedById   String?
+  lastRoutingAssignedAt   DateTime?
 }
 
 model NutritionistApplication {
@@ -2699,6 +2707,9 @@ model MealPlanCycle {
   generationJob MealPlanGenerationJob?
   snapshot      MealPlanCycleSnapshot?
 
+  reviewRoutingEpisodeId String?
+  reviewRoutingEpisode   ReviewRoutingEpisode? @relation(fields: [reviewRoutingEpisodeId], references: [id], onDelete: SetNull)
+
   @@unique([userId, planType, startDate, cycleRevision])
   @@index([userId, startDate, endDate, status])
   @@index([shoppingDeadlineAt, status])
@@ -3081,4 +3092,33 @@ model WebsiteContent {
   published     Json?
   publishedAt   DateTime?
   updatedAt     DateTime  @updatedAt
+}
+
+model ReviewRoutingConfig {
+  id        String    @id @default("global")
+  enabled   Boolean   @default(false)
+  enabledAt DateTime?
+  updatedAt DateTime  @updatedAt
+}
+
+/// One priority clock for related profile, document and dependent meal work.
+model ReviewRoutingEpisode {
+  id                  String          @id @default(cuid())
+  episodeKey          String          @unique @db.VarChar(200)
+  userId              String
+  user                User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  safetyRevision      Int
+  scopeKey            String          @db.VarChar(64)
+  conditions          String[]        @default([])
+  selectedReviewerIds String[]        @default([])
+  firstCycleId        String?         @unique
+  stage               String          @default("GENERAL") @db.VarChar(20)
+  reason              String          @db.VarChar(64)
+  beganAt             DateTime
+  opensAt             DateTime
+  updatedAt           DateTime        @updatedAt
+  cycles              MealPlanCycle[]
+
+  @@index([stage, opensAt])
+  @@index([userId, safetyRevision])
 }

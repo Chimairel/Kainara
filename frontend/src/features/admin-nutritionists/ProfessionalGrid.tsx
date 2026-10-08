@@ -1,3 +1,4 @@
+import ExpertiseEditor, { type ExpertiseDraft } from './ExpertiseEditor';
 import AccessControl from './AccessControl';
 import { BadgeCheck } from 'lucide-react';
 import Card from '@/components/ui/Card';
@@ -8,8 +9,10 @@ export function ProfessionalGrid({
   nutritionists,
   workingId,
   onChangeAccess,
+  onVerifyExpertise,
 }: {
   nutritionists: NutritionistRow[];
+  onVerifyExpertise?: (nutritionist: NutritionistRow, draft: ExpertiseDraft) => Promise<void>;
   workingId?: string | null;
   onChangeAccess?: (nutritionist: NutritionistRow, suspended: boolean, reason: string) => Promise<void>;
 }) {
@@ -50,6 +53,13 @@ export function ProfessionalGrid({
               <p className="text-[9px] uppercase tracking-wider text-brand-muted">recorded verifications</p>
             </div>
           </div>
+          {onVerifyExpertise && (
+            <ExpertiseEditor
+              professional={nutritionist}
+              busy={workingId === nutritionist.id}
+              onSave={(draft) => onVerifyExpertise(nutritionist, draft)}
+            />
+          )}
           {onChangeAccess && (
             <AccessControl
               professional={nutritionist}

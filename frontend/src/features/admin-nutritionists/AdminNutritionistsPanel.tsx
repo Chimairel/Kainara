@@ -1,5 +1,6 @@
 'use client';
 
+import ReviewRoutingPanel from './ReviewRoutingPanel';
 import WorkspaceTabs from '@/components/ui/WorkspaceTabs';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { getApiErrorMessage } from '@/lib/api-error';
@@ -190,8 +191,16 @@ export default function AdminNutritionistsPage({ active = true }: { active?: boo
         </>
       ) : (
         <section>
+          <ReviewRoutingPanel />
           <ProfessionalGrid
             nutritionists={professionalRecords}
+            onVerifyExpertise={(nutritionist, draft) =>
+              act(
+                nutritionist.id,
+                () => api.put(`/admin/review-routing/expertise/${nutritionist.id}`, draft),
+                'Verified expertise saved. Routing will use the verified record.'
+              )
+            }
             workingId={workingId}
             onChangeAccess={(nutritionist, suspended, reason) =>
               act(

@@ -1,3 +1,4 @@
+import { ReviewRoutingService } from '@/services/review-routing.service';
 import { Router, Response } from 'express';
 import { AppError } from '@/errors/AppError';
 import { z } from 'zod';
@@ -80,6 +81,17 @@ const profileReviewDecision = z
     }
   });
 
+router.patch(
+  '/review-availability',
+  validateZodBody(z.object({ acceptingReviews: z.boolean() }).strict()),
+  asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+    res.json({
+      success: true,
+      data: await ReviewRoutingService.setAvailability(req.user!.userId, req.body.acceptingReviews),
+    });
+  })
+);
+
 router.get(
   '/review-work-counts',
   asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
@@ -89,8 +101,8 @@ router.get(
 
 router.get(
   '/profile-work',
-  asyncHandler(async (_req: AuthenticatedRequest, res: Response) => {
-    res.json({ success: true, data: await NutritionistProfileWorkService.queue() });
+  asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+    res.json({ success: true, data: await NutritionistProfileWorkService.queue(req.nutritionistProfileId!) });
   })
 );
 router.get(
@@ -107,7 +119,7 @@ router.get(
   '/profile-work/:userId/documents/:id',
   validateZodRequest({ params: profileWorkDocumentParams }),
   asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
-    await NutritionistProfileWorkService.assertQueued(req.params.userId);
+    await NutritionistProfileWorkService.assertQueued(req.params.userId, req.nutritionistProfileId!);
     res.json({
       success: true,
       data: await ClinicalEvidenceService.claimForProfileWork(
@@ -122,7 +134,7 @@ router.get(
   '/profile-work/:userId/documents/:id/file',
   validateZodRequest({ params: profileWorkDocumentParams }),
   asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
-    await NutritionistProfileWorkService.assertQueued(req.params.userId);
+    await NutritionistProfileWorkService.assertQueued(req.params.userId, req.nutritionistProfileId!);
     const file = await ClinicalEvidenceService.fileForClaimedProfileWork(
       req.nutritionistProfileId!,
       req.user!.userId,
@@ -172,8 +184,8 @@ router.get(
 
 router.get(
   '/profile-reviews',
-  asyncHandler(async (_req: AuthenticatedRequest, res: Response) => {
-    res.json({ success: true, data: await ClinicalProfileReviewService.queue() });
+  asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+    res.json({ success: true, data: await ClinicalProfileReviewService.queue(req.nutritionistProfileId!) });
   })
 );
 router.get(
@@ -340,8 +352,8 @@ router.get('/queue', async (req: AuthenticatedRequest, res: Response) => {
 
 router.get(
   '/clinical-evidence',
-  asyncHandler(async (_req: AuthenticatedRequest, res: Response) => {
-    res.json({ success: true, data: await ClinicalEvidenceService.queue() });
+  asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+    res.json({ success: true, data: await ClinicalEvidenceService.queue(req.nutritionistProfileId!) });
   })
 );
 router.get(
@@ -556,6 +568,8 @@ router.post('/queue/:id/claim', async (req: AuthenticatedRequest, res: Response)
     const result = await NutritionistService.getReviewCardDetails(req.nutritionistProfileId!, req.params.id, true);
     return res.status(200).json({ success: true, data: result });
   } catch (error: unknown) {
+    if (error instanceof AppError && error.errorCode === 'REVIEW_NOT_FOUND')
+      return res.status(error.statusCode).json({ success: false, error: error.message, code: error.errorCode });
     const message = sanitizeErrorMessage(error, 'Could not claim this review.');
     return res.status(isNutritionistReviewConflict(message) ? 409 : 422).json({ success: false, error: message });
   }
@@ -566,6 +580,8 @@ router.post('/queue/:id/release', async (req: AuthenticatedRequest, res: Respons
     const result = await NutritionistService.releaseReviewClaim(req.nutritionistProfileId!, req.params.id);
     return res.status(200).json({ success: true, data: result });
   } catch (error: unknown) {
+    if (error instanceof AppError && error.errorCode === 'REVIEW_NOT_FOUND')
+      return res.status(error.statusCode).json({ success: false, error: error.message, code: error.errorCode });
     return res
       .status(409)
       .json({ success: false, error: sanitizeErrorMessage(error, 'Could not release this review.') });
@@ -616,10 +632,9 @@ router.patch(
         return res.status(400).json({ success: false, error: 'Action must be "approve" or "reject".' });
       }
     } catch (error: any) {
-      const msg = sanitizeErrorMessage(error, 'Failed to process review action.');
-      if (error instanceof AppError) {
+      if (error instanceof AppError)
         return res.status(error.statusCode).json({ success: false, error: error.message, code: error.errorCode });
-      }
+      const msg = sanitizeErrorMessage(error, 'Failed to process review action.');
       if (isNutritionistReviewConflict(msg)) {
         return res.status(409).json({ success: false, error: msg });
       }
@@ -647,6 +662,8 @@ router.post(
       );
       return res.status(200).json({ success: true, data: candidate });
     } catch (error: any) {
+      if (error instanceof AppError && error.errorCode === 'REVIEW_NOT_FOUND')
+        return res.status(error.statusCode).json({ success: false, error: error.message, code: error.errorCode });
       const msg = sanitizeErrorMessage(error, 'Failed to generate replacement candidate.');
       if (isNutritionistReviewConflict(msg)) {
         return res.status(409).json({ success: false, error: msg });
@@ -673,6 +690,8 @@ router.post(
       );
       return res.status(200).json({ success: true, data: result });
     } catch (error: any) {
+      if (error instanceof AppError && error.errorCode === 'REVIEW_NOT_FOUND')
+        return res.status(error.statusCode).json({ success: false, error: error.message, code: error.errorCode });
       const msg = sanitizeErrorMessage(error, 'Failed to replace and approve meal.');
       if (isNutritionistReviewConflict(msg)) {
         return res.status(409).json({ success: false, error: msg });

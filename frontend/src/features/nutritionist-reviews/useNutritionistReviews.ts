@@ -6,7 +6,9 @@ import { invalidateSessionResource, readSessionResource, writeSessionResource } 
 import { useCallback, useEffect, useState } from 'react';
 import type { IngredientEvidenceSource } from './ingredient-evidence';
 
+import type { ReviewRouting } from './review-routing';
 export interface QueueItem {
+  routing?: ReviewRouting;
   id: string;
   mealName: string;
   mealType: string;

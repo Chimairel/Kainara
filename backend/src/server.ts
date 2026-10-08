@@ -1,3 +1,4 @@
+import { triggerReviewRoutingInBackground, waitForReviewRouting } from '@/services/review-routing.service';
 import 'dotenv/config';
 
 import app from './app';
@@ -11,12 +12,15 @@ const server = app.listen(env.PORT, () => {
   logger.info('server_started', { port: env.PORT, environment: env.NODE_ENV });
   MealAiQueueService.triggerNonBlocking();
   triggerMealRemindersInBackground();
+  triggerReviewRoutingInBackground();
 });
 
 const mealAiQueueTimer = setInterval(() => MealAiQueueService.triggerNonBlocking(), 30_000);
 mealAiQueueTimer.unref();
 const mealReminderTimer = setInterval(triggerMealRemindersInBackground, 30_000);
 mealReminderTimer.unref();
+const reviewRoutingTimer = setInterval(triggerReviewRoutingInBackground, 30_000);
+reviewRoutingTimer.unref();
 
 let shutdownPromise: Promise<void> | null = null;
 
@@ -32,8 +36,10 @@ function shutdown(signal: 'SIGINT' | 'SIGTERM'): Promise<void> {
     logger.info('server_shutdown', { signal, outcome: 'STARTED' });
     clearInterval(mealAiQueueTimer);
     clearInterval(mealReminderTimer);
+    clearInterval(reviewRoutingTimer);
     await closeServer();
     await waitForMealReminders();
+    await waitForReviewRouting();
     await prisma.$disconnect();
     logger.info('server_shutdown', { signal, outcome: 'COMPLETED' });
   })();

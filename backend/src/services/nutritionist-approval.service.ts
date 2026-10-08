@@ -1,3 +1,4 @@
+import { ReviewRoutingService } from './review-routing.service';
 import { assertMealSlotCalories } from '@/domain/generated-plan-calories.policy';
 import prisma from '@/lib/prisma';
 import { loadPlanningNutritionContext } from '@/domain/user-nutrition-context';
@@ -68,6 +69,7 @@ export async function approveMealPlan(
     ingredients?: { name: string; category?: string; dataSource?: MealIngredientDataSource }[];
   }
 ) {
+  await ReviewRoutingService.assertMeal(nutritionistProfileId, mealPlanId);
   const now = new Date();
   const claimCutoff = getReviewClaimCutoff(now);
   const plan = await prisma.mealPlan.findUnique({
@@ -140,6 +142,7 @@ export async function approveMealPlan(
   const coalescedApprovedUserIds = await prisma.$transaction(
     async (tx) => {
       await lockUserProfile(tx, plan.userId);
+      await ReviewRoutingService.assertMeal(nutritionistProfileId, mealPlanId, tx);
       if (!(await ClinicalProfileReviewService.hasCurrentApproval(plan.userId, tx)))
         throw new Error('The health details changed and need a new profile confirmation.');
       const healthDetails = await tx.clinicalContextResponse.findMany({
@@ -246,7 +249,20 @@ export async function approveMealPlan(
           claimedByNutritionistId: null,
           cycle: { profileAdaptationState: 'CURRENT' },
         };
-        const dependents = await findScopeMatchedPendingPlans(tx, dependentWhere, approvedScope.key);
+        const matched = await findScopeMatchedPendingPlans(tx, dependentWhere, approvedScope.key);
+        const dependents = [];
+        const routed = (await ReviewRoutingService.config(tx)).enabled;
+        for (const candidate of matched) {
+          // Routed cases keep cross-member decisions independent. Same-member
+          // duplicates can share a decision under the existing locked profile.
+          if (routed && candidate.userId !== plan.userId) continue;
+          try {
+            await ReviewRoutingService.assertMeal(nutritionistProfileId, candidate.id, tx);
+            dependents.push(candidate);
+          } catch (error) {
+            if (!(error instanceof AppError) || error.errorCode !== 'REVIEW_NOT_FOUND') throw error;
+          }
+        }
 
         if (dependents.length) {
           const dependentIds = dependents.map((item) => item.id);
