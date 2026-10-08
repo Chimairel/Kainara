@@ -6,7 +6,7 @@ import api from '@/lib/axios';
 import { getApiErrorMessage } from '@/lib/api-error';
 import { useAuth } from '@/hooks/useAuth';
 import { useVisiblePolling } from '@/hooks/useVisiblePolling';
-import { expertiseLabel } from '@/features/nutritionist-reviews/review-routing';
+import { expertiseLabel, routingPriorityLabel } from '@/features/nutritionist-reviews/review-routing';
 
 type Snapshot = {
   config: { enabled: boolean };
@@ -69,8 +69,8 @@ export default function ReviewRoutingPanel() {
         <div>
           <h2 className="font-display text-lg font-bold">Specialist review priority</h2>
           <p className="mt-1 text-xs text-brand-muted">
-            Up to three matching RNDs get first access. Related profile, document and meal work shares one 24-hour
-            maximum window.
+            Every matching RND gets first access, with the highest verified experience tier as the fallback. Related
+            profile, document and meal work shares one 24-hour maximum window.
           </p>
         </div>
         <Switch
@@ -83,8 +83,9 @@ export default function ReviewRoutingPanel() {
         />
       </div>
       <p className="text-xs leading-relaxed text-brand-muted">
-        Verify expertise mappings before enabling. General access opens sooner when no matching specialist is available
-        or a deadline is two hours away. Existing work stays accessible. Disabling opens all specialist episodes.
+        Verify expertise and experience before enabling. When no specialist fully matches, all eligible RNDs tied for
+        the highest verified experience get priority automatically. General access opens when neither pool qualifies or
+        a deadline is two hours away. Existing work stays accessible. Disabling opens all priority episodes.
       </p>
       {error && (
         <p role="alert" className="text-sm text-status-error-text">
@@ -101,7 +102,7 @@ export default function ReviewRoutingPanel() {
               snapshot.episodes.map((episode) => (
                 <div key={episode.id} className="rounded-xl border border-brand-border p-3 text-xs">
                   <p className="font-semibold">
-                    {episode.user.name} · {episode.stage === 'SPECIALIST' ? 'Specialist priority' : 'General access'}
+                    {episode.user.name} · {routingPriorityLabel(episode)}
                   </p>
                   <p className="mt-1 text-brand-muted">
                     {episode.conditions.map(expertiseLabel).join(' · ') || 'No condition tags'} ·{' '}
@@ -109,7 +110,7 @@ export default function ReviewRoutingPanel() {
                   </p>
                   {episode.stage === 'SPECIALIST' && (
                     <p className="mt-1">
-                      {episode.selectedReviewerIds.length} matching RNDs · opens by{' '}
+                      {episode.selectedReviewerIds.length} priority RNDs · opens by{' '}
                       {new Date(episode.opensAt).toLocaleString('en-PH', { timeZone: 'Asia/Manila' })} PHT
                     </p>
                   )}

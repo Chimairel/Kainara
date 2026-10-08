@@ -29,3 +29,21 @@ it('preserves unsaved verification drafts across polling and submits structured 
     })
   );
 });
+
+it('allows admin-verified experience without condition expertise', async () => {
+  const onSave = vi.fn().mockResolvedValue(undefined);
+  render(<ExpertiseEditor professional={{ id: 'general-rnd' } as NutritionistRow} busy={false} onSave={onSave} />);
+  fireEvent.click(screen.getByText('Verify review expertise'));
+  fireEvent.change(screen.getByLabelText('Verified years of experience'), { target: { value: '30' } });
+  fireEvent.change(screen.getByLabelText('Verification evidence or revocation reason'), {
+    target: { value: 'Verified general nutrition work history.' },
+  });
+  fireEvent.click(screen.getByRole('button', { name: 'Save verified expertise' }));
+  await waitFor(() =>
+    expect(onSave).toHaveBeenCalledWith({
+      conditions: [],
+      experienceYears: 30,
+      evidence: 'Verified general nutrition work history.',
+    })
+  );
+});

@@ -1,4 +1,3 @@
-import { ReviewRoutingService } from '@/services/review-routing.service';
 import { Router, Response } from 'express';
 import { AppError } from '@/errors/AppError';
 import { z } from 'zod';
@@ -80,17 +79,6 @@ const profileReviewDecision = z
       });
     }
   });
-
-router.patch(
-  '/review-availability',
-  validateZodBody(z.object({ acceptingReviews: z.boolean() }).strict()),
-  asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
-    res.json({
-      success: true,
-      data: await ReviewRoutingService.setAvailability(req.user!.userId, req.body.acceptingReviews),
-    });
-  })
-);
 
 router.get(
   '/review-work-counts',

@@ -2,7 +2,6 @@ import { isNutritionistEligibleForReview } from './nutritionist-review.policy';
 
 export const SPECIALIST_WINDOW_MS = 24 * 60 * 60_000;
 export const REVIEW_DEADLINE_BUFFER_MS = 2 * 60 * 60_000;
-export const SPECIALIST_POOL_SIZE = 3;
 
 export interface RoutingReviewer {
   id: string;
@@ -14,7 +13,8 @@ export interface RoutingReviewer {
     emailVerified: boolean;
     nutritionistApplication?: { status: string } | null;
   };
-  acceptingReviews: boolean;
+  /** Legacy persisted field; automatic routing deliberately ignores it. */
+  acceptingReviews?: boolean;
   verifiedExpertise: readonly string[];
   verifiedExperienceYears: number | null;
   expertiseVerifiedAt: Date | null;
@@ -32,15 +32,23 @@ export function eligibleRoutingReviewer(reviewer: RoutingReviewer, now: Date): b
 
 export function matchingReviewers(conditions: readonly string[], reviewers: readonly RoutingReviewer[], now: Date) {
   if (!conditions.length) return [];
+  return experiencedReviewers(reviewers, now).filter((reviewer) =>
+    conditions.every((condition) => reviewer.verifiedExpertise.includes(condition))
+  );
+}
+
+/** Verified experience is priority evidence, not a declaration of condition expertise. */
+export function eligibleExperiencedReviewer(reviewer: RoutingReviewer, now: Date): boolean {
+  return (
+    eligibleRoutingReviewer(reviewer, now) &&
+    reviewer.expertiseVerifiedAt !== null &&
+    reviewer.verifiedExperienceYears !== null
+  );
+}
+
+export function experiencedReviewers(reviewers: readonly RoutingReviewer[], now: Date) {
   return reviewers
-    .filter(
-      (reviewer) =>
-        eligibleRoutingReviewer(reviewer, now) &&
-        reviewer.acceptingReviews &&
-        reviewer.expertiseVerifiedAt !== null &&
-        reviewer.verifiedExperienceYears !== null &&
-        conditions.every((condition) => reviewer.verifiedExpertise.includes(condition))
-    )
+    .filter((reviewer) => eligibleExperiencedReviewer(reviewer, now))
     .sort(
       (a, b) =>
         b.verifiedExperienceYears! - a.verifiedExperienceYears! ||
@@ -50,14 +58,11 @@ export function matchingReviewers(conditions: readonly string[], reviewers: read
     );
 }
 
-/** Keep a stable pool, replacing unavailable members without restarting its clock. */
-export function specialistPool(previous: readonly string[], matches: readonly RoutingReviewer[]): string[] {
-  const ids = new Set(matches.map((reviewer) => reviewer.id));
-  const retained = [...new Set(previous)].filter((id) => ids.has(id)).slice(0, SPECIALIST_POOL_SIZE);
-  return [...retained, ...matches.map((reviewer) => reviewer.id).filter((id) => !retained.includes(id))].slice(
-    0,
-    SPECIALIST_POOL_SIZE
-  );
+/** The highest verified experience tier includes everyone tied at that level. */
+export function highestExperienceReviewers(reviewers: readonly RoutingReviewer[], now: Date) {
+  const candidates = experiencedReviewers(reviewers, now);
+  const highest = candidates[0]?.verifiedExperienceYears;
+  return candidates.filter((candidate) => candidate.verifiedExperienceYears === highest);
 }
 
 export function routingOpensAt(beganAt: Date, deadlines: readonly Date[], previous?: Date): Date {
@@ -74,6 +79,7 @@ export function routingOpensAt(beganAt: Date, deadlines: readonly Date[], previo
 
 export function routingStage(input: {
   previousStage?: string;
+  priorityReason?: 'MATCHING_EXPERTISE' | 'EXPERIENCE_PRIORITY';
   legacy: boolean;
   unknownConditions: boolean;
   conditions: readonly string[];
@@ -93,5 +99,5 @@ export function routingStage(input: {
         input.opensAt.getTime() < input.beganAt.getTime() + SPECIALIST_WINDOW_MS ? 'DEADLINE_BUFFER' : 'WINDOW_EXPIRED',
     };
   if (!input.selectedReviewerIds.length) return { stage: 'GENERAL', reason: 'NO_AVAILABLE_MATCH' };
-  return { stage: 'SPECIALIST', reason: 'MATCHING_EXPERTISE' };
+  return { stage: 'SPECIALIST', reason: input.priorityReason ?? 'MATCHING_EXPERTISE' };
 }

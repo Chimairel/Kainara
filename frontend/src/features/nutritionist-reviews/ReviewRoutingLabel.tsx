@@ -1,10 +1,10 @@
-import type { ReviewRouting } from './review-routing';
+import { routingPriorityLabel, type ReviewRouting } from './review-routing';
 
 export default function ReviewRoutingLabel({ routing }: { routing?: ReviewRouting }) {
   if (!routing || routing.reason === 'ROUTING_DISABLED') return null;
   return (
     <span className="mt-2 block text-[11px] font-medium text-brand-green">
-      {routing.stage === 'SPECIALIST' ? 'Matching specialist priority' : 'Open to eligible RNDs'}
+      {routingPriorityLabel(routing)}
       {routing.stage === 'SPECIALIST' && routing.opensAt && (
         <span className="block font-normal text-brand-muted">
           General access by{' '}

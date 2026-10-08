@@ -3,7 +3,8 @@ import test from 'node:test';
 import {
   eligibleRoutingReviewer,
   matchingReviewers,
-  specialistPool,
+  experiencedReviewers,
+  highestExperienceReviewers,
   routingOpensAt,
   routingStage,
   SPECIALIST_WINDOW_MS,
@@ -37,13 +38,13 @@ test('matching requires verified expertise for every condition, not a free-text 
       reviewer('partial', { verifiedExpertise: ['HEART_CONDITION'] }),
       reviewer('unverified', { expertiseVerifiedAt: null }),
       reviewer('unknown-years', { verifiedExperienceYears: null }),
-      reviewer('unavailable', { acceptingReviews: false }),
+      reviewer('old-switch-off', { acceptingReviews: false }),
     ],
     now
   );
   assert.deepEqual(
     matches.map((item) => item.id),
-    ['full']
+    ['full', 'old-switch-off']
   );
   assert.deepEqual(matchingReviewers([], [reviewer('full')], now), []);
 });
@@ -67,6 +68,37 @@ test('ranking uses verified experience, claims, assignment age and a stable fina
   );
 });
 
+test('automatic experience fallback admits verified years without matching tags and excludes self-reported or ineligible RNDs', () => {
+  const candidates = experiencedReviewers(
+    [
+      reviewer('general-senior', { verifiedExpertise: [], verifiedExperienceYears: 30 }),
+      reviewer('partial', { verifiedExpertise: ['DIABETES'], verifiedExperienceYears: 12 }),
+      reviewer('zero', { verifiedExpertise: [], verifiedExperienceYears: 0 }),
+      reviewer('self-reported', { verifiedExperienceYears: 40, expertiseVerifiedAt: null }),
+      reviewer('unknown', { verifiedExperienceYears: null }),
+      reviewer('old-switch-off', { acceptingReviews: false, verifiedExperienceYears: 50 }),
+      reviewer('expired', { prcLicenseExpiry: new Date('2020-01-01'), verifiedExperienceYears: 60 }),
+    ],
+    now
+  );
+  assert.deepEqual(
+    candidates.map((candidate) => candidate.id),
+    ['old-switch-off', 'general-senior', 'partial', 'zero']
+  );
+  const experts = matchingReviewers(
+    ['HEART_CONDITION'],
+    [
+      reviewer('general-senior', { verifiedExpertise: [], verifiedExperienceYears: 30 }),
+      reviewer('heart-junior', { verifiedExpertise: ['HEART_CONDITION'], verifiedExperienceYears: 2 }),
+    ],
+    now
+  );
+  assert.deepEqual(
+    experts.map((candidate) => candidate.id),
+    ['heart-junior']
+  );
+});
+
 test('eligibility enforces account, license and recruitment activation', () => {
   for (const candidate of [
     reviewer('expired', { prcLicenseExpiry: new Date('2020-01-01') }),
@@ -87,11 +119,22 @@ test('eligibility enforces account, license and recruitment activation', () => {
   assert.equal(eligibleRoutingReviewer(reviewer('active'), now), true);
 });
 
-test('pool remains stable and replaces unavailable members with at most three candidates', () => {
-  const candidates = [reviewer('new-senior'), reviewer('a'), reviewer('b'), reviewer('c')];
-  assert.deepEqual(specialistPool(['a', 'b', 'c'], candidates), ['a', 'b', 'c']);
-  assert.deepEqual(specialistPool(['a', 'gone', 'b'], candidates), ['a', 'b', 'new-senior']);
-  assert.deepEqual(specialistPool([], []), []);
+test('expertise includes every match and experience fallback includes every reviewer tied at the highest level', () => {
+  const candidates = [reviewer('a'), reviewer('b'), reviewer('c'), reviewer('d'), reviewer('e')];
+  assert.equal(matchingReviewers(['HEART_CONDITION'], candidates, now).length, 5);
+  assert.deepEqual(
+    highestExperienceReviewers(
+      [
+        reviewer('junior', { verifiedExperienceYears: 2 }),
+        reviewer('senior-a', { verifiedExperienceYears: 30 }),
+        reviewer('senior-b', { verifiedExperienceYears: 30 }),
+        reviewer('middle', { verifiedExperienceYears: 10 }),
+      ],
+      now
+    ).map((reviewer) => reviewer.id),
+    ['senior-a', 'senior-b']
+  );
+  assert.deepEqual(highestExperienceReviewers([], now), []);
 });
 
 test('deadline buffer shortens the shared maximum and neither later deadlines nor retries extend it', () => {
@@ -114,6 +157,7 @@ test('no match, unmapped conditions, existing work and approaching deadlines ope
     now,
   };
   assert.equal(routingStage(base).stage, 'SPECIALIST');
+  assert.equal(routingStage({ ...base, priorityReason: 'EXPERIENCE_PRIORITY' }).reason, 'EXPERIENCE_PRIORITY');
   for (const [change, reason] of [
     [{ selectedReviewerIds: [] }, 'NO_AVAILABLE_MATCH'],
     [{ unknownConditions: true }, 'UNMAPPED_CONDITION'],
@@ -145,4 +189,5 @@ test('admin expertise inputs reject NONE, unknown tags, fabricated years and mis
   ])
     assert.equal(expertiseSchema.safeParse({ ...valid, ...change }).success, false);
   assert.equal(expertiseSchema.safeParse({ ...valid, conditions: [], experienceYears: null }).success, true);
+  assert.equal(expertiseSchema.safeParse({ ...valid, conditions: [], experienceYears: 20 }).success, true);
 });

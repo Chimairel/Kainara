@@ -37,7 +37,8 @@ export default function ExpertiseEditor({
       >
         <p className="text-xs leading-relaxed text-brand-muted">
           Verify relevant qualifications and work history. These tags grant specialist priority; they do not replace RND
-          eligibility or clinical approval.
+          eligibility or clinical approval. Verified years can grant experience priority when no specialist fully
+          matches, even without condition tags.
         </p>
         <fieldset disabled={busy}>
           <legend className="text-xs font-bold">Verified expertise</legend>
@@ -86,8 +87,8 @@ export default function ExpertiseEditor({
           />
         </label>
         <p className="text-xs text-brand-muted">
-          Record professional evidence references, not member health information. Clear all tags to revoke specialist
-          priority.
+          Record professional evidence references, not member health information. Clear tags to remove expertise
+          priority; also clear verified years to remove experience priority.
         </p>
         <Button type="submit" size="sm" disabled={busy}>
           {busy ? 'Saving…' : 'Save verified expertise'}

@@ -1,6 +1,6 @@
 'use client';
 
-import ReviewAvailabilityPanel from '@/features/nutritionist-profile/ReviewAvailabilityPanel';
+import ReviewQualificationsPanel from '@/features/nutritionist-profile/ReviewQualificationsPanel';
 import NutritionistCredentialModal from '@/components/user/NutritionistCredentialModal';
 
 import PortalPageHeader from '@/components/shared/PortalPageHeader';
@@ -31,8 +31,7 @@ export default function NutritionistProfilePage() {
 
         {/* 2. Clinical Credential KPI Stat Strip */}
         <NutritionistMetricsSection model={model} />
-        <ReviewAvailabilityPanel
-          acceptingReviews={profile?.acceptingReviews}
+        <ReviewQualificationsPanel
           verifiedExpertise={profile?.verifiedExpertise}
           verifiedExperienceYears={profile?.verifiedExperienceYears}
         />

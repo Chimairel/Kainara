@@ -29,13 +29,11 @@ for (const width of [390, 1440]) {
         prcLicenseExpiry: '2031-01-01',
         isVerified: true,
         totalVerified: 0,
-        acceptingReviews: false,
         verifiedExpertise: ['HEART_CONDITION'],
         verifiedExperienceYears: 12,
         expertiseEvidence: 'Synthetic verified work history.',
       };
       let enabled = false;
-      let availability = false;
       let expertiseBody: unknown;
       const errors: string[] = [];
       page.on('pageerror', (error) => errors.push(error.message));
@@ -54,11 +52,7 @@ for (const width of [390, 1440]) {
         if (path.endsWith('/notifications')) data = { notifications: [], unreadCount: 0 };
         if (path.endsWith('/admin/users')) data = { users: [], total: 0, page: 1, totalPages: 1 };
         if (path.endsWith('/admin/nutritionists')) data = [professional];
-        if (path.endsWith('/nutritionist/profile')) data = { ...professional, acceptingReviews: availability };
-        if (path.endsWith('/review-availability')) {
-          availability = route.request().postDataJSON().acceptingReviews;
-          data = { acceptingReviews: availability };
-        }
+        if (path.endsWith('/nutritionist/profile')) data = professional;
         if (path.endsWith('/admin/review-routing')) {
           if (method === 'PATCH') enabled = route.request().postDataJSON().enabled;
           data = { config: { enabled }, episodes: [] };
@@ -91,10 +85,9 @@ for (const width of [390, 1440]) {
           });
       } else {
         await page.goto('/nutritionist/profile');
-        const toggle = page.getByRole('switch', { name: 'Accepting new reviews' });
-        await expect(toggle).toBeEnabled();
-        await toggle.click();
-        await expect(toggle).toHaveAttribute('aria-checked', 'true');
+        await expect(page.getByRole('heading', { name: 'Review routing', exact: true })).toBeVisible();
+        await expect(page.getByRole('switch', { name: 'Accepting new reviews' })).toHaveCount(0);
+        await expect(page.getByText(/Cases appear automatically for every eligible RND/)).toBeVisible();
         await expect(page.getByText('Heart health nutrition', { exact: true })).toBeVisible();
         await expect(page.getByText('12 verified years of experience', { exact: true })).toBeVisible();
       }

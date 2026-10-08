@@ -12,6 +12,7 @@ import { ClinicalEvidenceService } from '../src/services/clinical-evidence.servi
 import { NutritionistReviewService } from '../src/services/nutritionist-review.service';
 import { ClinicalProfileReviewService } from '../src/services/clinical-profile-review.service';
 import { CURRENT_TERMS_VERSION, CURRENT_PRIVACY_VERSION } from '../src/domain/onboarding.policy';
+import { specialistRoutingScenarios } from './helpers/specialist-routing-scenarios';
 
 async function main() {
   const target = new URL(process.env.DATABASE_URL ?? '');
@@ -70,7 +71,7 @@ async function main() {
       data: {
         userId: user.id,
         age: 26,
-        biologicalSex: 'MALE',
+        biologicalSex: conditions.includes('PREGNANT') ? 'FEMALE' : 'MALE',
         heightCm: 170,
         weightKg: 65,
         goal: 'MAINTAIN',
@@ -112,7 +113,7 @@ async function main() {
     for (const condition of conditions)
       if (condition !== 'NONE')
         await ClinicalEvidenceService.saveHealthDetails(user.id, {
-          area: condition as unknown as ClinicalEvidenceArea,
+          area: condition === 'PREGNANT' ? 'PREGNANCY' : (condition as unknown as ClinicalEvidenceArea),
           expectedSafetyRevision: 0,
           conditionDetails: 'Synthetic condition details for software testing.',
           medications: 'None',
@@ -197,7 +198,6 @@ async function main() {
           evidence: 'Verified synthetic qualification and employment reference.',
         })
       );
-      await ok(request(user, '/nutritionist/review-availability', 'PATCH', { acceptingReviews: true }));
     }
     const outsider = rnds[4];
     const specialist = rnds[0];
@@ -243,7 +243,7 @@ async function main() {
     const initial = await prisma.reviewRoutingEpisode.findFirstOrThrow({ where: { userId: patient.id } });
     assert.deepEqual(
       initial.selectedReviewerIds,
-      rnds.slice(0, 3).map((rnd) => rnd.profile.id)
+      rnds.slice(0, 4).map((rnd) => rnd.profile.id)
     );
     assert.ok(
       !(await ok(request(outsider.user, '/nutritionist/profile-work'))).some(
@@ -342,11 +342,10 @@ async function main() {
     ] as const)
       assert.equal((await request(outsider.user, path, method, body)).status, 404, path);
 
-    // An availability change replaces pool membership but preserves a valid existing claim.
+    // Automatic routing ignores the legacy availability flag (all profiles default to false).
     await ok(request(specialist.user, `/nutritionist/queue/${meals[0].id}/claim`, 'POST', {}));
-    await ok(request(specialist.user, '/nutritionist/review-availability', 'PATCH', { acceptingReviews: false }));
     await ReviewRoutingService.assertMeal(specialist.profile.id, meals[0].id);
-    await assert.rejects(ReviewRoutingService.assertMeal(specialist.profile.id, meals[1].id), /Review not found/);
+    await ReviewRoutingService.assertMeal(specialist.profile.id, meals[1].id);
     assert.ok(
       (await prisma.reviewRoutingEpisode.findUniqueOrThrow({ where: { id: initial.id } })).selectedReviewerIds.includes(
         rnds[3].profile.id
@@ -388,7 +387,7 @@ async function main() {
     await ReviewRoutingService.resolve({ userId: mixed.id });
     assert.equal(
       (await prisma.reviewRoutingEpisode.findFirstOrThrow({ where: { userId: mixed.id } })).reason,
-      'NO_AVAILABLE_MATCH'
+      'EXPERIENCE_PRIORITY'
     );
     const urgent = await member();
     const urgentWork = await cycleWithMeals(urgent.id, 0);
@@ -546,6 +545,15 @@ async function main() {
     await prisma.user.update({ where: { id: rnds[1].user.id }, data: { isSuspended: true } });
     await assert.rejects(ReviewRoutingService.assertMeal(rnds[1].profile.id, meals[1].id), /Review not found/);
     assert.equal((await request(rnds[1].user, '/nutritionist/queue')).status, 401);
+    const scenarios = await specialistRoutingScenarios({
+      admin,
+      existingReviewerIds: rnds.map((rnd) => rnd.profile.id),
+      account,
+      member,
+      cycleWithMeals,
+      request,
+    });
+    console.log(`ROUTING_SCENARIO_REPORT ${JSON.stringify(scenarios)}`);
     await ok(request(admin, '/admin/review-routing', 'PATCH', { enabled: false }));
     assert.equal(await prisma.reviewRoutingEpisode.count({ where: { stage: 'SPECIALIST' } }), 0);
     assert.equal((await ReviewRoutingService.config()).enabled, false);

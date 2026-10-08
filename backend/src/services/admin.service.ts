@@ -62,7 +62,6 @@ export class AdminService {
         prcLicenseNumber: true,
         prcLicenseExpiry: true,
         specialization: true,
-        acceptingReviews: true,
         verifiedExpertise: true,
         verifiedExperienceYears: true,
         expertiseEvidence: true,

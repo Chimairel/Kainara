@@ -6,8 +6,9 @@ import { AppError } from '@/errors/AppError';
 import { adaptUserSafetyRestrictions } from '@/domain/structured-restriction.adapter';
 import {
   eligibleRoutingReviewer,
+  eligibleExperiencedReviewer,
+  highestExperienceReviewers,
   matchingReviewers,
-  specialistPool,
   routingOpensAt,
   routingStage,
   type RoutingReviewer,
@@ -118,7 +119,7 @@ export class ReviewRoutingService {
           verifiedExpertise: [...new Set(input.conditions)],
           verifiedExperienceYears: input.experienceYears,
           expertiseEvidence: input.evidence,
-          expertiseVerifiedAt: input.conditions.length ? new Date() : null,
+          expertiseVerifiedAt: input.experienceYears !== null ? new Date() : null,
           expertiseVerifiedById: actorUserId,
         },
       });
@@ -133,19 +134,6 @@ export class ReviewRoutingService {
         verifiedExperienceYears: profile.verifiedExperienceYears,
         expertiseVerifiedAt: profile.expertiseVerifiedAt,
       };
-    });
-  }
-
-  static async setAvailability(userId: string, acceptingReviews: boolean) {
-    return prisma.$transaction(async (tx) => {
-      const profile = await tx.nutritionistProfile.findUniqueOrThrow({ where: { userId }, include: { user: true } });
-      const candidates = await reviewers(tx, new Date());
-      const eligible = candidates.find((item) => item.id === profile.id);
-      if (!eligible || !eligibleRoutingReviewer(eligible, new Date()))
-        throw new AppError('Current RND eligibility is required.', 403, 'NUTRITIONIST_INELIGIBLE');
-      await tx.nutritionistProfile.update({ where: { id: profile.id }, data: { acceptingReviews } });
-      await audit(tx, userId, 'RND_REVIEW_AVAILABILITY_UPDATED', profile.id, { acceptingReviews });
-      return { acceptingReviews };
     });
   }
 
@@ -168,7 +156,11 @@ export class ReviewRoutingService {
           userId,
           type: 'REVIEW_REQUEST',
           title:
-            episode.stage === 'SPECIALIST' ? 'Matching specialist review available' : 'Review opened to eligible RNDs',
+            episode.stage !== 'SPECIALIST'
+              ? 'Review opened to eligible RNDs'
+              : episode.reason === 'EXPERIENCE_PRIORITY'
+                ? 'Experience priority review available'
+                : 'Matching specialist review available',
           message: 'New work is available in your review queues. Open KAINARA to view the work you can access.',
         })),
       });
@@ -255,18 +247,19 @@ export class ReviewRoutingService {
     const beganAt = episode?.beganAt ?? new Date(Math.min(now.getTime(), readyAt.getTime()));
     const pool = await reviewers(tx, now);
     const matches = matchingReviewers(conditions, pool, now);
+    const priorityReason = matches.length ? 'MATCHING_EXPERTISE' : 'EXPERIENCE_PRIORITY';
+    const candidates = matches.length ? matches : highestExperienceReviewers(pool, now);
     const changedScope = episode && episode.scopeKey !== scopeKey;
-    const selectedReviewerIds = specialistPool(changedScope ? [] : (episode?.selectedReviewerIds ?? []), matches);
-    // Revoking verified expertise or eligibility invalidates a specialist claim.
-    // Availability alone must not invalidate a claim that an RND can still finish.
+    const changedPriority = episode?.stage === 'SPECIALIST' && episode.reason !== priorityReason;
+    const selectedReviewerIds = candidates.map((reviewer) => reviewer.id);
+    // Qualification changes and entering an expertise pool invalidate mismatched claims.
     if (episode?.stage === 'SPECIALIST') {
+      const experienceClaim = episode.reason === 'EXPERIENCE_PRIORITY' && priorityReason === 'EXPERIENCE_PRIORITY';
       const invalidIds = pool
         .filter(
           (reviewer) =>
-            !eligibleRoutingReviewer(reviewer, now) ||
-            !reviewer.expertiseVerifiedAt ||
-            reviewer.verifiedExperienceYears === null ||
-            !conditions.every((condition) => reviewer.verifiedExpertise.includes(condition))
+            !eligibleExperiencedReviewer(reviewer, now) ||
+            (!experienceClaim && !conditions.every((condition) => reviewer.verifiedExpertise.includes(condition)))
         )
         .map((reviewer) => reviewer.id);
       if (invalidIds.length) {
@@ -314,6 +307,7 @@ export class ReviewRoutingService {
       opensAt,
       beganAt,
       now,
+      priorityReason,
     });
     const reason = state.reason === 'ALREADY_OPEN' ? episode!.reason : state.reason;
     const data = {
@@ -337,8 +331,13 @@ export class ReviewRoutingService {
         },
       });
     else if (
-      JSON.stringify([episode.scopeKey, episode.stage, episode.selectedReviewerIds, episode.opensAt]) !==
-      JSON.stringify([data.scopeKey, data.stage, data.selectedReviewerIds, data.opensAt])
+      JSON.stringify([
+        episode.scopeKey,
+        episode.stage,
+        episode.reason,
+        episode.selectedReviewerIds,
+        episode.opensAt,
+      ]) !== JSON.stringify([data.scopeKey, data.stage, data.reason, data.selectedReviewerIds, data.opensAt])
     )
       episode = await tx.reviewRoutingEpisode.update({ where: { id: episode.id }, data });
     if (cycle && cycle.reviewRoutingEpisodeId !== episode.id) {
@@ -363,6 +362,7 @@ export class ReviewRoutingService {
     const changed =
       !before ||
       before.stage !== episode.stage ||
+      before.reason !== episode.reason ||
       before.scopeKey !== episode.scopeKey ||
       JSON.stringify(before.selectedReviewerIds) !== JSON.stringify(episode.selectedReviewerIds) ||
       before.opensAt.getTime() !== episode.opensAt.getTime();
@@ -378,12 +378,15 @@ export class ReviewRoutingService {
       const added = episode.selectedReviewerIds.filter((id) => !before?.selectedReviewerIds.includes(id));
       if (added.length)
         await tx.nutritionistProfile.updateMany({ where: { id: { in: added } }, data: { lastRoutingAssignedAt: now } });
-      if (episode.reason !== 'EXISTING_WORK' && (!before || before.stage !== episode.stage || added.length))
+      if (
+        episode.reason !== 'EXISTING_WORK' &&
+        (!before || before.stage !== episode.stage || changedPriority || added.length)
+      )
         await this.notify(
           tx,
           episode,
           pool,
-          before?.stage === 'SPECIALIST' && episode.stage === 'SPECIALIST' ? added : undefined
+          before?.stage === 'SPECIALIST' && episode.stage === 'SPECIALIST' && !changedPriority ? added : undefined
         );
     }
     return { episode, pool, scopeChanged: Boolean(changedScope) };
@@ -404,14 +407,15 @@ export class ReviewRoutingService {
     const reviewer = result.pool.find((item) => item.id === reviewerId);
     if (!reviewer || !eligibleRoutingReviewer(reviewer, new Date())) return false;
     if (result.episode.stage === 'GENERAL' || result.episode.selectedReviewerIds.includes(reviewerId)) return true;
-    // Availability can change while someone finishes an existing claim. Expertise/eligibility cannot lapse.
+    // A changed experience ranking can preserve a valid existing claim; qualifications cannot lapse.
     return (
       !result.scopeChanged &&
       claim?.claimedByNutritionistId === reviewerId &&
       !!claim.claimedAt &&
       Date.now() - claim.claimedAt.getTime() < REVIEW_CLAIM_TTL_MS &&
-      !!reviewer.expertiseVerifiedAt &&
-      result.episode.conditions.every((condition) => reviewer.verifiedExpertise.includes(condition))
+      eligibleExperiencedReviewer(reviewer, new Date()) &&
+      (result.episode.reason === 'EXPERIENCE_PRIORITY' ||
+        result.episode.conditions.every((condition) => reviewer.verifiedExpertise.includes(condition)))
     );
   }
 
