@@ -39,7 +39,7 @@ export default function NutritionPdfViewer({
 }: Props) {
   const archived = Boolean(selectedVersion && selectedVersion.version !== currentVersion);
   const actionClass =
-    'inline-flex min-h-10 items-center gap-2 rounded-lg border border-white/20 bg-white/10 px-3 text-xs font-semibold text-white hover:bg-white/20 focus-visible:outline disabled:opacity-50';
+    'inline-flex min-h-10 items-center gap-2 rounded-lg border border-brand-green/25 bg-brand-green/10 px-3 text-xs font-semibold text-brand-green hover:bg-brand-green/15 focus-visible:outline focus-visible:outline-brand-green disabled:cursor-default';
   const actions = archived ? (
     onSetAsCurrent && (
       <button

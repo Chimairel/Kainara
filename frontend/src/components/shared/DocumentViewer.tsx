@@ -139,18 +139,18 @@ export default function DocumentViewer({
     setScale(Math.max(0.1, Math.min(2, value)));
   };
   const iconButton =
-    'flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-slate-200 hover:bg-white/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-white disabled:opacity-40';
+    'flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-brand-muted hover:bg-brand-green/10 hover:text-brand-green focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-brand-green disabled:pointer-events-none disabled:opacity-40';
   const reader = (
     <div
       role="region"
       aria-label="Document viewer"
-      className={`relative isolate flex min-w-0 flex-col overflow-hidden bg-[#323639] text-white ${expanded ? 'h-full w-full' : 'z-0 h-[clamp(24rem,calc(100dvh-20rem),46rem)] w-full rounded-2xl border border-white/10 shadow-xl'}`}
+      className={`relative isolate flex min-w-0 flex-col overflow-hidden bg-brand-bgAlt text-brand-text ${expanded ? 'h-full w-full' : 'z-0 h-[clamp(24rem,calc(100dvh-20rem),46rem)] w-full rounded-2xl border border-brand-border shadow-card-lg'}`}
     >
-      <header className="relative z-10 flex shrink-0 flex-wrap items-center gap-2 border-b border-white/10 bg-[#202124] p-2 sm:px-4">
+      <header className="relative z-10 flex shrink-0 flex-wrap items-center gap-2 border-b border-brand-border bg-brand-surface p-2 sm:px-4">
         <div className="flex min-w-0 flex-1 basis-48 items-center gap-2">
           <button
             type="button"
-            className={iconButton}
+            className={`${iconButton} aria-expanded:bg-brand-green/10 aria-expanded:text-brand-green`}
             aria-label="Document pages"
             aria-expanded={outlineOpen}
             onClick={() => setOutlineOpen(!outlineOpen)}
@@ -184,7 +184,7 @@ export default function DocumentViewer({
             {expanded ? <Minimize2 className="h-5 w-5" /> : <Maximize2 className="h-5 w-5" />}
           </button>
         </div>
-        <div className="flex w-full min-w-0 flex-wrap items-center justify-between gap-2 border-t border-white/10 pt-2">
+        <div className="flex w-full min-w-0 flex-wrap items-center justify-between gap-2 border-t border-brand-border pt-2">
           <div className="flex max-w-full flex-wrap items-center gap-1 text-xs">
             <button
               type="button"
@@ -218,7 +218,7 @@ export default function DocumentViewer({
             </button>
             <button
               type="button"
-              className="h-10 rounded-lg px-2 font-mono hover:bg-white/10 focus-visible:outline"
+              className="h-10 rounded-lg px-2 font-mono text-brand-text hover:bg-brand-green/10 focus-visible:outline focus-visible:outline-brand-green"
               aria-label="Reset zoom to 100%"
               onClick={() => zoom(1)}
             >
@@ -249,16 +249,16 @@ export default function DocumentViewer({
         {outlineOpen && (
           <aside
             aria-label="Document page navigation"
-            className="custom-scrollbar w-28 shrink-0 overflow-y-auto border-r border-white/10 bg-[#202124] p-2 sm:w-48 sm:p-3"
+            className="custom-scrollbar w-28 shrink-0 overflow-y-auto border-r border-brand-border bg-brand-bg p-2 sm:w-48 sm:p-3"
           >
-            <p className="mb-3 text-xs font-semibold text-slate-300">Pages</p>
+            <p className="mb-3 text-xs font-semibold text-brand-muted">Pages</p>
             {sheets.map((sheet, index) => (
               <button
                 key={index}
                 type="button"
                 aria-current={page === index + 1 ? 'page' : undefined}
                 aria-label={`Page ${index + 1}`}
-                className="mb-3 flex min-h-11 w-full flex-col items-center gap-2 rounded-lg border-2 border-transparent p-1 text-sm hover:bg-white/10 focus-visible:outline focus-visible:outline-white aria-[current=page]:border-blue-400"
+                className="mb-3 flex min-h-11 w-full flex-col items-center gap-2 rounded-lg border-2 border-transparent p-1 text-sm hover:bg-brand-green/10 focus-visible:outline focus-visible:outline-brand-green aria-[current=page]:border-brand-accent aria-[current=page]:bg-brand-green/10 aria-[current=page]:text-brand-green"
                 onClick={() => {
                   jump(index + 1);
                 }}
@@ -281,7 +281,7 @@ export default function DocumentViewer({
           aria-label="Document pages scroll area"
           tabIndex={0}
           onScroll={rememberScroll}
-          className="custom-scrollbar min-h-0 min-w-0 flex-1 overflow-auto overscroll-contain p-4 focus-visible:outline focus-visible:outline-2 focus-visible:outline-white"
+          className="custom-scrollbar min-h-0 min-w-0 flex-1 overflow-auto overscroll-contain p-4 focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-green"
         >
           <div ref={paperRef} style={{ width: paperWidth, zoom: scale }} className="mx-auto origin-top">
             {children}
