@@ -149,7 +149,7 @@ export default function AdminNutritionistsPage({ active = true }: { active?: boo
         headingLevel="h2"
         icon={Stethoscope}
         eyebrow="Professional governance"
-        title="Nutritionist onboarding"
+        title="RND onboarding"
         description="Review applications, conduct required verification calls, and control professional access."
         meta={
           <span className="rounded-full border border-brand-border/70 bg-brand-surface/60 px-3 py-2 font-mono text-[9px] uppercase tracking-wider text-brand-muted dark:border-[#173e33] dark:bg-[#0e271f]">
@@ -206,7 +206,7 @@ export default function AdminNutritionistsPage({ active = true }: { active?: boo
               act(
                 nutritionist.id,
                 () => api.patch(`/admin/users/${nutritionist.user.id}/suspension`, { suspended, reason }),
-                suspended ? 'Nutritionist access revoked. Past reviews are preserved.' : 'Nutritionist access restored.'
+                suspended ? 'RND access revoked. Past reviews are preserved.' : 'RND access restored.'
               )
             }
           />
@@ -251,7 +251,7 @@ function TabSelector({
     <WorkspaceTabs
       value={tab}
       onChange={onChange}
-      label="Nutritionist records"
+      label="RND records"
       items={[
         { value: 'applications', label: `Applications (${applicationCount})` },
         { value: 'professionals', label: `Professional records (${verifiedCount})` },

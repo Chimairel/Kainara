@@ -24,7 +24,7 @@ it('does not label suspended, unverified or former professionals as active', () 
   );
   expect(professionalAccessLabel({ ...professional, isVerified: false }, now)).toBe('Verification pending');
   expect(professionalAccessLabel({ ...professional, user: { ...professional.user, role: 'USER' } }, now)).toBe(
-    'Nutritionist role not active'
+    'RND role not active'
   );
   expect(professionalAccessLabel({ ...professional, prcLicenseExpiry: 'bad' }, now)).toBe('License date unavailable');
 });

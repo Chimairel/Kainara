@@ -109,7 +109,7 @@ export function ApplicationTrackingForm(props: Props) {
             <span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-brand-accent/20 text-[9px] font-bold text-brand-accent">
               4
             </span>
-            <span>Private nutritionist workspace account activation</span>
+            <span>Private RND workspace account activation</span>
           </div>
         </div>
       </div>

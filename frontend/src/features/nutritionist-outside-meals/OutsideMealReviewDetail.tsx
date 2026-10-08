@@ -149,9 +149,7 @@ export default function OutsideMealReviewDetail({ model }: SectionProps) {
                       }`}
                     >
                       <div className="flex items-center justify-between text-[10px] text-brand-muted mb-1">
-                        <span className="font-bold">
-                          {message.sender === 'NUTRITIONIST' ? 'Nutritionist' : 'Member'}
-                        </span>
+                        <span className="font-bold">{message.sender === 'NUTRITIONIST' ? 'RND' : 'Member'}</span>
                         <span>revision {message.itemRevision}</span>
                       </div>
                       <p>{message.content}</p>

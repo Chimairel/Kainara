@@ -140,7 +140,7 @@ export default function CaseReviewQueue({ review, expanded }: Props) {
                   </p>
                 )}
 
-                <p className="mt-2 text-[10px] font-bold text-brand-green">One nutritionist approval required</p>
+                <p className="mt-2 text-[10px] font-bold text-brand-green">One RND approval required</p>
 
                 {/* Member UI Macro Pills */}
                 <ReviewRoutingLabel routing={meal.routing} />
@@ -196,7 +196,7 @@ export default function CaseReviewQueue({ review, expanded }: Props) {
                 )}
                 {meal.claimStatus.coolingDownForMe && (
                   <p className="mt-2 text-[10px] font-bold text-[#8c3b00] dark:text-[#ff8a3d]">
-                    Your claim expired. Available to other nutritionists; you can retry after{' '}
+                    Your claim expired. Available to other RNDs; you can retry after{' '}
                     {meal.claimStatus.cooldownUntil
                       ? new Date(meal.claimStatus.cooldownUntil).toLocaleTimeString()
                       : 'the cooldown'}

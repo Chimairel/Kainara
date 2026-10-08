@@ -135,7 +135,7 @@ export default function AdminAuditWorkspace() {
         description={
           related
             ? `Activity concerning ${related.subject}. Dates use Philippine time.`
-            : 'Administrator actions and nutritionist review history. Dates use Philippine time.'
+            : 'Administrator actions and RND review history. Dates use Philippine time.'
         }
         meta={
           <Button variant="secondary" disabled={!related && !validDates} onClick={() => void current.refetch()}>
@@ -161,7 +161,7 @@ export default function AdminAuditWorkspace() {
             }}
             items={[
               { value: 'admin', label: 'Admin activity' },
-              { value: 'nutritionist', label: 'Nutritionist history' },
+              { value: 'nutritionist', label: 'RND history' },
             ]}
           />
           <section aria-label="Audit filters" className="rounded-2xl border border-brand-border bg-brand-surface p-4">
@@ -251,9 +251,7 @@ export default function AdminAuditWorkspace() {
       )}
       <section
         className="overflow-hidden rounded-2xl border border-brand-border bg-brand-surface"
-        aria-label={
-          related ? 'Related activity' : view === 'admin' ? 'Admin activity records' : 'Nutritionist history records'
-        }
+        aria-label={related ? 'Related activity' : view === 'admin' ? 'Admin activity records' : 'RND history records'}
       >
         {current.error && (
           <p role="alert" className="p-4 text-sm text-status-error-text">

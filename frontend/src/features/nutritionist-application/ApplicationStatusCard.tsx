@@ -136,7 +136,7 @@ export function ApplicationStatusCard({ application }: { application: PublicAppl
           </div>
           <p className="mt-2 text-xs leading-5 text-brand-muted">
             {application.invitationSentAt
-              ? 'Check your email inbox for your private nutritionist workspace activation link. It remains valid for 72 hours.'
+              ? 'Check your email inbox for your private RND workspace activation link. It remains valid for 72 hours.'
               : 'Your application is approved. Workspace invitation delivery is currently processing.'}
           </p>
         </div>

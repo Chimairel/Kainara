@@ -70,7 +70,7 @@ const HELP_ITEMS: HelpItem[] = [
     category: 'clinical',
     question: 'Who reviews the meal plans and recipes?',
     answer:
-      'PRC-licensed Filipino Registered Nutritionist-Dietitians (RNDs) review flagged plans and curate verified recipes in our Meal Library. Items marked with the "Verified RND" badge have undergone clinical inspection.',
+      'PRC-licensed Filipino RNDs (RNDs) review flagged plans and curate verified recipes in our Meal Library. Items marked with the "Verified RND" badge have undergone clinical inspection.',
   },
   {
     id: 'disclaimer',

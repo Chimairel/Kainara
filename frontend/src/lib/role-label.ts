@@ -4,7 +4,7 @@ export function getRoleLabel(role: string): string {
     case 'USER':
       return 'Member';
     case 'NUTRITIONIST':
-      return 'Nutritionist';
+      return 'RND';
     case 'ADMIN':
       return 'Admin';
     default:

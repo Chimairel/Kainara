@@ -17,7 +17,7 @@ export default function MembershipBenefitInfo({ tier }: { tier: 'LIFESTYLE' | 'H
         </div>
       ) : (
         <div className="space-y-2">
-          <p className="font-bold">Nutritionist-reviewed planning</p>
+          <p className="font-bold">RND-reviewed planning</p>
           <p>
             <strong>Built-in condition categories:</strong> diabetes and hypertension.
           </p>
@@ -31,7 +31,7 @@ export default function MembershipBenefitInfo({ tier }: { tier: 'LIFESTYLE' | 'H
           </p>
           <p className="text-brand-muted">
             Other conditions, allergies and restrictions can be submitted for assessment. Unknown ingredients are
-            excluded; filtering cannot guarantee against cross-contact during cooking. Planning depends on nutritionist
+            excluded; filtering cannot guarantee against cross-contact during cooking. Planning depends on RND
             clearance.
           </p>
         </div>

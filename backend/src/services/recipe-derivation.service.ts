@@ -1,3 +1,4 @@
+import { lockRecipeLineage } from './meal-review-context.service';
 import { Prisma } from '@prisma/client';
 import { AppError } from '@/errors/AppError';
 import prisma from '@/lib/prisma';
@@ -17,6 +18,9 @@ export async function createRecipeDerivation(profileId: string, parentId: string
   return prisma.$transaction(
     async (tx) => {
       await tx.$executeRaw`SELECT pg_advisory_xact_lock_shared(741010)`;
+      const lineageKey = await lockRecipeLineage(tx, parentId);
+      const hold = await tx.mealReviewLineage.findUnique({ where: { key: lineageKey } });
+      if (hold?.state === 'ARCHIVED') throw new AppError('This lineage is archived.', 409, 'RECIPE_ARCHIVED');
       const parent = await tx.mealLibrary.findUnique({
         where: { id: parentId },
         include: { ingredients: true, sourceRawRecipeCandidate: true },
@@ -73,7 +77,8 @@ export async function createRecipeDerivation(profileId: string, parentId: string
       const meal = await tx.mealLibrary.create({
         data: {
           parentMealId: parent.id,
-          recipeFamilyId: kind === 'SERVING_VERSION' ? (parent.recipeFamilyId ?? parent.id) : null,
+          recipeFamilyId: parent.recipeFamilyId ?? parent.id,
+          reviewLineageId: hold?.id ?? null,
           derivationKind: kind,
           authoredByNutritionistId: actor.id,
           adaptedImageUrl: imageUrl,
@@ -83,7 +88,7 @@ export async function createRecipeDerivation(profileId: string, parentId: string
           mealType: input.mealType,
           ...nutrition,
           recipeSignature: signature,
-          status: 'APPROVED',
+          status: hold && hold.state !== 'PUBLISHED' ? 'FLAGGED' : 'APPROVED',
           safetyEvidenceStatus: 'INCOMPLETE',
           safetyEvidenceRevision: 1,
           safetyEvidenceOrigin: 'NUTRITIONIST_DRAFT',
@@ -177,6 +182,6 @@ export async function createRecipeDerivation(profileId: string, parentId: string
         });
       return meal;
     },
-    { isolationLevel: Prisma.TransactionIsolationLevel.Serializable }
+    { isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted }
   );
 }

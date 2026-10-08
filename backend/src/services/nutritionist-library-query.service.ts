@@ -97,6 +97,7 @@ export async function getNutritionistMealLibraryWithFilters(
       ? prisma.mealLibrary.findMany({
           where: { id: { in: pageIds } },
           include: {
+            reviewLineage: { select: { state: true, incidentCount: true } },
             sourceRawRecipeCandidate: {
               select: {
                 sourceName: true,

@@ -85,7 +85,7 @@ export default function ReviewEvidenceSection({ model }: SectionProps) {
                 <SignalCard
                   label="Expired verified licenses"
                   count={data.expiredVerifiedNutritionists}
-                  note="Nutritionist accounts with verified profiles and licenses that expired before today in Manila."
+                  note="RND accounts with verified profiles and licenses that expired before today in Manila."
                   href="/admin/users?tab=nutritionists"
                   icon={AlertCircle}
                   statusType="zero-good"

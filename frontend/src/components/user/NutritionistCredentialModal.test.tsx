@@ -8,7 +8,7 @@ describe('maskPrcLicenseNumber', () => {
   it('masks license numbers properly, showing only the last 4 digits', () => {
     expect(maskPrcLicenseNumber('0123456')).toBe('PRC Lic. No. ••••••3456');
     expect(maskPrcLicenseNumber('1234')).toBe('PRC Lic. No. ••••••1234');
-    expect(maskPrcLicenseNumber('')).toBe('PRC Lic. No. ••••••0001');
+    expect(maskPrcLicenseNumber('')).toBe('PRC license not recorded');
   });
 });
 
@@ -21,7 +21,7 @@ describe('NutritionistCredentialModal', () => {
     specialization: 'Clinical Nutrition & Renal Dietetics',
     yearsOfExperience: 8,
     university: 'University of the Philippines Diliman',
-    bio: 'Senior Clinical Nutritionist specializing in glycemic control and hypertension.',
+    bio: 'Senior Clinical RND specializing in glycemic control and hypertension.',
   };
 
   it('renders correctly when open with full RND details and masked PRC license', () => {
@@ -39,8 +39,8 @@ describe('NutritionistCredentialModal', () => {
 
     // Header & Name
     expect(screen.getByRole('heading', { name: /Andrea Reyes, RND/i })).toBeInTheDocument();
-    expect(screen.getByText('Verified Nutritionist')).toBeInTheDocument();
-    expect(screen.getByText('PRC-Verified')).toBeInTheDocument();
+    expect(screen.getByText('Recorded RND review')).toBeInTheDocument();
+    expect(screen.getByText('Recorded license')).toBeInTheDocument();
 
     // Masked PRC
     expect(screen.getByText(/PRC Lic\. No\. ••••••8765/i)).toBeInTheDocument();
@@ -48,7 +48,7 @@ describe('NutritionistCredentialModal', () => {
     // Credentials
     expect(screen.getByText('Clinical Nutrition & Renal Dietetics')).toBeInTheDocument();
     expect(screen.getByText('University of the Philippines Diliman')).toBeInTheDocument();
-    expect(screen.getByText(/8\+ years/i)).toBeInTheDocument();
+    expect(screen.getByText(/8 years/i)).toBeInTheDocument();
 
     // Clinical notes button is visible
     const viewNotesBtn = screen.getByRole('button', { name: /view clinical adjustments/i });

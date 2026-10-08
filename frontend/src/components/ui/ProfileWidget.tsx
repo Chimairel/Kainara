@@ -39,7 +39,7 @@ export default function ProfileWidget({ onClose, className = '' }: ProfileWidget
 
   const getMembershipSubtitle = () => {
     if (!isUser) {
-      return user.role === 'NUTRITIONIST' ? 'Licensed Nutritionist' : 'System Administrator';
+      return user.role === 'NUTRITIONIST' ? 'Licensed RND' : 'System Administrator';
     }
     if (!membership || !membership.enabled) return 'Free';
     if (membership.level === 'TRIAL') {

@@ -1,9 +1,9 @@
 'use client';
 
 import LibrarySafetyReview from '@/features/nutritionist-library/LibrarySafetyReview';
+import MealReviewPanel from '../MealReviewPanel';
 import RecipeDerivationForm from '@/features/nutritionist-library/RecipeDerivationForm';
 
-import Button from '@/components/ui/Button';
 import Badge from '@/components/ui/Badge';
 
 import { ArrowLeft, ShieldAlert } from 'lucide-react';
@@ -24,33 +24,10 @@ type Props = {
     | 'openMeal'
     | 'workspace'
     | 'fetchLibrary'
-    | 'mealReleaseFindings'
-    | 'setMealReleaseFindings'
-    | 'mealFlagBusy'
-    | 'changeMealFlag'
-    | 'mealFlagReason'
-    | 'setMealFlagReason'
-    | 'mealFlagError'
   >;
 };
 export default function LibraryRecipeDetail({ model }: Props) {
-  const {
-    embedded,
-    setViewedMeal,
-    listScrollTop,
-    viewedMeal,
-    isAdmin,
-    openMeal,
-    workspace,
-    fetchLibrary,
-    mealReleaseFindings,
-    setMealReleaseFindings,
-    mealFlagBusy,
-    changeMealFlag,
-    mealFlagReason,
-    setMealFlagReason,
-    mealFlagError,
-  } = model;
+  const { embedded, setViewedMeal, listScrollTop, viewedMeal, isAdmin, openMeal, workspace, fetchLibrary } = model;
   if (!viewedMeal) return null;
   const source = viewedMeal.sourceRawRecipeCandidate;
   return (
@@ -102,7 +79,7 @@ export default function LibraryRecipeDetail({ model }: Props) {
                 <span className="text-xs text-brand-muted">
                   {viewedMeal.baseVerificationBasis === 'PANLASANG_PINOY'
                     ? 'Established Panlasang Pinoy recipe source'
-                    : 'Nutritionist reviewed base recipe'}
+                    : 'RND reviewed base recipe'}
                 </span>
               )}
             </div>
@@ -197,7 +174,7 @@ export default function LibraryRecipeDetail({ model }: Props) {
             }}
           />
         )}
-        {!isAdmin && (
+        {!isAdmin && viewedMeal.status !== 'FLAGGED' && (
           <RecipeDerivationForm
             key={viewedMeal.id}
             meal={viewedMeal}
@@ -207,92 +184,15 @@ export default function LibraryRecipeDetail({ model }: Props) {
             }}
           />
         )}
-        <section
-          id="meal-wide-review"
-          className="scroll-mt-20 space-y-3 rounded-2xl border border-brand-border bg-brand-surface/60 p-5"
-          aria-label="Meal-wide flag"
-        >
-          <h2 className="font-display text-xl font-bold text-brand-text">Meal-wide review</h2>
-          {viewedMeal.status === 'FLAGGED' ? (
-            <>
-              <p className="text-sm text-brand-muted">
-                This base meal and every serving variant are unavailable. An uninvolved nutritionist must resolve the
-                flag; authors, original verifiers and flaggers cannot release it. Recorded approvals remain intact;
-                separately flagged approvals stay flagged after release.
-              </p>
-              {viewedMeal.flags
-                ?.filter((flag) => flag.status === 'PENDING')
-                .map((flag) => (
-                  <p
-                    key={flag.id}
-                    className="rounded-xl border border-amber-500/40 bg-amber-500/10 p-3 text-sm font-medium text-amber-900 dark:text-amber-200"
-                  >
-                    Flagged by{' '}
-                    {flag.flaggedByAdminUser
-                      ? `${flag.flaggedByAdminUser.name} (admin)`
-                      : flag.flaggedByNutritionist?.user.name || 'Reviewer'}
-                    : {flag.reason}
-                  </p>
-                ))}
-              {!isAdmin && (
-                <>
-                  <label htmlFor="meal-release-findings" className="block text-sm font-semibold text-brand-text">
-                    Review findings
-                  </label>
-                  <textarea
-                    id="meal-release-findings"
-                    value={mealReleaseFindings}
-                    onChange={(event) => setMealReleaseFindings(event.target.value)}
-                    minLength={10}
-                    maxLength={1000}
-                    rows={3}
-                    placeholder="Document clinical findings from independent review (at least 10 characters)..."
-                    className="w-full rounded-xl border border-brand-border/80 bg-brand-surface p-3 text-sm text-brand-text shadow-sm outline-none transition focus:border-brand-green focus:ring-2 focus:ring-brand-green/20 placeholder:text-brand-muted/70"
-                  />
-                  <Button
-                    variant="secondary"
-                    disabled={mealFlagBusy || mealReleaseFindings.trim().length < 10}
-                    onClick={() => void changeMealFlag('release-flag')}
-                  >
-                    Release meal flag
-                  </Button>
-                </>
-              )}
-            </>
-          ) : (
-            <>
-              <p className="text-sm text-brand-muted">
-                Flagging pauses this meal, its serving variants, and every associated approval. Current plan slots using
-                it require revalidation.
-              </p>
-              <label htmlFor="meal-flag-reason" className="block text-sm font-semibold text-brand-text">
-                Reason for flagging the meal
-              </label>
-              <textarea
-                id="meal-flag-reason"
-                value={mealFlagReason}
-                onChange={(event) => setMealFlagReason(event.target.value)}
-                minLength={10}
-                maxLength={1000}
-                rows={3}
-                placeholder="State the reason for flagging this meal (at least 10 characters)..."
-                className="w-full rounded-xl border border-brand-border/80 bg-brand-surface p-3 text-sm text-brand-text shadow-sm outline-none transition focus:border-brand-green focus:ring-2 focus:ring-brand-green/20 placeholder:text-brand-muted/70"
-              />
-              <Button
-                variant="secondary"
-                disabled={mealFlagBusy || mealFlagReason.trim().length < 10}
-                onClick={() => void changeMealFlag('flag')}
-              >
-                Flag entire meal
-              </Button>
-            </>
-          )}
-          {mealFlagError && (
-            <p role="alert" className="text-sm text-red-300">
-              {mealFlagError}
-            </p>
-          )}
-        </section>
+        <MealReviewPanel
+          key={viewedMeal.id}
+          meal={viewedMeal}
+          isAdmin={isAdmin}
+          refresh={async () => {
+            await openMeal(viewedMeal);
+            await workspace.fetchLibrary();
+          }}
+        />
         <>{!isAdmin && <MealApprovalsPanel key={`${viewedMeal.id}-${viewedMeal.status}`} mealId={viewedMeal.id} />}</>
       </div>
     </>

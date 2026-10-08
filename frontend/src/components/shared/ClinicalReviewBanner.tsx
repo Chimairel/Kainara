@@ -11,7 +11,7 @@ interface ClinicalReviewBannerProps {
 
 export default function ClinicalReviewBanner({
   className = '',
-  message = 'Recommendations are in preview while a nutritionist verifies them.',
+  message = 'Recommendations are in preview while an RND verifies them.',
   pendingCount,
 }: ClinicalReviewBannerProps) {
   const countBadge =

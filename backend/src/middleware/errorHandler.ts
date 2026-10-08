@@ -13,7 +13,15 @@ export function notFoundHandler(req: Request, res: Response): Response {
 }
 
 export function errorHandler(error: unknown, req: Request, res: Response, _next: NextFunction): Response {
-  const appError = error instanceof AppError ? error : null;
+  const parserError = error as { type?: unknown; status?: unknown } | null;
+  const appError =
+    error instanceof AppError
+      ? error
+      : parserError?.type === 'entity.too.large' && parserError.status === 413
+        ? new AppError('The request exceeds the permitted upload size.', 413, 'PAYLOAD_TOO_LARGE')
+        : parserError?.type === 'entity.parse.failed' && parserError.status === 400
+          ? new AppError('The request must contain valid JSON.', 400, 'INVALID_JSON')
+          : null;
   const statusCode = appError?.statusCode ?? 500;
   const errorCode = appError?.errorCode ?? 'INTERNAL_ERROR';
   const message = appError?.message ?? sanitizeErrorMessage(error, 'An unexpected error occurred.');

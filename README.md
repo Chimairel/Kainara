@@ -10,6 +10,8 @@ The hosted capstone demonstration uses [`docs/VERCEL_RAILWAY_DEMO_DEPLOYMENT.md`
 
 Administrator-managed nutrition sources, aggregate consumption releases, FNRI mappings, publication, and rollback use [`docs/ADMIN_REFERENCE_DATA_RUNBOOK.md`](docs/ADMIN_REFERENCE_DATA_RUNBOOK.md).
 
+Meal flags, independent re-review, quarantine release, related-case admin oversight, and JSON draft batches use [`docs/MEAL_REVIEW_GOVERNANCE.md`](docs/MEAL_REVIEW_GOVERNANCE.md). The additive governance migration must be applied to a confirmed database target before deploying this workflow.
+
 ## Current verification status
 
 The application has substantial frontend and backend implementation. Verification results change as work continues; use the latest dated entry in the [engineering record](docs/NUTRIMIND_ENGINEERING_RECORD.md) and rerun the relevant checks for the code you are studying. Automated, browser, and disposable-database tests do not establish clinical approval. The [clinical policy approval record](docs/CLINICAL_POLICY_APPROVAL.md) is the separate release gate.

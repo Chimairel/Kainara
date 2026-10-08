@@ -79,7 +79,7 @@ for (const role of ['ADMIN', 'NUTRITIONIST'] as const) {
         await route.fulfill({ json: { success: true, data } });
       });
       await page.goto(`/${rolePath}/audit`);
-      if (role === 'ADMIN') await page.getByRole('button', { name: 'Nutritionist history' }).click();
+      if (role === 'ADMIN') await page.getByRole('button', { name: 'RND history' }).click();
       await expect(page.getByText('Synthetic reviewer', { exact: true })).toBeVisible();
       expect(detailReads).toBe(0);
       const button = page.getByRole('button', { name: /^Details:/ });

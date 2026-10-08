@@ -40,7 +40,7 @@ export default function ProfileWorkPanel() {
                 {detail.profileReview.claim?.mine
                   ? 'Claimed by you for 30 minutes.'
                   : detail.profileReview.claim?.active
-                    ? 'Claimed by another nutritionist.'
+                    ? 'Claimed by another RND.'
                     : 'Claim before recording a decision.'}
               </span>
             </div>

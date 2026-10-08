@@ -153,12 +153,12 @@ export default function DataWorkspaceOverview({
         <Card className="border-amber-500/20 bg-amber-500/10 p-5">
           <p className="font-display text-sm font-black text-amber-900 dark:text-amber-100">Who controls what?</p>
           <p className="mt-3 text-sm leading-relaxed text-amber-800 dark:text-amber-200">
-            Admins govern sources, aggregate survey releases, and FNRI aliases. Nutritionists remain the only role that
-            can clinically approve meals.
+            Admins govern sources, aggregate survey releases, and FNRI aliases. RNDs remain the only role that can
+            clinically approve meals.
           </p>
           <p className="mt-3 text-xs leading-relaxed text-amber-700 dark:text-amber-300">
             Food composition corrections require a source and reason and retain a revision history. Publishing a
-            reference release retains its audit history; meal approval remains a separate nutritionist decision.
+            reference release retains its audit history; meal approval remains a separate RND decision.
           </p>
         </Card>
       </div>

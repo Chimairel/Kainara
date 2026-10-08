@@ -309,7 +309,7 @@ export const CLINICAL_POLICY_SUMMARIES: readonly ClinicalPolicySummary[] = Objec
     ],
     calculation: 'Candidate protein reference = body weight in kg × approved g/kg/day coefficient',
     reviewBoundary:
-      'Stage, dialysis, labs, medication and nutritional status prevent broad automatic clearance. A nutritionist must review the individual case.',
+      'Stage, dialysis, labs, medication and nutritional status prevent broad automatic clearance. An RND must review the individual case.',
   },
   {
     id: 'HEART_CONDITION',

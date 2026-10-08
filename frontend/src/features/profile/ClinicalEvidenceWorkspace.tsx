@@ -118,7 +118,7 @@ export default function ClinicalEvidenceWorkspace({
       invalidateSessionResource(ownerId, `clinical-profile-status:${workspace.safetyRevision}`);
       window.dispatchEvent(new Event(LIVE_UPDATE_EVENT));
       setWorkspace(response.data.data);
-      setMessage('Health details saved for nutritionist review. These answers remain member-provided until reviewed.');
+      setMessage('Health details saved for RND review. These answers remain member-provided until reviewed.');
     } catch (cause) {
       setError(getApiErrorMessage(cause, 'Health details could not be saved.'));
     } finally {
@@ -172,16 +172,15 @@ export default function ClinicalEvidenceWorkspace({
         </h1>
         {(loading || areas.length > 0) && (
           <p className="mt-2 text-sm text-brand-muted">
-            Describe the conditions and restrictions already listed in your profile for a nutritionist to review. Enter
-            “none” or “unknown” where appropriate. Complete and save a separate form for each listed condition or
-            restriction.
+            Describe the conditions and restrictions already listed in your profile for an RND to review. Enter “none”
+            or “unknown” where appropriate. Complete and save a separate form for each listed condition or restriction.
           </p>
         )}
       </header>
       {request && (
         <div role="status" className="rounded-xl border border-amber-500 p-4">
           <p className="font-bold">
-            A nutritionist requested more details{request.area ? ` for ${friendly(request.area)}` : ''}.
+            An RND requested more details{request.area ? ` for ${friendly(request.area)}` : ''}.
           </p>
           <p>{request.notes}</p>
         </div>

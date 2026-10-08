@@ -48,8 +48,7 @@ export default function PublicFooter() {
               </div>
 
               <p className="mt-4 max-w-sm text-xs leading-6 text-white/60">
-                AI-assisted Filipino meal planning, nutrition tracking and licensed nutritionist-dietitian review
-                workflows.
+                AI-assisted Filipino meal planning, nutrition tracking and licensed RND-dietitian review workflows.
               </p>
 
               <div className="mt-5 inline-flex items-center gap-2 rounded-full border border-emerald-500/30 bg-[#0e271f] px-3 py-1.5 text-[11px] font-semibold text-emerald-400">
@@ -69,7 +68,7 @@ export default function PublicFooter() {
                   ['Home', '/'],
                   ['Platform Intelligence', '/#platform'],
                   ['How It Works', '/#process'],
-                  ['For Nutritionists', '/#nutritionists'],
+                  ['For RNDs', '/#nutritionists'],
                   ['Plans & Pricing', '/pricing'],
                   ['Evidence Sources', '/#sources'],
                   ['Documentation', '/docs'],

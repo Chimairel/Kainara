@@ -10,7 +10,7 @@ const sourceLabels: Record<OutsideMealWarning['items'][number]['source'], string
   USER_REPORTED: 'Your label values',
   USER_ADJUSTED_LIBRARY: 'Library recipe, values adjusted by you',
   GEMINI_ESTIMATED: 'AI estimate',
-  NUTRITIONIST_REVIEWED: 'Nutritionist reviewed',
+  NUTRITIONIST_REVIEWED: 'RND reviewed',
   UNRESOLVED: 'Unresolved',
 };
 
@@ -30,8 +30,8 @@ export default function PreviewConfirmation(props: Props & { warning: OutsideMea
         </div>
         {summary.provisionalItemCount > 0 && (
           <p className="mt-3 text-xs font-semibold text-status-pending-text">
-            {Math.round(summary.provisionalCalories)} kcal is provisional and will update automatically after any
-            nutritionist correction. These values have not been independently confirmed.
+            {Math.round(summary.provisionalCalories)} kcal is provisional and will update automatically after any RND
+            correction. These values have not been independently confirmed.
           </p>
         )}
       </div>

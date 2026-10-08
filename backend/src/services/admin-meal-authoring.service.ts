@@ -53,7 +53,7 @@ function nutritionFields(input: NutritionValues) {
   };
 }
 
-async function resolveIngredients(tx: Prisma.TransactionClient, input: AdminMealInput) {
+export async function resolveIngredients(tx: Prisma.TransactionClient, input: AdminMealInput) {
   const ids = input.ingredients.map((ingredient) => ingredient.foodItemId);
   if (new Set(ids).size !== ids.length) {
     throw new AppError('Combine repeated FNRI foods into one per-serving amount.', 400, 'DUPLICATE_INGREDIENT');
@@ -80,7 +80,7 @@ async function resolveIngredients(tx: Prisma.TransactionClient, input: AdminMeal
   });
 }
 
-function recipeSignature(input: AdminMealInput, ingredients: Awaited<ReturnType<typeof resolveIngredients>>) {
+export function recipeSignature(input: AdminMealInput, ingredients: Awaited<ReturnType<typeof resolveIngredients>>) {
   return buildMealLibraryRecipeSignature({
     mealName: input.mealName,
     mealType: input.mealType,
@@ -202,49 +202,7 @@ export class AdminMealAuthoringService {
     try {
       return await prisma.$transaction(
         async (tx) => {
-          const ingredients = await resolveIngredients(tx, input);
-          const signature = recipeSignature(input, ingredients);
-          if (await tx.mealLibrary.findUnique({ where: { recipeSignature: signature }, select: { id: true } })) {
-            throw new AppError('This exact meal recipe already exists in the library.', 409, 'DUPLICATE_MEAL');
-          }
-          const meal = await tx.mealLibrary.create({
-            data: {
-              mealName: input.mealName,
-              description: composedDescription(input),
-              mealType: input.mealType,
-              ...nutritionFields(input),
-              nutritionEvidenceSource: MealNutritionEvidenceSource.UNKNOWN,
-              status: MealLibraryStatus.APPROVED,
-              safetyEvidenceStatus: MealLibrarySafetyEvidenceStatus.INCOMPLETE,
-              safetyEvidenceOrigin: MealLibrarySafetyEvidenceOrigin.LEGACY_UNREVIEWED,
-              safetyEvidenceRevision: 1,
-              recipeSignature: signature,
-              suitableConditions: [],
-              allergenFree: [],
-              dietaryTags: [],
-              ingredients: { create: ingredients },
-            },
-          });
-          await persistDeterministicLibraryClassification(tx, meal.id);
-          await tx.mealLibrarySafetyReview.create({
-            data: {
-              mealLibraryId: meal.id,
-              outcome: MealLibrarySafetyReviewOutcome.DRAFT_CREATED,
-              evidenceRevision: 1,
-              reasonCode: ADMIN_DRAFT_REASON,
-              evidenceSnapshot: draftSnapshot(adminUserId, input),
-            },
-          });
-          await tx.auditEvent.create({
-            data: {
-              actorUserId: adminUserId,
-              action: 'ADMIN_MEAL_DRAFT_CREATED',
-              entityType: 'MealLibrary',
-              entityId: meal.id,
-              metadata: { recipeSignature: signature, evidenceRevision: 1, ingredientCount: ingredients.length },
-            },
-          });
-          return { id: meal.id, safetyEvidenceStatus: meal.safetyEvidenceStatus };
+          return createAdminMealDraft(tx, adminUserId, input);
         },
         { isolationLevel: Prisma.TransactionIsolationLevel.Serializable }
       );
@@ -345,4 +303,50 @@ export class AdminMealAuthoringService {
       translateUniqueConflict(error);
     }
   }
+}
+
+export async function createAdminMealDraft(tx: Prisma.TransactionClient, adminUserId: string, input: AdminMealInput) {
+  const ingredients = await resolveIngredients(tx, input);
+  const signature = recipeSignature(input, ingredients);
+  if (await tx.mealLibrary.findUnique({ where: { recipeSignature: signature }, select: { id: true } })) {
+    throw new AppError('This exact meal recipe already exists in the library.', 409, 'DUPLICATE_MEAL');
+  }
+  const meal = await tx.mealLibrary.create({
+    data: {
+      mealName: input.mealName,
+      description: composedDescription(input),
+      mealType: input.mealType,
+      ...nutritionFields(input),
+      nutritionEvidenceSource: MealNutritionEvidenceSource.UNKNOWN,
+      status: MealLibraryStatus.APPROVED,
+      safetyEvidenceStatus: MealLibrarySafetyEvidenceStatus.INCOMPLETE,
+      safetyEvidenceOrigin: MealLibrarySafetyEvidenceOrigin.LEGACY_UNREVIEWED,
+      safetyEvidenceRevision: 1,
+      recipeSignature: signature,
+      suitableConditions: [],
+      allergenFree: [],
+      dietaryTags: [],
+      ingredients: { create: ingredients },
+    },
+  });
+  await persistDeterministicLibraryClassification(tx, meal.id);
+  await tx.mealLibrarySafetyReview.create({
+    data: {
+      mealLibraryId: meal.id,
+      outcome: MealLibrarySafetyReviewOutcome.DRAFT_CREATED,
+      evidenceRevision: 1,
+      reasonCode: ADMIN_DRAFT_REASON,
+      evidenceSnapshot: draftSnapshot(adminUserId, input),
+    },
+  });
+  await tx.auditEvent.create({
+    data: {
+      actorUserId: adminUserId,
+      action: 'ADMIN_MEAL_DRAFT_CREATED',
+      entityType: 'MealLibrary',
+      entityId: meal.id,
+      metadata: { recipeSignature: signature, evidenceRevision: 1, ingredientCount: ingredients.length },
+    },
+  });
+  return { id: meal.id, safetyEvidenceStatus: meal.safetyEvidenceStatus };
 }

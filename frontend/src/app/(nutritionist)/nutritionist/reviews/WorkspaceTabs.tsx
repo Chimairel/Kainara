@@ -24,7 +24,7 @@ export default function WorkspaceTabs({
     <SharedWorkspaceTabs
       value={value}
       onChange={onChange}
-      label="Nutritionist review queues"
+      label="RND review queues"
       tone="green"
       className="flex-col sm:flex-row"
       items={WORKSPACE_TABS.map(({ key, label, icon: Icon }) => ({

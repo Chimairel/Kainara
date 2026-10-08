@@ -24,8 +24,8 @@ export default function LandingPlatformSection() {
             </h2>
           </div>
           <p className="max-w-xl text-sm leading-7 text-brand-muted lg:ml-auto lg:text-base">
-            KAINARA unites the patient everyday routine with licensed nutritionist oversight and administrative review
-            workflows. Recipe identity, nutrition estimates and case decisions have distinct roles in planning.
+            KAINARA unites the patient everyday routine with licensed RND oversight and administrative review workflows.
+            Recipe identity, nutrition estimates and case decisions have distinct roles in planning.
           </p>
         </motion.div>
 

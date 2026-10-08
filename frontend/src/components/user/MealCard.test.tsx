@@ -30,7 +30,7 @@ describe('MealCard', () => {
     ],
   };
 
-  it('labels an approved meal without a nutritionist verifier as ready', () => {
+  it('labels an approved meal without an RND verifier as ready', () => {
     render(<MealCard {...defaultProps} />);
 
     expect(screen.getAllByText('Sinigang na Hipon').length).toBeGreaterThan(0);
@@ -117,7 +117,7 @@ describe('MealCard', () => {
       specialization: 'Clinical Nutrition & Renal Dietetics',
       yearsOfExperience: 8,
       university: 'UP Diliman',
-      bio: 'Senior Clinical Nutritionist',
+      bio: 'Senior Clinical RND',
     };
 
     render(
@@ -136,7 +136,7 @@ describe('MealCard', () => {
     // Verify Verified by section header and RND banner
     expect(screen.getByText('Verified by')).toBeInTheDocument();
     expect(screen.getByText('PRC-Licensed RND')).toBeInTheDocument();
-    expect(screen.getByText(/Andrea Reyes, RND/i)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Reviewed by Andrea Reyes, RND/i })).toBeInTheDocument();
     expect(screen.getByText(/PRC Lic\. No\. ••••••8765/i)).toBeInTheDocument();
     expect(screen.getByText(/Reduced sodium for renal support\./i)).toBeInTheDocument();
 
@@ -145,12 +145,12 @@ describe('MealCard', () => {
     fireEvent.click(verifierBtn);
 
     // NutritionistCredentialModal should be visible
-    expect(screen.getByText('Verified Nutritionist')).toBeInTheDocument();
+    expect(screen.getByText('Recorded RND review')).toBeInTheDocument();
     expect(screen.getByText('Clinical Nutrition & Renal Dietetics')).toBeInTheDocument();
     expect(screen.getByText('UP Diliman')).toBeInTheDocument();
   });
 
-  it('does not attribute an approved meal to a nutritionist when no reviewer was supplied', () => {
+  it('does not attribute an approved meal to an RND when no reviewer was supplied', () => {
     render(<MealCard {...defaultProps} status="APPROVED" />);
     fireEvent.click(screen.getByRole('button', { name: /open Sinigang na Hipon details/i }));
     expect(screen.queryByText('Verified by')).not.toBeInTheDocument();

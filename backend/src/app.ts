@@ -74,6 +74,7 @@ app.use(
 );
 // Applicant media is bounded by its schema (1 MB headshot + 500 KB signature).
 app.use('/api/nutritionist-applications', express.json({ limit: '2mb' }));
+app.use('/api/admin/meals/batch', express.json({ limit: '2mb' }));
 app.use(express.json({ limit: '256kb' }));
 app.use(cookieParser());
 // Vercel's external rewrite must never cache personalized API responses.

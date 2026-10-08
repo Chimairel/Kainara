@@ -147,7 +147,7 @@ describe('dashboard route after feature extraction', () => {
     fixture.eligibility = { required: true, approved: false };
     plan = { data: [meal], meta: { generationStatus: 'COMPLETED' } };
     render(<DashboardPage />);
-    await screen.findByText(/A nutritionist needs to review your declared health profile/);
+    await screen.findByText(/An RND needs to review your declared health profile/);
     expect(screen.queryByRole('region', { name: 'Loaded menu' })).not.toBeInTheDocument();
     expect(post).not.toHaveBeenCalled();
   });

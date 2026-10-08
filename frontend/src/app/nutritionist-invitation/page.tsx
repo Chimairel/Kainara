@@ -91,7 +91,7 @@ function InvitationForm() {
         error={mismatch ? 'Passwords do not match.' : undefined}
       />
       <Button type="submit" size="lg" isLoading={isLoading} className="w-full">
-        Activate nutritionist account
+        Activate RND account
       </Button>
     </HydratedForm>
   );
@@ -109,7 +109,7 @@ export default function NutritionistInvitationPage() {
           <span className="text-brand-accent">Human judgment.</span>
         </>
       }
-      heroDescription="Your KAINARA nutritionist workspace connects verified professional decisions to a transparent meal-review history."
+      heroDescription="Your KAINARAn RND workspace connects verified professional decisions to a transparent meal-review history."
       footer={
         <Link href="/nutritionist-apply" className="font-bold text-brand-green">
           Track your application

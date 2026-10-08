@@ -3,7 +3,7 @@ import { Stethoscope } from 'lucide-react';
 import { type DocsChapter } from './chapter-types';
 export const professionalReviewChapter: DocsChapter = {
   id: 'professional-review',
-  title: 'Nutritionist and admin review',
+  title: 'RND and admin review',
   shortTitle: 'Professional review',
   group: 'Review and evidence',
   icon: Stethoscope,
@@ -43,20 +43,38 @@ export const professionalReviewChapter: DocsChapter = {
       content: (
         <>
           <p>
-            Nutritionists claim review work and record reasons. One nutritionist makes each meal case decision,
-            including higher risk cases. Flags, disputes, changed recipes, or changed member profiles can block reuse.
-            Administrators verify nutritionist applications and can submit new recipes for meal verification.
+            RNDs claim review work and record reasons. One RND makes each meal case decision, including higher risk
+            cases. Flags, disputes, changed recipes, or changed member profiles can block reuse. Administrators verify
+            RND applications and can submit new recipes for meal verification.
           </p>
           <p>
             A case decision is tied to the ingredients, serving, and profile evidence inspected at review time. Another
             member can benefit from a reusable decision only when the relevant context matches its recorded scope and
-            the approval is still active. One nutritionist makes the case decision.
+            the approval is still active. One RND makes the case decision.
           </p>
           <p>
-            A nutritionist’s approval remains current until its supporting recipe or profile changes. A flag raises a
-            specific concern; a dispute records conflicting decisions that need resolution. These states keep an
-            approval out of reuse while the follow-up is incomplete. A flag on the base meal has a wider effect and
-            pauses its related variants and approvals.
+            An RND’s approval remains current until its supporting recipe or profile changes. A flag raises a specific
+            concern; a dispute records conflicting decisions that need resolution. These states keep an approval out of
+            reuse while the follow-up is incomplete. A flag on the base meal has a wider effect and pauses its related
+            variants and approvals.
+          </p>
+          <p>
+            The first published-recipe flag immediately removes the meal from member use and returns it for pending
+            re-review. An uninvolved eligible RND must claim the case, inspect the previous verified values and every
+            recorded concern, and resolve those concerns before re-verification. Extra reports during that hold add
+            evidence to the same incident.
+          </p>
+          <p>
+            If a re-verified recipe is flagged again, it is quarantined. Two distinct, currently eligible RNDs must
+            independently confirm the same version and resolve every concern before an administrator can release it.
+            Authors, flaggers and the challenged verifier cannot provide those confirmations. Corrections or new reports
+            require fresh confirmations. Once quarantined, future flags quarantine that recipe again.
+          </p>
+          <p>
+            Administrative release restores recipe eligibility. Existing member slots still require fresh safety and
+            approval checks. A concern about a particular profile or condition approval suspends only that approval. The
+            meal’s “Reviewed by” control distinguishes recipe review from your member-specific approval and shows only
+            recorded RND credentials.
           </p>
         </>
       ),

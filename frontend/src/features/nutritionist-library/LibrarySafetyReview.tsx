@@ -55,7 +55,7 @@ export default function LibrarySafetyReview({ meal, refresh }: { meal: LibraryMe
       <h2 className="font-display text-xl font-bold">Review reusable recipe evidence</h2>
       <p className="text-sm text-brand-muted">
         Check measured nutrition and allergen facts for this serving. This review grants no health-condition clearance.
-        Recipe authors must have another nutritionist perform the review.
+        Recipe authors must have another RND perform the review.
       </p>
       {!prepared && (
         <Button variant="secondary" onClick={() => setPrepare(true)}>

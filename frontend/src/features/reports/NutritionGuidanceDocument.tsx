@@ -165,7 +165,7 @@ export default function NutritionGuidanceDocument({
         <p className="mx-auto max-w-3xl mb-4 text-xs text-brand-muted">
           Profile confirmed unchanged on{' '}
           {new Date(report.generatedAt).toLocaleDateString('en-PH', { timeZone: 'Asia/Manila' })}. This dated report
-          does not represent a new nutritionist review.
+          does not represent a new RND review.
         </p>
       )}
 
@@ -181,8 +181,8 @@ export default function NutritionGuidanceDocument({
                 <h3 className="text-sm font-bold text-amber-900 dark:text-amber-100">Choose your planning report</h3>
                 <p className="mt-1 text-xs text-amber-800/90 dark:text-amber-200/90 leading-relaxed max-w-xl">
                   This report supplies the profile, targets and restrictions used for meal planning and shared with your
-                  nutritionist. Check that your details are correct before using it. This is educational guidance and
-                  does not replace your doctor or Registered Nutritionist-Dietitian.
+                  RND. Check that your details are correct before using it. This is educational guidance and does not
+                  replace your doctor or RND.
                 </p>
               </div>
             </div>

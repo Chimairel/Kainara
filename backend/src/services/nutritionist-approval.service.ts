@@ -118,7 +118,7 @@ export async function approveMealPlan(
   }
   const reviewer = await prisma.nutritionistProfile.findUnique({
     where: { id: nutritionistProfileId },
-    select: { userId: true },
+    select: { userId: true, prcLicenseNumber: true, prcLicenseExpiry: true, user: { select: { name: true } } },
   });
   if (!reviewer) throw new Error('Nutritionist profile not found.');
   // Approval certifies the exact saved plate. Recipe changes must go through
@@ -199,6 +199,53 @@ export async function approveMealPlan(
           decision: 'APPROVE',
           rationale: note?.trim() || null,
           evidenceSnapshot: {
+            reviewedBy: {
+              name: reviewer.user?.name ?? null,
+              role: 'RND',
+              prcLicenseNumber: reviewer.prcLicenseNumber ?? null,
+              prcLicenseExpiry: reviewer.prcLicenseExpiry?.toISOString() ?? null,
+            },
+            original: {
+              mealName: plan.mealName,
+              description: plan.description,
+              calories: plan.calories,
+              proteinG: plan.proteinG,
+              carbsG: plan.carbsG,
+              fatG: plan.fatG,
+              ingredients: plan.ingredients.map(({ ingredientName, quantity, unit, dataSource }) => ({
+                ingredientName,
+                quantity,
+                unit,
+                dataSource,
+              })),
+            },
+            effective: {
+              mealName,
+              description,
+              calories,
+              proteinG,
+              carbsG,
+              fatG,
+              ingredients: updates?.ingredients
+                ? updates.ingredients.map((item) => ({
+                    ingredientName: item.name,
+                    category: item.category ?? null,
+                    dataSource: item.dataSource ?? null,
+                  }))
+                : plan.ingredients.map(({ ingredientName, quantity, unit, dataSource }) => ({
+                    ingredientName,
+                    quantity,
+                    unit,
+                    dataSource,
+                  })),
+            },
+            recordedProfile: {
+              age: plan.user.userProfile?.age ?? null,
+              biologicalSex: plan.user.userProfile?.biologicalSex ?? null,
+              conditions: plan.user.healthConditions.map((item) => item.condition),
+              allergens: plan.user.allergies.map((item) => item.allergen),
+              safetyScope: approvedScope.supported ? approvedScope.key : null,
+            },
             mealName,
             composedServingSignature: plan.composedServingSignature,
             servingComponents: plan.servingComponents.map(
@@ -302,7 +349,7 @@ export async function approveMealPlan(
             data: dependents.map((item) => ({
               userId: item.userId,
               title: 'Meal Plan Approved ✅',
-              message: `Your meal "${item.mealName}" has been approved by a Registered Dietitian.`,
+              message: `Your meal "${item.mealName}" has been approved by a RND.`,
               type: NotificationType.PLAN_APPROVED,
             })),
           });
@@ -332,7 +379,7 @@ export async function approveMealPlan(
         data: {
           userId: plan.userId,
           title: 'Meal Plan Approved ✅',
-          message: `Your meal "${mealName}" has been approved by a Registered Dietitian.${note ? ` Note: ${note}` : ''}`,
+          message: `Your meal "${mealName}" has been approved by a RND.${note ? ` Note: ${note}` : ''}`,
           type: NotificationType.PLAN_APPROVED,
         },
       });

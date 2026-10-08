@@ -33,6 +33,7 @@ export interface Verifier {
 }
 
 export interface LibraryMeal {
+  reviewLineage?: { state: string; incidentCount: number } | null;
   parentMealId?: string | null;
   recipeFamilyId?: string | null;
   derivationKind?: 'ORIGINAL' | 'SERVING_VERSION' | 'ADAPTED';

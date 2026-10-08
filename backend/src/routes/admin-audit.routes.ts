@@ -5,6 +5,7 @@ import { StaffAuditService } from '@/services/staff-audit.service';
 import { sanitizeErrorMessage } from '@/lib/sanitizeError';
 import { AuditDetailsService } from '@/services/audit-details.service';
 import { AppError } from '@/errors/AppError';
+import { AdminReviewContextService } from '@/services/admin-review-context.service';
 
 const date = z
   .string()
@@ -27,6 +28,42 @@ const querySchema = z
   .strict()
   .refine((value) => !value.from || !value.to || value.from <= value.to);
 const router = Router();
+router.get('/:id/review-context/documents/:documentId/file', async (req: AuthenticatedRequest, res: Response) => {
+  res.setHeader('Cache-Control', 'private, no-store');
+  if (
+    !z
+      .object({ id: z.string().min(1).max(191), documentId: z.string().min(1).max(191) })
+      .strict()
+      .safeParse(req.params).success ||
+    Object.keys(req.query).length
+  )
+    return res.status(400).json({ success: false, error: 'Supply one related case record and document.' });
+  try {
+    const file = await AdminReviewContextService.file(req.user!.userId, req.params.id, req.params.documentId);
+    res.attachment('clinical-evidence');
+    res.type(file.mimeType);
+    return res.send(file.buffer);
+  } catch (error) {
+    return res.status(error instanceof AppError ? error.statusCode : 500).json({
+      success: false,
+      error: error instanceof AppError ? error.message : 'Related clinical evidence could not be loaded.',
+    });
+  }
+});
+router.get('/:id/review-context', async (req: AuthenticatedRequest, res: Response) => {
+  res.setHeader('Cache-Control', 'private, no-store');
+  if (!z.string().min(1).max(191).safeParse(req.params.id).success || Object.keys(req.query).length)
+    return res
+      .status(400)
+      .json({ success: false, error: 'Supply one audit case record; member selectors are not allowed.' });
+  try {
+    return res.json({ success: true, data: await AdminReviewContextService.detail(req.user!.userId, req.params.id) });
+  } catch (error) {
+    return res
+      .status(error instanceof AppError ? error.statusCode : 500)
+      .json({ success: false, error: error instanceof AppError ? error.message : 'Case details could not be loaded.' });
+  }
+});
 router.get('/', async (req: AuthenticatedRequest, res: Response) => {
   const parsed = querySchema.safeParse(req.query);
   if (!parsed.success)

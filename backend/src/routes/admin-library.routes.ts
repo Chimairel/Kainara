@@ -1,5 +1,5 @@
+import { mealFlagSubmissionSchema } from '@/validation/meal-review.schemas';
 import { Router, Response } from 'express';
-import { z } from 'zod';
 import { AuthenticatedRequest } from '@/types';
 import { NutritionistService } from '@/services/nutritionist.service';
 import { flagWholeMealAsAdmin } from '@/services/meal-wide-flag.service';
@@ -7,7 +7,7 @@ import { sanitizeErrorMessage } from '@/lib/sanitizeError';
 import validateZodBody from '@/middleware/validateZod';
 
 // Parent admin router authenticates and checks the live ADMIN role.
-// Deliberately exposes no certification, release or member case-review actions.
+// Certification remains an RND action; quarantine administration uses the separate case router.
 const router = Router();
 router.get('/', async (req: AuthenticatedRequest, res: Response) => {
   try {
@@ -51,10 +51,10 @@ router.get('/:id', async (req: AuthenticatedRequest, res: Response) => {
 });
 router.post(
   '/:id/flag',
-  validateZodBody(z.object({ reason: z.string().trim().min(10).max(1000) }).strict()),
+  validateZodBody(mealFlagSubmissionSchema),
   async (req: AuthenticatedRequest, res: Response) => {
     try {
-      const data = await flagWholeMealAsAdmin(req.user!.userId, req.params.id, req.body.reason);
+      const data = await flagWholeMealAsAdmin(req.user!.userId, req.params.id, req.body);
       return res.json({ success: true, data });
     } catch (error) {
       const message = sanitizeErrorMessage(error, 'The meal could not be flagged. Please try again.');

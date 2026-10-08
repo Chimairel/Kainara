@@ -52,7 +52,7 @@ export default function MealPlanEmptyState({
       <StateNotice
         variant="preparing"
         title="Preparing Your First Meal Plan"
-        description="Your current meal plan is being prepared automatically. Candidates will appear here for nutritionist review."
+        description="Your current meal plan is being prepared automatically. Candidates will appear here for RND review."
         action={null}
       />
     );

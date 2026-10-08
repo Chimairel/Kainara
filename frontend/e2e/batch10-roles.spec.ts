@@ -258,7 +258,7 @@ test('patient and nutritionist correct an outside meal and admit a consented rec
     await patient.reload();
     const askedCard = patient.locator('article').filter({ hasText: mealName });
     await askedCard.locator('[role="button"]').first().click();
-    await expect(askedCard.getByText('Nutritionist needs more information')).toBeVisible();
+    await expect(askedCard.getByText('RND needs more information')).toBeVisible();
     await askedCard.getByLabel('Clarification reply').fill('One 250 g bowl with chicken, carrots, and broth.');
     await askedCard.getByRole('button', { name: 'Send clarification' }).click();
 

@@ -236,7 +236,7 @@ export default function MealVerificationPanel() {
                   {item.claimedByOther && (
                     <div className="mt-2 flex items-center gap-1 text-[10px] text-[#8c3b00] dark:text-[#ff8a3d] font-bold">
                       <Eye className="w-3.5 h-3.5" />
-                      <span>Being reviewed by another nutritionist</span>
+                      <span>Being reviewed by another RND</span>
                     </div>
                   )}
                 </button>
@@ -351,7 +351,7 @@ export default function MealVerificationPanel() {
                           altText: selected.name,
                           kind: 'EXACT',
                           attribution: {
-                            creator: 'Nutritionist supplied',
+                            creator: 'RND supplied',
                             sourcePageUrl: null,
                             licenseCode: null,
                             licenseUrl: null,

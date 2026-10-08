@@ -40,7 +40,7 @@ export default function MealsWorkspaceHeader({
               : 'Your complete scheduled breakdown, macro targets, and meal review states.'
           : activeTab === 'history'
             ? 'Your logged intake history, completion states, and swapped items.'
-            : 'Browse compatible, nutritionist-verified recipes for your profile.'
+            : 'Browse compatible, RND-verified recipes for your profile.'
       }
       className="mb-1"
       actions={actions}

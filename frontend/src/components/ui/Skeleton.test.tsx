@@ -53,15 +53,15 @@ describe('Skeleton', () => {
     expect(pulseElements.length).toBeGreaterThan(10);
   });
 
-  it('renders NutritionistReviewsSkeleton with queue and case inspection placeholders', () => {
+  it('renders RNDReviewsSkeleton with queue and case inspection placeholders', () => {
     const { container, getByLabelText } = render(<NutritionistReviewsSkeleton />);
-    const region = getByLabelText('Loading nutritionist review workspace');
+    const region = getByLabelText('Loading RND review workspace');
     expect(region).toBeInTheDocument();
     const pulseElements = container.querySelectorAll('.animate-pulse');
     expect(pulseElements.length).toBeGreaterThan(10);
   });
 
-  it('renders NutritionistLibrarySkeleton with search bar and catalog card placeholders', () => {
+  it('renders RNDLibrarySkeleton with search bar and catalog card placeholders', () => {
     const { container, getByLabelText } = render(<NutritionistLibrarySkeleton />);
     const region = getByLabelText('Loading meal library catalog');
     expect(region).toBeInTheDocument();
@@ -77,7 +77,7 @@ describe('Skeleton', () => {
     expect(pulseElements.length).toBeGreaterThan(10);
   });
 
-  it('renders NutritionistProfileSkeleton with identity and credential inputs', () => {
+  it('renders RNDProfileSkeleton with identity and credential inputs', () => {
     const { container, getByLabelText } = render(<NutritionistProfileSkeleton />);
     const region = getByLabelText('Loading professional profile');
     expect(region).toBeInTheDocument();

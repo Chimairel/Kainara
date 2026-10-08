@@ -62,7 +62,7 @@ export default function PublicHeader() {
             href="/#nutritionists"
             className="text-xs font-semibold text-brand-muted transition hover:text-brand-text"
           >
-            For nutritionists
+            For RNDs
           </SectionLink>
           <Link
             href="/pricing"
@@ -178,7 +178,7 @@ export default function PublicHeader() {
               onClick={() => setIsMobileMenuOpen(false)}
               className="flex items-center justify-between rounded-xl px-4 py-3 text-sm font-bold text-brand-text transition hover:bg-brand-surface/80"
             >
-              <span>For nutritionists</span>
+              <span>For RNDs</span>
               <ArrowRight className="h-4 w-4 text-brand-muted" />
             </SectionLink>
             <Link

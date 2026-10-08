@@ -102,7 +102,7 @@ export default function RegisterPage() {
           <span className="text-brand-green dark:text-brand-accent">real Filipino life.</span>
         </>
       }
-      heroDescription="Create a profile that connects familiar food, personal goals, clinical context, and a visible nutritionist-review process."
+      heroDescription="Create a profile that connects familiar food, personal goals, clinical context, and a visible RND-review process."
       footer={
         <>
           Already have an account?{' '}

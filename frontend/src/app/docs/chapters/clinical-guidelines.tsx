@@ -18,14 +18,14 @@ export const clinicalGuidelinesChapter: DocsChapter = {
         <>
           <p>
             Enter diagnosed conditions, allergies, medications or relevant risk context truthfully and update them when
-            they change. A vague entry may need correction. Some conditions require reviewed documents; a nutritionist
-            may also request evidence for a specific declared area. Do not upload another person&apos;s record, and
-            cover unrelated identifiers before submitting a supporting file.
+            they change. A vague entry may need correction. Some conditions require reviewed documents; an RND may also
+            request evidence for a specific declared area. Do not upload another person&apos;s record, and cover
+            unrelated identifiers before submitting a supporting file.
           </p>
           <p>
             The system can only compare meals against the restrictions it has recorded. For example, a broad label may
-            not contain the severity or subtype needed for a useful decision. A nutritionist can ask for clarification
-            or supporting evidence before confirming that the profile is specific enough for planning.
+            not contain the severity or subtype needed for a useful decision. An RND can ask for clarification or
+            supporting evidence before confirming that the profile is specific enough for planning.
           </p>
           <p>
             A document review checks whether the submitted material supplies relevant nutrition context. It is not a
@@ -43,8 +43,7 @@ export const clinicalGuidelinesChapter: DocsChapter = {
           <p>
             Restricted profiles wait for a current profile decision and a meal-specific case decision. A second
             independent reviewer can be required. Ingredient conflicts, missing evidence, flags, expired approvals, and
-            changed profiles can block use. Nutritionists assess recorded evidence; they do not diagnose through this
-            app.
+            changed profiles can block use. RNDs assess recorded evidence; they do not diagnose through this app.
           </p>
           <p>
             Profile confirmation allows the system to prepare candidates for the declared restrictions. It does not

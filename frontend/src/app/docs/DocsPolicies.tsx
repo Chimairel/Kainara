@@ -165,14 +165,14 @@ export const policyChapters: DocsChapter[] = [
         content: (
           <>
             <p>
-              Authorized nutritionists inspect assigned or claimed review information. Original clinical-document access
-              is claim-controlled and logged. Administrators access information needed for their role. Hosting, email,
+              Authorized RNDs inspect assigned or claimed review information. Original clinical-document access is
+              claim-controlled and logged. Administrators access information needed for their role. Hosting, email,
               storage, and AI providers may process data necessary to deliver those services under their arrangements.
               The public recipe catalogue does not list your clinical profile.
             </p>
             <p>
-              A nutritionist reviewing a profile or meal case needs the relevant recorded context to make that decision.
-              The original document is treated more narrowly than its status or confirmed facts: access requires the
+              An RND reviewing a profile or meal case needs the relevant recorded context to make that decision. The
+              original document is treated more narrowly than its status or confirmed facts: access requires the
               appropriate review claim and leaves an access event. Other members browsing a meal cannot see the patient
               context behind a private case review.
             </p>
@@ -235,10 +235,9 @@ export const policyChapters: DocsChapter[] = [
             </p>
             <p>
               The upload choice and the planning requirement are different. You may skip the optional upload step, yet a
-              particular declared condition can still require reviewed evidence before its profile is confirmed. A
-              nutritionist can also request clarification or a document after inspecting a vague or higher-risk entry.
-              The app should explain what is outstanding instead of treating a submitted file as automatically
-              sufficient.
+              particular declared condition can still require reviewed evidence before its profile is confirmed. A RND
+              can also request clarification or a document after inspecting a vague or higher-risk entry. The app should
+              explain what is outstanding instead of treating a submitted file as automatically sufficient.
             </p>
             <p>
               Before uploading, check that the file belongs to you and is relevant to the declared condition. The review
@@ -402,8 +401,8 @@ export const policyChapters: DocsChapter[] = [
         content: (
           <>
             <p>
-              A nutritionist first confirms recorded restrictions, possibly after requesting clearer information or a
-              document. Each restricted meal then needs its own case decision.
+              An RND first confirms recorded restrictions, possibly after requesting clearer information or a document.
+              Each restricted meal then needs its own case decision.
             </p>
             <p>
               The first decision makes the planning context usable; it does not endorse any particular recipe. This is

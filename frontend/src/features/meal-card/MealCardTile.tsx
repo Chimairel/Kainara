@@ -1,4 +1,5 @@
 'use client';
+import ReviewedByControl from '@/components/user/ReviewedByControl';
 import { PlanMealCardSurface } from '@/components/user/PlanMealCardSurface';
 import { MealMacros } from '@/components/user/MealMacros';
 import { formatMealTitle } from '@/lib/meal-title';
@@ -18,6 +19,8 @@ type SectionProps = {
     | 'mealName'
     | 'onCardClick'
     | 'setIsOpen'
+    | 'setIsVerifierOpen'
+    | 'setVerifierModalTab'
     | 'mealType'
     | 'image'
     | 'ingredients'
@@ -43,6 +46,8 @@ export default function MealCardTile({ model }: SectionProps) {
     mealName,
     onCardClick,
     setIsOpen,
+    setIsVerifierOpen,
+    setVerifierModalTab,
     mealType,
     image,
     ingredients,
@@ -150,6 +155,16 @@ export default function MealCardTile({ model }: SectionProps) {
               </p>
             </div>
 
+            {verifier && (
+              <ReviewedByControl
+                name={verifier.name}
+                scope={verifier.reviewScope}
+                onClick={() => {
+                  setVerifierModalTab('card');
+                  setIsVerifierOpen(true);
+                }}
+              />
+            )}
             {/* Macro Chips Row - Theme Colors */}
             <MealMacros calories={calories} proteinG={proteinG} carbsG={carbsG} fatG={fatG} className="mt-3" />
           </div>

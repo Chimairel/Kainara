@@ -17,7 +17,7 @@ export function ProfessionalGrid({
   onChangeAccess?: (nutritionist: NutritionistRow, suspended: boolean, reason: string) => Promise<void>;
 }) {
   if (!nutritionists.length) {
-    return <Card className="p-10 text-center text-sm text-brand-muted">No saved nutritionist profiles yet.</Card>;
+    return <Card className="p-10 text-center text-sm text-brand-muted">No saved RND profiles yet.</Card>;
   }
 
   return (

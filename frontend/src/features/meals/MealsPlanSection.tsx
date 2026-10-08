@@ -98,10 +98,10 @@ export default function MealsPlanSection({ model }: Props) {
         ) : profileReviewRequired ? (
           <StateNotice
             variant="no-meal-plan"
-            eyebrow="Awaiting nutritionist"
+            eyebrow="Awaiting RND"
             eyebrowVariant="amber"
             title="Meal planning isn't available yet"
-            description="A nutritionist needs to review your declared health profile before meal candidates can be prepared. Each proposed meal will then receive its own case approval."
+            description="An RND needs to review your declared health profile before meal candidates can be prepared. Each proposed meal will then receive its own case approval."
           />
         ) : groupedDays.length === 0 && !pendingReview && error ? (
           emptyPlanState
@@ -245,9 +245,7 @@ export default function MealsPlanSection({ model }: Props) {
                   <div key={`pending-${day.dateKey}`} className="space-y-4 pt-2">
                     <div className="flex flex-col gap-1 px-1 sm:flex-row sm:items-center sm:justify-between">
                       <div>
-                        <h3 className="font-display text-base font-extrabold text-brand-text">
-                          Awaiting nutritionist review
-                        </h3>
+                        <h3 className="font-display text-base font-extrabold text-brand-text">Awaiting RND review</h3>
                         <p className="mt-1 text-xs text-brand-muted">
                           These meals remain visible as previews and cannot be logged or swapped until approved.
                         </p>

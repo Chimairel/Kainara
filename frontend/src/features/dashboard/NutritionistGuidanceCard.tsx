@@ -15,7 +15,7 @@ export function NutritionistGuidanceCard({ isPendingReview = false }: { isPendin
           role="status"
           className="mt-3 rounded-xl bg-status-pending-bg p-3 text-xs font-semibold text-status-pending-text"
         >
-          Some meals are awaiting nutritionist review. Pending meals are previews, not approved meal choices.
+          Some meals are awaiting RND review. Pending meals are previews, not approved meal choices.
         </p>
       )}
       <p className="mt-3 text-xs leading-relaxed text-brand-muted">

@@ -7,12 +7,12 @@ export default function AdminPeopleWorkspace() {
   return (
     <AdminTabbedWorkspace
       title="People"
-      description="Manage accounts, nutritionist applications, and professional access."
+      description="Manage accounts, RND applications, and professional access."
       tabs={[
         { id: 'accounts', label: 'Accounts', render: (active) => <AdminAccountsPanel active={active} /> },
         {
           id: 'nutritionists',
-          label: 'Nutritionists',
+          label: 'RNDs',
           render: (active) => <AdminNutritionistsPanel active={active} />,
         },
       ]}

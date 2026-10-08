@@ -1,3 +1,4 @@
+import { mealReviewRouter } from './meal-review.routes';
 import adminReviewRoutingRouter from './admin-review-routing.routes';
 import { Router, Response } from 'express';
 import authenticate from '@/middleware/auth';
@@ -26,6 +27,7 @@ const router = Router();
 router.use(authenticate);
 router.use(requireRole('ADMIN'));
 router.use('/review-routing', adminReviewRoutingRouter);
+router.use('/meal-review-cases', mealReviewRouter('admin'));
 router.use('/data', adminDataRouter);
 router.use('/meal-images', adminMealImagesRouter);
 router.use('/meals', adminMealsRouter);

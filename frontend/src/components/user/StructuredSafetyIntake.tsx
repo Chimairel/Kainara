@@ -557,7 +557,7 @@ export default function StructuredSafetyIntake({
               <AlertTriangle className="h-4 w-4 shrink-0" />
               <span>
                 Some entries require individual review. They will remain active and will route automatic compatibility
-                to nutritionist review.
+                to RND review.
               </span>
             </div>
           )}

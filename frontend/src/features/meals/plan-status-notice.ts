@@ -58,8 +58,8 @@ export function showPendingReviewNoticeOnce(input: {
     'pending-review',
     pendingCycleKey(input.pending, [input.currentCycle, input.upcomingCycle]),
     input.upcomingOnly
-      ? 'Your upcoming week is being prepared. These are previews until nutritionist review is complete.'
-      : 'Your meal plan is currently in preview while a nutritionist verifies it.'
+      ? 'Your upcoming week is being prepared. These are previews until RND review is complete.'
+      : 'Your meal plan is currently in preview while an RND verifies it.'
   );
 }
 

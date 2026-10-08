@@ -56,26 +56,26 @@ export const gettingStartedChapter: DocsChapter = {
           </p>
           <p>
             Nutrition Guidance records how the current target and restrictions were derived. Acknowledging that you have
-            read it does not mean a nutritionist has approved the profile or every meal. If you correct your profile
-            later, the guidance and planning status may need to be refreshed.
+            read it does not mean an RND has approved the profile or every meal. If you correct your profile later, the
+            guidance and planning status may need to be refreshed.
           </p>
         </>
       ),
     },
     {
       id: 'getting-started-review',
-      title: 'When a nutritionist reviews your profile',
+      title: 'When an RND reviews your profile',
       content: (
         <>
           <p>
-            Restricted profiles wait for a nutritionist to confirm the recorded planning context. The nutritionist can
-            request a document or correction. This confirmation is separate from approval of a particular meal. Members
-            with no declared condition, allergy, or restriction can use eligible base recipes without a case review.
+            Restricted profiles wait for an RND to confirm the recorded planning context. The RND can request a document
+            or correction. This confirmation is separate from approval of a particular meal. Members with no declared
+            condition, allergy, or restriction can use eligible base recipes without a case review.
           </p>
           <p>
             The review asks whether the recorded restrictions are specific and supported enough for meal planning. It
             does not diagnose a condition. Where the policy requires a document or more detail, the profile remains
-            pending until that requirement is met and a nutritionist records a decision.
+            pending until that requirement is met and an RND records a decision.
           </p>
           <p>
             After a restricted profile is confirmed, a proposed meal still goes through its own case review. That second

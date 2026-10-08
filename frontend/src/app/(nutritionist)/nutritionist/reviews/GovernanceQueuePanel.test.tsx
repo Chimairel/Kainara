@@ -5,7 +5,7 @@ import GovernanceQueuePanel from './GovernanceQueuePanel';
 const api = vi.hoisted(() => ({ get: vi.fn(), post: vi.fn() }));
 vi.mock('@/lib/axios', () => ({ default: api }));
 
-describe('equal nutritionist review permissions', () => {
+describe('equal RND review permissions', () => {
   beforeEach(() => {
     api.get.mockReset();
     api.post.mockReset();

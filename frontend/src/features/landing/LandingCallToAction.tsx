@@ -28,7 +28,7 @@ export default function LandingCallToAction({ model }: SectionProps) {
               A smarter weekly plan starts with understanding you.
             </h2>
             <p className="mt-2 text-sm text-white/80 max-w-xl">
-              Join KAINARA for personalized Filipino meal planning, with nutritionist review for applicable cases.
+              Join KAINARA for personalized Filipino meal planning, with RND review for applicable cases.
             </p>
           </div>
           <Link

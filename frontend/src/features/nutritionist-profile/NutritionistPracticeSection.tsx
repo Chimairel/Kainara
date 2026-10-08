@@ -44,7 +44,7 @@ export default function NutritionistPracticeSection({ model }: SectionProps) {
 
           <NutritionistCredentialCard
             verifier={{
-              name: user?.name || 'Nutritionist',
+              name: user?.name || 'RND',
               image: user?.image,
               officialHeadshot: profile?.officialHeadshot,
               prcLicenseNumber: profile?.prcLicenseNumber || 'PRC-RND-NM-0001',

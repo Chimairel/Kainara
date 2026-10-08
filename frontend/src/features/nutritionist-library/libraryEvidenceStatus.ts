@@ -14,7 +14,7 @@ export function libraryEvidenceStatus(meal: LibraryMeal) {
     return { label: 'Needs recipe details', next: 'Add a stable ingredient list before this recipe can be reviewed.' };
   if (meal.preparedNutritionRevision === meal.safetyEvidenceRevision) {
     return {
-      label: meal.safetyEvidenceStatus === 'STALE' ? 'Needs re-review' : 'Ready for nutritionist review',
+      label: meal.safetyEvidenceStatus === 'STALE' ? 'Needs re-review' : 'Ready for RND review',
       next: 'Review allergen and preparation evidence, then sign off on this recipe revision.',
     };
   }

@@ -6,8 +6,10 @@ import { sanitizeErrorMessage } from '@/lib/sanitizeError';
 import { AppError } from '@/errors/AppError';
 import { adminMealInputSchema, adminMealUpdateSchema } from '@/validation/admin-meal.schemas';
 import { AdminMealAuthoringService } from '@/services/admin-meal-authoring.service';
+import batchRouter from './admin-meal-batch.routes';
 
 const router = Router();
+router.use('/batch', batchRouter);
 
 function failure(res: Response, error: unknown) {
   const status = error instanceof AppError ? error.statusCode : 500;

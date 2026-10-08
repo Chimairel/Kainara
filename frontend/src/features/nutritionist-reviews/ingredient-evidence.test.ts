@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { getIngredientEvidencePresentation } from './ingredient-evidence';
 
-describe('nutritionist ingredient evidence presentation', () => {
+describe('RND ingredient evidence presentation', () => {
   it('shows an FNRI identity link without claiming professional verification', () => {
     const result = getIngredientEvidencePresentation({
       source: 'SOURCE_RECIPE',

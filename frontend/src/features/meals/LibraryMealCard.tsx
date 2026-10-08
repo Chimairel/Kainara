@@ -1,3 +1,4 @@
+import ReviewedByControl from '@/components/user/ReviewedByControl';
 import { useState } from 'react';
 import type { PublicVerifier } from '@/types';
 import type { SwapOption } from './useMealsWorkspace';
@@ -67,13 +68,11 @@ export default function LibraryMealCard({
               {showDetails ? 'Hide details' : 'View details'}
             </button>
             {meal.verifier && (
-              <button
-                type="button"
-                onClick={() => onVerifier(meal.verifier!)}
-                className="text-left text-[11px] text-brand-muted hover:text-brand-green hover:underline"
-              >
-                PRC {meal.prcLicenseNumber}
-              </button>
+              <ReviewedByControl
+                name={meal.verifier.name}
+                scope="RECIPE"
+                onClick={() => onVerifier({ ...meal.verifier!, reviewScope: 'RECIPE' })}
+              />
             )}
           </div>
           {showDetails && (

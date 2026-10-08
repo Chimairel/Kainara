@@ -2,7 +2,7 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import WorkspaceTabs from './WorkspaceTabs';
 
-describe('nutritionist review count badges', () => {
+describe('RND review count badges', () => {
   it('shows outstanding work with 99+ display caps and keeps each queue selectable', () => {
     const onChange = vi.fn();
     render(<WorkspaceTabs value="case" onChange={onChange} counts={{ meal: 2, case: 125, profile: 1 }} />);

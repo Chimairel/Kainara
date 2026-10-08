@@ -28,10 +28,10 @@ export const whatIsKainaraChapter: DocsChapter = {
             buys, cooks, or eats.
           </p>
           <p>
-            A recipe source, a food-composition record, an AI estimate, and a nutritionist decision answer different
-            questions. For example, a published recipe establishes that the dish exists, while a composition record
-            describes a food item and serving. Neither alone shows that a prepared meal is suitable for a particular
-            medical condition.
+            A recipe source, a food-composition record, an AI estimate, and an RND decision answer different questions.
+            For example, a published recipe establishes that the dish exists, while a composition record describes a
+            food item and serving. Neither alone shows that a prepared meal is suitable for a particular medical
+            condition.
           </p>
         </>
       ),
@@ -42,15 +42,15 @@ export const whatIsKainaraChapter: DocsChapter = {
       content: (
         <>
           <p>
-            Members set a profile, view plans, log food, and manage their data. Registered Nutritionist-Dietitians
-            review clinical profiles, documents, meal cases, and new recipe submissions. Administrators manage accounts,
-            nutritionist applications, and source data.
+            Members set a profile, view plans, log food, and manage their data. RNDs review clinical profiles,
+            documents, meal cases, and new recipe submissions. Administrators manage accounts, RND applications, and
+            source data.
           </p>
           <p>
             Members are responsible for keeping their declarations current and checking the actual ingredients and
-            portions they use. Nutritionists make scoped decisions from the evidence available in a review.
-            Administrators maintain the platform and verify professional access, but an administrator adding a recipe
-            does not make it a nutritionist-approved meal.
+            portions they use. RNDs make scoped decisions from the evidence available in a review. Administrators
+            maintain the platform and verify professional access, but an administrator adding a recipe does not make it
+            an RND-approved meal.
           </p>
         </>
       ),

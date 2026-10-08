@@ -1,5 +1,6 @@
 'use client';
 
+import MealReviewQueue from './MealReviewQueue';
 import SharedLibraryCoverage from './SharedLibraryCoverage';
 
 import PortalPageHeader from '@/components/shared/PortalPageHeader';
@@ -31,7 +32,7 @@ export default function SharedMealLibraryWorkspace({
         title="Meal library"
         description={
           isAdmin
-            ? 'Shared with the nutritionist workspace. Browse recipes and flag meals that need nutritionist review.'
+            ? 'Shared with the RND workspace. Browse recipes and flag meals that need RND review.'
             : 'Browse base recipes and their separate health-context approvals. A flagged base meal and all its approvals are unavailable until independent review releases the meal.'
         }
         meta={
@@ -64,6 +65,7 @@ export default function SharedMealLibraryWorkspace({
       {section === 'coverage' && coverage && <SharedLibraryCoverage coverage={coverage} />}
 
       <div className={section === 'recipes' ? 'space-y-5' : 'hidden'}>
+        <MealReviewQueue isAdmin={isAdmin} active={active && section === 'recipes'} openMeal={model.openMeal} />
         {/* Top Filter Panel */}
         <LibraryFilterSection model={model} />
 

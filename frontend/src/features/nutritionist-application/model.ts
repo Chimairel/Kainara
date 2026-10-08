@@ -49,5 +49,5 @@ export const applicationStatusLabels: Record<ApplicationStatus, string> = {
   CALL_SCHEDULED: 'Verification call scheduled',
   APPROVED: 'Approved — activation pending',
   REJECTED: 'Application not approved',
-  ACTIVATED: 'Nutritionist account activated',
+  ACTIVATED: 'RND account activated',
 };

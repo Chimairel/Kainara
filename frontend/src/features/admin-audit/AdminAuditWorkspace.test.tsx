@@ -23,7 +23,7 @@ beforeEach(() => {
   }));
 });
 
-it('loads admin history, sends My actions and pagination, and switches to read-only nutritionist history', async () => {
+it('loads admin history, sends My actions and pagination, and switches to read-only RND history', async () => {
   render(<AdminAuditWorkspace />);
   await screen.findByText('Former staff');
   fireEvent.click(screen.getByLabelText('My actions'));
@@ -34,7 +34,7 @@ it('loads admin history, sends My actions and pagination, and switches to read-o
   );
   fireEvent.click(screen.getByRole('button', { name: 'Next' }));
   await screen.findByText('25 records · Page 2 of 2');
-  fireEvent.click(screen.getByRole('button', { name: 'Nutritionist history' }));
+  fireEvent.click(screen.getByRole('button', { name: 'RND history' }));
   await waitFor(() =>
     expect(mocks.get).toHaveBeenLastCalledWith('/admin/audit-history', {
       params: expect.objectContaining({ mine: undefined, view: 'nutritionist', page: 1 }),

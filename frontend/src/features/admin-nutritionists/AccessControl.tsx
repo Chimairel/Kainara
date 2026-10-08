@@ -43,14 +43,14 @@ export default function AccessControl({
         onClose={() => {
           if (!busy) setOpen(false);
         }}
-        title={revoked ? 'Restore nutritionist access' : 'Revoke nutritionist access'}
+        title={revoked ? 'Restore RND access' : 'Revoke RND access'}
         description="Past reviews and audit records are preserved."
       >
         <p>
           {professional.user.name}
           {revoked
             ? ' will be able to sign in again. Review access still requires current credentials.'
-            : ' will be signed out and unable to use the nutritionist workspace.'}
+            : ' will be signed out and unable to use the RND workspace.'}
         </p>
         {!revoked && (
           <label className="mt-4 block">

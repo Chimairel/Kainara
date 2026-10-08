@@ -237,8 +237,8 @@ export function PrepareLibraryNutritionEvidence({
           />
         </label>
         <p className="text-xs text-brand-muted">
-          USDA records are fallback composition evidence. The nutritionist must explicitly accept any USDA use at
-          sign-off. This step does not certify clinical suitability.
+          USDA records are fallback composition evidence. The RND must explicitly accept any USDA use at sign-off. This
+          step does not certify clinical suitability.
         </p>
         <div className="flex justify-end gap-2">
           <Button type="button" variant="secondary" onClick={close}>

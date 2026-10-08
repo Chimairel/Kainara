@@ -55,10 +55,10 @@ export default function DashboardContent({ model }: { model: ReturnType<typeof u
       ) : profileReviewStatus === 'pending' ? (
         <StateNotice
           variant="no-meal-plan"
-          eyebrow="Awaiting nutritionist"
+          eyebrow="Awaiting RND"
           eyebrowVariant="amber"
           title="Meal planning isn't available yet"
-          description="A nutritionist needs to review your declared health profile before meal candidates can be prepared. Each proposed meal will then receive its own case approval."
+          description="An RND needs to review your declared health profile before meal candidates can be prepared. Each proposed meal will then receive its own case approval."
         />
       ) : profileReviewStatus === 'checking' || profileReviewStatus === 'error' ? (
         <div

@@ -391,7 +391,7 @@ export default function MealImage({
             isLoaded ? 'opacity-100' : 'opacity-0'
           }`}
           priority={priority}
-          unoptimized={effectiveImage.attribution?.creator === 'Nutritionist supplied'}
+          unoptimized={effectiveImage.attribution?.creator === 'RND supplied'}
           onLoad={() => setLoadedUrl(effectiveImage.url)}
           onError={() => setFailedUrls((prev) => ({ ...prev, [effectiveImage.url]: true }))}
         />
@@ -431,7 +431,7 @@ export default function MealImage({
           isLoaded ? 'opacity-100' : 'opacity-0'
         }`}
         priority={priority}
-        unoptimized={effectiveImage.attribution?.creator === 'Nutritionist supplied'}
+        unoptimized={effectiveImage.attribution?.creator === 'RND supplied'}
         onLoad={() => setLoadedUrl(effectiveImage.url)}
         onError={() => setFailedUrls((prev) => ({ ...prev, [effectiveImage.url]: true }))}
       />

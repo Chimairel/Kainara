@@ -21,7 +21,7 @@ export default function NutritionistProfilePage() {
       <PortalPageHeader
         icon={UserRound}
         eyebrow="Clinical Practitioner Registry"
-        title="Nutritionist profile"
+        title="RND profile"
         description="Manage your PRC credentials, clinical practice focus, and patient-facing identity."
       />
 
@@ -82,7 +82,7 @@ export default function NutritionistProfilePage() {
                   <span className="text-[10px] font-mono uppercase text-[#6b857c] dark:text-[#8ea99f]">
                     Review role
                   </span>
-                  <p className="font-bold text-[#0d2820] dark:text-white">Registered Nutritionist-Dietitian</p>
+                  <p className="font-bold text-[#0d2820] dark:text-white">RND</p>
                 </div>
               </div>
             </div>
@@ -97,7 +97,7 @@ export default function NutritionistProfilePage() {
           isOpen={showModalPreview}
           onClose={() => setShowModalPreview(false)}
           verifier={{
-            name: user?.name || 'Nutritionist',
+            name: user?.name || 'RND',
             image: user?.image,
             officialHeadshot: profile?.officialHeadshot,
             prcLicenseNumber: profile?.prcLicenseNumber || 'PRC-RND-NM-0001',

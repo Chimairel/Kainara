@@ -376,9 +376,8 @@ export default function NutritionGuidancePaper({
           Meal planning status
         </h2>
         <p className="text-sm text-[#5a746a] dark:text-white/70 leading-normal">
-          Acknowledging this document records that the member reviewed it. Meal eligibility and Registered
-          Nutritionist-Dietitian review are separate checks. Acknowledgment does not itself clear a meal or a medical
-          condition.
+          Acknowledging this document records that the member reviewed it. Meal eligibility and RND review are separate
+          checks. Acknowledgment does not itself clear a meal or a medical condition.
         </p>
       </section>
 
@@ -391,7 +390,7 @@ export default function NutritionGuidancePaper({
         <p className="leading-normal">
           This report is prepared for educational guidance and baseline meal planning referencing DOST-FNRI Philippine
           Dietary Reference Intakes (PDRI) standards. It does not replace individualized medical advice, clinical
-          diagnosis, or medical nutrition therapy from a licensed physician or Registered Nutritionist-Dietitian (RND).
+          diagnosis, or medical nutrition therapy from a licensed physician or RND.
         </p>
         <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-[#dce4e0]/60 dark:border-[#173e33]/60 font-mono text-xs text-[#5a746a]/80 dark:text-white/60">
           <span>

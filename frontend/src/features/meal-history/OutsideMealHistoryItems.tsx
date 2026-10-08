@@ -209,22 +209,22 @@ export default function OutsideMealHistoryItems({ model }: SectionProps) {
                             : item.review?.status === 'CORRECTED'
                               ? 'Corrected and confirmed nutrition estimate'
                               : item.review?.status === 'NEEDS_MORE_INFO'
-                                ? 'Nutritionist needs more information'
+                                ? 'RND needs more information'
                                 : item.review?.status === 'UNVERIFIABLE'
                                   ? 'Estimate could not be confirmed; it remains estimated'
-                                  : 'No nutritionist review requested'}
+                                  : 'No RND review requested'}
                     </p>
                     {item.review &&
                       ['VERIFIED', 'CORRECTED', 'UNVERIFIABLE'].includes(item.review.status) &&
                       item.revisions?.[0]?.revision === (item.review.reviewedRevision ?? -1) + 1 &&
                       item.revisions[0].reason && (
                         <p className="rounded-lg bg-black/20 p-2 text-white/80">
-                          Nutritionist rationale: {item.revisions[0].reason}
+                          RND rationale: {item.revisions[0].reason}
                         </p>
                       )}
                     {item.review?.messages?.map((message) => (
                       <p key={message.id} className="rounded-lg bg-black/20 p-2 text-white/80">
-                        <strong>{message.sender === 'NUTRITIONIST' ? 'Nutritionist' : 'You'}:</strong> {message.content}
+                        <strong>{message.sender === 'NUTRITIONIST' ? 'RND' : 'You'}:</strong> {message.content}
                         <span className="ml-2 text-[10px] text-white/60">Revision {message.itemRevision}</span>
                       </p>
                     ))}
@@ -250,7 +250,7 @@ export default function OutsideMealHistoryItems({ model }: SectionProps) {
                           maxLength={1000}
                           value={clarification}
                           onChange={(event) => setClarification(event.target.value)}
-                          placeholder="Answer the specific nutritionist question"
+                          placeholder="Answer the specific RND question"
                           aria-label="Clarification reply"
                         />
                         <button
@@ -322,8 +322,8 @@ export default function OutsideMealHistoryItems({ model }: SectionProps) {
                         ) : consentItemId === item.id ? (
                           <div className="space-y-2 rounded-lg border border-white/20 bg-black/20 p-3 text-xs text-white">
                             <p>
-                              Allow a nutritionist to turn this confirmed estimate into a deidentified food reference or
-                              recipe candidate. Your identity and private notes will not be shared. This is optional.
+                              Allow an RND to turn this confirmed estimate into a deidentified food reference or recipe
+                              candidate. Your identity and private notes will not be shared. This is optional.
                             </p>
                             {log.hasImage && (
                               <label className="flex items-start gap-2">

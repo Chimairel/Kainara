@@ -50,9 +50,7 @@ export function useMembershipCheckout() {
       return;
     }
     if (tier === 'LIFESTYLE' && membership.data?.enabled && membership.data.requiresCaseReview) {
-      setError(
-        'Your health details require nutritionist review. Choose Health to continue personalized meal planning.'
-      );
+      setError('Your health details require RND review. Choose Health to continue personalized meal planning.');
       return;
     }
     busy.current = true;

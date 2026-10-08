@@ -115,14 +115,14 @@ export const workspaceTools: Record<WorkspaceRole, WorkspaceTool[]> = {
     {
       label: 'Audit',
       href: '/admin/audit',
-      description: 'Administrator activity and nutritionist review history.',
+      description: 'Administrator activity and RND review history.',
       group: 'Platform',
       icon: ScrollText,
     },
     {
       label: 'People',
       href: '/admin/users',
-      description: 'Manage accounts, nutritionist applications, and professional access.',
+      description: 'Manage accounts, RND applications, and professional access.',
       group: 'People',
       icon: Users,
     },

@@ -57,8 +57,8 @@ export const dataSourcesChapter: DocsChapter = {
           <p>
             An AI-produced meal name or nutrient number is a proposal, not measured food data. The system checks
             available structure and restrictions before saving a candidate, and a restricted case may still wait for a
-            nutritionist. If a needed ingredient, serving, or source detail cannot be established, the application
-            should show that gap rather than treating an estimate as confirmed composition.
+            RND. If a needed ingredient, serving, or source detail cannot be established, the application should show
+            that gap rather than treating an estimate as confirmed composition.
           </p>
         </>
       ),

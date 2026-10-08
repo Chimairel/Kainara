@@ -1,3 +1,5 @@
+import { mealFlagSubmissionSchema, mealReviewSubmissionSchema } from '@/validation/meal-review.schemas';
+import { MealReviewService } from '@/services/meal-review.service';
 import prisma from '@/lib/prisma';
 import { Router, Response } from 'express';
 import { z } from 'zod';
@@ -15,7 +17,7 @@ import {
 } from '@/services/nutritionist-library-nutrition-evidence.service';
 import { createRecipeDerivation } from '@/services/recipe-derivation.service';
 import { recipeDerivationSchema } from '@/validation/recipe-derivation.schemas';
-import { flagWholeMeal, releaseWholeMeal } from '@/services/meal-wide-flag.service';
+import { flagWholeMeal } from '@/services/meal-wide-flag.service';
 import {
   flagMealApproval,
   getMealApprovalCaseDetails,
@@ -154,20 +156,26 @@ router.get('/library/:id', async (req: AuthenticatedRequest, res: Response) => {
 
 router.get('/library/:id/approvals', async (req: AuthenticatedRequest, res: Response) => {
   try {
-    return res.status(200).json({ success: true, data: await listMealApprovals(req.params.id) });
+    const [approvals, review] = await Promise.all([
+      listMealApprovals(req.params.id),
+      MealReviewService.detail(req.params.id),
+    ]);
+    return res
+      .status(200)
+      .json({ success: true, data: approvals.map((variant) => ({ ...variant, recipeVersion: review.recipeVersion })) });
   } catch (error) {
     return res.status(404).json({ success: false, error: sanitizeErrorMessage(error, 'Approvals unavailable.') });
   }
 });
 
-const mealFlagReasonSchema = z.object({ reason: z.string().trim().min(10).max(1000) }).strict();
-const mealFlagReleaseSchema = z.object({ rationale: z.string().trim().min(10).max(1000) }).strict();
+const mealFlagReasonSchema = mealFlagSubmissionSchema;
+const mealFlagReleaseSchema = mealReviewSubmissionSchema;
 router.post(
   '/library/:id/flag',
   validateZodBody(mealFlagReasonSchema),
   async (req: AuthenticatedRequest, res: Response) => {
     try {
-      const data = await flagWholeMeal(req.nutritionistProfileId!, req.params.id, req.body.reason);
+      const data = await flagWholeMeal(req.nutritionistProfileId!, req.params.id, req.body);
       return res.status(200).json({ success: true, data });
     } catch (error) {
       return res.status(409).json({ success: false, error: sanitizeErrorMessage(error, 'Could not flag meal.') });
@@ -179,7 +187,7 @@ router.post(
   validateZodBody(mealFlagReleaseSchema),
   async (req: AuthenticatedRequest, res: Response) => {
     try {
-      const data = await releaseWholeMeal(req.nutritionistProfileId!, req.params.id, req.body.rationale);
+      const data = await MealReviewService.confirm(req.nutritionistProfileId!, req.params.id, req.body);
       return res.status(200).json({ success: true, data });
     } catch (error) {
       return res
@@ -218,7 +226,8 @@ const scopedFlagSchema = z
   .object({
     kind: z.enum(['PROFILE', 'CONDITION']),
     approvalId: z.string().min(1),
-    reason: z.string().trim().min(10).max(1000),
+    expectedVersion: mealFlagSubmissionSchema.shape.expectedVersion,
+    notes: mealFlagSubmissionSchema.shape.notes,
   })
   .strict();
 router.post(
@@ -230,6 +239,7 @@ router.post(
         nutritionistProfileId: req.nutritionistProfileId!,
         mealLibraryId: req.params.id,
         ...req.body,
+        reason: req.body.notes.explanation.slice(0, 1000),
       });
       return res.status(200).json({ success: true, data });
     } catch (error) {

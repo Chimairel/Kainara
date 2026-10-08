@@ -1,3 +1,5 @@
+import { reviewContext, assertVersion, json } from './meal-review-context.service';
+import type { MealFlagSubmission } from '@/validation/meal-review.schemas';
 import { ConditionClearanceState, NotificationType, Prisma } from '@prisma/client';
 import prisma from '@/lib/prisma';
 import { recipeFamilyWhere } from './meal-recipe-family.service';
@@ -305,6 +307,8 @@ export async function flagMealApproval(input: {
   kind: 'PROFILE' | 'CONDITION';
   approvalId: string;
   reason: string;
+  expectedVersion?: string;
+  notes?: MealFlagSubmission['notes'];
 }) {
   const actor = await reviewer(input.nutritionistProfileId);
   const reason = input.reason.trim();
@@ -312,6 +316,8 @@ export async function flagMealApproval(input: {
   const now = new Date();
   return prisma.$transaction(
     async (tx) => {
+      const context = input.expectedVersion ? await reviewContext(tx, input.mealLibraryId, true) : null;
+      if (context && input.expectedVersion) assertVersion(context.recipeVersion, input.expectedVersion);
       const meal = await tx.mealLibrary.findUnique({
         where: { id: input.mealLibraryId },
         select: { status: true },
@@ -386,7 +392,18 @@ export async function flagMealApproval(input: {
           action: 'MEAL_APPROVAL_FLAGGED',
           entityType: input.kind === 'PROFILE' ? 'MealLibraryProfileApproval' : 'MealConditionClearance',
           entityId: input.approvalId,
-          metadata: { mealLibraryId: input.mealLibraryId, reason, affectedUsers: users.length },
+          metadata: {
+            mealLibraryId: input.mealLibraryId,
+            reason,
+            affectedUsers: users.length,
+            ...(context
+              ? {
+                  expectedVersion: input.expectedVersion,
+                  notes: json(input.notes),
+                  recipeSnapshot: json(context.snapshot),
+                }
+              : {}),
+          },
         },
       });
       return { flaggedAt: now, affectedUsers: users.length };

@@ -18,7 +18,7 @@ const recipe = {
 };
 
 describe('shared recipe library card', () => {
-  it('keeps nutritionist review status and actions supplied by the nutritionist page', () => {
+  it('keeps RND review status and actions supplied by the RND page', () => {
     const open = vi.fn();
     render(
       <RecipeLibraryCard

@@ -1,3 +1,4 @@
+import { mealReviewRouter } from './meal-review.routes';
 import { Router, Response } from 'express';
 import { AppError } from '@/errors/AppError';
 import { z } from 'zod';
@@ -46,6 +47,7 @@ const router = Router();
 router.use(authenticate);
 router.use(requireRole('NUTRITIONIST'));
 router.use(requireEligibleNutritionist);
+router.use('/meal-review-cases', mealReviewRouter('rnd'));
 
 const mealVerificationParams = z
   .object({

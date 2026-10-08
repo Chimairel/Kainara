@@ -19,6 +19,7 @@ type Approval = {
   flagReason: string | null;
 };
 type Variant = {
+  recipeVersion: string;
   id: string;
   status: 'APPROVED' | 'FLAGGED' | 'ARCHIVED';
   mealName: string;
@@ -104,6 +105,10 @@ export function MealApprovalsPanel({ mealId }: { mealId: string }) {
   const [flagTarget, setFlagTarget] = useState<{ variantId: string; approval: Approval } | null>(null);
   const [recheckTarget, setRecheckTarget] = useState<{ variantId: string; approval: Approval } | null>(null);
   const [reason, setReason] = useState('');
+  const [concernCategory, setConcernCategory] = useState('NUTRITION');
+  const [affectedFields, setAffectedFields] = useState('');
+  const [reference, setReference] = useState('');
+  const [proposedCorrection, setProposedCorrection] = useState('');
   const [reviewNote, setReviewNote] = useState('');
   const [filter, setFilter] = useState<'ALL' | 'ACTIVE' | 'FLAGGED' | 'REVIEW_DUE'>('ALL');
   const [selected, setSelected] = useState<{ variantId: string; approval: Approval } | null>(null);
@@ -129,13 +134,30 @@ export function MealApprovalsPanel({ mealId }: { mealId: string }) {
   }, [reload]);
 
   async function flag() {
-    if (!flagTarget || reason.trim().length < 10) return;
+    if (
+      !flagTarget ||
+      reason.trim().length < 20 ||
+      !affectedFields.trim() ||
+      reference.trim().length < 10 ||
+      proposedCorrection.trim().length < 10
+    )
+      return;
     setBusy(true);
     try {
       await api.post(`/nutritionist/library/${flagTarget.variantId}/approvals/flag`, {
         kind: flagTarget.approval.kind,
         approvalId: flagTarget.approval.id,
-        reason: reason.trim(),
+        expectedVersion: variants.find((variant) => variant.id === flagTarget.variantId)?.recipeVersion,
+        notes: {
+          category: concernCategory,
+          affectedFields: affectedFields
+            .split(',')
+            .map((value) => value.trim())
+            .filter(Boolean),
+          explanation: reason.trim(),
+          reference,
+          proposedCorrection,
+        },
       });
       setFlagTarget(null);
       setReason('');
@@ -359,7 +381,7 @@ export function MealApprovalsPanel({ mealId }: { mealId: string }) {
                 </ul>
                 {caseDetails.originatingPlan?.nutritionistNote && (
                   <p className="border-t border-brand-border pt-3 text-sm">
-                    <strong>Nutritionist note:</strong> {caseDetails.originatingPlan.nutritionistNote}
+                    <strong>RND note:</strong> {caseDetails.originatingPlan.nutritionistNote}
                   </p>
                 )}
                 {caseDetails.originatingPlan && (
@@ -406,20 +428,67 @@ export function MealApprovalsPanel({ mealId }: { mealId: string }) {
             {flagTarget && (
               <div className="rounded-xl border border-amber-600/50 p-4">
                 <label htmlFor="approval-flag-reason" className="block text-sm font-semibold">
-                  Reason for flagging this approval
+                  Explanation of this approval concern
                 </label>
                 <textarea
                   id="approval-flag-reason"
                   value={reason}
                   onChange={(event) => setReason(event.target.value)}
-                  minLength={10}
-                  maxLength={1000}
+                  minLength={20}
+                  maxLength={3000}
                   rows={3}
                   placeholder="Provide reasons for flagging this approval..."
                   className="mt-2 w-full rounded-xl border border-brand-border/80 bg-brand-surface p-3 text-sm text-brand-text shadow-sm outline-none transition focus:border-brand-green focus:ring-2 focus:ring-brand-green/20 placeholder:text-brand-muted/70"
                 />
+                <label className="mt-3 block text-sm">
+                  Concern category
+                  <Dropdown value={concernCategory} onChange={setConcernCategory}>
+                    {['INGREDIENT', 'NUTRITION', 'ALLERGEN', 'PREPARATION', 'EVIDENCE', 'OTHER'].map((value) => (
+                      <option key={value} value={value}>
+                        {value.toLowerCase()}
+                      </option>
+                    ))}
+                  </Dropdown>
+                </label>
+                <label className="mt-3 block text-sm">
+                  Affected ingredients or fields
+                  <input
+                    className="mt-2 min-h-11 w-full rounded-xl border border-brand-border bg-brand-surface p-3 text-sm"
+                    value={affectedFields}
+                    onChange={(event) => setAffectedFields(event.target.value)}
+                  />
+                </label>
+                <label className="mt-3 block text-sm">
+                  Supporting evidence or reference
+                  <textarea
+                    className="mt-2 w-full rounded-xl border border-brand-border bg-brand-surface p-3 text-sm"
+                    value={reference}
+                    onChange={(event) => setReference(event.target.value)}
+                    minLength={10}
+                    maxLength={2000}
+                  />
+                </label>
+                <label className="mt-3 block text-sm">
+                  Proposed correction
+                  <textarea
+                    className="mt-2 w-full rounded-xl border border-brand-border bg-brand-surface p-3 text-sm"
+                    value={proposedCorrection}
+                    onChange={(event) => setProposedCorrection(event.target.value)}
+                    minLength={10}
+                    maxLength={2000}
+                  />
+                </label>
                 <div className="mt-2 flex gap-2">
-                  <Button disabled={busy || reason.trim().length < 10} onClick={() => void flag()}>
+                  <Button
+                    disabled={
+                      busy ||
+                      reason.trim().length < 20 ||
+                      !affectedFields.trim() ||
+                      reference.trim().length < 10 ||
+                      proposedCorrection.trim().length < 10
+                    }
+                    onClick={() => void flag()}
+                  >
                     Submit flag
                   </Button>
                   <Button variant="secondary" onClick={() => setFlagTarget(null)}>

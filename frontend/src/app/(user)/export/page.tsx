@@ -342,7 +342,7 @@ export default function NutritionExportPage() {
 
           <p className="mb-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-[11px] font-semibold text-amber-900">
             Generated {new Date(reportData.generatedAt).toLocaleDateString()}. This guidance is informational, has not
-            been independently verified by a nutritionist, and is not medical advice.
+            been independently verified by an RND, and is not medical advice.
           </p>
 
           <p className="text-xs text-slate-600 italic mb-4 leading-relaxed bg-slate-50 p-3 rounded-lg border border-slate-100">
@@ -480,8 +480,8 @@ export default function NutritionExportPage() {
       <div className="mt-12 pt-8 border-t border-slate-200 text-left page-break-inside-avoid">
         <p className="text-[10px] leading-relaxed text-slate-500">
           This member-generated export summarizes information stored in KAINARA. It is not a prescription, diagnosis,
-          official medical record, or proof of nutritionist verification. Review labels apply only to the individual
-          meal records shown and should not be interpreted as universal medical suitability.
+          official medical record, or proof of RND verification. Review labels apply only to the individual meal records
+          shown and should not be interpreted as universal medical suitability.
         </p>
       </div>
 

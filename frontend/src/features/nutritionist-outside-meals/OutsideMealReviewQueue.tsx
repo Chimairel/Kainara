@@ -100,7 +100,7 @@ export default function OutsideMealReviewQueue({ model }: SectionProps) {
                   {row.claimStatus.claimedByOther && (
                     <div className="mt-3 flex items-center gap-1.5 rounded-xl border border-amber-500/25 bg-amber-500/10 px-3 py-1.5 text-xs font-semibold text-amber-600 dark:text-amber-400">
                       <Eye className="h-3.5 w-3.5 shrink-0" />
-                      <span>Claimed by {row.claimStatus.claimedByName ?? 'another nutritionist'}</span>
+                      <span>Claimed by {row.claimStatus.claimedByName ?? 'another RND'}</span>
                     </div>
                   )}
                 </div>

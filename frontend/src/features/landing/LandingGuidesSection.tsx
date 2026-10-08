@@ -25,8 +25,8 @@ export default function LandingGuidesSection() {
                 The comprehensive guide to <span className="text-gradient">KAINARA.</span>
               </h2>
               <p className="mt-4 max-w-xl text-sm leading-7 text-brand-muted sm:text-base">
-                Explore meal planning, energy estimates, food-composition references, nutritionist review, account
-                controls and help for using KAINARA.
+                Explore meal planning, energy estimates, food-composition references, RND review, account controls and
+                help for using KAINARA.
               </p>
 
               {/* Guide Pillar Tags */}
@@ -95,7 +95,7 @@ export default function LandingGuidesSection() {
                   </div>
                   <h3 className="mt-4 font-display text-base font-bold text-white">Restrictions & Review</h3>
                   <p className="mt-2 text-xs leading-5 text-emerald-100/80">
-                    Declared restrictions, profile checks and scoped nutritionist decisions.
+                    Declared restrictions, profile checks and scoped RND decisions.
                   </p>
                 </div>
 

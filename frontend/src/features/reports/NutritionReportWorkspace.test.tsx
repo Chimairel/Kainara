@@ -166,7 +166,7 @@ describe('nutrition report lifecycle', () => {
     );
     render(<NutritionReportWorkspace />);
     expect(await screen.findByText(/Profile confirmed unchanged on/)).toHaveTextContent(
-      'does not represent a new nutritionist review'
+      'does not represent a new RND review'
     );
   });
   it('explains the evidence layers and consolidates repeated food restrictions', async () => {
@@ -194,9 +194,7 @@ describe('nutrition report lifecycle', () => {
     render(<NutritionReportWorkspace />);
 
     expect(await screen.findByRole('heading', { name: 'Nutrition Guidance' })).toBeInTheDocument();
-    expect(
-      screen.getByText(/Meal eligibility and Registered Nutritionist-Dietitian review are separate checks/i)
-    ).toBeInTheDocument();
+    expect(screen.getByText(/Meal eligibility and RND review are separate checks/i)).toBeInTheDocument();
     expect(screen.getByText('DAIRY, LACTOSE')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'DOST FNRI — PDRI' })).toHaveAttribute(
       'href',

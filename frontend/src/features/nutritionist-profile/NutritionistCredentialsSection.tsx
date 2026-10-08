@@ -52,7 +52,7 @@ export default function NutritionistCredentialsSection({ model }: SectionProps) 
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
                       src={profile.officialHeadshot}
-                      alt={user?.name || 'Nutritionist'}
+                      alt={user?.name || 'RND'}
                       className="h-full w-full object-cover"
                     />
                     {profile?.isVerified && (

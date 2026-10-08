@@ -43,16 +43,16 @@ export function ApplicationSidebar() {
           </span>
           <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/25 bg-emerald-500/10 px-3 py-1 font-mono text-[9px] font-bold uppercase tracking-[0.16em] text-emerald-300">
             <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
-            Nutritionist Applications
+            RND Applications
           </span>
         </div>
 
         <h1 className="mt-5 font-display text-2xl sm:text-3xl lg:text-4xl font-black leading-[1.05] tracking-[-0.04em]">
-          Join the nutritionist team.
+          Join the RND team.
         </h1>
         <p className="mt-3 text-xs sm:text-sm leading-6 text-white/60">
-          Registered nutritionist-dietitians from anywhere in the Philippines can apply online. Access is granted only
-          after credential review and a one-on-one verification call.
+          Registered RND-dietitians from anywhere in the Philippines can apply online. Access is granted only after
+          credential review and a one-on-one verification call.
         </p>
 
         {/* Verification Timeline / Connected Process */}

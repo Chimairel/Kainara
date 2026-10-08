@@ -6,6 +6,7 @@ import Link from 'next/link';
 import Button from '@/components/ui/Button';
 import { useSessionQuery } from '@/hooks/useSessionQuery';
 import api from '@/lib/axios';
+import CaseReviewContext from '@/features/admin-audit/CaseReviewContext';
 
 export type AuditRow = {
   id: string;
@@ -161,6 +162,7 @@ function DetailPanel({
         </p>
       )}
       {query.data && <RecordedDetails data={query.data} canAuthor={canAuthor} />}
+      {query.data && endpoint.startsWith('/admin/') && <CaseReviewContext key={id} auditId={id} ownerId={ownerId} />}
     </>
   );
 }
@@ -191,11 +193,7 @@ function AuditEntry({
         <div className="min-w-0">
           <p className="break-words text-sm font-semibold">{row.actor}</p>
           <p className="mt-1 text-xs text-brand-muted">
-            {row.role === 'ADMIN'
-              ? 'Administrator'
-              : row.role === 'NUTRITIONIST'
-                ? 'Nutritionist'
-                : 'Role not recorded'}
+            {row.role === 'ADMIN' ? 'Administrator' : row.role === 'NUTRITIONIST' ? 'RND' : 'Role not recorded'}
           </p>
         </div>
         <div className="min-w-0">

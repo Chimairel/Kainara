@@ -53,7 +53,7 @@ export default function PlatformTotalsSection({ model }: SectionProps) {
               badgeTone="emerald"
             />
             <HeroMetricCard
-              label="Eligible nutritionists"
+              label="Eligible RNDs"
               count={data.verifiedNutritionists}
               note={`Of ${format(data.totalNutritionists)} nutritionist accounts with profiles. Verified, unsuspended, with a current PRC license.`}
               href="/admin/users?tab=nutritionists"

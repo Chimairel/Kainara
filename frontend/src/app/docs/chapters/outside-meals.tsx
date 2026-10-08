@@ -45,7 +45,7 @@ export const outsideMealsChapter: DocsChapter = {
           </p>
           <p>
             This separation lets you track a meal without publishing it to other members. If you separately propose it
-            for the catalogue, a nutritionist first checks the submitted dish as a general recipe. Only after that meal
+            for the catalogue, an RND first checks the submitted dish as a general recipe. Only after that meal
             verification can it join the verified base library, and its ingredient, portion, and nutrition evidence
             still determine whether planning can use it.
           </p>

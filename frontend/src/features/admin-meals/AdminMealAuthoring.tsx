@@ -264,8 +264,8 @@ export default function AdminMealsPage({ active = true }: { active?: boolean }) 
       setNotice({
         kind: 'success',
         text: editing
-          ? 'Draft updated. Nutritionist certification is still required.'
-          : 'Meal draft created. It is awaiting independent nutritionist evidence review.',
+          ? 'Draft updated. RND certification is still required.'
+          : 'Meal draft created. It is awaiting independent RND evidence review.',
       });
       reset();
       if (page === 1) await load();
@@ -557,8 +557,8 @@ export default function AdminMealsPage({ active = true }: { active?: boolean }) 
         </div>
       </section>
       <div className="flex items-center gap-2 rounded-xl border border-brand-green/25 bg-brand-green/5 p-4 text-xs text-brand-muted">
-        <ShieldCheck className="h-4 w-4 shrink-0 text-brand-green" /> Admin authorship never certifies safety.
-        Nutritionists review drafts in their Meal library under “Admin drafts awaiting evidence review.”
+        <ShieldCheck className="h-4 w-4 shrink-0 text-brand-green" /> Admin authorship never certifies safety. RNDs
+        review drafts in their Meal library under “Admin drafts awaiting evidence review.”
       </div>
     </div>
   );

@@ -157,7 +157,7 @@ const getBreadcrumbSegments = (
       ];
     }
     if (pathname === '/admin/nutritionists') {
-      return [{ label: 'Nutritionists', current: true }];
+      return [{ label: 'RNDs', current: true }];
     }
     if (pathname === '/admin/analytics') {
       return [{ label: 'Analytics', current: true }];

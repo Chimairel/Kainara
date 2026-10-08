@@ -20,13 +20,13 @@ test('applicant tracking, validation, invitation screen, and admin application l
   await page.locator('#tracking-email').fill(applicantEmail!);
   await page.getByRole('button', { name: 'Check status' }).click();
   await expect(page.getByText(reference!, { exact: true })).toBeVisible();
-  await expect(page.getByRole('heading', { name: 'Nutritionist account activated' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'RND account activated' })).toBeVisible();
 
   await page.goto('/nutritionist-invitation?token=invalid-token');
   await expect(page.getByRole('heading', { name: 'Activate your workspace' })).toBeVisible();
   await page.locator('#nutritionist-password').fill('JourneyPass123!');
   await page.locator('#nutritionist-confirm-password').fill('JourneyPass123!');
-  await page.getByRole('button', { name: 'Activate nutritionist account' }).click();
+  await page.getByRole('button', { name: 'Activate RND account' }).click();
   await expect(page.getByText(/invitation is invalid|failed to activate/i).first()).toBeVisible();
 
   const stamp = Date.now();
@@ -56,7 +56,7 @@ test('applicant tracking, validation, invitation screen, and admin application l
   await page.getByRole('button', { name: 'Sign in', exact: true }).click();
   await page.waitForURL(/\/admin\//);
   await page.goto('/admin/nutritionists');
-  await expect(page.getByRole('heading', { name: 'Nutritionist onboarding' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'RND onboarding' })).toBeVisible();
   await expect(page.getByText('Active pipeline')).toBeVisible();
   await expect(page.locator('summary').filter({ hasText: 'Completed applications' })).toBeVisible();
   await expect(page.getByText(newApplicantEmail, { exact: true })).toBeVisible();

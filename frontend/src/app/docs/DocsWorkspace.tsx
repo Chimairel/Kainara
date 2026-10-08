@@ -195,8 +195,7 @@ export default function DocsWorkspace() {
                     Ready to build your meal plan?
                   </h3>
                   <p className="mt-1 text-xs leading-5 text-white/70 max-w-md">
-                    Set up your health profile for Filipino meal planning, with nutritionist review for applicable
-                    cases.
+                    Set up your health profile for Filipino meal planning, with RND review for applicable cases.
                   </p>
                 </div>
                 <div className="flex shrink-0 items-center">

@@ -60,7 +60,7 @@ describe('health details form', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Continue to shopping day' }));
     expect(mocks.push).toHaveBeenCalledWith('/onboarding/shopping-day');
   });
-  it('shows a nutritionist request and restores saved answers', async () => {
+  it('shows an RND request and restores saved answers', async () => {
     mocks.get.mockImplementation((path: string) =>
       Promise.resolve({
         data: {

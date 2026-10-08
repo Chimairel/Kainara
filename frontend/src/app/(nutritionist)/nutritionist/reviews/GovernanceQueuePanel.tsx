@@ -90,7 +90,7 @@ export default function GovernanceQueuePanel({ tab }: { tab: 'audit' | 'disputed
       setMessage('Clearance suspended; future matching now fails closed.');
       await load();
     } catch {
-      setMessage('A verified nutritionist with a current license is required to suspend this approval.');
+      setMessage('A verified RND with a current license is required to suspend this approval.');
     }
   };
 
@@ -134,7 +134,7 @@ export default function GovernanceQueuePanel({ tab }: { tab: 'audit' | 'disputed
         <p className="mt-2 text-sm text-brand-muted">
           {tab === 'audit'
             ? 'Review manually flagged or suspended approvals and unfinished decisions.'
-            : 'Disagreements remain blocked until an nutritionist who was not involved resolves them.'}
+            : 'Disagreements remain blocked until an RND who was not involved resolves them.'}
         </p>
       </div>
       {message && (

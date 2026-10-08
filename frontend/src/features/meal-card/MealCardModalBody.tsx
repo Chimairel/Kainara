@@ -348,7 +348,7 @@ export default function MealCardModalBody({ model }: SectionProps) {
             <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
             <span>
               <strong>AI Estimation Warning</strong>: This plan is still pending verification by a licensed Registered
-              Nutritionist-Dietitian. Use with caution.
+              RND. Use with caution.
             </span>
           </div>
         )}

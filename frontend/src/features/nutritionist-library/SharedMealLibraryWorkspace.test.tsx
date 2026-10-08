@@ -1,5 +1,6 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { clearSessionResourceCache } from '@/lib/session-resource-cache';
 import SharedMealLibraryWorkspace from './SharedMealLibraryWorkspace';
 
 const mocks = vi.hoisted(() => ({
@@ -33,22 +34,66 @@ const meal = {
   flags: [],
   baseVerification: 'VERIFIED',
 };
-const flagged = {
-  ...meal,
-  status: 'FLAGGED',
-  flags: [
-    {
-      id: 'flag-1',
-      status: 'PENDING',
-      reason: 'Ingredient evidence needs review.',
-      flaggedByNutritionist: null,
-      flaggedByAdminUser: { name: 'Test admin' },
-    },
-  ],
+let review = {
+  state: 'PUBLISHED',
+  recipeVersion: 'a'.repeat(64),
+  reviewVersion: 'b'.repeat(64),
+  incidentCount: 0,
+  legacyHistoryUnknown: false,
+  incident: null as null | {
+    id: string;
+    number: number;
+    state: string;
+    reports: unknown[];
+    decisions: unknown[];
+    claimedByNutritionistId: null;
+  },
+  history: [] as unknown[],
+  validConfirmations: [] as unknown[],
+  canAdminRelease: false,
 };
+function held(state = 'PENDING_REREVIEW') {
+  review = {
+    ...review,
+    state,
+    incidentCount: state === 'QUARANTINED' ? 2 : 1,
+    incident: {
+      id: 'case-1',
+      number: 1,
+      state,
+      claimedByNutritionistId: null,
+      decisions: [],
+      reports: [
+        {
+          id: 'report-1',
+          createdAt: '2026-10-08T00:00:00Z',
+          actorSnapshot: { name: 'Test admin', role: 'ADMIN' },
+          notes: {
+            category: 'NUTRITION',
+            affectedFields: ['sodiumMg'],
+            explanation: 'Ingredient evidence needs independent review.',
+            reference: 'Recorded composition evidence.',
+            proposedCorrection: 'Check all measured ingredient amounts.',
+          },
+        },
+      ],
+    },
+  };
+}
+vi.mock('@/hooks/useAuth', () => ({ useAuth: () => ({ user: { userId: 'synthetic-library-owner' } }) }));
 
 beforeEach(() => {
   vi.clearAllMocks();
+  clearSessionResourceCache();
+  review = {
+    ...review,
+    state: 'PUBLISHED',
+    incident: null,
+    history: [],
+    validConfirmations: [],
+    canAdminRelease: false,
+    incidentCount: 0,
+  };
   mocks.hook.mockReturnValue({
     meals: [meal],
     totalCount: 1,
@@ -72,7 +117,16 @@ beforeEach(() => {
     setStatus: vi.fn(),
     fetchLibrary: mocks.refresh,
   });
-  mocks.get.mockResolvedValue({ data: { success: true, data: meal } });
+  mocks.get.mockImplementation(async (path: string) => ({
+    data: {
+      success: true,
+      data: path.endsWith('/meal-review-cases')
+        ? []
+        : path.includes('/meal-review-cases/')
+          ? review
+          : { ...meal, status: review.state === 'PUBLISHED' ? 'APPROVED' : 'FLAGGED' },
+    },
+  }));
   mocks.post.mockResolvedValue({ data: { success: true } });
 });
 
@@ -81,69 +135,112 @@ async function open() {
   await screen.findByRole('region', { name: 'Meal details' });
 }
 
+function fillFlag() {
+  fireEvent.change(screen.getByLabelText('Affected ingredients or nutrition fields, separated by commas'), {
+    target: { value: 'sodiumMg, salt' },
+  });
+  fireEvent.change(screen.getByLabelText('Explanation'), {
+    target: { value: 'Ingredient evidence needs independent review.' },
+  });
+  fireEvent.change(screen.getByLabelText('Supporting evidence or reference'), {
+    target: { value: 'Recorded composition evidence.' },
+  });
+  fireEvent.change(screen.getByLabelText('Proposed correction'), {
+    target: { value: 'Check all measured ingredient amounts.' },
+  });
+}
 describe('shared library permissions and feedback', () => {
-  it('admin browses and flags the same recipe with its own API and sees the recorded admin actor', async () => {
+  it('admin flags with version-bound structured notes and sees the recorded actor without RND certification tools', async () => {
     render(<SharedMealLibraryWorkspace role="admin" />);
     expect(mocks.hook).toHaveBeenCalledWith(false, 'admin', true);
-    expect(screen.queryByLabelText('Show only meals verified by me')).not.toBeInTheDocument();
     await open();
-    expect(mocks.get).toHaveBeenCalledWith('/admin/library/meal-1');
+    await screen.findByText('Published');
     expect(screen.queryByText('Clinical evidence editor')).not.toBeInTheDocument();
-    expect(screen.queryByText('Recipe derivation editor')).not.toBeInTheDocument();
     expect(screen.queryByText('Private case approvals')).not.toBeInTheDocument();
-    mocks.get.mockResolvedValue({ data: { success: true, data: flagged } });
-    const button = screen.getByRole('button', { name: 'Flag entire meal' });
-    expect(button).toBeDisabled();
-    fireEvent.change(screen.getByLabelText('Reason for flagging the meal'), {
-      target: { value: 'Ingredient evidence needs review.' },
+    expect(screen.getByRole('button', { name: 'Flag and withhold recipe' })).toBeDisabled();
+    fillFlag();
+    mocks.post.mockImplementation(async () => {
+      held();
+      return { data: { success: true } };
     });
-    fireEvent.click(button);
-    await screen.findByText('Flagged by Test admin (admin): Ingredient evidence needs review.');
+    fireEvent.click(screen.getByRole('button', { name: 'Flag and withhold recipe' }));
+    await screen.findByText('NUTRITION · Test admin');
     expect(mocks.post).toHaveBeenCalledWith('/admin/library/meal-1/flag', {
-      reason: 'Ingredient evidence needs review.',
+      expectedVersion: 'a'.repeat(64),
+      notes: {
+        category: 'NUTRITION',
+        affectedFields: ['sodiumMg', 'salt'],
+        explanation: 'Ingredient evidence needs independent review.',
+        reference: 'Recorded composition evidence.',
+        proposedCorrection: 'Check all measured ingredient amounts.',
+      },
     });
-    expect(mocks.success).toHaveBeenCalledWith('Meal flagged for nutritionist review', { id: 'notice' });
-    expect(screen.queryByRole('button', { name: 'Release meal flag' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Confirm this version' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Release quarantine' })).toBeDisabled();
   });
-
-  it('nutritionist keeps existing clinical tools and can review an admin flag', async () => {
-    mocks.get.mockResolvedValue({ data: { success: true, data: flagged } });
+  it('RND review requires every concern resolution and evidence acknowledgement; quarantine cannot be self-released', async () => {
+    held('QUARANTINED');
     render(<SharedMealLibraryWorkspace />);
     await open();
-    expect(mocks.get).toHaveBeenCalledWith('/nutritionist/library/meal-1');
+    await screen.findByText('NUTRITION · Test admin');
     expect(screen.getByText('Clinical evidence editor')).toBeInTheDocument();
     expect(screen.getByText('Recipe derivation editor')).toBeInTheDocument();
     expect(screen.getByText('Private case approvals')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Release meal flag' })).toBeDisabled();
-  });
-
-  it('keeps the flag reason when saving fails and gives a Sonner error', async () => {
-    mocks.post.mockRejectedValue({ response: { data: { error: 'Meal status changed. Reload and try again.' } } });
-    render(<SharedMealLibraryWorkspace role="admin" />);
-    await open();
-    fireEvent.change(screen.getByLabelText('Reason for flagging the meal'), {
-      target: { value: 'Ingredient evidence needs review.' },
+    expect(screen.getByRole('button', { name: 'Confirm this version' })).toBeDisabled();
+    expect(screen.queryByRole('button', { name: 'Release quarantine' })).not.toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText('Resolution of this concern'), {
+      target: { value: 'Resolved by reviewing measured food amounts and recorded evidence.' },
     });
-    fireEvent.click(screen.getByRole('button', { name: 'Flag entire meal' }));
-    await waitFor(() => expect(mocks.error).toHaveBeenCalled());
-    expect(screen.getByLabelText('Reason for flagging the meal')).toHaveValue('Ingredient evidence needs review.');
-    expect(mocks.success).not.toHaveBeenCalled();
-  });
-
-  it('distinguishes a successful flag from a later detail refresh failure', async () => {
-    render(<SharedMealLibraryWorkspace role="admin" />);
-    await open();
-    mocks.get.mockRejectedValue(new Error('Network unavailable'));
-    fireEvent.change(screen.getByLabelText('Reason for flagging the meal'), {
-      target: { value: 'Ingredient evidence needs review.' },
+    fireEvent.change(screen.getByLabelText('Independent review findings'), {
+      target: { value: 'Independent review covers this exact serving and every concern.' },
     });
-    fireEvent.click(screen.getByRole('button', { name: 'Flag entire meal' }));
+    fireEvent.click(screen.getByRole('checkbox'));
+    fireEvent.click(screen.getByRole('button', { name: 'Claim re-review' }));
     await waitFor(() =>
-      expect(mocks.warning).toHaveBeenCalledWith('Meal flag saved. Reload to see the updated library.', {
-        id: 'notice',
+      expect(mocks.post).toHaveBeenCalledWith('/nutritionist/meal-review-cases/meal-1/claim', {
+        expectedVersion: 'b'.repeat(64),
       })
     );
-    expect(mocks.error).not.toHaveBeenCalled();
-    expect(screen.queryByRole('button', { name: 'Flag entire meal' })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm this version' }));
+    await waitFor(() =>
+      expect(mocks.post).toHaveBeenCalledWith(
+        '/nutritionist/meal-review-cases/meal-1/confirm',
+        expect.objectContaining({
+          expectedVersion: 'b'.repeat(64),
+          evidenceReviewed: true,
+          riceRoleReviewed: true,
+          resolutions: [
+            { reportId: 'report-1', rationale: 'Resolved by reviewing measured food amounts and recorded evidence.' },
+          ],
+        })
+      )
+    );
+  });
+  it('retains comprehensive flag notes when the server rejects a stale version', async () => {
+    render(<SharedMealLibraryWorkspace role="admin" />);
+    await open();
+    await screen.findByText('Published');
+    fillFlag();
+    mocks.post.mockRejectedValue({
+      response: { data: { error: 'Recipe or concerns changed. Refresh and review the current version.' } },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Flag and withhold recipe' }));
+    await screen.findByRole('alert');
+    expect(screen.getByLabelText('Explanation')).toHaveValue('Ingredient evidence needs independent review.');
+    expect(screen.getByLabelText('Supporting evidence or reference')).toHaveValue('Recorded composition evidence.');
+  });
+  it('keeps a recorded decision visible when the later history refresh fails', async () => {
+    render(<SharedMealLibraryWorkspace role="admin" />);
+    await open();
+    await screen.findByText('Published');
+    fillFlag();
+    mocks.post.mockImplementation(async () => {
+      mocks.get.mockRejectedValue(new Error('Network unavailable'));
+      return { data: { success: true } };
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Flag and withhold recipe' }));
+    await screen.findByText(/Decision recorded/);
+    await waitFor(() => expect(screen.getAllByRole('alert').length).toBeGreaterThan(0));
+    expect(mocks.post).toHaveBeenCalledOnce();
   });
 });

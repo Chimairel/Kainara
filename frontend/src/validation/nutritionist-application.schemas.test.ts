@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { applicantCredentialSchema, applicantIdentitySchema, issuesToFields } from './nutritionist-application.schemas';
 
-describe('nutritionist application schema validation', () => {
+describe('RND application schema validation', () => {
   describe('applicantIdentitySchema', () => {
     it('requires a recent uploaded photo and attestation', () => {
       const result = applicantIdentitySchema.safeParse({

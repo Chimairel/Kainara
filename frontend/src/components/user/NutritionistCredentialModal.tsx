@@ -95,7 +95,7 @@ export default function NutritionistCredentialModal({
                   activeTab === 'card' ? 'bg-emerald-600 text-white shadow-sm' : 'text-slate-400 hover:text-white'
                 }`}
               >
-                <ShieldCheck className="h-3.5 w-3.5" /> Nutritionist Profile
+                <ShieldCheck className="h-3.5 w-3.5" /> RND Profile
               </button>
               <button
                 type="button"
@@ -127,13 +127,20 @@ export default function NutritionistCredentialModal({
 
           {/* ════════ TAB 1: 100% REPLICA OF CHATGPT REFERENCE CARD ════════ */}
           {activeTab === 'card' ? (
-            <NutritionistCredentialCard
-              verifier={verifier}
-              nutritionistNote={nutritionistNote}
-              onViewNotes={() => setActiveTab('notes')}
-              layout="horizontal"
-              className="border-0 shadow-none rounded-none"
-            />
+            <>
+              <p className="mb-3 text-xs text-brand-muted">
+                {verifier.reviewScope === 'MEMBER'
+                  ? 'This RND reviewed this member meal. Historical attribution is retained.'
+                  : 'This RND reviewed the recipe. This does not certify it for an individual health profile.'}
+              </p>
+              <NutritionistCredentialCard
+                verifier={verifier}
+                nutritionistNote={nutritionistNote}
+                onViewNotes={() => setActiveTab('notes')}
+                layout="horizontal"
+                className="border-0 shadow-none rounded-none"
+              />
+            </>
           ) : (
             /* ════════ TAB 2: CLINICAL REVIEW & ADJUSTMENTS DETAILS ════════ */
             <div className="p-6 sm:p-8 space-y-6">

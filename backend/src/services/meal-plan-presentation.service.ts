@@ -166,7 +166,12 @@ export function serializeActionableMeal<
     ricePortion: rice?.quantityG ? ricePortionLabel(rice.quantityG) : null,
     image: planImage({ libraryMeal, sourceRawRecipeCandidate, selectionEvidence }, libraryImages),
     cookingLink: planCookingLink({ libraryMeal, sourceRawRecipeCandidate, selectionEvidence }, libraryCookingLinks),
-    verifier,
+    verifier: verifier
+      ? {
+          ...verifier,
+          reviewScope: nutritionist || firstApprovedByNutritionist ? ('MEMBER' as const) : ('RECIPE' as const),
+        }
+      : null,
     explanation: buildMealExplanation({
       libraryMealId: meal.libraryMealId,
       status: meal.status,

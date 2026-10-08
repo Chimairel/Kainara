@@ -89,7 +89,7 @@ describe('membership status and gates', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Health planning details' }));
     expect(screen.getByRole('tooltip')).toHaveTextContent('shellfish (including shrimp)');
     expect(screen.getByRole('tooltip')).toHaveTextContent('Individual assessment: kidney disease');
-    expect(screen.getByRole('tooltip')).toHaveTextContent('Planning depends on nutritionist clearance');
+    expect(screen.getByRole('tooltip')).toHaveTextContent('Planning depends on RND clearance');
     fireEvent.click(screen.getByRole('button', { name: 'Close' }));
     expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
   });
@@ -115,7 +115,7 @@ describe('membership status and gates', () => {
     expect(screen.getByText('21 meal swaps per cycle')).toBeInTheDocument();
     expect(screen.queryByText(/optional replans/i)).not.toBeInTheDocument();
     expect(screen.getByText('10 AI estimates per week')).toBeInTheDocument();
-    expect(screen.getByText('1 nutritionist plan review per week')).toBeInTheDocument();
+    expect(screen.getByText('1 RND plan review per week')).toBeInTheDocument();
     expect(screen.getByText('1 outside food review per week')).toBeInTheDocument();
     expect(screen.getByText(/Monday at midnight \(Philippine time\)/)).toBeInTheDocument();
     expect(
@@ -133,7 +133,7 @@ describe('membership status and gates', () => {
       within(screen.getByRole('article', { name: 'Lifestyle plan' })).queryByText('Recommended')
     ).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Health plan needed' })).toBeDisabled();
-    expect(screen.getByText(/Your health details require nutritionist review/)).toBeInTheDocument();
+    expect(screen.getByText(/Your health details require RND review/)).toBeInTheDocument();
     expect(within(screen.getByRole('article', { name: 'Health plan' })).getByText('₱999')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: /Yearly Billing/ }));
     expect(within(screen.getByRole('article', { name: 'Health plan' })).getByText('₱9,590')).toBeInTheDocument();

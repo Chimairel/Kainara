@@ -89,8 +89,7 @@ export const membershipChapter: DocsChapter = {
           </p>
           <p>
             Persistent reminders show overdue check-ins and unapplied updates. The active report supplies planning
-            context to the system and nutritionists; a report does not itself certify a meal or replace professional
-            review.
+            context to the system and RNDs; a report does not itself certify a meal or replace professional review.
           </p>
         </>
       ),
@@ -120,7 +119,7 @@ export const membershipChapter: DocsChapter = {
           <p>
             Professional review is scoped to the recorded meal, serving and current health context. It can approve,
             request correction or decline. Membership does not guarantee approval, continuous monitoring or a
-            consultation. AI estimates remain estimates unless a recorded nutritionist review confirms them.
+            consultation. AI estimates remain estimates unless a recorded RND review confirms them.
           </p>
         </>
       ),

@@ -419,7 +419,7 @@ export default function AdminProfilePage() {
 
               <p className="text-xs text-brand-muted leading-relaxed">
                 Signing out terminates your current security token and locks access to platform analytics, accounts, and
-                nutritionist license screening.
+                RND license screening.
               </p>
 
               <Button

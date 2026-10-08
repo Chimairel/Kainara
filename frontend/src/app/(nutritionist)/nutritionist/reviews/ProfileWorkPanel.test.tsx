@@ -125,7 +125,7 @@ const documentOnlyDetail = {
   documents: [{ ...bothDetail.documents[0], id: 'doc-2', originalFileName: 'scan.pdf', mimeType: 'application/pdf' }],
 };
 
-describe('unified nutritionist profile work', () => {
+describe('unified RND profile work', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.stubGlobal('URL', { ...URL, createObjectURL: vi.fn(() => 'blob:test-document'), revokeObjectURL: vi.fn() });

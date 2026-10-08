@@ -134,7 +134,7 @@ export function DashboardMealRow(props: Props) {
           <div className="rounded-2xl bg-black/30 backdrop-blur-md p-4 text-sm leading-relaxed text-white border border-white/20 shadow-inner">
             <p className="font-bold text-white flex items-center gap-1.5">
               <span className="h-2 w-2 rounded-full bg-amber-400" />
-              Pending nutritionist review
+              Pending RND review
             </p>
             {meal.description && <p className="mt-1.5 text-xs text-white/90 leading-normal">{meal.description}</p>}
             <p className="mt-2 text-xs leading-normal">

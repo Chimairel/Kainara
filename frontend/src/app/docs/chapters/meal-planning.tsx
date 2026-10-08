@@ -42,8 +42,7 @@ export const mealPlanningChapter: DocsChapter = {
           <p>
             The planner tries recorded eligible servings first, then other eligible published recipes. It checks current
             restrictions, source availability, ingredient and serving data, and the slot&apos;s energy range. A
-            restricted member&apos;s saved candidate may still need one nutritionist case decision before it is
-            actionable.
+            restricted member&apos;s saved candidate may still need one RND case decision before it is actionable.
           </p>
           <p>
             A verified base recipe is only a starting point. The planner still needs a usable portion, enough ingredient

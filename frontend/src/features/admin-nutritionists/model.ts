@@ -74,7 +74,7 @@ export function toLocalInput(iso?: string) {
 }
 
 export function professionalAccessLabel(professional: NutritionistRow, now = new Date()): string {
-  if (professional.user.role && professional.user.role !== 'NUTRITIONIST') return 'Nutritionist role not active';
+  if (professional.user.role && professional.user.role !== 'NUTRITIONIST') return 'RND role not active';
   if (professional.user.isSuspended) return 'Access revoked';
   if (!professional.isVerified) return 'Verification pending';
   const expiry = new Date(professional.prcLicenseExpiry);

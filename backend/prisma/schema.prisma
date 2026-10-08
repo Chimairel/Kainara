@@ -754,6 +754,97 @@ enum ConsumptionMappingStatus {
 // TABLES
 // ═══════════════════════════════════════════════════════════════
 
+// Recipe holds use FLAGGED for existing eligibility gates. This separate history
+// distinguishes pending re-review from quarantine without rewriting legacy flags.
+model MealReviewLineage {
+  id                   String               @id @default(cuid())
+  key                  String               @unique
+  incidentCount        Int                  @default(0)
+  everQuarantined      Boolean              @default(false)
+  legacyHistoryUnknown Boolean              @default(false)
+  state                String               @default("PUBLISHED")
+  createdAt            DateTime             @default(now())
+  updatedAt            DateTime             @updatedAt
+  meals                MealLibrary[]
+  incidents            MealReviewIncident[]
+}
+
+model MealReviewIncident {
+  id                      String                   @id @default(cuid())
+  lineageId               String
+  lineage                 MealReviewLineage        @relation(fields: [lineageId], references: [id], onDelete: Restrict)
+  number                  Int
+  state                   String
+  legacy                  Boolean                  @default(false)
+  excludedReviewerIds     Json
+  claimedByNutritionistId String?
+  claimedAt               DateTime?
+  createdAt               DateTime                 @default(now())
+  closedAt                DateTime?
+  reports                 MealReviewReport[]
+  decisions               MealReviewDecision[]
+  confirmations           MealReviewConfirmation[]
+
+  @@unique([lineageId, number])
+  @@index([state, createdAt])
+}
+
+model MealReviewReport {
+  id                  String             @id @default(cuid())
+  incidentId          String
+  incident            MealReviewIncident @relation(fields: [incidentId], references: [id], onDelete: Restrict)
+  actorUserId         String
+  actorNutritionistId String?
+  actorSnapshot       Json
+  expectedVersion     String
+  notes               Json
+  createdAt           DateTime           @default(now())
+
+  @@index([incidentId, createdAt])
+}
+
+// Append-only decisions retain the values actually reviewed, including actors
+// and evidence. Scalar actor IDs survive account deletion without clinical data.
+model MealReviewDecision {
+  id            String             @id @default(cuid())
+  incidentId    String
+  incident      MealReviewIncident @relation(fields: [incidentId], references: [id], onDelete: Restrict)
+  action        String
+  version       String
+  actorUserId   String
+  actorSnapshot Json
+  snapshot      Json
+  rationale     String             @db.Text
+  createdAt     DateTime           @default(now())
+
+  @@index([incidentId, createdAt])
+}
+
+model MealReviewConfirmation {
+  id             String             @id @default(cuid())
+  incidentId     String
+  incident       MealReviewIncident @relation(fields: [incidentId], references: [id], onDelete: Restrict)
+  nutritionistId String
+  version        String
+  resolutions    Json
+  actorSnapshot  Json
+  createdAt      DateTime           @default(now())
+
+  @@unique([incidentId, nutritionistId, version])
+}
+
+model MealBatchImport {
+  id          String    @id @default(cuid())
+  actorUserId String
+  payloadHash String
+  payload     Json
+  result      Json?
+  createdAt   DateTime  @default(now())
+  importedAt  DateTime?
+
+  @@index([actorUserId, createdAt])
+}
+
 model User {
   membershipAccount               MembershipAccount?
   membershipGrants                MembershipGrant[]
@@ -1471,6 +1562,8 @@ model MealPlanReviewDecision {
 }
 
 model MealLibrary {
+  reviewLineageId                  String?
+  reviewLineage                    MealReviewLineage?                 @relation(fields: [reviewLineageId], references: [id], onDelete: Restrict)
   id                               String                             @id @default(cuid())
   parentMealId                     String?
   parentMeal                       MealLibrary?                       @relation("MealDerivation", fields: [parentMealId], references: [id], onDelete: Restrict)

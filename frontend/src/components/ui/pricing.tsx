@@ -208,7 +208,7 @@ export default function Pricing({
     {
       tier: 'HEALTH' as const,
       name: 'Health',
-      description: 'Case planning and bounded nutritionist review for declared health needs.',
+      description: 'Case planning and bounded RND review for declared health needs.',
       price: prices.HEALTH.MONTHLY / 100,
       yearlyPrice: prices.HEALTH.YEARLY / 100,
       popular: recommendedTier === 'HEALTH',
@@ -218,7 +218,7 @@ export default function Pricing({
         `${l.healthSwaps} meal swaps per cycle`,
         { label: 'Planning for conditions and restrictions needing review', details: 'HEALTH' as const },
         'New case plans subject to required clearance',
-        `${l.memberPlanReviews} nutritionist plan review${l.memberPlanReviews === 1 ? '' : 's'} per week`,
+        `${l.memberPlanReviews} RND plan review${l.memberPlanReviews === 1 ? '' : 's'} per week`,
         `${l.memberOutsideReviews} outside food review${l.memberOutsideReviews === 1 ? '' : 's'} per week`,
         'Follow-up on an existing admitted review',
       ],
@@ -308,7 +308,7 @@ export default function Pricing({
             className="text-sm sm:text-base leading-relaxed max-w-2xl text-brand-muted"
           >
             Your first 30 days include the Health plan. Free general planning continues with your saved report. Choose
-            Lifestyle for changing goals or Health for case planning and nutritionist review.
+            Lifestyle for changing goals or Health for case planning and RND review.
           </TimelineContent>
 
           <TimelineContent
@@ -333,7 +333,7 @@ export default function Pricing({
 
         {lifestyleBlocked && !checkout.quote && (
           <p className="mb-3 text-sm text-brand-muted">
-            Your health details require nutritionist review. Choose Health to continue personalized meal planning.
+            Your health details require RND review. Choose Health to continue personalized meal planning.
           </p>
         )}
         {checkout.professional && (

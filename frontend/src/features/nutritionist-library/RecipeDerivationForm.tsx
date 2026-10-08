@@ -19,9 +19,11 @@ type Ingredient = { foodItemId: string; name: string; grams: number; food?: Part
 export default function RecipeDerivationForm({
   meal,
   onCreated,
+  correctionVersion,
 }: {
   meal: LibraryMeal;
   onCreated: (id: string) => void;
+  correctionVersion?: string;
 }) {
   const [open, setOpen] = useState(false);
   const [name, setName] = useState(meal.mealName);
@@ -93,22 +95,43 @@ export default function RecipeDerivationForm({
     setBusy(true);
     setError(null);
     try {
-      const result = await api.post(`/nutritionist/library/${meal.id}/derive`, {
-        expectedRevision: meal.safetyEvidenceRevision,
-        mealName: name,
-        summary,
-        instructions,
-        mealType: meal.mealType,
-        ingredients: ingredients.map(({ foodItemId, grams }) => ({ foodItemId, grams })),
-        riceRole: role,
-        includedRiceG: role === 'INCLUDES_RICE' ? riceGrams : null,
-        riceMinHalfCups: minRice,
-        riceMaxHalfCups: maxRice,
-        imageUrl: image.trim() || null,
-        imageMatchesRecipe: imageMatches,
-        rationale: reason,
-      });
-      onCreated(result.data.data.id);
+      const result = correctionVersion
+        ? await api.post(`/nutritionist/meal-review-cases/${meal.id}/correct`, {
+            expectedVersion: correctionVersion,
+            rationale: reason,
+            meal: {
+              mealName: name,
+              mealType: meal.mealType,
+              summary,
+              instructions,
+              nutritionBasis: reason,
+              nutritionServingDescription: meal.nutritionServingDescription || 'One measured recipe serving',
+              ...totals,
+              sodiumMg: null,
+              sugarG: null,
+              fiberG: null,
+              potassiumMg: null,
+              phosphorusMg: null,
+              saturatedFatG: null,
+              ingredients: ingredients.map(({ foodItemId, grams }) => ({ foodItemId, gramsPerServing: grams })),
+            },
+          })
+        : await api.post(`/nutritionist/library/${meal.id}/derive`, {
+            expectedRevision: meal.safetyEvidenceRevision,
+            mealName: name,
+            summary,
+            instructions,
+            mealType: meal.mealType,
+            ingredients: ingredients.map(({ foodItemId, grams }) => ({ foodItemId, grams })),
+            riceRole: role,
+            includedRiceG: role === 'INCLUDES_RICE' ? riceGrams : null,
+            riceMinHalfCups: minRice,
+            riceMaxHalfCups: maxRice,
+            imageUrl: image.trim() || null,
+            imageMatchesRecipe: imageMatches,
+            rationale: reason,
+          });
+      onCreated(correctionVersion ? meal.id : result.data.data.id);
     } catch (err) {
       setError(
         (err as { response?: { data?: { error?: string } } }).response?.data?.error ??
@@ -122,17 +145,21 @@ export default function RecipeDerivationForm({
   return (
     <section
       className="rounded-2xl border border-brand-border bg-brand-surface p-5 space-y-4"
-      aria-label="Create recipe version"
+      aria-label={correctionVersion ? 'Correct held recipe' : 'Create recipe version'}
     >
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h2 className="font-display text-xl font-bold">Adapt recipe or change serving</h2>
+          <h2 className="font-display text-xl font-bold">
+            {correctionVersion ? 'Correct held recipe' : 'Adapt recipe or change serving'}
+          </h2>
           <p className="text-sm text-brand-muted">
-            Save a new draft. The original and its approvals stay intact; another nutritionist must review your changes.
+            {correctionVersion
+              ? 'Corrections stay unavailable and invalidate prior confirmations. An uninvolved RND must review the new version.'
+              : 'Save a new draft. The original approvals remain separate; an uninvolved RND must review your changes.'}
           </p>
         </div>
         <Button variant="secondary" onClick={() => setOpen(!open)}>
-          {open ? 'Cancel editing' : 'Create recipe draft'}
+          {open ? 'Cancel editing' : correctionVersion ? 'Edit held recipe' : 'Create recipe draft'}
         </Button>
       </div>
       {open && (
@@ -305,14 +332,14 @@ export default function RecipeDerivationForm({
             onClick={() => void submit()}
             isLoading={busy}
             disabled={
-              !imageMatches ||
-              reason.trim().length < 10 ||
-              instructions.trim().length < 10 ||
+              (!correctionVersion && !imageMatches) ||
+              reason.trim().length < (correctionVersion ? 20 : 10) ||
+              instructions.trim().length < (correctionVersion ? 20 : 10) ||
               !ingredients.length ||
               ingredients.some((item) => !item.foodItemId || item.grams <= 0)
             }
           >
-            Submit for independent review
+            {correctionVersion ? 'Save correction and keep held' : 'Submit for independent review'}
           </Button>
         </div>
       )}

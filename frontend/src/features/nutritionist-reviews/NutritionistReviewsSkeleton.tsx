@@ -52,7 +52,7 @@ export function ReviewDetailSkeleton() {
 }
 export function NutritionistReviewsSkeleton() {
   return (
-    <div className="flex flex-col gap-5 text-left" aria-label="Loading nutritionist review workspace" aria-busy="true">
+    <div className="flex flex-col gap-5 text-left" aria-label="Loading RND review workspace" aria-busy="true">
       <SkeletonHeader />
       <SkeletonTabs count={3} />
       <div className="w-full max-w-lg">

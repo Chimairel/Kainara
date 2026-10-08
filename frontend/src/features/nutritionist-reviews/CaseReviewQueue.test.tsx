@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 import CaseReviewQueue from './CaseReviewQueue';
 import type { useNutritionistReviews } from './useNutritionistReviews';
 
-describe('single nutritionist case queue', () => {
+describe('single RND case queue', () => {
   it('keeps an older partial review selectable while respecting peer claims', () => {
     const select = vi.fn();
     const meal = {
@@ -29,7 +29,7 @@ describe('single nutritionist case queue', () => {
           ...meal,
           id: 'claimed',
           mealName: 'Adobo',
-          claimStatus: { claimedByOther: true, claimedByMe: false, claimedByName: 'Another nutritionist' },
+          claimStatus: { claimedByOther: true, claimedByMe: false, claimedByName: 'Another RND' },
         },
       ],
       fetchQueue: vi.fn(),
@@ -43,6 +43,6 @@ describe('single nutritionist case queue', () => {
     expect(select).toHaveBeenCalledWith('partial');
     expect(screen.getByRole('button', { name: /Adobo/ })).toBeDisabled();
     expect(screen.queryByText(/second review/i)).not.toBeInTheDocument();
-    expect(screen.getAllByText('One nutritionist approval required')).toHaveLength(2);
+    expect(screen.getAllByText('One RND approval required')).toHaveLength(2);
   });
 });

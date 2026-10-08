@@ -2,6 +2,8 @@ import { fireEvent, render, screen, within } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import MealLibraryPage from '@/app/(nutritionist)/nutritionist/library/page';
 
+vi.mock('./MealReviewQueue', () => ({ default: () => null }));
+
 const coverage = {
   sourceRecipesWithCoreNutrition: 1960,
   certifiedMeals: 51,
@@ -59,7 +61,7 @@ vi.mock('@/features/nutritionist-library/useNutritionistLibrary', () => ({
   }),
 }));
 
-describe('nutritionist recipe coverage', () => {
+describe('RND recipe coverage', () => {
   it('separates source data, automatic reuse, and case-review candidates', () => {
     render(<MealLibraryPage />);
     fireEvent.click(screen.getByRole('button', { name: 'Recipe coverage' }));

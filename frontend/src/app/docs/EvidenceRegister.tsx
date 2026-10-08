@@ -23,8 +23,8 @@ export const evidenceRegisterSections: DocsSection[] = [
           These reference entries describe proposed calculations and where professional judgment would be required. They
           are reference material, not a list of active app features. They are{' '}
           <strong className="text-brand-text">inactive drafts</strong> until the exact policy version, inputs,
-          population, and failure behavior receive the required Registered Nutritionist-Dietitian approvals. A published
-          reference does not activate a clinical rule on its own.
+          population, and failure behavior receive the required RND approvals. A published reference does not activate a
+          clinical rule on its own.
         </p>
         <div className="space-y-9 pt-2">
           {CLINICAL_POLICY_SUMMARIES.map((policy) => {

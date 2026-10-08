@@ -11,7 +11,7 @@ const preview = {
   claimStatus: { claimedByMe: false, claimedByOther: false, claimedByName: null, claimExpiresAt: null },
 };
 
-describe('nutritionist review claim controls', () => {
+describe('RND review claim controls', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.mocked(api.get).mockImplementation(async (url) => ({

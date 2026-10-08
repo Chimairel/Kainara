@@ -46,8 +46,8 @@ export default function SharedLibraryCoverage({ coverage }: { coverage: LibraryC
       <p className="text-xs leading-relaxed text-brand-muted">
         Source recipes can support general-wellness planning; their numbers may include estimates and do not grant
         condition or allergy clearance. The counts below use certified library servings only. Automatic reuse needs a
-        current matching clearance or approval. Case-review candidates still need an individual nutritionist decision.
-        The variety target is {coverage.requiredPerSlot} distinct choices per main-meal slot.
+        current matching clearance or approval. Case-review candidates still need an individual RND decision. The
+        variety target is {coverage.requiredPerSlot} distinct choices per main-meal slot.
       </p>
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
         {coverage.profiles.map((profile) => (

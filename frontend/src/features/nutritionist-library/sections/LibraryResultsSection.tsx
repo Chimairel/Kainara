@@ -81,7 +81,9 @@ export default function LibraryResultsSection({ model }: Props) {
                         className="text-[10px]"
                       >
                         {meal.status === 'FLAGGED'
-                          ? 'Flagged'
+                          ? meal.reviewLineage?.state === 'QUARANTINED'
+                            ? 'Quarantined'
+                            : 'Pending re-review'
                           : meal.baseVerification === 'VERIFIED'
                             ? 'Verified'
                             : 'Review pending'}

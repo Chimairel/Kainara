@@ -58,7 +58,7 @@ test('five profiles and nutritionist case workspace show the recorded approval s
   const pendingContext = await browser.newContext();
   const pendingPage = await pendingContext.newPage();
   await signIn(pendingPage, `cf-profile-ui-${runId}@example.com`, 'CaseFlow123!');
-  await expect(pendingPage.getByText('A nutritionist needs to review your declared health profile')).toBeVisible();
+  await expect(pendingPage.getByText('An RND needs to review your declared health profile')).toBeVisible();
   await pendingContext.close();
 
   const context = await browser.newContext({ viewport: { width: 1365, height: 900 } });

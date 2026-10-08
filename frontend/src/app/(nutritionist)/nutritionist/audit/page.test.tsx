@@ -13,7 +13,7 @@ vi.mock('../reviews/GovernanceQueuePanel', () => ({
   default: ({ tab }: { tab: string }) => <div data-testid="recheck-queue">{tab}</div>,
 }));
 
-describe('nutritionist audit page', () => {
+describe('RND audit page', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     clearSessionResourceCache();
@@ -43,7 +43,7 @@ describe('nutritionist audit page', () => {
     );
   });
 
-  it('shows review history across nutritionists, pages results, and opens due rechecks', async () => {
+  it('shows review history across RNDs, pages results, and opens due rechecks', async () => {
     render(<NutritionistAuditPage />);
     expect(await screen.findByText('Andrea Reyes')).toBeInTheDocument();
     expect(screen.getByText('Flagged a meal')).toBeInTheDocument();

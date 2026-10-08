@@ -145,7 +145,7 @@ export const loopSteps = [
   {
     icon: Stethoscope,
     title: 'Professional Review',
-    text: 'Nutritionists review profiles, meal cases and submitted recipes, recording decisions within each review’s scope.',
+    text: 'RNDs review profiles, meal cases and submitted recipes, recording decisions within each review’s scope.',
     color: 'text-brand-accent',
     bg: 'border-brand-accent/30 bg-brand-accent/15 text-brand-accent',
     phaseLabel: 'text-brand-accent',
@@ -178,7 +178,7 @@ export const rndStages = [
   {
     icon: ShieldCheck,
     title: 'Controlled Access',
-    text: 'Approved applicants receive an account activation invitation for the nutritionist workspace.',
+    text: 'Approved applicants receive an account activation invitation for the RND workspace.',
     color: 'text-[#f09e6c]',
     bg: 'border-[#f09e6c]/30 bg-[#f09e6c]/15 text-[#f09e6c]',
     stepColor: 'text-[#f09e6c]',

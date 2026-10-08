@@ -13,6 +13,7 @@ describe('meal approvals on the recipe detail page', () => {
         data: [
           {
             id: 'variant-1',
+            recipeVersion: 'a'.repeat(64),
             mealName: 'Tinola',
             nutritionServingDescription: 'One bowl',
             calories: 420,
@@ -75,6 +76,7 @@ describe('meal approvals on the recipe detail page', () => {
         data: [
           {
             id: 'variant-1',
+            recipeVersion: 'a'.repeat(64),
             mealName: 'Tinola',
             nutritionServingDescription: 'One bowl',
             calories: 420,
@@ -104,6 +106,7 @@ describe('meal approvals on the recipe detail page', () => {
         data: {
           meal: {
             id: 'variant-1',
+            recipeVersion: 'a'.repeat(64),
             mealName: 'Tinola',
             description: 'Chicken soup',
             calories: 420,
@@ -136,15 +139,29 @@ describe('meal approvals on the recipe detail page', () => {
     fireEvent.click(screen.getByRole('button', { name: 'View' }));
     expect(await screen.findByText(/Test User · 30 years/)).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Flag approval' }));
-    fireEvent.change(screen.getByRole('textbox', { name: 'Reason for flagging this approval' }), {
+    fireEvent.change(screen.getByRole('textbox', { name: 'Explanation of this approval concern' }), {
       target: { value: 'The approved serving needs another ingredient check.' },
+    });
+    fireEvent.change(screen.getByLabelText('Affected ingredients or fields'), { target: { value: 'salt' } });
+    fireEvent.change(screen.getByLabelText('Supporting evidence or reference'), {
+      target: { value: 'Recorded ingredient reference.' },
+    });
+    fireEvent.change(screen.getByLabelText('Proposed correction'), {
+      target: { value: 'Review measured ingredient quantities.' },
     });
     fireEvent.click(screen.getByRole('button', { name: 'Submit flag' }));
     await waitFor(() =>
       expect(mocks.post).toHaveBeenCalledWith('/nutritionist/library/variant-1/approvals/flag', {
         kind: 'CONDITION',
         approvalId: 'condition-1',
-        reason: 'The approved serving needs another ingredient check.',
+        expectedVersion: 'a'.repeat(64),
+        notes: {
+          category: 'NUTRITION',
+          affectedFields: ['salt'],
+          explanation: 'The approved serving needs another ingredient check.',
+          reference: 'Recorded ingredient reference.',
+          proposedCorrection: 'Review measured ingredient quantities.',
+        },
       })
     );
   });
@@ -155,6 +172,7 @@ describe('meal approvals on the recipe detail page', () => {
         data: [
           {
             id: 'variant-1',
+            recipeVersion: 'a'.repeat(64),
             status: 'FLAGGED',
             mealName: 'Tinola',
             nutritionServingDescription: 'One bowl',
