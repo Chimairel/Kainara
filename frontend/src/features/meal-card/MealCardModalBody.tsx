@@ -3,7 +3,7 @@
 import { AlertCircle, Clock3, Flame, Info, ShieldCheck, Sparkles, UtensilsCrossed } from 'lucide-react';
 import { MealMotionDiv } from '../../components/user/MealMotion';
 
-import { maskPrcLicenseNumber } from '../../components/user/NutritionistCredentialModal';
+import MealReviewAttribution from '@/components/user/MealReviewAttribution';
 
 import type { useMealCardModel } from './useMealCardModel';
 type Model = Extract<ReturnType<typeof useMealCardModel>, { kind: 'ready' }>;
@@ -72,6 +72,14 @@ export default function MealCardModalBody({ model }: SectionProps) {
         transition={{ duration: 0.15 }}
         className="p-5 sm:p-7 pb-8 sm:pb-9 overflow-y-auto custom-scrollbar flex-1 flex flex-col gap-5"
       >
+        <MealReviewAttribution
+          verifier={displayVerifier}
+          nutritionistNote={nutritionistNote}
+          onViewReviewer={() => {
+            setVerifierModalTab('card');
+            setIsVerifierOpen(true);
+          }}
+        />
         {/* Notice Banners */}
         {isUnloggedPastMeal && !isPastGracePeriod && (
           <div className="p-3 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-xs text-amber-700 dark:text-amber-300 font-semibold flex items-center gap-2">
@@ -228,75 +236,6 @@ export default function MealCardModalBody({ model }: SectionProps) {
               })}
             </ul>
           </section>
-        )}
-
-        {/* Clinician Verifier Endorsement */}
-        {displayVerifier && (
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <h4 className="text-xs font-bold uppercase tracking-wider text-brand-muted flex items-center gap-1.5">
-                <ShieldCheck className="h-3.5 w-3.5 text-brand-green" />
-                <span>Verified by</span>
-              </h4>
-              <span className="text-[10px] font-bold text-brand-green bg-brand-green/10 px-2 py-0.5 rounded-full border border-brand-green/20">
-                PRC-Licensed RND
-              </span>
-            </div>
-            <button
-              type="button"
-              onClick={() => {
-                setVerifierModalTab('card');
-                setIsVerifierOpen(true);
-              }}
-              className="group relative flex w-full flex-col gap-3 rounded-2xl sm:rounded-3xl border border-brand-green/30 bg-gradient-to-br from-brand-green/[0.08] via-brand-green/[0.03] to-transparent p-4 text-left transition hover:border-brand-green/60 hover:shadow-md cursor-pointer"
-              aria-label={`View clinical credentials for ${displayVerifier.name}`}
-            >
-              <div className="flex items-center justify-between gap-3">
-                <div className="flex items-center gap-3 min-w-0">
-                  {displayVerifier.image ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={displayVerifier.image}
-                      alt={displayVerifier.name}
-                      className="h-11 w-11 rounded-full object-cover border-2 border-brand-green/30 shadow-sm shrink-0"
-                    />
-                  ) : (
-                    <div className="h-11 w-11 rounded-full bg-brand-green/15 border-2 border-brand-green/30 flex items-center justify-center text-brand-green font-display font-bold text-sm shrink-0">
-                      {displayVerifier.name
-                        .split(' ')
-                        .map((n) => n[0])
-                        .slice(0, 2)
-                        .join('')}
-                    </div>
-                  )}
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-1.5 flex-wrap">
-                      <span className="font-display font-black text-sm text-brand-text truncate">
-                        {displayVerifier.name.endsWith('RND') ? displayVerifier.name : `${displayVerifier.name}, RND`}
-                      </span>
-                      <span className="inline-flex items-center gap-1 rounded-full bg-brand-green/15 px-2 py-0.5 text-[9px] font-black text-brand-green border border-brand-green/20">
-                        <ShieldCheck className="h-3 w-3" /> PRC-Verified
-                      </span>
-                    </div>
-                    <p className="text-[11px] text-brand-muted truncate mt-0.5">
-                      {displayVerifier.specialization || 'Clinical Dietetics & Nutrition'} •{' '}
-                      {maskPrcLicenseNumber(displayVerifier.prcLicenseNumber)}
-                    </p>
-                  </div>
-                </div>
-                <span className="shrink-0 text-xs font-bold text-brand-green group-hover:translate-x-0.5 transition-transform flex items-center gap-1">
-                  Credentials ↗
-                </span>
-              </div>
-
-              {nutritionistNote && (
-                <div className="rounded-xl bg-brand-surface/90 dark:bg-black/40 border border-brand-green/20 px-3 py-2 text-xs text-brand-muted italic">
-                  <span className="font-bold not-italic text-brand-green mr-1.5">RND Note:</span>
-                  &ldquo;{nutritionistNote}&rdquo;
-                </div>
-              )}
-            </button>
-          </div>
         )}
 
         {/* Cooking & Recipe Guide */}

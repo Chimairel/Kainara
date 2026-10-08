@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import React from 'react';
 import { describe, expect, it, vi } from 'vitest';
 import MealCard from './MealCard';
@@ -133,15 +133,13 @@ describe('MealCard', () => {
     const cardButton = screen.getByRole('button', { name: /open Sinigang na Hipon details/i });
     fireEvent.click(cardButton);
 
-    // Verify Verified by section header and RND banner
-    expect(screen.getByText('Verified by')).toBeInTheDocument();
-    expect(screen.getByText('PRC-Licensed RND')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Reviewed by Andrea Reyes, RND/i })).toBeInTheDocument();
+    const attribution = screen.getByRole('region', { name: 'Meal review attribution' });
+    expect(within(attribution).getByText('Verified by')).toBeInTheDocument();
     expect(screen.getByText(/PRC Lic\. No\. ••••••8765/i)).toBeInTheDocument();
     expect(screen.getByText(/Reduced sodium for renal support\./i)).toBeInTheDocument();
 
     // Click to open verifier credential modal
-    const verifierBtn = screen.getByRole('button', { name: /view clinical credentials for Andrea Reyes/i });
+    const verifierBtn = within(attribution).getByRole('button', { name: /Reviewed by Andrea Reyes, RND/i });
     fireEvent.click(verifierBtn);
 
     // NutritionistCredentialModal should be visible
@@ -156,5 +154,33 @@ describe('MealCard', () => {
     expect(screen.queryByText('Verified by')).not.toBeInTheDocument();
     expect(screen.queryByText('Andrea Reyes, RND')).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /view clinical credentials/i })).not.toBeInTheDocument();
+    expect(screen.getByText('No RND review recorded for this meal.')).toBeInTheDocument();
+  });
+
+  it.each(['RECIPE', 'MEMBER'] as const)(
+    'shows %s attribution before nutrition without inventing credentials',
+    (scope) => {
+      render(<MealCard {...defaultProps} verifier={{ name: 'Recorded Reviewer', reviewScope: scope }} defaultOpen />);
+      const attribution = screen.getByRole('region', { name: 'Meal review attribution' });
+      expect(attribution.parentElement?.firstElementChild).toBe(attribution);
+      expect(
+        within(attribution).getByText(scope === 'MEMBER' ? /Your meal approval/ : /Recipe review/)
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByText(/Clinical Dietetics & Nutrition|PRC-Verified|PRC-Licensed RND/)
+      ).not.toBeInTheDocument();
+      fireEvent.click(within(attribution).getByRole('button', { name: /Reviewed by Recorded Reviewer, RND/ }));
+      expect(screen.getByRole('dialog', { name: 'Credentials of Recorded Reviewer' })).toBeInTheDocument();
+      expect(screen.getAllByText('Not recorded').length).toBeGreaterThan(0);
+      fireEvent.click(screen.getByRole('button', { name: 'Close credential details' }));
+      expect(screen.getByRole('button', { name: 'Mark as eaten' })).toBeInTheDocument();
+    }
+  );
+
+  it('keeps pending meals without a recorded RND unattributed', () => {
+    render(<MealCard {...defaultProps} status="PENDING_REVIEW" defaultOpen />);
+    const attribution = screen.getByRole('region', { name: 'Meal review attribution' });
+    expect(within(attribution).getByText('No RND review recorded for this meal.')).toBeInTheDocument();
+    expect(within(attribution).queryByRole('button')).not.toBeInTheDocument();
   });
 });
