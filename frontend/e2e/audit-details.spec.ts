@@ -109,3 +109,147 @@ for (const role of ['ADMIN', 'NUTRITIONIST'] as const) {
     });
   }
 }
+
+for (const width of [390, 1440]) {
+  for (const theme of ['light', 'dark']) {
+    test(`admin case report uses saved changes at ${width}px in ${theme}`, async ({ page }, testInfo) => {
+      await page.setViewportSize({ width, height: 900 });
+      await page.addInitScript((value) => localStorage.setItem('nutrimind-theme', value), theme);
+      const errors: string[] = [];
+      page.on('pageerror', (error) => errors.push(error.message));
+      const user = {
+        id: 'synthetic-admin',
+        name: 'Synthetic admin',
+        email: 'audit@example.invalid',
+        role: 'ADMIN',
+        emailVerified: true,
+        onboardingDone: true,
+        tosAccepted: true,
+        onboardingStatus: { acceptedCurrentConsent: true, nextPath: null },
+        nutritionReport: null,
+      };
+      const claims = Buffer.from(
+        JSON.stringify({
+          userId: user.id,
+          email: user.email,
+          role: user.role,
+          exp: Math.floor(Date.now() / 1000) + 3600,
+        })
+      ).toString('base64url');
+      await page.context().addCookies([
+        {
+          name: 'nutrimind_session',
+          value: `eyJhbGciOiJIUzI1NiJ9.${claims}.fixture`,
+          url: new URL(process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:3000').origin,
+        },
+      ]);
+      let reads = 0;
+      let mutations = 0;
+      await page.route('**/api/**', async (route) => {
+        const request = route.request();
+        if (!['GET', 'OPTIONS'].includes(request.method())) mutations++;
+        const path = new URL(request.url()).pathname;
+        let data: unknown = null;
+        if (path.endsWith('/user/profile')) data = user;
+        else if (path.endsWith('/notifications')) data = { notifications: [], unreadCount: 0 };
+        else if (path.endsWith('/audit-history'))
+          data = {
+            rows: [
+              {
+                id: 'case',
+                occurredAt: '2026-10-05T01:00:00Z',
+                actor: 'Synthetic RND',
+                role: 'NUTRITIONIST',
+                action: 'Approved meal plan',
+                subject: 'Synthetic member case',
+                outcome: 'Approved',
+              },
+            ],
+            total: 1,
+            page: 1,
+            totalPages: 1,
+          };
+        else if (path.endsWith('/audit-history/case'))
+          data = {
+            facts: [{ label: 'Revision', value: '2' }],
+            reason: 'Saved case approval.',
+            food: null,
+            previous: null,
+            effective: null,
+          };
+        else if (path.endsWith('/case/review-context')) {
+          reads++;
+          data = {
+            currentProfile: {
+              name: 'Synthetic member',
+              userProfile: {
+                age: 22,
+                biologicalSex: 'MALE',
+                heightCm: 160,
+                weightKg: 57,
+                targetWeightKg: 65,
+                goal: 'BUILD_MUSCLE',
+                activityLevel: 'ACTIVE',
+                dietaryPreference: 'OMNIVORE',
+                planningReportVersion: 1,
+                revision: 2,
+                safetyRevision: 1,
+                firstReportAcknowledgedAt: '2026-10-05T20:32:22.051Z',
+              },
+              healthConditions: [{ condition: 'HEART_DISEASE' }],
+              allergies: [],
+            },
+            reviewedSnapshot: { profile: { age: 21, weightKg: 55 } },
+            decisions: [
+              {
+                id: 'old',
+                decision: 'APPROVED',
+                submittedAt: '2026-10-05T01:00:00Z',
+                rationale: 'Original saved findings.',
+                evidenceSnapshot: { dailyCalorieTarget: 1800, sodiumMg: null },
+              },
+              {
+                id: 'new',
+                decision: 'REJECTED',
+                submittedAt: '2026-10-06T01:00:00Z',
+                rationale: 'Later saved concern.',
+                evidenceSnapshot: { dailyCalorieTarget: 2200 },
+              },
+            ],
+            clinicalEvidence: [],
+            historicalInformation: null,
+          };
+        }
+        await route.fulfill({ json: { success: true, data } });
+      });
+      await page.goto('/admin/audit');
+      await page.getByRole('button', { name: 'RND history' }).click();
+      await page.getByRole('button', { name: /^Details:/ }).click();
+      await page.getByRole('button', { name: 'Open related review details' }).click();
+      const picker = page.getByRole('combobox', { name: 'Case record' });
+      await expect(picker).toHaveText(/Change 2/);
+      await picker.click();
+      await page.getByRole('option', { name: /^Change 1/ }).click();
+      await expect(page.getByText('Original saved findings.', { exact: true })).toBeVisible();
+      await expect(page.getByText('2200', { exact: true })).toHaveCount(0);
+      await picker.click();
+      await page.getByRole('option', { name: /^Current member profile/ }).click();
+      await expect(page.getByRole('article', { name: 'Current member profile' })).toBeVisible();
+      await expect(page.getByText('Height (cm)', { exact: true })).toBeVisible();
+      await expect(page.getByText('Build muscle', { exact: true })).toBeVisible();
+      const reader = page.getByLabel('Related case report');
+      await reader.scrollIntoViewIfNeeded();
+      expect(await reader.evaluate((node) => node.scrollWidth <= node.clientWidth + 1)).toBe(true);
+      await page.screenshot({ path: testInfo.outputPath(`case-report-${width}-${theme}.png`), fullPage: true });
+      await page.getByRole('button', { name: 'Expand case details' }).click();
+      await expect(page.getByRole('dialog', { name: 'Expanded audit report' })).toBeVisible();
+      await expect(picker).toHaveText(/Current member profile/);
+      await page.keyboard.press('Escape');
+      await expect(page.getByRole('dialog')).toHaveCount(0);
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
+      expect(reads).toBe(1);
+      expect(mutations).toBe(0);
+      expect(errors).toEqual([]);
+    });
+  }
+}

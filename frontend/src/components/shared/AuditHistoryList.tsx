@@ -6,6 +6,7 @@ import Link from 'next/link';
 import Button from '@/components/ui/Button';
 import { useSessionQuery } from '@/hooks/useSessionQuery';
 import api from '@/lib/axios';
+import RecordPaper, { recordFieldClass, recordSectionClass } from './RecordPaper';
 import CaseReviewContext from '@/features/admin-audit/CaseReviewContext';
 
 export type AuditRow = {
@@ -50,12 +51,15 @@ function RecordedDetails({ data, canAuthor }: { data: AuditDetails; canAuthor: b
   if (data.food?.source) facts.push({ label: 'Source', value: humanize(data.food.source) });
   if (data.food?.nutritionStatus) facts.push({ label: 'Food status', value: humanize(data.food.nutritionStatus) });
   return (
-    <div className="space-y-4 text-sm">
-      {data.food?.name && <h3 className="break-words font-display font-bold">{data.food.name}</h3>}
+    <RecordPaper aria-label="Recorded audit action" className="text-sm">
+      <p className="font-mono text-xs font-bold uppercase tracking-widest text-brand-green">KAINARA · Audit record</p>
+      {data.food?.name && (
+        <h3 className="break-words font-display text-xl font-extrabold tracking-tight">{data.food.name}</h3>
+      )}
       {!!facts.length && (
         <dl className="grid grid-cols-2 gap-x-5 gap-y-3 sm:grid-cols-3">
           {facts.map((fact) => (
-            <div key={fact.label} className="min-w-0">
+            <div key={fact.label} className={`${recordFieldClass} min-w-0`}>
               <dt className="text-xs text-brand-muted">{fact.label}</dt>
               <dd className="mt-1 break-words font-semibold">{fact.value}</dd>
             </div>
@@ -63,7 +67,7 @@ function RecordedDetails({ data, canAuthor }: { data: AuditDetails; canAuthor: b
         </dl>
       )}
       {data.effective && (
-        <table className="w-full text-left text-xs" aria-label="Recorded nutrition">
+        <table className={`${recordSectionClass} w-full text-left text-sm`} aria-label="Recorded nutrition">
           <thead className="text-brand-muted">
             <tr>
               <th className="py-2">Nutrition</th>
@@ -86,8 +90,8 @@ function RecordedDetails({ data, canAuthor }: { data: AuditDetails; canAuthor: b
         </table>
       )}
       {data.food && (
-        <div>
-          <h4 className="mb-2 text-xs font-bold">Recorded ingredients</h4>
+        <section className={recordSectionClass}>
+          <h4 className="mb-2 font-display text-sm font-bold">Recorded ingredients</h4>
           {data.food.ingredients.length ? (
             <ul className="space-y-1 text-xs">
               {data.food.ingredients.map((item, index) => (
@@ -100,13 +104,13 @@ function RecordedDetails({ data, canAuthor }: { data: AuditDetails; canAuthor: b
           ) : (
             <p className="text-xs text-brand-muted">Not recorded</p>
           )}
-        </div>
+        </section>
       )}
       {data.reason && (
-        <div>
-          <h4 className="mb-1 text-xs font-bold">Review reason</h4>
-          <p className="whitespace-pre-wrap break-words text-xs">{data.reason}</p>
-        </div>
+        <section className={recordSectionClass}>
+          <h4 className="mb-1 font-display text-sm font-bold">Review reason</h4>
+          <p className="whitespace-pre-wrap break-words text-sm leading-relaxed">{data.reason}</p>
+        </section>
       )}
       {!facts.length && !data.food && !data.reason && !data.effective && (
         <p className="text-xs text-brand-muted">No additional details were recorded.</p>
@@ -120,7 +124,7 @@ function RecordedDetails({ data, canAuthor }: { data: AuditDetails; canAuthor: b
           Author a meal
         </Link>
       )}
-    </div>
+    </RecordPaper>
   );
 }
 function DetailPanel({
@@ -231,7 +235,7 @@ function AuditEntry({
           id={panelId}
           role="region"
           aria-label={`${row.action} details`}
-          className="mx-4 mb-4 rounded-xl border border-brand-border/70 bg-brand-bgAlt/40 p-4 text-brand-text"
+          className="mx-2 mb-4 space-y-5 rounded-3xl border border-brand-border/70 bg-[#faf8f5] dark:bg-[#071914] p-2 text-brand-text sm:mx-4 sm:p-4"
         >
           <DetailPanel
             key={`${ownerId}:${row.id}`}
