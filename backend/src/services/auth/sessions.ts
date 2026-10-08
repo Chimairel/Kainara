@@ -4,6 +4,9 @@ import { signAccessToken, signRefreshToken, verifyRefreshToken } from '@/lib/jwt
 import { JWTPayload } from '@/types';
 
 export const REFRESH_SESSION_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+// Remote database latency/short row-lock waits can exceed Prisma's 5s default.
+// Keep session writes bounded and do not replay an ambiguously committed write.
+const SESSION_TRANSACTION_OPTIONS = { maxWait: 5_000, timeout: 15_000 };
 
 export function hashSessionToken(token: string): string {
   return crypto.createHash('sha256').update(token).digest('hex');
@@ -18,7 +21,10 @@ export async function createRefreshSession(
   if (expectedPasswordHash !== undefined) {
     await prisma.$transaction(async (tx) => {
       await tx.$queryRaw`SELECT id FROM "User" WHERE id = ${userId} FOR UPDATE`;
-      const current = await tx.user.findUnique({ where: { id: userId } });
+      const current = await tx.user.findUnique({
+        where: { id: userId },
+        select: { isSuspended: true, passwordLoginEnabled: true, passwordHash: true },
+      });
       if (
         !current ||
         current.isSuspended ||
@@ -33,7 +39,7 @@ export async function createRefreshSession(
           expires: new Date(Date.now() + REFRESH_SESSION_TTL_MS),
         },
       });
-    });
+    }, SESSION_TRANSACTION_OPTIONS);
   } else {
     await prisma.session.create({
       data: {
@@ -100,7 +106,7 @@ export async function refreshToken(token: string) {
         expires: new Date(Date.now() + REFRESH_SESSION_TTL_MS),
       },
     });
-  });
+  }, SESSION_TRANSACTION_OPTIONS);
 
   return {
     accessToken,

@@ -17,6 +17,7 @@
     "../scripts/audit-details-local-acceptance.ts",
     "../scripts/independent-findings-repair-acceptance.ts",
     "../scripts/meal-reminders-local-acceptance.ts",
-    "../scripts/specialist-routing-local-acceptance.ts"
+    "../scripts/specialist-routing-local-acceptance.ts",
+    "../scripts/auth-session-local-acceptance.ts"
   ]
 }
