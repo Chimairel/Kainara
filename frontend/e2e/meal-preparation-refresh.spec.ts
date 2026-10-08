@@ -42,7 +42,14 @@ async function fixture(page: Page, cycleExists = true) {
     ingredients: [],
     mealLogs: [],
   };
-  const state = { status: 'GENERATING', pending: false, readFailure: false, planReads: 0, navigations: 0 };
+  const state = {
+    status: 'GENERATING',
+    pending: false,
+    partial: false,
+    readFailure: false,
+    planReads: 0,
+    navigations: 0,
+  };
   page.on('framenavigated', (frame) => {
     if (frame === page.mainFrame()) state.navigations++;
   });
@@ -58,7 +65,7 @@ async function fixture(page: Page, cycleExists = true) {
         return route.fulfill({ status: 503, json: { success: false, error: 'Status temporarily unavailable' } });
       const ready = state.status === 'COMPLETED';
       const pendingReview =
-        ready && state.pending
+        (ready || state.partial) && state.pending
           ? {
               mealCount: 1,
               planType: 'WEEKLY',
@@ -69,19 +76,19 @@ async function fixture(page: Page, cycleExists = true) {
       return route.fulfill({
         json: {
           success: true,
-          data: ready && !state.pending ? [meal] : [],
+          data: (ready || state.partial) && !state.pending ? [meal] : [],
           meta: {
             pendingReview,
             ...(workspace
               ? {
                   cycles: { current: cycleExists || ready ? cycle : null, upcoming: null },
                   generationStatus: { current: state.status, upcoming: null },
-                  awaitingGeneration: { current: ready ? 0 : 1, upcoming: 0 },
+                  awaitingGeneration: { current: state.partial ? 2 : ready ? 0 : 1, upcoming: 0 },
                 }
               : {
                   cycle: cycleExists || ready ? cycle : null,
                   generationStatus: state.status,
-                  awaitingGenerationCount: ready ? 0 : 1,
+                  awaitingGenerationCount: state.partial ? 2 : ready ? 0 : 1,
                 }),
           },
         },
@@ -97,6 +104,51 @@ async function fixture(page: Page, cycleExists = true) {
     return route.fulfill({ json: { success: true, data } });
   });
   return state;
+}
+
+for (const width of [400, 1440]) {
+  test(`partial-plan banners preserve previews and retry at ${width}px`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 900 });
+    await page.addInitScript(
+      (theme) => localStorage.setItem('nutrimind-theme', theme),
+      width === 400 ? 'dark' : 'light'
+    );
+    const state = await fixture(page);
+    state.partial = true;
+    state.pending = true;
+    await page.goto('/dashboard');
+    const preparation = page.getByRole('complementary', { name: 'Meal preparation status' });
+    const review = page.getByRole('complementary', { name: 'Meal review status' });
+    await expect(preparation).toContainText('2 meal slots still awaiting generation.');
+    await expect(review).toContainText('logging becomes available after approval.');
+    await expect(page.getByRole('button', { name: 'Mark as eaten' })).toHaveCount(0);
+    for (const banner of [preparation, review]) {
+      const bounds = (await banner.boundingBox())!;
+      expect(bounds.x).toBeGreaterThanOrEqual(0);
+      expect(bounds.x + bounds.width).toBeLessThanOrEqual(width + 1);
+    }
+    await page.screenshot({ path: test.info().outputPath('dashboard-banners.png'), fullPage: true });
+
+    state.status = 'FAILED';
+    await expect(preparation).toContainText('2 meal slots could not be prepared.', { timeout: 7_000 });
+    await page.route('**/api/user/meals/cycles/fixture-cycle/retry-generation', async (route) => {
+      state.partial = false;
+      state.status = 'COMPLETED';
+      await route.fulfill({ json: { success: true, data: {} } });
+    });
+    await page.getByRole('button', { name: 'Retry missing slots' }).click();
+    await expect(preparation).toHaveCount(0);
+    await expect(review).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Mark as eaten' })).toHaveCount(0);
+
+    state.partial = true;
+    state.status = 'GENERATING';
+    await page.goto('/meals');
+    await expect(preparation).toContainText('2 meal slots still awaiting generation.');
+    await expect(preparation).toContainText(
+      'Empty slots cannot be reviewed, logged, swapped, or added to groceries yet.'
+    );
+  });
 }
 
 for (const cycleExists of [false, true]) {

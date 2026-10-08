@@ -8,6 +8,8 @@ export interface AnnouncementBannerAction {
   href?: string;
   onClick?: () => void;
   className?: string;
+  /** Prevent duplicate submissions for button actions while a request is running. */
+  disabled?: boolean;
 }
 
 export interface AnnouncementBannerProps {
@@ -40,7 +42,7 @@ export default function AnnouncementBanner({
   variant = 'warning',
 }: AnnouncementBannerProps) {
   const theme = variantStyles[variant] || variantStyles.warning;
-  const actionClasses = `inline-flex items-center justify-center rounded-xl bg-white px-3 py-1 text-xs font-bold ${theme.action} shadow-sm hover:bg-white/90 transition-all shrink-0 ml-1 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white ${action?.className || ''}`;
+  const actionClasses = `inline-flex items-center justify-center rounded-xl bg-white px-3 py-1 text-xs font-bold ${theme.action} shadow-sm hover:bg-white/90 transition-all shrink-0 ml-1 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white disabled:pointer-events-none disabled:opacity-50 ${action?.className || ''}`;
 
   return (
     <aside
@@ -57,7 +59,7 @@ export default function AnnouncementBanner({
             {action.label}
           </Link>
         ) : (
-          <button type="button" onClick={action.onClick} className={actionClasses}>
+          <button type="button" onClick={action.onClick} disabled={action.disabled} className={actionClasses}>
             {action.label}
           </button>
         ))}

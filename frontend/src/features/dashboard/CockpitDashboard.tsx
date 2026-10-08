@@ -1,6 +1,7 @@
 'use client';
 
 import CardDecoration from '@/components/ui/CardDecoration';
+import AnnouncementBanner from '@/components/shared/AnnouncementBanner';
 
 import { motion } from 'motion/react';
 import { formatManilaDate, getManilaDateKey } from '@/lib/manila-date';
@@ -271,10 +272,14 @@ export function CockpitDashboard({
             </div>
           </div>
           {pendingMeals.length > 0 && (
-            <p className="mb-4 rounded-2xl border border-status-pending-text/20 bg-status-pending-bg/50 p-3.5 text-xs leading-relaxed text-status-pending-text ml-7 sm:ml-10 lg:ml-12">
-              Awaiting review: pending meals are previews. Open a preview to see its ingredients; logging becomes
-              available after approval.
-            </p>
+            <div className="mb-4 ml-7 sm:ml-10 lg:ml-12">
+              <AnnouncementBanner
+                ariaLabel="Meal review status"
+                variant="info"
+                title="Awaiting review:"
+                message="Pending meals are previews. Open a preview to see its ingredients; logging becomes available after approval."
+              />
+            </div>
           )}
           <div className="space-y-4 flex-1 pl-7 sm:pl-10 lg:pl-12">
             {menu.map((entry, index) =>

@@ -56,13 +56,7 @@ export default function NutritionPdfViewer({
       </button>
     )
   ) : isAcknowledged ? (
-    <Button
-      variant="primary"
-      size="sm"
-      disabled
-      aria-label="Acknowledged"
-      className="!min-h-10 !rounded-lg !px-3 !text-[#07100d] disabled:!opacity-100"
-    >
+    <Button variant="primary" disabled aria-label="Acknowledged" className="disabled:!opacity-100">
       <Check className="h-4 w-4" />
       Acknowledged
     </Button>

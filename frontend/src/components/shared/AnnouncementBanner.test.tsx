@@ -67,4 +67,26 @@ describe('AnnouncementBanner', () => {
     fireEvent.click(button);
     expect(handleClick).toHaveBeenCalledTimes(1);
   });
+
+  it('blocks an action while disabled and allows it again when the request finishes', () => {
+    const handleClick = vi.fn();
+    const view = render(
+      <AnnouncementBanner
+        title="Preparing meals"
+        action={{ label: 'Retry missing slots', onClick: handleClick, disabled: true }}
+      />
+    );
+    const button = screen.getByRole('button', { name: 'Retry missing slots' });
+    expect(button).toBeDisabled();
+    fireEvent.click(button);
+    expect(handleClick).not.toHaveBeenCalled();
+    view.rerender(
+      <AnnouncementBanner
+        title="Preparing meals"
+        action={{ label: 'Retry missing slots', onClick: handleClick, disabled: false }}
+      />
+    );
+    fireEvent.click(button);
+    expect(handleClick).toHaveBeenCalledTimes(1);
+  });
 });
