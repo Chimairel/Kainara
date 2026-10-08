@@ -107,7 +107,9 @@
     "test:acceptance:meal-reminders": "tsx scripts/meal-reminders-local-acceptance.ts",
     "test:acceptance:specialist-routing": "tsx scripts/specialist-routing-local-acceptance.ts",
     "test:acceptance:auth-session": "tsx scripts/auth-session-local-acceptance.ts",
-    "test:acceptance:meal-governance": "tsx scripts/meal-governance-local-acceptance.ts"
+    "test:acceptance:meal-governance": "tsx scripts/meal-governance-local-acceptance.ts",
+    "test:acceptance:meal-log-audit": "tsx scripts/meal-log-audit-local-acceptance.ts",
+    "check:meal-log-audit": "tsc --project tsconfig.meal-log-audit.json"
   },
   "dependencies": {
     "@asteasolutions/zod-to-openapi": "^9.1.0",

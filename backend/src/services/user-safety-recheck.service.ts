@@ -1,4 +1,5 @@
 import prisma from '@/lib/prisma';
+import { setMealLogAuditContext } from './meal-log-audit-context.service';
 import { z } from 'zod';
 import { lockUserProfile } from './profile-revision.service';
 import { getStartOfManilaBusinessDay } from '@/domain/meal-actionability.policy';
@@ -385,6 +386,7 @@ export class UserSafetyRecheckService {
             where: { id: selectedLibraryMeal.id },
             data: { usageCount: { increment: 1 } },
           });
+          await setMealLogAuditContext(tx, null, 'System safety replacement');
           await tx.mealLog.upsert({
             where: { mealPlanId: meal.id },
             update: replacementLogData,
@@ -515,6 +517,7 @@ export class UserSafetyRecheckService {
             });
             await tx.mealPlanClearanceUsage.deleteMany({ where: { mealPlanId: meal.id } });
 
+            await setMealLogAuditContext(tx, null, 'System safety replacement');
             await tx.mealLog.upsert({
               where: { mealPlanId: meal.id },
               update: replacementLogData,

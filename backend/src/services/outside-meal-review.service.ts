@@ -9,6 +9,7 @@ import {
   Prisma,
 } from '@prisma/client';
 import prisma from '@/lib/prisma';
+import { setMealLogAuditContext } from './meal-log-audit-context.service';
 import { AppError } from '@/errors/AppError';
 import { summarizeOutsideMealNutrition } from '@/domain/outside-meal.policy';
 import { MealSwapService } from './meal-swap.service';
@@ -261,6 +262,7 @@ export class OutsideMealReviewService {
         const nutritionStatus = item.includedInTotals
           ? OutsideMealNutritionStatus.PENDING_REVIEW
           : OutsideMealNutritionStatus.UNRESOLVED;
+        await setMealLogAuditContext(tx, userId, 'Member supplied outside-meal clarification');
         const changed = await tx.outsideMealLogItem.updateMany({
           where: { id: item.id, currentRevision: item.currentRevision },
           data: { currentRevision: revision, nutritionStatus },
@@ -390,6 +392,7 @@ export class OutsideMealReviewService {
           where: { id: nutritionistProfileId },
           select: { userId: true },
         });
+        await setMealLogAuditContext(tx, reviewer.userId, action.reason);
         const correction = action.action === 'CORRECT';
         const needsInfo = action.action === 'NEEDS_MORE_INFO';
         const unverifiable = action.action === 'UNVERIFIABLE';

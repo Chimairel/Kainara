@@ -1,4 +1,5 @@
 import { swapMacroContext } from './meal-macro-context.service';
+import { setMealLogAuditContext } from './meal-log-audit-context.service';
 import { createHash, randomUUID } from 'node:crypto';
 import { Prisma } from '@prisma/client';
 import prisma from '@/lib/prisma';
@@ -510,6 +511,7 @@ export async function executeSourceSwap(
         dataSource: 'SYSTEM' as const,
         status: 'PENDING' as const,
       };
+      await setMealLogAuditContext(tx, userId, 'Member swapped scheduled meal');
       await tx.mealLog.upsert({
         where: { mealPlanId: slotId },
         create: { userId, mealPlanId: slotId, ...log },

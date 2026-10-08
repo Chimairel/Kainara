@@ -12,6 +12,8 @@ Administrator-managed nutrition sources, aggregate consumption releases, FNRI ma
 
 Meal flags, independent re-review, quarantine release, related-case admin oversight, and JSON draft batches use [`docs/MEAL_REVIEW_GOVERNANCE.md`](docs/MEAL_REVIEW_GOVERNANCE.md). The additive governance migration must be applied to a confirmed database target before deploying this workflow.
 
+Admin meal-log history and meal popularity use [`docs/MEAL_LOG_AUDIT.md`](docs/MEAL_LOG_AUDIT.md). Apply the additive meal-log audit migration to a confirmed target before opening these views. Historical age, membership and earlier edits remain explicitly unavailable; the migration does not invent them.
+
 ## Current verification status
 
 The application has substantial frontend and backend implementation. Verification results change as work continues; use the latest dated entry in the [engineering record](docs/NUTRIMIND_ENGINEERING_RECORD.md) and rerun the relevant checks for the code you are studying. Automated, browser, and disposable-database tests do not establish clinical approval. The [clinical policy approval record](docs/CLINICAL_POLICY_APPROVAL.md) is the separate release gate.

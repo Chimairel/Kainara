@@ -30,6 +30,7 @@ import {
 } from '@prisma/client';
 import { createHash, randomUUID } from 'node:crypto';
 import { MembershipService } from './membership.service';
+import { setMealLogAuditContext } from './meal-log-audit-context.service';
 import { recalculateDailyNutritionLog } from './meal-swap-nutrition.service';
 import { membershipEnabled } from '@/domain/membership.policy';
 import { z } from 'zod';
@@ -628,6 +629,7 @@ export class MealLogService {
             messages: [...new Set(committedItems.flatMap((item) => item.warnings))],
           };
           const warnings = safetyFollowUp.messages;
+          await setMealLogAuditContext(tx, input.userId, 'Member recorded outside meal');
           const log = await tx.mealLog.create({
             data: {
               userId: input.userId,

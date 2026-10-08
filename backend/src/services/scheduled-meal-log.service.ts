@@ -4,6 +4,7 @@ import { MealLogDataSource, MealLogSource, MealLogStatus } from '@prisma/client'
 import { MealPlanCycleService } from './meal-plan-cycle.service';
 import { lockUserProfile } from './profile-revision.service';
 import { AppError } from '@/errors/AppError';
+import { setMealLogAuditContext } from './meal-log-audit-context.service';
 import { recalculateDailyNutritionLog } from './meal-swap-nutrition.service';
 
 /** Keep ownership, profile locking, clearance and log writes in one transaction. */
@@ -34,6 +35,7 @@ export async function updateScheduledMealStatus(
       );
     }
 
+    await setMealLogAuditContext(tx, userId, 'Member recorded scheduled meal status');
     const log = await tx.mealLog.upsert({
       where: { mealPlanId },
       update: {

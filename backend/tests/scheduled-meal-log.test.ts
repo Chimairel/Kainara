@@ -26,8 +26,10 @@ for (const scenario of ['missing', 'pending', 'uncleared', 'ready'] as const) {
     };
     let written: Prisma.MealLogUpsertArgs | undefined;
     const tx = {
-      $executeRaw: async () => {
-        order.push('global lock');
+      $executeRaw: async (query: TemplateStringsArray, ...values: unknown[]) => {
+        const audit = query.join('').includes('set_config');
+        order.push(audit ? 'audit attribution' : 'global lock');
+        if (audit) assert.equal(JSON.parse(String(values[0])).actorUserId, 'patient');
         return 1;
       },
       $queryRaw: async () => {
@@ -81,7 +83,15 @@ for (const scenario of ['missing', 'pending', 'uncleared', 'ready'] as const) {
       assert.equal(written, undefined);
     } else {
       await updateScheduledMealStatus('patient', 'slot', 'DONE', 'Fixture note');
-      assert.deepEqual(order, ['global lock', 'profile lock', 'owned plan', 'clearance', 'write', 'aggregate']);
+      assert.deepEqual(order, [
+        'global lock',
+        'profile lock',
+        'owned plan',
+        'clearance',
+        'audit attribution',
+        'write',
+        'aggregate',
+      ]);
       assert.equal(written?.create.loggedAt, scheduledDate);
       assert.equal(written?.update.status, 'DONE');
       assert.equal(written?.create.notes, 'Fixture note');

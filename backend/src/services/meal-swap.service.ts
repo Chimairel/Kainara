@@ -45,6 +45,7 @@ import { composePlanWithPairedRice, replacePlanBaseServing } from './meal-plan-s
 import { recalculateDailyNutritionLog } from './meal-swap-nutrition.service';
 import { resolveReplacementServing } from './meal-swap-serving.service';
 import { lockUserProfile } from './profile-revision.service';
+import { setMealLogAuditContext } from './meal-log-audit-context.service';
 
 export function toPublicSwapOption(
   meal: CertifiedLibraryMeal & { alreadyPlannedInCycle?: boolean; pairedRiceG?: number | null },
@@ -720,6 +721,7 @@ export class MealSwapService {
         });
 
         // 8. Create MealLog with USER_SWAPPED source
+        await setMealLogAuditContext(tx, userId, 'Member swapped scheduled meal');
         await tx.mealLog.upsert({
           where: { mealPlanId },
           update: {

@@ -8,6 +8,7 @@ import {
   Prisma,
 } from '@prisma/client';
 import prisma from '@/lib/prisma';
+import { setMealLogAuditContext } from './meal-log-audit-context.service';
 import { resolveRecipeRiceRole } from '@/domain/recipe-rice-role.policy';
 import { AppError } from '@/errors/AppError';
 import {
@@ -45,7 +46,7 @@ function aggregateSource(
   return MealLogDataSource.MIXED;
 }
 
-async function summarizeAndPersist(tx: Prisma.TransactionClient, logId: string) {
+async function summarizeAndPersist(tx: Prisma.TransactionClient, logId: string, actorUserId: string, reason: string) {
   const items = await tx.outsideMealLogItem.findMany({ where: { mealLogId: logId }, orderBy: { position: 'asc' } });
   const summary = summarizeOutsideMealNutrition(
     items.map((item) => ({
@@ -65,6 +66,7 @@ async function summarizeAndPersist(tx: Prisma.TransactionClient, logId: string) 
     : items.every((item) => item.compatibilityStatus === OutsideMealCompatibilityStatus.NO_KNOWN_CONFLICT)
       ? 'NO_KNOWN_CONFLICT'
       : 'INSUFFICIENT_EVIDENCE';
+  await setMealLogAuditContext(tx, actorUserId, reason);
   const log = await tx.mealLog.update({
     where: { id: logId },
     data: {
@@ -305,6 +307,7 @@ export class OutsideMealCaptureService {
           carbsG: input.reportedNutrition?.carbsG ?? null,
           fatG: input.reportedNutrition?.fatG ?? null,
         };
+        await setMealLogAuditContext(tx, userId, input.reason?.trim() || 'Member corrected outside meal');
         const revision = item.currentRevision + 1;
         const changed = await tx.outsideMealLogItem.updateMany({
           where: { id: item.id, currentRevision: item.currentRevision },
@@ -358,7 +361,12 @@ export class OutsideMealCaptureService {
               },
             });
         }
-        const result = await summarizeAndPersist(tx, logId);
+        const result = await summarizeAndPersist(
+          tx,
+          logId,
+          userId,
+          input.reason?.trim() || 'Member corrected outside meal'
+        );
         await MealSwapService.recalculateDailyNutritionLog(userId, item.mealLog.loggedAt, tx);
         await tx.auditEvent.create({
           data: {
@@ -387,6 +395,7 @@ export class OutsideMealCaptureService {
         if (log.status !== MealLogStatus.DONE)
           throw new AppError('This entry cannot be voided.', 409, 'OUTSIDE_LOG_NOT_ACTIVE');
         const now = new Date();
+        await setMealLogAuditContext(tx, userId, reason);
         for (const item of log.outsideItems) {
           await ObservedMealService.invalidateSource(tx, item.id);
           const revision = item.currentRevision + 1;
@@ -451,9 +460,12 @@ export class OutsideMealCaptureService {
   static async attachImage(userId: string, logId: string, file: { buffer: Buffer; mimetype: string }) {
     if (file.buffer.length > 2 * 1024 * 1024 || !['image/jpeg', 'image/png', 'image/webp'].includes(file.mimetype))
       throw new AppError('Choose a JPG, PNG, or WebP image under 2 MB.', 400, 'INVALID_OUTSIDE_IMAGE');
-    const updated = await prisma.mealLog.updateMany({
-      where: { id: logId, userId, source: MealLogSource.USER_LOGGED, status: MealLogStatus.DONE },
-      data: { outsideImage: file.buffer, outsideImageMime: file.mimetype },
+    const updated = await prisma.$transaction(async (tx) => {
+      await setMealLogAuditContext(tx, userId, 'Member attached meal photo');
+      return tx.mealLog.updateMany({
+        where: { id: logId, userId, source: MealLogSource.USER_LOGGED, status: MealLogStatus.DONE },
+        data: { outsideImage: file.buffer, outsideImageMime: file.mimetype },
+      });
     });
     if (updated.count !== 1) throw new AppError('Active outside meal not found.', 404, 'OUTSIDE_LOG_NOT_FOUND');
     return { logId, hasImage: true };

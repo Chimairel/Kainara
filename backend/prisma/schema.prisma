@@ -890,6 +890,7 @@ model User {
   nutritionistVerifications        NutritionistProfile[]            @relation("AdminVerifier")
   mealPlans                        MealPlan[]                       @relation("UserMealPlans")
   mealLogs                         MealLog[]
+  mealLogAuditRecords              MealLogAuditRecord[]
   weightLogs                       WeightLog[]
   dailyNutritionLogs               DailyNutritionLog[]
   groceryLists                     GroceryList[]
@@ -2199,6 +2200,40 @@ model MealLog {
   nutritionCompleteness OutsideMealCompleteness @default(COMPLETE)
   provisionalCalories   Float                   @default(0)
   outsideItems          OutsideMealLogItem[]
+}
+
+model MealLogAuditRecord {
+  logId             String   @id
+  userId            String
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  firstRecordedAt   DateTime?
+  ageGroup          String   @default("UNKNOWN") @db.VarChar(16)
+  membership        String   @default("UNKNOWN") @db.VarChar(24)
+  contextVersion    String   @default("LEGACY_UNAVAILABLE") @db.VarChar(64)
+  lastActionAt      DateTime?
+  snapshot          Json
+  deleted           Boolean  @default(false)
+  events            MealLogAuditEvent[]
+
+  @@index([userId, lastActionAt])
+}
+
+model MealLogAuditEvent {
+  id                String   @id @default(dbgenerated("(gen_random_uuid())::text"))
+  sequence          BigInt   @unique @default(autoincrement())
+  logId             String
+  record            MealLogAuditRecord @relation(fields: [logId], references: [logId], onDelete: Cascade)
+  entityType        String   @db.VarChar(16)
+  entityId          String
+  action            String   @db.VarChar(16)
+  actorUserId       String?
+  actorRole         String   @db.VarChar(24)
+  occurredAt        DateTime @default(dbgenerated("(clock_timestamp() AT TIME ZONE 'UTC'::text)"))
+  reason            String?  @db.VarChar(2000)
+  before            Json?
+  after             Json?
+
+  @@index([logId, sequence])
 }
 
 model OutsideMealLogItem {

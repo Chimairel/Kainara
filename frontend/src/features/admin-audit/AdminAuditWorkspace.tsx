@@ -10,6 +10,7 @@ import PortalPageHeader from '@/components/shared/PortalPageHeader';
 import Button from '@/components/ui/Button';
 import api from '@/lib/axios';
 import AdminSubscriptionHistory from './AdminSubscriptionHistory';
+import AdminMealLogAudit from '@/features/admin-meal-logs/AdminMealLogAudit';
 
 import AuditHistoryList, { type AuditRow } from '@/components/shared/AuditHistoryList';
 export { default as AuditHistoryList } from '@/components/shared/AuditHistoryList';
@@ -66,7 +67,11 @@ function Pagination({ history, page, setPage }: { history: History; page: number
 
 export default function AdminAuditWorkspace() {
   const ownerId = useAuth().user?.userId;
-  const [view, setView] = useState<'admin' | 'nutritionist' | 'subscriptions'>('admin');
+  const [view, setView] = useState<'admin' | 'nutritionist' | 'subscriptions' | 'meal-logs'>('admin');
+  const staffView = view === 'admin' || view === 'nutritionist';
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get('view') === 'meal-logs') setView('meal-logs');
+  }, []);
   const [page, setPage] = useState(1);
   const [staff, setStaff] = useState('');
   const [actor, setActor] = useState('');
@@ -96,7 +101,7 @@ export default function AdminAuditWorkspace() {
   const history = useSessionQuery<History>({
     ownerId,
     resource: `admin-audit:${JSON.stringify(filters)}`,
-    enabled: view !== 'subscriptions' && validDates && !related,
+    enabled: staffView && validDates && !related,
     errorMessage: 'Audit history could not be loaded. Please try again.',
     fetcher: async () => {
       const response = await api.get('/admin/audit-history', { params: filters });
@@ -138,10 +143,12 @@ export default function AdminAuditWorkspace() {
             ? `Activity concerning ${related.subject}. Dates use Philippine time.`
             : view === 'subscriptions'
               ? 'Member subscription periods and recorded plan changes. Dates use Philippine time.'
-              : 'Administrator actions, RND reviews and member subscription history. Dates use Philippine time.'
+              : view === 'meal-logs'
+                ? 'Member meal logs and recorded changes. Dates use Philippine time.'
+                : 'Administrator actions, RND reviews, subscriptions and member meal logs. Dates use Philippine time.'
         }
         meta={
-          view !== 'subscriptions' && (
+          staffView && (
             <Button variant="secondary" disabled={!related && !validDates} onClick={() => void current.refetch()}>
               <RefreshCw className="mr-2 h-4 w-4" />
               Refresh
@@ -159,6 +166,7 @@ export default function AdminAuditWorkspace() {
           <WorkspaceTabs
             value={view}
             label="Audit views"
+            stackOnMobile
             onChange={(tab) => {
               setView(tab);
               setMine(false);
@@ -168,9 +176,10 @@ export default function AdminAuditWorkspace() {
               { value: 'admin', label: 'Admin activity' },
               { value: 'nutritionist', label: 'RND history' },
               { value: 'subscriptions', label: 'Member subscriptions' },
+              { value: 'meal-logs', label: 'Meal logs' },
             ]}
           />
-          {view !== 'subscriptions' && (
+          {staffView && (
             <section aria-label="Audit filters" className="rounded-2xl border border-brand-border bg-brand-surface p-4">
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                 <label className="space-y-2 text-xs font-semibold text-brand-muted">
@@ -259,6 +268,8 @@ export default function AdminAuditWorkspace() {
       )}
       {view === 'subscriptions' ? (
         <AdminSubscriptionHistory key={ownerId} />
+      ) : view === 'meal-logs' ? (
+        <AdminMealLogAudit key={ownerId} />
       ) : (
         <section
           className="overflow-hidden rounded-2xl border border-brand-border bg-brand-surface"
