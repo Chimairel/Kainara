@@ -144,7 +144,7 @@ export default function DocumentViewer({
     <div
       role="region"
       aria-label="Document viewer"
-      className={`relative isolate flex min-w-0 flex-col overflow-hidden border-[6px] border-[#b9cdc3] bg-brand-bgAlt text-brand-text dark:border-[#245446] ${expanded ? 'h-full w-full' : 'z-0 h-[clamp(24rem,calc(100dvh-20rem),46rem)] w-full rounded-2xl shadow-card-lg'}`}
+      className={`relative isolate flex min-w-0 flex-col overflow-hidden border-[6px] border-brand-surface bg-brand-bgAlt text-brand-text ${expanded ? 'h-full w-full' : 'z-0 h-[clamp(24rem,calc(100dvh-20rem),46rem)] w-full rounded-2xl shadow-card-lg'}`}
     >
       <header className="relative z-10 flex shrink-0 flex-wrap items-center gap-2 border-b border-brand-border bg-brand-surface p-2 sm:px-4">
         <div className="flex min-w-0 flex-1 basis-48 items-center gap-2">
