@@ -13,8 +13,17 @@ import GovernanceQueuePanel from './GovernanceQueuePanel';
 import MealVerificationPanel from './MealVerificationPanel';
 import ProfileWorkPanel from './ProfileWorkPanel';
 import WorkspaceTabs, { type ReviewWorkspace } from './WorkspaceTabs';
+import DesktopReviewGate from '@/features/nutritionist-reviews/DesktopReviewGate';
 
 export default function ReviewsPage() {
+  return (
+    <DesktopReviewGate>
+      <ReviewsWorkspace />
+    </DesktopReviewGate>
+  );
+}
+
+function ReviewsWorkspace() {
   const workCounts = useReviewWorkCounts();
   const [workspace, setWorkspace] = useState<ReviewWorkspace>('case');
   const [caseFilter, setCaseFilter] = useState<'pending' | 'disputed' | 'outside'>('pending');

@@ -160,7 +160,13 @@ describe('MealCard', () => {
   it.each(['RECIPE', 'MEMBER'] as const)(
     'shows %s attribution before nutrition without inventing credentials',
     (scope) => {
-      render(<MealCard {...defaultProps} verifier={{ name: 'Recorded Reviewer', reviewScope: scope }} defaultOpen />);
+      render(
+        <MealCard
+          {...defaultProps}
+          verifier={{ name: 'Recorded Reviewer', reviewScope: scope, prcLicenseNumber: '', prcLicenseExpiry: '' }}
+          defaultOpen
+        />
+      );
       const attribution = screen.getByRole('region', { name: 'Meal review attribution' });
       expect(attribution.parentElement?.firstElementChild).toBe(attribution);
       expect(

@@ -33,26 +33,44 @@ function Fixture({ onBack, claimed = true }: { onBack: () => void; claimed?: boo
   );
 }
 
-it('keeps decisions unscaled and retains their draft when entering and leaving fullscreen', async () => {
+it('keeps decisions inside the canvas, unscaled, with drafts and layout preserved across fullscreen', async () => {
   render(<Fixture onBack={vi.fn()} />);
-  const decision = screen.getByRole('region', { name: 'Review decision' });
-  expect(decision.closest('[data-document-page]')).toBeNull();
+  const dock = screen.getByRole('region', { name: 'Review decisions' });
+  expect(dock.closest('[data-canvas-world]')).toBeNull();
+  const handle = screen.getByRole('button', { name: 'Move Meal evidence sheet' });
+  fireEvent.keyDown(handle, { key: 'ArrowDown' });
+  const sheet = document.querySelector('[data-canvas-sheet="1"]') as HTMLElement;
+  expect(sheet.style.top).toBe('20px');
   fireEvent.change(screen.getByLabelText('Decision note'), { target: { value: 'Saved draft' } });
-  fireEvent.click(screen.getByRole('button', { name: 'Expand document' }));
-  const dialog = screen.getByRole('dialog', { name: 'RND record — fullscreen' });
-  expect(within(dialog).getByText('Recorded condition')).toBeInTheDocument();
-  expect(within(dialog).queryByLabelText('Decision note')).not.toBeInTheDocument();
-  fireEvent.click(within(dialog).getByRole('button', { name: 'Review decision' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Expand canvas' }));
+  const dialog = screen.getByRole('dialog', { name: /RND record.*fullscreen/ });
+  expect(within(dialog).getByLabelText('Decision note')).toHaveValue('Saved draft');
+  expect(dialog.querySelector('[data-canvas-sheet="1"]')).toHaveStyle({ top: '20px' });
+  fireEvent.keyDown(dialog, { key: 'Escape' });
   await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
-  await waitFor(() => expect(decision).toHaveFocus());
   expect(screen.getByLabelText('Decision note')).toHaveValue('Saved draft');
+  await waitFor(() => expect(screen.getByRole('button', { name: 'Expand canvas' })).toHaveFocus());
 });
 
-it('does not offer a decision before a claim and preserves queue navigation', () => {
+it('changes H/V tools without hijacking typing or modified shortcuts', () => {
+  render(<Fixture onBack={vi.fn()} />);
+  const hand = screen.getByRole('button', { name: 'Hand tool (H)' });
+  const select = screen.getByRole('button', { name: 'Select tool (V)' });
+  fireEvent.keyDown(document.body, { key: 'h' });
+  expect(hand).toHaveAttribute('aria-pressed', 'true');
+  fireEvent.keyDown(document.body, { key: 'v' });
+  expect(select).toHaveAttribute('aria-pressed', 'true');
+  fireEvent.keyDown(screen.getByLabelText('Decision note'), { key: 'h' });
+  expect(select).toHaveAttribute('aria-pressed', 'true');
+  fireEvent.keyDown(document.body, { key: 'h', ctrlKey: true });
+  expect(select).toHaveAttribute('aria-pressed', 'true');
+});
+
+it('requires a claim for decisions and preserves queue navigation', () => {
   const back = vi.fn();
   render(<Fixture onBack={back} claimed={false} />);
-  expect(screen.queryByRole('region', { name: 'Review decision' })).not.toBeInTheDocument();
-  expect(screen.queryByRole('button', { name: 'Review decision' })).not.toBeInTheDocument();
+  expect(screen.queryByLabelText('Decision note')).not.toBeInTheDocument();
+  expect(screen.getByText(/Claim this review/)).toBeInTheDocument();
   fireEvent.click(screen.getByRole('button', { name: 'Back to queue' }));
   expect(back).toHaveBeenCalledOnce();
 });

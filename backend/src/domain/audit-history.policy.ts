@@ -59,6 +59,7 @@ export function auditActionLabel(action: string) {
     MEAL_PLAN_FIRST_HIGH_RISK_APPROVAL: 'Recorded first case decision',
     MEAL_PLAN_SECOND_HIGH_RISK_APPROVAL: 'Recorded independent second decision',
     MEAL_PLAN_APPROVED: 'Approved a case',
+    MEAL_PLAN_SLOT_CERTIFIED_FALLBACK_SELECTED: 'Selected a certified meal replacement',
     MEAL_PLAN_REJECTED: 'Rejected a case',
     MEAL_PLAN_REVIEW_DISPUTED: 'Disputed a case',
     MEAL_PLAN_DISPUTE_RESOLVED: 'Resolved a dispute',

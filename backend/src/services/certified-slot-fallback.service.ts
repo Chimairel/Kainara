@@ -25,6 +25,12 @@ import { MEAL_PLAN_SAFETY_POLICY_VERSION } from '@/domain/meal-plan-production-s
 import { scorePreparationCandidate } from '@/domain/upcoming-preparation.policy';
 import { mealApprovalSafetyScope } from '@/domain/meal-approval-scope.policy';
 import { assertRecipeNotRejectedForSlot, rejectedSlotRecipes } from './rejected-slot-recipes.service';
+import { assertReviewSwapClaim, reviewSwapVersion } from '@/domain/review-swap.policy';
+import { currentReviewProfile, lockRecipeLineage, json } from './meal-review-context.service';
+import { ReviewRoutingService } from './review-routing.service';
+import { getStartOfManilaBusinessDay } from '@/domain/meal-actionability.policy';
+import { admittedLibraryBaseIds } from './meal-base-admission.service';
+import { AppError } from '@/errors/AppError';
 
 export class CertifiedSlotFallbackService {
   static async replaceWithBestCertified(input: {
@@ -32,6 +38,14 @@ export class CertifiedSlotFallbackService {
     tolerance: number;
     reasonCode: string;
     expectedStatus?: MealPlanStatus;
+    selectedLibraryMealId?: string;
+    reviewer?: {
+      profileId: string;
+      expectedVersion: string;
+      expectedRecipeSignature: string;
+      expectedEvidenceRevision: number;
+      note: string;
+    };
   }): Promise<{ replaced: boolean; replacementPlanId: string | null }> {
     const target = await prisma.mealPlan.findUnique({
       where: { id: input.mealPlanId },
@@ -117,7 +131,9 @@ export class CertifiedSlotFallbackService {
           left.id.localeCompare(right.id)
         );
       });
-    const candidate = ranked[0];
+    const candidate = input.selectedLibraryMealId
+      ? ranked.find((meal) => meal.id === input.selectedLibraryMealId)
+      : ranked[0];
     if (!candidate) return { replaced: false, replacementPlanId: null };
 
     const ranking = scorePreparationCandidate({
@@ -154,6 +170,21 @@ export class CertifiedSlotFallbackService {
       )
         throw new Error('Planning context changed during fallback selection.');
       const latestTarget = await tx.mealPlan.findUniqueOrThrow({ where: { id: target.id } });
+      const reviewer = input.reviewer ? await currentReviewProfile(tx, input.reviewer.profileId) : null;
+      if (input.reviewer) {
+        if (!reviewer) throw new AppError('A currently eligible RND is required.', 403, 'REVIEWER_INELIGIBLE');
+        await ReviewRoutingService.assertMeal(input.reviewer.profileId, target.id, tx);
+        assertReviewSwapClaim(latestTarget, input.reviewer.profileId);
+        const currentCycle = await tx.mealPlanCycle.findUniqueOrThrow({ where: { id: target.planGroupId } });
+        if (
+          currentCycle.shoppingStartedAt ||
+          currentCycle.supersededById ||
+          latestTarget.scheduledDate < getStartOfManilaBusinessDay()
+        )
+          throw new AppError('This plan is no longer available for replacement.', 409, 'REVIEW_SWAP_UNAVAILABLE');
+        if (reviewSwapVersion(latestTarget, currentContext.profile) !== input.reviewer.expectedVersion)
+          throw new AppError('Meal or profile changed. Refresh before swapping.', 409, 'REVIEW_SWAP_CHANGED');
+      }
       if (input.expectedStatus && latestTarget.status !== input.expectedStatus) {
         return { replaced: false, replacementPlanId: null };
       }
@@ -168,10 +199,30 @@ export class CertifiedSlotFallbackService {
         select: { id: true },
       });
       if (currentPinnedSelection) return { replaced: false, replacementPlanId: null };
+      if (input.reviewer) {
+        const key = await lockRecipeLineage(tx, candidate.id);
+        const lineage = await tx.mealReviewLineage.findUnique({ where: { key }, select: { state: true } });
+        if (lineage && lineage.state !== 'PUBLISHED')
+          throw new AppError('Replacement is withheld from use.', 409, 'REVIEW_SWAP_CHANGED');
+      }
       const latest = await tx.mealLibrary.findUniqueOrThrow({
         where: { id: candidate.id },
         include: certifiedLibraryMealInclude,
       });
+      if (input.reviewer && !(await admittedLibraryBaseIds([latest], tx)).has(latest.id))
+        throw new AppError('Replacement verification changed.', 409, 'REVIEW_SWAP_CHANGED');
+      if (
+        input.reviewer &&
+        (latest.recipeSignature !== input.reviewer.expectedRecipeSignature ||
+          latest.safetyEvidenceRevision !== input.reviewer.expectedEvidenceRevision ||
+          !isMealWithinSlotCalorieRange({
+            calories: latest.calories,
+            dailyCalorieTarget: target.cycle.snapshot!.dailyCalorieTarget,
+            mealType: slotType,
+            tolerance: input.tolerance,
+          }))
+      )
+        throw new AppError('Replacement evidence changed. Refresh before swapping.', 409, 'REVIEW_SWAP_CHANGED');
       await assertRecipeNotRejectedForSlot(tx, target, {
         libraryMealId: latest.id,
         sourceRawRecipeCandidateId: latest.sourceRawRecipeCandidateId,
@@ -231,7 +282,8 @@ export class CertifiedSlotFallbackService {
           candidateProvenance: MealCandidateProvenance.CERTIFIED_LIBRARY,
           libraryMealId: latest.id,
           profileApprovalId: approval?.id ?? null,
-          nutritionistId: approval?.reviewerNutritionistId ?? latest.safetyReviewedByNutritionistId,
+          nutritionistId: reviewer?.id ?? approval?.reviewerNutritionistId ?? latest.safetyReviewedByNutritionistId,
+          nutritionistNote: input.reviewer?.note ?? null,
           planType: target.planType,
           mealType: slotType,
           mealName: latest.mealName,
@@ -242,7 +294,7 @@ export class CertifiedSlotFallbackService {
           fatG: latest.fatG,
           aiConfidenceFlag: AIConfidenceFlag.SAFE,
           scheduledDate: target.scheduledDate,
-          reviewedAt: approval?.approvedAt ?? latest.safetyReviewedAt,
+          reviewedAt: reviewer ? new Date() : (approval?.approvedAt ?? latest.safetyReviewedAt),
           requiresSafetyRevalidation: false,
           safetyPolicyVersion: MEAL_PLAN_SAFETY_POLICY_VERSION,
           highRiskReviewRequired: target.cycle.assuranceTier === AssuranceTier.ENHANCED,
@@ -283,27 +335,117 @@ export class CertifiedSlotFallbackService {
           },
         });
       }
-      await tx.mealPlan.update({
-        where: { id: target.id },
-        data: {
-          status:
-            target.status === MealPlanStatus.REJECTED || target.status === MealPlanStatus.DISPUTED
-              ? target.status
-              : MealPlanStatus.CANCELLED,
-          supersededByMealPlanId: replacement.id,
-          fallbackAvailable: true,
-        },
-      });
+      if (input.reviewer) {
+        assertReviewSwapClaim(latestTarget, input.reviewer.profileId);
+        const changed = await tx.mealPlan.updateMany({
+          where: {
+            id: target.id,
+            status: 'PENDING_REVIEW',
+            supersededByMealPlanId: null,
+            claimedByNutritionistId: input.reviewer.profileId,
+            claimedAt: latestTarget.claimedAt,
+          },
+          data: {
+            status: 'CANCELLED',
+            supersededByMealPlanId: replacement.id,
+            fallbackAvailable: true,
+            claimedByNutritionistId: null,
+            claimedAt: null,
+          },
+        });
+        if (changed.count !== 1)
+          throw new AppError('The review changed. Refresh the queue.', 409, 'REVIEW_SWAP_CHANGED');
+        await tx.mealPlanReviewDecision.create({
+          data: {
+            mealPlanId: replacement.id,
+            nutritionistProfileId: input.reviewer.profileId,
+            stage: 'PRIMARY',
+            decision: 'APPROVE',
+            rationale: input.reviewer.note,
+            evidenceSnapshot: json({
+              source: 'RND_SELECTED_CERTIFIED_REPLACEMENT',
+              supersededMealPlanId: target.id,
+              recipeSignature: latest.recipeSignature,
+              evidenceRevision: latest.safetyEvidenceRevision,
+              profileRevision: currentContext.profile.revision,
+              safetyRevision: currentContext.profile.safetyRevision,
+              ingredients,
+              certificationReviewerId: approval?.reviewerNutritionistId ?? latest.safetyReviewedByNutritionistId,
+              actor: {
+                name: reviewer!.user.name,
+                prcLicenseNumber: reviewer!.prcLicenseNumber,
+                prcLicenseExpiry: reviewer!.prcLicenseExpiry,
+                profileId: reviewer!.id,
+              },
+              calories: latest.calories,
+              proteinG: latest.proteinG,
+              carbsG: latest.carbsG,
+              fatG: latest.fatG,
+            }),
+          },
+        });
+      } else
+        await tx.mealPlan.update({
+          where: { id: target.id },
+          data: {
+            status:
+              target.status === MealPlanStatus.REJECTED || target.status === MealPlanStatus.DISPUTED
+                ? target.status
+                : MealPlanStatus.CANCELLED,
+            supersededByMealPlanId: replacement.id,
+            fallbackAvailable: true,
+          },
+        });
       await tx.mealLibrary.update({ where: { id: latest.id }, data: { usageCount: { increment: 1 } } });
       await tx.auditEvent.create({
         data: {
-          actorUserId: null,
+          actorUserId: reviewer?.userId ?? null,
+          ...(reviewer ? { actorName: reviewer.user.name, actorRole: 'NUTRITIONIST' as const } : {}),
           action: 'MEAL_PLAN_SLOT_CERTIFIED_FALLBACK_SELECTED',
           entityType: 'MealPlan',
           entityId: replacement.id,
-          metadata: { supersededMealPlanId: target.id, reasonCode: input.reasonCode },
+          metadata: {
+            supersededMealPlanId: target.id,
+            reasonCode: input.reasonCode,
+            ...(input.reviewer
+              ? {
+                  rationale: input.reviewer.note,
+                  reviewerProfileId: input.reviewer.profileId,
+                  original: {
+                    mealName: target.mealName,
+                    calories: target.calories,
+                    proteinG: target.proteinG,
+                    carbsG: target.carbsG,
+                    fatG: target.fatG,
+                  },
+                  replacement: {
+                    mealName: latest.mealName,
+                    calories: latest.calories,
+                    proteinG: latest.proteinG,
+                    carbsG: latest.carbsG,
+                    fatG: latest.fatG,
+                    recipeSignature: latest.recipeSignature,
+                    evidenceRevision: latest.safetyEvidenceRevision,
+                  },
+                }
+              : {}),
+          },
         },
       });
+      if (input.reviewer) {
+        await tx.groceryList.updateMany({
+          where: { userId: target.userId, planGroupId: target.planGroupId },
+          data: { isStale: true },
+        });
+        await tx.notification.create({
+          data: {
+            userId: target.userId,
+            type: 'PLAN_APPROVED',
+            title: 'Reviewed meal replacement',
+            message: `${target.mealName} was replaced with ${latest.mealName}. RND note: ${input.reviewer.note}`,
+          },
+        });
+      }
       return { replaced: true, replacementPlanId: replacement.id };
     });
   }

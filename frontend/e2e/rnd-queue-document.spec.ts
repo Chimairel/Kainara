@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 
-for (const width of [400, 1440]) {
+for (const width of [400, 1024, 1440]) {
   for (const theme of ['light', 'dark']) {
     test(`RND document queues retain review actions at ${width}px in ${theme}`, async ({ page }, testInfo) => {
       await page.setViewportSize({ width, height: 900 });
@@ -109,7 +109,27 @@ for (const width of [400, 1440]) {
         else if (path.endsWith('/notifications')) data = { notifications: [], unreadCount: 0 };
         else if (path.endsWith('/review-work-counts')) data = { case: 1, meal: 1, profile: 0 };
         else if (path.endsWith('/queue')) data = approved ? [] : [queueMeal()];
-        else if (path.endsWith('/queue/case-record/claim')) {
+        else if (path.endsWith('/queue/case-record/swap-options'))
+          data = {
+            expectedVersion: 'a'.repeat(64),
+            options: [
+              {
+                id: 'eligible-soup',
+                mealName: 'Eligible squash soup',
+                calories: 500,
+                proteinG: 25,
+                carbsG: 60,
+                fatG: 18,
+                recipeSignature: 'b'.repeat(64),
+                evidenceRevision: 2,
+                ingredients: [{ name: 'Squash', quantity: 200, unit: 'g', source: 'FNRI' }],
+              },
+            ],
+          };
+        else if (path.endsWith('/queue/case-record/swap')) {
+          approved = true;
+          data = { replaced: true, replacementPlanId: 'replacement-record' };
+        } else if (path.endsWith('/queue/case-record/claim')) {
           claimed = true;
           data = detail();
         } else if (path.endsWith('/queue/case-record/release')) {
@@ -162,52 +182,70 @@ for (const width of [400, 1440]) {
       });
 
       await page.goto('/nutritionist/reviews');
+      if (width < 1024) {
+        await expect(page.getByRole('heading', { name: 'Use a desktop to review meals' })).toBeVisible();
+        await expect(page.getByRole('region', { name: 'RND review canvas' })).toHaveCount(0);
+        expect(mutations).toEqual([]);
+        expect(errors).toEqual([]);
+        return;
+      }
       const selectCase = async () => page.getByRole('button', { name: /LUNCH Recorded soup/ }).click();
       await selectCase();
-      const viewer = page.getByRole('region', { name: 'Document viewer', exact: true });
+      const viewer = page.getByRole('region', { name: 'RND review canvas', exact: true });
       await expect(viewer).toBeVisible();
-      await expect(page.getByRole('button', { name: 'Review decision' })).toHaveCount(0);
-      await page.getByRole('button', { name: 'Document pages' }).click();
-      const sidebar = page.getByRole('complementary', { name: 'Document page navigation' });
-      await expect(sidebar.getByRole('button')).toHaveCount(2);
-      await expect(sidebar.locator('[data-document-thumbnail]').first()).toContainText('Preview Member');
-      await page.getByRole('button', { name: 'Expand document' }).click();
+      await expect(page.getByRole('button', { name: 'Approve', exact: true })).toHaveCount(0);
+      await page.getByRole('button', { name: 'Expand canvas' }).click();
       const fullscreen = page.getByRole('dialog', { name: /Case approval.*fullscreen/ });
       await expect(fullscreen).toBeVisible();
       const box = (await fullscreen.boundingBox())!;
-      expect(box.x).toBe(0);
-      expect(box.y).toBe(0);
-      expect(box.width).toBe(width);
-      expect(box.height).toBe(900);
-      await fullscreen.getByRole('button', { name: 'Page 2', exact: true }).click();
-      await expect(fullscreen.getByRole('heading', { name: 'Meal evidence', exact: true })).toBeVisible();
-      await fullscreen.getByRole('button', { name: 'Fit to page' }).click();
-      await expect(fullscreen.getByRole('button', { name: 'Fit to width' })).toBeVisible();
-      await fullscreen.getByRole('button', { name: 'Fit to width' }).click();
-      await expect(fullscreen.getByRole('heading', { name: 'Meal evidence', exact: true })).toBeInViewport();
-      await expect(
-        fullscreen
-          .getByRole('article', { name: 'Meal evidence', exact: true })
-          .getByText('Recorded sodium evidence requires inspection.', { exact: false })
-      ).toBeVisible();
-      await page.screenshot({ path: testInfo.outputPath('case-document.png') });
+      expect(box).toMatchObject({ x: 0, y: 0, width, height: 900 });
+      await expect(fullscreen.locator('[data-canvas-sheet]')).toHaveCount(2);
+      const handle = fullscreen.getByRole('button', { name: 'Move Meal evidence sheet' });
+      await handle.focus();
+      await page.keyboard.press('ArrowDown');
+      await expect(fullscreen.locator('[data-canvas-sheet="1"]')).toHaveCSS('top', '20px');
+      const sheetBefore = await fullscreen.locator('[data-canvas-sheet="1"]').getAttribute('style');
+      const handleBox = (await handle.boundingBox())!;
+      await page.mouse.move(handleBox.x + handleBox.width / 2, handleBox.y + handleBox.height / 2);
+      await page.mouse.down();
+      await page.mouse.move(handleBox.x + handleBox.width / 2 + 40, handleBox.y + handleBox.height / 2 + 30);
+      await page.mouse.up();
+      expect(await fullscreen.locator('[data-canvas-sheet="1"]').getAttribute('style')).not.toBe(sheetBefore);
+      await page.keyboard.press('h');
+      await expect(fullscreen.getByRole('button', { name: 'Hand tool (H)' })).toHaveAttribute('aria-pressed', 'true');
+      const viewport = fullscreen.getByRole('region', { name: 'Review canvas viewport' });
+      const vp = (await viewport.boundingBox())!;
+      const world = fullscreen.locator('[data-canvas-world]');
+      const previousTransform = await world.getAttribute('style');
+      await page.mouse.move(vp.x + 20, vp.y + 20);
+      await page.mouse.down();
+      await page.mouse.move(vp.x + 110, vp.y + 90);
+      await page.mouse.up();
+      expect(await world.getAttribute('style')).not.toBe(previousTransform);
+      await page.keyboard.press('v');
+      await expect(fullscreen.getByRole('button', { name: 'Select tool (V)' })).toHaveAttribute('aria-pressed', 'true');
+      await fullscreen.getByRole('button', { name: 'Fit all sheets' }).click();
+      await fullscreen.getByRole('button', { name: 'Claim review', exact: true }).click();
+      const decision = page.getByRole('region', { name: 'Review decisions' });
+      await decision.getByRole('textbox', { name: 'Member note (optional)' }).fill('Recorded member review note.');
+      await page.keyboard.press('h');
+      await expect(fullscreen.getByRole('button', { name: 'Select tool (V)' })).toHaveAttribute('aria-pressed', 'true');
+      await page.keyboard.press('Backspace');
+      await decision.getByRole('textbox').fill('Recorded member review note.');
+      await expect(fullscreen.getByRole('table', { name: 'Meal ingredients' })).toContainText('Carrot');
+      await expect(fullscreen.getByRole('table', { name: 'Meal ingredients' })).toContainText('80');
+      await expect(fullscreen.locator('[data-canvas-world] input')).toHaveCount(0);
+      await page.screenshot({ path: testInfo.outputPath('case-canvas.png') });
       await page.keyboard.press('Escape');
-      await page.getByRole('button', { name: 'Claim review', exact: true }).click();
-      const decision = page.getByRole('region', { name: 'Review decision', exact: true });
-      const note = decision.getByRole('textbox');
-      await note.fill('Recorded member review note.');
-      await page.getByRole('button', { name: 'Expand document' }).click();
-      await page.getByRole('button', { name: 'Review decision', exact: true }).click();
       await expect(fullscreen).toHaveCount(0);
-      await expect(note).toHaveValue('Recorded member review note.');
-      await expect(decision).toBeFocused();
+      await expect(decision.getByRole('textbox')).toHaveValue('Recorded member review note.');
       await decision.getByRole('button', { name: 'Reject', exact: true }).click();
-      await expect(decision.getByText('Clinical Rejection & In-Flight Replacement')).toBeVisible();
+      await expect(decision.getByRole('button', { name: 'Confirm rejection' })).toBeDisabled();
       await decision.getByRole('button', { name: 'Cancel', exact: true }).click();
       await decision.getByRole('button', { name: 'Approve', exact: true }).click();
       await expect(page.getByRole('alert').filter({ hasText: 'Synthetic stale evidence' })).toHaveCount(1);
-      await expect(note).toHaveValue('Recorded member review note.');
-      await page.getByRole('button', { name: 'Expand document' }).click();
+      await expect(decision.getByRole('textbox')).toHaveValue('Recorded member review note.');
+      await page.getByRole('button', { name: 'Expand canvas' }).click();
       await page.getByRole('button', { name: 'Release claim', exact: true }).click();
       await expect(fullscreen).toHaveCount(0);
       await expect(viewer).toHaveCount(0);
@@ -217,28 +255,45 @@ for (const width of [400, 1440]) {
       await selectCase();
       await page.getByRole('button', { name: 'Claim review', exact: true }).click();
       failApproval = false;
-      await decision.getByRole('textbox').fill('Final recorded review note.');
-      await decision.getByRole('button', { name: 'Approve', exact: true }).click();
-      await expect(page.getByText('Queue clear', { exact: true })).toBeVisible();
-      expect(mutations.at(-1)).toEqual({
-        path: '/api/nutritionist/review/case-record',
-        body: { action: 'approve', note: 'Final recorded review note.' },
-      });
-
+      if (theme === 'dark') {
+        await decision.getByRole('button', { name: 'Swap', exact: true }).click();
+        await decision.getByLabel('Eligible replacement').selectOption('eligible-soup');
+        await expect(viewer.locator('[data-canvas-sheet]')).toHaveCount(3);
+        await expect(viewer.getByRole('article', { name: 'Replacement preview' })).toContainText('Squash');
+        await expect(decision.getByRole('button', { name: 'Confirm swap' })).toBeDisabled();
+        await decision.getByRole('textbox').fill('Reviewed a suitable replacement.');
+        await page.getByRole('button', { name: 'Expand canvas' }).click();
+        await expect(page.getByRole('textbox')).toHaveValue('Reviewed a suitable replacement.');
+        await decision.getByRole('button', { name: 'Confirm swap' }).click();
+        await expect(page.getByText('Queue clear', { exact: true })).toBeVisible();
+        expect(mutations.at(-1)).toEqual({
+          path: '/api/nutritionist/queue/case-record/swap',
+          body: {
+            libraryMealId: 'eligible-soup',
+            expectedVersion: 'a'.repeat(64),
+            expectedRecipeSignature: 'b'.repeat(64),
+            expectedEvidenceRevision: 2,
+            note: 'Reviewed a suitable replacement.',
+          },
+        });
+      } else {
+        await decision.getByRole('textbox').fill('Final recorded review note.');
+        await decision.getByRole('button', { name: 'Approve', exact: true }).click();
+        await expect(page.getByText('Queue clear', { exact: true })).toBeVisible();
+        expect(mutations.at(-1)).toEqual({
+          path: '/api/nutritionist/review/case-record',
+          body: { action: 'approve', note: 'Final recorded review note.' },
+        });
+      }
       await page.getByRole('button', { name: /Meal verification/ }).click();
       await page.getByRole('button', { name: /DINNER.*Recorded base recipe/ }).click();
       await expect(viewer).toBeVisible();
       await page.getByRole('button', { name: 'Claim verification', exact: true }).click();
-      const rationale = page.getByLabel('Review rationale');
       await expect(page.getByRole('button', { name: 'Verify base meal' })).toBeDisabled();
-      await rationale.fill('Recorded base recipe rationale.');
-      await page.getByRole('button', { name: 'Expand document' }).click();
-      await page.getByRole('button', { name: 'Document pages' }).click();
-      await page.getByRole('button', { name: 'Page 2', exact: true }).click();
-      await expect(page.getByRole('heading', { name: 'Recipe ingredients', exact: true })).toBeVisible();
-      await page.screenshot({ path: testInfo.outputPath('base-document.png') });
-      await page.getByRole('button', { name: 'Review decision', exact: true }).click();
-      await expect(rationale).toHaveValue('Recorded base recipe rationale.');
+      await page.getByLabel('Review rationale').fill('Recorded base recipe rationale.');
+      await page.getByRole('button', { name: 'Expand canvas' }).click();
+      await expect(page.getByLabel('Review rationale')).toHaveValue('Recorded base recipe rationale.');
+      await page.screenshot({ path: testInfo.outputPath('base-canvas.png') });
       const baseDecision = theme === 'dark' ? 'REJECTED' : 'VERIFIED';
       await page
         .getByRole('button', { name: baseDecision === 'VERIFIED' ? 'Verify base meal' : 'Reject', exact: true })

@@ -31,7 +31,7 @@ it('keeps page navigation local to each reader and resets when its record change
       <Fixture title="B" />
     </>
   );
-  const [first, second] = screen.getAllByRole('region', { name: 'Document viewer', exact: true });
+  const [first, second] = screen.getAllByRole('region', { name: 'Document viewer' });
   fireEvent.click(within(first).getByRole('button', { name: 'Next page' }));
   expect(within(first).getByRole('button', { name: 'Previous page' })).toBeEnabled();
   expect(within(second).getByRole('button', { name: 'Previous page' })).toBeDisabled();

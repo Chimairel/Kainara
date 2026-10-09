@@ -91,7 +91,7 @@ export default function CaseReviewWorkspace({
                           {
                             step: '03',
                             title: 'Decide and record your review notes',
-                            desc: 'Approve, edit portions/ingredients, or regenerate candidates with clinical notes.',
+                            desc: 'Approve the recorded meal, reject with a reason, or swap to an eligible recipe. Add guidance in your review notes.',
                           },
                         ].map((item) => (
                           <div

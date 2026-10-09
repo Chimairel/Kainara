@@ -40,6 +40,7 @@ import { NutritionistAuditService } from '@/services/nutritionist-audit.service'
 import { AuditDetailsService } from '@/services/audit-details.service';
 
 import libraryRouter from './nutritionist-library.routes';
+import reviewSwapRouter from './nutritionist-review-swap.routes';
 
 const router = Router();
 
@@ -47,6 +48,7 @@ const router = Router();
 router.use(authenticate);
 router.use(requireRole('NUTRITIONIST'));
 router.use(requireEligibleNutritionist);
+router.use(reviewSwapRouter);
 router.use('/meal-review-cases', mealReviewRouter('rnd'));
 
 const mealVerificationParams = z

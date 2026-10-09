@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 
-for (const width of [400, 1440]) {
+for (const width of [1024, 1440]) {
   test(`review queue recovers and tab highlight fits at ${width}px`, async ({ page }, testInfo) => {
     await page.setViewportSize({ width, height: 900 });
     const errors: string[] = [];

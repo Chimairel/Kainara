@@ -38,7 +38,10 @@ export function baseMealAdmissionMatches(meal: LibraryBase, verifiedKeys: Readon
 }
 
 /** Verification follows the exact recipe revision. It grants no health clearance. */
-export async function admittedLibraryBaseIds(meals: readonly LibraryBase[]): Promise<Set<string>> {
+export async function admittedLibraryBaseIds(
+  meals: readonly LibraryBase[],
+  db: Pick<typeof prisma, 'mealBaseVerification'> = prisma
+): Promise<Set<string>> {
   if (meals.length === 0) return new Set();
   const alreadyAdmitted = new Set(
     meals.flatMap((meal) => (baseMealAdmissionMatches(meal, new Set()) ? [meal.id] : []))
@@ -50,7 +53,7 @@ export async function admittedLibraryBaseIds(meals: readonly LibraryBase[]): Pro
   const rawIds = needsVerification.flatMap((meal) =>
     meal.sourceRawRecipeCandidateId ? [meal.sourceRawRecipeCandidateId] : []
   );
-  const verified = await prisma.mealBaseVerification.findMany({
+  const verified = await db.mealBaseVerification.findMany({
     where: {
       status: 'VERIFIED',
       OR: [

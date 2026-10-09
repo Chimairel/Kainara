@@ -25,7 +25,7 @@ describe('case detail load failure', () => {
         caseFilters={null}
       />
     );
-    expect(screen.queryByRole('region', { name: 'Document viewer', exact: true })).not.toBeInTheDocument();
+    expect(screen.queryByRole('region', { name: 'Document viewer' })).not.toBeInTheDocument();
     expect(close).toHaveBeenCalledWith(false);
   });
 
@@ -58,7 +58,7 @@ describe('case detail load failure', () => {
     expect(screen.getByRole('button', { name: 'Claim review' })).toBeDisabled();
     fireEvent.click(screen.getByRole('button', { name: 'Retry details' }));
     expect(retry).toHaveBeenCalledWith('meal-1');
-    fireEvent.click(screen.getByRole('button', { name: 'Back to Queue', exact: true }));
+    fireEvent.click(screen.getByRole('button', { name: 'Back to Queue' }));
     expect(back).toHaveBeenCalledWith(null);
   });
 });

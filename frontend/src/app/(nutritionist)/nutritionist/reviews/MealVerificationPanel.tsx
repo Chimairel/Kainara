@@ -7,6 +7,7 @@ import { getApiErrorMessage } from '@/lib/api-error';
 import Button from '@/components/ui/Button';
 import Badge from '@/components/ui/Badge';
 import MealImage from '@/components/user/MealImage';
+import IngredientEvidenceTable from '@/features/nutritionist-reviews/IngredientEvidenceTable';
 import ExpandableCasePanel from '@/features/nutritionist-reviews/ExpandableCasePanel';
 import RndQueueDocument, { ReviewDocumentPage } from '@/features/nutritionist-reviews/RndQueueDocument';
 import { ReviewQueueSkeleton } from '@/features/nutritionist-reviews/NutritionistReviewsSkeleton';
@@ -37,21 +38,24 @@ type MealCandidate = {
   claimedByOther: boolean;
 };
 
-function ingredientText(value: unknown): string {
-  if (Array.isArray(value)) {
-    return value
-      .map((item) => {
-        if (typeof item === 'string') return item;
-        if (item && typeof item === 'object') {
-          const entry = item as Record<string, unknown>;
-          return [entry.name ?? entry.ingredientName, entry.quantity, entry.unit].filter(Boolean).join(' ');
-        }
-        return '';
-      })
-      .filter(Boolean)
-      .join(', ');
-  }
-  return 'Ingredient details are unavailable.';
+function recordedIngredients(value: unknown) {
+  if (!Array.isArray(value)) return [];
+  return value.flatMap((item) => {
+    if (typeof item === 'string') return [{ name: item, quantity: null, unit: null, source: 'UNKNOWN' }];
+    if (!item || typeof item !== 'object') return [];
+    const entry = item as Record<string, unknown>;
+    const name = entry.name ?? entry.ingredientName;
+    if (typeof name !== 'string') return [];
+    return [
+      {
+        name,
+        quantity: typeof entry.quantity === 'number' ? entry.quantity : null,
+        unit: typeof entry.unit === 'string' ? entry.unit : null,
+        source:
+          typeof (entry.source ?? entry.dataSource) === 'string' ? String(entry.source ?? entry.dataSource) : 'UNKNOWN',
+      },
+    ];
+  });
 }
 
 export default function MealVerificationPanel() {
@@ -329,10 +333,17 @@ export default function MealVerificationPanel() {
               decision={
                 selected.claimedByMe ? (
                   <div className="rounded-[24px] border border-brand-border/70 bg-brand-surface/70 p-5 shadow-card space-y-4">
+                    {error && (
+                      <p role="alert" className="text-sm text-red-500">
+                        {error}
+                      </p>
+                    )}
                     <label className="block text-xs font-bold text-brand-text">
                       Review rationale
                       <textarea
                         value={rationale}
+                        disabled={busy}
+                        maxLength={1000}
                         onChange={(event) => setRationale(event.target.value)}
                         rows={3}
                         placeholder="Document clinical observations or verification notes (at least 10 characters)..."
@@ -467,7 +478,7 @@ export default function MealVerificationPanel() {
                       Rice is already included. Do not add another rice component.
                     </p>
                   )}
-                  <p className="text-xs text-brand-muted leading-relaxed">{ingredientText(selected.ingredients)}</p>
+                  <IngredientEvidenceTable ingredients={recordedIngredients(selected.ingredients)} />
                 </div>
 
                 <div className="rounded-xl border border-[#a64600]/30 bg-[#8c3b00]/10 p-3.5 text-xs text-[#8c3b00] font-semibold leading-relaxed">

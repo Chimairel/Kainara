@@ -1,11 +1,10 @@
 'use client';
 
-import { useRef, type CSSProperties, type ReactNode } from 'react';
+import { type CSSProperties, type ReactNode } from 'react';
 import { ArrowLeft } from 'lucide-react';
-import DocumentViewer from '@/components/shared/DocumentViewer';
-import Button from '@/components/ui/Button';
+import ReviewCanvas from './ReviewCanvas';
 
-/** Queue adapter: inspection uses the shared reader; live decisions stay outside its zoomed paper. */
+/** Queue adapter: movable paper sheets and an unscaled decision dock share one review canvas. */
 export default function RndQueueDocument({
   title,
   contentKey,
@@ -25,68 +24,32 @@ export default function RndQueueDocument({
   children: ReactNode;
   decision?: ReactNode;
 }) {
-  const decisionRef = useRef<HTMLElement>(null);
-  const focusDecisionAfterExit = useRef(false);
-  const focusDecision = () => {
-    decisionRef.current?.scrollIntoView?.({ block: 'nearest' });
-    decisionRef.current?.focus();
-  };
   return (
-    <div className="space-y-4">
-      <DocumentViewer
-        title={title}
-        contentKey={contentKey}
-        expanded={expanded}
-        onExpandedChange={onExpandedChange}
-        onExitFullscreen={() => {
-          if (!focusDecisionAfterExit.current) return;
-          focusDecisionAfterExit.current = false;
-          focusDecision();
-        }}
-        actions={
-          <>
-            <button
-              type="button"
-              aria-label="Back to queue"
-              className="flex h-10 w-10 items-center justify-center rounded-lg text-brand-muted hover:bg-brand-green/10 focus-visible:outline focus-visible:outline-brand-green"
-              onClick={() => {
-                onExpandedChange(false);
-                onBack();
-              }}
-            >
-              <ArrowLeft className="h-4 w-4" />
-            </button>
-            {actions}
-            {decision && (
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={() => {
-                  if (expanded) {
-                    focusDecisionAfterExit.current = true;
-                    onExpandedChange(false);
-                  } else focusDecision();
-                }}
-              >
-                Review decision
-              </Button>
-            )}
-          </>
-        }
-      >
-        <div className="space-y-8">{children}</div>
-      </DocumentViewer>
-      {decision && (
-        <section
-          ref={decisionRef}
-          tabIndex={-1}
-          aria-label="Review decision"
-          className="space-y-4 rounded-2xl border border-brand-border bg-brand-surface p-4 outline-none focus-visible:ring-2 focus-visible:ring-brand-green"
-        >
-          {decision}
-        </section>
-      )}
-    </div>
+    <ReviewCanvas
+      title={title}
+      contentKey={contentKey}
+      expanded={expanded}
+      onExpandedChange={onExpandedChange}
+      actions={
+        <>
+          <button
+            type="button"
+            aria-label="Back to queue"
+            className="flex h-10 w-10 items-center justify-center rounded-lg text-brand-muted hover:bg-brand-green/10"
+            onClick={() => {
+              onExpandedChange(false);
+              onBack();
+            }}
+          >
+            <ArrowLeft className="h-4 w-4" />
+          </button>
+          {actions}
+        </>
+      }
+      decision={decision}
+    >
+      {children}
+    </ReviewCanvas>
   );
 }
 
