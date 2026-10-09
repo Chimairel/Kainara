@@ -9,12 +9,24 @@ import {
   resolveClarificationSchema,
 } from '@/domain/clinical-clarification.policy';
 import type { AuthenticatedRequest } from '@/types';
+import { ClinicalProfileProposalService } from '@/services/clinical-profile-proposal.service';
+import { publishProfileProposalSchema, respondProfileProposalSchema } from '@/domain/clinical-profile-proposal.policy';
 
 /** Mounted only after existing authentication, role and staff credential middleware. */
 export function clinicalClarificationRouter(role: 'member' | 'rnd') {
   const router = Router();
   const id = z.string().min(1).max(191);
   if (role === 'member') {
+    router.post(
+      '/clinical-profile-proposals/:id/respond',
+      validateZodRequest({ params: z.object({ id }).strict(), body: respondProfileProposalSchema }),
+      asyncHandler(async (req: AuthenticatedRequest, res) => {
+        res.json({
+          success: true,
+          data: await ClinicalProfileProposalService.respond(req.user!.userId, req.params.id, req.body),
+        });
+      })
+    );
     router.post(
       '/clinical-clarifications/:id/answers',
       validateZodRequest({ params: z.object({ id }).strict(), body: answerClarificationSchema }),
@@ -27,6 +39,16 @@ export function clinicalClarificationRouter(role: 'member' | 'rnd') {
       })
     );
   } else {
+    router.post(
+      '/profile-reviews/:userId/proposals',
+      validateZodRequest({ params: z.object({ userId: id }).strict(), body: publishProfileProposalSchema }),
+      asyncHandler(async (req: AuthenticatedRequest, res) => {
+        res.json({
+          success: true,
+          data: await ClinicalProfileProposalService.publish(req.nutritionistProfileId!, req.params.userId, req.body),
+        });
+      })
+    );
     router.post(
       '/profile-reviews/:userId/clarifications',
       validateZodRequest({ params: z.object({ userId: id }).strict(), body: publishClarificationSchema }),

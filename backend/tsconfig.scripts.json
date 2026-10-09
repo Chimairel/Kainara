@@ -9,6 +9,7 @@
     "types": ["node"]
   },
   "include": [
+    "scripts/profile-proposal-local-acceptance.ts",
     "scripts/close-stale-meal-reviews.ts",
     "scripts/clinical-clarification-local-acceptance.ts",
     "scripts/condition-assessment-local-acceptance.ts",

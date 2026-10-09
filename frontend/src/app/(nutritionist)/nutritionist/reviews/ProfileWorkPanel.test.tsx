@@ -14,25 +14,43 @@ vi.mock('@/features/reports/NutritionGuidancePaper', () => ({
     </div>
   ),
 }));
-vi.mock('@/features/nutritionist-reviews/ExpandableCasePanel', () => ({
+vi.mock('@/features/nutritionist-reviews/RndQueueDocument', () => ({
   default: ({
     children,
-    headerLeft,
+    actions,
+    decision,
     expanded,
     onExpandedChange,
   }: {
     children: React.ReactNode;
-    headerLeft?: React.ReactNode;
+    actions?: React.ReactNode;
+    decision?: React.ReactNode;
     expanded: boolean;
     onExpandedChange: (value: boolean) => void;
   }) => (
     <div>
-      <header data-testid="profile-toolbar">{headerLeft}</header>
+      <header data-testid="profile-toolbar">{actions}</header>
       <button onClick={() => onExpandedChange(!expanded)}>
         {expanded ? 'Back to split view' : 'Expand case details'}
       </button>
       {children}
+      {decision}
     </div>
+  ),
+  ReviewDocumentPage: ({
+    children,
+    title,
+    subtitle,
+  }: {
+    children: React.ReactNode;
+    title: string;
+    subtitle?: string;
+  }) => (
+    <article>
+      <h2>{title}</h2>
+      <p>{subtitle}</p>
+      {children}
+    </article>
   ),
 }));
 
@@ -185,6 +203,7 @@ describe('unified RND profile work', () => {
     mocks.post.mockResolvedValue({ data: { success: true } });
     render(<ProfileWorkPanel />);
     fireEvent.click(await screen.findByRole('button', { name: /Both Tasks/ }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Profile decision' }));
     const notes = await screen.findByRole('textbox', { name: 'Review notes' });
     fireEvent.change(notes, { target: { value: 'Please upload your recent diabetes report.' } });
     expect(screen.getByRole('button', { name: 'Confirm for planning' })).toBeDisabled();
@@ -204,7 +223,7 @@ describe('unified RND profile work', () => {
     render(<ProfileWorkPanel />);
     fireEvent.click(await screen.findByRole('button', { name: /Both Tasks/ }));
     expect(await screen.findByTestId('guidance-paper')).toHaveTextContent('MAINTAIN · DIABETES');
-    expect(screen.getByText(/Current profile revision 4/)).toBeInTheDocument();
+    expect(screen.getByText(/Revision 4/)).toBeInTheDocument();
     expect(screen.getByText(/Recorded profile:/).parentElement).toHaveTextContent('revision 3');
     expect(mocks.get).not.toHaveBeenCalledWith('/nutritionist/clinical-evidence/doc-1');
     fireEvent.click(screen.getByRole('button', { name: 'Expand case details' }));
@@ -231,7 +250,7 @@ describe('unified RND profile work', () => {
     fireEvent.click(await screen.findByRole('button', { name: /Both Tasks/ }));
     expect(await screen.findByRole('button', { name: /Version 2.*Current profile draft/ })).toBeInTheDocument();
     expect(screen.getByText(/Planning uses report version 1/)).toBeInTheDocument();
-    expect(screen.getByText(/Recorded profile:/).parentElement).toHaveTextContent('not selected for planning');
+    expect(screen.getByText(/Recorded profile:/).parentElement).toHaveTextContent(/not selected for planning/i);
   });
 
   it('claims a document-only task before file access and records its decision', async () => {
@@ -293,6 +312,7 @@ describe('unified RND profile work', () => {
     );
     render(<ProfileWorkPanel />);
     fireEvent.click(await screen.findByRole('button', { name: /Both Tasks/ }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Profile decision' }));
     fireEvent.change(await screen.findByRole('textbox', { name: 'Review notes' }), {
       target: { value: 'Reviewed the condition details.' },
     });
@@ -300,7 +320,7 @@ describe('unified RND profile work', () => {
     expect(screen.getByText('Ask the member to complete and save food allergy details.')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Request details' })).toBeEnabled();
     expect(
-      within(screen.getByTestId('profile-toolbar')).getByRole('button', { name: 'Release profile' })
+      within(screen.getByTestId('profile-toolbar')).getByRole('button', { name: 'Release profile', hidden: true })
     ).toBeInTheDocument();
   });
 
@@ -327,10 +347,13 @@ describe('unified RND profile work', () => {
     });
     render(<ProfileWorkPanel />);
     fireEvent.click(await screen.findByRole('button', { name: /Both Tasks/ }));
+    fireEvent.click(
+      within(await screen.findByTestId('profile-toolbar')).getByRole('button', { name: 'Claim profile' })
+    );
+    fireEvent.click(await screen.findByRole('button', { name: 'Profile decision' }));
     fireEvent.change(await screen.findByRole('textbox', { name: 'Review notes' }), {
       target: { value: 'Reviewed the updated health details.' },
     });
-    fireEvent.click(within(screen.getByTestId('profile-toolbar')).getByRole('button', { name: 'Claim profile' }));
     await waitFor(() => expect(screen.getByRole('button', { name: 'Confirm for planning' })).toBeEnabled());
     expect(screen.queryByText(/Ask the member to complete/)).not.toBeInTheDocument();
   });
@@ -349,7 +372,7 @@ describe('unified RND profile work', () => {
     expect(screen.queryByRole('button', { name: /Both Tasks/ })).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Document Only/ })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Confirm for planning' })).not.toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Expand case details' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Expand case details' })).not.toBeInTheDocument();
     expect(mocks.get.mock.calls.filter(([path]) => path === '/nutritionist/profile-work/both')).toHaveLength(1);
   });
 
@@ -406,11 +429,12 @@ it('requires an explicit profile claim before allowing confirmation', async () =
   });
   render(<ProfileWorkPanel />);
   fireEvent.click(await screen.findByRole('button', { name: /Both Tasks/ }));
+  expect(screen.queryByRole('button', { name: 'Profile decision' })).not.toBeInTheDocument();
+  fireEvent.click(await screen.findByRole('button', { name: 'Claim profile' }));
+  fireEvent.click(await screen.findByRole('button', { name: 'Profile decision' }));
   fireEvent.change(await screen.findByRole('textbox', { name: 'Review notes' }), {
     target: { value: 'Reviewed the submitted health details.' },
   });
-  expect(screen.getByRole('button', { name: 'Confirm for planning' })).toBeDisabled();
-  fireEvent.click(screen.getByRole('button', { name: 'Claim profile' }));
   await waitFor(() => expect(screen.getByRole('button', { name: 'Confirm for planning' })).toBeEnabled());
   expect(mocks.post).toHaveBeenCalledWith('/nutritionist/profile-reviews/both/claim');
 });
@@ -446,22 +470,25 @@ it('requires condition-specific rationale and both checks, then submits a separa
   mocks.post.mockResolvedValue({ data: { data: {} } });
   render(<ProfileWorkPanel />);
   fireEvent.click(await screen.findByRole('button', { name: /Both Tasks/ }));
+  fireEvent.click(await screen.findByRole('button', { name: 'Profile decision' }));
   fireEvent.change(await screen.findByRole('textbox', { name: 'Review notes' }), {
     target: { value: 'Reviewed current health details.' },
   });
-  const confirm = screen.getByRole('button', { name: 'Confirm for planning' });
-  expect(confirm).toBeDisabled();
+  expect(screen.getByRole('button', { name: 'Confirm for planning' })).toBeDisabled();
+  fireEvent.click(screen.getByRole('button', { name: 'Close' }));
   expect(screen.getAllByRole('checkbox', { name: 'No additional meal restrictions identified' })).toHaveLength(1);
   fireEvent.click(screen.getByRole('checkbox', { name: 'No additional meal restrictions identified' }));
   fireEvent.change(screen.getByRole('textbox', { name: 'Assessment rationale for Unrelated condition' }), {
     target: { value: 'Reviewed dietary needs, medication and food-handling risk.' },
   });
-  expect(confirm).toBeDisabled();
+
   fireEvent.click(
     screen.getByRole('checkbox', { name: 'I reviewed dietary needs and medication or treatment effects.' })
   );
-  expect(confirm).toBeDisabled();
+
   fireEvent.click(screen.getByRole('checkbox', { name: 'I reviewed foodborne illness risk and food-handling needs.' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Profile decision' }));
+  const confirm = screen.getByRole('button', { name: 'Confirm for planning' });
   expect(confirm).toBeEnabled();
   fireEvent.click(confirm);
   await waitFor(() =>

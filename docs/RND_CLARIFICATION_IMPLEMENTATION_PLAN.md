@@ -22,7 +22,7 @@ Each batch is a separately reviewable commit with scoped tests. Inspect shared-c
 | Batch | Scope | Status |
 | --- | --- | --- |
 | 1 | Persistent version-bound clarification forms, member answers, claim handoffs, RND resolution, shared form UI and planning gate | Implemented and locally tested; shared rollout pending |
-| 2 | Profile queue canvas; reviewed structured profile proposals, correction requests and acknowledgment; link forms to proposal evidence | Planned |
+| 2 | Profile queue canvas; reviewed structured profile proposals, correction requests and acknowledgment; link forms to proposal evidence | Implemented and locally tested; shared rollout pending |
 | 3 | Plan/review context revision enforcement, meal-triggered clarification, outdated-request withdrawal and live default-panel return; preserve drafts | Planned |
 | 4 | Explicit replacement nutrient filters, missing-value handling and no-suitable-replacement outcome | Planned |
 | 5 | Reusable review summaries with privacy/current-version checks; full cross-role and browser acceptance | Planned |
@@ -61,4 +61,14 @@ October 10, 2026: additive migration `202610100001_clinical_clarifications` crea
 
 Verification: 855 backend tests passed (one pre-existing TODO, 856 total); 27 focused frontend tests passed; 13 fresh PostgreSQL/HTTP scenarios passed on task-owned loopback port 55488 with all 99 migrations and no external providers. The acceptance run covers claims, late responses/handoff, ownership, validation, retries, unchanged profile, blocked confirmation/planning, version-bound resolution, concurrent submission/resolution, audited admin history, health-detail scope changes without a profile increment, changed profile and current confirmation after resolution. Backend/frontend lint, builds, application/script TypeScript and Prisma validation passed. This is software verification, not clinical validation or browser E2E evidence.
 
-`CLINICAL_CLARIFICATIONS_ENABLED` stays false by default; existing localhost uses disabled mode until authorized migration/enablement. No shared database data was modified. Tests used synthetic accounts only in the disposable target. Future batch behavior remains planned.
+`CLINICAL_CLARIFICATIONS_ENABLED` stays false by default; existing localhost uses disabled mode until authorized migration/enablement. No shared database data was modified for Batch 1. Tests used synthetic accounts only in the disposable target. Future batch behavior remains planned.
+
+## Batch 2 delivered boundaries
+
+The Profile queue reuses ReviewCanvas: movable current-profile, saved-guidance/document, clarification composer, individual published-form and correction sheets; H/V tools, local Ctrl/Command wheel zoom and fullscreen remain shared. Profile decision notes open in a canvas-layer dialog. Published forms stay immutable, and clarification/proposal drafts are owned outside the fullscreen portal so expansion preserves them.
+
+Additive migration `202610100002_clinical_profile_proposals` stores immutable before/after and resolved-form evidence, author, rationale, member response and applied revision. A database partial unique index and the existing member lock enforce one active proposal. This batch permits corrections to declared safety sections and existing-area health details. Body targets and preferences remain member-controlled. Refinement such as a reported diabetes type is recorded in reviewed health details; no new clinical taxonomy or automatic diagnosis classifier is introduced.
+
+Sending a proposal leaves the saved profile unchanged and blocks new planning/profile confirmation. A member can acknowledge and apply it or request correction with a reason. A successor claimant can propose a new correction linked to the prior request; prior contents and responses are retained. Acceptance checks current scope and author credentials, applies existing restriction validation, advances safety/profile revisions exactly once, clears prior claims and invalidates old reviews/reports. It is acknowledgment of the correction, not clinical profile certification: the existing current RND confirmation and nutrition-guidance/report planning checks still apply. Independently changed profiles/scopes supersede outstanding proposals. Accepted history retains attribution. Related admin access is read-only and audited.
+
+Shared rollout is pending for both Batch 1 and Batch 2 migrations and their common flag. Batch 3 remains responsible for meal-triggered clarification, stronger plan context enforcement, live default-panel return and stale draft preservation. Batch 4 replacement filters and Batch 5 reusable summaries remain planned.

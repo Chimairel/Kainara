@@ -16,6 +16,15 @@ const newQuestion = (): DraftQuestion => ({
   required: true,
   choices: '',
 });
+export function useRndClarificationDraft(caseKey: string) {
+  const [title, setTitle] = useState('Profile clarification');
+  const [questions, setQuestions] = useState<DraftQuestion[]>([]);
+  useEffect(() => {
+    setTitle('Profile clarification');
+    setQuestions([]);
+  }, [caseKey]);
+  return { title, setTitle, questions, setQuestions };
+}
 
 export default function RndClarifications({
   userId,
@@ -24,6 +33,9 @@ export default function RndClarifications({
   workspace,
   canWrite,
   onUpdated,
+  draft,
+  showForms = true,
+  showComposer = true,
 }: {
   userId: string;
   profileRevision: number;
@@ -31,9 +43,12 @@ export default function RndClarifications({
   workspace?: ClarificationWorkspace;
   canWrite: boolean;
   onUpdated: () => Promise<void>;
+  draft?: ReturnType<typeof useRndClarificationDraft>;
+  showForms?: boolean;
+  showComposer?: boolean;
 }) {
-  const [title, setTitle] = useState('Profile clarification');
-  const [questions, setQuestions] = useState<DraftQuestion[]>([]);
+  const internalDraft = useRndClarificationDraft(`${userId}:${profileRevision}:${scopeKey}`);
+  const { title, setTitle, questions, setQuestions } = draft ?? internalDraft;
   const [busy, setBusy] = useState(false);
   const requestRef = useRef<{ payload: string; key: string } | null>(null);
   const retryKey = (payload: unknown) => {
@@ -45,8 +60,6 @@ export default function RndClarifications({
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   useEffect(() => {
-    setQuestions([]);
-    setTitle('Profile clarification');
     setError(null);
     setMessage(null);
   }, [userId, profileRevision, scopeKey]);
@@ -144,108 +157,111 @@ export default function RndClarifications({
           {message}
         </p>
       )}
-      {workspace.forms.map((form) => (
-        <ClarificationFormCard
-          key={form.id}
-          form={form}
-          mode="reviewer"
-          disabled={busy || !canWrite}
-          onResolve={(rationale) => resolve(form, rationale)}
-        />
-      ))}
-      <Card className="space-y-3 p-4">
-        <h4 className="font-bold">Send specific questions</h4>
-        {!canWrite && <p className="text-xs text-brand-muted">Claim this profile to send or resolve questions.</p>}
-        <form
-          onSubmit={(event) => {
-            event.preventDefault();
-            void publish();
-          }}
-          className="space-y-3"
-        >
-          <fieldset disabled={!canWrite || busy} className="space-y-3">
-            <label className="block text-sm">
-              Form title
-              <input
-                value={title}
-                minLength={3}
-                maxLength={160}
-                required
-                onChange={(event) => setTitle(event.target.value)}
-                className="mt-1 w-full rounded-xl border border-brand-border bg-brand-surface p-3"
-              />
-            </label>
-            {questions.map((q, index) => (
-              <div key={q.id} className="space-y-3 rounded-xl border border-brand-border p-3">
-                <label className="block text-sm">
-                  Question {index + 1}
-                  <textarea
-                    value={q.label}
-                    required
-                    minLength={3}
-                    maxLength={500}
-                    rows={2}
-                    onChange={(event) => updateQuestion(q.id, { label: event.target.value })}
-                    className="mt-1 w-full rounded-xl border border-brand-border bg-brand-surface p-3"
-                  />
-                </label>
-                <label className="block text-sm">
-                  Answer type
-                  <NativeSelect
-                    value={q.type}
-                    onChange={(event) => updateQuestion(q.id, { type: event.target.value as DraftQuestion['type'] })}
-                    className="mt-1 w-full"
-                  >
-                    <option value="TEXT">Text</option>
-                    <option value="CHOICE">Single choice</option>
-                  </NativeSelect>
-                </label>
-                {q.type === 'CHOICE' && (
+      {showForms &&
+        workspace.forms.map((form) => (
+          <ClarificationFormCard
+            key={form.id}
+            form={form}
+            mode="reviewer"
+            disabled={busy || !canWrite}
+            onResolve={(rationale) => resolve(form, rationale)}
+          />
+        ))}
+      {showComposer && (
+        <Card className="space-y-3 p-4">
+          <h4 className="font-bold">Send specific questions</h4>
+          {!canWrite && <p className="text-xs text-brand-muted">Claim this profile to send or resolve questions.</p>}
+          <form
+            onSubmit={(event) => {
+              event.preventDefault();
+              void publish();
+            }}
+            className="space-y-3"
+          >
+            <fieldset disabled={!canWrite || busy} className="space-y-3">
+              <label className="block text-sm">
+                Form title
+                <input
+                  value={title}
+                  minLength={3}
+                  maxLength={160}
+                  required
+                  onChange={(event) => setTitle(event.target.value)}
+                  className="mt-1 w-full rounded-xl border border-brand-border bg-brand-surface p-3"
+                />
+              </label>
+              {questions.map((q, index) => (
+                <div key={q.id} className="space-y-3 rounded-xl border border-brand-border p-3">
                   <label className="block text-sm">
-                    Choices, one per line
+                    Question {index + 1}
                     <textarea
-                      value={q.choices}
+                      value={q.label}
                       required
-                      maxLength={1000}
-                      rows={3}
-                      onChange={(event) => updateQuestion(q.id, { choices: event.target.value })}
+                      minLength={3}
+                      maxLength={500}
+                      rows={2}
+                      onChange={(event) => updateQuestion(q.id, { label: event.target.value })}
                       className="mt-1 w-full rounded-xl border border-brand-border bg-brand-surface p-3"
                     />
                   </label>
-                )}
-                <label className="flex items-center gap-2 text-sm">
-                  <input
-                    type="checkbox"
-                    checked={q.required}
-                    onChange={(event) => updateQuestion(q.id, { required: event.target.checked })}
-                  />
-                  Required
-                </label>
+                  <label className="block text-sm">
+                    Answer type
+                    <NativeSelect
+                      value={q.type}
+                      onChange={(event) => updateQuestion(q.id, { type: event.target.value as DraftQuestion['type'] })}
+                      className="mt-1 w-full"
+                    >
+                      <option value="TEXT">Text</option>
+                      <option value="CHOICE">Single choice</option>
+                    </NativeSelect>
+                  </label>
+                  {q.type === 'CHOICE' && (
+                    <label className="block text-sm">
+                      Choices, one per line
+                      <textarea
+                        value={q.choices}
+                        required
+                        maxLength={1000}
+                        rows={3}
+                        onChange={(event) => updateQuestion(q.id, { choices: event.target.value })}
+                        className="mt-1 w-full rounded-xl border border-brand-border bg-brand-surface p-3"
+                      />
+                    </label>
+                  )}
+                  <label className="flex items-center gap-2 text-sm">
+                    <input
+                      type="checkbox"
+                      checked={q.required}
+                      onChange={(event) => updateQuestion(q.id, { required: event.target.checked })}
+                    />
+                    Required
+                  </label>
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    onClick={() => setQuestions((items) => items.filter((item) => item.id !== q.id))}
+                  >
+                    Remove question
+                  </Button>
+                </div>
+              ))}
+              <div className="flex flex-wrap gap-2">
                 <Button
                   type="button"
                   variant="secondary"
-                  onClick={() => setQuestions((items) => items.filter((item) => item.id !== q.id))}
+                  disabled={questions.length >= 12}
+                  onClick={() => setQuestions((items) => [...items, newQuestion()])}
                 >
-                  Remove question
+                  Add question
+                </Button>
+                <Button type="submit" disabled={!questions.length}>
+                  Send questions
                 </Button>
               </div>
-            ))}
-            <div className="flex flex-wrap gap-2">
-              <Button
-                type="button"
-                variant="secondary"
-                disabled={questions.length >= 12}
-                onClick={() => setQuestions((items) => [...items, newQuestion()])}
-              >
-                Add question
-              </Button>
-              <Button type="submit" disabled={!questions.length}>
-                Send questions
-              </Button>
-            </div>
-          </fieldset>
-        </form>
-      </Card>
+            </fieldset>
+          </form>
+        </Card>
+      )}
     </section>
   );
 }

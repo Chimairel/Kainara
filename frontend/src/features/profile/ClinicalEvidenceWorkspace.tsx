@@ -1,5 +1,7 @@
 'use client';
 import MemberClarifications from '@/features/clinical-clarification/MemberClarifications';
+import MemberProfileProposals from '@/features/clinical-clarification/MemberProfileProposals';
+import type { ProfileProposalWorkspace } from '@/features/clinical-clarification/profile-proposal-types';
 import type { ClarificationWorkspace } from '@/features/clinical-clarification/types';
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
@@ -21,6 +23,7 @@ type Answers = {
   measurements: string;
 };
 type Workspace = {
+  profileProposals?: ProfileProposalWorkspace;
   clarifications?: ClarificationWorkspace;
   conditionPlanningAssessments?: Array<{ condition: string; reviewerName: string; rationale: string }>;
   safetyRevision: number;
@@ -198,6 +201,22 @@ export default function ClinicalEvidenceWorkspace({
         <p role="status" className="text-sm text-brand-green">
           {message}
         </p>
+      )}
+      {mode === 'profile' && (
+        <MemberProfileProposals
+          workspace={workspace?.profileProposals}
+          onUpdated={async (applied) => {
+            if (applied) {
+              await load();
+              window.dispatchEvent(new Event(LIVE_UPDATE_EVENT));
+            } else {
+              const response = await api.get(endpoint);
+              setWorkspace((current) =>
+                current ? { ...current, profileProposals: response.data.data.profileProposals } : response.data.data
+              );
+            }
+          }}
+        />
       )}
       {mode === 'profile' && (
         <MemberClarifications

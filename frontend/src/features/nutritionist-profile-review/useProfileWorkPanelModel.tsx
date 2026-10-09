@@ -268,6 +268,9 @@ export function useProfileWorkPanelModel() {
   const selectedDocument =
     selection?.kind === 'document' ? detail?.documents.find((item) => item.id === selection.id) : null;
   const profileBlocked =
+    detail?.profileReview?.profileProposals?.proposals.some((p) =>
+      ['PENDING', 'CORRECTION_REQUESTED'].includes(p.status)
+    ) ||
     detail?.profileReview?.clarifications?.forms.some(
       (form) => form.status === 'AWAITING_MEMBER' || form.status === 'ANSWERED'
     ) ||
@@ -329,7 +332,7 @@ export function useProfileWorkPanelModel() {
     profileBlocked,
     decideProfile,
     reloadDetail: async () => {
-      if (detail) {
+      if (detail && detailRef.current?.userId === detail.userId) {
         await openPerson(detail.userId, true);
         await refresh();
       }

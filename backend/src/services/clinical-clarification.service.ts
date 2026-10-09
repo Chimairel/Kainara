@@ -45,7 +45,7 @@ export async function hasUnresolvedClarifications(
   );
 }
 
-async function currentClaim(
+export async function currentClaim(
   tx: Prisma.TransactionClient,
   reviewerId: string,
   userId: string,

@@ -1,0 +1,34 @@
+{
+  "changeId": "CHG-20261010-03",
+  "date": "2026-10-10",
+  "scope": "Batch 2: Profile queue canvas and acknowledged clinical profile correction proposals",
+  "backend": { "passed": 859, "failed": 0, "existingTodo": 1, "total": 860 },
+  "frontend": { "passed": 36, "failed": 0, "files": 6, "level": "Component and shared canvas tests" },
+  "acceptance": {
+    "target": "127.0.0.1:55488/kainara_profile_proposals",
+    "migrations": 100,
+    "syntheticAccounts": 6,
+    "passed": 19,
+    "script": "backend/scripts/profile-proposal-local-acceptance.ts",
+    "externalProviders": "Disabled; fetch constrained to loopback",
+    "checks": [
+      "Batch 1 role, claim, credential and member ownership boundaries",
+      "Persistent forms, response versions, late answers and claimed handoffs",
+      "Immutable resolution, concurrent responses and version-bound resolution",
+      "Strict proposal fields and resolved current-case evidence",
+      "One active proposal and publication retry/concurrency protection",
+      "Pending proposals block planning and profile confirmation",
+      "Member correction requests leave saved profiles unchanged",
+      "Revised proposals preserve member responses through claimant changes",
+      "Concurrent acknowledgment and retry apply exactly once",
+      "Acceptance advances profile/safety and clears 21 existing meal claims",
+      "Current proposing RND credentials are rechecked on acceptance",
+      "Existing safety validation preserves other declared restrictions",
+      "Independent member changes supersede pending proposals",
+      "Accepted attribution and related-case admin access auditing"
+    ]
+  },
+  "staticChecks": ["Backend application/script TypeScript", "Frontend TypeScript", "Backend/frontend lint", "Backend/frontend production builds", "Prisma validation"],
+  "sharedDevelopment": { "dataChangedByBatch2": false, "flagEnabled": false, "pendingMigrations": ["202610100001_clinical_clarifications", "202610100002_clinical_profile_proposals"], "normalApiHealth": 200 },
+  "limits": ["No authenticated browser E2E claim", "No clinical validation", "No shared migration application or demo promotion", "Batch 3 live withdrawal and meal clarification remain planned", "Batch 4 filters and Batch 5 reusable summaries remain planned"]
+}

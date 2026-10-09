@@ -1,4 +1,5 @@
 import { ClinicalClarificationService, hasUnresolvedClarifications } from './clinical-clarification.service';
+import { ClinicalProfileProposalService, hasPendingProfileProposal } from './clinical-profile-proposal.service';
 import {
   context,
   userInclude,
@@ -77,11 +78,17 @@ export class ClinicalProfileReviewService {
       profileRevision: current.profile.revision,
       scopeKey: current.scopeKey,
     });
+    const proposalPending = await hasPendingProfileProposal(userId, {
+      profileRevision: current.profile.revision,
+      scopeKey: current.scopeKey,
+    });
     return {
+      proposalPending,
       clarificationPending,
       required: current.restricted,
       approved:
         !clarificationPending &&
+        !proposalPending &&
         !current.declarationRequired &&
         (!current.restricted ||
           approvals.some((review) => isCurrentApproval(review, current.scopeKey, current.profile.revision))),
@@ -98,11 +105,19 @@ export class ClinicalProfileReviewService {
   static async hasCurrentApproval(
     userId: string,
     client: Pick<Prisma.TransactionClient, 'user' | 'clinicalProfileReview'> &
-      Partial<Pick<Prisma.TransactionClient, 'clinicalClarificationForm'>> = prisma
+      Partial<Pick<Prisma.TransactionClient, 'clinicalClarificationForm' | 'clinicalProfileProposal'>> = prisma
   ) {
     const user = await client.user.findUnique({ where: { id: userId }, include: userInclude });
     if (!user) throw new AppError('User not found.', 404, 'USER_NOT_FOUND');
     const current = context(user);
+    if (
+      await hasPendingProfileProposal(
+        userId,
+        { profileRevision: current.profile.revision, scopeKey: current.scopeKey },
+        client.clinicalProfileProposal ? (client as Pick<Prisma.TransactionClient, 'clinicalProfileProposal'>) : prisma
+      )
+    )
+      return false;
     if (
       await hasUnresolvedClarifications(
         userId,
@@ -215,6 +230,26 @@ export class ClinicalProfileReviewService {
             : (review?.status ?? 'PENDING');
         })(),
       }));
+    if (ClinicalClarificationService.enabled) {
+      const proposals = await prisma.clinicalProfileProposal.findMany({
+        where: {
+          userId: { in: eligible.map(({ user }) => user.id) },
+          status: { in: ['PENDING', 'CORRECTION_REQUESTED'] },
+        },
+        select: { userId: true, profileRevision: true, scopeKey: true, status: true },
+      });
+      for (const person of people) {
+        const current = eligible.find(({ user }) => user.id === person.userId)!.current;
+        const proposal = proposals.find(
+          (p) =>
+            p.userId === person.userId &&
+            p.profileRevision === current.profile.revision &&
+            p.scopeKey === current.scopeKey
+        );
+        if (proposal)
+          person.status = proposal.status === 'PENDING' ? 'AWAITING_ACKNOWLEDGMENT' : 'CORRECTION_REQUESTED';
+      }
+    }
     return reviewerId ? ReviewRoutingService.filterProfiles(people, reviewerId) : people;
   }
 
@@ -358,6 +393,7 @@ export class ClinicalProfileReviewService {
       !!claim?.claimedByNutritionistId && !!claim.claimedAt && Date.now() - claim.claimedAt.getTime() < CLAIM_TTL_MS;
     return {
       clarifications: await ClinicalClarificationService.list(userId, reviewerId),
+      profileProposals: await ClinicalProfileProposalService.list(userId, reviewerId),
       scopeKey: current.scopeKey,
       claim: {
         active,
@@ -544,6 +580,19 @@ export class ClinicalProfileReviewService {
           'Review and resolve the current clarification forms before confirming this profile.',
           422,
           'PROFILE_CLARIFICATION_REQUIRED'
+        );
+      if (
+        decision === 'APPROVED' &&
+        (await hasPendingProfileProposal(
+          userId,
+          { profileRevision: current.profile.revision, scopeKey: current.scopeKey },
+          tx
+        ))
+      )
+        throw new AppError(
+          'The member must respond to the proposed profile correction first.',
+          422,
+          'PROFILE_PROPOSAL_PENDING'
         );
       if (existing?.status === 'APPROVED')
         throw new AppError('This profile revision has already been approved.', 409, 'PROFILE_REVIEW_ALREADY_APPROVED');

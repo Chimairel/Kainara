@@ -91,6 +91,15 @@ export class AdminReviewContextService {
           questions: form.questions,
         };
         decisions = [...form.responses, ...(form.resolution ? [form.resolution] : [])];
+      } else if (
+        event.entityType === 'ClinicalProfileProposal' &&
+        event.action.startsWith('CLINICAL_PROFILE_CORRECTION_')
+      ) {
+        const proposal = await tx.clinicalProfileProposal.findUnique({ where: { id: event.entityId } });
+        if (!proposal) throw unavailable();
+        userId = proposal.userId;
+        reviewedSnapshot = proposal.beforeSnapshot;
+        decisions = [proposal];
       } else if (event.entityType === 'ClinicalDocument' && event.action.startsWith('CLINICAL_DOCUMENT_')) {
         const document = await tx.clinicalDocument.findUnique({
           where: { id: event.entityId },

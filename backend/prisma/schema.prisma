@@ -849,6 +849,8 @@ model User {
   clarificationForms              ClinicalClarificationForm[] @relation("ClarificationMember")
   authoredClarificationForms      ClinicalClarificationForm[] @relation("ClarificationAuthor")
   clarificationResolutions        ClinicalClarificationResolution[]
+  profileCorrectionProposals      ClinicalProfileProposal[] @relation("ProfileProposalMember")
+  authoredProfileProposals        ClinicalProfileProposal[] @relation("ProfileProposalAuthor")
   membershipAccount               MembershipAccount?
   membershipGrants                MembershipGrant[]
   membershipUsage                 MembershipUsage[]
@@ -3263,6 +3265,31 @@ model ReviewRoutingEpisode {
 }
 
 /// Published questions and submitted answers belong to the member case, not a claim.
+model ClinicalProfileProposal {
+  id                      String   @id @default(cuid())
+  userId                  String
+  member                  User     @relation("ProfileProposalMember", fields: [userId], references: [id], onDelete: Cascade)
+  authorUserId            String
+  author                  User     @relation("ProfileProposalAuthor", fields: [authorUserId], references: [id], onDelete: Restrict)
+  profileRevision         Int
+  scopeKey                String
+  beforeSnapshot          Json
+  changes                 Json
+  evidenceSnapshot        Json
+  rationale               String   @db.VarChar(2000)
+  requestKey              String   @db.VarChar(80)
+  status                  String   @default("PENDING") @db.VarChar(30)
+  replacesProposalId      String?
+  memberNote              String?  @db.VarChar(2000)
+  memberRequestKey        String?  @db.VarChar(80)
+  respondedAt             DateTime?
+  acceptedProfileRevision Int?
+  createdAt               DateTime @default(now())
+
+  @@unique([userId, requestKey])
+  @@index([userId, createdAt])
+}
+
 model ClinicalClarificationForm {
   id              String @id @default(cuid())
   userId          String
