@@ -9,11 +9,16 @@ import {
   type SafetyEntryDomain,
   type SafetySupportState,
 } from './safety-intake.policy';
+import {
+  activeConditionPlanningAssessment,
+  type AssessedConditionEntry,
+  type ConditionPlanningAssessment,
+} from './condition-planning-assessment.policy';
 
 export type StructuredSafetyDomain = SafetyEntryDomain;
 export type StructuredSafetySupportState = SafetySupportState;
 
-export interface StructuredSafetyRestrictionEntry {
+export interface StructuredSafetyRestrictionEntry extends AssessedConditionEntry {
   domain?: unknown;
   canonicalCode?: unknown;
   displayName?: unknown;
@@ -27,6 +32,8 @@ export interface UserSafetyRestrictionSource {
   allergies?: unknown;
   otherConditions?: unknown;
   otherAllergies?: unknown;
+  /** History/intake views must retain all declarations even after an RND relevance assessment. */
+  useConditionAssessments?: boolean;
 }
 
 export interface CanonicalUserSafetyRestrictions {
@@ -40,6 +47,7 @@ export interface CanonicalUserSafetyRestrictions {
     domain: StructuredSafetyDomain | 'UNKNOWN';
     label: string;
     supportState: StructuredSafetySupportState | 'UNKNOWN';
+    mealPlanningAssessment?: ConditionPlanningAssessment | null;
   }>;
   requiresReview: boolean;
 }
@@ -122,7 +130,14 @@ export function adaptUserSafetyRestrictions(source: UserSafetyRestrictionSource)
       const label = cleaned(entry.displayName, cleaned(entry.originalText, '[INVALID_RESTRICTION]'));
       if (canonicalCode === 'NONE' || label.toUpperCase() === 'NONE') continue;
 
-      displayEntries.push({ domain, label, supportState });
+      const assessment = activeConditionPlanningAssessment(entry);
+      displayEntries.push({
+        domain,
+        label,
+        supportState,
+        ...(assessment ? { mealPlanningAssessment: assessment } : {}),
+      });
+      if (assessment && source.useConditionAssessments !== false) continue;
       const supported = domain !== 'UNKNOWN' && supportState === 'SUPPORTED';
 
       if (domain === 'CONDITION' && CONDITION_KEYS.has(canonicalCode)) {

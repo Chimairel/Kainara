@@ -39,6 +39,7 @@ export function mealApprovalSafetyScope(profile: MealApprovalSafetyProfile): {
             .trim()
             .toUpperCase(),
           state: String(entry.supportState ?? ''),
+          assessment: entry.mealPlanningAssessment ?? null,
         }))
         .sort((a, b) => JSON.stringify(a).localeCompare(JSON.stringify(b)))
     : [];

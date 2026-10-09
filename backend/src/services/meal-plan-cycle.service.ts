@@ -86,7 +86,16 @@ export class MealPlanCycleService {
             allergies: { select: { allergen: true } },
             userProfile: { select: { otherConditions: true, otherAllergies: true } },
             safetyProfileEntries: {
-              select: { domain: true, canonicalCode: true, originalText: true, supportState: true },
+              select: {
+                id: true,
+                userId: true,
+                normalizedText: true,
+                mealPlanningAssessment: true,
+                domain: true,
+                canonicalCode: true,
+                originalText: true,
+                supportState: true,
+              },
             },
           },
         },

@@ -34,6 +34,30 @@ describe('health details form', () => {
     await screen.findByRole('alert');
     expect(screen.queryByAltText('Sleeping Nara')).not.toBeInTheDocument();
   });
+  it('shows the separately recorded RND assessment while keeping treatment details editable', async () => {
+    mocks.get.mockResolvedValue({
+      data: {
+        data: {
+          ...workspace,
+          availableAreas: ['OTHER'],
+          conditionPlanningAssessments: [
+            {
+              condition: 'Recorded unrelated condition',
+              reviewerName: 'Recorded reviewer',
+              rationale: 'No additional restrictions after assessing the current treatment.',
+            },
+          ],
+        },
+      },
+    });
+    render(<ClinicalEvidenceWorkspace />);
+    expect(
+      await screen.findByText('Recorded unrelated condition · No additional meal restrictions identified')
+    ).toBeInTheDocument();
+    expect(screen.getByText(/Reviewed by Recorded reviewer, RND/)).toBeInTheDocument();
+    expect(screen.getByLabelText('Current medication or supplements')).toBeEnabled();
+    expect(screen.getByRole('button', { name: 'Save health details' })).toBeInTheDocument();
+  });
   it('saves structured user-provided details without uploading files', async () => {
     const { container } = render(<ClinicalEvidenceWorkspace mode="onboarding" />);
     await screen.findByLabelText('Condition or restriction details');

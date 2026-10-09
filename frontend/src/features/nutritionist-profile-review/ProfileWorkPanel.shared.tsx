@@ -35,6 +35,14 @@ export type DocumentItem = {
   latestReview: { decision: string; rationale: string } | null;
 };
 export type ProfileReview = {
+  conditionReviewEntries?: Array<{
+    id: string;
+    displayName: string;
+    supportState: string;
+    canAssessNoAdditionalRestrictions: boolean;
+    assessment: { result: string; rationale: string; reviewerName: string; assessedAt: string } | null;
+  }>;
+  clarificationEntryIds?: string[];
   profileRevision: number;
   scopeKey: string;
   claim?: { active: boolean; mine: boolean; expiresAt: string | null };
@@ -43,6 +51,12 @@ export type ProfileReview = {
   previousReview: { notes: string | null } | null;
   requirements: Array<{ area: string; state: string; message: string }>;
   availableAreas: string[];
+};
+export type ConditionAssessmentDraft = {
+  entryId: string;
+  rationale: string;
+  reviewedDietaryAndTreatmentEffects: boolean;
+  reviewedFoodborneIllnessRisk: boolean;
 };
 export type PersonDetail = {
   userId: string;

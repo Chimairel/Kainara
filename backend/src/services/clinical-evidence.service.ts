@@ -2,8 +2,9 @@ import { ReviewRoutingService } from './review-routing.service';
 import path from 'node:path';
 import { isDeepStrictEqual } from 'node:util';
 import { healthDetailsRequirements } from '@/domain/health-details.policy';
+import { activeConditionPlanningAssessment } from '@/domain/condition-planning-assessment.policy';
 import { healthDetailsSchema, type HealthDetailsInput } from '@/validation/health-details.schemas';
-import { lockUserProfile } from './profile-revision.service';
+import { lockUserProfile, invalidateConditionPlanningAssessments } from './profile-revision.service';
 import {
   ClinicalDocumentReviewDecision,
   ClinicalDocumentType,
@@ -124,7 +125,8 @@ async function invalidateDocumentDependencies(tx: Prisma.TransactionClient, docu
   }
 }
 
-async function invalidateActivePlansForUser(tx: Prisma.TransactionClient, userId: string) {
+async function invalidateActivePlansForUser(tx: Prisma.TransactionClient, userId: string, actorUserId = userId) {
+  await invalidateConditionPlanningAssessments(tx, userId, 'CLINICAL_CONTEXT_OR_EVIDENCE_CHANGED', true, actorUserId);
   await tx.mealPlan.updateMany({
     where: { userId, status: 'APPROVED' },
     data: { requiresSafetyRevalidation: true },
@@ -233,7 +235,7 @@ export class ClinicalEvidenceService {
   }
 
   static async workspace(userId: string) {
-    const [documents, contexts, requirements] = await Promise.all([
+    const [documents, contexts, requirements, assessedEntries] = await Promise.all([
       prisma.clinicalDocument.findMany({
         where: { userId },
         include: { facts: { orderBy: { createdAt: 'asc' } }, reviews: { orderBy: { createdAt: 'desc' }, take: 1 } },
@@ -241,9 +243,16 @@ export class ClinicalEvidenceService {
       }),
       prisma.clinicalContextResponse.findMany({ where: { userId } }),
       this.requirementsForUser(userId),
+      prisma.safetyProfileEntry.findMany({
+        where: { userId, domain: 'CONDITION', mealPlanningAssessment: { not: Prisma.DbNull } },
+      }),
     ]);
     return {
       policyVersion: 'HEALTH_DETAILS_V1',
+      conditionPlanningAssessments: assessedEntries.flatMap((entry) => {
+        const assessment = activeConditionPlanningAssessment(entry);
+        return assessment ? [{ condition: entry.displayName, ...assessment }] : [];
+      }),
       safetyRevision:
         (await prisma.userProfile.findUnique({ where: { userId }, select: { safetyRevision: true } }))
           ?.safetyRevision ?? 0,
@@ -288,6 +297,7 @@ export class ClinicalEvidenceService {
       throw new AppError('Diabetes is not declared in this profile.', 422, 'CLINICAL_AREA_NOT_DECLARED');
     const updated = await prisma.$transaction(
       async (tx) => {
+        await lockUserProfile(tx, userId);
         const result = await tx.clinicalContextResponse.upsert({
           where: { userId_area: { userId, area: ClinicalEvidenceArea.DIABETES } },
           create: { userId, area: ClinicalEvidenceArea.DIABETES, responses: context },
@@ -337,6 +347,7 @@ export class ClinicalEvidenceService {
     return prisma.$transaction(
       async (tx) => {
         let superseded: { id: string; revision: number } | null = null;
+        await lockUserProfile(tx, input.userId);
         if (input.supersedesDocumentId) {
           superseded = await tx.clinicalDocument.findFirst({
             where: {
@@ -420,6 +431,7 @@ export class ClinicalEvidenceService {
   static async withdraw(userId: string, documentId: string) {
     return prisma.$transaction(
       async (tx) => {
+        await lockUserProfile(tx, userId);
         const document = await tx.clinicalDocument.findFirst({
           where: { id: documentId, userId, status: { notIn: ['WITHDRAWN', 'SUPERSEDED'] } },
         });
@@ -712,6 +724,7 @@ export class ClinicalEvidenceService {
             409,
             'CLINICAL_DOCUMENT_CLAIM_REQUIRED'
           );
+        await lockUserProfile(tx, document.userId);
         if (
           input.decision === ClinicalDocumentReviewDecision.SUFFICIENT &&
           (!input.validUntil || input.validUntil < new Date())
@@ -840,7 +853,7 @@ export class ClinicalEvidenceService {
         });
         if (status !== ClinicalDocumentStatus.SUFFICIENT_FOR_NUTRITION_REVIEW)
           await invalidateDocumentDependencies(tx, document.id, `CLINICAL_DOCUMENT_${status}`);
-        await invalidateActivePlansForUser(tx, document.userId);
+        await invalidateActivePlansForUser(tx, document.userId, input.actorUserId);
         await tx.notification.create({
           data: {
             userId: document.userId,

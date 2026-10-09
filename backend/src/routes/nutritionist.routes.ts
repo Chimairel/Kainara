@@ -72,6 +72,19 @@ const profileReviewDecision = z
     profileRevision: z.number().int().nonnegative(),
     scopeKey: z.string().min(1).max(10000),
     area: z.nativeEnum(ClinicalEvidenceArea).optional(),
+    conditionAssessments: z
+      .array(
+        z
+          .object({
+            entryId: z.string().min(1),
+            rationale: z.string().trim().min(10).max(2000),
+            reviewedDietaryAndTreatmentEffects: z.literal(true),
+            reviewedFoodborneIllnessRisk: z.literal(true),
+          })
+          .strict()
+      )
+      .max(20)
+      .optional(),
   })
   .strict()
   .superRefine((value, ctx) => {
@@ -222,7 +235,8 @@ router.post(
         req.body.decision,
         req.body.notes,
         req.body.area,
-        { profileRevision: req.body.profileRevision, scopeKey: req.body.scopeKey }
+        { profileRevision: req.body.profileRevision, scopeKey: req.body.scopeKey },
+        req.body.conditionAssessments
       ),
     });
   })

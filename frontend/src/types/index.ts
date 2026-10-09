@@ -20,6 +20,13 @@ export type SafetySupportState =
   'SUPPORTED' | 'RECOGNIZED_UNSUPPORTED' | 'NEEDS_CLARIFICATION' | 'PENDING_REVIEW' | 'INVALID';
 
 export interface SafetyProfileEntry {
+  mealPlanningAssessment?: {
+    result: 'NO_ADDITIONAL_RESTRICTIONS';
+    reviewerName: string;
+    rationale: string;
+    assessedAt: string;
+    profileRevision: number;
+  } | null;
   domain: SafetyEntryDomain;
   canonicalCode: string | null;
   displayName: string;

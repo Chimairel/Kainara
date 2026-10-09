@@ -8,11 +8,31 @@ type Model = Extract<ReturnType<typeof useProfileWorkPanelModel>, { kind: 'ready
 type SectionProps = {
   model: Pick<
     Model,
-    'detail' | 'requestArea' | 'setRequestArea' | 'notes' | 'setNotes' | 'profileBlocked' | 'busy' | 'decideProfile'
+    | 'detail'
+    | 'requestArea'
+    | 'setRequestArea'
+    | 'notes'
+    | 'setNotes'
+    | 'profileBlocked'
+    | 'busy'
+    | 'decideProfile'
+    | 'conditionAssessments'
+    | 'setConditionAssessments'
   >;
 };
 export default function ProfileClinicalReview({ model }: SectionProps) {
-  const { detail, requestArea, setRequestArea, notes, setNotes, profileBlocked, busy, decideProfile } = model;
+  const {
+    detail,
+    requestArea,
+    setRequestArea,
+    notes,
+    setNotes,
+    profileBlocked,
+    busy,
+    decideProfile,
+    conditionAssessments,
+    setConditionAssessments,
+  } = model;
   if (!detail) return null;
   return (
     <>
@@ -35,6 +55,98 @@ export default function ProfileClinicalReview({ model }: SectionProps) {
           ))}
           {detail.profileReview.previousReview?.notes && (
             <p className="text-brand-muted">Previous review: {detail.profileReview.previousReview.notes}</p>
+          )}
+          {!!detail.profileReview.conditionReviewEntries?.length && (
+            <fieldset
+              className="space-y-3 rounded-lg border border-brand-border p-3"
+              disabled={busy || !detail.profileReview.claim?.mine}
+            >
+              <legend className="px-1 font-bold">Condition relevance to meal planning</legend>
+              <p className="text-brand-muted">
+                Keep each condition recorded. Assess dietary needs, medication or treatment effects, and foodborne
+                illness risk before deciding that it adds no restrictions.
+              </p>
+              {detail.profileReview.conditionReviewEntries.map((entry) => {
+                const draft = conditionAssessments.find((item) => item.entryId === entry.id);
+                const update = (patch: Partial<NonNullable<typeof draft>>) =>
+                  setConditionAssessments((items) =>
+                    items.map((item) => (item.entryId === entry.id ? { ...item, ...patch } : item))
+                  );
+                return (
+                  <div key={entry.id} className="space-y-2 rounded-lg border border-brand-border p-3">
+                    <p className="font-semibold">{entry.displayName}</p>
+                    {entry.assessment ? (
+                      <p className="text-brand-muted">
+                        No additional restrictions identified · {entry.assessment.reviewerName}, RND.{' '}
+                        {entry.assessment.rationale}
+                      </p>
+                    ) : entry.canAssessNoAdditionalRestrictions ? (
+                      <>
+                        <label className="flex items-start gap-2">
+                          <input
+                            type="checkbox"
+                            checked={!!draft}
+                            onChange={(event) =>
+                              setConditionAssessments((items) =>
+                                event.target.checked
+                                  ? [
+                                      ...items,
+                                      {
+                                        entryId: entry.id,
+                                        rationale: '',
+                                        reviewedDietaryAndTreatmentEffects: false,
+                                        reviewedFoodborneIllnessRisk: false,
+                                      },
+                                    ]
+                                  : items.filter((item) => item.entryId !== entry.id)
+                              )
+                            }
+                          />
+                          No additional meal restrictions identified
+                        </label>
+                        {draft && (
+                          <>
+                            <label className="block">
+                              Assessment rationale for {entry.displayName}
+                              <textarea
+                                rows={3}
+                                value={draft.rationale}
+                                maxLength={2000}
+                                onChange={(event) => update({ rationale: event.target.value })}
+                                className="mt-1 block w-full rounded-lg border border-brand-border bg-brand-surface p-2"
+                              />
+                            </label>
+                            <label className="flex items-start gap-2">
+                              <input
+                                type="checkbox"
+                                checked={draft.reviewedDietaryAndTreatmentEffects}
+                                onChange={(event) =>
+                                  update({ reviewedDietaryAndTreatmentEffects: event.target.checked })
+                                }
+                              />
+                              I reviewed dietary needs and medication or treatment effects.
+                            </label>
+                            <label className="flex items-start gap-2">
+                              <input
+                                type="checkbox"
+                                checked={draft.reviewedFoodborneIllnessRisk}
+                                onChange={(event) => update({ reviewedFoodborneIllnessRisk: event.target.checked })}
+                              />
+                              I reviewed foodborne illness risk and food-handling needs.
+                            </label>
+                          </>
+                        )}
+                      </>
+                    ) : (
+                      <p className="text-brand-muted">
+                        Existing dietary review checks apply. Clarify incorrect declarations through the member’s
+                        profile.
+                      </p>
+                    )}
+                  </div>
+                );
+              })}
+            </fieldset>
           )}
           {detail.requirements.map((item) => (
             <p key={item.area} className={item.state === 'READY' ? 'text-brand-muted' : 'text-amber-500'}>
@@ -84,9 +196,19 @@ export default function ProfileClinicalReview({ model }: SectionProps) {
                       Ask the member to complete and save {item.area.replace(/_/g, ' ').toLowerCase()} details.
                     </li>
                   ))}
-                {detail.profileReview.needsClarification && (
+                {(detail.profileReview.clarificationEntryIds
+                  ? detail.profileReview.clarificationEntryIds.some(
+                      (id) => !conditionAssessments.some((item) => item.entryId === id)
+                    )
+                  : detail.profileReview.needsClarification) && (
                   <li>Resolve the profile restrictions that need clarification.</li>
                 )}
+                {conditionAssessments.some(
+                  (item) =>
+                    item.rationale.trim().length < 10 ||
+                    !item.reviewedDietaryAndTreatmentEffects ||
+                    !item.reviewedFoodborneIllnessRisk
+                ) && <li>Complete each selected condition’s rationale and both assessment checks.</li>}
                 {notes.trim().length < 10 && <li>Add review notes of at least 10 characters.</li>}
               </ul>
             </div>

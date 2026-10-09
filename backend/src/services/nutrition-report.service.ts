@@ -261,8 +261,15 @@ export class NutritionReportService {
 
   /** Used by check-ins in the same transaction as their durable weekly record. */
   static async publishInTransaction(tx: Prisma.TransactionClient, userId: string, confirmationKind = 'PROFILE_UPDATE') {
-    const { profile, safetyRestrictions, conditions, allergens, otherConditions, otherAllergies } =
-      await loadUserNutritionContext(tx, userId, 'Complete your profile before preparing nutrition guidance.');
+    const {
+      profile,
+      safetyRestrictions,
+      declaredSafetyRestrictions,
+      conditions,
+      allergens,
+      otherConditions,
+      otherAllergies,
+    } = await loadUserNutritionContext(tx, userId, 'Complete your profile before preparing nutrition guidance.');
     const { age, heightCm, weightKg, goal, activityLevel, dailyCalorieTarget } = profile;
     if (!age || !heightCm || !weightKg || !goal || !activityLevel || !dailyCalorieTarget)
       throw new Error('Please complete your statistics and goals before preparing nutrition guidance.');
@@ -282,7 +289,7 @@ export class NutritionReportService {
       foodsToLimit: [] as string[],
       foodsRecommended: [] as string[],
       drinksGuidance: [] as string[],
-      basedOnConditions: [...conditions, ...safetyRestrictions.customConditions],
+      basedOnConditions: [...declaredSafetyRestrictions.conditions, ...declaredSafetyRestrictions.customConditions],
       basedOnAllergies: [...allergens, ...safetyRestrictions.customFoodRestrictions],
     };
     const planningTargets = calculatePlanningMacroTargets({
@@ -313,9 +320,12 @@ export class NutritionReportService {
         profileSnapshot: JSON.parse(
           JSON.stringify({
             profile,
-            conditions,
+            conditions: declaredSafetyRestrictions.conditions,
             allergens,
-            otherConditions,
+            otherConditions: declaredSafetyRestrictions.customConditions.join(', '),
+            conditionAssessments: declaredSafetyRestrictions.displayEntries.flatMap((entry) =>
+              entry.mealPlanningAssessment ? [entry.mealPlanningAssessment] : []
+            ),
             otherAllergies,
             nutritionReferences: guidance.nutritionReferences,
             planningTargets,

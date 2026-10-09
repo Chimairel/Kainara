@@ -33,11 +33,20 @@ export async function loadUserNutritionContext(
     otherConditions: profile.otherConditions,
     otherAllergies: profile.otherAllergies,
   });
+  const declaredSafetyRestrictions = adaptUserSafetyRestrictions({
+    safetyEntries: user.safetyProfileEntries,
+    healthConditions: user.healthConditions.map((item) => item.condition),
+    allergies: user.allergies.map((item) => item.allergen),
+    otherConditions: profile.otherConditions,
+    otherAllergies: profile.otherAllergies,
+    useConditionAssessments: false,
+  });
 
   return {
     user,
     profile,
     safetyRestrictions,
+    declaredSafetyRestrictions,
     conditions: safetyRestrictions.conditions,
     allergens: safetyRestrictions.allergies,
     otherConditions: safetyRestrictions.customConditions.join(', '),

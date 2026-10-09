@@ -15,6 +15,7 @@ import {
   PersonDetail,
   DocumentDetail,
   factCodes,
+  ConditionAssessmentDraft,
 } from './ProfileWorkPanel.shared';
 export function useProfileWorkPanelModel() {
   const ownerId = useAuth().user?.userId;
@@ -29,6 +30,7 @@ export function useProfileWorkPanelModel() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notes, setNotes] = useState('');
+  const [conditionAssessments, setConditionAssessments] = useState<ConditionAssessmentDraft[]>([]);
   const [requestArea, setRequestArea] = useState('');
   const [decision, setDecision] = useState<'SUFFICIENT' | 'NEEDS_CLARIFICATION' | 'UNUSABLE'>('NEEDS_CLARIFICATION');
   const [rationale, setRationale] = useState('');
@@ -37,6 +39,10 @@ export function useProfileWorkPanelModel() {
   const [factCode, setFactCode] = useState('OTHER');
   const [factValue, setFactValue] = useState('');
   const [confirmedFacts, setConfirmedFacts] = useState<Array<{ code: string; valueText: string }>>([]);
+  useEffect(() => {
+    setConditionAssessments([]);
+    setNotes('');
+  }, [detail?.profileReview?.scopeKey, detail?.profileReview?.profileRevision]);
 
   const detailRef = useRef(detail);
   detailRef.current = detail;
@@ -51,6 +57,7 @@ export function useProfileWorkPanelModel() {
     setFileUrl(null);
     setExpanded(false);
     setNotes('');
+    setConditionAssessments([]);
   }, []);
   const noLongerQueued = (cause: unknown) =>
     ['PROFILE_WORK_NOT_FOUND', 'PROFILE_NOT_FOUND'].includes(getApiErrorCode(cause) ?? '');
@@ -130,6 +137,7 @@ export function useProfileWorkPanelModel() {
       setDetail(next);
       if (!preserveSelection) {
         setNotes('');
+        setConditionAssessments([]);
         setSelection(next.reports.length ? { kind: 'report', id: next.reports[0].id } : null);
         setDocumentDetail(null);
         setFileUrl(null);
@@ -222,6 +230,7 @@ export function useProfileWorkPanelModel() {
         profileRevision: detail.profileReview.profileRevision,
         scopeKey: detail.profileReview.scopeKey,
         ...(outcome === 'REQUEST_DETAILS' ? { area: requestArea } : {}),
+        ...(outcome === 'APPROVED' && conditionAssessments.length ? { conditionAssessments } : {}),
       });
       setNotes('');
       await afterDecision();
@@ -259,7 +268,18 @@ export function useProfileWorkPanelModel() {
   const selectedDocument =
     selection?.kind === 'document' ? detail?.documents.find((item) => item.id === selection.id) : null;
   const profileBlocked =
-    detail?.profileReview?.needsClarification || detail?.requirements.some((item) => item.state !== 'READY');
+    (detail?.profileReview?.clarificationEntryIds
+      ? detail.profileReview.clarificationEntryIds.some(
+          (id) => !conditionAssessments.some((item) => item.entryId === id)
+        )
+      : detail?.profileReview?.needsClarification) ||
+    detail?.requirements.some((item) => item.state !== 'READY') ||
+    conditionAssessments.some(
+      (item) =>
+        item.rationale.trim().length < 10 ||
+        !item.reviewedDietaryAndTreatmentEffects ||
+        !item.reviewedFoodborneIllnessRisk
+    );
 
   return {
     kind: 'ready' as const,
@@ -300,6 +320,8 @@ export function useProfileWorkPanelModel() {
     requestArea,
     setRequestArea,
     notes,
+    conditionAssessments,
+    setConditionAssessments,
     setNotes,
     profileBlocked,
     decideProfile,

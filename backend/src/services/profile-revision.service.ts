@@ -19,6 +19,7 @@ export async function advanceProfileRevision(
   changeKinds: readonly ProfileChangeKind[] = [PROFILE_CHANGE_KIND.BODY_TARGETS],
   adaptCycles = true
 ) {
+  await invalidateConditionPlanningAssessments(tx, userId, 'PROFILE_CHANGED');
   const profile = await tx.userProfile.findUniqueOrThrow({ where: { userId } });
   const conditions = await tx.healthCondition.findMany({ where: { userId } });
   const target =
@@ -45,6 +46,34 @@ export async function advanceProfileRevision(
     await ProfileCycleAdaptationService.recordOrdinaryChange(tx, userId, updated.revision, changeKinds);
   }
   return updated;
+}
+
+/** Clear only the active cache; the signed review and its audit snapshot remain immutable. */
+export async function invalidateConditionPlanningAssessments(
+  tx: Prisma.TransactionClient,
+  userId: string,
+  reason: string,
+  advanceRevision = false,
+  actorUserId = userId
+) {
+  const changed = await tx.safetyProfileEntry.updateMany({
+    where: { userId, mealPlanningAssessment: { not: Prisma.DbNull } },
+    data: { mealPlanningAssessment: Prisma.DbNull },
+  });
+  if (changed.count && advanceRevision) {
+    await tx.userProfile.update({ where: { userId }, data: { revision: { increment: 1 } } });
+    await tx.nutritionReport.updateMany({ where: { userId }, data: { isStale: true, acknowledgedAt: null } });
+  }
+  if (changed.count)
+    await tx.auditEvent.create({
+      data: {
+        actorUserId,
+        action: 'CONDITION_PLANNING_ASSESSMENT_INVALIDATED',
+        entityType: 'User',
+        entityId: userId,
+        metadata: { reason, count: changed.count, memberUserId: userId },
+      },
+    });
 }
 
 /** Safety changes fail closed for every current/future uneaten slot. */

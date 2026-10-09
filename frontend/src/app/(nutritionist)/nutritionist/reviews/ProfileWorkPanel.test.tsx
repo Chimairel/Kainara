@@ -414,3 +414,70 @@ it('requires an explicit profile claim before allowing confirmation', async () =
   await waitFor(() => expect(screen.getByRole('button', { name: 'Confirm for planning' })).toBeEnabled());
   expect(mocks.post).toHaveBeenCalledWith('/nutritionist/profile-reviews/both/claim');
 });
+
+it('requires condition-specific rationale and both checks, then submits a separate relevance assessment', async () => {
+  const assessedDetail = {
+    ...bothDetail,
+    profileReview: {
+      ...bothDetail.profileReview,
+      needsClarification: true,
+      clarificationEntryIds: ['unrelated'],
+      conditionReviewEntries: [
+        {
+          id: 'heart',
+          displayName: 'Heart condition',
+          supportState: 'RECOGNIZED_UNSUPPORTED',
+          canAssessNoAdditionalRestrictions: false,
+          assessment: null,
+        },
+        {
+          id: 'unrelated',
+          displayName: 'Unrelated condition',
+          supportState: 'PENDING_REVIEW',
+          canAssessNoAdditionalRestrictions: true,
+          assessment: null,
+        },
+      ],
+    },
+  };
+  mocks.get.mockImplementation((url: string) =>
+    Promise.resolve({ data: { data: url === '/nutritionist/profile-work' ? people : assessedDetail } })
+  );
+  mocks.post.mockResolvedValue({ data: { data: {} } });
+  render(<ProfileWorkPanel />);
+  fireEvent.click(await screen.findByRole('button', { name: /Both Tasks/ }));
+  fireEvent.change(await screen.findByRole('textbox', { name: 'Review notes' }), {
+    target: { value: 'Reviewed current health details.' },
+  });
+  const confirm = screen.getByRole('button', { name: 'Confirm for planning' });
+  expect(confirm).toBeDisabled();
+  expect(screen.getAllByRole('checkbox', { name: 'No additional meal restrictions identified' })).toHaveLength(1);
+  fireEvent.click(screen.getByRole('checkbox', { name: 'No additional meal restrictions identified' }));
+  fireEvent.change(screen.getByRole('textbox', { name: 'Assessment rationale for Unrelated condition' }), {
+    target: { value: 'Reviewed dietary needs, medication and food-handling risk.' },
+  });
+  expect(confirm).toBeDisabled();
+  fireEvent.click(
+    screen.getByRole('checkbox', { name: 'I reviewed dietary needs and medication or treatment effects.' })
+  );
+  expect(confirm).toBeDisabled();
+  fireEvent.click(screen.getByRole('checkbox', { name: 'I reviewed foodborne illness risk and food-handling needs.' }));
+  expect(confirm).toBeEnabled();
+  fireEvent.click(confirm);
+  await waitFor(() =>
+    expect(mocks.post).toHaveBeenCalledWith(
+      '/nutritionist/profile-reviews/both/decision',
+      expect.objectContaining({
+        decision: 'APPROVED',
+        conditionAssessments: [
+          {
+            entryId: 'unrelated',
+            rationale: 'Reviewed dietary needs, medication and food-handling risk.',
+            reviewedDietaryAndTreatmentEffects: true,
+            reviewedFoodborneIllnessRisk: true,
+          },
+        ],
+      })
+    )
+  );
+});

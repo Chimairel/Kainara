@@ -9,6 +9,18 @@ import { isNutritionistEligibleForReview } from '@/domain/nutritionist-review.po
 import { NUTRITION_GUIDANCE_POLICY_VERSION } from '@/domain/deterministic-nutrition-report.policy';
 import { ClinicalEvidenceService } from './clinical-evidence.service';
 import { lockUserProfile } from './profile-revision.service';
+import {
+  activeConditionPlanningAssessment,
+  canAssessNoAdditionalRestrictions,
+  CONDITION_PLANNING_ASSESSMENT_POLICY,
+} from '@/domain/condition-planning-assessment.policy';
+
+export type ConditionAssessmentInput = {
+  entryId: string;
+  rationale: string;
+  reviewedDietaryAndTreatmentEffects: true;
+  reviewedFoodborneIllnessRisk: true;
+};
 
 const POLICY_VERSION = 'PROFILE_DETAILS_V1';
 const CLAIM_TTL_MS = 30 * 60_000;
@@ -21,6 +33,7 @@ const userInclude = {
   allergies: true,
   safetyProfileEntries: true,
   clinicalContextResponses: true,
+  clinicalDocuments: { select: { id: true, revision: true, status: true, sha256: true } },
 } satisfies Prisma.UserInclude;
 
 type ProfileUser = Prisma.UserGetPayload<{ include: typeof userInclude }>;
@@ -37,11 +50,13 @@ function snapshotKey(value: Prisma.JsonValue): string | null {
     )
   )
     return null;
-  return JSON.stringify([
+  const key: unknown[] = [
     record.safetyRevision,
     ...fields.map((field) => [...(record[field] as string[])].sort()),
     record.contextRevisions ?? [],
-  ]);
+  ];
+  if (Array.isArray(record.documentRevisions) && record.documentRevisions.length) key.push(record.documentRevisions);
+  return JSON.stringify(key);
 }
 
 function context(user: ProfileUser) {
@@ -53,8 +68,13 @@ function context(user: ProfileUser) {
     otherConditions: profile.otherConditions,
     otherAllergies: profile.otherAllergies,
     safetyEntries: user.safetyProfileEntries,
+    useConditionAssessments: false,
   });
   const snapshot = {
+    profileRevision: profile.revision,
+    documentRevisions: (user.clinicalDocuments ?? [])
+      .map((item) => [item.id, item.revision, item.status, item.sha256])
+      .sort((a, b) => String(a[0]).localeCompare(String(b[0]))),
     safetyRevision: profile.safetyRevision,
     healthDetails: (user.clinicalContextResponses ?? []).map((item) => ({
       area: item.area,
@@ -80,16 +100,29 @@ function context(user: ProfileUser) {
     // A named restriction requiring manual meal review can still receive profile
     // confirmation. Unmapped/vague declarations must first be clarified.
     needsClarification: restrictions.displayEntries.some(
-      (entry) => entry.supportState !== 'SUPPORTED' && entry.supportState !== 'RECOGNIZED_UNSUPPORTED'
+      (entry) =>
+        entry.supportState !== 'SUPPORTED' &&
+        entry.supportState !== 'RECOGNIZED_UNSUPPORTED' &&
+        !user.safetyProfileEntries.some(
+          (item) =>
+            item.domain === entry.domain && item.displayName === entry.label && activeConditionPlanningAssessment(item)
+        )
     ),
   };
 }
 
 function isCurrentApproval(
   review: { status: ClinicalProfileReviewStatus; profileSnapshot: Prisma.JsonValue },
-  scopeKey: string
+  scopeKey: string,
+  profileRevision?: number
 ) {
-  return review.status === 'APPROVED' && snapshotKey(review.profileSnapshot) === scopeKey;
+  const snapshot = review.profileSnapshot as Record<string, Prisma.JsonValue> | null;
+  const assessed = snapshot && Array.isArray(snapshot.conditionAssessments) && snapshot.conditionAssessments.length > 0;
+  return (
+    review.status === 'APPROVED' &&
+    snapshotKey(review.profileSnapshot) === scopeKey &&
+    (!assessed || snapshot?.profileRevision === profileRevision)
+  );
 }
 
 export class ClinicalProfileReviewService {
@@ -126,7 +159,8 @@ export class ClinicalProfileReviewService {
       required: current.restricted,
       approved:
         !current.declarationRequired &&
-        (!current.restricted || approvals.some((review) => isCurrentApproval(review, current.scopeKey))),
+        (!current.restricted ||
+          approvals.some((review) => isCurrentApproval(review, current.scopeKey, current.profile.revision))),
       declarationRequired: current.declarationRequired,
       detailsRequest: request
         ? {
@@ -151,7 +185,7 @@ export class ClinicalProfileReviewService {
       orderBy: { reviewedAt: 'desc' },
       select: { status: true, profileSnapshot: true },
     });
-    return approvals.some((review) => isCurrentApproval(review, current.scopeKey));
+    return approvals.some((review) => isCurrentApproval(review, current.scopeKey, current.profile.revision));
   }
 
   static async assertReadyForMealPlanning(userId: string) {
@@ -203,7 +237,10 @@ export class ClinicalProfileReviewService {
     const people = eligible
       .filter(
         ({ user, current }) =>
-          !reviews.some((review) => review.userId === user.id && isCurrentApproval(review, current.scopeKey))
+          !reviews.some(
+            (review) =>
+              review.userId === user.id && isCurrentApproval(review, current.scopeKey, current.profile.revision)
+          )
       )
       .map(({ user, current }) => ({
         userId: user.id,
@@ -384,6 +421,22 @@ export class ClinicalProfileReviewService {
       customConditions: current.snapshot.customConditions,
       customFoodRestrictions: current.snapshot.customFoodRestrictions,
       needsClarification: current.needsClarification,
+      conditionReviewEntries: user.safetyProfileEntries
+        .filter((item) => item.domain === 'CONDITION' && item.canonicalCode !== 'NONE')
+        .map((item) => ({
+          id: item.id,
+          displayName: item.displayName,
+          supportState: item.supportState,
+          canAssessNoAdditionalRestrictions: canAssessNoAdditionalRestrictions(item),
+          assessment: activeConditionPlanningAssessment(item),
+        })),
+      clarificationEntryIds: user.safetyProfileEntries
+        .filter(
+          (item) =>
+            !['SUPPORTED', 'RECOGNIZED_UNSUPPORTED'].includes(item.supportState) &&
+            !activeConditionPlanningAssessment(item)
+        )
+        .map((item) => item.id),
       requirements: clinicalWorkspace.requirements,
       documents: clinicalWorkspace.documents.map(({ id, area, documentType, status, originalFileName, createdAt }) => ({
         id,
@@ -424,7 +477,8 @@ export class ClinicalProfileReviewService {
     decision: 'APPROVED' | 'DECLINED' | 'REQUEST_DETAILS',
     notes: string,
     area?: ClinicalEvidenceArea,
-    expected?: { profileRevision: number; scopeKey: string }
+    expected?: { profileRevision: number; scopeKey: string },
+    conditionAssessments: readonly ConditionAssessmentInput[] = []
   ) {
     await ReviewRoutingService.assertProfile(reviewerId, userId);
     const reviewer = await prisma.nutritionistProfile.findUnique({
@@ -436,6 +490,33 @@ export class ClinicalProfileReviewService {
     const user = await prisma.user.findUnique({ where: { id: userId }, include: userInclude });
     if (!user || user.role !== Role.USER) throw new AppError('Profile not found.', 404, 'PROFILE_NOT_FOUND');
     const current = context(user);
+    if (
+      conditionAssessments.length > 20 ||
+      new Set(conditionAssessments.map((item) => item.entryId)).size !== conditionAssessments.length
+    )
+      throw new AppError('Select each condition once, up to 20 conditions.', 422, 'CONDITION_ASSESSMENT_INVALID');
+    if (conditionAssessments.length && decision !== 'APPROVED')
+      throw new AppError(
+        'Record condition relevance with a confirmed profile review.',
+        422,
+        'CONDITION_ASSESSMENT_INVALID'
+      );
+    for (const assessment of conditionAssessments) {
+      const entry = user.safetyProfileEntries.find((item) => item.id === assessment.entryId);
+      if (
+        !entry ||
+        !canAssessNoAdditionalRestrictions(entry) ||
+        assessment.rationale.trim().length < 10 ||
+        assessment.rationale.length > 2000 ||
+        assessment.reviewedDietaryAndTreatmentEffects !== true ||
+        assessment.reviewedFoodborneIllnessRisk !== true
+      )
+        throw new AppError(
+          'This condition needs its existing review checks, or the assessment is incomplete.',
+          422,
+          'CONDITION_ASSESSMENT_INVALID'
+        );
+    }
     if (!current.restricted)
       throw new AppError('This profile does not need a clinical review.', 409, 'PROFILE_REVIEW_NOT_REQUIRED');
     if (decision === 'APPROVED') {
@@ -445,7 +526,14 @@ export class ClinicalProfileReviewService {
           422,
           'SAFETY_DECLARATION_REQUIRED'
         );
-      if (current.needsClarification)
+      const assessedIds = new Set(conditionAssessments.map((item) => item.entryId));
+      const unresolved = user.safetyProfileEntries.some(
+        (item) =>
+          !['SUPPORTED', 'RECOGNIZED_UNSUPPORTED'].includes(item.supportState) &&
+          !activeConditionPlanningAssessment(item) &&
+          !assessedIds.has(item.id)
+      );
+      if (unresolved || (current.needsClarification && !user.safetyProfileEntries.length))
         throw new AppError(
           'Clarify unsupported or vague restrictions before approval.',
           422,
@@ -490,10 +578,38 @@ export class ClinicalProfileReviewService {
         throw new AppError('Claim this profile before recording a decision.', 409, 'PROFILE_REVIEW_CLAIM_REQUIRED');
       if (existing?.status === 'APPROVED')
         throw new AppError('This profile revision has already been approved.', 409, 'PROFILE_REVIEW_ALREADY_APPROVED');
+      const assessedAt = new Date();
+      const recordedAssessments = conditionAssessments.map((input) => {
+        const entry = latestUser.safetyProfileEntries.find((item) => item.id === input.entryId);
+        if (!entry || !canAssessNoAdditionalRestrictions(entry))
+          throw new AppError('Reload the current condition declarations.', 409, 'PROFILE_REVIEW_STALE');
+        return {
+          policyVersion: CONDITION_PLANNING_ASSESSMENT_POLICY,
+          result: 'NO_ADDITIONAL_RESTRICTIONS' as const,
+          entryId: entry.id,
+          userId,
+          normalizedText: entry.normalizedText,
+          profileRevision: current.profile.revision,
+          safetyRevision: current.profile.safetyRevision,
+          reviewId: existing.id,
+          reviewerId,
+          reviewerName: liveReviewer.user.name,
+          assessedAt: assessedAt.toISOString(),
+          rationale: input.rationale.trim(),
+          reviewedDietaryAndTreatmentEffects: true as const,
+          reviewedFoodborneIllnessRisk: true as const,
+        };
+      });
+      for (const assessment of recordedAssessments) {
+        await tx.safetyProfileEntry.update({
+          where: { id: assessment.entryId },
+          data: { mealPlanningAssessment: assessment },
+        });
+      }
       const data = {
         status: decision === 'REQUEST_DETAILS' ? ClinicalProfileReviewStatus.DECLINED : decision,
         reasonCodes: decision === 'REQUEST_DETAILS' ? ['DETAILS_REQUESTED', area!] : [],
-        profileSnapshot: current.snapshot,
+        profileSnapshot: { ...current.snapshot, conditionAssessments: recordedAssessments },
         reviewerId,
         reviewNotes: notes,
         reviewedAt: new Date(),
@@ -520,6 +636,7 @@ export class ClinicalProfileReviewService {
             profileRevision: current.profile.revision,
             safetyRevision: current.profile.safetyRevision,
             scopeKey: current.scopeKey,
+            conditionAssessments: recordedAssessments,
           },
         },
       });
@@ -537,7 +654,7 @@ export class ClinicalProfileReviewService {
                 : 'Health profile needs an update',
           message:
             decision === 'APPROVED'
-              ? 'A nutritionist reviewed your health profile. Meal candidates can now be prepared; each new meal still needs case approval before use.'
+              ? 'An RND reviewed your health profile. Meals can now be prepared using the recorded assessment and any remaining restrictions.'
               : decision === 'REQUEST_DETAILS'
                 ? `A nutritionist requested details for ${String(area).replace(/_/g, ' ').toLowerCase()}. Open Profile → Health details. Review note: ${notes.trim()}`
                 : `A nutritionist could not approve your current health profile. Review note: ${notes.trim()}`,

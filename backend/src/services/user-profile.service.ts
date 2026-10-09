@@ -133,6 +133,9 @@ const profileDetailsSelect = {
     orderBy: [{ domain: 'asc' }, { displayName: 'asc' }],
     select: {
       domain: true,
+      id: true,
+      userId: true,
+      mealPlanningAssessment: true,
       canonicalCode: true,
       displayName: true,
       originalText: true,

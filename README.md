@@ -15,6 +15,7 @@ Meal flags, independent re-review, quarantine release, related-case admin oversi
 Admin meal-log history and meal popularity use [`docs/MEAL_LOG_AUDIT.md`](docs/MEAL_LOG_AUDIT.md). Apply the additive meal-log audit migration to a confirmed target before opening these views. Historical age, membership and earlier edits remain explicitly unavailable; the migration does not invent them.
 
 Standardized capstone recipe portions, nutrient calculations, guarded development imports and inactive condition-rule proposals use [`docs/DEMO_RECIPE_PREPARATION.md`](docs/DEMO_RECIPE_PREPARATION.md).
+Member-specific RND relevance assessments that preserve the reported diagnosis use [`docs/CONDITION_PLANNING_ASSESSMENTS.md`](docs/CONDITION_PLANNING_ASSESSMENTS.md).
 
 ## Current verification status
 

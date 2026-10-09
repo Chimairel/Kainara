@@ -89,6 +89,7 @@ export interface DetailData {
     conditions: string[];
     allergies: string[];
     safetyEntries?: Array<{
+      mealPlanningAssessment?: { result: string; rationale: string; reviewerName: string } | null;
       domain: 'CONDITION' | 'ALLERGY' | 'INTOLERANCE' | 'AVOIDED_INGREDIENT' | 'UNKNOWN';
       label: string;
       supportState: string;

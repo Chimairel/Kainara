@@ -2,6 +2,7 @@ import { ClinicalEvidenceArea, HealthConditionType } from '@prisma/client';
 import { evidenceAreaForCondition } from './clinical-evidence-requirement.policy';
 import { requiresHealthPlanning } from './planning-membership.policy';
 import { isCurrentHealthDetails } from '@/validation/health-details.schemas';
+import { adaptUserSafetyRestrictions } from './structured-restriction.adapter';
 
 type HealthDetailsProfile = {
   userProfile: { safetyRevision: number; otherConditions: string | null; otherAllergies: string | null } | null;
@@ -24,15 +25,18 @@ export function healthDetailsAreas(user: Omit<HealthDetailsProfile, 'clinicalCon
 }
 
 export function healthDetailsRequirements(user: HealthDetailsProfile) {
-  const requiresReview = requiresHealthPlanning({
+  const source = {
     healthConditions: user.healthConditions.map((item) => item.condition),
     allergies: user.allergies.map((item) => item.allergen),
     otherConditions: user.userProfile?.otherConditions,
     otherAllergies: user.userProfile?.otherAllergies,
     safetyEntries: user.safetyProfileEntries,
-  });
+  };
+  const requiresReview = requiresHealthPlanning(source);
+  const restrictions = adaptUserSafetyRestrictions(source);
   return healthDetailsAreas(user)
     .filter((area) => area !== ClinicalEvidenceArea.FOOD_ALLERGY || requiresReview)
+    .filter((area) => area !== ClinicalEvidenceArea.OTHER || restrictions.customConditions.length > 0)
     .map((area) => {
       const context = user.clinicalContextResponses.find((item) => item.area === area);
       const ready = isCurrentHealthDetails(context?.responses, user.userProfile?.safetyRevision ?? -1);

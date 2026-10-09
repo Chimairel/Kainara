@@ -81,7 +81,10 @@ export default function CaseProfileSection({ model, paper = false }: SectionProp
                 >
                   <span className="font-bold text-brand-text">{entry.label}</span>
                   <span className="text-right font-mono uppercase text-brand-muted">
-                    {entry.domain.replaceAll('_', ' ')} · {entry.supportState.replaceAll('_', ' ')}
+                    {entry.domain.replaceAll('_', ' ')} ·{' '}
+                    {entry.mealPlanningAssessment
+                      ? 'No additional restrictions identified'
+                      : entry.supportState.replaceAll('_', ' ')}
                   </span>
                 </div>
               ))}

@@ -19,6 +19,7 @@ type Answers = {
   measurements: string;
 };
 type Workspace = {
+  conditionPlanningAssessments?: Array<{ condition: string; reviewerName: string; rationale: string }>;
   safetyRevision: number;
   availableAreas: string[];
   contexts: Array<{ area: string; responses: Partial<Answers> }>;
@@ -194,6 +195,22 @@ export default function ClinicalEvidenceWorkspace({
         <p role="status" className="text-sm text-brand-green">
           {message}
         </p>
+      )}
+      {section !== 'allergies' && !!workspace?.conditionPlanningAssessments?.length && (
+        <section className="space-y-3 rounded-xl border border-brand-border bg-brand-surface p-4">
+          <h2 className="font-bold">RND condition assessments</h2>
+          {workspace.conditionPlanningAssessments.map((assessment) => (
+            <div key={assessment.condition}>
+              <p className="font-semibold">{assessment.condition} · No additional meal restrictions identified</p>
+              <p className="text-sm text-brand-muted">
+                Reviewed by {assessment.reviewerName}, RND. {assessment.rationale}
+              </p>
+            </div>
+          ))}
+          <p className="text-sm text-brand-muted">
+            The conditions remain in your profile. Updating your profile or health details requires a fresh assessment.
+          </p>
+        </section>
       )}
       {loading ? (
         <p>Loading health details…</p>

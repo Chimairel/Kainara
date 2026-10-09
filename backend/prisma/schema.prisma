@@ -1174,6 +1174,8 @@ model SafetyProfileEntry {
   provenance      SafetyEntryProvenance
   supportState    SafetyEntrySupportState
   policyReference String                  @db.VarChar(120)
+  // Active per-member RND relevance assessment. Immutable history is in the profile review/audit.
+  mealPlanningAssessment Json?
   createdAt       DateTime                @default(now())
   updatedAt       DateTime                @updatedAt
 

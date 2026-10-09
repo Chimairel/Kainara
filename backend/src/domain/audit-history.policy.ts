@@ -68,6 +68,7 @@ export function auditActionLabel(action: string) {
     MEAL_APPROVAL_FLAGGED: 'Flagged an approval',
     MEAL_APPROVAL_RECHECKED: 'Rechecked an approval',
     CLINICAL_PROFILE_REVIEWED: 'Reviewed a health profile',
+    CONDITION_PLANNING_ASSESSMENT_INVALIDATED: 'Condition assessment needs a fresh review',
     CLINICAL_DOCUMENT_ACCESSED: 'Opened a claimed clinical document',
     CLINICAL_DOCUMENT_SUFFICIENT_FOR_NUTRITION_REVIEW: 'Accepted a clinical document',
     CLINICAL_DOCUMENT_NEEDS_CLARIFICATION: 'Requested document clarification',
