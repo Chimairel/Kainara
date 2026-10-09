@@ -193,12 +193,50 @@ for (const width of [400, 1024, 1440]) {
       await selectCase();
       const viewer = page.getByRole('region', { name: 'RND review canvas', exact: true });
       await expect(viewer).toBeVisible();
+      const checkCanvasWheelZoom = async () => {
+        const viewport = viewer.getByRole('region', { name: 'Review canvas viewport' });
+        const world = viewer.locator('[data-canvas-world]');
+        const camera = () =>
+          world.evaluate((node) => {
+            const matrix = new DOMMatrix(getComputedStyle(node).transform);
+            return { scale: matrix.a, x: matrix.e, y: matrix.f };
+          });
+        const pageDimensions = () =>
+          page.evaluate(() => ({
+            width: innerWidth,
+            height: innerHeight,
+            visualScale: visualViewport?.scale,
+            scrollY,
+            pixelRatio: devicePixelRatio,
+          }));
+        const bounds = (await viewport.boundingBox())!;
+        const point = { x: bounds.width * 0.35, y: bounds.height * 0.4 };
+        const before = await camera(),
+          dimensions = await pageDimensions();
+        await page.mouse.move(bounds.x + point.x, bounds.y + point.y);
+        await page.keyboard.down('Control');
+        await page.mouse.wheel(0, -120);
+        await page.keyboard.up('Control');
+        await expect.poll(async () => (await camera()).scale).toBeGreaterThan(before.scale);
+        const after = await camera();
+        // Native wheel coordinates are rounded to CSS pixels by Chromium.
+        expect(Math.abs(after.x - (point.x - ((point.x - before.x) * after.scale) / before.scale))).toBeLessThan(1);
+        expect(Math.abs(after.y - (point.y - ((point.y - before.y) * after.scale) / before.scale))).toBeLessThan(1);
+        expect(await pageDimensions()).toEqual(dimensions);
+        await page.keyboard.down('Control');
+        await page.mouse.wheel(0, 120);
+        await page.keyboard.up('Control');
+        await expect.poll(async () => (await camera()).scale).toBeCloseTo(before.scale, 3);
+        expect(await pageDimensions()).toEqual(dimensions);
+      };
+      await checkCanvasWheelZoom();
       await expect(page.getByRole('button', { name: 'Approve', exact: true })).toHaveCount(0);
       await page.getByRole('button', { name: 'Expand canvas' }).click();
       const fullscreen = page.getByRole('dialog', { name: /Case approval.*fullscreen/ });
       await expect(fullscreen).toBeVisible();
       const box = (await fullscreen.boundingBox())!;
       expect(box).toMatchObject({ x: 0, y: 0, width, height: 900 });
+      await checkCanvasWheelZoom();
       await expect(fullscreen.locator('[data-canvas-sheet]')).toHaveCount(2);
       const handle = fullscreen.getByRole('button', { name: 'Move Meal evidence sheet' });
       await handle.focus();
@@ -238,6 +276,7 @@ for (const width of [400, 1024, 1440]) {
       await page.screenshot({ path: testInfo.outputPath('case-canvas.png') });
       await page.keyboard.press('Escape');
       await expect(fullscreen).toHaveCount(0);
+      await checkCanvasWheelZoom();
       await expect(decision.getByRole('textbox')).toHaveValue('Recorded member review note.');
       await decision.getByRole('button', { name: 'Reject', exact: true }).click();
       await expect(decision.getByRole('button', { name: 'Confirm rejection' })).toBeDisabled();

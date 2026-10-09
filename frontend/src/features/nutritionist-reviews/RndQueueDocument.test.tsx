@@ -74,3 +74,60 @@ it('requires a claim for decisions and preserves queue navigation', () => {
   fireEvent.click(screen.getByRole('button', { name: 'Back to queue' }));
   expect(back).toHaveBeenCalledOnce();
 });
+
+it('captures Ctrl/Command wheel inside the canvas before and after fullscreen portals', () => {
+  render(<Fixture onBack={vi.fn()} />);
+  const scale = () =>
+    Number(
+      document
+        .querySelector('[data-canvas-world]')
+        ?.getAttribute('style')
+        ?.match(/scale\(([^)]+)\)/)?.[1]
+    );
+  const wheel = (node: HTMLElement, deltaY: number, modifier: 'ctrlKey' | 'metaKey') => {
+    const event = new WheelEvent('wheel', {
+      bubbles: true,
+      cancelable: true,
+      deltaY,
+      clientX: 50,
+      clientY: 70,
+      [modifier]: true,
+    });
+    fireEvent(node, event);
+    expect(event.defaultPrevented).toBe(true);
+  };
+  const before = scale();
+  wheel(screen.getByRole('region', { name: 'Review canvas viewport' }), -100, 'ctrlKey');
+  expect(scale()).toBeGreaterThan(before);
+  fireEvent.click(screen.getByRole('button', { name: 'Expand canvas' }));
+  const expandedScale = scale();
+  wheel(screen.getByRole('region', { name: 'Review canvas viewport' }), -100, 'ctrlKey');
+  expect(scale()).toBeGreaterThan(expandedScale);
+  wheel(screen.getByRole('region', { name: 'Review canvas viewport' }), 100, 'metaKey');
+  expect(scale()).toBeCloseTo(expandedScale);
+  const dockScale = scale();
+  wheel(screen.getByLabelText('Decision note'), -100, 'ctrlKey');
+  expect(scale()).toBeGreaterThan(dockScale);
+  fireEvent.click(screen.getByRole('button', { name: 'Exit fullscreen' }));
+  const returnedScale = scale();
+  wheel(screen.getByRole('region', { name: 'Review canvas viewport' }), 100, 'ctrlKey');
+  expect(scale()).toBeLessThan(returnedScale);
+});
+
+it('preserves wheel behavior outside the canvas and normal decision-dock scrolling', () => {
+  render(
+    <>
+      <Fixture onBack={vi.fn()} />
+      <button>Outside canvas</button>
+    </>
+  );
+  const outside = new WheelEvent('wheel', { bubbles: true, cancelable: true, deltaY: -100, ctrlKey: true });
+  fireEvent(screen.getByRole('button', { name: 'Outside canvas' }), outside);
+  expect(outside.defaultPrevented).toBe(false);
+  const note = new WheelEvent('wheel', { bubbles: true, cancelable: true, deltaY: 100 });
+  fireEvent(screen.getByLabelText('Decision note'), note);
+  expect(note.defaultPrevented).toBe(false);
+  const pan = new WheelEvent('wheel', { bubbles: true, cancelable: true, deltaY: 100 });
+  fireEvent(screen.getByRole('region', { name: 'Review canvas viewport' }), pan);
+  expect(pan.defaultPrevented).toBe(true);
+});

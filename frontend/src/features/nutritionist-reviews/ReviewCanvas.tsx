@@ -155,18 +155,26 @@ export default function ReviewCanvas({
     });
   };
   useEffect(() => {
-    const node = viewport.current;
-    if (!node) return;
+    // Fullscreen moves the viewport into a delayed Radix portal. Resolve live refs
+    // for each wheel event so no listener is stranded on the previous DOM node.
     const wheel = (event: WheelEvent) => {
+      const node = viewport.current,
+        canvasNode = root.current;
+      const target = event.target;
+      if (!node || !canvasNode || !(target instanceof Node) || !canvasNode.contains(target)) return;
+      const zooming = event.ctrlKey || event.metaKey;
+      const overViewport = node.contains(target);
+      // Ordinary wheel scrolling in the toolbar/decision dock stays native.
+      if (!zooming && !overViewport) return;
       event.preventDefault();
+      event.stopPropagation();
       if (drag.current) return;
       const rect = node.getBoundingClientRect();
       setView((previous) => {
-        if (!event.ctrlKey && !event.metaKey)
-          return { ...previous, x: previous.x - event.deltaX, y: previous.y - event.deltaY };
+        if (!zooming) return { ...previous, x: previous.x - event.deltaX, y: previous.y - event.deltaY };
         const scale = Math.max(0.1, Math.min(2, previous.scale * Math.exp(-event.deltaY * 0.002)));
-        const x = event.clientX - rect.left,
-          y = event.clientY - rect.top;
+        const x = overViewport ? event.clientX - rect.left : node.clientWidth / 2,
+          y = overViewport ? event.clientY - rect.top : node.clientHeight / 2;
         return {
           scale,
           x: x - ((x - previous.x) * scale) / previous.scale,
@@ -174,9 +182,11 @@ export default function ReviewCanvas({
         };
       });
     };
-    node.addEventListener('wheel', wheel, { passive: false });
-    return () => node.removeEventListener('wheel', wheel);
-  }, [expanded]);
+    // Capture before portal scroll locks and disable passive handling so the
+    // browser's page zoom is cancelled synchronously, including trackpad pinch.
+    document.addEventListener('wheel', wheel, { capture: true, passive: false });
+    return () => document.removeEventListener('wheel', wheel, { capture: true });
+  }, []);
   const start = (event: React.PointerEvent, kind: 'pan' | 'sheet', index = 0) => {
     if (event.button !== 0) return;
     event.preventDefault();
