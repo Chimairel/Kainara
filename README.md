@@ -17,6 +17,8 @@ Admin meal-log history and meal popularity use [`docs/MEAL_LOG_AUDIT.md`](docs/M
 Standardized capstone recipe portions, nutrient calculations, guarded development imports and inactive condition-rule proposals use [`docs/DEMO_RECIPE_PREPARATION.md`](docs/DEMO_RECIPE_PREPARATION.md).
 Member-specific RND relevance assessments that preserve the reported diagnosis use [`docs/CONDITION_PLANNING_ASSESSMENTS.md`](docs/CONDITION_PLANNING_ASSESSMENTS.md).
 
+Profile clarification is being delivered in reviewed batches. See [RND clarification implementation plan](docs/RND_CLARIFICATION_IMPLEMENTATION_PLAN.md). Batch 1 adds persistent text/choice forms, member responses and claimed RND resolution. Its additive migration and `CLINICAL_CLARIFICATIONS_ENABLED=true` rollout require a confirmed database target; the default disabled mode retains the existing workflow without querying the new tables. Profile correction proposals, acknowledgment and live withdrawal are later batches.
+
 ## Current verification status
 
 The application has substantial frontend and backend implementation. Verification results change as work continues; use the latest dated entry in the [engineering record](docs/NUTRIMIND_ENGINEERING_RECORD.md) and rerun the relevant checks for the code you are studying. Automated, browser, and disposable-database tests do not establish clinical approval. The [clinical policy approval record](docs/CLINICAL_POLICY_APPROVAL.md) is the separate release gate.

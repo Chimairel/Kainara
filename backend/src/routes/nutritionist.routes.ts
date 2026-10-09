@@ -1,3 +1,4 @@
+import { clinicalClarificationRouter } from './clinical-clarification.routes';
 import { mealReviewRouter } from './meal-review.routes';
 import { Router, Response } from 'express';
 import { AppError } from '@/errors/AppError';
@@ -48,6 +49,7 @@ const router = Router();
 router.use(authenticate);
 router.use(requireRole('NUTRITIONIST'));
 router.use(requireEligibleNutritionist);
+router.use(clinicalClarificationRouter('rnd'));
 router.use(reviewSwapRouter);
 router.use('/meal-review-cases', mealReviewRouter('rnd'));
 

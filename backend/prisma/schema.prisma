@@ -846,6 +846,9 @@ model MealBatchImport {
 }
 
 model User {
+  clarificationForms              ClinicalClarificationForm[] @relation("ClarificationMember")
+  authoredClarificationForms      ClinicalClarificationForm[] @relation("ClarificationAuthor")
+  clarificationResolutions        ClinicalClarificationResolution[]
   membershipAccount               MembershipAccount?
   membershipGrants                MembershipGrant[]
   membershipUsage                 MembershipUsage[]
@@ -3257,4 +3260,51 @@ model ReviewRoutingEpisode {
 
   @@index([stage, opensAt])
   @@index([userId, safetyRevision])
+}
+
+/// Published questions and submitted answers belong to the member case, not a claim.
+model ClinicalClarificationForm {
+  id              String @id @default(cuid())
+  userId          String
+  user            User @relation("ClarificationMember", fields: [userId], references: [id], onDelete: Cascade)
+  authorUserId    String
+  author          User @relation("ClarificationAuthor", fields: [authorUserId], references: [id], onDelete: Restrict)
+  profileRevision Int
+  scopeKey        String @db.Text
+  profileSnapshot Json
+  title           String @db.VarChar(160)
+  questions       Json
+  requestKey      String @db.VarChar(80)
+  createdAt       DateTime @default(now())
+  responses       ClinicalClarificationResponse[]
+  resolution      ClinicalClarificationResolution?
+
+  @@unique([userId, requestKey])
+  @@index([userId, profileRevision, createdAt])
+}
+
+model ClinicalClarificationResponse {
+  id          String @id @default(cuid())
+  formId      String
+  form        ClinicalClarificationForm @relation(fields: [formId], references: [id], onDelete: Cascade)
+  version     Int
+  answers     Json
+  requestKey  String @db.VarChar(80)
+  submittedAt DateTime @default(now())
+  resolution  ClinicalClarificationResolution?
+
+  @@unique([formId, version])
+  @@unique([formId, requestKey])
+}
+
+model ClinicalClarificationResolution {
+  id             String @id @default(cuid())
+  formId         String @unique
+  form           ClinicalClarificationForm @relation(fields: [formId], references: [id], onDelete: Cascade)
+  responseId     String @unique
+  response       ClinicalClarificationResponse @relation(fields: [responseId], references: [id], onDelete: Cascade)
+  reviewerUserId String
+  reviewer       User @relation(fields: [reviewerUserId], references: [id], onDelete: Restrict)
+  rationale      String @db.VarChar(2000)
+  resolvedAt     DateTime @default(now())
 }

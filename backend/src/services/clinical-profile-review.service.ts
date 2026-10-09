@@ -1,10 +1,17 @@
+import { ClinicalClarificationService, hasUnresolvedClarifications } from './clinical-clarification.service';
+import {
+  context,
+  userInclude,
+  snapshotKey,
+  scopedPolicy,
+  POLICY_VERSION,
+  CLAIM_TTL_MS,
+} from './clinical-profile-review.context';
 import { ReviewRoutingService } from './review-routing.service';
-import { createHash, randomUUID } from 'node:crypto';
+import { randomUUID } from 'node:crypto';
 import { ClinicalEvidenceArea, ClinicalProfileReviewStatus, NotificationType, Prisma, Role } from '@prisma/client';
 import prisma from '@/lib/prisma';
-import { requiresIndividualPlanningReview } from '@/domain/planning-membership.policy';
 import { AppError } from '@/errors/AppError';
-import { adaptUserSafetyRestrictions } from '@/domain/structured-restriction.adapter';
 import { isNutritionistEligibleForReview } from '@/domain/nutritionist-review.policy';
 import { NUTRITION_GUIDANCE_POLICY_VERSION } from '@/domain/deterministic-nutrition-report.policy';
 import { ClinicalEvidenceService } from './clinical-evidence.service';
@@ -21,95 +28,6 @@ export type ConditionAssessmentInput = {
   reviewedDietaryAndTreatmentEffects: true;
   reviewedFoodborneIllnessRisk: true;
 };
-
-const POLICY_VERSION = 'PROFILE_DETAILS_V1';
-const CLAIM_TTL_MS = 30 * 60_000;
-const scopedPolicy = (scopeKey: string) =>
-  `${POLICY_VERSION}:${createHash('sha256').update(scopeKey).digest('hex').slice(0, 48)}`;
-
-const userInclude = {
-  userProfile: true,
-  healthConditions: true,
-  allergies: true,
-  safetyProfileEntries: true,
-  clinicalContextResponses: true,
-  clinicalDocuments: { select: { id: true, revision: true, status: true, sha256: true } },
-} satisfies Prisma.UserInclude;
-
-type ProfileUser = Prisma.UserGetPayload<{ include: typeof userInclude }>;
-
-function snapshotKey(value: Prisma.JsonValue): string | null {
-  if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
-  const record = value as Record<string, Prisma.JsonValue>;
-  const fields = ['conditions', 'allergies', 'customConditions', 'customFoodRestrictions'] as const;
-  if (
-    typeof record.safetyRevision !== 'number' ||
-    fields.some(
-      (field) =>
-        !Array.isArray(record[field]) || !(record[field] as Prisma.JsonArray).every((item) => typeof item === 'string')
-    )
-  )
-    return null;
-  const key: unknown[] = [
-    record.safetyRevision,
-    ...fields.map((field) => [...(record[field] as string[])].sort()),
-    record.contextRevisions ?? [],
-  ];
-  if (Array.isArray(record.documentRevisions) && record.documentRevisions.length) key.push(record.documentRevisions);
-  return JSON.stringify(key);
-}
-
-function context(user: ProfileUser) {
-  const profile = user.userProfile;
-  if (!profile) throw new AppError('Complete your health profile before meal planning.', 422, 'PROFILE_INCOMPLETE');
-  const restrictions = adaptUserSafetyRestrictions({
-    healthConditions: user.healthConditions.map((item) => item.condition),
-    allergies: user.allergies.map((item) => item.allergen),
-    otherConditions: profile.otherConditions,
-    otherAllergies: profile.otherAllergies,
-    safetyEntries: user.safetyProfileEntries,
-    useConditionAssessments: false,
-  });
-  const snapshot = {
-    profileRevision: profile.revision,
-    documentRevisions: (user.clinicalDocuments ?? [])
-      .map((item) => [item.id, item.revision, item.status, item.sha256])
-      .sort((a, b) => String(a[0]).localeCompare(String(b[0]))),
-    safetyRevision: profile.safetyRevision,
-    healthDetails: (user.clinicalContextResponses ?? []).map((item) => ({
-      area: item.area,
-      revision: item.revision,
-      responses: item.responses,
-    })),
-    contextRevisions: (user.clinicalContextResponses ?? [])
-      .map((item) => [item.area, item.revision])
-      .sort((a, b) => String(a[0]).localeCompare(String(b[0]))),
-    conditions: [...restrictions.conditions].sort(),
-    allergies: [...restrictions.allergies].sort(),
-    customConditions: [...restrictions.customConditions].sort(),
-    customFoodRestrictions: [...restrictions.customFoodRestrictions].sort(),
-  };
-  return {
-    profile,
-    snapshot,
-    scopeKey: snapshotKey(snapshot)!,
-    declarationRequired:
-      !user.safetyProfileEntries.some((item) => item.domain === 'CONDITION') ||
-      !user.safetyProfileEntries.some((item) => item.domain === 'ALLERGY'),
-    restricted: requiresIndividualPlanningReview(restrictions),
-    // A named restriction requiring manual meal review can still receive profile
-    // confirmation. Unmapped/vague declarations must first be clarified.
-    needsClarification: restrictions.displayEntries.some(
-      (entry) =>
-        entry.supportState !== 'SUPPORTED' &&
-        entry.supportState !== 'RECOGNIZED_UNSUPPORTED' &&
-        !user.safetyProfileEntries.some(
-          (item) =>
-            item.domain === entry.domain && item.displayName === entry.label && activeConditionPlanningAssessment(item)
-        )
-    ),
-  };
-}
 
 function isCurrentApproval(
   review: { status: ClinicalProfileReviewStatus; profileSnapshot: Prisma.JsonValue },
@@ -155,9 +73,15 @@ export class ClinicalProfileReviewService {
       request && Array.isArray(request.reasonCodes) && typeof request.reasonCodes[1] === 'string'
         ? request.reasonCodes[1]
         : null;
+    const clarificationPending = await hasUnresolvedClarifications(userId, {
+      profileRevision: current.profile.revision,
+      scopeKey: current.scopeKey,
+    });
     return {
+      clarificationPending,
       required: current.restricted,
       approved:
+        !clarificationPending &&
         !current.declarationRequired &&
         (!current.restricted ||
           approvals.some((review) => isCurrentApproval(review, current.scopeKey, current.profile.revision))),
@@ -173,11 +97,22 @@ export class ClinicalProfileReviewService {
 
   static async hasCurrentApproval(
     userId: string,
-    client: Pick<Prisma.TransactionClient, 'user' | 'clinicalProfileReview'> = prisma
+    client: Pick<Prisma.TransactionClient, 'user' | 'clinicalProfileReview'> &
+      Partial<Pick<Prisma.TransactionClient, 'clinicalClarificationForm'>> = prisma
   ) {
     const user = await client.user.findUnique({ where: { id: userId }, include: userInclude });
     if (!user) throw new AppError('User not found.', 404, 'USER_NOT_FOUND');
     const current = context(user);
+    if (
+      await hasUnresolvedClarifications(
+        userId,
+        { profileRevision: current.profile.revision, scopeKey: current.scopeKey },
+        client.clinicalClarificationForm
+          ? (client as Pick<Prisma.TransactionClient, 'clinicalClarificationForm'>)
+          : prisma
+      )
+    )
+      return false;
     if (current.declarationRequired) return false;
     if (!current.restricted) return true;
     const approvals = await client.clinicalProfileReview.findMany({
@@ -234,6 +169,18 @@ export class ClinicalProfileReviewService {
           orderBy: { createdAt: 'desc' },
         })
       : [];
+    const formStates =
+      ClinicalClarificationService.enabled && eligible.length
+        ? await prisma.clinicalClarificationForm.findMany({
+            where: { userId: { in: eligible.map(({ user }) => user.id) }, resolution: { is: null } },
+            select: {
+              userId: true,
+              profileRevision: true,
+              scopeKey: true,
+              responses: { take: 1, select: { id: true } },
+            },
+          })
+        : [];
     const people = eligible
       .filter(
         ({ user, current }) =>
@@ -250,6 +197,14 @@ export class ClinicalProfileReviewService {
         allergies: current.snapshot.allergies,
         needsClarification: current.needsClarification,
         status: (() => {
+          const forms = formStates.filter(
+            (form) =>
+              form.userId === user.id &&
+              form.profileRevision === current.profile.revision &&
+              form.scopeKey === current.scopeKey
+          );
+          if (forms.some((form) => !form.responses.length)) return 'AWAITING_MEMBER';
+          if (forms.length) return 'CLARIFICATION_ANSWERED';
           const review = reviews.find(
             (item) => item.userId === user.id && snapshotKey(item.profileSnapshot) === current.scopeKey
           );
@@ -402,6 +357,7 @@ export class ClinicalProfileReviewService {
     const active =
       !!claim?.claimedByNutritionistId && !!claim.claimedAt && Date.now() - claim.claimedAt.getTime() < CLAIM_TTL_MS;
     return {
+      clarifications: await ClinicalClarificationService.list(userId, reviewerId),
       scopeKey: current.scopeKey,
       claim: {
         active,
@@ -576,6 +532,19 @@ export class ClinicalProfileReviewService {
         Date.now() - existing.claimedAt.getTime() >= CLAIM_TTL_MS
       )
         throw new AppError('Claim this profile before recording a decision.', 409, 'PROFILE_REVIEW_CLAIM_REQUIRED');
+      if (
+        decision === 'APPROVED' &&
+        (await hasUnresolvedClarifications(
+          userId,
+          { profileRevision: current.profile.revision, scopeKey: current.scopeKey },
+          tx
+        ))
+      )
+        throw new AppError(
+          'Review and resolve the current clarification forms before confirming this profile.',
+          422,
+          'PROFILE_CLARIFICATION_REQUIRED'
+        );
       if (existing?.status === 'APPROVED')
         throw new AppError('This profile revision has already been approved.', 409, 'PROFILE_REVIEW_ALREADY_APPROVED');
       const assessedAt = new Date();

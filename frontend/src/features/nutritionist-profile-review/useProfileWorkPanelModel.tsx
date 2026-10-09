@@ -268,6 +268,9 @@ export function useProfileWorkPanelModel() {
   const selectedDocument =
     selection?.kind === 'document' ? detail?.documents.find((item) => item.id === selection.id) : null;
   const profileBlocked =
+    detail?.profileReview?.clarifications?.forms.some(
+      (form) => form.status === 'AWAITING_MEMBER' || form.status === 'ANSWERED'
+    ) ||
     (detail?.profileReview?.clarificationEntryIds
       ? detail.profileReview.clarificationEntryIds.some(
           (id) => !conditionAssessments.some((item) => item.entryId === id)
@@ -325,5 +328,11 @@ export function useProfileWorkPanelModel() {
     setNotes,
     profileBlocked,
     decideProfile,
+    reloadDetail: async () => {
+      if (detail) {
+        await openPerson(detail.userId, true);
+        await refresh();
+      }
+    },
   };
 }

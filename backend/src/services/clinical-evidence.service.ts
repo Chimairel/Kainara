@@ -1,3 +1,4 @@
+import { ClinicalClarificationService } from './clinical-clarification.service';
 import { ReviewRoutingService } from './review-routing.service';
 import path from 'node:path';
 import { isDeepStrictEqual } from 'node:util';
@@ -248,6 +249,7 @@ export class ClinicalEvidenceService {
       }),
     ]);
     return {
+      clarifications: await ClinicalClarificationService.list(userId),
       policyVersion: 'HEALTH_DETAILS_V1',
       conditionPlanningAssessments: assessedEntries.flatMap((entry) => {
         const assessment = activeConditionPlanningAssessment(entry);

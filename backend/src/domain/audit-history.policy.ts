@@ -15,6 +15,8 @@ export const nutritionistAuditActions = [
   'MEAL_APPROVAL_FLAGGED',
   'MEAL_APPROVAL_RECHECKED',
   'CLINICAL_PROFILE_REVIEWED',
+  'CLINICAL_CLARIFICATION_PUBLISHED',
+  'CLINICAL_CLARIFICATION_RESOLVED',
   'CLINICAL_DOCUMENT_ACCESSED',
   'CLINICAL_DOCUMENT_SUFFICIENT_FOR_NUTRITION_REVIEW',
   'CLINICAL_DOCUMENT_NEEDS_CLARIFICATION',
@@ -68,6 +70,8 @@ export function auditActionLabel(action: string) {
     MEAL_APPROVAL_FLAGGED: 'Flagged an approval',
     MEAL_APPROVAL_RECHECKED: 'Rechecked an approval',
     CLINICAL_PROFILE_REVIEWED: 'Reviewed a health profile',
+    CLINICAL_CLARIFICATION_PUBLISHED: 'Sent profile clarification questions',
+    CLINICAL_CLARIFICATION_RESOLVED: 'Resolved profile clarification',
     CONDITION_PLANNING_ASSESSMENT_INVALIDATED: 'Condition assessment needs a fresh review',
     CLINICAL_DOCUMENT_ACCESSED: 'Opened a claimed clinical document',
     CLINICAL_DOCUMENT_SUFFICIENT_FOR_NUTRITION_REVIEW: 'Accepted a clinical document',
@@ -90,6 +94,6 @@ export function auditOutcomeLabel(action: string) {
   if (/REJECTED|UNUSABLE|SUSPENDED|FLAGGED|DISPUTED|UNVERIFIABLE|REVOKED|REVIEW_DUE|EXPIRED/.test(action))
     return 'Needs attention';
   if (/ACCESSED|CLAIM_RELEASED/.test(action)) return 'Recorded';
-  if (/NEEDS_CLARIFICATION|NEEDS_MORE_INFO/.test(action)) return 'Waiting for information';
+  if (/NEEDS_CLARIFICATION|NEEDS_MORE_INFO|CLARIFICATION_PUBLISHED/.test(action)) return 'Waiting for information';
   return 'Completed';
 }

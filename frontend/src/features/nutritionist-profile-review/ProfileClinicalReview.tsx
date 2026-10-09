@@ -1,4 +1,5 @@
 'use client';
+import RndClarifications from '@/features/clinical-clarification/RndClarifications';
 import Dropdown from '@/components/ui/Dropdown';
 
 import Button from '@/components/ui/Button';
@@ -8,6 +9,7 @@ type Model = Extract<ReturnType<typeof useProfileWorkPanelModel>, { kind: 'ready
 type SectionProps = {
   model: Pick<
     Model,
+    | 'reloadDetail'
     | 'detail'
     | 'requestArea'
     | 'setRequestArea'
@@ -32,10 +34,21 @@ export default function ProfileClinicalReview({ model }: SectionProps) {
     decideProfile,
     conditionAssessments,
     setConditionAssessments,
+    reloadDetail,
   } = model;
   if (!detail) return null;
   return (
     <>
+      {detail.profileReview && (
+        <RndClarifications
+          userId={detail.userId}
+          profileRevision={detail.profileReview.profileRevision}
+          scopeKey={detail.profileReview.scopeKey}
+          workspace={detail.profileReview.clarifications}
+          canWrite={!busy && !!detail.profileReview.claim?.mine}
+          onUpdated={reloadDetail}
+        />
+      )}
       {detail.profileReview && (
         <section className="space-y-3 rounded-xl border border-brand-border bg-brand-surface p-4 text-xs">
           <h3 className="font-bold text-brand-text">Profile decision</h3>
@@ -182,6 +195,9 @@ export default function ProfileClinicalReview({ model }: SectionProps) {
             <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-3" role="status">
               <strong>Before confirming for planning:</strong>
               <ul className="mt-2 list-disc space-y-1 pl-4">
+                {detail.profileReview.clarifications?.forms.some(
+                  (form) => form.status === 'AWAITING_MEMBER' || form.status === 'ANSWERED'
+                ) && <li>Review and resolve the current clarification forms.</li>}
                 {!detail.profileReview.claim?.mine && (
                   <li>
                     {detail.profileReview.claim?.active

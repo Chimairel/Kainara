@@ -1,4 +1,6 @@
 'use client';
+import MemberClarifications from '@/features/clinical-clarification/MemberClarifications';
+import type { ClarificationWorkspace } from '@/features/clinical-clarification/types';
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -19,6 +21,7 @@ type Answers = {
   measurements: string;
 };
 type Workspace = {
+  clarifications?: ClarificationWorkspace;
   conditionPlanningAssessments?: Array<{ condition: string; reviewerName: string; rationale: string }>;
   safetyRevision: number;
   availableAreas: string[];
@@ -195,6 +198,17 @@ export default function ClinicalEvidenceWorkspace({
         <p role="status" className="text-sm text-brand-green">
           {message}
         </p>
+      )}
+      {mode === 'profile' && (
+        <MemberClarifications
+          workspace={workspace?.clarifications}
+          onUpdated={async () => {
+            const response = await api.get(endpoint);
+            setWorkspace((current) =>
+              current ? { ...current, clarifications: response.data.data.clarifications } : response.data.data
+            );
+          }}
+        />
       )}
       {section !== 'allergies' && !!workspace?.conditionPlanningAssessments?.length && (
         <section className="space-y-3 rounded-xl border border-brand-border bg-brand-surface p-4">

@@ -1,3 +1,4 @@
+import { clinicalClarificationRouter } from './clinical-clarification.routes';
 import { Router, Response } from 'express';
 import authenticate, { authenticateProfile } from '@/middleware/auth';
 import requireRole from '@/middleware/rbac';
@@ -57,6 +58,7 @@ router.put('/profile/avatar', UserController.updateAvatar);
 // Below routes are restricted to USER role
 // ──────────────────────────────────────────
 router.use(requireRole('USER'));
+router.use(clinicalClarificationRouter('member'));
 
 router.get(
   '/clinical-profile-review/status',

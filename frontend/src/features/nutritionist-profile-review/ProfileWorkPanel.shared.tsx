@@ -1,3 +1,4 @@
+import type { ClarificationWorkspace } from '@/features/clinical-clarification/types';
 import type { NutritionReport } from '@/types';
 
 import { type GuidanceProfileSnapshot } from '@/features/reports/NutritionGuidancePaper';
@@ -35,6 +36,7 @@ export type DocumentItem = {
   latestReview: { decision: string; rationale: string } | null;
 };
 export type ProfileReview = {
+  clarifications?: ClarificationWorkspace;
   conditionReviewEntries?: Array<{
     id: string;
     displayName: string;

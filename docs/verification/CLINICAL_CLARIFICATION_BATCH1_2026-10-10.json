@@ -1,0 +1,32 @@
+{
+  "passed": 13,
+  "checks": [
+    "Publishing requires a current claim, staff role and eligible credentials",
+    "Publishing/retry creates one immutable form and notification without altering the profile",
+    "Unresolved clarification blocks profile confirmation and planning",
+    "Member ownership and required/choice/unknown-field validation are enforced",
+    "A late member response survives expiry and is visible to the next claimant",
+    "Resolution binds to the latest immutable answer and never alters profile/acknowledgment",
+    "Admin related-case access shows question/answer/resolution history and records sensitive access",
+    "Concurrent submissions cannot silently overwrite one another",
+    "Concurrent answer changes and resolution cannot produce a stale signed resolution",
+    "Release and new claims retain the same forms and enforce write ownership",
+    "Changed health-detail scope invalidates old forms even without a profile revision increment",
+    "Profile changes supersede old forms and block stale answers/writes without deletion",
+    "Superseded historical forms do not block a separately reviewed current profile"
+  ],
+  "date": "2026-10-10",
+  "batch": 1,
+  "database": "disposable loopback:55488/kainara_clarifications",
+  "migrations": 99,
+  "backend": {
+    "passed": 855,
+    "todo": 1
+  },
+  "frontend": {
+    "passed": 27
+  },
+  "rollout": "Disabled; shared migration pending explicit authorization",
+  "browserE2E": "Not run",
+  "clinicalValidation": "Not established"
+}

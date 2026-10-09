@@ -17,6 +17,7 @@ const runtimeEnvironmentSchema = z.object({
   SMTP_VERIFY_ON_STARTUP: booleanFromString,
   API_DOCS_ENABLED: booleanFromString,
   MEMBERSHIP_ENABLED: booleanFromString,
+  CLINICAL_CLARIFICATIONS_ENABLED: booleanFromString,
   FRONTEND_URL: optionalUrl.default('http://localhost:3000'),
   CORS_ORIGINS: z.string().default(''),
   DATABASE_URL: z.string().optional(),

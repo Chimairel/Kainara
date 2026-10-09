@@ -9,6 +9,7 @@
     "types": ["node"]
   },
   "include": [
+    "scripts/clinical-clarification-local-acceptance.ts",
     "scripts/condition-assessment-local-acceptance.ts",
     "scripts/demo-recipe-local-acceptance.ts",
     "scripts/prepare-demo-recipe-catalogue.ts",
