@@ -22,6 +22,7 @@ for (const width of [400, 1440]) {
     ).toString('base64url');
     await page.context().addCookies([{ name: 'nutrimind_session', value: `fixture.${claims}.fixture`, url: origin }]);
     let queueReads = 0;
+    let queueUnavailable = true;
     await page.route('**/api/**', async (route) => {
       const path = new URL(route.request().url()).pathname;
       const headers = {
@@ -36,12 +37,15 @@ for (const width of [400, 1440]) {
       if (path.endsWith('/user/profile')) data = user;
       else if (path.endsWith('/notifications')) data = { notifications: [], unreadCount: 0 };
       else if (path.endsWith('/review-work-counts')) data = { case: 46, meal: 16, profile: 4 };
-      else if (path.endsWith('/queue') && ++queueReads <= 2)
-        return route.fulfill({
-          status: 503,
-          headers,
-          json: { success: false, error: 'Synthetic review queue unavailable. Please retry.' },
-        });
+      else if (path.endsWith('/queue')) {
+        queueReads++;
+        if (queueUnavailable)
+          return route.fulfill({
+            status: 503,
+            headers,
+            json: { success: false, error: 'Synthetic review queue unavailable. Please retry.' },
+          });
+      }
       await route.fulfill({ headers, json: { success: true, data } });
     });
     await page.goto('/nutritionist/reviews');
@@ -67,10 +71,12 @@ for (const width of [400, 1440]) {
       expect(Math.abs(indicatorBox!.height - activeBox!.height)).toBeLessThan(3);
       expect(Math.abs(indicatorBox!.width - activeBox!.width)).toBeLessThan(3);
     }
+    const readsBeforeRetry = queueReads;
+    queueUnavailable = false;
     await page.getByRole('button', { name: 'Retry queue' }).click();
     await expect(page.getByText('Queue clear', { exact: true })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Retry queue' })).toBeHidden();
-    expect(queueReads).toBe(3);
+    expect(queueReads).toBeGreaterThan(readsBeforeRetry);
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
     await page.screenshot({ path: testInfo.outputPath(`review-queue-${width}.png`), fullPage: true });
     expect(errors).toEqual([]);

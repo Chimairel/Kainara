@@ -26,6 +26,8 @@ export interface DocumentViewerProps {
   downloading?: boolean;
   expanded: boolean;
   onExpandedChange: (expanded: boolean) => void;
+  /** Runs after the dialog restores focus, for caller-owned actions outside the reader. */
+  onExitFullscreen?: () => void;
   paperWidth?: number;
 }
 
@@ -39,6 +41,7 @@ export default function DocumentViewer({
   downloading = false,
   expanded,
   onExpandedChange,
+  onExitFullscreen,
   paperWidth = 794,
 }: DocumentViewerProps) {
   const canvasRef = useRef<HTMLDivElement>(null);
@@ -117,8 +120,10 @@ export default function DocumentViewer({
     const canvas = canvasRef.current;
     if (canvas && previousScale.current !== scale) {
       const ratio = scale / previousScale.current;
-      canvas.scrollTop *= ratio;
-      canvas.scrollLeft *= ratio;
+      // Resizing the paper may clamp the DOM scroll before this effect runs.
+      // Use the last recorded position so fit changes retain the inspected page.
+      canvas.scrollTop = scrollPosition.current.top * ratio;
+      canvas.scrollLeft = scrollPosition.current.left * ratio;
       scrollPosition.current = { top: canvas.scrollTop, left: canvas.scrollLeft };
     }
     previousScale.current = scale;
@@ -300,6 +305,7 @@ export default function DocumentViewer({
           onCloseAutoFocus={(event) => {
             event.preventDefault();
             expandRef.current?.focus();
+            onExitFullscreen?.();
           }}
           className="fixed inset-0 z-[81] h-[100dvh] w-screen outline-none"
         >

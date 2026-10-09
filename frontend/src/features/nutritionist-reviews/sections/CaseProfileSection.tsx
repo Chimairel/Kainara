@@ -8,13 +8,19 @@ import api from '@/lib/axios';
 
 import type { useCaseReviewWorkspaceModel } from './useCaseReviewWorkspaceModel';
 type Model = Extract<ReturnType<typeof useCaseReviewWorkspaceModel>, { kind: 'ready' }>;
-type SectionProps = { model: Pick<Model, 'detailData'> };
-export default function CaseProfileSection({ model }: SectionProps) {
+type SectionProps = { model: Pick<Model, 'detailData'>; paper?: boolean };
+export default function CaseProfileSection({ model, paper = false }: SectionProps) {
   const { detailData } = model;
   if (!detailData) return null;
   return (
     <>
-      <div className="space-y-4 rounded-[24px] border border-brand-border/70 bg-brand-surface/70 p-5 shadow-card">
+      <div
+        className={
+          paper
+            ? 'space-y-5'
+            : 'space-y-4 rounded-[24px] border border-brand-border/70 bg-brand-surface/70 p-5 shadow-card'
+        }
+      >
         <div className="flex items-center gap-3.5 border-b border-brand-border pb-3">
           <Avatar name={detailData.user.name} size="lg" />
           <div className="min-w-0 flex-1">
@@ -36,7 +42,7 @@ export default function CaseProfileSection({ model }: SectionProps) {
               detailData.user.conditions.map((hc, i) => (
                 <span
                   key={i}
-                  className="px-2.5 py-1 bg-red-950/30 border border-red-800/30 text-red-400 text-[10px] rounded-lg font-bold"
+                  className={`px-2.5 py-1 border text-[10px] rounded-lg font-bold ${paper ? 'bg-red-50 border-red-200 text-red-800' : 'bg-red-950/30 border-red-800/30 text-red-400'}`}
                 >
                   {hc}
                 </span>
@@ -55,7 +61,7 @@ export default function CaseProfileSection({ model }: SectionProps) {
               detailData.user.allergies.map((alg, i) => (
                 <span
                   key={i}
-                  className="px-2.5 py-1 bg-red-950/30 border border-red-800/30 text-red-400 text-[10px] rounded-lg font-bold"
+                  className={`px-2.5 py-1 border text-[10px] rounded-lg font-bold ${paper ? 'bg-red-50 border-red-200 text-red-800' : 'bg-red-950/30 border-red-800/30 text-red-400'}`}
                 >
                   {alg}
                 </span>

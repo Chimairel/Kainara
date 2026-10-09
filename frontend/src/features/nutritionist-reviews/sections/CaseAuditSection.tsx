@@ -12,6 +12,7 @@ import IngredientEvidenceList from '@/features/nutritionist-reviews/IngredientEv
 import type { useCaseReviewWorkspaceModel } from './useCaseReviewWorkspaceModel';
 type Model = Extract<ReturnType<typeof useCaseReviewWorkspaceModel>, { kind: 'ready' }>;
 type SectionProps = {
+  paper?: boolean;
   model: Pick<
     Model,
     | 'isEditing'
@@ -23,7 +24,7 @@ type SectionProps = {
     | 'removeIngredientField'
   >;
 };
-export default function CaseAuditSection({ model }: SectionProps) {
+export default function CaseAuditSection({ model, paper = false }: SectionProps) {
   const {
     isEditing,
     editForm,
@@ -36,7 +37,13 @@ export default function CaseAuditSection({ model }: SectionProps) {
   if (!detailData) return null;
   return (
     <>
-      <div className="space-y-4 rounded-[24px] border border-brand-border/70 bg-brand-surface/70 p-5 shadow-card">
+      <div
+        className={
+          paper
+            ? 'space-y-5'
+            : 'space-y-4 rounded-[24px] border border-brand-border/70 bg-brand-surface/70 p-5 shadow-card'
+        }
+      >
         <div className="border-b border-brand-border pb-3 flex justify-between items-start">
           <div>
             <h2 className="text-sm font-bold text-brand-muted uppercase tracking-wider">Meal Details</h2>

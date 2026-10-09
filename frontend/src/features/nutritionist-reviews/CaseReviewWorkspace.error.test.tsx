@@ -4,6 +4,31 @@ import CaseReviewWorkspace from './CaseReviewWorkspace';
 import type { useNutritionistReviews } from './useNutritionistReviews';
 
 describe('case detail load failure', () => {
+  it('returns to the queue after selection clears, even if previous details and fullscreen state remain', () => {
+    const close = vi.fn();
+    const review = {
+      queue: [],
+      isLoading: false,
+      selectedMealId: null,
+      detailLoading: false,
+      detailData: { mealPlan: { id: 'previous-meal' } },
+      errorMsg: null,
+      actionLoading: null,
+    } as unknown as ReturnType<typeof useNutritionistReviews>;
+    render(
+      <CaseReviewWorkspace
+        review={review}
+        caseFilter="pending"
+        expanded
+        setExpanded={close}
+        navigation={null}
+        caseFilters={null}
+      />
+    );
+    expect(screen.queryByRole('region', { name: 'Document viewer', exact: true })).not.toBeInTheDocument();
+    expect(close).toHaveBeenCalledWith(false);
+  });
+
   it('offers retry without claiming that access was blocked', () => {
     const retry = vi.fn();
     const back = vi.fn();
