@@ -5,6 +5,7 @@ import { useCallback, useEffect, useState } from 'react';
 import api from '@/lib/axios';
 import { getApiErrorMessage } from '@/lib/api-error';
 import Button from '@/components/ui/Button';
+import ReviewDecisionDialog from '@/features/nutritionist-reviews/ReviewDecisionDialog';
 import Badge from '@/components/ui/Badge';
 import MealImage from '@/components/user/MealImage';
 import IngredientEvidenceTable from '@/features/nutritionist-reviews/IngredientEvidenceTable';
@@ -67,6 +68,8 @@ export default function MealVerificationPanel() {
   const [expanded, setExpanded] = useState(false);
   const [rationale, setRationale] = useState('');
   const [busy, setBusy] = useState(false);
+  const [decisionAction, setDecisionAction] = useState<'approve' | 'reject' | null>(null);
+  useEffect(() => setDecisionAction(null), [selectedId]);
   const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(
@@ -108,7 +111,8 @@ export default function MealVerificationPanel() {
         `/nutritionist/meal-verification/${selected.kind}/${selected.id}/${action}`,
         action === 'decision' ? { decision, rationale } : {}
       );
-      if (action === 'decision') {
+      if (action === 'decision' || action === 'release') {
+        setDecisionAction(null);
         setSelectedId(null);
         setExpanded(false);
         setRationale('');
@@ -332,42 +336,27 @@ export default function MealVerificationPanel() {
               actions={claimHeader}
               decision={
                 selected.claimedByMe ? (
-                  <div className="rounded-[24px] border border-brand-border/70 bg-brand-surface/70 p-5 shadow-card space-y-4">
-                    {error && (
-                      <p role="alert" className="text-sm text-red-500">
-                        {error}
-                      </p>
-                    )}
-                    <label className="block text-xs font-bold text-brand-text">
-                      Review rationale
-                      <textarea
-                        value={rationale}
-                        disabled={busy}
-                        maxLength={1000}
-                        onChange={(event) => setRationale(event.target.value)}
-                        rows={3}
-                        placeholder="Document clinical observations or verification notes (at least 10 characters)..."
-                        className="mt-2 block w-full rounded-xl border border-brand-border bg-brand-bgAlt/60 p-3 text-xs text-brand-text placeholder:text-brand-muted focus:border-brand-accent focus:outline-none focus:ring-1 focus:ring-brand-accent"
-                      />
-                    </label>
-                    <div className="flex flex-wrap gap-2.5 pt-1">
-                      <Button
-                        variant="primary"
-                        disabled={busy || rationale.trim().length < 10}
-                        isLoading={busy}
-                        onClick={() => void act('decision', 'VERIFIED')}
-                      >
-                        Verify base meal
+                  <>
+                    <div role="toolbar" aria-label="Meal review actions" className="flex items-center gap-2">
+                      <Button size="sm" disabled={busy} onClick={() => setDecisionAction('approve')}>
+                        Approve
                       </Button>
-                      <Button
-                        variant="danger"
-                        disabled={busy || rationale.trim().length < 10}
-                        onClick={() => void act('decision', 'REJECTED')}
-                      >
+                      <Button size="sm" variant="danger" disabled={busy} onClick={() => setDecisionAction('reject')}>
                         Reject
                       </Button>
                     </div>
-                  </div>
+                    <ReviewDecisionDialog
+                      action={decisionAction}
+                      onClose={() => setDecisionAction(null)}
+                      busy={busy}
+                      error={error}
+                      note={rationale}
+                      onNoteChange={setRationale}
+                      required
+                      approvalLabel="Verify base meal"
+                      onConfirm={() => void act('decision', decisionAction === 'reject' ? 'REJECTED' : 'VERIFIED')}
+                    />
+                  </>
                 ) : undefined
               }
             >

@@ -25,8 +25,12 @@ import { MEAL_PLAN_SAFETY_POLICY_VERSION } from '@/domain/meal-plan-production-s
 import { scorePreparationCandidate } from '@/domain/upcoming-preparation.policy';
 import { mealApprovalSafetyScope } from '@/domain/meal-approval-scope.policy';
 import { assertRecipeNotRejectedForSlot, rejectedSlotRecipes } from './rejected-slot-recipes.service';
-import { assertReviewSwapClaim, reviewSwapVersion } from '@/domain/review-swap.policy';
-import { currentReviewProfile, lockRecipeLineage, json } from './meal-review-context.service';
+import {
+  assertReviewSwapClaim,
+  reviewSwapVersion,
+  requiresExplicitReplacementReview,
+} from '@/domain/review-swap.policy';
+import { currentReviewProfile, lockRecipeLineage } from './meal-review-context.service';
 import { ReviewRoutingService } from './review-routing.service';
 import { getStartOfManilaBusinessDay } from '@/domain/meal-actionability.policy';
 import { admittedLibraryBaseIds } from './meal-base-admission.service';
@@ -52,6 +56,8 @@ export class CertifiedSlotFallbackService {
       include: { cycle: { include: { snapshot: true } } },
     });
     if (!target || !target.cycle.snapshot) return { replaced: false, replacementPlanId: null };
+    if (!input.reviewer && requiresExplicitReplacementReview(target))
+      return { replaced: false, replacementPlanId: null };
     if (!isPrimaryMealType(target.mealType)) return { replaced: false, replacementPlanId: null };
     const slotType = target.mealType;
     if (target.cycle.shoppingStartedAt) return { replaced: false, replacementPlanId: null };
@@ -170,6 +176,20 @@ export class CertifiedSlotFallbackService {
       )
         throw new Error('Planning context changed during fallback selection.');
       const latestTarget = await tx.mealPlan.findUniqueOrThrow({ where: { id: target.id } });
+      if (!input.reviewer && requiresExplicitReplacementReview(latestTarget))
+        return { replaced: false, replacementPlanId: null };
+      if (!input.reviewer) {
+        const pendingSlot = await tx.mealPlan.findMany({
+          where: {
+            planGroupId: target.planGroupId,
+            scheduledDate: target.scheduledDate,
+            mealType: target.mealType,
+            status: MealPlanStatus.PENDING_REVIEW,
+          },
+          select: { status: true, selectionEvidence: true },
+        });
+        if (pendingSlot.some(requiresExplicitReplacementReview)) return { replaced: false, replacementPlanId: null };
+      }
       const reviewer = input.reviewer ? await currentReviewProfile(tx, input.reviewer.profileId) : null;
       if (input.reviewer) {
         if (!reviewer) throw new AppError('A currently eligible RND is required.', 403, 'REVIEWER_INELIGIBLE');
@@ -272,18 +292,24 @@ export class CertifiedSlotFallbackService {
         mealType: slotType,
         recipeSignature: latest.recipeSignature,
         ingredients,
-        evidenceSource: 'CERTIFIED_DEADLINE_OR_REJECTION_FALLBACK',
+        evidenceSource: input.reviewer
+          ? 'RND_SELECTED_REPLACEMENT_PENDING_REVIEW'
+          : 'CERTIFIED_DEADLINE_OR_REJECTION_FALLBACK',
       });
       const replacement = await tx.mealPlan.create({
         data: {
           planGroupId: target.planGroupId,
           userId: target.userId,
-          status: MealPlanStatus.APPROVED,
+          status: input.reviewer ? MealPlanStatus.PENDING_REVIEW : MealPlanStatus.APPROVED,
           candidateProvenance: MealCandidateProvenance.CERTIFIED_LIBRARY,
           libraryMealId: latest.id,
-          profileApprovalId: approval?.id ?? null,
-          nutritionistId: reviewer?.id ?? approval?.reviewerNutritionistId ?? latest.safetyReviewedByNutritionistId,
-          nutritionistNote: input.reviewer?.note ?? null,
+          profileApprovalId: input.reviewer ? null : (approval?.id ?? null),
+          nutritionistId: input.reviewer
+            ? null
+            : (approval?.reviewerNutritionistId ?? latest.safetyReviewedByNutritionistId),
+          nutritionistNote: null,
+          claimedByNutritionistId: input.reviewer?.profileId ?? null,
+          claimedAt: input.reviewer ? latestTarget.claimedAt : null,
           planType: target.planType,
           mealType: slotType,
           mealName: latest.mealName,
@@ -294,11 +320,11 @@ export class CertifiedSlotFallbackService {
           fatG: latest.fatG,
           aiConfidenceFlag: AIConfidenceFlag.SAFE,
           scheduledDate: target.scheduledDate,
-          reviewedAt: reviewer ? new Date() : (approval?.approvedAt ?? latest.safetyReviewedAt),
-          requiresSafetyRevalidation: false,
+          reviewedAt: input.reviewer ? null : (approval?.approvedAt ?? latest.safetyReviewedAt),
+          requiresSafetyRevalidation: Boolean(input.reviewer),
           safetyPolicyVersion: MEAL_PLAN_SAFETY_POLICY_VERSION,
           highRiskReviewRequired: target.cycle.assuranceTier === AssuranceTier.ENHANCED,
-          reviewApprovalCount: 1,
+          reviewApprovalCount: input.reviewer ? 0 : 1,
           candidateRank: 1,
           rankingScore: ranking.score,
           rankingReasonCodes: [...ranking.reasonCodes, input.reasonCode],
@@ -315,7 +341,7 @@ export class CertifiedSlotFallbackService {
           ...serving,
         },
       });
-      for (const condition of conditions) {
+      for (const condition of input.reviewer ? [] : conditions) {
         const clearance = latest.conditionClearances.find(
           (item) =>
             item.condition === condition &&
@@ -355,35 +381,6 @@ export class CertifiedSlotFallbackService {
         });
         if (changed.count !== 1)
           throw new AppError('The review changed. Refresh the queue.', 409, 'REVIEW_SWAP_CHANGED');
-        await tx.mealPlanReviewDecision.create({
-          data: {
-            mealPlanId: replacement.id,
-            nutritionistProfileId: input.reviewer.profileId,
-            stage: 'PRIMARY',
-            decision: 'APPROVE',
-            rationale: input.reviewer.note,
-            evidenceSnapshot: json({
-              source: 'RND_SELECTED_CERTIFIED_REPLACEMENT',
-              supersededMealPlanId: target.id,
-              recipeSignature: latest.recipeSignature,
-              evidenceRevision: latest.safetyEvidenceRevision,
-              profileRevision: currentContext.profile.revision,
-              safetyRevision: currentContext.profile.safetyRevision,
-              ingredients,
-              certificationReviewerId: approval?.reviewerNutritionistId ?? latest.safetyReviewedByNutritionistId,
-              actor: {
-                name: reviewer!.user.name,
-                prcLicenseNumber: reviewer!.prcLicenseNumber,
-                prcLicenseExpiry: reviewer!.prcLicenseExpiry,
-                profileId: reviewer!.id,
-              },
-              calories: latest.calories,
-              proteinG: latest.proteinG,
-              carbsG: latest.carbsG,
-              fatG: latest.fatG,
-            }),
-          },
-        });
       } else
         await tx.mealPlan.update({
           where: { id: target.id },
@@ -401,7 +398,9 @@ export class CertifiedSlotFallbackService {
         data: {
           actorUserId: reviewer?.userId ?? null,
           ...(reviewer ? { actorName: reviewer.user.name, actorRole: 'NUTRITIONIST' as const } : {}),
-          action: 'MEAL_PLAN_SLOT_CERTIFIED_FALLBACK_SELECTED',
+          action: input.reviewer
+            ? 'MEAL_PLAN_SLOT_REPLACED_PENDING_REVIEW'
+            : 'MEAL_PLAN_SLOT_CERTIFIED_FALLBACK_SELECTED',
           entityType: 'MealPlan',
           entityId: replacement.id,
           metadata: {
@@ -412,6 +411,10 @@ export class CertifiedSlotFallbackService {
                   rationale: input.reviewer.note,
                   reviewerProfileId: input.reviewer.profileId,
                   original: {
+                    ingredients: await tx.mealIngredient.findMany({
+                      where: { mealPlanId: target.id },
+                      select: { ingredientName: true, quantity: true, unit: true, foodItemId: true, dataSource: true },
+                    }),
                     mealName: target.mealName,
                     calories: target.calories,
                     proteinG: target.proteinG,
@@ -419,6 +422,8 @@ export class CertifiedSlotFallbackService {
                     fatG: target.fatG,
                   },
                   replacement: {
+                    status: replacement.status,
+                    ingredients,
                     mealName: latest.mealName,
                     calories: latest.calories,
                     proteinG: latest.proteinG,
@@ -436,14 +441,6 @@ export class CertifiedSlotFallbackService {
         await tx.groceryList.updateMany({
           where: { userId: target.userId, planGroupId: target.planGroupId },
           data: { isStale: true },
-        });
-        await tx.notification.create({
-          data: {
-            userId: target.userId,
-            type: 'PLAN_APPROVED',
-            title: 'Reviewed meal replacement',
-            message: `${target.mealName} was replaced with ${latest.mealName}. RND note: ${input.reviewer.note}`,
-          },
         });
       }
       return { replaced: true, replacementPlanId: replacement.id };

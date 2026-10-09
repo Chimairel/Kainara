@@ -7,17 +7,22 @@ import CaseAuditSection from './sections/CaseAuditSection';
 import CaseDecisionSection from './sections/CaseDecisionSection';
 import type { useCaseReviewWorkspaceModel } from './sections/useCaseReviewWorkspaceModel';
 import { useReviewSwap } from './useReviewSwap';
-import IngredientEvidenceTable from './IngredientEvidenceTable';
+import { useState, useEffect } from 'react';
 
 type Model = ReturnType<typeof useCaseReviewWorkspaceModel>;
 
 export default function CaseReviewDocument({ model }: { model: Model }) {
   const { detailData, expanded, setExpanded, claimHeader, errorMsg, setSelectedMealId } = model;
-  const swap = useReviewSwap(model.selectedMealId, Boolean(detailData?.claimStatus.claimedByMe), async () => {
-    setExpanded(false);
-    setSelectedMealId(null);
-    await model.review.fetchQueue(false, undefined, true);
-  });
+  const [action, setAction] = useState<'approve' | 'reject' | null>(null);
+  useEffect(() => setAction(null), [model.selectedMealId, detailData?.claimStatus.claimedByMe]);
+  const swap = useReviewSwap(
+    model.selectedMealId,
+    Boolean(detailData?.claimStatus.claimedByMe),
+    async (replacementId) => {
+      await model.review.fetchQueue(false, undefined, true);
+      await model.review.handleSelectMeal(replacementId);
+    }
+  );
   if (!detailData) return null;
   const meal = detailData.mealPlan;
   return (
@@ -35,7 +40,11 @@ export default function CaseReviewDocument({ model }: { model: Model }) {
         onExpandedChange={setExpanded}
         onBack={() => setSelectedMealId(null)}
         actions={claimHeader}
-        decision={detailData.claimStatus.claimedByMe ? <CaseDecisionSection model={model} swap={swap} /> : undefined}
+        decision={
+          detailData.claimStatus.claimedByMe ? (
+            <CaseDecisionSection model={model} swap={swap} action={action} setAction={setAction} />
+          ) : undefined
+        }
       >
         <ReviewDocumentPage
           page={1}
@@ -82,19 +91,6 @@ export default function CaseReviewDocument({ model }: { model: Model }) {
             </section>
           )}
         </ReviewDocumentPage>
-        {swap.open && swap.selected && (
-          <ReviewDocumentPage page={3} title="Replacement preview" subtitle={swap.selected.mealName}>
-            <p>{swap.selected.description || 'No description recorded.'}</p>
-            <p>
-              {swap.selected.calories} kcal · {swap.selected.proteinG} g protein · {swap.selected.carbsG} g carbs ·{' '}
-              {swap.selected.fatG} g fat
-            </p>
-            <IngredientEvidenceTable ingredients={swap.selected.ingredients} />
-            <p className="text-sm text-slate-600">
-              Eligibility and evidence are checked again when you confirm this certified recipe replacement.
-            </p>
-          </ReviewDocumentPage>
-        )}
       </RndQueueDocument>
       {detailData.claimStatus.claimedByMe && (
         <p className="mt-3 text-xs text-brand-muted">

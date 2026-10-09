@@ -71,12 +71,12 @@ export default function ReviewCanvas({
     );
     const scale = Math.max(
       0.1,
-      Math.min(1.5, (node.clientWidth - 48) / (right - left), (node.clientHeight - 48) / (bottom - top))
+      Math.min(1.5, (node.clientWidth - 48) / (right - left), (node.clientHeight - 128) / (bottom - top))
     );
     setView({
       scale,
       x: (node.clientWidth - (right - left) * scale) / 2 - left * scale,
-      y: (node.clientHeight - (bottom - top) * scale) / 2 - top * scale,
+      y: (node.clientHeight - 80 - (bottom - top) * scale) / 2 - top * scale,
     });
     if (reset) setPositions(layout);
   };
@@ -381,7 +381,7 @@ export default function ReviewCanvas({
       </div>
       <footer
         role="region"
-        className="z-10 max-h-[35dvh] shrink-0 overflow-y-auto border-t border-brand-border bg-brand-surface p-3 custom-scrollbar"
+        className="absolute bottom-4 left-1/2 z-10 max-w-[calc(100%-32px)] -translate-x-1/2 rounded-2xl border border-brand-border bg-brand-surface p-2 shadow-card-lg"
         aria-label="Review decisions"
       >
         {decision ?? (

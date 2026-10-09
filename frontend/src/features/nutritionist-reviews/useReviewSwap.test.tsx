@@ -41,10 +41,11 @@ it('requires selection and rationale, sends immutable version fields, and preven
     note: 'Recorded review rationale.',
   });
   await act(async () => {
-    finish({});
+    finish({ data: { data: { replacementPlanId: 'replacement' } } });
     await submitted;
   });
-  expect(success).toHaveBeenCalledOnce();
+  expect(success).toHaveBeenCalledWith('replacement');
+  expect(result.current.open).toBe(false);
 });
 it('retains rationale after a conflict and requires refreshing options before retry', async () => {
   vi.mocked(api.get).mockResolvedValue({ data: { data: preview } });

@@ -11,6 +11,7 @@ import { CURRENT_TERMS_VERSION, CURRENT_PRIVACY_VERSION } from '../src/domain/on
 import { buildMealLibraryRecipeSignature } from '../src/domain/meal-library-signature.policy';
 import { MEAL_LIBRARY_SAFETY_POLICY_VERSION } from '../src/domain/meal-library-safety-evidence.policy';
 import { libraryBaseRevisionKey } from '../src/services/meal-base-admission.service';
+import { UpcomingPlanPreparationService } from '../src/services/upcoming-plan-preparation.service';
 import { CertifiedSlotFallbackService } from '../src/services/certified-slot-fallback.service';
 
 async function main() {
@@ -99,6 +100,19 @@ async function main() {
         dietaryPreference: 'OMNIVORE',
         dailyCalorieTarget: 2000,
       },
+    });
+    await prisma.safetyProfileEntry.createMany({
+      data: ['CONDITION', 'ALLERGY'].map((domain) => ({
+        userId: member.id,
+        domain: domain as 'CONDITION' | 'ALLERGY',
+        canonicalCode: 'NONE',
+        normalizedText: 'none',
+        displayName: 'None',
+        originalText: 'None',
+        policyReference: 'SYNTHETIC_NONE',
+        provenance: 'PREDEFINED' as const,
+        supportState: 'SUPPORTED' as const,
+      })),
     });
     const food = await prisma.foodItem.create({
       data: {
@@ -255,19 +269,25 @@ async function main() {
       where: { id: original.supersededByMealPlanId! },
       include: { ingredients: true },
     });
-    assert.equal(replacement.status, 'APPROVED');
+    assert.equal(replacement.status, 'PENDING_REVIEW');
+    assert.equal(replacement.reviewApprovalCount, 0);
+    assert.equal(replacement.requiresSafetyRevalidation, true);
+    assert.equal(replacement.claimedByNutritionistId, reviewer.id);
+    assert.equal(replacement.claimedAt?.getTime(), initial.claimedAt?.getTime());
+    assert.equal(replacement.reviewedAt, null);
+    assert.equal(replacement.profileApprovalId, null);
     assert.equal(replacement.libraryMealId, eligible.id);
-    assert.equal(replacement.nutritionistId, reviewer.id);
+    assert.equal(replacement.nutritionistId, null);
     assert.equal(replacement.ingredients[0].quantity, 400);
-    assert.equal(await prisma.mealPlan.count({ where: { planGroupId: initial.planGroupId, status: 'APPROVED' } }), 1);
+    assert.equal(await prisma.mealPlan.count({ where: { planGroupId: initial.planGroupId, status: 'APPROVED' } }), 0);
     assert.equal(
       await prisma.mealPlanReviewDecision.count({
         where: { mealPlanId: replacement.id, nutritionistProfileId: reviewer.id },
       }),
-      1
+      0
     );
     const audit = await prisma.auditEvent.findFirstOrThrow({
-      where: { entityId: replacement.id, action: 'MEAL_PLAN_SLOT_CERTIFIED_FALLBACK_SELECTED' },
+      where: { entityId: replacement.id, action: 'MEAL_PLAN_SLOT_REPLACED_PENDING_REVIEW' },
     });
     assert.equal(audit.actorUserId, rnd.id);
     assert.equal((audit.metadata as { rationale: string }).rationale, payload(preview).note);
@@ -275,13 +295,80 @@ async function main() {
       (await prisma.groceryList.findUniqueOrThrow({ where: { planGroupId: initial.planGroupId } })).isStale,
       true
     );
-    assert.equal(await prisma.notification.count({ where: { userId: member.id, type: 'PLAN_APPROVED' } }), 1);
+    assert.equal(await prisma.notification.count({ where: { userId: member.id, type: 'PLAN_APPROVED' } }), 0);
     assert(
       (await ok(request(rnd, '/nutritionist/audit-history'))).rows.some((row: { id: string }) => row.id === audit.id)
     );
     pass(
-      'one atomic replacement under concurrent submissions with attribution, immutable decision, audit, groceries and notification'
+      'one atomic pending replacement under concurrent submissions, preserved claim, no approval or notification, audit and stale groceries'
     );
+    assert.equal(
+      (
+        await CertifiedSlotFallbackService.replaceWithBestCertified({
+          mealPlanId: replacement.id,
+          tolerance: 0.15,
+          reasonCode: 'SHOPPING_DEADLINE_WIDER_TOLERANCE',
+          expectedStatus: 'PENDING_REVIEW',
+        })
+      ).replaced,
+      false
+    );
+    const competing = await prisma.mealPlan.create({
+      data: {
+        userId: member.id,
+        planGroupId: replacement.planGroupId,
+        mealType: replacement.mealType,
+        scheduledDate: replacement.scheduledDate,
+        mealName: 'Synthetic competing candidate',
+        calories: 800,
+        proteinG: 40,
+        carbsG: 80,
+        fatG: 20,
+        status: 'PENDING_REVIEW',
+      },
+    });
+    assert.equal(
+      (
+        await CertifiedSlotFallbackService.replaceWithBestCertified({
+          mealPlanId: competing.id,
+          tolerance: 0.15,
+          reasonCode: 'SHOPPING_DEADLINE_WIDER_TOLERANCE',
+          expectedStatus: 'PENDING_REVIEW',
+        })
+      ).replaced,
+      false
+    );
+    await prisma.mealPlanCycle.update({
+      where: { id: replacement.planGroupId },
+      data: { shoppingDeadlineAt: new Date(0) },
+    });
+    await UpcomingPlanPreparationService.reconcileDeadline(member.id, replacement.planGroupId);
+    assert.equal((await prisma.mealPlan.findUniqueOrThrow({ where: { id: replacement.id } })).status, 'PENDING_REVIEW');
+    pass('deadline fallback cannot approve, replace or cancel a pending RND-selected meal');
+    assert.equal((await prisma.mealPlan.findUniqueOrThrow({ where: { id: competing.id } })).status, 'PENDING_REVIEW');
+    await prisma.mealPlan.update({ where: { id: competing.id }, data: { status: 'CANCELLED' } });
+    const replacementDetail = await ok(request(rnd, `/nutritionist/queue/${replacement.id}`));
+    assert.equal(replacementDetail.mealPlan.status, 'PENDING_REVIEW');
+    assert.equal(replacementDetail.claimStatus.claimedByMe, true);
+    const pendingLog = await request(member, `/user/meals/${replacement.id}/status`, 'PATCH', { status: 'DONE' });
+    assert.equal(pendingLog.status, 409);
+    assert.equal(await prisma.mealLog.count({ where: { mealPlanId: replacement.id } }), 0);
+    await ok(
+      request(rnd, `/nutritionist/review/${replacement.id}`, 'PATCH', {
+        action: 'approve',
+        note: 'Separately inspected the replacement and approved.',
+      })
+    );
+    const approvedReplacement = await prisma.mealPlan.findUniqueOrThrow({ where: { id: replacement.id } });
+    assert.equal(approvedReplacement.status, 'APPROVED');
+    assert.equal(approvedReplacement.nutritionistId, reviewer.id);
+    assert.equal(approvedReplacement.reviewApprovalCount, 1);
+    assert.equal(approvedReplacement.claimedByNutritionistId, null);
+    assert.equal(
+      await prisma.mealPlanReviewDecision.count({ where: { mealPlanId: replacement.id, decision: 'APPROVE' } }),
+      1
+    );
+    pass('replacement remains inspectable and only a separate explicit decision approves it');
     const checks = [
       [
         'changed source',

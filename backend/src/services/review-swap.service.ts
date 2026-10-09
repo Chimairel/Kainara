@@ -1,3 +1,5 @@
+import { toPublicVerifier } from './meal-plan-presentation.service';
+import { toPublicMealImage } from '@/domain/meal-image.policy';
 import prisma from '@/lib/prisma';
 import { AppError } from '@/errors/AppError';
 import { ReviewRoutingService } from './review-routing.service';
@@ -60,6 +62,13 @@ export async function listReviewSwapOptions(profileId: string, mealPlanId: strin
       .map((meal) => ({
         id: meal.id,
         mealName: meal.mealName,
+        mealType: meal.mealType,
+        mealTypes: meal.applicableMealTypes.map((entry) => entry.mealType),
+        riceRole: meal.riceRole,
+        image: toPublicMealImage(meal),
+        verifier: toPublicVerifier(meal.verifiedByNutritionist),
+        verifiedBy: meal.verifiedByNutritionist?.user.name ?? 'Verification recorded; name unavailable',
+        prcLicenseNumber: meal.verifiedByNutritionist?.prcLicenseNumber ?? '',
         description: meal.description,
         calories: meal.calories,
         proteinG: meal.proteinG,

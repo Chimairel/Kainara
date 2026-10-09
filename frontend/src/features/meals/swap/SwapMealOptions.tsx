@@ -15,6 +15,7 @@ import { MiniSortOption } from './MealsWorkspaceModals.shared';
 import type { useMealsWorkspaceModalsModel } from './useMealsWorkspaceModalsModel';
 type Model = Extract<ReturnType<typeof useMealsWorkspaceModalsModel>, { kind: 'ready' }>;
 type SectionProps = {
+  calorieSortOnly?: boolean;
   model: Pick<
     Model,
     | 'filteredAndSortedOptions'
@@ -25,13 +26,12 @@ type SectionProps = {
     | 'swapOptionsError'
     | 'swapOptions'
     | 'confirmSwapMeal'
-    | 'activeSwapMeal'
     | 'setGroceryDeltaAcknowledged'
     | 'handleSelectSwapOption'
     | 'setSelectedVerifier'
-  >;
+  > & { activeSwapMeal: { mealType: string; calories: number } | null };
 };
-export default function SwapMealOptions({ model }: SectionProps) {
+export default function SwapMealOptions({ model, calorieSortOnly = false }: SectionProps) {
   const {
     filteredAndSortedOptions,
     isSwapping,
@@ -66,7 +66,7 @@ export default function SwapMealOptions({ model }: SectionProps) {
               className="h-9 rounded-xl border border-brand-border bg-brand-surface px-2.5 text-xs font-medium text-brand-text outline-none focus:border-brand-green"
               aria-label="Sort mini library recipes"
             >
-              <option value="best_match">Nutrition match</option>
+              {!calorieSortOnly && <option value="best_match">Nutrition match</option>}
               <option value="kcal_match">Kcal match</option>
             </Dropdown>
           </div>
@@ -239,7 +239,7 @@ export default function SwapMealOptions({ model }: SectionProps) {
                               {option.verifiedBy}
                             </button>
                           ) : (
-                            <span className="text-white font-bold">{option.verifiedBy || 'KAINARA Clinical'}</span>
+                            <span className="text-white font-bold">{option.verifiedBy || 'Name not recorded'}</span>
                           )}
                         </span>
                       </div>

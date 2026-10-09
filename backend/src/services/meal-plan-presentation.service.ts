@@ -10,7 +10,7 @@ import {
   type RawRecipeImageRecord,
 } from '@/domain/meal-image.policy';
 
-function toPublicVerifier(
+export function toPublicVerifier(
   nutritionist?: {
     prcLicenseNumber: string;
     prcLicenseExpiry: Date;

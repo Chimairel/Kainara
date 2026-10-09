@@ -1,6 +1,10 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { assertReviewSwapClaim, reviewSwapVersion } from '../src/domain/review-swap.policy';
+import {
+  assertReviewSwapClaim,
+  reviewSwapVersion,
+  requiresExplicitReplacementReview,
+} from '../src/domain/review-swap.policy';
 import { reviewSwapBodySchema } from '../src/validation/review-swap.schemas';
 
 const now = new Date('2026-10-09T10:00:00Z');
@@ -10,6 +14,21 @@ const claim = {
   claimedByNutritionistId: 'rnd',
   claimedAt: now,
 };
+
+test('RND-selected pending replacements retain manual review holds; ordinary fallbacks and final decisions do not', () => {
+  const selectionEvidence = { fallbackReasonCode: 'RND_SELECTED_REPLACEMENT' };
+  assert.equal(requiresExplicitReplacementReview({ status: 'PENDING_REVIEW', selectionEvidence }), true);
+  for (const status of ['APPROVED', 'REJECTED', 'CANCELLED'])
+    assert.equal(requiresExplicitReplacementReview({ status, selectionEvidence }), false);
+  for (const evidence of [
+    null,
+    [],
+    'RND_SELECTED_REPLACEMENT',
+    {},
+    { fallbackReasonCode: 'SHOPPING_DEADLINE_WIDER_TOLERANCE' },
+  ])
+    assert.equal(requiresExplicitReplacementReview({ status: 'PENDING_REVIEW', selectionEvidence: evidence }), false);
+});
 test('selected replacement requires an active claim on an unsuperseded pending slot', () => {
   assert.doesNotThrow(() => assertReviewSwapClaim(claim, 'rnd', now));
   for (const changed of [

@@ -4,10 +4,11 @@ import api from '@/lib/axios';
 import { getApiErrorMessage } from '@/lib/api-error';
 import type { DetailData } from './useNutritionistReviews';
 
-export type SwapOption = {
+import type { SwapOption as MemberSwapOption } from '@/features/meals/meals-workspace.types';
+export type SwapOption = MemberSwapOption & {
   id: string;
   mealName: string;
-  description: string | null;
+  description?: string;
   calories: number;
   proteinG: number;
   carbsG: number;
@@ -21,7 +22,11 @@ const message = (error: unknown) =>
   getApiErrorMessage(error, 'Unable to load or save the replacement. Refresh the review and try again.');
 
 /** State belongs to the case, outside the canvas fullscreen portal. */
-export function useReviewSwap(mealId: string | null, claimed: boolean, onSuccess: () => Promise<void>) {
+export function useReviewSwap(
+  mealId: string | null,
+  claimed: boolean,
+  onSuccess: (replacementId: string) => Promise<void>
+) {
   const [open, setOpen] = useState(false),
     [data, setData] = useState<Options | null>(null);
   const [selectedId, setSelectedId] = useState(''),
@@ -76,14 +81,17 @@ export function useReviewSwap(mealId: string | null, claimed: boolean, onSuccess
     setError('');
     const generation = scope.current;
     try {
-      await api.post(`/nutritionist/queue/${mealId}/swap`, {
+      const response = await api.post(`/nutritionist/queue/${mealId}/swap`, {
         libraryMealId: selected.id,
         expectedVersion: data.expectedVersion,
         expectedRecipeSignature: selected.recipeSignature,
         expectedEvidenceRevision: selected.evidenceRevision,
         note: note.trim(),
       });
-      if (generation === scope.current) await onSuccess();
+      if (generation === scope.current) {
+        setOpen(false);
+        await onSuccess(response.data.data.replacementPlanId);
+      }
     } catch (failure) {
       if (generation === scope.current) {
         setError(message(failure));

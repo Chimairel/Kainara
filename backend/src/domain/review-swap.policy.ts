@@ -2,6 +2,21 @@ import { createHash } from 'node:crypto';
 import { AppError } from '@/errors/AppError';
 import { getReviewClaimCutoff } from './nutritionist-review.policy';
 
+/** A selected replacement awaits an explicit decision, even after its claim expires. */
+export function requiresExplicitReplacementReview(plan: { status: string; selectionEvidence: unknown }) {
+  const evidence = plan.selectionEvidence;
+  return (
+    plan.status === 'PENDING_REVIEW' &&
+    Boolean(
+      evidence &&
+      typeof evidence === 'object' &&
+      !Array.isArray(evidence) &&
+      'fallbackReasonCode' in evidence &&
+      evidence.fallbackReasonCode === 'RND_SELECTED_REPLACEMENT'
+    )
+  );
+}
+
 export function reviewSwapVersion(
   plan: {
     id: string;

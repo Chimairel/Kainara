@@ -14,14 +14,20 @@ type SectionProps = {
   model: Pick<
     Model,
     | 'currentTheme'
-    | 'activeSwapMeal'
     | 'confirmSwapMeal'
     | 'replacementTheme'
     | 'isSwapping'
     | 'setConfirmSwapMeal'
     | 'setSwapPreview'
     | 'setGroceryDeltaAcknowledged'
-  >;
+  > & {
+    activeSwapMeal:
+      | (Pick<
+          import('@/types').MealPlan,
+          'mealName' | 'image' | 'scheduledDate' | 'ricePortion' | 'calories' | 'proteinG' | 'carbsG' | 'fatG'
+        > & { mealType: string })
+      | null;
+  };
 };
 export default function SwapMealComparison({ model }: SectionProps) {
   const {

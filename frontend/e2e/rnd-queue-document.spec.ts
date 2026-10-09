@@ -30,6 +30,7 @@ for (const width of [400, 1024, 1440]) {
       ]);
       let claimed = false,
         approved = false,
+        swapped = false,
         verified = false,
         mealClaimed = false,
         failApproval = true;
@@ -42,8 +43,8 @@ for (const width of [400, 1024, 1440]) {
         claimExpiresAt: date,
       });
       const queueMeal = () => ({
-        id: 'case-record',
-        mealName: 'Recorded soup',
+        id: swapped ? 'replacement-record' : 'case-record',
+        mealName: swapped ? 'Eligible squash soup' : 'Recorded soup',
         mealType: 'LUNCH',
         calories: 500,
         proteinG: 25,
@@ -116,6 +117,11 @@ for (const width of [400, 1024, 1440]) {
               {
                 id: 'eligible-soup',
                 mealName: 'Eligible squash soup',
+                mealType: 'LUNCH',
+                mealTypes: ['LUNCH'],
+                riceRole: 'STANDALONE',
+                verifiedBy: 'Recorded base RND',
+                prcLicenseNumber: '',
                 calories: 500,
                 proteinG: 25,
                 carbsG: 60,
@@ -127,7 +133,7 @@ for (const width of [400, 1024, 1440]) {
             ],
           };
         else if (path.endsWith('/queue/case-record/swap')) {
-          approved = true;
+          swapped = true;
           data = { replaced: true, replacementPlanId: 'replacement-record' };
         } else if (path.endsWith('/queue/case-record/claim')) {
           claimed = true;
@@ -135,8 +141,8 @@ for (const width of [400, 1024, 1440]) {
         } else if (path.endsWith('/queue/case-record/release')) {
           claimed = false;
           data = { released: true };
-        } else if (path.endsWith('/queue/case-record')) data = detail();
-        else if (path.endsWith('/review/case-record')) {
+        } else if (path.endsWith('/queue/case-record') || path.endsWith('/queue/replacement-record')) data = detail();
+        else if (path.endsWith('/review/case-record') || path.endsWith('/review/replacement-record')) {
           if (failApproval)
             return route.fulfill({
               status: 409,
@@ -265,25 +271,35 @@ for (const width of [400, 1024, 1440]) {
       await fullscreen.getByRole('button', { name: 'Fit all sheets' }).click();
       await fullscreen.getByRole('button', { name: 'Claim review', exact: true }).click();
       const decision = page.getByRole('region', { name: 'Review decisions' });
-      await decision.getByRole('textbox', { name: 'Member note (optional)' }).fill('Recorded member review note.');
-      await page.keyboard.press('h');
-      await expect(fullscreen.getByRole('button', { name: 'Select tool (V)' })).toHaveAttribute('aria-pressed', 'true');
-      await page.keyboard.press('Backspace');
-      await decision.getByRole('textbox').fill('Recorded member review note.');
+      await expect(decision.getByRole('textbox')).toHaveCount(0);
+      expect((await decision.boundingBox())!.height).toBeLessThan(75);
       await expect(fullscreen.getByRole('table', { name: 'Meal ingredients' })).toContainText('Carrot');
-      await expect(fullscreen.getByRole('table', { name: 'Meal ingredients' })).toContainText('80');
       await expect(fullscreen.locator('[data-canvas-world] input')).toHaveCount(0);
       await page.screenshot({ path: testInfo.outputPath('case-canvas.png') });
+      await decision.getByRole('button', { name: 'Approve', exact: true }).click();
+      const approval = page.getByRole('dialog', { name: 'Approve this meal?' });
+      await expect(approval).toBeVisible();
+      await expect(approval).toHaveCSS('z-index', '101');
+      await approval.getByLabel('Member note (optional)').fill('Recorded member review note.');
+      await page.keyboard.press('h');
+      await expect(page.locator('[aria-label="Select tool (V)"]')).toHaveAttribute('aria-pressed', 'true');
+      await approval.getByLabel('Member note (optional)').fill('Recorded member review note.');
+      await page.keyboard.press('Escape');
+      await expect(approval).toHaveCount(0);
+      await expect(fullscreen).toBeVisible();
       await page.keyboard.press('Escape');
       await expect(fullscreen).toHaveCount(0);
       await checkCanvasWheelZoom();
-      await expect(decision.getByRole('textbox')).toHaveValue('Recorded member review note.');
       await decision.getByRole('button', { name: 'Reject', exact: true }).click();
-      await expect(decision.getByRole('button', { name: 'Confirm rejection' })).toBeDisabled();
-      await decision.getByRole('button', { name: 'Cancel', exact: true }).click();
+      const rejection = page.getByRole('dialog', { name: 'Reject this meal?' });
+      await expect(rejection.getByRole('button', { name: 'Confirm rejection' })).toBeDisabled();
+      await rejection.getByRole('button', { name: 'Cancel', exact: true }).click();
       await decision.getByRole('button', { name: 'Approve', exact: true }).click();
-      await expect(page.getByRole('alert').filter({ hasText: 'Synthetic stale evidence' })).toHaveCount(1);
-      await expect(decision.getByRole('textbox')).toHaveValue('Recorded member review note.');
+      await expect(approval.getByLabel('Member note (optional)')).toHaveValue('Recorded member review note.');
+      await approval.getByRole('button', { name: 'Confirm approval' }).click();
+      await expect(approval.getByRole('alert')).toContainText('Synthetic stale evidence');
+      await expect(approval.getByRole('textbox')).toHaveValue('Recorded member review note.');
+      await approval.getByRole('button', { name: 'Cancel', exact: true }).click();
       await page.getByRole('button', { name: 'Expand canvas' }).click();
       await page.getByRole('button', { name: 'Release claim', exact: true }).click();
       await expect(fullscreen).toHaveCount(0);
@@ -295,16 +311,26 @@ for (const width of [400, 1024, 1440]) {
       await page.getByRole('button', { name: 'Claim review', exact: true }).click();
       failApproval = false;
       if (theme === 'dark') {
-        await decision.getByRole('button', { name: 'Swap', exact: true }).click();
-        await decision.getByLabel('Eligible replacement').selectOption('eligible-soup');
-        await expect(viewer.locator('[data-canvas-sheet]')).toHaveCount(3);
-        await expect(viewer.getByRole('article', { name: 'Replacement preview' })).toContainText('Squash');
-        await expect(decision.getByRole('button', { name: 'Confirm swap' })).toBeDisabled();
-        await decision.getByRole('textbox').fill('Reviewed a suitable replacement.');
         await page.getByRole('button', { name: 'Expand canvas' }).click();
-        await expect(page.getByRole('textbox')).toHaveValue('Reviewed a suitable replacement.');
-        await decision.getByRole('button', { name: 'Confirm swap' }).click();
-        await expect(page.getByText('Queue clear', { exact: true })).toBeVisible();
+        await decision.getByRole('button', { name: 'Swap', exact: true }).click();
+        const swapDialog = page.getByRole('dialog', { name: 'Swap meal', exact: true });
+        await expect(swapDialog).toBeVisible();
+        await expect(swapDialog.getByRole('button', { name: 'Confirm swap' })).toBeInViewport();
+        await expect(swapDialog.getByRole('group', { name: 'Meal swap comparison' })).toBeVisible();
+        await swapDialog.getByRole('button', { name: /Eligible squash soup/ }).click();
+        await expect(swapDialog.getByRole('table', { name: 'Meal ingredients' })).toContainText('Squash');
+        await expect(swapDialog.getByRole('button', { name: 'Confirm swap' })).toBeDisabled();
+        await swapDialog.getByRole('textbox').fill('Reviewed a suitable replacement.');
+        await page.screenshot({ path: testInfo.outputPath('swap-modal.png') });
+        const approvalsBeforeSwap = mutations.filter((item) => item.path.includes('/review/')).length;
+        await swapDialog.getByRole('button', { name: 'Confirm swap' }).click();
+        await expect(swapDialog).toHaveCount(0);
+        await expect(
+          viewer.getByRole('heading', { name: 'Case approval · Eligible squash soup', exact: true })
+        ).toBeVisible();
+        await expect(viewer.getByRole('button', { name: 'Release claim' })).toBeVisible();
+        await expect(page.getByText('Queue clear', { exact: true })).toHaveCount(0);
+        expect(mutations.filter((item) => item.path.includes('/review/')).length).toBe(approvalsBeforeSwap);
         expect(mutations.at(-1)).toEqual({
           path: '/api/nutritionist/queue/case-record/swap',
           body: {
@@ -315,28 +341,35 @@ for (const width of [400, 1024, 1440]) {
             note: 'Reviewed a suitable replacement.',
           },
         });
-      } else {
-        await decision.getByRole('textbox').fill('Final recorded review note.');
-        await decision.getByRole('button', { name: 'Approve', exact: true }).click();
-        await expect(page.getByText('Queue clear', { exact: true })).toBeVisible();
-        expect(mutations.at(-1)).toEqual({
-          path: '/api/nutritionist/review/case-record',
-          body: { action: 'approve', note: 'Final recorded review note.' },
-        });
       }
+      await decision.getByRole('button', { name: 'Approve', exact: true }).click();
+      await approval.getByRole('textbox').fill('Final recorded review note.');
+      await approval.getByRole('button', { name: 'Confirm approval' }).click();
+      await expect(page.getByText('Queue clear', { exact: true })).toBeVisible();
+      expect(mutations.at(-1)).toEqual({
+        path: `/api/nutritionist/review/${swapped ? 'replacement-record' : 'case-record'}`,
+        body: { action: 'approve', note: 'Final recorded review note.' },
+      });
       await page.getByRole('button', { name: /Meal verification/ }).click();
       await page.getByRole('button', { name: /DINNER.*Recorded base recipe/ }).click();
       await expect(viewer).toBeVisible();
       await page.getByRole('button', { name: 'Claim verification', exact: true }).click();
-      await expect(page.getByRole('button', { name: 'Verify base meal' })).toBeDisabled();
-      await page.getByLabel('Review rationale').fill('Recorded base recipe rationale.');
+      await expect(decision.getByRole('textbox')).toHaveCount(0);
       await page.getByRole('button', { name: 'Expand canvas' }).click();
-      await expect(page.getByLabel('Review rationale')).toHaveValue('Recorded base recipe rationale.');
       await page.screenshot({ path: testInfo.outputPath('base-canvas.png') });
       const baseDecision = theme === 'dark' ? 'REJECTED' : 'VERIFIED';
-      await page
-        .getByRole('button', { name: baseDecision === 'VERIFIED' ? 'Verify base meal' : 'Reject', exact: true })
+      await decision
+        .getByRole('button', { name: baseDecision === 'VERIFIED' ? 'Approve' : 'Reject', exact: true })
         .click();
+      const baseDialog = page.getByRole('dialog', {
+        name: baseDecision === 'VERIFIED' ? 'Approve this meal?' : 'Reject this meal?',
+      });
+      const confirm = baseDialog.getByRole('button', {
+        name: baseDecision === 'VERIFIED' ? 'Verify base meal' : 'Confirm rejection',
+      });
+      await expect(confirm).toBeDisabled();
+      await baseDialog.getByRole('textbox').fill('Recorded base recipe rationale.');
+      await confirm.click();
       await expect(page.getByText('Queue clear', { exact: true })).toBeVisible();
       expect(mutations.at(-1)).toEqual({
         path: '/api/nutritionist/meal-verification/RAW_RECIPE/recipe-record/decision',

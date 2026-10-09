@@ -6,6 +6,8 @@ import { DEADLINE_FALLBACK_CALORIE_TOLERANCE } from '@/domain/upcoming-preparati
 import { MealPlanCycleService } from './meal-plan-cycle.service';
 import { GroceryService } from './grocery.service';
 import { CurrentPlanPreparationService } from './current-plan-preparation.service';
+import { requiresExplicitReplacementReview } from '@/domain/review-swap.policy';
+import { lockUserProfile } from './profile-revision.service';
 
 export class UpcomingPlanPreparationService {
   private static readonly inFlight = new Map<string, Promise<unknown>>();
@@ -51,8 +53,14 @@ export class UpcomingPlanPreparationService {
     if (!cycle || cycle.shoppingStartedAt || now.getTime() < cycle.shoppingDeadlineAt.getTime()) return cycle;
 
     const handledSlots = new Set<string>();
+    const heldSlots = new Set(
+      cycle.mealPlans
+        .filter(requiresExplicitReplacementReview)
+        .map((meal) => `${meal.scheduledDate.getTime()}:${meal.mealType}`)
+    );
     for (const pending of cycle.mealPlans) {
       const slotKey = `${pending.scheduledDate.getTime()}:${pending.mealType}`;
+      if (heldSlots.has(slotKey)) continue;
       if (handledSlots.has(slotKey)) continue;
       handledSlots.add(slotKey);
       const fallback = await CertifiedSlotFallbackService.replaceWithBestCertified({
@@ -63,6 +71,19 @@ export class UpcomingPlanPreparationService {
       });
       if (!fallback.replaced) {
         await prisma.$transaction(async (tx) => {
+          await lockUserProfile(tx, userId);
+          // The RND can swap while the deadline worker holds an older source row.
+          // Recheck the entire slot under the same profile lock before cancelling it.
+          const currentPending = await tx.mealPlan.findMany({
+            where: {
+              planGroupId: cycle.id,
+              scheduledDate: pending.scheduledDate,
+              mealType: pending.mealType,
+              status: MealPlanStatus.PENDING_REVIEW,
+            },
+            select: { status: true, selectionEvidence: true },
+          });
+          if (currentPending.some(requiresExplicitReplacementReview)) return;
           await tx.mealPlan.updateMany({
             where: {
               planGroupId: cycle.id,

@@ -11,10 +11,20 @@ interface ModalProps {
   description?: string;
   children: React.ReactNode;
   footer?: React.ReactNode;
+  layer?: 'default' | 'canvas';
   size?: 'sm' | 'md' | 'lg' | 'xl' | '2xl' | '3xl' | '4xl';
 }
 
-export const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, description, children, footer, size = 'md' }) => {
+export const Modal: React.FC<ModalProps> = ({
+  isOpen,
+  onClose,
+  title,
+  description,
+  children,
+  footer,
+  size = 'md',
+  layer = 'default',
+}) => {
   const sizeClasses = {
     sm: 'max-w-sm',
     md: 'max-w-md',
@@ -28,17 +38,19 @@ export const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, descriptio
   return (
     <Dialog.Root open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 z-50 bg-[#020806]/75 backdrop-blur-md transition-all duration-300" />
+        <Dialog.Overlay
+          className={`fixed inset-0 ${layer === 'canvas' ? 'z-[100]' : 'z-50'} bg-[#020806]/75 backdrop-blur-md transition-all duration-300`}
+        />
         <Dialog.Content
           className={`
-            fixed left-1/2 top-1/2 z-50 w-[92vw] ${sizeClasses[size]}
-            max-h-[90vh] -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-[28px]
+            fixed left-1/2 top-1/2 ${layer === 'canvas' ? 'z-[101]' : 'z-50'} w-[92vw] ${sizeClasses[size]}
+            max-h-[90vh] -translate-x-1/2 -translate-y-1/2 ${layer === 'canvas' ? 'overflow-hidden' : 'overflow-y-auto'} rounded-[28px]
             border border-brand-border bg-brand-surface p-6 text-brand-text shadow-card-lg
             outline-none transition-all duration-300
           `}
         >
-          <div className="flex flex-col gap-4">
-            <div className="flex items-start justify-between gap-5">
+          <div className={`flex flex-col gap-4 ${layer === 'canvas' ? 'max-h-[calc(90dvh-3rem)]' : ''}`}>
+            <div className="flex shrink-0 items-start justify-between gap-5">
               <div>
                 <Dialog.Title className="font-display text-xl font-bold tracking-tight text-brand-text">
                   {title}
@@ -56,9 +68,15 @@ export const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, descriptio
                 <X className="h-4 w-4" />
               </Dialog.Close>
             </div>
-            <div className="py-2 text-sm leading-relaxed text-brand-text">{children}</div>
+            <div
+              className={`py-2 text-sm leading-relaxed text-brand-text ${layer === 'canvas' ? 'min-h-0 overflow-y-auto overscroll-contain pr-2 custom-scrollbar' : ''}`}
+            >
+              {children}
+            </div>
             {footer && (
-              <div className="mt-2 flex items-center justify-end gap-3 border-t border-brand-border pt-4">{footer}</div>
+              <div className="mt-2 flex shrink-0 items-center justify-end gap-3 border-t border-brand-border pt-4">
+                {footer}
+              </div>
             )}
           </div>
         </Dialog.Content>
