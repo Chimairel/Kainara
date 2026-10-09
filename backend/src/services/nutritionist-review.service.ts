@@ -1,4 +1,6 @@
 import { lockUserProfile } from './profile-revision.service';
+import { env } from '@/config/env';
+import { assertCurrentMealReviewContext, loadMealReviewContext } from './meal-case-context.service';
 import { ReviewRoutingService } from './review-routing.service';
 import { healthDetailsRequirements } from '@/domain/health-details.policy';
 import prisma from '@/lib/prisma';
@@ -38,14 +40,19 @@ async function reviewReadinessByUser(userIds: string[]) {
       healthConditions: true,
       allergies: true,
       clinicalContextResponses: true,
+      ...(env.CLINICAL_CLARIFICATIONS_ENABLED ? { nutritionReport: true } : {}),
     },
   });
+  const approvals = env.CLINICAL_CLARIFICATIONS_ENABLED
+    ? await ClinicalProfileReviewService.currentApprovalsByUser(userIds)
+    : null;
   return new Map(
     users.map((user) => [
       user.id,
       {
-        ready: healthDetailsRequirements(user).every((item) => item.state === 'READY'),
-        specific: user.clinicalContextResponses.length > 0,
+        ready: healthDetailsRequirements(user).every((item) => item.state === 'READY') && (!approvals ||
+          (approvals.get(user.id) === true && !!user.nutritionReport?.acknowledgedAt && !user.nutritionReport.isStale && user.nutritionReport.profileRevision === user.userProfile?.revision)),
+        specific: env.CLINICAL_CLARIFICATIONS_ENABLED || user.clinicalContextResponses.length > 0,
       },
     ])
   );
@@ -93,7 +100,7 @@ export class NutritionistReviewService {
       )
         continue;
       work.add(
-        `${readiness.get(plan.userId)?.specific ? plan.userId + ':' : ''}${plan.reviewWorkKey ?? `PLAN:${plan.id}`}`
+        env.CLINICAL_CLARIFICATIONS_ENABLED ? `PLAN:${plan.id}` : `${readiness.get(plan.userId)?.specific ? plan.userId + ':' : ''}${plan.reviewWorkKey ?? `PLAN:${plan.id}`}`
       );
     }
     return work.size;
@@ -157,7 +164,7 @@ export class NutritionistReviewService {
       : readyMeals.map((meal) => ({ ...meal, routing: undefined }));
     const routed = clinicallyReadyMeals.some((meal) => meal.routing && meal.routing.reason !== 'ROUTING_DISABLED');
     const workKey = (meal: { id: string; userId: string; reviewWorkKey: string | null }) =>
-      `${routed || readinessByUser.get(meal.userId)?.specific ? meal.userId + ':' : ''}${meal.reviewWorkKey ?? `PLAN:${meal.id}`}`;
+      env.CLINICAL_CLARIFICATIONS_ENABLED ? `PLAN:${meal.id}` : `${routed || readinessByUser.get(meal.userId)?.specific ? meal.userId + ':' : ''}${meal.reviewWorkKey ?? `PLAN:${meal.id}`}`;
     const workCounts = new Map<string, number>();
     for (const meal of clinicallyReadyMeals) {
       const key = workKey(meal);
@@ -270,8 +277,9 @@ export class NutritionistReviewService {
   /**
    * Fetches detailed data for a review card. Claiming is an explicit action.
    */
-  static async getReviewCardDetails(nutritionistProfileId: string, mealPlanId: string, acquireClaim = false) {
+  static async getReviewCardDetails(nutritionistProfileId: string, mealPlanId: string, acquireClaim = false, expectedContextKey?: string) {
     await ReviewRoutingService.assertMeal(nutritionistProfileId, mealPlanId);
+    const openedContext = await loadMealReviewContext(mealPlanId);
     const now = new Date();
     const claimCutoff = getReviewClaimCutoff(now);
     const [reviewer, reviewTarget] = await Promise.all([
@@ -306,6 +314,7 @@ export class NutritionistReviewService {
     if (acquireClaim) {
       const claimResult = await prisma.$transaction(async (tx) => {
         await lockUserProfile(tx, targetOwner.userId);
+        await assertCurrentMealReviewContext(mealPlanId, expectedContextKey, tx, nutritionistProfileId);
         await ReviewRoutingService.assertMeal(nutritionistProfileId, mealPlanId, tx);
         return tx.mealPlan.updateMany({
           where: {
@@ -539,7 +548,13 @@ export class NutritionistReviewService {
         })
       : [];
 
+    const healthDetails = await prisma.clinicalContextResponse.findMany({
+      where: { userId: updatedMealPlan.userId },
+      select: { area: true, responses: true, revision: true },
+    });
+    if (openedContext) await assertCurrentMealReviewContext(mealPlanId, openedContext.contextKey);
     return {
+      ...(openedContext ? { reviewContext: { contextKey: openedContext.contextKey, profileRevision: openedContext.profileRevision, scopeKey: openedContext.scopeKey } } : {}),
       mealPlan: {
         id: updatedMealPlan.id,
         planGroupId: updatedMealPlan.planGroupId,
@@ -610,10 +625,7 @@ export class NutritionistReviewService {
         policyVersion: CLINICAL_EVIDENCE_REQUIREMENT_POLICY_VERSION,
         requirements: clinicalRequirements,
         documents: clinicalDocuments,
-        healthDetails: await prisma.clinicalContextResponse.findMany({
-          where: { userId: updatedMealPlan.userId },
-          select: { area: true, responses: true, revision: true },
-        }),
+        healthDetails,
       },
       highRiskReviewRequired: updatedMealPlan.highRiskReviewRequired,
       reviewApprovalCount: updatedMealPlan.reviewApprovalCount,

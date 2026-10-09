@@ -21,7 +21,9 @@ export default function CaseReviewDocument({ model }: { model: Model }) {
     async (replacementId) => {
       await model.review.fetchQueue(false, undefined, true);
       await model.review.handleSelectMeal(replacementId);
-    }
+    },
+    detailData?.reviewContext?.contextKey,
+    (failure) => model.review.retireInactiveReview(failure, model.selectedMealId)
   );
   if (!detailData) return null;
   const meal = detailData.mealPlan;

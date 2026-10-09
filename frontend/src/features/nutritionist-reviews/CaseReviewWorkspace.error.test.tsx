@@ -62,3 +62,21 @@ describe('case detail load failure', () => {
     expect(back).toHaveBeenCalledWith(null);
   });
 });
+
+
+it('returns fullscreen to the default panel and exposes the saved draft without reloading', () => {
+  const close = vi.fn();
+  const review = {
+    queue: [], isLoading: false, selectedMealId: null, detailLoading: false, detailData: null, errorMsg: null, actionLoading: null,
+    reviewNotice: 'This review is no longer current.', dismissReviewNotice: vi.fn(),
+    savedReviewNotes: [{ mealId: 'old', mealName: 'Recorded old meal', note: 'Unfinished member guidance', rejection: 'Unfinished clinical reason' }],
+  } as unknown as ReturnType<typeof useNutritionistReviews>;
+  render(<CaseReviewWorkspace review={review} caseFilter="pending" expanded setExpanded={close} navigation={null} caseFilters={null} />);
+  expect(close).toHaveBeenCalledWith(false);
+  expect(screen.getByRole('heading', { name: 'A clear path to every review' })).toBeVisible();
+  expect(screen.getByText('This review is no longer current.')).toBeVisible();
+  fireEvent.click(screen.getByRole('button', { name: 'View saved notes' }));
+  expect(screen.getByRole('dialog', { name: 'Unfinished review notes' })).toBeVisible();
+  expect(screen.getByText('Unfinished member guidance')).toBeVisible();
+  expect(screen.getByText('Unfinished clinical reason')).toBeVisible();
+});

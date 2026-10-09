@@ -13,6 +13,7 @@ import { randomUUID } from 'node:crypto';
 import { ClinicalEvidenceArea, ClinicalProfileReviewStatus, NotificationType, Prisma, Role } from '@prisma/client';
 import prisma from '@/lib/prisma';
 import { AppError } from '@/errors/AppError';
+import { env } from '@/config/env';
 import { isNutritionistEligibleForReview } from '@/domain/nutritionist-review.policy';
 import { NUTRITION_GUIDANCE_POLICY_VERSION } from '@/domain/deterministic-nutrition-report.policy';
 import { ClinicalEvidenceService } from './clinical-evidence.service';
@@ -40,11 +41,40 @@ function isCurrentApproval(
   return (
     review.status === 'APPROVED' &&
     snapshotKey(review.profileSnapshot) === scopeKey &&
-    (!assessed || snapshot?.profileRevision === profileRevision)
+    (!(assessed || env.CLINICAL_CLARIFICATIONS_ENABLED) || snapshot?.profileRevision === profileRevision)
   );
 }
 
 export class ClinicalProfileReviewService {
+  /** Queue checks use bounded batches, rather than several database reads for each member. */
+  static async currentApprovalsByUser(userIds: string[]) {
+    if (!userIds.length) return new Map<string, boolean>();
+    const [users, reviews, forms, proposals] = await Promise.all([
+      prisma.user.findMany({ where: { id: { in: userIds } }, include: userInclude }),
+      prisma.clinicalProfileReview.findMany({
+        where: { userId: { in: userIds }, policyVersion: { startsWith: POLICY_VERSION + ':' }, status: 'APPROVED' },
+        select: { userId: true, status: true, profileSnapshot: true },
+      }),
+      env.CLINICAL_CLARIFICATIONS_ENABLED ? prisma.clinicalClarificationForm.findMany({
+        where: { userId: { in: userIds }, resolution: { is: null } },
+        select: { userId: true, profileRevision: true, scopeKey: true },
+      }) : [],
+      env.CLINICAL_CLARIFICATIONS_ENABLED ? prisma.clinicalProfileProposal.findMany({
+        where: { userId: { in: userIds }, status: { in: ['PENDING', 'CORRECTION_REQUESTED'] } },
+        select: { userId: true, profileRevision: true, scopeKey: true },
+      }) : [],
+    ]);
+    return new Map(users.map(user => {
+      if (!user.userProfile) return [user.id, false] as const;
+      const current = context(user);
+      const waiting = [...forms, ...proposals].some(row => row.userId === user.id &&
+        row.profileRevision === current.profile.revision && row.scopeKey === current.scopeKey);
+      const approved = !waiting && !current.declarationRequired && (!current.restricted ||
+        reviews.some(review => review.userId === user.id && isCurrentApproval(review, current.scopeKey, current.profile.revision)));
+      return [user.id, approved] as const;
+    }));
+  }
+
   static async status(userId: string) {
     const user = await prisma.user.findUnique({ where: { id: userId }, include: userInclude });
     if (!user) throw new AppError('User not found.', 404, 'USER_NOT_FOUND');
@@ -221,7 +251,8 @@ export class ClinicalProfileReviewService {
           if (forms.some((form) => !form.responses.length)) return 'AWAITING_MEMBER';
           if (forms.length) return 'CLARIFICATION_ANSWERED';
           const review = reviews.find(
-            (item) => item.userId === user.id && snapshotKey(item.profileSnapshot) === current.scopeKey
+            (item) => item.userId === user.id && snapshotKey(item.profileSnapshot) === current.scopeKey &&
+              (!env.CLINICAL_CLARIFICATIONS_ENABLED || item.profileRevision === current.profile.revision)
           );
           return review?.status === 'DECLINED' &&
             Array.isArray(review.reasonCodes) &&
@@ -336,7 +367,9 @@ export class ClinicalProfileReviewService {
         },
       }),
       prisma.clinicalProfileReview.findFirst({
-        where: { userId, policyVersion: scopedPolicy(current.scopeKey) },
+        where: { userId, policyVersion: scopedPolicy(current.scopeKey),
+          ...(env.CLINICAL_CLARIFICATIONS_ENABLED ? { profileRevision: current.profile.revision } : {}),
+        },
         orderBy: { reviewedAt: { sort: 'desc', nulls: 'last' } },
         select: {
           status: true,

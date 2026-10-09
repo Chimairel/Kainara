@@ -14,6 +14,7 @@ import {
   nutritionistReviewActionSchema,
   regenerateCandidateSchema,
   replaceAndApproveSchema,
+  claimMealReviewSchema,
 } from '@/validation/nutritionist.schemas';
 import { isNutritionistReviewConflict } from '@/domain/nutritionist-review-http.policy';
 import { OutsideMealReviewService } from '@/services/outside-meal-review.service';
@@ -555,6 +556,7 @@ router.post(
  * Fetches a non-claiming review preview. A separate POST acquires the lock.
  */
 router.get('/queue/:id', async (req: AuthenticatedRequest, res: Response) => {
+  res.setHeader('Cache-Control', 'private, no-store');
   try {
     const mealPlanId = req.params.id;
     const result = await NutritionistService.getReviewCardDetails(req.nutritionistProfileId!, mealPlanId);
@@ -573,9 +575,9 @@ router.get('/queue/:id', async (req: AuthenticatedRequest, res: Response) => {
   }
 });
 
-router.post('/queue/:id/claim', async (req: AuthenticatedRequest, res: Response) => {
+router.post('/queue/:id/claim', validateZodBody(claimMealReviewSchema), async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const result = await NutritionistService.getReviewCardDetails(req.nutritionistProfileId!, req.params.id, true);
+    const result = await NutritionistService.getReviewCardDetails(req.nutritionistProfileId!, req.params.id, true, req.body.expectedContextKey);
     return res.status(200).json({ success: true, data: result });
   } catch (error: unknown) {
     if (error instanceof AppError)
@@ -628,15 +630,15 @@ router.patch(
   validateZodBody(nutritionistReviewActionSchema),
   async (req: AuthenticatedRequest, res: Response) => {
     try {
-      const { action, note, updates } = req.body;
+      const { action, note, updates, expectedContextKey } = req.body;
       const mealPlanId = req.params.id;
 
       if (action === 'approve') {
-        const result = await NutritionistService.approveMealPlan(req.nutritionistProfileId!, mealPlanId, note, updates);
+        const result = await NutritionistService.approveMealPlan(req.nutritionistProfileId!, mealPlanId, note, updates, expectedContextKey);
         return res.status(200).json({ success: true, data: result });
       } else if (action === 'reject') {
         if (!note) return res.status(400).json({ success: false, error: 'Rejection reason is required.' });
-        const result = await NutritionistService.rejectMealPlan(req.nutritionistProfileId!, mealPlanId, note);
+        const result = await NutritionistService.rejectMealPlan(req.nutritionistProfileId!, mealPlanId, note, expectedContextKey);
         return res.status(200).json({ success: true, data: result });
       } else {
         return res.status(400).json({ success: false, error: 'Action must be "approve" or "reject".' });
@@ -668,11 +670,12 @@ router.post(
       const candidate = await NutritionistService.generateReplacementCandidate(
         req.nutritionistProfileId!,
         mealPlanId,
-        reason
+        reason,
+        req.body.expectedContextKey
       );
       return res.status(200).json({ success: true, data: candidate });
     } catch (error: any) {
-      if (error instanceof AppError && error.errorCode === 'REVIEW_NOT_FOUND')
+      if (error instanceof AppError)
         return res.status(error.statusCode).json({ success: false, error: error.message, code: error.errorCode });
       const msg = sanitizeErrorMessage(error, 'Failed to generate replacement candidate.');
       if (isNutritionistReviewConflict(msg)) {
@@ -700,7 +703,7 @@ router.post(
       );
       return res.status(200).json({ success: true, data: result });
     } catch (error: any) {
-      if (error instanceof AppError && error.errorCode === 'REVIEW_NOT_FOUND')
+      if (error instanceof AppError)
         return res.status(error.statusCode).json({ success: false, error: error.message, code: error.errorCode });
       const msg = sanitizeErrorMessage(error, 'Failed to replace and approve meal.');
       if (isNutritionistReviewConflict(msg)) {

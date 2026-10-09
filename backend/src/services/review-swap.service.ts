@@ -1,4 +1,5 @@
 import { toPublicVerifier } from './meal-plan-presentation.service';
+import { assertCurrentMealReviewContext } from './meal-case-context.service';
 import { toPublicMealImage } from '@/domain/meal-image.policy';
 import prisma from '@/lib/prisma';
 import { AppError } from '@/errors/AppError';
@@ -11,8 +12,9 @@ import { rejectedSlotRecipes } from './rejected-slot-recipes.service';
 import { CertifiedSlotFallbackService } from './certified-slot-fallback.service';
 import { getStartOfManilaBusinessDay } from '@/domain/meal-actionability.policy';
 
-export async function listReviewSwapOptions(profileId: string, mealPlanId: string) {
+export async function listReviewSwapOptions(profileId: string, mealPlanId: string, expectedContextKey?: string) {
   await ReviewRoutingService.assertMeal(profileId, mealPlanId);
+  await assertCurrentMealReviewContext(mealPlanId, expectedContextKey);
   const plan = await prisma.mealPlan.findUnique({
     where: { id: mealPlanId },
     include: { cycle: { include: { snapshot: true } } },
@@ -39,6 +41,7 @@ export async function listReviewSwapOptions(profileId: string, mealPlanId: strin
     profile: { ...context.profile, userId: plan.userId, safetyEntries: context.user.safetyProfileEntries },
     limit: 120,
   });
+  await assertCurrentMealReviewContext(mealPlanId, expectedContextKey);
   return {
     expectedVersion: reviewSwapVersion(plan, context.profile),
     options: candidates
@@ -90,6 +93,7 @@ export async function executeReviewSwap(
   profileId: string,
   mealPlanId: string,
   input: {
+    expectedContextKey?: string;
     libraryMealId: string;
     expectedVersion: string;
     expectedRecipeSignature: string;
@@ -98,6 +102,7 @@ export async function executeReviewSwap(
   }
 ) {
   await ReviewRoutingService.assertMeal(profileId, mealPlanId);
+  await assertCurrentMealReviewContext(mealPlanId, input.expectedContextKey);
   const result = await CertifiedSlotFallbackService.replaceWithBestCertified({
     mealPlanId,
     tolerance: 0.15,

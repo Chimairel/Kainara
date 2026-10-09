@@ -1,0 +1,75 @@
+{
+  "changeId": "CHG-20261010-04",
+  "batch": "3a",
+  "date": "2026-10-10",
+  "scope": "Revision-bound meal review decisions and live canvas invalidation",
+  "database": {
+    "host": "127.0.0.1",
+    "port": 55488,
+    "database": "kainara_meal_context",
+    "appliedMigrations": 100,
+    "newMigrations": 0,
+    "syntheticAccounts": 24,
+    "externalProviders": "disabled",
+    "sharedDatabaseMutations": false
+  },
+  "acceptance": {
+    "passed": 8,
+    "checks": [
+      "Role boundaries and version-bound explicit claiming; claim metadata does not change context",
+      "Cosmetic name and check-in counters leave clinical context unchanged",
+      "Measured ingredient quantities and units bind the review context",
+      "Changed plate blocks stale approve, reject and swap without writing decisions",
+      "Current approval retains the exact immutable reviewed context",
+      "Twenty simultaneous claimed reviews release on profile change, reject stale decisions, hide paused work and retain history",
+      "A decision waiting behind the profile lock checks the committed revision",
+      "Admin case access retains saved review context"
+    ],
+    "retainedDecisionCount": 1
+  },
+  "backendSuite": {
+    "total": 862,
+    "passed": 861,
+    "failed": 0,
+    "existingTodo": 1
+  },
+  "frontendSuite": {
+    "passed": 22,
+    "failed": 0,
+    "files": [
+      "useNutritionistReviews.claims.test.tsx",
+      "useReviewSwap.test.tsx",
+      "CaseReviewWorkspace.error.test.tsx",
+      "RndQueueDocument.test.tsx"
+    ]
+  },
+  "checks": {
+    "backendBuild": true,
+    "frontendBuild": true,
+    "backendLint": true,
+    "frontendLint": true,
+    "applicationTypeScript": true,
+    "scriptTypeScript": true,
+    "normalApiHealth": 200
+  },
+  "rollout": {
+    "sharedFeatureFlag": "disabled",
+    "pendingMigrations": [
+      "202610100001_clinical_clarifications",
+      "202610100002_clinical_profile_proposals"
+    ],
+    "demoPromotion": false
+  },
+  "remaining": [
+    "Batch 3b meal-triggered clarification and profile review reopening",
+    "Persistent outdated request withdrawal and acknowledged current-cycle rebuilding",
+    "Batch 4 replacement filters and no-match outcome",
+    "Batch 5 reusable summaries and full cross-role/browser acceptance"
+  ],
+  "limitations": [
+    "Component tests are not authenticated browser E2E",
+    "Five-second visible polling plus request latency; not instant server push",
+    "No clinical validation",
+    "Unfinished approval/rejection notes are bounded session-only memory, cleared on account change/reload"
+  ]
+}

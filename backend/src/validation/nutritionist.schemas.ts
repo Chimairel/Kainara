@@ -2,6 +2,8 @@ import { z } from 'zod';
 
 const boundedNote = z.string().trim().min(1).max(2000);
 const nutritionNumber = z.number().finite().min(0).max(5000);
+export const mealReviewContextSchema = z.string().regex(/^[a-f0-9]{64}$/).optional();
+export const claimMealReviewSchema = z.object({ expectedContextKey: mealReviewContextSchema }).strict().default({});
 
 const ingredientSchema = z
   .object({
@@ -27,6 +29,7 @@ export const nutritionistReviewActionSchema = z.discriminatedUnion('action', [
   z
     .object({
       action: z.literal('approve'),
+      expectedContextKey: mealReviewContextSchema,
       note: z.string().trim().max(2000).optional(),
       updates: reviewUpdatesSchema.optional(),
     })
@@ -34,6 +37,7 @@ export const nutritionistReviewActionSchema = z.discriminatedUnion('action', [
   z
     .object({
       action: z.literal('reject'),
+      expectedContextKey: mealReviewContextSchema,
       note: boundedNote,
     })
     .strict(),
@@ -42,6 +46,7 @@ export const nutritionistReviewActionSchema = z.discriminatedUnion('action', [
 export const regenerateCandidateSchema = z
   .object({
     reason: boundedNote,
+    expectedContextKey: mealReviewContextSchema,
   })
   .strict();
 
@@ -77,6 +82,7 @@ export const candidateMealSchema = z
 
 export const replaceAndApproveSchema = z
   .object({
+    expectedContextKey: mealReviewContextSchema,
     reason: boundedNote,
     note: z.string().trim().max(2000).optional(),
     candidate: candidateMealSchema,

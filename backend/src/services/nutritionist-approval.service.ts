@@ -4,6 +4,7 @@ import prisma from '@/lib/prisma';
 import { loadPlanningNutritionContext } from '@/domain/user-nutrition-context';
 import { MealIngredientDataSource, MealPlanStatus, NotificationType, Prisma } from '@prisma/client';
 import { lockUserProfile } from './profile-revision.service';
+import { assertCurrentMealReviewContext } from './meal-case-context.service';
 
 import { mealApprovalSafetyScope } from '@/domain/meal-approval-scope.policy';
 import { MEAL_PLAN_SAFETY_POLICY_VERSION } from '@/domain/meal-plan-production-safety.policy';
@@ -17,6 +18,7 @@ import { ClinicalEvidenceService } from './clinical-evidence.service';
 
 import { assertObservedSourceStillAvailable } from './observed-source-guard.service';
 import { AppError } from '@/errors/AppError';
+import { env } from '@/config/env';
 import { getNutritionistReviewableMealPlanWhere } from '@/domain/meal-actionability.policy';
 
 async function findScopeMatchedPendingPlans(
@@ -68,9 +70,11 @@ export async function approveMealPlan(
     carbsG?: number;
     fatG?: number;
     ingredients?: { name: string; category?: string; dataSource?: MealIngredientDataSource }[];
-  }
+  },
+  expectedContextKey?: string
 ) {
   await ReviewRoutingService.assertMeal(nutritionistProfileId, mealPlanId);
+  await assertCurrentMealReviewContext(mealPlanId, expectedContextKey);
   const now = new Date();
   const claimCutoff = getReviewClaimCutoff(now);
   const plan = await prisma.mealPlan.findUnique({
@@ -143,6 +147,7 @@ export async function approveMealPlan(
   const coalescedApprovedUserIds = await prisma.$transaction(
     async (tx) => {
       await lockUserProfile(tx, plan.userId);
+      const reviewedContext = await assertCurrentMealReviewContext(mealPlanId, expectedContextKey, tx, nutritionistProfileId);
       await ReviewRoutingService.assertMeal(nutritionistProfileId, mealPlanId, tx);
       if (!(await ClinicalProfileReviewService.hasCurrentApproval(plan.userId, tx)))
         throw new Error('The health details changed and need a new profile confirmation.');
@@ -200,6 +205,7 @@ export async function approveMealPlan(
           decision: 'APPROVE',
           rationale: note?.trim() || null,
           evidenceSnapshot: {
+            ...(reviewedContext ? { reviewContext: reviewedContext.snapshot, contextKey: reviewedContext.contextKey } : {}),
             reviewedBy: {
               name: reviewer.user?.name ?? null,
               role: 'RND',
@@ -287,7 +293,7 @@ export async function approveMealPlan(
       }
 
       const coalescedApprovedUsers: string[] = [];
-      if (plan.reviewWorkKey && !updates && clinicalDocuments.length === 0 && approvedScope.supported) {
+      if (!env.CLINICAL_CLARIFICATIONS_ENABLED && plan.reviewWorkKey && !updates && clinicalDocuments.length === 0 && approvedScope.supported) {
         const dependentWhere: Prisma.MealPlanWhereInput = {
           id: { not: mealPlanId },
           ...(healthDetails.length ? { userId: plan.userId } : {}),

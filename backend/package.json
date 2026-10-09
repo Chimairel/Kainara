@@ -8,6 +8,7 @@
     "npm": ">=11"
   },
   "scripts": {
+    "test:acceptance:meal-context": "tsx scripts/meal-context-local-acceptance.ts",
     "test:acceptance:profile-proposal": "tsx scripts/profile-proposal-local-acceptance.ts",
     "test:acceptance:clinical-clarification": "tsx scripts/clinical-clarification-local-acceptance.ts",
     "test:acceptance:condition-assessment": "tsx scripts/condition-assessment-local-acceptance.ts",

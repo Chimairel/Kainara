@@ -48,6 +48,7 @@ export interface QueueItem {
 }
 
 export interface DetailData {
+  reviewContext?: { contextKey: string; profileRevision: number; scopeKey: string };
   clinicalEvidence?: {
     policyVersion: string;
     healthDetails?: Array<{ area: string; responses: Record<string, unknown>; revision: number }>;
@@ -123,6 +124,7 @@ export interface DetailData {
 }
 
 export interface ReviewPayload {
+  expectedContextKey?: string;
   action: 'approve';
   note?: string;
   updates?: {
@@ -158,6 +160,7 @@ export type ReviewEditForm = {
 
 export function useNutritionistReviews(enabled = true) {
   const ownerId = useAuth().user?.userId;
+  const resourceOwner = useRef(ownerId);
   const cachedQueue = readSessionResource<QueueItem[]>(ownerId, 'nutritionist-case-queue', 30_000);
   const [queue, setQueue] = useState<QueueItem[]>(cachedQueue ?? []);
   const [isLoading, setIsLoading] = useState(!cachedQueue);
@@ -168,11 +171,21 @@ export function useNutritionistReviews(enabled = true) {
   const queueFlight = useRef<{ ownerId: string | undefined; generation: number; request: Promise<void> } | null>(null);
 
   // Selected Card Details
-  const [selectedMealId, setSelectedMealId] = useState<string | null>(null);
+  const [selectedMealId, setSelectedMealIdState] = useState<string | null>(null);
   const liveSelection = useRef(selectedMealId);
   liveSelection.current = selectedMealId;
+  const selectionGeneration = useRef(0);
+  const setSelectedMealId = useCallback((id: string | null) => {
+    selectionGeneration.current++;
+    liveSelection.current = id;
+    setSelectedMealIdState(id);
+  }, []);
   const [detailLoading, setDetailLoading] = useState(false);
   const [detailData, setDetailData] = useState<DetailData | null>(null);
+  const detailRef = useRef(detailData);
+  detailRef.current = detailData;
+  const [reviewNotice, setReviewNotice] = useState<string | null>(null);
+  const [savedReviewNotes, setSavedReviewNotes] = useState<Array<{ mealId: string; mealName: string; contextKey?: string; note: string; rejection: string }>>([]);
 
   // Actions states
   const [actionLoading, setActionLoading] = useState<string | null>(null);
@@ -209,8 +222,14 @@ export function useNutritionistReviews(enabled = true) {
   const retireInactiveReview = (failure: unknown, id: string | null) => {
     const data = (failure as { response?: { data?: { code?: string; errorCode?: string } } } | null)?.response?.data;
     const code = data?.code ?? data?.errorCode;
-    if (code !== 'MEAL_REVIEW_INACTIVE' || !id || liveSelection.current !== id || liveOwner.current !== ownerId)
+    if (!['MEAL_REVIEW_INACTIVE', 'MEAL_REVIEW_CONTEXT_CHANGED', 'PROFILE_REVIEW_REQUIRED', 'CLINICAL_EVIDENCE_REQUIRED', 'SAFETY_DECLARATION_REQUIRED'].includes(code ?? '') || !id || liveSelection.current !== id || liveOwner.current !== ownerId)
       return false;
+    const savedDraft = {
+      mealId: id, mealName: detailRef.current?.mealPlan.mealName ?? 'Meal review',
+      contextKey: detailRef.current?.reviewContext?.contextKey, note: generalNote, rejection: rejectNote,
+    };
+    if (generalNote.trim() || rejectNote.trim()) setSavedReviewNotes((previous) => [...previous, savedDraft].slice(-10));
+    setReviewNotice('This review is no longer current. Your unfinished notes are saved for this session. Select an available case to continue.');
     queueGeneration.current++;
     invalidateSessionResource(ownerId, 'nutritionist-case-queue');
     setQueue((previous) => previous.filter((meal) => meal.id !== id));
@@ -218,6 +237,9 @@ export function useNutritionistReviews(enabled = true) {
     setDetailData(null);
     setShowRejectForm(false);
     setErrorMsg(null);
+    setDetailLoading(false);
+    setGeneralNote('');
+    setRejectNote('');
     return true;
   };
 
@@ -270,6 +292,7 @@ export function useNutritionistReviews(enabled = true) {
   );
 
   useEffect(() => {
+    resourceOwner.current = ownerId;
     queueGeneration.current++;
     queueFlight.current = null;
     const saved = readSessionResource<QueueItem[]>(ownerId, 'nutritionist-case-queue', 30_000);
@@ -278,30 +301,49 @@ export function useNutritionistReviews(enabled = true) {
     setIsLoading(!saved);
     setSelectedMealId(null);
     setDetailData(null);
-  }, [ownerId]);
+    setReviewNotice(null);
+    setSavedReviewNotes([]);
+    setGeneralNote('');
+    setRejectNote('');
+    setActionLoading(null);
+    setDetailLoading(false);
+    setErrorMsg(null);
+    setShowRejectForm(false);
+    setIsEditing(false);
+    setCandidateMeal(null);
+    setIsGeneratingCandidate(false);
+  }, [ownerId, setSelectedMealId]);
 
   useEffect(() => {
     if (enabled) void fetchQueue();
   }, [fetchQueue, enabled]);
   useVisiblePolling(
     async (signal) => {
+      const generation = selectionGeneration.current;
       await fetchQueue(true, signal);
       if (selectedMealId && !actionLoading) {
         try {
           const response = await api.get(`/nutritionist/queue/${selectedMealId}`, { signal });
-          if (!signal.aborted && liveSelection.current === selectedMealId && response.data?.success)
-            setDetailData(response.data.data);
+          if (!signal.aborted && liveOwner.current === ownerId && generation === selectionGeneration.current && liveSelection.current === selectedMealId && response.data?.success) {
+            const before = detailRef.current?.reviewContext?.contextKey;
+            const after = response.data.data?.reviewContext?.contextKey;
+            if (before && before !== after) {
+              retireInactiveReview({ response: { data: { code: 'MEAL_REVIEW_CONTEXT_CHANGED' } } }, selectedMealId);
+              await fetchQueue(true, signal, true);
+            } else setDetailData(response.data.data);
+          }
         } catch (failure) {
-          if (!signal.aborted && retireInactiveReview(failure, selectedMealId)) return;
+          if (!signal.aborted && generation === selectionGeneration.current && retireInactiveReview(failure, selectedMealId)) return;
           throw failure;
         }
       }
     },
-    { enabled: enabled && !actionLoading, immediate: false, scopeKey: `${ownerId}:${selectedMealId}` }
+    { enabled: enabled && !actionLoading, intervalMs: 5000, immediate: false, scopeKey: `${ownerId}:${selectedMealId}` }
   );
 
   const handleSelectMeal = async (id: string) => {
     setSelectedMealId(id);
+    const generation = selectionGeneration.current;
     setDetailLoading(true);
     setDetailData(null);
     setErrorMsg(null);
@@ -314,10 +356,12 @@ export function useNutritionistReviews(enabled = true) {
 
     try {
       const res = await api.get(`/nutritionist/queue/${id}`);
-      if (res.data?.success) {
+      if (liveOwner.current === ownerId && generation === selectionGeneration.current && res.data?.success) {
         setDetailData(res.data.data);
       }
     } catch (err: unknown) {
+      if (liveOwner.current !== ownerId || generation !== selectionGeneration.current) return;
+      if (retireInactiveReview(err, id)) { await fetchQueue(true, undefined, true); return; }
       console.error('Failed to fetch card details:', err);
       const code = (err as { code?: string } | null)?.code;
       setErrorMsg(
@@ -329,7 +373,7 @@ export function useNutritionistReviews(enabled = true) {
         )
       );
     } finally {
-      setDetailLoading(false);
+      if (liveOwner.current === ownerId && generation === selectionGeneration.current) setDetailLoading(false);
     }
   };
 
@@ -337,16 +381,22 @@ export function useNutritionistReviews(enabled = true) {
     if (!selectedMealId || detailLoading || !detailData) return;
     setActionLoading(selectedMealId);
     setErrorMsg(null);
+    const generation = selectionGeneration.current;
+    const stillSelected = () => liveOwner.current === ownerId && generation === selectionGeneration.current;
     try {
-      const res = await api.post(`/nutritionist/queue/${selectedMealId}/claim`);
+      const res = detailData.reviewContext
+        ? await api.post(`/nutritionist/queue/${selectedMealId}/claim`, { expectedContextKey: detailData.reviewContext.contextKey })
+        : await api.post(`/nutritionist/queue/${selectedMealId}/claim`);
+      if (!stillSelected()) return;
       if (res.data?.success) setDetailData(res.data.data);
       await fetchQueue(false, undefined, true);
     } catch (err: unknown) {
+      if (!stillSelected()) return;
       if (!retireInactiveReview(err, selectedMealId))
         setErrorMsg(getApiErrorMessage(err, 'Could not claim this meal. Refresh the queue and try again.'));
       await fetchQueue(false, undefined, true);
     } finally {
-      setActionLoading(null);
+      if (liveOwner.current === ownerId) setActionLoading(null);
     }
   };
 
@@ -354,8 +404,11 @@ export function useNutritionistReviews(enabled = true) {
     if (!selectedMealId) return;
     setActionLoading(selectedMealId);
     setErrorMsg(null);
+    const generation = selectionGeneration.current;
+    const stillSelected = () => liveOwner.current === ownerId && generation === selectionGeneration.current;
     try {
       await api.post(`/nutritionist/queue/${selectedMealId}/release`);
+      if (!stillSelected()) return;
       setDetailData(null);
       setSelectedMealId(null);
       setIsEditing(false);
@@ -363,10 +416,11 @@ export function useNutritionistReviews(enabled = true) {
       setCandidateMeal(null);
       await fetchQueue(false, undefined, true);
     } catch (err: unknown) {
+      if (!stillSelected()) return;
       setErrorMsg(getApiErrorMessage(err, 'Could not release this meal. Refresh the queue and try again.'));
       await fetchQueue(false, undefined, true);
     } finally {
-      setActionLoading(null);
+      if (liveOwner.current === ownerId) setActionLoading(null);
     }
   };
 
@@ -375,8 +429,11 @@ export function useNutritionistReviews(enabled = true) {
     setActionLoading(selectedMealId);
     setErrorMsg(null);
 
+    const generation = selectionGeneration.current;
+    const stillSelected = () => liveOwner.current === ownerId && generation === selectionGeneration.current;
     try {
       const payload: ReviewPayload = {
+        ...(detailData?.reviewContext ? { expectedContextKey: detailData.reviewContext.contextKey } : {}),
         action: 'approve',
         note: generalNote.trim() || undefined,
       };
@@ -394,6 +451,7 @@ export function useNutritionistReviews(enabled = true) {
       }
 
       await api.patch(`/nutritionist/review/${selectedMealId}`, payload);
+      if (!stillSelected()) return;
       queueGeneration.current++;
       queueFlight.current = null;
       invalidateSessionResource(ownerId, 'nutritionist-case-queue');
@@ -402,10 +460,11 @@ export function useNutritionistReviews(enabled = true) {
       setDetailData(null);
       setIsEditing(false);
     } catch (err: unknown) {
+      if (!stillSelected()) return;
       if (retireInactiveReview(err, selectedMealId)) await fetchQueue(false, undefined, true);
       else setErrorMsg(getApiErrorMessage(err, 'Approval failed. Please refresh the queue.'));
     } finally {
-      setActionLoading(null);
+      if (liveOwner.current === ownerId) setActionLoading(null);
     }
   };
 
@@ -414,11 +473,15 @@ export function useNutritionistReviews(enabled = true) {
     setActionLoading(selectedMealId);
     setErrorMsg(null);
 
+    const generation = selectionGeneration.current;
+    const stillSelected = () => liveOwner.current === ownerId && generation === selectionGeneration.current;
     try {
       await api.patch(`/nutritionist/review/${selectedMealId}`, {
         action: 'reject',
+        ...(detailData?.reviewContext ? { expectedContextKey: detailData.reviewContext.contextKey } : {}),
         note: rejectNote.trim(),
       });
+      if (!stillSelected()) return;
       queueGeneration.current++;
       queueFlight.current = null;
       invalidateSessionResource(ownerId, 'nutritionist-case-queue');
@@ -428,10 +491,11 @@ export function useNutritionistReviews(enabled = true) {
       setShowRejectForm(false);
       setRejectNote('');
     } catch (err: unknown) {
+      if (!stillSelected()) return;
       if (retireInactiveReview(err, selectedMealId)) await fetchQueue(false, undefined, true);
       else setErrorMsg(getApiErrorMessage(err, 'Rejection failed. Please refresh the queue.'));
     } finally {
-      setActionLoading(null);
+      if (liveOwner.current === ownerId) setActionLoading(null);
     }
   };
 
@@ -440,20 +504,26 @@ export function useNutritionistReviews(enabled = true) {
     setIsGeneratingCandidate(true);
     setErrorMsg(null);
 
+    const generation = selectionGeneration.current;
+    const stillSelected = () => liveOwner.current === ownerId && generation === selectionGeneration.current;
     try {
       const res = await api.post(`/nutritionist/review/${selectedMealId}/regenerate-candidate`, {
         reason: rejectNote.trim(),
+        ...(detailData?.reviewContext ? { expectedContextKey: detailData.reviewContext.contextKey } : {}),
       });
+      if (!stillSelected()) return;
       if (res.data?.data) {
         setCandidateMeal(res.data.data);
       }
     } catch (err: unknown) {
+      if (!stillSelected()) return;
+      if (retireInactiveReview(err, selectedMealId)) { await fetchQueue(true, undefined, true); return; }
       console.error('Generate candidate failed:', err);
       setErrorMsg(
         getApiErrorMessage(err, 'Failed to generate replacement candidate. Please check the rejection reason.')
       );
     } finally {
-      setIsGeneratingCandidate(false);
+      if (liveOwner.current === ownerId) setIsGeneratingCandidate(false);
     }
   };
 
@@ -462,12 +532,16 @@ export function useNutritionistReviews(enabled = true) {
     setActionLoading(selectedMealId);
     setErrorMsg(null);
 
+    const generation = selectionGeneration.current;
+    const stillSelected = () => liveOwner.current === ownerId && generation === selectionGeneration.current;
     try {
       await api.post(`/nutritionist/review/${selectedMealId}/replace-and-approve`, {
         reason: rejectNote.trim(),
         note: generalNote.trim() || undefined,
         candidate: candidateMeal,
+        ...(detailData?.reviewContext ? { expectedContextKey: detailData.reviewContext.contextKey } : {}),
       });
+      if (!stillSelected()) return;
       queueGeneration.current++;
       queueFlight.current = null;
       invalidateSessionResource(ownerId, 'nutritionist-case-queue');
@@ -479,12 +553,14 @@ export function useNutritionistReviews(enabled = true) {
       setCandidateMeal(null);
       setIsEditingCandidate(false);
     } catch (err: unknown) {
+      if (!stillSelected()) return;
+      if (retireInactiveReview(err, selectedMealId)) { await fetchQueue(true, undefined, true); return; }
       console.error('Replacement submission failed:', err);
       setErrorMsg(
         getApiErrorMessage(err, 'Failed to submit the replacement for meal verification. Please refresh the queue.')
       );
     } finally {
-      setActionLoading(null);
+      if (liveOwner.current === ownerId) setActionLoading(null);
     }
   };
 
@@ -579,14 +655,18 @@ export function useNutritionistReviews(enabled = true) {
     }
   };
   return {
-    queue,
+    reviewNotice: resourceOwner.current === ownerId ? reviewNotice : null,
+    dismissReviewNotice: () => setReviewNotice(null),
+    savedReviewNotes: resourceOwner.current === ownerId ? savedReviewNotes : [],
+    retireInactiveReview,
+    queue: resourceOwner.current === ownerId ? queue : [],
     queueError,
     fetchQueue,
     isLoading,
-    selectedMealId,
+    selectedMealId: resourceOwner.current === ownerId ? selectedMealId : null,
     setSelectedMealId,
     detailLoading,
-    detailData,
+    detailData: resourceOwner.current === ownerId ? detailData : null,
     actionLoading,
     rejectNote,
     setRejectNote,

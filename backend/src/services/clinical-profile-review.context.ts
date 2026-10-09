@@ -63,7 +63,7 @@ export function context(user: ProfileUser) {
       area: item.area,
       revision: item.revision,
       responses: item.responses,
-    })),
+    })).sort((a, b) => a.area.localeCompare(b.area)),
     contextRevisions: (user.clinicalContextResponses ?? [])
       .map((item) => [item.area, item.revision])
       .sort((a, b) => String(a[0]).localeCompare(String(b[0]))),

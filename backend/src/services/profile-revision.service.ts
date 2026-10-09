@@ -1,4 +1,5 @@
 import { Prisma } from '@prisma/client';
+import { env } from '@/config/env';
 import { getStartOfManilaBusinessDay } from '@/domain/meal-actionability.policy';
 import { calculateDailyTarget } from '@/lib/calculations';
 import {
@@ -42,6 +43,12 @@ export async function advanceProfileRevision(
     where: { userId },
     data: { isStale: true, acknowledgedAt: null },
   });
+  if (env.CLINICAL_CLARIFICATIONS_ENABLED) {
+    await tx.mealPlan.updateMany({
+      where: { userId, status: 'PENDING_REVIEW', scheduledDate: { gte: getStartOfManilaBusinessDay() } },
+      data: { claimedByNutritionistId: null, claimedAt: null },
+    });
+  }
   if (adaptCycles && !updated.planningReportVersion) {
     await ProfileCycleAdaptationService.recordOrdinaryChange(tx, userId, updated.revision, changeKinds);
   }

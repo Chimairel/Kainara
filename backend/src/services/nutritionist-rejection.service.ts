@@ -2,6 +2,7 @@ import { ReviewRoutingService } from './review-routing.service';
 import prisma from '@/lib/prisma';
 import { loadPlanningNutritionContext } from '@/domain/user-nutrition-context';
 import { lockUserProfile } from './profile-revision.service';
+import { assertCurrentMealReviewContext } from './meal-case-context.service';
 import { getNutritionistReviewableMealPlanWhere } from '@/domain/meal-actionability.policy';
 import { MealPlanStatus, AIConfidenceFlag, NotificationType, MealIngredientDataSource, Prisma } from '@prisma/client';
 import { generateGenerativeJSON } from '@/lib/gemini';
@@ -25,8 +26,9 @@ import { candidateMealSchema } from '@/validation/nutritionist.schemas';
 import { isMealWithinSlotCalorieRange, isPrimaryMealType } from '@/domain/meal-calorie-allocation.policy';
 import { assertRecipeNotRejectedForSlot, rejectedSlotRecipes } from './rejected-slot-recipes.service';
 
-export async function rejectMealPlan(nutritionistProfileId: string, mealPlanId: string, reason: string) {
+export async function rejectMealPlan(nutritionistProfileId: string, mealPlanId: string, reason: string, expectedContextKey?: string) {
   await ReviewRoutingService.assertMeal(nutritionistProfileId, mealPlanId);
+  await assertCurrentMealReviewContext(mealPlanId, expectedContextKey);
   const now = new Date();
   const claimCutoff = getReviewClaimCutoff(now);
   const plan = await prisma.mealPlan.findUnique({
@@ -53,6 +55,7 @@ export async function rejectMealPlan(nutritionistProfileId: string, mealPlanId: 
   await prisma.$transaction(
     async (tx) => {
       await lockUserProfile(tx, plan.userId);
+      const reviewedContext = await assertCurrentMealReviewContext(mealPlanId, expectedContextKey, tx, nutritionistProfileId);
       await ReviewRoutingService.assertMeal(nutritionistProfileId, mealPlanId, tx);
       const currentProfile = await tx.userProfile.findUniqueOrThrow({ where: { userId: plan.userId } });
       if ('user' in plan && currentProfile.revision !== plan.user.userProfile?.revision)
@@ -86,6 +89,7 @@ export async function rejectMealPlan(nutritionistProfileId: string, mealPlanId: 
           decision: 'REJECT',
           rationale: reason.trim(),
           evidenceSnapshot: {
+            ...(reviewedContext ? { reviewContext: reviewedContext.snapshot, contextKey: reviewedContext.contextKey } : {}),
             mealName: plan.mealName,
             calories: plan.calories,
             proteinG: plan.proteinG,

@@ -1,5 +1,6 @@
 'use client';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import Modal from '@/components/ui/Modal';
 import SplitWorkspace from '@/components/shared/SplitWorkspace';
 
 import PortalPageHeader from '@/components/shared/PortalPageHeader';
@@ -26,6 +27,7 @@ export default function CaseReviewWorkspace({
   caseFilters,
 }: Props) {
   const model = useCaseReviewWorkspaceModel({ review, caseFilter, expanded, setExpanded, navigation, caseFilters });
+  const [notesOpen, setNotesOpen] = useState(false);
 
   const { selectedMealId, claimHeader, setSelectedMealId, detailLoading, errorMsg, detailData } = model;
   useEffect(() => {
@@ -42,6 +44,21 @@ export default function CaseReviewWorkspace({
         />
         {navigation}
         {caseFilters}
+        {review.reviewNotice && (
+          <div role="status" className="flex flex-wrap items-center gap-3 rounded-2xl border border-brand-border bg-brand-bgAlt p-4 text-sm">
+            <p className="flex-1">{review.reviewNotice}</p>
+            {!!review.savedReviewNotes?.length && <Button variant="secondary" onClick={() => setNotesOpen(true)}>View saved notes</Button>}
+            <Button variant="secondary" onClick={review.dismissReviewNotice}>Dismiss</Button>
+          </div>
+        )}
+        <Modal isOpen={notesOpen} onClose={() => setNotesOpen(false)} title="Unfinished review notes" description="Notes from outdated reviews. These stay in this account’s current session and are not submitted as decisions.">
+          <div className="space-y-4">{review.savedReviewNotes?.map((draft, index) => <section key={index} className="space-y-2 rounded-xl border border-brand-border p-4">
+            <h3 className="font-bold">{draft.mealName}</h3>
+            <p className="text-xs text-brand-muted">Outdated review context</p>
+            {draft.note && <div><h4 className="font-bold">Member note</h4><p className="whitespace-pre-wrap">{draft.note}</p></div>}
+            {draft.rejection && <div><h4 className="font-bold">Rejection rationale</h4><p className="whitespace-pre-wrap">{draft.rejection}</p></div>}
+          </section>)}</div>
+        </Modal>
         <SplitWorkspace className="flex md:h-[calc(100vh-270px)] md:min-h-[640px] flex-col overflow-hidden rounded-3xl border border-brand-border/70 bg-brand-surface text-left shadow-sm md:flex-row">
           {/* Master Queue List Panel */}
           <CaseReviewQueue review={review} caseFilter={caseFilter} expanded={expanded} />

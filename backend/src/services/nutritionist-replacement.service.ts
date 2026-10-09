@@ -9,6 +9,7 @@ import prisma from '@/lib/prisma';
 import { loadPlanningNutritionContext } from '@/domain/user-nutrition-context';
 import { Prisma, MealPlanStatus, AIConfidenceFlag, MealIngredientDataSource, NotificationType } from '@prisma/client';
 import { lockUserProfile } from './profile-revision.service';
+import { assertCurrentMealReviewContext } from './meal-case-context.service';
 import { getNutritionistReviewableMealPlanWhere } from '@/domain/meal-actionability.policy';
 import { getReviewClaimCutoff } from '@/domain/nutritionist-review.policy';
 import { generateGenerativeJSON } from '@/lib/gemini';
@@ -18,8 +19,9 @@ import { MEAL_PLAN_SAFETY_POLICY_VERSION } from '@/domain/meal-plan-production-s
 import { buildBaseServingPersistence } from './meal-plan-serving.service';
 
 export class NutritionistReplacementService {
-  static async generateReplacementCandidate(nutritionistProfileId: string, mealPlanId: string, reason: string) {
+  static async generateReplacementCandidate(nutritionistProfileId: string, mealPlanId: string, reason: string, expectedContextKey?: string) {
     await ReviewRoutingService.assertMeal(nutritionistProfileId, mealPlanId);
+    await assertCurrentMealReviewContext(mealPlanId, expectedContextKey);
     const now = new Date();
     const claimCutoff = getReviewClaimCutoff(now);
     const plan = await prisma.mealPlan.findUnique({
@@ -90,6 +92,7 @@ export class NutritionistReplacementService {
       { operation: 'MEAL_REPLACEMENT', purpose: 'NUTRITIONIST_REQUESTED_REPLACEMENT' }
     );
 
+    await assertCurrentMealReviewContext(mealPlanId, expectedContextKey);
     return candidate;
   }
 
@@ -101,6 +104,7 @@ export class NutritionistReplacementService {
     nutritionistProfileId: string,
     mealPlanId: string,
     payload: {
+      expectedContextKey?: string;
       reason: string;
       note?: string;
       candidate: {
@@ -153,6 +157,7 @@ export class NutritionistReplacementService {
     await prisma.$transaction(
       async (tx) => {
         await lockUserProfile(tx, plan.userId);
+        await assertCurrentMealReviewContext(mealPlanId, payload.expectedContextKey, tx, nutritionistProfileId);
         await ReviewRoutingService.assertMeal(nutritionistProfileId, mealPlanId, tx);
         await loadPlanningNutritionContext(tx, plan.userId, 'Planning profile missing.');
         const currentProfile = await tx.userProfile.findUniqueOrThrow({ where: { userId: plan.userId } });

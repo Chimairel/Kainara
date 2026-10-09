@@ -25,7 +25,9 @@ const message = (error: unknown) =>
 export function useReviewSwap(
   mealId: string | null,
   claimed: boolean,
-  onSuccess: (replacementId: string) => Promise<void>
+  onSuccess: (replacementId: string) => Promise<void>,
+  expectedContextKey?: string,
+  onInvalidated?: (failure: unknown) => boolean
 ) {
   const [open, setOpen] = useState(false),
     [data, setData] = useState<Options | null>(null);
@@ -52,7 +54,7 @@ export function useReviewSwap(
     setLoading(false);
     setSaving(false);
     return invalidate;
-  }, [mealId, claimed, invalidate]);
+  }, [mealId, claimed, expectedContextKey, invalidate]);
   const selected = data?.options.find((option) => option.id === selectedId) ?? null;
   const load = async () => {
     if (!mealId || !claimed || pending.current) return;
@@ -66,10 +68,12 @@ export function useReviewSwap(
     setData(null);
     setSelectedId('');
     try {
-      const response = await api.get(`/nutritionist/queue/${mealId}/swap-options`, { signal: controller.signal });
+      const response = await api.get(`/nutritionist/queue/${mealId}/swap-options`, { signal: controller.signal,
+        ...(expectedContextKey ? { params: { expectedContextKey } } : {}),
+      });
       if (generation === scope.current && !controller.signal.aborted) setData(response.data.data);
     } catch (failure) {
-      if (generation === scope.current && !controller.signal.aborted) setError(message(failure));
+      if (generation === scope.current && !controller.signal.aborted && !onInvalidated?.(failure)) setError(message(failure));
     } finally {
       if (generation === scope.current && !controller.signal.aborted) setLoading(false);
     }
@@ -83,6 +87,7 @@ export function useReviewSwap(
     try {
       const response = await api.post(`/nutritionist/queue/${mealId}/swap`, {
         libraryMealId: selected.id,
+        ...(expectedContextKey ? { expectedContextKey } : {}),
         expectedVersion: data.expectedVersion,
         expectedRecipeSignature: selected.recipeSignature,
         expectedEvidenceRevision: selected.evidenceRevision,
@@ -94,6 +99,7 @@ export function useReviewSwap(
       }
     } catch (failure) {
       if (generation === scope.current) {
+        if (onInvalidated?.(failure)) return;
         setError(message(failure));
         setData(null);
         setSelectedId('');
