@@ -168,3 +168,20 @@ describe('dashboard route after feature extraction', () => {
     expect(patch).toHaveBeenNthCalledWith(2, '/user/meals/fixture-plate/status', { status: 'PENDING' });
   });
 });
+
+it('retained-only plans show read-only history and intake instead of endless first preparation', async () => {
+  plan = {
+    data: [],
+    meta: {
+      generationStatus: 'COMPLETED',
+      retainedMealLogs: [{ ...meal, status: 'DONE' }],
+      cycle: { id: 'repaired', startDate: meal.scheduledDate, endDate: meal.scheduledDate },
+    },
+  };
+  render(<DashboardPage />);
+  expect(await screen.findByText('Meals already recorded')).toBeInTheDocument();
+  expect(screen.queryByText('Preparing Your First Meal Plan')).not.toBeInTheDocument();
+  expect(screen.queryByRole('button', { name: 'Eat Fixture rice plate' })).not.toBeInTheDocument();
+  expect(screen.getByLabelText('Consumed calories')).toHaveTextContent('500');
+  expect(post).not.toHaveBeenCalled();
+});

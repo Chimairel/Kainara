@@ -1,4 +1,5 @@
 import { useVisiblePolling } from '@/hooks/useVisiblePolling';
+import type { RetainedMealLog } from './RetainedMealLogs';
 import type { PendingMealPreview } from '@/components/user/PendingMealPreviewCard';
 import type { CycleMetaSnapshot } from '@/features/dashboard/model';
 import { useMealGenerationProgress } from '@/features/meals/useMealGenerationProgress';
@@ -42,6 +43,11 @@ export function useMealsWorkspace(initialOptions?: { initialDateKey?: string | n
 
   // Meal Plan states
   const hasPlanData = Boolean(cachedPlan);
+  const [retainedHistory, setRetainedHistory] = useState<{ ownerId: string | undefined; meals: RetainedMealLog[] }>({
+    ownerId,
+    meals: cachedPlan?.retainedMealLogs ?? [],
+  });
+  const retainedMealLogs = retainedHistory.ownerId === ownerId ? retainedHistory.meals : [];
   const [meals, setMeals] = useState<MealPlan[]>(cachedPlan?.meals ?? []);
   const [cycles, setCycles] = useState<{
     current?: CycleMetaSnapshot | null;
@@ -138,6 +144,7 @@ export function useMealsWorkspace(initialOptions?: { initialDateKey?: string | n
   const applyCurrentPlan = useCallback(
     (snapshot: CurrentPlanSnapshot) => {
       setMeals(snapshot.meals);
+      setRetainedHistory({ ownerId, meals: snapshot.retainedMealLogs ?? [] });
       setPendingReview(snapshot.pendingReview);
       setAwaitingGeneration(snapshot.awaitingGeneration ?? { current: 0, upcoming: 0 });
       setGenerationStatus(snapshot.generationStatus ?? { current: null, upcoming: null });
@@ -188,6 +195,7 @@ export function useMealsWorkspace(initialOptions?: { initialDateKey?: string | n
           if (axios.isAxiosError(err) && err.response?.data?.errorCode === 'CLINICAL_EVIDENCE_REQUIRED') {
             setClinicalEvidenceRequired(true);
             setMeals([]);
+            setRetainedHistory({ ownerId, meals: [] });
             setPendingReview(null);
             setCycles(null);
             setAwaitingGeneration({ current: 0, upcoming: 0 });
@@ -197,6 +205,7 @@ export function useMealsWorkspace(initialOptions?: { initialDateKey?: string | n
           if (axios.isAxiosError(err) && err.response?.data?.errorCode === 'PROFILE_REVIEW_REQUIRED') {
             setProfileReviewRequired(true);
             setMeals([]);
+            setRetainedHistory({ ownerId, meals: [] });
             setPendingReview(null);
             setCycles(null);
             invalidateSessionResource(ownerId, currentPlanResource);
@@ -474,6 +483,7 @@ export function useMealsWorkspace(initialOptions?: { initialDateKey?: string | n
       if (res.data && res.data.success) {
         applyCurrentPlan({
           meals: Array.isArray(res.data.data) ? res.data.data : [],
+          retainedMealLogs: res.data.meta?.retainedMealLogs ?? [],
           pendingReview: res.data.meta?.pendingReview ?? null,
           awaitingGeneration: res.data.meta?.awaitingGeneration ?? { current: 0, upcoming: 0 },
           generationStatus: res.data.meta?.generationStatus ?? { current: null, upcoming: null },
@@ -625,7 +635,11 @@ export function useMealsWorkspace(initialOptions?: { initialDateKey?: string | n
   const groupedDays = groupMealsByDate();
   const groupedPendingDays = groupPendingMealsByDate();
   const displayedPlanDays = Array.from(
-    new Set([...groupedDays.map((day) => day.dateKey), ...groupedPendingDays.map((day) => day.dateKey)])
+    new Set([
+      ...groupedDays.map((day) => day.dateKey),
+      ...groupedPendingDays.map((day) => day.dateKey),
+      ...retainedMealLogs.map((meal) => getManilaDateKey(meal.scheduledDate)),
+    ])
   )
     .sort((a, b) => a.localeCompare(b))
     .map((dateKey) => {
@@ -697,14 +711,17 @@ export function useMealsWorkspace(initialOptions?: { initialDateKey?: string | n
     }
     return null;
   })();
-  const displayedMealCount = meals.length + (pendingReview?.mealCount ?? 0);
-  const completedMealCount = meals.filter((meal) => meal.mealLogs?.some((log) => log.status === 'DONE')).length;
+  const displayedMealCount = meals.length + retainedMealLogs.length + (pendingReview?.mealCount ?? 0);
+  const completedMealCount =
+    meals.filter((meal) => meal.mealLogs?.some((log) => log.status === 'DONE')).length +
+    retainedMealLogs.filter((meal) => meal.status === 'DONE').length;
   return {
     ownerId,
     user,
     activeTab,
     setActiveTab,
     meals,
+    retainedMealLogs,
     isLoading,
     isPreparing,
     preparationProgress,

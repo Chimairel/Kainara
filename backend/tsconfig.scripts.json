@@ -9,6 +9,8 @@
     "types": ["node"]
   },
   "include": [
+    "scripts/review-reference-local-acceptance.ts",
+    "scripts/review-filters-local-acceptance.ts",
     "scripts/meal-clarification-local-acceptance.ts",
     "scripts/meal-context-local-acceptance.ts",
     "scripts/profile-proposal-local-acceptance.ts",

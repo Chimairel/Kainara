@@ -1,3 +1,4 @@
+import type { RetainedMealLog } from '@/features/meals/RetainedMealLogs';
 import type { MealPlan } from '@/types';
 import type { PendingMealPreview } from '@/components/user/PendingMealPreviewCard';
 import { getManilaDateKey, addCalendarDays, manilaDateFromKey } from '@/lib/manila-date';
@@ -89,14 +90,14 @@ export function getDashboardCycleDates(
   now: Date = new Date()
 ): Date[] {
   const allMeals = [...scheduledMeals, ...pendingMeals];
-  if (allMeals.length === 0) return [];
+  if (allMeals.length === 0 && !cycleMeta?.endDate) return [];
 
   const todayKey = getManilaDateKey(now);
   const mealDateKeys = Array.from(
     new Set(allMeals.map((m) => getManilaDateKey(m.scheduledDate)).filter((k): k is string => Boolean(k)))
   ).sort();
 
-  if (mealDateKeys.length === 0) return [];
+  if (mealDateKeys.length === 0 && !cycleMeta?.endDate) return [];
 
   // Determine the anchor end date for the 7-day weekly cycle
   let endKey = mealDateKeys[mealDateKeys.length - 1];
@@ -127,6 +128,7 @@ export function getDashboardCycleDates(
 export function calculateDashboardMetrics(input: {
   activeDate: Date;
   currentMeals: MealPlan[];
+  retainedMealLogs?: RetainedMealLog[];
   dailyCalorieTarget?: number | null;
   dailyMacroTargets?: Record<string, { calories: number; proteinG: number; carbsG: number; fatG: number }> | null;
   outsideMealLogs: OutsideMealLog[];
@@ -139,7 +141,16 @@ export function calculateDashboardMetrics(input: {
   );
   const doneMeals = mealsList.filter((meal) => meal.mealLogs?.some((log) => log.status === 'DONE'));
   const total = (field: 'calories' | 'proteinG' | 'carbsG' | 'fatG') =>
-    doneMeals.reduce((sum, meal) => sum + meal[field], 0) + outsideMeals.reduce((sum, meal) => sum + meal[field], 0);
+    doneMeals.reduce((sum, meal) => sum + meal[field], 0) +
+    outsideMeals.reduce((sum, meal) => sum + meal[field], 0) +
+    (input.retainedMealLogs ?? [])
+      .filter(
+        (meal) =>
+          meal.status === 'DONE' &&
+          getManilaDateKey(meal.scheduledDate) === dateKey &&
+          !mealsList.some((current) => current.id === meal.id)
+      )
+      .reduce((sum, meal) => sum + meal[field], 0);
   const provisionalCalories = outsideMeals.reduce((sum, meal) => sum + (meal.provisionalCalories ?? 0), 0);
   const unresolvedMealCount = outsideMeals.filter(
     (meal) => meal.nutritionCompleteness && meal.nutritionCompleteness !== 'COMPLETE'

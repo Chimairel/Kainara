@@ -12,6 +12,13 @@ import { updateGenerationProgress } from './generation-progress.service';
 import { lockUserProfile } from './profile-revision.service';
 import { assertAcknowledgedGenerationProfile, repairBillingStart } from './acknowledged-cycle-rebuild.service';
 import { env } from '@/config/env';
+import {
+  loadRepairHistory,
+  retainedSlotKeys,
+  assertUnchangedRepairHistory,
+  recordRepairHistory,
+} from './plan-repair-history.service';
+import { getManilaBusinessDateKey } from '@/domain/meal-actionability.policy';
 import { AppError } from '@/errors/AppError';
 import { assertEmptyPlanRetry } from './empty-plan-retry.service';
 import {
@@ -196,6 +203,13 @@ export async function generate7DayPlan(
   }[] = [];
   const lastSelectedLibraryDay = new Map<string, number>();
   const selectedNutrition: Array<NutritionVector & { dayNumber: number; mealType: string }> = [];
+  const repairHistory = repair
+    ? await loadRepairHistory(userId, repair.cycleId, {
+        startDate,
+        endDate: getScheduledMealDate(startDate, numDays - 1),
+      })
+    : null;
+  const retainedSlots = retainedSlotKeys(repairHistory?.meals ?? []);
 
   // Evaluate each individual slot independently
   for (let day = 0; day < numDays; day++) {
@@ -203,6 +217,7 @@ export async function generate7DayPlan(
 
     const slots = [MealType.BREAKFAST, MealType.LUNCH, MealType.DINNER];
     for (const slotType of slots) {
+      if (retainedSlots.has(`${getManilaBusinessDateKey(scheduledDate)}:${slotType}`)) continue;
       const macroTarget = mealMacroBudget(
         planningTargets,
         slotType,
@@ -508,7 +523,7 @@ export async function generate7DayPlan(
   const completeSlotSet =
     matchedSlots.every((slot) => !slot.requiresCaseApproval) &&
     preparedAiMeals.every((meal) => Boolean(meal.rawCandidateId && unrestrictedBaseIds.has(meal.rawCandidateId))) &&
-    matchedSlots.length + preparedAiMeals.length >= cycleTiming.expectedSlotCount;
+    matchedSlots.length + preparedAiMeals.length + retainedSlots.size >= cycleTiming.expectedSlotCount;
   const deadlinePassed = now.getTime() >= cycleTiming.shoppingDeadlineAt.getTime();
   const cycleStatus =
     cycleTiming.endDate < businessDay
@@ -525,17 +540,58 @@ export async function generate7DayPlan(
     async (tx) => {
       await lockUserProfile(tx, userId);
       if (repair) await repairBillingStart(userId, repair, tx);
+      if (repair && repairHistory)
+        await assertUnchangedRepairHistory(
+          tx,
+          userId,
+          repair.cycleId,
+          { startDate, endDate: targetPlanEndDate },
+          repairHistory
+        );
       if (env.CLINICAL_CLARIFICATIONS_ENABLED) {
         await assertAcknowledgedGenerationProfile(userId, tx);
-        if (!await ClinicalProfileReviewService.hasCurrentApproval(userId, tx))
-          throw new AppError('The profile case must be confirmed before meal publication.', 409, 'PROFILE_REVIEW_REQUIRED');
+        if (!(await ClinicalProfileReviewService.hasCurrentApproval(userId, tx)))
+          throw new AppError(
+            'The profile case must be confirmed before meal publication.',
+            409,
+            'PROFILE_REVIEW_REQUIRED'
+          );
       }
       const { profile: currentProfileRevision } = await loadPlanningNutritionContext(tx, userId, 'Profile missing.');
       if (currentProfileRevision.revision !== profile.revision)
         throw new Error('Profile changed during generation. Please retry.');
       if (expectedEmptyCycleId)
         await assertEmptyPlanRetry(tx, userId, expectedEmptyCycleId, profile.revision, profile.safetyRevision);
-      await assertGenerationIntegrity(tx, userId, startDate, targetPlanEndDate, compositionRevisions);
+      if (!repair && cycleTiming.startDate > MealPlanCycleService.getBusinessDay(new Date())) {
+        const current = await tx.mealPlanCycle.findFirst({
+          where: {
+            userId,
+            status: { not: MealPlanCycleStatus.SUPERSEDED },
+            startDate: { lte: MealPlanCycleService.getBusinessDay(new Date()) },
+            endDate: { gte: cycleTiming.startDate },
+          },
+          select: { id: true },
+        });
+        if (current)
+          throw new AppError(
+            'Upcoming preparation overlaps the current plan. Wait until its recorded end date.',
+            409,
+            'PLAN_WINDOW_OVERLAP'
+          );
+      }
+      await assertGenerationIntegrity(
+        tx,
+        userId,
+        startDate,
+        targetPlanEndDate,
+        compositionRevisions,
+        repairHistory
+          ? {
+              retainedMealIds: repairHistory.meals.map((meal) => meal.id),
+              purchasedItemIds: repairHistory.purchasedItems.map((item) => item.sourceItemId),
+            }
+          : undefined
+      );
       await tx.groceryList.updateMany({ where: { userId }, data: { isStale: true } });
       const overlappingCycles = await tx.mealPlanCycle.findMany({
         where: {
@@ -622,6 +678,8 @@ export async function generate7DayPlan(
           shoppingDayOfWeek: profile.shoppingDayOfWeek,
         },
       });
+      if (repair && repairHistory)
+        await recordRepairHistory(tx, userId, repair.cycleId, newPlanGroupId, profile.revision, repairHistory);
 
       // 2. Create matched library meals from the exact certified library snapshot.
       if (matchedSlots.length > 0) {

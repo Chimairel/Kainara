@@ -14,20 +14,28 @@ export async function assertGenerationIntegrity(
   userId: string,
   start: Date,
   end: Date,
-  revisions: Map<string, number>
+  revisions: Map<string, number>,
+  reconciled?: { retainedMealIds: string[]; purchasedItemIds: string[] }
 ) {
   await assertFoodCompositionRevisions(tx, revisions);
   const existing = await tx.mealPlan.findMany({
     where: { userId, status: { in: ['APPROVED', 'PENDING_REVIEW'] }, scheduledDate: { gte: start, lte: end } },
-    select: { planGroupId: true, mealLogs: { where: { status: { in: ['DONE', 'SKIPPED'] } }, select: { id: true } } },
+    select: {
+      id: true,
+      planGroupId: true,
+      mealLogs: { where: { status: { in: ['DONE', 'SKIPPED'] } }, select: { id: true } },
+    },
   });
   const purchased = await tx.groceryItem.count({
     where: {
       purchasedQuantity: { gt: 0 },
+      ...(reconciled ? { id: { notIn: reconciled.purchasedItemIds } } : {}),
       groceryList: { userId, planGroupId: { in: existing.map((meal) => meal.planGroupId) } },
     },
   });
-  if (purchased || existing.some((meal) => meal.mealLogs.length))
+  // Only the exact histories rechecked under the member lock may be retained by a repair.
+  // Ordinary generation and any unaccounted history keep the existing protection.
+  if (purchased || existing.some((meal) => meal.mealLogs.length && !reconciled?.retainedMealIds.includes(meal.id)))
     throw new Error(
       'This cycle already has purchases or logged meals. Swap individual uneaten meals to preserve your shopping and history.'
     );

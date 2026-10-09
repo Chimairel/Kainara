@@ -36,6 +36,7 @@ export type GroceryCycleStatus =
   | 'SUPERSEDED';
 
 export interface GroceryCycleProjection {
+  previousPurchases?: Array<{ ingredientName: string; quantity: number; unit: string | null }>;
   scope: 'CURRENT' | 'UPCOMING';
   cycle: {
     id: string;
@@ -49,6 +50,7 @@ export interface GroceryCycleProjection {
   groceryList: GroceryList | null;
   coverage: {
     clearedSlotCount: number;
+    retainedSlotCount?: number;
     expectedSlotCount: number;
     unresolvedSlotCount: number;
   };

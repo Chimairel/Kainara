@@ -41,13 +41,15 @@ import { savePreparedCorpusMeals } from './meal-plan-corpus-persistence.service'
 import { isUnrestrictedPanlasangBaseEligible } from '@/domain/unrestricted-panlasang-base.policy';
 import { composedNutritionTotal, scaleFnriFoodToGrams } from '@/domain/composed-serving.policy';
 import { lockUserProfile } from './profile-revision.service';
+import { getManilaBusinessDateKey } from '@/domain/meal-actionability.policy';
+import { retainedMealsForCycle } from './plan-repair-history.service';
 
 const LEASE_MS = 20 * 60_000;
 const FAIR_TURN_MS = 5_000;
 type Cycle = NonNullable<Awaited<ReturnType<typeof loadQueuedCycle>>>;
 
 async function loadQueuedCycle(id: string) {
-  return prisma.mealPlanCycle.findUnique({
+  const cycle = await prisma.mealPlanCycle.findUnique({
     where: { id },
     include: {
       snapshot: true,
@@ -65,6 +67,15 @@ async function loadQueuedCycle(id: string) {
       },
     },
   });
+  if (!cycle) return null;
+  const retained = await retainedMealsForCycle(cycle.userId, cycle.id);
+  return {
+    ...cycle,
+    mealPlans: [
+      ...cycle.mealPlans.map((meal) => ({ ...meal, retainedHistory: false })),
+      ...retained.map((meal) => ({ ...meal, retainedHistory: true })),
+    ],
+  };
 }
 
 function terminalReason(cycle: Cycle, now: Date): string | null {
@@ -238,14 +249,16 @@ export class MealAiQueueService {
       const reviewRequired = requiresMealCandidateReview(restrictions);
       const slots = earliestMissingDay(gaps);
       if (!slots.length) throw new Error('MEAL_DAY_PASSED');
-      const existingMeals = cycle.mealPlans.map((meal) => ({
-        dayNumber: Math.round((meal.scheduledDate.getTime() - cycle.startDate.getTime()) / 86_400_000) + 1,
-        mealType: meal.mealType,
-        calories: meal.calories,
-        proteinG: meal.proteinG,
-        carbsG: meal.carbsG,
-        fatG: meal.fatG,
-      }));
+      const existingMeals = cycle.mealPlans
+        .filter((meal) => !meal.retainedHistory)
+        .map((meal) => ({
+          dayNumber: Math.round((meal.scheduledDate.getTime() - cycle.startDate.getTime()) / 86_400_000) + 1,
+          mealType: meal.mealType,
+          calories: meal.calories,
+          proteinG: meal.proteinG,
+          carbsG: meal.carbsG,
+          fatG: meal.fatG,
+        }));
       const planningTargets = await cycleMacroTargets(prisma, cycle.snapshot, context.planningTargets);
       const riceFood =
         profile.ricePreference === 'NO_RICE'
@@ -399,6 +412,17 @@ export class MealAiQueueService {
                 select: { mealType: true, calories: true, proteinG: true, carbsG: true, fatG: true },
               });
               if (preparedMeals.some((slot) => occupied.some((meal) => meal.mealType === slot.mealType)))
+                throw new Error('SLOT_ALREADY_FILLED');
+              const currentRetained = await retainedMealsForCycle(cycle.userId, cycleId, tx);
+              if (
+                preparedMeals.some((slot) =>
+                  currentRetained.some(
+                    (meal) =>
+                      getManilaBusinessDateKey(meal.scheduledDate) === getManilaBusinessDateKey(slot.scheduledDate) &&
+                      meal.mealType === slot.mealType
+                  )
+                )
+              )
                 throw new Error('SLOT_ALREADY_FILLED');
               const currentDayIssues = validateGeneratedDayCalories(
                 [

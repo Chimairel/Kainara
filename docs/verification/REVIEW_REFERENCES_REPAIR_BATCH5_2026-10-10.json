@@ -1,0 +1,75 @@
+{
+  "changeId": "CHG-20261010-07",
+  "batch": "5",
+  "date": "2026-10-10",
+  "scope": "Exact prior review references, preserved repair history and authenticated browser acceptance",
+  "databases": {
+    "host": "127.0.0.1",
+    "port": 55488,
+    "appliedMigrationsPerFreshDatabase": 103,
+    "reviewReferences": { "database": "kainara_review_references", "syntheticAccounts": 5, "passedScenarioGroups": 6 },
+    "mealClarificationAndRepair": {
+      "database": "kainara_meal_clarification",
+      "syntheticAccounts": 24,
+      "passedScenarioGroups": 13,
+      "membershipEnabled": true
+    },
+    "regressions": { "replacementFiltersPassed": 11, "legacyDisabledModePassed": 18 },
+    "externalProviders": "disabled; acceptance fetch restricted to loopback",
+    "sharedDatabaseMutations": false
+  },
+  "acceptanceChecks": [
+    "Exact new member contexts receive numeric prior decision references but remain pending; member access to RND case data is denied",
+    "Different age, weight, goal and changed clinical keys do not use approximate matching",
+    "Original review context remains fixed after its member changes profile; old private guidance and member identity are excluded from the reference DTO",
+    "Changed side quantities, food composition revisions and source extended nutrients invalidate serving references",
+    "Quarantine, expired decision reviewer credentials and disputed source decisions exclude references; legacy context is never reconstructed",
+    "Current claims, strict fields, 21 simultaneous meal claims, late answers, successor resolution and related audited admin access remain enforced",
+    "Actual profile changes retire outdated requests while preserving logs and signed historical decisions; current acknowledgment and profile confirmation remain mandatory",
+    "Concurrent current-cycle repair publishes one remaining-four-day cycle with ten fresh meals and two retained slots without a new admission charge",
+    "One eaten and one skipped slot retain their original logs; the eaten DTO uses its recorded 650 kcal rather than the old meal plan's 700 kcal",
+    "Previous purchases remain unchanged and read-only, without automatic pantry credit; current groceries cover only fresh cleared meals",
+    "Inherited history is captured once; changed purchases fail the final transaction history guard; recovery does not regenerate retained slots",
+    "Upcoming preparation cannot supersede the repaired current cycle before its recorded end date",
+    "Foreign-member history is unavailable; reauthenticated deletion cascades through forms, review epochs and repair receipts"
+  ],
+  "browser": {
+    "runner": "Chromium Playwright against localhost:3000, all API requests forwarded to authenticated task-owned backends",
+    "passed": 5,
+    "memberMatrix": "390px and 1440px, each in light and dark mode; dashboard intake/history, meals history and previous grocery purchases",
+    "rndJourney": "Desktop exact references, claimed fullscreen canvas, local Ctrl-wheel zoom, H/V tools, published questions, live return to default panel, member response and another RND's Profile queue handoff",
+    "authentication": "Real API role/claim enforcement with synthetic signed sessions; no interactive login journey",
+    "limits": "Browser checks do not establish every proposal/dispute flow; those remain covered by earlier HTTP and component evidence. Admin case access is checked by HTTP, not a newly claimed admin browser journey."
+  },
+  "tests": {
+    "backendPassed": 872,
+    "backendFailed": 0,
+    "backendExistingTodo": 1,
+    "frontendFocusedPassed": 122,
+    "frontendFiles": 23
+  },
+  "staticChecks": {
+    "backendLint": "passed",
+    "frontendLint": "passed",
+    "backendApplicationAndAcceptanceTypes": "passed",
+    "backendBuild": "passed",
+    "frontendBuild": "passed",
+    "prismaValidate": "passed",
+    "ownedFileFormatting": "passed",
+    "sourceArchitecture": "Changed source modules meet their budgets. Global check reports existing unchanged clinical-evidence.service.ts at 901 lines (limit 900), also present in baseline HEAD 8884ca9c."
+  },
+  "rollout": {
+    "newMigrations": ["202610100004_review_references", "202610100005_plan_repair_history"],
+    "pendingSharedMigrations": [
+      "202610100001_clinical_clarifications",
+      "202610100002_clinical_profile_proposals",
+      "202610100003_meal_clarification_reopening",
+      "202610100004_review_references",
+      "202610100005_plan_repair_history"
+    ],
+    "sharedClarificationFlag": false,
+    "sharedRollout": "Requires fresh target confirmation, local backup, migration application and explicit common-flag enablement",
+    "demoPromotion": "separate",
+    "clinicalValidation": "not established by automated software checks"
+  }
+}

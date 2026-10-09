@@ -4,6 +4,7 @@ import { MealPlanCycleService } from './meal-plan-cycle.service';
 import { ClinicalEvidenceService } from './clinical-evidence.service';
 import { ClinicalProfileReviewService } from './clinical-profile-review.service';
 import { loadPlanningNutritionContext } from '@/domain/user-nutrition-context';
+import { retainedMealsForCycle } from './plan-repair-history.service';
 
 let cursor: string | undefined;
 
@@ -39,9 +40,10 @@ export async function recoverPartialPlanJobs(now: Date = new Date()): Promise<nu
   cursor = cycles.length === 100 ? cycles.at(-1)?.id : undefined;
   let recovered = 0;
   for (const cycle of cycles) {
+    const retained = await retainedMealsForCycle(cycle.userId, cycle.id);
     if (
       !canResumePartialCycle(cycle, cycle.user.userProfile, now) ||
-      !remainingGenerationSlots(cycle.startDate, cycle.expectedSlotCount, cycle.mealPlans, now).length
+      !remainingGenerationSlots(cycle.startDate, cycle.expectedSlotCount, [...cycle.mealPlans, ...retained], now).length
     )
       continue;
     try {

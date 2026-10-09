@@ -10,6 +10,7 @@ import { MealsWorkspaceModals } from '@/features/meals/MealsWorkspaceModals';
 import MealsDateNavigation from './MealsDateNavigation';
 import MealsGenerationNotice from './MealsGenerationNotice';
 import MealsHistorySection from './MealsHistorySection';
+import RetainedMealLogs from './RetainedMealLogs';
 import MealsPlanSection from './MealsPlanSection';
 import { useMealsPage } from './useMealsPage';
 import { useCallback, useState } from 'react';
@@ -168,6 +169,13 @@ export default function MealsWorkspace() {
 
         {/* Conditional Content Rendering */}
         <MealsPlanSection model={model} />
+        {activeTab === 'plan' &&
+          !isLoading &&
+          !isReportPending &&
+          !clinicalEvidenceRequired &&
+          !profileReviewRequired && (
+            <RetainedMealLogs meals={workspace.retainedMealLogs} dateKey={model.selectedPlanDay?.dateKey} />
+          )}
 
         <MealsHistorySection model={model} />
 

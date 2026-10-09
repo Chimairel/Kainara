@@ -907,6 +907,7 @@ model User {
   weeklyCheckins                   WeeklyCheckin[]
   mealPlanCycles                   MealPlanCycle[]
   mealPlanCycleSnapshots           MealPlanCycleSnapshot[]
+  mealPlanRepairs                  MealPlanRepairReceipt[]
   healthProfileRevisions           HealthProfileRevision[]
   safetyProfileEntries             SafetyProfileEntry[]
   auditEvents                      AuditEvent[]
@@ -1572,9 +1573,24 @@ model MealPlanReviewDecision {
   rationale             String?                     @db.VarChar(1000)
   evidenceSnapshot      Json
   submittedAt           DateTime                    @default(now())
+  reviewReference       MealReviewReference?
 
   @@unique([mealPlanId, nutritionistProfileId, stage], map: "MealPlanReviewDecision_mealPlanId_nutritionistProfileId_stage_k")
   @@index([mealPlanId, submittedAt])
+}
+
+/// Anonymous numeric reference to one immutable RND decision. Never a clinical clearance.
+model MealReviewReference {
+  id            String                 @id @default(cuid())
+  decisionId    String                 @unique
+  decision      MealPlanReviewDecision @relation(fields: [decisionId], references: [id], onDelete: Cascade)
+  policyVersion String                 @db.VarChar(64)
+  contextKey    String                 @db.VarChar(64)
+  servingKey    String                 @db.VarChar(64)
+  plateFacts    Json
+  createdAt     DateTime               @default(now())
+
+  @@index([policyVersion, contextKey, servingKey, createdAt], map: "MealReviewReference_match_idx")
 }
 
 model MealLibrary {
@@ -2849,6 +2865,8 @@ model MealPlanCycle {
   groceryList   GroceryList?
   generationJob MealPlanGenerationJob?
   snapshot      MealPlanCycleSnapshot?
+  repairReceipt MealPlanRepairReceipt? @relation("RepairReplacement")
+  repairSources MealPlanRepairReceipt[] @relation("RepairSource")
 
   reviewRoutingEpisodeId String?
   reviewRoutingEpisode   ReviewRoutingEpisode? @relation(fields: [reviewRoutingEpisodeId], references: [id], onDelete: SetNull)
@@ -2858,6 +2876,24 @@ model MealPlanCycle {
   @@index([shoppingDeadlineAt, status])
   @@index([userId, profileAdaptationState, startDate])
   @@index([supersededById])
+}
+
+/// Keeps old logged slots and purchases separate from the new revision's clinical approvals.
+model MealPlanRepairReceipt {
+  id                 String        @id @default(cuid())
+  userId             String
+  user               User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sourceCycleId      String
+  sourceCycle        MealPlanCycle @relation("RepairSource", fields: [sourceCycleId], references: [id], onDelete: Cascade)
+  replacementCycleId String        @unique
+  replacementCycle   MealPlanCycle @relation("RepairReplacement", fields: [replacementCycleId], references: [id], onDelete: Cascade)
+  profileRevision    Int
+  retainedMealIds    Json
+  purchasedItems     Json
+  createdAt          DateTime      @default(now())
+
+  @@index([userId, createdAt])
+  @@index([sourceCycleId])
 }
 
 /// Immutable profile inputs and calorie target for one plan cycle. The

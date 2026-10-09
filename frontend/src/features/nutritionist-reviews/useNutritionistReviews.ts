@@ -50,6 +50,14 @@ export interface QueueItem {
 }
 
 export interface DetailData {
+  reviewReferences?: Array<{
+    reviewedAt: string;
+    reviewerName: string | null;
+    decision: 'APPROVE';
+    plateFacts: { calories: number; proteinG: number; carbsG: number; fatG: number } | null;
+    match: string;
+    use: string;
+  }>;
   clarifications?: ClarificationWorkspace;
   reviewContext?: { contextKey: string; profileRevision: number; scopeKey: string };
   clinicalEvidence?: {
@@ -188,8 +196,19 @@ export function useNutritionistReviews(enabled = true) {
   const detailRef = useRef(detailData);
   detailRef.current = detailData;
   const [reviewNotice, setReviewNotice] = useState<string | null>(null);
-  const [savedReviewNotes, setSavedReviewNotes] = useState<Array<{ mealId: string; mealName: string; contextKey?: string; note: string; rejection: string; clarification?: { title: string; questions: DraftQuestion[] } }>>([]);
-  const clarificationDraft = useRndClarificationDraft(`${ownerId}:${selectedMealId}:${detailData?.reviewContext?.contextKey}`);
+  const [savedReviewNotes, setSavedReviewNotes] = useState<
+    Array<{
+      mealId: string;
+      mealName: string;
+      contextKey?: string;
+      note: string;
+      rejection: string;
+      clarification?: { title: string; questions: DraftQuestion[] };
+    }>
+  >([]);
+  const clarificationDraft = useRndClarificationDraft(
+    `${ownerId}:${selectedMealId}:${detailData?.reviewContext?.contextKey}`
+  );
 
   // Actions states
   const [actionLoading, setActionLoading] = useState<string | null>(null);
@@ -226,15 +245,35 @@ export function useNutritionistReviews(enabled = true) {
   const retireInactiveReview = (failure: unknown, id: string | null, notice?: string) => {
     const data = (failure as { response?: { data?: { code?: string; errorCode?: string } } } | null)?.response?.data;
     const code = data?.code ?? data?.errorCode;
-    if (!['MEAL_REVIEW_INACTIVE', 'MEAL_REVIEW_CONTEXT_CHANGED', 'PROFILE_REVIEW_REQUIRED', 'CLINICAL_EVIDENCE_REQUIRED', 'SAFETY_DECLARATION_REQUIRED'].includes(code ?? '') || !id || liveSelection.current !== id || liveOwner.current !== ownerId)
+    if (
+      ![
+        'MEAL_REVIEW_INACTIVE',
+        'MEAL_REVIEW_CONTEXT_CHANGED',
+        'PROFILE_REVIEW_REQUIRED',
+        'CLINICAL_EVIDENCE_REQUIRED',
+        'SAFETY_DECLARATION_REQUIRED',
+      ].includes(code ?? '') ||
+      !id ||
+      liveSelection.current !== id ||
+      liveOwner.current !== ownerId
+    )
       return false;
     const savedDraft = {
-      mealId: id, mealName: detailRef.current?.mealPlan.mealName ?? 'Meal review',
-      contextKey: detailRef.current?.reviewContext?.contextKey, note: generalNote, rejection: rejectNote,
-      ...(!notice && clarificationDraft.questions.length ? { clarification: { title: clarificationDraft.title, questions: clarificationDraft.questions } } : {}),
+      mealId: id,
+      mealName: detailRef.current?.mealPlan.mealName ?? 'Meal review',
+      contextKey: detailRef.current?.reviewContext?.contextKey,
+      note: generalNote,
+      rejection: rejectNote,
+      ...(!notice && clarificationDraft.questions.length
+        ? { clarification: { title: clarificationDraft.title, questions: clarificationDraft.questions } }
+        : {}),
     };
-    if (generalNote.trim() || rejectNote.trim() || (!notice && clarificationDraft.questions.length)) setSavedReviewNotes((previous) => [...previous, savedDraft].slice(-10));
-    setReviewNotice(notice ?? 'This review is no longer current. Your unfinished notes and questions are saved for this session. Select an available case to continue.');
+    if (generalNote.trim() || rejectNote.trim() || (!notice && clarificationDraft.questions.length))
+      setSavedReviewNotes((previous) => [...previous, savedDraft].slice(-10));
+    setReviewNotice(
+      notice ??
+        'This review is no longer current. Your unfinished notes and questions are saved for this session. Select an available case to continue.'
+    );
     queueGeneration.current++;
     invalidateSessionResource(ownerId, 'nutritionist-case-queue');
     setQueue((previous) => previous.filter((meal) => meal.id !== id));
@@ -329,7 +368,13 @@ export function useNutritionistReviews(enabled = true) {
       if (selectedMealId && !actionLoading) {
         try {
           const response = await api.get(`/nutritionist/queue/${selectedMealId}`, { signal });
-          if (!signal.aborted && liveOwner.current === ownerId && generation === selectionGeneration.current && liveSelection.current === selectedMealId && response.data?.success) {
+          if (
+            !signal.aborted &&
+            liveOwner.current === ownerId &&
+            generation === selectionGeneration.current &&
+            liveSelection.current === selectedMealId &&
+            response.data?.success
+          ) {
             const before = detailRef.current?.reviewContext?.contextKey;
             const after = response.data.data?.reviewContext?.contextKey;
             if (before && before !== after) {
@@ -338,7 +383,12 @@ export function useNutritionistReviews(enabled = true) {
             } else setDetailData(response.data.data);
           }
         } catch (failure) {
-          if (!signal.aborted && generation === selectionGeneration.current && retireInactiveReview(failure, selectedMealId)) return;
+          if (
+            !signal.aborted &&
+            generation === selectionGeneration.current &&
+            retireInactiveReview(failure, selectedMealId)
+          )
+            return;
           throw failure;
         }
       }
@@ -366,7 +416,10 @@ export function useNutritionistReviews(enabled = true) {
       }
     } catch (err: unknown) {
       if (liveOwner.current !== ownerId || generation !== selectionGeneration.current) return;
-      if (retireInactiveReview(err, id)) { await fetchQueue(true, undefined, true); return; }
+      if (retireInactiveReview(err, id)) {
+        await fetchQueue(true, undefined, true);
+        return;
+      }
       console.error('Failed to fetch card details:', err);
       const code = (err as { code?: string } | null)?.code;
       setErrorMsg(
@@ -390,7 +443,9 @@ export function useNutritionistReviews(enabled = true) {
     const stillSelected = () => liveOwner.current === ownerId && generation === selectionGeneration.current;
     try {
       const res = detailData.reviewContext
-        ? await api.post(`/nutritionist/queue/${selectedMealId}/claim`, { expectedContextKey: detailData.reviewContext.contextKey })
+        ? await api.post(`/nutritionist/queue/${selectedMealId}/claim`, {
+            expectedContextKey: detailData.reviewContext.contextKey,
+          })
         : await api.post(`/nutritionist/queue/${selectedMealId}/claim`);
       if (!stillSelected()) return;
       if (res.data?.success) setDetailData(res.data.data);
@@ -523,7 +578,10 @@ export function useNutritionistReviews(enabled = true) {
       }
     } catch (err: unknown) {
       if (!stillSelected()) return;
-      if (retireInactiveReview(err, selectedMealId)) { await fetchQueue(true, undefined, true); return; }
+      if (retireInactiveReview(err, selectedMealId)) {
+        await fetchQueue(true, undefined, true);
+        return;
+      }
       console.error('Generate candidate failed:', err);
       setErrorMsg(
         getApiErrorMessage(err, 'Failed to generate replacement candidate. Please check the rejection reason.')
@@ -560,7 +618,10 @@ export function useNutritionistReviews(enabled = true) {
       setIsEditingCandidate(false);
     } catch (err: unknown) {
       if (!stillSelected()) return;
-      if (retireInactiveReview(err, selectedMealId)) { await fetchQueue(true, undefined, true); return; }
+      if (retireInactiveReview(err, selectedMealId)) {
+        await fetchQueue(true, undefined, true);
+        return;
+      }
       console.error('Replacement submission failed:', err);
       setErrorMsg(
         getApiErrorMessage(err, 'Failed to submit the replacement for meal verification. Please refresh the queue.')

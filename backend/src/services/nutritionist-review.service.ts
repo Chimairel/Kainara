@@ -4,6 +4,7 @@ import { ClinicalClarificationService } from './clinical-clarification.service';
 import { env } from '@/config/env';
 import { assertCurrentMealReviewContext, loadMealReviewContext } from './meal-case-context.service';
 import { ReviewRoutingService } from './review-routing.service';
+import { listReviewReferences } from './reusable-review-reference.service';
 import { healthDetailsRequirements } from '@/domain/health-details.policy';
 import prisma from '@/lib/prisma';
 import { PLANNING_PROFILE_FIELDS, reportProfile, planningInputsMatch } from '@/domain/planning-report.policy';
@@ -52,8 +53,13 @@ async function reviewReadinessByUser(userIds: string[]) {
     users.map((user) => [
       user.id,
       {
-        ready: healthDetailsRequirements(user).every((item) => item.state === 'READY') && (!approvals ||
-          (approvals.get(user.id) === true && !!user.nutritionReport?.acknowledgedAt && !user.nutritionReport.isStale && user.nutritionReport.profileRevision === user.userProfile?.revision)),
+        ready:
+          healthDetailsRequirements(user).every((item) => item.state === 'READY') &&
+          (!approvals ||
+            (approvals.get(user.id) === true &&
+              !!user.nutritionReport?.acknowledgedAt &&
+              !user.nutritionReport.isStale &&
+              user.nutritionReport.profileRevision === user.userProfile?.revision)),
         specific: env.CLINICAL_CLARIFICATIONS_ENABLED || user.clinicalContextResponses.length > 0,
       },
     ])
@@ -102,7 +108,9 @@ export class NutritionistReviewService {
       )
         continue;
       work.add(
-        env.CLINICAL_CLARIFICATIONS_ENABLED ? `PLAN:${plan.id}` : `${readiness.get(plan.userId)?.specific ? plan.userId + ':' : ''}${plan.reviewWorkKey ?? `PLAN:${plan.id}`}`
+        env.CLINICAL_CLARIFICATIONS_ENABLED
+          ? `PLAN:${plan.id}`
+          : `${readiness.get(plan.userId)?.specific ? plan.userId + ':' : ''}${plan.reviewWorkKey ?? `PLAN:${plan.id}`}`
       );
     }
     return work.size;
@@ -166,7 +174,9 @@ export class NutritionistReviewService {
       : readyMeals.map((meal) => ({ ...meal, routing: undefined }));
     const routed = clinicallyReadyMeals.some((meal) => meal.routing && meal.routing.reason !== 'ROUTING_DISABLED');
     const workKey = (meal: { id: string; userId: string; reviewWorkKey: string | null }) =>
-      env.CLINICAL_CLARIFICATIONS_ENABLED ? `PLAN:${meal.id}` : `${routed || readinessByUser.get(meal.userId)?.specific ? meal.userId + ':' : ''}${meal.reviewWorkKey ?? `PLAN:${meal.id}`}`;
+      env.CLINICAL_CLARIFICATIONS_ENABLED
+        ? `PLAN:${meal.id}`
+        : `${routed || readinessByUser.get(meal.userId)?.specific ? meal.userId + ':' : ''}${meal.reviewWorkKey ?? `PLAN:${meal.id}`}`;
     const workCounts = new Map<string, number>();
     for (const meal of clinicallyReadyMeals) {
       const key = workKey(meal);
@@ -279,7 +289,12 @@ export class NutritionistReviewService {
   /**
    * Fetches detailed data for a review card. Claiming is an explicit action.
    */
-  static async getReviewCardDetails(nutritionistProfileId: string, mealPlanId: string, acquireClaim = false, expectedContextKey?: string) {
+  static async getReviewCardDetails(
+    nutritionistProfileId: string,
+    mealPlanId: string,
+    acquireClaim = false,
+    expectedContextKey?: string
+  ) {
     await ReviewRoutingService.assertMeal(nutritionistProfileId, mealPlanId);
     const openedContext = await loadMealReviewContext(mealPlanId);
     const now = new Date();
@@ -397,7 +412,8 @@ export class NutritionistReviewService {
       },
     });
 
-    if (!updatedMealPlan) throw new AppError('This meal is no longer awaiting review. Refresh the queue.', 409, 'MEAL_REVIEW_INACTIVE');
+    if (!updatedMealPlan)
+      throw new AppError('This meal is no longer awaiting review. Refresh the queue.', 409, 'MEAL_REVIEW_INACTIVE');
     if (
       !acquireClaim &&
       isReviewClaimActive(updatedMealPlan, now) &&
@@ -560,10 +576,22 @@ export class NutritionistReviewService {
     const clarifications = openedContext
       ? await ClinicalClarificationService.list(updatedMealPlan.userId, nutritionistProfileId)
       : undefined;
+    const reviewReferences = openedContext
+      ? await listReviewReferences(openedContext, nutritionistProfileId)
+      : undefined;
     if (openedContext) await assertCurrentMealReviewContext(mealPlanId, openedContext.contextKey);
     return {
+      ...(reviewReferences ? { reviewReferences } : {}),
       ...(clarifications ? { clarifications } : {}),
-      ...(openedContext ? { reviewContext: { contextKey: openedContext.contextKey, profileRevision: openedContext.profileRevision, scopeKey: openedContext.scopeKey } } : {}),
+      ...(openedContext
+        ? {
+            reviewContext: {
+              contextKey: openedContext.contextKey,
+              profileRevision: openedContext.profileRevision,
+              scopeKey: openedContext.scopeKey,
+            },
+          }
+        : {}),
       mealPlan: {
         id: updatedMealPlan.id,
         planGroupId: updatedMealPlan.planGroupId,

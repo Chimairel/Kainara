@@ -1,6 +1,7 @@
 import { publicCycleSnapshot } from '@/services/meal-macro-context.service';
 import { getOwnedMealPlanWhere } from '@/domain/meal-actionability.policy';
 import { remainingGenerationSlots } from '@/domain/meal-generation-continuation.policy';
+import { retainedMealsForCycle } from '@/services/plan-repair-history.service';
 import { unavailablePlanMeals } from '@/domain/unavailable-plan-meals.policy';
 import { buildPendingMealPlanPreview } from '@/domain/meal-generation-result.policy';
 
@@ -125,6 +126,7 @@ export async function getCurrentPlan(req: AuthenticatedRequest, res: Response) {
     const meals = groupMeals
       .filter((meal) => clearedIds.has(meal.id))
       .map((meal) => serializeActionableMeal(meal, libraryImages, libraryCookingLinks));
+    const retained = await retainedMealsForCycle(userId, cycle.id);
     mark('serialize');
 
     res.setHeader('Server-Timing', stages.join(', '));
@@ -138,10 +140,21 @@ export async function getCurrentPlan(req: AuthenticatedRequest, res: Response) {
         },
         pendingReview: pendingPreviewWithImages(groupMeals, libraryImages, libraryCookingLinks),
         planSnapshot,
+        retainedMealLogs: retained.map((meal) => ({
+          id: meal.id,
+          mealName: meal.mealName,
+          mealType: meal.mealType,
+          scheduledDate: meal.scheduledDate,
+          calories: meal.calories,
+          proteinG: meal.proteinG,
+          carbsG: meal.carbsG,
+          fatG: meal.fatG,
+          status: meal.mealLogs[0]?.status ?? null,
+        })),
         awaitingGenerationCount: remainingGenerationSlots(
           cycle.startDate,
           cycle.expectedSlotCount,
-          groupMeals.filter((row) => row.status !== MealPlanStatus.CANCELLED),
+          [...groupMeals.filter((row) => row.status !== MealPlanStatus.CANCELLED), ...retained],
           new Date()
         ).length,
         generationStatus: generationJob?.status ?? null,
@@ -242,6 +255,9 @@ export async function getPlanWorkspace(req: AuthenticatedRequest, res: Response)
         ...serializeActionableMeal(meal, libraryImages, libraryCookingLinks),
         cycleScope: meal.planGroupId === cycles.upcoming?.id ? 'UPCOMING' : 'CURRENT',
       }));
+    const retainedByCycle = await Promise.all(cycleIds.map((id) => retainedMealsForCycle(userId, id)));
+    const retained = retainedByCycle.flat();
+    const retainedFor = (id: string) => retainedByCycle[cycleIds.indexOf(id)] ?? [];
     mark('serialize');
     res.setHeader('Server-Timing', stages.join(', '));
     return res.status(200).json({
@@ -270,13 +286,29 @@ export async function getPlanWorkspace(req: AuthenticatedRequest, res: Response)
               }
             : null,
         },
+        retainedMealLogs: retained.map((meal) => ({
+          id: meal.id,
+          mealName: meal.mealName,
+          mealType: meal.mealType,
+          scheduledDate: meal.scheduledDate,
+          calories: meal.calories,
+          proteinG: meal.proteinG,
+          carbsG: meal.carbsG,
+          fatG: meal.fatG,
+          status: meal.mealLogs[0]?.status ?? null,
+        })),
         pendingReview: pendingPreviewWithImages(rows, libraryImages, libraryCookingLinks),
         awaitingGeneration: {
           current: cycles.current
             ? remainingGenerationSlots(
                 cycles.current.startDate,
                 cycles.current.expectedSlotCount,
-                rows.filter((row) => row.planGroupId === cycles.current?.id && row.status !== MealPlanStatus.CANCELLED),
+                [
+                  ...rows.filter(
+                    (row) => row.planGroupId === cycles.current?.id && row.status !== MealPlanStatus.CANCELLED
+                  ),
+                  ...retainedFor(cycles.current.id),
+                ],
                 new Date()
               ).length
             : 0,
@@ -284,9 +316,12 @@ export async function getPlanWorkspace(req: AuthenticatedRequest, res: Response)
             ? remainingGenerationSlots(
                 cycles.upcoming.startDate,
                 cycles.upcoming.expectedSlotCount,
-                rows.filter(
-                  (row) => row.planGroupId === cycles.upcoming?.id && row.status !== MealPlanStatus.CANCELLED
-                ),
+                [
+                  ...rows.filter(
+                    (row) => row.planGroupId === cycles.upcoming?.id && row.status !== MealPlanStatus.CANCELLED
+                  ),
+                  ...retainedFor(cycles.upcoming.id),
+                ],
                 new Date()
               ).length
             : 0,

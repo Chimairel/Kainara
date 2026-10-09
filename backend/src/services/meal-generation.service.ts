@@ -1,6 +1,10 @@
 import prisma from '@/lib/prisma';
 import { lockUserProfile } from './profile-revision.service';
-import { acknowledgedRebuild, assertAcknowledgedGenerationProfile, repairBillingStart } from './acknowledged-cycle-rebuild.service';
+import {
+  acknowledgedRebuild,
+  assertAcknowledgedGenerationProfile,
+  repairBillingStart,
+} from './acknowledged-cycle-rebuild.service';
 import { assertMemberPlanPreparation } from '@/domain/membership.policy';
 
 import { PlanType, MealPlanGenerationJobStatus, MealPlanCycleStatus, Prisma } from '@prisma/client';
@@ -127,6 +131,16 @@ export class MealGenerationService {
       return { state: 'NOT_OPEN', planGroupId: null };
     }
     const window = getNextWeeklyCycleWindow(profile, now);
+    const overlappingCurrent = await prisma.mealPlanCycle.findFirst({
+      where: {
+        userId,
+        status: { not: MealPlanCycleStatus.SUPERSEDED },
+        startDate: { lte: MealPlanCycleService.getBusinessDay(now) },
+        endDate: { gte: window.startDate },
+      },
+      select: { id: true },
+    });
+    if (overlappingCurrent) return { state: 'NOT_OPEN', planGroupId: null };
     const assuranceTier = getMaximumAssuranceTier(context.conditions);
     const timing = getMealPlanCycleTiming(PlanType.WEEKLY, window.startDate, 7, getPreparationLeadDays(assuranceTier));
     const existingCycle = await prisma.mealPlanCycle.findFirst({
@@ -258,7 +272,7 @@ export class MealGenerationService {
         },
       } satisfies Prisma.MealPlanGenerationJobUpdateManyArgs;
       const reclaimed = repair
-        ? await prisma.$transaction(async tx => {
+        ? await prisma.$transaction(async (tx) => {
             await lockUserProfile(tx, userId);
             await repairBillingStart(userId, repair, tx);
             return tx.mealPlanGenerationJob.updateMany(reclaimQuery);

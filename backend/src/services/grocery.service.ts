@@ -1,4 +1,5 @@
 import prisma from '@/lib/prisma';
+import { retainedMealsForCycle, retainedSlotKeys, previousPlanPurchases } from './plan-repair-history.service';
 import { Prisma } from '@prisma/client';
 import { lockUserProfile } from './profile-revision.service';
 import { MealPlanCycleService } from './meal-plan-cycle.service';
@@ -288,8 +289,9 @@ export class GroceryService {
       where: { userId, planGroupId: cycle.id, id: { in: clearedMealPlanIds } },
       select: { scheduledDate: true, mealType: true },
     });
-    const clearedSlotCount = new Set(clearedMeals.map((meal) => `${meal.scheduledDate.getTime()}:${meal.mealType}`))
-      .size;
+    const retained = await retainedMealsForCycle(userId, cycle.id);
+    const clearedSlotCount = retainedSlotKeys(clearedMeals).size;
+    const coveredSlotCount = retainedSlotKeys([...clearedMeals, ...retained]).size;
     let list = initialList;
     const frozen = Boolean(cycle.shoppingStartedAt || cycle.incompleteAcknowledgedAt);
     if (
@@ -320,11 +322,12 @@ export class GroceryService {
     const actionability = deriveGroceryActionability({
       ...refreshedCycle,
       listIsStale: Boolean(list?.isStale),
-      unresolvedSlotCount: Math.max(0, cycle.expectedSlotCount - clearedSlotCount),
+      unresolvedSlotCount: Math.max(0, cycle.expectedSlotCount - coveredSlotCount),
     });
     const visibleList = list?.isStale ? null : list;
     return {
       scope,
+      previousPurchases: await previousPlanPurchases(userId, cycle.id),
       cycle: { ...cycle, ...refreshedCycle },
       // A stale snapshot may contain ingredients invalidated by a profile or
       // evidence change. Hide it until the safe unaffected projection is
@@ -332,8 +335,9 @@ export class GroceryService {
       groceryList: visibleList,
       coverage: {
         clearedSlotCount,
+        retainedSlotCount: retainedSlotKeys(retained).size,
         expectedSlotCount: cycle.expectedSlotCount,
-        unresolvedSlotCount: Math.max(0, cycle.expectedSlotCount - clearedSlotCount),
+        unresolvedSlotCount: Math.max(0, cycle.expectedSlotCount - coveredSlotCount),
       },
       actionability: {
         ...actionability,
@@ -378,7 +382,8 @@ export class GroceryService {
         where: { userId, planGroupId: list.planGroupId, id: { in: clearedIds } },
         select: { scheduledDate: true, mealType: true },
       });
-      const clearedSlots = new Set(clearedMeals.map((meal) => `${meal.scheduledDate.getTime()}:${meal.mealType}`));
+      const retained = await retainedMealsForCycle(userId, list.planGroupId, client);
+      const clearedSlots = retainedSlotKeys([...clearedMeals, ...retained]);
       unresolvedSlotCount = Math.max(0, list.cycle.expectedSlotCount - clearedSlots.size);
     }
     const actionability = deriveGroceryActionability({

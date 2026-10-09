@@ -1,5 +1,6 @@
 'use client';
 
+import PreviousPlanPurchases from './PreviousPlanPurchases';
 import WorkspaceTabs from '@/components/ui/WorkspaceTabs';
 import GrocerySkeleton from '@/features/grocery/GrocerySkeleton';
 import PortalPageHeader from '@/components/shared/PortalPageHeader';
@@ -115,6 +116,9 @@ export default function GroceryWorkspace() {
           {/* SPREADSHEET DATAGRID TABLE */}
           <GroceryItemsSection model={model} />
         </div>
+      )}
+      {!isLoading && !isReportPending && visibleWorkspace && projection?.previousPurchases && (
+        <PreviousPlanPurchases items={projection.previousPurchases} />
       )}
     </div>
   );

@@ -1,4 +1,5 @@
 import prisma from '@/lib/prisma';
+import { retainedMealsForCycle, retainedSlotKeys } from './plan-repair-history.service';
 import { isCertifiedLibraryMealCompatible, certifiedLibraryMealInclude } from './meal-library-candidate-query.service';
 import { MembershipService } from './membership.service';
 import { admittedLibraryBaseIds } from './meal-base-admission.service';
@@ -19,7 +20,7 @@ import {
 } from '@prisma/client';
 
 type CycleClient = Pick<Prisma.TransactionClient, 'mealPlanCycle'> &
-  Partial<Pick<Prisma.TransactionClient, 'user' | 'clinicalProfileReview'>>;
+  Partial<Pick<Prisma.TransactionClient, 'user' | 'clinicalProfileReview' | 'mealPlan' | 'mealPlanRepairReceipt'>>;
 
 export const mealPlanCycleSummarySelect = {
   id: true,
@@ -404,19 +405,27 @@ export class MealPlanCycleService {
         );
         await MembershipService.startTrial(userId, availableAt, now);
       }
-      const clearedSlots = new Set(clearedMeals.map((meal) => `${meal.scheduledDate.getTime()}:${meal.mealType}`));
+      const retained = await retainedMealsForCycle(userId, cycle.id, client);
+      const clearedSlots = retainedSlotKeys([...clearedMeals, ...retained]);
       const allSlotsCleared = clearedSlots.size >= cycle.expectedSlotCount;
-      const groceryProjectionReady = Boolean(cycle.groceryList && !cycle.groceryList.isStale);
+      const groceryProjectionReady =
+        Boolean(cycle.groceryList && !cycle.groceryList.isStale) ||
+        (!clearedMeals.length && retainedSlotKeys(retained).size >= cycle.expectedSlotCount);
       const hasCompleteSlotSet = allSlotsCleared && groceryProjectionReady;
       const observedReadyAt = hasCompleteSlotSet
         ? (cycle.readyAt ??
-          new Date(Math.max(...clearedMeals.map((meal) => (meal.reviewedAt ?? meal.createdAt).getTime()))))
+          new Date(
+            Math.max(
+              cycle.startDate.getTime(),
+              ...clearedMeals.map((meal) => (meal.reviewedAt ?? meal.createdAt).getTime())
+            )
+          ))
         : cycle.readyAt;
       const next = deriveMealPlanCycleLifecycle({
         ...cycle,
         readyAt: observedReadyAt,
         now,
-        hasAnySlots: cycle.mealPlans.length > 0,
+        hasAnySlots: cycle.mealPlans.length > 0 || retained.length > 0,
         hasCompleteSlotSet,
       });
       const readyAt = observedReadyAt;

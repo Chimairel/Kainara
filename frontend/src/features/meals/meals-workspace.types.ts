@@ -1,3 +1,4 @@
+import type { RetainedMealLog } from './RetainedMealLogs';
 import type { PendingMealPreview } from '@/components/user/PendingMealPreviewCard';
 import type { CycleMetaSnapshot } from '@/features/dashboard/model';
 import type { MealCookingLink, MealPlan, PublicMealImage, PublicVerifier } from '@/types';
@@ -114,6 +115,7 @@ export interface PendingReviewState {
 }
 
 export interface CurrentPlanSnapshot {
+  retainedMealLogs?: RetainedMealLog[];
   meals: MealPlan[];
   pendingReview: PendingReviewState | null;
   awaitingGeneration?: { current: number; upcoming: number };

@@ -14,6 +14,7 @@ export function refreshMealsWorkspace(ownerId: string | undefined, signal?: Abor
     }
     return {
       meals: response.data.data,
+      retainedMealLogs: response.data.meta?.retainedMealLogs ?? [],
       pendingReview: response.data.meta?.pendingReview ?? null,
       awaitingGeneration: response.data.meta?.awaitingGeneration ?? { current: 0, upcoming: 0 },
       generationStatus: response.data.meta?.generationStatus ?? { current: null, upcoming: null },

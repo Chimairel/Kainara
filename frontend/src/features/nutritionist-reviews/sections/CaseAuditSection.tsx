@@ -3,6 +3,7 @@ import MealImage from '@/components/user/MealImage';
 import type { PublicMealImage } from '@/types';
 import IngredientEvidenceTable from '../IngredientEvidenceTable';
 import type { DetailData } from '../useNutritionistReviews';
+import ReusableReviewReferences from '../ReusableReviewReferences';
 
 /** Saved evidence is read-only. Notes never alter the approved recipe. */
 export default function CaseAuditSection({
@@ -49,6 +50,7 @@ export default function CaseAuditSection({
         ))}
       </dl>
       <IngredientEvidenceTable ingredients={ingredients} />
+      {model.detailData.reviewReferences && <ReusableReviewReferences references={model.detailData.reviewReferences} />}
     </section>
   );
 }

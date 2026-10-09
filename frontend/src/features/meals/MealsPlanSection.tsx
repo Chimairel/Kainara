@@ -103,7 +103,10 @@ export default function MealsPlanSection({ model }: Props) {
             title="Meal planning isn't available yet"
             description="An RND needs to review your declared health profile before meal candidates can be prepared. Each proposed meal will then receive its own case approval."
           />
-        ) : groupedDays.length === 0 && !pendingReview && error ? (
+        ) : groupedDays.length === 0 &&
+          !pendingReview &&
+          model.selectedPlanDay &&
+          model.selectedPlanDay.mealsList.length === 0 ? null : groupedDays.length === 0 && !pendingReview && error ? (
           emptyPlanState
         ) : groupedDays.length === 0 ? (
           pendingReview ? (

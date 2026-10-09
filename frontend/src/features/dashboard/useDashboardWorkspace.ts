@@ -1,5 +1,6 @@
 'use client';
 
+import type { RetainedMealLog } from '@/features/meals/RetainedMealLogs';
 import { useAuth } from '@/hooks/useAuth';
 import { useVisiblePolling } from '@/hooks/useVisiblePolling';
 import api from '@/lib/axios';
@@ -25,6 +26,7 @@ import { invalidateSessionResource, readSessionResource, writeSessionResource } 
 import { cachedUserProfile, getRecentUserProfile } from '@/lib/user-profile-resource';
 
 interface CurrentPlanSnapshot {
+  retainedMealLogs?: RetainedMealLog[];
   meals: MealPlan[];
   pendingReview: PendingReview | null;
   awaitingGenerationCount?: number;
@@ -47,6 +49,11 @@ export function useDashboardWorkspace() {
   const cachedEligibility = cachedClinicalProfileStatus(ownerId, cachedProfile);
   const profileSafetyRevision = cachedProfile?.userProfile?.safetyRevision;
   const router = useRouter();
+  const [retainedHistory, setRetainedHistory] = useState<{ ownerId: string | undefined; meals: RetainedMealLog[] }>({
+    ownerId,
+    meals: cachedPlan?.retainedMealLogs ?? [],
+  });
+  const retainedMealLogs = retainedHistory.ownerId === ownerId ? retainedHistory.meals : [];
   const [currentMeals, setCurrentMeals] = useState<MealPlan[]>(cachedPlan?.meals ?? []);
   const [selectedDayOffset, setSelectedDayOffset] = useState(0); // Index of selected date in uniqueDates
   const [isLoading, setIsLoading] = useState(!cachedPlan);
@@ -150,6 +157,7 @@ export function useDashboardWorkspace() {
   const applyCurrentPlan = useCallback(
     (snapshot: CurrentPlanSnapshot) => {
       setCurrentMeals(snapshot.meals);
+      setRetainedHistory({ ownerId, meals: snapshot.retainedMealLogs ?? [] });
       setPendingReview(snapshot.pendingReview);
       setAwaitingGenerationCount(snapshot.awaitingGenerationCount ?? 0);
       setGenerationStatus(snapshot.generationStatus ?? null);
@@ -244,6 +252,7 @@ export function useDashboardWorkspace() {
           setClinicalEvidenceRequired(false);
           applyCurrentPlan({
             meals: Array.isArray(res.data.data) ? res.data.data : [],
+            retainedMealLogs: res.data.meta?.retainedMealLogs ?? [],
             pendingReview: res.data.meta?.pendingReview ?? null,
             awaitingGenerationCount: res.data.meta?.awaitingGenerationCount ?? 0,
             generationStatus: res.data.meta?.generationStatus ?? null,
@@ -258,6 +267,7 @@ export function useDashboardWorkspace() {
         if (axios.isAxiosError(err) && err.response?.data?.errorCode === 'CLINICAL_EVIDENCE_REQUIRED') {
           setClinicalEvidenceRequired(true);
           setCurrentMeals([]);
+          setRetainedHistory({ ownerId, meals: [] });
           setPendingReview(null);
           setCurrentCycle(null);
           setAwaitingGenerationCount(0);
@@ -280,7 +290,7 @@ export function useDashboardWorkspace() {
     profileReviewStatus === 'ready' &&
     (isGenerating ||
       ['GENERATING', 'WAITING_FOR_AI', 'PROCESSING_AI'].includes(generationStatus ?? '') ||
-      (!currentMeals.length && !pendingReview && !error && generationStatus !== 'FAILED'));
+      (!currentMeals.length && !retainedMealLogs.length && !pendingReview && !error && generationStatus !== 'FAILED'));
 
   useVisiblePolling(fetchCurrentPlan, {
     enabled: Boolean(ownerId),
@@ -363,6 +373,7 @@ export function useDashboardWorkspace() {
       if (res.data && res.data.success) {
         applyCurrentPlan({
           meals: Array.isArray(res.data.data) ? res.data.data : [],
+          retainedMealLogs: res.data.meta?.retainedMealLogs ?? [],
           pendingReview: res.data.meta?.pendingReview ?? null,
           awaitingGenerationCount: res.data.meta?.awaitingGenerationCount ?? 0,
           generationStatus: res.data.meta?.generationStatus ?? null,
@@ -389,6 +400,7 @@ export function useDashboardWorkspace() {
       if (res.data.success) {
         applyCurrentPlan({
           meals: res.data.data.meals,
+          retainedMealLogs: res.data.data.retainedMealLogs ?? [],
           pendingReview: res.data.data.pendingReview ?? null,
           awaitingGenerationCount: res.data.data.awaitingGenerationCount ?? 0,
           generationStatus: res.data.data.generationStatus ?? null,
@@ -429,6 +441,7 @@ export function useDashboardWorkspace() {
   const metrics = calculateDashboardMetrics({
     activeDate,
     currentMeals,
+    retainedMealLogs,
     dailyCalorieTarget: planSnapshot?.dailyCalorieTarget ?? userProfile?.dailyCalorieTarget,
     dailyMacroTargets: planSnapshot?.dailyMacroTargets,
     outsideMealLogs,
@@ -459,6 +472,7 @@ export function useDashboardWorkspace() {
     awaitingGenerationCount,
     isReportPending,
     currentMeals,
+    retainedMealLogs,
     pendingReview,
     generationStatus,
     retryMissingGeneration,

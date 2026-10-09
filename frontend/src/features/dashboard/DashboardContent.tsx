@@ -1,5 +1,6 @@
 'use client';
 
+import RetainedMealLogs from '@/features/meals/RetainedMealLogs';
 import StateNotice from '@/components/shared/StateNotice';
 import { CockpitDashboard } from '@/features/dashboard/CockpitDashboard';
 import DashboardSkeleton from '@/features/dashboard/DashboardSkeleton';
@@ -14,6 +15,7 @@ export default function DashboardContent({ model }: { model: ReturnType<typeof u
     isLoading,
     isReportPending,
     currentMeals,
+    retainedMealLogs,
     pendingReview,
     generationStatus,
     profileReviewStatus,
@@ -69,14 +71,19 @@ export default function DashboardContent({ model }: { model: ReturnType<typeof u
             ? 'Checking meal-planning eligibility…'
             : 'We could not check your meal-planning eligibility. Refresh this page to try again.'}
         </div>
-      ) : error && currentMeals.length === 0 && !pendingReview && generationStatus !== 'FAILED' && !isGenerating ? (
+      ) : error &&
+        currentMeals.length === 0 &&
+        !retainedMealLogs.length &&
+        !pendingReview &&
+        generationStatus !== 'FAILED' &&
+        !isGenerating ? (
         <StateNotice
           variant="no-meal-plan"
           title="Could not load your meal plan"
           description="We could not retrieve the latest preparation status. Retry loading your saved plan."
           action={{ label: 'Retry loading', onClick: () => void fetchCurrentPlan() }}
         />
-      ) : currentMeals.length === 0 && !pendingReview ? (
+      ) : currentMeals.length === 0 && !retainedMealLogs.length && !pendingReview ? (
         <StateNotice
           variant={generationStatus === 'FAILED' && !isGenerating ? 'preparing-failed' : 'preparing'}
           title={
@@ -102,6 +109,7 @@ export default function DashboardContent({ model }: { model: ReturnType<typeof u
       ) : (
         <>
           <DashboardDateNavigation model={model} />
+          <RetainedMealLogs meals={retainedMealLogs} dateKey={getManilaDateKey(activeDate)} />
 
           <CockpitDashboard
             activeDate={activeDate}
