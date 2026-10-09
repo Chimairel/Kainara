@@ -48,6 +48,8 @@ async function portalFixture(
     else if (path === '/user/notifications') data = { notifications: [], unreadCount: 0 };
     else if (path === '/user/membership') data = { enabled: false };
     else if (path === '/user/meals/cycles') data = { current: null, upcoming: null };
+    else if (path === '/admin/users') data = { users: [], total: 0, page: 1, limit: 20 };
+    else if (path === '/admin/review-routing') data = { config: { enabled: false, retired: true }, episodes: [] };
     await route.fulfill({ headers, json: { success: true, data: data ?? [] } });
   });
 }
@@ -195,6 +197,7 @@ test('administrator can revoke and restore access with records preserved in the 
           id: 'professional',
           isVerified: true,
           prcLicenseNumber: 'TEST-ONLY',
+          prcLicenseExpiry: '2099-12-31T00:00:00Z',
           totalVerified: 12,
           canLeadReview: false,
           user: {
@@ -291,14 +294,18 @@ test('nutritionist claims a profile and confirms the submitted health form', asy
   await page.getByRole('button', { name: /Member queue/ }).click();
   await page.getByRole('button', { name: /Synthetic Patient/ }).click();
   await expect(page.getByText('Synthetic user-reported diabetes context')).toBeVisible();
-  await page.getByRole('textbox', { name: 'Review notes' }).fill('Reviewed the synthetic details for planning.');
-  await expect(page.getByRole('button', { name: 'Confirm for planning' })).toBeDisabled();
+  await expect(page.getByRole('textbox', { name: 'Review notes' })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Profile decision' })).toHaveCount(0);
   const claim = page.getByRole('button', { name: 'Claim profile' });
   await expect(claim.locator('xpath=ancestor::header')).toHaveCount(1);
-  await page.getByRole('button', { name: 'Expand case details' }).click();
+  await page.getByRole('button', { name: 'Expand canvas' }).click();
   await expect(claim).toBeVisible();
   await expect(claim.locator('xpath=ancestor::header')).toHaveCount(1);
   await claim.click();
+  await page.getByRole('button', { name: 'Profile decision', exact: true }).click();
+  await expect(page.getByRole('dialog', { name: 'Record profile decision' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Confirm for planning' })).toBeDisabled();
+  await page.getByRole('textbox', { name: 'Review notes' }).fill('Reviewed the synthetic details for planning.');
   await expect(page.getByRole('button', { name: 'Confirm for planning' })).toBeEnabled();
   await page.getByRole('button', { name: 'Confirm for planning' }).click();
   await expect(page.getByText('Profile queue is clear.')).toBeVisible();
@@ -356,7 +363,8 @@ test('nutritionist sees missing allergy details and an open deleted case closes 
   await page.goto('/nutritionist/reviews');
   await page.getByRole('button', { name: /Member queue/ }).click();
   await page.getByRole('button', { name: /Synthetic Member/ }).click();
-  await page.getByRole('button', { name: 'Expand case details' }).click();
+  await page.getByRole('button', { name: 'Expand canvas' }).click();
+  await page.getByRole('button', { name: 'Profile decision', exact: true }).click();
   await page.getByRole('textbox', { name: 'Review notes' }).fill('Reviewed the saved heart condition details.');
   await expect(page.getByRole('button', { name: 'Confirm for planning' })).toBeDisabled();
   await expect(page.getByText('Ask the member to complete and save food allergy details.')).toBeVisible();
@@ -364,7 +372,7 @@ test('nutritionist sees missing allergy details and an open deleted case closes 
   await expect(page.getByRole('button', { name: 'Request details' })).toBeEnabled();
   deleted = true;
   await page.evaluate(() => window.dispatchEvent(new Event('kainara:live-update')));
-  await expect(page.getByRole('dialog', { name: 'Expanded case view' })).toHaveCount(0);
+  await expect(page.getByRole('dialog')).toHaveCount(0);
   await expect(page.getByText('Profile queue is clear.')).toBeVisible();
   await expect(page.getByRole('button', { name: 'Confirm for planning' })).toHaveCount(0);
   expect(errors).toEqual([]);

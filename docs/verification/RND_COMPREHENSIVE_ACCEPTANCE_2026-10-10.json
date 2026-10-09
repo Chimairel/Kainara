@@ -1,0 +1,167 @@
+{
+  "date": "2026-10-10",
+  "changeId": "CHG-20261010-08",
+  "implementationBaseline": "0de46bd71c86571c87acf587b930ea98a3acc4ac",
+  "scope": "Five RND clarification batches, full unit suites and related governance/audit/browser regression",
+  "sharedDatabaseWrites": 0,
+  "realProviderCalls": 0,
+  "sharedWorkflowEnabled": false,
+  "syntheticAccounts": {
+    "basis": "Final surviving SQL role aggregates after the authenticated browser run; deletion/recreated fixtures are not added to this count",
+    "total": 103,
+    "members": 27,
+    "rnds": 66,
+    "admins": 10
+  },
+  "databaseSuites": [
+    {
+      "script": "clinical-clarification-local-acceptance.ts",
+      "database": "127.0.0.1:55488/kainara_clarifications",
+      "passedScenarioGroups": 13,
+      "roles": { "USER": 2, "NUTRITIONIST": 3, "ADMIN": 1 }
+    },
+    {
+      "script": "profile-proposal-local-acceptance.ts",
+      "database": "127.0.0.1:55488/kainara_profile_proposals",
+      "passedScenarioGroups": 19,
+      "roles": { "USER": 2, "NUTRITIONIST": 3, "ADMIN": 1 }
+    },
+    {
+      "script": "meal-context-local-acceptance.ts",
+      "database": "127.0.0.1:55488/kainara_meal_context",
+      "passedScenarioGroups": 8,
+      "roles": { "USER": 2, "NUTRITIONIST": 21, "ADMIN": 1 }
+    },
+    {
+      "script": "meal-clarification-local-acceptance.ts",
+      "database": "127.0.0.1:55488/kainara_meal_clarification",
+      "passedScenarioGroups": 13,
+      "roles": { "USER": 2, "NUTRITIONIST": 21, "ADMIN": 1 }
+    },
+    {
+      "script": "review-filters-local-acceptance.ts",
+      "database": "127.0.0.1:55488/kainara_review_filters",
+      "passedScenarioGroups": 11,
+      "libraryFixtures": 128,
+      "roles": { "USER": 1, "NUTRITIONIST": 2, "ADMIN": 1 }
+    },
+    {
+      "script": "review-reference-local-acceptance.ts",
+      "database": "127.0.0.1:55488/kainara_review_references",
+      "passedScenarioGroups": 6,
+      "roles": { "USER": 3, "NUTRITIONIST": 2, "ADMIN": 1 },
+      "accountNote": "Ordinary six-group run creates five accounts; the separate browser fixture adds a third member for external profile-change withdrawal"
+    },
+    {
+      "script": "rnd-canvas-swap-local-acceptance.ts",
+      "database": "127.0.0.1:55488/kainara_rnd_canvas",
+      "passedScenarioGroups": 18,
+      "clarificationsEnabled": false,
+      "roles": { "USER": 1, "NUTRITIONIST": 3, "ADMIN": 1 }
+    },
+    {
+      "script": "meal-governance-local-acceptance.ts",
+      "database": "127.0.0.1:55485/kainara_governance_comprehensive_20261010",
+      "passedScenarioGroups": 11,
+      "clarificationsEnabled": false,
+      "roles": { "USER": 7, "NUTRITIONIST": 10, "ADMIN": 2 },
+      "integratedJourney": {
+        "members": 5,
+        "rnds": 10,
+        "cases": ["Heart A", "Heart B", "Healthy control", "Diabetes", "Pregnancy without specialist"],
+        "allEligibleRndIndices": [0, 1, 2, 3, 4, 5, 6, 7],
+        "blockedRndIndices": [8, 9],
+        "blockedReasons": ["suspended", "expired credential"],
+        "expertisePriority": false,
+        "incidentCount": 2,
+        "quarantined": true,
+        "adminOriginalAndCorrectedNutrition": true,
+        "adminBothFlagNotesAndActors": true,
+        "independentRereviewerPreviousVerificationAndFlagNotes": true
+      }
+    },
+    {
+      "script": "meal-log-audit-local-acceptance.ts",
+      "database": "127.0.0.1:55485/kainara_logs_comprehensive_20261010",
+      "result": "passed",
+      "roles": { "USER": 7, "NUTRITIONIST": 1, "ADMIN": 1 },
+      "historicalFixture": "Seed before meal-log audit migration, then apply remaining migrations",
+      "checks": [
+        "legacy context",
+        "variants",
+        "retries",
+        "concurrency",
+        "rollback",
+        "corrections",
+        "actors",
+        "removals",
+        "cohorts",
+        "pagination",
+        "access",
+        "account erasure"
+      ]
+    }
+  ],
+  "schema": { "migrationsAppliedPerFinalFixture": 103, "validation": "passed" },
+  "unitSuites": {
+    "backend": { "passed": 872, "failed": 0, "todo": 1, "total": 873 },
+    "frontendComponents": { "passed": 821, "failed": 0, "files": 180 },
+    "frontendNodeSecurityAndWorker": { "passed": 8, "failed": 0 }
+  },
+  "browser": {
+    "engine": "Chromium",
+    "authenticatedDisposableBackend": {
+      "passed": 6,
+      "failed": 0,
+      "spec": "e2e/rnd-clarification-live.spec.ts",
+      "memberWidths": [390, 1440],
+      "themes": ["light", "dark"],
+      "liveExternalProfileChange": "claimed fullscreen canvas closes to the default queue panel without navigation; stale meal disappears and direct access is denied",
+      "localLog": "backend/.local/comprehensive-live-rerun.log"
+    },
+    "interceptedApiPresentation": {
+      "passed": 50,
+      "failed": 0,
+      "specs": [
+        "professional-workflows.spec.ts",
+        "rnd-queue-document.spec.ts",
+        "meal-governance.spec.ts",
+        "audit-details.spec.ts",
+        "admin-meal-logs.spec.ts",
+        "live-updates.spec.ts",
+        "profile-privacy.spec.ts",
+        "meal-review-attribution.spec.ts"
+      ],
+      "localLog": "backend/.local/comprehensive-ui-final.log",
+      "authorizationEvidence": "Separate real HTTP suites, not the intercepted browser fixtures"
+    }
+  },
+  "gates": {
+    "backendLint": "passed",
+    "frontendLint": "passed",
+    "backendBuild": "passed",
+    "frontendBuild": "passed",
+    "frontendTypeScript": "passed",
+    "acceptanceTypeScript": "passed",
+    "globalArchitecture": {
+      "result": "failed_existing_baseline",
+      "file": "backend/src/services/clinical-evidence.service.ts",
+      "lines": 901,
+      "limit": 900,
+      "applicationChangesInThisTask": false
+    }
+  },
+  "testRepairs": [
+    "Retired expertise-routing expectations changed to equal shared-pool access with credential/suspension exclusions",
+    "Profile decisions now exercised through current claim-gated canvas and modal",
+    "Complete accounts/routing-history DTOs and PRC expiry in admin browser fixture",
+    "Disambiguated current quarantine status from historical incident status",
+    "Distinct Playwright output directories and fresh mutable fixtures after artifact collision"
+  ],
+  "limits": [
+    "No shared migration application, feature enablement or demo promotion",
+    "Synthetic signed sessions; interactive login and external provider delivery not newly exercised",
+    "Regression scenario groups overlap across suites; 99 is execution count, not 99 distinct business features",
+    "Automated software checks do not establish clinical validation or exhaustive input coverage"
+  ]
+}

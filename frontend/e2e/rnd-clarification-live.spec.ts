@@ -7,6 +7,7 @@ type Fixture = {
   apiOrigin: string;
   memberId: string;
   mealId?: string;
+  liveMealId?: string;
   actors: Record<string, { userId: string; token: string }>;
 };
 const fixture = (kind: string): Fixture =>
@@ -117,4 +118,32 @@ test('RND exact reference, canvas zoom, persistent questions, late member answer
   await expect(page.getByLabel(/Has your recorded health context changed/)).toHaveValue(
     'My recorded context is unchanged. This is a late answer.'
   );
+});
+
+test('external member profile change exits the claimed fullscreen meal canvas without navigation', async ({
+  page,
+  context,
+}) => {
+  test.setTimeout(90_000);
+  const state = fixture('reference');
+  await connect(context, page, state, 'successor');
+  await page.goto('/nutritionist/reviews');
+  await page.getByRole('button', { name: /Case approval/i }).click();
+  await page.getByText('Live context plate', { exact: true }).first().click();
+  await page.getByRole('button', { name: /Claim review/i }).click();
+  await page.getByRole('button', { name: /Expand canvas/i }).click();
+  await expect(page.getByRole('dialog')).toBeVisible();
+  const changed = await context.request.put(`${state.apiOrigin}/api/user/profile`, {
+    headers: { Authorization: `Bearer ${state.actors.liveMember.token}` },
+    data: { weightKg: 64 },
+  });
+  expect(changed.status()).toBe(200);
+  await expect(page.getByRole('dialog')).toHaveCount(0, { timeout: 35_000 });
+  await expect(page.getByText('A clear path to every review')).toBeVisible();
+  await expect(page.getByText('Live context plate', { exact: true })).toHaveCount(0);
+  await expect(page).toHaveURL(/nutritionist\/reviews/);
+  const invalid = await context.request.get(`${state.apiOrigin}/api/nutritionist/queue/${state.liveMealId}`, {
+    headers: { Authorization: `Bearer ${state.actors.successor.token}` },
+  });
+  expect([404, 409]).toContain(invalid.status());
 });

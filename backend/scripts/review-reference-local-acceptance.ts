@@ -462,11 +462,16 @@ async function main() {
       await db.mealReviewReference.create({
         data: { ...saved, plateFacts: saved.plateFacts as Prisma.InputJsonObject },
       });
+      const liveMember = await cloneProfile();
+      const liveMeal = await makeSlot(liveMember);
+      await db.mealPlan.update({ where: { id: liveMeal.id }, data: { mealName: 'Live context plate' } });
+      await ok(request(rnd, `/nutritionist/queue/${liveMeal.id}/release`, 'POST', {}));
       const fixture = {
         apiOrigin: base.replace(/\/api$/, ''),
         memberId: second.id,
         mealId: fresh.id,
-        actors: { member: second, rnd, successor: other, admin },
+        liveMealId: liveMeal.id,
+        actors: { member: second, rnd, successor: other, admin, liveMember },
       };
       const actors = Object.fromEntries(
         Object.entries(fixture.actors).map(([role, actor]) => [

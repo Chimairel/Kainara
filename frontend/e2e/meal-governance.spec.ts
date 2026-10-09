@@ -145,7 +145,7 @@ for (const role of ['ADMIN', 'NUTRITIONIST'] as const) {
       await page.goto(role === 'ADMIN' ? '/admin/meals' : '/nutritionist/library');
       await page.getByRole('button', { name: 'Review case', exact: true }).click();
       const panel = page.getByRole('region', { name: 'Meal-wide review', exact: true });
-      await expect(panel.getByText('Quarantined', { exact: true })).toBeVisible();
+      await expect(panel.getByRole('strong').filter({ hasText: /^Quarantined$/ })).toBeVisible();
       await expect(panel.getByText('NUTRITION · Synthetic flagger')).toBeVisible();
       await expect(panel.getByText('Recorded composition reference from the food catalogue.')).toBeVisible();
       if (role === 'ADMIN') {

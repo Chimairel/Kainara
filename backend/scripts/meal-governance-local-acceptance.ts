@@ -17,7 +17,7 @@ async function main() {
   const target = new URL(process.env.DATABASE_URL ?? '');
   assert.equal(target.hostname, '127.0.0.1');
   assert.equal(target.port, '55485');
-  assert.equal(target.pathname, '/kainara_meal_governance');
+  assert(['/kainara_meal_governance', '/kainara_governance_comprehensive_20261010'].includes(target.pathname));
   assert.equal(process.env.NODE_ENV, 'test');
   for (const key of ['GEMINI_API_KEY', 'SMTP_USER', 'BREVO_API_KEY', 'PAYMONGO_SECRET_KEY'])
     assert.equal(process.env[key] ?? '', '');
@@ -738,7 +738,7 @@ async function main() {
       foodId: food.id,
       request,
     });
-    passed('Integrated member approval, specialist visibility, corrected re-review, quarantine and admin audit');
+    passed('Integrated member approval, shared-pool visibility, corrected re-review, quarantine and admin audit');
     console.log(
       JSON.stringify(
         {

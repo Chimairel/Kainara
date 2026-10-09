@@ -60,7 +60,8 @@ export async function mealGovernanceRoutedJourney({ admin, rnds, account, meal, 
       );
   }
   await prisma.user.update({ where: { id: rnds[8].user.id }, data: { isSuspended: true } });
-  await ok(request(admin, '/admin/review-routing', 'PATCH', { enabled: true }));
+  assert.equal((await request(admin, '/admin/review-routing', 'PATCH', { enabled: true })).status, 410);
+  assert.equal((await ReviewRoutingService.config()).retired, true);
 
   const root = await meal('Synthetic routed journey plate', 300);
   await prisma.mealLibrary.update({ where: { id: root.id }, data: { verifiedByNutritionistId: null } });
@@ -132,22 +133,23 @@ export async function mealGovernanceRoutedJourney({ admin, rnds, account, meal, 
     return user;
   };
   const definitions: { label: string; conditions: HealthConditionType[]; expected: number[]; reviewer: number }[] = [
-    { label: 'Heart A', conditions: ['HEART_CONDITION'], expected: [1, 2, 3], reviewer: 2 },
-    { label: 'Heart B', conditions: ['HEART_CONDITION'], expected: [1, 2, 3], reviewer: 3 },
+    { label: 'Heart A', conditions: ['HEART_CONDITION'], expected: [0, 1, 2, 3, 4, 5, 6, 7], reviewer: 2 },
+    { label: 'Heart B', conditions: ['HEART_CONDITION'], expected: [0, 1, 2, 3, 4, 5, 6, 7], reviewer: 3 },
     { label: 'Healthy control', conditions: ['NONE'], expected: [0, 1, 2, 3, 4, 5, 6, 7], reviewer: 4 },
-    { label: 'Diabetes', conditions: ['DIABETES'], expected: [7], reviewer: 7 },
-    { label: 'Pregnancy without specialist', conditions: ['PREGNANT'], expected: [4, 6], reviewer: 6 },
+    { label: 'Diabetes', conditions: ['DIABETES'], expected: [0, 1, 2, 3, 4, 5, 6, 7], reviewer: 7 },
+    {
+      label: 'Pregnancy without specialist',
+      conditions: ['PREGNANT'],
+      expected: [0, 1, 2, 3, 4, 5, 6, 7],
+      reviewer: 6,
+    },
   ];
   const scenarios = [];
   for (const definition of definitions) {
     const user = await member(definition.conditions);
     await ok(request(rnds[definition.reviewer].user, '/nutritionist/profile-work'));
     await ReviewRoutingService.resolve({ userId: user.id });
-    const episode = await prisma.reviewRoutingEpisode.findFirstOrThrow({ where: { userId: user.id } });
-    assert.deepEqual(
-      [...episode.selectedReviewerIds].sort(),
-      definition.conditions[0] === 'NONE' ? [] : definition.expected.map((index) => rnds[index].profile.id).sort()
-    );
+    assert.equal(await prisma.reviewRoutingEpisode.count({ where: { userId: user.id } }), 0);
     if (definition.conditions[0] !== 'NONE') {
       await ok(request(rnds[definition.reviewer].user, `/nutritionist/profile-reviews/${user.id}/claim`, 'POST', {}));
       const profile = await ok(request(rnds[definition.reviewer].user, `/nutritionist/profile-reviews/${user.id}`));
@@ -233,9 +235,9 @@ export async function mealGovernanceRoutedJourney({ admin, rnds, account, meal, 
         `${definition.label}: RND ${index} direct visibility`
       );
     }
-    scenarios.push({ ...definition, user, plan, episode });
+    scenarios.push({ ...definition, user, plan });
     console.log(
-      `PASS routed journey visibility: ${definition.label}; eligible reviewer indices ${definition.expected.join(', ')}`
+      `PASS shared-pool journey visibility: ${definition.label}; eligible reviewer indices ${definition.expected.join(', ')}`
     );
   }
   const heart = scenarios[0],
@@ -419,7 +421,7 @@ export async function mealGovernanceRoutedJourney({ admin, rnds, account, meal, 
     rnds: rnds.length,
     quarantine: true,
     recipeIncidentCount: 2,
-    memberSpecificPriority: true,
+    memberSpecificPriority: false,
     recipeRereviewPool: 'shared eligible RND pool',
     sharedDatabaseWrites: 0,
   };
