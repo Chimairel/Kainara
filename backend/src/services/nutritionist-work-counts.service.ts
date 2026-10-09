@@ -1,4 +1,5 @@
 import prisma from '@/lib/prisma';
+import { getActiveMealReviewPeriodWhere } from '@/domain/meal-actionability.policy';
 import { MealBaseVerificationService } from '@/services/meal-base-verification.service';
 import { NutritionistProfileWorkService } from '@/services/nutritionist-profile-work.service';
 import { NutritionistService } from '@/services/nutritionist.service';
@@ -29,7 +30,7 @@ export class NutritionistWorkCountsService {
     ]);
     const disputesPromise = Promise.all([
       prisma.mealConditionClearance.count({ where: { state: 'DISPUTED' } }),
-      prisma.mealPlan.count({ where: { status: 'DISPUTED' } }),
+      prisma.mealPlan.count({ where: { status: 'DISPUTED', ...getActiveMealReviewPeriodWhere() } }),
     ]);
     const [
       [mealVerifications, caseReviews, profiles, outside, dueAudit, dueProfileApprovals],

@@ -17,6 +17,7 @@ import { ClinicalEvidenceService } from './clinical-evidence.service';
 
 import { assertObservedSourceStillAvailable } from './observed-source-guard.service';
 import { AppError } from '@/errors/AppError';
+import { getNutritionistReviewableMealPlanWhere } from '@/domain/meal-actionability.policy';
 
 async function findScopeMatchedPendingPlans(
   tx: Prisma.TransactionClient,
@@ -161,7 +162,7 @@ export async function approveMealPlan(
       const decision = await tx.mealPlan.updateMany({
         where: {
           id: mealPlanId,
-          status: MealPlanStatus.PENDING_REVIEW,
+          ...getNutritionistReviewableMealPlanWhere(),
           reviewApprovalCount: plan.reviewApprovalCount,
           baseRecipeSignature: plan.baseRecipeSignature,
           composedServingSignature: plan.composedServingSignature,
@@ -291,10 +292,10 @@ export async function approveMealPlan(
           id: { not: mealPlanId },
           ...(healthDetails.length ? { userId: plan.userId } : {}),
           reviewWorkKey: plan.reviewWorkKey,
-          status: MealPlanStatus.PENDING_REVIEW,
+          ...getNutritionistReviewableMealPlanWhere(),
           reviewApprovalCount: { in: [0, 1] },
           claimedByNutritionistId: null,
-          cycle: { profileAdaptationState: 'CURRENT' },
+          AND: [{ cycle: { profileAdaptationState: 'CURRENT' } }],
         };
         const matched = await findScopeMatchedPendingPlans(tx, dependentWhere, approvedScope.key);
         const dependents = [];
@@ -307,14 +308,20 @@ export async function approveMealPlan(
             await ReviewRoutingService.assertMeal(nutritionistProfileId, candidate.id, tx);
             dependents.push(candidate);
           } catch (error) {
-            if (!(error instanceof AppError) || error.errorCode !== 'REVIEW_NOT_FOUND') throw error;
+            if (!(error instanceof AppError) || !['REVIEW_NOT_FOUND', 'MEAL_REVIEW_INACTIVE'].includes(error.errorCode))
+              throw error;
           }
         }
 
         if (dependents.length) {
           const dependentIds = dependents.map((item) => item.id);
-          await tx.mealPlan.updateMany({
-            where: { id: { in: dependentIds } },
+          const propagated = await tx.mealPlan.updateMany({
+            where: {
+              ...getNutritionistReviewableMealPlanWhere(),
+              id: { in: dependentIds },
+              claimedByNutritionistId: null,
+              AND: [{ cycle: { profileAdaptationState: 'CURRENT' } }],
+            },
             data: {
               status: MealPlanStatus.APPROVED,
               nutritionistId: nutritionistProfileId,
@@ -327,6 +334,12 @@ export async function approveMealPlan(
               claimedAt: null,
             },
           });
+          if (propagated.count !== dependents.length)
+            throw new AppError(
+              'Related review requests changed. Refresh the queue before approving.',
+              409,
+              'MEAL_REVIEW_CHANGED'
+            );
           await tx.mealPlanReviewDecision.createMany({
             data: dependents.map((item) => ({
               mealPlanId: item.id,

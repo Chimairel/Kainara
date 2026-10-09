@@ -11,6 +11,7 @@ import {
   RuleApprovalDecision,
 } from '@prisma/client';
 import prisma from '@/lib/prisma';
+import { getActiveMealReviewPeriodWhere } from '@/domain/meal-actionability.policy';
 import { evaluateMealLibrarySafetyEvidence } from '@/domain/meal-library-safety-evidence.policy';
 import { isNutritionistEligibleForReview } from '@/domain/nutritionist-review.policy';
 import {
@@ -346,7 +347,7 @@ export class ConditionClearanceService {
           take: 100,
         }),
         prisma.mealPlan.findMany({
-          where: { status: 'DISPUTED' },
+          where: { status: 'DISPUTED', ...getActiveMealReviewPeriodWhere() },
           select: { id: true, mealName: true, mealType: true, scheduledDate: true, user: { select: { name: true } } },
           orderBy: { reviewedAt: 'asc' },
           take: 100,

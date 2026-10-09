@@ -155,3 +155,22 @@ describe('RND review claim controls', () => {
     expect(result.current.detailData?.claimStatus.claimedByMe).toBe(true);
   });
 });
+
+it('closes a previously open case when its claim request reports expiry and refreshes the active queue', async () => {
+  vi.resetAllMocks();
+  vi.mocked(api.get).mockImplementation(async (url) => ({
+    data: { success: true, data: url === '/nutritionist/queue' ? [] : preview },
+  }));
+  vi.mocked(api.post).mockRejectedValueOnce({
+    response: { data: { code: 'MEAL_REVIEW_INACTIVE', error: 'This meal approval request expired.' } },
+  });
+  const { result } = renderHook(() => useNutritionistReviews());
+  await waitFor(() => expect(result.current.isLoading).toBe(false));
+  await act(() => result.current.handleSelectMeal('meal-1'));
+  expect(result.current.selectedMealId).toBe('meal-1');
+  await act(() => result.current.handleClaimMeal());
+  expect(result.current.selectedMealId).toBeNull();
+  expect(result.current.detailData).toBeNull();
+  expect(result.current.queue).toEqual([]);
+  expect(result.current.errorMsg).toBeNull();
+});

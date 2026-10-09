@@ -3,6 +3,7 @@ import { HealthConditionType, Prisma, type ReviewRoutingEpisode } from '@prisma/
 import prisma from '@/lib/prisma';
 import { logger } from '@/lib/logger';
 import { AppError } from '@/errors/AppError';
+import { isActiveMealReviewPeriod } from '@/domain/meal-actionability.policy';
 import { adaptUserSafetyRestrictions } from '@/domain/structured-restriction.adapter';
 import {
   eligibleRoutingReviewer,
@@ -452,7 +453,6 @@ export class ReviewRoutingService {
   }
 
   static async assertMeal(reviewerId: string, mealId: string, db: Db = prisma) {
-    if (!(await this.config(db)).enabled) return disabled;
     const meal = await db.mealPlan.findUnique({
       where: { id: mealId },
       select: {
@@ -462,9 +462,19 @@ export class ReviewRoutingService {
         createdAt: true,
         claimedAt: true,
         claimedByNutritionistId: true,
+        scheduledDate: true,
+        supersededByMealPlanId: true,
+        cycle: { select: { endDate: true, status: true, supersededById: true } },
       },
     });
     if (!meal) throw new AppError('Review not found.', 404, 'REVIEW_NOT_FOUND');
+    if (!isActiveMealReviewPeriod(meal))
+      throw new AppError(
+        'This meal approval request has expired or belongs to a replaced plan. Refresh the queue to review current meals.',
+        409,
+        'MEAL_REVIEW_INACTIVE'
+      );
+    if (!(await this.config(db)).enabled) return disabled;
     const result = await this.resolve(
       { userId: meal.userId, cycleId: meal.planGroupId, readyAt: meal.createdAt },
       db === prisma ? undefined : db

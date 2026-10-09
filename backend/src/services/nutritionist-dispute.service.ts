@@ -1,4 +1,7 @@
 import prisma from '@/lib/prisma';
+import { getActiveMealReviewPeriodWhere, isActiveMealReviewPeriod } from '@/domain/meal-actionability.policy';
+import { AppError } from '@/errors/AppError';
+import { lockUserProfile } from './profile-revision.service';
 import { isNutritionistEligibleForReview } from '@/domain/nutritionist-review.policy';
 
 import { MealPlanStatus, NotificationType } from '@prisma/client';
@@ -21,15 +24,22 @@ export async function resolveMealPlanDispute(
   }
   const plan = await prisma.mealPlan.findUnique({
     where: { id: mealPlanId },
-    include: { reviewDecisions: true },
+    include: { reviewDecisions: true, cycle: true },
   });
   if (!plan || plan.status !== MealPlanStatus.DISPUTED) throw new Error('Disputed meal plan not found.');
+  if (!isActiveMealReviewPeriod(plan))
+    throw new AppError(
+      'This meal approval request is no longer active. Refresh the queue.',
+      409,
+      'MEAL_REVIEW_INACTIVE'
+    );
   if (plan.reviewDecisions.some((item) => item.nutritionistProfileId === nutritionistProfileId)) {
     throw new Error('Dispute adjudication requires a nutritionist who did not submit either disputed decision.');
   }
   const now = new Date();
   const status = decision === 'APPROVE' ? MealPlanStatus.APPROVED : MealPlanStatus.REJECTED;
   const updated = await prisma.$transaction(async (tx) => {
+    await lockUserProfile(tx, plan.userId);
     await tx.mealPlanReviewDecision.create({
       data: {
         mealPlanId,
@@ -48,7 +58,7 @@ export async function resolveMealPlanDispute(
       },
     });
     const result = await tx.mealPlan.update({
-      where: { id: mealPlanId },
+      where: { ...getActiveMealReviewPeriodWhere(), id: mealPlanId, status: MealPlanStatus.DISPUTED },
       data: {
         status,
         nutritionistId: nutritionistProfileId,

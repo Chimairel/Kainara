@@ -12,6 +12,7 @@ import {
   getCurrentMealPlanScheduleWhere,
   getNutritionEligibleMealLogWhere,
   getNutritionistReviewableMealPlanWhere,
+  isActiveMealReviewPeriod,
   getOwnedMealPlanWhere,
   getStartOfManilaBusinessDay,
   getUserActionableMealPlanWhere,
@@ -184,9 +185,35 @@ test('[TEST-014] nutritionist review policy still includes pending-review meals'
   assert.equal(isNutritionistReviewableMealPlanStatus(MealPlanStatus.APPROVED), false);
   assert.equal(isNutritionistReviewableMealPlanStatus(MealPlanStatus.REJECTED), false);
   assert.equal(isNutritionistReviewableMealPlanStatus(MealPlanStatus.CANCELLED), false);
-  assert.deepEqual(getNutritionistReviewableMealPlanWhere(), {
+  const start = new Date('2026-10-08T16:00:00Z');
+  assert.deepEqual(getNutritionistReviewableMealPlanWhere(new Date('2026-10-09T06:00:00Z')), {
     status: MealPlanStatus.PENDING_REVIEW,
+    scheduledDate: { gte: start },
+    supersededByMealPlanId: null,
+    cycle: { endDate: { gte: start }, supersededById: null, status: { notIn: ['COMPLETED', 'SUPERSEDED'] } },
   });
+});
+
+test('active case reviews use Philippine midnight and exclude ended/replaced plans while retaining today and future slots', () => {
+  const now = new Date('2026-10-08T16:00:00Z');
+  const plan = {
+    scheduledDate: now,
+    supersededByMealPlanId: null,
+    cycle: { endDate: new Date('2026-10-14T16:00:00Z'), status: 'ACTIVE', supersededById: null },
+  };
+  assert.equal(isActiveMealReviewPeriod(plan, now), true);
+  assert.equal(isActiveMealReviewPeriod({ ...plan, scheduledDate: new Date('2026-10-13T16:00:00Z') }, now), true);
+  const yesterday = { ...plan, scheduledDate: new Date(now.getTime() - 1) };
+  assert.equal(isActiveMealReviewPeriod(yesterday, new Date(now.getTime() - 1)), true);
+  assert.equal(isActiveMealReviewPeriod(yesterday, now), false);
+  assert.equal(isActiveMealReviewPeriod({ ...plan, supersededByMealPlanId: 'new-meal' }, now), false);
+  for (const changed of [
+    { endDate: new Date(now.getTime() - 1) },
+    { status: 'COMPLETED' },
+    { status: 'SUPERSEDED' },
+    { supersededById: 'new-cycle' },
+  ])
+    assert.equal(isActiveMealReviewPeriod({ ...plan, cycle: { ...plan.cycle, ...changed } }, now), false);
 });
 
 test('[TEST-014] known meal-plan states remain history-visible without becoming actionable', () => {

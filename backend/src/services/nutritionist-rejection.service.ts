@@ -2,6 +2,7 @@ import { ReviewRoutingService } from './review-routing.service';
 import prisma from '@/lib/prisma';
 import { loadPlanningNutritionContext } from '@/domain/user-nutrition-context';
 import { lockUserProfile } from './profile-revision.service';
+import { getNutritionistReviewableMealPlanWhere } from '@/domain/meal-actionability.policy';
 import { MealPlanStatus, AIConfidenceFlag, NotificationType, MealIngredientDataSource, Prisma } from '@prisma/client';
 import { generateGenerativeJSON } from '@/lib/gemini';
 
@@ -59,7 +60,7 @@ export async function rejectMealPlan(nutritionistProfileId: string, mealPlanId: 
       const decision = await tx.mealPlan.updateMany({
         where: {
           id: mealPlanId,
-          status: MealPlanStatus.PENDING_REVIEW,
+          ...getNutritionistReviewableMealPlanWhere(),
           claimedByNutritionistId: nutritionistProfileId,
           claimedAt: { gte: claimCutoff },
         },

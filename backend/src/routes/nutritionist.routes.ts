@@ -544,6 +544,8 @@ router.get('/queue/:id', async (req: AuthenticatedRequest, res: Response) => {
     const result = await NutritionistService.getReviewCardDetails(req.nutritionistProfileId!, mealPlanId);
     return res.status(200).json({ success: true, data: result });
   } catch (error: any) {
+    if (error instanceof AppError)
+      return res.status(error.statusCode).json({ success: false, error: error.message, code: error.errorCode });
     const message = sanitizeErrorMessage(error, 'Failed to retrieve review card details.');
     if (message.includes('not found')) {
       return res.status(404).json({ success: false, error: message });
@@ -560,7 +562,7 @@ router.post('/queue/:id/claim', async (req: AuthenticatedRequest, res: Response)
     const result = await NutritionistService.getReviewCardDetails(req.nutritionistProfileId!, req.params.id, true);
     return res.status(200).json({ success: true, data: result });
   } catch (error: unknown) {
-    if (error instanceof AppError && error.errorCode === 'REVIEW_NOT_FOUND')
+    if (error instanceof AppError)
       return res.status(error.statusCode).json({ success: false, error: error.message, code: error.errorCode });
     const message = sanitizeErrorMessage(error, 'Could not claim this review.');
     return res.status(isNutritionistReviewConflict(message) ? 409 : 422).json({ success: false, error: message });
@@ -572,7 +574,7 @@ router.post('/queue/:id/release', async (req: AuthenticatedRequest, res: Respons
     const result = await NutritionistService.releaseReviewClaim(req.nutritionistProfileId!, req.params.id);
     return res.status(200).json({ success: true, data: result });
   } catch (error: unknown) {
-    if (error instanceof AppError && error.errorCode === 'REVIEW_NOT_FOUND')
+    if (error instanceof AppError)
       return res.status(error.statusCode).json({ success: false, error: error.message, code: error.errorCode });
     return res
       .status(409)

@@ -12,6 +12,7 @@ import { buildMealLibraryRecipeSignature } from '../src/domain/meal-library-sign
 import { MEAL_LIBRARY_SAFETY_POLICY_VERSION } from '../src/domain/meal-library-safety-evidence.policy';
 import { libraryBaseRevisionKey } from '../src/services/meal-base-admission.service';
 import { UpcomingPlanPreparationService } from '../src/services/upcoming-plan-preparation.service';
+import { getStartOfManilaBusinessDay } from '../src/domain/meal-actionability.policy';
 import { CertifiedSlotFallbackService } from '../src/services/certified-slot-fallback.service';
 
 async function main() {
@@ -448,6 +449,137 @@ async function main() {
       true
     );
     pass('existing automatic certified fallback still works');
+    const today = getStartOfManilaBusinessDay();
+    const yesterday = new Date(today.getTime() - 86_400_000);
+    const current = await slot(),
+      upcoming = await slot();
+    await prisma.mealPlan.update({
+      where: { id: current.id },
+      data: { scheduledDate: today, candidateProvenance: 'RAW_RECIPE_CORPUS' },
+    });
+    await prisma.mealPlan.update({ where: { id: upcoming.id }, data: { candidateProvenance: 'RAW_RECIPE_CORPUS' } });
+    await prisma.mealPlanCycle.update({
+      where: { id: current.planGroupId },
+      data: {
+        startDate: today,
+        endDate: new Date(today.getTime() + 7 * 86_400_000),
+        preparationOpensAt: today,
+        shoppingDeadlineAt: today,
+      },
+    });
+    const expired = await slot(),
+      ended = await slot(),
+      completed = await slot(),
+      superseded = await slot(),
+      replaced = await slot();
+    for (const meal of [expired, ended, completed, superseded, replaced])
+      await prisma.mealPlan.update({ where: { id: meal.id }, data: { candidateProvenance: 'RAW_RECIPE_CORPUS' } });
+    await prisma.mealPlan.update({ where: { id: expired.id }, data: { scheduledDate: yesterday } });
+    await prisma.mealPlanCycle.update({
+      where: { id: ended.planGroupId },
+      data: { startDate: yesterday, endDate: yesterday, preparationOpensAt: yesterday, shoppingDeadlineAt: yesterday },
+    });
+    await prisma.mealPlanCycle.update({ where: { id: completed.planGroupId }, data: { status: 'COMPLETED' } });
+    await prisma.mealPlanCycle.update({
+      where: { id: superseded.planGroupId },
+      data: { supersededById: current.planGroupId },
+    });
+    await prisma.mealPlan.update({ where: { id: replaced.id }, data: { supersededByMealPlanId: current.id } });
+    const historical = await prisma.mealPlanReviewDecision.create({
+      data: {
+        mealPlanId: expired.id,
+        nutritionistProfileId: reviewer.id,
+        stage: 'PRIMARY',
+        decision: 'APPROVE',
+        rationale: 'Recorded earlier synthetic review.',
+        evidenceSnapshot: { calories: 800, source: 'SYNTHETIC_HISTORY' },
+      },
+    });
+    const historicalAudit = await prisma.auditEvent.create({
+      data: {
+        actorUserId: rnd.id,
+        actorName: rnd.name,
+        actorRole: 'NUTRITIONIST',
+        action: 'MEAL_PLAN_APPROVED',
+        entityType: 'MealPlan',
+        entityId: expired.id,
+        metadata: { rationale: historical.rationale },
+      },
+    });
+    const oldDispute = await slot(),
+      newDispute = await slot();
+    await prisma.mealPlan.update({
+      where: { id: oldDispute.id },
+      data: { scheduledDate: yesterday, status: 'DISPUTED' },
+    });
+    await prisma.mealPlan.update({ where: { id: newDispute.id }, data: { status: 'DISPUTED' } });
+    const inactive = [expired, ended, completed, superseded, replaced];
+    const rowsBefore = await prisma.mealPlan.count();
+    for (const routingEnabled of [false, true]) {
+      await prisma.reviewRoutingConfig.upsert({
+        where: { id: 'global' },
+        create: { id: 'global', enabled: routingEnabled },
+        update: { enabled: routingEnabled },
+      });
+      for (const actor of [rnd, other]) {
+        const activeQueue = await ok(request(actor, '/nutritionist/queue'));
+        assert(activeQueue.some((meal: { id: string }) => meal.id === current.id));
+        assert(activeQueue.some((meal: { id: string }) => meal.id === upcoming.id));
+        assert(!activeQueue.some((meal: { id: string }) => inactive.some((old) => old.id === meal.id)));
+        const counts = await ok(request(actor, '/nutritionist/review-work-counts'));
+        assert.equal(counts.case, activeQueue.length + 1);
+        const governance = await ok(request(actor, '/nutritionist/governance/queue?view=disputed'));
+        assert(governance.plans.some((meal: { id: string }) => meal.id === newDispute.id));
+        assert(!governance.plans.some((meal: { id: string }) => meal.id === oldDispute.id));
+      }
+    }
+    pass(
+      'past, ended, completed and replaced requests leave active queues and counts with routing on/off; today/future cases remain'
+    );
+    for (const meal of inactive) {
+      for (const [path, method, body] of [
+        [`/nutritionist/queue/${meal.id}`, 'GET', undefined],
+        [`/nutritionist/queue/${meal.id}/claim`, 'POST', {}],
+        [`/nutritionist/queue/${meal.id}/swap-options`, 'GET', undefined],
+        [`/nutritionist/review/${meal.id}`, 'PATCH', { action: 'approve', note: 'Stale browser attempt.' }],
+        [`/nutritionist/review/${meal.id}`, 'PATCH', { action: 'reject', note: 'Stale browser attempt.' }],
+      ] as const) {
+        const outcome = await request(rnd, path, method, body);
+        assert.equal(outcome.status, 409);
+        assert.equal(
+          (outcome.body as { code?: string; errorCode?: string }).code ??
+            (outcome.body as { errorCode?: string }).errorCode,
+          'MEAL_REVIEW_INACTIVE'
+        );
+      }
+    }
+    assert.equal(
+      (
+        await request(rnd, `/nutritionist/review/${oldDispute.id}/dispute-resolution`, 'POST', {
+          decision: 'APPROVE',
+          rationale: 'Stale dispute approval attempt.',
+        })
+      ).status,
+      422
+    );
+    await ok(request(rnd, `/nutritionist/queue/${current.id}/claim`, 'POST', {}));
+    pass(
+      'stale previews, claims, approvals, rejections, swaps and dispute approvals are blocked; today remains claimable'
+    );
+    const admin = await account('ADMIN');
+    const oversight = await ok(request(admin, `/admin/audit-history/${historicalAudit.id}/review-context`));
+    assert(oversight.decisions.some((decision: { id: string }) => decision.id === historical.id));
+    assert.deepEqual(oversight.reviewedSnapshot, historical.evidenceSnapshot);
+    assert.equal((await request(member, `/admin/audit-history/${historicalAudit.id}/review-context`)).status, 403);
+    assert.equal(await prisma.mealPlan.count(), rowsBefore);
+    assert.equal((await prisma.mealPlan.findUniqueOrThrow({ where: { id: expired.id } })).status, 'PENDING_REVIEW');
+    assert.deepEqual(
+      (await prisma.mealPlanReviewDecision.findUniqueOrThrow({ where: { id: historical.id } })).evidenceSnapshot,
+      historical.evidenceSnapshot
+    );
+    pass(
+      'history and snapshots are retained with admin related-case oversight; active-queue retirement deletes no data'
+    );
     console.log(JSON.stringify({ passed: passed.length, cases: passed }));
   } finally {
     await new Promise<void>((resolve) => server.close(() => resolve()));

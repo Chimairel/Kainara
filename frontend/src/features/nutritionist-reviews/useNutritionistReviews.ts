@@ -168,6 +168,8 @@ export function useNutritionistReviews(enabled = true) {
 
   // Selected Card Details
   const [selectedMealId, setSelectedMealId] = useState<string | null>(null);
+  const liveSelection = useRef(selectedMealId);
+  liveSelection.current = selectedMealId;
   const [detailLoading, setDetailLoading] = useState(false);
   const [detailData, setDetailData] = useState<DetailData | null>(null);
 
@@ -202,6 +204,21 @@ export function useNutritionistReviews(enabled = true) {
     fatG: 0,
     ingredients: [],
   });
+
+  const retireInactiveReview = (failure: unknown, id: string | null) => {
+    const data = (failure as { response?: { data?: { code?: string; errorCode?: string } } } | null)?.response?.data;
+    const code = data?.code ?? data?.errorCode;
+    if (code !== 'MEAL_REVIEW_INACTIVE' || !id || liveSelection.current !== id || liveOwner.current !== ownerId)
+      return false;
+    queueGeneration.current++;
+    invalidateSessionResource(ownerId, 'nutritionist-case-queue');
+    setQueue((previous) => previous.filter((meal) => meal.id !== id));
+    setSelectedMealId(null);
+    setDetailData(null);
+    setShowRejectForm(false);
+    setErrorMsg(null);
+    return true;
+  };
 
   const fetchQueue = useCallback(
     (silent = false, signal?: AbortSignal, fresh = false) => {
@@ -269,8 +286,14 @@ export function useNutritionistReviews(enabled = true) {
     async (signal) => {
       await fetchQueue(true, signal);
       if (selectedMealId && !actionLoading) {
-        const response = await api.get(`/nutritionist/queue/${selectedMealId}`, { signal });
-        if (!signal.aborted && response.data?.success) setDetailData(response.data.data);
+        try {
+          const response = await api.get(`/nutritionist/queue/${selectedMealId}`, { signal });
+          if (!signal.aborted && liveSelection.current === selectedMealId && response.data?.success)
+            setDetailData(response.data.data);
+        } catch (failure) {
+          if (!signal.aborted && retireInactiveReview(failure, selectedMealId)) return;
+          throw failure;
+        }
       }
     },
     { enabled: enabled && !actionLoading, immediate: false, scopeKey: `${ownerId}:${selectedMealId}` }
@@ -318,7 +341,8 @@ export function useNutritionistReviews(enabled = true) {
       if (res.data?.success) setDetailData(res.data.data);
       await fetchQueue(false, undefined, true);
     } catch (err: unknown) {
-      setErrorMsg(getApiErrorMessage(err, 'Could not claim this meal. Refresh the queue and try again.'));
+      if (!retireInactiveReview(err, selectedMealId))
+        setErrorMsg(getApiErrorMessage(err, 'Could not claim this meal. Refresh the queue and try again.'));
       await fetchQueue(false, undefined, true);
     } finally {
       setActionLoading(null);
@@ -377,8 +401,8 @@ export function useNutritionistReviews(enabled = true) {
       setDetailData(null);
       setIsEditing(false);
     } catch (err: unknown) {
-      console.error('Approve failed:', err);
-      setErrorMsg(getApiErrorMessage(err, 'Approval failed. Please refresh the queue.'));
+      if (retireInactiveReview(err, selectedMealId)) await fetchQueue(false, undefined, true);
+      else setErrorMsg(getApiErrorMessage(err, 'Approval failed. Please refresh the queue.'));
     } finally {
       setActionLoading(null);
     }
@@ -403,8 +427,8 @@ export function useNutritionistReviews(enabled = true) {
       setShowRejectForm(false);
       setRejectNote('');
     } catch (err: unknown) {
-      console.error('Reject failed:', err);
-      setErrorMsg(getApiErrorMessage(err, 'Rejection failed. Please refresh the queue.'));
+      if (retireInactiveReview(err, selectedMealId)) await fetchQueue(false, undefined, true);
+      else setErrorMsg(getApiErrorMessage(err, 'Rejection failed. Please refresh the queue.'));
     } finally {
       setActionLoading(null);
     }

@@ -230,9 +230,35 @@ export function isNutritionistReviewableMealPlanStatus(status: unknown): boolean
   return status === MealPlanStatus.PENDING_REVIEW;
 }
 
-export function getNutritionistReviewableMealPlanWhere(): Prisma.MealPlanWhereInput {
+/** Case approval is useful only while the saved slot and its plan are current/future. */
+export function isActiveMealReviewPeriod(
+  plan: {
+    scheduledDate: Date;
+    supersededByMealPlanId: string | null;
+    cycle: { endDate: Date; status: string; supersededById: string | null };
+  },
+  now = new Date()
+): boolean {
+  const start = getStartOfManilaBusinessDay(now);
+  return (
+    plan.scheduledDate >= start &&
+    plan.cycle.endDate >= start &&
+    !plan.supersededByMealPlanId &&
+    !plan.cycle.supersededById &&
+    !['COMPLETED', 'SUPERSEDED'].includes(plan.cycle.status)
+  );
+}
+
+export function getNutritionistReviewableMealPlanWhere(now = new Date()): Prisma.MealPlanWhereInput {
+  return { status: MealPlanStatus.PENDING_REVIEW, ...getActiveMealReviewPeriodWhere(now) };
+}
+
+export function getActiveMealReviewPeriodWhere(now = new Date()): Prisma.MealPlanWhereInput {
+  const start = getStartOfManilaBusinessDay(now);
   return {
-    status: MealPlanStatus.PENDING_REVIEW,
+    scheduledDate: { gte: start },
+    supersededByMealPlanId: null,
+    cycle: { endDate: { gte: start }, supersededById: null, status: { notIn: ['COMPLETED', 'SUPERSEDED'] } },
   };
 }
 

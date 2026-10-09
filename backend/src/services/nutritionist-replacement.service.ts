@@ -9,6 +9,7 @@ import prisma from '@/lib/prisma';
 import { loadPlanningNutritionContext } from '@/domain/user-nutrition-context';
 import { Prisma, MealPlanStatus, AIConfidenceFlag, MealIngredientDataSource, NotificationType } from '@prisma/client';
 import { lockUserProfile } from './profile-revision.service';
+import { getNutritionistReviewableMealPlanWhere } from '@/domain/meal-actionability.policy';
 import { getReviewClaimCutoff } from '@/domain/nutritionist-review.policy';
 import { generateGenerativeJSON } from '@/lib/gemini';
 import { adaptUserSafetyRestrictions } from '@/domain/structured-restriction.adapter';
@@ -164,7 +165,7 @@ export class NutritionistReplacementService {
         const decision = await tx.mealPlan.updateMany({
           where: {
             id: mealPlanId,
-            status: MealPlanStatus.PENDING_REVIEW,
+            ...getNutritionistReviewableMealPlanWhere(),
             claimedByNutritionistId: nutritionistProfileId,
             claimedAt: { gte: claimCutoff },
           },
