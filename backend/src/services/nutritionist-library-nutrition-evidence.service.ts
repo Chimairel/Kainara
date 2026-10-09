@@ -19,6 +19,9 @@ const NUTRIENT_KEYS = [
   ['fiber', 'fiberG'],
   ['sodium', 'sodiumMg'],
   ['potassium', 'potassiumMg'],
+  ['sugar', 'sugarG'],
+  ['phosphorus', 'phosphorusMg'],
+  ['saturatedFat', 'saturatedFatG'],
 ] as const;
 
 type CompositionFood = {
@@ -35,6 +38,9 @@ type CompositionFood = {
   fiber: number | null;
   sodium: number | null;
   potassium: number | null;
+  sugar?: number | null;
+  phosphorus?: number | null;
+  saturatedFat?: number | null;
 };
 
 export function calculateLibraryNutritionEvidence(
@@ -67,7 +73,14 @@ export function calculateLibraryNutritionEvidence(
         : null;
       return [resultKey, value];
     })
-  ) as { fiberG: number | null; sodiumMg: number | null; potassiumMg: number | null };
+  ) as {
+    fiberG: number | null;
+    sodiumMg: number | null;
+    potassiumMg: number | null;
+    sugarG: number | null;
+    phosphorusMg: number | null;
+    saturatedFatG: number | null;
+  };
   return { ...macros.totals, ...nutrients };
 }
 
@@ -152,6 +165,9 @@ export async function prepareLibraryNutritionEvidence(
             fiber: true,
             sodium: true,
             potassium: true,
+            sugar: true,
+            phosphorus: true,
+            saturatedFat: true,
           },
         });
         if (foods.length !== foodIds.length)
@@ -183,9 +199,6 @@ export async function prepareLibraryNutritionEvidence(
           where: { id: mealId, safetyEvidenceRevision: input.expectedRevision, status: MealLibraryStatus.APPROVED },
           data: {
             ...totals,
-            sugarG: null,
-            phosphorusMg: null,
-            saturatedFatG: null,
             nutritionEvidenceSource: revisedIngredients.some(
               (ingredient) => ingredient.dataSource === MealIngredientDataSource.USDA_FDC
             )

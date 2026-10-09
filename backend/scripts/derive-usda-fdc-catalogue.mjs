@@ -50,6 +50,21 @@ function nutrientAmount(food, ids, unit) {
   return null;
 }
 
+const nutrientDefinitions = {};
+function nutrientEvidence(food) {
+  return (food.foodNutrients ?? []).map((entry) => {
+    const nutrient = entry.nutrient;
+    const definition = { name: nutrient.name, unit: nutrient.unitName, number: nutrient.number };
+    if (
+      nutrientDefinitions[nutrient.id] &&
+      JSON.stringify(nutrientDefinitions[nutrient.id]) !== JSON.stringify(definition)
+    )
+      throw new Error(`Conflicting USDA nutrient definition ${nutrient.id}`);
+    nutrientDefinitions[nutrient.id] = definition;
+    return [nutrient.id, entry.amount ?? null, entry.foodNutrientDerivation?.code ?? null];
+  });
+}
+
 function projectFood(food, source) {
   if (!food || !Number.isSafeInteger(food.fdcId) || !food.description?.trim()) return null;
   const calories = nutrientAmount(food, [1008, 2048, 2047], 'kcal');
@@ -76,6 +91,16 @@ function projectFood(food, source) {
     iron: nutrientAmount(food, wantedNutrients.iron, 'mg'),
     vitaminA: nutrientAmount(food, wantedNutrients.vitaminA, 'µg'),
     vitaminC: nutrientAmount(food, wantedNutrients.vitaminC, 'mg'),
+    sugar: nutrientAmount(food, [2000, 1063], 'g'),
+    phosphorus: nutrientAmount(food, [1091], 'mg'),
+    saturatedFat: nutrientAmount(food, [1258], 'g'),
+    vitaminB1: nutrientAmount(food, [1165], 'mg'),
+    vitaminB2: nutrientAmount(food, [1166], 'mg'),
+    niacin: nutrientAmount(food, [1167], 'mg'),
+    water: nutrientAmount(food, [1051], 'g'),
+    // Every nutrient value/unit remains reproducible from the hash-pinned delivery.
+    // Dictionary IDs avoid repeating thousands of long definitions in the snapshot.
+    nutrientEvidence: nutrientEvidence(food),
   };
 }
 
@@ -93,6 +118,12 @@ for (const source of SOURCES) {
 
 records.sort((left, right) => left.fdcId - right.fdcId);
 if (new Set(records.map((item) => item.fdcId)).size !== records.length) throw new Error('Duplicate USDA FDC IDs');
-const output = { source: 'USDA FoodData Central', sourceUrl: 'https://fdc.nal.usda.gov/', datasets: SOURCES, records };
+const output = {
+  source: 'USDA FoodData Central',
+  sourceUrl: 'https://fdc.nal.usda.gov/',
+  datasets: SOURCES,
+  nutrientDefinitions,
+  records,
+};
 await writeFile(outputFile, `${JSON.stringify(output)}\n`, 'utf8');
 console.log(`${records.length} records written to ${outputFile}`);

@@ -9,6 +9,9 @@
     "types": ["node"]
   },
   "include": [
+    "scripts/complete-catalogue-nutrients.ts",
+    "scripts/nutrient-completion-local-acceptance.ts",
+    "prisma/seed.ts",
     "scripts/membership-acceptance.ts",
     "prisma/seed-common-meal-library.ts",
     "scripts/full-system-http-acceptance.ts",

@@ -8,6 +8,8 @@
     "npm": ">=11"
   },
   "scripts": {
+    "nutrients:complete": "tsx scripts/complete-catalogue-nutrients.ts",
+    "test:acceptance:nutrient-completion": "tsx scripts/nutrient-completion-local-acceptance.ts",
     "dev": "tsx watch src/server.ts",
     "build": "tsc && node scripts/rewrite-path-aliases.cjs",
     "start": "node dist/server.js",

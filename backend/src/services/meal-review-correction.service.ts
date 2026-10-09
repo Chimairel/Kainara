@@ -47,9 +47,6 @@ export async function correctHeldRecipe(
       const byId = new Map(foods.map((food) => [food.id, food]));
       const totals = {
         ...calculateLibraryNutritionEvidence(input.ingredients, foods),
-        sugarG: null,
-        phosphorusMg: null,
-        saturatedFatG: null,
       };
       const ingredients = input.ingredients.map((item, position) => ({
         foodItemId: item.foodItemId,

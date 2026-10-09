@@ -51,7 +51,26 @@ test('mixed FNRI and USDA serving totals use edible grams and leave unsupported 
     fiberG: 3.4,
     sodiumMg: null,
     potassiumMg: 188,
+    sugarG: null,
+    phosphorusMg: null,
+    saturatedFatG: null,
   });
+});
+
+test('extended nutrients require every measured ingredient and retain actual source zero', () => {
+  const supplied = foods.map((food) => ({ ...food, sugar: 0, phosphorus: 50, saturatedFat: 0.2 }));
+  const ingredients = [
+    { foodItemId: 'fnri-rice', gramsPerServing: 150 },
+    { foodItemId: 'usda-peas', gramsPerServing: 50 },
+  ];
+  const totals = calculateLibraryNutritionEvidence(ingredients, supplied);
+  assert.equal(totals.sugarG, 0);
+  assert.equal(totals.phosphorusMg, 100);
+  assert.equal(totals.saturatedFatG, 0.4);
+  assert.equal(
+    calculateLibraryNutritionEvidence(ingredients, [{ ...supplied[0], phosphorus: null }, supplied[1]]).phosphorusMg,
+    null
+  );
 });
 
 test('unresolved composition prevents server-side preparation', () => {

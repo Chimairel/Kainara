@@ -27,6 +27,14 @@ interface CatalogueRecord {
   iron: number | null;
   vitaminA: number | null;
   vitaminC: number | null;
+  sugar: number | null;
+  phosphorus: number | null;
+  saturatedFat: number | null;
+  vitaminB1: number | null;
+  vitaminB2: number | null;
+  niacin: number | null;
+  water: number | null;
+  nutrientEvidence: unknown[];
 }
 
 function validate(record: CatalogueRecord): void {
@@ -46,7 +54,11 @@ function validate(record: CatalogueRecord): void {
 }
 
 async function main() {
-  const file = JSON.parse(await readFile(FILE, 'utf8')) as { records: CatalogueRecord[] };
+  const file = JSON.parse(await readFile(FILE, 'utf8')) as {
+    records: CatalogueRecord[];
+    nutrientDefinitions: Record<string, unknown>;
+    datasets: unknown[];
+  };
   if (!Array.isArray(file.records)) throw new Error('Invalid USDA catalogue.');
   const ids = new Set<number>();
   for (const record of file.records) {
@@ -83,6 +95,32 @@ async function main() {
         iron: record.iron,
         vitaminA: record.vitaminA,
         vitaminC: record.vitaminC,
+        sugar: record.sugar,
+        phosphorus: record.phosphorus,
+        saturatedFat: record.saturatedFat,
+        vitaminB1: record.vitaminB1,
+        vitaminB2: record.vitaminB2,
+        niacin: record.niacin,
+        water: record.water,
+        sourceNutrientEvidence: JSON.parse(
+          JSON.stringify({
+            version: 'FOOD_NUTRIENT_SOURCE_V1',
+            basis: 'PER_100_G',
+            source: USDA_FDC_SOURCE,
+            sourceRecordId: String(record.fdcId),
+            sourceUrl: record.sourceUrl,
+            dataset: record.dataset,
+            publishedAt: record.publishedAt,
+            entries: record.nutrientEvidence,
+            definitions: Object.fromEntries(
+              (record.nutrientEvidence as [number, unknown, unknown][]).map(([id]) => [
+                id,
+                file.nutrientDefinitions[String(id)],
+              ])
+            ),
+            deliveries: file.datasets,
+          })
+        ),
       })),
       skipDuplicates: true,
     });

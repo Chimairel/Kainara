@@ -181,6 +181,8 @@ The common catalogue is historical test data. Its offline projection remains ava
 
 Migrations and seeds modify database state. Confirm the database target and authorization first. Do not use production-like data for development or tests.
 
+Source nutrient completion uses `npm --prefix backend run nutrients:complete` (dry run by default). See [catalogue nutrient evidence](docs/CATALOGUE_NUTRIENT_COMPLETION.md) for the guarded import, source fingerprints and remaining recipe gaps. Apply its additive migration before using the new nutrient fields; the import does not certify meals or fabricate missing recipe values.
+
 ### Synthetic accounts in the normal localhost app
 
 Use `npm --prefix backend run test:accounts` to preview a create-only set of admin, member and RND accounts. It bypasses email proof, onboarding and RND application **for those marked synthetic accounts only**, with ordinary password login and unchanged application authorization. No Gmail account or provider request is needed. After explicitly confirming the development database target, apply the printed target token. See [development test accounts](docs/DEV_TEST_ACCOUNTS.md) for commands, custom conditions/expertise and the ignored local credential guide. Prefer this over the historical fixed-Gmail seed; existing accounts and passwords are preserved.

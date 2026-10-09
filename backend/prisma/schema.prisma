@@ -1334,6 +1334,12 @@ model FoodItem {
   fiber               Float?
   sodium              Float?
   potassium           Float?
+  sugar               Float?
+  phosphorus          Float?
+  saturatedFat        Float?
+  /// Original per-100g nutrient entries, units and source fingerprint. Missing/trace
+  /// source values remain explicit; this evidence does not certify a meal.
+  sourceNutrientEvidence Json?
   calcium             Float?
   iron                Float?
   vitaminA            Float?

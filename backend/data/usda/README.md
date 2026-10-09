@@ -16,6 +16,8 @@ The source JSON files are excluded from Git under `backend/data/usda/source-deli
 
 ## Database deployment
 
+The projection also preserves all source nutrient entries as compact tuples with a nutrient definition dictionary, including sugar, phosphorus, saturated fat, B vitamins, niacin and water where supplied. Existing rows are completed through the guarded [nutrient evidence workflow](../../../docs/CATALOGUE_NUTRIENT_COMPLETION.md). A missing nutrient remains unknown. New fields require migration `202610090001_complete_food_nutrient_evidence` before import.
+
 Apply Prisma migrations first. In development, run `npm run usda:import:dry-run` to validate the snapshot and count existing USDA rows, then `npm run usda:import:apply` to insert missing rows. In a built VPS/Docker backend, run `npm run usda:import:production:dry-run` and then `npm run usda:import:production:apply` after `prisma migrate deploy`. The backend Docker image includes the derived JSON under `prisma/data`. The importer is idempotent and creates an audit event. If USDA rows are absent, unmatched FNRI ingredients simply remain unresolved. Existing FNRI rows are untouched.
 
 Admin verified aliases may link recipe terminology to one exact USDA record. A verified alias requires a food identity decision, not a nutrient or allergy inference. The raw recipe quantities still require defensible gram measurements before composition can be reconciled.

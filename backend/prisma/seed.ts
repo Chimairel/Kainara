@@ -2,6 +2,7 @@ import { PrismaClient } from '@prisma/client';
 import * as fs from 'fs';
 import * as path from 'path';
 import { getFNRICategory } from '../src/domain/fnri-category.policy';
+import { readFnriSource } from '../src/domain/food-nutrient-source.policy';
 
 const prisma = new PrismaClient();
 
@@ -27,17 +28,6 @@ function parseCSVLine(line: string): string[] {
   return result;
 }
 
-// Converts raw cells to Float, mapping empty/trace symbols to 0
-function parseFloatOrZero(val: string | undefined): number {
-  if (!val) return 0;
-  const cleaned = val.trim();
-  if (cleaned === '' || cleaned === '-' || cleaned.toLowerCase() === 'tr' || cleaned.toLowerCase() === 'n/a') {
-    return 0;
-  }
-  const parsed = parseFloat(cleaned);
-  return isNaN(parsed) ? 0 : parsed;
-}
-
 // Converts raw cells to Float, returning null for missing optionals
 function parseFloatOrNull(val: string | undefined): number | null {
   if (!val) return null;
@@ -59,6 +49,7 @@ async function main() {
   }
 
   const csvContent = fs.readFileSync(csvPath, 'utf-8');
+  const sourceNutrients = new Map(readFnriSource(csvContent).map((row) => [row.sourceRecordId, row]));
   // Handle various system line terminators
   const lines = csvContent.split(/\r?\n/).filter((l) => l.trim().length > 0);
 
@@ -83,16 +74,18 @@ async function main() {
 
     // If there is no real composition data, skip the row
     if (hasDataString.toUpperCase() !== 'TRUE') continue;
+    const source = sourceNutrients.get(foodId);
+    if (!source) {
+      console.log(`[Seeder] Skipping ${foodId}: source macro evidence is incomplete.`);
+      continue;
+    }
 
     // Resolve general category based on the first letter of the food_id
     const category = getFNRICategory(foodId);
 
     // Parse macro and micro properties
     const water = parseFloatOrNull(cells[6]);
-    const calories = parseFloatOrZero(cells[7]);
-    const proteinG = parseFloatOrZero(cells[8]);
-    const fatG = parseFloatOrZero(cells[9]);
-    const carbsG = parseFloatOrZero(cells[10]);
+    const { calories, proteinG, fatG, carbsG } = source;
     const _ash = parseFloatOrNull(cells[12]);
     const fiber = parseFloatOrNull(cells[13]);
     const _sugar = parseFloatOrNull(cells[14]);
@@ -109,7 +102,7 @@ async function main() {
 
     // Upsert equivalent: check if food with the exact same name already exists
     const existing = await prisma.foodItem.findFirst({
-      where: { name: foodName },
+      where: { name: foodName, source: 'FNRI' },
     });
 
     const foodData = {
@@ -131,6 +124,10 @@ async function main() {
       niacin,
       water,
       source: 'FNRI',
+      sugar: source.sugar,
+      phosphorus: source.phosphorus,
+      saturatedFat: source.saturatedFat,
+      sourceNutrientEvidence: JSON.parse(JSON.stringify(source.evidence)),
     };
 
     if (existing) {

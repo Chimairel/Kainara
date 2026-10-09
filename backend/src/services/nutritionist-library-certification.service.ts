@@ -153,6 +153,9 @@ export async function certifyLibraryMealSafety(
           fiber: true,
           sodium: true,
           potassium: true,
+          sugar: true,
+          phosphorus: true,
+          saturatedFat: true,
         },
       });
       if (
@@ -170,7 +173,18 @@ export async function certifyLibraryMealSafety(
         })),
         foods
       );
-      const nutrientKeys = ['calories', 'proteinG', 'carbsG', 'fatG', 'fiberG', 'sodiumMg', 'potassiumMg'] as const;
+      const nutrientKeys = [
+        'calories',
+        'proteinG',
+        'carbsG',
+        'fatG',
+        'fiberG',
+        'sodiumMg',
+        'potassiumMg',
+        'sugarG',
+        'phosphorusMg',
+        'saturatedFatG',
+      ] as const;
       if (nutrientKeys.some((key) => meal[key] !== calculated[key])) {
         throw new Error('Saved recipe nutrition differs from the source calculations. Prepare evidence again.');
       }
