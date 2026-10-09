@@ -107,6 +107,8 @@ Every currently eligible RND has equal access to the shared member case, profile
 
 Member meal approval requests appear only for today and future Philippine meal dates in plans that have not ended, completed or been replaced. Queue counts use the same rule. Expired requests leave the active queue automatically; their saved meal rows, decisions, flags and audit snapshots remain in history. Stale preview, claim, decision and swap requests are rejected by the API. This expiry rule does not retire reusable recipe verification, recipe flags, profile reviews or outside-food reviews.
 
+To close the saved pending status of obsolete member meal requests, run `npx tsx scripts/close-stale-meal-reviews.ts` from `backend` for a dry run. After the owner authorizes cleanup on the printed development target, use `--apply --confirm-target TOKEN --expect-count COUNT` (also `--allow-shared-development` for a remote development database). It saves an ignored local rollback snapshot before an atomic cancellation and per-request audit entry. It preserves all meal rows, decisions and evidence; active meal requests and the other review queues are excluded. It refuses changed candidate counts or concurrent changes. No migration is needed.
+
 ## Prerequisites
 
 - Node.js 24 and npm, as pinned by the root `.nvmrc` and used by repository CI.
