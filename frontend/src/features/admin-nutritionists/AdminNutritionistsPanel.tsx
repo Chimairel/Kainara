@@ -198,7 +198,7 @@ export default function AdminNutritionistsPage({ active = true }: { active?: boo
               act(
                 nutritionist.id,
                 () => api.put(`/admin/review-routing/expertise/${nutritionist.id}`, draft),
-                'Verified expertise saved. Routing will use the verified record.'
+                'Verified credentials saved. Shared queue access is unchanged.'
               )
             }
             workingId={workingId}

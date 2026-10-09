@@ -13,6 +13,10 @@ import { MEAL_LIBRARY_SAFETY_POLICY_VERSION } from '../src/domain/meal-library-s
 import { libraryBaseRevisionKey } from '../src/services/meal-base-admission.service';
 import { UpcomingPlanPreparationService } from '../src/services/upcoming-plan-preparation.service';
 import { getStartOfManilaBusinessDay } from '../src/domain/meal-actionability.policy';
+import { ClinicalEvidenceService } from '../src/services/clinical-evidence.service';
+import { ClinicalProfileReviewService } from '../src/services/clinical-profile-review.service';
+import { NotificationService } from '../src/services/notification.service';
+import { ReviewRoutingService } from '../src/services/review-routing.service';
 import { CertifiedSlotFallbackService } from '../src/services/certified-slot-fallback.service';
 
 async function main() {
@@ -579,6 +583,111 @@ async function main() {
     );
     pass(
       'history and snapshots are retained with admin related-case oversight; active-queue retirement deletes no data'
+    );
+    // An old enabled setting and an active specialist episode must not hide new or existing cases.
+    await prisma.reviewRoutingConfig.update({
+      where: { id: 'global' },
+      data: { enabled: true, enabledAt: new Date(Date.now() - 30 * 86_400_000) },
+    });
+    await prisma.nutritionistProfile.update({
+      where: { id: reviewer.id },
+      data: { verifiedExpertise: ['HEART_CONDITION'], verifiedExperienceYears: 20, expertiseVerifiedAt: new Date() },
+    });
+    await prisma.nutritionistProfile.update({
+      where: { userId: other.id },
+      data: { verifiedExpertise: [], verifiedExperienceYears: 40, expertiseVerifiedAt: new Date() },
+    });
+    const junior = await account('NUTRITIONIST');
+    await prisma.nutritionistProfile.create({
+      data: {
+        userId: junior.id,
+        isVerified: true,
+        prcLicenseNumber: marker + '-junior',
+        prcLicenseExpiry: new Date('2099-01-01'),
+        verifiedExpertise: [],
+        verifiedExperienceYears: 0,
+        acceptingReviews: false,
+      },
+    });
+    await prisma.healthCondition.create({ data: { userId: member.id, condition: 'HEART_CONDITION' } });
+    await prisma.safetyProfileEntry.updateMany({
+      where: { userId: member.id, domain: 'CONDITION' },
+      data: { canonicalCode: 'HEART_CONDITION', displayName: 'Heart condition', originalText: 'Heart condition' },
+    });
+    const currentProfile = await prisma.userProfile.findUniqueOrThrow({ where: { userId: member.id } });
+    await ClinicalEvidenceService.saveHealthDetails(member.id, {
+      area: 'HEART_CONDITION',
+      expectedSafetyRevision: currentProfile.safetyRevision,
+      conditionDetails: 'Synthetic heart condition for shared queue software testing.',
+      medications: 'None',
+      dietaryAdvice: 'Unknown',
+      recentSymptoms: 'None',
+      measurements: '',
+    });
+    const episode = await prisma.reviewRoutingEpisode.create({
+      data: {
+        episodeKey: `PROFILE:${member.id}:${currentProfile.safetyRevision}`,
+        userId: member.id,
+        safetyRevision: currentProfile.safetyRevision,
+        scopeKey: '0'.repeat(64),
+        conditions: ['HEART_CONDITION'],
+        selectedReviewerIds: [reviewer.id],
+        firstCycleId: current.planGroupId,
+        stage: 'SPECIALIST',
+        reason: 'MATCHING_EXPERTISE',
+        beganAt: new Date(),
+        opensAt: new Date(Date.now() + 24 * 60 * 60_000),
+      },
+    });
+    await prisma.mealPlanCycle.update({
+      where: { id: current.planGroupId },
+      data: { reviewRoutingEpisodeId: episode.id },
+    });
+    const queues = [];
+    for (const actor of [rnd, other, junior]) {
+      const queue = await ok(request(actor, '/nutritionist/queue'));
+      assert(queue.some((meal: { id: string }) => meal.id === current.id));
+      assert(queue.some((meal: { id: string }) => meal.id === upcoming.id));
+      assert(queue.every((meal: { routing: { reason: string } }) => meal.routing.reason === 'SHARED_POOL'));
+      queues.push(queue.map((meal: { id: string }) => meal.id).sort());
+      const profileId = (await prisma.nutritionistProfile.findUniqueOrThrow({ where: { userId: actor.id } })).id;
+      assert((await ClinicalProfileReviewService.queue(profileId)).some((person) => person.userId === member.id));
+      assert.deepEqual(await ReviewRoutingService.assertProfile(profileId, member.id), {
+        stage: 'GENERAL',
+        reason: 'SHARED_POOL',
+        opensAt: null,
+      });
+    }
+    assert.deepEqual(queues[0], queues[1]);
+    assert.deepEqual(queues[1], queues[2]);
+    const claimed = await prisma.mealPlan.findUniqueOrThrow({ where: { id: current.id } });
+    assert.equal(claimed.claimedByNutritionistId, reviewer.id);
+    // The revised clinical context must still be reviewed before any new claim/approval.
+    assert.notEqual((await request(other, `/nutritionist/queue/${current.id}/claim`, 'POST', {})).status, 200);
+    assert.equal(
+      (await prisma.mealPlan.findUniqueOrThrow({ where: { id: current.id } })).claimedByNutritionistId,
+      reviewer.id
+    );
+    assert.equal((await request(member, '/nutritionist/queue')).status, 403);
+    const obsoleteEnable = await request(admin, '/admin/review-routing', 'PATCH', { enabled: true });
+    assert.equal(obsoleteEnable.status, 410);
+    assert.equal((obsoleteEnable.body as { errorCode?: string }).errorCode, 'REVIEW_ROUTING_RETIRED');
+    const sharedOverview = await ok(request(admin, '/admin/review-routing'));
+    assert.equal(sharedOverview.config.enabled, false);
+    assert.equal(sharedOverview.config.retired, true);
+    assert(sharedOverview.episodes.some((item: { id: string }) => item.id === episode.id));
+    assert.equal(
+      (await prisma.reviewRoutingEpisode.findUniqueOrThrow({ where: { id: episode.id } })).stage,
+      'SPECIALIST'
+    );
+    await NotificationService.notifyReviewers('Synthetic shared queue alert', 'Shared queue software test.');
+    for (const actor of [rnd, other, junior])
+      assert.equal(
+        await prisma.notification.count({ where: { userId: actor.id, title: 'Synthetic shared queue alert' } }),
+        1
+      );
+    pass(
+      'heart specialists, experienced generalists and new RNDs see the same cases and profiles despite legacy priority; claims, roles, notifications and historical audit remain protected'
     );
     console.log(JSON.stringify({ passed: passed.length, cases: passed }));
   } finally {

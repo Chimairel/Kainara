@@ -1,7 +1,6 @@
 'use client';
 
 import { WorkspaceListPane } from '@/components/shared/SplitWorkspace';
-import ReviewRoutingLabel from './ReviewRoutingLabel';
 import Avatar from '@/components/ui/Avatar';
 import Badge from '@/components/ui/Badge';
 import Button from '@/components/ui/Button';
@@ -159,7 +158,6 @@ export default function CaseReviewQueue({ review, expanded }: Props) {
                 <p className="mt-2 text-[10px] font-bold text-brand-green">One RND approval required</p>
 
                 {/* Member UI Macro Pills */}
-                <ReviewRoutingLabel routing={meal.routing} />
                 {meal.calories != null && (
                   <div className="mt-2.5 flex flex-wrap items-center gap-1.5 sm:gap-2">
                     <span className="inline-flex items-center gap-1 rounded-full border border-black/10 bg-black/[0.04] px-2.5 py-0.5 text-[10px] font-bold text-brand-text dark:border-white/10 dark:bg-white/[0.06]">

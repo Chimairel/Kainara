@@ -10,11 +10,10 @@ export default function ReviewQualificationsPanel({
 }) {
   return (
     <Card className="p-5 space-y-3">
-      <h2 className="font-display text-lg font-bold">Review routing</h2>
+      <h2 className="font-display text-lg font-bold">Review qualifications</h2>
       <p className="text-xs leading-relaxed text-brand-muted">
-        Cases appear automatically for every eligible RND with matching verified expertise. If no specialist fully
-        matches, RNDs with the highest verified experience get first access. Being online is not required. Claim a case
-        when you start reviewing it.
+        Cases appear automatically in the shared queue for every eligible RND. Expertise, experience and online status
+        do not affect access. Claim a case when you start reviewing it.
       </p>
       <div className="rounded-xl border border-brand-border p-3 text-sm">
         <p className="font-semibold">Admin-verified expertise</p>
@@ -29,7 +28,7 @@ export default function ReviewQualificationsPanel({
           </p>
         )}
         <p className="mt-2 text-xs text-brand-muted">
-          Editing your public specialization does not change review routing.
+          These credentials are shown for reference and do not give priority in the review queue.
         </p>
       </div>
     </Card>

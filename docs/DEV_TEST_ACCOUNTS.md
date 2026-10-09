@@ -21,7 +21,7 @@ The CLI creates clearly marked synthetic accounts in the database already used b
 
 Emails follow `qa-<set>-<alias>@example.test`, for example `qa-walkthrough-admin@example.test`. Names start with `[TEST walkthrough]`; PRC values and professional bios explicitly identify test credentials. These are not real clinicians or clinical credential verifications.
 
-Members receive complete profile/preferences, explicit safety declarations, disabled meal reminders in Asia/Manila and a clearly marked synthetic acknowledged report baseline. Declared conditions remain subject to the ordinary clinical detail, evidence, approval and meal eligibility checks. The script creates no meals, approvals, clinical documents, subscriptions, premium grants or claims, and does not enable specialist routing. Their health details can be filled in through the normal UI as needed.
+Members receive complete profile/preferences, explicit safety declarations, disabled meal reminders in Asia/Manila and a clearly marked synthetic acknowledged report baseline. Declared conditions remain subject to the ordinary clinical detail, evidence, approval and meal eligibility checks. The script creates no meals, approvals, clinical documents, subscriptions, premium grants or claims. All eligible test RNDs share the same queue; recorded expertise and experience do not grant priority. Their health details can be filled in through the normal UI as needed.
 
 ## Create after confirming the target
 

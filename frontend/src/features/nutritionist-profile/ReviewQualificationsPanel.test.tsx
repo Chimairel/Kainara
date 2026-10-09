@@ -2,11 +2,11 @@ import { render, screen } from '@testing-library/react';
 import { expect, it } from 'vitest';
 import ReviewQualificationsPanel from './ReviewQualificationsPanel';
 
-it('shows automatic routing and verified zero years with no opt-out switch', () => {
+it('shows shared access and verified zero years with no opt-out switch', () => {
   render(<ReviewQualificationsPanel verifiedExpertise={['HEART_CONDITION']} verifiedExperienceYears={0} />);
   expect(screen.getByText('Heart health nutrition')).toBeInTheDocument();
   expect(screen.getByText('0 verified years of experience')).toBeInTheDocument();
-  expect(screen.getByText(/Cases appear automatically/)).toBeInTheDocument();
+  expect(screen.getByText(/Expertise, experience and online status do not affect access/)).toBeInTheDocument();
   expect(screen.queryByRole('switch')).not.toBeInTheDocument();
 });
 

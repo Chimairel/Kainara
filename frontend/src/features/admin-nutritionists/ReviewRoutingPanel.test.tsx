@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, expect, it, vi } from 'vitest';
 import ReviewRoutingPanel from './ReviewRoutingPanel';
 import api from '@/lib/axios';
@@ -30,16 +30,15 @@ beforeEach(() => {
   auth.owner = 'admin-one';
 });
 
-it('loads disabled routing and refreshes after an admin enables it', async () => {
-  vi.mocked(api.get).mockResolvedValueOnce(snapshot(false)).mockResolvedValue(snapshot(true));
-  vi.mocked(api.patch).mockResolvedValue({ data: { success: true } });
+it('shows equal shared access and read-only historical episodes even with an old enabled response', async () => {
+  vi.mocked(api.get).mockResolvedValue(snapshot(true));
   render(<ReviewRoutingPanel />);
-  const toggle = screen.getByRole('switch', { name: 'Enable specialist review priority' });
-  await waitFor(() => expect(toggle).not.toBeDisabled());
-  expect(toggle).toHaveAttribute('aria-checked', 'false');
-  fireEvent.click(toggle);
-  await waitFor(() => expect(toggle).toHaveAttribute('aria-checked', 'true'));
-  expect(api.patch).toHaveBeenCalledWith('/admin/review-routing', { enabled: true });
+  await waitFor(() => expect(screen.getByText(/Synthetic member/)).toBeInTheDocument());
+  expect(screen.getByText('Shared RND review queue')).toBeInTheDocument();
+  expect(screen.getByText(/Every eligible RND has equal access/)).toBeInTheDocument();
+  expect(screen.queryByRole('switch')).not.toBeInTheDocument();
+  expect(screen.queryByRole('button')).not.toBeInTheDocument();
+  expect(api.patch).not.toHaveBeenCalled();
 });
 
 it('does not show a former administrator’s late routing response after switching accounts', async () => {
@@ -59,5 +58,5 @@ it('does not show a former administrator’s late routing response after switchi
     finish(snapshot(true, 'Former private member'));
   });
   expect(screen.queryByText(/Former private member/)).not.toBeInTheDocument();
-  expect(screen.getByRole('switch')).toHaveAttribute('aria-checked', 'false');
+  expect(screen.queryByRole('switch')).not.toBeInTheDocument();
 });

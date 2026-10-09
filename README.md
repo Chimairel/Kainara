@@ -98,7 +98,9 @@ Every five minutes, recovery scans eligible current/future cycles for gaps left 
 
 ## Active RND case approval queue
 
-Member meal approval requests appear only for today and future Philippine meal dates in plans that have not ended, completed or been replaced. Queue counts use the same rule. Expired requests leave the active queue automatically; their saved meal rows, decisions, flags and audit snapshots remain in history. Stale preview, claim, decision and swap requests are rejected by the API even when specialist routing is off. This expiry rule does not retire reusable recipe verification, recipe flags, profile reviews or outside-food reviews.
+Every currently eligible RND has equal access to the shared member case, profile and clinical-document queues. Expertise, experience, online status and the legacy availability switch do not reserve cases. Claim locks, credential checks, clinical evidence readiness and reviewer independence remain enforced. Priority routing is retired: old configuration/episodes cannot hide cases, the admin enable endpoint rejects activation, and recorded expertise/experience are credential information only. Historical routing decisions remain available as history.
+
+Member meal approval requests appear only for today and future Philippine meal dates in plans that have not ended, completed or been replaced. Queue counts use the same rule. Expired requests leave the active queue automatically; their saved meal rows, decisions, flags and audit snapshots remain in history. Stale preview, claim, decision and swap requests are rejected by the API. This expiry rule does not retire reusable recipe verification, recipe flags, profile reviews or outside-food reviews.
 
 ## Prerequisites
 
