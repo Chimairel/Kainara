@@ -14,6 +14,7 @@ export default function ReviewDecisionDialog({
   error,
   required = false,
   approvalLabel = 'Confirm approval',
+  children,
 }: {
   action: 'approve' | 'reject' | null;
   onClose: () => void;
@@ -24,6 +25,7 @@ export default function ReviewDecisionDialog({
   error?: string | null;
   required?: boolean;
   approvalLabel?: string;
+  children?: React.ReactNode;
 }) {
   const reject = action === 'reject';
   const needsNote = reject || required;
@@ -61,6 +63,7 @@ export default function ReviewDecisionDialog({
           {error}
         </p>
       )}
+      {children}
       <label className="block text-xs font-bold">
         {reject ? 'Rejection reason' : required ? 'Review rationale' : 'Member note (optional)'}
         <textarea

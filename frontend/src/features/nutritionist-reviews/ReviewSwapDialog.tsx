@@ -10,14 +10,17 @@ import type { PublicVerifier } from '@/types';
 import type { DetailData } from './useNutritionistReviews';
 import type { useReviewSwap } from './useReviewSwap';
 import IngredientEvidenceTable from './IngredientEvidenceTable';
+import ReviewNutrientFilters, { REVIEW_NUTRIENT_FIELDS } from './ReviewNutrientFilters';
 
 /** Reuses member swap presentation, with the RND claim and pending-review API adapter. */
 export default function ReviewSwapDialog({
   swap,
   meal,
+  onNoSuitable,
 }: {
   swap: ReturnType<typeof useReviewSwap>;
   meal: DetailData['mealPlan'];
+  onNoSuitable?: () => void;
 }) {
   const [verifier, setVerifier] = useState<PublicVerifier | null>(null);
   const options = swap.data?.options ?? [];
@@ -61,6 +64,13 @@ export default function ReviewSwapDialog({
             setSwapPreview: () => {},
           }}
         />
+        {swap.filtersEnabled && <ReviewNutrientFilters draft={swap.filterDraft} onChange={swap.setFilterDraft}
+          apply={() => void swap.load()} busy={swap.saving || swap.loading} />}
+        {swap.data?.summary && <p className="my-3 text-xs text-brand-muted">
+          {swap.data.summary.matchedCount} complete-plate matches in the currently eligible certified library.
+          {' '}{swap.data.summary.unknownExcludedCount} excluded for missing required nutrients.
+          {' '}These limits narrow candidates; the RND still reviews the member’s health context.
+        </p>}
         <SwapMealOptions
           calorieSortOnly
           model={{
@@ -79,6 +89,11 @@ export default function ReviewSwapDialog({
         />
         {selected && (
           <div className="mt-4">
+            {selected.nutrients && <dl className="mb-4 grid grid-cols-2 gap-2 sm:grid-cols-5">
+              {REVIEW_NUTRIENT_FIELDS.map(([key, label, unit]) => <div key={key} className="rounded-lg border border-brand-border p-2 text-xs">
+                <dt className="text-brand-muted">{label}</dt><dd className="mt-1 font-bold">{selected.nutrients![key] === null ? 'Not recorded' : `${Number(selected.nutrients![key].toFixed(3))} ${unit}`}</dd>
+              </div>)}
+            </dl>}
             <IngredientEvidenceTable ingredients={selected.ingredients} />
           </div>
         )}
@@ -102,6 +117,11 @@ export default function ReviewSwapDialog({
         >
           Refresh options
         </Button>
+        {swap.data?.nextCursor && <Button className="ml-2 mt-3" size="sm" variant="secondary" disabled={swap.saving || swap.loading}
+          onClick={() => void swap.load(swap.data!.nextCursor!)}>Next candidates</Button>}
+        {swap.data?.searchReceipt && onNoSuitable && <Button className="ml-2 mt-3" size="sm" variant="secondary" disabled={swap.saving || swap.loading}
+          onClick={onNoSuitable}>No suitable replacement</Button>}
+        {swap.data?.searchReceipt && <p className="mt-2 text-xs text-brand-muted">No suitable replacement opens the rejection dialog. Record why the results are unsuitable; it is not a separate final decision.</p>}
       </Modal>
       <Modal
         isOpen={Boolean(verifier) && swap.open}

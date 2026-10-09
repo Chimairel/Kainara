@@ -630,7 +630,7 @@ router.patch(
   validateZodBody(nutritionistReviewActionSchema),
   async (req: AuthenticatedRequest, res: Response) => {
     try {
-      const { action, note, updates, expectedContextKey } = req.body;
+      const { action, note, updates, expectedContextKey, replacementOutcome } = req.body;
       const mealPlanId = req.params.id;
 
       if (action === 'approve') {
@@ -638,7 +638,7 @@ router.patch(
         return res.status(200).json({ success: true, data: result });
       } else if (action === 'reject') {
         if (!note) return res.status(400).json({ success: false, error: 'Rejection reason is required.' });
-        const result = await NutritionistService.rejectMealPlan(req.nutritionistProfileId!, mealPlanId, note, expectedContextKey);
+        const result = await NutritionistService.rejectMealPlan(req.nutritionistProfileId!, mealPlanId, note, expectedContextKey, replacementOutcome);
         return res.status(200).json({ success: true, data: result });
       } else {
         return res.status(400).json({ success: false, error: 'Action must be "approve" or "reject".' });

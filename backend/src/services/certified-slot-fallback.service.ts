@@ -20,7 +20,10 @@ import {
   isProfileApprovedLibraryMealCompatible,
   queryEligibleLibraryMeals,
 } from './meal-library-candidate-query.service';
-import { buildBaseServingPersistence } from './meal-plan-serving.service';
+import { buildBaseServingPersistence, composePlanWithPairedRice } from './meal-plan-serving.service';
+import { env } from '@/config/env';
+import { evaluateNutrientFilters, type ReviewNutrientFilters } from '@/domain/review-nutrient-filter.policy';
+import { loadReviewRice, reviewReplacementPlate } from './review-replacement-search.service';
 import { MEAL_PLAN_SAFETY_POLICY_VERSION } from '@/domain/meal-plan-production-safety.policy';
 import { scorePreparationCandidate } from '@/domain/upcoming-preparation.policy';
 import { mealApprovalSafetyScope } from '@/domain/meal-approval-scope.policy';
@@ -50,6 +53,8 @@ export class CertifiedSlotFallbackService {
       expectedVersion: string;
       expectedRecipeSignature: string;
       expectedEvidenceRevision: number;
+      expectedServingKey?: string;
+      filters?: ReviewNutrientFilters;
       note: string;
     };
   }): Promise<{ replaced: boolean; replacementPlanId: string | null }> {
@@ -57,6 +62,11 @@ export class CertifiedSlotFallbackService {
       where: { id: input.mealPlanId },
       include: { cycle: { include: { snapshot: true } } },
     });
+    const filteredReview = Boolean(input.reviewer && env.CLINICAL_CLARIFICATIONS_ENABLED);
+    if (filteredReview && !input.reviewer!.expectedServingKey)
+      throw new AppError('Refresh the complete-serving replacement preview.', 409, 'REVIEW_SWAP_CHANGED');
+    if (!filteredReview && (input.reviewer?.expectedServingKey || input.reviewer?.filters))
+      throw new AppError('Replacement filters are not enabled.', 409, 'REVIEW_FILTERS_DISABLED');
     if (!target || !target.cycle.snapshot) return { replaced: false, replacementPlanId: null };
     if (!input.reviewer && requiresExplicitReplacementReview(target))
       return { replaced: false, replacementPlanId: null };
@@ -96,7 +106,9 @@ export class CertifiedSlotFallbackService {
       ).flatMap((meal) => (meal.libraryMealId ? [meal.libraryMealId] : []))
     );
     const rejectedRecipes = await rejectedSlotRecipes(prisma, target);
-    const candidates = await queryEligibleLibraryMeals({
+    const selectedCandidate = filteredReview && input.selectedLibraryMealId
+      ? await prisma.mealLibrary.findUnique({ where: { id: input.selectedLibraryMealId }, include: certifiedLibraryMealInclude }) : null;
+    const candidates = filteredReview ? (selectedCandidate ? [selectedCandidate] : []) : await queryEligibleLibraryMeals({
       mealType: slotType,
       userConditions: context.conditions,
       userAllergens: context.allergens,
@@ -114,7 +126,7 @@ export class CertifiedSlotFallbackService {
           })
       )
       .filter((candidate) =>
-        isMealWithinSlotCalorieRange({
+        filteredReview || isMealWithinSlotCalorieRange({
           calories: candidate.calories,
           dailyCalorieTarget: target.cycle.snapshot!.dailyCalorieTarget,
           mealType: slotType,
@@ -187,7 +199,8 @@ export class CertifiedSlotFallbackService {
             planGroupId: target.planGroupId,
             scheduledDate: target.scheduledDate,
             mealType: target.mealType,
-            status: MealPlanStatus.PENDING_REVIEW,
+            status: { in: [MealPlanStatus.PENDING_REVIEW, MealPlanStatus.REJECTED] },
+            supersededByMealPlanId: null,
           },
           select: { status: true, selectionEvidence: true },
         });
@@ -228,6 +241,7 @@ export class CertifiedSlotFallbackService {
         if (lineage && lineage.state !== 'PUBLISHED')
           throw new AppError('Replacement is withheld from use.', 409, 'REVIEW_SWAP_CHANGED');
       }
+      if (filteredReview) await tx.$queryRaw`SELECT id FROM "MealLibrary" WHERE id = ${candidate.id} FOR SHARE`;
       const latest = await tx.mealLibrary.findUniqueOrThrow({
         where: { id: candidate.id },
         include: certifiedLibraryMealInclude,
@@ -238,12 +252,12 @@ export class CertifiedSlotFallbackService {
         input.reviewer &&
         (latest.recipeSignature !== input.reviewer.expectedRecipeSignature ||
           latest.safetyEvidenceRevision !== input.reviewer.expectedEvidenceRevision ||
-          !isMealWithinSlotCalorieRange({
+          (!filteredReview && !isMealWithinSlotCalorieRange({
             calories: latest.calories,
             dailyCalorieTarget: target.cycle.snapshot!.dailyCalorieTarget,
             mealType: slotType,
             tolerance: input.tolerance,
-          }))
+          })))
       )
         throw new AppError('Replacement evidence changed. Refresh before swapping.', 409, 'REVIEW_SWAP_CHANGED');
       await assertRecipeNotRejectedForSlot(tx, target, {
@@ -261,7 +275,20 @@ export class CertifiedSlotFallbackService {
         !certified &&
         isProfileApprovedLibraryMealCompatible(latest, context.conditions, context.allergens, currentProfile);
       if (!certified && !profileApproved) {
+        if (filteredReview) throw new AppError('Replacement clinical or credential evidence changed. Refresh the options.', 409, 'REVIEW_SWAP_CHANGED');
         throw new Error('Certified fallback evidence changed during selection.');
+      }
+      let reviewedPlate: ReturnType<typeof reviewReplacementPlate> = null;
+      if (filteredReview) {
+        let rice = await loadReviewRice(tx);
+        if (rice) {
+          await tx.$queryRaw`SELECT id FROM "FoodItem" WHERE id = ${rice.id} FOR SHARE`;
+          rice = await tx.foodItem.findUniqueOrThrow({ where: { id: rice.id } });
+        }
+        reviewedPlate = reviewReplacementPlate(latest, target, target.cycle.snapshot!, rice, conditions.length > 0);
+        if (!reviewedPlate || reviewedPlate.servingKey !== input.reviewer!.expectedServingKey ||
+          !evaluateNutrientFilters(reviewedPlate.nutrients, input.reviewer!.filters ?? {}).matches)
+          throw new AppError('Complete-serving nutrients or filters changed. Refresh before swapping.', 409, 'REVIEW_SWAP_CHANGED');
       }
       const profileScope = profileApproved
         ? mealApprovalSafetyScope({
@@ -339,11 +366,15 @@ export class CertifiedSlotFallbackService {
             rankingScore: ranking.score,
             rankingReasonCodes: ranking.reasonCodes,
             capturedAt: new Date().toISOString(),
+            ...(reviewedPlate ? { nutrientFilters: input.reviewer!.filters ?? {}, reviewedPlate: reviewedPlate.nutrients,
+              servingKey: reviewedPlate.servingKey, pairedRiceG: reviewedPlate.pairedRiceG } : {}),
           } as Prisma.InputJsonObject,
           ingredients: { create: ingredients },
           ...serving,
         },
       });
+      if (reviewedPlate?.pairedRiceG) await composePlanWithPairedRice(tx, { mealPlanId: replacement.id,
+        cookedRiceG: reviewedPlate.pairedRiceG, fnriRiceFoodItemId: reviewedPlate.riceFoodId! });
       for (const condition of input.reviewer ? [] : conditions) {
         const clearance = latest.conditionClearances.find(
           (item) =>
@@ -428,10 +459,12 @@ export class CertifiedSlotFallbackService {
                     status: replacement.status,
                     ingredients,
                     mealName: latest.mealName,
-                    calories: latest.calories,
-                    proteinG: latest.proteinG,
-                    carbsG: latest.carbsG,
-                    fatG: latest.fatG,
+                    calories: reviewedPlate?.calories ?? latest.calories,
+                    proteinG: reviewedPlate?.proteinG ?? latest.proteinG,
+                    carbsG: reviewedPlate?.carbsG ?? latest.carbsG,
+                    fatG: reviewedPlate?.fatG ?? latest.fatG,
+                    ...(reviewedPlate ? { nutrients: reviewedPlate.nutrients, pairedRiceG: reviewedPlate.pairedRiceG,
+                      servingKey: reviewedPlate.servingKey, nutrientFilters: input.reviewer!.filters ?? {} } : {}),
                     recipeSignature: latest.recipeSignature,
                     evidenceRevision: latest.safetyEvidenceRevision,
                   },

@@ -5,6 +5,9 @@ import { getReviewClaimCutoff } from './nutritionist-review.policy';
 /** A selected replacement awaits an explicit decision, even after its claim expires. */
 export function requiresExplicitReplacementReview(plan: { status: string; selectionEvidence: unknown }) {
   const evidence = plan.selectionEvidence;
+  if (plan.status === 'REJECTED' && evidence && typeof evidence === 'object' && !Array.isArray(evidence) &&
+    'replacementOutcome' in evidence && evidence.replacementOutcome && typeof evidence.replacementOutcome === 'object' &&
+    'kind' in evidence.replacementOutcome && evidence.replacementOutcome.kind === 'NO_SUITABLE_REPLACEMENT') return true;
   return (
     plan.status === 'PENDING_REVIEW' &&
     Boolean(

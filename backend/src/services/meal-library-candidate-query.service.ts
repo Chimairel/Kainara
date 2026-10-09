@@ -447,6 +447,8 @@ export async function queryEligibleLibraryPage(input: {
   safetyOnly?: boolean;
   /** Include patient-reviewed recipes with the same recorded safety context. */
   includeProfileApproved?: boolean;
+  /** Internal serving/filter predicate. Runs after authoritative admission, before counting and pagination. */
+  accept?: (meal: EligibleLibraryMeal) => boolean;
 }): Promise<EligibleLibraryPage> {
   await enforceClearanceCircuitBreakers();
   const pageLimit = Math.max(1, Math.min(input.limit ?? 24, 60));
@@ -564,6 +566,7 @@ export async function queryEligibleLibraryPage(input: {
       )
         continue;
       if (input.riceRole && resolveRecipeRiceRole(row).riceRole !== input.riceRole) continue;
+      if (input.accept && !input.accept(row)) continue;
       total += 1;
       if ((!requestedCursor || afterLibraryCursor(row, requestedCursor)) && items.length < pageLimit + 1) {
         items.push(row);

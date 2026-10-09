@@ -90,6 +90,10 @@ CaseReviewDocument extends that presentation to related admin cases: a bounded S
 
 `user/MealReviewAttribution` is the first section below the member meal detail image. It reuses `ReviewedByControl` and the existing credential modal, distinguishes recipe review from member approval and displays only recorded specialization and license details. A meal without a recorded reviewer explicitly says so; an approved general meal's Ready status does not imply RND verification.
 
+## RND replacement search
+
+RND replacement search reuses the member `SwapMealComparison` and `SwapMealOptions` through `features/nutritionist-reviews/ReviewSwapDialog`. `ReviewNutrientFilters` provides explicit fixed-unit bounds for the full plate, including sides, with no medical defaults. The case-owned `useReviewSwap` discards choices/receipts when limits, claim or context change. Apply/refresh uses the server's eligible catalog; pagination is after serving/nutrient checks. Selected nutrient values show missing values explicitly. A No suitable replacement control prepares the existing rejection modal, whose saved search receipt and rationale are sent with Reject. It never approves, edits a recipe or adds a third final decision. Member swap behavior and the compact canvas dock stay with their existing components.
+
 ## Subscription history
 
 `features/membership/SubscriptionHistoryCard` renders the recorded introductory trial and later membership periods in chronological order, with Philippine dates, status, recorded amounts and pagination. Member Membership places it below Plan Statistics and Plan Schedule; Admin Audit's Member subscriptions tab reuses it through `features/admin-audit/AdminSubscriptionHistory`, with paginated member search and selection. Pass the authenticated ownerId and the caller's role endpoint to retain session isolation. A pending trial has no invented start/end date. Historical checkout records from a disabled or different test configuration are explicitly recorded history, not current access. Plan Schedule remains the current entitlement presentation. Keep meal logs, personalization changes and clinical details outside this history.

@@ -51,11 +51,21 @@ export default function CaseDecisionSection({
         note={action === 'reject' ? model.review.rejectNote : model.generalNote}
         onNoteChange={action === 'reject' ? model.review.setRejectNote : model.setGeneralNote}
         onConfirm={() => {
-          if (action === 'reject') void model.review.handleReject();
+          if (action === 'reject') void model.review.handleReject(swap.replacementOutcome);
           else void model.handleApprove();
         }}
-      />
-      <ReviewSwapDialog swap={swap} meal={model.detailData.mealPlan} />
+        required={action === 'reject' && swap.noSuitable}
+      >
+        {action === 'reject' && swap.filtersEnabled && <label className="mb-4 block text-sm">
+          <input type="checkbox" checked={swap.noSuitable} disabled={busy || !swap.data?.searchReceipt}
+            onChange={event => swap.setNoSuitable(event.target.checked)} className="mr-2" />
+          No suitable replacement — keep this slot unavailable and stop automatic regeneration.
+          {!swap.data?.searchReceipt && <span className="mt-1 block text-xs text-brand-muted">Open Swap and search the eligible library first to record this outcome.</span>}
+        </label>}
+      </ReviewDecisionDialog>
+      <ReviewSwapDialog swap={swap} meal={model.detailData.mealPlan} onNoSuitable={() => {
+        swap.setNoSuitable(true); swap.close(); setAction('reject');
+      }} />
     </>
   );
 }

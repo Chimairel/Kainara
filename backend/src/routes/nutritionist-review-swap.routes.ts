@@ -11,7 +11,8 @@ router.get(
   '/queue/:id/swap-options',
   validateZodRequest({ params: reviewSwapParamsSchema, query: reviewSwapQuerySchema }),
   asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
-    res.json({ success: true, data: await listReviewSwapOptions(req.nutritionistProfileId!, req.params.id, req.query.expectedContextKey as string | undefined) });
+    const query = req.query as unknown as { expectedContextKey?: string; filters?: import('@/domain/review-nutrient-filter.policy').ReviewNutrientFilters; cursor?: string };
+    res.json({ success: true, data: await listReviewSwapOptions(req.nutritionistProfileId!, req.params.id, query.expectedContextKey, query.filters, query.cursor) });
   })
 );
 router.post(

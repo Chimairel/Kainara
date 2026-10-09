@@ -1,0 +1,92 @@
+{
+  "changeId": "CHG-20261010-06",
+  "batch": "4",
+  "date": "2026-10-10",
+  "scope": "Explicit complete-serving RND replacement filters and recorded no-suitable-replacement rejection",
+  "database": {
+    "host": "127.0.0.1",
+    "port": 55488,
+    "database": "kainara_review_filters",
+    "appliedMigrations": 101,
+    "newMigration": null,
+    "syntheticAccountsCreated": 4,
+    "libraryMeals": 128,
+    "membershipEnabled": false,
+    "externalProviders": "disabled; acceptance network restricted to loopback",
+    "sharedDatabaseMutations": false
+  },
+  "acceptance": {
+    "passed": 11,
+    "checks": [
+      "Full-catalog search finds a zero-valued candidate beyond row 120, excludes unknown and unverified values, includes rice and enforces role/claim",
+      "Authoritative post-policy counts and all pages include every eligible result without duplicate rows",
+      "Fixed-unit numeric boundaries and missing required side values fail closed",
+      "Quarantine and expired recipe-verifier credentials cannot be bypassed by a previously filtered choice",
+      "Final swap rechecks filters, extended base values and side composition even when the recipe signature stays unchanged",
+      "Expired credentials fail; concurrent swaps publish one exact composed serving which still needs separate approval",
+      "A context-bound signed search and comprehensive rationale record no suitable replacement, retain the rejected slot and stop fallback/provider calls",
+      "Slot holds also block deadline, certified, raw and AI replacement paths for competing rows",
+      "An exhausted search records zero matches separately from clinical rejection of remaining numeric matches",
+      "Case-scoped admin oversight shows saved filters, counts, rationale and reviewed context and records sensitive access",
+      "Outdated meal context cannot commit a search outcome or resurrect a stale decision"
+    ]
+  },
+  "regressionAcceptance": {
+    "database": "kainara_rnd_canvas",
+    "commonFeatureFlag": false,
+    "passed": 18,
+    "cases": [
+      "role, claim and eligible preview filters",
+      "tampered and ineligible replacements are rejected",
+      "one atomic pending replacement under concurrent submissions, preserved claim, no approval or notification, audit and stale groceries",
+      "deadline fallback cannot approve, replace or cancel a pending RND-selected meal",
+      "replacement remains inspectable and only a separate explicit decision approves it",
+      "changed source cannot publish a replacement",
+      "expired claim cannot publish a replacement",
+      "changed member safety cannot publish a replacement",
+      "changed replacement evidence cannot publish a replacement",
+      "quarantine hold is rechecked inside transaction",
+      "frozen is blocked",
+      "past is blocked",
+      "expired-rnd is blocked",
+      "existing automatic certified fallback still works",
+      "past, ended, completed and replaced requests leave active queues and counts with routing on/off; today/future cases remain",
+      "stale previews, claims, approvals, rejections, swaps and dispute approvals are blocked; today remains claimable",
+      "history and snapshots are retained with admin related-case oversight; active-queue retirement deletes no data",
+      "heart specialists, experienced generalists and new RNDs see the same cases and profiles despite legacy priority; claims, roles, notifications and historical audit remain protected"
+    ]
+  },
+  "tests": {
+    "backend": {
+      "total": 870,
+      "passed": 869,
+      "failed": 0,
+      "existingTodo": 1
+    },
+    "frontend": {
+      "files": 6,
+      "passed": 29,
+      "failed": 0
+    },
+    "backendBuild": "passed",
+    "frontendBuild": "passed",
+    "backendLint": "passed",
+    "frontendLint": "passed",
+    "applicationAndAcceptanceTypeScript": "passed"
+  },
+  "rollout": {
+    "commonSharedFlag": false,
+    "sharedMigrationsPending": [
+      "202610100001_clinical_clarifications",
+      "202610100002_clinical_profile_proposals",
+      "202610100003_meal_clarification_reopening"
+    ],
+    "demoPromotion": false
+  },
+  "limits": [
+    "Filter scope is currently eligible certified-library candidates; no AI, universal clinical thresholds or broadened condition clearance.",
+    "Signed search counts describe the recorded search, not proof that every numeric match was clinically inspected.",
+    "Shared rollout, authenticated browser E2E, reusable summaries and remaining-date log/purchase reconciliation remain pending.",
+    "These software checks do not establish clinical validation."
+  ]
+}

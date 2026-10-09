@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { replacementOutcomeSchema } from '@/domain/review-nutrient-filter.policy';
 
 const boundedNote = z.string().trim().min(1).max(2000);
 const nutritionNumber = z.number().finite().min(0).max(5000);
@@ -39,6 +40,7 @@ export const nutritionistReviewActionSchema = z.discriminatedUnion('action', [
       action: z.literal('reject'),
       expectedContextKey: mealReviewContextSchema,
       note: boundedNote,
+      replacementOutcome: replacementOutcomeSchema.optional(),
     })
     .strict(),
 ]);

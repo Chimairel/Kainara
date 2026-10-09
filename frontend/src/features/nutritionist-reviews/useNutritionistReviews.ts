@@ -473,7 +473,7 @@ export function useNutritionistReviews(enabled = true) {
     }
   };
 
-  const handleReject = async () => {
+  const handleReject = async (replacementOutcome?: { kind: 'NO_SUITABLE_REPLACEMENT'; searchReceipt: string }) => {
     if (!selectedMealId || !rejectNote.trim()) return;
     setActionLoading(selectedMealId);
     setErrorMsg(null);
@@ -483,6 +483,7 @@ export function useNutritionistReviews(enabled = true) {
     try {
       await api.patch(`/nutritionist/review/${selectedMealId}`, {
         action: 'reject',
+        ...(replacementOutcome ? { replacementOutcome } : {}),
         ...(detailData?.reviewContext ? { expectedContextKey: detailData.reviewContext.contextKey } : {}),
         note: rejectNote.trim(),
       });

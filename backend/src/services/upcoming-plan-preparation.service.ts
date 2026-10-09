@@ -45,7 +45,7 @@ export class UpcomingPlanPreparationService {
       where: { id: cycleId, userId },
       include: {
         mealPlans: {
-          where: { status: MealPlanStatus.PENDING_REVIEW },
+          where: { status: { in: [MealPlanStatus.PENDING_REVIEW, MealPlanStatus.REJECTED] }, supersededByMealPlanId: null },
           orderBy: [{ scheduledDate: 'asc' }, { mealType: 'asc' }, { createdAt: 'desc' }],
         },
       },
@@ -59,6 +59,7 @@ export class UpcomingPlanPreparationService {
         .map((meal) => `${meal.scheduledDate.getTime()}:${meal.mealType}`)
     );
     for (const pending of cycle.mealPlans) {
+      if (pending.status !== MealPlanStatus.PENDING_REVIEW) continue;
       const slotKey = `${pending.scheduledDate.getTime()}:${pending.mealType}`;
       if (heldSlots.has(slotKey)) continue;
       if (handledSlots.has(slotKey)) continue;
@@ -79,7 +80,8 @@ export class UpcomingPlanPreparationService {
               planGroupId: cycle.id,
               scheduledDate: pending.scheduledDate,
               mealType: pending.mealType,
-              status: MealPlanStatus.PENDING_REVIEW,
+              status: { in: [MealPlanStatus.PENDING_REVIEW, MealPlanStatus.REJECTED] },
+              supersededByMealPlanId: null,
             },
             select: { status: true, selectionEvidence: true },
           });

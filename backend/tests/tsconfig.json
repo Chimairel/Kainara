@@ -24,6 +24,7 @@
     "../scripts/dev-test-accounts.ts",
     "../scripts/dev-test-accounts-local-acceptance.ts",
     "../scripts/partial-plan-local-acceptance.ts",
-    "../scripts/rnd-canvas-swap-local-acceptance.ts"
+    "../scripts/rnd-canvas-swap-local-acceptance.ts",
+    "../scripts/review-filters-local-acceptance.ts"
   ]
 }
