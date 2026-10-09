@@ -1,5 +1,6 @@
 import { Prisma } from '@prisma/client';
 import { env } from '@/config/env';
+import { withdrawOutdatedMealReviews } from './outdated-meal-review.service';
 import { getStartOfManilaBusinessDay } from '@/domain/meal-actionability.policy';
 import { calculateDailyTarget } from '@/lib/calculations';
 import {
@@ -52,6 +53,7 @@ export async function advanceProfileRevision(
   if (adaptCycles && !updated.planningReportVersion) {
     await ProfileCycleAdaptationService.recordOrdinaryChange(tx, userId, updated.revision, changeKinds);
   }
+  await withdrawOutdatedMealReviews(tx, userId, updated.revision);
   return updated;
 }
 
@@ -68,8 +70,9 @@ export async function invalidateConditionPlanningAssessments(
     data: { mealPlanningAssessment: Prisma.DbNull },
   });
   if (changed.count && advanceRevision) {
-    await tx.userProfile.update({ where: { userId }, data: { revision: { increment: 1 } } });
+    const revised = await tx.userProfile.update({ where: { userId }, data: { revision: { increment: 1 } } });
     await tx.nutritionReport.updateMany({ where: { userId }, data: { isStale: true, acknowledgedAt: null } });
+    if (env.CLINICAL_CLARIFICATIONS_ENABLED) await withdrawOutdatedMealReviews(tx, userId, revised.revision);
   }
   if (changed.count)
     await tx.auditEvent.create({
@@ -111,5 +114,6 @@ export async function advanceSafetyRevision(tx: Prisma.TransactionClient, userId
   });
   await tx.groceryList.updateMany({ where: { userId }, data: { isStale: true } });
   await ProfileCycleAdaptationService.recordSafetyChange(tx, userId, updated.revision, safetyUpdated.safetyRevision);
+  await withdrawOutdatedMealReviews(tx, userId, updated.revision);
   return { ...updated, safetyRevision: safetyUpdated.safetyRevision };
 }

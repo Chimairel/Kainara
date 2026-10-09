@@ -1,6 +1,7 @@
 import { MealPlanCycleStatus, MealPlanStatus, Prisma, ProfileCycleAdaptationState } from '@prisma/client';
 import { getStartOfManilaBusinessDay } from '@/domain/meal-actionability.policy';
 import { MealPlanCycleService } from './meal-plan-cycle.service';
+import { env } from '@/config/env';
 
 export const PROFILE_CHANGE_KIND = {
   BODY_TARGETS: 'BODY_TARGETS',
@@ -140,7 +141,9 @@ export class ProfileCycleAdaptationService {
 
       await tx.mealPlanCycle.update({
         where: { id: cycle.id },
-        data: { acknowledgedProfileRevision: profileRevision },
+        data: { acknowledgedProfileRevision: profileRevision,
+          ...(env.CLINICAL_CLARIFICATIONS_ENABLED ? { profileAdaptationState: ProfileCycleAdaptationState.REBUILD_REQUIRED } : {}),
+        },
       });
     }
 

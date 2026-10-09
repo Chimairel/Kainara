@@ -10,6 +10,9 @@ import { requiresMealCandidateReview } from '@/domain/meal-candidate-review.poli
 import { assertGenerationIntegrity } from './generation-integrity.service';
 import { updateGenerationProgress } from './generation-progress.service';
 import { lockUserProfile } from './profile-revision.service';
+import { assertAcknowledgedGenerationProfile, repairBillingStart } from './acknowledged-cycle-rebuild.service';
+import { env } from '@/config/env';
+import { AppError } from '@/errors/AppError';
 import { assertEmptyPlanRetry } from './empty-plan-retry.service';
 import {
   MealType,
@@ -66,9 +69,10 @@ export async function generate7DayPlan(
   startDate: Date = new Date(),
   generationJobId?: string,
   membershipReservationIds: readonly string[] = [],
-  expectedEmptyCycleId?: string
+  expectedEmptyCycleId?: string,
+  repair?: { cycleId: string; profileRevision: number; billingStart: Date }
 ): Promise<string> {
-  await MembershipService.assertNewPlan(userId, startDate);
+  await MembershipService.assertNewPlan(userId, repair?.billingStart ?? startDate);
   await ClinicalProfileReviewService.assertReadyForMealPlanning(userId);
   await updateGenerationProgress(
     generationJobId,
@@ -520,6 +524,12 @@ export async function generate7DayPlan(
   await prisma.$transaction(
     async (tx) => {
       await lockUserProfile(tx, userId);
+      if (repair) await repairBillingStart(userId, repair, tx);
+      if (env.CLINICAL_CLARIFICATIONS_ENABLED) {
+        await assertAcknowledgedGenerationProfile(userId, tx);
+        if (!await ClinicalProfileReviewService.hasCurrentApproval(userId, tx))
+          throw new AppError('The profile case must be confirmed before meal publication.', 409, 'PROFILE_REVIEW_REQUIRED');
+      }
       const { profile: currentProfileRevision } = await loadPlanningNutritionContext(tx, userId, 'Profile missing.');
       if (currentProfileRevision.revision !== profile.revision)
         throw new Error('Profile changed during generation. Please retry.');

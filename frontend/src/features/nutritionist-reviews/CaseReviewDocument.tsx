@@ -8,6 +8,8 @@ import CaseDecisionSection from './sections/CaseDecisionSection';
 import type { useCaseReviewWorkspaceModel } from './sections/useCaseReviewWorkspaceModel';
 import { useReviewSwap } from './useReviewSwap';
 import { useState, useEffect } from 'react';
+import RndClarifications from '@/features/clinical-clarification/RndClarifications';
+import ClarificationFormCard from '@/features/clinical-clarification/ClarificationFormCard';
 
 type Model = ReturnType<typeof useCaseReviewWorkspaceModel>;
 
@@ -93,6 +95,27 @@ export default function CaseReviewDocument({ model }: { model: Model }) {
             </section>
           )}
         </ReviewDocumentPage>
+        {detailData.clarifications?.enabled && detailData.reviewContext && <ReviewDocumentPage page={3} title="Request profile clarification" subtitle="Questions stay with the member’s Profile case">
+          <RndClarifications
+            userId={meal.userId}
+            profileRevision={detailData.reviewContext.profileRevision}
+            scopeKey={detailData.reviewContext.scopeKey}
+            workspace={detailData.clarifications}
+            canWrite={detailData.claimStatus.claimedByMe}
+            draft={model.review.clarificationDraft}
+            showForms={false}
+            publishTarget={{ url: `/nutritionist/queue/${meal.id}/clarifications`, expectedContextKey: detailData.reviewContext.contextKey }}
+            onInvalidated={failure => model.review.retireInactiveReview(failure, meal.id)}
+            onUpdated={async () => {
+              model.review.retireInactiveReview({ response: { data: { code: 'PROFILE_REVIEW_REQUIRED' } } }, meal.id,
+                'Questions sent to Health details. This member’s meal reviews are paused. Continue the case in the Profile queue.');
+              await model.review.fetchQueue(false, undefined, true);
+            }}
+          />
+        </ReviewDocumentPage>}
+        {detailData.clarifications?.forms.map((form, index) => <ReviewDocumentPage key={form.id} page={4 + index} title={form.title} subtitle="Saved profile clarification · read only">
+          <ClarificationFormCard form={form} mode="reviewer" />
+        </ReviewDocumentPage>)}
       </RndQueueDocument>
       {detailData.claimStatus.claimedByMe && (
         <p className="mt-3 text-xs text-brand-muted">

@@ -1,0 +1,148 @@
+{
+  "changeId": "CHG-20261010-05",
+  "batch": "3b",
+  "date": "2026-10-10",
+  "scope": "Meal clarification, persistent profile reopening, outdated review withdrawal and acknowledged remaining-date rebuilding",
+  "database": {
+    "host": "127.0.0.1",
+    "port": 55488,
+    "database": "kainara_meal_clarification",
+    "appliedMigrations": 101,
+    "newMigration": "202610100003_meal_clarification_reopening",
+    "syntheticAccountsCreated": 24,
+    "remainingDateMealCount": 12,
+    "membershipEnabled": true,
+    "externalProviders": "disabled; network restricted to loopback in the acceptance script",
+    "sharedDatabaseMutations": false
+  },
+  "acceptance": {
+    "passed": 10,
+    "checks": [
+      "Claim/role/strict boundaries and concurrent retry create one source-bound form; all 21 claims pause without profile or acknowledgment changes",
+      "Healthy NONE declarations can reopen as a persistent Profile case; stale decisions and generation are blocked",
+      "Late answers survive an expired source week, ownership is enforced, and a successor resolves/confirms without altering the profile",
+      "Meal previews reuse saved forms read-only; related admin access retains source context and is audited",
+      "Actual profile edits retire old requests, preserve consumed logs/decisions/confirmations, and block stale decisions and unacknowledged rebuilds",
+      "Repair authorization requires the owning member, acknowledged current revision and original admitted allowance",
+      "Logged remaining-date meals and purchases pause automatic rebuilding before jobs or history can be overwritten",
+      "Concurrent membership first access creates one receipt without starting or resetting a trial",
+      "Concurrent current-plan recovery produces one remaining-four-day cycle, preserves logs and admission, and cannot resurrect retired requests",
+      "Reauthenticated member deletion removes the clarification graph without orphaning source references"
+    ]
+  },
+  "regressionAcceptance": {
+    "passed": 40,
+    "runs": [
+      {
+        "script": "clinical-clarification-local-acceptance",
+        "passed": 13,
+        "checks": [
+          "Publishing requires a current claim, staff role and eligible credentials",
+          "Publishing/retry creates one immutable form and notification without altering the profile",
+          "Unresolved clarification blocks profile confirmation and planning",
+          "Member ownership and required/choice/unknown-field validation are enforced",
+          "A late member response survives expiry and is visible to the next claimant",
+          "Resolution binds to the latest immutable answer and never alters profile/acknowledgment",
+          "Admin related-case access shows question/answer/resolution history and records sensitive access",
+          "Concurrent submissions cannot silently overwrite one another",
+          "Concurrent answer changes and resolution cannot produce a stale signed resolution",
+          "Release and new claims retain the same forms and enforce write ownership",
+          "Changed health details advance the profile revision and invalidate old forms",
+          "Profile changes supersede old forms and block stale answers/writes without deletion",
+          "Superseded historical forms do not block a separately reviewed current profile"
+        ]
+      },
+      {
+        "script": "profile-proposal-local-acceptance",
+        "passed": 19,
+        "checks": [
+          "Publishing requires a current claim, staff role and eligible credentials",
+          "Publishing/retry creates one immutable form and notification without altering the profile",
+          "Unresolved clarification blocks profile confirmation and planning",
+          "Member ownership and required/choice/unknown-field validation are enforced",
+          "A late member response survives expiry and is visible to the next claimant",
+          "Resolution binds to the latest immutable answer and never alters profile/acknowledgment",
+          "Admin related-case access shows question/answer/resolution history and records sensitive access",
+          "Concurrent submissions cannot silently overwrite one another",
+          "Concurrent answer changes and resolution cannot produce a stale signed resolution",
+          "Release and new claims retain the same forms and enforce write ownership",
+          "Changed health details advance the profile revision and invalidate old forms",
+          "Profile changes supersede old forms and block stale answers/writes without deletion",
+          "Profile proposals enforce credentials, role, active claim, strict fields and current resolved evidence",
+          "One active proposal survives concurrent publication and retries without mutating the profile or allowing confirmation",
+          "Member correction requests preserve the saved profile and evidence across a new RND claim and revised proposal",
+          "Acknowledgment applies exactly once, advances safety/profile revisions, clears 21 old claims and retains audited admin oversight",
+          "Superseded historical forms do not block a separately reviewed current profile",
+          "Acceptance rechecks current RND credentials and reuses structured safety validation without dropping other declarations",
+          "Member changes invalidate outstanding proposals while accepted corrections retain their recorded history"
+        ]
+      },
+      {
+        "script": "meal-context-local-acceptance",
+        "passed": 8,
+        "checks": [
+          "Role boundaries and version-bound explicit claiming; claim metadata does not change context",
+          "Cosmetic name and check-in counters leave clinical context unchanged",
+          "Measured ingredient quantities and units bind the review context",
+          "Changed plate blocks stale approve, reject and swap without writing decisions",
+          "Current approval retains the exact immutable reviewed context",
+          "Twenty simultaneous claimed reviews release on profile change, reject stale decisions, hide paused work and retain history",
+          "A decision waiting behind the profile lock checks the committed revision",
+          "Admin case access retains saved review context"
+        ]
+      }
+    ]
+  },
+  "backendSuite": {
+    "total": 865,
+    "passed": 864,
+    "failed": 0,
+    "existingTodo": 1
+  },
+  "frontendSuite": {
+    "passed": 32,
+    "failed": 0,
+    "files": [
+      "RndClarifications.test.tsx",
+      "ClarificationFormCard.test.tsx",
+      "ProfileProposalCard.test.tsx",
+      "useNutritionistReviews.claims.test.tsx",
+      "CaseReviewWorkspace.error.test.tsx",
+      "RndQueueDocument.test.tsx",
+      "useReviewSwap.test.tsx"
+    ]
+  },
+  "checks": {
+    "backendBuild": true,
+    "frontendBuild": true,
+    "backendLint": true,
+    "frontendLint": true,
+    "applicationTypeScript": true,
+    "scriptTypeScript": true,
+    "prismaValidation": true,
+    "normalApiHealth": 200
+  },
+  "rollout": {
+    "sharedFeatureFlag": "disabled",
+    "pendingMigrations": [
+      "202610100001_clinical_clarifications",
+      "202610100002_clinical_profile_proposals",
+      "202610100003_meal_clarification_reopening"
+    ],
+    "demoPromotion": false
+  },
+  "limitations": [
+    "Automatic repair is paused if remaining-date meals have DONE/SKIPPED logs or the source plan has purchased ingredients. Preserving these records is tested; reconciling them into a replacement is not implemented.",
+    "Component checks are not authenticated browser E2E.",
+    "Five-second visible polling plus request latency is not instant server push.",
+    "Draft questions and unfinished notes stay in bounded session memory and clear on account change/reload.",
+    "No clinical validation or cross-member automatic clinical approval reuse.",
+    "The existing synthetic approval fixture has no admitted source recipe, so its advisory grocery projection refresh logs an expected no-cleared-meals warning. The fresh rebuild uses mapped raw-recipe fixtures.",
+    "Concurrent job creation logs a handled uniqueness conflict; one job/cycle is published."
+  ],
+  "remaining": [
+    "Batch 4 explicit replacement filters and no-match outcome",
+    "Batch 5 reusable summaries, remaining-date log/purchase reconciliation and full cross-role/browser acceptance",
+    "Confirmed shared migration/enablement rollout; demo promotion remains separate"
+  ]
+}

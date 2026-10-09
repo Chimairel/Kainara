@@ -69,7 +69,7 @@ it('returns fullscreen to the default panel and exposes the saved draft without 
   const review = {
     queue: [], isLoading: false, selectedMealId: null, detailLoading: false, detailData: null, errorMsg: null, actionLoading: null,
     reviewNotice: 'This review is no longer current.', dismissReviewNotice: vi.fn(),
-    savedReviewNotes: [{ mealId: 'old', mealName: 'Recorded old meal', note: 'Unfinished member guidance', rejection: 'Unfinished clinical reason' }],
+    savedReviewNotes: [{ mealId: 'old', mealName: 'Recorded old meal', note: 'Unfinished member guidance', rejection: 'Unfinished clinical reason', clarification: { title: 'Unfinished clarification', questions: [{ id: 'q', type: 'CHOICE', required: true, label: 'Recorded follow-up question', choices: 'Yes\nNo' }] } }],
   } as unknown as ReturnType<typeof useNutritionistReviews>;
   render(<CaseReviewWorkspace review={review} caseFilter="pending" expanded setExpanded={close} navigation={null} caseFilters={null} />);
   expect(close).toHaveBeenCalledWith(false);
@@ -78,5 +78,7 @@ it('returns fullscreen to the default panel and exposes the saved draft without 
   fireEvent.click(screen.getByRole('button', { name: 'View saved notes' }));
   expect(screen.getByRole('dialog', { name: 'Unfinished review notes' })).toBeVisible();
   expect(screen.getByText('Unfinished member guidance')).toBeVisible();
+  expect(screen.getByText('Unfinished clarification')).toBeVisible();
+  expect(screen.getByText('Recorded follow-up question')).toBeVisible();
   expect(screen.getByText('Unfinished clinical reason')).toBeVisible();
 });

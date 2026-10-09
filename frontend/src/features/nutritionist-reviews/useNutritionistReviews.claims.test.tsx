@@ -251,3 +251,24 @@ it('clears saved clinical drafts on account change and ignores an old claim resp
   expect(result.current.actionLoading).toBeNull();
   auth.owner = 'nutritionist-1';
 });
+
+
+it('retains clarification drafts across canvas rerenders and archives them before retiring a stale case', async () => {
+  vi.resetAllMocks();
+  vi.mocked(api.get).mockImplementation(async (url) => ({ data: { success: true, data: url === '/nutritionist/queue' ? [] : { ...preview, reviewContext: { contextKey: 'a'.repeat(64), profileRevision: 1, scopeKey: 'scope' } } } }));
+  const { result, rerender } = renderHook(() => useNutritionistReviews());
+  await waitFor(() => expect(result.current.isLoading).toBe(false));
+  await act(async () => { await result.current.handleSelectMeal('meal-1'); });
+  const questions = [{ id: 'q', label: 'Which treatment was recorded?', type: 'TEXT' as const, required: true, choices: '' }];
+  act(() => { result.current.clarificationDraft.setTitle('Clarify treatment'); result.current.clarificationDraft.setQuestions(questions); });
+  rerender();
+  expect(result.current.clarificationDraft.questions).toEqual(questions);
+  act(() => { result.current.retireInactiveReview({ response: { data: { code: 'MEAL_REVIEW_CONTEXT_CHANGED' } } }, 'meal-1'); });
+  expect(result.current.selectedMealId).toBeNull();
+  expect(result.current.savedReviewNotes[0].clarification).toEqual({ title: 'Clarify treatment', questions });
+  expect(result.current.clarificationDraft.questions).toEqual([]);
+  auth.owner = 'nutritionist-another'; rerender();
+  expect(result.current.savedReviewNotes).toEqual([]);
+  expect(result.current.clarificationDraft.questions).toEqual([]);
+  auth.owner = 'nutritionist-1'; rerender();
+});

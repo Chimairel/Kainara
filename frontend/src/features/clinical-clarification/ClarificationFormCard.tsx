@@ -42,6 +42,7 @@ export default function ClarificationFormCard({
           {mode === 'reviewer' && form.status === 'AWAITING_MEMBER' ? 'Awaiting member response' : statusLabel}
         </p>
       </header>
+      {form.sourceMeal && <p className="text-xs text-brand-muted">Requested during meal review: {form.sourceMeal.mealName}</p>}
       <form
         onSubmit={(event) => {
           event.preventDefault();

@@ -846,6 +846,7 @@ model MealBatchImport {
 }
 
 model User {
+  clinicalReviewEpoch            ClinicalProfileReviewEpoch?
   clarificationForms              ClinicalClarificationForm[] @relation("ClarificationMember")
   authoredClarificationForms      ClinicalClarificationForm[] @relation("ClarificationAuthor")
   clarificationResolutions        ClinicalClarificationResolution[]
@@ -1486,6 +1487,7 @@ model FoodConsumptionStat {
 }
 
 model MealPlan {
+  clarificationForms            ClinicalClarificationForm[]
   id                            String                      @id @default(cuid())
   planGroupId                   String
   cycle                         MealPlanCycle               @relation(fields: [planGroupId], references: [id], onDelete: Cascade)
@@ -3291,6 +3293,9 @@ model ClinicalProfileProposal {
 }
 
 model ClinicalClarificationForm {
+  sourceMealPlanId String?
+  sourceMealPlan   MealPlan? @relation(fields: [sourceMealPlanId], references: [id], onDelete: Restrict)
+  sourceContextKey String? @db.VarChar(64)
   id              String @id @default(cuid())
   userId          String
   user            User @relation("ClarificationMember", fields: [userId], references: [id], onDelete: Cascade)
@@ -3308,6 +3313,16 @@ model ClinicalClarificationForm {
 
   @@unique([userId, requestKey])
   @@index([userId, profileRevision, createdAt])
+  @@index([sourceMealPlanId])
+}
+
+/// A new clarification episode reopens the profile review without altering its data revision.
+model ClinicalProfileReviewEpoch {
+  userId    String @id
+  user      User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  key       String @db.VarChar(80)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model ClinicalClarificationResponse {

@@ -39,6 +39,9 @@ export const publishClarificationSchema = clarificationContextSchema
     requestKey: z.uuid(),
   })
   .strict();
+export const publishMealClarificationSchema = publishClarificationSchema
+  .extend({ expectedContextKey: z.string().regex(/^[a-f0-9]{64}$/) })
+  .strict();
 export const answerClarificationSchema = clarificationContextSchema
   .extend({
     answers: z.record(z.string().max(40), z.string().trim().max(2000)),

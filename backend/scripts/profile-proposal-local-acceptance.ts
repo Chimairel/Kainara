@@ -317,13 +317,13 @@ async function main() {
         measurements: '',
       })
     );
-    assert.equal((await db.userProfile.findUniqueOrThrow({ where: { userId: member.id } })).revision, scopeRevision);
+    assert.equal((await db.userProfile.findUniqueOrThrow({ where: { userId: member.id } })).revision, scopeRevision + 1);
     assert.equal((await request(member, concurrentRoute, 'POST', { ...answer, requestKey: randomUUID() })).status, 409);
     assert.equal(
       (await request(rnd, route + '/clarifications', 'POST', { ...publish, requestKey: randomUUID() })).status,
       409
     );
-    pass('Changed health-detail scope invalidates old forms even without a profile revision increment');
+    pass('Changed health details advance the profile revision and invalidate old forms');
 
     await db.$transaction(async (tx) => {
       await lockUserProfile(tx, member.id);
@@ -594,7 +594,7 @@ async function main() {
       ).status,
       409
     );
-    assert.equal((await db.userProfile.findUniqueOrThrow({ where: { userId: member.id } })).revision, applied.revision);
+    assert.equal((await db.userProfile.findUniqueOrThrow({ where: { userId: member.id } })).revision, declarationContext.profileRevision);
     await ok(
       request(member, declarationResponseRoute, 'POST', {
         profileRevision: declarationContext.profileRevision,
@@ -627,7 +627,7 @@ async function main() {
     );
     assert.equal(
       (await db.userProfile.findUniqueOrThrow({ where: { userId: member.id } })).revision,
-      applied.revision + 1
+      handoff.profileRevision + 1
     );
     assert.equal(
       (await db.userProfile.findUniqueOrThrow({ where: { userId: member.id } })).safetyRevision,

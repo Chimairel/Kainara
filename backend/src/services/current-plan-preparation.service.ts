@@ -5,6 +5,9 @@ import { getOnDemandMealPlanWindow, getScheduledMealDate } from '@/domain/meal-p
 import { PlanningReadinessService } from './planning-readiness.service';
 import { MealPlanCycleService } from './meal-plan-cycle.service';
 import { MealGenerationService } from './meal-generation.service';
+import { acknowledgedRebuild } from './acknowledged-cycle-rebuild.service';
+import { MembershipService } from './membership.service';
+import { AppError } from '@/errors/AppError';
 
 type Account = NonNullable<Awaited<ReturnType<typeof loadAccount>>>;
 
@@ -70,10 +73,27 @@ export class CurrentPlanPreparationService {
     const account = await loadAccount(userId);
     if (!isReadyForAutomaticCurrentPlan(account)) return { state: 'NOT_READY', planGroupId: null };
 
-    const readiness = await PlanningReadinessService.getForUser(userId);
-    if (!readiness.canRequestPlan) return { state: 'NOT_READY', planGroupId: null };
-
     const current = await MealPlanCycleService.getCurrentCycle(userId, now);
+    const repair = current ? await acknowledgedRebuild(userId, current.id, now) : null;
+    const readiness = await PlanningReadinessService.getForUser(userId);
+    const paidSafetyRepair = repair && readiness.status === 'BLOCKED_MEMBERSHIP' &&
+      await MembershipService.isSafetyRepair(userId, current!.startDate, prisma, now);
+    if (!readiness.canRequestPlan && !paidSafetyRepair) return { state: 'NOT_READY', planGroupId: null };
+    if (repair) {
+      try {
+        const planGroupId = await MealGenerationService.generateWindowOnce(userId, repair.window, true, undefined, undefined, repair);
+        return { state: 'PREPARED', planGroupId };
+      } catch (error) {
+        if (error instanceof AppError && error.errorCode === 'PLAN_REPAIR_HISTORY_CONFLICT') return { state: 'FAILED', planGroupId: current!.id };
+        if (error instanceof AppError && error.errorCode === 'GENERATION_IN_PROGRESS') return { state: 'PREPARING', planGroupId: null };
+        if (error instanceof AppError && error.errorCode === 'MEAL_REVIEW_CONTEXT_CHANGED') {
+          const replacement = await MealPlanCycleService.getCurrentCycle(userId, now);
+          if (replacement && replacement.id !== current!.id && replacement.snapshot?.profileRevision === account!.userProfile!.revision)
+            return { state: 'EXISTING', planGroupId: replacement.id };
+        }
+        throw error;
+      }
+    }
     if (current) return { state: 'EXISTING', planGroupId: current.id };
 
     const window = getOnDemandMealPlanWindow(account!.userProfile!, now);

@@ -57,6 +57,7 @@ export default function CaseReviewWorkspace({
             <p className="text-xs text-brand-muted">Outdated review context</p>
             {draft.note && <div><h4 className="font-bold">Member note</h4><p className="whitespace-pre-wrap">{draft.note}</p></div>}
             {draft.rejection && <div><h4 className="font-bold">Rejection rationale</h4><p className="whitespace-pre-wrap">{draft.rejection}</p></div>}
+            {draft.clarification && <div className="space-y-2"><h4 className="font-bold">{draft.clarification.title}</h4>{draft.clarification.questions.map(question => <div key={question.id}><p className="whitespace-pre-wrap">{question.label || 'Untitled question'}</p>{question.type === 'CHOICE' && <p className="whitespace-pre-wrap text-brand-muted">{question.choices}</p>}</div>)}</div>}
           </section>)}</div>
         </Modal>
         <SplitWorkspace className="flex md:h-[calc(100vh-270px)] md:min-h-[640px] flex-col overflow-hidden rounded-3xl border border-brand-border/70 bg-brand-surface text-left shadow-sm md:flex-row">

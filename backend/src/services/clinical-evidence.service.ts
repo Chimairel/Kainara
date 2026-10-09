@@ -6,7 +6,8 @@ import { isDeepStrictEqual } from 'node:util';
 import { healthDetailsRequirements } from '@/domain/health-details.policy';
 import { activeConditionPlanningAssessment } from '@/domain/condition-planning-assessment.policy';
 import { healthDetailsSchema, type HealthDetailsInput } from '@/validation/health-details.schemas';
-import { lockUserProfile, invalidateConditionPlanningAssessments } from './profile-revision.service';
+import { lockUserProfile, invalidateConditionPlanningAssessments, advanceProfileRevision } from './profile-revision.service';
+import { env } from '@/config/env';
 import {
   ClinicalDocumentReviewDecision,
   ClinicalDocumentType,
@@ -129,6 +130,10 @@ async function invalidateDocumentDependencies(tx: Prisma.TransactionClient, docu
 
 async function invalidateActivePlansForUser(tx: Prisma.TransactionClient, userId: string, actorUserId = userId) {
   await invalidateConditionPlanningAssessments(tx, userId, 'CLINICAL_CONTEXT_OR_EVIDENCE_CHANGED', true, actorUserId);
+  if (env.CLINICAL_CLARIFICATIONS_ENABLED) await tx.mealPlan.updateMany({
+    where: { userId, status: 'PENDING_REVIEW' },
+    data: { claimedByNutritionistId: null, claimedAt: null },
+  });
   await tx.mealPlan.updateMany({
     where: { userId, status: 'APPROVED' },
     data: { requiresSafetyRevalidation: true },
@@ -181,6 +186,7 @@ export class ClinicalEvidenceService {
         create: { userId, area, responses },
         update: { responses, revision: { increment: 1 } },
       });
+      if (env.CLINICAL_CLARIFICATIONS_ENABLED) await advanceProfileRevision(tx, userId, ['SAFETY'], false);
       await invalidateActivePlansForUser(tx, userId);
       await tx.mealConditionClearance.updateMany({
         where: { userScopeId: userId, state: { in: ['ACTIVE', 'REVIEW_DUE'] } },
@@ -302,11 +308,16 @@ export class ClinicalEvidenceService {
     const updated = await prisma.$transaction(
       async (tx) => {
         await lockUserProfile(tx, userId);
+        const previous = await tx.clinicalContextResponse.findUnique({
+          where: { userId_area: { userId, area: ClinicalEvidenceArea.DIABETES } },
+        });
+        if (previous && isDeepStrictEqual(previous.responses, context)) return previous;
         const result = await tx.clinicalContextResponse.upsert({
           where: { userId_area: { userId, area: ClinicalEvidenceArea.DIABETES } },
           create: { userId, area: ClinicalEvidenceArea.DIABETES, responses: context },
           update: { responses: context, revision: { increment: 1 } },
         });
+        if (env.CLINICAL_CLARIFICATIONS_ENABLED) await advanceProfileRevision(tx, userId, ['SAFETY'], false);
         await invalidateActivePlansForUser(tx, userId);
         return result;
       },

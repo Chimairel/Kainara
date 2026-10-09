@@ -1,4 +1,6 @@
 import prisma from '@/lib/prisma';
+import { lockUserProfile } from './profile-revision.service';
+import { acknowledgedRebuild, assertAcknowledgedGenerationProfile, repairBillingStart } from './acknowledged-cycle-rebuild.service';
 import { assertMemberPlanPreparation } from '@/domain/membership.policy';
 
 import { PlanType, MealPlanGenerationJobStatus, MealPlanCycleStatus, Prisma } from '@prisma/client';
@@ -53,7 +55,11 @@ export class MealGenerationService {
     await ClinicalEvidenceService.assertReadyForMealPlanning(userId);
     await ClinicalProfileReviewService.assertReadyForMealPlanning(userId);
     const currentCycle = await MealPlanCycleService.getCurrentCycle(userId, now);
-    if (currentCycle) return (await this.retryEmptyFailedCycle(userId, currentCycle.id)) ?? currentCycle.id;
+    if (currentCycle) {
+      const repair = await acknowledgedRebuild(userId, currentCycle.id, now);
+      if (repair) return this.generateWindowOnce(userId, repair.window, true, options.requestKey, undefined, repair);
+      return (await this.retryEmptyFailedCycle(userId, currentCycle.id)) ?? currentCycle.id;
+    }
 
     const { profile } = await loadPlanningNutritionContext(prisma, userId, 'Profile missing.');
     const window = getOnDemandMealPlanWindow(
@@ -169,17 +175,20 @@ export class MealGenerationService {
     window: MealPlanGenerationWindow,
     replaceExisting = false,
     requestKey?: string,
-    expectedEmptyCycleId?: string
+    expectedEmptyCycleId?: string,
+    repair?: { cycleId: string; profileRevision: number }
   ): Promise<string> {
     await ClinicalEvidenceService.assertReadyForMealPlanning(userId);
     await ClinicalProfileReviewService.assertReadyForMealPlanning(userId);
+    await assertAcknowledgedGenerationProfile(userId);
+    const billingStart = repair ? await repairBillingStart(userId, repair) : window.startDate;
     const endDate = getScheduledMealDate(window.startDate, Math.max(0, window.numDays - 1));
     const existing = await MealGenerationService.findExistingPlan(userId, window.planType, {
       startDate: window.startDate,
       endDate,
     });
     if (existing && !replaceExisting) return existing;
-    await MembershipService.assertNewPlan(userId, window.startDate);
+    await MembershipService.assertNewPlan(userId, billingStart);
 
     let job = null;
     let claimedNewJob = false;
@@ -219,7 +228,7 @@ export class MealGenerationService {
       if (completedByPeer && !replaceExisting) return completedByPeer;
 
       const staleCutoff = new Date(Date.now() - MealGenerationService.GENERATION_JOB_TTL_MS);
-      const reclaimed = await prisma.mealPlanGenerationJob.updateMany({
+      const reclaimQuery = {
         where: {
           id: job.id,
           OR: [
@@ -247,7 +256,14 @@ export class MealGenerationService {
           startedAt: new Date(),
           completedAt: null,
         },
-      });
+      } satisfies Prisma.MealPlanGenerationJobUpdateManyArgs;
+      const reclaimed = repair
+        ? await prisma.$transaction(async tx => {
+            await lockUserProfile(tx, userId);
+            await repairBillingStart(userId, repair, tx);
+            return tx.mealPlanGenerationJob.updateMany(reclaimQuery);
+          })
+        : await prisma.mealPlanGenerationJob.updateMany(reclaimQuery);
       if (reclaimed.count !== 1) {
         throw new AppError(
           'Meal plan generation is already in progress for this cycle.',
@@ -261,7 +277,7 @@ export class MealGenerationService {
     try {
       membershipReservations = await MembershipService.admitPlan(
         userId,
-        window.startDate,
+        billingStart,
         replaceExisting,
         job.id,
         requestKey
@@ -273,7 +289,8 @@ export class MealGenerationService {
         window.startDate,
         job.id,
         membershipReservations.filter((row) => !row.replayed).map((row) => row.id),
-        expectedEmptyCycleId
+        expectedEmptyCycleId,
+        repair ? { ...repair, billingStart } : undefined
       );
       const cycle = await prisma.mealPlanCycle.findUniqueOrThrow({
         where: { id: planGroupId },

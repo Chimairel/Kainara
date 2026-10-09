@@ -191,6 +191,7 @@ export class ClinicalProfileReviewService {
         role: Role.USER,
         onboardingDone: true,
         OR: [
+          ...(env.CLINICAL_CLARIFICATIONS_ENABLED ? [{ clinicalReviewEpoch: { isNot: null } }] : []),
           { healthConditions: { some: { condition: { not: 'NONE' } } } },
           { allergies: { some: { allergen: { not: 'NONE' } } } },
           { safetyProfileEntries: { some: {} } },

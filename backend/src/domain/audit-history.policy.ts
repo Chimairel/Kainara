@@ -66,6 +66,7 @@ export function auditActionLabel(action: string) {
     MEAL_PLAN_SLOT_REPLACED_PENDING_REVIEW: 'Replaced a meal for review',
     MEAL_PLAN_SLOT_CERTIFIED_FALLBACK_SELECTED: 'Selected a certified meal replacement',
     MEAL_PLAN_REJECTED: 'Rejected a case',
+    MEAL_REVIEW_REQUEST_WITHDRAWN: 'Withdrew an outdated meal review request',
     MEAL_PLAN_REVIEW_DISPUTED: 'Disputed a case',
     MEAL_PLAN_DISPUTE_RESOLVED: 'Resolved a dispute',
     MEAL_APPROVAL_FLAGGED: 'Flagged an approval',

@@ -33,7 +33,7 @@ export class StaffAuditService {
   static async history(filters: StaffAuditFilters, db = prisma) {
     const { page, limit } = normalizePagination(filters.page ?? 1, filters.limit ?? 20, 20);
     const roleWhere = filters.relatedTo
-      ? Prisma.sql`role IN ('ADMIN', 'NUTRITIONIST')`
+      ? Prisma.sql`(role IN ('ADMIN', 'NUTRITIONIST') OR "actionCode" = 'MEAL_REVIEW_REQUEST_WITHDRAWN')`
       : filters.view === 'admin'
         ? Prisma.sql`role = 'ADMIN'`
         : filters.includeAdminMealFlags

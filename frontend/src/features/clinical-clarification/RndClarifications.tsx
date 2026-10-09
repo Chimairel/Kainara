@@ -8,7 +8,7 @@ import NativeSelect from '@/components/ui/NativeSelect';
 import ClarificationFormCard from './ClarificationFormCard';
 import type { ClarificationForm, ClarificationQuestion, ClarificationWorkspace } from './types';
 
-type DraftQuestion = { id: string; label: string; type: 'TEXT' | 'CHOICE'; required: boolean; choices: string };
+export type DraftQuestion = { id: string; label: string; type: 'TEXT' | 'CHOICE'; required: boolean; choices: string };
 const newQuestion = (): DraftQuestion => ({
   id: crypto.randomUUID(),
   label: '',
@@ -36,6 +36,8 @@ export default function RndClarifications({
   draft,
   showForms = true,
   showComposer = true,
+  publishTarget,
+  onInvalidated,
 }: {
   userId: string;
   profileRevision: number;
@@ -46,6 +48,8 @@ export default function RndClarifications({
   draft?: ReturnType<typeof useRndClarificationDraft>;
   showForms?: boolean;
   showComposer?: boolean;
+  publishTarget?: { url: string; expectedContextKey: string };
+  onInvalidated?: (cause: unknown) => boolean;
 }) {
   const internalDraft = useRndClarificationDraft(`${userId}:${profileRevision}:${scopeKey}`);
   const { title, setTitle, questions, setQuestions } = draft ?? internalDraft;
@@ -102,24 +106,26 @@ export default function RndClarifications({
     setError(null);
     setMessage(null);
     try {
-      await api.post(`/nutritionist/profile-reviews/${userId}/clarifications`, {
+      await api.post(publishTarget?.url ?? `/nutritionist/profile-reviews/${userId}/clarifications`, {
         profileRevision,
         scopeKey,
         title,
         questions: prepared,
-        requestKey: retryKey({ userId, profileRevision, scopeKey, title, questions: prepared }),
+        ...(publishTarget ? { expectedContextKey: publishTarget.expectedContextKey } : {}),
+        requestKey: retryKey({ userId, profileRevision, scopeKey, title, questions: prepared, publishTarget }),
       });
       setQuestions([]);
       await onUpdated();
       setMessage('Questions sent to Health details. The profile is unchanged and confirmation waits for resolution.');
     } catch (cause) {
+      if (onInvalidated?.(cause)) return;
       setError(getApiErrorMessage(cause, 'Questions could not be sent.'));
     } finally {
       setBusy(false);
     }
   }
   async function resolve(form: ClarificationForm, rationale: string) {
-    if (!canWrite || busy) return;
+    if (!canWrite || busy || publishTarget) return;
     setBusy(true);
     setError(null);
     setMessage(null);
@@ -164,13 +170,14 @@ export default function RndClarifications({
             form={form}
             mode="reviewer"
             disabled={busy || !canWrite}
-            onResolve={(rationale) => resolve(form, rationale)}
+            onResolve={publishTarget ? undefined : (rationale) => resolve(form, rationale)}
           />
         ))}
       {showComposer && (
         <Card className="space-y-3 p-4">
           <h4 className="font-bold">Send specific questions</h4>
-          {!canWrite && <p className="text-xs text-brand-muted">Claim this profile to send or resolve questions.</p>}
+          {publishTarget && <p className="text-xs text-brand-muted">Sending questions pauses this member’s meal reviews. Review answers and any profile corrections in the Profile queue.</p>}
+          {!canWrite && <p className="text-xs text-brand-muted">{publishTarget ? 'Claim this meal to send questions.' : 'Claim this profile to send or resolve questions.'}</p>}
           <form
             onSubmit={(event) => {
               event.preventDefault();

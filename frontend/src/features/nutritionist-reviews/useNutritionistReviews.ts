@@ -7,6 +7,8 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import type { IngredientEvidenceSource } from './ingredient-evidence';
 
 import type { ReviewRouting } from './review-routing';
+import { useRndClarificationDraft, type DraftQuestion } from '@/features/clinical-clarification/RndClarifications';
+import type { ClarificationWorkspace } from '@/features/clinical-clarification/types';
 export interface QueueItem {
   routing?: ReviewRouting;
   id: string;
@@ -48,6 +50,7 @@ export interface QueueItem {
 }
 
 export interface DetailData {
+  clarifications?: ClarificationWorkspace;
   reviewContext?: { contextKey: string; profileRevision: number; scopeKey: string };
   clinicalEvidence?: {
     policyVersion: string;
@@ -185,7 +188,8 @@ export function useNutritionistReviews(enabled = true) {
   const detailRef = useRef(detailData);
   detailRef.current = detailData;
   const [reviewNotice, setReviewNotice] = useState<string | null>(null);
-  const [savedReviewNotes, setSavedReviewNotes] = useState<Array<{ mealId: string; mealName: string; contextKey?: string; note: string; rejection: string }>>([]);
+  const [savedReviewNotes, setSavedReviewNotes] = useState<Array<{ mealId: string; mealName: string; contextKey?: string; note: string; rejection: string; clarification?: { title: string; questions: DraftQuestion[] } }>>([]);
+  const clarificationDraft = useRndClarificationDraft(`${ownerId}:${selectedMealId}:${detailData?.reviewContext?.contextKey}`);
 
   // Actions states
   const [actionLoading, setActionLoading] = useState<string | null>(null);
@@ -219,7 +223,7 @@ export function useNutritionistReviews(enabled = true) {
     ingredients: [],
   });
 
-  const retireInactiveReview = (failure: unknown, id: string | null) => {
+  const retireInactiveReview = (failure: unknown, id: string | null, notice?: string) => {
     const data = (failure as { response?: { data?: { code?: string; errorCode?: string } } } | null)?.response?.data;
     const code = data?.code ?? data?.errorCode;
     if (!['MEAL_REVIEW_INACTIVE', 'MEAL_REVIEW_CONTEXT_CHANGED', 'PROFILE_REVIEW_REQUIRED', 'CLINICAL_EVIDENCE_REQUIRED', 'SAFETY_DECLARATION_REQUIRED'].includes(code ?? '') || !id || liveSelection.current !== id || liveOwner.current !== ownerId)
@@ -227,9 +231,10 @@ export function useNutritionistReviews(enabled = true) {
     const savedDraft = {
       mealId: id, mealName: detailRef.current?.mealPlan.mealName ?? 'Meal review',
       contextKey: detailRef.current?.reviewContext?.contextKey, note: generalNote, rejection: rejectNote,
+      ...(!notice && clarificationDraft.questions.length ? { clarification: { title: clarificationDraft.title, questions: clarificationDraft.questions } } : {}),
     };
-    if (generalNote.trim() || rejectNote.trim()) setSavedReviewNotes((previous) => [...previous, savedDraft].slice(-10));
-    setReviewNotice('This review is no longer current. Your unfinished notes are saved for this session. Select an available case to continue.');
+    if (generalNote.trim() || rejectNote.trim() || (!notice && clarificationDraft.questions.length)) setSavedReviewNotes((previous) => [...previous, savedDraft].slice(-10));
+    setReviewNotice(notice ?? 'This review is no longer current. Your unfinished notes and questions are saved for this session. Select an available case to continue.');
     queueGeneration.current++;
     invalidateSessionResource(ownerId, 'nutritionist-case-queue');
     setQueue((previous) => previous.filter((meal) => meal.id !== id));
@@ -655,6 +660,7 @@ export function useNutritionistReviews(enabled = true) {
     }
   };
   return {
+    clarificationDraft,
     reviewNotice: resourceOwner.current === ownerId ? reviewNotice : null,
     dismissReviewNotice: () => setReviewNotice(null),
     savedReviewNotes: resourceOwner.current === ownerId ? savedReviewNotes : [],

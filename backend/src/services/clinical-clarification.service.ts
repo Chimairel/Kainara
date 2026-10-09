@@ -20,6 +20,7 @@ import { ReviewRoutingService } from './review-routing.service';
 
 const actorSelect = { name: true } as const;
 const formInclude = {
+  sourceMealPlan: { select: { id: true, mealName: true, scheduledDate: true } },
   author: { select: actorSelect },
   responses: { orderBy: { version: 'asc' as const } },
   resolution: { include: { reviewer: { select: actorSelect } } },
@@ -112,6 +113,7 @@ export class ClinicalClarificationService {
       enabled: true,
       forms: forms.map((form) => ({
         id: form.id,
+        sourceMeal: form.sourceMealPlan,
         title: form.title,
         profileRevision: form.profileRevision,
         scopeKey: form.scopeKey,

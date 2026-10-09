@@ -1,4 +1,6 @@
 import { lockUserProfile } from './profile-revision.service';
+import { AppError } from '@/errors/AppError';
+import { ClinicalClarificationService } from './clinical-clarification.service';
 import { env } from '@/config/env';
 import { assertCurrentMealReviewContext, loadMealReviewContext } from './meal-case-context.service';
 import { ReviewRoutingService } from './review-routing.service';
@@ -290,6 +292,7 @@ export class NutritionistReviewService {
       prisma.mealPlan.findUnique({
         where: { id: mealPlanId },
         select: {
+          status: true,
           highRiskReviewRequired: true,
           reviewApprovalCount: true,
           firstApprovedByNutritionistId: true,
@@ -299,6 +302,8 @@ export class NutritionistReviewService {
       }),
     ]);
     if (!reviewer || !reviewTarget) throw new Error('Meal plan or nutritionist profile not found.');
+    if (reviewTarget.status !== MealPlanStatus.PENDING_REVIEW)
+      throw new AppError('This meal is no longer awaiting review. Refresh the queue.', 409, 'MEAL_REVIEW_INACTIVE');
     if (
       reviewTarget.candidateProvenance === 'AI_FROM_SCRATCH' &&
       !(await isGeneratedBaseVerified(reviewTarget.baseRecipeSignature))
@@ -392,7 +397,7 @@ export class NutritionistReviewService {
       },
     });
 
-    if (!updatedMealPlan) throw new Error('This meal is no longer awaiting review. Please refresh the queue.');
+    if (!updatedMealPlan) throw new AppError('This meal is no longer awaiting review. Refresh the queue.', 409, 'MEAL_REVIEW_INACTIVE');
     if (
       !acquireClaim &&
       isReviewClaimActive(updatedMealPlan, now) &&
@@ -552,8 +557,12 @@ export class NutritionistReviewService {
       where: { userId: updatedMealPlan.userId },
       select: { area: true, responses: true, revision: true },
     });
+    const clarifications = openedContext
+      ? await ClinicalClarificationService.list(updatedMealPlan.userId, nutritionistProfileId)
+      : undefined;
     if (openedContext) await assertCurrentMealReviewContext(mealPlanId, openedContext.contextKey);
     return {
+      ...(clarifications ? { clarifications } : {}),
       ...(openedContext ? { reviewContext: { contextKey: openedContext.contextKey, profileRevision: openedContext.profileRevision, scopeKey: openedContext.scopeKey } } : {}),
       mealPlan: {
         id: updatedMealPlan.id,

@@ -317,13 +317,13 @@ async function main() {
         measurements: '',
       })
     );
-    assert.equal((await db.userProfile.findUniqueOrThrow({ where: { userId: member.id } })).revision, scopeRevision);
+    assert.equal((await db.userProfile.findUniqueOrThrow({ where: { userId: member.id } })).revision, scopeRevision + 1);
     assert.equal((await request(member, concurrentRoute, 'POST', { ...answer, requestKey: randomUUID() })).status, 409);
     assert.equal(
       (await request(rnd, route + '/clarifications', 'POST', { ...publish, requestKey: randomUUID() })).status,
       409
     );
-    pass('Changed health-detail scope invalidates old forms even without a profile revision increment');
+    pass('Changed health details advance the profile revision and invalidate old forms');
 
     await db.$transaction(async (tx) => {
       await lockUserProfile(tx, member.id);

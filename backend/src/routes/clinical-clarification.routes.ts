@@ -6,9 +6,11 @@ import { ClinicalClarificationService } from '@/services/clinical-clarification.
 import {
   answerClarificationSchema,
   publishClarificationSchema,
+  publishMealClarificationSchema,
   resolveClarificationSchema,
 } from '@/domain/clinical-clarification.policy';
 import type { AuthenticatedRequest } from '@/types';
+import { MealClarificationService } from '@/services/meal-clarification.service';
 import { ClinicalProfileProposalService } from '@/services/clinical-profile-proposal.service';
 import { publishProfileProposalSchema, respondProfileProposalSchema } from '@/domain/clinical-profile-proposal.policy';
 
@@ -39,6 +41,14 @@ export function clinicalClarificationRouter(role: 'member' | 'rnd') {
       })
     );
   } else {
+    router.post(
+      '/queue/:id/clarifications',
+      validateZodRequest({ params: z.object({ id }).strict(), body: publishMealClarificationSchema }),
+      asyncHandler(async (req: AuthenticatedRequest, res) => {
+        res.setHeader('Cache-Control', 'private, no-store');
+        res.json({ success: true, data: await MealClarificationService.publish(req.nutritionistProfileId!, req.params.id, req.body) });
+      })
+    );
     router.post(
       '/profile-reviews/:userId/proposals',
       validateZodRequest({ params: z.object({ userId: id }).strict(), body: publishProfileProposalSchema }),

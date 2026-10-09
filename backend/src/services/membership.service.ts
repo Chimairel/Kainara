@@ -30,7 +30,13 @@ export class MembershipService {
     const user = await client.user.findUnique({ where: { id: userId }, include });
     if (!user || user.role !== 'USER' || user.isSuspended)
       throw new AppError('Membership is unavailable for this account.', 403, 'MEMBERSHIP_ACCOUNT_INELIGIBLE');
-    const account = await client.membershipAccount.upsert({ where: { userId }, create: { userId }, update: {} });
+    // An empty-update Prisma upsert can race on first access. ON CONFLICT preserves
+    // the existing trial receipt and remains safe inside admission transactions.
+    let account = await client.membershipAccount.findUnique({ where: { userId } });
+    if (!account) {
+      await client.membershipAccount.createMany({ data: [{ userId }], skipDuplicates: true });
+      account = await client.membershipAccount.findUniqueOrThrow({ where: { userId } });
+    }
     const grants = await client.membershipGrant.findMany({ where: { userId, verifiedAt: { lte: at } } });
     const checkout = testCheckoutConfig();
     const testPayments = checkout
@@ -124,7 +130,8 @@ export class MembershipService {
     if (existing?.trialStartedAt) return;
     await prisma.$transaction(async (tx) => {
       await lockUserProfile(tx, userId);
-      const account = await tx.membershipAccount.upsert({ where: { userId }, create: { userId }, update: {} });
+      await tx.membershipAccount.createMany({ data: [{ userId }], skipDuplicates: true });
+      const account = await tx.membershipAccount.findUniqueOrThrow({ where: { userId } });
       const start = new Date(Math.max(account.createdAt.getTime(), Math.min(availableAt.getTime(), at.getTime())));
       await tx.membershipAccount.updateMany({
         where: { userId, trialStartedAt: null },
