@@ -146,6 +146,18 @@ test('[TEST-204] third-party delivery discloses display transformations', () => 
   }
 });
 
+test('prepared portions retain approved source photography with representative attribution', () => {
+  const image = toPublicRawRecipeImage({
+    recipeName: 'Chicken Adobo',
+    sourceName: 'DEMO_STANDARD_PORTION',
+    sourceUrl: 'https://panlasangpinoy.com/chicken-adobo/',
+    sourceImageUrl: 'https://panlasangpinoy.com/wp-content/uploads/chicken-adobo.jpg',
+    sourceVideoUrl: null,
+  });
+  assert.equal(image?.kind, 'REPRESENTATIVE');
+  assert.equal(image?.attribution.creator, 'Panlasang Pinoy');
+});
+
 test('[TEST-205] third-party licenses require complete creator, source, and license attribution', () => {
   assert.equal(
     mealImageMetadataSchema.safeParse({ imageKind: 'EXACT', altText: base.imageAltText, licenseCode: 'CC_BY_4_0' })

@@ -48,6 +48,15 @@ export function isUnrestrictedPanlasangBaseEligible(input: {
   )
     return false;
   const source = input.source;
+  const sourceNutrition = source?.publishedNutrition;
+  // Assumed demonstration preparations require an explicit RND decision.
+  if (
+    sourceNutrition &&
+    typeof sourceNutrition === 'object' &&
+    !Array.isArray(sourceNutrition) &&
+    sourceNutrition.demoPreparation
+  )
+    return false;
   if (
     !source ||
     source.id !== input.candidateId ||

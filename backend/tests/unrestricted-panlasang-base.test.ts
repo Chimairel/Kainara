@@ -27,6 +27,16 @@ const input = {
   ],
 };
 
+test('demo preparation requires RND review even for an unrestricted member', () => {
+  assert.equal(
+    isUnrestrictedPanlasangBaseEligible({
+      ...input,
+      source: { ...source, publishedNutrition: { ...source.publishedNutrition, demoPreparation: { estimated: true } } },
+    }),
+    false
+  );
+});
+
 test('complete Panlasang source may serve a user with no declared restrictions', () => {
   assert.equal(isUnrestrictedPanlasangBaseEligible(input), true);
   assert.equal(

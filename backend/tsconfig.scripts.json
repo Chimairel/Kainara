@@ -9,6 +9,8 @@
     "types": ["node"]
   },
   "include": [
+    "scripts/demo-recipe-local-acceptance.ts",
+    "scripts/prepare-demo-recipe-catalogue.ts",
     "scripts/complete-catalogue-nutrients.ts",
     "scripts/nutrient-completion-local-acceptance.ts",
     "prisma/seed.ts",

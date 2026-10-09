@@ -14,6 +14,8 @@ Meal flags, independent re-review, quarantine release, related-case admin oversi
 
 Admin meal-log history and meal popularity use [`docs/MEAL_LOG_AUDIT.md`](docs/MEAL_LOG_AUDIT.md). Apply the additive meal-log audit migration to a confirmed target before opening these views. Historical age, membership and earlier edits remain explicitly unavailable; the migration does not invent them.
 
+Standardized capstone recipe portions, nutrient calculations, guarded development imports and inactive condition-rule proposals use [`docs/DEMO_RECIPE_PREPARATION.md`](docs/DEMO_RECIPE_PREPARATION.md).
+
 ## Current verification status
 
 The application has substantial frontend and backend implementation. Verification results change as work continues; use the latest dated entry in the [engineering record](docs/NUTRIMIND_ENGINEERING_RECORD.md) and rerun the relevant checks for the code you are studying. Automated, browser, and disposable-database tests do not establish clinical approval. The [clinical policy approval record](docs/CLINICAL_POLICY_APPROVAL.md) is the separate release gate.

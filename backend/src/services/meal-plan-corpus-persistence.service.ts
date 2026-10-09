@@ -18,6 +18,7 @@ import { resolveRecipeRiceRole } from '@/domain/recipe-rice-role.policy';
 import { COOKED_RICE_HALF_CUP_GRAMS } from '@/domain/rice-portion.policy';
 import type { PreparedGeneratedMeal } from './meal-generation-ingredient-preparation.service';
 import type { SwapRiceFood } from './meal-swap-serving.service';
+import { demoPlateNutrition } from '@/domain/demo-plate-nutrition.policy';
 
 /** Persist a source candidate and its optional rice side as one plan slot, never a new library entry. */
 export type PreparedCorpusMealInput = {
@@ -100,7 +101,8 @@ function buildPreparedCorpusRows(input: PreparedCorpusMealInput, currentSource?:
   if (meal.pairedRiceG) {
     if (
       meal.candidateProvenance !== MealCandidateProvenance.RAW_RECIPE_CORPUS ||
-      currentSource?.sourceName !== 'PANLASANG_PINOY'
+      !currentSource ||
+      !['PANLASANG_PINOY', 'DEMO_STANDARD_PORTION'].includes(currentSource.sourceName)
     )
       throw new Error('Rice requires an available source recipe.');
     if (!riceFood || riceFood.source !== 'FNRI' || riceFood.name.toLowerCase() !== 'rice, well-milled, boiled')
@@ -130,6 +132,24 @@ function buildPreparedCorpusRows(input: PreparedCorpusMealInput, currentSource?:
     });
   }
   const composedSignature = composed?.composedServingSignature ?? serving.baseRecipeSignature;
+  const sourceNutrition = currentSource?.publishedNutrition as
+    { demoPreparation?: { nutrition?: Record<string, number | null>; signature?: string } } | null | undefined;
+  const demoEvidence = sourceNutrition?.demoPreparation?.nutrition
+    ? {
+        estimated: true,
+        clinicalCertification: false,
+        sourceSignature: sourceNutrition.demoPreparation.signature ?? null,
+        servingScale: meal.servingScale ?? 1,
+        pairedRiceG: meal.pairedRiceG ?? 0,
+        nutrients: demoPlateNutrition(
+          sourceNutrition.demoPreparation.nutrition,
+          meal.servingScale ?? 1,
+          riceFood as unknown as Record<string, unknown> | null,
+          meal.pairedRiceG ?? 0
+        ),
+        note: 'Per-serving ingredient composition and rice totals.',
+      }
+    : null;
   const id = randomUUID();
   const plan: Prisma.MealPlanCreateManyInput = {
     id,
@@ -167,7 +187,14 @@ function buildPreparedCorpusRows(input: PreparedCorpusMealInput, currentSource?:
     rankingScore: meal.rankingScore ?? null,
     rankingReasonCodes: meal.rankingReasonCodes ?? [],
     fallbackAvailable: false,
-    selectionEvidence,
+    selectionEvidence: demoEvidence
+      ? (JSON.parse(
+          JSON.stringify({
+            ...(typeof selectionEvidence === 'object' && !Array.isArray(selectionEvidence) ? selectionEvidence : {}),
+            demoNutrition: demoEvidence,
+          })
+        ) as Prisma.InputJsonValue)
+      : selectionEvidence,
     baseRecipeSignature: serving.baseRecipeSignature,
     composedServingSignature: composedSignature,
   };

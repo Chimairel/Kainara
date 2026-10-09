@@ -128,7 +128,10 @@ export class DatabaseRecipeCandidateProvider implements RecipeCandidateProvider 
       where: {
         status: 'AVAILABLE',
         libraryVariants: { none: { status: 'FLAGGED' } },
-        sourceName: input.sourceKind ?? { in: ['PANLASANG_PINOY', 'USER_OBSERVED'] },
+        sourceName:
+          input.sourceKind === 'PANLASANG_PINOY'
+            ? { in: ['PANLASANG_PINOY', 'DEMO_STANDARD_PORTION'] }
+            : (input.sourceKind ?? { in: ['PANLASANG_PINOY', 'USER_OBSERVED', 'DEMO_STANDARD_PORTION'] }),
         ...(input.mealType ? { applicableMealTypes: { some: { mealType: input.mealType } } } : {}),
         ...(input.dietaryPreference ? { dietaryTags: { array_contains: [input.dietaryPreference] } } : {}),
         ...(input.search ? { recipeName: { contains: input.search, mode: 'insensitive' } } : {}),

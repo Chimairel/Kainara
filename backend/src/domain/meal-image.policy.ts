@@ -67,8 +67,9 @@ function approvedPanlasangSourcePage(candidate: string): string | null {
 
 /** Recipe photography is display provenance only; it grants no meal safety clearance. */
 export function toPublicRawRecipeImage(recipe: RawRecipeImageRecord): PublicMealImage | null {
-  const articleImage =
-    recipe.sourceName === 'PANLASANG_PINOY' ? approvedPanlasangImageUrl(recipe.sourceImageUrl) : null;
+  const articleImage = ['PANLASANG_PINOY', 'DEMO_STANDARD_PORTION'].includes(recipe.sourceName)
+    ? approvedPanlasangImageUrl(recipe.sourceImageUrl)
+    : null;
   const sourcePage = approvedPanlasangSourcePage(recipe.sourceUrl);
   if (articleImage && sourcePage) {
     const videoThumbnail = toPublicYouTubeThumbnail({
@@ -78,7 +79,7 @@ export function toPublicRawRecipeImage(recipe: RawRecipeImageRecord): PublicMeal
     return {
       url: articleImage,
       altText: `Panlasang Pinoy recipe photo for ${recipe.recipeName}`,
-      kind: 'EXACT',
+      kind: recipe.sourceName === 'DEMO_STANDARD_PORTION' ? 'REPRESENTATIVE' : 'EXACT',
       fallback: videoThumbnail,
       attribution: {
         creator: 'Panlasang Pinoy',

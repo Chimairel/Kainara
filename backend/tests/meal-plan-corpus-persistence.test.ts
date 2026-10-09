@@ -120,6 +120,47 @@ function database(currentSource = source, currentRice = rice) {
   return { tx, calls, rows: () => ({ plans, ingredients, components }) };
 }
 
+test('prepared collection retains scaled extended nutrients and rice evidence without granting approval', async () => {
+  const nutrients = {
+    calories: 600,
+    proteinG: 40,
+    carbsG: 10,
+    fatG: 25,
+    sodiumMg: 200,
+    sugarG: 1,
+    fiberG: 3,
+    potassiumMg: 400,
+    phosphorusMg: 150,
+    saturatedFatG: 2,
+  };
+  const adapted = {
+    ...source,
+    sourceName: 'DEMO_STANDARD_PORTION',
+    publishedNutrition: { demoPreparation: { signature: 'preparation', nutrition: nutrients } },
+  } as typeof source;
+  const db = database(adapted, {
+    ...rice,
+    sodium: 2,
+    sugar: 0,
+    fiber: 0.4,
+    potassium: 30,
+    phosphorus: 40,
+    saturatedFat: 0.1,
+  } as typeof rice);
+  const value = input();
+  value.sourceEvidence = adapted;
+  value.meal.servingScale = 2;
+  const saved = await savePreparedCorpusMeal(db.tx, value);
+  const evidence = saved.selectionEvidence as {
+    demoNutrition: { estimated: boolean; clinicalCertification: boolean; nutrients: Record<string, number> };
+  };
+  assert.equal(saved.status, 'PENDING_REVIEW');
+  assert.equal(evidence.demoNutrition.estimated, true);
+  assert.equal(evidence.demoNutrition.clinicalCertification, false);
+  assert.equal(evidence.demoNutrition.nutrients.phosphorusMg, 360);
+  assert.equal(evidence.demoNutrition.nutrients.sodiumMg, 403);
+});
+
 test('a 21-slot case plan uses six batch operations and remains pending with complete serving evidence', async () => {
   const db = database();
   const saved = await savePreparedCorpusMeals(

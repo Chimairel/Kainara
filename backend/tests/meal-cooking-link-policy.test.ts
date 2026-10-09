@@ -2,6 +2,21 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { cookingLinkForMeal } from '../src/domain/meal-cooking-link.policy';
 
+test('prepared portions retain their governed cooking source', () => {
+  assert.equal(
+    cookingLinkForMeal({
+      sourceRawRecipeCandidate: {
+        recipeName: 'Chicken Adobo',
+        sourceName: 'DEMO_STANDARD_PORTION',
+        sourceUrl: 'https://panlasangpinoy.com/chicken-adobo/',
+        sourceImageUrl: null,
+        sourceVideoUrl: null,
+      },
+    })?.url,
+    'https://panlasangpinoy.com/chicken-adobo/'
+  );
+});
+
 test('a Panlasang corpus meal opens its exact article even without a stored video', () => {
   assert.deepEqual(
     cookingLinkForMeal({

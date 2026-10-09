@@ -46,7 +46,10 @@ export function cookingLinkForMeal(input: {
   sourceRawRecipeCandidate?: RawRecipeImageRecord | null;
 }): PublicMealCookingLink | null {
   const raw = input.sourceRawRecipeCandidate;
-  const article = raw?.sourceName === 'PANLASANG_PINOY' ? panlasangRecipePage(raw.sourceUrl) : null;
+  const article =
+    raw && ['PANLASANG_PINOY', 'DEMO_STANDARD_PORTION'].includes(raw.sourceName)
+      ? panlasangRecipePage(raw.sourceUrl)
+      : null;
   const page = article || panlasangPageFromDescription(input.libraryDescription);
   if (page) return { url: page, kind: 'PANLASANG_RECIPE' };
 
