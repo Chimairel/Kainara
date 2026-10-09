@@ -69,3 +69,7 @@ The six authenticated browser journeys use signed synthetic sessions rather than
 Shared development still requires confirmed-target backup/application of the five additive clarification migrations and explicit feature enablement. No shared database write or demo promotion occurred in this task.
 
 Machine-readable counts, fixture targets and verification levels are in [the acceptance evidence](verification/RND_COMPREHENSIVE_ACCEPTANCE_2026-10-10.json). Detailed logs and Playwright artifacts are kept under the ignored local `backend/.local` directory.
+
+## Architecture-check follow-up
+
+The owner subsequently requested fixing the recorded line-budget failure. The unchanged document-metadata projection was extracted into `backend/src/domain/clinical-document-metadata.ts`; `clinical-evidence.service.ts` now has 873 lines using the guard's count. The global architecture check and all 21 entry-point budgets pass. Backend lint/build and the full backend suite pass: 873 passed, zero failed and one existing TODO (874 total), including the new private-document metadata regression check. This refactor made no database or workflow-policy changes. The original run's evidence above remains preserved; engineering-record entry 323 records this follow-up.

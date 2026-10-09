@@ -4,9 +4,14 @@ import { ReviewRoutingService } from './review-routing.service';
 import path from 'node:path';
 import { isDeepStrictEqual } from 'node:util';
 import { healthDetailsRequirements } from '@/domain/health-details.policy';
+import { publicClinicalDocument as publicDocument } from '@/domain/clinical-document-metadata';
 import { activeConditionPlanningAssessment } from '@/domain/condition-planning-assessment.policy';
 import { healthDetailsSchema, type HealthDetailsInput } from '@/validation/health-details.schemas';
-import { lockUserProfile, invalidateConditionPlanningAssessments, advanceProfileRevision } from './profile-revision.service';
+import {
+  lockUserProfile,
+  invalidateConditionPlanningAssessments,
+  advanceProfileRevision,
+} from './profile-revision.service';
 import { env } from '@/config/env';
 import {
   ClinicalDocumentReviewDecision,
@@ -45,40 +50,6 @@ export type ClinicalFactInput = {
   observedAt?: Date | null;
   pageNumber?: number | null;
 };
-
-function publicDocument<
-  T extends {
-    id: string;
-    area: ClinicalEvidenceArea;
-    documentType: string;
-    status: ClinicalDocumentStatus;
-    revision: number;
-    originalFileName: string;
-    mimeType: string;
-    byteSize: number;
-    issuedAt: Date | null;
-    issuerName: string | null;
-    validUntil: Date | null;
-    createdAt: Date;
-    updatedAt: Date;
-  },
->(document: T) {
-  return {
-    id: document.id,
-    area: document.area,
-    documentType: document.documentType,
-    status: document.status,
-    revision: document.revision,
-    originalFileName: document.originalFileName,
-    mimeType: document.mimeType,
-    byteSize: document.byteSize,
-    issuedAt: document.issuedAt,
-    issuerName: document.issuerName,
-    validUntil: document.validUntil,
-    createdAt: document.createdAt,
-    updatedAt: document.updatedAt,
-  };
-}
 
 async function declaredAreas(userId: string): Promise<Set<ClinicalEvidenceArea>> {
   const user = await prisma.user.findUnique({
@@ -130,10 +101,11 @@ async function invalidateDocumentDependencies(tx: Prisma.TransactionClient, docu
 
 async function invalidateActivePlansForUser(tx: Prisma.TransactionClient, userId: string, actorUserId = userId) {
   await invalidateConditionPlanningAssessments(tx, userId, 'CLINICAL_CONTEXT_OR_EVIDENCE_CHANGED', true, actorUserId);
-  if (env.CLINICAL_CLARIFICATIONS_ENABLED) await tx.mealPlan.updateMany({
-    where: { userId, status: 'PENDING_REVIEW' },
-    data: { claimedByNutritionistId: null, claimedAt: null },
-  });
+  if (env.CLINICAL_CLARIFICATIONS_ENABLED)
+    await tx.mealPlan.updateMany({
+      where: { userId, status: 'PENDING_REVIEW' },
+      data: { claimedByNutritionistId: null, claimedAt: null },
+    });
   await tx.mealPlan.updateMany({
     where: { userId, status: 'APPROVED' },
     data: { requiresSafetyRevalidation: true },
