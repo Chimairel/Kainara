@@ -97,6 +97,9 @@ export default function TestAccountTool({ active, onCreated }: { active: boolean
           )}
           {!result && (
             <>
+              <p className="text-xs text-brand-muted">
+                New test accounts across groups and roles share the same password. Existing passwords stay unchanged.
+              </p>
               <fieldset disabled={busy} className="grid gap-4 sm:grid-cols-2">
                 <Input
                   label="Group name"
@@ -229,6 +232,9 @@ export default function TestAccountTool({ active, onCreated }: { active: boolean
               {result.newAccountPassword ? (
                 <>
                   <Input label="Password for newly created accounts" readOnly value={result.newAccountPassword} />
+                  <p className="text-xs text-brand-muted">
+                    New test accounts across groups and roles share this password. Existing passwords stay unchanged.
+                  </p>
                   <p className="text-xs text-brand-muted">
                     Save these credentials before closing. This password applies only to accounts marked Created. Sign
                     in through the normal login page.

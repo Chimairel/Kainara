@@ -1,4 +1,3 @@
-import { randomBytes } from 'node:crypto';
 import prisma from '@/lib/prisma';
 import {
   accountSpecs,
@@ -8,6 +7,7 @@ import {
   type TestAccountRequest,
 } from './dev-test-accounts/admin-policy';
 import { createAccounts, inspectAccounts } from './dev-test-accounts/writer';
+import { sharedTestAccountPassword } from './dev-test-accounts/password';
 import { AllergenType, HealthConditionType } from '@prisma/client';
 
 export const AdminTestAccountsService = {
@@ -36,7 +36,7 @@ export const AdminTestAccountsService = {
   async create(actorId: string, request: TestAccountRequest, previewToken: string) {
     const target = adminTestAccountTarget(process.env);
     verifyAccountPreview(previewToken, actorId, target.token, request, process.env.JWT_SECRET ?? '');
-    const password = randomBytes(24).toString('base64url');
+    const password = sharedTestAccountPassword(process.env);
     const accounts = await createAccounts(prisma, request.set, accountSpecs(request), password, actorId);
     return { accounts, newAccountPassword: accounts.some((item) => !item.exists) ? password : null };
   },

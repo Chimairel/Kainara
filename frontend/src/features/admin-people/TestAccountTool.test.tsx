@@ -31,6 +31,7 @@ describe('admin test account creation', () => {
   it('requires target confirmation and invalidates preview after editing', async () => {
     render(<TestAccountTool active onCreated={vi.fn()} />);
     await openAndPreview();
+    expect(screen.getByText(/New test accounts across groups and roles share the same password/)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Create accounts' })).toBeDisabled();
     fireEvent.click(screen.getByLabelText(/I confirm this is the development database/));
     expect(screen.getByRole('button', { name: 'Create accounts' })).toBeEnabled();

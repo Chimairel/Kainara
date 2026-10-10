@@ -11,13 +11,14 @@ import {
   defaultAccountSpecs,
 } from './helpers/dev-test-account-config';
 import { createAccounts, inspectAccounts } from './helpers/dev-test-account-writer';
+import { sharedTestAccountPassword } from '../src/services/dev-test-accounts/password';
 
 async function main() {
   dotenv.config({ path: path.resolve(__dirname, '../.env') });
   const args = process.argv.slice(2);
   if (args.includes('--help')) {
     console.log(
-      'npm run test:accounts -- [--set qa] [--spec file.json] [--apply --confirm-target TOKEN --allow-shared-development]\nDry run is the default. Optional DEV_TEST_ACCOUNT_PASSWORD must be at least 16 characters and at most 72 UTF-8 bytes. Otherwise a random password is saved in the ignored local credential guide.'
+      'npm run test:accounts -- [--set qa] [--spec file.json] [--apply --confirm-target TOKEN --allow-shared-development]\nDry run is the default. New accounts share a server-configured password, saved in the ignored local credential guide. Optional DEV_TEST_ACCOUNT_PASSWORD must be at least 16 characters and at most 72 UTF-8 bytes. Existing passwords are preserved.'
     );
     return;
   }
@@ -53,7 +54,7 @@ async function main() {
       console.log('Complete: all accounts already exist. Use the original credential guide; passwords were not reset.');
       return;
     }
-    const password = process.env.DEV_TEST_ACCOUNT_PASSWORD ?? randomBytes(24).toString('base64url');
+    const password = sharedTestAccountPassword(process.env);
     const directory = path.resolve(__dirname, '../.local/dev-test-accounts');
     mkdirSync(directory, { recursive: true });
     const guidePath = path.join(directory, `${set}-${Date.now()}-${randomBytes(4).toString('hex')}.json`);

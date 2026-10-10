@@ -280,6 +280,7 @@ async function main() {
         assert.equal(rndResponse.status, 201);
         const result = await responseData<CreateResult>(rndResponse);
         assert.ok(result.newAccountPassword);
+        assert.equal(result.newAccountPassword, created.newAccountPassword, 'New groups/roles share a password.');
         const rndProfile = await db.nutritionistProfile.findUniqueOrThrow({
           where: { userId: result.accounts[0].id },
           include: { user: true },
@@ -308,6 +309,7 @@ async function main() {
       assert.equal(adminResponse.status, 201);
       const newAdmin = await responseData<CreateResult>(adminResponse);
       assert.ok(newAdmin.newAccountPassword);
+      assert.equal(newAdmin.newAccountPassword, created.newAccountPassword);
       assert.equal((await login(newAdmin.accounts[0].email, newAdmin.newAccountPassword)).user.role, 'ADMIN');
       const audits = await db.auditEvent.findMany({
         where: { actorUserId: adminId, action: 'SYNTHETIC_DEV_ACCOUNT_CREATED' },
@@ -317,7 +319,7 @@ async function main() {
       assert.ok(!JSON.stringify(audits).includes(created.newAccountPassword));
       assert.equal(await db.mealPlan.count(), 0);
       console.log(
-        'PASS: admin-only HTTP previews, runtime blocks, target confirmation, custom member profiles and derived snapshot targets, tampering refusal, member/RND password logins, unchanged repeats, four RND states and secret-free actor audit.'
+        'PASS: admin-only HTTP previews, runtime blocks, target confirmation, custom profiles and snapshots, tampering refusal, shared new-group/role passwords, unchanged existing credentials, four RND states and secret-free actor audit.'
       );
     } finally {
       process.env.NODE_ENV = 'test';
