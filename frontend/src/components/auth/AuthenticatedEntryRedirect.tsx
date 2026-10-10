@@ -9,7 +9,9 @@ import PortalLoadingState from '@/components/shared/PortalLoadingState';
 import Button from '@/components/ui/Button';
 import LoadingSpinner from '@/components/shared/LoadingSpinner';
 
-const REDIRECT_RECOVERY_MS = 8_000;
+// Cold local routes can take longer than eight seconds to compile. Keep a
+// bounded recovery action without reporting an ordinary pending navigation as failure.
+const REDIRECT_RECOVERY_MS = 30_000;
 
 export default function AuthenticatedEntryRedirect({
   user,

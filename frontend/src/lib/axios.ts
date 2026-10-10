@@ -1,6 +1,8 @@
-import axios from 'axios';
+import axios, { type AxiosRequestConfig } from 'axios';
 import { cookieHelper } from '@/lib/auth';
 import { coordinatedRefresh } from './session-refresh-coordination';
+
+export type ApiRequestConfig = AxiosRequestConfig & { skipTransientRetry?: boolean };
 
 /**
  * Resolves the API base URL.
@@ -145,6 +147,8 @@ api.interceptors.response.use(
       error.response &&
       (error.response.status === 503 || error.response.status === 500) &&
       originalRequest &&
+      // Profile bootstrap owns its spaced retries and overall deadline.
+      !originalRequest.skipTransientRetry &&
       !originalRequest._retryTransient &&
       (!originalRequest.method || ['get', 'head'].includes(originalRequest.method.toLowerCase()))
     ) {

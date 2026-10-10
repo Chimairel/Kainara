@@ -1,4 +1,4 @@
-import api from '@/lib/axios';
+import api, { type ApiRequestConfig } from '@/lib/axios';
 import type { UserProfileData } from '@/hooks/useProfile';
 import { readSessionResource, refreshSessionResource } from '@/lib/session-resource-cache';
 import { cookieHelper, decodeToken } from '@/lib/auth';
@@ -19,23 +19,48 @@ export function cachedUserProfile(ownerId: string | undefined) {
 
 export function refreshUserProfile(ownerId: string | undefined): Promise<SessionProfileData> {
   return refreshSessionResource<SessionProfileData>(ownerId, userProfileResource, async () => {
-    // A stalled session check must resolve to the retry state rather than leave
-    // every protected route behind the full-screen loading state indefinitely.
-    let response;
+    const deadline = Date.now() + 60_000;
+    const controller = new AbortController();
+    let deadlineTimer: ReturnType<typeof setTimeout>;
+    const expired = new Promise<never>((_, reject) => {
+      deadlineTimer = setTimeout(() => {
+        controller.abort();
+        reject(Object.assign(new Error('Account check timed out.'), { code: 'ETIMEDOUT' }));
+      }, 60_000);
+    });
+    const read = async () => {
+      for (let attempt = 0; ; attempt++) {
+        try {
+          const config: ApiRequestConfig = {
+            timeout: Math.min(attempt === 0 ? 45_000 : 15_000, deadline - Date.now()),
+            signal: controller.signal,
+            skipTransientRetry: true,
+          };
+          const response = await api.get('/user/profile', config);
+          if (!response.data?.success) throw new Error('Profile response was unsuccessful.');
+          return response.data.data as SessionProfileData;
+        } catch (error) {
+          const failure = error as { code?: string; response?: { status?: number } } | null;
+          const transient =
+            ['ECONNABORTED', 'ETIMEDOUT', 'ERR_NETWORK'].includes(failure?.code ?? '') ||
+            [500, 502, 503, 504].includes(failure?.response?.status ?? 0);
+          const sameOwner = () => decodeToken(cookieHelper.get('nutrimind_session') || '')?.userId === ownerId;
+          const pauseMs = 1_000 * (attempt + 1);
+          if (!transient || attempt >= 3 || !ownerId || !sameOwner() || deadline - Date.now() <= pauseMs) {
+            throw error;
+          }
+          // A dev API restart can fail immediately twice. Give reconnection time
+          // to finish; never retry with a different account or authorize from cached claims.
+          await new Promise((resolve) => setTimeout(resolve, pauseMs));
+          if (!sameOwner() || controller.signal.aborted) throw error;
+        }
+      }
+    };
     try {
-      response = await api.get('/user/profile', { timeout: 45_000 });
-    } catch (error) {
-      const failure = error as { code?: string; response?: { status?: number } } | null;
-      const transient =
-        ['ECONNABORTED', 'ETIMEDOUT', 'ERR_NETWORK'].includes(failure?.code ?? '') ||
-        [502, 503, 504].includes(failure?.response?.status ?? 0);
-      const currentOwner = decodeToken(cookieHelper.get('nutrimind_session') || '')?.userId;
-      if (!transient || !ownerId || currentOwner !== ownerId) throw error;
-      // One fresh retry, within a total 60-second budget; never authorize from cached/token claims.
-      response = await api.get('/user/profile', { timeout: 15_000 });
+      return await Promise.race([read(), expired]);
+    } finally {
+      clearTimeout(deadlineTimer!);
     }
-    if (!response.data?.success) throw new Error('Profile response was unsuccessful.');
-    return response.data.data as SessionProfileData;
   });
 }
 

@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import AuthenticatedEntryRedirect from './AuthenticatedEntryRedirect';
 import type { UserSession } from '@/lib/context/AuthContext';
@@ -23,6 +23,17 @@ vi.mock('next/navigation', () => ({
 describe('AuthenticatedEntryRedirect', () => {
   afterEach(() => {
     vi.clearAllMocks();
+    vi.useRealTimers();
+  });
+
+  it('allows a cold route to open before offering bounded navigation recovery', () => {
+    vi.useFakeTimers();
+    render(<AuthenticatedEntryRedirect user={{ ...unresolvedUser, emailVerified: true }} logout={vi.fn()} inline />);
+    act(() => vi.advanceTimersByTime(18_000));
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    expect(screen.getByText('Redirecting to your workspace...')).toBeInTheDocument();
+    act(() => vi.advanceTimersByTime(12_000));
+    expect(screen.getByRole('alert')).toHaveTextContent('Your workspace took too long to open');
   });
 
   it('waits for authoritative profile status instead of redirecting a failed read to OTP', () => {

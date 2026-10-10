@@ -1,6 +1,6 @@
 import axios, { type AxiosAdapter } from 'axios';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import api, { setSessionRefreshSuppressed } from './axios';
+import api, { type ApiRequestConfig, setSessionRefreshSuppressed } from './axios';
 import { cookieHelper } from './auth';
 
 describe('session recovery during background requests', () => {
@@ -8,6 +8,19 @@ describe('session recovery during background requests', () => {
     vi.restoreAllMocks();
     setSessionRefreshSuppressed(false);
     cookieHelper.clear('nutrimind_session');
+  });
+
+  it('leaves profile reconnection retries to the profile resource rather than multiplying attempts', async () => {
+    const adapter = vi.fn<AxiosAdapter>(async (config) => Promise.reject({ config, response: { status: 503 } }));
+    const config: ApiRequestConfig = { adapter, skipTransientRetry: true };
+    await expect(api.get('/user/profile', config)).rejects.toMatchObject({ response: { status: 503 } });
+    expect(adapter).toHaveBeenCalledTimes(1);
+  });
+
+  it('preserves the ordinary transient retry for other profile readers', async () => {
+    const adapter = vi.fn<AxiosAdapter>(async (config) => Promise.reject({ config, response: { status: 503 } }));
+    await expect(api.get('/user/profile', { adapter })).rejects.toMatchObject({ response: { status: 503 } });
+    expect(adapter).toHaveBeenCalledTimes(2);
   });
 
   it.each([503, 429, undefined])('preserves the session when refresh fails with %s', async (status) => {
