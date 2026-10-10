@@ -9,6 +9,7 @@ import ReviewDecisionDialog from '@/features/nutritionist-reviews/ReviewDecision
 import Badge from '@/components/ui/Badge';
 import MealImage from '@/components/user/MealImage';
 import IngredientEvidenceTable from '@/features/nutritionist-reviews/IngredientEvidenceTable';
+import { recordedIngredients } from '@/features/nutritionist-reviews/recorded-ingredients';
 import ExpandableCasePanel from '@/features/nutritionist-reviews/ExpandableCasePanel';
 import RndQueueDocument, { ReviewDocumentPage } from '@/features/nutritionist-reviews/RndQueueDocument';
 import { ReviewQueueSkeleton } from '@/features/nutritionist-reviews/NutritionistReviewsSkeleton';
@@ -38,26 +39,6 @@ type MealCandidate = {
   claimedByMe: boolean;
   claimedByOther: boolean;
 };
-
-function recordedIngredients(value: unknown) {
-  if (!Array.isArray(value)) return [];
-  return value.flatMap((item) => {
-    if (typeof item === 'string') return [{ name: item, quantity: null, unit: null, source: 'UNKNOWN' }];
-    if (!item || typeof item !== 'object') return [];
-    const entry = item as Record<string, unknown>;
-    const name = entry.name ?? entry.ingredientName;
-    if (typeof name !== 'string') return [];
-    return [
-      {
-        name,
-        quantity: typeof entry.quantity === 'number' ? entry.quantity : null,
-        unit: typeof entry.unit === 'string' ? entry.unit : null,
-        source:
-          typeof (entry.source ?? entry.dataSource) === 'string' ? String(entry.source ?? entry.dataSource) : 'UNKNOWN',
-      },
-    ];
-  });
-}
 
 export default function MealVerificationPanel() {
   const ownerId = useAuth().user?.userId;

@@ -40,7 +40,7 @@ export async function resolveMealPlanDispute(
   const status = decision === 'APPROVE' ? MealPlanStatus.APPROVED : MealPlanStatus.REJECTED;
   const updated = await prisma.$transaction(async (tx) => {
     await lockUserProfile(tx, plan.userId);
-    await tx.mealPlanReviewDecision.create({
+    const finalizedDecision = await tx.mealPlanReviewDecision.create({
       data: {
         mealPlanId,
         nutritionistProfileId,
@@ -74,7 +74,7 @@ export async function resolveMealPlanDispute(
         action: 'MEAL_PLAN_DISPUTE_RESOLVED',
         entityType: 'MealPlan',
         entityId: mealPlanId,
-        metadata: { decision },
+        metadata: { decision, reviewDecisionId: finalizedDecision.id },
       },
     });
     await tx.notification.create({

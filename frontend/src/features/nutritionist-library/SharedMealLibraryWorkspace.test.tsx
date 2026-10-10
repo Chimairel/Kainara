@@ -213,6 +213,7 @@ describe('shared library permissions and feedback', () => {
         expectedVersion: 'b'.repeat(64),
       })
     );
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Confirm this version' })).toBeEnabled());
     fireEvent.click(screen.getByRole('button', { name: 'Confirm this version' }));
     await waitFor(() =>
       expect(mocks.post).toHaveBeenCalledWith(

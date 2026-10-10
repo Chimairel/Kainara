@@ -59,11 +59,15 @@ export function ReviewDocumentPage({
   title,
   subtitle,
   children,
+  recordLabel = 'RND review record',
+  footer = 'Inspection record · approval is recorded separately',
 }: {
   page: number;
   title: string;
   subtitle?: string;
   children: ReactNode;
+  recordLabel?: string;
+  footer?: string;
 }) {
   return (
     <article
@@ -85,15 +89,13 @@ export function ReviewDocumentPage({
       }
     >
       <header className="mb-6 border-b border-[#dce4e0] pb-4">
-        <p className="font-mono text-xs font-bold uppercase tracking-[0.2em] text-[#1B4332]">
-          KAINARA · RND review record
-        </p>
+        <p className="font-mono text-xs font-bold uppercase tracking-[0.2em] text-[#1B4332]">KAINARA · {recordLabel}</p>
         <h2 className="mt-1 text-[26px] font-bold tracking-tight text-[#1B4332]">{title}</h2>
         {subtitle && <p className="mt-1 text-[13px] text-slate-600">{subtitle}</p>}
       </header>
       <div className="flex-1 space-y-6">{children}</div>
       <footer className="mt-8 flex justify-between gap-4 border-t border-[#dce4e0] pt-3 text-xs text-slate-500">
-        <span>Inspection record · approval is recorded separately</span>
+        <span>{footer}</span>
         <span>Page {page}</span>
       </footer>
     </article>

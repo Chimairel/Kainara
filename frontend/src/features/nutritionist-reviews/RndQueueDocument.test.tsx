@@ -131,3 +131,15 @@ it('preserves wheel behavior outside the canvas and normal decision-dock scrolli
   fireEvent(screen.getByRole('region', { name: 'Review canvas viewport' }), pan);
   expect(pan.defaultPrevented).toBe(true);
 });
+
+it('keeps short sheets visible when fitting alongside exceptionally long evidence at minimum zoom', () => {
+  render(<Fixture onBack={vi.fn()} />);
+  const viewport = screen.getByRole('region', { name: 'Review canvas viewport' });
+  Object.defineProperties(viewport, { clientWidth: { value: 1280 }, clientHeight: { value: 500 } });
+  const sheet = document.querySelector('[data-canvas-sheet="1"]')!;
+  Object.defineProperty(sheet, 'offsetHeight', { value: 10_000 });
+  fireEvent.click(screen.getByRole('button', { name: 'Fit all sheets' }));
+  const style = document.querySelector('[data-canvas-world]')!.getAttribute('style');
+  expect(style).toMatch(/translate\([^,]+, 24px\)/);
+  expect(style).toContain('scale(0.1)');
+});

@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen, within } from '@testing-library/react';
+import { act, fireEvent, render, screen, within, waitFor } from '@testing-library/react';
 import { beforeEach, expect, it, vi } from 'vitest';
 import { ThemeProvider } from '@/lib/context/ThemeContext';
 import CaseReviewContext from './CaseReviewContext';
@@ -80,12 +80,83 @@ it('retains selected changes when expanding and returning from full screen', asy
   );
   await open();
   select(/^Change 1/);
-  fireEvent.click(screen.getByRole('button', { name: 'Expand case details' }));
-  expect(screen.getByRole('dialog', { name: 'Expanded audit report' })).toBeVisible();
+  fireEvent.click(screen.getByRole('button', { name: 'Expand canvas' }));
+  expect(screen.getByRole('dialog', { name: 'Case review record — fullscreen' })).toBeVisible();
   expect(screen.getByText('Original recorded review.')).toBeVisible();
-  fireEvent.keyDown(window, { key: 'Escape' });
-  expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  fireEvent.keyDown(document, { key: 'Escape' });
+  await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
   expect(screen.getByRole('combobox', { name: 'Case record' })).toHaveTextContent('Change 1');
+});
+
+it('opens the linked historical decision as read-only movable context and meal sheets', async () => {
+  mocks.get.mockResolvedValueOnce({
+    data: {
+      success: true,
+      data: {
+        ...context,
+        selectedDecisionId: 'old',
+        decisions: [
+          {
+            id: 'old',
+            decision: 'APPROVE',
+            rationale: 'Approved original plate.',
+            evidenceSnapshot: {
+              recordedProfile: { age: 21, weightKg: 55 },
+              reviewedBy: { name: 'Recorded reviewer', role: 'RND' },
+              original: {
+                mealName: 'Original soup',
+                calories: 0,
+                sodiumMg: null,
+                ingredients: [{ name: 'Carrot', quantity: 0, unit: 'g' }],
+              },
+              effective: {
+                mealName: 'Verified soup',
+                calories: 600,
+                ingredients: [{ name: 'Carrot', quantity: 10, unit: 'g' }],
+              },
+            },
+          },
+          { id: 'new', decision: 'REJECT', rationale: 'Later decision.' },
+        ],
+      },
+    },
+  });
+  render(<CaseReviewContext auditId="case" ownerId="admin" />);
+  await open();
+  expect(screen.getByRole('combobox', { name: 'Case record' })).toHaveTextContent('Change 1');
+  expect(screen.getByRole('article', { name: 'Recorded member context' })).toBeVisible();
+  const meal = screen.getByRole('article', { name: 'Recorded meal evidence' });
+  expect(within(meal).getAllByRole('table')).toHaveLength(2);
+  expect(within(meal).getByText('Original soup')).toBeVisible();
+  expect(within(meal).getByText('Verified soup')).toBeVisible();
+  expect(screen.queryByText('Synthetic member')).not.toBeInTheDocument();
+  expect(screen.queryByRole('region', { name: 'Review decisions' })).not.toBeInTheDocument();
+  expect(screen.queryByText(/Claim this review/)).not.toBeInTheDocument();
+  expect(screen.queryByRole('button', { name: 'Approve' })).not.toBeInTheDocument();
+  expect(screen.getByText('RND', { exact: true })).toBeVisible();
+  const handle = screen.getByRole('button', { name: 'Move Recorded meal evidence sheet' });
+  fireEvent.keyDown(handle, { key: 'ArrowDown' });
+  expect(document.querySelector('[data-canvas-sheet="2"]')).toHaveStyle({ top: '20px' });
+});
+
+it('rejects structurally malformed case responses without crashing and blocks duplicate opens', async () => {
+  let finish!: (value: unknown) => void;
+  mocks.get.mockImplementationOnce(
+    () =>
+      new Promise((resolve) => {
+        finish = resolve;
+      })
+  );
+  render(<CaseReviewContext auditId="case" ownerId="admin" />);
+  const button = screen.getByRole('button', { name: 'Open related review details' });
+  act(() => {
+    button.click();
+    button.click();
+  });
+  expect(mocks.get).toHaveBeenCalledOnce();
+  await act(async () => finish({ data: { success: true, data: { clinicalEvidence: null } } }));
+  expect(await screen.findByRole('alert')).toHaveTextContent('Review context could not be loaded.');
+  expect(screen.queryByRole('region', { name: 'Admin review canvas' })).not.toBeInTheDocument();
 });
 it('rejects malformed responses and discards late reads from another account', async () => {
   let finish!: (value: unknown) => void;
@@ -108,6 +179,7 @@ it('keeps withdrawn evidence errors visible and requests only the case-scoped do
   render(<CaseReviewContext auditId="case/a" ownerId="admin" />);
   await open();
   select(/^Clinical evidence/);
+  fireEvent.click(screen.getByRole('button', { name: 'Expand canvas' }));
   mocks.get.mockRejectedValueOnce(new Error('Withdrawn'));
   fireEvent.click(screen.getByRole('button', { name: 'Download related lab report' }));
   expect(await screen.findByRole('alert')).toHaveTextContent('It may have been withdrawn.');

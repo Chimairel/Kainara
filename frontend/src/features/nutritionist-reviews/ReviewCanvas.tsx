@@ -28,6 +28,8 @@ export default function ReviewCanvas({
   decision,
   expanded,
   onExpandedChange,
+  readOnly = false,
+  className = '',
 }: {
   title: string;
   contentKey: string;
@@ -36,6 +38,8 @@ export default function ReviewCanvas({
   decision?: ReactNode;
   expanded: boolean;
   onExpandedChange: (value: boolean) => void;
+  readOnly?: boolean;
+  className?: string;
 }) {
   const pages = Children.toArray(children).filter((child): child is ReactElement<{ title?: string }> =>
     isValidElement<{ title?: string }>(child)
@@ -75,8 +79,8 @@ export default function ReviewCanvas({
     );
     setView({
       scale,
-      x: (node.clientWidth - (right - left) * scale) / 2 - left * scale,
-      y: (node.clientHeight - 80 - (bottom - top) * scale) / 2 - top * scale,
+      x: Math.max(24, (node.clientWidth - (right - left) * scale) / 2) - left * scale,
+      y: Math.max(24, (node.clientHeight - 80 - (bottom - top) * scale) / 2) - top * scale,
     });
     if (reset) setPositions(layout);
   };
@@ -223,8 +227,8 @@ export default function ReviewCanvas({
     <div
       ref={root}
       role="region"
-      aria-label="RND review canvas"
-      className={`relative isolate flex min-w-0 flex-col overflow-hidden border-[6px] border-b-[16px] border-brand-surface bg-brand-bgAlt text-brand-text ${expanded ? 'h-full w-full' : 'h-[calc(100dvh-19rem)] min-h-[640px] w-full rounded-2xl shadow-card-lg'}`}
+      aria-label={readOnly ? 'Admin review canvas' : 'RND review canvas'}
+      className={`relative isolate flex min-w-0 flex-col overflow-hidden border-[6px] border-b-[16px] border-brand-surface bg-brand-bgAlt text-brand-text ${expanded ? 'h-full w-full' : `h-[calc(100dvh-19rem)] min-h-[640px] w-full rounded-2xl shadow-card-lg ${className}`}`}
     >
       <header className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-b border-brand-border bg-brand-surface p-3">
         <h2 className="min-w-0 max-w-[50%] truncate text-sm font-bold" title={title}>
@@ -379,17 +383,19 @@ export default function ReviewCanvas({
           })}
         </div>
       </div>
-      <footer
-        role="region"
-        className="absolute bottom-4 left-1/2 z-10 max-w-[calc(100%-32px)] -translate-x-1/2 rounded-2xl border border-brand-border bg-brand-surface p-2 shadow-card-lg"
-        aria-label="Review decisions"
-      >
-        {decision ?? (
-          <p className="text-xs text-brand-muted">
-            Claim this review to make a decision. H pans the canvas; V selects. Recipe evidence is read-only.
-          </p>
-        )}
-      </footer>
+      {!readOnly && (
+        <footer
+          role="region"
+          className="absolute bottom-4 left-1/2 z-10 max-w-[calc(100%-32px)] -translate-x-1/2 rounded-2xl border border-brand-border bg-brand-surface p-2 shadow-card-lg"
+          aria-label="Review decisions"
+        >
+          {decision ?? (
+            <p className="text-xs text-brand-muted">
+              Claim this review to make a decision. H pans the canvas; V selects. Recipe evidence is read-only.
+            </p>
+          )}
+        </footer>
+      )}
     </div>
   );
   return (

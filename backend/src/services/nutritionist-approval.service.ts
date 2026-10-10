@@ -426,6 +426,7 @@ export async function approveMealPlan(
           entityType: 'MealPlan',
           entityId: mealPlanId,
           metadata: {
+            reviewDecisionId: finalizedDecision.id,
             policyVersion: MEAL_PLAN_SAFETY_POLICY_VERSION,
             reusableEvidencePublished: false,
             reusableEvidenceRequiresExplicitAction: true,

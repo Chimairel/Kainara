@@ -1,31 +1,33 @@
 'use client';
 
-import { useState } from 'react';
-import { FileText, ShieldCheck } from 'lucide-react';
-import RecordPaper from '@/components/shared/RecordPaper';
-import SplitWorkspace from '@/components/shared/SplitWorkspace';
-import CardDecoration from '@/components/ui/CardDecoration';
+import { useState, type ReactNode } from 'react';
 import { Select } from '@/components/ui/Select';
 import Button from '@/components/ui/Button';
-import ExpandableCasePanel from '@/features/nutritionist-reviews/ExpandableCasePanel';
+import ReviewCanvas from '@/features/nutritionist-reviews/ReviewCanvas';
+import { ReviewDocumentPage } from '@/features/nutritionist-reviews/RndQueueDocument';
 import MealReviewTimeline, { type ReviewIncident } from '@/features/nutritionist-library/MealReviewTimeline';
 import RecordedCaseFields, { recordedObject, recordValue } from './RecordedCaseFields';
+import AdminDecisionSheets from './AdminDecisionSheets';
 
 export type ReviewContext = {
   currentProfile: unknown;
   reviewedSnapshot: unknown;
   decisions: unknown;
+  selectedDecisionId?: string | null;
   clinicalEvidence: { id?: string; documentType?: string; originalFileName?: string }[];
   historicalInformation: string | null;
   recipe?: { history: ReviewIncident[]; legacyHistoryUnknown: boolean };
 };
 
+/** Admin adapter for the same movable-sheet canvas used by RNDs. No clinical decision controls. */
 export default function CaseReviewDocument({
   data,
   onDownload,
+  error,
 }: {
   data: ReviewContext;
   onDownload: (record: ReviewContext['clinicalEvidence'][number]) => void;
+  error?: string | null;
 }) {
   const decisions = Array.isArray(data.decisions) ? data.decisions : data.decisions == null ? [] : [data.decisions];
   const records = [
@@ -36,6 +38,7 @@ export default function CaseReviewDocument({
         const date = decision?.submittedAt ?? decision?.createdAt ?? decision?.reviewedAt;
         return {
           key: `decision-${index}`,
+          id: decision?.id,
           title: `Review change ${index + 1}`,
           label: `Change ${index + 1}${action ? ` · ${recordValue(action)}` : ''}${date ? ` · ${recordValue(date)}` : ''}`,
           value,
@@ -47,6 +50,7 @@ export default function CaseReviewDocument({
       ? [
           {
             key: 'snapshot',
+            id: null,
             title: 'Profile recorded for review',
             label: 'Profile recorded for review',
             value: data.reviewedSnapshot,
@@ -58,6 +62,7 @@ export default function CaseReviewDocument({
       ? [
           {
             key: 'current',
+            id: null,
             title: 'Current member profile',
             label: 'Current member profile · Live details',
             value: data.currentProfile,
@@ -65,109 +70,101 @@ export default function CaseReviewDocument({
           },
         ]
       : []),
+    ...(data.recipe
+      ? [
+          {
+            key: 'recipe',
+            id: null,
+            title: 'Recipe review history',
+            label: 'Recipe review history',
+            value: data.recipe,
+            kind: 'recipe',
+          },
+        ]
+      : []),
     {
       key: 'evidence',
+      id: null,
       title: 'Clinical evidence attached to this case',
       label: `Clinical evidence · ${data.clinicalEvidence.length} records`,
       value: data.clinicalEvidence,
       kind: 'evidence',
     },
   ];
-  const [selected, setSelected] = useState(records[0].key);
+  const [selected, setSelected] = useState(
+    () => records.find((item) => data.selectedDecisionId && item.id === data.selectedDecisionId)?.key ?? records[0].key
+  );
   const [expanded, setExpanded] = useState(false);
   const record = records.find((item) => item.key === selected) ?? records[0];
-  const picker = (
-    <div className="mb-4 space-y-1.5">
-      <p className="text-xs font-bold text-brand-muted">Choose a recorded change or related case details</p>
-      <Select
-        aria-label="Case record"
-        value={record.key}
-        onChange={setSelected}
-        options={records.map((item) => ({ value: item.key, label: item.label }))}
-        className="w-full"
-      />
-    </div>
-  );
+  const subtitle =
+    record.kind === 'current'
+      ? 'Live profile at the time you opened this case. These values do not replace any historical review snapshot.'
+      : record.kind === 'evidence'
+        ? 'Related document metadata at access time. Recorded document versions remain in each decision snapshot.'
+        : 'Saved review evidence. Missing historical information is labeled as not recorded.';
+  let sheets: ReactNode;
+  if (record.kind === 'decision') {
+    sheets = AdminDecisionSheets({ title: record.title, value: record.value, subtitle });
+  } else {
+    sheets = (
+      <ReviewDocumentPage
+        page={1}
+        title={record.title}
+        subtitle={subtitle}
+        recordLabel="Admin oversight"
+        footer="Read-only case oversight · Access to clinical details is recorded"
+      >
+        {record.kind === 'recipe' && data.recipe ? (
+          <MealReviewTimeline history={data.recipe.history} legacyHistoryUnknown={data.recipe.legacyHistoryUnknown} />
+        ) : (
+          <RecordedCaseFields value={record.value} paper />
+        )}
+        {record.kind === 'evidence' &&
+          data.clinicalEvidence
+            .filter((document) => document.id)
+            .map((document) => (
+              <Button key={document.id} variant="secondary" size="sm" onClick={() => onDownload(document)}>
+                Download related {document.documentType?.replaceAll('_', ' ').toLowerCase() || 'clinical record'}
+              </Button>
+            ))}
+      </ReviewDocumentPage>
+    );
+  }
   return (
     <div className="space-y-4">
-      {data.recipe && (
-        <MealReviewTimeline history={data.recipe.history} legacyHistoryUnknown={data.recipe.legacyHistoryUnknown} />
-      )}
-      {(data.currentProfile != null ||
-        data.reviewedSnapshot != null ||
-        decisions.length > 0 ||
-        data.clinicalEvidence.length > 0) && (
-        <>
-          <SplitWorkspace
-            aria-label="Related case report"
-            className="h-[clamp(24rem,70dvh,48rem)] bg-[#faf8f5] dark:bg-[#071914] shadow-xl"
-          >
-            <CardDecoration variant="report" />
-            <ExpandableCasePanel
-              expanded={expanded}
-              onExpandedChange={setExpanded}
-              expandTitle="Full screen audit report"
-              expandAriaLabel="Expanded audit report"
-              headerLeft={
-                <span className="flex items-center gap-2 text-sm font-bold">
-                  <FileText className="h-4 w-4 text-brand-green" aria-hidden="true" />
-                  Case review record
-                </span>
-              }
-              className="relative z-10 flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden"
-              headerClassName="border-b border-brand-border/80 bg-white/60 dark:bg-[#071914]/60 backdrop-blur-md"
-              contentKey={record.key}
-              contentClassName="min-h-0 flex-1 overflow-y-auto overscroll-contain custom-scrollbar p-3 sm:p-5 xl:p-6"
-            >
-              {picker}
-              <RecordPaper aria-label={record.title}>
-                <header className="space-y-3 border-b border-brand-border/70 pb-4">
-                  <p className="font-mono text-xs font-bold uppercase tracking-widest text-brand-green">
-                    KAINARA · Admin oversight
-                  </p>
-                  <h3 className="font-display text-xl font-extrabold tracking-tight sm:text-2xl">{record.title}</h3>
-                  <p className="text-sm leading-relaxed text-brand-muted">
-                    {record.kind === 'current'
-                      ? 'Live profile at the time you opened this case. These values do not replace any historical review snapshot.'
-                      : record.kind === 'evidence'
-                        ? 'Original records connected to this review case.'
-                        : 'Saved review evidence. Missing historical information is labeled as not recorded.'}
-                  </p>
-                  {data.historicalInformation && (
-                    <p className="text-sm text-brand-muted">{data.historicalInformation}</p>
-                  )}
-                </header>
-                <RecordedCaseFields value={record.value} />
-                {record.kind === 'evidence' &&
-                  data.clinicalEvidence
-                    .filter((document) => document.id)
-                    .map((document) => (
-                      <Button key={document.id} variant="secondary" size="sm" onClick={() => onDownload(document)}>
-                        Download related{' '}
-                        {document.documentType?.replaceAll('_', ' ').toLowerCase() || 'clinical record'}
-                      </Button>
-                    ))}
-                <footer className="flex items-start gap-2 border-t border-brand-border/70 pt-4 text-xs leading-relaxed text-brand-muted">
-                  <ShieldCheck className="h-4 w-4 shrink-0 text-brand-green" aria-hidden="true" />
-                  Read-only case oversight. Access to clinical details is recorded.
-                </footer>
-              </RecordPaper>
-            </ExpandableCasePanel>
-          </SplitWorkspace>
-        </>
-      )}
-      {!data.recipe &&
-        data.currentProfile == null &&
-        data.reviewedSnapshot == null &&
-        !decisions.length &&
-        !data.clinicalEvidence.length && (
-          <RecordPaper>
-            <h3 className="font-display text-lg font-bold">Related case details</h3>
-            <p className="text-sm text-brand-muted">
-              {data.historicalInformation || 'No related clinical details were recorded.'}
-            </p>
-          </RecordPaper>
-        )}
+      <div className="space-y-1.5">
+        <p className="text-xs font-bold text-brand-muted">Choose a recorded change or related case details</p>
+        <Select
+          aria-label="Case record"
+          value={record.key}
+          onChange={setSelected}
+          options={records.map((item) => ({ value: item.key, label: item.label }))}
+          className="w-full"
+        />
+      </div>
+      <div className="h-[clamp(28rem,75dvh,52rem)] min-w-0">
+        <ReviewCanvas
+          readOnly
+          className="!h-full !min-h-0"
+          title="Case review record"
+          contentKey={record.key}
+          expanded={expanded}
+          onExpandedChange={setExpanded}
+          actions={
+            <div className="max-w-lg space-y-1 text-xs text-brand-muted">
+              <p>Read-only admin oversight</p>
+              {data.historicalInformation && <p>{data.historicalInformation}</p>}
+              {error && (
+                <p role="alert" className="text-status-error-text">
+                  {error}
+                </p>
+              )}
+            </div>
+          }
+        >
+          {sheets}
+        </ReviewCanvas>
+      </div>
     </div>
   );
 }

@@ -7,6 +7,12 @@ const hiddenFields = new Set([
   'claimedByNutritionistId',
   'sha256',
   'documentSha256',
+  'mealPlanId',
+  'planGroupId',
+  'libraryMealId',
+  'sourceRawRecipeCandidateId',
+  'contextKey',
+  'scopeKey',
 ]);
 const labels: Record<string, string> = {
   userProfile: 'Member details',
@@ -47,6 +53,7 @@ export function recordValue(value: unknown): string {
   if (value == null || value === '') return 'Not recorded';
   if (typeof value === 'boolean') return value ? 'Yes' : 'No';
   if (value === 'NUTRITIONIST') return 'RND';
+  if (value === 'RND') return 'RND';
   if (value === 'ADMIN') return 'Administrator';
   if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}T/.test(value) && !Number.isNaN(Date.parse(value))) {
     return (
@@ -64,14 +71,18 @@ export function recordedObject(value: unknown): Record<string, unknown> | null {
 }
 
 /** Render saved data without filling absent historical fields from the live profile. */
-export default function RecordedCaseFields({ value }: { value: unknown }) {
+export default function RecordedCaseFields({ value, paper = false }: { value: unknown; paper?: boolean }) {
+  const fieldClass = paper ? 'rounded-xl border border-brand-border bg-brand-bg p-3' : recordFieldClass;
+  const sectionClass = paper
+    ? 'rounded-xl border border-brand-border bg-brand-surface p-4 space-y-3'
+    : recordSectionClass;
   if (Array.isArray(value)) {
     if (!value.length) return <p className="text-sm text-brand-muted">None recorded</p>;
     if (value.every((item) => item == null || typeof item !== 'object')) {
       return (
         <ul className="flex flex-wrap gap-2">
           {value.map((item, index) => (
-            <li key={index} className={`${recordFieldClass} text-sm`}>
+            <li key={index} className={`${fieldClass} text-sm`}>
               {recordValue(item)}
             </li>
           ))}
@@ -81,9 +92,9 @@ export default function RecordedCaseFields({ value }: { value: unknown }) {
     return (
       <ol className="space-y-3">
         {value.map((item, index) => (
-          <li key={index} className={recordSectionClass}>
+          <li key={index} className={sectionClass}>
             <p className="text-xs font-bold text-brand-muted">Record {index + 1}</p>
-            <RecordedCaseFields value={item} />
+            <RecordedCaseFields value={item} paper={paper} />
           </li>
         ))}
       </ol>
@@ -100,7 +111,7 @@ export default function RecordedCaseFields({ value }: { value: unknown }) {
       {!!fields.length && (
         <dl className="grid min-w-0 grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-3">
           {fields.map(([key, item]) => (
-            <div key={key} className={`${recordFieldClass} min-w-0`}>
+            <div key={key} className={`${fieldClass} min-w-0`}>
               <dt className="text-xs font-semibold text-brand-muted">{recordLabel(key)}</dt>
               <dd className="mt-1 whitespace-pre-wrap text-sm font-semibold leading-relaxed">{recordValue(item)}</dd>
             </div>
@@ -108,9 +119,9 @@ export default function RecordedCaseFields({ value }: { value: unknown }) {
         </dl>
       )}
       {groups.map(([key, item]) => (
-        <section key={key} className={recordSectionClass}>
+        <section key={key} className={sectionClass}>
           <h4 className="border-b border-brand-border/70 pb-3 font-display text-sm font-bold">{recordLabel(key)}</h4>
-          <RecordedCaseFields value={item} />
+          <RecordedCaseFields value={item} paper={paper} />
         </section>
       ))}
     </div>

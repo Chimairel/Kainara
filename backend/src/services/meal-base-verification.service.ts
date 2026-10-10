@@ -8,6 +8,23 @@ import { admittedLibraryBaseIds, libraryBaseRevisionKey } from './meal-base-admi
 
 const CLAIM_MS = 30 * 60 * 1000;
 
+/** Preserve actual ingredient provenance in the read-only verification table. */
+export function baseVerificationIngredient(item: {
+  ingredientName: string;
+  quantity: number | null;
+  unit: string | null;
+  dataSource: string;
+  foodItem?: { name: string } | null;
+}) {
+  return {
+    name: item.ingredientName,
+    quantity: item.quantity,
+    unit: item.unit,
+    source: item.dataSource,
+    compositionFoodName: item.foodItem?.name ?? null,
+  };
+}
+
 export async function isGeneratedBaseVerified(signature: string | null): Promise<boolean> {
   if (!signature) return false;
   return Boolean(
@@ -42,7 +59,7 @@ async function target(kind: MealVerificationTargetKind, id: string) {
       where: { id },
       include: {
         sourceRawRecipeCandidate: { select: { sourceName: true, status: true, contentSignature: true } },
-        ingredients: { orderBy: { position: 'asc' } },
+        ingredients: { orderBy: { position: 'asc' }, include: { foodItem: { select: { name: true } } } },
       },
     });
     if (
@@ -64,11 +81,7 @@ async function target(kind: MealVerificationTargetKind, id: string) {
       proteinG: meal.proteinG,
       carbsG: meal.carbsG,
       fatG: meal.fatG,
-      ingredients: meal.ingredients.map((item) => ({
-        name: item.ingredientName,
-        quantity: item.quantity,
-        unit: item.unit,
-      })),
+      ingredients: meal.ingredients.map(baseVerificationIngredient),
       authorId: meal.authoredByNutritionistId,
       imageUrl: meal.adaptedImageUrl,
       evidenceRevision: meal.safetyEvidenceRevision,
@@ -92,7 +105,15 @@ async function target(kind: MealVerificationTargetKind, id: string) {
         proteinG: true,
         carbsG: true,
         fatG: true,
-        ingredients: { select: { ingredientName: true, quantity: true, unit: true } },
+        ingredients: {
+          select: {
+            ingredientName: true,
+            quantity: true,
+            unit: true,
+            dataSource: true,
+            foodItem: { select: { name: true } },
+          },
+        },
       },
     });
     if (!plan) throw new Error('Generated recipe is no longer awaiting verification.');
@@ -107,11 +128,7 @@ async function target(kind: MealVerificationTargetKind, id: string) {
       proteinG: plan.proteinG,
       carbsG: plan.carbsG,
       fatG: plan.fatG,
-      ingredients: plan.ingredients.map((item) => ({
-        name: item.ingredientName,
-        quantity: item.quantity,
-        unit: item.unit,
-      })),
+      ingredients: plan.ingredients.map(baseVerificationIngredient),
       source: 'GEMINI_GENERATED',
     };
   }

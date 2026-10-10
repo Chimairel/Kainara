@@ -45,19 +45,21 @@ export class AdminReviewContextService {
       return { buffer, mimeType: document.mimeType };
     });
   }
-  static async detail(actorUserId: string, auditId: string) {
-    await AuditDetailsService.detail(auditId, 'admin');
-    return prisma.$transaction(async (tx) => {
+  static async detail(actorUserId: string, auditId: string, db: typeof prisma = prisma) {
+    await AuditDetailsService.detail(auditId, 'admin', db);
+    return db.$transaction(async (tx) => {
       await reviewActor(tx, actorUserId);
       const event = await tx.auditEvent.findUnique({
         where: { id: auditId },
-        select: { entityType: true, entityId: true, action: true },
+        select: { entityType: true, entityId: true, action: true, metadata: true },
       });
       if (!event?.entityId) throw unavailable();
       let userId: string | null = null;
       let reviewedSnapshot: unknown = null;
       let decisions: unknown[] = [];
       let evidenceIds: string[] = [];
+      let selectedDecisionId: string | null = null;
+      let historicalInformation: string | null = null;
       if (event.entityType === 'MealPlan' && /REVIEW|APPROV|REJECT|CLEARANCE/.test(event.action)) {
         const plan = await tx.mealPlan.findUnique({
           where: { id: event.entityId },
@@ -66,7 +68,14 @@ export class AdminReviewContextService {
         if (!plan) throw unavailable();
         userId = plan.userId;
         decisions = plan.reviewDecisions;
-        reviewedSnapshot = plan.reviewDecisions.at(-1)?.evidenceSnapshot ?? null;
+        const metadata =
+          event.metadata && typeof event.metadata === 'object' && !Array.isArray(event.metadata) ? event.metadata : {};
+        const selected = plan.reviewDecisions.find((item) => item.id === metadata.reviewDecisionId);
+        selectedDecisionId = selected?.id ?? null;
+        reviewedSnapshot = selected?.evidenceSnapshot ?? null;
+        if (!selected)
+          historicalInformation =
+            'The decision link for this audit action was not recorded. Saved decisions are available as separate history; none is assumed to be this action.';
         evidenceIds = plan.clinicalEvidence.map((item) => item.clinicalDocumentId);
       } else if (event.entityType === 'ClinicalProfileReview' && event.action.startsWith('CLINICAL_PROFILE_')) {
         const review = await tx.clinicalProfileReview.findUnique({ where: { id: event.entityId } });
@@ -188,9 +197,12 @@ export class AdminReviewContextService {
         reviewedSnapshot,
         decisions,
         clinicalEvidence,
-        historicalInformation: reviewedSnapshot
-          ? null
-          : 'A historical profile snapshot was not recorded. Current details are shown separately.',
+        selectedDecisionId,
+        historicalInformation:
+          historicalInformation ??
+          (reviewedSnapshot
+            ? null
+            : 'A historical profile snapshot was not recorded. Current details are shown separately.'),
       };
     });
   }

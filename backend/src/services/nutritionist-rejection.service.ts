@@ -24,14 +24,32 @@ import { buildReviewWorkKey } from '@/domain/upcoming-preparation.policy';
 import { mealApprovalSafetyScope } from '@/domain/meal-approval-scope.policy';
 import { candidateMealSchema } from '@/validation/nutritionist.schemas';
 import { isMealWithinSlotCalorieRange, isPrimaryMealType } from '@/domain/meal-calorie-allocation.policy';
-import { assertRecipeNotRejectedForSlot, rejectedSlotRecipes, hasRecordedReplacementHold, assertNoAutomaticSlotReplacement } from './rejected-slot-recipes.service';
+import {
+  assertRecipeNotRejectedForSlot,
+  rejectedSlotRecipes,
+  hasRecordedReplacementHold,
+  assertNoAutomaticSlotReplacement,
+} from './rejected-slot-recipes.service';
 import { type ReplacementOutcome } from '@/domain/review-nutrient-filter.policy';
 import { readReplacementSearch } from './review-replacement-search.service';
 import { AppError } from '@/errors/AppError';
 
-export async function rejectMealPlan(nutritionistProfileId: string, mealPlanId: string, reason: string, expectedContextKey?: string, replacementOutcome?: ReplacementOutcome) {
-  const search = replacementOutcome ? readReplacementSearch(replacementOutcome.searchReceipt, nutritionistProfileId, mealPlanId, expectedContextKey) : null;
-  if (search && reason.trim().length < 10) throw new AppError('Explain why no replacement is suitable (at least 10 characters).', 400, 'REVIEW_RATIONALE_REQUIRED');
+export async function rejectMealPlan(
+  nutritionistProfileId: string,
+  mealPlanId: string,
+  reason: string,
+  expectedContextKey?: string,
+  replacementOutcome?: ReplacementOutcome
+) {
+  const search = replacementOutcome
+    ? readReplacementSearch(replacementOutcome.searchReceipt, nutritionistProfileId, mealPlanId, expectedContextKey)
+    : null;
+  if (search && reason.trim().length < 10)
+    throw new AppError(
+      'Explain why no replacement is suitable (at least 10 characters).',
+      400,
+      'REVIEW_RATIONALE_REQUIRED'
+    );
   await ReviewRoutingService.assertMeal(nutritionistProfileId, mealPlanId);
   await assertCurrentMealReviewContext(mealPlanId, expectedContextKey);
   const now = new Date();
@@ -60,8 +78,19 @@ export async function rejectMealPlan(nutritionistProfileId: string, mealPlanId: 
   await prisma.$transaction(
     async (tx) => {
       await lockUserProfile(tx, plan.userId);
-      const reviewedContext = await assertCurrentMealReviewContext(mealPlanId, expectedContextKey, tx, nutritionistProfileId);
-      if (replacementOutcome) readReplacementSearch(replacementOutcome.searchReceipt, nutritionistProfileId, mealPlanId, reviewedContext?.contextKey);
+      const reviewedContext = await assertCurrentMealReviewContext(
+        mealPlanId,
+        expectedContextKey,
+        tx,
+        nutritionistProfileId
+      );
+      if (replacementOutcome)
+        readReplacementSearch(
+          replacementOutcome.searchReceipt,
+          nutritionistProfileId,
+          mealPlanId,
+          reviewedContext?.contextKey
+        );
       await ReviewRoutingService.assertMeal(nutritionistProfileId, mealPlanId, tx);
       const currentProfile = await tx.userProfile.findUniqueOrThrow({ where: { userId: plan.userId } });
       if ('user' in plan && currentProfile.revision !== plan.user.userProfile?.revision)
@@ -80,10 +109,24 @@ export async function rejectMealPlan(nutritionistProfileId: string, mealPlanId: 
           reviewedAt: now,
           claimedByNutritionistId: null,
           claimedAt: null,
-          ...(search ? { fallbackAvailable: false, selectionEvidence: {
-            ...(plan.selectionEvidence && typeof plan.selectionEvidence === 'object' && !Array.isArray(plan.selectionEvidence) ? plan.selectionEvidence : {}),
-            replacementOutcome: { kind: 'NO_SUITABLE_REPLACEMENT', search, recordedAt: now.toISOString(), rationale: reason.trim() },
-          } as Prisma.InputJsonObject } : {}),
+          ...(search
+            ? {
+                fallbackAvailable: false,
+                selectionEvidence: {
+                  ...(plan.selectionEvidence &&
+                  typeof plan.selectionEvidence === 'object' &&
+                  !Array.isArray(plan.selectionEvidence)
+                    ? plan.selectionEvidence
+                    : {}),
+                  replacementOutcome: {
+                    kind: 'NO_SUITABLE_REPLACEMENT',
+                    search,
+                    recordedAt: now.toISOString(),
+                    rationale: reason.trim(),
+                  },
+                } as Prisma.InputJsonObject,
+              }
+            : {}),
         },
       });
 
@@ -91,7 +134,7 @@ export async function rejectMealPlan(nutritionistProfileId: string, mealPlanId: 
         throw new Error('The active claim expired or this meal was already reviewed. Please refresh the queue.');
       }
 
-      await tx.mealPlanReviewDecision.create({
+      const finalizedDecision = await tx.mealPlanReviewDecision.create({
         data: {
           mealPlanId,
           nutritionistProfileId,
@@ -99,14 +142,18 @@ export async function rejectMealPlan(nutritionistProfileId: string, mealPlanId: 
           decision: 'REJECT',
           rationale: reason.trim(),
           evidenceSnapshot: {
-            ...(reviewedContext ? { reviewContext: reviewedContext.snapshot, contextKey: reviewedContext.contextKey } : {}),
+            ...(reviewedContext
+              ? { reviewContext: reviewedContext.snapshot, contextKey: reviewedContext.contextKey }
+              : {}),
             mealName: plan.mealName,
             calories: plan.calories,
             proteinG: plan.proteinG,
             carbsG: plan.carbsG,
             fatG: plan.fatG,
             policyVersion: MEAL_PLAN_SAFETY_POLICY_VERSION,
-            ...(search ? { replacementOutcome: { kind: 'NO_SUITABLE_REPLACEMENT', search, rationale: reason.trim() } } : {}),
+            ...(search
+              ? { replacementOutcome: { kind: 'NO_SUITABLE_REPLACEMENT', search, rationale: reason.trim() } }
+              : {}),
           },
         },
       });
@@ -125,7 +172,13 @@ export async function rejectMealPlan(nutritionistProfileId: string, mealPlanId: 
           action: 'MEAL_PLAN_REJECTED',
           entityType: 'MealPlan',
           entityId: mealPlanId,
-          metadata: { reason: reason.trim().slice(0, 240), ...(search ? { replacementOutcome: { kind: 'NO_SUITABLE_REPLACEMENT', search, rationale: reason.trim() } } : {}) },
+          metadata: {
+            reviewDecisionId: finalizedDecision.id,
+            reason: reason.trim().slice(0, 240),
+            ...(search
+              ? { replacementOutcome: { kind: 'NO_SUITABLE_REPLACEMENT', search, rationale: reason.trim() } }
+              : {}),
+          },
         },
       });
     },
@@ -133,7 +186,8 @@ export async function rejectMealPlan(nutritionistProfileId: string, mealPlanId: 
   );
 
   // A clinician's recorded search outcome holds this context/slot; neither deterministic nor AI fallback runs.
-  if (search || await hasRecordedReplacementHold(prisma, plan)) return { success: true, replacementPlanId: null, replacementOutcome: 'NO_SUITABLE_REPLACEMENT' as const };
+  if (search || (await hasRecordedReplacementHold(prisma, plan)))
+    return { success: true, replacementPlanId: null, replacementOutcome: 'NO_SUITABLE_REPLACEMENT' as const };
 
   const certifiedFallback = await CertifiedSlotFallbackService.replaceWithBestCertified({
     mealPlanId,
