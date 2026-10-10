@@ -2,6 +2,8 @@
 
 Change: **CHG-20261010-18**. These gates apply to the existing workflows. Passing software checks does not establish clinical validity or guarantee provider availability.
 
+Later evidence: [CHG-20261010-19 reliability follow-up](CAPSTONE_RELIABILITY_FOLLOWUP_2026-10-10.md) adds selected-profile read improvements, aggregate evaluation, 33 concurrency/reference checks, full backup restoration with current API smoke, and ordinary expiry/logout with two browser tabs. It does not close the fresh complete-journey, live-provider or forced refresh-contention gates.
+
 ## Reliability changes
 
 - New AI worker claims carry a versioned ownership token and a heartbeat every 20 seconds. A two-minute stale heartbeat permits recovery; the normal worker checks every 30 seconds. Unversioned legacy claims retain their 20-minute lease so a mixed deployment does not steal work from an older, live worker. A database outage can delay recovery beyond these intervals.

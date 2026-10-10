@@ -14,7 +14,14 @@ import {
   clarificationDisplayState,
   type ClarificationContext,
 } from '@/domain/clinical-clarification.policy';
-import { context, userInclude, scopedPolicy, CLAIM_TTL_MS } from './clinical-profile-review.context';
+import {
+  context,
+  userInclude,
+  scopedPolicy,
+  CLAIM_TTL_MS,
+  profileReadUser,
+  type ProfileRead,
+} from './clinical-profile-review.context';
 import { lockUserProfile } from './profile-revision.service';
 import { ReviewRoutingService } from './review-routing.service';
 
@@ -91,7 +98,7 @@ export class ClinicalClarificationService {
     if (!this.enabled) throw new AppError('Clarification forms are not enabled yet.', 503, 'CLARIFICATIONS_DISABLED');
   }
 
-  static async list(userId: string, reviewerId?: string) {
+  static async list(userId: string, reviewerId?: string, read?: ProfileRead) {
     if (!this.enabled) return { enabled: false, forms: [] };
     if (reviewerId) {
       await ReviewRoutingService.assertProfile(reviewerId, userId);
@@ -102,12 +109,14 @@ export class ClinicalClarificationService {
       if (!reviewer || !isNutritionistEligibleForReview(reviewer))
         throw new AppError('A currently eligible RND is required.', 403, 'NUTRITIONIST_INELIGIBLE');
     }
-    const current = await currentClarificationContext(prisma, userId);
-    const forms = await prisma.clinicalClarificationForm.findMany({
-      where: { userId },
-      include: formInclude,
-      orderBy: { createdAt: 'asc' },
-    });
+    const [current, forms] = await Promise.all([
+      read ? Promise.resolve(context(profileReadUser(userId, read))) : currentClarificationContext(prisma, userId),
+      prisma.clinicalClarificationForm.findMany({
+        where: { userId },
+        include: formInclude,
+        orderBy: { createdAt: 'asc' },
+      }),
+    ]);
     const currentScope = { profileRevision: current.profile.revision, scopeKey: current.scopeKey };
     return {
       enabled: true,

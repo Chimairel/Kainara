@@ -6,6 +6,8 @@ KAINARA is a Philippines-focused nutrition and meal-planning capstone applicatio
 
 Operational deployment uses [`docs/PRODUCTION_OPERATIONS_RUNBOOK.md`](docs/PRODUCTION_OPERATIONS_RUNBOOK.md). Public production startup remains gated on the qualified sign-off recorded in [`docs/CLINICAL_POLICY_APPROVAL.md`](docs/CLINICAL_POLICY_APPROVAL.md).
 
+Capstone rehearsal, aggregate evaluation, bounded synthetic read benchmarks and isolated restore/concurrency drills use [`docs/CAPSTONE_REHEARSAL_RUNBOOK.md`](docs/CAPSTONE_REHEARSAL_RUNBOOK.md). [Current follow-up evidence](docs/CAPSTONE_RELIABILITY_FOLLOWUP_2026-10-10.md) separates verified results from remaining deployment/provider gates.
+
 The hosted capstone demonstration uses [`docs/VERCEL_RAILWAY_DEMO_DEPLOYMENT.md`](docs/VERCEL_RAILWAY_DEMO_DEPLOYMENT.md), with normal registration/login and the existing release-mode startup gates. Public interface wording follows the current engineering-record entry. It keeps production security enabled and does not constitute clinical approval.
 
 Administrator-managed nutrition sources, aggregate consumption releases, FNRI mappings, publication, and rollback use [`docs/ADMIN_REFERENCE_DATA_RUNBOOK.md`](docs/ADMIN_REFERENCE_DATA_RUNBOOK.md).

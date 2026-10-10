@@ -170,6 +170,9 @@ async function main() {
     assert.deepEqual(await db.userProfile.findUniqueOrThrow({ where: { userId: member.id } }), before);
     pass('Publishing/retry creates one immutable form and notification without altering the profile');
     assert.equal((await ok(request(rnd, '/nutritionist/profile-work')))[0].profileStatus, 'AWAITING_MEMBER');
+    const scopedDetail = await ok(request(rnd, `/nutritionist/profile-work/${member.id}`));
+    assert.equal(scopedDetail.profileReview.profileRevision, scopedDetail.currentProfile.revision);
+    assert.equal(scopedDetail.profileReview.clarifications.forms[0].id, form.id);
     const confirmation = { ...expected(), decision: 'APPROVED', notes: 'Reviewed all current clinical details.' };
     assert.equal((await request(rnd, route + '/decision', 'POST', confirmation)).status, 422);
     await assert.rejects(() => ClinicalProfileReviewService.assertReadyForMealPlanning(member.id));

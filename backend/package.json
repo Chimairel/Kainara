@@ -8,6 +8,10 @@
     "npm": ">=11"
   },
   "scripts": {
+    "evaluate:capstone": "tsx scripts/capstone-evaluation.ts",
+    "benchmark:capstone-reads": "tsx scripts/capstone-read-benchmark.ts",
+    "test:acceptance:capstone-concurrency": "node scripts/capstone-concurrency-drill.mjs",
+    "test:acceptance:capstone-restore": "node scripts/capstone-restore-drill.mjs",
     "test:acceptance:worker-lease": "tsx scripts/meal-job-lease-local-acceptance.ts",
     "test:acceptance:review-reference": "tsx scripts/review-reference-local-acceptance.ts",
     "test:acceptance:review-filters": "tsx scripts/review-filters-local-acceptance.ts",

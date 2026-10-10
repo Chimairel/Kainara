@@ -19,12 +19,26 @@ export const userInclude = {
   allergies: true,
   safetyProfileEntries: true,
   clinicalContextResponses: true,
-  clinicalDocuments: { select: { id: true, revision: true, status: true, sha256: true,
-    ...(env.CLINICAL_CLARIFICATIONS_ENABLED ? { validUntil: true, facts: true } : {}),
-  } },
+  clinicalDocuments: {
+    select: {
+      id: true,
+      revision: true,
+      status: true,
+      sha256: true,
+      ...(env.CLINICAL_CLARIFICATIONS_ENABLED ? { validUntil: true, facts: true } : {}),
+    },
+  },
 } satisfies Prisma.UserInclude;
 
 type ProfileUser = Prisma.UserGetPayload<{ include: typeof userInclude }>;
+
+/** One freshly loaded member per read request; never used for decisions or mutations. */
+export type ProfileRead = { user: ProfileUser };
+export function profileReadUser(userId: string, read: ProfileRead) {
+  if (read.user.id !== userId || read.user.role !== 'USER')
+    throw new AppError('Profile read does not belong to this member.', 403, 'PROFILE_READ_MISMATCH');
+  return read.user;
+}
 
 export function snapshotKey(value: Prisma.JsonValue): string | null {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
@@ -61,21 +75,32 @@ export function context(user: ProfileUser) {
     useConditionAssessments: false,
   });
   const snapshot = {
-    ...(env.CLINICAL_CLARIFICATIONS_ENABLED ? { documentContexts: (user.clinicalDocuments ?? []).map(document => [
-      document.id, reviewContextKey({ validUntil: document.validUntil,
-        facts: [...(document.facts ?? [])].sort((a, b) => a.id.localeCompare(b.id)) }),
-    ]).sort((a, b) => a[0].localeCompare(b[0])) } : {}),
+    ...(env.CLINICAL_CLARIFICATIONS_ENABLED
+      ? {
+          documentContexts: (user.clinicalDocuments ?? [])
+            .map((document) => [
+              document.id,
+              reviewContextKey({
+                validUntil: document.validUntil,
+                facts: [...(document.facts ?? [])].sort((a, b) => a.id.localeCompare(b.id)),
+              }),
+            ])
+            .sort((a, b) => a[0].localeCompare(b[0])),
+        }
+      : {}),
     ...(user.clinicalReviewEpoch ? { clarificationEpisode: user.clinicalReviewEpoch.key } : {}),
     profileRevision: profile.revision,
     documentRevisions: (user.clinicalDocuments ?? [])
       .map((item) => [item.id, item.revision, item.status, item.sha256])
       .sort((a, b) => String(a[0]).localeCompare(String(b[0]))),
     safetyRevision: profile.safetyRevision,
-    healthDetails: (user.clinicalContextResponses ?? []).map((item) => ({
-      area: item.area,
-      revision: item.revision,
-      responses: item.responses,
-    })).sort((a, b) => a.area.localeCompare(b.area)),
+    healthDetails: (user.clinicalContextResponses ?? [])
+      .map((item) => ({
+        area: item.area,
+        revision: item.revision,
+        responses: item.responses,
+      }))
+      .sort((a, b) => a.area.localeCompare(b.area)),
     contextRevisions: (user.clinicalContextResponses ?? [])
       .map((item) => [item.area, item.revision])
       .sort((a, b) => String(a[0]).localeCompare(String(b[0]))),

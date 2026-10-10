@@ -4,7 +4,8 @@ import { ClinicalProfileProposalService } from './clinical-profile-proposal.serv
 import { ReviewRoutingService } from './review-routing.service';
 import path from 'node:path';
 import { isDeepStrictEqual } from 'node:util';
-import { healthDetailsRequirements } from '@/domain/health-details.policy';
+import { healthDetailsRequirements, healthDetailsAreas } from '@/domain/health-details.policy';
+import { profileReadUser, type ProfileRead } from './clinical-profile-review.context';
 import { publicClinicalDocument as publicDocument } from '@/domain/clinical-document-metadata';
 import { activeConditionPlanningAssessment } from '@/domain/condition-planning-assessment.policy';
 import { healthDetailsSchema, type HealthDetailsInput } from '@/validation/health-details.schemas';
@@ -211,30 +212,44 @@ export class ClinicalEvidenceService {
     });
   }
 
-  static async workspace(userId: string) {
-    const [documents, contexts, requirements, assessedEntries] = await Promise.all([
-      prisma.clinicalDocument.findMany({
-        where: { userId },
-        include: { facts: { orderBy: { createdAt: 'asc' } }, reviews: { orderBy: { createdAt: 'desc' }, take: 1 } },
-        orderBy: { createdAt: 'desc' },
-      }),
-      prisma.clinicalContextResponse.findMany({ where: { userId } }),
-      this.requirementsForUser(userId),
-      prisma.safetyProfileEntry.findMany({
-        where: { userId, domain: 'CONDITION', mealPlanningAssessment: { not: Prisma.DbNull } },
-      }),
-    ]);
+  static async workspace(userId: string, read?: ProfileRead) {
+    const user = read ? profileReadUser(userId, read) : null;
+    const [documents, contexts, requirements, assessedEntries, clarifications, profileProposals, profile, areas] =
+      await Promise.all([
+        prisma.clinicalDocument.findMany({
+          where: { userId },
+          include: { facts: { orderBy: { createdAt: 'asc' } }, reviews: { orderBy: { createdAt: 'desc' }, take: 1 } },
+          orderBy: { createdAt: 'desc' },
+        }),
+        user
+          ? Promise.resolve(user.clinicalContextResponses)
+          : prisma.clinicalContextResponse.findMany({ where: { userId } }),
+        user ? Promise.resolve(healthDetailsRequirements(user)) : this.requirementsForUser(userId),
+        user
+          ? Promise.resolve(
+              user.safetyProfileEntries.filter(
+                (entry) => entry.domain === 'CONDITION' && entry.mealPlanningAssessment !== null
+              )
+            )
+          : prisma.safetyProfileEntry.findMany({
+              where: { userId, domain: 'CONDITION', mealPlanningAssessment: { not: Prisma.DbNull } },
+            }),
+        ClinicalClarificationService.list(userId, undefined, read),
+        ClinicalProfileProposalService.list(userId, undefined, read),
+        user
+          ? Promise.resolve(user.userProfile)
+          : prisma.userProfile.findUnique({ where: { userId }, select: { safetyRevision: true } }),
+        user ? Promise.resolve(new Set(healthDetailsAreas(user))) : declaredAreas(userId),
+      ]);
     return {
-      clarifications: await ClinicalClarificationService.list(userId),
-      profileProposals: await ClinicalProfileProposalService.list(userId),
+      clarifications,
+      profileProposals,
       policyVersion: 'HEALTH_DETAILS_V1',
       conditionPlanningAssessments: assessedEntries.flatMap((entry) => {
         const assessment = activeConditionPlanningAssessment(entry);
         return assessment ? [{ condition: entry.displayName, ...assessment }] : [];
       }),
-      safetyRevision:
-        (await prisma.userProfile.findUnique({ where: { userId }, select: { safetyRevision: true } }))
-          ?.safetyRevision ?? 0,
+      safetyRevision: profile?.safetyRevision ?? 0,
       consentVersion: CLINICAL_DOCUMENT_CONSENT_VERSION,
       requirements,
       contexts: contexts.map((item) => ({
@@ -243,7 +258,7 @@ export class ClinicalEvidenceService {
         revision: item.revision,
         updatedAt: item.updatedAt,
       })),
-      availableAreas: [...(await declaredAreas(userId))],
+      availableAreas: [...areas],
       documents: documents.map((document) => ({
         ...publicDocument(document),
         facts: document.facts.map(

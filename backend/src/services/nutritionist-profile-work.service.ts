@@ -4,16 +4,21 @@ import prisma from '@/lib/prisma';
 import { AppError } from '@/errors/AppError';
 import { ClinicalEvidenceService } from './clinical-evidence.service';
 import { ClinicalProfileReviewService } from './clinical-profile-review.service';
+import { userInclude, type ProfileRead } from './clinical-profile-review.context';
 
 /** One person can have a profile decision, document decisions, or both. */
 export class NutritionistProfileWorkService {
-  static async queue(reviewerId?: string) {
+  static async queue(reviewerId?: string, userId?: string, read?: ProfileRead) {
     const [profiles, documents] = await Promise.all([
-      ClinicalProfileReviewService.queue(),
+      ClinicalProfileReviewService.queue(undefined, userId, read),
       // The legacy document queue returns only its first 100 records. This
       // lightweight query must include every pending task before grouping.
       prisma.clinicalDocument.findMany({
-        where: { status: { in: ['UPLOADED', 'NEEDS_CLARIFICATION'] }, user: { role: Role.USER } },
+        where: {
+          ...(userId ? { userId } : {}),
+          status: { in: ['UPLOADED', 'NEEDS_CLARIFICATION'] },
+          user: { role: Role.USER },
+        },
         select: {
           id: true,
           user: {
@@ -68,25 +73,23 @@ export class NutritionistProfileWorkService {
     return reviewerId ? ReviewRoutingService.filterProfiles(result, reviewerId) : result;
   }
 
-  static async assertQueued(userId: string, reviewerId?: string) {
+  static async assertQueued(userId: string, reviewerId?: string, read?: ProfileRead) {
     if (reviewerId) await ReviewRoutingService.assertProfile(reviewerId, userId);
-    const queued = (await this.queue()).find((person) => person.userId === userId);
+    const queued = (await this.queue(undefined, userId, read)).find((person) => person.userId === userId);
     if (!queued) throw new AppError('This person has no profile work awaiting review.', 404, 'PROFILE_WORK_NOT_FOUND');
     return queued;
   }
 
   static async detail(userId: string, reviewerId?: string) {
-    const queued = await this.assertQueued(userId, reviewerId);
-    const [user, evidence, reports, profileDetail, currentReport] = await Promise.all([
-      prisma.user.findUnique({
-        where: { id: userId },
-        include: {
-          userProfile: true,
-          healthConditions: true,
-          allergies: true,
-        },
-      }),
-      ClinicalEvidenceService.workspace(userId),
+    const user = await prisma.user.findUnique({ where: { id: userId }, include: userInclude });
+    if (!user || user.role !== Role.USER) throw new AppError('Profile not found.', 404, 'PROFILE_NOT_FOUND');
+    const read = { user };
+    const queued = await this.assertQueued(userId, reviewerId, read);
+    // Share this request's evidence read with its profile panel, without caching
+    // across requests or bypassing the panel's reviewer authorization.
+    const workspace = ClinicalEvidenceService.workspace(userId, read);
+    const [evidence, reports, profileDetail, currentReport] = await Promise.all([
+      workspace,
       prisma.nutritionReportVersion.findMany({
         where: { userId },
         orderBy: { version: 'desc' },
@@ -101,7 +104,9 @@ export class NutritionistProfileWorkService {
           policyVersion: true,
         },
       }),
-      queued.profileStatus ? ClinicalProfileReviewService.detail(userId, reviewerId) : Promise.resolve(null),
+      queued.profileStatus
+        ? ClinicalProfileReviewService.detail(userId, reviewerId, workspace, read)
+        : Promise.resolve(null),
       prisma.nutritionReport.findUnique({
         where: { userId },
         select: { version: true, isStale: true, profileRevision: true },

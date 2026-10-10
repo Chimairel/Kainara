@@ -21,6 +21,7 @@ import {
 import { lockUserProfile, advanceSafetyRevision } from './profile-revision.service';
 import { SafetyIntakeService, mergeSafetyDomains, buildLegacySafetyProjection } from './safety-intake.service';
 import { ReviewRoutingService } from './review-routing.service';
+import { context, profileReadUser, type ProfileRead } from './clinical-profile-review.context';
 
 const activeStatuses = ['PENDING', 'CORRECTION_REQUESTED'];
 const stale = () =>
@@ -68,19 +69,22 @@ export class ClinicalProfileProposalService {
     if (!env.CLINICAL_CLARIFICATIONS_ENABLED)
       throw new AppError('Profile corrections are not enabled yet.', 503, 'CLARIFICATIONS_DISABLED');
   }
-  static async list(userId: string, reviewerId?: string) {
+  static async list(userId: string, reviewerId?: string, read?: ProfileRead) {
     if (!env.CLINICAL_CLARIFICATIONS_ENABLED) return { enabled: false, proposals: [], editableInputs: [] };
     if (reviewerId) await ReviewRoutingService.assertProfile(reviewerId, userId);
-    const current = await currentClarificationContext(prisma, userId);
-    const proposals = await prisma.clinicalProfileProposal.findMany({
-      where: { userId },
-      include: { author: { select: { name: true } } },
-      orderBy: { createdAt: 'desc' },
-    });
+    const [current, proposals, editableInputs] = await Promise.all([
+      read ? Promise.resolve(context(profileReadUser(userId, read))) : currentClarificationContext(prisma, userId),
+      prisma.clinicalProfileProposal.findMany({
+        where: { userId },
+        include: { author: { select: { name: true } } },
+        orderBy: { createdAt: 'desc' },
+      }),
+      SafetyIntakeService.getCurrentInputs(userId),
+    ]);
     return {
       enabled: true,
       catalogue: SafetyIntakeService.getCatalogue(),
-      editableInputs: await SafetyIntakeService.getCurrentInputs(userId),
+      editableInputs,
       proposals: proposals.map((p) => ({
         id: p.id,
         profileRevision: p.profileRevision,

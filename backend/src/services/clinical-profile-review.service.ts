@@ -7,6 +7,8 @@ import {
   scopedPolicy,
   POLICY_VERSION,
   CLAIM_TTL_MS,
+  profileReadUser,
+  type ProfileRead,
 } from './clinical-profile-review.context';
 import { ReviewRoutingService } from './review-routing.service';
 import { randomUUID } from 'node:crypto';
@@ -55,24 +57,40 @@ export class ClinicalProfileReviewService {
         where: { userId: { in: userIds }, policyVersion: { startsWith: POLICY_VERSION + ':' }, status: 'APPROVED' },
         select: { userId: true, status: true, profileSnapshot: true },
       }),
-      env.CLINICAL_CLARIFICATIONS_ENABLED ? prisma.clinicalClarificationForm.findMany({
-        where: { userId: { in: userIds }, resolution: { is: null } },
-        select: { userId: true, profileRevision: true, scopeKey: true },
-      }) : [],
-      env.CLINICAL_CLARIFICATIONS_ENABLED ? prisma.clinicalProfileProposal.findMany({
-        where: { userId: { in: userIds }, status: { in: ['PENDING', 'CORRECTION_REQUESTED'] } },
-        select: { userId: true, profileRevision: true, scopeKey: true },
-      }) : [],
+      env.CLINICAL_CLARIFICATIONS_ENABLED
+        ? prisma.clinicalClarificationForm.findMany({
+            where: { userId: { in: userIds }, resolution: { is: null } },
+            select: { userId: true, profileRevision: true, scopeKey: true },
+          })
+        : [],
+      env.CLINICAL_CLARIFICATIONS_ENABLED
+        ? prisma.clinicalProfileProposal.findMany({
+            where: { userId: { in: userIds }, status: { in: ['PENDING', 'CORRECTION_REQUESTED'] } },
+            select: { userId: true, profileRevision: true, scopeKey: true },
+          })
+        : [],
     ]);
-    return new Map(users.map(user => {
-      if (!user.userProfile) return [user.id, false] as const;
-      const current = context(user);
-      const waiting = [...forms, ...proposals].some(row => row.userId === user.id &&
-        row.profileRevision === current.profile.revision && row.scopeKey === current.scopeKey);
-      const approved = !waiting && !current.declarationRequired && (!current.restricted ||
-        reviews.some(review => review.userId === user.id && isCurrentApproval(review, current.scopeKey, current.profile.revision)));
-      return [user.id, approved] as const;
-    }));
+    return new Map(
+      users.map((user) => {
+        if (!user.userProfile) return [user.id, false] as const;
+        const current = context(user);
+        const waiting = [...forms, ...proposals].some(
+          (row) =>
+            row.userId === user.id &&
+            row.profileRevision === current.profile.revision &&
+            row.scopeKey === current.scopeKey
+        );
+        const approved =
+          !waiting &&
+          !current.declarationRequired &&
+          (!current.restricted ||
+            reviews.some(
+              (review) =>
+                review.userId === user.id && isCurrentApproval(review, current.scopeKey, current.profile.revision)
+            ));
+        return [user.id, approved] as const;
+      })
+    );
   }
 
   static async status(userId: string) {
@@ -185,39 +203,45 @@ export class ClinicalProfileReviewService {
     );
   }
 
-  static async queue(reviewerId?: string) {
-    const users = await prisma.user.findMany({
-      where: {
-        role: Role.USER,
-        onboardingDone: true,
-        OR: [
-          ...(env.CLINICAL_CLARIFICATIONS_ENABLED ? [{ clinicalReviewEpoch: { isNot: null } }] : []),
-          { healthConditions: { some: { condition: { not: 'NONE' } } } },
-          { allergies: { some: { allergen: { not: 'NONE' } } } },
-          { safetyProfileEntries: { some: {} } },
-          { userProfile: { is: { otherConditions: { not: null } } } },
-          { userProfile: { is: { otherAllergies: { not: null } } } },
-        ],
-      },
-      include: userInclude,
-      orderBy: { createdAt: 'asc' },
-    });
+  static async queue(reviewerId?: string, userId?: string, read?: ProfileRead) {
+    const selected = read && userId ? profileReadUser(userId, read) : null;
+    const users = selected
+      ? selected.onboardingDone
+        ? [selected]
+        : []
+      : await prisma.user.findMany({
+          where: {
+            ...(userId ? { id: userId } : {}),
+            role: Role.USER,
+            onboardingDone: true,
+            OR: [
+              ...(env.CLINICAL_CLARIFICATIONS_ENABLED ? [{ clinicalReviewEpoch: { isNot: null } }] : []),
+              { healthConditions: { some: { condition: { not: 'NONE' } } } },
+              { allergies: { some: { allergen: { not: 'NONE' } } } },
+              { safetyProfileEntries: { some: {} } },
+              { userProfile: { is: { otherConditions: { not: null } } } },
+              { userProfile: { is: { otherAllergies: { not: null } } } },
+            ],
+          },
+          include: userInclude,
+          orderBy: { createdAt: 'asc' },
+        });
     const eligible = users
       .filter((user) => Boolean(user.userProfile))
       .map((user) => ({ user, current: context(user) }))
       .filter(({ current }) => current.restricted);
-    const reviews = eligible.length
-      ? await prisma.clinicalProfileReview.findMany({
-          where: {
-            userId: { in: eligible.map(({ user }) => user.id) },
-            policyVersion: { startsWith: POLICY_VERSION + ':' },
-          },
-          orderBy: { createdAt: 'desc' },
-        })
-      : [];
-    const formStates =
+    const [reviews, formStates, proposals] = await Promise.all([
+      eligible.length
+        ? prisma.clinicalProfileReview.findMany({
+            where: {
+              userId: { in: eligible.map(({ user }) => user.id) },
+              policyVersion: { startsWith: POLICY_VERSION + ':' },
+            },
+            orderBy: { createdAt: 'desc' },
+          })
+        : [],
       ClinicalClarificationService.enabled && eligible.length
-        ? await prisma.clinicalClarificationForm.findMany({
+        ? prisma.clinicalClarificationForm.findMany({
             where: { userId: { in: eligible.map(({ user }) => user.id) }, resolution: { is: null } },
             select: {
               userId: true,
@@ -226,7 +250,17 @@ export class ClinicalProfileReviewService {
               responses: { take: 1, select: { id: true } },
             },
           })
-        : [];
+        : [],
+      ClinicalClarificationService.enabled && eligible.length
+        ? prisma.clinicalProfileProposal.findMany({
+            where: {
+              userId: { in: eligible.map(({ user }) => user.id) },
+              status: { in: ['PENDING', 'CORRECTION_REQUESTED'] },
+            },
+            select: { userId: true, profileRevision: true, scopeKey: true, status: true },
+          })
+        : [],
+    ]);
     const people = eligible
       .filter(
         ({ user, current }) =>
@@ -252,7 +286,9 @@ export class ClinicalProfileReviewService {
           if (forms.some((form) => !form.responses.length)) return 'AWAITING_MEMBER';
           if (forms.length) return 'CLARIFICATION_ANSWERED';
           const review = reviews.find(
-            (item) => item.userId === user.id && snapshotKey(item.profileSnapshot) === current.scopeKey &&
+            (item) =>
+              item.userId === user.id &&
+              snapshotKey(item.profileSnapshot) === current.scopeKey &&
               (!env.CLINICAL_CLARIFICATIONS_ENABLED || item.profileRevision === current.profile.revision)
           );
           return review?.status === 'DECLINED' &&
@@ -263,13 +299,6 @@ export class ClinicalProfileReviewService {
         })(),
       }));
     if (ClinicalClarificationService.enabled) {
-      const proposals = await prisma.clinicalProfileProposal.findMany({
-        where: {
-          userId: { in: eligible.map(({ user }) => user.id) },
-          status: { in: ['PENDING', 'CORRECTION_REQUESTED'] },
-        },
-        select: { userId: true, profileRevision: true, scopeKey: true, status: true },
-      });
       for (const person of people) {
         const current = eligible.find(({ user }) => user.id === person.userId)!.current;
         const proposal = proposals.find(
@@ -347,15 +376,22 @@ export class ClinicalProfileReviewService {
     return this.detail(userId, reviewerId);
   }
 
-  static async detail(userId: string, reviewerId?: string) {
+  static async detail(
+    userId: string,
+    reviewerId?: string,
+    workspace?: Promise<Awaited<ReturnType<typeof ClinicalEvidenceService.workspace>>>,
+    read?: ProfileRead
+  ) {
     if (reviewerId) await ReviewRoutingService.assertProfile(reviewerId, userId);
-    const user = await prisma.user.findUnique({ where: { id: userId }, include: userInclude });
+    const user = read
+      ? profileReadUser(userId, read)
+      : await prisma.user.findUnique({ where: { id: userId }, include: userInclude });
     if (!user || user.role !== Role.USER) throw new AppError('Profile not found.', 404, 'PROFILE_NOT_FOUND');
     const current = context(user);
     if (!current.restricted)
       throw new AppError('This profile does not need a clinical review.', 409, 'PROFILE_REVIEW_NOT_REQUIRED');
-    const [clinicalWorkspace, report, latestReview] = await Promise.all([
-      ClinicalEvidenceService.workspace(userId),
+    const [clinicalWorkspace, report, latestReview, claim, clarifications, profileProposals] = await Promise.all([
+      workspace ?? ClinicalEvidenceService.workspace(userId, read),
       prisma.nutritionReport.findUnique({
         where: { userId },
         select: {
@@ -368,7 +404,9 @@ export class ClinicalProfileReviewService {
         },
       }),
       prisma.clinicalProfileReview.findFirst({
-        where: { userId, policyVersion: scopedPolicy(current.scopeKey),
+        where: {
+          userId,
+          policyVersion: scopedPolicy(current.scopeKey),
           ...(env.CLINICAL_CLARIFICATIONS_ENABLED ? { profileRevision: current.profile.revision } : {}),
         },
         orderBy: { reviewedAt: { sort: 'desc', nulls: 'last' } },
@@ -379,6 +417,17 @@ export class ClinicalProfileReviewService {
           reviewNotes: true,
         },
       }),
+      prisma.clinicalProfileReview.findUnique({
+        where: {
+          userId_profileRevision_policyVersion: {
+            userId,
+            profileRevision: current.profile.revision,
+            policyVersion: scopedPolicy(current.scopeKey),
+          },
+        },
+      }),
+      ClinicalClarificationService.list(userId, reviewerId, read),
+      ClinicalProfileProposalService.list(userId, reviewerId, read),
     ]);
     const reportVersion = report
       ? await prisma.nutritionReportVersion.findFirst({
@@ -414,20 +463,11 @@ export class ClinicalProfileReviewService {
           ];
         })
       : [];
-    const claim = await prisma.clinicalProfileReview.findUnique({
-      where: {
-        userId_profileRevision_policyVersion: {
-          userId,
-          profileRevision: current.profile.revision,
-          policyVersion: scopedPolicy(current.scopeKey),
-        },
-      },
-    });
     const active =
       !!claim?.claimedByNutritionistId && !!claim.claimedAt && Date.now() - claim.claimedAt.getTime() < CLAIM_TTL_MS;
     return {
-      clarifications: await ClinicalClarificationService.list(userId, reviewerId),
-      profileProposals: await ClinicalProfileProposalService.list(userId, reviewerId),
+      clarifications,
+      profileProposals,
       scopeKey: current.scopeKey,
       claim: {
         active,
