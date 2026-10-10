@@ -14,6 +14,18 @@ import prisma from '../src/lib/prisma';
 import { loadPlanningNutritionContext } from '../src/domain/user-nutrition-context';
 import { login } from '../src/services/auth/password-auth';
 import { isNutritionistEligibleForReview } from '../src/domain/nutritionist-review.policy';
+import express from 'express';
+import router from '../src/routes/admin-test-accounts.routes';
+import authenticate from '../src/middleware/auth';
+import requireRole from '../src/middleware/rbac';
+import { signAccessToken } from '../src/lib/jwt';
+import type { AdminTestAccountsService } from '../src/services/admin-test-accounts.service';
+
+async function responseData<T>(response: Response): Promise<T> {
+  return ((await response.json()) as { data: T }).data;
+}
+type PreviewResult = Awaited<ReturnType<typeof AdminTestAccountsService.preview>>;
+type CreateResult = Awaited<ReturnType<typeof AdminTestAccountsService.create>>;
 
 async function main() {
   const target = databaseTarget(process.env.DATABASE_URL ?? '', process.env);
@@ -136,6 +148,134 @@ async function main() {
     assert.equal(await db.mealPlan.count(), 0);
     assert.equal(await db.mealLibrary.count(), 0);
     assert.equal(await db.reviewRoutingConfig.count(), 0);
+    // Actual HTTP creation on this same disposable database, with normal live auth.
+    const adminId = fixtureIdentity('acceptance', defaultAccountSpecs[0]).id;
+    const app = express();
+    app.use(express.json());
+    app.use('/accounts', authenticate, requireRole('ADMIN'), router);
+    const server = app.listen(0, '127.0.0.1');
+    await new Promise<void>((resolve) => server.on('listening', resolve));
+    const address = server.address();
+    assert.ok(address && typeof address !== 'string');
+    const url = `http://127.0.0.1:${address.port}/accounts`;
+    const headers = {
+      'Content-Type': 'application/json',
+      authorization: `Bearer ${signAccessToken({ userId: adminId, email: 'fixture@example.test', role: 'ADMIN' })}`,
+    };
+    try {
+      assert.equal((await fetch(url)).status, 401);
+      for (const spec of defaultAccountSpecs.filter((item) => item.role !== 'ADMIN')) {
+        const identity = fixtureIdentity('acceptance', spec);
+        const denied = await fetch(url, {
+          headers: {
+            authorization: `Bearer ${signAccessToken({ userId: identity.id, email: identity.email, role: identity.role })}`,
+          },
+        });
+        assert.equal(denied.status, 403);
+      }
+      const request = {
+        set: 'ui',
+        role: 'USER',
+        name: 'UI Member',
+        count: 2,
+        conditions: ['DIABETES'],
+        allergens: ['NUTS'],
+        rndStatus: 'ACTIVE',
+      };
+      const post = (path: string, body: object) =>
+        fetch(`${url}${path}`, { method: 'POST', headers, body: JSON.stringify(body) });
+      assert.equal((await post('/preview', request)).status, 404, 'Test runtime cannot enable the UI writer.');
+      process.env.NODE_ENV = 'production';
+      assert.equal((await post('/preview', request)).status, 404);
+      process.env.NODE_ENV = 'development';
+      const capability = await responseData<{ available: boolean }>(await fetch(url, { headers }));
+      assert.equal(capability.available, true);
+      const preview = await responseData<PreviewResult>(await post('/preview', request));
+      assert.equal(await db.user.count({ where: { id: { startsWith: 'devfixture_ui_' } } }), 0);
+      assert.equal(
+        (await post('', { ...request, previewToken: preview.previewToken, confirmedTarget: false })).status,
+        400
+      );
+      assert.equal(
+        (await post('', { ...request, count: 3, previewToken: preview.previewToken, confirmedTarget: true })).status,
+        400
+      );
+      const response = await post('', { ...request, previewToken: preview.previewToken, confirmedTarget: true });
+      assert.equal(response.status, 201);
+      assert.equal(response.headers.get('cache-control'), 'no-store');
+      const created = await responseData<CreateResult>(response);
+      assert.ok(created.newAccountPassword);
+      assert.equal(created.accounts.length, 2);
+      const memberLogin = await login(created.accounts[0].email, created.newAccountPassword);
+      assert.equal(memberLogin.user.role, 'USER');
+      const saved = await db.user.findUniqueOrThrow({ where: { id: created.accounts[0].id } });
+      const kept = await responseData<CreateResult>(
+        await post('', { ...request, previewToken: preview.previewToken, confirmedTarget: true })
+      );
+      assert.equal(kept.newAccountPassword, null);
+      assert.ok(kept.accounts.every((item: { exists: boolean }) => item.exists));
+      assert.equal((await db.user.findUniqueOrThrow({ where: { id: saved.id } })).passwordHash, saved.passwordHash);
+      for (const status of ['ACTIVE', 'EXPIRED', 'UNVERIFIED', 'SUSPENDED']) {
+        const rndRequest = {
+          ...request,
+          set: `ui-${status.toLowerCase()}`,
+          count: 1,
+          role: 'RND',
+          conditions: ['NONE'],
+          allergens: ['NONE'],
+          rndStatus: status,
+        };
+        const rndPreview = await responseData<PreviewResult>(await post('/preview', rndRequest));
+        const rndResponse = await post('', {
+          ...rndRequest,
+          previewToken: rndPreview.previewToken,
+          confirmedTarget: true,
+        });
+        assert.equal(rndResponse.status, 201);
+        const result = await responseData<CreateResult>(rndResponse);
+        assert.ok(result.newAccountPassword);
+        const rndProfile = await db.nutritionistProfile.findUniqueOrThrow({
+          where: { userId: result.accounts[0].id },
+          include: { user: true },
+        });
+        assert.equal(rndProfile.verifiedByAdminId, adminId);
+        assert.equal(isNutritionistEligibleForReview(rndProfile), status === 'ACTIVE');
+        if (status === 'SUSPENDED')
+          await assert.rejects(login(result.accounts[0].email, result.newAccountPassword), /suspended/);
+        else assert.equal((await login(result.accounts[0].email, result.newAccountPassword)).user.role, 'NUTRITIONIST');
+      }
+      const adminRequest = {
+        ...request,
+        set: 'ui-admin',
+        count: 1,
+        role: 'ADMIN',
+        conditions: ['NONE'],
+        allergens: ['NONE'],
+      };
+      const adminPreview = await responseData<PreviewResult>(await post('/preview', adminRequest));
+      const adminResponse = await post('', {
+        ...adminRequest,
+        previewToken: adminPreview.previewToken,
+        confirmedTarget: true,
+      });
+      assert.equal(adminResponse.status, 201);
+      const newAdmin = await responseData<CreateResult>(adminResponse);
+      assert.ok(newAdmin.newAccountPassword);
+      assert.equal((await login(newAdmin.accounts[0].email, newAdmin.newAccountPassword)).user.role, 'ADMIN');
+      const audits = await db.auditEvent.findMany({
+        where: { actorUserId: adminId, action: 'SYNTHETIC_DEV_ACCOUNT_CREATED' },
+      });
+      assert.equal(audits.length, 7);
+      assert.ok(audits.every((item) => item.actorRole === 'ADMIN' && item.actorName));
+      assert.ok(!JSON.stringify(audits).includes(created.newAccountPassword));
+      assert.equal(await db.mealPlan.count(), 0);
+      console.log(
+        'PASS: admin-only HTTP previews, runtime blocks, target confirmation, tampering refusal, member/RND password logins, unchanged repeats, four RND states and secret-free actor audit.'
+      );
+    } finally {
+      process.env.NODE_ENV = 'test';
+      await new Promise<void>((resolve) => server.close(() => resolve()));
+    }
     console.log(
       'PASS: ten real role logins, complete onboarding/report baselines, test expertise, denied expired/unverified/suspended RNDs, create-only reruns, concurrent creation, collisions/transaction rollback and no meals/routing configuration changed.'
     );

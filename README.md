@@ -194,7 +194,7 @@ Source nutrient completion uses `npm --prefix backend run nutrients:complete` (d
 
 ### Synthetic accounts in the normal localhost app
 
-Use `npm --prefix backend run test:accounts` to preview a create-only set of admin, member and RND accounts. It bypasses email proof, onboarding and RND application **for those marked synthetic accounts only**, with ordinary password login and unchanged application authorization. No Gmail account or provider request is needed. After explicitly confirming the development database target, apply the printed target token. See [development test accounts](docs/DEV_TEST_ACCOUNTS.md) for commands, custom conditions/expertise and the ignored local credential guide. Prefer this over the historical fixed-Gmail seed; existing accounts and passwords are preserved.
+Use **Admin → People → Accounts → Create test accounts** in the local development app, or `npm --prefix backend run test:accounts`, to preview a create-only set of admin, member and RND accounts. It bypasses email proof, onboarding and RND application **for those marked synthetic accounts only**, with ordinary password login and unchanged application authorization. No Gmail account or provider request is needed. After explicitly confirming the development database target, create from the UI or apply the CLI target token. See [development test accounts](docs/DEV_TEST_ACCOUNTS.md) for conditions, RND status, returned login credentials and the CLI credential guide. Existing accounts and passwords are preserved.
 
 ### Compare Gemini food estimates
 

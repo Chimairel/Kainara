@@ -1,6 +1,7 @@
 'use client';
 
 import WorkspaceTable from '@/components/shared/WorkspaceTable';
+import TestAccountTool from './TestAccountTool';
 
 import { useSessionQuery } from '@/hooks/useSessionQuery';
 
@@ -108,6 +109,14 @@ export default function AdminUsersPage({ active = true }: { active?: boolean }) 
         eyebrow="Identity directory"
         title="Account management"
         description="Inspect account roles, verification state, onboarding progress, and access across the platform."
+        actions={
+          <TestAccountTool
+            active={active}
+            onCreated={() => {
+              void query.refetch();
+            }}
+          />
+        }
         meta={
           <span className="rounded-full border border-brand-border/70 bg-brand-surface/60 px-3 py-2 font-mono text-[9px] uppercase tracking-[0.14em] text-brand-muted dark:border-[#173e33] dark:bg-[#0e271f]">
             {query.data ? `${total} accounts` : 'Account count unavailable'}

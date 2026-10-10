@@ -1,0 +1,78 @@
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import TestAccountTool from './TestAccountTool';
+const fixtures = vi.hoisted(() => ({ available: true, post: vi.fn() }));
+vi.mock('@/hooks/useAuth', () => ({ useAuth: () => ({ user: { userId: 'admin' } }) }));
+vi.mock('@/hooks/useSessionQuery', () => ({
+  useSessionQuery: () => ({
+    data: { available: fixtures.available, conditions: ['NONE', 'DIABETES'], allergens: ['NONE', 'NUTS'] },
+  }),
+}));
+vi.mock('@/lib/axios', () => ({ default: { post: fixtures.post } }));
+const accounts = [{ id: 'new', email: 'qa-defense-user-1@example.test', name: 'Test', role: 'USER', exists: false }];
+const preview = { data: { data: { accounts, target: 'localhost:5432/dev', previewToken: 'signed-preview' } } };
+async function openAndPreview() {
+  fireEvent.click(screen.getByRole('button', { name: 'Create test accounts' }));
+  fireEvent.change(screen.getByLabelText('Group name'), { target: { value: 'defense' } });
+  fireEvent.click(screen.getByRole('button', { name: 'Preview accounts' }));
+  await screen.findByText('Database: localhost:5432/dev');
+}
+describe('admin test account creation', () => {
+  beforeEach(() => {
+    fixtures.available = true;
+    fixtures.post.mockReset();
+    fixtures.post.mockResolvedValue(preview);
+  });
+  it('hides the tool when the backend does not enable it', () => {
+    fixtures.available = false;
+    render(<TestAccountTool active onCreated={vi.fn()} />);
+    expect(screen.queryByRole('button', { name: 'Create test accounts' })).not.toBeInTheDocument();
+  });
+  it('requires target confirmation and invalidates preview after editing', async () => {
+    render(<TestAccountTool active onCreated={vi.fn()} />);
+    await openAndPreview();
+    expect(screen.getByRole('button', { name: 'Create accounts' })).toBeDisabled();
+    fireEvent.click(screen.getByLabelText(/I confirm this is the development database/));
+    expect(screen.getByRole('button', { name: 'Create accounts' })).toBeEnabled();
+    fireEvent.change(screen.getByLabelText('Role'), { target: { value: 'RND' } });
+    expect(screen.queryByRole('button', { name: 'Create accounts' })).not.toBeInTheDocument();
+    expect(screen.getByLabelText('RND status')).toBeInTheDocument();
+    expect(screen.queryByRole('group', { name: 'Conditions' })).not.toBeInTheDocument();
+    expect(fixtures.post).toHaveBeenCalledTimes(1);
+  });
+  it('shows credentials only after successful creation and refreshes accounts', async () => {
+    const refresh = vi.fn();
+    render(<TestAccountTool active onCreated={refresh} />);
+    await openAndPreview();
+    fixtures.post.mockResolvedValueOnce({
+      data: { data: { accounts, newAccountPassword: 'synthetic-returned-password' } },
+    });
+    fireEvent.click(screen.getByLabelText(/I confirm this is the development database/));
+    fireEvent.click(screen.getByRole('button', { name: 'Create accounts' }));
+    expect(await screen.findByLabelText('Password for newly created accounts')).toHaveValue(
+      'synthetic-returned-password'
+    );
+    expect(refresh).toHaveBeenCalledOnce();
+    expect(fixtures.post.mock.calls[1][1]).toMatchObject({ previewToken: 'signed-preview', confirmedTarget: true });
+    fireEvent.click(screen.getByRole('button', { name: 'Done' }));
+    expect(screen.queryByLabelText('Password for newly created accounts')).not.toBeInTheDocument();
+  });
+  it('handles kept accounts and failed creation without showing a new password', async () => {
+    render(<TestAccountTool active onCreated={vi.fn()} />);
+    await openAndPreview();
+    fixtures.post.mockRejectedValueOnce({ response: { data: { error: 'Preview expired' } } });
+    fireEvent.click(screen.getByLabelText(/I confirm this is the development database/));
+    fireEvent.click(screen.getByRole('button', { name: 'Create accounts' }));
+    await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent('Preview expired'));
+    expect(screen.queryByLabelText('Password for newly created accounts')).not.toBeInTheDocument();
+    fixtures.post.mockResolvedValueOnce(preview);
+    fireEvent.click(screen.getByRole('button', { name: 'Preview accounts' }));
+    await screen.findByText('Database: localhost:5432/dev');
+    fixtures.post.mockResolvedValueOnce({
+      data: { data: { accounts: accounts.map((row) => ({ ...row, exists: true })), newAccountPassword: null } },
+    });
+    fireEvent.click(screen.getByLabelText(/I confirm this is the development database/));
+    fireEvent.click(screen.getByRole('button', { name: 'Create accounts' }));
+    expect(await screen.findByText(/All accounts already existed/)).toBeInTheDocument();
+  });
+});

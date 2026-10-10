@@ -52,6 +52,7 @@ export function auditActionLabel(action: string) {
     MEAL_LIBRARY_FLAGGED: 'Flagged an entire meal',
     USER_SUSPENDED: 'Suspended an account',
     USER_REINSTATED: 'Reinstated an account',
+    SYNTHETIC_DEV_ACCOUNT_CREATED: 'Created a test account',
     NUTRITIONIST_ACCESS_REVOKED: 'Revoked nutritionist access',
     NUTRITIONIST_VERIFIED: 'Verified nutritionist credentials',
     WEBSITE_MEDIA_DRAFT_UPDATED: 'Saved website media draft',
