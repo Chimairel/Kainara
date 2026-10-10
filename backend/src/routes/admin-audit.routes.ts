@@ -6,6 +6,8 @@ import { sanitizeErrorMessage } from '@/lib/sanitizeError';
 import { AuditDetailsService } from '@/services/audit-details.service';
 import { AppError } from '@/errors/AppError';
 import { AdminReviewContextService } from '@/services/admin-review-context.service';
+import { logger } from '@/lib/logger';
+import { Prisma } from '@prisma/client';
 
 const date = z
   .string()
@@ -44,6 +46,11 @@ router.get('/:id/review-context/documents/:documentId/file', async (req: Authent
     res.type(file.mimeType);
     return res.send(file.buffer);
   } catch (error) {
+    if (!(error instanceof AppError))
+      logger.error('admin_review_file_failed', {
+        requestId: res.locals.requestId,
+        databaseCode: error instanceof Prisma.PrismaClientKnownRequestError ? error.code : undefined,
+      });
     return res.status(error instanceof AppError ? error.statusCode : 500).json({
       success: false,
       error: error instanceof AppError ? error.message : 'Related clinical evidence could not be loaded.',
@@ -59,6 +66,11 @@ router.get('/:id/review-context', async (req: AuthenticatedRequest, res: Respons
   try {
     return res.json({ success: true, data: await AdminReviewContextService.detail(req.user!.userId, req.params.id) });
   } catch (error) {
+    if (!(error instanceof AppError))
+      logger.error('admin_review_context_failed', {
+        requestId: res.locals.requestId,
+        databaseCode: error instanceof Prisma.PrismaClientKnownRequestError ? error.code : undefined,
+      });
     return res
       .status(error instanceof AppError ? error.statusCode : 500)
       .json({ success: false, error: error instanceof AppError ? error.message : 'Case details could not be loaded.' });

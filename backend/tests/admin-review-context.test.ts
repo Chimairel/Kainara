@@ -81,3 +81,40 @@ test('invisible audit or a non-admin cannot obtain case context or generate an a
     assert.equal(f.writes.length, 0);
   }
 });
+
+test('a saved profile review loads past five seconds of database work and records access', async () => {
+  let elapsed = 0;
+  let deadline = 5000;
+  const writes: unknown[] = [];
+  const saved = { id: 'review', userId: 'member', profileRevision: 2, profileSnapshot: { age: 22 } };
+  const read = <T>(value: T) => {
+    elapsed += 1500;
+    assert.ok(elapsed < deadline, 'The remote case read exceeded its transaction budget');
+    return value;
+  };
+  const tx = {
+    auditEvent: {
+      findUnique: async () => read({ entityType: 'ClinicalProfileReview', entityId: 'review', action: 'CLINICAL_PROFILE_REVIEWED' }),
+      create: async (value: unknown) => { read(null); writes.push(value); },
+    },
+    clinicalProfileReview: { findUnique: async () => read(saved) },
+    user: { findUnique: async ({ where }: { where: { id: string } }) => read(where.id === 'admin'
+      ? { id: 'admin', role: 'ADMIN', isSuspended: false, name: 'Admin' }
+      : { name: 'Member', userProfile: { age: 25 } }) },
+  };
+  const db = {
+    ...tx,
+    $queryRaw: async () => [{ total: 1n, rows: [{ id: 'audit', actionCode: 'CLINICAL_PROFILE_REVIEWED', actor: 'RND', role: 'NUTRITIONIST' }] }],
+    $transaction: async (run: (client: typeof tx) => unknown, options?: { timeout?: number }) => {
+      deadline = options?.timeout ?? 5000;
+      return run(tx);
+    },
+  } as unknown as typeof prisma;
+  const result = await AdminReviewContextService.detail('admin', 'audit', db);
+  assert.ok(elapsed > 5000);
+  assert.deepEqual(result.reviewedSnapshot, saved.profileSnapshot);
+  assert.deepEqual(result.decisions, [saved]);
+  assert.deepEqual(result.currentProfile, { name: 'Member', userProfile: { age: 25 } });
+  assert.equal(writes.length, 1);
+  assert.match(JSON.stringify(writes), /ADMIN_REVIEW_SENSITIVE_DETAILS_ACCESSED/);
+});

@@ -5,6 +5,7 @@ import { MealReviewService } from './meal-review.service';
 import { reviewActor } from './meal-review-context.service';
 import { getMealApprovalCaseDetails } from './meal-approval-lifecycle.service';
 import { decryptClinicalDocument } from '@/lib/clinical-document-crypto';
+import { DATABASE_TRANSACTION_OPTIONS } from '@/lib/transaction-options';
 
 const unavailable = () =>
   new AppError('This record has no related clinical review case.', 404, 'REVIEW_CONTEXT_UNAVAILABLE');
@@ -43,7 +44,7 @@ export class AdminReviewContextService {
         },
       });
       return { buffer, mimeType: document.mimeType };
-    });
+    }, DATABASE_TRANSACTION_OPTIONS);
   }
   static async detail(actorUserId: string, auditId: string, db: typeof prisma = prisma) {
     await AuditDetailsService.detail(auditId, 'admin', db);
@@ -204,6 +205,6 @@ export class AdminReviewContextService {
             ? null
             : 'A historical profile snapshot was not recorded. Current details are shown separately.'),
       };
-    });
+    }, DATABASE_TRANSACTION_OPTIONS);
   }
 }

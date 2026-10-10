@@ -1,11 +1,13 @@
 import { retryDatabaseRead } from './retry-database-read';
 import { PrismaClient } from '@prisma/client';
+import { DATABASE_TRANSACTION_OPTIONS } from './transaction-options';
 
 const globalForPrisma = globalThis as unknown as { prisma: PrismaClient };
 
 function createPrismaClient(): PrismaClient {
   const baseClient = new PrismaClient({
     log: process.env.NODE_ENV === 'development' ? ['warn', 'error'] : ['error'],
+    transactionOptions: DATABASE_TRANSACTION_OPTIONS,
   });
 
   const extended = baseClient.$extends({

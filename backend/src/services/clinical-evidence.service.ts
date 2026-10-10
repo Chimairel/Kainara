@@ -290,7 +290,7 @@ export class ClinicalEvidenceService {
         await invalidateActivePlansForUser(tx, userId);
         return result;
       },
-      { timeout: 20_000 }
+      { timeout: 30_000 }
     );
     const requirements = await this.requirementsForUser(userId);
     return { area: updated.area, responses: updated.responses, revision: updated.revision, requirements };
@@ -408,7 +408,7 @@ export class ClinicalEvidenceService {
           );
         return { ...publicDocument(document), facts: document.facts };
       },
-      { timeout: 20_000 }
+      { timeout: 30_000 }
     );
   }
 
@@ -442,7 +442,7 @@ export class ClinicalEvidenceService {
         });
         return publicDocument(updated);
       },
-      { timeout: 20_000 }
+      { timeout: 30_000 }
     );
   }
 
@@ -556,7 +556,7 @@ export class ClinicalEvidenceService {
           ),
         };
       },
-      { timeout: 20_000 }
+      { timeout: 30_000 }
     );
   }
 
@@ -778,7 +778,7 @@ export class ClinicalEvidenceService {
         });
         return publicDocument(updated);
       },
-      { timeout: 20_000 }
+      { timeout: 30_000 }
     );
   }
 }

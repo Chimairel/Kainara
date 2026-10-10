@@ -14,6 +14,7 @@
     "../src/domain/email-verification.policy.ts",
     "../src/validation/onboarding.schemas.ts",
     "./**/*.ts",
+    "../scripts/transaction-timeout-local-acceptance.ts",
     "../scripts/audit-details-local-acceptance.ts",
     "../scripts/independent-findings-repair-acceptance.ts",
     "../scripts/meal-reminders-local-acceptance.ts",

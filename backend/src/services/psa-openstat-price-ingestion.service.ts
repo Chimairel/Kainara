@@ -430,7 +430,7 @@ export async function importPsaOpenStatSnapshot(
         }
       }
     },
-    { isolationLevel: Prisma.TransactionIsolationLevel.Serializable }
+    { isolationLevel: Prisma.TransactionIsolationLevel.Serializable, maxWait: 15_000, timeout: 120_000 }
   );
 
   return result;

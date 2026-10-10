@@ -154,7 +154,7 @@ export class AdminMealBatchService {
           results: validation.results,
         };
       },
-      { timeout: 30_000 }
+      { timeout: 60_000 }
     );
   }
 
@@ -191,7 +191,7 @@ export class AdminMealBatchService {
         });
         return { replayed: false, meals };
       },
-      { maxWait: 10_000, timeout: 60_000 }
+      { maxWait: 10_000, timeout: 120_000 }
     );
   }
 }
