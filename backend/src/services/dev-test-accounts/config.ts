@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto';
 import { AllergenType, HealthConditionType } from '@prisma/client';
 import { z } from 'zod';
+import { testMemberProfileSchema } from './member-profile';
 
 const slug = z.string().regex(/^[a-z][a-z0-9-]{0,23}$/);
 const conditions = z.array(z.nativeEnum(HealthConditionType)).min(1).max(6).default(['NONE']);
@@ -9,6 +10,7 @@ const member = z
   .object({
     conditions,
     allergens,
+    profile: testMemberProfileSchema.optional(),
   })
   .strict();
 const rnd = z
@@ -28,6 +30,12 @@ export const accountSchema = z
   })
   .strict()
   .superRefine((value, ctx) => {
+    if (value.member?.conditions.includes('PREGNANT') && value.member.profile?.biologicalSex === 'MALE')
+      ctx.addIssue({
+        code: 'custom',
+        path: ['member', 'profile', 'biologicalSex'],
+        message: 'Pregnancy requires a female profile.',
+      });
     if ((value.member && value.role !== 'USER') || (value.rnd && value.role !== 'RND'))
       ctx.addIssue({ code: 'custom', message: 'Member/RND settings must match the account role.' });
     for (const codes of [value.member?.conditions, value.member?.allergens]) {

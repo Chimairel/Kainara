@@ -8,6 +8,7 @@ import WorkspaceTable from '@/components/shared/WorkspaceTable';
 import { getRoleLabel } from '@/lib/role-label';
 import { useTestAccountTool } from './useTestAccountTool';
 import { useId } from 'react';
+import TestMemberProfileFields from './TestMemberProfileFields';
 
 const label = (value: string) => (value === 'NONE' ? 'None' : value.toLowerCase().replaceAll('_', ' '));
 function Declarations({
@@ -142,6 +143,12 @@ export default function TestAccountTool({ active, onCreated }: { active: boolean
               </fieldset>
               {options.role === 'USER' && (
                 <>
+                  <TestMemberProfileFields
+                    profile={options.profile}
+                    disabled={busy}
+                    pregnant={options.conditions.includes('PREGNANT')}
+                    onChange={(patch) => tool.update({ profile: { ...options.profile, ...patch } })}
+                  />
                   <Declarations
                     title="Conditions"
                     values={tool.capabilities.conditions ?? []}

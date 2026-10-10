@@ -5,7 +5,7 @@ const fixtures = vi.hoisted(() => ({ available: true, post: vi.fn() }));
 vi.mock('@/hooks/useAuth', () => ({ useAuth: () => ({ user: { userId: 'admin' } }) }));
 vi.mock('@/hooks/useSessionQuery', () => ({
   useSessionQuery: () => ({
-    data: { available: fixtures.available, conditions: ['NONE', 'DIABETES'], allergens: ['NONE', 'NUTS'] },
+    data: { available: fixtures.available, conditions: ['NONE', 'DIABETES', 'PREGNANT'], allergens: ['NONE', 'NUTS'] },
   }),
 }));
 vi.mock('@/lib/axios', () => ({ default: { post: fixtures.post } }));
@@ -39,6 +39,51 @@ describe('admin test account creation', () => {
     expect(screen.getByLabelText('RND status')).toBeInTheDocument();
     expect(screen.queryByRole('group', { name: 'Conditions' })).not.toBeInTheDocument();
     expect(fixtures.post).toHaveBeenCalledTimes(1);
+  });
+  it('sends configurable member factors and invalidates the preview when a factor changes', async () => {
+    render(<TestAccountTool active onCreated={vi.fn()} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Create test accounts' }));
+    fireEvent.change(screen.getByLabelText('Group name'), { target: { value: 'factors' } });
+    fireEvent.change(screen.getByLabelText('Current weight (kg)'), { target: { value: '72' } });
+    expect(screen.getByLabelText('Target weight (kg)')).toHaveValue(72);
+    expect(screen.getByLabelText('Target weight (kg)')).toBeDisabled();
+    fireEvent.change(screen.getByLabelText('Goal'), { target: { value: 'LOSE_WEIGHT' } });
+    fireEvent.change(screen.getByLabelText('Target weight (kg)'), { target: { value: '65' } });
+    fireEvent.change(screen.getByLabelText('Age'), { target: { value: '45' } });
+    fireEvent.change(screen.getByLabelText('Biological sex'), { target: { value: 'FEMALE' } });
+    fireEvent.change(screen.getByLabelText('Activity level'), { target: { value: 'ACTIVE' } });
+    fireEvent.change(screen.getByLabelText('Dietary preference'), { target: { value: 'PESCATARIAN' } });
+    fireEvent.change(screen.getByLabelText('Rice preference'), { target: { value: 'NO_RICE' } });
+    fireEvent.change(screen.getByLabelText('Shopping day'), { target: { value: '2' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Preview accounts' }));
+    await screen.findByText('Database: localhost:5432/dev');
+    expect(fixtures.post.mock.calls[0][1].profile).toMatchObject({
+      weightKg: 72,
+      targetWeightKg: 65,
+      age: 45,
+      biologicalSex: 'FEMALE',
+      activityLevel: 'ACTIVE',
+      goal: 'LOSE_WEIGHT',
+      dietaryPreference: 'PESCATARIAN',
+      ricePreference: 'NO_RICE',
+      shoppingDayOfWeek: 2,
+    });
+    fireEvent.click(screen.getByLabelText(/I confirm this is the development database/));
+    fireEvent.change(screen.getByLabelText('Height (cm)'), { target: { value: '165' } });
+    expect(screen.queryByRole('button', { name: 'Create accounts' })).not.toBeInTheDocument();
+  });
+  it('keeps pregnancy settings coherent and excludes member factors from RND requests', async () => {
+    render(<TestAccountTool active onCreated={vi.fn()} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Create test accounts' }));
+    fireEvent.change(screen.getByLabelText('Group name'), { target: { value: 'roles' } });
+    fireEvent.click(screen.getByLabelText('pregnant'));
+    expect(screen.getByLabelText('Biological sex')).toHaveValue('FEMALE');
+    expect(screen.getByLabelText('Biological sex')).toBeDisabled();
+    fireEvent.change(screen.getByLabelText('Role'), { target: { value: 'RND' } });
+    expect(screen.queryByRole('group', { name: 'Member profile' })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Preview accounts' }));
+    await screen.findByText('Database: localhost:5432/dev');
+    expect(fixtures.post.mock.calls[0][1]).not.toHaveProperty('profile');
   });
   it('shows credentials only after successful creation and refreshes accounts', async () => {
     const refresh = vi.fn();

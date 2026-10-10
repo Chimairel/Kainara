@@ -4,7 +4,9 @@ The admin tool and CLI create clearly marked synthetic accounts in the database 
 
 ## Admin UI
 
-In the local development app, open **Admin → People → Accounts → Create test accounts**. Choose a group name, display name, role and one to ten accounts. Members can declare multiple conditions and allergies; RNDs can be active, expired, unverified or suspended. The existing administering account records RND fixture provenance, so creating an RND does not require creating another admin.
+In the local development app, open **Admin → People → Accounts → Create test accounts**. Choose a group name, display name, role and one to ten accounts. Members can configure age, biological sex, height, current and target weight, goal, activity level, dietary preference, rice preference, food culture and shopping day, as well as multiple conditions and allergies. All new members in a group share those selections. RNDs can be active, expired, unverified or suspended. The existing administering account records RND fixture provenance, so creating an RND does not require creating another admin.
+
+Member fields use the ordinary onboarding limits and goal/target-weight rules. Maintain keeps target weight equal to current weight; pregnancy requires a female profile. The normal calculators derive calorie and macro targets from the selected profile, and the acknowledged report baseline saves the same profile snapshot. These fields apply only to member accounts. Defaults remain age 26, male, 170 cm, 65 kg, Maintain, Sedentary, Omnivore, flexible rice, Filipino food culture and Saturday shopping.
 
 Select **Preview accounts**, inspect the database host/name and new/existing rows, then confirm the target and select **Create accounts**. A signed preview expires after ten minutes and binds the actor, database and all options. Editing options requires a new preview. The server accepts only an authenticated live administrator in an explicit development runtime, rejects capstone-demo/production and production-like target markers, and limits requests. The UI is hidden when this capability is unavailable.
 
@@ -66,7 +68,23 @@ Use a local JSON array with `--spec <path>`; preview and apply must use the same
     "alias": "heart-member",
     "name": "Test Heart Member",
     "role": "USER",
-    "member": { "conditions": ["HEART_CONDITION"], "allergens": ["NONE"] }
+    "member": {
+      "conditions": ["HEART_CONDITION"],
+      "allergens": ["NONE"],
+      "profile": {
+        "age": 45,
+        "biologicalSex": "FEMALE",
+        "heightCm": 165,
+        "weightKg": 72,
+        "targetWeightKg": 65,
+        "goal": "LOSE_WEIGHT",
+        "activityLevel": "ACTIVE",
+        "dietaryPreference": "PESCATARIAN",
+        "ricePreference": "NO_RICE",
+        "foodCulture": "Filipino",
+        "shoppingDayOfWeek": 2
+      }
+    }
   },
   {
     "alias": "heart-rnd",
@@ -84,6 +102,8 @@ Use a local JSON array with `--spec <path>`; preview and apply must use the same
 ```
 
 Conditions: DIABETES, HYPERTENSION, KIDNEY_DISEASE, HEART_CONDITION, PREGNANT or NONE. Allergens: SHELLFISH, NUTS, DAIRY, GLUTEN, EGGS or NONE. NONE cannot accompany another declaration or appear in RND expertise. RND status can be ACTIVE, EXPIRED, UNVERIFIED or SUSPENDED. Expired/unverified accounts can authenticate but cannot perform clinical reviews; suspended accounts cannot log in. Missing member settings default to NONE declarations. Missing RND settings default to active, general expertise and zero years.
+
+Optional `member.profile` fields use the defaults above when omitted. Shopping days use 0 for Sunday through 6 for Saturday. Derived calorie targets, report versions and other unsupported fields are rejected. For a pregnancy fixture with an explicit profile, set `biologicalSex` to `FEMALE`; an omitted profile retains the existing automatic female baseline.
 
 ## Which tests use localhost
 

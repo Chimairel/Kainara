@@ -2,6 +2,7 @@ import { createHash, createHmac, timingSafeEqual } from 'node:crypto';
 import { AllergenType, HealthConditionType } from '@prisma/client';
 import { z } from 'zod';
 import { accountSchema, databaseTarget, type AccountSpec } from './config';
+import { testMemberProfileSchema } from './member-profile';
 
 export const testAccountRequestSchema = z
   .object({
@@ -12,6 +13,7 @@ export const testAccountRequestSchema = z
     conditions: z.array(z.nativeEnum(HealthConditionType)).min(1).max(6),
     allergens: z.array(z.nativeEnum(AllergenType)).min(1).max(6),
     rndStatus: z.enum(['ACTIVE', 'EXPIRED', 'UNVERIFIED', 'SUSPENDED']),
+    profile: testMemberProfileSchema.optional(),
   })
   .strict()
   .superRefine((value, ctx) => {
@@ -19,12 +21,16 @@ export const testAccountRequestSchema = z
       alias: 'check',
       name: value.name,
       role: value.role,
-      ...(value.role === 'USER' ? { member: { conditions: value.conditions, allergens: value.allergens } } : {}),
+      ...(value.role === 'USER'
+        ? { member: { conditions: value.conditions, allergens: value.allergens, profile: value.profile } }
+        : {}),
     });
     if (!parsed.success)
-      ctx.addIssue({ code: 'custom', message: 'NONE cannot accompany another declaration; entries must be unique.' });
+      ctx.addIssue({ code: 'custom', message: parsed.error.issues[0]?.message ?? 'Invalid member settings.' });
     if (value.role !== 'USER' && (value.conditions.join() !== 'NONE' || value.allergens.join() !== 'NONE'))
       ctx.addIssue({ code: 'custom', message: 'Health declarations apply only to members.' });
+    if (value.role !== 'USER' && value.profile !== undefined)
+      ctx.addIssue({ code: 'custom', message: 'Planning profile settings apply only to members.' });
   });
 export type TestAccountRequest = z.infer<typeof testAccountRequestSchema>;
 // The strict request schema is parsed separately from creation-only fields.
@@ -47,7 +53,15 @@ export function accountSpecs(request: TestAccountRequest): AccountSpec[] {
       alias: `${request.role.toLowerCase()}-${index + 1}`,
       role: request.role,
       name: `${request.name} ${index + 1}`,
-      ...(request.role === 'USER' ? { member: { conditions: request.conditions, allergens: request.allergens } } : {}),
+      ...(request.role === 'USER'
+        ? {
+            member: {
+              conditions: request.conditions,
+              allergens: request.allergens,
+              ...(request.profile ? { profile: request.profile } : {}),
+            },
+          }
+        : {}),
       ...(request.role === 'RND' ? { rnd: { status: request.rndStatus } } : {}),
     })
   );

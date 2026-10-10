@@ -42,6 +42,15 @@ test('preview is short-lived and bound to the live admin, database and every acc
     () => verifyAccountPreview(token, 'other', 'db-a', request, 'secret', now),
     () => verifyAccountPreview(token, 'admin', 'db-b', request, 'secret', now),
     () => verifyAccountPreview(token, 'admin', 'db-a', { ...request, count: 3 }, 'secret', now),
+    () =>
+      verifyAccountPreview(
+        token,
+        'admin',
+        'db-a',
+        testAccountRequestSchema.parse({ ...request, profile: { heightCm: 180 } }),
+        'secret',
+        now
+      ),
     () => verifyAccountPreview(token, 'admin', 'db-a', request, 'wrong', now),
     () => verifyAccountPreview(token, 'admin', 'db-a', request, 'secret', now + 600_000),
     () => verifyAccountPreview('invalid', 'admin', 'db-a', request, 'secret', now),
@@ -63,6 +72,10 @@ test('creation requires target confirmation and refuses account override fields'
     { conditions: ['NONE', 'DIABETES'] },
     { role: 'ADMIN' },
     { set: '../real' },
+    { profile: { weightKg: 20 } },
+    { profile: { goal: 'LOSE_WEIGHT', targetWeightKg: 75 } },
+    { profile: { dailyCalorieTarget: 9999 } },
+    { role: 'RND', conditions: ['NONE'], allergens: ['NONE'], profile: {} },
   ])
     assert.equal(testAccountRequestSchema.safeParse({ ...request, ...patch }).success, false);
 });

@@ -20,6 +20,8 @@ import authenticate from '../src/middleware/auth';
 import requireRole from '../src/middleware/rbac';
 import { signAccessToken } from '../src/lib/jwt';
 import type { AdminTestAccountsService } from '../src/services/admin-test-accounts.service';
+import { testMemberProfileSchema } from '../src/services/dev-test-accounts/member-profile';
+import { calculateDailyTarget } from '../src/lib/calculations';
 
 async function responseData<T>(response: Response): Promise<T> {
   return ((await response.json()) as { data: T }).data;
@@ -181,6 +183,18 @@ async function main() {
         conditions: ['DIABETES'],
         allergens: ['NUTS'],
         rndStatus: 'ACTIVE',
+        profile: testMemberProfileSchema.parse({
+          age: 45,
+          biologicalSex: 'FEMALE',
+          heightCm: 165,
+          weightKg: 72,
+          targetWeightKg: 65,
+          goal: 'LOSE_WEIGHT',
+          activityLevel: 'ACTIVE',
+          dietaryPreference: 'PESCATARIAN',
+          ricePreference: 'NO_RICE',
+          shoppingDayOfWeek: 2,
+        }),
       };
       const post = (path: string, body: object) =>
         fetch(`${url}${path}`, { method: 'POST', headers, body: JSON.stringify(body) });
@@ -209,15 +223,47 @@ async function main() {
       const memberLogin = await login(created.accounts[0].email, created.newAccountPassword);
       assert.equal(memberLogin.user.role, 'USER');
       const saved = await db.user.findUniqueOrThrow({ where: { id: created.accounts[0].id } });
+      const selectedContext = await loadPlanningNutritionContext(db, saved.id, 'Missing test profile');
+      for (const [key, value] of Object.entries(request.profile))
+        assert.equal((selectedContext.profile as unknown as Record<string, unknown>)[key], value);
+      assert.equal(
+        selectedContext.profile.dailyCalorieTarget,
+        calculateDailyTarget(request.profile).dailyCalorieTarget
+      );
+      assert.equal(selectedContext.profile.shoppingDayGroup, 'WEEKDAY');
+      const selectedReport = await db.nutritionReportVersion.findFirstOrThrow({ where: { userId: saved.id } });
+      const snapshot = selectedReport.profileSnapshot as {
+        profile: Record<string, unknown>;
+        planningTargets: { basis: string; calories: number };
+      };
+      assert.equal(snapshot.profile.weightKg, 72);
+      assert.equal(snapshot.planningTargets.calories, selectedContext.profile.dailyCalorieTarget);
+      assert.equal(
+        snapshot.planningTargets.basis,
+        'REVIEW_REFERENCE',
+        'Conditions retain ordinary macro review policy.'
+      );
       const kept = await responseData<CreateResult>(
         await post('', { ...request, previewToken: preview.previewToken, confirmedTarget: true })
       );
       assert.equal(kept.newAccountPassword, null);
       assert.ok(kept.accounts.every((item: { exists: boolean }) => item.exists));
       assert.equal((await db.user.findUniqueOrThrow({ where: { id: saved.id } })).passwordHash, saved.passwordHash);
+      const changedRequest = { ...request, profile: { ...request.profile, weightKg: 73 } };
+      assert.equal(
+        (await post('', { ...changedRequest, previewToken: preview.previewToken, confirmedTarget: true })).status,
+        400
+      );
+      const changedPreview = await responseData<PreviewResult>(await post('/preview', changedRequest));
+      const unchanged = await responseData<CreateResult>(
+        await post('', { ...changedRequest, previewToken: changedPreview.previewToken, confirmedTarget: true })
+      );
+      assert.equal(unchanged.newAccountPassword, null);
+      assert.equal((await db.userProfile.findUniqueOrThrow({ where: { userId: saved.id } })).weightKg, 72);
       for (const status of ['ACTIVE', 'EXPIRED', 'UNVERIFIED', 'SUSPENDED']) {
         const rndRequest = {
           ...request,
+          profile: undefined,
           set: `ui-${status.toLowerCase()}`,
           count: 1,
           role: 'RND',
@@ -246,6 +292,7 @@ async function main() {
       }
       const adminRequest = {
         ...request,
+        profile: undefined,
         set: 'ui-admin',
         count: 1,
         role: 'ADMIN',
@@ -270,7 +317,7 @@ async function main() {
       assert.ok(!JSON.stringify(audits).includes(created.newAccountPassword));
       assert.equal(await db.mealPlan.count(), 0);
       console.log(
-        'PASS: admin-only HTTP previews, runtime blocks, target confirmation, tampering refusal, member/RND password logins, unchanged repeats, four RND states and secret-free actor audit.'
+        'PASS: admin-only HTTP previews, runtime blocks, target confirmation, custom member profiles and derived snapshot targets, tampering refusal, member/RND password logins, unchanged repeats, four RND states and secret-free actor audit.'
       );
     } finally {
       process.env.NODE_ENV = 'test';

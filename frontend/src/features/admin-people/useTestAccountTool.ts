@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useSessionQuery } from '@/hooks/useSessionQuery';
 import api from '@/lib/axios';
+import { defaultTestMemberProfile, type TestMemberProfileOptions } from './test-member-profile';
 
 export interface TestAccountOptions {
   set: string;
@@ -13,6 +14,7 @@ export interface TestAccountOptions {
   conditions: string[];
   allergens: string[];
   rndStatus: string;
+  profile: TestMemberProfileOptions;
 }
 export interface TestAccountRow {
   id: string;
@@ -44,6 +46,7 @@ const defaults = (): TestAccountOptions => ({
   conditions: ['NONE'],
   allergens: ['NONE'],
   rndStatus: 'ACTIVE',
+  profile: defaultTestMemberProfile(),
 });
 function requestError(error: unknown) {
   return (error as { response?: { data?: { error?: string } } }).response?.data?.error ?? 'Request failed. Try again.';
@@ -65,7 +68,13 @@ export function useTestAccountTool(active: boolean, onCreated: () => void) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const update = (patch: Partial<TestAccountOptions>) => {
-    setOptions((current) => ({ ...current, ...patch }));
+    setOptions((current) => {
+      const next = { ...current, ...patch };
+      next.profile = { ...next.profile };
+      if (next.profile.goal === 'MAINTAIN') next.profile.targetWeightKg = next.profile.weightKg;
+      if (next.conditions.includes('PREGNANT')) next.profile.biologicalSex = 'FEMALE';
+      return next;
+    });
     setPreview(null);
     setConfirmed(false);
     setError(null);
@@ -91,7 +100,7 @@ export function useTestAccountTool(active: boolean, onCreated: () => void) {
     setPreview(null);
     setConfirmed(false);
     try {
-      setPreview((await api.post('/admin/test-accounts/preview', options)).data.data);
+      setPreview((await api.post('/admin/test-accounts/preview', requestOptions())).data.data);
     } catch (failure) {
       setError(requestError(failure));
     } finally {
@@ -105,7 +114,7 @@ export function useTestAccountTool(active: boolean, onCreated: () => void) {
     try {
       const response = await api.post(
         '/admin/test-accounts',
-        { ...options, previewToken: preview.previewToken, confirmedTarget: true },
+        { ...requestOptions(), previewToken: preview.previewToken, confirmedTarget: true },
         { timeout: 90_000 }
       );
       setResult(response.data.data);
@@ -118,6 +127,10 @@ export function useTestAccountTool(active: boolean, onCreated: () => void) {
     } finally {
       setBusy(false);
     }
+  };
+  const requestOptions = () => {
+    const { profile, ...request } = options;
+    return options.role === 'USER' ? { ...request, profile } : request;
   };
   const copy = async () => {
     if (!result) return;

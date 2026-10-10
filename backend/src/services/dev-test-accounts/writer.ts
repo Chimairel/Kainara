@@ -1,10 +1,10 @@
 import bcrypt from 'bcryptjs';
 import { Prisma, type PrismaClient } from '@prisma/client';
-import { calculateDailyTarget } from '../../lib/calculations';
 import { CURRENT_PRIVACY_VERSION, CURRENT_TERMS_VERSION } from '../../domain/onboarding.policy';
 import { NUTRITION_GUIDANCE_POLICY_VERSION } from '../../domain/deterministic-nutrition-report.policy';
 import { calculatePlanningMacroTargets } from '../../domain/meal-macro-target.policy';
 import { fixtureIdentity, type AccountSpec } from './config';
+import { buildTestMemberProfile } from './member-profile';
 
 export async function inspectAccounts(db: Pick<Prisma.TransactionClient, 'user'>, set: string, specs: AccountSpec[]) {
   const identities = specs.map((spec) => fixtureIdentity(set, spec));
@@ -90,32 +90,7 @@ export async function createAccounts(
         if (spec.role === 'USER') {
           const conditions = spec.member?.conditions ?? ['NONE'];
           const allergens = spec.member?.allergens ?? ['NONE'];
-          const profile = {
-            age: 26,
-            biologicalSex: conditions.includes('PREGNANT') ? 'FEMALE' : 'MALE',
-            heightCm: 170,
-            weightKg: 65,
-            targetWeightKg: 65,
-            goal: 'MAINTAIN' as const,
-            activityLevel: 'SEDENTARY' as const,
-            dietaryPreference: 'OMNIVORE' as const,
-            ricePreference: 'FLEXIBLE' as const,
-            ricePreferenceProvenance: 'USER_SELECTED' as const,
-            foodCulture: 'Filipino',
-            shoppingDayGroup: 'WEEKEND' as const,
-            shoppingDayOfWeek: 6,
-            dailyCalorieTarget: calculateDailyTarget({
-              age: 26,
-              heightCm: 170,
-              weightKg: 65,
-              goal: 'MAINTAIN',
-              activityLevel: 'SEDENTARY',
-              biologicalSex: conditions.includes('PREGNANT') ? 'FEMALE' : 'MALE',
-              hasPregnantCondition: conditions.includes('PREGNANT'),
-            }).dailyCalorieTarget,
-            revision: 0,
-            safetyRevision: 0,
-          };
+          const profile = buildTestMemberProfile(spec.member?.profile, conditions.includes('PREGNANT'));
           await tx.userProfile.create({
             data: { ...profile, userId: identity.id, planningReportVersion: 1, firstReportAcknowledgedAt: now },
           });
