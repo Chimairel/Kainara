@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { clearSessionResourceCache } from '@/lib/session-resource-cache';
 import SharedMealLibraryWorkspace from './SharedMealLibraryWorkspace';
@@ -16,7 +16,11 @@ const mocks = vi.hoisted(() => ({
 vi.mock('@/lib/axios', () => ({ default: { get: mocks.get, post: mocks.post } }));
 vi.mock('sonner', () => ({ toast: mocks }));
 vi.mock('./LibrarySafetyReview', () => ({ default: () => <div>Clinical evidence editor</div> }));
-vi.mock('./RecipeDerivationForm', () => ({ default: () => <div>Recipe derivation editor</div> }));
+vi.mock('./RecipeDerivationForm', () => ({
+  default: ({ correctionVersion }: { correctionVersion?: string }) => (
+    <div>{correctionVersion ? 'Held recipe correction editor' : 'Recipe derivation editor'}</div>
+  ),
+}));
 vi.mock('./MealApprovalsPanel', () => ({ MealApprovalsPanel: () => <div>Private case approvals</div> }));
 vi.mock('./useNutritionistLibrary', () => ({ AVAILABLE_CONDITIONS: [], useNutritionistLibrary: mocks.hook }));
 
@@ -124,7 +128,11 @@ beforeEach(() => {
         ? []
         : path.includes('/meal-review-cases/')
           ? review
-          : { ...meal, status: review.state === 'PUBLISHED' ? 'APPROVED' : 'FLAGGED' },
+          : {
+              ...meal,
+              status: review.state === 'PUBLISHED' ? 'APPROVED' : 'FLAGGED',
+              reviewLineage: { state: review.state, incidentCount: review.incidentCount },
+            },
     },
   }));
   mocks.post.mockResolvedValue({ data: { success: true } });
@@ -184,7 +192,11 @@ describe('shared library permissions and feedback', () => {
     await open();
     await screen.findByText('NUTRITION · Test admin');
     expect(screen.getByText('Clinical evidence editor')).toBeInTheDocument();
-    expect(screen.getByText('Recipe derivation editor')).toBeInTheDocument();
+    expect(screen.queryByText('Recipe derivation editor')).not.toBeInTheDocument();
+    expect(screen.getByText('Held recipe correction editor')).toBeInTheDocument();
+    const header = screen.getByRole('heading', { name: 'Test lunch', level: 1 }).closest('header')!;
+    expect(within(header).getByText('Quarantined')).toBeInTheDocument();
+    expect(within(header).queryByText('Verified')).not.toBeInTheDocument();
     expect(screen.getByText('Private case approvals')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Confirm this version' })).toBeDisabled();
     expect(screen.queryByRole('button', { name: 'Release quarantine' })).not.toBeInTheDocument();
@@ -228,6 +240,51 @@ describe('shared library permissions and feedback', () => {
     await screen.findByRole('alert');
     expect(screen.getByLabelText('Explanation')).toHaveValue('Ingredient evidence needs independent review.');
     expect(screen.getByLabelText('Supporting evidence or reference')).toHaveValue('Recorded composition evidence.');
+  });
+
+  it('keeps one matching derivation editor across flag, re-verification and quarantine updates', async () => {
+    render(<SharedMealLibraryWorkspace />);
+    await open();
+    await screen.findByText('Published');
+    expect(screen.getAllByText('Recipe derivation editor')).toHaveLength(1);
+    fillFlag();
+    mocks.post.mockImplementation(async () => {
+      held();
+      return { data: { success: true } };
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Flag and withhold recipe' }));
+    await screen.findByText('Held recipe correction editor');
+    await waitFor(() => expect(screen.queryByText('Recipe derivation editor')).not.toBeInTheDocument());
+    const header = screen.getByRole('heading', { name: 'Test lunch', level: 1 }).closest('header')!;
+    expect(within(header).getByText('Pending re-review')).toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText('Resolution of this concern'), {
+      target: { value: 'All recorded ingredient evidence has been independently checked.' },
+    });
+    fireEvent.change(screen.getByLabelText('Independent review findings'), {
+      target: { value: 'The measured recipe resolves every recorded concern.' },
+    });
+    fireEvent.click(screen.getByRole('checkbox'));
+    mocks.post.mockImplementation(async () => {
+      review = { ...review, state: 'PUBLISHED', incident: null };
+      return { data: { success: true } };
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Re-verify recipe' }));
+    await screen.findByText('Recipe derivation editor');
+    await waitFor(() => expect(screen.queryByText('Held recipe correction editor')).not.toBeInTheDocument());
+    expect(screen.getAllByText('Recipe derivation editor')).toHaveLength(1);
+
+    mocks.post.mockImplementation(async () => {
+      held('QUARANTINED');
+      return { data: { success: true } };
+    });
+    fillFlag();
+    fireEvent.click(screen.getByRole('button', { name: 'Flag and withhold recipe' }));
+    await screen.findByText('Held recipe correction editor');
+    await waitFor(() => expect(screen.queryByText('Recipe derivation editor')).not.toBeInTheDocument());
+    expect(screen.getAllByText('Held recipe correction editor')).toHaveLength(1);
+    expect(within(header).getByText('Quarantined')).toBeInTheDocument();
+    expect(screen.getAllByRole('region', { name: 'Meal-wide review' })).toHaveLength(1);
   });
   it('keeps a recorded decision visible when the later history refresh fails', async () => {
     render(<SharedMealLibraryWorkspace role="admin" />);

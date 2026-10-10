@@ -72,10 +72,21 @@ export default function LibraryRecipeDetail({ model }: Props) {
             </p>
             <h1 className="mt-2 font-display text-3xl font-black text-brand-text">{viewedMeal.mealName}</h1>
             <div className="mt-3 flex flex-wrap items-center gap-2">
-              <Badge variant={viewedMeal.baseVerification === 'VERIFIED' ? 'verified' : 'pending'} showIcon={false}>
-                {viewedMeal.baseVerification === 'VERIFIED' ? 'Verified' : 'Review pending'}
+              <Badge
+                variant={
+                  viewedMeal.status !== 'FLAGGED' && viewedMeal.baseVerification === 'VERIFIED' ? 'verified' : 'pending'
+                }
+                showIcon={false}
+              >
+                {viewedMeal.status === 'FLAGGED'
+                  ? viewedMeal.reviewLineage?.state === 'QUARANTINED'
+                    ? 'Quarantined'
+                    : 'Pending re-review'
+                  : viewedMeal.baseVerification === 'VERIFIED'
+                    ? 'Verified'
+                    : 'Review pending'}
               </Badge>
-              {viewedMeal.baseVerification === 'VERIFIED' && (
+              {viewedMeal.status !== 'FLAGGED' && viewedMeal.baseVerification === 'VERIFIED' && (
                 <span className="text-xs text-brand-muted">
                   {viewedMeal.baseVerificationBasis === 'PANLASANG_PINOY'
                     ? 'Established Panlasang Pinoy recipe source'
@@ -176,7 +187,7 @@ export default function LibraryRecipeDetail({ model }: Props) {
         )}
         {!isAdmin && viewedMeal.status !== 'FLAGGED' && (
           <RecipeDerivationForm
-            key={viewedMeal.id}
+            key={`derivation-${viewedMeal.id}`}
             meal={viewedMeal}
             onCreated={(id) => {
               void openMeal({ ...viewedMeal, id });
@@ -185,7 +196,7 @@ export default function LibraryRecipeDetail({ model }: Props) {
           />
         )}
         <MealReviewPanel
-          key={viewedMeal.id}
+          key={`review-${viewedMeal.id}`}
           meal={viewedMeal}
           isAdmin={isAdmin}
           refresh={async () => {

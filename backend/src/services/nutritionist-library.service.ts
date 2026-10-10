@@ -252,6 +252,7 @@ export class NutritionistLibraryService {
     const meal = await prisma.mealLibrary.findUnique({
       where: { id: mealId },
       include: {
+        reviewLineage: { select: { state: true, incidentCount: true } },
         parentMeal: {
           select: {
             id: true,

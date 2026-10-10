@@ -5,7 +5,7 @@ import { ShieldCheck, User, GraduationCap, Award, Calendar } from 'lucide-react'
 import { KainaraLogo } from '@/components/shared/KainaraLogo';
 
 export interface VerifierData {
-  reviewScope?: 'RECIPE' | 'MEMBER';
+  reviewScope?: 'RECIPE' | 'MEMBER' | 'RECORDED';
   name: string;
   image?: string | null;
   officialHeadshot?: string | null;

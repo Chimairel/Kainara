@@ -17,6 +17,7 @@ import {
   pendingPreviewWithImages,
   rawRecipeImageSelect,
   mealExplanationIngredientInclude,
+  mealReviewDecisionInclude,
   serializeActionableMeal,
 } from '@/services/meal-plan-presentation.service';
 
@@ -66,9 +67,11 @@ export async function generateMealPlan(req: AuthenticatedRequest, res: Response)
       },
       include: {
         ingredients: { include: mealExplanationIngredientInclude },
+        reviewDecisions: mealReviewDecisionInclude,
         servingComponents: { where: { componentType: 'COOKED_RICE' } },
         libraryMeal: {
           include: {
+            safetyReviewedByNutritionist: { include: { user: { select: { name: true, image: true } } } },
             verifiedByNutritionist: {
               include: { user: { select: { name: true, image: true } } },
             },

@@ -6,7 +6,7 @@ export default function ReviewedByControl({
   onClick,
 }: {
   name: string;
-  scope?: 'RECIPE' | 'MEMBER';
+  scope?: 'RECIPE' | 'MEMBER' | 'RECORDED';
   onClick: () => void;
 }) {
   const reviewer = name.replace(/,?\s*RND$/i, '');
@@ -17,7 +17,9 @@ export default function ReviewedByControl({
       title={
         scope === 'MEMBER'
           ? 'Member-specific review and recorded RND credentials'
-          : 'Recipe review and recorded RND credentials'
+          : scope === 'RECIPE'
+            ? 'Recipe review and recorded RND credentials'
+            : 'Recorded RND attribution; review scope unavailable'
       }
       onKeyDown={(event) => event.stopPropagation()}
       onClick={(event: MouseEvent<HTMLButtonElement>) => {
@@ -27,7 +29,7 @@ export default function ReviewedByControl({
     >
       Reviewed by {reviewer}, RND
       <span className="ml-1 text-[10px] font-normal no-underline">
-        · {scope === 'MEMBER' ? 'Your meal approval' : 'Recipe review'}
+        · {scope === 'MEMBER' ? 'Your meal approval' : scope === 'RECIPE' ? 'Recipe review' : 'Recorded review'}
       </span>
     </button>
   );

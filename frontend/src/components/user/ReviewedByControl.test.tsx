@@ -16,6 +16,11 @@ describe('recorded RND attribution', () => {
     expect(openMeal).not.toHaveBeenCalled();
     expect(screen.getByText(/Your meal approval/)).toBeInTheDocument();
   });
+  it.each(['RECIPE', 'RECORDED', undefined] as const)('labels %s review without claiming member approval', (scope) => {
+    render(<ReviewedByControl name="Synthetic Reviewer" scope={scope} onClick={vi.fn()} />);
+    expect(screen.getByText(scope === 'RECIPE' ? /Recipe review/ : /Recorded review/)).toBeInTheDocument();
+    expect(screen.queryByText(/Your meal approval/)).not.toBeInTheDocument();
+  });
   it('labels missing credentials without inventing institutions, specialties, degrees or experience', () => {
     render(
       <NutritionistCredentialCard

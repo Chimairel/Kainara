@@ -242,6 +242,13 @@ export default function NotificationDropdown() {
                         } else if (notif.type === 'REVIEW_REQUEST' && user?.role === 'NUTRITIONIST') {
                           setIsOpen(false);
                           router.push('/nutritionist/reviews');
+                        } else if (
+                          notif.type === 'REVIEW_REQUEST' &&
+                          user?.role === 'USER' &&
+                          notif.targetPath === '/profile/clinical-evidence'
+                        ) {
+                          setIsOpen(false);
+                          router.push('/profile/clinical-evidence');
                         }
                       }}
                       className={`group relative flex w-full items-start gap-2.5 rounded-xl p-2.5 text-left outline-none transition hover:bg-brand-bgAlt/70 dark:hover:bg-white/[0.06] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-green ${

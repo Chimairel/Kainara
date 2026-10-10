@@ -48,6 +48,79 @@ export const mealExplanationIngredientInclude = {
   foodItem: { select: { source: true } },
 } as const;
 
+// Decision snapshots stay internal: they may contain private clinical context.
+export const mealReviewDecisionInclude = {
+  orderBy: { submittedAt: 'desc' },
+  take: 1,
+  select: {
+    decision: true,
+    submittedAt: true,
+    nutritionistProfileId: true,
+    evidenceSnapshot: true,
+    nutritionistProfile: { include: { user: { select: { name: true, image: true } } } },
+  },
+} as const;
+
+interface MealReviewAttributionInput {
+  nutritionistId?: string | null;
+  nutritionist?: Parameters<typeof toPublicVerifier>[0];
+  firstApprovedByNutritionist?: Parameters<typeof toPublicVerifier>[0];
+  profileApprovalId?: string | null;
+  candidateProvenance?: string | null;
+  mealName?: string;
+  calories: number;
+  proteinG?: number;
+  carbsG?: number;
+  fatG?: number;
+  composedServingSignature?: string | null;
+  reviewWorkKey?: string | null;
+  reviewedAt?: Date | null;
+  selectionEvidence: unknown;
+  reviewDecisions?: Array<{
+    decision: string;
+    submittedAt?: Date;
+    nutritionistProfileId: string;
+    evidenceSnapshot: unknown;
+    nutritionistProfile?: Parameters<typeof toPublicVerifier>[0];
+  }>;
+}
+
+function recordedMemberApproval(
+  meal: MealReviewAttributionInput,
+  decisions: MealReviewAttributionInput['reviewDecisions']
+) {
+  const decision = decisions?.[0];
+  if (!decision || decision.decision !== 'APPROVE' || decision.nutritionistProfileId !== meal.nutritionistId)
+    return null;
+  if (
+    isUserSwappedMeal(meal.selectionEvidence) &&
+    (!decision.submittedAt || !meal.reviewedAt || decision.submittedAt < meal.reviewedAt)
+  )
+    return null;
+  const snapshot = decision.evidenceSnapshot;
+  if (!snapshot || typeof snapshot !== 'object') return null;
+  // Swaps overwrite a plan row but retain its immutable decisions. An older
+  // decision must not confer member-review attribution on the replacement.
+  if ('effective' in snapshot && snapshot.effective && typeof snapshot.effective === 'object') {
+    const effective = snapshot.effective as Record<string, unknown>;
+    for (const key of ['mealName', 'calories', 'proteinG', 'carbsG', 'fatG'] as const) {
+      if (!(key in effective) || effective[key] !== meal[key]) return null;
+    }
+    if ('composedServingSignature' in snapshot && snapshot.composedServingSignature !== meal.composedServingSignature)
+      return null;
+    return toPublicVerifier(decision.nutritionistProfile);
+  }
+  if (
+    'coalescedFromMealPlanId' in snapshot &&
+    'reviewWorkKey' in snapshot &&
+    meal.reviewWorkKey &&
+    snapshot.reviewWorkKey === meal.reviewWorkKey &&
+    !isUserSwappedMeal(meal.selectionEvidence)
+  )
+    return toPublicVerifier(decision.nutritionistProfile);
+  return null;
+}
+
 function planImage(
   meal: {
     libraryMeal?: (MealImageRecord & { id: string }) | null;
@@ -123,13 +196,14 @@ export function pendingPreviewWithImages<
 }
 
 export function serializeActionableMeal<
-  T extends {
+  T extends MealReviewAttributionInput & {
     nutritionist?: Parameters<typeof toPublicVerifier>[0] | null;
     firstApprovedByNutritionist?: Parameters<typeof toPublicVerifier>[0] | null;
     libraryMeal?:
       | (MealImageRecord & {
           id: string;
           verifiedByNutritionist?: Parameters<typeof toPublicVerifier>[0] | null;
+          safetyReviewedByNutritionist?: Parameters<typeof toPublicVerifier>[0] | null;
         })
       | null;
     selectionEvidence: unknown;
@@ -154,12 +228,22 @@ export function serializeActionableMeal<
     selectionEvidence,
     libraryMeal,
     sourceRawRecipeCandidate,
+    reviewDecisions,
     ...publicMeal
   } = meal;
-  const verifier =
-    toPublicVerifier(nutritionist) ||
-    toPublicVerifier(firstApprovedByNutritionist) ||
+  const memberReviewer = recordedMemberApproval(meal, reviewDecisions);
+  const storedReviewer = toPublicVerifier(nutritionist) || toPublicVerifier(firstApprovedByNutritionist);
+  const recipeReviewer =
+    toPublicVerifier(libraryMeal?.safetyReviewedByNutritionist) ||
     toPublicVerifier(libraryMeal?.verifiedByNutritionist);
+  const automaticRecipeSelection = meal.candidateProvenance === 'CERTIFIED_LIBRARY' && !meal.profileApprovalId;
+  const verifier =
+    memberReviewer || (automaticRecipeSelection ? recipeReviewer || storedReviewer : storedReviewer || recipeReviewer);
+  const reviewScope = memberReviewer
+    ? ('MEMBER' as const)
+    : verifier && recipeReviewer && (automaticRecipeSelection || !storedReviewer)
+      ? ('RECIPE' as const)
+      : ('RECORDED' as const);
   return {
     ...publicMeal,
     ingredients: meal.ingredients.map(({ foodItem: _foodItem, ...ingredient }) => ingredient),
@@ -169,7 +253,7 @@ export function serializeActionableMeal<
     verifier: verifier
       ? {
           ...verifier,
-          reviewScope: nutritionist || firstApprovedByNutritionist ? ('MEMBER' as const) : ('RECIPE' as const),
+          reviewScope,
         }
       : null,
     explanation: buildMealExplanation({

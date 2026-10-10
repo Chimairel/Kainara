@@ -67,6 +67,12 @@ export default function NutritionistCredentialModal({
     : null;
 
   const displayName = verifier.name.endsWith('RND') ? verifier.name : `${verifier.name}, RND`;
+  const scopeDescription =
+    verifier.reviewScope === 'MEMBER'
+      ? 'This RND reviewed this member meal. Historical attribution is retained.'
+      : verifier.reviewScope === 'RECIPE'
+        ? 'This RND reviewed the recipe. This does not certify it for an individual health profile.'
+        : 'RND attribution is recorded. The record does not establish whether this was a recipe or member-specific review.';
 
   return createPortal(
     <div
@@ -128,11 +134,7 @@ export default function NutritionistCredentialModal({
           {/* ════════ TAB 1: 100% REPLICA OF CHATGPT REFERENCE CARD ════════ */}
           {activeTab === 'card' ? (
             <>
-              <p className="mb-3 text-xs text-brand-muted">
-                {verifier.reviewScope === 'MEMBER'
-                  ? 'This RND reviewed this member meal. Historical attribution is retained.'
-                  : 'This RND reviewed the recipe. This does not certify it for an individual health profile.'}
-              </p>
+              <p className="mb-3 text-xs text-brand-muted">{scopeDescription}</p>
               <NutritionistCredentialCard
                 verifier={verifier}
                 nutritionistNote={nutritionistNote}
@@ -153,7 +155,7 @@ export default function NutritionistCredentialModal({
                     <h3 className="font-display text-lg font-bold text-[#0d2820] dark:text-white">
                       Clinical Meal Supervision &amp; Adjustments
                     </h3>
-                    <p className="text-xs text-[#5a746a] dark:text-slate-400">Personalized audit by {displayName}</p>
+                    <p className="text-xs text-[#5a746a] dark:text-slate-400">Recorded review by {displayName}</p>
                   </div>
                 </div>
                 <button
@@ -170,7 +172,7 @@ export default function NutritionistCredentialModal({
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <span className="flex items-center gap-1.5 text-xs font-extrabold uppercase tracking-wider text-emerald-800 dark:text-emerald-300">
                     <Clock className="h-4 w-4 text-emerald-700 dark:text-emerald-400" />
-                    {formattedReviewDate ? `Reviewed on ${formattedReviewDate}` : 'Reviewed & Certified'}
+                    {formattedReviewDate ? `Recorded on ${formattedReviewDate}` : 'Review date not recorded'}
                   </span>
                   {mealName && (
                     <span className="rounded-lg bg-emerald-600/15 dark:bg-emerald-500/15 border border-emerald-600/30 dark:border-emerald-500/30 px-2.5 py-1 text-xs font-bold text-emerald-800 dark:text-emerald-300">
@@ -191,10 +193,7 @@ export default function NutritionistCredentialModal({
                   </div>
                 )}
 
-                <p className="text-xs text-[#5a746a] dark:text-slate-400 leading-relaxed pt-1">
-                  Meal composition, macro distribution, and clinical contraindications were audited and approved to
-                  ensure compliance with medical dietary guidelines.
-                </p>
+                <p className="text-xs text-[#5a746a] dark:text-slate-400 leading-relaxed pt-1">{scopeDescription}</p>
               </div>
 
               {/* Clinician Bio & Profile */}

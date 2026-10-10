@@ -58,7 +58,7 @@ describe('NutritionistCredentialModal', () => {
     fireEvent.click(viewNotesBtn);
 
     // Review Notes & Date
-    expect(screen.getByText(/Reviewed on/i)).toBeInTheDocument();
+    expect(screen.getByText(/Recorded on/i)).toBeInTheDocument();
     expect(screen.getByText(/Adjusted sodium levels down to match hypertension guidelines\./i)).toBeInTheDocument();
 
     // Close button
@@ -67,6 +67,32 @@ describe('NutritionistCredentialModal', () => {
     expect(onClose).toHaveBeenCalledTimes(1);
   });
 
+  it.each(['MEMBER', 'RECIPE', 'RECORDED', undefined] as const)(
+    'describes %s attribution accurately in credentials and notes',
+    (reviewScope) => {
+      render(
+        <NutritionistCredentialModal
+          isOpen
+          onClose={vi.fn()}
+          verifier={{ ...mockVerifier, reviewScope }}
+          nutritionistNote="Recorded synthetic note"
+        />
+      );
+      const description =
+        reviewScope === 'MEMBER'
+          ? /This RND reviewed this member meal/
+          : reviewScope === 'RECIPE'
+            ? /This RND reviewed the recipe/
+            : /The record does not establish whether/;
+      expect(screen.getByText(description)).toBeInTheDocument();
+      fireEvent.click(screen.getByRole('button', { name: /Clinical Review & Notes/i }));
+      expect(screen.getByText(description)).toBeInTheDocument();
+      expect(screen.getByText('Review date not recorded')).toBeInTheDocument();
+      expect(
+        screen.queryByText(/Personalized audit|ensure compliance with medical dietary guidelines|Reviewed & Certified/)
+      ).not.toBeInTheDocument();
+    }
+  );
   it('renders SVG avatar fallback when verifier does not have an image', () => {
     const verifierWithoutImg: PublicVerifier = {
       ...mockVerifier,

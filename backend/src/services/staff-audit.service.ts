@@ -116,6 +116,8 @@ export class StaffAuditService {
     const total = Number(result[0]?.total ?? 0);
     const rows = (result[0]?.rows ?? []).map((row) => ({
       ...row,
+      // PostgreSQL JSON omits the zone for Prisma's UTC timestamp-without-time-zone columns.
+      occurredAt: /(?:Z|[+-]\d{2}:\d{2})$/i.test(row.occurredAt) ? row.occurredAt : `${row.occurredAt}Z`,
       action: auditActionLabel(row.actionCode),
       outcome: auditOutcomeLabel(row.actionCode),
     }));

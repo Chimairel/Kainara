@@ -49,3 +49,46 @@ test('nutritionist audit retains its existing presentation contract and includes
   assert.equal(result.rows[0].action, 'Verified a meal');
   assert.equal(result.total, 1);
 });
+
+test('audit JSON timestamps retain their UTC instant across server and client time zones', async () => {
+  const previousTimezone = process.env.TZ;
+  try {
+    for (const timeZone of ['Asia/Manila', 'America/Los_Angeles', 'UTC']) {
+      process.env.TZ = timeZone;
+      const timestamps = ['2026-10-10T00:14:00.123', '2026-10-10T00:14:00.123Z', '2026-10-10T08:14:00.123+08:00'];
+      const db = {
+        $queryRaw: async () => [
+          {
+            total: 3n,
+            rows: timestamps.map((occurredAt, index) => ({
+              id: `review-${index}`,
+              occurredAt,
+              actor: 'Test reviewer',
+              role: 'NUTRITIONIST',
+              actionCode: 'MEAL_PLAN_APPROVED',
+              subject: 'Meal plan case',
+            })),
+          },
+        ],
+      } as unknown as typeof prisma;
+      const result = await StaffAuditService.history({ view: 'nutritionist' }, db);
+      for (const row of result.rows) {
+        assert.equal(new Date(row.occurredAt).toISOString(), '2026-10-10T00:14:00.123Z', timeZone);
+        assert.equal(
+          new Intl.DateTimeFormat('en-PH', {
+            timeZone: 'Asia/Manila',
+            dateStyle: 'medium',
+            timeStyle: 'short',
+          }).format(new Date(row.occurredAt)),
+          'Oct 10, 2026, 8:14 AM',
+          timeZone
+        );
+      }
+      assert.equal(result.rows[1].occurredAt, timestamps[1]);
+      assert.equal(result.rows[2].occurredAt, timestamps[2]);
+    }
+  } finally {
+    if (previousTimezone === undefined) delete process.env.TZ;
+    else process.env.TZ = previousTimezone;
+  }
+});

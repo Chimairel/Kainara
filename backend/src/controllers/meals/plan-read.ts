@@ -17,6 +17,7 @@ import {
   pendingPreviewWithImages,
   rawRecipeImageSelect,
   mealExplanationIngredientInclude,
+  mealReviewDecisionInclude,
   serializeActionableMeal,
 } from '@/services/meal-plan-presentation.service';
 
@@ -83,9 +84,11 @@ export async function getCurrentPlan(req: AuthenticatedRequest, res: Response) {
       },
       include: {
         ingredients: { include: mealExplanationIngredientInclude },
+        reviewDecisions: mealReviewDecisionInclude,
         servingComponents: { where: { componentType: 'COOKED_RICE' } },
         libraryMeal: {
           include: {
+            safetyReviewedByNutritionist: { include: { user: { select: { name: true, image: true } } } },
             verifiedByNutritionist: {
               include: { user: { select: { name: true, image: true } } },
             },
@@ -210,9 +213,11 @@ export async function getPlanWorkspace(req: AuthenticatedRequest, res: Response)
       where: { userId, planGroupId: { in: cycleIds } },
       include: {
         ingredients: { include: mealExplanationIngredientInclude },
+        reviewDecisions: mealReviewDecisionInclude,
         servingComponents: { where: { componentType: 'COOKED_RICE' } },
         libraryMeal: {
           include: {
+            safetyReviewedByNutritionist: { include: { user: { select: { name: true, image: true } } } },
             verifiedByNutritionist: {
               include: { user: { select: { name: true, image: true } } },
             },
@@ -356,8 +361,14 @@ export async function getMealDetails(req: AuthenticatedRequest, res: Response) {
       where: getOwnedMealPlanWhere(userId, id),
       include: {
         ingredients: { include: mealExplanationIngredientInclude },
+        reviewDecisions: mealReviewDecisionInclude,
         servingComponents: { where: { componentType: 'COOKED_RICE' } },
-        libraryMeal: true,
+        libraryMeal: {
+          include: {
+            safetyReviewedByNutritionist: { include: { user: { select: { name: true, image: true } } } },
+            verifiedByNutritionist: { include: { user: { select: { name: true, image: true } } } },
+          },
+        },
         sourceRawRecipeCandidate: { select: rawRecipeImageSelect },
         mealLogs: {
           where: { userId },
@@ -365,6 +376,7 @@ export async function getMealDetails(req: AuthenticatedRequest, res: Response) {
         nutritionist: {
           include: { user: { select: { name: true, image: true } } },
         },
+        firstApprovedByNutritionist: { include: { user: { select: { name: true, image: true } } } },
       },
     });
 

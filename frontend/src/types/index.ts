@@ -254,7 +254,7 @@ export interface MealExplanation {
 }
 
 export interface PublicVerifier {
-  reviewScope?: 'RECIPE' | 'MEMBER';
+  reviewScope?: 'RECIPE' | 'MEMBER' | 'RECORDED';
   name: string;
   image?: string | null;
   officialHeadshot?: string | null;

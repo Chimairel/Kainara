@@ -70,7 +70,7 @@ export default function NutritionGuidancePaper({
       : 'Selected for planning'
     : 'Not yet selected for planning';
 
-  const isArchived = Boolean(activePlanningVersion && activePlanningVersion !== report.version);
+  const isArchived = Boolean(activePlanningVersion && report.version < activePlanningVersion);
 
   const referenceItems = Array.isArray(report.referenceItems) ? report.referenceItems : [];
   const recommendedList = parseList(report.foodsRecommended);

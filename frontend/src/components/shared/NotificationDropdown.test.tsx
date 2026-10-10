@@ -11,6 +11,7 @@ interface TestNotification {
   type: string;
   isRead: boolean;
   createdAt: string;
+  targetPath?: string;
 }
 
 const mocks = vi.hoisted(() => ({
@@ -22,6 +23,7 @@ const mocks = vi.hoisted(() => ({
   markAsRead: vi.fn(),
   markAllAsRead: vi.fn(),
   toggleNotificationSound: vi.fn(),
+  push: vi.fn(),
 }));
 
 vi.mock('@/hooks/useAuth', () => ({
@@ -44,7 +46,7 @@ vi.mock('@/hooks/useNotifications', () => ({
 
 vi.mock('next/navigation', () => ({
   useRouter: () => ({
-    push: vi.fn(),
+    push: mocks.push,
   }),
 }));
 
@@ -71,6 +73,79 @@ describe('NotificationDropdown', () => {
     mocks.isLoading = false;
     mocks.soundEnabled = true;
     vi.clearAllMocks();
+  });
+
+  it('opens member health details from a clarification notification and marks it read', () => {
+    mocks.user = { ...baseUser };
+    mocks.markAsRead.mockResolvedValueOnce(undefined);
+    mocks.notifications = [
+      {
+        id: 'clarification',
+        title: 'Health clarification requested',
+        message: 'Your RND has a question about your health details.',
+        type: 'REVIEW_REQUEST',
+        targetPath: '/profile/clinical-evidence',
+        isRead: false,
+        createdAt: new Date().toISOString(),
+      },
+    ];
+    render(<NotificationDropdown />);
+    fireEvent.click(screen.getByRole('button', { name: /view notifications/i }));
+    fireEvent.click(screen.getByRole('button', { name: /Health clarification requested/ }));
+    expect(mocks.markAsRead).toHaveBeenCalledWith('clarification');
+    expect(mocks.push).toHaveBeenCalledWith('/profile/clinical-evidence');
+    expect(screen.queryByRole('dialog', { name: 'Notifications' })).not.toBeInTheDocument();
+  });
+
+  it.each([
+    ['USER', 'REVIEW_REQUEST', undefined],
+    ['USER', 'REVIEW_REQUEST', '/admin/users'],
+    ['USER', 'REVIEW_REQUEST', '/profile/clinical-evidence?redirect=/admin/users'],
+    ['USER', 'REVIEW_REQUEST', 'https://example.com/profile/clinical-evidence'],
+    ['USER', 'PLAN_APPROVED', '/profile/clinical-evidence'],
+    ['ADMIN', 'REVIEW_REQUEST', '/profile/clinical-evidence'],
+  ] as const)('does not route an unallowlisted member target (%s, %s, %s)', (role, type, targetPath) => {
+    mocks.user = { ...baseUser, role };
+    mocks.notifications = [
+      {
+        id: 'notice',
+        title: 'Review notice',
+        message: 'Update',
+        type,
+        targetPath,
+        isRead: true,
+        createdAt: new Date().toISOString(),
+      },
+    ];
+    render(<NotificationDropdown />);
+    fireEvent.click(screen.getByRole('button', { name: /view notifications/i }));
+    fireEvent.click(screen.getByRole('button', { name: /Review notice/ }));
+    expect(mocks.push).not.toHaveBeenCalled();
+    expect(mocks.markAsRead).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ['USER', 'MEAL_REMINDER', '/meals?date=2026-10-10', '/meals?date=2026-10-10'],
+    ['ADMIN', 'NUTRITIONIST_APPLICATION', undefined, '/admin/users?tab=nutritionists'],
+    ['NUTRITIONIST', 'REVIEW_REQUEST', '/profile/clinical-evidence', '/nutritionist/reviews'],
+  ] as const)('preserves existing notification routing for %s %s', (role, type, targetPath, expectedPath) => {
+    mocks.user = { ...baseUser, role };
+    mocks.notifications = [
+      {
+        id: 'notice',
+        title: 'Review notice',
+        message: 'Update',
+        type,
+        targetPath,
+        isRead: true,
+        createdAt: new Date().toISOString(),
+      },
+    ];
+    render(<NotificationDropdown />);
+    fireEvent.click(screen.getByRole('button', { name: /view notifications/i }));
+    fireEvent.click(screen.getByRole('button', { name: /Review notice/ }));
+    expect(mocks.push).toHaveBeenCalledWith(expectedPath);
+    expect(screen.queryByRole('dialog', { name: 'Notifications' })).not.toBeInTheDocument();
   });
 
   it('renders bell button and opens dropdown menu on click', async () => {
