@@ -1,4 +1,5 @@
 import bcrypt from 'bcryptjs';
+import { assertNewPassword } from '@/validation/password.schemas';
 
 import prisma from '@/lib/prisma';
 import { signAccessToken } from '@/lib/jwt';
@@ -14,6 +15,7 @@ import { createRefreshSession } from './sessions';
  * Creates user with emailVerified=false, generates OTP, and sends verification email.
  */
 export async function register(name: string, email: string, password: string) {
+  assertNewPassword(password);
   const sanitizedEmail = email.trim().toLowerCase();
 
   // Check if the user already exists

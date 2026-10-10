@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { newPasswordSchema } from './password.schemas';
 
 const requiredText = (label: string, max: number) =>
   z.string().trim().min(1, `${label} is required.`).max(max, `${label} is too long.`);
@@ -96,14 +97,7 @@ export const applicationCallVerificationSchema = z
 export const nutritionistInvitationAcceptanceSchema = z
   .object({
     token: requiredText('Invitation token', 200),
-    password: z
-      .string()
-      .min(8, 'Password must be at least 8 characters long.')
-      .max(128, 'Password must be at most 128 characters long.')
-      .regex(/\S/, 'Password cannot consist only of spaces.')
-      .regex(/[A-Z]/, 'Password must contain at least one uppercase letter.')
-      .regex(/[0-9]/, 'Password must contain at least one number.')
-      .regex(/^[^\u0000-\u001F\u007F]+$/u, 'Password cannot contain control characters.'),
+    password: newPasswordSchema,
   })
   .strict();
 

@@ -1,4 +1,5 @@
 import bcrypt from 'bcryptjs';
+import { assertNewPassword } from '@/validation/password.schemas';
 
 import prisma from '@/lib/prisma';
 import { signAccessToken } from '@/lib/jwt';
@@ -116,6 +117,7 @@ export async function forgotPassword(email: string) {
  * Resets the user's password using a valid reset token.
  */
 export async function resetPassword(token: string, newPassword: string) {
+  assertNewPassword(newPassword);
   // Find all users with non-null reset tokens (there should be very few)
   const usersWithResetTokens = await prisma.user.findMany({
     where: {

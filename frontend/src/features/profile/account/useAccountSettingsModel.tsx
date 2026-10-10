@@ -8,6 +8,7 @@ import { readSessionResource, writeSessionResource } from '@/lib/session-resourc
 
 import api, { setSessionRefreshSuppressed } from '@/lib/axios';
 import { getApiErrorMessage } from '@/lib/api-error';
+import { passwordSchema } from '@/validation/auth.schemas';
 
 import { ProfilePanel, ACCOUNT_DELETION_CONFIRMATION, BasicMealLog } from './AccountSettings.shared';
 export function useAccountSettingsModel({ initialPanel = 'account' }: { initialPanel?: ProfilePanel }) {
@@ -171,6 +172,12 @@ export function useAccountSettingsModel({ initialPanel = 'account' }: { initialP
     e.preventDefault();
     if (newPassword !== confirmPassword) {
       setPasswordError('New passwords do not match.');
+      return;
+    }
+
+    const parsedPassword = passwordSchema.safeParse(newPassword);
+    if (!parsedPassword.success) {
+      setPasswordError(parsedPassword.error.issues[0].message);
       return;
     }
 

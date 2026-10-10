@@ -1,4 +1,5 @@
 import bcrypt from 'bcryptjs';
+import { assertNewPassword } from '@/validation/password.schemas';
 import crypto from 'crypto';
 import { Prisma } from '@prisma/client';
 import prisma from '@/lib/prisma';
@@ -493,6 +494,7 @@ export class NutritionistApplicationService {
   }
 
   static async acceptInvitation(token: string, password: string) {
+    assertNewPassword(password);
     const application = await prisma.nutritionistApplication.findUnique({
       where: { invitationTokenHash: hashToken(token) },
     });

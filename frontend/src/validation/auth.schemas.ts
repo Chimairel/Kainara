@@ -19,7 +19,11 @@ export const passwordSchema = z
   .refine((value) => /\S/.test(value), 'Password cannot consist only of spaces.')
   .regex(/[A-Z]/, 'Password must contain at least one uppercase letter.')
   .regex(/[0-9]/, 'Password must contain at least one number.')
-  .regex(/^[^\u0000-\u001F\u007F]+$/, 'Password cannot contain control characters.');
+  .regex(/^[^\u0000-\u001F\u007F]+$/, 'Password cannot contain control characters.')
+  .refine(
+    (value) => new TextEncoder().encode(value).length <= 72,
+    'Password is too long. Use a shorter password (at most 72 UTF-8 bytes).'
+  );
 
 export const registrationSchema = z
   .object({

@@ -3,6 +3,7 @@ import { body } from 'express-validator';
 import AuthController from '@/controllers/auth.controller';
 import validate from '@/middleware/validate';
 import authenticate from '@/middleware/auth';
+import { passwordFitsBcrypt } from '@/validation/password.schemas';
 import {
   accountCreationLimiter,
   loginLimiter,
@@ -50,7 +51,9 @@ router.post(
       .matches(/[0-9]/)
       .withMessage('Password must contain at least one number.')
       .matches(/^[^\u0000-\u001F\u007F]+$/u)
-      .withMessage('Password cannot contain control characters.'),
+      .withMessage('Password cannot contain control characters.')
+      .custom(passwordFitsBcrypt)
+      .withMessage('Password is too long. Use a shorter password (at most 72 UTF-8 bytes).'),
     validate,
   ],
   AuthController.register
@@ -144,7 +147,9 @@ router.post(
       .matches(/[0-9]/)
       .withMessage('Password must contain at least one number.')
       .matches(/^[^\u0000-\u001F\u007F]+$/u)
-      .withMessage('Password cannot contain control characters.'),
+      .withMessage('Password cannot contain control characters.')
+      .custom(passwordFitsBcrypt)
+      .withMessage('Password is too long. Use a shorter password (at most 72 UTF-8 bytes).'),
     validate,
   ],
   AuthController.resetPassword

@@ -1,7 +1,22 @@
 import { describe, expect, it } from 'vitest';
-import { getLoginFieldErrors, getRegistrationFieldErrors, registrationSchema } from './auth.schemas';
+import {
+  getLoginFieldErrors,
+  getRegistrationFieldErrors,
+  registrationSchema,
+  passwordSchema,
+  loginSchema,
+} from './auth.schemas';
 
 describe('authentication validation', () => {
+  it('blocks truncation on new passwords at the UTF-8 byte boundary and preserves legacy login', () => {
+    const prefix = 'A1' + 'x'.repeat(70);
+    expect(passwordSchema.safeParse(prefix).success).toBe(true);
+    expect(passwordSchema.safeParse(prefix + 'suffix').success).toBe(false);
+    expect(passwordSchema.safeParse('A1' + 'é'.repeat(35)).success).toBe(true);
+    expect(passwordSchema.safeParse('A1' + 'é'.repeat(36)).success).toBe(false);
+    expect(passwordSchema.safeParse('A1' + '😀'.repeat(18)).success).toBe(false);
+    expect(loginSchema.safeParse({ email: 'legacy@example.test', password: prefix + 'suffix' }).success).toBe(true);
+  });
   it('trims names and email while preserving an intentional password', () => {
     const result = registrationSchema.parse({
       firstName: '  Chimairel ',

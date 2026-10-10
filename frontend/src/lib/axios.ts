@@ -53,6 +53,29 @@ api.interceptors.request.use((config) => {
   ) {
     config.timeout = 120_000;
   }
+  // Leave room for authentication, pool acquisition and the database transaction.
+  // Batch import has a 120-second transaction; preview has a 60-second one.
+  // These budgets do not replay mutations when a response is uncertain.
+  if (config.timeout === api.defaults.timeout) {
+    const url = config.url ?? '';
+    const isMutation = ['post', 'put', 'patch', 'delete'].includes(config.method ?? '');
+    if (config.method === 'post' && url === '/admin/meals/batch/import') {
+      config.timeout = 180_000;
+    } else if (config.method === 'post' && /^\/admin\/data\/releases\/[^/]+\/consumption-import$/.test(url)) {
+      config.timeout = 180_000;
+    } else if (
+      (config.method === 'get' && url.startsWith('/admin/')) ||
+      (isMutation &&
+        (url.startsWith('/admin/') ||
+          url.startsWith('/nutritionist/') ||
+          url.startsWith('/user/') ||
+          /^\/auth\/(register|reset-password|forgot-password)$/.test(url)))
+    ) {
+      config.timeout = 90_000;
+    } else if (config.method === 'post' && /^\/auth\/(login|google\/(continue|login|register))$/.test(url)) {
+      config.timeout = 60_000;
+    }
+  }
   const token = cookieHelper.get('nutrimind_session');
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
@@ -182,7 +205,8 @@ api.interceptors.response.use(
             {},
             {
               withCredentials: true,
-              timeout: 15_000,
+              // Rotation itself has a 15-second transaction plus pool/auth reads.
+              timeout: 45_000,
               signal: controller.signal,
             }
           );

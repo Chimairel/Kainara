@@ -5,26 +5,19 @@ import { z } from 'zod';
 import prisma from '@/lib/prisma';
 import { sendVerificationEmail } from '@/lib/email';
 import { AppError } from '@/errors/AppError';
+import { newPasswordSchema } from '@/validation/password.schemas';
 
 const inputSchema = z.object({
   name: z.string().trim().min(1).max(161).optional(),
   email: z.string().trim().toLowerCase().max(254).email().optional(),
   currentPassword: z.string().min(1).max(128).optional(),
-  newPassword: z
-    .string()
-    .regex(/^(?=.*[A-Z])(?=.*\d)[^\u0000-\u001F\u007F]{8,128}$/u)
-    .optional(),
+  newPassword: newPasswordSchema.optional(),
 });
 
 /** Account identity changes and refresh revocation commit together. Mail is sent after commit. */
 export async function updateAccountSettings(userId: string, body: unknown) {
   const parsed = inputSchema.safeParse(body);
-  if (!parsed.success)
-    throw new AppError(
-      'Provide a valid name, email and password (8–128 characters, uppercase letter and number).',
-      400,
-      'INVALID_ACCOUNT_SETTINGS'
-    );
+  if (!parsed.success) throw new AppError(parsed.error.issues[0].message, 400, 'INVALID_ACCOUNT_SETTINGS');
   const input = parsed.data;
   const user = await prisma.user.findUnique({ where: { id: userId } });
   if (!user) throw new AppError('User not found.', 404, 'USER_NOT_FOUND');

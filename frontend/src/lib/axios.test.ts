@@ -53,8 +53,44 @@ describe('session recovery during background requests', () => {
     await api.post('/nutritionist/queue/meal-1/claim', {}, { adapter });
     await api.get('/nutritionist/review-work-counts', { adapter });
     expect(timeouts).toEqual([
-      90_000, 90_000, 30_000, 30_000, 15_000, 30_000, 120_000, 15_000, 90_000, 90_000, 15_000, 30_000, 90_000,
+      90_000, 90_000, 30_000, 30_000, 15_000, 90_000, 120_000, 15_000, 90_000, 90_000, 15_000, 90_000, 90_000,
     ]);
+  });
+
+  it('allows transaction and authentication overhead for admin imports, case audits and clinical decisions', async () => {
+    const timeouts: number[] = [];
+    const adapter: AxiosAdapter = async (config) => {
+      timeouts.push(config.timeout ?? 0);
+      return { data: {}, status: 200, statusText: 'OK', headers: {}, config };
+    };
+    await api.get('/admin/audit-history/audit-1/review-context', { adapter });
+    await api.post('/admin/meals/batch/preview', {}, { adapter });
+    await api.post('/admin/meals/batch/import', {}, { adapter });
+    await api.post('/admin/data/releases/release-1/consumption-import', {}, { adapter });
+    await api.patch('/nutritionist/review/meal-1', {}, { adapter });
+    await api.post('/nutritionist/review/meal-1/replace-and-approve', {}, { adapter });
+    await api.post('/nutritionist/profile-reviews/member-1/decision', {}, { adapter });
+    await api.put('/user/profile/settings', {}, { adapter });
+    await api.post('/user/meals/meal-1/log', {}, { adapter });
+    await api.post('/nutritionist/library/meal-1/flag', {}, { adapter });
+    await api.post('/auth/login', {}, { adapter });
+    await api.post('/auth/register', {}, { adapter });
+    await api.post('/admin/meals/batch/import', {}, { adapter, timeout: 10_000 });
+    expect(timeouts).toEqual([
+      90_000, 90_000, 180_000, 180_000, 90_000, 90_000, 90_000, 90_000, 90_000, 90_000, 60_000, 90_000, 10_000,
+    ]);
+  });
+
+  it('does not replay a decision or import after a timeout or server failure', async () => {
+    for (const url of ['/admin/meals/batch/import', '/nutritionist/review/meal-1']) {
+      for (const status of [undefined, 500, 503]) {
+        const adapter = vi.fn<AxiosAdapter>(async (config) =>
+          Promise.reject({ config, response: status ? { status } : undefined })
+        );
+        await expect(api.post(url, {}, { adapter })).rejects.toBeDefined();
+        expect(adapter).toHaveBeenCalledTimes(1);
+      }
+    }
   });
 
   it('shares one bounded refresh and settles all queued requests after a timeout', async () => {
@@ -74,7 +110,7 @@ describe('session recovery during background requests', () => {
     expect(refresh).toHaveBeenCalledWith(
       expect.stringContaining('/auth/refresh'),
       {},
-      expect.objectContaining({ timeout: 15_000, signal: expect.any(AbortSignal) })
+      expect.objectContaining({ timeout: 45_000, signal: expect.any(AbortSignal) })
     );
     rejectRefresh(new Error('Request timed out'));
     expect((await requests).every((result) => result.status === 'rejected')).toBe(true);
