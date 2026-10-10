@@ -1,3 +1,4 @@
+import * as documentAccess from './clinical-document-access.service';
 import { ClinicalClarificationService } from './clinical-clarification.service';
 import { ClinicalProfileProposalService } from './clinical-profile-proposal.service';
 import { ReviewRoutingService } from './review-routing.service';
@@ -33,13 +34,9 @@ import {
   evidenceAreaForCondition,
   type DiabetesContext,
 } from '@/domain/clinical-evidence-requirement.policy';
-import {
-  decryptClinicalDocument,
-  detectClinicalDocumentMime,
-  encryptClinicalDocument,
-} from '@/lib/clinical-document-crypto';
+import { detectClinicalDocumentMime, encryptClinicalDocument } from '@/lib/clinical-document-crypto';
 
-const CLAIM_TTL_MS = 30 * 60 * 1000;
+const CLAIM_TTL_MS = documentAccess.CLINICAL_DOCUMENT_CLAIM_TTL_MS;
 export const CLINICAL_DOCUMENT_CONSENT_VERSION = 'CLINICAL_DOCUMENT_UPLOAD_V1';
 
 export type ClinicalFactInput = {
@@ -564,43 +561,11 @@ export class ClinicalEvidenceService {
   }
 
   static async fileForUser(userId: string, documentId: string) {
-    const document = await prisma.clinicalDocument.findFirst({ where: { id: documentId, userId } });
-    if (!document) throw new AppError('Clinical document not found.', 404, 'CLINICAL_DOCUMENT_NOT_FOUND');
-    await prisma.auditEvent.create({
-      data: {
-        actorUserId: userId,
-        action: 'CLINICAL_DOCUMENT_ACCESSED',
-        entityType: 'ClinicalDocument',
-        entityId: document.id,
-        metadata: { access: 'OWNER' },
-      },
-    });
-    return { buffer: decryptClinicalDocument(document), mime: document.mimeType, fileName: document.originalFileName };
+    return documentAccess.fileForUser(userId, documentId);
   }
 
   static async fileForClaimedReview(nutritionistProfileId: string, actorUserId: string, documentId: string) {
-    await ReviewRoutingService.assertDocument(nutritionistProfileId, documentId);
-    const cutoff = new Date(Date.now() - CLAIM_TTL_MS);
-    const document = await prisma.clinicalDocument.findFirst({
-      where: {
-        id: documentId,
-        claimedByNutritionistId: nutritionistProfileId,
-        claimedAt: { gte: cutoff },
-        status: { in: ['UPLOADED', 'NEEDS_CLARIFICATION'] },
-      },
-    });
-    if (!document)
-      throw new AppError('Open and claim this document before accessing it.', 409, 'CLINICAL_DOCUMENT_CLAIM_REQUIRED');
-    await prisma.auditEvent.create({
-      data: {
-        actorUserId,
-        action: 'CLINICAL_DOCUMENT_ACCESSED',
-        entityType: 'ClinicalDocument',
-        entityId: document.id,
-        metadata: { access: 'RND_REVIEW' },
-      },
-    });
-    return { buffer: decryptClinicalDocument(document), mime: document.mimeType, fileName: document.originalFileName };
+    return documentAccess.fileForClaimedReview(nutritionistProfileId, actorUserId, documentId);
   }
 
   static async fileForClaimedProfileWork(
@@ -609,29 +574,7 @@ export class ClinicalEvidenceService {
     userId: string,
     documentId: string
   ) {
-    await ReviewRoutingService.assertDocument(nutritionistProfileId, documentId);
-    const cutoff = new Date(Date.now() - CLAIM_TTL_MS);
-    const document = await prisma.clinicalDocument.findFirst({
-      where: {
-        id: documentId,
-        userId,
-        claimedByNutritionistId: nutritionistProfileId,
-        claimedAt: { gte: cutoff },
-        status: { not: ClinicalDocumentStatus.WITHDRAWN },
-      },
-    });
-    if (!document)
-      throw new AppError('Open and claim this document before accessing it.', 409, 'CLINICAL_DOCUMENT_CLAIM_REQUIRED');
-    await prisma.auditEvent.create({
-      data: {
-        actorUserId,
-        action: 'CLINICAL_DOCUMENT_ACCESSED',
-        entityType: 'ClinicalDocument',
-        entityId: document.id,
-        metadata: { access: 'RND_PROFILE_WORK' },
-      },
-    });
-    return { buffer: decryptClinicalDocument(document), mime: document.mimeType, fileName: document.originalFileName };
+    return documentAccess.fileForClaimedProfileWork(nutritionistProfileId, actorUserId, userId, documentId);
   }
 
   static async fileForClaimedMealReview(
@@ -640,44 +583,13 @@ export class ClinicalEvidenceService {
     mealPlanId: string,
     documentId: string
   ) {
-    await ReviewRoutingService.assertMeal(nutritionistProfileId, mealPlanId);
-    const cutoff = new Date(Date.now() - CLAIM_TTL_MS);
-    const meal = await prisma.mealPlan.findFirst({
-      where: {
-        id: mealPlanId,
-        claimedByNutritionistId: nutritionistProfileId,
-        claimedAt: { gte: cutoff },
-        status: 'PENDING_REVIEW',
-      },
-      select: { userId: true },
-    });
-    if (!meal) throw new AppError('A current meal-review claim is required.', 409, 'MEAL_REVIEW_CLAIM_REQUIRED');
-    const document = await prisma.clinicalDocument.findFirst({
-      where: {
-        id: documentId,
-        userId: meal.userId,
-        status: ClinicalDocumentStatus.SUFFICIENT_FOR_NUTRITION_REVIEW,
-        OR: [{ validUntil: null }, { validUntil: { gte: new Date() } }],
-      },
-    });
-    if (!document) throw new AppError('Current supporting document not found.', 404, 'CLINICAL_DOCUMENT_NOT_FOUND');
-    const requirements = await this.requirementsForUser(meal.userId);
-    if (!requirements.some((item) => item.readyDocumentIds.includes(document.id)))
-      throw new AppError(
-        'This document is not part of the current meal-review evidence.',
-        403,
-        'CLINICAL_DOCUMENT_NOT_IN_SCOPE'
-      );
-    await prisma.auditEvent.create({
-      data: {
-        actorUserId,
-        action: 'CLINICAL_DOCUMENT_ACCESSED',
-        entityType: 'ClinicalDocument',
-        entityId: document.id,
-        metadata: { access: 'MEAL_REVIEW', mealPlanId },
-      },
-    });
-    return { buffer: decryptClinicalDocument(document), mime: document.mimeType, fileName: document.originalFileName };
+    return documentAccess.fileForClaimedMealReview(
+      nutritionistProfileId,
+      actorUserId,
+      mealPlanId,
+      documentId,
+      (userId) => this.requirementsForUser(userId)
+    );
   }
 
   static async review(input: {

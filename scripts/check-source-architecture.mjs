@@ -28,6 +28,10 @@ const entryPointLimits = new Map([
   ['frontend/src/features/nutritionist-application/ApplicationWizard.tsx', 150],
   ['backend/src/controllers/meals.controller.ts', 100],
   ['backend/src/services/auth.service.ts', 100],
+  ['backend/src/services/meal-plan-composition.service.ts', 800],
+  ['backend/src/services/clinical-evidence.service.ts', 800],
+  ['frontend/src/features/meals/useMealsWorkspace.ts', 700],
+  ['frontend/src/features/nutritionist-reviews/useNutritionistReviews.ts', 600],
 ]);
 
 function collectFiles(directory) {

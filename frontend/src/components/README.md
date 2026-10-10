@@ -116,3 +116,5 @@ LandingMealGallery pairs the hero heading with five tilted, alternating vertical
 
 
 Meal case context updates: `useNutritionistReviews` owns the expected review context and session-only unfinished notes. `CaseReviewWorkspace` displays invalidation notices and the saved-notes modal outside the fullscreen canvas. Reuse the shared canvas/decision and swap components; do not reload the browser or replace live case evidence when its context changes.
+
+`useCaseReviewQueue` owns case-queue transport, owner-scoped caching, request coalescing and generation fencing. Keep decision/context handling in `useNutritionistReviews`; shared review contracts live in `review-types.ts` and remain re-exported by that hook. `meal-plan-presentation.ts` derives member plan dates, groups and counts without fetching or mutating plans; `useMealsWorkspace` owns transport, actions and selection.

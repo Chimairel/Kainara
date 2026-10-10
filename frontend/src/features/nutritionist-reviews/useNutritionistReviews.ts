@@ -1,185 +1,24 @@
+import { useCaseReviewQueue } from './useCaseReviewQueue';
 import { useVisiblePolling } from '@/hooks/useVisiblePolling';
 import { useAuth } from '@/hooks/useAuth';
 import { getApiErrorMessage } from '@/lib/api-error';
 import api from '@/lib/axios';
-import { invalidateSessionResource, readSessionResource, writeSessionResource } from '@/lib/session-resource-cache';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { IngredientEvidenceSource } from './ingredient-evidence';
 
-import type { ReviewRouting } from './review-routing';
 import { useRndClarificationDraft, type DraftQuestion } from '@/features/clinical-clarification/RndClarifications';
-import type { ClarificationWorkspace } from '@/features/clinical-clarification/types';
-export interface QueueItem {
-  routing?: ReviewRouting;
-  id: string;
-  mealName: string;
-  mealType: string;
-  calories: number;
-  proteinG: number;
-  carbsG: number;
-  fatG: number;
-  aiConfidenceFlag: string;
-  requiresSafetyRevalidation?: boolean;
-  description?: string;
-  scheduledDate: string;
-  user: { id: string; name: string };
-  ingredients: { ingredientName: string; dataSource: string }[];
-  claimStatus: {
-    claimedByMe: boolean;
-    claimedByOther: boolean;
-    claimedByName: string | null;
-    coolingDownForMe?: boolean;
-    cooldownUntil?: string | null;
-    claimExpiresAt?: string | null;
-  };
-  highRiskReviewRequired: boolean;
-  reviewApprovalCount: number;
-  requiresIndependentSecondReview: boolean;
-  intendedCycle: { id: string; startDate: string; endDate: string; status: string };
-  shoppingDeadlineAt: string;
-  cookDeadlineAt: string;
-  assuranceTier: 'BASE' | 'STANDARD' | 'ENHANCED';
-  reviewStage: 'PRIMARY' | 'SECONDARY';
-  remainingReviewers: number;
-  deterministicFindings: { confidence: string; estimatedIngredientCount: number };
-  sourceProvenance: 'CERTIFIED_LIBRARY' | 'RAW_RECIPE_CORPUS' | 'AI_FROM_SCRATCH';
-  fallbackAvailable: boolean;
-  rankingReasonCodes: string[];
-  deadlinePriorityReason: string;
-  coalescedDependentCount: number;
-}
-
-export interface DetailData {
-  reviewReferences?: Array<{
-    reviewedAt: string;
-    reviewerName: string | null;
-    decision: 'APPROVE';
-    plateFacts: { calories: number; proteinG: number; carbsG: number; fatG: number } | null;
-    match: string;
-    use: string;
-  }>;
-  clarifications?: ClarificationWorkspace;
-  reviewContext?: { contextKey: string; profileRevision: number; scopeKey: string };
-  clinicalEvidence?: {
-    policyVersion: string;
-    healthDetails?: Array<{ area: string; responses: Record<string, unknown>; revision: number }>;
-    requirements: Array<{ area: string; state: string; message: string }>;
-    documents: Array<{
-      id: string;
-      area: string;
-      documentType: string;
-      validUntil: string | null;
-      facts: Array<{ code: string; valueText: string | null; valueNumber: number | null; unit: string | null }>;
-    }>;
-  };
-  mealPlan: {
-    id: string;
-    planGroupId: string;
-    userId: string;
-    status: string;
-    mealType: string;
-    mealName: string;
-    description?: string;
-    calories: number;
-    proteinG: number;
-    carbsG: number;
-    fatG: number;
-    aiConfidenceFlag: string;
-    requiresSafetyRevalidation?: boolean;
-    planType: string;
-    scheduledDate: string;
-    createdAt: string;
-  };
-  user: {
-    name: string;
-    age: number;
-    sex: string;
-    goal: string;
-    dailyCalorieTarget: number;
-    dietaryPreference: string;
-    ricePreference: string;
-    conditions: string[];
-    allergies: string[];
-    safetyEntries?: Array<{
-      mealPlanningAssessment?: { result: string; rationale: string; reviewerName: string } | null;
-      domain: 'CONDITION' | 'ALLERGY' | 'INTOLERANCE' | 'AVOIDED_INGREDIENT' | 'UNKNOWN';
-      label: string;
-      supportState: string;
-    }>;
-  };
-  ingredients: {
-    name: string;
-    source: IngredientEvidenceSource;
-    foodItemId?: string | null;
-    compositionFoodName?: string | null;
-    compositionSource?: string | null;
-    compositionSourceUrl?: string | null;
-    quantity?: number | null;
-    unit?: string | null;
-  }[];
-  warnings: {
-    severity: 'CRITICAL' | 'IMPORTANT' | 'NOTICE';
-    message: string;
-  }[];
-  claimStatus: {
-    claimedByMe: boolean;
-    claimedByOther: boolean;
-    claimedByName: string | null;
-    coolingDownForMe?: boolean;
-    cooldownUntil?: string | null;
-    claimExpiresAt?: string | null;
-  };
-  highRiskReviewRequired: boolean;
-  reviewApprovalCount: number;
-  requiresIndependentSecondReview: boolean;
-}
-
-export interface ReviewPayload {
-  expectedContextKey?: string;
-  action: 'approve';
-  note?: string;
-  updates?: {
-    mealName: string;
-    description: string;
-    calories: number;
-    proteinG: number;
-    carbsG: number;
-    fatG: number;
-    ingredients: { name: string; category: string; dataSource: IngredientEvidenceSource }[];
-  };
-}
-
-export interface CandidateMeal {
-  mealName: string;
-  description: string;
-  calories: number;
-  proteinG: number;
-  carbsG: number;
-  fatG: number;
-  ingredients: { name: string; category?: string; dataSource?: 'FNRI' | 'GEMINI_ESTIMATED' }[];
-}
-
-export type ReviewEditForm = {
-  mealName: string;
-  description: string;
-  calories: number;
-  proteinG: number;
-  carbsG: number;
-  fatG: number;
-  ingredients: { name: string; category: string; dataSource: IngredientEvidenceSource }[];
-};
+export type { QueueItem, DetailData, ReviewPayload, CandidateMeal, ReviewEditForm } from './review-types';
+import type { DetailData, ReviewPayload, CandidateMeal } from './review-types';
 
 export function useNutritionistReviews(enabled = true) {
   const ownerId = useAuth().user?.userId;
   const resourceOwner = useRef(ownerId);
-  const cachedQueue = readSessionResource<QueueItem[]>(ownerId, 'nutritionist-case-queue', 30_000);
-  const [queue, setQueue] = useState<QueueItem[]>(cachedQueue ?? []);
-  const [isLoading, setIsLoading] = useState(!cachedQueue);
-  const [queueError, setQueueError] = useState<string | null>(null);
   const liveOwner = useRef(ownerId);
   liveOwner.current = ownerId;
-  const queueGeneration = useRef(0);
-  const queueFlight = useRef<{ ownerId: string | undefined; generation: number; request: Promise<void> } | null>(null);
+  const { queue, isLoading, queueError, fetchQueue, resetQueue, removeFromQueue } = useCaseReviewQueue(
+    ownerId,
+    liveOwner
+  );
 
   // Selected Card Details
   const [selectedMealId, setSelectedMealIdState] = useState<string | null>(null);
@@ -287,9 +126,7 @@ export function useNutritionistReviews(enabled = true) {
       notice ??
         'This review is no longer current. Your unfinished notes and questions are saved for this session. Select an available case to continue.'
     );
-    queueGeneration.current++;
-    invalidateSessionResource(ownerId, 'nutritionist-case-queue');
-    setQueue((previous) => previous.filter((meal) => meal.id !== id));
+    removeFromQueue(id);
     setSelectedMealId(null);
     setDetailData(null);
     setShowRejectForm(false);
@@ -300,62 +137,9 @@ export function useNutritionistReviews(enabled = true) {
     return true;
   };
 
-  const fetchQueue = useCallback(
-    (silent = false, signal?: AbortSignal, fresh = false) => {
-      if (fresh) queueGeneration.current++;
-      const generation = queueGeneration.current;
-      if (
-        queueFlight.current &&
-        queueFlight.current.ownerId === ownerId &&
-        queueFlight.current.generation === generation
-      )
-        return queueFlight.current.request;
-      const load = async () => {
-        if (!silent) {
-          setQueueError(null);
-          if (!readSessionResource<QueueItem[]>(ownerId, 'nutritionist-case-queue', 30_000)) setIsLoading(true);
-        }
-        try {
-          const res = await api.get('/nutritionist/queue', { signal });
-          if (signal?.aborted || liveOwner.current !== ownerId || generation !== queueGeneration.current) return;
-          if (res.data?.success && Array.isArray(res.data.data)) {
-            setQueue(res.data.data);
-            setQueueError(null);
-            writeSessionResource(ownerId, 'nutritionist-case-queue', res.data.data);
-          } else throw new Error('Unexpected review queue response.');
-        } catch (err) {
-          if (!signal?.aborted && liveOwner.current === ownerId && generation === queueGeneration.current) {
-            const code = (err as { code?: string } | null)?.code;
-            setQueueError(
-              getApiErrorMessage(
-                err,
-                code === 'ECONNABORTED' || code === 'ETIMEDOUT'
-                  ? 'Loading the review queue took too long. Please retry.'
-                  : 'The review queue could not be refreshed. Please retry.'
-              )
-            );
-          }
-        } finally {
-          if (!silent && liveOwner.current === ownerId && generation === queueGeneration.current) setIsLoading(false);
-        }
-      };
-      const request: Promise<void> = load().finally(() => {
-        if (queueFlight.current?.request === request) queueFlight.current = null;
-      });
-      queueFlight.current = { ownerId, generation, request };
-      return request;
-    },
-    [ownerId]
-  );
-
   useEffect(() => {
     resourceOwner.current = ownerId;
-    queueGeneration.current++;
-    queueFlight.current = null;
-    const saved = readSessionResource<QueueItem[]>(ownerId, 'nutritionist-case-queue', 30_000);
-    setQueue(saved ?? []);
-    setQueueError(null);
-    setIsLoading(!saved);
+    resetQueue();
     setSelectedMealId(null);
     setDetailData(null);
     setReviewNotice(null);
@@ -370,7 +154,7 @@ export function useNutritionistReviews(enabled = true) {
     setIsEditing(false);
     setCandidateMeal(null);
     setIsGeneratingCandidate(false);
-  }, [ownerId, setSelectedMealId]);
+  }, [ownerId, setSelectedMealId, resetQueue]);
 
   useEffect(() => {
     if (enabled) void fetchQueue();
@@ -532,10 +316,7 @@ export function useNutritionistReviews(enabled = true) {
 
       await api.patch(`/nutritionist/review/${selectedMealId}`, payload);
       if (!stillSelected()) return;
-      queueGeneration.current++;
-      queueFlight.current = null;
-      invalidateSessionResource(ownerId, 'nutritionist-case-queue');
-      setQueue((prev) => prev.filter((m) => m.id !== selectedMealId));
+      removeFromQueue(selectedMealId, true);
       setSelectedMealId(null);
       setDetailData(null);
       setIsEditing(false);
@@ -564,10 +345,7 @@ export function useNutritionistReviews(enabled = true) {
         note: rejectNote.trim(),
       });
       if (!stillSelected()) return;
-      queueGeneration.current++;
-      queueFlight.current = null;
-      invalidateSessionResource(ownerId, 'nutritionist-case-queue');
-      setQueue((prev) => prev.filter((m) => m.id !== selectedMealId));
+      removeFromQueue(selectedMealId, true);
       setSelectedMealId(null);
       setDetailData(null);
       setShowRejectForm(false);
@@ -628,10 +406,7 @@ export function useNutritionistReviews(enabled = true) {
         ...(detailData?.reviewContext ? { expectedContextKey: detailData.reviewContext.contextKey } : {}),
       });
       if (!stillSelected()) return;
-      queueGeneration.current++;
-      queueFlight.current = null;
-      invalidateSessionResource(ownerId, 'nutritionist-case-queue');
-      setQueue((prev) => prev.filter((m) => m.id !== selectedMealId));
+      removeFromQueue(selectedMealId, true);
       setSelectedMealId(null);
       setDetailData(null);
       setShowRejectForm(false);
