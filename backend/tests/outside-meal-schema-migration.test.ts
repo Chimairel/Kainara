@@ -18,7 +18,7 @@ const outsideMealModal = [
   .map((file) => readFileSync(file, 'utf8'))
   .join('\n');
 const outsideMealPreview = readFileSync('../frontend/src/features/dashboard/OutsideMealPreview.tsx', 'utf8');
-const dashboardSummary = readFileSync('../frontend/src/features/dashboard/DashboardSummary.tsx', 'utf8');
+const dashboardSummary = readFileSync('../frontend/src/features/dashboard/CockpitDashboard.tsx', 'utf8');
 
 test('[TEST-178] outside meals preserve item provenance, revisions, review state, and AI usage', () => {
   for (const model of ['OutsideMealLogItem', 'OutsideMealItemRevision', 'OutsideMealReview', 'OutsideMealAiUsage']) {
@@ -47,5 +47,5 @@ test('[TEST-181] user UI explains comma input, sources, provisional totals, and 
   assert.match(outsideMealPreview, /Not counted/);
   assert.doesNotMatch(outsideMealModal, /split\(['"]and['"]\)/);
   assert.match(dashboardSummary, /provisional kcal/);
-  assert.match(dashboardSummary, /unresolved food excluded/);
+  assert.match(dashboardSummary, /Unresolved items are excluded from totals/);
 });

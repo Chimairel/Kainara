@@ -131,33 +131,4 @@ export interface ReviewPayload {
   expectedContextKey?: string;
   action: 'approve';
   note?: string;
-  updates?: {
-    mealName: string;
-    description: string;
-    calories: number;
-    proteinG: number;
-    carbsG: number;
-    fatG: number;
-    ingredients: { name: string; category: string; dataSource: IngredientEvidenceSource }[];
-  };
 }
-
-export interface CandidateMeal {
-  mealName: string;
-  description: string;
-  calories: number;
-  proteinG: number;
-  carbsG: number;
-  fatG: number;
-  ingredients: { name: string; category?: string; dataSource?: 'FNRI' | 'GEMINI_ESTIMATED' }[];
-}
-
-export type ReviewEditForm = {
-  mealName: string;
-  description: string;
-  calories: number;
-  proteinG: number;
-  carbsG: number;
-  fatG: number;
-  ingredients: { name: string; category: string; dataSource: IngredientEvidenceSource }[];
-};

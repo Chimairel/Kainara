@@ -2,6 +2,12 @@
 
 Use these components before copying markup from another page. Role authorization, eligibility, claim state and mutation handling belong in the caller.
 
+## Removing obsolete UI
+
+Follow imports from the Next.js route and layout entry points before removing a component. Check dynamic imports, CSS, tests, scripts and public asset references as well. Tests and fixtures are separate entry points; a test for a superseded widget does not make it active application UI. Remove an obsolete widget's dedicated tests with it, and retain coverage of the current replacement.
+
+The October 10 cleanup removed the superseded dashboard summary/schedule, grocery cards, recipe catalog presentation, location fields and unused downloaded widgets. Current member surfaces use `DashboardWorkspace` / `CockpitDashboard`, `GroceryWorkspace` and `MealLibraryPanel`. Case decisions use `CaseDecisionSection` and the shared decision/swap dialogs. `useNutritionistReviews` retains claims, context checks, approval, rejection and notes; ingredient editing and the old generate-and-approve client flow have been removed. Data imports, operational scripts, migrations and historical illustrations are independent of UI reachability and require their own checks.
+
 | Presentation | Component | Existing examples |
 | --- | --- | --- |
 | Default surface | `ui/Card` | Membership statistics/calendar, progress, settings |
