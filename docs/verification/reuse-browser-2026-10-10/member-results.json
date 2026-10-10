@@ -1,0 +1,99 @@
+[
+  {
+    "key": "DIABETES",
+    "freshReviewer": true,
+    "ownNotes": true,
+    "sourceNotesHidden": true
+  },
+  {
+    "key": "HYPERTENSION",
+    "freshReviewer": true,
+    "ownNotes": true,
+    "sourceNotesHidden": true
+  },
+  {
+    "key": "KIDNEY_DISEASE",
+    "freshReviewer": true,
+    "ownNotes": true,
+    "sourceNotesHidden": true
+  },
+  {
+    "key": "HEART_CONDITION",
+    "freshReviewer": true,
+    "ownNotes": true,
+    "sourceNotesHidden": true
+  },
+  {
+    "key": "PREGNANT",
+    "freshReviewer": true,
+    "ownNotes": true,
+    "sourceNotesHidden": true
+  },
+  {
+    "key": "GOUT",
+    "freshReviewer": true,
+    "ownNotes": true,
+    "sourceNotesHidden": true
+  },
+  {
+    "key": "CELIAC_DISEASE",
+    "freshReviewer": true,
+    "ownNotes": true,
+    "sourceNotesHidden": true
+  },
+  {
+    "key": "PCOS",
+    "freshReviewer": true,
+    "ownNotes": true,
+    "sourceNotesHidden": true
+  },
+  {
+    "key": "GERD",
+    "freshReviewer": true,
+    "ownNotes": true,
+    "sourceNotesHidden": true
+  },
+  {
+    "key": "SHELLFISH",
+    "freshReviewer": true,
+    "ownNotes": true,
+    "sourceNotesHidden": true
+  },
+  {
+    "key": "NUTS",
+    "freshReviewer": true,
+    "ownNotes": true,
+    "sourceNotesHidden": true
+  },
+  {
+    "key": "DAIRY",
+    "freshReviewer": true,
+    "ownNotes": true,
+    "sourceNotesHidden": true
+  },
+  {
+    "key": "GLUTEN",
+    "freshReviewer": true,
+    "ownNotes": true,
+    "sourceNotesHidden": true
+  },
+  {
+    "key": "EGGS",
+    "freshReviewer": true,
+    "ownNotes": true,
+    "sourceNotesHidden": true
+  },
+  {
+    "key": "COMBINED",
+    "freshReviewer": true,
+    "ownNotes": true,
+    "sourceNotesHidden": true
+  },
+  {
+    "key": "NONE",
+    "reviewer": "Reuse reviewer",
+    "freshMemberNote": true,
+    "sourcePrivateNoteHidden": true,
+    "fixtureReplacement": true
+  }
+]

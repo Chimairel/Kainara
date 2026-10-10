@@ -10,6 +10,7 @@ const hiddenFields = new Set([
   'mealPlanId',
   'planGroupId',
   'libraryMealId',
+  'foodItemId',
   'sourceRawRecipeCandidateId',
   'contextKey',
   'scopeKey',

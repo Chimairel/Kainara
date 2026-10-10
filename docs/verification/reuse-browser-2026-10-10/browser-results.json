@@ -1,0 +1,353 @@
+{
+  "decisions": [
+    {
+      "key": "NONE",
+      "phase": "source",
+      "approved": true
+    },
+    {
+      "key": "DIABETES",
+      "phase": "source",
+      "referenceText": "Prior review references\n\nExact recorded inputs and recipe serving. Review the current case before making a separate decision.\n\nNo matching prior review is available.",
+      "approved": true
+    },
+    {
+      "key": "HYPERTENSION",
+      "phase": "source",
+      "referenceText": "Prior review references\n\nExact recorded inputs and recipe serving. Review the current case before making a separate decision.\n\nNo matching prior review is available.",
+      "approved": true
+    },
+    {
+      "key": "KIDNEY_DISEASE",
+      "phase": "source",
+      "referenceText": "Prior review references\n\nExact recorded inputs and recipe serving. Review the current case before making a separate decision.\n\nNo matching prior review is available.",
+      "approved": true
+    },
+    {
+      "key": "HEART_CONDITION",
+      "phase": "source",
+      "referenceText": "Prior review references\n\nExact recorded inputs and recipe serving. Review the current case before making a separate decision.\n\nNo matching prior review is available.",
+      "approved": true
+    },
+    {
+      "key": "PREGNANT",
+      "phase": "source",
+      "referenceText": "Prior review references\n\nExact recorded inputs and recipe serving. Review the current case before making a separate decision.\n\nNo matching prior review is available.",
+      "approved": true
+    },
+    {
+      "key": "GOUT",
+      "phase": "source",
+      "referenceText": "Prior review references\n\nExact recorded inputs and recipe serving. Review the current case before making a separate decision.\n\nNo matching prior review is available.",
+      "approved": true
+    },
+    {
+      "key": "CELIAC_DISEASE",
+      "phase": "source",
+      "referenceText": "Prior review references\n\nExact recorded inputs and recipe serving. Review the current case before making a separate decision.\n\nNo matching prior review is available.",
+      "approved": true
+    },
+    {
+      "key": "PCOS",
+      "phase": "source",
+      "referenceText": "Prior review references\n\nExact recorded inputs and recipe serving. Review the current case before making a separate decision.\n\nNo matching prior review is available.",
+      "approved": true
+    },
+    {
+      "key": "GERD",
+      "phase": "source",
+      "referenceText": "Prior review references\n\nExact recorded inputs and recipe serving. Review the current case before making a separate decision.\n\nNo matching prior review is available.",
+      "approved": true
+    },
+    {
+      "key": "SHELLFISH",
+      "phase": "source",
+      "referenceText": "Prior review references\n\nExact recorded inputs and recipe serving. Review the current case before making a separate decision.\n\nNo matching prior review is available.",
+      "approved": true
+    },
+    {
+      "key": "NUTS",
+      "phase": "source",
+      "referenceText": "Prior review references\n\nExact recorded inputs and recipe serving. Review the current case before making a separate decision.\n\nNo matching prior review is available.",
+      "approved": true
+    },
+    {
+      "key": "DAIRY",
+      "phase": "source",
+      "referenceText": "Prior review references\n\nExact recorded inputs and recipe serving. Review the current case before making a separate decision.\n\nNo matching prior review is available.",
+      "approved": true
+    },
+    {
+      "key": "GLUTEN",
+      "phase": "source",
+      "referenceText": "Prior review references\n\nExact recorded inputs and recipe serving. Review the current case before making a separate decision.\n\nNo matching prior review is available.",
+      "approved": true
+    },
+    {
+      "key": "EGGS",
+      "phase": "source",
+      "referenceText": "Prior review references\n\nExact recorded inputs and recipe serving. Review the current case before making a separate decision.\n\nNo matching prior review is available.",
+      "approved": true
+    },
+    {
+      "key": "COMBINED",
+      "phase": "source",
+      "referenceText": "Prior review references\n\nExact recorded inputs and recipe serving. Review the current case before making a separate decision.\n\nNo matching prior review is available.",
+      "approved": true
+    },
+    {
+      "key": "NONE",
+      "phase": "target",
+      "referenceText": "Prior review references\n\nExact recorded inputs and recipe serving. Review the current case before making a separate decision.\n\nApproved by Reuse author, RND · Oct 10, 2026",
+      "approved": true
+    },
+    {
+      "key": "DIABETES",
+      "phase": "target",
+      "referenceText": "Prior review references\n\nExact recorded inputs and recipe serving. Review the current case before making a separate decision.\n\nApproved by Reuse author, RND · Oct 10, 2026",
+      "approved": true
+    },
+    {
+      "key": "HYPERTENSION",
+      "phase": "target",
+      "referenceText": "Prior review references\n\nExact recorded inputs and recipe serving. Review the current case before making a separate decision.\n\nApproved by Reuse author, RND · Oct 10, 2026",
+      "approved": true
+    },
+    {
+      "key": "KIDNEY_DISEASE",
+      "phase": "target",
+      "referenceText": "Prior review references\n\nExact recorded inputs and recipe serving. Review the current case before making a separate decision.\n\nApproved by Reuse author, RND · Oct 10, 2026",
+      "approved": true
+    },
+    {
+      "key": "HEART_CONDITION",
+      "phase": "target",
+      "referenceText": "Prior review references\n\nExact recorded inputs and recipe serving. Review the current case before making a separate decision.\n\nApproved by Reuse author, RND · Oct 10, 2026",
+      "approved": true
+    },
+    {
+      "key": "PREGNANT",
+      "phase": "target",
+      "referenceText": "Prior review references\n\nExact recorded inputs and recipe serving. Review the current case before making a separate decision.\n\nApproved by Reuse author, RND · Oct 10, 2026",
+      "approved": true
+    },
+    {
+      "key": "GOUT",
+      "phase": "target",
+      "referenceText": "Prior review references\n\nExact recorded inputs and recipe serving. Review the current case before making a separate decision.\n\nApproved by Reuse author, RND · Oct 10, 2026",
+      "approved": true
+    },
+    {
+      "key": "CELIAC_DISEASE",
+      "phase": "target",
+      "referenceText": "Prior review references\n\nExact recorded inputs and recipe serving. Review the current case before making a separate decision.\n\nApproved by Reuse author, RND · Oct 10, 2026",
+      "approved": true
+    },
+    {
+      "key": "PCOS",
+      "phase": "target",
+      "referenceText": "Prior review references\n\nExact recorded inputs and recipe serving. Review the current case before making a separate decision.\n\nApproved by Reuse author, RND · Oct 10, 2026",
+      "approved": true
+    },
+    {
+      "key": "GERD",
+      "phase": "target",
+      "referenceText": "Prior review references\n\nExact recorded inputs and recipe serving. Review the current case before making a separate decision.\n\nApproved by Reuse author, RND · Oct 10, 2026",
+      "approved": true
+    },
+    {
+      "key": "SHELLFISH",
+      "phase": "target",
+      "referenceText": "Prior review references\n\nExact recorded inputs and recipe serving. Review the current case before making a separate decision.\n\nApproved by Reuse author, RND · Oct 10, 2026",
+      "approved": true
+    },
+    {
+      "key": "NUTS",
+      "phase": "target",
+      "referenceText": "Prior review references\n\nExact recorded inputs and recipe serving. Review the current case before making a separate decision.\n\nApproved by Reuse author, RND · Oct 10, 2026",
+      "approved": true
+    },
+    {
+      "key": "DAIRY",
+      "phase": "target",
+      "referenceText": "Prior review references\n\nExact recorded inputs and recipe serving. Review the current case before making a separate decision.\n\nApproved by Reuse author, RND · Oct 10, 2026",
+      "approved": true
+    },
+    {
+      "key": "GLUTEN",
+      "phase": "target",
+      "referenceText": "Prior review references\n\nExact recorded inputs and recipe serving. Review the current case before making a separate decision.\n\nApproved by Reuse author, RND · Oct 10, 2026",
+      "approved": true
+    },
+    {
+      "key": "EGGS",
+      "phase": "target",
+      "referenceText": "Prior review references\n\nExact recorded inputs and recipe serving. Review the current case before making a separate decision.\n\nApproved by Reuse author, RND · Oct 10, 2026",
+      "approved": true
+    },
+    {
+      "key": "COMBINED",
+      "phase": "target",
+      "referenceText": "Prior review references\n\nExact recorded inputs and recipe serving. Review the current case before making a separate decision.\n\nApproved by Reuse author, RND · Oct 10, 2026",
+      "approved": true
+    },
+    {
+      "key": "NONE",
+      "phase": "target-replacement",
+      "referenceText": "Approved by Reuse reviewer, RND and Reuse author, RND; exact recorded inputs and serving.",
+      "approved": true
+    }
+  ],
+  "targetPreviews": [
+    {
+      "key": "NONE",
+      "matched": true,
+      "freshDecisionRequired": true,
+      "privateNotesHidden": true,
+      "profile": "KAINARA · RND REVIEW RECORD\n\nMember health profile\n\nReuse NONE target · Oct 11, 2026\n\nRN\nMEMBER HEALTH PROFILE\nReuse NONE target\n\n36 yrs • MALE\n\nConditions\nNone declared\nAllergies\nNone declared\nTarget Goal\nMAINTAIN\nDaily Target\n2000 kcal\nDiet Preference\nOMNIVORE\nRice Preference\nWITH_RICE\nInspection record · approval is recorded separately\nPage 1",
+      "text": "Prior review references\n\nExact recorded inputs and recipe serving. Review the current case before making a separate decision.\n\nApproved by Reuse author, RND · Oct 10, 2026"
+    },
+    {
+      "key": "DIABETES",
+      "matched": true,
+      "freshDecisionRequired": true,
+      "privateNotesHidden": true,
+      "profile": "KAINARA · RND REVIEW RECORD\n\nMember health profile\n\nReuse DIABETES target · Oct 11, 2026\n\nRD\nMEMBER HEALTH PROFILE\nReuse DIABETES target\n\n36 yrs • MALE\n\nConditions\nDIABETES\nAllergies\nNone declared\nComplete structured restrictions\nDiabetes\nCONDITION · SUPPORTED\nHealth details reviewed for the profile\n\nDIABETES · member-provided\n\ncondition Details: Synthetic stable DIABETES NONE case, documented for software testing.\n\nmedications: None reported in this synthetic case.\n\ndietary Advice: Recorded synthetic advice for review.\n\nrecent Symptoms: None reported.\n\nmeasurements: Synthetic measurements available.\n\nDIABETES: User-provided details are available for nutritionist review.\n\nTarget Goal\nMAINTAIN\nDaily Target\n2000 kcal\nDiet Preference\nOMNIVORE\nRice Preference\nWITH_RICE\nInspection record · approval is recorded separately\nPage 1",
+      "text": "Prior review references\n\nExact recorded inputs and recipe serving. Review the current case before making a separate decision.\n\nApproved by Reuse author, RND · Oct 10, 2026"
+    },
+    {
+      "key": "HYPERTENSION",
+      "matched": true,
+      "freshDecisionRequired": true,
+      "privateNotesHidden": true,
+      "profile": "KAINARA · RND REVIEW RECORD\n\nMember health profile\n\nReuse HYPERTENSION target · Oct 11, 2026\n\nRH\nMEMBER HEALTH PROFILE\nReuse HYPERTENSION target\n\n36 yrs • MALE\n\nConditions\nHYPERTENSION\nAllergies\nNone declared\nComplete structured restrictions\nHypertension\nCONDITION · SUPPORTED\nHealth details reviewed for the profile\n\nHYPERTENSION · member-provided\n\ncondition Details: Synthetic stable HYPERTENSION NONE case, documented for software testing.\n\nmedications: None reported in this synthetic case.\n\ndietary Advice: Recorded synthetic advice for review.\n\nrecent Symptoms: None reported.\n\nmeasurements: Synthetic measurements available.\n\nHYPERTENSION: User-provided details are available for nutritionist review.\n\nTarget Goal\nMAINTAIN\nDaily Target\n2000 kcal\nDiet Preference\nOMNIVORE\nRice Preference\nWITH_RICE\nInspection record · approval is recorded separately\nPage 1",
+      "text": "Prior review references\n\nExact recorded inputs and recipe serving. Review the current case before making a separate decision.\n\nApproved by Reuse author, RND · Oct 10, 2026"
+    },
+    {
+      "key": "KIDNEY_DISEASE",
+      "matched": true,
+      "freshDecisionRequired": true,
+      "privateNotesHidden": true,
+      "profile": "KAINARA · RND REVIEW RECORD\n\nMember health profile\n\nReuse KIDNEY_DISEASE target · Oct 11, 2026\n\nRK\nMEMBER HEALTH PROFILE\nReuse KIDNEY_DISEASE target\n\n36 yrs • MALE\n\nConditions\nKIDNEY_DISEASE\nAllergies\nNone declared\nComplete structured restrictions\nKidney disease\nCONDITION · RECOGNIZED UNSUPPORTED\nHealth details reviewed for the profile\n\nKIDNEY DISEASE · member-provided\n\ncondition Details: Synthetic stable KIDNEY_DISEASE NONE case, documented for software testing.\n\nmedications: None reported in this synthetic case.\n\ndietary Advice: Recorded synthetic advice for review.\n\nrecent Symptoms: None reported.\n\nmeasurements: Synthetic measurements available.\n\nKIDNEY DISEASE: User-provided details are available for nutritionist review.\n\nTarget Goal\nMAINTAIN\nDaily Target\n2000 kcal\nDiet Preference\nOMNIVORE\nRice Preference\nWITH_RICE\nInspection record · approval is recorded separately\nPage 1",
+      "text": "Prior review references\n\nExact recorded inputs and recipe serving. Review the current case before making a separate decision.\n\nApproved by Reuse author, RND · Oct 10, 2026"
+    },
+    {
+      "key": "HEART_CONDITION",
+      "matched": true,
+      "freshDecisionRequired": true,
+      "privateNotesHidden": true,
+      "profile": "KAINARA · RND REVIEW RECORD\n\nMember health profile\n\nReuse HEART_CONDITION target · Oct 11, 2026\n\nRH\nMEMBER HEALTH PROFILE\nReuse HEART_CONDITION target\n\n36 yrs • MALE\n\nConditions\nHEART_CONDITION\nAllergies\nNone declared\nComplete structured restrictions\nHeart condition\nCONDITION · RECOGNIZED UNSUPPORTED\nHealth details reviewed for the profile\n\nHEART CONDITION · member-provided\n\ncondition Details: Synthetic stable HEART_CONDITION NONE case, documented for software testing.\n\nmedications: None reported in this synthetic case.\n\ndietary Advice: Recorded synthetic advice for review.\n\nrecent Symptoms: None reported.\n\nmeasurements: Synthetic measurements available.\n\nHEART CONDITION: User-provided details are available for nutritionist review.\n\nTarget Goal\nMAINTAIN\nDaily Target\n2000 kcal\nDiet Preference\nOMNIVORE\nRice Preference\nWITH_RICE\nInspection record · approval is recorded separately\nPage 1",
+      "text": "Prior review references\n\nExact recorded inputs and recipe serving. Review the current case before making a separate decision.\n\nApproved by Reuse author, RND · Oct 10, 2026"
+    },
+    {
+      "key": "PREGNANT",
+      "matched": true,
+      "freshDecisionRequired": true,
+      "privateNotesHidden": true,
+      "profile": "KAINARA · RND REVIEW RECORD\n\nMember health profile\n\nReuse PREGNANT target · Oct 11, 2026\n\nRP\nMEMBER HEALTH PROFILE\nReuse PREGNANT target\n\n36 yrs • FEMALE\n\nConditions\nPREGNANT\nAllergies\nNone declared\nComplete structured restrictions\nPregnant or lactating\nCONDITION · RECOGNIZED UNSUPPORTED\nHealth details reviewed for the profile\n\nPREGNANCY · member-provided\n\ncondition Details: Synthetic stable PREGNANT NONE case, documented for software testing.\n\nmedications: None reported in this synthetic case.\n\ndietary Advice: Recorded synthetic advice for review.\n\nrecent Symptoms: None reported.\n\nmeasurements: Synthetic measurements available.\n\nPREGNANCY: User-provided details are available for nutritionist review.\n\nTarget Goal\nMAINTAIN\nDaily Target\n2000 kcal\nDiet Preference\nOMNIVORE\nRice Preference\nWITH_RICE\nInspection record · approval is recorded separately\nPage 1",
+      "text": "Prior review references\n\nExact recorded inputs and recipe serving. Review the current case before making a separate decision.\n\nApproved by Reuse author, RND · Oct 10, 2026"
+    },
+    {
+      "key": "GOUT",
+      "matched": true,
+      "freshDecisionRequired": true,
+      "privateNotesHidden": true,
+      "profile": "KAINARA · RND REVIEW RECORD\n\nMember health profile\n\nReuse GOUT target · Oct 11, 2026\n\nRG\nMEMBER HEALTH PROFILE\nReuse GOUT target\n\n36 yrs • MALE\n\nConditions\nNone declared\nAllergies\nNone declared\nComplete structured restrictions\nGout\nCONDITION · RECOGNIZED UNSUPPORTED\nHealth details reviewed for the profile\n\nOTHER · member-provided\n\ncondition Details: Synthetic stable GOUT NONE case, documented for software testing.\n\nmedications: None reported in this synthetic case.\n\ndietary Advice: Recorded synthetic advice for review.\n\nrecent Symptoms: None reported.\n\nmeasurements: Synthetic measurements available.\n\nOTHER: User-provided details are available for nutritionist review.\n\nTarget Goal\nMAINTAIN\nDaily Target\n2000 kcal\nDiet Preference\nOMNIVORE\nRice Preference\nWITH_RICE\nInspection record · approval is recorded separately\nPage 1",
+      "text": "Prior review references\n\nExact recorded inputs and recipe serving. Review the current case before making a separate decision.\n\nApproved by Reuse author, RND · Oct 10, 2026"
+    },
+    {
+      "key": "CELIAC_DISEASE",
+      "matched": true,
+      "freshDecisionRequired": true,
+      "privateNotesHidden": true,
+      "profile": "KAINARA · RND REVIEW RECORD\n\nMember health profile\n\nReuse CELIAC_DISEASE target · Oct 11, 2026\n\nRC\nMEMBER HEALTH PROFILE\nReuse CELIAC_DISEASE target\n\n36 yrs • MALE\n\nConditions\nNone declared\nAllergies\nNone declared\nComplete structured restrictions\nCeliac disease\nCONDITION · RECOGNIZED UNSUPPORTED\nHealth details reviewed for the profile\n\nOTHER · member-provided\n\ncondition Details: Synthetic stable CELIAC_DISEASE NONE case, documented for software testing.\n\nmedications: None reported in this synthetic case.\n\ndietary Advice: Recorded synthetic advice for review.\n\nrecent Symptoms: None reported.\n\nmeasurements: Synthetic measurements available.\n\nOTHER: User-provided details are available for nutritionist review.\n\nTarget Goal\nMAINTAIN\nDaily Target\n2000 kcal\nDiet Preference\nOMNIVORE\nRice Preference\nWITH_RICE\nInspection record · approval is recorded separately\nPage 1",
+      "text": "Prior review references\n\nExact recorded inputs and recipe serving. Review the current case before making a separate decision.\n\nApproved by Reuse author, RND · Oct 10, 2026"
+    },
+    {
+      "key": "PCOS",
+      "matched": true,
+      "freshDecisionRequired": true,
+      "privateNotesHidden": true,
+      "profile": "KAINARA · RND REVIEW RECORD\n\nMember health profile\n\nReuse PCOS target · Oct 11, 2026\n\nRP\nMEMBER HEALTH PROFILE\nReuse PCOS target\n\n36 yrs • FEMALE\n\nConditions\nNone declared\nAllergies\nNone declared\nComplete structured restrictions\nPolycystic ovary syndrome\nCONDITION · RECOGNIZED UNSUPPORTED\nHealth details reviewed for the profile\n\nOTHER · member-provided\n\ncondition Details: Synthetic stable PCOS NONE case, documented for software testing.\n\nmedications: None reported in this synthetic case.\n\ndietary Advice: Recorded synthetic advice for review.\n\nrecent Symptoms: None reported.\n\nmeasurements: Synthetic measurements available.\n\nOTHER: User-provided details are available for nutritionist review.\n\nTarget Goal\nMAINTAIN\nDaily Target\n2000 kcal\nDiet Preference\nOMNIVORE\nRice Preference\nWITH_RICE\nInspection record · approval is recorded separately\nPage 1",
+      "text": "Prior review references\n\nExact recorded inputs and recipe serving. Review the current case before making a separate decision.\n\nApproved by Reuse author, RND · Oct 10, 2026"
+    },
+    {
+      "key": "GERD",
+      "matched": true,
+      "freshDecisionRequired": true,
+      "privateNotesHidden": true,
+      "profile": "KAINARA · RND REVIEW RECORD\n\nMember health profile\n\nReuse GERD target · Oct 11, 2026\n\nRG\nMEMBER HEALTH PROFILE\nReuse GERD target\n\n36 yrs • MALE\n\nConditions\nNone declared\nAllergies\nNone declared\nComplete structured restrictions\nGastroesophageal reflux disease\nCONDITION · RECOGNIZED UNSUPPORTED\nHealth details reviewed for the profile\n\nOTHER · member-provided\n\ncondition Details: Synthetic stable GERD NONE case, documented for software testing.\n\nmedications: None reported in this synthetic case.\n\ndietary Advice: Recorded synthetic advice for review.\n\nrecent Symptoms: None reported.\n\nmeasurements: Synthetic measurements available.\n\nOTHER: User-provided details are available for nutritionist review.\n\nTarget Goal\nMAINTAIN\nDaily Target\n2000 kcal\nDiet Preference\nOMNIVORE\nRice Preference\nWITH_RICE\nInspection record · approval is recorded separately\nPage 1",
+      "text": "Prior review references\n\nExact recorded inputs and recipe serving. Review the current case before making a separate decision.\n\nApproved by Reuse author, RND · Oct 10, 2026"
+    },
+    {
+      "key": "SHELLFISH",
+      "matched": true,
+      "freshDecisionRequired": true,
+      "privateNotesHidden": true,
+      "profile": "KAINARA · RND REVIEW RECORD\n\nMember health profile\n\nReuse SHELLFISH target · Oct 11, 2026\n\nRS\nMEMBER HEALTH PROFILE\nReuse SHELLFISH target\n\n36 yrs • MALE\n\nConditions\nNone declared\nAllergies\nSHELLFISH\nComplete structured restrictions\nShellfish\nALLERGY · SUPPORTED\nTarget Goal\nMAINTAIN\nDaily Target\n2000 kcal\nDiet Preference\nOMNIVORE\nRice Preference\nWITH_RICE\nInspection record · approval is recorded separately\nPage 1",
+      "text": "Prior review references\n\nExact recorded inputs and recipe serving. Review the current case before making a separate decision.\n\nApproved by Reuse author, RND · Oct 10, 2026"
+    },
+    {
+      "key": "NUTS",
+      "matched": true,
+      "freshDecisionRequired": true,
+      "privateNotesHidden": true,
+      "profile": "KAINARA · RND REVIEW RECORD\n\nMember health profile\n\nReuse NUTS target · Oct 11, 2026\n\nRN\nMEMBER HEALTH PROFILE\nReuse NUTS target\n\n36 yrs • MALE\n\nConditions\nNone declared\nAllergies\nNUTS\nComplete structured restrictions\nPeanuts and tree nuts\nALLERGY · SUPPORTED\nTarget Goal\nMAINTAIN\nDaily Target\n2000 kcal\nDiet Preference\nOMNIVORE\nRice Preference\nWITH_RICE\nInspection record · approval is recorded separately\nPage 1",
+      "text": "Prior review references\n\nExact recorded inputs and recipe serving. Review the current case before making a separate decision.\n\nApproved by Reuse author, RND · Oct 10, 2026"
+    },
+    {
+      "key": "DAIRY",
+      "matched": true,
+      "freshDecisionRequired": true,
+      "privateNotesHidden": true,
+      "profile": "KAINARA · RND REVIEW RECORD\n\nMember health profile\n\nReuse DAIRY target · Oct 11, 2026\n\nRD\nMEMBER HEALTH PROFILE\nReuse DAIRY target\n\n36 yrs • MALE\n\nConditions\nNone declared\nAllergies\nDAIRY\nComplete structured restrictions\nDairy\nALLERGY · SUPPORTED\nTarget Goal\nMAINTAIN\nDaily Target\n2000 kcal\nDiet Preference\nOMNIVORE\nRice Preference\nWITH_RICE\nInspection record · approval is recorded separately\nPage 1",
+      "text": "Prior review references\n\nExact recorded inputs and recipe serving. Review the current case before making a separate decision.\n\nApproved by Reuse author, RND · Oct 10, 2026"
+    },
+    {
+      "key": "GLUTEN",
+      "matched": true,
+      "freshDecisionRequired": true,
+      "privateNotesHidden": true,
+      "profile": "KAINARA · RND REVIEW RECORD\n\nMember health profile\n\nReuse GLUTEN target · Oct 11, 2026\n\nRG\nMEMBER HEALTH PROFILE\nReuse GLUTEN target\n\n36 yrs • MALE\n\nConditions\nNone declared\nAllergies\nGLUTEN\nComplete structured restrictions\nGluten\nALLERGY · SUPPORTED\nTarget Goal\nMAINTAIN\nDaily Target\n2000 kcal\nDiet Preference\nOMNIVORE\nRice Preference\nWITH_RICE\nInspection record · approval is recorded separately\nPage 1",
+      "text": "Prior review references\n\nExact recorded inputs and recipe serving. Review the current case before making a separate decision.\n\nApproved by Reuse author, RND · Oct 10, 2026"
+    },
+    {
+      "key": "EGGS",
+      "matched": true,
+      "freshDecisionRequired": true,
+      "privateNotesHidden": true,
+      "profile": "KAINARA · RND REVIEW RECORD\n\nMember health profile\n\nReuse EGGS target · Oct 11, 2026\n\nRE\nMEMBER HEALTH PROFILE\nReuse EGGS target\n\n36 yrs • MALE\n\nConditions\nNone declared\nAllergies\nEGGS\nComplete structured restrictions\nEggs\nALLERGY · SUPPORTED\nTarget Goal\nMAINTAIN\nDaily Target\n2000 kcal\nDiet Preference\nOMNIVORE\nRice Preference\nWITH_RICE\nInspection record · approval is recorded separately\nPage 1",
+      "text": "Prior review references\n\nExact recorded inputs and recipe serving. Review the current case before making a separate decision.\n\nApproved by Reuse author, RND · Oct 10, 2026"
+    },
+    {
+      "key": "COMBINED",
+      "matched": true,
+      "freshDecisionRequired": true,
+      "privateNotesHidden": true,
+      "profile": "KAINARA · RND REVIEW RECORD\n\nMember health profile\n\nReuse COMBINED target · Oct 11, 2026\n\nRC\nMEMBER HEALTH PROFILE\nReuse COMBINED target\n\n36 yrs • MALE\n\nConditions\nDIABETES\nAllergies\nNUTS\nComplete structured restrictions\nDiabetes\nCONDITION · SUPPORTED\nPeanuts and tree nuts\nALLERGY · SUPPORTED\nHealth details reviewed for the profile\n\nDIABETES · member-provided\n\ncondition Details: Synthetic stable DIABETES NUTS case, documented for software testing.\n\nmedications: None reported in this synthetic case.\n\ndietary Advice: Recorded synthetic advice for review.\n\nrecent Symptoms: None reported.\n\nmeasurements: Synthetic measurements available.\n\nFOOD ALLERGY · member-provided\n\ncondition Details: Synthetic stable DIABETES NUTS case, documented for software testing.\n\nmedications: None reported in this synthetic case.\n\ndietary Advice: Recorded synthetic advice for review.\n\nrecent Symptoms: None reported.\n\nmeasurements: Synthetic measurements available.\n\nDIABETES: User-provided details are available for nutritionist review.\n\nFOOD ALLERGY: User-provided details are available for nutritionist review.\n\nTarget Goal\nMAINTAIN\nDaily Target\n2000 kcal\nDiet Preference\nOMNIVORE\nRice Preference\nWITH_RICE\nInspection record · approval is recorded separately\nPage 1",
+      "text": "Prior review references\n\nExact recorded inputs and recipe serving. Review the current case before making a separate decision.\n\nApproved by Reuse author, RND · Oct 10, 2026"
+    }
+  ],
+  "negatives": [
+    {
+      "phase": "weight",
+      "noMatch": true,
+      "text": "Prior review references\n\nExact recorded inputs and recipe serving. Review the current case before making a separate decision.\n\nNo matching prior review is available."
+    },
+    {
+      "phase": "age",
+      "noMatch": true,
+      "text": "Prior review references\n\nExact recorded inputs and recipe serving. Review the current case before making a separate decision.\n\nNo matching prior review is available."
+    },
+    {
+      "phase": "subtype",
+      "noMatch": true,
+      "text": "Prior review references\n\nExact recorded inputs and recipe serving. Review the current case before making a separate decision.\n\nNo matching prior review is available."
+    },
+    {
+      "phase": "serving",
+      "noMatch": true,
+      "text": "Prior review references\n\nExact recorded inputs and recipe serving. Review the current case before making a separate decision.\n\nNo matching prior review is available."
+    }
+  ]
+}
