@@ -150,6 +150,17 @@ async function main() {
     assert.equal(await db.mealPlan.count(), 0);
     assert.equal(await db.mealLibrary.count(), 0);
     assert.equal(await db.reviewRoutingConfig.count(), 0);
+    // Different custom reviewer names in one group must not collide on synthetic PRC numbers.
+    for (const emailName of ['first-reviewer', 'second-reviewer']) {
+      const specs = accountSpecSchema.parse([
+        defaultAccountSpecs[0],
+        { alias: 'rnd-1', name: 'Test reviewer', role: 'RND', emailName },
+      ]);
+      const result = await createAccounts(db, 'custom-reviewers', specs, password);
+      const reviewer = result.find((item) => item.role === 'NUTRITIONIST')!;
+      assert.equal(reviewer.email, `${emailName}@example.test`);
+      assert.equal((await login(reviewer.email, password)).user.role, 'NUTRITIONIST');
+    }
     // Actual HTTP creation on this same disposable database, with normal live auth.
     const adminId = fixtureIdentity('acceptance', defaultAccountSpecs[0]).id;
     const app = express();
@@ -176,6 +187,7 @@ async function main() {
         assert.equal(denied.status, 403);
       }
       const request = {
+        emailName: 'case-member',
         set: 'ui',
         role: 'USER',
         name: 'UI Member',
@@ -220,6 +232,10 @@ async function main() {
       const created = await responseData<CreateResult>(response);
       assert.ok(created.newAccountPassword);
       assert.equal(created.accounts.length, 2);
+      assert.deepEqual(
+        created.accounts.map((account) => account.email),
+        ['case-member-1@example.test', 'case-member-2@example.test']
+      );
       const memberLogin = await login(created.accounts[0].email, created.newAccountPassword);
       assert.equal(memberLogin.user.role, 'USER');
       const saved = await db.user.findUniqueOrThrow({ where: { id: created.accounts[0].id } });
@@ -263,6 +279,7 @@ async function main() {
       for (const status of ['ACTIVE', 'EXPIRED', 'UNVERIFIED', 'SUSPENDED']) {
         const rndRequest = {
           ...request,
+          emailName: `reviewer-${status.toLowerCase()}`,
           profile: undefined,
           set: `ui-${status.toLowerCase()}`,
           count: 1,
@@ -279,6 +296,7 @@ async function main() {
         });
         assert.equal(rndResponse.status, 201);
         const result = await responseData<CreateResult>(rndResponse);
+        assert.equal(result.accounts[0].email, `reviewer-${status.toLowerCase()}@example.test`);
         assert.ok(result.newAccountPassword);
         assert.equal(result.newAccountPassword, created.newAccountPassword, 'New groups/roles share a password.');
         const rndProfile = await db.nutritionistProfile.findUniqueOrThrow({
@@ -293,6 +311,7 @@ async function main() {
       }
       const adminRequest = {
         ...request,
+        emailName: 'demo-admin',
         profile: undefined,
         set: 'ui-admin',
         count: 1,

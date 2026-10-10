@@ -4,6 +4,14 @@ import { z } from 'zod';
 import { testMemberProfileSchema } from './member-profile';
 
 const slug = z.string().regex(/^[a-z][a-z0-9-]{0,23}$/);
+export const testEmailNameSchema = z
+  .string()
+  .trim()
+  .toLowerCase()
+  .min(1)
+  .max(48)
+  .regex(/^[a-z0-9](?:[a-z0-9._-]*[a-z0-9])?$/, 'Use letters, numbers, dots, underscores or hyphens without @.')
+  .refine((value) => !value.includes('..'), 'Email names cannot contain consecutive dots.');
 const conditions = z.array(z.nativeEnum(HealthConditionType)).min(1).max(6).default(['NONE']);
 const allergens = z.array(z.nativeEnum(AllergenType)).min(1).max(6).default(['NONE']);
 const member = z
@@ -25,6 +33,7 @@ export const accountSchema = z
     alias: slug,
     role: z.enum(['USER', 'RND', 'ADMIN']),
     name: z.string().trim().min(1).max(100),
+    emailName: testEmailNameSchema.optional(),
     member: member.optional(),
     rnd: rnd.optional(),
   })
@@ -55,6 +64,9 @@ export const accountSpecSchema = z
   .superRefine((values, ctx) => {
     if (new Set(values.map((value) => value.alias)).size !== values.length)
       ctx.addIssue({ code: 'custom', message: 'Account aliases must be unique.' });
+    const emailNames = values.flatMap((value) => (value.emailName ? [value.emailName] : []));
+    if (new Set(emailNames).size !== emailNames.length)
+      ctx.addIssue({ code: 'custom', message: 'Custom email names must be unique.' });
     if (values.some((value) => value.role === 'RND') && !values.some((value) => value.role === 'ADMIN'))
       ctx.addIssue({ code: 'custom', message: 'Include a synthetic ADMIN for RND credential provenance.' });
   });
@@ -89,9 +101,13 @@ export const defaultAccountSpecs: AccountSpec[] = accountSpecSchema.parse([
 
 export function fixtureIdentity(set: string, spec: AccountSpec) {
   slug.parse(set);
+  const emailName = spec.emailName ? testEmailNameSchema.parse(spec.emailName) : undefined;
+  const email = `${emailName ?? `qa-${set}-${spec.alias}`}@example.test`;
   return {
-    id: `devfixture_${set}_${spec.alias}`,
-    email: `qa-${set}-${spec.alias}@example.test`,
+    id: emailName
+      ? `devfixture_email_${createHash('sha256').update(email).digest('hex').slice(0, 32)}`
+      : `devfixture_${set}_${spec.alias}`,
+    email,
     name: `[TEST ${set}] ${spec.name}`,
     role: spec.role === 'RND' ? ('NUTRITIONIST' as const) : spec.role,
   };

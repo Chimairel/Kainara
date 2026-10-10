@@ -28,6 +28,21 @@ describe('admin test account creation', () => {
     render(<TestAccountTool active onCreated={vi.fn()} />);
     expect(screen.queryByRole('button', { name: 'Create test accounts' })).not.toBeInTheDocument();
   });
+  it('accepts an email name, previews the reserved suffix and invalidates confirmation when changed', async () => {
+    render(<TestAccountTool active onCreated={vi.fn()} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Create test accounts' }));
+    fireEvent.change(screen.getByLabelText('Group name'), { target: { value: 'custom' } });
+    fireEvent.change(screen.getByLabelText('Email name'), { target: { value: 'Heart-Member' } });
+    expect(screen.getByText('heart-member@example.test')).toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText('Number of accounts'), { target: { value: '2' } });
+    expect(screen.getByText('heart-member-1@example.test through heart-member-2@example.test')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Preview accounts' }));
+    await screen.findByText('Database: localhost:5432/dev');
+    expect(fixtures.post.mock.calls[0][1]).toMatchObject({ emailName: 'Heart-Member', count: 2 });
+    fireEvent.click(screen.getByLabelText(/I confirm this is the development database/));
+    fireEvent.change(screen.getByLabelText('Email name'), { target: { value: 'another' } });
+    expect(screen.queryByRole('button', { name: 'Create accounts' })).not.toBeInTheDocument();
+  });
   it('requires target confirmation and invalidates preview after editing', async () => {
     render(<TestAccountTool active onCreated={vi.fn()} />);
     await openAndPreview();

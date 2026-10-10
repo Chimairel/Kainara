@@ -42,6 +42,7 @@ test('preview is short-lived and bound to the live admin, database and every acc
     () => verifyAccountPreview(token, 'other', 'db-a', request, 'secret', now),
     () => verifyAccountPreview(token, 'admin', 'db-b', request, 'secret', now),
     () => verifyAccountPreview(token, 'admin', 'db-a', { ...request, count: 3 }, 'secret', now),
+    () => verifyAccountPreview(token, 'admin', 'db-a', { ...request, emailName: 'changed-email' }, 'secret', now),
     () =>
       verifyAccountPreview(
         token,
@@ -56,6 +57,16 @@ test('preview is short-lived and bound to the live admin, database and every acc
     () => verifyAccountPreview('invalid', 'admin', 'db-a', request, 'secret', now),
   ])
     assert.throws(check);
+});
+
+test('admin email names use the exact name for one account and numbered names for a batch', () => {
+  const single = accountSpecs(testAccountRequestSchema.parse({ ...request, emailName: ' Member ', count: 1 }));
+  assert.equal(single[0].emailName, 'member');
+  const batch = accountSpecs(testAccountRequestSchema.parse({ ...request, emailName: 'member', count: 10 }));
+  assert.equal(batch[0].emailName, 'member-1');
+  assert.equal(batch[9].emailName, 'member-10');
+  assert.equal(accountSpecs(request)[0].emailName, undefined, 'Old callers retain automatic names.');
+  assert.equal(testAccountRequestSchema.safeParse({ ...request, emailName: 'x'.repeat(46) }).success, false);
 });
 test('creation requires target confirmation and refuses account override fields', () => {
   assert.throws(() => parseCreationRequest({ ...request, previewToken: 'signed', confirmedTarget: false }));

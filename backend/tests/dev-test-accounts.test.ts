@@ -25,6 +25,24 @@ test('target tokens hide credentials, remain stable across credentials and disti
   assert.ok(!a.label.includes('secret') && !a.label.includes('owner'));
   assert.notEqual(a.token, databaseTarget('postgresql://localhost/other', { NODE_ENV: 'development' }).token);
 });
+
+test('custom email names stay in the reserved domain and identify one account across groups', () => {
+  const spec = accountSpecSchema.parse([{ ...defaultAccountSpecs[1], emailName: ' Heart.Member ' }])[0];
+  const identity = fixtureIdentity('alpha', spec);
+  assert.equal(identity.email, 'heart.member@example.test');
+  assert.equal(fixtureIdentity('beta', spec).id, identity.id);
+  assert.notEqual(fixtureIdentity('alpha', { ...spec, emailName: 'another-member' }).id, identity.id);
+  for (const emailName of ['real@gmail.com', 'a..b', '.name', 'name.', 'has spaces', '../escape', '', 'x'.repeat(49)])
+    assert.throws(() => accountSpecSchema.parse([{ ...spec, emailName }]));
+  assert.throws(() => accountSpecSchema.parse([spec, { ...spec, alias: 'another' }]));
+});
+
+test('custom email collisions cannot overwrite another role or an unrelated identity', async () => {
+  const spec = accountSpecSchema.parse([{ ...defaultAccountSpecs[1], emailName: 'member' }])[0];
+  const identity = fixtureIdentity('alpha', spec);
+  const fake = { user: { findMany: async () => [{ ...identity, role: 'ADMIN' as const }] } };
+  await assert.rejects(inspectAccounts(fake as Parameters<typeof inspectAccounts>[0], 'alpha', [spec]), /collision/);
+});
 test('production-like runtimes and targets cannot enable test credential provisioning', () => {
   for (const env of [
     {},

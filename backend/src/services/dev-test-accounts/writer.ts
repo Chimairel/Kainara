@@ -71,7 +71,7 @@ export async function createAccounts(
           await tx.nutritionistProfile.create({
             data: {
               userId: identity.id,
-              prcLicenseNumber: `TEST-${set}-${spec.alias}`,
+              prcLicenseNumber: spec.emailName ? `TEST-${identity.id}` : `TEST-${set}-${spec.alias}`,
               prcLicenseExpiry: new Date(now.getTime() + (rnd.status === 'EXPIRED' ? -1 : 365) * 86_400_000),
               isVerified: rnd.status !== 'UNVERIFIED',
               verifiedAt: rnd.status === 'UNVERIFIED' ? null : now,

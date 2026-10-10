@@ -42,7 +42,14 @@ for (const width of [390, 1440]) {
         'Access-Control-Allow-Headers': 'Authorization, Content-Type',
       };
       let creations = 0;
-      const rows = accounts.map((account) => ({ ...account, role: role === 'USER' ? 'USER' : 'NUTRITIONIST' }));
+      const count = role === 'USER' ? 2 : 1;
+      const emailName = `test-${role.toLowerCase()}`;
+      const rows = Array.from({ length: count }, (_, index) => ({
+        ...accounts[0],
+        id: `custom-${role}-${index}`,
+        email: `${emailName}${count > 1 ? `-${index + 1}` : ''}@example.test`,
+        role: role === 'USER' ? 'USER' : 'NUTRITIONIST',
+      }));
       await page.route('**/api/**', async (route) => {
         const request = route.request();
         const path = new URL(request.url()).pathname;
@@ -51,7 +58,13 @@ for (const width of [390, 1440]) {
         if (path.endsWith('/user/profile')) data = profile;
         if (path.endsWith('/admin/users')) data = { users: [], total: 0, totalPages: 1 };
         if (path.endsWith('/test-accounts/preview')) {
-          expect(request.postDataJSON()).toMatchObject({ role, rndStatus: 'ACTIVE', conditions: ['NONE'] });
+          expect(request.postDataJSON()).toMatchObject({
+            role,
+            emailName,
+            count,
+            rndStatus: 'ACTIVE',
+            conditions: ['NONE'],
+          });
           if (role === 'USER')
             expect(request.postDataJSON().profile).toMatchObject({
               age: 45,
@@ -65,7 +78,12 @@ for (const width of [390, 1440]) {
           else expect(request.postDataJSON()).not.toHaveProperty('profile');
           data = { accounts: rows, target: 'localhost:5432/dev', previewToken: 'signed-preview' };
         } else if (path.endsWith('/test-accounts') && request.method() === 'POST') {
-          expect(request.postDataJSON()).toMatchObject({ confirmedTarget: true, previewToken: 'signed-preview' });
+          expect(request.postDataJSON()).toMatchObject({
+            emailName,
+            count,
+            confirmedTarget: true,
+            previewToken: 'signed-preview',
+          });
           if (role === 'USER')
             expect(request.postDataJSON().profile).toMatchObject({
               age: 45,
@@ -85,6 +103,8 @@ for (const width of [390, 1440]) {
       await page.getByRole('button', { name: 'Create test accounts' }).click();
       const dialog = page.getByRole('dialog', { name: 'Create test accounts' });
       await dialog.getByLabel('Group name').fill('defense');
+      await dialog.getByLabel('Email name').fill(emailName);
+      await dialog.getByLabel('Number of accounts').fill(String(count));
       await dialog.getByLabel('Role', { exact: true }).selectOption(role);
       if (role === 'USER') {
         await dialog.getByLabel('Age', { exact: true }).fill('45');

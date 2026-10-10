@@ -1,7 +1,7 @@
 import { createHash, createHmac, timingSafeEqual } from 'node:crypto';
 import { AllergenType, HealthConditionType } from '@prisma/client';
 import { z } from 'zod';
-import { accountSchema, databaseTarget, type AccountSpec } from './config';
+import { accountSchema, databaseTarget, testEmailNameSchema, type AccountSpec } from './config';
 import { testMemberProfileSchema } from './member-profile';
 
 export const testAccountRequestSchema = z
@@ -9,6 +9,7 @@ export const testAccountRequestSchema = z
     set: z.string().regex(/^[a-z][a-z0-9-]{0,23}$/, 'Use a lowercase group name, up to 24 characters.'),
     role: z.enum(['USER', 'RND', 'ADMIN']),
     name: z.string().trim().min(1).max(70),
+    emailName: testEmailNameSchema.max(45).optional(),
     count: z.number().int().min(1).max(10),
     conditions: z.array(z.nativeEnum(HealthConditionType)).min(1).max(6),
     allergens: z.array(z.nativeEnum(AllergenType)).min(1).max(6),
@@ -53,6 +54,7 @@ export function accountSpecs(request: TestAccountRequest): AccountSpec[] {
       alias: `${request.role.toLowerCase()}-${index + 1}`,
       role: request.role,
       name: `${request.name} ${index + 1}`,
+      ...(request.emailName ? { emailName: `${request.emailName}${request.count > 1 ? `-${index + 1}` : ''}` } : {}),
       ...(request.role === 'USER'
         ? {
             member: {

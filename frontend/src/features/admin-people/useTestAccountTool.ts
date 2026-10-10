@@ -9,6 +9,7 @@ import { defaultTestMemberProfile, type TestMemberProfileOptions } from './test-
 export interface TestAccountOptions {
   set: string;
   name: string;
+  emailName: string;
   role: 'USER' | 'RND' | 'ADMIN';
   count: number;
   conditions: string[];
@@ -41,6 +42,7 @@ interface Result {
 const defaults = (): TestAccountOptions => ({
   set: '',
   name: 'Test Member',
+  emailName: '',
   role: 'USER',
   count: 1,
   conditions: ['NONE'],
@@ -129,8 +131,9 @@ export function useTestAccountTool(active: boolean, onCreated: () => void) {
     }
   };
   const requestOptions = () => {
-    const { profile, ...request } = options;
-    return options.role === 'USER' ? { ...request, profile } : request;
+    const { profile, emailName, ...request } = options;
+    const identity = emailName.trim() ? { emailName: emailName.trim() } : {};
+    return options.role === 'USER' ? { ...request, ...identity, profile } : { ...request, ...identity };
   };
   const copy = async () => {
     if (!result) return;

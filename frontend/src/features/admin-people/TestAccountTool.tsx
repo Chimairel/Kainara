@@ -106,7 +106,7 @@ export default function TestAccountTool({ active, onCreated }: { active: boolean
                   value={options.set}
                   maxLength={24}
                   placeholder="e.g. defense-october"
-                  helperText="Use a new group for fresh accounts. Repeating it keeps existing accounts."
+                  helperText="Use a new group for a new scenario. Existing email addresses are kept."
                   onChange={(event) => tool.update({ set: event.target.value })}
                 />
                 <Input
@@ -134,6 +134,28 @@ export default function TestAccountTool({ active, onCreated }: { active: boolean
                     <option value="RND">RND</option>
                     <option value="ADMIN">Admin</option>
                   </NativeSelect>
+                </div>
+                <div className="min-w-0 [&>div>span]:[overflow-wrap:anywhere]">
+                  <Input
+                    label="Email name"
+                    value={options.emailName}
+                    maxLength={45}
+                    placeholder="e.g. heart-member"
+                    autoCapitalize="none"
+                    autoCorrect="off"
+                    className="pr-32 sm:pr-32"
+                    trailingControl={
+                      <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-xs text-brand-muted">
+                        @example.test
+                      </span>
+                    }
+                    helperText={
+                      options.emailName.trim()
+                        ? `${options.emailName.trim().toLowerCase()}${options.count > 1 ? '-1' : ''}@example.test${options.count > 1 ? ` through ${options.emailName.trim().toLowerCase()}-${options.count}@example.test` : ''}`
+                        : 'Optional. Leave blank to use the group-based email name.'
+                    }
+                    onChange={(event) => tool.update({ emailName: event.target.value })}
+                  />
                 </div>
                 <Input
                   label="Number of accounts"
