@@ -7,6 +7,7 @@ import { Search, Tags } from 'lucide-react';
 import api from '@/lib/axios';
 import Button from '@/components/ui/Button';
 import Card from '@/components/ui/Card';
+import WorkspaceTable from '@/components/shared/WorkspaceTable';
 import CompositionEditor from './CompositionEditor';
 import Input from '@/components/ui/Input';
 import type { ApiEnvelope, FoodItem, FoodPage, FoodSource } from './types';
@@ -109,63 +110,106 @@ export default function FoodCatalogue({ source, onChanged, onError }: FoodCatalo
             {query.error}
           </p>
         )}
-        {result?.total === 0 && <p className="mt-3 text-sm text-brand-muted">No {label} records match this search.</p>}
-        <div className="mt-4 grid gap-3 lg:grid-cols-2">
-          {result?.foods.map((food) => (
-            <div key={food.id} className="rounded-[22px] border border-brand-border/55 bg-brand-bgAlt/40 p-4">
-              <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0">
-                  <p className="font-bold text-brand-text">{food.name}</p>
-                  <p className="mt-1 text-[11px] text-brand-muted">
-                    {food.source === 'USDA_FDC' ? 'USDA FoodData Central' : food.source}
-                    {food.sourceRecordId ? ` · ID ${food.sourceRecordId}` : ''}
-                    {food.sourceDataset ? ` · ${food.sourceDataset}` : ''}
-                  </p>
-                  <p className="mt-1 text-[11px] text-brand-muted">
-                    {food.calories} kcal · P {food.proteinG} g · C {food.carbsG} g · F {food.fatG} g per 100 g
-                  </p>
-                  {food.sourceReferenceUrl && (
-                    <a
-                      href={food.sourceReferenceUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="mt-2 inline-block text-xs text-brand-green hover:underline"
-                    >
-                      View source record
-                    </a>
-                  )}
-                </div>
-                {food.source !== 'USDA_FDC' && (
-                  <Button size="sm" variant="ghost" onClick={() => setCompositionFood(food.id)}>
-                    Composition
-                  </Button>
-                )}
-                <Button size="sm" variant="ghost" onClick={() => setSelected(food)}>
-                  Add alias
-                </Button>
-              </div>
-              <div className="mt-3 flex flex-wrap gap-1.5">
-                {food.aliases.map((alias) => (
-                  <span
-                    key={alias.id}
-                    title={
-                      alias.verifiedByAdmin
-                        ? `Verified by ${alias.verifiedByAdmin.name}`
-                        : alias.verifiedAt
-                          ? 'Curated food alias'
-                          : 'Legacy alias'
-                    }
-                    className={`rounded-full border px-2.5 py-1 text-[10px] ${alias.verifiedAt ? 'border-brand-green/25 bg-brand-green/10 text-brand-green' : 'border-brand-border text-brand-muted'}`}
-                  >
-                    {alias.alias}
-                    {alias.verifiedAt ? ' ✓' : ''}
-                  </span>
-                ))}
-                {food.aliases.length === 0 && <span className="text-[11px] text-brand-muted">No aliases</span>}
-              </div>
-            </div>
-          ))}
-        </div>
+        {result && (
+          <div className="mt-4">
+            <WorkspaceTable
+              label={label + ' food catalogue'}
+              rows={result.foods}
+              rowKey={(food) => food.id}
+              emptyMessage={'No ' + label + ' records match this search.'}
+              columns={[
+                {
+                  key: 'food',
+                  header: 'Food',
+                  headerClassName: 'min-w-[180px]',
+                  cell: (food) => <p className="font-bold">{food.name}</p>,
+                },
+                {
+                  key: 'source',
+                  header: 'Source',
+                  headerClassName: 'min-w-[160px]',
+                  cell: (food) => (
+                    <>
+                      <p>
+                        {food.source === 'USDA_FDC' ? 'USDA FoodData Central' : food.source}
+                        {food.sourceRecordId ? ' · ID ' + food.sourceRecordId : ''}
+                        {food.sourceDataset ? ' · ' + food.sourceDataset : ''}
+                      </p>
+                      {food.sourceReferenceUrl && (
+                        <a
+                          href={food.sourceReferenceUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex min-h-11 items-center text-brand-green hover:underline"
+                        >
+                          View source record
+                        </a>
+                      )}
+                    </>
+                  ),
+                },
+                {
+                  key: 'nutrition',
+                  header: 'Nutrition / 100 g',
+                  headerClassName: 'min-w-[170px]',
+                  cell: (food) => (
+                    <span className="text-brand-muted">
+                      {food.calories} kcal · P {food.proteinG} g · C {food.carbsG} g · F {food.fatG} g
+                    </span>
+                  ),
+                },
+                {
+                  key: 'aliases',
+                  header: 'Aliases',
+                  headerClassName: 'min-w-[160px]',
+                  cell: (food) => (
+                    <div className="flex flex-wrap gap-1.5">
+                      {food.aliases.map((alias) => (
+                        <span
+                          key={alias.id}
+                          title={
+                            alias.verifiedByAdmin
+                              ? 'Verified by ' + alias.verifiedByAdmin.name
+                              : alias.verifiedAt
+                                ? 'Curated food alias'
+                                : 'Legacy alias'
+                          }
+                          className={
+                            'rounded-full border px-2.5 py-1 text-[10px] ' +
+                            (alias.verifiedAt
+                              ? 'border-brand-green/25 bg-brand-green/10 text-brand-green'
+                              : 'border-brand-border text-brand-muted')
+                          }
+                        >
+                          {alias.alias}
+                          {alias.verifiedAt ? ' ✓' : ''}
+                        </span>
+                      ))}
+                      {!food.aliases.length && <span className="text-brand-muted">No aliases</span>}
+                    </div>
+                  ),
+                },
+                {
+                  key: 'actions',
+                  header: 'Actions',
+                  headerClassName: 'min-w-[150px]',
+                  cell: (food) => (
+                    <div className="flex flex-wrap gap-2">
+                      {food.source !== 'USDA_FDC' && (
+                        <Button size="sm" variant="ghost" onClick={() => setCompositionFood(food.id)}>
+                          Composition
+                        </Button>
+                      )}
+                      <Button size="sm" variant="ghost" onClick={() => setSelected(food)}>
+                        Add alias
+                      </Button>
+                    </div>
+                  ),
+                },
+              ]}
+            />
+          </div>
+        )}
         {result && result.totalPages > 1 && (
           <nav aria-label="Food catalogue pages" className="mt-5 flex items-center justify-between gap-3">
             <Button

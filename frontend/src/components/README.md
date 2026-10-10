@@ -13,6 +13,7 @@ The October 10 cleanup removed the superseded dashboard summary/schedule, grocer
 | Default surface | `ui/Card` | Membership statistics/calendar, progress, settings |
 | Curved stripes and logo | `ui/CardDecoration` or Card decoration props | Membership, dashboard, reports, grocery |
 | Expandable staff audit | `shared/AuditHistoryList` | Admin and nutritionist Audit |
+| Grocery-style record table | `shared/WorkspaceTable` | Grocery, audit, meal logs/popularity, analytics, accounts, reference data, RND governance/coverage, subscription and progress history |
 | Document surface | `shared/RecordPaper` | Immutable recipe review history and admin case records |
 | Paper document reader | `shared/DocumentViewer` | Nutrition guidance through `features/reports/NutritionPdfViewer` |
 | Desktop review canvas | `features/nutritionist-reviews/ReviewCanvas` | Member case approval, base-meal verification and Profile queue through `RndQueueDocument` |
@@ -31,6 +32,12 @@ The October 10 cleanup removed the superseded dashboard summary/schedule, grocer
 | Authentication split layout | `ui/sign-in` through `auth/AuthShell` | Login, registration, recovery, verification and invitation activation |
 | Pagination | `ui/Pagination` | All three role libraries |
 | Hover, focus or tap explanation | `ui/InfoHint` | Lifestyle and Health planning benefits |
+
+## Record lists
+
+`shared/WorkspaceTable` owns the grocery-style rounded surface, column dividers, alternating rows, themed header, bounded keyboard-accessible scrolling, empty state, optional footer and expanded detail row. Supply a unique accessible `label`, stable `rowKey`, columns and cell renderers; the optional `cells` callback computes an existing row once. Keep requests, sorting, pagination, selection, filters and guarded actions in the caller. Expanded content stays within the visible table width when a narrow screen scrolls horizontally to its action column.
+
+Read-only records have no selection checkbox. Grocery retains purchased/pantry/bulk controls; batch meal export retains its required selection and limit. Audit details still load through role-scoped endpoints, and RND application details retain their existing verification guards. Use this surface for comparable record lists; meal image cards, navigation, instructional bullets, editable form comparisons and printed/canvas document tables retain their dedicated presentation.
 
 ## Cards
 

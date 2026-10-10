@@ -5,6 +5,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useSessionQuery } from '@/hooks/useSessionQuery';
 import api from '@/lib/axios';
 import Card from '@/components/ui/Card';
+import WorkspaceTable from '@/components/shared/WorkspaceTable';
 import Button from '@/components/ui/Button';
 import Pagination from '@/components/ui/Pagination';
 import MealLogFilters from './MealLogFilters';
@@ -76,40 +77,57 @@ export default function AdminMealPopularity({ active = true }: { active?: boolea
             {query.data.minimumCohort > 0 &&
               ` Age or membership results require at least ${query.data.minimumCohort} distinct eaters per dish.`}
           </p>
-          {query.data.rows.map((row, index) => (
-            <Card key={row.key} className="p-5">
-              <div className="flex min-w-0 flex-wrap items-start justify-between gap-3">
-                <h4 className="min-w-0 font-display text-lg font-bold [overflow-wrap:anywhere]">
-                  {(page - 1) * 20 + index + 1}. {row.name}
-                </h4>
-                <Link
-                  className="inline-flex min-h-11 items-center text-sm font-bold text-brand-green"
-                  href={`/admin/audit?${new URLSearchParams({ ...Object.fromEntries(Object.entries(filters).filter(([key, value]) => value && !['member', 'status', 'includeTests', 'recipeKey'].includes(key))), view: 'meal-logs', recipeKey: row.key })}`}
-                >
-                  View meal logs →
-                </Link>
-              </div>
-              <dl className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-5">
-                {[
-                  ['Times eaten', row.eaten],
-                  ['Members', row.members],
-                  ['Repeat eaters', row.repeatEaters],
-                  ['Times skipped', row.skipped],
-                  ['Eaten percentage', row.eatenPercentage === null ? 'Not recorded' : `${row.eatenPercentage}%`],
-                ].map(([label, value]) => (
-                  <div key={String(label)} className="rounded-xl border border-brand-border p-3">
-                    <dt className="text-xs text-brand-muted">{label}</dt>
-                    <dd className="mt-1 font-display text-xl font-bold">{value}</dd>
-                  </div>
-                ))}
-              </dl>
-            </Card>
-          ))}
-          {!query.data.rows.length && (
-            <Card className="p-6">
-              <p>No dishes meet the selected filters and minimum group size.</p>
-            </Card>
-          )}
+          <WorkspaceTable
+            label="Meal popularity rankings"
+            rows={query.data.rows}
+            rowKey={(row) => row.key}
+            emptyMessage="No dishes meet the selected filters and minimum group size."
+            columns={[
+              {
+                key: 'meal',
+                header: 'Meal',
+                headerClassName: 'min-w-[200px]',
+                cell: (row, index) => (
+                  <h4 className="font-bold [overflow-wrap:anywhere]">
+                    {(page - 1) * 20 + index + 1}. {row.name}
+                  </h4>
+                ),
+              },
+              { key: 'eaten', header: 'Times eaten', cell: (row) => row.eaten },
+              { key: 'members', header: 'Members', cell: (row) => row.members },
+              { key: 'repeat', header: 'Repeat eaters', cell: (row) => row.repeatEaters },
+              { key: 'skipped', header: 'Times skipped', cell: (row) => row.skipped },
+              {
+                key: 'percentage',
+                header: 'Eaten percentage',
+                cell: (row) => (row.eatenPercentage === null ? 'Not recorded' : row.eatenPercentage + '%'),
+              },
+              {
+                key: 'logs',
+                header: 'Actions',
+                headerClassName: 'min-w-[140px]',
+                cell: (row) => (
+                  <Link
+                    className="inline-flex min-h-11 items-center font-bold text-brand-green"
+                    href={
+                      '/admin/audit?' +
+                      new URLSearchParams({
+                        ...Object.fromEntries(
+                          Object.entries(filters).filter(
+                            ([key, value]) => value && !['member', 'status', 'includeTests', 'recipeKey'].includes(key)
+                          )
+                        ),
+                        view: 'meal-logs',
+                        recipeKey: row.key,
+                      })
+                    }
+                  >
+                    View meal logs →
+                  </Link>
+                ),
+              },
+            ]}
+          />
           {query.data.totalPages > 1 && (
             <Pagination page={page} pageCount={query.data.totalPages} busy={query.isLoading} onPageChange={setPage} />
           )}

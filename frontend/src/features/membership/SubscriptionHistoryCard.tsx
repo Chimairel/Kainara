@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { History, RefreshCw } from 'lucide-react';
 import Card from '@/components/ui/Card';
+import WorkspaceTable from '@/components/shared/WorkspaceTable';
 import Button from '@/components/ui/Button';
 import Pagination from '@/components/ui/Pagination';
 import { useSessionQuery } from '@/hooks/useSessionQuery';
@@ -114,73 +115,89 @@ export default function SubscriptionHistoryCard({
       )}
       {query.data && (
         <>
-          <ol className="space-y-3" aria-label="Recorded membership periods">
-            {query.data.rows.map((row, index) => (
-              <li key={row.id} className="relative flex min-w-0 gap-3 sm:gap-4">
-                <div className="relative flex w-7 shrink-0 justify-center">
-                  {index < query.data!.rows.length - 1 && (
-                    <span className="absolute bottom-[-12px] top-8 w-px bg-brand-border" aria-hidden="true" />
-                  )}
-                  <span className="relative mt-3 flex h-7 w-7 items-center justify-center rounded-full border border-brand-green/30 bg-brand-green/10 font-mono text-xs font-bold text-brand-green">
-                    {(page - 1) * 10 + index + 1}
+          <WorkspaceTable
+            label="Recorded membership periods"
+            rows={query.data.rows}
+            rowKey={(row) => row.id}
+            emptyMessage="No subscription periods have been recorded yet."
+            columns={[
+              {
+                key: 'plan',
+                header: 'Plan / period',
+                headerClassName: 'min-w-[200px]',
+                cell: (row, index) => (
+                  <>
+                    <div className="flex gap-2">
+                      <span aria-hidden="true">{(page - 1) * 10 + index + 1}.</span>
+                      <h3 className="font-bold">{row.plan}</h3>
+                    </div>
+                    <p className="mt-1 text-[11px] text-brand-muted">
+                      {row.period} · {row.source}
+                    </p>
+                  </>
+                ),
+              },
+              {
+                key: 'status',
+                header: 'Status',
+                headerClassName: 'min-w-[120px]',
+                cell: (row) => (
+                  <span
+                    className={
+                      'inline-flex rounded-full border px-2.5 py-1 text-[10px] font-bold ' +
+                      (row.status === 'ACTIVE'
+                        ? 'border-brand-green/30 bg-brand-green/10 text-brand-green'
+                        : 'border-brand-border bg-brand-surface text-brand-muted')
+                    }
+                  >
+                    {statusLabels[row.status] ?? row.status}
                   </span>
-                </div>
-                <article className="min-w-0 flex-1 rounded-2xl border border-brand-border/80 bg-brand-bgAlt/40 p-4 [overflow-wrap:anywhere]">
-                  <div className="flex flex-wrap items-start justify-between gap-2">
-                    <div>
-                      <h3 className="font-display text-base font-bold">{row.plan}</h3>
-                      <p className="mt-1 text-xs text-brand-muted">
-                        {row.period} · {row.source}
-                      </p>
-                    </div>
-                    <span
-                      className={`rounded-full border px-2.5 py-1 text-xs font-bold ${row.status === 'ACTIVE' ? 'border-brand-green/30 bg-brand-green/10 text-brand-green' : 'border-brand-border bg-brand-surface text-brand-muted'}`}
-                    >
-                      {statusLabels[row.status] ?? row.status}
-                    </span>
+                ),
+              },
+              {
+                key: 'start',
+                header: 'Start date',
+                headerClassName: 'min-w-[150px]',
+                cell: (row) => (row.startsAt ? membershipDate(row.startsAt) : 'Not started'),
+              },
+              {
+                key: 'end',
+                header: 'End date',
+                headerClassName: 'min-w-[150px]',
+                cell: (row) => (row.endsAt ? membershipDate(row.endsAt) : 'Not recorded'),
+              },
+              {
+                key: 'amount',
+                header: 'Checkout amount',
+                headerClassName: 'min-w-[130px]',
+                cell: (row) =>
+                  row.amountCentavos != null ? (
+                    <>
+                      {row.source === 'Test checkout' && <p className="text-[10px] text-brand-muted">(test)</p>}
+                      {(row.amountCentavos / 100).toLocaleString('en-PH', {
+                        style: 'currency',
+                        currency: row.currency || 'PHP',
+                      })}
+                    </>
+                  ) : (
+                    '—'
+                  ),
+              },
+              {
+                key: 'record',
+                header: 'Record / notes',
+                headerClassName: 'min-w-[180px]',
+                cell: (row) => (
+                  <div className="space-y-1 text-[11px] text-brand-muted">
+                    <p>Recorded: {membershipDate(row.recordedAt)}</p>
+                    {row.revokedAt && <p>Revoked: {membershipDate(row.revokedAt)}</p>}
+                    {row.supersededAt && <p>Replaced: {membershipDate(row.supersededAt)}</p>}
+                    {row.note && <p className="whitespace-pre-wrap break-words">{row.note}</p>}
                   </div>
-                  <dl className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                    <div>
-                      <dt className="text-xs text-brand-muted">Start date</dt>
-                      <dd className="mt-1 text-sm font-semibold">
-                        {row.startsAt ? membershipDate(row.startsAt) : 'Not started'}
-                      </dd>
-                    </div>
-                    <div>
-                      <dt className="text-xs text-brand-muted">End date</dt>
-                      <dd className="mt-1 text-sm font-semibold">
-                        {row.endsAt ? membershipDate(row.endsAt) : 'Not recorded'}
-                      </dd>
-                    </div>
-                    {row.amountCentavos != null && (
-                      <div>
-                        <dt className="text-xs text-brand-muted">
-                          Checkout amount {row.source === 'Test checkout' ? '(test)' : ''}
-                        </dt>
-                        <dd className="mt-1 text-sm font-semibold">
-                          {(row.amountCentavos / 100).toLocaleString('en-PH', {
-                            style: 'currency',
-                            currency: row.currency || 'PHP',
-                          })}
-                        </dd>
-                      </div>
-                    )}
-                  </dl>
-                  {row.revokedAt && (
-                    <p className="mt-3 text-xs text-brand-muted">Revoked: {membershipDate(row.revokedAt)}</p>
-                  )}
-                  {row.supersededAt && (
-                    <p className="mt-3 text-xs text-brand-muted">Replaced: {membershipDate(row.supersededAt)}</p>
-                  )}
-                  {row.note && <p className="mt-3 text-xs leading-relaxed text-brand-muted">{row.note}</p>}
-                  <p className="mt-3 text-xs text-brand-muted">Recorded: {membershipDate(row.recordedAt)}</p>
-                </article>
-              </li>
-            ))}
-          </ol>
-          {!query.data.rows.length && (
-            <p className="text-sm text-brand-muted">No subscription periods have been recorded yet.</p>
-          )}
+                ),
+              },
+            ]}
+          />
           {query.data.totalPages > 1 && (
             <Pagination page={page} pageCount={query.data.totalPages} onPageChange={setPage} busy={query.isLoading} />
           )}

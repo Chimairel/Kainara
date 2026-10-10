@@ -74,6 +74,7 @@ describe('GroceryTable', () => {
     render(<GroceryTable {...defaultProps} onSort={onSort} />);
 
     const ingredientHeaderBtn = screen.getByRole('button', { name: /ingredient/i });
+    expect(screen.getByRole('columnheader', { name: /ingredient/i })).toHaveAttribute('aria-sort', 'ascending');
     fireEvent.click(ingredientHeaderBtn);
     expect(onSort).toHaveBeenCalledWith('name');
 

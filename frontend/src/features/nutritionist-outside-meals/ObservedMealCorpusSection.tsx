@@ -3,6 +3,7 @@ import Dropdown from '@/components/ui/Dropdown';
 
 import Button from '@/components/ui/Button';
 import Card from '@/components/ui/Card';
+import WorkspaceTable from '@/components/shared/WorkspaceTable';
 
 import Skeleton from '@/components/ui/Skeleton';
 
@@ -80,25 +81,39 @@ export default function ObservedMealCorpusSection({ model }: SectionProps) {
             ) : submissions.length === 0 ? (
               <p className="text-xs text-brand-muted italic py-4">No observations awaiting classification.</p>
             ) : (
-              submissions.map((row) => (
-                <button
-                  type="button"
-                  key={row.id}
-                  onClick={() => selectObserved(row)}
-                  className={`block w-full rounded-xl border p-3.5 text-left text-xs transition-all ${
-                    observed?.id === row.id
-                      ? 'border-brand-green bg-brand-green/10 shadow-xs'
-                      : 'border-brand-border/80 bg-brand-surface hover:border-brand-green/40 hover:bg-brand-bgAlt/50'
-                  }`}
-                >
-                  <strong className="block text-brand-text">
-                    {row.sourceOutsideMealItem?.name ?? 'Source no longer available'}
-                  </strong>
-                  <span className="mt-1 block text-brand-muted">
-                    {row.sourceOutsideMealItem?.portionGrams ?? 'Unknown'} g · revision {row.sourceRevision}
-                  </span>
-                </button>
-              ))
+              <WorkspaceTable
+                label="Consented food observations"
+                rows={submissions}
+                rowKey={(row) => row.id}
+                rowClassName={(row) => (observed?.id === row.id ? 'bg-brand-green/10' : 'hover:bg-brand-bgAlt/50')}
+                columns={[
+                  {
+                    key: 'food',
+                    header: 'Food',
+                    cell: (row) => <strong>{row.sourceOutsideMealItem?.name ?? 'Source no longer available'}</strong>,
+                  },
+                  {
+                    key: 'portion',
+                    header: 'Portion',
+                    cell: (row) => `${row.sourceOutsideMealItem?.portionGrams ?? 'Unknown'} g`,
+                  },
+                  { key: 'revision', header: 'Revision', cell: (row) => row.sourceRevision },
+                  {
+                    key: 'actions',
+                    header: 'Actions',
+                    cell: (row) => (
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        aria-pressed={observed?.id === row.id}
+                        onClick={() => selectObserved(row)}
+                      >
+                        Classify
+                      </Button>
+                    ),
+                  },
+                ]}
+              />
             )}
           </Card>
 

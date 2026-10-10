@@ -1,29 +1,12 @@
 import Card from '@/components/ui/Card';
+import WorkspaceTable from '@/components/shared/WorkspaceTable';
 import Badge from '@/components/ui/Badge';
 import type { LibraryCoverage } from './useNutritionistLibrary';
 
-const coverageSlots = ['BREAKFAST', 'LUNCH', 'DINNER'] as const;
+type CoverageSlot = 'BREAKFAST' | 'LUNCH' | 'DINNER';
 
-function CoverageSlotCounts({
-  label,
-  counts,
-}: {
-  label: string;
-  counts: Record<(typeof coverageSlots)[number], number>;
-}) {
-  return (
-    <div>
-      <p className="mb-1 text-[10px] font-bold text-brand-muted">{label}</p>
-      <dl className="grid grid-cols-3 gap-1 text-center">
-        {coverageSlots.map((slot) => (
-          <div key={slot} className="rounded-lg border border-brand-border/50 bg-brand-bg/50 px-1 py-2">
-            <dt className="text-[8px] font-bold uppercase text-brand-muted">{slot.slice(0, 1)}</dt>
-            <dd className="mt-0.5 font-mono text-xs font-black text-brand-text">{counts[slot]}</dd>
-          </div>
-        ))}
-      </dl>
-    </div>
-  );
+function slotCounts(counts: Record<CoverageSlot, number>) {
+  return 'B ' + counts.BREAKFAST + ' · L ' + counts.LUNCH + ' · D ' + counts.DINNER;
 }
 
 export default function SharedLibraryCoverage({ coverage }: { coverage: LibraryCoverage }) {
@@ -49,46 +32,78 @@ export default function SharedLibraryCoverage({ coverage }: { coverage: LibraryC
         current matching clearance or approval. Case-review candidates still need an individual RND decision. The
         variety target is {coverage.requiredPerSlot} distinct choices per main-meal slot.
       </p>
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
-        {coverage.profiles.map((profile) => (
-          <Card key={profile.key} className="border-brand-border/60 bg-brand-surface/65 p-4">
-            <div className="flex items-start justify-between gap-2">
-              <div>
-                <p className="text-sm font-extrabold text-brand-text">{profile.label}</p>
-                <p className="mt-1 text-[10px] text-brand-muted">Auto reuse: {profile.minimumPerSlot} lowest slot</p>
-              </div>
+      <WorkspaceTable
+        label="Profile recipe coverage"
+        rows={coverage.profiles}
+        rowKey={(profile) => profile.key}
+        columns={[
+          {
+            key: 'profile',
+            header: 'Profile',
+            headerClassName: 'min-w-[180px]',
+            cell: (profile) => (
+              <>
+                <strong>{profile.label}</strong>
+                <p className="mt-1 text-brand-muted">Auto reuse: {profile.minimumPerSlot} lowest slot</p>
+              </>
+            ),
+          },
+          {
+            key: 'auto',
+            header: 'Automatically reusable · B / L / D',
+            headerClassName: 'min-w-[180px]',
+            cell: (profile) => slotCounts(profile.counts),
+          },
+          {
+            key: 'review',
+            header: 'Can enter case review · B / L / D',
+            headerClassName: 'min-w-[180px]',
+            cell: (profile) => slotCounts(profile.caseReviewCounts),
+          },
+          {
+            key: 'status',
+            header: 'Variety',
+            cell: (profile) => (
               <Badge variant={profile.weekReady ? 'verified' : 'pending'} showIcon={false} className="text-[9px]">
                 {profile.weekReady ? 'Auto variety met' : 'Auto reuse below target'}
               </Badge>
-            </div>
-            <div className="mt-4 space-y-3">
-              <CoverageSlotCounts label="Automatically reusable · B / L / D" counts={profile.counts} />
-              <CoverageSlotCounts label="Can enter case review · B / L / D" counts={profile.caseReviewCounts} />
-            </div>
-            <details className="mt-3 text-xs">
-              <summary>Serving fit by daily target</summary>
-              <p className="my-2 text-brand-muted">
-                Each line applies the meal-slot calorie range to those servings. Case-review counts are potential review
-                work, not approved meals.
-              </p>
-              {profile.servingCoverage?.map((row) => (
-                <div key={row.dailyCalorieTarget} className="mt-2 border-t border-brand-border/40 pt-2">
-                  <p>
-                    {row.dailyCalorieTarget} kcal/day · {row.weekReady ? 'Auto variety met' : 'Auto reuse below target'}
-                  </p>
-                  <p className="text-brand-muted">
-                    Auto: B {row.counts.BREAKFAST} · L {row.counts.LUNCH} · D {row.counts.DINNER}
-                  </p>
-                  <p className="text-brand-muted">
-                    Case review: B {row.caseReviewCounts.BREAKFAST} · L {row.caseReviewCounts.LUNCH} · D{' '}
-                    {row.caseReviewCounts.DINNER}
-                  </p>
-                </div>
-              ))}
-            </details>
-          </Card>
-        ))}
-      </div>
+            ),
+          },
+          {
+            key: 'serving',
+            header: 'Serving fit',
+            headerClassName: 'min-w-[220px]',
+            cell: (profile) => (
+              <details>
+                <summary>Serving fit by daily target</summary>
+                <p className="my-2 text-brand-muted">
+                  Each line applies the meal-slot calorie range to those servings. Case-review counts are potential
+                  review work, not approved meals.
+                </p>
+                <WorkspaceTable
+                  label={profile.label + ' serving coverage'}
+                  rows={profile.servingCoverage ?? []}
+                  rowKey={(row) => String(row.dailyCalorieTarget)}
+                  columns={[
+                    {
+                      key: 'target',
+                      header: 'Daily target',
+                      cell: (row) => (
+                        <>
+                          {row.dailyCalorieTarget} kcal/day ·{' '}
+                          {row.weekReady ? 'Auto variety met' : 'Auto reuse below target'}
+                        </>
+                      ),
+                    },
+                    { key: 'auto', header: 'Automatic', cell: (row) => slotCounts(row.counts) },
+                    { key: 'review', header: 'Case review', cell: (row) => slotCounts(row.caseReviewCounts) },
+                  ]}
+                />
+              </details>
+            ),
+          },
+        ]}
+      />
       <Card className="overflow-hidden border-brand-border/60 bg-brand-surface/65 p-0">
         <div className="border-b border-brand-border/60 px-4 py-3">
           <h3 className="text-sm font-extrabold text-brand-text">Combined restriction matrix</h3>
@@ -98,82 +113,98 @@ export default function SharedLibraryCoverage({ coverage }: { coverage: LibraryC
           </p>
         </div>
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[900px] border-collapse text-left text-xs">
-            <thead>
-              <tr className="bg-brand-bg/45">
-                <th
-                  scope="col"
-                  className="sticky left-0 z-10 border-r border-brand-border/50 bg-brand-bg px-4 py-3 font-mono text-[9px] uppercase tracking-wider text-brand-muted"
-                >
-                  Condition
-                </th>
-                {coverage.combinationColumns.map((column) => (
-                  <th
-                    key={column.key}
-                    scope="col"
-                    className="px-3 py-3 text-center text-[10px] font-extrabold text-brand-muted"
-                  >
-                    {column.label}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {coverage.combinationMatrix.map((row) => (
-                <tr key={row.key} className="border-t border-brand-border/50">
-                  <th
-                    scope="row"
-                    className="sticky left-0 z-10 border-r border-brand-border/50 bg-brand-surface px-4 py-3 text-xs font-extrabold text-brand-text"
-                  >
-                    {row.label}
-                  </th>
-                  {row.cells.map((cell) => {
-                    const detail = `Automatic reuse: breakfast ${cell.counts.BREAKFAST}, lunch ${cell.counts.LUNCH}, dinner ${cell.counts.DINNER}. Case review: breakfast ${cell.caseReviewCounts.BREAKFAST}, lunch ${cell.caseReviewCounts.LUNCH}, dinner ${cell.caseReviewCounts.DINNER}`;
-                    return (
-                      <td key={cell.key} className="px-2 py-2 text-center">
-                        <span
-                          tabIndex={0}
-                          title={detail}
-                          aria-label={`${row.label} and ${cell.label}: ${cell.minimumPerSlot} lowest-slot automatic choices, ${cell.caseReviewMinimumPerSlot} lowest-slot case-review candidates. ${detail}.`}
-                          className={`inline-flex min-w-[130px] items-center justify-center gap-1 rounded-xl border px-2 py-2 font-mono text-[10px] font-black outline-none transition focus:ring-2 focus:ring-brand-cyan/40 ${cell.weekReady ? 'border-brand-green/35 bg-brand-green/10 text-brand-green' : 'border-status-warning-text/35 bg-status-warning-bg/15 text-status-warning-text'}`}
-                        >
-                          <span>
-                            Auto {cell.minimumPerSlot}/{coverage.requiredPerSlot}
-                          </span>
-                          <span className="ml-1 border-l border-current/30 pl-1">
-                            Review {cell.caseReviewMinimumPerSlot}
-                          </span>
-                        </span>
-                      </td>
-                    );
-                  })}
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <WorkspaceTable
+            label="Combined restriction matrix"
+            rows={coverage.combinationMatrix}
+            rowKey={(row) => row.key}
+            columns={[
+              {
+                key: 'condition',
+                header: 'Condition',
+                headerClassName: 'min-w-[150px]',
+                cell: (row) => <strong>{row.label}</strong>,
+              },
+              ...coverage.combinationColumns.map((column, index) => ({
+                key: column.key,
+                header: column.label,
+                headerClassName: 'min-w-[150px] text-center',
+                cellClassName: 'text-center',
+                cell: (row: LibraryCoverage['combinationMatrix'][number]) => {
+                  const cell = row.cells[index];
+                  if (!cell) return 'Not recorded';
+                  const detail =
+                    'Automatic reuse: breakfast ' +
+                    cell.counts.BREAKFAST +
+                    ', lunch ' +
+                    cell.counts.LUNCH +
+                    ', dinner ' +
+                    cell.counts.DINNER +
+                    '. Case review: breakfast ' +
+                    cell.caseReviewCounts.BREAKFAST +
+                    ', lunch ' +
+                    cell.caseReviewCounts.LUNCH +
+                    ', dinner ' +
+                    cell.caseReviewCounts.DINNER;
+                  return (
+                    <span
+                      tabIndex={0}
+                      title={detail}
+                      aria-label={
+                        row.label +
+                        ' and ' +
+                        cell.label +
+                        ': ' +
+                        cell.minimumPerSlot +
+                        ' lowest-slot automatic choices, ' +
+                        cell.caseReviewMinimumPerSlot +
+                        ' lowest-slot case-review candidates. ' +
+                        detail +
+                        '.'
+                      }
+                      className={
+                        'inline-flex min-w-[130px] items-center justify-center gap-1 rounded-xl border px-2 py-2 font-mono text-[10px] font-black outline-none transition focus:ring-2 focus:ring-brand-cyan/40 ' +
+                        (cell.weekReady
+                          ? 'border-brand-green/35 bg-brand-green/10 text-brand-green'
+                          : 'border-status-warning-text/35 bg-status-warning-bg/15 text-status-warning-text')
+                      }
+                    >
+                      <span>
+                        Auto {cell.minimumPerSlot}/{coverage.requiredPerSlot}
+                      </span>
+                      <span className="ml-1 border-l border-current/30 pl-1">
+                        Review {cell.caseReviewMinimumPerSlot}
+                      </span>
+                    </span>
+                  );
+                },
+              })),
+            ]}
+          />
         </div>
       </Card>
-      <div className="grid gap-3 lg:grid-cols-3" aria-label="Structured combined profile coverage">
-        {coverage.structuredProfiles.map((profile) => (
-          <Card key={profile.key} className="border-brand-border/60 bg-brand-surface/65 p-4">
-            <div className="flex items-start justify-between gap-2">
-              <div>
-                <p className="font-mono text-[9px] font-bold uppercase tracking-wider text-brand-cyan">
-                  Structured profile
-                </p>
-                <p className="mt-1 text-sm font-extrabold text-brand-text">{profile.label}</p>
-              </div>
+      <WorkspaceTable
+        label="Structured combined profile coverage"
+        rows={coverage.structuredProfiles}
+        rowKey={(profile) => profile.key}
+        columns={[
+          { key: 'profile', header: 'Structured profile', cell: (profile) => <strong>{profile.label}</strong> },
+          { key: 'auto', header: 'Automatically reusable · B / L / D', cell: (profile) => slotCounts(profile.counts) },
+          {
+            key: 'review',
+            header: 'Can enter case review · B / L / D',
+            cell: (profile) => slotCounts(profile.caseReviewCounts),
+          },
+          {
+            key: 'status',
+            header: 'Variety',
+            cell: (profile) => (
               <Badge variant={profile.weekReady ? 'verified' : 'pending'} showIcon={false} className="text-[9px]">
                 {profile.weekReady ? 'Auto variety met' : 'Auto reuse below target'}
               </Badge>
-            </div>
-            <div className="mt-4 space-y-3">
-              <CoverageSlotCounts label="Automatically reusable · B / L / D" counts={profile.counts} />
-              <CoverageSlotCounts label="Can enter case review · B / L / D" counts={profile.caseReviewCounts} />
-            </div>
-          </Card>
-        ))}
-      </div>
+            ),
+          },
+        ]}
+      />
     </section>
   );
 }

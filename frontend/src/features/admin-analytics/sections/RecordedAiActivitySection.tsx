@@ -3,6 +3,7 @@
 import { CheckCircle2, AlertTriangle, Cpu, Sparkles, Database, Activity } from 'lucide-react';
 
 import Card from '@/components/ui/Card';
+import WorkspaceTable from '@/components/shared/WorkspaceTable';
 
 import { cn } from '@/lib/utils';
 
@@ -104,22 +105,39 @@ export default function RecordedAiActivitySection({ model }: SectionProps) {
                 <h3 className="font-bold text-sm text-brand-text">Operations • last 30 days</h3>
               </div>
               {data.aiUsageByOperation30d.length ? (
-                <ul className="space-y-2.5 text-xs">
-                  {data.aiUsageByOperation30d.map((row) => (
-                    <li
-                      key={`${row.operation}:${row.purpose}:${row.status}`}
-                      className="flex items-center justify-between gap-3 rounded-xl border border-brand-border/40 bg-brand-bgAlt/30 p-2.5"
-                    >
-                      <span className="break-words font-medium text-brand-text">
-                        {humanize(row.operation)} · <span className="text-brand-muted">{humanize(row.purpose)}</span> ·{' '}
-                        <span className="rounded-md bg-brand-surface px-1.5 py-0.5 text-[10px] font-bold text-brand-muted">
+                <WorkspaceTable
+                  label="Recorded AI operations"
+                  rows={data.aiUsageByOperation30d}
+                  rowKey={(row) => `${row.operation}:${row.purpose}:${row.status}`}
+                  columns={[
+                    {
+                      key: 'operation',
+                      header: 'Operation',
+                      headerClassName: 'min-w-[140px]',
+                      cell: (row) => humanize(row.operation),
+                    },
+                    {
+                      key: 'purpose',
+                      header: 'Purpose',
+                      headerClassName: 'min-w-[180px]',
+                      cell: (row) => <span className="text-brand-muted">{humanize(row.purpose)}</span>,
+                    },
+                    {
+                      key: 'status',
+                      header: 'Status',
+                      cell: (row) => (
+                        <span className="rounded-full bg-brand-bgAlt px-2 py-1 text-[10px] font-bold">
                           {humanize(row.status)}
                         </span>
-                      </span>
-                      <strong className="font-mono text-sm font-extrabold text-brand-text">{format(row.count)}</strong>
-                    </li>
-                  ))}
-                </ul>
+                      ),
+                    },
+                    {
+                      key: 'count',
+                      header: 'Count',
+                      cell: (row) => <strong className="font-mono">{format(row.count)}</strong>,
+                    },
+                  ]}
+                />
               ) : (
                 <p className="text-sm text-brand-muted">No recorded AI operations in this period.</p>
               )}
@@ -131,17 +149,19 @@ export default function RecordedAiActivitySection({ model }: SectionProps) {
                 <h3 className="font-bold text-sm text-brand-text">Saved candidate sources • last 30 days</h3>
               </div>
               {data.planSelectionsByProvenance30d.length ? (
-                <ul className="space-y-2.5 text-xs">
-                  {data.planSelectionsByProvenance30d.map((row) => (
-                    <li
-                      key={row.provenance}
-                      className="flex items-center justify-between gap-3 rounded-xl border border-brand-border/40 bg-brand-bgAlt/30 p-2.5"
-                    >
-                      <span className="font-medium text-brand-text">{humanize(row.provenance)}</span>
-                      <strong className="font-mono text-sm font-extrabold text-brand-text">{format(row.count)}</strong>
-                    </li>
-                  ))}
-                </ul>
+                <WorkspaceTable
+                  label="Saved candidate sources"
+                  rows={data.planSelectionsByProvenance30d}
+                  rowKey={(row) => row.provenance}
+                  columns={[
+                    { key: 'source', header: 'Source', cell: (row) => humanize(row.provenance) },
+                    {
+                      key: 'count',
+                      header: 'Count',
+                      cell: (row) => <strong className="font-mono">{format(row.count)}</strong>,
+                    },
+                  ]}
+                />
               ) : (
                 <p className="text-sm text-brand-muted">No saved candidates in this period.</p>
               )}

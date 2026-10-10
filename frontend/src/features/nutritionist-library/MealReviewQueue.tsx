@@ -3,6 +3,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useSessionQuery } from '@/hooks/useSessionQuery';
 import api from '@/lib/axios';
 import Button from '@/components/ui/Button';
+import WorkspaceTable from '@/components/shared/WorkspaceTable';
 import { reviewStateLabel } from './MealReviewTimeline';
 export default function MealReviewQueue({
   isAdmin,
@@ -40,25 +41,28 @@ export default function MealReviewQueue({
         </p>
       )}
       {query.isLoading && !query.data && <p role="status">Loading cases…</p>}
-      {query.data?.length === 0 && <p className="text-sm text-brand-muted">No held recipes await re-review.</p>}
-      <ul className="grid gap-3 md:grid-cols-2">
-        {query.data?.map((row) => (
-          <li
-            key={row.id}
-            className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-brand-border p-3"
-          >
-            <div>
-              <p className="font-semibold">{row.mealName}</p>
-              <p className="text-xs text-brand-muted">
-                {reviewStateLabel(row.state)} · Incident {row.incidentCount}
-              </p>
-            </div>
-            <Button variant="secondary" size="sm" onClick={() => void openMeal(row)}>
-              Review case
-            </Button>
-          </li>
-        ))}
-      </ul>
+      {query.data && (
+        <WorkspaceTable
+          label="Held recipe cases"
+          rows={query.data}
+          rowKey={(row) => row.id}
+          emptyMessage="No held recipes await re-review."
+          columns={[
+            { key: 'meal', header: 'Meal', cell: (row) => <strong>{row.mealName}</strong> },
+            { key: 'state', header: 'Review state', cell: (row) => reviewStateLabel(row.state) },
+            { key: 'incident', header: 'Incident', cell: (row) => row.incidentCount },
+            {
+              key: 'actions',
+              header: 'Actions',
+              cell: (row) => (
+                <Button variant="secondary" size="sm" onClick={() => void openMeal(row)}>
+                  Review case
+                </Button>
+              ),
+            },
+          ]}
+        />
+      )}
     </section>
   );
 }

@@ -6,7 +6,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { getApiErrorMessage } from '@/lib/api-error';
 import { Stethoscope } from 'lucide-react';
 import api from '@/lib/axios';
-import Card from '@/components/ui/Card';
+import Button from '@/components/ui/Button';
+import WorkspaceTable from '@/components/shared/WorkspaceTable';
 import PortalPageHeader from '@/components/shared/PortalPageHeader';
 import PortalLoadingState from '@/components/shared/PortalLoadingState';
 import { NutritionistApplicationCard } from '@/features/admin-nutritionists/NutritionistApplicationCard';
@@ -269,16 +270,67 @@ function ApplicationSection({
   items: NutritionistApplication[];
   cards: React.ReactNode[];
 }) {
+  const [expandedId, setExpandedId] = useState<string | null>(null);
   return (
     <section>
       <p className="portal-section-label mb-4">
         {label} · {items.length}
       </p>
-      {items.length ? (
-        <div className="grid gap-5 xl:grid-cols-2">{cards}</div>
-      ) : (
-        <Card className="p-10 text-center text-sm text-brand-muted">No active applications.</Card>
-      )}
+      <WorkspaceTable
+        label={label}
+        rows={items}
+        rowKey={(application) => application.id}
+        emptyMessage="No active applications."
+        columns={[
+          {
+            key: 'applicant',
+            header: 'Applicant',
+            headerClassName: 'min-w-[200px]',
+            cell: (application) => (
+              <>
+                <p className="font-bold">{application.fullName}</p>
+                <p className="mt-1 break-all text-brand-muted">{application.email}</p>
+              </>
+            ),
+          },
+          {
+            key: 'reference',
+            header: 'Reference / PRC',
+            headerClassName: 'min-w-[150px]',
+            cell: (application) => (
+              <>
+                {application.referenceCode}
+                <p className="mt-1 text-brand-muted">PRC {application.prcLicenseNumber}</p>
+              </>
+            ),
+          },
+          { key: 'status', header: 'Status', cell: (application) => application.status.replaceAll('_', ' ') },
+          {
+            key: 'date',
+            header: 'Submitted',
+            headerClassName: 'min-w-[150px]',
+            cell: (application) =>
+              new Date(application.createdAt).toLocaleDateString('en-PH', { timeZone: 'Asia/Manila' }),
+          },
+          {
+            key: 'actions',
+            header: 'Actions',
+            cell: (application) => (
+              <Button
+                size="sm"
+                variant="secondary"
+                aria-expanded={expandedId === application.id}
+                onClick={() => setExpandedId(expandedId === application.id ? null : application.id)}
+              >
+                {expandedId === application.id ? 'Close details' : 'Review application'}
+              </Button>
+            ),
+          },
+        ]}
+        expandedContent={(application) =>
+          expandedId === application.id ? cards[items.findIndex((item) => item.id === application.id)] : null
+        }
+      />
     </section>
   );
 }

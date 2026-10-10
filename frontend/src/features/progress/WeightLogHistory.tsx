@@ -1,5 +1,7 @@
 'use client';
 
+import WorkspaceTable from '@/components/shared/WorkspaceTable';
+
 import React from 'react';
 import { Plus, Scale } from 'lucide-react';
 import Card from '@/components/ui/Card';
@@ -87,114 +89,108 @@ export default function WeightLogHistory({
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs border-collapse">
-              <thead>
-                <tr className="border-b border-brand-border/60 text-brand-muted uppercase font-bold tracking-wider text-[10px]">
-                  <th className="pb-3 px-3">Date</th>
-                  <th className="pb-3 px-3">Recorded Weight</th>
-                  <th className="pb-3 px-3">Change vs Prev</th>
-                  <th className="pb-3 px-3">vs Start</th>
-                  <th className="pb-3 px-3">Source</th>
-                  <th className="pb-3 px-3">Note / Context</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-brand-border/30">
-                {sortedWeightLogs.map((log, index) => {
-                  const isLatest = index === 0;
-                  const prevLog = sortedWeightLogs[index + 1];
-                  const diffPrev = prevLog ? log.weightKg - prevLog.weightKg : null;
-                  const earliestLog = sortedWeightLogs[sortedWeightLogs.length - 1];
-                  const diffStart =
-                    earliestLog && sortedWeightLogs.length > 1 ? log.weightKg - earliestLog.weightKg : null;
-
-                  return (
-                    <tr
-                      key={log.id || `weight-log-${index}`}
-                      className="hover:bg-brand-surface/40 transition-colors duration-150"
+            <WorkspaceTable
+              label="Weight history"
+              rows={sortedWeightLogs}
+              rowKey={(log, index) => String(log.id || `weight-log-${index}`)}
+              columns={[
+                { key: 'col-0', header: <>Date</>, headerClassName: 'min-w-[100px]' },
+                { key: 'col-1', header: <>Recorded Weight</>, headerClassName: 'min-w-[100px]' },
+                { key: 'col-2', header: <>Change vs Prev</>, headerClassName: 'min-w-[100px]' },
+                { key: 'col-3', header: <>vs Start</>, headerClassName: 'min-w-[100px]' },
+                { key: 'col-4', header: <>Source</>, headerClassName: 'min-w-[100px]' },
+                { key: 'col-5', header: <>Note / Context</>, headerClassName: 'min-w-[100px]' },
+              ]}
+              cells={(log, index) => {
+                const isLatest = index === 0;
+                const prevLog = sortedWeightLogs[index + 1];
+                const diffPrev = prevLog ? log.weightKg - prevLog.weightKg : null;
+                const earliestLog = sortedWeightLogs[sortedWeightLogs.length - 1];
+                const diffStart =
+                  earliestLog && sortedWeightLogs.length > 1 ? log.weightKg - earliestLog.weightKg : null;
+                return [
+                  <>
+                    <div className="flex items-center gap-1.5">
+                      <span>
+                        {new Date(log.loggedAt).toLocaleDateString(undefined, {
+                          weekday: 'short',
+                          month: 'short',
+                          day: 'numeric',
+                          year: 'numeric',
+                        })}
+                      </span>
+                      {isLatest && (
+                        <span className="text-[9px] font-extrabold uppercase px-1.5 py-0.5 rounded bg-brand-green/15 text-brand-green border border-brand-green/30">
+                          Latest
+                        </span>
+                      )}
+                    </div>
+                  </>,
+                  <>
+                    {log.weightKg.toFixed(1)}
+                    <span className="text-[11px] font-medium text-brand-muted">kg</span>
+                  </>,
+                  <>
+                    {diffPrev !== null ? (
+                      <span
+                        className={`inline-flex items-center font-bold text-xs ${
+                          (goal === 'LOSE_WEIGHT' && diffPrev < 0) || (goal === 'GAIN_WEIGHT' && diffPrev > 0)
+                            ? 'text-emerald-600 dark:text-emerald-400'
+                            : diffPrev === 0
+                              ? 'text-brand-muted'
+                              : 'text-amber-600 dark:text-amber-400'
+                        }`}
+                      >
+                        {diffPrev > 0 ? `+${diffPrev.toFixed(1)}` : diffPrev.toFixed(1)} kg
+                      </span>
+                    ) : (
+                      <span className="text-brand-muted/70 text-xs">—</span>
+                    )}
+                  </>,
+                  <>
+                    {diffStart !== null && index < sortedWeightLogs.length - 1 ? (
+                      <span
+                        className={`font-semibold text-xs ${
+                          (goal === 'LOSE_WEIGHT' && diffStart < 0) || (goal === 'GAIN_WEIGHT' && diffStart > 0)
+                            ? 'text-emerald-600 dark:text-emerald-400'
+                            : diffStart === 0
+                              ? 'text-brand-muted'
+                              : 'text-amber-600 dark:text-amber-400'
+                        }`}
+                      >
+                        {diffStart > 0 ? `+${diffStart.toFixed(1)}` : diffStart.toFixed(1)} kg
+                      </span>
+                    ) : (
+                      <span className="text-[10px] font-bold text-brand-muted uppercase bg-brand-bgAlt px-1.5 py-0.5 rounded border border-brand-border/50">
+                        Baseline
+                      </span>
+                    )}
+                  </>,
+                  <>
+                    <Badge
+                      variant={log.source === 'ONBOARDING' || log.source === 'INITIAL_REPORT' ? 'user' : 'verified'}
+                      showIcon={false}
+                      className="text-[10px] font-bold py-0.5 px-2"
                     >
-                      <td className="py-3 px-3 font-semibold text-brand-text whitespace-nowrap">
-                        <div className="flex items-center gap-1.5">
-                          <span>
-                            {new Date(log.loggedAt).toLocaleDateString(undefined, {
-                              weekday: 'short',
-                              month: 'short',
-                              day: 'numeric',
-                              year: 'numeric',
-                            })}
-                          </span>
-                          {isLatest && (
-                            <span className="text-[9px] font-extrabold uppercase px-1.5 py-0.5 rounded bg-brand-green/15 text-brand-green border border-brand-green/30">
-                              Latest
-                            </span>
-                          )}
-                        </div>
-                      </td>
-                      <td className="py-3 px-3 font-display font-black text-sm text-brand-text whitespace-nowrap">
-                        {log.weightKg.toFixed(1)} <span className="text-[11px] font-medium text-brand-muted">kg</span>
-                      </td>
-                      <td className="py-3 px-3 whitespace-nowrap">
-                        {diffPrev !== null ? (
-                          <span
-                            className={`inline-flex items-center font-bold text-xs ${
-                              (goal === 'LOSE_WEIGHT' && diffPrev < 0) || (goal === 'GAIN_WEIGHT' && diffPrev > 0)
-                                ? 'text-emerald-600 dark:text-emerald-400'
-                                : diffPrev === 0
-                                  ? 'text-brand-muted'
-                                  : 'text-amber-600 dark:text-amber-400'
-                            }`}
-                          >
-                            {diffPrev > 0 ? `+${diffPrev.toFixed(1)}` : diffPrev.toFixed(1)} kg
-                          </span>
-                        ) : (
-                          <span className="text-brand-muted/70 text-xs">—</span>
-                        )}
-                      </td>
-                      <td className="py-3 px-3 whitespace-nowrap">
-                        {diffStart !== null && index < sortedWeightLogs.length - 1 ? (
-                          <span
-                            className={`font-semibold text-xs ${
-                              (goal === 'LOSE_WEIGHT' && diffStart < 0) || (goal === 'GAIN_WEIGHT' && diffStart > 0)
-                                ? 'text-emerald-600 dark:text-emerald-400'
-                                : diffStart === 0
-                                  ? 'text-brand-muted'
-                                  : 'text-amber-600 dark:text-amber-400'
-                            }`}
-                          >
-                            {diffStart > 0 ? `+${diffStart.toFixed(1)}` : diffStart.toFixed(1)} kg
-                          </span>
-                        ) : (
-                          <span className="text-[10px] font-bold text-brand-muted uppercase bg-brand-bgAlt px-1.5 py-0.5 rounded border border-brand-border/50">
-                            Baseline
-                          </span>
-                        )}
-                      </td>
-                      <td className="py-3 px-3 whitespace-nowrap">
-                        <Badge
-                          variant={log.source === 'ONBOARDING' || log.source === 'INITIAL_REPORT' ? 'user' : 'verified'}
-                          showIcon={false}
-                          className="text-[10px] font-bold py-0.5 px-2"
-                        >
-                          {log.source === 'ONBOARDING'
-                            ? 'Onboarding'
-                            : log.source === 'INITIAL_REPORT'
-                              ? 'Report'
-                              : 'Weekly Log'}
-                        </Badge>
-                      </td>
-                      <td className="py-3 px-3 text-xs text-brand-muted max-w-xs truncate">
-                        {log.note ? (
-                          <span className="text-brand-text/90 italic" title={log.note}>
-                            &ldquo;{log.note}&rdquo;
-                          </span>
-                        ) : (
-                          <span className="text-brand-muted/40">—</span>
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+                      {log.source === 'ONBOARDING'
+                        ? 'Onboarding'
+                        : log.source === 'INITIAL_REPORT'
+                          ? 'Report'
+                          : 'Weekly Log'}
+                    </Badge>
+                  </>,
+                  <>
+                    {log.note ? (
+                      <span className="text-brand-text/90 italic" title={log.note}>
+                        &ldquo;{log.note}&rdquo;
+                      </span>
+                    ) : (
+                      <span className="text-brand-muted/40">—</span>
+                    )}
+                  </>,
+                ];
+              }}
+            />
           </div>
         )}
       </Card>

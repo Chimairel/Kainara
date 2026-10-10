@@ -8,6 +8,7 @@ import { useSessionQuery } from '@/hooks/useSessionQuery';
 import api from '@/lib/axios';
 import RecordPaper, { recordFieldClass, recordSectionClass } from './RecordPaper';
 import CaseReviewContext from '@/features/admin-audit/CaseReviewContext';
+import WorkspaceTable, { type WorkspaceTableColumn } from './WorkspaceTable';
 
 export type AuditRow = {
   id: string;
@@ -170,85 +171,6 @@ function DetailPanel({
     </>
   );
 }
-function AuditEntry({
-  row,
-  expanded,
-  onToggle,
-  onRelated,
-  ownerId,
-  endpoint,
-  canAuthor,
-}: {
-  row: AuditRow;
-  expanded: boolean;
-  onToggle: () => void;
-  onRelated?: (row: AuditRow) => void;
-  ownerId: string | undefined;
-  endpoint: string;
-  canAuthor: boolean;
-}) {
-  const panelId = useId();
-  return (
-    <article>
-      <div className="grid gap-3 p-4 md:grid-cols-[145px_1fr_1.5fr_110px_auto] md:items-center">
-        <time dateTime={row.occurredAt} className="text-xs text-brand-muted">
-          {dateLabel(row.occurredAt)}
-        </time>
-        <div className="min-w-0">
-          <p className="break-words text-sm font-semibold">{row.actor}</p>
-          <p className="mt-1 text-xs text-brand-muted">
-            {row.role === 'ADMIN' ? 'Administrator' : row.role === 'NUTRITIONIST' ? 'RND' : 'Role not recorded'}
-          </p>
-        </div>
-        <div className="min-w-0">
-          <p className="text-sm font-bold">{row.action}</p>
-          <p className="mt-1 break-words text-xs text-brand-muted">{row.subject}</p>
-        </div>
-        <p className="text-xs text-brand-muted">{row.outcome}</p>
-        <div className="flex flex-wrap gap-2">
-          <Button
-            variant="secondary"
-            size="sm"
-            className="!min-h-11"
-            aria-expanded={expanded}
-            aria-controls={panelId}
-            aria-label={`Details: ${row.action} — ${row.subject}`}
-            onClick={onToggle}
-          >
-            Details {expanded ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
-          </Button>
-          {onRelated && (
-            <Button
-              variant="ghost"
-              size="sm"
-              className="!min-h-11"
-              onClick={() => onRelated(row)}
-              aria-label={`Related activity: ${row.action} — ${row.subject}`}
-            >
-              Related activity
-            </Button>
-          )}
-        </div>
-      </div>
-      {expanded && (
-        <div
-          id={panelId}
-          role="region"
-          aria-label={`${row.action} details`}
-          className="mx-2 mb-4 space-y-5 rounded-3xl border border-brand-border/70 bg-[#faf8f5] dark:bg-[#071914] p-2 text-brand-text sm:mx-4 sm:p-4"
-        >
-          <DetailPanel
-            key={`${ownerId}:${row.id}`}
-            id={row.id}
-            ownerId={ownerId}
-            endpoint={endpoint}
-            canAuthor={canAuthor}
-          />
-        </div>
-      )}
-    </article>
-  );
-}
 export default function AuditHistoryList({
   rows,
   onRelated,
@@ -263,21 +185,111 @@ export default function AuditHistoryList({
   canAuthor?: boolean;
 }) {
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const panelPrefix = useId();
+  const panelId = (row: AuditRow) => panelPrefix + '-' + row.id;
+  const columns: WorkspaceTableColumn<AuditRow>[] = [
+    {
+      key: 'date',
+      header: 'Date',
+      headerClassName: 'min-w-[145px]',
+      cell: (row) => (
+        <time dateTime={row.occurredAt} className="text-brand-muted">
+          {dateLabel(row.occurredAt)}
+        </time>
+      ),
+    },
+    {
+      key: 'staff',
+      header: 'Staff',
+      headerClassName: 'min-w-[180px]',
+      cell: (row) => (
+        <>
+          <p className="break-words font-semibold">{row.actor}</p>
+          <p className="mt-1 text-[11px] text-brand-muted">
+            {row.role === 'ADMIN' ? 'Administrator' : row.role === 'NUTRITIONIST' ? 'RND' : 'Role not recorded'}
+          </p>
+        </>
+      ),
+    },
+    {
+      key: 'action',
+      header: 'Action',
+      headerClassName: 'min-w-[240px]',
+      cell: (row) => (
+        <>
+          <p className="font-bold">{row.action}</p>
+          <p className="mt-1 break-words text-[11px] text-brand-muted">{row.subject}</p>
+        </>
+      ),
+    },
+    {
+      key: 'outcome',
+      header: 'Outcome',
+      headerClassName: 'min-w-[110px]',
+      cell: (row) => <span className="text-brand-muted">{row.outcome}</span>,
+    },
+    {
+      key: 'actions',
+      header: 'Actions',
+      headerClassName: 'min-w-[160px]',
+      cell: (row) => (
+        <div className="flex flex-wrap gap-2">
+          <Button
+            variant="secondary"
+            size="sm"
+            className="!min-h-11"
+            aria-expanded={expandedId === row.id}
+            aria-controls={panelId(row)}
+            aria-label={'Details: ' + row.action + ' — ' + row.subject}
+            onClick={() => setExpandedId(expandedId === row.id ? null : row.id)}
+          >
+            Details {expandedId === row.id ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+          </Button>
+          {onRelated && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="!min-h-11"
+              onClick={() => onRelated(row)}
+              aria-label={'Related activity: ' + row.action + ' — ' + row.subject}
+            >
+              Related activity
+            </Button>
+          )}
+        </div>
+      ),
+    },
+  ];
   return (
-    <div className="divide-y divide-brand-border/60" aria-label="Audit records">
-      {rows.map((row) => (
-        <AuditEntry
-          key={row.id}
-          row={row}
-          expanded={expandedId === row.id}
-          onToggle={() => setExpandedId(expandedId === row.id ? null : row.id)}
-          onRelated={onRelated}
-          ownerId={ownerId}
-          endpoint={endpoint}
-          canAuthor={canAuthor}
-        />
-      ))}
-      {!rows.length && <p className="p-6 text-sm text-brand-muted">No activity matches these filters.</p>}
-    </div>
+    <WorkspaceTable
+      label="Audit records"
+      rows={rows}
+      columns={columns}
+      rowKey={(row) => row.id}
+      emptyMessage="No activity matches these filters."
+      expandedContent={(row) =>
+        expandedId === row.id ? (
+          <div
+            id={panelId(row)}
+            role="region"
+            aria-label={row.action + ' details'}
+            className="space-y-5 rounded-3xl border border-brand-border/70 bg-[#faf8f5] dark:bg-[#071914] p-2 text-brand-text sm:p-4"
+          >
+            <DetailPanel
+              key={ownerId + ':' + row.id}
+              id={row.id}
+              ownerId={ownerId}
+              endpoint={endpoint}
+              canAuthor={canAuthor}
+            />
+          </div>
+        ) : null
+      }
+      footer={
+        <span>
+          Showing <strong className="text-brand-text">{rows.length}</strong> records
+        </span>
+      }
+    />
   );
 }

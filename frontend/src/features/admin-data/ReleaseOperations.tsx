@@ -6,6 +6,7 @@ import { CheckCircle2, Download, FileSearch, History, Upload, Undo2 } from 'luci
 import api from '@/lib/axios';
 import Button from '@/components/ui/Button';
 import Card from '@/components/ui/Card';
+import WorkspaceTable from '@/components/shared/WorkspaceTable';
 import Input from '@/components/ui/Input';
 import type { ApiEnvelope, ConsumptionPage, ConsumptionStat, DataRelease, FoodItem, FoodPage } from './types';
 import { fieldClassName, getApiError } from './types';
@@ -33,7 +34,7 @@ function downloadTemplate(csvTemplate: string) {
   URL.revokeObjectURL(url);
 }
 
-function ReleaseCard({
+function ReleaseActions({
   release,
   busy,
   onAction,
@@ -44,67 +45,39 @@ function ReleaseCard({
   onAction: (release: DataRelease, action: 'stage' | 'publish' | 'rollback') => Promise<void>;
   onInspect: (release: DataRelease) => void;
 }) {
-  const mappingEntries = ['EXACT', 'MANUAL', 'REVIEW_REQUIRED', 'UNMAPPED'] as const;
   return (
-    <Card className="p-5">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-brand-muted">{release.source.code}</p>
-          <h3 className="mt-1 font-display text-lg font-black text-brand-text">{release.versionLabel}</h3>
-          <p className="mt-1 text-xs text-brand-muted">
-            {release.surveyYear || 'No survey year'} · retrieved {new Date(release.retrievedAt).toLocaleDateString()}
-          </p>
-        </div>
-        <span className={`rounded-full border px-3 py-1 font-mono text-[10px] font-bold ${statusTone[release.status]}`}>
-          {release.status}
-        </span>
-      </div>
-      <div className="mt-5 grid grid-cols-2 gap-2 sm:grid-cols-4">
-        {mappingEntries.map((status) => (
-          <div key={status} className="rounded-2xl border border-brand-border/50 bg-brand-bgAlt/45 p-3">
-            <p className="text-lg font-black text-brand-text">{release.mappings[status] || 0}</p>
-            <p className="mt-1 truncate font-mono text-[8px] uppercase tracking-wide text-brand-muted">
-              {status.replace('_', ' ')}
-            </p>
-          </div>
-        ))}
-      </div>
-      <div className="mt-4 flex flex-wrap gap-2">
-        {release.source.domain === 'FOOD_CONSUMPTION' && (
-          <Button size="sm" variant="secondary" onClick={() => onInspect(release)}>
-            <FileSearch className="h-4 w-4" /> Inspect rows
-          </Button>
-        )}
-        {release.status === 'DRAFT' && (
-          <Button size="sm" onClick={() => void onAction(release, 'stage')} isLoading={busy === `${release.id}:stage`}>
-            Stage release
-          </Button>
-        )}
-        {release.status === 'STAGED' && (
-          <Button
-            size="sm"
-            variant="accent"
-            onClick={() => void onAction(release, 'publish')}
-            isLoading={busy === `${release.id}:publish`}
-          >
-            <CheckCircle2 className="h-4 w-4" /> Publish
-          </Button>
-        )}
-        {release.status === 'RETIRED' && (
-          <Button
-            size="sm"
-            variant="secondary"
-            onClick={() => void onAction(release, 'rollback')}
-            isLoading={busy === `${release.id}:rollback`}
-          >
-            <Undo2 className="h-4 w-4" /> Restore
-          </Button>
-        )}
-      </div>
-      {release.contentSha256 && (
-        <p className="mt-4 truncate font-mono text-[9px] text-brand-muted">SHA-256 {release.contentSha256}</p>
+    <div className="flex flex-wrap gap-2">
+      {release.source.domain === 'FOOD_CONSUMPTION' && (
+        <Button size="sm" variant="secondary" onClick={() => onInspect(release)}>
+          <FileSearch className="h-4 w-4" /> Inspect rows
+        </Button>
       )}
-    </Card>
+      {release.status === 'DRAFT' && (
+        <Button size="sm" onClick={() => void onAction(release, 'stage')} isLoading={busy === `${release.id}:stage`}>
+          Stage release
+        </Button>
+      )}
+      {release.status === 'STAGED' && (
+        <Button
+          size="sm"
+          variant="accent"
+          onClick={() => void onAction(release, 'publish')}
+          isLoading={busy === `${release.id}:publish`}
+        >
+          <CheckCircle2 className="h-4 w-4" /> Publish
+        </Button>
+      )}
+      {release.status === 'RETIRED' && (
+        <Button
+          size="sm"
+          variant="secondary"
+          onClick={() => void onAction(release, 'rollback')}
+          isLoading={busy === `${release.id}:rollback`}
+        >
+          <Undo2 className="h-4 w-4" /> Restore
+        </Button>
+      )}
+    </div>
   );
 }
 
@@ -217,17 +190,66 @@ export default function ReleaseOperations({ releases, csvTemplate, onChanged, on
         {releases.length === 0 ? (
           <Card className="p-6 text-sm text-brand-muted">No versioned releases yet.</Card>
         ) : (
-          <div className="grid gap-4 xl:grid-cols-2">
-            {releases.map((release) => (
-              <ReleaseCard
-                key={release.id}
-                release={release}
-                busy={busy}
-                onAction={runAction}
-                onInspect={setInspected}
-              />
-            ))}
-          </div>
+          <WorkspaceTable
+            label="Reference data releases"
+            rows={releases}
+            rowKey={(release) => release.id}
+            columns={[
+              {
+                key: 'release',
+                header: 'Release',
+                headerClassName: 'min-w-[200px]',
+                cell: (release) => (
+                  <>
+                    <h3 className="font-bold">{release.versionLabel}</h3>
+                    <p className="mt-1 text-[11px] text-brand-muted">{release.source.code}</p>
+                    {release.contentSha256 && (
+                      <p className="mt-1 max-w-[220px] break-all font-mono text-[9px] text-brand-muted">
+                        SHA-256 {release.contentSha256}
+                      </p>
+                    )}
+                  </>
+                ),
+              },
+              {
+                key: 'date',
+                header: 'Survey / retrieved',
+                headerClassName: 'min-w-[150px]',
+                cell: (release) => (
+                  <>
+                    {release.surveyYear || 'No survey year'} · retrieved{' '}
+                    {new Date(release.retrievedAt).toLocaleDateString()}
+                  </>
+                ),
+              },
+              {
+                key: 'status',
+                header: 'Status',
+                cell: (release) => (
+                  <span
+                    className={
+                      'rounded-full border px-3 py-1 font-mono text-[10px] font-bold ' + statusTone[release.status]
+                    }
+                  >
+                    {release.status}
+                  </span>
+                ),
+              },
+              ...(['EXACT', 'MANUAL', 'REVIEW_REQUIRED', 'UNMAPPED'] as const).map((status) => ({
+                key: status,
+                header: status.replace('_', ' '),
+                cell: (release: DataRelease) => release.mappings[status] || 0,
+              })),
+              {
+                key: 'actions',
+                header: 'Actions',
+                headerClassName: 'min-w-[200px]',
+                cell: (release) => (
+                  <ReleaseActions release={release} busy={busy} onAction={runAction} onInspect={setInspected} />
+                ),
+              },
+            ]}
+          />
         )}
       </div>
 
@@ -340,43 +362,76 @@ function ConsumptionMappingPanel({
           Search
         </Button>
       </form>
-      <div className="mt-5 space-y-2">
-        {rows.map((row) => (
-          <div
-            key={row.id}
-            className="flex flex-col gap-3 rounded-2xl border border-brand-border/55 bg-brand-bgAlt/40 p-4 lg:flex-row lg:items-center"
-          >
-            <div className="min-w-0 flex-1">
-              <p className="font-bold text-brand-text">{row.foodNameRaw}</p>
-              <p className="mt-1 text-xs text-brand-muted">
-                {row.populationGroup} · {row.geographyLevel}
-                {row.regionName ? ` · ${row.regionName}` : ''}
-                {row.provinceHucName ? ` · ${row.provinceHucName}` : ''}
-              </p>
-              <p className="mt-1 text-[11px] text-brand-muted">
-                {row.foodItem ? `FNRI: ${row.foodItem.name}` : 'No FNRI mapping'} · {row.percentConsuming ?? '—'}%
-                consuming · {row.meanIntakeG ?? '—'} g/day
-              </p>
-            </div>
-            <span className="font-mono text-[9px] font-bold text-brand-green">{row.mappingStatus}</span>
-            {release.status === 'DRAFT' && (
-              <Button
-                size="sm"
-                variant="secondary"
-                onClick={() => {
-                  setTarget(row);
-                  setFoodSearch(row.foodNameRaw);
-                  setFoods([]);
-                }}
-              >
-                Map
-              </Button>
-            )}
-          </div>
-        ))}
-        {!loading && rows.length === 0 && (
-          <p className="py-8 text-center text-sm text-brand-muted">No rows match this filter.</p>
-        )}
+      <div className="mt-5">
+        <WorkspaceTable
+          label="Consumption mappings"
+          rows={rows}
+          rowKey={(row) => row.id}
+          emptyMessage={loading ? 'Loading rows…' : 'No rows match this filter.'}
+          columns={[
+            {
+              key: 'food',
+              header: 'Food',
+              headerClassName: 'min-w-[160px]',
+              cell: (row) => (
+                <>
+                  <p className="font-bold">{row.foodNameRaw}</p>
+                  <p className="mt-1 text-brand-muted">
+                    {row.foodItem ? 'FNRI: ' + row.foodItem.name : 'No FNRI mapping'}
+                  </p>
+                </>
+              ),
+            },
+            {
+              key: 'population',
+              header: 'Population / geography',
+              headerClassName: 'min-w-[180px]',
+              cell: (row) => (
+                <>
+                  {row.populationGroup} · {row.geographyLevel}
+                  {row.regionName ? ' · ' + row.regionName : ''}
+                  {row.provinceHucName ? ' · ' + row.provinceHucName : ''}
+                </>
+              ),
+            },
+            {
+              key: 'intake',
+              header: 'Consumption',
+              cell: (row) => (
+                <>
+                  {row.percentConsuming ?? '—'}% consuming · {row.meanIntakeG ?? '—'} g/day
+                </>
+              ),
+            },
+            {
+              key: 'status',
+              header: 'Mapping',
+              cell: (row) => (
+                <span className="font-mono text-[9px] font-bold text-brand-green">{row.mappingStatus}</span>
+              ),
+            },
+            {
+              key: 'actions',
+              header: 'Actions',
+              cell: (row) =>
+                release.status === 'DRAFT' ? (
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    onClick={() => {
+                      setTarget(row);
+                      setFoodSearch(row.foodNameRaw);
+                      setFoods([]);
+                    }}
+                  >
+                    Map
+                  </Button>
+                ) : (
+                  '—'
+                ),
+            },
+          ]}
+        />
       </div>
       {target && (
         <div className="mt-5 rounded-[24px] border border-brand-green/20 bg-brand-green/5 p-5">
@@ -395,20 +450,34 @@ function ConsumptionMappingPanel({
             />
             <Button type="submit">Find</Button>
           </form>
-          <div className="mt-3 grid gap-2 sm:grid-cols-2">
-            {foods.map((food) => (
-              <button
-                key={food.id}
-                type="button"
-                onClick={() => void setMapping(food)}
-                className="rounded-2xl border border-brand-border/60 bg-brand-surface p-3 text-left text-sm font-semibold text-brand-text transition hover:border-brand-green/50"
-              >
-                {food.name}
-                <span className="mt-1 block text-[11px] font-normal text-brand-muted">
-                  {food.calories} kcal · P {food.proteinG} g · C {food.carbsG} g · F {food.fatG} g
-                </span>
-              </button>
-            ))}
+          <div className="mt-3">
+            <WorkspaceTable
+              label="FNRI mapping choices"
+              rows={foods}
+              rowKey={(food) => food.id}
+              emptyMessage="Search for an FNRI record."
+              columns={[
+                { key: 'name', header: 'Food', cell: (food) => food.name },
+                {
+                  key: 'nutrition',
+                  header: 'Nutrition',
+                  cell: (food) => (
+                    <>
+                      {food.calories} kcal · P {food.proteinG} g · C {food.carbsG} g · F {food.fatG} g
+                    </>
+                  ),
+                },
+                {
+                  key: 'choose',
+                  header: 'Actions',
+                  cell: (food) => (
+                    <Button size="sm" variant="secondary" onClick={() => void setMapping(food)}>
+                      Map to {food.name}
+                    </Button>
+                  ),
+                },
+              ]}
+            />
           </div>
         </div>
       )}

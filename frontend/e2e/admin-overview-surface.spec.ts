@@ -3,7 +3,9 @@ import { analyticsFixture } from '../src/features/admin-analytics/analytics-fixt
 
 for (const width of [390, 1440]) {
   for (const theme of ['light', 'dark']) {
-    test(`admin overview has plain cards and keyboard-only panel focus at ${width}px in ${theme}`, async ({ page }) => {
+    test(`admin overview has plain cards and keyboard-only panel focus at ${width}px in ${theme}`, async ({
+      page,
+    }, testInfo) => {
       await page.setViewportSize({ width, height: 1000 });
       const origin = process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:3000';
       const user = {
@@ -40,7 +42,24 @@ for (const width of [390, 1440]) {
         const data = path.endsWith('/user/profile')
           ? user
           : path.endsWith('/admin/analytics')
-            ? analyticsFixture
+            ? {
+                ...analyticsFixture,
+                aiUsageByOperation30d: [
+                  {
+                    operation: 'MEAL_PLAN_CORPUS_LOOKUP',
+                    purpose: 'RAW_CORPUS_CANDIDATE_SELECTION',
+                    status: 'SUCCESS',
+                    count: 10,
+                  },
+                  {
+                    operation: 'MEAL_PLAN_GENERATION',
+                    purpose: 'UNMATCHED_SLOT_ATTEMPT_1',
+                    status: 'FAILED',
+                    count: 4,
+                  },
+                ],
+                planSelectionsByProvenance30d: [{ provenance: 'RAW_RECIPE_CORPUS', count: 321 }],
+              }
             : path.endsWith('/notifications')
               ? { notifications: [], unreadCount: 0 }
               : [];
@@ -62,6 +81,13 @@ for (const width of [390, 1440]) {
       expect(await panel.evaluate((element) => element.matches(':focus-visible'))).toBe(true);
       expect(await panel.evaluate((element) => getComputedStyle(element).boxShadow)).not.toBe('none');
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
+      await page.getByRole('button', { name: 'Recorded AI activity', exact: true }).click();
+      await expect(page.getByRole('table', { name: 'Recorded AI operations' })).toBeVisible();
+      await expect(page.getByRole('table', { name: 'Saved candidate sources' })).toBeVisible();
+      await page.getByRole('table', { name: 'Recorded AI operations' }).scrollIntoViewIfNeeded();
+      await expect(page.getByRole('columnheader', { name: 'Operation', exact: true })).toBeInViewport();
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
+      await page.screenshot({ path: testInfo.outputPath(`record-tables-${width}-${theme}.png`), fullPage: true });
       expect(errors).toEqual([]);
     });
   }

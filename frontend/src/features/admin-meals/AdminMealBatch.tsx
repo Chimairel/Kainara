@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useSessionQuery } from '@/hooks/useSessionQuery';
 import Button from '@/components/ui/Button';
+import WorkspaceTable from '@/components/shared/WorkspaceTable';
 import api from '@/lib/axios';
 type Preview = {
   previewId: string | null;
@@ -108,23 +109,33 @@ export default function AdminMealBatch({ active }: { active: boolean }) {
           importing. Approval identities, flags and member information are excluded.
         </p>
         {library.error && <p role="alert">{library.error}</p>}
-        <ul className="grid gap-2 sm:grid-cols-2">
-          {library.data?.meals.map((meal) => (
-            <li key={meal.id}>
-              <label className="flex min-h-11 items-center gap-3 rounded-xl border border-brand-border px-3 text-sm">
+        <WorkspaceTable
+          label="Meals for batch export"
+          rows={library.data?.meals ?? []}
+          rowKey={(meal) => meal.id}
+          emptyMessage="No library meals found."
+          columns={[
+            {
+              key: 'select',
+              header: 'Select',
+              headerClassName: 'w-12 text-center',
+              cellClassName: 'text-center',
+              cell: (meal) => (
                 <input
                   type="checkbox"
+                  aria-label={meal.mealName}
                   checked={selected.includes(meal.id)}
                   disabled={!selected.includes(meal.id) && selected.length >= 100}
                   onChange={(event) =>
                     setSelected(event.target.checked ? [...selected, meal.id] : selected.filter((id) => id !== meal.id))
                   }
                 />
-                {meal.mealName}
-              </label>
-            </li>
-          ))}
-        </ul>
+              ),
+            },
+            { key: 'name', header: 'Meal', cell: (meal) => meal.mealName },
+          ]}
+        />
+
         <div className="mt-3 flex items-center gap-3">
           <Button variant="secondary" size="sm" disabled={page <= 1} onClick={() => setPage(page - 1)}>
             Previous
@@ -184,24 +195,38 @@ export default function AdminMealBatch({ active }: { active: boolean }) {
                   ? 'Ready to import as unverified drafts'
                   : 'Correct these errors before importing'}
             </h3>
-            <ol className="space-y-2">
-              {preview.results.map((row) => (
-                <li key={row.index} className="rounded-xl border border-brand-border p-3 text-sm">
-                  <strong>
-                    Meal {row.index + 1}: {row.mealName || 'Name missing'}
-                  </strong>
-                  {row.errors.length ? (
-                    <ul className="mt-2 space-y-1 text-status-error-text">
-                      {row.errors.map((issue, index) => (
-                        <li key={index}>{issue}</li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <p className="mt-1 text-brand-green">Draft fields and ingredient mappings passed.</p>
-                  )}
-                </li>
-              ))}
-            </ol>
+            <WorkspaceTable
+              label="Batch import preview"
+              rows={preview.results}
+              rowKey={(row) => String(row.index)}
+              columns={[
+                {
+                  key: 'meal',
+                  header: 'Meal',
+                  cell: (row) => (
+                    <strong>
+                      Meal {row.index + 1}: {row.mealName || 'Name missing'}
+                    </strong>
+                  ),
+                },
+                {
+                  key: 'validation',
+                  header: 'Validation',
+                  headerClassName: 'min-w-[240px]',
+                  cell: (row) =>
+                    row.errors.length ? (
+                      <ul className="space-y-1 text-status-error-text">
+                        {row.errors.map((issue, index) => (
+                          <li key={index}>{issue}</li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p className="text-brand-green">Draft fields and ingredient mappings passed.</p>
+                    ),
+                },
+              ]}
+            />
+
             <Button
               disabled={busy || !preview.valid || !preview.previewId || preview.alreadyImported}
               onClick={() => void run('import')}

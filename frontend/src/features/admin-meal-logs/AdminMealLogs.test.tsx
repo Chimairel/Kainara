@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { beforeEach, expect, it, vi } from 'vitest';
 import { clearSessionResourceCache } from '@/lib/session-resource-cache';
 import MealLogDetail from './MealLogDetail';
@@ -124,6 +124,10 @@ it('audit applies filters explicitly rather than fetching on each search edit', 
   }));
   render(<AdminMealLogAudit />);
   await screen.findByText('Tinola');
+  const table = screen.getByRole('table', { name: 'Meal logs' });
+  expect(within(table).getByRole('columnheader', { name: 'Member' })).toBeInTheDocument();
+  expect(within(table).getByText('Eaten')).toBeInTheDocument();
+  expect(within(table).queryByRole('checkbox')).not.toBeInTheDocument();
   fireEvent.change(screen.getByLabelText('Member name or email'), { target: { value: 'Synthetic' } });
   expect(mocks.get).toHaveBeenCalledTimes(1);
   fireEvent.click(screen.getByRole('button', { name: 'Apply filters' }));

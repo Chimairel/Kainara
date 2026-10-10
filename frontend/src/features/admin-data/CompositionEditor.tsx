@@ -1,4 +1,6 @@
 'use client';
+
+import WorkspaceTable from '@/components/shared/WorkspaceTable';
 import { useEffect, useState } from 'react';
 import api from '@/lib/axios';
 import Button from '@/components/ui/Button';
@@ -154,26 +156,23 @@ export default function CompositionEditor({
           <a className="underline" href={entry.sourceUrl} target="_blank" rel="noreferrer">
             Source evidence
           </a>
-          <table className="my-3 w-full text-left text-xs">
-            <thead>
-              <tr>
-                <th>Nutrient</th>
-                <th>Before</th>
-                <th>Proposed</th>
-              </tr>
-            </thead>
-            <tbody>
-              {fields
-                .filter((key) => entry.previousValues[key] !== entry.proposedValues[key])
-                .map((key) => (
-                  <tr key={key}>
-                    <td>{key}</td>
-                    <td>{entry.previousValues[key] ?? 'Unknown'}</td>
-                    <td>{entry.proposedValues[key] ?? 'Unknown'}</td>
-                  </tr>
-                ))}
-            </tbody>
-          </table>
+          <WorkspaceTable
+            label="Nutrient corrections"
+            rows={fields.filter((key) => entry.previousValues[key] !== entry.proposedValues[key])}
+            rowKey={(key) => String(key)}
+            columns={[
+              { key: 'col-0', header: <>Nutrient</>, headerClassName: 'min-w-[100px]' },
+              { key: 'col-1', header: <>Before</>, headerClassName: 'min-w-[100px]' },
+              { key: 'col-2', header: <>Proposed</>, headerClassName: 'min-w-[100px]' },
+            ]}
+            cells={(key) => {
+              return [
+                <>{key}</>,
+                <>{entry.previousValues[key] ?? 'Unknown'}</>,
+                <>{entry.proposedValues[key] ?? 'Unknown'}</>,
+              ];
+            }}
+          />
           {!entry.publishedAt && (
             <Button
               disabled={busy || entry.baseRevision !== food?.compositionRevision}

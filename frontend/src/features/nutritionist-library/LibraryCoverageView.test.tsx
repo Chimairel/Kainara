@@ -70,10 +70,12 @@ describe('RND recipe coverage', () => {
     expect(within(panel).getByText(/1960 Panlasang sources with core numbers/)).toBeInTheDocument();
     expect(within(panel).getByText(/51 certified library servings/)).toBeInTheDocument();
     expect(within(panel).getByText('Auto reuse: 0 lowest slot')).toBeInTheDocument();
-    expect(within(panel).getByText('Can enter case review · B / L / D')).toBeInTheDocument();
-    expect(within(panel).getByText('15')).toBeInTheDocument();
+    const table = within(panel).getByRole('table', { name: 'Profile recipe coverage' });
+    expect(within(table).getByRole('columnheader', { name: 'Can enter case review · B / L / D' })).toBeInTheDocument();
+    expect(within(table).getByRole('cell', { name: 'B 15 · L 18 · D 18' })).toBeInTheDocument();
     expect(within(panel).queryByText('Coverage gap')).not.toBeInTheDocument();
     fireEvent.click(within(panel).getByText('Serving fit by daily target'));
-    expect(within(panel).getByText('Case review: B 2 · L 3 · D 4')).toBeInTheDocument();
+    const servingTable = within(panel).getByRole('table', { name: 'Diabetes serving coverage' });
+    expect(within(servingTable).getByRole('cell', { name: 'B 2 · L 3 · D 4' })).toBeInTheDocument();
   });
 });

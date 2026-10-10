@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import Card from '@/components/ui/Card';
+import WorkspaceTable from '@/components/shared/WorkspaceTable';
 
 import { cn } from '@/lib/utils';
 
@@ -253,21 +254,21 @@ export default function ReviewEvidenceSection({ model }: SectionProps) {
             {data.activeClearancesByCondition.length > 0 && (
               <div className="border-t border-brand-border/50 pt-4">
                 <h3 className="mb-3 text-sm font-bold text-brand-text">Clearance coverage</h3>
-                <ul className="grid gap-2 sm:grid-cols-2 text-xs">
-                  {data.activeClearancesByCondition.map((row) => (
-                    <li
-                      key={`${row.condition}:${row.assuranceTier}:${row.provenance}`}
-                      className="flex items-center justify-between rounded-xl border border-brand-border/50 bg-brand-bgAlt/40 px-3.5 py-2.5"
-                    >
-                      <span className="font-medium text-brand-text">
-                        {humanize(row.condition)} ·{' '}
-                        <span className="text-brand-muted">{humanize(row.assuranceTier)}</span> ·{' '}
-                        <span className="text-brand-muted">{humanize(row.provenance)}</span>
-                      </span>
-                      <strong className="font-mono text-sm font-extrabold text-brand-text">{format(row.count)}</strong>
-                    </li>
-                  ))}
-                </ul>
+                <WorkspaceTable
+                  label="Clearance coverage"
+                  rows={data.activeClearancesByCondition}
+                  rowKey={(row) => `${row.condition}:${row.assuranceTier}:${row.provenance}`}
+                  columns={[
+                    { key: 'condition', header: 'Condition', cell: (row) => humanize(row.condition) },
+                    { key: 'assurance', header: 'Assurance', cell: (row) => humanize(row.assuranceTier) },
+                    { key: 'source', header: 'Source', cell: (row) => humanize(row.provenance) },
+                    {
+                      key: 'count',
+                      header: 'Count',
+                      cell: (row) => <strong className="font-mono">{format(row.count)}</strong>,
+                    },
+                  ]}
+                />
               </div>
             )}
           </Card>

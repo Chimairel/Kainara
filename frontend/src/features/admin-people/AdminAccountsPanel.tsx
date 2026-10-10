@@ -1,5 +1,7 @@
 'use client';
 
+import WorkspaceTable from '@/components/shared/WorkspaceTable';
+
 import { useSessionQuery } from '@/hooks/useSessionQuery';
 
 import PortalPageHeader from '@/components/shared/PortalPageHeader';
@@ -151,138 +153,74 @@ export default function AdminUsersPage({ active = true }: { active?: boolean }) 
           <span className="animate-pulse text-brand-muted">Loading accounts...</span>
         </div>
       ) : (
-        <div className="portal-table-shell">
-          <div className="divide-y divide-brand-border/60 xl:hidden">
-            {users.map((user) => (
-              <article key={user.id} className="space-y-3 p-4">
-                <div className="flex items-center gap-3">
-                  <Avatar name={user.name} seed={user.image} size="md" />
-                  <div className="min-w-0 flex-1">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <h2 className="min-w-0 break-words font-semibold text-brand-text">{user.name}</h2>
-                      <Badge
-                        variant={
-                          user.role === 'ADMIN' ? 'rejected' : user.role === 'NUTRITIONIST' ? 'verified' : 'user'
-                        }
-                        className="text-[9px]"
-                      >
-                        {getRoleLabel(user.role)}
-                      </Badge>
+        <div className="space-y-3">
+          <div>
+            <WorkspaceTable
+              label="Accounts"
+              rows={users}
+              rowKey={(user) => String(user.id)}
+              columns={[
+                { key: 'col-0', header: <>Name</>, headerClassName: 'min-w-[100px]' },
+                { key: 'col-1', header: <>Email</>, headerClassName: 'min-w-[100px]' },
+                { key: 'col-2', header: <>Role</>, headerClassName: 'min-w-[100px]' },
+                { key: 'col-3', header: <>Verified</>, headerClassName: 'min-w-[100px]' },
+                { key: 'col-4', header: <>Onboarded</>, headerClassName: 'min-w-[100px]' },
+                { key: 'col-5', header: <>Joined</>, headerClassName: 'min-w-[100px]' },
+                { key: 'col-6', header: <>Access</>, headerClassName: 'min-w-[100px]' },
+              ]}
+              cells={(user) => {
+                return [
+                  <>
+                    <div className="flex min-w-0 items-center gap-2">
+                      <Avatar name={user.name} seed={user.image} size="sm" />
+                      <span className="min-w-0 break-words [overflow-wrap:anywhere]">{user.name}</span>
                     </div>
-                    <p className="break-all text-xs text-brand-muted">{user.email}</p>
-                  </div>
-                </div>
-
-                <div className="flex flex-wrap items-center gap-2 text-xs">
-                  <span
-                    className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[10px] font-bold ${
-                      user.isSuspended
-                        ? 'bg-red-500/10 text-red-400 border border-red-500/20'
-                        : 'bg-brand-green/10 text-brand-green border border-brand-green/20'
-                    }`}
-                  >
-                    {user.isSuspended ? 'Suspended' : 'Active'}
-                  </span>
-                  <span className="text-brand-muted">
-                    {user.emailVerified ? '✓ Verified' : '✕ Unverified'} ·{' '}
-                    {user.onboardingDone ? 'Onboarded' : 'Intake pending'}
-                  </span>
-                </div>
-
-                <Button
-                  variant="secondary"
-                  className="w-full text-xs"
-                  disabled={user.id === currentUser?.userId}
-                  onClick={() => openAccessDialog(user)}
-                >
-                  {user.isSuspended ? 'Reinstate account' : 'Suspend account'}
-                </Button>
-              </article>
-            ))}
-          </div>
-          <div className="hidden xl:block">
-            <table className="w-full table-fixed text-sm">
-              <colgroup>
-                <col className="w-[24%]" />
-                <col className="w-[26%]" />
-                <col className="w-[12%]" />
-                <col className="w-[7%]" />
-                <col className="w-[8%]" />
-                <col className="w-[11%]" />
-                <col className="w-[12%]" />
-              </colgroup>
-              <thead className="bg-[#07100d] text-white">
-                <tr className="font-mono text-[9px] uppercase tracking-[0.14em] text-white/45">
-                  <th className="px-3 py-4 text-left">Name</th>
-                  <th className="px-3 py-4 text-left">Email</th>
-                  <th className="px-2 py-4 text-center">Role</th>
-                  <th className="px-1 py-4 text-center tracking-normal">Verified</th>
-                  <th className="px-1 py-4 text-center tracking-normal">Onboarded</th>
-                  <th className="px-2 py-4 text-left">Joined</th>
-                  <th className="px-2 py-4 text-right">Access</th>
-                </tr>
-              </thead>
-              <tbody>
-                {users.map((user) => (
-                  <tr
-                    key={user.id}
-                    className="border-b border-brand-border/45 transition last:border-0 hover:bg-brand-green/[0.035]"
-                  >
-                    <td className="px-3 py-4 font-semibold text-brand-text">
-                      <div className="flex min-w-0 items-center gap-2">
-                        <Avatar name={user.name} seed={user.image} size="sm" />
-                        <span className="min-w-0 break-words [overflow-wrap:anywhere]">{user.name}</span>
-                      </div>
-                    </td>
-                    <td className="px-3 py-4 text-xs text-brand-muted [overflow-wrap:anywhere]">{user.email}</td>
-                    <td className="px-2 py-4 text-center">
-                      <Badge
-                        showIcon={false}
-                        className="max-w-full px-2 text-[9px] tracking-normal [overflow-wrap:anywhere]"
-                        variant={
-                          user.role === 'ADMIN' ? 'rejected' : user.role === 'NUTRITIONIST' ? 'verified' : 'user'
-                        }
-                      >
-                        {getRoleLabel(user.role)}
-                      </Badge>
-                    </td>
-                    <td className="px-1 py-4 text-center">
-                      {user.emailVerified ? (
-                        <CheckCircle2 aria-label="Email verified" className="mx-auto h-4 w-4 text-brand-green" />
-                      ) : (
-                        <XCircle aria-label="Email not verified" className="mx-auto h-4 w-4 text-red-400" />
-                      )}
-                    </td>
-                    <td className="px-1 py-4 text-center">
-                      {user.onboardingDone ? (
-                        <CheckCircle2 aria-label="Onboarding complete" className="mx-auto h-4 w-4 text-brand-green" />
-                      ) : (
-                        <Clock3 aria-label="Onboarding incomplete" className="mx-auto h-4 w-4 text-amber-500" />
-                      )}
-                    </td>
-                    <td className="px-2 py-4 text-xs text-brand-muted">
-                      {new Date(user.createdAt).toLocaleDateString()}
-                    </td>
-                    <td className="px-2 py-4 text-right">
-                      <button
-                        type="button"
-                        onClick={() => openAccessDialog(user)}
-                        disabled={user.id === currentUser?.userId}
-                        className={`inline-flex min-h-11 max-w-full items-center justify-center gap-1 rounded-xl px-2 py-2 text-[10px] font-bold transition ${user.isSuspended ? 'bg-brand-green/10 text-brand-green hover:bg-brand-green/15' : 'bg-red-500/10 text-red-400 hover:bg-red-500/15'}`}
-                        title={
-                          user.id === currentUser?.userId
-                            ? 'You cannot suspend your own administrator account.'
-                            : user.suspensionReason || undefined
-                        }
-                      >
-                        {user.isSuspended ? <RotateCcw className="h-3.5 w-3.5" /> : <Ban className="h-3.5 w-3.5" />}
-                        {user.isSuspended ? 'Reinstate' : 'Suspend'}
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                  </>,
+                  <>{user.email}</>,
+                  <>
+                    <Badge
+                      showIcon={false}
+                      className="max-w-full px-2 text-[9px] tracking-normal [overflow-wrap:anywhere]"
+                      variant={user.role === 'ADMIN' ? 'rejected' : user.role === 'NUTRITIONIST' ? 'verified' : 'user'}
+                    >
+                      {getRoleLabel(user.role)}
+                    </Badge>
+                  </>,
+                  <>
+                    {user.emailVerified ? (
+                      <CheckCircle2 aria-label="Email verified" className="mx-auto h-4 w-4 text-brand-green" />
+                    ) : (
+                      <XCircle aria-label="Email not verified" className="mx-auto h-4 w-4 text-red-400" />
+                    )}
+                  </>,
+                  <>
+                    {user.onboardingDone ? (
+                      <CheckCircle2 aria-label="Onboarding complete" className="mx-auto h-4 w-4 text-brand-green" />
+                    ) : (
+                      <Clock3 aria-label="Onboarding incomplete" className="mx-auto h-4 w-4 text-amber-500" />
+                    )}
+                  </>,
+                  <>{new Date(user.createdAt).toLocaleDateString()}</>,
+                  <>
+                    <button
+                      type="button"
+                      aria-label={user.isSuspended ? 'Reinstate account' : 'Suspend account'}
+                      onClick={() => openAccessDialog(user)}
+                      disabled={user.id === currentUser?.userId}
+                      className={`inline-flex min-h-11 max-w-full items-center justify-center gap-1 rounded-xl px-2 py-2 text-[10px] font-bold transition ${user.isSuspended ? 'bg-brand-green/10 text-brand-green hover:bg-brand-green/15' : 'bg-red-500/10 text-red-400 hover:bg-red-500/15'}`}
+                      title={
+                        user.id === currentUser?.userId
+                          ? 'You cannot suspend your own administrator account.'
+                          : user.suspensionReason || undefined
+                      }
+                    >
+                      {user.isSuspended ? <RotateCcw className="h-3.5 w-3.5" /> : <Ban className="h-3.5 w-3.5" />}
+                      {user.isSuspended ? 'Reinstate' : 'Suspend'}
+                    </button>
+                  </>,
+                ];
+              }}
+            />
           </div>
           <div className="flex items-center justify-between border-t border-brand-border/50 px-5 py-4">
             <button

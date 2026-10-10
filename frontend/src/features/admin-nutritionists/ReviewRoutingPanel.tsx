@@ -1,6 +1,7 @@
 'use client';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import Card from '@/components/ui/Card';
+import WorkspaceTable from '@/components/shared/WorkspaceTable';
 import api from '@/lib/axios';
 import { getApiErrorMessage } from '@/lib/api-error';
 import { useAuth } from '@/hooks/useAuth';
@@ -64,28 +65,44 @@ export default function ReviewRoutingPanel() {
           <summary className="cursor-pointer text-sm font-semibold">
             Historical routing decisions ({snapshot.episodes.length})
           </summary>
-          <div className="mt-3 max-h-72 space-y-2 overflow-auto">
-            {snapshot.episodes.length ? (
-              snapshot.episodes.map((episode) => (
-                <div key={episode.id} className="rounded-xl border border-brand-border p-3 text-xs">
-                  <p className="font-semibold">
-                    {episode.user.name} · Recorded {episode.stage.toLowerCase()} access
-                  </p>
-                  <p className="mt-1 text-brand-muted">
-                    {episode.conditions.map(expertiseLabel).join(' · ') || 'No condition tags'} ·{' '}
-                    {episode.reason.replaceAll('_', ' ').toLowerCase()}
-                  </p>
-                  {episode.stage === 'SPECIALIST' && (
-                    <p className="mt-1">
-                      {episode.selectedReviewerIds.length} previously selected RNDs · recorded opening{' '}
-                      {new Date(episode.opensAt).toLocaleString('en-PH', { timeZone: 'Asia/Manila' })} PHT
-                    </p>
-                  )}
-                </div>
-              ))
-            ) : (
-              <p className="text-xs text-brand-muted">No historical routing decisions recorded.</p>
-            )}
+          <div className="mt-3">
+            <WorkspaceTable
+              label="Historical routing decisions"
+              rows={snapshot.episodes}
+              rowKey={(episode) => episode.id}
+              emptyMessage="No historical routing decisions recorded."
+              columns={[
+                { key: 'member', header: 'Member', cell: (episode) => episode.user.name },
+                {
+                  key: 'access',
+                  header: 'Recorded access',
+                  cell: (episode) => 'Recorded ' + episode.stage.toLowerCase() + ' access',
+                },
+                {
+                  key: 'conditions',
+                  header: 'Conditions / reason',
+                  cell: (episode) => (
+                    <>
+                      {episode.conditions.map(expertiseLabel).join(' · ') || 'No condition tags'} ·{' '}
+                      {episode.reason.replaceAll('_', ' ').toLowerCase()}
+                    </>
+                  ),
+                },
+                {
+                  key: 'priority',
+                  header: 'Historical priority',
+                  cell: (episode) =>
+                    episode.stage === 'SPECIALIST' ? (
+                      <>
+                        {episode.selectedReviewerIds.length} previously selected RNDs · recorded opening{' '}
+                        {new Date(episode.opensAt).toLocaleString('en-PH', { timeZone: 'Asia/Manila' })} PHT
+                      </>
+                    ) : (
+                      '—'
+                    ),
+                },
+              ]}
+            />
           </div>
         </details>
       )}

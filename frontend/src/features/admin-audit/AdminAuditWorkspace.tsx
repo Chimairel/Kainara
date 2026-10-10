@@ -272,7 +272,7 @@ export default function AdminAuditWorkspace() {
         <AdminMealLogAudit key={ownerId} />
       ) : (
         <section
-          className="overflow-hidden rounded-2xl border border-brand-border bg-brand-surface"
+          className="space-y-3"
           aria-label={
             related ? 'Related activity' : view === 'admin' ? 'Admin activity records' : 'RND history records'
           }

@@ -3,6 +3,7 @@
 import { CalendarClock, CheckCircle2, CircleDashed, Database, FileInput, FilePlus2, RadioTower } from 'lucide-react';
 import Button from '@/components/ui/Button';
 import Card from '@/components/ui/Card';
+import WorkspaceTable from '@/components/shared/WorkspaceTable';
 import DataSummary from './DataSummary';
 import type { AdminDataSection, DataRelease, WorkspaceSummary } from './types';
 
@@ -80,29 +81,40 @@ export default function DataWorkspaceOverview({
             No active reference-data release is recorded in this workspace.
           </p>
         ) : (
-          <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-            {activeReleases.map((release) => {
-              const retrievedDaysAgo = Math.max(
-                0,
-                Math.floor((Date.now() - new Date(release.retrievedAt).getTime()) / 86_400_000)
-              );
-              return (
-                <div key={release.id} className="rounded-2xl border border-brand-border/55 bg-brand-bgAlt/40 p-4">
-                  <p className="font-mono text-[9px] font-bold uppercase tracking-wider text-brand-muted">
-                    {release.source.domain}
-                  </p>
-                  <p className="mt-1 text-sm font-black text-brand-text">
-                    {release.source.code} · {release.versionLabel}
-                  </p>
-                  <p className="mt-2 text-xs text-brand-muted">
-                    Retrieved {retrievedDaysAgo} day{retrievedDaysAgo === 1 ? '' : 's'} ago
-                  </p>
-                  <p className="mt-1 text-xs text-brand-muted">
-                    Review cadence: {release.source.updateCadence || 'not recorded'}
-                  </p>
-                </div>
-              );
-            })}
+          <div className="mt-4">
+            <WorkspaceTable
+              label="Active evidence freshness"
+              rows={activeReleases}
+              rowKey={(release) => release.id}
+              columns={[
+                { key: 'domain', header: 'Domain', cell: (release) => release.source.domain },
+                {
+                  key: 'release',
+                  header: 'Release',
+                  cell: (release) => (
+                    <strong>
+                      {release.source.code} · {release.versionLabel}
+                    </strong>
+                  ),
+                },
+                {
+                  key: 'age',
+                  header: 'Retrieved',
+                  cell: (release) => {
+                    const days = Math.max(
+                      0,
+                      Math.floor((Date.now() - new Date(release.retrievedAt).getTime()) / 86_400_000)
+                    );
+                    return 'Retrieved ' + days + (days === 1 ? ' day ago' : ' days ago');
+                  },
+                },
+                {
+                  key: 'cadence',
+                  header: 'Review cadence',
+                  cell: (release) => release.source.updateCadence || 'not recorded',
+                },
+              ]}
+            />
           </div>
         )}
       </Card>

@@ -1,5 +1,7 @@
 'use client';
 
+import WorkspaceTable from '@/components/shared/WorkspaceTable';
+
 import Link from 'next/link';
 
 import Card from '@/components/ui/Card';
@@ -123,49 +125,38 @@ export default function ProgressHistorySection({ model }: SectionProps) {
                     </div>
                   ) : (
                     <div className="overflow-x-auto">
-                      <table className="w-full text-left text-xs border-collapse">
-                        <thead>
-                          <tr className="border-b border-brand-border/60 text-brand-muted uppercase font-bold tracking-wider text-[10px]">
-                            <th className="pb-3 px-3">Date</th>
-                            <th className="pb-3 px-3">Calories Consumed</th>
-                            <th className="pb-3 px-3">Daily Target</th>
-                            <th className="pb-3 px-3 text-center">Adherence</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {logs.map((log) => {
-                            let badgeVar: 'verified' | 'pending' | 'rejected' = 'verified';
-                            if (log.adherencePct < 70 || log.adherencePct > 110) badgeVar = 'rejected';
-                            else if (log.adherencePct < 90) badgeVar = 'pending';
-
-                            return (
-                              <tr
-                                key={log.id}
-                                className="border-b border-brand-border/40 hover:bg-brand-surface/30 transition-all duration-150"
-                              >
-                                <td className="py-3 px-3 font-semibold">
-                                  {new Date(log.logDate).toLocaleDateString(undefined, {
-                                    weekday: 'short',
-                                    month: 'short',
-                                    day: 'numeric',
-                                  })}
-                                </td>
-                                <td className="py-3 px-3 font-bold text-brand-text">
-                                  {Math.round(log.totalCalories)} kcal
-                                </td>
-                                <td className="py-3 px-3 font-bold text-brand-muted">
-                                  {Math.round(log.targetCalories)} kcal
-                                </td>
-                                <td className="py-3 px-3 text-center">
-                                  <Badge variant={badgeVar} showIcon={false} className="py-0.5 px-2.5 font-bold">
-                                    {Math.round(log.adherencePct)}% Adherence
-                                  </Badge>
-                                </td>
-                              </tr>
-                            );
-                          })}
-                        </tbody>
-                      </table>
+                      <WorkspaceTable
+                        label="Daily intake history"
+                        rows={logs}
+                        rowKey={(log) => String(log.id)}
+                        columns={[
+                          { key: 'col-0', header: <>Date</>, headerClassName: 'min-w-[100px]' },
+                          { key: 'col-1', header: <>Calories Consumed</>, headerClassName: 'min-w-[100px]' },
+                          { key: 'col-2', header: <>Daily Target</>, headerClassName: 'min-w-[100px]' },
+                          { key: 'col-3', header: <>Adherence</>, headerClassName: 'min-w-[100px]' },
+                        ]}
+                        cells={(log) => {
+                          let badgeVar: 'verified' | 'pending' | 'rejected' = 'verified';
+                          if (log.adherencePct < 70 || log.adherencePct > 110) badgeVar = 'rejected';
+                          else if (log.adherencePct < 90) badgeVar = 'pending';
+                          return [
+                            <>
+                              {new Date(log.logDate).toLocaleDateString(undefined, {
+                                weekday: 'short',
+                                month: 'short',
+                                day: 'numeric',
+                              })}
+                            </>,
+                            <>{Math.round(log.totalCalories)}kcal</>,
+                            <>{Math.round(log.targetCalories)}kcal</>,
+                            <>
+                              <Badge variant={badgeVar} showIcon={false} className="py-0.5 px-2.5 font-bold">
+                                {Math.round(log.adherencePct)}% Adherence
+                              </Badge>
+                            </>,
+                          ];
+                        }}
+                      />
                     </div>
                   )}
                 </Card>

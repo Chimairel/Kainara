@@ -35,6 +35,9 @@ beforeEach(() => {
 it('loads only on expansion and presents recorded changes, zero and missing nutrients', async () => {
   render(<AuditHistoryList rows={[row]} ownerId="admin" endpoint="/admin/audit-history" canAuthor />);
   expect(mocks.get).not.toHaveBeenCalled();
+  expect(screen.getByRole('table', { name: 'Audit records' })).toBeInTheDocument();
+  expect(screen.getByRole('columnheader', { name: 'Staff' })).toBeInTheDocument();
+  expect(screen.queryByRole('checkbox')).not.toBeInTheDocument();
   const button = screen.getByRole('button', { name: /Details:/ });
   fireEvent.click(button);
   const panel = await screen.findByRole('region', { name: /Corrected outside food details/ });
@@ -46,7 +49,7 @@ it('loads only on expansion and presents recorded changes, zero and missing nutr
   expect(within(panel).getByRole('link', { name: 'Author a meal' })).toHaveAttribute('href', '/admin/meals?tab=author');
   expect(button).toHaveAttribute('aria-expanded', 'true');
   fireEvent.click(button);
-  expect(screen.queryByRole('region')).not.toBeInTheDocument();
+  expect(screen.queryByRole('region', { name: /Corrected outside food details/ })).not.toBeInTheDocument();
   expect(button).toHaveAttribute('aria-expanded', 'false');
 });
 it('keeps failure visible and retries without any mutation', async () => {

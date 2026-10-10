@@ -1,10 +1,11 @@
 'use client';
 
 import { useSessionQuery } from '@/hooks/useSessionQuery';
-import { AlertTriangle, RefreshCw, ShieldCheck } from 'lucide-react';
+import { RefreshCw, ShieldCheck } from 'lucide-react';
 import api from '@/lib/axios';
 import Link from 'next/link';
 import Card from '@/components/ui/Card';
+import WorkspaceTable from '@/components/shared/WorkspaceTable';
 import PortalPageHeader from '@/components/shared/PortalPageHeader';
 import { useAuth } from '@/hooks/useAuth';
 
@@ -92,32 +93,48 @@ export default function AdminSafetyPanel({ active = true }: { active?: boolean }
               </p>
             </Card>
           )}
-          {incidents.map((incident) => (
-            <Card key={incident.id} variant="signal" className="border-amber-500/30 p-5">
-              <div className="flex items-start gap-4">
-                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-amber-500/10 text-amber-500">
-                  <AlertTriangle className="h-5 w-5" />
-                </span>
-                <div className="min-w-0">
-                  <p className="font-bold text-brand-text">{incident.mealLibrary.mealName}</p>
-                  {!!incident.affectedServingCount && incident.affectedServingCount > 1 && (
-                    <p className="mt-1 text-xs text-brand-muted">
-                      Affects {incident.affectedServingCount} saved servings
-                    </p>
-                  )}
-                  <p className="mt-1 text-sm text-brand-muted">{incident.reason}</p>
-                  <p className="mt-2 font-mono text-[10px] uppercase tracking-wider text-brand-muted">
-                    Flagged by{' '}
-                    {incident.flaggedByNutritionist?.user.name ??
-                      (incident.flaggedByAdminUser
-                        ? `${incident.flaggedByAdminUser.name} (admin)`
-                        : 'Former reviewer')}{' '}
-                    · {new Date(incident.createdAt).toLocaleString()}
-                  </p>
-                </div>
-              </div>
-            </Card>
-          ))}
+          {!!incidents.length && (
+            <WorkspaceTable
+              label="Pending safety flags"
+              rows={incidents}
+              rowKey={(incident) => incident.id}
+              columns={[
+                {
+                  key: 'meal',
+                  header: 'Meal',
+                  headerClassName: 'min-w-[200px]',
+                  cell: (incident) => (
+                    <>
+                      <p className="font-bold">{incident.mealLibrary.mealName}</p>
+                      {!!incident.affectedServingCount && incident.affectedServingCount > 1 && (
+                        <p className="mt-1 text-brand-muted">Affects {incident.affectedServingCount} saved servings</p>
+                      )}
+                    </>
+                  ),
+                },
+                {
+                  key: 'reason',
+                  header: 'Concern',
+                  headerClassName: 'min-w-[220px]',
+                  cell: (incident) => <span className="whitespace-pre-wrap text-brand-muted">{incident.reason}</span>,
+                },
+                {
+                  key: 'actor',
+                  header: 'Flagged by',
+                  headerClassName: 'min-w-[160px]',
+                  cell: (incident) =>
+                    incident.flaggedByNutritionist?.user.name ??
+                    (incident.flaggedByAdminUser ? incident.flaggedByAdminUser.name + ' (admin)' : 'Former reviewer'),
+                },
+                {
+                  key: 'date',
+                  header: 'Date',
+                  headerClassName: 'min-w-[150px]',
+                  cell: (incident) => new Date(incident.createdAt).toLocaleString(),
+                },
+              ]}
+            />
+          )}
         </div>
       </section>
 
@@ -131,17 +148,16 @@ export default function AdminSafetyPanel({ active = true }: { active?: boolean }
               {structuredSafety.usersRequiringReview} active members require restriction review
             </p>
           </div>
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            {structuredSafety.entries.map((entry) => (
-              <Card key={`${entry.domain}-${entry.supportState}`} variant="metric" className="p-4 sm:p-5">
-                <p className="font-mono text-[9px] font-bold uppercase tracking-wider text-brand-muted">
-                  {entry.domain.replaceAll('_', ' ')}
-                </p>
-                <p className="mt-2 font-display text-2xl font-black text-brand-text">{entry.count}</p>
-                <p className="mt-1 text-xs font-semibold text-brand-muted">{entry.supportState.replaceAll('_', ' ')}</p>
-              </Card>
-            ))}
-          </div>
+          <WorkspaceTable
+            label="Structured restriction review gates"
+            rows={structuredSafety.entries}
+            rowKey={(entry) => entry.domain + '-' + entry.supportState}
+            columns={[
+              { key: 'domain', header: 'Restriction', cell: (entry) => entry.domain.replaceAll('_', ' ') },
+              { key: 'state', header: 'Review state', cell: (entry) => entry.supportState.replaceAll('_', ' ') },
+              { key: 'count', header: 'Count', cell: (entry) => <strong className="font-mono">{entry.count}</strong> },
+            ]}
+          />
         </section>
       )}
 

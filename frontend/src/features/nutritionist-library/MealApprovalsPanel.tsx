@@ -3,6 +3,7 @@
 import Dropdown from '@/components/ui/Dropdown';
 import { useCallback, useEffect, useState } from 'react';
 import Button from '@/components/ui/Button';
+import WorkspaceTable from '@/components/shared/WorkspaceTable';
 import api from '@/lib/axios';
 import { getApiErrorMessage } from '@/lib/api-error';
 import ExpandableCasePanel from '@/features/nutritionist-reviews/ExpandableCasePanel';
@@ -601,56 +602,82 @@ export function MealApprovalsPanel({ mealId }: { mealId: string }) {
                       </ul>
                     </details>
                   </div>
-                  {variant.approvals.map((approval) => (
-                    <div
-                      key={`${approval.kind}-${approval.id}`}
-                      className="rounded-xl border border-brand-border bg-brand-surface p-3 shadow-xs"
-                    >
-                      <div className="flex flex-wrap items-center justify-between gap-2">
-                        <h3 className="text-base font-bold text-brand-text">
-                          {contextLabel(approval.caseScope ?? approval.scope)}
-                        </h3>
-                        <span
-                          className={
-                            variant.status === 'APPROVED' && approval.status === 'ACTIVE'
-                              ? 'text-brand-green font-bold'
-                              : 'text-amber-700 dark:text-amber-300 font-bold'
-                          }
-                        >
-                          {variant.status === 'FLAGGED'
-                            ? 'Suspended by meal flag'
-                            : approval.status.replaceAll('_', ' ')}
-                        </span>
-                      </div>
-                      <p className="mt-1 text-xs text-brand-muted">
-                        {approval.reviewerName || 'Reviewed policy'} · Reviewed{' '}
-                        {approval.reviewedAt ? new Date(approval.reviewedAt).toLocaleDateString() : 'pending'}
-                      </p>
-                      {approval.kind === 'CONDITION' &&
-                        approval.caseScope != null &&
-                        contextLabel(approval.caseScope) !== contextLabel(approval.scope) && (
-                          <p className="mt-1 text-xs text-brand-muted">
-                            Approved condition: {contextLabel(approval.scope)} · other case restrictions checked
-                            separately
-                          </p>
-                        )}
-                      {approval.flagReason && (
-                        <p className="mt-2 text-xs font-semibold text-amber-800 dark:text-amber-300">
-                          Flag reason: {approval.flagReason}
-                        </p>
-                      )}
-                      {approval.status === 'STALE' && (
-                        <p className="mt-2 text-xs font-semibold text-amber-800 dark:text-amber-300">
-                          The recipe evidence or reviewer eligibility changed. A fresh approval is required.
-                        </p>
-                      )}
-                      <div className="mt-3">
-                        <Button variant="secondary" size="sm" onClick={() => void viewApproval(variant.id, approval)}>
-                          View
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
+                  <WorkspaceTable
+                    label={`Recorded approvals: ${variant.mealName}`}
+                    rows={variant.approvals}
+                    rowKey={(approval) => `${approval.kind}-${approval.id}`}
+                    columns={[
+                      {
+                        key: 'context',
+                        header: 'Health context',
+                        headerClassName: 'min-w-[200px]',
+                        cell: (approval) => (
+                          <>
+                            <h3 className="font-bold">{contextLabel(approval.caseScope ?? approval.scope)}</h3>
+                            {approval.kind === 'CONDITION' &&
+                              approval.caseScope != null &&
+                              contextLabel(approval.caseScope) !== contextLabel(approval.scope) && (
+                                <p className="mt-1 text-brand-muted">
+                                  Approved condition: {contextLabel(approval.scope)} · other case restrictions checked
+                                  separately
+                                </p>
+                              )}
+                          </>
+                        ),
+                      },
+                      {
+                        key: 'status',
+                        header: 'Status / concerns',
+                        headerClassName: 'min-w-[180px]',
+                        cell: (approval) => (
+                          <>
+                            <span
+                              className={
+                                variant.status === 'APPROVED' && approval.status === 'ACTIVE'
+                                  ? 'text-brand-green font-bold'
+                                  : 'text-amber-700 dark:text-amber-300 font-bold'
+                              }
+                            >
+                              {variant.status === 'FLAGGED'
+                                ? 'Suspended by meal flag'
+                                : approval.status.replaceAll('_', ' ')}
+                            </span>
+                            {approval.flagReason && (
+                              <p className="mt-2 text-amber-800 dark:text-amber-300">
+                                Flag reason: {approval.flagReason}
+                              </p>
+                            )}
+                            {approval.status === 'STALE' && (
+                              <p className="mt-2 text-amber-800 dark:text-amber-300">
+                                The recipe evidence or reviewer eligibility changed. A fresh approval is required.
+                              </p>
+                            )}
+                          </>
+                        ),
+                      },
+                      {
+                        key: 'reviewer',
+                        header: 'Reviewer',
+                        cell: (approval) => approval.reviewerName || 'Reviewed policy',
+                      },
+                      {
+                        key: 'date',
+                        header: 'Reviewed',
+                        headerClassName: 'min-w-[120px]',
+                        cell: (approval) =>
+                          approval.reviewedAt ? new Date(approval.reviewedAt).toLocaleDateString() : 'pending',
+                      },
+                      {
+                        key: 'actions',
+                        header: 'Actions',
+                        cell: (approval) => (
+                          <Button variant="secondary" size="sm" onClick={() => void viewApproval(variant.id, approval)}>
+                            View
+                          </Button>
+                        ),
+                      },
+                    ]}
+                  />
                 </section>
               )
           )
