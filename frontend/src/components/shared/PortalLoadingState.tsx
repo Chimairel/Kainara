@@ -8,6 +8,7 @@ interface PortalLoadingStateProps {
   message?: string;
   className?: string;
   fullScreen?: boolean;
+  fillContainer?: boolean;
   size?: 'sm' | 'md' | 'lg';
 }
 
@@ -15,6 +16,7 @@ export default function PortalLoadingState({
   message,
   className = '',
   fullScreen = false,
+  fillContainer = false,
   size = 'lg',
 }: PortalLoadingStateProps) {
   // This full-page fallback is server-rendered before auth hydration. Keep its
@@ -38,7 +40,11 @@ export default function PortalLoadingState({
     );
   }
 
-  const heightClass = fullScreen ? 'fixed inset-0 z-50 h-screen w-screen bg-brand-bg' : 'min-h-[50vh] w-full';
+  const heightClass = fullScreen
+    ? 'fixed inset-0 z-50 h-screen w-screen bg-brand-bg'
+    : fillContainer
+      ? 'absolute inset-0 w-full'
+      : 'min-h-[50vh] w-full';
 
   return (
     <div

@@ -61,6 +61,10 @@ AuthHeroPanel owns the desktop bahay kubo scene, using the local 1024 × 765 SVG
 
 The auth house scene reserves its layout space but stays hidden as a unit until the priority house/photo images and both preloaded Nara atlases finish decoding. Reveal the border, bulb, photo, house and mascot together; keep the form and branding available throughout loading. Asset errors settle the readiness check so a failed decoration cannot hide the remaining scene permanently. Cached navigation and reduced motion use the same readiness gate.
 
+The scene also starts with inline zero opacity and `inert`, so delayed CSS cannot expose the inline bulb before the image assets. Remove those restrictions only when the scene settles. `LandingMealPhoto` keeps a neutral local surface during loading/errors; landing marquee columns pause until their own photos settle, including failures, and then resume. Photos load eagerly so offscreen animated copies cannot prevent readiness. The gallery embeds its small SVG curve mask in CSS to avoid a missing mask request hiding the entire gallery.
+
+Use `PortalLoadingState fillContainer` for an initial whole-workspace load inside a positioned portal main; it centers in the available panel without covering the shared navbar/sidebar. Keep the default bounded loader for embedded sections and `fullScreen` for authentication gates. `OnboardingProgressSlider` isolates its track's stacking context, keeping its thumb below the sticky intake header.
+
 ## Meals and libraries
 
 PlanMealCardSurface preserves the Meals tile design with its cropped circular image, colored banner and macro pills. DashboardMealCardSurface preserves the separate compact design with a full colored gradient and an overlapping circular plate. These dedicated meal components do not inherit the default Card surface or its decorations. MealCard, PendingMealPreviewCard and RecipeLibraryCard provide their specific status badges, body details and actions. History and swap rows reuse the compact design and DashboardMealPlate, with caller-specific sizes and actions. Shared presentation never implies that a library recipe is approved for a particular member.

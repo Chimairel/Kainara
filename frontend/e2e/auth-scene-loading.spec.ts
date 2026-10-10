@@ -37,6 +37,8 @@ for (const lastAsset of sceneAssets) {
     const stage = page.locator('[data-auth-kubo-stage]');
     await expect.poll(() => requested.size).toBe(4);
     await expect(stage).toHaveAttribute('data-auth-scene-ready', 'false');
+    expect(await stage.evaluate((element) => (element as HTMLElement).style.opacity)).toBe('0');
+    await expect(stage).toHaveAttribute('inert', '');
     await expect(stage).toBeHidden();
     await expect(stage.locator('[data-auth-bulb]')).toBeHidden();
     expect(await stage.evaluate((element) => getComputedStyle(element, '::after').visibility)).toBe('hidden');
@@ -51,6 +53,8 @@ for (const lastAsset of sceneAssets) {
     await expect(stage).toBeHidden();
     release.get(lastAsset)!();
     await expect(stage).toHaveAttribute('data-auth-scene-ready', 'true');
+    expect(await stage.evaluate((element) => (element as HTMLElement).style.opacity)).toBe('1');
+    await expect(stage).not.toHaveAttribute('inert', '');
     await expect(stage.locator('[data-auth-bulb]')).toBeVisible();
     await expect(stage.locator('[data-auth-mascot]')).toBeVisible();
     await expect(stage.getByRole('img', { name: 'The KAINARA capstone team working together' })).toBeVisible();

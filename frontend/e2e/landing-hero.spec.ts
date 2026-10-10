@@ -70,7 +70,7 @@ for (const width of [1920, 1440, 1180, 1024, 820, 530, 390, 320]) {
       expect(Math.abs(galleryBounds.x + galleryBounds.width - width)).toBeLessThan(10);
       await expect(page.locator('[data-gallery-ribbons]')).toBeVisible();
       expect(await gallery.locator(':scope > div').evaluate((el) => getComputedStyle(el).maskImage)).toContain(
-        'landing-meal-curve-mask.svg'
+        'data:image/svg+xml'
       );
       expect(
         await screen.evaluate((el) => {

@@ -65,7 +65,7 @@ export default function AdminDataPage() {
     setNotice({ tone: 'error', message });
   }
 
-  if (loading && !workspace) return <PortalLoadingState message="Loading governed nutrition data..." />;
+  if (loading && !workspace) return <PortalLoadingState fillContainer message="Loading governed nutrition data..." />;
   if (!workspace) {
     return (
       <div className="portal-page">

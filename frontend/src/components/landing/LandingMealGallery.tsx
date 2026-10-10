@@ -1,10 +1,10 @@
 'use client';
 
-import { type CSSProperties } from 'react';
-import Image from 'next/image';
+import { useCallback, useState, type CSSProperties } from 'react';
 import { Card, CardContent } from '@/components/ui/Card';
 import { Marquee } from '@/components/ui/Marquee';
 import LandingRibbonMeals from './LandingRibbonMeals';
+import LandingMealPhoto from './LandingMealPhoto';
 import styles from './LandingMealGallery.module.css';
 
 // Public display-only photo mappings already used by the Panlasang library image resolver.
@@ -44,6 +44,10 @@ const meals = [
 const mealColumns = Array.from({ length: 5 }, (_, column) => meals.filter((_, index) => index % 5 === column));
 
 export default function LandingMealGallery() {
+  const [settledPhotos, setSettledPhotos] = useState<Set<string>>(() => new Set());
+  const settlePhoto = useCallback((name: string) => {
+    setSettledPhotos((previous) => (previous.has(name) ? previous : new Set(previous).add(name)));
+  }, []);
   return (
     <div className={styles.gallery} data-meal-gallery>
       <svg
@@ -67,6 +71,7 @@ export default function LandingMealGallery() {
               vertical
               reverse={column % 2 === 1}
               pauseOnHover
+              paused={columnMeals.some((meal) => !settledPhotos.has(meal.name))}
               className={styles.column}
               style={{ '--duration': `${48 + column * 8}s` } as CSSProperties}
             >
@@ -74,12 +79,10 @@ export default function LandingMealGallery() {
                 <Card key={meal.name} variant="signal" className={`${styles.card} !border-white/15 !bg-transparent`}>
                   <CardContent className="!p-0">
                     <div className={styles.photo}>
-                      <Image
+                      <LandingMealPhoto
                         src={`https://panlasangpinoy.com/wp-content/uploads/${meal.photo}`}
-                        alt=""
-                        fill
-                        sizes="(min-width: 1024px) 15vw, (min-width: 640px) 155px, 110px"
-                        className="object-cover"
+                        name={meal.name}
+                        onSettled={settlePhoto}
                       />
                       <div className={styles.caption}>
                         <p className={styles.mealName}>{meal.name}</p>

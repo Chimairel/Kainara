@@ -46,6 +46,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [profileLoadError, setProfileLoadError] = useState(false);
   const sessionRequestId = useRef(0);
+  const confirmedProfileOwner = useRef<string | null>(null);
   const sessionRefresh = useRef<{
     ownerId: string | undefined;
     requestId: number;
@@ -56,16 +57,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   // Refresh user profile details from backend to ensure state accuracy
   const loadSession = async (options?: { showLoader?: boolean }) => {
     const requestId = ++sessionRequestId.current;
-    if (options?.showLoader || !user) {
+    const ownerId = decodeToken(cookieHelper.get('nutrimind_session') || '')?.userId;
+    // A quiet retry must never expose provisional token claims to route guards.
+    if (options?.showLoader || !user || !ownerId || confirmedProfileOwner.current !== ownerId) {
       setIsLoading(true);
     }
     setProfileLoadError(false);
 
     try {
-      const profile = await refreshUserProfile(decodeToken(cookieHelper.get('nutrimind_session') || '')?.userId);
+      const profile = await refreshUserProfile(ownerId);
       if (profile) {
         // Missing verification metadata is an unresolved check, not an OTP requirement.
         if (typeof profile.emailVerified !== 'boolean') throw new Error('Profile verification status is missing.');
+        if (!ownerId || profile.id !== ownerId) throw new Error('Profile does not match the current session.');
         const {
           id,
           name,
@@ -109,6 +113,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
         if (requestId !== sessionRequestId.current) return null;
 
+        confirmedProfileOwner.current = id;
         setUser((previous) => (JSON.stringify(previous) === JSON.stringify(refreshedUser) ? previous : refreshedUser));
         setProfileLoadError(false);
         if (role === 'USER' && onboardingDone && tosAccepted && isReportAcknowledged) {
@@ -121,10 +126,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     } catch (error) {
       if (requestId !== sessionRequestId.current) return null;
 
-      console.warn('[AuthContext] Failed to fetch live profile status, using token fallbacks.', error);
+      console.warn('[AuthContext] Could not confirm live profile status.', error);
       // If we fail because we are unauthenticated, clear session
       if ((error as { response?: { status?: number } }).response?.status === 401) {
         clearSessionResourceCache();
+        confirmedProfileOwner.current = null;
         setUser(null);
         setProfileLoadError(false);
       } else {
@@ -163,6 +169,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       if (clientToken) {
         const decoded = decodeToken(clientToken);
         if (decoded) {
+          confirmedProfileOwner.current = null;
+          setIsLoading(true);
           // Temporarily set session from decoded claims to show loading screens cleanly
           setUser({
             userId: decoded.userId,
@@ -193,6 +201,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const login = async (token: string) => {
     sessionRequestId.current += 1;
+    confirmedProfileOwner.current = null;
     setSessionRefreshSuppressed(false);
     clearSessionResourceCache();
     // Save access token in cookie for the client middleware & interceptor
@@ -228,6 +237,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const logout = async () => {
     sessionRequestId.current += 1;
+    confirmedProfileOwner.current = null;
     setIsLoading(true);
     setProfileLoadError(false);
     setSessionRefreshSuppressed(true);
@@ -249,6 +259,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const completeAccountDeletion = () => {
     sessionRequestId.current += 1;
+    confirmedProfileOwner.current = null;
     setSessionRefreshSuppressed(true);
     setProfileLoadError(false);
     cookieHelper.clear('nutrimind_session');

@@ -152,4 +152,42 @@ describe('authoritative session refresh coordination', () => {
     expect(auth.profileLoadError).toBe(true);
     expect(auth.isLoading).toBe(false);
   });
+
+  it('keeps quiet recovery blocked until the temporary token session has a confirmed profile', async () => {
+    mocks.read.mockRejectedValueOnce(new Error('Synthetic API interruption'));
+    let auth!: AuthContextType;
+    const Consumer = () => {
+      auth = useContext(AuthContext)!;
+      return null;
+    };
+    render(
+      <AuthProvider>
+        <Consumer />
+      </AuthProvider>
+    );
+    await waitFor(() => expect(auth.profileLoadError).toBe(true));
+    let finish!: (value: unknown) => void;
+    mocks.read.mockReturnValueOnce(
+      new Promise((resolve) => {
+        finish = resolve;
+      })
+    );
+    let recovery!: Promise<unknown>;
+    await act(async () => {
+      recovery = auth.refreshSession({ showLoader: false });
+    });
+    expect(auth.isLoading || auth.profileLoadError).toBe(true);
+    await act(async () =>
+      finish({
+        id: 'fixture-owner',
+        email: 'fixture@preview.invalid',
+        role: 'USER',
+        emailVerified: true,
+      })
+    );
+    await recovery;
+    expect(auth.isLoading).toBe(false);
+    expect(auth.profileLoadError).toBe(false);
+    expect(auth.user?.emailVerified).toBe(true);
+  });
 });

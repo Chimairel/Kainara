@@ -108,10 +108,10 @@
     height: 600px;
     mask-image:
       linear-gradient(to bottom, transparent 0%, #000 14%, #000 70%, transparent 90%),
-      url('/icons/landing-meal-curve-mask.svg');
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1000 600' preserveAspectRatio='none'%3E%3Cdefs%3E%3Cfilter id='soft' x='-50%25' y='-50%25' width='200%25' height='200%25' color-interpolation-filters='sRGB'%3E%3CfeGaussianBlur stdDeviation='120'/%3E%3C/filter%3E%3C/defs%3E%3Cpath d='M440 -180 C260 160 260 440 440 780 H1400 V-180Z' fill='white' filter='url(%23soft)'/%3E%3C/svg%3E");
     -webkit-mask-image:
       linear-gradient(to bottom, transparent 0%, #000 14%, #000 70%, transparent 90%),
-      url('/icons/landing-meal-curve-mask.svg');
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1000 600' preserveAspectRatio='none'%3E%3Cdefs%3E%3Cfilter id='soft' x='-50%25' y='-50%25' width='200%25' height='200%25' color-interpolation-filters='sRGB'%3E%3CfeGaussianBlur stdDeviation='120'/%3E%3C/filter%3E%3C/defs%3E%3Cpath d='M440 -180 C260 160 260 440 440 780 H1400 V-180Z' fill='white' filter='url(%23soft)'/%3E%3C/svg%3E");
     mask-composite: intersect;
     -webkit-mask-composite: source-in;
     mask-size: 100% 100%;

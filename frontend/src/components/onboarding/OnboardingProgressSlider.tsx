@@ -53,7 +53,7 @@ export const OnboardingProgressSlider: React.FC<OnboardingProgressSliderProps> =
         aria-valuemin={1}
         aria-valuemax={totalSteps}
         aria-label={`Onboarding progress: Step ${clampedStep} of ${totalSteps}`}
-        className="relative flex h-10 sm:h-11 w-full items-center overflow-hidden rounded-full border border-brand-border bg-[#f1f3f5] shadow-inner transition-colors dark:border-[#173e33] dark:bg-[#0e271f]"
+        className="relative isolate flex h-10 sm:h-11 w-full items-center overflow-hidden rounded-full border border-brand-border bg-[#f1f3f5] shadow-inner transition-colors dark:border-[#173e33] dark:bg-[#0e271f]"
       >
         {/* Step Notch Markers */}
         <div className="absolute inset-0 flex items-center justify-between px-5 pointer-events-none z-10">
@@ -83,7 +83,8 @@ export const OnboardingProgressSlider: React.FC<OnboardingProgressSliderProps> =
 
         {/* Sliding Thumb Indicator */}
         <motion.div
-          className="pointer-events-none absolute top-0 z-40 flex h-10 sm:h-11 w-10 sm:w-11 items-center justify-center rounded-full"
+          className="pointer-events-none absolute top-0 z-20 flex h-10 sm:h-11 w-10 sm:w-11 items-center justify-center rounded-full"
+          data-onboarding-progress-thumb
           animate={{
             left: `calc(${percentage}% - ${(percentage / 100) * 44}px)`,
           }}
