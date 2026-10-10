@@ -11,11 +11,21 @@ let cursor: string | undefined;
 const recoverableJob = {
   OR: [
     { status: 'COMPLETED' as const },
-    { status: 'FAILED' as const, lastErrorCode: { in: ['NO_REVIEW_FREE_SOURCE', 'Error: NO_REVIEW_FREE_SOURCE'] } },
+    {
+      status: 'FAILED' as const,
+      lastErrorCode: {
+        in: [
+          'NO_REVIEW_FREE_SOURCE',
+          'Error: NO_REVIEW_FREE_SOURCE',
+          'SHOPPING_DEADLINE_PASSED',
+          'Error: SHOPPING_DEADLINE_PASSED',
+        ],
+      },
+    },
   ],
 };
 
-/** Reconcile old completed jobs after candidate cancellation, without restoring cancelled meals. */
+/** Reconcile gaps and deadline-paused jobs once their cycle is active, without restoring cancelled meals. */
 export async function recoverPartialPlanJobs(now: Date = new Date()): Promise<number> {
   const cycles = await prisma.mealPlanCycle.findMany({
     where: {

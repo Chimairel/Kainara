@@ -1,0 +1,18 @@
+{
+  "context": {
+    "profileRevision": 1,
+    "scopeKey": "[0,[\"HEART_CONDITION\"],[],[],[],[[\"HEART_CONDITION\",1]]]"
+  },
+  "formId": "cmv1ztk8l00entfk9datsvim3",
+  "memberId": "devfixture_rollout1010_member-heart",
+  "checks": [
+    "Normal development API publishes one persistent form and idempotent retry",
+    "Member workspace receives the RND questions",
+    "Unresolved profile work blocks generation without publishing meals",
+    "RND reads the member answer and resolves its exact response version",
+    "Clarification alone preserves the profile revision",
+    "Admin reads the resolved clarification in its related audit case",
+    "Sensitive admin case access is recorded"
+  ],
+  "resolutionComplete": true
+}

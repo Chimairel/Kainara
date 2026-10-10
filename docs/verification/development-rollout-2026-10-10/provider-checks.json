@@ -1,0 +1,67 @@
+{
+  "availability": {
+    "passed": true,
+    "startedAt": "2026-10-10T06:19:29.155Z",
+    "usage": [
+      {
+        "model": "gemini-3.6-flash",
+        "status": "SUCCESS",
+        "attempts": 1,
+        "errorCode": null,
+        "latencyMs": 4591
+      }
+    ]
+  },
+  "firstAvailabilityAttempt": {
+    "passed": false,
+    "startedAt": "2026-10-10T06:08:18.917Z",
+    "code": "AI_HIGH_DEMAND",
+    "usage": [
+      {
+        "model": "gemini-3.6-flash",
+        "status": "FAILED",
+        "attempts": 1,
+        "errorCode": "AI_HIGH_DEMAND",
+        "latencyMs": 6734
+      }
+    ]
+  },
+  "mealFallback": {
+    "startedAt": "2026-10-10T06:30:24.548Z",
+    "syntheticPrerequisitesSeeded": true,
+    "sharedCatalogueUnchanged": true,
+    "actualLiveProvider": true,
+    "cycleSlots": 21,
+    "saved": 0,
+    "meals": [],
+    "job": {
+      "status": "WAITING_FOR_AI",
+      "errorCode": "AI_CAPACITY_DEFERRED"
+    },
+    "usage": [
+      {
+        "model": "gemini-3.6-flash",
+        "status": "FAILED",
+        "attempts": 1,
+        "errorCode": "AI_HIGH_DEMAND"
+      }
+    ]
+  },
+  "mealFallbackRetry": {
+    "startedAt": "2026-10-10T06:34:21.457Z",
+    "worked": true,
+    "saved": 0,
+    "expected": 21,
+    "status": "WAITING_FOR_AI",
+    "errorCode": "AI_CAPACITY_DEFERRED",
+    "nextAttemptAt": "2026-10-10T06:35:22.651Z",
+    "usage": [
+      {
+        "model": "gemini-3.6-flash",
+        "status": "FAILED",
+        "errorCode": "AI_HIGH_DEMAND",
+        "attempts": 1
+      }
+    ]
+  }
+}

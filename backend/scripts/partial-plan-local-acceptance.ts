@@ -62,7 +62,9 @@ async function main() {
       },
     });
   }
-  const fixture = async (kind: 'general' | 'allergy' | 'frozen' | 'stale' | 'expired') => {
+  const fixture = async (
+    kind: 'general' | 'allergy' | 'frozen' | 'stale' | 'expired' | 'deadline' | 'future-deadline'
+  ) => {
     const allergy = kind === 'allergy';
     const user = await prisma.user.create({
       data: {
@@ -126,7 +128,12 @@ async function main() {
         profileSnapshot: { profile: JSON.parse(JSON.stringify(profile)) },
       },
     });
-    const cycleStart = kind === 'expired' ? getScheduledMealDate(startDate, -7) : startDate;
+    const cycleStart =
+      kind === 'expired'
+        ? getScheduledMealDate(startDate, -7)
+        : kind === 'future-deadline'
+          ? getScheduledMealDate(startDate, 1)
+          : startDate;
     const cycle = await prisma.mealPlanCycle.create({
       data: {
         id: `${marker}-${kind}`,
@@ -136,7 +143,7 @@ async function main() {
         endDate: getScheduledMealDate(cycleStart, 2),
         expectedSlotCount: 9,
         preparationOpensAt: cycleStart,
-        shoppingDeadlineAt: cycleStart,
+        shoppingDeadlineAt: kind === 'future-deadline' ? startDate : cycleStart,
         status: 'ACTIVE',
         shoppingStartedAt: kind === 'frozen' ? now : null,
         snapshot: {
@@ -161,8 +168,13 @@ async function main() {
         planType: 'STARTER',
         cycleStartDate: cycleStart,
         planGroupId: cycle.id,
-        status: kind === 'general' ? 'FAILED' : 'COMPLETED',
-        lastErrorCode: kind === 'general' ? 'Error: NO_REVIEW_FREE_SOURCE' : null,
+        status: ['general', 'deadline', 'future-deadline'].includes(kind) ? 'FAILED' : 'COMPLETED',
+        lastErrorCode:
+          kind === 'general'
+            ? 'Error: NO_REVIEW_FREE_SOURCE'
+            : ['deadline', 'future-deadline'].includes(kind)
+              ? 'Error: SHOPPING_DEADLINE_PASSED'
+              : null,
         progressPct: 100,
         completedAt: now,
       },
@@ -187,24 +199,31 @@ async function main() {
     return { user, cycle, job, cancelled };
   };
   const general = await fixture('general'),
-    allergy = await fixture('allergy');
+    allergy = await fixture('allergy'),
+    deadline = await fixture('deadline');
   const blocked = [await fixture('frozen'), await fixture('stale'), await fixture('expired')];
+  const futureDeadline = await fixture('future-deadline');
   assert.equal(
     (await Promise.all([recoverPartialPlanJobs(now), recoverPartialPlanJobs(now)])).reduce(
       (sum, count) => sum + count,
       0
     ),
-    2,
+    3,
     'Concurrent recovery must only queue each partial job once'
   );
   assert.equal(await recoverPartialPlanJobs(now), 0, 'Recovery must be idempotent');
+  assert.equal(
+    (await prisma.mealPlanGenerationJob.findUniqueOrThrow({ where: { id: futureDeadline.job.id } })).status,
+    'FAILED',
+    'An upcoming cycle after its shopping deadline must remain paused until it becomes active'
+  );
   for (const entry of blocked)
     assert.equal(
       (await prisma.mealPlanGenerationJob.findUniqueOrThrow({ where: { id: entry.job.id } })).status,
       'COMPLETED'
     );
 
-  for (let turn = 0; turn < 8; turn++) {
+  for (let turn = 0; turn < 12; turn++) {
     // Advance only due scheduling in the disposable fixture; no real timers or provider calls.
     await prisma.mealPlanGenerationJob.updateMany({
       where: { status: 'WAITING_FOR_AI' },
@@ -223,6 +242,7 @@ async function main() {
   for (const [entry, status] of [
     [general, 'APPROVED'],
     [allergy, 'PENDING_REVIEW'],
+    [deadline, 'APPROVED'],
   ] as const) {
     const meals = await prisma.mealPlan.findMany({
       where: { planGroupId: entry.cycle.id, status: { not: 'CANCELLED' } },
@@ -246,7 +266,7 @@ async function main() {
   assert.equal(await prisma.aiUsageEvent.count(), 0);
   assert.equal(await prisma.mealLibrary.count(), 0);
   console.log(
-    'PASS: completed-gap recovery, earliest-day progressive fill, preserved cancellations, fresh source evidence, general eligibility, allergy review hold, unique slots, blocked frozen/stale/expired cycles and no provider calls'
+    'PASS: completed-gap and active deadline-paused recovery, earliest-day progressive fill, preserved cancellations, fresh source evidence, general eligibility, allergy review hold, unique slots, blocked future/frozen/stale/expired cycles and no provider calls'
   );
 }
 
