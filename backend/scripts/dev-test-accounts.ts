@@ -18,7 +18,7 @@ async function main() {
   const args = process.argv.slice(2);
   if (args.includes('--help')) {
     console.log(
-      'npm run test:accounts -- [--set qa] [--spec file.json] [--apply --confirm-target TOKEN --allow-shared-development]\nDry run is the default. New accounts share a server-configured password, saved in the ignored local credential guide. Optional DEV_TEST_ACCOUNT_PASSWORD must be at least 16 characters and at most 72 UTF-8 bytes. Existing passwords are preserved.'
+      'npm run test:accounts -- [--set qa] [--spec file.json] [--apply --confirm-target TOKEN --allow-shared-development]\nDry run is the default. New accounts share a server-configured password, saved in the ignored local credential guide. Optional DEV_TEST_ACCOUNT_PASSWORD must be at least 8 characters and at most 72 UTF-8 bytes. Existing passwords are preserved.'
     );
     return;
   }

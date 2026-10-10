@@ -5,6 +5,7 @@ import { NUTRITION_GUIDANCE_POLICY_VERSION } from '../../domain/deterministic-nu
 import { calculatePlanningMacroTargets } from '../../domain/meal-macro-target.policy';
 import { fixtureIdentity, type AccountSpec } from './config';
 import { buildTestMemberProfile } from './member-profile';
+import { validateTestAccountPassword } from './password';
 
 export async function inspectAccounts(db: Pick<Prisma.TransactionClient, 'user'>, set: string, specs: AccountSpec[]) {
   const identities = specs.map((spec) => fixtureIdentity(set, spec));
@@ -29,8 +30,7 @@ export async function createAccounts(
   password: string,
   actorId?: string
 ) {
-  if (password.length < 16 || Buffer.byteLength(password, 'utf8') > 72)
-    throw new Error('Test password must be at least 16 characters and at most 72 UTF-8 bytes.');
+  validateTestAccountPassword(password);
   const passwordHash = await bcrypt.hash(password, 12);
   return db.$transaction(
     async (tx) => {

@@ -1,5 +1,10 @@
 import { createHmac } from 'node:crypto';
 
+export function validateTestAccountPassword(password: string): void {
+  if (password.length < 8 || Buffer.byteLength(password, 'utf8') > 72)
+    throw new Error('Test password must be at least 8 characters and at most 72 UTF-8 bytes.');
+}
+
 /** Server-only development credential; never use this policy for ordinary accounts. */
 export function sharedTestAccountPassword(env: NodeJS.ProcessEnv): string {
   if (!['development', 'test'].includes(env.NODE_ENV ?? '') || (env.NUTRIMIND_DEPLOYMENT_MODE ?? 'public') !== 'public')
@@ -9,7 +14,6 @@ export function sharedTestAccountPassword(env: NodeJS.ProcessEnv): string {
     if (!env.JWT_SECRET) throw new Error('Shared test credential configuration is unavailable.');
     password = createHmac('sha256', env.JWT_SECRET).update('kainara:synthetic-account-password:v1').digest('base64url');
   }
-  if (password.length < 16 || Buffer.byteLength(password, 'utf8') > 72)
-    throw new Error('Test password must be at least 16 characters and at most 72 UTF-8 bytes.');
+  validateTestAccountPassword(password);
   return password;
 }
