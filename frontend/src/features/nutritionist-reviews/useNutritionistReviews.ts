@@ -212,6 +212,19 @@ export function useNutritionistReviews(enabled = true) {
 
   // Actions states
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const actionFlight = useRef<symbol | null>(null);
+  const beginAction = (id: string) => {
+    if (actionFlight.current || liveOwner.current !== ownerId) return null;
+    const action = Symbol(id);
+    actionFlight.current = action;
+    setActionLoading(id);
+    return action;
+  };
+  const finishAction = (action: symbol) => {
+    if (actionFlight.current !== action) return;
+    actionFlight.current = null;
+    if (liveOwner.current === ownerId) setActionLoading(null);
+  };
   const [rejectNote, setRejectNote] = useState('');
   const [showRejectForm, setShowRejectForm] = useState(false);
   const [generalNote, setGeneralNote] = useState('');
@@ -350,6 +363,7 @@ export function useNutritionistReviews(enabled = true) {
     setGeneralNote('');
     setRejectNote('');
     setActionLoading(null);
+    actionFlight.current = null;
     setDetailLoading(false);
     setErrorMsg(null);
     setShowRejectForm(false);
@@ -411,9 +425,10 @@ export function useNutritionistReviews(enabled = true) {
 
     try {
       const res = await api.get(`/nutritionist/queue/${id}`);
-      if (liveOwner.current === ownerId && generation === selectionGeneration.current && res.data?.success) {
-        setDetailData(res.data.data);
-      }
+      if (liveOwner.current !== ownerId || generation !== selectionGeneration.current) return;
+      if (!res.data?.success || res.data.data?.mealPlan?.id !== id)
+        throw new Error('Unexpected review details response. Please retry.');
+      setDetailData(res.data.data);
     } catch (err: unknown) {
       if (liveOwner.current !== ownerId || generation !== selectionGeneration.current) return;
       if (retireInactiveReview(err, id)) {
@@ -437,7 +452,8 @@ export function useNutritionistReviews(enabled = true) {
 
   const handleClaimMeal = async () => {
     if (!selectedMealId || detailLoading || !detailData) return;
-    setActionLoading(selectedMealId);
+    const action = beginAction(selectedMealId);
+    if (!action) return;
     setErrorMsg(null);
     const generation = selectionGeneration.current;
     const stillSelected = () => liveOwner.current === ownerId && generation === selectionGeneration.current;
@@ -448,7 +464,9 @@ export function useNutritionistReviews(enabled = true) {
           })
         : await api.post(`/nutritionist/queue/${selectedMealId}/claim`);
       if (!stillSelected()) return;
-      if (res.data?.success) setDetailData(res.data.data);
+      if (!res.data?.success || res.data.data?.mealPlan?.id !== selectedMealId)
+        throw new Error('Unexpected claim response. Refresh the review and try again.');
+      setDetailData(res.data.data);
       await fetchQueue(false, undefined, true);
     } catch (err: unknown) {
       if (!stillSelected()) return;
@@ -456,13 +474,14 @@ export function useNutritionistReviews(enabled = true) {
         setErrorMsg(getApiErrorMessage(err, 'Could not claim this meal. Refresh the queue and try again.'));
       await fetchQueue(false, undefined, true);
     } finally {
-      if (liveOwner.current === ownerId) setActionLoading(null);
+      finishAction(action);
     }
   };
 
   const handleReleaseMeal = async () => {
     if (!selectedMealId) return;
-    setActionLoading(selectedMealId);
+    const action = beginAction(selectedMealId);
+    if (!action) return;
     setErrorMsg(null);
     const generation = selectionGeneration.current;
     const stillSelected = () => liveOwner.current === ownerId && generation === selectionGeneration.current;
@@ -480,13 +499,14 @@ export function useNutritionistReviews(enabled = true) {
       setErrorMsg(getApiErrorMessage(err, 'Could not release this meal. Refresh the queue and try again.'));
       await fetchQueue(false, undefined, true);
     } finally {
-      if (liveOwner.current === ownerId) setActionLoading(null);
+      finishAction(action);
     }
   };
 
   const handleApprove = async () => {
     if (!selectedMealId) return;
-    setActionLoading(selectedMealId);
+    const action = beginAction(selectedMealId);
+    if (!action) return;
     setErrorMsg(null);
 
     const generation = selectionGeneration.current;
@@ -524,13 +544,14 @@ export function useNutritionistReviews(enabled = true) {
       if (retireInactiveReview(err, selectedMealId)) await fetchQueue(false, undefined, true);
       else setErrorMsg(getApiErrorMessage(err, 'Approval failed. Please refresh the queue.'));
     } finally {
-      if (liveOwner.current === ownerId) setActionLoading(null);
+      finishAction(action);
     }
   };
 
   const handleReject = async (replacementOutcome?: { kind: 'NO_SUITABLE_REPLACEMENT'; searchReceipt: string }) => {
     if (!selectedMealId || !rejectNote.trim()) return;
-    setActionLoading(selectedMealId);
+    const action = beginAction(selectedMealId);
+    if (!action) return;
     setErrorMsg(null);
 
     const generation = selectionGeneration.current;
@@ -556,7 +577,7 @@ export function useNutritionistReviews(enabled = true) {
       if (retireInactiveReview(err, selectedMealId)) await fetchQueue(false, undefined, true);
       else setErrorMsg(getApiErrorMessage(err, 'Rejection failed. Please refresh the queue.'));
     } finally {
-      if (liveOwner.current === ownerId) setActionLoading(null);
+      finishAction(action);
     }
   };
 
@@ -593,7 +614,8 @@ export function useNutritionistReviews(enabled = true) {
 
   const handleReplaceAndApprove = async () => {
     if (!selectedMealId || !candidateMeal || !rejectNote.trim()) return;
-    setActionLoading(selectedMealId);
+    const action = beginAction(selectedMealId);
+    if (!action) return;
     setErrorMsg(null);
 
     const generation = selectionGeneration.current;
@@ -627,7 +649,7 @@ export function useNutritionistReviews(enabled = true) {
         getApiErrorMessage(err, 'Failed to submit the replacement for meal verification. Please refresh the queue.')
       );
     } finally {
-      if (liveOwner.current === ownerId) setActionLoading(null);
+      finishAction(action);
     }
   };
 

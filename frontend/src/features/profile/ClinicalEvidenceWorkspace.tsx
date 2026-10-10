@@ -3,7 +3,8 @@ import MemberClarifications from '@/features/clinical-clarification/MemberClarif
 import MemberProfileProposals from '@/features/clinical-clarification/MemberProfileProposals';
 import type { ProfileProposalWorkspace } from '@/features/clinical-clarification/profile-proposal-types';
 import type { ClarificationWorkspace } from '@/features/clinical-clarification/types';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { useVisiblePolling } from '@/hooks/useVisiblePolling';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import api from '@/lib/axios';
@@ -76,15 +77,19 @@ export default function ClinicalEvidenceWorkspace({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+  const [profileChanged, setProfileChanged] = useState(false);
   const [request, setRequest] = useState<{ area: string | null; notes: string | null } | null>(null);
+  const refreshGeneration = useRef(0);
+  const dirtyAnswers = useRef(false);
   const load = useCallback(
     async (signal?: AbortSignal) => {
+      const generation = ++refreshGeneration.current;
       try {
         const [response, status] = await Promise.all([
           api.get(endpoint, { signal }),
           mode === 'profile' ? api.get('/user/clinical-profile-review/status', { signal }) : Promise.resolve(null),
         ]);
-        if (signal?.aborted) return;
+        if (signal?.aborted || generation !== refreshGeneration.current) return;
         const next = response.data.data as Workspace;
         setWorkspace(next);
         setRequest(status?.data?.data?.detailsRequest ?? null);
@@ -97,23 +102,65 @@ export default function ClinicalEvidenceWorkspace({
             '');
         setArea(selected);
         setAnswers({ ...empty, ...next.contexts.find((item) => item.area === selected)?.responses });
+        dirtyAnswers.current = false;
+        setProfileChanged(false);
+        setError(null);
+        return true;
       } catch (cause) {
-        if (!signal?.aborted) setError(getApiErrorMessage(cause, 'Health details could not be loaded.'));
+        if (!signal?.aborted && generation === refreshGeneration.current)
+          setError(getApiErrorMessage(cause, 'Health details could not be loaded.'));
+        return false;
       } finally {
-        if (!signal?.aborted) setLoading(false);
+        if (!signal?.aborted && generation === refreshGeneration.current) setLoading(false);
       }
     },
     [endpoint, mode, section]
   );
   useEffect(() => {
     const controller = new AbortController();
+    setLoading(true);
+    setWorkspace(null);
+    setRequest(null);
+    setArea('');
+    setAnswers(empty);
+    setError(null);
+    setMessage(null);
     void load(controller.signal);
     return () => controller.abort();
-  }, [load]);
+  }, [load, ownerId]);
+  useVisiblePolling(
+    async (signal) => {
+      const generation = ++refreshGeneration.current;
+      const [response, status] = await Promise.all([
+        api.get(endpoint, { signal }),
+        api.get('/user/clinical-profile-review/status', { signal }),
+      ]);
+      if (signal.aborted || generation !== refreshGeneration.current) return;
+      const next = response.data.data as Workspace;
+      if (workspace && next.safetyRevision !== workspace.safetyRevision) {
+        setProfileChanged(true);
+        return;
+      }
+      // Refresh persisted review work without resetting any unsent form draft.
+      setWorkspace(next);
+      setRequest(status.data?.data?.detailsRequest ?? null);
+      const nextAreas = next.availableAreas.filter((value) => inSection(value, section));
+      if (!nextAreas.includes(area)) {
+        const selected = nextAreas[0] ?? '';
+        setArea(selected);
+        setAnswers({ ...empty, ...next.contexts.find((item) => item.area === selected)?.responses });
+        dirtyAnswers.current = false;
+      } else if (!dirtyAnswers.current) {
+        setAnswers({ ...empty, ...next.contexts.find((item) => item.area === area)?.responses });
+      }
+    },
+    { enabled: mode === 'profile' && !loading && !busy && Boolean(workspace), immediate: false, scopeKey: ownerId }
+  );
   async function save(event: React.FormEvent) {
     event.preventDefault();
-    if (!workspace || busy) return;
+    if (!workspace || busy || profileChanged) return;
     setBusy(true);
+    refreshGeneration.current += 1;
     setError(null);
     setMessage(null);
     try {
@@ -125,6 +172,7 @@ export default function ClinicalEvidenceWorkspace({
       invalidateSessionResource(ownerId, `clinical-profile-status:${workspace.safetyRevision}`);
       window.dispatchEvent(new Event(LIVE_UPDATE_EVENT));
       setWorkspace(response.data.data);
+      dirtyAnswers.current = false;
       setMessage('Health details saved for RND review. These answers remain member-provided until reviewed.');
     } catch (cause) {
       setError(getApiErrorMessage(cause, 'Health details could not be saved.'));
@@ -135,7 +183,14 @@ export default function ClinicalEvidenceWorkspace({
   const areas = workspace?.availableAreas.filter((value) => inSection(value, section)) ?? [];
   const requirements = workspace?.requirements.filter((item) => inSection(item.area, section)) ?? [];
   const pendingAreas = requirements.filter((item) => item.state !== 'READY').map((item) => item.area);
+  const hasRecordedReviewDetails =
+    mode === 'profile' &&
+    (Boolean(request) ||
+      Boolean(workspace?.clarifications?.enabled && workspace.clarifications.forms.length) ||
+      Boolean(workspace?.profileProposals?.enabled && workspace.profileProposals.proposals.length) ||
+      Boolean(workspace?.conditionPlanningAssessments?.length));
   const selectArea = (selected: string) => {
+    dirtyAnswers.current = false;
     setArea(selected);
     setAnswers({ ...empty, ...workspace?.contexts.find((item) => item.area === selected)?.responses });
     setMessage(null);
@@ -202,15 +257,27 @@ export default function ClinicalEvidenceWorkspace({
           {message}
         </p>
       )}
+      {profileChanged && (
+        <div role="status" className="rounded-xl border border-amber-500 p-4">
+          <p>
+            Your health profile changed. Reload its current details before saving. Unsent answers have been kept here.
+          </p>
+          <button type="button" onClick={() => void load()} className="mt-2 font-bold underline">
+            Reload current health details
+          </button>
+        </div>
+      )}
       {mode === 'profile' && (
         <MemberProfileProposals
           workspace={workspace?.profileProposals}
           onUpdated={async (applied) => {
             if (applied) {
-              await load();
+              if (!(await load())) throw new Error('Health details could not be refreshed.');
               window.dispatchEvent(new Event(LIVE_UPDATE_EVENT));
             } else {
+              const generation = ++refreshGeneration.current;
               const response = await api.get(endpoint);
+              if (generation !== refreshGeneration.current) return;
               setWorkspace((current) =>
                 current ? { ...current, profileProposals: response.data.data.profileProposals } : response.data.data
               );
@@ -222,7 +289,9 @@ export default function ClinicalEvidenceWorkspace({
         <MemberClarifications
           workspace={workspace?.clarifications}
           onUpdated={async () => {
+            const generation = ++refreshGeneration.current;
             const response = await api.get(endpoint);
+            if (generation !== refreshGeneration.current) return;
             setWorkspace((current) =>
               current ? { ...current, clarifications: response.data.data.clarifications } : response.data.data
             );
@@ -270,14 +339,14 @@ export default function ClinicalEvidenceWorkspace({
               onSubmit={(event) => void save(event)}
               className="space-y-4 rounded-2xl border border-brand-border bg-brand-surface p-5"
             >
-              <fieldset>
+              <fieldset disabled={busy || profileChanged}>
                 <legend className="text-sm font-semibold">Choose details to complete</legend>
                 <div className="mt-2 flex flex-wrap gap-2">
                   {areas.map((value) => (
                     <button
                       key={value}
                       type="button"
-                      disabled={busy}
+                      disabled={busy || profileChanged}
                       aria-pressed={area === value}
                       onClick={() => selectArea(value)}
                       className={`min-h-11 rounded-xl border px-4 py-2 text-sm font-semibold disabled:opacity-50 ${
@@ -302,25 +371,32 @@ export default function ClinicalEvidenceWorkspace({
                   {area === 'FOOD_ALLERGY' ? (allergyLabels[field] ?? label) : label}
                   <textarea
                     required={field !== 'measurements'}
+                    disabled={busy || profileChanged}
                     minLength={field === 'conditionDetails' ? 10 : field === 'measurements' ? undefined : 2}
                     maxLength={field === 'measurements' ? 1000 : 2000}
                     rows={3}
                     value={answers[field]}
-                    onChange={(event) => setAnswers((current) => ({ ...current, [field]: event.target.value }))}
+                    onChange={(event) => {
+                      dirtyAnswers.current = true;
+                      setAnswers((current) => ({ ...current, [field]: event.target.value }));
+                    }}
                     className="mt-1 w-full rounded-xl border border-brand-border bg-brand-surface p-3"
                   />
                 </label>
               ))}
               <button
                 type="submit"
-                disabled={busy}
+                disabled={busy || profileChanged}
                 className="min-h-12 rounded-xl bg-brand-accent px-5 py-3 font-bold text-white disabled:opacity-50"
               >
                 {busy ? 'Saving…' : 'Save health details'}
               </button>
             </form>
           ) : (
-            workspace && (
+            workspace &&
+            !error &&
+            !requirements.length &&
+            !hasRecordedReviewDetails && (
               <StateNotice
                 variant="no-meal-plan"
                 title="No health details are needed for your current profile"

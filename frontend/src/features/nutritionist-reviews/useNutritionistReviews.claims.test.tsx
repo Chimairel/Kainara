@@ -176,22 +176,38 @@ it('closes a previously open case when its claim request reports expiry and refr
   expect(result.current.errorMsg).toBeNull();
 });
 
-
 it('binds decisions to the opened context and retains notes when a stale decision closes the case', async () => {
   vi.resetAllMocks();
   const context = { contextKey: 'a'.repeat(64), profileRevision: 1, scopeKey: 'profile-scope' };
-  vi.mocked(api.get).mockImplementation(async (url) => ({ data: { success: true, data: url === '/nutritionist/queue' ? [] : { ...preview, reviewContext: context } } }));
+  vi.mocked(api.get).mockImplementation(async (url) => ({
+    data: { success: true, data: url === '/nutritionist/queue' ? [] : { ...preview, reviewContext: context } },
+  }));
   vi.mocked(api.patch).mockRejectedValue({ response: { data: { code: 'MEAL_REVIEW_CONTEXT_CHANGED' } } });
   const { result } = renderHook(() => useNutritionistReviews());
   await waitFor(() => expect(result.current.isLoading).toBe(false));
-  await act(async () => { await result.current.handleSelectMeal('meal-1'); });
-  act(() => { result.current.setGeneralNote('Reduce the portion if clinically indicated.'); result.current.setRejectNote('Check the new treatment before deciding.'); });
-  await act(async () => { await result.current.handleApprove(); });
-  expect(api.patch).toHaveBeenCalledWith('/nutritionist/review/meal-1', { action: 'approve', note: 'Reduce the portion if clinically indicated.', expectedContextKey: context.contextKey });
+  await act(async () => {
+    await result.current.handleSelectMeal('meal-1');
+  });
+  act(() => {
+    result.current.setGeneralNote('Reduce the portion if clinically indicated.');
+    result.current.setRejectNote('Check the new treatment before deciding.');
+  });
+  await act(async () => {
+    await result.current.handleApprove();
+  });
+  expect(api.patch).toHaveBeenCalledWith('/nutritionist/review/meal-1', {
+    action: 'approve',
+    note: 'Reduce the portion if clinically indicated.',
+    expectedContextKey: context.contextKey,
+  });
   expect(result.current.selectedMealId).toBeNull();
   expect(result.current.detailData).toBeNull();
   expect(result.current.reviewNotice).toContain('no longer current');
-  expect(result.current.savedReviewNotes[0]).toMatchObject({ contextKey: context.contextKey, note: 'Reduce the portion if clinically indicated.', rejection: 'Check the new treatment before deciding.' });
+  expect(result.current.savedReviewNotes[0]).toMatchObject({
+    contextKey: context.contextKey,
+    note: 'Reduce the portion if clinically indicated.',
+    rejection: 'Check the new treatment before deciding.',
+  });
   expect(result.current.generalNote).toBe('');
 });
 
@@ -200,15 +216,25 @@ it('does not resurrect an older selection after a slow detail response', async (
   let resolveOld!: (value: unknown) => void;
   vi.mocked(api.get).mockImplementation(async (url) => {
     if (url === '/nutritionist/queue') return { data: { success: true, data: [] } };
-    if (url.endsWith('meal-old')) return new Promise((resolve) => { resolveOld = resolve; });
+    if (url.endsWith('meal-old'))
+      return new Promise((resolve) => {
+        resolveOld = resolve;
+      });
     return { data: { success: true, data: { ...preview, mealPlan: { ...preview.mealPlan, id: 'meal-new' } } } };
   });
   const { result } = renderHook(() => useNutritionistReviews());
   await waitFor(() => expect(result.current.isLoading).toBe(false));
   let pending!: Promise<void>;
-  act(() => { pending = result.current.handleSelectMeal('meal-old'); });
-  await act(async () => { await result.current.handleSelectMeal('meal-new'); });
-  await act(async () => { resolveOld({ data: { success: true, data: preview } }); await pending; });
+  act(() => {
+    pending = result.current.handleSelectMeal('meal-old');
+  });
+  await act(async () => {
+    await result.current.handleSelectMeal('meal-new');
+  });
+  await act(async () => {
+    resolveOld({ data: { success: true, data: preview } });
+    await pending;
+  });
   expect(result.current.selectedMealId).toBe('meal-new');
   expect(result.current.detailData?.mealPlan.id).toBe('meal-new');
 });
@@ -216,10 +242,20 @@ it('does not resurrect an older selection after a slow detail response', async (
 it('closes changed contexts on live refresh without overwriting the opened review', async () => {
   vi.resetAllMocks();
   let key = 'a'.repeat(64);
-  vi.mocked(api.get).mockImplementation(async (url) => ({ data: { success: true, data: url === '/nutritionist/queue' ? [] : { ...preview, reviewContext: { contextKey: key, profileRevision: 1, scopeKey: 'scope' } } } }));
+  vi.mocked(api.get).mockImplementation(async (url) => ({
+    data: {
+      success: true,
+      data:
+        url === '/nutritionist/queue'
+          ? []
+          : { ...preview, reviewContext: { contextKey: key, profileRevision: 1, scopeKey: 'scope' } },
+    },
+  }));
   const { result } = renderHook(() => useNutritionistReviews());
   await waitFor(() => expect(result.current.isLoading).toBe(false));
-  await act(async () => { await result.current.handleSelectMeal('meal-1'); });
+  await act(async () => {
+    await result.current.handleSelectMeal('meal-1');
+  });
   act(() => result.current.setGeneralNote('Unfinished live-review note'));
   key = 'b'.repeat(64);
   act(() => window.dispatchEvent(new Event('focus')));
@@ -228,23 +264,41 @@ it('closes changed contexts on live refresh without overwriting the opened revie
   expect(result.current.detailData).toBeNull();
 });
 
-
 it('clears saved clinical drafts on account change and ignores an old claim response', async () => {
   vi.resetAllMocks();
-  vi.mocked(api.get).mockImplementation(async (url) => ({ data: { success: true, data: url === '/nutritionist/queue' ? [] : preview } }));
+  vi.mocked(api.get).mockImplementation(async (url) => ({
+    data: { success: true, data: url === '/nutritionist/queue' ? [] : preview },
+  }));
   let resolveClaim!: (value: unknown) => void;
-  vi.mocked(api.post).mockImplementation(() => new Promise(resolve => { resolveClaim = resolve; }));
+  vi.mocked(api.post).mockImplementation(
+    () =>
+      new Promise((resolve) => {
+        resolveClaim = resolve;
+      })
+  );
   const { result, rerender } = renderHook(() => useNutritionistReviews());
   await waitFor(() => expect(result.current.isLoading).toBe(false));
-  await act(async () => { await result.current.handleSelectMeal('meal-1'); });
+  await act(async () => {
+    await result.current.handleSelectMeal('meal-1');
+  });
   act(() => result.current.setGeneralNote('Private account A draft'));
-  act(() => { result.current.retireInactiveReview({ response: { data: { code: 'MEAL_REVIEW_CONTEXT_CHANGED' } } }, 'meal-1'); });
+  act(() => {
+    result.current.retireInactiveReview({ response: { data: { code: 'MEAL_REVIEW_CONTEXT_CHANGED' } } }, 'meal-1');
+  });
   expect(result.current.savedReviewNotes).toHaveLength(1);
-  await act(async () => { await result.current.handleSelectMeal('meal-1'); });
+  await act(async () => {
+    await result.current.handleSelectMeal('meal-1');
+  });
   let pending!: Promise<void>;
-  act(() => { pending = result.current.handleClaimMeal(); });
-  auth.owner = 'nutritionist-2'; rerender();
-  await act(async () => { resolveClaim({ data: { success: true, data: preview } }); await pending; });
+  act(() => {
+    pending = result.current.handleClaimMeal();
+  });
+  auth.owner = 'nutritionist-2';
+  rerender();
+  await act(async () => {
+    resolveClaim({ data: { success: true, data: preview } });
+    await pending;
+  });
   expect(result.current.savedReviewNotes).toEqual([]);
   expect(result.current.reviewNotice).toBeNull();
   expect(result.current.detailData).toBeNull();
@@ -252,23 +306,138 @@ it('clears saved clinical drafts on account change and ignores an old claim resp
   auth.owner = 'nutritionist-1';
 });
 
-
 it('retains clarification drafts across canvas rerenders and archives them before retiring a stale case', async () => {
   vi.resetAllMocks();
-  vi.mocked(api.get).mockImplementation(async (url) => ({ data: { success: true, data: url === '/nutritionist/queue' ? [] : { ...preview, reviewContext: { contextKey: 'a'.repeat(64), profileRevision: 1, scopeKey: 'scope' } } } }));
+  vi.mocked(api.get).mockImplementation(async (url) => ({
+    data: {
+      success: true,
+      data:
+        url === '/nutritionist/queue'
+          ? []
+          : { ...preview, reviewContext: { contextKey: 'a'.repeat(64), profileRevision: 1, scopeKey: 'scope' } },
+    },
+  }));
   const { result, rerender } = renderHook(() => useNutritionistReviews());
   await waitFor(() => expect(result.current.isLoading).toBe(false));
-  await act(async () => { await result.current.handleSelectMeal('meal-1'); });
-  const questions = [{ id: 'q', label: 'Which treatment was recorded?', type: 'TEXT' as const, required: true, choices: '' }];
-  act(() => { result.current.clarificationDraft.setTitle('Clarify treatment'); result.current.clarificationDraft.setQuestions(questions); });
+  await act(async () => {
+    await result.current.handleSelectMeal('meal-1');
+  });
+  const questions = [
+    { id: 'q', label: 'Which treatment was recorded?', type: 'TEXT' as const, required: true, choices: '' },
+  ];
+  act(() => {
+    result.current.clarificationDraft.setTitle('Clarify treatment');
+    result.current.clarificationDraft.setQuestions(questions);
+  });
   rerender();
   expect(result.current.clarificationDraft.questions).toEqual(questions);
-  act(() => { result.current.retireInactiveReview({ response: { data: { code: 'MEAL_REVIEW_CONTEXT_CHANGED' } } }, 'meal-1'); });
+  act(() => {
+    result.current.retireInactiveReview({ response: { data: { code: 'MEAL_REVIEW_CONTEXT_CHANGED' } } }, 'meal-1');
+  });
   expect(result.current.selectedMealId).toBeNull();
   expect(result.current.savedReviewNotes[0].clarification).toEqual({ title: 'Clarify treatment', questions });
   expect(result.current.clarificationDraft.questions).toEqual([]);
-  auth.owner = 'nutritionist-another'; rerender();
+  auth.owner = 'nutritionist-another';
+  rerender();
   expect(result.current.savedReviewNotes).toEqual([]);
   expect(result.current.clarificationDraft.questions).toEqual([]);
-  auth.owner = 'nutritionist-1'; rerender();
+  auth.owner = 'nutritionist-1';
+  rerender();
+});
+
+it.each(['handleClaimMeal', 'handleReleaseMeal', 'handleApprove', 'handleReject'] as const)(
+  'prevents duplicate %s requests before React commits the busy state',
+  async (method) => {
+    vi.resetAllMocks();
+    vi.mocked(api.get).mockImplementation(async (url) => ({
+      data: { success: true, data: url === '/nutritionist/queue' ? [] : preview },
+    }));
+    let finish!: (value: unknown) => void;
+    const mutation = () =>
+      new Promise((resolve) => {
+        finish = resolve;
+      });
+    vi.mocked(api.post).mockImplementation(mutation);
+    vi.mocked(api.patch).mockImplementation(mutation);
+    const { result } = renderHook(() => useNutritionistReviews());
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    await act(() => result.current.handleSelectMeal('meal-1'));
+    act(() => result.current.setRejectNote('Recorded review reason'));
+    let pending!: Promise<void>;
+    act(() => {
+      pending = result.current[method]();
+      void result.current[method]();
+    });
+    expect(vi.mocked(api.post).mock.calls.length + vi.mocked(api.patch).mock.calls.length).toBe(1);
+    await act(async () => {
+      finish({ data: { success: true, data: preview } });
+      await pending;
+    });
+    expect(result.current.actionLoading).toBeNull();
+  }
+);
+
+it.each([false, true])(
+  'shows invalid detail responses as a retryable error (wrong identity: %s)',
+  async (wrongIdentity) => {
+    vi.resetAllMocks();
+    vi.mocked(api.get).mockImplementation(async (url) => ({
+      data:
+        url === '/nutritionist/queue'
+          ? { success: true, data: [] }
+          : wrongIdentity
+            ? { success: true, data: { ...preview, mealPlan: { id: 'another-meal' } } }
+            : { success: false },
+    }));
+    const log = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    const { result } = renderHook(() => useNutritionistReviews());
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    await act(() => result.current.handleSelectMeal('meal-1'));
+    expect(result.current.detailData).toBeNull();
+    expect(result.current.detailLoading).toBe(false);
+    expect(result.current.errorMsg).toContain('Review details could not be loaded');
+    await act(() => result.current.handleClaimMeal());
+    expect(api.post).not.toHaveBeenCalled();
+    log.mockRestore();
+  }
+);
+
+it('an old account mutation cannot clear a new account busy state', async () => {
+  vi.resetAllMocks();
+  vi.mocked(api.get).mockImplementation(async (url) => ({
+    data: { success: true, data: url === '/nutritionist/queue' ? [] : preview },
+  }));
+  const finishes: Array<(value: unknown) => void> = [];
+  vi.mocked(api.post).mockImplementation(
+    () =>
+      new Promise((resolve) => {
+        finishes.push(resolve);
+      })
+  );
+  const { result, rerender } = renderHook(() => useNutritionistReviews());
+  await waitFor(() => expect(result.current.isLoading).toBe(false));
+  await act(() => result.current.handleSelectMeal('meal-1'));
+  let first!: Promise<void>, second!: Promise<void>;
+  act(() => {
+    first = result.current.handleClaimMeal();
+  });
+  auth.owner = 'nutritionist-2';
+  rerender();
+  await waitFor(() => expect(result.current.isLoading).toBe(false));
+  await act(() => result.current.handleSelectMeal('meal-1'));
+  act(() => {
+    second = result.current.handleClaimMeal();
+  });
+  await act(async () => {
+    finishes[0]({ data: { success: true, data: preview } });
+    await first;
+  });
+  expect(result.current.actionLoading).toBe('meal-1');
+  await act(async () => {
+    finishes[1]({ data: { success: true, data: preview } });
+    await second;
+  });
+  expect(result.current.actionLoading).toBeNull();
+  auth.owner = 'nutritionist-1';
+  rerender();
 });

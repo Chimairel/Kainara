@@ -25,6 +25,10 @@ import { ReviewRoutingService } from './review-routing.service';
 const activeStatuses = ['PENDING', 'CORRECTION_REQUESTED'];
 const stale = () =>
   new AppError('This profile correction is outdated. Open the latest profile.', 409, 'PROFILE_PROPOSAL_STALE');
+const orderedSafetyEntries = (inputs: Parameters<typeof SafetyIntakeService.preview>[0]) =>
+  SafetyIntakeService.preview(inputs).entries.sort((a, b) =>
+    `${a.domain}:${a.normalizedText}`.localeCompare(`${b.domain}:${b.normalizedText}`)
+  );
 export async function hasPendingProfileProposal(
   userId: string,
   current: { profileRevision: number; scopeKey: string },
@@ -156,10 +160,7 @@ export class ClinicalProfileProposalService {
           const saved = contexts.find((c) => c.area === area)?.responses as Prisma.JsonObject | undefined;
           return Object.entries(answers).some(([key, value]) => saved?.[key] !== value);
         });
-        if (
-          isDeepStrictEqual(SafetyIntakeService.preview(inputs).entries, SafetyIntakeService.preview(merged).entries) &&
-          !detailChanged
-        )
+        if (isDeepStrictEqual(orderedSafetyEntries(inputs), orderedSafetyEntries(merged)) && !detailChanged)
           throw new AppError('The proposed values are unchanged.', 422, 'PROFILE_PROPOSAL_NO_CHANGE');
         const evidence: Prisma.InputJsonObject[] = [];
         for (const source of input.evidence) {

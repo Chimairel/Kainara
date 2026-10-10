@@ -42,6 +42,7 @@ export function CockpitDashboard({
   onMealClick,
   onStatusToggle,
 }: CockpitDashboardProps) {
+  const isToday = getManilaDateKey(activeDate) === getManilaDateKey();
   const mealOrder: Record<string, number> = { BREAKFAST: 0, LUNCH: 1, DINNER: 2, SNACK: 3 };
   const menu = [
     ...meals.map((meal) => ({ meal, pending: false as const })),
@@ -72,9 +73,7 @@ export function CockpitDashboard({
               <div className="flex items-center justify-between">
                 <p className="text-sm font-semibold text-brand-muted pl-1">Your daily intake</p>
                 <span className="rounded-full border border-brand-border/70 dark:border-[#173e33] bg-brand-surface/90 dark:bg-[#071914]/90 px-2.5 py-0.5 text-[10px] font-bold text-[#eb6a38] dark:text-[#f09e6c] shadow-xs backdrop-blur-xs">
-                  {getManilaDateKey(activeDate) === getManilaDateKey(new Date())
-                    ? 'Today'
-                    : formatManilaDate(activeDate, { month: 'short', day: 'numeric' })}
+                  {isToday ? 'Today' : formatManilaDate(activeDate, { month: 'short', day: 'numeric' })}
                 </span>
               </div>
 
@@ -183,56 +182,62 @@ export function CockpitDashboard({
                 ))}
 
                 {/* Water row in the same format as protein, carb, fat */}
-                <div aria-label="Water log">
-                  <div className="mb-2 flex items-center justify-between gap-3 text-sm">
-                    <div className="flex items-center gap-2">
-                      <span className="h-2.5 w-2.5 rounded-full shrink-0 bg-sky-400" />
-                      <span className="font-medium text-brand-text">Water</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-brand-muted font-mono text-xs flex items-center gap-1">
-                        <strong className="text-brand-text font-bold">
-                          <AnimatedValue value={waterIntake} suffix=" mL" className="font-bold text-brand-text" />
-                        </strong>{' '}
-                        / <span className="text-brand-muted">2,000 mL</span>
-                      </span>
-                      <div className="flex items-center gap-1">
-                        <button
-                          type="button"
-                          aria-label="Remove 250 mL of water"
-                          disabled={waterIntake <= 0}
-                          onClick={() => onAddWater(-250)}
-                          className="flex h-5 w-5 items-center justify-center rounded-md border border-brand-border/70 bg-brand-surface/70 text-xs font-bold text-brand-text hover:bg-brand-surface transition-all disabled:opacity-30 disabled:cursor-not-allowed leading-none"
-                          title="Remove 250 mL"
-                        >
-                          −
-                        </button>
-                        <button
-                          type="button"
-                          aria-label="Add 250 mL of water"
-                          onClick={() => onAddWater(250)}
-                          className="flex h-5 w-5 items-center justify-center rounded-md bg-brand-green/20 hover:bg-brand-green/30 text-brand-green border border-brand-green/40 text-xs font-bold transition-all leading-none"
-                          title="Add 250 mL"
-                        >
-                          +
-                        </button>
+                {isToday ? (
+                  <div aria-label="Water log">
+                    <div className="mb-2 flex items-center justify-between gap-3 text-sm">
+                      <div className="flex items-center gap-2">
+                        <span className="h-2.5 w-2.5 rounded-full shrink-0 bg-sky-400" />
+                        <span className="font-medium text-brand-text">Water</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-brand-muted font-mono text-xs flex items-center gap-1">
+                          <strong className="text-brand-text font-bold">
+                            <AnimatedValue value={waterIntake} suffix=" mL" className="font-bold text-brand-text" />
+                          </strong>{' '}
+                          / <span className="text-brand-muted">2,000 mL</span>
+                        </span>
+                        <div className="flex items-center gap-1">
+                          <button
+                            type="button"
+                            aria-label="Remove 250 mL of water"
+                            disabled={waterIntake <= 0}
+                            onClick={() => onAddWater(-250)}
+                            className="flex h-5 w-5 items-center justify-center rounded-md border border-brand-border/70 bg-brand-surface/70 text-xs font-bold text-brand-text hover:bg-brand-surface transition-all disabled:opacity-30 disabled:cursor-not-allowed leading-none"
+                            title="Remove 250 mL"
+                          >
+                            −
+                          </button>
+                          <button
+                            type="button"
+                            aria-label="Add 250 mL of water"
+                            onClick={() => onAddWater(250)}
+                            className="flex h-5 w-5 items-center justify-center rounded-md bg-brand-green/20 hover:bg-brand-green/30 text-brand-green border border-brand-green/40 text-xs font-bold transition-all leading-none"
+                            title="Add 250 mL"
+                          >
+                            +
+                          </button>
+                        </div>
                       </div>
                     </div>
+                    <div
+                      className="h-2 overflow-hidden rounded-full bg-brand-border/60 dark:bg-zinc-800"
+                      aria-hidden="true"
+                    >
+                      <motion.div
+                        className="h-full rounded-full bg-sky-400"
+                        initial={{ width: 0 }}
+                        animate={{
+                          width: `${Math.min(100, Math.max(0, (waterIntake / 2000) * 100))}%`,
+                        }}
+                        transition={{ type: 'spring', bounce: 0, duration: 0.5 }}
+                      />
+                    </div>
                   </div>
-                  <div
-                    className="h-2 overflow-hidden rounded-full bg-brand-border/60 dark:bg-zinc-800"
-                    aria-hidden="true"
-                  >
-                    <motion.div
-                      className="h-full rounded-full bg-sky-400"
-                      initial={{ width: 0 }}
-                      animate={{
-                        width: `${Math.min(100, Math.max(0, (waterIntake / 2000) * 100))}%`,
-                      }}
-                      transition={{ type: 'spring', bounce: 0, duration: 0.5 }}
-                    />
-                  </div>
-                </div>
+                ) : (
+                  <p className="text-xs text-brand-muted">
+                    Water logging is available for today. Select today to update your intake.
+                  </p>
+                )}
               </div>
             </div>
 

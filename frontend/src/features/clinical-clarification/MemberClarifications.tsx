@@ -3,6 +3,7 @@ import { useRef, useState } from 'react';
 import api from '@/lib/axios';
 import { getApiErrorMessage } from '@/lib/api-error';
 import ClarificationFormCard from './ClarificationFormCard';
+import Button from '@/components/ui/Button';
 import type { ClarificationForm, ClarificationWorkspace } from './types';
 
 export default function MemberClarifications({
@@ -22,9 +23,22 @@ export default function MemberClarifications({
   };
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+  const [needsRefresh, setNeedsRefresh] = useState(false);
   if (!workspace?.enabled || !workspace.forms.length) return null;
+  async function refreshSavedAnswers() {
+    setBusy(true);
+    try {
+      await onUpdated();
+      setNeedsRefresh(false);
+      setError(null);
+    } catch {
+      setError('Answers were submitted, but the updated record could not be loaded. Reload the saved answers.');
+    } finally {
+      setBusy(false);
+    }
+  }
   async function answer(form: ClarificationForm, answers: Record<string, string>) {
-    if (busy) return;
+    if (busy || needsRefresh) return;
     setBusy(true);
     setError(null);
     setMessage(null);
@@ -41,8 +55,9 @@ export default function MemberClarifications({
         profileRevision: form.profileRevision,
         scopeKey: form.scopeKey,
       });
-      await onUpdated();
       setMessage('Answers submitted. An RND will review them; your profile has not changed.');
+      setNeedsRefresh(true);
+      await refreshSavedAnswers();
     } catch (cause) {
       setError(getApiErrorMessage(cause, 'Your answers could not be submitted.'));
     } finally {
@@ -62,12 +77,17 @@ export default function MemberClarifications({
           {message}
         </p>
       )}
+      {needsRefresh && (
+        <Button disabled={busy} onClick={() => void refreshSavedAnswers()}>
+          Reload saved answers
+        </Button>
+      )}
       {workspace.forms.map((form) => (
         <ClarificationFormCard
           key={form.id}
           form={form}
           mode="member"
-          disabled={busy}
+          disabled={busy || needsRefresh}
           onAnswer={(answers) => answer(form, answers)}
         />
       ))}

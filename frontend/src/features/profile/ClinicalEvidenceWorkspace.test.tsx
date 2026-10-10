@@ -1,6 +1,7 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import ClinicalEvidenceWorkspace from './ClinicalEvidenceWorkspace';
+import { LIVE_UPDATE_EVENT } from '@/lib/live-events';
 const mocks = vi.hoisted(() => ({ get: vi.fn(), put: vi.fn(), push: vi.fn(), search: '' }));
 vi.mock('@/hooks/useAuth', () => ({ useAuth: () => ({ user: { userId: 'fixture' } }) }));
 vi.mock('@/lib/axios', () => ({ default: mocks }));
@@ -10,6 +11,18 @@ vi.mock('next/navigation', () => ({
 }));
 const workspace = { safetyRevision: 2, availableAreas: ['HEART_CONDITION'], requirements: [], contexts: [] };
 const allergyDetailsLabel = 'Food allergies, intolerances or avoided foods and their reactions';
+const clarification = {
+  id: 'rnd-question',
+  title: 'RND follow-up',
+  authorName: 'Recorded reviewer',
+  createdAt: '2026-10-10',
+  profileRevision: 2,
+  scopeKey: 'scope',
+  status: 'AWAITING_MEMBER',
+  questions: [{ id: 'q', label: 'Please clarify your restriction', type: 'TEXT', required: true }],
+  responses: [],
+  resolution: null,
+};
 describe('health details form', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -32,6 +45,95 @@ describe('health details form', () => {
     mocks.get.mockRejectedValue(new Error('Unavailable'));
     render(<ClinicalEvidenceWorkspace />);
     await screen.findByRole('alert');
+    expect(screen.queryByAltText('Sleeping Nara')).not.toBeInTheDocument();
+  });
+  it('shows newly sent RND questions without navigation and preserves unsent health details', async () => {
+    render(<ClinicalEvidenceWorkspace />);
+    const details = await screen.findByLabelText('Condition or restriction details');
+    fireEvent.change(details, { target: { value: 'Unsent member details to preserve' } });
+    mocks.get.mockResolvedValue({
+      data: {
+        data: {
+          ...workspace,
+          contexts: [{ area: 'HEART_CONDITION', responses: { conditionDetails: 'Older saved details' } }],
+          clarifications: { enabled: true, forms: [clarification] },
+        },
+      },
+    });
+    fireEvent(window, new Event(LIVE_UPDATE_EVENT));
+    await screen.findByRole('heading', { name: 'RND follow-up' });
+    expect(details).toHaveValue('Unsent member details to preserve');
+    expect(screen.queryByAltText('Sleeping Nara')).not.toBeInTheDocument();
+  });
+  it('blocks saving an old health draft after an external safety revision changes', async () => {
+    render(<ClinicalEvidenceWorkspace />);
+    const details = await screen.findByLabelText('Condition or restriction details');
+    fireEvent.change(details, { target: { value: 'Unsent member details to preserve' } });
+    mocks.get.mockResolvedValue({ data: { data: { ...workspace, safetyRevision: 3 } } });
+    fireEvent(window, new Event(LIVE_UPDATE_EVENT));
+    await screen.findByRole('button', { name: 'Reload current health details' });
+    expect(screen.getByRole('button', { name: 'Save health details' })).toBeDisabled();
+    expect(details).toHaveValue('Unsent member details to preserve');
+    fireEvent.click(screen.getByRole('button', { name: 'Reload current health details' }));
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Save health details' })).toBeEnabled());
+    expect(details).toHaveValue('');
+    expect(mocks.put).not.toHaveBeenCalled();
+  });
+  it.each(['AWAITING_MEMBER', 'ANSWERED', 'RESOLVED', 'SUPERSEDED'])(
+    'does not show an empty-health illustration beneath a %s RND form',
+    async (status) => {
+      mocks.get.mockResolvedValue({
+        data: {
+          data: {
+            ...workspace,
+            availableAreas: [],
+            clarifications: { enabled: true, forms: [{ ...clarification, status }] },
+          },
+        },
+      });
+      render(<ClinicalEvidenceWorkspace />);
+      await screen.findByRole('region', { name: 'RND clarification forms' });
+      expect(screen.queryByAltText('Sleeping Nara')).not.toBeInTheDocument();
+      expect(screen.queryByText('No health details are needed for your current profile')).not.toBeInTheDocument();
+    }
+  );
+  it('does not show an empty-health illustration beneath a profile correction', async () => {
+    mocks.get.mockResolvedValue({
+      data: {
+        data: {
+          ...workspace,
+          availableAreas: [],
+          profileProposals: {
+            enabled: true,
+            editableInputs: [],
+            proposals: [
+              {
+                id: 'proposal',
+                profileRevision: 2,
+                scopeKey: 'scope',
+                status: 'PENDING',
+                authorName: 'Reviewer',
+                createdAt: '2026-10-10',
+                rationale: 'Recorded proposal',
+                beforeSnapshot: { safetyInputs: [], healthDetails: [] },
+                changes: { domains: [], healthDetails: [] },
+                evidenceSnapshot: [],
+                memberNote: null,
+                acceptedProfileRevision: null,
+              },
+            ],
+          },
+        },
+      },
+    });
+    render(<ClinicalEvidenceWorkspace />);
+    await screen.findByRole('region', { name: 'RND profile corrections' });
+    expect(screen.queryByAltText('Sleeping Nara')).not.toBeInTheDocument();
+  });
+  it('shows loading without the empty illustration until the workspace is available', () => {
+    mocks.get.mockReturnValue(new Promise(() => {}));
+    render(<ClinicalEvidenceWorkspace />);
+    expect(screen.getByText('Loading health details…')).toBeInTheDocument();
     expect(screen.queryByAltText('Sleeping Nara')).not.toBeInTheDocument();
   });
   it('shows the separately recorded RND assessment while keeping treatment details editable', async () => {

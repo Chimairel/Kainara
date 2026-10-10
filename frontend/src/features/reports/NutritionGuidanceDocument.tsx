@@ -64,7 +64,13 @@ export default function NutritionGuidanceDocument({
     return list.sort((a, b) => b.version - a.version);
   }, [history, report]);
 
-  const [selectedVersion, setSelectedVersion] = useState<ReportVersion | null>(null);
+  const [selectedVersionNumber, setSelectedVersionNumber] = useState<number | null>(null);
+  // Keep selection by identity; polling can replace the selected version's
+  // acknowledgment or recorded snapshot without changing its version number.
+  const selectedVersion =
+    selectedVersionNumber !== report.version
+      ? (allVersions.find((version) => version.version === selectedVersionNumber) ?? null)
+      : null;
 
   const displayedReport = useMemo(() => {
     if (!selectedVersion) return report;
@@ -194,7 +200,7 @@ export default function NutritionGuidanceDocument({
           versions={allVersions}
           selectedVersion={displayedReport.version}
           currentVersion={report.planningContext?.activeVersion ?? report.version}
-          onSelect={(version) => setSelectedVersion(version.version === report.version ? null : version)}
+          onSelect={(version) => setSelectedVersionNumber(version.version === report.version ? null : version.version)}
         />
         <NutritionPdfViewer
           report={displayedReport}

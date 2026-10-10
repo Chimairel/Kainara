@@ -20,6 +20,7 @@ import {
   type PendingReview,
 } from '@/features/dashboard/model';
 import { useOutsideMealLog } from '@/features/dashboard/useOutsideMealLog';
+import { useDashboardDateSelection } from './useDashboardDateSelection';
 import { useDashboardPreload } from '@/features/navigation/useDashboardPreload';
 import { cachedClinicalProfileStatus, refreshClinicalProfileStatus } from '@/lib/clinical-profile-status';
 import { invalidateSessionResource, readSessionResource, writeSessionResource } from '@/lib/session-resource-cache';
@@ -55,7 +56,6 @@ export function useDashboardWorkspace() {
   });
   const retainedMealLogs = retainedHistory.ownerId === ownerId ? retainedHistory.meals : [];
   const [currentMeals, setCurrentMeals] = useState<MealPlan[]>(cachedPlan?.meals ?? []);
-  const [selectedDayOffset, setSelectedDayOffset] = useState(0); // Index of selected date in uniqueDates
   const [isLoading, setIsLoading] = useState(!cachedPlan);
   const [initialReadsOwner, setInitialReadsOwner] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -116,15 +116,10 @@ export function useDashboardWorkspace() {
     return getDashboardCycleDates(currentMeals, pendingReview?.meals ?? [], currentCycle);
   }, [currentMeals, pendingReview, currentCycle]);
 
-  // Sync selected day offset to today if present in the plan
-  useEffect(() => {
-    if (uniqueDates.length > 0) {
-      const todayKey = getManilaDateKey();
-      const todayIdx = uniqueDates.findIndex((date) => getManilaDateKey(date) === todayKey);
-      const nextIdx = uniqueDates.findIndex((date) => getManilaDateKey(date) > todayKey);
-      setSelectedDayOffset(todayIdx !== -1 ? todayIdx : Math.max(0, nextIdx));
-    }
-  }, [uniqueDates]);
+  const { selectedDayOffset, setSelectedDayOffset } = useDashboardDateSelection(
+    uniqueDates,
+    `${ownerId ?? 'anonymous'}:${currentCycle?.id ?? 'unassigned'}`
+  );
 
   const activeDashboardPillRef = useRef<HTMLButtonElement | null>(null);
 

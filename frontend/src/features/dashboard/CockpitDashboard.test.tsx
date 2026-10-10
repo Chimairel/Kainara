@@ -87,12 +87,24 @@ describe('CockpitDashboard', () => {
   });
   it('exposes explicit water controls without the removed summary cards', async () => {
     const callbacks = props();
+    callbacks.activeDate = new Date();
     const user = userEvent.setup();
     render(<CockpitDashboard {...callbacks} />);
     await user.click(screen.getByRole('button', { name: 'Add 250 mL of water' }));
     expect(callbacks.onAddWater).toHaveBeenCalledWith(250);
     expect(screen.queryByText('Weight & progress')).not.toBeInTheDocument();
     expect(screen.queryByText('Weekly check-in')).not.toBeInTheDocument();
+  });
+  it.each([-1, 1])('does not display today’s hydration as the selected non-current day (%s)', async (offset) => {
+    const callbacks = props();
+    const date = new Date();
+    date.setDate(date.getDate() + offset);
+    callbacks.activeDate = date;
+    render(<CockpitDashboard {...callbacks} />);
+    expect(screen.getByText(/Water logging is available for today/)).toBeInTheDocument();
+    expect(screen.queryByLabelText('Water log')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Add 250 mL of water' })).not.toBeInTheDocument();
+    expect(callbacks.onAddWater).not.toHaveBeenCalled();
   });
   it('offers expandable pending previews without a logging action and names every macro', () => {
     const { container } = render(<CockpitDashboard {...props()} />);

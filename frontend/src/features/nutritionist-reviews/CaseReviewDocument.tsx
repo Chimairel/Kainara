@@ -31,11 +31,6 @@ export default function CaseReviewDocument({ model }: { model: Model }) {
   const meal = detailData.mealPlan;
   return (
     <>
-      {errorMsg && !detailData.claimStatus.claimedByMe && (
-        <p role="alert" className="mb-3 rounded-xl border border-red-500/30 p-3 text-sm text-red-500">
-          {errorMsg}
-        </p>
-      )}
       <RndQueueDocument
         key={meal.id}
         title={`Case approval · ${meal.mealName}`}
@@ -43,7 +38,16 @@ export default function CaseReviewDocument({ model }: { model: Model }) {
         expanded={expanded}
         onExpandedChange={setExpanded}
         onBack={() => setSelectedMealId(null)}
-        actions={claimHeader}
+        actions={
+          <>
+            {claimHeader}
+            {errorMsg && !action && (
+              <p role="alert" className="max-w-sm rounded-xl border border-red-500/30 p-3 text-xs text-red-500">
+                {errorMsg}
+              </p>
+            )}
+          </>
+        }
         decision={
           detailData.claimStatus.claimedByMe ? (
             <CaseDecisionSection model={model} swap={swap} action={action} setAction={setAction} />
@@ -95,27 +99,46 @@ export default function CaseReviewDocument({ model }: { model: Model }) {
             </section>
           )}
         </ReviewDocumentPage>
-        {detailData.clarifications?.enabled && detailData.reviewContext && <ReviewDocumentPage page={3} title="Request profile clarification" subtitle="Questions stay with the member’s Profile case">
-          <RndClarifications
-            userId={meal.userId}
-            profileRevision={detailData.reviewContext.profileRevision}
-            scopeKey={detailData.reviewContext.scopeKey}
-            workspace={detailData.clarifications}
-            canWrite={detailData.claimStatus.claimedByMe}
-            draft={model.review.clarificationDraft}
-            showForms={false}
-            publishTarget={{ url: `/nutritionist/queue/${meal.id}/clarifications`, expectedContextKey: detailData.reviewContext.contextKey }}
-            onInvalidated={failure => model.review.retireInactiveReview(failure, meal.id)}
-            onUpdated={async () => {
-              model.review.retireInactiveReview({ response: { data: { code: 'PROFILE_REVIEW_REQUIRED' } } }, meal.id,
-                'Questions sent to Health details. This member’s meal reviews are paused. Continue the case in the Profile queue.');
-              await model.review.fetchQueue(false, undefined, true);
-            }}
-          />
-        </ReviewDocumentPage>}
-        {detailData.clarifications?.forms.map((form, index) => <ReviewDocumentPage key={form.id} page={4 + index} title={form.title} subtitle="Saved profile clarification · read only">
-          <ClarificationFormCard form={form} mode="reviewer" />
-        </ReviewDocumentPage>)}
+        {detailData.clarifications?.enabled && detailData.reviewContext && (
+          <ReviewDocumentPage
+            page={3}
+            title="Request profile clarification"
+            subtitle="Questions stay with the member’s Profile case"
+          >
+            <RndClarifications
+              userId={meal.userId}
+              profileRevision={detailData.reviewContext.profileRevision}
+              scopeKey={detailData.reviewContext.scopeKey}
+              workspace={detailData.clarifications}
+              canWrite={detailData.claimStatus.claimedByMe}
+              draft={model.review.clarificationDraft}
+              showForms={false}
+              publishTarget={{
+                url: `/nutritionist/queue/${meal.id}/clarifications`,
+                expectedContextKey: detailData.reviewContext.contextKey,
+              }}
+              onInvalidated={(failure) => model.review.retireInactiveReview(failure, meal.id)}
+              onUpdated={async () => {
+                model.review.retireInactiveReview(
+                  { response: { data: { code: 'PROFILE_REVIEW_REQUIRED' } } },
+                  meal.id,
+                  'Questions sent to Health details. This member’s meal reviews are paused. Continue the case in the Profile queue.'
+                );
+                await model.review.fetchQueue(false, undefined, true);
+              }}
+            />
+          </ReviewDocumentPage>
+        )}
+        {detailData.clarifications?.forms.map((form, index) => (
+          <ReviewDocumentPage
+            key={form.id}
+            page={4 + index}
+            title={form.title}
+            subtitle="Saved profile clarification · read only"
+          >
+            <ClarificationFormCard form={form} mode="reviewer" />
+          </ReviewDocumentPage>
+        ))}
       </RndQueueDocument>
       {detailData.claimStatus.claimedByMe && (
         <p className="mt-3 text-xs text-brand-muted">

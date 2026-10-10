@@ -1,6 +1,7 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import { expect, it, vi } from 'vitest';
 import type { NutritionReport } from '@/types';
+import type { ReportVersion } from './ReportHistory';
 import NutritionGuidanceDocument from './NutritionGuidanceDocument';
 
 it('preserves archived snapshots and selected-version downloads without changing planning selection', () => {
@@ -119,4 +120,51 @@ it('does not fill missing archived content or actions from the latest report', (
   expect(screen.queryByRole('button', { name: 'Use this report for meal planning' })).not.toBeInTheDocument();
   expect(screen.queryByRole('button', { name: 'Set as current' })).not.toBeInTheDocument();
   expect(acknowledge).not.toHaveBeenCalled();
+});
+
+it('refreshes a selected historical version instead of keeping its stale snapshot', () => {
+  const report = {
+    id: 'latest',
+    version: 2,
+    generatedAt: '2026-10-09T00:00:00Z',
+    generalSummary: 'Latest summary',
+    referenceItems: [],
+    planningTargets: null,
+  } as unknown as NutritionReport;
+  const old: ReportVersion = {
+    id: 'old',
+    version: 1,
+    generatedAt: '2026-09-01T00:00:00Z',
+    content: { ...report, version: 1, generalSummary: 'Original historical summary' },
+  };
+  const props = {
+    report,
+    name: 'Member',
+    goal: 'MAINTAIN',
+    dailyCalorieTarget: 2100,
+    conditions: [],
+    foodRestrictions: [],
+    error: null,
+    isAcknowledging: false,
+    onAcknowledge: vi.fn(),
+    history: [old],
+  };
+  const { rerender } = render(<NutritionGuidanceDocument {...props} />);
+  fireEvent.click(screen.getByRole('combobox', { name: 'Report version' }));
+  fireEvent.click(screen.getByRole('option', { name: /^Version 1/ }));
+  expect(screen.getByText('Original historical summary')).toBeInTheDocument();
+  rerender(
+    <NutritionGuidanceDocument
+      {...props}
+      history={[
+        {
+          ...old,
+          content: { ...old.content, generalSummary: 'Refreshed recorded summary' },
+        },
+      ]}
+    />
+  );
+  expect(screen.getByText('Refreshed recorded summary')).toBeInTheDocument();
+  expect(screen.queryByText('Original historical summary')).not.toBeInTheDocument();
+  expect(screen.queryByText('Latest summary')).not.toBeInTheDocument();
 });
