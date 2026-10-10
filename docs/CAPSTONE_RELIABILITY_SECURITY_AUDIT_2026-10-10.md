@@ -2,6 +2,8 @@
 
 Change: **CHG-20261010-17**. This is a targeted code, regression-test and local HTTP audit, not a penetration-test certification or a new browser acceptance run.
 
+**Subsequent polishing:** [CHG-20261010-18](CAPSTONE_POLISHING_GATES_2026-10-10.md) adds heartbeat-based recovery/graceful worker drain, signed-account AI limits and Web Lock refresh coordination, and records browser findings and remaining acceptance gates. The findings below describe the earlier audit state.
+
 ## Findings addressed
 
 | Finding | Presentation or security effect | Change and evidence |

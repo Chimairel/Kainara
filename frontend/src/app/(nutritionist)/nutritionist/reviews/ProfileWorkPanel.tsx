@@ -14,7 +14,12 @@ export default function ProfileWorkPanel() {
             {model.error}
           </p>
         )}
-        {model.detail ? (
+        {model.openingPersonId ? (
+          <div role="status" className="p-6 text-brand-muted" aria-live="polite">
+            <h2 className="font-display text-xl font-bold text-brand-text">Loading member review…</h2>
+            <p className="mt-2 text-sm">Opening their saved profile, guidance and review history.</p>
+          </div>
+        ) : model.detail ? (
           <ProfileWorkCanvas model={model} />
         ) : (
           <div className="p-6 text-brand-muted">

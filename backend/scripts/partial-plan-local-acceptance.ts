@@ -13,7 +13,7 @@ async function main() {
   const target = new URL(process.env.DATABASE_URL ?? '');
   assert.equal(target.hostname, '127.0.0.1');
   assert.equal(target.port, '55487');
-  assert.equal(target.pathname, '/kainara_partial_plan');
+  assert.match(target.pathname, /^\/kainara_partial_plan(?:_polish_\d+)?$/u);
   assert.equal(process.env.NODE_ENV, 'test');
   for (const key of ['GEMINI_API_KEY', 'SMTP_USER', 'BREVO_API_KEY', 'PAYMONGO_SECRET_KEY'])
     assert.equal(process.env[key] ?? '', '');
@@ -134,14 +134,16 @@ async function main() {
         : kind === 'future-deadline'
           ? getScheduledMealDate(startDate, 1)
           : startDate;
+    const expectedSlotCount = kind === 'general' ? 21 : 9;
+    const planType = kind === 'general' ? 'WEEKLY' : 'STARTER';
     const cycle = await prisma.mealPlanCycle.create({
       data: {
         id: `${marker}-${kind}`,
         userId: user.id,
-        planType: 'STARTER',
+        planType,
         startDate: cycleStart,
-        endDate: getScheduledMealDate(cycleStart, 2),
-        expectedSlotCount: 9,
+        endDate: getScheduledMealDate(cycleStart, expectedSlotCount / 3 - 1),
+        expectedSlotCount,
         preparationOpensAt: cycleStart,
         shoppingDeadlineAt: kind === 'future-deadline' ? startDate : cycleStart,
         status: 'ACTIVE',
@@ -165,7 +167,7 @@ async function main() {
     const job = await prisma.mealPlanGenerationJob.create({
       data: {
         userId: user.id,
-        planType: 'STARTER',
+        planType,
         cycleStartDate: cycleStart,
         planGroupId: cycle.id,
         status: ['general', 'deadline', 'future-deadline'].includes(kind) ? 'FAILED' : 'COMPLETED',
@@ -223,7 +225,7 @@ async function main() {
       'COMPLETED'
     );
 
-  for (let turn = 0; turn < 12; turn++) {
+  for (let turn = 0; turn < 20; turn++) {
     // Advance only due scheduling in the disposable fixture; no real timers or provider calls.
     await prisma.mealPlanGenerationJob.updateMany({
       where: { status: 'WAITING_FOR_AI' },
@@ -247,10 +249,13 @@ async function main() {
     const meals = await prisma.mealPlan.findMany({
       where: { planGroupId: entry.cycle.id, status: { not: 'CANCELLED' } },
     });
-    assert.equal(meals.length, 9);
+    assert.equal(meals.length, entry.cycle.expectedSlotCount);
     assert.ok(meals.every((meal) => meal.status === status && meal.candidateProvenance === 'RAW_RECIPE_CORPUS'));
-    assert.equal(new Set(meals.map((meal) => `${meal.scheduledDate}:${meal.mealType}`)).size, 9);
-    assert.deepEqual(remainingGenerationSlots(startDate, 9, meals, now), []);
+    assert.equal(
+      new Set(meals.map((meal) => `${meal.scheduledDate}:${meal.mealType}`)).size,
+      entry.cycle.expectedSlotCount
+    );
+    assert.deepEqual(remainingGenerationSlots(startDate, entry.cycle.expectedSlotCount, meals, now), []);
     assert.equal((await prisma.mealPlan.findUniqueOrThrow({ where: { id: entry.cancelled.id } })).status, 'CANCELLED');
     assert.equal(
       (await prisma.mealPlanGenerationJob.findUniqueOrThrow({ where: { id: entry.job.id } })).status,
@@ -261,7 +266,7 @@ async function main() {
       true
     );
     const cleared = await MealPlanCycleService.getClearedMealPlanIds(entry.user.id, entry.cycle.id);
-    assert.equal(cleared.length, status === 'APPROVED' ? 9 : 0);
+    assert.equal(cleared.length, status === 'APPROVED' ? entry.cycle.expectedSlotCount : 0);
   }
   assert.equal(await prisma.aiUsageEvent.count(), 0);
   assert.equal(await prisma.mealLibrary.count(), 0);

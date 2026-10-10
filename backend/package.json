@@ -8,6 +8,7 @@
     "npm": ">=11"
   },
   "scripts": {
+    "test:acceptance:worker-lease": "tsx scripts/meal-job-lease-local-acceptance.ts",
     "test:acceptance:review-reference": "tsx scripts/review-reference-local-acceptance.ts",
     "test:acceptance:review-filters": "tsx scripts/review-filters-local-acceptance.ts",
     "test:acceptance:meal-clarification": "tsx scripts/meal-clarification-local-acceptance.ts",

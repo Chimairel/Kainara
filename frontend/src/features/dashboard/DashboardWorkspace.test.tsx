@@ -147,7 +147,11 @@ describe('dashboard route after feature extraction', () => {
     fixture.eligibility = { required: true, approved: false };
     plan = { data: [meal], meta: { generationStatus: 'COMPLETED' } };
     render(<DashboardPage />);
-    await screen.findByText(/An RND needs to review your declared health profile/);
+    await screen.findByText(/An RND must confirm your current health profile/);
+    expect(screen.getByRole('link', { name: 'View Health details' })).toHaveAttribute(
+      'href',
+      '/profile/clinical-evidence'
+    );
     expect(screen.queryByRole('region', { name: 'Loaded menu' })).not.toBeInTheDocument();
     expect(post).not.toHaveBeenCalled();
   });

@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { cookieHelper } from '@/lib/auth';
+import { coordinatedRefresh } from './session-refresh-coordination';
 
 /**
  * Resolves the API base URL.
@@ -41,7 +42,9 @@ api.interceptors.request.use((config) => {
     config.timeout === api.defaults.timeout &&
     config.method === 'get' &&
     (/^\/user\/meals\/(current|workspace)$/.test(config.url ?? '') ||
-      /^\/nutritionist\/(queue(?:\/[^/]+)?|review-work-counts)$/.test(config.url ?? ''))
+      /^\/nutritionist\/(queue(?:\/[^/]+)?|review-work-counts|profile-work(?:\/[^/]+)?|profile-reviews\/[^/]+)$/.test(
+        config.url ?? ''
+      ))
   ) {
     config.timeout = 90_000;
   }
@@ -196,34 +199,40 @@ api.interceptors.response.use(
         isRefreshing = true;
         const controller = new AbortController();
         refreshController = controller;
+        const failedToken = String(originalRequest.headers.Authorization ?? '').replace(/^Bearer /, '') || null;
 
         try {
           // Send refresh request — the HttpOnly cookie is sent automatically
           // by the browser because withCredentials is true on the api instance.
-          const refreshResponse = await axios.post(
-            `${getApiBaseUrl()}/auth/refresh`,
-            {},
-            {
-              withCredentials: true,
-              // Rotation itself has a 15-second transaction plus pool/auth reads.
-              timeout: 45_000,
-              signal: controller.signal,
+          const accessToken = await coordinatedRefresh(
+            failedToken,
+            controller.signal,
+            async () => {
+              const refreshResponse = await axios.post(
+                `${getApiBaseUrl()}/auth/refresh`,
+                {},
+                {
+                  withCredentials: true,
+                  // Rotation itself has a 15-second transaction plus pool/auth reads.
+                  timeout: 45_000,
+                  signal: controller.signal,
+                }
+              );
+              if (!refreshResponse.data?.success || typeof refreshResponse.data.data?.accessToken !== 'string')
+                throw new Error('Session refresh returned an invalid response.');
+              return refreshResponse.data.data.accessToken;
+            },
+            () => {
+              if (requestEpoch !== sessionEpoch || sessionRefreshSuppressed) throw new Error('The session was ended.');
             }
           );
-          if (requestEpoch !== sessionEpoch || sessionRefreshSuppressed) throw new Error('The session was ended.');
+          originalRequest.headers.Authorization = `Bearer ${accessToken}`;
 
-          if (refreshResponse.data && refreshResponse.data.success) {
-            const { accessToken } = refreshResponse.data.data;
-            cookieHelper.set('nutrimind_session', accessToken, 7);
-            originalRequest.headers.Authorization = `Bearer ${accessToken}`;
+          processQueue(null, accessToken);
+          isRefreshing = false;
+          refreshController = null;
 
-            processQueue(null, accessToken);
-            isRefreshing = false;
-            refreshController = null;
-
-            return api(originalRequest);
-          }
-          throw new Error('Session refresh returned an invalid response.');
+          return api(originalRequest);
         } catch (refreshError) {
           if (requestEpoch !== sessionEpoch) return Promise.reject(refreshError);
           processQueue(refreshError, null);

@@ -187,3 +187,61 @@ it('keeps withdrawn evidence errors visible and requests only the case-scoped do
     responseType: 'blob',
   });
 });
+
+it('pairs saved clarification answers with published questions and hides internal linkage without losing unknown answers', async () => {
+  mocks.get.mockResolvedValueOnce({
+    data: {
+      success: true,
+      data: {
+        ...context,
+        reviewedSnapshot: {
+          questions: [
+            { id: 'question-key-1', label: 'Recorded question?' },
+            { id: 'question-key-2', label: 'Recorded question?' },
+            { id: 'unanswered-question', label: 'Optional recorded question?' },
+          ],
+        },
+        decisions: [
+          {
+            id: 'internal-response',
+            formId: 'internal-form',
+            responseId: 'internal-response',
+            reviewerUserId: 'internal-reviewer',
+            requestKey: 'internal-retry-key',
+            version: 1,
+            answers: {
+              'question-key-1': 'First recorded answer',
+              'question-key-2': 'Second recorded answer',
+              'unmatched-key': 'Retained answer with unavailable question',
+            },
+            rationale: 'Recorded rationale remains visible.',
+          },
+        ],
+      },
+    },
+  });
+  render(<CaseReviewContext auditId="clarification" ownerId="admin" />);
+  await open();
+  const paper = screen.getByRole('article', { name: 'Review change 1' });
+  expect(within(paper).getAllByText('Recorded question?')).toHaveLength(2);
+  for (const text of [
+    'First recorded answer',
+    'Second recorded answer',
+    'Retained answer with unavailable question',
+    'Question not recorded',
+    'Optional recorded question?',
+    'Not recorded',
+    'Recorded rationale remains visible.',
+  ])
+    expect(within(paper).getByText(text)).toBeVisible();
+  for (const id of [
+    'internal-form',
+    'internal-response',
+    'internal-reviewer',
+    'internal-retry-key',
+    'question-key-1',
+    'question-key-2',
+    'unmatched-key',
+  ])
+    expect(within(paper).queryByText(id)).not.toBeInTheDocument();
+});

@@ -125,9 +125,11 @@ export const apiLimiter = rateLimit({
 
 /**
  * Rate limiter for Gemini AI-hitting endpoints (meal generation, report generation).
- * Strict: 5 requests per 5-minute window per IP.
+ * Strict: 5 requests per 5-minute window per signed account (anonymous IP fallback).
+ * Provider-wide capacity and token budgets remain enforced by AiCapacityService.
  */
 export const geminiLimiter = rateLimit({
+  keyGenerator: apiBrowsingKey,
   windowMs: 5 * 60 * 1000, // 5 minutes
   max: 5,
   standardHeaders: true,

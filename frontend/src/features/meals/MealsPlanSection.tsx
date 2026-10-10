@@ -1,4 +1,5 @@
 'use client';
+import ProfileReviewPlanningHold from './ProfileReviewPlanningHold';
 
 import StateNotice from '@/components/shared/StateNotice';
 import MealCard from '@/components/user/MealCard';
@@ -96,13 +97,7 @@ export default function MealsPlanSection({ model }: Props) {
             action={{ label: 'Review clinical information', href: '/profile/clinical-evidence' }}
           />
         ) : profileReviewRequired ? (
-          <StateNotice
-            variant="no-meal-plan"
-            eyebrow="Awaiting RND"
-            eyebrowVariant="amber"
-            title="Meal planning isn't available yet"
-            description="An RND needs to review your declared health profile before meal candidates can be prepared. Each proposed meal will then receive its own case approval."
-          />
+          <ProfileReviewPlanningHold />
         ) : groupedDays.length === 0 &&
           !pendingReview &&
           model.selectedPlanDay &&

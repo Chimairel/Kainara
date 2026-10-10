@@ -1,6 +1,7 @@
 'use client';
 
 import RetainedMealLogs from '@/features/meals/RetainedMealLogs';
+import ProfileReviewPlanningHold from '@/features/meals/ProfileReviewPlanningHold';
 import StateNotice from '@/components/shared/StateNotice';
 import { CockpitDashboard } from '@/features/dashboard/CockpitDashboard';
 import DashboardSkeleton from '@/features/dashboard/DashboardSkeleton';
@@ -55,13 +56,7 @@ export default function DashboardContent({ model }: { model: ReturnType<typeof u
           action={{ label: 'Review clinical information', href: '/profile/clinical-evidence' }}
         />
       ) : profileReviewStatus === 'pending' ? (
-        <StateNotice
-          variant="no-meal-plan"
-          eyebrow="Awaiting RND"
-          eyebrowVariant="amber"
-          title="Meal planning isn't available yet"
-          description="An RND needs to review your declared health profile before meal candidates can be prepared. Each proposed meal will then receive its own case approval."
-        />
+        <ProfileReviewPlanningHold />
       ) : profileReviewStatus === 'checking' || profileReviewStatus === 'error' ? (
         <div
           role="status"

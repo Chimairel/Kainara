@@ -80,7 +80,7 @@ export async function generateGenerativeJSON<T = any>(
   prompt: string,
   systemInstruction?: string,
   schema?: ZodType<T>,
-  usage: { operation?: AiUsageOperation | keyof typeof AiUsageOperation; purpose?: string } = {}
+  usage: { operation?: AiUsageOperation | keyof typeof AiUsageOperation; purpose?: string; signal?: AbortSignal } = {}
 ): Promise<T> {
   const startedAt = Date.now();
   if (!apiKey) {
@@ -101,6 +101,7 @@ export async function generateGenerativeJSON<T = any>(
 
   // Try each model sequentially in the cascade sequence
   for (const modelName of getGeminiModelSequence(usage)) {
+    usage.signal?.throwIfAborted();
     let reservationId: string | null = null;
     try {
       reservationId = await AiCapacityService.reserve({
@@ -108,6 +109,7 @@ export async function generateGenerativeJSON<T = any>(
         estimatedTokens: AiCapacityService.estimateTokens(prompt, systemInstruction),
         operation: (usage.operation as AiUsageOperation | undefined) ?? AiUsageOperation.OTHER,
       });
+      usage.signal?.throwIfAborted();
       lastModel = modelName;
       attempts += 1;
       console.log(`[Gemini AI] Attempting prompt execution on model: ${modelName}`);
@@ -126,6 +128,7 @@ export async function generateGenerativeJSON<T = any>(
       });
 
       const response = result.response;
+      usage.signal?.throwIfAborted();
       const rawText = response.text();
 
       if (!rawText) {
@@ -173,6 +176,7 @@ export async function generateGenerativeJSON<T = any>(
         throw new Error(`Failed to parse or validate the response from model ${modelName}.`);
       }
     } catch (cause: unknown) {
+      if (usage.signal?.aborted) throw cause;
       if (cause instanceof AiCapacityDeferredError) {
         // A budget pause after overloaded models should keep that useful cause.
         const deferred =

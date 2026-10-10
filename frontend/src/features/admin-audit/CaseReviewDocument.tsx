@@ -104,7 +104,13 @@ export default function CaseReviewDocument({
         : 'Saved review evidence. Missing historical information is labeled as not recorded.';
   let sheets: ReactNode;
   if (record.kind === 'decision') {
-    sheets = AdminDecisionSheets({ title: record.title, value: record.value, subtitle });
+    const questions = recordedObject(data.reviewedSnapshot)?.questions;
+    sheets = AdminDecisionSheets({
+      title: record.title,
+      value: record.value,
+      subtitle,
+      recordedQuestions: Array.isArray(questions) ? questions : undefined,
+    });
   } else {
     sheets = (
       <ReviewDocumentPage

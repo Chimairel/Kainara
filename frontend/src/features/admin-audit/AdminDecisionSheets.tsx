@@ -1,6 +1,7 @@
 import { ReviewDocumentPage } from '@/features/nutritionist-reviews/RndQueueDocument';
 import RecordedCaseFields, { recordedObject, recordValue } from './RecordedCaseFields';
 import RecordedEvidenceDetails from './RecordedEvidenceDetails';
+import RecordedClarificationAnswers from './RecordedClarificationAnswers';
 
 const footer = 'Read-only case oversight · Access to clinical details is recorded';
 
@@ -106,18 +107,24 @@ export default function AdminDecisionSheets({
   title,
   value,
   subtitle,
+  recordedQuestions,
 }: {
   title: string;
   value: unknown;
   subtitle: string;
+  recordedQuestions?: unknown[];
 }) {
   const decision = recordedObject(value);
   const evidence = recordedObject(decision?.evidenceSnapshot);
   const context = recordedObject(evidence?.reviewContext);
   const profile = context?.profile ?? evidence?.recordedProfile;
   const meal = context?.meal;
+  const answers = recordedObject(decision?.answers);
+  const hasClarificationAnswers = answers != null;
   const decisionFields = Object.fromEntries(
-    Object.entries(decision ?? {}).filter(([key]) => key !== 'evidenceSnapshot')
+    Object.entries(decision ?? {}).filter(
+      ([key]) => key !== 'evidenceSnapshot' && !(hasClarificationAnswers && key === 'answers')
+    )
   );
   const hasMeal =
     evidence && (evidence.original != null || evidence.effective != null || meal != null || evidence.mealName != null);
@@ -139,7 +146,8 @@ export default function AdminDecisionSheets({
       footer={footer}
     >
       <RecordedCaseFields value={decisionFields} paper />
-      {!hasMeal && profile == null && <RecordedCaseFields value={evidence} paper />}
+      {hasClarificationAnswers && <RecordedClarificationAnswers answers={answers} questions={recordedQuestions ?? []} />}
+      {!hasMeal && profile == null && evidence != null && <RecordedCaseFields value={evidence} paper />}
       {hasMeal && (
         <RecordedCaseFields
           paper

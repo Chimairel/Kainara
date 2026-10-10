@@ -1,5 +1,5 @@
 import { cycleMacroTargets, dailyTargetMap } from './meal-macro-context.service';
-import { randomUUID } from 'crypto';
+import { newMealJobToken, recoverExpiredMealJobLeases, startMealJobHeartbeat } from './meal-job-lease.service';
 import {
   AiUsageOperation,
   HealthConditionType,
@@ -44,7 +44,6 @@ import { lockUserProfile } from './profile-revision.service';
 import { getManilaBusinessDateKey } from '@/domain/meal-actionability.policy';
 import { retainedMealsForCycle } from './plan-repair-history.service';
 
-const LEASE_MS = 20 * 60_000;
 const FAIR_TURN_MS = 5_000;
 type Cycle = NonNullable<Awaited<ReturnType<typeof loadQueuedCycle>>>;
 
@@ -97,6 +96,15 @@ function terminalReason(cycle: Cycle, now: Date): string | null {
 export class MealAiQueueService {
   private static running = false;
   private static recoveryAt = 0;
+  private static stopping = false;
+  private static activeRun: Promise<boolean> | null = null;
+  private static activeController: AbortController | null = null;
+
+  static async shutdown(): Promise<void> {
+    this.stopping = true;
+    this.activeController?.abort();
+    await this.activeRun;
+  }
 
   static async retryForCycle(userId: string, cycleId: string): Promise<boolean> {
     const cycle = await loadQueuedCycle(cycleId);
@@ -134,12 +142,21 @@ export class MealAiQueueService {
   }
 
   static triggerNonBlocking(): void {
+    if (this.stopping) return;
     setImmediate(() => {
       void this.runOne().catch((error) => console.error('[MealAiQueue] Trigger failed:', error));
     });
   }
 
-  static async runOne(now: Date = new Date()): Promise<boolean> {
+  static runOne(now: Date = new Date()): Promise<boolean> {
+    if (this.stopping || this.activeRun) return Promise.resolve(false);
+    this.activeRun = this.performOne(now).finally(() => {
+      this.activeRun = null;
+    });
+    return this.activeRun;
+  }
+
+  private static async performOne(now: Date): Promise<boolean> {
     if (this.running) return false;
     this.running = true;
     try {
@@ -147,13 +164,7 @@ export class MealAiQueueService {
         await recoverPartialPlanJobs(now);
         this.recoveryAt = now.getTime() + 5 * 60_000;
       }
-      await prisma.mealPlanGenerationJob.updateMany({
-        where: {
-          status: MealPlanGenerationJobStatus.PROCESSING_AI,
-          updatedAt: { lt: new Date(now.getTime() - LEASE_MS) },
-        },
-        data: { status: MealPlanGenerationJobStatus.WAITING_FOR_AI, processingToken: null, nextAttemptAt: now },
-      });
+      await recoverExpiredMealJobLeases(now);
       const candidates = await prisma.mealPlanGenerationJob.findMany({
         where: {
           status: MealPlanGenerationJobStatus.WAITING_FOR_AI,
@@ -170,7 +181,8 @@ export class MealAiQueueService {
           a.startedAt.getTime() - b.startedAt.getTime()
       );
       for (const candidate of candidates) {
-        const token = randomUUID();
+        if (this.stopping) return false;
+        const token = newMealJobToken();
         const claim = await prisma.mealPlanGenerationJob.updateMany({
           where: { id: candidate.id, status: MealPlanGenerationJobStatus.WAITING_FOR_AI, nextAttemptAt: { lte: now } },
           data: {
@@ -182,7 +194,23 @@ export class MealAiQueueService {
           },
         });
         if (!claim.count) continue;
-        await this.processClaim(candidate.id, candidate.planGroupId!, token, now, candidate.attempts + 1);
+        const controller = new AbortController();
+        this.activeController = controller;
+        if (this.stopping) controller.abort();
+        const stopHeartbeat = startMealJobHeartbeat(candidate.id, token, controller);
+        try {
+          await this.processClaim(
+            candidate.id,
+            candidate.planGroupId!,
+            token,
+            now,
+            candidate.attempts + 1,
+            controller.signal
+          );
+        } finally {
+          await stopHeartbeat();
+          this.activeController = null;
+        }
         return true;
       }
       return false;
@@ -196,10 +224,12 @@ export class MealAiQueueService {
     cycleId: string,
     token: string,
     now: Date,
-    attempts: number
+    attempts: number,
+    signal: AbortSignal
   ): Promise<void> {
     const owned = { id: jobId, status: MealPlanGenerationJobStatus.PROCESSING_AI, processingToken: token };
     try {
+      signal.throwIfAborted();
       const cycle = await loadQueuedCycle(cycleId);
       if (!cycle) throw new Error('CYCLE_MISSING');
       const blocked = terminalReason(cycle, now);
@@ -323,6 +353,7 @@ export class MealAiQueueService {
       let lastError: unknown;
       for (let attempt = 1; attempt <= 3; attempt += 1) {
         try {
+          signal.throwIfAborted();
           const response = useCorpus
             ? { meals: sourced.meals }
             : await generateGenerativeJSON<{ meals: GeneratedMeal[] }>(
@@ -331,7 +362,7 @@ export class MealAiQueueService {
                   : `${prompt}\nPrevious attempt failed deterministic validation; correct the entire requested day.`,
                 systemInstruction,
                 schema,
-                { operation: AiUsageOperation.MEAL_PLAN_GENERATION, purpose: `EARLIEST_DAY_ATTEMPT_${attempt}` }
+                { operation: AiUsageOperation.MEAL_PLAN_GENERATION, purpose: `EARLIEST_DAY_ATTEMPT_${attempt}`, signal }
               );
           const conflicts = response.meals.flatMap(
             (meal) =>
@@ -343,6 +374,7 @@ export class MealAiQueueService {
               }).definiteConflicts
           );
           if (conflicts.length) throw new Error(`DEFINITE_CONFLICT: ${conflicts.join('; ')}`);
+          signal.throwIfAborted();
           const grounded = new Map(foods.map((food) => [food.id, food]));
           const { preparedMeals, compositionRevisions } = await prepareGeneratedMealIngredients({
             meals: response.meals.map((meal) => ({
@@ -380,6 +412,7 @@ export class MealAiQueueService {
 
           await prisma.$transaction(
             async (tx) => {
+              signal.throwIfAborted();
               await lockUserProfile(tx, cycle.userId);
               await tx.$queryRaw`SELECT id FROM "MealPlanCycle" WHERE id = ${cycleId} FOR UPDATE`;
               const currentJob = await tx.mealPlanGenerationJob.findUnique({ where: { id: jobId } });
@@ -618,6 +651,7 @@ export class MealAiQueueService {
           await MealPlanCycleService.synchronizeLifecycle(cycle.userId);
           return;
         } catch (error) {
+          if (signal.aborted) throw error;
           if (error instanceof AiCapacityDeferredError) throw error;
           lastError = error;
           if (/QUEUE_CLAIM_STALE|SLOT_ALREADY_FILLED|PROFILE_CHANGED|FOOD_EVIDENCE_CHANGED/u.test(String(error))) break;
@@ -626,7 +660,12 @@ export class MealAiQueueService {
       throw lastError ?? new Error('AI_VALIDATION_FAILED');
     } catch (error) {
       const deferred = error instanceof AiCapacityDeferredError;
-      const retryAt = deferred ? error.retryAt : continuationRetryAt(error, attempts, new Date());
+      const interrupted = signal.aborted;
+      const retryAt = interrupted
+        ? new Date()
+        : deferred
+          ? error.retryAt
+          : continuationRetryAt(error, attempts, new Date());
       await prisma.mealPlanGenerationJob.updateMany({
         where: owned,
         data: retryAt
@@ -634,7 +673,11 @@ export class MealAiQueueService {
               status: MealPlanGenerationJobStatus.WAITING_FOR_AI,
               processingToken: null,
               nextAttemptAt: retryAt,
-              lastErrorCode: deferred ? 'AI_CAPACITY_DEFERRED' : (error as { errorCode: string }).errorCode,
+              lastErrorCode: interrupted
+                ? 'WORKER_INTERRUPTED'
+                : deferred
+                  ? 'AI_CAPACITY_DEFERRED'
+                  : (error as { errorCode: string }).errorCode,
               stageCode: 'WAITING_FOR_AI',
               stageMessage:
                 'Preparation is temporarily delayed and will retry automatically. Earlier remaining days stay first in line.',

@@ -28,6 +28,7 @@ export function useProfileWorkPanelModel() {
   const [fileUrl, setFileUrl] = useState<string | null>(null);
   const [expanded, setExpanded] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [openingPersonId, setOpeningPersonId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [notes, setNotes] = useState('');
   const [conditionAssessments, setConditionAssessments] = useState<ConditionAssessmentDraft[]>([]);
@@ -58,6 +59,8 @@ export function useProfileWorkPanelModel() {
     setExpanded(false);
     setNotes('');
     setConditionAssessments([]);
+    setOpeningPersonId(null);
+    setBusy(false);
   }, []);
   const noLongerQueued = (cause: unknown) =>
     ['PROFILE_WORK_NOT_FOUND', 'PROFILE_NOT_FOUND'].includes(getApiErrorCode(cause) ?? '');
@@ -128,6 +131,7 @@ export function useProfileWorkPanelModel() {
   const openPerson = async (userId: string, preserveSelection = false) => {
     const requestId = ++selectionRequest.current;
     setBusy(true);
+    if (!preserveSelection) setOpeningPersonId(userId);
     setError(null);
     try {
       const response = await api.get(`/nutritionist/profile-work/${userId}`);
@@ -151,7 +155,10 @@ export function useProfileWorkPanelModel() {
         await refresh();
       } else setError(getApiErrorMessage(cause, 'Could not open this profile.'));
     } finally {
-      setBusy(false);
+      if (requestId === selectionRequest.current) {
+        setOpeningPersonId(null);
+        setBusy(false);
+      }
     }
   };
 
@@ -292,6 +299,7 @@ export function useProfileWorkPanelModel() {
     detail,
     expanded,
     isLoading,
+    openingPersonId,
     people,
     busy,
     openPerson,

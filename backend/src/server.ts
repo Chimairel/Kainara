@@ -32,7 +32,9 @@ function shutdown(signal: 'SIGINT' | 'SIGTERM'): Promise<void> {
     logger.info('server_shutdown', { signal, outcome: 'STARTED' });
     clearInterval(mealAiQueueTimer);
     clearInterval(mealReminderTimer);
-    await closeServer();
+    // Stop new turns before draining HTTP; release only this process's owned job.
+    const workerShutdown = MealAiQueueService.shutdown();
+    await Promise.all([closeServer(), workerShutdown]);
     await waitForMealReminders();
     await prisma.$disconnect();
     logger.info('server_shutdown', { signal, outcome: 'COMPLETED' });

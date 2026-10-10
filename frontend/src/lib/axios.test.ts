@@ -52,8 +52,13 @@ describe('session recovery during background requests', () => {
     await api.get('/nutritionist/queue/meal-1', { adapter, timeout: 15_000 });
     await api.post('/nutritionist/queue/meal-1/claim', {}, { adapter });
     await api.get('/nutritionist/review-work-counts', { adapter });
+    await api.get('/nutritionist/profile-work', { adapter });
+    await api.get('/nutritionist/profile-work/member-1', { adapter });
+    await api.get('/nutritionist/profile-reviews/member-1', { adapter });
+    await api.get('/nutritionist/profile-work/member-1', { adapter, timeout: 15_000 });
     expect(timeouts).toEqual([
-      90_000, 90_000, 30_000, 30_000, 15_000, 90_000, 120_000, 15_000, 90_000, 90_000, 15_000, 90_000, 90_000,
+      90_000, 90_000, 30_000, 30_000, 15_000, 90_000, 120_000, 15_000, 90_000, 90_000, 15_000, 90_000, 90_000, 90_000,
+      90_000, 90_000, 15_000,
     ]);
   });
 
