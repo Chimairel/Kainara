@@ -1,10 +1,12 @@
 'use client';
 
 import React, { useEffect } from 'react';
-import { usePathname, useRouter } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import PortalLoadingState from '@/components/shared/PortalLoadingState';
 import { getPostAuthDestination } from '@/lib/post-auth-destination';
+import AuthenticatedEntryRedirect from '@/components/auth/AuthenticatedEntryRedirect';
+import { finishWorkspaceNavigation } from '@/lib/workspace-navigation-recovery';
 
 interface RouteGuardProps {
   children: React.ReactNode;
@@ -24,7 +26,6 @@ interface RouteGuardProps {
  */
 export const RouteGuard: React.FC<RouteGuardProps> = ({ children }) => {
   const { user, isLoading, profileLoadError, refreshSession, logout } = useAuth();
-  const router = useRouter();
   const pathname = usePathname();
 
   const publicRoutes = [
@@ -68,8 +69,8 @@ export const RouteGuard: React.FC<RouteGuardProps> = ({ children }) => {
         redirectTarget = getPostAuthDestination(user);
       } else if (!user.emailVerified && !isVerifyPage && !isPublicRoute && !isAccountPrivacyRoute) {
         redirectTarget = '/verify-email';
-      } else if (isVerifyPage && user.emailVerified) {
-        redirectTarget = getPostAuthDestination(user);
+      } else if (isVerifyPage) {
+        if (user.emailVerified) redirectTarget = getPostAuthDestination(user);
       } else if (!isPublicRoute && isAdminRoute && user.role !== 'ADMIN') {
         redirectTarget = '/unauthorized';
       } else if (!isPublicRoute && isNutritionistRoute && user.role !== 'NUTRITIONIST') {
@@ -94,13 +95,17 @@ export const RouteGuard: React.FC<RouteGuardProps> = ({ children }) => {
   }
 
   useEffect(() => {
-    if (redirectTarget) router.replace(redirectTarget);
-  }, [redirectTarget, router]);
+    if (!isLoading && !profileLoadError && !redirectTarget) finishWorkspaceNavigation(user?.userId);
+  }, [isLoading, profileLoadError, redirectTarget, user?.userId, pathname]);
+
+  if (redirectTarget) {
+    return <AuthenticatedEntryRedirect user={user} destinationOverride={redirectTarget} logout={logout} />;
+  }
 
   // Render a full-screen loading spinner while the status is being resolved
   // Public auth forms can stay mounted while the cookie is checked. Their own
   // readiness controls prevent submission; protected workspaces still wait.
-  if ((isLoading && !isPublicRoute) || redirectTarget) {
+  if (isLoading && !isPublicRoute) {
     return <PortalLoadingState fullScreen />;
   }
 

@@ -5,17 +5,27 @@ import Home from './LandingHome';
 const state = vi.hoisted(() => ({
   replace: vi.fn(),
   isLoading: false,
+  profileLoadError: false,
   user: null as null | {
     role: 'USER';
     emailVerified: boolean;
     onboardingDone: boolean;
     tosAccepted: boolean;
+    reportAcknowledged?: boolean;
     onboardingNextPath?: string;
   },
 }));
 
 vi.mock('next/navigation', () => ({ useRouter: () => ({ replace: state.replace }) }));
-vi.mock('@/hooks/useAuth', () => ({ useAuth: () => ({ user: state.user, isLoading: state.isLoading }) }));
+vi.mock('@/hooks/useAuth', () => ({
+  useAuth: () => ({
+    user: state.user,
+    isLoading: state.isLoading,
+    profileLoadError: state.profileLoadError,
+    logout: vi.fn(),
+    refreshSession: vi.fn(),
+  }),
+}));
 vi.mock('@/components/shared/PublicHeader', () => ({ default: () => <header>Public navigation</header> }));
 vi.mock('motion/react', () => ({
   useReducedMotion: () => false,
@@ -31,6 +41,7 @@ describe('public home navigation', () => {
   beforeEach(() => {
     state.replace.mockClear();
     state.isLoading = false;
+    state.profileLoadError = false;
     state.user = null;
   });
 
@@ -56,10 +67,35 @@ describe('public home navigation', () => {
   });
 
   it('still sends a verified account to its workspace', () => {
-    state.user = { role: 'USER', emailVerified: true, onboardingDone: true, tosAccepted: true };
+    state.user = {
+      role: 'USER',
+      emailVerified: true,
+      onboardingDone: true,
+      tosAccepted: true,
+      reportAcknowledged: true,
+    };
     render(<Home initialMedia={null} />);
 
     expect(state.replace).toHaveBeenCalledWith('/dashboard');
     expect(screen.queryByText('Public navigation')).not.toBeInTheDocument();
+  });
+  it('keeps report acknowledgment in the common destination chain', () => {
+    state.user = {
+      role: 'USER',
+      emailVerified: true,
+      onboardingDone: true,
+      tosAccepted: true,
+      reportAcknowledged: false,
+    };
+    render(<Home initialMedia={null} />);
+    expect(state.replace).toHaveBeenCalledWith('/profile/nutrition-report');
+    expect(screen.getByText('Redirecting to your workspace...')).toBeInTheDocument();
+  });
+  it('offers recovery on the homepage when the provisional profile read fails', () => {
+    state.user = { role: 'USER', emailVerified: false, onboardingDone: false, tosAccepted: false };
+    state.profileLoadError = true;
+    render(<Home initialMedia={null} />);
+    expect(screen.getByRole('heading', { name: 'Could not load your account' })).toBeInTheDocument();
+    expect(state.replace).not.toHaveBeenCalled();
   });
 });

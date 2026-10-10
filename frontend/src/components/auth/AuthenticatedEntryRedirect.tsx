@@ -1,8 +1,7 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
 import { AlertTriangle } from 'lucide-react';
-import { useRouter } from 'next/navigation';
+import { useWorkspaceRedirect } from '@/hooks/useWorkspaceRedirect';
 import type { UserSession } from '@/lib/context/AuthContext';
 import { getPostAuthDestination } from '@/lib/post-auth-destination';
 import PortalLoadingState from '@/components/shared/PortalLoadingState';
@@ -21,26 +20,23 @@ export default function AuthenticatedEntryRedirect({
   recoveryDelayMs = REDIRECT_RECOVERY_MS,
   isResolving = false,
   inline = false,
+  destinationOverride,
 }: {
-  user: UserSession;
+  user: UserSession | null;
   logout: () => Promise<void>;
   profileLoadError?: boolean;
   retryProfile?: () => Promise<unknown>;
   recoveryDelayMs?: number;
   isResolving?: boolean;
   inline?: boolean;
+  destinationOverride?: string;
 }) {
-  const router = useRouter();
-  const destination = useMemo(() => getPostAuthDestination(user), [user]);
-  const [showRecovery, setShowRecovery] = useState(false);
-
-  useEffect(() => {
-    setShowRecovery(false);
-    if (isResolving || profileLoadError) return;
-    router.replace(destination);
-    const timer = setTimeout(() => setShowRecovery(true), recoveryDelayMs);
-    return () => clearTimeout(timer);
-  }, [destination, isResolving, profileLoadError, recoveryDelayMs, router]);
+  const destination = destinationOverride ?? (user ? getPostAuthDestination(user) : '/login');
+  const showRecovery = useWorkspaceRedirect(
+    isResolving || profileLoadError ? null : destination,
+    user?.userId,
+    recoveryDelayMs
+  );
 
   if (isResolving || (!profileLoadError && !showRecovery)) {
     const message = isResolving ? 'Checking your account…' : 'Redirecting to your workspace...';
@@ -78,7 +74,9 @@ export default function AuthenticatedEntryRedirect({
         <p className="mt-3 text-sm leading-6 text-brand-muted">
           {profileLoadError
             ? 'Your account is signed in. Try loading your account again to continue.'
-            : 'Your account is signed in. Retry the destination, or sign out and return to account access.'}
+            : user
+              ? 'Your account is signed in. Retry the destination, or sign out and return to account access.'
+              : 'Try opening account access again.'}
         </p>
         <div className="mt-6 flex flex-col gap-3">
           <Button
@@ -91,9 +89,11 @@ export default function AuthenticatedEntryRedirect({
           >
             Try again
           </Button>
-          <Button type="button" variant="secondary" onClick={() => void logout()}>
-            Sign out
-          </Button>
+          {user && (
+            <Button type="button" variant="secondary" onClick={() => void logout()}>
+              Sign out
+            </Button>
+          )}
         </div>
       </section>
     </Container>

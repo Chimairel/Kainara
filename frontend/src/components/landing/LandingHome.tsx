@@ -1,6 +1,7 @@
 'use client';
 
 import { MotionConfig } from 'motion/react';
+import AuthenticatedEntryRedirect from '@/components/auth/AuthenticatedEntryRedirect';
 
 import PublicHeader from '@/components/shared/PublicHeader';
 import PublicFooter from '@/components/shared/PublicFooter';
@@ -17,7 +18,7 @@ import LandingGuidesSection from '@/features/landing/LandingGuidesSection';
 import LandingCallToAction from '@/features/landing/LandingCallToAction';
 export default function LandingHome({ initialMedia }: { initialMedia: LandingMedia | null }) {
   const model = useLandingHomeModel({ initialMedia });
-  if (model.kind === 'early') return model.view;
+  if (model.kind === 'early') return <AuthenticatedEntryRedirect {...model.redirectProps} />;
 
   return (
     <MotionConfig reducedMotion="user">

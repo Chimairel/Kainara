@@ -171,4 +171,16 @@ describe('report access within the profile', () => {
     expect(state.replace).toHaveBeenCalledWith('/dashboard');
     expect(screen.queryByText('OTP form')).not.toBeInTheDocument();
   });
+  it('keeps an unverified member on OTP before enforcing onboarding', () => {
+    state.path = '/verify-email';
+    state.user.emailVerified = false;
+    state.user.onboardingDone = false;
+    render(
+      <RouteGuard>
+        <p>OTP form</p>
+      </RouteGuard>
+    );
+    expect(screen.getByText('OTP form')).toBeInTheDocument();
+    expect(state.replace).not.toHaveBeenCalled();
+  });
 });

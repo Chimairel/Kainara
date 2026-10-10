@@ -459,8 +459,8 @@ export class UserProfileService {
 
     let reportAcknowledged: boolean | undefined;
     if (membershipEnabled() || user.userProfile?.planningReportVersion) {
-      try {
-        if (!user.userProfile) throw new Error('Profile missing.');
+      reportAcknowledged = false;
+      if (user.userProfile) {
         // Validate against the same profile snapshot returned to the client. Re-reading
         // every user relation adds database round trips to every session refresh.
         const version = await prisma.nutritionReportVersion.findFirst({
@@ -473,10 +473,14 @@ export class UserProfileService {
           orderBy: { version: 'desc' },
           select: { profileSnapshot: true, acknowledgedAt: true, policyVersion: true, profileRevision: true },
         });
-        resolvePlanningProfile(user.userProfile, version);
-        reportAcknowledged = true;
-      } catch {
-        reportAcknowledged = false;
+        // Database failures must propagate as an unresolved session check. Only
+        // an actual missing/stale report should require another acknowledgment.
+        try {
+          resolvePlanningProfile(user.userProfile, version);
+          reportAcknowledged = true;
+        } catch (error) {
+          if (!(error instanceof AppError) || error.errorCode !== 'REPORT_ACKNOWLEDGEMENT_REQUIRED') throw error;
+        }
       }
     }
     // Transform into clean structure for client

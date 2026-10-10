@@ -190,4 +190,52 @@ describe('authoritative session refresh coordination', () => {
     expect(auth.profileLoadError).toBe(false);
     expect(auth.user?.emailVerified).toBe(true);
   });
+
+  it('keeps session callbacks stable as profile state changes, so form effects do not repeat submissions', async () => {
+    mocks.read.mockResolvedValue({ id: 'fixture-owner', role: 'USER', emailVerified: true });
+    let auth!: AuthContextType;
+    const Consumer = () => {
+      auth = useContext(AuthContext)!;
+      return null;
+    };
+    render(
+      <AuthProvider>
+        <Consumer />
+      </AuthProvider>
+    );
+    await waitFor(() => expect(auth.isLoading).toBe(false));
+    const refresh = auth.refreshSession,
+      login = auth.login,
+      logout = auth.logout;
+    await act(async () => {
+      auth.updateUserSession({ name: 'Changed name' });
+      await auth.refreshSession();
+    });
+    expect(auth.refreshSession).toBe(refresh);
+    expect(auth.login).toBe(login);
+    expect(auth.logout).toBe(logout);
+  });
+
+  it('does not publish a late profile after the account cookie changes elsewhere', async () => {
+    let finish!: (profile: unknown) => void;
+    mocks.read.mockReturnValue(
+      new Promise((resolve) => {
+        finish = resolve;
+      })
+    );
+    let auth!: AuthContextType;
+    const Consumer = () => {
+      auth = useContext(AuthContext)!;
+      return null;
+    };
+    render(
+      <AuthProvider>
+        <Consumer />
+      </AuthProvider>
+    );
+    mocks.owner = 'other-account';
+    await act(async () => finish({ id: 'fixture-owner', role: 'USER', emailVerified: true }));
+    expect(auth.user?.emailVerified).toBe(false);
+    expect(auth.profileLoadError).toBe(true);
+  });
 });

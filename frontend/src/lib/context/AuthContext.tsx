@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useState, useEffect, useRef, ReactNode } from 'react';
+import React, { createContext, useState, useEffect, useRef, useCallback, useMemo, ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import { Role } from '@/types';
 import { decodeToken, cookieHelper } from '@/lib/auth';
@@ -52,14 +52,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     requestId: number;
     promise: Promise<UserSession | null>;
   } | null>(null);
-  const router = useRouter();
+  const { replace } = useRouter();
 
   // Refresh user profile details from backend to ensure state accuracy
-  const loadSession = async (options?: { showLoader?: boolean }) => {
+  const loadSession = useCallback(async (options?: { showLoader?: boolean }) => {
     const requestId = ++sessionRequestId.current;
     const ownerId = decodeToken(cookieHelper.get('nutrimind_session') || '')?.userId;
     // A quiet retry must never expose provisional token claims to route guards.
-    if (options?.showLoader || !user || !ownerId || confirmedProfileOwner.current !== ownerId) {
+    if (options?.showLoader || !ownerId || confirmedProfileOwner.current !== ownerId) {
       setIsLoading(true);
     }
     setProfileLoadError(false);
@@ -70,6 +70,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         // Missing verification metadata is an unresolved check, not an OTP requirement.
         if (typeof profile.emailVerified !== 'boolean') throw new Error('Profile verification status is missing.');
         if (!ownerId || profile.id !== ownerId) throw new Error('Profile does not match the current session.');
+        if (decodeToken(cookieHelper.get('nutrimind_session') || '')?.userId !== ownerId) {
+          throw new Error('The account changed while its profile was loading.');
+        }
         const {
           id,
           name,
@@ -142,24 +145,27 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setIsLoading(false);
       }
     }
-  };
+  }, []);
 
   // Live events and explicit continuations join the same authoritative read.
-  const refreshSession = (options?: { showLoader?: boolean }) => {
-    const ownerId = decodeToken(cookieHelper.get('nutrimind_session') || '')?.userId;
-    const pending = sessionRefresh.current;
-    if (pending && pending.ownerId === ownerId && pending.requestId === sessionRequestId.current) {
-      if (options?.showLoader) setIsLoading(true);
-      return pending.promise;
-    }
-    const promise = loadSession(options);
-    const entry = { ownerId, requestId: sessionRequestId.current, promise };
-    sessionRefresh.current = entry;
-    void promise.finally(() => {
-      if (sessionRefresh.current === entry) sessionRefresh.current = null;
-    });
-    return promise;
-  };
+  const refreshSession = useCallback(
+    (options?: { showLoader?: boolean }) => {
+      const ownerId = decodeToken(cookieHelper.get('nutrimind_session') || '')?.userId;
+      const pending = sessionRefresh.current;
+      if (pending && pending.ownerId === ownerId && pending.requestId === sessionRequestId.current) {
+        if (options?.showLoader) setIsLoading(true);
+        return pending.promise;
+      }
+      const promise = loadSession(options);
+      const entry = { ownerId, requestId: sessionRequestId.current, promise };
+      sessionRefresh.current = entry;
+      void promise.finally(() => {
+        if (sessionRefresh.current === entry) sessionRefresh.current = null;
+      });
+      return promise;
+    },
+    [loadSession]
+  );
 
   useEffect(() => {
     // Initial verification on mount
@@ -199,43 +205,46 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const login = async (token: string) => {
-    sessionRequestId.current += 1;
-    confirmedProfileOwner.current = null;
-    setSessionRefreshSuppressed(false);
-    clearSessionResourceCache();
-    // Save access token in cookie for the client middleware & interceptor
-    // Refresh token is now stored as an HttpOnly cookie by the backend
-    cookieHelper.set('nutrimind_session', token, 7);
-    const decoded = decodeToken(token);
+  const login = useCallback(
+    async (token: string) => {
+      sessionRequestId.current += 1;
+      confirmedProfileOwner.current = null;
+      setSessionRefreshSuppressed(false);
+      clearSessionResourceCache();
+      // Save access token in cookie for the client middleware & interceptor
+      // Refresh token is now stored as an HttpOnly cookie by the backend
+      cookieHelper.set('nutrimind_session', token, 7);
+      const decoded = decodeToken(token);
 
-    if (decoded) {
-      setIsLoading(true);
-      setUser({
-        userId: decoded.userId,
-        name: decoded.email.split('@')[0],
-        email: decoded.email,
-        role: decoded.role,
-        emailVerified: false,
-        onboardingDone: false,
-        tosAccepted: false,
-        image: undefined,
-        reportAcknowledged: false,
-        onboardingNextPath: '/onboarding/stats',
-      });
+      if (decoded) {
+        setIsLoading(true);
+        setUser({
+          userId: decoded.userId,
+          name: decoded.email.split('@')[0],
+          email: decoded.email,
+          role: decoded.role,
+          emailVerified: false,
+          onboardingDone: false,
+          tosAccepted: false,
+          image: undefined,
+          reportAcknowledged: false,
+          onboardingNextPath: '/onboarding/stats',
+        });
 
-      // Load the authoritative profile before navigating. The request id inside
-      // refreshSession prevents an older hydration response from restoring the
-      // role that was active before this login.
-      return refreshSession();
-    }
-    cookieHelper.clear('nutrimind_session');
-    setUser(null);
-    setIsLoading(false);
-    return null;
-  };
+        // Load the authoritative profile before navigating. The request id inside
+        // refreshSession prevents an older hydration response from restoring the
+        // role that was active before this login.
+        return refreshSession();
+      }
+      cookieHelper.clear('nutrimind_session');
+      setUser(null);
+      setIsLoading(false);
+      return null;
+    },
+    [refreshSession]
+  );
 
-  const logout = async () => {
+  const logout = useCallback(async () => {
     sessionRequestId.current += 1;
     confirmedProfileOwner.current = null;
     setIsLoading(true);
@@ -253,11 +262,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       clearSessionResourceCache();
       setUser(null);
       setIsLoading(false);
-      router.replace('/login');
+      replace('/login');
     }
-  };
+  }, [replace]);
 
-  const completeAccountDeletion = () => {
+  const completeAccountDeletion = useCallback(() => {
     sessionRequestId.current += 1;
     confirmedProfileOwner.current = null;
     setSessionRefreshSuppressed(true);
@@ -269,26 +278,25 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     // A fresh document also discards any in-flight private workspace state.
     setIsLoading(true);
     window.location.replace('/login?accountDeleted=1');
-  };
+  }, []);
 
-  const updateUserSession = (updates: Partial<UserSession>) => {
+  const updateUserSession = useCallback((updates: Partial<UserSession>) => {
     setUser((prev) => (prev ? { ...prev, ...updates } : null));
-  };
+  }, []);
 
-  return (
-    <AuthContext.Provider
-      value={{
-        user,
-        isLoading,
-        profileLoadError,
-        login,
-        logout,
-        completeAccountDeletion,
-        refreshSession,
-        updateUserSession,
-      }}
-    >
-      {children}
-    </AuthContext.Provider>
+  const context = useMemo(
+    () => ({
+      user,
+      isLoading,
+      profileLoadError,
+      login,
+      logout,
+      completeAccountDeletion,
+      refreshSession,
+      updateUserSession,
+    }),
+    [user, isLoading, profileLoadError, login, logout, completeAccountDeletion, refreshSession, updateUserSession]
   );
+
+  return <AuthContext.Provider value={context}>{children}</AuthContext.Provider>;
 };

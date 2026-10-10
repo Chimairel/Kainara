@@ -8,13 +8,17 @@ const mocks = vi.hoisted(() => ({
   get: vi.fn(),
   patch: vi.fn(),
   user: { userId: 'account-1', role: 'USER' } as { userId: string; role: string } | null,
+  isAuthLoading: false,
+  profileLoadError: false,
   play: vi.fn(),
   unlock: vi.fn(),
   stop: vi.fn(),
   dispose: vi.fn(),
 }));
 vi.mock('@/lib/axios', () => ({ default: { get: mocks.get, patch: mocks.patch } }));
-vi.mock('@/hooks/useAuth', () => ({ useAuth: () => ({ user: mocks.user }) }));
+vi.mock('@/hooks/useAuth', () => ({
+  useAuth: () => ({ user: mocks.user, isLoading: mocks.isAuthLoading, profileLoadError: mocks.profileLoadError }),
+}));
 vi.mock('@/lib/notification-sound', async (original) => ({
   ...(await original<typeof import('@/lib/notification-sound')>()),
   createNotificationAudio: () => ({ play: mocks.play, unlock: mocks.unlock, stop: mocks.stop, dispose: mocks.dispose }),
@@ -35,10 +39,30 @@ const response = (notifications: ReturnType<typeof notification>[]) => ({
 describe('shared notification inbox', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.isAuthLoading = false;
+    mocks.profileLoadError = false;
     localStorage.clear();
     Object.defineProperty(document, 'visibilityState', { configurable: true, value: 'visible' });
     mocks.get.mockResolvedValue({ data: { success: true, data: { notifications: [], unreadCount: 125 } } });
     mocks.patch.mockResolvedValue({ data: { success: true } });
+  });
+
+  it('waits for an authoritative account check before fetching background notifications', async () => {
+    mocks.user = { userId: 'account-1', role: 'ADMIN' };
+    mocks.isAuthLoading = true;
+    const { result, rerender } = renderHook(() => useNotifications(), { wrapper: NotificationsProvider });
+    await act(async () => {
+      await result.current.refresh();
+    });
+    expect(mocks.get).not.toHaveBeenCalled();
+    mocks.isAuthLoading = false;
+    mocks.profileLoadError = true;
+    rerender();
+    act(() => window.dispatchEvent(new Event(LIVE_UPDATE_EVENT)));
+    expect(mocks.get).not.toHaveBeenCalled();
+    mocks.profileLoadError = false;
+    rerender();
+    await waitFor(() => expect(mocks.get).toHaveBeenCalledTimes(1));
   });
 
   it.each(['USER', 'NUTRITIONIST', 'ADMIN'])('loads the same account-scoped inbox for %s', async (role) => {

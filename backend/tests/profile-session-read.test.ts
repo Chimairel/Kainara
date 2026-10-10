@@ -64,6 +64,17 @@ test('session profile reuses its fetched profile while enforcing accepted report
     );
     assert.equal(userReads, 1, 'No duplicate user/relations query during report validation.');
     assert.equal(reportReads, 1);
+    const connectionError = Object.assign(new Error('Connection closed'), { code: 'P1017' });
+    const healthyReportRead = prisma.nutritionReportVersion.findFirst;
+    prisma.nutritionReportVersion.findFirst = (async () => {
+      throw connectionError;
+    }) as unknown as typeof originalReportRead;
+    await assert.rejects(
+      UserProfileService.getAuthenticatedProfileDetails(fixture.id),
+      (error) => error === connectionError,
+      'A failed database lookup is not an unacknowledged report.'
+    );
+    prisma.nutritionReportVersion.findFirst = healthyReportRead;
     fixture.userProfile = { ...profile, safetyRevision: 2 };
     assert.equal(
       (await UserProfileService.getAuthenticatedProfileDetails(fixture.id))?.profile.reportAcknowledged,

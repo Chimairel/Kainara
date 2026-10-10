@@ -1,32 +1,11 @@
 'use client';
-import { useEffect } from 'react';
-
-import { useRouter } from 'next/navigation';
-
 import type { LandingMedia } from '@/features/website-content/types';
 
 import { useAuth } from '@/hooks/useAuth';
 
 import { getRoleHome } from './LandingHome.shared';
 export function useLandingHomeModel({ initialMedia }: { initialMedia: LandingMedia | null }) {
-  const { user, isLoading } = useAuth();
-  const router = useRouter();
-
-  useEffect(() => {
-    if (!isLoading && user?.emailVerified) {
-      const destination =
-        user.role === 'ADMIN'
-          ? '/admin/overview'
-          : user.role === 'NUTRITIONIST'
-            ? '/nutritionist/reviews'
-            : !user.onboardingDone
-              ? user.onboardingNextPath || '/onboarding/stats'
-              : !user.tosAccepted
-                ? '/onboarding/tos'
-                : '/dashboard';
-      router.replace(destination);
-    }
-  }, [user, isLoading, router]);
+  const { user, isLoading, profileLoadError, logout, refreshSession } = useAuth();
 
   const isPendingVerification = Boolean(user && !user.emailVerified);
   const workspaceHref = user ? (isPendingVerification ? '/verify-email' : getRoleHome(user.role)) : '/register';
@@ -40,8 +19,17 @@ export function useLandingHomeModel({ initialMedia }: { initialMedia: LandingMed
 
   // Pending verification can browse the public home page. Its call to action
   // still leads back to verification; protected routes remain gated.
-  if (user?.emailVerified) {
-    return { kind: 'early' as const, view: null };
+  if (user && (user.emailVerified || profileLoadError)) {
+    return {
+      kind: 'early' as const,
+      redirectProps: {
+        user,
+        isResolving: isLoading,
+        profileLoadError,
+        logout,
+        retryProfile: () => refreshSession({ showLoader: true }),
+      },
+    };
   }
 
   return { kind: 'ready' as const, workspaceHref, workspaceLabel, initialMedia };

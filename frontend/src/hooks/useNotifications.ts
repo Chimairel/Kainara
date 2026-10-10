@@ -26,7 +26,7 @@ interface Notification {
 }
 
 function useNotificationInbox() {
-  const { user } = useAuth();
+  const { user, isLoading: isAuthLoading, profileLoadError } = useAuth();
   const [inbox, setInbox] = useState<{
     accountId: string;
     notifications: Notification[];
@@ -35,6 +35,7 @@ function useNotificationInbox() {
   const [isLoading, setIsLoading] = useState(true);
 
   const accountId = user?.userId;
+  const accountReady = Boolean(accountId) && !isAuthLoading && !profileLoadError;
   const { soundEnabled, toggleNotificationSound, observeNotifications } = useNotificationSound(accountId);
   const currentAccountId = useRef(accountId);
   currentAccountId.current = accountId;
@@ -46,6 +47,7 @@ function useNotificationInbox() {
         setIsLoading(false);
         return;
       }
+      if (!accountReady) return;
       try {
         const res = await api.get('/notifications', { signal });
         if (!signal?.aborted && currentAccountId.current === accountId && res.data?.success) {
@@ -63,11 +65,11 @@ function useNotificationInbox() {
         if (!signal?.aborted && currentAccountId.current === accountId) setIsLoading(false);
       }
     },
-    [accountId, observeNotifications]
+    [accountId, accountReady, observeNotifications]
   );
 
   useVisiblePolling(fetchNotifications, {
-    enabled: Boolean(accountId),
+    enabled: accountReady,
     intervalMs: 15000,
     scopeKey: accountId,
   });

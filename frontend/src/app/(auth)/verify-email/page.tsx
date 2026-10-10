@@ -5,12 +5,21 @@ import { useAuth } from '@/hooks/useAuth';
 import api from '@/lib/axios';
 import { getApiErrorMessage } from '@/lib/api-error';
 import AuthShell from '@/components/auth/AuthShell';
+import RouteGuard from '@/components/shared/RouteGuard';
 import { AlertTriangle, CheckCircle2, LogOut, Mail } from 'lucide-react';
 
 /**
  * Email Verification Page — 6-digit OTP input with auto-submit and resend cooldown.
  */
 export default function VerifyEmailPage() {
+  return (
+    <RouteGuard>
+      <EmailVerificationForm />
+    </RouteGuard>
+  );
+}
+
+function EmailVerificationForm() {
   const { user, refreshSession, logout } = useAuth();
   const [otp, setOtp] = useState<string[]>(Array(6).fill(''));
   const [error, setError] = useState<string | null>(null);
@@ -42,17 +51,9 @@ export default function VerifyEmailPage() {
         const response = await api.post('/auth/verify-email', { otp: code });
         if (response.data?.success) {
           setSuccess('Email verified successfully! Redirecting...');
-          // Try to refresh session — if it fails (e.g. rate limit), still redirect
-          try {
-            await refreshSession();
-          } catch {
-            // Session will be refreshed on next page load via AuthContext
-            console.warn('[VerifyEmail] refreshSession failed, redirecting anyway.');
-          }
-          // Always redirect after successful verification — don't stay stuck
-          setTimeout(() => {
-            window.location.href = '/onboarding/stats';
-          }, 1500);
+          // RouteGuard chooses the destination from the confirmed role/profile.
+          // A failed refresh stays recoverable instead of inventing onboarding status.
+          await refreshSession({ showLoader: true });
         }
       } catch (err: unknown) {
         setError(getApiErrorMessage(err, 'Verification failed. Please try again.'));

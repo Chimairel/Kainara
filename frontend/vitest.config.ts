@@ -10,7 +10,9 @@ export default defineConfig({
     },
   },
   test: {
-    exclude: ['e2e/**', 'node_modules/**', '.next/**'],
+    // Preview/production/archived Next outputs can contain entire dependency
+    // trees. Keep generated copies out of test discovery on local workspaces.
+    exclude: ['e2e/**', '**/node_modules/**', '**/.next*/**'],
     environment: 'jsdom',
     globals: true,
     setupFiles: ['./src/test/setup.ts'],
