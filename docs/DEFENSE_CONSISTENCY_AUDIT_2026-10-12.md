@@ -69,4 +69,19 @@ Gate: the published UI and backend agree on the tested policy and current data; 
 
 The exact migration target is `nameless-dust-38810716` / `br-round-art-b355gp02` / `neondb`. Before migration, the custom PostgreSQL archive was verified by listing and SHA-256: `972680b201034a4b7ea5eb8aeeebe7d35222714655319d91aa2c62a8237471f1` (13,859,536 bytes, 2026-10-11 18:22:32 UTC). The archive and deployed credentials remain private and uncommitted.
 
-Migration, deployment IDs and bounded public smoke results will be appended after the approved switch completes. Rollback starts with the last working code pair at `2176ccd285a828ff978b7a8f068a3a9984eeba84`: Railway `150c4c83-0e3c-4ded-9f7f-14682e196158` and Vercel `dpl_E72E7eTKpV5Wf9oRXsB6uxbdwiF1`. The additive request ledger can remain on code rollback; never overwrite newer member activity with an old database restore. The verified local defense fallback remains available.
+The archive also restored successfully into the isolated local `consistency_backup_verification` database, retaining 22 credentials, one document, 104 pre-migration records and zero unvalidated foreign keys. Migration `202610110001_nutritionist_license_updates` completed on the approved live target at 2026-10-11 18:28:42 UTC. All 105 migrations are finished, the new request ledger is empty, and subsequent fingerprints/decryption verify unchanged credentials and a readable retained document. No deployed secret changed.
+
+Implementation `010dc295dc6c6a01b985b4cbaca5eb0a73c71dab` is merged with demo history as `72bd64d86fded47d132fc0801ed93abb31a66d7b`. The merged tree is identical to the tested development tree. Both branches contain the release, and unrelated shared-checkout edits were excluded.
+
+| Component | Verified deployment | Commit |
+| --- | --- | --- |
+| Railway API | `e9d4ef23-3c66-4992-848a-c95e106ba2ef` — SUCCESS; `/ready` 200 | `72bd64d86fded47d132fc0801ed93abb31a66d7b` |
+| Vercel frontend | `dpl_4kYDKdTSWSm3r5En8FsFpeyFoewn` — READY, both public aliases | `72bd64d86fded47d132fc0801ed93abb31a66d7b` |
+
+Backend-first activation used the verified same-tree CLI deployment `8d8ed140-e64b-4978-9cca-fc72196a82d1` before promoting demo. The subsequent Git deployment records the exact merged commit above. The public frontend build was allowed to finish before the bounded smoke.
+
+The public Chromium smoke finished at 2026-10-11 18:35:41 UTC (October 12 Philippine time), with separate ordinary synthetic member, eligible RND and admin logins. Member mobile membership/details/report, RND reviews/library/profile, admin nutrition data/audit and the historical read-only admin canvas passed with no browser errors, API failures or horizontal overflow. Admin canvas exposes no Approve/Reject. RND opened the reported Hotsilog case without claiming it: the detail API returned its saved source image, the actual image loaded, and a fullscreen canvas screenshot was captured. No profile, claim, meal approval, payment or provider request was submitted by the smoke. Ordinary authentication/audited reads may create session/access history.
+
+Private screenshots: `live-rnd-canvas-photo.png`, `live-member-membership.png` and the local desktop/mobile/theme membership captures under the ignored evidence directory. The role smoke contains 70 bounded application API responses; repeated testing and restore verification remained local. This is focused release verification, not exhaustive live-system or clinical validation.
+
+Rollback starts with the last working code pair at `2176ccd285a828ff978b7a8f068a3a9984eeba84`: Railway `150c4c83-0e3c-4ded-9f7f-14682e196158` and Vercel `dpl_E72E7eTKpV5Wf9oRXsB6uxbdwiF1`. The additive request ledger can remain on code rollback; never overwrite newer member activity with an old database restore. The verified local defense fallback remains available. Daily transfer monitoring continues under the existing defense budget; this release did not establish a new load budget measurement.

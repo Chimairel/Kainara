@@ -73,8 +73,10 @@ The clean release checkout excluded unrelated shared edits. Both production buil
 
 | Production component | Verified deployment | Commit |
 | --- | --- | --- |
-| Railway API | `150c4c83-0e3c-4ded-9f7f-14682e196158` — SUCCESS, recipe variety retained across worker turns | `2176ccd285a828ff978b7a8f068a3a9984eeba84` |
-| Vercel frontend | `dpl_E72E7eTKpV5Wf9oRXsB6uxbdwiF1` — READY; confirmation refresh, profile and review UI retained | `2176ccd285a828ff978b7a8f068a3a9984eeba84` |
+| Railway API | `e9d4ef23-3c66-4992-848a-c95e106ba2ef` — SUCCESS, reviewed development update and case images | `72bd64d86fded47d132fc0801ed93abb31a66d7b` |
+| Vercel frontend | `dpl_4kYDKdTSWSm3r5En8FsFpeyFoewn` — READY; minimal membership and preserved profile/review UI | `72bd64d86fded47d132fc0801ed93abb31a66d7b` |
+
+The October 12 consistency audit published the tested development update, including the additive license-request history migration, after the owner confirmed the same defense database target. All 105 migrations are applied. A fresh backup restored successfully in isolation; retained credential fingerprints and document decryption remain valid. Missing recovery rows were explained by recorded self-service deletion, not transfer loss. One bounded three-role public smoke passed, including the reported saved photo in an unclaimed RND canvas. Full evidence, limits, screenshots and the previous compatible rollback pair are in `docs/DEFENSE_CONSISTENCY_AUDIT_2026-10-12.md`. Existing deployed secrets remain unchanged.
 
 The later frontend-only health forms inbox release preserves the compatible API above and changes no schema or deployed environment variables. Its public browser check, narrow source scope and previous frontend rollback target are recorded in `docs/HEALTH_FORMS_INBOX_RELEASE_2026-10-11.md`.
 
@@ -92,7 +94,7 @@ One bounded actual Chromium smoke passed separate member, active RND and admin a
 
 1. Keep the verified archive/checksum, final manifests and private configuration snapshots. Never restore the old archive over current live data; capture a new backup before any later recovery operation.
 2. Current compatible deployment pair is recorded above. Previous baseline was commit `ce9f9e41`, Railway `bed59fd0-7cf7-4f87-a499-954fdce20d4f` and Vercel `dpl_23DZVnY3JEzY2WVyLL2fQ11xK4Mh`. Previous metadata/configuration is retained privately. Those deployments are historical evidence, not assurance that an older API supports the current schema or that the blocked old Neon database is usable.
-3. If a later deployment fails, pause new live writes, preserve evidence and use the local fallback. Redeploy the current compatible `2176ccd2` pair against the verified new target; validate readiness and ordinary role access before reopening. The immediately preceding `e57e630e` pair preserves revision-0 clarification and member confirmation refresh but reintroduces repeated worker recipe selection. The older `20899735` pair supports the relaxed database constraints but reintroduces the revision-0 submission failure. Check schema compatibility before considering an older release. Never restore an older archive over new member activity.
+3. If a later deployment fails, pause new live writes, preserve evidence and use the local fallback. Redeploy the current compatible `72bd64d8` pair against the verified new target; validate readiness and ordinary role access before reopening. The previous `2176ccd2` pair preserves clarification, confirmation refresh and variety but omits license renewal and the current presentation fixes. The additive license ledger can remain if rolling code back. The earlier `e57e630e` pair reintroduces repeated worker recipe selection; `20899735` also reintroduces revision-0 submission failure. Check schema compatibility before considering an older release. Never restore an older archive over new member activity.
 4. Retain deployed document/signing/refresh/scheduler/provider secrets. Restore only an explicitly confirmed target, and never use masked Vercel environment exports as secret values. Preserve any post-switch member activity rather than replacing it with the October 10 snapshot.
 
 ### Usage budget until October 16
