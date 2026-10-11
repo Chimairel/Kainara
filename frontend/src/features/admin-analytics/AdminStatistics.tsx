@@ -64,6 +64,8 @@ export default function AdminStatistics({
         value={activeTab}
         onChange={handleTabChange}
         label="Analytics view sections"
+        level="secondary"
+        stackOnMobile
         items={[
           {
             value: 'totals',

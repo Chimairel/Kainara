@@ -9,8 +9,9 @@ export default function WorkspaceTabs<T extends string>({
   items,
   label,
   className = '',
-  tone = 'accent',
-  size = 'md',
+  level = 'primary',
+  tone,
+  size,
   animateIndicator = true,
   stackOnMobile = false,
 }: {
@@ -26,29 +27,39 @@ export default function WorkspaceTabs<T extends string>({
   }>;
   label: string;
   className?: string;
+  level?: 'primary' | 'secondary';
   tone?: 'accent' | 'accentSoft';
   size?: 'sm' | 'md';
   animateIndicator?: boolean;
   stackOnMobile?: boolean;
 }) {
+  const secondary = level === 'secondary';
+  const resolvedSize = size ?? (secondary ? 'sm' : 'md');
+  const resolvedTone = tone ?? (secondary ? 'accentSoft' : 'accent');
+  const itemSize =
+    resolvedSize === 'md'
+      ? 'min-h-12 rounded-2xl px-3 text-xs sm:text-sm'
+      : secondary
+        ? 'min-h-11 sm:min-h-9 rounded-xl px-3 text-xs'
+        : 'min-h-9 rounded-xl px-2.5 text-[11px] sm:text-xs';
   const activeIndex = items.findIndex((item) => item.value === value);
-  const activeFill = tone === 'accentSoft' ? 'bg-brand-accentSoft' : 'bg-brand-accent';
+  const activeFill = resolvedTone === 'accentSoft' ? 'bg-brand-accentSoft' : 'bg-brand-accent';
   return (
     <nav
       aria-label={label}
-      className={`relative flex w-full gap-1 rounded-[22px] border border-brand-border/70 bg-brand-surface/85 p-1.5 shadow-sm ${stackOnMobile ? 'flex-col sm:flex-row' : ''} ${className}`}
+      className={`relative flex w-full max-w-full gap-1 border border-brand-border/70 bg-brand-surface/85 ${secondary ? 'sm:grid sm:grid-flow-col sm:auto-cols-fr sm:w-fit rounded-2xl p-1' : 'rounded-[22px] p-1.5 shadow-sm'} ${stackOnMobile ? 'flex-col sm:flex-row' : ''} ${className}`}
     >
       {activeIndex >= 0 && (
         // Keep the highlight in this rail's coordinates. Shared layout projection can
         // animate page scrolling or content resizing as if the selected tab moved.
         <div
           aria-hidden="true"
-          className={`pointer-events-none absolute inset-1.5 ${stackOnMobile ? 'hidden sm:block' : ''}`}
+          className={`pointer-events-none absolute ${secondary ? 'inset-1' : 'inset-1.5'} ${stackOnMobile ? 'hidden sm:block' : ''}`}
         >
           <div
             aria-hidden="true"
             data-workspace-tab-indicator
-            className={`absolute inset-y-0 ${animateIndicator ? 'transition-[left] duration-200 ease-out motion-reduce:transition-none' : ''} ${size === 'sm' ? 'rounded-xl' : 'rounded-2xl'} shadow-sm ${activeFill}`}
+            className={`absolute inset-y-0 ${animateIndicator ? 'transition-[left] duration-200 ease-out motion-reduce:transition-none' : ''} ${resolvedSize === 'sm' ? 'rounded-xl' : 'rounded-2xl'} ${secondary ? '' : 'shadow-sm'} ${activeFill}`}
             style={{
               // gap-1 is 0.25rem; equal flex items share the remaining rail width.
               width: `calc((100% - ${(items.length - 1) * 0.25}rem) / ${items.length})`,
@@ -60,10 +71,12 @@ export default function WorkspaceTabs<T extends string>({
       {items.map((item) => {
         const active = value === item.value;
         const mobileFill = active && stackOnMobile ? `${activeFill} sm:bg-transparent sm:dark:bg-transparent` : '';
-        const classes = `group relative flex min-w-0 flex-1 items-center justify-center gap-2 font-display font-extrabold outline-none transition-colors focus-visible:ring-2 focus-visible:ring-brand-green ${size === 'sm' ? 'min-h-9 rounded-xl px-2.5 text-[11px] sm:text-xs' : 'min-h-12 rounded-2xl px-3 text-xs sm:text-sm'} ${active ? 'text-[#07100d]' : 'text-brand-muted hover:bg-brand-bgAlt/70 hover:text-brand-text'} ${mobileFill}`;
+        const classes = `group relative flex min-w-0 flex-1 items-center justify-center gap-2 font-display ${secondary ? 'font-semibold' : 'font-extrabold'} outline-none transition-colors focus-visible:ring-2 focus-visible:ring-brand-green ${itemSize} ${active ? 'text-[#07100d]' : 'text-brand-muted hover:bg-brand-bgAlt/70 hover:text-brand-text'} ${mobileFill}`;
         const content = (
           <>
-            <span className="relative z-10 flex items-center justify-center gap-2">
+            <span
+              className={`relative z-10 flex items-center justify-center ${secondary ? 'gap-1.5 sm:whitespace-nowrap [&>svg]:h-3.5 [&>svg]:w-3.5 [&>svg]:shrink-0' : 'gap-2'}`}
+            >
               {item.icon}
               {item.label}
               {item.count != null && (

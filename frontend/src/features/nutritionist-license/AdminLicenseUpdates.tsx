@@ -84,8 +84,7 @@ export default function AdminLicenseUpdates({ onChanged }: { onChanged: () => vo
           setView(value);
           setPage(1);
         }}
-        tone="accentSoft"
-        size="sm"
+        level="secondary"
         items={[
           { value: 'pending', label: `Pending (${query.data?.pending ?? '…'})` },
           { value: 'history', label: 'All update history' },

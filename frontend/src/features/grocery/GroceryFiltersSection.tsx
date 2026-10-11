@@ -101,7 +101,7 @@ export default function GroceryFiltersSection({ model }: Props) {
                 value={filter}
                 onChange={setFilter}
                 label="Filter grocery items by status"
-                size="sm"
+                level="secondary"
                 items={[
                   { value: 'all', label: 'All Items', count: totalItems },
                   { value: 'remaining', label: 'To Buy', count: remainingItems },
