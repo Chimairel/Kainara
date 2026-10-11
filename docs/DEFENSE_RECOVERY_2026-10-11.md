@@ -65,7 +65,9 @@ The final export comes from a fresh restore of the pristine prepared archive int
 
 Created `kainara-defense-20261016` under `chimairelp@gmail.com`: project `nameless-dust-38810716`, PostgreSQL 17, Singapore (`aws-ap-southeast-1`). The old blocked project remains intact. Creation is not restoration or deployment. The exact branch, database and endpoint must be obtained and confirmed under README's target rule before restoring the final archive into the new empty database.
 
-Current chat tools expose Neon project management but do not expose branch listing or connection-string retrieval; Railway/Vercel tools are also unavailable. Hosted restoration, actual deployed-secret verification, release promotion, public-URL smoke and quota monitoring remain outstanding. No demo branch update or live database switch has occurred.
+Plugin management confirms Neon, Railway and Vercel are installed/enabled. The provider tools needed for connection retrieval and deployments remain unavailable in this chat; installation status does not establish usable deployment access. Hosted restoration, actual deployed-secret verification, release promotion, public-URL smoke and actual quota readings remain outstanding. No demo branch update or live database switch has occurred.
+
+Development release `63ac381887cce3f4aba25a8570462df173d46234` is pushed. A separate clean release checkout retains this committed source without the shared checkout's unrelated edits. Both production builds and backend script typechecking passed there, with all 62 frontend pages generated; dependency installation used the committed lockfiles. The shared checkout's final frontend production build/ESLint also passed.
 
 ### Release sequence and rollback
 
@@ -78,6 +80,8 @@ Current chat tools expose Neon project management but do not expose branch listi
 ### Usage budget until October 16
 
 Check Neon transfer after each bounded rehearsal and daily through October 16. Record the used/allowed amount and timestamp; a missing reading is unknown, not zero. Track compute/storage separately from transfer.
+
+A daily thread follow-up, **Defense database budget**, is active through October 16 and starts usage checks once the live switch is recorded. It stays quiet on unchanged/non-actionable states. Actual provider access/readings still need verification. At the measured rate, ten continuously active sessions for five days would retrieve approximately 5.3 GB; close rehearsal tabs afterward and do not treat the hourly gate as permission for continuous week-long load.
 
 | Transfer usage | Action |
 | --- | --- |
