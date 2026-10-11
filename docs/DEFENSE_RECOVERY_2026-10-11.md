@@ -74,11 +74,13 @@ The clean release checkout excluded unrelated shared edits. Both production buil
 | Production component | Verified deployment | Commit |
 | --- | --- | --- |
 | Railway API | `24a6ce5f-4554-4b3c-a9aa-d20aebd9d880` — SUCCESS | `5a9c025fe97a1d2848a6f40a9ff32578061111a4` |
-| Vercel frontend | `dpl_F33ixRnrEsU2ct2kBBGUNxvJguwH` — READY, compact nested tabs, shared profile settings and continuous review guidance | `52752a92e264b000eb464cbad272efc7da8fc8f4` |
+| Vercel frontend | `dpl_Cw6k6yPpJAKsjdbbmabgJ9J79ivz` — READY, automatic member confirmation refresh; preceding profile and review UI retained | `e57e630eae00f1d87f368724638da1e6f5fc4a0d` |
 
 The later frontend-only health forms inbox release preserves the compatible API above and changes no schema or deployed environment variables. Its public browser check, narrow source scope and previous frontend rollback target are recorded in `docs/HEALTH_FORMS_INBOX_RELEASE_2026-10-11.md`.
 
-The subsequent frontend-only profile refinements preserve that inbox and compatible API. The continuous RND guidance sheet, approved shared button styles and reusable profile settings surfaces are documented in `docs/PROFILE_UI_REFINEMENTS_2026-10-11.md`. All three public personalization tabs were checked with an existing synthetic member; no profile or clinical form was saved during the live smoke. The preceding frontend `dpl_ENg2mEWseAHKo8AcBz3XvR1CLVnR` remains the immediate frontend rollback target.
+The subsequent frontend-only profile refinements preserve that inbox and compatible API. The continuous RND guidance sheet, approved shared button styles and reusable profile settings surfaces are documented in `docs/PROFILE_UI_REFINEMENTS_2026-10-11.md`. All three public personalization tabs were checked with an existing synthetic member; no profile or clinical form was saved during the live smoke.
+
+The October 12 frontend-only confirmation refresh corrects a stale member waiting state after RND approval, including missed live events and older blocked requests. Its 43 focused tests, isolated browser transition and bounded public read-only smoke are recorded in `docs/MEMBER_CONFIRMATION_REFRESH_2026-10-12.md`. The immediate frontend rollback is `dpl_F33ixRnrEsU2ct2kBBGUNxvJguwH` at `52752a92e264b000eb464cbad272efc7da8fc8f4`; no database restore is needed.
 
 Later October 11, owner-confirmed migration `202610110002_initial_profile_clarification_context` and the narrow release above corrected question publication for initial profile revision 0. A fresh verified backup preceded the migration, with retained counts and credential fingerprints unchanged. The ordinary live RND → member answer → second RND handoff/resolution journey passed. See `docs/INITIAL_PROFILE_CLARIFICATION_FIX_2026-10-11.md` for the archive checksum and exact evidence. The original recovery pair was Railway `616d9157-bd6b-4425-80ba-81e90fea97e1` and Vercel `dpl_62NuFUQiMKdvd6GJDWdjQ1YAp7LY`, both at `20899735`.
 
