@@ -100,7 +100,6 @@ async function main() {
     const profile = await db.userProfile.create({
       data: {
         userId: member.id,
-        revision: 1,
         safetyRevision: 1,
         age: 28,
         biologicalSex: 'MALE',
@@ -139,7 +138,7 @@ async function main() {
       data: {
         userId: member.id,
         version: 1,
-        profileRevision: 1,
+        profileRevision: profile.revision,
         acknowledgedAt: now,
         foodsToAvoid: [],
         foodsToLimit: [],
@@ -154,7 +153,7 @@ async function main() {
       data: {
         userId: member.id,
         version: 1,
-        profileRevision: 1,
+        profileRevision: profile.revision,
         acknowledgedAt: now,
         policyVersion: NUTRITION_GUIDANCE_POLICY_VERSION,
         content: {},
@@ -175,7 +174,7 @@ async function main() {
         snapshot: {
           create: {
             userId: member.id,
-            profileRevision: 1,
+            profileRevision: profile.revision,
             safetyRevision: 1,
             nutritionReportVersion: 1,
             weightKg: 65,
@@ -269,7 +268,7 @@ async function main() {
     const stored = await db.clinicalClarificationForm.findUniqueOrThrow({ where: { id: formId } });
     assert.equal(stored.sourceMealPlanId, plans[0].id);
     assert.equal(stored.sourceContextKey, input.expectedContextKey);
-    assert.equal((stored.profileSnapshot as any).sourceReview.snapshot.profile.revision, 1);
+    assert.equal((stored.profileSnapshot as any).sourceReview.snapshot.profile.revision, profile.revision);
     pass(
       'Claim/role/strict boundaries and concurrent retry create one source-bound form; all 21 claims pause without profile or acknowledgment changes'
     );
@@ -456,7 +455,7 @@ async function main() {
       await advanceProfileRevision(tx, member.id);
     });
     const revised = await db.userProfile.findUniqueOrThrow({ where: { userId: member.id } });
-    assert.equal(revised.revision, 2);
+    assert.equal(revised.revision, profile.revision + 1);
     assert.equal(await db.mealPlan.count({ where: { userId: member.id, status: 'CANCELLED' } }), 18);
     assert.equal(
       await db.auditEvent.count({ where: { action: 'MEAL_REVIEW_REQUEST_WITHDRAWN', actorUserId: member.id } }),
@@ -508,13 +507,13 @@ async function main() {
     const acknowledged = await db.userProfile.findUniqueOrThrow({ where: { userId: member.id } });
     await db.nutritionReport.update({
       where: { userId: member.id },
-      data: { version: 2, profileRevision: 2, isStale: false, acknowledgedAt: now },
+      data: { version: 2, profileRevision: acknowledged.revision, isStale: false, acknowledgedAt: now },
     });
     await db.nutritionReportVersion.create({
       data: {
         userId: member.id,
         version: 2,
-        profileRevision: 2,
+        profileRevision: acknowledged.revision,
         acknowledgedAt: now,
         policyVersion: NUTRITION_GUIDANCE_POLICY_VERSION,
         content: {},
@@ -523,7 +522,7 @@ async function main() {
     });
     await db.$transaction(async (tx) => {
       await lockUserProfile(tx, member.id);
-      await ProfileCycleAdaptationService.acknowledgeProfileRevision(tx, member.id, 2);
+      await ProfileCycleAdaptationService.acknowledgeProfileRevision(tx, member.id, acknowledged.revision);
     });
     const repair = await acknowledgedRebuild(member.id, cycle.id);
     assert.equal((await request(reviewers[0], route(3))).body.code, 'MEAL_REVIEW_INACTIVE');
@@ -546,7 +545,7 @@ async function main() {
     assert.equal(await MembershipService.isSafetyRepair(member.id, repairSource.startDate, db), true);
     assert.equal((await repairBillingStart(member.id, repair)).getTime(), repairSource.startDate.getTime());
     await assert.rejects(() => repairBillingStart(foreign.id, repair), { errorCode: 'MEAL_REVIEW_CONTEXT_CHANGED' });
-    await assert.rejects(() => repairBillingStart(member.id, { ...repair, profileRevision: 1 }), {
+    await assert.rejects(() => repairBillingStart(member.id, { ...repair, profileRevision: profile.revision }), {
       errorCode: 'MEAL_REVIEW_CONTEXT_CHANGED',
     });
     pass(
@@ -629,7 +628,7 @@ async function main() {
     });
     assert.equal(rebuilt.startDate.getTime(), today.getTime());
     assert.equal(rebuilt.endDate.getTime(), repairSource.endDate.getTime());
-    assert.equal(rebuilt.snapshot!.profileRevision, 2);
+    assert.equal(rebuilt.snapshot!.profileRevision, acknowledged.revision);
     assert.equal(rebuilt.snapshot!.nutritionReportVersion, 2);
     assert(rebuilt.mealPlans.length > 0);
     assert(rebuilt.mealPlans.every((plan) => plan.scheduledDate >= today));
