@@ -52,6 +52,13 @@ type MacroSelectionInput = {
   dailyCalorieTarget?: number;
   ricePreference?: RicePreference;
   riceFood?: SwapRiceFood | null;
+  /** Saved recipes from earlier worker turns in this same cycle. */
+  existingRecipes?: readonly {
+    rawCandidateId: string;
+    contentSignature: string | null;
+    mealType: MealType;
+    dayNumber: number;
+  }[];
 };
 
 function wholeNutrition(meal: NutritionVector & { pairedRiceG?: number | null }, rice?: SwapRiceFood | null) {
@@ -115,8 +122,10 @@ export function selectRawRecipeCandidates(
   }
 ): { meals: SourcedRawRecipeMeal[]; remainingSlots: RawCandidateSlot[] } {
   const meals: SourcedRawRecipeMeal[] = [];
-  const usedIds = new Set<string>();
-  const usedSignatures = new Set<string>();
+  const usedIds = new Set(input.existingRecipes?.map((meal) => meal.rawCandidateId));
+  const usedSignatures = new Set(
+    input.existingRecipes?.flatMap((meal) => (meal.contentSignature ? [meal.contentSignature] : []))
+  );
   const remainingSlots: RawCandidateSlot[] = [];
   const customAllergies = splitCustomRestrictions(input.otherAllergies);
   const recentIds = new Set(input.recentCandidateIds ?? []);
@@ -202,8 +211,14 @@ export function refineRawRecipeDayMatches(
         continue;
       const score = planningSlotNutritionScore(input.planningTargets, slot.mealType, day)!;
       const currentScore = score(wholeNutrition(current, input.riceFood));
-      const usedIds = new Set(others.map((m) => m.rawCandidateId));
-      const usedSignatures = new Set(others.map((m) => signatures.get(m.rawCandidateId)));
+      const usedIds = new Set([
+        ...others.map((m) => m.rawCandidateId),
+        ...(input.existingRecipes ?? []).map((m) => m.rawCandidateId),
+      ]);
+      const usedSignatures = new Set([
+        ...others.map((m) => signatures.get(m.rawCandidateId)),
+        ...(input.existingRecipes ?? []).flatMap((m) => (m.contentSignature ? [m.contentSignature] : [])),
+      ]);
       const candidates = macroPool(input, slot, input.candidatesByType.get(slot.mealType) ?? [], others);
       const index = candidates.findIndex((candidate) => {
         if (
@@ -278,10 +293,14 @@ export function fillRepeatedRawRecipeSlots(
   const meals: SourcedRawRecipeMeal[] = [];
   const remainingSlots: RawCandidateSlot[] = [];
   const counts = new Map<string, number>();
+  for (const meal of input.existingRecipes ?? [])
+    counts.set(meal.rawCandidateId, (counts.get(meal.rawCandidateId) ?? 0) + 1);
   for (const meal of input.selected) counts.set(meal.rawCandidateId, (counts.get(meal.rawCandidateId) ?? 0) + 1);
   const recent = new Set(input.recentCandidateIds ?? []);
   const customAllergies = splitCustomRestrictions(input.otherAllergies);
   const lastByType = new Map<MealType, string>();
+  for (const meal of [...(input.existingRecipes ?? [])].sort((a, b) => a.dayNumber - b.dayNumber))
+    lastByType.set(meal.mealType, meal.rawCandidateId);
   for (const meal of input.selected) lastByType.set(meal.mealType, meal.rawCandidateId);
   for (const slot of input.slots) {
     const pool = macroPool(input, slot, input.candidatesByType.get(slot.mealType) ?? [], [...input.selected, ...meals]);

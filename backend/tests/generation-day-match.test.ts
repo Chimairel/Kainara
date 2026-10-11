@@ -161,6 +161,14 @@ test('missing slots and unavailable report estimates do not manufacture a comple
   assert.deepEqual(refineRawRecipeDayMatches({ ...input(), planningTargets: null }), selected);
 });
 
+test('daily macro refinement cannot reintroduce a recipe saved by an earlier worker turn', () => {
+  const result = refineRawRecipeDayMatches({
+    ...input(),
+    existingRecipes: [{ rawCandidateId: 'close', contentSignature: 'close', mealType: 'BREAKFAST', dayNumber: 2 }],
+  });
+  assert.equal(result[0].rawCandidateId, 'old');
+});
+
 test('all proposed changes strictly improve the recorded report score', () => {
   const worse = candidate('worse', { calories: 600, proteinG: 4, carbsG: 4, fatG: 62 });
   assert.deepEqual(refineRawRecipeDayMatches(input([current, worse])), selected);

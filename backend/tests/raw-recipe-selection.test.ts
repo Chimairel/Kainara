@@ -42,6 +42,104 @@ function candidate(
   };
 }
 
+test('one-day worker turns retain recipe variety across all seven saved days', async () => {
+  const originalList = databaseRecipeCandidateProvider.list;
+  const types = [MealType.BREAKFAST, MealType.LUNCH, MealType.DINNER];
+  const saved: Array<{ rawCandidateId: string; contentSignature: string; mealType: MealType; dayNumber: number }> = [];
+  databaseRecipeCandidateProvider.list = async (request) => ({
+    items:
+      request.sourceKind === 'USER_OBSERVED'
+        ? []
+        : Array.from({ length: 7 }, (_, i) => ({
+            ...candidate(`${request.mealType}-${i}`, `Dish ${request.mealType}-${i}`, 'chicken'),
+            applicableMealTypes: [request.mealType!],
+            nutrition: {
+              calories: request.mealType === MealType.LUNCH ? 800 : 600,
+              proteinG: 30,
+              carbsG: 75,
+              fatG: 20,
+            },
+          })),
+    nextCursor: null,
+  });
+  try {
+    for (let dayNumber = 1; dayNumber <= 7; dayNumber++) {
+      const result = await sourceRawRecipeCandidates({
+        slots: types.map((mealType) => ({
+          dayNumber,
+          mealType,
+          scheduledDate: new Date(`2031-01-0${dayNumber}T00:00:00Z`),
+        })),
+        dailyCalorieTarget: 2000,
+        planningTargets: {
+          calories: 2000,
+          proteinG: 90,
+          carbsG: 225,
+          fatG: 60,
+          goal: 'MAINTAIN',
+          policyVersion: 'MEAL_MACRO_PLANNING_V1',
+          basis: 'GENERAL_ADULT_ESTIMATE',
+          explanation: 'Software fixture',
+        },
+        existingRecipes: saved,
+        dietaryPreference: DietaryPreference.OMNIVORE,
+        conditions: [],
+        allergens: [],
+        ricePreference: 'NO_RICE',
+      });
+      assert.equal(result.remainingSlots.length, 0);
+      assert.equal(result.meals.length, 3);
+      for (const meal of result.meals) {
+        assert.ok(
+          !saved.some((previous) => previous.rawCandidateId === meal.rawCandidateId),
+          `repeated ${meal.rawCandidateId} on day ${dayNumber}`
+        );
+        saved.push({ ...meal, contentSignature: meal.rawCandidateId, mealType: meal.mealType });
+      }
+    }
+    assert.equal(new Set(saved.map((meal) => meal.rawCandidateId)).size, 21);
+  } finally {
+    databaseRecipeCandidateProvider.list = originalList;
+  }
+});
+
+test('saved worker recipes exclude both their identities and duplicate content signatures', () => {
+  const options = [
+    candidate('used', 'Used', 'chicken', 'same'),
+    candidate('alias', 'Duplicate', 'chicken', 'same'),
+    candidate('new', 'Fresh', 'pork'),
+  ];
+  const result = selectRawRecipeCandidates({
+    slots: [{ dayNumber: 2, mealType: MealType.LUNCH, scheduledDate: new Date() }],
+    candidatesByType: new Map([[MealType.LUNCH, options]]),
+    existingRecipes: [{ rawCandidateId: 'used', contentSignature: 'same', mealType: MealType.LUNCH, dayNumber: 1 }],
+    dietaryPreference: DietaryPreference.OMNIVORE,
+    allergens: [],
+  });
+  assert.equal(result.meals[0].rawCandidateId, 'new');
+});
+
+test('exhausted worker pools rotate using saved counts and still reject allergen conflicts', () => {
+  const options = [
+    candidate('a', 'First', 'chicken'),
+    candidate('b', 'Second', 'pork'),
+    candidate('blocked', 'Shrimp', 'shrimp'),
+  ];
+  const result = fillRepeatedRawRecipeSlots({
+    slots: [{ dayNumber: 4, mealType: MealType.LUNCH, scheduledDate: new Date() }],
+    selected: [],
+    existingRecipes: [
+      { rawCandidateId: 'a', contentSignature: 'a', mealType: MealType.LUNCH, dayNumber: 1 },
+      { rawCandidateId: 'a', contentSignature: 'a', mealType: MealType.LUNCH, dayNumber: 2 },
+      { rawCandidateId: 'b', contentSignature: 'b', mealType: MealType.LUNCH, dayNumber: 3 },
+    ],
+    candidatesByType: new Map([[MealType.LUNCH, options]]),
+    dietaryPreference: DietaryPreference.OMNIVORE,
+    allergens: ['SHELLFISH'],
+  });
+  assert.equal(result.meals[0].rawCandidateId, 'b');
+});
+
 test('raw selection skips definite allergen conflicts and exact duplicate signatures', () => {
   const slot = (dayNumber: number) => ({
     dayNumber,
