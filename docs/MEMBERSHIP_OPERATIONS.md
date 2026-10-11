@@ -1,11 +1,11 @@
-# Membership V2 operations
+# Membership V4 operations
 
-Membership adds a single 14-day trial and bounded Lifestyle and Health benefits to the existing account and meal workflows. Public Pricing and signed-in Membership share the same plan component. **Get Lifestyle** and **Get Health** open PayMongo hosted test checkout when explicitly configured. Regular development databases and the configured hosted demo are supported. Real purchases, automatic renewal and automatic charges remain unavailable.
+Membership adds a single 30-day Health trial and bounded Lifestyle and Health benefits to the existing account and meal workflows. This record follows `KAINARA_MEMBERSHIP_V4` in `backend/src/domain/membership.policy.ts`. Public Pricing and signed-in Membership share the same plan component. **Get Lifestyle** and **Get Health** open PayMongo hosted test checkout when explicitly configured. Regular development databases and the configured hosted demo are supported. Real purchases, automatic renewal and automatic charges remain unavailable.
 
 | Plan | Monthly | Yearly, rounded whole peso |
 | --- | --- | --- |
 | Lifestyle | ₱249 | ₱2,390 |
-| Health | ₱1,499 | ₱14,390 |
+| Health | ₱999 | ₱9,590 |
 
 The annual amount applies the approved 20% discount to twelve months, rounded to the nearest peso. Amounts are owned by the server in centavos. The public catalogue supplies displayed prices; checkout requests contain only the tier, period and request key.
 
@@ -18,14 +18,14 @@ The annual amount applies the approved 20% discount to twelve months, rounded to
 | First planning report / genuinely unchanged weekly report | Free | Included | Included |
 | Apply changed ordinary planning context | Previous eligible report remains usable | Included | Included |
 | Apply changed case context / new case plans after trial | Unavailable | Unavailable | Included, subject to clearance |
-| Swaps per plan cycle | 3 | 6 | 6 |
+| Swaps per plan cycle | 3 | 10 | 21 |
 | AI estimate requests per Manila week | 2 | 10 | 10 |
-| Optional replans per Manila week | 0 | 2 | 2 |
+| Optional full-plan replacement | Unavailable | Unavailable | Unavailable |
 | Progress insights and weigh-in tracking | Unavailable | Included | Included |
 | Case plan-review episodes per target Manila week | Existing episode follow-up | Existing episode follow-up | 1 |
 | Requested outside-meal review episodes per Manila week | Existing episode follow-up | Existing episode follow-up | 1 |
 
-The one 14-day Health trial starts when a cleared current plan becomes usable; a starter counts. Pending review and future cycles do not start it. Reports, check-ins, cycle changes and tier changes never restart the trial or reset usage. Existing verified membership grants map to Health; explicit Lifestyle grants have no new review allowance. Overlapping Lifestyle access cannot extend expired Health case access.
+The one 30-day Health trial starts when a cleared current plan becomes usable; a starter counts. Pending review and future cycles do not start it. Reports, check-ins, cycle changes and tier changes never restart the trial or reset usage. Existing verified membership grants map to Health; explicit Lifestyle grants have no new review allowance. Overlapping Lifestyle access cannot extend expired Health case access.
 
 ### Planning reports and weekly check-ins
 
@@ -37,9 +37,9 @@ Profile saving does not activate optional planning changes. Declining an upgrade
 
 Plan composition, schedules, queued candidates, catalogue compatibility, swaps and replacement inputs use the accepted report snapshot. New cycle snapshots store the report version; nutritionist meal review presents that planning context alongside current declarations and warns about differences. Historical cycles remain immutable. A nutrition report is not professional approval or evidence that a meal has cleared its restrictions.
 
-Admission reserves allowance under an account lock. Failed work releases its reservation; successful persistence consumes it atomically. In-flight reservations expire after 30 minutes. AI requests only spend an allowance when provider estimation is actually needed and the preview is saved. Manual and exact-source resolution do not spend it. Replace-plan requests use a client request key, and completed retries return the saved cycle. Swaps count across revisions of the same cycle period. Initial items in one outside-meal log share a requested review episode; reopening after a final decision starts another episode. Replies and completion of an already submitted review are not newly charged. Automatic safety review is never suppressed by an exhausted allowance.
+Admission reserves allowance under an account lock. Failed work releases its reservation; successful persistence consumes it atomically. In-flight reservations expire after 30 minutes. AI requests only spend an allowance when provider estimation is actually needed and the preview is saved. Manual and exact-source resolution do not spend it. Swaps count across revisions of the same cycle period. Initial items in one outside-meal log share a requested review episode; reopening after a final decision starts another episode. Replies and completion of an already submitted review are not newly charged. Automatic safety review is never suppressed by an exhausted allowance.
 
-An optional replacement of a case plan starts a new plan-review episode and must fit both the replan and case-review allowances. Safety repair and follow-up of the admitted plan do not start another episode. One episode is a bounded workflow, not unlimited consultations, continuous monitoring, or guaranteed approval. Existing profile-document, reviewer eligibility, independent approval, safety revision and meal actionability rules still apply.
+Discretionary full-plan replacement is retired; the legacy endpoint rejects it even when membership is enabled. Safety repair and follow-up of the admitted plan do not start another episode. One episode is a bounded workflow, not unlimited consultations, continuous monitoring, or guaranteed approval. Existing profile-document, reviewer eligibility, safety revision and meal actionability rules still apply. Ordinary meal decisions require one eligible RND; quarantine release is an audited administrator action.
 
 ## Configuration
 
@@ -48,13 +48,13 @@ Only the backend needs membership settings:
 | Variable | Default | Valid range |
 | --- | --- | --- |
 | `MEMBERSHIP_ENABLED` | `false` | `true` or `false` |
-| `MEMBERSHIP_WEEKLY_SWAPS` | 6 | 3–21 |
+| `MEMBERSHIP_LIFESTYLE_CYCLE_SWAPS` | 10 | 3–21 |
+| `MEMBERSHIP_HEALTH_CYCLE_SWAPS` | 21 | 3–21 |
 | `MEMBERSHIP_WEEKLY_ESTIMATES` | 10 | 2–100 |
-| `MEMBERSHIP_WEEKLY_REPLANS` | 2 | 1–7 |
 | `MEMBERSHIP_WEEKLY_PLAN_REVIEWS` | 1 | 1–7 |
 | `MEMBERSHIP_WEEKLY_OUTSIDE_REVIEWS` | 1 | 1–20 |
 
-Manila weeks start Monday at 00:00. Swap limits follow the plan cycle, including starter cycles; revisions do not reset them. Case plan admission is counted against the target plan week. The status page shows current-week usage and the active cycle's swap count. Backend admission remains authoritative when cached frontend status changes or expires.
+Manila weeks start Monday at 00:00. Swap limits follow the plan cycle, including starter cycles; revisions do not reset them. Case plan admission is counted against the target plan week. The status page shows current-week usage and the active cycle's swap count. Backend admission remains authoritative when cached frontend status changes or expires. The former `MEMBERSHIP_WEEKLY_SWAPS` and `MEMBERSHIP_WEEKLY_REPLANS` settings do not configure V4 allowances.
 
 The feature flag defaults off for staged deployment. Disabled membership bypasses payment/allowance gates. Once an active planning-report pointer exists, its baseline remains authoritative; disabling membership does not discard that pointer. `GET /api/user/membership` requires a regular authenticated user and returns status/allowances without private profile details. `POST /api/user/membership/checkout` returns `503 MEMBERSHIP_PURCHASES_UNAVAILABLE` unless the explicit test configuration below is valid.
 

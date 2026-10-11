@@ -125,7 +125,11 @@ RND replacement search reuses the member `SwapMealComparison` and `SwapMealOptio
 
 ## Subscription history
 
+Membership uses `MembershipPlanHeader`, `PlanStatisticsCard`, `PlanCalendarCard` and `SubscriptionHistoryCard` for concise current status, remaining/cap allowances, actual period dates and saved history. Pending trials have no calendar or fabricated dates. Use `MembershipHelp` once beside the page heading for policy explanations rather than repeating paragraphs inside cards. `HeaderRefreshAction` keeps refresh controls beside their headings. These components retain server-derived allowances, Philippine dates, paid future periods, role endpoints and owner isolation; presentation must not grant access or reset usage.
+
 `features/membership/SubscriptionHistoryCard` renders the recorded introductory trial and later membership periods in chronological order, with Philippine dates, status, recorded amounts and pagination. Member Membership places it below Plan Statistics and Plan Schedule; Admin Audit's Member subscriptions tab reuses it through `features/admin-audit/AdminSubscriptionHistory`, with paginated member search and selection. Pass the authenticated ownerId and the caller's role endpoint to retain session isolation. A pending trial has no invented start/end date. Historical checkout records from a disabled or different test configuration are explicitly recorded history, not current access. Plan Schedule remains the current entitlement presentation. Keep meal logs, personalization changes and clinical details outside this history.
+
+CaseAuditSection consumes the same public `mealPlan.image` contract as member meals through `MealImage`. The backend reuses `resolvePlanImage` and bounded source/library photo projections. Preserve source attribution, adapted-image priority, swapped-recipe identity checks and truthful unavailable/error fallback; an image is not clinical evidence or approval.
 
 ## Illustrated states
 

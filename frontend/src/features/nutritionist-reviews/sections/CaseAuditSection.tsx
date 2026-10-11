@@ -1,6 +1,5 @@
 'use client';
 import MealImage from '@/components/user/MealImage';
-import type { PublicMealImage } from '@/types';
 import IngredientEvidenceTable from '../IngredientEvidenceTable';
 import type { DetailData } from '../useNutritionistReviews';
 import ReusableReviewReferences from '../ReusableReviewReferences';
@@ -25,7 +24,7 @@ export default function CaseAuditSection({
         <MealImage
           mealName={meal.mealName}
           mealType={meal.mealType}
-          image={(meal as { image?: PublicMealImage | null }).image ?? null}
+          image={meal.image ?? null}
           variant="card"
           className="h-52 w-full"
           showAttributionLinks

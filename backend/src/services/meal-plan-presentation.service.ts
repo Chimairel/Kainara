@@ -121,7 +121,7 @@ function recordedMemberApproval(
   return null;
 }
 
-function planImage(
+export function resolvePlanImage(
   meal: {
     libraryMeal?: (MealImageRecord & { id: string }) | null;
     sourceRawRecipeCandidate?: RawRecipeImageRecord | null;
@@ -189,7 +189,7 @@ export function pendingPreviewWithImages<
         const rice = row.servingComponents?.find((item) => item.componentType === 'COOKED_RICE');
         return rice?.quantityG ? ricePortionLabel(rice.quantityG) : null;
       })(),
-      image: planImage(row, libraryImages),
+      image: resolvePlanImage(row, libraryImages),
       cookingLink: planCookingLink(row, libraryCookingLinks),
     }))
   );
@@ -248,7 +248,7 @@ export function serializeActionableMeal<
     ...publicMeal,
     ingredients: meal.ingredients.map(({ foodItem: _foodItem, ...ingredient }) => ingredient),
     ricePortion: rice?.quantityG ? ricePortionLabel(rice.quantityG) : null,
-    image: planImage({ libraryMeal, sourceRawRecipeCandidate, selectionEvidence }, libraryImages),
+    image: resolvePlanImage({ libraryMeal, sourceRawRecipeCandidate, selectionEvidence }, libraryImages),
     cookingLink: planCookingLink({ libraryMeal, sourceRawRecipeCandidate, selectionEvidence }, libraryCookingLinks),
     verifier: verifier
       ? {

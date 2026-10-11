@@ -4,7 +4,7 @@ import Dropdown from '@/components/ui/Dropdown';
 import Card from '@/components/ui/Card';
 import { useState, useMemo, useEffect } from 'react';
 import { membershipSchedules, manilaDate } from './membership-schedule';
-import { ChevronLeft, ChevronRight, Clock } from 'lucide-react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import type { MembershipView } from './MembershipProvider';
 
 interface PlanCalendarCardProps {
@@ -139,201 +139,88 @@ export default function PlanCalendarCard({ data }: PlanCalendarCardProps) {
       : 'Not started';
 
   return (
-    <Card
-      decorationVariant="schedule"
-      contentClassName="flex h-full flex-col justify-between"
-      aria-label="Plan schedule and validity"
-      className="relative overflow-hidden rounded-[28px] sm:rounded-[36px] border border-[#dce4e0] dark:border-[#173e33] bg-[#faf8f5] dark:bg-[#071914] text-[#0d2820] dark:text-white shadow-xl p-6 sm:p-8 flex flex-col justify-between"
-    >
-      {/* 3. Watermarked Kainara Logo Seal */}
-
-      {/* Main Content inside Card */}
-      <div className="relative z-10">
-        {/* Header (Adapted from 'Schedule a meeting') */}
-        <div className="flex items-center gap-3 pb-3.5 border-b border-[#dce4e0]/80 dark:border-[#173e33]">
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl border border-[#dce4e0] dark:border-[#173e33] bg-white/80 dark:bg-[#0a201a] text-brand-green shadow-xs">
-            <Clock className="h-4 w-4" />
-          </div>
-          <div>
-            <h3 className="font-display text-base sm:text-lg font-black tracking-[-0.02em] text-[#0d2820] dark:text-white">
-              Plan Schedule
-            </h3>
-            <p className="text-xs text-[#5a746a] dark:text-white/60">
-              Current plan duration, validity, and renewal status.
-            </p>
-          </div>
+    <Card aria-label="Plan schedule and validity" className="p-6 sm:p-8">
+      <h2 className="font-display text-xl font-bold text-brand-text">Membership period</h2>
+      {schedules.length > 1 ? (
+        <div className="mt-5">
+          <label className="sr-only" htmlFor="membership-schedule">
+            Membership period
+          </label>
+          <Dropdown id="membership-schedule" value={schedule.id} onChange={setSelection}>
+            {schedules.map((item) => (
+              <option key={item.id} value={item.id}>
+                {item.label}
+              </option>
+            ))}
+          </Dropdown>
         </div>
-
-        <label className="block text-xs font-semibold mb-2" htmlFor="membership-schedule">
-          Membership period
-        </label>
-        <Dropdown
-          id="membership-schedule"
-          value={schedule.id}
-          className="mb-3 w-full rounded-xl border border-brand-border bg-brand-surface p-2 text-sm"
-          onChange={(event) => {
-            setSelection(event);
-            const next = schedules.find((item) => item.id === event);
-            const day = manilaDate(next?.start ?? data.serverTime);
-            setCurrentMonth(new Date(`${day.slice(0, 7)}-01T12:00:00Z`));
-          }}
-        >
-          {schedules.map((item) => (
-            <option key={item.id} value={item.id}>
-              {item.label}
-            </option>
-          ))}
-        </Dropdown>
-        <p className="mb-4 text-xs text-brand-muted">{schedule.message}</p>
-        {/* Main Layout: Wide Calendar with Dates & Renewal underneath */}
-        <div className="mt-4 space-y-4">
-          {/* Calendar View Sub-card: Widen to full card width */}
-          <div className="rounded-[24px] border border-[#dce4e0] dark:border-[#173e33] bg-white/80 dark:bg-[#0c241d]/70 p-4 sm:p-5 shadow-sm backdrop-blur-sm">
-            {/* Month Navigation */}
-            <div className="flex items-center justify-between mb-3 px-1">
-              <button
-                type="button"
-                onClick={prevMonth}
-                aria-label="Previous month"
-                className="flex h-8 w-8 items-center justify-center rounded-xl text-[#5a746a] dark:text-white/70 hover:text-[#0d2820] dark:hover:text-white hover:bg-neutral-100 dark:hover:bg-[#13382c] transition-colors"
-              >
-                <ChevronLeft className="h-4 w-4" />
-              </button>
-              <span className="font-display text-xs sm:text-sm font-bold text-[#0d2820] dark:text-white">
-                {monthLabel}
+      ) : (
+        <p className="mt-2 text-sm text-brand-muted">{schedule.label}</p>
+      )}
+      {schedule.start && schedule.end && (
+        <div className="mt-5">
+          <div className="mb-3 flex items-center justify-between">
+            <button
+              type="button"
+              onClick={prevMonth}
+              aria-label="Previous month"
+              className="flex h-10 w-10 items-center justify-center rounded-lg text-brand-muted hover:bg-brand-bg focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-green"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </button>
+            <span className="text-sm font-semibold text-brand-text">{monthLabel}</span>
+            <button
+              type="button"
+              onClick={nextMonth}
+              aria-label="Next month"
+              className="flex h-10 w-10 items-center justify-center rounded-lg text-brand-muted hover:bg-brand-bg focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-green"
+            >
+              <ChevronRight className="h-4 w-4" />
+            </button>
+          </div>
+          <div className="grid grid-cols-7 text-center text-xs text-brand-muted">
+            {DAYS_OF_WEEK.map((day) => (
+              <span key={day} className="py-2">
+                {day}
               </span>
-              <button
-                type="button"
-                onClick={nextMonth}
-                aria-label="Next month"
-                className="flex h-8 w-8 items-center justify-center rounded-xl text-[#5a746a] dark:text-white/70 hover:text-[#0d2820] dark:hover:text-white hover:bg-neutral-100 dark:hover:bg-[#13382c] transition-colors"
+            ))}
+          </div>
+          <div className="grid grid-cols-7 gap-y-1">
+            {calendarDays.map((cell, index) => (
+              <div
+                key={index}
+                className={[
+                  'flex h-9 items-center justify-center text-xs tabular-nums',
+                  !cell.isCurrentMonth
+                    ? 'text-brand-muted/40'
+                    : cell.isStart || cell.isEnd
+                      ? 'rounded-full bg-brand-orange font-semibold text-brand-text'
+                      : cell.isInRange
+                        ? 'bg-brand-green/10 text-brand-text'
+                        : 'text-brand-muted',
+                  cell.isToday ? 'underline underline-offset-4' : '',
+                ].join(' ')}
               >
-                <ChevronRight className="h-4 w-4" />
-              </button>
-            </div>
-
-            {/* Weekday headers */}
-            <div className="grid grid-cols-7 text-center mb-1">
-              {DAYS_OF_WEEK.map((day) => (
-                <span
-                  key={day}
-                  className="text-[10px] sm:text-[11px] font-semibold text-[#5a746a] dark:text-emerald-200/60 py-1"
-                >
-                  {day}
-                </span>
-              ))}
-            </div>
-
-            {/* Days grid */}
-            <div className="grid grid-cols-7 gap-y-1">
-              {calendarDays.map((cell, idx) => {
-                const dayNum = cell.date.getUTCDate();
-
-                if (!cell.isCurrentMonth) {
-                  return (
-                    <div
-                      key={idx}
-                      className="h-8 sm:h-9 flex items-center justify-center text-[11px] sm:text-xs text-neutral-300 dark:text-neutral-700 select-none"
-                    >
-                      {dayNum}
-                    </div>
-                  );
-                }
-
-                if (cell.isStart) {
-                  return (
-                    <div
-                      key={idx}
-                      className="h-8 sm:h-9 flex items-center justify-center relative bg-brand-green/20 dark:bg-brand-green/30 rounded-l-full"
-                    >
-                      <div className="h-7 w-7 sm:h-8 sm:w-8 rounded-full bg-white text-neutral-950 font-bold text-[11px] sm:text-xs flex items-center justify-center shadow-md">
-                        {dayNum}
-                      </div>
-                    </div>
-                  );
-                }
-
-                if (cell.isEnd) {
-                  return (
-                    <div
-                      key={idx}
-                      className="h-8 sm:h-9 flex items-center justify-center relative bg-brand-green/20 dark:bg-brand-green/30 rounded-r-full"
-                    >
-                      <div className="h-7 w-7 sm:h-8 sm:w-8 rounded-full bg-brand-green text-white font-bold text-[11px] sm:text-xs flex items-center justify-center shadow-md">
-                        {dayNum}
-                      </div>
-                    </div>
-                  );
-                }
-
-                if (cell.isInRange) {
-                  return (
-                    <div
-                      key={idx}
-                      className="h-8 sm:h-9 flex items-center justify-center bg-brand-green/20 dark:bg-brand-green/30 text-[11px] sm:text-xs font-bold text-brand-green dark:text-emerald-300"
-                    >
-                      {dayNum}
-                    </div>
-                  );
-                }
-
-                return (
-                  <div
-                    key={idx}
-                    className={`h-8 sm:h-9 flex items-center justify-center text-[11px] sm:text-xs text-[#0d2820] dark:text-white transition-colors rounded-full hover:bg-neutral-100 dark:hover:bg-[#13382c] ${
-                      cell.isToday ? 'font-bold underline decoration-brand-green decoration-2' : ''
-                    }`}
-                  >
-                    {dayNum}
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Date Details: Clean 2-column cards underneath */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-            {/* Start Date */}
-            <div>
-              <label className="block text-xs font-semibold text-[#0d2820] dark:text-white mb-1.5">Start date</label>
-              <div className="flex items-center justify-between rounded-2xl border border-[#dce4e0] dark:border-[#173e33] bg-white/80 dark:bg-[#0c241d]/70 px-4 py-2.5 shadow-xs">
-                <span className="text-xs font-semibold text-[#0d2820] dark:text-white">
-                  {formatDateDisplay(startDate)}
-                </span>
-                <span className="rounded-xl border border-[#dce4e0] dark:border-[#173e33] bg-[#faf8f5] dark:bg-[#071914] px-2.5 py-1 font-mono text-[11px] font-bold text-[#0d2820] dark:text-emerald-200 shadow-2xs">
-                  {startTimeStr}
-                </span>
+                {cell.date.getUTCDate()}
               </div>
-            </div>
-
-            {/* End Date */}
-            <div>
-              <label className="block text-xs font-semibold text-[#0d2820] dark:text-white mb-1.5">End date</label>
-              <div className="flex items-center justify-between rounded-2xl border border-[#dce4e0] dark:border-[#173e33] bg-white/80 dark:bg-[#0c241d]/70 px-4 py-2.5 shadow-xs">
-                <span className="text-xs font-semibold text-[#0d2820] dark:text-white">
-                  {endDate ? formatDateDisplay(endDate) : data.level === 'FREE' ? 'No expiry' : 'Not scheduled'}
-                </span>
-                <span className="rounded-xl border border-[#dce4e0] dark:border-[#173e33] bg-[#faf8f5] dark:bg-[#071914] px-2.5 py-1 font-mono text-[11px] font-bold text-[#0d2820] dark:text-emerald-200 shadow-2xs">
-                  {endTimeStr}
-                </span>
-              </div>
-            </div>
-          </div>
-
-          <div className="pt-2 border-t border-brand-border/60">
-            <p className="text-xs font-semibold">Manual renewal</p>
-            <p className="mt-1 text-xs text-brand-muted">
-              No automatic renewal or recurring charge. Dates use Philippine time.
-            </p>
-            {schedule.id === 'current' && data.level === 'TRIAL' && (
-              <p className="mt-1 text-xs text-brand-muted">
-                When Health ends, your already-paid next plan starts if scheduled. Otherwise, your account returns to
-                Free.
-              </p>
-            )}
+            ))}
           </div>
         </div>
-      </div>
+      )}
+      <dl className="mt-5 grid grid-cols-1 gap-4 border-t border-brand-border pt-5 sm:grid-cols-2">
+        <div>
+          <dt className="text-xs text-brand-muted">Start date</dt>
+          <dd className="mt-1 text-sm font-medium text-brand-text">{formatDateDisplay(startDate)}</dd>
+          {startTimeStr && <dd className="mt-1 text-xs text-brand-muted">{startTimeStr}</dd>}
+        </div>
+        <div>
+          <dt className="text-xs text-brand-muted">End date</dt>
+          <dd className="mt-1 text-sm font-medium text-brand-text">
+            {endDate ? formatDateDisplay(endDate) : data.level === 'FREE' ? 'No expiry' : 'Not scheduled'}
+          </dd>
+          {endTimeStr && <dd className="mt-1 text-xs text-brand-muted">{endTimeStr}</dd>}
+        </div>
+      </dl>
     </Card>
   );
 }

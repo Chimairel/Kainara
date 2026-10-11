@@ -23,6 +23,7 @@ import { SafetyIntakeService } from '../src/services/safety-intake.service';
 import { MealBaseVerificationService } from '../src/services/meal-base-verification.service';
 import { createRecipeDerivation } from '../src/services/recipe-derivation.service';
 import { recipeDerivationSchema } from '../src/validation/recipe-derivation.schemas';
+import { loadMealReviewContext } from '../src/services/meal-case-context.service';
 
 async function main() {
   const databaseHost = new URL(process.env.DATABASE_URL ?? '').hostname;
@@ -336,10 +337,20 @@ async function main() {
       },
     });
     planId = plan.id;
+    await prisma.rawRecipeCandidate.update({
+      where: { id: candidateId },
+      data: { sourceVideoUrl: 'https://www.youtube.com/watch?v=abcdefghijk' },
+    });
+    const detail = await NutritionistReviewService.getReviewCardDetails(rnd.id, plan.id);
+    assert.equal(detail.mealPlan.image?.url, 'https://i.ytimg.com/vi/abcdefghijk/mqdefault.jpg');
+    assert.equal(detail.mealPlan.status, 'PENDING_REVIEW', 'Showing a source image must not approve a meal.');
+    const reviewContext = await loadMealReviewContext(plan.id);
     const approved = await NutritionistReviewService.approveMealPlan(
       rnd.id,
       plan.id,
-      'Reviewed the observed recipe for this patient.'
+      'Reviewed the observed recipe for this patient.',
+      undefined,
+      reviewContext?.contextKey
     );
     assert.equal(approved.success, true);
     const draft = await createOrReuseLibraryDraftFromApprovedPlan(rnd.id, plan.id);

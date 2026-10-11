@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { serializeActionableMeal } from '../src/services/meal-plan-presentation.service';
+import { resolvePlanImage, serializeActionableMeal } from '../src/services/meal-plan-presentation.service';
 
 const meal = {
   id: 'fixture-meal',
@@ -81,6 +81,26 @@ const recipe = {
   imageLicenseCode: null,
   imageLicenseUrl: null,
 };
+test('review and member presentation share source photography without reusing a replaced recipe photo', () => {
+  const raw = {
+    recipeName: 'Synthetic Hotsilog',
+    sourceName: 'PANLASANG_PINOY',
+    sourceUrl: 'https://panlasangpinoy.com/hotsilog/',
+    sourceImageUrl: 'https://panlasangpinoy.com/wp-content/uploads/2026/10/hotsilog.jpg',
+    sourceVideoUrl: null,
+  };
+  const display = resolvePlanImage({ sourceRawRecipeCandidate: raw });
+  assert.equal(display?.url, raw.sourceImageUrl);
+  assert.equal(display?.attribution.sourcePageUrl, raw.sourceUrl);
+  assert.equal(serializeActionableMeal({ ...meal, sourceRawRecipeCandidate: raw }).image?.url, display?.url);
+  assert.equal(resolvePlanImage({ sourceRawRecipeCandidate: raw, selectionEvidence: { source: 'USER_SWAP' } }), null);
+  assert.equal(
+    resolvePlanImage({ sourceRawRecipeCandidate: { ...raw, sourceImageUrl: 'https://untrusted.invalid/photo.jpg' } }),
+    null
+  );
+  const adapted = { ...recipe, derivationKind: 'ADAPTED', adaptedImageUrl: '/meals/fixture-adapted.jpg' };
+  assert.equal(resolvePlanImage({ libraryMeal: adapted, sourceRawRecipeCandidate: raw })?.url, adapted.adaptedImageUrl);
+});
 const reviewedMeal = {
   ...meal,
   nutritionistId: 'synthetic-rnd',

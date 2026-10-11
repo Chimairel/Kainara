@@ -2,6 +2,7 @@ import type { IngredientEvidenceSource } from './ingredient-evidence';
 import type { ReviewRouting } from './review-routing';
 import type { ClarificationWorkspace } from '@/features/clinical-clarification/types';
 import type { ReviewPollStatus } from '@/types/review-status';
+import type { PublicMealImage } from '@/types';
 
 export interface QueueItem {
   routing?: ReviewRouting;
@@ -68,6 +69,7 @@ export interface DetailData {
     }>;
   };
   mealPlan: {
+    image?: PublicMealImage | null;
     id: string;
     planGroupId: string;
     userId: string;

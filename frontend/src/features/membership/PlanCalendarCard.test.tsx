@@ -40,7 +40,7 @@ describe('membership period calendar', () => {
     fireEvent.click(screen.getByRole('combobox'));
     fireEvent.click(screen.getByRole('option', { name: /Next: Lifestyle/ }));
     expect(screen.getByText('November 30, 2026')).toBeInTheDocument();
-    expect(screen.getByText(/no additional charge is needed/)).toBeInTheDocument();
+    expect(screen.getByRole('combobox')).toHaveTextContent('Already paid');
     fireEvent.click(screen.getByRole('combobox'));
     fireEvent.click(screen.getByRole('option', { name: 'Current: Health' }));
     expect(screen.getByText('October 1, 2026')).toBeInTheDocument();

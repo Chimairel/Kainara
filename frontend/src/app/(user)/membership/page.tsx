@@ -7,6 +7,7 @@ import Button from '@/components/ui/Button';
 import { useMembership } from '@/features/membership/MembershipProvider';
 import Pricing from '@/components/ui/pricing';
 import MembershipPlanHeader from '@/features/membership/MembershipPlanHeader';
+import MembershipHelp from '@/features/membership/MembershipHelp';
 import PlanStatisticsCard from '@/features/membership/PlanStatisticsCard';
 import PlanCalendarCard from '@/features/membership/PlanCalendarCard';
 import { RefreshCw, AlertTriangle, CreditCard, ExternalLink } from 'lucide-react';
@@ -100,7 +101,8 @@ function MembershipContent() {
       {/* 1. PORTAL PAGE HEADER */}
       <PortalPageHeader
         title="KAINARA membership"
-        description="Keep your weekly meals practical. Membership adds adaptation, progress insights and professional review when required."
+        description="Manage your plan, allowances and membership history."
+        actions={<MembershipHelp />}
       />
 
       {/* 2. ROLLOUT NOTICE (if membership is disabled) */}
@@ -176,9 +178,9 @@ function MembershipContent() {
 
       {/* 5. TWO SECTIONS: PLAN STATISTICS (IMG 3-5) & PLAN CALENDAR (IMG 2) */}
       {data?.enabled && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
           {/* Left section: Allowances & Usage Statistics with peeking max numbers and pill bars */}
-          <PlanStatisticsCard data={data} onOpenPlans={() => setIsPlansModalOpen(true)} />
+          <PlanStatisticsCard data={data} />
 
           {/* Right section: Plan Schedule Calendar adapted from meeting-scheduler */}
           <PlanCalendarCard data={data} />

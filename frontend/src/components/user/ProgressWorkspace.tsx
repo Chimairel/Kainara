@@ -1,8 +1,6 @@
 'use client';
 import WorkspaceTabs from '@/components/ui/WorkspaceTabs';
 
-import Link from 'next/link';
-
 import Button from '@/components/ui/Button';
 
 import ProgressSkeleton from '@/features/progress/ProgressSkeleton';
@@ -35,7 +33,6 @@ export function ProgressWorkspace({ mode = 'progress' }: { mode?: ProgressWorksp
     setWeightFormError,
     setWeightSuccess,
     router,
-    membership,
     error,
     fetchPageData,
     weightSuccess,
@@ -149,21 +146,6 @@ export function ProgressWorkspace({ mode = 'progress' }: { mode?: ProgressWorksp
             <ProfileSettingsSurface>
               <ProgressProfileSection model={model} />
               {mode === 'planning' ? <MealReminderSettingsPanel /> : <ProgressSafetySection model={model} />}
-              {membership?.enabled && (
-                <details className="px-5 py-5 sm:px-7">
-                  <summary className="cursor-pointer text-sm font-semibold text-brand-text focus-visible:outline-brand-green">
-                    How your membership affects planning
-                  </summary>
-                  <p className="mt-3 max-w-prose text-sm leading-relaxed text-brand-muted">
-                    You can save profile updates on any plan. Applying ordinary changes to meal planning requires
-                    Lifestyle; case planning and health-context updates require Health. Your first report and unchanged
-                    weekly reports are free.{' '}
-                    <Link href="/membership" className="font-semibold text-brand-green underline underline-offset-4">
-                      View your benefits and limits
-                    </Link>
-                  </p>
-                </details>
-              )}
             </ProfileSettingsSurface>
           ) : (
             <ProgressProfileSection model={model} />

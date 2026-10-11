@@ -95,11 +95,9 @@ describe('membership status and gates', () => {
   });
   it('keeps plans out of the allowance view and opens the shared accessible plan dialog', () => {
     render(<MembershipPage />);
-    expect(screen.getByText('6 of 10 left')).toBeInTheDocument();
-    expect(screen.getByText('20 of 21 left')).toBeInTheDocument();
+    expect(screen.getByLabelText('AI estimates: 6 of 10 remaining')).toBeInTheDocument();
+    expect(screen.getByLabelText('Meal swaps: 20 of 21 remaining')).toBeInTheDocument();
     expect(screen.queryByText('Replans')).not.toBeInTheDocument();
-    expect(screen.getByRole('meter', { name: 'AI estimates used' })).toHaveAttribute('aria-valuenow', '4');
-    expect(screen.getByRole('meter', { name: 'AI estimates used' })).toHaveAttribute('aria-valuemax', '10');
     expect(screen.queryByRole('button', { name: 'Get Lifestyle', hidden: true })).not.toBeInTheDocument();
     fireEvent.click(screen.getAllByRole('button', { name: 'View plans' })[0]);
     expect(screen.getByRole('dialog', { name: 'Membership plans' })).toBeInTheDocument();
@@ -154,8 +152,13 @@ describe('membership status and gates', () => {
   it('explains waiting for a usable plan rather than starting the trial during review', () => {
     state.data = { ...view(), level: 'TRIAL_PENDING', trialStartedAt: null, trialEndsAt: null };
     render(<MembershipPage />);
-    expect(screen.getByText(/Your 30-day Health plan starts/)).toBeInTheDocument();
-    expect(screen.getByText(/A starter plan counts; waiting for review does not/)).toBeInTheDocument();
+    expect(
+      within(screen.getByRole('region', { name: 'Current membership overview' })).getByText('Not started')
+    ).toBeInTheDocument();
+    expect(screen.getByText('Your 30 days start when your meals are ready.')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Previous month' })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Membership help' }));
+    expect(screen.getByRole('tooltip')).toHaveTextContent('Pending review does not start it');
   });
   it('gates progress after expiry and preserves links to existing records', () => {
     state.data = { ...view(), level: 'FREE', enhanced: false };
@@ -166,6 +169,24 @@ describe('membership status and gates', () => {
     );
     expect(screen.queryByText('Private progress chart')).not.toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Access your saved records' })).toHaveAttribute('href', '/export');
+  });
+  it('updates exhausted allowances and current-period expiry from refreshed server state', () => {
+    const rendered = render(<MembershipPage />);
+    fireEvent.click(screen.getByRole('button', { name: 'Refresh membership status' }));
+    expect(state.refresh).toHaveBeenCalledOnce();
+    state.data = {
+      ...view(),
+      level: 'MEMBER',
+      tier: 'HEALTH',
+      paidUntil: '2026-12-01T00:00:00Z',
+      healthUntil: '2026-10-15T00:00:00Z',
+      usage: { ...view().usage, PLAN_REVIEW: { used: 1, cap: 1, remaining: 0 } },
+    };
+    rendered.rerender(<MembershipPage />);
+    expect(screen.getByLabelText('Plan reviews: 0 of 1 remaining')).toBeInTheDocument();
+    const header = screen.getByRole('region', { name: 'Current membership overview' });
+    expect(header).toHaveTextContent('Oct 15, 2026');
+    expect(header).not.toHaveTextContent('Dec 1, 2026');
   });
   it('does not render premium content when the first membership check fails', () => {
     state.data = null;

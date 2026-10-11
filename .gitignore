@@ -64,3 +64,6 @@ codex/toothless.jpg
 # Private approved plan-repair archive, SQL and receipts.
 /backend/.local/worker-variety-repair/
 /backend/.local/repair-worker-variety.cjs
+
+# Private defense consistency audit receipts and target configuration.
+/backend/.local/defense-audit-20261012/

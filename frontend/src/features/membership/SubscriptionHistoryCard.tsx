@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { History, RefreshCw } from 'lucide-react';
+import HeaderRefreshAction from '@/components/shared/HeaderRefreshAction';
 import Card from '@/components/ui/Card';
 import WorkspaceTable from '@/components/shared/WorkspaceTable';
 import Button from '@/components/ui/Button';
@@ -67,36 +67,19 @@ export default function SubscriptionHistoryCard({
     errorMessage: 'Subscription history could not be loaded. Please try again.',
   });
   return (
-    <Card
-      aria-label="Subscription history"
-      decoration="logo"
-      decorationVariant="membership"
-      className="p-5 sm:p-8"
-      contentClassName="space-y-5"
-    >
+    <Card aria-label="Subscription history" className="p-5 sm:p-8" contentClassName="space-y-5">
       <header className="flex flex-wrap items-start justify-between gap-3 border-b border-brand-border pb-4">
-        <div className="flex min-w-0 items-start gap-3">
-          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-brand-green/25 bg-brand-green/10 text-brand-green">
-            <History className="h-4 w-4" aria-hidden="true" />
-          </span>
-          <div className="min-w-0">
+        <div className="min-w-0">
+          <div className="flex items-center gap-1">
             <h2 className="font-display text-lg font-extrabold">Subscription history</h2>
-            <p className="mt-1 text-xs leading-relaxed text-brand-muted">
-              {admin && query.data ? `${query.data.member.name} · ` : ''}Free Health access and recorded membership
-              periods.
-            </p>
+            <HeaderRefreshAction
+              label="Refresh subscription history"
+              busy={query.isLoading}
+              onRefresh={() => void query.refetch()}
+            />
           </div>
+          {admin && query.data && <p className="mt-1 text-xs text-brand-muted">{query.data.member.name}</p>}
         </div>
-        <Button
-          variant="secondary"
-          size="sm"
-          isLoading={query.isLoading}
-          onClick={() => void query.refetch()}
-          aria-label="Refresh subscription history"
-        >
-          <RefreshCw className="mr-1 h-3.5 w-3.5" aria-hidden="true" />
-          Refresh
-        </Button>
       </header>
       {query.error && (
         <div className="space-y-2">
@@ -203,10 +186,6 @@ export default function SubscriptionHistoryCard({
           )}
         </>
       )}
-      <footer className="border-t border-brand-border pt-4 text-xs leading-relaxed text-brand-muted">
-        Dates use Philippine time. No automatic renewal. Historical periods do not replace the current access shown in
-        Plan Schedule.
-      </footer>
     </Card>
   );
 }

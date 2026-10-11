@@ -1,16 +1,9 @@
 'use client';
 
 import CardDecoration from '@/components/ui/CardDecoration';
-
-import { CheckCircle2, Clock, Layers, RefreshCw, Sparkles } from 'lucide-react';
+import HeaderRefreshAction from '@/components/shared/HeaderRefreshAction';
 import Button from '@/components/ui/Button';
 import type { MembershipView } from './MembershipProvider';
-
-interface MembershipPlanHeaderProps {
-  data: Extract<MembershipView, { enabled: true }>;
-  onOpenPlans: () => void;
-  onRefresh: () => void;
-}
 
 export const formatMembershipDate = (value: string) =>
   new Date(value).toLocaleDateString('en-PH', {
@@ -27,119 +20,55 @@ export const formatMembershipDateTime = (value: string) =>
     timeStyle: 'short',
   });
 
-export default function MembershipPlanHeader({ data, onOpenPlans, onRefresh }: MembershipPlanHeaderProps) {
-  const planTitles = {
-    FREE: 'Free Plan',
-    TRIAL_PENDING: 'Health',
-    TRIAL: 'Health',
-    MEMBER: data.tier === 'LIFESTYLE' ? 'Lifestyle Plan' : 'Health Plan',
-  };
-
-  const badgeLabels = {
-    FREE: 'Free tier',
-    TRIAL_PENDING: 'Pending kickoff',
-    TRIAL: 'Health active',
-    MEMBER: 'Active subscriber',
-  };
-
-  const currentTitle = planTitles[data.level];
-  const badgeLabel = badgeLabels[data.level];
-
-  // Scheduled / next plan info
-  const scheduledPlan = data.transitions?.scheduled?.[0] ?? data.scheduledMemberships?.[0];
+export default function MembershipPlanHeader({
+  data,
+  onOpenPlans,
+  onRefresh,
+}: {
+  data: Extract<MembershipView, { enabled: true }>;
+  onOpenPlans: () => void;
+  onRefresh: () => void;
+}) {
+  const title = data.level === 'FREE' ? 'Free' : data.tier === 'LIFESTYLE' ? 'Lifestyle' : 'Health';
+  const pending = data.level === 'TRIAL_PENDING';
+  const until =
+    data.level === 'MEMBER'
+      ? (data.transitions?.current?.effectiveUntil ?? (title === 'Health' ? data.healthUntil : null) ?? data.paidUntil)
+      : data.level === 'TRIAL'
+        ? data.trialEndsAt
+        : null;
+  const scheduled = data.transitions?.scheduled?.[0] ?? data.scheduledMemberships?.[0];
 
   return (
     <section
       aria-label="Current membership overview"
-      className="relative overflow-hidden rounded-[28px] sm:rounded-[36px] border border-[#dce4e0] dark:border-[#173e33] bg-[#faf8f5] dark:bg-[#071914] text-[#0d2820] dark:text-white shadow-xl p-6 sm:p-9"
+      className="relative overflow-hidden rounded-3xl border border-brand-border bg-brand-surface p-6 sm:p-8"
     >
-      {/* 1. Retro Wave Organic Corner Accent (3-Tone Signature Curved Stripes from Landing Page) */}
       <CardDecoration variant="membership" />
-
-      {/* 2. Soft Ambient Radial Glow (from Landing Page) */}
-      <div className="pointer-events-none absolute -bottom-10 -left-10 h-72 w-72 rounded-full bg-brand-green/10 blur-[100px] z-0" />
-
-      {/* 3. Subtle Watermarked Kainara Logo Seal (from Landing Page) */}
-
-      {/* Main Content inside Card */}
-      <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-5">
-        {/* Left side: Current plan identity and details */}
-        <div className="space-y-2.5 max-w-2xl">
-          <div className="flex flex-wrap items-center gap-2.5">
-            <h1 className="font-display text-2xl sm:text-3xl font-black tracking-[-0.03em] text-[#0d2820] dark:text-white">
-              {currentTitle}
-            </h1>
-            <span
-              className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-bold ${
-                data.level === 'FREE'
-                  ? 'bg-neutral-200/70 dark:bg-neutral-800 border border-neutral-300 dark:border-neutral-700 text-neutral-700 dark:text-neutral-300'
-                  : data.level === 'TRIAL_PENDING'
-                    ? 'bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/30'
-                    : 'bg-emerald-500/10 text-emerald-800 dark:text-emerald-300 border border-emerald-500/30'
-              }`}
-            >
-              <CheckCircle2 className="h-3.5 w-3.5 text-brand-green" />
-              <span>{badgeLabel}</span>
-            </span>
+      <div className="relative flex flex-wrap items-center justify-between gap-5">
+        <div>
+          <div className="flex items-center gap-3">
+            <h2 className="font-display text-3xl font-bold text-brand-text">{title}</h2>
+            <HeaderRefreshAction label="Refresh membership status" onRefresh={onRefresh} />
+            {pending && <span className="text-sm font-medium text-brand-muted">Not started</span>}
           </div>
-
-          {/* Plan validity description */}
-          <p className="text-xs sm:text-sm leading-relaxed text-[#5a746a] dark:text-white/70">
-            {data.level === 'TRIAL_PENDING'
-              ? 'Your 30-day Health plan starts when your first cleared current plan is available. A starter plan counts; waiting for review does not.'
-              : data.level === 'MEMBER' && data.paidUntil
-                ? `Membership active until ${formatMembershipDateTime(data.paidUntil)}.${
-                    data.tier === 'HEALTH' && data.healthUntil
-                      ? ` Health benefits valid until ${formatMembershipDateTime(data.healthUntil)}.`
-                      : ''
-                  } No automatic renewal.`
-                : data.trialEndsAt
-                  ? `Health plan ${data.level === 'FREE' ? 'ended' : 'ends'} ${formatMembershipDateTime(
-                      data.trialEndsAt
-                    )}. Moving to a full weekly plan does not restart this period.`
-                  : 'Get more weekly flexibility and consultation access by upgrading your plan.'}
+          <p className="mt-2 text-sm text-brand-muted">
+            {pending
+              ? 'Your 30 days start when your meals are ready.'
+              : until
+                ? `Ends ${formatMembershipDateTime(until)}`
+                : 'No expiry'}
           </p>
-
-          {/* Next scheduled plan notification (if any) */}
-          {scheduledPlan && (
-            <div className="inline-flex items-center gap-2 rounded-2xl bg-white/80 dark:bg-[#0c241d]/80 border border-[#dce4e0] dark:border-[#173e33] px-3.5 py-2 text-xs font-medium text-[#0d2820] dark:text-emerald-100 shadow-xs backdrop-blur-sm">
-              <Sparkles className="h-3.5 w-3.5 text-brand-accent shrink-0" />
-              <span>
-                <strong>Next: </strong>
-                {scheduledPlan.tier === 'HEALTH' ? 'Health' : 'Lifestyle'}{' '}
-                {'period' in scheduledPlan && typeof (scheduledPlan as { period?: string }).period === 'string'
-                  ? (scheduledPlan as { period: string }).period.toLowerCase()
-                  : 'monthly'}{' '}
-                — starts {formatMembershipDate(scheduledPlan.effectiveFrom)} (Already paid).
-              </span>
-            </div>
+          {scheduled && (
+            <p className="mt-2 text-sm text-brand-muted">
+              Next: {scheduled.tier === 'HEALTH' ? 'Health' : 'Lifestyle'} ·{' '}
+              {formatMembershipDate(scheduled.effectiveFrom)} · Paid
+            </p>
           )}
         </div>
-
-        {/* Right side: Manila Reset pill + View plans CTA */}
-        <div className="flex flex-wrap sm:flex-nowrap items-center gap-3 self-start md:self-center shrink-0">
-          <div className="inline-flex items-center gap-1.5 rounded-full bg-white/80 dark:bg-[#0a201a] border border-[#dce4e0] dark:border-[#173e33] px-3.5 py-1.5 font-mono text-[11px] text-[#5a746a] dark:text-emerald-200/80 shadow-xs">
-            <Clock className="h-3.5 w-3.5 text-brand-green" />
-            <span>Next Manila reset: {formatMembershipDate(data.resetsAt)}</span>
-          </div>
-
-          <Button
-            variant="secondary"
-            size="sm"
-            type="button"
-            onClick={onRefresh}
-            aria-label="Refresh membership status"
-            title="Refresh membership status"
-            className="h-9 w-9 px-0"
-          >
-            <RefreshCw className="h-4 w-4" />
-          </Button>
-
-          <Button onClick={onOpenPlans} variant="primary" size="sm">
-            <Layers className="h-4 w-4" />
-            <span>View plans</span>
-          </Button>
-        </div>
+        <Button onClick={onOpenPlans} size="sm">
+          View plans
+        </Button>
       </div>
     </section>
   );

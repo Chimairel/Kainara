@@ -33,6 +33,8 @@ import { CLINICAL_EVIDENCE_REQUIREMENT_POLICY_VERSION } from '@/domain/clinical-
 import { ClinicalEvidenceService } from './clinical-evidence.service';
 import { resolveMealPlanDispute } from './nutritionist-dispute.service';
 import { rejectMealPlan } from './nutritionist-rejection.service';
+import { resolvePlanImage } from './meal-plan-presentation.service';
+import { resolveLibraryRecipeImages } from './library-recipe-image.service';
 
 async function reviewReadinessByUser(userIds: string[]) {
   if (!userIds.length) return new Map<string, { ready: boolean; specific: boolean }>();
@@ -437,6 +439,27 @@ export class NutritionistReviewService {
     const updatedMealPlan = await prisma.mealPlan.findFirst({
       where: { id: mealPlanId, ...getNutritionistReviewableMealPlanWhere() },
       include: {
+        sourceRawRecipeCandidate: {
+          select: { recipeName: true, sourceName: true, sourceUrl: true, sourceImageUrl: true, sourceVideoUrl: true },
+        },
+        libraryMeal: {
+          select: {
+            id: true,
+            mealName: true,
+            description: true,
+            derivationKind: true,
+            adaptedImageUrl: true,
+            imagePublicId: true,
+            imageVersion: true,
+            imageFormat: true,
+            imageKind: true,
+            imageAltText: true,
+            imageCreator: true,
+            imageSourcePageUrl: true,
+            imageLicenseCode: true,
+            imageLicenseUrl: true,
+          },
+        },
         ingredients: {
           include: { foodItem: { select: { id: true, name: true, source: true, sourceReferenceUrl: true } } },
         },
@@ -455,6 +478,9 @@ export class NutritionistReviewService {
 
     if (!updatedMealPlan)
       throw new AppError('This meal is no longer awaiting review. Refresh the queue.', 409, 'MEAL_REVIEW_INACTIVE');
+    const libraryImages = updatedMealPlan.libraryMeal
+      ? await resolveLibraryRecipeImages([updatedMealPlan.libraryMeal])
+      : undefined;
     if (
       !acquireClaim &&
       isReviewClaimActive(updatedMealPlan, now) &&
@@ -641,6 +667,7 @@ export class NutritionistReviewService {
         mealType: updatedMealPlan.mealType,
         mealName: updatedMealPlan.mealName,
         description: updatedMealPlan.description,
+        image: resolvePlanImage(updatedMealPlan, libraryImages),
         calories: updatedMealPlan.calories,
         proteinG: updatedMealPlan.proteinG,
         carbsG: updatedMealPlan.carbsG,
