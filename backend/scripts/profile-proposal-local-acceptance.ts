@@ -87,7 +87,6 @@ async function main() {
     await db.userProfile.create({
       data: {
         userId: member.id,
-        revision: 1,
         safetyRevision: 1,
         age: 28,
         heightCm: 170,
@@ -320,7 +319,10 @@ async function main() {
         measurements: '',
       })
     );
-    assert.equal((await db.userProfile.findUniqueOrThrow({ where: { userId: member.id } })).revision, scopeRevision + 1);
+    assert.equal(
+      (await db.userProfile.findUniqueOrThrow({ where: { userId: member.id } })).revision,
+      scopeRevision + 1
+    );
     assert.equal((await request(member, concurrentRoute, 'POST', { ...answer, requestKey: randomUUID() })).status, 409);
     assert.equal(
       (await request(rnd, route + '/clarifications', 'POST', { ...publish, requestKey: randomUUID() })).status,
@@ -597,7 +599,10 @@ async function main() {
       ).status,
       409
     );
-    assert.equal((await db.userProfile.findUniqueOrThrow({ where: { userId: member.id } })).revision, declarationContext.profileRevision);
+    assert.equal(
+      (await db.userProfile.findUniqueOrThrow({ where: { userId: member.id } })).revision,
+      declarationContext.profileRevision
+    );
     await ok(
       request(member, declarationResponseRoute, 'POST', {
         profileRevision: declarationContext.profileRevision,

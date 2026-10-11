@@ -5,6 +5,8 @@ import {
   clarificationQuestionsSchema,
   publishClarificationSchema,
   answerClarificationSchema,
+  publishMealClarificationSchema,
+  resolveClarificationSchema,
   validateClarificationAnswers,
   clarificationDisplayState,
   type ClarificationQuestion,
@@ -19,6 +21,56 @@ const questions: ClarificationQuestion[] = [
   { id: 'change', label: 'Has your information changed?', type: 'CHOICE', options: ['Yes', 'No'], required: true },
   { id: 'extra', label: 'Any additional information?', type: 'TEXT', required: false },
 ];
+
+test('initial revision zero supports publishing, answering and resolution without accepting invalid revisions', () => {
+  for (const profileRevision of [0, 1, 2]) {
+    const context = { profileRevision, scopeKey: 'initial-scope' };
+    const published = { ...context, title: 'Initial profile questions', questions, requestKey: randomUUID() };
+    assert.equal(publishClarificationSchema.safeParse(published).success, true);
+    assert.equal(
+      publishMealClarificationSchema.safeParse({ ...published, expectedContextKey: 'a'.repeat(64) }).success,
+      true
+    );
+    assert.equal(
+      answerClarificationSchema.safeParse({
+        ...context,
+        answers: {},
+        expectedResponseId: null,
+        requestKey: randomUUID(),
+      }).success,
+      true
+    );
+    assert.equal(
+      resolveClarificationSchema.safeParse({
+        ...context,
+        responseId: 'response',
+        rationale: 'Reviewed the initial response.',
+      }).success,
+      true
+    );
+  }
+  for (const profileRevision of [-1, 0.5, '0', null, undefined]) {
+    assert.equal(
+      publishClarificationSchema.safeParse({
+        profileRevision,
+        scopeKey: 'scope',
+        title: 'Review questions',
+        questions,
+        requestKey: randomUUID(),
+      }).success,
+      false
+    );
+  }
+  assert.equal(
+    clarificationDisplayState(
+      { profileRevision: 0, scopeKey: 'scope' },
+      { profileRevision: 1, scopeKey: 'scope' },
+      true,
+      true
+    ),
+    'SUPERSEDED'
+  );
+});
 
 test('clarification questions require bounded unique identities and valid choices', () => {
   assert.equal(clarificationQuestionsSchema.safeParse(questions).success, true);

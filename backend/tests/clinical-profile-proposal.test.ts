@@ -11,7 +11,7 @@ import {
   hasPendingProfileProposal,
 } from '../src/services/clinical-profile-proposal.service';
 
-const context = { profileRevision: 1, scopeKey: 'current' };
+const context = { profileRevision: 0, scopeKey: 'current' };
 const body = {
   ...context,
   requestKey: randomUUID(),
@@ -45,7 +45,7 @@ test('member correction requests require explanation and bind to the displayed c
   };
   assert.equal(respondProfileProposalSchema.safeParse(respond).success, true);
   assert.equal(respondProfileProposalSchema.safeParse({ ...respond, note: '' }).success, false);
-  assert.equal(respondProfileProposalSchema.safeParse({ ...respond, profileRevision: 0 }).success, false);
+  assert.equal(respondProfileProposalSchema.safeParse({ ...respond, profileRevision: -1 }).success, false);
   assert.equal(respondProfileProposalSchema.safeParse({ ...respond, decision: 'NONE' }).success, false);
 });
 test('stale pending proposals become history without rewriting accepted attribution', () => {

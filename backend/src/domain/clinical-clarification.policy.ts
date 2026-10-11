@@ -29,7 +29,8 @@ export const clarificationQuestionsSchema = z
   )
   .refine((questions) => questions.some((q) => q.required), 'Mark at least one question as required.');
 export const clarificationContextSchema = z.object({
-  profileRevision: z.number().int().min(1),
+  // UserProfile.revision starts at zero, including ordinary newly onboarded members.
+  profileRevision: z.number().int().min(0),
   scopeKey: z.string().min(1).max(10000),
 });
 export const publishClarificationSchema = clarificationContextSchema
