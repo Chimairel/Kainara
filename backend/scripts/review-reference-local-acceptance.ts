@@ -15,6 +15,7 @@ import { buildMealLibraryRecipeSignature } from '../src/domain/meal-library-sign
 import { MEAL_LIBRARY_SAFETY_POLICY_VERSION } from '../src/domain/meal-library-safety-evidence.policy';
 import { libraryBaseRevisionKey } from '../src/services/meal-base-admission.service';
 import { loadMealReviewContext } from '../src/services/meal-case-context.service';
+import { MealLogService } from '../src/services/meal-log.service';
 
 async function main() {
   const target = new URL(process.env.DATABASE_URL ?? '');
@@ -466,12 +467,67 @@ async function main() {
       const liveMeal = await makeSlot(liveMember);
       await db.mealPlan.update({ where: { id: liveMeal.id }, data: { mealName: 'Live context plate' } });
       await ok(request(rnd, `/nutritionist/queue/${liveMeal.id}/release`, 'POST', {}));
+      const decisionMeals: Record<string, string> = {};
+      for (const action of ['approve', 'reject', 'swap']) {
+        const actor = await cloneProfile();
+        const plate = await makeSlot(actor);
+        await db.mealPlan.update({ where: { id: plate.id }, data: { mealName: `Browser ${action} plate` } });
+        await ok(request(rnd, `/nutritionist/queue/${plate.id}/release`, 'POST', {}));
+        decisionMeals[action] = plate.id;
+      }
+      await library('Browser alternate measured recipe', 1);
+      const outsideMember = await cloneProfile();
+      const outsideName = 'Browser synthetic estimated snack';
+      const outsidePreview = await db.outsideMealPreview.create({
+        data: {
+          userId: outsideMember.id,
+          mealName: outsideName,
+          mealType: 'SNACK',
+          estimate: { calories: 410, proteinG: 5, carbsG: 66, fatG: 14 },
+          warnings: ['Synthetic estimate for the local browser rehearsal.'],
+          reasons: [],
+          usedAi: true,
+          expiresAt: new Date(Date.now() + 20 * 60_000),
+          items: [
+            {
+              name: outsideName,
+              portionGrams: null,
+              source: 'GEMINI_ESTIMATED',
+              nutritionStatus: 'PENDING_REVIEW',
+              compatibilityStatus: 'REVIEW_REQUIRED',
+              includedInTotals: true,
+              calories: 410,
+              proteinG: 5,
+              carbsG: 66,
+              fatG: 14,
+              calorieLow: 330,
+              calorieHigh: 490,
+              foodItemId: null,
+              mealLibraryId: null,
+              ingredients: [],
+              warnings: [],
+            },
+          ],
+        },
+      });
+      await MealLogService.logOutsideMeal({
+        userId: outsideMember.id,
+        mealType: 'SNACK',
+        warningAcknowledged: true,
+        confirmationId: outsidePreview.id,
+      });
+      assert.equal(
+        await db.outsideMealReview.count({ where: { outsideMealLogItem: { mealLog: { userId: outsideMember.id } } } }),
+        0
+      );
       const fixture = {
         apiOrigin: base.replace(/\/api$/, ''),
         memberId: second.id,
         mealId: fresh.id,
         liveMealId: liveMeal.id,
-        actors: { member: second, rnd, successor: other, admin, liveMember },
+        decisionMeals,
+        outsideName,
+        actors: { member: second, rnd, successor: other, admin, liveMember, outsideMember },
       };
       const actors = Object.fromEntries(
         Object.entries(fixture.actors).map(([role, actor]) => [

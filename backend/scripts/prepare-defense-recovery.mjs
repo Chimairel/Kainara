@@ -6,6 +6,9 @@ import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { resolve } from 'node:path';
 import process from 'node:process';
 import console from 'node:console';
+import { URL } from 'node:url';
+import { Buffer } from 'node:buffer';
+import { setTimeout } from 'node:timers';
 import dotenv from 'dotenv';
 import { PrismaClient } from '@prisma/client';
 

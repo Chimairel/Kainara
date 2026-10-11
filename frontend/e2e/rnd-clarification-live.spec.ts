@@ -18,7 +18,7 @@ async function connect(context: BrowserContext, page: Page, state: Fixture, role
   expect(api.hostname).toBe('127.0.0.1');
   expect(api.port).not.toBe('5000');
   await context.addCookies([
-    { name: 'nutrimind_session', value: state.actors[role].token, url: 'http://localhost:3000' },
+    { name: 'nutrimind_session', value: state.actors[role].token, url: test.info().project.use.baseURL! },
   ]);
   // Forward every API operation to the authenticated disposable backend, never the shared API.
   await context.route('**/api/**', async (route) => {
@@ -26,7 +26,11 @@ async function connect(context: BrowserContext, page: Page, state: Fixture, role
     expect(['localhost', '127.0.0.1']).toContain(request.hostname);
     const target = `${api.origin}${request.pathname}${request.search}`;
     if (request.pathname === '/api/live/events') return route.continue({ url: target });
-    await route.fulfill({ response: await route.fetch({ url: target }) });
+    // This is an internal proxy hop to a disposable API. Browser-origin policy
+    // is tested separately against the normal application API.
+    const headers = { ...route.request().headers() };
+    delete headers.origin;
+    await route.fulfill({ response: await route.fetch({ url: target, headers }) });
   });
   await page.setViewportSize({ width: 1440, height: 1000 });
 }
@@ -71,6 +75,7 @@ test('RND exact reference, canvas zoom, persistent questions, late member answer
   await page.getByText('Exact measured recipe', { exact: true }).first().click();
   await expect(page.getByLabel('Prior review references')).toBeAttached({ timeout: 30_000 });
   await page.getByRole('button', { name: /Claim review/i }).click();
+  await expect(page.getByRole('button', { name: /Release claim/i })).toBeVisible();
   await page.getByRole('button', { name: /Expand canvas/i }).click();
   await expect(page.getByRole('dialog')).toBeVisible();
   const viewport = page.getByLabel('Review canvas viewport');
@@ -109,7 +114,7 @@ test('RND exact reference, canvas zoom, persistent questions, late member answer
   // Another eligible RND resumes the Profile case; the source meal claim was released automatically.
   await context.clearCookies();
   await context.addCookies([
-    { name: 'nutrimind_session', value: state.actors.rnd.token, url: 'http://localhost:3000' },
+    { name: 'nutrimind_session', value: state.actors.rnd.token, url: test.info().project.use.baseURL! },
   ]);
   await page.goto('/nutritionist/reviews');
   await page.getByRole('button', { name: /Member queue/i }).click();

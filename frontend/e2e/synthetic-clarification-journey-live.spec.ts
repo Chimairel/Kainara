@@ -96,7 +96,16 @@ test('real localhost member health details, RND questions, successor resolution 
     await login(admin, 'sleep-admin@example.test', /\/admin\/overview(?:\?.*)?$/);
     await admin.goto('/admin/audit');
     await admin.getByRole('button', { name: 'RND history', exact: true }).click();
+    const filteredHistory = admin.waitForResponse((response) => {
+      const url = new URL(response.url());
+      return (
+        url.pathname === '/api/admin/audit-history' &&
+        url.searchParams.get('actor') === '[TEST sleep-oct11] Reviewer B' &&
+        response.ok()
+      );
+    });
     await admin.getByLabel('Staff name', { exact: true }).fill('[TEST sleep-oct11] Reviewer B');
+    await filteredHistory;
     await admin
       .getByRole('button', { name: /Details: Resolved profile clarification/ })
       .first()

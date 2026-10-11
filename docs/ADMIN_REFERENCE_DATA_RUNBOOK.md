@@ -1,6 +1,16 @@
 # Admin Reference Data Runbook
 
-This runbook governs NutriMind reference-data changes. It covers source metadata, versioned releases, aggregate food-consumption evidence, FNRI aliases, publication, and rollback. It does not authorize access to restricted survey microdata or confer clinical approval.
+This runbook governs source metadata, retained release history and FNRI aliases. The ENNS aggregate-consumption and regional-planning workflow was retired on October 11, 2026. Its authenticated endpoints return `410 FEATURE_RETIRED`, its controls are removed, and its retained metadata is historical. Source/release operations for other nutrition domains remain available. Publishing reference data does not confer clinical approval.
+
+## Current operation
+
+Use **Admin → Nutrition data → Sources & releases** for current source metadata and **FNRI catalogue** / **USDA catalogue** to inspect nutrient evidence. Verified aliases must identify the same FNRI food, preserve attribution, and avoid collisions with canonical food names or other aliases. Successful catalogue changes invalidate the backend matching cache immediately; otherwise its lifetime is ten minutes. Canonical nutrient corrections require the separately reviewed composition workflow.
+
+The recovery copy omits 2,620 retired ENNS rows while retaining source, release, activation and audit references. Original archives retain the rows. See [October 16 recovery](DEFENSE_RECOVERY_2026-10-11.md) for verification and rollback boundaries. Do not reactivate a `FOOD_CONSUMPTION` release: the API rejects source writes, staging and activation for that retired domain.
+
+## Historical workflow — no longer available
+
+The sections below describe the former importer and publication workflow for interpreting old audit records. Their screen names and commands are not instructions for the current application.
 
 ## Responsibility boundary
 

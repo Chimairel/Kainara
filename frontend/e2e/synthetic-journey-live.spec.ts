@@ -130,7 +130,7 @@ test('synthetic credentials retain expired/unverified review gates and suspensio
 }) => {
   const account = guide();
   for (const state of ['expired', 'unverified', 'suspended']) {
-    const login = await request.post('http://localhost:5000/api/auth/login', {
+    const login = await request.post('/api/auth/login', {
       data: { email: `sleep-rnd-${state}@example.test`, password: account.newAccountPassword },
     });
     if (state === 'suspended') {
@@ -139,7 +139,7 @@ test('synthetic credentials retain expired/unverified review gates and suspensio
     } else {
       expect(login.status()).toBe(200);
       const token = (await login.json()).data.accessToken;
-      const queue = await request.get('http://localhost:5000/api/nutritionist/queue', {
+      const queue = await request.get('/api/nutritionist/queue', {
         headers: { Authorization: `Bearer ${token}` },
       });
       expect(queue.status()).toBe(403);

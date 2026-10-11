@@ -1,5 +1,7 @@
 /** Actual HTTP/SQL role acceptance. Synthetic, task-owned PostgreSQL only. */
 import assert from 'node:assert/strict';
+import { writeFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { once } from 'node:events';
 import type { AddressInfo } from 'node:net';
@@ -317,6 +319,28 @@ async function main() {
     });
     assert.equal(quarantineClaim.status, 409);
     passed('Second incident quarantines; only admin can decide release without RND confirmations');
+    if (process.env.DEFENSE_GOVERNANCE_BROWSER === 'true') {
+      writeFileSync(
+        resolve('.local/defense-governance-browser.json'),
+        JSON.stringify({
+          apiOrigin: base.replace(/\/api$/, ''),
+          mealId: root.id,
+          mealName: root.mealName,
+          actors: Object.fromEntries(
+            [
+              ['admin', admin],
+              ['rnd', rnds[4].user],
+            ].map(([role, actor]) => {
+              const user = actor as User;
+              return [role, { token: signAccessToken({ userId: user.id, email: user.email, role: user.role }) }];
+            })
+          ),
+        })
+      );
+      console.log('BROWSER_READY governance');
+      await once(process, 'SIGINT');
+      return;
+    }
     const originalIncident = (await detail()).incident;
     const decision = await prisma.mealReviewDecision.findFirstOrThrow({ where: { incidentId: originalIncident.id } });
     await assert.rejects(prisma.mealReviewDecision.delete({ where: { id: decision.id } }));

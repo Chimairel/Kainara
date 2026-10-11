@@ -414,6 +414,13 @@ async function main(): Promise<void> {
   assertCommit(aiLog);
   assert.equal(aiLog.log.calories, 410);
   assert.equal(aiLog.log.provisionalCalories, 410);
+  assert.equal(
+    await prisma.outsideMealReview.count({ where: { outsideMealLogItem: { mealLogId: aiLog.log.id } } }),
+    0,
+    'Accepting an estimate must not silently request RND review'
+  );
+  const aiItem = await prisma.outsideMealLogItem.findFirstOrThrow({ where: { mealLogId: aiLog.log.id } });
+  await OutsideMealReviewService.requestByUser(user.id, aiLog.log.id, aiItem.id);
   const review = await prisma.outsideMealReview.findFirstOrThrow({
     where: { outsideMealLogItem: { mealLogId: aiLog.log.id } },
   });
@@ -474,6 +481,8 @@ async function main(): Promise<void> {
     assertCommit(liveCommit);
     assert.ok(liveCommit.log.provisionalCalories > 0);
     assert.equal(await prisma.outsideMealAiUsage.count({ where: { userId: user.id } }), 1);
+    const liveItem = await prisma.outsideMealLogItem.findFirstOrThrow({ where: { mealLogId: liveCommit.log.id } });
+    await OutsideMealReviewService.requestByUser(user.id, liveCommit.log.id, liveItem.id);
     const liveReview = await prisma.outsideMealReview.findFirstOrThrow({
       where: { outsideMealLogItem: { mealLogId: liveCommit.log.id } },
     });

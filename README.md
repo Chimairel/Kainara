@@ -12,7 +12,7 @@ The [October 11 synthetic user-flow report](docs/SYNTHETIC_USER_FLOW_TEST_REPORT
 
 The hosted capstone demonstration uses [`docs/VERCEL_RAILWAY_DEMO_DEPLOYMENT.md`](docs/VERCEL_RAILWAY_DEMO_DEPLOYMENT.md), with normal registration/login and the existing release-mode startup gates. Public interface wording follows the current engineering-record entry. It keeps production security enabled and does not constitute clinical approval.
 
-Administrator-managed nutrition sources, aggregate consumption releases, FNRI mappings, publication, and rollback use [`docs/ADMIN_REFERENCE_DATA_RUNBOOK.md`](docs/ADMIN_REFERENCE_DATA_RUNBOOK.md).
+Administrator-managed nutrition sources, releases and FNRI aliases use [`docs/ADMIN_REFERENCE_DATA_RUNBOOK.md`](docs/ADMIN_REFERENCE_DATA_RUNBOOK.md). ENNS consumption imports, publication and regional planning are retired; retained release metadata is historical. The October 16 recovery and measured transfer budget are recorded in [`docs/DEFENSE_RECOVERY_2026-10-11.md`](docs/DEFENSE_RECOVERY_2026-10-11.md).
 
 Meal flags, independent re-review, quarantine release, related-case admin oversight, and JSON draft batches use [`docs/MEAL_REVIEW_GOVERNANCE.md`](docs/MEAL_REVIEW_GOVERNANCE.md). The additive governance migration must be applied to a confirmed database target before deploying this workflow.
 
