@@ -70,7 +70,7 @@ export default function GroceryProgressSection({ model }: Props) {
                   onClick={handleDownloadPDF}
                   disabled={isDownloadingPdf}
                   aria-busy={isDownloadingPdf}
-                  className="flex items-center gap-1.5 text-xs font-semibold py-2 px-3.5 bg-white/80 dark:bg-black/40 backdrop-blur-sm border-brand-border/60 hover:bg-brand-surface"
+                  size="sm"
                 >
                   {isDownloadingPdf ? (
                     <Loader2 className="w-3.5 h-3.5 animate-spin text-brand-green dark:text-brand-accent" />

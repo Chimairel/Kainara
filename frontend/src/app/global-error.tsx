@@ -1,4 +1,5 @@
 'use client';
+import Button from '@/components/ui/Button';
 
 export default function GlobalError({ reset }: { reset: () => void }) {
   return (
@@ -13,13 +14,9 @@ export default function GlobalError({ reset }: { reset: () => void }) {
             <p className="mx-auto mt-4 max-w-md text-sm leading-6 text-[#8ea99f]">
               Reload the interface to continue. No meal or profile change was submitted by this screen.
             </p>
-            <button
-              className="mt-8 min-h-11 rounded-2xl border border-[#d95d2c] bg-gradient-to-r from-[#eb6a38] via-[#ed7847] to-[#f09e6c] px-6 py-2.5 text-sm font-extrabold text-white shadow-sm transition hover:brightness-105 active:scale-[0.98]"
-              onClick={reset}
-              type="button"
-            >
+            <Button className="mt-8 bg-[#eb6a38]" onClick={reset} type="button">
               Reload KAINARA
-            </button>
+            </Button>
           </section>
         </main>
       </body>

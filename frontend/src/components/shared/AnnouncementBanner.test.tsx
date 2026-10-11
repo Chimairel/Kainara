@@ -45,8 +45,6 @@ describe('AnnouncementBanner', () => {
     const link = screen.getByRole('link', { name: /view nutrition report/i });
     expect(link).toBeInTheDocument();
     expect(link).toHaveAttribute('href', '/profile/nutrition-report');
-    expect(link).toHaveClass('bg-white');
-    expect(link).toHaveClass('text-[#8c3b00]');
   });
 
   it('renders action button and handles click when onClick is provided', () => {

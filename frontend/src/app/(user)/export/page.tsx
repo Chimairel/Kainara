@@ -211,19 +211,13 @@ export default function NutritionExportPage() {
           <h1 className="mt-2 font-display text-lg font-black tracking-tight text-white">Nutrition summary preview</h1>
         </div>
         <div className="flex items-center gap-2">
-          <button
-            onClick={() => void downloadAccountData()}
-            className="flex items-center gap-2 rounded-2xl border border-emerald-500/20 bg-emerald-950/20 px-4 py-2.5 text-xs font-extrabold text-white transition hover:border-[#f09e6c]/40 hover:bg-emerald-900/30"
-          >
+          <Button variant="secondary" size="sm" onClick={() => void downloadAccountData()}>
             <Download className="h-4 w-4" />
             Export JSON
-          </button>
-          <button
-            onClick={() => window.print()}
-            className="cursor-pointer rounded-2xl border border-[#d95d2c] bg-gradient-to-r from-[#eb6a38] via-[#ed7847] to-[#f09e6c] px-6 py-2.5 text-xs font-extrabold text-white shadow-sm transition-all hover:-translate-y-0.5 hover:brightness-105 active:scale-[0.98]"
-          >
+          </Button>
+          <Button size="sm" onClick={() => window.print()}>
             Print / Save PDF
-          </button>
+          </Button>
         </div>
       </div>
 

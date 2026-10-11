@@ -123,21 +123,19 @@ export default function MembershipPlanHeader({ data, onOpenPlans, onRefresh }: M
             <span>Next Manila reset: {formatMembershipDate(data.resetsAt)}</span>
           </div>
 
-          <button
+          <Button
+            variant="secondary"
+            size="sm"
             type="button"
             onClick={onRefresh}
             aria-label="Refresh membership status"
             title="Refresh membership status"
-            className="flex h-9 w-9 items-center justify-center rounded-2xl border border-[#dce4e0] dark:border-[#173e33] bg-gradient-to-r from-brand-green/[0.09] via-white/80 to-white dark:from-[#091f19] dark:via-[#0a201a] dark:to-[#173e33] text-[#5a746a] dark:text-white/80 hover:text-brand-text hover:border-[#f09e6c]/60 transition-all shadow-xs"
+            className="h-9 w-9 px-0"
           >
             <RefreshCw className="h-4 w-4" />
-          </button>
+          </Button>
 
-          <Button
-            onClick={onOpenPlans}
-            variant="primary"
-            className="inline-flex items-center gap-2 rounded-2xl bg-brand-accent hover:brightness-110 text-white text-xs font-extrabold px-5 py-2.5 shadow-lg active:scale-[0.98] transition-all"
-          >
+          <Button onClick={onOpenPlans} variant="primary" size="sm">
             <Layers className="h-4 w-4" />
             <span>View plans</span>
           </Button>

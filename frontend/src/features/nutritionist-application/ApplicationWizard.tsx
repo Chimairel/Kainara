@@ -100,12 +100,7 @@ export function ApplicationWizard(props: Props) {
             <ArrowRight className="h-4 w-4" />
           </Button>
         ) : (
-          <Button
-            type="button"
-            onClick={onSubmit}
-            isLoading={isLoading}
-            className="gap-2 bg-brand-accent hover:brightness-110 text-white shadow-lg shadow-brand-accent/25"
-          >
+          <Button type="button" onClick={onSubmit} isLoading={isLoading} className="gap-2">
             <ClipboardCheck className="h-4 w-4" />
             Submit Application
           </Button>

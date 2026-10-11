@@ -99,7 +99,7 @@ The member layout mounts `shared/PortalAnnouncements` as the first child of its 
 
 The collapsed updates summary retains the original brown announcement color (`#8c3b00`) with white labels in both themes. Expanded detail rows use the neutral themed surface; the brown header remains visible as the disclosure control.
 
-Shared `ui/Button` primary/accent actions use solid brand orange and contrasting pine labels with soft offset shadows; secondary actions use the solid themed surface. Existing disabled/loading/focus behavior remains. Dedicated meal and illustration gradients are unaffected.
+Shared `ui/Button` primary/accent actions use solid brand orange and contrasting pine labels with soft offset shadows; secondary actions use the solid themed surface with the same elevation. `ui/button-styles` owns variants, sizing, focus, disabled and motion styles once; navigation links may use `buttonStyles` to retain native link behavior. Use Button for ordinary actions instead of copying gradient/fill/shadow classes. Callers may adjust layout/width; avoid overriding brand fills, label contrast or shadows. Meal-modal, membership, RND profile, application, export, error and announcement actions share this styling with admin controls. Existing disabled/loading behavior remains. Dedicated meal and illustration gradients are unaffected.
 
 ## Landing links
 

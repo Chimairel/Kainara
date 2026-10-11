@@ -2,6 +2,8 @@
 
 import React, { createContext, useContext } from 'react';
 import Link from 'next/link';
+import Button from '@/components/ui/Button';
+import { buttonStyles } from '@/components/ui/button-styles';
 
 export const CompactAnnouncementContext = createContext(false);
 
@@ -46,7 +48,7 @@ export default function AnnouncementBanner({
 }: AnnouncementBannerProps) {
   const compact = useContext(CompactAnnouncementContext);
   const theme = variantStyles[variant] || variantStyles.warning;
-  const actionClasses = `inline-flex min-h-10 items-center justify-center rounded-xl px-3 py-2 text-xs font-bold shrink-0 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 disabled:pointer-events-none disabled:opacity-50 ${compact ? 'border border-brand-border bg-brand-surface text-brand-text shadow-sm hover:bg-brand-bg focus-visible:outline-brand-green' : `bg-white ${theme.action} shadow-sm hover:bg-white/90 focus-visible:outline-white`} ${action?.className || ''}`;
+  const actionClasses = buttonStyles({ variant: 'secondary', size: 'sm', className: action?.className });
 
   return (
     <aside
@@ -67,9 +69,16 @@ export default function AnnouncementBanner({
             {action.label}
           </Link>
         ) : (
-          <button type="button" onClick={action.onClick} disabled={action.disabled} className={actionClasses}>
+          <Button
+            variant="secondary"
+            size="sm"
+            type="button"
+            onClick={action.onClick}
+            disabled={action.disabled}
+            className={action.className}
+          >
             {action.label}
-          </button>
+          </Button>
         ))}
     </aside>
   );

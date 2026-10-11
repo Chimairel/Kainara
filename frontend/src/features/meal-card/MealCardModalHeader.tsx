@@ -1,6 +1,7 @@
 'use client';
 
 import { formatMealTitle } from '@/lib/meal-title';
+import Button from '@/components/ui/Button';
 
 import { Check, Clock3, RefreshCw, ShieldCheck, X } from 'lucide-react';
 import { MealMotionDiv } from '../../components/user/MealMotion';
@@ -146,20 +147,22 @@ export default function MealCardModalHeader({ model }: SectionProps) {
             {!isLogged ? (
               <>
                 {/* Primary: Mark as Eaten */}
-                <button
+                <Button
+                  size="sm"
                   type="button"
                   onClick={() => handleCheckedChange(true)}
                   disabled={isUpdating || isPastGracePeriod || isFutureDate}
                   aria-label="Mark as eaten"
-                  className="inline-flex items-center justify-center gap-1.5 rounded-2xl bg-gradient-to-r from-[#eb6a38] via-[#ed7847] to-[#f09e6c] px-3.5 py-2 text-xs font-extrabold text-white shadow-md shadow-black/40 hover:brightness-110 active:scale-95 border border-[#eb6a38]/60 transition-all disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
                 >
                   <Check className="h-3.5 w-3.5 stroke-[3]" />
                   <span>Mark as Eaten</span>
-                </button>
+                </Button>
 
                 {/* Secondary: Swap */}
                 {onSwapClick && (
-                  <button
+                  <Button
+                    variant="secondary"
+                    size="sm"
                     type="button"
                     onClick={() => {
                       setIsOpen(false);
@@ -167,12 +170,11 @@ export default function MealCardModalHeader({ model }: SectionProps) {
                     }}
                     disabled={isPastDate}
                     aria-label="Swap meal"
-                    className="inline-flex items-center justify-center gap-1.5 rounded-2xl bg-white/15 hover:bg-white/25 text-white px-3.5 py-2 text-xs font-bold backdrop-blur-md border border-white/25 hover:border-white/40 shadow-md shadow-black/30 active:scale-95 transition-all disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
                     title={isPastDate ? 'Past scheduled meals cannot be swapped.' : undefined}
                   >
-                    <RefreshCw className="h-3.5 w-3.5 text-white/90 animate-spin-hover" />
+                    <RefreshCw className="h-3.5 w-3.5" />
                     <span>Swap Meal</span>
-                  </button>
+                  </Button>
                 )}
 
                 {/* Destructive: Skip */}

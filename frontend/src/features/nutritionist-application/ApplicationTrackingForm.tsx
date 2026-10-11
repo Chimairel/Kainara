@@ -70,12 +70,7 @@ export function ApplicationTrackingForm(props: Props) {
           />
         </div>
 
-        <Button
-          type="submit"
-          size="lg"
-          isLoading={props.isLoading}
-          className="w-full mt-2 gap-2 bg-brand-accent hover:brightness-110 text-white shadow-lg shadow-brand-accent/25"
-        >
+        <Button type="submit" size="lg" isLoading={props.isLoading} className="w-full mt-2">
           <Search className="h-4 w-4" />
           Check Application Status
         </Button>
