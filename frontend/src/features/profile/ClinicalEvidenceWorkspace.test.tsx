@@ -2,8 +2,15 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import ClinicalEvidenceWorkspace from './ClinicalEvidenceWorkspace';
 import { LIVE_UPDATE_EVENT } from '@/lib/live-events';
-const mocks = vi.hoisted(() => ({ get: vi.fn(), put: vi.fn(), push: vi.fn(), search: '' }));
-vi.mock('@/hooks/useAuth', () => ({ useAuth: () => ({ user: { userId: 'fixture' } }) }));
+const mocks = vi.hoisted(() => ({
+  get: vi.fn(),
+  put: vi.fn(),
+  post: vi.fn(),
+  push: vi.fn(),
+  search: '',
+  owner: 'fixture',
+}));
+vi.mock('@/hooks/useAuth', () => ({ useAuth: () => ({ user: { userId: mocks.owner } }) }));
 vi.mock('@/lib/axios', () => ({ default: mocks }));
 vi.mock('next/navigation', () => ({
   useRouter: () => ({ push: mocks.push }),
@@ -27,6 +34,7 @@ describe('health details form', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.search = '';
+    mocks.owner = 'fixture';
     mocks.get.mockResolvedValue({ data: { data: workspace } });
     mocks.put.mockResolvedValue({ data: { data: workspace } });
   });
@@ -61,8 +69,12 @@ describe('health details form', () => {
       },
     });
     fireEvent(window, new Event(LIVE_UPDATE_EVENT));
-    await screen.findByRole('heading', { name: 'RND follow-up' });
+    const question = await screen.findByRole('button', { name: /Recorded reviewer, RND.*RND follow-up/ });
     expect(details).toHaveValue('Unsent member details to preserve');
+    fireEvent.click(question);
+    expect(screen.getByRole('heading', { name: 'RND follow-up' })).toBeVisible();
+    fireEvent.click(screen.getByRole('button', { name: /Your health details.*heart condition/ }));
+    expect(screen.getByLabelText('Condition or restriction details')).toHaveValue('Unsent member details to preserve');
     expect(screen.queryByAltText('Sleeping Nara')).not.toBeInTheDocument();
   });
   it('blocks saving an old health draft after an external safety revision changes', async () => {
@@ -153,10 +165,12 @@ describe('health details form', () => {
       },
     });
     render(<ClinicalEvidenceWorkspace />);
+    fireEvent.click(await screen.findByRole('button', { name: /RND review.*Condition assessments/ }));
     expect(
       await screen.findByText('Recorded unrelated condition · No additional meal restrictions identified')
     ).toBeInTheDocument();
     expect(screen.getByText(/Reviewed by Recorded reviewer, RND/)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /Your health details.*other/ }));
     expect(screen.getByLabelText('Current medication or supplements')).toBeEnabled();
     expect(screen.getByRole('button', { name: 'Save health details' })).toBeInTheDocument();
   });
@@ -264,15 +278,182 @@ describe('health details form', () => {
       },
     });
     render(<ClinicalEvidenceWorkspace />);
-    expect(await screen.findByRole('button', { name: 'heart condition' })).toHaveAttribute('aria-pressed', 'true');
+    expect(await screen.findByRole('button', { name: /Your health details.*heart condition/ })).toHaveAttribute(
+      'aria-current',
+      'true'
+    );
     fireEvent.submit(screen.getByRole('button', { name: 'Save health details' }).closest('form')!);
-    expect(await screen.findByText('1 of 2 health detail forms complete.')).toBeInTheDocument();
-    expect(screen.getByText('Still needed: food allergy.')).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'Allergy details' }));
-    expect(screen.getByRole('button', { name: 'Allergy details' })).toHaveAttribute('aria-pressed', 'true');
+    await waitFor(() =>
+      expect(
+        screen.getByRole('button', { name: /Your health details.*heart condition.*Details saved/ })
+      ).toBeInTheDocument()
+    );
+    expect(
+      screen.getByRole('button', { name: /Your health details.*Allergy details.*Details needed/ })
+    ).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /Your health details.*Allergy details/ }));
+    expect(screen.getByRole('button', { name: /Your health details.*Allergy details/ })).toHaveAttribute(
+      'aria-current',
+      'true'
+    );
     expect(screen.getByLabelText(allergyDetailsLabel)).toHaveValue('');
     expect(mocks.put).toHaveBeenCalledTimes(1);
     expect(mocks.put.mock.calls[0][1]).toMatchObject({ area: 'HEART_CONDITION', expectedSafetyRevision: 2 });
+  });
+  it('keeps separate unsent drafts for health areas and RND questions', async () => {
+    mocks.get.mockResolvedValue({
+      data: {
+        data: {
+          ...workspace,
+          availableAreas: ['HEART_CONDITION', 'FOOD_ALLERGY'],
+          clarifications: {
+            enabled: true,
+            forms: [clarification, { ...clarification, id: 'second', title: 'Second question' }],
+          },
+        },
+      },
+    });
+    render(<ClinicalEvidenceWorkspace />);
+    fireEvent.change(await screen.findByRole('textbox', { name: 'Please clarify your restriction *' }), {
+      target: { value: 'First unsent answer' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: /Second question.*Response needed/ }));
+    expect(screen.getByRole('textbox', { name: 'Please clarify your restriction *' })).toHaveValue('');
+    fireEvent.change(screen.getByRole('textbox', { name: 'Please clarify your restriction *' }), {
+      target: { value: 'Second unsent answer' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: /Your health details.*heart condition/ }));
+    fireEvent.change(screen.getByLabelText('Condition or restriction details'), { target: { value: 'Heart draft' } });
+    fireEvent.click(screen.getByRole('button', { name: /Your health details.*Allergy details/ }));
+    expect(screen.getByLabelText(allergyDetailsLabel)).toHaveValue('');
+    fireEvent.change(screen.getByLabelText(allergyDetailsLabel), { target: { value: 'Allergy draft' } });
+    fireEvent.click(screen.getByRole('button', { name: /Your health details.*heart condition/ }));
+    expect(screen.getByLabelText('Condition or restriction details')).toHaveValue('Heart draft');
+    fireEvent.click(screen.getByRole('button', { name: /RND follow-up.*Response needed/ }));
+    expect(screen.getByRole('textbox', { name: 'Please clarify your restriction *' })).toHaveValue(
+      'First unsent answer'
+    );
+    expect(mocks.post).not.toHaveBeenCalled();
+    expect(mocks.put).not.toHaveBeenCalled();
+  });
+  it('searches and filters historical forms while preserving the open draft', async () => {
+    mocks.get.mockResolvedValue({
+      data: {
+        data: {
+          ...workspace,
+          availableAreas: [],
+          clarifications: {
+            enabled: true,
+            forms: [clarification, { ...clarification, id: 'old', title: 'Previous treatment', status: 'RESOLVED' }],
+          },
+        },
+      },
+    });
+    render(<ClinicalEvidenceWorkspace />);
+    await screen.findByRole('heading', { name: 'RND follow-up' });
+    fireEvent.click(screen.getByRole('button', { name: 'History' }));
+    expect(screen.queryByRole('button', { name: /RND follow-up.*Response needed/ })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /Previous treatment.*Resolved/ }));
+    expect(screen.getByRole('textbox', { name: 'Please clarify your restriction *' })).toBeDisabled();
+    expect(screen.queryByRole('button', { name: 'Submit answers' })).not.toBeInTheDocument();
+    fireEvent.change(screen.getByRole('searchbox', { name: 'Search health forms' }), { target: { value: 'no match' } });
+    expect(screen.getByText('No forms match your search.')).toBeInTheDocument();
+  });
+  it('submits only the selected RND form with its saved context and response version', async () => {
+    const second = {
+      ...clarification,
+      id: 'second',
+      title: 'Second question',
+      profileRevision: 0,
+      scopeKey: 'second-scope',
+    };
+    const current = { ...workspace, clarifications: { enabled: true, forms: [clarification, second] } };
+    mocks.get.mockResolvedValue({ data: { data: current } });
+    mocks.post.mockImplementation(async () => {
+      mocks.get.mockResolvedValue({
+        data: {
+          data: {
+            ...current,
+            clarifications: {
+              ...current.clarifications,
+              forms: [
+                clarification,
+                {
+                  ...second,
+                  status: 'ANSWERED',
+                  responses: [
+                    {
+                      id: 'submitted',
+                      version: 1,
+                      answers: { q: 'Selected answer for the second question' },
+                      createdAt: '2026-10-11',
+                    },
+                  ],
+                },
+              ],
+            },
+          },
+        },
+      });
+      return { data: { success: true } };
+    });
+    render(<ClinicalEvidenceWorkspace />);
+    fireEvent.click(await screen.findByRole('button', { name: /Second question.*Response needed/ }));
+    fireEvent.change(screen.getByRole('textbox', { name: 'Please clarify your restriction *' }), {
+      target: { value: 'Selected answer for the second question' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Submit answers' }));
+    await waitFor(() =>
+      expect(mocks.post).toHaveBeenCalledWith(
+        '/user/clinical-clarifications/second/answers',
+        expect.objectContaining({
+          answers: { q: 'Selected answer for the second question' },
+          profileRevision: 0,
+          scopeKey: 'second-scope',
+          expectedResponseId: null,
+          requestKey: expect.any(String),
+        })
+      )
+    );
+    await screen.findByText(/Answers submitted/);
+    fireEvent.click(screen.getByRole('button', { name: /RND follow-up.*Response needed/ }));
+    expect(screen.queryByText(/Answers submitted/)).not.toBeInTheDocument();
+    expect(screen.getByRole('textbox', { name: 'Please clarify your restriction *' })).toHaveValue('');
+    expect(mocks.post).toHaveBeenCalledTimes(1);
+  });
+  it('clears the previous account’s open form and drafts when the owner changes', async () => {
+    const view = render(<ClinicalEvidenceWorkspace />);
+    fireEvent.change(await screen.findByLabelText('Condition or restriction details'), {
+      target: { value: 'Previous owner private draft' },
+    });
+    mocks.owner = 'another-member';
+    mocks.get.mockResolvedValue({
+      data: {
+        data: {
+          ...workspace,
+          contexts: [{ area: 'HEART_CONDITION', responses: { conditionDetails: 'New owner saved details' } }],
+        },
+      },
+    });
+    view.rerender(<ClinicalEvidenceWorkspace />);
+    expect(screen.queryByDisplayValue('Previous owner private draft')).not.toBeInTheDocument();
+    expect(await screen.findByLabelText('Condition or restriction details')).toHaveValue('New owner saved details');
+  });
+  it('keeps an RND answer draft but disables submission when the health profile becomes stale', async () => {
+    const current = { ...workspace, clarifications: { enabled: true, forms: [clarification] } };
+    mocks.get.mockResolvedValue({ data: { data: current } });
+    render(<ClinicalEvidenceWorkspace />);
+    fireEvent.change(await screen.findByRole('textbox', { name: 'Please clarify your restriction *' }), {
+      target: { value: 'Answer for the old profile' },
+    });
+    mocks.get.mockResolvedValue({ data: { data: { ...current, safetyRevision: 3 } } });
+    fireEvent(window, new Event(LIVE_UPDATE_EVENT));
+    await screen.findByRole('button', { name: 'Reload current health details' });
+    expect(screen.getByRole('button', { name: 'Submit answers' })).toBeDisabled();
+    expect(screen.getByRole('textbox', { name: 'Please clarify your restriction *' })).toHaveValue(
+      'Answer for the old profile'
+    );
+    expect(mocks.post).not.toHaveBeenCalled();
   });
   it('returns completed review edits to the review screen, without changing normal onboarding order', async () => {
     mocks.search = 'from=review';

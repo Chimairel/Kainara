@@ -9,10 +9,12 @@ export default function ProfileProposalCard({
   proposal,
   onRespond,
   disabled = false,
+  embedded = false,
 }: {
   proposal: ProfileProposal;
   onRespond?: (decision: 'ACCEPT' | 'REQUEST_CORRECTION', note: string) => Promise<void>;
   disabled?: boolean;
+  embedded?: boolean;
 }) {
   const [note, setNote] = useState('');
   const comparisons: Array<{ label: string; before: string; after: string }> = proposal.changes.domains.map(
@@ -37,9 +39,12 @@ export default function ProfileProposalCard({
         });
     }
   return (
-    <Card className="space-y-4 p-4">
-      <header>
-        <h3 className="font-bold">Proposed profile correction</h3>
+    <Card
+      className={embedded ? 'space-y-5 rounded-none border-0 p-0 shadow-none sm:rounded-none' : 'space-y-4 p-4'}
+      contentClassName={embedded ? 'space-y-5' : undefined}
+    >
+      <header className={embedded ? 'border-b border-brand-border pb-5' : undefined}>
+        <h3 className={embedded ? 'font-display text-2xl font-semibold' : 'font-bold'}>Proposed profile correction</h3>
         <p className="text-xs text-brand-muted">
           {proposal.authorName}, RND · {formatManilaDate(proposal.createdAt, { dateStyle: 'medium' })} ·{' '}
           {proposalFieldLabel(proposal.status)}

@@ -9,9 +9,15 @@ import type { ClarificationForm, ClarificationWorkspace } from './types';
 export default function MemberClarifications({
   workspace,
   onUpdated,
+  selectedId,
+  embedded = false,
+  disabled = false,
 }: {
   workspace?: ClarificationWorkspace;
   onUpdated: () => Promise<void>;
+  selectedId?: string;
+  embedded?: boolean;
+  disabled?: boolean;
 }) {
   const [busy, setBusy] = useState(false);
   const requestRef = useRef<{ payload: string; key: string } | null>(null);
@@ -23,6 +29,7 @@ export default function MemberClarifications({
   };
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+  const [feedbackId, setFeedbackId] = useState<string | null>(null);
   const [needsRefresh, setNeedsRefresh] = useState(false);
   if (!workspace?.enabled || !workspace.forms.length) return null;
   async function refreshSavedAnswers() {
@@ -38,7 +45,8 @@ export default function MemberClarifications({
     }
   }
   async function answer(form: ClarificationForm, answers: Record<string, string>) {
-    if (busy || needsRefresh) return;
+    if (disabled || busy || needsRefresh) return;
+    setFeedbackId(form.id);
     setBusy(true);
     setError(null);
     setMessage(null);
@@ -66,13 +74,13 @@ export default function MemberClarifications({
   }
   return (
     <section className="space-y-4" aria-label="RND clarification forms">
-      <h2 className="font-display text-xl font-bold">Questions from your RND</h2>
-      {error && (
+      {!embedded && <h2 className="font-display text-xl font-bold">Questions from your RND</h2>}
+      {error && (needsRefresh || selectedId === undefined || selectedId === feedbackId) && (
         <p role="alert" className="text-sm text-status-error-text">
           {error}
         </p>
       )}
-      {message && (
+      {message && (selectedId === undefined || selectedId === feedbackId) && (
         <p role="status" className="text-sm text-brand-green">
           {message}
         </p>
@@ -83,13 +91,15 @@ export default function MemberClarifications({
         </Button>
       )}
       {workspace.forms.map((form) => (
-        <ClarificationFormCard
-          key={form.id}
-          form={form}
-          mode="member"
-          disabled={busy || needsRefresh}
-          onAnswer={(answers) => answer(form, answers)}
-        />
+        <div key={form.id} hidden={selectedId !== undefined && selectedId !== form.id}>
+          <ClarificationFormCard
+            form={form}
+            embedded={embedded}
+            mode="member"
+            disabled={disabled || busy || needsRefresh}
+            onAnswer={(answers) => answer(form, answers)}
+          />
+        </div>
       ))}
     </section>
   );

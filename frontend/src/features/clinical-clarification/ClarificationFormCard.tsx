@@ -12,12 +12,14 @@ export default function ClarificationFormCard({
   disabled = false,
   onAnswer,
   onResolve,
+  embedded = false,
 }: {
   form: ClarificationForm;
   mode: 'member' | 'reviewer';
   disabled?: boolean;
   onAnswer?: (answers: Record<string, string>) => Promise<void>;
   onResolve?: (rationale: string) => Promise<void>;
+  embedded?: boolean;
 }) {
   const latest = form.responses.at(-1);
   const [answers, setAnswers] = useState<Record<string, string>>(latest?.answers ?? {});
@@ -34,15 +36,22 @@ export default function ClarificationFormCard({
     SUPERSEDED: 'Historical — profile changed',
   }[form.status];
   return (
-    <Card className="space-y-4 p-4 sm:p-5">
-      <header>
-        <h3 className="font-display text-lg font-bold">{form.title}</h3>
-        <p className="mt-1 text-xs text-brand-muted">
+    <Card
+      className={embedded ? 'space-y-5 rounded-none border-0 p-0 shadow-none sm:rounded-none' : 'space-y-4 p-4 sm:p-5'}
+      contentClassName={embedded ? 'space-y-5' : undefined}
+    >
+      <header className={embedded ? 'border-b border-brand-border pb-5' : undefined}>
+        <h3 className={embedded ? 'break-words font-display text-2xl font-semibold' : 'font-display text-lg font-bold'}>
+          {form.title}
+        </h3>
+        <p className="mt-2 text-sm leading-relaxed text-brand-muted">
           {form.authorName}, RND · Profile revision {form.profileRevision} ·{' '}
           {mode === 'reviewer' && form.status === 'AWAITING_MEMBER' ? 'Awaiting member response' : statusLabel}
         </p>
       </header>
-      {form.sourceMeal && <p className="text-xs text-brand-muted">Requested during meal review: {form.sourceMeal.mealName}</p>}
+      {form.sourceMeal && (
+        <p className="text-xs text-brand-muted">Requested during meal review: {form.sourceMeal.mealName}</p>
+      )}
       <form
         onSubmit={(event) => {
           event.preventDefault();
