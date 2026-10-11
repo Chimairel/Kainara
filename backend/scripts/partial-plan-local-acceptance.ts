@@ -38,29 +38,31 @@ async function main() {
     ['LUNCH', 800],
     ['DINNER', 700],
   ] as const) {
-    await prisma.rawRecipeCandidate.create({
-      data: {
-        sourceRecordId: `${marker}-${type}`,
-        sourceUrl: 'https://panlasangpinoy.com/software-fixture/',
-        recipeName: `Synthetic ${type.toLowerCase()} meal`,
-        normalizedName: `synthetic ${type.toLowerCase()} meal`,
-        contentSignature: createHash('sha256')
-          .update(marker + type)
-          .digest('hex'),
-        cuisines: ['Filipino'],
-        dietaryTags: ['OMNIVORE'],
-        mealType: type,
-        riceRole: 'STANDALONE',
-        riceRoleReviewStatus: 'REVIEWED',
-        calories,
-        proteinG: calories / 20,
-        carbsG: calories / 8,
-        fatG: calories * 0.03,
-        publishedNutrition: { calories, proteinG: calories / 20, carbsG: calories / 8, fatG: calories * 0.03 },
-        ingredients: [{ name: food.name, quantity: calories / 2, unit: 'g', foodItemId: food.id }],
-        applicableMealTypes: { create: { mealType: type, reviewStatus: 'REVIEWED' } },
-      },
-    });
+    for (let recipe = 0; recipe < 7; recipe++) {
+      await prisma.rawRecipeCandidate.create({
+        data: {
+          sourceRecordId: `${marker}-${type}-${recipe}`,
+          sourceUrl: 'https://panlasangpinoy.com/software-fixture/',
+          recipeName: `Synthetic ${type.toLowerCase()} meal ${recipe}`,
+          normalizedName: `synthetic ${type.toLowerCase()} meal ${recipe}`,
+          contentSignature: createHash('sha256')
+            .update(marker + type + recipe)
+            .digest('hex'),
+          cuisines: ['Filipino'],
+          dietaryTags: ['OMNIVORE'],
+          mealType: type,
+          riceRole: 'STANDALONE',
+          riceRoleReviewStatus: 'REVIEWED',
+          calories,
+          proteinG: calories / 20,
+          carbsG: calories / 8,
+          fatG: calories * 0.03,
+          publishedNutrition: { calories, proteinG: calories / 20, carbsG: calories / 8, fatG: calories * 0.03 },
+          ingredients: [{ name: food.name, quantity: calories / 2, unit: 'g', foodItemId: food.id }],
+          applicableMealTypes: { create: { mealType: type, reviewStatus: 'REVIEWED' } },
+        },
+      });
+    }
   }
   const fixture = async (
     kind: 'general' | 'allergy' | 'frozen' | 'stale' | 'expired' | 'deadline' | 'future-deadline'
@@ -250,6 +252,11 @@ async function main() {
       where: { planGroupId: entry.cycle.id, status: { not: 'CANCELLED' } },
     });
     assert.equal(meals.length, entry.cycle.expectedSlotCount);
+    assert.equal(
+      new Set(meals.map((meal) => meal.sourceRawRecipeCandidateId)).size,
+      entry.cycle.expectedSlotCount,
+      'Separate day turns must preserve recipe variety across the cycle'
+    );
     assert.ok(meals.every((meal) => meal.status === status && meal.candidateProvenance === 'RAW_RECIPE_CORPUS'));
     assert.equal(
       new Set(meals.map((meal) => `${meal.scheduledDate}:${meal.mealType}`)).size,

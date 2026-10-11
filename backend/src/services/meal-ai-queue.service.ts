@@ -62,6 +62,8 @@ async function loadQueuedCycle(id: string) {
           id: true,
           scheduledDate: true,
           mealType: true,
+          sourceRawRecipeCandidateId: true,
+          sourceRawRecipeCandidate: { select: { contentSignature: true } },
           calories: true,
           proteinG: true,
           carbsG: true,
@@ -337,6 +339,18 @@ export class MealAiQueueService {
         slots,
         planningTargets,
         existingNutrition: existingMeals,
+        existingRecipes: cycle.mealPlans.flatMap((meal) =>
+          !meal.retainedHistory && 'sourceRawRecipeCandidateId' in meal && meal.sourceRawRecipeCandidateId
+            ? [
+                {
+                  rawCandidateId: meal.sourceRawRecipeCandidateId,
+                  contentSignature: meal.sourceRawRecipeCandidate?.contentSignature ?? null,
+                  mealType: meal.mealType,
+                  dayNumber: Math.round((meal.scheduledDate.getTime() - cycle.startDate.getTime()) / 86_400_000) + 1,
+                },
+              ]
+            : []
+        ),
         dailyCalorieTarget: cycle.snapshot!.dailyCalorieTarget,
         dietaryPreference: profile.dietaryPreference || 'OMNIVORE',
         conditions,
