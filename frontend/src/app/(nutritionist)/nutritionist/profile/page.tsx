@@ -12,6 +12,7 @@ import NutritionistCredentialsSection from '@/features/nutritionist-profile/Nutr
 import NutritionistMetricsSection from '@/features/nutritionist-profile/NutritionistMetricsSection';
 import NutritionistAccountSection from '@/features/nutritionist-profile/NutritionistAccountSection';
 import NutritionistPracticeSection from '@/features/nutritionist-profile/NutritionistPracticeSection';
+import RndLicenseUpdates from '@/features/nutritionist-license/RndLicenseUpdates';
 export default function NutritionistProfilePage() {
   const model = useNutritionistProfilePageModel();
   if (model.kind === 'early') return model.view;
@@ -28,6 +29,7 @@ export default function NutritionistProfilePage() {
       <div className="space-y-6">
         {/* 1. Clinical Credential Hero Card */}
         <NutritionistCredentialsSection model={model} />
+        <RndLicenseUpdates key={user?.userId} />
 
         {/* 2. Clinical Credential KPI Stat Strip */}
         <NutritionistMetricsSection model={model} />
@@ -50,7 +52,8 @@ export default function NutritionistProfilePage() {
                   <h3 className="text-sm font-bold text-[#0d2820] dark:text-white mt-0.5">Licensing Compliance</h3>
                 </div>
                 <span className="inline-flex items-center gap-1 rounded-full border border-emerald-600/30 dark:border-emerald-500/30 bg-emerald-100/80 dark:bg-emerald-950/40 px-2.5 py-1 text-[10px] font-bold text-emerald-800 dark:text-emerald-400">
-                  <ShieldCheck className="h-3.5 w-3.5" /> PRC Verified
+                  <ShieldCheck className="h-3.5 w-3.5" />{' '}
+                  {profile?.isVerified ? 'Admin verified' : 'Verification pending'}
                 </span>
               </div>
 
@@ -75,7 +78,8 @@ export default function NutritionistProfilePage() {
                     Verification Status
                   </span>
                   <p className="font-bold text-emerald-700 dark:text-emerald-400 flex items-center gap-1">
-                    <Check className="h-3.5 w-3.5 stroke-[3]" /> Verified by Admin Registry Audit
+                    <Check className="h-3.5 w-3.5 stroke-[3]" />{' '}
+                    {profile?.isVerified ? 'Credential checked by administrator' : 'Not yet verified'}
                   </p>
                 </div>
                 <div className="rounded-xl border border-[#dce4e0] dark:border-[#173e33] bg-white/60 dark:bg-[#071914] p-3.5 space-y-1">
@@ -100,11 +104,11 @@ export default function NutritionistProfilePage() {
             name: user?.name || 'RND',
             image: user?.image,
             officialHeadshot: profile?.officialHeadshot,
-            prcLicenseNumber: profile?.prcLicenseNumber || 'PRC-RND-NM-0001',
-            prcLicenseExpiry: profile?.prcLicenseExpiry || new Date().toISOString(),
-            specialization: specialization || profile?.specialization || 'Clinical and Community Nutrition',
-            yearsOfExperience: profile?.yearsOfExperience || 5,
-            university: profile?.university || 'University of San Carlos',
+            prcLicenseNumber: profile?.prcLicenseNumber ?? 'Not recorded',
+            prcLicenseExpiry: profile?.prcLicenseExpiry ?? '',
+            specialization: specialization || profile?.specialization || 'Not recorded',
+            yearsOfExperience: profile?.yearsOfExperience ?? undefined,
+            university: profile?.university ?? undefined,
             bio: bio || profile?.bio,
           }}
           nutritionistNote={bio || profile?.bio || 'Clinical meal supervision and adherence monitoring.'}

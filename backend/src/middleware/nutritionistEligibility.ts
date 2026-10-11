@@ -3,6 +3,7 @@ import prisma from '@/lib/prisma';
 import { AuthenticatedRequest } from '@/types';
 import { isNutritionistEligibleForReview } from '@/domain/nutritionist-review.policy';
 import { sanitizeErrorMessage } from '@/lib/sanitizeError';
+import { credentialAccessState } from '@/domain/nutritionist-license.policy';
 
 export async function requireEligibleNutritionist(req: AuthenticatedRequest, res: Response, next: NextFunction) {
   try {
@@ -27,6 +28,7 @@ export async function requireEligibleNutritionist(req: AuthenticatedRequest, res
       }),
     ]);
 
+    const state = credentialAccessState(profile, !!user?.emailVerified, application?.status ?? null);
     if (
       !profile ||
       !user?.emailVerified ||
@@ -35,7 +37,11 @@ export async function requireEligibleNutritionist(req: AuthenticatedRequest, res
     ) {
       return res.status(403).json({
         success: false,
-        error: 'An active, verified nutritionist credential is required for this workspace.',
+        error:
+          state.reason === 'LICENSE_EXPIRED'
+            ? `Your recorded PRC license expired on ${state.expiryDate}. Open your RND profile to submit a renewal or correction.`
+            : 'An activated, verified RND credential is required. Check your profile or contact an administrator.',
+        errorCode: state.reason === 'LICENSE_EXPIRED' ? 'RND_LICENSE_EXPIRED' : 'RND_CREDENTIAL_REQUIRED',
       });
     }
 

@@ -1,115 +1,107 @@
 'use client';
-import { useVisiblePolling } from '@/hooks/useVisiblePolling';
-import { useState, useEffect } from 'react';
-
+import { useRef, useState } from 'react';
 import api from '@/lib/axios';
-import NutritionistProfileSkeleton from '@/features/profile/NutritionistProfileSkeleton';
-
 import { useAuth } from '@/hooks/useAuth';
+import { useSessionQuery } from '@/hooks/useSessionQuery';
+import { getApiErrorMessage } from '@/lib/api-error';
+import NutritionistProfileSkeleton from '@/features/profile/NutritionistProfileSkeleton';
+import Button from '@/components/ui/Button';
+import type { NProfile } from './NutritionistProfilePage.shared';
 
-import { readSessionResource, writeSessionResource } from '@/lib/session-resource-cache';
-
-import { NProfile } from './NutritionistProfilePage.shared';
 export function useNutritionistProfilePageModel() {
   const { logout, user } = useAuth();
   const ownerId = user?.userId;
-  const cached = readSessionResource<NProfile>(ownerId, 'nutritionist-profile');
-  const [profile, setProfile] = useState<NProfile | null>(cached);
-  const [isLoading, setIsLoading] = useState(!cached);
-  const [bio, setBio] = useState('');
-  const [specialization, setSpecialization] = useState('');
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
-  const [copied, setCopied] = useState(false);
-  const [showModalPreview, setShowModalPreview] = useState(false);
-
-  useEffect(() => {
-    const fetchProfile = async () => {
-      try {
-        setError(null);
-        const res = await api.get('/nutritionist/profile');
-        if (res.data?.success && res.data.data) {
-          setProfile(res.data.data);
-          writeSessionResource(ownerId, 'nutritionist-profile', res.data.data);
-          setBio(res.data.data.bio || '');
-          setSpecialization(res.data.data.specialization || '');
-        }
-      } catch (err) {
-        console.error('Failed to fetch profile:', err);
-        setError('Your professional profile could not be loaded. Please refresh and try again.');
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    fetchProfile();
-  }, [ownerId]);
-
-  useVisiblePolling(
-    async (signal) => {
-      const response = await api.get('/nutritionist/profile', { signal });
-      if (!signal.aborted && response.data?.success) {
-        setProfile(response.data.data);
-        writeSessionResource(ownerId, 'nutritionist-profile', response.data.data);
-      }
-      // Biography and specialization drafts stay unchanged during background reads.
+  const currentOwner = useRef(ownerId);
+  currentOwner.current = ownerId;
+  const query = useSessionQuery<NProfile>({
+    ownerId,
+    resource: 'nutritionist-profile',
+    pollIntervalMs: 60000,
+    errorMessage: 'Your professional profile could not be loaded. Please try again.',
+    fetcher: async () => {
+      const response = await api.get('/nutritionist/profile');
+      if (!response.data?.success || !response.data.data) throw new Error('Professional profile unavailable.');
+      return response.data.data;
     },
-    { enabled: Boolean(ownerId) && !saving, immediate: false, scopeKey: ownerId }
-  );
-
-  const handleSave = async () => {
-    setSaving(true);
-    setError(null);
-    setSuccess(null);
+  });
+  const profile = query.data;
+  const [draft, setDraft] = useState<{ ownerId?: string; bio?: string; specialization?: string }>({});
+  const bio = draft.ownerId === ownerId ? (draft.bio ?? profile?.bio ?? '') : (profile?.bio ?? '');
+  const specialization =
+    draft.ownerId === ownerId
+      ? (draft.specialization ?? profile?.specialization ?? '')
+      : (profile?.specialization ?? '');
+  const setBio = (value: string) =>
+    setDraft((previous) => ({ ...(previous.ownerId === ownerId ? previous : {}), ownerId, bio: value }));
+  const setSpecialization = (value: string) =>
+    setDraft((previous) => ({ ...(previous.ownerId === ownerId ? previous : {}), ownerId, specialization: value }));
+  const [savingOwner, setSavingOwner] = useState<string | null>(null);
+  const saving = !!ownerId && savingOwner === ownerId;
+  const [feedback, setFeedback] = useState<{ ownerId?: string; error?: string; success?: string }>({});
+  const [copiedOwner, setCopiedOwner] = useState<string | null>(null);
+  const [previewOwner, setPreviewOwner] = useState<string | null>(null);
+  async function handleSave() {
+    if (!ownerId || saving) return;
+    setSavingOwner(ownerId);
+    setFeedback({ ownerId });
     try {
-      await api.patch('/nutritionist/profile', { bio, specialization });
-      setProfile((current) => (current ? { ...current, bio, specialization } : current));
-      if (profile) writeSessionResource(ownerId, 'nutritionist-profile', { ...profile, bio, specialization });
-      setSuccess('Professional profile updated successfully.');
-    } catch (err) {
-      console.error('Save failed:', err);
-      setError('Your professional profile could not be saved. Please try again.');
+      const response = await api.patch('/nutritionist/profile', { bio, specialization });
+      if (currentOwner.current !== ownerId) return;
+      query.setData(response.data.data);
+      setFeedback({ ownerId, success: 'Professional profile updated successfully.' });
+    } catch (cause) {
+      if (currentOwner.current === ownerId)
+        setFeedback({
+          ownerId,
+          error: getApiErrorMessage(cause, 'Your professional profile could not be saved. Please try again.'),
+        });
     } finally {
-      setSaving(false);
+      if (currentOwner.current === ownerId) setSavingOwner(null);
     }
-  };
-
-  const copyLicense = () => {
-    const lic = profile?.prcLicenseNumber || 'PRC-RND-NM-0001';
-    navigator.clipboard.writeText(lic);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
-
-  if (isLoading) {
-    return { kind: 'early' as const, view: <NutritionistProfileSkeleton /> };
   }
-
-  const formattedExpiry = profile?.prcLicenseExpiry
-    ? new Date(profile.prcLicenseExpiry).toLocaleDateString(undefined, {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric',
-      })
-    : 'Dec 31, 2028';
-
+  function copyLicense() {
+    if (!profile?.prcLicenseNumber || !ownerId) return;
+    void navigator.clipboard.writeText(profile.prcLicenseNumber);
+    setCopiedOwner(ownerId);
+    setTimeout(() => setCopiedOwner(null), 2000);
+  }
+  if (!profile)
+    return {
+      kind: 'early' as const,
+      view: query.isLoading ? (
+        <NutritionistProfileSkeleton />
+      ) : (
+        <div className="portal-page space-y-4">
+          <p role="alert">{query.error ?? 'Your professional profile is unavailable.'}</p>
+          <Button variant="secondary" onClick={() => void query.refetch()}>
+            Retry professional profile
+          </Button>
+        </div>
+      ),
+    };
+  const formattedExpiry = new Date(profile.prcLicenseExpiry).toLocaleDateString('en-PH', {
+    timeZone: 'Asia/Manila',
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+  });
   return {
     kind: 'ready' as const,
     profile,
     user,
     formattedExpiry,
     copyLicense,
-    copied,
-    error,
-    success,
+    copied: copiedOwner === ownerId,
+    error: (feedback.ownerId === ownerId ? feedback.error : null) ?? query.error,
+    success: feedback.ownerId === ownerId ? feedback.success : null,
     specialization,
     setSpecialization,
     bio,
     setBio,
     handleSave,
     saving,
-    setShowModalPreview,
+    setShowModalPreview: (open: boolean) => setPreviewOwner(open ? (ownerId ?? null) : null),
     logout,
-    showModalPreview,
+    showModalPreview: !!ownerId && previewOwner === ownerId,
   };
 }

@@ -9,6 +9,7 @@
     "types": ["node"]
   },
   "include": [
+    "scripts/license-updates-acceptance.ts",
     "scripts/outside-review-quota-local-acceptance.ts",
     "scripts/capstone-evaluation.ts",
     "scripts/capstone-restored-api-smoke.ts",

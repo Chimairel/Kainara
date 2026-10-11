@@ -1,6 +1,7 @@
 'use client';
 
 import ReviewRoutingPanel from './ReviewRoutingPanel';
+import AdminLicenseUpdates from '@/features/nutritionist-license/AdminLicenseUpdates';
 import WorkspaceTabs from '@/components/ui/WorkspaceTabs';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { getApiErrorMessage } from '@/lib/api-error';
@@ -32,7 +33,7 @@ export default function AdminNutritionistsPage({ active = true }: { active?: boo
   const cached = readSessionResource<GovernanceSnapshot>(ownerId, 'admin-professional-governance-v2');
   const [applications, setApplications] = useState<NutritionistApplication[]>(cached?.applications ?? []);
   const [nutritionists, setNutritionists] = useState<NutritionistRow[]>(cached?.nutritionists ?? []);
-  const [tab, setTab] = useState<'applications' | 'professionals'>('applications');
+  const [tab, setTab] = useState<'applications' | 'professionals' | 'licenses'>('applications');
   const [isLoading, setIsLoading] = useState(!cached);
   const [workingId, setWorkingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -170,7 +171,9 @@ export default function AdminNutritionistsPage({ active = true }: { active?: boo
         verifiedCount={professionalRecords.length}
         onChange={setTab}
       />
-      {tab === 'applications' ? (
+      {tab === 'licenses' ? (
+        <AdminLicenseUpdates key={ownerId} onChanged={() => void fetchData()} />
+      ) : tab === 'applications' ? (
         <>
           <ApplicationSection
             label="Active pipeline"
@@ -243,10 +246,10 @@ function TabSelector({
   verifiedCount,
   onChange,
 }: {
-  tab: 'applications' | 'professionals';
+  tab: 'applications' | 'professionals' | 'licenses';
   applicationCount: number;
   verifiedCount: number;
-  onChange: (tab: 'applications' | 'professionals') => void;
+  onChange: (tab: 'applications' | 'professionals' | 'licenses') => void;
 }) {
   return (
     <WorkspaceTabs
@@ -256,6 +259,7 @@ function TabSelector({
       items={[
         { value: 'applications', label: `Applications (${applicationCount})` },
         { value: 'professionals', label: `Professional records (${verifiedCount})` },
+        { value: 'licenses', label: 'License updates' },
       ]}
     />
   );

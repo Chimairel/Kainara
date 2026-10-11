@@ -18,16 +18,16 @@ import type { useSharedMealLibraryModel } from './useSharedMealLibraryModel';
 type Props = {
   model: Pick<
     ReturnType<typeof useSharedMealLibraryModel>,
-    'isLoading' | 'meals' | 'viewingMealId' | 'openMeal' | 'totalPages' | 'page' | 'handlePageChange'
+    'isLoading' | 'fetchError' | 'meals' | 'viewingMealId' | 'openMeal' | 'totalPages' | 'page' | 'handlePageChange'
   >;
 };
 export default function LibraryResultsSection({ model }: Props) {
-  const { isLoading, meals, viewingMealId, openMeal, totalPages, page, handlePageChange } = model;
+  const { isLoading, fetchError, meals, viewingMealId, openMeal, totalPages, page, handlePageChange } = model;
   return (
     <>
       {isLoading ? (
         <LibraryGridSkeleton count={6} />
-      ) : meals.length === 0 ? (
+      ) : meals.length === 0 && fetchError ? null : meals.length === 0 ? (
         <Card className="p-16 text-center border-brand-border/40 bg-brand-surface/30 flex flex-col items-center rounded-[22px]">
           <Soup className="w-12 h-12 text-brand-muted mb-4" />
           <h3 className="text-lg font-bold text-brand-text font-display">No Meals Found</h3>

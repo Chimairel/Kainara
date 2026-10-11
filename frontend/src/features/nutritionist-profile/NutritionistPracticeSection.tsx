@@ -47,11 +47,11 @@ export default function NutritionistPracticeSection({ model }: SectionProps) {
               name: user?.name || 'RND',
               image: user?.image,
               officialHeadshot: profile?.officialHeadshot,
-              prcLicenseNumber: profile?.prcLicenseNumber || 'PRC-RND-NM-0001',
-              prcLicenseExpiry: profile?.prcLicenseExpiry || new Date().toISOString(),
-              specialization: specialization || profile?.specialization || 'Clinical and Community Nutrition',
-              yearsOfExperience: profile?.yearsOfExperience || 5,
-              university: profile?.university || 'University of San Carlos',
+              prcLicenseNumber: profile?.prcLicenseNumber ?? 'Not recorded',
+              prcLicenseExpiry: profile?.prcLicenseExpiry ?? '',
+              specialization: specialization || profile?.specialization || 'Not recorded',
+              yearsOfExperience: profile?.yearsOfExperience ?? undefined,
+              university: profile?.university ?? undefined,
               bio: bio || profile?.bio,
             }}
             nutritionistNote={bio || profile?.bio}

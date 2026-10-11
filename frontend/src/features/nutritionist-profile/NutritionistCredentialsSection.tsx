@@ -1,5 +1,6 @@
 'use client';
 
+import { useCredentialStatus } from '@/features/nutritionist-license/NutritionistCredentialGate';
 import Link from 'next/link';
 
 import Badge from '@/components/ui/Badge';
@@ -12,6 +13,7 @@ type Model = Extract<ReturnType<typeof useNutritionistProfilePageModel>, { kind:
 type SectionProps = { model: Pick<Model, 'profile' | 'user' | 'formattedExpiry'> };
 export default function NutritionistCredentialsSection({ model }: SectionProps) {
   const { profile, user, formattedExpiry } = model;
+  const access = useCredentialStatus()?.data;
 
   return (
     <>
@@ -36,9 +38,15 @@ export default function NutritionistCredentialsSection({ model }: SectionProps) 
               Professional Regulation Commission · Republic of the Philippines
             </span>
           </div>
-          <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-600/30 dark:border-emerald-500/30 bg-emerald-100/80 dark:bg-emerald-500/10 px-2.5 py-0.5 font-mono text-[9px] font-extrabold uppercase tracking-wider text-emerald-800 dark:text-emerald-400">
-            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-            Active PRC Licensee
+          <span
+            className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-semibold ${access?.eligible ? 'border-emerald-600/30 bg-emerald-100/80 text-emerald-800 dark:bg-emerald-500/10 dark:text-emerald-400' : 'border-status-warning-text/30 bg-status-warning-bg text-status-warning-text'}`}
+          >
+            <span className="h-1.5 w-1.5 rounded-full bg-current" />
+            {access?.eligible
+              ? 'Current PRC license'
+              : access?.reason === 'LICENSE_EXPIRED'
+                ? 'Recorded license expired'
+                : 'Credential status pending'}
           </span>
         </div>
 
@@ -84,7 +92,7 @@ export default function NutritionistCredentialsSection({ model }: SectionProps) 
                 </div>
 
                 <p className="font-mono text-xs font-bold text-emerald-700 dark:text-emerald-400 flex flex-wrap items-center justify-center sm:justify-start gap-2">
-                  <span>PRC Lic. No. {profile?.prcLicenseNumber || 'PRC-RND-NM-0001'}</span>
+                  <span>PRC Lic. No. {profile?.prcLicenseNumber ?? 'Not recorded'}</span>
                   <span className="text-[#6b857c] dark:text-[#8ea99f]">·</span>
                   <span className="text-[#6b857c] dark:text-[#8ea99f] font-sans font-medium">
                     Valid thru {formattedExpiry}
@@ -94,12 +102,12 @@ export default function NutritionistCredentialsSection({ model }: SectionProps) 
                 <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 text-xs text-[#5a746a] dark:text-[#8ea99f]">
                   <span className="inline-flex items-center gap-1">
                     <GraduationCap className="h-3.5 w-3.5 text-emerald-700 dark:text-emerald-400" />
-                    {profile?.university || 'University of San Carlos'}
+                    {profile?.university || 'Not recorded'}
                   </span>
                   <span>•</span>
                   <span className="inline-flex items-center gap-1">
                     <Stethoscope className="h-3.5 w-3.5 text-cyan-600 dark:text-cyan-400" />
-                    {profile?.specialization || 'Clinical and Community Nutrition'}
+                    {profile?.specialization || 'Not recorded'}
                   </span>
                   {profile?.yearsOfExperience && (
                     <>

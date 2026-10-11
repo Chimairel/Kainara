@@ -1,5 +1,7 @@
 'use client';
 
+import { useCredentialStatus } from '@/features/nutritionist-license/NutritionistCredentialGate';
+
 import { ShieldCheck, Award, Calendar, GraduationCap, Copy } from 'lucide-react';
 
 import type { useNutritionistProfilePageModel } from './useNutritionistProfilePageModel';
@@ -7,6 +9,7 @@ type Model = Extract<ReturnType<typeof useNutritionistProfilePageModel>, { kind:
 type SectionProps = { model: Pick<Model, 'profile' | 'copyLicense' | 'copied' | 'formattedExpiry'> };
 export default function NutritionistMetricsSection({ model }: SectionProps) {
   const { profile, copyLicense, copied, formattedExpiry } = model;
+  const access = useCredentialStatus()?.data;
 
   return (
     <>
@@ -23,7 +26,7 @@ export default function NutritionistMetricsSection({ model }: SectionProps) {
           </div>
           <div className="mt-2 flex items-baseline justify-between gap-1">
             <span className="font-mono text-sm font-extrabold text-[#0d2820] dark:text-white truncate">
-              {profile?.prcLicenseNumber || 'PRC-RND-NM-0001'}
+              {profile?.prcLicenseNumber || 'Not recorded'}
             </span>
             <button
               type="button"
@@ -39,7 +42,7 @@ export default function NutritionistMetricsSection({ model }: SectionProps) {
             </button>
           </div>
           <span className="mt-1 block text-[11px] font-semibold text-emerald-700 dark:text-emerald-400">
-            PRC Board Certified RND
+            {profile?.isVerified ? 'Credential verified by admin' : 'Verification pending'}
           </span>
         </div>
 
@@ -55,7 +58,11 @@ export default function NutritionistMetricsSection({ model }: SectionProps) {
           </div>
           <p className="mt-2 font-display text-sm font-extrabold text-[#0d2820] dark:text-white">{formattedExpiry}</p>
           <span className="mt-1 block text-[11px] font-semibold text-cyan-700 dark:text-cyan-400">
-            Active &amp; Good Standing
+            {access?.eligible
+              ? 'Review access available'
+              : access?.reason === 'LICENSE_EXPIRED'
+                ? 'Recorded license expired'
+                : 'Review access unavailable'}
           </span>
         </div>
 
@@ -88,10 +95,10 @@ export default function NutritionistMetricsSection({ model }: SectionProps) {
             </div>
           </div>
           <p className="mt-2 font-display text-xs font-bold text-[#0d2820] dark:text-white truncate">
-            {profile?.university || 'University of San Carlos'}
+            {profile?.university || 'Not recorded'}
           </p>
           <span className="mt-1 block text-[11px] font-semibold text-[#6b857c] dark:text-[#8ea99f]">
-            BS Nutrition &amp; Dietetics
+            Education on record
           </span>
         </div>
       </div>

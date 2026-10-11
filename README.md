@@ -25,6 +25,8 @@ Profile clarification has been implemented and tested in five reviewed batches. 
 
 ## Current verification status
 
+Registered RND license renewals and recorded-detail corrections use [RND license updates](docs/RND_LICENSE_UPDATES.md). Expired RNDs retain own-profile maintenance while clinical review stays blocked. Apply the additive license-update migration to a confirmed database target before activating the new screens.
+
 The application has substantial frontend and backend implementation. Verification results change as work continues; use the latest dated entry in the [engineering record](docs/NUTRIMIND_ENGINEERING_RECORD.md) and rerun the relevant checks for the code you are studying. Automated, browser, and disposable-database tests do not establish clinical approval. The [clinical policy approval record](docs/CLINICAL_POLICY_APPROVAL.md) is the separate release gate.
 
 Use these status terms: Planned, Designed, Partially implemented, Implemented but unverified, Statically verified, Integration tested, End-to-end tested, Deployed, and Clinically reviewed.

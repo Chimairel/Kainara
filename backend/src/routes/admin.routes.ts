@@ -1,4 +1,5 @@
 import { mealReviewRouter } from './meal-review.routes';
+import { nutritionistLicenseRouter } from './nutritionist-license.routes';
 import adminReviewRoutingRouter from './admin-review-routing.routes';
 import { Router, Response } from 'express';
 import authenticate from '@/middleware/auth';
@@ -29,6 +30,7 @@ const router = Router();
 // Apply auth + ADMIN role restriction
 router.use(authenticate);
 router.use(requireRole('ADMIN'));
+router.use('/license-updates', nutritionistLicenseRouter('ADMIN'));
 router.use('/review-routing', adminReviewRoutingRouter);
 router.use('/meal-review-cases', mealReviewRouter('admin'));
 router.use('/data', adminDataRouter);

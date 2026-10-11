@@ -846,6 +846,7 @@ model MealBatchImport {
 }
 
 model User {
+  licenseUpdatesReviewed NutritionistLicenseUpdate[] @relation("LicenseUpdateReviewer")
   clinicalReviewEpoch            ClinicalProfileReviewEpoch?
   clarificationForms              ClinicalClarificationForm[] @relation("ClarificationMember")
   authoredClarificationForms      ClinicalClarificationForm[] @relation("ClarificationAuthor")
@@ -1210,6 +1211,7 @@ model NutritionReport {
 }
 
 model NutritionistProfile {
+  licenseUpdates NutritionistLicenseUpdate[]
   id                  String    @id @default(cuid())
   userId              String    @unique
   user                User      @relation("UserToNutritionistProfile", fields: [userId], references: [id], onDelete: Cascade)
@@ -3385,4 +3387,44 @@ model ClinicalClarificationResolution {
   reviewer       User @relation(fields: [reviewerUserId], references: [id], onDelete: Restrict)
   rationale      String @db.VarChar(2000)
   resolvedAt     DateTime @default(now())
+}
+
+enum NutritionistLicenseUpdateStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum NutritionistLicenseUpdatePurpose {
+  RENEWAL
+  CORRECTION
+}
+
+model NutritionistLicenseUpdate {
+  id                    String                           @id @default(cuid())
+  nutritionistProfileId String
+  nutritionistProfile   NutritionistProfile              @relation(fields: [nutritionistProfileId], references: [id], onDelete: Cascade)
+  purpose               NutritionistLicenseUpdatePurpose
+  status                NutritionistLicenseUpdateStatus  @default(PENDING)
+  previousLicenseNumber String                           @db.VarChar(80)
+  previousLicenseExpiry DateTime
+  proposedLicenseNumber String                           @db.VarChar(80)
+  proposedLicenseExpiry DateTime
+  submissionReason      String                           @db.VarChar(1500)
+  originalFileName      String                           @db.VarChar(180)
+  mimeType              String                           @db.VarChar(40)
+  byteSize              Int
+  encryptedPayload      Bytes
+  encryptionIv          Bytes
+  encryptionAuthTag     Bytes
+  sha256                String                           @db.VarChar(64)
+  reviewedByUserId      String?
+  reviewedBy            User?                            @relation("LicenseUpdateReviewer", fields: [reviewedByUserId], references: [id], onDelete: SetNull)
+  reviewerName          String?                          @db.VarChar(200)
+  decisionReason        String?                          @db.VarChar(1500)
+  reviewedAt            DateTime?
+  createdAt             DateTime                         @default(now())
+
+  @@index([status, createdAt, id])
+  @@index([nutritionistProfileId, createdAt, id])
 }

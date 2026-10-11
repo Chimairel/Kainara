@@ -3,6 +3,7 @@
 import React from 'react';
 import { ClipboardList, Soup, ScrollText } from 'lucide-react';
 import PortalRoleLayout from '@/components/shared/PortalRoleLayout';
+import NutritionistCredentialGate from '@/features/nutritionist-license/NutritionistCredentialGate';
 
 const navItems = [
   { href: '/nutritionist/reviews', label: 'Reviews', icon: ClipboardList },
@@ -11,5 +12,9 @@ const navItems = [
 ];
 
 export default function NutritionistLayout({ children }: { children: React.ReactNode }) {
-  return <PortalRoleLayout navItems={navItems}>{children}</PortalRoleLayout>;
+  return (
+    <PortalRoleLayout navItems={navItems}>
+      <NutritionistCredentialGate>{children}</NutritionistCredentialGate>
+    </PortalRoleLayout>
+  );
 }

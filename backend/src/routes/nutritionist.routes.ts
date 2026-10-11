@@ -11,6 +11,9 @@ import { AuthenticatedRequest } from '@/types';
 import { NutritionistService } from '@/services/nutritionist.service';
 import { sanitizeErrorMessage } from '@/lib/sanitizeError';
 import requireEligibleNutritionist from '@/middleware/nutritionistEligibility';
+import { nutritionistLicenseRouter } from './nutritionist-license.routes';
+import nutritionistProfileRouter from './nutritionist-profile.routes';
+import { NutritionistLicenseService } from '@/services/nutritionist-license.service';
 import validateZodBody, { validateZodRequest } from '@/middleware/validateZod';
 import {
   nutritionistReviewActionSchema,
@@ -52,6 +55,15 @@ const router = Router();
 // Apply auth + NUTRITIONIST role restriction
 router.use(authenticate);
 router.use(requireRole('NUTRITIONIST'));
+router.get(
+  '/credential-status',
+  asyncHandler(async (request, res) => {
+    const req = request as AuthenticatedRequest;
+    res.json({ success: true, data: await NutritionistLicenseService.status(req.user!.userId) });
+  })
+);
+router.use('/profile', nutritionistProfileRouter);
+router.use('/license-updates', nutritionistLicenseRouter('NUTRITIONIST'));
 router.use(requireEligibleNutritionist);
 router.use(clinicalClarificationRouter('rnd'));
 router.use(reviewSwapRouter);
@@ -785,35 +797,6 @@ router.post('/approved/:id/reusable-draft', async (req: AuthenticatedRequest, re
       return res.status(422).json({ success: false, error: message });
     }
     return res.status(500).json({ success: false, error: message });
-  }
-});
-
-/**
- * GET /api/nutritionist/profile
- */
-router.get('/profile', async (req: AuthenticatedRequest, res: Response) => {
-  try {
-    const profile = await NutritionistService.getProfile(req.user!.userId);
-    return res.status(200).json({ success: true, data: { ...profile, user: req.user } });
-  } catch (error: any) {
-    return res
-      .status(500)
-      .json({ success: false, error: sanitizeErrorMessage(error, 'Failed to retrieve nutritionist profile.') });
-  }
-});
-
-/**
- * PATCH /api/nutritionist/profile
- */
-router.patch('/profile', async (req: AuthenticatedRequest, res: Response) => {
-  try {
-    const { bio, specialization } = req.body;
-    const profile = await NutritionistService.updateProfile(req.user!.userId, { bio, specialization });
-    return res.status(200).json({ success: true, data: profile });
-  } catch (error: any) {
-    return res
-      .status(500)
-      .json({ success: false, error: sanitizeErrorMessage(error, 'Failed to update nutritionist profile.') });
   }
 });
 
