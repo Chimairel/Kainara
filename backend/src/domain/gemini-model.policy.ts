@@ -6,13 +6,10 @@
  * Keep this list pinned to explicit GA model IDs. Moving aliases such as
  * `gemini-flash-latest` make production behavior and audit evidence drift over
  * time without a corresponding code change.
+ * Google deprecated 3.7 Flash on 2026-10-08 and redirects it to 3.8 Flash;
+ * including both would retry the same provider model as separate fallbacks.
  */
-export const GEMINI_MODEL_SEQUENCE = [
-  'gemini-3.5-flash-lite',
-  'gemini-3.6-flash',
-  'gemini-3.7-flash',
-  'gemini-3.8-flash',
-] as const;
+export const GEMINI_MODEL_SEQUENCE = ['gemini-3.5-flash-lite', 'gemini-3.6-flash', 'gemini-3.8-flash'] as const;
 
 export const GEMINI_MODEL_TIMEOUT_MS = 15_000;
 
@@ -20,7 +17,6 @@ export type NutriMindGeminiModel = (typeof GEMINI_MODEL_SEQUENCE)[number];
 
 const COMPLEX_MEAL_MODEL_SEQUENCE = [
   'gemini-3.6-flash',
-  'gemini-3.7-flash',
   'gemini-3.8-flash',
 ] as const satisfies readonly NutriMindGeminiModel[];
 

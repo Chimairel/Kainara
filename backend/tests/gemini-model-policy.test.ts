@@ -7,12 +7,7 @@ import {
 } from '../src/domain/gemini-model.policy';
 
 test('[TEST-150] Gemini fallback policy uses explicit current GA model IDs', () => {
-  assert.deepEqual(GEMINI_MODEL_SEQUENCE, [
-    'gemini-3.5-flash-lite',
-    'gemini-3.6-flash',
-    'gemini-3.7-flash',
-    'gemini-3.8-flash',
-  ]);
+  assert.deepEqual(GEMINI_MODEL_SEQUENCE, ['gemini-3.5-flash-lite', 'gemini-3.6-flash', 'gemini-3.8-flash']);
   assert.equal(new Set(GEMINI_MODEL_SEQUENCE).size, GEMINI_MODEL_SEQUENCE.length);
   assert.ok(GEMINI_MODEL_SEQUENCE.every((model) => !model.includes('preview')));
   assert.ok(GEMINI_MODEL_SEQUENCE.every((model) => !model.endsWith('-latest')));
@@ -35,7 +30,7 @@ test('Routine estimates/extraction use Lite; complex and unknown tasks never dow
     {},
   ]) {
     const models = getGeminiModelSequence(usage);
-    assert.equal(models[0], 'gemini-3.6-flash');
+    assert.deepEqual(models, ['gemini-3.6-flash', 'gemini-3.8-flash']);
     assert.equal(models.includes('gemini-3.5-flash-lite'), false);
     assert.equal(new Set(models).size, models.length);
   }
