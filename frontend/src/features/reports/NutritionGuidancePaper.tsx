@@ -56,6 +56,7 @@ export default function NutritionGuidancePaper({
 }: NutritionGuidancePaperProps) {
   const inline = presentation === 'inline';
   const Heading = inline ? 'h3' : 'h1';
+  const SummaryHeading = inline ? 'h4' : 'h2';
   const sheetClassName = inline
     ? 'w-full select-text break-words [overflow-wrap:break-word]'
     : 'relative bg-white text-slate-800 shadow-[0_4px_30px_rgba(0,0,0,0.35)] w-full min-h-[1123px] p-14 flex flex-col justify-between select-text break-words [overflow-wrap:break-word]';
@@ -166,7 +167,9 @@ export default function NutritionGuidancePaper({
 
           {/* What these numbers mean */}
           <section className="space-y-1.5 my-3">
-            <h2 className="text-sm sm:text-base font-bold text-[#2D6A4F]">What these numbers mean</h2>
+            <SummaryHeading className="text-sm sm:text-base font-bold text-[#2D6A4F]">
+              What these numbers mean
+            </SummaryHeading>
             <p className="text-xs sm:text-[13px] text-slate-700 leading-relaxed">
               {report.generalSummary || 'No summary recorded for this version.'}
             </p>
