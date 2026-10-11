@@ -8,15 +8,22 @@ import type { ProfileProposal, ProfileProposalWorkspace } from './profile-propos
 export default function MemberProfileProposals({
   workspace,
   onUpdated,
+  selectedId,
+  embedded = false,
+  disabled = false,
 }: {
   workspace?: ProfileProposalWorkspace;
   onUpdated: (applied: boolean) => Promise<void>;
+  selectedId?: string;
+  embedded?: boolean;
+  disabled?: boolean;
 }) {
   const [busy, setBusy] = useState(false),
     [error, setError] = useState<string | null>(null);
   const retry = useRef<{ payload: string; key: string } | null>(null);
   const [savedDecision, setSavedDecision] = useState<'ACCEPT' | 'REQUEST_CORRECTION' | null>(null);
   const [needsRefresh, setNeedsRefresh] = useState(false);
+  const [feedbackId, setFeedbackId] = useState<string | null>(null);
   if (!workspace?.enabled || !workspace.proposals.length) return null;
   async function refreshSavedResponse(decision: 'ACCEPT' | 'REQUEST_CORRECTION') {
     setBusy(true);
@@ -31,7 +38,8 @@ export default function MemberProfileProposals({
     }
   }
   async function respond(proposal: ProfileProposal, decision: 'ACCEPT' | 'REQUEST_CORRECTION', note: string) {
-    if (busy || needsRefresh) return;
+    if (disabled || busy || needsRefresh) return;
+    setFeedbackId(proposal.id);
     const body = { profileRevision: proposal.profileRevision, scopeKey: proposal.scopeKey, decision, note };
     const payload = JSON.stringify({ id: proposal.id, ...body });
     if (retry.current?.payload !== payload) retry.current = { payload, key: crypto.randomUUID() };
@@ -53,12 +61,12 @@ export default function MemberProfileProposals({
   }
   return (
     <section className="space-y-4" aria-label="RND profile corrections">
-      {error && (
+      {error && (needsRefresh || selectedId === undefined || selectedId === feedbackId) && (
         <p role="alert" className="text-sm text-status-error-text">
           {error}
         </p>
       )}
-      {savedDecision && (
+      {savedDecision && (selectedId === undefined || selectedId === feedbackId) && (
         <p role="status" className="text-sm text-brand-green">
           {savedDecision === 'ACCEPT'
             ? 'Correction acknowledged and applied.'
@@ -71,12 +79,14 @@ export default function MemberProfileProposals({
         </Button>
       )}
       {workspace.proposals.map((p) => (
-        <ProfileProposalCard
-          key={p.id}
-          proposal={p}
-          disabled={busy || needsRefresh}
-          onRespond={(decision, note) => respond(p, decision, note)}
-        />
+        <div key={p.id} hidden={selectedId !== undefined && selectedId !== p.id}>
+          <ProfileProposalCard
+            proposal={p}
+            embedded={embedded}
+            disabled={disabled || busy || needsRefresh}
+            onRespond={(decision, note) => respond(p, decision, note)}
+          />
+        </div>
       ))}
     </section>
   );

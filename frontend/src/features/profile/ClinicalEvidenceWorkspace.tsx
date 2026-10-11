@@ -15,14 +15,14 @@ import { getApiErrorMessage } from '@/lib/api-error';
 import OnboardingProgressSlider from '@/components/onboarding/OnboardingProgressSlider';
 import PersonalizationTabs from '@/components/user/PersonalizationTabs';
 import StateNotice from '@/components/shared/StateNotice';
+import HealthDetailsInbox from './HealthDetailsInbox';
+import HealthDetailForm, {
+  healthDetailFields as fields,
+  emptyHealthAnswers as empty,
+  type HealthAnswers as Answers,
+} from './HealthDetailForm';
+import { healthAreaKey, healthInboxItems } from './health-inbox-items';
 
-type Answers = {
-  conditionDetails: string;
-  medications: string;
-  dietaryAdvice: string;
-  recentSymptoms: string;
-  measurements: string;
-};
 type Workspace = {
   profileProposals?: ProfileProposalWorkspace;
   clarifications?: ClarificationWorkspace;
@@ -32,37 +32,15 @@ type Workspace = {
   contexts: Array<{ area: string; responses: Partial<Answers> }>;
   requirements: Array<{ area: string; state: string; message: string }>;
 };
-const empty: Answers = {
-  conditionDetails: '',
-  medications: '',
-  dietaryAdvice: '',
-  recentSymptoms: '',
-  measurements: '',
-};
-const fields: Array<[keyof Answers, string]> = [
-  ['conditionDetails', 'Condition or restriction details'],
-  ['medications', 'Current medication or supplements'],
-  ['dietaryAdvice', 'Dietary advice you have received'],
-  ['recentSymptoms', 'Recent symptoms or episodes'],
-  ['measurements', 'Recent measurements or lab values (optional)'],
-];
 const inSection = (area: string, section: string | null) =>
   section === 'conditions' ? area !== 'FOOD_ALLERGY' : section === 'allergies' ? area === 'FOOD_ALLERGY' : true;
 const friendly = (value: string) => value.replace(/_/g, ' ').toLowerCase();
-const areaLabel = (value: string) => (value === 'FOOD_ALLERGY' ? 'Allergy details' : friendly(value));
-const allergyLabels: Partial<Record<keyof Answers, string>> = {
-  conditionDetails: 'Food allergies, intolerances or avoided foods and their reactions',
-  medications: 'Medication or supplements used for these restrictions',
-  dietaryAdvice: 'Dietary advice for these allergies or restrictions',
-  recentSymptoms: 'Recent allergic reactions or food-related symptoms',
-};
-export default function ClinicalEvidenceWorkspace({
-  mode = 'profile',
-  detailsSection,
-}: {
-  mode?: 'profile' | 'onboarding';
-  detailsSection?: 'conditions' | 'allergies';
-}) {
+type WorkspaceProps = { mode?: 'profile' | 'onboarding'; detailsSection?: 'conditions' | 'allergies' };
+export default function ClinicalEvidenceWorkspace(props: WorkspaceProps) {
+  const ownerId = useAuth().user?.userId;
+  return <ClinicalEvidenceContent key={ownerId ?? 'signed-out'} {...props} />;
+}
+function ClinicalEvidenceContent({ mode = 'profile', detailsSection }: WorkspaceProps) {
   const ownerId = useAuth().user?.userId;
   const router = useRouter();
   const params = useSearchParams();
@@ -81,6 +59,8 @@ export default function ClinicalEvidenceWorkspace({
   const [request, setRequest] = useState<{ area: string | null; notes: string | null } | null>(null);
   const refreshGeneration = useRef(0);
   const dirtyAnswers = useRef(false);
+  const drafts = useRef<Record<string, Answers>>({});
+  const [inboxSelection, setInboxSelection] = useState('');
   const load = useCallback(
     async (signal?: AbortSignal) => {
       const generation = ++refreshGeneration.current;
@@ -102,6 +82,11 @@ export default function ClinicalEvidenceWorkspace({
             '');
         setArea(selected);
         setAnswers({ ...empty, ...next.contexts.find((item) => item.area === selected)?.responses });
+        drafts.current = {};
+        setInboxSelection(
+          healthInboxItems(next).find((item) => item.needsResponse && item.kind !== 'details')?.id ??
+            healthAreaKey(selected)
+        );
         dirtyAnswers.current = false;
         setProfileChanged(false);
         setError(null);
@@ -173,6 +158,7 @@ export default function ClinicalEvidenceWorkspace({
       window.dispatchEvent(new Event(LIVE_UPDATE_EVENT));
       setWorkspace(response.data.data);
       dirtyAnswers.current = false;
+      delete drafts.current[area];
       setMessage('Health details saved for RND review. These answers remain member-provided until reviewed.');
     } catch (cause) {
       setError(getApiErrorMessage(cause, 'Health details could not be saved.'));
@@ -190,17 +176,102 @@ export default function ClinicalEvidenceWorkspace({
       Boolean(workspace?.profileProposals?.enabled && workspace.profileProposals.proposals.length) ||
       Boolean(workspace?.conditionPlanningAssessments?.length));
   const selectArea = (selected: string) => {
-    dirtyAnswers.current = false;
+    if (dirtyAnswers.current) drafts.current[area] = answers;
+    dirtyAnswers.current = Boolean(drafts.current[selected]);
     setArea(selected);
-    setAnswers({ ...empty, ...workspace?.contexts.find((item) => item.area === selected)?.responses });
+    setAnswers(
+      drafts.current[selected] ?? { ...empty, ...workspace?.contexts.find((item) => item.area === selected)?.responses }
+    );
     setMessage(null);
   };
+  const items = workspace ? healthInboxItems(workspace) : [];
+  const selectedId = items.some((item) => item.id === inboxSelection)
+    ? inboxSelection
+    : items.some((item) => item.id === healthAreaKey(area))
+      ? healthAreaKey(area)
+      : (items[0]?.id ?? '');
+  const healthForm = (
+    <div hidden={mode === 'profile' && !selectedId.startsWith('details:')}>
+      <HealthDetailForm
+        area={area}
+        areas={areas}
+        answers={answers}
+        busy={busy}
+        profileChanged={profileChanged}
+        embedded={mode === 'profile'}
+        requirement={requirements.find((item) => item.area === area)}
+        onSelect={selectArea}
+        onChange={(field, value) => {
+          dirtyAnswers.current = true;
+          setAnswers((current) => ({ ...current, [field]: value }));
+        }}
+        onSave={(event) => void save(event)}
+      />
+    </div>
+  );
+  const reviewWork = (
+    <>
+      {mode === 'profile' && (
+        <div hidden={!selectedId.startsWith('correction:')}>
+          <MemberProfileProposals
+            embedded
+            disabled={profileChanged}
+            selectedId={selectedId.startsWith('correction:') ? selectedId.slice(11) : ''}
+            workspace={workspace?.profileProposals}
+            onUpdated={async (applied) => {
+              if (applied) {
+                if (!(await load())) throw new Error('Health details could not be refreshed.');
+                window.dispatchEvent(new Event(LIVE_UPDATE_EVENT));
+              } else {
+                const generation = ++refreshGeneration.current;
+                const response = await api.get(endpoint);
+                if (generation !== refreshGeneration.current) return;
+                setWorkspace((current) =>
+                  current ? { ...current, profileProposals: response.data.data.profileProposals } : response.data.data
+                );
+              }
+            }}
+          />
+        </div>
+      )}
+      {mode === 'profile' && (
+        <div hidden={!selectedId.startsWith('question:')}>
+          <MemberClarifications
+            embedded
+            disabled={profileChanged}
+            selectedId={selectedId.startsWith('question:') ? selectedId.slice(9) : ''}
+            workspace={workspace?.clarifications}
+            onUpdated={async () => {
+              const generation = ++refreshGeneration.current;
+              const response = await api.get(endpoint);
+              if (generation !== refreshGeneration.current) return;
+              setWorkspace((current) =>
+                current ? { ...current, clarifications: response.data.data.clarifications } : response.data.data
+              );
+            }}
+          />
+        </div>
+      )}
+      {section !== 'allergies' && !!workspace?.conditionPlanningAssessments?.length && (
+        <section hidden={mode === 'profile' && selectedId !== 'assessments'} className="space-y-4">
+          <h2 className="font-bold">RND condition assessments</h2>
+          {workspace.conditionPlanningAssessments.map((assessment) => (
+            <div key={assessment.condition}>
+              <p className="font-semibold">{assessment.condition} · No additional meal restrictions identified</p>
+              <p className="text-sm text-brand-muted">
+                Reviewed by {assessment.reviewerName}, RND. {assessment.rationale}
+              </p>
+            </div>
+          ))}
+          <p className="text-sm text-brand-muted">
+            The conditions remain in your profile. Updating your profile or health details requires a fresh assessment.
+          </p>
+        </section>
+      )}
+    </>
+  );
   return (
-    <div
-      className={
-        mode === 'onboarding' ? 'mx-auto my-auto w-full max-w-2xl space-y-5' : 'portal-page max-w-4xl space-y-6'
-      }
-    >
+    <div className={mode === 'onboarding' ? 'mx-auto my-auto w-full max-w-2xl space-y-5' : 'portal-page space-y-6'}>
       {mode === 'onboarding' ? (
         <>
           <OnboardingProgressSlider currentStep={section === 'conditions' ? 3 : 4} totalSteps={6} />
@@ -232,11 +303,19 @@ export default function ClinicalEvidenceWorkspace({
               ? 'Allergy details'
               : 'Health details'}
         </h1>
-        {(loading || areas.length > 0) && (
-          <p className="mt-2 text-sm text-brand-muted">
-            Describe the conditions and restrictions already listed in your profile for an RND to review. Enter “none”
-            or “unknown” where appropriate. Complete and save a separate form for each listed condition or restriction.
+        {mode === 'profile' && (loading || items.length > 0) ? (
+          <p className="mt-2 max-w-prose text-sm leading-relaxed text-brand-muted">
+            Questions from your RND, profile corrections, and your health details — together in one place. Choose a form
+            to read or respond.
           </p>
+        ) : (
+          (loading || areas.length > 0) && (
+            <p className="mt-2 text-sm text-brand-muted">
+              Describe the conditions and restrictions already listed in your profile for an RND to review. Enter “none”
+              or “unknown” where appropriate. Complete and save a separate form for each listed condition or
+              restriction.
+            </p>
+          )
         )}
       </header>
       {request && (
@@ -267,58 +346,28 @@ export default function ClinicalEvidenceWorkspace({
           </button>
         </div>
       )}
-      {mode === 'profile' && (
-        <MemberProfileProposals
-          workspace={workspace?.profileProposals}
-          onUpdated={async (applied) => {
-            if (applied) {
-              if (!(await load())) throw new Error('Health details could not be refreshed.');
-              window.dispatchEvent(new Event(LIVE_UPDATE_EVENT));
-            } else {
-              const generation = ++refreshGeneration.current;
-              const response = await api.get(endpoint);
-              if (generation !== refreshGeneration.current) return;
-              setWorkspace((current) =>
-                current ? { ...current, profileProposals: response.data.data.profileProposals } : response.data.data
-              );
-            }
+      {mode === 'profile' && !loading && items.length > 0 && (
+        <HealthDetailsInbox
+          items={items}
+          selectedId={selectedId}
+          disabled={busy}
+          onSelect={(id) => {
+            if (busy) return;
+            setInboxSelection(id);
+            setMessage(null);
+            if (id.startsWith('details:') && id.slice(8) !== area) selectArea(id.slice(8));
           }}
-        />
+        >
+          {reviewWork}
+          {areas.length > 0 && healthForm}
+        </HealthDetailsInbox>
       )}
-      {mode === 'profile' && (
-        <MemberClarifications
-          workspace={workspace?.clarifications}
-          onUpdated={async () => {
-            const generation = ++refreshGeneration.current;
-            const response = await api.get(endpoint);
-            if (generation !== refreshGeneration.current) return;
-            setWorkspace((current) =>
-              current ? { ...current, clarifications: response.data.data.clarifications } : response.data.data
-            );
-          }}
-        />
-      )}
-      {section !== 'allergies' && !!workspace?.conditionPlanningAssessments?.length && (
-        <section className="space-y-3 rounded-xl border border-brand-border bg-brand-surface p-4">
-          <h2 className="font-bold">RND condition assessments</h2>
-          {workspace.conditionPlanningAssessments.map((assessment) => (
-            <div key={assessment.condition}>
-              <p className="font-semibold">{assessment.condition} · No additional meal restrictions identified</p>
-              <p className="text-sm text-brand-muted">
-                Reviewed by {assessment.reviewerName}, RND. {assessment.rationale}
-              </p>
-            </div>
-          ))}
-          <p className="text-sm text-brand-muted">
-            The conditions remain in your profile. Updating your profile or health details requires a fresh assessment.
-          </p>
-        </section>
-      )}
+      {mode === 'onboarding' && reviewWork}
       {loading ? (
         <p>Loading health details…</p>
       ) : (
         <>
-          {!!requirements.length && (
+          {mode === 'onboarding' && !!requirements.length && (
             <section className="space-y-2 rounded-xl border border-brand-border p-4">
               <p className="text-sm font-bold" role="status">
                 {requirements.length - pendingAreas.length} of {requirements.length} health detail forms complete.
@@ -334,78 +383,20 @@ export default function ClinicalEvidenceWorkspace({
               ))}
             </section>
           )}
-          {!!areas.length ? (
-            <form
-              onSubmit={(event) => void save(event)}
-              className="space-y-4 rounded-2xl border border-brand-border bg-brand-surface p-5"
-            >
-              <fieldset disabled={busy || profileChanged}>
-                <legend className="text-sm font-semibold">Choose details to complete</legend>
-                <div className="mt-2 flex flex-wrap gap-2">
-                  {areas.map((value) => (
-                    <button
-                      key={value}
-                      type="button"
-                      disabled={busy || profileChanged}
-                      aria-pressed={area === value}
-                      onClick={() => selectArea(value)}
-                      className={`min-h-11 rounded-xl border px-4 py-2 text-sm font-semibold disabled:opacity-50 ${
-                        area === value
-                          ? 'border-brand-accent bg-brand-accent text-white'
-                          : 'border-brand-border bg-brand-surface'
-                      }`}
-                    >
-                      {areaLabel(value)}
-                    </button>
-                  ))}
-                </div>
-              </fieldset>
-              {area === 'FOOD_ALLERGY' && (
-                <p className="text-sm text-brand-muted">
-                  Describe your declared food allergies, intolerances and avoided foods, including triggers and
-                  reactions. These answers are saved separately from your condition details.
-                </p>
+          {!!areas.length
+            ? mode === 'onboarding' && healthForm
+            : workspace &&
+              !error &&
+              !requirements.length &&
+              !hasRecordedReviewDetails && (
+                <StateNotice
+                  variant="no-meal-plan"
+                  title="No health details are needed for your current profile"
+                  description={null}
+                  imageAlt="Sleeping Nara"
+                  action={null}
+                />
               )}
-              {fields.map(([field, label]) => (
-                <label key={field} className="block text-sm">
-                  {area === 'FOOD_ALLERGY' ? (allergyLabels[field] ?? label) : label}
-                  <textarea
-                    required={field !== 'measurements'}
-                    disabled={busy || profileChanged}
-                    minLength={field === 'conditionDetails' ? 10 : field === 'measurements' ? undefined : 2}
-                    maxLength={field === 'measurements' ? 1000 : 2000}
-                    rows={3}
-                    value={answers[field]}
-                    onChange={(event) => {
-                      dirtyAnswers.current = true;
-                      setAnswers((current) => ({ ...current, [field]: event.target.value }));
-                    }}
-                    className="mt-1 w-full rounded-xl border border-brand-border bg-brand-surface p-3"
-                  />
-                </label>
-              ))}
-              <button
-                type="submit"
-                disabled={busy || profileChanged}
-                className="min-h-12 rounded-xl bg-brand-accent px-5 py-3 font-bold text-white disabled:opacity-50"
-              >
-                {busy ? 'Saving…' : 'Save health details'}
-              </button>
-            </form>
-          ) : (
-            workspace &&
-            !error &&
-            !requirements.length &&
-            !hasRecordedReviewDetails && (
-              <StateNotice
-                variant="no-meal-plan"
-                title="No health details are needed for your current profile"
-                description={null}
-                imageAlt="Sleeping Nara"
-                action={null}
-              />
-            )
-          )}
           {mode === 'onboarding' && (
             <div className="flex justify-end">
               <button
