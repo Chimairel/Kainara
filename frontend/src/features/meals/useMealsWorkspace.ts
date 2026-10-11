@@ -1,12 +1,12 @@
 import { mealPlanPresentation } from './meal-plan-presentation';
 import { useVisiblePolling } from '@/hooks/useVisiblePolling';
+import { useClinicalProfileGate } from '@/hooks/useClinicalProfileGate';
 import type { RetainedMealLog } from './RetainedMealLogs';
 import type { CycleMetaSnapshot } from '@/features/dashboard/model';
 import { useMealGenerationProgress } from '@/features/meals/useMealGenerationProgress';
 import { useAuth } from '@/hooks/useAuth';
 import { getApiErrorMessage } from '@/lib/api-error';
 import api from '@/lib/axios';
-import { cachedClinicalProfileStatus, refreshClinicalProfileStatus } from '@/lib/clinical-profile-status';
 import { getManilaDateKey } from '@/lib/manila-date';
 import { invalidateSessionResource, readSessionResource, writeSessionResource } from '@/lib/session-resource-cache';
 import { cachedUserProfile } from '@/lib/user-profile-resource';
@@ -36,8 +36,12 @@ export function useMealsWorkspace(initialOptions?: { initialDateKey?: string | n
   const currentPlanResource = planResource;
   const cachedPlan = readSessionResource<CurrentPlanSnapshot>(ownerId, currentPlanResource);
   const cachedProfile = cachedUserProfile(ownerId);
-  const cachedEligibility = cachedClinicalProfileStatus(ownerId, cachedProfile);
   const profileSafetyRevision = cachedProfile?.userProfile?.safetyRevision;
+  const reloadConfirmedPlan = useRef<() => Promise<boolean>>(() => Promise.resolve(false));
+  const { status: profileReviewStatus, requireReview } = useClinicalProfileGate(ownerId, profileSafetyRevision, () =>
+    reloadConfirmedPlan.current()
+  );
+  const profileReviewRequired = profileReviewStatus === 'pending';
   // Tab state
   const [activeTab, setActiveTab] = useState<'plan' | 'history' | 'library'>('plan');
 
@@ -58,9 +62,6 @@ export function useMealsWorkspace(initialOptions?: { initialDateKey?: string | n
   const preparationProgress = useMealGenerationProgress(isPreparing);
   const [error, setError] = useState<string | null>(null);
   const [clinicalEvidenceRequired, setClinicalEvidenceRequired] = useState(false);
-  const [profileReviewRequired, setProfileReviewRequired] = useState(
-    Boolean(cachedEligibility?.required && !cachedEligibility?.approved)
-  );
   const [pendingReview, setPendingReview] = useState<PendingReviewState | null>(cachedPlan?.pendingReview ?? null);
   const [awaitingGeneration, setAwaitingGeneration] = useState(
     cachedPlan?.awaitingGeneration ?? { current: 0, upcoming: 0 }
@@ -81,20 +82,6 @@ export function useMealsWorkspace(initialOptions?: { initialDateKey?: string | n
       activePlanOwner.current = undefined;
     };
   }, [ownerId]);
-  useEffect(() => {
-    if (!ownerId) return;
-    let active = true;
-    void refreshClinicalProfileStatus(ownerId, cachedUserProfile(ownerId))
-      .then((status) => {
-        if (active) setProfileReviewRequired(status.required && !status.approved);
-      })
-      .catch(() => {
-        /* The server generation gate remains authoritative. */
-      });
-    return () => {
-      active = false;
-    };
-  }, [ownerId, profileSafetyRevision]);
 
   // Meal swap states
   const [activeSwapMeal, setActiveSwapMeal] = useState<MealPlan | null>(null);
@@ -155,12 +142,13 @@ export function useMealsWorkspace(initialOptions?: { initialDateKey?: string | n
   );
 
   const loadCurrentPlan = useCallback(
-    (freshAfterSwap = false): Promise<boolean> => {
+    (freshAfterSwap = false, freshAfterConfirmation = false): Promise<boolean> => {
+      const forceFresh = freshAfterSwap || freshAfterConfirmation;
       const existing = currentPlanRequestInFlight.current;
-      if (!freshAfterSwap && existing && existing.ownerId === ownerId) return existing.promise;
-      if (!freshAfterSwap && swapInFlight.current) return Promise.resolve(false);
+      if (!forceFresh && existing && existing.ownerId === ownerId) return existing.promise;
+      if (!forceFresh && swapInFlight.current) return Promise.resolve(false);
       // A committed swap must not adopt a request started before the mutation.
-      if (freshAfterSwap) invalidateSessionResource(ownerId, currentPlanResource);
+      if (forceFresh) invalidateSessionResource(ownerId, currentPlanResource);
       const request = { ownerId, promise: Promise.resolve(false) };
       currentPlanRequestInFlight.current = request;
       const isCurrent = () => activePlanOwner.current === ownerId && currentPlanRequestInFlight.current === request;
@@ -175,7 +163,7 @@ export function useMealsWorkspace(initialOptions?: { initialDateKey?: string | n
               const cancelled = axios.isCancel(err);
               const transient =
                 axios.isAxiosError(err) && (!err.response || status === 408 || status === 429 || (status ?? 0) >= 500);
-              if (attempt === 0 && (cancelled || (freshAfterSwap && transient))) continue;
+              if (attempt === 0 && (cancelled || (forceFresh && transient))) continue;
               throw err;
             }
             if (!isCurrent()) return false;
@@ -203,7 +191,7 @@ export function useMealsWorkspace(initialOptions?: { initialDateKey?: string | n
             invalidateSessionResource(ownerId, currentPlanResource);
           }
           if (axios.isAxiosError(err) && err.response?.data?.errorCode === 'PROFILE_REVIEW_REQUIRED') {
-            setProfileReviewRequired(true);
+            requireReview();
             setMeals([]);
             setRetainedHistory({ ownerId, meals: [] });
             setPendingReview(null);
@@ -213,7 +201,7 @@ export function useMealsWorkspace(initialOptions?: { initialDateKey?: string | n
           // The committed swap will perform its own fresh read. An older background
           // failure must not overwrite its progress, but safety gates still apply.
           if (
-            freshAfterSwap ||
+            forceFresh ||
             !swapInFlight.current ||
             gate === 'CLINICAL_EVIDENCE_REQUIRED' ||
             gate === 'PROFILE_REVIEW_REQUIRED'
@@ -237,32 +225,27 @@ export function useMealsWorkspace(initialOptions?: { initialDateKey?: string | n
       })();
       return request.promise;
     },
-    [applyCurrentPlan, ownerId, currentPlanResource]
+    [applyCurrentPlan, ownerId, currentPlanResource, requireReview]
   );
 
   const fetchMeals = useCallback(async () => {
     await loadCurrentPlan();
   }, [loadCurrentPlan]);
 
+  reloadConfirmedPlan.current = () => loadCurrentPlan(false, true);
+
   useVisiblePolling(fetchMeals, {
     enabled: Boolean(ownerId),
     intervalMs:
-      isPreparing ||
-      ['GENERATING', 'WAITING_FOR_AI', 'PROCESSING_AI'].includes(generationStatus.current ?? '') ||
-      (!isLoading && !cycles?.current && !error && generationStatus.current !== 'FAILED')
+      profileReviewStatus === 'ready' &&
+      (isPreparing ||
+        ['GENERATING', 'WAITING_FOR_AI', 'PROCESSING_AI'].includes(generationStatus.current ?? '') ||
+        (!isLoading && !cycles?.current && !error && generationStatus.current !== 'FAILED'))
         ? 3_000
         : 120_000,
     immediate: false,
     scopeKey: ownerId,
   });
-  useVisiblePolling(
-    async (signal) => {
-      const status = await refreshClinicalProfileStatus(ownerId, cachedUserProfile(ownerId));
-      if (signal.aborted) return;
-      setProfileReviewRequired(status.required && !status.approved);
-    },
-    { enabled: Boolean(ownerId), intervalMs: 60_000, immediate: false, scopeKey: ownerId }
-  );
 
   const history = useMealHistory(ownerId, activeTab === 'history', fetchMeals);
   const {
@@ -511,15 +494,14 @@ export function useMealsWorkspace(initialOptions?: { initialDateKey?: string | n
       await fetchMeals();
     } catch (err: unknown) {
       const msg = getApiErrorMessage(err, 'Could not prepare your meal plan. Please try again.');
-      if (axios.isAxiosError(err) && err.response?.data?.code === 'PROFILE_REVIEW_REQUIRED')
-        setProfileReviewRequired(true);
+      if (axios.isAxiosError(err) && err.response?.data?.code === 'PROFILE_REVIEW_REQUIRED') requireReview();
       preparationProgress.fail(msg);
       setError(msg);
     } finally {
       preparationInFlight.current = false;
       setIsPreparing(false);
     }
-  }, [pendingReview, meals.length, preparationProgress, fetchMeals]);
+  }, [pendingReview, meals.length, preparationProgress, fetchMeals, requireReview]);
 
   const retryMissingGeneration = async (cycleId: string) => {
     setIsRetryingMissing(true);

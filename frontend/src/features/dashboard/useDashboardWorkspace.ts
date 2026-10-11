@@ -3,8 +3,8 @@
 import type { RetainedMealLog } from '@/features/meals/RetainedMealLogs';
 import { useAuth } from '@/hooks/useAuth';
 import { useVisiblePolling } from '@/hooks/useVisiblePolling';
+import { useClinicalProfileGate } from '@/hooks/useClinicalProfileGate';
 import api from '@/lib/axios';
-import { LIVE_UPDATE_EVENT } from '@/lib/live-events';
 import axios from 'axios';
 import { useRouter } from 'next/navigation';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
@@ -22,9 +22,8 @@ import {
 import { useOutsideMealLog } from '@/features/dashboard/useOutsideMealLog';
 import { useDashboardDateSelection } from './useDashboardDateSelection';
 import { useDashboardPreload } from '@/features/navigation/useDashboardPreload';
-import { cachedClinicalProfileStatus, refreshClinicalProfileStatus } from '@/lib/clinical-profile-status';
 import { invalidateSessionResource, readSessionResource, writeSessionResource } from '@/lib/session-resource-cache';
-import { cachedUserProfile, getRecentUserProfile } from '@/lib/user-profile-resource';
+import { getRecentUserProfile } from '@/lib/user-profile-resource';
 
 interface CurrentPlanSnapshot {
   retainedMealLogs?: RetainedMealLog[];
@@ -47,7 +46,6 @@ export function useDashboardWorkspace() {
   const cachedProfile = readSessionResource<UserProfileData>(ownerId, 'user-profile');
   const cachedOutsideMeals = readSessionResource<OutsideMealLog[]>(ownerId, 'dashboard-outside-meals');
   const cachedWater = readSessionResource<number>(ownerId, 'dashboard-water');
-  const cachedEligibility = cachedClinicalProfileStatus(ownerId, cachedProfile);
   const profileSafetyRevision = cachedProfile?.userProfile?.safetyRevision;
   const router = useRouter();
   const [retainedHistory, setRetainedHistory] = useState<{ ownerId: string | undefined; meals: RetainedMealLog[] }>({
@@ -61,9 +59,6 @@ export function useDashboardWorkspace() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [clinicalEvidenceRequired, setClinicalEvidenceRequired] = useState(false);
-  const [profileReviewStatus, setProfileReviewStatus] = useState<'checking' | 'ready' | 'pending' | 'error'>(
-    cachedEligibility ? (cachedEligibility.required && !cachedEligibility.approved ? 'pending' : 'ready') : 'checking'
-  );
   const [pendingReview, setPendingReview] = useState<PendingReview | null>(cachedPlan?.pendingReview ?? null);
   const [awaitingGenerationCount, setAwaitingGenerationCount] = useState(cachedPlan?.awaitingGenerationCount ?? 0);
   const [generationStatus, setGenerationStatus] = useState(cachedPlan?.generationStatus ?? null);
@@ -73,33 +68,15 @@ export function useDashboardWorkspace() {
   );
   const [currentCycle, setCurrentCycle] = useState<CycleMetaSnapshot | null>(cachedPlan?.cycle ?? null);
   const generationRequestInFlight = useRef(false);
-  const currentPlanRequestInFlight = useRef(false);
-  const lastPlanRequestAt = useRef(0);
+  const currentPlanRequestInFlight = useRef<{ ownerId: string | undefined; promise: Promise<void> } | null>(null);
+  const activePlanOwner = useRef(ownerId);
   useEffect(() => {
-    if (!ownerId) return;
-    let active = true;
-    const check = async () => {
-      try {
-        const status = await refreshClinicalProfileStatus(ownerId, cachedUserProfile(ownerId));
-        if (active) setProfileReviewStatus(status.required && !status.approved ? 'pending' : 'ready');
-      } catch {
-        if (active) setProfileReviewStatus('error');
-      }
-    };
-    void check();
-    const interval = window.setInterval(() => {
-      if (document.visibilityState === 'visible') void check();
-    }, 60_000);
-    const refresh = () => {
-      if (document.visibilityState === 'visible') void check();
-    };
-    window.addEventListener(LIVE_UPDATE_EVENT, refresh);
+    activePlanOwner.current = ownerId;
     return () => {
-      active = false;
-      window.removeEventListener(LIVE_UPDATE_EVENT, refresh);
-      window.clearInterval(interval);
+      activePlanOwner.current = undefined;
     };
-  }, [ownerId, profileSafetyRevision]);
+  }, [ownerId]);
+  const lastPlanRequestAt = useRef(0);
   const isStarterPlan = currentCycle?.planType === 'STARTER' || currentMeals[0]?.planType === 'STARTER';
   const nextCycleDay = React.useMemo(() => {
     if (!isStarterPlan) return null;
@@ -231,51 +208,69 @@ export function useDashboardWorkspace() {
 
   // Load active plan meals
   const fetchCurrentPlan = useCallback(
-    async (signal?: AbortSignal) => {
-      if (currentPlanRequestInFlight.current) return;
+    (signal?: AbortSignal, freshAfterConfirmation = false): Promise<void> => {
+      const existing = currentPlanRequestInFlight.current;
+      if (existing && existing.ownerId === ownerId) {
+        // An approval must not adopt a read started while the profile was blocked.
+        return freshAfterConfirmation
+          ? existing.promise.then(() => {
+              if (activePlanOwner.current === ownerId && !signal?.aborted) return fetchCurrentPlan(signal);
+            })
+          : existing.promise;
+      }
       if (user?.onboardingDone && user?.tosAccepted && !user?.reportAcknowledged) {
         setIsLoading(false);
-        return;
+        return Promise.resolve();
       }
-      currentPlanRequestInFlight.current = true;
+      const request = { ownerId, promise: Promise.resolve() };
+      currentPlanRequestInFlight.current = request;
+      const isCurrent = () =>
+        !signal?.aborted && activePlanOwner.current === ownerId && currentPlanRequestInFlight.current === request;
       lastPlanRequestAt.current = Date.now();
-      try {
-        const res = await api.get('/user/meals/current', { signal });
-        if (signal?.aborted) return;
-        if (res.data && res.data.success) {
-          setError(null);
-          setClinicalEvidenceRequired(false);
-          applyCurrentPlan({
-            meals: Array.isArray(res.data.data) ? res.data.data : [],
-            retainedMealLogs: res.data.meta?.retainedMealLogs ?? [],
-            pendingReview: res.data.meta?.pendingReview ?? null,
-            awaitingGenerationCount: res.data.meta?.awaitingGenerationCount ?? 0,
-            generationStatus: res.data.meta?.generationStatus ?? null,
-            planSnapshot: res.data.meta?.planSnapshot ?? null,
-            cycle: res.data.meta?.cycle ?? null,
-            upcomingCycle:
-              readSessionResource<CurrentPlanSnapshot>(ownerId, currentPlanResource)?.upcomingCycle ?? null,
-          });
+      request.promise = (async () => {
+        try {
+          const res = await api.get('/user/meals/current', { signal });
+          if (!isCurrent()) return;
+          if (res.data && res.data.success) {
+            setError(null);
+            setClinicalEvidenceRequired(false);
+            applyCurrentPlan({
+              meals: Array.isArray(res.data.data) ? res.data.data : [],
+              retainedMealLogs: res.data.meta?.retainedMealLogs ?? [],
+              pendingReview: res.data.meta?.pendingReview ?? null,
+              awaitingGenerationCount: res.data.meta?.awaitingGenerationCount ?? 0,
+              generationStatus: res.data.meta?.generationStatus ?? null,
+              planSnapshot: res.data.meta?.planSnapshot ?? null,
+              cycle: res.data.meta?.cycle ?? null,
+              upcomingCycle:
+                readSessionResource<CurrentPlanSnapshot>(ownerId, currentPlanResource)?.upcomingCycle ?? null,
+            });
+          }
+        } catch (err: unknown) {
+          if (!isCurrent() || axios.isCancel(err)) return;
+          if (axios.isAxiosError(err) && err.response?.data?.errorCode === 'CLINICAL_EVIDENCE_REQUIRED') {
+            setClinicalEvidenceRequired(true);
+            setCurrentMeals([]);
+            setRetainedHistory({ ownerId, meals: [] });
+            setPendingReview(null);
+            setCurrentCycle(null);
+            setAwaitingGenerationCount(0);
+            setGenerationStatus(null);
+            invalidateSessionResource(ownerId, currentPlanResource);
+          }
+          setError(getApiErrorMessage(err, "Failed to load today's scheduled plan."));
+        } finally {
+          if (currentPlanRequestInFlight.current === request) currentPlanRequestInFlight.current = null;
+          if (activePlanOwner.current === ownerId) setIsLoading(false);
         }
-      } catch (err: unknown) {
-        if (signal?.aborted || axios.isCancel(err)) return;
-        if (axios.isAxiosError(err) && err.response?.data?.errorCode === 'CLINICAL_EVIDENCE_REQUIRED') {
-          setClinicalEvidenceRequired(true);
-          setCurrentMeals([]);
-          setRetainedHistory({ ownerId, meals: [] });
-          setPendingReview(null);
-          setCurrentCycle(null);
-          setAwaitingGenerationCount(0);
-          setGenerationStatus(null);
-          invalidateSessionResource(ownerId, currentPlanResource);
-        }
-        setError(getApiErrorMessage(err, "Failed to load today's scheduled plan."));
-      } finally {
-        currentPlanRequestInFlight.current = false;
-        setIsLoading(false);
-      }
+      })();
+      return request.promise;
     },
     [applyCurrentPlan, user, ownerId]
+  );
+
+  const { status: profileReviewStatus, requireReview } = useClinicalProfileGate(ownerId, profileSafetyRevision, () =>
+    fetchCurrentPlan(undefined, true)
   );
 
   const preparingPlan =
@@ -412,7 +407,7 @@ export function useDashboardWorkspace() {
         setClinicalEvidenceRequired(true);
       }
       if (axios.isAxiosError(err) && err.response?.data?.errorCode === 'PROFILE_REVIEW_REQUIRED') {
-        setProfileReviewStatus('pending');
+        requireReview();
       }
       setGenerationStatus('FAILED');
       setError(msg);

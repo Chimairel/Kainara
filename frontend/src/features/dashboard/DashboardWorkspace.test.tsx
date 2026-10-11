@@ -95,6 +95,61 @@ async function refresh() {
 }
 
 describe('dashboard route after feature extraction', () => {
+  it('detects profile confirmation and progresses to meals without a live event or page reload', async () => {
+    vi.useFakeTimers();
+    try {
+      fixture.eligibility = { required: true, approved: false };
+      render(<DashboardPage />);
+      await act(async () => {});
+      expect(screen.getByText(/An RND must confirm your current health profile/)).toBeInTheDocument();
+      fixture.eligibility = { required: true, approved: true };
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(15_000);
+      });
+      expect(screen.getByText('Preparing Your First Meal Plan')).toBeInTheDocument();
+      plan = { data: [meal], meta: { generationStatus: 'COMPLETED' } };
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(3_000);
+      });
+      expect(screen.getByRole('button', { name: 'Eat Fixture rice plate' })).toBeInTheDocument();
+      expect(post).not.toHaveBeenCalled();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('moves from pending profile to cooking and meals even when an older blocked plan read is still running', async () => {
+    fixture.eligibility = { required: true, approved: false };
+    let rejectBlockedRead!: (error: unknown) => void;
+    const blockedRead = new Promise((_, reject) => {
+      rejectBlockedRead = reject;
+    });
+    const ordinaryGet = get.getMockImplementation()!;
+    let delayNextPlanRead = false;
+    get.mockImplementation((url, config) => {
+      if (url === '/user/meals/current' && delayNextPlanRead) {
+        delayNextPlanRead = false;
+        return blockedRead as ReturnType<typeof api.get>;
+      }
+      return ordinaryGet(url, config);
+    });
+    render(<DashboardPage />);
+    await screen.findByText(/An RND must confirm your current health profile/);
+    delayNextPlanRead = true;
+    await refresh();
+    fixture.eligibility = { required: true, approved: true };
+    await refresh();
+    await act(async () => {
+      rejectBlockedRead({ isAxiosError: true, response: { data: { errorCode: 'CLINICAL_EVIDENCE_REQUIRED' } } });
+    });
+    expect(await screen.findByText('Preparing Your First Meal Plan')).toBeInTheDocument();
+    expect(get.mock.calls.filter(([url]) => url === '/user/meals/current')).toHaveLength(3);
+    plan = { data: [meal], meta: { generationStatus: 'COMPLETED' } };
+    await refresh();
+    expect(await screen.findByRole('button', { name: 'Eat Fixture rice plate' })).toBeInTheDocument();
+    expect(post).not.toHaveBeenCalled();
+  });
+
   it('hides food logging and weekly plan actions until the report is acknowledged', async () => {
     fixture.user.reportAcknowledged = false;
     const view = render(<DashboardPage />);
