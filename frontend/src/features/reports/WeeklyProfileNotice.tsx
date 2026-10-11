@@ -45,7 +45,10 @@ export default function WeeklyProfileNotice() {
   return (
     <>
       {status.isDue && (
-        <PortalAnnouncement priority={announcementPriority.checkin}>
+        <PortalAnnouncement
+          priority={announcementPriority.checkin}
+          summary={weeks >= 2 ? 'Your weekly check-in is overdue' : 'Your weekly check-in is due'}
+        >
           <div role="status" aria-label="Profile planning status">
             <AnnouncementBanner
               variant="warning"
@@ -63,6 +66,9 @@ export default function WeeklyProfileNotice() {
       )}
       {status.hasPendingChanges && (
         <PortalAnnouncement
+          summary={
+            status.safetyChanged ? 'Review your updated health context' : 'Profile updates are waiting to be applied'
+          }
           priority={status.safetyChanged ? announcementPriority.safety : announcementPriority.information}
         >
           <div role="status" aria-label="Profile planning status">

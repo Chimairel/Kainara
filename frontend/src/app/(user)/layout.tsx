@@ -37,7 +37,10 @@ export default function UserLayout({ children }: { children: React.ReactNode }) 
             <div className="relative z-10 flex min-w-0 flex-1 flex-col md:pl-4">
               <Navbar />
               {isReportPending && (
-                <PortalAnnouncement priority={announcementPriority.action}>
+                <PortalAnnouncement
+                  priority={announcementPriority.action}
+                  summary="Review your nutrition report to start meal planning"
+                >
                   <AnnouncementBanner
                     title="Action required:"
                     message="Review your nutrition report and choose it for meal planning."

@@ -128,7 +128,7 @@ export default function MealsWorkspace() {
         />
 
         {activeTab === 'plan' && !isLoading && upcomingOnly && !clinicalEvidenceRequired && !isReportPending && (
-          <PortalAnnouncement priority={announcementPriority.plan}>
+          <PortalAnnouncement priority={announcementPriority.plan} summary="Upcoming plan preparation">
             <AnnouncementBanner
               variant="blue"
               title="Upcoming plan preview:"

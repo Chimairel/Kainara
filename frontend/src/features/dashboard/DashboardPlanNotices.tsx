@@ -41,6 +41,7 @@ export default function DashboardPlanNotices({ model }: Props) {
         !clinicalEvidenceRequired &&
         (currentMeals.length > 0 || Boolean(pendingReview?.meals?.length)) && (
           <PortalAnnouncement
+            summary={`${awaitingGenerationCount} meal slot${awaitingGenerationCount === 1 ? '' : 's'} ${generationStatus === 'FAILED' ? 'could not be prepared' : 'still awaiting generation'}`}
             priority={generationStatus === 'FAILED' ? announcementPriority.action : announcementPriority.preparation}
           >
             <div role="status">

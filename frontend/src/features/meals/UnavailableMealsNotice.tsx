@@ -16,7 +16,10 @@ export default function UnavailableMealsNotice({
   if (!cycle?.unavailableMealCount) return null;
   const retired = cycle.retiredMealCount ?? 0;
   return (
-    <PortalAnnouncement priority={announcementPriority.safety}>
+    <PortalAnnouncement
+      priority={announcementPriority.safety}
+      summary={`${upcoming ? 'Upcoming plan' : 'Current plan'}: ${cycle.unavailableMealCount} unavailable meal${cycle.unavailableMealCount === 1 ? '' : 's'}`}
+    >
       <div role="status">
         <AnnouncementBanner
           variant="warning"

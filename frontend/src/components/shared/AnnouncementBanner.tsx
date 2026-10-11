@@ -1,7 +1,9 @@
 ﻿'use client';
 
-import React from 'react';
+import React, { createContext, useContext } from 'react';
 import Link from 'next/link';
+
+export const CompactAnnouncementContext = createContext(false);
 
 export interface AnnouncementBannerAction {
   label: string;
@@ -42,18 +44,23 @@ export default function AnnouncementBanner({
   ariaLabel = 'Important announcement',
   variant = 'warning',
 }: AnnouncementBannerProps) {
+  const compact = useContext(CompactAnnouncementContext);
   const theme = variantStyles[variant] || variantStyles.warning;
-  const actionClasses = `inline-flex items-center justify-center rounded-xl bg-white px-3 py-1 text-xs font-bold ${theme.action} shadow-sm hover:bg-white/90 transition-all shrink-0 ml-1 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white disabled:pointer-events-none disabled:opacity-50 ${action?.className || ''}`;
+  const actionClasses = `inline-flex min-h-10 items-center justify-center rounded-xl px-3 py-2 text-xs font-bold shrink-0 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 disabled:pointer-events-none disabled:opacity-50 ${compact ? 'border border-brand-border bg-brand-surface text-brand-text shadow-sm hover:bg-brand-bg focus-visible:outline-brand-green' : `bg-white ${theme.action} shadow-sm hover:bg-white/90 focus-visible:outline-white`} ${action?.className || ''}`;
 
   return (
     <aside
       aria-label={ariaLabel}
-      className={`w-full rounded-2xl ${theme.surface} px-4 py-2.5 text-center text-xs font-medium shadow-sm sm:text-sm flex flex-wrap items-center justify-center gap-2 ${className}`}
+      className={`${compact ? 'flex w-full flex-wrap items-start gap-x-4 gap-y-3 py-4 text-left text-sm text-brand-text' : `w-full rounded-2xl ${theme.surface} px-4 py-2.5 text-center text-xs font-medium shadow-sm sm:text-sm flex flex-wrap items-center justify-center gap-2`} ${className}`}
     >
-      {title && <span className="font-bold">{title}</span>}
-      {badge}
-      {message && <span className="text-white/90">{message}</span>}
-      {children}
+      <div className={compact ? 'min-w-0 flex-1 basis-64 space-y-1' : 'contents'}>
+        {title && <span className="font-bold">{title}</span>}
+        {badge}
+        {message && (
+          <span className={compact ? 'block max-w-prose leading-6 text-brand-muted' : 'text-white/90'}>{message}</span>
+        )}
+        {children}
+      </div>
       {action &&
         (action.href ? (
           <Link href={action.href} className={actionClasses}>

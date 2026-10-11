@@ -17,7 +17,10 @@ export default function MealPlanAnnouncements({
   return (
     <>
       {pendingCount > 0 && (
-        <PortalAnnouncement priority={announcementPriority.review}>
+        <PortalAnnouncement
+          priority={announcementPriority.review}
+          summary={`${pendingCount} meal${pendingCount === 1 ? '' : 's'} pending RND review`}
+        >
           <AnnouncementBanner
             ariaLabel="Meal review status"
             variant="warning"
@@ -27,7 +30,7 @@ export default function MealPlanAnnouncements({
         </PortalAnnouncement>
       )}
       {isStarterPlan && (
-        <PortalAnnouncement priority={announcementPriority.plan}>
+        <PortalAnnouncement priority={announcementPriority.plan} summary="You’re on a starter plan">
           <AnnouncementBanner
             ariaLabel="Starter plan status"
             variant="blue"

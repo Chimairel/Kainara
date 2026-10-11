@@ -46,6 +46,7 @@ export default function MealsGenerationNotice({ model }: Props) {
         !isReportPending &&
         (displayedPlanDays.length > 0 || Boolean(pendingReview)) && (
           <PortalAnnouncement
+            summary={`${awaitingGenerationCount} meal slot${awaitingGenerationCount === 1 ? '' : 's'} ${activeGenerationStatus === 'FAILED' ? 'could not be prepared' : 'still awaiting generation'}`}
             priority={
               activeGenerationStatus === 'FAILED' ? announcementPriority.action : announcementPriority.preparation
             }

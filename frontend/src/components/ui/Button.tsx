@@ -17,15 +17,15 @@ export const Button: React.FC<ButtonProps> = ({
   ...props
 }) => {
   const baseStyles =
-    'inline-flex items-center justify-center gap-2 rounded-2xl font-display font-extrabold tracking-tight transition-all duration-200 active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#eb6a38]/60 focus-visible:ring-offset-2 focus-visible:ring-offset-brand-bg disabled:pointer-events-none disabled:opacity-45 disabled:active:scale-100';
+    'inline-flex items-center justify-center gap-2 rounded-2xl font-display font-extrabold tracking-tight transition-all duration-200 motion-reduce:transition-none motion-reduce:hover:translate-y-0 active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#eb6a38]/60 focus-visible:ring-offset-2 focus-visible:ring-offset-brand-bg disabled:pointer-events-none disabled:opacity-45 disabled:active:scale-100';
 
   const variants = {
     primary:
-      'border border-[#d95d2c] bg-gradient-to-r from-[#eb6a38] via-[#ed7847] to-[#f09e6c] text-white font-extrabold shadow-sm hover:-translate-y-0.5 hover:brightness-105 active:scale-[0.98]',
+      'border border-transparent bg-brand-accent text-[#0d2820] font-extrabold shadow-[0_2px_3px_rgba(13,40,32,0.08),0_6px_14px_rgba(13,40,32,0.10)] hover:-translate-y-0.5 hover:bg-brand-accentSoft active:translate-y-0',
     secondary:
-      'border border-brand-border bg-gradient-to-r from-brand-green/[0.09] via-brand-surface/60 to-brand-surface dark:from-[#091f19] dark:via-[#0e271f] dark:to-[#173e33] text-brand-text shadow-sm backdrop-blur-md hover:-translate-y-0.5 hover:border-[#f09e6c]/60 hover:from-brand-green/[0.13] hover:to-brand-surface dark:hover:from-[#0c2a22] dark:hover:to-[#1a473b] dark:border-[#173e33] dark:text-white',
+      'border border-brand-border bg-brand-surface text-brand-text shadow-sm hover:-translate-y-0.5 hover:bg-brand-bgAlt hover:border-brand-accentSoft/60',
     accent:
-      'border border-[#d95d2c] bg-gradient-to-r from-[#eb6a38] to-[#f09e6c] text-white shadow-sm hover:-translate-y-0.5 hover:brightness-105 font-bold',
+      'border border-transparent bg-brand-accent text-[#0d2820] shadow-[0_2px_3px_rgba(13,40,32,0.08),0_6px_14px_rgba(13,40,32,0.10)] hover:-translate-y-0.5 hover:bg-brand-accentSoft font-bold',
     danger:
       'border border-status-error-text bg-status-error-text text-white shadow-sm hover:-translate-y-0.5 hover:brightness-90',
     ghost:

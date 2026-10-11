@@ -69,7 +69,7 @@ Use existing tinted `shadow-card`, `shadow-card-hover` and `shadow-card-lg` toke
 
 ## Shapes
 
-Reuse Card, Button, Input and existing rounded table/dialog surfaces. Keep larger default card corners and the existing orange button gradient. General advice about smaller radii or flat buttons does not override these established components.
+Reuse Card, Button, Input and existing rounded table/dialog surfaces. Keep larger default card corners. The owner approved solid orange shared buttons on October 11: use dark pine labels for contrast, soft offset shadows, and peach hover feedback. Secondary buttons use the solid themed surface. Decorative meal/public gradients remain on their dedicated designs.
 
 ## Components
 
