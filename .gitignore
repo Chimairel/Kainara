@@ -57,3 +57,6 @@ codex/toothless.jpg
 
 # Local development database credentials and target-switch rollback configuration.
 /backend/.local/local-development/
+
+# Private defense restore archives, credentials and verification artifacts.
+/backend/.local/defense-recovery/
