@@ -95,6 +95,7 @@ export default function ProfileWorkCanvas({ model }: { model: ReturnType<typeof 
           )}
           {selectedReport && (
             <NutritionGuidancePaper
+              presentation="inline"
               report={{
                 ...selectedReport.content,
                 id: selectedReport.id,
