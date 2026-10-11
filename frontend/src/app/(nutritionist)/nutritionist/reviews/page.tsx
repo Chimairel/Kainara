@@ -49,8 +49,7 @@ function ReviewsWorkspace() {
         setExpanded(false);
       }}
       label="Case approval filters"
-      tone="accentSoft"
-      size="sm"
+      level="secondary"
       items={[
         { value: 'pending', label: 'Pending' },
         { value: 'outside', label: 'Outside food logs' },

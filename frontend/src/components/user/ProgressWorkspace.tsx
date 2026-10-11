@@ -115,6 +115,7 @@ export function ProgressWorkspace({ mode = 'progress' }: { mode?: ProgressWorksp
           value={activeSection}
           onChange={setActiveSection}
           label={mode === 'health' ? 'Health profile sections' : 'Progress sections'}
+          level={mode === 'health' ? 'secondary' : 'primary'}
           className="mb-6"
           items={
             mode === 'health'

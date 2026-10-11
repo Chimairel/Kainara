@@ -20,8 +20,7 @@ export default function ReadOnlyFoodReferences() {
       {open && (
         <div className="mt-4 space-y-4">
           <WorkspaceTabs
-            size="sm"
-            tone="accentSoft"
+            level="secondary"
             label="Food reference source"
             value={source}
             onChange={setSource}

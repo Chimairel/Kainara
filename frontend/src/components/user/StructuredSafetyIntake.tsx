@@ -325,8 +325,7 @@ export default function StructuredSafetyIntake({
           <WorkspaceTabs
             value={activeDomain}
             label="Food safety categories"
-            tone="accentSoft"
-            size="sm"
+            level="secondary"
             stackOnMobile
             items={editableDomains.map((domain) => ({
               value: domain,
