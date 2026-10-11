@@ -8,6 +8,24 @@ Neon remains the hosted database. Switching the local API changes only the ignor
 
 The available verified archive was captured October 10, 2026 at 2 PM Philippine time. It predates subsequent records and newer test accounts. Restoration creates a historical local copy; it does not reconstruct later changes or modify Neon. Confirm the target and archive before restoration/migrations. A refreshed copy after Neon recovers requires a separate intentional import into a fresh target.
 
+### Activated and rehearsed October 11, 2026
+
+The owner confirmed this target and archive. The backup was restored, all 103 current migrations are applied, and the normal localhost API now uses this persistent local database. Only `DATABASE_URL` changed. The API and frontend are available at ports 5000 and 3000 respectively; Docker Desktop must remain running.
+
+Normal browser login passed for these newly created local accounts:
+
+| Role | Email |
+| --- | --- |
+| Member | `local-member@example.test` |
+| RND | `local-rnd@example.test` |
+| Admin | `local-admin@example.test` |
+
+Use the configured shared test password from the private credential guide under `backend/.local/dev-test-accounts`. Existing accounts/passwords were preserved. These three accounts exist in the local copy only. The member received 21 meals through the recipe lookup without a Gemini reservation; this does not verify provider-generated or health-case plans.
+
+The verified local backup is `backend/.local/backups/local-development-2026-10-11T04-06-35-526Z.dump`, with its adjacent `.dump.manifest.json` (13,924,341 bytes). The separate restore drill passed database integrity and immutable audit API checks. Its private evidence is under `backend/.local/capstone-restore/1791691606939`; browser evidence is under `backend/.local/local-development/browser`. The persistent database also survived `local-db:stop` followed by `local-db:up`, with readiness and member login passing afterward. These archives use local disk, not Neon storage.
+
+This activation resolves localhost's dependence on the quota-blocked hosted database. It does not change the hosted service, guarantee every workflow, or eliminate development-page compilation delays.
+
 ## Setup
 
 From the repository root:
