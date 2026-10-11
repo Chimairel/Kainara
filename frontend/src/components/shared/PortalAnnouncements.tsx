@@ -58,21 +58,18 @@ export function PortalAnnouncements() {
   return (
     <section aria-label="Account and meal plan notices" className="w-full px-4 pt-3 md:px-5">
       <details className="group rounded-2xl bg-brand-bgAlt">
-        <summary className="flex min-h-14 cursor-pointer list-none items-center gap-3 rounded-2xl px-4 py-3 text-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-green [&::-webkit-details-marker]:hidden">
-          <Icon
-            className={`h-5 w-5 shrink-0 ${needsAttention ? 'text-status-pending-text' : 'text-brand-green'}`}
-            aria-hidden="true"
-          />
-          <span className="min-w-0 flex-1 font-semibold leading-5 text-brand-text">{ordered[0].summary}</span>
-          <span className="shrink-0 text-xs tabular-nums text-brand-muted">
+        <summary className="flex min-h-14 cursor-pointer list-none items-center gap-3 rounded-2xl bg-[#8c3b00] px-4 py-3 text-sm text-white group-open:rounded-b-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-green [&::-webkit-details-marker]:hidden">
+          <Icon className="h-5 w-5 shrink-0 text-white/90" aria-hidden="true" />
+          <span className="min-w-0 flex-1 font-semibold leading-5">{ordered[0].summary}</span>
+          <span className="shrink-0 text-xs tabular-nums text-white/85">
             {entries.length} {entries.length === 1 ? 'update' : 'updates'}
           </span>
-          <span className="hidden shrink-0 text-xs font-semibold text-brand-green sm:inline">
+          <span className="hidden shrink-0 text-xs font-semibold sm:inline">
             <span className="group-open:hidden">View updates</span>
             <span className="hidden group-open:inline">Hide updates</span>
           </span>
           <ChevronDown
-            className="h-4 w-4 shrink-0 text-brand-muted transition-transform group-open:rotate-180 motion-reduce:transition-none"
+            className="h-4 w-4 shrink-0 text-white/85 transition-transform group-open:rotate-180 motion-reduce:transition-none"
             aria-hidden="true"
           />
         </summary>
