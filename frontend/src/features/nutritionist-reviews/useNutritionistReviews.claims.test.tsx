@@ -13,6 +13,27 @@ const preview = {
 };
 
 describe('RND review claim controls', () => {
+  it('checks lightweight status without reloading an unchanged canvas', async () => {
+    const saved = { ...preview, pollStatus: { revision: 'same', claim: { state: 'AVAILABLE' } } };
+    vi.mocked(api.get).mockImplementation(async (url) => ({
+      data: {
+        success: true,
+        data: url === '/nutritionist/queue' ? [] : String(url).endsWith('/status') ? saved.pollStatus : saved,
+      },
+    }));
+    const { result } = renderHook(() => useNutritionistReviews());
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    await act(async () => {
+      await result.current.handleSelectMeal('meal-1');
+    });
+    vi.mocked(api.get).mockClear();
+    await act(async () => {
+      window.dispatchEvent(new Event('kainara:live-update'));
+    });
+    await waitFor(() => expect(api.get).toHaveBeenCalledWith('/nutritionist/queue/meal-1/status', expect.anything()));
+    expect(api.get).not.toHaveBeenCalledWith('/nutritionist/queue/meal-1', expect.anything());
+    expect(result.current.selectedMealId).toBe('meal-1');
+  });
   beforeEach(() => {
     vi.clearAllMocks();
     vi.mocked(api.get).mockImplementation(async (url) => ({

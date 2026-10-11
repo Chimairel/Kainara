@@ -63,6 +63,7 @@ export type ConditionAssessmentDraft = {
   reviewedFoodborneIllnessRisk: boolean;
 };
 export type PersonDetail = {
+  pollStatus?: import('@/types/review-status').ReviewPollStatus;
   userId: string;
   name: string;
   profileStatus: string | null;

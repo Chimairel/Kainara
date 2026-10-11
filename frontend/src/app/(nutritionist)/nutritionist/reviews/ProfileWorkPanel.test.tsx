@@ -347,9 +347,10 @@ describe('unified RND profile work', () => {
     });
     render(<ProfileWorkPanel />);
     fireEvent.click(await screen.findByRole('button', { name: /Both Tasks/ }));
-    fireEvent.click(
-      within(await screen.findByTestId('profile-toolbar')).getByRole('button', { name: 'Claim profile' })
-    );
+    const claim = within(await screen.findByTestId('profile-toolbar')).getByRole('button', { name: 'Claim profile' });
+    await waitFor(() => expect(claim).toBeEnabled());
+    fireEvent.click(claim);
+    await screen.findByRole('button', { name: 'Release profile' });
     fireEvent.click(await screen.findByRole('button', { name: 'Profile decision' }));
     fireEvent.change(await screen.findByRole('textbox', { name: 'Review notes' }), {
       target: { value: 'Reviewed the updated health details.' },
@@ -389,7 +390,7 @@ describe('unified RND profile work', () => {
     fireEvent(window, new Event(LIVE_UPDATE_EVENT));
     await waitFor(() => expect(screen.queryByRole('button', { name: /Both Tasks/ })).not.toBeInTheDocument());
     expect(screen.queryByTestId('guidance-paper')).not.toBeInTheDocument();
-    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    expect(screen.getByRole('alert')).toHaveTextContent('This profile review is no longer available');
     expect(screen.getByRole('button', { name: /Document Only/ })).toBeInTheDocument();
   });
 

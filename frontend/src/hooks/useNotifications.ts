@@ -70,7 +70,7 @@ function useNotificationInbox() {
 
   useVisiblePolling(fetchNotifications, {
     enabled: accountReady,
-    intervalMs: 15000,
+    intervalMs: 60000,
     scopeKey: accountId,
   });
   useEffect(() => {

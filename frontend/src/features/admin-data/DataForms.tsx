@@ -17,21 +17,16 @@ interface DataFormsProps {
   onError: (message: string) => void;
 }
 
-const domains: ReferenceDataDomain[] = [
-  'FOOD_CONSUMPTION',
-  'FOOD_COMPOSITION',
-  'INGREDIENT_PRICE',
-  'MEAL_CATALOGUE',
-  'MEAL_MEDIA',
-];
+const domains: ReferenceDataDomain[] = ['FOOD_COMPOSITION', 'INGREDIENT_PRICE', 'MEAL_CATALOGUE', 'MEAL_MEDIA'];
 
 export default function DataForms({ sources, onChanged, onError }: DataFormsProps) {
   const [busy, setBusy] = useState<'source' | 'release' | null>(null);
-  const [domain, setDomain] = useState<ReferenceDataDomain>('FOOD_CONSUMPTION');
+  const [domain, setDomain] = useState<ReferenceDataDomain>('FOOD_COMPOSITION');
 
   async function createSource(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const form = new FormData(event.currentTarget);
+    const formElement = event.currentTarget;
+    const form = new FormData(formElement);
     setBusy('source');
     try {
       await api.post<ApiEnvelope<DataSource>>('/admin/data/sources', {
@@ -44,8 +39,8 @@ export default function DataForms({ sources, onChanged, onError }: DataFormsProp
         attributionText: form.get('attributionText'),
         updateCadence: form.get('updateCadence') || undefined,
       });
-      event.currentTarget.reset();
-      setDomain('FOOD_CONSUMPTION');
+      formElement.reset();
+      setDomain('FOOD_COMPOSITION');
       await onChanged('Reference source created.');
     } catch (error) {
       onError(getApiError(error, 'Could not create the source.'));
@@ -56,7 +51,8 @@ export default function DataForms({ sources, onChanged, onError }: DataFormsProp
 
   async function createRelease(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const form = new FormData(event.currentTarget);
+    const formElement = event.currentTarget;
+    const form = new FormData(formElement);
     const surveyYear = String(form.get('surveyYear') || '').trim();
     setBusy('release');
     try {
@@ -71,7 +67,7 @@ export default function DataForms({ sources, onChanged, onError }: DataFormsProp
         retrievedAt: new Date(String(form.get('retrievedAt'))).toISOString(),
         notes: form.get('notes') || undefined,
       });
-      event.currentTarget.reset();
+      formElement.reset();
       await onChanged('Draft release created.');
     } catch (error) {
       onError(getApiError(error, 'Could not create the release.'));
@@ -111,7 +107,7 @@ export default function DataForms({ sources, onChanged, onError }: DataFormsProp
           <Input
             name="name"
             label="Source name"
-            placeholder="Enhanced National Nutrition Survey"
+            placeholder="Philippine Food Composition Tables"
             required
             className="sm:col-span-2"
           />

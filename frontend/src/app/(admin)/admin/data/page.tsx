@@ -1,8 +1,8 @@
 'use client';
 
-import { useVisiblePolling } from '@/hooks/useVisiblePolling';
-import { useCallback, useEffect, useState } from 'react';
-import { BookOpen, DatabaseZap, FileInput, LayoutDashboard, RefreshCw, ShieldCheck, Waypoints } from 'lucide-react';
+import { useState } from 'react';
+import { useSessionQuery } from '@/hooks/useSessionQuery';
+import { BookOpen, DatabaseZap, LayoutDashboard, RefreshCw, ShieldCheck, Waypoints } from 'lucide-react';
 import api from '@/lib/axios';
 import Button from '@/components/ui/Button';
 import PortalLoadingState from '@/components/shared/PortalLoadingState';
@@ -11,54 +11,30 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/Tabs';
 import DataForms from '@/features/admin-data/DataForms';
 import DataWorkspaceOverview from '@/features/admin-data/DataWorkspaceOverview';
 import FoodCatalogue from '@/features/admin-data/FoodCatalogue';
-import ReleaseOperations from '@/features/admin-data/ReleaseOperations';
 import type { AdminDataSection, ApiEnvelope, DataWorkspace } from '@/features/admin-data/types';
-import { getApiError } from '@/features/admin-data/types';
 import { useAuth } from '@/hooks/useAuth';
-import { readSessionResource, writeSessionResource } from '@/lib/session-resource-cache';
-
-interface DataSnapshot {
-  workspace: DataWorkspace;
-}
 
 export default function AdminDataPage() {
   const ownerId = useAuth().user?.userId;
-  const cached = readSessionResource<DataSnapshot>(ownerId, 'admin-data-workspace-v2');
-  const [workspace, setWorkspace] = useState<DataWorkspace | null>(cached?.workspace ?? null);
-  const [loading, setLoading] = useState(!cached);
+  const query = useSessionQuery<DataWorkspace>({
+    ownerId,
+    resource: 'admin-data-workspace-v3',
+    pollIntervalMs: false,
+    errorMessage: 'Could not load the data administration workspace.',
+    fetcher: async () => (await api.get<ApiEnvelope<DataWorkspace>>('/admin/data')).data.data,
+  });
+  const workspace = query.data;
+  const loading = query.isLoading;
   const [section, setSection] = useState<AdminDataSection>('overview');
   const [notice, setNotice] = useState<{ tone: 'success' | 'error'; message: string } | null>(null);
 
-  const load = useCallback(
-    async (quiet = false) => {
-      if (!quiet) setLoading(true);
-      try {
-        const workspaceResponse = await api.get<ApiEnvelope<DataWorkspace>>('/admin/data');
-        const next = { workspace: workspaceResponse.data.data };
-        setWorkspace(next.workspace);
-        writeSessionResource(ownerId, 'admin-data-workspace-v2', next);
-      } catch (error) {
-        setNotice({ tone: 'error', message: getApiError(error, 'Could not load the data administration workspace.') });
-      } finally {
-        setLoading(false);
-      }
-    },
-    [ownerId]
-  );
-
-  useVisiblePolling(
-    async () => {
-      await load(true);
-    },
-    { enabled: true, immediate: false, scopeKey: ownerId }
-  );
-  useEffect(() => {
-    void load();
-  }, [load]);
+  const load = async () => {
+    await query.refetch();
+  };
 
   async function changed(message: string) {
     setNotice({ tone: 'success', message });
-    await load(true);
+    await load();
   }
 
   function failed(message: string) {
@@ -70,7 +46,7 @@ export default function AdminDataPage() {
     return (
       <div className="portal-page">
         <p className="rounded-2xl bg-red-500/10 p-5 text-sm text-status-error-text">
-          {notice?.message || 'Data workspace unavailable.'}
+          {query.error || notice?.message || 'Data workspace unavailable.'}
         </p>
         <Button className="mt-4" onClick={() => void load()}>
           Retry
@@ -85,9 +61,9 @@ export default function AdminDataPage() {
         icon={DatabaseZap}
         eyebrow="Data governance"
         title="Nutrition data center"
-        description="Version official datasets, reconcile them with FNRI records, and publish traceable releases without changing application code."
+        description="Inspect FNRI and USDA nutrient records, maintain verified aliases, and review recorded source evidence."
         actions={
-          <Button variant="secondary" size="sm" onClick={() => void load(true)}>
+          <Button variant="secondary" size="sm" onClick={() => void load()}>
             <RefreshCw className="h-4 w-4" /> Refresh
           </Button>
         }
@@ -98,6 +74,12 @@ export default function AdminDataPage() {
           </div>
         }
       />
+
+      {query.error && (
+        <p role="alert" className="text-sm text-status-error-text">
+          {query.error}
+        </p>
+      )}
 
       {notice && (
         <div
@@ -122,9 +104,6 @@ export default function AdminDataPage() {
           <TabsTrigger value="sources" className="min-w-fit flex-1 gap-2">
             <Waypoints className="h-4 w-4" /> Sources & releases
           </TabsTrigger>
-          <TabsTrigger value="imports" className="min-w-fit flex-1 gap-2">
-            <FileInput className="h-4 w-4" /> Import & publish
-          </TabsTrigger>
           <TabsTrigger value="catalogue" className="min-w-fit flex-1 gap-2">
             <BookOpen className="h-4 w-4" /> FNRI catalogue
           </TabsTrigger>
@@ -143,14 +122,6 @@ export default function AdminDataPage() {
         </TabsContent>
         <TabsContent value="sources">
           <DataForms sources={workspace.sources} onChanged={changed} onError={failed} />
-        </TabsContent>
-        <TabsContent value="imports">
-          <ReleaseOperations
-            releases={workspace.releases}
-            csvTemplate={workspace.consumptionCsvTemplate}
-            onChanged={changed}
-            onError={failed}
-          />
         </TabsContent>
         <TabsContent value="catalogue">
           <FoodCatalogue source="FNRI" onChanged={changed} onError={failed} />

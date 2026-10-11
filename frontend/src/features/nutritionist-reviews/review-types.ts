@@ -1,6 +1,7 @@
 import type { IngredientEvidenceSource } from './ingredient-evidence';
 import type { ReviewRouting } from './review-routing';
 import type { ClarificationWorkspace } from '@/features/clinical-clarification/types';
+import type { ReviewPollStatus } from '@/types/review-status';
 
 export interface QueueItem {
   routing?: ReviewRouting;
@@ -43,6 +44,7 @@ export interface QueueItem {
 }
 
 export interface DetailData {
+  pollStatus?: ReviewPollStatus;
   reviewReferences?: Array<{
     reviewedAt: string;
     reviewerName: string | null;

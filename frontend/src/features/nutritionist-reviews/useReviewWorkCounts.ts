@@ -16,6 +16,7 @@ export function useReviewWorkCounts() {
     ownerId: user?.userId,
     resource: 'nutritionist-review-work-counts',
     enabled: user?.role === 'NUTRITIONIST',
+    pollIntervalMs: 60_000,
     fetcher: async () => (await api.get('/nutritionist/review-work-counts')).data.data,
     errorMessage: 'Review counts could not be refreshed.',
   });

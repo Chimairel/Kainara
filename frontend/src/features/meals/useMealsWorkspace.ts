@@ -251,7 +251,7 @@ export function useMealsWorkspace(initialOptions?: { initialDateKey?: string | n
       ['GENERATING', 'WAITING_FOR_AI', 'PROCESSING_AI'].includes(generationStatus.current ?? '') ||
       (!isLoading && !cycles?.current && !error && generationStatus.current !== 'FAILED')
         ? 3_000
-        : 15_000,
+        : 120_000,
     immediate: false,
     scopeKey: ownerId,
   });
@@ -261,7 +261,7 @@ export function useMealsWorkspace(initialOptions?: { initialDateKey?: string | n
       if (signal.aborted) return;
       setProfileReviewRequired(status.required && !status.approved);
     },
-    { enabled: Boolean(ownerId), immediate: false, scopeKey: ownerId }
+    { enabled: Boolean(ownerId), intervalMs: 60_000, immediate: false, scopeKey: ownerId }
   );
 
   const history = useMealHistory(ownerId, activeTab === 'history', fetchMeals);

@@ -1,7 +1,7 @@
 'use client';
 
 import { useVisiblePolling } from '@/hooks/useVisiblePolling';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 import api from '@/lib/axios';
 import { getApiErrorMessage } from '@/lib/api-error';
@@ -11,6 +11,11 @@ import { readSessionResource, writeSessionResource } from '@/lib/session-resourc
 import { QueueRow, ObservedSubmission, emptyCorrection, OutsideQueues } from './OutsideMealReviewsPanel.shared';
 export function useOutsideMealReviewsPanelModel({ embedded = false }: { embedded?: boolean } = {}) {
   const ownerId = useAuth().user?.userId;
+  const liveOwner = useRef(ownerId);
+  liveOwner.current = ownerId;
+  const [stateOwner, setStateOwner] = useState(ownerId);
+  const ownsState = stateOwner === ownerId;
+  const isCurrent = () => liveOwner.current === ownerId;
   const cached = readSessionResource<OutsideQueues>(ownerId, 'nutritionist-outside-queues', 30_000);
   const [isLoading, setIsLoading] = useState(!cached);
   const [rows, setRows] = useState<QueueRow[]>(cached?.rows ?? []);
@@ -28,21 +33,23 @@ export function useOutsideMealReviewsPanelModel({ embedded = false }: { embedded
 
   const load = useCallback(
     async (signal?: AbortSignal) => {
+      if (!ownerId || liveOwner.current !== ownerId) return;
       setError(null);
       try {
         const [reviews, observations] = await Promise.all([
           api.get('/nutritionist/outside-meal-reviews', signal ? { signal } : undefined),
           api.get('/nutritionist/observed-meal-submissions', signal ? { signal } : undefined),
         ]);
-        if (signal?.aborted) return;
+        if (signal?.aborted || liveOwner.current !== ownerId) return;
         const next = { rows: reviews.data?.data ?? [], submissions: observations.data?.data ?? [] };
         setRows(next.rows);
         setSubmissions(next.submissions);
         writeSessionResource(ownerId, 'nutritionist-outside-queues', next);
       } catch (err) {
-        if (!signal?.aborted) setError(getApiErrorMessage(err, 'Failed to load outside-meal reviews.'));
+        if (!signal?.aborted && liveOwner.current === ownerId)
+          setError(getApiErrorMessage(err, 'Failed to load outside-meal reviews.'));
       } finally {
-        setIsLoading(false);
+        if (liveOwner.current === ownerId) setIsLoading(false);
       }
     },
     [ownerId]
@@ -52,12 +59,21 @@ export function useOutsideMealReviewsPanelModel({ embedded = false }: { embedded
     async (signal) => {
       await load(signal);
     },
-    { enabled: !busy, immediate: false, scopeKey: ownerId }
+    { enabled: Boolean(ownerId) && !busy, intervalMs: 60_000, immediate: false, scopeKey: ownerId }
   );
 
   useEffect(() => {
+    setStateOwner(ownerId);
+    setRows([]);
+    setSubmissions([]);
+    setSelected(null);
+    setObserved(null);
+    setCorrection(emptyCorrection);
+    setError(null);
+    setBusy(false);
+    setIsLoading(true);
     void load();
-  }, [load]);
+  }, [load, ownerId]);
 
   useEffect(() => {
     setSelected((current) => {
@@ -67,10 +83,12 @@ export function useOutsideMealReviewsPanelModel({ embedded = false }: { embedded
   }, [rows]);
 
   const claim = async (row: QueueRow) => {
+    if (!isCurrent()) return;
     setBusy(true);
     setError(null);
     try {
       const response = await api.post(`/nutritionist/outside-meal-reviews/${row.id}/claim`);
+      if (!isCurrent()) return;
       setSelected({
         ...response.data.data,
         claimStatus: { claimedByMe: true, claimedByOther: false, claimedByName: null },
@@ -84,14 +102,14 @@ export function useOutsideMealReviewsPanelModel({ embedded = false }: { embedded
       });
       await load();
     } catch (err) {
-      setError(getApiErrorMessage(err, 'Could not claim this review.'));
+      if (isCurrent()) setError(getApiErrorMessage(err, 'Could not claim this review.'));
     } finally {
-      setBusy(false);
+      if (isCurrent()) setBusy(false);
     }
   };
 
   const resolve = async (action: 'VERIFY' | 'CORRECT' | 'NEEDS_MORE_INFO' | 'UNVERIFIABLE') => {
-    if (!selected) return;
+    if (!selected || !isCurrent()) return;
     setBusy(true);
     setError(null);
     try {
@@ -107,17 +125,19 @@ export function useOutsideMealReviewsPanelModel({ embedded = false }: { embedded
             }
           : {}),
       });
+      if (!isCurrent()) return;
       setSelected(null);
       setCorrection(emptyCorrection);
       await load();
     } catch (err) {
-      setError(getApiErrorMessage(err, 'Failed to submit the review.'));
+      if (isCurrent()) setError(getApiErrorMessage(err, 'Failed to submit the review.'));
     } finally {
-      setBusy(false);
+      if (isCurrent()) setBusy(false);
     }
   };
 
   const selectObserved = (row: ObservedSubmission) => {
+    if (!isCurrent()) return;
     setObserved(row);
     setObservedKind('FOOD_REFERENCE');
     setCanonicalName(row.sourceOutsideMealItem?.name ?? '');
@@ -143,7 +163,7 @@ export function useOutsideMealReviewsPanelModel({ embedded = false }: { embedded
   };
 
   const admitObserved = async () => {
-    if (!observed) return;
+    if (!observed || !isCurrent()) return;
     setBusy(true);
     setError(null);
     try {
@@ -166,31 +186,32 @@ export function useOutsideMealReviewsPanelModel({ embedded = false }: { embedded
             }
           : {}),
       });
+      if (!isCurrent()) return;
       setObserved(null);
       await load();
     } catch (err) {
-      setError(getApiErrorMessage(err, 'Could not classify this observation.'));
+      if (isCurrent()) setError(getApiErrorMessage(err, 'Could not classify this observation.'));
     } finally {
-      setBusy(false);
+      if (isCurrent()) setBusy(false);
     }
   };
 
   return {
     kind: 'ready' as const,
     embedded,
-    error,
-    isLoading,
-    rows,
-    selected,
-    busy,
+    error: ownsState ? error : null,
+    isLoading: !ownsState || isLoading,
+    rows: ownsState ? rows : [],
+    selected: ownsState ? selected : null,
+    busy: ownsState && busy,
     claim,
     setError,
-    correction,
+    correction: ownsState ? correction : emptyCorrection,
     setCorrection,
     resolve,
-    submissions,
+    submissions: ownsState ? submissions : [],
     selectObserved,
-    observed,
+    observed: ownsState ? observed : null,
     observedKind,
     setObservedKind,
     canonicalName,

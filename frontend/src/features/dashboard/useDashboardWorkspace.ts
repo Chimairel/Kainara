@@ -89,7 +89,7 @@ export function useDashboardWorkspace() {
     void check();
     const interval = window.setInterval(() => {
       if (document.visibilityState === 'visible') void check();
-    }, 15_000);
+    }, 60_000);
     const refresh = () => {
       if (document.visibilityState === 'visible') void check();
     };
@@ -289,11 +289,14 @@ export function useDashboardWorkspace() {
 
   useVisiblePolling(fetchCurrentPlan, {
     enabled: Boolean(ownerId),
-    intervalMs: preparingPlan ? 3_000 : 15_000,
+    // Live events and mutations refresh immediately; a full weekly payload
+    // uses a slower fallback than selected review status or notifications.
+    intervalMs: preparingPlan ? 3_000 : 120_000,
     immediate: false,
     scopeKey: ownerId,
   });
   useVisiblePolling(fetchOutsideMealLogs, {
+    intervalMs: false,
     enabled: Boolean(ownerId) && !isLogging,
     immediate: false,
     scopeKey: ownerId,
@@ -307,7 +310,7 @@ export function useDashboardWorkspace() {
       const snapshot = readSessionResource<CurrentPlanSnapshot>(ownerId, currentPlanResource);
       if (snapshot) writeSessionResource(ownerId, currentPlanResource, { ...snapshot, upcomingCycle: upcoming });
     },
-    { enabled: Boolean(ownerId) && !isLoading && !currentCycle, scopeKey: ownerId }
+    { enabled: Boolean(ownerId) && !isLoading && !currentCycle, intervalMs: 60000, scopeKey: ownerId }
   );
 
   useEffect(() => {

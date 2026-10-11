@@ -28,6 +28,7 @@ export default function FoodCatalogue({ source, readOnly = false, onChanged, onE
   const [compositionFood, setCompositionFood] = useState<string | null>(null);
   const label = source === 'FNRI' ? 'FNRI' : 'USDA';
   const query = useSessionQuery<FoodPage>({
+    pollIntervalMs: false,
     ownerId,
     resource: JSON.stringify([readOnly ? 'rnd-food-catalogue' : 'admin-food-catalogue', source, filter]),
     fetcher: async () => {

@@ -19,6 +19,10 @@ import {
 } from './ProfileWorkPanel.shared';
 export function useProfileWorkPanelModel() {
   const ownerId = useAuth().user?.userId;
+  const [stateOwner, setStateOwner] = useState(ownerId);
+  const sameOwner = stateOwner === ownerId;
+  const liveOwner = useRef(ownerId);
+  liveOwner.current = ownerId;
   const cachedPeople = readSessionResource<Person[]>(ownerId, 'nutritionist-profile-work', 30_000);
   const [people, setPeople] = useState<Person[]>(cachedPeople ?? []);
   const [isLoading, setIsLoading] = useState(!cachedPeople);
@@ -70,21 +74,20 @@ export function useProfileWorkPanelModel() {
       const requestId = ++queueRequest.current;
       try {
         const response = await api.get('/nutritionist/profile-work', signal ? { signal } : undefined);
-        if (signal?.aborted || requestId !== queueRequest.current) return null;
+        if (signal?.aborted || requestId !== queueRequest.current || liveOwner.current !== ownerId) return null;
         const next: Person[] = response.data.data ?? [];
         const selected = detailRef.current;
         if (selected && !next.some((person) => person.userId === selected.userId)) clearSelection();
         setPeople(next);
         writeSessionResource(ownerId, 'nutritionist-profile-work', next);
         setError(null);
-        window.dispatchEvent(new Event('nutrimind:review-work-updated'));
         return next;
       } catch (cause) {
-        if (!signal?.aborted && requestId === queueRequest.current)
+        if (!signal?.aborted && requestId === queueRequest.current && liveOwner.current === ownerId)
           setError(getApiErrorMessage(cause, 'The profile queue could not be loaded.'));
         return null;
       } finally {
-        if (requestId === queueRequest.current) {
+        if (requestId === queueRequest.current && liveOwner.current === ownerId) {
           setIsLoading(false);
         }
       }
@@ -93,22 +96,43 @@ export function useProfileWorkPanelModel() {
   );
   useVisiblePolling(
     async (signal) => {
-      const next = await refresh(signal);
+      await refresh(signal);
+    },
+    { enabled: !busy && Boolean(ownerId), intervalMs: 60000, immediate: false, scopeKey: ownerId }
+  );
+  useVisiblePolling(
+    async (signal) => {
       const selected = detailRef.current;
-      if (signal.aborted || !next || !selected) return;
+      if (signal.aborted || !selected) return;
       try {
+        const status = await api.get(`/nutritionist/profile-work/${selected.userId}/status`, { signal });
+        if (signal.aborted || detailRef.current?.userId !== selected.userId || liveOwner.current !== ownerId) return;
+        if (status.data.data?.revision && status.data.data.revision === selected.pollStatus?.revision) return;
         const response = await api.get(`/nutritionist/profile-work/${selected.userId}`, { signal });
-        if (!signal.aborted && detailRef.current?.userId === selected.userId) setDetail(response.data.data);
+        if (!signal.aborted && detailRef.current?.userId === selected.userId && liveOwner.current === ownerId) {
+          if (response.data.data.currentProfile?.revision !== selected.currentProfile.revision) {
+            clearSelection();
+            setError('This member updated their profile. Select their current review to continue.');
+          } else setDetail(response.data.data);
+        }
       } catch (cause) {
-        if (signal.aborted || detailRef.current?.userId !== selected.userId) return;
+        if (signal.aborted || detailRef.current?.userId !== selected.userId || liveOwner.current !== ownerId) return;
         if (noLongerQueued(cause)) {
           clearSelection();
           await refresh();
+          setError('This profile review is no longer available. Select a current review to continue.');
         } else setError(getApiErrorMessage(cause, 'Could not refresh this profile.'));
       }
     },
-    { enabled: !busy, immediate: false, scopeKey: `${ownerId}:${detail?.userId}` }
+    { enabled: !busy && Boolean(detail), immediate: false, scopeKey: `${ownerId}:${detail?.userId}` }
   );
+  useEffect(() => {
+    setStateOwner(ownerId);
+    queueRequest.current += 1;
+    clearSelection();
+    setPeople(readSessionResource<Person[]>(ownerId, 'nutritionist-profile-work', 30_000) ?? []);
+    setError(null);
+  }, [ownerId, clearSelection]);
   useEffect(() => {
     void refresh();
   }, [refresh]);
@@ -135,7 +159,7 @@ export function useProfileWorkPanelModel() {
     setError(null);
     try {
       const response = await api.get(`/nutritionist/profile-work/${userId}`);
-      if (requestId !== selectionRequest.current) return;
+      if (requestId !== selectionRequest.current || liveOwner.current !== ownerId) return;
       const next: PersonDetail = response.data.data;
       detailRef.current = next;
       setDetail(next);
@@ -149,13 +173,13 @@ export function useProfileWorkPanelModel() {
       }
       setRequestArea(next.requirements.find((item) => item.state !== 'READY')?.area ?? next.availableAreas[0] ?? '');
     } catch (cause) {
-      if (requestId !== selectionRequest.current) return;
+      if (requestId !== selectionRequest.current || liveOwner.current !== ownerId) return;
       if (noLongerQueued(cause)) {
         clearSelection();
         await refresh();
       } else setError(getApiErrorMessage(cause, 'Could not open this profile.'));
     } finally {
-      if (requestId === selectionRequest.current) {
+      if (requestId === selectionRequest.current && liveOwner.current === ownerId) {
         setOpeningPersonId(null);
         setBusy(false);
       }
@@ -164,6 +188,7 @@ export function useProfileWorkPanelModel() {
 
   const openDocument = async (item: DocumentItem) => {
     if (!detail || item.status === 'WITHDRAWN') return;
+    const requestId = selectionRequest.current;
     setBusy(true);
     setError(null);
     setDocumentDetail(null);
@@ -175,7 +200,9 @@ export function useProfileWorkPanelModel() {
         ? `/nutritionist/clinical-evidence/${item.id}`
         : `/nutritionist/profile-work/${detail.userId}/documents/${item.id}`;
       const claimed = await api.get(path);
+      if (liveOwner.current !== ownerId || requestId !== selectionRequest.current) return;
       const file = await api.get(`${path}/file`, { responseType: 'blob' });
+      if (liveOwner.current !== ownerId || requestId !== selectionRequest.current) return;
       setDocumentDetail(claimed.data.data);
       setFileUrl(URL.createObjectURL(new Blob([file.data], { type: item.mimeType })));
       setSelection({ kind: 'document', id: item.id });
@@ -187,14 +214,16 @@ export function useProfileWorkPanelModel() {
       setFactValue('');
       setFactCode(factCodes[item.area]?.[0] ?? 'OTHER');
     } catch (cause) {
+      if (liveOwner.current !== ownerId || requestId !== selectionRequest.current) return;
       setError(getApiErrorMessage(cause, 'Could not claim or open this document.'));
     } finally {
-      setBusy(false);
+      if (liveOwner.current === ownerId && requestId === selectionRequest.current) setBusy(false);
     }
   };
 
   const afterDecision = async () => {
     const next = await refresh();
+    if (liveOwner.current !== ownerId) return;
     if (detail && next?.some((person) => person.userId === detail.userId)) {
       await openPerson(detail.userId, true);
     } else {
@@ -203,6 +232,7 @@ export function useProfileWorkPanelModel() {
   };
   const claimProfile = async (release = false) => {
     if (!detail || busy) return;
+    const requestId = selectionRequest.current;
     setBusy(true);
     setError(null);
     try {
@@ -210,6 +240,7 @@ export function useProfileWorkPanelModel() {
         `/nutritionist/profile-reviews/${detail.userId}/${release ? 'release' : 'claim'}`
       );
       const review: ProfileReview = response.data.data;
+      if (liveOwner.current !== ownerId || requestId !== selectionRequest.current) return;
       setDetail((current) =>
         current?.userId === detail.userId
           ? {
@@ -221,13 +252,15 @@ export function useProfileWorkPanelModel() {
           : current
       );
     } catch (cause) {
+      if (liveOwner.current !== ownerId || requestId !== selectionRequest.current) return;
       setError(getApiErrorMessage(cause, 'Could not claim this profile.'));
     } finally {
-      setBusy(false);
+      if (liveOwner.current === ownerId && requestId === selectionRequest.current) setBusy(false);
     }
   };
   const decideProfile = async (outcome: 'APPROVED' | 'DECLINED' | 'REQUEST_DETAILS') => {
     if (!detail?.profileReview) return;
+    const requestId = selectionRequest.current;
     setBusy(true);
     setError(null);
     try {
@@ -239,16 +272,19 @@ export function useProfileWorkPanelModel() {
         ...(outcome === 'REQUEST_DETAILS' ? { area: requestArea } : {}),
         ...(outcome === 'APPROVED' && conditionAssessments.length ? { conditionAssessments } : {}),
       });
+      if (liveOwner.current !== ownerId || requestId !== selectionRequest.current) return;
       setNotes('');
       await afterDecision();
     } catch (cause) {
+      if (liveOwner.current !== ownerId || requestId !== selectionRequest.current) return;
       setError(getApiErrorMessage(cause, 'Could not record the profile decision.'));
     } finally {
-      setBusy(false);
+      if (liveOwner.current === ownerId && requestId === selectionRequest.current) setBusy(false);
     }
   };
   const decideDocument = async () => {
     if (!documentDetail) return;
+    const requestId = selectionRequest.current;
     setBusy(true);
     setError(null);
     try {
@@ -260,14 +296,16 @@ export function useProfileWorkPanelModel() {
         unclearFactIds: [],
         confirmedFacts,
       });
+      if (liveOwner.current !== ownerId || requestId !== selectionRequest.current) return;
       setDocumentDetail(null);
       setFileUrl(null);
       setSelection(detail?.reports.length ? { kind: 'report', id: detail.reports[0].id } : null);
       await afterDecision();
     } catch (cause) {
+      if (liveOwner.current !== ownerId || requestId !== selectionRequest.current) return;
       setError(getApiErrorMessage(cause, 'Could not record the document review.'));
     } finally {
-      setBusy(false);
+      if (liveOwner.current === ownerId && requestId === selectionRequest.current) setBusy(false);
     }
   };
 
@@ -296,26 +334,26 @@ export function useProfileWorkPanelModel() {
 
   return {
     kind: 'ready' as const,
-    detail,
-    expanded,
+    detail: sameOwner ? detail : null,
+    expanded: sameOwner && expanded,
     isLoading,
     openingPersonId,
-    people,
+    people: sameOwner ? people : [],
     busy,
     openPerson,
     setExpanded,
     clearSelection,
     claimProfile,
-    error,
+    error: sameOwner ? error : null,
     setSelection,
     setDocumentDetail,
     setFileUrl,
-    selection,
+    selection: sameOwner ? selection : null,
     openDocument,
-    selectedReport,
-    selectedDocument,
-    documentDetail,
-    fileUrl,
+    selectedReport: sameOwner ? selectedReport : null,
+    selectedDocument: sameOwner ? selectedDocument : null,
+    documentDetail: sameOwner ? documentDetail : null,
+    fileUrl: sameOwner ? fileUrl : null,
     confirmedFactIds,
     setConfirmedFactIds,
     factCode,

@@ -12,6 +12,7 @@ export function useMealHistory(ownerId: string | undefined, enabled: boolean, fe
   const [historyCount, setHistoryCount] = useState<{ ownerId: string | undefined; count: number } | null>(null);
   const historyTotalCount = historyCount?.ownerId === ownerId ? (historyCount?.count ?? null) : null;
   const query = useSessionQuery<MealHistoryLog[]>({
+    pollIntervalMs: false,
     ownerId,
     enabled,
     resource: `user-meals-history:${historySearch}:${historySource}:${historyStatus}`,

@@ -33,6 +33,7 @@ export function useMealLibrary(ownerId: string | undefined, enabled: boolean, da
     };
   };
   const query = useSessionQuery<LibrarySnapshot>({
+    pollIntervalMs: false,
     ownerId,
     resource,
     enabled,

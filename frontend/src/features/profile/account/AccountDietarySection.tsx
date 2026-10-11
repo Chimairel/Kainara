@@ -53,11 +53,8 @@ export default function AccountDietarySection({ model }: SectionProps) {
           </div>
 
           <div className="flex items-center justify-between rounded-xl border border-brand-border/60 bg-brand-bgAlt/40 p-2.5 text-xs dark:border-white/[0.06] dark:bg-white/[0.02]">
-            <span className="text-brand-muted">Food Culture & Region</span>
-            <span className="font-bold text-brand-text">
-              {profileData?.foodCulture || 'Filipino Heritage'}
-              {profileData?.planningRegionName ? ` · ${profileData.planningRegionName}` : ''}
-            </span>
+            <span className="text-brand-muted">Food Culture</span>
+            <span className="font-bold text-brand-text">{profileData?.foodCulture || 'Filipino Heritage'}</span>
           </div>
 
           <div className="flex items-center justify-between rounded-xl border border-brand-border/60 bg-brand-bgAlt/40 p-2.5 text-xs dark:border-white/[0.06] dark:bg-white/[0.02]">

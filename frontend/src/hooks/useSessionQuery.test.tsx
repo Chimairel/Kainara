@@ -16,6 +16,28 @@ function deferred<T>() {
 describe('shared session queries', () => {
   beforeEach(clearSessionResourceCache);
 
+  it('static reads have no timer polling and still refresh on a live event', async () => {
+    const timer = vi.spyOn(window, 'setInterval');
+    const fetcher = vi.fn().mockResolvedValue(['catalogue']);
+    const hook = renderHook(() =>
+      useSessionQuery({
+        ownerId: 'static-user',
+        resource: 'catalogue',
+        pollIntervalMs: false,
+        fetcher,
+        errorMessage: 'Unavailable',
+      })
+    );
+    await waitFor(() => expect(hook.result.current.data).toEqual(['catalogue']));
+    expect(timer.mock.calls.some((call) => call[1] === 15000)).toBe(false);
+    await act(async () => {
+      window.dispatchEvent(new Event('kainara:live-update'));
+    });
+    expect(fetcher).toHaveBeenCalledTimes(2);
+    hook.unmount();
+    timer.mockRestore();
+  });
+
   it('updates an already rendered result after a shared live event without navigation', async () => {
     const fetcher = vi.fn().mockResolvedValueOnce(['pending']).mockResolvedValueOnce(['approved']);
     const hook = renderHook(() =>

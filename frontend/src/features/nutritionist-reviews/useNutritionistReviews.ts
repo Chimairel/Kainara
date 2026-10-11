@@ -129,10 +129,33 @@ export function useNutritionistReviews(enabled = true) {
   }, [fetchQueue, enabled]);
   useVisiblePolling(
     async (signal) => {
-      const generation = selectionGeneration.current;
       await fetchQueue(true, signal);
+    },
+    { enabled: enabled && !actionLoading, intervalMs: 60000, immediate: false, scopeKey: ownerId }
+  );
+  useVisiblePolling(
+    async (signal) => {
+      const generation = selectionGeneration.current;
       if (selectedMealId && !actionLoading) {
         try {
+          const status = await api.get(`/nutritionist/queue/${selectedMealId}/status`, { signal });
+          if (
+            signal.aborted ||
+            generation !== selectionGeneration.current ||
+            liveOwner.current !== ownerId ||
+            liveSelection.current !== selectedMealId
+          )
+            return;
+          if (status.data.data?.claim?.state === 'OTHER') {
+            retireInactiveReview(
+              { response: { data: { code: 'MEAL_REVIEW_INACTIVE' } } },
+              selectedMealId,
+              'Another RND now holds this case. Select an available review to continue.'
+            );
+            return;
+          }
+          if (status.data.data?.revision && status.data.data.revision === detailRef.current?.pollStatus?.revision)
+            return;
           const response = await api.get(`/nutritionist/queue/${selectedMealId}`, { signal });
           if (
             !signal.aborted &&
@@ -159,7 +182,12 @@ export function useNutritionistReviews(enabled = true) {
         }
       }
     },
-    { enabled: enabled && !actionLoading, intervalMs: 5000, immediate: false, scopeKey: `${ownerId}:${selectedMealId}` }
+    {
+      enabled: enabled && Boolean(selectedMealId) && !actionLoading,
+      intervalMs: 15000,
+      immediate: false,
+      scopeKey: `${ownerId}:${selectedMealId}`,
+    }
   );
 
   const handleSelectMeal = async (id: string) => {

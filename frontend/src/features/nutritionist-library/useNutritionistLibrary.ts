@@ -239,6 +239,7 @@ export function useNutritionistLibrary(
   }, [searchVal, search]);
 
   const query = useSessionQuery<LibraryPageData>({
+    pollIntervalMs: false,
     ownerId,
     enabled: active,
     resource: `${role}:${libraryResource(search, mealType, conditionTag, verifiedByMe, adminDraftsOnly, status, page)}`,
@@ -261,6 +262,7 @@ export function useNutritionistLibrary(
     },
   });
   const coverageQuery = useSessionQuery<LibraryCoverage>({
+    pollIntervalMs: false,
     ownerId,
     resource: `${role}-library-coverage-v2`,
     enabled: active && loadCoverage,

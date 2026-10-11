@@ -99,6 +99,7 @@ export default function AdminAuditWorkspace() {
     mine: view === 'admin' && mine ? 'true' : undefined,
   };
   const history = useSessionQuery<History>({
+    pollIntervalMs: false,
     ownerId,
     resource: `admin-audit:${JSON.stringify(filters)}`,
     enabled: staffView && validDates && !related,
@@ -110,6 +111,7 @@ export default function AdminAuditWorkspace() {
     },
   });
   const relatedHistory = useSessionQuery<History>({
+    pollIntervalMs: false,
     ownerId,
     resource: `admin-audit-related:${related?.id}:${relatedPage}`,
     enabled: Boolean(related),

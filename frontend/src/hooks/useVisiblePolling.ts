@@ -4,7 +4,12 @@ import { useEffect, useRef } from 'react';
 /** Poll active pages without overlapping requests; cancel the previous scope on cleanup. */
 export function useVisiblePolling(
   refresh: (signal: AbortSignal) => Promise<void>,
-  { enabled = true, intervalMs = 15000, immediate = true, scopeKey = '' } = {}
+  {
+    enabled = true,
+    intervalMs = 15000,
+    immediate = true,
+    scopeKey = '',
+  }: { enabled?: boolean; intervalMs?: number | false; immediate?: boolean; scopeKey?: string } = {}
 ) {
   const latest = useRef(refresh);
   latest.current = refresh;
@@ -33,7 +38,7 @@ export function useVisiblePolling(
       }
     };
     if (immediate) void tick();
-    const interval = window.setInterval(() => void tick(), intervalMs);
+    const interval = intervalMs === false ? undefined : window.setInterval(() => void tick(), intervalMs);
     const resume = () => void tick(true);
     window.addEventListener('focus', resume);
     window.addEventListener(LIVE_UPDATE_EVENT, resume);

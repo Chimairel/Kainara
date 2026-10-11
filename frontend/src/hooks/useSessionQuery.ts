@@ -12,12 +12,14 @@ export function useSessionQuery<T>({
   fetcher,
   errorMessage,
   enabled = true,
+  pollIntervalMs = 15000,
 }: {
   ownerId: string | undefined;
   resource: string;
   fetcher: () => Promise<T>;
   errorMessage: string;
   enabled?: boolean;
+  pollIntervalMs?: number | false;
 }) {
   const scope = JSON.stringify([ownerId, resource]);
   const activeScope = useRef(scope);
@@ -68,7 +70,7 @@ export function useSessionQuery<T>({
     async () => {
       await refetch();
     },
-    { enabled: enabled && Boolean(ownerId), immediate: false, scopeKey: scope }
+    { enabled: enabled && Boolean(ownerId), intervalMs: pollIntervalMs, immediate: false, scopeKey: scope }
   );
 
   const setData = useCallback(

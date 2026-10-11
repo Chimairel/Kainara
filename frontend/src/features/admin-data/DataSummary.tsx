@@ -1,4 +1,4 @@
-import { BookOpenCheck, Database, FileClock, MapPinned, Tags } from 'lucide-react';
+import { BookOpenCheck, Database, FileClock, Tags } from 'lucide-react';
 import WorkspaceMetricStrip, { type WorkspaceMetric } from '@/components/shared/WorkspaceMetricStrip';
 import type { WorkspaceSummary } from './types';
 
@@ -23,12 +23,6 @@ export default function DataSummary({ summary }: { summary: WorkspaceSummary }) 
       icon: BookOpenCheck,
     },
     {
-      label: 'Consumption rows',
-      value: summary.consumptionStats.toLocaleString('en-PH'),
-      detail: 'aggregate survey observations',
-      icon: MapPinned,
-    },
-    {
       label: 'Active releases',
       value: `${summary.activeReleases} / ${summary.dataSources}`,
       detail: 'active versions / sources',
@@ -36,5 +30,5 @@ export default function DataSummary({ summary }: { summary: WorkspaceSummary }) 
     },
   ];
 
-  return <WorkspaceMetricStrip label="Data estate" metrics={metrics} columns={5} />;
+  return <WorkspaceMetricStrip label="Data estate" metrics={metrics} columns={4} />;
 }

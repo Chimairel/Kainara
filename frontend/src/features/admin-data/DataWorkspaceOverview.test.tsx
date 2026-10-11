@@ -8,7 +8,7 @@ const summary: WorkspaceSummary = {
   foodAliases: 81,
   mealLibrary: 2027,
   completeMealLibrary: 0,
-  consumptionStats: 2320,
+  consumptionStats: 2620,
   dataSources: 1,
   activeReleases: 1,
   priceSources: 0,
@@ -18,77 +18,58 @@ const summary: WorkspaceSummary = {
 const release: DataRelease = {
   id: 'release',
   sourceId: 'source',
-  versionLabel: '2018_2019_2021',
+  versionLabel: 'nutrients-v1',
   sourceUrl: 'https://example.test/source',
   retrievedAt: '2026-10-10T12:00:00Z',
   status: 'ACTIVE',
   source: {
-    code: 'FNRI_ENNS_IFCS',
-    name: 'FNRI food consumption survey',
-    domain: 'FOOD_CONSUMPTION',
+    code: 'FNRI',
+    name: 'FNRI nutrient evidence',
+    domain: 'FOOD_COMPOSITION',
     isEnabled: true,
-    updateCadence: 'Per official public-use release',
+    updateCadence: 'Per recorded source release',
   },
   createdByAdmin: { name: 'Admin' },
   mappings: {},
-  _count: { consumptionStats: 2320, activations: 1 },
+  _count: { consumptionStats: 0, activations: 1 },
 };
-function show(values = summary, releases: DataRelease[] = [release], releaseCount = releases.length) {
-  const onNavigate = vi.fn();
+function show(releases: DataRelease[] = [release]) {
+  const navigate = vi.fn();
   render(
-    <DataWorkspaceOverview summary={values} releases={releases} releaseCount={releaseCount} onNavigate={onNavigate} />
+    <DataWorkspaceOverview summary={summary} releases={releases} releaseCount={releases.length} onNavigate={navigate} />
   );
-  return onNavigate;
+  return navigate;
 }
-
-describe('nutrition data overview', () => {
-  it('keeps all totals and release evidence without presenting zero completeness as approval', () => {
+describe('current nutrition data overview', () => {
+  it('shows nutrient evidence and clinical completeness without obsolete consumption totals', () => {
     show();
-    expect(screen.getByText('15,072')).toBeInTheDocument();
-    expect(screen.getByText('0 / 2,027')).toBeInTheDocument();
-    expect(screen.getByText('2,320')).toBeInTheDocument();
-    expect(screen.getByText('1 / 1')).toBeInTheDocument();
-    expect(screen.getByText('FNRI_ENNS_IFCS · 2018_2019_2021')).toBeInTheDocument();
-    expect(screen.getByText('Food consumption')).toBeInTheDocument();
+    expect(screen.getByText('15,072')).toBeVisible();
+    expect(screen.getByText('0 / 2,027')).toBeVisible();
+    expect(screen.queryByText('Consumption rows')).not.toBeInTheDocument();
+    expect(screen.queryByText('2,620')).not.toBeInTheDocument();
+    expect(screen.queryByText(/publishing workflow/i)).not.toBeInTheDocument();
     expect(screen.getByText(/RNDs remain the only role/)).toBeVisible();
-    expect(screen.getByText(/clinical-validity claim/)).toBeVisible();
   });
-  it('collapses completed setup, retains its instructions, and routes publishing to the existing panel', () => {
+  it('opens the existing FNRI/USDA catalogues and release metadata', () => {
     const navigate = show();
-    const control = screen.getByText('Four-step publishing workflow');
-    expect(control.closest('details')).not.toHaveAttribute('open');
-    fireEvent.click(screen.getByRole('button', { name: 'Manage imports & publishing' }));
-    expect(navigate).toHaveBeenCalledWith('imports');
+    fireEvent.click(screen.getByRole('button', { name: 'FNRI catalogue' }));
+    expect(navigate).toHaveBeenLastCalledWith('catalogue');
+    fireEvent.click(screen.getByRole('button', { name: 'USDA catalogue' }));
+    expect(navigate).toHaveBeenLastCalledWith('usda-catalogue');
     fireEvent.click(screen.getByRole('button', { name: 'View releases' }));
     expect(navigate).toHaveBeenLastCalledWith('sources');
   });
-  it('guides an empty workspace to source registration without inventing an active release', () => {
-    const navigate = show({ ...summary, dataSources: 0, activeReleases: 0, consumptionStats: 0 }, [], 0);
-    expect(screen.getByText('No active reference-data release is recorded in this workspace.')).toBeInTheDocument();
-    expect(screen.getByText('Four-step publishing workflow').closest('details')).toHaveAttribute('open');
-    fireEvent.click(screen.getByRole('button', { name: 'Register the first source' }));
-    expect(navigate).toHaveBeenCalledWith('sources');
+  it('excludes obsolete ENNS even if an old API still reports an active release', () => {
+    show([{ ...release, source: { ...release.source, code: 'FNRI_ENNS_IFCS', domain: 'FOOD_CONSUMPTION' } }]);
+    expect(screen.queryByText(/FNRI_ENNS_IFCS/)).not.toBeInTheDocument();
+    expect(screen.getByText('No active reference-data release is recorded in this workspace.')).toBeVisible();
   });
-  it('directs missing import work to imports even when another release is already active', () => {
-    const navigate = show({ ...summary, consumptionStats: 0 });
-    expect(screen.getByText('Next: Import and reconcile')).toBeVisible();
-    fireEvent.click(screen.getByRole('button', { name: 'Continue import and review' }));
-    expect(navigate).toHaveBeenCalledWith('imports');
-  });
-  it('counts drafts/staged releases separately and leaves retired evidence out of the active table', () => {
-    show(summary, [
-      release,
-      { ...release, id: 'draft', status: 'DRAFT', versionLabel: 'Draft only' },
-      { ...release, id: 'staged', status: 'STAGED', versionLabel: 'Staged only' },
-      { ...release, id: 'retired', status: 'RETIRED', versionLabel: 'Retired only' },
+  it('does not present retired releases or invalid dates as fresh evidence', () => {
+    show([
+      { ...release, retrievedAt: 'invalid' },
+      { ...release, id: 'retired', status: 'RETIRED', versionLabel: 'retired-only' },
     ]);
-    expect(screen.getByText('Draft releases').parentElement).toHaveTextContent('1');
-    expect(screen.getByText('Staged releases').parentElement).toHaveTextContent('1');
-    expect(screen.queryByText('FNRI_ENNS_IFCS · Retired only')).not.toBeInTheDocument();
-  });
-  it('does not turn an invalid recorded retrieval date into a fake freshness value', () => {
-    show(summary, [{ ...release, retrievedAt: 'invalid' }]);
-    expect(screen.getByText('Not recorded')).toBeInTheDocument();
-    expect(screen.queryByText(/NaN/)).not.toBeInTheDocument();
+    expect(screen.getByText('Not recorded')).toBeVisible();
+    expect(screen.queryByText(/retired-only|NaN/)).not.toBeInTheDocument();
   });
 });
