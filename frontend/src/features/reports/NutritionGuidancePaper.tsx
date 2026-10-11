@@ -40,6 +40,7 @@ export interface NutritionGuidancePaperProps {
   report: NutritionReport;
   profile: GuidanceProfileSnapshot;
   activePlanningVersion?: number | null;
+  presentation?: 'paper' | 'inline';
   className?: string;
 }
 
@@ -50,8 +51,14 @@ export default function NutritionGuidancePaper({
   report,
   profile,
   activePlanningVersion = report.planningContext?.activeVersion,
+  presentation = 'paper',
   className = '',
 }: NutritionGuidancePaperProps) {
+  const inline = presentation === 'inline';
+  const Heading = inline ? 'h3' : 'h1';
+  const sheetClassName = inline
+    ? 'w-full select-text break-words [overflow-wrap:break-word]'
+    : 'relative bg-white text-slate-800 shadow-[0_4px_30px_rgba(0,0,0,0.35)] w-full min-h-[1123px] p-14 flex flex-col justify-between select-text break-words [overflow-wrap:break-word]';
   const prepared = report.generatedAt
     ? formatManilaDate(report.generatedAt, {
         month: 'numeric',
@@ -94,23 +101,23 @@ export default function NutritionGuidancePaper({
   return (
     <article
       aria-label="Nutrition guidance record"
-      className={`w-full max-w-[794px] flex flex-col items-center gap-8 break-words [overflow-wrap:break-word] ${className}`}
+      className={`w-full flex flex-col break-words [overflow-wrap:break-word] ${inline ? 'gap-6' : 'max-w-[794px] items-center gap-8'} ${className}`}
     >
       {/* ──────────────── PAGE 1 ──────────────── */}
-      <div
-        data-document-page="1"
-        className="relative bg-white text-slate-800 shadow-[0_4px_30px_rgba(0,0,0,0.35)] w-full min-h-[1123px] p-14 flex flex-col justify-between select-text break-words [overflow-wrap:break-word]"
-        style={{ minHeight: '1123px' }}
-      >
+      <div data-document-page={inline ? undefined : '1'} className={sheetClassName}>
         <div className="space-y-4">
           {/* Header */}
           <header>
-            <div className="text-[11px] sm:text-xs font-mono font-bold tracking-[0.2em] text-[#1B4332] uppercase mb-1">
-              KAINARA · Personal Record
-            </div>
-            <h1 className="text-xl sm:text-2xl md:text-[26px] font-bold text-[#1B4332] tracking-tight">
+            {!inline && (
+              <div className="text-[11px] sm:text-xs font-mono font-bold tracking-[0.2em] text-[#1B4332] uppercase mb-1">
+                KAINARA · Personal Record
+              </div>
+            )}
+            <Heading
+              className={`${inline ? 'text-xl' : 'text-xl sm:text-2xl md:text-[26px]'} font-bold text-[#1B4332] tracking-tight`}
+            >
               Nutrition Guidance
-            </h1>
+            </Heading>
             <p className="text-xs sm:text-[13px] text-slate-600 mt-1">
               Version {report.version} | Prepared {prepared} · {statusText}
             </p>
@@ -281,36 +288,35 @@ export default function NutritionGuidancePaper({
         </div>
 
         {/* Page 1 Bottom Bar / Footer */}
-        {totalPages === 1 ? (
-          <footer className="pt-6 mt-8 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-400 font-mono select-none">
-            <span>KAINARA Personal Health Record</span>
-            <span>Page 1 of 1</span>
-          </footer>
-        ) : (
-          <div className="pt-6 mt-8 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-400 font-mono select-none">
-            <span>KAINARA Personal Health Record</span>
-            <span>Page 1 of {totalPages}</span>
-          </div>
-        )}
+        {!inline &&
+          (totalPages === 1 ? (
+            <footer className="pt-6 mt-8 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-400 font-mono select-none">
+              <span>KAINARA Personal Health Record</span>
+              <span>Page 1 of 1</span>
+            </footer>
+          ) : (
+            <div className="pt-6 mt-8 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-400 font-mono select-none">
+              <span>KAINARA Personal Health Record</span>
+              <span>Page 1 of {totalPages}</span>
+            </div>
+          ))}
       </div>
 
       {/* ──────────────── PAGE 2 (if needed) ──────────────── */}
       {totalPages > 1 && (
-        <div
-          data-document-page="2"
-          className="relative bg-white text-slate-800 shadow-[0_4px_30px_rgba(0,0,0,0.35)] w-full min-h-[1123px] p-14 flex flex-col justify-between select-text break-words [overflow-wrap:break-word]"
-          style={{ minHeight: '1123px' }}
-        >
+        <div data-document-page={inline ? undefined : '2'} className={sheetClassName}>
           <div className="space-y-4">
             {/* Page 2 Header */}
-            <header className="border-b border-[#D8F3DC] pb-3">
-              <div className="text-[11px] sm:text-xs font-mono font-bold tracking-[0.2em] text-[#1B4332] uppercase mb-1">
-                KAINARA · Personal Record (Continued)
-              </div>
-              <h2 className="text-base sm:text-lg font-bold text-[#1B4332] tracking-tight">
-                Nutrition Guidance · Version {report.version}
-              </h2>
-            </header>
+            {!inline && (
+              <header className="border-b border-[#D8F3DC] pb-3">
+                <div className="text-[11px] sm:text-xs font-mono font-bold tracking-[0.2em] text-[#1B4332] uppercase mb-1">
+                  KAINARA · Personal Record (Continued)
+                </div>
+                <h2 className="text-base sm:text-lg font-bold text-[#1B4332] tracking-tight">
+                  Nutrition Guidance · Version {report.version}
+                </h2>
+              </header>
+            )}
 
             {/* Overflowing Reference Items on Page 2 */}
             {page2ReferenceItems.length > 0 && (
@@ -405,10 +411,12 @@ export default function NutritionGuidancePaper({
           </div>
 
           {/* Page 2 Footer */}
-          <footer className="pt-6 mt-8 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-400 font-mono select-none">
-            <span>KAINARA Personal Health Record</span>
-            <span>Page 2 of {totalPages}</span>
-          </footer>
+          {!inline && (
+            <footer className="pt-6 mt-8 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-400 font-mono select-none">
+              <span>KAINARA Personal Health Record</span>
+              <span>Page 2 of {totalPages}</span>
+            </footer>
+          )}
         </div>
       )}
     </article>
