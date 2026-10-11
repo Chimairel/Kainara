@@ -76,7 +76,7 @@ it('debounces staff search and blocks reversed dates including manual refresh', 
   fireEvent.change(screen.getByLabelText('From'), { target: { value: '2026-10-04' } });
   fireEvent.change(screen.getByLabelText('To'), { target: { value: '2026-10-03' } });
   expect(screen.getByRole('alert')).toHaveTextContent('The end date must be on or after');
-  expect(screen.getByRole('button', { name: 'Refresh' })).toBeDisabled();
+  expect(screen.getByRole('button', { name: 'Refresh audit' })).toBeDisabled();
   expect(mocks.get.mock.calls.some(([, options]) => options.params.from > options.params.to)).toBe(false);
 });
 
@@ -86,6 +86,6 @@ it('shows a recoverable fetch failure instead of presenting an empty successful 
   await screen.findByRole('alert');
   expect(screen.queryByText('No activity matches these filters.')).not.toBeInTheDocument();
   mocks.get.mockResolvedValue({ data: { success: true, data: { rows: [], total: 0, page: 1, totalPages: 0 } } });
-  fireEvent.click(screen.getByRole('button', { name: 'Refresh' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Refresh audit' }));
   await screen.findByText('No activity matches these filters.');
 });

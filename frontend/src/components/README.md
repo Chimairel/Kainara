@@ -35,6 +35,8 @@ The October 10 cleanup removed the superseded dashboard summary/schedule, grocer
 
 ## Record lists
 
+`shared/HeaderRefreshAction` is the compact, muted refresh icon beside a page title. Pass it through `PortalPageHeader.titleActions`, with an explicit accessible label and the caller's loading/disabled state. `AdminTabbedWorkspace` provides a header target so only the active tab's action appears beside its shared title; query ownership, filters and refresh callbacks remain in each panel. The 14px icon retains a 44px hit area, keyboard focus and reduced-motion loading feedback. Ordinary primary/secondary actions still use Button.
+
 `shared/WorkspaceMetricStrip` consolidates comparable secondary totals into one themed Card with a definition list. It uses two columns on narrow screens and four/five on wide screens; an odd final metric spans the narrow row. Supply explicit labels, units, descriptions and optional destinations. Nutrition data and Admin Overview reuse it; primary operational signals may retain their separate metric cards. Counts and their meanings remain owned by the caller.
 
 `shared/WorkspaceQueue` supplies compact task navigation inside split review workspaces: a heading/count/search, divided selectable rows, visible selection/opening feedback and matching loading skeletons. Member, case and base-recipe queues reuse it. Names and health labels wrap; search preserves server ordering and the already opened canvas. Callers own filtering, eligibility, errors, empty states, claims and decisions. Selection previews work and never acquires a claim. Use `WorkspaceTable` for full-width comparable records rather than squeezing table columns into a narrow task navigator.

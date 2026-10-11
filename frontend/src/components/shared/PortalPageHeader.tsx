@@ -8,6 +8,7 @@ interface PortalPageHeaderProps {
   title: ReactNode;
   description: string;
   actions?: ReactNode;
+  titleActions?: ReactNode;
   meta?: ReactNode;
   className?: string;
 }
@@ -16,6 +17,7 @@ export default function PortalPageHeader({
   title,
   description,
   actions,
+  titleActions,
   meta,
   className = '',
   headingLevel: Heading = 'h1',
@@ -24,9 +26,12 @@ export default function PortalPageHeader({
     <header className={`workspace-header ${className}`}>
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="min-w-0">
-          <Heading className="font-display text-2xl font-bold tracking-tight text-brand-text sm:text-3xl">
-            {title}
-          </Heading>
+          <div className="flex items-center gap-1">
+            <Heading className="min-w-0 font-display text-2xl font-bold tracking-tight text-brand-text sm:text-3xl">
+              {title}
+            </Heading>
+            {titleActions}
+          </div>
           <p className="mt-1 max-w-3xl text-sm leading-relaxed text-brand-muted">{description}</p>
         </div>
         {(actions || meta) && (

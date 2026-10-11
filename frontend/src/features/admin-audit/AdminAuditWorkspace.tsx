@@ -3,7 +3,8 @@
 import WorkspaceTabs from '@/components/ui/WorkspaceTabs';
 import Dropdown from '@/components/ui/Dropdown';
 import { useEffect, useState } from 'react';
-import { ScrollText, RefreshCw, ArrowLeft } from 'lucide-react';
+import { ScrollText, ArrowLeft } from 'lucide-react';
+import HeaderRefreshAction from '@/components/shared/HeaderRefreshAction';
 import { useAuth } from '@/hooks/useAuth';
 import { useSessionQuery } from '@/hooks/useSessionQuery';
 import PortalPageHeader from '@/components/shared/PortalPageHeader';
@@ -149,12 +150,14 @@ export default function AdminAuditWorkspace() {
                 ? 'Member meal logs and recorded changes. Dates use Philippine time.'
                 : 'Administrator actions, RND reviews, subscriptions and member meal logs. Dates use Philippine time.'
         }
-        meta={
+        titleActions={
           staffView && (
-            <Button variant="secondary" disabled={!related && !validDates} onClick={() => void current.refetch()}>
-              <RefreshCw className="mr-2 h-4 w-4" />
-              Refresh
-            </Button>
+            <HeaderRefreshAction
+              label="Refresh audit"
+              disabled={!related && !validDates}
+              busy={current.isLoading}
+              onRefresh={current.refetch}
+            />
           )
         }
       />

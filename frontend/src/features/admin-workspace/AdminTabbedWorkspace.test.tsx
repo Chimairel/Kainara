@@ -1,6 +1,7 @@
 import { useState } from 'react';
-import { act, fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import { beforeEach, expect, it, vi } from 'vitest';
+import HeaderRefreshAction from '@/components/shared/HeaderRefreshAction';
 import AdminTabbedWorkspace from './AdminTabbedWorkspace';
 
 const mocks = vi.hoisted(() => ({ params: new URLSearchParams(), replace: vi.fn(), owner: 'admin' }));
@@ -68,4 +69,43 @@ it('falls back for unknown tabs and clears private drafts when the account chang
     rendered.rerender(view());
   });
   expect(screen.getByRole('textbox')).toHaveValue('');
+});
+
+it('keeps only the selected tab refresh in the header while retaining visited panels', () => {
+  mocks.params.set('tab', 'summary');
+  const summaryRefresh = vi.fn();
+  const safetyRefresh = vi.fn();
+  const props = {
+    title: 'Overview',
+    description: 'Recorded statistics and safety operations.',
+    tabs: [
+      {
+        id: 'summary',
+        label: 'Summary',
+        render: (active: boolean) => (
+          <div data-testid="retained-summary">
+            <HeaderRefreshAction label="Refresh statistics" onRefresh={summaryRefresh} active={active} />
+          </div>
+        ),
+      },
+      {
+        id: 'safety',
+        label: 'Safety',
+        render: (active: boolean) => (
+          <HeaderRefreshAction label="Refresh safety" onRefresh={safetyRefresh} active={active} />
+        ),
+      },
+    ],
+  };
+  const { container, rerender } = render(<AdminTabbedWorkspace {...props} />);
+  const header = within(container.querySelector('header')!);
+  fireEvent.click(header.getByRole('button', { name: 'Refresh statistics' }));
+  expect(summaryRefresh).toHaveBeenCalledOnce();
+  mocks.params.set('tab', 'safety');
+  rerender(<AdminTabbedWorkspace {...props} />);
+  expect(screen.getByTestId('retained-summary')).toBeInTheDocument();
+  expect(screen.queryByRole('button', { name: 'Refresh statistics', hidden: true })).not.toBeInTheDocument();
+  fireEvent.click(header.getByRole('button', { name: 'Refresh safety' }));
+  expect(safetyRefresh).toHaveBeenCalledOnce();
+  expect(summaryRefresh).toHaveBeenCalledOnce();
 });

@@ -6,7 +6,7 @@ import { useSessionQuery } from '@/hooks/useSessionQuery';
 import api from '@/lib/axios';
 import Card from '@/components/ui/Card';
 import WorkspaceTable from '@/components/shared/WorkspaceTable';
-import Button from '@/components/ui/Button';
+import HeaderRefreshAction from '@/components/shared/HeaderRefreshAction';
 import Pagination from '@/components/ui/Pagination';
 import MealLogFilters from './MealLogFilters';
 import { defaultFilters, logParams, type PopularityRow } from './meal-log.types';
@@ -36,6 +36,12 @@ export default function AdminMealPopularity({ active = true }: { active?: boolea
   });
   return (
     <div className="space-y-5">
+      <HeaderRefreshAction
+        label="Refresh popularity"
+        onRefresh={query.refetch}
+        busy={query.isLoading}
+        active={active}
+      />
       <Card className="space-y-3 p-5 sm:p-6" decoration="logo" decorationVariant="statistics">
         <h2 className="font-display text-xl font-bold">Meal popularity</h2>
         <p className="text-sm text-brand-muted">
@@ -59,9 +65,6 @@ export default function AdminMealPopularity({ active = true }: { active?: boolea
         <h3 className="font-display text-lg font-bold">
           {filters.order === 'LEAST_EATEN' ? 'Least eaten' : 'Most eaten'}
         </h3>
-        <Button variant="secondary" isLoading={query.isLoading} onClick={() => void query.refetch()}>
-          Refresh popularity
-        </Button>
       </div>
       {query.error && (
         <p role="alert" className="text-sm text-status-error-text">

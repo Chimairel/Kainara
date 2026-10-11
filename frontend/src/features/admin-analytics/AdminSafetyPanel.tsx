@@ -1,7 +1,8 @@
 'use client';
 
 import { useSessionQuery } from '@/hooks/useSessionQuery';
-import { RefreshCw, ShieldCheck } from 'lucide-react';
+import { ShieldCheck } from 'lucide-react';
+import HeaderRefreshAction from '@/components/shared/HeaderRefreshAction';
 import api from '@/lib/axios';
 import Link from 'next/link';
 import Card from '@/components/ui/Card';
@@ -51,22 +52,13 @@ export default function AdminSafetyPanel({ active = true }: { active?: boolean }
 
   return (
     <div className="space-y-7">
+      <HeaderRefreshAction label="Refresh safety operations" onRefresh={load} busy={loading} active={active} />
       <PortalPageHeader
         headingLevel="h2"
         icon={ShieldCheck}
         eyebrow="Governance"
         title="Safety operations"
         description="Monitor pending safety flags and restriction review requirements."
-        meta={
-          <button
-            type="button"
-            onClick={load}
-            className="inline-flex items-center gap-2 rounded-full border border-brand-green/20 bg-brand-green/10 px-4 py-2 text-xs font-bold text-brand-green focus-visible:ring-2 focus-visible:ring-brand-cyan"
-          >
-            <RefreshCw className="h-4 w-4" />
-            Refresh
-          </button>
-        }
       />
 
       {loading && <p role="status">Loading safety records…</p>}

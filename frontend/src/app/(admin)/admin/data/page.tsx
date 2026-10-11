@@ -2,7 +2,8 @@
 
 import { useState } from 'react';
 import { useSessionQuery } from '@/hooks/useSessionQuery';
-import { BookOpen, DatabaseZap, LayoutDashboard, RefreshCw, ShieldCheck, Waypoints } from 'lucide-react';
+import { BookOpen, DatabaseZap, LayoutDashboard, ShieldCheck, Waypoints } from 'lucide-react';
+import HeaderRefreshAction from '@/components/shared/HeaderRefreshAction';
 import api from '@/lib/axios';
 import Button from '@/components/ui/Button';
 import PortalLoadingState from '@/components/shared/PortalLoadingState';
@@ -62,11 +63,7 @@ export default function AdminDataPage() {
         eyebrow="Data governance"
         title="Nutrition data center"
         description="Inspect FNRI and USDA nutrient records, maintain verified aliases, and review recorded source evidence."
-        actions={
-          <Button variant="secondary" size="sm" onClick={() => void load()}>
-            <RefreshCw className="h-4 w-4" /> Refresh
-          </Button>
-        }
+        titleActions={<HeaderRefreshAction label="Refresh nutrition data" onRefresh={load} busy={loading} />}
         meta={
           <div className="flex items-center gap-2 rounded-full border border-brand-green/20 bg-brand-green/10 px-3 py-2 text-brand-green">
             <ShieldCheck className="h-4 w-4" />

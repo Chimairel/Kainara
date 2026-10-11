@@ -1,8 +1,8 @@
 'use client';
 
-import { ShieldCheck, Cpu, RefreshCw, BarChart3 } from 'lucide-react';
+import { ShieldCheck, Cpu, BarChart3 } from 'lucide-react';
 
-import Button from '@/components/ui/Button';
+import HeaderRefreshAction from '@/components/shared/HeaderRefreshAction';
 import WorkspaceTabs from '@/components/ui/WorkspaceTabs';
 
 import { AnalyticsTab } from '@/features/admin-analytics/sections/AdminStatistics.shared';
@@ -23,10 +23,20 @@ export default function AdminStatistics({
   onTabChange?: (tab: AnalyticsTab) => void;
 }) {
   const model = useAdminStatisticsModel({ active, defaultTab, tab, onTabChange });
-  if (model.kind === 'early') return model.view;
-  const { data, refetch, error, activeTab, handleTabChange } = model;
+  const refresh = (
+    <HeaderRefreshAction label="Refresh statistics" onRefresh={model.refetch} busy={model.isLoading} active={active} />
+  );
+  if (model.kind === 'early')
+    return (
+      <>
+        {refresh}
+        {model.view}
+      </>
+    );
+  const { data, error, activeTab, handleTabChange } = model;
   return (
     <div className="space-y-8">
+      {refresh}
       {/* Top Snapshot Bar */}
       <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-brand-border/60 bg-brand-surface/60 px-4 py-3 backdrop-blur-xs">
         <div className="flex items-center gap-2">
@@ -38,10 +48,6 @@ export default function AdminStatistics({
             Snapshot: {new Date(data.generatedAt).toLocaleString('en-PH', { timeZone: 'Asia/Manila' })} (Manila)
           </p>
         </div>
-        <Button variant="secondary" size="sm" onClick={() => void refetch()} className="gap-1.5 text-xs">
-          <RefreshCw className="h-3.5 w-3.5" />
-          Refresh statistics
-        </Button>
       </div>
 
       {error && (

@@ -35,6 +35,8 @@ export function useAdminStatisticsModel({
   if (!data)
     return {
       kind: 'early' as const,
+      refetch,
+      isLoading,
       view: (
         <Card className="space-y-3 p-6">
           <p role={error ? 'alert' : 'status'}>
@@ -62,6 +64,7 @@ export function useAdminStatisticsModel({
     kind: 'ready' as const,
     data,
     refetch,
+    isLoading,
     error,
     activeTab,
     handleTabChange,
