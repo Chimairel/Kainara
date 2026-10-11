@@ -60,3 +60,7 @@ codex/toothless.jpg
 
 # Private defense restore archives, credentials and verification artifacts.
 /backend/.local/defense-recovery/
+
+# Private approved plan-repair archive, SQL and receipts.
+/backend/.local/worker-variety-repair/
+/backend/.local/repair-worker-variety.cjs
