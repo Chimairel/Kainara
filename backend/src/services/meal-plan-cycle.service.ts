@@ -127,10 +127,19 @@ export class MealPlanCycleService {
             },
             candidateProvenance: true,
             sourceRawRecipeCandidate: {
+              // Preserve the previous Boolean(JSON) check without transferring
+              // the recipe's complete nutrient evidence on every status read.
+              where: {
+                AND: [
+                  { publishedNutrition: { not: Prisma.AnyNull } },
+                  { publishedNutrition: { not: false } },
+                  { publishedNutrition: { not: 0 } },
+                  { publishedNutrition: { not: '' } },
+                ],
+              },
               select: {
                 sourceName: true,
                 status: true,
-                publishedNutrition: true,
                 libraryVariants: { where: { status: 'FLAGGED' }, select: { id: true }, take: 1 },
               },
             },
@@ -302,7 +311,7 @@ export class MealPlanCycleService {
             meal.sourceRawRecipeCandidate?.sourceName === 'PANLASANG_PINOY' &&
             meal.sourceRawRecipeCandidate.status === 'AVAILABLE' &&
             meal.sourceRawRecipeCandidate.libraryVariants.length === 0 &&
-            Boolean(meal.sourceRawRecipeCandidate.publishedNutrition)
+            Boolean(meal.sourceRawRecipeCandidate)
           );
         }
         if (
@@ -326,7 +335,9 @@ export class MealPlanCycleService {
     const cycles = await client.mealPlanCycle.findMany({
       where: {
         userId,
-        status: { not: MealPlanCycleStatus.SUPERSEDED },
+        // Completed cycles are immutable history. Rechecking every past meal
+        // on a current-plan read grows transfer with the account's lifetime.
+        status: { notIn: [MealPlanCycleStatus.SUPERSEDED, MealPlanCycleStatus.COMPLETED] },
       },
       select: {
         id: true,

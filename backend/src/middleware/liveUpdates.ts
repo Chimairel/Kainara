@@ -1,12 +1,14 @@
 import type { Response, NextFunction } from 'express';
 import type { AuthenticatedRequest } from '@/types';
 import { publishLiveUpdate } from '@/lib/live-updates';
+import { invalidateCatalogueMatching } from '@/lib/catalogue-matching-cache';
 
 export function liveMutationUpdates(req: AuthenticatedRequest, res: Response, next: NextFunction) {
   res.on('finish', () => {
     if (!['POST', 'PATCH', 'PUT', 'DELETE'].includes(req.method) || res.statusCode < 200 || res.statusCode >= 300)
       return;
     if (req.originalUrl.startsWith('/api/auth') || /\/(?:status|license-availability)$/.test(req.path)) return;
+    if (req.originalUrl.startsWith('/api/admin/data/')) invalidateCatalogueMatching();
     if (req.user) {
       publishLiveUpdate({
         userId: req.user.userId,

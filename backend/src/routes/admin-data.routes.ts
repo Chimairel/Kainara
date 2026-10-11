@@ -18,6 +18,14 @@ import {
 import { emptyBodySchema } from '@/validation/onboarding.schemas';
 
 const router = Router();
+// Mounted behind the administrator authentication/role guard; retired calls never query consumption rows.
+router.use((req, res, next) => {
+  if (/^\/releases\/[^/]+\/(stats|consumption-import)$/.test(req.path) || req.path.startsWith('/consumption-stats/'))
+    return res
+      .status(410)
+      .json({ success: false, code: 'FEATURE_RETIRED', error: 'Regional consumption datasets have been retired.' });
+  next();
+});
 router.get(
   '/foods/:id/composition',
   validateZodRequest({ params: identifierParamsSchema }),

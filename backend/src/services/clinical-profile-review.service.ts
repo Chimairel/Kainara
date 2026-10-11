@@ -3,6 +3,7 @@ import { ClinicalProfileProposalService, hasPendingProfileProposal } from './cli
 import {
   context,
   userInclude,
+  profileQueueSelect,
   snapshotKey,
   scopedPolicy,
   POLICY_VERSION,
@@ -52,7 +53,7 @@ export class ClinicalProfileReviewService {
   static async currentApprovalsByUser(userIds: string[]) {
     if (!userIds.length) return new Map<string, boolean>();
     const [users, reviews, forms, proposals] = await Promise.all([
-      prisma.user.findMany({ where: { id: { in: userIds } }, include: userInclude }),
+      prisma.user.findMany({ where: { id: { in: userIds } }, select: profileQueueSelect }),
       prisma.clinicalProfileReview.findMany({
         where: { userId: { in: userIds }, policyVersion: { startsWith: POLICY_VERSION + ':' }, status: 'APPROVED' },
         select: { userId: true, status: true, profileSnapshot: true },
@@ -223,7 +224,7 @@ export class ClinicalProfileReviewService {
               { userProfile: { is: { otherAllergies: { not: null } } } },
             ],
           },
-          include: userInclude,
+          select: profileQueueSelect,
           orderBy: { createdAt: 'asc' },
         });
     const eligible = users
@@ -238,6 +239,7 @@ export class ClinicalProfileReviewService {
               policyVersion: { startsWith: POLICY_VERSION + ':' },
             },
             orderBy: { createdAt: 'desc' },
+            select: { userId: true, status: true, profileSnapshot: true, profileRevision: true, reasonCodes: true },
           })
         : [],
       ClinicalClarificationService.enabled && eligible.length

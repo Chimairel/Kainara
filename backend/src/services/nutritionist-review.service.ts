@@ -43,7 +43,9 @@ async function reviewReadinessByUser(userIds: string[]) {
       healthConditions: true,
       allergies: true,
       clinicalContextResponses: true,
-      ...(env.CLINICAL_CLARIFICATIONS_ENABLED ? { nutritionReport: true } : {}),
+      ...(env.CLINICAL_CLARIFICATIONS_ENABLED
+        ? { nutritionReport: { select: { acknowledgedAt: true, isStale: true, profileRevision: true } } }
+        : {}),
     },
   });
   const approvals = env.CLINICAL_CLARIFICATIONS_ENABLED
@@ -120,35 +122,18 @@ export class NutritionistReviewService {
     const now = new Date();
     const claimCutoff = getReviewClaimCutoff(now);
     // Read candidates internally; apply routing before grouping or returning member data.
-    const pendingMeals = await prisma.mealPlan.findMany({
+    // Evaluate every candidate's current eligibility before hydrating queue rows.
+    // This preserves coverage while avoiding ingredient reads for blocked profiles.
+    const candidates = await prisma.mealPlan.findMany({
       where: getNutritionistReviewableMealPlanWhere(),
-      include: {
-        user: { select: { id: true, name: true } },
-        ingredients: true,
-        cycle: {
-          select: {
-            id: true,
-            startDate: true,
-            endDate: true,
-            shoppingDeadlineAt: true,
-            assuranceTier: true,
-            status: true,
-          },
-        },
-        claimedByNutritionist: {
-          include: {
-            user: { select: { name: true } },
-          },
-        },
-      },
-      orderBy: { createdAt: 'asc' },
+      select: { id: true, userId: true, candidateProvenance: true, baseRecipeSignature: true },
     });
 
-    const userIds = [...new Set(pendingMeals.map((meal) => meal.userId))];
+    const userIds = [...new Set(candidates.map((meal) => meal.userId))];
     const readinessByUser = await reviewReadinessByUser(userIds);
     const generatedSignatures = [
       ...new Set(
-        pendingMeals.flatMap((meal) =>
+        candidates.flatMap((meal) =>
           meal.candidateProvenance === 'AI_FROM_SCRATCH' && meal.baseRecipeSignature ? [meal.baseRecipeSignature] : []
         )
       ),
@@ -162,12 +147,68 @@ export class NutritionistReviewService {
     const verifiedSignatures = new Set(
       verifiedGenerated.filter((item) => item.targetId === item.revisionKey).map((item) => item.targetId)
     );
-    const readyMeals = pendingMeals.filter(
+    const readyCandidates = candidates.filter(
       (meal) =>
         readinessByUser.get(meal.userId)?.ready === true &&
         (meal.candidateProvenance !== 'AI_FROM_SCRATCH' ||
           (!!meal.baseRecipeSignature && verifiedSignatures.has(meal.baseRecipeSignature)))
     );
+
+    const readyMeals = readyCandidates.length
+      ? await prisma.mealPlan.findMany({
+          where: { ...getNutritionistReviewableMealPlanWhere(), id: { in: readyCandidates.map((meal) => meal.id) } },
+          select: {
+            id: true,
+            planGroupId: true,
+            userId: true,
+            nutritionistId: true,
+            libraryMealId: true,
+            status: true,
+            mealType: true,
+            mealName: true,
+            description: true,
+            calories: true,
+            proteinG: true,
+            carbsG: true,
+            fatG: true,
+            aiConfidenceFlag: true,
+            requiresSafetyRevalidation: true,
+            planType: true,
+            nutritionistNote: true,
+            scheduledDate: true,
+            reviewedAt: true,
+            createdAt: true,
+            highRiskReviewRequired: true,
+            reviewApprovalCount: true,
+            firstApprovedByNutritionistId: true,
+            candidateProvenance: true,
+            baseRecipeSignature: true,
+            fallbackAvailable: true,
+            rankingReasonCodes: true,
+            claimedByNutritionistId: true,
+            claimedAt: true,
+            reviewWorkKey: true,
+            user: { select: { id: true, name: true } },
+            ingredients: { select: { ingredientName: true, dataSource: true } },
+            cycle: {
+              select: {
+                id: true,
+                startDate: true,
+                endDate: true,
+                shoppingDeadlineAt: true,
+                assuranceTier: true,
+                status: true,
+              },
+            },
+            claimedByNutritionist: {
+              select: {
+                user: { select: { name: true } },
+              },
+            },
+          },
+          orderBy: { createdAt: 'asc' },
+        })
+      : [];
 
     const clinicallyReadyMeals = nutritionistProfileId
       ? await ReviewRoutingService.filterMeals(readyMeals, nutritionistProfileId)

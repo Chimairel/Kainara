@@ -2,11 +2,7 @@ import { createHash } from 'node:crypto';
 import { ReferenceDataDomain, ReferenceDataReleaseStatus } from '@prisma/client';
 import prisma from '@/lib/prisma';
 import { normalizeFoodName, selectStrongFNRIMatch } from '@/domain/fnri-match.policy';
-import {
-  consumptionCsvTemplate,
-  parseFoodConsumptionCsv,
-  type ParsedConsumptionRow,
-} from '@/domain/food-consumption-import.policy';
+import { parseFoodConsumptionCsv, type ParsedConsumptionRow } from '@/domain/food-consumption-import.policy';
 import { normalizePagination, normalizeSearch } from '@/policies/pagination.policy';
 import type {
   createFoodAliasSchema,
@@ -26,14 +22,9 @@ function sha256(value: string): string {
   return createHash('sha256').update(value).digest('hex');
 }
 
-function mappingSummary(rows: Array<{ releaseId: string; mappingStatus: string; _count: { _all: number } }>) {
-  const summaries = new Map<string, Record<string, number>>();
-  for (const row of rows) {
-    const current = summaries.get(row.releaseId) || {};
-    current[row.mappingStatus] = row._count._all;
-    summaries.set(row.releaseId, current);
-  }
-  return summaries;
+function assertCurrentDomain(domain: ReferenceDataDomain) {
+  if (domain === 'FOOD_CONSUMPTION')
+    throw new AppError('Regional consumption datasets have been retired.', 410, 'FEATURE_RETIRED');
 }
 
 export class AdminDataService {
@@ -41,7 +32,6 @@ export class AdminDataService {
     const [
       sources,
       releases,
-      mappingGroups,
       foodItems,
       foodAliases,
       mealLibrary,
@@ -49,22 +39,21 @@ export class AdminDataService {
       priceSources,
       pricePublications,
       priceObservations,
-      consumptionStats,
     ] = await Promise.all([
-      prisma.referenceDataSource.findMany({ orderBy: [{ domain: 'asc' }, { name: 'asc' }] }),
+      prisma.referenceDataSource.findMany({
+        where: { domain: { not: 'FOOD_CONSUMPTION' } },
+        orderBy: [{ domain: 'asc' }, { name: 'asc' }],
+      }),
       prisma.referenceDataRelease.findMany({
         take: 100,
+        where: { source: { domain: { not: 'FOOD_CONSUMPTION' } } },
         orderBy: [{ status: 'asc' }, { createdAt: 'desc' }],
         include: {
           source: { select: { code: true, name: true, domain: true, isEnabled: true, updateCadence: true } },
           createdByAdmin: { select: { name: true } },
           activatedByAdmin: { select: { name: true } },
-          _count: { select: { consumptionStats: true, activations: true } },
+          _count: { select: { activations: true } },
         },
-      }),
-      prisma.foodConsumptionStat.groupBy({
-        by: ['releaseId', 'mappingStatus'],
-        _count: { _all: true },
       }),
       prisma.foodItem.count(),
       prisma.foodAlias.count(),
@@ -73,9 +62,7 @@ export class AdminDataService {
       prisma.ingredientPriceSource.count(),
       prisma.ingredientPricePublication.count(),
       prisma.ingredientPriceObservation.count(),
-      prisma.foodConsumptionStat.count(),
     ]);
-    const mappings = mappingSummary(mappingGroups);
     return {
       summary: {
         foodItems,
@@ -85,16 +72,17 @@ export class AdminDataService {
         priceSources,
         pricePublications,
         priceObservations,
-        consumptionStats,
+        consumptionStats: 0,
         dataSources: sources.length,
         activeReleases: releases.filter((release) => release.status === 'ACTIVE').length,
       },
       sources,
       releases: releases.map((release) => ({
         ...release,
-        mappings: mappings.get(release.id) || {},
+        _count: { ...release._count, consumptionStats: 0 },
+        mappings: {},
       })),
-      consumptionCsvTemplate: consumptionCsvTemplate(),
+      consumptionCsvTemplate: '',
     };
   }
 
@@ -169,6 +157,7 @@ export class AdminDataService {
   }
 
   static async createSource(adminUserId: string, input: CreateSourceInput) {
+    assertCurrentDomain(input.domain);
     return prisma.$transaction(async (tx) => {
       const source = await tx.referenceDataSource.create({
         data: { ...input, code: input.code.toUpperCase() },
@@ -190,6 +179,7 @@ export class AdminDataService {
     return prisma.$transaction(async (tx) => {
       const existing = await tx.referenceDataSource.findUnique({ where: { id: sourceId } });
       if (!existing) throw new Error('Reference data source not found.');
+      assertCurrentDomain(existing.domain);
       const source = await tx.referenceDataSource.update({ where: { id: sourceId }, data: input });
       await tx.auditEvent.create({
         data: {
@@ -207,6 +197,7 @@ export class AdminDataService {
   static async createRelease(adminUserId: string, input: CreateReleaseInput) {
     const source = await prisma.referenceDataSource.findUnique({ where: { id: input.sourceId } });
     if (!source) throw new Error('Reference data source not found.');
+    assertCurrentDomain(source.domain);
     if (!source.isEnabled) throw new Error('A disabled source cannot receive a new release.');
     return prisma.$transaction(async (tx) => {
       const release = await tx.referenceDataRelease.create({
@@ -347,6 +338,7 @@ export class AdminDataService {
       include: { source: true },
     });
     if (!release) throw new Error('Reference data release not found.');
+    assertCurrentDomain(release.source.domain);
     if (release.status !== ReferenceDataReleaseStatus.DRAFT) throw new Error('Only a draft release can be staged.');
     if (release.source.domain === ReferenceDataDomain.FOOD_CONSUMPTION) {
       const [rowCount, reviewRequired] = await Promise.all([
@@ -382,6 +374,7 @@ export class AdminDataService {
       await tx.$queryRaw`SELECT id FROM "ReferenceDataSource" WHERE id = ${candidate.sourceId} FOR UPDATE`;
       const release = await tx.referenceDataRelease.findUnique({ where: { id: releaseId }, include: { source: true } });
       if (!release) throw new Error('Reference data release not found.');
+      assertCurrentDomain(release.source.domain);
       const expected = action === 'PUBLISH' ? ReferenceDataReleaseStatus.STAGED : ReferenceDataReleaseStatus.RETIRED;
       if (release.status !== expected) {
         throw new AppError(

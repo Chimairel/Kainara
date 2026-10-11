@@ -32,6 +32,17 @@ export const userInclude = {
 
 type ProfileUser = Prisma.UserGetPayload<{ include: typeof userInclude }>;
 
+// Queue eligibility depends on response revisions, not private answer payloads.
+// Detail/decision reads keep userInclude and the complete immutable context.
+export const profileQueueSelect = {
+  id: true,
+  name: true,
+  onboardingDone: true,
+  ...userInclude,
+  clinicalContextResponses: { select: { area: true, revision: true } },
+} satisfies Prisma.UserSelect;
+type QueueUser = Prisma.UserGetPayload<{ select: typeof profileQueueSelect }>;
+
 /** One freshly loaded member per read request; never used for decisions or mutations. */
 export type ProfileRead = { user: ProfileUser };
 export function profileReadUser(userId: string, read: ProfileRead) {
@@ -63,7 +74,7 @@ export function snapshotKey(value: Prisma.JsonValue): string | null {
   return JSON.stringify(key);
 }
 
-export function context(user: ProfileUser) {
+export function context(user: ProfileUser | QueueUser) {
   const profile = user.userProfile;
   if (!profile) throw new AppError('Complete your health profile before meal planning.', 422, 'PROFILE_INCOMPLETE');
   const restrictions = adaptUserSafetyRestrictions({
@@ -98,7 +109,7 @@ export function context(user: ProfileUser) {
       .map((item) => ({
         area: item.area,
         revision: item.revision,
-        responses: item.responses,
+        ...('responses' in item ? { responses: item.responses } : {}),
       }))
       .sort((a, b) => a.area.localeCompare(b.area)),
     contextRevisions: (user.clinicalContextResponses ?? [])

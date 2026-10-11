@@ -9,7 +9,33 @@ import type {
 import { isUnrestrictedPanlasangBaseEligible } from '@/domain/unrestricted-panlasang-base.policy';
 import { effectiveRecipeMealTypes } from '@/domain/meal-applicability.policy';
 
-type Row = Prisma.RawRecipeCandidateGetPayload<{ include: { applicableMealTypes: true } }>;
+export const recipeCandidateSelect = {
+  id: true,
+  sourceRecordId: true,
+  sourceName: true,
+  recipeName: true,
+  normalizedName: true,
+  category: true,
+  description: true,
+  contentSignature: true,
+  sourceUrl: true,
+  applicableMealTypes: { select: { mealType: true }, orderBy: { mealType: 'asc' } },
+  dietaryTags: true,
+  ingredients: true,
+  calories: true,
+  proteinG: true,
+  carbsG: true,
+  fatG: true,
+  publishedNutrition: true,
+  originalServings: true,
+  riceRole: true,
+  riceRoleReviewStatus: true,
+  includedRiceG: true,
+  sourceImageUrl: true,
+  sourceVideoUrl: true,
+  status: true,
+} as const satisfies Prisma.RawRecipeCandidateSelect;
+type Row = Prisma.RawRecipeCandidateGetPayload<{ select: typeof recipeCandidateSelect }>;
 
 function jsonStrings(value: Prisma.JsonValue): string[] {
   return Array.isArray(value) ? value.filter((item): item is string => typeof item === 'string') : [];
@@ -148,7 +174,7 @@ export class DatabaseRecipeCandidateProvider implements RecipeCandidateProvider 
             }
           : {}),
       },
-      include: { applicableMealTypes: { orderBy: { mealType: 'asc' } } },
+      select: recipeCandidateSelect,
       orderBy:
         input.recentFirst && !input.cursor
           ? [{ indexedAt: 'desc' }, { id: 'asc' }]

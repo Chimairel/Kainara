@@ -80,9 +80,10 @@ test('[TEST-187] historical aggregate storage remains governed but is excluded f
   assert.doesNotMatch(mealPrompt, /ACTIVE AGGREGATE FOOD-CONSUMPTION EVIDENCE/);
 });
 
-test('[TEST-188] admin UI exposes governed imports without adding a nutritionist approval shortcut', () => {
+test('[TEST-188] admin UI retains nutrient governance without obsolete consumption imports or clinical approval', () => {
   assert.match(adminUi, /Nutrition data center/);
-  assert.match(adminUi, /Admins govern sources, aggregate survey releases, and FNRI aliases/);
+  assert.match(adminUi, /Admins govern nutrient source records, composition corrections, and verified aliases/);
+  assert.doesNotMatch(adminUi, /Import & publish|Consumption rows|PublishingChecklist|ReleaseOperations/);
   assert.match(adminLayout, /href: '\/admin\/data'/);
   assert.match(openApi, /\/api\/admin\/data\/releases\/\{id\}\/publish/);
   assert.doesNotMatch(adminUi, /api\.(post|patch)\([^\n]*nutritionist/);

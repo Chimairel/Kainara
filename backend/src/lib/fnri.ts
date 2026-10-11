@@ -2,6 +2,23 @@ import prisma from '@/lib/prisma';
 import { generateGenerativeJSON } from '@/lib/gemini';
 import { FoodItem } from '@prisma/client';
 import { normalizeFoodName, selectStrongFNRIMatch } from '@/domain/fnri-match.policy';
+import { catalogueMatchingCache } from './catalogue-matching-cache';
+
+export const foodIdentitySelect = { id: true, name: true, category: true, source: true } as const;
+const getFnriMatchingData = catalogueMatchingCache(
+  async () => {
+    const [foods, aliases] = await Promise.all([
+      prisma.foodItem.findMany({ where: { source: 'FNRI' }, orderBy: { name: 'asc' }, select: foodIdentitySelect }),
+      prisma.foodAlias.findMany({
+        where: { foodItem: { source: 'FNRI' } },
+        select: { alias: true, normalizedAlias: true, foodItemId: true, verifiedAt: true },
+      }),
+    ]);
+    return { foods, aliases };
+  },
+  (data) => data.foods.length > 0
+);
+export type FoodIdentity = Pick<FoodItem, 'id' | 'name' | 'category' | 'source'>;
 
 export interface LookupResult {
   food: Partial<FoodItem>;
@@ -13,18 +30,12 @@ export interface LookupResult {
  * match stays unknown; meal generation must not spend a Gemini call inventing
  * ingredient composition or turn a source recipe into verified evidence.
  */
-export async function lookupFnriIngredients(names: readonly string[]): Promise<Map<string, FoodItem | null>> {
+export async function lookupFnriIdentities(names: readonly string[]): Promise<Map<string, FoodIdentity | null>> {
   const uniqueNames = [...new Set(names.map((name) => name.trim()).filter(Boolean))];
-  const resolved = new Map<string, FoodItem | null>();
+  const resolved = new Map<string, FoodIdentity | null>();
   if (uniqueNames.length === 0) return resolved;
 
-  const [foods, aliases] = await Promise.all([
-    prisma.foodItem.findMany({ where: { source: 'FNRI' }, orderBy: { name: 'asc' } }),
-    prisma.foodAlias.findMany({
-      where: { foodItem: { source: 'FNRI' } },
-      select: { alias: true, normalizedAlias: true, foodItemId: true, verifiedAt: true },
-    }),
-  ]);
+  const { foods, aliases } = await getFnriMatchingData();
   const foodById = new Map(foods.map((food) => [food.id, food]));
   const exactByName = new Map(foods.map((food) => [food.name.toLowerCase(), food]));
   const aliasByName = new Map<string, (typeof aliases)[number]>();
@@ -55,6 +66,15 @@ export async function lookupFnriIngredients(names: readonly string[]): Promise<M
     resolved.set(name, exact ?? trustedAlias ?? selectStrongFNRIMatch(name, lexicalCandidates));
   }
   return resolved;
+}
+
+/** Compatibility lookup hydrates only selected IDs, retaining complete nutrient evidence. */
+export async function lookupFnriIngredients(names: readonly string[]): Promise<Map<string, FoodItem | null>> {
+  const identities = await lookupFnriIdentities(names);
+  const ids = [...new Set([...identities.values()].flatMap((food) => (food ? [food.id] : [])))];
+  const foods = ids.length ? await prisma.foodItem.findMany({ where: { id: { in: ids }, source: 'FNRI' } }) : [];
+  const byId = new Map(foods.map((food) => [food.id, food]));
+  return new Map([...identities].map(([name, food]) => [name, food ? (byId.get(food.id) ?? null) : null]));
 }
 
 /**
@@ -138,14 +158,17 @@ export async function lookupIngredient(ingredientName: string): Promise<LookupRe
         },
         take: 50,
         orderBy: { name: 'asc' },
+        select: foodIdentitySelect,
       })
     : [];
   const fuzzyMatch = selectStrongFNRIMatch(cleanName, fuzzyCandidates);
 
   if (fuzzyMatch) {
+    const fullFood = await prisma.foodItem.findUnique({ where: { id: fuzzyMatch.id } });
+    if (!fullFood) throw new Error('Selected food record is no longer available. Retry the lookup.');
     console.log(`[FNRI Lookup] Strong lexical match resolved to "${fuzzyMatch.name}".`);
     return {
-      food: fuzzyMatch,
+      food: fullFood,
       source: 'FNRI',
     };
   }

@@ -40,6 +40,7 @@ import { clinicalDocumentIdParamsSchema, clinicalDocumentReviewSchema } from '@/
 import { MealBaseVerificationService } from '@/services/meal-base-verification.service';
 import { NutritionistWorkCountsService } from '@/services/nutritionist-work-counts.service';
 import { NutritionistProfileWorkService } from '@/services/nutritionist-profile-work.service';
+import { ReviewStatusService } from '@/services/review-status.service';
 import { NutritionistAuditService } from '@/services/nutritionist-audit.service';
 import { AuditDetailsService } from '@/services/audit-details.service';
 
@@ -141,12 +142,22 @@ router.get(
   })
 );
 router.get(
+  '/profile-work/:userId/status',
+  validateZodRequest({ params: profileReviewParams }),
+  asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+    res.json({ success: true, data: await ReviewStatusService.profile(req.nutritionistProfileId!, req.params.userId) });
+  })
+);
+router.get(
   '/profile-work/:userId',
   validateZodRequest({ params: profileReviewParams }),
   asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
     res.json({
       success: true,
-      data: await NutritionistProfileWorkService.detail(req.params.userId, req.nutritionistProfileId!),
+      data: {
+        ...(await NutritionistProfileWorkService.detail(req.params.userId, req.nutritionistProfileId!)),
+        pollStatus: await ReviewStatusService.profile(req.nutritionistProfileId!, req.params.userId),
+      },
     });
   })
 );
@@ -551,12 +562,21 @@ router.post(
  * GET /api/nutritionist/queue/:id
  * Fetches a non-claiming review preview. A separate POST acquires the lock.
  */
+router.get(
+  '/queue/:id/status',
+  asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+    res.json({ success: true, data: await ReviewStatusService.meal(req.nutritionistProfileId!, req.params.id) });
+  })
+);
 router.get('/queue/:id', async (req: AuthenticatedRequest, res: Response) => {
   res.setHeader('Cache-Control', 'private, no-store');
   try {
     const mealPlanId = req.params.id;
     const result = await NutritionistService.getReviewCardDetails(req.nutritionistProfileId!, mealPlanId);
-    return res.status(200).json({ success: true, data: result });
+    return res.status(200).json({
+      success: true,
+      data: { ...result, pollStatus: await ReviewStatusService.meal(req.nutritionistProfileId!, mealPlanId) },
+    });
   } catch (error: any) {
     if (error instanceof AppError)
       return res.status(error.statusCode).json({ success: false, error: error.message, code: error.errorCode });
