@@ -104,22 +104,38 @@ export function isUnrestrictedPanlasangBaseEligible(input: {
       (item as Record<string, unknown>).excludedFromPlanning !== true
   );
   if (!sourceIngredients.length || sourceIngredients.length !== input.preparedIngredients.length) return false;
-  return sourceIngredients.every((item, index) => {
+  // SQL relation reads have no ingredient ordering guarantee. Compare a
+  // multiset so order is irrelevant while duplicated/omitted amounts still fail.
+  const identity = (name: string, quantity: number | undefined, unit: string | undefined) =>
+    JSON.stringify([
+      name.normalize('NFKC').trim().toLowerCase(),
+      quantity ?? null,
+      unit?.normalize('NFKC').trim().toLowerCase() || null,
+    ]);
+  const preparedCounts = new Map<string, number>();
+  for (const prepared of input.preparedIngredients) {
+    if (
+      prepared.quantity !== null &&
+      prepared.quantity !== undefined &&
+      (!Number.isFinite(prepared.quantity) || prepared.quantity <= 0)
+    )
+      return false;
+    const key = identity(prepared.ingredientName, prepared.quantity ?? undefined, prepared.unit ?? undefined);
+    preparedCounts.set(key, (preparedCounts.get(key) ?? 0) + 1);
+  }
+  return sourceIngredients.every((item) => {
     if (!item || typeof item !== 'object' || Array.isArray(item)) return false;
     const ingredient = item as Record<string, unknown>;
-    const prepared = input.preparedIngredients[index];
     const unit = typeof ingredient.unit === 'string' && ingredient.unit.trim() ? ingredient.unit.trim() : undefined;
     const quantity =
       unit && typeof ingredient.quantity === 'number' && Number.isFinite(ingredient.quantity) && ingredient.quantity > 0
         ? scalePublishedAmount(ingredient.quantity, scale)
         : undefined;
-    return (
-      typeof ingredient.name === 'string' &&
-      ingredient.name.trim().length > 0 &&
-      prepared?.ingredientName.normalize('NFKC').trim().toLowerCase() ===
-        ingredient.name.normalize('NFKC').trim().toLowerCase() &&
-      (prepared.quantity ?? undefined) === quantity &&
-      (prepared.unit?.normalize('NFKC').trim().toLowerCase() || undefined) === unit?.normalize('NFKC').toLowerCase()
-    );
+    if (typeof ingredient.name !== 'string' || !ingredient.name.trim()) return false;
+    const key = identity(ingredient.name, quantity, unit);
+    const count = preparedCounts.get(key) ?? 0;
+    if (!count) return false;
+    preparedCounts.set(key, count - 1);
+    return true;
   });
 }

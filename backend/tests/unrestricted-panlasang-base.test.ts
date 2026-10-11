@@ -27,6 +27,48 @@ const input = {
   ],
 };
 
+test('saved ingredients may arrive in any SQL order without changing eligibility', () => {
+  assert.equal(
+    isUnrestrictedPanlasangBaseEligible({ ...input, preparedIngredients: [...input.preparedIngredients].reverse() }),
+    true
+  );
+  assert.equal(
+    isUnrestrictedPanlasangBaseEligible({
+      ...input,
+      preparedIngredients: [input.preparedIngredients[1], { ...input.preparedIngredients[0], quantity: 151 }],
+    }),
+    false
+  );
+});
+
+test('ingredient matching preserves multiplicity and rejects invalid quantities', () => {
+  const duplicated = { ...source, ingredients: [source.ingredients[0], source.ingredients[0]] };
+  assert.equal(
+    isUnrestrictedPanlasangBaseEligible({
+      ...input,
+      source: duplicated,
+      preparedIngredients: [input.preparedIngredients[0], input.preparedIngredients[0]],
+    }),
+    true
+  );
+  assert.equal(isUnrestrictedPanlasangBaseEligible({ ...input, source: duplicated }), false);
+  assert.equal(
+    isUnrestrictedPanlasangBaseEligible({
+      ...input,
+      preparedIngredients: [input.preparedIngredients[0], input.preparedIngredients[0]],
+    }),
+    false
+  );
+  for (const quantity of [NaN, Infinity, 0, -1])
+    assert.equal(
+      isUnrestrictedPanlasangBaseEligible({
+        ...input,
+        preparedIngredients: [{ ...input.preparedIngredients[0], quantity }, input.preparedIngredients[1]],
+      }),
+      false
+    );
+});
+
 test('demo preparation requires RND review even for an unrestricted member', () => {
   assert.equal(
     isUnrestrictedPanlasangBaseEligible({

@@ -327,10 +327,10 @@ export default function MealImage({
       return (
         <div
           className={`relative flex h-full w-full items-center justify-center overflow-hidden rounded-2xl border bg-gradient-to-br select-none ${categoryInfo.tone.bg} ${categoryInfo.tone.border} ${className}`}
-          title={`${mealName} (${categoryInfo.label} visual placeholder)`}
-          aria-label={`${mealName} (${categoryInfo.label} visual placeholder)`}
+          title={`${mealName} (photo unavailable)`}
+          aria-label={`${mealName} (photo unavailable)`}
         >
-          <FallbackIcon className={`h-6 w-6 ${categoryInfo.tone.text}`} aria-hidden="true" />
+          <UtensilsCrossed className={`h-6 w-6 ${categoryInfo.tone.text}`} aria-hidden="true" />
         </div>
       );
     }

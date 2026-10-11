@@ -26,6 +26,22 @@ const mockImage = {
 };
 
 describe('MealImage', () => {
+  it('uses a neutral missing-photo thumbnail instead of suggesting an ingredient is the meal photo', () => {
+    const { container } = render(
+      <MealImage
+        mealName="French Toast"
+        mealType="BREAKFAST"
+        variant="thumbnail"
+        ingredients={[{ ingredientName: 'Egg' }]}
+      />
+    );
+    expect(screen.getByLabelText('French Toast (photo unavailable)')).toHaveAttribute(
+      'title',
+      'French Toast (photo unavailable)'
+    );
+    expect(container.querySelector('.lucide-utensils-crossed')).not.toBeNull();
+    expect(container.querySelector('.lucide-egg')).toBeNull();
+  });
   it.each(['Beef tapa with egg', 'Beef with cabbage', 'Pork with vegetables'])(
     'keeps primary meat visible in %s',
     (name) => {
@@ -158,7 +174,7 @@ describe('MealImage', () => {
     expect(attributionElement).toHaveAttribute('title', mockImage.attribution.modifications);
   });
 
-  it('renders thumbnail variant for dense cockpit rows with real image and category fallback', () => {
+  it('renders thumbnail variant for dense rows with real image and a neutral missing-photo fallback', () => {
     const { container: photoContainer } = render(
       <MealImage mealName="Pancit" mealType="DINNER" image={mockImage} variant="thumbnail" />
     );
@@ -174,6 +190,6 @@ describe('MealImage', () => {
         allowMealTypePlaceholder={false}
       />
     );
-    expect(screen.getByLabelText('Sinigang na Baboy (Meat & Savory visual placeholder)')).toBeInTheDocument();
+    expect(screen.getByLabelText('Sinigang na Baboy (photo unavailable)')).toBeInTheDocument();
   });
 });
