@@ -1,5 +1,7 @@
 'use client';
 
+import { formatManilaDate } from '@/lib/manila-date';
+
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import api from '@/lib/axios';
@@ -294,7 +296,7 @@ export default function WebsiteContentPage() {
               </div>
               <p className="mt-2 text-xs text-brand-muted">
                 {content.publishedAt
-                  ? `Published ${new Date(content.publishedAt).toLocaleString()}`
+                  ? `Published ${formatManilaDate(new Date(content.publishedAt), { year: 'numeric', month: 'numeric', day: 'numeric', hour: 'numeric', minute: 'numeric', second: 'numeric' })}`
                   : 'Using the original dashboard image.'}
               </p>
             </section>

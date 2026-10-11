@@ -19,6 +19,11 @@ const baseLog: MealHistoryLog = {
 };
 
 describe('MealHistoryCard', () => {
+  it('does not label an old log without a recorded meal type as lunch', () => {
+    render(<MealHistoryCard log={{ ...baseLog, mealType: undefined }} />);
+    expect(screen.getByText('Meal')).toBeInTheDocument();
+    expect(screen.queryByText('Lunch')).not.toBeInTheDocument();
+  });
   it('keeps skipped meals and their note editor available', async () => {
     const onUpdateNotes = vi.fn().mockResolvedValue(undefined);
     render(<MealHistoryCard log={{ ...baseLog, status: 'SKIPPED' }} onUpdateNotes={onUpdateNotes} />);

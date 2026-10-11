@@ -154,7 +154,8 @@ async function main() {
           mealName: name,
           mealType: 'LUNCH',
           ...nutrition,
-          description: 'Measured synthetic software fixture',
+          description:
+            'Measured synthetic software fixture\nSource: https://panlasangpinoy.com/menudo-with-raisins-and-green-peas/',
           status: 'APPROVED',
           dietaryTags: ['OMNIVORE'],
           recipeSignature: signature,
@@ -257,6 +258,11 @@ async function main() {
     const initial = await slot(),
       preview = await ok(options(initial.id));
     assert(preview.options.some((meal: { id: string }) => meal.id === eligible.id));
+    assert.equal(
+      preview.options.find((meal: { id: string }) => meal.id === eligible.id)?.image?.url,
+      'https://panlasangpinoy.com/wp-content/uploads/2014/04/Filipino-Menudo.jpg',
+      'RND replacement options use the same bounded recipe-photo fallback as member replacements'
+    );
     assert(!preview.options.some((meal: { id: string }) => [incompatible.id, unverified.id].includes(meal.id)));
     assert.equal((await options(initial.id, member)).status, 403);
     assert.equal((await options(initial.id, other)).status, 409);
@@ -507,7 +513,7 @@ async function main() {
         action: 'MEAL_PLAN_APPROVED',
         entityType: 'MealPlan',
         entityId: expired.id,
-        metadata: { rationale: historical.rationale },
+        metadata: { rationale: historical.rationale, reviewDecisionId: historical.id },
       },
     });
     const oldDispute = await slot(),
@@ -531,10 +537,10 @@ async function main() {
         assert(activeQueue.some((meal: { id: string }) => meal.id === upcoming.id));
         assert(!activeQueue.some((meal: { id: string }) => inactive.some((old) => old.id === meal.id)));
         const counts = await ok(request(actor, '/nutritionist/review-work-counts'));
-        assert.equal(counts.case, activeQueue.length + 1);
-        const governance = await ok(request(actor, '/nutritionist/governance/queue?view=disputed'));
-        assert(governance.plans.some((meal: { id: string }) => meal.id === newDispute.id));
-        assert(!governance.plans.some((meal: { id: string }) => meal.id === oldDispute.id));
+        assert.equal(counts.case, activeQueue.length);
+        const governance = await request(actor, '/nutritionist/governance/queue?view=disputed');
+        assert.equal(governance.status, 410);
+        assert.equal((governance.body as { code: string }).code, 'MEAL_DISPUTES_RETIRED');
       }
     }
     pass(
@@ -564,7 +570,7 @@ async function main() {
           rationale: 'Stale dispute approval attempt.',
         })
       ).status,
-      422
+      410
     );
     await ok(request(rnd, `/nutritionist/queue/${current.id}/claim`, 'POST', {}));
     pass(

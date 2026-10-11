@@ -2,6 +2,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useSessionQuery } from '@/hooks/useSessionQuery';
 import api from '@/lib/axios';
 import { useEffect, useState } from 'react';
+import type { PublicMealImage } from '@/types';
 
 export interface Flag {
   id: string;
@@ -33,6 +34,7 @@ export interface Verifier {
 }
 
 export interface LibraryMeal {
+  image?: PublicMealImage | null;
   reviewLineage?: { state: string; incidentCount: number } | null;
   parentMealId?: string | null;
   recipeFamilyId?: string | null;
@@ -283,6 +285,7 @@ export function useNutritionistLibrary(
   const { data: coverage, refetch: fetchCoverage } = coverageQuery;
 
   return {
+    ownerId,
     meals,
     totalCount,
     page,

@@ -1,5 +1,7 @@
 'use client';
 
+import { formatManilaDate } from '@/lib/manila-date';
+
 import WorkspaceTable from '@/components/shared/WorkspaceTable';
 
 import Link from 'next/link';
@@ -141,7 +143,7 @@ export default function ProgressHistorySection({ model }: SectionProps) {
                           else if (log.adherencePct < 90) badgeVar = 'pending';
                           return [
                             <>
-                              {new Date(log.logDate).toLocaleDateString(undefined, {
+                              {formatManilaDate(new Date(log.logDate), {
                                 weekday: 'short',
                                 month: 'short',
                                 day: 'numeric',

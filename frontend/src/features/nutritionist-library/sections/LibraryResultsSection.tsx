@@ -10,7 +10,6 @@ import Badge from '@/components/ui/Badge';
 import { Soup } from 'lucide-react';
 
 import RecipeLibraryCard from '@/features/meals/RecipeLibraryCard';
-import type { PublicMealImage } from '@/types';
 
 import { LibraryGridSkeleton } from '@/features/nutritionist-library/NutritionistLibrarySkeleton';
 
@@ -43,25 +42,13 @@ export default function LibraryResultsSection({ model }: Props) {
                 meal.safetyEvidenceStatus === 'INCOMPLETE' &&
                 meal.safetyReviews?.some((review) => review.reasonCode === 'ADMIN_AUTHORED_DRAFT');
 
-              const image: PublicMealImage | null =
-                meal.adaptedImageUrl || meal.sourceRawRecipeCandidate?.sourceImageUrl
-                  ? {
-                      url: meal.adaptedImageUrl || meal.sourceRawRecipeCandidate!.sourceImageUrl!,
-                      altText: meal.mealName,
-                      kind: 'EXACT',
-                      attribution: {
-                        sourcePageUrl: meal.sourceRawRecipeCandidate?.sourceUrl || undefined,
-                      },
-                    }
-                  : null;
-
               return (
                 <RecipeLibraryCard
                   key={meal.id}
                   variant="nutritionist"
                   name={meal.mealName}
                   mealType={meal.mealType}
-                  image={image}
+                  image={meal.image ?? null}
                   description={meal.description}
                   calories={meal.calories}
                   proteinG={meal.proteinG}

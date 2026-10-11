@@ -3,6 +3,7 @@ interface ApiErrorShape {
     data?: {
       error?: unknown;
       errorCode?: unknown;
+      code?: unknown;
     };
   };
 }
@@ -15,6 +16,8 @@ export function getApiErrorMessage(error: unknown, fallback: string): string {
 }
 
 export function getApiErrorCode(error: unknown): string | null {
-  const code = apiErrorData(error)?.errorCode;
+  const data = apiErrorData(error);
+  // Older explicit controller catches use `code`; the global handler uses `errorCode`.
+  const code = typeof data?.errorCode === 'string' && data.errorCode.trim() ? data.errorCode : data?.code;
   return typeof code === 'string' && code.trim() ? code : null;
 }

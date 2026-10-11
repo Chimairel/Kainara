@@ -1,5 +1,7 @@
 'use client';
 
+import { formatManilaDate } from '@/lib/manila-date';
+
 import ReadOnlyFoodReferences from './ReadOnlyFoodReferences';
 import { CheckCircle2, ClipboardCheck, Eye } from 'lucide-react';
 import api from '@/lib/axios';
@@ -85,7 +87,14 @@ export default function OutsideMealReviewDetail({ model }: SectionProps) {
                 <h2 className="font-display text-2xl font-black text-brand-text">{selected.outsideMealLogItem.name}</h2>
                 <p className="mt-1 text-xs text-brand-muted">
                   Logged for {selected.outsideMealLogItem.mealLog.mealType ?? 'meal'} ·{' '}
-                  {new Date(selected.outsideMealLogItem.mealLog.loggedAt).toLocaleString()}
+                  {formatManilaDate(new Date(selected.outsideMealLogItem.mealLog.loggedAt), {
+                    year: 'numeric',
+                    month: 'numeric',
+                    day: 'numeric',
+                    hour: 'numeric',
+                    minute: 'numeric',
+                    second: 'numeric',
+                  })}
                 </p>
               </div>
               <p className="text-xs leading-relaxed text-brand-muted">

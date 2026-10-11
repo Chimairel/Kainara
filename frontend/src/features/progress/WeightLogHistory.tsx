@@ -1,5 +1,7 @@
 'use client';
 
+import { formatManilaDate } from '@/lib/manila-date';
+
 import WorkspaceTable from '@/components/shared/WorkspaceTable';
 
 import React from 'react';
@@ -112,7 +114,7 @@ export default function WeightLogHistory({
                   <>
                     <div className="flex items-center gap-1.5">
                       <span>
-                        {new Date(log.loggedAt).toLocaleDateString(undefined, {
+                        {formatManilaDate(new Date(log.loggedAt), {
                           weekday: 'short',
                           month: 'short',
                           day: 'numeric',

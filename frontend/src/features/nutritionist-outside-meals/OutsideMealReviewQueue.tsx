@@ -1,5 +1,7 @@
 'use client';
 
+import { formatManilaDate } from '@/lib/manila-date';
+
 import { Eye } from 'lucide-react';
 
 import { OutsideMealQueueSkeleton } from '@/features/nutritionist-reviews/OutsideMealsSkeleton';
@@ -61,7 +63,7 @@ export default function OutsideMealReviewQueue({ model }: SectionProps) {
                           <span className="font-semibold text-brand-text/80">{theme.label}</span>
                           <span>·</span>
                           <span>
-                            {new Date(row.outsideMealLogItem.mealLog.loggedAt).toLocaleString([], {
+                            {formatManilaDate(new Date(row.outsideMealLogItem.mealLog.loggedAt), {
                               month: 'short',
                               day: 'numeric',
                               hour: '2-digit',

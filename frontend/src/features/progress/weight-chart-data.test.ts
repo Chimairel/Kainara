@@ -3,6 +3,27 @@ import { groupWeightObservations } from './weight-chart-data';
 
 const baseline = { weightKg: 57, loggedAt: '2026-10-04T02:00:00Z', source: 'ONBOARDING' };
 describe('starting weight in the progress chart', () => {
+  it('separates observations across a Philippine Sunday even when both are Saturday in UTC', () => {
+    const points = groupWeightObservations(
+      [
+        { weightKg: 58, loggedAt: '2026-10-10T15:59:00Z' },
+        { weightKg: 60, loggedAt: '2026-10-10T16:01:00Z' },
+      ],
+      'week'
+    );
+    expect(points.map((point) => [point.weightKg, point.dateLabel, point.loggedAt])).toEqual([
+      [58, 'Wk of Oct 4', '2026-10-03T16:00:00.000Z'],
+      [60, 'Wk of Oct 11', '2026-10-10T16:00:00.000Z'],
+    ]);
+  });
+  it('uses Philippine month and year boundaries for the same saved observations', () => {
+    const observations = [
+      { weightKg: 58, loggedAt: '2026-12-31T15:59:00Z' },
+      { weightKg: 60, loggedAt: '2026-12-31T16:01:00Z' },
+    ];
+    expect(groupWeightObservations(observations, 'month').map((p) => p.dateLabel)).toEqual(['Dec 26', 'Jan 27']);
+    expect(groupWeightObservations(observations, 'year').map((p) => p.dateLabel)).toEqual(['2026', '2027']);
+  });
   it('shows a single actual starting observation without fabricating a trend', () => {
     expect(groupWeightObservations([baseline], 'week')).toEqual([{ ...baseline, dateLabel: 'Starting weight' }]);
   });

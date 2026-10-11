@@ -5,6 +5,7 @@ import { DashboardMealPlate } from '@/components/user/DashboardMealCardSurface';
 import { useState } from 'react';
 
 import MealImage from '@/components/user/MealImage';
+import type { MealType } from '@/types';
 import { getMealTheme } from '@/features/dashboard/DashboardMealRow';
 
 import { MealHistoryCardProps } from './MealHistoryCard.shared';
@@ -41,15 +42,11 @@ export function useMealHistoryCardModel({
   const [consentItemId, setConsentItemId] = useState<string | null>(null);
   const [shareImage, setShareImage] = useState(false);
 
-  // Normalize mealType from log.mealType or guess from mealName
+  // Old logs may not record a meal type; keep that unknown rather than inventing lunch.
   const normalizedType = (log.mealType || '').toUpperCase();
-  const mealType = normalizedType.includes('BREAKFAST')
-    ? 'BREAKFAST'
-    : normalizedType.includes('DINNER')
-      ? 'DINNER'
-      : normalizedType.includes('SNACK')
-        ? 'SNACK'
-        : 'LUNCH';
+  const mealType = ['BREAKFAST', 'LUNCH', 'DINNER', 'SNACK'].includes(normalizedType)
+    ? (normalizedType as MealType)
+    : undefined;
 
   const mealLabels: Record<string, string> = {
     BREAKFAST: 'Breakfast',
@@ -57,7 +54,7 @@ export function useMealHistoryCardModel({
     DINNER: 'Dinner',
     SNACK: 'Snack',
   };
-  const mealLabel = mealLabels[mealType] || 'Meal';
+  const mealLabel = mealType ? mealLabels[mealType] : 'Meal';
 
   const theme = getMealTheme(mealType);
 

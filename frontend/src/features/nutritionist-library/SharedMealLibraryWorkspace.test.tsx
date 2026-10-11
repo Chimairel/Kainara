@@ -158,6 +158,32 @@ function fillFlag() {
   });
 }
 describe('shared library permissions and feedback', () => {
+  for (const role of ['admin', 'nutritionist'] as const) {
+    it(`${role} uses the server photo contract in the list and recipe detail`, async () => {
+      const image = {
+        url: '/meals/contract-photo.jpg',
+        altText: 'Stored recipe photograph',
+        kind: 'REPRESENTATIVE' as const,
+        attribution: {
+          creator: 'Recorded photographer',
+          sourcePageUrl: null,
+          licenseCode: 'OWNED',
+          licenseUrl: null,
+          modifications: null,
+        },
+      };
+      const workspace = mocks.hook();
+      mocks.hook.mockReturnValue({ ...workspace, meals: [{ ...meal, image }] });
+      const original = mocks.get.getMockImplementation()!;
+      mocks.get.mockImplementation(async (path: string) =>
+        path.endsWith('/library/meal-1') ? { data: { success: true, data: { ...meal, image } } } : original(path)
+      );
+      render(<SharedMealLibraryWorkspace role={role} />);
+      expect(screen.getByAltText(image.altText)).toHaveAttribute('src', expect.stringContaining('contract-photo.jpg'));
+      await open();
+      expect(screen.getByAltText(image.altText)).toHaveAttribute('src', expect.stringContaining('contract-photo.jpg'));
+    });
+  }
   it('admin flags with version-bound structured notes and sees the recorded actor without RND certification tools', async () => {
     render(<SharedMealLibraryWorkspace role="admin" />);
     expect(mocks.hook).toHaveBeenCalledWith(false, 'admin', true);

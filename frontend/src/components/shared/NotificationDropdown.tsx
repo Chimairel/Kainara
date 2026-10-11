@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useNotifications } from '@/hooks/useNotifications';
 import { useAuth } from '@/hooks/useAuth';
+import { formatManilaDate } from '@/lib/manila-date';
 import {
   CheckCircle,
   AlertTriangle,
@@ -31,7 +32,7 @@ function formatRelativeTime(dateString: string): string {
   const diffInDays = Math.floor(diffInHours / 24);
   if (diffInDays < 7) return `${diffInDays}d ago`;
 
-  return date.toLocaleDateString(undefined, {
+  return formatManilaDate(date, {
     month: 'short',
     day: 'numeric',
   });

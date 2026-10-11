@@ -1,4 +1,5 @@
 import React from 'react';
+import { MEAL_PLAN_BUSINESS_TIME_ZONE } from '@/domain/meal-plan-cycle.policy';
 import { Document, Page, Text, View, StyleSheet, renderToStream } from '@react-pdf/renderer';
 
 const styles = StyleSheet.create({
@@ -69,7 +70,8 @@ export const NutritionReportPDF = ({
         <Page size="A4" style={styles.page}>
           <Text style={styles.header}>KAINARA Nutrition Guidance</Text>
           <Text style={styles.text}>
-            Version {report.version} | Prepared {new Date(report.generatedAt).toLocaleDateString()}
+            Version {report.version} | Prepared{' '}
+            {new Date(report.generatedAt).toLocaleDateString('en-PH', { timeZone: MEAL_PLAN_BUSINESS_TIME_ZONE })}
           </Text>
           {archived && (
             <Text style={styles.text}>

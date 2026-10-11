@@ -34,6 +34,8 @@ import {
 } from '@/services/meal-library-candidate-query.service';
 
 import { admittedLibraryBaseIds } from './meal-base-admission.service';
+import { resolveLibraryRecipeImages } from './library-recipe-image.service';
+import { rawRecipeImageSelect, resolvePlanImage } from './meal-plan-presentation.service';
 import { certifyLibraryMealSafety } from './nutritionist-library-certification.service';
 import {
   getNutritionistMealLibrary,
@@ -261,7 +263,7 @@ export class NutritionistLibraryService {
           },
         },
         sourceRawRecipeCandidate: {
-          select: { sourceName: true, sourceUrl: true, sourceImageUrl: true, status: true, contentSignature: true },
+          select: { ...rawRecipeImageSelect, status: true, contentSignature: true },
         },
         verifiedByNutritionist: {
           include: {
@@ -307,17 +309,19 @@ export class NutritionistLibraryService {
       },
     });
     if (!meal) return null;
-    const [admitted, prepared] = await Promise.all([
+    const [admitted, prepared, libraryImages] = await Promise.all([
       admittedLibraryBaseIds([meal]),
       prisma.auditEvent.findFirst({
         where: { entityType: 'MealLibrary', entityId: mealId, action: 'NUTRITION_EVIDENCE_PREPARED' },
         orderBy: { createdAt: 'desc' },
       }),
+      resolveLibraryRecipeImages([meal]),
     ]);
     const preparedData = prepared?.metadata as { revision?: number; portionBasis?: string } | null;
     const { sourceRawRecipeCandidate: source, ...fields } = meal;
     return {
       ...fields,
+      image: resolvePlanImage({ libraryMeal: meal, sourceRawRecipeCandidate: source }, libraryImages),
       baseVerification: admitted.has(meal.id) ? 'VERIFIED' : 'REVIEW_PENDING',
       baseVerificationBasis: admitted.has(meal.id)
         ? meal.sourceRawRecipeCandidate?.sourceName === 'PANLASANG_PINOY'

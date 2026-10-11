@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "audit": "npm audit && npm --prefix backend audit && npm --prefix frontend audit",
+    "audit:contracts": "node scripts/audit-api-contracts.cjs",
     "build": "npm run build:backend && npm run build:frontend",
     "build:backend": "npm --prefix backend run build",
     "build:frontend": "npm --prefix frontend run build",

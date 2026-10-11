@@ -47,18 +47,7 @@ export default function LibraryRecipeDetail({ model }: Props) {
         </button>
         <header className="flex flex-col gap-5 rounded-2xl border border-brand-border bg-brand-surface/60 p-5 md:flex-row md:items-center">
           <MealImage
-            image={
-              viewedMeal.adaptedImageUrl || source?.sourceImageUrl
-                ? {
-                    url: viewedMeal.adaptedImageUrl || source!.sourceImageUrl!,
-                    altText: viewedMeal.mealName,
-                    kind: 'EXACT',
-                    attribution: {
-                      sourcePageUrl: source?.sourceUrl || undefined,
-                    },
-                  }
-                : null
-            }
+            image={viewedMeal.image ?? null}
             mealName={viewedMeal.mealName}
             mealType={viewedMeal.mealType}
             className="h-44 w-full rounded-2xl md:w-60 shrink-0"

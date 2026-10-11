@@ -1,5 +1,7 @@
 'use client';
 
+import { formatManilaDate } from '@/lib/manila-date';
+
 import WorkspaceTable from '@/components/shared/WorkspaceTable';
 import TestAccountTool from './TestAccountTool';
 
@@ -209,7 +211,7 @@ export default function AdminUsersPage({ active = true }: { active?: boolean }) 
                       <Clock3 aria-label="Onboarding incomplete" className="mx-auto h-4 w-4 text-amber-500" />
                     )}
                   </>,
-                  <>{new Date(user.createdAt).toLocaleDateString()}</>,
+                  <>{formatManilaDate(new Date(user.createdAt), {})}</>,
                   <>
                     <button
                       type="button"

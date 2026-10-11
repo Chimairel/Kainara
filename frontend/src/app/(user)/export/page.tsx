@@ -1,5 +1,8 @@
 'use client';
 
+import { formatManilaDate } from '@/lib/manila-date';
+import { groupMealsByManilaDate } from '@/lib/meal-calendar';
+
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
@@ -162,29 +165,16 @@ export default function NutritionExportPage() {
 
   // Format Date chronologically for print views
   const getGroupedDays = () => {
-    const grouped: Record<string, MealPlan[]> = {};
-    meals.forEach((meal) => {
-      const dateKey = new Date(meal.scheduledDate).toDateString();
-      if (!grouped[dateKey]) {
-        grouped[dateKey] = [];
-      }
-      grouped[dateKey].push(meal);
+    return groupMealsByManilaDate(meals, { month: 'short', day: 'numeric', year: 'numeric' }).map((day) => {
+      return {
+        dateStr: day.dateStr,
+        weekday: day.weekday,
+        mealsList: [...day.mealsList].sort((a, b) => {
+          const order = { BREAKFAST: 1, LUNCH: 2, DINNER: 3, SNACK: 4 };
+          return (order[a.mealType] || 5) - (order[b.mealType] || 5);
+        }),
+      };
     });
-
-    return Object.keys(grouped)
-      .sort((a, b) => new Date(a).getTime() - new Date(b).getTime())
-      .map((dateKey) => {
-        const dayMeals = grouped[dateKey];
-        const dateObj = new Date(dateKey);
-        return {
-          dateStr: dateObj.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }),
-          weekday: dateObj.toLocaleDateString(undefined, { weekday: 'long' }),
-          mealsList: dayMeals.sort((a, b) => {
-            const order = { BREAKFAST: 1, LUNCH: 2, DINNER: 3, SNACK: 4 };
-            return (order[a.mealType] || 5) - (order[b.mealType] || 5);
-          }),
-        };
-      });
   };
 
   const groupedDays = getGroupedDays();
@@ -236,7 +226,7 @@ export default function NutritionExportPage() {
           </div>
           <div className="text-right text-[10px] text-slate-500 font-mono">
             <div>Report ID: {profileData?.id?.toUpperCase() || 'N/A'}</div>
-            <div>Generated: {new Date().toLocaleDateString()}</div>
+            <div>Generated: {formatManilaDate(new Date(), {})}</div>
           </div>
         </div>
       </div>
@@ -335,7 +325,7 @@ export default function NutritionExportPage() {
           </h2>
 
           <p className="mb-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-[11px] font-semibold text-amber-900">
-            Generated {new Date(reportData.generatedAt).toLocaleDateString()}. This guidance is informational, has not
+            Generated {formatManilaDate(new Date(reportData.generatedAt), {})}. This guidance is informational, has not
             been independently verified by an RND, and is not medical advice.
           </p>
 

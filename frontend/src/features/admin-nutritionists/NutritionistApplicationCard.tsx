@@ -1,3 +1,4 @@
+import { formatManilaDate } from '@/lib/manila-date';
 import { useCallDue } from './useCallDue';
 import { formatPhilippineDateTime } from '@/lib/formatters';
 import {
@@ -104,7 +105,7 @@ export function NutritionistApplicationCard(props: Props) {
           <div className="flex flex-wrap items-center gap-3">
             <span className="text-xs text-brand-muted">
               {application.invitationSentAt
-                ? `Invitation sent ${new Date(application.invitationSentAt).toLocaleString()}`
+                ? `Invitation sent ${formatManilaDate(new Date(application.invitationSentAt), { year: 'numeric', month: 'numeric', day: 'numeric', hour: 'numeric', minute: 'numeric', second: 'numeric' })}`
                 : 'Invitation delivery needs attention.'}
             </span>
             <Button
@@ -204,7 +205,7 @@ function ApplicationIdentity({ application }: { application: NutritionistApplica
           <div className="min-w-0">
             <h3 className="truncate font-display text-base font-black text-brand-text">{application.fullName}</h3>
             <p className="mt-1 font-mono text-[9px] uppercase tracking-wider text-brand-muted">
-              {application.referenceCode} · Applied {new Date(application.createdAt).toLocaleDateString()}
+              {application.referenceCode} · Applied {formatManilaDate(new Date(application.createdAt), {})}
             </p>
           </div>
         </div>
@@ -227,7 +228,7 @@ function ApplicationIdentity({ application }: { application: NutritionistApplica
         <p className="rounded-xl bg-brand-bgAlt/60 p-3 text-brand-muted">
           Expires{' '}
           <strong className="ml-1 text-brand-text">
-            {new Date(application.prcLicenseExpiry).toLocaleDateString()}
+            {formatManilaDate(new Date(application.prcLicenseExpiry), {})}
           </strong>
         </p>
       </div>

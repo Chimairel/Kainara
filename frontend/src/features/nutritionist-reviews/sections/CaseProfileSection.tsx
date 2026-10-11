@@ -1,5 +1,7 @@
 'use client';
 
+import { formatManilaDate } from '@/lib/manila-date';
+
 import Avatar from '@/components/ui/Avatar';
 
 import { toast } from '@/components/ui/Sonner';
@@ -117,7 +119,7 @@ export default function CaseProfileSection({ model, paper = false }: SectionProp
               <div key={item.id} className="rounded-lg border border-brand-border p-2">
                 <p>
                   {item.area.replaceAll('_', ' ')} · {item.documentType.replaceAll('_', ' ')}
-                  {item.validUntil ? ` · valid until ${new Date(item.validUntil).toLocaleDateString()}` : ''}
+                  {item.validUntil ? ` · valid until ${formatManilaDate(new Date(item.validUntil), {})}` : ''}
                 </p>
                 {item.facts.map((fact, index) => (
                   <p key={`${fact.code}-${index}`} className="text-brand-muted">

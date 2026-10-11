@@ -1,5 +1,7 @@
 'use client';
 
+import { formatManilaDate } from '@/lib/manila-date';
+
 import Image from 'next/image';
 import { useEffect, useRef, useState } from 'react';
 import { LoaderCircle } from 'lucide-react';
@@ -141,7 +143,7 @@ export default function LandingUploadGallery({
                   </span>
                   <span>{(item.bytes / 1024 / 1024).toFixed(1)} MB</span>
                   {item.createdAt && (
-                    <time dateTime={item.createdAt}>{new Date(item.createdAt).toLocaleDateString()}</time>
+                    <time dateTime={item.createdAt}>{formatManilaDate(new Date(item.createdAt), {})}</time>
                   )}
                   {item.publicId === draftId && <span className="font-semibold text-brand-text">In draft</span>}
                   {item.publicId === publishedId && <span className="font-semibold text-brand-primary">Published</span>}

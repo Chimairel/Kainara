@@ -3,6 +3,7 @@
 import { useRef, useState } from 'react';
 
 import api from '@/lib/axios';
+import { useRequestScope } from '@/hooks/useRequestScope';
 
 import { useNutritionistLibrary } from '@/features/nutritionist-library/useNutritionistLibrary';
 
@@ -19,11 +20,26 @@ export function useSharedMealLibraryModel({
   const isAdmin = role === 'admin';
   const libraryApi = `/${role}/library`;
   const [section, setSection] = useState<'recipes' | 'coverage'>('recipes');
-  const [viewedMeal, setViewedMeal] = useState<LibraryMeal | null>(null);
+  const workspace = useNutritionistLibrary(section === 'coverage', role, active);
+  const scope = JSON.stringify([workspace.ownerId, role]);
+  const captureScope = useRequestScope(scope);
+  const requestSequence = useRef(0);
+  const [stateScope, setStateScope] = useState(scope);
+  const [viewedMeal, setViewedMealState] = useState<LibraryMeal | null>(null);
   const [viewingMealId, setViewingMealId] = useState<string | null>(null);
   const [detailError, setDetailError] = useState<string | null>(null);
   const listScrollTop = useRef(0);
-  const workspace = useNutritionistLibrary(section === 'coverage', role, active);
+  if (stateScope !== scope) {
+    setStateScope(scope);
+    setViewedMealState(null);
+    setViewingMealId(null);
+    setDetailError(null);
+  }
+  const setViewedMeal = (meal: LibraryMeal | null) => {
+    requestSequence.current += 1;
+    setViewedMealState(meal);
+    setViewingMealId(null);
+  };
   const {
     meals,
     totalCount,
@@ -59,19 +75,25 @@ export function useSharedMealLibraryModel({
   };
 
   async function openMeal(meal: Pick<LibraryMeal, 'id'>) {
+    const sameScope = captureScope();
+    const sequence = ++requestSequence.current;
+    const isCurrent = () => sameScope() && requestSequence.current === sequence;
     const main = document.querySelector('main.portal-main');
     listScrollTop.current = main?.scrollTop ?? 0;
     setDetailError(null);
     setViewingMealId(meal.id);
     try {
       const response = await api.get(`${libraryApi}/${meal.id}`);
+      if (!isCurrent()) return;
       if (!response.data?.success || !response.data.data) throw new Error('Meal details unavailable.');
-      setViewedMeal({ ...meal, ...response.data.data });
-      requestAnimationFrame(() => main?.scrollTo({ top: 0 }));
+      setViewedMealState({ ...meal, ...response.data.data });
+      requestAnimationFrame(() => {
+        if (isCurrent()) main?.scrollTo({ top: 0 });
+      });
     } catch {
-      setDetailError('The meal details could not be loaded. Please try again.');
+      if (isCurrent()) setDetailError('The meal details could not be loaded. Please try again.');
     } finally {
-      setViewingMealId(null);
+      if (isCurrent()) setViewingMealId(null);
     }
   }
 

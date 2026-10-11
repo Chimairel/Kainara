@@ -1,3 +1,5 @@
+import { formatManilaDate, getManilaDateKey, manilaDateFromKey } from '@/lib/manila-date';
+
 export interface WeightObservation {
   weightKg: number;
   loggedAt: string;
@@ -20,12 +22,12 @@ export function groupWeightObservations(
   const groups = new Map<number, { sum: number; count: number; firstAt: string }>();
   for (const log of logs) {
     if (log === baseline) continue;
-    const date = new Date(log.loggedAt);
-    if (timeframe === 'week') date.setDate(date.getDate() - date.getDay());
-    else if (timeframe === 'month') date.setDate(1);
-    else date.setMonth(0, 1);
-    date.setHours(0, 0, 0, 0);
-    const key = date.getTime();
+    // UTC is used only for date-key arithmetic; the observations belong to Philippine days.
+    const date = new Date(`${getManilaDateKey(log.loggedAt)}T00:00:00Z`);
+    if (timeframe === 'week') date.setUTCDate(date.getUTCDate() - date.getUTCDay());
+    else if (timeframe === 'month') date.setUTCDate(1);
+    else date.setUTCMonth(0, 1);
+    const key = manilaDateFromKey(date.toISOString().slice(0, 10)).getTime();
     const group = groups.get(key) ?? { sum: 0, count: 0, firstAt: log.loggedAt };
     group.sum += log.weightKg;
     group.count++;
@@ -37,10 +39,10 @@ export function groupWeightObservations(
     const date = new Date(key);
     const dateLabel =
       timeframe === 'week'
-        ? `Wk of ${date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}`
+        ? `Wk of ${formatManilaDate(date, { month: 'short', day: 'numeric' })}`
         : timeframe === 'month'
-          ? date.toLocaleDateString(undefined, { month: 'short', year: '2-digit' })
-          : date.getFullYear().toString();
+          ? formatManilaDate(date, { month: 'short', year: '2-digit' })
+          : formatManilaDate(date, { year: 'numeric' });
     points.push({
       weightKg: Math.round((group.sum / group.count) * 10) / 10,
       dateLabel,

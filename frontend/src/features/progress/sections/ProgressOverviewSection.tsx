@@ -1,5 +1,7 @@
 'use client';
 
+import { formatManilaDate } from '@/lib/manila-date';
+
 import Button from '@/components/ui/Button';
 import WeightGraph from '@/features/progress/WeightGraph';
 import WeightLogHistory from '@/features/progress/WeightLogHistory';
@@ -84,7 +86,7 @@ export default function ProgressOverviewSection({ model }: SectionProps) {
                 </div>
                 <span className="self-start sm:self-auto text-[11px] font-semibold text-brand-muted bg-brand-bgAlt px-2.5 py-1 rounded-full border border-brand-border/60">
                   📅{' '}
-                  {new Date().toLocaleDateString(undefined, {
+                  {formatManilaDate(new Date(), {
                     weekday: 'short',
                     month: 'short',
                     day: 'numeric',

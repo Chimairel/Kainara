@@ -1,4 +1,5 @@
 import { useVisiblePolling } from '@/hooks/useVisiblePolling';
+import { useRequestScope } from '@/hooks/useRequestScope';
 import React, { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import api from '@/lib/axios';
@@ -48,6 +49,8 @@ export function useProgressWorkspace(mode: ProgressWorkspaceMode) {
   const router = useRouter();
   const { user, updateUserSession } = useAuth();
   const ownerId = user?.userId;
+  const captureScope = useRequestScope(JSON.stringify([ownerId, mode]));
+  const [stateOwner, setStateOwner] = useState(ownerId);
   const cachedPage = readSessionResource<ProgressPageSnapshot>(ownerId, 'user-progress-page');
   const cachedProfile = cachedPage?.profileData?.userProfile;
   const [activeSection, setActiveSection] = useState<ProgressSection>(mode !== 'progress' ? 'profile' : 'overview');
@@ -92,15 +95,59 @@ export function useProgressWorkspace(mode: ProgressWorkspaceMode) {
   const [weightFormError, setWeightFormError] = useState<string | null>(null);
   const [weightSuccess, setWeightSuccess] = useState<string | null>(null);
 
+  const applyProfileForm = useCallback((profile?: ProfileDetails['userProfile'] | null) => {
+    setAge(String(profile?.age || ''));
+    setHeightCm(String(profile?.heightCm || ''));
+    setWeightKg(String(profile?.weightKg || ''));
+    setTargetWeightKg(String(profile?.targetWeightKg ?? (profile?.goal === 'MAINTAIN' ? profile?.weightKg : '') ?? ''));
+    setBiologicalSex(profile?.biologicalSex || 'MALE');
+    setGoal(profile?.goal || 'MAINTAIN');
+    setActivityLevel(profile?.activityLevel || 'SEDENTARY');
+    setDietaryPreference(profile?.dietaryPreference || 'OMNIVORE');
+    setRicePreference(profile?.ricePreference || 'FLEXIBLE');
+    setFoodCulture(normalizeFoodCulture(profile?.foodCulture));
+    setShoppingDayOfWeek(
+      typeof profile?.shoppingDayOfWeek === 'number'
+        ? profile.shoppingDayOfWeek
+        : profile?.shoppingDayGroup === 'WEEKDAY'
+          ? 0
+          : 6
+    );
+  }, []);
+
+  // Reset before children can render a previous account's profile or form draft.
+  if (stateOwner !== ownerId) {
+    setStateOwner(ownerId);
+    setHistory(cachedPage?.history ?? null);
+    setProfileData(cachedPage?.profileData ?? null);
+    applyProfileForm(cachedProfile);
+    setIsLoading(Boolean(ownerId && !cachedPage));
+    setError(null);
+    setIsSavingBiometrics(false);
+    setBiometricsSuccess(null);
+    setBiometricsError(null);
+    setShowRegenerateModal(false);
+    setHealthSuccess(null);
+    setIsLogFormOpen(false);
+    setWeightInput('');
+    setNoteInput('');
+    setIsSubmittingWeight(false);
+    setWeightFormError(null);
+    setWeightSuccess(null);
+  }
+
   // Fetch progress history and profile info
   const fetchPageData = useCallback(
     async (silent = false, signal?: AbortSignal) => {
+      const currentScope = captureScope();
+      const isCurrent = () => currentScope() && !signal?.aborted;
+      if (!ownerId || !isCurrent()) return;
       setError(null);
       try {
         const [historyRes, profileRes] = await Promise.all([
           mode === 'progress'
             ? api.get('/user/progress/history', { signal }).catch((err: unknown) => {
-                setError(getApiErrorMessage(err, 'Failed to fetch progress metrics.'));
+                if (isCurrent()) setError(getApiErrorMessage(err, 'Failed to fetch progress metrics.'));
                 return { data: { success: false, data: null } };
               })
             : Promise.resolve({ data: { success: false, data: null } }),
@@ -109,7 +156,7 @@ export function useProgressWorkspace(mode: ProgressWorkspaceMode) {
           })),
         ]);
 
-        if (signal?.aborted) return;
+        if (!isCurrent()) return;
         const nextHistory = historyRes.data?.success ? (historyRes.data.data as ProgressHistory) : null;
         const nextProfile = profileRes.data?.success ? (profileRes.data.data as ProfileDetails) : null;
 
@@ -121,31 +168,7 @@ export function useProgressWorkspace(mode: ProgressWorkspaceMode) {
           setProfileData(data);
 
           // Pre-populate biometric form states
-          if (data.userProfile && !silent) {
-            setAge(String(data.userProfile.age || ''));
-            setHeightCm(String(data.userProfile.heightCm || ''));
-            setWeightKg(String(data.userProfile.weightKg || ''));
-            setTargetWeightKg(
-              String(
-                data.userProfile.targetWeightKg ??
-                  (data.userProfile.goal === 'MAINTAIN' ? data.userProfile.weightKg : '') ??
-                  ''
-              )
-            );
-            setBiologicalSex(data.userProfile.biologicalSex || 'MALE');
-            setGoal(data.userProfile.goal || 'MAINTAIN');
-            setActivityLevel(data.userProfile.activityLevel || 'SEDENTARY');
-            setDietaryPreference(data.userProfile.dietaryPreference || 'OMNIVORE');
-            setRicePreference(data.userProfile.ricePreference || 'FLEXIBLE');
-            setFoodCulture(normalizeFoodCulture(data.userProfile.foodCulture));
-            setShoppingDayOfWeek(
-              typeof data.userProfile.shoppingDayOfWeek === 'number'
-                ? data.userProfile.shoppingDayOfWeek
-                : data.userProfile.shoppingDayGroup === 'WEEKDAY'
-                  ? 0
-                  : 6
-            );
-          }
+          if (data.userProfile && !silent) applyProfileForm(data.userProfile);
         }
         writeSessionResource(ownerId, 'user-progress-page', {
           history: nextHistory,
@@ -153,12 +176,12 @@ export function useProgressWorkspace(mode: ProgressWorkspaceMode) {
         });
         if (nextProfile) writeSessionResource(ownerId, 'user-profile', nextProfile);
       } catch (err: unknown) {
-        setError(getApiErrorMessage(err, 'Failed to fetch progress metrics.'));
+        if (isCurrent()) setError(getApiErrorMessage(err, 'Failed to fetch progress metrics.'));
       } finally {
-        setIsLoading(false);
+        if (isCurrent()) setIsLoading(false);
       }
     },
-    [ownerId, mode]
+    [ownerId, mode, captureScope, applyProfileForm]
   );
 
   useVisiblePolling(
@@ -175,13 +198,15 @@ export function useProgressWorkspace(mode: ProgressWorkspaceMode) {
   }, [ownerId, fetchPageData]);
 
   useEffect(() => {
-    if (!ownerId || (!history && !profileData)) return;
+    if (!ownerId || stateOwner !== ownerId || (!history && !profileData)) return;
     writeSessionResource(ownerId, 'user-progress-page', { history, profileData });
-  }, [ownerId, history, profileData]);
+  }, [ownerId, stateOwner, history, profileData]);
 
   // Handles updating biometrics and preferences form
   const handleBiometricsSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    const isCurrent = captureScope();
+    if (!ownerId || !isCurrent()) return;
     setIsSavingBiometrics(true);
     setBiometricsError(null);
     setBiometricsSuccess(null);
@@ -264,6 +289,7 @@ export function useProgressWorkspace(mode: ProgressWorkspaceMode) {
       }
 
       const profileUpdate = await api.put('/user/profile', payload);
+      if (!isCurrent()) return;
 
       if (profileUpdate.data && profileUpdate.data.success) {
         const savedReport = profileUpdate.data.data.nutritionReport;
@@ -281,15 +307,17 @@ export function useProgressWorkspace(mode: ProgressWorkspaceMode) {
         setShowRegenerateModal(true);
       }
     } catch (err: unknown) {
-      setBiometricsError(getApiErrorMessage(err, 'Failed to update biometrics.'));
+      if (isCurrent()) setBiometricsError(getApiErrorMessage(err, 'Failed to update biometrics.'));
     } finally {
-      setIsSavingBiometrics(false);
+      if (isCurrent()) setIsSavingBiometrics(false);
     }
   };
 
   // Handles logging a new weight reading
   const handleLogWeightSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    const isCurrent = captureScope();
+    if (!ownerId || !isCurrent()) return;
     const weightNum = parseFloat(weightInput);
     if (isNaN(weightNum) || weightNum <= 0) {
       setWeightFormError('Please enter a valid positive weight.');
@@ -304,6 +332,7 @@ export function useProgressWorkspace(mode: ProgressWorkspaceMode) {
         weightKg: weightNum,
         ...(noteInput.trim() ? { note: noteInput.trim() } : {}),
       });
+      if (!isCurrent()) return;
 
       if (res.data && res.data.success) {
         setWeightSuccess('Weight logged! Your daily calorie target has been recalculated.');
@@ -316,6 +345,7 @@ export function useProgressWorkspace(mode: ProgressWorkspaceMode) {
           api.get('/user/progress/history'),
           api.get('/user/profile'),
         ]);
+        if (!isCurrent()) return;
 
         if (historyRes.data && historyRes.data.success) {
           setHistory(historyRes.data.data);
@@ -337,9 +367,9 @@ export function useProgressWorkspace(mode: ProgressWorkspaceMode) {
         }
       }
     } catch (err: unknown) {
-      setWeightFormError(getApiErrorMessage(err, 'Failed to log weight.'));
+      if (isCurrent()) setWeightFormError(getApiErrorMessage(err, 'Failed to log weight.'));
     } finally {
-      setIsSubmittingWeight(false);
+      if (isCurrent()) setIsSubmittingWeight(false);
     }
   };
 

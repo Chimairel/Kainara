@@ -10,7 +10,7 @@ export function DashboardMealPlate({ children, className }: { children: ReactNod
   );
 }
 
-export function dashboardMealCardClasses(mealType: string, index = 0) {
+export function dashboardMealCardClasses(mealType?: string, index = 0) {
   const theme = getMealTheme(mealType, index);
   return cn(
     'dashboard-meal group relative overflow-visible text-white',
@@ -28,6 +28,6 @@ export function DashboardMealCardSurface({
   index = 0,
   className,
   ...props
-}: HTMLAttributes<HTMLElement> & { as?: 'article' | 'details' | 'div'; mealType: string; index?: number }) {
+}: HTMLAttributes<HTMLElement> & { as?: 'article' | 'details' | 'div'; mealType?: string; index?: number }) {
   return <Element {...props} className={cn(dashboardMealCardClasses(mealType, index), className)} />;
 }

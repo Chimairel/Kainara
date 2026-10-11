@@ -1,5 +1,7 @@
 'use client';
 
+import { formatManilaDate } from '@/lib/manila-date';
+
 import { PlanMealCardSurface } from '@/components/user/PlanMealCardSurface';
 import { MealMacros } from '@/components/user/MealMacros';
 import { formatMealTitle } from '@/lib/meal-title';
@@ -106,7 +108,7 @@ export default function PendingMealPreviewCard({
     iconSurfaceClassName: 'border-brand-green/20 bg-brand-green/10',
   };
   const MealTypeIcon = typeStyle.icon;
-  const scheduledDate = new Date(meal.scheduledDate).toLocaleDateString(undefined, {
+  const scheduledDate = formatManilaDate(new Date(meal.scheduledDate), {
     weekday: 'short',
     month: 'short',
     day: 'numeric',

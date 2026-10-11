@@ -1,5 +1,7 @@
 'use client';
 
+import { formatManilaDate } from '@/lib/manila-date';
+
 import { useSessionQuery } from '@/hooks/useSessionQuery';
 import { ShieldCheck } from 'lucide-react';
 import HeaderRefreshAction from '@/components/shared/HeaderRefreshAction';
@@ -122,7 +124,15 @@ export default function AdminSafetyPanel({ active = true }: { active?: boolean }
                   key: 'date',
                   header: 'Date',
                   headerClassName: 'min-w-[150px]',
-                  cell: (incident) => new Date(incident.createdAt).toLocaleString(),
+                  cell: (incident) =>
+                    formatManilaDate(new Date(incident.createdAt), {
+                      year: 'numeric',
+                      month: 'numeric',
+                      day: 'numeric',
+                      hour: 'numeric',
+                      minute: 'numeric',
+                      second: 'numeric',
+                    }),
                 },
               ]}
             />

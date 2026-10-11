@@ -1,5 +1,7 @@
 'use client';
 
+import { formatManilaDate } from '@/lib/manila-date';
+
 import React, { useEffect, useRef, useState } from 'react';
 import { TrendingUp } from 'lucide-react';
 import type { useProgressWorkspace } from './useProgressWorkspace';
@@ -166,7 +168,7 @@ export default function WeightGraph({ groupedLogs, targetWeight }: WeightGraphPr
             <span>{activeHoveredPoint.date}</span>
             <span>·</span>
             <span>
-              {new Date(activeHoveredPoint.loggedAt).toLocaleDateString(undefined, {
+              {formatManilaDate(new Date(activeHoveredPoint.loggedAt), {
                 month: 'short',
                 day: 'numeric',
                 year: 'numeric',
@@ -430,7 +432,7 @@ export default function WeightGraph({ groupedLogs, targetWeight }: WeightGraphPr
             Starting weight: {baseline.weightKg} kg ·{' '}
             {baseline.source === 'ONBOARDING' ? 'From onboarding' : 'From your first saved report'}
             {' · '}
-            {new Date(baseline.loggedAt).toLocaleDateString()}.
+            {formatManilaDate(new Date(baseline.loggedAt), {})}.
             {groupedLogs.length === 1 && ' Log your next weight to see the trend.'}
           </p>
           {groupedLogs.length > 1 && (

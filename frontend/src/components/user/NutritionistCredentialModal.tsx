@@ -1,5 +1,7 @@
 'use client';
 
+import { formatManilaDate } from '@/lib/manila-date';
+
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { X, ShieldCheck, Clock, Quote, ArrowLeft, FileCheck } from 'lucide-react';
@@ -59,7 +61,7 @@ export default function NutritionistCredentialModal({
   if (!isOpen || typeof document === 'undefined') return null;
 
   const formattedReviewDate = reviewedAt
-    ? new Date(reviewedAt).toLocaleDateString('en-US', {
+    ? formatManilaDate(new Date(reviewedAt), {
         month: 'short',
         day: 'numeric',
         year: 'numeric',

@@ -1,5 +1,7 @@
 'use client';
 
+import { formatManilaDate } from '@/lib/manila-date';
+
 import { FileText } from 'lucide-react';
 
 import type { useProfileWorkPanelModel } from './useProfileWorkPanelModel';
@@ -32,7 +34,7 @@ export default function ProfileReportNavigation({ model }: SectionProps) {
                 aria-pressed={selection?.id === report.id}
                 className={`block w-full rounded-xl px-3 py-2 text-left text-xs ${selection?.id === report.id ? 'bg-brand-bgAlt font-bold text-brand-text' : 'text-brand-muted hover:bg-brand-bgAlt/50'}`}
               >
-                Version {report.version} · {new Date(report.generatedAt).toLocaleDateString()}{' '}
+                Version {report.version} · {formatManilaDate(new Date(report.generatedAt), {})}{' '}
                 {report.isPlanningReport
                   ? '· Selected for planning'
                   : report.isCurrent

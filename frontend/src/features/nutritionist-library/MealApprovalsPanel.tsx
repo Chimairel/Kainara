@@ -1,5 +1,7 @@
 'use client';
 
+import { formatManilaDate } from '@/lib/manila-date';
+
 import Dropdown from '@/components/ui/Dropdown';
 import { useCallback, useEffect, useState } from 'react';
 import Button from '@/components/ui/Button';
@@ -255,7 +257,7 @@ export function MealApprovalsPanel({ mealId }: { mealId: string }) {
           <p className="mt-1 text-xs text-brand-muted">
             {currentApproval.reviewerName || 'Reviewer unavailable'} · Reviewed{' '}
             {currentApproval.reviewedAt
-              ? new Date(currentApproval.reviewedAt).toLocaleDateString()
+              ? formatManilaDate(new Date(currentApproval.reviewedAt), {})
               : 'date unavailable'}{' '}
             · {currentApproval.status.replaceAll('_', ' ')}
           </p>
@@ -665,7 +667,7 @@ export function MealApprovalsPanel({ mealId }: { mealId: string }) {
                         header: 'Reviewed',
                         headerClassName: 'min-w-[120px]',
                         cell: (approval) =>
-                          approval.reviewedAt ? new Date(approval.reviewedAt).toLocaleDateString() : 'pending',
+                          approval.reviewedAt ? formatManilaDate(new Date(approval.reviewedAt), {}) : 'pending',
                       },
                       {
                         key: 'actions',

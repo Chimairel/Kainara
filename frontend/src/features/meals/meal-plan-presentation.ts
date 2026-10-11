@@ -2,7 +2,8 @@ import type { MealPlan } from '@/types';
 import type { RetainedMealLog } from './RetainedMealLogs';
 import type { CurrentPlanSnapshot, PendingReviewState } from './meals-workspace.types';
 import type { PendingMealPreview } from '@/components/user/PendingMealPreviewCard';
-import { formatManilaDate, getManilaDateKey, manilaDateFromKey } from '@/lib/manila-date';
+import { addCalendarDays, formatManilaDate, getManilaDateKey, manilaDateFromKey } from '@/lib/manila-date';
+import { groupMealsByManilaDate } from '@/lib/meal-calendar';
 
 /** Derive display data without fetching, mutating plans or changing selection. */
 export function mealPlanPresentation({
@@ -20,66 +21,26 @@ export function mealPlanPresentation({
 }) {
   // Group meals by date
   const groupMealsByDate = () => {
-    const grouped: Record<string, MealPlan[]> = {};
+    return groupMealsByManilaDate(meals).map((day) => {
+      const dayMeals = day.mealsList;
+      // Sum calories and macros targets for the day
+      const dayCalories = dayMeals.reduce((sum, m) => sum + m.calories, 0);
+      const dayProtein = dayMeals.reduce((sum, m) => sum + m.proteinG, 0);
+      const dayCarbs = dayMeals.reduce((sum, m) => sum + m.carbsG, 0);
+      const dayFat = dayMeals.reduce((sum, m) => sum + m.fatG, 0);
 
-    meals.forEach((meal) => {
-      const dateKey = getManilaDateKey(meal.scheduledDate);
-      if (!grouped[dateKey]) {
-        grouped[dateKey] = [];
-      }
-      grouped[dateKey].push(meal);
+      return {
+        ...day,
+        dayCalories,
+        dayProtein,
+        dayCarbs,
+        dayFat,
+      };
     });
-
-    // Sort the keys chronologically
-    return Object.keys(grouped)
-      .sort((a, b) => a.localeCompare(b))
-      .map((dateKey) => {
-        const dayMeals = grouped[dateKey];
-        const parsedDate = manilaDateFromKey(dateKey);
-        const weekday = formatManilaDate(parsedDate, { weekday: 'long' });
-        const dateStr = formatManilaDate(parsedDate, { month: 'short', day: 'numeric' });
-
-        // Sum calories and macros targets for the day
-        const dayCalories = dayMeals.reduce((sum, m) => sum + m.calories, 0);
-        const dayProtein = dayMeals.reduce((sum, m) => sum + m.proteinG, 0);
-        const dayCarbs = dayMeals.reduce((sum, m) => sum + m.carbsG, 0);
-        const dayFat = dayMeals.reduce((sum, m) => sum + m.fatG, 0);
-
-        return {
-          dateKey,
-          weekday,
-          dateStr,
-          mealsList: dayMeals,
-          dayCalories,
-          dayProtein,
-          dayCarbs,
-          dayFat,
-        };
-      });
   };
 
   const groupPendingMealsByDate = () => {
-    const grouped: Record<string, PendingMealPreview[]> = {};
-
-    pendingReview?.meals.forEach((meal) => {
-      const dateKey = getManilaDateKey(meal.scheduledDate);
-      if (!grouped[dateKey]) {
-        grouped[dateKey] = [];
-      }
-      grouped[dateKey].push(meal);
-    });
-
-    return Object.keys(grouped)
-      .sort((a, b) => a.localeCompare(b))
-      .map((dateKey) => {
-        const parsedDate = manilaDateFromKey(dateKey);
-        return {
-          dateKey,
-          weekday: formatManilaDate(parsedDate, { weekday: 'long' }),
-          dateStr: formatManilaDate(parsedDate, { month: 'short', day: 'numeric' }),
-          mealsList: grouped[dateKey],
-        };
-      });
+    return groupMealsByManilaDate<PendingMealPreview>(pendingReview?.meals ?? []);
   };
 
   const groupedDays = groupMealsByDate();
@@ -155,8 +116,7 @@ export function mealPlanPresentation({
       });
     }
     if (starterLastDate) {
-      const dayAfter = new Date(starterLastDate);
-      dayAfter.setDate(dayAfter.getDate() + 1);
+      const dayAfter = manilaDateFromKey(addCalendarDays(getManilaDateKey(starterLastDate), 1));
       return formatManilaDate(dayAfter, { weekday: 'long', month: 'short', day: 'numeric' });
     }
     return null;
