@@ -23,3 +23,15 @@ Vercel production deployment `dpl_FH1N7iid8ew5kWdexSu6syMa566r` is READY at the 
 ### Rollback
 
 The last working frontend before the continuous-sheet update is `dpl_DCNabzchQkUHPsMkFdV7SdRRZfXR` at `5a2f8307`. The continuous-sheet release above is the rollback target for the later Food & planning layout. Promote the appropriate previous frontend only; no database restore is needed. Reload existing tabs after promotion.
+
+## Compact nested tabs
+
+`WorkspaceTabs` now accepts `level="secondary"`. This supplies the existing ribbon peach (`#f09e6c`), 12px semibold labels, 14px icons and a desktop rail that fits equal-width controls. The desktop child rail measures 46px tall against the 62px primary rail; mobile controls reserve a 44px minimum touch height. Long category sets can stack on mobile. The highlight remains within its own rail, with native links/buttons, keyboard focus and reduced-motion behavior. Existing primary navigation defaults remain unchanged.
+
+Profile body/safety sections and food safety categories, admin analytics, RND case filters and reference sources, and grocery status filters use this shared variant. Development also updates the existing license-update view; that separate feature is excluded from the narrow hosted release. Source: development `a0bec6229c50067f632f8c779e9556a581020011`; narrow frontend release `52752a92e264b000eb464cbad272efc7da8fc8f4`.
+
+Ten focused safety-intake, RND tab and admin analytics tests pass in both checkouts. TypeScript, targeted lint, source architecture budgets, the Impeccable layout scan and isolated production compilation/page generation pass. Synthetic local browser checks verify both themes, desktop label containment, equal control/indicator widths, click navigation and Enter selection. Screenshots: ignored `backend/.local/nested-tabs-{light,dark}.jpg`. The browser viewport override did not change the actual 1280px viewport in this run; mobile sizing was inspected in source and is not claimed as a rendered mobile check. No profile or clinical mutation was submitted.
+
+The previous working frontend for this update is `dpl_FH1N7iid8ew5kWdexSu6syMa566r` at `f6d5f6b500e85772821bef74dcd453573949132a`. Backend, schema, environment and review authorization remain unchanged; a frontend rollback needs no database restore.
+
+Vercel production `dpl_F33ixRnrEsU2ct2kBBGUNxvJguwH` is READY at the exact release commit above and owns `kainara.site` and `www.kainara.site`. A bounded ordinary live synthetic member check confirmed the 62px parent and 46px child rails, the peach active fill and successful Conditions & allergies selection. No member form was saved. Screenshot: ignored `backend/.local/nested-tabs-live.jpg`; provider receipt: excluded `.vercel/nested-tabs-deployment.json` in the release checkout. The test session was signed out afterward.

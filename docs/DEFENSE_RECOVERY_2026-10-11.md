@@ -74,7 +74,7 @@ The clean release checkout excluded unrelated shared edits. Both production buil
 | Production component | Verified deployment | Commit |
 | --- | --- | --- |
 | Railway API | `24a6ce5f-4554-4b3c-a9aa-d20aebd9d880` — SUCCESS | `5a9c025fe97a1d2848a6f40a9ff32578061111a4` |
-| Vercel frontend | `dpl_FH1N7iid8ew5kWdexSu6syMa566r` — READY, shared profile settings and continuous review guidance | `f6d5f6b500e85772821bef74dcd453573949132a` |
+| Vercel frontend | `dpl_F33ixRnrEsU2ct2kBBGUNxvJguwH` — READY, compact nested tabs, shared profile settings and continuous review guidance | `52752a92e264b000eb464cbad272efc7da8fc8f4` |
 
 The later frontend-only health forms inbox release preserves the compatible API above and changes no schema or deployed environment variables. Its public browser check, narrow source scope and previous frontend rollback target are recorded in `docs/HEALTH_FORMS_INBOX_RELEASE_2026-10-11.md`.
 
