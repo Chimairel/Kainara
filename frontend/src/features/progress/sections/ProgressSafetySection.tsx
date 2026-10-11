@@ -1,11 +1,11 @@
 'use client';
 
-import Card from '@/components/ui/Card';
+import ProfileSettingsSection from '@/components/user/ProfileSettingsSection';
 
 import StructuredSafetyIntake from '@/components/user/StructuredSafetyIntake';
 import api from '@/lib/axios';
 import { safetyInputsFromProfile } from '@/lib/safety-intake';
-import { CheckCircle, Heart } from 'lucide-react';
+import { CheckCircle } from 'lucide-react';
 
 import type { useProgressWorkspaceModel } from './useProgressWorkspaceModel';
 type Model = Extract<ReturnType<typeof useProgressWorkspaceModel>, { kind: 'ready' }>;
@@ -21,16 +21,10 @@ export default function ProgressSafetySection({ model }: SectionProps) {
   return (
     <>
       {activeSection === 'safety' && (
-        <Card className="p-6 border-brand-border/70 bg-brand-surface shadow-card text-left mb-8">
-          <h3 className="text-sm font-extrabold text-brand-green uppercase tracking-wide mb-2 font-display flex items-center gap-1.5">
-            <Heart className="w-4 h-4 text-brand-green" />
-            <span>Conditions, allergies & foods to avoid</span>
-          </h3>
-          <p className="text-xs text-brand-muted mb-6 leading-relaxed">
-            Save these together so your meals can be checked against your latest information. You can update them at any
-            time.
-          </p>
-
+        <ProfileSettingsSection
+          title="Conditions & food safety"
+          description="Save these together so your meals can be checked against your latest information. You can update them at any time."
+        >
           {healthSuccess && (
             <div className="p-3.5 rounded-xl bg-status-verified-bg/10 border border-status-verified-text/25 text-status-verified-text text-xs font-bold mb-4 flex items-center gap-2">
               <CheckCircle className="w-4 h-4 text-status-verified-text shrink-0" />
@@ -42,6 +36,7 @@ export default function ProgressSafetySection({ model }: SectionProps) {
             initialEntries={safetyInputsFromProfile(profileData)}
             editableDomains={['CONDITION', 'ALLERGY', 'INTOLERANCE', 'AVOIDED_INGREDIENT']}
             submitLabel="Save safety changes"
+            presentation="profile"
             onSaved={async (_entries, changed) => {
               setHealthSuccess(
                 changed
@@ -56,7 +51,7 @@ export default function ProgressSafetySection({ model }: SectionProps) {
               if (response.data?.success) setProfileData(response.data.data);
             }}
           />
-        </Card>
+        </ProfileSettingsSection>
       )}
     </>
   );

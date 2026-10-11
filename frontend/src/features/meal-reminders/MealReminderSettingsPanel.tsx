@@ -1,6 +1,6 @@
 'use client';
 import { useEffect, useState, useRef } from 'react';
-import Card from '@/components/ui/Card';
+import ProfileSettingsSection from '@/components/user/ProfileSettingsSection';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import Switch from '@/components/ui/Switch';
@@ -69,15 +69,20 @@ export default function MealReminderSettingsPanel() {
   }, [ownerId]);
   if (loading || resolvedOwner !== ownerId)
     return (
-      <Card className="mb-8 p-6">
+      <ProfileSettingsSection
+        title="Meal times & reminders"
+        description="Set your eating times and choose which reminders to receive."
+      >
         <p role="status">Loading meal times…</p>
-      </Card>
+      </ProfileSettingsSection>
     );
   return (
-    <Card className="mb-8 space-y-5 p-6 text-left">
-      <h2 className="font-display text-lg font-bold text-brand-green">Meal times & reminders</h2>
+    <ProfileSettingsSection
+      title="Meal times & reminders"
+      description="Set your eating times and choose which reminders to receive."
+    >
       <form
-        className="space-y-4"
+        className="space-y-6"
         onSubmit={async (event) => {
           event.preventDefault();
           if (busy || loading) return;
@@ -95,9 +100,9 @@ export default function MealReminderSettingsPanel() {
         }}
       >
         <MealTimesFields value={settings} onChange={setSettings} disabled={loading || busy} />
-        <div className="space-y-3 text-sm text-brand-text">
+        <div className="space-y-4 border-t border-brand-border pt-5 text-sm text-brand-text">
           <label className="flex min-h-11 items-center justify-between gap-3">
-            <span>Send meal reminders</span>
+            <span className="font-semibold">Send meal reminders</span>
             <Switch
               aria-label="Send meal reminders"
               checked={settings.remindersEnabled}
@@ -108,7 +113,7 @@ export default function MealReminderSettingsPanel() {
           <fieldset
             aria-label="Meal reminder options"
             disabled={loading || busy || !settings.remindersEnabled}
-            className={`ml-2 space-y-3 border-l-2 border-brand-border/70 pl-4 sm:ml-4 sm:pl-5 ${!settings.remindersEnabled ? 'opacity-50' : ''}`}
+            className={`space-y-4 ${!settings.remindersEnabled ? 'opacity-50' : ''}`}
           >
             <label className="flex min-h-11 items-center justify-between gap-3">
               <span className="flex min-w-0 flex-col gap-1 sm:gap-2">
@@ -121,20 +126,24 @@ export default function MealReminderSettingsPanel() {
                 onCheckedChange={(checked) => setSettings({ ...settings, prepareEnabled: checked })}
               />
             </label>
-            <Input
-              type="number"
-              min={0}
-              max={180}
-              step={1}
-              required
-              disabled={loading || busy || !settings.remindersEnabled || !settings.prepareEnabled}
-              label="Preparation lead time (minutes before eating)"
-              value={Number.isFinite(settings.prepareMinutesBefore ?? 60) ? (settings.prepareMinutesBefore ?? 60) : ''}
-              onChange={(event) =>
-                setSettings({ ...settings, prepareMinutesBefore: event.currentTarget.valueAsNumber })
-              }
-              helperText="Choose 0–180 minutes. Use 0 for a reminder at the eating time."
-            />
+            <div className="max-w-sm">
+              <Input
+                type="number"
+                min={0}
+                max={180}
+                step={1}
+                required
+                disabled={loading || busy || !settings.remindersEnabled || !settings.prepareEnabled}
+                label="Preparation lead time (minutes before eating)"
+                value={
+                  Number.isFinite(settings.prepareMinutesBefore ?? 60) ? (settings.prepareMinutesBefore ?? 60) : ''
+                }
+                onChange={(event) =>
+                  setSettings({ ...settings, prepareMinutesBefore: event.currentTarget.valueAsNumber })
+                }
+                helperText="Choose 0–180 minutes. Use 0 for a reminder at the eating time."
+              />
+            </div>
             <label className="flex min-h-11 items-center justify-between gap-3">
               <span className="flex min-w-0 flex-col gap-1 sm:gap-2">
                 <span>Logging reminder</span>
@@ -149,14 +158,25 @@ export default function MealReminderSettingsPanel() {
             <p className="text-xs text-brand-muted">60 minutes after eating, if still unlogged.</p>
           </fieldset>
         </div>
-        <p className="text-xs text-brand-muted">
-          Times above are scheduled reminder times in your selected timezone; device delivery may arrive later. Save
-          meal times to apply your changes. Meal times and reminder preferences apply to your account across devices.
-          The breakfast, lunch and dinner fields are your eating times. Preparation follows the lead time above.
-          Reminders only apply to cleared, unlogged meals. Delivery depends on your connection and device notification
-          settings.
-        </p>
-        <Button type="submit" variant="primary" disabled={loading || busy} isLoading={busy}>
+        <details className="text-sm text-brand-muted">
+          <summary className="cursor-pointer font-semibold text-brand-text focus-visible:outline-brand-green">
+            How reminder delivery works
+          </summary>
+          <p className="mt-2 max-w-prose leading-relaxed">
+            Times above are scheduled reminder times in your selected timezone; device delivery may arrive later. Save
+            meal times to apply your changes. Meal times and reminder preferences apply to your account across devices.
+            The breakfast, lunch and dinner fields are your eating times. Preparation follows the lead time above.
+            Reminders only apply to cleared, unlogged meals. Delivery depends on your connection and device notification
+            settings.
+          </p>
+        </details>
+        <Button
+          type="submit"
+          variant="primary"
+          disabled={loading || busy}
+          isLoading={busy}
+          className="w-full sm:w-auto"
+        >
           Save meal times
         </Button>
         {message && (
@@ -170,7 +190,9 @@ export default function MealReminderSettingsPanel() {
           </p>
         )}
       </form>
-      <DeviceNotificationsPanel />
-    </Card>
+      <div className="mt-7">
+        <DeviceNotificationsPanel />
+      </div>
+    </ProfileSettingsSection>
   );
 }
