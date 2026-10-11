@@ -42,4 +42,15 @@ This proves transfer of the verified recovered data, not reconstruction of chang
 
 At 2026-10-11 20:47:47 UTC, the owner-approved live repair refreshed exactly 15 records. Read-back confirms zero stale rice components in the target cycle, all 21 meal IDs retained, identical ingredients/nutrients/decisions/logs and exactly 15 new maintenance audits. Other accounts remain unchanged. All 105 migrations remain applied.
 
-Deployment verification will be recorded here after publication. No migration, provider configuration or deployed secret change is required. The preceding compatible release is `28838a8ad7beb75e9b64944e0d640e5bcca0efd2`, Railway `6bcb2228-0c9d-47da-81fe-4dfab817a877`, Vercel `dpl_BWPZbN9xjxjG3Z4XaqBC9hjM3KYv`. A code rollback can retain the refreshed evidence: it uses the same existing revision/signature schema. Never restore the full backup over newer member activity to undo this repair.
+Tested implementation `1789a06c` was integrated as `8def2a0872e71b37c408b8d6d0e5f75235d40fa0` with an identical Git tree, pushed to development and promoted to demo. Foreign shared-checkout edits were preserved. The compatible API was deployed first (CLI deployment `37ef2e50-c006-4ace-b229-9479bad9addb`, SUCCESS, `/ready` 200), then the production branch was promoted.
+
+| Component | Final deployment | Verified commit |
+| --- | --- | --- |
+| Railway API | `a4a01519-303c-4b1e-9509-86a92a980634` — SUCCESS | `8def2a0872e71b37c408b8d6d0e5f75235d40fa0` |
+| Vercel frontend | `dpl_9mcxgbtKF5Dd3drFS3iJ9wfuXG8b` — READY; `www.kainara.site` and `kainara.site` | `8def2a0872e71b37c408b8d6d0e5f75235d40fa0` |
+
+All 47 Railway variables compare unchanged. No migration, provider configuration or deployed secret changed. At 20:49:11 UTC, the actual backend clearance helper in a read-only live transaction returned 21 eligible IDs over seven dates, exactly three per day. This is authoritative server verification, not an authenticated browser check of the real member's private account.
+
+The bounded ordinary-login public member/RND/admin smoke at 20:53:55 UTC checked Meals and both staff libraries: 32 API responses, no unexpected failures, page errors or overflow. The synthetic restricted member correctly receives one `422 CLINICAL_EVIDENCE_REQUIRED` on workspace retrieval; its existing clinical gate remains visible. The initial smoke assertion treated that expected response as a failure. The assertion was corrected to recognize only that exact status/code/path, and the bounded check passed without changing application safety behavior. No claims, profile edits, clinical decisions, AI calls or explicit generation requests were submitted. Private evidence is in `rice-live-smoke.json`, `rice-live-clearance.json`, final deployment metadata and role screenshots. There was no live load test or new transfer-budget measurement.
+
+The preceding compatible release is `28838a8ad7beb75e9b64944e0d640e5bcca0efd2`, Railway `6bcb2228-0c9d-47da-81fe-4dfab817a877`, Vercel `dpl_BWPZbN9xjxjG3Z4XaqBC9hjM3KYv`. A code rollback can retain the refreshed evidence: it uses the same existing revision/signature schema. Never restore the full backup over newer member activity to undo this repair.
