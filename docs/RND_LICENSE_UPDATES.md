@@ -37,6 +37,8 @@ Apply additive migration `202610110001_nutritionist_license_updates` to an expli
 
 Normal localhost and hosted Neon require separate README target confirmations. Isolated verification does not mean the public site is upgraded.
 
+The owner subsequently confirmed `kainara_local_development@127.0.0.1:55432`. On October 11 the normal localhost database was backed up to a private custom-format archive, its archive contents/checksum verified, and the migration applied. Before/after fingerprints matched all 39 accounts/password hashes and 17 RND credentials; counts retained 291 meals, 15,072 foods and one decryptable document. No license requests or credential changes were fabricated. Normal API/frontend restarted, readiness passed, and actual member/RND/admin logins plus the new form/history screens passed without browser errors or API 5xx. Hosted deployment remains pending.
+
 ## Verification — October 11, 2026
 
 - Final migration applied to a new empty disposable PostgreSQL 17 database, `kainara_license_acceptance` on loopback. No existing or hosted accounts were modified.
