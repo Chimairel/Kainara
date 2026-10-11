@@ -1,6 +1,6 @@
 # Cross-portal contract audit — October 12, 2026
 
-Status: **Integration tested; development release only.** No hosted deployment or application-data repair is part of this audit.
+Status: **Deployed and bounded live smoke verified**, following the owner's publication request. No application-data repair is part of this audit.
 
 ## Request and execution plan
 
@@ -82,5 +82,22 @@ Local logs and screenshots are retained under ignored `backend/.local/defense-au
 
 - This audit fixes confirmed inconsistencies; it cannot establish that every future input, provider outage or concurrent workflow is defect-free.
 - No migration, live restore, credential change, quota change or application-data repair is required by these source changes.
-- The last hosted application release remains `72bd64d86fded47d132fc0801ed93abb31a66d7b`. These new fixes are prepared for development; hosted publication is a separate action.
+- Tested development implementation `28838a8ad7beb75e9b64944e0d640e5bcca0efd2` was subsequently published on the owner's explicit request. Deployment evidence is below.
 - Roll back this development unit as a whole if needed. Both frontend and backend changes belong together because staff UI now consumes the public `image` field supplied by the backend.
+
+## Hosted publication — October 12, 2026
+
+The owner requested “push it live.” Authenticated official CLIs confirmed the existing Railway project/service/production environment and Vercel team/project under `chimairelp@gmail.com`. The clean checkout contained the tested source only. Development commit `28838a8a` has the same complete tree as tested isolated commit `885a13cf`; `demo` was fast-forwarded to that exact implementation.
+
+| Component | Current verified deployment | Application commit |
+| --- | --- | --- |
+| Railway API | `6bcb2228-0c9d-47da-81fe-4dfab817a877` — SUCCESS, `/ready` 200 | `28838a8ad7beb75e9b64944e0d640e5bcca0efd2` |
+| Vercel frontend | `dpl_BWPZbN9xjxjG3Z4XaqBC9hjM3KYv` — READY, `www.kainara.site` and `kainara.site` assigned | `28838a8ad7beb75e9b64944e0d640e5bcca0efd2` |
+
+The compatible API was deployed first using the CLI from the clean checkout (`c805faa6-d1fb-42f4-93c7-828ed3aac7e4`, successful readiness), then the branch promotion produced the final Git-tracked Railway/Vercel pair above. All **47 Railway variables** compare unchanged before/after, and the existing connection still targets defense Neon `nameless-dust-38810716` / `br-round-art-b355gp02` / `neondb`. No secrets, migrations, database restores or application records were changed by the release operation.
+
+One ordinary-login public smoke completed at **04:21:18 Philippine/Singapore time on October 12** (October 11, 20:21:18 UTC). Member mobile Progress/Food & planning, RND library and admin library passed, with **47 API responses all HTTP 200**, no page errors or horizontal overflow. Both staff library card/detail photographs loaded and their public image objects and base-verification labels matched. No profile saves, claims, review decisions or generation requests were submitted. The browser sessions were closed. Screenshots and results: ignored `backend/.local/defense-audit-20261012/contract-live-*` and `contract-live-smoke.json`.
+
+One post-smoke Neon project reading at **04:21:57 local time** reported `data_transfer_bytes=719641932`, `compute_time_seconds=9412`, `data_storage_bytes_hour=0`, `written_data_bytes=0`, `cpu_used_sec=0`, and billing period October 1–November 1 UTC. Main-branch metadata reports **136,552,448 logical bytes**, ready. The project counters may lag; zero counters are reported values, not proof of no usage. The API reports a 1,073,741,824-byte branch size limit but no transfer allowance. Reported transfer is approximately **14.39% of the existing conservative 5,000,000,000-byte operating budget**, below its 50% warning threshold; this does not independently confirm the account's current transfer allowance. Free consumption history was not requested. Capacity monitoring remains in the recovery record.
+
+**Compatible rollback pair:** application `72bd64d86fded47d132fc0801ed93abb31a66d7b`, Railway `e9d4ef23-3c66-4992-848a-c95e106ba2ef`, Vercel `dpl_4kYDKdTSWSm3r5En8FsFpeyFoewn`. Restore that application pair or publish a reviewed source revert if needed; preserve the existing database and deployed keys. Code rollback requires no database restore. Deployment records identify the immutable application commit; a subsequent documentation-only development commit does not change the deployed application.
