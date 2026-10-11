@@ -1,0 +1,12 @@
+**/node_modules/**
+**/.next*/**
+**/dist/**
+**/coverage/**
+**/test-results/**
+**/playwright-report/**
+**/.local/**
+**/.codex-runtime/**
+**/.data-audit-backups/**
+**/.env*
+**/*.tsbuildinfo
+.vercel/**

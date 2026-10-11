@@ -74,7 +74,9 @@ The clean release checkout excluded unrelated shared edits. Both production buil
 | Production component | Verified deployment | Commit |
 | --- | --- | --- |
 | Railway API | `24a6ce5f-4554-4b3c-a9aa-d20aebd9d880` — SUCCESS | `5a9c025fe97a1d2848a6f40a9ff32578061111a4` |
-| Vercel frontend | `dpl_3jjfgEqLLkTCBciRfZR86May5Pbf` — READY | `5a9c025fe97a1d2848a6f40a9ff32578061111a4` |
+| Vercel frontend | `dpl_G1AWza6Av25Wskz3vKJL5e5RM3xs` — READY, promoted inbox UI | `5a2f830703cd63b0f44c79bf23d83e0f3d9244c0` |
+
+The later frontend-only health forms inbox release preserves the compatible API above and changes no schema or deployed environment variables. Its public browser check, narrow source scope and previous frontend rollback target are recorded in `docs/HEALTH_FORMS_INBOX_RELEASE_2026-10-11.md`.
 
 Later October 11, owner-confirmed migration `202610110002_initial_profile_clarification_context` and the narrow release above corrected question publication for initial profile revision 0. A fresh verified backup preceded the migration, with retained counts and credential fingerprints unchanged. The ordinary live RND → member answer → second RND handoff/resolution journey passed. See `docs/INITIAL_PROFILE_CLARIFICATION_FIX_2026-10-11.md` for the archive checksum and exact evidence. The original recovery pair was Railway `616d9157-bd6b-4425-80ba-81e90fea97e1` and Vercel `dpl_62NuFUQiMKdvd6GJDWdjQ1YAp7LY`, both at `20899735`.
 
