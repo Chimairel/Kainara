@@ -4,6 +4,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { AlertTriangle, Check, Plus, X, ShieldAlert, Activity, Ban, Stethoscope } from 'lucide-react';
 import api from '@/lib/axios';
 import Button from '@/components/ui/Button';
+import WorkspaceTabs from '@/components/ui/WorkspaceTabs';
 import Modal from '@/components/ui/Modal';
 import type { SafetyEntryDomain, SafetyProfileEntry, SafetySupportState } from '@/types';
 import type { SafetyInputValue } from '@/lib/safety-intake';
@@ -64,10 +65,12 @@ export default function StructuredSafetyIntake({
   editableDomains,
   submitLabel,
   onSaved,
+  presentation = 'onboarding',
 }: {
   initialEntries: SafetyInputValue[];
   editableDomains: SafetyEntryDomain[];
   submitLabel: string;
+  presentation?: 'onboarding' | 'profile';
   onSaved: (
     entries: SafetyProfileEntry[],
     changed: boolean,
@@ -317,71 +320,101 @@ export default function StructuredSafetyIntake({
   return (
     <div className="space-y-4 sm:space-y-5">
       {/* 3-Section Category Cards (When multiple domains exist, e.g. Food Safety) */}
-      {editableDomains.length > 1 && (
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5" role="tablist" aria-label="Food safety categories">
-          {editableDomains.map((domain) => {
-            const config = domainConfig[domain];
-            const Icon = config.icon;
-            const count = inputs.filter((entry) => entry.domain === domain).length;
-            const isActive = activeDomain === domain;
-            return (
-              <button
-                key={domain}
-                type="button"
-                role="tab"
-                aria-selected={isActive}
-                onClick={() => {
-                  setActiveDomain(domain);
-                  setCustomText('');
-                  setError(null);
-                }}
-                className={`flex flex-col items-start p-3 rounded-2xl border-2 text-left transition-all duration-200 outline-none ${
-                  isActive
-                    ? 'border-brand-green bg-brand-green/10 text-brand-green dark:border-brand-accent dark:bg-brand-accent/15 dark:text-brand-accent shadow-sm ring-1 ring-brand-green/30'
-                    : 'border-brand-border/80 bg-brand-bgAlt/50 text-brand-muted hover:border-brand-border hover:text-brand-text'
-                }`}
-              >
-                <div className="flex items-center justify-between w-full mb-1">
-                  <div className="flex items-center gap-1.5 sm:gap-2">
-                    <Icon className="w-4 h-4 shrink-0" />
-                    <span className="text-xs font-bold tracking-tight">{config.title}</span>
+      {editableDomains.length > 1 &&
+        (presentation === 'profile' ? (
+          <WorkspaceTabs
+            value={activeDomain}
+            label="Food safety categories"
+            tone="accentSoft"
+            size="sm"
+            stackOnMobile
+            items={editableDomains.map((domain) => ({
+              value: domain,
+              label: domainConfig[domain].title,
+              count: inputs.filter((entry) => entry.domain === domain).length,
+            }))}
+            onChange={(domain) => {
+              setActiveDomain(domain);
+              setCustomText('');
+              setError(null);
+            }}
+          />
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5" role="tablist" aria-label="Food safety categories">
+            {editableDomains.map((domain) => {
+              const config = domainConfig[domain];
+              const Icon = config.icon;
+              const count = inputs.filter((entry) => entry.domain === domain).length;
+              const isActive = activeDomain === domain;
+              return (
+                <button
+                  key={domain}
+                  type="button"
+                  role="tab"
+                  aria-selected={isActive}
+                  onClick={() => {
+                    setActiveDomain(domain);
+                    setCustomText('');
+                    setError(null);
+                  }}
+                  className={`flex flex-col items-start p-3 rounded-2xl border-2 text-left transition-all duration-200 outline-none ${
+                    isActive
+                      ? 'border-brand-green bg-brand-green/10 text-brand-green dark:border-brand-accent dark:bg-brand-accent/15 dark:text-brand-accent shadow-sm ring-1 ring-brand-green/30'
+                      : 'border-brand-border/80 bg-brand-bgAlt/50 text-brand-muted hover:border-brand-border hover:text-brand-text'
+                  }`}
+                >
+                  <div className="flex items-center justify-between w-full mb-1">
+                    <div className="flex items-center gap-1.5 sm:gap-2">
+                      <Icon className="w-4 h-4 shrink-0" />
+                      <span className="text-xs font-bold tracking-tight">{config.title}</span>
+                    </div>
+                    {count > 0 && (
+                      <span className="rounded-full bg-brand-green/20 px-2 py-0.5 text-[10px] font-black text-brand-green dark:bg-brand-accent/25 dark:text-brand-accent">
+                        {count}
+                      </span>
+                    )}
                   </div>
-                  {count > 0 && (
-                    <span className="rounded-full bg-brand-green/20 px-2 py-0.5 text-[10px] font-black text-brand-green dark:bg-brand-accent/25 dark:text-brand-accent">
-                      {count}
-                    </span>
-                  )}
-                </div>
-                <span className="text-[11px] leading-snug text-brand-muted line-clamp-1">{config.subtitle}</span>
-              </button>
-            );
-          })}
-        </div>
-      )}
+                  <span className="text-[11px] leading-snug text-brand-muted line-clamp-1">{config.subtitle}</span>
+                </button>
+              );
+            })}
+          </div>
+        ))}
 
       {/* Common Choices Buttons */}
       <div className="flex flex-col gap-2">
-        <span className="text-xs font-bold uppercase tracking-wider text-brand-muted">
+        <span
+          className={
+            presentation === 'profile'
+              ? 'text-sm font-semibold text-brand-text'
+              : 'text-xs font-bold uppercase tracking-wider text-brand-muted'
+          }
+        >
           Common {labels[activeDomain].toLowerCase()}
         </span>
         <div className="flex flex-wrap gap-2" aria-label={`${labels[activeDomain]} common choices`}>
           {options.map((item) => {
             const isSelected = selectedCodes.has(item.code);
             return (
-              <button
+              <Button
                 key={`${activeDomain}-${item.code}`}
                 type="button"
                 aria-pressed={isSelected}
                 onClick={() => togglePredefined(item)}
-                className={`inline-flex items-center gap-1.5 rounded-full border-2 px-3.5 py-2 text-xs font-bold transition-all outline-none ${
-                  isSelected
-                    ? 'border-brand-green bg-brand-green text-white dark:border-brand-accent dark:bg-brand-accent dark:text-black font-bold shadow-md'
-                    : 'border-brand-border bg-brand-surface text-brand-text hover:border-brand-green/40'
-                }`}
+                variant={isSelected ? 'primary' : 'secondary'}
+                className={
+                  presentation === 'profile'
+                    ? 'gap-1.5 px-3.5'
+                    : `inline-flex items-center gap-1.5 rounded-full border-2 px-3.5 py-2 text-xs font-bold transition-all outline-none ${
+                        isSelected
+                          ? 'border-brand-green bg-brand-green text-white dark:border-brand-accent dark:bg-brand-accent dark:text-black font-bold shadow-md'
+                          : 'border-brand-border bg-brand-surface text-brand-text hover:border-brand-green/40'
+                      }`
+                }
               >
                 {isSelected && <Check className="w-3.5 h-3.5 stroke-[3] shrink-0" />}
                 <span>{item.displayName}</span>
-              </button>
+              </Button>
             );
           })}
         </div>
@@ -391,7 +424,11 @@ export default function StructuredSafetyIntake({
       <div className="flex flex-col gap-1.5">
         <label
           htmlFor={`safety-${activeDomain}`}
-          className="block text-xs font-bold uppercase tracking-wider text-brand-muted"
+          className={
+            presentation === 'profile'
+              ? 'block text-sm font-semibold text-brand-text'
+              : 'block text-xs font-bold uppercase tracking-wider text-brand-muted'
+          }
         >
           Add other {labels[activeDomain].toLowerCase()}
         </label>
@@ -474,7 +511,7 @@ export default function StructuredSafetyIntake({
       )}
 
       {/* Action Button: Direct Save and Continue */}
-      <div className="flex flex-col sm:flex-row sm:justify-end pt-2">
+      <div className={`flex flex-col sm:flex-row pt-2 ${presentation === 'profile' ? '' : 'sm:justify-end'}`}>
         <Button
           type="button"
           variant="primary"

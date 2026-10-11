@@ -15,6 +15,7 @@ import { getApiErrorMessage } from '@/lib/api-error';
 import OnboardingProgressSlider from '@/components/onboarding/OnboardingProgressSlider';
 import PersonalizationTabs from '@/components/user/PersonalizationTabs';
 import StateNotice from '@/components/shared/StateNotice';
+import PortalPageHeader from '@/components/shared/PortalPageHeader';
 import HealthDetailsInbox from './HealthDetailsInbox';
 import HealthDetailForm, {
   healthDetailFields as fields,
@@ -271,7 +272,11 @@ function ClinicalEvidenceContent({ mode = 'profile', detailsSection }: Workspace
     </>
   );
   return (
-    <div className={mode === 'onboarding' ? 'mx-auto my-auto w-full max-w-2xl space-y-5' : 'portal-page space-y-6'}>
+    <div
+      className={
+        mode === 'onboarding' ? 'mx-auto my-auto w-full max-w-2xl space-y-5' : 'portal-page max-w-5xl space-y-6'
+      }
+    >
       {mode === 'onboarding' ? (
         <>
           <OnboardingProgressSlider currentStep={section === 'conditions' ? 3 : 4} totalSteps={6} />
@@ -295,29 +300,33 @@ function ClinicalEvidenceContent({ mode = 'profile', detailsSection }: Workspace
       ) : (
         <PersonalizationTabs activeTab="clinical-evidence" />
       )}
-      <header>
-        <h1 className="font-display text-3xl font-black">
-          {section === 'conditions'
-            ? 'Condition details'
-            : section === 'allergies'
-              ? 'Allergy details'
-              : 'Health details'}
-        </h1>
-        {mode === 'profile' && (loading || items.length > 0) ? (
-          <p className="mt-2 max-w-prose text-sm leading-relaxed text-brand-muted">
-            Questions from your RND, profile corrections, and your health details — together in one place. Choose a form
-            to read or respond.
-          </p>
-        ) : (
-          (loading || areas.length > 0) && (
+      {mode === 'profile' ? (
+        <PortalPageHeader
+          title="Health details"
+          description={
+            loading || items.length > 0
+              ? 'Questions from your RND, profile corrections, and your health details — together in one place. Choose a form to read or respond.'
+              : ''
+          }
+        />
+      ) : (
+        <header>
+          <h1 className="font-display text-3xl font-black">
+            {section === 'conditions'
+              ? 'Condition details'
+              : section === 'allergies'
+                ? 'Allergy details'
+                : 'Health details'}
+          </h1>
+          {(loading || areas.length > 0) && (
             <p className="mt-2 text-sm text-brand-muted">
               Describe the conditions and restrictions already listed in your profile for an RND to review. Enter “none”
               or “unknown” where appropriate. Complete and save a separate form for each listed condition or
               restriction.
             </p>
-          )
-        )}
-      </header>
+          )}
+        </header>
+      )}
       {request && (
         <div role="status" className="rounded-xl border border-amber-500 p-4">
           <p className="font-bold">

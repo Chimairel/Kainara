@@ -1,5 +1,6 @@
 import type { FormEvent } from 'react';
 import Button from '@/components/ui/Button';
+import { ProfileSectionHeader } from '@/components/user/ProfileSettingsSection';
 import { healthAreaLabel } from './health-inbox-items';
 
 export type HealthAnswers = {
@@ -60,10 +61,11 @@ export default function HealthDetailForm({
     >
       {embedded ? (
         <header className="border-b border-brand-border pb-5">
-          <h3 className="font-display text-2xl font-semibold capitalize">{healthAreaLabel(area)}</h3>
-          <p className="mt-2 max-w-prose text-sm leading-relaxed text-brand-muted">
-            Your answers are shared with an RND for review. Use “none” or “unknown” where appropriate.
-          </p>
+          <ProfileSectionHeader
+            level={3}
+            title={healthAreaLabel(area)}
+            description="Your answers are shared with an RND for review. Use “none” or “unknown” where appropriate."
+          />
           {requirement && <p className="mt-3 text-xs text-brand-muted">{requirement.message}</p>}
         </header>
       ) : (
@@ -93,7 +95,7 @@ export default function HealthDetailForm({
       )}
       <fieldset disabled={busy || profileChanged} className="space-y-5">
         {healthDetailFields.map(([field, label]) => (
-          <label key={field} className="block text-sm font-medium leading-relaxed">
+          <label key={field} className="block text-sm font-semibold leading-relaxed">
             {area === 'FOOD_ALLERGY' ? (allergyLabels[field] ?? label) : label}
             <textarea
               required={field !== 'measurements'}
@@ -108,7 +110,7 @@ export default function HealthDetailForm({
         ))}
       </fieldset>
       <div className="flex flex-wrap items-center gap-3 border-t border-brand-border pt-5">
-        <Button type="submit" disabled={busy || profileChanged}>
+        <Button type="submit" disabled={busy || profileChanged} isLoading={busy} className="w-full sm:w-auto">
           {busy ? 'Saving…' : 'Save health details'}
         </Button>
         <p className="text-xs text-brand-muted">Saving details does not approve a meal.</p>

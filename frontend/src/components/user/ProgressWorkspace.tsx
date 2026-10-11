@@ -15,6 +15,7 @@ import { TrendingUp, Plus, CheckCircle, AlertTriangle, Heart, Settings, Activity
 import { type ProgressWorkspaceMode } from '@/features/progress/useProgressWorkspace';
 
 import PersonalizationTabs from '@/components/user/PersonalizationTabs';
+import { ProfileSettingsSurface } from '@/components/user/ProfileSettingsSection';
 import MealReminderSettingsPanel from '@/features/meal-reminders/MealReminderSettingsPanel';
 
 import { useProgressWorkspaceModel } from '@/features/progress/sections/useProgressWorkspaceModel';
@@ -85,16 +86,6 @@ export function ProgressWorkspace({ mode = 'progress' }: { mode?: ProgressWorksp
         }
       />
 
-      {mode !== 'progress' && membership?.enabled && (
-        <p className="mb-5 rounded-2xl border border-brand-border bg-brand-surface p-4 text-sm text-brand-muted">
-          You can save profile updates on any plan. Applying ordinary changes to meal planning requires Lifestyle; case
-          planning and health-context updates require Health. Your first report and unchanged weekly reports are free.{' '}
-          <Link href="/membership" className="font-semibold text-brand-green">
-            View your benefits and limits
-          </Link>
-        </p>
-      )}
-
       {error && error.toLowerCase().includes('nutrition report') ? (
         <AnnouncementBanner
           className="mb-6"
@@ -153,11 +144,32 @@ export function ProgressWorkspace({ mode = 'progress' }: { mode?: ProgressWorksp
           <ProgressOverviewSection model={model} />
 
           {/* EDITABLE BIOMETRICS & PREFERENCES */}
-          <ProgressProfileSection model={model} />
-          {mode === 'planning' && <MealReminderSettingsPanel />}
+          {mode !== 'progress' ? (
+            <ProfileSettingsSurface>
+              <ProgressProfileSection model={model} />
+              {mode === 'planning' ? <MealReminderSettingsPanel /> : <ProgressSafetySection model={model} />}
+              {membership?.enabled && (
+                <details className="px-5 py-5 sm:px-7">
+                  <summary className="cursor-pointer text-sm font-semibold text-brand-text focus-visible:outline-brand-green">
+                    How your membership affects planning
+                  </summary>
+                  <p className="mt-3 max-w-prose text-sm leading-relaxed text-brand-muted">
+                    You can save profile updates on any plan. Applying ordinary changes to meal planning requires
+                    Lifestyle; case planning and health-context updates require Health. Your first report and unchanged
+                    weekly reports are free.{' '}
+                    <Link href="/membership" className="font-semibold text-brand-green underline underline-offset-4">
+                      View your benefits and limits
+                    </Link>
+                  </p>
+                </details>
+              )}
+            </ProfileSettingsSurface>
+          ) : (
+            <ProgressProfileSection model={model} />
+          )}
 
           {/* HEALTH CONDITIONS & CLINICAL SAFETY */}
-          <ProgressSafetySection model={model} />
+          {mode === 'progress' && <ProgressSafetySection model={model} />}
 
           {/* ADHERENCE CALENDAR BLOCK */}
           <ProgressHistorySection model={model} />

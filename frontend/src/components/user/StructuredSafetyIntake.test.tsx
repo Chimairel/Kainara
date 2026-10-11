@@ -6,6 +6,64 @@ const mocks = vi.hoisted(() => ({ get: vi.fn(), post: vi.fn() }));
 vi.mock('@/lib/axios', () => ({ default: mocks }));
 
 describe('structured safety intake loading', () => {
+  it('keeps recorded conditions when switching profile categories and previewing safety changes', async () => {
+    mocks.post.mockClear();
+    mocks.get.mockResolvedValueOnce({
+      data: {
+        data: {
+          conditions: [
+            {
+              code: 'DIABETES',
+              displayName: 'Diabetes',
+              domains: ['CONDITION'],
+              aliases: [],
+              searchTerms: [],
+              supportState: 'SUPPORTED',
+              policyReference: '',
+            },
+          ],
+          foodSafety: [
+            {
+              code: 'NUTS',
+              displayName: 'Nuts',
+              domains: ['ALLERGY'],
+              aliases: [],
+              searchTerms: [],
+              supportState: 'SUPPORTED',
+              policyReference: '',
+            },
+          ],
+        },
+      },
+    });
+    mocks.post.mockResolvedValueOnce({
+      data: { data: { entries: [], errors: [], canSave: true, requiresReview: false } },
+    });
+    render(
+      <StructuredSafetyIntake
+        presentation="profile"
+        initialEntries={[{ domain: 'CONDITION', value: 'DIABETES', provenance: 'PREDEFINED' }]}
+        editableDomains={['CONDITION', 'ALLERGY']}
+        submitLabel="Save safety changes"
+        onSaved={vi.fn()}
+      />
+    );
+    expect(await screen.findByRole('button', { name: 'Diabetes' })).toHaveAttribute('aria-pressed', 'true');
+    fireEvent.click(screen.getByRole('button', { name: /Food Allergies/ }));
+    fireEvent.click(screen.getByRole('button', { name: 'Nuts' }));
+    fireEvent.click(screen.getByRole('button', { name: /Medical Conditions/ }));
+    expect(screen.getByRole('button', { name: 'Diabetes' })).toHaveAttribute('aria-pressed', 'true');
+    fireEvent.click(screen.getByRole('button', { name: 'Save safety changes' }));
+    await waitFor(() =>
+      expect(mocks.post).toHaveBeenCalledWith('/user/onboarding/safety-preview', {
+        entries: [
+          { domain: 'CONDITION', value: 'DIABETES', provenance: 'PREDEFINED' },
+          { domain: 'ALLERGY', value: 'NUTS', provenance: 'PREDEFINED' },
+        ],
+        editableDomains: ['CONDITION', 'ALLERGY'],
+      })
+    );
+  });
   it('shows the choices and the rest of the form together after the catalogue arrives', async () => {
     let finish!: (value: unknown) => void;
     mocks.get.mockReturnValueOnce(
