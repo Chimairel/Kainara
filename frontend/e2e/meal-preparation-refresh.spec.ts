@@ -119,11 +119,14 @@ for (const width of [400, 1440]) {
     state.pending = true;
     state.cycle.planType = 'STARTER';
     await page.goto('/dashboard');
+    const stack = page.getByRole('region', { name: 'Account and meal plan notices' });
+    await expect(stack.locator('details')).not.toHaveAttribute('open');
+    await expect(stack.locator('summary')).toContainText('3 updates');
+    await stack.locator('summary').click();
     const preparation = page.getByRole('complementary', { name: 'Meal preparation status' });
     const review = page.getByRole('complementary', { name: 'Meal review status' });
     await expect(preparation).toContainText('2 meal slots still awaiting generation.');
     await expect(review).toContainText('logging becomes available after approval.');
-    const stack = page.getByRole('region', { name: 'Account and meal plan notices' });
     await expect(stack.getByRole('complementary')).toHaveCount(3);
     const starter = stack.getByRole('complementary', { name: 'Starter plan status' });
     await expect(starter).toContainText('You’re on a starter plan.');
@@ -165,6 +168,8 @@ for (const width of [400, 1440]) {
     state.partial = true;
     state.status = 'GENERATING';
     await page.goto('/meals');
+    await expect(stack.locator('details')).not.toHaveAttribute('open');
+    await stack.locator('summary').click();
     await expect(preparation).toContainText('2 meal slots still awaiting generation.');
     await expect(preparation).toContainText(
       'Empty slots cannot be reviewed, logged, swapped, or added to groceries yet.'

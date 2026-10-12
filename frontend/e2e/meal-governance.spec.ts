@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { eligibleCredentialFixture } from './helpers/credential-fixture';
 
 for (const role of ['ADMIN', 'NUTRITIONIST'] as const) {
   for (const width of [390, 1440]) {
@@ -140,6 +141,7 @@ for (const role of ['ADMIN', 'NUTRITIONIST'] as const) {
           data = { profiles: [], combinationMatrix: [], combinationColumns: [], structuredProfiles: [] };
         await route.fulfill({ json: { success: true, data } });
       });
+      if (role === 'NUTRITIONIST') await eligibleCredentialFixture(page);
       await page.goto(role === 'ADMIN' ? '/admin/meals' : '/nutritionist/library');
       await page.getByRole('button', { name: 'Review case', exact: true }).click();
       const panel = page.getByRole('region', { name: 'Meal-wide review', exact: true });

@@ -1,0 +1,200 @@
+{
+  "auditDate": "2026-10-12",
+  "report": "docs/SYSTEM_DATABASE_PARITY_AUDIT_2026-10-12.md",
+  "scope": "Documented alterations and approved workflow parity; read-only live inspection, isolated local mutation acceptance",
+  "liveMutation": false,
+  "liveMigration": false,
+  "deploymentPerformed": false,
+  "sourceCommit": "57b33a82f0592ede6c38a31d994aaa050bf44ab4",
+  "deployedApplicationCommit": "8def2a0872e71b37c408b8d6d0e5f75235d40fa0",
+  "target": {
+    "projectId": "nameless-dust-38810716",
+    "name": "kainara-defense-20261016",
+    "branchId": "br-round-art-b355gp02",
+    "database": "neondb",
+    "region": "Singapore",
+    "railwayDeployment": "a4a01519-303c-4b1e-9509-86a92a980634",
+    "railwayState": "SUCCESS",
+    "vercelDeployment": "dpl_9mcxgbtKF5Dd3drFS3iJ9wfuXG8b",
+    "vercelState": "READY",
+    "vercelCommitEvidence": "Full deployment metadata; abbreviated inspect output omitted SHA",
+    "sameApplicationCommit": true,
+    "deployedVariablesCompared": 47,
+    "deployedVariablesUnchanged": true,
+    "pooledDatabaseRoutingMatchesTarget": true,
+    "localDatabase": "kainara_local_development@127.0.0.1:55432",
+    "commentedDefenseConnectionPresent": true
+  },
+  "recoveryArchive": {
+    "bytes": 13812909,
+    "sha256": "822ae013e3788362fd74227ae318a1250bb1316b2ef78388609eb6c03fb4ec38",
+    "preserved": true
+  },
+  "timestamps": {
+    "referenceReadUtc": "2026-10-11T23:51:40.970330Z",
+    "runtimeReadUtc": "2026-10-12T00:20:32.122Z",
+    "deploymentReadUtc": "2026-10-12T00:20:32.362Z",
+    "finalReadUtc": "2026-10-12T00:37:01.272930Z"
+  },
+  "fullRowReferenceComparisons": [
+    { "table": "FoodItem", "rows": 15072, "identical": true },
+    { "table": "FoodAlias", "rows": 81, "identical": true },
+    { "table": "RawRecipeCandidate", "rows": 1967, "identical": true },
+    { "table": "MealLibrary", "rows": 2027, "identical": true },
+    { "table": "RawRecipeApplicableType", "rows": 3068, "identical": true },
+    { "table": "MealLibraryApplicableType", "rows": 2757, "identical": true },
+    { "table": "MealLibraryIngredient", "rows": 20499, "identical": true },
+    { "table": "MealLibrarySafetyDeclaration", "rows": 2555, "identical": true },
+    { "table": "MealLibrarySafetyReview", "rows": 4262, "identical": true },
+    { "table": "ClinicalEvidenceSource", "rows": 16, "identical": true },
+    { "table": "ConditionIngredientRule", "rows": 9, "identical": true },
+    { "table": "ConditionNutrientRule", "rows": 10, "identical": true },
+    { "table": "ConditionRulePolicyVersion", "rows": 10, "identical": true },
+    { "table": "MealBaseVerification", "rows": 51, "identical": true }
+  ],
+  "documentedAlterationCounts": {
+    "comparableRecipeEstimates": 1100,
+    "recoveredIngredientIdentities": 209,
+    "recipesWithRecoveredIdentities": 186,
+    "mealSlotCorrections": 56,
+    "dietaryTagCorrections": 1,
+    "nutritionHolds": 2,
+    "foodRecords": 15072,
+    "nutrientEntries": 1073898,
+    "completedNutrientFields": 94365,
+    "standardizedRawRecipes": 7,
+    "standardizedLibraryDrafts": 7,
+    "inactivePreparedPolicyDrafts": 5,
+    "inactivePreparedNutrientRuleDrafts": 3,
+    "currentSourceTextMarkers": 997,
+    "sourceTextOperationCountComparableToEarlier1560": false,
+    "intentionallyExcludedEnnsRows": 2620,
+    "liveEnnsRows": 0
+  },
+  "schema": {
+    "appliedMigrations": 105,
+    "freshCommittedMigrationReplayPassed": true,
+    "missingRecoveryMigrations": 0,
+    "compatiblePhysicalSchema": true,
+    "equivalentDeparseDifferences": 6,
+    "rawChecksumDifferencesInCleanCheckout": 10,
+    "uniformLineEndingExplanations": 6,
+    "historicalMixedLineEndingExplanations": [
+      "20260905180000_billing_foundation",
+      "202610080002_meal_review_governance"
+    ],
+    "unexplainedInheritedChecksums": [
+      "20260925210000_versioned_clinical_evidence_registry",
+      "20261007100000_meal_reminders_web_push"
+    ],
+    "migrationHistoryRewritten": false,
+    "unvalidatedForeignKeys": 0,
+    "duplicateActiveSlots": 0,
+    "duplicatePlannedLogs": 0,
+    "duplicateDailyAggregates": 0
+  },
+  "retention": {
+    "baselineUsers": 52,
+    "retainedUsers": 51,
+    "documentedDeletedAccounts": 1,
+    "changedRetainedPasswordFingerprints": 0,
+    "baselineMealRowsRemovedWithDeletion": 47,
+    "baselineAudits": 625,
+    "baselineAuditIdsRetained": 625,
+    "currentAudits": 681,
+    "auditRowsChangedOnlyByDeletedActorFk": 3,
+    "baselineMemberDecisions": 1,
+    "currentMemberDecisions": 0,
+    "removedMemberDecisionBelongsToDeletedAccount": true,
+    "encryptedDocumentBytesMatch": true,
+    "documentsDecrypted": 1,
+    "decryptedDocumentHashesMatch": true
+  },
+  "runtime": {
+    "nonsupersededUnfinishedCyclesIncludingPastDates": 14,
+    "cyclesWithStaleRice": 6,
+    "staleRiceSlots": 76,
+    "pastDateStaleRiceSlots": 58,
+    "todayOrFutureStaleRiceSlots": 18,
+    "todayOrFutureCyclesWithStaleRice": 2,
+    "strictGuardEligibleRiceSlots": 3,
+    "repairedTargetMeals": 21,
+    "repairedTargetClearedMeals": 21,
+    "repairedTargetMealsPerDay": 3,
+    "cyclesWithFewerSavedRowsThanExpected": 3,
+    "allUnaffectedCycleClearancesRecomputed": false,
+    "completedJobs": 18,
+    "failedJobs": 2,
+    "failedJobCodes": ["GENERATION_FAILED"],
+    "generationRetried": false
+  },
+  "verification": {
+    "backendUnitPass": 975,
+    "backendUnitFail": 0,
+    "backendExistingTodo": 1,
+    "frontendUnitPass": 1001,
+    "frontendUnitFiles": 206,
+    "focusedReviewRegressionPass": 22,
+    "newMissedEventRegressions": 2,
+    "focusedTestsOverlapFullSuite": true,
+    "sqlHttpDistinctSuitesPass": 18,
+    "initialBrowserPass": 26,
+    "initialBrowserFail": 14,
+    "originalBrowserScenariosWithPassingRerunEvidence": 40,
+    "additionalReviewQueueBrowserPass": 2,
+    "browserResultIsUnionOfTargetedReruns": true,
+    "browserApisMocked": true,
+    "sourceFilesInContractInventory": 1158,
+    "mountedRouteDeclarations": 306,
+    "staticFrontendCalls": 238,
+    "unmatchedStaticPaths": 0,
+    "dynamicCallsWithManualTrace": 11,
+    "architectureBudgetsPassed": true,
+    "changedTypeScriptAndLintPassed": true,
+    "newApplicationBuildPerformed": false,
+    "applicationSourceUnchangedFromPreviouslyVerifiedBuild": true,
+    "freshTransferLoadMeasurementPerformed": false
+  },
+  "findings": [
+    {
+      "id": "PARITY-01",
+      "priority": "P1",
+      "state": "open",
+      "subject": "Older saved rice evidence withholds member meals"
+    },
+    {
+      "id": "PARITY-02",
+      "priority": "P2",
+      "state": "open",
+      "subject": "Raw FNRI fingerprint rejects clean-checkout LF transport"
+    },
+    {
+      "id": "PARITY-03",
+      "priority": "P2",
+      "state": "unverifiable_original_bytes",
+      "subject": "Two inherited migration checksums"
+    },
+    {
+      "id": "PARITY-04",
+      "priority": "P2",
+      "state": "open",
+      "subject": "Obsolete quarantine guide and study baseline addenda"
+    },
+    {
+      "id": "PARITY-05",
+      "priority": "P2",
+      "state": "test_fixtures_corrected",
+      "subject": "Obsolete browser and outside-food acceptance fixtures"
+    }
+  ],
+  "limitations": [
+    "No clinical validation claim",
+    "No external AI/payment/email provider mutation verification",
+    "No guarantee of future Free-tier quota sufficiency",
+    "Old-project post-cutoff activity cannot be reconstructed without another verified archive",
+    "Two original migration SQL byte sequences remain unverifiable",
+    "Not every unaffected cycle received a fresh clearance computation",
+    "Browser presentation fixtures are not real provider end-to-end evidence",
+    "No comprehensive WCAG/device/CWV certification"
+  ]
+}

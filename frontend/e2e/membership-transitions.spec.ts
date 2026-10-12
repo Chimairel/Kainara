@@ -87,6 +87,15 @@ async function setup(page: Page, scenario: 'trial' | 'scheduled' | 'upgrade') {
       };
     else if (path.endsWith('/clinical-profile-review/status')) data = { required: false, approved: true };
     else if (path.endsWith('/checkin/status')) data = { isDue: false };
+    else if (path.endsWith('/user/membership/history'))
+      data = {
+        member: { id: owner, name: 'Fixture User' },
+        rows: [],
+        total: 0,
+        page: 1,
+        totalPages: 1,
+        serverTime: new Date(now).toISOString(),
+      };
     else if (path.endsWith('/user/membership'))
       data = {
         enabled: true,
@@ -112,7 +121,11 @@ async function setup(page: Page, scenario: 'trial' | 'scheduled' | 'upgrade') {
           memberOutsideReviews: 1,
         },
         swaps: { used: 1, cap: scenario === 'upgrade' ? 10 : 21, remaining: scenario === 'upgrade' ? 9 : 20 },
-        usage: { AI_ESTIMATE: usage, PLAN_REVIEW: usage, OUTSIDE_REVIEW: usage },
+        usage: {
+          AI_ESTIMATE: usage,
+          PLAN_REVIEW: { used: 0, cap: 1, remaining: 1 },
+          OUTSIDE_REVIEW: { used: 0, cap: 1, remaining: 1 },
+        },
         transitions: {
           current:
             scenario === 'upgrade'
@@ -152,9 +165,12 @@ test('already paid next plan is visible and prevents another purchase', async ({
   await setup(page, 'scheduled');
   await page.goto('/membership?plans=true');
   const dialog = page.getByRole('dialog');
-  await expect(page.getByText(/starts.*Already paid/)).toBeVisible();
   await expect(dialog.getByRole('button', { name: 'Next plan scheduled', exact: true })).toBeDisabled();
   await expect(dialog.getByRole('button', { name: 'Next plan already scheduled', exact: true })).toBeDisabled();
+  await dialog.getByRole('button', { name: 'Close', exact: true }).click();
+  await expect(page.getByRole('region', { name: 'Current membership overview' })).toContainText(
+    /Next: Lifestyle.*Paid/
+  );
 });
 
 test('mobile upgrade displays credit, keeps confirmation explicit, and returns to a receipt', async ({ page }) => {
@@ -189,10 +205,13 @@ for (const width of [1440, 390]) {
     await expect(page.getByText(/Health trial/i)).toHaveCount(0);
     await period.click();
     await page.getByRole('option', { name: /Next: Lifestyle/ }).click();
-    await expect(page.getByText(/Already paid. This plan starts automatically/)).toBeVisible();
+    await expect(period).toContainText('Next: Lifestyle · Already paid');
+    const schedule = page.getByLabel('Plan schedule and validity');
+    await expect(schedule.getByText('Start date', { exact: true })).toBeVisible();
+    await expect(schedule.getByText('End date', { exact: true })).toBeVisible();
     await period.click();
     await page.getByRole('option', { name: 'Current: Health', exact: true }).click();
-    await expect(page.getByText(/Health is active for 30 days/)).toBeVisible();
+    await expect(period).toHaveText('Current: Health');
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
     expect(errors).toEqual([]);
   });

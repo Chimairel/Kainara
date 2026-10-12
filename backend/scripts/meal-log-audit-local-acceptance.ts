@@ -221,23 +221,14 @@ async function main() {
     reason: 'Synthetic portion correction',
   });
   assert.equal((await AdminMealLogService.popularity(admin.id, filters)).rows[0].eaten, 6);
-  await prisma.outsideMealReview.upsert({
-    where: { outsideMealLogItemId: 'item-0' },
-    create: {
-      outsideMealLogItemId: 'item-0',
-      queueReason: 'Fixture review',
-      status: 'CLAIMED',
-      claimedByNutritionistId: reviewer.id,
-      claimedAt: new Date(),
-      claimedRevision: 1,
-    },
-    update: { status: 'CLAIMED', claimedByNutritionistId: reviewer.id, claimedAt: new Date(), claimedRevision: 1 },
+  const requestedReview = await OutsideMealReviewService.requestByUser('member-0', outside.id, 'item-0');
+  await OutsideMealReviewService.claim(reviewer.id, requestedReview.id);
+  await OutsideMealReviewService.resolve(reviewer.id, requestedReview.id, {
+    action: 'CORRECT',
+    reason: 'Synthetic RND correction',
+    ...macros,
+    calories: 420,
   });
-  await OutsideMealReviewService.resolve(
-    reviewer.id,
-    (await prisma.outsideMealReview.findUniqueOrThrow({ where: { outsideMealLogItemId: 'item-0' } })).id,
-    { action: 'CORRECT', reason: 'Synthetic RND correction', ...macros, calories: 420 }
-  );
   const details = await AdminMealLogService.detail(admin.id, 'outside');
   assert.ok(details.events.some((e) => e.actorRole === 'NUTRITIONIST' && e.reason === 'Synthetic RND correction'));
   assert.ok(

@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { eligibleCredentialFixture } from './helpers/credential-fixture';
 
 for (const scenario of [
   { kind: 'database-limit', theme: 'light', width: 1440, message: 'database service has reached its usage limit' },
@@ -76,6 +77,7 @@ for (const scenario of [
       else if (path.includes('notifications')) data = { notifications: [], unreadCount: 0 };
       await route.fulfill({ headers, json: { success: true, data } });
     });
+    await eligibleCredentialFixture(page);
     try {
       await page.goto('/nutritionist/reviews');
       await expect.poll(() => profileRequests).toBeGreaterThan(0);

@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { eligibleCredentialFixture } from './helpers/credential-fixture';
 
 for (const width of [1024, 1440]) {
   test(`review queue recovers and tab highlight fits at ${width}px`, async ({ page }, testInfo) => {
@@ -48,6 +49,7 @@ for (const width of [1024, 1440]) {
       }
       await route.fulfill({ headers, json: { success: true, data } });
     });
+    await eligibleCredentialFixture(page);
     await page.goto('/nutritionist/reviews');
     const tabs = page.getByRole('navigation', { name: 'RND review queues' });
     const active = tabs.getByRole('button', { name: /Case approval/ });

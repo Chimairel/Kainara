@@ -12,6 +12,42 @@ const preview = {
   claimStatus: { claimedByMe: false, claimedByOther: false, claimedByName: null, claimExpiresAt: null },
 };
 
+it.each(['other-claim', 'inactive-case'] as const)(
+  'retires %s on the 15-second fallback without a live event',
+  async (scenario) => {
+    vi.resetAllMocks();
+    vi.useFakeTimers();
+    vi.spyOn(document, 'visibilityState', 'get').mockReturnValue('visible');
+    auth.owner = 'nutritionist-1';
+    const saved = { ...preview, pollStatus: { revision: 'opened', claim: { state: 'AVAILABLE' } } };
+    vi.mocked(api.get).mockImplementation(async (url) => {
+      if (String(url).endsWith('/status')) {
+        if (scenario === 'inactive-case') throw { response: { data: { errorCode: 'MEAL_REVIEW_INACTIVE' } } };
+        return { data: { success: true, data: { revision: 'claimed', claim: { state: 'OTHER' } } } };
+      }
+      return { data: { success: true, data: url === '/nutritionist/queue' ? [] : saved } };
+    });
+    const { result, unmount } = renderHook(() => useNutritionistReviews());
+    try {
+      await act(async () => {});
+      await act(() => result.current.handleSelectMeal('meal-1'));
+      expect(result.current.selectedMealId).toBe('meal-1');
+      await act(() => vi.advanceTimersByTimeAsync(14_999));
+      expect(result.current.selectedMealId).toBe('meal-1');
+      await act(() => vi.advanceTimersByTimeAsync(1));
+      expect(result.current.selectedMealId).toBeNull();
+      expect(result.current.detailData).toBeNull();
+      expect(result.current.reviewNotice).toMatch(/Another RND|no longer current/);
+      expect(api.patch).not.toHaveBeenCalled();
+      expect(api.post).not.toHaveBeenCalled();
+    } finally {
+      unmount();
+      vi.useRealTimers();
+      vi.restoreAllMocks();
+    }
+  }
+);
+
 describe('RND review claim controls', () => {
   it('checks lightweight status without reloading an unchanged canvas', async () => {
     const saved = { ...preview, pollStatus: { revision: 'same', claim: { state: 'AVAILABLE' } } };
