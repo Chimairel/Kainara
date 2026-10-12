@@ -11,6 +11,7 @@ import { BreadcrumbProvider } from '@/lib/context/BreadcrumbContext';
 import TopNavigationProgress from '@/components/shared/TopNavigationProgress';
 import { Toaster } from '@/components/ui/Sonner';
 import MobileInstallPrompt from '@/components/shared/MobileInstallPrompt';
+import { SITE_NAME, SITE_URL } from '@/lib/seo';
 
 const dmSans = localFont({
   src: './fonts/dm-sans.ttf',
@@ -47,7 +48,12 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
+  metadataBase: new URL(SITE_URL),
+  applicationName: SITE_NAME,
   title: 'Kainara',
+  // Public pages explicitly opt in; account, onboarding and workspace routes inherit noindex.
+  robots: { index: false, follow: true },
+  verification: process.env.GOOGLE_SITE_VERIFICATION ? { google: process.env.GOOGLE_SITE_VERIFICATION } : undefined,
   description:
     'Personalized meal planning with Filipino recipes, food-composition references, nutrition tracking and professional review workflows.',
   keywords: ['nutrition', 'meal planning', 'Filipino food', 'FNRI', 'diet', 'health', 'AI nutrition', 'KAINARA'],
@@ -63,11 +69,13 @@ export const metadata: Metadata = {
   },
   manifest: '/manifest.json',
   openGraph: {
+    siteName: SITE_NAME,
     title: 'Kainara',
     description: 'Personalized AI-powered nutrition for health-conscious Filipinos.',
     type: 'website',
     locale: 'en_PH',
   },
+  twitter: { card: 'summary_large_image' },
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {

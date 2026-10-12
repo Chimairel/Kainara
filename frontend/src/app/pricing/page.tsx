@@ -16,7 +16,13 @@ function PricingContent() {
     <div className="relative min-h-screen bg-brand-bg text-brand-text selection:bg-brand-accent selection:text-white flex flex-col justify-between">
       <PublicHeader />
       <main className="flex-1 py-8 sm:py-12">
-        <Pricing currentTier={currentTier} currentLevel={currentLevel} limits={limits} isFullScreenModal={false} />
+        <Pricing
+          headingLevel="h1"
+          currentTier={currentTier}
+          currentLevel={currentLevel}
+          limits={limits}
+          isFullScreenModal={false}
+        />
       </main>
       <PublicFooter />
     </div>

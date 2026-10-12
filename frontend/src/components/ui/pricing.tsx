@@ -19,6 +19,7 @@ import Button from '@/components/ui/Button';
 import MembershipBenefitInfo from '@/features/membership/MembershipBenefitInfo';
 
 export interface PricingProps {
+  headingLevel?: 'h1' | 'h2';
   currentLevel?: 'FREE' | 'TRIAL_PENDING' | 'TRIAL' | 'MEMBER' | null;
   currentTier?: 'FREE' | 'LIFESTYLE' | 'HEALTH';
   limits?: Extract<MembershipView, { enabled: true }>['limits'];
@@ -89,6 +90,7 @@ const PricingSwitch = ({
 };
 
 export default function Pricing({
+  headingLevel = 'h2',
   currentLevel,
   currentTier,
   limits,
@@ -96,6 +98,7 @@ export default function Pricing({
   isFullScreenModal = false,
   isOpen = true,
 }: PricingProps) {
+  const Heading = headingLevel;
   const [isYearly, setIsYearly] = useState(false);
   const [prices, setPrices] = useState(displayPrices);
   const [returnFocus] = useState(() =>
@@ -284,7 +287,7 @@ export default function Pricing({
             isFullScreenModal && onClose && 'sm:pr-14 lg:pr-0'
           )}
         >
-          <h2 className="text-3xl sm:text-4xl md:text-5xl font-display font-extrabold tracking-tight text-brand-text">
+          <Heading className="text-3xl sm:text-4xl md:text-5xl font-display font-extrabold tracking-tight text-brand-text">
             <VerticalCutReveal
               splitBy="words"
               staggerDuration={0.08}
@@ -299,7 +302,7 @@ export default function Pricing({
             >
               We&apos;ve got a plan that&apos;s perfect for you
             </VerticalCutReveal>
-          </h2>
+          </Heading>
 
           <TimelineContent
             as="p"
