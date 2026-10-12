@@ -44,8 +44,8 @@ export default function LandingHeroSection({ model }: SectionProps) {
                 </h1>
 
                 <p className="mt-5 max-w-2xl text-base leading-7 text-brand-muted sm:text-lg sm:leading-8">
-                  KAINARA brings familiar recipes, calculated nutrition targets and daily tracking into one workspace,
-                  with AI-assisted planning and RND review for applicable cases.
+                  KAINARA brings familiar Filipino recipes, calculated nutrition targets and daily tracking into one
+                  workspace, with AI-assisted planning and RND review for applicable cases.
                 </p>
 
                 <div className="mt-8 flex flex-col justify-center gap-3.5 sm:flex-row sm:items-center sm:flex-wrap lg:justify-start">

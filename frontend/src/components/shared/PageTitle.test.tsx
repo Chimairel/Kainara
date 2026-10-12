@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { NotificationsProvider, useNotifications } from '@/hooks/useNotifications';
 import { LIVE_UPDATE_EVENT } from '@/lib/live-events';
 import PageTitle from './PageTitle';
+import { PUBLIC_SEARCH_PAGES } from '@/lib/seo';
 
 const mocks = vi.hoisted(() => ({
   pathname: '/',
@@ -39,7 +40,7 @@ const inbox = (unreadCount: number, isRead = false) => ({
 describe('browser tab title and shared inbox', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mocks.pathname = '/';
+    mocks.pathname = '/dashboard';
     mocks.user = { userId: 'account-1', role: 'USER' };
     mocks.get.mockResolvedValue(inbox(3));
     mocks.patch.mockResolvedValue({ data: { success: true } });
@@ -49,11 +50,11 @@ describe('browser tab title and shared inbox', () => {
 
   it('shares one request with the bell and removes the count when all are read', async () => {
     render(<App />);
-    await waitFor(() => expect(document.title).toBe('(3) Kainara'));
+    await waitFor(() => expect(document.title).toBe('(3) Dashboard'));
     expect(screen.getByRole('status').textContent).toBe('3');
     expect(mocks.get).toHaveBeenCalledTimes(1);
     fireEvent.click(screen.getByText('Read all'));
-    await waitFor(() => expect(document.title).toBe('Kainara'));
+    await waitFor(() => expect(document.title).toBe('Dashboard'));
     expect(screen.getByRole('status').textContent).toBe('0');
   });
 
@@ -73,9 +74,9 @@ describe('browser tab title and shared inbox', () => {
 
   it('retains the count after delayed Next metadata changes and cleans up on unmount', async () => {
     const view = render(<App />);
-    await waitFor(() => expect(document.title).toBe('(3) Kainara'));
+    await waitFor(() => expect(document.title).toBe('(3) Dashboard'));
     document.title = 'KAINARA | AI Nutrition';
-    await waitFor(() => expect(document.title).toBe('(3) Kainara'));
+    await waitFor(() => expect(document.title).toBe('(3) Dashboard'));
     view.unmount();
     document.title = 'Another app';
     await act(async () => Promise.resolve());
@@ -84,19 +85,25 @@ describe('browser tab title and shared inbox', () => {
 
   it('clears the previous account count immediately on logout', async () => {
     const view = render(<App />);
-    await waitFor(() => expect(document.title).toBe('(3) Kainara'));
+    await waitFor(() => expect(document.title).toBe('(3) Dashboard'));
     mocks.user = null;
     view.rerender(<App />);
-    await waitFor(() => expect(document.title).toBe('Kainara'));
+    await waitFor(() => expect(document.title).toBe('Dashboard'));
   });
 
   it('does not subtract an already read notification again', async () => {
     render(<App />);
-    await waitFor(() => expect(document.title).toBe('(3) Kainara'));
+    await waitFor(() => expect(document.title).toBe('(3) Dashboard'));
     fireEvent.click(screen.getByText('Read one'));
-    await waitFor(() => expect(document.title).toBe('(2) Kainara'));
+    await waitFor(() => expect(document.title).toBe('(2) Dashboard'));
     fireEvent.click(screen.getByText('Read one'));
     await waitFor(() => expect(mocks.patch).toHaveBeenCalledTimes(2));
-    expect(document.title).toBe('(2) Kainara');
+    expect(document.title).toBe('(2) Dashboard');
+  });
+  it('preserves public search titles after hydration without a private unread prefix', async () => {
+    mocks.pathname = '/docs';
+    render(<App />);
+    await waitFor(() => expect(document.title).toBe(PUBLIC_SEARCH_PAGES['/docs'].title));
+    expect(screen.getByRole('status').textContent).toBe('3');
   });
 });

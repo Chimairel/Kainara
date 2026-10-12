@@ -28,8 +28,8 @@
   "related_applications": [
     {
       "platform": "webapp",
-      "url": "https://kainara.vercel.app/manifest.json",
-      "id": "https://kainara.vercel.app/"
+      "url": "https://www.kainara.site/manifest.json",
+      "id": "https://www.kainara.site/"
     }
   ],
   "prefer_related_applications": false

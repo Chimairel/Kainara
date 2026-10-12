@@ -1,4 +1,4 @@
-import type { Metadata } from 'next';
+import { publicPageMetadata } from '@/lib/seo';
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
 import PublicHeader from '@/components/shared/PublicHeader';
@@ -6,10 +6,7 @@ import PublicFooter from '@/components/shared/PublicFooter';
 import { DocsWaveHero } from '@/components/landing/LandingWaveRiver';
 import DocsWorkspace from './DocsWorkspace';
 
-export const metadata: Metadata = {
-  title: 'Documentation & user guide',
-  description: 'How KAINARA works, clinical guidelines, terms of service, and privacy information.',
-};
+export const metadata = publicPageMetadata('/docs');
 
 export default function DocsPage() {
   return (

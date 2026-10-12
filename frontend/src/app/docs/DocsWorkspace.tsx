@@ -28,7 +28,7 @@ function currentFragment() {
 }
 
 export default function DocsWorkspace() {
-  const [activeId, setActiveId] = useState<string | null>(null);
+  const [activeId, setActiveId] = useState<string | null>(docsChapters[0].id);
   const [scrollTarget, setScrollTarget] = useState<{ id: string } | null>(null);
   const chapter = docsChapters.find((item) => item.id === activeId);
 

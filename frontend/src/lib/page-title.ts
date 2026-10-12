@@ -1,3 +1,5 @@
+import { PUBLIC_SEARCH_PAGES, type PublicSearchPath } from './seo';
+
 const pageTitles: Record<string, string> = {
   '/login': 'Account access',
   '/register': 'Account access',
@@ -47,6 +49,8 @@ const pageTitles: Record<string, string> = {
 
 export function getPageTitle(pathname: string, unreadCount = 0): string {
   const path = pathname.replace(/\/+$/, '') || '/';
+  if (Object.prototype.hasOwnProperty.call(PUBLIC_SEARCH_PAGES, path))
+    return PUBLIC_SEARCH_PAGES[path as PublicSearchPath].title;
   const title = pageTitles[path] ?? (path.startsWith('/onboarding/') ? 'Set up your profile' : 'Kainara');
   const count = Number.isFinite(unreadCount) ? Math.max(0, Math.floor(unreadCount)) : 0;
   return count > 0 ? `(${count}) ${title}` : title;
