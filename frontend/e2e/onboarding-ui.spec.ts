@@ -101,7 +101,7 @@ for (const width of [1440, 390]) {
   for (const theme of ['light', 'dark'] as const) {
     test(`onboarding saves choices and preserves consent at ${width}px ${theme}`, async ({ page }, testInfo) => {
       test.setTimeout(90_000);
-      await page.setViewportSize({ width, height: 1050 });
+      await page.setViewportSize({ width, height: width < 640 ? 844 : 1050 });
       const errors: string[] = [];
       page.on('pageerror', (error) => errors.push(error.message));
       const requests = await fixture(page, theme);
@@ -117,6 +117,39 @@ for (const width of [1440, 390]) {
       await page.getByRole('button', { name: 'Lose Weight', exact: true }).focus();
       await page.keyboard.press('Space');
       await page.getByLabel('Target Weight (kg)').fill('65');
+      await page.getByRole('heading', { level: 1 }).click();
+      if (width < 640) {
+        const layout = await page.evaluate(() => {
+          const age = document.getElementById('age')!.getBoundingClientRect();
+          const height = document.getElementById('height')!.getBoundingClientRect();
+          const goal = document.querySelector('[aria-label="Primary Goal"]')!;
+          const choices = goal.querySelectorAll('button');
+          return {
+            ageY: age.top,
+            heightY: height.top,
+            choiceY: choices[0].getBoundingClientRect().top,
+            nextChoiceY: choices[1].getBoundingClientRect().top,
+            touchHeight: choices[0].getBoundingClientRect().height,
+            pageHeight: document.documentElement.scrollHeight,
+          };
+        });
+        expect(layout.ageY).toBe(layout.heightY);
+        expect(layout.choiceY).toBe(layout.nextChoiceY);
+        expect(layout.touchHeight).toBeGreaterThanOrEqual(44);
+        expect(layout.pageHeight).toBeLessThan(1250);
+        const continueButton = page.getByRole('button', { name: /Continue to Step 2/ });
+        await continueButton.scrollIntoViewIfNeeded();
+        const bottomLayout = await page.evaluate(() => {
+          const section = [...document.querySelectorAll('section')].at(-1)!.getBoundingClientRect();
+          const action = document.querySelector('button[type="submit"]')!.getBoundingClientRect();
+          return { sectionBottom: section.bottom, actionTop: action.top };
+        });
+        expect(bottomLayout.actionTop).toBeGreaterThanOrEqual(bottomLayout.sectionBottom);
+        await page.setViewportSize({ width: 320, height: 640 });
+        await screenshot('metrics-narrow');
+        await page.setViewportSize({ width, height: 844 });
+        await page.evaluate(() => window.scrollTo(0, 0));
+      }
       await screenshot('metrics');
       await page.getByRole('button', { name: /Continue to Step 2/ }).click();
       await expect(page).toHaveURL(/onboarding\/preferences$/);

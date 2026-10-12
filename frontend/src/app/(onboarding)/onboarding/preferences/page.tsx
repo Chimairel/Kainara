@@ -120,7 +120,7 @@ export default function OnboardingPreferencesPage() {
           className="contents [&>section+section]:border-t [&>section+section]:border-brand-border"
         >
           <ProfileSettingsSection title="Dietary pattern" description="">
-            <div className="grid gap-3 sm:grid-cols-2" role="group" aria-label="Dietary Pattern">
+            <div className="grid grid-cols-2 gap-2 sm:gap-3" role="group" aria-label="Dietary Pattern">
               {dietaryList.map((item) => (
                 <OnboardingChoice
                   key={item.value}

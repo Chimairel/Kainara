@@ -82,7 +82,11 @@ export default function OnboardingShoppingDayPage() {
       )}
       <form onSubmit={handleSubmit} className="divide-y divide-brand-border">
         <ProfileSettingsSection title="Shopping day" description="Your 7-day meal cycle starts the day after you shop.">
-          <fieldset disabled={isLoading || isHydrating} className="grid gap-3 sm:grid-cols-2" aria-label="Shopping day">
+          <fieldset
+            disabled={isLoading || isHydrating}
+            className="grid grid-cols-2 gap-2 sm:gap-3"
+            aria-label="Shopping day"
+          >
             {options.map((opt) => (
               <OnboardingChoice
                 key={opt.value}

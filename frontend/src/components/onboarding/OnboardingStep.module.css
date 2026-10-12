@@ -1,0 +1,59 @@
+/* Onboarding adapts the shared profile sections without changing the profile pages. */
+@media (max-width: 639px) {
+  .step {
+    --onboarding-action-space: 88px;
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  .step > header {
+    margin-top: 20px;
+  }
+
+  .surface {
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+  }
+
+  .surface section {
+    padding: 20px 0;
+    gap: 12px;
+  }
+
+  .surface section:first-child {
+    padding-top: 0;
+  }
+
+  .surface section h2 {
+    font-size: 18px;
+    line-height: 1.35;
+  }
+
+  .surface section header p {
+    margin-top: 6px;
+  }
+
+  .step input,
+  .step textarea,
+  .step select {
+    font-size: 16px;
+    scroll-margin-bottom: var(--onboarding-action-space);
+  }
+
+  .choice {
+    gap: 8px;
+    padding: 12px;
+  }
+
+  /* Labels carry the choice on narrow screens; decorative icons cost wrapping space. */
+  .choice > span:first-child[aria-hidden='true'] {
+    display: none;
+  }
+
+  .actions {
+    /* Keep actions in document flow so neither fields nor the keyboard are covered. */
+    margin-inline: -20px;
+    padding: 12px 20px max(12px, env(safe-area-inset-bottom));
+    background: var(--brand-bg);
+  }
+}

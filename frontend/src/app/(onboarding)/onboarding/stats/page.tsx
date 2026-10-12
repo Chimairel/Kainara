@@ -224,7 +224,7 @@ export default function OnboardingStatsPage() {
           className="contents [&>section+section]:border-t [&>section+section]:border-brand-border"
         >
           <ProfileSettingsSection title="Your goal" description="">
-            <div className="grid gap-3 sm:grid-cols-2" role="group" aria-label="Primary Goal">
+            <div className="grid grid-cols-2 gap-2 sm:gap-3" role="group" aria-label="Primary Goal">
               {goalsList.map((item) => (
                 <OnboardingChoice
                   key={item.value}
@@ -237,7 +237,7 @@ export default function OnboardingStatsPage() {
             </div>
           </ProfileSettingsSection>
           <ProfileSettingsSection title="Body measurements" description="Used to calculate your daily energy target.">
-            <fieldset className="mb-6 space-y-2">
+            <fieldset className="mb-4 space-y-2 sm:mb-6">
               <legend className="text-sm font-semibold">Biological sex used for energy calculation</legend>
               <p className="text-xs leading-relaxed text-brand-muted">
                 Required by the Mifflin–St Jeor equation to calculate your resting metabolic rate.
@@ -254,7 +254,7 @@ export default function OnboardingStatsPage() {
               </div>
             </fieldset>
             {/* Inputs Grid */}
-            <div className="grid gap-4 sm:grid-cols-2">
+            <div className="grid grid-cols-2 gap-3 sm:gap-4">
               <Input
                 id="age"
                 label="Age (Years)"
@@ -347,7 +347,7 @@ export default function OnboardingStatsPage() {
             </div>
           </ProfileSettingsSection>
           <ProfileSettingsSection title="Daily activity" description="">
-            <div className="grid gap-3 sm:grid-cols-2" role="group" aria-label="Daily Activity Level">
+            <div className="grid grid-cols-2 gap-2 sm:gap-3" role="group" aria-label="Daily Activity Level">
               {activityLevelsList.map((item) => (
                 <OnboardingChoice
                   key={item.value}

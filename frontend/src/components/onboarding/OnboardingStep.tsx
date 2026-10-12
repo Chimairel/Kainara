@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { ArrowLeft, Check } from 'lucide-react';
 import { ProfileSettingsSurface } from '@/components/user/ProfileSettingsSection';
 import OnboardingProgressSlider from './OnboardingProgressSlider';
+import styles from './OnboardingStep.module.css';
 
 /** Presentation only: callers retain their save, validation and next-step contracts. */
 export default function OnboardingStep({
@@ -25,7 +26,7 @@ export default function OnboardingStep({
   children: ReactNode;
 }) {
   return (
-    <div className="mx-auto w-full max-w-5xl space-y-6 [&_input]:min-h-11 [&_label]:text-sm">
+    <div className={`${styles.step} mx-auto w-full max-w-5xl space-y-6 [&_input]:min-h-11 [&_label]:text-sm`}>
       <OnboardingProgressSlider currentStep={step} />
       <header className="space-y-3 pb-1">
         {backHref && (
@@ -40,7 +41,7 @@ export default function OnboardingStep({
         <h1 className="font-display text-3xl font-bold tracking-tight text-brand-text sm:text-4xl">{title}</h1>
         {description && <p className="max-w-prose text-sm leading-relaxed text-brand-muted">{description}</p>}
       </header>
-      {surface ? <ProfileSettingsSurface>{children}</ProfileSettingsSurface> : children}
+      {surface ? <ProfileSettingsSurface className={styles.surface}>{children}</ProfileSettingsSurface> : children}
     </div>
   );
 }
@@ -62,7 +63,7 @@ export function OnboardingChoice({
     <button
       type="button"
       aria-pressed={selected}
-      className={`flex min-h-12 items-start gap-3 rounded-xl border p-4 text-left transition-colors motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-accent focus-visible:ring-offset-2 focus-visible:ring-offset-brand-surface disabled:cursor-not-allowed disabled:opacity-50 ${selected ? 'border-brand-accentSoft bg-brand-accentSoft text-[#0d2820]' : 'border-brand-border bg-brand-bgAlt/40 text-brand-text hover:border-brand-accent/50 hover:bg-brand-accent/5'} ${className}`}
+      className={`${styles.choice} flex min-h-12 items-start gap-3 rounded-xl border p-4 text-left transition-colors motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-accent focus-visible:ring-offset-2 focus-visible:ring-offset-brand-surface disabled:cursor-not-allowed disabled:opacity-50 ${selected ? 'border-brand-accentSoft bg-brand-accentSoft text-[#0d2820]' : 'border-brand-border bg-brand-bgAlt/40 text-brand-text hover:border-brand-accent/50 hover:bg-brand-accent/5'} ${className}`}
       {...props}
     >
       {icon && (
@@ -86,7 +87,9 @@ export function OnboardingChoice({
 
 export function OnboardingActions({ children }: { children: ReactNode }) {
   return (
-    <div className="flex flex-wrap justify-end gap-3 px-5 py-5 sm:px-7 [&_button]:w-full sm:[&_button]:w-auto">
+    <div
+      className={`${styles.actions} flex flex-wrap justify-end gap-3 px-5 py-5 sm:px-7 [&_button]:w-full sm:[&_button]:w-auto`}
+    >
       {children}
     </div>
   );
