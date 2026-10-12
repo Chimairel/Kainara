@@ -49,3 +49,11 @@ The original same-color LineDuotone preview did not match the owner's reference.
 - Expose `secondaryColor` and `secondaryOpacity` alongside normal SVG `color`; customize at the shared boundary rather than editing paths. Theme overrides are scoped CSS variables.
 
 Verification: TypeScript and scoped ESLint pass; four icon contract tests pass, including independent color customization, refs/events and retained spinner behavior. Browser checks use the actual port 3000 and intercepted synthetic member/admin/RND data, never real account mutations. The initial batch found a mobile selection specificity defect; the confirmation batch passes all 12 journeys after the correction. Keep the cream/peach override scoped to the desktop portal rail, not unrelated document/queue asides. Screenshots remain in the private local audit folder. Live application and database are unchanged.
+
+## Filled icons throughout the shared interface
+
+The owner subsequently requested filled shapes for controls as well. This supersedes the earlier choice to keep Linear controls. All 158 shared app symbols now use BoldDuotone or solid Bold; rename the former linear map to `icons/filled.ts`. Search, history, filters, review tools, disclosure arrows and utility controls receive filled Solar assets. Status/error/check symbols and rotating loaders use solid Bold in their existing semantic foreground colors. The shared inline LoadingSpinner also uses Solar instead of its custom outline circles, retaining its dimensions, loading-bar registration and accessible status text.
+
+Source tracing found no remaining imports from Solar Linear, LineDuotone or Outline, Lucide, Heroicons or React Icons. Remaining authored SVGs are logos, avatars, charts and existing illustrated/loading artwork, rather than shared interface glyphs.
+
+TypeScript, scoped ESLint and all four icon contract tests pass. All 12 local browser journeys pass and now explicitly reject outline Solar classes in member, admin and RND views, in both themes at 390/1440px. Existing action labels, dimensions, events, recipe images and layout remain covered. All API test data is intercepted; no database or deployment changes.

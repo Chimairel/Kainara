@@ -174,6 +174,11 @@ for (const theme of ['light', 'dark'])
         )
         .toBeGreaterThan(0);
       await page.getByText('French Toast', { exact: true }).scrollIntoViewIfNeeded();
+      expect(
+        await page
+          .locator('.solar[class*="-linear"], .solar[class*="-line-duotone"], .solar[class*="-outline"]')
+          .count()
+      ).toBe(0);
       const navigation = page.locator(width < 768 ? 'nav[aria-label="Mobile navigation"]' : 'aside');
       const selected = navigation.locator('[aria-current="page"] .app-icon-duotone').first();
       await expect(selected).toBeVisible();

@@ -13,7 +13,7 @@ it('inherits control color and retains accessible button labels, refs and events
   );
   const control = screen.getByRole('button', { name: 'Confirm meal' });
   expect(ref.current).toHaveAttribute('aria-hidden', 'true');
-  expect(ref.current).toHaveClass('solar-check-linear', 'h-4', 'w-4');
+  expect(ref.current).toHaveClass('solar-check-bold', 'h-4', 'w-4');
   expect(ref.current).toHaveAttribute('color', 'var(--solar-color, currentColor)');
   fireEvent.click(control);
   expect(click).toHaveBeenCalledOnce();
@@ -24,7 +24,7 @@ it('keeps explicit dimensions and caller-supplied status colors', () => {
   const icon = screen.getByLabelText('Review required');
   expect(icon).not.toHaveAttribute('aria-hidden');
   expect(icon).toHaveStyle({ width: '18px', height: '18px', color: 'var(--status-error-text)' });
-  expect(container.querySelector('svg')).toHaveClass('solar-shield-warning-linear');
+  expect(container.querySelector('svg')).toHaveClass('solar-shield-warning-bold');
 });
 
 it('uses filled duotone for context and preserves animated loader classes', () => {
@@ -35,7 +35,7 @@ it('uses filled duotone for context and preserves animated loader classes', () =
     </>
   );
   expect(container.querySelector('.solar-home-angle-bold-duotone')).toHaveClass('app-icon-duotone');
-  expect(container.querySelector('.solar-refresh-linear')).toHaveClass('animate-spin');
+  expect(container.querySelector('.solar-refresh-bold')).toHaveClass('animate-spin');
 });
 
 it('allows callers to customize both duotone layers without changing control semantics', () => {
