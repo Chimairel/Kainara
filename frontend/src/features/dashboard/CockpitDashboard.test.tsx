@@ -56,13 +56,24 @@ function props(): CockpitDashboardProps {
 describe('CockpitDashboard', () => {
   it('keeps retained intake in the sorted menu with a badge and no logging or detail action', () => {
     const input = props();
-    input.retainedMeals = [{
-      id: 'retained', mealName: 'Recorded breakfast', mealType: 'BREAKFAST',
-      scheduledDate: '2026-09-10', status: 'DONE', calories: 500, proteinG: 20, carbsG: 60, fatG: 10,
-    }];
+    input.retainedMeals = [
+      {
+        id: 'retained',
+        mealName: 'Recorded breakfast',
+        mealType: 'BREAKFAST',
+        scheduledDate: '2026-09-10',
+        status: 'DONE',
+        calories: 500,
+        proteinG: 20,
+        carbsG: 60,
+        fatG: 10,
+      },
+    ];
     const { container } = render(<CockpitDashboard {...input} />);
-    expect(screen.getByText('Eaten')).toBeInTheDocument();
-    expect(container.textContent!.indexOf('Recorded breakfast')).toBeLessThan(container.textContent!.indexOf('Approved rice plate'));
+    expect(screen.getByText('Eaten · previous plan')).toBeInTheDocument();
+    expect(container.textContent!.indexOf('Recorded breakfast')).toBeLessThan(
+      container.textContent!.indexOf('Approved rice plate')
+    );
     expect(screen.queryByText('Meals already recorded')).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /Recorded breakfast/ })).not.toBeInTheDocument();
     expect(input.onStatusToggle).not.toHaveBeenCalled();

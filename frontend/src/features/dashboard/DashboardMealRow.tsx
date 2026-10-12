@@ -12,7 +12,14 @@ import type { PendingMealPreview } from '@/components/user/PendingMealPreviewCar
 import type { RetainedMealLog } from '@/features/meals/RetainedMealLogs';
 
 type Props =
-  | { meal: PendingMealPreview; pending: true; retained?: false; index?: number; onOpen?: never; onStatusToggle?: never }
+  | {
+      meal: PendingMealPreview;
+      pending: true;
+      retained?: false;
+      index?: number;
+      onOpen?: never;
+      onStatusToggle?: never;
+    }
   | { meal: RetainedMealLog; retained: true; pending?: false; index?: number; onOpen?: never; onStatusToggle?: never }
   | {
       meal: MealPlan;
@@ -42,9 +49,13 @@ export function DashboardMealRow(props: Props) {
   const statusLabel = props.pending
     ? 'Pending review'
     : completed
-      ? 'Eaten'
+      ? props.retained
+        ? 'Eaten · previous plan'
+        : 'Eaten'
       : skipped
-        ? 'Skipped'
+        ? props.retained
+          ? 'Skipped · previous plan'
+          : 'Skipped'
         : approved
           ? 'Approved'
           : 'Awaiting review';
@@ -112,7 +123,9 @@ export function DashboardMealRow(props: Props) {
         <span className="hidden text-xs font-bold uppercase tracking-wider text-white/80 sm:block">
           {meal.mealType.toLowerCase()}
         </span>
-        <span className={`mt-0.5 block font-display text-base font-bold leading-snug text-white sm:text-lg sm:line-clamp-2 ${!props.pending && !props.retained ? 'group-hover/details:underline underline-offset-2' : ''}`}>
+        <span
+          className={`mt-0.5 block font-display text-base font-bold leading-snug text-white sm:text-lg sm:line-clamp-2 ${!props.pending && !props.retained ? 'group-hover/details:underline underline-offset-2' : ''}`}
+        >
           {formatMealTitle(meal.mealName)}
         </span>
         {meal.ricePortion && <span className="mt-1 block text-xs font-bold text-white">+ {meal.ricePortion}</span>}
@@ -133,9 +146,7 @@ export function DashboardMealRow(props: Props) {
       <DashboardMealCardSurface as="details" mealType={meal.mealType} index={index} className="p-4 sm:p-5">
         <summary className="flex flex-col gap-3 cursor-pointer list-none items-stretch sm:flex-row sm:items-center sm:justify-between sm:gap-0 text-left [&::-webkit-details-marker]:hidden">
           {mobileHeader}
-          <div className="flex w-full min-w-0 flex-1 items-center sm:w-auto">
-            {mealContent}
-          </div>
+          <div className="flex w-full min-w-0 flex-1 items-center sm:w-auto">{mealContent}</div>
           <div className="flex w-full shrink-0 items-center justify-between gap-3 border-t border-white/20 pt-3 pb-0.5 sm:ml-3 sm:w-auto sm:flex-col sm:items-end sm:self-stretch sm:border-0 sm:py-0.5">
             <div className="absolute right-4 top-4 sm:static">{statusBadge}</div>
             <span className="inline-flex w-full justify-center sm:w-auto min-h-11 sm:min-h-9 items-center gap-1.5 rounded-full bg-white/20 hover:bg-white/30 group-open:bg-white group-open:text-gray-900 text-white px-3 sm:px-3.5 py-1 text-xs font-bold backdrop-blur-md border border-white/30 shadow-xs transition-all duration-200">
@@ -150,7 +161,9 @@ export function DashboardMealRow(props: Props) {
               <span className="h-2 w-2 rounded-full bg-amber-400" />
               Pending RND review
             </p>
-            {props.meal.description && <p className="mt-1.5 text-xs text-white/90 leading-normal">{props.meal.description}</p>}
+            {props.meal.description && (
+              <p className="mt-1.5 text-xs text-white/90 leading-normal">{props.meal.description}</p>
+            )}
             <p className="mt-2 text-xs leading-normal">
               <strong className="text-white font-bold">Ingredients: </strong>
               <span className="text-white/85">
@@ -170,9 +183,7 @@ export function DashboardMealRow(props: Props) {
         {/* Clickable details trigger: foodPlate and meal info */}
         <div className="flex w-full min-w-0 flex-1 items-center sm:w-auto">
           {props.retained ? (
-            <div className="flex min-w-0 flex-1 items-center text-left">
-              {mealContent}
-            </div>
+            <div className="flex min-w-0 flex-1 items-center text-left">{mealContent}</div>
           ) : (
             <button
               type="button"
@@ -186,7 +197,13 @@ export function DashboardMealRow(props: Props) {
         </div>
 
         {/* Mobile footer below the meal text; desktop controls stay beside it. */}
-        <div className={props.retained ? 'absolute right-4 top-4' : 'flex w-full shrink-0 items-center justify-between gap-3 border-t border-white/20 pt-3 pb-0.5 sm:ml-3 sm:w-auto sm:flex-col sm:items-end sm:self-stretch sm:border-0 sm:py-0.5'}>
+        <div
+          className={
+            props.retained
+              ? 'absolute right-4 top-4'
+              : 'flex w-full shrink-0 items-center justify-between gap-3 border-t border-white/20 pt-3 pb-0.5 sm:ml-3 sm:w-auto sm:flex-col sm:items-end sm:self-stretch sm:border-0 sm:py-0.5'
+          }
+        >
           <div className={props.retained ? undefined : 'absolute right-4 top-4 sm:static'}>{statusBadge}</div>
 
           {props.onStatusToggle && props.meal.status === 'APPROVED' && (

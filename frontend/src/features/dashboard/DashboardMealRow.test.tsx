@@ -38,14 +38,19 @@ const pending: PendingMealPreview = {
 };
 
 describe('DashboardMealRow pending images', () => {
-  it.each(['DONE', 'SKIPPED'] as const)('shows a retained %s record with its original intake and no actions', (status) => {
-    render(<DashboardMealRow meal={{ ...pending, id: 'retained', status }} retained />);
-    expect(screen.getByText(status === 'DONE' ? 'Eaten' : 'Skipped')).toBeInTheDocument();
-    expect(screen.getByLabelText(/Recorded from your previous plan; read-only/)).toBeInTheDocument();
-    expect(screen.getByRole('img')).toHaveAttribute('src', pending.image!.url);
-    expect(screen.queryByRole('button')).not.toBeInTheDocument();
-    expect(screen.queryByText('Approved')).not.toBeInTheDocument();
-  });
+  it.each(['DONE', 'SKIPPED'] as const)(
+    'shows a retained %s record with its original intake and no actions',
+    (status) => {
+      render(<DashboardMealRow meal={{ ...pending, id: 'retained', status }} retained />);
+      expect(
+        screen.getByText(status === 'DONE' ? 'Eaten · previous plan' : 'Skipped · previous plan')
+      ).toBeInTheDocument();
+      expect(screen.getByLabelText(/Recorded from your previous plan; read-only/)).toBeInTheDocument();
+      expect(screen.getByRole('img')).toHaveAttribute('src', pending.image!.url);
+      expect(screen.queryByRole('button')).not.toBeInTheDocument();
+      expect(screen.queryByText('Approved')).not.toBeInTheDocument();
+    }
+  );
   it('shows the supplied recipe photo without enabling approved-meal actions', () => {
     const { container } = render(<DashboardMealRow meal={pending} pending />);
     const image = screen.getByRole('img', { name: 'Crab Meat Omelette source photo' });
