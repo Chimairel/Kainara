@@ -7,6 +7,7 @@ import DashboardSkeleton from '@/features/dashboard/DashboardSkeleton';
 import { getManilaDateKey } from '@/lib/manila-date';
 import DashboardDateNavigation from './DashboardDateNavigation';
 import type { useDashboardWorkspace } from './useDashboardWorkspace';
+import { usePreparationIntro } from './usePreparationIntro';
 
 export default function DashboardContent({ model }: { model: ReturnType<typeof useDashboardWorkspace> }) {
   const {
@@ -29,6 +30,26 @@ export default function DashboardContent({ model }: { model: ReturnType<typeof u
     handleMealStatusToggle,
     router,
   } = model;
+  const preparing =
+    !error && (isGenerating || ['GENERATING', 'WAITING_FOR_AI', 'PROCESSING_AI'].includes(generationStatus ?? ''));
+  const showCooking = usePreparationIntro(
+    preparing && !isLoading,
+    `${model.user?.userId}:${model.currentCycle?.id ?? 'unassigned'}`,
+    isReportPending ||
+      clinicalEvidenceRequired ||
+      profileReviewStatus !== 'ready' ||
+      Boolean(error) ||
+      generationStatus === 'FAILED'
+  );
+  const today = getManilaDateKey();
+  const cycleStart = model.currentCycle?.startDate ? getManilaDateKey(model.currentCycle.startDate) : today;
+  const cycleEnd = model.currentCycle?.endDate ? getManilaDateKey(model.currentCycle.endDate) : today;
+  // A future weekly cycle prepares its first day; starter-cycle dates before today never hold the screen.
+  const preparationDate = today < cycleStart ? cycleStart : today > cycleEnd ? cycleEnd : today;
+  const waitingForToday =
+    preparing &&
+    (!model.currentCycle ||
+      model.awaitingGenerationSlots.some((slot) => getManilaDateKey(slot.scheduledDate) === preparationDate));
   return (
     <>
       {isLoading ? (
@@ -77,7 +98,17 @@ export default function DashboardContent({ model }: { model: ReturnType<typeof u
           description="We could not retrieve the latest preparation status. Retry loading your saved plan."
           action={{ label: 'Retry loading', onClick: () => void fetchCurrentPlan() }}
         />
-      ) : currentMeals.length === 0 && !retainedMealLogs.length && !pendingReview ? (
+      ) : showCooking || waitingForToday ? (
+        <StateNotice
+          variant="preparing"
+          title="Preparing your meal plan"
+          description="Nara is getting your meals ready. Your menu will update automatically as each meal is prepared."
+          action={null}
+        />
+      ) : currentMeals.length === 0 &&
+        !retainedMealLogs.length &&
+        !pendingReview &&
+        !(preparing && model.currentCycle) ? (
         <StateNotice
           variant={generationStatus === 'FAILED' && !isGenerating ? 'preparing-failed' : 'preparing'}
           title={
@@ -106,6 +137,13 @@ export default function DashboardContent({ model }: { model: ReturnType<typeof u
 
           <CockpitDashboard
             activeDate={activeDate}
+            preparingSlots={
+              preparing
+                ? model.awaitingGenerationSlots.filter(
+                    (slot) => getManilaDateKey(slot.scheduledDate) === getManilaDateKey(activeDate)
+                  )
+                : []
+            }
             meals={metrics.mealsList}
             retainedMeals={retainedMealLogs.filter(
               (meal) => getManilaDateKey(meal.scheduledDate) === getManilaDateKey(activeDate)

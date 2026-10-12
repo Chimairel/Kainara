@@ -1,6 +1,7 @@
 'use client';
 
 import type { RetainedMealLog } from '@/features/meals/RetainedMealLogs';
+import type { PreparingMealSlot } from './PreparingMealRow';
 import { useAuth } from '@/hooks/useAuth';
 import { useVisiblePolling } from '@/hooks/useVisiblePolling';
 import { useClinicalProfileGate } from '@/hooks/useClinicalProfileGate';
@@ -30,6 +31,7 @@ interface CurrentPlanSnapshot {
   meals: MealPlan[];
   pendingReview: PendingReview | null;
   awaitingGenerationCount?: number;
+  awaitingGenerationSlots?: PreparingMealSlot[];
   generationStatus?: string | null;
   planSnapshot: {
     dailyCalorieTarget: number;
@@ -62,6 +64,9 @@ export function useDashboardWorkspace() {
   const [pendingReview, setPendingReview] = useState<PendingReview | null>(cachedPlan?.pendingReview ?? null);
   const [awaitingGenerationCount, setAwaitingGenerationCount] = useState(cachedPlan?.awaitingGenerationCount ?? 0);
   const [generationStatus, setGenerationStatus] = useState(cachedPlan?.generationStatus ?? null);
+  const [awaitingGenerationSlots, setAwaitingGenerationSlots] = useState<PreparingMealSlot[]>(
+    cachedPlan?.awaitingGenerationSlots ?? []
+  );
   const [isRetryingMissing, setIsRetryingMissing] = useState(false);
   const [planSnapshot, setPlanSnapshot] = useState<CurrentPlanSnapshot['planSnapshot']>(
     cachedPlan?.planSnapshot ?? null
@@ -132,6 +137,7 @@ export function useDashboardWorkspace() {
       setRetainedHistory({ ownerId, meals: snapshot.retainedMealLogs ?? [] });
       setPendingReview(snapshot.pendingReview);
       setAwaitingGenerationCount(snapshot.awaitingGenerationCount ?? 0);
+      setAwaitingGenerationSlots(snapshot.awaitingGenerationSlots ?? []);
       setGenerationStatus(snapshot.generationStatus ?? null);
       setPlanSnapshot(snapshot.planSnapshot);
       setCurrentCycle(snapshot.cycle ?? null);
@@ -239,6 +245,7 @@ export function useDashboardWorkspace() {
               retainedMealLogs: res.data.meta?.retainedMealLogs ?? [],
               pendingReview: res.data.meta?.pendingReview ?? null,
               awaitingGenerationCount: res.data.meta?.awaitingGenerationCount ?? 0,
+              awaitingGenerationSlots: res.data.meta?.awaitingGenerationSlots ?? [],
               generationStatus: res.data.meta?.generationStatus ?? null,
               planSnapshot: res.data.meta?.planSnapshot ?? null,
               cycle: res.data.meta?.cycle ?? null,
@@ -255,6 +262,7 @@ export function useDashboardWorkspace() {
             setPendingReview(null);
             setCurrentCycle(null);
             setAwaitingGenerationCount(0);
+            setAwaitingGenerationSlots([]);
             setGenerationStatus(null);
             invalidateSessionResource(ownerId, currentPlanResource);
           }
@@ -369,6 +377,7 @@ export function useDashboardWorkspace() {
           retainedMealLogs: res.data.meta?.retainedMealLogs ?? [],
           pendingReview: res.data.meta?.pendingReview ?? null,
           awaitingGenerationCount: res.data.meta?.awaitingGenerationCount ?? 0,
+          awaitingGenerationSlots: res.data.meta?.awaitingGenerationSlots ?? [],
           generationStatus: res.data.meta?.generationStatus ?? null,
           planSnapshot: res.data.meta?.planSnapshot ?? null,
           cycle: res.data.meta?.cycle ?? null,
@@ -396,6 +405,7 @@ export function useDashboardWorkspace() {
           retainedMealLogs: res.data.data.retainedMealLogs ?? [],
           pendingReview: res.data.data.pendingReview ?? null,
           awaitingGenerationCount: res.data.data.awaitingGenerationCount ?? 0,
+          awaitingGenerationSlots: res.data.data.awaitingGenerationSlots ?? [],
           generationStatus: res.data.data.generationStatus ?? null,
           planSnapshot: res.data.data.planSnapshot ?? null,
           cycle: res.data.data.cycle ?? null,
@@ -463,6 +473,7 @@ export function useDashboardWorkspace() {
     isStarterPlan,
     nextCycleDay,
     awaitingGenerationCount,
+    awaitingGenerationSlots,
     isReportPending,
     currentMeals,
     retainedMealLogs,

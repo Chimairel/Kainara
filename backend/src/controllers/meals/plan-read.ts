@@ -66,6 +66,7 @@ export async function getCurrentPlan(req: AuthenticatedRequest, res: Response) {
           pendingReview: buildPendingMealPlanPreview([]),
           planSnapshot: null,
           awaitingGenerationCount: 0,
+          awaitingGenerationSlots: [],
           generationStatus: generationJob?.status ?? 'GENERATING',
         },
       });
@@ -132,6 +133,12 @@ export async function getCurrentPlan(req: AuthenticatedRequest, res: Response) {
       .filter((meal) => clearedIds.has(meal.id))
       .map((meal) => serializeActionableMeal(meal, libraryImages, libraryCookingLinks));
     mark('serialize');
+    const awaitingGenerationSlots = remainingGenerationSlots(
+      cycle.startDate,
+      cycle.expectedSlotCount,
+      [...groupMeals.filter((row) => row.status !== MealPlanStatus.CANCELLED), ...retained],
+      new Date()
+    );
 
     res.setHeader('Server-Timing', stages.join(', '));
     return res.status(200).json({
@@ -156,12 +163,8 @@ export async function getCurrentPlan(req: AuthenticatedRequest, res: Response) {
           fatG: meal.fatG,
           status: meal.mealLogs[0]?.status ?? null,
         })),
-        awaitingGenerationCount: remainingGenerationSlots(
-          cycle.startDate,
-          cycle.expectedSlotCount,
-          [...groupMeals.filter((row) => row.status !== MealPlanStatus.CANCELLED), ...retained],
-          new Date()
-        ).length,
+        awaitingGenerationCount: awaitingGenerationSlots.length,
+        awaitingGenerationSlots,
         generationStatus: generationJob?.status ?? null,
       },
     });

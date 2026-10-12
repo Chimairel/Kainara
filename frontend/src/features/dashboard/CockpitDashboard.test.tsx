@@ -54,6 +54,23 @@ function props(): CockpitDashboardProps {
   };
 }
 describe('CockpitDashboard', () => {
+  it('shows pending slot skeletons in meal order without replacing saved or retained rows', () => {
+    const input = props();
+    input.preparingSlots = ['BREAKFAST', 'LUNCH', 'DINNER'].map((mealType) => ({
+      mealType,
+      scheduledDate: '2026-09-10',
+    }));
+    const view = render(<CockpitDashboard {...input} />);
+    expect(screen.getByLabelText('Breakfast is being prepared')).toBeInTheDocument();
+    expect(screen.queryByLabelText('Lunch is being prepared')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Dinner is being prepared')).not.toBeInTheDocument();
+    input.retainedMeals = [
+      { ...meal, id: 'old-breakfast', mealType: 'BREAKFAST', status: 'DONE', scheduledDate: '2026-09-10' },
+    ];
+    view.rerender(<CockpitDashboard {...input} />);
+    expect(screen.queryByText('Still preparing your meal…')).not.toBeInTheDocument();
+    expect(screen.getByText('Eaten · previous plan')).toBeInTheDocument();
+  });
   it('keeps retained intake in the sorted menu with a badge and no logging or detail action', () => {
     const input = props();
     input.retainedMeals = [

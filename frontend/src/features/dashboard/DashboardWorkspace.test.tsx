@@ -31,6 +31,8 @@ vi.mock('@/lib/clinical-profile-status', () => ({
   refreshClinicalProfileStatus: async () => fixture.eligibility,
 }));
 vi.mock('@/features/navigation/useDashboardPreload', () => ({ useDashboardPreload: () => undefined }));
+// The minimum display duration is covered with a controlled clock in DashboardPreparation.
+vi.mock('./usePreparationIntro', () => ({ usePreparationIntro: () => false }));
 vi.mock('./useOutsideMealLog', () => ({
   useOutsideMealLog: () => ({ isLoading: false, setIsOpen: vi.fn() }),
 }));
@@ -40,7 +42,9 @@ vi.mock('./CockpitDashboard', () => ({
   CockpitDashboard: (props: CockpitDashboardProps) => (
     <section aria-label="Loaded menu">
       <output aria-label="Consumed calories">{props.metrics.caloriesConsumed}</output>
-      {props.retainedMeals?.map((meal) => <p key={meal.id}>Recorded: {meal.mealName}</p>)}
+      {props.retainedMeals?.map((meal) => (
+        <p key={meal.id}>Recorded: {meal.mealName}</p>
+      ))}
       {props.pendingMeals?.map((meal) => (
         <p key={meal.mealName}>Preview: {meal.mealName}</p>
       ))}
@@ -107,7 +111,7 @@ describe('dashboard route after feature extraction', () => {
       await act(async () => {
         await vi.advanceTimersByTimeAsync(15_000);
       });
-      expect(screen.getByText('Preparing Your First Meal Plan')).toBeInTheDocument();
+      expect(screen.getByText('Preparing your meal plan')).toBeInTheDocument();
       plan = { data: [meal], meta: { generationStatus: 'COMPLETED' } };
       await act(async () => {
         await vi.advanceTimersByTimeAsync(3_000);
@@ -143,7 +147,7 @@ describe('dashboard route after feature extraction', () => {
     await act(async () => {
       rejectBlockedRead({ isAxiosError: true, response: { data: { errorCode: 'CLINICAL_EVIDENCE_REQUIRED' } } });
     });
-    expect(await screen.findByText('Preparing Your First Meal Plan')).toBeInTheDocument();
+    expect(await screen.findByText('Preparing your meal plan')).toBeInTheDocument();
     expect(get.mock.calls.filter(([url]) => url === '/user/meals/current')).toHaveLength(3);
     plan = { data: [meal], meta: { generationStatus: 'COMPLETED' } };
     await refresh();
@@ -164,17 +168,17 @@ describe('dashboard route after feature extraction', () => {
   });
   it('refreshes a preparing page into its saved meals without remounting or manual reload', async () => {
     render(<DashboardPage />);
-    await screen.findByText('Preparing Your First Meal Plan');
+    await screen.findByText('Preparing your meal plan');
     plan = { data: [meal], meta: { generationStatus: 'COMPLETED' } };
     await refresh();
     expect(await screen.findByRole('button', { name: 'Eat Fixture rice plate' })).toBeInTheDocument();
-    expect(screen.queryByText('Preparing Your First Meal Plan')).not.toBeInTheDocument();
+    expect(screen.queryByText('Preparing your meal plan')).not.toBeInTheDocument();
     expect(post).not.toHaveBeenCalled();
   });
 
   it('refreshes into failure and routes retry results to pending previews', async () => {
     render(<DashboardPage />);
-    await screen.findByText('Preparing Your First Meal Plan');
+    await screen.findByText('Preparing your meal plan');
     plan = { data: [], meta: { generationStatus: 'FAILED' } };
     await refresh();
     const retry = await screen.findByRole('button', { name: 'Retry Preparation' });

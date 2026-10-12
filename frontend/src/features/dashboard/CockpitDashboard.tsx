@@ -9,12 +9,14 @@ import type { PendingMealPreview } from '@/components/user/PendingMealPreviewCar
 import { DailyIntakeDonut, AnimatedValue } from '@/components/watermelon/daily-intake-donut';
 import { DashboardMealRow } from './DashboardMealRow';
 import type { RetainedMealLog } from '@/features/meals/RetainedMealLogs';
+import { PreparingMealRow, type PreparingMealSlot } from './PreparingMealRow';
 
 export interface CockpitDashboardProps {
   activeDate: Date;
   meals: MealPlan[];
   retainedMeals?: RetainedMealLog[];
   pendingMeals?: PendingMealPreview[];
+  preparingSlots?: PreparingMealSlot[];
   metrics: {
     caloriesConsumed: number;
     caloriesTarget: number;
@@ -39,6 +41,7 @@ export function CockpitDashboard({
   meals,
   retainedMeals = [],
   pendingMeals = [],
+  preparingSlots = [],
   metrics,
   waterIntake,
   onAddWater,
@@ -47,12 +50,18 @@ export function CockpitDashboard({
 }: CockpitDashboardProps) {
   const isToday = getManilaDateKey(activeDate) === getManilaDateKey();
   const mealOrder: Record<string, number> = { BREAKFAST: 0, LUNCH: 1, DINNER: 2, SNACK: 3 };
-  const menu = [
+  const savedMenu = [
     ...meals.map((meal) => ({ meal, kind: 'active' as const })),
     ...pendingMeals.map((meal) => ({ meal, kind: 'pending' as const })),
     ...retainedMeals
       .filter((meal) => !meals.some((active) => active.id === meal.id))
       .map((meal) => ({ meal, kind: 'retained' as const })),
+  ];
+  const menu = [
+    ...savedMenu,
+    ...preparingSlots
+      .filter((slot) => !savedMenu.some((entry) => entry.meal.mealType === slot.mealType))
+      .map((meal) => ({ meal, kind: 'preparing' as const })),
   ].sort((left, right) => (mealOrder[left.meal.mealType] ?? 4) - (mealOrder[right.meal.mealType] ?? 4));
   const macros = [
     {
@@ -283,7 +292,9 @@ export function CockpitDashboard({
           </div>
           <div className="space-y-4 flex-1 pl-7 sm:pl-10 lg:pl-12">
             {menu.map((entry, index) =>
-              entry.kind === 'pending' ? (
+              entry.kind === 'preparing' ? (
+                <PreparingMealRow key={`preparing-${entry.meal.mealType}`} mealType={entry.meal.mealType} />
+              ) : entry.kind === 'pending' ? (
                 <DashboardMealRow
                   key={`pending-${entry.meal.mealType}-${index}`}
                   meal={entry.meal}
