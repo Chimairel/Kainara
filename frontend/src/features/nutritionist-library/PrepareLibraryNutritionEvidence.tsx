@@ -1,3 +1,4 @@
+import { formatMealTitle } from '@/lib/meal-title';
 import FeedbackNotice from '@/components/shared/FeedbackNotice';
 import { useEffect, useState } from 'react';
 import api from '@/lib/axios';
@@ -106,9 +107,9 @@ export function PrepareLibraryNutritionEvidence({
     <Modal isOpen={true} onClose={close} title="Prepare recipe nutrition" size="lg">
       <form onSubmit={submit} className="space-y-4 text-sm text-brand-text">
         <p className="text-xs leading-relaxed text-brand-muted">
-          For one serving of {meal.mealName}, choose the specific edible food for each ingredient and record its edible
-          grams. Cups, pieces, and “to taste” amounts need a measured or documented gram estimate. The server will
-          calculate the recipe nutrition from those records.
+          For one serving of {formatMealTitle(meal.mealName)}, choose the specific edible food for each ingredient and
+          record its edible grams. Cups, pieces, and “to taste” amounts need a measured or documented gram estimate. The
+          server will calculate the recipe nutrition from those records.
         </p>
         {error && <FeedbackNotice variant="inline">{error}</FeedbackNotice>}
         {rows.map((row) => (

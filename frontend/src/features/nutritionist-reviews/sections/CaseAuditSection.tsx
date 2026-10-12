@@ -1,4 +1,5 @@
 'use client';
+import { formatMealTitle } from '@/lib/meal-title';
 import MealImage from '@/components/user/MealImage';
 import IngredientEvidenceTable from '../IngredientEvidenceTable';
 import type { DetailData } from '../useNutritionistReviews';
@@ -17,7 +18,7 @@ export default function CaseAuditSection({
   return (
     <section className={paper ? 'space-y-5' : 'space-y-5 rounded-2xl border border-brand-border bg-brand-surface p-5'}>
       <div className="border-b border-brand-border pb-3">
-        <h3 className="text-base font-bold">{meal.mealName}</h3>
+        <h3 className="text-base font-bold">{formatMealTitle(meal.mealName)}</h3>
         <p className="text-xs text-brand-muted">{meal.mealType} · Saved recipe evidence</p>
       </div>
       <div className="overflow-hidden rounded-xl border border-brand-border">

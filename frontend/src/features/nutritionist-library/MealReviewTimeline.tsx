@@ -1,4 +1,5 @@
 'use client';
+import { formatMealTitle } from '@/lib/meal-title';
 import FeedbackNotice from '@/components/shared/FeedbackNotice';
 
 import { useState } from 'react';
@@ -92,11 +93,11 @@ export function ReviewSnapshot({ meals, previous }: { meals: SnapshotMeal[]; pre
           <section
             key={meal.id}
             className={recordSectionClass}
-            aria-label={`Recorded recipe: ${meal.mealName ?? 'Name not recorded'}`}
+            aria-label={`Recorded recipe: ${formatMealTitle(meal.mealName ?? 'Name not recorded')}`}
           >
             <div className="border-b border-brand-border/70 pb-3">
               <h4 className="font-display text-base font-extrabold tracking-tight">
-                {meal.mealName ?? 'Name not recorded'}
+                {formatMealTitle(meal.mealName ?? 'Name not recorded')}
               </h4>
               <p className="mt-1 text-xs text-brand-muted">
                 {meal.nutritionServingDescription ?? 'Serving description not recorded'}

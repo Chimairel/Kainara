@@ -1,4 +1,5 @@
 'use client';
+import { formatMealTitle } from '@/lib/meal-title';
 import FeedbackNotice from '@/components/shared/FeedbackNotice';
 
 import { useSessionQuery } from '@/hooks/useSessionQuery';
@@ -140,7 +141,9 @@ export default function NutritionistApprovedPanel({ embedded = false }: { embedd
                       </Badge>
                     </div>
 
-                    <h3 className="text-sm font-bold text-brand-text mb-2 truncate">{meal.mealName}</h3>
+                    <h3 className="text-sm font-bold text-brand-text mb-2 truncate">
+                      {formatMealTitle(meal.mealName)}
+                    </h3>
 
                     {/* Macros */}
                     <div className="flex gap-2 flex-wrap mb-2">

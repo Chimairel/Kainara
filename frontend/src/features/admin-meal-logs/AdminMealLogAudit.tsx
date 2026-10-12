@@ -1,4 +1,5 @@
 'use client';
+import { formatMealTitle } from '@/lib/meal-title';
 import FeedbackNotice from '@/components/shared/FeedbackNotice';
 
 import { useEffect, useId, useState } from 'react';
@@ -61,7 +62,7 @@ export default function AdminMealLogAudit() {
       cell: (row) => (
         <>
           <p className="font-bold [overflow-wrap:anywhere]">
-            {row.snapshot.mealName ?? 'Meal name not recorded'}
+            {formatMealTitle(row.snapshot.mealName ?? 'Meal name not recorded')}
             {row.synthetic && <span className="text-[11px] text-brand-muted"> · Test account</span>}
           </p>
           <p className="mt-1 text-[11px] text-brand-muted">
@@ -155,7 +156,7 @@ export default function AdminMealLogAudit() {
               <div
                 id={panelId(row)}
                 role="region"
-                aria-label={'Meal log details: ' + (row.snapshot.mealName ?? 'Recorded meal')}
+                aria-label={'Meal log details: ' + formatMealTitle(row.snapshot.mealName ?? 'Recorded meal')}
               >
                 <MealLogDetail key={ownerId + ':' + row.logId} logId={row.logId} ownerId={ownerId} />
               </div>

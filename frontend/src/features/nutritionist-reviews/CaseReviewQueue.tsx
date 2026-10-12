@@ -1,4 +1,5 @@
 'use client';
+import { formatMealTitle } from '@/lib/meal-title';
 import FeedbackNotice from '@/components/shared/FeedbackNotice';
 
 import { useState } from 'react';
@@ -65,7 +66,7 @@ export default function CaseReviewQueue({ review, expanded }: Props) {
           {visibleQueue.map((meal) => (
             <QueueRow
               key={meal.id}
-              title={meal.mealName}
+              title={formatMealTitle(meal.mealName)}
               selected={selectedMealId === meal.id}
               disabled={meal.claimStatus.claimedByOther || meal.claimStatus.coolingDownForMe}
               onSelect={() => {

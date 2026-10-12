@@ -1,4 +1,5 @@
 'use client';
+import { formatMealTitle } from '@/lib/meal-title';
 import FeedbackNotice from '@/components/shared/FeedbackNotice';
 
 import { formatManilaDate } from '@/lib/manila-date';
@@ -432,7 +433,7 @@ export default function NutritionExportPage() {
                     <tr key={meal.id} className="border-b border-slate-100 align-top hover:bg-slate-50/50">
                       <td className="py-3 px-3 font-bold text-slate-700 uppercase">{meal.mealType}</td>
                       <td className="py-3 px-3">
-                        <div className="font-extrabold text-slate-900">{meal.mealName}</div>
+                        <div className="font-extrabold text-slate-900">{formatMealTitle(meal.mealName)}</div>
                         {meal.description && (
                           <div className="text-[10px] text-slate-500 mt-0.5 leading-relaxed">{meal.description}</div>
                         )}

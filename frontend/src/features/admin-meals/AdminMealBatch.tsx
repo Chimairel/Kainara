@@ -1,4 +1,5 @@
 'use client';
+import { formatMealTitle } from '@/lib/meal-title';
 import FeedbackNotice from '@/components/shared/FeedbackNotice';
 
 import { useState } from 'react';
@@ -121,7 +122,7 @@ export default function AdminMealBatch({ active }: { active: boolean }) {
               cell: (meal) => (
                 <input
                   type="checkbox"
-                  aria-label={meal.mealName}
+                  aria-label={formatMealTitle(meal.mealName)}
                   checked={selected.includes(meal.id)}
                   disabled={!selected.includes(meal.id) && selected.length >= 100}
                   onChange={(event) =>
@@ -130,7 +131,7 @@ export default function AdminMealBatch({ active }: { active: boolean }) {
                 />
               ),
             },
-            { key: 'name', header: 'Meal', cell: (meal) => meal.mealName },
+            { key: 'name', header: 'Meal', cell: (meal) => formatMealTitle(meal.mealName) },
           ]}
         />
 
@@ -203,7 +204,7 @@ export default function AdminMealBatch({ active }: { active: boolean }) {
                   header: 'Meal',
                   cell: (row) => (
                     <strong>
-                      Meal {row.index + 1}: {row.mealName || 'Name missing'}
+                      Meal {row.index + 1}: {formatMealTitle(row.mealName || 'Name missing')}
                     </strong>
                   ),
                 },

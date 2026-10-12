@@ -1,5 +1,6 @@
 'use client';
 
+import { formatMealTitle } from '@/lib/meal-title';
 import { useVisiblePolling } from '@/hooks/useVisiblePolling';
 import { useCallback, useEffect, useState } from 'react';
 import Button from '@/components/ui/Button';
@@ -137,7 +138,7 @@ export default function GovernanceQueuePanel({ tab }: { tab: 'audit' }) {
             <div key={clearance.id} className="rounded-2xl border border-brand-border bg-brand-surface p-4">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
-                  <p className="font-bold text-brand-text">{clearance.mealLibrary.mealName}</p>
+                  <p className="font-bold text-brand-text">{formatMealTitle(clearance.mealLibrary.mealName)}</p>
                   <p className="mt-1 text-xs text-brand-muted">
                     {clearance.condition} · {clearance.assuranceTier} · {clearance.state}
                   </p>
@@ -167,7 +168,7 @@ export default function GovernanceQueuePanel({ tab }: { tab: 'audit' }) {
           ))}
           {dueProfiles.map((approval) => (
             <div key={approval.id} className="rounded-2xl border border-brand-border bg-brand-surface p-4">
-              <p className="font-bold">{approval.mealLibrary.mealName}</p>
+              <p className="font-bold">{formatMealTitle(approval.mealLibrary.mealName)}</p>
               <p className="text-xs text-brand-muted">Profile approval · Flagged</p>
               {approval.flagReason && (
                 <p className="text-xs text-[#8c3b00] dark:text-[#ff8a3d]">{approval.flagReason}</p>
@@ -178,7 +179,8 @@ export default function GovernanceQueuePanel({ tab }: { tab: 'audit' }) {
               {selectedProfile?.id === approval.id && caseDetail && (
                 <div className="mt-3 rounded-xl border border-brand-border p-3 text-sm">
                   <p>
-                    Original meal: {caseDetail.originatingPlan?.mealName ?? approval.mealLibrary.mealName} ·{' '}
+                    Original meal:{' '}
+                    {formatMealTitle(caseDetail.originatingPlan?.mealName ?? approval.mealLibrary.mealName)} ·{' '}
                     {caseDetail.originatingPlan?.calories ?? 'Unknown'} kcal
                   </p>
                   <p>Linked member now: {caseDetail.linkedUserCurrentProfile?.name ?? 'Unavailable'}</p>

@@ -1,4 +1,5 @@
 'use client';
+import { formatMealTitle } from '@/lib/meal-title';
 import { useEffect, useState } from 'react';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
@@ -50,7 +51,9 @@ export default function ClarificationFormCard({
         </p>
       </header>
       {form.sourceMeal && (
-        <p className="text-xs text-brand-muted">Requested during meal review: {form.sourceMeal.mealName}</p>
+        <p className="text-xs text-brand-muted">
+          Requested during meal review: {formatMealTitle(form.sourceMeal.mealName)}
+        </p>
       )}
       <form
         onSubmit={(event) => {

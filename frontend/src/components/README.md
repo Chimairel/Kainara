@@ -143,6 +143,8 @@ Membership uses `MembershipPlanHeader`, `PlanStatisticsCard`, `PlanCalendarCard`
 
 CaseAuditSection consumes the same public `mealPlan.image` contract as member meals through `MealImage`. The backend reuses `resolvePlanImage` and bounded source/library photo projections. Preserve source attribution, adapted-image priority, swapped-recipe identity checks and truthful unavailable/error fallback; an image is not clinical evidence or approval.
 
+`MealImage` uses `/logo/kainara-logo.svg` for unavailable or failed photographs across all variants, including double failures and malformed/unsupported URLs. Do not substitute generic food photos or add fallback badges/cards. Real primary/backup images retain attribution and the exact reviewed-source lookup uses the original name. Use `formatMealTitle` from `lib/meal-title` for rendered meal titles and accessible labels across member, RND and admin pages. Keep authoring values, identity keys and recorded evidence untouched. The photo handoff and title mapping are in `docs/MEAL_PRESENTATION_AUDIT_2026-10-13.md`.
+
 ## Illustrated states
 
 StateNotice owns the shared sleeping Nara empty-state presentation. Health details reuses it only after a successful workspace response with no applicable detail forms, with no form instructions or action button. Keep both light/dark SVG layers mounted for a 250 ms opacity crossfade, expose only the active image to assistive technology, and switch immediately for reduced motion. The scoped illustration transition is the only exception to the global theme-switch transition suppression.

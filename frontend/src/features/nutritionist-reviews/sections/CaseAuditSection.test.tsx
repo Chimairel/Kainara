@@ -14,7 +14,7 @@ vi.mock('next/image', () => ({
 it('shows the saved source photo in the review canvas and preserves its attribution and honest failure fallback', () => {
   const detailData = {
     mealPlan: {
-      mealName: 'Synthetic Hotsilog',
+      mealName: 'How to Make Synthetic Hotsilog Recipe',
       mealType: 'BREAKFAST',
       description: 'Saved synthetic recipe',
       calories: 500,
@@ -37,6 +37,7 @@ it('shows the saved source photo in the review canvas and preserves its attribut
     ingredients: [],
   } as unknown as DetailData;
   render(<CaseAuditSection model={{ detailData }} paper />);
+  expect(screen.getByRole('heading', { name: 'Synthetic Hotsilog' })).toBeInTheDocument();
   const photo = screen.getByRole('img', { name: 'Saved source photo' });
   expect(photo).toHaveAttribute('src', detailData.mealPlan.image!.url);
   expect(screen.getByRole('link', { name: /source/i })).toHaveAttribute(
@@ -45,5 +46,5 @@ it('shows the saved source photo in the review canvas and preserves its attribut
   );
   fireEvent.error(photo);
   expect(screen.queryByRole('img', { name: 'Saved source photo' })).not.toBeInTheDocument();
-  expect(screen.getByText(/Recipe photo coming soon/)).toBeInTheDocument();
+  expect(screen.getByRole('img', { name: 'Kainara logo' })).toHaveAttribute('src', '/logo/kainara-logo.svg');
 });

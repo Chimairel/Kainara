@@ -1,4 +1,5 @@
 'use client';
+import { formatMealTitle } from '@/lib/meal-title';
 import FeedbackNotice from '@/components/shared/FeedbackNotice';
 
 import { useAuth } from '@/hooks/useAuth';
@@ -46,7 +47,7 @@ export default function MealReviewQueue({
           rowKey={(row) => row.id}
           emptyMessage="No held recipes await re-review."
           columns={[
-            { key: 'meal', header: 'Meal', cell: (row) => <strong>{row.mealName}</strong> },
+            { key: 'meal', header: 'Meal', cell: (row) => <strong>{formatMealTitle(row.mealName)}</strong> },
             { key: 'state', header: 'Review state', cell: (row) => reviewStateLabel(row.state) },
             { key: 'incident', header: 'Incident', cell: (row) => row.incidentCount },
             {

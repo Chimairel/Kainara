@@ -1,4 +1,5 @@
 'use client';
+import { formatMealTitle } from '@/lib/meal-title';
 import FeedbackNotice from '@/components/shared/FeedbackNotice';
 
 import { formatManilaDate } from '@/lib/manila-date';
@@ -34,7 +35,7 @@ export default function CaseReviewDocument({ model }: { model: Model }) {
     <>
       <RndQueueDocument
         key={meal.id}
-        title={`Case approval · ${meal.mealName}`}
+        title={`Case approval · ${formatMealTitle(meal.mealName)}`}
         contentKey={meal.id}
         expanded={expanded}
         onExpandedChange={setExpanded}
@@ -76,7 +77,7 @@ export default function CaseReviewDocument({ model }: { model: Model }) {
         <ReviewDocumentPage
           page={2}
           title="Meal evidence"
-          subtitle={`${meal.mealName} · ${meal.mealType} · ${formatManilaDate(meal.scheduledDate, { dateStyle: 'medium' })}`}
+          subtitle={`${formatMealTitle(meal.mealName)} · ${meal.mealType} · ${formatManilaDate(meal.scheduledDate, { dateStyle: 'medium' })}`}
         >
           <CaseAuditSection model={model} paper />
           {detailData.warnings.length > 0 && (

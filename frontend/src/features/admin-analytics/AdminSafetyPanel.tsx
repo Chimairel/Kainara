@@ -1,4 +1,5 @@
 'use client';
+import { formatMealTitle } from '@/lib/meal-title';
 import FeedbackNotice from '@/components/shared/FeedbackNotice';
 
 import { formatManilaDate } from '@/lib/manila-date';
@@ -96,7 +97,7 @@ export default function AdminSafetyPanel({ active = true }: { active?: boolean }
                   headerClassName: 'min-w-[200px]',
                   cell: (incident) => (
                     <>
-                      <p className="font-bold">{incident.mealLibrary.mealName}</p>
+                      <p className="font-bold">{formatMealTitle(incident.mealLibrary.mealName)}</p>
                       {!!incident.affectedServingCount && incident.affectedServingCount > 1 && (
                         <p className="mt-1 text-brand-muted">Affects {incident.affectedServingCount} saved servings</p>
                       )}

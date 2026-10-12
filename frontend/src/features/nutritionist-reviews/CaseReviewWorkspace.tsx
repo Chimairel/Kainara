@@ -1,4 +1,5 @@
 'use client';
+import { formatMealTitle } from '@/lib/meal-title';
 import FeedbackNotice from '@/components/shared/FeedbackNotice';
 
 import { useEffect, useState } from 'react';
@@ -71,7 +72,7 @@ export default function CaseReviewWorkspace({
           <div className="space-y-4">
             {review.savedReviewNotes?.map((draft, index) => (
               <section key={index} className="space-y-2 rounded-xl border border-brand-border p-4">
-                <h3 className="font-bold">{draft.mealName}</h3>
+                <h3 className="font-bold">{formatMealTitle(draft.mealName)}</h3>
                 <p className="text-xs text-brand-muted">Outdated review context</p>
                 {draft.note && (
                   <div>

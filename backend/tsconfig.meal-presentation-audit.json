@@ -1,0 +1,13 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "rootDir": "..",
+    "paths": {
+      "@/types": ["../frontend/src/types/index.ts"],
+      "@/*": ["src/*"]
+    }
+  },
+  "include": ["scripts/audit-meal-presentation.ts"],
+  "exclude": ["node_modules", "dist"]
+}

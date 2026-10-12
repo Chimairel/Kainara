@@ -4,6 +4,7 @@ import Image from 'next/image';
 import React, { useState } from 'react';
 import { Apple, Coffee, Egg, ExternalLink, Fish, Flame, Salad, Soup, UtensilsCrossed } from 'lucide-react';
 import type { MealType, PublicMealImage } from '@/types';
+import { formatMealTitle } from '@/lib/meal-title';
 import { reviewedMealImages } from './reviewed-meal-images';
 
 export type MealCategory =
@@ -197,77 +198,6 @@ export function resolveCanonicalReviewedImage(mealName: string): PublicMealImage
   return reviewedMealImages[mealName.trim().toLowerCase()] ?? null;
 }
 
-export const defaultMealTypePlaceholders: Record<string, PublicMealImage> = {
-  BREAKFAST: {
-    url: '/meals/placeholder-breakfast.jpg',
-    altText: 'Appetizing Filipino breakfast plate with garlic fried rice, sunny-side egg, and sliced tomatoes',
-    kind: 'REPRESENTATIVE',
-    attribution: {
-      creator: null,
-      licenseCode: 'CC0',
-      sourcePageUrl: null,
-      licenseUrl: null,
-      modifications: null,
-    },
-  },
-  LUNCH: {
-    url: '/meals/placeholder-lunch.jpg',
-    altText: 'Appetizing Filipino chicken adobo lunch with steamed rice and sautéed greens',
-    kind: 'REPRESENTATIVE',
-    attribution: {
-      creator: null,
-      licenseCode: 'CC0',
-      sourcePageUrl: null,
-      licenseUrl: null,
-      modifications: null,
-    },
-  },
-  DINNER: {
-    url: '/meals/placeholder-dinner.jpg',
-    altText: 'Comforting Filipino sinigang tamarind soup dinner with tender meat and rice',
-    kind: 'REPRESENTATIVE',
-    attribution: {
-      creator: null,
-      licenseCode: 'CC0',
-      sourcePageUrl: null,
-      licenseUrl: null,
-      modifications: null,
-    },
-  },
-  SNACK: {
-    url: '/meals/placeholder-snack.jpg',
-    altText: 'Fresh Philippine golden mango, banana slices, and light snack plate',
-    kind: 'REPRESENTATIVE',
-    attribution: {
-      creator: null,
-      licenseCode: 'CC0',
-      sourcePageUrl: null,
-      licenseUrl: null,
-      modifications: null,
-    },
-  },
-};
-
-export function resolveMealTypePlaceholder(mealType?: MealType | string, mealName?: string): PublicMealImage {
-  const normalized = (mealType || '').toUpperCase();
-  if (normalized in defaultMealTypePlaceholders) {
-    return defaultMealTypePlaceholders[normalized];
-  }
-
-  const name = (mealName || '').toLowerCase();
-  if (/silog|pandesal|egg|oatmeal|breakfast|champorado|pancake|toast|waffle|bread/.test(name)) {
-    return defaultMealTypePlaceholders.BREAKFAST;
-  }
-  if (/sinigang|soup|stew|nilaga|bulalo|dinner|sopas|mami/.test(name)) {
-    return defaultMealTypePlaceholders.DINNER;
-  }
-  if (/snack|merienda|fruit|mango|banana|saba|shake/.test(name)) {
-    return defaultMealTypePlaceholders.SNACK;
-  }
-
-  return defaultMealTypePlaceholders.LUNCH;
-}
-
 export type MealImageProps = {
   image?: PublicMealImage | null;
   mealName: string;
@@ -278,100 +208,69 @@ export type MealImageProps = {
   variant?: 'card' | 'detail' | 'compact' | 'hero' | 'thumbnail';
   ingredients?: { ingredientName: string; category?: string }[];
   allowCanonicalFallback?: boolean;
+  /** @deprecated Missing images always use the Kainara logo. */
   allowMealTypePlaceholder?: boolean;
   hideRepresentativeBadge?: boolean;
 };
 
+/** Match the configured image providers; malformed legacy URLs must not crash Next/Image. */
+function renderableImageUrl(value: string): boolean {
+  if (value.startsWith('/') && !value.startsWith('//')) return true;
+  try {
+    const url = new URL(value);
+    return (
+      url.protocol === 'https:' &&
+      (['res.cloudinary.com', 'i.ytimg.com'].includes(url.hostname) ||
+        (url.hostname === 'panlasangpinoy.com' && url.pathname.startsWith('/wp-content/uploads/')))
+    );
+  } catch {
+    return false;
+  }
+}
+
 export default function MealImage({
   image,
   mealName,
-  mealType,
   className = '',
   priority = false,
   showAttributionLinks = false,
   variant = 'card',
-  ingredients = [],
   allowCanonicalFallback = true,
-  allowMealTypePlaceholder = false,
   hideRepresentativeBadge = false,
 }: MealImageProps) {
+  const displayName = formatMealTitle(mealName);
   const [failedUrls, setFailedUrls] = useState<Record<string, boolean>>({});
   const [loadedUrl, setLoadedUrl] = useState<string | null>(null);
 
   // 1. Specific image provided via props or reviewed canonical recipe match
   const primaryImage = image || (allowCanonicalFallback ? resolveCanonicalReviewedImage(mealName) : null);
-  const primaryFailed = Boolean(primaryImage && failedUrls[primaryImage.url]);
+  const primaryFailed = Boolean(
+    primaryImage && (!renderableImageUrl(primaryImage.url) || failedUrls[primaryImage.url])
+  );
   const videoFallback = primaryFailed ? primaryImage?.fallback : null;
-  const videoFallbackFailed = Boolean(videoFallback && failedUrls[videoFallback.url]);
+  const videoFallbackFailed = Boolean(
+    videoFallback && (!renderableImageUrl(videoFallback.url) || failedUrls[videoFallback.url])
+  );
 
-  // 2. Real food placeholder image for BREAKFAST, LUNCH, DINNER, SNACK
-  const placeholderCandidate = allowMealTypePlaceholder ? resolveMealTypePlaceholder(mealType, mealName) : null;
-  const placeholderFailed = Boolean(placeholderCandidate && failedUrls[placeholderCandidate.url]);
-
-  // Determine which image candidate to display
   const effectiveImage =
-    !primaryFailed && primaryImage
-      ? primaryImage
-      : videoFallback && !videoFallbackFailed
-        ? videoFallback
-        : !placeholderFailed && placeholderCandidate
-          ? placeholderCandidate
-          : null;
-  const showFallback = !effectiveImage;
+    !primaryFailed && primaryImage ? primaryImage : videoFallback && !videoFallbackFailed ? videoFallback : null;
   const isLoaded = Boolean(effectiveImage && loadedUrl === effectiveImage.url);
-  const categoryInfo = resolveMealCategory(mealName, mealType, ingredients);
-  const FallbackIcon = categoryInfo.icon;
 
-  if (showFallback) {
-    if (variant === 'thumbnail') {
-      return (
-        <div
-          className={`relative flex h-full w-full items-center justify-center overflow-hidden rounded-2xl border bg-gradient-to-br select-none ${categoryInfo.tone.bg} ${categoryInfo.tone.border} ${className}`}
-          title={`${mealName} (photo unavailable)`}
-          aria-label={`${mealName} (photo unavailable)`}
-        >
-          <UtensilsCrossed className={`h-6 w-6 ${categoryInfo.tone.text}`} aria-hidden="true" />
-        </div>
-      );
-    }
+  if (!effectiveImage) {
     return (
       <figure
-        className={`relative flex flex-col justify-between overflow-hidden rounded-2xl border bg-gradient-to-br p-4 select-none ${categoryInfo.tone.bg} ${categoryInfo.tone.border} ${className}`}
-        aria-label={`${mealName} (representative visual placeholder)`}
+        className={`relative flex h-full w-full items-center justify-center overflow-hidden rounded-2xl bg-brand-background-alt select-none ${className}`}
+        title={`${displayName} (photo unavailable)`}
+        aria-label={`${displayName} (photo unavailable)`}
       >
-        {/* Subtle decorative ambient glow */}
-        <div
-          className="pointer-events-none absolute -right-6 -top-6 h-24 w-24 rounded-full border border-emerald-500/10 bg-emerald-500/[0.02] blur-sm"
-          aria-hidden="true"
+        <Image
+          src="/logo/kainara-logo.svg"
+          alt="Kainara logo"
+          width={96}
+          height={96}
+          unoptimized
+          className="h-[52%] max-h-24 w-[52%] max-w-24 object-contain"
         />
-
-        {/* Category tag & representative visual badge */}
-        <div className="relative z-10 flex items-center justify-between gap-2">
-          <span
-            className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[9px] font-extrabold uppercase tracking-wider ${categoryInfo.tone.badgeBg} ${categoryInfo.tone.badgeText}`}
-          >
-            <FallbackIcon className="h-3 w-3" aria-hidden="true" />
-            <span>{categoryInfo.label}</span>
-          </span>
-          <span className="inline-flex items-center gap-1 rounded-full bg-black/75 px-2 py-0.5 text-[8px] font-bold uppercase tracking-wider text-white backdrop-blur-md border border-emerald-500/20">
-            <span className={`h-1.5 w-1.5 rounded-full ${categoryInfo.tone.dot}`} aria-hidden="true" />
-            Illustration
-          </span>
-        </div>
-
-        {/* Center: Category Icon & Title */}
-        <div className="relative z-10 my-auto flex flex-col items-center justify-center py-2 text-center">
-          <div
-            className={`mb-2 flex h-16 w-16 items-center justify-center rounded-full border bg-brand-surface/75 shadow-sm backdrop-blur-md ${categoryInfo.tone.border} ${categoryInfo.tone.text}`}
-          >
-            <FallbackIcon className="h-6 w-6" aria-hidden="true" />
-          </div>
-        </div>
-
-        {/* Bottom honest disclosure footer */}
-        <div className="relative z-10 text-center">
-          <span className="text-[9px] font-medium text-brand-muted/75">Recipe photo coming soon</span>
-        </div>
       </figure>
     );
   }
@@ -380,11 +279,11 @@ export default function MealImage({
     return (
       <div
         className={`relative h-full w-full overflow-hidden rounded-2xl border border-[#dce4e0] dark:border-[#173e33] bg-[#09110e] select-none ${className}`}
-        aria-label={`${mealName} (${effectiveImage.kind === 'REPRESENTATIVE' ? 'representative photo' : 'photo'})`}
+        aria-label={`${displayName} (${effectiveImage.kind === 'REPRESENTATIVE' ? 'representative photo' : 'photo'})`}
       >
         <Image
           src={effectiveImage.url}
-          alt={effectiveImage.altText || `Photo representing ${mealName}`}
+          alt={effectiveImage.altText || `Photo representing ${displayName}`}
           fill
           sizes="144px"
           className={`object-cover motion-reduce:transition-none transition-opacity duration-300 ${
@@ -412,7 +311,7 @@ export default function MealImage({
   return (
     <figure
       className={`relative overflow-hidden rounded-2xl border border-brand-border/60 bg-brand-surface/80 select-none ${className}`}
-      aria-label={`${mealName} (${effectiveImage.kind === 'REPRESENTATIVE' ? 'representative photo' : 'photo'})`}
+      aria-label={`${displayName} (${effectiveImage.kind === 'REPRESENTATIVE' ? 'representative photo' : 'photo'})`}
     >
       {/* Subtle loading skeleton placeholder */}
       <div
@@ -424,7 +323,7 @@ export default function MealImage({
 
       <Image
         src={effectiveImage.url}
-        alt={effectiveImage.altText || `Photo representing ${mealName}`}
+        alt={effectiveImage.altText || `Photo representing ${displayName}`}
         fill
         sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
         className={`object-cover motion-reduce:transition-none transition-opacity duration-300 ${
@@ -471,7 +370,7 @@ export default function MealImage({
                 href={effectiveImage.attribution.sourcePageUrl}
                 target="_blank"
                 rel="noreferrer noopener"
-                aria-label={`Source page for ${mealName} image (opens in new tab)`}
+                aria-label={`Source page for ${displayName} image (opens in new tab)`}
               >
                 <span>Source</span>
                 <ExternalLink className="h-2.5 w-2.5" aria-hidden="true" />
@@ -483,7 +382,7 @@ export default function MealImage({
                 href={effectiveImage.attribution.licenseUrl}
                 target="_blank"
                 rel="noreferrer noopener"
-                aria-label={`License for ${mealName} image (opens in new tab)`}
+                aria-label={`License for ${displayName} image (opens in new tab)`}
               >
                 <span>{effectiveImage.attribution.licenseCode || 'License'}</span>
                 <ExternalLink className="h-2.5 w-2.5" aria-hidden="true" />

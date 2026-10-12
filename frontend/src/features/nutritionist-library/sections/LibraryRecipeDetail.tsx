@@ -1,5 +1,6 @@
 'use client';
 
+import { formatMealTitle } from '@/lib/meal-title';
 import LibrarySafetyReview from '@/features/nutritionist-library/LibrarySafetyReview';
 import MealReviewPanel from '../MealReviewPanel';
 import RecipeDerivationForm from '@/features/nutritionist-library/RecipeDerivationForm';
@@ -59,7 +60,9 @@ export default function LibraryRecipeDetail({ model }: Props) {
               {viewedMeal.mealType} ·{' '}
               {source?.sourceName === 'PANLASANG_PINOY' ? 'Panlasang Pinoy base recipe' : 'Recorded recipe'}
             </p>
-            <h1 className="mt-2 font-display text-3xl font-black text-brand-text">{viewedMeal.mealName}</h1>
+            <h1 className="mt-2 font-display text-3xl font-black text-brand-text">
+              {formatMealTitle(viewedMeal.mealName)}
+            </h1>
             <div className="mt-3 flex flex-wrap items-center gap-2">
               <Badge
                 variant={
@@ -161,7 +164,7 @@ export default function LibraryRecipeDetail({ model }: Props) {
         {viewedMeal.parentMeal && (
           <p className="text-sm text-brand-muted">
             {viewedMeal.derivationKind === 'ADAPTED' ? 'Adapted from' : 'Serving version of'}{' '}
-            {viewedMeal.parentMeal.mealName}. This draft has its own review history and approvals.
+            {formatMealTitle(viewedMeal.parentMeal.mealName)}. This draft has its own review history and approvals.
           </p>
         )}
         {!isAdmin && (

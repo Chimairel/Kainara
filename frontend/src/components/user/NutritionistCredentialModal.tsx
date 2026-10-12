@@ -1,5 +1,6 @@
 'use client';
 
+import { formatMealTitle } from '@/lib/meal-title';
 import { formatManilaDate } from '@/lib/manila-date';
 
 import React, { useState, useEffect } from 'react';
@@ -178,7 +179,7 @@ export default function NutritionistCredentialModal({
                   </span>
                   {mealName && (
                     <span className="rounded-lg bg-emerald-600/15 dark:bg-emerald-500/15 border border-emerald-600/30 dark:border-emerald-500/30 px-2.5 py-1 text-xs font-bold text-emerald-800 dark:text-emerald-300">
-                      {mealName}
+                      {formatMealTitle(mealName)}
                     </span>
                   )}
                 </div>

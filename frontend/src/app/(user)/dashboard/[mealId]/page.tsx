@@ -1,4 +1,5 @@
 'use client';
+import { formatMealTitle } from '@/lib/meal-title';
 import FeedbackNotice from '@/components/shared/FeedbackNotice';
 
 import React, { useCallback, useEffect, useState } from 'react';
@@ -211,7 +212,7 @@ export default function MealDetailPage() {
               {activeLabel.label} Details
             </span>
             <h1 className="mt-0.5 font-display text-xl font-black leading-tight tracking-tight text-white md:text-2xl">
-              {meal.mealName}
+              {formatMealTitle(meal.mealName)}
             </h1>
             <span className="mt-1 block text-xs font-bold text-white/40">
               {Math.round(meal.calories)} kcal Total Energy

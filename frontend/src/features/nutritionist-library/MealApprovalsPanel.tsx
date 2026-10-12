@@ -1,4 +1,5 @@
 'use client';
+import { formatMealTitle } from '@/lib/meal-title';
 import FeedbackNotice from '@/components/shared/FeedbackNotice';
 
 import { formatManilaDate } from '@/lib/manila-date';
@@ -361,7 +362,7 @@ export function MealApprovalsPanel({ mealId }: { mealId: string }) {
               </section>
               <section className="space-y-3 rounded-2xl border border-brand-border p-4" aria-label="Meal details">
                 <h3 className="font-bold text-brand-text">Meal details</h3>
-                <p className="font-semibold">{reviewedMeal?.mealName}</p>
+                <p className="font-semibold">{formatMealTitle(reviewedMeal?.mealName || '')}</p>
                 <p className="text-sm text-brand-muted">{reviewedMeal?.description || 'No description recorded.'}</p>
                 <p className="text-sm">
                   {reviewedMeal?.calories} kcal · {reviewedMeal?.proteinG}g protein · {reviewedMeal?.carbsG}g carbs ·{' '}
@@ -579,7 +580,7 @@ export function MealApprovalsPanel({ mealId }: { mealId: string }) {
                       </p>
                     )}
                     <p className="text-xs font-semibold uppercase tracking-wide text-brand-muted">
-                      Serving variant · {variant.mealName}
+                      Serving variant · {formatMealTitle(variant.mealName)}
                     </p>
                     <p className="text-xs text-brand-muted">
                       {variant.nutritionServingDescription || 'Recorded serving'} · {variant.calories} kcal ·{' '}
@@ -598,7 +599,7 @@ export function MealApprovalsPanel({ mealId }: { mealId: string }) {
                     </details>
                   </div>
                   <WorkspaceTable
-                    label={`Recorded approvals: ${variant.mealName}`}
+                    label={`Recorded approvals: ${formatMealTitle(variant.mealName)}`}
                     rows={variant.approvals}
                     rowKey={(approval) => `${approval.kind}-${approval.id}`}
                     columns={[

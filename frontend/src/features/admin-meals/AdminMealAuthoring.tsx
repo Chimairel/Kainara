@@ -1,4 +1,5 @@
 'use client';
+import { formatMealTitle } from '@/lib/meal-title';
 import FeedbackNotice from '@/components/shared/FeedbackNotice';
 
 import Dropdown from '@/components/ui/Dropdown';
@@ -500,7 +501,7 @@ export default function AdminMealsPage({ active = true }: { active?: boolean }) 
           drafts.map((draft) => (
             <Card key={draft.id} className="flex flex-wrap items-center justify-between gap-4 p-4">
               <div>
-                <p className="font-bold text-brand-text">{draft.mealName}</p>
+                <p className="font-bold text-brand-text">{formatMealTitle(draft.mealName)}</p>
                 <p className="mt-1 text-xs text-brand-muted">
                   {draft.mealType.toLowerCase()} · {draft.calories} kcal · {draft.ingredients.length} FNRI ingredients ·
                   revision {draft.safetyEvidenceRevision}

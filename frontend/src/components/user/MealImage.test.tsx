@@ -26,6 +26,13 @@ const mockImage = {
 };
 
 describe('MealImage', () => {
+  it.each(['', 'not a URL', 'javascript:alert(1)', '//example.com/photo.jpg', 'https://example.com/photo.jpg'])(
+    'uses the logo for an invalid or unsupported source: %s',
+    (url) => {
+      render(<MealImage mealName="Pancit" image={{ ...mockImage, url }} />);
+      expect(screen.getByRole('img', { name: 'Kainara logo' })).toHaveAttribute('src', '/logo/kainara-logo.svg');
+    }
+  );
   it('uses a neutral missing-photo thumbnail instead of suggesting an ingredient is the meal photo', () => {
     const { container } = render(
       <MealImage
@@ -39,7 +46,7 @@ describe('MealImage', () => {
       'title',
       'French Toast (photo unavailable)'
     );
-    expect(container.querySelector('.lucide-utensils-crossed')).not.toBeNull();
+    expect(screen.getByRole('img', { name: 'Kainara logo' })).toHaveAttribute('src', '/logo/kainara-logo.svg');
     expect(container.querySelector('.lucide-egg')).toBeNull();
   });
   it.each(['Beef tapa with egg', 'Beef with cabbage', 'Pork with vegetables'])(
@@ -75,36 +82,23 @@ describe('MealImage', () => {
     rerender(<MealImage mealName="Pancit" image={{ ...mockImage, url: '/replacement.jpg' }} />);
     expect(screen.getByRole('img')).toHaveAttribute('src', '/replacement.jpg');
   });
-  it('renders representative fallback with category awareness for missing images when placeholder is disabled', () => {
-    render(<MealImage mealName="Chicken Tinola" mealType="LUNCH" allowMealTypePlaceholder={false} />);
-    expect(screen.getByRole('figure', { name: /Chicken Tinola/ })).toBeInTheDocument();
-    expect(screen.getByText('Illustration')).toBeInTheDocument();
-    expect(screen.getByText('Poultry & Egg')).toBeInTheDocument();
-    expect(screen.getByText(/Recipe photo coming soon/i)).toBeInTheDocument();
-  });
-
-  it('only renders generic culinary photos when explicitly requested', () => {
-    const { rerender } = render(<MealImage mealName="Chicken Tinola" mealType="LUNCH" allowMealTypePlaceholder />);
-    expect(screen.getByRole('img')).toHaveAttribute('src', '/meals/placeholder-lunch.jpg');
-    expect(screen.getByText('Representative image')).toBeInTheDocument();
-
-    rerender(<MealImage mealName="Tapsilog" mealType="BREAKFAST" allowMealTypePlaceholder />);
-    expect(screen.getByRole('img')).toHaveAttribute('src', '/meals/placeholder-breakfast.jpg');
-
-    rerender(<MealImage mealName="Sinigang na Baboy" mealType="DINNER" allowMealTypePlaceholder />);
-    expect(screen.getByRole('img')).toHaveAttribute('src', '/meals/placeholder-dinner.jpg');
-
-    rerender(<MealImage mealName="Turon" mealType="SNACK" allowMealTypePlaceholder />);
-    expect(screen.getByRole('img')).toHaveAttribute('src', '/meals/placeholder-snack.jpg');
-  });
-
-  it('never borrows the dinner photograph for unrelated recipes with no assigned image', () => {
-    const { rerender } = render(<MealImage mealName="Munggo Squash Rice Bowl" mealType="DINNER" />);
-    for (const mealName of ['Munggo Squash Rice Bowl', 'Chicken Corn Tomato Rice Bowl', 'Pork Squash Rice Bowl']) {
-      rerender(<MealImage mealName={mealName} mealType="DINNER" />);
-      expect(screen.queryByRole('img')).not.toBeInTheDocument();
-      expect(screen.getByText('Recipe photo coming soon')).toBeInTheDocument();
+  it.each(['card', 'detail', 'compact', 'hero', 'thumbnail'] as const)(
+    'uses the logo in the %s variant without stock-food photos or extra labels',
+    (variant) => {
+      render(<MealImage mealName="Chicken Tinola" mealType="LUNCH" variant={variant} allowMealTypePlaceholder />);
+      expect(screen.getByRole('img', { name: 'Kainara logo' })).toHaveAttribute('src', '/logo/kainara-logo.svg');
+      expect(screen.getByLabelText('Chicken Tinola (photo unavailable)')).toBeInTheDocument();
+      expect(screen.queryByText('Illustration')).not.toBeInTheDocument();
+      expect(screen.queryByText('Recipe photo coming soon')).not.toBeInTheDocument();
     }
+  );
+
+  it('uses the logo when both the source image and its fallback fail', () => {
+    render(<MealImage mealName="Pancit" image={{ ...mockImage, fallback: { ...mockImage, url: '/fallback.jpg' } }} />);
+    fireEvent.error(screen.getByRole('img'));
+    expect(screen.getByRole('img')).toHaveAttribute('src', '/fallback.jpg');
+    fireEvent.error(screen.getByRole('img'));
+    expect(screen.getByRole('img', { name: 'Kainara logo' })).toHaveAttribute('src', '/logo/kainara-logo.svg');
   });
 
   it('detects seafood, plant-based, meat, and breakfast categories correctly in fallbacks', () => {
@@ -142,14 +136,13 @@ describe('MealImage', () => {
     expect(licenseLink).toHaveAttribute('rel', 'noreferrer noopener');
   });
 
-  it('switches gracefully to category fallback when remote image delivery fails', () => {
+  it('switches gracefully to the logo fallback when remote image delivery fails', () => {
     render(<MealImage mealName="Tuna Rice Bowl" mealType="LUNCH" image={mockImage} allowMealTypePlaceholder={false} />);
     const photo = screen.getByRole('img', { name: mockImage.altText });
     fireEvent.error(photo);
 
     expect(screen.getByRole('figure', { name: /Tuna Rice Bowl/ })).toBeInTheDocument();
-    expect(screen.getByText('Illustration')).toBeInTheDocument();
-    expect(screen.getByText('Seafood')).toBeInTheDocument();
+    expect(screen.getByRole('img', { name: 'Kainara logo' })).toHaveAttribute('src', '/logo/kainara-logo.svg');
   });
 
   it('uses the recipe video thumbnail if the Panlasang article photo fails to load', () => {
