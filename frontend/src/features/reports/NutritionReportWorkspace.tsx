@@ -178,7 +178,7 @@ export default function NutritionReportPage() {
     setIsAcknowledging(true);
     let saved = Boolean(
       report.acknowledgedAt &&
-      (!report.planningContext?.activeVersion || report.planningContext.activeVersion === report.version)
+      (report.confirmationKind === 'FOOD_GUIDANCE_UPDATE' || !report.planningContext?.activeVersion || report.planningContext.activeVersion === report.version)
     );
     let navigating = false;
     try {
@@ -197,7 +197,7 @@ export default function NutritionReportPage() {
                 ...current,
                 acknowledgedAt: receipt.acknowledgedAt,
                 ...(current.planningContext
-                  ? { planningContext: { ...current.planningContext, activeVersion: report.version } }
+                  ? { planningContext: { ...current.planningContext, activeVersion: current.confirmationKind === 'FOOD_GUIDANCE_UPDATE' ? current.planningContext.activeVersion : report.version } }
                   : {}),
               }
             : current
@@ -435,6 +435,8 @@ export default function NutritionReportPage() {
           error={error}
           isAcknowledging={isAcknowledging}
           onAcknowledge={handleAcknowledge}
+          onUpdateFoodGuidance={handleRegenerate}
+          isUpdatingFoodGuidance={isRegenerating}
           onDownload={handleDownloadPDF}
           onDownloadVersion={handleDownloadVersion}
           onSetAsCurrent={handleSetAsCurrent}

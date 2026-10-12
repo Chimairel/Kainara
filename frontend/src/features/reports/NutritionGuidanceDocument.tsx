@@ -26,6 +26,8 @@ interface Props {
   onSetAsCurrent?: (version: ReportVersion) => void;
   isDownloadingPdf?: boolean;
   downloadingVersion?: number | null;
+  onUpdateFoodGuidance?: () => void;
+  isUpdatingFoodGuidance?: boolean;
 }
 
 function recordedDeclarations(value: unknown): string[] {
@@ -48,6 +50,8 @@ export default function NutritionGuidanceDocument({
   onDownloadVersion,
   onSetAsCurrent,
   isDownloadingPdf = false,
+  onUpdateFoodGuidance,
+  isUpdatingFoodGuidance = false,
 }: Props) {
   const [expanded, setExpanded] = useState(false);
 
@@ -96,21 +100,21 @@ export default function NutritionGuidanceDocument({
 
   const isAcknowledged = Boolean(
     displayedReport.acknowledgedAt &&
-    (!displayedReport.planningContext?.activeVersion ||
+    (displayedReport.confirmationKind === 'FOOD_GUIDANCE_UPDATE' || !displayedReport.planningContext?.activeVersion ||
       displayedReport.planningContext.activeVersion === displayedReport.version)
   );
 
   const showContinue = useMemo(() => {
     if (isViewingArchived || !report.acknowledgedAt) return false;
     if (error) return true;
-    if (report.planningContext?.activeVersion && report.planningContext.activeVersion !== report.version) {
+    if (report.confirmationKind !== 'FOOD_GUIDANCE_UPDATE' && report.planningContext?.activeVersion && report.planningContext.activeVersion !== report.version) {
       return true;
     }
     if (typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('next')) {
       return true;
     }
     return false;
-  }, [isViewingArchived, report.acknowledgedAt, report.planningContext?.activeVersion, report.version, error]);
+  }, [isViewingArchived, report.acknowledgedAt, report.confirmationKind, report.planningContext?.activeVersion, report.version, error]);
 
   const handleDownloadReportVersion = (v: ReportVersion) => {
     if (onDownloadVersion) {
@@ -196,6 +200,12 @@ export default function NutritionGuidanceDocument({
           currentVersion={report.planningContext?.activeVersion ?? report.version}
           onSelect={(version) => setSelectedVersionNumber(version.version === report.version ? null : version.version)}
         />
+        {!isViewingArchived && !report.foodGuidance && onUpdateFoodGuidance && (
+          <div className="mx-auto flex w-full max-w-4xl flex-wrap items-center justify-between gap-3 text-sm">
+            <p className="text-brand-muted">Add food examples for your saved profile.</p>
+            <Button variant="secondary" onClick={onUpdateFoodGuidance} isLoading={isUpdatingFoodGuidance} disabled={isAcknowledging}>Update food guidance</Button>
+          </div>
+        )}
         <NutritionPdfViewer
           report={displayedReport}
           profile={profileSnapshot}

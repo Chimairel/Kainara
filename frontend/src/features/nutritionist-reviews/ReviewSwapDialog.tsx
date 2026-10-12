@@ -17,10 +17,12 @@ export default function ReviewSwapDialog({
   swap,
   meal,
   onNoSuitable,
+  onFindReplacement,
 }: {
   swap: ReturnType<typeof useReviewSwap>;
   meal: DetailData['mealPlan'];
   onNoSuitable?: () => void;
+  onFindReplacement?: () => void;
 }) {
   const [verifier, setVerifier] = useState<PublicVerifier | null>(null);
   useEffect(() => setVerifier(null), [meal.id, swap.open, swap.data]);
@@ -80,7 +82,14 @@ export default function ReviewSwapDialog({
             candidates; the RND still reviews the member’s health context.
           </p>
         )}
-        <SwapMealOptions
+        {!swap.loading && !swap.error && swap.data && options.length === 0 && (
+          <div className="my-5 space-y-3 text-sm">
+            <p className="font-semibold">No certified replacements match this search.</p>
+            <p className="max-w-[65ch] leading-6 text-brand-muted">Find a replacement from stored recipes, then AI if needed. It will still need review. Library nutrient filters do not apply to this broader search; your member’s saved restrictions and planning targets do.</p>
+            {onFindReplacement && <Button variant="secondary" disabled={swap.saving} onClick={onFindReplacement}>Reject and find replacement</Button>}
+          </div>
+        )}
+        {(swap.loading || swap.error || !swap.data || options.length > 0) && <SwapMealOptions
           calorieSortOnly
           model={{
             ...common,
@@ -95,7 +104,7 @@ export default function ReviewSwapDialog({
             handleSelectSwapOption: async (option) => swap.setSelectedId(option.id),
             setSelectedVerifier: setVerifier,
           }}
-        />
+        />}
         {selected && (
           <div className="mt-4">
             {selected.nutrients && (
@@ -154,13 +163,12 @@ export default function ReviewSwapDialog({
             disabled={swap.saving || swap.loading}
             onClick={onNoSuitable}
           >
-            No suitable replacement
+            Reject and leave unavailable
           </Button>
         )}
         {swap.data?.searchReceipt && (
           <p className="mt-2 text-xs text-brand-muted">
-            No suitable replacement opens the rejection dialog. Record why the results are unsuitable; it is not a
-            separate final decision.
+            Leaving unavailable records a rejection and stops automatic replacement. A reason is required.
           </p>
         )}
       </Modal>

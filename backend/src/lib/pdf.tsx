@@ -90,6 +90,49 @@ export const NutritionReportPDF = ({
           <View style={styles.divider} />
           <Text style={styles.title}>What these numbers mean</Text>
           <Text style={styles.text}>{report.generalSummary}</Text>
+          {report.foodGuidance?.formatVersion === 1 && (
+            <View style={styles.section}>
+              <Text style={styles.title}>Food choices for your profile</Text>
+              {(['avoid', 'limit', 'choose', 'discuss'] as const).map((key) => (
+                <View key={key} style={styles.section}>
+                  <Text style={styles.title}>
+                    {
+                      { avoid: 'Avoid', limit: 'Limit', choose: 'Choose more often', discuss: 'Discuss with your RND' }[
+                        key
+                      ]
+                    }
+                  </Text>
+                  {report.foodGuidance[key].length ? (
+                    report.foodGuidance[key].map((item: { name: string; reason: string; tip: string }) => (
+                      <View key={item.name} wrap={false}>
+                        <Text style={[styles.text, styles.bold]}>{item.name}</Text>
+                        <Text style={styles.text}>{item.reason}</Text>
+                        <Text style={styles.text}>{item.tip}</Text>
+                      </View>
+                    ))
+                  ) : (
+                    <Text style={styles.text}>
+                      {
+                        {
+                          avoid:
+                            'No specific food exclusions are recorded. This does not rule out an unreported allergy.',
+                          limit: 'No additional food-specific limits are recorded.',
+                          choose: 'Your food choices need individual advice; see the RND discussion below.',
+                          discuss: 'Ask your RND if your condition or food restrictions change.',
+                        }[key]
+                      }
+                    </Text>
+                  )}
+                </View>
+              ))}
+              <Text style={styles.title}>Food guidance sources</Text>
+              {report.foodGuidance.sources.map((source: { code: string; title: string; url: string }) => (
+                <Text key={source.code} style={styles.text}>
+                  {source.title}: {source.url}
+                </Text>
+              ))}
+            </View>
+          )}
           {report.referenceItems.map(
             (
               item: { heading: string; value: string; explanation: string; sourceTitle: string; sourceUrl: string },

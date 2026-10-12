@@ -13,6 +13,68 @@ import { PlanningReadinessService } from '../src/services/planning-readiness.ser
 import { ProfileCycleAdaptationService } from '../src/services/profile-cycle-adaptation.service';
 import { UpcomingPlanPreparationService } from '../src/services/upcoming-plan-preparation.service';
 import { NUTRITION_GUIDANCE_POLICY_VERSION } from '../src/domain/deterministic-nutrition-report.policy';
+import { calculatePlanningMacroTargets } from '../src/domain/meal-macro-target.policy';
+
+test('educational guidance acknowledgment preserves the active plan binding only with identical saved inputs and targets', async (t) => {
+  const profile = {
+    revision: 4,
+    safetyRevision: 2,
+    planningReportVersion: 2,
+    age: 28,
+    weightKg: 70,
+    heightCm: 170,
+    activityLevel: 'SEDENTARY',
+    goal: 'MAINTAIN',
+    dailyCalorieTarget: 2000,
+  };
+  const targets = calculatePlanningMacroTargets(profile)!;
+  let changed = false;
+  let activeVersion: number | null = null;
+  const snapshot = { profile, conditions: [], allergens: [], otherConditions: null, otherAllergies: null };
+  const tx = {
+    $executeRaw: async () => 0,
+    $queryRaw: async () => [],
+    userProfile: {
+      findUniqueOrThrow: async () => profile,
+      update: async ({ data }: { data: { planningReportVersion: number } }) => {
+        activeVersion = data.planningReportVersion;
+        return {};
+      },
+    },
+    nutritionReport: {
+      findUniqueOrThrow: async () => ({ version: 3, profileRevision: 4, isStale: false, acknowledgedAt: null }),
+      update: async () => ({ acknowledgedAt: new Date() }),
+    },
+    nutritionReportVersion: {
+      findFirst: async ({ where }: { where: { version: number } }) => ({
+        version: where.version,
+        profileRevision: 4,
+        policyVersion: NUTRITION_GUIDANCE_POLICY_VERSION,
+        confirmationKind: 'FOOD_GUIDANCE_UPDATE',
+        acknowledgedAt: where.version === 2 ? new Date() : null,
+        profileSnapshot: {
+          ...snapshot,
+          planningTargets:
+            where.version === 3
+              ? { ...targets, fatG: targets.fatG + 1e-12, carbsG: targets.carbsG + (changed ? 1 : 0) }
+              : targets,
+        },
+      }),
+      updateMany: async () => ({ count: 1 }),
+    },
+  };
+  t.mock.method(prisma, '$transaction', async (work: (db: Prisma.TransactionClient) => Promise<unknown>) =>
+    work(tx as unknown as Prisma.TransactionClient)
+  );
+  t.mock.method(PlanningReadinessService, 'getForUser', async () => null);
+  t.mock.method(ProfileCycleAdaptationService, 'acknowledgeProfileRevision', async () => undefined);
+  t.mock.method(UpcomingPlanPreparationService, 'triggerNonBlocking', () => undefined);
+  await NutritionReportService.acknowledgeReport('fixture', 3);
+  assert.equal(activeVersion, 2);
+  changed = true;
+  await NutritionReportService.acknowledgeReport('fixture', 3);
+  assert.equal(activeVersion, 3, 'Changed macro targets must not take the educational-only path.');
+});
 
 test('Free weight activation writes a receipt, while mixed updates and medical changes cannot bypass access', async (t) => {
   const enabled = process.env.MEMBERSHIP_ENABLED;

@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useSyncExternalStore } from 'react';
 import { Check, Loader2 } from 'lucide-react';
 import type { NutritionReport } from '@/types';
 import DocumentViewer from '@/components/shared/DocumentViewer';
@@ -23,6 +23,16 @@ interface Props {
   onSetAsCurrent?: (version: ReportVersion) => void;
 }
 
+const phoneQuery = '(max-width: 639px)';
+function subscribePhone(onChange: () => void) {
+  if (typeof window.matchMedia !== 'function') return () => {};
+  const query = window.matchMedia(phoneQuery);
+  query.addEventListener('change', onChange);
+  return () => query.removeEventListener('change', onChange);
+}
+const isPhone = () => typeof window.matchMedia === 'function' && window.matchMedia(phoneQuery).matches;
+const serverPhone = () => false;
+
 /** Nutrition adapter; all reader behavior lives in the reusable DocumentViewer. */
 export default function NutritionPdfViewer({
   report,
@@ -38,6 +48,7 @@ export default function NutritionPdfViewer({
   onExpandedChange,
   onSetAsCurrent,
 }: Props) {
+  const phone = useSyncExternalStore(subscribePhone, isPhone, serverPhone);
   const archived = Boolean(selectedVersion && selectedVersion.version !== currentVersion);
   const actionClass =
     'inline-flex min-h-10 items-center gap-2 rounded-lg border border-brand-green/25 bg-brand-green/10 px-3 text-xs font-semibold text-brand-green hover:bg-brand-green/15 focus-visible:outline focus-visible:outline-brand-green disabled:cursor-default';
@@ -81,6 +92,22 @@ export default function NutritionPdfViewer({
       )}
     </button>
   );
+  if (phone && report.foodGuidance?.formatVersion === 1) {
+    return (
+      <section aria-label={`Nutrition report · Version ${report.version}`} className="space-y-5">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <span className="text-sm text-text-muted">Version {report.version}</span>
+          <div className="flex flex-wrap items-center gap-2">
+            {onDownload && <Button variant="secondary" size="sm" onClick={onDownload} isLoading={isDownloadingPdf}>Download PDF</Button>}
+            {actions}
+          </div>
+        </div>
+        <div className="bg-white px-5 py-6 text-slate-800">
+          <NutritionGuidancePaper report={report} profile={profile} presentation="inline" />
+        </div>
+      </section>
+    );
+  }
   return (
     <DocumentViewer
       title={`Nutrition report · Version ${report.version}`}

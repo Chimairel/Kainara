@@ -15,6 +15,7 @@ export default function ReviewDecisionDialog({
   error,
   required = false,
   approvalLabel = 'Confirm approval',
+  rejectionLabel = 'Confirm rejection',
   children,
 }: {
   action: 'approve' | 'reject' | null;
@@ -26,6 +27,7 @@ export default function ReviewDecisionDialog({
   error?: string | null;
   required?: boolean;
   approvalLabel?: string;
+  rejectionLabel?: string;
   children?: React.ReactNode;
 }) {
   const reject = action === 'reject';
@@ -54,7 +56,7 @@ export default function ReviewDecisionDialog({
             isLoading={busy}
             onClick={onConfirm}
           >
-            {reject ? 'Confirm rejection' : approvalLabel}
+            {reject ? rejectionLabel : approvalLabel}
           </Button>
         </>
       }

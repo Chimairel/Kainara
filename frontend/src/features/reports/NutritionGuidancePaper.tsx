@@ -3,6 +3,7 @@
 import React from 'react';
 import type { NutritionReport } from '@/types';
 import { formatManilaDate } from '@/lib/manila-date';
+import FoodGuidanceSections from './FoodGuidanceSections';
 
 export type GuidanceProfileSnapshot = {
   name: string;
@@ -72,7 +73,9 @@ export default function NutritionGuidancePaper({
     report.acknowledgedAt && activePlanningVersion && activePlanningVersion !== report.version
   );
 
-  const statusText = report.acknowledgedAt
+  const statusText = report.confirmationKind === 'FOOD_GUIDANCE_UPDATE'
+    ? report.acknowledgedAt ? 'Food guidance acknowledged' : 'Food guidance awaiting acknowledgment'
+    : report.acknowledgedAt
     ? isPreviouslySelected
       ? 'Previously selected for planning'
       : 'Selected for planning'
@@ -88,12 +91,12 @@ export default function NutritionGuidancePaper({
 
   const isPolicyReport = Boolean(report.reportPolicyVersion && referenceItems.length > 0);
   const totalPages =
-    isPolicyReport && referenceItems.length <= 3 && !limitList.length && !avoidList.length && !drinksList.length
+    report.foodGuidance?.formatVersion === 1 || (isPolicyReport && referenceItems.length <= 3 && !limitList.length && !avoidList.length && !drinksList.length)
       ? 1
       : 2;
 
   const page1ReferenceItems = isPolicyReport
-    ? referenceItems.length <= 3
+    ? report.foodGuidance?.formatVersion === 1 || referenceItems.length <= 3
       ? referenceItems
       : referenceItems.slice(0, 2)
     : [];
@@ -220,6 +223,7 @@ export default function NutritionGuidancePaper({
             </section>
           )}
 
+          {report.foodGuidance?.formatVersion === 1 && <FoodGuidanceSections guidance={report.foodGuidance} />}
           {/* Page 1 Reference Items */}
           {page1ReferenceItems.length > 0 && (
             <div className="space-y-4 my-3">
@@ -267,7 +271,7 @@ export default function NutritionGuidancePaper({
           )}
 
           {/* Legacy Food Lists on Page 1 if not policy report */}
-          {recommendedList.length > 0 && (
+          {!report.foodGuidance && recommendedList.length > 0 && (
             <div className="space-y-2 my-3">
               <h3 className="text-sm font-bold text-[#2D6A4F]">Recommended Foods</h3>
               <ul className="text-xs sm:text-[13px] text-slate-700 space-y-1 list-disc list-inside">

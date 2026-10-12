@@ -4,7 +4,7 @@ import { loadPlanningNutritionContext } from '@/domain/user-nutrition-context';
 import { lockUserProfile } from './profile-revision.service';
 import { assertCurrentMealReviewContext } from './meal-case-context.service';
 import { getNutritionistReviewableMealPlanWhere } from '@/domain/meal-actionability.policy';
-import { MealPlanStatus, AIConfidenceFlag, NotificationType, MealIngredientDataSource, Prisma } from '@prisma/client';
+import { MealPlanStatus, NotificationType, Prisma } from '@prisma/client';
 import { generateGenerativeJSON } from '@/lib/gemini';
 
 import { getReviewClaimCutoff } from '@/domain/nutritionist-review.policy';
@@ -33,6 +33,7 @@ import {
 import { type ReplacementOutcome } from '@/domain/review-nutrient-filter.policy';
 import { readReplacementSearch } from './review-replacement-search.service';
 import { AppError } from '@/errors/AppError';
+import type { ReplacementResult } from '@/domain/replacement-result.policy';
 
 export async function rejectMealPlan(
   nutritionistProfileId: string,
@@ -187,25 +188,36 @@ export async function rejectMealPlan(
 
   // A clinician's recorded search outcome holds this context/slot; neither deterministic nor AI fallback runs.
   if (search || (await hasRecordedReplacementHold(prisma, plan)))
-    return { success: true, replacementPlanId: null, replacementOutcome: 'NO_SUITABLE_REPLACEMENT' as const };
+    return {
+      success: true,
+      replacementPlanId: null,
+      replacementOutcome: 'NO_SUITABLE_REPLACEMENT' as const,
+      replacementResult: { status: 'HELD' } satisfies ReplacementResult,
+    };
 
-  const certifiedFallback = await CertifiedSlotFallbackService.replaceWithBestCertified({
-    mealPlanId,
-    tolerance: 0.15,
-    reasonCode: 'RND_REJECTION_NEXT_CERTIFIED_CANDIDATE',
-    expectedStatus: MealPlanStatus.REJECTED,
-  });
-  if (certifiedFallback.replaced) {
-    try {
-      await GroceryService.generateGroceryList(plan.userId, undefined, plan.planGroupId, 'EXPLICIT');
-    } catch (error) {
-      console.error('[NutritionistService] Certified fallback grocery refresh failed:', error);
-    }
-    return { success: true, replacementPlanId: certifiedFallback.replacementPlanId };
-  }
-
-  // Generate a replacement only after the rejection decision commits.
+  let preparationFailed = false;
   try {
+    const certifiedFallback = await CertifiedSlotFallbackService.replaceWithBestCertified({
+      mealPlanId,
+      tolerance: 0.15,
+      reasonCode: 'RND_REJECTION_NEXT_CERTIFIED_CANDIDATE',
+      expectedStatus: MealPlanStatus.REJECTED,
+      pendingRejection: true,
+    });
+    if (certifiedFallback.replaced) {
+      try {
+        await GroceryService.generateGroceryList(plan.userId, undefined, plan.planGroupId, 'EXPLICIT');
+      } catch (error) {
+        console.error('[NutritionistService] Certified fallback grocery refresh failed:', error);
+      }
+      return {
+        success: true,
+        replacementPlanId: certifiedFallback.replacementPlanId,
+        replacementResult: { status: 'READY_FOR_REVIEW', source: 'CERTIFIED_LIBRARY' } satisfies ReplacementResult,
+      };
+    }
+
+    // Generate a replacement only after the rejection decision commits.
     const { profile, planningTargets } = await loadPlanningNutritionContext(
       prisma,
       plan.userId,
@@ -340,7 +352,12 @@ export async function rejectMealPlan(
           },
           { isolationLevel: Prisma.TransactionIsolationLevel.Serializable }
         );
-        return { success: true, replacementPlanId: replacement.id, source: 'RAW_RECIPE_CORPUS' };
+        return {
+          success: true,
+          replacementPlanId: replacement.id,
+          source: 'RAW_RECIPE_CORPUS',
+          replacementResult: { status: 'READY_FOR_REVIEW', source: 'RAW_RECIPE_CORPUS' } satisfies ReplacementResult,
+        };
       }
     }
 
@@ -384,14 +401,35 @@ export async function rejectMealPlan(
       if (validation.accepted) replacement = candidate;
       else validationFailures.push(...validation.definiteConflicts);
     }
-    if (!replacement) throw new Error('No deterministic-safe replacement was produced after three attempts.');
+    if (!replacement)
+      throw new AppError('No candidate passed the replacement checks.', 422, 'NO_REPLACEMENT_CANDIDATE');
 
     // Create replacement meal with same planGroupId and scheduledDate
-    const replacementIngredients = (replacement.ingredients || []).map((ing: any) => ({
-      ingredientName: ing.name,
-      category: ing.category || 'PANTRY',
-      dataSource: MealIngredientDataSource.GEMINI_ESTIMATED,
-    }));
+    const preparedAi = await prepareGeneratedMealIngredients({
+      meals: [
+        {
+          ...replacement,
+          description: replacement.description ?? '',
+          dayNumber: 1,
+          mealType: plan.mealType,
+          candidateProvenance: 'AI_FROM_SCRATCH',
+          ingredients: replacement.ingredients.map((ingredient: { name: string }) => ({
+            name: ingredient.name,
+            foodItemId: null,
+          })),
+        },
+      ],
+      unmatchedSlots: [{ dayNumber: 1, mealType: plan.mealType, scheduledDate: plan.scheduledDate }],
+      startDate: plan.scheduledDate,
+      userHasConditions: conditions.length > 0,
+      groundedFoodById: new Map(),
+      restrictions: {
+        dietaryPreference: profile.dietaryPreference ?? 'OMNIVORE',
+        allergens: safetyRestrictions.allergies,
+        customAllergies: safetyRestrictions.customFoodRestrictions,
+      },
+    });
+    const replacementIngredients = preparedAi.preparedMeals[0].ingredientsData;
     const serving = buildBaseServingPersistence({
       ...replacement,
       mealType: plan.mealType,
@@ -402,6 +440,10 @@ export async function rejectMealPlan(
       await lockUserProfile(tx, plan.userId);
       await assertNoAutomaticSlotReplacement(tx, plan);
       await ReviewRoutingService.assertMeal(nutritionistProfileId, mealPlanId, tx);
+      const latest = await tx.userProfile.findUniqueOrThrow({ where: { userId: plan.userId } });
+      if (latest.revision !== profile.revision || latest.safetyRevision !== profile.safetyRevision)
+        throw new Error('User information changed during replacement.');
+      await assertFoodCompositionRevisions(tx, preparedAi.compositionRevisions);
       const created = await tx.mealPlan.create({
         data: {
           planGroupId: plan.planGroupId,
@@ -415,7 +457,7 @@ export async function rejectMealPlan(
           proteinG: replacement.proteinG,
           carbsG: replacement.carbsG,
           fatG: replacement.fatG,
-          aiConfidenceFlag: AIConfidenceFlag.CAUTION,
+          aiConfidenceFlag: preparedAi.preparedMeals[0].aiConfidenceFlag,
           scheduledDate: plan.scheduledDate,
           requiresSafetyRevalidation: true,
           safetyPolicyVersion: MEAL_PLAN_SAFETY_POLICY_VERSION,
@@ -455,31 +497,51 @@ export async function rejectMealPlan(
         data: { supersededByMealPlanId: created.id, fallbackAvailable: true },
       });
       if (linked.count !== 1) throw new Error('Rejected slot changed during replacement. Refresh the queue.');
+      await tx.groceryList.updateMany({
+        where: { userId: plan.userId, planGroupId: plan.planGroupId },
+        data: { isStale: true },
+      });
       return created;
     });
-    return { success: true, replacementPlanId: replacementPlan.id, source: 'AI_FROM_SCRATCH' };
+    return {
+      success: true,
+      replacementPlanId: replacementPlan.id,
+      source: 'AI_FROM_SCRATCH',
+      replacementResult: { status: 'READY_FOR_REVIEW', source: 'AI_FROM_SCRATCH' } satisfies ReplacementResult,
+    };
   } catch (err) {
+    preparationFailed = !(err instanceof AppError && err.errorCode === 'NO_REPLACEMENT_CANDIDATE');
     console.error('[NutritionistService] Replacement meal generation failed:', err);
   }
 
-  await prisma.$transaction([
-    prisma.notification.create({
-      data: {
-        userId: plan.userId,
-        title: 'No reviewed replacement available yet',
-        message: `The rejected ${plan.mealType.toLowerCase()} slot has no reviewed replacement. It will remain unavailable unless a new candidate is approved.`,
-        type: NotificationType.PLAN_REJECTED,
-      },
-    }),
-    prisma.auditEvent.create({
-      data: {
-        actorUserId: reviewer.userId,
-        action: 'MEAL_PLAN_REPLACEMENT_UNAVAILABLE',
-        entityType: 'MealPlan',
-        entityId: mealPlanId,
-        metadata: { planGroupId: plan.planGroupId, scheduledDate: plan.scheduledDate.toISOString() },
-      },
-    }),
-  ]);
-  return { success: true, replacementPlanId: null, replacementUnavailable: true };
+  // The rejection already committed. A secondary notification failure cannot turn it into a failed decision.
+  await prisma
+    .$transaction([
+      prisma.notification.create({
+        data: {
+          userId: plan.userId,
+          title: 'No reviewed replacement available yet',
+          message: `The rejected ${plan.mealType.toLowerCase()} slot has no reviewed replacement. It will remain unavailable unless a new candidate is approved.`,
+          type: NotificationType.PLAN_REJECTED,
+        },
+      }),
+      prisma.auditEvent.create({
+        data: {
+          actorUserId: reviewer.userId,
+          action: 'MEAL_PLAN_REPLACEMENT_UNAVAILABLE',
+          entityType: 'MealPlan',
+          entityId: mealPlanId,
+          metadata: { planGroupId: plan.planGroupId, scheduledDate: plan.scheduledDate.toISOString() },
+        },
+      }),
+    ])
+    .catch(() => console.error('[NutritionistService] Saved rejection; unavailable-replacement notification failed.'));
+  return {
+    success: true,
+    replacementPlanId: null,
+    replacementUnavailable: true,
+    replacementResult: {
+      status: preparationFailed ? 'PREPARATION_FAILED' : 'NO_CANDIDATE',
+    } satisfies ReplacementResult,
+  };
 }

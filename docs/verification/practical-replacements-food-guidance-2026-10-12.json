@@ -1,0 +1,104 @@
+{
+  "changeId": "CHG-20261012-09",
+  "verifiedAtUtc": "2026-10-12T06:47:42.7307926Z",
+  "workspace": "C:/Users/chima/Desktop/Nutrimind",
+  "sourceBase": "0db6ab22b06d6550da632620ffdb7c885cd8d3b9",
+  "deployment": "local/development only",
+  "normalDatabase": {
+    "branchId": "br-round-art-b355gp02",
+    "sameAsHosted": true,
+    "projectId": "nameless-dust-38810716",
+    "database": "neondb"
+  },
+  "normalPlan": {
+    "inspection": "bounded hosted read; no feature mutations",
+    "savedSlots": 21,
+    "clearedSlots": 21
+  },
+  "testDatabase": "kainara_local_development@127.0.0.1:55432",
+  "testApiPort": 5001,
+  "tests": {
+    "backendTodo": 1,
+    "frontendFiles": 209,
+    "frontendNodeChecks": 8,
+    "frontendPassed": 1015,
+    "backendBuild": true,
+    "frontendTypecheck": true,
+    "changedLint": true,
+    "backendPassed": 993,
+    "backendFailed": 0
+  },
+  "browser": {
+    "staffSavedGuidance": true,
+    "phoneWidth": 390,
+    "duplicateRejections": 409,
+    "receiptAfterReloadActors": 2,
+    "reviewAfterEducation": true,
+    "realHttpAndPersistence": true,
+    "storedReplacementPending": true,
+    "educationPreservationActors": 5,
+    "explicitHold": true,
+    "themes": [
+      "light",
+      "dark"
+    ]
+  },
+  "pdf": {
+    "allSavedItemsPresent": true,
+    "visuallyInspectedPages": 3,
+    "exports": 3
+  },
+  "providerTests": "SDK transport simulated; persistence mocked; no provider availability claim",
+  "migration": false,
+  "hostedFeatureDeployment": false,
+  "evidence": [
+    {
+      "name": "food-guidance-binding-results.json",
+      "sha256": "e3b1aee3f7f55d35b88197527566ee1df3bf843e081931407aafb90a271704d9"
+    },
+    {
+      "name": "food-guidance-receipt-results.json",
+      "sha256": "73691c36765f03581d1ced1b005265d643f0789176051d9470e06a7273712c56"
+    },
+    {
+      "name": "replacement-browser-results.json",
+      "sha256": "20fb3bd60027b4b523556ae75bb13bfa936f1e3550313ef3353cc1e3a18f4ed7"
+    },
+    {
+      "name": "food-guidance-staff-results.json",
+      "sha256": "99aa060599342b6a4efddc8d43d0bf1604f3598a5c47217616d5bd35dc383d7d"
+    },
+    {
+      "name": "food-guidance-pdf-parity.json",
+      "sha256": "a20489cfe1570094c1908b72129843f3b4de32469c33cebea3e9532ae0cba457"
+    },
+    {
+      "name": "food-guidance-final-desktop-light.png",
+      "sha256": "f0fe83646c2d4dd40f69f59b0baedc79d8517ec210501d5fb4cf351287823ed5"
+    },
+    {
+      "name": "food-guidance-final-desktop-dark.png",
+      "sha256": "8926cb0ab4a6cf438ccf1e6fc719b2f01ecf6c2490f41581f8c61506203c604d"
+    },
+    {
+      "name": "food-guidance-final-mobile-light.png",
+      "sha256": "21657bf1fa26932d6538d0996e85b59aad9e0556f753d60f1b84afb5b220e376"
+    },
+    {
+      "name": "food-guidance-final-mobile-dark.png",
+      "sha256": "8e0f6a4e42a65abde4e31986e2d379505923da7c4345563887ed8db88b258664"
+    },
+    {
+      "name": "food-guidance-rnd-saved-view.png",
+      "sha256": "bc907729e3a59dd28101796dbacf58332e35260be66e0f5eecad80a6c04b114a"
+    },
+    {
+      "name": "replacement-empty-certified-search.png",
+      "sha256": "d7d368090f0c0b87f7f6ccc1683317d54026906f6db269cdcc50f0c951bbebf8"
+    },
+    {
+      "name": "food-guidance-diabetes.pdf",
+      "sha256": "936e512e4a4c31d2c910d106dfdc3b7ee94c17229ec04dc902109c6a64581c8f"
+    }
+  ]
+}

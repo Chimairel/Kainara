@@ -198,9 +198,9 @@ Migrations and seeds modify database state. Confirm the database target and auth
 
 Source nutrient completion uses `npm --prefix backend run nutrients:complete` (dry run by default). See [catalogue nutrient evidence](docs/CATALOGUE_NUTRIENT_COMPLETION.md) for the guarded import, source fingerprints and remaining recipe gaps. Apply its additive migration before using the new nutrient fields; the import does not certify meals or fabricate missing recipe values.
 
-### Synthetic accounts in the normal localhost app
+### Synthetic accounts in the isolated test app
 
-Use **Admin → People → Accounts → Create test accounts** in the local development app, or `npm --prefix backend run test:accounts`, to preview a create-only set of admin, member and RND accounts. It bypasses email proof, onboarding and RND application **for those marked synthetic accounts only**, with ordinary password login and unchanged application authorization. No Gmail account or provider request is needed. After explicitly confirming the development database target, create from the UI or apply the CLI target token. See [development test accounts](docs/DEV_TEST_ACCOUNTS.md) for conditions, RND status, returned login credentials and the CLI credential guide. Existing accounts and passwords are preserved.
+Use **Admin → People → Accounts → Create test accounts** against the isolated test API, or `npm --prefix backend run test:accounts` with an explicitly selected disposable database, to preview a create-only set of admin, member and RND accounts. It bypasses email proof, onboarding and RND application **for those marked synthetic accounts only**, with ordinary password login and unchanged application authorization. No Gmail account or provider request is needed. After explicitly confirming the development database target, create from the UI or apply the CLI target token. See [development test accounts](docs/DEV_TEST_ACCOUNTS.md) for conditions, RND status, returned login credentials and the CLI credential guide. Existing accounts and passwords are preserved. Normal localhost now shares hosted records; its URL alone does not establish test isolation.
 
 ### Compare Gemini food estimates
 
@@ -284,7 +284,11 @@ The backend `npm test` command uses Node's built-in test runner through `tsx` an
 
 ## Local PostgreSQL for development and defense
 
-Use [local development and defense rehearsal](docs/LOCAL_DEVELOPMENT_AND_DEFENSE.md) to run persistent loopback-only PostgreSQL, restore a verified local archive, apply migrations to the explicitly confirmed local target and switch only the localhost API. Start the database with `npm run local-db:up`; inspect it with `npm run local-db:status`. Hosted Neon data remains separate, with no automatic synchronization. Local development consumes no Neon database quota; external providers still need their own connectivity and limits.
+**Current owner-approved routing (October 12):** normal localhost and the live demonstration share Neon project `kainara-defense-20261016` (`nameless-dust-38810716`), main branch `br-round-art-b355gp02`, database `neondb`. The private backend `.env` selects that database. Both applications edit the same records and consume hosted usage. Sharing data does not publish local code: development and deployed release versions must still be recorded separately.
+
+Keep automated mutations, synthetic accounts and load rehearsals on the isolated loopback database. Create ignored `backend/.env.test.local` with the isolated `DATABASE_URL`/`DIRECT_URL`, existing test configuration and `PORT=5001`; run `npm --prefix backend run dev:isolated`. This entry point refuses hosted database targets. Test browsers must explicitly use API port 5001; the normal frontend/API remain on 3000/5000. Backend unit tests force an unreachable loopback database so accidental unmocked queries cannot inherit hosted credentials.
+
+Use [local development and defense rehearsal](docs/LOCAL_DEVELOPMENT_AND_DEFENSE.md) to run persistent loopback-only PostgreSQL and restore a verified archive to an explicitly confirmed test target. Start it with `npm run local-db:up`; inspect it with `npm run local-db:status`. The isolated database has no automatic synchronization with hosted records and consumes no Neon database quota. External providers still have their own limits. See [practical replacements and food guidance verification](docs/PRACTICAL_REPLACEMENTS_FOOD_GUIDANCE_2026-10-12.md) for the latest local feature checks.
 
 ## Optional local Docker workflow
 

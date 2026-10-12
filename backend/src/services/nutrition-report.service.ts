@@ -1,4 +1,5 @@
 import prisma from '@/lib/prisma';
+import { buildFoodGuidance, type FoodGuidance } from '@/domain/food-guidance.policy';
 import { reportActivationTier } from '@/domain/planning-membership.policy';
 import { NotificationType, Prisma } from '@prisma/client';
 import { AppError } from '@/errors/AppError';
@@ -21,7 +22,16 @@ import {
 } from '@/domain/meal-macro-target.policy';
 
 type StoredNutritionReport = NonNullable<Awaited<ReturnType<typeof prisma.nutritionReport.findUnique>>>;
+// PostgreSQL JSONB round trips can change the last floating-point digit.
+const samePlanningTargets = (left: PlanningMacroTargets | null, right: PlanningMacroTargets | null) =>
+  Boolean(
+    left &&
+    right &&
+    (['policyVersion', 'basis', 'goal'] as const).every((key) => left[key] === right[key]) &&
+    (['calories', 'proteinG', 'carbsG', 'fatG'] as const).every((key) => Math.abs(left[key] - right[key]) < 1e-9)
+  );
 type ReportResponse = StoredNutritionReport & {
+  foodGuidance?: FoodGuidance;
   planningTargets: PlanningMacroTargets | null;
   referenceItems: ReturnType<typeof buildDeterministicNutritionGuidance>['referenceItems'];
   reportPolicyVersion: string | null;
@@ -69,6 +79,7 @@ export class NutritionReportService {
     }
     return {
       ...report,
+      foodGuidance: content?.foodGuidance as FoodGuidance | undefined,
       isStale: report.isStale || !policyVersion,
       referenceItems:
         policyVersion && Array.isArray(content?.referenceItems)
@@ -96,6 +107,7 @@ export class NutritionReportService {
     const policyVersion = version.policyVersion === NUTRITION_GUIDANCE_POLICY_VERSION ? version.policyVersion : null;
     return {
       id: version.id,
+      foodGuidance: content.foodGuidance as FoodGuidance | undefined,
       userId: version.userId,
       version: version.version,
       generatedAt: version.generatedAt,
@@ -155,6 +167,12 @@ export class NutritionReportService {
           orderBy: { version: 'desc' },
         });
         const sameInputs = reportInputsMatch(version, previous);
+        const educationalUpdate =
+          version?.confirmationKind === 'FOOD_GUIDANCE_UPDATE' &&
+          sameInputs &&
+          previous?.policyVersion === NUTRITION_GUIDANCE_POLICY_VERSION &&
+          previous?.profileRevision === profile.revision &&
+          samePlanningTargets(reportPlanningMacroTargets(version), reportPlanningMacroTargets(previous));
         // First-ever activation and unchanged confirmations are free. The client cannot assert unchanged inputs.
         if ((previous || profile.firstReportAcknowledgedAt) && !sameInputs && membershipEnabled()) {
           const membership = await MembershipService.state(userId, new Date(), tx);
@@ -172,7 +190,9 @@ export class NutritionReportService {
         await tx.userProfile.update({
           where: { userId },
           data: {
-            planningReportVersion: report.version,
+            planningReportVersion: educationalUpdate
+              ? (profile.planningReportVersion ?? previous?.version ?? report.version)
+              : report.version,
             firstReportAcknowledgedAt: profile.firstReportAcknowledgedAt ?? previous?.acknowledgedAt ?? acknowledgedAt,
           },
         });
@@ -262,6 +282,7 @@ export class NutritionReportService {
   /** Used by check-ins in the same transaction as their durable weekly record. */
   static async publishInTransaction(tx: Prisma.TransactionClient, userId: string, confirmationKind = 'PROFILE_UPDATE') {
     const {
+      user,
       profile,
       safetyRestrictions,
       declaredSafetyRestrictions,
@@ -282,12 +303,19 @@ export class NutritionReportService {
       otherConditions: safetyRestrictions.customConditions,
       otherFoodRestrictions: safetyRestrictions.customFoodRestrictions,
     });
+    const foodGuidance = buildFoodGuidance({
+      restrictions: declaredSafetyRestrictions,
+      dietaryPreference: profile.dietaryPreference ?? 'OMNIVORE',
+      declaredEntries: user.safetyProfileEntries,
+    });
+    const foodText = (section: 'avoid' | 'limit' | 'choose') =>
+      foodGuidance[section].map((item) => `${item.name}: ${item.reason} ${item.tip}`);
     const savedReport = {
       userId,
       generalSummary: guidance.generalSummary,
-      foodsToAvoid: [] as string[],
-      foodsToLimit: [] as string[],
-      foodsRecommended: [] as string[],
+      foodsToAvoid: foodText('avoid'),
+      foodsToLimit: foodText('limit'),
+      foodsRecommended: foodText('choose'),
       drinksGuidance: [] as string[],
       basedOnConditions: [...declaredSafetyRestrictions.conditions, ...declaredSafetyRestrictions.customConditions],
       basedOnAllergies: [...allergens, ...safetyRestrictions.customFoodRestrictions],
@@ -300,6 +328,32 @@ export class NutritionReportService {
     const current = await tx.nutritionReport.findUnique({ where: { userId } });
     const version = Math.max(current?.version ?? 0, latest?.version ?? 0) + 1;
     const generatedAt = new Date();
+    const profileSnapshot = JSON.parse(
+      JSON.stringify({
+        profile,
+        conditions: declaredSafetyRestrictions.conditions,
+        allergens,
+        otherConditions: declaredSafetyRestrictions.customConditions.join(', '),
+        conditionAssessments: declaredSafetyRestrictions.displayEntries.flatMap((entry) =>
+          entry.mealPlanningAssessment ? [entry.mealPlanningAssessment] : []
+        ),
+        otherAllergies,
+        nutritionReferences: guidance.nutritionReferences,
+        planningTargets,
+      })
+    ) as Prisma.JsonObject;
+    const active = profile.planningReportVersion
+      ? await tx.nutritionReportVersion.findFirst({ where: { userId, version: profile.planningReportVersion } })
+      : null;
+    const activeContent = active?.content as { foodGuidance?: { formatVersion?: number } } | undefined;
+    const educationalUpdate =
+      confirmationKind === 'PROFILE_UPDATE' &&
+      active?.acknowledgedAt &&
+      active.policyVersion === NUTRITION_GUIDANCE_POLICY_VERSION &&
+      active.profileRevision === profile.revision &&
+      activeContent?.foodGuidance?.formatVersion !== foodGuidance.formatVersion &&
+      reportInputsMatch({ profileSnapshot }, active) &&
+      samePlanningTargets(planningTargets, reportPlanningMacroTargets(active));
     const data = {
       ...savedReport,
       generatedAt,
@@ -314,23 +368,12 @@ export class NutritionReportService {
         version,
         profileRevision: profile.revision,
         generatedAt,
-        confirmationKind,
+        confirmationKind: educationalUpdate ? 'FOOD_GUIDANCE_UPDATE' : confirmationKind,
         policyVersion: NUTRITION_GUIDANCE_POLICY_VERSION,
-        content: JSON.parse(JSON.stringify({ ...savedReport, ...guidance, planningTargets })) as Prisma.InputJsonObject,
-        profileSnapshot: JSON.parse(
-          JSON.stringify({
-            profile,
-            conditions: declaredSafetyRestrictions.conditions,
-            allergens,
-            otherConditions: declaredSafetyRestrictions.customConditions.join(', '),
-            conditionAssessments: declaredSafetyRestrictions.displayEntries.flatMap((entry) =>
-              entry.mealPlanningAssessment ? [entry.mealPlanningAssessment] : []
-            ),
-            otherAllergies,
-            nutritionReferences: guidance.nutritionReferences,
-            planningTargets,
-          })
+        content: JSON.parse(
+          JSON.stringify({ ...savedReport, ...guidance, foodGuidance, planningTargets })
         ) as Prisma.InputJsonObject,
+        profileSnapshot,
       },
     });
     return tx.nutritionReport.upsert({ where: { userId }, update: data, create: data });

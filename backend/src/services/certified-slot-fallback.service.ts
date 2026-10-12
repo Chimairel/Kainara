@@ -46,6 +46,8 @@ export class CertifiedSlotFallbackService {
     tolerance: number;
     reasonCode: string;
     expectedStatus?: MealPlanStatus;
+    /** A saved rejection may prepare a certified candidate, but must still obtain a fresh member-case decision. */
+    pendingRejection?: boolean;
     selectedLibraryMealId?: string;
     reviewer?: {
       expectedContextKey?: string;
@@ -62,6 +64,13 @@ export class CertifiedSlotFallbackService {
       where: { id: input.mealPlanId },
       include: { cycle: { include: { snapshot: true } } },
     });
+    if (input.pendingRejection && (input.reviewer || input.expectedStatus !== MealPlanStatus.REJECTED))
+      throw new AppError(
+        'Pending rejection replacement requires a saved rejection.',
+        409,
+        'REPLACEMENT_CONTEXT_CHANGED'
+      );
+    const pendingReview = Boolean(input.reviewer || input.pendingRejection);
     const filteredReview = Boolean(input.reviewer && env.CLINICAL_CLARIFICATIONS_ENABLED);
     if (filteredReview && !input.reviewer!.expectedServingKey)
       throw new AppError('Refresh the complete-serving replacement preview.', 409, 'REVIEW_SWAP_CHANGED');
@@ -106,15 +115,24 @@ export class CertifiedSlotFallbackService {
       ).flatMap((meal) => (meal.libraryMealId ? [meal.libraryMealId] : []))
     );
     const rejectedRecipes = await rejectedSlotRecipes(prisma, target);
-    const selectedCandidate = filteredReview && input.selectedLibraryMealId
-      ? await prisma.mealLibrary.findUnique({ where: { id: input.selectedLibraryMealId }, include: certifiedLibraryMealInclude }) : null;
-    const candidates = filteredReview ? (selectedCandidate ? [selectedCandidate] : []) : await queryEligibleLibraryMeals({
-      mealType: slotType,
-      userConditions: context.conditions,
-      userAllergens: context.allergens,
-      profile: { ...context.profile, userId: target.userId, safetyEntries: context.user.safetyProfileEntries },
-      limit: 120,
-    });
+    const selectedCandidate =
+      filteredReview && input.selectedLibraryMealId
+        ? await prisma.mealLibrary.findUnique({
+            where: { id: input.selectedLibraryMealId },
+            include: certifiedLibraryMealInclude,
+          })
+        : null;
+    const candidates = filteredReview
+      ? selectedCandidate
+        ? [selectedCandidate]
+        : []
+      : await queryEligibleLibraryMeals({
+          mealType: slotType,
+          userConditions: context.conditions,
+          userAllergens: context.allergens,
+          profile: { ...context.profile, userId: target.userId, safetyEntries: context.user.safetyProfileEntries },
+          limit: 120,
+        });
     const ranked = candidates
       .filter((candidate) => candidate.id !== target.libraryMealId)
       .filter(
@@ -125,13 +143,15 @@ export class CertifiedSlotFallbackService {
             baseRecipeSignature: candidate.recipeSignature,
           })
       )
-      .filter((candidate) =>
-        filteredReview || isMealWithinSlotCalorieRange({
-          calories: candidate.calories,
-          dailyCalorieTarget: target.cycle.snapshot!.dailyCalorieTarget,
-          mealType: slotType,
-          tolerance: input.tolerance,
-        })
+      .filter(
+        (candidate) =>
+          filteredReview ||
+          isMealWithinSlotCalorieRange({
+            calories: candidate.calories,
+            dailyCalorieTarget: target.cycle.snapshot!.dailyCalorieTarget,
+            mealType: slotType,
+            tolerance: input.tolerance,
+          })
       )
       .sort((left, right) => {
         const repetition = Number(usedIds.has(left.id)) - Number(usedIds.has(right.id));
@@ -183,7 +203,13 @@ export class CertifiedSlotFallbackService {
 
     return prisma.$transaction(async (tx) => {
       await lockUserProfile(tx, target.userId);
-      if (input.reviewer) await assertCurrentMealReviewContext(target.id, input.reviewer.expectedContextKey, tx, input.reviewer.profileId);
+      if (input.reviewer)
+        await assertCurrentMealReviewContext(
+          target.id,
+          input.reviewer.expectedContextKey,
+          tx,
+          input.reviewer.profileId
+        );
       const currentContext = await loadPlanningNutritionContext(tx, target.userId, 'Planning profile missing.');
       if (
         currentContext.profile.revision !== context.profile.revision ||
@@ -252,12 +278,13 @@ export class CertifiedSlotFallbackService {
         input.reviewer &&
         (latest.recipeSignature !== input.reviewer.expectedRecipeSignature ||
           latest.safetyEvidenceRevision !== input.reviewer.expectedEvidenceRevision ||
-          (!filteredReview && !isMealWithinSlotCalorieRange({
-            calories: latest.calories,
-            dailyCalorieTarget: target.cycle.snapshot!.dailyCalorieTarget,
-            mealType: slotType,
-            tolerance: input.tolerance,
-          })))
+          (!filteredReview &&
+            !isMealWithinSlotCalorieRange({
+              calories: latest.calories,
+              dailyCalorieTarget: target.cycle.snapshot!.dailyCalorieTarget,
+              mealType: slotType,
+              tolerance: input.tolerance,
+            })))
       )
         throw new AppError('Replacement evidence changed. Refresh before swapping.', 409, 'REVIEW_SWAP_CHANGED');
       await assertRecipeNotRejectedForSlot(tx, target, {
@@ -275,7 +302,12 @@ export class CertifiedSlotFallbackService {
         !certified &&
         isProfileApprovedLibraryMealCompatible(latest, context.conditions, context.allergens, currentProfile);
       if (!certified && !profileApproved) {
-        if (filteredReview) throw new AppError('Replacement clinical or credential evidence changed. Refresh the options.', 409, 'REVIEW_SWAP_CHANGED');
+        if (filteredReview)
+          throw new AppError(
+            'Replacement clinical or credential evidence changed. Refresh the options.',
+            409,
+            'REVIEW_SWAP_CHANGED'
+          );
         throw new Error('Certified fallback evidence changed during selection.');
       }
       let reviewedPlate: ReturnType<typeof reviewReplacementPlate> = null;
@@ -286,9 +318,16 @@ export class CertifiedSlotFallbackService {
           rice = await tx.foodItem.findUniqueOrThrow({ where: { id: rice.id } });
         }
         reviewedPlate = reviewReplacementPlate(latest, target, target.cycle.snapshot!, rice, conditions.length > 0);
-        if (!reviewedPlate || reviewedPlate.servingKey !== input.reviewer!.expectedServingKey ||
-          !evaluateNutrientFilters(reviewedPlate.nutrients, input.reviewer!.filters ?? {}).matches)
-          throw new AppError('Complete-serving nutrients or filters changed. Refresh before swapping.', 409, 'REVIEW_SWAP_CHANGED');
+        if (
+          !reviewedPlate ||
+          reviewedPlate.servingKey !== input.reviewer!.expectedServingKey ||
+          !evaluateNutrientFilters(reviewedPlate.nutrients, input.reviewer!.filters ?? {}).matches
+        )
+          throw new AppError(
+            'Complete-serving nutrients or filters changed. Refresh before swapping.',
+            409,
+            'REVIEW_SWAP_CHANGED'
+          );
       }
       const profileScope = profileApproved
         ? mealApprovalSafetyScope({
@@ -322,7 +361,7 @@ export class CertifiedSlotFallbackService {
         mealType: slotType,
         recipeSignature: latest.recipeSignature,
         ingredients,
-        evidenceSource: input.reviewer
+        evidenceSource: pendingReview
           ? 'RND_SELECTED_REPLACEMENT_PENDING_REVIEW'
           : 'CERTIFIED_DEADLINE_OR_REJECTION_FALLBACK',
       });
@@ -330,11 +369,11 @@ export class CertifiedSlotFallbackService {
         data: {
           planGroupId: target.planGroupId,
           userId: target.userId,
-          status: input.reviewer ? MealPlanStatus.PENDING_REVIEW : MealPlanStatus.APPROVED,
+          status: pendingReview ? MealPlanStatus.PENDING_REVIEW : MealPlanStatus.APPROVED,
           candidateProvenance: MealCandidateProvenance.CERTIFIED_LIBRARY,
           libraryMealId: latest.id,
-          profileApprovalId: input.reviewer ? null : (approval?.id ?? null),
-          nutritionistId: input.reviewer
+          profileApprovalId: pendingReview ? null : (approval?.id ?? null),
+          nutritionistId: pendingReview
             ? null
             : (approval?.reviewerNutritionistId ?? latest.safetyReviewedByNutritionistId),
           nutritionistNote: null,
@@ -350,11 +389,11 @@ export class CertifiedSlotFallbackService {
           fatG: latest.fatG,
           aiConfidenceFlag: AIConfidenceFlag.SAFE,
           scheduledDate: target.scheduledDate,
-          reviewedAt: input.reviewer ? null : (approval?.approvedAt ?? latest.safetyReviewedAt),
-          requiresSafetyRevalidation: Boolean(input.reviewer),
+          reviewedAt: pendingReview ? null : (approval?.approvedAt ?? latest.safetyReviewedAt),
+          requiresSafetyRevalidation: pendingReview,
           safetyPolicyVersion: MEAL_PLAN_SAFETY_POLICY_VERSION,
           highRiskReviewRequired: target.cycle.assuranceTier === AssuranceTier.ENHANCED,
-          reviewApprovalCount: input.reviewer ? 0 : 1,
+          reviewApprovalCount: pendingReview ? 0 : 1,
           candidateRank: 1,
           rankingScore: ranking.score,
           rankingReasonCodes: [...ranking.reasonCodes, input.reasonCode],
@@ -366,15 +405,25 @@ export class CertifiedSlotFallbackService {
             rankingScore: ranking.score,
             rankingReasonCodes: ranking.reasonCodes,
             capturedAt: new Date().toISOString(),
-            ...(reviewedPlate ? { nutrientFilters: input.reviewer!.filters ?? {}, reviewedPlate: reviewedPlate.nutrients,
-              servingKey: reviewedPlate.servingKey, pairedRiceG: reviewedPlate.pairedRiceG } : {}),
+            ...(reviewedPlate
+              ? {
+                  nutrientFilters: input.reviewer!.filters ?? {},
+                  reviewedPlate: reviewedPlate.nutrients,
+                  servingKey: reviewedPlate.servingKey,
+                  pairedRiceG: reviewedPlate.pairedRiceG,
+                }
+              : {}),
           } as Prisma.InputJsonObject,
           ingredients: { create: ingredients },
           ...serving,
         },
       });
-      if (reviewedPlate?.pairedRiceG) await composePlanWithPairedRice(tx, { mealPlanId: replacement.id,
-        cookedRiceG: reviewedPlate.pairedRiceG, fnriRiceFoodItemId: reviewedPlate.riceFoodId! });
+      if (reviewedPlate?.pairedRiceG)
+        await composePlanWithPairedRice(tx, {
+          mealPlanId: replacement.id,
+          cookedRiceG: reviewedPlate.pairedRiceG,
+          fnriRiceFoodItemId: reviewedPlate.riceFoodId!,
+        });
       for (const condition of input.reviewer ? [] : conditions) {
         const clearance = latest.conditionClearances.find(
           (item) =>
@@ -432,7 +481,7 @@ export class CertifiedSlotFallbackService {
         data: {
           actorUserId: reviewer?.userId ?? null,
           ...(reviewer ? { actorName: reviewer.user.name, actorRole: 'NUTRITIONIST' as const } : {}),
-          action: input.reviewer
+          action: pendingReview
             ? 'MEAL_PLAN_SLOT_REPLACED_PENDING_REVIEW'
             : 'MEAL_PLAN_SLOT_CERTIFIED_FALLBACK_SELECTED',
           entityType: 'MealPlan',
@@ -463,8 +512,14 @@ export class CertifiedSlotFallbackService {
                     proteinG: reviewedPlate?.proteinG ?? latest.proteinG,
                     carbsG: reviewedPlate?.carbsG ?? latest.carbsG,
                     fatG: reviewedPlate?.fatG ?? latest.fatG,
-                    ...(reviewedPlate ? { nutrients: reviewedPlate.nutrients, pairedRiceG: reviewedPlate.pairedRiceG,
-                      servingKey: reviewedPlate.servingKey, nutrientFilters: input.reviewer!.filters ?? {} } : {}),
+                    ...(reviewedPlate
+                      ? {
+                          nutrients: reviewedPlate.nutrients,
+                          pairedRiceG: reviewedPlate.pairedRiceG,
+                          servingKey: reviewedPlate.servingKey,
+                          nutrientFilters: input.reviewer!.filters ?? {},
+                        }
+                      : {}),
                     recipeSignature: latest.recipeSignature,
                     evidenceRevision: latest.safetyEvidenceRevision,
                   },

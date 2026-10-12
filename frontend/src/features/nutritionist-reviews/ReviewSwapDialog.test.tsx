@@ -28,7 +28,7 @@ function fixture() {
     meal: { id: 'first-case', mealType: 'LUNCH', calories: 400 },
     swap: {
       open: true,
-      data: { options: [] },
+      data: { options: [{ id: 'certified-choice' }] },
       selected: null,
       loading: false,
       saving: false,
@@ -60,4 +60,11 @@ it('does not reopen old credentials after closing the swap or refreshing options
   fireEvent.click(screen.getByRole('button', { name: 'View recipe reviewer' }));
   rerender(<ReviewSwapDialog {...props} swap={{ ...props.swap, data: { ...props.swap.data!, options: [] } }} />);
   expect(screen.queryByRole('dialog', { name: 'Recorded RND credentials' })).not.toBeInTheDocument();
+});
+it('offers broader preparation and a distinct hold after an empty certified search',()=>{
+ const props=fixture(), find=vi.fn(), hold=vi.fn();
+ render(<ReviewSwapDialog {...props} swap={{...props.swap,data:{...props.swap.data!,options:[],searchReceipt:'signed-search'}}} onFindReplacement={find} onNoSuitable={hold}/>);
+ expect(screen.getByText('No certified replacements match this search.')).toBeInTheDocument();
+ fireEvent.click(screen.getByRole('button',{name:'Reject and find replacement'}));expect(find).toHaveBeenCalledOnce();expect(hold).not.toHaveBeenCalled();
+ fireEvent.click(screen.getByRole('button',{name:'Reject and leave unavailable'}));expect(hold).toHaveBeenCalledOnce();
 });

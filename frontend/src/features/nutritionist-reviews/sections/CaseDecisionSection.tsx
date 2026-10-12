@@ -55,7 +55,9 @@ export default function CaseDecisionSection({
           else void model.handleApprove();
         }}
         required={action === 'reject' && swap.noSuitable}
+        rejectionLabel={swap.noSuitable ? 'Reject and leave unavailable' : 'Reject and find replacement'}
       >
+        {action === 'reject' && !swap.noSuitable && <p className="mb-4 text-sm leading-6 text-brand-muted">We’ll search the certified library, then stored recipes, then AI if needed. Replacements stay pending for review. Manual library nutrient filters do not apply to this broader search.</p>}
         {action === 'reject' && swap.filtersEnabled && <label className="mb-4 block text-sm">
           <input type="checkbox" checked={swap.noSuitable} disabled={busy || !swap.data?.searchReceipt}
             onChange={event => swap.setNoSuitable(event.target.checked)} className="mr-2" />
@@ -65,7 +67,7 @@ export default function CaseDecisionSection({
       </ReviewDecisionDialog>
       <ReviewSwapDialog swap={swap} meal={model.detailData.mealPlan} onNoSuitable={() => {
         swap.setNoSuitable(true); swap.close(); setAction('reject');
-      }} />
+      }} onFindReplacement={() => { swap.setNoSuitable(false); swap.close(); setAction('reject'); }} />
     </>
   );
 }

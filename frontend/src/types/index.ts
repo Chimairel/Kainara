@@ -146,6 +146,14 @@ export interface NutritionReport {
     activationTier: 'LIFESTYLE' | 'HEALTH' | null;
   };
   reportPolicyVersion?: string | null;
+  foodGuidance?: {
+    formatVersion: number;
+    avoid: Array<{ name: string; reason: string; tip: string; sourceCode: string }>;
+    limit: Array<{ name: string; reason: string; tip: string; sourceCode: string }>;
+    choose: Array<{ name: string; reason: string; tip: string; sourceCode: string }>;
+    discuss: Array<{ name: string; reason: string; tip: string; sourceCode: string }>;
+    sources: Array<{ code: string; title: string; url: string }>;
+  };
   referenceItems?: Array<{
     heading: string;
     value: string;

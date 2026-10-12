@@ -21,7 +21,7 @@ it('keeps only approve/reject as final decisions and passes a recorded search ou
   expect(screen.getByRole('toolbar', { name: 'Meal review actions' })).toBeInTheDocument();
   expect(screen.getByRole('button', { name: /^Swap$/ })).toBeInTheDocument();
   rerender(<CaseDecisionSection {...props} action="reject" />);
-  fireEvent.click(screen.getByRole('button', { name: 'Confirm rejection' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Reject and leave unavailable' }));
   expect(props.reject).toHaveBeenCalledWith(props.replacementOutcome); expect(props.approve).not.toHaveBeenCalled();
 });
 it('no suitable replacement prepares a rejection and never commits a third decision', () => {

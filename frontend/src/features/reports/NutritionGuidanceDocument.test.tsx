@@ -4,6 +4,14 @@ import type { NutritionReport } from '@/types';
 import type { ReportVersion } from './ReportHistory';
 import NutritionGuidanceDocument from './NutritionGuidanceDocument';
 
+it('shows an acknowledged educational update without offering to reactivate its unchanged plan', () => {
+  render(<NutritionGuidanceDocument report={{version:3,generatedAt:'2026-10-12T00:00:00Z',acknowledgedAt:'2026-10-12T01:00:00Z',confirmationKind:'FOOD_GUIDANCE_UPDATE',generalSummary:'Saved educational update',planningContext:{activeVersion:2},reportPolicyVersion:'NUTRITION_GUIDANCE_DETERMINISTIC_V1',referenceItems:[]} as unknown as NutritionReport} name="Member" goal="MAINTAIN" dailyCalorieTarget={2000} conditions={[]} foodRestrictions={[]} history={[]} error={null} isAcknowledging={false} onAcknowledge={vi.fn()} />);
+  expect(screen.getByRole('button',{name:'Acknowledged'})).toBeDisabled();
+  expect(screen.queryByRole('button',{name:'Use this report for meal planning'})).not.toBeInTheDocument();
+  expect(screen.queryByRole('button',{name:'Continue'})).not.toBeInTheDocument();
+  expect(screen.getByText(/Food guidance acknowledged/)).toBeInTheDocument();
+});
+
 it('preserves archived snapshots and selected-version downloads without changing planning selection', () => {
   const report = {
     version: 2,
