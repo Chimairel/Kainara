@@ -1,4 +1,5 @@
 import type { MealImageKind } from '@prisma/client';
+import { configuredCloudinaryCloudName, toPublicSourceCloudinaryImage } from './source-recipe-cloudinary.policy';
 
 export type MealImageRecord = {
   adaptedImageUrl?: string | null;
@@ -32,6 +33,7 @@ export type PublicMealImage = {
 };
 
 export type RawRecipeImageRecord = {
+  sourceRecordId?: string;
   recipeName: string;
   sourceName: string;
   sourceUrl: string;
@@ -71,12 +73,13 @@ export function toPublicRawRecipeImage(recipe: RawRecipeImageRecord): PublicMeal
     ? approvedPanlasangImageUrl(recipe.sourceImageUrl)
     : null;
   const sourcePage = approvedPanlasangSourcePage(recipe.sourceUrl);
+  const cloudinaryImage = toPublicSourceCloudinaryImage(recipe);
+  const videoThumbnail = toPublicYouTubeThumbnail({
+    mealName: recipe.recipeName,
+    sourceVideoUrl: recipe.sourceVideoUrl,
+  });
   if (articleImage && sourcePage) {
-    const videoThumbnail = toPublicYouTubeThumbnail({
-      mealName: recipe.recipeName,
-      sourceVideoUrl: recipe.sourceVideoUrl,
-    });
-    return {
+    const sourceImage: PublicMealImage = {
       url: articleImage,
       altText: `Panlasang Pinoy recipe photo for ${recipe.recipeName}`,
       kind: recipe.sourceName === 'DEMO_STANDARD_PORTION' ? 'REPRESENTATIVE' : 'EXACT',
@@ -89,8 +92,9 @@ export function toPublicRawRecipeImage(recipe: RawRecipeImageRecord): PublicMeal
         modifications: null,
       },
     };
+    return cloudinaryImage ? { ...cloudinaryImage, fallback: sourceImage } : sourceImage;
   }
-  return toPublicYouTubeThumbnail({ mealName: recipe.recipeName, sourceVideoUrl: recipe.sourceVideoUrl });
+  return cloudinaryImage ? { ...cloudinaryImage, fallback: videoThumbnail } : videoThumbnail;
 }
 
 function parseYouTubeVideoId(candidate: string): string | null {
@@ -156,14 +160,7 @@ export function toPublicMealImage(meal: MealImageRecord): PublicMealImage | null
         modifications: 'Adapted recipe',
       },
     };
-  let cloudName = process.env.CLOUDINARY_CLOUD_NAME?.trim();
-  if (!cloudName && process.env.CLOUDINARY_URL) {
-    try {
-      cloudName = new URL(process.env.CLOUDINARY_URL).hostname;
-    } catch {
-      cloudName = undefined;
-    }
-  }
+  const cloudName = configuredCloudinaryCloudName();
   if (cloudName && meal.imagePublicId && meal.imageVersion && meal.imageFormat && meal.imageKind && meal.imageAltText) {
     const publicId = meal.imagePublicId
       .split('/')

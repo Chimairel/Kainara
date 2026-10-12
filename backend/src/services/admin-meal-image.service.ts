@@ -2,21 +2,34 @@ import prisma from '@/lib/prisma';
 import { removeMealImage, uploadMealImage } from '@/lib/cloudinary';
 import { toPublicMealImage } from '@/domain/meal-image.policy';
 import type { MealImageMetadata } from '@/validation/meal-image.schemas';
+import { rawRecipeImageSelect, resolvePlanImage } from './meal-plan-presentation.service';
+import { resolveLibraryRecipeImages } from './library-recipe-image.service';
 
 export class AdminMealImageService {
   static async list(page: number, limit: number, search?: string) {
     const where = search ? { mealName: { contains: search, mode: 'insensitive' as const } } : {};
     const [items, total] = await Promise.all([
-      prisma.mealLibrary.findMany({ where, orderBy: { mealName: 'asc' }, skip: (page - 1) * limit, take: limit }),
+      prisma.mealLibrary.findMany({
+        where,
+        orderBy: { mealName: 'asc' },
+        skip: (page - 1) * limit,
+        take: limit,
+        include: { sourceRawRecipeCandidate: { select: rawRecipeImageSelect } },
+      }),
       prisma.mealLibrary.count({ where }),
     ]);
+    const sourceImages = await resolveLibraryRecipeImages(items);
     return {
       items: items.map((meal) => ({
         id: meal.id,
         mealName: meal.mealName,
         mealType: meal.mealType,
         status: meal.status,
-        image: toPublicMealImage(meal),
+        image: resolvePlanImage(
+          { libraryMeal: meal, sourceRawRecipeCandidate: meal.sourceRawRecipeCandidate },
+          sourceImages
+        ),
+        // Management state: source photos can display without a custom assignment to remove.
         hasImage: Boolean(meal.imagePublicId),
       })),
       pagination: { page, limit, total, totalPages: Math.ceil(total / limit) },

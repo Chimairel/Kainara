@@ -244,16 +244,19 @@ export default function MealImage({
 
   // 1. Specific image provided via props or reviewed canonical recipe match
   const primaryImage = image || (allowCanonicalFallback ? resolveCanonicalReviewedImage(mealName) : null);
-  const primaryFailed = Boolean(
-    primaryImage && (!renderableImageUrl(primaryImage.url) || failedUrls[primaryImage.url])
-  );
-  const videoFallback = primaryFailed ? primaryImage?.fallback : null;
-  const videoFallbackFailed = Boolean(
-    videoFallback && (!renderableImageUrl(videoFallback.url) || failedUrls[videoFallback.url])
-  );
-
-  const effectiveImage =
-    !primaryFailed && primaryImage ? primaryImage : videoFallback && !videoFallbackFailed ? videoFallback : null;
+  const effectiveImage = (() => {
+    const visited = new Set<string>();
+    for (
+      let candidate = primaryImage, depth = 0;
+      candidate && depth < 8;
+      candidate = candidate.fallback || null, depth++
+    ) {
+      if (visited.has(candidate.url)) break;
+      visited.add(candidate.url);
+      if (renderableImageUrl(candidate.url) && !failedUrls[candidate.url]) return candidate;
+    }
+    return null;
+  })();
   const isLoaded = Boolean(effectiveImage && loadedUrl === effectiveImage.url);
 
   if (!effectiveImage) {

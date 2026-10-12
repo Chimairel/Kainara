@@ -33,6 +33,7 @@ export async function resolveLibraryRecipeImages(
   const recipes = await prisma.rawRecipeCandidate.findMany({
     where: { sourceName: 'PANLASANG_PINOY', sourceUrl: { in: [...new Set(sourceByMeal.values())] } },
     select: {
+      sourceRecordId: true,
       recipeName: true,
       sourceName: true,
       sourceUrl: true,

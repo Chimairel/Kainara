@@ -1,4 +1,10 @@
 import { expect, test } from '@playwright/test';
+import { readFileSync } from 'node:fs';
+
+// Optional public photo response captured from the real local API; never contains a session token.
+const restoredImage = process.env.KAINARA_CLOUDINARY_IMAGE_FIXTURE
+  ? JSON.parse(readFileSync(process.env.KAINARA_CLOUDINARY_IMAGE_FIXTURE, 'utf8')).image
+  : null;
 
 // The real localhost:3000 UI with intercepted synthetic API data. No database writes.
 for (const theme of ['light', 'dark'])
@@ -41,7 +47,12 @@ for (const theme of ['light', 'dark'])
         },
       });
       const meals = [
-        { id: 'missing', mealName: 'How to Make French Toast - The Basic Recipe', mealType: 'BREAKFAST', image: null },
+        {
+          id: 'missing',
+          mealName: 'How to Make French Toast - The Basic Recipe',
+          mealType: 'BREAKFAST',
+          image: restoredImage,
+        },
         {
           id: 'failed',
           mealName: 'Adobong Dilaw Recipe (Yellow Adobo)',
@@ -111,10 +122,18 @@ for (const theme of ['light', 'dark'])
       await expect(page.getByText('Adobong Dilaw (Yellow Adobo)', { exact: true })).toBeVisible();
       await expect(page.getByText('Bam-I', { exact: true })).toBeVisible();
       await page.getByText('Adobong Dilaw (Yellow Adobo)', { exact: true }).scrollIntoViewIfNeeded();
-      for (const name of ['French Toast', 'Adobong Dilaw (Yellow Adobo)']) {
+      for (const name of restoredImage
+        ? ['Adobong Dilaw (Yellow Adobo)']
+        : ['French Toast', 'Adobong Dilaw (Yellow Adobo)']) {
         const fallback = page.getByLabel(`${name} (photo unavailable)`, { exact: true });
         await expect(fallback.getByRole('img', { name: 'Kainara logo' })).toBeVisible({ timeout: 15000 });
         await expect(fallback.getByRole('img')).toHaveJSProperty('naturalWidth', 450);
+      }
+      if (restoredImage) {
+        const photo = page.getByRole('img', { name: restoredImage.altText });
+        await photo.scrollIntoViewIfNeeded();
+        await expect.poll(() => photo.evaluate((img: HTMLImageElement) => img.naturalWidth)).toBeGreaterThan(0);
+        await expect(page.getByLabel('French Toast (photo unavailable)', { exact: true })).toHaveCount(0);
       }
       await page.getByRole('img', { name: 'Bam-I source photo' }).scrollIntoViewIfNeeded();
       await expect(page.getByRole('img', { name: 'Bam-I source photo' })).toHaveJSProperty('complete', true);
@@ -125,15 +144,23 @@ for (const theme of ['light', 'dark'])
         .toBeGreaterThan(0);
       await page.getByRole('heading', { name: 'On your menu' }).scrollIntoViewIfNeeded();
       await page.screenshot({
-        path: `../backend/.local/meal-presentation-audit/dashboard-${width}-${theme}.png`,
+        path: `../backend/.local/meal-presentation-audit/${restoredImage ? 'cloudinary-' : ''}dashboard-${width}-${theme}.png`,
         fullPage: true,
         animations: 'disabled',
       });
       await page.goto('/meals');
       await expect(page.getByText('French Toast', { exact: true })).toBeVisible();
-      await expect(
-        page.getByLabel('French Toast (photo unavailable)', { exact: true }).getByRole('img', { name: 'Kainara logo' })
-      ).toBeVisible();
+      if (restoredImage) {
+        const photo = page.getByRole('img', { name: restoredImage.altText });
+        await photo.scrollIntoViewIfNeeded();
+        await expect.poll(() => photo.evaluate((img: HTMLImageElement) => img.naturalWidth)).toBeGreaterThan(0);
+      } else {
+        await expect(
+          page
+            .getByLabel('French Toast (photo unavailable)', { exact: true })
+            .getByRole('img', { name: 'Kainara logo' })
+        ).toBeVisible();
+      }
       await page.getByText('Adobong Dilaw (Yellow Adobo)', { exact: true }).scrollIntoViewIfNeeded();
       await expect(
         page
@@ -149,7 +176,7 @@ for (const theme of ['light', 'dark'])
       await page.getByText('French Toast', { exact: true }).scrollIntoViewIfNeeded();
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
       await page.screenshot({
-        path: `../backend/.local/meal-presentation-audit/meals-${width}-${theme}.png`,
+        path: `../backend/.local/meal-presentation-audit/${restoredImage ? 'cloudinary-' : ''}meals-${width}-${theme}.png`,
         fullPage: true,
         animations: 'disabled',
       });

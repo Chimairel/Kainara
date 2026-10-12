@@ -101,6 +101,24 @@ describe('MealImage', () => {
     expect(screen.getByRole('img', { name: 'Kainara logo' })).toHaveAttribute('src', '/logo/kainara-logo.svg');
   });
 
+  it('tries Cloudinary, the article and the video before showing the logo', () => {
+    const video = { ...mockImage, url: 'https://i.ytimg.com/vi/uXi6QDOdhGg/mqdefault.jpg' };
+    const article = { ...mockImage, url: 'https://panlasangpinoy.com/wp-content/uploads/recipe.jpg', fallback: video };
+    render(<MealImage mealName="Pancit" image={{ ...mockImage, fallback: article }} />);
+    fireEvent.error(screen.getByRole('img'));
+    expect(screen.getByRole('img')).toHaveAttribute('src', article.url);
+    fireEvent.error(screen.getByRole('img'));
+    expect(screen.getByRole('img')).toHaveAttribute('src', video.url);
+    fireEvent.error(screen.getByRole('img'));
+    expect(screen.getByRole('img', { name: 'Kainara logo' })).toBeInTheDocument();
+  });
+
+  it('stops a repeated fallback URL rather than getting stuck in a cycle', () => {
+    render(<MealImage mealName="Pancit" image={{ ...mockImage, fallback: mockImage }} />);
+    fireEvent.error(screen.getByRole('img'));
+    expect(screen.getByRole('img', { name: 'Kainara logo' })).toBeInTheDocument();
+  });
+
   it('detects seafood, plant-based, meat, and breakfast categories correctly in fallbacks', () => {
     expect(resolveMealCategory('Sinigang na Bangus', 'LUNCH').category).toBe('seafood');
     expect(resolveMealCategory('Ginisang Monggo with Malunggay', 'LUNCH').category).toBe('plant-based');

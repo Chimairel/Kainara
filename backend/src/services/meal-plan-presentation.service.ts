@@ -38,6 +38,7 @@ export function toPublicVerifier(
 }
 
 export const rawRecipeImageSelect = {
+  sourceRecordId: true,
   recipeName: true,
   sourceName: true,
   sourceUrl: true,

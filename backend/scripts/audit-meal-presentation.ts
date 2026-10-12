@@ -15,7 +15,7 @@ import {
 } from '../src/services/meal-plan-presentation.service';
 
 type Check = { state: 'available' | 'broken' | 'unverified'; reason: string; checkedAt: string };
-type AuditImage = { url: string; fallback?: { url: string } | null; attribution: { sourcePageUrl?: string | null } };
+type AuditImage = { url: string; fallback?: AuditImage | null; attribution: { sourcePageUrl?: string | null } };
 type Row = {
   kind: string;
   id: string;
@@ -26,6 +26,15 @@ type Row = {
   storedImage: string | null;
 };
 const output = '.local/meal-presentation-audit';
+
+function imageUrls(image?: AuditImage | null): string[] {
+  const urls: string[] = [];
+  for (let current = image, depth = 0; current && depth < 8; current = current.fallback, depth++) {
+    if (urls.includes(current.url)) break;
+    urls.push(current.url);
+  }
+  return urls;
+}
 
 async function main() {
   const target = new URL(process.env.DATABASE_URL!);
@@ -39,6 +48,7 @@ async function main() {
     const raw = await prisma.rawRecipeCandidate.findMany({
       select: {
         id: true,
+        sourceRecordId: true,
         recipeName: true,
         sourceName: true,
         sourceUrl: true,
@@ -133,9 +143,7 @@ async function main() {
   }));
   await writeFile(`${output}/catalogue.json`, JSON.stringify(rows, null, 2));
   const urls = [
-    ...new Set(
-      rows.flatMap((r) => [r.storedImage, r.image?.url, r.image?.fallback?.url].filter((u): u is string => Boolean(u)))
-    ),
+    ...new Set(rows.flatMap((r) => [r.storedImage, ...imageUrls(r.image)].filter((u): u is string => Boolean(u)))),
   ];
   let checks: Record<string, Check> = {};
   try {
@@ -194,20 +202,19 @@ async function main() {
   const catalogue = rows.filter((row) => row.kind !== 'saved-plan-presentation');
   const issues = catalogue.filter(
     (row) =>
-      !row.image ||
-      [row.storedImage, row.image.url, row.image.fallback?.url].some((url) => url && checks[url]?.state === 'broken')
+      !row.image || [row.storedImage, ...imageUrls(row.image)].some((url) => url && checks[url]?.state === 'broken')
   );
   const csvRows = issues.map((row) => {
     const primary = row.image ? checks[row.image.url] : null;
-    const fallback = row.image?.fallback ? checks[row.image.fallback.url] : null;
+    const hasAvailableFallback = imageUrls(row.image)
+      .slice(1)
+      .some((url) => checks[url]?.state === 'available');
     const status = !row.image
       ? 'MISSING'
-      : primary?.state === 'broken' && fallback?.state !== 'available'
+      : primary?.state === 'broken' && !hasAvailableFallback
         ? 'BROKEN'
         : 'BROKEN_SECONDARY_URL';
-    const faulty = [row.storedImage, row.image?.url, row.image?.fallback?.url].filter(
-      (url) => url && checks[url]?.state === 'broken'
-    );
+    const faulty = [row.storedImage, ...imageUrls(row.image)].filter((url) => url && checks[url]?.state === 'broken');
     return [
       status,
       row.displayTitle,
@@ -270,6 +277,7 @@ async function main() {
     missingCatalogueImages: catalogue.filter((r) => !r.image).length,
     distinctMealsMissingImages: new Set(issues.filter((r) => !r.image).map((r) => r.displayTitle.toLowerCase())).size,
     distinctImageUrls: urls.length,
+    uncheckedImageUrls: urls.filter((url) => !checks[url]).length,
     checks: urls
       .flatMap((url) => (checks[url] ? [checks[url]] : []))
       .reduce((counts, c) => ({ ...counts, [c.state]: (counts[c.state] || 0) + 1 }), {} as Record<string, number>),

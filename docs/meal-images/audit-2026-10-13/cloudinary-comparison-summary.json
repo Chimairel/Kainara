@@ -14,5 +14,7 @@
   "optional_broken_video_backups": 4,
   "database_writes": false,
   "cloudinary_uploads": false,
-  "deployed": false
+  "deployed": false,
+  "application_mapping_restored_local": true,
+  "restored_exact_source_mappings": 967
 }
