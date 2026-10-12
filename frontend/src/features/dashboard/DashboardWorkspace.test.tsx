@@ -40,6 +40,7 @@ vi.mock('./CockpitDashboard', () => ({
   CockpitDashboard: (props: CockpitDashboardProps) => (
     <section aria-label="Loaded menu">
       <output aria-label="Consumed calories">{props.metrics.caloriesConsumed}</output>
+      {props.retainedMeals?.map((meal) => <p key={meal.id}>Recorded: {meal.mealName}</p>)}
       {props.pendingMeals?.map((meal) => (
         <p key={meal.mealName}>Preview: {meal.mealName}</p>
       ))}
@@ -238,7 +239,8 @@ it('retained-only plans show read-only history and intake instead of endless fir
     },
   };
   render(<DashboardPage />);
-  expect(await screen.findByText('Meals already recorded')).toBeInTheDocument();
+  expect(await screen.findByText('Recorded: Fixture rice plate')).toBeInTheDocument();
+  expect(screen.queryByText('Meals already recorded')).not.toBeInTheDocument();
   expect(screen.queryByText('Preparing Your First Meal Plan')).not.toBeInTheDocument();
   expect(screen.queryByRole('button', { name: 'Eat Fixture rice plate' })).not.toBeInTheDocument();
   expect(screen.getByLabelText('Consumed calories')).toHaveTextContent('500');

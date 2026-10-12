@@ -8,10 +8,12 @@ import type { MealPlan } from '@/types';
 import type { PendingMealPreview } from '@/components/user/PendingMealPreviewCard';
 import { DailyIntakeDonut, AnimatedValue } from '@/components/watermelon/daily-intake-donut';
 import { DashboardMealRow } from './DashboardMealRow';
+import type { RetainedMealLog } from '@/features/meals/RetainedMealLogs';
 
 export interface CockpitDashboardProps {
   activeDate: Date;
   meals: MealPlan[];
+  retainedMeals?: RetainedMealLog[];
   pendingMeals?: PendingMealPreview[];
   metrics: {
     caloriesConsumed: number;
@@ -35,6 +37,7 @@ export interface CockpitDashboardProps {
 export function CockpitDashboard({
   activeDate,
   meals,
+  retainedMeals = [],
   pendingMeals = [],
   metrics,
   waterIntake,
@@ -45,8 +48,11 @@ export function CockpitDashboard({
   const isToday = getManilaDateKey(activeDate) === getManilaDateKey();
   const mealOrder: Record<string, number> = { BREAKFAST: 0, LUNCH: 1, DINNER: 2, SNACK: 3 };
   const menu = [
-    ...meals.map((meal) => ({ meal, pending: false as const })),
-    ...pendingMeals.map((meal) => ({ meal, pending: true as const })),
+    ...meals.map((meal) => ({ meal, kind: 'active' as const })),
+    ...pendingMeals.map((meal) => ({ meal, kind: 'pending' as const })),
+    ...retainedMeals
+      .filter((meal) => !meals.some((active) => active.id === meal.id))
+      .map((meal) => ({ meal, kind: 'retained' as const })),
   ].sort((left, right) => (mealOrder[left.meal.mealType] ?? 4) - (mealOrder[right.meal.mealType] ?? 4));
   const macros = [
     {
@@ -277,13 +283,15 @@ export function CockpitDashboard({
           </div>
           <div className="space-y-4 flex-1 pl-7 sm:pl-10 lg:pl-12">
             {menu.map((entry, index) =>
-              entry.pending ? (
+              entry.kind === 'pending' ? (
                 <DashboardMealRow
                   key={`pending-${entry.meal.mealType}-${index}`}
                   meal={entry.meal}
                   index={index}
                   pending
                 />
+              ) : entry.kind === 'retained' ? (
+                <DashboardMealRow key={entry.meal.id} meal={entry.meal} index={index} retained />
               ) : (
                 <DashboardMealRow
                   key={entry.meal.id}
@@ -295,7 +303,7 @@ export function CockpitDashboard({
               )
             )}
           </div>
-          {meals.length === 0 && pendingMeals.length === 0 && (
+          {menu.length === 0 && (
             <p className="rounded-2xl border border-brand-border/70 bg-brand-surface p-6 text-sm text-brand-muted text-center shadow-card ml-7 sm:ml-10 lg:ml-12">
               No meals scheduled for this day. Open your weekly plan to view another day.
             </p>

@@ -9,12 +9,15 @@ import { Check, ChevronDown } from 'lucide-react';
 import MealImage from '@/components/user/MealImage';
 import type { MealPlan } from '@/types';
 import type { PendingMealPreview } from '@/components/user/PendingMealPreviewCard';
+import type { RetainedMealLog } from '@/features/meals/RetainedMealLogs';
 
 type Props =
-  | { meal: PendingMealPreview; pending: true; index?: number; onOpen?: never; onStatusToggle?: never }
+  | { meal: PendingMealPreview; pending: true; retained?: false; index?: number; onOpen?: never; onStatusToggle?: never }
+  | { meal: RetainedMealLog; retained: true; pending?: false; index?: number; onOpen?: never; onStatusToggle?: never }
   | {
       meal: MealPlan;
       pending?: false;
+      retained?: false;
       index?: number;
       onOpen: () => void;
       onStatusToggle?: (id: string, status: 'DONE' | 'SKIPPED' | 'PENDING') => Promise<void> | void;
@@ -26,8 +29,13 @@ import { getMealTheme } from '@/lib/compact-meal-theme';
 export function DashboardMealRow(props: Props) {
   const { meal, index = 0 } = props;
   const [saving, setSaving] = useState(false);
-  const completed = !props.pending && props.meal.mealLogs?.some((log) => log.status === 'DONE');
-  const skipped = !props.pending && props.meal.mealLogs?.some((log) => log.status === 'SKIPPED');
+  const completed = props.retained
+    ? props.meal.status === 'DONE'
+    : !props.pending && props.meal.mealLogs?.some((log) => log.status === 'DONE');
+  const skipped = props.retained
+    ? props.meal.status === 'SKIPPED'
+    : !props.pending && props.meal.mealLogs?.some((log) => log.status === 'SKIPPED');
+  const approved = !props.pending && !props.retained && props.meal.status === 'APPROVED';
 
   const theme = getMealTheme(meal.mealType, index);
 
@@ -37,18 +45,20 @@ export function DashboardMealRow(props: Props) {
       ? 'Eaten'
       : skipped
         ? 'Skipped'
-        : props.meal.status === 'APPROVED'
+        : approved
           ? 'Approved'
           : 'Awaiting review';
 
   const statusBadge = (
     <span
+      title={props.retained ? 'Recorded from your previous plan; read-only.' : undefined}
+      aria-label={props.retained ? `${statusLabel}. Recorded from your previous plan; read-only.` : undefined}
       className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-bold tracking-wide backdrop-blur-md border shadow-xs ${
         completed
           ? 'border-emerald-300/40 bg-emerald-500/35 text-white'
           : skipped
             ? 'border-white/20 bg-black/30 text-white/80'
-            : !props.pending && props.meal.status === 'APPROVED'
+            : approved
               ? 'border-white/30 bg-white/20 text-white'
               : 'border-white/20 bg-black/25 text-white/90'
       }`}
@@ -60,7 +70,7 @@ export function DashboardMealRow(props: Props) {
         </>
       ) : skipped ? (
         <span>{statusLabel}</span>
-      ) : !props.pending && props.meal.status === 'APPROVED' ? (
+      ) : approved ? (
         <>
           <span className="h-1.5 w-1.5 rounded-full bg-emerald-300" />
           <span>{statusLabel}</span>
@@ -95,6 +105,28 @@ export function DashboardMealRow(props: Props) {
       />
     </DashboardMealPlate>
   );
+  const mealContent = (
+    <>
+      {foodPlate}
+      <div className="min-w-0 flex-1 pl-3 sm:pl-4">
+        <span className="hidden text-xs font-bold uppercase tracking-wider text-white/80 sm:block">
+          {meal.mealType.toLowerCase()}
+        </span>
+        <span className={`mt-0.5 block font-display text-base font-bold leading-snug text-white sm:text-lg sm:line-clamp-2 ${!props.pending && !props.retained ? 'group-hover/details:underline underline-offset-2' : ''}`}>
+          {formatMealTitle(meal.mealName)}
+        </span>
+        {meal.ricePortion && <span className="mt-1 block text-xs font-bold text-white">+ {meal.ricePortion}</span>}
+        <MealMacros
+          variant="line"
+          calories={meal.calories}
+          proteinG={meal.proteinG}
+          carbsG={meal.carbsG ?? 0}
+          fatG={meal.fatG ?? 0}
+          className="mt-1"
+        />
+      </div>
+    </>
+  );
 
   if (props.pending) {
     return (
@@ -102,26 +134,7 @@ export function DashboardMealRow(props: Props) {
         <summary className="flex flex-col gap-3 cursor-pointer list-none items-stretch sm:flex-row sm:items-center sm:justify-between sm:gap-0 text-left [&::-webkit-details-marker]:hidden">
           {mobileHeader}
           <div className="flex w-full min-w-0 flex-1 items-center sm:w-auto">
-            {foodPlate}
-            <div className="min-w-0 flex-1 pl-3 sm:pl-4">
-              <span className="hidden text-xs font-bold uppercase tracking-wider text-white/80 sm:block">
-                {meal.mealType.toLowerCase()}
-              </span>
-              <span className="mt-0.5 block font-display text-base font-bold leading-snug text-white sm:text-lg sm:line-clamp-2">
-                {formatMealTitle(meal.mealName)}
-              </span>
-              {meal.ricePortion && (
-                <span className="mt-1 block text-xs font-bold text-white">+ {meal.ricePortion}</span>
-              )}
-              <MealMacros
-                variant="line"
-                calories={meal.calories}
-                proteinG={meal.proteinG}
-                carbsG={meal.carbsG ?? 0}
-                fatG={meal.fatG ?? 0}
-                className="mt-1"
-              />
-            </div>
+            {mealContent}
           </div>
           <div className="flex w-full shrink-0 items-center justify-between gap-3 border-t border-white/20 pt-3 pb-0.5 sm:ml-3 sm:w-auto sm:flex-col sm:items-end sm:self-stretch sm:border-0 sm:py-0.5">
             <div className="absolute right-4 top-4 sm:static">{statusBadge}</div>
@@ -137,7 +150,7 @@ export function DashboardMealRow(props: Props) {
               <span className="h-2 w-2 rounded-full bg-amber-400" />
               Pending RND review
             </p>
-            {meal.description && <p className="mt-1.5 text-xs text-white/90 leading-normal">{meal.description}</p>}
+            {props.meal.description && <p className="mt-1.5 text-xs text-white/90 leading-normal">{props.meal.description}</p>}
             <p className="mt-2 text-xs leading-normal">
               <strong className="text-white font-bold">Ingredients: </strong>
               <span className="text-white/85">
@@ -156,38 +169,25 @@ export function DashboardMealRow(props: Props) {
       <div className="flex w-full flex-col items-stretch gap-3 sm:flex-row sm:items-center sm:gap-0">
         {/* Clickable details trigger: foodPlate and meal info */}
         <div className="flex w-full min-w-0 flex-1 items-center sm:w-auto">
-          <button
-            type="button"
-            onClick={props.onOpen}
-            aria-label={`Open ${formatMealTitle(meal.mealName)} details`}
-            className="group/details flex min-w-0 flex-1 items-center text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white rounded-xl"
-          >
-            {foodPlate}
-            <div className="min-w-0 flex-1 pl-3 sm:pl-4">
-              <span className="hidden text-xs font-bold uppercase tracking-wider text-white/80 sm:block">
-                {meal.mealType.toLowerCase()}
-              </span>
-              <span className="mt-0.5 block font-display text-base font-bold leading-snug text-white sm:text-lg group-hover/details:underline underline-offset-2 sm:line-clamp-2">
-                {formatMealTitle(meal.mealName)}
-              </span>
-              {meal.ricePortion && (
-                <span className="mt-1 block text-xs font-bold text-white">+ {meal.ricePortion}</span>
-              )}
-              <MealMacros
-                variant="line"
-                calories={meal.calories}
-                proteinG={meal.proteinG}
-                carbsG={meal.carbsG ?? 0}
-                fatG={meal.fatG ?? 0}
-                className="mt-1"
-              />
+          {props.retained ? (
+            <div className="flex min-w-0 flex-1 items-center text-left">
+              {mealContent}
             </div>
-          </button>
+          ) : (
+            <button
+              type="button"
+              onClick={props.onOpen}
+              aria-label={`Open ${formatMealTitle(meal.mealName)} details`}
+              className="group/details flex min-w-0 flex-1 items-center text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white rounded-xl"
+            >
+              {mealContent}
+            </button>
+          )}
         </div>
 
         {/* Mobile footer below the meal text; desktop controls stay beside it. */}
-        <div className="flex w-full shrink-0 items-center justify-between gap-3 border-t border-white/20 pt-3 pb-0.5 sm:ml-3 sm:w-auto sm:flex-col sm:items-end sm:self-stretch sm:border-0 sm:py-0.5">
-          <div className="absolute right-4 top-4 sm:static">{statusBadge}</div>
+        <div className={props.retained ? 'absolute right-4 top-4' : 'flex w-full shrink-0 items-center justify-between gap-3 border-t border-white/20 pt-3 pb-0.5 sm:ml-3 sm:w-auto sm:flex-col sm:items-end sm:self-stretch sm:border-0 sm:py-0.5'}>
+          <div className={props.retained ? undefined : 'absolute right-4 top-4 sm:static'}>{statusBadge}</div>
 
           {props.onStatusToggle && props.meal.status === 'APPROVED' && (
             <button

@@ -1,6 +1,5 @@
 'use client';
 
-import RetainedMealLogs from '@/features/meals/RetainedMealLogs';
 import ProfileReviewPlanningHold from '@/features/meals/ProfileReviewPlanningHold';
 import StateNotice from '@/components/shared/StateNotice';
 import { CockpitDashboard } from '@/features/dashboard/CockpitDashboard';
@@ -104,11 +103,13 @@ export default function DashboardContent({ model }: { model: ReturnType<typeof u
       ) : (
         <>
           <DashboardDateNavigation model={model} />
-          <RetainedMealLogs meals={retainedMealLogs} dateKey={getManilaDateKey(activeDate)} />
 
           <CockpitDashboard
             activeDate={activeDate}
             meals={metrics.mealsList}
+            retainedMeals={retainedMealLogs.filter(
+              (meal) => getManilaDateKey(meal.scheduledDate) === getManilaDateKey(activeDate)
+            )}
             pendingMeals={
               pendingReview?.meals.filter(
                 (meal) => activeDate && getManilaDateKey(meal.scheduledDate) === getManilaDateKey(activeDate)
