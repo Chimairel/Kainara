@@ -1,0 +1,18 @@
+{
+  "checked_at": "2026-10-12T17:11:26.854Z",
+  "inventory_checked_at": "2026-10-12T17:05:09.331Z",
+  "image_upload_assets": 1044,
+  "recipe_catalogue_assets": 976,
+  "exact_source_record_matches": 967,
+  "unmatched_catalogue_assets": 9,
+  "recovered_meal_names": 30,
+  "recovered_catalogue_records": 50,
+  "recovered_distinct_cloudinary_files": 25,
+  "recovered_available": 25,
+  "remaining_scraped_names": 8,
+  "remaining_no_source_names": 58,
+  "optional_broken_video_backups": 4,
+  "database_writes": false,
+  "cloudinary_uploads": false,
+  "deployed": false
+}
