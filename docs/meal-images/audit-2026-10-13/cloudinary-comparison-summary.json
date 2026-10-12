@@ -16,5 +16,15 @@
   "cloudinary_uploads": false,
   "deployed": false,
   "application_mapping_restored_local": true,
-  "restored_exact_source_mappings": 967
+  "restored_exact_source_mappings": 967,
+  "source_photo_upload": {
+    "completed_at": "2026-10-12T17:51:36.982Z",
+    "uploaded_files": 988,
+    "failed": 0,
+    "new_source_pages": 984,
+    "current_mapping_pages": 1951,
+    "duplicate_source_aliases": 7,
+    "database_writes": false,
+    "application_deployed": false
+  }
 }

@@ -3,6 +3,7 @@ import type { PublicMealImage, RawRecipeImageRecord } from './meal-image.policy'
 
 type SourcePhoto = {
   sourceRecordId: string;
+  sourceRecordAliases?: string[];
   publicId: string;
   version: string;
   format: string;
@@ -28,7 +29,13 @@ export function toPublicSourceCloudinaryImage(recipe: RawRecipeImageRecord): Pub
   if (!['PANLASANG_PINOY', 'DEMO_STANDARD_PORTION'].includes(recipe.sourceName)) return null;
   if (configuredCloudinaryCloudName() !== manifest.cloudName) return null;
   const photo = photos[recipe.sourceUrl];
-  if (!photo || (recipe.sourceRecordId && recipe.sourceRecordId !== photo.sourceRecordId)) return null;
+  if (!photo) return null;
+  if (
+    recipe.sourceRecordId &&
+    recipe.sourceRecordId !== photo.sourceRecordId &&
+    !photo.sourceRecordAliases?.includes(recipe.sourceRecordId)
+  )
+    return null;
   // Constrain delivery to the inventoried catalogue; no caller-supplied URL or transform.
   if (!/^nutrimind\/recipe-catalogue\/[a-f0-9]{28}$/.test(photo.publicId)) return null;
   if (!/^\d+$/.test(photo.version) || !/^(jpg|jpeg|png|webp|avif)$/.test(photo.format)) return null;

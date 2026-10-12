@@ -41,7 +41,7 @@ function cloud(context: TestContext, name = manifest.cloudName) {
 
 test('recovered manifest has unique exact source identities and inventoried upload IDs', () => {
   const entries = Object.entries(manifest.recipes);
-  assert.equal(entries.length, 967);
+  assert.equal(entries.length, 1951);
   assert.equal(entries.filter(([, photo]) => photo.kind === 'REPRESENTATIVE').length, 22);
   assert.equal(new Set(entries.map(([, photo]) => photo.sourceRecordId)).size, entries.length);
   for (const [sourceUrl, photo] of entries) {
@@ -66,6 +66,22 @@ test('French Toast recovers its uploaded photo and actual original credit', (con
   assert.equal(image?.attribution.creator, 'The Kitchn');
   assert.ok(image?.attribution.sourcePageUrl?.startsWith('https://cdn.apartmenttherapy.info/'));
   assert.equal(image?.attribution.licenseCode, null);
+});
+
+test('only recorded aliases of the same exact source page share an uploaded photo', (context) => {
+  cloud(context);
+  const photo = manifest.recipes['https://panlasangpinoy.com/chicken-tinola/'];
+  const recipe = { ...toast, sourceUrl: 'https://panlasangpinoy.com/chicken-tinola/', recipeName: 'Tinola' };
+  assert.equal(toPublicRawRecipeImage({ ...recipe, sourceRecordId: photo.sourceRecordId })?.kind, 'EXACT');
+  assert.equal(
+    toPublicRawRecipeImage({
+      ...recipe,
+      sourceName: 'DEMO_STANDARD_PORTION',
+      sourceRecordId: photo.sourceRecordAliases[0],
+    })?.kind,
+    'REPRESENTATIVE'
+  );
+  assert.equal(toPublicRawRecipeImage({ ...recipe, sourceRecordId: 'unrecorded-demo' }), null);
 });
 
 test('unknown source IDs, similar pages, unsupported providers and different clouds do not inherit photos', (context) => {
