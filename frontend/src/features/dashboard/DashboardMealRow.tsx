@@ -2,6 +2,7 @@
 
 import { DashboardMealCardSurface, DashboardMealPlate } from '@/components/user/DashboardMealCardSurface';
 import { MealMacros } from '@/components/user/MealMacros';
+import { buttonStyles } from '@/components/ui/button-styles';
 import { formatMealTitle } from '@/lib/meal-title';
 import { useState } from 'react';
 import { Check, ChevronDown } from 'lucide-react';
@@ -201,11 +202,15 @@ export function DashboardMealRow(props: Props) {
                   setSaving(false);
                 }
               }}
-              className={`inline-flex w-full justify-center sm:w-auto min-h-11 sm:min-h-9 items-center gap-1.5 rounded-full px-3.5 sm:px-4 py-1.5 text-xs font-bold shadow-md transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-50 ${
+              className={
                 completed
-                  ? 'bg-emerald-400 text-emerald-950 shadow-emerald-900/20 hover:bg-emerald-300'
-                  : 'bg-white text-gray-900 shadow-black/15 hover:bg-white/95 hover:shadow-lg'
-              }`}
+                  ? 'inline-flex w-full justify-center sm:w-auto min-h-11 sm:min-h-9 items-center gap-1.5 rounded-full px-3.5 sm:px-4 py-1.5 text-xs font-bold shadow-md transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-50 bg-emerald-400 text-emerald-950 shadow-emerald-900/20 hover:bg-emerald-300'
+                  : buttonStyles({
+                      variant: 'secondary',
+                      size: 'sm',
+                      className: 'w-full sm:w-auto min-h-[44px] sm:min-h-9 gap-1.5 px-3.5 sm:px-4 py-1.5',
+                    })
+              }
             >
               <Check className={`h-3.5 w-3.5 stroke-[3] ${completed ? 'text-emerald-950' : 'text-emerald-600'}`} />
               <span>{saving ? 'Saving…' : completed ? 'Undo eaten' : 'Mark as eaten'}</span>

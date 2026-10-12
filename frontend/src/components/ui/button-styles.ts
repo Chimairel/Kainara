@@ -10,7 +10,7 @@ const variants: Record<ButtonVariant, string> = {
   primary: orange,
   accent: orange,
   secondary:
-    'rounded-xl border border-brand-border bg-brand-bgAlt font-semibold tracking-normal text-brand-text shadow-none hover:border-brand-green/35 hover:bg-brand-greenLight hover:text-brand-green active:bg-brand-greenLight dark:hover:text-brand-text',
+    `rounded-full border border-transparent bg-white font-bold tracking-normal text-[#0d2820] ${raised} hover:-translate-y-0.5 hover:bg-[#f8faf9] active:translate-y-0`,
   danger: `${emphasized} border border-status-error-text bg-status-error-text text-white shadow-sm hover:-translate-y-0.5 hover:brightness-90`,
   ghost: `${emphasized} border border-transparent bg-transparent text-brand-muted hover:border-brand-border hover:bg-brand-surface hover:text-brand-text dark:hover:border-[#173e33]`,
 };
