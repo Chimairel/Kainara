@@ -14,7 +14,7 @@ The [October 12 local actor MVP report](docs/LOCAL_ACTOR_MVP_TEST_REPORT_2026-10
 
 The hosted capstone demonstration uses [`docs/VERCEL_RAILWAY_DEMO_DEPLOYMENT.md`](docs/VERCEL_RAILWAY_DEMO_DEPLOYMENT.md), with normal registration/login and the existing release-mode startup gates. Public interface wording follows the current engineering-record entry. It keeps production security enabled and does not constitute clinical approval.
 
-Public search metadata, indexing boundaries and Google Search Console setup use [`docs/SEO_SETUP_2026-10-12.md`](docs/SEO_SETUP_2026-10-12.md). Implementation is verified locally; publication and Google ownership verification are separate steps.
+Public search metadata, indexing boundaries and Google Search Console setup use [`docs/SEO_SETUP_2026-10-12.md`](docs/SEO_SETUP_2026-10-12.md). The narrow SEO release is verified live; Google ownership verification and sitemap submission remain pending.
 
 Administrator-managed nutrition sources, releases and FNRI aliases use [`docs/ADMIN_REFERENCE_DATA_RUNBOOK.md`](docs/ADMIN_REFERENCE_DATA_RUNBOOK.md). ENNS consumption imports, publication and regional planning are retired; retained release metadata is historical. The October 16 recovery and measured transfer budget are recorded in [`docs/DEFENSE_RECOVERY_2026-10-11.md`](docs/DEFENSE_RECOVERY_2026-10-11.md).
 
