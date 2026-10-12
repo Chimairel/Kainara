@@ -1,4 +1,7 @@
+'use client';
+
 import React from 'react';
+import { usePageLoading } from '@/lib/page-loading';
 
 interface LoadingSpinnerProps {
   size?: 'sm' | 'md' | 'lg';
@@ -7,6 +10,7 @@ interface LoadingSpinnerProps {
 }
 
 export const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({ size = 'md', fullScreen = false, className = '' }) => {
+  usePageLoading(true);
   const dimensions = {
     sm: { size: 'h-4 w-4', stroke: 3.5, r: 14 },
     md: { size: 'h-8 w-8', stroke: 3, r: 14 },

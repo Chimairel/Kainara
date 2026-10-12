@@ -1,4 +1,5 @@
 import { useVisiblePolling } from './useVisiblePolling';
+import { usePageLoading } from '@/lib/page-loading';
 import { getApiErrorMessage } from '@/lib/api-error';
 import { readSessionResource, refreshSessionResource, writeSessionResource } from '@/lib/session-resource-cache';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -33,6 +34,7 @@ export function useSessionQuery<T>({
     return { scope, data, loading: Boolean(ownerId && enabled && data === null), error: null };
   });
   const cached = state.scope === scope ? state.data : readSessionResource<T>(ownerId, resource);
+  usePageLoading(enabled && Boolean(ownerId) && (state.scope === scope ? state.loading : cached === null));
 
   const refetch = useCallback(async () => {
     if (!ownerId || !mounted.current || activeScope.current !== scope) return;

@@ -18,6 +18,8 @@ export const OPTIONAL_FOOD_NUTRIENTS = [
 ] as const;
 export type OptionalFoodNutrients = Record<(typeof OPTIONAL_FOOD_NUTRIENTS)[number], number | null>;
 export const FNRI_SOURCE_SHA256 = '669a0dc88284f99719e6a2f3e091fbbc9653447da03edf73e012215c71fc7f24';
+// The same verified delivery after Git's CRLF -> LF transport normalization.
+export const FNRI_CANONICAL_SOURCE_SHA256 = 'ccddc6103dbd1ef91bd76ad39a4f139d3b1119660bd5c5f4e823b6df5c9479f9';
 export type ExtendedFoodNutrients = Record<(typeof EXTENDED_FOOD_NUTRIENTS)[number], number | null>;
 export type SourceFood = ExtendedFoodNutrients &
   Partial<OptionalFoodNutrients> & {
@@ -77,9 +79,12 @@ export function parseCsvRow(line: string): string[] {
 }
 
 export function readFnriSource(text: string, verifyFingerprint = true): SourceFood[] {
-  const sha256 = createHash('sha256').update(text).digest('hex');
-  if (verifyFingerprint && sha256 !== FNRI_SOURCE_SHA256)
+  const deliveredHash = createHash('sha256').update(text).digest('hex');
+  const canonicalHash = createHash('sha256').update(text.replace(/\r\n/g, '\n')).digest('hex');
+  if (verifyFingerprint && deliveredHash !== FNRI_SOURCE_SHA256 && canonicalHash !== FNRI_CANONICAL_SOURCE_SHA256)
     throw new Error('FNRI source fingerprint changed. Review the new delivery first.');
+  // Preserve existing provenance/signatures regardless of checkout line endings.
+  const sha256 = verifyFingerprint ? FNRI_SOURCE_SHA256 : deliveredHash;
   const lines = text.split(/\r?\n/u).filter((line) => line.trim());
   const headers = parseCsvRow(lines[0]);
   const rows: SourceFood[] = [];

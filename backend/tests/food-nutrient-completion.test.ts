@@ -1,5 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import {
   readFnriSource,
   sourceNumber,
@@ -8,6 +10,22 @@ import {
   type SourceFood,
 } from '../src/domain/food-nutrient-source.policy';
 import { publishedServingNutrientFill } from '../src/domain/meal-nutrient-completion.policy';
+
+test('verified FNRI deliveries survive checkout line endings without changing recorded provenance', () => {
+  const delivered = readFileSync(join(__dirname, '../prisma/data/fnri.csv'), 'utf8');
+  const lf = delivered.replace(/\r\n/g, '\n');
+  const expected = readFnriSource(lf.replace(/\n/g, '\r\n'));
+  assert.deepEqual(readFnriSource(lf), expected);
+  const mixed = lf
+    .split('\n')
+    .map((line, index) => line + (index % 2 ? '\r' : ''))
+    .join('\n');
+  assert.deepEqual(readFnriSource(mixed), expected);
+  for (const changed of [lf.replace('food_id', 'food_identity'), lf + ' ', lf.replace(/,0,/, ',1,')]) {
+    assert.notEqual(changed, lf);
+    assert.throws(() => readFnriSource(changed), /fingerprint/);
+  }
+});
 
 test('missing, trace and malformed source values remain unknown; numerical zero is retained', () => {
   for (const value of ['', 'tr', '-', 'n/a', '12mg', '1,000', -1, Infinity, undefined, null])

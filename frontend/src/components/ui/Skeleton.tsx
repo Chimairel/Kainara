@@ -1,8 +1,12 @@
+'use client';
+
 import React from 'react';
+import { usePageLoading } from '@/lib/page-loading';
 
 export type SkeletonProps = React.HTMLAttributes<HTMLDivElement>;
 
 export function Skeleton({ className = '', children, ...props }: SkeletonProps) {
+  usePageLoading(true);
   const rounding = /(?:^|\s)!?rounded(?:-\S+)?(?=\s|$)/.test(className) ? '' : 'rounded-md';
   return (
     <div

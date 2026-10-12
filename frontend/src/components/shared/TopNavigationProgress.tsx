@@ -1,7 +1,8 @@
 'use client';
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { usePathname, useSearchParams } from 'next/navigation';
+import { getPageLoadingCount, subscribePageLoading } from '@/lib/page-loading';
 
 export default function TopNavigationProgress() {
   const pathname = usePathname();
@@ -9,36 +10,11 @@ export default function TopNavigationProgress() {
   const search = searchParams.toString();
   const [progress, setProgress] = useState(0);
   const [isVisible, setIsVisible] = useState(false);
+  const [navigationPending, setNavigationPending] = useState(false);
+  const loading = useSyncExternalStore(subscribePageLoading, getPageLoadingCount, () => 0) > 0;
+  const busy = navigationPending || loading;
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const finishTimerRef = useRef<NodeJS.Timeout | null>(null);
-
-  const startProgress = () => {
-    if (finishTimerRef.current) clearTimeout(finishTimerRef.current);
-    if (timerRef.current) clearInterval(timerRef.current);
-
-    setIsVisible(true);
-    setProgress(20);
-
-    timerRef.current = setInterval(() => {
-      setProgress((prev) => {
-        if (prev >= 85) {
-          if (timerRef.current) clearInterval(timerRef.current);
-          return 85;
-        }
-        return prev + Math.max(2, (85 - prev) * 0.15);
-      });
-    }, 120);
-  };
-
-  const completeProgress = () => {
-    if (timerRef.current) clearInterval(timerRef.current);
-    setProgress(100);
-
-    finishTimerRef.current = setTimeout(() => {
-      setIsVisible(false);
-      setProgress(0);
-    }, 250);
-  };
 
   const isFirstRender = useRef(true);
 
@@ -48,12 +24,39 @@ export default function TopNavigationProgress() {
       isFirstRender.current = false;
       return;
     }
-    completeProgress();
-    return () => {
-      if (finishTimerRef.current) clearTimeout(finishTimerRef.current);
-      if (timerRef.current) clearInterval(timerRef.current);
-    };
+    setNavigationPending(false);
   }, [pathname, search]);
+
+  const active = useRef(false);
+  useEffect(() => {
+    if (finishTimerRef.current) clearTimeout(finishTimerRef.current);
+    if (busy) {
+      active.current = true;
+      setIsVisible(true);
+      setProgress((value) => (value === 0 || value === 100 ? 20 : value));
+      timerRef.current = setInterval(() => {
+        setProgress((value) => Math.min(85, value + Math.max(2, (85 - value) * 0.15)));
+      }, 120);
+    } else if (active.current) {
+      setProgress(100);
+      finishTimerRef.current = setTimeout(() => {
+        active.current = false;
+        setIsVisible(false);
+        setProgress(0);
+      }, 250);
+    }
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+      if (finishTimerRef.current) clearTimeout(finishTimerRef.current);
+    };
+  }, [busy]);
+
+  // A prevented or failed navigation must not leave an orphan animation.
+  useEffect(() => {
+    if (!navigationPending) return;
+    const timeout = setTimeout(() => setNavigationPending(false), 30_000);
+    return () => clearTimeout(timeout);
+  }, [navigationPending]);
 
   // Global click interceptor to catch any internal route links
   useEffect(() => {
@@ -85,15 +88,18 @@ export default function TopNavigationProgress() {
         }
 
         // Trigger instantaneous top progress
-        startProgress();
+        setNavigationPending(true);
       } catch {
         // invalid URL string, ignore
       }
     };
 
+    const handleHistory = () => setNavigationPending(true);
     document.addEventListener('click', handleGlobalClick, { capture: true });
+    window.addEventListener('popstate', handleHistory);
     return () => {
       document.removeEventListener('click', handleGlobalClick, { capture: true });
+      window.removeEventListener('popstate', handleHistory);
       if (timerRef.current) clearInterval(timerRef.current);
       if (finishTimerRef.current) clearTimeout(finishTimerRef.current);
     };
@@ -104,10 +110,12 @@ export default function TopNavigationProgress() {
   return (
     <div
       aria-hidden="true"
+      data-navigation-progress="true"
+      data-progress-active={busy}
       className="pointer-events-none fixed left-0 right-0 top-0 z-[99999] h-[2.5px] w-full overflow-hidden bg-transparent"
     >
       <div
-        className="relative h-full bg-gradient-to-r from-emerald-500 via-brand-accent to-brand-cyan transition-all ease-out"
+        className="relative h-full bg-gradient-to-r from-emerald-500 via-brand-accent to-brand-cyan transition-all ease-out motion-reduce:transition-none"
         style={{
           width: `${progress}%`,
           transitionDuration: progress === 100 ? '180ms' : '220ms',

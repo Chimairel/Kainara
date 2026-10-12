@@ -1,5 +1,6 @@
 'use client';
 import FeedbackNotice from '@/components/shared/FeedbackNotice';
+import { usePageLoading } from '@/lib/page-loading';
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
@@ -10,6 +11,7 @@ import ReportHistory, { type ReportVersion } from './ReportHistory';
 export default function ReportsWorkspace() {
   const [history, setHistory] = useState<ReportVersion[]>([]);
   const [state, setState] = useState<'loading' | 'ready' | 'error'>('loading');
+  usePageLoading(state === 'loading');
   useEffect(() => {
     let active = true;
     api

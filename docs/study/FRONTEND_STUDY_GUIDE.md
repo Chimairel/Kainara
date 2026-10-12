@@ -6,6 +6,17 @@
 
 **Guide date:** October 11, 2026
 
+### Current-decision addendum — October 12, 2026
+
+The baseline above is historical. Current implementation and release evidence are in the [engineering record](../NUTRIMIND_ENGINEERING_RECORD.md), [recovery record](../DEFENSE_RECOVERY_2026-10-11.md), and [restoration findings](../RESTORATION_AUDIT_2026-10-12.md).
+
+- Shared solid primary/outlined secondary buttons, small peach child tabs, collapsed brown announcements and reusable profile/onboarding sections replace the older designs. Mobile onboarding retains compact step sections.
+- Health details is a forms inbox; RND guidance/evidence is a continuous document within its canvas. These changes do not remove clarification, corrections, acknowledgment or review ownership checks.
+- Shared feedback notices replace raw error boxes. Top navigation progress now follows visible loading regions, including direct reloads, and finishes when data resolves or an error replaces the placeholder. Cached background polling does not acquire loading ownership.
+- Member preparation updates after RND confirmation without a manual refresh. Selected-review status retains its 15-second fallback and returns stale cases to the queue.
+- Titles, images, meal actions and complete-plate nutrients use shared presentation contracts. A pending or withheld meal remains subject to server clearance; UI restoration cannot manufacture missing history or bypass safety holds.
+- ENNS controls and disputes remain retired; ordinary meal approval uses one RND, while quarantine release is an admin decision. AI estimation and optional Health-plan RND review remain separate.
+
 **Scope:** Next.js App Router, React, TypeScript, session handling, member/RND/admin workspaces, server-state synchronization, responsive UI, and frontend testing
 
 ## 1. How to use this guide

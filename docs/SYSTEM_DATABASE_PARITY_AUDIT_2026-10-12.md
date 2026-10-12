@@ -1,5 +1,7 @@
 # System and database parity audit — October 12, 2026
 
+> Subsequent source fixes: [restoration audit](RESTORATION_AUDIT_2026-10-12.md) resolves PARITY-02 (FNRI line endings), PARITY-04 (current governance/study instructions) and the reported top loading-bar behavior. Preserve the findings below as the audit-time evidence. Live plan repairs and unresolved original migration bytes are separate; later read-only counts appear in the follow-up.
+
 ## Verdict and scope
 
 **Yes: the documented recipe, ingredient, nutrient, classification and prepared-rule alterations are present in the new live database.** Fourteen reference tables match the verified recovery database by complete-row fingerprints, including IDs, values, mappings, revisions, signatures and provenance. This is stronger evidence than matching totals or migration names.

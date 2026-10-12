@@ -1,6 +1,6 @@
 # Meal review governance
 
-Change: CHG-20261008-05. Software verification: October 8, 2026. This workflow is not clinical approval.
+Original change: CHG-20261008-05. Current rules include the October 11 single-RND and admin-only quarantine decisions in [the recovery record](DEFENSE_RECOVERY_2026-10-11.md). October 8 verification describes the historical rules; this workflow is not clinical approval.
 
 ## Recipe lifecycle
 
@@ -8,10 +8,10 @@ Change: CHG-20261008-05. Software verification: October 8, 2026. This workflow i
 | --- | --- | --- |
 | First flag on a published recipe | Pending re-review; unavailable to members | One uninvolved eligible RND claims and re-verifies the current version |
 | Extra reports during a hold | Same incident; unavailable | Review the additional concerns; previous confirmations become stale |
-| Flag after first re-verification | Quarantined; unavailable | Two independent current RND confirmations, then admin release |
+| Flag after first re-verification | Quarantined; unavailable | Admin reviews the current evidence and decides release or archive |
 | Material correction | Hold remains | Review the new version; previous confirmations become stale |
 | Admin release | Library eligibility restored | Existing member slots still require fresh eligibility and approval checks |
-| Any flag after a prior quarantine | Quarantined immediately | Two confirmations and admin release again |
+| Any flag after a prior quarantine | Quarantined immediately | Admin decides release or archive again |
 | Admin archive | Entire lineage archived | Unresolved recipe remains unavailable |
 
 Incidents follow the original recipe lineage, including corrected versions and serving variants. Creating another serving cannot reset the count or escape the hold. A database trigger prevents changing a governed recipe's lineage or publishing a held serving directly. The existing internal `FLAGGED` status continues enforcing member safety blocks; `MealReviewLineage.state` distinguishes pending re-review from quarantine.
@@ -20,11 +20,11 @@ Legacy flags remain intact. Their first governed case is incident zero with unkn
 
 ## RND review
 
-The RND meal library contains a shared pending/quarantine queue and a meal-wide review panel. Each report requires a category, affected ingredients or nutrition fields, explanation, evidence/reference, and proposed correction. Publication starts a new incident; reports while held add evidence only.
+The RND meal library contains flagged recipes awaiting independent re-review. Quarantined recipes require an admin decision; an RND cannot claim or confirm them. Each report requires a category, affected ingredients or nutrition fields, explanation, evidence/reference, and proposed correction. A new flag after publication starts a new incident; reports while held add evidence only.
 
 The reviewer must hold the existing exclusive 30-minute claim. Every recorded concern needs a resolution and the reviewer must acknowledge checking nutrition, measured ingredients, preparation and rice role for every serving. Version hashes bind decisions to the recipe, source composition revisions and report set. Expired licenses, suspended accounts, unverified email or incomplete account activation do not qualify.
 
-Authors, all correction authors, flaggers and the verifier whose decision is challenged cannot confirm the incident. Quarantine requires two different currently eligible reviewers for the same version. Admin release rechecks their independence, qualifications and concern resolutions. Admins may flag or archive, but cannot provide clinical RND confirmations.
+Authors, all correction authors, flaggers and the verifier whose decision is challenged cannot confirm the first incident. One eligible independent RND can re-verify that version. Quarantine release requires only the admin's current-version decision and rationale, with valid recipe evidence. It does not require RND confirmations and does not grant member-specific clinical approval. Existing member slots still require fresh context, eligibility and approval checks.
 
 Corrections use the existing authoring validation and measured FNRI quantities to calculate nutrition. Before/after values are saved as immutable decisions. Changes remove stale safety declarations and invalidate condition/profile clearances. Re-review can restore base recipe verification; a corrected recipe's separate safety certification remains stale until its existing certification workflow is completed.
 

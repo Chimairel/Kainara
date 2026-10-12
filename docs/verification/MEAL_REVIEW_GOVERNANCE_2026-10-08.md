@@ -2,6 +2,8 @@
 
 Change ID: CHG-20261008-05.
 
+> Historical verification: the two-RND quarantine requirement tested here was superseded on October 11 by admin-only quarantine release. Preserve these results as evidence of the code tested on October 8. Current behavior is described in [meal review governance](../MEAL_REVIEW_GOVERNANCE.md) and [the recovery record](../DEFENSE_RECOVERY_2026-10-11.md).
+
 ## Actual HTTP, authentication and SQL
 
 The guarded `backend/scripts/meal-governance-local-acceptance.ts` ran successfully against a fresh, task-owned PostgreSQL 17 fixture at `127.0.0.1:55485/kainara_meal_governance`. All 95 migrations were applied. Accounts, mapped composition food, member cases and encrypted supporting files were synthetic. No external provider calls or shared database writes were made.

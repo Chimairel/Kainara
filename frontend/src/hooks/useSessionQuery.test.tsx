@@ -2,6 +2,7 @@ import { clearSessionResourceCache, readSessionResource, writeSessionResource } 
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { useSessionQuery } from './useSessionQuery';
+import { getPageLoadingCount } from '@/lib/page-loading';
 
 function deferred<T>() {
   let resolve!: (value: T) => void;
@@ -76,6 +77,7 @@ describe('shared session queries', () => {
     );
     expect(hook.result.current.data).toEqual(['cached']);
     expect(hook.result.current.isLoading).toBe(false);
+    expect(getPageLoadingCount()).toBe(0);
     await act(async () => request.reject(new Error('Unavailable')));
     expect(hook.result.current.error).toBe('Unavailable');
     expect(hook.result.current.data).toEqual(['cached']);

@@ -1,0 +1,226 @@
+{
+  "auditDate": "2026-10-12",
+  "workspace": "C:/Users/chima/Desktop/Nutrimind",
+  "baseCommit": "ce9f9e41",
+  "sourceHead": "b567bef0",
+  "topBarUnchangedBeforeThisFix": true,
+  "deletedPageAndApiRouteFiles": [],
+  "deletedSourceFiles": [
+    {
+      "path": "backend/src/domain/money.policy.ts",
+      "commit": "63ae489a Remove obsolete UI and unused dependencies"
+    },
+    {
+      "path": "backend/src/middleware/membership.ts",
+      "commit": "63ae489a Remove obsolete UI and unused dependencies"
+    },
+    {
+      "path": "frontend/src/components/base-ui/breadcrumb.tsx",
+      "commit": "63ae489a Remove obsolete UI and unused dependencies"
+    },
+    {
+      "path": "frontend/src/components/landing/NaraPresenter.module.css",
+      "commit": "63ae489a Remove obsolete UI and unused dependencies"
+    },
+    {
+      "path": "frontend/src/components/landing/NaraPresenter.tsx",
+      "commit": "63ae489a Remove obsolete UI and unused dependencies"
+    },
+    {
+      "path": "frontend/src/components/motion-primitives/infinite-slider.tsx",
+      "commit": "63ae489a Remove obsolete UI and unused dependencies"
+    },
+    {
+      "path": "frontend/src/components/shared/ClinicalReviewBanner.tsx",
+      "commit": "63ae489a Remove obsolete UI and unused dependencies"
+    },
+    {
+      "path": "frontend/src/components/shared/ErrorBoundary.tsx",
+      "commit": "63ae489a Remove obsolete UI and unused dependencies"
+    },
+    {
+      "path": "frontend/src/components/shared/HelpCenterModal.tsx",
+      "commit": "63ae489a Remove obsolete UI and unused dependencies"
+    },
+    {
+      "path": "frontend/src/components/shared/WorkspaceLinkGrid.tsx",
+      "commit": "63ae489a Remove obsolete UI and unused dependencies"
+    },
+    {
+      "path": "frontend/src/components/shared/WorkspaceTools.test.tsx",
+      "commit": "63ae489a Remove obsolete UI and unused dependencies"
+    },
+    {
+      "path": "frontend/src/components/shared/WorkspaceTools.tsx",
+      "commit": "63ae489a Remove obsolete UI and unused dependencies"
+    },
+    {
+      "path": "frontend/src/components/ui/AutocompleteInput.tsx",
+      "commit": "63ae489a Remove obsolete UI and unused dependencies"
+    },
+    {
+      "path": "frontend/src/components/ui/ProBadge.tsx",
+      "commit": "63ae489a Remove obsolete UI and unused dependencies"
+    },
+    {
+      "path": "frontend/src/components/ui/Progress.tsx",
+      "commit": "63ae489a Remove obsolete UI and unused dependencies"
+    },
+    {
+      "path": "frontend/src/components/ui/Slider.tsx",
+      "commit": "63ae489a Remove obsolete UI and unused dependencies"
+    },
+    {
+      "path": "frontend/src/components/user/CalorieRing.tsx",
+      "commit": "63ae489a Remove obsolete UI and unused dependencies"
+    },
+    {
+      "path": "frontend/src/components/user/PlanningLocationFields.test.tsx",
+      "commit": "63ae489a Remove obsolete UI and unused dependencies"
+    },
+    {
+      "path": "frontend/src/components/user/PlanningLocationFields.tsx",
+      "commit": "63ae489a Remove obsolete UI and unused dependencies"
+    },
+    {
+      "path": "frontend/src/components/watermelon/expandable-event-card.tsx",
+      "commit": "63ae489a Remove obsolete UI and unused dependencies"
+    },
+    {
+      "path": "frontend/src/features/admin-data/ReleaseOperations.tsx",
+      "commit": "43214bdc Poll review revisions and retire regional data controls"
+    },
+    {
+      "path": "frontend/src/features/dashboard/DashboardHero.test.tsx",
+      "commit": "63ae489a Remove obsolete UI and unused dependencies"
+    },
+    {
+      "path": "frontend/src/features/dashboard/DashboardHero.tsx",
+      "commit": "63ae489a Remove obsolete UI and unused dependencies"
+    },
+    {
+      "path": "frontend/src/features/dashboard/DashboardMealSchedule.tsx",
+      "commit": "63ae489a Remove obsolete UI and unused dependencies"
+    },
+    {
+      "path": "frontend/src/features/dashboard/DashboardSummary.tsx",
+      "commit": "63ae489a Remove obsolete UI and unused dependencies"
+    },
+    {
+      "path": "frontend/src/features/dashboard/NutritionistGuidanceCard.test.tsx",
+      "commit": "63ae489a Remove obsolete UI and unused dependencies"
+    },
+    {
+      "path": "frontend/src/features/dashboard/NutritionistGuidanceCard.tsx",
+      "commit": "63ae489a Remove obsolete UI and unused dependencies"
+    },
+    {
+      "path": "frontend/src/features/grocery/GroceryCategoryCard.tsx",
+      "commit": "63ae489a Remove obsolete UI and unused dependencies"
+    },
+    {
+      "path": "frontend/src/features/grocery/GroceryCostSummary.test.tsx",
+      "commit": "63ae489a Remove obsolete UI and unused dependencies"
+    },
+    {
+      "path": "frontend/src/features/grocery/GroceryCostSummary.tsx",
+      "commit": "63ae489a Remove obsolete UI and unused dependencies"
+    },
+    {
+      "path": "frontend/src/features/grocery/GroceryItemRow.tsx",
+      "commit": "63ae489a Remove obsolete UI and unused dependencies"
+    },
+    {
+      "path": "frontend/src/features/meals/LibraryMealCard.tsx",
+      "commit": "63ae489a Remove obsolete UI and unused dependencies"
+    },
+    {
+      "path": "frontend/src/features/meals/VerifiedRecipeCatalog.test.tsx",
+      "commit": "63ae489a Remove obsolete UI and unused dependencies"
+    },
+    {
+      "path": "frontend/src/features/meals/VerifiedRecipeCatalog.tsx",
+      "commit": "63ae489a Remove obsolete UI and unused dependencies"
+    },
+    {
+      "path": "frontend/src/features/meals/plan-status-notice.test.ts",
+      "commit": "63ae489a Remove obsolete UI and unused dependencies"
+    },
+    {
+      "path": "frontend/src/features/meals/plan-status-notice.ts",
+      "commit": "63ae489a Remove obsolete UI and unused dependencies"
+    },
+    {
+      "path": "frontend/src/features/nutritionist-library/libraryEvidenceStatus.ts",
+      "commit": "63ae489a Remove obsolete UI and unused dependencies"
+    },
+    {
+      "path": "frontend/src/features/nutritionist-reviews/CaseReplacementForm.tsx",
+      "commit": "63ae489a Remove obsolete UI and unused dependencies"
+    },
+    {
+      "path": "frontend/src/features/nutritionist-reviews/IngredientEvidenceList.tsx",
+      "commit": "63ae489a Remove obsolete UI and unused dependencies"
+    },
+    {
+      "path": "frontend/src/hooks/usePlanningLocations.ts",
+      "commit": "63ae489a Remove obsolete UI and unused dependencies"
+    },
+    {
+      "path": "frontend/src/lib/philippine-regions.ts",
+      "commit": "63ae489a Remove obsolete UI and unused dependencies"
+    }
+  ],
+  "liveInspection": {
+    "timestamp": "2026-10-12T03:10:01.171Z",
+    "target": "nameless-dust-38810716/br-round-art-b355gp02/neondb",
+    "readOnly": true,
+    "futureStaleSlots": 19,
+    "eligibleUnchangedSlots": 3,
+    "heldSlots": 16,
+    "activeIncompleteCycles": 0
+  },
+  "verification": {
+    "frontendTests": 1010,
+    "frontendFiles": 207,
+    "frontendNodeChecks": 8,
+    "backendPass": 976,
+    "backendTodo": 1,
+    "backendFail": 0,
+    "browserScenariosPass": 2,
+    "browserApisIntercepted": true,
+    "backendBuild": "passed",
+    "frontendBuild": "passed",
+    "staticApiCalls": 238,
+    "mountedRoutes": 306,
+    "unmatchedStaticCalls": 0,
+    "dynamicCalls": 11,
+    "architecture": "passed",
+    "changedFrontendLint": "passed"
+  },
+  "liveMutationPerformed": true,
+  "deploymentPerformed": false,
+  "approvedLiveRepair": {
+    "target": "nameless-dust-38810716/br-round-art-b355gp02/neondb",
+    "timestamp": "2026-10-12T03:17:37.035Z",
+    "backupSha256": "a8ec8afee05dd6a3f6bd53115c5afd255dee9896c2e84986ce09ec0b841e018a",
+    "repaired": 3,
+    "clearedBefore": 3,
+    "clearedAfter": 6,
+    "savedRows": 15,
+    "nutrientsIdsLogsDecisionsPreserved": true,
+    "backupBytes": 13870485,
+    "archiveListVerified": true,
+    "postCommitVerification": {
+      "timestamp": "2026-10-12T03:19:00.496Z",
+      "persisted": true,
+      "scopedRecords": 3,
+      "clearedMeals": 6,
+      "maintenanceAudits": 3,
+      "preserved": true
+    },
+    "otherFutureSafetyHeldSlotsPreserved": 16,
+    "migrationPerformed": false,
+    "deploymentPerformed": false
+  }
+}

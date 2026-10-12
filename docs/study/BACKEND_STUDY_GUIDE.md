@@ -6,6 +6,18 @@
 
 **Guide date:** October 11, 2026
 
+### Current-decision addendum — October 12, 2026
+
+The baseline above is historical. Later approved behavior and its evidence are in the [engineering record](../NUTRIMIND_ENGINEERING_RECORD.md), [recovery record](../DEFENSE_RECOVERY_2026-10-11.md), and [database parity audit](../SYSTEM_DATABASE_PARITY_AUDIT_2026-10-12.md).
+
+- One eligible RND approves ordinary meals. A second distinct flag incident quarantines a recipe; only the admin decides quarantine release. That release does not approve a member's clinical context.
+- Outside-food AI estimation, member acceptance and optional Health-plan RND review are separate actions with separate allowances.
+- RND license updates require admin verification. Initial profile revision zero is valid for clarification; questions survive handoff and corrections require member acknowledgment followed by fresh confirmation.
+- Plan preparation retains variety across worker turns. Member readiness is refreshed after confirmation; incomplete safety-held plans remain incomplete until their actual cause is resolved.
+- Shared titles, images, ingredient matching and complete-plate nutrients use current contracts. Older unchanged unrestricted rice evidence has a guarded maintenance path; it is never silently refreshed by ordinary reads.
+- Retired ENNS imports/regional planning stay retired. The new live Neon project retains the verified catalogue alterations; localhost is a separate recovery copy, not an automatically synchronized mirror.
+- Verified FNRI imports accept LF/CRLF transport variations while retaining original source provenance and rejecting substantive changes. See [restoration findings](../RESTORATION_AUDIT_2026-10-12.md) for current test scope and remaining limits.
+
 **Scope:** Express, TypeScript, Prisma, PostgreSQL, authentication, nutrition planning, clinical-review workflow, tracking, and audit behavior
 
 ## 1. How to use this guide

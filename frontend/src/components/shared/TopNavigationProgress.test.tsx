@@ -1,6 +1,10 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import React from 'react';
 import { render, screen, fireEvent, act } from '@testing-library/react';
 import TopNavigationProgress from './TopNavigationProgress';
+import Skeleton from '@/components/ui/Skeleton';
+import PortalLoadingState from './PortalLoadingState';
+import { getPageLoadingCount } from '@/lib/page-loading';
 
 const route = vi.hoisted(() => ({ pathname: '/dashboard', search: '' }));
 vi.mock('next/navigation', () => ({
@@ -76,5 +80,65 @@ describe('TopNavigationProgress', () => {
     expect(vi.getTimerCount()).toBeGreaterThan(0);
     unmount();
     expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it('starts on a direct page load and waits for every visible loading region', () => {
+    const Page = ({ count }: { count: number }) => (
+      <>
+        <TopNavigationProgress />
+        {Array.from({ length: count }, (_, index) => (
+          <Skeleton key={index} />
+        ))}
+      </>
+    );
+    const { container, rerender } = render(<Page count={2} />);
+    act(() => vi.advanceTimersByTime(2000));
+    expect(container.querySelector('[data-navigation-progress]')).toHaveAttribute('data-progress-active', 'true');
+    rerender(<Page count={1} />);
+    act(() => vi.advanceTimersByTime(2000));
+    expect(container.querySelector('[data-navigation-progress]')).toHaveAttribute('data-progress-active', 'true');
+    rerender(<Page count={0} />);
+    act(() => vi.advanceTimersByTime(250));
+    expect(container.querySelector('[data-navigation-progress]')).toBeNull();
+  });
+
+  it('keeps loading after the route commits, then stops when a failure replaces the placeholder', () => {
+    const Page = ({ loading }: { loading: boolean }) => (
+      <>
+        <TopNavigationProgress />
+        <a href="/meals" onClick={(event) => event.preventDefault()}>
+          Open meals
+        </a>
+        {loading ? <PortalLoadingState /> : <p role="alert">Could not load. Try again.</p>}
+      </>
+    );
+    const { container, rerender } = render(<Page loading={false} />);
+    fireEvent.click(screen.getByText('Open meals'));
+    route.pathname = '/meals';
+    rerender(<Page loading />);
+    act(() => vi.advanceTimersByTime(2000));
+    expect(container.querySelector('[data-navigation-progress]')).toHaveAttribute('data-progress-active', 'true');
+    rerender(<Page loading={false} />);
+    act(() => vi.advanceTimersByTime(250));
+    expect(container.querySelector('[data-navigation-progress]')).toBeNull();
+    expect(screen.getByRole('alert')).toHaveTextContent('Try again');
+  });
+
+  it('cleans up loading ownership in strict mode and times out an abandoned navigation', () => {
+    const { unmount } = render(
+      <React.StrictMode>
+        <TopNavigationProgress />
+        <Skeleton />
+      </React.StrictMode>
+    );
+    expect(getPageLoadingCount()).toBe(1);
+    unmount();
+    expect(getPageLoadingCount()).toBe(0);
+    expect(vi.getTimerCount()).toBe(0);
+    const { container } = render(<Fixture />);
+    fireEvent.click(screen.getByText('Action'));
+    act(() => vi.advanceTimersByTime(30000));
+    act(() => vi.advanceTimersByTime(250));
+    expect(container.querySelector('[data-navigation-progress]')).toBeNull();
   });
 });
