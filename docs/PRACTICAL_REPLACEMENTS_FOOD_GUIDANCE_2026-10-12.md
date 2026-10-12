@@ -6,7 +6,7 @@ Work was performed in `C:/Users/chima/Desktop/Nutrimind`. The owner approved nor
 
 Automated and browser mutations use `kainara_local_development@127.0.0.1:55432`. Backend unit tests force an unreachable loopback database; `npm run dev:isolated` requires an ignored test environment file, port 5001 and loopback database URLs. Actual test-browser API requests went to the real isolated API at 5001, including database persistence; responses were not mocked. Live events were disabled in these browser contexts. Normal browser use still connects to API 5000. Synthetic fixtures, auth states, backups, environment files and original logs stay outside Git.
 
-Sharing a database establishes data parity, not deployed-code parity. This implementation is local/development; no migration or hosted release is part of this phase. The live demonstration remains on its recorded release until explicitly published.
+Sharing a database establishes data parity, not deployed-code parity. The implementation and mutation verification phase was local/development, without a migration or hosted release. The owner's subsequent continuation published tested application commit `3a07a42c` to both hosted components; exact deployments, configuration comparisons and bounded live evidence are in [the shared runtime release record](SHARED_RUNTIME_RELEASE_2026-10-12.md).
 
 ## Implemented behavior
 
