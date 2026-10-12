@@ -81,6 +81,18 @@ for (const role of ['ADMIN', 'NUTRITIONIST'] as const) {
             'true'
           );
         }
+        const context = page.locator('.app-icon-duotone:visible').first();
+        await expect(context).toBeVisible();
+        const paints = await context.evaluate((svg) => {
+          const accent = svg.querySelector('[style*="--solar-secondary-color"]')!;
+          return {
+            primary: getComputedStyle(svg).color,
+            secondary: getComputedStyle(accent).color,
+            opacity: Number(getComputedStyle(accent).opacity),
+          };
+        });
+        expect(paints.primary).not.toBe(paints.secondary);
+        expect(paints.opacity).toBeGreaterThanOrEqual(0.65);
         const icons = page.locator('main .solar:visible');
         expect(await icons.count()).toBeGreaterThan(0);
         for (const icon of await icons.all()) {

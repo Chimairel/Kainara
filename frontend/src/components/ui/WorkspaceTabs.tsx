@@ -47,6 +47,7 @@ export default function WorkspaceTabs<T extends string>({
   return (
     <nav
       aria-label={label}
+      data-workspace-tabs
       className={`relative flex w-full max-w-full gap-1 border border-brand-border/70 bg-brand-surface/85 ${secondary ? 'sm:grid sm:grid-flow-col sm:auto-cols-fr sm:w-fit rounded-2xl p-1' : 'rounded-[22px] p-1.5 shadow-sm'} ${stackOnMobile ? 'flex-col sm:flex-row' : ''} ${className}`}
     >
       {activeIndex >= 0 && (

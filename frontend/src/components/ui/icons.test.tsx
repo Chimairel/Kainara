@@ -27,15 +27,22 @@ it('keeps explicit dimensions and caller-supplied status colors', () => {
   expect(container.querySelector('svg')).toHaveClass('solar-shield-warning-linear');
 });
 
-it('uses restrained duotone for context and preserves animated loader classes', () => {
+it('uses filled duotone for context and preserves animated loader classes', () => {
   const { container } = render(
     <>
       <Home className="h-5 w-5 text-brand-muted" />
       <Loader2 className="h-4 w-4 animate-spin" />
     </>
   );
-  expect(container.querySelector('.solar-home-angle-line-duotone')).toHaveStyle({
-    '--solar-secondary-opacity': '0.22',
-  });
+  expect(container.querySelector('.solar-home-angle-bold-duotone')).toHaveClass('app-icon-duotone');
   expect(container.querySelector('.solar-refresh-linear')).toHaveClass('animate-spin');
+});
+
+it('allows callers to customize both duotone layers without changing control semantics', () => {
+  const { container } = render(<Home color="#08705b" secondaryColor="#eb6a38" secondaryOpacity={0.8} size={24} />);
+  expect(container.querySelector('svg')).toHaveStyle({
+    color: '#08705b',
+    '--solar-secondary-color': '#eb6a38',
+    '--solar-secondary-opacity': '0.8',
+  });
 });

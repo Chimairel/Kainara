@@ -174,6 +174,18 @@ for (const theme of ['light', 'dark'])
         )
         .toBeGreaterThan(0);
       await page.getByText('French Toast', { exact: true }).scrollIntoViewIfNeeded();
+      const navigation = page.locator(width < 768 ? 'nav[aria-label="Mobile navigation"]' : 'aside');
+      const selected = navigation.locator('[aria-current="page"] .app-icon-duotone').first();
+      await expect(selected).toBeVisible();
+      const paints = await selected.evaluate((svg) => {
+        const accent = svg.querySelector('[style*="--solar-secondary-color"]')!;
+        return {
+          primary: getComputedStyle(svg).color,
+          secondary: getComputedStyle(accent).color,
+          opacity: getComputedStyle(accent).opacity,
+        };
+      });
+      expect(paints).toEqual({ primary: 'rgb(13, 40, 32)', secondary: 'rgb(250, 248, 245)', opacity: '0.85' });
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
       await page.screenshot({
         path: `../backend/.local/meal-presentation-audit/${restoredImage ? 'cloudinary-' : ''}meals-${width}-${theme}.png`,

@@ -37,3 +37,15 @@ npx playwright test e2e/solar-icons.spec.ts --workers=1
 ```
 
 Normal application data and local/live database routing are unchanged. Uploaded images exist in Cloudinary, but publishing their latest application mappings and publishing this icon preview are separate release decisions.
+
+## Two-color revision requested by the owner
+
+The original same-color LineDuotone preview did not match the owner's reference. Replace context/navigation assets with BoldDuotone from the same pinned package. Keep Linear for small controls and semantic statuses.
+
+- Shared secondary layer: theme terracotta at 65%; explicit caller colors and status meanings remain intact.
+- Dark sidebar: cream primary details plus peach secondary shapes. Orange selected navigation: dark pine primary details plus cream secondary shapes at 85%.
+- Light/dark mobile navigation and tab rails: existing theme green when inactive; fixed dark pine when selected on orange.
+- White secondary actions use light-theme pine in either theme. No new icon containers or changes to cards/layouts.
+- Expose `secondaryColor` and `secondaryOpacity` alongside normal SVG `color`; customize at the shared boundary rather than editing paths. Theme overrides are scoped CSS variables.
+
+Verification: TypeScript and scoped ESLint pass; four icon contract tests pass, including independent color customization, refs/events and retained spinner behavior. Browser checks use the actual port 3000 and intercepted synthetic member/admin/RND data, never real account mutations. The initial batch found a mobile selection specificity defect; the confirmation batch passes all 12 journeys after the correction. Keep the cream/peach override scoped to the desktop portal rail, not unrelated document/queue asides. Screenshots remain in the private local audit folder. Live application and database are unchanged.
