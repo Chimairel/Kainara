@@ -5,10 +5,10 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import api from '@/lib/axios';
 import Button from '@/components/ui/Button';
-import Card from '@/components/ui/Card';
-import OnboardingProgressSlider from '@/components/onboarding/OnboardingProgressSlider';
+import OnboardingStep from '@/components/onboarding/OnboardingStep';
+import ProfileSettingsSection from '@/components/user/ProfileSettingsSection';
 import Checkbox from '@/components/ui/Checkbox';
-import { AlertTriangle, ArrowLeft, ClipboardCheck, Pencil } from 'lucide-react';
+import { AlertTriangle, ArrowRight, Pencil } from 'lucide-react';
 import { getApiErrorMessage } from '@/lib/api-error';
 import { useProfile } from '@/hooks/useProfile';
 import { normalizeExclusiveNone, normalizeFoodCulture } from '@/lib/profile-normalization';
@@ -182,232 +182,171 @@ export default function OnboardingTosPage() {
   };
 
   return (
-    <div className="w-full max-w-xl flex flex-col gap-4 select-none my-auto">
-      {/* Onboarding progress */}
-      <OnboardingProgressSlider currentStep={6} totalSteps={6} />
-
-      <Card className="relative overflow-hidden p-6 sm:p-7 glass-panel shadow-2xl border-brand-border/80 dark:border-[#173e33] dark:bg-[#09221b]/90 rounded-3xl">
-        {/* Subtle Brand Wave Accent in Top-Right Corner */}
-        <div className="absolute top-0 right-0 h-16 w-16 pointer-events-none overflow-hidden rounded-tr-3xl">
-          <div className="absolute -top-8 -right-8 h-16 w-16 rounded-full bg-brand-green/10 dark:bg-brand-accent/15 blur-sm" />
-        </div>
-
-        <button
-          type="button"
-          onClick={() => router.push('/onboarding/shopping-day')}
-          className="mb-4 flex items-center gap-1.5 text-xs text-brand-muted hover:text-brand-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-green transition-colors w-fit"
-        >
-          <ArrowLeft className="h-3 w-3 shrink-0" />
-          <span>Back to Step 5</span>
-        </button>
-
-        <section aria-labelledby="onboarding-review-heading" className="mb-5">
-          <div className="mb-3 flex items-start gap-2.5">
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl border border-brand-green/25 bg-brand-green/10 text-brand-green dark:border-brand-accent/30 dark:bg-brand-accent/15 dark:text-brand-accent">
-              <ClipboardCheck className="h-4 w-4" aria-hidden="true" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2 mb-1">
-                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold uppercase tracking-wider bg-brand-green/10 text-brand-green border border-brand-green/20 dark:bg-brand-accent/15 dark:text-brand-accent dark:border-brand-accent/30">
-                  Step 06 / 06 · Review & Terms
-                </span>
-              </div>
-              <h1
-                id="onboarding-review-heading"
-                className="font-display text-lg sm:text-xl font-extrabold tracking-tight text-brand-text"
+    <OnboardingStep
+      step={6}
+      title="Review your onboarding details"
+      description="Confirm the information used for your calorie target, safety checks, nutrition report, and meal-plan recommendations before giving consent."
+      backHref="/onboarding/shopping-day"
+      backLabel="Back to Step 5"
+    >
+      {isHydrating ? (
+        <p role="status" className="p-7 text-sm text-brand-muted">
+          Loading your saved onboarding details…
+        </p>
+      ) : (
+        !profileUnavailable &&
+        reviewSections.map((section) => (
+          <ProfileSettingsSection key={section.title} title={section.title} description="">
+            <div className="mb-4 flex justify-end">
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => router.push(section.editPath)}
+                aria-label={`Edit ${section.title.toLowerCase()}`}
               >
-                Review your onboarding details
-              </h1>
-              <p className="mt-0.5 text-xs leading-relaxed text-brand-muted">
-                Confirm the information used for your calorie target, safety checks, nutrition report, and meal-plan
-                recommendations before giving consent.
-              </p>
+                <Pencil className="h-3.5 w-3.5" aria-hidden="true" />
+                Edit
+              </Button>
             </div>
-          </div>
-
-          {isHydrating ? (
-            <div
-              className="rounded-2xl border border-brand-border/60 bg-brand-bgAlt/40 px-4 py-4 text-center text-xs text-brand-muted"
-              role="status"
-            >
-              Loading your saved onboarding details…
-            </div>
-          ) : profileUnavailable ? (
-            <p className="text-xs text-brand-muted">Your saved details are unavailable. Retry loading them below.</p>
-          ) : (
-            <div className="grid gap-3 sm:grid-cols-2">
-              {reviewSections.map((section) => (
-                <div
-                  key={section.title}
-                  className="rounded-2xl border border-brand-border/70 bg-brand-bgAlt/50 p-3.5 shadow-xs"
-                >
-                  <div className="mb-2 flex items-center justify-between gap-2">
-                    <h2 className="text-[11px] font-extrabold uppercase tracking-[0.14em] text-brand-text">
-                      {section.title}
-                    </h2>
-                    <button
-                      type="button"
-                      onClick={() => router.push(section.editPath)}
-                      className="inline-flex items-center gap-1 rounded-lg px-2 py-0.5 text-[10px] font-bold text-brand-green bg-brand-green/10 transition-all hover:bg-brand-green hover:text-white dark:text-brand-accent dark:bg-brand-accent/15 dark:hover:bg-brand-accent dark:hover:text-black focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-green"
-                      aria-label={`Edit ${section.title.toLowerCase()}`}
-                    >
-                      <Pencil className="h-2.5 w-2.5" aria-hidden="true" />
-                      Edit
-                    </button>
-                  </div>
-                  <dl className="space-y-1.5">
-                    {section.items.map(([label, value]) => (
-                      <div
-                        key={label}
-                        className="flex items-start justify-between gap-3 border-t border-brand-border/40 pt-1.5 first:border-0 first:pt-0"
-                      >
-                        <dt className="text-[10px] font-medium text-brand-muted">{label}</dt>
-                        <dd className="max-w-[62%] text-right text-[10px] font-semibold leading-relaxed text-brand-text">
-                          {value}
-                        </dd>
-                      </div>
-                    ))}
-                  </dl>
+            <dl className="grid gap-4 sm:grid-cols-2">
+              {section.items.map(([label, value]) => (
+                <div key={label} className="min-w-0">
+                  <dt className="text-xs text-brand-muted">{label}</dt>
+                  <dd className="mt-1 break-words text-sm font-medium text-brand-text">{value}</dd>
                 </div>
               ))}
-            </div>
+            </dl>
+          </ProfileSettingsSection>
+        ))
+      )}
+      <div className="px-5 pt-7 sm:px-7">
+        <h2 className="font-display text-xl font-bold">Legal terms & protection</h2>
+        <p className="mt-2 text-sm leading-relaxed text-brand-muted">
+          Please review our clinical guidelines, medical disclaimers, and data protection terms below.
+        </p>
+      </div>
+      {displayedError && (
+        <div role="alert" className="flex flex-wrap items-start gap-2 px-5 pt-5 text-sm text-status-error-text sm:px-7">
+          <AlertTriangle className="h-4 w-4 shrink-0" aria-hidden="true" />
+          <span className="min-w-0 flex-1">{displayedError}</span>
+          {profileUnavailable && (
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              onClick={() => {
+                setError(null);
+                void refresh();
+              }}
+            >
+              Try again
+            </Button>
           )}
-        </section>
+        </div>
+      )}
+      <form onSubmit={handleSubmit} className="space-y-5 px-5 py-7 sm:px-7">
+        <Checkbox
+          id="medicalDisclaimer"
+          checked={medicalDisclaimer}
+          onCheckedChange={(checked) => setMedicalDisclaimer(!!checked)}
+          label={
+            <span className="text-sm text-brand-text leading-relaxed">
+              I understand that AI-generated meal plans are NOT medical advice. If managing chronic conditions, I agree
+              to follow our{' '}
+              <a
+                href="/docs#clinical-guidelines"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-bold text-brand-green underline decoration-brand-green/40 underline-offset-2 hover:text-brand-greenHover hover:decoration-brand-green"
+              >
+                Clinical Guidelines
+              </a>{' '}
+              and{' '}
+              <a
+                href="/docs#medical-disclaimers"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-bold text-brand-green underline decoration-brand-green/40 underline-offset-2 hover:text-brand-greenHover hover:decoration-brand-green"
+              >
+                Medical Disclaimers
+              </a>
+              .
+            </span>
+          }
+          error={error !== null && !medicalDisclaimer}
+        />
 
-        <div className="flex flex-col gap-0.5 mb-4">
-          <h2 className="text-xl sm:text-2xl font-extrabold tracking-tight font-display text-brand-green">
-            LEGAL TERMS & PROTECTION
-          </h2>
-          <p className="text-xs text-brand-muted">
-            Please review our clinical guidelines, medical disclaimers, and data protection terms below.
-          </p>
+        <Checkbox
+          id="healthDataProcessing"
+          checked={healthDataProcessing}
+          onCheckedChange={(checked) => setHealthDataProcessing(!!checked)}
+          label={
+            <span className="text-sm text-brand-text leading-relaxed">
+              I explicitly consent to KAINARA processing my health data and transmitting required meal parameters to
+              Google Gemini under the Philippine Data Privacy Act of 2012 (R.A. 10173). Learn more in our{' '}
+              <a
+                href="/docs#data-protection-notice"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-bold text-brand-green underline decoration-brand-green/40 underline-offset-2 hover:text-brand-greenHover hover:decoration-brand-green"
+              >
+                Data Protection Notice
+              </a>
+              .
+            </span>
+          }
+          error={error !== null && !healthDataProcessing}
+        />
+
+        <div className="rounded-2xl border border-brand-border/60 bg-brand-bgAlt/50 px-3.5 py-2 text-[10px] leading-relaxed text-brand-muted">
+          {isHydrating
+            ? 'Loading consent versions…'
+            : consentReady
+              ? `Consent versions: Terms ${termsVersion} · Privacy ${privacyVersion}`
+              : 'Consent versions unavailable.'}
         </div>
 
-        {displayedError && (
-          <div
-            role="alert"
-            className="mb-4 p-3 rounded-2xl bg-status-error-bg/10 border border-status-error-text/25 text-status-error-text text-xs font-semibold flex items-center gap-2"
-          >
-            <AlertTriangle className="w-4 h-4 text-status-error-text shrink-0" />
-            <span className="leading-tight">{displayedError}</span>
-            {profileUnavailable && (
-              <button
-                type="button"
-                className="underline shrink-0"
-                onClick={() => {
-                  setError(null);
-                  void refresh();
-                }}
+        <Checkbox
+          id="privacyPolicy"
+          checked={privacyPolicy}
+          onCheckedChange={(checked) => setPrivacyPolicy(!!checked)}
+          label={
+            <span className="text-sm text-brand-text leading-relaxed">
+              I agree to the{' '}
+              <a
+                href="/docs#terms-of-service"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-bold text-brand-green underline decoration-brand-green/40 underline-offset-2 hover:text-brand-greenHover hover:decoration-brand-green"
               >
-                Try again
-              </button>
-            )}
-          </div>
-        )}
+                Terms of Service
+              </a>{' '}
+              and{' '}
+              <a
+                href="/docs#privacy-policy"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-bold text-brand-green underline decoration-brand-green/40 underline-offset-2 hover:text-brand-greenHover hover:decoration-brand-green"
+              >
+                Privacy Policy
+              </a>
+              .
+            </span>
+          }
+          error={error !== null && !privacyPolicy}
+        />
 
-        <form onSubmit={handleSubmit} className="flex flex-col gap-3.5">
-          <Checkbox
-            id="medicalDisclaimer"
-            checked={medicalDisclaimer}
-            onCheckedChange={(checked) => setMedicalDisclaimer(!!checked)}
-            label={
-              <span className="text-xs text-brand-text leading-relaxed">
-                I understand that AI-generated meal plans are NOT medical advice. If managing chronic conditions, I
-                agree to follow our{' '}
-                <a
-                  href="/docs#clinical-guidelines"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="font-bold text-brand-green underline decoration-brand-green/40 underline-offset-2 hover:text-brand-greenHover hover:decoration-brand-green"
-                >
-                  Clinical Guidelines
-                </a>{' '}
-                and{' '}
-                <a
-                  href="/docs#medical-disclaimers"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="font-bold text-brand-green underline decoration-brand-green/40 underline-offset-2 hover:text-brand-greenHover hover:decoration-brand-green"
-                >
-                  Medical Disclaimers
-                </a>
-                .
-              </span>
-            }
-            error={error !== null && !medicalDisclaimer}
-          />
-
-          <Checkbox
-            id="healthDataProcessing"
-            checked={healthDataProcessing}
-            onCheckedChange={(checked) => setHealthDataProcessing(!!checked)}
-            label={
-              <span className="text-xs text-brand-text leading-relaxed">
-                I explicitly consent to KAINARA processing my health data and transmitting required meal parameters to
-                Google Gemini under the Philippine Data Privacy Act of 2012 (R.A. 10173). Learn more in our{' '}
-                <a
-                  href="/docs#data-protection-notice"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="font-bold text-brand-green underline decoration-brand-green/40 underline-offset-2 hover:text-brand-greenHover hover:decoration-brand-green"
-                >
-                  Data Protection Notice
-                </a>
-                .
-              </span>
-            }
-            error={error !== null && !healthDataProcessing}
-          />
-
-          <div className="rounded-2xl border border-brand-border/60 bg-brand-bgAlt/50 px-3.5 py-2 text-[10px] leading-relaxed text-brand-muted">
-            {isHydrating
-              ? 'Loading consent versions…'
-              : consentReady
-                ? `Consent versions: Terms ${termsVersion} · Privacy ${privacyVersion}`
-                : 'Consent versions unavailable.'}
-          </div>
-
-          <Checkbox
-            id="privacyPolicy"
-            checked={privacyPolicy}
-            onCheckedChange={(checked) => setPrivacyPolicy(!!checked)}
-            label={
-              <span className="text-xs text-brand-text leading-relaxed">
-                I agree to the{' '}
-                <a
-                  href="/docs#terms-of-service"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="font-bold text-brand-green underline decoration-brand-green/40 underline-offset-2 hover:text-brand-greenHover hover:decoration-brand-green"
-                >
-                  Terms of Service
-                </a>{' '}
-                and{' '}
-                <a
-                  href="/docs#privacy-policy"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="font-bold text-brand-green underline decoration-brand-green/40 underline-offset-2 hover:text-brand-greenHover hover:decoration-brand-green"
-                >
-                  Privacy Policy
-                </a>
-                .
-              </span>
-            }
-            error={error !== null && !privacyPolicy}
-          />
-
-          <Button
-            type="submit"
-            variant="primary"
-            className="w-full py-3.5 mt-2 text-sm font-bold tracking-wide rounded-2xl shadow-xl shadow-brand-green/25 transition-all hover:scale-[1.01] active:scale-[0.99]"
-            disabled={!medicalDisclaimer || !privacyPolicy || !healthDataProcessing || !consentReady}
-            isLoading={isLoading}
-          >
-            Complete Onboarding & Review Report →
-          </Button>
-        </form>
-      </Card>
-    </div>
+        <Button
+          type="submit"
+          variant="primary"
+          className="w-full sm:w-auto"
+          disabled={!medicalDisclaimer || !privacyPolicy || !healthDataProcessing || !consentReady}
+          isLoading={isLoading}
+        >
+          Complete Onboarding & Review Report <ArrowRight className="h-4 w-4" aria-hidden="true" />
+        </Button>
+      </form>
+    </OnboardingStep>
   );
 }

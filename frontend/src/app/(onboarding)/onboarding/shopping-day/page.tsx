@@ -4,10 +4,10 @@ import React, { useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import api from '@/lib/axios';
 import Button from '@/components/ui/Button';
-import Card from '@/components/ui/Card';
-import OnboardingProgressSlider from '@/components/onboarding/OnboardingProgressSlider';
+import OnboardingStep, { OnboardingActions, OnboardingChoice } from '@/components/onboarding/OnboardingStep';
+import ProfileSettingsSection from '@/components/user/ProfileSettingsSection';
 import { ShoppingDayOfWeek } from '@/types';
-import { ShoppingCart, Calendar, AlertTriangle, ArrowLeft, Check, Lightbulb } from 'lucide-react';
+import { ShoppingCart, Calendar, AlertTriangle, ArrowRight } from 'lucide-react';
 import { getApiErrorMessage } from '@/lib/api-error';
 import { useProfile } from '@/hooks/useProfile';
 import { useAuth } from '@/hooks/useAuth';
@@ -67,124 +67,42 @@ export default function OnboardingShoppingDayPage() {
   };
 
   return (
-    <div className="w-full max-w-xl flex flex-col gap-4 select-none my-auto">
-      {/* Progress Slider */}
-      <OnboardingProgressSlider currentStep={5} totalSteps={6} />
-
-      <Card className="relative overflow-hidden p-6 sm:p-7 glass-panel shadow-2xl border-brand-border/80 dark:border-[#173e33] dark:bg-[#09221b]/90 rounded-3xl">
-        {/* Subtle Brand Wave Accent in Top-Right Corner */}
-        <div className="absolute top-0 right-0 h-16 w-16 pointer-events-none overflow-hidden rounded-tr-3xl">
-          <div className="absolute -top-8 -right-8 h-16 w-16 rounded-full bg-brand-green/10 dark:bg-brand-accent/15 blur-sm" />
+    <OnboardingStep
+      step={5}
+      title="Grocery schedule"
+      description="Choose your preferred shopping day to organize your weekly meal cycle."
+      backHref={isFromReview ? '/onboarding/tos' : '/onboarding/allergies'}
+      backLabel={isFromReview ? 'Back to Review' : 'Back to Step 4'}
+    >
+      {error && (
+        <div role="alert" className="flex items-start gap-2 p-5 text-sm text-status-error-text">
+          <AlertTriangle className="h-4 w-4 shrink-0" aria-hidden="true" />
+          {error}
         </div>
-
-        <button
-          type="button"
-          onClick={() => router.push(isFromReview ? '/onboarding/tos' : '/onboarding/allergies')}
-          className="mb-3 flex items-center gap-1.5 text-xs text-brand-muted hover:text-brand-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-green transition-colors w-fit"
-        >
-          <ArrowLeft className="h-3 w-3 shrink-0" />
-          <span>{isFromReview ? 'Back to Review' : 'Back to Step 4'}</span>
-        </button>
-
-        <div className="flex flex-col gap-1 mb-4">
-          <div className="flex items-center gap-2">
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold uppercase tracking-wider bg-brand-green/10 text-brand-green border border-brand-green/20 dark:bg-brand-accent/15 dark:text-brand-accent dark:border-brand-accent/30">
-              Step 05 / 06 · Schedule
-            </span>
-          </div>
-          <h2 className="text-2xl font-extrabold tracking-tight font-display text-brand-green">GROCERY SHOPPING DAY</h2>
-          <p className="text-xs text-brand-muted">
-            This helps us time your weekly meal plan so it&apos;s ready before you shop — keeping your grocery list
-            perfectly in sync.
-          </p>
-        </div>
-
-        {error && (
-          <div className="mb-4 p-3 rounded-2xl bg-status-error-bg/10 border border-status-error-text/25 text-status-error-text text-xs font-semibold flex items-center gap-2">
-            <AlertTriangle className="w-4 h-4 text-status-error-text shrink-0" />
-            <span className="leading-tight">{error}</span>
-          </div>
-        )}
-
-        <form onSubmit={handleSubmit} className="flex flex-col gap-3.5">
-          {/* Exact day cards */}
-          <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
-            {options.map((opt) => {
-              const isSelected = selected === opt.value;
-              return (
-                <button
-                  key={opt.value}
-                  type="button"
-                  aria-pressed={isSelected}
-                  id={`shopping-day-${opt.value}`}
-                  onClick={() => setSelected(opt.value)}
-                  className={`
-                    flex items-center gap-3 px-3.5 py-3 rounded-2xl border-2 text-left transition-all duration-200 outline-none
-                    ${
-                      isSelected
-                        ? 'border-brand-green bg-brand-green text-white dark:border-brand-accent dark:bg-brand-accent dark:text-black shadow-md shadow-brand-green/20 font-bold'
-                        : 'border-brand-border/80 bg-brand-bgAlt/50 text-brand-text hover:border-brand-border hover:bg-brand-border/30'
-                    }
-                  `}
-                >
-                  <span
-                    className={`p-2 rounded-xl flex items-center justify-center shrink-0 ${
-                      isSelected
-                        ? 'bg-white/20 dark:bg-black/15 text-white dark:text-black'
-                        : 'bg-brand-border/30 text-brand-green'
-                    }`}
-                  >
-                    {opt.icon}
-                  </span>
-                  <div className="flex-1 min-w-0">
-                    <h4
-                      className={`text-xs sm:text-sm font-bold tracking-wide ${
-                        isSelected ? 'text-white dark:text-black' : 'text-brand-text'
-                      }`}
-                    >
-                      {opt.title}
-                    </h4>
-                    <p
-                      className={`text-[11px] mt-0.5 truncate sm:whitespace-normal font-semibold ${
-                        isSelected ? 'text-emerald-100 dark:text-neutral-900' : 'text-brand-muted'
-                      }`}
-                    >
-                      {opt.desc}
-                    </p>
-                  </div>
-                  {isSelected && (
-                    <span className="text-white dark:text-black bg-white/20 dark:bg-black/15 h-6 w-6 rounded-full flex items-center justify-center shrink-0">
-                      <Check className="w-3.5 h-3.5 stroke-[3px]" />
-                    </span>
-                  )}
-                </button>
-              );
-            })}
-          </div>
-
-          {/* Info note */}
-          <div className="mt-1 p-3 rounded-2xl bg-brand-bgAlt/60 border border-brand-border/60">
-            <p className="text-[11px] text-brand-muted leading-relaxed flex items-start gap-2">
-              <Lightbulb className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
-              <span>
-                <span className="font-semibold text-brand-text/80">How this works:</span> Your starter plan bridges the
-                days until your first full cycle. When a new cycle begins, KAINARA builds the current plan from eligible
-                reviewed meals and sends any newly sourced meals through the normal review flow.
-              </span>
-            </p>
-          </div>
-
-          <Button
-            type="submit"
-            variant="primary"
-            className="w-full py-3 mt-2 text-sm font-bold tracking-wide rounded-2xl shadow-lg shadow-brand-green/20 transition-all hover:scale-[1.01] active:scale-[0.99]"
-            isLoading={isLoading}
-            disabled={isHydrating}
-          >
-            {isFromReview ? 'Save & Return to Review' : 'Continue to Step 6 →'}
+      )}
+      <form onSubmit={handleSubmit} className="divide-y divide-brand-border">
+        <ProfileSettingsSection title="Shopping day" description="Your 7-day meal cycle starts the day after you shop.">
+          <fieldset disabled={isLoading || isHydrating} className="grid gap-3 sm:grid-cols-2" aria-label="Shopping day">
+            {options.map((opt) => (
+              <OnboardingChoice
+                key={opt.value}
+                id={`shopping-day-${opt.value}`}
+                label={opt.title}
+                description={opt.desc}
+                icon={opt.icon}
+                selected={selected === opt.value}
+                onClick={() => setSelected(opt.value)}
+              />
+            ))}
+          </fieldset>
+        </ProfileSettingsSection>
+        <OnboardingActions>
+          <Button type="submit" disabled={selected === null || isHydrating} isLoading={isLoading}>
+            {isFromReview ? 'Save & Return to Review' : 'Continue to Step 6'}
+            <ArrowRight className="h-4 w-4" aria-hidden="true" />
           </Button>
-        </form>
-      </Card>
-    </div>
+        </OnboardingActions>
+      </form>
+    </OnboardingStep>
   );
 }

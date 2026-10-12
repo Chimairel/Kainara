@@ -5,14 +5,14 @@ import type { ProfileProposalWorkspace } from '@/features/clinical-clarification
 import type { ClarificationWorkspace } from '@/features/clinical-clarification/types';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useVisiblePolling } from '@/hooks/useVisiblePolling';
-import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import api from '@/lib/axios';
 import { useAuth } from '@/hooks/useAuth';
 import { invalidateSessionResource } from '@/lib/session-resource-cache';
 import { LIVE_UPDATE_EVENT } from '@/lib/live-events';
 import { getApiErrorMessage } from '@/lib/api-error';
-import OnboardingProgressSlider from '@/components/onboarding/OnboardingProgressSlider';
+import OnboardingStep from '@/components/onboarding/OnboardingStep';
+import Button from '@/components/ui/Button';
 import PersonalizationTabs from '@/components/user/PersonalizationTabs';
 import StateNotice from '@/components/shared/StateNotice';
 import PortalPageHeader from '@/components/shared/PortalPageHeader';
@@ -271,61 +271,20 @@ function ClinicalEvidenceContent({ mode = 'profile', detailsSection }: Workspace
       )}
     </>
   );
-  return (
-    <div
-      className={
-        mode === 'onboarding' ? 'mx-auto my-auto w-full max-w-2xl space-y-5' : 'portal-page max-w-5xl space-y-6'
-      }
-    >
-      {mode === 'onboarding' ? (
+  const content = (
+    <div className={mode === 'onboarding' ? 'w-full space-y-6' : 'portal-page max-w-5xl space-y-6'}>
+      {mode === 'profile' && (
         <>
-          <OnboardingProgressSlider currentStep={section === 'conditions' ? 3 : 4} totalSteps={6} />
-          <Link
-            href={
-              params.get('from') === 'review'
-                ? '/onboarding/tos'
-                : section === 'conditions'
-                  ? '/onboarding/conditions'
-                  : '/onboarding/allergies'
+          <PersonalizationTabs activeTab="clinical-evidence" />
+          <PortalPageHeader
+            title="Health details"
+            description={
+              loading || items.length > 0
+                ? 'Questions from your RND, profile corrections, and your health details — together in one place. Choose a form to read or respond.'
+                : ''
             }
-            className="text-sm text-brand-muted"
-          >
-            {params.get('from') === 'review'
-              ? 'Back to review'
-              : section === 'conditions'
-                ? 'Back to conditions'
-                : 'Back to food safety'}
-          </Link>
+          />
         </>
-      ) : (
-        <PersonalizationTabs activeTab="clinical-evidence" />
-      )}
-      {mode === 'profile' ? (
-        <PortalPageHeader
-          title="Health details"
-          description={
-            loading || items.length > 0
-              ? 'Questions from your RND, profile corrections, and your health details — together in one place. Choose a form to read or respond.'
-              : ''
-          }
-        />
-      ) : (
-        <header>
-          <h1 className="font-display text-3xl font-black">
-            {section === 'conditions'
-              ? 'Condition details'
-              : section === 'allergies'
-                ? 'Allergy details'
-                : 'Health details'}
-          </h1>
-          {(loading || areas.length > 0) && (
-            <p className="mt-2 text-sm text-brand-muted">
-              Describe the conditions and restrictions already listed in your profile for an RND to review. Enter “none”
-              or “unknown” where appropriate. Complete and save a separate form for each listed condition or
-              restriction.
-            </p>
-          )}
-        </header>
       )}
       {request && (
         <div role="status" className="rounded-xl border border-amber-500 p-4">
@@ -377,7 +336,7 @@ function ClinicalEvidenceContent({ mode = 'profile', detailsSection }: Workspace
       ) : (
         <>
           {mode === 'onboarding' && !!requirements.length && (
-            <section className="space-y-2 rounded-xl border border-brand-border p-4">
+            <section className="space-y-2 border-b border-brand-border pb-5">
               <p className="text-sm font-bold" role="status">
                 {requirements.length - pendingAreas.length} of {requirements.length} health detail forms complete.
               </p>
@@ -408,7 +367,7 @@ function ClinicalEvidenceContent({ mode = 'profile', detailsSection }: Workspace
               )}
           {mode === 'onboarding' && (
             <div className="flex justify-end">
-              <button
+              <Button
                 type="button"
                 disabled={busy || loading || !workspace || pendingAreas.length > 0}
                 onClick={() =>
@@ -420,18 +379,50 @@ function ClinicalEvidenceContent({ mode = 'profile', detailsSection }: Workspace
                         : '/onboarding/shopping-day'
                   )
                 }
-                className="min-h-12 rounded-xl bg-brand-accent px-5 py-3 font-bold text-white"
+                className="w-full sm:w-auto"
               >
                 {params.get('from') === 'review'
                   ? 'Return to review'
                   : section === 'conditions'
                     ? 'Continue to allergies'
                     : 'Continue to shopping day'}
-              </button>
+              </Button>
             </div>
           )}
         </>
       )}
     </div>
+  );
+  return mode === 'onboarding' ? (
+    <OnboardingStep
+      step={section === 'conditions' ? 3 : 4}
+      title={
+        section === 'conditions' ? 'Condition details' : section === 'allergies' ? 'Allergy details' : 'Health details'
+      }
+      description={
+        loading || areas.length > 0
+          ? 'Describe the conditions and restrictions already listed in your profile for an RND to review. Enter “none” or “unknown” where appropriate. Complete and save a separate form for each listed condition or restriction.'
+          : undefined
+      }
+      backHref={
+        params.get('from') === 'review'
+          ? '/onboarding/tos'
+          : section === 'conditions'
+            ? '/onboarding/conditions'
+            : '/onboarding/allergies'
+      }
+      backLabel={
+        params.get('from') === 'review'
+          ? 'Back to review'
+          : section === 'conditions'
+            ? 'Back to conditions'
+            : 'Back to food safety'
+      }
+      surface={false}
+    >
+      {content}
+    </OnboardingStep>
+  ) : (
+    content
   );
 }

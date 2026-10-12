@@ -13,7 +13,7 @@ export function ProfileSectionHeader({
   return (
     <header>
       <Heading className="font-display text-xl font-bold leading-tight text-brand-text">{title}</Heading>
-      <p className="mt-2 max-w-prose text-sm leading-relaxed text-brand-muted">{description}</p>
+      {description && <p className="mt-2 max-w-prose text-sm leading-relaxed text-brand-muted">{description}</p>}
     </header>
   );
 }

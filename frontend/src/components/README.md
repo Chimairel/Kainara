@@ -2,6 +2,10 @@
 
 Use these components before copying markup from another page. Role authorization, eligibility, claim state and mutation handling belong in the caller.
 
+## Onboarding presentation
+
+`OnboardingStep` shares the profile page heading, compact six-step progress and `ProfileSettingsSurface`. Use `ProfileSettingsSection` for form groups, `OnboardingChoice` for selectable options and `OnboardingActions` with the shared Button for navigation/save actions. Choices retain native keyboard behavior, selected text/check indicators, peach fill and visible focus. On mobile sections stack and descriptions wrap without truncation. Conditional condition/allergy detail pages reuse the same step shell with their existing health forms. Callers retain hydration, validation, API payloads, declaration confirmation, consent versions and report acknowledgment routing; progress is presentation, never permission to skip a step.
+
 ## Removing obsolete UI
 
 Follow imports from the Next.js route and layout entry points before removing a component. Check dynamic imports, CSS, tests, scripts and public asset references as well. Tests and fixtures are separate entry points; a test for a superseded widget does not make it active application UI. Remove an obsolete widget's dedicated tests with it, and retain coverage of the current replacement.

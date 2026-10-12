@@ -10,17 +10,9 @@ import KainaraLogo from '@/components/shared/KainaraLogo';
 export default function OnboardingLayout({ children }: { children: React.ReactNode }) {
   return (
     <RouteGuard>
-      <div className="relative min-h-screen bg-brand-bg text-brand-text flex flex-col justify-between selection:bg-brand-green/20 selection:text-brand-green">
-        {/* Subtle Ambient River Gradient Glows */}
-        <div className="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
-          <div className="absolute -top-[12%] left-[10%] h-[500px] w-[500px] rounded-full bg-[#10b981]/8 blur-[140px] dark:bg-[#10b981]/12" />
-          <div className="absolute top-[35%] -right-[5%] h-[450px] w-[450px] rounded-full bg-[#f09e6c]/7 blur-[150px] dark:bg-[#f09e6c]/9" />
-          <div className="absolute -bottom-[10%] left-[20%] h-[550px] w-[550px] rounded-full bg-[#eb6a38]/6 blur-[160px] dark:bg-[#eb6a38]/8" />
-        </div>
-
-        {/* Minimal Clean Top Header */}
-        <header className="w-full border-b border-brand-border/50 bg-brand-bg/80 backdrop-blur-md sticky top-0 z-40">
-          <div className="mx-auto flex h-14 max-w-4xl items-center justify-between px-4 sm:px-6">
+      <div className="min-h-screen bg-brand-bg text-brand-text selection:bg-brand-accentSoft selection:text-[#0d2820]">
+        <header className="w-full border-b border-brand-border bg-brand-bg">
+          <div className="mx-auto flex h-16 max-w-5xl items-center justify-between px-5 sm:px-7">
             <Link href="/" className="group flex items-center gap-2.5" aria-label="KAINARA home">
               <span className="relative flex h-8 w-8 items-center justify-center transition-transform group-hover:scale-105">
                 <KainaraLogo className="h-8 w-8" />
@@ -28,14 +20,11 @@ export default function OnboardingLayout({ children }: { children: React.ReactNo
               </span>
               <div className="flex items-center gap-2">
                 <span className="font-display text-sm font-black tracking-[0.16em] text-brand-text">KAINARA</span>
-                <span className="hidden sm:inline-flex items-center gap-1 rounded-full border border-brand-green/20 bg-brand-green/10 px-2 py-0.5 font-mono text-[9px] font-bold uppercase tracking-wider text-brand-green">
-                  Clinical Intake
-                </span>
               </div>
             </Link>
 
             <div className="flex items-center gap-3">
-              <div className="hidden sm:flex items-center gap-1.5 text-[11px] font-medium text-brand-muted bg-brand-bgAlt/50 border border-brand-border/60 rounded-full px-2.5 py-1">
+              <div className="hidden sm:flex items-center gap-1.5 text-xs text-brand-muted">
                 <ShieldCheck className="w-3.5 h-3.5 text-brand-green" />
                 <span>Private health profile</span>
               </div>
@@ -45,7 +34,7 @@ export default function OnboardingLayout({ children }: { children: React.ReactNo
         </header>
 
         {/* Page Content */}
-        <main className="flex-1 flex flex-col items-center justify-center py-6 px-4 sm:px-6">{children}</main>
+        <main className="px-5 py-7 sm:px-7 sm:py-10">{children}</main>
       </div>
     </RouteGuard>
   );
