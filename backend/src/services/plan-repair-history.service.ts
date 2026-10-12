@@ -4,6 +4,7 @@ import { env } from '@/config/env';
 import { getManilaBusinessDateKey } from '@/domain/meal-actionability.policy';
 import { referenceServingDigest } from '@/domain/reusable-review-reference.policy';
 import { AppError } from '@/errors/AppError';
+import { planImageSelect } from '@/services/meal-plan-presentation.service';
 
 const ids = (value: unknown) =>
   Array.isArray(value) ? value.filter((id): id is string => typeof id === 'string').slice(0, 100) : [];
@@ -25,6 +26,7 @@ export async function retainedMealsForCycle(
   const rows = await client.mealPlan.findMany({
     where: { userId, id: { in: retainedIds }, mealLogs: { some: { userId, status: { in: ['DONE', 'SKIPPED'] } } } },
     select: {
+      ...planImageSelect,
       id: true,
       mealType: true,
       mealName: true,

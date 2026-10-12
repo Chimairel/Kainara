@@ -4,6 +4,8 @@ import { AuthenticatedRequest } from '@/types';
 
 import prisma from '@/lib/prisma';
 import { MealLogSource, MealLogStatus } from '@prisma/client';
+import { planImageSelect, resolveRecordedPlanImage } from '@/services/meal-plan-presentation.service';
+import { resolveLibraryRecipeImages } from '@/services/library-recipe-image.service';
 
 export async function getPlanHistory(req: AuthenticatedRequest, res: Response) {
   try {
@@ -90,17 +92,25 @@ export async function getPlanHistory(req: AuthenticatedRequest, res: Response) {
             },
           },
         },
-        mealPlan: { select: { mealType: true, swapLogs: { orderBy: { swappedAt: 'desc' }, take: 1 } } },
+        mealPlan: {
+          select: { ...planImageSelect, mealType: true, swapLogs: { orderBy: { swappedAt: 'desc' }, take: 1 } },
+        },
       },
       orderBy: { loggedAt: 'desc' },
     });
 
-    // Normalize to unified shape
+    const libraryImages = await resolveLibraryRecipeImages(
+      allLogs.flatMap((log) =>
+        log.mealPlan?.mealName === log.mealName && log.mealPlan.libraryMeal ? [log.mealPlan.libraryMeal] : []
+      )
+    );
+    // Normalize to unified shape; recorded names, intake and private attachments remain unchanged.
     const normalized = allLogs.map((l) => {
       const latestSwap = l.mealPlan?.swapLogs?.[0];
       return {
         id: l.id,
         mealName: l.mealName,
+        image: resolveRecordedPlanImage(l, libraryImages),
         source: l.source as string, // 'SYSTEM_GENERATED' | 'USER_LOGGED' | 'USER_SWAPPED'
         calories: l.calories,
         proteinG: l.proteinG,

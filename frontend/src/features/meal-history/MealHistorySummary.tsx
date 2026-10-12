@@ -1,6 +1,7 @@
 'use client';
 
 import { MealMacros } from '@/components/user/MealMacros';
+import { formatMealTitle } from '@/lib/meal-title';
 
 import { Check, ChevronDown, FileText, X } from 'lucide-react';
 
@@ -70,7 +71,7 @@ export default function MealHistorySummary({ model }: SectionProps) {
                 isSkipped || isVoided ? 'line-through text-white/60' : ''
               }`}
             >
-              {log.mealName}
+              {formatMealTitle(log.mealName)}
             </h4>
 
             {/* Macro Line */}

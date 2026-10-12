@@ -1,4 +1,5 @@
 import { ricePortionLabel } from '@/domain/rice-portion.policy';
+import type { Prisma } from '@prisma/client';
 import { cookingLinkForMeal, type PublicMealCookingLink } from '@/domain/meal-cooking-link.policy';
 import { buildMealExplanation } from '@/domain/meal-explanation.policy';
 import { buildPendingMealPlanPreview, type PendingMealPreviewInput } from '@/domain/meal-generation-result.policy';
@@ -43,6 +44,31 @@ export const rawRecipeImageSelect = {
   sourceImageUrl: true,
   sourceVideoUrl: true,
 } as const;
+
+// Display metadata only: history must not load recipe nutrients or reviewer/clinical relations.
+export const planImageSelect = {
+  mealName: true,
+  selectionEvidence: true,
+  sourceRawRecipeCandidate: { select: rawRecipeImageSelect },
+  libraryMeal: {
+    select: {
+      id: true,
+      mealName: true,
+      description: true,
+      derivationKind: true,
+      adaptedImageUrl: true,
+      imagePublicId: true,
+      imageVersion: true,
+      imageFormat: true,
+      imageKind: true,
+      imageAltText: true,
+      imageCreator: true,
+      imageSourcePageUrl: true,
+      imageLicenseCode: true,
+      imageLicenseUrl: true,
+    },
+  },
+} as const satisfies Prisma.MealPlanSelect;
 
 export const mealExplanationIngredientInclude = {
   foodItem: { select: { source: true } },
@@ -138,6 +164,15 @@ export function resolvePlanImage(
     (meal.libraryMeal ? libraryImages?.get(meal.libraryMeal.id) : null) ||
     libraryImage
   );
+}
+
+/** A changed/replaced plan row cannot supply a photo for a different recorded meal. */
+export function resolveRecordedPlanImage(
+  log: { mealName: string; mealPlan?: (Parameters<typeof resolvePlanImage>[0] & { mealName: string }) | null },
+  libraryImages?: ReadonlyMap<string, PublicMealImage>
+) {
+  if (!log.mealPlan || log.mealName !== log.mealPlan.mealName) return null;
+  return resolvePlanImage(log.mealPlan, libraryImages);
 }
 
 function isUserSwappedMeal(selectionEvidence: unknown): boolean {

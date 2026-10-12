@@ -16,6 +16,7 @@ import { MealPlanCycleService } from '@/services/meal-plan-cycle.service';
 import {
   pendingPreviewWithImages,
   rawRecipeImageSelect,
+  resolvePlanImage,
   mealExplanationIngredientInclude,
   mealReviewDecisionInclude,
   serializeActionableMeal,
@@ -107,10 +108,11 @@ export async function getCurrentPlan(req: AuthenticatedRequest, res: Response) {
       },
       orderBy: { scheduledDate: 'asc' },
     });
-    const [groupMeals, rawPlanSnapshot, generationJob] = await Promise.all([
+    const [groupMeals, rawPlanSnapshot, generationJob, retained] = await Promise.all([
       groupMealsPromise,
       planSnapshotPromise,
       generationJobPromise,
+      retainedMealsForCycle(userId, cycle.id),
     ]);
     const planSnapshot = await publicCycleSnapshot(
       prisma,
@@ -120,16 +122,15 @@ export async function getCurrentPlan(req: AuthenticatedRequest, res: Response) {
     mark('meals');
     const clearedIds = new Set(cycleClearedIds);
     mark('clearance');
-    const libraryMeals = groupMeals.flatMap((row) => (row.libraryMeal ? [row.libraryMeal] : []));
+    const libraryMeals = [...groupMeals, ...retained].flatMap((row) => (row.libraryMeal ? [row.libraryMeal] : []));
     const [libraryImages, libraryCookingLinks] = await Promise.all([
       resolveLibraryRecipeImages(libraryMeals),
-      resolveLibraryRecipeCookingLinks(libraryMeals),
+      resolveLibraryRecipeCookingLinks(groupMeals.flatMap((row) => (row.libraryMeal ? [row.libraryMeal] : []))),
     ]);
     mark('presentation');
     const meals = groupMeals
       .filter((meal) => clearedIds.has(meal.id))
       .map((meal) => serializeActionableMeal(meal, libraryImages, libraryCookingLinks));
-    const retained = await retainedMealsForCycle(userId, cycle.id);
     mark('serialize');
 
     res.setHeader('Server-Timing', stages.join(', '));
@@ -146,6 +147,7 @@ export async function getCurrentPlan(req: AuthenticatedRequest, res: Response) {
         retainedMealLogs: retained.map((meal) => ({
           id: meal.id,
           mealName: meal.mealName,
+          image: resolvePlanImage(meal, libraryImages),
           mealType: meal.mealType,
           scheduledDate: meal.scheduledDate,
           calories: meal.calories,
@@ -239,19 +241,21 @@ export async function getPlanWorkspace(req: AuthenticatedRequest, res: Response)
       where: { planGroupId: { in: cycleIds } },
       select: { planGroupId: true, status: true },
     });
-    const [rows, clearedByCycle, generationJobs] = await Promise.all([
+    const [rows, clearedByCycle, generationJobs, retainedByCycle] = await Promise.all([
       rowsPromise,
       clearedByCyclePromise,
       generationJobsPromise,
+      Promise.all(cycleIds.map((id) => retainedMealsForCycle(userId, id))),
     ]);
     mark('meal-data');
     const generationStatusFor = (cycleId?: string | null) =>
       generationJobs.find((job) => job.planGroupId === cycleId)?.status ?? null;
     const clearedIds = new Set(clearedByCycle.flat());
-    const libraryMeals = rows.flatMap((row) => (row.libraryMeal ? [row.libraryMeal] : []));
+    const retained = retainedByCycle.flat();
+    const libraryMeals = [...rows, ...retained].flatMap((row) => (row.libraryMeal ? [row.libraryMeal] : []));
     const [libraryImages, libraryCookingLinks] = await Promise.all([
       resolveLibraryRecipeImages(libraryMeals),
-      resolveLibraryRecipeCookingLinks(libraryMeals),
+      resolveLibraryRecipeCookingLinks(rows.flatMap((row) => (row.libraryMeal ? [row.libraryMeal] : []))),
     ]);
     mark('presentation');
     const meals = rows
@@ -260,8 +264,6 @@ export async function getPlanWorkspace(req: AuthenticatedRequest, res: Response)
         ...serializeActionableMeal(meal, libraryImages, libraryCookingLinks),
         cycleScope: meal.planGroupId === cycles.upcoming?.id ? 'UPCOMING' : 'CURRENT',
       }));
-    const retainedByCycle = await Promise.all(cycleIds.map((id) => retainedMealsForCycle(userId, id)));
-    const retained = retainedByCycle.flat();
     const retainedFor = (id: string) => retainedByCycle[cycleIds.indexOf(id)] ?? [];
     mark('serialize');
     res.setHeader('Server-Timing', stages.join(', '));
@@ -294,6 +296,7 @@ export async function getPlanWorkspace(req: AuthenticatedRequest, res: Response)
         retainedMealLogs: retained.map((meal) => ({
           id: meal.id,
           mealName: meal.mealName,
+          image: resolvePlanImage(meal, libraryImages),
           mealType: meal.mealType,
           scheduledDate: meal.scheduledDate,
           calories: meal.calories,

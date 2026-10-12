@@ -58,6 +58,7 @@ export interface MealHistoryLog {
   id: string;
   loggedAt: string;
   mealName: string;
+  image?: PublicMealImage | null;
   source: 'SYSTEM_GENERATED' | 'USER_LOGGED' | 'USER_SWAPPED';
   status: string;
   calories: number;

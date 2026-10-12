@@ -1,6 +1,10 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { resolvePlanImage, serializeActionableMeal } from '../src/services/meal-plan-presentation.service';
+import {
+  resolvePlanImage,
+  resolveRecordedPlanImage,
+  serializeActionableMeal,
+} from '../src/services/meal-plan-presentation.service';
 
 const meal = {
   id: 'fixture-meal',
@@ -101,6 +105,29 @@ test('review and member presentation share source photography without reusing a 
   const adapted = { ...recipe, derivationKind: 'ADAPTED', adaptedImageUrl: '/meals/fixture-adapted.jpg' };
   assert.equal(resolvePlanImage({ libraryMeal: adapted, sourceRawRecipeCandidate: raw })?.url, adapted.adaptedImageUrl);
 });
+test('history resolves the same linked recipe photo and rejects a different recorded meal', () => {
+  const linked = {
+    mealName: 'Bam-I Recipe',
+    sourceRawRecipeCandidate: {
+      recipeName: 'Bam-I Recipe',
+      sourceName: 'PANLASANG_PINOY',
+      sourceUrl: 'https://panlasangpinoy.com/bam-i/',
+      sourceImageUrl: 'https://panlasangpinoy.com/wp-content/uploads/2026/10/bam-i.jpg',
+      sourceVideoUrl: null,
+    },
+  };
+  assert.deepEqual(resolveRecordedPlanImage({ mealName: linked.mealName, mealPlan: linked }), resolvePlanImage(linked));
+  assert.equal(resolveRecordedPlanImage({ mealName: 'Old recipe', mealPlan: linked }), null);
+  assert.equal(resolveRecordedPlanImage({ mealName: linked.mealName, mealPlan: null }), null);
+  assert.equal(
+    resolveRecordedPlanImage({
+      mealName: linked.mealName,
+      mealPlan: { ...linked, selectionEvidence: { source: 'USER_SWAP' } },
+    }),
+    null
+  );
+});
+
 const reviewedMeal = {
   ...meal,
   nutritionistId: 'synthetic-rnd',

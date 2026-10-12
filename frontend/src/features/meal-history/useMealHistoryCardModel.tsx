@@ -87,6 +87,7 @@ export function useMealHistoryCardModel({
       <MealImage
         mealName={formatMealTitle(log.mealName)}
         mealType={mealType}
+        image={log.image}
         variant="thumbnail"
         hideRepresentativeBadge
         className="!rounded-full !border-0 h-full w-full object-cover"

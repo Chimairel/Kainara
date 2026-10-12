@@ -4,6 +4,15 @@ import { describe, expect, it, vi } from 'vitest';
 import MealHistoryCard from './MealHistoryCard';
 import type { MealHistoryLog } from '@/features/meals/useMealsWorkspace';
 
+vi.mock('next/image', () => ({
+  default: (props: React.ImgHTMLAttributes<HTMLImageElement> & { fill?: boolean; priority?: boolean }) => {
+    const imgProps = { ...props };
+    delete imgProps.fill;
+    delete imgProps.priority;
+    return React.createElement('img', imgProps);
+  },
+}));
+
 const baseLog: MealHistoryLog = {
   id: 'log-101',
   loggedAt: '2026-09-07T08:00:00.000Z',
@@ -19,6 +28,27 @@ const baseLog: MealHistoryLog = {
 };
 
 describe('MealHistoryCard', () => {
+  it('shows the linked recipe photo and the same display title as Dashboard without changing intake', () => {
+    const image = {
+      url: 'https://panlasangpinoy.com/wp-content/uploads/2026/10/bam-i.jpg',
+      altText: 'Bam-I source recipe',
+      kind: 'EXACT' as const,
+      attribution: {
+        creator: 'Panlasang Pinoy',
+        sourcePageUrl: 'https://panlasangpinoy.com/bam-i/',
+        licenseCode: 'SOURCE_REFERENCE',
+        licenseUrl: null,
+        modifications: null,
+      },
+    };
+    render(<MealHistoryCard log={{ ...baseLog, mealName: 'Bam-I Recipe', image }} />);
+    expect(screen.getByRole('img', { name: image.altText })).toHaveAttribute('src', image.url);
+    expect(screen.getByText('Bam-I')).toBeInTheDocument();
+    expect(screen.queryByText('Bam-I Recipe')).not.toBeInTheDocument();
+    expect(screen.getByRole('article')).toHaveTextContent('859 kcal');
+    fireEvent.error(screen.getByRole('img', { name: image.altText }));
+    expect(screen.getByLabelText('Bam-I (photo unavailable)')).toBeInTheDocument();
+  });
   it('does not label an old log without a recorded meal type as lunch', () => {
     render(<MealHistoryCard log={{ ...baseLog, mealType: undefined }} />);
     expect(screen.getByText('Meal')).toBeInTheDocument();
