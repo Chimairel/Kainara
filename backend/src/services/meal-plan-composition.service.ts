@@ -281,6 +281,16 @@ export async function generate7DayPlan(
     startDate,
     userHasConditions,
     groundedFoodById: new Map(),
+    restrictions: {
+      dietaryPreference: profile.dietaryPreference || 'OMNIVORE',
+      allergens: userAllergens,
+      customAllergies: otherAllergies
+        ? otherAllergies
+            .split(',')
+            .map((value) => value.trim())
+            .filter(Boolean)
+        : [],
+    },
   });
   const rawSources = await prisma.rawRecipeCandidate.findMany({
     where: {

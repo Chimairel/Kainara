@@ -6,6 +6,8 @@ import { MealIngredientDataSource, MealPlanStatus, NotificationType, Prisma } fr
 import { lockUserProfile } from './profile-revision.service';
 import { assertCurrentMealReviewContext } from './meal-case-context.service';
 import { captureReviewReference } from './reusable-review-reference.service';
+import { hasCurrentRiceEvidence } from '@/domain/serving-evidence.policy';
+import { validateGeneratedMealCandidate, splitCustomRestrictions } from '@/domain/generated-meal-validation.policy';
 
 import { mealApprovalSafetyScope } from '@/domain/meal-approval-scope.policy';
 import { MEAL_PLAN_SAFETY_POLICY_VERSION } from '@/domain/meal-plan-production-safety.policy';
@@ -31,6 +33,13 @@ async function findScopeMatchedPendingPlans(
     where,
     include: {
       clinicalEvidence: { select: { id: true } },
+      servingComponents: {
+        select: {
+          componentType: true,
+          evidenceSource: true,
+          foodItem: { select: { compositionRevision: true } },
+        },
+      },
       cycle: { select: { snapshot: { select: { profileRevision: true, safetyRevision: true } } } },
       user: {
         include: { userProfile: true, healthConditions: true, allergies: true, safetyProfileEntries: true },
@@ -43,6 +52,7 @@ async function findScopeMatchedPendingPlans(
       if (
         !profile ||
         candidate.clinicalEvidence.length ||
+        !hasCurrentRiceEvidence(candidate.servingComponents) ||
         candidate.cycle.snapshot?.profileRevision !== profile.revision ||
         candidate.cycle.snapshot?.safetyRevision !== profile.safetyRevision
       )
@@ -162,10 +172,44 @@ export async function approveMealPlan(
         select: { area: true, responses: true, revision: true },
       });
       await assertObservedSourceStillAvailable(tx, plan.sourceRawRecipeCandidateId);
+      const riceEvidence = await tx.mealPlanServingComponent.findMany({
+        where: { mealPlanId, componentType: 'COOKED_RICE' },
+        select: {
+          componentType: true,
+          evidenceSource: true,
+          foodItem: { select: { compositionRevision: true } },
+        },
+      });
+      if (!hasCurrentRiceEvidence(riceEvidence))
+        throw new AppError(
+          'The saved rice evidence is outdated. Use Swap to select a meal with current evidence, then review the replacement before approving.',
+          409,
+          'MEAL_SERVING_EVIDENCE_CHANGED'
+        );
       await loadPlanningNutritionContext(tx, plan.userId, 'Planning profile missing.');
       const currentProfile = await tx.userProfile.findUniqueOrThrow({ where: { userId: plan.userId } });
       if ('user' in plan && currentProfile.revision !== plan.user.userProfile?.revision)
         throw new Error('User information changed. Reopen this review.');
+      const ingredients = await tx.mealIngredient.findMany({
+        where: { mealPlanId },
+        select: { ingredientName: true, category: true, foodItem: { select: { name: true } } },
+      });
+      const ingredientSafety = validateGeneratedMealCandidate({
+        ingredients: ingredients.map((item) => ({
+          name: item.ingredientName,
+          category: item.category,
+          compositionFoodName: item.foodItem?.name,
+        })),
+        dietaryPreference: currentProfile.dietaryPreference ?? 'OMNIVORE',
+        allergens: plan.user.allergies.map((item) => item.allergen),
+        customAllergies: splitCustomRestrictions(currentProfile.otherAllergies),
+      });
+      if (!ingredientSafety.accepted)
+        throw new AppError(
+          'A saved ingredient conflicts with this member’s food restrictions. Use Swap to choose a compatible replacement before approving.',
+          409,
+          'MEAL_INGREDIENT_CONFLICT'
+        );
       await tx.groceryList.updateMany({ where: { userId: plan.userId }, data: { isStale: true } });
       // Compare-and-set the decision while this reviewer still owns a live
       // claim. A competing or expired decision changes zero rows and rolls the

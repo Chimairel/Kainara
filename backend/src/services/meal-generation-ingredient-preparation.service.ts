@@ -3,6 +3,10 @@ import { reconcileFnriMealTotals } from '@/domain/fnri-meal-totals.policy';
 import { lookupIngredientCompositions } from '@/lib/ingredient-composition';
 import prisma from '@/lib/prisma';
 import type { PreparationRankingReasonCode } from '@/domain/upcoming-preparation.policy';
+import {
+  validateGeneratedMealCandidate,
+  type GeneratedMealValidationInput,
+} from '@/domain/generated-meal-validation.policy';
 
 export interface GroundedFoodReference {
   id: string;
@@ -66,6 +70,7 @@ export async function prepareGeneratedMealIngredients(input: {
   startDate: Date;
   userHasConditions: boolean;
   groundedFoodById: ReadonlyMap<string, GroundedFoodReference>;
+  restrictions?: Omit<GeneratedMealValidationInput, 'ingredients'>;
 }): Promise<{ preparedMeals: PreparedGeneratedMeal[]; compositionRevisions: Map<string, number> }> {
   const preparedMeals: PreparedGeneratedMeal[] = [];
   const compositionRevisions = new Map<string, number>();
@@ -170,6 +175,17 @@ export async function prepareGeneratedMealIngredients(input: {
       }
     }
 
+    if (input.restrictions) {
+      const validation = validateGeneratedMealCandidate({
+        ...input.restrictions,
+        ingredients: ingredientsData.map((item) => ({
+          name: item.ingredientName,
+          category: item.category,
+          compositionFoodName: item.foodItemId ? compositionById.get(item.foodItemId)?.name : undefined,
+        })),
+      });
+      if (!validation.accepted) throw new Error(`DEFINITE_CONFLICT: ${validation.definiteConflicts.join('; ')}`);
+    }
     const mealComposition = ingredientsData.flatMap((item) => {
       const food = item.foodItemId ? compositionById.get(item.foodItemId) : undefined;
       return food ? [food] : [];

@@ -533,6 +533,7 @@ export class NutritionistReviewService {
       updatedMealPlan.ingredients.map((ingredient) => ({
         name: ingredient.ingredientName,
         category: ingredient.category,
+        compositionFoodName: ingredient.foodItem?.name,
       }))
     );
     for (const allergen of allergies) {

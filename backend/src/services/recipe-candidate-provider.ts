@@ -22,6 +22,7 @@ export interface RecipeCandidateProjection {
     fnriFoodName?: string;
     fnriMatchMethod?: string;
     fnriMappingVersion?: string;
+    compositionFoodName?: string;
   }>;
   ingredientsComplete: boolean;
   reviewFreeBaseEligible?: boolean;

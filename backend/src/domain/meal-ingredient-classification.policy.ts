@@ -8,6 +8,7 @@ export type IngredientClassificationStatus = 'COMPLETE' | 'NEEDS_REVIEW';
 export interface IngredientClassificationInput {
   name: string;
   category?: string | null;
+  compositionFoodName?: string | null;
 }
 
 export interface IngredientClassificationResult {
@@ -174,7 +175,7 @@ export function classifyMealIngredients(
   for (const ingredient of ingredients) {
     const normalized = normalize(ingredient.name ?? '');
     const classificationText =
-      `${FNRI_SOYBEAN_CURD_NAMES.has(normalized) ? 'tofu' : normalized} ${normalize(ingredient.category ?? '')}`.trim();
+      `${FNRI_SOYBEAN_CURD_NAMES.has(normalized) ? 'tofu' : normalized} ${normalize(ingredient.compositionFoodName ?? '')} ${normalize(ingredient.category ?? '')}`.trim();
     const facts: string[] = [];
     if (!normalized) {
       unknownIngredients.push(String(ingredient.name ?? ''));

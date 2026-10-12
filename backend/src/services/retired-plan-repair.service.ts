@@ -117,6 +117,16 @@ async function repairRetiredPlanMeals(userId: string, cycleId: string, now: Date
     startDate: cycle.startDate,
     userHasConditions: !reviewFree,
     groundedFoodById: new Map(),
+    restrictions: {
+      dietaryPreference: profile.dietaryPreference || 'OMNIVORE',
+      allergens,
+      customAllergies: otherAllergies
+        ? otherAllergies
+            .split(',')
+            .map((value) => value.trim())
+            .filter(Boolean)
+        : [],
+    },
   });
   if (riceFood) compositionRevisions.set(riceFood.id, riceFood.compositionRevision);
   const sources = await prisma.rawRecipeCandidate.findMany({

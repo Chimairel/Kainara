@@ -440,6 +440,11 @@ export class MealAiQueueService {
             // Existing source recipes retain their published nutrition and ingredient labels,
             // as in initial composition; the FNRI prompt map belongs to AI-generated meals.
             groundedFoodById: useCorpus ? new Map() : grounded,
+            restrictions: {
+              dietaryPreference: profile.dietaryPreference || 'OMNIVORE',
+              allergens,
+              customAllergies: splitCustomRestrictions(otherAllergies),
+            },
           });
           if (riceFood && preparedMeals.some((meal) => meal.pairedRiceG))
             compositionRevisions.set(riceFood.id, riceFood.compositionRevision);

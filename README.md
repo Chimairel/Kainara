@@ -10,6 +10,8 @@ Capstone rehearsal, aggregate evaluation, bounded synthetic read benchmarks and 
 
 The [October 11 synthetic user-flow report](docs/SYNTHETIC_USER_FLOW_TEST_REPORT_2026-10-11.md) records actual member/RND/admin browser checks and isolated database acceptance. Study the current implementation using the [backend guide](docs/study/BACKEND_STUDY_GUIDE.md) and [frontend guide](docs/study/FRONTEND_STUDY_GUIDE.md).
 
+The [October 12 local actor MVP report](docs/LOCAL_ACTOR_MVP_TEST_REPORT_2026-10-12.md) records actual browser clarification handoffs, distinct health/allergy cases, exact-context references, actor boundaries and five reproduced backend fixes. These changes remain local/development until explicitly published.
+
 The hosted capstone demonstration uses [`docs/VERCEL_RAILWAY_DEMO_DEPLOYMENT.md`](docs/VERCEL_RAILWAY_DEMO_DEPLOYMENT.md), with normal registration/login and the existing release-mode startup gates. Public interface wording follows the current engineering-record entry. It keeps production security enabled and does not constitute clinical approval.
 
 Administrator-managed nutrition sources, releases and FNRI aliases use [`docs/ADMIN_REFERENCE_DATA_RUNBOOK.md`](docs/ADMIN_REFERENCE_DATA_RUNBOOK.md). ENNS consumption imports, publication and regional planning are retired; retained release metadata is historical. The October 16 recovery and measured transfer budget are recorded in [`docs/DEFENSE_RECOVERY_2026-10-11.md`](docs/DEFENSE_RECOVERY_2026-10-11.md).

@@ -8,6 +8,7 @@ import type {
 } from './recipe-candidate-provider';
 import { isUnrestrictedPanlasangBaseEligible } from '@/domain/unrestricted-panlasang-base.policy';
 import { effectiveRecipeMealTypes } from '@/domain/meal-applicability.policy';
+import { lookupIngredientCompositions } from '@/lib/ingredient-composition';
 
 export const recipeCandidateSelect = {
   id: true,
@@ -183,10 +184,28 @@ export class DatabaseRecipeCandidateProvider implements RecipeCandidateProvider 
     });
     const hasMore = rows.length > limit;
     const page = rows.slice(0, limit);
+    const candidates = page.map(projectRawRecipeCandidate);
+    const ingredients = candidates.flatMap((candidate) => candidate.ingredients);
+    const foodIds = [...new Set(ingredients.flatMap((item) => (item.foodItemId ? [item.foodItemId] : [])))];
+    const [linkedFoods, matchedFoods] = await Promise.all([
+      foodIds.length
+        ? prisma.foodItem.findMany({ where: { id: { in: foodIds } }, select: { id: true, name: true } })
+        : [],
+      lookupIngredientCompositions(
+        ingredients.filter((item) => !item.foodItemId && item.quantity !== undefined).map((item) => item.name)
+      ),
+    ]);
+    const byId = new Map(linkedFoods.map((food) => [food.id, food]));
+    // Check the same identity the save path uses, without replacing source labels
+    // or fetching nutrient payloads for every recipe in the candidate catalogue.
+    for (const ingredient of ingredients) {
+      const food = ingredient.foodItemId ? byId.get(ingredient.foodItemId) : matchedFoods.get(ingredient.name);
+      if (food) ingredient.compositionFoodName = food.name;
+    }
     return {
-      items: page
-        .map(projectRawRecipeCandidate)
-        .filter((candidate) => !input.mealType || candidate.applicableMealTypes.includes(input.mealType)),
+      items: candidates.filter(
+        (candidate) => !input.mealType || candidate.applicableMealTypes.includes(input.mealType)
+      ),
       nextCursor: !input.recentFirst && hasMore && page.length ? encodeCursor(page[page.length - 1]) : null,
     };
   }

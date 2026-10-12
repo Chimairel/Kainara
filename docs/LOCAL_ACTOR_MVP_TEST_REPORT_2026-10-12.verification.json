@@ -1,0 +1,337 @@
+{
+  "date": "2026-10-12",
+  "generatedAt": "2026-10-12T05:08:14.497Z",
+  "scope": "actual local browser/API/PostgreSQL with marked synthetic fixtures",
+  "checkout": "C:/Users/chima/Desktop/Nutrimind",
+  "baseCommit": "30ba40a25e7ed02e7ae7fe1727441662ac88b43b",
+  "database": {
+    "host": "127.0.0.1",
+    "port": 55432,
+    "name": "kainara_local_development"
+  },
+  "hostedMutation": false,
+  "hostedDeployment": false,
+  "fixtures": {
+    "newMembers": 7,
+    "newRnds": 3,
+    "existingSyntheticAdmin": true,
+    "creationThroughAdminUi": true
+  },
+  "checks": {
+    "backend": {
+      "pass": 982,
+      "fail": 0,
+      "todo": 1,
+      "build": true
+    },
+    "frontend": {
+      "pass": 1010,
+      "files": 207,
+      "nodeChecks": 8,
+      "fail": 0
+    },
+    "architecture": true,
+    "contracts": {
+      "routes": 306,
+      "staticCalls": 238,
+      "unmatched": 0,
+      "dynamicCallers": 11
+    }
+  },
+  "journeys": {
+    "clarificationHandoff": {
+      "pass": true,
+      "concurrentClaimRejected": true,
+      "successorSawUnansweredForm": true,
+      "successorSawSubmittedInputs": true,
+      "successorResolved": true,
+      "memberSeesResolvedInputs": true
+    },
+    "reviewReferences": {
+      "pass": true,
+      "exact": true,
+      "nearbyExcluded": true,
+      "noSourceMemberIdentity": true,
+      "approvalWithoutReload": true
+    },
+    "missedEvents": {
+      "pass": true,
+      "simulation": "live event transport intentionally aborted; real status poll remains",
+      "fallbackMs": 11629,
+      "duplicateApprovalStatus": 409
+    },
+    "credentialRenewal": {
+      "pass": true,
+      "expiredBlocked": true,
+      "pendingDoesNotGrantAccess": true,
+      "encryptedDocumentReadable": true,
+      "renewedReviewerAccess": true
+    },
+    "accountSwitch": {
+      "mealsOwnerIsolated": true,
+      "formOwnerIsolated": true,
+      "pass": true
+    },
+    "adminAudit": {
+      "readOnlyReviewContext": true,
+      "pass": true
+    },
+    "recipeGovernance": {
+      "id": "cmv4s09yz00gbrkl92fi07jhp",
+      "singleBaseVerification": true,
+      "firstIncidentSingleRndRelease": true,
+      "secondIncidentQuarantines": true,
+      "rndCannotReleaseQuarantine": true,
+      "adminOnlyRelease": true,
+      "pass": true
+    },
+    "exactSearchAndQuota": {
+      "exactFoodVisibleWithinLimit": true,
+      "quotaUiDisabledButAcceptanceAvailable": true,
+      "serverQuotaStatus": 429,
+      "serverQuotaCode": "MEMBERSHIP_USAGE_LIMIT",
+      "noUnexpectedPageErrors": true,
+      "pass": true
+    },
+    "compatibleApprovalAfterGuards": {
+      "approvalStatus": 200,
+      "memberVisibleWithoutReload": true,
+      "noUnexpectedPageErrors": true,
+      "pass": true
+    }
+  },
+  "plans": {
+    "checkedAt": "2026-10-12T05:08:13.815Z",
+    "members": 7,
+    "cycles": 9,
+    "slots": 168,
+    "allergenConflicts": 0,
+    "plateMismatches": 0,
+    "threePerExpectedDay": true,
+    "retainedConsumedSlots": 2,
+    "cycleSummaries": [
+      {
+        "case": "baseline",
+        "cycles": [
+          {
+            "expected": 18,
+            "actual": 18,
+            "variety": 15,
+            "retained": 2,
+            "profileAdaptationState": "CURRENT"
+          }
+        ]
+      },
+      {
+        "case": "diabetes-1",
+        "cycles": [
+          {
+            "expected": 18,
+            "actual": 18,
+            "variety": 18,
+            "retained": 0,
+            "profileAdaptationState": "CURRENT"
+          }
+        ]
+      },
+      {
+        "case": "diabetes-2",
+        "cycles": [
+          {
+            "expected": 18,
+            "actual": 18,
+            "variety": 18,
+            "retained": 0,
+            "profileAdaptationState": "CURRENT"
+          }
+        ]
+      },
+      {
+        "case": "nearby",
+        "cycles": [
+          {
+            "expected": 18,
+            "actual": 18,
+            "variety": 18,
+            "retained": 0,
+            "profileAdaptationState": "CURRENT"
+          }
+        ]
+      },
+      {
+        "case": "pressure",
+        "cycles": [
+          {
+            "expected": 18,
+            "actual": 18,
+            "variety": 18,
+            "retained": 0,
+            "profileAdaptationState": "CURRENT"
+          }
+        ]
+      },
+      {
+        "case": "kidney",
+        "cycles": [
+          {
+            "expected": 18,
+            "actual": 18,
+            "variety": 18,
+            "retained": 0,
+            "profileAdaptationState": "CURRENT"
+          },
+          {
+            "expected": 21,
+            "actual": 21,
+            "variety": 21,
+            "retained": 0,
+            "profileAdaptationState": "CURRENT"
+          }
+        ]
+      },
+      {
+        "case": "heart",
+        "cycles": [
+          {
+            "expected": 18,
+            "actual": 18,
+            "variety": 18,
+            "retained": 0,
+            "profileAdaptationState": "CURRENT"
+          },
+          {
+            "expected": 21,
+            "actual": 21,
+            "variety": 21,
+            "retained": 0,
+            "profileAdaptationState": "CURRENT"
+          }
+        ]
+      }
+    ]
+  },
+  "fixedDefects": [
+    "rice-approval-availability-disagreement",
+    "successive-profile-edit-cycle-revision",
+    "mapped-ingredient-allergen-conflict",
+    "rejection-replacement-cycle-variety",
+    "exact-catalogue-search-hidden-by-result-limit"
+  ],
+  "limits": [
+    "not clinical review",
+    "fixture onboarding rather than public signup/email/OAuth",
+    "restricted certified RND swap had no eligible catalogue option",
+    "no hosted load/egress/cold-start rehearsal",
+    "targeted browser reruns, not one uninterrupted whole-suite run"
+  ],
+  "privateEvidenceFingerprints": [
+    {
+      "file": "backend/.local/mvp-20261012/account-creation-results.json",
+      "sha256": "765f76b6c070f02ff566a1377bd3b2104e3c5a642e6db25d8e9c9588a7af50c1"
+    },
+    {
+      "file": "backend/.local/mvp-20261012/member-intake-results.json",
+      "sha256": "b52fed52231b718d1fc07d47a194f9a733f8ee007abe7969996a223aa40666bf"
+    },
+    {
+      "file": "backend/.local/mvp-20261012/confirmation-results.json",
+      "sha256": "03d12c60427669cc0e0c7acb4f0dc6c76c708a8095f058ae86f7b502c0c839a8"
+    },
+    {
+      "file": "backend/.local/mvp-20261012/handoff-results.json",
+      "sha256": "6909ea09cdfe382c218547129690cb197a2226f71bd8c10edb884bd67c980e9b"
+    },
+    {
+      "file": "backend/.local/mvp-20261012/case-results.json",
+      "sha256": "dff651510543a4c107e512e5604000794f331fb919abb301a0a87765d1e3348a"
+    },
+    {
+      "file": "backend/.local/mvp-20261012/tracking-results.json",
+      "sha256": "115e67bd0377dea2f780a3d882c4693d8c7ea5e18b95f063a8273d194e8373a5"
+    },
+    {
+      "file": "backend/.local/mvp-20261012/member-swap-results.json",
+      "sha256": "da759833ce8054d04ed7e4716438901e408aee84f70274c132023c52ac741d39"
+    },
+    {
+      "file": "backend/.local/mvp-20261012/stale-case-results.json",
+      "sha256": "0453bfc18537d41f31e52c58b2339f8af29d80fd5b5b0debb3c160be4071e7e3"
+    },
+    {
+      "file": "backend/.local/mvp-20261012/license-results.json",
+      "sha256": "af8d6d1deb4528dddec1744352543a1b4d10649c7c4080284c25776745f62603"
+    },
+    {
+      "file": "backend/.local/mvp-20261012/outside-flow-results.json",
+      "sha256": "30b5d8cb56075030ffe34dd953c4723be047a4161eaeeae9db519d30444b6faa"
+    },
+    {
+      "file": "backend/.local/mvp-20261012/admin-audit-results.json",
+      "sha256": "1c3f77c9ed568852cbcad3ece2a9c593a75a9cc640b983026424ce43b7adfc38"
+    },
+    {
+      "file": "backend/.local/mvp-20261012/authorization-results.json",
+      "sha256": "778743b20cb720f5ac3f5b0c58212d43503ae145b2ff3c500b170bde80d731ba"
+    },
+    {
+      "file": "backend/.local/mvp-20261012/account-switch-results.json",
+      "sha256": "a652c35c55c9f6b3bb1a56f4760ca9017da89161c67f446234fe822f30074c14"
+    },
+    {
+      "file": "backend/.local/mvp-20261012/stale-rice-reproduction.json",
+      "sha256": "1efb748245d22e4202be66b5d361c6d76c9c94287601737b62ef1d8dd3c9c01f"
+    },
+    {
+      "file": "backend/.local/mvp-20261012/stale-rice-fixed-browser-result.json",
+      "sha256": "e838631cee29f80e6799eaa2d787172f6564b165e54dd0f4f07e3455996a97d3"
+    },
+    {
+      "file": "backend/.local/mvp-20261012/sequential-intake-results.json",
+      "sha256": "0e57b07be0d87b3789e1c6a59afe15bc1f0e92e397b6df97e6654b92481e1eef"
+    },
+    {
+      "file": "backend/.local/mvp-20261012/exact-confirmation-results.json",
+      "sha256": "8ceaa1819605145b8a7ea7c04fd587eaf956baf1fd2e15c923b04c5255fe893a"
+    },
+    {
+      "file": "backend/.local/mvp-20261012/mapped-conflict-results.json",
+      "sha256": "228a7b81b829dbb62859e4f7e8dcc9d5b6fef32697e2abb4541897ba9f0edb52"
+    },
+    {
+      "file": "backend/.local/mvp-20261012/replacement-variety-results.json",
+      "sha256": "d56482600f778fe97574ebcbd4b5da0a53cb74ba8939b43a2c75f9578cf59b69"
+    },
+    {
+      "file": "backend/.local/mvp-20261012/pressure-clean-confirmation-results.json",
+      "sha256": "5c9720a6083242a4a24dd250838a0858b9d50b559c2b97769b800bbd8065a47d"
+    },
+    {
+      "file": "backend/.local/mvp-20261012/governance-results.json",
+      "sha256": "f0c351f9ee97025a36f609be58e03027f39fae46f888c9a0ecf42c91bcdd38ba"
+    },
+    {
+      "file": "backend/.local/mvp-20261012/final-browser-guards-results.json",
+      "sha256": "6d993730d4dcaa52fc65b2355b9efb5cbfc5187b473d21481dc39f72e4479658"
+    },
+    {
+      "file": "backend/.local/mvp-20261012/plan-quality-results.json",
+      "sha256": "67fadbc49c642e4b92f67d5e4713bf046a04e27c924e392751b754b8fc63b7c4"
+    },
+    {
+      "file": "backend/.local/mvp-20261012/final-build.log",
+      "sha256": "364518d32bbcb9a7030f9bbcfef074cb5a03a99b00af08bfcbbfee88b22486a0"
+    },
+    {
+      "file": "backend/.local/mvp-20261012/final-tests.log",
+      "sha256": "9a89b3f1f2aabddb19064bc7d388e99add62710f71a06ecfe026ede62ba3e0e7"
+    },
+    {
+      "file": "backend/.local/mvp-20261012/final-frontend-tests.log",
+      "sha256": "df842de59525a966fe62987926b983f20057b274ce1c437d1cfbb0d1339f1b96"
+    },
+    {
+      "file": "backend/.local/mvp-20261012/compatible-approval-results.json",
+      "sha256": "ff658cb65f693452a96e110bbdc1cd76cf8976b3561c461b1f82a80c198b07e6"
+    }
+  ]
+}

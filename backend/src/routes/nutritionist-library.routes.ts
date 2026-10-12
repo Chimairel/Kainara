@@ -1,6 +1,5 @@
 import { mealFlagSubmissionSchema, mealReviewSubmissionSchema } from '@/validation/meal-review.schemas';
 import { MealReviewService } from '@/services/meal-review.service';
-import prisma from '@/lib/prisma';
 import { Router, Response } from 'express';
 import { z } from 'zod';
 import { AuthenticatedRequest } from '@/types';
@@ -17,6 +16,7 @@ import {
 } from '@/services/nutritionist-library-nutrition-evidence.service';
 import { createRecipeDerivation } from '@/services/recipe-derivation.service';
 import { recipeDerivationSchema } from '@/validation/recipe-derivation.schemas';
+import { searchRecipeFoods } from '@/services/recipe-food-search.service';
 import { flagWholeMeal } from '@/services/meal-wide-flag.service';
 import {
   flagMealApproval,
@@ -285,15 +285,7 @@ router.get(
   '/recipe-foods',
   asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
     const search = typeof req.query.search === 'string' ? req.query.search.trim().slice(0, 100) : '';
-    const foods =
-      search.length >= 2
-        ? await prisma.foodItem.findMany({
-            where: { source: { in: ['FNRI', 'USDA_FDC'] }, name: { contains: search, mode: 'insensitive' } },
-            select: { id: true, name: true, source: true, calories: true, proteinG: true, carbsG: true, fatG: true },
-            take: 20,
-            orderBy: { name: 'asc' },
-          })
-        : [];
+    const foods = await searchRecipeFoods(search);
     res.json({ success: true, data: foods });
   })
 );

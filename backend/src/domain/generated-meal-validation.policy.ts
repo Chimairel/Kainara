@@ -1,5 +1,9 @@
 import type { DietaryPreference } from '@prisma/client';
-import { classifyMealIngredients, hasDefiniteDietaryConflict } from './meal-ingredient-classification.policy';
+import {
+  classifyMealIngredients,
+  hasDefiniteDietaryConflict,
+  type IngredientClassificationInput,
+} from './meal-ingredient-classification.policy';
 
 function normalize(value: string): string {
   return value
@@ -11,7 +15,7 @@ function normalize(value: string): string {
 }
 
 export interface GeneratedMealValidationInput {
-  ingredients: readonly { name: string; category?: string | null }[];
+  ingredients: readonly IngredientClassificationInput[];
   dietaryPreference: DietaryPreference;
   allergens: readonly string[];
   customAllergies?: readonly string[];
@@ -33,7 +37,9 @@ export function validateGeneratedMealCandidate(input: GeneratedMealValidationInp
     if (requestedAllergens.has(allergen)) definiteConflicts.push(`ALLERGEN_${allergen}`);
   }
 
-  const ingredientText = input.ingredients.map((ingredient) => normalize(ingredient.name)).join(' | ');
+  const ingredientText = input.ingredients
+    .map((ingredient) => normalize(`${ingredient.name} ${ingredient.compositionFoodName ?? ''}`))
+    .join(' | ');
   for (const allergy of input.customAllergies ?? []) {
     const normalized = normalize(allergy);
     if (normalized.length >= 3 && ingredientText.includes(normalized)) {

@@ -230,6 +230,22 @@ export async function rejectMealPlan(
     const allergens = [...safetyRestrictions.allergies, ...safetyRestrictions.customFoodRestrictions];
 
     const rejectedRecipes = await rejectedSlotRecipes(prisma, plan);
+    const otherCycleRecipes = await prisma.mealPlan.findMany({
+      where: {
+        userId: plan.userId,
+        planGroupId: plan.planGroupId,
+        id: { not: plan.id },
+        status: { notIn: ['CANCELLED', 'REJECTED'] },
+        supersededByMealPlanId: null,
+        sourceRawRecipeCandidateId: { not: null },
+      },
+      select: {
+        sourceRawRecipeCandidateId: true,
+        scheduledDate: true,
+        mealType: true,
+        sourceRawRecipeCandidate: { select: { contentSignature: true } },
+      },
+    });
     const rawResult = await sourceRawRecipeCandidates({
       slots: [{ dayNumber: 1, mealType: plan.mealType, scheduledDate: plan.scheduledDate }],
       dailyCalorieTarget: profile?.dailyCalorieTarget || 2000,
@@ -242,6 +258,12 @@ export async function rejectMealPlan(
       ricePreference: profile.ricePreference,
       riceFood,
       excludeCandidateIds: [...rejectedRecipes.rawIds],
+      existingRecipes: otherCycleRecipes.map((meal) => ({
+        rawCandidateId: meal.sourceRawRecipeCandidateId!,
+        contentSignature: meal.sourceRawRecipeCandidate?.contentSignature ?? null,
+        mealType: meal.mealType,
+        dayNumber: Math.round((meal.scheduledDate.getTime() - plan.scheduledDate.getTime()) / 86_400_000) + 1,
+      })),
     });
     const rawCandidate = rawResult.meals.find((candidate) => {
       const validation = validateGeneratedMealCandidate({
@@ -259,6 +281,11 @@ export async function rejectMealPlan(
         startDate: plan.scheduledDate,
         userHasConditions: safetyRestrictions.conditions.some((condition) => condition !== 'NONE'),
         groundedFoodById: new Map(),
+        restrictions: {
+          dietaryPreference: profile.dietaryPreference || 'OMNIVORE',
+          allergens: safetyRestrictions.allergies,
+          customAllergies: splitCustomRestrictions(profile.otherAllergies),
+        },
       });
       const meal = prepared.preparedMeals[0];
       if (meal) {

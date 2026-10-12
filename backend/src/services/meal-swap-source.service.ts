@@ -249,6 +249,16 @@ async function buildSourcePreview(
     startDate: slot.scheduledDate,
     userHasConditions: false,
     groundedFoodById: new Map(),
+    restrictions: {
+      dietaryPreference: context.profile.dietaryPreference || 'OMNIVORE',
+      allergens: context.allergens,
+      customAllergies: context.otherAllergies
+        ? context.otherAllergies
+            .split(',')
+            .map((value) => value.trim())
+            .filter(Boolean)
+        : [],
+    },
   });
   const prepared = preparedMeals[0];
   if (

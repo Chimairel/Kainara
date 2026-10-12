@@ -1,4 +1,5 @@
 import prisma from '@/lib/prisma';
+import { hasCurrentRiceEvidence } from '@/domain/serving-evidence.policy';
 import { retainedMealsForCycle, retainedSlotKeys } from './plan-repair-history.service';
 import { isCertifiedLibraryMealCompatible, certifiedLibraryMealInclude } from './meal-library-candidate-query.service';
 import { MembershipService } from './membership.service';
@@ -224,13 +225,7 @@ export class MealPlanCycleService {
         ) {
           return false;
         }
-        if (
-          meal.servingComponents?.some(
-            (component) =>
-              component.componentType === 'COOKED_RICE' &&
-              (!component.foodItem || component.evidenceSource !== `FNRI:${component.foodItem.compositionRevision}`)
-          )
-        ) {
+        if (!hasCurrentRiceEvidence(meal.servingComponents)) {
           return false;
         }
         if (meal.libraryMealId) {
