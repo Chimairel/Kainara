@@ -11,14 +11,14 @@ This file contains current repository working rules. The former 700-line agent g
 
 ## Shared checkout and attribution
 
-Codex and Antigravity use `C:\Users\chima\Desktop\Nutrimind` as the shared working copy when the owner wants edits visible to both immediately. This does not make concurrent edits to the same file safe.
+The owner requires Codex and Antigravity to implement and verify ongoing work in `C:\Users\chima\Desktop\Nutrimind`. Use this shared checkout even if the chat starts in a different worktree. Do not create or use another worktree for implementation unless the owner explicitly requests it. This does not make concurrent edits to the same file safe.
 
 1. Before editing, inspect `git status --short` and the current commit. Agree on task or file ownership when both tools are active. Only one tool edits a given file at a time.
 2. Commit a finished, reviewable unit before handing its files to the other tool. Stage only files you worked on and inspect the staged diff; do not sweep another tool's uncommitted edits into your commit.
 3. Use a concise commit subject and a body trailer of `Assisted-by: Codex` or `Assisted-by: Antigravity`. The trailer identifies the tool responsible for the commit, not a clinical reviewer.
 4. Push completed commits to `origin/development` after confirming the branch is current. Do not pull, reset, stash, or switch branches over someone else's uncommitted work.
 5. Record significant architecture, clinical-safety, schema, data, or cross-role decisions and their verification in the engineering record using its existing change IDs. Routine edits need a clear commit and relevant checks.
-6. For simultaneous work on overlapping files, use separate branches or worktrees and review integration explicitly.
+6. For simultaneous work on overlapping files, coordinate ownership and finish one tool's changes before the other edits them. Use separate branches or worktrees only when the owner explicitly requests them, then review integration explicitly.
 
 ## UI reuse
 
