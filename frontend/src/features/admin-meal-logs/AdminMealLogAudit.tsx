@@ -1,4 +1,6 @@
 'use client';
+import FeedbackNotice from '@/components/shared/FeedbackNotice';
+
 import { useEffect, useId, useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useSessionQuery } from '@/hooks/useSessionQuery';
@@ -139,11 +141,7 @@ export default function AdminMealLogAudit() {
           Refresh meal logs
         </Button>
       </div>
-      {query.error && (
-        <p role="alert" className="text-sm text-status-error-text">
-          {query.error}
-        </p>
-      )}
+      {query.error && <FeedbackNotice variant="inline">{query.error}</FeedbackNotice>}
       {query.isLoading && !query.data && <p role="status">Loading meal logs…</p>}
       {query.data && (
         <WorkspaceTable

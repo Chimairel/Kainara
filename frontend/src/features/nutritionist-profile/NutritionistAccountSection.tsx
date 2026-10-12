@@ -1,4 +1,6 @@
 'use client';
+import FeedbackNotice from '@/components/shared/FeedbackNotice';
+
 import Button from '@/components/ui/Button';
 
 import { CheckCircle2 } from 'lucide-react';
@@ -27,14 +29,7 @@ export default function NutritionistAccountSection({ model }: SectionProps) {
           <span className="text-[10px] font-mono text-[#6b857c] dark:text-[#8ea99f] uppercase">Editable</span>
         </div>
 
-        {error && (
-          <p
-            role="alert"
-            className="rounded-xl border border-rose-500/30 bg-rose-500/10 p-3 text-xs font-semibold text-rose-600 dark:text-rose-400"
-          >
-            {error}
-          </p>
-        )}
+        {error && <FeedbackNotice variant="inline">{error}</FeedbackNotice>}
         {success && (
           <p
             role="status"

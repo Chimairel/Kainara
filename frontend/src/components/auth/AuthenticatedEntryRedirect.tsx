@@ -1,8 +1,8 @@
 'use client';
+import FeedbackNotice from '@/components/shared/FeedbackNotice';
 
 import AccountProfileFailureDetails from '@/components/shared/AccountProfileFailureDetails';
 import type { ProfileLoadFailure } from '@/lib/profile-load-failure';
-import { AlertTriangle } from 'lucide-react';
 import { useWorkspaceRedirect } from '@/hooks/useWorkspaceRedirect';
 import type { UserSession } from '@/lib/context/AuthContext';
 import { getPostAuthDestination } from '@/lib/post-auth-destination';
@@ -63,15 +63,7 @@ export default function AuthenticatedEntryRedirect({
           : 'flex min-h-screen items-center justify-center bg-brand-bg px-5 text-brand-text'
       }
     >
-      <section
-        role="alert"
-        className={
-          inline
-            ? 'w-full p-2 text-center'
-            : 'w-full max-w-md rounded-3xl border border-brand-border bg-brand-bgAlt p-7 text-center shadow-2xl'
-        }
-      >
-        <AlertTriangle className="mx-auto h-8 w-8 text-status-warning-text" />
+      <FeedbackNotice className={inline ? 'w-full' : 'w-full max-w-md'}>
         <h1 className="mt-4 font-display text-2xl font-extrabold">
           {profileLoadError ? 'Could not load your account' : 'Your workspace took too long to open'}
         </h1>
@@ -101,7 +93,7 @@ export default function AuthenticatedEntryRedirect({
             </Button>
           )}
         </div>
-      </section>
+      </FeedbackNotice>
     </Container>
   );
 }

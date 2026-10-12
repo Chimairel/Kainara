@@ -1,4 +1,5 @@
-import { ArrowLeft, ArrowRight, Check, CheckCircle2, ClipboardCheck } from 'lucide-react';
+import FeedbackNotice from '@/components/shared/FeedbackNotice';
+import { ArrowLeft, ArrowRight, Check, ClipboardCheck } from 'lucide-react';
 import Button from '@/components/ui/Button';
 
 import { steps, stepDescriptions, Props } from './steps/application-fields';
@@ -61,15 +62,9 @@ export function ApplicationWizard(props: Props) {
 
       {/* Global Form Error Banner */}
       {error && (
-        <div
-          role="alert"
-          className="mt-6 flex items-start gap-3 rounded-2xl border border-status-error-text/30 bg-status-error-bg/15 p-4 text-xs font-semibold text-status-error-text"
-        >
-          <div className="mt-0.5 rounded-full bg-status-error-text/20 p-1">
-            <CheckCircle2 className="h-3.5 w-3.5 rotate-45" />
-          </div>
+        <FeedbackNotice className="mt-6">
           <div className="flex-1 leading-5">{error}</div>
-        </div>
+        </FeedbackNotice>
       )}
 
       {/* Step Form Content */}

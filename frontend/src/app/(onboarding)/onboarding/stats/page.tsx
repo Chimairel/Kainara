@@ -1,4 +1,5 @@
 'use client';
+import FeedbackNotice from '@/components/shared/FeedbackNotice';
 
 import React, { useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -8,7 +9,7 @@ import Input from '@/components/ui/Input';
 import OnboardingStep, { OnboardingActions, OnboardingChoice } from '@/components/onboarding/OnboardingStep';
 import ProfileSettingsSection from '@/components/user/ProfileSettingsSection';
 import { Goal, ActivityLevel } from '@/types';
-import { Lock, TrendingUp, Dumbbell, TrendingDown, Scale, AlertTriangle, ArrowRight } from 'lucide-react';
+import { Lock, TrendingUp, Dumbbell, TrendingDown, Scale, ArrowRight } from 'lucide-react';
 import { getApiErrorMessage } from '@/lib/api-error';
 import { useProfile } from '@/hooks/useProfile';
 import { useAuth } from '@/hooks/useAuth';
@@ -212,12 +213,7 @@ export default function OnboardingStatsPage() {
       backHref={isFromReview ? '/onboarding/tos' : undefined}
       backLabel="Back to Review"
     >
-      {error && (
-        <div role="alert" className="flex items-start gap-2 p-5 text-sm text-status-error-text">
-          <AlertTriangle className="h-4 w-4 shrink-0" aria-hidden="true" />
-          {error}
-        </div>
-      )}
+      {error && <FeedbackNotice>{error}</FeedbackNotice>}
       <form onSubmit={handleSubmit} noValidate className="divide-y divide-brand-border">
         <fieldset
           disabled={isLoading || isHydrating}

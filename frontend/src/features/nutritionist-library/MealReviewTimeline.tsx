@@ -1,4 +1,5 @@
 'use client';
+import FeedbackNotice from '@/components/shared/FeedbackNotice';
 
 import { useState } from 'react';
 import { Calendar, ChevronDown, ClipboardList, FileText, Flag } from 'lucide-react';
@@ -226,10 +227,10 @@ export default function MealReviewTimeline({
         </div>
       </header>
       {legacyHistoryUnknown && (
-        <p className="rounded-2xl border border-amber-500/25 bg-amber-500/5 p-3 text-sm text-brand-muted">
+        <FeedbackNotice tone="warning">
           Prior incident counts and missing historical values were not recorded. Legacy reports are preserved as
           evidence.
-        </p>
+        </FeedbackNotice>
       )}
       {selected ? (
         <>

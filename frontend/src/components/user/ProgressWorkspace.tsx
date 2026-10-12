@@ -1,4 +1,6 @@
 'use client';
+import FeedbackNotice from '@/components/shared/FeedbackNotice';
+
 import WorkspaceTabs from '@/components/ui/WorkspaceTabs';
 
 import Button from '@/components/ui/Button';
@@ -8,7 +10,7 @@ import ProgressSkeleton from '@/features/progress/ProgressSkeleton';
 import PortalPageHeader from '@/components/shared/PortalPageHeader';
 import AnnouncementBanner from '@/components/shared/AnnouncementBanner';
 
-import { TrendingUp, Plus, CheckCircle, AlertTriangle, Heart, Settings, Activity, ClipboardList } from 'lucide-react';
+import { TrendingUp, Plus, CheckCircle, Heart, Settings, Activity, ClipboardList } from 'lucide-react';
 
 import { type ProgressWorkspaceMode } from '@/features/progress/useProgressWorkspace';
 
@@ -94,9 +96,8 @@ export function ProgressWorkspace({ mode = 'progress' }: { mode?: ProgressWorksp
           }}
         />
       ) : error ? (
-        <div className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-2xl border border-status-error-text/30 bg-status-error-bg/20 p-4 text-status-error-text">
+        <FeedbackNotice className="mb-6">
           <div className="flex items-center gap-2 text-sm font-semibold">
-            <AlertTriangle className="h-4 w-4 shrink-0" />
             <span>{error}</span>
           </div>
           <div className="flex items-center gap-2 shrink-0">
@@ -104,7 +105,7 @@ export function ProgressWorkspace({ mode = 'progress' }: { mode?: ProgressWorksp
               Retry
             </Button>
           </div>
-        </div>
+        </FeedbackNotice>
       ) : null}
 
       {mode !== 'planning' && (

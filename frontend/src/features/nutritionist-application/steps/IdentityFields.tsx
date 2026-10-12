@@ -1,3 +1,4 @@
+import FeedbackNotice from '@/components/shared/FeedbackNotice';
 import Input from '@/components/ui/Input';
 
 import { PhotoUpload } from '../PhotoUpload';
@@ -73,9 +74,9 @@ export function IdentityFields({ form, errors, onFieldChange }: FieldProps) {
             </span>
           </label>
           {errors.photoRecentAttested && (
-            <p role="alert" className="mt-2 text-xs font-semibold text-status-error-text">
+            <FeedbackNotice variant="inline" className="mt-2">
               {errors.photoRecentAttested}
-            </p>
+            </FeedbackNotice>
           )}
         </div>
       </div>

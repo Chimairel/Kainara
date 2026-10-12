@@ -1,4 +1,5 @@
 'use client';
+import FeedbackNotice from '@/components/shared/FeedbackNotice';
 
 import { formatManilaDate } from '@/lib/manila-date';
 
@@ -99,11 +100,7 @@ export default function LandingUploadGallery({
           Refresh gallery
         </Button>
       </div>
-      {error && (
-        <p role="alert" className="text-sm text-red-500">
-          {error}
-        </p>
-      )}
+      {error && <FeedbackNotice variant="inline">{error}</FeedbackNotice>}
       {loading && (
         <p role="status" className="flex items-center gap-2 text-sm text-brand-muted">
           <LoaderCircle className="h-4 w-4 animate-spin" aria-hidden="true" />

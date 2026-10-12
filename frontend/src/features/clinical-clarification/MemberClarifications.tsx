@@ -1,4 +1,6 @@
 'use client';
+import FeedbackNotice from '@/components/shared/FeedbackNotice';
+
 import { useRef, useState } from 'react';
 import api from '@/lib/axios';
 import { getApiErrorMessage } from '@/lib/api-error';
@@ -76,9 +78,7 @@ export default function MemberClarifications({
     <section className="space-y-4" aria-label="RND clarification forms">
       {!embedded && <h2 className="font-display text-xl font-bold">Questions from your RND</h2>}
       {error && (needsRefresh || selectedId === undefined || selectedId === feedbackId) && (
-        <p role="alert" className="text-sm text-status-error-text">
-          {error}
-        </p>
+        <FeedbackNotice variant="inline">{error}</FeedbackNotice>
       )}
       {message && (selectedId === undefined || selectedId === feedbackId) && (
         <p role="status" className="text-sm text-brand-green">

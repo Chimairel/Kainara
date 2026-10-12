@@ -1,4 +1,5 @@
 'use client';
+import FeedbackNotice from '@/components/shared/FeedbackNotice';
 
 import { formatManilaDate } from '@/lib/manila-date';
 import { groupMealsByManilaDate } from '@/lib/meal-calendar';
@@ -150,16 +151,15 @@ export default function NutritionExportPage() {
 
   if (error) {
     return (
-      <div className="max-w-md mx-auto my-12 p-6 rounded-2xl bg-status-error-bg/10 border border-status-error-text/30 text-status-error-text text-left">
+      <FeedbackNotice className="max-w-md mx-auto my-12">
         <h3 className="text-lg font-bold mb-2 flex items-center gap-1.5">
-          <AlertTriangle className="w-5 h-5 text-status-error-text" />
           <span>Error loading nutrition summary</span>
         </h3>
         <p className="text-sm mb-6">{error}</p>
         <Button variant="primary" onClick={() => router.back()}>
           Go Back
         </Button>
-      </div>
+      </FeedbackNotice>
     );
   }
 

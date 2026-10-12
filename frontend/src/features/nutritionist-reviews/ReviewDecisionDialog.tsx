@@ -1,4 +1,5 @@
 'use client';
+import FeedbackNotice from '@/components/shared/FeedbackNotice';
 
 import Button from '@/components/ui/Button';
 import Modal from '@/components/ui/Modal';
@@ -59,9 +60,9 @@ export default function ReviewDecisionDialog({
       }
     >
       {error && (
-        <p role="alert" className="mb-3 text-sm text-red-500">
+        <FeedbackNotice variant="inline" className="mb-3">
           {error}
-        </p>
+        </FeedbackNotice>
       )}
       {children}
       <label className="block text-xs font-bold">

@@ -1,4 +1,5 @@
 'use client';
+import FeedbackNotice from '@/components/shared/FeedbackNotice';
 
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
@@ -77,9 +78,7 @@ export default function AdminSubscriptionHistory() {
         )}
         {query.error && (
           <div>
-            <p role="alert" className="text-sm text-status-error-text">
-              {query.error}
-            </p>
+            <FeedbackNotice variant="inline">{query.error}</FeedbackNotice>
             <Button variant="secondary" size="sm" onClick={() => void query.refetch()}>
               Retry members
             </Button>

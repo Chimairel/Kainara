@@ -1,4 +1,5 @@
 'use client';
+import FeedbackNotice from '@/components/shared/FeedbackNotice';
 
 import React, { useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -7,7 +8,7 @@ import Button from '@/components/ui/Button';
 import OnboardingStep, { OnboardingActions, OnboardingChoice } from '@/components/onboarding/OnboardingStep';
 import ProfileSettingsSection from '@/components/user/ProfileSettingsSection';
 import { ShoppingDayOfWeek } from '@/types';
-import { ShoppingCart, Calendar, AlertTriangle, ArrowRight } from 'lucide-react';
+import { ShoppingCart, Calendar, ArrowRight } from 'lucide-react';
 import { getApiErrorMessage } from '@/lib/api-error';
 import { useProfile } from '@/hooks/useProfile';
 import { useAuth } from '@/hooks/useAuth';
@@ -74,12 +75,7 @@ export default function OnboardingShoppingDayPage() {
       backHref={isFromReview ? '/onboarding/tos' : '/onboarding/allergies'}
       backLabel={isFromReview ? 'Back to Review' : 'Back to Step 4'}
     >
-      {error && (
-        <div role="alert" className="flex items-start gap-2 p-5 text-sm text-status-error-text">
-          <AlertTriangle className="h-4 w-4 shrink-0" aria-hidden="true" />
-          {error}
-        </div>
-      )}
+      {error && <FeedbackNotice>{error}</FeedbackNotice>}
       <form onSubmit={handleSubmit} className="divide-y divide-brand-border">
         <ProfileSettingsSection title="Shopping day" description="Your 7-day meal cycle starts the day after you shop.">
           <fieldset

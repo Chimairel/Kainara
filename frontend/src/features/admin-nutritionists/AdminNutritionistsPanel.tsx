@@ -1,4 +1,5 @@
 'use client';
+import FeedbackNotice from '@/components/shared/FeedbackNotice';
 
 import ReviewRoutingPanel from './ReviewRoutingPanel';
 import AdminLicenseUpdates from '@/features/nutritionist-license/AdminLicenseUpdates';
@@ -223,14 +224,7 @@ export default function AdminNutritionistsPage({ active = true }: { active?: boo
 function PageMessages({ error, notice }: { error: string | null; notice: string | null }) {
   return (
     <>
-      {error && (
-        <div
-          role="alert"
-          className="rounded-2xl border border-status-error-text/25 bg-status-error-bg/10 p-4 text-sm font-semibold text-status-error-text"
-        >
-          {error}
-        </div>
-      )}
+      {error && <FeedbackNotice>{error}</FeedbackNotice>}
       {notice && (
         <div className="rounded-2xl border border-brand-green/20 bg-brand-green/[0.07] p-4 text-sm font-semibold text-brand-green">
           {notice}

@@ -1,4 +1,5 @@
 'use client';
+import FeedbackNotice from '@/components/shared/FeedbackNotice';
 
 import React, { useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
@@ -19,7 +20,6 @@ import {
   Palette,
   Mail,
   CheckCircle2,
-  AlertTriangle,
   Server,
   Lock,
   Sparkles,
@@ -268,10 +268,9 @@ export default function AdminProfilePage() {
                 </div>
               )}
               {nameError && (
-                <div className="flex items-center gap-2 rounded-xl border border-red-500/30 bg-red-500/10 p-3 text-xs font-semibold text-red-400">
-                  <AlertTriangle className="h-4 w-4 shrink-0" />
+                <FeedbackNotice>
                   <span>{nameError}</span>
-                </div>
+                </FeedbackNotice>
               )}
 
               <form onSubmit={handleUpdateName} className="space-y-4">
@@ -331,10 +330,9 @@ export default function AdminProfilePage() {
                 </div>
               )}
               {passwordError && (
-                <div className="flex items-center gap-2 rounded-xl border border-red-500/30 bg-red-500/10 p-3 text-xs font-semibold text-red-400">
-                  <AlertTriangle className="h-4 w-4 shrink-0" />
+                <FeedbackNotice>
                   <span>{passwordError}</span>
-                </div>
+                </FeedbackNotice>
               )}
 
               <form onSubmit={handleUpdatePassword} className="space-y-4">

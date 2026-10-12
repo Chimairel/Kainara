@@ -1,4 +1,5 @@
 'use client';
+import FeedbackNotice from '@/components/shared/FeedbackNotice';
 
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
@@ -51,11 +52,7 @@ export default function AccountPrivacySection({ model }: SectionProps) {
             </p>
           </div>
           <form onSubmit={handleDeleteAccount} className="space-y-4 p-5 sm:p-6">
-            {deletionError && (
-              <div className="rounded-xl border border-red-500/25 bg-red-500/10 p-3 text-xs font-bold text-red-500">
-                {deletionError}
-              </div>
-            )}
+            {deletionError && <FeedbackNotice>{deletionError}</FeedbackNotice>}
             {passwordLoginEnabled && (
               <PasswordInput
                 id="delete-account-password"

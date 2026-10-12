@@ -1,7 +1,8 @@
+import FeedbackNotice from '@/components/shared/FeedbackNotice';
 import OutsideReviewRequestButton from '@/features/membership/OutsideReviewRequestButton';
 import { formatMealTitle } from '@/lib/meal-title';
 import Button from '@/components/ui/Button';
-import { AlertCircle, Calculator } from 'lucide-react';
+import { Calculator } from 'lucide-react';
 import type { OutsideMealWarning } from './model';
 import type { OutsideMealModalProps as Props } from './outside-meal-modal.types';
 
@@ -70,16 +71,16 @@ export default function PreviewConfirmation(props: Props & { warning: OutsideMea
       </div>
 
       {props.warning.reasons.length > 0 && (
-        <div className="rounded-xl border border-status-pending-text/30 bg-status-pending-bg/10 p-4 text-status-pending-text">
+        <FeedbackNotice tone="warning">
           <span className="flex items-center gap-1.5 font-display text-xs font-extrabold uppercase">
-            <AlertCircle className="h-4 w-4" /> Important context
+            Important context
           </span>
           <ul className="mt-2 list-disc space-y-1 pl-4 text-xs font-semibold">
             {[...new Set(props.warning.reasons)].map((reason) => (
               <li key={reason}>{reason}</li>
             ))}
           </ul>
-        </div>
+        </FeedbackNotice>
       )}
 
       {summary.unresolvedItemCount > 0 && (

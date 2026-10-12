@@ -1,3 +1,4 @@
+import FeedbackNotice from '@/components/shared/FeedbackNotice';
 import Dropdown from '@/components/ui/Dropdown';
 import React, { useState, useEffect } from 'react';
 import Modal from '@/components/ui/Modal';
@@ -142,7 +143,7 @@ export default function CheckinModal({
             Are your measurements, activity, goals, preferences, conditions and allergies still correct?
           </p>
 
-          {error && <p className="text-status-error-text text-xs bg-status-error-bg/10 p-2 rounded">{error}</p>}
+          {error && <FeedbackNotice variant="inline">{error}</FeedbackNotice>}
 
           {hasPendingChanges && (
             <p className="text-sm text-brand-muted">
@@ -174,7 +175,7 @@ export default function CheckinModal({
       description="Save your current measurements and goals. Choose whether to apply them when you review the new nutrition report."
     >
       <div className="flex flex-col gap-5 py-2">
-        {error && <p className="text-status-error-text text-xs bg-status-error-bg/10 p-2 rounded">{error}</p>}
+        {error && <FeedbackNotice variant="inline">{error}</FeedbackNotice>}
 
         <div>
           <label className="block text-xs font-bold text-brand-muted uppercase tracking-wider mb-2">

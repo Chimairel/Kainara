@@ -1,4 +1,6 @@
 'use client';
+import FeedbackNotice from '@/components/shared/FeedbackNotice';
+
 import { useCallback, useEffect, useRef, useState } from 'react';
 import Card from '@/components/ui/Card';
 import WorkspaceTable from '@/components/shared/WorkspaceTable';
@@ -55,11 +57,7 @@ export default function ReviewRoutingPanel() {
           priority window. Claim a case when you start reviewing it.
         </p>
       </div>
-      {error && (
-        <p role="alert" className="text-sm text-status-error-text">
-          {error}
-        </p>
-      )}
+      {error && <FeedbackNotice variant="inline">{error}</FeedbackNotice>}
       {snapshot && (
         <details>
           <summary className="cursor-pointer text-sm font-semibold">

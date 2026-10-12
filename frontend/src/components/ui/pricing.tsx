@@ -1,4 +1,5 @@
 'use client';
+import FeedbackNotice from '@/components/shared/FeedbackNotice';
 
 import React, { useEffect, useId, useRef, useState } from 'react';
 import * as Dialog from '@radix-ui/react-dialog';
@@ -340,12 +341,9 @@ export default function Pricing({
           <p className="mb-3 text-xs text-brand-muted">Membership plans are for personal accounts.</p>
         )}
         {checkout.error && (
-          <p
-            role="alert"
-            className="mb-3 rounded-xl border border-status-error-text/30 bg-status-error-bg p-3 text-sm text-status-error-text"
-          >
+          <FeedbackNotice variant="inline" className="mb-3">
             {checkout.error}
-          </p>
+          </FeedbackNotice>
         )}
         {checkout.quote && (
           <section

@@ -1,4 +1,5 @@
 'use client';
+import FeedbackNotice from '@/components/shared/FeedbackNotice';
 
 import { formatMealTitle } from '@/lib/meal-title';
 
@@ -89,21 +90,19 @@ export function MealsWorkspaceModals({ workspace }: Props) {
                       <span>Projecting daily balance & grocery impact...</span>
                     </div>
                   ) : previewError ? (
-                    <div className="flex items-center gap-2 rounded-xl border border-red-500/30 bg-red-500/10 p-2.5 text-xs text-red-600 dark:text-red-400">
-                      <AlertTriangle className="h-4 w-4 shrink-0" />
+                    <FeedbackNotice>
                       <span>{previewError}</span>
-                    </div>
+                    </FeedbackNotice>
                   ) : swapPreview ? (
                     <div className="space-y-3">
                       {swapPreview.warningRequired && (
-                        <div className="flex items-center gap-2 rounded-xl border border-amber-500/30 bg-amber-500/10 p-2.5 text-xs text-amber-800 dark:text-amber-300">
-                          <AlertTriangle className="h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
+                        <FeedbackNotice tone="warning">
                           <span>
                             <span className="font-bold">Notice:</span> Day total will be{' '}
                             <span className="font-extrabold">{swapPreview.projectedDayTotal} kcal</span> (target:{' '}
                             {swapPreview.dailyTarget} kcal).
                           </span>
-                        </div>
+                        </FeedbackNotice>
                       )}
 
                       <SwapImpactDetails

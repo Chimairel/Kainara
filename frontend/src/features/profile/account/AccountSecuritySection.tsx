@@ -1,11 +1,12 @@
 'use client';
+import FeedbackNotice from '@/components/shared/FeedbackNotice';
 
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 
 import PasswordInput from '@/components/ui/PasswordInput';
 
-import { Lock, CheckCircle, AlertTriangle, ShieldCheck } from 'lucide-react';
+import { Lock, CheckCircle, ShieldCheck } from 'lucide-react';
 
 import type { useAccountSettingsModel } from './useAccountSettingsModel';
 type Model = Extract<ReturnType<typeof useAccountSettingsModel>, { kind: 'ready' }>;
@@ -69,12 +70,7 @@ export default function AccountSecuritySection({ model }: SectionProps) {
                   {passwordSuccess}
                 </div>
               )}
-              {passwordError && (
-                <div className="mb-4 flex items-center gap-2 rounded-xl border border-status-error-text/25 bg-status-error-bg/10 p-3.5 text-xs font-bold text-status-error-text">
-                  <AlertTriangle className="h-4 w-4 shrink-0" />
-                  {passwordError}
-                </div>
-              )}
+              {passwordError && <FeedbackNotice className="mb-4">{passwordError}</FeedbackNotice>}
               {!passwordLoginEnabled && (
                 <div className="mb-4 flex items-start gap-2 rounded-xl border border-brand-cyan/25 bg-brand-cyan/10 p-3.5 text-xs font-semibold leading-relaxed text-brand-text">
                   <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-brand-cyan" />

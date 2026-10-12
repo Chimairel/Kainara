@@ -1,4 +1,5 @@
 'use client';
+import FeedbackNotice from '@/components/shared/FeedbackNotice';
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useAuth } from '@/hooks/useAuth';
@@ -6,7 +7,7 @@ import api from '@/lib/axios';
 import { getApiErrorMessage } from '@/lib/api-error';
 import AuthShell from '@/components/auth/AuthShell';
 import RouteGuard from '@/components/shared/RouteGuard';
-import { AlertTriangle, CheckCircle2, LogOut, Mail } from 'lucide-react';
+import { CheckCircle2, LogOut, Mail } from 'lucide-react';
 
 /**
  * Email Verification Page — 6-digit OTP input with auto-submit and resend cooldown.
@@ -163,10 +164,9 @@ function EmailVerificationForm() {
       </div>
 
       {error && (
-        <div className="mb-5 flex items-start gap-3 rounded-2xl border border-status-error-text/25 bg-status-error-bg/10 p-4 text-sm font-semibold text-status-error-text">
-          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+        <FeedbackNotice className="mb-5">
           <span className="leading-tight">{error}</span>
-        </div>
+        </FeedbackNotice>
       )}
 
       {success && (

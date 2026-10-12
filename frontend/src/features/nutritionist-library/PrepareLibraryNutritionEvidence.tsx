@@ -1,3 +1,4 @@
+import FeedbackNotice from '@/components/shared/FeedbackNotice';
 import { useEffect, useState } from 'react';
 import api from '@/lib/axios';
 import { getApiErrorMessage } from '@/lib/api-error';
@@ -109,11 +110,7 @@ export function PrepareLibraryNutritionEvidence({
           grams. Cups, pieces, and “to taste” amounts need a measured or documented gram estimate. The server will
           calculate the recipe nutrition from those records.
         </p>
-        {error && (
-          <p role="alert" className="rounded-lg border border-red-800 p-3 text-xs text-red-300">
-            {error}
-          </p>
-        )}
+        {error && <FeedbackNotice variant="inline">{error}</FeedbackNotice>}
         {rows.map((row) => (
           <div key={row.id} className="rounded-xl border border-brand-border p-3 space-y-2">
             <p className="font-semibold">{row.label}</p>

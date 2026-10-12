@@ -1,10 +1,11 @@
 'use client';
+import FeedbackNotice from '@/components/shared/FeedbackNotice';
 
 import MealsWorkspaceHeader from '@/features/meals/MealsWorkspaceHeader';
 import UnavailableMealsNotice from '@/features/meals/UnavailableMealsNotice';
 import StateNotice from '@/components/shared/StateNotice';
 import MealLibraryPanel from '@/features/meals/MealLibraryPanel';
-import { AlertTriangle, BookOpen, Calendar, History } from 'lucide-react';
+import { BookOpen, Calendar, History } from 'lucide-react';
 import WorkspaceTabs from '@/components/ui/WorkspaceTabs';
 import { MealsWorkspaceModals } from '@/features/meals/MealsWorkspaceModals';
 import MealsDateNavigation from './MealsDateNavigation';
@@ -161,10 +162,9 @@ export default function MealsWorkspace() {
           !clinicalEvidenceRequired &&
           !profileReviewRequired &&
           !error.toLowerCase().includes('nutrition report') && (
-            <div className="p-4 rounded-xl bg-status-error-bg/10 border border-status-error-text/25 text-status-error-text text-sm font-semibold flex items-center gap-2 text-left">
-              <AlertTriangle className="w-4 h-4 text-status-error-text shrink-0" />
+            <FeedbackNotice>
               <span>{error}</span>
-            </div>
+            </FeedbackNotice>
           )}
 
         {/* Conditional Content Rendering */}

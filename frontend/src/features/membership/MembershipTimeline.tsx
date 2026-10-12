@@ -1,4 +1,6 @@
 'use client';
+import FeedbackNotice from '@/components/shared/FeedbackNotice';
+
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import api from '@/lib/axios';
@@ -122,11 +124,7 @@ export default function MembershipTimeline() {
           </div>
         </div>
       )}
-      {error && (
-        <p role="alert" className="text-status-error-text">
-          {error}
-        </p>
-      )}
+      {error && <FeedbackNotice variant="inline">{error}</FeedbackNotice>}
       <p className="text-xs text-brand-muted">
         Dates use Philippine time. No automatic renewal. Changing plans does not reset weekly allowances.
       </p>

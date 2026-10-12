@@ -1,4 +1,5 @@
 'use client';
+import FeedbackNotice from '@/components/shared/FeedbackNotice';
 
 import { useState } from 'react';
 import { QueueHeader, QueueList, QueueRow, QueueSkeleton, queueLabel } from '@/components/shared/WorkspaceQueue';
@@ -65,15 +66,12 @@ export default function MealVerificationQueue({
         description="Verify base recipes. Member health approvals are reviewed separately."
       />
       {error && (
-        <div
-          role="alert"
-          className="my-3 rounded-xl border border-red-500/30 p-3 text-xs text-red-700 dark:text-red-400"
-        >
+        <FeedbackNotice className="my-3">
           {error}{' '}
           <button type="button" disabled={busy || isLoading} onClick={onRetry} className="ml-2 font-bold underline">
             Retry
           </button>
-        </div>
+        </FeedbackNotice>
       )}
       {isLoading ? (
         <div className="min-h-0 flex-1 overflow-y-auto custom-scrollbar">

@@ -121,7 +121,7 @@ export default function RegisterPage() {
         </>
       }
     >
-      <AuthFormPrelude error={error}>
+      <AuthFormPrelude error={error} errorTitle="Couldn't create your account">
         <HydratedForm onSubmit={handleSubmit} className="flex flex-col gap-3" noValidate>
           <div className="grid grid-cols-2 gap-2.5">
             <Input

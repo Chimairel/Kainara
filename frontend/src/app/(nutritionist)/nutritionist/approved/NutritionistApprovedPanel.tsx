@@ -1,4 +1,5 @@
 'use client';
+import FeedbackNotice from '@/components/shared/FeedbackNotice';
 
 import { useSessionQuery } from '@/hooks/useSessionQuery';
 import React, { useState } from 'react';
@@ -100,7 +101,7 @@ export default function NutritionistApprovedPanel({ embedded = false }: { embedd
       )}
 
       {error ? (
-        <p role="alert">Approved reviews could not be loaded. Refresh to try again.</p>
+        <FeedbackNotice variant="inline">Approved reviews could not be loaded. Refresh to try again.</FeedbackNotice>
       ) : meals.length === 0 ? (
         <EmptyState
           icon={<CheckCircle className="h-8 w-8 text-brand-green" />}

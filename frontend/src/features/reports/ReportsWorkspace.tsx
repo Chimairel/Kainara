@@ -1,4 +1,6 @@
 'use client';
+import FeedbackNotice from '@/components/shared/FeedbackNotice';
+
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { ClipboardList } from 'lucide-react';
@@ -53,7 +55,7 @@ export default function ReportsWorkspace() {
       {state === 'loading' ? (
         <p role="status">Loading saved reports…</p>
       ) : state === 'error' ? (
-        <p role="alert">Reports could not be loaded. Refresh to try again.</p>
+        <FeedbackNotice variant="inline">Reports could not be loaded. Refresh to try again.</FeedbackNotice>
       ) : (
         <ReportHistory history={history} />
       )}

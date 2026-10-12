@@ -1,11 +1,13 @@
 'use client';
+import FeedbackNotice from '@/components/shared/FeedbackNotice';
+
 import React, { useState } from 'react';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import Avatar, { FILIPINO_AVATAR_PRESETS } from '@/components/ui/Avatar';
 import api from '@/lib/axios';
 import type { UserSession } from '@/lib/context/AuthContext';
-import { CheckCircle, AlertTriangle } from 'lucide-react';
+import { CheckCircle } from 'lucide-react';
 
 export default function AvatarSettings({
   user,
@@ -109,12 +111,7 @@ export default function AvatarSettings({
               {avatarMsg}
             </div>
           )}
-          {avatarError && (
-            <div className="mb-4 flex items-center gap-2 rounded-xl border border-status-error-text/25 bg-status-error-bg/10 p-3.5 text-xs font-bold text-status-error-text">
-              <AlertTriangle className="h-4 w-4 shrink-0" />
-              {avatarError}
-            </div>
-          )}
+          {avatarError && <FeedbackNotice className="mb-4">{avatarError}</FeedbackNotice>}
 
           <div className="mt-5 flex flex-wrap items-center justify-between gap-2">
             <span className="block text-[10px] font-bold uppercase tracking-wider text-brand-muted">

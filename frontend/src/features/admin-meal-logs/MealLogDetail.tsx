@@ -1,4 +1,6 @@
 'use client';
+import FeedbackNotice from '@/components/shared/FeedbackNotice';
+
 import { useState } from 'react';
 import api from '@/lib/axios';
 import { useSessionQuery } from '@/hooks/useSessionQuery';
@@ -39,7 +41,7 @@ export default function MealLogDetail({ logId, ownerId }: { logId: string; owner
   const actions: Record<string, string> = { INSERT: 'Created', UPDATE: 'Updated', DELETE: 'Removed' };
   return (
     <RecordPaper className="my-4">
-      {query.error && <p role="alert">{query.error}</p>}
+      {query.error && <FeedbackNotice variant="inline">{query.error}</FeedbackNotice>}
       <h3 className="font-display text-xl font-bold">Recorded meal log</h3>
       <p className="text-sm text-brand-muted">
         {record.memberName} · {record.ageGroup === 'UNKNOWN' ? 'Age not recorded' : `Age ${record.ageGroup}`} ·{' '}

@@ -1,4 +1,5 @@
 'use client';
+import FeedbackNotice from '@/components/shared/FeedbackNotice';
 
 import LoadingSpinner from '@/components/shared/LoadingSpinner';
 import StateNotice from '@/components/shared/StateNotice';
@@ -8,7 +9,7 @@ import HistoryDaySummary from '@/features/meals/HistoryDaySummary';
 import MealHistoryCard from '@/components/user/MealHistoryCard';
 import UnloggedMealCatchUpCard from '@/components/user/UnloggedMealCatchUpCard';
 import { formatManilaDate, getManilaDateKey, manilaDateFromKey } from '@/lib/manila-date';
-import { AlertTriangle, Calendar, Clock3, FileText, Search } from 'lucide-react';
+import { Calendar, Clock3, FileText, Search } from 'lucide-react';
 import { Select } from '@/components/ui/Select';
 import { HISTORY_SOURCE_OPTIONS, HISTORY_STATUS_OPTIONS } from '@/features/meals/history-filter-options';
 import type { useMealsPage } from './useMealsPage';
@@ -179,10 +180,9 @@ export default function MealsHistorySection({ model }: Props) {
                     <span className="text-xs text-brand-muted">Loading history logs...</span>
                   </div>
                 ) : historyError ? (
-                  <div className="p-4 rounded-xl bg-status-error-bg/10 border border-status-error-text/25 text-status-error-text text-sm font-semibold flex items-center gap-2">
-                    <AlertTriangle className="w-4 h-4 text-status-error-text shrink-0" />
+                  <FeedbackNotice>
                     <span>{historyError}</span>
-                  </div>
+                  </FeedbackNotice>
                 ) : historyLogs.length === 0 && !hasUnloggedToCatchUp ? (
                   <div className="p-12 text-center border border-brand-border/40 bg-brand-surface/30 rounded-2xl dark:border-[#173e33] dark:bg-[#0e271f]/50">
                     <FileText className="w-8 h-8 text-brand-green dark:text-brand-accent mx-auto mb-2" />

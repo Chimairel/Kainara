@@ -1,4 +1,6 @@
 'use client';
+import FeedbackNotice from '@/components/shared/FeedbackNotice';
+
 import { useEffect, useRef, useState } from 'react';
 import api from '@/lib/axios';
 import { getApiErrorMessage } from '@/lib/api-error';
@@ -153,11 +155,7 @@ export default function RndClarifications({
         Forms stay with this member through claim handoffs. Published questions cannot be overwritten; send a follow-up
         form when needed.
       </p>
-      {error && (
-        <p role="alert" className="text-sm text-status-error-text">
-          {error}
-        </p>
-      )}
+      {error && <FeedbackNotice variant="inline">{error}</FeedbackNotice>}
       {message && (
         <p role="status" className="text-sm text-brand-green">
           {message}
@@ -176,8 +174,19 @@ export default function RndClarifications({
       {showComposer && (
         <Card className="space-y-3 p-4">
           <h4 className="font-bold">Send specific questions</h4>
-          {publishTarget && <p className="text-xs text-brand-muted">Sending questions pauses this member’s meal reviews. Review answers and any profile corrections in the Profile queue.</p>}
-          {!canWrite && <p className="text-xs text-brand-muted">{publishTarget ? 'Claim this meal to send questions.' : 'Claim this profile to send or resolve questions.'}</p>}
+          {publishTarget && (
+            <p className="text-xs text-brand-muted">
+              Sending questions pauses this member’s meal reviews. Review answers and any profile corrections in the
+              Profile queue.
+            </p>
+          )}
+          {!canWrite && (
+            <p className="text-xs text-brand-muted">
+              {publishTarget
+                ? 'Claim this meal to send questions.'
+                : 'Claim this profile to send or resolve questions.'}
+            </p>
+          )}
           <form
             onSubmit={(event) => {
               event.preventDefault();

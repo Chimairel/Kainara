@@ -1,4 +1,6 @@
 'use client';
+import FeedbackNotice from '@/components/shared/FeedbackNotice';
+
 import { useState } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/hooks/useAuth';
@@ -66,11 +68,7 @@ export default function AdminMealPopularity({ active = true }: { active?: boolea
           {filters.order === 'LEAST_EATEN' ? 'Least eaten' : 'Most eaten'}
         </h3>
       </div>
-      {query.error && (
-        <p role="alert" className="text-sm text-status-error-text">
-          {query.error}
-        </p>
-      )}
+      {query.error && <FeedbackNotice variant="inline">{query.error}</FeedbackNotice>}
       {query.isLoading && !query.data && <p role="status">Loading meal popularity…</p>}
       {query.data && (
         <>

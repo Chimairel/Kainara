@@ -1,4 +1,5 @@
 'use client';
+import FeedbackNotice from '@/components/shared/FeedbackNotice';
 
 import { useMemo } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -54,12 +55,12 @@ export default function OnboardingSafetyStep({
         {isLoading ? (
           <p className="text-sm text-brand-muted">Loading your safety profile…</p>
         ) : error || !profile ? (
-          <div role="alert" className="space-y-3 text-sm text-status-error-text">
+          <FeedbackNotice>
             <p>{error || 'Your safety profile could not be loaded.'}</p>
             <Button type="button" onClick={() => void refresh()} variant="secondary">
               Try again
             </Button>
-          </div>
+          </FeedbackNotice>
         ) : (
           <StructuredSafetyIntake
             presentation="profile"

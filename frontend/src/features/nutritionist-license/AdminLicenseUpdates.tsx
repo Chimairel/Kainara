@@ -1,4 +1,6 @@
 'use client';
+import FeedbackNotice from '@/components/shared/FeedbackNotice';
+
 import { useRef, useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useSessionQuery } from '@/hooks/useSessionQuery';
@@ -91,9 +93,7 @@ export default function AdminLicenseUpdates({ onChanged }: { onChanged: () => vo
         ]}
       />
       {(query.error || document.error) && (
-        <p role="alert" className="text-sm text-status-error-text">
-          {query.error || document.error}
-        </p>
+        <FeedbackNotice variant="inline">{query.error || document.error}</FeedbackNotice>
       )}
       {notice && (
         <p role="status" className="text-sm text-brand-green">
@@ -182,16 +182,8 @@ export default function AdminLicenseUpdates({ onChanged }: { onChanged: () => vo
                 className="w-full rounded-xl border border-brand-border bg-brand-surface p-3 text-sm font-normal focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-green"
               />
             </label>
-            {error && (
-              <p role="alert" className="text-sm text-status-error-text">
-                {error}
-              </p>
-            )}
-            {document.error && (
-              <p role="alert" className="text-sm text-status-error-text">
-                {document.error}
-              </p>
-            )}
+            {error && <FeedbackNotice variant="inline">{error}</FeedbackNotice>}
+            {document.error && <FeedbackNotice variant="inline">{document.error}</FeedbackNotice>}
             <div className="flex flex-wrap gap-3">
               <Button
                 disabled={busy || reason.trim().length < 10 || reviewedDocument !== selected.id || !!document.busy}

@@ -1,4 +1,6 @@
 'use client';
+import FeedbackNotice from '@/components/shared/FeedbackNotice';
+
 import { useEffect, useRef, useState } from 'react';
 import api from '@/lib/axios';
 import { getApiErrorMessage } from '@/lib/api-error';
@@ -95,11 +97,7 @@ export default function ApplicantEmailVerification({
           )}
         </>
       )}
-      {error && (
-        <p role="alert" className="text-sm text-red-500">
-          {error}
-        </p>
-      )}
+      {error && <FeedbackNotice variant="inline">{error}</FeedbackNotice>}
     </section>
   );
 }

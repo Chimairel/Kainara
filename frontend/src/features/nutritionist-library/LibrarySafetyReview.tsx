@@ -1,4 +1,5 @@
 'use client';
+import FeedbackNotice from '@/components/shared/FeedbackNotice';
 
 import Dropdown from '@/components/ui/Dropdown';
 import { useRef, useState } from 'react';
@@ -127,11 +128,7 @@ export default function LibrarySafetyReview({ meal, refresh }: { meal: LibraryMe
           </Button>
         </>
       )}
-      {error && (
-        <p role="alert" className="text-status-error-text">
-          {error}
-        </p>
-      )}
+      {error && <FeedbackNotice variant="inline">{error}</FeedbackNotice>}
     </section>
   );
 }

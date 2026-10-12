@@ -1,4 +1,6 @@
 'use client';
+import FeedbackNotice from '@/components/shared/FeedbackNotice';
+
 import { useRef, useState, type FormEvent } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useSessionQuery } from '@/hooks/useSessionQuery';
@@ -46,9 +48,7 @@ export default function RndLicenseUpdates() {
         )}
       </div>
       {(status?.error || query.error || document.error) && (
-        <p role="alert" className="text-sm text-status-error-text">
-          {status?.error || query.error || document.error}
-        </p>
+        <FeedbackNotice variant="inline">{status?.error || query.error || document.error}</FeedbackNotice>
       )}
       {notice && (
         <p role="status" className="text-sm text-brand-green">
@@ -174,11 +174,7 @@ function LicenseUpdateForm({ status, onSubmitted }: { status: CredentialStatus; 
           document.
         </label>
       </fieldset>
-      {error && (
-        <p role="alert" className="text-sm text-status-error-text">
-          {error}
-        </p>
-      )}
+      {error && <FeedbackNotice variant="inline">{error}</FeedbackNotice>}
       <Button type="submit" isLoading={busy}>
         Submit license update
       </Button>

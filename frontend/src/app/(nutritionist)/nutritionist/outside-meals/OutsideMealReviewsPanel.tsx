@@ -1,6 +1,7 @@
 'use client';
+import FeedbackNotice from '@/components/shared/FeedbackNotice';
 
-import { AlertTriangle, ClipboardCheck } from 'lucide-react';
+import { ClipboardCheck } from 'lucide-react';
 
 import PortalPageHeader from '@/components/shared/PortalPageHeader';
 
@@ -24,10 +25,9 @@ export default function OutsideMealReviewsPanel({ embedded = false }: { embedded
       )}
 
       {error && (
-        <div className="flex items-center gap-2 rounded-xl border border-status-error-text/30 bg-status-error-bg/10 p-4 text-sm text-status-error-text">
-          <AlertTriangle className="h-4 w-4 shrink-0" />
+        <FeedbackNotice>
           <span>{error}</span>
-        </div>
+        </FeedbackNotice>
       )}
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1.15fr)_minmax(360px,0.85fr)] items-start">

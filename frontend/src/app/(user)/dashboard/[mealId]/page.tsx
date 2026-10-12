@@ -1,4 +1,5 @@
 'use client';
+import FeedbackNotice from '@/components/shared/FeedbackNotice';
 
 import React, { useCallback, useEffect, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
@@ -489,13 +490,12 @@ export default function MealDetailPage() {
 
         {/* AI Estimation Warning */}
         {meal.status === 'PENDING_REVIEW' && (
-          <div className="p-4 rounded-xl bg-status-pending-bg/10 border border-status-pending-text/30 text-status-pending-text text-[10px] font-bold leading-relaxed flex items-start gap-2.5 mb-6">
-            <AlertCircle className="h-4.5 w-4.5 shrink-0 mt-0.5" />
+          <FeedbackNotice tone="warning" className="mb-6">
             <span>
               <strong>AI Estimation Warning</strong>: This plan is still pending verification by a licensed Registered
               RND. Use with caution.
             </span>
-          </div>
+          </FeedbackNotice>
         )}
 
         {/* Actions Button panel */}

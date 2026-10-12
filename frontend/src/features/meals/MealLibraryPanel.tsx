@@ -1,4 +1,5 @@
 'use client';
+import FeedbackNotice from '@/components/shared/FeedbackNotice';
 
 import Dropdown from '@/components/ui/Dropdown';
 import Pagination from '@/components/ui/Pagination';
@@ -7,7 +8,7 @@ import { useEffect, useMemo, useState } from 'react';
 import Button from '@/components/ui/Button';
 import { LibraryGridSkeleton } from '@/features/nutritionist-library/NutritionistLibrarySkeleton';
 import Link from 'next/link';
-import { AlertTriangle, Search, Salad } from 'lucide-react';
+import { Search, Salad } from 'lucide-react';
 import type { useMealsWorkspace } from './useMealsWorkspace';
 import { groupApprovedPlanRecipes } from './approvedPlanRecipes';
 import RecipeLibraryCard from './RecipeLibraryCard';
@@ -271,8 +272,7 @@ export default function MealLibraryPanel({
       </div>
 
       {(catalogError || workspace.libraryError) && (
-        <div className="p-4 rounded-xl bg-status-error-bg/10 border border-status-error-text/25 text-status-error-text text-sm font-semibold flex items-center gap-2">
-          <AlertTriangle className="w-4 h-4 text-status-error-text shrink-0" />
+        <FeedbackNotice>
           <span>{catalogError || workspace.libraryError}</span>
           <button
             type="button"
@@ -284,7 +284,7 @@ export default function MealLibraryPanel({
           >
             Retry
           </button>
-        </div>
+        </FeedbackNotice>
       )}
 
       {waitingForSource ? (

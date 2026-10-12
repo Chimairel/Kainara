@@ -1,4 +1,5 @@
 'use client';
+import FeedbackNotice from '@/components/shared/FeedbackNotice';
 
 import WorkspaceTable from '@/components/shared/WorkspaceTable';
 import { useEffect, useState } from 'react';
@@ -66,9 +67,9 @@ export default function CompositionEditor({
         then publish. A correction sends affected recipes and unconsumed meals back for review.
       </p>
       {error && (
-        <p role="alert" className="mb-3 text-sm text-status-error-text">
+        <FeedbackNotice variant="inline" className="mb-3">
           {error}
-        </p>
+        </FeedbackNotice>
       )}
       {values && (
         <form

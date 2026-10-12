@@ -1,10 +1,11 @@
 'use client';
+import FeedbackNotice from '@/components/shared/FeedbackNotice';
 
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 
-import { CheckCircle, AlertTriangle } from 'lucide-react';
+import { CheckCircle } from 'lucide-react';
 
 import type { useAccountSettingsModel } from './useAccountSettingsModel';
 type Model = Extract<ReturnType<typeof useAccountSettingsModel>, { kind: 'ready' }>;
@@ -40,12 +41,7 @@ export default function AccountIdentitySection({ model }: SectionProps) {
               {accountSuccess}
             </div>
           )}
-          {accountError && (
-            <div className="mb-4 flex items-center gap-2 rounded-xl border border-status-error-text/25 bg-status-error-bg/10 p-3.5 text-xs font-bold text-status-error-text">
-              <AlertTriangle className="h-4 w-4 shrink-0" />
-              {accountError}
-            </div>
-          )}
+          {accountError && <FeedbackNotice className="mb-4">{accountError}</FeedbackNotice>}
           <form onSubmit={handleAccountSubmit} className="space-y-5">
             <div className="grid gap-4 md:grid-cols-2">
               <Input

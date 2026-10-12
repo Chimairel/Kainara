@@ -51,6 +51,10 @@ The October 10 cleanup removed the superseded dashboard summary/schedule, grocer
 
 Read-only records have no selection checkbox. Grocery retains purchased/pantry/bulk controls; batch meal export retains its required selection and limit. Audit details still load through role-scoped endpoints, and RND application details retain their existing verification guards. Use this surface for comparable record lists; meal image cards, navigation, instructional bullets, editable form comparisons and printed/canvas document tables retain their dedicated presentation.
 
+## Feedback messages
+
+Use `shared/FeedbackNotice` for standalone errors and warnings instead of a custom red outline. It supplies a soft themed surface, decorative icon and accessible announcement; `variant="inline"` suits short toolbar or queue errors. Supply an optional concise `title`, the message and existing recovery controls as children. `tone` supports error, warning, info and success; preserve an explicit `role="alert"` for an existing urgent warning. Keep requests, validation, dismissal and retry handlers in the caller. Avoid nested alert wrappers and duplicate warning icons. Field validation remains in Input/Checkbox so messages stay associated with their inputs. See the [source trace](../../../docs/verification/FEEDBACK_UI_2026-10-12.md).
+
 ## Cards
 
 Card keeps both its existing header/footer props and compound CardHeader/CardContent/CardFooter API. It has the Plan Statistics surface shape, border and shadow. Keep a page's existing padding by passing its padding classes or `contentClassName`.

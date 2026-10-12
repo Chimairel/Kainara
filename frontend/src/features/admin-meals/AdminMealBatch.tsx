@@ -1,4 +1,6 @@
 'use client';
+import FeedbackNotice from '@/components/shared/FeedbackNotice';
+
 import { useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useSessionQuery } from '@/hooks/useSessionQuery';
@@ -84,11 +86,7 @@ export default function AdminMealBatch({ active }: { active: boolean }) {
           serving. Imports create new unverified drafts. Published meals and reviews cannot be overwritten.
         </p>
       </header>
-      {error && (
-        <p role="alert" className="text-sm text-status-error-text">
-          {error}
-        </p>
-      )}
+      {error && <FeedbackNotice variant="inline">{error}</FeedbackNotice>}
       {message && (
         <p role="status" className="text-sm text-brand-green">
           {message}
@@ -108,7 +106,7 @@ export default function AdminMealBatch({ active }: { active: boolean }) {
           Exports contain recipe fields only. Missing mappings or quantities remain blank and must be corrected before
           importing. Approval identities, flags and member information are excluded.
         </p>
-        {library.error && <p role="alert">{library.error}</p>}
+        {library.error && <FeedbackNotice variant="inline">{library.error}</FeedbackNotice>}
         <WorkspaceTable
           label="Meals for batch export"
           rows={library.data?.meals ?? []}

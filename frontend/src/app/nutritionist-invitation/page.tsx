@@ -1,10 +1,11 @@
 'use client';
+import FeedbackNotice from '@/components/shared/FeedbackNotice';
 
 import React, { Suspense, useState } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { getApiErrorMessage } from '@/lib/api-error';
-import { AlertTriangle, CheckCircle2 } from 'lucide-react';
+import { CheckCircle2 } from 'lucide-react';
 import AuthShell from '@/components/auth/AuthShell';
 import HydratedForm from '@/components/auth/HydratedForm';
 import Button from '@/components/ui/Button';
@@ -61,15 +62,7 @@ function InvitationForm() {
 
   return (
     <HydratedForm onSubmit={handleSubmit} className="space-y-5">
-      {error && (
-        <div
-          role="alert"
-          className="flex gap-3 rounded-2xl border border-status-error-text/25 bg-status-error-bg/10 p-4 text-sm font-semibold text-status-error-text"
-        >
-          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
-          {error}
-        </div>
-      )}
+      {error && <FeedbackNotice>{error}</FeedbackNotice>}
       <PasswordInput
         id="nutritionist-password"
         label="Create password"

@@ -1,4 +1,5 @@
 'use client';
+import FeedbackNotice from '@/components/shared/FeedbackNotice';
 
 import { Suspense, useState, useEffect } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
@@ -10,7 +11,7 @@ import MembershipPlanHeader from '@/features/membership/MembershipPlanHeader';
 import MembershipHelp from '@/features/membership/MembershipHelp';
 import PlanStatisticsCard from '@/features/membership/PlanStatisticsCard';
 import PlanCalendarCard from '@/features/membership/PlanCalendarCard';
-import { RefreshCw, AlertTriangle, CreditCard, ExternalLink } from 'lucide-react';
+import { RefreshCw, CreditCard, ExternalLink } from 'lucide-react';
 import Link from 'next/link';
 import { isCheckoutUrl } from '@/features/membership/checkout';
 import api from '@/lib/axios';
@@ -47,18 +48,15 @@ function MembershipContent() {
   if (error && !data)
     return (
       <div className="portal-page max-w-6xl mx-auto py-8">
-        <div className="rounded-2xl border border-status-error-text/30 bg-status-error-bg/20 p-5 text-status-error-text shadow-xs">
+        <FeedbackNotice>
           <div className="flex items-center gap-2">
-            <AlertTriangle className="h-4 w-4 shrink-0" />
             <h3 className="font-display text-sm font-bold">Could not load membership</h3>
           </div>
-          <p role="alert" className="mt-1 text-xs text-status-error-text/90">
-            {error}
-          </p>
+          <p className="mt-1 text-sm">{error}</p>
           <Button onClick={refresh} variant="secondary" className="mt-3 text-xs font-semibold px-3 py-1.5">
             Retry
           </Button>
-        </div>
+        </FeedbackNotice>
       </div>
     );
 
@@ -163,11 +161,7 @@ function MembershipContent() {
               Check payment status
             </Link>
           </div>
-          {checkoutError && (
-            <p role="alert" className="text-xs text-status-error-text">
-              {checkoutError}
-            </p>
-          )}
+          {checkoutError && <FeedbackNotice variant="inline">{checkoutError}</FeedbackNotice>}
         </section>
       )}
 

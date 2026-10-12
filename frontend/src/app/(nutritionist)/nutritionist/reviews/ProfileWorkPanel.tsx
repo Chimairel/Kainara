@@ -1,4 +1,6 @@
 'use client';
+import FeedbackNotice from '@/components/shared/FeedbackNotice';
+
 import { UserCheck } from 'lucide-react';
 import { useProfileWorkPanelModel } from '@/features/nutritionist-profile-review/useProfileWorkPanelModel';
 import ProfileReviewQueue from '@/features/nutritionist-profile-review/ProfileReviewQueue';
@@ -10,9 +12,9 @@ export default function ProfileWorkPanel() {
       <ProfileReviewQueue model={model} />
       <div className="min-w-0 flex-1 overflow-auto p-4">
         {model.error && (
-          <p role="alert" className="mb-4 rounded-xl border border-red-500/30 p-3 text-sm text-red-500">
+          <FeedbackNotice variant="inline" className="mb-4">
             {model.error}
-          </p>
+          </FeedbackNotice>
         )}
         {model.openingPersonId ? (
           <div role="status" className="p-6 text-brand-muted" aria-live="polite">

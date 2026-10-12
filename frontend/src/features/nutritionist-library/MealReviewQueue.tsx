@@ -1,4 +1,6 @@
 'use client';
+import FeedbackNotice from '@/components/shared/FeedbackNotice';
+
 import { useAuth } from '@/hooks/useAuth';
 import { useSessionQuery } from '@/hooks/useSessionQuery';
 import api from '@/lib/axios';
@@ -35,11 +37,7 @@ export default function MealReviewQueue({
           Refresh cases
         </Button>
       </div>
-      {query.error && (
-        <p role="alert" className="text-sm text-status-error-text">
-          {query.error}
-        </p>
-      )}
+      {query.error && <FeedbackNotice variant="inline">{query.error}</FeedbackNotice>}
       {query.isLoading && !query.data && <p role="status">Loading cases…</p>}
       {query.data && (
         <WorkspaceTable

@@ -1,8 +1,9 @@
 'use client';
+import FeedbackNotice from '@/components/shared/FeedbackNotice';
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { AlertTriangle, CheckCircle2, MailCheck } from 'lucide-react';
+import { CheckCircle2, MailCheck } from 'lucide-react';
 import { getApiErrorMessage } from '@/lib/api-error';
 import api from '@/lib/axios';
 import Button from '@/components/ui/Button';
@@ -74,10 +75,9 @@ export default function ForgotPasswordPage() {
       ) : (
         <>
           {error && (
-            <div className="mb-5 flex items-start gap-3 rounded-2xl border border-status-error-text/25 bg-status-error-bg/10 p-4 text-sm font-semibold text-status-error-text">
-              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+            <FeedbackNotice className="mb-5">
               <span>{error}</span>
-            </div>
+            </FeedbackNotice>
           )}
           <HydratedForm onSubmit={handleSubmit} className="flex flex-col gap-5">
             <Input

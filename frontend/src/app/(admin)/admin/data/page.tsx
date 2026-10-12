@@ -1,4 +1,5 @@
 'use client';
+import FeedbackNotice from '@/components/shared/FeedbackNotice';
 
 import { useState } from 'react';
 import { useSessionQuery } from '@/hooks/useSessionQuery';
@@ -72,22 +73,17 @@ export default function AdminDataPage() {
         }
       />
 
-      {query.error && (
-        <p role="alert" className="text-sm text-status-error-text">
-          {query.error}
-        </p>
-      )}
+      {query.error && <FeedbackNotice variant="inline">{query.error}</FeedbackNotice>}
 
       {notice && (
-        <div
-          role={notice.tone === 'error' ? 'alert' : 'status'}
-          className={`flex items-center justify-between gap-4 rounded-2xl border px-4 py-3 text-sm font-semibold ${notice.tone === 'error' ? 'border-red-500/25 bg-red-500/10 text-status-error-text' : 'border-brand-green/25 bg-brand-green/10 text-brand-green'}`}
-        >
-          <span>{notice.message}</span>
-          <button type="button" className="text-xs opacity-70 hover:opacity-100" onClick={() => setNotice(null)}>
-            Dismiss
-          </button>
-        </div>
+        <FeedbackNotice tone={notice.tone}>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <span>{notice.message}</span>
+            <button type="button" className="text-xs opacity-70 hover:opacity-100" onClick={() => setNotice(null)}>
+              Dismiss
+            </button>
+          </div>
+        </FeedbackNotice>
       )}
 
       <Tabs value={section} onValueChange={(value) => setSection(value as AdminDataSection)}>

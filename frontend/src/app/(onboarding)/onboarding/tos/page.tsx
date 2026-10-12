@@ -1,4 +1,5 @@
 'use client';
+import FeedbackNotice from '@/components/shared/FeedbackNotice';
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -8,7 +9,7 @@ import Button from '@/components/ui/Button';
 import OnboardingStep from '@/components/onboarding/OnboardingStep';
 import ProfileSettingsSection from '@/components/user/ProfileSettingsSection';
 import Checkbox from '@/components/ui/Checkbox';
-import { AlertTriangle, ArrowRight, Pencil } from 'lucide-react';
+import { ArrowRight, Pencil } from 'lucide-react';
 import { getApiErrorMessage } from '@/lib/api-error';
 import { useProfile } from '@/hooks/useProfile';
 import { normalizeExclusiveNone, normalizeFoodCulture } from '@/lib/profile-normalization';
@@ -227,8 +228,7 @@ export default function OnboardingTosPage() {
         </p>
       </div>
       {displayedError && (
-        <div role="alert" className="flex flex-wrap items-start gap-2 px-5 pt-5 text-sm text-status-error-text sm:px-7">
-          <AlertTriangle className="h-4 w-4 shrink-0" aria-hidden="true" />
+        <FeedbackNotice>
           <span className="min-w-0 flex-1">{displayedError}</span>
           {profileUnavailable && (
             <Button
@@ -243,7 +243,7 @@ export default function OnboardingTosPage() {
               Try again
             </Button>
           )}
-        </div>
+        </FeedbackNotice>
       )}
       <form onSubmit={handleSubmit} className="space-y-5 px-5 py-7 sm:px-7">
         <Checkbox

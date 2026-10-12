@@ -1,4 +1,5 @@
 'use client';
+import FeedbackNotice from '@/components/shared/FeedbackNotice';
 
 import React, { useEffect } from 'react';
 import { usePathname } from 'next/navigation';
@@ -114,7 +115,7 @@ export const RouteGuard: React.FC<RouteGuardProps> = ({ children }) => {
   if (profileLoadError && (!isPublicRoute || (isEntryRoute && user))) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-brand-bg p-6 text-brand-text">
-        <div role="alert" className="w-full max-w-md rounded-2xl border border-brand-border bg-brand-surface p-6">
+        <FeedbackNotice className="w-full max-w-md">
           <h1 className="font-display text-xl font-bold">Could not load your account profile</h1>
           <AccountProfileFailureDetails failure={profileLoadFailure} />
           <div className="mt-5 flex gap-3">
@@ -125,7 +126,7 @@ export const RouteGuard: React.FC<RouteGuardProps> = ({ children }) => {
               Sign out
             </Button>
           </div>
-        </div>
+        </FeedbackNotice>
       </div>
     );
   }

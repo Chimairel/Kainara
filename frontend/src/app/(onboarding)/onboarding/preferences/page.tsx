@@ -1,4 +1,5 @@
 'use client';
+import FeedbackNotice from '@/components/shared/FeedbackNotice';
 
 import React, { useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -7,7 +8,7 @@ import Button from '@/components/ui/Button';
 import OnboardingStep, { OnboardingActions, OnboardingChoice } from '@/components/onboarding/OnboardingStep';
 import ProfileSettingsSection from '@/components/user/ProfileSettingsSection';
 import { DietaryPreference, RicePreference } from '@/types';
-import { Ban, Shuffle, Utensils, AlertTriangle, ArrowRight } from 'lucide-react';
+import { Ban, Shuffle, Utensils, ArrowRight } from 'lucide-react';
 import { getApiErrorMessage } from '@/lib/api-error';
 import { useProfile } from '@/hooks/useProfile';
 import { useAuth } from '@/hooks/useAuth';
@@ -108,12 +109,7 @@ export default function OnboardingPreferencesPage() {
       backHref={isFromReview ? '/onboarding/tos' : '/onboarding/stats'}
       backLabel={isFromReview ? 'Back to Review' : 'Back to Step 1'}
     >
-      {error && (
-        <div role="alert" className="flex items-start gap-2 p-5 text-sm text-status-error-text">
-          <AlertTriangle className="h-4 w-4 shrink-0" aria-hidden="true" />
-          {error}
-        </div>
-      )}
+      {error && <FeedbackNotice>{error}</FeedbackNotice>}
       <form onSubmit={handleSubmit} className="divide-y divide-brand-border">
         <fieldset
           disabled={isLoading || isHydrating}

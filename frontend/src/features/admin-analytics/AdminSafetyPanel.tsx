@@ -1,4 +1,5 @@
 'use client';
+import FeedbackNotice from '@/components/shared/FeedbackNotice';
 
 import { formatManilaDate } from '@/lib/manila-date';
 
@@ -64,11 +65,7 @@ export default function AdminSafetyPanel({ active = true }: { active?: boolean }
       />
 
       {loading && <p role="status">Loading safety records…</p>}
-      {error && (
-        <div role="alert" className="rounded-2xl border border-red-400/20 bg-red-500/10 p-4 text-sm text-red-400">
-          {error}
-        </div>
-      )}
+      {error && <FeedbackNotice>{error}</FeedbackNotice>}
 
       <section>
         <p className="portal-section-label mb-4">Pending safety flags</p>

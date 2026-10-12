@@ -1,4 +1,6 @@
 'use client';
+import FeedbackNotice from '@/components/shared/FeedbackNotice';
+
 import MemberClarifications from '@/features/clinical-clarification/MemberClarifications';
 import MemberProfileProposals from '@/features/clinical-clarification/MemberProfileProposals';
 import type { ProfileProposalWorkspace } from '@/features/clinical-clarification/profile-proposal-types';
@@ -294,11 +296,7 @@ function ClinicalEvidenceContent({ mode = 'profile', detailsSection }: Workspace
           <p>{request.notes}</p>
         </div>
       )}
-      {error && (
-        <p role="alert" className="text-sm text-red-500">
-          {error}
-        </p>
-      )}
+      {error && <FeedbackNotice variant="inline">{error}</FeedbackNotice>}
       {message && (
         <p role="status" className="text-sm text-brand-green">
           {message}

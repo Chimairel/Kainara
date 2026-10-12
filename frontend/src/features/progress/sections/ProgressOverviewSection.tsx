@@ -1,4 +1,5 @@
 'use client';
+import FeedbackNotice from '@/components/shared/FeedbackNotice';
 
 import { formatManilaDate } from '@/lib/manila-date';
 
@@ -9,7 +10,7 @@ import WeightLogHistory from '@/features/progress/WeightLogHistory';
 import Card from '@/components/ui/Card';
 import Input from '@/components/ui/Input';
 
-import { TrendingUp, AlertTriangle, Lightbulb, Scale, Activity } from 'lucide-react';
+import { TrendingUp, Lightbulb, Scale, Activity } from 'lucide-react';
 import { Select } from '@/components/ui/Select';
 
 import type { useProgressWorkspaceModel } from './useProgressWorkspaceModel';
@@ -113,10 +114,9 @@ export default function ProgressOverviewSection({ model }: SectionProps) {
               </div>
 
               {weightFormError && (
-                <div className="p-3.5 rounded-xl bg-status-error-bg/10 border border-status-error-text/25 text-status-error-text text-xs font-bold mb-4 flex items-center gap-2">
-                  <AlertTriangle className="w-4 h-4 text-status-error-text shrink-0" />
+                <FeedbackNotice className="mb-4">
                   <span>{weightFormError}</span>
-                </div>
+                </FeedbackNotice>
               )}
 
               <form onSubmit={handleLogWeightSubmit} className="flex flex-col gap-4">

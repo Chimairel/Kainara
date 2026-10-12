@@ -1,4 +1,6 @@
 'use client';
+import FeedbackNotice from '@/components/shared/FeedbackNotice';
+
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useSessionQuery } from '@/hooks/useSessionQuery';
@@ -119,11 +121,7 @@ export default function MealReviewPanel({
         <h2 className="font-display text-xl font-bold">Meal-wide review</h2>
         {data && <strong className="rounded-full bg-brand-bg px-3 py-2 text-sm">{reviewStateLabel(data.state)}</strong>}
       </div>
-      {(error || query.error) && (
-        <p role="alert" className="text-sm text-status-error-text">
-          {error || query.error}
-        </p>
-      )}
+      {(error || query.error) && <FeedbackNotice variant="inline">{error || query.error}</FeedbackNotice>}
       {message && (
         <p role="status" className="text-sm text-brand-green">
           {message}

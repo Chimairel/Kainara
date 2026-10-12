@@ -1,5 +1,6 @@
+import FeedbackNotice from '@/components/shared/FeedbackNotice';
 import { formatPhilippineDateTime } from '@/lib/formatters';
-import { CalendarClock, Check, AlertCircle, Sparkles, ExternalLink } from 'lucide-react';
+import { CalendarClock, Check, Sparkles, ExternalLink } from 'lucide-react';
 import { applicationStatusLabels, applicationStatusOrder, type PublicApplication } from './model';
 
 export function ApplicationStatusCard({ application }: { application: PublicApplication }) {
@@ -49,8 +50,7 @@ export function ApplicationStatusCard({ application }: { application: PublicAppl
       </div>
 
       {application.status === 'REJECTED' ? (
-        <div className="mt-6 flex items-start gap-3 rounded-2xl border border-status-error-text/30 bg-status-error-bg/15 p-4 text-xs font-semibold text-status-error-text">
-          <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
+        <FeedbackNotice className="mt-6">
           <div className="leading-5">
             {application.decisionReason ||
               'The administrator recorded a rejection. Review the reason before applying again.'}
@@ -59,7 +59,7 @@ export function ApplicationStatusCard({ application }: { application: PublicAppl
               including your first application.
             </p>
           </div>
-        </div>
+        </FeedbackNotice>
       ) : (
         /* Status Progression Stepper */
         <div className="mt-8">

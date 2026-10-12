@@ -1,4 +1,5 @@
 'use client';
+import FeedbackNotice from '@/components/shared/FeedbackNotice';
 
 import { useVisiblePolling } from '@/hooks/useVisiblePolling';
 import { useCallback, useEffect, useState } from 'react';
@@ -237,14 +238,7 @@ export default function MealVerificationPanel() {
               }
             >
               <ReviewDocumentPage page={1} title="Base meal verification" subtitle={selected.name}>
-                {error && (
-                  <div
-                    role="alert"
-                    className="rounded-xl border border-red-500/30 bg-red-950/20 p-3 text-xs text-red-400"
-                  >
-                    {error}
-                  </div>
-                )}
+                {error && <FeedbackNotice>{error}</FeedbackNotice>}
 
                 {selected.claimedByMe && (
                   <div className="flex items-center gap-2.5 rounded-xl border border-brand-green/20 bg-brand-green/10 p-3 text-xs text-brand-green">

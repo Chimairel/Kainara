@@ -1,10 +1,11 @@
 'use client';
+import FeedbackNotice from '@/components/shared/FeedbackNotice';
 
 import MealReviewQueue from './MealReviewQueue';
 import SharedLibraryCoverage from './SharedLibraryCoverage';
 
 import PortalPageHeader from '@/components/shared/PortalPageHeader';
-import { Soup, ShieldAlert } from 'lucide-react';
+import { Soup } from 'lucide-react';
 
 import LibraryRecipeDetail from './sections/LibraryRecipeDetail';
 import LibraryFilterSection from './sections/LibraryFilterSection';
@@ -70,13 +71,9 @@ export default function SharedMealLibraryWorkspace({
         <LibraryFilterSection model={model} />
 
         {(fetchError || detailError) && (
-          <div
-            role="alert"
-            className="flex items-center gap-2 rounded-2xl border border-status-error-text/25 bg-status-error-bg/10 p-4 text-sm font-semibold text-status-error-text"
-          >
-            <ShieldAlert className="h-4 w-4 shrink-0" aria-hidden="true" />
+          <FeedbackNotice>
             <span>{fetchError || detailError}</span>
-          </div>
+          </FeedbackNotice>
         )}
 
         {/* Main Meal Grid / Table */}

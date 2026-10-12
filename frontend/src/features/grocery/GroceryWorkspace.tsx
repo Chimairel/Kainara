@@ -1,11 +1,12 @@
 'use client';
+import FeedbackNotice from '@/components/shared/FeedbackNotice';
 
 import PreviousPlanPurchases from './PreviousPlanPurchases';
 import WorkspaceTabs from '@/components/ui/WorkspaceTabs';
 import GrocerySkeleton from '@/features/grocery/GrocerySkeleton';
 import PortalPageHeader from '@/components/shared/PortalPageHeader';
 import UnauthorizedState from '@/components/shared/UnauthorizedState';
-import { AlertTriangle } from 'lucide-react';
+
 import GroceryFiltersSection from './GroceryFiltersSection';
 import GroceryItemsSection from './GroceryItemsSection';
 import GroceryProgressSection from './GroceryProgressSection';
@@ -55,10 +56,9 @@ export default function GroceryWorkspace() {
       ) : null}
 
       {error && !error.toLowerCase().includes('nutrition report') ? (
-        <div className="p-4 rounded-xl bg-status-error-bg/10 border border-status-error-text/25 text-status-error-text text-sm font-semibold flex items-center gap-2 text-left mb-6">
-          <AlertTriangle className="w-4 h-4 text-status-error-text shrink-0" />
+        <FeedbackNotice className="mb-6">
           <span>{error}</span>
-        </div>
+        </FeedbackNotice>
       ) : null}
 
       {/* GROCERY CONTENT */}

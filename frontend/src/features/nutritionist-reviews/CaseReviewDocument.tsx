@@ -1,4 +1,5 @@
 'use client';
+import FeedbackNotice from '@/components/shared/FeedbackNotice';
 
 import { formatManilaDate } from '@/lib/manila-date';
 import RndQueueDocument, { ReviewDocumentPage } from './RndQueueDocument';
@@ -42,9 +43,9 @@ export default function CaseReviewDocument({ model }: { model: Model }) {
           <>
             {claimHeader}
             {errorMsg && !action && (
-              <p role="alert" className="max-w-sm rounded-xl border border-red-500/30 p-3 text-xs text-red-500">
+              <FeedbackNotice variant="inline" className="max-w-sm">
                 {errorMsg}
-              </p>
+              </FeedbackNotice>
             )}
           </>
         }
@@ -60,15 +61,15 @@ export default function CaseReviewDocument({ model }: { model: Model }) {
           subtitle={`${detailData.user.name} · ${formatManilaDate(meal.scheduledDate, { dateStyle: 'medium' })}`}
         >
           {meal.requiresSafetyRevalidation && (
-            <p role="status" className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+            <FeedbackNotice role="status" tone="warning">
               <strong>Profile or evidence changed.</strong> Check the current diet, allergies, conditions and portion
               target below. Previous automated triage is not current.
-            </p>
+            </FeedbackNotice>
           )}
           {detailData.highRiskReviewRequired && (
-            <p className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+            <FeedbackNotice tone="warning">
               Review the recorded health context before approving this meal.
-            </p>
+            </FeedbackNotice>
           )}
           <CaseProfileSection model={model} paper />
         </ReviewDocumentPage>

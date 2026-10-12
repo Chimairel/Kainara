@@ -1,4 +1,5 @@
 'use client';
+import FeedbackNotice from '@/components/shared/FeedbackNotice';
 
 import { formatManilaDate } from '@/lib/manila-date';
 
@@ -175,11 +176,7 @@ export default function WebsiteContentPage() {
           Reload content
         </Button>
       </div>
-      {error && (
-        <p role="alert" className="rounded-xl border border-red-400 p-4 text-sm text-red-500">
-          {error}
-        </p>
-      )}
+      {error && <FeedbackNotice variant="inline">{error}</FeedbackNotice>}
       {!content && !error && <p role="status">Loading website content…</p>}
       {content && (
         <div className="grid gap-6 lg:grid-cols-2">

@@ -1,4 +1,5 @@
 'use client';
+import FeedbackNotice from '@/components/shared/FeedbackNotice';
 
 import { useState } from 'react';
 import { WorkspaceListPane } from '@/components/shared/SplitWorkspace';
@@ -32,7 +33,7 @@ export default function CaseReviewQueue({ review, expanded }: Props) {
         description="Select a meal to preview its evidence. Claim it when ready to decide."
       />
       {queueError && (
-        <div role="alert" className="my-3 space-y-3 rounded-xl border border-amber-500/30 bg-brand-surface p-4 text-sm">
+        <FeedbackNotice tone="warning" role="alert" className="my-3">
           <p>{queueError}</p>
           {queue.length > 0 && (
             <p className="text-xs text-brand-muted">Showing the last loaded queue. Refresh before choosing new work.</p>
@@ -40,7 +41,7 @@ export default function CaseReviewQueue({ review, expanded }: Props) {
           <Button variant="secondary" size="sm" disabled={isLoading} onClick={() => void fetchQueue()}>
             Retry queue
           </Button>
-        </div>
+        </FeedbackNotice>
       )}
       {isLoading ? (
         <div className="min-h-0 flex-1 overflow-y-auto custom-scrollbar">

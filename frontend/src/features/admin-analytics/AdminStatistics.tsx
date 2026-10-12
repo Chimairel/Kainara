@@ -1,4 +1,5 @@
 'use client';
+import FeedbackNotice from '@/components/shared/FeedbackNotice';
 
 import { ShieldCheck, Cpu, BarChart3 } from 'lucide-react';
 
@@ -51,12 +52,9 @@ export default function AdminStatistics({
       </div>
 
       {error && (
-        <p
-          role="alert"
-          className="rounded-xl border border-status-warning-text/30 p-3 text-sm text-status-warning-text"
-        >
+        <FeedbackNotice variant="inline" tone="warning" role="alert">
           {error} Showing the last successful snapshot above.
-        </p>
+        </FeedbackNotice>
       )}
 
       {/* Analytics View Section Tabs */}

@@ -1,4 +1,5 @@
 'use client';
+import FeedbackNotice from '@/components/shared/FeedbackNotice';
 
 import { useId, useState } from 'react';
 import { ChevronDown, ChevronUp } from 'lucide-react';
@@ -153,9 +154,7 @@ function DetailPanel({
     <>
       {query.error && (
         <div className="flex flex-wrap items-center gap-3">
-          <p role="alert" className="text-xs text-status-error-text">
-            {query.error}
-          </p>
+          <FeedbackNotice variant="inline">{query.error}</FeedbackNotice>
           <Button variant="secondary" size="sm" className="!min-h-11" onClick={() => void query.refetch()}>
             Retry details
           </Button>

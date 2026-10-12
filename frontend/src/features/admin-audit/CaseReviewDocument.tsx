@@ -1,4 +1,5 @@
 'use client';
+import FeedbackNotice from '@/components/shared/FeedbackNotice';
 
 import { useState, type ReactNode } from 'react';
 import { Select } from '@/components/ui/Select';
@@ -160,11 +161,7 @@ export default function CaseReviewDocument({
             <div className="max-w-lg space-y-1 text-xs text-brand-muted">
               <p>Read-only admin oversight</p>
               {data.historicalInformation && <p>{data.historicalInformation}</p>}
-              {error && (
-                <p role="alert" className="text-status-error-text">
-                  {error}
-                </p>
-              )}
+              {error && <FeedbackNotice variant="inline">{error}</FeedbackNotice>}
             </div>
           }
         >

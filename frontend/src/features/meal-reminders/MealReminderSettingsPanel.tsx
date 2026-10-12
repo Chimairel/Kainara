@@ -1,4 +1,6 @@
 'use client';
+import FeedbackNotice from '@/components/shared/FeedbackNotice';
+
 import { useEffect, useState, useRef } from 'react';
 import ProfileSettingsSection from '@/components/user/ProfileSettingsSection';
 import Button from '@/components/ui/Button';
@@ -184,11 +186,7 @@ export default function MealReminderSettingsPanel() {
             {message}
           </p>
         )}
-        {error && (
-          <p role="alert" className="text-xs text-status-error-text">
-            {error}
-          </p>
-        )}
+        {error && <FeedbackNotice variant="inline">{error}</FeedbackNotice>}
       </form>
       <div className="mt-7">
         <DeviceNotificationsPanel />

@@ -1,4 +1,5 @@
 'use client';
+import FeedbackNotice from '@/components/shared/FeedbackNotice';
 
 import { useState, type FormEvent, type ReactNode } from 'react';
 import { useAuth } from '@/hooks/useAuth';
@@ -116,9 +117,9 @@ export default function FoodCatalogue({ source, readOnly = false, onChanged, onE
           {loading ? 'Loading records…' : result ? `${result.total.toLocaleString()} matching records` : ''}
         </p>
         {query.error && (
-          <p role="alert" className="mt-3 text-sm text-status-error-text">
+          <FeedbackNotice variant="inline" className="mt-3">
             {query.error}
-          </p>
+          </FeedbackNotice>
         )}
         {result && (
           <div className="mt-4">

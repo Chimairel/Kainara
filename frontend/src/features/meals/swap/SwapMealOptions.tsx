@@ -1,4 +1,5 @@
 'use client';
+import FeedbackNotice from '@/components/shared/FeedbackNotice';
 import Dropdown from '@/components/ui/Dropdown';
 import { dashboardMealCardClasses, DashboardMealPlate } from '@/components/user/DashboardMealCardSurface';
 import { formatMealTitle } from '@/lib/meal-title';
@@ -93,9 +94,7 @@ export default function SwapMealOptions({ model, calorieSortOnly = false }: Sect
               <span className="text-xs text-brand-muted font-semibold">Loading compatible replacement plates...</span>
             </div>
           ) : swapOptionsError ? (
-            <div className="p-3 bg-red-950/20 border border-red-900/60 rounded-xl text-xs text-red-400">
-              {swapOptionsError}
-            </div>
+            <FeedbackNotice>{swapOptionsError}</FeedbackNotice>
           ) : filteredAndSortedOptions.length === 0 ? (
             <div className="p-8 text-center border border-brand-border/40 bg-brand-surface/30 rounded-2xl">
               <Soup className="w-7 h-7 text-brand-green mx-auto mb-2 opacity-70" />

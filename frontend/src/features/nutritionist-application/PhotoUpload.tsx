@@ -1,8 +1,10 @@
 'use client';
+import FeedbackNotice from '@/components/shared/FeedbackNotice';
+
 /* eslint-disable @next/next/no-img-element -- Local data URL preview before upload. */
 
 import { useEffect, useRef, useState, type DragEvent, type ChangeEvent } from 'react';
-import { Camera, ImageUp, Trash2, RefreshCw, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { Camera, ImageUp, Trash2, RefreshCw, CheckCircle2 } from 'lucide-react';
 
 export function PhotoUpload({
   value,
@@ -184,10 +186,9 @@ export function PhotoUpload({
       )}
 
       {currentError && (
-        <div role="alert" className="flex items-center gap-2 text-xs font-medium text-status-error-text">
-          <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+        <FeedbackNotice>
           <span>{currentError}</span>
-        </div>
+        </FeedbackNotice>
       )}
     </div>
   );

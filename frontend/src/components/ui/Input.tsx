@@ -66,9 +66,9 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
           <span
             id={messageId}
             role="alert"
-            className="text-xs font-semibold text-status-error-text inline-flex items-center gap-1"
+            className="inline-flex items-start gap-1.5 text-[13px] font-medium leading-5 text-status-error-text"
           >
-            <AlertCircle className="w-3.5 h-3.5" />
+            <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
             <span>{error}</span>
           </span>
         ) : helperText ? (

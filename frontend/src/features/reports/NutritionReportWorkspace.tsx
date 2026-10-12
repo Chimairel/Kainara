@@ -1,4 +1,5 @@
 'use client';
+import FeedbackNotice from '@/components/shared/FeedbackNotice';
 
 import { useVisiblePolling } from '@/hooks/useVisiblePolling';
 import ReportHistory, { type ReportVersion } from '@/features/reports/ReportHistory';
@@ -382,9 +383,9 @@ export default function NutritionReportPage() {
             guidance is hidden so it cannot conflict with your current health profile.
           </p>
           {error && (
-            <p role="alert" className="mt-4 text-xs font-semibold text-status-error-text">
+            <FeedbackNotice variant="inline" className="mt-4">
               {error}
-            </p>
+            </FeedbackNotice>
           )}
           <Button variant="primary" onClick={handleRegenerate} isLoading={isRegenerating} className="mt-6 w-full">
             Prepare updated guidance
@@ -420,11 +421,7 @@ export default function NutritionReportPage() {
                 Continue to my saved records
               </Link>
             )}
-            {error && (
-              <p role="alert" className="text-status-error-text">
-                {error}
-              </p>
-            )}
+            {error && <FeedbackNotice variant="inline">{error}</FeedbackNotice>}
           </div>
         </Modal>
         <NutritionGuidanceDocument
@@ -456,9 +453,9 @@ export default function NutritionReportPage() {
           This report uses an older format. Prepare a current, source-linked version before continuing.
         </p>
         {error && (
-          <p role="alert" className="mt-3 text-red-700">
+          <FeedbackNotice variant="inline" className="mt-3">
             {error}
-          </p>
+          </FeedbackNotice>
         )}
         <button
           type="button"

@@ -1,4 +1,6 @@
 'use client';
+import FeedbackNotice from '@/components/shared/FeedbackNotice';
+
 import { useEffect, useState, useRef } from 'react';
 import Button from '@/components/ui/Button';
 import { useAuth } from '@/hooks/useAuth';
@@ -191,11 +193,7 @@ export default function DeviceNotificationsPanel() {
           {message}
         </p>
       )}
-      {error && (
-        <p role="alert" className="text-xs text-status-error-text">
-          {error}
-        </p>
-      )}
+      {error && <FeedbackNotice variant="inline">{error}</FeedbackNotice>}
     </section>
   );
 }

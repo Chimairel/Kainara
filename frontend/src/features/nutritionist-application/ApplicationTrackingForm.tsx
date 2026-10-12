@@ -1,5 +1,6 @@
+import FeedbackNotice from '@/components/shared/FeedbackNotice';
 import type { FormEvent } from 'react';
-import { Search, CheckCircle2 } from 'lucide-react';
+import { Search } from 'lucide-react';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 
@@ -32,15 +33,9 @@ export function ApplicationTrackingForm(props: Props) {
       </p>
 
       {props.error && (
-        <div
-          role="alert"
-          className="mt-6 flex items-start gap-3 rounded-2xl border border-status-error-text/30 bg-status-error-bg/15 p-4 text-xs font-semibold text-status-error-text"
-        >
-          <div className="mt-0.5 rounded-full bg-status-error-text/20 p-1">
-            <CheckCircle2 className="h-3.5 w-3.5 rotate-45" />
-          </div>
+        <FeedbackNotice className="mt-6">
           <div className="flex-1 leading-5">{props.error}</div>
-        </div>
+        </FeedbackNotice>
       )}
 
       <div className="mt-7 space-y-4">

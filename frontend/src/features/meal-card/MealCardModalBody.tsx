@@ -1,6 +1,7 @@
 'use client';
+import FeedbackNotice from '@/components/shared/FeedbackNotice';
 
-import { AlertCircle, Clock3, Flame, Info, ShieldCheck, Sparkles, UtensilsCrossed } from 'lucide-react';
+import { Flame, Info, ShieldCheck, Sparkles, UtensilsCrossed } from 'lucide-react';
 import { MealMotionDiv } from '../../components/user/MealMotion';
 
 import MealReviewAttribution from '@/components/user/MealReviewAttribution';
@@ -82,16 +83,14 @@ export default function MealCardModalBody({ model }: SectionProps) {
         />
         {/* Notice Banners */}
         {isUnloggedPastMeal && !isPastGracePeriod && (
-          <div className="p-3 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-xs text-amber-700 dark:text-amber-300 font-semibold flex items-center gap-2">
-            <Clock3 className="h-4 w-4 shrink-0" />
+          <FeedbackNotice tone="warning">
             <span>Missed this meal? You can still catch up and record whether you ate or skipped it.</span>
-          </div>
+          </FeedbackNotice>
         )}
         {isPastGracePeriod && (
-          <div className="p-3 rounded-2xl bg-red-500/10 border border-red-500/20 text-xs text-red-600 dark:text-red-400 font-semibold flex items-center gap-2">
-            <AlertCircle className="h-4 w-4 shrink-0" />
+          <FeedbackNotice>
             <span>The 7-day logging grace period for this scheduled meal has passed.</span>
-          </div>
+          </FeedbackNotice>
         )}
         {isFutureDate && (
           <p className="rounded-2xl border border-brand-border/60 bg-brand-bgAlt/40 p-3 text-xs text-brand-muted">
@@ -283,13 +282,12 @@ export default function MealCardModalBody({ model }: SectionProps) {
 
         {/* Clinical Warning Banner (Legal layer 3 & 4) */}
         {status === 'PENDING_REVIEW' && (
-          <div className="p-3.5 rounded-2xl bg-status-pending-bg/10 border border-status-pending-text/30 text-status-pending-text text-xs font-semibold leading-relaxed flex items-start gap-2.5">
-            <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
+          <FeedbackNotice tone="warning">
             <span>
               <strong>AI Estimation Warning</strong>: This plan is still pending verification by a licensed Registered
               RND. Use with caution.
             </span>
-          </div>
+          </FeedbackNotice>
         )}
       </MealMotionDiv>
     </>

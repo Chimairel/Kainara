@@ -1,4 +1,5 @@
 'use client';
+import FeedbackNotice from '@/components/shared/FeedbackNotice';
 
 import React, { useMemo, useState } from 'react';
 import type { NutritionReport } from '@/types';
@@ -168,14 +169,7 @@ export default function NutritionGuidanceDocument({
         />
 
         {/* Error Message */}
-        {error && (
-          <div
-            role="alert"
-            className="mx-auto w-full max-w-4xl mb-2 border-l-4 border-red-600 bg-red-50 dark:bg-red-950/40 p-3.5 text-sm text-red-800 dark:text-red-200 rounded-r-lg print:hidden"
-          >
-            {error}
-          </div>
-        )}
+        {error && <FeedbackNotice className="mx-auto w-full max-w-4xl mb-2">{error}</FeedbackNotice>}
 
         {/* Unchanged Check-in Confirmation Notice */}
         {report.confirmationKind === 'UNCHANGED_CHECKIN' && (

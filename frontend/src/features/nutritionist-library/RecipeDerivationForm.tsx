@@ -1,4 +1,5 @@
 'use client';
+import FeedbackNotice from '@/components/shared/FeedbackNotice';
 
 import Dropdown from '@/components/ui/Dropdown';
 import { useEffect, useRef, useState } from 'react';
@@ -323,11 +324,7 @@ export default function RecipeDerivationForm({
               maxLength={1000}
             />
           </label>
-          {error && (
-            <p role="alert" className="text-status-error-text">
-              {error}
-            </p>
-          )}
+          {error && <FeedbackNotice variant="inline">{error}</FeedbackNotice>}
           <Button
             onClick={() => void submit()}
             isLoading={busy}

@@ -1,4 +1,5 @@
 'use client';
+import FeedbackNotice from '@/components/shared/FeedbackNotice';
 
 import { useEffect, useRef, useState } from 'react';
 import Button from '@/components/ui/Button';
@@ -152,11 +153,7 @@ export default function MobileInstallPrompt() {
             : 'Open your browser’s menu (⋮) and choose “Install app” or “Add to Home Screen”.'}
       </p>
       <p className="text-brand-muted">An internet connection is needed to use your account.</p>
-      {error && (
-        <p role="alert" className="text-status-error-text">
-          {error}
-        </p>
-      )}
+      {error && <FeedbackNotice variant="inline">{error}</FeedbackNotice>}
       <div className="flex flex-wrap items-center gap-2">
         {canInstall && (
           <Button type="button" size="sm" isLoading={isInstalling} onClick={() => void install()}>

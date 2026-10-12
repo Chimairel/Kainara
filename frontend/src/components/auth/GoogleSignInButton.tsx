@@ -1,4 +1,5 @@
 'use client';
+import FeedbackNotice from '@/components/shared/FeedbackNotice';
 
 import React, { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
@@ -6,7 +7,7 @@ import { isAxiosError } from 'axios';
 import { useAuth } from '@/hooks/useAuth';
 import api from '@/lib/axios';
 import { getApiErrorCode, getApiErrorMessage } from '@/lib/api-error';
-import { AlertTriangle } from 'lucide-react';
+
 import FloatingNotice from '@/components/shared/FloatingNotice';
 import Button from '@/components/ui/Button';
 import { useGoogleSignInRecovery } from './useGoogleSignInRecovery';
@@ -169,9 +170,8 @@ export default function GoogleSignInButton({ disabled = false, onCredential }: G
   return (
     <div className="w-full max-w-[400px] flex flex-col items-center gap-2">
       {error && (
-        <div className="w-full rounded-xl border border-status-error-text/25 bg-status-error-bg/10 p-3 text-xs font-semibold text-status-error-text">
+        <FeedbackNotice className="w-full">
           <div className="flex items-center gap-2">
-            <AlertTriangle className="h-4 w-4 shrink-0 text-status-error-text" />
             <span>{error}</span>
           </div>
           {recoveryLink ? (
@@ -179,7 +179,7 @@ export default function GoogleSignInButton({ disabled = false, onCredential }: G
               {recoveryLink.label}
             </Link>
           ) : null}
-        </div>
+        </FeedbackNotice>
       )}
       {recovery.embeddedBrowser ? (
         <div

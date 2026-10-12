@@ -1,4 +1,6 @@
 'use client';
+import FeedbackNotice from '@/components/shared/FeedbackNotice';
+
 import { useRef, useState } from 'react';
 import api from '@/lib/axios';
 import { useAuth } from '@/hooks/useAuth';
@@ -72,7 +74,7 @@ export function useNutritionistProfilePageModel() {
         <NutritionistProfileSkeleton />
       ) : (
         <div className="portal-page space-y-4">
-          <p role="alert">{query.error ?? 'Your professional profile is unavailable.'}</p>
+          <FeedbackNotice variant="inline">{query.error ?? 'Your professional profile is unavailable.'}</FeedbackNotice>
           <Button variant="secondary" onClick={() => void query.refetch()}>
             Retry professional profile
           </Button>

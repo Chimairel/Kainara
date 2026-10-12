@@ -1,4 +1,5 @@
 'use client';
+import FeedbackNotice from '@/components/shared/FeedbackNotice';
 
 import Dropdown from '@/components/ui/Dropdown';
 import { useSessionQuery } from '@/hooks/useSessionQuery';
@@ -286,19 +287,8 @@ export default function AdminMealsPage({ active = true }: { active?: boolean }) 
         title="Author meal drafts"
         description="Add complete recipes to expand the candidate library. Admin-entered nutrition is unreviewed; only an RND can certify reusable safety evidence."
       />
-      {query.error && (
-        <p role="alert" className="text-sm text-status-error-text">
-          {query.error}
-        </p>
-      )}
-      {notice && (
-        <div
-          role={notice.kind === 'error' ? 'alert' : 'status'}
-          className={`rounded-xl border p-4 text-sm ${notice.kind === 'error' ? 'border-status-error-text/40 text-status-error-text' : 'border-brand-green/40 text-brand-green'}`}
-        >
-          {notice.text}
-        </div>
-      )}
+      {query.error && <FeedbackNotice variant="inline">{query.error}</FeedbackNotice>}
+      {notice && <FeedbackNotice tone={notice.kind === 'error' ? 'error' : 'success'}>{notice.text}</FeedbackNotice>}
 
       <form onSubmit={(event) => void submit(event)} className="space-y-5">
         <Card className="space-y-4 p-5">

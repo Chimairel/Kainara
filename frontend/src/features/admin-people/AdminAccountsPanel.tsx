@@ -1,4 +1,5 @@
 'use client';
+import FeedbackNotice from '@/components/shared/FeedbackNotice';
 
 import { formatManilaDate } from '@/lib/manila-date';
 
@@ -150,14 +151,7 @@ export default function AdminUsersPage({ active = true }: { active?: boolean }) 
         </button>
       </form>
 
-      {error && (
-        <p
-          role="alert"
-          className="rounded-2xl border border-status-error-text/25 bg-status-error-bg/10 p-4 text-sm font-semibold text-status-error-text"
-        >
-          {error}
-        </p>
-      )}
+      {error && <FeedbackNotice variant="inline">{error}</FeedbackNotice>}
 
       {isLoading ? (
         <div className="py-16 text-center">

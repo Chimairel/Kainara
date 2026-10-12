@@ -1,4 +1,5 @@
 'use client';
+import FeedbackNotice from '@/components/shared/FeedbackNotice';
 
 import { Suspense, useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
@@ -82,14 +83,14 @@ function CheckoutResult() {
           Test mode · No real money was charged. This purchase does not renew automatically.
         </p>
         {!id && (
-          <p role="alert" className="mt-3">
+          <FeedbackNotice variant="inline" className="mt-3">
             No checkout reference was supplied.
-          </p>
+          </FeedbackNotice>
         )}
         {error && (
-          <p role="alert" className="mt-3 text-status-error-text">
+          <FeedbackNotice variant="inline" className="mt-3">
             {error}
-          </p>
+          </FeedbackNotice>
         )}
         {data?.status === 'PAID' ? (
           <div className="mt-4 space-y-2 text-sm">

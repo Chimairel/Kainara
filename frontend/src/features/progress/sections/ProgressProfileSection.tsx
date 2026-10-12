@@ -1,4 +1,5 @@
 'use client';
+import FeedbackNotice from '@/components/shared/FeedbackNotice';
 
 import Button from '@/components/ui/Button';
 
@@ -14,7 +15,7 @@ import {
 import ProfileSettingsSection from '@/components/user/ProfileSettingsSection';
 import Input from '@/components/ui/Input';
 
-import { CheckCircle, AlertTriangle } from 'lucide-react';
+import { CheckCircle } from 'lucide-react';
 import { Select } from '@/components/ui/Select';
 
 import type { useProgressWorkspaceModel } from './useProgressWorkspaceModel';
@@ -91,10 +92,9 @@ export default function ProgressProfileSection({ model }: SectionProps) {
       )}
 
       {biometricsError && (
-        <div className="p-3.5 rounded-xl bg-status-error-bg/10 border border-status-error-text/25 text-status-error-text text-xs font-bold mb-4 flex items-center gap-2">
-          <AlertTriangle className="w-4 h-4 text-status-error-text shrink-0" />
+        <FeedbackNotice className="mb-4">
           <span>{biometricsError}</span>
-        </div>
+        </FeedbackNotice>
       )}
 
       <form onSubmit={handleBiometricsSubmit} className="flex flex-col gap-5">

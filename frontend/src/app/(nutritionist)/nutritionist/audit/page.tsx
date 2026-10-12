@@ -1,4 +1,5 @@
 'use client';
+import FeedbackNotice from '@/components/shared/FeedbackNotice';
 
 import { useState } from 'react';
 import Link from 'next/link';
@@ -96,11 +97,7 @@ export default function NutritionistAuditPage() {
                 </Button>
               </div>
             </div>
-            {history.error && (
-              <p role="alert" className="p-4 text-sm text-status-error-text">
-                {history.error}
-              </p>
-            )}
+            {history.error && <FeedbackNotice variant="inline">{history.error}</FeedbackNotice>}
             {history.isLoading && !history.data && (
               <p role="status" className="p-6 text-sm text-brand-muted">
                 Loading activity...

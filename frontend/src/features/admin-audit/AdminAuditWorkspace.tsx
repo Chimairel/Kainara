@@ -1,4 +1,5 @@
 'use client';
+import FeedbackNotice from '@/components/shared/FeedbackNotice';
 
 import WorkspaceTabs from '@/components/ui/WorkspaceTabs';
 import Dropdown from '@/components/ui/Dropdown';
@@ -263,9 +264,9 @@ export default function AdminAuditWorkspace() {
                 </Button>
               </div>
               {!validDates && (
-                <p role="alert" className="mt-2 text-sm text-status-error-text">
+                <FeedbackNotice variant="inline" className="mt-2">
                   The end date must be on or after the start date.
-                </p>
+                </FeedbackNotice>
               )}
             </section>
           )}
@@ -282,11 +283,7 @@ export default function AdminAuditWorkspace() {
             related ? 'Related activity' : view === 'admin' ? 'Admin activity records' : 'RND history records'
           }
         >
-          {current.error && (
-            <p role="alert" className="p-4 text-sm text-status-error-text">
-              {current.error}
-            </p>
-          )}
+          {current.error && <FeedbackNotice variant="inline">{current.error}</FeedbackNotice>}
           {current.isLoading && !current.data && (
             <p role="status" className="p-6 text-sm text-brand-muted">
               Loading activity...

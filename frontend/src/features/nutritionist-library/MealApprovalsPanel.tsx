@@ -1,4 +1,5 @@
 'use client';
+import FeedbackNotice from '@/components/shared/FeedbackNotice';
 
 import { formatManilaDate } from '@/lib/manila-date';
 
@@ -262,11 +263,7 @@ export function MealApprovalsPanel({ mealId }: { mealId: string }) {
             · {currentApproval.status.replaceAll('_', ' ')}
           </p>
         </div>
-        {error && (
-          <p role="alert" className="rounded-xl border border-red-500/40 p-3 text-red-300">
-            {error}
-          </p>
-        )}
+        {error && <FeedbackNotice variant="inline">{error}</FeedbackNotice>}
         {detailLoading && <p className="text-brand-muted">Loading approval case...</p>}
         {caseDetails && (
           <>
@@ -561,11 +558,7 @@ export function MealApprovalsPanel({ mealId }: { mealId: string }) {
         </label>
       </div>
       <div className="space-y-4">
-        {error && (
-          <p role="alert" className="rounded-xl border border-red-500/40 p-3 text-red-300">
-            {error}
-          </p>
-        )}
+        {error && <FeedbackNotice variant="inline">{error}</FeedbackNotice>}
         {loading ? (
           <p className="text-brand-muted">Loading approvals...</p>
         ) : filteredVariants.every((variant) => variant.approvals.length === 0) ? (

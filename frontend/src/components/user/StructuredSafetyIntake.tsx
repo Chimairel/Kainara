@@ -1,7 +1,8 @@
 'use client';
+import FeedbackNotice from '@/components/shared/FeedbackNotice';
 
 import React, { useEffect, useMemo, useState } from 'react';
-import { AlertTriangle, Check, Plus, X, ShieldAlert, Activity, Ban, Stethoscope } from 'lucide-react';
+import { Check, Plus, X, ShieldAlert, Activity, Ban, Stethoscope } from 'lucide-react';
 import api from '@/lib/axios';
 import Button from '@/components/ui/Button';
 import WorkspaceTabs from '@/components/ui/WorkspaceTabs';
@@ -500,14 +501,7 @@ export default function StructuredSafetyIntake({
         </div>
       )}
 
-      {error && (
-        <div
-          role="alert"
-          className="rounded-xl border border-status-error-text/30 bg-status-error-bg/10 p-3 text-xs font-semibold text-status-error-text"
-        >
-          {error}
-        </div>
-      )}
+      {error && <FeedbackNotice>{error}</FeedbackNotice>}
 
       {/* Action Button: Direct Save and Continue */}
       <div className={`flex flex-col sm:flex-row pt-2 ${presentation === 'profile' ? '' : 'sm:justify-end'}`}>
@@ -589,13 +583,12 @@ export default function StructuredSafetyIntake({
           </div>
 
           {preview?.requiresReview && (
-            <div className="flex gap-2 rounded-xl border border-status-pending-text/30 bg-status-pending-bg/10 p-3 text-xs text-status-pending-text">
-              <AlertTriangle className="h-4 w-4 shrink-0" />
+            <FeedbackNotice tone="warning">
               <span>
                 Some entries require individual review. They will remain active and will route automatic compatibility
                 to RND review.
               </span>
-            </div>
+            </FeedbackNotice>
           )}
 
           {/* Mandatory Checkbox */}

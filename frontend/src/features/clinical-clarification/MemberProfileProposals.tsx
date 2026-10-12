@@ -1,4 +1,6 @@
 'use client';
+import FeedbackNotice from '@/components/shared/FeedbackNotice';
+
 import { useRef, useState } from 'react';
 import api from '@/lib/axios';
 import { getApiErrorMessage } from '@/lib/api-error';
@@ -62,9 +64,7 @@ export default function MemberProfileProposals({
   return (
     <section className="space-y-4" aria-label="RND profile corrections">
       {error && (needsRefresh || selectedId === undefined || selectedId === feedbackId) && (
-        <p role="alert" className="text-sm text-status-error-text">
-          {error}
-        </p>
+        <FeedbackNotice variant="inline">{error}</FeedbackNotice>
       )}
       {savedDecision && (selectedId === undefined || selectedId === feedbackId) && (
         <p role="status" className="text-sm text-brand-green">

@@ -1,4 +1,6 @@
 'use client';
+import FeedbackNotice from '@/components/shared/FeedbackNotice';
+
 import { useEffect, useRef, useState } from 'react';
 import api from '@/lib/axios';
 import Button from '@/components/ui/Button';
@@ -59,11 +61,7 @@ export default function CaseReviewContext({ auditId, ownerId }: { auditId: strin
           Open related review details
         </Button>
       )}
-      {error && !data && (
-        <p role="alert" className="text-xs text-status-error-text">
-          {error}
-        </p>
-      )}
+      {error && !data && <FeedbackNotice variant="inline">{error}</FeedbackNotice>}
       {data && (
         <>
           <CaseReviewDocument

@@ -1,4 +1,5 @@
 'use client';
+import FeedbackNotice from '@/components/shared/FeedbackNotice';
 
 import { useState } from 'react';
 import HeaderRefreshAction from '@/components/shared/HeaderRefreshAction';
@@ -83,9 +84,7 @@ export default function SubscriptionHistoryCard({
       </header>
       {query.error && (
         <div className="space-y-2">
-          <p role="alert" className="text-sm text-status-error-text">
-            {query.error}
-          </p>
+          <FeedbackNotice variant="inline">{query.error}</FeedbackNotice>
           <Button variant="secondary" size="sm" onClick={() => void query.refetch()}>
             Retry history
           </Button>

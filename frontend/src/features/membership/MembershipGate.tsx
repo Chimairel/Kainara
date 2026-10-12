@@ -1,4 +1,5 @@
 'use client';
+import FeedbackNotice from '@/components/shared/FeedbackNotice';
 
 import Link from 'next/link';
 import type { ReactNode } from 'react';
@@ -19,14 +20,12 @@ export default function MembershipGate({ children, benefit }: { children: ReactN
   if (error && !data)
     return (
       <div className="portal-page max-w-4xl mx-auto py-8">
-        <div className="rounded-2xl border border-status-error-text/30 bg-status-error-bg/20 p-5 text-status-error-text">
-          <p role="alert" className="text-sm font-semibold">
-            {error}
-          </p>
+        <FeedbackNotice>
+          <p className="text-sm">{error}</p>
           <Button onClick={refresh} variant="secondary" className="mt-4 text-xs">
             Retry
           </Button>
-        </div>
+        </FeedbackNotice>
       </div>
     );
 

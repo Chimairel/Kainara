@@ -110,7 +110,12 @@ export default function LoginPage() {
           Your account and health data were deleted.
         </div>
       ) : null}
-      <AuthFormPrelude error={error}>
+      <AuthFormPrelude
+        error={
+          error === 'Invalid email or password credentials.' ? 'Check your email and password, then try again.' : error
+        }
+        errorTitle="Couldn't sign in"
+      >
         <HydratedForm onSubmit={handleSubmit} className="flex flex-col gap-4" noValidate>
           <Input
             id="email"

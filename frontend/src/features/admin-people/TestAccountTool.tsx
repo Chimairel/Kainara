@@ -1,4 +1,5 @@
 'use client';
+import FeedbackNotice from '@/components/shared/FeedbackNotice';
 
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
@@ -90,11 +91,7 @@ export default function TestAccountTool({ active, onCreated }: { active: boolean
         }
       >
         <div className="space-y-4">
-          {tool.error && (
-            <p role="alert" className="text-status-error-text">
-              {tool.error}
-            </p>
-          )}
+          {tool.error && <FeedbackNotice variant="inline">{tool.error}</FeedbackNotice>}
           {!result && (
             <>
               <p className="text-xs text-brand-muted">
