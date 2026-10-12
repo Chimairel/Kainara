@@ -14,7 +14,7 @@ import {
   CheckCheck,
   Volume2,
   VolumeX,
-} from 'lucide-react';
+} from '@/components/ui/icons';
 import { formatBadgeCount } from '@/lib/badge-count';
 import Modal from '@/components/ui/Modal';
 import DeviceNotificationsPanel from '@/features/meal-reminders/DeviceNotificationsPanel';

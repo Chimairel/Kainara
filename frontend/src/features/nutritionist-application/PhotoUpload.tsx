@@ -4,7 +4,7 @@ import FeedbackNotice from '@/components/shared/FeedbackNotice';
 /* eslint-disable @next/next/no-img-element -- Local data URL preview before upload. */
 
 import { useEffect, useRef, useState, type DragEvent, type ChangeEvent } from 'react';
-import { Camera, ImageUp, Trash2, RefreshCw, CheckCircle2 } from 'lucide-react';
+import { Camera, ImageUp, Trash2, RefreshCw, CheckCircle2 } from '@/components/ui/icons';
 
 export function PhotoUpload({
   value,

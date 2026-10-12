@@ -3,7 +3,7 @@
 import Link from 'next/link';
 
 import { motion } from 'motion/react';
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight } from '@/components/ui/icons';
 
 import type { useLandingHomeModel } from './useLandingHomeModel';
 type Model = Extract<ReturnType<typeof useLandingHomeModel>, { kind: 'ready' }>;

@@ -4,7 +4,7 @@ import { usePageLoading } from '@/lib/page-loading';
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { ClipboardList } from 'lucide-react';
+import { ClipboardList } from '@/components/ui/icons';
 import api from '@/lib/axios';
 import PortalPageHeader from '@/components/shared/PortalPageHeader';
 import ReportHistory, { type ReportVersion } from './ReportHistory';

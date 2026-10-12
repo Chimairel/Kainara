@@ -7,7 +7,7 @@ import {
   Stethoscope,
   Video,
   WandSparkles,
-} from 'lucide-react';
+} from '@/components/ui/icons';
 
 export const evidenceSliderSources = [
   {

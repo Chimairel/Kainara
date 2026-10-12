@@ -3,7 +3,7 @@ import FeedbackNotice from '@/components/shared/FeedbackNotice';
 
 import Button from '@/components/ui/Button';
 
-import { CheckCircle2 } from 'lucide-react';
+import { CheckCircle2 } from '@/components/ui/icons';
 import { SPECIALIZATION_SUGGESTIONS } from './NutritionistProfilePage.shared';
 import type { useNutritionistProfilePageModel } from './useNutritionistProfilePageModel';
 type Model = Extract<ReturnType<typeof useNutritionistProfilePageModel>, { kind: 'ready' }>;

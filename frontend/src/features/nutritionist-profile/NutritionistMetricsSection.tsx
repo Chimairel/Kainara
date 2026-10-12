@@ -2,7 +2,7 @@
 
 import { useCredentialStatus } from '@/features/nutritionist-license/NutritionistCredentialGate';
 
-import { ShieldCheck, Award, Calendar, GraduationCap, Copy } from 'lucide-react';
+import { ShieldCheck, Award, Calendar, GraduationCap, Copy } from '@/components/ui/icons';
 
 import type { useNutritionistProfilePageModel } from './useNutritionistProfilePageModel';
 type Model = Extract<ReturnType<typeof useNutritionistProfilePageModel>, { kind: 'ready' }>;

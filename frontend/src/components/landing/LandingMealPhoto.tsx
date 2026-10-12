@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Image from 'next/image';
-import { Utensils } from 'lucide-react';
+import { Utensils } from '@/components/ui/icons';
 
 /** Decorative recipe photos always retain a local, neutral surface while unavailable. */
 export default function LandingMealPhoto({

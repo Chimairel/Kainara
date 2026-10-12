@@ -10,7 +10,7 @@ import ProgressSkeleton from '@/features/progress/ProgressSkeleton';
 import PortalPageHeader from '@/components/shared/PortalPageHeader';
 import AnnouncementBanner from '@/components/shared/AnnouncementBanner';
 
-import { TrendingUp, Plus, CheckCircle, Heart, Settings, Activity, ClipboardList } from 'lucide-react';
+import { TrendingUp, Plus, CheckCircle, Heart, Settings, Activity, ClipboardList } from '@/components/ui/icons';
 
 import { type ProgressWorkspaceMode } from '@/features/progress/useProgressWorkspace';
 

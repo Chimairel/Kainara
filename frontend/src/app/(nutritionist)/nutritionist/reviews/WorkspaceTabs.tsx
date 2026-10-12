@@ -1,4 +1,4 @@
-import { UtensilsCrossed, ShieldCheck, UserCheck } from 'lucide-react';
+import { UtensilsCrossed, ShieldCheck, UserCheck } from '@/components/ui/icons';
 import { formatBadgeCount } from '@/lib/badge-count';
 import type { ReviewWorkCounts } from '@/features/nutritionist-reviews/useReviewWorkCounts';
 import SharedWorkspaceTabs from '@/components/ui/WorkspaceTabs';

@@ -2,7 +2,7 @@
 
 import Image from 'next/image';
 import React, { useState } from 'react';
-import { Apple, Coffee, Egg, ExternalLink, Fish, Flame, Salad, Soup, UtensilsCrossed } from 'lucide-react';
+import { Apple, Coffee, Egg, ExternalLink, Fish, Flame, Salad, Soup, UtensilsCrossed } from '@/components/ui/icons';
 import type { MealType, PublicMealImage } from '@/types';
 import { formatMealTitle } from '@/lib/meal-title';
 import { reviewedMealImages } from './reviewed-meal-images';

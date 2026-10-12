@@ -12,7 +12,7 @@ import api from '@/lib/axios';
 import PortalLoadingState from '@/components/shared/PortalLoadingState';
 import UnauthorizedState from '@/components/shared/UnauthorizedState';
 import Button from '@/components/ui/Button';
-import { AlertTriangle, ArrowLeft, Ban, CheckCircle, Download, GlassWater } from 'lucide-react';
+import { AlertTriangle, ArrowLeft, Ban, CheckCircle, Download, GlassWater } from '@/components/ui/icons';
 import { getApiErrorMessage } from '@/lib/api-error';
 import { hasSameRestrictionContext, normalizeRestrictionContext } from '@/lib/restriction-context';
 

@@ -1,14 +1,14 @@
 import type { ReactNode } from 'react';
-import type { LucideIcon } from 'lucide-react';
+import type { AppIcon } from '@/components/ui/icons';
 import Link from 'next/link';
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight } from '@/components/ui/icons';
 import Card from '@/components/ui/Card';
 
 export interface WorkspaceMetric {
   label: string;
   value: ReactNode;
   detail: string;
-  icon: LucideIcon;
+  icon: AppIcon;
   href?: string;
 }
 

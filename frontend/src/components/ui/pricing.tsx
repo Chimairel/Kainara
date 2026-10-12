@@ -8,7 +8,7 @@ import { TimelineContent } from '@/components/ui/timeline-animation';
 import { VerticalCutReveal } from '@/components/ui/vertical-cut-reveal';
 import { cn } from '@/lib/utils';
 import NumberFlow from '@number-flow/react';
-import { CheckCheck, X } from 'lucide-react';
+import { CheckCheck, X } from '@/components/ui/icons';
 import { motion, type Variants } from 'motion/react';
 import type { MembershipView } from '@/features/membership/MembershipProvider';
 import { useMembershipCheckout } from '@/features/membership/useMembershipCheckout';

@@ -3,7 +3,7 @@
 import type { ReactNode } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import type { LucideIcon } from 'lucide-react';
+import type { AppIcon } from '@/components/ui/icons';
 import RouteGuard from '@/components/shared/RouteGuard';
 import Sidebar from '@/components/ui/Sidebar';
 import Navbar from '@/components/shared/Navbar';
@@ -11,7 +11,7 @@ import Navbar from '@/components/shared/Navbar';
 export interface PortalMobileNavItem {
   href: string;
   label: string;
-  icon: LucideIcon;
+  icon: AppIcon;
 }
 
 export default function PortalRoleLayout({

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { forwardRef, useCallback, useLayoutEffect, useRef, useState } from 'react';
-import { Eye, EyeOff } from 'lucide-react';
+import { Eye, EyeOff } from '@/components/ui/icons';
 import Input from './Input';
 
 type PasswordInputProps = Omit<React.ComponentPropsWithoutRef<typeof Input>, 'type'>;

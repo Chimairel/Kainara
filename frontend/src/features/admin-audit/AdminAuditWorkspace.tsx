@@ -4,7 +4,7 @@ import FeedbackNotice from '@/components/shared/FeedbackNotice';
 import WorkspaceTabs from '@/components/ui/WorkspaceTabs';
 import Dropdown from '@/components/ui/Dropdown';
 import { useEffect, useState } from 'react';
-import { ScrollText, ArrowLeft } from 'lucide-react';
+import { ScrollText, ArrowLeft } from '@/components/ui/icons';
 import HeaderRefreshAction from '@/components/shared/HeaderRefreshAction';
 import { useAuth } from '@/hooks/useAuth';
 import { useSessionQuery } from '@/hooks/useSessionQuery';

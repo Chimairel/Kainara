@@ -1,6 +1,6 @@
 'use client';
 
-import { Check, FileText, Loader2, Save } from 'lucide-react';
+import { Check, FileText, Loader2, Save } from '@/components/ui/icons';
 
 import type { useMealHistoryCardModel } from './useMealHistoryCardModel';
 type Model = Extract<ReturnType<typeof useMealHistoryCardModel>, { kind: 'ready' }>;

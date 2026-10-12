@@ -15,7 +15,7 @@ vi.mock('./useRecipeCatalog', () => ({
 function workspace() {
   const meals = Array.from({ length: 6 }, (_, index) => ({
     id: `library-${index}`,
-    mealName: `Compatible recipe ${index}`,
+    mealName: `Compatible meal ${index}`,
     mealType: 'LUNCH',
     calories: 400,
     proteinG: 20,
@@ -46,7 +46,7 @@ it('keeps the current compatible page until the next cursor batch arrives', asyn
   const { rerender } = render(<MealLibraryPanel workspace={state} />);
   fireEvent.click(screen.getByRole('button', { name: 'Go to page 2' }));
   expect(state.loadMoreLibrary).toHaveBeenCalledOnce();
-  expect(screen.getByRole('heading', { name: 'Compatible recipe 0' })).toBeInTheDocument();
+  expect(screen.getByRole('heading', { name: 'Compatible meal 0' })).toBeInTheDocument();
   rerender(
     <MealLibraryPanel
       workspace={{
@@ -60,13 +60,13 @@ it('keeps the current compatible page until the next cursor batch arrives', asyn
     />
   );
   await waitFor(() => expect(screen.getByRole('heading', { name: 'Next compatible meal' })).toBeInTheDocument());
-  expect(screen.queryByRole('heading', { name: 'Compatible recipe 0' })).not.toBeInTheDocument();
+  expect(screen.queryByRole('heading', { name: 'Compatible meal 0' })).not.toBeInTheDocument();
 });
 it('does not advance to an empty page when cursor loading fails', () => {
   const state = workspace();
   const { rerender } = render(<MealLibraryPanel workspace={state} />);
   fireEvent.click(screen.getByRole('button', { name: 'Next' }));
   rerender(<MealLibraryPanel workspace={{ ...state, libraryError: 'Could not load compatible recipes' }} />);
-  expect(screen.getByRole('heading', { name: 'Compatible recipe 0' })).toBeInTheDocument();
+  expect(screen.getByRole('heading', { name: 'Compatible meal 0' })).toBeInTheDocument();
   expect(screen.getByText('Page 1 of 2')).toBeInTheDocument();
 });

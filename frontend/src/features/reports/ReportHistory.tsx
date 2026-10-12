@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import type { NutritionReport } from '@/types';
 import { formatManilaDate } from '@/lib/manila-date';
-import { Check, Download, FileText, Loader2, MoreVertical, ShieldCheck } from 'lucide-react';
+import { Check, Download, FileText, Loader2, MoreVertical, ShieldCheck } from '@/components/ui/icons';
 
 export interface ReportVersion {
   id: string;

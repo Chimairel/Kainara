@@ -2,7 +2,7 @@
 
 import { NutritionistCredentialCard } from '@/components/user/NutritionistCredentialCard';
 
-import { LogOut, Maximize2 } from 'lucide-react';
+import { LogOut, Maximize2 } from '@/components/ui/icons';
 
 import type { useNutritionistProfilePageModel } from './useNutritionistProfilePageModel';
 type Model = Extract<ReturnType<typeof useNutritionistProfilePageModel>, { kind: 'ready' }>;

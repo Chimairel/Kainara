@@ -3,7 +3,7 @@ import FeedbackNotice from '@/components/shared/FeedbackNotice';
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { RefreshCw, ScrollText } from 'lucide-react';
+import { RefreshCw, ScrollText } from '@/components/ui/icons';
 import api from '@/lib/axios';
 import { useAuth } from '@/hooks/useAuth';
 import { useSessionQuery } from '@/hooks/useSessionQuery';

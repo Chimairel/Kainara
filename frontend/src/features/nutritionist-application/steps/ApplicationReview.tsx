@@ -1,4 +1,4 @@
-import { Award, ShieldCheck } from 'lucide-react';
+import { Award, ShieldCheck } from '@/components/ui/icons';
 
 import type { NutritionistApplicationForm } from '@/validation/nutritionist-application.schemas';
 

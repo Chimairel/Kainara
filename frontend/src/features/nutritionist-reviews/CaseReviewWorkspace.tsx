@@ -12,7 +12,7 @@ import Button from '@/components/ui/Button';
 
 import { ReviewDetailSkeleton } from '@/features/nutritionist-reviews/NutritionistReviewsSkeleton';
 
-import { ShieldCheck } from 'lucide-react';
+import { ShieldCheck } from '@/components/ui/icons';
 
 import ExpandableCasePanel from '@/features/nutritionist-reviews/ExpandableCasePanel';
 

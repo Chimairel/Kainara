@@ -1,4 +1,4 @@
-import { BookOpenCheck, Database, FileClock, Tags } from 'lucide-react';
+import { BookOpenCheck, Database, FileClock, Tags } from '@/components/ui/icons';
 import WorkspaceMetricStrip, { type WorkspaceMetric } from '@/components/shared/WorkspaceMetricStrip';
 import type { WorkspaceSummary } from './types';
 

@@ -7,7 +7,7 @@ import Button from '@/components/ui/Button';
 import Avatar, { FILIPINO_AVATAR_PRESETS } from '@/components/ui/Avatar';
 import api from '@/lib/axios';
 import type { UserSession } from '@/lib/context/AuthContext';
-import { CheckCircle } from 'lucide-react';
+import { CheckCircle } from '@/components/ui/icons';
 
 export default function AvatarSettings({
   user,

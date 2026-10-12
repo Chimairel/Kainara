@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { Pause, Play, Volume2, VolumeX } from 'lucide-react';
+import { Pause, Play, Volume2, VolumeX } from '@/components/ui/icons';
 import type { LandingMedia } from '@/features/website-content/types';
 
 export default function LandingMediaDisplay({ media }: { media: LandingMedia | null }) {

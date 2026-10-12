@@ -3,7 +3,7 @@ import { formatMealTitle } from '@/lib/meal-title';
 import FeedbackNotice from '@/components/shared/FeedbackNotice';
 
 import { useState } from 'react';
-import { Calendar, ChevronDown, ClipboardList, FileText, Flag } from 'lucide-react';
+import { Calendar, ChevronDown, ClipboardList, FileText, Flag } from '@/components/ui/icons';
 import RecordPaper, { recordFieldClass, recordSectionClass } from '@/components/shared/RecordPaper';
 import { Select } from '@/components/ui/Select';
 import { formatManilaDate } from '@/lib/manila-date';

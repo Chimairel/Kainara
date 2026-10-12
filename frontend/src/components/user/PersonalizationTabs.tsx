@@ -2,7 +2,7 @@
 
 import React from 'react';
 import WorkspaceTabs from '@/components/ui/WorkspaceTabs';
-import { HeartPulse, Soup, ClipboardList } from 'lucide-react';
+import { HeartPulse, Soup, ClipboardList } from '@/components/ui/icons';
 
 interface PersonalizationTabsProps {
   activeTab: 'health' | 'planning' | 'clinical-evidence';

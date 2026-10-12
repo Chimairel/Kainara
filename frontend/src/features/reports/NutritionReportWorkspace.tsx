@@ -15,7 +15,7 @@ import Button from '@/components/ui/Button';
 import Card from '@/components/ui/Card';
 import PortalLoadingState from '@/components/shared/PortalLoadingState';
 import { NutritionReport } from '@/types';
-import { AlertTriangle } from 'lucide-react';
+import { AlertTriangle } from '@/components/ui/icons';
 import { getApiErrorMessage } from '@/lib/api-error';
 import { hasSameRestrictionContext, normalizeRestrictionContext } from '@/lib/restriction-context';
 import Modal from '@/components/ui/Modal';
@@ -178,7 +178,9 @@ export default function NutritionReportPage() {
     setIsAcknowledging(true);
     let saved = Boolean(
       report.acknowledgedAt &&
-      (report.confirmationKind === 'FOOD_GUIDANCE_UPDATE' || !report.planningContext?.activeVersion || report.planningContext.activeVersion === report.version)
+      (report.confirmationKind === 'FOOD_GUIDANCE_UPDATE' ||
+        !report.planningContext?.activeVersion ||
+        report.planningContext.activeVersion === report.version)
     );
     let navigating = false;
     try {
@@ -197,7 +199,15 @@ export default function NutritionReportPage() {
                 ...current,
                 acknowledgedAt: receipt.acknowledgedAt,
                 ...(current.planningContext
-                  ? { planningContext: { ...current.planningContext, activeVersion: current.confirmationKind === 'FOOD_GUIDANCE_UPDATE' ? current.planningContext.activeVersion : report.version } }
+                  ? {
+                      planningContext: {
+                        ...current.planningContext,
+                        activeVersion:
+                          current.confirmationKind === 'FOOD_GUIDANCE_UPDATE'
+                            ? current.planningContext.activeVersion
+                            : report.version,
+                      },
+                    }
                   : {}),
               }
             : current

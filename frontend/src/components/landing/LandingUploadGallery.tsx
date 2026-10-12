@@ -5,7 +5,7 @@ import { formatManilaDate } from '@/lib/manila-date';
 
 import Image from 'next/image';
 import { useEffect, useRef, useState } from 'react';
-import { LoaderCircle } from 'lucide-react';
+import { LoaderCircle } from '@/components/ui/icons';
 import api from '@/lib/axios';
 import { getApiErrorMessage } from '@/lib/api-error';
 import Button from '@/components/ui/Button';

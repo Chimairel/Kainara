@@ -4,7 +4,7 @@ import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import SectionLink from './SectionLink';
 import { usePathname } from 'next/navigation';
-import { ArrowRight, ArrowUpRight, BookOpenText, LogOut, Menu, Moon, Sun, X } from 'lucide-react';
+import { ArrowRight, ArrowUpRight, BookOpenText, LogOut, Menu, Moon, Sun, X } from '@/components/ui/icons';
 import { useTheme } from '@/lib/context/ThemeContext';
 import { useAuth } from '@/hooks/useAuth';
 import KainaraLogo from '@/components/shared/KainaraLogo';

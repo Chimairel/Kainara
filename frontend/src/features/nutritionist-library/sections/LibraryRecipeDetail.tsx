@@ -7,7 +7,7 @@ import RecipeDerivationForm from '@/features/nutritionist-library/RecipeDerivati
 
 import Badge from '@/components/ui/Badge';
 
-import { ArrowLeft, ShieldAlert } from 'lucide-react';
+import { ArrowLeft, ShieldAlert } from '@/components/ui/icons';
 
 import MealImage from '@/components/user/MealImage';
 

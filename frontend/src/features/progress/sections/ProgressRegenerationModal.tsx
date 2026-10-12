@@ -4,7 +4,7 @@ import Button from '@/components/ui/Button';
 
 import { Modal } from '@/components/ui/Modal';
 
-import { CheckCircle2 } from 'lucide-react';
+import { CheckCircle2 } from '@/components/ui/icons';
 
 import type { useProgressWorkspaceModel } from './useProgressWorkspaceModel';
 type Model = Extract<ReturnType<typeof useProgressWorkspaceModel>, { kind: 'ready' }>;

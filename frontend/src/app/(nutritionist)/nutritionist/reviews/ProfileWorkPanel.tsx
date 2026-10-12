@@ -1,7 +1,7 @@
 'use client';
 import FeedbackNotice from '@/components/shared/FeedbackNotice';
 
-import { UserCheck } from 'lucide-react';
+import { UserCheck } from '@/components/ui/icons';
 import { useProfileWorkPanelModel } from '@/features/nutritionist-profile-review/useProfileWorkPanelModel';
 import ProfileReviewQueue from '@/features/nutritionist-profile-review/ProfileReviewQueue';
 import ProfileWorkCanvas from '@/features/nutritionist-profile-review/ProfileWorkCanvas';

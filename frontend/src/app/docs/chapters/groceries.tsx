@@ -1,4 +1,4 @@
-import { ShoppingCart } from 'lucide-react';
+import { ShoppingCart } from '@/components/ui/icons';
 
 import { type DocsChapter } from './chapter-types';
 export const groceriesChapter: DocsChapter = {

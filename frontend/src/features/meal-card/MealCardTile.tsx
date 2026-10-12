@@ -4,7 +4,7 @@ import { PlanMealCardSurface } from '@/components/user/PlanMealCardSurface';
 import { MealMacros } from '@/components/user/MealMacros';
 import { formatMealTitle } from '@/lib/meal-title';
 
-import { Check, Clock3, X } from 'lucide-react';
+import { Check, Clock3, X } from '@/components/ui/icons';
 import { MealMotionDiv } from '../../components/user/MealMotion';
 
 import MealVerificationBadge from '../../components/user/MealVerificationBadge';

@@ -1,7 +1,7 @@
 'use client';
 
 import GroceryTable from '@/features/grocery/GroceryTable';
-import { RotateCcw, Search } from 'lucide-react';
+import { RotateCcw, Search } from '@/components/ui/icons';
 import type { useGroceryWorkspace } from './useGroceryWorkspace';
 
 type Props = {

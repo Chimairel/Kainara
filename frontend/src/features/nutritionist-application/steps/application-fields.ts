@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { BadgeCheck, ClipboardCheck, FileCheck2, UserRound, Video } from 'lucide-react';
+import { BadgeCheck, ClipboardCheck, FileCheck2, UserRound, Video } from '@/components/ui/icons';
 
 import type { NutritionistApplicationForm } from '@/validation/nutritionist-application.schemas';
 

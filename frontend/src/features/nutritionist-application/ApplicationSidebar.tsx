@@ -1,5 +1,5 @@
 import CardDecoration from '@/components/ui/CardDecoration';
-import { Stethoscope, BadgeCheck, Video, KeyRound, FileText, ShieldCheck } from 'lucide-react';
+import { Stethoscope, BadgeCheck, Video, KeyRound, FileText, ShieldCheck } from '@/components/ui/icons';
 
 const applicationStages = [
   {

@@ -1,4 +1,4 @@
-import { LoaderCircle } from 'lucide-react';
+import { LoaderCircle } from '@/components/ui/icons';
 import type { ReactNode } from 'react';
 
 export default function MealSwapRefresh({

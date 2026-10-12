@@ -2,7 +2,7 @@
 import FeedbackNotice from '@/components/shared/FeedbackNotice';
 
 import { useId, useState } from 'react';
-import { ChevronDown, ChevronUp } from 'lucide-react';
+import { ChevronDown, ChevronUp } from '@/components/ui/icons';
 import Link from 'next/link';
 import Button from '@/components/ui/Button';
 import { useSessionQuery } from '@/hooks/useSessionQuery';

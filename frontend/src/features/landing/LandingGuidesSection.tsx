@@ -3,7 +3,7 @@
 import Link from 'next/link';
 
 import { motion } from 'motion/react';
-import { Database, ArrowUpRight, ShieldCheck, Sparkles } from 'lucide-react';
+import { Database, ArrowUpRight, ShieldCheck, Sparkles } from '@/components/ui/icons';
 
 import KainaraLogo from '@/components/shared/KainaraLogo';
 

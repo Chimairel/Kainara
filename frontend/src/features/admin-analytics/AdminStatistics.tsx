@@ -1,7 +1,7 @@
 'use client';
 import FeedbackNotice from '@/components/shared/FeedbackNotice';
 
-import { ShieldCheck, Cpu, BarChart3 } from 'lucide-react';
+import { ShieldCheck, Cpu, BarChart3 } from '@/components/ui/icons';
 
 import HeaderRefreshAction from '@/components/shared/HeaderRefreshAction';
 import WorkspaceTabs from '@/components/ui/WorkspaceTabs';

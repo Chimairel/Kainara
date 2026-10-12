@@ -2,7 +2,7 @@
 
 import { formatManilaDate } from '@/lib/manila-date';
 
-import { Eye } from 'lucide-react';
+import { Eye } from '@/components/ui/icons';
 
 import { OutsideMealQueueSkeleton } from '@/features/nutritionist-reviews/OutsideMealsSkeleton';
 

@@ -24,8 +24,8 @@ import {
   Camera,
   ExternalLink,
   Info,
-} from 'lucide-react';
-import type { LucideProps } from 'lucide-react';
+} from '@/components/ui/icons';
+import type { AppIconProps } from '@/components/ui/icons';
 import { getApiErrorMessage } from '@/lib/api-error';
 import { MealType, MealPlanStatus, PublicVerifier, MealExplanation, PublicMealImage, MealCookingLink } from '@/types';
 import { cookingAction } from '@/lib/meal-cooking-link';
@@ -165,7 +165,7 @@ export default function MealDetailPage() {
       isPastDate);
   const isLogged = isCompleted || isSkipped;
 
-  const mealTypeLabels: Record<MealType, { label: string; icon: React.ComponentType<LucideProps> }> = {
+  const mealTypeLabels: Record<MealType, { label: string; icon: React.ComponentType<AppIconProps> }> = {
     BREAKFAST: { label: 'Breakfast', icon: Coffee },
     LUNCH: { label: 'Lunch', icon: Sun },
     DINNER: { label: 'Dinner', icon: Moon },

@@ -1,9 +1,9 @@
 import type { ReactNode } from 'react';
-import type { LucideIcon } from 'lucide-react';
+import type { AppIcon } from '@/components/ui/icons';
 
 interface PortalPageHeaderProps {
   headingLevel?: 'h1' | 'h2';
-  icon?: LucideIcon;
+  icon?: AppIcon;
   eyebrow?: string;
   title: ReactNode;
   description: string;

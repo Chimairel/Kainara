@@ -5,7 +5,7 @@ import { formatMealTitle } from '@/lib/meal-title';
 
 import MealImage from '@/components/user/MealImage';
 
-import { ArrowDown, ArrowRight, Sparkles, UtensilsCrossed, X } from 'lucide-react';
+import { ArrowDown, ArrowRight, Sparkles, UtensilsCrossed, X } from '@/components/ui/icons';
 import { formatManilaDate } from '@/lib/manila-date';
 
 import type { useMealsWorkspaceModalsModel } from './useMealsWorkspaceModalsModel';

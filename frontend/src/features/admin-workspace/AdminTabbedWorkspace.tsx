@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, type ReactNode } from 'react';
-import type { LucideIcon } from 'lucide-react';
+import type { AppIcon } from '@/components/ui/icons';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/Tabs';
 import PortalPageHeader from '@/components/shared/PortalPageHeader';
@@ -12,7 +12,7 @@ import { useAuth } from '@/hooks/useAuth';
 export interface AdminWorkspaceTab {
   id: string;
   label: string;
-  icon?: LucideIcon;
+  icon?: AppIcon;
   render: (active: boolean) => ReactNode;
 }
 

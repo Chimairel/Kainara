@@ -1,6 +1,6 @@
 import FeedbackNotice from '@/components/shared/FeedbackNotice';
 import { formatPhilippineDateTime } from '@/lib/formatters';
-import { CalendarClock, Check, Sparkles, ExternalLink } from 'lucide-react';
+import { CalendarClock, Check, Sparkles, ExternalLink } from '@/components/ui/icons';
 import { applicationStatusLabels, applicationStatusOrder, type PublicApplication } from './model';
 
 export function ApplicationStatusCard({ application }: { application: PublicApplication }) {

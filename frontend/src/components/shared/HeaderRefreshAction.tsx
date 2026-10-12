@@ -2,7 +2,7 @@
 
 import { createContext, useContext } from 'react';
 import { createPortal } from 'react-dom';
-import { RefreshCw } from 'lucide-react';
+import { RefreshCw } from '@/components/ui/icons';
 
 /** A tab's own query can place its action beside the enclosing workspace title. */
 export const HeaderRefreshTarget = createContext<HTMLElement | null | undefined>(undefined);

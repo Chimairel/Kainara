@@ -3,7 +3,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { Activity, ArrowUpRight, BookOpen, ChevronUp, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
+import { Activity, ArrowUpRight, BookOpen, ChevronUp, PanelLeftClose, PanelLeftOpen } from '@/components/ui/icons';
 import { primaryWorkspaceTools } from '@/lib/workspace-navigation';
 import { useAuth } from '@/hooks/useAuth';
 import { getRoleLabel } from '@/lib/role-label';

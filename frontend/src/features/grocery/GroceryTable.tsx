@@ -1,7 +1,7 @@
 'use client';
 
 import WorkspaceTable, { type WorkspaceTableColumn } from '@/components/shared/WorkspaceTable';
-import { ArrowDown, ArrowUp, ArrowUpDown, CircleCheckBig } from 'lucide-react';
+import { ArrowDown, ArrowUp, ArrowUpDown, CircleCheckBig } from '@/components/ui/icons';
 import { isGroceryItemAvailable, type GroceryItem } from './current-grocery';
 import { formatGroceryItemDisplay, getCategoryStyle, normalizeGroceryCategory } from './grocery-display';
 import { CircularCheckbox } from '@/components/watermelon/checkbox-14';

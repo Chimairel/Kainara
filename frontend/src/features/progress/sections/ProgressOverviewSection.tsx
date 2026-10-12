@@ -10,7 +10,7 @@ import WeightLogHistory from '@/features/progress/WeightLogHistory';
 import Card from '@/components/ui/Card';
 import Input from '@/components/ui/Input';
 
-import { TrendingUp, Lightbulb, Scale, Activity } from 'lucide-react';
+import { TrendingUp, Lightbulb, Scale, Activity } from '@/components/ui/icons';
 import { Select } from '@/components/ui/Select';
 
 import type { useProgressWorkspaceModel } from './useProgressWorkspaceModel';

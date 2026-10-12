@@ -4,7 +4,7 @@ import FeedbackNotice from '@/components/shared/FeedbackNotice';
 import React, { Suspense, useState } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
-import { CheckCircle2 } from 'lucide-react';
+import { CheckCircle2 } from '@/components/ui/icons';
 import { getApiErrorMessage } from '@/lib/api-error';
 import api from '@/lib/axios';
 import Button from '@/components/ui/Button';

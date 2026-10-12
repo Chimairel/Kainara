@@ -4,7 +4,7 @@ import FeedbackNotice from '@/components/shared/FeedbackNotice';
 import { useState, type FormEvent, type ReactNode } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useSessionQuery } from '@/hooks/useSessionQuery';
-import { Search, Tags } from 'lucide-react';
+import { Search, Tags } from '@/components/ui/icons';
 import api from '@/lib/axios';
 import Button from '@/components/ui/Button';
 import Card from '@/components/ui/Card';

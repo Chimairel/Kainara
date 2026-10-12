@@ -1,4 +1,4 @@
-import { BookOpen } from 'lucide-react';
+import { BookOpen } from '@/components/ui/icons';
 
 import { type DocsChapter } from './chapter-types';
 export const whatIsKainaraChapter: DocsChapter = {

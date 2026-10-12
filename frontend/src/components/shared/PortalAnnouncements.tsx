@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useEffect, useId, useMemo, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
-import { Bell, ChevronDown, CircleAlert } from 'lucide-react';
+import { Bell, ChevronDown, CircleAlert } from '@/components/ui/icons';
 import { CompactAnnouncementContext } from './AnnouncementBanner';
 
 export const announcementPriority = {

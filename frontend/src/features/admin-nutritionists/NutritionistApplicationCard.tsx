@@ -13,7 +13,7 @@ import {
   UserCheck,
   Video,
   XCircle,
-} from 'lucide-react';
+} from '@/components/ui/icons';
 import api from '@/lib/axios';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';

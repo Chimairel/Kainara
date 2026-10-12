@@ -1,6 +1,6 @@
 import FeedbackNotice from '@/components/shared/FeedbackNotice';
 import type { FormEvent } from 'react';
-import { Search } from 'lucide-react';
+import { Search } from '@/components/ui/icons';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 

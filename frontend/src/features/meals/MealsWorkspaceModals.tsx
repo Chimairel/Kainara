@@ -8,7 +8,7 @@ import Button from '@/components/ui/Button';
 import Modal from '@/components/ui/Modal';
 import LoadingSpinner from '@/components/shared/LoadingSpinner';
 import NutritionistCredentialModal from '@/components/user/NutritionistCredentialModal';
-import { AlertTriangle, Check } from 'lucide-react';
+import { AlertTriangle, Check } from '@/components/ui/icons';
 
 import SwapImpactDetails from './SwapImpactDetails';
 

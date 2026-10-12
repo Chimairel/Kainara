@@ -1,7 +1,7 @@
 'use client';
 
 import type { ReactNode } from 'react';
-import { ChevronRight, Loader2, Search } from 'lucide-react';
+import { ChevronRight, Loader2, Search } from '@/components/ui/icons';
 import Skeleton from '@/components/ui/Skeleton';
 
 /** Task navigation for split workspaces. Callers retain ordering, eligibility and actions. */

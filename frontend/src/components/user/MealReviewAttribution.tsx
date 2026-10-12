@@ -1,6 +1,6 @@
 'use client';
 
-import { ShieldCheck } from 'lucide-react';
+import { ShieldCheck } from '@/components/ui/icons';
 import type { PublicVerifier } from '@/types';
 import { maskPrcLicenseNumber } from './NutritionistCredentialCard';
 import ReviewedByControl from './ReviewedByControl';

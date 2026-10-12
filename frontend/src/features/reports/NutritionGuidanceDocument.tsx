@@ -8,7 +8,7 @@ import PortalPageHeader from '@/components/shared/PortalPageHeader';
 import NutritionPdfViewer from './NutritionPdfViewer';
 import ReportVersionPicker from './ReportVersionPicker';
 import Button from '@/components/ui/Button';
-import { FileText } from 'lucide-react';
+import { FileText } from '@/components/ui/icons';
 
 interface Props {
   report: NutritionReport;
@@ -100,21 +100,33 @@ export default function NutritionGuidanceDocument({
 
   const isAcknowledged = Boolean(
     displayedReport.acknowledgedAt &&
-    (displayedReport.confirmationKind === 'FOOD_GUIDANCE_UPDATE' || !displayedReport.planningContext?.activeVersion ||
+    (displayedReport.confirmationKind === 'FOOD_GUIDANCE_UPDATE' ||
+      !displayedReport.planningContext?.activeVersion ||
       displayedReport.planningContext.activeVersion === displayedReport.version)
   );
 
   const showContinue = useMemo(() => {
     if (isViewingArchived || !report.acknowledgedAt) return false;
     if (error) return true;
-    if (report.confirmationKind !== 'FOOD_GUIDANCE_UPDATE' && report.planningContext?.activeVersion && report.planningContext.activeVersion !== report.version) {
+    if (
+      report.confirmationKind !== 'FOOD_GUIDANCE_UPDATE' &&
+      report.planningContext?.activeVersion &&
+      report.planningContext.activeVersion !== report.version
+    ) {
       return true;
     }
     if (typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('next')) {
       return true;
     }
     return false;
-  }, [isViewingArchived, report.acknowledgedAt, report.confirmationKind, report.planningContext?.activeVersion, report.version, error]);
+  }, [
+    isViewingArchived,
+    report.acknowledgedAt,
+    report.confirmationKind,
+    report.planningContext?.activeVersion,
+    report.version,
+    error,
+  ]);
 
   const handleDownloadReportVersion = (v: ReportVersion) => {
     if (onDownloadVersion) {
@@ -203,7 +215,14 @@ export default function NutritionGuidanceDocument({
         {!isViewingArchived && !report.foodGuidance && onUpdateFoodGuidance && (
           <div className="mx-auto flex w-full max-w-4xl flex-wrap items-center justify-between gap-3 text-sm">
             <p className="text-brand-muted">Add food examples for your saved profile.</p>
-            <Button variant="secondary" onClick={onUpdateFoodGuidance} isLoading={isUpdatingFoodGuidance} disabled={isAcknowledging}>Update food guidance</Button>
+            <Button
+              variant="secondary"
+              onClick={onUpdateFoodGuidance}
+              isLoading={isUpdatingFoodGuidance}
+              disabled={isAcknowledging}
+            >
+              Update food guidance
+            </Button>
           </div>
         )}
         <NutritionPdfViewer

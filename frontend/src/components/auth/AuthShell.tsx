@@ -2,7 +2,7 @@
 
 import { type ReactNode } from 'react';
 import Link from 'next/link';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft } from '@/components/ui/icons';
 import KainaraLogo from '@/components/shared/KainaraLogo';
 import ThemeToggle from '@/components/ui/ThemeToggle';
 import { SignInPage } from '@/components/ui/sign-in';

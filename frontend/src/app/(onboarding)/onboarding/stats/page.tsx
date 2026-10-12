@@ -9,7 +9,7 @@ import Input from '@/components/ui/Input';
 import OnboardingStep, { OnboardingActions, OnboardingChoice } from '@/components/onboarding/OnboardingStep';
 import ProfileSettingsSection from '@/components/user/ProfileSettingsSection';
 import { Goal, ActivityLevel } from '@/types';
-import { Lock, TrendingUp, Dumbbell, TrendingDown, Scale, ArrowRight } from 'lucide-react';
+import { Lock, TrendingUp, Dumbbell, TrendingDown, Scale, ArrowRight } from '@/components/ui/icons';
 import { getApiErrorMessage } from '@/lib/api-error';
 import { useProfile } from '@/hooks/useProfile';
 import { useAuth } from '@/hooks/useAuth';

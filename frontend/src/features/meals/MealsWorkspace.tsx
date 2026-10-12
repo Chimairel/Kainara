@@ -5,7 +5,7 @@ import MealsWorkspaceHeader from '@/features/meals/MealsWorkspaceHeader';
 import UnavailableMealsNotice from '@/features/meals/UnavailableMealsNotice';
 import StateNotice from '@/components/shared/StateNotice';
 import MealLibraryPanel from '@/features/meals/MealLibraryPanel';
-import { BookOpen, Calendar, History } from 'lucide-react';
+import { BookOpen, Calendar, History } from '@/components/ui/icons';
 import WorkspaceTabs from '@/components/ui/WorkspaceTabs';
 import { MealsWorkspaceModals } from '@/features/meals/MealsWorkspaceModals';
 import MealsDateNavigation from './MealsDateNavigation';

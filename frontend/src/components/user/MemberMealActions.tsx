@@ -1,7 +1,7 @@
 'use client';
 
 import Button from '@/components/ui/Button';
-import { Calendar, Plus, ShoppingBasket } from 'lucide-react';
+import { Calendar, Plus, ShoppingBasket } from '@/components/ui/icons';
 
 export default function MemberMealActions({
   onLogFood,

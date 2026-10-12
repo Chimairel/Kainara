@@ -15,7 +15,7 @@ import {
 import ProfileSettingsSection from '@/components/user/ProfileSettingsSection';
 import Input from '@/components/ui/Input';
 
-import { CheckCircle } from 'lucide-react';
+import { CheckCircle } from '@/components/ui/icons';
 import { Select } from '@/components/ui/Select';
 
 import type { useProgressWorkspaceModel } from './useProgressWorkspaceModel';

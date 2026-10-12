@@ -3,7 +3,7 @@ import Dropdown from '@/components/ui/Dropdown';
 
 import Card from '@/components/ui/Card';
 
-import { Search } from 'lucide-react';
+import { Search } from '@/components/ui/icons';
 
 import { AVAILABLE_CONDITIONS } from '@/features/nutritionist-library/useNutritionistLibrary';
 

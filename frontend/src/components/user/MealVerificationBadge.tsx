@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Check, ShieldCheck, ShieldAlert } from 'lucide-react';
+import { Check, ShieldCheck, ShieldAlert } from '@/components/ui/icons';
 import type { MealPlanStatus } from '@/types';
 
 export interface MealVerificationBadgeProps {

@@ -1,7 +1,7 @@
 'use client';
 
 import { formatManilaDate, getManilaDateKey, manilaDateFromKey } from '@/lib/manila-date';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight } from '@/components/ui/icons';
 import type { useMealsPage } from './useMealsPage';
 
 type Props = {

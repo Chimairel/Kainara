@@ -5,7 +5,7 @@ import React, { Suspense, useState } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { getApiErrorMessage } from '@/lib/api-error';
-import { CheckCircle2 } from 'lucide-react';
+import { CheckCircle2 } from '@/components/ui/icons';
 import AuthShell from '@/components/auth/AuthShell';
 import HydratedForm from '@/components/auth/HydratedForm';
 import Button from '@/components/ui/Button';

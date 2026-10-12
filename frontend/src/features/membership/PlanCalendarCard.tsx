@@ -4,7 +4,7 @@ import Dropdown from '@/components/ui/Dropdown';
 import Card from '@/components/ui/Card';
 import { useState, useMemo, useEffect } from 'react';
 import { membershipSchedules, manilaDate } from './membership-schedule';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight } from '@/components/ui/icons';
 import type { MembershipView } from './MembershipProvider';
 
 interface PlanCalendarCardProps {

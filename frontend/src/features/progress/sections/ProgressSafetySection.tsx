@@ -5,7 +5,7 @@ import ProfileSettingsSection from '@/components/user/ProfileSettingsSection';
 import StructuredSafetyIntake from '@/components/user/StructuredSafetyIntake';
 import api from '@/lib/axios';
 import { safetyInputsFromProfile } from '@/lib/safety-intake';
-import { CheckCircle } from 'lucide-react';
+import { CheckCircle } from '@/components/ui/icons';
 
 import type { useProgressWorkspaceModel } from './useProgressWorkspaceModel';
 type Model = Extract<ReturnType<typeof useProgressWorkspaceModel>, { kind: 'ready' }>;

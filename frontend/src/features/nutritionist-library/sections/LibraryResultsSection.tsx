@@ -7,7 +7,7 @@ import Pagination from '@/components/ui/Pagination';
 import Button from '@/components/ui/Button';
 import Badge from '@/components/ui/Badge';
 
-import { Soup } from 'lucide-react';
+import { Soup } from '@/components/ui/icons';
 
 import RecipeLibraryCard from '@/features/meals/RecipeLibraryCard';
 

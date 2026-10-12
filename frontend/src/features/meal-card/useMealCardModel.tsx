@@ -3,8 +3,8 @@
 import { getManilaDateKey } from '@/lib/manila-date';
 import { cookingAction } from '@/lib/meal-cooking-link';
 import { MealType, PublicVerifier } from '@/types';
-import type { LucideProps } from 'lucide-react';
-import { Apple, Coffee, Moon, Sun } from 'lucide-react';
+import type { AppIconProps } from '@/components/ui/icons';
+import { Apple, Coffee, Moon, Sun } from '@/components/ui/icons';
 import { useMealMotion } from '../../components/user/MealMotion';
 import React, { useCallback, useEffect, useState } from 'react';
 
@@ -145,7 +145,7 @@ export function useMealCardModel({
     }
   };
 
-  const mealTypeLabels: Record<MealType, { label: string; icon: React.ComponentType<LucideProps> }> = {
+  const mealTypeLabels: Record<MealType, { label: string; icon: React.ComponentType<AppIconProps> }> = {
     BREAKFAST: { label: 'Breakfast', icon: Coffee },
     LUNCH: { label: 'Lunch', icon: Sun },
     DINNER: { label: 'Dinner', icon: Moon },

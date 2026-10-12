@@ -2,7 +2,7 @@
 
 import Card from '@/components/ui/Card';
 
-import { Utensils, ChefHat, Compass } from 'lucide-react';
+import { Utensils, ChefHat, Compass } from '@/components/ui/icons';
 
 import type { useAccountSettingsModel } from './useAccountSettingsModel';
 type Model = Extract<ReturnType<typeof useAccountSettingsModel>, { kind: 'ready' }>;

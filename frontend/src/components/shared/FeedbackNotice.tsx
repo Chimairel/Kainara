@@ -1,5 +1,5 @@
 import type { HTMLAttributes, ReactNode } from 'react';
-import { CircleAlert, CircleCheck, Info } from 'lucide-react';
+import { CircleAlert, CircleCheck, Info } from '@/components/ui/icons';
 import styles from './FeedbackNotice.module.css';
 
 type FeedbackTone = 'error' | 'warning' | 'info' | 'success';

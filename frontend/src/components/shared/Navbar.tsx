@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Moon, Sun } from 'lucide-react';
+import { Moon, Sun } from '@/components/ui/icons';
 import { useAuth } from '@/hooks/useAuth';
 import { useTheme } from '@/lib/context/ThemeContext';
 import NotificationDropdown from '@/components/shared/NotificationDropdown';

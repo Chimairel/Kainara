@@ -1,5 +1,5 @@
 import FeedbackNotice from '@/components/shared/FeedbackNotice';
-import { ArrowLeft, ArrowRight, Check, ClipboardCheck } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Check, ClipboardCheck } from '@/components/ui/icons';
 import Button from '@/components/ui/Button';
 
 import { steps, stepDescriptions, Props } from './steps/application-fields';

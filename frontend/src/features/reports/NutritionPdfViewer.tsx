@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useSyncExternalStore } from 'react';
-import { Check, Loader2 } from 'lucide-react';
+import { Check, Loader2 } from '@/components/ui/icons';
 import type { NutritionReport } from '@/types';
 import DocumentViewer from '@/components/shared/DocumentViewer';
 import Button from '@/components/ui/Button';
@@ -98,7 +98,11 @@ export default function NutritionPdfViewer({
         <div className="flex flex-wrap items-center justify-between gap-3">
           <span className="text-sm text-text-muted">Version {report.version}</span>
           <div className="flex flex-wrap items-center gap-2">
-            {onDownload && <Button variant="secondary" size="sm" onClick={onDownload} isLoading={isDownloadingPdf}>Download PDF</Button>}
+            {onDownload && (
+              <Button variant="secondary" size="sm" onClick={onDownload} isLoading={isDownloadingPdf}>
+                Download PDF
+              </Button>
+            )}
             {actions}
           </div>
         </div>

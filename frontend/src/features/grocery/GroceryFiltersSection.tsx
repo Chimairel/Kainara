@@ -2,7 +2,7 @@
 
 import Dropdown from '@/components/ui/Dropdown';
 import WorkspaceTabs from '@/components/ui/WorkspaceTabs';
-import { ChevronDown, Filter, RotateCcw, Search, X } from 'lucide-react';
+import { ChevronDown, Filter, RotateCcw, Search, X } from '@/components/ui/icons';
 import type { useGroceryWorkspace } from './useGroceryWorkspace';
 
 type Props = {

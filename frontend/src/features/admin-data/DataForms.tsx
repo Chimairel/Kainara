@@ -3,7 +3,7 @@
 import Dropdown from '@/components/ui/Dropdown';
 import NativeSelect from '@/components/ui/NativeSelect';
 import { useState, type FormEvent } from 'react';
-import { FilePlus2, Landmark } from 'lucide-react';
+import { FilePlus2, Landmark } from '@/components/ui/icons';
 import api from '@/lib/axios';
 import Button from '@/components/ui/Button';
 import Card from '@/components/ui/Card';

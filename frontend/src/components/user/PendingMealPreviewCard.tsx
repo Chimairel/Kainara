@@ -20,7 +20,7 @@ import {
   SunMedium,
   UtensilsCrossed,
   X,
-} from 'lucide-react';
+} from '@/components/ui/icons';
 import { MealMotionDiv, MealMotionPresence, useMealMotion } from './MealMotion';
 import React, { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';

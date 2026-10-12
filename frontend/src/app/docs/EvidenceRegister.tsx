@@ -1,4 +1,4 @@
-import { ArrowUpRight } from 'lucide-react';
+import { ArrowUpRight } from '@/components/ui/icons';
 import {
   CLINICAL_POLICY_SUMMARIES,
   EVIDENCE_CATEGORY_LABELS,

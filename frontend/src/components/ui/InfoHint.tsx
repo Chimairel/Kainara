@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
-import { Info } from 'lucide-react';
+import { Info } from '@/components/ui/icons';
 
 /** Readable on hover, keyboard focus or tap, including inside a modal. */
 export default function InfoHint({ label, children }: { label: string; children: ReactNode }) {

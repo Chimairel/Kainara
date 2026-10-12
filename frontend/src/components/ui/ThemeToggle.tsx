@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Sun, Moon } from 'lucide-react';
+import { Sun, Moon } from '@/components/ui/icons';
 import { useTheme } from '@/lib/context/ThemeContext';
 
 interface ThemeToggleProps {

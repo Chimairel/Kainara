@@ -12,11 +12,11 @@ import {
   Soup,
   User,
   Users,
-} from 'lucide-react';
-import type { LucideIcon } from 'lucide-react';
+} from '@/components/ui/icons';
+import type { AppIcon } from '@/components/ui/icons';
 
 export type WorkspaceRole = 'USER' | 'NUTRITIONIST' | 'ADMIN';
-export type WorkspaceTool = { label: string; href: string; description: string; group: string; icon: LucideIcon };
+export type WorkspaceTool = { label: string; href: string; description: string; group: string; icon: AppIcon };
 export const workspaceLabels: Record<WorkspaceRole, string> = {
   USER: 'Personal portal',
   NUTRITIONIST: 'Clinical portal',

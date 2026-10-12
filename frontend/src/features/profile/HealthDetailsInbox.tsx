@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState, type ReactNode } from 'react';
-import { ArrowLeft, ChevronRight, ClipboardList, FileCheck2, MessageSquare, Search } from 'lucide-react';
+import { ArrowLeft, ChevronRight, ClipboardList, FileCheck2, MessageSquare, Search } from '@/components/ui/icons';
 import { ProfileSettingsSurface } from '@/components/user/ProfileSettingsSection';
 
 export type HealthInboxItem = {

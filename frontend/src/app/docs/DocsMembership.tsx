@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { Sparkles } from 'lucide-react';
+import { Sparkles } from '@/components/ui/icons';
 import type { DocsChapter } from './DocsChapters';
 
 export const membershipChapter: DocsChapter = {

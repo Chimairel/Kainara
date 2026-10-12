@@ -6,7 +6,7 @@ import AdminLicenseUpdates from '@/features/nutritionist-license/AdminLicenseUpd
 import WorkspaceTabs from '@/components/ui/WorkspaceTabs';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { getApiErrorMessage } from '@/lib/api-error';
-import { Stethoscope } from 'lucide-react';
+import { Stethoscope } from '@/components/ui/icons';
 import api from '@/lib/axios';
 import Button from '@/components/ui/Button';
 import WorkspaceTable from '@/components/shared/WorkspaceTable';

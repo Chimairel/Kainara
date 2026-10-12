@@ -11,7 +11,7 @@ import MembershipPlanHeader from '@/features/membership/MembershipPlanHeader';
 import MembershipHelp from '@/features/membership/MembershipHelp';
 import PlanStatisticsCard from '@/features/membership/PlanStatisticsCard';
 import PlanCalendarCard from '@/features/membership/PlanCalendarCard';
-import { RefreshCw, CreditCard, ExternalLink } from 'lucide-react';
+import { RefreshCw, CreditCard, ExternalLink } from '@/components/ui/icons';
 import Link from 'next/link';
 import { isCheckoutUrl } from '@/features/membership/checkout';
 import api from '@/lib/axios';

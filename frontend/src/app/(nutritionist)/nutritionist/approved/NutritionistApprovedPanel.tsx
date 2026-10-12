@@ -11,7 +11,7 @@ import Avatar from '@/components/ui/Avatar';
 import ApprovedReviewsSkeleton from '@/features/nutritionist-reviews/ApprovedReviewsSkeleton';
 import EmptyState from '@/components/shared/EmptyState';
 import PortalPageHeader from '@/components/shared/PortalPageHeader';
-import { Coffee, Sun, Moon, Apple, Soup, CheckCircle, Library } from 'lucide-react';
+import { Coffee, Sun, Moon, Apple, Soup, CheckCircle, Library } from '@/components/ui/icons';
 import { useAuth } from '@/hooks/useAuth';
 
 interface ApprovedMeal {

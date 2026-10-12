@@ -1,6 +1,6 @@
 'use client';
 
-import { CheckCircle2, AlertTriangle, Cpu, Sparkles, Database, Activity } from 'lucide-react';
+import { CheckCircle2, AlertTriangle, Cpu, Sparkles, Database, Activity } from '@/components/ui/icons';
 
 import Card from '@/components/ui/Card';
 import WorkspaceTable from '@/components/shared/WorkspaceTable';

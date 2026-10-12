@@ -1,4 +1,4 @@
-import { Sparkles } from 'lucide-react';
+import { Sparkles } from '@/components/ui/icons';
 
 import { type DocsChapter } from './chapter-types';
 export const trackingChapter: DocsChapter = {

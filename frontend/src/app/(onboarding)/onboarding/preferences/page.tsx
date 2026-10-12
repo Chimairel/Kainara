@@ -8,7 +8,7 @@ import Button from '@/components/ui/Button';
 import OnboardingStep, { OnboardingActions, OnboardingChoice } from '@/components/onboarding/OnboardingStep';
 import ProfileSettingsSection from '@/components/user/ProfileSettingsSection';
 import { DietaryPreference, RicePreference } from '@/types';
-import { Ban, Shuffle, Utensils, ArrowRight } from 'lucide-react';
+import { Ban, Shuffle, Utensils, ArrowRight } from '@/components/ui/icons';
 import { getApiErrorMessage } from '@/lib/api-error';
 import { useProfile } from '@/hooks/useProfile';
 import { useAuth } from '@/hooks/useAuth';

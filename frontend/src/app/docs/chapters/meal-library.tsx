@@ -1,4 +1,4 @@
-import { UtensilsCrossed } from 'lucide-react';
+import { UtensilsCrossed } from '@/components/ui/icons';
 
 import { type DocsChapter } from './chapter-types';
 export const mealLibraryChapter: DocsChapter = {

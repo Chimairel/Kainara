@@ -3,7 +3,7 @@
 import { MealMacros } from '@/components/user/MealMacros';
 import { formatMealTitle } from '@/lib/meal-title';
 
-import { Check, ChevronDown, FileText, X } from 'lucide-react';
+import { Check, ChevronDown, FileText, X } from '@/components/ui/icons';
 
 import type { useMealHistoryCardModel } from './useMealHistoryCardModel';
 type Model = Extract<ReturnType<typeof useMealHistoryCardModel>, { kind: 'ready' }>;

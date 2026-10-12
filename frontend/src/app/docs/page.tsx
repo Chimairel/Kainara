@@ -1,6 +1,6 @@
 import { publicPageMetadata } from '@/lib/seo';
 import Link from 'next/link';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft } from '@/components/ui/icons';
 import PublicHeader from '@/components/shared/PublicHeader';
 import PublicFooter from '@/components/shared/PublicFooter';
 import { DocsWaveHero } from '@/components/landing/LandingWaveRiver';

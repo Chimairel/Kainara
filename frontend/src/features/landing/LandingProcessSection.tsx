@@ -1,7 +1,7 @@
 'use client';
 
 import { motion } from 'motion/react';
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight } from '@/components/ui/icons';
 
 import { SectionWaveBorderTop, SectionWaveBorderBottom } from '@/components/landing/LandingWaveRiver';
 

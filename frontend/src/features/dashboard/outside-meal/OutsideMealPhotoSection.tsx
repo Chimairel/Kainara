@@ -1,6 +1,6 @@
 'use client';
 
-import { Camera, X } from 'lucide-react';
+import { Camera, X } from '@/components/ui/icons';
 
 import type { useOutsideMealFormModel } from './useOutsideMealFormModel';
 type Model = Extract<ReturnType<typeof useOutsideMealFormModel>, { kind: 'ready' }>;

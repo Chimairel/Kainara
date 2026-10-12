@@ -5,7 +5,7 @@ import FeedbackNotice from '@/components/shared/FeedbackNotice';
 import { formatManilaDate } from '@/lib/manila-date';
 
 import { useSessionQuery } from '@/hooks/useSessionQuery';
-import { ShieldCheck } from 'lucide-react';
+import { ShieldCheck } from '@/components/ui/icons';
 import HeaderRefreshAction from '@/components/shared/HeaderRefreshAction';
 import api from '@/lib/axios';
 import Link from 'next/link';

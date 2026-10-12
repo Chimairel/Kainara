@@ -9,7 +9,7 @@ import Button from '@/components/ui/Button';
 import OnboardingStep from '@/components/onboarding/OnboardingStep';
 import ProfileSettingsSection from '@/components/user/ProfileSettingsSection';
 import Checkbox from '@/components/ui/Checkbox';
-import { ArrowRight, Pencil } from 'lucide-react';
+import { ArrowRight, Pencil } from '@/components/ui/icons';
 import { getApiErrorMessage } from '@/lib/api-error';
 import { useProfile } from '@/hooks/useProfile';
 import { normalizeExclusiveNone, normalizeFoodCulture } from '@/lib/profile-normalization';

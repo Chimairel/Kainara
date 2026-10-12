@@ -14,7 +14,7 @@ import { recordedIngredients } from '@/features/nutritionist-reviews/recorded-in
 import ExpandableCasePanel from '@/features/nutritionist-reviews/ExpandableCasePanel';
 import RndQueueDocument, { ReviewDocumentPage } from '@/features/nutritionist-reviews/RndQueueDocument';
 import MealVerificationQueue, { type MealCandidate } from '@/features/nutritionist-reviews/MealVerificationQueue';
-import { ChefHat, ShieldCheck } from 'lucide-react';
+import { ChefHat, ShieldCheck } from '@/components/ui/icons';
 import { useAuth } from '@/hooks/useAuth';
 import { readSessionResource, writeSessionResource } from '@/lib/session-resource-cache';
 

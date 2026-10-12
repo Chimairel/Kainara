@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useRef, useEffect, useId } from 'react';
-import { ChevronDown, Check } from 'lucide-react';
+import { ChevronDown, Check } from '@/components/ui/icons';
 import { createPortal } from 'react-dom';
 
 export interface SelectOption {

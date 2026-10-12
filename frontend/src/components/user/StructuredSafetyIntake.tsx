@@ -2,7 +2,7 @@
 import FeedbackNotice from '@/components/shared/FeedbackNotice';
 
 import React, { useEffect, useMemo, useState } from 'react';
-import { Check, Plus, X, ShieldAlert, Activity, Ban, Stethoscope } from 'lucide-react';
+import { Check, Plus, X, ShieldAlert, Activity, Ban, Stethoscope } from '@/components/ui/icons';
 import api from '@/lib/axios';
 import Button from '@/components/ui/Button';
 import WorkspaceTabs from '@/components/ui/WorkspaceTabs';

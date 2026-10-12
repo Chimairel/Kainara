@@ -11,7 +11,7 @@ import {
   Sparkles,
   Activity,
   AlertCircle,
-} from 'lucide-react';
+} from '@/components/ui/icons';
 import Link from 'next/link';
 import Card from '@/components/ui/Card';
 import WorkspaceTable from '@/components/shared/WorkspaceTable';

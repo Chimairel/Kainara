@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 
-import { Sparkles } from 'lucide-react';
+import { Sparkles } from '@/components/ui/icons';
 
 import type { useOutsideMealFormModel } from './useOutsideMealFormModel';
 type Model = Extract<ReturnType<typeof useOutsideMealFormModel>, { kind: 'ready' }>;

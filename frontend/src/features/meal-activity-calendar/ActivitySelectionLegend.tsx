@@ -1,6 +1,6 @@
 'use client';
 
-import { Calendar as CalendarIcon } from 'lucide-react';
+import { Calendar as CalendarIcon } from '@/components/ui/icons';
 import { formatManilaDate, manilaDateFromKey } from '@/lib/manila-date';
 
 import type { useMealActivityCalendarModel } from './useMealActivityCalendarModel';

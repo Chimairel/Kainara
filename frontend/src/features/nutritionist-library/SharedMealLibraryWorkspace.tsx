@@ -5,7 +5,7 @@ import MealReviewQueue from './MealReviewQueue';
 import SharedLibraryCoverage from './SharedLibraryCoverage';
 
 import PortalPageHeader from '@/components/shared/PortalPageHeader';
-import { Soup } from 'lucide-react';
+import { Soup } from '@/components/ui/icons';
 
 import LibraryRecipeDetail from './sections/LibraryRecipeDetail';
 import LibraryFilterSection from './sections/LibraryFilterSection';

@@ -1,6 +1,6 @@
 'use client';
 
-import { CalendarClock, ChevronDown, ShieldCheck } from 'lucide-react';
+import { CalendarClock, ChevronDown, ShieldCheck } from '@/components/ui/icons';
 import Button from '@/components/ui/Button';
 import WorkspaceTable from '@/components/shared/WorkspaceTable';
 import DataSummary from './DataSummary';

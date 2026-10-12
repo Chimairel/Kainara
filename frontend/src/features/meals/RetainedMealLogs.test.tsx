@@ -25,9 +25,10 @@ it('renders only the selected date, preserves eaten/skipped status and offers no
       dateKey="2026-10-03"
     />
   );
-  expect(screen.getByText('Eaten · 650 kcal')).toBeInTheDocument();
-  expect(screen.getByText('Skipped')).toBeInTheDocument();
+  expect(screen.getByText('Eaten · previous plan')).toBeInTheDocument();
+  expect(screen.getByText('Skipped · previous plan')).toBeInTheDocument();
   expect(screen.queryByText('Other date')).not.toBeInTheDocument();
+  expect(screen.getAllByText('650')).toHaveLength(2);
   expect(screen.queryByRole('button')).not.toBeInTheDocument();
 });
 

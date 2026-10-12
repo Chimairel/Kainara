@@ -3,7 +3,7 @@
 import React from 'react';
 import Image from 'next/image';
 import Button from '@/components/ui/Button';
-import { Soup } from 'lucide-react';
+import { Soup } from '@/components/ui/icons';
 import StateNotice from './StateNotice';
 
 interface EmptyStateProps {

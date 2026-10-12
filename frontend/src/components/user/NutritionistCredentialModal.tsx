@@ -5,7 +5,7 @@ import { formatManilaDate } from '@/lib/manila-date';
 
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { X, ShieldCheck, Clock, Quote, ArrowLeft, FileCheck } from 'lucide-react';
+import { X, ShieldCheck, Clock, Quote, ArrowLeft, FileCheck } from '@/components/ui/icons';
 
 import {
   NutritionistCredentialCard,

@@ -1,7 +1,7 @@
 'use client';
 import { formatMealTitle } from '@/lib/meal-title';
 
-import { CheckCircle2, ChefHat, Loader2, Search, X } from 'lucide-react';
+import { CheckCircle2, ChefHat, Loader2, Search, X } from '@/components/ui/icons';
 
 import { displayMacros, emptyMacros } from '../outside-meal-input';
 

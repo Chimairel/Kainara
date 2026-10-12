@@ -2,7 +2,7 @@
 
 import { formatMealTitle } from '@/lib/meal-title';
 import React, { useState } from 'react';
-import { Check, Clock3, Loader2, X } from 'lucide-react';
+import { Check, Clock3, Loader2, X } from '@/components/ui/icons';
 import type { MealPlan } from '@/types';
 import MealImage from '@/components/user/MealImage';
 import { getMealTheme } from '@/features/dashboard/DashboardMealRow';

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Check, Clock, AlertCircle, Bot, User } from 'lucide-react';
+import { Check, Clock, AlertCircle, Bot, User } from '@/components/ui/icons';
 
 export type BadgeVariant = 'verified' | 'pending' | 'rejected' | 'ai' | 'user';
 

@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import Link from 'next/link';
 import { useVisiblePolling } from '@/hooks/useVisiblePolling';
 import { useLicenseAvailability } from '@/features/nutritionist-application/useLicenseAvailability';
-import { ArrowLeft, Search, UserPlus } from 'lucide-react';
+import { ArrowLeft, Search, UserPlus } from '@/components/ui/icons';
 import { getApiErrorMessage } from '@/lib/api-error';
 import PublicHeader from '@/components/shared/PublicHeader';
 import PublicFooter from '@/components/shared/PublicFooter';

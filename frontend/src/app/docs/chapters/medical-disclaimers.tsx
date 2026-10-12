@@ -1,4 +1,4 @@
-import { ShieldAlert } from 'lucide-react';
+import { ShieldAlert } from '@/components/ui/icons';
 
 import { type DocsChapter } from './chapter-types';
 export const medicalDisclaimersChapter: DocsChapter = {

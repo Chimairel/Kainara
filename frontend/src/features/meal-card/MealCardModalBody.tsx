@@ -1,7 +1,7 @@
 'use client';
 import FeedbackNotice from '@/components/shared/FeedbackNotice';
 
-import { Flame, Info, ShieldCheck, Sparkles, UtensilsCrossed } from 'lucide-react';
+import { Flame, Info, ShieldCheck, Sparkles, UtensilsCrossed } from '@/components/ui/icons';
 import { MealMotionDiv } from '../../components/user/MealMotion';
 
 import MealReviewAttribution from '@/components/user/MealReviewAttribution';

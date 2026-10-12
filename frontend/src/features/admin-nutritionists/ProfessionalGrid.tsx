@@ -1,6 +1,6 @@
 import ExpertiseEditor, { type ExpertiseDraft } from './ExpertiseEditor';
 import AccessControl from './AccessControl';
-import { BadgeCheck } from 'lucide-react';
+import { BadgeCheck } from '@/components/ui/icons';
 import WorkspaceTable from '@/components/shared/WorkspaceTable';
 import Avatar from '@/components/ui/Avatar';
 import { professionalAccessLabel, type NutritionistRow } from './model';

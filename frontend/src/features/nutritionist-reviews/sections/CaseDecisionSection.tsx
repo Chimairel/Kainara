@@ -1,6 +1,6 @@
 'use client';
 import Button from '@/components/ui/Button';
-import { Check, X, ArrowLeftRight } from 'lucide-react';
+import { Check, X, ArrowLeftRight } from '@/components/ui/icons';
 import type { useCaseReviewWorkspaceModel } from './useCaseReviewWorkspaceModel';
 import type { useReviewSwap } from '../useReviewSwap';
 import ReviewDecisionDialog from '../ReviewDecisionDialog';
@@ -57,17 +57,44 @@ export default function CaseDecisionSection({
         required={action === 'reject' && swap.noSuitable}
         rejectionLabel={swap.noSuitable ? 'Reject and leave unavailable' : 'Reject and find replacement'}
       >
-        {action === 'reject' && !swap.noSuitable && <p className="mb-4 text-sm leading-6 text-brand-muted">We’ll search the certified library, then stored recipes, then AI if needed. Replacements stay pending for review. Manual library nutrient filters do not apply to this broader search.</p>}
-        {action === 'reject' && swap.filtersEnabled && <label className="mb-4 block text-sm">
-          <input type="checkbox" checked={swap.noSuitable} disabled={busy || !swap.data?.searchReceipt}
-            onChange={event => swap.setNoSuitable(event.target.checked)} className="mr-2" />
-          No suitable replacement — keep this slot unavailable and stop automatic regeneration.
-          {!swap.data?.searchReceipt && <span className="mt-1 block text-xs text-brand-muted">Open Swap and search the eligible library first to record this outcome.</span>}
-        </label>}
+        {action === 'reject' && !swap.noSuitable && (
+          <p className="mb-4 text-sm leading-6 text-brand-muted">
+            We’ll search the certified library, then stored recipes, then AI if needed. Replacements stay pending for
+            review. Manual library nutrient filters do not apply to this broader search.
+          </p>
+        )}
+        {action === 'reject' && swap.filtersEnabled && (
+          <label className="mb-4 block text-sm">
+            <input
+              type="checkbox"
+              checked={swap.noSuitable}
+              disabled={busy || !swap.data?.searchReceipt}
+              onChange={(event) => swap.setNoSuitable(event.target.checked)}
+              className="mr-2"
+            />
+            No suitable replacement — keep this slot unavailable and stop automatic regeneration.
+            {!swap.data?.searchReceipt && (
+              <span className="mt-1 block text-xs text-brand-muted">
+                Open Swap and search the eligible library first to record this outcome.
+              </span>
+            )}
+          </label>
+        )}
       </ReviewDecisionDialog>
-      <ReviewSwapDialog swap={swap} meal={model.detailData.mealPlan} onNoSuitable={() => {
-        swap.setNoSuitable(true); swap.close(); setAction('reject');
-      }} onFindReplacement={() => { swap.setNoSuitable(false); swap.close(); setAction('reject'); }} />
+      <ReviewSwapDialog
+        swap={swap}
+        meal={model.detailData.mealPlan}
+        onNoSuitable={() => {
+          swap.setNoSuitable(true);
+          swap.close();
+          setAction('reject');
+        }}
+        onFindReplacement={() => {
+          swap.setNoSuitable(false);
+          swap.close();
+          setAction('reject');
+        }}
+      />
     </>
   );
 }

@@ -3,7 +3,7 @@
 import { formatManilaDate } from '@/lib/manila-date';
 
 import React, { useEffect, useRef, useState } from 'react';
-import { TrendingUp } from 'lucide-react';
+import { TrendingUp } from '@/components/ui/icons';
 import type { useProgressWorkspace } from './useProgressWorkspace';
 
 type WeightGraphProps = Pick<ReturnType<typeof useProgressWorkspace>, 'groupedLogs' | 'targetWeight'>;

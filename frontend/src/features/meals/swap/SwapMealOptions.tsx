@@ -8,7 +8,7 @@ import MealImage from '@/components/user/MealImage';
 
 import LoadingSpinner from '@/components/shared/LoadingSpinner';
 
-import { Check, Soup } from 'lucide-react';
+import { Check, Soup } from '@/components/ui/icons';
 
 import { swapNutritionLabel } from '../swap-nutrition-label';
 import { getMealTheme } from '@/features/dashboard/DashboardMealRow';

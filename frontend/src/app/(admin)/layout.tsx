@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { DatabaseZap, LayoutDashboard, Users, Soup, Grid2X2 } from 'lucide-react';
+import { DatabaseZap, LayoutDashboard, Users, Soup, Grid2X2 } from '@/components/ui/icons';
 import PortalRoleLayout from '@/components/shared/PortalRoleLayout';
 
 const navItems = [

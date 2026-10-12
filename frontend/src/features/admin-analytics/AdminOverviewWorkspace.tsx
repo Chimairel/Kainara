@@ -1,5 +1,5 @@
 'use client';
-import { BarChart3, ShieldCheck, Utensils } from 'lucide-react';
+import { BarChart3, ShieldCheck, Utensils } from '@/components/ui/icons';
 import AdminTabbedWorkspace from '@/features/admin-workspace/AdminTabbedWorkspace';
 import AdminStatistics from './AdminStatistics';
 import AdminSafetyPanel from './AdminSafetyPanel';

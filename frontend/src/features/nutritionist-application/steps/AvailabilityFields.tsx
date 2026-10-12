@@ -1,4 +1,4 @@
-import { Video } from 'lucide-react';
+import { Video } from '@/components/ui/icons';
 
 import Input from '@/components/ui/Input';
 

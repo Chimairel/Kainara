@@ -5,7 +5,7 @@ import { formatManilaDate } from '@/lib/manila-date';
 import WorkspaceTable from '@/components/shared/WorkspaceTable';
 
 import React from 'react';
-import { Plus, Scale } from 'lucide-react';
+import { Plus, Scale } from '@/components/ui/icons';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import Badge from '@/components/ui/Badge';

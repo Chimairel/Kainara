@@ -16,7 +16,17 @@ import Modal from '@/components/ui/Modal';
 import { useAuth } from '@/hooks/useAuth';
 import api from '@/lib/axios';
 import { getRoleLabel } from '@/lib/role-label';
-import { Ban, CheckCircle2, ChevronLeft, ChevronRight, Clock3, RotateCcw, Search, Users, XCircle } from 'lucide-react';
+import {
+  Ban,
+  CheckCircle2,
+  ChevronLeft,
+  ChevronRight,
+  Clock3,
+  RotateCcw,
+  Search,
+  Users,
+  XCircle,
+} from '@/components/ui/icons';
 import React, { useState } from 'react';
 
 interface UserRow {

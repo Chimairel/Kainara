@@ -1,4 +1,4 @@
-import { BrainCircuit } from 'lucide-react';
+import { BrainCircuit } from '@/components/ui/icons';
 import { evidenceRegisterSections } from '../EvidenceRegister';
 
 import { inlineLink, type DocsChapter } from './chapter-types';

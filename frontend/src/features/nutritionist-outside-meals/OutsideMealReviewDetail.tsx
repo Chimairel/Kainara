@@ -3,7 +3,7 @@
 import { formatManilaDate } from '@/lib/manila-date';
 
 import ReadOnlyFoodReferences from './ReadOnlyFoodReferences';
-import { CheckCircle2, ClipboardCheck, Eye } from 'lucide-react';
+import { CheckCircle2, ClipboardCheck, Eye } from '@/components/ui/icons';
 import api from '@/lib/axios';
 import { getApiErrorMessage } from '@/lib/api-error';
 import Button from '@/components/ui/Button';

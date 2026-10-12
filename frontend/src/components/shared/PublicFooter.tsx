@@ -2,7 +2,7 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { ChevronRight, ChevronUp, Clock, Mail, MapPin } from 'lucide-react';
+import { ChevronRight, ChevronUp, Clock, Mail, MapPin } from '@/components/ui/icons';
 import KainaraLogo from '@/components/shared/KainaraLogo';
 import { SectionWaveBorderTop } from '@/components/landing/LandingWaveRiver';
 
@@ -182,7 +182,25 @@ export default function PublicFooter() {
 
           {/* Bottom Copyright & Legal Row */}
           <div className="relative z-10 flex flex-col sm:flex-row items-center justify-between gap-4 border-t border-[#173e33] pt-8 pb-6 text-xs text-white/50">
-            <p>© 2026 KAINARA. AI-Assisted Filipino Nutrition & Clinical Review. All rights reserved.</p>
+            <div className="space-y-1 text-center sm:text-left">
+              <p>© 2026 KAINARA. AI-Assisted Filipino Nutrition & Clinical Review. All rights reserved.</p>
+              <p>
+                Solar Icons by{' '}
+                <a
+                  href="https://www.figma.com/community/file/1166831539721848736"
+                  className="underline underline-offset-4 hover:text-white"
+                >
+                  480 Design
+                </a>
+                {' · '}
+                <a
+                  href="https://creativecommons.org/licenses/by/4.0/"
+                  className="underline underline-offset-4 hover:text-white"
+                >
+                  CC BY 4.0
+                </a>
+              </p>
+            </div>
 
             <div className="flex flex-wrap items-center justify-center gap-4 sm:gap-6 font-medium">
               <Link href="/docs#privacy-policy" className="hover:text-emerald-400 transition-colors">

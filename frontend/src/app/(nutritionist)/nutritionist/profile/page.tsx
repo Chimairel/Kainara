@@ -5,7 +5,7 @@ import NutritionistCredentialModal from '@/components/user/NutritionistCredentia
 
 import PortalPageHeader from '@/components/shared/PortalPageHeader';
 
-import { Check, UserRound, ShieldCheck, Building2 } from 'lucide-react';
+import { Check, UserRound, ShieldCheck, Building2 } from '@/components/ui/icons';
 
 import { useNutritionistProfilePageModel } from '@/features/nutritionist-profile/useNutritionistProfilePageModel';
 import NutritionistCredentialsSection from '@/features/nutritionist-profile/NutritionistCredentialsSection';

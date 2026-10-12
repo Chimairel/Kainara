@@ -1,5 +1,5 @@
 import React, { forwardRef, useId } from 'react';
-import { AlertCircle } from 'lucide-react';
+import { AlertCircle } from '@/components/ui/icons';
 
 interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   trailingControl?: React.ReactNode;

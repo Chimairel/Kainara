@@ -2,7 +2,7 @@
 
 import Button from '@/components/ui/Button';
 import { Select } from '@/components/ui/Select';
-import { Download, Loader2 } from 'lucide-react';
+import { Download, Loader2 } from '@/components/ui/icons';
 import { formatManilaDate } from '@/lib/manila-date';
 import type { ReportVersion } from './ReportHistory';
 

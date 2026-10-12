@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
-import { Activity, Home, Soup, ShoppingCart, User } from 'lucide-react';
+import { Activity, Home, Soup, ShoppingCart, User } from '@/components/ui/icons';
 import ProfileWidget from '@/components/ui/ProfileWidget';
 
 export const BottomNav: React.FC<{ className?: string }> = ({ className = '' }) => {

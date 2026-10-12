@@ -1,6 +1,6 @@
 'use client';
 import { useEffect, useState, type ReactNode } from 'react';
-import { Monitor } from 'lucide-react';
+import { Monitor } from '@/components/ui/icons';
 
 export default function DesktopReviewGate({ children }: { children: ReactNode }) {
   const [desktop, setDesktop] = useState<boolean | null>(null);

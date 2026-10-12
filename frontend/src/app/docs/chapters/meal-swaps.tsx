@@ -1,4 +1,4 @@
-import { Repeat2 } from 'lucide-react';
+import { Repeat2 } from '@/components/ui/icons';
 
 import { type DocsChapter } from './chapter-types';
 export const mealSwapsChapter: DocsChapter = {

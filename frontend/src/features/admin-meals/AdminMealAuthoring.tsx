@@ -7,7 +7,7 @@ import { useSessionQuery } from '@/hooks/useSessionQuery';
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { BookOpenText, Plus, RefreshCw, ShieldCheck, Trash2 } from 'lucide-react';
+import { BookOpenText, Plus, RefreshCw, ShieldCheck, Trash2 } from '@/components/ui/icons';
 import api from '@/lib/axios';
 import { getApiErrorMessage } from '@/lib/api-error';
 import Button from '@/components/ui/Button';

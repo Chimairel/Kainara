@@ -4,7 +4,7 @@ import FeedbackNotice from '@/components/shared/FeedbackNotice';
 import Link from 'next/link';
 import type { ReactNode } from 'react';
 import { useMembership } from './MembershipProvider';
-import { TrendingUp, Sparkles, ArrowRight, FileText } from 'lucide-react';
+import { TrendingUp, Sparkles, ArrowRight, FileText } from '@/components/ui/icons';
 import Button from '@/components/ui/Button';
 
 export default function MembershipGate({ children, benefit }: { children: ReactNode; benefit: string }) {

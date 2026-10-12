@@ -6,7 +6,7 @@ import Button from '@/components/ui/Button';
 
 import PasswordInput from '@/components/ui/PasswordInput';
 
-import { Lock, CheckCircle, ShieldCheck } from 'lucide-react';
+import { Lock, CheckCircle, ShieldCheck } from '@/components/ui/icons';
 
 import type { useAccountSettingsModel } from './useAccountSettingsModel';
 type Model = Extract<ReturnType<typeof useAccountSettingsModel>, { kind: 'ready' }>;

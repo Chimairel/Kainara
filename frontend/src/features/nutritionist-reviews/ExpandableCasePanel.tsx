@@ -2,7 +2,7 @@
 
 import { useEffect, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
-import { ArrowLeft, Maximize2, Minimize2 } from 'lucide-react';
+import { ArrowLeft, Maximize2, Minimize2 } from '@/components/ui/icons';
 import ThemeToggle from '@/components/ui/ThemeToggle';
 
 export default function ExpandableCasePanel({

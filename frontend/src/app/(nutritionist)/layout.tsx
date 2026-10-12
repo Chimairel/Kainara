@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { ClipboardList, Soup, ScrollText } from 'lucide-react';
+import { ClipboardList, Soup, ScrollText } from '@/components/ui/icons';
 import PortalRoleLayout from '@/components/shared/PortalRoleLayout';
 import NutritionistCredentialGate from '@/features/nutritionist-license/NutritionistCredentialGate';
 

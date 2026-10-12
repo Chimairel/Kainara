@@ -9,7 +9,7 @@ import {
   ClipboardList,
   BookOpen,
   FileText,
-} from 'lucide-react';
+} from '@/components/ui/icons';
 import WorkspaceMetricStrip from '@/components/shared/WorkspaceMetricStrip';
 import { cn } from '@/lib/utils';
 import { format, HeroMetricCard } from './AdminStatistics.shared';

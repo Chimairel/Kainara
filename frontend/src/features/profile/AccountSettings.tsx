@@ -8,7 +8,7 @@ import PortalPageHeader from '@/components/shared/PortalPageHeader';
 import Avatar from '@/components/ui/Avatar';
 import AvatarSettings from '@/features/profile/AvatarSettings';
 
-import { User, Lock, LogOut, Mail, Palette, ShieldCheck, Trash2 } from 'lucide-react';
+import { User, Lock, LogOut, Mail, Palette, ShieldCheck, Trash2 } from '@/components/ui/icons';
 import { ProfilePanel } from '@/features/profile/account/AccountSettings.shared';
 
 import { useAccountSettingsModel } from '@/features/profile/account/useAccountSettingsModel';

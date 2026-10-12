@@ -23,7 +23,7 @@ import {
   Server,
   Lock,
   Sparkles,
-} from 'lucide-react';
+} from '@/components/ui/icons';
 
 export default function AdminProfilePage() {
   const { user, logout, updateUserSession } = useAuth();

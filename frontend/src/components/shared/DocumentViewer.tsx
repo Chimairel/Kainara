@@ -14,7 +14,7 @@ import {
   Plus,
   Shrink,
   StretchHorizontal,
-} from 'lucide-react';
+} from '@/components/ui/icons';
 
 export interface DocumentViewerProps {
   title: string;

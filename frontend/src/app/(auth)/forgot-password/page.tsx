@@ -3,7 +3,7 @@ import FeedbackNotice from '@/components/shared/FeedbackNotice';
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { CheckCircle2, MailCheck } from 'lucide-react';
+import { CheckCircle2, MailCheck } from '@/components/ui/icons';
 import { getApiErrorMessage } from '@/lib/api-error';
 import api from '@/lib/axios';
 import Button from '@/components/ui/Button';

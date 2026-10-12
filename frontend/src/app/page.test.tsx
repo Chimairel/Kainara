@@ -12,6 +12,7 @@ it('passes the current published poster to the initial landing response', async 
   };
   mocks.read.mockResolvedValue(media);
   const page = await Home();
-  expect(page.props.initialMedia).toEqual(media);
+  expect(page.props.children[0].props.type).toBe('application/ld+json');
+  expect(page.props.children[1].props.initialMedia).toEqual(media);
   expect(mocks.read).toHaveBeenCalledOnce();
 });

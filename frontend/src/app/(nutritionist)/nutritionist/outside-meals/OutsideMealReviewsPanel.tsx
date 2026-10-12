@@ -1,7 +1,7 @@
 'use client';
 import FeedbackNotice from '@/components/shared/FeedbackNotice';
 
-import { ClipboardCheck } from 'lucide-react';
+import { ClipboardCheck } from '@/components/ui/icons';
 
 import PortalPageHeader from '@/components/shared/PortalPageHeader';
 

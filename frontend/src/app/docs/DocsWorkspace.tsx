@@ -3,7 +3,7 @@
 import Dropdown from '@/components/ui/Dropdown';
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
-import { ArrowRight, ChevronRight, List } from 'lucide-react';
+import { ArrowRight, ChevronRight, List } from '@/components/ui/icons';
 import { docsChapters } from './DocsChapters';
 
 const groups = ['Start here', 'Use KAINARA', 'Review and evidence', 'Policies and help'] as const;

@@ -1,6 +1,6 @@
 'use client';
 
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight } from '@/components/ui/icons';
 
 import type { useMealActivityCalendarModel } from './useMealActivityCalendarModel';
 type Model = Extract<ReturnType<typeof useMealActivityCalendarModel>, { kind: 'ready' }>;

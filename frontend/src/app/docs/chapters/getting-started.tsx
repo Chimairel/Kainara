@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { Compass } from 'lucide-react';
+import { Compass } from '@/components/ui/icons';
 
 import { inlineLink, type DocsChapter } from './chapter-types';
 export const gettingStartedChapter: DocsChapter = {

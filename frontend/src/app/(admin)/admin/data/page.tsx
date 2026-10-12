@@ -3,7 +3,7 @@ import FeedbackNotice from '@/components/shared/FeedbackNotice';
 
 import { useState } from 'react';
 import { useSessionQuery } from '@/hooks/useSessionQuery';
-import { BookOpen, DatabaseZap, LayoutDashboard, ShieldCheck, Waypoints } from 'lucide-react';
+import { BookOpen, DatabaseZap, LayoutDashboard, ShieldCheck, Waypoints } from '@/components/ui/icons';
 import HeaderRefreshAction from '@/components/shared/HeaderRefreshAction';
 import api from '@/lib/axios';
 import Button from '@/components/ui/Button';

@@ -2,7 +2,7 @@
 
 import type { ButtonHTMLAttributes, ReactNode } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, Check } from 'lucide-react';
+import { ArrowLeft, Check } from '@/components/ui/icons';
 import { ProfileSettingsSurface } from '@/components/user/ProfileSettingsSection';
 import OnboardingProgressSlider from './OnboardingProgressSlider';
 import styles from './OnboardingStep.module.css';

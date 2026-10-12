@@ -1,4 +1,4 @@
-import { HeartPulse } from 'lucide-react';
+import { HeartPulse } from '@/components/ui/icons';
 
 import { type DocsChapter } from './chapter-types';
 export const clinicalGuidelinesChapter: DocsChapter = {

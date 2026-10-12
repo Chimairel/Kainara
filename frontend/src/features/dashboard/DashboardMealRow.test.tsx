@@ -62,13 +62,13 @@ describe('DashboardMealRow pending images', () => {
     expect(screen.queryByText('Approved')).not.toBeInTheDocument();
   });
 
-  it('keeps a neutral missing-photo placeholder when the photo is absent or fails', () => {
+  it('shows the shared Kainara logo when the photo is absent or fails', () => {
     const { rerender } = render(<DashboardMealRow meal={pending} pending />);
     fireEvent.error(screen.getByRole('img'));
-    expect(screen.queryByRole('img')).not.toBeInTheDocument();
+    expect(screen.getByRole('img', { name: 'Kainara logo' })).toHaveAttribute('src', '/logo/kainara-logo.svg');
     expect(screen.getByLabelText('Crab Meat Omelette (photo unavailable)')).toBeInTheDocument();
     rerender(<DashboardMealRow meal={{ ...pending, image: null }} pending />);
-    expect(screen.queryByRole('img')).not.toBeInTheDocument();
+    expect(screen.getByRole('img', { name: 'Kainara logo' })).toHaveAttribute('src', '/logo/kainara-logo.svg');
     expect(screen.getByText('Pending review')).toBeInTheDocument();
   });
 });

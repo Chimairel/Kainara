@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { FileText, Lock, ShieldAlert, User, HelpCircle } from 'lucide-react';
+import { FileText, Lock, ShieldAlert, User, HelpCircle } from '@/components/ui/icons';
 import type { DocsChapter } from './DocsChapters';
 
 const inlineLink =

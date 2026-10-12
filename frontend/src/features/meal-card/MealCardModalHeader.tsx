@@ -3,7 +3,7 @@
 import { formatMealTitle } from '@/lib/meal-title';
 import Button from '@/components/ui/Button';
 
-import { Check, Clock3, RefreshCw, ShieldCheck, X } from 'lucide-react';
+import { Check, Clock3, RefreshCw, ShieldCheck, X } from '@/components/ui/icons';
 import { MealMotionDiv } from '../../components/user/MealMotion';
 
 import MealImage from '../../components/user/MealImage';

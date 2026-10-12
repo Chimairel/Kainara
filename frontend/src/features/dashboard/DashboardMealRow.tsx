@@ -5,7 +5,7 @@ import { MealMacros } from '@/components/user/MealMacros';
 import { buttonStyles } from '@/components/ui/button-styles';
 import { formatMealTitle } from '@/lib/meal-title';
 import { useState } from 'react';
-import { Check, ChevronDown } from 'lucide-react';
+import { Check, ChevronDown } from '@/components/ui/icons';
 import MealImage from '@/components/user/MealImage';
 import type { MealPlan } from '@/types';
 import type { PendingMealPreview } from '@/components/user/PendingMealPreviewCard';

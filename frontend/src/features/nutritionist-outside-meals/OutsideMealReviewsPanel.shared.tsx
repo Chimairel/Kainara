@@ -1,4 +1,4 @@
-import { Apple, Moon, Sun, Utensils } from 'lucide-react';
+import { Apple, Moon, Sun, Utensils } from '@/components/ui/icons';
 
 export type QueueRow = {
   id: string;

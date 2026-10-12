@@ -8,7 +8,7 @@ import { useEffect, useMemo, useState } from 'react';
 import Button from '@/components/ui/Button';
 import { LibraryGridSkeleton } from '@/features/nutritionist-library/NutritionistLibrarySkeleton';
 import Link from 'next/link';
-import { Search, Salad } from 'lucide-react';
+import { Search, Salad } from '@/components/ui/icons';
 import type { useMealsWorkspace } from './useMealsWorkspace';
 import { groupApprovedPlanRecipes } from './approvedPlanRecipes';
 import RecipeLibraryCard from './RecipeLibraryCard';

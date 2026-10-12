@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { ShieldCheck, User, GraduationCap, Award, Calendar } from 'lucide-react';
+import { ShieldCheck, User, GraduationCap, Award, Calendar } from '@/components/ui/icons';
 import { KainaraLogo } from '@/components/shared/KainaraLogo';
 
 export interface VerifierData {

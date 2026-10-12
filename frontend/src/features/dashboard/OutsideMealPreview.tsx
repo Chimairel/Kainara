@@ -2,7 +2,7 @@ import FeedbackNotice from '@/components/shared/FeedbackNotice';
 import OutsideReviewRequestButton from '@/features/membership/OutsideReviewRequestButton';
 import { formatMealTitle } from '@/lib/meal-title';
 import Button from '@/components/ui/Button';
-import { Calculator } from 'lucide-react';
+import { Calculator } from '@/components/ui/icons';
 import type { OutsideMealWarning } from './model';
 import type { OutsideMealModalProps as Props } from './outside-meal-modal.types';
 

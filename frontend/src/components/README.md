@@ -2,6 +2,12 @@
 
 Use these components before copying markup from another page. Role authorization, eligibility, claim state and mutation handling belong in the caller.
 
+## Solar Icons (experimental branch)
+
+Import semantic icons and `AppIcon` / `AppIconProps` from `ui/icons`. The boundary uses `@solar-icons/react` per-icon entry points: Linear for controls/status and LineDuotone for navigation/context. Existing sizing classes, refs, event handlers and accessible control labels remain owned by callers. Icons inherit `currentColor`: pine/green for supporting actions, the existing foreground on orange selected navigation, and the existing explicit status colors for errors, warnings and completion. The secondary layer uses the same color at 22% opacity; do not add arbitrary hue pairs or new icon containers. Decorative SVGs stay hidden from assistive technology; put the accessible action name on its button/link. Existing mascot/logo/food artwork remains artwork.
+
+The map uses generic Solar food symbols (plate, leaf and chef hat) where there is no equivalent ingredient glyph; nearby labels retain the specific meaning. Solar assets are by 480 Design under CC BY 4.0, credited in the public footer. Public-header migration includes only its icon import; other uncommitted header changes remain separate.
+
 ## Onboarding presentation
 
 `OnboardingStep` shares the profile page heading, compact six-step progress and `ProfileSettingsSurface`. Use `ProfileSettingsSection` for form groups, `OnboardingChoice` for selectable options and `OnboardingActions` with the shared Button for navigation/save actions. Choices retain native keyboard behavior, selected text/check indicators, peach fill and visible focus. Below 640px, the enclosing surface becomes open sections with reduced padding; short choices and measurements use two columns. Decorative choice icons hide so labels and descriptions can wrap. Inputs retain 44px targets and use 16px text to avoid mobile focus zoom. Continue stays in document flow with safe-area spacing, rather than covering fields or the keyboard. Desktop profile styling is unchanged. Conditional condition/allergy detail pages reuse the same step shell with their existing health forms. Callers retain hydration, validation, API payloads, declaration confirmation, consent versions and report acknowledgment routing; progress is presentation, never permission to skip a step.

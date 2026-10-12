@@ -2,7 +2,7 @@
 
 import Button from '@/components/ui/Button';
 
-import { ShieldCheck } from 'lucide-react';
+import { ShieldCheck } from '@/components/ui/icons';
 
 import { Props } from './CaseReviewWorkspace.shared';
 export function useCaseReviewWorkspaceModel({

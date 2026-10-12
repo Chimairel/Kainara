@@ -2,7 +2,7 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { ShieldCheck } from 'lucide-react';
+import { ShieldCheck } from '@/components/ui/icons';
 import RouteGuard from '@/components/shared/RouteGuard';
 import ThemeToggle from '@/components/ui/ThemeToggle';
 import KainaraLogo from '@/components/shared/KainaraLogo';

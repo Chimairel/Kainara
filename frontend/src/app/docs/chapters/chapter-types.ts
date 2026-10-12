@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 
-import { type LucideIcon } from 'lucide-react';
+import { type AppIcon } from '@/components/ui/icons';
 
 export type DocsSection = { id: string; title: string; content: ReactNode };
 export type DocsChapter = {
@@ -8,7 +8,7 @@ export type DocsChapter = {
   title: string;
   shortTitle: string;
   group: 'Start here' | 'Use KAINARA' | 'Review and evidence' | 'Policies and help';
-  icon: LucideIcon;
+  icon: AppIcon;
   tone: 'accent' | 'cyan' | 'green' | 'amber';
   aliases?: string[];
   summary: ReactNode;

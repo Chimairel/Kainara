@@ -7,7 +7,7 @@ import api from '@/lib/axios';
 import { getApiErrorMessage } from '@/lib/api-error';
 import AuthShell from '@/components/auth/AuthShell';
 import RouteGuard from '@/components/shared/RouteGuard';
-import { CheckCircle2, LogOut, Mail } from 'lucide-react';
+import { CheckCircle2, LogOut, Mail } from '@/components/ui/icons';
 
 /**
  * Email Verification Page — 6-digit OTP input with auto-submit and resend cooldown.

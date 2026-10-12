@@ -1,5 +1,5 @@
-import type { LucideIcon } from 'lucide-react';
-import { CheckCircle2, AlertTriangle, ArrowRight } from 'lucide-react';
+import type { AppIcon } from '@/components/ui/icons';
+import { CheckCircle2, AlertTriangle, ArrowRight } from '@/components/ui/icons';
 import Link from 'next/link';
 import Card from '@/components/ui/Card';
 
@@ -20,7 +20,7 @@ export function HeroMetricCard({
   count: number;
   note: string;
   href?: string;
-  icon: LucideIcon;
+  icon: AppIcon;
   badgeTone?: 'emerald' | 'teal' | 'amber' | 'blue';
 }) {
   const badgeClasses = {
@@ -70,7 +70,7 @@ export function SignalCard({
   count: number;
   note: string;
   href?: string;
-  icon: LucideIcon;
+  icon: AppIcon;
   statusType?: 'zero-good' | 'queue' | 'neutral';
 }) {
   const isAlert = statusType === 'zero-good' && count > 0;

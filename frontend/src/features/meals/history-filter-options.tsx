@@ -1,4 +1,4 @@
-import { ListChecks, Sparkles, ShieldCheck, FileText, Repeat2, CheckCircle2, Clock3 } from 'lucide-react';
+import { ListChecks, Sparkles, ShieldCheck, FileText, Repeat2, CheckCircle2, Clock3 } from '@/components/ui/icons';
 import type { SelectOption } from '@/components/ui/Select';
 
 export const HISTORY_SOURCE_OPTIONS: SelectOption[] = [

@@ -4,7 +4,7 @@ import Link from 'next/link';
 
 import Card from '@/components/ui/Card';
 
-import { Scale, ArrowRight } from 'lucide-react';
+import { Scale, ArrowRight } from '@/components/ui/icons';
 
 import type { useAccountSettingsModel } from './useAccountSettingsModel';
 type Model = Extract<ReturnType<typeof useAccountSettingsModel>, { kind: 'ready' }>;

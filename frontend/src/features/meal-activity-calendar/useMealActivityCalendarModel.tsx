@@ -1,7 +1,7 @@
 'use client';
 import { summarizeMealIntake } from '@/lib/meal-history-summary';
 import { useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { Lock } from 'lucide-react';
+import { Lock } from '@/components/ui/icons';
 import { formatManilaDate, getManilaDateKey } from '@/lib/manila-date';
 
 import { ActivityTimeRange, MonthColumnData, MealActivityCalendarProps, DayCell } from './MealActivityCalendar.shared';

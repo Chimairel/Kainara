@@ -1,7 +1,7 @@
 'use client';
 
 import { type CSSProperties, type ReactNode } from 'react';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft } from '@/components/ui/icons';
 import ReviewCanvas from './ReviewCanvas';
 
 /** Queue adapter: movable paper sheets and an unscaled decision dock share one review canvas. */

@@ -11,7 +11,7 @@ import {
   type ReactNode,
   type ReactElement,
 } from 'react';
-import { Hand, MousePointer2, Maximize2, Minimize2, Minus, Plus, RotateCcw, Scan, Square } from 'lucide-react';
+import { Hand, MousePointer2, Maximize2, Minimize2, Minus, Plus, RotateCcw, Scan, Square } from '@/components/ui/icons';
 
 type Point = { x: number; y: number };
 const WIDTH = 794;

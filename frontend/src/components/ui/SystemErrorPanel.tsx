@@ -3,7 +3,7 @@
 import React from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { ArrowLeft, ArrowRight, ArrowUpRight, Moon, Sun } from 'lucide-react';
+import { ArrowLeft, ArrowRight, ArrowUpRight, Moon, Sun } from '@/components/ui/icons';
 import { useTheme } from '@/lib/context/ThemeContext';
 import KainaraLogo from '@/components/shared/KainaraLogo';
 import InteractiveCyberGrid from '@/components/ui/InteractiveCyberGrid';

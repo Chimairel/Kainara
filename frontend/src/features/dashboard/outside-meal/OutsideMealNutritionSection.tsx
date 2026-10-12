@@ -1,6 +1,6 @@
 'use client';
 
-import { CheckCircle2, Flame, Info } from 'lucide-react';
+import { CheckCircle2, Flame, Info } from '@/components/ui/icons';
 
 import type { useOutsideMealFormModel } from './useOutsideMealFormModel';
 type Model = Extract<ReturnType<typeof useOutsideMealFormModel>, { kind: 'ready' }>;

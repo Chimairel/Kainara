@@ -9,7 +9,7 @@ import HistoryDaySummary from '@/features/meals/HistoryDaySummary';
 import MealHistoryCard from '@/components/user/MealHistoryCard';
 import UnloggedMealCatchUpCard from '@/components/user/UnloggedMealCatchUpCard';
 import { formatManilaDate, getManilaDateKey, manilaDateFromKey } from '@/lib/manila-date';
-import { Calendar, Clock3, FileText, Search } from 'lucide-react';
+import { Calendar, Clock3, FileText, Search } from '@/components/ui/icons';
 import { Select } from '@/components/ui/Select';
 import { HISTORY_SOURCE_OPTIONS, HISTORY_STATUS_OPTIONS } from '@/features/meals/history-filter-options';
 import type { useMealsPage } from './useMealsPage';

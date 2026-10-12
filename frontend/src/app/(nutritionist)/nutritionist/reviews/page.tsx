@@ -3,7 +3,7 @@
 import CaseReviewWorkspace from '@/features/nutritionist-reviews/CaseReviewWorkspace';
 
 import PortalPageHeader from '@/components/shared/PortalPageHeader';
-import { ShieldCheck } from 'lucide-react';
+import { ShieldCheck } from '@/components/ui/icons';
 import { useState } from 'react';
 
 import { useNutritionistReviews } from '@/features/nutritionist-reviews/useNutritionistReviews';

@@ -6,7 +6,7 @@ import Link from 'next/link';
 import Badge from '@/components/ui/Badge';
 import Avatar from '@/components/ui/Avatar';
 
-import { Check, Award, GraduationCap, Stethoscope, FileCheck2, ArrowRight } from 'lucide-react';
+import { Check, Award, GraduationCap, Stethoscope, FileCheck2, ArrowRight } from '@/components/ui/icons';
 
 import type { useNutritionistProfilePageModel } from './useNutritionistProfilePageModel';
 type Model = Extract<ReturnType<typeof useNutritionistProfilePageModel>, { kind: 'ready' }>;

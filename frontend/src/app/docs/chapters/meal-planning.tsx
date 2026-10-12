@@ -1,4 +1,4 @@
-import { Clock } from 'lucide-react';
+import { Clock } from '@/components/ui/icons';
 
 import { type DocsChapter } from './chapter-types';
 export const mealPlanningChapter: DocsChapter = {

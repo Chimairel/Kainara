@@ -2,7 +2,7 @@
 
 import CardDecoration from '@/components/ui/CardDecoration';
 import Button from '@/components/ui/Button';
-import { Download, Loader2 } from 'lucide-react';
+import { Download, Loader2 } from '@/components/ui/icons';
 import type { useGroceryWorkspace } from './useGroceryWorkspace';
 
 type Props = {

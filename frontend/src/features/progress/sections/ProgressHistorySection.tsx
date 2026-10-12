@@ -10,7 +10,7 @@ import Card from '@/components/ui/Card';
 
 import Badge from '@/components/ui/Badge';
 
-import { CheckCircle, Lightbulb, BarChart3, Activity } from 'lucide-react';
+import { CheckCircle, Lightbulb, BarChart3, Activity } from '@/components/ui/icons';
 
 import MembershipGate from '@/features/membership/MembershipGate';
 

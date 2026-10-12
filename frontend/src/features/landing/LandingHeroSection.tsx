@@ -2,7 +2,7 @@
 import React from 'react';
 import Link from 'next/link';
 
-import { ArrowRight, ArrowUpRight, Activity, Flame, CheckCircle2 } from 'lucide-react';
+import { ArrowRight, ArrowUpRight, Activity, Flame, CheckCircle2 } from '@/components/ui/icons';
 
 import LandingHeroMedia from '@/components/landing/LandingHeroMedia';
 

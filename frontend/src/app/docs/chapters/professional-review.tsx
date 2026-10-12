@@ -1,4 +1,4 @@
-import { Stethoscope } from 'lucide-react';
+import { Stethoscope } from '@/components/ui/icons';
 
 import { type DocsChapter } from './chapter-types';
 export const professionalReviewChapter: DocsChapter = {
