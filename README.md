@@ -20,6 +20,8 @@ Administrator-managed nutrition sources, releases and FNRI aliases use [`docs/AD
 
 Meal flags, independent re-review, quarantine release, related-case admin oversight, and JSON draft batches use [`docs/MEAL_REVIEW_GOVERNANCE.md`](docs/MEAL_REVIEW_GOVERNANCE.md). The additive governance migration must be applied to a confirmed database target before deploying this workflow.
 
+The local [October 13 flag-resolution canvas](docs/verification/RND_FLAG_RESOLUTION_2026-10-13.md) adds a concern paper, required written resolutions and **Mark resolved** before verification. Audit and Library share the case-recheck canvas; linked unresolved flags block member-case approval. This follow-up reuses existing records and needs no additional migration. It is not yet deployed.
+
 Admin meal-log history and meal popularity use [`docs/MEAL_LOG_AUDIT.md`](docs/MEAL_LOG_AUDIT.md). Apply the additive meal-log audit migration to a confirmed target before opening these views. Historical age, membership and earlier edits remain explicitly unavailable; the migration does not invent them.
 
 Standardized capstone recipe portions, nutrient calculations, guarded development imports and inactive condition-rule proposals use [`docs/DEMO_RECIPE_PREPARATION.md`](docs/DEMO_RECIPE_PREPARATION.md).

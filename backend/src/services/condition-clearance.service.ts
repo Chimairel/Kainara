@@ -69,6 +69,8 @@ export class ConditionClearanceService {
     decision: ClearanceDecisionValue;
     rationale?: string;
     userScopeId?: string | null;
+    beforeWrite?: (tx: Prisma.TransactionClient) => Promise<void>;
+    targetClearanceId?: string;
   }) {
     if (input.condition === HealthConditionType.NONE) throw new Error('NONE does not require a condition clearance.');
     const tier = getConditionAssuranceTier(input.condition);
@@ -106,22 +108,6 @@ export class ConditionClearanceService {
     });
     if (!safety.complete) throw new Error('Base recipe evidence must be complete before condition clearance.');
 
-    const existing = await prisma.mealConditionClearance.findFirst({
-      where: {
-        mealLibraryId: meal.id,
-        condition: input.condition,
-        recipeSignature: meal.recipeSignature,
-        evidenceRevision: meal.safetyEvidenceRevision,
-        userScopeId: input.userScopeId ?? null,
-        state: { in: ['REVIEW_DUE', 'ACTIVE', 'DISPUTED'] },
-      },
-      include: { decisions: { orderBy: { submittedAt: 'asc' } } },
-      orderBy: { createdAt: 'desc' },
-    });
-    if (existing?.state === ConditionClearanceState.ACTIVE)
-      throw new Error('An active clearance already exists for this scope.');
-    if (existing?.state === ConditionClearanceState.DISPUTED)
-      throw new Error('Resolve the recorded dispute before issuing a new clearance.');
     const now = new Date();
     return prisma.$transaction(
       async (tx) => {
@@ -130,11 +116,43 @@ export class ConditionClearanceService {
           if (!(await ClinicalProfileReviewService.hasCurrentApproval(input.userScopeId, tx)))
             throw new Error('This profile changed and needs a new nutritionist confirmation.');
         }
+        await tx.$queryRaw`SELECT "id" FROM "MealLibrary" WHERE "id" = ${meal.id} FOR UPDATE`;
+        await input.beforeWrite?.(tx);
+        // Read the current clearance inside the decision transaction. A flag
+        // recorded while this review was open cannot be bypassed by creating another approval.
+        const existing = await tx.mealConditionClearance.findFirst({
+          where: {
+            ...(input.targetClearanceId ? { id: input.targetClearanceId } : {}),
+            mealLibraryId: meal.id,
+            condition: input.condition,
+            recipeSignature: meal.recipeSignature!,
+            evidenceRevision: meal.safetyEvidenceRevision,
+            userScopeId: input.userScopeId ?? null,
+            state: { in: ['REVIEW_DUE', 'ACTIVE', 'DISPUTED', 'SUSPENDED'] },
+          },
+          include: { decisions: { orderBy: { submittedAt: 'asc' } } },
+          orderBy: { createdAt: 'desc' },
+        });
+        if (existing?.state === ConditionClearanceState.ACTIVE)
+          throw new Error('An active clearance already exists for this scope.');
+        if (existing?.state === ConditionClearanceState.DISPUTED)
+          throw new Error('Resolve the recorded dispute before issuing a new clearance.');
+        if (existing?.state === 'SUSPENDED' && !input.beforeWrite)
+          throw new Error('Resolve this suspended approval through its recorded flag recheck.');
+        if (input.targetClearanceId && !existing) throw new Error('The recorded approval changed during recheck.');
         const healthDetails = input.userScopeId
           ? await tx.clinicalContextResponse.findMany({ where: { userId: input.userScopeId } })
           : [];
-        const currentMeal = await tx.mealLibrary.findUnique({ where: { id: meal.id }, select: { status: true } });
+        const currentMeal = await tx.mealLibrary.findUnique({
+          where: { id: meal.id },
+          select: { status: true, recipeSignature: true, safetyEvidenceRevision: true },
+        });
         if (currentMeal?.status !== 'APPROVED') throw new Error('This meal was flagged during review.');
+        if (
+          currentMeal.recipeSignature !== meal.recipeSignature ||
+          currentMeal.safetyEvidenceRevision !== meal.safetyEvidenceRevision
+        )
+          throw new Error('Recipe evidence changed during review. Reload its current evidence.');
         const scopedUser = input.userScopeId
           ? await tx.user.findUnique({
               where: { id: input.userScopeId },
@@ -234,6 +252,7 @@ export class ConditionClearanceService {
             auditDueAt: null,
             suspendedAt: null,
             suspensionReason: null,
+            resolvedByNutritionistId: input.nutritionistProfileId,
           },
           include: { decisions: { select: { id: true, stage: true, decision: true, submittedAt: true } } },
         });

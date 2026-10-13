@@ -1,3 +1,4 @@
+import { approvalRecheckContext, assertApprovalResolution } from './approval-recheck-context.service';
 import { reviewContext, assertVersion, json } from './meal-review-context.service';
 import type { MealFlagSubmission } from '@/validation/meal-review.schemas';
 import { ConditionClearanceState, NotificationType, Prisma } from '@prisma/client';
@@ -122,6 +123,7 @@ export async function getMealApprovalCaseDetails(input: {
   mealLibraryId: string;
   kind: 'PROFILE' | 'CONDITION';
   approvalId: string;
+  nutritionistProfileId?: string;
 }) {
   const approval =
     input.kind === 'PROFILE'
@@ -233,7 +235,16 @@ export async function getMealApprovalCaseDetails(input: {
         })
       : null;
   const linkedUser = plan?.user ?? scopedUser;
+  const review = await approvalRecheckContext(prisma, input);
+  const actor = input.nutritionistProfileId ? await reviewer(input.nutritionistProfileId) : null;
+  const canResolve = Boolean(
+    actor &&
+      (!review.flagged ||
+        !([review.priorReviewerId, review.flaggerId].includes(actor.id) || review.flaggerUserId === actor.userId))
+  );
+  const { priorReviewerId: _reviewer, flaggerId: _flagger, flaggerUserId: _user, ...publicReview } = review;
   return {
+    flagReview: { ...publicReview, canResolve },
     meal,
     recordedScope:
       input.kind === 'PROFILE'
@@ -418,6 +429,8 @@ export async function recheckProfileApproval(input: {
   mealLibraryId: string;
   approvalId: string;
   rationale: string;
+  expectedVersion?: string;
+  resolved?: boolean;
 }) {
   const actor = await reviewer(input.nutritionistProfileId);
   const rationale = input.rationale.trim();
@@ -427,13 +440,16 @@ export async function recheckProfileApproval(input: {
   const now = new Date();
   return prisma.$transaction(
     async (tx) => {
+      await tx.$queryRaw`SELECT "id" FROM "MealLibrary" WHERE "id" = ${input.mealLibraryId} FOR UPDATE`;
+      const review = await approvalRecheckContext(tx, { ...input, kind: 'PROFILE' });
+      assertApprovalResolution(review, input, actor);
       const approval = await tx.mealLibraryProfileApproval.findUnique({
         where: { id: input.approvalId },
         include: { mealLibrary: true },
       });
       if (!approval || approval.mealLibraryId !== input.mealLibraryId)
         throw new Error('Approval not found for this meal.');
-      if (!approval.flaggedAt) throw new Error('This approval is already current.');
+      if (!approval.flaggedAt && approval.reviewDueAt > now) throw new Error('This approval is already current.');
       if (
         approval.mealLibrary.status !== 'APPROVED' ||
         approval.recipeSignature !== approval.mealLibrary.recipeSignature ||
@@ -446,6 +462,9 @@ export async function recheckProfileApproval(input: {
         data: {
           reviewerNutritionistId: actor.id,
           approvedAt: now,
+          ...(approval.reviewDueAt <= now
+            ? { reviewDueAt: new Date(new Date(now).setUTCFullYear(now.getUTCFullYear() + 1)) }
+            : {}),
           flaggedAt: null,
           flagReason: null,
           flaggedByNutritionistId: null,
@@ -460,6 +479,9 @@ export async function recheckProfileApproval(input: {
           metadata: {
             priorReviewerId: approval.reviewerNutritionistId,
             priorFlagReason: approval.flagReason,
+            expectedVersion: input.expectedVersion,
+            flagEventId: review.flagEventId,
+            resolved: true,
             rationale,
           },
         },
@@ -475,8 +497,10 @@ export async function recheckConditionApproval(input: {
   mealLibraryId: string;
   approvalId: string;
   rationale: string;
+  expectedVersion?: string;
+  resolved?: boolean;
 }) {
-  await reviewer(input.nutritionistProfileId);
+  const actor = await reviewer(input.nutritionistProfileId);
   await enforceClearanceCircuitBreakers();
   const prior = await prisma.mealConditionClearance.findUnique({ where: { id: input.approvalId } });
   if (!prior || prior.mealLibraryId !== input.mealLibraryId) throw new Error('Approval not found for this meal.');
@@ -490,5 +514,26 @@ export async function recheckConditionApproval(input: {
     userScopeId: prior.userScopeId,
     decision: 'APPROVE',
     rationale: input.rationale,
+    targetClearanceId: prior.id,
+    beforeWrite: async (tx) => {
+      await tx.$queryRaw`SELECT "id" FROM "MealLibrary" WHERE "id" = ${input.mealLibraryId} FOR UPDATE`;
+      const review = await approvalRecheckContext(tx, { ...input, kind: 'CONDITION' });
+      assertApprovalResolution(review, input, actor);
+      await tx.auditEvent.create({
+        data: {
+          actorUserId: actor.userId,
+          action: 'MEAL_APPROVAL_RECHECKED',
+          entityType: 'MealConditionClearance',
+          entityId: prior.id,
+          metadata: {
+            expectedVersion: input.expectedVersion,
+            flagEventId: review.flagEventId,
+            resolved: true,
+            priorFlagReason: review.concern.notes.explanation,
+            rationale: input.rationale,
+          },
+        },
+      });
+    },
   });
 }

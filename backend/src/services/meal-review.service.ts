@@ -128,7 +128,7 @@ async function publish(tx: ReviewTx, context: ReviewContext, reviewerId: string 
 }
 
 export class MealReviewService {
-  static async detail(mealId: string) {
+  static async detail(mealId: string, reviewerId?: string) {
     return prisma.$transaction(
       async (tx) => {
         const context = await reviewContext(tx, mealId);
@@ -157,6 +157,10 @@ export class MealReviewService {
         }
         return {
           mealId,
+          claimStatus: {
+            claimedByMe: Boolean(reviewerId && context.incident?.claimedByNutritionistId === reviewerId && isReviewClaimActive(context.incident)),
+            claimedByOther: Boolean(context.incident?.claimedByNutritionistId && context.incident.claimedByNutritionistId !== reviewerId && isReviewClaimActive(context.incident)),
+          },
           recipeVersion: context.recipeVersion,
           reviewVersion: context.reviewVersion,
           state:

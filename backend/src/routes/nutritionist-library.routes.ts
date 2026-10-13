@@ -1,5 +1,6 @@
 import { mealFlagSubmissionSchema, mealReviewSubmissionSchema } from '@/validation/meal-review.schemas';
 import { MealReviewService } from '@/services/meal-review.service';
+import { AppError } from '@/errors/AppError';
 import { Router, Response } from 'express';
 import { z } from 'zod';
 import { AuthenticatedRequest } from '@/types';
@@ -214,6 +215,7 @@ router.get('/library/:id/approvals/:kind/:approvalId', async (req: Authenticated
       mealLibraryId: req.params.id,
       kind,
       approvalId: req.params.approvalId,
+      nutritionistProfileId: req.nutritionistProfileId,
     });
     return res.status(200).json({ success: true, data });
   } catch (error) {
@@ -251,7 +253,9 @@ router.post(
 const approvalRecheckSchema = z
   .object({
     kind: z.enum(['PROFILE', 'CONDITION']),
-    rationale: z.string().trim().min(10).max(1000),
+    rationale: z.string().trim().min(20).max(1000),
+    resolved: z.literal(true),
+    expectedVersion: mealFlagSubmissionSchema.shape.expectedVersion,
   })
   .strict();
 router.post(
@@ -263,6 +267,8 @@ router.post(
         nutritionistProfileId: req.nutritionistProfileId!,
         mealLibraryId: req.params.id,
         approvalId: req.params.approvalId,
+        expectedVersion: req.body.expectedVersion,
+        resolved: req.body.resolved,
       };
       const data =
         req.body.kind === 'CONDITION'
@@ -271,7 +277,7 @@ router.post(
       return res.status(200).json({ success: true, data });
     } catch (error) {
       return res
-        .status(409)
+        .status(error instanceof AppError ? error.statusCode : 409)
         .json({ success: false, error: sanitizeErrorMessage(error, 'Could not recheck approval.') });
     }
   }

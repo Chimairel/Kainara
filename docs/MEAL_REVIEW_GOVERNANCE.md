@@ -30,6 +30,16 @@ Corrections use the existing authoring validation and measured FNRI quantities t
 
 Profile and condition approval flags use their separate scoped workflow. They suspend only the affected approval and its dependent member slots, rather than withholding the recipe globally.
 
+### Canvas resolution (local implementation, October 13)
+
+Recipe re-review uses the shared canvas with **Recipe evidence** and **Flag concerns and resolutions** sheets. Claim the recipe review, write how each concern was resolved (at least 20 characters), then select **Mark resolved** for every concern. Editing a note or changing the review version clears its resolution mark. Review findings and the existing evidence/rice acknowledgments are also required before **Re-verify recipe**. The marks are drafts; the notes are saved atomically with verification in the existing confirmations and immutable decisions.
+
+**Audit → Flagged approvals** and the Library's flagged approval action open one shared case-recheck canvas. Its concern sheet contains the saved flag explanation, reference and proposed correction. An uninvolved, eligible RND must write a resolution and mark it resolved before **Verify resolved case**. The API requires `resolved: true`, a 20–1000 character rationale and the exact `expectedVersion` returned by approval detail. Changed flags/evidence, a held recipe, involved reviewers and already completed rechecks are rejected. Suspended condition approvals cannot bypass this flow by issuing a new manual approval; recheck updates the exact original clearance and saves its decision and resolution audit together.
+
+A pending member-case canvas shows **Flag concerns** when its linked recipe or approval has recorded concerns. Its Approve action stays blocked while any linked concern is active, including server enforcement for ordinary and grouped approvals. Resolution notes remain visible after completion, and Library approval details expose the recorded scoped resolution too. Exact prior-review references remain reference-only on the Meal evidence sheet; a merely similar diagnosis does not qualify.
+
+Flagging still does not directly convert an approved member slot to `PENDING_REVIEW`. Recipe flags appear in Library's Flagged recipes queue; scoped flags appear in Audit's Flagged approvals. Existing member holds, separate current-case decisions, claim expiration, recipe certification and admin-only quarantine release remain in force. No additional migration is required for this canvas change. Deploy the compatible API before its frontend when a release is authorized.
+
 ## Admin oversight and member attribution
 
 Admin audit records expose chronological review snapshots, report notes, resolutions, actors, timestamps and effective nutrition. New report, confirmation and decision records are append-only at the database level. Missing historical snapshots are labeled unavailable; current values are shown separately.

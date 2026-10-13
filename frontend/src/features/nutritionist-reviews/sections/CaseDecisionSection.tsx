@@ -36,7 +36,11 @@ export default function CaseDecisionSection({
           <ArrowLeftRight className="mr-1 h-4 w-4" /> Swap
         </Button>
         <span className="mx-1 h-6 border-l border-brand-border" />
-        <Button size="sm" disabled={busy} onClick={() => setAction('approve')}>
+        <Button
+          size="sm"
+          disabled={busy || model.detailData?.flagConcerns?.some((concern) => concern.active)}
+          onClick={() => setAction('approve')}
+        >
           <Check className="mr-1 h-4 w-4" /> Approve
         </Button>
         <Button size="sm" variant="danger" disabled={busy} onClick={() => setAction('reject')}>
@@ -52,7 +56,7 @@ export default function CaseDecisionSection({
         onNoteChange={action === 'reject' ? model.review.setRejectNote : model.setGeneralNote}
         onConfirm={() => {
           if (action === 'reject') void model.review.handleReject(swap.replacementOutcome);
-          else void model.handleApprove();
+          else if (!model.detailData?.flagConcerns?.some((concern) => concern.active)) void model.handleApprove();
         }}
         required={action === 'reject' && swap.noSuitable}
         rejectionLabel={swap.noSuitable ? 'Reject and leave unavailable' : 'Reject and find replacement'}

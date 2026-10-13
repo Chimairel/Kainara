@@ -45,6 +45,7 @@ export interface QueueItem {
 }
 
 export interface DetailData {
+  flagConcerns?: Array<import('./ConcernResolution').ReviewConcern & { kind: 'RECIPE' | 'PROFILE' | 'CONDITION'; mealLibraryId: string | null; approvalId?: string; active: boolean; resolution?: string }>;
   pollStatus?: ReviewPollStatus;
   reviewReferences?: Array<{
     reviewedAt: string;

@@ -4,6 +4,9 @@ import { formatMealTitle } from '@/lib/meal-title';
 import { useVisiblePolling } from '@/hooks/useVisiblePolling';
 import { useCallback, useEffect, useState } from 'react';
 import Button from '@/components/ui/Button';
+import ApprovalRecheckCanvas, {
+  type ApprovalReviewTarget,
+} from '@/features/nutritionist-reviews/ApprovalRecheckCanvas';
 import Skeleton from '@/components/ui/Skeleton';
 import api from '@/lib/axios';
 
@@ -30,6 +33,7 @@ export default function GovernanceQueuePanel({ tab }: { tab: 'audit' }) {
   const [data, setData] = useState<{
     clearances: GovernanceClearance[];
   } | null>(null);
+  const [reviewTarget, setReviewTarget] = useState<ApprovalReviewTarget | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [dueProfiles, setDueProfiles] = useState<DueProfileApproval[]>([]);
   const [selectedProfile, setSelectedProfile] = useState<DueProfileApproval | null>(null);
@@ -74,23 +78,9 @@ export default function GovernanceQueuePanel({ tab }: { tab: 'audit' }) {
   };
 
   const recheck = async (mealId: string, approvalId: string, kind: 'PROFILE' | 'CONDITION') => {
-    const rationale = window.prompt('Record your findings for this approval recheck (at least 10 characters).');
-    if (!rationale || rationale.trim().length < 10) return;
-    try {
-      await api.post(`/nutritionist/library/${mealId}/approvals/${approvalId}/recheck`, {
-        kind,
-        rationale: rationale.trim(),
-      });
-      setMessage('Approval review recorded.');
-      setSelectedProfile(null);
-      setCaseDetail(null);
-      await load();
-    } catch {
-      setMessage(
-        'This approval could not be rechecked. Open its current case evidence and verify reviewer eligibility.'
-      );
-    }
+    setReviewTarget({ mealLibraryId: mealId, approvalId, kind });
   };
+
   const inspectProfile = async (approval: DueProfileApproval) => {
     setSelectedProfile(approval);
     setCaseDetail(null);
@@ -106,6 +96,9 @@ export default function GovernanceQueuePanel({ tab }: { tab: 'audit' }) {
 
   return (
     <div className="portal-page space-y-5">
+      {reviewTarget && (
+        <ApprovalRecheckCanvas target={reviewTarget} onClose={() => setReviewTarget(null)} onVerified={load} />
+      )}
       <div className="rounded-2xl border border-brand-green/20 bg-brand-surface p-5">
         <h1 className="font-display text-2xl font-black text-brand-text">Flagged approvals</h1>
         <p className="mt-2 text-sm text-brand-muted">

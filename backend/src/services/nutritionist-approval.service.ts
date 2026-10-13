@@ -1,3 +1,4 @@
+import { assertPlanFlagConcernsResolved } from './meal-plan-flag-context.service';
 import { ReviewRoutingService } from './review-routing.service';
 import { assertMealSlotCalories } from '@/domain/generated-plan-calories.policy';
 import prisma from '@/lib/prisma';
@@ -158,6 +159,7 @@ export async function approveMealPlan(
   const coalescedApprovedUserIds = await prisma.$transaction(
     async (tx) => {
       await lockUserProfile(tx, plan.userId);
+      await assertPlanFlagConcernsResolved(tx, mealPlanId);
       const reviewedContext = await assertCurrentMealReviewContext(
         mealPlanId,
         expectedContextKey,
@@ -373,9 +375,13 @@ export async function approveMealPlan(
           if (routed && candidate.userId !== plan.userId) continue;
           try {
             await ReviewRoutingService.assertMeal(nutritionistProfileId, candidate.id, tx);
+            await assertPlanFlagConcernsResolved(tx, candidate.id);
             dependents.push(candidate);
           } catch (error) {
-            if (!(error instanceof AppError) || !['REVIEW_NOT_FOUND', 'MEAL_REVIEW_INACTIVE'].includes(error.errorCode))
+            if (
+              !(error instanceof AppError) ||
+              !['REVIEW_NOT_FOUND', 'MEAL_REVIEW_INACTIVE', 'MEAL_FLAG_CONCERNS_UNRESOLVED'].includes(error.errorCode)
+            )
               throw error;
           }
         }

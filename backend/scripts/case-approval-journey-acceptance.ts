@@ -1,3 +1,4 @@
+import { approvalRecheckContext } from '../src/services/approval-recheck-context.service';
 import 'dotenv/config';
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
@@ -405,11 +406,13 @@ async function main() {
     !(await MealPlanCycleService.getClearedMealPlanIds(eggPlan.userId, eggPlan.planGroupId!)).includes(eggPlan.id),
     'An overdue approval must not remain actionable.'
   );
+  const approvalReview = () => approvalRecheckContext(prisma, { kind: 'PROFILE', mealLibraryId: eggPlan.libraryMealId!, approvalId: eggPlan.profileApprovalId! });
   await recheckProfileApproval({
     nutritionistProfileId: lead1.id,
     mealLibraryId: eggPlan.libraryMealId!,
     approvalId: eggPlan.profileApprovalId!,
     rationale: 'Fictional scheduled approval recheck in isolated acceptance.',
+    expectedVersion: (await approvalReview()).expectedVersion, resolved: true,
   });
   assert.ok(
     (await MealPlanCycleService.getClearedMealPlanIds(eggPlan.userId, eggPlan.planGroupId!)).includes(eggPlan.id),
@@ -431,6 +434,7 @@ async function main() {
     mealLibraryId: eggPlan.libraryMealId!,
     approvalId: eggPlan.profileApprovalId!,
     rationale: 'Fictional scoped approval recheck after flag resolution.',
+    expectedVersion: (await approvalReview()).expectedVersion, resolved: true,
   });
   assert.equal(
     (

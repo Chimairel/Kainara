@@ -30,7 +30,7 @@ export function mealReviewRouter(role: 'admin' | 'rnd') {
   );
   router.get(
     '/:id',
-    respond((req) => MealReviewService.detail(req.params.id))
+    respond((req) => MealReviewService.detail(req.params.id, role === 'rnd' ? req.nutritionistProfileId : undefined))
   );
   if (role === 'rnd') {
     router.post(

@@ -9,6 +9,9 @@ import Button from '@/components/ui/Button';
 import Dropdown from '@/components/ui/Dropdown';
 import MealReviewTimeline, { reviewStateLabel, type ReviewIncident } from './MealReviewTimeline';
 import RecipeDerivationForm from './RecipeDerivationForm';
+import RndQueueDocument, { ReviewDocumentPage } from '@/features/nutritionist-reviews/RndQueueDocument';
+import ConcernResolution from '@/features/nutritionist-reviews/ConcernResolution';
+import { formatMealTitle } from '@/lib/meal-title';
 import type { LibraryMeal } from './useNutritionistLibrary';
 
 export type ReviewCase = {
@@ -21,6 +24,7 @@ export type ReviewCase = {
   history: ReviewIncident[];
   validConfirmations: unknown[];
   canAdminRelease: boolean;
+  claimStatus?: { claimedByMe: boolean; claimedByOther: boolean };
 };
 const field = 'min-h-11 w-full rounded-xl border border-brand-border bg-brand-bg p-3 text-sm text-brand-text';
 export default function MealReviewPanel({
@@ -51,15 +55,71 @@ export default function MealReviewPanel({
   const [rationale, setRationale] = useState('');
   const [evidenceReviewed, setEvidenceReviewed] = useState(false);
   const [resolutions, setResolutions] = useState<Record<string, string>>({});
+  const [resolved, setResolved] = useState<Record<string, boolean>>({});
+  const [expanded, setExpanded] = useState(false);
+  const [savedVersion, setSavedVersion] = useState<string | null>(null);
   const data = query.data;
   useEffect(() => {
     setEvidenceReviewed(false);
     setResolutions({});
+    setResolved({});
     setRationale('');
-  }, [data?.reviewVersion]);
+  }, [data?.reviewVersion, data?.claimStatus?.claimedByMe]);
   const held = data?.state === 'PENDING_REREVIEW' || data?.state === 'QUARANTINED';
+  const decisionControls =
+    data && held && (isAdmin || data.state !== 'QUARANTINED') ? (
+      <div className="flex flex-wrap gap-3">
+        {isAdmin ? (
+          <>
+            <Button
+              disabled={busy || !data.canAdminRelease || rationale.trim().length < 20}
+              onClick={() => void mutate('release')}
+            >
+              Release quarantine
+            </Button>
+            <Button
+              variant="secondary"
+              disabled={busy || rationale.trim().length < 20}
+              onClick={() => void mutate('archive')}
+            >
+              Archive unresolved recipe
+            </Button>
+          </>
+        ) : (
+          <>
+            <Button
+              variant="secondary"
+              disabled={busy || data.claimStatus?.claimedByMe || data.claimStatus?.claimedByOther}
+              onClick={() => void mutate('claim')}
+            >
+              Claim re-review
+            </Button>
+            <Button
+              disabled={
+                busy ||
+                savedVersion === data.reviewVersion ||
+                !data.claimStatus?.claimedByMe ||
+                !evidenceReviewed ||
+                rationale.trim().length < 20 ||
+                data.incident?.reports.some(
+                  (report) => !resolved[report.id] || (resolutions[report.id]?.trim().length ?? 0) < 20
+                )
+              }
+              onClick={() => void mutate('confirm')}
+            >
+              Re-verify recipe
+            </Button>
+          </>
+        )}
+      </div>
+    ) : undefined;
   async function mutate(action: 'flag' | 'claim' | 'confirm' | 'release' | 'archive') {
-    if (!data || busy) return;
+    if (!data || busy || (action === 'confirm' && savedVersion === data.reviewVersion)) return;
+    if (
+      action === 'confirm' &&
+      (!data.claimStatus?.claimedByMe || data.incident?.reports.some((report) => !resolved[report.id]))
+    )
+      return;
     setBusy(true);
     setError(null);
     setMessage('');
@@ -96,12 +156,17 @@ export default function MealReviewPanel({
                 : {}),
             };
       await api.post(url, payload);
+      if (action === 'confirm') setSavedVersion(data.reviewVersion);
       setMessage(
         action === 'claim' ? 'Claimed for 30 minutes. Review every concern before confirming.' : 'Decision recorded.'
       );
-      const updated = await query.refetch();
-      if (!updated) setMessage('Decision recorded. Reload the history to see the current review state.');
-      await refresh();
+      try {
+        const updated = await query.refetch();
+        if (!updated) setMessage('Decision recorded. Reload the history to see the current review state.');
+        await refresh();
+      } catch {
+        setMessage('Decision recorded. Reload the history to see the current review state.');
+      }
     } catch (err) {
       setError(
         (err as { response?: { data?: { error?: string } } }).response?.data?.error ??
@@ -142,121 +207,121 @@ export default function MealReviewPanel({
             Profile and condition approval concerns are handled separately.
           </p>
           {held && data.incident && (
-            <div className="space-y-4">
-              <p className="text-sm font-semibold">
-                {data.state === 'QUARANTINED'
-                  ? 'Quarantined after repeated flags. Only an admin can release or archive this recipe.'
-                  : 'One uninvolved eligible RND can re-verify the current version.'}
-              </p>
-              {data.incident.reports.map((report) => (
-                <section key={report.id} className="space-y-2 rounded-xl border border-amber-500/30 p-3 text-sm">
-                  <h3 className="font-bold">
-                    {report.notes.category ?? 'Legacy concern'} · {report.actorSnapshot.name ?? 'Actor not recorded'}
-                  </h3>
-                  <p className="text-xs text-brand-muted">
-                    {report.notes.affectedFields?.join(', ') ?? 'Affected fields not recorded'}
+            <RndQueueDocument
+              title={`Recipe re-review · ${formatMealTitle(meal.mealName)}`}
+              contentKey={`${meal.id}:${data.reviewVersion}`}
+              expanded={expanded}
+              onExpandedChange={setExpanded}
+              onBack={() => setExpanded(false)}
+              actions={null}
+              decision={decisionControls}
+            >
+              <ReviewDocumentPage page={1} title="Recipe evidence" subtitle={formatMealTitle(meal.mealName)}>
+                <p className="text-sm leading-6">{meal.description || 'No preparation description recorded.'}</p>
+                <dl className="mt-6 grid grid-cols-4 gap-3 text-sm">
+                  {(
+                    [
+                      ['Energy', meal.calories, 'kcal'],
+                      ['Protein', meal.proteinG, 'g'],
+                      ['Carbs', meal.carbsG, 'g'],
+                      ['Fat', meal.fatG, 'g'],
+                    ] as const
+                  ).map(([label, value, unit]) => (
+                    <div key={label}>
+                      <dt className="text-brand-muted">{label}</dt>
+                      <dd className="font-bold">
+                        {value} {unit}
+                      </dd>
+                    </div>
+                  ))}
+                </dl>
+                <p className="mt-4 text-sm">
+                  {meal.nutritionServingDescription || 'Serving description not recorded.'}
+                </p>
+                <h3 className="mt-6 font-bold">Measured ingredients</h3>
+                <ul className="mt-3 space-y-2 text-sm">
+                  {meal.ingredients?.map((item, index) => (
+                    <li key={index}>
+                      {item.ingredientName} · {item.quantity ?? 'Not recorded'} {item.unit ?? ''}
+                    </li>
+                  ))}
+                </ul>
+                <p className="mt-6 text-xs text-brand-muted">
+                  Review all serving variants and source evidence before re-verification.
+                </p>
+              </ReviewDocumentPage>
+              <ReviewDocumentPage
+                page={2}
+                title="Flag concerns and resolutions"
+                subtitle="Resolve every concern before re-verifying"
+              >
+                <div className="space-y-6">
+                  <p className="text-sm font-semibold">
+                    {data.state === 'QUARANTINED'
+                      ? 'Quarantined after repeated flags. Only an admin can release or archive this recipe.'
+                      : 'One uninvolved eligible RND can re-verify the current version.'}
                   </p>
-                  <p className="whitespace-pre-wrap">{report.notes.explanation}</p>
-                  <p>
-                    <strong>Evidence:</strong> {report.notes.reference ?? 'Not recorded'}
-                  </p>
-                  <p>
-                    <strong>Proposed correction:</strong> {report.notes.proposedCorrection ?? 'Not recorded'}
-                  </p>
-                  {!isAdmin && data.state !== 'QUARANTINED' && (
-                    <label className="block font-semibold">
-                      Resolution of this concern
-                      <textarea
-                        className={`${field} mt-2`}
-                        rows={3}
-                        minLength={20}
-                        maxLength={3000}
-                        value={resolutions[report.id] ?? ''}
-                        onChange={(event) => setResolutions({ ...resolutions, [report.id]: event.target.value })}
-                      />
-                    </label>
-                  )}
-                </section>
-              ))}
-              {(isAdmin || data.state !== 'QUARANTINED') && (
-                <>
-                  <label className="block text-sm font-semibold">
-                    {isAdmin ? 'Administrative rationale' : 'Independent review findings'}
-                    <textarea
-                      className={`${field} mt-2`}
-                      minLength={20}
-                      maxLength={3000}
-                      rows={3}
-                      value={rationale}
-                      onChange={(event) => setRationale(event.target.value)}
+                  {data.incident.reports.map((report) => (
+                    <ConcernResolution
+                      key={report.id}
+                      concern={report}
+                      note={resolutions[report.id] ?? ''}
+                      resolved={Boolean(resolved[report.id])}
+                      canWrite={
+                        !isAdmin && data.state !== 'QUARANTINED' && Boolean(data.claimStatus?.claimedByMe) && !busy
+                      }
+                      onNote={(value) => {
+                        setResolutions({ ...resolutions, [report.id]: value });
+                        setResolved({ ...resolved, [report.id]: false });
+                      }}
+                      onResolve={() => setResolved({ ...resolved, [report.id]: true })}
                     />
-                  </label>
-                  {!isAdmin && (
-                    <label className="flex min-h-11 items-center gap-3 text-sm">
-                      <input
-                        type="checkbox"
-                        checked={evidenceReviewed}
-                        onChange={(event) => setEvidenceReviewed(event.target.checked)}
-                      />
-                      I reviewed the nutrition evidence, measured ingredients, preparation and rice role for every
-                      serving variant.
-                    </label>
+                  ))}
+                  {(isAdmin || data.state !== 'QUARANTINED') && (
+                    <>
+                      <label className="block text-sm font-semibold">
+                        {isAdmin ? 'Administrative rationale' : 'Independent review findings'}
+                        <textarea
+                          className={`${field} mt-2`}
+                          minLength={20}
+                          maxLength={3000}
+                          rows={3}
+                          value={rationale}
+                          onChange={(event) => setRationale(event.target.value)}
+                        />
+                      </label>
+                      {!isAdmin && (
+                        <label className="flex min-h-11 items-center gap-3 text-sm">
+                          <input
+                            type="checkbox"
+                            checked={evidenceReviewed}
+                            onChange={(event) => setEvidenceReviewed(event.target.checked)}
+                          />
+                          I reviewed the nutrition evidence, measured ingredients, preparation and rice role for every
+                          serving variant.
+                        </label>
+                      )}
+                    </>
                   )}
-                  <div className="flex flex-wrap gap-3">
-                    {isAdmin ? (
-                      <>
-                        <Button
-                          disabled={busy || !data.canAdminRelease || rationale.trim().length < 20}
-                          onClick={() => void mutate('release')}
-                        >
-                          Release quarantine
-                        </Button>
-                        <Button
-                          variant="secondary"
-                          disabled={busy || rationale.trim().length < 20}
-                          onClick={() => void mutate('archive')}
-                        >
-                          Archive unresolved recipe
-                        </Button>
-                      </>
-                    ) : (
-                      <>
-                        <Button variant="secondary" disabled={busy} onClick={() => void mutate('claim')}>
-                          Claim re-review
-                        </Button>
-                        <Button
-                          disabled={
-                            busy ||
-                            !evidenceReviewed ||
-                            rationale.trim().length < 20 ||
-                            data.incident.reports.some((report) => (resolutions[report.id]?.trim().length ?? 0) < 20)
-                          }
-                          onClick={() => void mutate('confirm')}
-                        >
-                          Re-verify recipe
-                        </Button>
-                      </>
-                    )}
-                  </div>
-                </>
-              )}
-              <p className="text-xs text-brand-muted">
-                {data.state === 'QUARANTINED'
-                  ? 'Admin release records an administrative decision. Member-specific clinical approvals still require RND review.'
-                  : 'Authors, flaggers and challenged verifiers cannot re-verify this incident. Corrections and new evidence invalidate prior confirmations.'}
-              </p>
-              {!isAdmin && (
-                <RecipeDerivationForm
-                  key={`correction-${data.reviewVersion}`}
-                  meal={meal}
-                  correctionVersion={data.reviewVersion}
-                  onCreated={() => {
-                    void query.refetch();
-                    void refresh();
-                  }}
-                />
-              )}
-            </div>
+                  <p className="text-xs text-brand-muted">
+                    {data.state === 'QUARANTINED'
+                      ? 'Admin release records an administrative decision. Member-specific clinical approvals still require RND review.'
+                      : 'Authors, flaggers and challenged verifiers cannot re-verify this incident. Corrections and new evidence invalidate prior confirmations.'}
+                  </p>
+                  {!isAdmin && (
+                    <RecipeDerivationForm
+                      key={`correction-${data.reviewVersion}`}
+                      meal={meal}
+                      correctionVersion={data.reviewVersion}
+                      onCreated={() => {
+                        void query.refetch();
+                        void refresh();
+                      }}
+                    />
+                  )}
+                </div>
+              </ReviewDocumentPage>
+            </RndQueueDocument>
           )}
           {data.state !== 'ARCHIVED' && (
             <details className="rounded-xl border border-brand-border p-3" open={!held}>

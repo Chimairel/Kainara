@@ -1,3 +1,4 @@
+import { mealPlanFlagContext } from './meal-plan-flag-context.service';
 import { lockUserProfile } from './profile-revision.service';
 import { AppError } from '@/errors/AppError';
 import { ClinicalClarificationService } from './clinical-clarification.service';
@@ -648,7 +649,9 @@ export class NutritionistReviewService {
       ? await listReviewReferences(openedContext, nutritionistProfileId)
       : undefined;
     if (openedContext) await assertCurrentMealReviewContext(mealPlanId, openedContext.contextKey);
+    const flagConcerns = await mealPlanFlagContext(prisma, mealPlanId);
     return {
+      flagConcerns,
       ...(reviewReferences ? { reviewReferences } : {}),
       ...(clarifications ? { clarifications } : {}),
       ...(openedContext

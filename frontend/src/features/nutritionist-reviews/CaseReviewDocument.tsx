@@ -6,6 +6,7 @@ import { formatManilaDate } from '@/lib/manila-date';
 import RndQueueDocument, { ReviewDocumentPage } from './RndQueueDocument';
 import CaseProfileSection from './sections/CaseProfileSection';
 import CaseAuditSection from './sections/CaseAuditSection';
+import CaseFlagConcernSheet from './CaseFlagConcernSheet';
 import CaseDecisionSection from './sections/CaseDecisionSection';
 import type { useCaseReviewWorkspaceModel } from './sections/useCaseReviewWorkspaceModel';
 import { useReviewSwap } from './useReviewSwap';
@@ -18,7 +19,8 @@ type Model = ReturnType<typeof useCaseReviewWorkspaceModel>;
 export default function CaseReviewDocument({ model }: { model: Model }) {
   const { detailData, expanded, setExpanded, claimHeader, errorMsg, setSelectedMealId } = model;
   const [action, setAction] = useState<'approve' | 'reject' | null>(null);
-  useEffect(() => setAction(null), [model.selectedMealId, detailData?.claimStatus.claimedByMe]);
+  const hasActiveConcern = detailData?.flagConcerns?.some((concern) => concern.active);
+  useEffect(() => setAction(null), [model.selectedMealId, detailData?.claimStatus.claimedByMe, hasActiveConcern]);
   const swap = useReviewSwap(
     model.selectedMealId,
     Boolean(detailData?.claimStatus.claimedByMe),
@@ -101,9 +103,21 @@ export default function CaseReviewDocument({ model }: { model: Model }) {
             </section>
           )}
         </ReviewDocumentPage>
+        {!!detailData.flagConcerns?.length && (
+          <ReviewDocumentPage page={3} title="Flag concerns" subtitle="Recorded concerns and their resolution">
+            <CaseFlagConcernSheet
+              concerns={detailData.flagConcerns}
+              canWrite={detailData.claimStatus.claimedByMe}
+              onUpdated={async () => {
+                await model.review.handleSelectMeal(meal.id);
+                await model.review.fetchQueue(false, undefined, true);
+              }}
+            />
+          </ReviewDocumentPage>
+        )}
         {detailData.clarifications?.enabled && detailData.reviewContext && (
           <ReviewDocumentPage
-            page={3}
+            page={detailData.flagConcerns?.length ? 4 : 3}
             title="Request profile clarification"
             subtitle="Questions stay with the member’s Profile case"
           >
@@ -134,7 +148,7 @@ export default function CaseReviewDocument({ model }: { model: Model }) {
         {detailData.clarifications?.forms.map((form, index) => (
           <ReviewDocumentPage
             key={form.id}
-            page={4 + index}
+            page={(detailData.flagConcerns?.length ? 5 : 4) + index}
             title={form.title}
             subtitle="Saved profile clarification · read only"
           >

@@ -10,6 +10,8 @@ import Button from '@/components/ui/Button';
 import WorkspaceTable from '@/components/shared/WorkspaceTable';
 import api from '@/lib/axios';
 import { getApiErrorMessage } from '@/lib/api-error';
+import ApprovalRecheckCanvas from '@/features/nutritionist-reviews/ApprovalRecheckCanvas';
+import ConcernResolution, { type ReviewConcern } from '@/features/nutritionist-reviews/ConcernResolution';
 import ExpandableCasePanel from '@/features/nutritionist-reviews/ExpandableCasePanel';
 
 type Approval = {
@@ -38,6 +40,7 @@ type Variant = {
 };
 
 type CaseDetails = {
+  flagReview?: { concern: ReviewConcern; resolution?: string };
   meal: Variant & { description: string | null; mealType: string; recipeSignature: string | null };
   recordedScope: unknown;
   recordedCaseScope?: unknown;
@@ -114,7 +117,6 @@ export function MealApprovalsPanel({ mealId }: { mealId: string }) {
   const [affectedFields, setAffectedFields] = useState('');
   const [reference, setReference] = useState('');
   const [proposedCorrection, setProposedCorrection] = useState('');
-  const [reviewNote, setReviewNote] = useState('');
   const [filter, setFilter] = useState<'ALL' | 'ACTIVE' | 'FLAGGED' | 'REVIEW_DUE'>('ALL');
   const [selected, setSelected] = useState<{ variantId: string; approval: Approval } | null>(null);
   const [caseDetails, setCaseDetails] = useState<CaseDetails | null>(null);
@@ -169,27 +171,6 @@ export function MealApprovalsPanel({ mealId }: { mealId: string }) {
       await reload();
     } catch (cause) {
       setError(getApiErrorMessage(cause, 'Could not flag this approval.'));
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function recheck() {
-    if (!recheckTarget || reviewNote.trim().length < 10) return;
-    setBusy(true);
-    try {
-      await api.post(
-        `/nutritionist/library/${recheckTarget.variantId}/approvals/${recheckTarget.approval.id}/recheck`,
-        {
-          kind: recheckTarget.approval.kind,
-          rationale: reviewNote.trim(),
-        }
-      );
-      setRecheckTarget(null);
-      setReviewNote('');
-      await reload();
-    } catch (cause) {
-      setError(getApiErrorMessage(cause, 'Could not complete the recheck.'));
     } finally {
       setBusy(false);
     }
@@ -395,6 +376,20 @@ export function MealApprovalsPanel({ mealId }: { mealId: string }) {
                 Flag reason: {currentApproval.flagReason}
               </p>
             )}
+            {caseDetails?.flagReview?.resolution && (
+              <section className="space-y-3 border-t border-brand-border pt-4" aria-label="Recorded flag resolution">
+                <h3 className="font-bold">Resolved in the recorded review</h3>
+                <ConcernResolution
+                  concern={caseDetails.flagReview.concern}
+                  note=""
+                  resolved={false}
+                  canWrite={false}
+                  onNote={() => undefined}
+                  onResolve={() => undefined}
+                />
+                <p className="whitespace-pre-wrap text-sm leading-6">{caseDetails.flagReview.resolution}</p>
+              </section>
+            )}
             {variants.find((variant) => variant.id === selected.variantId)?.status === 'FLAGGED' && (
               <p className="text-sm font-bold text-amber-800 dark:text-amber-300">
                 This approval is suspended by a meal-wide flag. Resolve the base meal before reviewing this approval.
@@ -419,7 +414,7 @@ export function MealApprovalsPanel({ mealId }: { mealId: string }) {
                   disabled={busy || variants.find((variant) => variant.id === selected.variantId)?.status === 'FLAGGED'}
                   onClick={() => {
                     setRecheckTarget({ variantId: selected.variantId, approval: currentApproval });
-                    setReviewNote('');
+                    setExpanded(false);
                   }}
                 >
                   Review flagged approval
@@ -499,29 +494,15 @@ export function MealApprovalsPanel({ mealId }: { mealId: string }) {
               </div>
             )}
             {recheckTarget && (
-              <div className="rounded-xl border border-brand-green/50 p-4">
-                <label htmlFor="approval-recheck-note" className="block text-sm font-semibold">
-                  Review findings for this approval
-                </label>
-                <textarea
-                  id="approval-recheck-note"
-                  value={reviewNote}
-                  onChange={(event) => setReviewNote(event.target.value)}
-                  minLength={10}
-                  maxLength={1000}
-                  rows={3}
-                  placeholder="Document your review findings..."
-                  className="mt-2 w-full rounded-xl border border-brand-border/80 bg-brand-surface p-3 text-sm text-brand-text shadow-sm outline-none transition focus:border-brand-green focus:ring-2 focus:ring-brand-green/20 placeholder:text-brand-muted/70"
-                />
-                <div className="mt-2 flex gap-2">
-                  <Button disabled={busy || reviewNote.trim().length < 10} onClick={() => void recheck()}>
-                    Submit review
-                  </Button>
-                  <Button variant="secondary" onClick={() => setRecheckTarget(null)}>
-                    Cancel
-                  </Button>
-                </div>
-              </div>
+              <ApprovalRecheckCanvas
+                target={{
+                  mealLibraryId: recheckTarget.variantId,
+                  approvalId: recheckTarget.approval.id,
+                  kind: recheckTarget.approval.kind,
+                }}
+                onClose={() => setRecheckTarget(null)}
+                onVerified={reload}
+              />
             )}
           </>
         )}

@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 import api from '@/lib/axios';
 import { useRequestScope } from '@/hooks/useRequestScope';
@@ -74,28 +74,38 @@ export function useSharedMealLibraryModel({
     }
   };
 
-  async function openMeal(meal: Pick<LibraryMeal, 'id'>) {
-    const sameScope = captureScope();
-    const sequence = ++requestSequence.current;
-    const isCurrent = () => sameScope() && requestSequence.current === sequence;
-    const main = document.querySelector('main.portal-main');
-    listScrollTop.current = main?.scrollTop ?? 0;
-    setDetailError(null);
-    setViewingMealId(meal.id);
-    try {
-      const response = await api.get(`${libraryApi}/${meal.id}`);
-      if (!isCurrent()) return;
-      if (!response.data?.success || !response.data.data) throw new Error('Meal details unavailable.');
-      setViewedMealState({ ...meal, ...response.data.data });
-      requestAnimationFrame(() => {
-        if (isCurrent()) main?.scrollTo({ top: 0 });
-      });
-    } catch {
-      if (isCurrent()) setDetailError('The meal details could not be loaded. Please try again.');
-    } finally {
-      if (isCurrent()) setViewingMealId(null);
-    }
-  }
+  const openMeal = useCallback(
+    async (meal: Pick<LibraryMeal, 'id'>) => {
+      const sameScope = captureScope();
+      const sequence = ++requestSequence.current;
+      const isCurrent = () => sameScope() && requestSequence.current === sequence;
+      const main = document.querySelector('main.portal-main');
+      listScrollTop.current = main?.scrollTop ?? 0;
+      setDetailError(null);
+      setViewingMealId(meal.id);
+      try {
+        const response = await api.get(`${libraryApi}/${meal.id}`);
+        if (!isCurrent()) return;
+        if (!response.data?.success || !response.data.data) throw new Error('Meal details unavailable.');
+        setViewedMealState({ ...meal, ...response.data.data });
+        requestAnimationFrame(() => {
+          if (isCurrent()) main?.scrollTo({ top: 0 });
+        });
+      } catch {
+        if (isCurrent()) setDetailError('The meal details could not be loaded. Please try again.');
+      } finally {
+        if (isCurrent()) setViewingMealId(null);
+      }
+    },
+    [captureScope, libraryApi]
+  );
+
+  useEffect(() => {
+    if (!active || embedded || !workspace.ownerId) return;
+    const mealId = new URLSearchParams(window.location.search).get('mealId');
+    if (!mealId) return;
+    void openMeal({ id: mealId });
+  }, [active, embedded, openMeal, scope, workspace.ownerId]);
 
   return {
     role,

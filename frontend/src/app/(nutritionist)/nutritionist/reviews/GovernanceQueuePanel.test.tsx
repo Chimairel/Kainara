@@ -1,9 +1,10 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { beforeEach, expect, it, vi } from 'vitest';
 import GovernanceQueuePanel from './GovernanceQueuePanel';
 
 const api = vi.hoisted(() => ({ get: vi.fn(), post: vi.fn() }));
 vi.mock('@/lib/axios', () => ({ default: api }));
+vi.mock('@/hooks/useAuth', () => ({ useAuth: () => ({ user: { userId: 'rnd' } }) }));
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -28,21 +29,16 @@ beforeEach(() => {
   api.post.mockResolvedValue({ data: { success: true } });
 });
 
-it('rechecks flagged evidence without exposing legacy dispute adjudication', async () => {
-  const prompt = vi.spyOn(window, 'prompt').mockReturnValue('Checked the exact recorded approval evidence.');
-  try {
-    render(<GovernanceQueuePanel tab="audit" />);
-    fireEvent.click(await screen.findByRole('button', { name: 'Recheck' }));
-    await waitFor(() =>
-      expect(api.post).toHaveBeenCalledWith('/nutritionist/library/recipe/approvals/flagged/recheck', {
-        kind: 'CONDITION',
-        rationale: 'Checked the exact recorded approval evidence.',
-      })
-    );
-    expect(screen.queryByRole('button', { name: 'Approve' })).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Reject' })).not.toBeInTheDocument();
-    expect(api.get).toHaveBeenCalledWith('/nutritionist/governance/queue?view=audit');
-  } finally {
-    prompt.mockRestore();
-  }
+it('opens the shared resolution canvas rather than clearing a flag through a prompt', async () => {
+  const prompt = vi.spyOn(window, 'prompt');
+  render(<GovernanceQueuePanel tab="audit" />);
+  fireEvent.click(await screen.findByRole('button', { name: 'Recheck' }));
+  await screen.findByRole('heading', { name: 'Flag concern and resolution' });
+  expect(api.get).toHaveBeenCalledWith(
+    '/nutritionist/library/recipe/approvals/CONDITION/flagged',
+    expect.objectContaining({ signal: expect.any(AbortSignal) })
+  );
+  expect(api.post).not.toHaveBeenCalled();
+  expect(prompt).not.toHaveBeenCalled();
+  prompt.mockRestore();
 });
