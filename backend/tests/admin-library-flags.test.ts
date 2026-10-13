@@ -3,6 +3,7 @@ import test, { type TestContext } from 'node:test';
 import express from 'express';
 import prisma from '../src/lib/prisma';
 import { releaseWholeMeal } from '../src/services/meal-wide-flag.service';
+import { NutritionistAuditService } from '../src/services/nutritionist-audit.service';
 import { NutritionistService } from '../src/services/nutritionist.service';
 import adminRouter from '../src/routes/admin-library.routes';
 import authenticate from '../src/middleware/auth';
@@ -46,6 +47,8 @@ test('admin library HTTP access uses current role and exposes no clinical mutati
     }
   );
   context.mock.method(NutritionistService, 'getLibraryMeal', async () => ({ id: 'base', flags: [] }));
+  const calls: unknown[][] = [];
+  context.mock.method(NutritionistAuditService, 'recipeCases', async (...args: unknown[]) => { calls.push(args); return { rows: [], total: 0, totalPages: 0 }; });
   const app = express();
   app.use(express.json());
   app.use('/api/admin/library', authenticate, requireRole('ADMIN'), adminRouter);
@@ -63,6 +66,7 @@ test('admin library HTTP access uses current role and exposes no clinical mutati
   for (const denied of ['USER', 'NUTRITIONIST']) {
     role = denied;
     assert.equal((await fetch(base, { headers })).status, 403);
+    assert.equal((await fetch(`${base}/base/case-history?approvalsOnly=true`, { headers })).status, 403);
     assert.equal(
       (
         await fetch(`${base}/base/flag`, {
@@ -75,6 +79,17 @@ test('admin library HTTP access uses current role and exposes no clinical mutati
     );
   }
   role = 'ADMIN';
+  assert.equal((await fetch(`${base}/base/case-history`)).status, 401);
+  for (const query of ['page=0', 'page=1&actorId=other', 'approvalsOnly=false', 'approvalsOnly=true&approvalsOnly=false']) {
+    assert.equal((await fetch(`${base}/base/case-history?${query}`, { headers })).status, 400);
+  }
+  assert.equal(calls.length, 0);
+  const approvalResponse = await fetch(`${base}/base/case-history?page=2&approvalsOnly=true`, { headers });
+  assert.equal(approvalResponse.status, 200);
+  assert.equal(approvalResponse.headers.get('cache-control'), 'private, no-store');
+  assert.deepEqual(calls[0], ['base', 2, undefined, true]);
+  assert.equal((await fetch(`${base}/base/case-history`, { headers })).status, 200);
+  assert.deepEqual(calls[1], ['base', 1, undefined, false]);
   assert.equal((await fetch(`${base}?verifiedByMe=true`, { headers })).status, 200);
   assert.equal((await fetch(`${base}/base`, { headers })).status, 200);
   for (const route of ['release-flag', 'safety-evidence/certify', 'derive']) {

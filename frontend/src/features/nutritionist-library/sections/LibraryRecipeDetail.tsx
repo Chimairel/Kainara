@@ -2,229 +2,98 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { formatMealTitle } from '@/lib/meal-title';
-import LibrarySafetyReview from '@/features/nutritionist-library/LibrarySafetyReview';
+import LibrarySafetyReview from '../LibrarySafetyReview';
 import MealReviewPanel from '../MealReviewPanel';
-import RecipeDerivationForm from '@/features/nutritionist-library/RecipeDerivationForm';
-
-import Badge from '@/components/ui/Badge';
-
-import { ArrowLeft, ShieldAlert } from '@/components/ui/icons';
-
-import MealImage from '@/components/user/MealImage';
-
-import { MealApprovalsPanel } from '@/features/nutritionist-library/MealApprovalsPanel';
-
+import RecipeDerivationForm from '../RecipeDerivationForm';
+import RecipeCaseHistory from '../RecipeCaseHistory';
+import LibraryMealHeader from './LibraryMealHeader';
+import LibraryMealVerifier from './LibraryMealVerifier';
+import WorkspaceTabs from '@/components/ui/WorkspaceTabs';
+import { ArrowLeft } from '@/components/ui/icons';
 import type { useSharedMealLibraryModel } from './useSharedMealLibraryModel';
+
+type DetailSection = 'details' | 'approvals';
 type Props = {
-  model: Pick<
-    ReturnType<typeof useSharedMealLibraryModel>,
-    | 'embedded'
-    | 'setViewedMeal'
-    | 'listScrollTop'
-    | 'viewedMeal'
-    | 'isAdmin'
-    | 'openMeal'
-    | 'workspace'
-    | 'fetchLibrary'
-  >;
+  model: Pick<ReturnType<typeof useSharedMealLibraryModel>,
+    'embedded' | 'setViewedMeal' | 'listScrollTop' | 'viewedMeal' | 'isAdmin' | 'openMeal' | 'workspace' | 'fetchLibrary'>;
 };
+
 export default function LibraryRecipeDetail({ model }: Props) {
   const { embedded, setViewedMeal, listScrollTop, viewedMeal, isAdmin, openMeal, workspace, fetchLibrary } = model;
   const [flagOpen, setFlagOpen] = useState(false);
-  const flagTrigger = useRef<HTMLButtonElement>(null);
+  const [section, setSection] = useState<DetailSection>('details');
+  const flagTrigger = useRef<HTMLDivElement>(null);
   const changeFlagOpen = (open: boolean) => {
     setFlagOpen(open);
-    if (!open) requestAnimationFrame(() => flagTrigger.current?.focus({ preventScroll: true }));
+    if (!open) requestAnimationFrame(() => flagTrigger.current?.querySelector('button')?.focus({ preventScroll: true }));
   };
-  useEffect(() => setFlagOpen(false), [viewedMeal?.id]);
+  useEffect(() => {
+    setFlagOpen(false);
+    setSection('details');
+  }, [viewedMeal?.id, viewedMeal?.status, isAdmin]);
   if (!viewedMeal) return null;
   const source = viewedMeal.sourceRawRecipeCandidate;
+  const held = viewedMeal.status === 'FLAGGED';
+  const refresh = async () => {
+    await openMeal(viewedMeal);
+    await workspace.fetchLibrary();
+  };
+
+
   return (
-    <>
-      <div className={`${embedded ? '' : 'portal-page '}space-y-6`}>
-        <button
-          type="button"
-          onClick={() => {
-            setViewedMeal(null);
-            requestAnimationFrame(() =>
-              document.querySelector('main.portal-main')?.scrollTo({ top: listScrollTop.current })
-            );
-          }}
-          className="inline-flex items-center gap-2 text-sm font-bold text-brand-green hover:underline"
-        >
-          <ArrowLeft className="h-4 w-4" aria-hidden="true" /> Back to meal library
+    <div className={`${embedded ? '' : 'portal-page '}space-y-6`}>
+      <div className="flex items-center justify-between gap-4">
+        <button type="button" onClick={() => {
+          setViewedMeal(null);
+          requestAnimationFrame(() => document.querySelector('main.portal-main')?.scrollTo({ top: listScrollTop.current }));
+        }} className="inline-flex min-h-11 items-center gap-2 text-sm font-semibold text-brand-muted hover:text-brand-text">
+          <ArrowLeft className="h-4 w-4" aria-hidden="true" /> Meal library
         </button>
-        <header className="flex flex-col gap-5 rounded-2xl border border-brand-border bg-brand-surface/60 p-5 lg:flex-row lg:items-center">
-          <MealImage
-            image={viewedMeal.image ?? null}
-            mealName={viewedMeal.mealName}
-            mealType={viewedMeal.mealType}
-            className="h-44 w-full rounded-2xl lg:w-60 shrink-0"
-            showAttributionLinks
-            variant="detail"
-          />
-          <div>
-            <p className="text-xs font-bold uppercase tracking-widest text-brand-green">
-              {viewedMeal.mealType} ·{' '}
-              {source?.sourceName === 'PANLASANG_PINOY' ? 'Panlasang Pinoy base recipe' : 'Recorded recipe'}
-            </p>
-            <h1 className="mt-2 font-display text-3xl font-black text-brand-text">
-              {formatMealTitle(viewedMeal.mealName)}
-            </h1>
-            <div className="mt-3 flex flex-wrap items-center gap-2">
-              <Badge
-                variant={
-                  viewedMeal.status !== 'FLAGGED' && viewedMeal.baseVerification === 'VERIFIED' ? 'verified' : 'pending'
-                }
-                showIcon={false}
-              >
-                {viewedMeal.status === 'FLAGGED'
-                  ? viewedMeal.reviewLineage?.state === 'QUARANTINED'
-                    ? 'Quarantined'
-                    : 'Pending re-review'
-                  : viewedMeal.baseVerification === 'VERIFIED'
-                    ? 'Verified'
-                    : 'Review pending'}
-              </Badge>
-              {viewedMeal.status !== 'FLAGGED' && viewedMeal.baseVerification === 'VERIFIED' && (
-                <span className="text-xs text-brand-muted">
-                  {viewedMeal.baseVerificationBasis === 'PANLASANG_PINOY'
-                    ? 'Established Panlasang Pinoy recipe source'
-                    : 'RND reviewed base recipe'}
-                </span>
-              )}
-            </div>
-            {source?.sourceUrl && (
-              <a
-                href={source.sourceUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="mt-3 inline-block text-sm font-semibold text-brand-green underline"
-              >
-                View original recipe ↗
-              </a>
-            )}
-            {viewedMeal.status === 'FLAGGED' && (
-              <p className="mt-3 text-sm font-bold text-amber-800 dark:text-amber-300">
-                Meal flagged · all serving variants and approvals are unavailable for reuse
-              </p>
-            )}
-          </div>
-          <div className="flex shrink-0 flex-wrap gap-3 lg:ml-auto lg:self-start">
-            {!isAdmin && <a href="#meal-approvals" className="inline-flex min-h-11 items-center justify-center rounded-xl bg-brand-accent px-4 py-2 text-sm font-bold text-[#07100d] shadow-sm transition-colors hover:bg-brand-accent/90">
-              View approvals
-            </a>}
-            <button
-              type="button"
-              ref={flagTrigger}
-              disabled={viewedMeal.status === 'ARCHIVED'}
-              onClick={() => changeFlagOpen(true)}
-              className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-brand-border px-4 py-2 text-sm font-bold text-brand-text transition-colors hover:bg-brand-bgAlt disabled:opacity-50"
-            >
-              <ShieldAlert className="h-4 w-4" aria-hidden="true" /> Flag meal
-            </button>
-          </div>
-        </header>
-        <nav aria-label="Meal detail sections" className="flex flex-wrap gap-x-6 gap-y-2 border-b border-brand-border pb-3 text-sm font-semibold text-brand-muted">
-          <a className="inline-flex min-h-11 items-center hover:text-brand-text" href="#meal-details">Meal details</a>
-          {!isAdmin && <a className="inline-flex min-h-11 items-center text-brand-green hover:underline underline-offset-4" href="#meal-approvals">Approvals</a>}
-          <a className="inline-flex min-h-11 items-center hover:text-brand-text" href="#meal-wide-review">Meal-wide review</a>
-        </nav>
-        <section
-          id="meal-details"
-          tabIndex={-1}
-          className="scroll-mt-24 space-y-5 rounded-2xl border border-brand-border bg-brand-surface/60 p-5"
-          aria-label="Meal details"
-        >
-          <div>
-            <h2 className="font-display text-xl font-bold text-brand-text">Meal details</h2>
-            <p className="mt-2 whitespace-pre-line text-sm leading-relaxed text-brand-muted">
-              {viewedMeal.description || 'No description recorded.'}
-            </p>
-          </div>
-          <dl className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-            {(
-              [
-                ['Calories', `${viewedMeal.calories} kcal`],
-                ['Protein', `${viewedMeal.proteinG} g`],
-                ['Carbs', `${viewedMeal.carbsG} g`],
-                ['Fat', `${viewedMeal.fatG} g`],
-              ] as const
-            ).map(([label, value]) => (
-              <div key={label} className="rounded-xl border border-brand-border/70 bg-brand-surface p-3 shadow-xs">
-                <dt className="text-xs text-brand-muted">{label}</dt>
-                <dd className="mt-1 font-bold text-brand-text">{value}</dd>
-              </div>
-            ))}
-          </dl>
-          {viewedMeal.nutritionServingDescription && (
-            <p className="text-xs text-brand-muted">Serving: {viewedMeal.nutritionServingDescription}</p>
-          )}
-          <div>
-            <h3 className="text-sm font-bold text-brand-text">Ingredients</h3>
-            <ul className="mt-2 grid gap-2 sm:grid-cols-2">
-              {(viewedMeal.ingredients || []).map((ingredient) => (
-                <li
-                  key={ingredient.id}
-                  className="rounded-lg border border-brand-border/70 bg-brand-surface px-3 py-2 text-xs text-brand-text shadow-xs"
-                >
-                  {ingredient.ingredientName}
-                  {ingredient.quantity != null ? ` · ${ingredient.quantity} ${ingredient.unit || ''}` : ''}
-                </li>
-              ))}
-            </ul>
-            {!viewedMeal.ingredients?.length && (
-              <p className="mt-2 text-xs text-brand-muted">No ingredient snapshot recorded.</p>
-            )}
-          </div>
-          {viewedMeal.safetyReviews?.[0]?.evidenceSnapshot?.nutritionBasis && (
-            <p className="text-xs text-brand-muted">
-              Nutrition source notes: {viewedMeal.safetyReviews[0].evidenceSnapshot.nutritionBasis}
-            </p>
-          )}
-        </section>
-        {!isAdmin && <div id="meal-approvals" tabIndex={-1} className="scroll-mt-24">
-          <MealApprovalsPanel key={`${viewedMeal.id}-${viewedMeal.status}`} mealId={viewedMeal.id} />
-        </div>}
-        {viewedMeal.parentMeal && (
-          <p className="text-sm text-brand-muted">
-            {viewedMeal.derivationKind === 'ADAPTED' ? 'Adapted from' : 'Serving version of'}{' '}
-            {formatMealTitle(viewedMeal.parentMeal.mealName)}. This draft has its own review history and approvals.
-          </p>
-        )}
-        {!isAdmin && (
-          <LibrarySafetyReview
-            key={`safety-${viewedMeal.id}-${viewedMeal.safetyEvidenceRevision}`}
-            meal={viewedMeal}
-            refresh={async () => {
-              await openMeal(viewedMeal);
-              await workspace.fetchLibrary();
-            }}
-          />
-        )}
-        {!isAdmin && viewedMeal.status !== 'FLAGGED' && (
-          <RecipeDerivationForm
-            key={`derivation-${viewedMeal.id}`}
-            meal={viewedMeal}
-            onCreated={(id) => {
-              void openMeal({ ...viewedMeal, id });
-              void fetchLibrary();
-            }}
-          />
-        )}
-        <MealReviewPanel
-          key={`review-${viewedMeal.id}`}
-          meal={viewedMeal}
-          isAdmin={isAdmin}
-          flagOpen={flagOpen}
-          onFlagOpenChange={changeFlagOpen}
-          refresh={async () => {
-            await openMeal(viewedMeal);
-            await workspace.fetchLibrary();
-          }}
-        />
 
       </div>
-    </>
+      <LibraryMealHeader meal={viewedMeal} onFlag={() => changeFlagOpen(true)} flagTrigger={flagTrigger} />
+      {held && <p className="text-sm font-semibold text-status-warning-text">This meal and its serving variants are withheld. Its approvals cannot be reused until the meal is released.</p>}
+      <div className="border-b border-brand-border pb-5 pt-2">
+        <WorkspaceTabs<DetailSection> value={section} onChange={setSection} label="Meal detail sections" level="secondary"
+          items={[{ value: 'details', label: 'Meal details' }, { value: 'approvals', label: 'Approvals' }]} />
+      </div>
+      <div className="rounded-2xl bg-brand-surface p-5 shadow-card sm:p-7">
+        <div hidden={section !== 'approvals'}>
+          <RecipeCaseHistory key={`${viewedMeal.id}:${isAdmin}`} mealId={viewedMeal.id} role={isAdmin ? 'admin' : 'nutritionist'} approvalsOnly />
+        </div>
+        <div hidden={section !== 'details'} className="space-y-8">
+          <section aria-label="Meal details" className="space-y-6">
+            <LibraryMealVerifier key={viewedMeal.id} meal={viewedMeal} />
+            <div>
+              <h2 className="font-display text-xl font-bold">Meal details</h2>
+              {source?.sourceUrl && <a href={source.sourceUrl} target="_blank" rel="noopener noreferrer" className="mt-3 inline-flex min-h-11 items-center text-sm font-semibold text-brand-green underline underline-offset-4">Original source ↗</a>}
+              <p className="mt-3 max-w-prose whitespace-pre-line text-sm leading-7 text-brand-muted">{viewedMeal.description || 'No description recorded.'}</p>
+              {viewedMeal.nutritionServingDescription && <p className="mt-4 text-sm font-semibold">Serving: {viewedMeal.nutritionServingDescription}</p>}
+            </div>
+            <div className="border-t border-brand-border pt-6">
+              <h3 className="font-display text-lg font-bold">Ingredients</h3>
+              <ul className="mt-3 grid gap-x-8 sm:grid-cols-2">
+                {(viewedMeal.ingredients || []).map(ingredient => <li key={ingredient.id} className="border-b border-brand-border py-3 text-sm leading-6">
+                  {ingredient.ingredientName}{ingredient.quantity != null ? <span className="ml-2 text-brand-muted">{ingredient.quantity} {ingredient.unit || ''}</span> : ''}
+                </li>)}
+              </ul>
+              {!viewedMeal.ingredients?.length && <p className="mt-3 text-sm text-brand-muted">No ingredient snapshot recorded.</p>}
+            </div>
+            {viewedMeal.safetyReviews?.[0]?.evidenceSnapshot?.nutritionBasis && <p className="text-sm text-brand-muted">Nutrition source notes: {viewedMeal.safetyReviews[0].evidenceSnapshot.nutritionBasis}</p>}
+            {viewedMeal.image?.attribution && <p className="text-xs leading-5 text-brand-muted">
+              Photo: {viewedMeal.image.attribution.creator || 'Recorded source'}
+              {viewedMeal.image.attribution.sourcePageUrl && <> · <a className="underline underline-offset-4" href={viewedMeal.image.attribution.sourcePageUrl} target="_blank" rel="noopener noreferrer">Image source</a></>}
+              {viewedMeal.image.attribution.licenseUrl && <> · <a className="underline underline-offset-4" href={viewedMeal.image.attribution.licenseUrl} target="_blank" rel="noopener noreferrer">{viewedMeal.image.attribution.licenseCode || 'License'}</a></>}
+            </p>}
+            {viewedMeal.parentMeal && <p className="text-sm text-brand-muted">{viewedMeal.derivationKind === 'ADAPTED' ? 'Adapted from' : 'Serving version of'} {formatMealTitle(viewedMeal.parentMeal.mealName)}. This draft has its own review history and approvals.</p>}
+          </section>
+          {!isAdmin && <LibrarySafetyReview key={`safety-${viewedMeal.id}-${viewedMeal.safetyEvidenceRevision}`} meal={viewedMeal} refresh={refresh} />}
+          {!isAdmin && !held && <RecipeDerivationForm key={`derivation-${viewedMeal.id}`} meal={viewedMeal} onCreated={id => { void openMeal({ ...viewedMeal, id }); void fetchLibrary(); }} />}
+        </div>
+        <div hidden={section !== 'details' || !held}>
+          <MealReviewPanel embedded key={`review-${viewedMeal.id}`} meal={viewedMeal} isAdmin={isAdmin} flagOpen={flagOpen} onFlagOpenChange={changeFlagOpen} refresh={refresh} />
+        </div>
+      </div>
+    </div>
   );
 }

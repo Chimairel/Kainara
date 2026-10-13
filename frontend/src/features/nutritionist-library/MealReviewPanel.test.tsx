@@ -94,7 +94,7 @@ it('opens flag fields only in a dialog, keeps a cancelled draft and preserves it
   expect(screen.getByLabelText('Explanation')).toHaveValue('Measured nutrients do not match the ingredient evidence.');
   const submit = screen.getByRole('button', { name: 'Flag and withhold meal' });
   expect(submit).toBeDisabled();
-  fireEvent.change(screen.getByLabelText('Affected ingredients or nutrition fields, separated by commas'), { target: { value: 'sodiumMg' } });
+  fireEvent.change(screen.getByLabelText('Affected ingredients or nutrition fields'), { target: { value: 'sodiumMg' } });
   fireEvent.change(screen.getByLabelText('Supporting evidence or reference'), { target: { value: 'Measured source reference.' } });
   fireEvent.change(screen.getByLabelText('Proposed correction'), { target: { value: 'Recheck measured food amounts.' } });
   fixture.post.mockRejectedValueOnce({ response: { data: { error: 'The meal changed. Refresh first.' } } });

@@ -3,7 +3,7 @@ import FeedbackNotice from '@/components/shared/FeedbackNotice';
 
 import { toast } from 'sonner';
 import Modal from '@/components/ui/Modal';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useSessionQuery } from '@/hooks/useSessionQuery';
 import api from '@/lib/axios';
@@ -35,10 +35,12 @@ export default function MealReviewPanel({
   refresh,
   flagOpen,
   onFlagOpenChange,
+  embedded = false,
 }: {
   meal: LibraryMeal;
   isAdmin: boolean;
   refresh: () => Promise<void>;
+  embedded?: boolean;
   flagOpen?: boolean;
   onFlagOpenChange?: (open: boolean) => void;
 }) {
@@ -50,6 +52,7 @@ export default function MealReviewPanel({
     fetcher: async () => (await api.get(`${base}/meal-review-cases/${meal.id}`)).data.data,
     errorMessage: 'Review history could not be loaded.',
   });
+  const flagFormId = useId();
   const [localFlagOpen, setLocalFlagOpen] = useState(false);
   const isFlagOpen = flagOpen ?? localFlagOpen;
   const setFlagOpen = onFlagOpenChange ?? setLocalFlagOpen;
@@ -203,7 +206,7 @@ export default function MealReviewPanel({
     <section
       id="meal-wide-review"
       aria-label="Meal-wide review"
-      className="scroll-mt-20 space-y-5 rounded-2xl border border-brand-border bg-brand-surface/60 p-5"
+      className={embedded ? "space-y-5" : "scroll-mt-20 space-y-5 rounded-2xl border border-brand-border bg-brand-surface/60 p-5"}
     >
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 className="font-display text-xl font-bold">Meal-wide review</h2>
@@ -353,69 +356,42 @@ export default function MealReviewPanel({
             <>
               {held && <Button variant="secondary" disabled={busy} onClick={() => setFlagOpen(true)}>Add evidence to this incident</Button>}
               {!held && !onFlagOpenChange && <Button variant="secondary" onClick={() => setFlagOpen(true)}>Flag meal</Button>}
-              <Modal isOpen={isFlagOpen} onClose={() => { if (!submitting.current) setFlagOpen(false); }} size="xl"
+              <Modal isOpen={isFlagOpen} onClose={() => { if (!submitting.current) setFlagOpen(false); }} size="xl" layer="canvas"
                 title={held ? 'Add evidence to this incident' : 'Flag meal'}
-                description={held ? 'Record another concern for this meal’s current review.' : 'Flagging withholds this meal and all serving variants from member use until independent review.'}>
-                <form className="space-y-5" aria-busy={busy} onSubmit={event => { event.preventDefault(); void mutate('flag'); }}>
-                  <p className="font-semibold text-brand-text">{formatMealTitle(meal.mealName)}</p>
-                  <label className="block text-sm">
-                    Concern category
-                    <Dropdown value={category} onChange={setCategory} disabled={busy} className="w-full !text-base">
-                      {['INGREDIENT', 'NUTRITION', 'ALLERGEN', 'PREPARATION', 'EVIDENCE', 'OTHER'].map((value) => (
-                        <option key={value} value={value}>
-                          {value.toLowerCase()}
-                        </option>
-                      ))}
-                    </Dropdown>
-                  </label>
-                  <label className="block text-sm">
-                    Affected ingredients or nutrition fields, separated by commas
-                    <input
-                      className={field.replace('text-sm', 'text-base')} disabled={busy}
-                      required
-                      value={affected}
-                      onChange={(event) => setAffected(event.target.value)}
-                      maxLength={2000}
-                    />
-                  </label>
-                  {(
-                    [
-                      ['Explanation', explanation, setExplanation, 3000],
-                      ['Supporting evidence or reference', reference, setReference, 2000],
-                      ['Proposed correction', correction, setCorrection, 2000],
-                    ] as const
-                  ).map(([label, value, setter, maximum]) => (
-                    <div className="text-sm" key={label}>
-                      <label className="block" htmlFor={`flag-${label === 'Explanation' ? 'explanation' : label === 'Proposed correction' ? 'correction' : 'reference'}`}>{label}</label>
-                      <textarea
-                        id={`flag-${label === 'Explanation' ? 'explanation' : label === 'Proposed correction' ? 'correction' : 'reference'}`}
-                        className={field.replace('text-sm', 'text-base')} disabled={busy}
-                        required
-                        minLength={label === 'Explanation' ? 20 : 10}
-                        aria-describedby={`flag-${label === 'Explanation' ? 'explanation' : label === 'Proposed correction' ? 'correction' : 'reference'}-help`}
-                        rows={3}
-                        value={value}
-                        onChange={(event) => setter(event.target.value)}
-                        maxLength={maximum}
-                      />
-                      <span id={`flag-${label === 'Explanation' ? 'explanation' : label === 'Proposed correction' ? 'correction' : 'reference'}-help`} className="mt-1 block text-xs text-brand-muted">{label === 'Explanation' ? 'At least 20 characters.' : 'At least 10 characters.'}</span>
+                description={held ? 'Record another concern for the current meal review.' : 'This withholds the meal and its serving variants until independent review.'}
+                footer={<>
+                  <Button type="button" variant="secondary" disabled={busy} onClick={() => setFlagOpen(false)}>Cancel</Button>
+                  <Button type="submit" form={flagFormId} isLoading={busy} disabled={busy || !affected.trim() || explanation.trim().length < 20 || reference.trim().length < 10 || correction.trim().length < 10}>
+                    {held ? 'Record evidence' : 'Flag and withhold meal'}
+                  </Button>
+                </>}>
+                <form id={flagFormId} className="space-y-5" aria-busy={busy} onSubmit={event => { event.preventDefault(); void mutate('flag'); }}>
+                  <p className="border-b border-brand-border pb-4 text-sm font-semibold">{formatMealTitle(meal.mealName)}</p>
+                  <div className="grid gap-4 sm:grid-cols-[1fr_1.5fr]">
+                    <label className="block space-y-2 text-sm font-semibold">Concern category
+                      <Dropdown value={category} onChange={setCategory} disabled={busy} className="w-full !text-base">
+                        {['INGREDIENT', 'NUTRITION', 'ALLERGEN', 'PREPARATION', 'EVIDENCE', 'OTHER'].map(value => <option key={value} value={value}>{value.charAt(0) + value.slice(1).toLowerCase()}</option>)}
+                      </Dropdown>
+                    </label>
+                    <div className="space-y-2 text-sm">
+                      <label className="block font-semibold" htmlFor="flag-affected">Affected ingredients or nutrition fields</label>
+                      <input id="flag-affected" className={field.replace('text-sm', 'text-base')} disabled={busy} required value={affected} onChange={event => setAffected(event.target.value)} maxLength={2000} placeholder="e.g. sodiumMg, salt" aria-describedby="flag-affected-help" />
+                      <p id="flag-affected-help" className="text-xs text-brand-muted">Separate multiple fields with commas.</p>
                     </div>
-                  ))}
-                  <div className="flex flex-wrap justify-end gap-3 border-t border-brand-border pt-4">
-                    <Button type="button" variant="secondary" disabled={busy} onClick={() => setFlagOpen(false)}>Cancel</Button>
-                    <Button
-                      disabled={
-                        busy ||
-                        !affected.trim() ||
-                        explanation.trim().length < 20 ||
-                        reference.trim().length < 10 ||
-                        correction.trim().length < 10
-                      }
-                      type="submit"
-                      isLoading={busy}
-                    >
-                      {held ? 'Record additional evidence' : 'Flag and withhold meal'}
-                    </Button>
+                  </div>
+                  <div className="grid gap-5 sm:grid-cols-2">
+                    {([
+                      ['explanation', 'Explanation', explanation, setExplanation, 3000, 20],
+                      ['reference', 'Supporting evidence or reference', reference, setReference, 2000, 10],
+                      ['correction', 'Proposed correction', correction, setCorrection, 2000, 10],
+                    ] as const).map(([id, label, value, setter, maximum, minimum]) => (
+                      <div className={`space-y-2 text-sm ${id === 'explanation' ? 'sm:col-span-2' : ''}`} key={id}>
+                        <label className="block font-semibold" htmlFor={`flag-${id}`}>{label}</label>
+                        <textarea id={`flag-${id}`} className={field.replace('text-sm', 'text-base')} disabled={busy} required minLength={minimum} maxLength={maximum}
+                          rows={id === 'explanation' ? 3 : 2} value={value} onChange={event => setter(event.target.value)} aria-describedby={`flag-${id}-help`} />
+                        <p id={`flag-${id}-help`} className="text-xs text-brand-muted">At least {minimum} characters.</p>
+                      </div>
+                    ))}
                   </div>
                 </form>
               </Modal>

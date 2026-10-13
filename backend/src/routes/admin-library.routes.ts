@@ -5,6 +5,9 @@ import { NutritionistService } from '@/services/nutritionist.service';
 import { flagWholeMealAsAdmin } from '@/services/meal-wide-flag.service';
 import { sanitizeErrorMessage } from '@/lib/sanitizeError';
 import validateZodBody from '@/middleware/validateZod';
+import { asyncHandler } from '@/middleware/errorHandler';
+import { z } from 'zod';
+import { NutritionistAuditService } from '@/services/nutritionist-audit.service';
 
 // Parent admin router authenticates and checks the live ADMIN role.
 // Certification remains an RND action; quarantine administration uses the separate case router.
@@ -38,6 +41,13 @@ router.get('/coverage', async (_req: AuthenticatedRequest, res: Response) => {
       .json({ success: false, error: sanitizeErrorMessage(error, 'Recipe coverage could not be loaded.') });
   }
 });
+router.get('/:id/case-history', asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+  const id = z.object({ id: z.string().min(1).max(191) }).strict().safeParse(req.params);
+  const query = z.object({ page: z.coerce.number().int().min(1).max(100000).default(1), approvalsOnly: z.enum(['true']).optional() }).strict().safeParse(req.query);
+  if (!id.success || !query.success) return res.status(400).json({ success: false, error: 'Check the meal and approval history filters.' });
+  res.setHeader('Cache-Control', 'private, no-store');
+  res.json({ success: true, data: await NutritionistAuditService.recipeCases(id.data.id, query.data.page, undefined, query.data.approvalsOnly === 'true') });
+}));
 router.get('/:id', async (req: AuthenticatedRequest, res: Response) => {
   try {
     const data = await NutritionistService.getLibraryMeal(req.params.id);

@@ -1,3 +1,13 @@
+/** Completed approval decisions, used by the meal-scoped Audit presentation. */
+export const mealApprovalAuditActions = [
+  'MEAL_PLAN_APPROVED',
+  'MEAL_PLAN_FIRST_HIGH_RISK_APPROVAL',
+  'MEAL_PLAN_SECOND_HIGH_RISK_APPROVAL',
+  'COALESCED_MEAL_REVIEW_PUBLISHED',
+  'MEAL_APPROVAL_RECHECKED',
+  'CONDITION_CLEARANCE_ACTIVE',
+] as const;
+
 export const nutritionistAuditActions = [
   'MEAL_PLAN_SLOT_REPLACED_PENDING_REVIEW',
   'CLINICAL_PROFILE_CLAIMED',

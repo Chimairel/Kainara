@@ -1,16 +1,20 @@
-# Meal library approvals and flag dialog — October 13, 2026
+# Meal library detail, approvals and flag dialog - October 13, 2026
 
-## Interface
+## Current interface
 
-- Existing meal detail header now has a clear **View approvals** shortcut for RNDs, with section links for meal details, approvals and meal-wide review. Approvals follow meal details, ahead of evidence/correction editors and review history. Actual member case decisions and reusable approvals remain separate inside the existing approvals component.
-- **Flag meal** opens the shared accessible modal in the RND and admin meal library. The former inline accordion and fields are removed from normal page flow. Held meals can add evidence through the same modal; their review canvas, per-concern resolution, claim and quarantine controls remain on the page.
-- Required structured notes, field lengths and exact recipe-version payload are preserved. Cancel retains the draft for that meal, server failure retains the open form, and a recorded flag closes and clears it. A synchronous guard prevents duplicate sends. Sonner reports flag outcomes, including recorded actions whose subsequent refresh failed. Header-trigger focus returns after closing. Archived meals cannot be flagged from the header.
-- Existing themes, Solar icons and shared modal/approval components are reused. Mobile modal fields use 16px text and bounded scrolling. Admin does not receive private RND approval tools through this layout change.
+This supersedes the earlier section-link and separate approvals-panel layout in commit `3342be41`, following the owner's subsequent references and corrections.
+
+- Dedicated `LibraryMealHeader` combines the existing dashboard colored surface with the cropped library photo. The image spans the left edge on desktop; mobile stacks image and content. Title is 30/36px, serving text 16px, and nutrition text 14/16px. Flag meal stays inside the card at the lower right. Existing meal themes and Solar icons are reused; shared dashboard and catalogue components retain their original defaults.
+- Meal details is the first/default tab, Approvals second. There is no Meal review tab. Recorded verifier attribution and its credential modal reuse the member components. A source-only meal does not acquire a fictional human verifier. The representative-photo badge is hidden in the header, while saved image kind/alt and photo attribution remain intact.
+- Approvals uses the shared Audit table, Type column, pagination and Details modal for both RND and admin. The backend applies approval-action and meal-family filters before totals/paging. Plan decisions match their immutable saved evidence, not the current meal pointer. Reusable rechecks link to their approval entity. Missing historical identity links stay explicitly unavailable rather than being inferred from mutable records. Existing role-specific context permissions remain in force; an approval row is not a new clinical clearance.
+- Flag fields are in the shared modal, with bounded scrolling and a persistent action footer. Cancel/conflicts retain the draft, successful saves close/clear it, and Sonner reports outcomes. Structured notes and version binding remain required. Re-review concern resolution, claims and quarantine administration remain under Meal details for held meals, retaining all previous gates.
 
 ## Verification
 
-- 18 focused frontend tests pass across review panel, shared admin/RND library, approvals and detail request races. Older workspace fixtures were brought into line with existing independent claims and explicit concern resolutions; those controls were not relaxed.
-- Four new intercepted Chromium journeys pass at 390/1440 px in light/dark: approvals navigation, initially absent flag fields, modal cancel/reopen, keyboard focus, retained conflict draft, exact version-bound payload, successful close and Sonner feedback. Six existing governance journeys also pass, including role-specific quarantine controls and admin draft import presentation.
-- Changed-file ESLint, production frontend build and `git diff --check` pass. Browser requests use synthetic intercepted APIs; no real flag or hosted record was changed. The backend/schema is unchanged.
+- 20 frontend tests pass: flag/review behavior (3), shared admin/RND workspace (9), audit table/modal role endpoints (5), and detail request races (3).
+- 17 focused backend tests pass, covering admin live-role protection and strict history query validation, public audit details, exact saved RND context and audit query binding.
+- Real PostgreSQL acceptance: `backend/scripts/meal-approval-audit-local-acceptance.ts` uses a fresh synthetic database in the ownership-checked loopback container. Checks include family serving variants, reusable approval rechecks, approval-only counts/pagination, excluded unrelated/rejected/access events, retained audit records, and saved identity after the live meal pointer changes.
+- Ten intercepted Chromium journeys pass on localhost:3000: four 390/1440px light/dark detail journeys (default/order, attribution modal, approval table/Details, in-card flag, retained conflict draft, focus return and Sonner), plus six existing RND/admin governance/import journeys. Desktop/mobile screenshots in both themes were visually inspected together. Synthetic photo/content are test fixtures, not production meal evidence.
+- Scoped ESLint, both production builds and owned-file diff whitespace checks pass. One stale reviewer-name selector was corrected to match the existing RND-suffix normalization. Earlier captures from superseded layouts are not current evidence.
 
-Implemented in the shared Desktop checkout, with publishing separate. Screenshot artifacts are in ignored Playwright output.
+No hosted records, schema, provider email or live application deployment were changed. Finished changes are committed locally in the shared Desktop checkout; publishing is separate.

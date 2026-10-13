@@ -1,6 +1,6 @@
 import { Prisma } from '@prisma/client';
 import prisma from '@/lib/prisma';
-import { auditActionLabel, auditOutcomeLabel, auditTypeLabel, nutritionistAuditActions } from '@/domain/audit-history.policy';
+import { auditActionLabel, auditOutcomeLabel, auditTypeLabel, mealApprovalAuditActions, nutritionistAuditActions } from '@/domain/audit-history.policy';
 import { normalizePagination } from '@/policies/pagination.policy';
 
 export type StaffAuditFilters = {
@@ -17,6 +17,7 @@ export type StaffAuditFilters = {
   includeAdminMealFlags?: boolean;
   /** Activity presentation only; sensitive access events remain in the underlying audit store. */
   changesOnly?: boolean;
+  approvalActionsOnly?: boolean;
   recipeCase?: { libraryIds: string[]; sourceId: string | null };
 };
 type AuditRecord = {
@@ -43,16 +44,26 @@ export class StaffAuditService {
           ? Prisma.sql`(role = 'NUTRITIONIST' OR (role = 'ADMIN' AND "actionCode" = 'MEAL_BASE_FLAGGED'))`
           : Prisma.sql`role = 'NUTRITIONIST'`;
     const conditions = [roleWhere];
+    if (filters.approvalActionsOnly) conditions.push(Prisma.sql`"actionCode" IN (${Prisma.join([...mealApprovalAuditActions])})`);
     if (filters.changesOnly) conditions.push(Prisma.sql`"actionCode" !~ '_ACCESSED$'`);
     if (filters.recipeCase) {
       const { libraryIds, sourceId } = filters.recipeCase;
-      conditions.push(Prisma.sql`EXISTS (
+      const recordedCase = Prisma.sql`EXISTS (
         SELECT 1 FROM "AuditEvent" link JOIN "MealPlanReviewDecision" decision
           ON decision.id = link.metadata->>'reviewDecisionId' AND decision."mealPlanId" = link."entityId"
         WHERE link.id = records.id AND link."entityType" = 'MealPlan' AND (
           COALESCE(decision."evidenceSnapshot"->'reviewContext'->'meal'->>'libraryMealId', decision."evidenceSnapshot"->>'libraryMealId') IN (${Prisma.join(libraryIds)})
           OR (${sourceId}::text IS NOT NULL AND COALESCE(decision."evidenceSnapshot"->'reviewContext'->'meal'->>'sourceRawRecipeCandidateId', decision."evidenceSnapshot"->>'sourceRawRecipeCandidateId') = ${sourceId})
-        ))`);
+        ))`;
+      conditions.push(filters.approvalActionsOnly ? Prisma.sql`(${recordedCase} OR EXISTS (
+        SELECT 1 FROM "AuditEvent" link JOIN "MealLibraryProfileApproval" approval
+          ON link."entityType" = 'MealLibraryProfileApproval' AND approval.id = link."entityId"
+        WHERE link.id = records.id AND approval."mealLibraryId" IN (${Prisma.join(libraryIds)})
+      ) OR EXISTS (
+        SELECT 1 FROM "AuditEvent" link JOIN "MealConditionClearance" approval
+          ON link."entityType" = 'MealConditionClearance' AND approval.id = link."entityId"
+        WHERE link.id = records.id AND approval."mealLibraryId" IN (${Prisma.join(libraryIds)})
+      ))` : recordedCase);
     }
     if (filters.recordId) conditions.push(Prisma.sql`id = ${filters.recordId}`);
     if (filters.actorId) conditions.push(Prisma.sql`"actorId" = ${filters.actorId}`);
