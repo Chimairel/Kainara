@@ -1,7 +1,9 @@
 'use client';
 import FeedbackNotice from '@/components/shared/FeedbackNotice';
 
-import { useEffect, useState } from 'react';
+import { toast } from 'sonner';
+import Modal from '@/components/ui/Modal';
+import { useEffect, useRef, useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useSessionQuery } from '@/hooks/useSessionQuery';
 import api from '@/lib/axios';
@@ -31,10 +33,14 @@ export default function MealReviewPanel({
   meal,
   isAdmin,
   refresh,
+  flagOpen,
+  onFlagOpenChange,
 }: {
   meal: LibraryMeal;
   isAdmin: boolean;
   refresh: () => Promise<void>;
+  flagOpen?: boolean;
+  onFlagOpenChange?: (open: boolean) => void;
 }) {
   const ownerId = useAuth().user?.userId;
   const base = isAdmin ? '/admin' : '/nutritionist';
@@ -44,6 +50,10 @@ export default function MealReviewPanel({
     fetcher: async () => (await api.get(`${base}/meal-review-cases/${meal.id}`)).data.data,
     errorMessage: 'Review history could not be loaded.',
   });
+  const [localFlagOpen, setLocalFlagOpen] = useState(false);
+  const isFlagOpen = flagOpen ?? localFlagOpen;
+  const setFlagOpen = onFlagOpenChange ?? setLocalFlagOpen;
+  const submitting = useRef(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState('');
@@ -114,12 +124,14 @@ export default function MealReviewPanel({
       </div>
     ) : undefined;
   async function mutate(action: 'flag' | 'claim' | 'confirm' | 'release' | 'archive') {
-    if (!data || busy || (action === 'confirm' && savedVersion === data.reviewVersion)) return;
+    if (!data || submitting.current || busy || (action === 'confirm' && savedVersion === data.reviewVersion)) return;
+    if (action === 'flag' && (!affected.trim() || explanation.trim().length < 20 || reference.trim().length < 10 || correction.trim().length < 10 || data.state === 'ARCHIVED')) return;
     if (
       action === 'confirm' &&
       (!data.claimStatus?.claimedByMe || data.incident?.reports.some((report) => !resolved[report.id]))
     )
       return;
+    submitting.current = true;
     setBusy(true);
     setError(null);
     setMessage('');
@@ -155,24 +167,35 @@ export default function MealReviewPanel({
                   }
                 : {}),
             };
-      await api.post(url, payload);
+      const response = await api.post(url, payload);
+      if (response.data?.success !== true) throw new Error('Unconfirmed review action');
+      if (action === 'flag') {
+        setFlagOpen(false);
+        setAffected(''); setExplanation(''); setReference(''); setCorrection('');
+        toast.success(held ? 'Additional evidence recorded.' : 'Meal flagged for review.');
+      }
       if (action === 'confirm') setSavedVersion(data.reviewVersion);
       setMessage(
-        action === 'claim' ? 'Claimed for 30 minutes. Review every concern before confirming.' : 'Decision recorded.'
+        action === 'flag' ? '' : action === 'claim' ? 'Claimed for 30 minutes. Review every concern before confirming.' : 'Decision recorded.'
       );
+      const showRefreshWarning = () => {
+        const warning = 'Decision recorded. Reload the history to see the current review state.';
+        if (action === 'flag') toast.warning(warning); else setMessage(warning);
+      };
       try {
         const updated = await query.refetch();
-        if (!updated) setMessage('Decision recorded. Reload the history to see the current review state.');
+        if (!updated) showRefreshWarning();
         await refresh();
       } catch {
-        setMessage('Decision recorded. Reload the history to see the current review state.');
+        showRefreshWarning();
       }
     } catch (err) {
-      setError(
-        (err as { response?: { data?: { error?: string } } }).response?.data?.error ??
-          'The review action failed. Refresh and try again.'
-      );
+      const failure = (err as { response?: { data?: { error?: string } } }).response?.data?.error ??
+        'The review action failed. Refresh and try again.';
+      if (action === 'flag') toast.error(failure);
+      else setError(failure);
     } finally {
+      submitting.current = false;
       setBusy(false);
     }
   }
@@ -198,6 +221,9 @@ export default function MealReviewPanel({
           Retry history
         </Button>
       )}
+      {!data && isFlagOpen && <Modal isOpen onClose={() => setFlagOpen(false)} title="Flag meal" size="xl">
+        {query.error ? <><p>{query.error}</p><Button variant="secondary" onClick={() => void query.refetch()}>Retry history</Button></> : <p role="status">Loading the current meal version…</p>}
+      </Modal>}
       {data && (
         <>
           <p className="text-sm text-brand-muted">
@@ -324,63 +350,76 @@ export default function MealReviewPanel({
             </RndQueueDocument>
           )}
           {data.state !== 'ARCHIVED' && (
-            <details className="rounded-xl border border-brand-border p-3" open={!held}>
-              <summary className="min-h-11 cursor-pointer text-sm font-bold">
-                {held ? 'Add evidence to this incident' : 'Flag recipe'}
-              </summary>
-              <div className="space-y-3 pt-3">
-                <label className="block text-sm">
-                  Concern category
-                  <Dropdown value={category} onChange={setCategory}>
-                    {['INGREDIENT', 'NUTRITION', 'ALLERGEN', 'PREPARATION', 'EVIDENCE', 'OTHER'].map((value) => (
-                      <option key={value} value={value}>
-                        {value.toLowerCase()}
-                      </option>
-                    ))}
-                  </Dropdown>
-                </label>
-                <label className="block text-sm">
-                  Affected ingredients or nutrition fields, separated by commas
-                  <input
-                    className={field}
-                    value={affected}
-                    onChange={(event) => setAffected(event.target.value)}
-                    maxLength={2000}
-                  />
-                </label>
-                {(
-                  [
-                    ['Explanation', explanation, setExplanation, 3000],
-                    ['Supporting evidence or reference', reference, setReference, 2000],
-                    ['Proposed correction', correction, setCorrection, 2000],
-                  ] as const
-                ).map(([label, value, setter, maximum]) => (
-                  <label className="block text-sm" key={label}>
-                    {label}
-                    <textarea
-                      className={field}
-                      rows={3}
-                      value={value}
-                      onChange={(event) => setter(event.target.value)}
-                      maxLength={maximum}
+            <>
+              {held && <Button variant="secondary" disabled={busy} onClick={() => setFlagOpen(true)}>Add evidence to this incident</Button>}
+              {!held && !onFlagOpenChange && <Button variant="secondary" onClick={() => setFlagOpen(true)}>Flag meal</Button>}
+              <Modal isOpen={isFlagOpen} onClose={() => { if (!submitting.current) setFlagOpen(false); }} size="xl"
+                title={held ? 'Add evidence to this incident' : 'Flag meal'}
+                description={held ? 'Record another concern for this meal’s current review.' : 'Flagging withholds this meal and all serving variants from member use until independent review.'}>
+                <form className="space-y-5" aria-busy={busy} onSubmit={event => { event.preventDefault(); void mutate('flag'); }}>
+                  <p className="font-semibold text-brand-text">{formatMealTitle(meal.mealName)}</p>
+                  <label className="block text-sm">
+                    Concern category
+                    <Dropdown value={category} onChange={setCategory} disabled={busy} className="w-full !text-base">
+                      {['INGREDIENT', 'NUTRITION', 'ALLERGEN', 'PREPARATION', 'EVIDENCE', 'OTHER'].map((value) => (
+                        <option key={value} value={value}>
+                          {value.toLowerCase()}
+                        </option>
+                      ))}
+                    </Dropdown>
+                  </label>
+                  <label className="block text-sm">
+                    Affected ingredients or nutrition fields, separated by commas
+                    <input
+                      className={field.replace('text-sm', 'text-base')} disabled={busy}
+                      required
+                      value={affected}
+                      onChange={(event) => setAffected(event.target.value)}
+                      maxLength={2000}
                     />
                   </label>
-                ))}
-                <Button
-                  variant="secondary"
-                  disabled={
-                    busy ||
-                    !affected.trim() ||
-                    explanation.trim().length < 20 ||
-                    reference.trim().length < 10 ||
-                    correction.trim().length < 10
-                  }
-                  onClick={() => void mutate('flag')}
-                >
-                  {held ? 'Record additional evidence' : 'Flag and withhold recipe'}
-                </Button>
-              </div>
-            </details>
+                  {(
+                    [
+                      ['Explanation', explanation, setExplanation, 3000],
+                      ['Supporting evidence or reference', reference, setReference, 2000],
+                      ['Proposed correction', correction, setCorrection, 2000],
+                    ] as const
+                  ).map(([label, value, setter, maximum]) => (
+                    <div className="text-sm" key={label}>
+                      <label className="block" htmlFor={`flag-${label === 'Explanation' ? 'explanation' : label === 'Proposed correction' ? 'correction' : 'reference'}`}>{label}</label>
+                      <textarea
+                        id={`flag-${label === 'Explanation' ? 'explanation' : label === 'Proposed correction' ? 'correction' : 'reference'}`}
+                        className={field.replace('text-sm', 'text-base')} disabled={busy}
+                        required
+                        minLength={label === 'Explanation' ? 20 : 10}
+                        aria-describedby={`flag-${label === 'Explanation' ? 'explanation' : label === 'Proposed correction' ? 'correction' : 'reference'}-help`}
+                        rows={3}
+                        value={value}
+                        onChange={(event) => setter(event.target.value)}
+                        maxLength={maximum}
+                      />
+                      <span id={`flag-${label === 'Explanation' ? 'explanation' : label === 'Proposed correction' ? 'correction' : 'reference'}-help`} className="mt-1 block text-xs text-brand-muted">{label === 'Explanation' ? 'At least 20 characters.' : 'At least 10 characters.'}</span>
+                    </div>
+                  ))}
+                  <div className="flex flex-wrap justify-end gap-3 border-t border-brand-border pt-4">
+                    <Button type="button" variant="secondary" disabled={busy} onClick={() => setFlagOpen(false)}>Cancel</Button>
+                    <Button
+                      disabled={
+                        busy ||
+                        !affected.trim() ||
+                        explanation.trim().length < 20 ||
+                        reference.trim().length < 10 ||
+                        correction.trim().length < 10
+                      }
+                      type="submit"
+                      isLoading={busy}
+                    >
+                      {held ? 'Record additional evidence' : 'Flag and withhold meal'}
+                    </Button>
+                  </div>
+                </form>
+              </Modal>
+            </>
           )}
           <MealReviewTimeline
             history={data.history}

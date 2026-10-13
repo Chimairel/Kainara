@@ -38,6 +38,7 @@ const meal = {
   flags: [],
   baseVerification: 'VERIFIED',
 };
+let claimed = true;
 let review = {
   state: 'PUBLISHED',
   recipeVersion: 'a'.repeat(64),
@@ -88,6 +89,7 @@ vi.mock('@/hooks/useAuth', () => ({ useAuth: () => ({ user: { userId: 'synthetic
 
 beforeEach(() => {
   vi.clearAllMocks();
+  claimed = true;
   clearSessionResourceCache();
   review = {
     ...review,
@@ -127,7 +129,7 @@ beforeEach(() => {
       data: path.endsWith('/meal-review-cases')
         ? []
         : path.includes('/meal-review-cases/')
-          ? review
+          ? { ...review, claimStatus: { claimedByMe: claimed, claimedByOther: false } }
           : {
               ...meal,
               status: review.state === 'PUBLISHED' ? 'APPROVED' : 'FLAGGED',
@@ -135,7 +137,7 @@ beforeEach(() => {
             },
     },
   }));
-  mocks.post.mockResolvedValue({ data: { success: true } });
+  mocks.post.mockImplementation(async (path: string) => { if (path.endsWith('/claim')) claimed = true; return { data: { success: true } }; });
 });
 
 async function open() {
@@ -144,6 +146,7 @@ async function open() {
 }
 
 function fillFlag() {
+  if (!screen.queryByRole('dialog')) fireEvent.click(screen.getByRole('button', { name: 'Flag meal', exact: true }));
   fireEvent.change(screen.getByLabelText('Affected ingredients or nutrition fields, separated by commas'), {
     target: { value: 'sodiumMg, salt' },
   });
@@ -191,14 +194,16 @@ describe('shared library permissions and feedback', () => {
     await screen.findByText('Published');
     expect(screen.queryByText('Clinical evidence editor')).not.toBeInTheDocument();
     expect(screen.queryByText('Private case approvals')).not.toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Flag and withhold recipe' })).toBeDisabled();
+    expect(screen.queryByLabelText('Explanation')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Flag meal', exact: true }));
+    expect(screen.getByRole('button', { name: 'Flag and withhold meal' })).toBeDisabled();
     fillFlag();
     mocks.post.mockImplementation(async () => {
       held();
       return { data: { success: true } };
     });
-    fireEvent.click(screen.getByRole('button', { name: 'Flag and withhold recipe' }));
-    await screen.findByText(/NUTRITION.*Test admin/);
+    fireEvent.click(screen.getByRole('button', { name: 'Flag and withhold meal' }));
+    await screen.findByRole('region', { name: 'Flag concern report-1' });
     expect(mocks.post).toHaveBeenCalledWith('/admin/library/meal-1/flag', {
       expectedVersion: 'a'.repeat(64),
       notes: {
@@ -214,9 +219,10 @@ describe('shared library permissions and feedback', () => {
   });
   it('RND review requires every concern resolution and evidence acknowledgement; one RND re-verifies the first incident', async () => {
     held('PENDING_REREVIEW');
+    claimed = false;
     render(<SharedMealLibraryWorkspace />);
     await open();
-    await screen.findByText(/NUTRITION.*Test admin/);
+    await screen.findByRole('region', { name: 'Flag concern report-1' });
     expect(screen.getByText('Clinical evidence editor')).toBeInTheDocument();
     expect(screen.queryByText('Recipe derivation editor')).not.toBeInTheDocument();
     expect(screen.getByText('Held recipe correction editor')).toBeInTheDocument();
@@ -224,21 +230,25 @@ describe('shared library permissions and feedback', () => {
     expect(within(header).getByText('Pending re-review')).toBeInTheDocument();
     expect(within(header).queryByText('Verified')).not.toBeInTheDocument();
     expect(screen.getByText('Private case approvals')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'View approvals' })).toHaveAttribute('href', '#meal-approvals');
+    expect(screen.getByText('Private case approvals').compareDocumentPosition(screen.getByText('Clinical evidence editor')) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Re-verify recipe' })).toBeDisabled();
     expect(screen.queryByRole('button', { name: 'Release quarantine' })).not.toBeInTheDocument();
-    fireEvent.change(screen.getByLabelText('Resolution of this concern'), {
-      target: { value: 'Resolved by reviewing measured food amounts and recorded evidence.' },
-    });
-    fireEvent.change(screen.getByLabelText('Independent review findings'), {
-      target: { value: 'Independent review covers this exact serving and every concern.' },
-    });
-    fireEvent.click(screen.getByRole('checkbox'));
     fireEvent.click(screen.getByRole('button', { name: 'Claim re-review' }));
     await waitFor(() =>
       expect(mocks.post).toHaveBeenCalledWith('/nutritionist/meal-review-cases/meal-1/claim', {
         expectedVersion: 'b'.repeat(64),
       })
     );
+    await screen.findByLabelText('How you resolved this concern');
+    fireEvent.change(screen.getByLabelText('How you resolved this concern'), {
+      target: { value: 'Resolved by reviewing measured food amounts and recorded evidence.' },
+    });
+    fireEvent.change(screen.getByLabelText('Independent review findings'), {
+      target: { value: 'Independent review covers this exact serving and every concern.' },
+    });
+    fireEvent.click(screen.getByRole('checkbox'));
+    fireEvent.click(screen.getByRole('button', { name: 'Mark resolved' }));
     await waitFor(() => expect(screen.getByRole('button', { name: 'Re-verify recipe' })).toBeEnabled());
     fireEvent.click(screen.getByRole('button', { name: 'Re-verify recipe' }));
     await waitFor(() =>
@@ -278,12 +288,12 @@ describe('shared library permissions and feedback', () => {
     held('QUARANTINED');
     render(<SharedMealLibraryWorkspace />);
     await open();
-    await screen.findByText(/NUTRITION.*Test admin/);
+    await screen.findByRole('region', { name: 'Flag concern report-1' });
     expect(screen.getByText(/Only an admin can release/)).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Claim re-review' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Re-verify recipe' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Release quarantine' })).not.toBeInTheDocument();
-    expect(screen.queryByLabelText('Resolution of this concern')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('How you resolved this concern')).not.toBeInTheDocument();
   });
   it('retains comprehensive flag notes when the server rejects a stale version', async () => {
     render(<SharedMealLibraryWorkspace role="admin" />);
@@ -293,8 +303,8 @@ describe('shared library permissions and feedback', () => {
     mocks.post.mockRejectedValue({
       response: { data: { error: 'Recipe or concerns changed. Refresh and review the current version.' } },
     });
-    fireEvent.click(screen.getByRole('button', { name: 'Flag and withhold recipe' }));
-    await screen.findByRole('alert');
+    fireEvent.click(screen.getByRole('button', { name: 'Flag and withhold meal' }));
+    await waitFor(() => expect(mocks.error).toHaveBeenCalledWith('Recipe or concerns changed. Refresh and review the current version.'));
     expect(screen.getByLabelText('Explanation')).toHaveValue('Ingredient evidence needs independent review.');
     expect(screen.getByLabelText('Supporting evidence or reference')).toHaveValue('Recorded composition evidence.');
   });
@@ -309,19 +319,20 @@ describe('shared library permissions and feedback', () => {
       held();
       return { data: { success: true } };
     });
-    fireEvent.click(screen.getByRole('button', { name: 'Flag and withhold recipe' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Flag and withhold meal' }));
     await screen.findByText('Held recipe correction editor');
     await waitFor(() => expect(screen.queryByText('Recipe derivation editor')).not.toBeInTheDocument());
     const header = screen.getByRole('heading', { name: 'Test lunch', level: 1 }).closest('header')!;
     expect(within(header).getByText('Pending re-review')).toBeInTheDocument();
 
-    fireEvent.change(screen.getByLabelText('Resolution of this concern'), {
+    fireEvent.change(screen.getByLabelText('How you resolved this concern'), {
       target: { value: 'All recorded ingredient evidence has been independently checked.' },
     });
     fireEvent.change(screen.getByLabelText('Independent review findings'), {
       target: { value: 'The measured recipe resolves every recorded concern.' },
     });
     fireEvent.click(screen.getByRole('checkbox'));
+    fireEvent.click(screen.getByRole('button', { name: 'Mark resolved' }));
     mocks.post.mockImplementation(async () => {
       review = { ...review, state: 'PUBLISHED', incident: null };
       return { data: { success: true } };
@@ -336,7 +347,7 @@ describe('shared library permissions and feedback', () => {
       return { data: { success: true } };
     });
     fillFlag();
-    fireEvent.click(screen.getByRole('button', { name: 'Flag and withhold recipe' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Flag and withhold meal' }));
     await screen.findByText('Held recipe correction editor');
     await waitFor(() => expect(screen.queryByText('Recipe derivation editor')).not.toBeInTheDocument());
     expect(screen.getAllByText('Held recipe correction editor')).toHaveLength(1);
@@ -352,8 +363,8 @@ describe('shared library permissions and feedback', () => {
       mocks.get.mockRejectedValue(new Error('Network unavailable'));
       return { data: { success: true } };
     });
-    fireEvent.click(screen.getByRole('button', { name: 'Flag and withhold recipe' }));
-    await screen.findByText(/Decision recorded/);
+    fireEvent.click(screen.getByRole('button', { name: 'Flag and withhold meal' }));
+    await waitFor(() => expect(mocks.warning).toHaveBeenCalledWith('Decision recorded. Reload the history to see the current review state.'));
     await waitFor(() => expect(screen.getAllByRole('alert').length).toBeGreaterThan(0));
     expect(mocks.post).toHaveBeenCalledOnce();
   });

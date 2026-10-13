@@ -3,7 +3,8 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, expect, it, vi } from 'vitest';
 import MealReviewPanel from './MealReviewPanel';
 
-const fixture = vi.hoisted(() => ({ data: {} as Record<string, unknown>, post: vi.fn(), refetch: vi.fn() }));
+const fixture = vi.hoisted(() => ({ data: {} as Record<string, unknown>, post: vi.fn(), refetch: vi.fn(), success: vi.fn(), error: vi.fn(), warning: vi.fn() }));
+vi.mock('sonner', () => ({ toast: { success: fixture.success, error: fixture.error, warning: fixture.warning } }));
 vi.mock('@/hooks/useAuth', () => ({ useAuth: () => ({ user: { userId: 'independent-rnd' } }) }));
 vi.mock('@/hooks/useSessionQuery', () => ({
   useSessionQuery: () => ({ data: fixture.data, refetch: fixture.refetch }),
@@ -77,4 +78,33 @@ it('changed review evidence clears drafts and losing the claim removes resolutio
   rerender(<MealReviewPanel meal={meal} isAdmin={false} refresh={vi.fn()} />);
   expect(screen.queryByLabelText('How you resolved this concern')).not.toBeInTheDocument();
   expect(screen.getByRole('button', { name: 'Re-verify recipe' })).toBeDisabled();
+});
+
+
+it('opens flag fields only in a dialog, keeps a cancelled draft and preserves it after a server failure', async () => {
+  fixture.data = { ...fixture.data, state: 'PUBLISHED', recipeVersion: 'c'.repeat(64), incident: null };
+  render(<MealReviewPanel meal={meal} isAdmin={false} refresh={vi.fn()} />);
+  expect(screen.queryByLabelText('Explanation')).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole('button', { name: 'Flag meal', exact: true }));
+  expect(screen.getByRole('dialog', { name: 'Flag meal' })).toBeVisible();
+  fireEvent.change(screen.getByLabelText('Explanation'), { target: { value: 'Measured nutrients do not match the ingredient evidence.' } });
+  fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+  expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole('button', { name: 'Flag meal', exact: true }));
+  expect(screen.getByLabelText('Explanation')).toHaveValue('Measured nutrients do not match the ingredient evidence.');
+  const submit = screen.getByRole('button', { name: 'Flag and withhold meal' });
+  expect(submit).toBeDisabled();
+  fireEvent.change(screen.getByLabelText('Affected ingredients or nutrition fields, separated by commas'), { target: { value: 'sodiumMg' } });
+  fireEvent.change(screen.getByLabelText('Supporting evidence or reference'), { target: { value: 'Measured source reference.' } });
+  fireEvent.change(screen.getByLabelText('Proposed correction'), { target: { value: 'Recheck measured food amounts.' } });
+  fixture.post.mockRejectedValueOnce({ response: { data: { error: 'The meal changed. Refresh first.' } } });
+  fireEvent.click(submit);
+  await waitFor(() => expect(fixture.error).toHaveBeenCalledWith('The meal changed. Refresh first.'));
+  expect(screen.getByRole('dialog')).toBeVisible();
+  expect(screen.getByLabelText('Explanation')).not.toHaveValue('');
+  fixture.post.mockResolvedValueOnce({ data: { success: true } });
+  fireEvent.click(submit);
+  await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+  expect(fixture.success).toHaveBeenCalledWith('Meal flagged for review.');
+  expect(fixture.post).toHaveBeenLastCalledWith('/nutritionist/library/recipe/flag', expect.objectContaining({ expectedVersion: 'c'.repeat(64), notes: expect.objectContaining({ affectedFields: ['sodiumMg'] }) }));
 });

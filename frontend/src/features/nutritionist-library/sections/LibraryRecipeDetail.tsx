@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect, useRef, useState } from 'react';
 import { formatMealTitle } from '@/lib/meal-title';
 import LibrarySafetyReview from '@/features/nutritionist-library/LibrarySafetyReview';
 import MealReviewPanel from '../MealReviewPanel';
@@ -29,6 +30,13 @@ type Props = {
 };
 export default function LibraryRecipeDetail({ model }: Props) {
   const { embedded, setViewedMeal, listScrollTop, viewedMeal, isAdmin, openMeal, workspace, fetchLibrary } = model;
+  const [flagOpen, setFlagOpen] = useState(false);
+  const flagTrigger = useRef<HTMLButtonElement>(null);
+  const changeFlagOpen = (open: boolean) => {
+    setFlagOpen(open);
+    if (!open) requestAnimationFrame(() => flagTrigger.current?.focus({ preventScroll: true }));
+  };
+  useEffect(() => setFlagOpen(false), [viewedMeal?.id]);
   if (!viewedMeal) return null;
   const source = viewedMeal.sourceRawRecipeCandidate;
   return (
@@ -46,12 +54,12 @@ export default function LibraryRecipeDetail({ model }: Props) {
         >
           <ArrowLeft className="h-4 w-4" aria-hidden="true" /> Back to meal library
         </button>
-        <header className="flex flex-col gap-5 rounded-2xl border border-brand-border bg-brand-surface/60 p-5 md:flex-row md:items-center">
+        <header className="flex flex-col gap-5 rounded-2xl border border-brand-border bg-brand-surface/60 p-5 lg:flex-row lg:items-center">
           <MealImage
             image={viewedMeal.image ?? null}
             mealName={viewedMeal.mealName}
             mealType={viewedMeal.mealType}
-            className="h-44 w-full rounded-2xl md:w-60 shrink-0"
+            className="h-44 w-full rounded-2xl lg:w-60 shrink-0"
             showAttributionLinks
             variant="detail"
           />
@@ -102,20 +110,34 @@ export default function LibraryRecipeDetail({ model }: Props) {
               </p>
             )}
           </div>
-          <a
-            href="#meal-wide-review"
-            className="inline-flex items-center gap-2 rounded-xl border border-amber-600/40 bg-amber-500/10 px-4 py-2 text-sm font-bold text-amber-800 shadow-sm transition-colors hover:bg-amber-500/20 dark:border-amber-500/40 dark:bg-amber-500/15 dark:text-amber-300 dark:hover:bg-amber-500/25 md:ml-auto md:self-start"
-          >
-            <ShieldAlert className="h-4 w-4 text-amber-700 dark:text-amber-400" aria-hidden="true" />
-            {viewedMeal.status === 'FLAGGED' ? 'Review meal flag' : 'Flag meal'}
-          </a>
+          <div className="flex shrink-0 flex-wrap gap-3 lg:ml-auto lg:self-start">
+            {!isAdmin && <a href="#meal-approvals" className="inline-flex min-h-11 items-center justify-center rounded-xl bg-brand-accent px-4 py-2 text-sm font-bold text-[#07100d] shadow-sm transition-colors hover:bg-brand-accent/90">
+              View approvals
+            </a>}
+            <button
+              type="button"
+              ref={flagTrigger}
+              disabled={viewedMeal.status === 'ARCHIVED'}
+              onClick={() => changeFlagOpen(true)}
+              className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-brand-border px-4 py-2 text-sm font-bold text-brand-text transition-colors hover:bg-brand-bgAlt disabled:opacity-50"
+            >
+              <ShieldAlert className="h-4 w-4" aria-hidden="true" /> Flag meal
+            </button>
+          </div>
         </header>
+        <nav aria-label="Meal detail sections" className="flex flex-wrap gap-x-6 gap-y-2 border-b border-brand-border pb-3 text-sm font-semibold text-brand-muted">
+          <a className="inline-flex min-h-11 items-center hover:text-brand-text" href="#meal-details">Meal details</a>
+          {!isAdmin && <a className="inline-flex min-h-11 items-center text-brand-green hover:underline underline-offset-4" href="#meal-approvals">Approvals</a>}
+          <a className="inline-flex min-h-11 items-center hover:text-brand-text" href="#meal-wide-review">Meal-wide review</a>
+        </nav>
         <section
-          className="space-y-5 rounded-2xl border border-brand-border bg-brand-surface/60 p-5"
+          id="meal-details"
+          tabIndex={-1}
+          className="scroll-mt-24 space-y-5 rounded-2xl border border-brand-border bg-brand-surface/60 p-5"
           aria-label="Meal details"
         >
           <div>
-            <h2 className="font-display text-xl font-bold text-brand-text">Recipe details</h2>
+            <h2 className="font-display text-xl font-bold text-brand-text">Meal details</h2>
             <p className="mt-2 whitespace-pre-line text-sm leading-relaxed text-brand-muted">
               {viewedMeal.description || 'No description recorded.'}
             </p>
@@ -161,6 +183,9 @@ export default function LibraryRecipeDetail({ model }: Props) {
             </p>
           )}
         </section>
+        {!isAdmin && <div id="meal-approvals" tabIndex={-1} className="scroll-mt-24">
+          <MealApprovalsPanel key={`${viewedMeal.id}-${viewedMeal.status}`} mealId={viewedMeal.id} />
+        </div>}
         {viewedMeal.parentMeal && (
           <p className="text-sm text-brand-muted">
             {viewedMeal.derivationKind === 'ADAPTED' ? 'Adapted from' : 'Serving version of'}{' '}
@@ -191,12 +216,14 @@ export default function LibraryRecipeDetail({ model }: Props) {
           key={`review-${viewedMeal.id}`}
           meal={viewedMeal}
           isAdmin={isAdmin}
+          flagOpen={flagOpen}
+          onFlagOpenChange={changeFlagOpen}
           refresh={async () => {
             await openMeal(viewedMeal);
             await workspace.fetchLibrary();
           }}
         />
-        <>{!isAdmin && <MealApprovalsPanel key={`${viewedMeal.id}-${viewedMeal.status}`} mealId={viewedMeal.id} />}</>
+
       </div>
     </>
   );
