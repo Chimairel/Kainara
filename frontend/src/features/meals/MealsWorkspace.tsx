@@ -14,7 +14,6 @@ import MealsHistorySection from './MealsHistorySection';
 import RetainedMealLogs from './RetainedMealLogs';
 import MealsPlanSection from './MealsPlanSection';
 import { useMealsPage } from './useMealsPage';
-import { useCallback, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import MemberMealActions from '@/components/user/MemberMealActions';
 import { OutsideMealModal } from '@/features/dashboard/OutsideMealModal';
@@ -56,19 +55,6 @@ export default function MealsWorkspace() {
     void workspace.refreshHistory();
   }, workspace.ownerId);
   const canLogFood = !isReportPending && Boolean(workspace.user?.reportAcknowledged);
-  const libraryScope = JSON.stringify([
-    workspace.ownerId,
-    workspace.librarySearch,
-    workspace.libraryMealType,
-    workspace.libraryRiceRole,
-  ]);
-  const [libraryCount, setLibraryCount] = useState<{ scope: string; value: number | string | null } | null>(null);
-  const handleLibraryCount = useCallback(
-    (value: number | string | null) => {
-      setLibraryCount({ scope: libraryScope, value });
-    },
-    [libraryScope]
-  );
   return (
     <div className="portal-page select-none pb-32 text-brand-text">
       {/* Main Container */}
@@ -117,16 +103,27 @@ export default function MealsWorkspace() {
               value: 'history',
               label: 'History',
               icon: <History className="h-4 w-4" />,
-              count: historyTotalCount ?? '…',
+              count: historyTotalCount ?? (workspace.historyCountError ? '?' : '…'),
+              countLabel: workspace.historyCountError ? 'History count unavailable' : undefined,
             },
             {
               value: 'library',
               label: 'Library',
               icon: <BookOpen className="h-4 w-4" />,
-              count: !isReportPending && libraryCount?.scope === libraryScope ? (libraryCount.value ?? '…') : '…',
+              count: workspace.libraryBadgeCount ?? (workspace.libraryCountError ? '?' : '…'),
+              countLabel: workspace.libraryCountError ? 'Library count unavailable' : undefined,
             },
           ]}
         />
+
+        {(workspace.historyCountError || workspace.libraryCountError) && (
+          <FeedbackNotice>
+            <span>Some meal counts could not load.</span>
+            <button type="button" className="min-h-11 underline" onClick={() => void workspace.refreshTabCounts()}>
+              Retry counts
+            </button>
+          </FeedbackNotice>
+        )}
 
         {activeTab === 'plan' && !isLoading && upcomingOnly && !clinicalEvidenceRequired && !isReportPending && (
           <PortalAnnouncement priority={announcementPriority.plan} summary="Upcoming plan preparation">
@@ -190,7 +187,7 @@ export default function MealsWorkspace() {
               }}
             />
           ) : (
-            <MealLibraryPanel workspace={workspace} onCountChange={handleLibraryCount} />
+            <MealLibraryPanel workspace={workspace} />
           ))}
       </div>
 

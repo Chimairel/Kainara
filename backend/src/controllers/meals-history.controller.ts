@@ -7,6 +7,14 @@ import { MealLogSource, MealLogStatus } from '@prisma/client';
 import { planImageSelect, resolveRecordedPlanImage } from '@/services/meal-plan-presentation.service';
 import { resolveLibraryRecipeImages } from '@/services/library-recipe-image.service';
 
+export async function getPlanHistoryCount(req: AuthenticatedRequest, res: Response) {
+  if (!req.user?.userId) return res.status(401).json({ success: false, error: 'Unauthorized.' });
+  const total = await prisma.mealLog.count({
+    where: { userId: req.user.userId, status: { in: ['DONE', 'SKIPPED', 'VOIDED'] } },
+  });
+  return res.json({ success: true, data: { total } });
+}
+
 export async function getPlanHistory(req: AuthenticatedRequest, res: Response) {
   try {
     const userId = req.user?.userId;

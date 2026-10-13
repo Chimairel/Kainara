@@ -21,6 +21,7 @@ import type {
   SwapNutritionAnalysis,
 } from './meals-workspace.types';
 import { useMealHistory } from './useMealHistory';
+import { useMealLibraryCount } from './useMealLibraryCount';
 import { useMealLibrary } from './useMealLibrary';
 import { MEALS_WORKSPACE_RESOURCE, refreshMealsWorkspace } from './meal-workspace-resource';
 
@@ -285,6 +286,16 @@ export function useMealsWorkspace(initialOptions?: { initialDateKey?: string | n
     libraryNextCursor,
     fetchLibrary,
   } = library;
+
+  const libraryCount = useMealLibraryCount({
+    ownerId,
+    enabled: Boolean(user?.reportAcknowledged),
+    search: librarySearch,
+    mealType: libraryMealType,
+    riceRole: libraryRiceRole,
+    meals,
+    revision: cachedUserProfile(ownerId)?.userProfile?.safetyRevision,
+  });
 
   useEffect(() => {
     if (ownerId) {
@@ -605,6 +616,7 @@ export function useMealsWorkspace(initialOptions?: { initialDateKey?: string | n
     historyLogs,
     isHistoryLoading,
     historyTotalCount,
+    historyCountError: history.historyCountError,
     historyError,
     historySearch,
     setHistorySearch,
@@ -624,6 +636,9 @@ export function useMealsWorkspace(initialOptions?: { initialDateKey?: string | n
     libraryMeals,
     isLibraryLoading,
     libraryTotalCount,
+    libraryBadgeCount: libraryCount.total,
+    libraryCountError: libraryCount.error,
+    refreshTabCounts: () => Promise.all([history.refreshHistoryCount(), libraryCount.refresh()]),
     libraryError,
     librarySearch,
     setLibrarySearch,

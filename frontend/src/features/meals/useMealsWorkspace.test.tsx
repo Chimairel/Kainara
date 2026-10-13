@@ -21,7 +21,7 @@ const { getMock, postMock, toastMock } = vi.hoisted(() => ({
 vi.mock('sonner', () => ({ toast: toastMock }));
 
 vi.mock('@/hooks/useAuth', () => ({
-  useAuth: () => ({ user: { userId: 'user-1' } }),
+  useAuth: () => ({ user: { userId: 'user-1', reportAcknowledged: true } }),
 }));
 
 vi.mock('@/lib/axios', () => ({
@@ -32,6 +32,9 @@ const historyRows = Array.from({ length: 3 }, (_, index) => ({ id: `history-${in
 const libraryRows = Array.from({ length: 5 }, (_, index) => ({ id: `library-${index}` }));
 
 function successfulResponseFor(url: string) {
+  if (url === '/user/meals/history/count') return { data: { success: true, data: { total: historyRows.length } } };
+  if (url === '/user/meals/verified-recipes/summary')
+    return { data: { success: true, data: { total: 1960, restrictedProfile: false } } };
   if (url === '/user/meals/history') return { data: { success: true, data: historyRows } };
   if (url === '/user/meals/compatible-library') return { data: { success: true, data: libraryRows } };
   return { data: { success: true, data: [], meta: {} } };
@@ -156,10 +159,13 @@ describe('useMealsWorkspace', () => {
     expect(postMock).not.toHaveBeenCalled();
   });
 
-  it('loads history and library only when their tabs are opened', async () => {
+  it('loads tab totals on Plan while keeping history rows and library cards lazy', async () => {
     const { result } = renderHook(() => useMealsWorkspace());
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
+    await waitFor(() => expect(result.current.historyTotalCount).toBe(3));
+    await waitFor(() => expect(result.current.libraryBadgeCount).toBe(1960));
+    expect(result.current.activeTab).toBe('plan');
     expect(getMock).not.toHaveBeenCalledWith('/user/meals/history', { params: {} });
     expect(getMock).not.toHaveBeenCalledWith('/user/meals/compatible-library', {
       params: { date: getManilaDateKey(new Date()), limit: '24' },

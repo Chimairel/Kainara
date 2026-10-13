@@ -76,6 +76,7 @@ export interface EligibleLibraryPage {
   items: EligibleLibraryMeal[];
   nextCursor: string | null;
   total: number;
+  eligibleIds?: string[];
 }
 
 export interface LibraryCandidateProfile {
@@ -465,6 +466,8 @@ export async function queryEligibleLibraryPage(input: {
   safetyOnly?: boolean;
   /** Include patient-reviewed recipes with the same recorded safety context. */
   includeProfileApproved?: boolean;
+  /** Internal count summaries retain admitted identities without resolving presentation assets. */
+  collectIds?: boolean;
   /** Internal serving/filter predicate. Runs after authoritative admission, before counting and pagination. */
   accept?: (meal: EligibleLibraryMeal) => boolean;
 }): Promise<EligibleLibraryPage> {
@@ -536,6 +539,7 @@ export async function queryEligibleLibraryPage(input: {
 
   const items: EligibleLibraryMeal[] = [];
   let total = 0;
+  const eligibleIds: string[] = [];
   let scanCursor: { mealName: string; id: string } | null = null;
   const chunkSize = 100;
   for (;;) {
@@ -586,6 +590,7 @@ export async function queryEligibleLibraryPage(input: {
       if (input.riceRole && resolveRecipeRiceRole(row).riceRole !== input.riceRole) continue;
       if (input.accept && !input.accept(row)) continue;
       total += 1;
+      if (input.collectIds) eligibleIds.push(row.id);
       if ((!requestedCursor || afterLibraryCursor(row, requestedCursor)) && items.length < pageLimit + 1) {
         items.push(row);
       }
@@ -601,6 +606,7 @@ export async function queryEligibleLibraryPage(input: {
     items: page,
     nextCursor: hasMore && page.length ? encodeLibraryCursor(page[page.length - 1]) : null,
     total,
+    ...(input.collectIds ? { eligibleIds } : {}),
   };
 }
 

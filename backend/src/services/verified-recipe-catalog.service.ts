@@ -2,6 +2,7 @@ import { MealType, Prisma, RecipeRiceRole } from '@prisma/client';
 import prisma from '@/lib/prisma';
 import { loadPlanningNutritionContext } from '@/domain/user-nutrition-context';
 import { adaptUserSafetyRestrictions } from '@/domain/structured-restriction.adapter';
+import { queryEligibleLibraryPage } from './meal-library-candidate-query.service';
 import { admittedLibraryBaseIds } from './meal-base-admission.service';
 import { isUnrestrictedPanlasangBaseEligible } from '@/domain/unrestricted-panlasang-base.policy';
 import { parseRecipeCandidateIngredients } from './panlasang-recipe-candidate.provider';
@@ -10,7 +11,10 @@ import { getManilaDateKey, getManilaMidnight } from '@/domain/meal-plan-cycle.po
 
 /** Browse-only verified bases. This endpoint never grants planning or case clearance. */
 export class VerifiedRecipeCatalogService {
-  static async list(userId: string, input: { search?: string; mealType?: MealType; riceRole?: string; page?: number }) {
+  static async list(
+    userId: string,
+    input: { search?: string; mealType?: MealType; riceRole?: string; page?: number; summaryOnly?: boolean }
+  ) {
     const { user, conditions, allergens, otherConditions, otherAllergies } = await loadPlanningNutritionContext(
       prisma,
       userId,
@@ -29,6 +33,29 @@ export class VerifiedRecipeCatalogService {
       restrictions.allergies.length ||
       restrictions.customConditions.length
     ) {
+      if (input.summaryOnly) {
+        const eligible = await queryEligibleLibraryPage({
+          userId,
+          userConditions: conditions,
+          userAllergens: allergens,
+          profile: { ...user.userProfile!, userId, safetyEntries: user.safetyProfileEntries },
+          search: input.search,
+          mealType: input.mealType,
+          riceRole: input.riceRole as RecipeRiceRole | undefined,
+          safetyOnly: true,
+          includeProfileApproved: true,
+          collectIds: true,
+          limit: 1,
+        });
+        return {
+          items: [],
+          page: 1,
+          pageCount: Math.ceil(eligible.total / 6),
+          total: eligible.total,
+          eligibleIds: eligible.eligibleIds ?? [],
+          restrictedProfile: true,
+        };
+      }
       return { items: [], total: 0, page: 1, pageCount: 0, restrictedProfile: true };
     }
 
@@ -41,42 +68,46 @@ export class VerifiedRecipeCatalogService {
       supersededById: null,
       status: { notIn: ['SUPERSEDED', 'COMPLETED'] },
     };
-    const [currentCycle, upcomingCycle] = await Promise.all([
-      prisma.mealPlanCycle.findFirst({
-        where: { ...visibleCycleWhere, startDate: { lte: businessDay }, endDate: { gte: businessDay } },
-        orderBy: [{ startDate: 'desc' }, { cycleRevision: 'desc' }],
-        select: { id: true },
-      }),
-      prisma.mealPlanCycle.findFirst({
-        where: { ...visibleCycleWhere, startDate: { gt: businessDay } },
-        orderBy: [{ startDate: 'asc' }, { cycleRevision: 'desc' }],
-        select: { id: true },
-      }),
-    ]);
+    const [currentCycle, upcomingCycle] = input.summaryOnly
+      ? [null, null]
+      : await Promise.all([
+          prisma.mealPlanCycle.findFirst({
+            where: { ...visibleCycleWhere, startDate: { lte: businessDay }, endDate: { gte: businessDay } },
+            orderBy: [{ startDate: 'desc' }, { cycleRevision: 'desc' }],
+            select: { id: true },
+          }),
+          prisma.mealPlanCycle.findFirst({
+            where: { ...visibleCycleWhere, startDate: { gt: businessDay } },
+            orderBy: [{ startDate: 'asc' }, { cycleRevision: 'desc' }],
+            select: { id: true },
+          }),
+        ]);
     const cycleIds = [currentCycle?.id, upcomingCycle?.id].filter((id): id is string => Boolean(id));
-    const userPlanMeals = await prisma.mealPlan.findMany({
-      where: {
-        userId,
-        status: 'APPROVED',
-        planGroupId: { in: cycleIds },
-        requiresSafetyRevalidation: false,
-        supersededByMealPlanId: null,
-      },
-      orderBy: [{ scheduledDate: 'asc' }, { id: 'asc' }],
-      select: {
-        id: true,
-        mealName: true,
-        mealType: true,
-        calories: true,
-        proteinG: true,
-        carbsG: true,
-        fatG: true,
-        scheduledDate: true,
-        sourceRawRecipeCandidateId: true,
-        libraryMealId: true,
-        planGroupId: true,
-      },
-    });
+    const userPlanMeals = input.summaryOnly
+      ? []
+      : await prisma.mealPlan.findMany({
+          where: {
+            userId,
+            status: 'APPROVED',
+            planGroupId: { in: cycleIds },
+            requiresSafetyRevalidation: false,
+            supersededByMealPlanId: null,
+          },
+          orderBy: [{ scheduledDate: 'asc' }, { id: 'asc' }],
+          select: {
+            id: true,
+            mealName: true,
+            mealType: true,
+            calories: true,
+            proteinG: true,
+            carbsG: true,
+            fatG: true,
+            scheduledDate: true,
+            sourceRawRecipeCandidateId: true,
+            libraryMealId: true,
+            planGroupId: true,
+          },
+        });
 
     const planByRawId = new Map<string, typeof userPlanMeals>();
     const planByLibraryId = new Map<string, typeof userPlanMeals>();
@@ -183,6 +214,8 @@ export class VerifiedRecipeCatalogService {
       prisma.mealLibrary.count({ where: manualWhere }),
     ]);
     const total = rawCount + manualCount;
+    if (input.summaryOnly)
+      return { items: [], page: 1, pageCount: Math.ceil(total / 6), total, restrictedProfile: false };
     const PAGE_SIZE = 6;
     const pageCount = Math.ceil(total / PAGE_SIZE);
     const page = Math.min(Math.max(1, input.page ?? 1), Math.max(1, pageCount));

@@ -146,12 +146,14 @@ it('shows a skeleton instead of temporary planned recipes, then displays the cat
   expect(screen.queryByText('Scheduled for you')).not.toBeInTheDocument();
   expect(libraryTab()).toHaveTextContent('…');
   await waitFor(() => expect(fixture.get).toHaveBeenCalledOnce());
+  fixture.workspace = { ...fixture.workspace, libraryBadgeCount: 1960 };
   await act(async () => resolve(catalogue()));
+  rerender(<MealsWorkspace />);
   expect(screen.getByText('Verified fixture dish')).toBeInTheDocument();
   expect(screen.queryByText('Scheduled fixture dish')).not.toBeInTheDocument();
   expect(screen.queryByText('Serving data recorded')).not.toBeInTheDocument();
   expect(libraryTab()).toHaveTextContent('1960');
-  fixture.workspace = { ...fixture.workspace, librarySearch: 'another filter' };
+  fixture.workspace = { ...fixture.workspace, librarySearch: 'another filter', libraryBadgeCount: null };
   rerender(<MealsWorkspace />);
   expect(libraryTab()).toHaveTextContent('…');
   expect(screen.queryByText('Verified fixture dish')).not.toBeInTheDocument();
@@ -159,11 +161,13 @@ it('shows a skeleton instead of temporary planned recipes, then displays the cat
 
 it('does not substitute planned recipes on catalogue failure and recovers through Retry', async () => {
   fixture.get.mockRejectedValueOnce(new Error('Catalogue unavailable')).mockResolvedValueOnce(catalogue());
-  render(<MealsWorkspace />);
+  const { rerender } = render(<MealsWorkspace />);
   await waitFor(() => expect(screen.getByText('Could not load recipes.')).toBeInTheDocument());
   expect(screen.queryByText('Scheduled fixture dish')).not.toBeInTheDocument();
   expect(libraryTab()).toHaveTextContent('…');
+  fixture.workspace = { ...fixture.workspace, libraryBadgeCount: 1960 };
   fireEvent.click(screen.getByRole('button', { name: 'Retry' }));
+  rerender(<MealsWorkspace />);
   await waitFor(() => expect(libraryTab()).toHaveTextContent('1960'));
 });
 
@@ -178,6 +182,7 @@ it('waits for restricted-profile compatibility results and counts unique planned
     ...fixture.workspace,
     isLibraryLoading: false,
     libraryTotalCount: 1,
+    libraryBadgeCount: 2,
     libraryMeals: [
       {
         id: 'compatible-recipe',

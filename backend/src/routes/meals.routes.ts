@@ -7,6 +7,7 @@ import { MealsController } from '@/controllers/meals.controller';
 import { requireReadyUser } from '@/middleware/userPrerequisites';
 import requireClinicalEvidenceReady from '@/middleware/clinicalEvidenceReady';
 import { PlanningReadinessService } from '@/services/planning-readiness.service';
+import { getPlanHistoryCount } from '@/controllers/meals-history.controller';
 import { VerifiedRecipeCatalogService } from '@/services/verified-recipe-catalog.service';
 import type { AuthenticatedRequest } from '@/types';
 import { validateZodRequest } from '@/middleware/validateZod';
@@ -136,6 +137,41 @@ router.post(
  * Route: GET /api/user/meals/history
  * Description: Returns all historic meal plans.
  */
+// Counts are available before opening a tab; history rows and images remain lazy.
+router.get('/history/count', async (req, res, next) => {
+  try {
+    await getPlanHistoryCount(req as AuthenticatedRequest, res);
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.get(
+  '/verified-recipes/summary',
+  validateZodRequest({
+    query: z
+      .object({
+        search: z.string().trim().max(120).optional(),
+        mealType: z.enum(['BREAKFAST', 'LUNCH', 'DINNER']).optional(),
+        riceRole: z.enum(['PAIR_WITH_RICE', 'STANDALONE', 'INCLUDES_RICE']).optional(),
+      })
+      .strict(),
+  }),
+  async (req, res, next) => {
+    try {
+      const data = await VerifiedRecipeCatalogService.list((req as AuthenticatedRequest).user!.userId, {
+        search: req.query.search as string | undefined,
+        mealType: req.query.mealType as 'BREAKFAST' | 'LUNCH' | 'DINNER' | undefined,
+        riceRole: req.query.riceRole as 'PAIR_WITH_RICE' | 'STANDALONE' | 'INCLUDES_RICE' | undefined,
+        summaryOnly: true,
+      });
+      res.json({ success: true, data });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
 router.get('/history', MealsController.getPlanHistory);
 
 /**

@@ -15,13 +15,7 @@ import RecipeLibraryCard from './RecipeLibraryCard';
 import { useRecipeCatalog } from './useRecipeCatalog';
 import type { PublicMealImage } from '@/types';
 
-export default function MealLibraryPanel({
-  workspace,
-  onCountChange,
-}: {
-  workspace: ReturnType<typeof useMealsWorkspace>;
-  onCountChange?: (count: number | string | null) => void;
-}) {
+export default function MealLibraryPanel({ workspace }: { workspace: ReturnType<typeof useMealsWorkspace> }) {
   const {
     handleLibrarySearchSubmit,
     librarySearch,
@@ -205,17 +199,6 @@ export default function MealLibraryPanel({
 
   const waitingForSource =
     catalogLoading || (isClientSource && workspace.isLibraryLoading && workspace.libraryTotalCount == null);
-  const libraryCount = isServerSource
-    ? (catalog.summary?.total ?? null)
-    : isClientSource && !waitingForSource && !workspace.libraryError
-      ? workspace.libraryNextCursor
-        ? `${clientUnifiedItems.length}+`
-        : clientUnifiedItems.length
-      : null;
-  useEffect(() => {
-    onCountChange?.(libraryCount);
-  }, [onCountChange, libraryCount]);
-
   return (
     <div className="space-y-6 text-left">
       <div className="flex flex-col items-stretch gap-3 rounded-[22px] border border-brand-border/70 bg-brand-surface/90 p-3 shadow-sm md:flex-row md:items-center md:justify-between">

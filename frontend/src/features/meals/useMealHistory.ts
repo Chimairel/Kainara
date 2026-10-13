@@ -10,7 +10,20 @@ export function useMealHistory(ownerId: string | undefined, enabled: boolean, fe
   const [historySource, setHistorySource] = useState('All');
   const [historyStatus, setHistoryStatus] = useState('All');
   const [historyCount, setHistoryCount] = useState<{ ownerId: string | undefined; count: number } | null>(null);
-  const historyTotalCount = historyCount?.ownerId === ownerId ? (historyCount?.count ?? null) : null;
+  const countQuery = useSessionQuery<number>({
+    ownerId,
+    resource: 'user-meals-history-count',
+    pollIntervalMs: false,
+    errorMessage: 'Could not load the history count.',
+    fetcher: async () => {
+      const response = await api.get('/user/meals/history/count');
+      const total = response.data?.data?.total;
+      if (!response.data?.success || !Number.isSafeInteger(total) || total < 0)
+        throw new Error('Could not load the history count.');
+      return total;
+    },
+  });
+  const historyTotalCount = historyCount && historyCount.ownerId === ownerId ? historyCount.count : countQuery.data;
   const query = useSessionQuery<MealHistoryLog[]>({
     pollIntervalMs: false,
     ownerId,
@@ -28,11 +41,16 @@ export function useMealHistory(ownerId: string | undefined, enabled: boolean, fe
     },
   });
   const historyLogs = query.data ?? [];
-  const fetchHistory = query.refetch;
+  const fetchHistory = async () => {
+    await Promise.all([query.refetch(), countQuery.refetch()]);
+  };
   useEffect(() => {
     if (query.data && !historySearch && historySource === 'All' && historyStatus === 'All')
       setHistoryCount({ ownerId, count: query.data.length });
   }, [ownerId, query.data, historySearch, historySource, historyStatus]);
+  useEffect(() => {
+    if (countQuery.data !== null) setHistoryCount({ ownerId, count: countQuery.data });
+  }, [ownerId, countQuery.data]);
 
   const handleUpdateLogNotes = async (logId: string, notes: string | null) => {
     const response = await api.patch(`/user/meals/logs/${logId}/notes`, { notes });
@@ -119,6 +137,8 @@ export function useMealHistory(ownerId: string | undefined, enabled: boolean, fe
     historyLogs,
     isHistoryLoading: query.isLoading,
     historyTotalCount,
+    historyCountError: countQuery.error,
+    refreshHistoryCount: countQuery.refetch,
     historyError: query.error,
     historySearch,
     setHistorySearch,
