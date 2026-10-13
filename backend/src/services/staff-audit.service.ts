@@ -15,6 +15,8 @@ export type StaffAuditFilters = {
   relatedTo?: string;
   recordId?: string;
   includeAdminMealFlags?: boolean;
+  /** Activity presentation only; sensitive access events remain in the underlying audit store. */
+  changesOnly?: boolean;
   recipeCase?: { libraryIds: string[]; sourceId: string | null };
 };
 type AuditRecord = {
@@ -41,6 +43,7 @@ export class StaffAuditService {
           ? Prisma.sql`(role = 'NUTRITIONIST' OR (role = 'ADMIN' AND "actionCode" = 'MEAL_BASE_FLAGGED'))`
           : Prisma.sql`role = 'NUTRITIONIST'`;
     const conditions = [roleWhere];
+    if (filters.changesOnly) conditions.push(Prisma.sql`"actionCode" !~ '_ACCESSED$'`);
     if (filters.recipeCase) {
       const { libraryIds, sourceId } = filters.recipeCase;
       conditions.push(Prisma.sql`EXISTS (

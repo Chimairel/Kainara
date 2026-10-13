@@ -84,6 +84,7 @@ router.get('/', async (req: AuthenticatedRequest, res: Response) => {
     const { mine, ...filters } = parsed.data;
     const data = await StaffAuditService.history({
       ...filters,
+      changesOnly: true,
       actorId: mine === 'true' ? req.user!.userId : undefined,
     });
     return res.json({ success: true, data });
@@ -103,7 +104,7 @@ router.get('/:id/related', async (req: AuthenticatedRequest, res: Response) => {
   if (!id.success || !query.success)
     return res.status(400).json({ success: false, error: 'Invalid audit record or page.' });
   try {
-    const data = await StaffAuditService.history({ view: 'admin', relatedTo: id.data, page: query.data.page });
+    const data = await StaffAuditService.history({ view: 'admin', relatedTo: id.data, page: query.data.page, changesOnly: true });
     return res.json({ success: true, data });
   } catch (error) {
     return res

@@ -58,15 +58,18 @@ test('admin audit is read-only, checks live roles, validates filters and derives
     'page=0',
     'actorId=other',
     'view=member',
+    'changesOnly=false',
   ])
     assert.equal((await fetch(`${base}?${invalid}`, { headers })).status, 400);
   assert.equal(calls.length, 0);
   assert.equal((await fetch(`${base}?view=nutritionist&mine=true`, { headers })).status, 200);
   assert.equal(calls[0].actorId, 'admin');
   assert.equal(calls[0].view, 'nutritionist');
+  assert.equal(calls[0].changesOnly, true);
   assert.equal((await fetch(`${base}/record/related?page=2`, { headers })).status, 200);
   assert.equal(calls[1].relatedTo, 'record');
   assert.equal(calls[1].page, 2);
+  assert.equal(calls[1].changesOnly, true);
   assert.equal((await fetch(base, { headers, method: 'POST' })).status, 404);
   assert.equal((await fetch(`${base}/record?actorId=other`, { headers })).status, 400);
   assert.equal((await fetch(`${base}/missing`, { headers })).status, 404);

@@ -23,6 +23,8 @@ const field =
   'min-h-11 w-full rounded-xl border border-brand-border bg-brand-surface px-3 text-sm text-brand-text outline-none focus:ring-2 focus:ring-brand-green/40';
 const actions = [
   ['', 'All actions'],
+  ['ADMIN_MEAL_', 'Meal changes'],
+  ['MEAL_IMAGE_', 'Meal images'],
   ['FLAGGED', 'Meal flags'],
   ['RELEASED', 'Flag releases'],
   ['APPROV', 'Approvals'],
@@ -30,7 +32,7 @@ const actions = [
   ['CLINICAL_PROFILE', 'Health profile reviews'],
   ['OUTSIDE_MEAL', 'Outside food reviews'],
   ['VERIF', 'Verification'],
-  ['ACCESS', 'Access changes'],
+  ['ACCESS', 'RND access changes'],
   ['USER_', 'Account administration'],
   ['WEBSITE_', 'Website content'],
   ['REFERENCE_DATA_', 'Nutrition data'],
@@ -149,7 +151,7 @@ export default function AdminAuditWorkspace() {
               ? 'Member subscription periods and recorded plan changes. Dates use Philippine time.'
               : view === 'meal-logs'
                 ? 'Member meal logs and recorded changes. Dates use Philippine time.'
-                : 'Administrator actions, RND reviews, subscriptions and member meal logs. Dates use Philippine time.'
+                : 'Recorded changes to meals, accounts and reviews, plus subscriptions and member meal logs. Dates use Philippine time.'
         }
         titleActions={
           staffView && (
