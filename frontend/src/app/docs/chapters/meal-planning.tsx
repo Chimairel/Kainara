@@ -81,5 +81,9 @@ export const mealPlanningChapter: DocsChapter = {
         </>
       ),
     },
+    {
+      id: 'meal-planning-updates', title: 'Preparing a plan after a profile update',
+      content: <><p>Read and acknowledge updated nutrition guidance when requested. The cooking screen stays visible for at least five seconds during preparation and waits for the current day’s slots to be accounted for, including meals already eaten from a previous plan. Future slots can show loading placeholders while the remaining days are prepared.</p><p>An eaten meal stays on its recorded date under “On your menu”, labeled “Eaten · previous plan”. Its nutrition remains in the daily intake; it does not authorize that dish for the updated profile.</p></>,
+    },
   ],
 };

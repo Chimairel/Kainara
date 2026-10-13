@@ -28,7 +28,9 @@ export const groceriesChapter: DocsChapter = {
             yourself.
           </p>
           <p>
-            When a meal is swapped, paused, or regenerated, review the list again. An earlier screen capture or printout
+            If a partial list has unresolved meals, acknowledge the missing slots before using its available items.
+            You can click a held checkbox to see why it cannot change yet; a “meal is still pending” message leaves
+            the item unchanged. When a meal is swapped, paused, or regenerated, review the list again. An earlier screen capture or printout
             may still contain ingredients from the old plan, while a newly generated list reflects the recorded meals at
             its creation time.
           </p>

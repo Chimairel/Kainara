@@ -40,6 +40,7 @@ export const RouteGuard: React.FC<RouteGuardProps> = ({ children }) => {
     '/nutritionist-apply',
     '/nutritionist-invitation',
     '/docs',
+    '/help',
     '/sources',
     '/pricing',
   ];

@@ -25,7 +25,9 @@ export const clinicalGuidelinesChapter: DocsChapter = {
           <p>
             The system can only compare meals against the restrictions it has recorded. For example, a broad label may
             not contain the severity or subtype needed for a useful decision. An RND can ask for clarification or
-            supporting evidence before confirming that the profile is specific enough for planning.
+            supporting evidence before confirming that the profile is specific enough for planning. If the information
+            is already sufficient, the reviewer can document an assessment and resolve the clarification without
+            proposing an unnecessary correction.
           </p>
           <p>
             A document review checks whether the submitted material supplies relevant nutrition context. It is not a
@@ -41,8 +43,10 @@ export const clinicalGuidelinesChapter: DocsChapter = {
       content: (
         <>
           <p>
-            Restricted profiles wait for a current profile decision and a meal-specific case decision. A second
-            independent reviewer can be required. Ingredient conflicts, missing evidence, flags, expired approvals, and
+            Profiles with declared health conditions or unclear restrictions may need a current profile decision,
+            followed by a meal-specific case decision where required. Clearly recorded, known allergies, intolerances,
+            and foods to avoid use ingredient filtering and do not automatically require a whole-profile review.
+            Flags and specific review policies can require an independent reviewer. Ingredient conflicts, missing evidence, flags, expired approvals, and
             changed profiles can block use. RNDs assess recorded evidence; they do not diagnose through this app.
           </p>
           <p>

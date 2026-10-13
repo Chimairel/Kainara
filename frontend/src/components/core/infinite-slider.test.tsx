@@ -65,6 +65,18 @@ describe('accessible source carousel', () => {
     expect(container.firstChild).toHaveClass('overflow-auto');
   });
 
+  it('retains keyboard navigation after returning from a pointer-opened tab', () => {
+    const { container } = render(<InfiniteSlider><a href="#source">Source</a></InfiniteSlider>);
+    const link = screen.getByRole('link', { name: 'Source' });
+    fireEvent.pointerDown(link); fireEvent.focus(link); fireEvent.click(link);
+    fireEvent(window, new Event('focus'));
+    expect(container.querySelectorAll('a')).toHaveLength(2);
+    fireEvent.keyDown(link, { key: 'Tab' }); fireEvent.focus(link);
+    expect(container.firstChild).toHaveClass('overflow-auto');
+    fireEvent(window, new Event('focus'));
+    expect(container.firstChild).toHaveClass('overflow-auto');
+  });
+
   it('shows a static scrollable list for reduced motion without starting an animation', () => {
     state.reducedMotion = true;
     const { container } = render(

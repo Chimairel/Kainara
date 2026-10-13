@@ -26,11 +26,13 @@ export function InfiniteSlider({
   const [isHovering, setIsHovering] = useState(false);
   const [isKeyboardFocused, setIsKeyboardFocused] = useState(false);
   const [isPointerFocused, setIsPointerFocused] = useState(false);
+  const [pointerActivated, setPointerActivated] = useState(false);
+  const activationPoint = useRef<{ x: number; y: number } | null>(null);
   const pointerFocus = useRef(false);
   const viewportRef = useRef<HTMLDivElement>(null);
   const animationRef = useRef<{ stop: () => void } | null>(null);
   const reducedMotion = useReducedMotion();
-  const currentSpeed = isHovering && speedOnHover !== undefined ? speedOnHover : speed;
+  const currentSpeed = isHovering && !pointerActivated && speedOnHover !== undefined ? speedOnHover : speed;
   const ref = useRef<HTMLDivElement>(null);
   const duplicateRef = useRef<HTMLDivElement>(null);
   const [{ width, height }, setSize] = useState({ width: 0, height: 0 });
@@ -127,6 +129,26 @@ export function InfiniteSlider({
     reverse,
   ]);
 
+  useEffect(() => {
+    const resumePointerActivation = () => {
+      if (!activationPoint.current) return; // Keyboard focus keeps its accessible static view.
+      pointerFocus.current = false;
+      setPointerActivated(true);
+      setIsPointerFocused(false);
+      setIsHovering(false);
+      setIsTransitioning(true);
+    };
+    const visible = () => { if (document.visibilityState === 'visible') resumePointerActivation(); };
+    window.addEventListener('focus', resumePointerActivation);
+    window.addEventListener('pageshow', resumePointerActivation);
+    document.addEventListener('visibilitychange', visible);
+    return () => {
+      window.removeEventListener('focus', resumePointerActivation);
+      window.removeEventListener('pageshow', resumePointerActivation);
+      document.removeEventListener('visibilitychange', visible);
+    };
+  }, []);
+
   const hoverProps =
     speedOnHover !== undefined
       ? {
@@ -148,12 +170,36 @@ export function InfiniteSlider({
       onPointerDownCapture={() => {
         // Native pointer activation must retain the same link node and screen position.
         pointerFocus.current = true;
+        activationPoint.current = null;
+        setPointerActivated(false);
         animationRef.current?.stop();
         setIsTransitioning(true);
         setIsPointerFocused(true);
       }}
+      onClickCapture={(event) => {
+        if (pointerFocus.current) {
+          activationPoint.current = { x: event.clientX, y: event.clientY };
+          setPointerActivated(true);
+          setIsPointerFocused(false);
+          setIsHovering(false);
+          setIsTransitioning(true);
+        }
+      }}
+      onPointerMove={(event) => {
+        // Returning to the tab can re-enter hover at the same pointer location.
+        // A deliberate pointer move restores normal hover behavior.
+        const point = activationPoint.current;
+        if (point && (point.x !== event.clientX || point.y !== event.clientY)) {
+          activationPoint.current = null;
+          setPointerActivated(false);
+        }
+      }}
       onKeyDownCapture={(event) => {
-        if (event.key === 'Tab') pointerFocus.current = false;
+        if (event.key === 'Tab') {
+          pointerFocus.current = false;
+          activationPoint.current = null;
+          setPointerActivated(false);
+        }
       }}
       onFocusCapture={() => {
         if (pointerFocus.current) setIsPointerFocused(true);

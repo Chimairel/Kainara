@@ -30,6 +30,7 @@ import cronRouter from '@/routes/cron.routes';
 import nutritionistApplicationRouter from '@/routes/nutritionist-application.routes';
 import evidenceRouter from '@/routes/evidence.routes';
 import notificationsRouter from '@/routes/notifications.routes';
+import supportRouter from '@/routes/support.routes';
 import mealReminderRouter from '@/routes/meal-reminder.routes';
 import membershipRouter from '@/routes/membership.routes';
 import membershipPaymentRouter from '@/routes/membership-payment.routes';
@@ -98,6 +99,7 @@ if (env.SMTP_VERIFY_ON_STARTUP) {
 app.use('/api/live', liveRouter);
 app.use('/api/evidence', evidenceRouter);
 app.use('/api/notifications', notificationsRouter);
+app.use('/api/support', supportRouter);
 app.get('/api/membership/plans', (_req, res) => {
   res.set('Cache-Control', 'no-store').json({
     success: true,

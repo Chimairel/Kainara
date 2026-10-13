@@ -5,6 +5,7 @@ import PublicHeader from '@/components/shared/PublicHeader';
 import PublicFooter from '@/components/shared/PublicFooter';
 import { DocsWaveHero } from '@/components/landing/LandingWaveRiver';
 import DocsWorkspace from './DocsWorkspace';
+import DocsSearch, { DocsSearchProvider } from './DocsSearch';
 
 export const metadata = publicPageMetadata('/docs');
 
@@ -13,7 +14,7 @@ export default function DocsPage() {
     <div className="min-h-screen bg-brand-bg text-brand-text selection:bg-brand-accent selection:text-white">
       <PublicHeader />
 
-      <main className="overflow-x-clip">
+      <DocsSearchProvider><main className="overflow-x-clip">
         {/* HERO SECTION WITH FLUID SIGNATURE WAVE STRIPE */}
         <section className="relative overflow-hidden pt-8 pb-14 md:pt-12 md:pb-20 border-b border-brand-border/60">
           <DocsWaveHero />
@@ -35,16 +36,16 @@ export default function DocsPage() {
 
             {/* Clean headline without pill or right-side summary card */}
             <div className="max-w-4xl">
-              <h1 className="font-display text-[clamp(2.8rem,5.8vw,6.5rem)] font-black leading-[0.95] tracking-[-0.05em] text-brand-text">
-                The complete guide to <span className="text-gradient block pb-1 sm:inline sm:pb-0">KAINARA.</span>
-              </h1>
+              <h1 className="font-display text-4xl font-black leading-[1.05] tracking-tight text-brand-text sm:text-6xl">Your Kainara guide.</h1>
+              <p className="mt-5 max-w-2xl text-base leading-7 text-brand-muted">Learn how your meals, food records, and review steps work. Search the guide, browse FAQs, or ask for support.</p>
+              <DocsSearch />
             </div>
           </div>
         </section>
 
         {/* WORKSPACE CONTENT */}
         <DocsWorkspace />
-      </main>
+      </main></DocsSearchProvider>
 
       {/* SIGNATURE 3-TONE WAVE FOOTER */}
       <PublicFooter />

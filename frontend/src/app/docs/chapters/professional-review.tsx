@@ -79,5 +79,9 @@ export const professionalReviewChapter: DocsChapter = {
         </>
       ),
     },
+    {
+      id: 'professional-review-canvas', title: 'Review canvas and audit context',
+      content: <><p>The review canvas brings the recorded profile, recipe evidence, flags and relevant reusable context together. A concern that needs resolution requires written notes explaining the assessment or action taken. If the profile details are sufficient, an RND can resolve it without changes; a correction is for an actual change that the member must acknowledge.</p><p>RND and admin Audit tables identify the decision type. Open Details to inspect the saved review context in a read-only modal. A member-specific case approval is distinct from a reusable recipe approval; the library records these separately.</p></>,
+    },
   ],
 };

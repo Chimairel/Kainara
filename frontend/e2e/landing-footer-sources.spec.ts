@@ -121,3 +121,33 @@ test('reduced motion keeps one scrollable source list', async ({ page }) => {
   await expect(popup).toHaveURL('https://fnri.dost.gov.ph/images/images/news/PDRI-2018.pdf');
   await popup.close();
 });
+
+
+test('pointer-opened source resumes moving after returning without a second click', async ({ page }) => {
+  await prepare(page, 'light', 1440);
+  const sources = page.locator('#sources');
+  await expect.poll(async () => {
+    await sources.evaluate((element) => element.scrollIntoView({ block: 'center', behavior: 'instant' }));
+    return sources.isVisible();
+  }).toBe(true);
+  let point: { x: number; y: number } | null = null;
+  await expect.poll(async () => {
+    point = await sources.evaluate((section) => {
+      const bounds = section.getBoundingClientRect();
+      for (const link of section.querySelectorAll('a[target="_blank"]')) {
+        const box = link.getBoundingClientRect();
+        const x = box.left + box.width / 2, y = box.top + box.height / 2;
+        if (x > bounds.left + 180 && x < bounds.right - 180 && y > 100 && y < innerHeight - 30) return { x, y };
+      }
+      return null;
+    });
+    return Boolean(point);
+  }, { timeout: 20000 }).toBe(true);
+  const popupPromise = page.waitForEvent('popup');
+  await page.mouse.click(point!.x, point!.y);
+  const popup = await popupPromise; await popup.close(); await page.bringToFront();
+  const track = sources.locator('.flex.w-max');
+  const original = await track.evaluate((el) => getComputedStyle(el).transform);
+  await expect.poll(() => track.evaluate((el) => getComputedStyle(el).transform)).not.toBe(original);
+  await expect(sources.locator('a[target="_blank"]')).toHaveCount(10);
+});

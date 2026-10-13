@@ -163,15 +163,16 @@ test('existing SMTP delivery remains available with secure port 465 and bounded 
     assert.equal(options.secure, true);
     assert.equal(options.connectionTimeout, EMAIL_REQUEST_TIMEOUT_MS);
     return {
-      sendMail: async (message: { to: string; from: string }) => {
+      sendMail: async (message: { to: string; from: string; replyTo?: string }) => {
         assert.equal(message.to, 'recipient@example.com');
         assert.equal(message.from, '"KAINARA" <sender@example.com>');
+        assert.equal(message.replyTo, 'reply@example.invalid');
         calls++;
       },
       verify: async () => true,
     };
   });
-  await sendTransactionalEmail({ to: 'recipient@example.com', subject: 'Test', html: 'Test' });
+  await sendTransactionalEmail({ to: 'recipient@example.com', subject: 'Test', html: 'Test', replyTo: 'reply@example.invalid' });
   assert.equal(calls, 1);
   assert.equal(await verifyEmailTransport(), true);
 });

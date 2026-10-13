@@ -3,8 +3,9 @@
 import Dropdown from '@/components/ui/Dropdown';
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
-import { ArrowRight, ChevronRight, List } from '@/components/ui/icons';
+import { ArrowRight, ChevronRight, ChevronDown, List } from '@/components/ui/icons';
 import { docsChapters } from './DocsChapters';
+import { useDocsSearch } from './DocsSearch';
 
 const groups = ['Start here', 'Use KAINARA', 'Review and evidence', 'Policies and help'] as const;
 
@@ -28,6 +29,8 @@ function currentFragment() {
 }
 
 export default function DocsWorkspace() {
+  const { setQuery } = useDocsSearch();
+  const [expandedFaqs, setExpandedFaqs] = useState<Set<string>>(() => new Set());
   const [activeId, setActiveId] = useState<string | null>(docsChapters[0].id);
   const [scrollTarget, setScrollTarget] = useState<{ id: string } | null>(null);
   const chapter = docsChapters.find((item) => item.id === activeId);
@@ -36,6 +39,7 @@ export default function DocsWorkspace() {
     const syncFromUrl = () => {
       const fragment = currentFragment();
       setActiveId(chapterFor(fragment).id);
+      if (fragment) setExpandedFaqs((previous) => new Set([...previous, fragment]));
       setScrollTarget(fragment ? { id: fragment } : null);
     };
     syncFromUrl();
@@ -60,10 +64,12 @@ export default function DocsWorkspace() {
   }, [chapter, scrollTarget]);
 
   const navigate = useCallback((fragment: string) => {
+    setQuery('');
+    setExpandedFaqs((previous) => new Set([...previous, fragment]));
     window.history.pushState(null, '', `#${fragment}`);
     setActiveId(chapterFor(fragment).id);
     setScrollTarget({ id: fragment });
-  }, []);
+  }, [setQuery]);
 
   return (
     <div className="mx-auto grid max-w-[1344px] gap-9 px-5 py-12 sm:px-8 lg:grid-cols-[230px_minmax(0,1fr)] lg:px-12 lg:py-16 xl:grid-cols-[230px_minmax(0,1fr)_200px] xl:gap-12">
@@ -169,16 +175,20 @@ export default function DocsWorkspace() {
 
             {/* Sections */}
             <div className="pt-2">
-              {chapter.sections.map((section) => (
-                <section
-                  key={section.id}
-                  id={section.id}
-                  className="scroll-mt-28 border-b border-brand-border/60 py-10 first:pt-4 last:border-b-0"
-                >
-                  <h3 className="font-display text-xl font-bold tracking-tight text-brand-text sm:text-2xl">
-                    {section.title}
-                  </h3>
-                  <div className="mt-5 max-w-3xl space-y-5 text-sm leading-8 text-brand-muted">{section.content}</div>
+              {chapter.sections.map((section) => chapter.id === 'faqs' ? (
+                <section key={section.id} id={section.id} className="scroll-mt-28 border-b border-brand-border/60 last:border-b-0">
+                  <h3><button type="button" id={`${section.id}-toggle`} aria-expanded={expandedFaqs.has(section.id)} aria-controls={`${section.id}-content`}
+                    onClick={() => setExpandedFaqs((previous) => { const next = new Set(previous); if (next.has(section.id)) next.delete(section.id); else next.add(section.id); return next; })}
+                    className="flex min-h-14 w-full items-center justify-between gap-4 rounded-xl px-2 py-5 text-left text-base font-semibold text-brand-text hover:text-brand-green">
+                    {section.title}<ChevronDown className={`h-5 w-5 shrink-0 text-brand-muted transition-transform motion-reduce:transition-none ${expandedFaqs.has(section.id) ? 'rotate-180' : ''}`} />
+                  </button></h3>
+                  <div id={`${section.id}-content`} hidden={!expandedFaqs.has(section.id)} aria-labelledby={`${section.id}-toggle`}
+                    className="space-y-4 px-2 pb-6 text-base leading-7 text-brand-muted">{section.content}</div>
+                </section>
+              ) : (
+                <section key={section.id} id={section.id} className="scroll-mt-28 border-b border-brand-border/60 py-10 first:pt-4 last:border-b-0">
+                  <h3 className="font-display text-xl font-bold tracking-tight text-brand-text sm:text-2xl">{section.title}</h3>
+                  <div className="mt-5 space-y-5 text-base leading-8 text-brand-muted">{section.content}</div>
                 </section>
               ))}
             </div>
@@ -192,18 +202,18 @@ export default function DocsWorkspace() {
               <div className="relative z-10 flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   <h3 className="font-display text-xl font-black text-white sm:text-2xl">
-                    Ready to build your meal plan?
+                    Looking for something specific?
                   </h3>
                   <p className="mt-1 text-xs leading-5 text-white/70 max-w-md">
-                    Set up your health profile for Filipino meal planning, with RND review for applicable cases.
+                    Get help with a question, an account issue, or feedback about Kainara.
                   </p>
                 </div>
                 <div className="flex shrink-0 items-center">
                   <Link
-                    href="/register"
+                    href="/help"
                     className="inline-flex min-h-[48px] items-center gap-2.5 rounded-2xl bg-brand-accent px-7 text-xs font-bold text-white shadow-neon transition duration-200 hover:-translate-y-0.5 hover:brightness-110 active:scale-[0.98]"
                   >
-                    Build my profile <ArrowRight className="h-3.5 w-3.5" />
+                    Contact Support <ArrowRight className="h-3.5 w-3.5" />
                   </Link>
                 </div>
               </div>

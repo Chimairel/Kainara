@@ -2,7 +2,7 @@ import type { ReactNode } from 'react';
 
 import { type AppIcon } from '@/components/ui/icons';
 
-export type DocsSection = { id: string; title: string; content: ReactNode };
+export type DocsSection = { id: string; title: string; content: ReactNode; searchText?: string };
 export type DocsChapter = {
   id: string;
   title: string;

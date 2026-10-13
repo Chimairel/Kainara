@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { faqChapter } from './DocsFaqs';
 import { FileText, Lock, ShieldAlert, User, HelpCircle } from '@/components/ui/icons';
 import type { DocsChapter } from './DocsChapters';
 
@@ -211,6 +212,10 @@ export const policyChapters: DocsChapter[] = [
           </>
         ),
       },
+      {
+        id: 'privacy-policy-support', title: 'Contact Support messages',
+        content: <p>When you submit Contact Support, Kainara sends your chosen topic and message, account identifier, name, email, and role to the operator’s support email through the configured email provider. The form uses your verified account email for replies. It does not attach your health profile, documents, or meal history. Your message is handled as email; the reference is not a separate in-app support ticket. Do not include passwords or medical documents.</p>,
+      },
     ],
   },
   {
@@ -333,89 +338,10 @@ export const policyChapters: DocsChapter[] = [
       },
     ],
   },
-  {
-    id: 'faqs',
-    title: 'Common questions',
-    shortTitle: 'Common questions',
-    group: 'Policies and help',
-    icon: HelpCircle,
-    tone: 'cyan',
-    summary: 'Answers to the questions that most often come up when browsing recipes or reading a plan.',
-    sections: [
-      {
-        id: 'faqs-catalogue',
-        title: 'Why can I browse more recipes than appear in my plan?',
-        content: (
-          <>
-            <p>
-              Base verification means a real published or reviewed dish. Planning also needs usable serving evidence, a
-              matching meal slot and energy range, and your current restrictions to permit it.
-            </p>
-            <p>
-              Browsing is intentionally broader than scheduling. It helps you discover dishes even when the system
-              cannot yet calculate a usable portion for your target or a recipe is unsuitable for your recorded context.
-              A catalogue count therefore should not be read as the number of meals ready to fill every breakfast,
-              lunch, and dinner.
-            </p>
-          </>
-        ),
-      },
-      {
-        id: 'faqs-repeat',
-        title: 'Why did a dish repeat?',
-        content: (
-          <>
-            <p>
-              The planner tries distinct eligible dishes first. It can rotate an eligible recipe when the suitable pool
-              is too small to fill the cycle. The starter and next weekly cycle are separate selections.
-            </p>
-            <p>
-              Repetition can be more likely in a narrow meal type or energy range. The planner keeps the eligibility
-              checks in place while trying to fill the cycle, so it may reuse an accepted dish instead of substituting
-              one that lacks data or conflicts with a restriction.
-            </p>
-          </>
-        ),
-      },
-      {
-        id: 'faqs-gap',
-        title: 'Why is a day missing a meal?',
-        content: (
-          <>
-            <p>
-              No candidate passed the current requirements for that slot, or generation is still pending. Check the plan
-              status and available retry action. An empty slot is not an instruction to skip eating.
-            </p>
-            <p>
-              A gap can result from limited catalogue coverage, incomplete ingredient or serving data, the target range,
-              active flags, or a pending review. The plan screen should indicate whether work is still queued. If no
-              eligible candidate can be found, the app should leave the slot unfilled rather than present an unsupported
-              meal as ready.
-            </p>
-          </>
-        ),
-      },
-      {
-        id: 'faqs-profile',
-        title: 'Why does my health profile need review?',
-        content: (
-          <>
-            <p>
-              An RND first confirms recorded restrictions, possibly after requesting clearer information or a document.
-              Each restricted meal then needs its own case decision.
-            </p>
-            <p>
-              The first decision makes the planning context usable; it does not endorse any particular recipe. This is
-              why the profile queue and case approval queue can both appear in the workflow. If your restriction details
-              change, the system may need to revisit the profile and affected meals.
-            </p>
-          </>
-        ),
-      },
-    ],
-  },
+  faqChapter,
   {
     id: 'help',
+    aliases: ['help-contact'],
     title: 'Help',
     shortTitle: 'Help',
     group: 'Policies and help',

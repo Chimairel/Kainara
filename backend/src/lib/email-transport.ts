@@ -25,7 +25,7 @@ function provider(): 'smtp' | 'brevo' {
   return value;
 }
 
-export async function sendTransactionalEmail(message: { to: string; subject: string; html: string }): Promise<void> {
+export async function sendTransactionalEmail(message: { to: string; subject: string; html: string; replyTo?: string }): Promise<void> {
   if (provider() === 'smtp') {
     const from = process.env.EMAIL_FROM || process.env.SMTP_USER || 'noreply@kainara.ph';
     await smtpTransporter().sendMail({ from: `"KAINARA" <${from}>`, ...message });
@@ -47,6 +47,7 @@ export async function sendTransactionalEmail(message: { to: string; subject: str
         to: [{ email: message.to }],
         subject: message.subject,
         htmlContent: message.html,
+        ...(message.replyTo ? { replyTo: { email: message.replyTo } } : {}),
       }),
     });
     if (!response.ok) throw new Error('Provider rejected request');

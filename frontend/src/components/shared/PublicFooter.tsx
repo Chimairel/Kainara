@@ -149,6 +149,7 @@ export default function PublicFooter() {
                     chimairelp@gmail.com
                   </a>
                   <p className="mt-2 leading-6 text-white/60">For questions, feedback, or account support.</p>
+                  <Link href="/help" className="mt-2 inline-flex min-h-11 items-center font-semibold text-white/80 underline underline-offset-4 hover:text-emerald-400">Contact Support</Link>
                 </div>
               </div>
             </div>
