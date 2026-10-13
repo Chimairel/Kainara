@@ -13,6 +13,7 @@ import { useReviewSwap } from './useReviewSwap';
 import { useState, useEffect } from 'react';
 import RndClarifications from '@/features/clinical-clarification/RndClarifications';
 import ClarificationFormCard from '@/features/clinical-clarification/ClarificationFormCard';
+import RelatedConditionReviews from './RelatedConditionReviews';
 
 type Model = ReturnType<typeof useCaseReviewWorkspaceModel>;
 
@@ -44,6 +45,7 @@ export default function CaseReviewDocument({ model }: { model: Model }) {
         onBack={() => setSelectedMealId(null)}
         actions={
           <>
+            <RelatedConditionReviews key={meal.id} detail={detailData} />
             {claimHeader}
             {errorMsg && !action && (
               <FeedbackNotice variant="inline" className="max-w-sm">

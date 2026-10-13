@@ -47,6 +47,7 @@ import { ReviewStatusService } from '@/services/review-status.service';
 import { NutritionistAuditService } from '@/services/nutritionist-audit.service';
 import { AuditDetailsService } from '@/services/audit-details.service';
 import { NutritionistAuditContextService } from '@/services/nutritionist-audit-context.service';
+import { RelatedConditionReviewsService } from '@/services/related-condition-reviews.service';
 
 import libraryRouter from './nutritionist-library.routes';
 import reviewSwapRouter from './nutritionist-review-swap.routes';
@@ -591,6 +592,23 @@ router.get(
   '/queue/:id/status',
   asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
     res.json({ success: true, data: await ReviewStatusService.meal(req.nutritionistProfileId!, req.params.id) });
+  })
+);
+router.get('/queue/:id/condition-reviews',
+  validateZodRequest({
+    params: z.object({ id: z.string().min(1).max(191) }).strict(),
+    query: z.object({
+      condition: z.enum(['DIABETES', 'HYPERTENSION', 'KIDNEY_DISEASE', 'HEART_CONDITION', 'PREGNANT']),
+      page: z.coerce.number().int().min(1).max(10000).default(1),
+      search: z.string().trim().max(100).optional(),
+      expectedContextKey: z.string().regex(/^[a-f0-9]{64}$/).optional(),
+    }).strict(),
+  }),
+  asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+    res.setHeader('Cache-Control', 'private, no-store');
+    const data = await RelatedConditionReviewsService.list(req.nutritionistProfileId!, req.params.id,
+      req.query as unknown as Parameters<typeof RelatedConditionReviewsService.list>[2]);
+    res.json({ success: true, data });
   })
 );
 router.get('/queue/:id', async (req: AuthenticatedRequest, res: Response) => {

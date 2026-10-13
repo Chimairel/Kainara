@@ -572,6 +572,60 @@ export async function runReviewReferenceAcceptance() {
         })
       );
       await ok(request(rnd, `/nutritionist/queue/${targetPlan.id}/release`, 'POST', {}));
+      if (index === 3) {
+        const conditionPath = `/nutritionist/queue/${targetPlan.id}/condition-reviews`;
+        const targetContext = (await loadMealReviewContext(targetPlan.id))!;
+        const params = new URLSearchParams({ condition: 'HEART_CONDITION', expectedContextKey: targetContext.contextKey });
+        const related = await ok(request(other, `${conditionPath}?${params}`));
+        assert.equal(related.total, 1);
+        assert.equal(related.rows[0].decision, 'APPROVE');
+        assert.equal(related.rows[0].mealName, eligible.mealName);
+        assert.equal(related.rows[0].plateFacts.calories, sourcePlan.calories);
+        assert(related.rows[0].ingredients.length > 0);
+        const relatedText = JSON.stringify(related);
+        for (const hidden of [sourceActor.id, sourceActor.email, sourcePlan.id, sourcePlan.planGroupId,
+          'SYNTHETIC_PRIVATE', 'reviewContext', 'rationale', 'conditionDetails']) assert(!relatedText.includes(hidden), hidden);
+        assert.equal((await db.mealPlan.findUniqueOrThrow({ where: { id: targetPlan.id } })).status, 'PENDING_REVIEW');
+        assert.equal((await request(targetActor, `${conditionPath}?${params}`)).status, 403);
+        assert.equal((await request(admin, `${conditionPath}?${params}`)).status, 403);
+        assert.equal((await request(other, `${conditionPath}?${params}&page=0`)).status, 400);
+        assert.equal((await request(other, `${conditionPath}?${params}&search=${encodeURIComponent('x'.repeat(101))}`)).status, 400);
+        const foreign = new URLSearchParams(params); foreign.set('condition', 'DIABETES');
+        assert.equal((await request(other, `${conditionPath}?${foreign}`)).status, 400);
+        const stale = new URLSearchParams(params); stale.set('expectedContextKey', '0'.repeat(64));
+        assert.equal((await request(other, `${conditionPath}?${stale}`)).status, 409);
+        const original = await db.mealPlanReviewDecision.findFirstOrThrow({ where: { mealPlanId: sourcePlan.id } });
+        for (let n = 0; n < 11; n++) {
+          const past = await db.mealPlan.create({ data: {
+            userId: sourceActor.id, planGroupId: sourcePlan.planGroupId, mealName: `Heart related meal ${n}`,
+            mealType: 'LUNCH', scheduledDate: now, calories: 500, proteinG: 20, carbsG: 70, fatG: 15,
+            status: n === 0 ? 'REJECTED' : 'APPROVED', requiresSafetyRevalidation: false,
+          } });
+          await db.mealPlanReviewDecision.create({ data: {
+            mealPlanId: past.id, nutritionistProfileId: reviewer.id, stage: 'PRIMARY', decision: n === 0 ? 'REJECT' : 'APPROVE',
+            rationale: 'SYNTHETIC_PRIVATE_REJECTION_NOTE',
+            evidenceSnapshot: { ...original.evidenceSnapshot as Prisma.InputJsonObject,
+              recordedProfile: { conditions: ['HEART_CONDITION'], age: 60 + n, weightKg: 100 + n },
+              effective: { mealName: `Heart related meal ${n}`, calories: 500, proteinG: 20, carbsG: 70, fatG: 15,
+                ingredients: [{ ingredientName: 'Recorded ingredient', quantity: 100, unit: 'g', dataSource: 'FNRI' }] },
+            },
+          } });
+        }
+        const page1 = await ok(request(other, `${conditionPath}?${params}`));
+        const page2 = await ok(request(other, `${conditionPath}?${params}&page=2`));
+        assert.equal(page1.total, 12); assert.equal(page1.rows.length, 10); assert.equal(page2.rows.length, 2);
+        assert(!page1.rows.some((row: any) => page2.rows.some((next: any) => row.id === next.id)));
+        // Browsing uses the reviewed condition, regardless of today's source-member profile.
+        await db.healthCondition.updateMany({ where: { userId: sourceActor.id, condition: 'HEART_CONDITION' }, data: { condition: 'DIABETES' } });
+        assert.equal((await ok(request(other, `${conditionPath}?${params}`))).total, 12);
+        await db.healthCondition.updateMany({ where: { userId: sourceActor.id, condition: 'DIABETES' }, data: { condition: 'HEART_CONDITION' } });
+        const rejected = await ok(request(other, `${conditionPath}?${params}&search=${encodeURIComponent('Heart related meal 0')}`));
+        assert.equal(rejected.total, 1); assert.equal(rejected.rows[0].decision, 'REJECT');
+        const injection = await ok(request(other, `${conditionPath}?${params}&search=${encodeURIComponent("' OR 1=1 --")}`));
+        assert.equal(injection.total, 0);
+        assert(!JSON.stringify(page1).includes('SYNTHETIC_PRIVATE'));
+        pass('Related heart-condition reviews: immutable recorded condition, approved/rejected evidence, privacy, pagination, search and role/stale-context boundaries');
+      }
       if (index === 0) {
         // Captured V1 contexts can reuse without a new RND decision, with V2 document-digest validation.
         const sourceKeys = (await matchingReviewKeys(db, current))!;
