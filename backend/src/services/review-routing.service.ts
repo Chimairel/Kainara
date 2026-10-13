@@ -76,7 +76,8 @@ export class ReviewRoutingService {
 
   static async assertMeal(reviewerId: string, mealId: string, db: Db = prisma) {
     void reviewerId;
-    const meal = await db.mealPlan.findUnique({
+    const meal = await db.mealPlan.findFirst({
+      relationLoadStrategy: 'join',
       where: { id: mealId },
       select: {
         scheduledDate: true,

@@ -23,7 +23,7 @@ export class RelatedConditionReviewsService {
     if (!(await currentReviewProfile(prisma, reviewerId)))
       throw new AppError('A currently eligible RND is required.', 403, 'NUTRITIONIST_INELIGIBLE');
     await ReviewRoutingService.assertMeal(reviewerId, mealId);
-    const target = await prisma.mealPlan.findUnique({ where: { id: mealId }, select: {
+    const target = await prisma.mealPlan.findFirst({ relationLoadStrategy: 'join', where: { id: mealId }, select: {
       status: true, userId: true, user: { select: {
         healthConditions: true, allergies: true, safetyProfileEntries: true, userProfile: true,
       } },

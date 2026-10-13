@@ -75,8 +75,10 @@ export class ReviewStatusService {
       select: { id: true, userId: true, claimedAt: true, claimedByNutritionistId: true },
     });
     if (!meal) throw new AppError('This meal is no longer awaiting review.', 409, 'MEAL_REVIEW_INACTIVE');
-    await ClinicalProfileReviewService.assertReadyForMealPlanning(meal.userId);
-    await ClinicalEvidenceService.assertReadyForMealPlanning(meal.userId);
+    await Promise.all([
+      ClinicalProfileReviewService.assertReadyForMealPlanning(meal.userId),
+      ClinicalEvidenceService.assertReadyForMealPlanning(meal.userId),
+    ]);
     const [member, plate] = await Promise.all([memberRevision(meal.userId), mealRevision(meal.id)]);
     return status(`${member}:${plate}`, meal, reviewerId);
   }

@@ -10,7 +10,8 @@ export const json = (value: unknown): Prisma.InputJsonValue => JSON.parse(JSON.s
 export const digest = (value: unknown) => createHash('sha256').update(JSON.stringify(value)).digest('hex');
 
 export async function currentReviewProfile(tx: ReviewTx, profileId: string) {
-  const profile = await tx.nutritionistProfile.findUnique({
+  const profile = await tx.nutritionistProfile.findFirst({
+    relationLoadStrategy: 'join',
     where: { id: profileId },
     include: { user: { include: { nutritionistApplicationInvite: { select: { status: true } } } } },
   });

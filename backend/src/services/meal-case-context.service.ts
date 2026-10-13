@@ -43,7 +43,9 @@ type ContextPlan = Prisma.MealPlanGetPayload<{ include: typeof mealReviewContext
 /** A version guard, not an authorization token. Claims, eligibility and evidence gates still apply. */
 export async function loadMealReviewContext(mealPlanId: string, client: Client = prisma) {
   if (!env.CLINICAL_CLARIFICATIONS_ENABLED) return null;
-  const plan = await client.mealPlan.findUnique({ where: { id: mealPlanId }, include: mealReviewContextInclude });
+  const plan = await client.mealPlan.findFirst({
+    relationLoadStrategy: 'join', where: { id: mealPlanId }, include: mealReviewContextInclude,
+  });
   if (!plan) throw new AppError('Review case not found.', 404, 'REVIEW_NOT_FOUND');
   const reportVersion = plan.cycle.snapshot?.nutritionReportVersion ?? plan.user.userProfile?.planningReportVersion;
   const report = reportVersion
@@ -57,6 +59,7 @@ export async function loadMealReviewContext(mealPlanId: string, client: Client =
 /** Batch one member's cycle so reuse does not reload profile and guidance for every slot. */
 export async function loadMealReviewContexts(mealPlanIds: string[], client: Client) {
   const plans = await client.mealPlan.findMany({
+    relationLoadStrategy: 'join',
     where: { id: { in: mealPlanIds } },
     include: mealReviewContextInclude,
   });
@@ -152,7 +155,8 @@ export async function assertCurrentMealReviewContext(
   if (current) {
     assertMealReviewContext(expected, current.contextKey);
     if (reviewerId) {
-      const reviewer = await client.nutritionistProfile.findUnique({
+      const reviewer = await client.nutritionistProfile.findFirst({
+        relationLoadStrategy: 'join',
         where: { id: reviewerId },
         include: { user: true },
       });

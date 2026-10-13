@@ -48,7 +48,7 @@ test('profile corrections reject unchanged declarations despite section or entry
   const tx = {
     $executeRaw: async () => 1,
     $queryRaw: async () => [],
-    user: { findUnique: async () => user },
+    user: { findFirst: async () => user },
     nutritionistProfile: {
       findUnique: async () => ({
         id: 'reviewer',

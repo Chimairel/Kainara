@@ -5,7 +5,8 @@ import { approvalRecheckContext } from './approval-recheck-context.service';
 const object = (value: unknown): Record<string, unknown> =>
   value && typeof value === 'object' && !Array.isArray(value) ? (value as Record<string, unknown>) : {};
 export async function mealPlanFlagContext(tx: Prisma.TransactionClient, planId: string) {
-  const plan = await tx.mealPlan.findUnique({
+  const plan = await tx.mealPlan.findFirst({
+    relationLoadStrategy: 'join',
     where: { id: planId },
     select: {
       libraryMealId: true,
@@ -40,6 +41,7 @@ export async function mealPlanFlagContext(tx: Prisma.TransactionClient, planId: 
     resolution?: string;
   }> = [];
   const lineage = await tx.mealReviewLineage.findFirst({
+    relationLoadStrategy: 'join',
     where: {
       OR: [
         ...(plan.libraryMealId ? [{ meals: { some: { id: plan.libraryMealId } } }] : []),

@@ -16,6 +16,7 @@ import { MEAL_LIBRARY_SAFETY_POLICY_VERSION } from '../src/domain/meal-library-s
 import { libraryBaseRevisionKey } from '../src/services/meal-base-admission.service';
 import { loadMealReviewContext } from '../src/services/meal-case-context.service';
 import { MealLogService } from '../src/services/meal-log.service';
+import { checkReviewContextQueries } from './helpers/review-read-query-check';
 
 export async function runReviewReferenceAcceptance() {
   const target = new URL(process.env.DATABASE_URL ?? '');
@@ -560,6 +561,8 @@ export async function runReviewReferenceAcceptance() {
       await configure(sourceActor, condition, index === 0);
       await configure(targetActor, condition, index === 0);
       if (index === 3) await db.mealLibrary.update({ where: { id: eligible.id }, data: { safetyReviewedByNutritionistId: null } });
+      const queryBudget = await checkReviewContextQueries(sourcePlan.id);
+      console.log(JSON.stringify({ reviewContextQueryBudget: queryBudget }));
       const current = (await loadMealReviewContext(sourcePlan.id))!;
       await ok(
         request(rnd, `/nutritionist/queue/${sourcePlan.id}/claim`, 'POST', { expectedContextKey: current.contextKey })

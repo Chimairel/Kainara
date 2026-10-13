@@ -115,7 +115,8 @@ export class ClinicalEvidenceService {
   }
 
   static async requirementsForUser(userId: string, _now = new Date()) {
-    const user = await prisma.user.findUnique({
+    const user = await prisma.user.findFirst({
+      relationLoadStrategy: 'join',
       where: { id: userId },
       include: {
         userProfile: true,

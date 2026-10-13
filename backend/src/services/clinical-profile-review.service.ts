@@ -157,7 +157,7 @@ export class ClinicalProfileReviewService {
     client: Pick<Prisma.TransactionClient, 'user' | 'clinicalProfileReview'> &
       Partial<Pick<Prisma.TransactionClient, 'clinicalClarificationForm' | 'clinicalProfileProposal'>> = prisma
   ) {
-    const user = await client.user.findUnique({ where: { id: userId }, include: userInclude });
+    const user = await client.user.findFirst({ relationLoadStrategy: 'join', where: { id: userId }, include: userInclude });
     if (!user) throw new AppError('User not found.', 404, 'USER_NOT_FOUND');
     const current = context(user);
     if (

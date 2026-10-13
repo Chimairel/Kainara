@@ -206,7 +206,7 @@ test('supported allergy-only intake skips clinical forms and profile confirmatio
     ],
   });
   const client = {
-    user: { findUnique: async () => user() },
+    user: { findFirst: async () => user() },
     clinicalProfileReview: { findMany: async () => [] },
   } as unknown as Pick<Prisma.TransactionClient, 'user' | 'clinicalProfileReview'>;
   t.mock.method(ClinicalEvidenceService, 'requirementsForUser', async () =>

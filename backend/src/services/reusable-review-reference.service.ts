@@ -28,6 +28,7 @@ export async function matchingReviewKeys(tx: Prisma.TransactionClient, opened: O
   )
     return null;
   const forms = await tx.clinicalClarificationForm.findMany({
+    relationLoadStrategy: 'join',
     where: { userId, profileRevision: opened.profileRevision, scopeKey: opened.scopeKey },
     include: { responses: { orderBy: { version: 'desc' }, take: 1 }, resolution: true },
   });
@@ -51,7 +52,8 @@ export async function matchingReviewKeys(tx: Prisma.TransactionClient, opened: O
   if (!contextKey) return null;
   let source: unknown = null;
   if (typeof meal.libraryMealId === 'string') {
-    const library = await tx.mealLibrary.findUnique({
+    const library = await tx.mealLibrary.findFirst({
+      relationLoadStrategy: 'join',
       where: { id: meal.libraryMealId },
       include: certifiedLibraryMealInclude,
     });
@@ -200,6 +202,7 @@ export async function listReviewReferences(opened: OpenedContext, reviewerId: st
   const keys = await matchingReviewKeys(prisma, opened);
   if (!keys) return [];
   const rows = await prisma.mealReviewReference.findMany({
+    relationLoadStrategy: 'join',
     where: { policyVersion: REVIEW_REFERENCE_POLICY, contextKey: keys.contextKey, servingKey: keys.servingKey },
     include: {
       decision: {

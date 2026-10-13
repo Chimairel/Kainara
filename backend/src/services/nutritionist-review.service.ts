@@ -351,6 +351,7 @@ export class NutritionistReviewService {
       prisma.mealPlan.findUnique({
         where: { id: mealPlanId },
         select: {
+          userId: true,
           status: true,
           highRiskReviewRequired: true,
           reviewApprovalCount: true,
@@ -369,10 +370,11 @@ export class NutritionistReviewService {
     ) {
       throw new Error('The generated base recipe must pass meal verification before case approval.');
     }
-    const targetOwner = await prisma.mealPlan.findUnique({ where: { id: mealPlanId }, select: { userId: true } });
-    if (!targetOwner) throw new Error('Meal plan not found.');
-    const clinicalRequirements = await ClinicalEvidenceService.assertReadyForMealPlanning(targetOwner.userId);
-    await ClinicalProfileReviewService.assertReadyForMealPlanning(targetOwner.userId);
+    const targetOwner = reviewTarget;
+    const [clinicalRequirements] = await Promise.all([
+      ClinicalEvidenceService.assertReadyForMealPlanning(targetOwner.userId),
+      ClinicalProfileReviewService.assertReadyForMealPlanning(targetOwner.userId),
+    ]);
     // updateMany supplies a compare-and-set claim: only one reviewer can change
     // an unclaimed/expired row from the shared queue at a time.
     if (acquireClaim) {
@@ -438,6 +440,7 @@ export class NutritionistReviewService {
     }
 
     const updatedMealPlan = await prisma.mealPlan.findFirst({
+      relationLoadStrategy: 'join',
       where: { id: mealPlanId, ...getNutritionistReviewableMealPlanWhere() },
       include: {
         sourceRawRecipeCandidate: {
@@ -621,6 +624,7 @@ export class NutritionistReviewService {
     const readyClinicalDocumentIds = [...new Set(clinicalRequirements.flatMap((item) => item.readyDocumentIds))];
     const clinicalDocuments = readyClinicalDocumentIds.length
       ? await prisma.clinicalDocument.findMany({
+          relationLoadStrategy: 'join',
           where: { id: { in: readyClinicalDocumentIds }, userId: updatedMealPlan.userId },
           select: {
             id: true,
@@ -638,18 +642,17 @@ export class NutritionistReviewService {
         })
       : [];
 
-    const healthDetails = await prisma.clinicalContextResponse.findMany({
-      where: { userId: updatedMealPlan.userId },
-      select: { area: true, responses: true, revision: true },
-    });
-    const clarifications = openedContext
-      ? await ClinicalClarificationService.list(updatedMealPlan.userId, nutritionistProfileId)
-      : undefined;
-    const reviewReferences = openedContext
-      ? await listReviewReferences(openedContext, nutritionistProfileId)
-      : undefined;
+    const [healthDetails, clarifications, reviewReferences, flagConcerns] = await Promise.all([
+      prisma.clinicalContextResponse.findMany({
+        where: { userId: updatedMealPlan.userId },
+        select: { area: true, responses: true, revision: true },
+      }),
+      openedContext ? ClinicalClarificationService.list(updatedMealPlan.userId, nutritionistProfileId) : undefined,
+      openedContext ? listReviewReferences(openedContext, nutritionistProfileId) : undefined,
+      mealPlanFlagContext(prisma, mealPlanId),
+    ]);
+    // Recheck after all independent evidence reads, before returning the assembled case.
     if (openedContext) await assertCurrentMealReviewContext(mealPlanId, openedContext.contextKey);
-    const flagConcerns = await mealPlanFlagContext(prisma, mealPlanId);
     return {
       flagConcerns,
       ...(reviewReferences ? { reviewReferences } : {}),

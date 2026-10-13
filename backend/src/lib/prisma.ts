@@ -1,6 +1,7 @@
 import { retryDatabaseRead } from './retry-database-read';
 import { PrismaClient } from '@prisma/client';
 import { DATABASE_TRANSACTION_OPTIONS } from './transaction-options';
+import { preserveRelationQueryStrategy } from './relation-query-strategy';
 
 const globalForPrisma = globalThis as unknown as { prisma: PrismaClient };
 
@@ -14,7 +15,7 @@ function createPrismaClient(): PrismaClient {
     query: {
       $allModels: {
         async $allOperations({ args, query, operation }) {
-          return retryDatabaseRead(operation, () => query(args));
+          return retryDatabaseRead(operation, () => query(preserveRelationQueryStrategy(operation, args)));
         },
       },
     },

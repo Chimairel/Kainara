@@ -14,7 +14,7 @@ function fixture(reviewerId = 'rnd', linked = true, eligible = true) {
   } };
   const tx = {
     user: { findUnique: async () => ({ id: 'actor', role: 'NUTRITIONIST', isSuspended: false, name: 'Reviewer' }) },
-    nutritionistProfile: { findUnique: async () => ({ id: reviewerId, userId: 'actor', isVerified: eligible, prcLicenseNumber: '123', prcLicenseExpiry: new Date('2099-01-01'), user: { emailVerified: true, role: 'NUTRITIONIST', isSuspended: false } }) },
+    nutritionistProfile: { findFirst: async () => ({ id: reviewerId, userId: 'actor', isVerified: eligible, prcLicenseNumber: '123', prcLicenseExpiry: new Date('2099-01-01'), user: { emailVerified: true, role: 'NUTRITIONIST', isSuspended: false } }) },
     auditEvent: { findUnique: async () => event, create: async (value: unknown) => writes.push(value) },
     mealPlanReviewDecision: { findMany: async () => [decision] },
   };

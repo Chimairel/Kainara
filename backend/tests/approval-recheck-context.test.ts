@@ -83,7 +83,7 @@ test('missing resolution, short text, flagger and challenged reviewer fail befor
 test('a pending member-case exposes exact scoped flags and the server blocks approval while unresolved', async () => {
   const { tx } = fixture();
   tx.mealPlan = {
-    findUnique: async () => ({
+    findFirst: async () => ({
       libraryMealId: 'recipe',
       profileApprovalId: 'approval',
       sourceRawRecipeCandidateId: null,

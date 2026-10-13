@@ -35,7 +35,7 @@ const formInclude = {
 const stale = () => new AppError('The profile or answers changed. Open the current case.', 409, 'CLARIFICATION_STALE');
 
 export async function currentClarificationContext(tx: Pick<Prisma.TransactionClient, 'user'>, userId: string) {
-  const user = await tx.user.findUnique({ where: { id: userId }, include: userInclude });
+  const user = await tx.user.findFirst({ relationLoadStrategy: 'join', where: { id: userId }, include: userInclude });
   if (!user || user.role !== Role.USER) throw new AppError('Profile not found.', 404, 'PROFILE_NOT_FOUND');
   return context(user);
 }
@@ -102,7 +102,8 @@ export class ClinicalClarificationService {
     if (!this.enabled) return { enabled: false, forms: [] };
     if (reviewerId) {
       await ReviewRoutingService.assertProfile(reviewerId, userId);
-      const reviewer = await prisma.nutritionistProfile.findUnique({
+      const reviewer = await prisma.nutritionistProfile.findFirst({
+        relationLoadStrategy: 'join',
         where: { id: reviewerId },
         include: { user: true },
       });
@@ -112,6 +113,7 @@ export class ClinicalClarificationService {
     const [current, forms] = await Promise.all([
       read ? Promise.resolve(context(profileReadUser(userId, read))) : currentClarificationContext(prisma, userId),
       prisma.clinicalClarificationForm.findMany({
+        relationLoadStrategy: 'join',
         where: { userId },
         include: formInclude,
         orderBy: { createdAt: 'asc' },

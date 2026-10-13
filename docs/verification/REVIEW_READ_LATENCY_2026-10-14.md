@@ -1,0 +1,21 @@
+# Review detail timeout correction — October 14, 2026
+
+## Cause and implementation
+
+The shared RND case-detail read exceeded the frontend's existing 90-second budget. A bounded read-only trace of one current case recorded 137 SQL queries after case lookup and 102.980 seconds for details plus the route's poll status. Nested Prisma relation reads repeatedly retrieved profile, evidence, guidance and claim context in separate network round trips. Details alone took 89.923 seconds; the additional readiness/status read pushed the route over its deadline.
+
+Enable Prisma 5.22's `relationJoins` client feature and opt into database joins for the profiled context, readiness, reference, routing and flag reads. The client extension preserves the existing `query` strategy for other reads. Joined primary-key reads use `findFirst({ where: { id } })`: an initial disposable acceptance run exposed a Prisma 5 engine panic when concurrent `findUnique` reads mixed join and query strategies. Using non-batched primary-key reads passed the concurrent acceptance scenarios. This changes client generation only; no migration or hosted DDL is required. [Prisma relation strategy documentation](https://docs.prisma.io/docs/orm/v6/reference/prisma-client-reference#relationloadstrategy-preview).
+
+Remove one redundant target-owner read and execute independent readiness/evidence reads concurrently. Recheck the complete context after collecting all evidence. Current guidance, clinical/profile readiness, eligibility, current-cycle routing, claims, exclusive compare-and-set writes, stale-context rejection and exact reuse rules remain enforced. No process-wide evidence cache is introduced.
+
+## Evidence
+
+- The same shared-case diagnostic after the final change recorded **40 SQL queries and 4.727 seconds** for details plus poll status; details alone took 3.876 seconds. Both detail DTOs were 7,642 bytes. These are individual observed readings, not a latency guarantee; network conditions differed between runs. Private SQL parameters and clinical contents were not logged.
+- Real SQL comparison on each of five synthetic condition cases in the disposable loopback acceptance database: the complete context snapshot and context key were deeply equal between query and join strategies, while SQL reads fell from **17 to 2**.
+- All **16 real HTTP/SQL acceptance scenario groups** passed, covering role/privacy denial, immutable historic conditions, related-history pagination/search, stale context, quarantines, disputed sources, original RND eligibility, concurrent exact reuse, and explicit consumption. Fixtures were created only in an ownership-checked disposable localhost PostgreSQL database and cleaned up. An initial failed run's owned database was also removed after the query-strategy repair.
+- Shared in-app browser: normal existing RND login, current Pandesal case opened, Related reviews appended its paper inside the canvas, three completed heart-condition reviews loaded, and Chicken Enchilada Casserole expanded its saved nutrition/ingredients. Browser error log was empty at verification. No claim or clinical decision was submitted. Screenshots remain private local artifacts under `backend/.local/review-read-ui/`.
+- Backend application build, focused script type check, scoped lint and 32 focused policy tests passed. Broad runtime tests: 1,036 passed, one existing todo, one failure in `current-plan-preparation-slots.test.ts`; its retained-history expectation runs with the global unit fixture's clarification feature disabled, while the unchanged history helper returns no retained rows in that mode. Broad `npm test` compilation remains blocked by fixture typing errors in `meal-quarantine-list`, `source-recipe-cloudinary` and `structured-restriction-adapter`; a fully green broad suite is not claimed.
+
+## Runtime boundaries
+
+Changes are local to the shared Desktop checkout. The normal backend was briefly restarted to regenerate the client because Windows locked its loaded engine DLL. The shared defense database received no new fixture, schema migration or direct mutation from this task. Browser use and diagnostic service reads were limited to current evidence inspection. No deployment, credential/configuration change or provider delivery occurred. The existing desktop-size review guard remains unchanged.
