@@ -1,4 +1,5 @@
 import prisma from '@/lib/prisma';
+import { screenFoodExclusions } from '@/domain/food-exclusion.policy';
 import { hasCurrentRiceEvidence } from '@/domain/serving-evidence.policy';
 import { retainedMealsForCycle, retainedSlotKeys } from './plan-repair-history.service';
 import { isCertifiedLibraryMealCompatible, certifiedLibraryMealInclude } from './meal-library-candidate-query.service';
@@ -113,6 +114,7 @@ export class MealPlanCycleService {
             safetyPolicyVersion: true,
             highRiskReviewRequired: true,
             reviewApprovalCount: true,
+            ingredients: { select: { ingredientName: true, foodItem: { select: { name: true } } } },
             profileApproval: {
               select: {
                 safetyScopeKey: true,
@@ -297,12 +299,17 @@ export class MealPlanCycleService {
           );
         }
         if (meal.candidateProvenance === 'RAW_RECIPE_CORPUS' && meal.reviewApprovalCount === 0) {
+          const exclusion = screenFoodExclusions(
+            meal.ingredients.map((item) => ({ name: item.ingredientName, compositionFoodName: item.foodItem?.name })),
+            safetyRestrictions.foodExclusions
+          );
           return (
+            exclusion.complete &&
+            !exclusion.conflicts.length &&
             !safetyRestrictions.requiresReview &&
             safetyRestrictions.conditions.length === 0 &&
             safetyRestrictions.allergies.length === 0 &&
             safetyRestrictions.customConditions.length === 0 &&
-            safetyRestrictions.customFoodRestrictions.length === 0 &&
             meal.sourceRawRecipeCandidate?.sourceName === 'PANLASANG_PINOY' &&
             meal.sourceRawRecipeCandidate.status === 'AVAILABLE' &&
             meal.sourceRawRecipeCandidate.libraryVariants.length === 0 &&

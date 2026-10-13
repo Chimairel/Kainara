@@ -2,6 +2,7 @@
 import Dropdown from '@/components/ui/Dropdown';
 
 import Button from '@/components/ui/Button';
+import Checkbox from '@/components/ui/Checkbox';
 
 import type { useProfileWorkPanelModel } from './useProfileWorkPanelModel';
 type Model = Extract<ReturnType<typeof useProfileWorkPanelModel>, { kind: 'ready' }>;
@@ -20,6 +21,8 @@ type SectionProps = {
     | 'decideProfile'
     | 'conditionAssessments'
     | 'setConditionAssessments'
+    | 'reviewedDeclarationIds'
+    | 'setReviewedDeclarationIds'
   >;
 };
 export default function ProfileClinicalReview({ model, section = 'all' }: SectionProps) {
@@ -34,6 +37,8 @@ export default function ProfileClinicalReview({ model, section = 'all' }: Sectio
     decideProfile,
     conditionAssessments,
     setConditionAssessments,
+    reviewedDeclarationIds,
+    setReviewedDeclarationIds,
   } = model;
   if (!detail) return null;
   return (
@@ -90,7 +95,9 @@ export default function ProfileClinicalReview({ model, section = 'all' }: Sectio
                               <input
                                 type="checkbox"
                                 checked={!!draft}
-                                onChange={(event) =>
+                                onChange={(event) => {
+                                  if (event.target.checked)
+                                    setReviewedDeclarationIds?.((ids) => ids.filter((id) => id !== entry.id));
                                   setConditionAssessments((items) =>
                                     event.target.checked
                                       ? [
@@ -103,8 +110,8 @@ export default function ProfileClinicalReview({ model, section = 'all' }: Sectio
                                           },
                                         ]
                                       : items.filter((item) => item.entryId !== entry.id)
-                                  )
-                                }
+                                  );
+                                }}
                               />
                               No additional meal restrictions identified
                             </label>
@@ -157,6 +164,40 @@ export default function ProfileClinicalReview({ model, section = 'all' }: Sectio
           {section !== 'evidence' && (
             <>
               <h3 className="font-bold text-brand-text">Profile decision</h3>
+              <p className="text-brand-muted">
+                If the details are complete and correct, confirm this profile as recorded. Send a correction only when a
+                declaration needs to change.
+              </p>
+              {!!detail.profileReview.clarificationEntries?.length && (
+                <fieldset disabled={busy || !detail.profileReview.claim?.mine} className="space-y-3">
+                  <legend className="mb-2 font-semibold">Declarations to review</legend>
+                  {detail.profileReview.clarificationEntries.map((entry) => (
+                    <div key={entry.id}>
+                      {entry.canReviewAsRecorded ? (
+                        <Checkbox
+                          id={`review-as-recorded-${entry.id}`}
+                          label={`Reviewed as recorded: ${entry.displayName} (${entry.domain.replace(/_/g, ' ').toLowerCase()})`}
+                          disabled={busy || !detail.profileReview?.claim?.mine}
+                          checked={reviewedDeclarationIds?.includes(entry.id) ?? false}
+                          onCheckedChange={(checked) => {
+                            if (checked === true)
+                              setConditionAssessments((items) => items.filter((item) => item.entryId !== entry.id));
+                            setReviewedDeclarationIds((ids) =>
+                              checked === true ? [...ids, entry.id] : ids.filter((id) => id !== entry.id)
+                            );
+                          }}
+                        />
+                      ) : (
+                        <p>{entry.displayName}: request clarification or correct this declaration.</p>
+                      )}
+                    </div>
+                  ))}
+                  <p className="text-brand-muted">
+                    Confirming retains these restrictions. It does not certify individual meals or remove their review
+                    checks.
+                  </p>
+                </fieldset>
+              )}
               {detail.requirements.map((item) => (
                 <p key={item.area} className={item.state === 'READY' ? 'text-brand-muted' : 'text-amber-500'}>
                   {item.area.replace(/_/g, ' ')}: {item.message}
@@ -215,10 +256,15 @@ export default function ProfileClinicalReview({ model, section = 'all' }: Sectio
                       ))}
                     {(detail.profileReview.clarificationEntryIds
                       ? detail.profileReview.clarificationEntryIds.some(
-                          (id) => !conditionAssessments.some((item) => item.entryId === id)
+                          (id) =>
+                            !conditionAssessments.some((item) => item.entryId === id) &&
+                            !reviewedDeclarationIds?.includes(id)
                         )
                       : detail.profileReview.needsClarification) && (
-                      <li>Resolve the profile restrictions that need clarification.</li>
+                      <li>
+                        Review the listed declarations as recorded, or request clarification for entries that remain
+                        unclear.
+                      </li>
                     )}
                     {conditionAssessments.some(
                       (item) =>

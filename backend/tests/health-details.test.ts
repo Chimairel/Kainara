@@ -17,6 +17,33 @@ const user = {
   allergies: [{ allergen: 'PEANUTS' }],
   clinicalContextResponses: [] as Array<{ area: ClinicalEvidenceArea; responses: unknown }>,
 };
+
+test('condition details do not turn a known food preference into an allergy-details requirement', () => {
+  const profile = {
+    ...user,
+    healthConditions: [{ condition: HealthConditionType.HEART_CONDITION }],
+    allergies: [],
+    userProfile: { ...user.userProfile, otherAllergies: 'PORK' },
+    safetyProfileEntries: [
+      { domain: 'CONDITION', canonicalCode: 'HEART_CONDITION', supportState: 'RECOGNIZED_UNSUPPORTED' },
+      { domain: 'AVOIDED_INGREDIENT', canonicalCode: 'PORK', supportState: 'RECOGNIZED_UNSUPPORTED' },
+    ],
+  };
+  assert.deepEqual(
+    healthDetailsRequirements(profile).map((item) => item.area),
+    ['HEART_CONDITION']
+  );
+  assert.deepEqual(
+    healthDetailsRequirements({
+      ...profile,
+      safetyProfileEntries: [
+        ...profile.safetyProfileEntries,
+        { domain: 'ALLERGY', canonicalCode: null, displayName: 'Pork', supportState: 'PENDING_REVIEW' },
+      ],
+    }).map((item) => item.area),
+    ['HEART_CONDITION', 'FOOD_ALLERGY']
+  );
+});
 test('declared conditions and allergies need their own complete current form', () => {
   const missing = healthDetailsRequirements(user);
   assert.deepEqual(

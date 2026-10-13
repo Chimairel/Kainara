@@ -13,6 +13,21 @@ import {
   SafetyIntakeService,
 } from '../src/services/safety-intake.service';
 
+test('pork and beef stay in the selected food domain; only named avoidance has deterministic support', () => {
+  for (const value of ['Pork', 'Beef']) {
+    const entries = resolveSafetyEntries([
+      { domain: 'ALLERGY', value, provenance: 'CUSTOM' },
+      { domain: 'AVOIDED_INGREDIENT', value: value.toUpperCase(), provenance: 'PREDEFINED' },
+    ]);
+    assert.equal(entries.length, 2);
+    assert.equal(entries[0].domain, 'ALLERGY');
+    assert.equal(entries[0].supportState, 'PENDING_REVIEW');
+    assert.equal(entries[1].domain, 'AVOIDED_INGREDIENT');
+    assert.equal(entries[1].supportState, 'SUPPORTED');
+    assert.equal(entries[1].policyReference, 'NAMED_FOOD_EXCLUSIONS_V1');
+  }
+});
+
 test('structured intake splits documented separators but preserves ordinary spaces', () => {
   assert.deepEqual(splitSafetyInput('chronic kidney disease, gout; soy / sesame\nlactose intolerance'), [
     'chronic kidney disease',

@@ -109,8 +109,7 @@ export async function generate7DayPlan(
     !restrictions.requiresReview &&
     !restrictions.conditions.length &&
     !restrictions.allergies.length &&
-    !restrictions.customConditions.length &&
-    !restrictions.customFoodRestrictions.length;
+    !restrictions.customConditions.length;
   const individualReviewRequired = requiresMealCandidateReview(restrictions);
   const assuranceTier = getMaximumAssuranceTier(userConditions);
 

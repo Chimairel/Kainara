@@ -42,6 +42,57 @@ const entry = (
   originalText: displayName,
 });
 
+test('named avoided foods filter ingredients without requiring a whole-profile review', () => {
+  for (const supportState of ['SUPPORTED', 'RECOGNIZED_UNSUPPORTED']) {
+    const profile = {
+      dietaryPreference: 'OMNIVORE',
+      safetyEntries: [
+        entry('CONDITION', 'NONE'),
+        entry('ALLERGY', 'SHELLFISH'),
+        entry('AVOIDED_INGREDIENT', 'PORK', supportState),
+      ],
+    };
+    const adapted = adaptUserSafetyRestrictions(profile);
+    assert.equal(adapted.requiresReview, false);
+    assert.deepEqual(adapted.foodExclusions, ['PORK']);
+    assert.deepEqual(adapted.customFoodRestrictions, ['PORK'], 'Keep the exclusion in context/signatures.');
+    const meal = certifiedMeal(['OMNIVORE'], [], ['SHELLFISH']);
+    assert.equal(isCertifiedLibraryMealCompatible(meal, [], [], profile), true);
+    for (const ingredientName of ['pork', 'baboy', 'bacon', 'lard', 'Mystery sauce', 'meat broth'])
+      assert.equal(
+        isCertifiedLibraryMealCompatible(
+          { ...meal, ingredients: [{ ...meal.ingredients[0], ingredientName }] },
+          [],
+          [],
+          profile
+        ),
+        false,
+        ingredientName
+      );
+    assert.equal(
+      isCertifiedLibraryMealCompatible(
+        { ...meal, ingredients: [{ ...meal.ingredients[0], foodItem: { name: 'Pork' } }] },
+        [],
+        [],
+        profile
+      ),
+      false
+    );
+  }
+  for (const domain of ['ALLERGY', 'INTOLERANCE']) {
+    assert.equal(
+      adaptUserSafetyRestrictions({ safetyEntries: [entry(domain, 'PORK', 'PENDING_REVIEW')] }).requiresReview,
+      true
+    );
+  }
+  assert.equal(
+    adaptUserSafetyRestrictions({
+      safetyEntries: [entry('AVOIDED_INGREDIENT', null, 'PENDING_REVIEW', 'Unfamiliar food')],
+    }).requiresReview,
+    true
+  );
+});
+
 const certifiedMeal = (dietaryTags: string[], conditions: string[], allergenFree: string[]) => ({
   recipeSignature: 'a'.repeat(64),
   status: 'APPROVED',

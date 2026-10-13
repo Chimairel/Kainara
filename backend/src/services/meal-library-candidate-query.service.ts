@@ -6,6 +6,7 @@ import { mealApprovalSafetyScope } from '@/domain/meal-approval-scope.policy';
 import { getMealSlotCalorieRange, isPrimaryMealType } from '@/domain/meal-calorie-allocation.policy';
 import { evaluateMealGenerationLibraryCompatibility } from '@/domain/meal-generation-library-compatibility.adapter';
 import { classifyMealIngredients } from '@/domain/meal-ingredient-classification.policy';
+import { screenFoodExclusions } from '@/domain/food-exclusion.policy';
 import type { LibraryCompatibilityCandidate } from '@/domain/meal-library-compatibility.types';
 import { evaluateMealLibrarySafetyEvidence } from '@/domain/meal-library-safety-evidence.policy';
 import { MEAL_PLAN_SAFETY_POLICY_VERSION } from '@/domain/meal-plan-production-safety.policy';
@@ -113,12 +114,19 @@ export function isCertifiedLibraryMealCompatible(
   const requestedConditions = restrictions.conditions.filter((condition) => condition !== 'NONE');
   // Supported allergy-only profiles use explicit reviewed absence evidence.
   // Conditions and custom restrictions retain their existing clinical gates.
-  if (
-    restrictions.requiresReview ||
-    restrictions.customFoodRestrictions.length ||
-    (restrictions.allergies.length > 0 && requestedConditions.length > 0)
-  )
+  if (restrictions.requiresReview || (restrictions.allergies.length > 0 && requestedConditions.length > 0))
     return false;
+  const exclusion = screenFoodExclusions(
+    Array.isArray(meal.ingredients)
+      ? meal.ingredients.flatMap((item) => {
+          if (!item || typeof item !== 'object' || typeof item.ingredientName !== 'string')
+            return [{ name: '[Unknown ingredient]' }];
+          return [{ name: item.ingredientName, compositionFoodName: item.foodItem?.name }];
+        })
+      : [],
+    restrictions.foodExclusions
+  );
+  if (exclusion.conflicts.length || !exclusion.complete) return false;
   if (restrictions.allergies.length > 0) {
     if (!Array.isArray(meal.ingredients) || !meal.ingredients.length) return false;
     const names: Array<{ name: string; category?: string | null }> = [];
@@ -199,7 +207,6 @@ export function isLibraryMealSafeToQueueForCaseReview(
   if (
     restrictions.requiresReview ||
     restrictions.customConditions.length ||
-    restrictions.customFoodRestrictions.length ||
     (!restrictions.conditions.length && !restrictions.allergies.length)
   )
     return false;
@@ -225,7 +232,13 @@ export function isLibraryMealSafeToQueueForCaseReview(
       ...(ingredient.foodItem?.name ? [{ name: ingredient.foodItem.name, category: ingredient.category }] : []),
     ])
   );
+  const exclusion = screenFoodExclusions(
+    meal.ingredients.map((item) => ({ name: item.ingredientName, compositionFoodName: item.foodItem?.name })),
+    restrictions.foodExclusions
+  );
   return (
+    exclusion.complete &&
+    !exclusion.conflicts.length &&
     classification.status === 'COMPLETE' &&
     !classification.detectedAllergens.some((allergen) => restrictions.allergies.includes(allergen))
   );
@@ -269,6 +282,11 @@ export function isProfileApprovedLibraryMealCompatible(
       isNutritionistEligibleForReview(entry.reviewerNutritionist)
   );
   if (!approved) return false;
+  const exclusion = screenFoodExclusions(
+    meal.ingredients.map((item) => ({ name: item.ingredientName, compositionFoodName: item.foodItem?.name })),
+    restrictions.foodExclusions
+  );
+  if (!exclusion.complete || exclusion.conflicts.length) return false;
   const classification = classifyMealIngredients(
     meal.ingredients.flatMap((ingredient) => [
       { name: ingredient.ingredientName, category: ingredient.category },

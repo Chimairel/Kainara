@@ -3,6 +3,7 @@ import {
   adaptUserSafetyRestrictions,
   type CanonicalUserSafetyRestrictions,
   type UserSafetyRestrictionSource,
+  type StructuredSafetyRestrictionEntry,
 } from './structured-restriction.adapter';
 import {
   PLANNING_PROFILE_FIELDS,
@@ -20,7 +21,6 @@ export function requiresIndividualPlanningReview(restrictions: CanonicalUserSafe
     restrictions.requiresReview ||
     restrictions.conditions.some((key) => key !== 'NONE') ||
     restrictions.customConditions.length > 0 ||
-    restrictions.customFoodRestrictions.length > 0 ||
     restrictions.allergies.some((key) => key !== 'NONE' && !allergyKeys.has(key))
   );
 }
@@ -39,6 +39,9 @@ function snapshotRequiresHealth(report: Report): boolean {
     allergies: snapshot.allergens,
     otherConditions: snapshot.otherConditions,
     otherAllergies: snapshot.otherAllergies,
+    safetyEntries: Array.isArray(snapshot.safetyEntries)
+      ? (snapshot.safetyEntries as unknown as StructuredSafetyRestrictionEntry[])
+      : undefined,
   });
 }
 

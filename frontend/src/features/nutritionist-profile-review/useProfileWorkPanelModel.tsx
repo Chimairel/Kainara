@@ -36,6 +36,7 @@ export function useProfileWorkPanelModel() {
   const [error, setError] = useState<string | null>(null);
   const [notes, setNotes] = useState('');
   const [conditionAssessments, setConditionAssessments] = useState<ConditionAssessmentDraft[]>([]);
+  const [reviewedDeclarationIds, setReviewedDeclarationIds] = useState<string[]>([]);
   const [requestArea, setRequestArea] = useState('');
   const [decision, setDecision] = useState<'SUFFICIENT' | 'NEEDS_CLARIFICATION' | 'UNUSABLE'>('NEEDS_CLARIFICATION');
   const [rationale, setRationale] = useState('');
@@ -46,8 +47,15 @@ export function useProfileWorkPanelModel() {
   const [confirmedFacts, setConfirmedFacts] = useState<Array<{ code: string; valueText: string }>>([]);
   useEffect(() => {
     setConditionAssessments([]);
+    setReviewedDeclarationIds([]);
     setNotes('');
-  }, [detail?.profileReview?.scopeKey, detail?.profileReview?.profileRevision]);
+  }, [
+    ownerId,
+    detail?.userId,
+    detail?.profileReview?.scopeKey,
+    detail?.profileReview?.profileRevision,
+    detail?.profileReview?.claim?.mine,
+  ]);
 
   const detailRef = useRef(detail);
   detailRef.current = detail;
@@ -63,6 +71,7 @@ export function useProfileWorkPanelModel() {
     setExpanded(false);
     setNotes('');
     setConditionAssessments([]);
+    setReviewedDeclarationIds([]);
     setOpeningPersonId(null);
     setBusy(false);
   }, []);
@@ -271,6 +280,7 @@ export function useProfileWorkPanelModel() {
         scopeKey: detail.profileReview.scopeKey,
         ...(outcome === 'REQUEST_DETAILS' ? { area: requestArea } : {}),
         ...(outcome === 'APPROVED' && conditionAssessments.length ? { conditionAssessments } : {}),
+        ...(outcome === 'APPROVED' && reviewedDeclarationIds.length ? { reviewedDeclarationIds } : {}),
       });
       if (liveOwner.current !== ownerId || requestId !== selectionRequest.current) return;
       setNotes('');
@@ -321,7 +331,7 @@ export function useProfileWorkPanelModel() {
     ) ||
     (detail?.profileReview?.clarificationEntryIds
       ? detail.profileReview.clarificationEntryIds.some(
-          (id) => !conditionAssessments.some((item) => item.entryId === id)
+          (id) => !conditionAssessments.some((item) => item.entryId === id) && !reviewedDeclarationIds.includes(id)
         )
       : detail?.profileReview?.needsClarification) ||
     detail?.requirements.some((item) => item.state !== 'READY') ||
@@ -373,6 +383,8 @@ export function useProfileWorkPanelModel() {
     setRequestArea,
     notes,
     conditionAssessments,
+    reviewedDeclarationIds,
+    setReviewedDeclarationIds,
     setConditionAssessments,
     setNotes,
     profileBlocked,

@@ -26,9 +26,9 @@ type StoredNutritionReport = NonNullable<Awaited<ReturnType<typeof prisma.nutrit
 const samePlanningTargets = (left: PlanningMacroTargets | null, right: PlanningMacroTargets | null) =>
   Boolean(
     left &&
-    right &&
-    (['policyVersion', 'basis', 'goal'] as const).every((key) => left[key] === right[key]) &&
-    (['calories', 'proteinG', 'carbsG', 'fatG'] as const).every((key) => Math.abs(left[key] - right[key]) < 1e-9)
+      right &&
+      (['policyVersion', 'basis', 'goal'] as const).every((key) => left[key] === right[key]) &&
+      (['calories', 'proteinG', 'carbsG', 'fatG'] as const).every((key) => Math.abs(left[key] - right[key]) < 1e-9)
   );
 type ReportResponse = StoredNutritionReport & {
   foodGuidance?: FoodGuidance;
@@ -339,6 +339,15 @@ export class NutritionReportService {
         ),
         otherAllergies,
         nutritionReferences: guidance.nutritionReferences,
+        safetyEntries: user.safetyProfileEntries.map(
+          ({ domain, canonicalCode, displayName, supportState, mealPlanningAssessment }) => ({
+            domain,
+            canonicalCode,
+            displayName,
+            supportState,
+            mealPlanningAssessment,
+          })
+        ),
         planningTargets,
       })
     ) as Prisma.JsonObject;

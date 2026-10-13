@@ -80,3 +80,25 @@ test('Free applies weight-only changes; mixed changes and standalone calorie edi
     'Missing prior snapshot is not proof of a weight-only update.'
   );
 });
+
+test('new snapshots preserve avoided-food domain for membership, while ambiguous old snapshots stay conservative', () => {
+  const safetyEntries = [
+    { domain: 'AVOIDED_INGREDIENT', canonicalCode: 'PORK', displayName: 'Pork', supportState: 'SUPPORTED' },
+  ];
+  assert.equal(
+    reportActivationTier(
+      report({ weightKg: 62 }, { otherAllergies: 'PORK', safetyEntries }),
+      report({}, { otherAllergies: 'PORK', safetyEntries }),
+      false
+    ),
+    null
+  );
+  assert.equal(
+    reportActivationTier(
+      report({ weightKg: 62 }, { otherAllergies: 'PORK' }),
+      report({}, { otherAllergies: 'PORK' }),
+      false
+    ),
+    'HEALTH'
+  );
+});

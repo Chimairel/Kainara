@@ -1,6 +1,7 @@
 import type { DietaryPreference } from '@prisma/client';
 import { clinicalEvidenceSourceByCode } from './clinical-evidence-source.catalog';
 import { validateGeneratedMealCandidate } from './generated-meal-validation.policy';
+import { foodExclusionKey } from './food-exclusion.policy';
 import type {
   CanonicalUserSafetyRestrictions,
   StructuredSafetyRestrictionEntry,
@@ -77,10 +78,15 @@ export function buildFoodGuidance(input: {
       reason,
       entry.domain === 'ALLERGY'
         ? 'Check ingredient labels, sauces and shared preparation equipment; ask the preparer about cross-contact.'
-        : 'Keep this ingredient excluded until you and your RND clarify the restriction.',
+        : entry.domain === 'AVOIDED_INGREDIENT' && (code || foodExclusionKey(candidateCode))
+          ? 'Check ingredients, sauces and preparation; choose meals without this food.'
+          : 'Keep this ingredient excluded until you and your RND clarify the restriction.',
       ALLERGY
     );
-    if (!code || entry.domain === 'INTOLERANCE')
+    if (
+      (!code && !(entry.domain === 'AVOIDED_INGREDIENT' && foodExclusionKey(candidateCode))) ||
+      entry.domain === 'INTOLERANCE'
+    )
       add(
         'discuss',
         entry.label,

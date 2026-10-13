@@ -1,4 +1,5 @@
 import { ClinicalClarificationService, hasUnresolvedClarifications } from './clinical-clarification.service';
+import { canReviewDeclarationAsRecorded } from '@/domain/profile-declaration-review.policy';
 import { ClinicalProfileProposalService, hasPendingProfileProposal } from './clinical-profile-proposal.service';
 import {
   context,
@@ -505,6 +506,18 @@ export class ClinicalProfileReviewService {
             !activeConditionPlanningAssessment(item)
         )
         .map((item) => item.id),
+      clarificationEntries: user.safetyProfileEntries
+        .filter(
+          (item) =>
+            !['SUPPORTED', 'RECOGNIZED_UNSUPPORTED'].includes(item.supportState) &&
+            !activeConditionPlanningAssessment(item)
+        )
+        .map((item) => ({
+          id: item.id,
+          domain: item.domain,
+          displayName: item.displayName,
+          canReviewAsRecorded: canReviewDeclarationAsRecorded(item),
+        })),
       requirements: clinicalWorkspace.requirements,
       documents: clinicalWorkspace.documents.map(({ id, area, documentType, status, originalFileName, createdAt }) => ({
         id,
@@ -546,7 +559,8 @@ export class ClinicalProfileReviewService {
     notes: string,
     area?: ClinicalEvidenceArea,
     expected?: { profileRevision: number; scopeKey: string },
-    conditionAssessments: readonly ConditionAssessmentInput[] = []
+    conditionAssessments: readonly ConditionAssessmentInput[] = [],
+    reviewedDeclarationIds: readonly string[] = []
   ) {
     await ReviewRoutingService.assertProfile(reviewerId, userId);
     const reviewer = await prisma.nutritionistProfile.findUnique({
@@ -558,6 +572,21 @@ export class ClinicalProfileReviewService {
     const user = await prisma.user.findUnique({ where: { id: userId }, include: userInclude });
     if (!user || user.role !== Role.USER) throw new AppError('Profile not found.', 404, 'PROFILE_NOT_FOUND');
     const current = context(user);
+    if (
+      reviewedDeclarationIds.length > 50 ||
+      new Set(reviewedDeclarationIds).size !== reviewedDeclarationIds.length ||
+      (reviewedDeclarationIds.length && (decision !== 'APPROVED' || notes.trim().length < 10)) ||
+      reviewedDeclarationIds.some(
+        (id) =>
+          conditionAssessments.some((item) => item.entryId === id) ||
+          !user.safetyProfileEntries.some((item) => item.id === id && canReviewDeclarationAsRecorded(item))
+      )
+    )
+      throw new AppError(
+        'Select only current named declarations that you reviewed as recorded.',
+        422,
+        'PROFILE_DECLARATION_REVIEW_INVALID'
+      );
     if (
       conditionAssessments.length > 20 ||
       new Set(conditionAssessments.map((item) => item.entryId)).size !== conditionAssessments.length
@@ -599,11 +628,12 @@ export class ClinicalProfileReviewService {
         (item) =>
           !['SUPPORTED', 'RECOGNIZED_UNSUPPORTED'].includes(item.supportState) &&
           !activeConditionPlanningAssessment(item) &&
-          !assessedIds.has(item.id)
+          !assessedIds.has(item.id) &&
+          !reviewedDeclarationIds.includes(item.id)
       );
       if (unresolved || (current.needsClarification && !user.safetyProfileEntries.length))
         throw new AppError(
-          'Clarify unsupported or vague restrictions before approval.',
+          'Review named declarations as recorded, or clarify entries whose meaning remains unclear before approval.',
           422,
           'PROFILE_CLARIFICATION_REQUIRED'
         );
@@ -623,6 +653,13 @@ export class ClinicalProfileReviewService {
         throw new AppError('The profile changed during review. Open its latest version.', 409, 'PROFILE_REVIEW_STALE');
       if (!expected || expected.profileRevision !== current.profile.revision || expected.scopeKey !== current.scopeKey)
         throw new AppError('The profile changed. Reload and claim its current version.', 409, 'PROFILE_REVIEW_STALE');
+      if (
+        reviewedDeclarationIds.some(
+          (id) =>
+            !latestUser.safetyProfileEntries.some((item) => item.id === id && canReviewDeclarationAsRecorded(item))
+        )
+      )
+        throw new AppError('Reload the current declarations before confirming.', 409, 'PROFILE_REVIEW_STALE');
       const liveReviewer = await tx.nutritionistProfile.findUnique({
         where: { id: reviewerId },
         include: { user: true },
@@ -703,7 +740,22 @@ export class ClinicalProfileReviewService {
       const data = {
         status: decision === 'REQUEST_DETAILS' ? ClinicalProfileReviewStatus.DECLINED : decision,
         reasonCodes: decision === 'REQUEST_DETAILS' ? ['DETAILS_REQUESTED', area!] : [],
-        profileSnapshot: { ...current.snapshot, conditionAssessments: recordedAssessments },
+        profileSnapshot: {
+          ...current.snapshot,
+          conditionAssessments: recordedAssessments,
+          reviewedDeclarations: latestUser.safetyProfileEntries
+            .filter((item) => reviewedDeclarationIds.includes(item.id))
+            .map((item) => ({
+              entryId: item.id,
+              domain: item.domain,
+              displayName: item.displayName,
+              supportState: item.supportState,
+              result: 'REVIEWED_AS_RECORDED',
+              reviewerId,
+              reviewedAt: assessedAt.toISOString(),
+              notes: notes.trim(),
+            })),
+        },
         reviewerId,
         reviewNotes: notes,
         reviewedAt: new Date(),
@@ -731,6 +783,7 @@ export class ClinicalProfileReviewService {
             safetyRevision: current.profile.safetyRevision,
             scopeKey: current.scopeKey,
             conditionAssessments: recordedAssessments,
+            reviewedDeclarationIds: [...reviewedDeclarationIds],
           },
         },
       });

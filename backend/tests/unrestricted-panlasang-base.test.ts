@@ -27,6 +27,38 @@ const input = {
   ],
 };
 
+test('known avoidance alone preserves measured source eligibility, while allergies and conflicting ingredients do not', () => {
+  const safetyEntries = [
+    {
+      domain: 'AVOIDED_INGREDIENT',
+      canonicalCode: 'PORK',
+      displayName: 'Pork',
+      supportState: 'RECOGNIZED_UNSUPPORTED',
+    },
+  ];
+  assert.equal(isUnrestrictedPanlasangBaseEligible({ ...input, safetyEntries }), true);
+  assert.equal(
+    isUnrestrictedPanlasangBaseEligible({
+      ...input,
+      safetyEntries: [
+        ...safetyEntries,
+        { domain: 'ALLERGY', canonicalCode: 'SHELLFISH', displayName: 'Shellfish', supportState: 'SUPPORTED' },
+      ],
+    }),
+    false
+  );
+  const pork = { ...source, ingredients: [{ name: 'baboy', quantity: 150, unit: 'g' }] };
+  assert.equal(
+    isUnrestrictedPanlasangBaseEligible({
+      ...input,
+      source: pork,
+      safetyEntries,
+      preparedIngredients: [{ ingredientName: 'baboy', quantity: 150, unit: 'g' }],
+    }),
+    false
+  );
+});
+
 test('saved ingredients may arrive in any SQL order without changing eligibility', () => {
   assert.equal(
     isUnrestrictedPanlasangBaseEligible({ ...input, preparedIngredients: [...input.preparedIngredients].reverse() }),

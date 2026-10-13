@@ -1,6 +1,7 @@
 import type { Prisma } from '@prisma/client';
 import { adaptUserSafetyRestrictions, type StructuredSafetyRestrictionEntry } from './structured-restriction.adapter';
 import { isInvalidSourceIngredientLabel } from './source-ingredient-fnri-match.policy';
+import { screenFoodExclusions } from './food-exclusion.policy';
 import {
   scalePublishedAmount,
   SOURCE_SERVING_MAX_SCALE,
@@ -43,10 +44,14 @@ export function isUnrestrictedPanlasangBaseEligible(input: {
     restrictions.requiresReview ||
     restrictions.conditions.length ||
     restrictions.allergies.length ||
-    restrictions.customConditions.length ||
-    restrictions.customFoodRestrictions.length
+    restrictions.customConditions.length
   )
     return false;
+  const exclusion = screenFoodExclusions(
+    input.preparedIngredients.map((item) => ({ name: item.ingredientName })),
+    restrictions.foodExclusions
+  );
+  if (!exclusion.complete || exclusion.conflicts.length) return false;
   const source = input.source;
   const sourceNutrition = source?.publishedNutrition;
   // Assumed demonstration preparations require an explicit RND decision.

@@ -3,6 +3,7 @@ import { evidenceAreaForCondition } from './clinical-evidence-requirement.policy
 import { requiresHealthPlanning } from './planning-membership.policy';
 import { isCurrentHealthDetails } from '@/validation/health-details.schemas';
 import { adaptUserSafetyRestrictions } from './structured-restriction.adapter';
+import { isDeterministicAvoidedFood } from './food-exclusion.policy';
 
 type HealthDetailsProfile = {
   userProfile: { safetyRevision: number; otherConditions: string | null; otherAllergies: string | null } | null;
@@ -18,8 +19,17 @@ export function healthDetailsAreas(user: Omit<HealthDetailsProfile, 'clinicalCon
     const area = evidenceAreaForCondition(condition);
     if (area) areas.add(area);
   });
-  if (user.allergies.some(({ allergen }) => allergen !== 'NONE') || user.userProfile?.otherAllergies?.trim())
-    areas.add(ClinicalEvidenceArea.FOOD_ALLERGY);
+  const foodDetailsNeeded = user.safetyProfileEntries?.length
+    ? user.safetyProfileEntries.some(
+        (entry) =>
+          entry.canonicalCode !== 'NONE' &&
+          (['ALLERGY', 'INTOLERANCE', 'UNKNOWN'].includes(String(entry.domain)) ||
+            (entry.domain === 'AVOIDED_INGREDIENT' &&
+              entry.supportState !== 'SUPPORTED' &&
+              !isDeterministicAvoidedFood(entry)))
+      )
+    : user.allergies.some(({ allergen }) => allergen !== 'NONE') || user.userProfile?.otherAllergies?.trim();
+  if (foodDetailsNeeded) areas.add(ClinicalEvidenceArea.FOOD_ALLERGY);
   if (user.userProfile?.otherConditions?.trim()) areas.add(ClinicalEvidenceArea.OTHER);
   return [...areas];
 }

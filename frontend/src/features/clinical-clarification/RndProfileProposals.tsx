@@ -111,7 +111,7 @@ export default function RndProfileProposals({
           <h3 className="font-bold">Propose a correction</h3>
           <p className="text-xs text-brand-muted">
             Use information reviewed with this member. The member must acknowledge the recorded changes before they
-            apply. Confirming a profile for planning remains a separate review.
+            apply. If the recorded profile is already correct, use Profile decision to confirm it without a correction.
           </p>
           {!canWrite && <p className="text-xs text-brand-muted">Claim this profile to propose corrections.</p>}
           {(['CONDITION', 'ALLERGY', 'INTOLERANCE', 'AVOIDED_INGREDIENT'] as SafetyInput['domain'][]).map((domain) => {

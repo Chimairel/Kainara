@@ -4,7 +4,7 @@ import { createHash, randomUUID } from 'node:crypto';
 import { Prisma } from '@prisma/client';
 import prisma from '@/lib/prisma';
 import { loadPlanningNutritionContext } from '@/domain/user-nutrition-context';
-import { hasDeclaredSafetyRestrictions } from '@/domain/structured-restriction.adapter';
+import { adaptUserSafetyRestrictions } from '@/domain/structured-restriction.adapter';
 import { validateGeneratedMealCandidate } from '@/domain/generated-meal-validation.policy';
 import { isUnrestrictedPanlasangBaseEligible } from '@/domain/unrestricted-panlasang-base.policy';
 import { getMealSlotCalorieRange, isPrimaryMealType } from '@/domain/meal-calorie-allocation.policy';
@@ -41,13 +41,18 @@ type Plate = NonNullable<ReturnType<typeof rawRecipeServing>>;
 
 async function sourceContext(client: Prisma.TransactionClient, userId: string, slot: Slot) {
   const context = await loadPlanningNutritionContext(client, userId, 'User profile not found.');
-  const unrestricted = !hasDeclaredSafetyRestrictions({
+  const restrictions = adaptUserSafetyRestrictions({
     healthConditions: context.conditions,
     allergies: context.allergens,
     otherConditions: context.otherConditions,
     otherAllergies: context.otherAllergies,
     safetyEntries: context.user.safetyProfileEntries,
   });
+  const unrestricted =
+    !restrictions.requiresReview &&
+    !restrictions.conditions.length &&
+    !restrictions.allergies.length &&
+    !restrictions.customConditions.length;
   const snapshot = await client.mealPlanCycleSnapshot.findUnique({ where: { planGroupId: slot.planGroupId } });
   const dailyTarget = resolvePlanTargetCalories(snapshot?.dailyCalorieTarget, context.profile.dailyCalorieTarget, 2000);
   const rice =
@@ -164,6 +169,7 @@ export async function listSourceSwapOptions(userId: string, slot: Slot) {
           ingredients: plate.ingredients,
           dietaryPreference: context.profile.dietaryPreference || 'OMNIVORE',
           allergens: [],
+          customAllergies: context.otherAllergies ? context.otherAllergies.split(',') : [],
         }).accepted
       )
         continue;
@@ -227,6 +233,7 @@ async function buildSourcePreview(
       ingredients: plate.ingredients,
       dietaryPreference: context.profile.dietaryPreference || 'OMNIVORE',
       allergens: [],
+      customAllergies: context.otherAllergies ? context.otherAllergies.split(',') : [],
     }).accepted
   )
     throw new Error('This replacement does not fit the whole-plate target or rice preference.');

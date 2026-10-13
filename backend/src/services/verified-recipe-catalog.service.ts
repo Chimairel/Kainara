@@ -5,6 +5,7 @@ import { adaptUserSafetyRestrictions } from '@/domain/structured-restriction.ada
 import { admittedLibraryBaseIds } from './meal-base-admission.service';
 import { isUnrestrictedPanlasangBaseEligible } from '@/domain/unrestricted-panlasang-base.policy';
 import { parseRecipeCandidateIngredients } from './panlasang-recipe-candidate.provider';
+import { screenFoodExclusions } from '@/domain/food-exclusion.policy';
 import { getManilaDateKey, getManilaMidnight } from '@/domain/meal-plan-cycle.policy';
 
 /** Browse-only verified bases. This endpoint never grants planning or case clearance. */
@@ -26,8 +27,7 @@ export class VerifiedRecipeCatalogService {
       restrictions.requiresReview ||
       restrictions.conditions.length ||
       restrictions.allergies.length ||
-      restrictions.customConditions.length ||
-      restrictions.customFoodRestrictions.length
+      restrictions.customConditions.length
     ) {
       return { items: [], total: 0, page: 1, pageCount: 0, restrictedProfile: true };
     }
@@ -129,6 +129,55 @@ export class VerifiedRecipeCatalogService {
       ...(input.mealType ? { applicableMealTypes: { some: { mealType: input.mealType } } } : {}),
       ...(input.riceRole && input.riceRole in RecipeRiceRole ? { riceRole: input.riceRole as RecipeRiceRole } : {}),
     };
+    // Filter identities before counting/paging, using the same ingredient check as
+    // planning and swaps. Small pages keep each read bounded; no certification is granted.
+    if (restrictions.foodExclusions.length) {
+      const rawIds: string[] = [],
+        manualIds: string[] = [];
+      let cursor: string | undefined;
+      for (;;) {
+        const rows = await prisma.rawRecipeCandidate.findMany({
+          where: rawWhere,
+          orderBy: { id: 'asc' },
+          take: 250,
+          ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
+          select: { id: true, ingredients: true },
+        });
+        for (const row of rows) {
+          const check = screenFoodExclusions(
+            parseRecipeCandidateIngredients(row.ingredients),
+            restrictions.foodExclusions
+          );
+          if (check.complete && !check.conflicts.length) rawIds.push(row.id);
+        }
+        if (rows.length < 250) break;
+        cursor = rows[rows.length - 1].id;
+      }
+      cursor = undefined;
+      for (;;) {
+        const rows: Array<{
+          id: string;
+          ingredients: Array<{ ingredientName: string; foodItem: { name: string } | null }>;
+        }> = await prisma.mealLibrary.findMany({
+          where: manualWhere,
+          orderBy: { id: 'asc' },
+          take: 250,
+          ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
+          select: { id: true, ingredients: { select: { ingredientName: true, foodItem: { select: { name: true } } } } },
+        });
+        for (const row of rows) {
+          const check = screenFoodExclusions(
+            row.ingredients.map((item) => ({ name: item.ingredientName, compositionFoodName: item.foodItem?.name })),
+            restrictions.foodExclusions
+          );
+          if (check.complete && !check.conflicts.length) manualIds.push(row.id);
+        }
+        if (rows.length < 250) break;
+        cursor = rows[rows.length - 1].id;
+      }
+      rawWhere.id = { in: rawIds };
+      manualWhere.id = { in: manualIds };
+    }
     const [rawCount, manualCount] = await Promise.all([
       prisma.rawRecipeCandidate.count({ where: rawWhere }),
       prisma.mealLibrary.count({ where: manualWhere }),
@@ -197,6 +246,7 @@ export class VerifiedRecipeCatalogService {
             candidateId: source.id,
             conditions: [],
             allergens: [],
+            safetyEntries: user.safetyProfileEntries,
             preparedIngredients: ingredients.map((item) => ({
               ingredientName: item.name,
               quantity: item.quantity,

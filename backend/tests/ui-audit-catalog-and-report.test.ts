@@ -16,6 +16,61 @@ function replaceMethod(t: TestContext, target: object, name: string, replacement
   t.after(() => Reflect.set(target, name, original));
 }
 
+test('avoidance catalogue excludes conflicting and ambiguous recipes before pagination/counting', async (t) => {
+  const previous = process.env.MEMBERSHIP_ENABLED;
+  process.env.MEMBERSHIP_ENABLED = 'false';
+  t.after(() => {
+    if (previous === undefined) delete process.env.MEMBERSHIP_ENABLED;
+    else process.env.MEMBERSHIP_ENABLED = previous;
+  });
+  replaceMethod(t, prisma.user, 'findUnique', async () => ({
+    userProfile: { dailyCalorieTarget: 1800, weightKg: 60, age: 30 },
+    healthConditions: [],
+    allergies: [],
+    safetyProfileEntries: [
+      {
+        domain: 'AVOIDED_INGREDIENT',
+        canonicalCode: 'PORK',
+        supportState: 'RECOGNIZED_UNSUPPORTED',
+        displayName: 'Pork',
+      },
+    ],
+  }));
+  replaceMethod(t, prisma.mealPlanCycle, 'findFirst', async () => null);
+  replaceMethod(t, prisma.mealPlan, 'findMany', async () => []);
+  replaceMethod(t, prisma.mealLibrary, 'findMany', async () => []);
+  replaceMethod(t, prisma.mealLibrary, 'count', async () => 0);
+  const rows = ['chicken', 'baboy', 'meat broth', 'rice'].map((name, index) => ({
+    id: `source-${index}`,
+    recipeName: name,
+    sourceName: 'PANLASANG_PINOY',
+    status: 'AVAILABLE',
+    ingredients: [{ name, quantity: 100, unit: 'g' }],
+    publishedNutrition: null,
+    calories: 250,
+    proteinG: 10,
+    carbsG: 35,
+    fatG: 9,
+    applicableMealTypes: [{ mealType: 'LUNCH' }],
+  }));
+  replaceMethod(t, prisma.rawRecipeCandidate, 'findMany', async ({ where, take }: any) => {
+    if (take === 250) return rows;
+    assert.deepEqual(where.id.in, ['source-0', 'source-3']);
+    return rows.filter((row) => where.id.in.includes(row.id));
+  });
+  replaceMethod(t, prisma.rawRecipeCandidate, 'count', async ({ where }: any) => {
+    assert.deepEqual(where.id.in, ['source-0', 'source-3']);
+    return where.id.in.length;
+  });
+  const result = await VerifiedRecipeCatalogService.list('member', { page: 1 });
+  assert.equal(result.restrictedProfile, false);
+  assert.equal(result.total, 2);
+  assert.deepEqual(
+    result.items.map((item) => item.id),
+    ['raw:source-0', 'raw:source-3']
+  );
+});
+
 test('catalog pagination, rice filtering and plan labels use owner-scoped current/upcoming recipe identities', async (t) => {
   const previous = process.env.MEMBERSHIP_ENABLED;
   process.env.MEMBERSHIP_ENABLED = 'false';

@@ -225,22 +225,8 @@ export const FOOD_SAFETY_CATALOGUE: readonly SafetyCatalogueItem[] = Object.free
     'RECOGNIZED_UNSUPPORTED',
     'INDIVIDUAL_REVIEW_REQUIRED_V1'
   ),
-  food(
-    'PORK',
-    'Pork',
-    ['pork', 'baboy'],
-    ['AVOIDED_INGREDIENT'],
-    'RECOGNIZED_UNSUPPORTED',
-    'INDIVIDUAL_REVIEW_REQUIRED_V1'
-  ),
-  food(
-    'BEEF',
-    'Beef',
-    ['beef', 'baka'],
-    ['AVOIDED_INGREDIENT'],
-    'RECOGNIZED_UNSUPPORTED',
-    'INDIVIDUAL_REVIEW_REQUIRED_V1'
-  ),
+  food('PORK', 'Pork', ['pork', 'baboy'], ['AVOIDED_INGREDIENT'], 'SUPPORTED', 'NAMED_FOOD_EXCLUSIONS_V1'),
+  food('BEEF', 'Beef', ['beef', 'baka'], ['AVOIDED_INGREDIENT'], 'SUPPORTED', 'NAMED_FOOD_EXCLUSIONS_V1'),
 ]);
 
 const vagueTerms = new Set(['high sugar', 'heart problem', 'stomach problem', 'sensitive', 'allergic', 'pain', 'sick']);

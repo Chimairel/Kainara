@@ -115,6 +115,7 @@ const profileReviewDecision = z
     profileRevision: z.number().int().nonnegative(),
     scopeKey: z.string().min(1).max(10000),
     area: z.nativeEnum(ClinicalEvidenceArea).optional(),
+    reviewedDeclarationIds: z.array(z.string().min(1)).max(50).optional(),
     conditionAssessments: z
       .array(
         z
@@ -289,7 +290,8 @@ router.post(
         req.body.notes,
         req.body.area,
         { profileRevision: req.body.profileRevision, scopeKey: req.body.scopeKey },
-        req.body.conditionAssessments
+        req.body.conditionAssessments,
+        req.body.reviewedDeclarationIds
       ),
     });
   })

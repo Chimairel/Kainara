@@ -47,6 +47,7 @@ export type ProfileReview = {
     assessment: { result: string; rationale: string; reviewerName: string; assessedAt: string } | null;
   }>;
   clarificationEntryIds?: string[];
+  clarificationEntries?: Array<{ id: string; domain: string; displayName: string; canReviewAsRecorded: boolean }>;
   profileRevision: number;
   scopeKey: string;
   claim?: { active: boolean; mine: boolean; expiresAt: string | null };

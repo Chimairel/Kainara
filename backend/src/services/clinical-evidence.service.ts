@@ -52,18 +52,10 @@ export type ClinicalFactInput = {
 async function declaredAreas(userId: string): Promise<Set<ClinicalEvidenceArea>> {
   const user = await prisma.user.findUnique({
     where: { id: userId },
-    include: { healthConditions: true, allergies: true, userProfile: true },
+    include: { healthConditions: true, allergies: true, userProfile: true, safetyProfileEntries: true },
   });
   if (!user) throw new AppError('User not found.', 404, 'USER_NOT_FOUND');
-  const areas = new Set<ClinicalEvidenceArea>();
-  for (const item of user.healthConditions) {
-    const area = evidenceAreaForCondition(item.condition);
-    if (area) areas.add(area);
-  }
-  if (user.allergies.some((item) => item.allergen !== 'NONE') || user.userProfile?.otherAllergies?.trim())
-    areas.add(ClinicalEvidenceArea.FOOD_ALLERGY);
-  if (user.userProfile?.otherConditions?.trim()) areas.add(ClinicalEvidenceArea.OTHER);
-  return areas;
+  return new Set(healthDetailsAreas(user));
 }
 
 async function invalidateDocumentDependencies(tx: Prisma.TransactionClient, documentId: string, reason: string) {

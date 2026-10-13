@@ -14,6 +14,7 @@ import {
   type AssessedConditionEntry,
   type ConditionPlanningAssessment,
 } from './condition-planning-assessment.policy';
+import { isDeterministicAvoidedFood, foodExclusionKey } from './food-exclusion.policy';
 
 export type StructuredSafetyDomain = SafetyEntryDomain;
 export type StructuredSafetySupportState = SafetySupportState;
@@ -43,6 +44,7 @@ export interface CanonicalUserSafetyRestrictions {
   allergies: string[];
   customConditions: string[];
   customFoodRestrictions: string[];
+  foodExclusions: string[];
   displayEntries: Array<{
     domain: StructuredSafetyDomain | 'UNKNOWN';
     label: string;
@@ -57,10 +59,10 @@ export function hasDeclaredSafetyRestrictions(source: UserSafetyRestrictionSourc
   const restrictions = adaptUserSafetyRestrictions(source);
   return Boolean(
     restrictions.requiresReview ||
-    restrictions.conditions.length ||
-    restrictions.allergies.length ||
-    restrictions.customConditions.length ||
-    restrictions.customFoodRestrictions.length
+      restrictions.conditions.length ||
+      restrictions.allergies.length ||
+      restrictions.customConditions.length ||
+      restrictions.customFoodRestrictions.length
   );
 }
 
@@ -109,6 +111,7 @@ export function adaptUserSafetyRestrictions(source: UserSafetyRestrictionSource)
   const allergies: string[] = [];
   const customConditions: string[] = [];
   const customFoodRestrictions: string[] = [];
+  const foodExclusions: string[] = [];
   const displayEntries: CanonicalUserSafetyRestrictions['displayEntries'] = [];
   const seenConditions = new Set<string>();
   const seenAllergies = new Set<string>();
@@ -138,6 +141,12 @@ export function adaptUserSafetyRestrictions(source: UserSafetyRestrictionSource)
         ...(assessment ? { mealPlanningAssessment: assessment } : {}),
       });
       if (assessment && source.useConditionAssessments !== false) continue;
+      if (isDeterministicAvoidedFood(entry)) {
+        const key = foodExclusionKey(canonicalCode)!;
+        addUnique(customFoodRestrictions, seenCustomFood, key);
+        if (!foodExclusions.includes(key)) foodExclusions.push(key);
+        continue;
+      }
       const supported = domain !== 'UNKNOWN' && supportState === 'SUPPORTED';
 
       if (domain === 'CONDITION' && CONDITION_KEYS.has(canonicalCode)) {
@@ -195,12 +204,13 @@ export function adaptUserSafetyRestrictions(source: UserSafetyRestrictionSource)
       conditions,
       allergies,
       customConditions,
-      customAllergies: customFoodRestrictions,
+      customAllergies: customFoodRestrictions.filter((value) => !foodExclusions.includes(value)),
     },
     conditions,
     allergies,
     customConditions,
     customFoodRestrictions,
+    foodExclusions,
     displayEntries,
     requiresReview,
   };
