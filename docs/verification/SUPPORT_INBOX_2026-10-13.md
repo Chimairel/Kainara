@@ -4,7 +4,7 @@
 
 Implemented in the shared Desktop checkout on `codex/solar-icons`. The Docs wave hero and auth house/Nara composition remain. The reply email is initialized from the authenticated account without normalizing or replacing its address, and remains editable. Account identity still comes from the authenticated server-side account.
 
-The new additive migration is `20261013095000_support_inbox`. It adds only `SupportRequest`, `SupportReply`, a delivery-status enum, indexes and foreign keys. It has been applied to a fresh synthetic loopback database, **not the shared hosted database**. Normal localhost points to the hosted defense database; submission and the admin inbox require this migration before normal-preview activation. No live release, environment variable, credential or hosted record was changed.
+The new additive migration is `20261013095000_support_inbox`. It adds only `SupportRequest`, `SupportReply`, a delivery-status enum, indexes and foreign keys. It was first tested on a fresh synthetic loopback database. After the owner explicitly approved the exact shared target, this migration alone was applied to defense Neon; normal localhost is now activated. Existing member/clinical records were not modified. No live application release, environment variable or credential changed.
 
 ## Stored messages and email
 
@@ -34,4 +34,14 @@ Desktop p95 frame spacing was approximately 33.3 ms before and after, with no fr
 
 From backend, use `npx tsx scripts/support-inbox-local-acceptance.ts` only with the existing owned loopback Docker database and private local-development credential file. The harness pins the container label, loopback binding and fresh generated database name, reads no backend `.env`, applies the baseline from commit `285ce697`, and intercepts provider delivery.
 
-Publishing and shared-database migration activation remain separate steps.
+## Owner-approved shared activation
+
+After local commit `3b57835e`, the owner approved applying only this migration to project `nameless-dust-38810716` (`kainara-defense-20261016`), main branch `br-round-art-b355gp02`, database `neondb`.
+
+- Before the write, the exact project/branch query confirmed `neondb`, no support tables and no completed support migration.
+- The committed migration ran as one transaction with 5-second lock and 30-second statement timeouts and Prisma's migration advisory lock. A target/pre-existing-state guard ran before DDL. Only the new enum, tables, indexes, constraints and their Prisma migration receipt were added.
+- Committed migration checksum: `dc6c5b6d3c2f268eb79d4c5c15c5601830e28d3ff4a333cfac7d9b1c4f51ef80`. The working SQL file uses the same LF bytes as the committed blob. Subsequent read confirms the exact checksum, both support tables and three validated foreign keys.
+- The normal localhost database configuration privately matches the defense endpoint and reads zero requests/zero replies after activation. Local `/ready` returns 200; anonymous `/api/admin/support` returns 401. No account token was fabricated and no member message/reply was submitted on shared Neon during verification.
+- SMTP authentication/connectivity passed without sending mail. Real recipient inbox arrival remains unverified; the operator can submit a normal request and answer it from local `/admin/support` to exercise actual delivery.
+
+The local feature is activated. Public application deployment remains a separate step.
