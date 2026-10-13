@@ -2,7 +2,7 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { ChevronRight, ChevronUp, Clock, Mail, MapPin } from '@/components/ui/icons';
+import { ChevronRight, ChevronUp, Mail } from '@/components/ui/icons';
 import KainaraLogo from '@/components/shared/KainaraLogo';
 import { SectionWaveBorderTop } from '@/components/landing/LandingWaveRiver';
 
@@ -112,14 +112,11 @@ export default function PublicFooter() {
               </ul>
             </div>
 
-            {/* Column 4: Workspaces & Access */}
+            {/* Column 4: Resources */}
             <div>
-              <p className="font-display text-sm font-black uppercase tracking-[0.14em] text-white mb-4">Workspaces</p>
+              <p className="font-display text-sm font-black uppercase tracking-[0.14em] text-white mb-4">Resources</p>
               <ul className="space-y-2.5 text-xs">
                 {[
-                  ['Patient Dashboard', '/dashboard'],
-                  ['RND Reviews Portal', '/nutritionist/reviews'],
-                  ['Admin Control Center', '/admin/overview'],
                   ['Apply as an RND', '/nutritionist-apply'],
                   ['Track RND Application', '/nutritionist-apply#track'],
                 ].map(([label, href]) => (
@@ -136,45 +133,22 @@ export default function PublicFooter() {
               </ul>
             </div>
 
-            {/* Column 5: Where to reach us? */}
+            {/* Column 5: Contact */}
             <div>
-              <p className="font-display text-sm font-black uppercase tracking-[0.14em] text-white mb-4">
-                Where to reach us?
-              </p>
-              <div className="space-y-4 text-xs">
-                <div className="flex items-start gap-3">
-                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border border-emerald-500/30 bg-[#0e271f] text-emerald-400">
-                    <MapPin className="h-4 w-4" />
-                  </span>
-                  <div>
-                    <p className="font-bold text-white">Clinical Operations</p>
-                    <p className="text-white/60 mt-0.5">Cebu, Philippines</p>
-                  </div>
-                </div>
-
-                <div className="flex items-start gap-3">
-                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border border-brand-cyan/30 bg-brand-cyan/15 text-brand-cyan">
-                    <Mail className="h-4 w-4" />
-                  </span>
-                  <div>
-                    <p className="font-bold text-white">Email Inquiries</p>
-                    <a
-                      href="mailto:chimairelp@gmail.com"
-                      className="text-white/60 hover:text-emerald-400 transition-colors mt-0.5 block"
-                    >
-                      chimairelp@gmail.com
-                    </a>
-                  </div>
-                </div>
-
-                <div className="flex items-start gap-3">
-                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border border-[#f09e6c]/30 bg-[#f09e6c]/15 text-[#f09e6c]">
-                    <Clock className="h-4 w-4" />
-                  </span>
-                  <div>
-                    <p className="font-bold text-white">Review Desk Hours</p>
-                    <p className="text-white/60 mt-0.5">Every day: 8:00 AM – 5:00 PM PHT</p>
-                  </div>
+              <p className="font-display text-sm font-black uppercase tracking-[0.14em] text-white mb-4">Contact</p>
+              <div className="flex items-start gap-3 text-xs">
+                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border border-brand-cyan/30 bg-brand-cyan/15 text-brand-cyan">
+                  <Mail className="h-4 w-4" />
+                </span>
+                <div className="min-w-0">
+                  <p className="font-bold text-white">Email Inquiries</p>
+                  <a
+                    href="mailto:chimairelp@gmail.com"
+                    className="mt-0.5 block break-words text-white/60 hover:text-emerald-400 transition-colors"
+                  >
+                    chimairelp@gmail.com
+                  </a>
+                  <p className="mt-2 leading-6 text-white/60">For questions, feedback, or account support.</p>
                 </div>
               </div>
             </div>
@@ -213,7 +187,7 @@ export default function PublicFooter() {
                 Evidence Register
               </Link>
               <Link href="/login" className="hover:text-emerald-400 transition-colors">
-                Portal Login
+                Log in
               </Link>
 
               {/* Back to Top Scroll Button */}

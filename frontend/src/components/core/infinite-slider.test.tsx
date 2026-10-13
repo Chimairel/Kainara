@@ -29,6 +29,42 @@ describe('accessible source carousel', () => {
     expect(container.firstChild).toHaveClass('overflow-auto');
   });
 
+  it.each([false, true])('retains the clicked link and repeated track for pointer activation (repeat=%s)', (repeat) => {
+    const activate = vi.fn((event) => event.preventDefault());
+    const { container } = render(
+      <InfiniteSlider>
+        <a href="https://example.test/source" onClick={activate}>
+          Source
+        </a>
+      </InfiniteSlider>
+    );
+    const link = container.querySelectorAll('a')[repeat ? 1 : 0];
+    fireEvent.pointerDown(link);
+    fireEvent.focus(link);
+    expect(link.isConnected).toBe(true);
+    expect(container.querySelectorAll('a')).toHaveLength(2);
+    expect(container.firstChild).toHaveClass('overflow-hidden');
+    fireEvent.click(link);
+    expect(activate).toHaveBeenCalledOnce();
+    expect(link).toHaveAttribute('href', 'https://example.test/source');
+  });
+
+  it('switches from pointer focus to the accessible static list when tabbing to another citation', () => {
+    const { container } = render(
+      <InfiniteSlider>
+        <a href="#one">One</a>
+        <a href="#two">Two</a>
+      </InfiniteSlider>
+    );
+    const first = screen.getByRole('link', { name: 'One' });
+    fireEvent.pointerDown(first);
+    fireEvent.focus(first);
+    fireEvent.keyDown(first, { key: 'Tab' });
+    fireEvent.focus(screen.getByRole('link', { name: 'Two' }));
+    expect(container.querySelectorAll('a')).toHaveLength(2);
+    expect(container.firstChild).toHaveClass('overflow-auto');
+  });
+
   it('shows a static scrollable list for reduced motion without starting an animation', () => {
     state.reducedMotion = true;
     const { container } = render(

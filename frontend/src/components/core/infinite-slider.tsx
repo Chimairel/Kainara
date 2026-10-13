@@ -24,13 +24,17 @@ export function InfiniteSlider({
   className,
 }: InfiniteSliderProps) {
   const [isHovering, setIsHovering] = useState(false);
-  const [isFocused, setIsFocused] = useState(false);
+  const [isKeyboardFocused, setIsKeyboardFocused] = useState(false);
+  const [isPointerFocused, setIsPointerFocused] = useState(false);
+  const pointerFocus = useRef(false);
+  const viewportRef = useRef<HTMLDivElement>(null);
+  const animationRef = useRef<{ stop: () => void } | null>(null);
   const reducedMotion = useReducedMotion();
   const currentSpeed = isHovering && speedOnHover !== undefined ? speedOnHover : speed;
   const ref = useRef<HTMLDivElement>(null);
   const duplicateRef = useRef<HTMLDivElement>(null);
   const [{ width, height }, setSize] = useState({ width: 0, height: 0 });
-  const isStatic = reducedMotion || isFocused;
+  const isStatic = reducedMotion || isKeyboardFocused;
 
   useEffect(() => {
     const element = ref.current;
@@ -62,9 +66,12 @@ export function InfiniteSlider({
   useEffect(() => {
     if (isStatic) {
       translation.set(0);
+      if (isKeyboardFocused && viewportRef.current?.contains(document.activeElement)) {
+        (document.activeElement as HTMLElement).scrollIntoView?.({ block: 'nearest', inline: 'nearest' });
+      }
       return;
     }
-    if (typeof animate !== 'function' || currentSpeed <= 0) return;
+    if (typeof animate !== 'function' || currentSpeed <= 0 || isPointerFocused) return;
     let controls: { stop: () => void } | undefined;
     const size = direction === 'horizontal' ? width : height;
     if (!size) return;
@@ -100,8 +107,25 @@ export function InfiniteSlider({
       });
     }
 
-    return () => controls?.stop();
-  }, [key, isStatic, translation, currentSpeed, width, height, gap, isTransitioning, direction, reverse]);
+    animationRef.current = controls ?? null;
+    return () => {
+      controls?.stop();
+      if (animationRef.current === controls) animationRef.current = null;
+    };
+  }, [
+    key,
+    isStatic,
+    isKeyboardFocused,
+    isPointerFocused,
+    translation,
+    currentSpeed,
+    width,
+    height,
+    gap,
+    isTransitioning,
+    direction,
+    reverse,
+  ]);
 
   const hoverProps =
     speedOnHover !== undefined
@@ -120,9 +144,34 @@ export function InfiniteSlider({
   return (
     <div
       className={cn(isStatic ? 'overflow-auto' : 'overflow-hidden', 'py-10 -my-10', className)}
-      onFocusCapture={() => setIsFocused(true)}
+      ref={viewportRef}
+      onPointerDownCapture={() => {
+        // Native pointer activation must retain the same link node and screen position.
+        pointerFocus.current = true;
+        animationRef.current?.stop();
+        setIsTransitioning(true);
+        setIsPointerFocused(true);
+      }}
+      onKeyDownCapture={(event) => {
+        if (event.key === 'Tab') pointerFocus.current = false;
+      }}
+      onFocusCapture={() => {
+        if (pointerFocus.current) setIsPointerFocused(true);
+        else setIsKeyboardFocused(true);
+      }}
+      onPointerLeave={() => {
+        if (!viewportRef.current?.contains(document.activeElement)) {
+          pointerFocus.current = false;
+          setIsPointerFocused(false);
+        }
+      }}
       onBlurCapture={(event) => {
-        if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setIsFocused(false);
+        if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
+          pointerFocus.current = false;
+          setIsKeyboardFocused(false);
+          setIsPointerFocused(false);
+          setIsTransitioning(true);
+        }
       }}
     >
       <motion.div
