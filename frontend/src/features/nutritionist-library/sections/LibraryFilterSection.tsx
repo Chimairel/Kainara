@@ -18,10 +18,6 @@ type Props = {
     | 'setPage'
     | 'conditionTag'
     | 'setConditionTag'
-    | 'status'
-    | 'setStatus'
-    | 'adminDraftsOnly'
-    | 'setAdminDraftsOnly'
     | 'isAdmin'
     | 'verifiedByMe'
     | 'setVerifiedByMe'
@@ -37,10 +33,6 @@ export default function LibraryFilterSection({ model }: Props) {
     setPage,
     conditionTag,
     setConditionTag,
-    status,
-    setStatus,
-    adminDraftsOnly,
-    setAdminDraftsOnly,
     isAdmin,
     verifiedByMe,
     setVerifiedByMe,
@@ -130,37 +122,6 @@ export default function LibraryFilterSection({ model }: Props) {
 
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pt-3 border-t border-brand-border/40">
           <div className="flex flex-wrap items-center gap-4">
-            <label htmlFor="library-meal-status" className="flex items-center gap-2 text-xs font-bold text-brand-text">
-              Meal status
-              <Dropdown
-                id="library-meal-status"
-                value={status}
-                onChange={(event) => {
-                  setStatus(event as typeof status);
-                  setPage(1);
-                }}
-                className="rounded-xl border border-brand-border bg-brand-surface px-3 py-1.5 text-xs text-brand-text shadow-xs outline-none focus:border-brand-green"
-              >
-                <option value="ALL">All meals</option>
-                <option value="APPROVED">Available</option>
-                <option value="FLAGGED">Flagged</option>
-              </Dropdown>
-            </label>
-
-            {/* Owner filter */}
-            <label className="flex items-center gap-2 cursor-pointer select-none text-xs font-bold text-brand-text">
-              <input
-                type="checkbox"
-                checked={adminDraftsOnly}
-                onChange={(event) => {
-                  setAdminDraftsOnly(event.target.checked);
-                  setPage(1);
-                }}
-                className="h-4 w-4 rounded border-brand-border bg-brand-surface text-brand-green focus:ring-brand-green"
-              />
-              Admin drafts awaiting evidence review
-            </label>
-
             {!isAdmin && (
               <label
                 htmlFor="library-verified-by-me"

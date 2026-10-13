@@ -38,19 +38,20 @@ for (const scenario of ['generated', 'retired-source', 'unsigned-source', 'held-
       scenario === 'generated'
         ? { targetKind: 'GENERATED_RECIPE', targetId: 'recipe-v1', revisionKey: 'recipe-v1' }
         : { targetKind: 'LIBRARY_MEAL', targetId: recipe.id, revisionKey: libraryBaseRevisionKey('recipe-v1', null) };
-    replace(context, prisma.mealLibrary, 'findMany', async (args: { select?: unknown }) => [
-      args.select
-        ? { id: recipe.id, sourceRawRecipeCandidateId: current.sourceRawRecipeCandidateId, recipeFamilyId: null }
-        : current,
-    ]);
+    replace(context, prisma.mealLibrary, 'findMany', async () => [current]);
     replace(context, prisma.mealLibrary, 'findUnique', async () => current);
     replace(context, prisma.mealBaseVerification, 'findMany', async () => [verification]);
     replace(context, prisma.auditEvent, 'findMany', async () => []);
     replace(context, prisma.auditEvent, 'findFirst', async () => null);
     const listed = (await getNutritionistMealLibraryWithFilters('rnd', {})).meals[0];
     const detail = await NutritionistLibraryService.getLibraryMeal(recipe.id);
-    assert.equal(listed.baseVerification, detail?.baseVerification);
-    assert.equal(listed.baseVerification, scenario === 'generated' ? 'VERIFIED' : 'REVIEW_PENDING');
+    if (scenario === 'generated') {
+      assert.equal(listed.baseVerification, detail?.baseVerification);
+      assert.equal(listed.baseVerification, 'VERIFIED');
+    } else {
+      assert.equal(listed, undefined);
+      assert.equal(detail?.baseVerification, 'REVIEW_PENDING');
+    }
   });
 }
 
@@ -58,7 +59,8 @@ const recipe = {
   id: 'photo-recipe',
   mealName: 'Recorded plate',
   description: null,
-  recipeSignature: null,
+  recipeSignature: 'recipe-v1',
+  status: 'APPROVED',
   sourceRawRecipeCandidateId: 'source',
   recipeFamilyId: null,
   derivationKind: 'ORIGINAL',
@@ -85,11 +87,9 @@ const recipe = {
 
 for (const endpoint of ['list', 'detail'] as const) {
   test(`${endpoint} library image retains representative provenance and video fallback`, async (context) => {
-    replace(context, prisma.mealLibrary, 'findMany', async (args: { select?: unknown }) => [
-      args.select ? { id: recipe.id, sourceRawRecipeCandidateId: 'source', recipeFamilyId: null } : recipe,
-    ]);
+    replace(context, prisma.mealLibrary, 'findMany', async () => [recipe]);
     replace(context, prisma.mealLibrary, 'findUnique', async () => recipe);
-    replace(context, prisma.mealBaseVerification, 'findMany', async () => []);
+    replace(context, prisma.mealBaseVerification, 'findMany', async () => [{ targetKind: 'LIBRARY_MEAL', targetId: recipe.id, revisionKey: libraryBaseRevisionKey('recipe-v1', null) }]);
     replace(context, prisma.auditEvent, 'findMany', async () => []);
     replace(context, prisma.auditEvent, 'findFirst', async () => null);
     const result =

@@ -33,8 +33,8 @@ export default function SharedMealLibraryWorkspace({
         title="Meal library"
         description={
           isAdmin
-            ? 'Shared with the RND workspace. Browse recipes and flag meals that need RND review.'
-            : 'Browse base recipes and their separate health-context approvals. A flagged base meal and all its approvals are unavailable until independent review releases the meal.'
+            ? 'Browse verified base meals and their recorded approvals. Pending meals are reviewed before entering the library.'
+            : 'Browse verified base meals and their separate health-context approvals. Pending and held meals remain in their review queues.'
         }
         meta={
           <span className="rounded-full border border-brand-border/70 bg-brand-surface/60 px-3 py-2 font-mono text-[9px] uppercase tracking-wider text-brand-muted dark:border-[#173e33] dark:bg-[#0e271f]">

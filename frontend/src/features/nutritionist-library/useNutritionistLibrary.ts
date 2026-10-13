@@ -211,7 +211,7 @@ const libraryResource = (
   status: string,
   page: number
 ) =>
-  `nutritionist-library:${JSON.stringify([search, mealType, conditionTag, verifiedByMe, adminDraftsOnly, status, page])}`;
+  `nutritionist-library-verified-v2:${JSON.stringify([search, mealType, conditionTag, verifiedByMe, adminDraftsOnly, status, page])}`;
 
 export function useNutritionistLibrary(
   loadCoverage = false,

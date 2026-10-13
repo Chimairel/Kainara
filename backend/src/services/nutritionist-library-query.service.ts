@@ -16,12 +16,8 @@ export interface NutritionistLibraryFilters {
   limit?: number;
 }
 
-export function getNutritionistMealLibrary(limit = 50) {
-  return prisma.mealLibrary.findMany({
-    orderBy: { usageCount: 'desc' },
-    take: limit,
-    include: { verifiedByNutritionist: { select: { userId: true } } },
-  });
+export async function getNutritionistMealLibrary(limit = 50) {
+  return (await getNutritionistMealLibraryWithFilters('', { limit })).meals;
 }
 
 export async function getNutritionistMealLibraryWithFilters(
@@ -31,16 +27,14 @@ export async function getNutritionistMealLibraryWithFilters(
   const { page, limit } = normalizePagination(filters.page, filters.limit, 20);
   const skip = (page - 1) * limit;
   const search = normalizeSearch(filters.search);
-  // Base-meal flags are visible here; context-specific flags remain inside approvals.
+  // The catalogue contains published, verified bases. Pending verification and
+  // held incidents have their own review queues, never catalogue slots.
   const where: Prisma.MealLibraryWhereInput = {
-    status:
-      filters.status === 'FLAGGED'
-        ? MealLibraryStatus.FLAGGED
-        : filters.status === 'APPROVED'
-          ? MealLibraryStatus.APPROVED
-          : { in: [MealLibraryStatus.APPROVED, MealLibraryStatus.FLAGGED] },
+    status: MealLibraryStatus.APPROVED,
+    flags: { none: { status: 'PENDING' } },
   };
   const and: Prisma.MealLibraryWhereInput[] = [];
+  if (filters.status === 'FLAGGED') and.push({ status: MealLibraryStatus.FLAGGED });
 
   if (search) where.mealName = { contains: search, mode: 'insensitive' };
   if (filters.mealType && filters.mealType !== 'All') {
@@ -74,11 +68,16 @@ export async function getNutritionistMealLibraryWithFilters(
   const keys = await prisma.mealLibrary.findMany({
     where,
     orderBy: [{ addedAt: 'desc' }, { id: 'asc' }],
-    select: { id: true, sourceRawRecipeCandidateId: true, recipeFamilyId: true },
+    select: {
+      id: true, sourceRawRecipeCandidateId: true, recipeFamilyId: true,
+      recipeSignature: true, description: true, status: true,
+      sourceRawRecipeCandidate: { select: { sourceName: true, status: true, contentSignature: true } },
+    },
   });
   const sourceByRoot = new Map(keys.map((row) => [row.id, row.sourceRawRecipeCandidateId]));
+  const verifiedIds = await admittedLibraryBaseIds(keys);
   const seen = new Set<string>();
-  const groupedIds = keys.flatMap((row) => {
+  const groupedIds = keys.filter(row => verifiedIds.has(row.id)).flatMap((row) => {
     const key = row.recipeFamilyId
       ? sourceByRoot.get(row.recipeFamilyId) || row.recipeFamilyId
       : row.sourceRawRecipeCandidateId || row.id;
@@ -149,7 +148,7 @@ export async function getNutritionistMealLibraryWithFilters(
     total,
     page,
     limit,
-    meals: orderedMeals.map((meal) => {
+    meals: orderedMeals.filter(meal => admitted.has(meal.id)).map((meal) => {
       const { sourceRawRecipeCandidate: source, ...mealFields } = meal;
       const panlasangSource = source?.sourceName === 'PANLASANG_PINOY' && source.status === 'AVAILABLE';
       return {

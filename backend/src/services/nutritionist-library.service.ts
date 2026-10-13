@@ -107,7 +107,7 @@ export class NutritionistLibraryService {
 
   /** Separate source availability, automatic reuse, and candidates needing case review. */
   static async getMealLibraryCoverage() {
-    const [meals, sourceRecipesWithCoreNutrition] = await Promise.all([
+    const [candidates, sourceRecipesWithCoreNutrition] = await Promise.all([
       prisma.mealLibrary.findMany({
         where: {
           status: MealLibraryStatus.APPROVED,
@@ -128,6 +128,8 @@ export class NutritionistLibraryService {
         },
       }),
     ]);
+    const admitted = await admittedLibraryBaseIds(candidates);
+    const meals = candidates.filter(meal => admitted.has(meal.id));
     const countProfile = (definition: {
       dietaryPreference: DietaryPreference;
       conditions: readonly HealthConditionType[];
