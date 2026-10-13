@@ -1,4 +1,5 @@
 import { ricePortionLabel } from '@/domain/rice-portion.policy';
+import { object, REVIEW_REFERENCE_POLICY } from '@/domain/reusable-review-reference.policy';
 import type { Prisma } from '@prisma/client';
 import { cookingLinkForMeal, type PublicMealCookingLink } from '@/domain/meal-cooking-link.policy';
 import { buildMealExplanation } from '@/domain/meal-explanation.policy';
@@ -273,19 +274,40 @@ export function serializeActionableMeal<
     toPublicVerifier(libraryMeal?.safetyReviewedByNutritionist) ||
     toPublicVerifier(libraryMeal?.verifiedByNutritionist);
   const automaticRecipeSelection = meal.candidateProvenance === 'CERTIFIED_LIBRARY' && !meal.profileApprovalId;
+  const reused = object(object(selectionEvidence).exactApprovalReuse);
+  const recordedReuseReviewer = object(reused.reviewer);
+  const reusedReviewer =
+    reused.policyVersion === REVIEW_REFERENCE_POLICY && typeof recordedReuseReviewer.name === 'string'
+      ? {
+          name: recordedReuseReviewer.name,
+          image: null,
+          officialHeadshot: null,
+          prcLicenseNumber: recordedReuseReviewer.prcLicenseNumber as string,
+          prcLicenseExpiry: recordedReuseReviewer.prcLicenseExpiry as string,
+          specialization: null,
+          yearsOfExperience: null,
+          university: null,
+          bio: null,
+        }
+      : null;
   const verifier =
-    memberReviewer || (automaticRecipeSelection ? recipeReviewer || storedReviewer : storedReviewer || recipeReviewer);
-  const reviewScope = memberReviewer
-    ? ('MEMBER' as const)
-    : verifier && recipeReviewer && (automaticRecipeSelection || !storedReviewer)
-      ? ('RECIPE' as const)
-      : ('RECORDED' as const);
+    reusedReviewer ||
+    memberReviewer ||
+    (automaticRecipeSelection ? recipeReviewer || storedReviewer : storedReviewer || recipeReviewer);
+  const reviewScope = reusedReviewer
+    ? ('RECORDED' as const)
+    : memberReviewer
+      ? ('MEMBER' as const)
+      : verifier && recipeReviewer && (automaticRecipeSelection || !storedReviewer)
+        ? ('RECIPE' as const)
+        : ('RECORDED' as const);
   return {
     ...publicMeal,
     ingredients: meal.ingredients.map(({ foodItem: _foodItem, ...ingredient }) => ingredient),
     ricePortion: rice?.quantityG ? ricePortionLabel(rice.quantityG) : null,
     image: resolvePlanImage({ libraryMeal, sourceRawRecipeCandidate, selectionEvidence }, libraryImages),
     cookingLink: planCookingLink({ libraryMeal, sourceRawRecipeCandidate, selectionEvidence }, libraryCookingLinks),
+    approvalReused: Boolean(reusedReviewer),
     verifier: verifier
       ? {
           ...verifier,

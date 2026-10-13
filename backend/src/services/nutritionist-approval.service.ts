@@ -336,7 +336,8 @@ export async function approveMealPlan(
           },
         },
       });
-      const reviewReference = reviewedContext
+      // Edits were not part of the opened serving. Do not grant reuse of that pre-edit fingerprint.
+      const reviewReference = reviewedContext && (!updates || !Object.keys(updates).length)
         ? await captureReviewReference(tx, finalizedDecision.id, reviewedContext)
         : null;
       if (clinicalDocuments.length) {

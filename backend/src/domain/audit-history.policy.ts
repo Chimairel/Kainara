@@ -1,5 +1,6 @@
 /** Completed approval decisions, used by the meal-scoped Audit presentation. */
 export const mealApprovalAuditActions = [
+  'MEAL_APPROVAL_REUSED',
   'MEAL_PLAN_APPROVED',
   'MEAL_PLAN_FIRST_HIGH_RISK_APPROVAL',
   'MEAL_PLAN_SECOND_HIGH_RISK_APPROVAL',
@@ -51,6 +52,8 @@ export const nutritionistAuditActions = [
 
 export function auditActionLabel(action: string) {
   const labels: Record<string, string> = {
+    MEAL_APPROVAL_REUSED: 'Reused a matching approval',
+    MEAL_APPROVAL_REUSE_INVALIDATED: 'Matching approval needs a fresh review',
     BASE_MEAL_VERIFIED: 'Verified a meal',
     MEAL_REVIEW_CLAIMED: 'Claimed a meal re-review',
     MEAL_REVIEW_FLAGGED: 'Flagged an entire meal',
@@ -115,6 +118,7 @@ export function auditActionLabel(action: string) {
 }
 
 export function auditOutcomeLabel(action: string) {
+  if (action === 'MEAL_APPROVAL_REUSE_INVALIDATED') return 'Needs attention';
   if (/REJECTED|UNUSABLE|SUSPENDED|FLAGGED|DISPUTED|UNVERIFIABLE|REVOKED|REVIEW_DUE|EXPIRED/.test(action))
     return 'Needs attention';
   if (/ACCESSED|CLAIM_RELEASED/.test(action)) return 'Recorded';

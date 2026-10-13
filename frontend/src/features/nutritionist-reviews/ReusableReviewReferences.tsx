@@ -12,7 +12,7 @@ export default function ReusableReviewReferences({
     <section className="space-y-3 border-t border-brand-border pt-4" aria-label="Prior review references">
       <h3 className="text-sm font-bold">Prior review references</h3>
       <p className="text-xs text-brand-muted">
-        Exact recorded inputs and recipe serving. Review the current case before making a separate decision.
+        Active approvals can be reused when every recorded profile field, clinical detail, and recipe serving matches.
       </p>
       {!references.length && <p className="text-xs text-brand-muted">No matching prior review is available.</p>}
       {references.map((item, index) => (

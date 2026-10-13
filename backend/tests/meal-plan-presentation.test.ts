@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import { REVIEW_REFERENCE_POLICY } from '../src/domain/reusable-review-reference.policy';
 import {
   resolvePlanImage,
   resolveRecordedPlanImage,
@@ -15,6 +16,23 @@ const meal = {
   calories: 400,
   ingredients: [],
 };
+test('reused approval shows only recorded RND credentials and does not expose reuse fingerprints or source identities', () => {
+  const result = serializeActionableMeal({
+    ...meal,
+    selectionEvidence: {
+      exactApprovalReuse: {
+        policyVersion: REVIEW_REFERENCE_POLICY,
+        referenceId: 'PRIVATE_REFERENCE_ID',
+        contextKey: 'PRIVATE_CONTEXT',
+        reviewer: { name: 'Original RND', prcLicenseNumber: 'Recorded-license', prcLicenseExpiry: '2030-01-01' },
+      },
+    },
+  });
+  assert.equal(result.approvalReused, true);
+  assert.equal(result.verifier?.name, 'Original RND');
+  assert.equal(result.verifier?.reviewScope, 'RECORDED');
+  assert(!JSON.stringify(result).includes('PRIVATE_'));
+});
 
 test('approved meals without a stored reviewer do not acquire fabricated credentials or explanation attribution', () => {
   const result = serializeActionableMeal(meal);

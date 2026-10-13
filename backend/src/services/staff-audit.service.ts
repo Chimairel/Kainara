@@ -1,6 +1,12 @@
 import { Prisma } from '@prisma/client';
 import prisma from '@/lib/prisma';
-import { auditActionLabel, auditOutcomeLabel, auditTypeLabel, mealApprovalAuditActions, nutritionistAuditActions } from '@/domain/audit-history.policy';
+import {
+  auditActionLabel,
+  auditOutcomeLabel,
+  auditTypeLabel,
+  mealApprovalAuditActions,
+  nutritionistAuditActions,
+} from '@/domain/audit-history.policy';
 import { normalizePagination } from '@/policies/pagination.policy';
 
 export type StaffAuditFilters = {
@@ -43,19 +49,28 @@ export class StaffAuditService {
         : filters.includeAdminMealFlags
           ? Prisma.sql`(role = 'NUTRITIONIST' OR (role = 'ADMIN' AND "actionCode" = 'MEAL_BASE_FLAGGED'))`
           : Prisma.sql`role = 'NUTRITIONIST'`;
-    const conditions = [roleWhere];
-    if (filters.approvalActionsOnly) conditions.push(Prisma.sql`"actionCode" IN (${Prisma.join([...mealApprovalAuditActions])})`);
+    const conditions = [
+      Prisma.sql`(${roleWhere} OR "actionCode" IN ('MEAL_APPROVAL_REUSED', 'MEAL_APPROVAL_REUSE_INVALIDATED'))`,
+    ];
+    if (filters.approvalActionsOnly)
+      conditions.push(Prisma.sql`"actionCode" IN (${Prisma.join([...mealApprovalAuditActions])})`);
     if (filters.changesOnly) conditions.push(Prisma.sql`"actionCode" !~ '_ACCESSED$'`);
     if (filters.recipeCase) {
       const { libraryIds, sourceId } = filters.recipeCase;
-      const recordedCase = Prisma.sql`EXISTS (
+      const recordedCase = Prisma.sql`(EXISTS (
         SELECT 1 FROM "AuditEvent" link JOIN "MealPlanReviewDecision" decision
           ON decision.id = link.metadata->>'reviewDecisionId' AND decision."mealPlanId" = link."entityId"
         WHERE link.id = records.id AND link."entityType" = 'MealPlan' AND (
           COALESCE(decision."evidenceSnapshot"->'reviewContext'->'meal'->>'libraryMealId', decision."evidenceSnapshot"->>'libraryMealId') IN (${Prisma.join(libraryIds)})
           OR (${sourceId}::text IS NOT NULL AND COALESCE(decision."evidenceSnapshot"->'reviewContext'->'meal'->>'sourceRawRecipeCandidateId', decision."evidenceSnapshot"->>'sourceRawRecipeCandidateId') = ${sourceId})
+        )) OR EXISTS (
+          SELECT 1 FROM "AuditEvent" link WHERE link.id = records.id AND link.action = 'MEAL_APPROVAL_REUSED'
+          AND (link.metadata->>'libraryMealId' IN (${Prisma.join(libraryIds)})
+            OR (${sourceId}::text IS NOT NULL AND link.metadata->>'sourceRawRecipeCandidateId' = ${sourceId}))
         ))`;
-      conditions.push(filters.approvalActionsOnly ? Prisma.sql`(${recordedCase} OR EXISTS (
+      conditions.push(
+        filters.approvalActionsOnly
+          ? Prisma.sql`(${recordedCase} OR EXISTS (
         SELECT 1 FROM "AuditEvent" link JOIN "MealLibraryProfileApproval" approval
           ON link."entityType" = 'MealLibraryProfileApproval' AND approval.id = link."entityId"
         WHERE link.id = records.id AND approval."mealLibraryId" IN (${Prisma.join(libraryIds)})
@@ -63,7 +78,9 @@ export class StaffAuditService {
         SELECT 1 FROM "AuditEvent" link JOIN "MealConditionClearance" approval
           ON link."entityType" = 'MealConditionClearance' AND approval.id = link."entityId"
         WHERE link.id = records.id AND approval."mealLibraryId" IN (${Prisma.join(libraryIds)})
-      ))` : recordedCase);
+      ))`
+          : recordedCase
+      );
     }
     if (filters.recordId) conditions.push(Prisma.sql`id = ${filters.recordId}`);
     if (filters.actorId) conditions.push(Prisma.sql`"actorId" = ${filters.actorId}`);
@@ -98,7 +115,7 @@ export class StaffAuditService {
       ), events AS (
         SELECT e.id, e."createdAt" AS "occurredAt", COALESCE(e."actorUserId", legacy_profile."userId") AS "actorId",
           COALESCE(e."actorName", u.name, legacy_reviewer.name, 'Actor not recorded') AS actor,
-          COALESCE(e."actorRole"::text,
+          COALESCE(CASE WHEN e.action IN ('MEAL_APPROVAL_REUSED', 'MEAL_APPROVAL_REUSE_INVALIDATED') THEN 'SYSTEM' END, e."actorRole"::text,
             CASE WHEN e.action IN ('NUTRITIONIST_ACCOUNT_ACTIVATED', 'USER_SELF_DELETION', 'HEALTH_DETAILS_UPDATED', 'CLINICAL_DOCUMENT_UPLOADED', 'CLINICAL_DOCUMENT_WITHDRAWN') THEN 'USER'
             WHEN e.action IN ('MEAL_BASE_FLAGGED', 'MEAL_LIBRARY_FLAGGED') THEN (
               SELECT f.role FROM flag_origins f WHERE f."actorId" = e."actorUserId"

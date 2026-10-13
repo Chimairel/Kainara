@@ -1583,7 +1583,7 @@ model MealPlanReviewDecision {
   @@index([mealPlanId, submittedAt])
 }
 
-/// Anonymous numeric reference to one immutable RND decision. Never a clinical clearance.
+/// Private exact fingerprints for one immutable RND decision; reuse requires current context and evidence checks.
 model MealReviewReference {
   id            String                 @id @default(cuid())
   decisionId    String                 @unique

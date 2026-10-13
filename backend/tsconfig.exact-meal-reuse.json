@@ -1,0 +1,6 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": { "noEmit": true, "rootDir": ".", "declaration": false, "declarationMap": false },
+  "include": ["scripts/exact-meal-approval-reuse-local-acceptance.ts", "scripts/review-reference-local-acceptance.ts"],
+  "exclude": ["node_modules", "dist"]
+}

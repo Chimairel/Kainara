@@ -15,7 +15,7 @@ import { admittedLibraryBaseIds } from './meal-base-admission.service';
 import { certifiedLibraryMealInclude } from './meal-library-candidate-query.service';
 
 type OpenedContext = { snapshot: Prisma.InputJsonObject; scopeKey: string; profileRevision: number };
-async function matchingKeys(tx: Prisma.TransactionClient, opened: OpenedContext) {
+export async function matchingReviewKeys(tx: Prisma.TransactionClient, opened: OpenedContext) {
   const snapshot = opened.snapshot,
     meal = object(snapshot.meal),
     userId = String(snapshot.userId);
@@ -58,9 +58,7 @@ async function matchingKeys(tx: Prisma.TransactionClient, opened: OpenedContext)
     if (
       !library ||
       !(await admittedLibraryBaseIds([library], tx)).has(library.id) ||
-      library.recipeSignature !== meal.baseRecipeSignature ||
-      !library.safetyReviewedByNutritionist ||
-      !isNutritionistEligibleForReview(library.safetyReviewedByNutritionist)
+      library.recipeSignature !== meal.baseRecipeSignature
     )
       return null;
     const key = await recipeLineageKey(tx, library.id);
@@ -83,6 +81,7 @@ async function matchingKeys(tx: Prisma.TransactionClient, opened: OpenedContext)
       where: { id: meal.sourceRawRecipeCandidateId },
       select: {
         contentSignature: true,
+        sourceName: true,
         status: true,
         libraryVariants: { where: { status: { in: ['FLAGGED', 'ARCHIVED'] } }, select: { id: true }, take: 1 },
       },
@@ -93,7 +92,39 @@ async function matchingKeys(tx: Prisma.TransactionClient, opened: OpenedContext)
     });
     if (!raw || raw.status !== 'AVAILABLE' || raw.libraryVariants.length || (lineage && lineage.state !== 'PUBLISHED'))
       return null;
+    if (
+      raw.sourceName !== 'PANLASANG_PINOY' &&
+      !(await tx.mealBaseVerification.findFirst({
+        where: {
+          targetKind: 'RAW_RECIPE',
+          targetId: meal.sourceRawRecipeCandidateId,
+          revisionKey: raw.contentSignature,
+          status: 'VERIFIED',
+        },
+        select: { id: true },
+      }))
+    )
+      return null;
     source = { rawSignature: raw.contentSignature };
+  } else if (meal.candidateProvenance === 'AI_FROM_SCRATCH') {
+    const verified = await tx.mealBaseVerification.findFirst({
+      where: {
+        targetKind: 'GENERATED_RECIPE',
+        targetId: meal.baseRecipeSignature,
+        revisionKey: meal.baseRecipeSignature,
+        status: 'VERIFIED',
+      },
+      select: { id: true },
+    });
+    const held = await tx.mealLibrary.findFirst({
+      where: {
+        recipeSignature: meal.baseRecipeSignature,
+        status: { in: ['FLAGGED', 'ARCHIVED'] },
+      },
+      select: { id: true },
+    });
+    if (!verified || held) return null;
+    source = { generatedSignature: meal.baseRecipeSignature };
   } else return null;
   const ingredients = (Array.isArray(meal.ingredients) ? meal.ingredients : [])
     .map((value) => {
@@ -133,6 +164,7 @@ async function matchingKeys(tx: Prisma.TransactionClient, opened: OpenedContext)
     .sort((a, b) => referenceServingDigest(a).localeCompare(referenceServingDigest(b)));
   return {
     contextKey,
+    legacyContextKey: reusableClinicalContextKey(snapshot, resolvedForms, env.JWT_SECRET, 'EXACT_REVIEW_REFERENCE_V1'),
     servingKey: referenceServingDigest({
       source,
       signature: meal.baseRecipeSignature,
@@ -149,7 +181,7 @@ async function matchingKeys(tx: Prisma.TransactionClient, opened: OpenedContext)
 /** Capture new immutable decisions only. Never derive a historical reference from today's profile. */
 export async function captureReviewReference(tx: Prisma.TransactionClient, decisionId: string, opened: OpenedContext) {
   if (!env.CLINICAL_CLARIFICATIONS_ENABLED) return;
-  const keys = await matchingKeys(tx, opened);
+  const keys = await matchingReviewKeys(tx, opened);
   if (!keys) return;
   return tx.mealReviewReference.create({
     data: {
@@ -165,7 +197,7 @@ export async function captureReviewReference(tx: Prisma.TransactionClient, decis
 export async function listReviewReferences(opened: OpenedContext, reviewerId: string) {
   if (!env.CLINICAL_CLARIFICATIONS_ENABLED) return [];
   if (!(await currentReviewProfile(prisma, reviewerId))) return [];
-  const keys = await matchingKeys(prisma, opened);
+  const keys = await matchingReviewKeys(prisma, opened);
   if (!keys) return [];
   const rows = await prisma.mealReviewReference.findMany({
     where: { policyVersion: REVIEW_REFERENCE_POLICY, contextKey: keys.contextKey, servingKey: keys.servingKey },
@@ -205,6 +237,6 @@ export async function listReviewReferences(opened: OpenedContext, reviewerId: st
       decision: 'APPROVE' as const,
       plateFacts: referencePlateFacts({ meal: row.plateFacts }),
       match: 'Exact recorded profile, clinical inputs, clarifications and recipe serving' as const,
-      use: 'Reference only; a separate current review decision is required' as const,
+      use: 'An active approval can be reused when every recorded input and serving matches' as const,
     }));
 }

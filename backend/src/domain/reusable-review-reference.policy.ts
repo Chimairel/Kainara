@@ -1,7 +1,7 @@
 import { createHash, createHmac } from 'node:crypto';
 import { PLANNING_PROFILE_FIELDS } from './planning-report.policy';
 
-export const REVIEW_REFERENCE_POLICY = 'EXACT_REVIEW_REFERENCE_V1';
+export const REVIEW_REFERENCE_POLICY = 'EXACT_REVIEW_APPROVAL_V2';
 export const object = (value: unknown): Record<string, unknown> =>
   value && typeof value === 'object' && !Array.isArray(value) ? (value as Record<string, unknown>) : {};
 const array = (value: unknown): unknown[] => (Array.isArray(value) ? value : []);
@@ -22,7 +22,12 @@ export const referenceServingDigest = (value: unknown) =>
   createHash('sha256').update(canonicalReferenceJson(value)).digest('hex');
 
 /** Exact recorded inputs only. Private clinical strings are hashed; none become reference presentation. */
-export function reusableClinicalContextKey(snapshot: unknown, resolvedForms: unknown[], secret: string): string | null {
+export function reusableClinicalContextKey(
+  snapshot: unknown,
+  resolvedForms: unknown[],
+  secret: string,
+  policyVersion = REVIEW_REFERENCE_POLICY
+): string | null {
   const saved = object(snapshot),
     profile = object(saved.profile),
     clinical = object(saved.clinical);
@@ -41,7 +46,7 @@ export function reusableClinicalContextKey(snapshot: unknown, resolvedForms: unk
   )
     return null;
   const meaning = {
-    policy: REVIEW_REFERENCE_POLICY,
+    policy: policyVersion,
     profile: pick(profile, [
       ...PLANNING_PROFILE_FIELDS,
       'planningGeographyLevel',
@@ -65,7 +70,16 @@ export function reusableClinicalContextKey(snapshot: unknown, resolvedForms: unk
     ),
     documents: sorted(
       array(saved.clinicalDocuments).map((value) => ({
-        ...pick(value, ['area', 'documentType', 'status', 'issuedAt', 'issuerName', 'validUntil', 'withdrawnAt']),
+        ...pick(value, [
+          ...(policyVersion === REVIEW_REFERENCE_POLICY ? ['sha256'] : []),
+          'area',
+          'documentType',
+          'status',
+          'issuedAt',
+          'issuerName',
+          'validUntil',
+          'withdrawnAt',
+        ]),
         facts: sorted(
           array(object(value).facts).map((fact) =>
             pick(fact, ['code', 'valueText', 'valueNumber', 'unit', 'observedAt', 'reviewStatus'])

@@ -5,7 +5,7 @@ import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 import { once } from 'node:events';
 import type { AddressInfo } from 'node:net';
-import type { Role, Prisma } from '@prisma/client';
+import type { Role, Prisma, HealthConditionType, ClinicalEvidenceArea } from '@prisma/client';
 import app from '../src/app';
 import db from '../src/lib/prisma';
 import { signAccessToken } from '../src/lib/jwt';
@@ -17,11 +17,14 @@ import { libraryBaseRevisionKey } from '../src/services/meal-base-admission.serv
 import { loadMealReviewContext } from '../src/services/meal-case-context.service';
 import { MealLogService } from '../src/services/meal-log.service';
 
-async function main() {
+export async function runReviewReferenceAcceptance() {
   const target = new URL(process.env.DATABASE_URL ?? '');
   assert.equal(target.hostname, '127.0.0.1');
-  assert.equal(target.port, '55488');
-  assert.equal(target.pathname, '/kainara_review_references');
+  assert(['55488', '55432'].includes(target.port));
+  assert(
+    target.pathname === '/kainara_review_references' ||
+      (target.port === '55432' && /^\/kainara_exact_reuse_[a-f0-9]{8}$/.test(target.pathname))
+  );
   assert.equal(process.env.NODE_ENV, 'test');
   assert.equal(process.env.CLINICAL_CLARIFICATIONS_ENABLED, 'true');
   assert.equal(process.env.MEMBERSHIP_ENABLED, 'false');
@@ -406,7 +409,7 @@ async function main() {
       assert(!text.includes(privateValue));
     assert.equal((await request(second, `/nutritionist/queue/${fresh.id}`)).status, 403);
     pass(
-      'New immutable approvals yield only anonymous numeric references; exact new cases remain pending and member access is denied'
+      'Prior-review inspection exposes only public reference facts; member access to staff case details is denied'
     );
     for (const [field, value] of [
       ['age', 29],
@@ -455,6 +458,242 @@ async function main() {
     assert.equal((await preview()).reviewReferences.length, 0);
     await db.mealPlan.update({ where: { id: first.id }, data: { status: 'APPROVED' } });
     pass('Quarantined recipes, expired decision reviewers and challenged source decisions never supply references');
+    const { MealPlanCycleService } = await import('../src/services/meal-plan-cycle.service');
+    const { context, userInclude, scopedPolicy } = await import('../src/services/clinical-profile-review.context');
+    const { evidenceAreaForCondition } = await import('../src/domain/clinical-evidence-requirement.policy');
+    const { matchingReviewKeys } = await import('../src/services/reusable-review-reference.service');
+    const { StaffAuditService } = await import('../src/services/staff-audit.service');
+    const configure = async (actor: Actor, condition: HealthConditionType, allergic: boolean) => {
+      await db.healthCondition.updateMany({ where: { userId: actor.id }, data: { condition } });
+      await db.safetyProfileEntry.updateMany({
+        where: { userId: actor.id, domain: 'CONDITION' },
+        data: {
+          canonicalCode: condition,
+          displayName: condition,
+          originalText: condition,
+          normalizedText: condition.toLowerCase(),
+        },
+      });
+      if (allergic) {
+        await db.allergy.updateMany({ where: { userId: actor.id }, data: { allergen: 'NUTS' } });
+        await db.safetyProfileEntry.updateMany({
+          where: { userId: actor.id, domain: 'ALLERGY' },
+          data: {
+            canonicalCode: 'NUTS',
+            displayName: 'Nuts',
+            originalText: 'Nuts',
+            normalizedText: 'nuts',
+          },
+        });
+      }
+      const areas: ClinicalEvidenceArea[] = [
+        ...(evidenceAreaForCondition(condition) ? [evidenceAreaForCondition(condition)!] : []),
+        ...(allergic ? ['FOOD_ALLERGY' as const] : []),
+      ];
+      for (const area of areas)
+        await db.clinicalContextResponse.create({
+          data: {
+            userId: actor.id,
+            area,
+            responses: {
+              formVersion: 'HEALTH_DETAILS_V1',
+              safetyRevision: 1,
+              conditionDetails: 'SYNTHETIC_PRIVATE_CLINICAL_CANARY',
+              medications: 'Synthetic medication',
+              dietaryAdvice: 'Synthetic advice',
+              recentSymptoms: 'None',
+              measurements: 'Synthetic measurement',
+            },
+          },
+        });
+      const user = await db.user.findUniqueOrThrow({ where: { id: actor.id }, include: userInclude });
+      const current = context(user);
+      await db.clinicalProfileReview.create({
+        data: {
+          id: randomUUID(),
+          userId: actor.id,
+          profileRevision: 1,
+          policyVersion: scopedPolicy(current.scopeKey),
+          status: 'APPROVED',
+          profileSnapshot: current.snapshot,
+          reasonCodes: [],
+          reviewerId: reviewer.id,
+          reviewedAt: now,
+        },
+      });
+    };
+    const conditions: HealthConditionType[] = [
+      'DIABETES',
+      'HYPERTENSION',
+      'KIDNEY_DISEASE',
+      'HEART_CONDITION',
+      'PREGNANT',
+    ];
+    for (const [index, condition] of conditions.entries()) {
+      const sourceActor = await cloneProfile(),
+        targetActor = await cloneProfile();
+      const sourcePlan = await makeSlot(sourceActor),
+        targetPlan = await makeSlot(targetActor);
+      let sourceId: string | null = null;
+      if (index === 2) {
+        const raw = await db.rawRecipeCandidate.create({ data: {
+          sourceRecordId: randomUUID(), sourceUrl: 'https://example.invalid/synthetic-reuse-recipe',
+          recipeName: 'Synthetic raw recipe', normalizedName: 'synthetic raw recipe',
+          contentSignature: 'f'.repeat(64), cuisines: [], dietaryTags: [], ingredients: [],
+          mealType: 'LUNCH', publishedNutrition: { calories: sourcePlan.calories },
+        } });
+        sourceId = raw.id;
+        await db.mealPlan.updateMany({ where: { id: { in: [sourcePlan.id, targetPlan.id] } }, data: {
+          libraryMealId: null, profileApprovalId: null, sourceRawRecipeCandidateId: raw.id,
+          candidateProvenance: 'RAW_RECIPE_CORPUS',
+        } });
+      }
+      if (index === 4) {
+        await db.mealBaseVerification.create({ data: { targetKind: 'GENERATED_RECIPE',
+          targetId: sourcePlan.baseRecipeSignature!, revisionKey: sourcePlan.baseRecipeSignature!,
+          status: 'VERIFIED', reviewedByNutritionistId: certifier.id, reviewedAt: now,
+        } });
+        await db.mealPlan.updateMany({ where: { id: { in: [sourcePlan.id, targetPlan.id] } }, data: {
+          libraryMealId: null, profileApprovalId: null, candidateProvenance: 'AI_FROM_SCRATCH',
+        } });
+      }
+      await configure(sourceActor, condition, index === 0);
+      await configure(targetActor, condition, index === 0);
+      if (index === 3) await db.mealLibrary.update({ where: { id: eligible.id }, data: { safetyReviewedByNutritionistId: null } });
+      const current = (await loadMealReviewContext(sourcePlan.id))!;
+      await ok(
+        request(rnd, `/nutritionist/queue/${sourcePlan.id}/claim`, 'POST', { expectedContextKey: current.contextKey })
+      );
+      await ok(
+        request(rnd, `/nutritionist/review/${sourcePlan.id}`, 'PATCH', {
+          action: 'approve',
+          expectedContextKey: current.contextKey,
+          note: 'SYNTHETIC_PRIVATE_REVIEW_NOTE',
+        })
+      );
+      await ok(request(rnd, `/nutritionist/queue/${targetPlan.id}/release`, 'POST', {}));
+      if (index === 0) {
+        // Captured V1 contexts can reuse without a new RND decision, with V2 document-digest validation.
+        const sourceKeys = (await matchingReviewKeys(db, current))!;
+        await db.mealReviewReference.update({
+          where: {
+            decisionId: (
+              await db.mealPlanReviewDecision.findFirstOrThrow({
+                where: { mealPlanId: sourcePlan.id },
+                orderBy: { submittedAt: 'desc' },
+              })
+            ).id,
+          },
+          data: { policyVersion: 'EXACT_REVIEW_REFERENCE_V1', contextKey: sourceKeys.legacyContextKey! },
+        });
+        const clear = () => MealPlanCycleService.getClearedMealPlanIds(targetActor.id, targetPlan.planGroupId);
+        await db.userProfile.update({ where: { userId: targetActor.id }, data: { age: 29 } });
+        assert(!(await clear()).includes(targetPlan.id));
+        await db.userProfile.update({ where: { userId: targetActor.id }, data: { age: 28 } });
+        await db.mealIngredient.updateMany({
+          where: { mealPlanId: targetPlan.id },
+          data: { quantity: { increment: 1 } },
+        });
+        assert(!(await clear()).includes(targetPlan.id));
+        await db.mealIngredient.updateMany({
+          where: { mealPlanId: targetPlan.id },
+          data: { quantity: { decrement: 1 } },
+        });
+        await db.mealPlan.update({
+          where: { id: targetPlan.id },
+          data: { claimedByNutritionistId: reviewer.id, claimedAt: now },
+        });
+        assert(!(await clear()).includes(targetPlan.id));
+        await db.mealPlan.update({
+          where: { id: targetPlan.id },
+          data: { claimedByNutritionistId: null, claimedAt: null },
+        });
+        await db.clinicalProfileReview.updateMany({ where: { userId: targetActor.id }, data: { status: 'PENDING' } });
+        assert(!(await clear()).includes(targetPlan.id));
+        await db.clinicalProfileReview.updateMany({ where: { userId: targetActor.id }, data: { status: 'APPROVED' } });
+        pass('Changed profile, ingredient amount, active claim, and unconfirmed health profile cannot auto-approve');
+      }
+      const [cleared, retry] = await Promise.all([
+        MealPlanCycleService.getClearedMealPlanIds(targetActor.id, targetPlan.planGroupId),
+        MealPlanCycleService.getClearedMealPlanIds(targetActor.id, targetPlan.planGroupId),
+      ]);
+      assert(cleared.includes(targetPlan.id) && retry.includes(targetPlan.id));
+      assert.equal((await db.mealPlan.findUniqueOrThrow({ where: { id: targetPlan.id } })).status, 'APPROVED');
+      assert.equal(await db.mealPlanReviewDecision.count({ where: { mealPlanId: targetPlan.id } }), 0);
+      assert.equal(await db.mealLog.count({ where: { mealPlanId: targetPlan.id } }), 0);
+      assert.equal(
+        await db.auditEvent.count({ where: { entityId: targetPlan.id, action: 'MEAL_APPROVAL_REUSED' } }),
+        1
+      );
+      const audit = await StaffAuditService.history({ view: 'nutritionist', action: 'MEAL_APPROVAL_REUSED' });
+      assert(audit.rows.some((row) => row.targetId === targetPlan.id && row.role === 'SYSTEM'));
+      assert(!JSON.stringify(audit).includes('SYNTHETIC_PRIVATE'));
+      const adminAudit = await StaffAuditService.history({ view: 'admin', action: 'MEAL_APPROVAL_REUSED' });
+      assert(adminAudit.rows.some(row => row.targetId === targetPlan.id && row.role === 'SYSTEM'));
+      if (index !== 4) {
+        const recipeAudit = await StaffAuditService.history({ view: 'nutritionist', approvalActionsOnly: true,
+          recipeCase: { libraryIds: [eligible.id], sourceId } });
+        assert(recipeAudit.rows.some(row => row.targetId === targetPlan.id && row.actionCode === 'MEAL_APPROVAL_REUSED'));
+      }
+      if (index === 3) await db.mealLibrary.update({ where: { id: eligible.id }, data: { safetyReviewedByNutritionistId: certifier.id } });
+      if (index === 0) {
+        const { getManilaMidnight, getManilaDateKey } = await import('../src/domain/meal-plan-cycle.policy');
+        const today = getManilaMidnight(getManilaDateKey(now));
+        await db.mealPlanCycle.update({
+          where: { id: targetPlan.planGroupId },
+          data: { startDate: today, endDate: new Date(today.getTime() + 86400000), shoppingDeadlineAt: today },
+        });
+        await db.mealPlan.update({ where: { id: targetPlan.id }, data: { scheduledDate: today } });
+        const memberView = await ok(request(targetActor, '/user/meals/current'));
+        assert(JSON.stringify(memberView).includes(targetPlan.id));
+        assert(!JSON.stringify(memberView).includes('SYNTHETIC_PRIVATE'));
+        assert(!JSON.stringify(memberView).includes('exactApprovalReuse'));
+        assert(!JSON.stringify(memberView).includes('referenceId'));
+        await ok(request(targetActor, `/user/meals/${targetPlan.id}/status`, 'PATCH', { status: 'DONE' }));
+        assert.equal((await db.mealLog.findUniqueOrThrow({ where: { mealPlanId: targetPlan.id } })).status, 'DONE');
+        pass(
+          'Member current API exposes the reused meal and original reviewer safely; only explicit DONE creates consumption'
+        );
+      }
+      if (index === 1) {
+        await db.mealLibrary.update({ where: { id: eligible.id }, data: { status: 'FLAGGED' } });
+        assert(
+          !(await MealPlanCycleService.getClearedMealPlanIds(targetActor.id, targetPlan.planGroupId)).includes(
+            targetPlan.id
+          )
+        );
+        await db.mealLibrary.update({ where: { id: eligible.id }, data: { status: 'APPROVED' } });
+        assert(
+          !(await MealPlanCycleService.getClearedMealPlanIds(targetActor.id, targetPlan.planGroupId)).includes(
+            targetPlan.id
+          )
+        );
+        pass('A base flag immediately blocks reuse; lifting the flag does not resurrect the invalidated slot');
+      }
+      if (index === 2) {
+        await db.nutritionistProfile.update({ where: { id: reviewer.id }, data: { prcLicenseExpiry: new Date(0) } });
+        assert(
+          !(await MealPlanCycleService.getClearedMealPlanIds(targetActor.id, targetPlan.planGroupId)).includes(
+            targetPlan.id
+          )
+        );
+        await db.nutritionistProfile.update({
+          where: { id: reviewer.id },
+          data: { prcLicenseExpiry: new Date('2099-01-01') },
+        });
+        pass('Expired original RND credentials block a reused approval');
+      }
+      await db.mealPlan.update({ where: { id: sourcePlan.id }, data: { status: 'DISPUTED' } });
+      assert(
+        !(await MealPlanCycleService.getClearedMealPlanIds(targetActor.id, targetPlan.planGroupId)).includes(
+          targetPlan.id
+        )
+      );
+      assert.equal((await db.mealPlan.findUniqueOrThrow({ where: { id: targetPlan.id } })).status, 'PENDING_REVIEW');
+      pass(
+        `${condition}${index === 0 ? ' plus nuts allergy and legacy reference' : ''}: exact reuse, concurrent retry, audit, no auto-consumption, dispute invalidation`
+      );
+    }
     const saved = await db.mealReviewReference.findFirstOrThrow();
     await db.mealReviewReference.delete({ where: { id: saved.id } });
     assert.equal((await preview()).reviewReferences.length, 0);
@@ -545,7 +784,8 @@ async function main() {
         target: 'task-owned loopback PostgreSQL',
         checks,
         accountsCreated: await db.user.count(),
-        references: 'anonymous; no automatic approval',
+        references:
+          'private exact fingerprints; matching current cases automatically approved; consumption remains explicit',
       })
     );
   } finally {
@@ -554,7 +794,8 @@ async function main() {
     globalThis.fetch = nativeFetch;
   }
 }
-main().catch((error) => {
-  console.error(error);
-  process.exitCode = 1;
-});
+if (require.main === module)
+  runReviewReferenceAcceptance().catch((error) => {
+    console.error(error);
+    process.exitCode = 1;
+  });

@@ -49,8 +49,10 @@ export const professionalReviewChapter: DocsChapter = {
           </p>
           <p>
             A case decision is tied to the ingredients, serving, and profile evidence inspected at review time. Another
-            member can benefit from a reusable decision only when the relevant context matches its recorded scope and
-            the approval is still active. One RND makes the case decision.
+            member can reuse that approval automatically when every recorded profile field, clinical detail,
+            clarification answer, ingredient, and serving matches and the approval is still active. This also applies
+            to health-condition cases. Matching meals are available without another pending meal review; members
+            still record when they eat them. The member’s health profile must have its own current confirmation.
           </p>
           <p>
             An RND’s approval remains current until its supporting recipe or profile changes. A flag raises a specific

@@ -11,7 +11,7 @@ it('shows recorded attribution and zero nutrients without private source details
           reviewerName: 'Recorded reviewer',
           decision: 'APPROVE',
           match: 'Exact recorded profile, clinical inputs, clarifications and recipe serving',
-          use: 'Reference only; a separate current review decision is required',
+          use: 'An active approval can be reused when every recorded input and serving matches',
           plateFacts: { calories: 600, proteinG: 30, carbsG: 0, fatG: 15 },
         },
       ]}
@@ -19,7 +19,7 @@ it('shows recorded attribution and zero nutrients without private source details
   );
   fireEvent.click(screen.getByText(/Approved by Recorded reviewer, RND/));
   expect(screen.getByText('0 g')).toBeInTheDocument();
-  expect(screen.getByText(/a separate current review decision is required/)).toBeInTheDocument();
+  expect(screen.getByText(/An active approval can be reused/)).toBeInTheDocument();
   expect(screen.queryByRole('button')).not.toBeInTheDocument();
   expect(screen.queryByRole('link')).not.toBeInTheDocument();
 });

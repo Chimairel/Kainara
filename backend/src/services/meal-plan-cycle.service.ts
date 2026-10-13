@@ -1,4 +1,5 @@
 import prisma from '@/lib/prisma';
+import { reconcileExactMealApprovals } from './exact-meal-approval-reuse.service';
 import { screenFoodExclusions } from '@/domain/food-exclusion.policy';
 import { hasCurrentRiceEvidence } from '@/domain/serving-evidence.policy';
 import { retainedMealsForCycle, retainedSlotKeys } from './plan-repair-history.service';
@@ -80,6 +81,9 @@ export class MealPlanCycleService {
         ? (client as Pick<Prisma.TransactionClient, 'user' | 'clinicalProfileReview'>)
         : prisma;
     if (!(await ClinicalProfileReviewService.hasCurrentApproval(userId, profileClient))) return [];
+    const exactApprovals = client === prisma || '$queryRaw' in client
+      ? await reconcileExactMealApprovals(userId, cycleId, client as Prisma.TransactionClient)
+      : new Set<string>();
     const cycle = await client.mealPlanCycle.findFirst({
       where: { id: cycleId, userId },
       select: {
@@ -230,6 +234,7 @@ export class MealPlanCycleService {
         if (!hasCurrentRiceEvidence(meal.servingComponents)) {
           return false;
         }
+        if (exactApprovals.has(meal.id)) return true;
         if (meal.libraryMealId) {
           const library = meal.libraryMeal;
           if (

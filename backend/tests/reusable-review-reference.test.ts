@@ -31,6 +31,7 @@ const fixture = {
   ],
   clinicalDocuments: [
     {
+      sha256: 'a'.repeat(64),
       id: 'doc-A',
       issuerName: 'Recorded issuer',
       validUntil: '2027-01-01',
@@ -60,11 +61,44 @@ test('exact reference keys ignore identities and revision metadata, never a clin
   const document = structuredClone(fixture);
   document.clinicalDocuments[0].facts[0].valueNumber = 11;
   assert.notEqual(key(document), key(fixture));
+  const changedContent = structuredClone(fixture);
+  changedContent.clinicalDocuments[0].sha256 = 'b'.repeat(64);
+  assert.notEqual(key(changedContent), key(fixture));
   assert.notEqual(key(fixture, [{ question: 'Clarify', answer: 'yes' }]), key(fixture));
   assert.notEqual(
     key(fixture, [{ question: 'Clarify', answer: 'yes' }]),
     key(fixture, [{ question: 'Clarify', answer: 'no' }])
   );
+});
+test('every planning field and clinical answer remains part of the exact match', () => {
+  const fields = [
+    'age',
+    'biologicalSex',
+    'heightCm',
+    'weightKg',
+    'targetWeightKg',
+    'goal',
+    'activityLevel',
+    'dietaryPreference',
+    'ricePreference',
+    'foodCulture',
+    'dailyCalorieTarget',
+    'otherConditions',
+    'otherAllergies',
+    'shoppingDayGroup',
+    'shoppingDayOfWeek',
+    'planningGeographyLevel',
+    'planningRegionName',
+    'planningProvinceHucName',
+  ];
+  for (const field of fields) {
+    assert.notEqual(key({ ...fixture, profile: { ...fixture.profile, [field]: 'changed' } }), key(fixture), field);
+  }
+  for (const field of ['medications', 'dietaryAdvice', 'recentSymptoms', 'measurements']) {
+    const changed = structuredClone(fixture);
+    Object.assign(changed.clinical.healthDetails[0].responses, { [field]: 'changed' });
+    assert.notEqual(key(changed), key(fixture), field);
+  }
 });
 test('missing historical inputs are unavailable and reusable payload contains numeric facts only', () => {
   assert.equal(key({}), null);
