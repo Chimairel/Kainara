@@ -1,3 +1,4 @@
+import { AttemptCooldownError } from '@/errors/AttemptCooldownError';
 import bcrypt from 'bcryptjs';
 
 import prisma from '@/lib/prisma';
@@ -29,7 +30,7 @@ export async function verifyEmail(userId: string, otp: string) {
   }
 
   if (isVerificationLocked(user.emailVerificationLockedUntil)) {
-    throw new Error('Too many incorrect codes. Verification is temporarily locked for 15 minutes.');
+    throw new AttemptCooldownError('Too many incorrect codes. Please wait before verifying again.', Math.max(1, Math.ceil(((user.emailVerificationLockedUntil?.getTime() ?? Date.now() + EMAIL_VERIFICATION_LOCK_MS) - Date.now()) / 1000)));
   }
 
   if (!user.emailVerificationToken || !user.emailVerificationExpiry) {
@@ -56,7 +57,7 @@ export async function verifyEmail(userId: string, otp: string) {
           emailVerificationLockedUntil: new Date(Date.now() + EMAIL_VERIFICATION_LOCK_MS),
         },
       });
-      throw new Error('Too many incorrect codes. Verification is temporarily locked for 15 minutes.');
+      throw new AttemptCooldownError('Too many incorrect codes. Please wait before verifying again.', EMAIL_VERIFICATION_LOCK_MS / 1000);
     }
     throw new Error('Invalid verification code. Please check and try again.');
   }
@@ -101,12 +102,12 @@ export async function resendVerification(userId: string) {
   }
 
   if (isVerificationLocked(user.emailVerificationLockedUntil)) {
-    throw new Error('Verification is temporarily locked. Please try again after 15 minutes.');
+    throw new AttemptCooldownError('Verification is temporarily locked.', Math.max(1, Math.ceil((user.emailVerificationLockedUntil!.getTime() - Date.now()) / 1000)));
   }
 
   const remainingSeconds = getRemainingResendSeconds(user.emailVerificationLastSentAt);
   if (remainingSeconds > 0) {
-    throw new Error(`Please wait ${remainingSeconds} seconds before requesting another code.`);
+    throw new AttemptCooldownError(`Please wait before requesting another code.`, remainingSeconds);
   }
 
   // Generate new OTP

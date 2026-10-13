@@ -1,8 +1,8 @@
 'use client';
-import FeedbackNotice from '@/components/shared/FeedbackNotice';
+import { toast } from 'sonner';
+import { showSubmissionError } from '@/lib/submission-attempts';
 
 import React, { useEffect, useRef, useState } from 'react';
-import Link from 'next/link';
 import { isAxiosError } from 'axios';
 import { useAuth } from '@/hooks/useAuth';
 import api from '@/lib/axios';
@@ -40,8 +40,7 @@ export default function GoogleSignInButton({ disabled = false, onCredential }: G
   const lightButtonRef = useRef<HTMLDivElement>(null);
   const darkButtonRef = useRef<HTMLDivElement>(null);
   const credentialActionRef = useRef(onCredential);
-  const [error, setError] = useState<string | null>(null);
-  const [recoveryLink, setRecoveryLink] = useState<{ href: string; label: string } | null>(null);
+  const submitting = useRef(false);
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
@@ -109,7 +108,7 @@ export default function GoogleSignInButton({ disabled = false, onCredential }: G
         }
       })
       .catch(() => {
-        if (!cancelled) setError('Google sign-in is temporarily unavailable. Please use email instead.');
+        if (!cancelled) toast.error('Google sign-in is temporarily unavailable. Please use email instead.');
       });
 
     return () => {
@@ -123,8 +122,8 @@ export default function GoogleSignInButton({ disabled = false, onCredential }: G
 
   const handleGoogleCallback = async (response: GoogleCredentialResponse) => {
     recovery.close();
-    setError(null);
-    setRecoveryLink(null);
+    if (submitting.current) return;
+    submitting.current = true;
     setIsLoading(true);
     try {
       if (credentialActionRef.current) {
@@ -139,25 +138,21 @@ export default function GoogleSignInButton({ disabled = false, onCredential }: G
         const { accessToken } = res.data.data;
         const currentUser = await login(accessToken);
         if (!currentUser)
-          setError('Your account was authenticated, but its profile could not be loaded. Please try again.');
+          toast.error('Your account was authenticated, but its profile could not be loaded. Please try again.');
       } else {
-        setError(res.data.error || 'Google sign-in failed.');
+        toast.error(res.data.error || 'Google sign-in failed.');
       }
     } catch (err: unknown) {
-      setError(
-        isAxiosError(err) && !err.response
-          ? 'We can’t reach the sign-in service. Check your connection and try again.'
-          : getApiErrorMessage(err, 'Google authentication failed. Please try again.')
-      );
-      const errorCode = getApiErrorCode(err);
-      if (errorCode === 'GOOGLE_LINK_REQUIRED') {
-        setRecoveryLink({ href: '/login', label: 'Sign in with email' });
-      } else if (errorCode === 'ACCOUNT_NOT_FOUND') {
-        setRecoveryLink({ href: '/register', label: 'Create an account with Google' });
-      } else if (errorCode === 'ACCOUNT_EXISTS') {
-        setRecoveryLink({ href: '/login', label: 'Sign in instead' });
-      }
+      const code = getApiErrorCode(err);
+      const action = code === 'ACCOUNT_NOT_FOUND' ? { label: 'Create an account', href: '/register' } :
+        ['GOOGLE_LINK_REQUIRED', 'ACCOUNT_EXISTS'].includes(code ?? '') ? { label: 'Sign in with email', href: '/login' } : null;
+      if (action) toast.error(getApiErrorMessage(err, 'Google authentication failed.'), {
+        action: { label: action.label, onClick: () => window.location.assign(action.href) },
+      });
+      else showSubmissionError(err, isAxiosError(err) && !err.response ?
+        'We can’t reach the sign-in service. Check your connection and try again.' : 'Google authentication failed. Please try again.');
     } finally {
+      submitting.current = false;
       setIsLoading(false);
     }
   };
@@ -169,18 +164,6 @@ export default function GoogleSignInButton({ disabled = false, onCredential }: G
 
   return (
     <div className="w-full max-w-[400px] flex flex-col items-center gap-2">
-      {error && (
-        <FeedbackNotice className="w-full">
-          <div className="flex items-center gap-2">
-            <span>{error}</span>
-          </div>
-          {recoveryLink ? (
-            <Link href={recoveryLink.href} className="mt-2 inline-flex font-bold underline underline-offset-2">
-              {recoveryLink.label}
-            </Link>
-          ) : null}
-        </FeedbackNotice>
-      )}
       {recovery.embeddedBrowser ? (
         <div
           className="w-full rounded-xl border border-brand-border bg-brand-bgAlt p-3 text-sm text-brand-text"

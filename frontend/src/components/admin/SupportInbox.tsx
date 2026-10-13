@@ -1,4 +1,6 @@
 'use client';
+import { toast } from 'sonner';
+import { showSubmissionError } from '@/lib/submission-attempts';
 
 import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
 import Button from '@/components/ui/Button';
@@ -28,7 +30,6 @@ export default function SupportInbox() {
   const [pending, setPending] = useState(false);
   const [listError, setListError] = useState('');
   const [detailError, setDetailError] = useState('');
-  const [notice, setNotice] = useState('');
   const sending = useRef(false);
   const replyController = useRef<AbortController | null>(null);
   const attempts = useRef<Record<string, { key: string; message: string }>>({});
@@ -45,7 +46,7 @@ export default function SupportInbox() {
   useEffect(() => { const controller = new AbortController(); void loadList(controller.signal); return () => controller.abort(); }, [loadList]);
   useEffect(() => () => replyController.current?.abort(), []);
   useEffect(() => {
-    setRecord(null); setDetailError(''); setNotice('');
+    setRecord(null); setDetailError('');
     if (!selected) { setDetailLoading(false); return; }
     const controller = new AbortController(); setDetailLoading(true);
     void api.get(`/admin/support/${selected}`, { signal: controller.signal }).then(response => {
@@ -65,7 +66,7 @@ export default function SupportInbox() {
     if (!record || sending.current) return;
     const id = record.id; const message = (drafts[id] ?? '').trim();
     if (!message) { setDetailError('Write a reply before sending.'); return; }
-    sending.current = true; setPending(true); setDetailError(''); setNotice('');
+    sending.current = true; setPending(true); setDetailError('');
     const controller = new AbortController(); replyController.current = controller;
     if (attempts.current[id]?.message !== message) attempts.current[id] = { key: crypto.randomUUID(), message };
     try {
@@ -75,10 +76,10 @@ export default function SupportInbox() {
       if (controller.signal.aborted || currentSelection.current !== id) return;
       setRecord(current => current && ({ ...current, replies: current.replies.some(reply => reply.id === saved.id) ? current.replies : [...current.replies, saved] }));
       setDrafts(current => ({ ...current, [id]: '' })); delete attempts.current[id];
-      setNotice(saved.deliveryStatus === 'ACCEPTED' ? 'Reply saved and accepted by the email provider.' : 'Reply saved, but email delivery is unconfirmed. It has not been retried.');
+      (saved.deliveryStatus === 'ACCEPTED' ? toast.success : toast.warning)(saved.deliveryStatus === 'ACCEPTED' ? 'Reply saved and accepted by the email provider.' : 'Reply saved, but email delivery is unconfirmed. It has not been retried.');
       void loadList(controller.signal);
     } catch (error) {
-      if (!controller.signal.aborted) setDetailError(getApiErrorMessage(error, 'Could not confirm the reply. Your draft is kept. Trying the same draft again will not send a duplicate.'));
+      if (!controller.signal.aborted) showSubmissionError(error, 'Could not confirm the reply. Your draft is kept. Trying the same draft again will not send a duplicate.');
     } finally { sending.current = false; if (!controller.signal.aborted) setPending(false); }
   }
 
@@ -111,7 +112,6 @@ export default function SupportInbox() {
             <textarea id="admin-support-reply" value={drafts[record.id] ?? ''} onChange={event => setDrafts(current => ({ ...current, [record.id]: event.target.value }))} required maxLength={4000} rows={6} disabled={pending}
               className="w-full resize-y rounded-2xl border border-brand-border bg-brand-bg px-4 py-3 text-base leading-7 text-brand-text outline-none" placeholder="Write a helpful response…" />
             <p className="break-all text-sm text-brand-muted">This reply will be emailed to {record.replyEmail}.</p>
-            {notice && <FeedbackNotice tone="info" variant="inline">{notice}</FeedbackNotice>}
             <Button type="submit" isLoading={pending}>Send reply</Button>
           </form>
         </>}

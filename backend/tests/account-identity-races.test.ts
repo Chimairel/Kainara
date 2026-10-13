@@ -51,6 +51,17 @@ test('account identity race protections', async (parent) => {
     }
   );
 
+  await parent.test('verification locks and resend cooldowns expose their actual remaining wait', async context => {
+    const { AuthService } = await import('../src/services/auth.service');
+    const { AttemptCooldownError } = await import('../src/errors/AttemptCooldownError');
+    context.mock.method(prisma.user, 'findUnique', async () => ({ id: 'fixture', emailVerified: false, emailVerificationLockedUntil: new Date(Date.now() + 45_000) }));
+    for (const action of [() => AuthService.verifyEmail('fixture', '123456'), () => AuthService.resendVerification('fixture')]) {
+      await assert.rejects(action, (error: unknown) => error instanceof AttemptCooldownError && error.retryAfterSeconds > 0 && error.retryAfterSeconds <= 45);
+    }
+    context.mock.method(prisma.user, 'findUnique', async () => ({ id: 'fixture', emailVerified: false, emailVerificationLockedUntil: null, emailVerificationLastSentAt: new Date() }));
+    await assert.rejects(() => AuthService.resendVerification('fixture'), (error: unknown) => error instanceof AttemptCooldownError && error.retryAfterSeconds > 0 && error.retryAfterSeconds <= 60);
+  });
+
   await parent.test('an old inbox OTP cannot verify an account changed while proof was checked', async (context) => {
     const { AuthService } = await import('../src/services/auth.service');
     const hash = await bcrypt.hash('123456', 4);

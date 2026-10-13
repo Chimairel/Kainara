@@ -36,7 +36,7 @@ for (const theme of ['light', 'dark']) for (const width of [390, 1440]) {
     const textarea = page.getByLabel('Your reply');
     await textarea.fill('Thanks for the report. We checked the grocery checklist.');
     await page.getByRole('button', { name: 'Send reply' }).click();
-    await expect(page.getByRole('region', { name: 'Request conversation' }).getByRole('alert')).toContainText('Your draft is kept');
+    await expect(page.locator('[data-sonner-toast]')).toContainText('Your draft is kept');
     await expect(textarea).not.toHaveValue('');
     await page.getByRole('button', { name: 'Send reply' }).click();
     await expect(page.getByText('Reply saved and accepted by the email provider.')).toBeVisible();

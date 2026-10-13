@@ -1,3 +1,4 @@
+import { AttemptCooldownError } from '@/errors/AttemptCooldownError';
 import { databaseAvailabilityFailure } from '@/lib/database-availability';
 import { sendApiError } from '@/lib/http-response';
 import { Request, Response } from 'express';
@@ -189,6 +190,11 @@ export class AuthController {
         data: result,
       });
     } catch (error: any) {
+      if (error instanceof AttemptCooldownError) {
+        res.setHeader('Retry-After', error.retryAfterSeconds);
+        return res.status(429).json({ success: false, error: error.message, errorCode: 'ATTEMPT_LIMITED', retryAfterSeconds: error.retryAfterSeconds });
+      }
+
       return res.status(400).json({
         success: false,
         error: sanitizeErrorMessage(error, 'Email verification failed.'),
@@ -214,6 +220,11 @@ export class AuthController {
         data: result,
       });
     } catch (error: any) {
+      if (error instanceof AttemptCooldownError) {
+        res.setHeader('Retry-After', error.retryAfterSeconds);
+        return res.status(429).json({ success: false, error: error.message, errorCode: 'ATTEMPT_LIMITED', retryAfterSeconds: error.retryAfterSeconds });
+      }
+
       return res.status(400).json({
         success: false,
         error: sanitizeErrorMessage(error, 'Failed to resend verification code.'),

@@ -75,7 +75,7 @@ for (const theme of ['light', 'dark']) for (const width of [390, 1440]) {
     const initialForm = (await form.boundingBox())!;
     await expect(page.locator('.auth-card').locator('..').getByRole('link', { name: 'Browse the FAQs' })).toHaveCount(0);
     await page.getByRole('button', { name: 'Send a support request' }).click();
-    await expect(page.getByRole('alert').filter({ hasText: 'Your message is still here' })).toBeVisible();
+    await expect(page.locator('[data-sonner-toast]').filter({ hasText: 'Your message is still here' })).toBeVisible();
     await expect(message).not.toHaveValue('');
     await page.getByRole('button', { name: 'Send a support request' }).click();
     await expect(page.locator('[data-sonner-toast]').getByText('Support request received', { exact: true })).toBeVisible();
@@ -118,7 +118,7 @@ test('mobile reduced motion supports chapters, FAQ search and anonymous support'
   await page.getByLabel('Reply email').fill('visitor@example.invalid');
   await page.getByLabel('Your message').fill('I need help accessing my Kainara account.');
   await page.getByRole('button', { name: 'Send a support request' }).click();
-  await expect(page.getByRole('alert').filter({ hasText: 'Log in to send your request' })).toBeVisible();
+  await expect(page.locator('[data-sonner-toast]').filter({ hasText: 'Log in to send your request' })).toBeVisible();
   await expect(page.locator('.auth-card').locator('..').getByRole('link', { name: 'chimairelp@gmail.com', exact: true })).toHaveCount(0);
   await expect(page.getByRole('img', { name: 'Nara wearing her tanod costume' })).toBeVisible();
 });

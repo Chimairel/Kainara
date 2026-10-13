@@ -1,3 +1,4 @@
+import { attemptLimiter } from './attemptLimiter';
 import rateLimit, { ipKeyGenerator } from 'express-rate-limit';
 import jwt from 'jsonwebtoken';
 import type { Request } from 'express';
@@ -25,34 +26,9 @@ export function apiBrowsingKey(req: Pick<Request, 'headers' | 'ip'>): string {
 }
 
 /** Failed sign-ins have their own budget; successful sign-ins do not consume it. */
-export const loginLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: process.env.NODE_ENV === 'development' ? 500 : 20,
-  skipSuccessfulRequests: true,
-  standardHeaders: true,
-  legacyHeaders: false,
-  message: {
-    success: false,
-    error: 'Too many failed sign-in attempts. Please try again after 15 minutes.',
-  },
-});
-
-/** Registration and recovery are limited independently of sign-in. */
-export const accountCreationLimiter = rateLimit({
-  windowMs: 60 * 60 * 1000,
-  max: process.env.NODE_ENV === 'development' ? 500 : 10,
-  standardHeaders: true,
-  legacyHeaders: false,
-  message: { success: false, error: 'Too many registration attempts. Please try again later.' },
-});
-
-export const passwordRecoveryLimiter = rateLimit({
-  windowMs: 60 * 60 * 1000,
-  max: process.env.NODE_ENV === 'development' ? 500 : 10,
-  standardHeaders: true,
-  legacyHeaders: false,
-  message: { success: false, error: 'Too many password recovery attempts. Please try again later.' },
-});
+export const loginLimiter = attemptLimiter(20, 15, 'Too many failed sign-in attempts from this connection.', undefined, true);
+export const accountCreationLimiter = attemptLimiter(10, 60, 'Too many registration attempts from this connection.');
+export const passwordRecoveryLimiter = attemptLimiter(10, 60, 'Too many password recovery attempts from this connection.');
 
 /** Refresh and logout remain bounded even though auth bypasses the browsing budget. */
 export const sessionLimiter = rateLimit({
@@ -63,27 +39,8 @@ export const sessionLimiter = rateLimit({
   message: { success: false, error: 'Too many session requests. Please try again later.' },
 });
 
-export const verificationAttemptLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 20,
-  standardHeaders: true,
-  legacyHeaders: false,
-  message: {
-    success: false,
-    error: 'Too many verification attempts from this connection. Please try again later.',
-  },
-});
-
-export const verificationResendLimiter = rateLimit({
-  windowMs: 60 * 60 * 1000,
-  max: 5,
-  standardHeaders: true,
-  legacyHeaders: false,
-  message: {
-    success: false,
-    error: 'Too many verification emails requested. Please try again later.',
-  },
-});
+export const verificationAttemptLimiter = attemptLimiter(20, 15, 'Too many verification attempts from this connection.');
+export const verificationResendLimiter = attemptLimiter(20, 60, 'Too many verification emails requested from this connection.');
 
 export const professionalApplicationLimiter = rateLimit({
   windowMs: 60 * 60 * 1000,

@@ -1,8 +1,8 @@
 'use client';
 
 import { useEffect, useRef, useState, type FormEvent } from 'react';
-import Link from 'next/link';
-import { isAxiosError } from 'axios';
+import { useRouter } from 'next/navigation';
+import { showSubmissionError } from '@/lib/submission-attempts';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
 import api from '@/lib/axios';
@@ -23,7 +23,7 @@ function SupportForm({ user, loading }: { user: UserSession | null; loading: boo
   const [category, setCategory] = useState('MEALS');
   const [message, setMessage] = useState('');
   const [pending, setPending] = useState(false);
-  const [error, setError] = useState('');
+  const router = useRouter();
   const [fieldError, setFieldError] = useState('');
   const submission = useRef<{ key: string; body: string } | null>(null);
   const sending = useRef(false);
@@ -33,9 +33,13 @@ function SupportForm({ user, loading }: { user: UserSession | null; loading: boo
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (sending.current || loading) return;
-    setError('');
-    if (!user) { setError('Log in to send your request. Your message is still here.'); return; }
-    if (!user.emailVerified) { setError('Verify your email to send your request. Your message is still here.'); return; }
+    if (!user || !user.emailVerified) {
+      toast.error(user ? 'Verify your email to send your request.' : 'Log in to send your request.', {
+        description: 'Your message is still here.',
+        action: { label: user ? 'Verify email' : 'Log in', onClick: () => router.push(user ? '/verify-email' : '/login') },
+      });
+      return;
+    }
     if (message.trim().length < 20) { setFieldError('Add at least 20 characters so we can understand the problem.'); return; }
     setFieldError(''); sending.current = true; setPending(true);
     const request = new AbortController(); controller.current = request;
@@ -52,10 +56,7 @@ function SupportForm({ user, loading }: { user: UserSession | null; loading: boo
       setMessage(''); submission.current = null;
     } catch (failure) {
       if (request.signal.aborted) return;
-      const code = isAxiosError(failure) ? failure.response?.data?.errorCode : '';
-      setError(code === 'SUPPORT_RATE_LIMITED' ? 'You’ve sent several requests. Please wait an hour, or email us directly.' :
-        code === 'EMAIL_VERIFICATION_REQUIRED' ? 'Verify your email, then send your request again.' :
-        'We couldn’t confirm that your request was sent. Your message is still here. Check your connection, or email us directly.');
+      showSubmissionError(failure, 'We couldn’t confirm that your request was sent. Your message is still here. Check your connection and try again.');
     } finally {
       sending.current = false;
       if (!request.signal.aborted) setPending(false);
@@ -86,9 +87,6 @@ function SupportForm({ user, loading }: { user: UserSession | null; loading: boo
       </div>
       {fieldError && <p id="support-message-error" role="alert" className="mt-2 text-sm text-status-error-text">{fieldError}</p>}
     </div>
-    {error && <div role="alert" className="text-sm leading-6 text-status-error-text"><p>{error}</p>
-      {(!user || !user.emailVerified) && <Link href={user ? '/verify-email' : '/login'} className="mt-2 inline-flex min-h-11 items-center font-semibold text-brand-green underline underline-offset-4">{user ? 'Verify email' : 'Log in'}</Link>}
-    </div>}
     <Button type="submit" isLoading={pending} disabled={loading} className="min-h-12 w-full">Send a support request <ArrowUpRight className="h-4 w-4" /></Button>
   </form>;
 }

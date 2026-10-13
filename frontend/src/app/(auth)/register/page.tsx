@@ -1,8 +1,9 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import Link from 'next/link';
-import { getApiErrorMessage } from '@/lib/api-error';
+import { toast } from 'sonner';
+import { showSubmissionError } from '@/lib/submission-attempts';
 import { useAuth } from '@/hooks/useAuth';
 import api from '@/lib/axios';
 import Button from '@/components/ui/Button';
@@ -36,6 +37,7 @@ export default function RegisterPage() {
   const [error, setError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<RegistrationFieldErrors>({});
   const [isLoading, setIsLoading] = useState(false);
+  const submitting = useRef(false);
   const passwordsMismatch = confirmPassword.length > 0 && password !== confirmPassword;
   const passwordsMatch = confirmPassword.length > 0 && password === confirmPassword;
 
@@ -50,6 +52,7 @@ export default function RegisterPage() {
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
+    if (submitting.current) return;
     setError(null);
     const validation = getRegistrationFieldErrors({ firstName, lastName, email, password, confirmPassword });
     setFieldErrors(validation.errors);
@@ -58,6 +61,7 @@ export default function RegisterPage() {
       return;
     }
 
+    submitting.current = true;
     setIsLoading(true);
     try {
       const name = `${validation.data.firstName} ${validation.data.lastName}`;
@@ -72,11 +76,12 @@ export default function RegisterPage() {
         }
         await login(response.data.data.accessToken);
       } else {
-        setError(response.data.error || 'Failed to complete registration.');
+        toast.error(response.data.error || 'Failed to complete registration.');
       }
     } catch (err) {
-      setError(getApiErrorMessage(err, 'An error occurred during account creation. Please try again.'));
+      showSubmissionError(err, 'An error occurred during account creation. Please try again.');
     } finally {
+      submitting.current = false;
       setIsLoading(false);
     }
   };

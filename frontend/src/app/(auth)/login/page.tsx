@@ -1,8 +1,9 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
-import { getApiErrorMessage } from '@/lib/api-error';
+import { toast } from 'sonner';
+import { showSubmissionError } from '@/lib/submission-attempts';
 import { useAuth } from '@/hooks/useAuth';
 import api from '@/lib/axios';
 import Button from '@/components/ui/Button';
@@ -29,6 +30,7 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<LoginFieldErrors>({});
   const [isLoading, setIsLoading] = useState(false);
+  const submitting = useRef(false);
   const [isReady, setIsReady] = useState(false);
   const [accountDeleted, setAccountDeleted] = useState(false);
   useEffect(() => {
@@ -47,6 +49,7 @@ export default function LoginPage() {
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
+    if (submitting.current) return;
     setError(null);
 
     const validation = getLoginFieldErrors({ email, password });
@@ -56,17 +59,19 @@ export default function LoginPage() {
       return;
     }
 
+    submitting.current = true;
     setIsLoading(true);
     try {
       const response = await api.post('/auth/login', validation.data);
       if (response.data?.success) {
         await login(response.data.data.accessToken);
       } else {
-        setError(response.data.error || 'Failed to authenticate.');
+        toast.error(response.data.error || 'Failed to authenticate.');
       }
     } catch (err) {
-      setError(getApiErrorMessage(err, 'Unable to connect to the backend server. Please verify your connection.'));
+      showSubmissionError(err, 'Unable to connect to the backend server. Please verify your connection.');
     } finally {
+      submitting.current = false;
       setIsLoading(false);
     }
   };

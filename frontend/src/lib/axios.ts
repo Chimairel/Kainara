@@ -1,3 +1,4 @@
+import { beginSubmission, finishSubmission } from './submission-attempts';
 import axios, { type AxiosRequestConfig } from 'axios';
 import { cookieHelper } from '@/lib/auth';
 import { coordinatedRefresh } from './session-refresh-coordination';
@@ -85,6 +86,7 @@ api.interceptors.request.use((config) => {
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
+  beginSubmission(config);
   return config;
 });
 
@@ -124,6 +126,7 @@ const processQueue = (error: unknown, token: string | null = null) => {
 // Response interceptor to manage routing dynamically upon session expiration
 api.interceptors.response.use(
   (response) => {
+    finishSubmission(response.config);
     if (
       typeof window !== 'undefined' &&
       ['post', 'patch', 'put', 'delete'].includes(response.config.method?.toLowerCase() ?? '') &&
@@ -141,6 +144,7 @@ api.interceptors.response.use(
   },
   async (error) => {
     const originalRequest = error.config;
+    finishSubmission(originalRequest, error);
 
     // Retry once on 503 or transient 500 (e.g. serverless DB wake-up cold start / reconnect) for idempotent requests
     if (

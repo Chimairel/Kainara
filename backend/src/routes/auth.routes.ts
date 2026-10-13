@@ -1,3 +1,4 @@
+import { loginEmailLimiter, registrationEmailLimiter, recoveryEmailLimiter, resetAttemptLimiter, verificationAccountLimiter, resendAccountLimiter } from '@/middleware/attemptLimiter';
 import { Router } from 'express';
 import { body } from 'express-validator';
 import AuthController from '@/controllers/auth.controller';
@@ -24,6 +25,7 @@ const router = Router();
 router.post(
   '/register',
   accountCreationLimiter,
+  registrationEmailLimiter,
   [
     body('name')
       .trim()
@@ -66,6 +68,7 @@ router.post(
 router.post(
   '/login',
   loginLimiter,
+  loginEmailLimiter,
   [
     body('email').trim().isEmail().withMessage('Please provide a valid email address.'),
     body('password').notEmpty().withMessage('Password is required.'),
@@ -99,6 +102,7 @@ router.post(
   '/verify-email',
   verificationAttemptLimiter,
   authenticate,
+  verificationAccountLimiter,
   [
     body('otp')
       .trim()
@@ -115,7 +119,7 @@ router.post(
  * Route: POST /api/auth/resend-verification
  * Description: Resends a new OTP to the user's email. Requires auth token.
  */
-router.post('/resend-verification', verificationResendLimiter, authenticate, AuthController.resendVerification);
+router.post('/resend-verification', verificationResendLimiter, authenticate, resendAccountLimiter, AuthController.resendVerification);
 
 /**
  * Route: POST /api/auth/forgot-password
@@ -124,6 +128,7 @@ router.post('/resend-verification', verificationResendLimiter, authenticate, Aut
 router.post(
   '/forgot-password',
   passwordRecoveryLimiter,
+  recoveryEmailLimiter,
   [body('email').trim().isEmail().withMessage('Please provide a valid email address.'), validate],
   AuthController.forgotPassword
 );
@@ -134,7 +139,7 @@ router.post(
  */
 router.post(
   '/reset-password',
-  passwordRecoveryLimiter,
+  resetAttemptLimiter,
   [
     body('token').notEmpty().withMessage('Reset token is required.'),
     body('password')

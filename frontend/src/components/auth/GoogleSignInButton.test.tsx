@@ -2,7 +2,8 @@ import { act, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import GoogleSignInButton from './GoogleSignInButton';
 
-const mocks = vi.hoisted(() => ({ login: vi.fn(), post: vi.fn(), theme: 'light' }));
+const mocks = vi.hoisted(() => ({ login: vi.fn(), post: vi.fn(), theme: 'light', error: vi.fn() }));
+vi.mock('sonner', () => ({ toast: { error: mocks.error } }));
 vi.mock('@/hooks/useAuth', () => ({ useAuth: () => ({ login: mocks.login }) }));
 vi.mock('@/lib/context/ThemeContext', () => ({ useTheme: () => ({ theme: mocks.theme }) }));
 vi.mock('@/lib/axios', () => ({ default: { post: mocks.post } }));
@@ -62,9 +63,7 @@ describe('Google sign-in browser recovery', () => {
     mocks.post.mockRejectedValueOnce({ isAxiosError: true, code: 'ERR_NETWORK' });
     await renderGoogle();
     await act(async () => credential({ credential: 'fixture-id-token' }));
-    expect(
-      screen.getByText('We can’t reach the sign-in service. Check your connection and try again.')
-    ).toBeInTheDocument();
+    expect(mocks.error).toHaveBeenCalledWith('We can’t reach the sign-in service. Check your connection and try again.');
     expect(mocks.login).not.toHaveBeenCalled();
   });
 
@@ -140,7 +139,7 @@ describe('Google sign-in browser recovery', () => {
       click_listener: expect.any(Function),
     });
     await act(async () => credential({ credential: 'fixture-id-token' }));
-    expect(screen.getByRole('link', { name: 'Sign in with email' })).toHaveAttribute('href', '/login');
+    expect(mocks.error).toHaveBeenCalledWith('Use your original sign-in method.', expect.objectContaining({ action: expect.objectContaining({ label: 'Sign in with email' }) }));
     expect(mocks.login).not.toHaveBeenCalled();
   });
 

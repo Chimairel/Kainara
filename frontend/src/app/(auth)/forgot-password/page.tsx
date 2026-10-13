@@ -1,10 +1,9 @@
 'use client';
-import FeedbackNotice from '@/components/shared/FeedbackNotice';
+import { toast } from 'sonner';
+import { showSubmissionError } from '@/lib/submission-attempts';
 
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import Link from 'next/link';
-import { CheckCircle2, MailCheck } from '@/components/ui/icons';
-import { getApiErrorMessage } from '@/lib/api-error';
 import api from '@/lib/axios';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
@@ -14,23 +13,27 @@ import AuthShell from '@/components/auth/AuthShell';
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState('');
   const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState(false);
+  const submitting = useRef(false);
   const [isLoading, setIsLoading] = useState(false);
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
+    if (submitting.current) return;
     setError(null);
     if (!email) {
       setError('Please enter your email address.');
       return;
     }
+    submitting.current = true;
     setIsLoading(true);
     try {
-      await api.post('/auth/forgot-password', { email });
-      setSuccess(true);
+      const response = await api.post('/auth/forgot-password', { email });
+      if (response.data?.success !== true) throw new Error('Unconfirmed password recovery');
+      toast.success('Check your inbox', { description: 'If that account supports password sign-in, we’ve sent a reset link. Google-only accounts continue using Google sign-in.' });
     } catch (err) {
-      setError(getApiErrorMessage(err, 'Something went wrong. Please try again.'));
+      showSubmissionError(err, 'Something went wrong. Please try again.');
     } finally {
+      submitting.current = false;
       setIsLoading(false);
     }
   };
@@ -38,7 +41,7 @@ export default function ForgotPasswordPage() {
   return (
     <AuthShell
       eyebrow="Account recovery"
-      title={success ? 'Check your inbox' : 'Reset your access'}
+      title="Reset your access"
       heroTitle={
         <>
           A secure route
@@ -53,49 +56,23 @@ export default function ForgotPasswordPage() {
         </Link>
       }
     >
-      {success ? (
-        <div className="text-center">
-          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl border border-brand-green/20 bg-brand-green/10 text-brand-green shadow-cyan">
-            <MailCheck className="h-7 w-7" />
-          </div>
-          <div className="mt-6 flex items-start gap-3 rounded-2xl border border-brand-green/20 bg-brand-green/[0.07] p-4 text-left text-sm text-brand-text">
-            <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-brand-green" />
-            <span className="leading-6">
-              If that account supports password sign-in, we&apos;ve sent a reset link. Google-only accounts continue
-              using Google sign-in.
-            </span>
-          </div>
-          <Link
-            href="/login"
-            className="mt-6 inline-flex min-h-12 items-center justify-center rounded-2xl bg-brand-accent px-6 text-sm font-extrabold text-[#07100d] shadow-neon"
-          >
-            Back to sign in
-          </Link>
-        </div>
-      ) : (
-        <>
-          {error && (
-            <FeedbackNotice className="mb-5">
-              <span>{error}</span>
-            </FeedbackNotice>
-          )}
-          <HydratedForm onSubmit={handleSubmit} className="flex flex-col gap-5">
-            <Input
-              id="forgot-email"
-              label="Email address"
-              type="email"
-              placeholder="name@example.com"
-              value={email}
-              onChange={(event) => setEmail(event.target.value)}
-              disabled={isLoading}
-              autoComplete="email"
-            />
-            <Button type="submit" variant="primary" size="lg" className="w-full" isLoading={isLoading}>
-              Send reset link
-            </Button>
-          </HydratedForm>
-        </>
-      )}
+      <HydratedForm onSubmit={handleSubmit} className="flex flex-col gap-5">
+        <Input
+          id="forgot-email"
+          label="Email address"
+          type="email"
+          placeholder="name@example.com"
+          value={email}
+          onChange={(event) => setEmail(event.target.value)}
+          disabled={isLoading}
+          required
+          error={error ?? undefined}
+          autoComplete="email"
+        />
+        <Button type="submit" variant="primary" size="lg" className="w-full" isLoading={isLoading}>
+          Send reset link
+        </Button>
+      </HydratedForm>
     </AuthShell>
   );
 }

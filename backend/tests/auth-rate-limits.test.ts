@@ -3,6 +3,7 @@ import { once } from 'node:events';
 import { AddressInfo } from 'node:net';
 import test from 'node:test';
 import express from 'express';
+import { attemptLimiter, emailAttemptKey } from '../src/middleware/attemptLimiter';
 import { accountCreationLimiter, apiLimiter, loginLimiter } from '../src/middleware/rateLimiter';
 
 test('failed sign-ins are limited independently of registration and browsing', async () => {
@@ -25,16 +26,39 @@ test('failed sign-ins are limited independently of registration and browsing', a
       });
     assert.equal((await fetch(`${base}/browse`)).status, 200);
     assert.equal((await login(true)).status, 200);
-    const failedAllowance = process.env.NODE_ENV === 'development' ? 500 : 20;
+    const failedAllowance = 20;
     for (let attempt = 0; attempt < failedAllowance; attempt += 1) {
       assert.equal((await login(false)).status, 400);
     }
     const blocked = await login(false);
     assert.equal(blocked.status, 429);
-    assert.match(((await blocked.json()) as { error: string }).error, /failed sign-in attempts/i);
+    const body = await blocked.json() as { error: string; retryAfterSeconds: number };
+    assert.match(body.error, /failed sign-in attempts/i);
+    assert.ok(body.retryAfterSeconds > 0 && body.retryAfterSeconds <= 900);
+    assert.equal(blocked.headers.get('retry-after'), String(body.retryAfterSeconds));
     assert.equal((await fetch(`${base}/auth/register`, { method: 'POST' })).status, 200);
     assert.equal((await fetch(`${base}/browse`)).status, 200);
   } finally {
     await new Promise<void>((resolve, reject) => server.close((error) => (error ? reject(error) : resolve())));
   }
+});
+
+
+test('email budgets normalize casing, remain independent, count invalid attempts and expire', async () => {
+  const app = express(); app.use(express.json());
+  app.post('/attempt', attemptLimiter(2, 0.002, 'Wait.', emailAttemptKey), (_req, res) => res.sendStatus(400));
+  const server = app.listen(0, '127.0.0.1');
+  await once(server, 'listening');
+  const { port } = server.address() as AddressInfo;
+  const send = (email: string) => fetch(`http://127.0.0.1:${port}/attempt`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ email }) });
+  try {
+    assert.equal(emailAttemptKey({ body: { email: ' A@B.com ' } } as express.Request), emailAttemptKey({ body: { email: 'a@b.com' } } as express.Request));
+    assert.ok(!emailAttemptKey({ body: { email: 'a@b.com' } } as express.Request).includes('a@b.com'));
+    assert.equal((await send('A@example.invalid')).status, 400);
+    assert.equal((await send(' a@example.invalid ')).status, 400);
+    assert.equal((await send('a@example.invalid')).status, 429);
+    assert.equal((await send('b@example.invalid')).status, 400);
+    await new Promise(resolve => setTimeout(resolve, 150));
+    assert.equal((await send('a@example.invalid')).status, 400);
+  } finally { await new Promise<void>(resolve => server.close(() => resolve())); }
 });

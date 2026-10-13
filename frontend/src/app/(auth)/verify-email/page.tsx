@@ -1,13 +1,13 @@
 'use client';
-import FeedbackNotice from '@/components/shared/FeedbackNotice';
+import { toast } from 'sonner';
+import { showSubmissionError } from '@/lib/submission-attempts';
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import api from '@/lib/axios';
-import { getApiErrorMessage } from '@/lib/api-error';
 import AuthShell from '@/components/auth/AuthShell';
 import RouteGuard from '@/components/shared/RouteGuard';
-import { CheckCircle2, LogOut, Mail } from '@/components/ui/icons';
+import { LogOut, Mail } from '@/components/ui/icons';
 
 /**
  * Email Verification Page — 6-digit OTP input with auto-submit and resend cooldown.
@@ -23,8 +23,9 @@ export default function VerifyEmailPage() {
 function EmailVerificationForm() {
   const { user, refreshSession, logout } = useAuth();
   const [otp, setOtp] = useState<string[]>(Array(6).fill(''));
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
+  const verifying = useRef(false);
+  const resending = useRef(false);
+  const [isResending, setIsResending] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [resendCooldown, setResendCooldown] = useState(0);
   const [isSwitchingAccount, setIsSwitchingAccount] = useState(false);
@@ -33,7 +34,7 @@ function EmailVerificationForm() {
   // Resend cooldown timer
   useEffect(() => {
     if (sessionStorage.getItem('nutrimind_verification_delivery_pending') === 'true') {
-      setError('We could not deliver the first code. Use Resend Code to request another one.');
+      toast.error('We could not deliver the first code. Use Resend Code to request another one.', { id: 'verification-delivery' });
       sessionStorage.removeItem('nutrimind_verification_delivery_pending');
     }
   }, []);
@@ -46,21 +47,24 @@ function EmailVerificationForm() {
 
   const handleVerify = useCallback(
     async (code: string) => {
+      if (verifying.current || resending.current) return;
+      verifying.current = true;
       setIsLoading(true);
-      setError(null);
       try {
         const response = await api.post('/auth/verify-email', { otp: code });
-        if (response.data?.success) {
-          setSuccess('Email verified successfully! Redirecting...');
+        if (response.data?.success !== true) throw new Error('Unconfirmed verification');
+        if (response.data.success) {
+          toast.success('Email verified successfully.');
           // RouteGuard chooses the destination from the confirmed role/profile.
           // A failed refresh stays recoverable instead of inventing onboarding status.
           await refreshSession({ showLoader: true });
         }
       } catch (err: unknown) {
-        setError(getApiErrorMessage(err, 'Verification failed. Please try again.'));
+        showSubmissionError(err, 'Verification failed. Please try again.');
         setOtp(Array(6).fill(''));
         inputRefs.current[0]?.focus();
       } finally {
+        verifying.current = false;
         setIsLoading(false);
       }
     },
@@ -81,7 +85,6 @@ function EmailVerificationForm() {
     const newOtp = [...otp];
     newOtp[index] = value.slice(-1); // Take last char only
     setOtp(newOtp);
-    setError(null);
 
     // Auto-focus next input
     if (value && index < 5) {
@@ -110,16 +113,16 @@ function EmailVerificationForm() {
   };
 
   const handleResend = async () => {
-    if (resendCooldown > 0) return;
-    setError(null);
+    if (resendCooldown > 0 || resending.current || verifying.current) return;
+    resending.current = true; setIsResending(true);
     try {
-      await api.post('/auth/resend-verification');
-      setSuccess(`A new code has been sent to ${user?.email || 'your registered email address'}.`);
+      const response = await api.post('/auth/resend-verification');
+      if (response.data?.success !== true) throw new Error('Unconfirmed resend');
+      toast.success(`A new code has been sent to ${user?.email || 'your registered email address'}.`);
       setResendCooldown(60);
-      setTimeout(() => setSuccess(null), 3000);
     } catch (err: unknown) {
-      setError(getApiErrorMessage(err, 'Failed to resend code.'));
-    }
+      showSubmissionError(err, 'Failed to resend code.');
+    } finally { resending.current = false; setIsResending(false); }
   };
 
   const handleUseDifferentAccount = async () => {
@@ -163,19 +166,6 @@ function EmailVerificationForm() {
         </div>
       </div>
 
-      {error && (
-        <FeedbackNotice className="mb-5">
-          <span className="leading-tight">{error}</span>
-        </FeedbackNotice>
-      )}
-
-      {success && (
-        <div className="mb-5 flex items-start gap-3 rounded-2xl border border-brand-green/20 bg-brand-green/[0.07] p-4 text-sm font-semibold text-brand-green">
-          <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />
-          <span className="leading-tight">{success}</span>
-        </div>
-      )}
-
       <div className="mb-8 flex justify-center gap-2 sm:gap-3" onPaste={handlePaste}>
         {otp.map((digit, index) => (
           <input
@@ -192,7 +182,7 @@ function EmailVerificationForm() {
             value={digit}
             onChange={(e) => handleChange(index, e.target.value)}
             onKeyDown={(e) => handleKeyDown(index, e)}
-            disabled={isLoading}
+            disabled={isLoading || isResending}
             className="h-14 w-11 rounded-2xl border border-brand-border/80 bg-brand-surface/80 text-center font-mono text-xl font-bold text-brand-text outline-none transition-all duration-200 focus:border-brand-green/60 focus:ring-4 focus:ring-brand-green/10 disabled:opacity-50 sm:w-12"
             autoFocus={index === 0}
           />
@@ -210,10 +200,10 @@ function EmailVerificationForm() {
         <button
           type="button"
           onClick={handleResend}
-          disabled={resendCooldown > 0 || isLoading}
+          disabled={resendCooldown > 0 || isLoading || isResending}
           className="cursor-pointer text-sm font-bold text-brand-green transition hover:text-brand-cyan disabled:cursor-not-allowed disabled:text-brand-muted"
         >
-          {resendCooldown > 0 ? `Resend in ${resendCooldown}s` : 'Resend Code'}
+          {isResending ? 'Sending…' : resendCooldown > 0 ? `Resend in ${resendCooldown}s` : 'Resend Code'}
         </button>
       </div>
     </AuthShell>
