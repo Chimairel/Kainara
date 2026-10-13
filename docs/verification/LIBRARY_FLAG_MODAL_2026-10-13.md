@@ -18,3 +18,9 @@ This supersedes the earlier section-link and separate approvals-panel layout in 
 - Scoped ESLint, both production builds and owned-file diff whitespace checks pass. One stale reviewer-name selector was corrected to match the existing RND-suffix normalization. Earlier captures from superseded layouts are not current evidence.
 
 No hosted records, schema, provider email or live application deployment were changed. Finished changes are committed locally in the shared Desktop checkout; publishing is separate.
+
+## Subsequent owner-requested simplification
+
+- Removed the reusable recipe evidence review and adaptation/serving editors entirely from the library detail and held-meal review. Deleted their unused components and obsolete derivation-form tests. Existing flag, resolution and quarantine behavior remains covered by the shared workspace tests.
+- Removed serving wording from the header and detail body, photo/source notes and the adaptation-lineage paragraph. Below the existing verifier presentation, Meal details now contains the description followed by ingredients. This supersedes the visible attribution/serving wording described above; stored meal/image evidence is unchanged.
+- Twelve focused flag/workspace tests and scoped lint pass after the final edits. Four desktop/mobile light/dark browser journeys and a production frontend build passed after editor removal; the final text-only deletion was then checked by TypeScript and the focused tests.

@@ -30,7 +30,6 @@ export default function LibraryMealHeader({ meal, onFlag, flagTrigger }: { meal:
           </span>
         </div>
         <h1 className="mt-3 break-words font-display text-3xl font-bold leading-tight text-white sm:text-4xl">{formatMealTitle(meal.mealName)}</h1>
-        {meal.nutritionServingDescription && <p className="mt-3 text-base font-semibold text-white/90">{meal.nutritionServingDescription}</p>}
         <MealMacros variant="line" calories={meal.calories} proteinG={meal.proteinG} carbsG={meal.carbsG} fatG={meal.fatG} className="mt-3 gap-x-2 gap-y-1 text-sm sm:text-base" />
         <div ref={flagTrigger} className="mt-5 flex justify-end">
           <Button variant="secondary" size="sm" disabled={meal.status === 'ARCHIVED'} onClick={onFlag}>

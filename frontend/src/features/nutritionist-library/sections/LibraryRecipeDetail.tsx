@@ -1,10 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { formatMealTitle } from '@/lib/meal-title';
-import LibrarySafetyReview from '../LibrarySafetyReview';
 import MealReviewPanel from '../MealReviewPanel';
-import RecipeDerivationForm from '../RecipeDerivationForm';
 import RecipeCaseHistory from '../RecipeCaseHistory';
 import LibraryMealHeader from './LibraryMealHeader';
 import LibraryMealVerifier from './LibraryMealVerifier';
@@ -15,11 +12,11 @@ import type { useSharedMealLibraryModel } from './useSharedMealLibraryModel';
 type DetailSection = 'details' | 'approvals';
 type Props = {
   model: Pick<ReturnType<typeof useSharedMealLibraryModel>,
-    'embedded' | 'setViewedMeal' | 'listScrollTop' | 'viewedMeal' | 'isAdmin' | 'openMeal' | 'workspace' | 'fetchLibrary'>;
+    'embedded' | 'setViewedMeal' | 'listScrollTop' | 'viewedMeal' | 'isAdmin' | 'openMeal' | 'workspace'>;
 };
 
 export default function LibraryRecipeDetail({ model }: Props) {
-  const { embedded, setViewedMeal, listScrollTop, viewedMeal, isAdmin, openMeal, workspace, fetchLibrary } = model;
+  const { embedded, setViewedMeal, listScrollTop, viewedMeal, isAdmin, openMeal, workspace } = model;
   const [flagOpen, setFlagOpen] = useState(false);
   const [section, setSection] = useState<DetailSection>('details');
   const flagTrigger = useRef<HTMLDivElement>(null);
@@ -32,7 +29,6 @@ export default function LibraryRecipeDetail({ model }: Props) {
     setSection('details');
   }, [viewedMeal?.id, viewedMeal?.status, isAdmin]);
   if (!viewedMeal) return null;
-  const source = viewedMeal.sourceRawRecipeCandidate;
   const held = viewedMeal.status === 'FLAGGED';
   const refresh = async () => {
     await openMeal(viewedMeal);
@@ -66,9 +62,7 @@ export default function LibraryRecipeDetail({ model }: Props) {
             <LibraryMealVerifier key={viewedMeal.id} meal={viewedMeal} />
             <div>
               <h2 className="font-display text-xl font-bold">Meal details</h2>
-              {source?.sourceUrl && <a href={source.sourceUrl} target="_blank" rel="noopener noreferrer" className="mt-3 inline-flex min-h-11 items-center text-sm font-semibold text-brand-green underline underline-offset-4">Original source ↗</a>}
               <p className="mt-3 max-w-prose whitespace-pre-line text-sm leading-7 text-brand-muted">{viewedMeal.description || 'No description recorded.'}</p>
-              {viewedMeal.nutritionServingDescription && <p className="mt-4 text-sm font-semibold">Serving: {viewedMeal.nutritionServingDescription}</p>}
             </div>
             <div className="border-t border-brand-border pt-6">
               <h3 className="font-display text-lg font-bold">Ingredients</h3>
@@ -79,16 +73,7 @@ export default function LibraryRecipeDetail({ model }: Props) {
               </ul>
               {!viewedMeal.ingredients?.length && <p className="mt-3 text-sm text-brand-muted">No ingredient snapshot recorded.</p>}
             </div>
-            {viewedMeal.safetyReviews?.[0]?.evidenceSnapshot?.nutritionBasis && <p className="text-sm text-brand-muted">Nutrition source notes: {viewedMeal.safetyReviews[0].evidenceSnapshot.nutritionBasis}</p>}
-            {viewedMeal.image?.attribution && <p className="text-xs leading-5 text-brand-muted">
-              Photo: {viewedMeal.image.attribution.creator || 'Recorded source'}
-              {viewedMeal.image.attribution.sourcePageUrl && <> · <a className="underline underline-offset-4" href={viewedMeal.image.attribution.sourcePageUrl} target="_blank" rel="noopener noreferrer">Image source</a></>}
-              {viewedMeal.image.attribution.licenseUrl && <> · <a className="underline underline-offset-4" href={viewedMeal.image.attribution.licenseUrl} target="_blank" rel="noopener noreferrer">{viewedMeal.image.attribution.licenseCode || 'License'}</a></>}
-            </p>}
-            {viewedMeal.parentMeal && <p className="text-sm text-brand-muted">{viewedMeal.derivationKind === 'ADAPTED' ? 'Adapted from' : 'Serving version of'} {formatMealTitle(viewedMeal.parentMeal.mealName)}. This draft has its own review history and approvals.</p>}
           </section>
-          {!isAdmin && <LibrarySafetyReview key={`safety-${viewedMeal.id}-${viewedMeal.safetyEvidenceRevision}`} meal={viewedMeal} refresh={refresh} />}
-          {!isAdmin && !held && <RecipeDerivationForm key={`derivation-${viewedMeal.id}`} meal={viewedMeal} onCreated={id => { void openMeal({ ...viewedMeal, id }); void fetchLibrary(); }} />}
         </div>
         <div hidden={section !== 'details' || !held}>
           <MealReviewPanel embedded key={`review-${viewedMeal.id}`} meal={viewedMeal} isAdmin={isAdmin} flagOpen={flagOpen} onFlagOpenChange={changeFlagOpen} refresh={refresh} />

@@ -15,12 +15,6 @@ const mocks = vi.hoisted(() => ({
 }));
 vi.mock('@/lib/axios', () => ({ default: { get: mocks.get, post: mocks.post } }));
 vi.mock('sonner', () => ({ toast: mocks }));
-vi.mock('./LibrarySafetyReview', () => ({ default: () => <div>Clinical evidence editor</div> }));
-vi.mock('./RecipeDerivationForm', () => ({
-  default: ({ correctionVersion }: { correctionVersion?: string }) => (
-    <div>{correctionVersion ? 'Held recipe correction editor' : 'Recipe derivation editor'}</div>
-  ),
-}));
 vi.mock('./RecipeCaseHistory', () => ({ default: ({ role, approvalsOnly }: { role: string; approvalsOnly: boolean }) => <div data-testid="meal-audit">{role} {approvalsOnly ? 'approval audit' : 'case audit'}</div> }));
 vi.mock('./useNutritionistLibrary', () => ({ AVAILABLE_CONDITIONS: [], useNutritionistLibrary: mocks.hook }));
 
@@ -143,6 +137,8 @@ beforeEach(() => {
 async function open() {
   fireEvent.click(screen.getByRole('button', { name: 'View' }));
   await screen.findByRole('heading', { name: 'Test lunch', level: 1 });
+  expect(screen.queryByRole('heading', { name: 'Review reusable recipe evidence' })).not.toBeInTheDocument();
+  expect(screen.queryByRole('heading', { name: /Adapt recipe|Correct held recipe/ })).not.toBeInTheDocument();
 }
 
 function fillFlag() {
@@ -192,7 +188,6 @@ describe('shared library permissions and feedback', () => {
     expect(mocks.hook).toHaveBeenCalledWith(false, 'admin', true);
     await open();
     await screen.findByText('Published');
-    expect(screen.queryByText('Clinical evidence editor')).not.toBeInTheDocument();
     expect(screen.queryByText('Private case approvals')).not.toBeInTheDocument();
     expect(screen.queryByLabelText('Explanation')).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Flag meal', exact: true }));
@@ -223,11 +218,8 @@ describe('shared library permissions and feedback', () => {
     render(<SharedMealLibraryWorkspace />);
     await open();
     await screen.findByRole('region', { name: 'Flag concern report-1' });
-    expect(screen.getByText('Clinical evidence editor')).toBeInTheDocument();
-    expect(screen.queryByText('Recipe derivation editor')).not.toBeInTheDocument();
-    expect(screen.getByText('Held recipe correction editor')).toBeInTheDocument();
-    const header = screen.getByRole('heading', { name: 'Test lunch', level: 1 }).closest('header')!;
-    expect(within(header).getByText('Pending re-review')).toBeInTheDocument();
+    const header = (await screen.findByRole('heading', { name: 'Test lunch', level: 1 })).closest('header')!;
+    await waitFor(() => expect(within(header).getByText('Pending re-review')).toBeInTheDocument());
     expect(within(header).queryByText('Verified')).not.toBeInTheDocument();
     expect(screen.getByTestId('meal-audit')).toHaveTextContent('nutritionist approval audit');
     expect(screen.getByRole('button', { name: 'Approvals', exact: true })).toBeInTheDocument();
@@ -310,21 +302,18 @@ describe('shared library permissions and feedback', () => {
     expect(screen.getByLabelText('Supporting evidence or reference')).toHaveValue('Recorded composition evidence.');
   });
 
-  it('keeps one matching derivation editor across flag, re-verification and quarantine updates', async () => {
+  it('preserves flag, re-verification and quarantine transitions without recipe editors', async () => {
     render(<SharedMealLibraryWorkspace />);
     await open();
     await screen.findByText('Published');
-    expect(screen.getAllByText('Recipe derivation editor')).toHaveLength(1);
     fillFlag();
     mocks.post.mockImplementation(async () => {
       held();
       return { data: { success: true } };
     });
     fireEvent.click(screen.getByRole('button', { name: 'Flag and withhold meal' }));
-    await screen.findByText('Held recipe correction editor');
-    await waitFor(() => expect(screen.queryByText('Recipe derivation editor')).not.toBeInTheDocument());
-    const header = screen.getByRole('heading', { name: 'Test lunch', level: 1 }).closest('header')!;
-    expect(within(header).getByText('Pending re-review')).toBeInTheDocument();
+    const header = (await screen.findByRole('heading', { name: 'Test lunch', level: 1 })).closest('header')!;
+    await waitFor(() => expect(within(header).getByText('Pending re-review')).toBeInTheDocument());
 
     fireEvent.change(screen.getByLabelText('How you resolved this concern'), {
       target: { value: 'All recorded ingredient evidence has been independently checked.' },
@@ -339,20 +328,15 @@ describe('shared library permissions and feedback', () => {
       return { data: { success: true } };
     });
     fireEvent.click(screen.getByRole('button', { name: 'Re-verify recipe' }));
-    await screen.findByText('Recipe derivation editor');
-    await waitFor(() => expect(screen.queryByText('Held recipe correction editor')).not.toBeInTheDocument());
-    expect(screen.getAllByText('Recipe derivation editor')).toHaveLength(1);
 
+    await waitFor(() => expect(within(header).getByText('Verified')).toBeInTheDocument());
     mocks.post.mockImplementation(async () => {
       held('QUARANTINED');
       return { data: { success: true } };
     });
     fillFlag();
     fireEvent.click(screen.getByRole('button', { name: 'Flag and withhold meal' }));
-    await screen.findByText('Held recipe correction editor');
-    await waitFor(() => expect(screen.queryByText('Recipe derivation editor')).not.toBeInTheDocument());
-    expect(screen.getAllByText('Held recipe correction editor')).toHaveLength(1);
-    expect(within(header).getByText('Quarantined')).toBeInTheDocument();
+    await waitFor(() => expect(within(header).getByText('Quarantined')).toBeInTheDocument());
     expect(screen.getAllByRole('region', { name: 'Meal-wide review' })).toHaveLength(1);
   });
   it('notifies that a decision was recorded when the later history refresh fails', async () => {

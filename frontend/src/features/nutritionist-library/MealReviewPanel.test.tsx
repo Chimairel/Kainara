@@ -10,7 +10,6 @@ vi.mock('@/hooks/useSessionQuery', () => ({
   useSessionQuery: () => ({ data: fixture.data, refetch: fixture.refetch }),
 }));
 vi.mock('@/lib/axios', () => ({ default: { post: fixture.post } }));
-vi.mock('./RecipeDerivationForm', () => ({ default: () => null }));
 vi.mock('./MealReviewTimeline', () => ({ default: () => null, reviewStateLabel: (value: string) => value }));
 
 const report = (id: string) => ({ id, notes: { category: 'NUTRITION', explanation: `Recorded concern ${id}` } });

@@ -10,7 +10,6 @@ import api from '@/lib/axios';
 import Button from '@/components/ui/Button';
 import Dropdown from '@/components/ui/Dropdown';
 import MealReviewTimeline, { reviewStateLabel, type ReviewIncident } from './MealReviewTimeline';
-import RecipeDerivationForm from './RecipeDerivationForm';
 import RndQueueDocument, { ReviewDocumentPage } from '@/features/nutritionist-reviews/RndQueueDocument';
 import ConcernResolution from '@/features/nutritionist-reviews/ConcernResolution';
 import { formatMealTitle } from '@/lib/meal-title';
@@ -337,17 +336,6 @@ export default function MealReviewPanel({
                       ? 'Admin release records an administrative decision. Member-specific clinical approvals still require RND review.'
                       : 'Authors, flaggers and challenged verifiers cannot re-verify this incident. Corrections and new evidence invalidate prior confirmations.'}
                   </p>
-                  {!isAdmin && (
-                    <RecipeDerivationForm
-                      key={`correction-${data.reviewVersion}`}
-                      meal={meal}
-                      correctionVersion={data.reviewVersion}
-                      onCreated={() => {
-                        void query.refetch();
-                        void refresh();
-                      }}
-                    />
-                  )}
                 </div>
               </ReviewDocumentPage>
             </RndQueueDocument>
