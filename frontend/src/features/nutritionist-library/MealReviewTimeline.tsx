@@ -45,7 +45,7 @@ export type ReviewIncident = {
     actorSnapshot: { name?: string; role?: string };
     rationale: string;
     version: string;
-    snapshot: { meals?: SnapshotMeal[] };
+    snapshot: { meals?: SnapshotMeal[]; extra?: unknown };
   }[];
 };
 export const reviewStateLabel = (state: string) =>
@@ -61,6 +61,7 @@ const actionLabel = (action: string) =>
   ({
     WITHHELD: 'Recipe withheld',
     FLAGGED: 'Flag recorded',
+    CLAIMED: 'Independent re-review claimed',
     CORRECTION_BEFORE: 'Before correction',
     CORRECTED: 'Recipe corrected',
     CONFIRMED: 'Independent confirmation',
@@ -211,6 +212,15 @@ export default function MealReviewTimeline({
   const previous =
     selected?.decision.action === 'CORRECTED' && preceding?.action === 'CORRECTION_BEFORE' ? preceding : undefined;
   const reports = selected?.incident.reports.filter((report) => !displayedReportIds.includes(report.id)) ?? [];
+  const resolutions = selected?.decision.action === 'CONFIRMED' && Array.isArray(selected.decision.snapshot.extra)
+    ? selected.decision.snapshot.extra.flatMap((value: unknown) => {
+        if (!value || typeof value !== 'object') return [];
+        const resolution = value as { reportId?: unknown; rationale?: unknown };
+        return typeof resolution.reportId === 'string' && typeof resolution.rationale === 'string'
+          ? [{ reportId: resolution.reportId, rationale: resolution.rationale }]
+          : [];
+      })
+    : [];
   return (
     <RecordPaper aria-label="Recipe review timeline">
       <header className="border-b border-brand-border/80 pb-4">
@@ -281,6 +291,17 @@ export default function MealReviewTimeline({
                 {selected.decision.rationale || 'Rationale not recorded.'}
               </p>
             </div>
+            {resolutions.length > 0 && <section aria-label="Recorded concern resolutions" className="space-y-3">
+              <h5 className="text-sm font-bold">Concern resolutions</h5>
+              {resolutions.map(resolution => {
+                const report = selected.incident.reports.find(report => report.id === resolution.reportId);
+                return <div key={resolution.reportId} className="space-y-2 border-t border-brand-border pt-3">
+                  <p className="text-xs font-semibold text-brand-muted">{report?.actorSnapshot.name ?? 'Flagger not recorded'} · {report?.notes.category ?? 'Concern'}</p>
+                  {report && <p className="text-sm leading-relaxed">{report.notes.explanation}</p>}
+                  <p className="whitespace-pre-wrap text-sm leading-relaxed"><strong>Resolution: </strong>{resolution.rationale}</p>
+                </div>;
+              })}
+            </section>}
             <p className="text-xs text-brand-muted">
               Immutable values recorded for this decision. Version {selected.decision.version.slice(0, 12)}.
             </p>

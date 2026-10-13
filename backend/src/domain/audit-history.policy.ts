@@ -52,6 +52,11 @@ export const nutritionistAuditActions = [
 export function auditActionLabel(action: string) {
   const labels: Record<string, string> = {
     BASE_MEAL_VERIFIED: 'Verified a meal',
+    MEAL_REVIEW_CLAIMED: 'Claimed a meal re-review',
+    MEAL_REVIEW_FLAGGED: 'Flagged an entire meal',
+    MEAL_REVIEW_WITHHELD: 'Withheld a meal',
+    MEAL_REVIEW_CONFIRMED: 'Resolved meal concerns',
+    MEAL_REVIEW_REVERIFIED: 'Re-verified a meal',
     OUTSIDE_MEAL_VERIFY: 'Confirmed outside food',
     OUTSIDE_MEAL_CORRECT: 'Corrected outside food',
     OUTSIDE_MEAL_NEEDS_MORE_INFO: 'Requested food details',
@@ -113,6 +118,7 @@ export function auditOutcomeLabel(action: string) {
   if (/REJECTED|UNUSABLE|SUSPENDED|FLAGGED|DISPUTED|UNVERIFIABLE|REVOKED|REVIEW_DUE|EXPIRED/.test(action))
     return 'Needs attention';
   if (/ACCESSED|CLAIM_RELEASED/.test(action)) return 'Recorded';
+  if (action === 'MEAL_REVIEW_CLAIMED') return 'In review';
   if (/NEEDS_CLARIFICATION|NEEDS_MORE_INFO|CLARIFICATION_PUBLISHED/.test(action)) return 'Waiting for information';
   return 'Completed';
 }

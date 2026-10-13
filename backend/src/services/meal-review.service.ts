@@ -155,9 +155,19 @@ export class MealReviewService {
             }
           }
         }
+        let reviewerInvolved = false;
+        if (reviewerId) {
+          try {
+            assertIndependent(context, reviewerId);
+          } catch (error) {
+            if (!(error instanceof AppError) || error.errorCode !== 'REVIEWER_INVOLVED') throw error;
+            reviewerInvolved = true;
+          }
+        }
         return {
           mealId,
           claimStatus: {
+            reviewerInvolved,
             claimedByMe: Boolean(reviewerId && context.incident?.claimedByNutritionistId === reviewerId && isReviewClaimActive(context.incident)),
             claimedByOther: Boolean(context.incident?.claimedByNutritionistId && context.incident.claimedByNutritionistId !== reviewerId && isReviewClaimActive(context.incident)),
           },
@@ -195,7 +205,7 @@ export class MealReviewService {
   static async claim(profileId: string, mealId: string, version: string) {
     const userId = await rndUserId(profileId);
     return prisma.$transaction(async (tx) => {
-      await reviewActor(tx, userId, profileId);
+      const actor = await reviewActor(tx, userId, profileId);
       const context = await reviewContext(tx, mealId, true);
       const incident = active(context);
       if (incident.state === 'QUARANTINED')
@@ -208,6 +218,7 @@ export class MealReviewService {
         where: { id: incident.id },
         data: { claimedByNutritionistId: profileId, claimedAt: new Date() },
       });
+      await recordReviewDecision(tx, context, actor, 'CLAIMED', 'Claimed for independent recipe re-review.');
       return { claimed: true, expiresAt: new Date(Date.now() + 30 * 60_000) };
     });
   }

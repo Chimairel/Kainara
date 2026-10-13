@@ -35,6 +35,17 @@ beforeEach(() => {
   fixture.refetch.mockResolvedValue(fixture.data);
 });
 
+it('an involved verifier cannot claim or edit concern resolutions', () => {
+  fixture.data = { ...fixture.data, claimStatus: { claimedByMe: false, claimedByOther: false, reviewerInvolved: true } };
+  render(<MealReviewPanel meal={meal} isAdmin={false} refresh={vi.fn()} />);
+  const claim = screen.getByRole('button', { name: 'Claim re-review' });
+  expect(claim).toBeDisabled();
+  fireEvent.click(claim);
+  expect(fixture.post).not.toHaveBeenCalled();
+  expect(screen.queryByLabelText('How you resolved this concern')).not.toBeInTheDocument();
+  expect(screen.getByRole('button', { name: 'Re-verify recipe' })).toBeDisabled();
+});
+
 it('every flag requires its own marked resolution; edits invalidate the mark', async () => {
   render(<MealReviewPanel meal={meal} isAdmin={false} refresh={vi.fn().mockResolvedValue(undefined)} />);
   const notes = screen.getAllByLabelText('How you resolved this concern');

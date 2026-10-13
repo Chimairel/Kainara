@@ -25,7 +25,7 @@ export type ReviewCase = {
   history: ReviewIncident[];
   validConfirmations: unknown[];
   canAdminRelease: boolean;
-  claimStatus?: { claimedByMe: boolean; claimedByOther: boolean };
+  claimStatus?: { claimedByMe: boolean; claimedByOther: boolean; reviewerInvolved?: boolean };
 };
 const field = 'min-h-11 w-full rounded-xl border border-brand-border bg-brand-bg p-3 text-sm text-brand-text';
 export default function MealReviewPanel({
@@ -101,7 +101,7 @@ export default function MealReviewPanel({
           <>
             <Button
               variant="secondary"
-              disabled={busy || data.claimStatus?.claimedByMe || data.claimStatus?.claimedByOther}
+              disabled={busy || data.claimStatus?.reviewerInvolved || data.claimStatus?.claimedByMe || data.claimStatus?.claimedByOther}
               onClick={() => void mutate('claim')}
             >
               Claim re-review
@@ -121,6 +121,7 @@ export default function MealReviewPanel({
             >
               Re-verify recipe
             </Button>
+            {data.claimStatus?.reviewerInvolved && <p className="w-full text-sm text-brand-muted">An independent RND must review this meal. Its previous verifier, author and flagger cannot claim it.</p>}
           </>
         )}
       </div>

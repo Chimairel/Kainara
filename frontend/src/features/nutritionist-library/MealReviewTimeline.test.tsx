@@ -72,6 +72,17 @@ function selectChange(name: RegExp) {
   fireEvent.click(screen.getByRole('option', { name }));
 }
 
+it('shows saved per-concern resolutions only for their confirmation decision', () => {
+  const confirmed: ReviewIncident = { ...history[0], decisions: [
+    decision('flag', 'FLAGGED', 600),
+    { ...decision('confirmed', 'CONFIRMED', 600), snapshot: { meals: [meal], extra: [{ reportId: report.id, rationale: 'Measured sodium reconciled against the saved composition record.' }] } },
+  ] };
+  render(<MealReviewTimeline history={[confirmed]} legacyHistoryUnknown={false} />);
+  expect(screen.getByRole('region', { name: 'Recorded concern resolutions' })).toHaveTextContent('Measured sodium reconciled against the saved composition record.');
+  selectChange(/Incident 1 · Flag recorded/);
+  expect(screen.queryByRole('region', { name: 'Recorded concern resolutions' })).not.toBeInTheDocument();
+});
+
 it('selects immutable changes across incidents without substituting current nutrition', () => {
   render(<MealReviewTimeline history={history} legacyHistoryUnknown={false} />);
   expect(screen.getByRole('combobox', { name: 'Review change' })).toHaveTextContent('Incident 2 · Flag recorded');
