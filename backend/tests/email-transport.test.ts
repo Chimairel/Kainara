@@ -62,6 +62,41 @@ test('all six operational emails use the shared HTTPS transport and final fronte
   assert.ok(messages[2].htmlContent.includes('https://demo.example.com/nutritionist-invitation?token=invite-token'));
 });
 
+test('email redesign preserves tokens and escapes names, feedback and URL attributes', async (t) => {
+  configureBrevo(t);
+  process.env.FRONTEND_URL = 'https://demo.example.com/';
+  const messages: Array<{ htmlContent: string }> = [];
+  t.mock.method(globalThis, 'fetch', async (_url: unknown, input: RequestInit) => {
+    messages.push(JSON.parse(String(input.body)));
+    return Response.json({ messageId: 'synthetic-safe-template' }, { status: 201 });
+  });
+  const token = 'token&value="quoted"';
+  await sendPasswordResetEmail('recipient@example.com', token, '<img src=x onerror=alert(1)>');
+  assert.ok(messages[0].htmlContent.includes('&lt;img src=x onerror=alert(1)&gt;'));
+  assert.ok(!messages[0].htmlContent.includes('<img src=x'));
+  const link = new URL(`https://demo.example.com/reset-password?token=${encodeURIComponent(token)}`);
+  assert.equal(link.searchParams.get('token'), token);
+  assert.ok(messages[0].htmlContent.includes(`href="${link.href}"`));
+  assert.ok(!messages[0].htmlContent.includes('demo.example.com//reset-password'));
+  await sendNutritionistCallScheduledEmail({
+    to: 'recipient@example.com',
+    applicantName: 'Synthetic RND',
+    referenceCode: 'REF<&>',
+    scheduledCallAt: new Date('2026-10-16T02:00:00Z'),
+    meetingUrl: 'https://meet.example.com/room?one=1&two="quoted"',
+  });
+  assert.ok(messages[1].htmlContent.includes('href="https://meet.example.com/room?one=1&amp;two=&quot;quoted&quot;"'));
+  assert.ok(messages[1].htmlContent.includes('REF&lt;&amp;&gt;'));
+  await sendNutritionistApplicationRejectedEmail(
+    'recipient@example.com',
+    'Synthetic RND',
+    'REF-test',
+    '<script>alert(1)</script>'
+  );
+  assert.ok(messages[2].htmlContent.includes('&lt;script&gt;alert(1)&lt;/script&gt;'));
+  assert.ok(!messages[2].htmlContent.includes('<script>'));
+});
+
 test('Brevo configuration check sends no startup mail and does not require SMTP', async (t) => {
   configureBrevo(t);
   t.mock.method(globalThis, 'fetch', () => assert.fail('configuration checks must not send mail'));
