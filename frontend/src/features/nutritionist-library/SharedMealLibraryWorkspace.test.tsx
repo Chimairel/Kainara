@@ -102,7 +102,6 @@ beforeEach(() => {
     totalPages: 1,
     isLoading: false,
     fetchError: null,
-    coverage: null,
     searchVal: '',
     setSearchVal: vi.fn(),
     mealType: 'All',
@@ -111,10 +110,6 @@ beforeEach(() => {
     setConditionTag: vi.fn(),
     verifiedByMe: false,
     setVerifiedByMe: vi.fn(),
-    adminDraftsOnly: false,
-    setAdminDraftsOnly: vi.fn(),
-    status: 'ALL',
-    setStatus: vi.fn(),
     fetchLibrary: mocks.refresh,
   });
   mocks.get.mockImplementation(async (path: string) => ({
@@ -185,7 +180,7 @@ describe('shared library permissions and feedback', () => {
   }
   it('admin flags with version-bound structured notes and sees the recorded actor without RND certification tools', async () => {
     render(<SharedMealLibraryWorkspace role="admin" />);
-    expect(mocks.hook).toHaveBeenCalledWith(false, 'admin', true);
+    expect(mocks.hook).toHaveBeenCalledWith('admin', true);
     await open();
     await screen.findByText('Published');
     expect(screen.queryByText('Private case approvals')).not.toBeInTheDocument();
@@ -353,4 +348,19 @@ describe('shared library permissions and feedback', () => {
     expect(screen.queryByRole('dialog', { name: 'Flag meal', exact: true })).not.toBeInTheDocument();
     expect(mocks.post).toHaveBeenCalledOnce();
   });
+});
+
+for (const role of ['admin', 'nutritionist'] as const) it(`${role} separates Verified and Quarantined without the removed coverage/flagged panel`, async () => {
+  render(<SharedMealLibraryWorkspace role={role} />);
+  expect(screen.getByRole('button', { name: 'Verified' })).toHaveAttribute('aria-pressed', 'true');
+  expect(screen.queryByRole('button', { name: 'Recipe coverage' })).not.toBeInTheDocument();
+  expect(screen.queryByRole('heading', { name: 'Flagged recipes' })).not.toBeInTheDocument();
+  expect(mocks.get).not.toHaveBeenCalledWith(`/${role}/meal-review-cases`, expect.anything());
+  fireEvent.click(screen.getByRole('button', { name: 'Quarantined' }));
+  await screen.findByText('No meals are quarantined.');
+  expect(mocks.get).toHaveBeenCalledWith(`/${role}/meal-review-cases`, { params: { state: 'QUARANTINED' } });
+  expect(screen.getByRole('button', { name: 'Quarantined' })).toHaveAttribute('aria-pressed', 'true');
+  expect(screen.queryByRole('button', { name: 'View', exact: true })).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole('button', { name: 'Verified' }));
+  expect(screen.getByRole('button', { name: 'View', exact: true })).toBeVisible();
 });

@@ -14,13 +14,12 @@ import { NutritionistAuditService } from '@/services/nutritionist-audit.service'
 const router = Router();
 router.get('/', async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const { search, mealType, conditionTag, status, adminDraftsOnly, page, limit } = req.query;
+    const { search, mealType, conditionTag, status, page, limit } = req.query;
     const data = await NutritionistService.getMealLibraryWithFilters(req.user!.userId, {
       search: search as string,
       mealType: mealType as string,
       conditionTag: conditionTag as string,
       status: status as string,
-      adminDraftsOnly: adminDraftsOnly === 'true',
       verifiedByMe: false,
       page: page ? Number(page) : undefined,
       limit: limit ? Number(limit) : undefined,
@@ -30,15 +29,6 @@ router.get('/', async (req: AuthenticatedRequest, res: Response) => {
     return res
       .status(500)
       .json({ success: false, error: sanitizeErrorMessage(error, 'Meal library could not be loaded.') });
-  }
-});
-router.get('/coverage', async (_req: AuthenticatedRequest, res: Response) => {
-  try {
-    return res.json({ success: true, data: await NutritionistService.getMealLibraryCoverage() });
-  } catch (error) {
-    return res
-      .status(500)
-      .json({ success: false, error: sanitizeErrorMessage(error, 'Recipe coverage could not be loaded.') });
   }
 });
 router.get('/:id/case-history', asyncHandler(async (req: AuthenticatedRequest, res: Response) => {

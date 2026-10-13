@@ -19,8 +19,8 @@ export function useSharedMealLibraryModel({
 }) {
   const isAdmin = role === 'admin';
   const libraryApi = `/${role}/library`;
-  const [section, setSection] = useState<'recipes' | 'coverage'>('recipes');
-  const workspace = useNutritionistLibrary(section === 'coverage', role, active);
+  const [section, setSection] = useState<'verified' | 'quarantined'>('verified');
+  const workspace = useNutritionistLibrary(role, active && section === 'verified');
   const scope = JSON.stringify([workspace.ownerId, role]);
   const captureScope = useRequestScope(scope);
   const requestSequence = useRef(0);
@@ -48,7 +48,6 @@ export function useSharedMealLibraryModel({
     totalPages,
     isLoading,
     fetchError,
-    coverage,
     searchVal,
     setSearchVal,
     mealType,
@@ -57,10 +56,6 @@ export function useSharedMealLibraryModel({
     setConditionTag,
     verifiedByMe,
     setVerifiedByMe,
-    adminDraftsOnly,
-    setAdminDraftsOnly,
-    status,
-    setStatus,
     fetchLibrary,
   } = workspace;
 
@@ -130,7 +125,6 @@ export function useSharedMealLibraryModel({
     totalPages,
     isLoading,
     fetchError,
-    coverage,
     searchVal,
     setSearchVal,
     mealType,
@@ -139,10 +133,6 @@ export function useSharedMealLibraryModel({
     setConditionTag,
     verifiedByMe,
     setVerifiedByMe,
-    adminDraftsOnly,
-    setAdminDraftsOnly,
-    status,
-    setStatus,
     fetchLibrary,
     handlePageChange,
     openMeal,

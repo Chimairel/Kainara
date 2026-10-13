@@ -11,7 +11,6 @@ export interface NutritionistLibraryFilters {
   conditionTag?: string;
   status?: string;
   verifiedByMe?: boolean;
-  adminDraftsOnly?: boolean;
   page?: number;
   limit?: number;
 }
@@ -56,11 +55,6 @@ export async function getNutritionistMealLibraryWithFilters(
         { conditionClearances: { some: { decisions: { some: { nutritionistProfile: { userId: currentUserId } } } } } },
       ],
     });
-  if (filters.adminDraftsOnly) {
-    where.status = MealLibraryStatus.APPROVED;
-    where.safetyEvidenceStatus = 'INCOMPLETE';
-    where.safetyReviews = { some: { reasonCode: 'ADMIN_AUTHORED_DRAFT' } };
-  }
   if (and.length) where.AND = and;
 
   // Several reviewed ingredient/serving variants may share one Panlasang

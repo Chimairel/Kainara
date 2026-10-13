@@ -26,7 +26,11 @@ export function mealReviewRouter(role: 'admin' | 'rnd') {
     };
   router.get(
     '/',
-    respond(() => MealReviewService.queue())
+    respond((req) => {
+      const query = z.object({ state: z.enum(['PENDING_REREVIEW', 'QUARANTINED']).optional() }).strict().safeParse(req.query);
+      if (!query.success) throw new AppError('Check the meal review state filter.', 400, 'INVALID_REVIEW_FILTER');
+      return MealReviewService.queue(query.data.state);
+    })
   );
   router.get(
     '/:id',

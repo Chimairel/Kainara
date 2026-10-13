@@ -33,8 +33,6 @@ export class NutritionistService {
     NutritionistLibraryService.checkLibraryMealMutationPermission.bind(NutritionistLibraryService);
   static readonly getMealLibraryWithFilters =
     NutritionistLibraryService.getMealLibraryWithFilters.bind(NutritionistLibraryService);
-  static readonly getMealLibraryCoverage =
-    NutritionistLibraryService.getMealLibraryCoverage.bind(NutritionistLibraryService);
   static readonly getLibraryMeal = NutritionistLibraryService.getLibraryMeal.bind(NutritionistLibraryService);
   static readonly certifyLibraryMealSafety =
     NutritionistLibraryService.certifyLibraryMealSafety.bind(NutritionistLibraryService);

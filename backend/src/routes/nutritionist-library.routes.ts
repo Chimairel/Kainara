@@ -37,14 +37,13 @@ const router = Router();
  */
 router.get('/library', async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const { search, mealType, conditionTag, status, verifiedByMe, adminDraftsOnly, page, limit } = req.query;
+    const { search, mealType, conditionTag, status, verifiedByMe, page, limit } = req.query;
     const library = await NutritionistService.getMealLibraryWithFilters(req.user!.userId, {
       search: search as string,
       mealType: mealType as string,
       conditionTag: conditionTag as string,
       status: status as string,
       verifiedByMe: verifiedByMe === 'true',
-      adminDraftsOnly: adminDraftsOnly === 'true',
       page: page ? parseInt(page as string) : undefined,
       limit: limit ? parseInt(limit as string) : undefined,
     });
@@ -56,16 +55,6 @@ router.get('/library', async (req: AuthenticatedRequest, res: Response) => {
   }
 });
 
-router.get('/library-coverage', async (_req: AuthenticatedRequest, res: Response) => {
-  try {
-    const coverage = await NutritionistService.getMealLibraryCoverage();
-    return res.status(200).json({ success: true, data: coverage });
-  } catch (error: any) {
-    return res
-      .status(500)
-      .json({ success: false, error: sanitizeErrorMessage(error, 'Failed to retrieve meal-library coverage.') });
-  }
-});
 
 router.get('/library/composition-foods', async (req: AuthenticatedRequest, res: Response) => {
   try {

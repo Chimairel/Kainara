@@ -137,13 +137,12 @@ for (const role of ['ADMIN', 'NUTRITIONIST'] as const) {
         } else if (path.endsWith('/library/held-recipe/approvals')) data = [];
         else if (path.endsWith('/library/held-recipe')) data = meal;
         else if (path.endsWith('/library')) data = { meals: [meal], total: 1, page: 1, limit: 20 };
-        else if (path.endsWith('/coverage') || path.endsWith('/library-coverage'))
-          data = { profiles: [], combinationMatrix: [], combinationColumns: [], structuredProfiles: [] };
         await route.fulfill({ json: { success: true, data } });
       });
       if (role === 'NUTRITIONIST') await eligibleCredentialFixture(page);
       await page.goto(role === 'ADMIN' ? '/admin/meals' : '/nutritionist/library');
-      await page.getByRole('button', { name: 'Review case', exact: true }).click();
+      await page.getByRole('button', { name: 'Quarantined', exact: true }).click();
+      await page.getByRole('button', { name: 'View meal', exact: true }).click();
       const panel = page.getByRole('region', { name: 'Meal-wide review', exact: true });
       await expect(panel.getByRole('strong').filter({ hasText: /^Quarantined$/ })).toBeVisible();
       await expect(panel.getByRole('heading', { name: 'NUTRITION', exact: true })).toBeVisible();

@@ -8,7 +8,7 @@ import api from '@/lib/axios';
 import Button from '@/components/ui/Button';
 import WorkspaceTable from '@/components/shared/WorkspaceTable';
 import { reviewStateLabel } from './MealReviewTimeline';
-export default function MealReviewQueue({
+export default function QuarantinedMeals({
   isAdmin,
   active,
   openMeal,
@@ -22,30 +22,34 @@ export default function MealReviewQueue({
   const query = useSessionQuery<{ id: string; mealName: string; state: string; incidentCount: number }[]>({
     ownerId,
     enabled: active,
-    resource: `recipe-review-queue:${base}`,
-    fetcher: async () => (await api.get(`${base}/meal-review-cases`)).data.data,
-    errorMessage: 'Re-review queue could not be loaded.',
+    resource: `quarantined-meals:${base}`,
+    fetcher: async () => {
+      const response = await api.get(`${base}/meal-review-cases`, { params: { state: 'QUARANTINED' } });
+      if (!response.data?.success || !Array.isArray(response.data.data)) throw new Error('Quarantined meals could not be loaded.');
+      return response.data.data.filter((row: { state: string }) => row.state === 'QUARANTINED');
+    },
+    errorMessage: 'Quarantined meals could not be loaded.',
   });
   if (!active) return null;
   return (
     <section
       className="space-y-3 rounded-2xl border border-brand-border bg-brand-surface p-4"
-      aria-label="Flagged recipes"
+      aria-label="Quarantined meals"
     >
       <div className="flex flex-wrap justify-between gap-3">
-        <h2 className="font-display text-lg font-bold">Flagged recipes</h2>
+        <h2 className="font-display text-lg font-bold">Quarantined meals</h2>
         <Button variant="secondary" size="sm" onClick={() => void query.refetch()}>
           Refresh cases
         </Button>
       </div>
-      {query.error && <FeedbackNotice variant="inline">{query.error}</FeedbackNotice>}
+      {query.error && <FeedbackNotice variant="inline">{query.error}<Button variant="secondary" size="sm" onClick={() => void query.refetch()}>Retry</Button></FeedbackNotice>}
       {query.isLoading && !query.data && <p role="status">Loading cases…</p>}
       {query.data && (
         <WorkspaceTable
-          label="Held recipe cases"
+          label="Quarantined meals"
           rows={query.data}
           rowKey={(row) => row.id}
-          emptyMessage="No held recipes await re-review."
+          emptyMessage="No meals are quarantined."
           columns={[
             { key: 'meal', header: 'Meal', cell: (row) => <strong>{formatMealTitle(row.mealName)}</strong> },
             { key: 'state', header: 'Review state', cell: (row) => reviewStateLabel(row.state) },
@@ -55,7 +59,7 @@ export default function MealReviewQueue({
               header: 'Actions',
               cell: (row) => (
                 <Button variant="secondary" size="sm" onClick={() => void openMeal(row)}>
-                  Review case
+                  View meal
                 </Button>
               ),
             },

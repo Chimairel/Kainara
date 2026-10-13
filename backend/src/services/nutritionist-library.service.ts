@@ -1,14 +1,8 @@
-import { isMealWithinSlotCalorieRange } from '@/domain/meal-calorie-allocation.policy';
-import { SUPPORTED_MEAL_LIBRARY_SAFETY_POLICY_VERSIONS } from '@/domain/meal-library-safety-evidence.policy';
-import { isNutritionistEligibleForReview } from '@/domain/nutritionist-review.policy';
 import prisma from '@/lib/prisma';
 import { flagWholeMeal } from './meal-wide-flag.service';
 import type { libraryMealEditSchema } from '@/validation/nutritionist.schemas';
 import {
   AllergenType,
-  DietaryPreference,
-  FlagStatus,
-  Goal,
   HealthConditionType,
   MealLibrarySafetyEvidenceStatus,
   MealLibrarySafetyReviewOutcome,
@@ -18,20 +12,6 @@ import {
 } from '@prisma/client';
 import type { z } from 'zod';
 import { suspendMealClearancesForEvidenceChange } from './condition-clearance.service';
-
-import {
-  BASE_LIBRARY_COVERAGE_PROFILES,
-  COMBINATION_CONDITIONS,
-  COMBINATION_CONSTRAINTS,
-  COVERAGE_MEAL_TYPES,
-  STRUCTURED_COMBINATION_COVERAGE_PROFILES,
-} from '@/domain/nutritionist-library-coverage.profiles';
-import {
-  certifiedLibraryMealInclude,
-  isCertifiedLibraryMealCompatible,
-  isLibraryMealSafeToQueueForCaseReview,
-  isProfileApprovedLibraryMealCompatible,
-} from '@/services/meal-library-candidate-query.service';
 
 import { admittedLibraryBaseIds } from './meal-base-admission.service';
 import { resolveLibraryRecipeImages } from './library-recipe-image.service';
@@ -103,150 +83,6 @@ export class NutritionistLibraryService {
    */
   static async getMealLibraryWithFilters(currentUserId: string, filters: NutritionistLibraryFilters) {
     return getNutritionistMealLibraryWithFilters(currentUserId, filters);
-  }
-
-  /** Separate source availability, automatic reuse, and candidates needing case review. */
-  static async getMealLibraryCoverage() {
-    const [candidates, sourceRecipesWithCoreNutrition] = await Promise.all([
-      prisma.mealLibrary.findMany({
-        where: {
-          status: MealLibraryStatus.APPROVED,
-          safetyEvidenceStatus: MealLibrarySafetyEvidenceStatus.COMPLETE,
-          safetyPolicyVersion: { in: [...SUPPORTED_MEAL_LIBRARY_SAFETY_POLICY_VERSIONS] },
-          flags: { none: { status: FlagStatus.PENDING } },
-        },
-        include: certifiedLibraryMealInclude,
-      }),
-      prisma.rawRecipeCandidate.count({
-        where: {
-          sourceName: 'PANLASANG_PINOY',
-          status: 'AVAILABLE',
-          calories: { gt: 0 },
-          proteinG: { not: null },
-          carbsG: { not: null },
-          fatG: { not: null },
-        },
-      }),
-    ]);
-    const admitted = await admittedLibraryBaseIds(candidates);
-    const meals = candidates.filter(meal => admitted.has(meal.id));
-    const countProfile = (definition: {
-      dietaryPreference: DietaryPreference;
-      conditions: readonly HealthConditionType[];
-      allergens: readonly AllergenType[];
-      safetyEntries?: readonly {
-        domain: string;
-        canonicalCode: string | null;
-        displayName: string;
-        supportState: string;
-      }[];
-    }) => {
-      const profile = {
-        dietaryPreference: definition.dietaryPreference,
-        goal: Goal.MAINTAIN,
-        otherConditions: null,
-        otherAllergies: null,
-        safetyEntries: definition.safetyEntries,
-      };
-      const automaticallyReusable = meals.filter(
-        (meal) =>
-          isCertifiedLibraryMealCompatible(meal, definition.conditions, definition.allergens, profile) ||
-          isProfileApprovedLibraryMealCompatible(meal, definition.conditions, definition.allergens, profile)
-      );
-      const reusableIds = new Set(automaticallyReusable.map((meal) => meal.id));
-      const caseReviewCandidates = meals.filter(
-        (meal) =>
-          !reusableIds.has(meal.id) &&
-          isLibraryMealSafeToQueueForCaseReview(meal, definition.conditions, definition.allergens, profile)
-      );
-      const slotCounts = (entries: typeof meals, dailyCalorieTarget?: number) =>
-        Object.fromEntries(
-          COVERAGE_MEAL_TYPES.map((mealType) => [
-            mealType,
-            entries.filter(
-              (meal) =>
-                meal.applicableMealTypes.some((entry) => entry.mealType === mealType) &&
-                (dailyCalorieTarget === undefined ||
-                  isMealWithinSlotCalorieRange({ ...meal, mealType, dailyCalorieTarget }))
-            ).length,
-          ])
-        ) as Record<(typeof COVERAGE_MEAL_TYPES)[number], number>;
-      const counts = slotCounts(automaticallyReusable);
-      const caseReviewCounts = slotCounts(caseReviewCandidates);
-      const minimumPerSlot = Math.min(...Object.values(counts));
-      const caseReviewMinimumPerSlot = Math.min(...Object.values(caseReviewCounts));
-      const servingCoverage = [1400, 1600, 1800, 1900, 2000, 2200, 2400, 2800].map((dailyCalorieTarget) => {
-        const counts = slotCounts(automaticallyReusable, dailyCalorieTarget);
-        const caseReviewCounts = slotCounts(caseReviewCandidates, dailyCalorieTarget);
-        return {
-          dailyCalorieTarget,
-          counts,
-          caseReviewCounts,
-          weekReady: Math.min(...Object.values(counts)) >= 7,
-        };
-      });
-      return {
-        servingCoverage,
-        counts,
-        total: automaticallyReusable.length,
-        minimumPerSlot,
-        weekReady: minimumPerSlot >= 7,
-        caseReviewCounts,
-        caseReviewTotal: caseReviewCandidates.length,
-        caseReviewMinimumPerSlot,
-      };
-    };
-
-    const profiles = BASE_LIBRARY_COVERAGE_PROFILES.map((definition) => ({
-      key: definition.key,
-      label: definition.label,
-      ...countProfile(definition),
-    }));
-
-    const combinationMatrix = COMBINATION_CONDITIONS.map((condition) => ({
-      key: condition.key,
-      label: condition.label,
-      cells: COMBINATION_CONSTRAINTS.map((constraint) => ({
-        key: constraint.key,
-        label: constraint.label,
-        ...countProfile({
-          dietaryPreference: constraint.dietaryPreference,
-          conditions: [condition.condition],
-          allergens: [constraint.allergen],
-        }),
-      })),
-    }));
-
-    const combinationColumns = COMBINATION_CONSTRAINTS.map(({ key, label }) => ({
-      key,
-      label,
-    }));
-
-    const structuredProfiles = STRUCTURED_COMBINATION_COVERAGE_PROFILES.map((definition) => ({
-      key: definition.key,
-      label: definition.label,
-      ...countProfile({
-        dietaryPreference: definition.dietaryPreference,
-        conditions: [],
-        allergens: [],
-        safetyEntries: definition.safetyEntries,
-      }),
-    }));
-
-    return {
-      sourceRecipesWithCoreNutrition,
-      certifiedMeals: meals.filter(
-        (meal) =>
-          meal.certifiedEvidenceRevision === meal.safetyEvidenceRevision &&
-          meal.safetyReviewedByNutritionist &&
-          isNutritionistEligibleForReview(meal.safetyReviewedByNutritionist)
-      ).length,
-      requiredPerSlot: 7,
-      profiles,
-      combinationColumns,
-      combinationMatrix,
-      structuredProfiles,
-    };
   }
 
   /**

@@ -265,7 +265,6 @@ const routes: RouteDocumentation[] = [
     summary: 'Read bounded FNRI/USDA food references; no catalogue mutations',
   },
   { method: 'get', path: '/api/nutritionist/library', tag: 'Nutritionist', summary: 'List verified meal library' },
-  { method: 'get', path: '/api/nutritionist/library-coverage', tag: 'Nutritionist', summary: 'Read library coverage' },
   { method: 'post', path: '/api/nutritionist/library', tag: 'Nutritionist', summary: 'Create a library meal' },
   { method: 'get', path: '/api/nutritionist/library/{id}', tag: 'Nutritionist', summary: 'Read a library meal' },
   { method: 'patch', path: '/api/nutritionist/library/{id}', tag: 'Nutritionist', summary: 'Update a library meal' },

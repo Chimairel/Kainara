@@ -24,6 +24,10 @@ for (const theme of ['light', 'dark']) for (const width of [390, 1440]) {
       let data: unknown = [];
       if (path.endsWith('/user/profile')) data = user;
       else if (path.endsWith('/credential-status')) data = { eligible: true, reason: null, expiryDate: '2099-12-31', pendingRequest: null };
+      else if (path.endsWith('/meal-review-cases')) {
+        const state = new URL(route.request().url()).searchParams.get('state');
+        data = state === 'PENDING_REREVIEW' ? [{ id: meal.id, mealName: meal.mealName, state: 'PENDING_REREVIEW', incidentCount: 1 }] : [];
+      }
       else if (path.endsWith('/notifications')) data = { notifications: [], unreadCount: 0 };
       else if (path.endsWith('/review-work-counts')) data = { meal: 0, case: 0, profile: 0, audit: 0 };
       else if (path.endsWith('/library')) data = { meals: [meal], total: 1, page: 1, limit: 20 };
@@ -38,6 +42,13 @@ for (const theme of ['light', 'dark']) for (const width of [390, 1440]) {
       return route.fulfill({ headers, json: { success: true, data } });
     });
     await page.goto('/nutritionist/library');
+    await expect(page.getByRole('button', { name: 'Verified', exact: true })).toHaveAttribute('aria-pressed', 'true');
+    await expect(page.getByRole('heading', { name: 'Flagged recipes', exact: true })).toHaveCount(0);
+    await expect(page.getByRole('button', { name: 'Recipe coverage', exact: true })).toHaveCount(0);
+    await page.getByRole('button', { name: 'Quarantined', exact: true }).click();
+    await expect(page.getByText('No meals are quarantined.')).toBeVisible();
+    await page.screenshot({ path: testInfo.outputPath(`quarantined-${width}-${theme}.png`) });
+    await page.getByRole('button', { name: 'Verified', exact: true }).click();
     await page.getByRole('button', { name: 'View', exact: true }).click();
     await expect(page.getByRole('heading', { name: meal.mealName, level: 1 })).toBeVisible();
     await expect(page.getByLabel('Explanation', { exact: true })).toHaveCount(0);
@@ -92,5 +103,13 @@ for (const theme of ['light', 'dark']) for (const width of [390, 1440]) {
     await expect(page.locator('[data-sonner-toast]').filter({ hasText: 'Meal flagged for review.' })).toBeVisible();
     expect(sends).toBe(2);
     await expect(page.getByLabel('Explanation', { exact: true })).toHaveCount(0);
+    if (width === 1440) {
+      await page.goto('/nutritionist/reviews');
+      await page.getByRole('button', { name: /Meal verification/ }).click();
+      const rereview = page.getByRole('region', { name: 'Meals needing re-review', exact: true });
+      await expect(rereview.getByRole('link', { name: 'Review meal' })).toHaveAttribute('href', '/nutritionist/library?mealId=modal-meal');
+      await rereview.getByRole('link', { name: 'Review meal' }).click();
+      await expect(page.getByRole('heading', { name: meal.mealName, level: 1 })).toBeVisible();
+    }
   });
 }

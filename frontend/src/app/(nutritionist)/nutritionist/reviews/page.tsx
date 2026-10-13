@@ -10,6 +10,7 @@ import { useNutritionistReviews } from '@/features/nutritionist-reviews/useNutri
 import { useReviewWorkCounts } from '@/features/nutritionist-reviews/useReviewWorkCounts';
 import OutsideMealReviewsPanel from '../outside-meals/OutsideMealReviewsPanel';
 import MealVerificationPanel from './MealVerificationPanel';
+import PendingMealRereviews from '@/features/nutritionist-reviews/PendingMealRereviews';
 import ProfileWorkPanel from './ProfileWorkPanel';
 import WorkspaceTabs, { type ReviewWorkspace } from './WorkspaceTabs';
 import SharedWorkspaceTabs from '@/components/ui/WorkspaceTabs';
@@ -68,6 +69,7 @@ function ReviewsWorkspace() {
             description="Audit AI-generated meal plans, approve health profiles, and verify base recipes."
           />
           {navigation}
+          <PendingMealRereviews />
           <MealVerificationPanel />
         </div>
       </div>

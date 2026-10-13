@@ -79,10 +79,10 @@ async function main() {
   assert.equal(row.ingredients[0].quantity, 100);
   assert.equal(row.safetyReviews[0].reasonCode, 'ADMIN_AUTHORED_DRAFT');
   assert.equal(evaluateMealLibrarySafetyEvidence({ ...row, reviewerEligible: false }).complete, false);
-  const queue = await getNutritionistMealLibraryWithFilters('', { adminDraftsOnly: true });
+  const catalogue = await getNutritionistMealLibraryWithFilters('', { search: row.mealName });
   assert.equal(
-    queue.meals.some((meal) => meal.id === created.id),
-    true
+    catalogue.meals.some((meal) => meal.id === created.id),
+    false
   );
 
   const revised = await AdminMealAuthoringService.update(admin.id, created.id, {

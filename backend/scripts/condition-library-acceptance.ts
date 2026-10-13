@@ -5,7 +5,6 @@ import { ActivityLevel, AllergenType, DietaryPreference, Goal, HealthConditionTy
 import prisma from '../src/lib/prisma';
 import { COMMON_MEAL_CATALOGUE } from '../src/data/common-meal-catalogue';
 import { MealSwapService } from '../src/services/meal-swap.service';
-import { NutritionistService } from '../src/services/nutritionist.service';
 
 const FIXTURE_PREFIX = 'e2e.condition-library.';
 const catalogueNames = new Set(COMMON_MEAL_CATALOGUE.map((meal) => meal.mealName));
@@ -174,31 +173,12 @@ async function main() {
       results[profileCase.label] = counts;
     }
 
-    const coverage = await NutritionistService.getMealLibraryCoverage();
-    assert.ok(
-      coverage.profiles
-        .filter((profile) => ['VEGETARIAN', 'PESCATARIAN'].includes(profile.key))
-        .every((profile) => profile.weekReady),
-      'Unrestricted dietary coverage regressed.'
-    );
-    assert.ok(
-      coverage.profiles
-        .filter((profile) => !['VEGETARIAN', 'PESCATARIAN'].includes(profile.key))
-        .every((profile) => !profile.weekReady),
-      'Restricted profiles gained unreviewed reusable coverage.'
-    );
-    assert.ok(
-      coverage.combinationMatrix.every((row) => row.cells.every((cell) => !cell.weekReady)),
-      'The nutritionist combination matrix exposed a restricted profile without clearance.'
-    );
     console.log(
       JSON.stringify(
         {
           passed: true,
           catalogueMeals: catalogueNames.size,
           profiles: results,
-          coverageMonitor: coverage.profiles,
-          combinationMatrix: coverage.combinationMatrix,
         },
         null,
         2

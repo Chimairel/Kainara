@@ -180,9 +180,9 @@ export class MealReviewService {
     );
   }
 
-  static async queue() {
+  static async queue(state?: 'PENDING_REREVIEW' | 'QUARANTINED') {
     const rows = await prisma.mealReviewLineage.findMany({
-      where: { state: { in: ['PENDING_REREVIEW', 'QUARANTINED'] } },
+      where: { state: state ?? { in: ['PENDING_REREVIEW', 'QUARANTINED'] } },
       orderBy: { createdAt: 'asc' },
       take: 100,
       include: { meals: { where: { status: 'FLAGGED' }, select: { id: true, mealName: true }, take: 1 } },

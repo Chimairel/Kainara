@@ -128,56 +128,6 @@ export interface LibraryMeal {
   safetyReviewedByNutritionist?: { user: { name: string } } | null;
 }
 
-export interface LibraryCoverage {
-  sourceRecipesWithCoreNutrition: number;
-  certifiedMeals: number;
-  requiredPerSlot: number;
-  profiles: Array<{
-    key: string;
-    label: string;
-    counts: Record<'BREAKFAST' | 'LUNCH' | 'DINNER', number>;
-    total: number;
-    servingCoverage?: Array<{
-      dailyCalorieTarget: number;
-      counts: Record<string, number>;
-      caseReviewCounts: Record<string, number>;
-      weekReady: boolean;
-    }>;
-    caseReviewCounts: Record<'BREAKFAST' | 'LUNCH' | 'DINNER', number>;
-    caseReviewTotal: number;
-    caseReviewMinimumPerSlot: number;
-    minimumPerSlot: number;
-    weekReady: boolean;
-  }>;
-  combinationColumns: Array<{ key: string; label: string }>;
-  combinationMatrix: Array<{
-    key: string;
-    label: string;
-    cells: Array<{
-      key: string;
-      label: string;
-      counts: Record<'BREAKFAST' | 'LUNCH' | 'DINNER', number>;
-      caseReviewCounts: Record<'BREAKFAST' | 'LUNCH' | 'DINNER', number>;
-      caseReviewTotal: number;
-      caseReviewMinimumPerSlot: number;
-      total: number;
-      minimumPerSlot: number;
-      weekReady: boolean;
-    }>;
-  }>;
-  structuredProfiles: Array<{
-    key: string;
-    label: string;
-    counts: Record<'BREAKFAST' | 'LUNCH' | 'DINNER', number>;
-    caseReviewCounts: Record<'BREAKFAST' | 'LUNCH' | 'DINNER', number>;
-    caseReviewTotal: number;
-    caseReviewMinimumPerSlot: number;
-    total: number;
-    minimumPerSlot: number;
-    weekReady: boolean;
-  }>;
-}
-
 export const AVAILABLE_CONDITIONS = [
   { label: 'Diabetes reviewed', value: 'DIABETES' },
   { label: 'Hypertension reviewed', value: 'HYPERTENSION' },
@@ -207,14 +157,11 @@ const libraryResource = (
   mealType: string,
   conditionTag: string,
   verifiedByMe: boolean,
-  adminDraftsOnly: boolean,
-  status: string,
   page: number
 ) =>
-  `nutritionist-library-verified-v2:${JSON.stringify([search, mealType, conditionTag, verifiedByMe, adminDraftsOnly, status, page])}`;
+  `nutritionist-library-verified-v2:${JSON.stringify([search, mealType, conditionTag, verifiedByMe, page])}`;
 
 export function useNutritionistLibrary(
-  loadCoverage = false,
   role: 'nutritionist' | 'admin' = 'nutritionist',
   active = true
 ) {
@@ -227,8 +174,6 @@ export function useNutritionistLibrary(
   const [mealType, setMealType] = useState('All');
   const [conditionTag, setConditionTag] = useState('All');
   const [verifiedByMe, setVerifiedByMe] = useState(false);
-  const [adminDraftsOnly, setAdminDraftsOnly] = useState(false);
-  const [status, setStatus] = useState<'ALL' | 'APPROVED' | 'FLAGGED'>('ALL');
 
   // Only a changed search resets pagination; the initial timer must not undo Next.
   useEffect(() => {
@@ -244,7 +189,7 @@ export function useNutritionistLibrary(
     pollIntervalMs: false,
     ownerId,
     enabled: active,
-    resource: `${role}:${libraryResource(search, mealType, conditionTag, verifiedByMe, adminDraftsOnly, status, page)}`,
+    resource: `${role}:${libraryResource(search, mealType, conditionTag, verifiedByMe, page)}`,
     errorMessage: 'The verified meal library could not be loaded. Please try again.',
     fetcher: async () => {
       const response = await api.get(`/${role}/library`, {
@@ -253,25 +198,11 @@ export function useNutritionistLibrary(
           mealType: mealType === 'All' ? undefined : mealType,
           conditionTag: conditionTag === 'All' ? undefined : conditionTag,
           verifiedByMe: verifiedByMe ? 'true' : undefined,
-          adminDraftsOnly: adminDraftsOnly ? 'true' : undefined,
-          status,
           page,
           limit: 20,
         },
       });
       if (!response.data?.success) throw new Error('The verified meal library could not be loaded. Please try again.');
-      return response.data.data;
-    },
-  });
-  const coverageQuery = useSessionQuery<LibraryCoverage>({
-    pollIntervalMs: false,
-    ownerId,
-    resource: `${role}-library-coverage-v2`,
-    enabled: active && loadCoverage,
-    errorMessage: 'Recipe coverage could not be loaded.',
-    fetcher: async () => {
-      const response = await api.get(role === 'admin' ? '/admin/library/coverage' : '/nutritionist/library-coverage');
-      if (!response.data?.success) throw new Error('Recipe coverage could not be loaded.');
       return response.data.data;
     },
   });
@@ -282,7 +213,6 @@ export function useNutritionistLibrary(
     if (query.data && !query.isLoading) setPage((value) => Math.min(value, Math.max(1, totalPages)));
   }, [query.data, query.isLoading, totalPages]);
   const { isLoading, error: fetchError, refetch: fetchLibrary } = query;
-  const { data: coverage, refetch: fetchCoverage } = coverageQuery;
 
   return {
     ownerId,
@@ -293,7 +223,6 @@ export function useNutritionistLibrary(
     totalPages,
     isLoading,
     fetchError,
-    coverage,
     searchVal,
     setSearchVal,
     mealType,
@@ -302,11 +231,6 @@ export function useNutritionistLibrary(
     setConditionTag,
     verifiedByMe,
     setVerifiedByMe,
-    adminDraftsOnly,
-    setAdminDraftsOnly,
-    status,
-    setStatus,
     fetchLibrary,
-    fetchCoverage,
   };
 }
