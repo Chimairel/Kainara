@@ -14,6 +14,7 @@ export default function RndQueueDocument({
   actions,
   children,
   decision,
+  focusSheet,
 }: {
   title: string;
   contentKey: string;
@@ -23,6 +24,7 @@ export default function RndQueueDocument({
   actions: ReactNode;
   children: ReactNode;
   decision?: ReactNode;
+  focusSheet?: { title: string; request: number };
 }) {
   return (
     <ReviewCanvas
@@ -47,6 +49,7 @@ export default function RndQueueDocument({
         </>
       }
       decision={decision}
+      focusSheet={focusSheet}
     >
       {children}
     </ReviewCanvas>
@@ -85,6 +88,7 @@ export function ReviewDocumentPage({
           '--brand-muted': '#5a746a',
           '--brand-green': '#08705b',
           '--status-verified-text': '#14532d',
+          '--status-error-text': '#991b1b',
         } as CSSProperties
       }
     >

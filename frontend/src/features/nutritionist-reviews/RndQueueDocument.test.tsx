@@ -3,7 +3,7 @@ import { fireEvent, render, screen, waitFor, within } from '@testing-library/rea
 import { expect, it, vi } from 'vitest';
 import RndQueueDocument, { ReviewDocumentPage } from './RndQueueDocument';
 
-function Fixture({ onBack, claimed = true }: { onBack: () => void; claimed?: boolean }) {
+function Fixture({ onBack, claimed = true, focusSheet }: { onBack: () => void; claimed?: boolean; focusSheet?: { title: string; request: number } }) {
   const [expanded, setExpanded] = useState(false);
   const [note, setNote] = useState('');
   return (
@@ -13,6 +13,7 @@ function Fixture({ onBack, claimed = true }: { onBack: () => void; claimed?: boo
       expanded={expanded}
       onExpandedChange={setExpanded}
       onBack={onBack}
+      focusSheet={focusSheet}
       actions={<button>Claim control</button>}
       decision={
         claimed ? (
@@ -27,7 +28,7 @@ function Fixture({ onBack, claimed = true }: { onBack: () => void; claimed?: boo
         <p>Recorded condition</p>
       </ReviewDocumentPage>
       <ReviewDocumentPage page={2} title="Meal evidence">
-        <p>Recorded ingredient</p>
+        <div data-canvas-scroll role="region" aria-label="Reference scroll area"><p>Recorded ingredient</p></div>
       </ReviewDocumentPage>
     </RndQueueDocument>
   );
@@ -142,4 +143,28 @@ it('keeps short sheets visible when fitting alongside exceptionally long evidenc
   const style = document.querySelector('[data-canvas-world]')!.getAttribute('style');
   expect(style).toMatch(/translate\([^,]+, 24px\)/);
   expect(style).toContain('scale(0.1)');
+});
+
+it('focuses the requested reference sheet without moving the existing sheets', () => {
+  const back = vi.fn();
+  const { rerender } = render(<Fixture onBack={back} />);
+  Object.defineProperty(screen.getByRole('region', { name: 'Review canvas viewport' }), 'clientWidth', { value: 1280 });
+  fireEvent.keyDown(screen.getByRole('button', { name: 'Move Member profile sheet' }), { key: 'ArrowDown' });
+  fireEvent.keyDown(document.body, { key: 'h' });
+  rerender(<Fixture onBack={back} focusSheet={{ title: 'Meal evidence', request: 1 }} />);
+  expect(document.querySelector('[data-canvas-sheet="0"]')).toHaveStyle({ top: '20px' });
+  expect(document.querySelector('[data-canvas-sheet="1"]')).toHaveClass('outline');
+  expect(screen.getByRole('button', { name: 'Select tool (V)' })).toHaveAttribute('aria-pressed', 'true');
+  expect(document.querySelector('[data-canvas-world]')?.getAttribute('style')).toContain('64px) scale(1)');
+});
+
+it('lets reference tables scroll natively while keeping modified wheel zoom', () => {
+  render(<Fixture onBack={vi.fn()} />);
+  const target = screen.getByRole('region', { name: 'Reference scroll area' });
+  const scroll = new WheelEvent('wheel', { bubbles: true, cancelable: true, deltaY: 100 });
+  fireEvent(target, scroll);
+  expect(scroll.defaultPrevented).toBe(false);
+  const zoom = new WheelEvent('wheel', { bubbles: true, cancelable: true, deltaY: -100, ctrlKey: true });
+  fireEvent(target, zoom);
+  expect(zoom.defaultPrevented).toBe(true);
 });

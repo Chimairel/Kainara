@@ -30,6 +30,7 @@ export default function ReviewCanvas({
   onExpandedChange,
   readOnly = false,
   className = '',
+  focusSheet,
 }: {
   title: string;
   contentKey: string;
@@ -40,6 +41,7 @@ export default function ReviewCanvas({
   onExpandedChange: (value: boolean) => void;
   readOnly?: boolean;
   className?: string;
+  focusSheet?: { title: string; request: number };
 }) {
   const pages = Children.toArray(children).filter((child): child is ReactElement<{ title?: string }> =>
     isValidElement<{ title?: string }>(child)
@@ -119,6 +121,20 @@ export default function ReviewCanvas({
     sheets.current.forEach((sheet) => sheet && observer.observe(sheet));
     return () => observer.disconnect();
   }, [contentKey, expanded, pages.length, positions.length]); // eslint-disable-line react-hooks/exhaustive-deps
+  useLayoutEffect(() => {
+    if (!focusSheet) return;
+    const index = pages.findIndex(page => page.props.title === focusSheet.title);
+    const node = viewport.current;
+    if (index < 0 || !node) return;
+    const position = positions[index] ?? { x: index * (WIDTH + 56), y: 0 };
+    // Open references at a readable width, keeping their top in view.
+    const scale = Math.max(0.1, Math.min(1, (node.clientWidth - 48) / WIDTH));
+    setSelected(index);
+    setMode('select');
+    setView({ scale, x: Math.max(24, (node.clientWidth - WIDTH * scale) / 2) - position.x * scale,
+      y: 64 - position.y * scale });
+    didFit.current = true;
+  }, [focusSheet?.title, focusSheet?.request, pageCount]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
     const shortcuts = (event: KeyboardEvent) => {
       if (event.defaultPrevented || event.ctrlKey || event.metaKey || event.altKey || editableTarget(event.target))
@@ -168,6 +184,8 @@ export default function ReviewCanvas({
       if (!node || !canvasNode || !(target instanceof Node) || !canvasNode.contains(target)) return;
       const zooming = event.ctrlKey || event.metaKey;
       const overViewport = node.contains(target);
+      // Reference tables scroll within their paper; modified wheel still zooms the canvas.
+      if (!zooming && target instanceof Element && target.closest('[data-canvas-scroll]')) return;
       // Ordinary wheel scrolling in the toolbar/decision dock stays native.
       if (!zooming && !overViewport) return;
       event.preventDefault();

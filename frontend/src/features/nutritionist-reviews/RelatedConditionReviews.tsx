@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type Dispatch, type SetStateAction } from 'react';
 import { toast } from 'sonner';
 import api from '@/lib/axios';
 import { getApiErrorMessage } from '@/lib/api-error';
@@ -10,7 +10,6 @@ import { formatMealTitle } from '@/lib/meal-title';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import NativeSelect from '@/components/ui/NativeSelect';
-import Modal from '@/components/ui/Modal';
 import Pagination from '@/components/ui/Pagination';
 import WorkspaceTable from '@/components/shared/WorkspaceTable';
 import MealIngredientTable from '@/components/shared/MealIngredientTable';
@@ -28,39 +27,48 @@ type ReviewRow = {
 };
 type ReviewPage = { condition: string; rows: ReviewRow[]; total: number; page: number; totalPages: number };
 
-/** Browse prior decisions while keeping the current claim and decision draft in place. */
-export default function RelatedConditionReviews({ detail }: { detail: DetailData }) {
-  const conditions = (detail.user.conditions ?? []).filter(condition => conditionLabels[condition]);
-  const [open, setOpen] = useState(false);
-  return conditions.length ? <>
-    <Button variant="secondary" size="sm" onClick={() => setOpen(true)}>Related reviews</Button>
-    {open && <ConditionReviewBrowser key={detail.mealPlan.id}
-      mealId={detail.mealPlan.id} conditions={conditions} expectedContextKey={detail.reviewContext?.contextKey}
-      onClose={() => setOpen(false)} />}
-  </> : null;
+export type RelatedReviewView = { condition: string; search: string; page: number; expandedId: string | null };
+export const initialRelatedReviewView: RelatedReviewView = { condition: '', search: '', page: 1, expandedId: null };
+
+export function relatedReviewConditions(detail: DetailData) {
+  return (detail.user.conditions ?? []).filter(condition => conditionLabels[condition]);
 }
 
-function ConditionReviewBrowser({ mealId, conditions, expectedContextKey, onClose }: {
-  mealId: string; conditions: string[]; expectedContextKey?: string; onClose: () => void;
+/** Read-only reference content mounted on demand inside a movable canvas sheet. */
+export default function RelatedConditionReviews({ detail, view, onViewChange }: {
+  detail: DetailData;
+  view?: RelatedReviewView;
+  onViewChange?: Dispatch<SetStateAction<RelatedReviewView>>;
+}) {
+  const conditions = relatedReviewConditions(detail);
+  return conditions.length ? <ConditionReviewBrowser key={detail.mealPlan.id}
+    mealId={detail.mealPlan.id} conditions={conditions} expectedContextKey={detail.reviewContext?.contextKey}
+    view={view} onViewChange={onViewChange} /> : null;
+}
+
+function ConditionReviewBrowser({ mealId, conditions, expectedContextKey, view, onViewChange }: {
+  mealId: string; conditions: string[]; expectedContextKey?: string;
+  view?: RelatedReviewView; onViewChange?: Dispatch<SetStateAction<RelatedReviewView>>;
 }) {
   const ownerId = useAuth().user?.userId;
-  const [condition, setCondition] = useState(conditions[0]);
-  const [search, setSearch] = useState('');
-  const [query, setQuery] = useState('');
-  const [page, setPage] = useState(1);
+  const [localView, setLocalView] = useState(initialRelatedReviewView);
+  const state = view ?? localView;
+  const setView = onViewChange ?? setLocalView;
+  const condition = conditions.includes(state.condition) ? state.condition : conditions[0];
+  const { search, page, expandedId } = state;
+  const [query, setQuery] = useState(search.trim());
   const [result, setResult] = useState<ReviewPage | null>(null);
   const [busy, setBusy] = useState(true);
   const [failed, setFailed] = useState(false);
   const [retry, setRetry] = useState(0);
-  const [expandedId, setExpandedId] = useState<string | null>(null);
   useEffect(() => {
-    const timer = setTimeout(() => { setQuery(search.trim()); setPage(1); }, 300);
+    const timer = setTimeout(() => setQuery(search.trim()), 300);
     return () => clearTimeout(timer);
   }, [search]);
   useEffect(() => {
     const controller = new AbortController();
     let active = true;
-    setBusy(true); setFailed(false); setResult(null); setExpandedId(null);
+    setBusy(true); setFailed(false); setResult(null);
     api.get(`/nutritionist/queue/${encodeURIComponent(mealId)}/condition-reviews`, {
       params: { condition, page, search: query || undefined, expectedContextKey }, signal: controller.signal,
     }).then(response => {
@@ -73,27 +81,26 @@ function ConditionReviewBrowser({ mealId, conditions, expectedContextKey, onClos
     }).finally(() => { if (active) setBusy(false); });
     return () => { active = false; controller.abort(); };
   }, [ownerId, mealId, condition, page, query, expectedContextKey, retry]);
-  return <Modal isOpen onClose={onClose} title="Related condition reviews" size="3xl" layer="canvas"
-    description="Browse completed meal decisions for a condition in this case. A shared condition alone does not make an approval reusable.">
-    <div className="space-y-5">
-      <div className="grid gap-4 sm:grid-cols-[14rem_1fr]">
+  return <section aria-label="Related condition reviews" className="space-y-5 [&_thead]:!bg-white">
+      <p className="text-sm text-brand-muted">Browse completed meal decisions for a condition in this case. A shared condition alone does not make an approval reusable.</p>
+      <div className="grid gap-4 grid-cols-[12rem_1fr]">
         <div className="space-y-2">
           <label htmlFor="related-review-condition" className="text-xs font-semibold">Condition</label>
           <NativeSelect id="related-review-condition" value={condition} onChange={event => {
-            setCondition(event.target.value); setPage(1); setExpandedId(null);
+            setView(previous => ({ ...previous, condition: event.target.value, page: 1, expandedId: null }));
           }}>
             {conditions.map(value => <option key={value} value={value}>{conditionLabels[value]}</option>)}
           </NativeSelect>
         </div>
         <Input label="Search reviewed meals" value={search} maxLength={100}
-          placeholder="Search by meal name" onChange={event => setSearch(event.target.value)} />
+          placeholder="Search by meal name" onChange={event => setView(previous => ({ ...previous, search: event.target.value, page: 1, expandedId: null }))} />
       </div>
       <p role="status" className="text-sm text-brand-muted">
         {busy ? 'Loading completed reviews…' : failed ? 'Related reviews could not be loaded.' :
           `${result?.total ?? 0} completed ${(result?.total ?? 0) === 1 ? 'review' : 'reviews'} for ${conditionLabels[condition].toLowerCase()}`}
       </p>
       {failed ? <Button variant="secondary" onClick={() => setRetry(value => value + 1)}>Try again</Button> :
-        !busy && <WorkspaceTable label="Related condition reviews" rows={result?.rows ?? []} rowKey={row => row.id}
+        !busy && <div data-canvas-scroll className="[&_[role=region]]:overscroll-contain"><WorkspaceTable label="Related condition reviews" rows={result?.rows ?? []} rowKey={row => row.id}
           emptyMessage={query ? 'No completed reviews match this meal name.' : 'No completed reviews for this condition yet.'}
           columns={[
             { key: 'meal', header: 'Meal', cell: row => <span className="block min-w-36 font-bold">{formatMealTitle(row.mealName)}</span> },
@@ -107,7 +114,7 @@ function ConditionReviewBrowser({ mealId, conditions, expectedContextKey, onClos
             { key: 'date', header: 'Reviewed', cell: row => <span className="whitespace-nowrap">{formatManilaDate(row.reviewedAt, { dateStyle: 'medium' })}</span> },
             { key: 'evidence', header: 'Evidence', cell: row => <Button variant="secondary" size="sm"
               aria-expanded={expandedId === row.id} aria-label={`${expandedId === row.id ? 'Hide' : 'View'} evidence for ${formatMealTitle(row.mealName)}`}
-              onClick={() => setExpandedId(value => value === row.id ? null : row.id)}>
+              onClick={() => setView(previous => ({ ...previous, expandedId: previous.expandedId === row.id ? null : row.id }))}>
               {expandedId === row.id ? 'Hide' : 'View'}
             </Button> },
           ]}
@@ -120,8 +127,8 @@ function ConditionReviewBrowser({ mealId, conditions, expectedContextKey, onClos
             </dl> : <p className="text-brand-muted">Nutrition amounts were not recorded in this decision.</p>}
             {row.ingredients.length ? <MealIngredientTable ingredients={row.ingredients} /> :
               <p className="text-brand-muted">No ingredients were recorded in this decision.</p>}
-          </section> : null} />}
-      {!busy && !failed && result && <Pagination page={page} pageCount={result.totalPages} onPageChange={setPage} label="Related review pages" />}
-    </div>
-  </Modal>;
+          </section> : null} /></div>}
+      {!busy && !failed && result && <Pagination page={page} pageCount={result.totalPages}
+        onPageChange={next => setView(previous => ({ ...previous, page: next, expandedId: null }))} label="Related review pages" />}
+  </section>;
 }

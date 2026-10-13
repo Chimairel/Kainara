@@ -1,7 +1,13 @@
 import type { ComponentProps } from 'react';
 import { fireEvent, render, screen, within } from '@testing-library/react';
-import { expect, it, vi } from 'vitest';
+import { afterEach, expect, it, vi } from 'vitest';
 import CaseReviewDocument from './CaseReviewDocument';
+import api from '@/lib/axios';
+
+vi.mock('@/lib/axios', () => ({ default: { get: vi.fn() } }));
+vi.mock('@/hooks/useAuth', () => ({ useAuth: () => ({ user: { userId: 'current-rnd' } }) }));
+vi.mock('sonner', () => ({ toast: { error: vi.fn() } }));
+afterEach(() => vi.resetAllMocks());
 
 vi.mock('./sections/CaseProfileSection', () => ({ default: () => <p>Recorded profile</p> }));
 vi.mock('./sections/CaseAuditSection', () => ({ default: () => <p>Recorded meal evidence</p> }));
@@ -52,4 +58,46 @@ it('keeps claim errors visible inside the preview canvas', () => {
   expect(within(canvas).getByRole('alert')).toHaveTextContent('This case is being reviewed by another RND.');
   fireEvent.click(screen.getByRole('button', { name: 'Back to queue' }));
   expect(model.setSelectedMealId).toHaveBeenCalledWith(null);
+});
+
+it('opens references on demand as a canvas sheet and retains the selected evidence in fullscreen', async () => {
+  vi.mocked(api.get).mockResolvedValue({ data: { data: {
+    rows: [{ id: 'review-1', mealName: 'Heart meal', decision: 'APPROVE', reviewerName: 'Original RND',
+      reviewedAt: '2026-10-13T10:00:00Z', plateFacts: null, ingredients: [] }], total: 1, totalPages: 1,
+  } } });
+  const model = {
+    selectedMealId: 'synthetic-case', expanded: false, setExpanded: vi.fn(), setSelectedMealId: vi.fn(),
+    claimHeader: <button>Claim review</button>,
+    review: { fetchQueue: vi.fn(), handleSelectMeal: vi.fn(), retireInactiveReview: vi.fn() },
+    detailData: {
+      mealPlan: { id: 'synthetic-case', mealName: 'Synthetic plate', mealType: 'LUNCH', scheduledDate: '2026-10-10' },
+      user: { name: 'Synthetic member', conditions: ['HEART_CONDITION'] },
+      claimStatus: { claimedByMe: false }, warnings: [],
+    },
+  } as unknown as ComponentProps<typeof CaseReviewDocument>['model'];
+  const { rerender } = render(<CaseReviewDocument model={model} />);
+  expect(api.get).not.toHaveBeenCalled();
+  expect(screen.queryByRole('article', { name: 'Related condition reviews' })).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole('button', { name: 'Related reviews' }));
+  await screen.findByText('Original RND');
+  const paper = screen.getByRole('article', { name: 'Related condition reviews' });
+  expect(paper.closest('[data-canvas-world]')).not.toBeNull();
+  expect(paper).toHaveAttribute('data-document-page', '3');
+  expect(paper.closest('[data-canvas-sheet]')).toHaveClass('outline');
+  expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  fireEvent.click(within(paper).getByRole('button', { name: 'View evidence for Heart meal' }));
+  fireEvent.change(within(paper).getByLabelText('Search reviewed meals'), { target: { value: 'Heart' } });
+  fireEvent.click(within(paper).getByRole('button', { name: 'View evidence for Heart meal' }));
+  rerender(<CaseReviewDocument model={{ ...model, expanded: true }} />);
+  const canvas = screen.getByRole('dialog', { name: /Case approval.*fullscreen/ });
+  expect(within(canvas).getByLabelText('Search reviewed meals')).toHaveValue('Heart');
+  await within(canvas).findByRole('button', { name: 'Hide evidence for Heart meal' });
+  expect(screen.getAllByRole('dialog')).toHaveLength(1);
+  fireEvent.click(within(canvas).getByRole('button', { name: 'Related reviews' }));
+  expect(screen.getAllByRole('article', { name: 'Related condition reviews' })).toHaveLength(1);
+  rerender(<CaseReviewDocument model={{ ...model, selectedMealId: 'another-case', detailData: {
+    ...model.detailData!, mealPlan: { ...model.detailData!.mealPlan, id: 'another-case' },
+  } }} />);
+  expect(screen.queryByRole('article', { name: 'Related condition reviews' })).not.toBeInTheDocument();
+  expect(screen.getByRole('button', { name: 'Related reviews' })).toBeInTheDocument();
 });

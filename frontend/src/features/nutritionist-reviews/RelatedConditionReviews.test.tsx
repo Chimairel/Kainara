@@ -15,26 +15,25 @@ const row = { id: 'record', mealName: 'Recorded heart meal', decision: 'APPROVE'
   ingredients: [{ name: 'Recorded vegetable', quantity: 100, unit: 'g', source: 'FNRI' }] };
 const page = { data: { data: { condition: 'HEART_CONDITION', rows: [row], total: 11, page: 1, totalPages: 2 } } };
 afterEach(() => vi.resetAllMocks());
-it('loads only on demand, shows saved meal evidence, and keeps comparison separate from approval', async () => {
+it('shows saved meal evidence inline and keeps comparison separate from approval', async () => {
   vi.mocked(api.get).mockResolvedValue(page);
   render(<RelatedConditionReviews detail={detail} />);
-  expect(api.get).not.toHaveBeenCalled();
-  fireEvent.click(screen.getByRole('button', { name: 'Related reviews' }));
-  const modal = await screen.findByRole('dialog', { name: 'Related condition reviews' });
-  await within(modal).findByText('Original RND');
+  const panel = screen.getByRole('region', { name: 'Related condition reviews', exact: true });
+  expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  await within(panel).findByText('Original RND');
   expect(api.get).toHaveBeenCalledWith('/nutritionist/queue/current-meal/condition-reviews', expect.objectContaining({
     params: expect.objectContaining({ condition: 'HEART_CONDITION', expectedContextKey: 'current-key', page: 1 }),
   }));
-  fireEvent.click(within(modal).getByRole('button', { name: 'View evidence for Recorded heart meal' }));
-  expect(within(modal).getByText('0 g')).toBeInTheDocument();
-  expect(within(modal).getByText('Recorded vegetable')).toBeInTheDocument();
-  expect(within(modal).getByText(/shared condition alone/)).toBeInTheDocument();
-  expect(within(modal).queryByRole('button', { name: /approve|claim|reuse/i })).not.toBeInTheDocument();
-  fireEvent.click(within(modal).getByRole('button', { name: 'Next' }));
+  fireEvent.click(within(panel).getByRole('button', { name: 'View evidence for Recorded heart meal' }));
+  expect(within(panel).getByText('0 g')).toBeInTheDocument();
+  expect(within(panel).getByText('Recorded vegetable')).toBeInTheDocument();
+  expect(within(panel).getByText(/shared condition alone/)).toBeInTheDocument();
+  expect(within(panel).queryByRole('button', { name: /approve|claim|reuse/i })).not.toBeInTheDocument();
+  fireEvent.click(within(panel).getByRole('button', { name: 'Next' }));
   await waitFor(() => expect(api.get).toHaveBeenLastCalledWith(expect.anything(), expect.objectContaining({
     params: expect.objectContaining({ page: 2 }),
   })));
-  fireEvent.change(within(modal).getByLabelText('Condition'), { target: { value: 'DIABETES' } });
+  fireEvent.change(within(panel).getByLabelText('Condition'), { target: { value: 'DIABETES' } });
   await waitFor(() => expect(api.get).toHaveBeenLastCalledWith(expect.anything(), expect.objectContaining({
     params: expect.objectContaining({ condition: 'DIABETES', page: 1 }),
   })));
@@ -42,7 +41,6 @@ it('loads only on demand, shows saved meal evidence, and keeps comparison separa
 it('reports failures through Sonner and allows a retry and empty result', async () => {
   vi.mocked(api.get).mockRejectedValueOnce(new Error('offline')).mockResolvedValueOnce({ data: { data: { rows: [], total: 0, totalPages: 0 } } });
   render(<RelatedConditionReviews detail={detail} />);
-  fireEvent.click(screen.getByRole('button', { name: 'Related reviews' }));
   await screen.findByRole('button', { name: 'Try again' });
   expect(toast.error).toHaveBeenCalledWith('Could not load related reviews. Try again.');
   fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
@@ -50,7 +48,8 @@ it('reports failures through Sonner and allows a retry and empty result', async 
 });
 it('hides related-condition browsing for a case without a health condition', () => {
   render(<RelatedConditionReviews detail={{ ...detail, user: { ...detail.user, conditions: ['NONE'] } }} />);
-  expect(screen.queryByRole('button', { name: 'Related reviews' })).not.toBeInTheDocument();
+  expect(screen.queryByRole('region', { name: 'Related condition reviews', exact: true })).not.toBeInTheDocument();
+  expect(api.get).not.toHaveBeenCalled();
 });
 
 it('ignores an older response after the condition changes', async () => {
@@ -58,7 +57,6 @@ it('ignores an older response after the condition changes', async () => {
   vi.mocked(api.get).mockImplementationOnce(() => new Promise(resolve => { resolveOld = resolve; }))
     .mockResolvedValueOnce({ data: { data: { condition: 'DIABETES', rows: [], total: 0, totalPages: 0 } } });
   render(<RelatedConditionReviews detail={detail} />);
-  fireEvent.click(screen.getByRole('button', { name: 'Related reviews' }));
   fireEvent.change(screen.getByLabelText('Condition'), { target: { value: 'DIABETES' } });
   await screen.findByText('No completed reviews for this condition yet.');
   await act(async () => { resolveOld(page); });

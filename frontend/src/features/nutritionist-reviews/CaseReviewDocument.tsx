@@ -13,13 +13,16 @@ import { useReviewSwap } from './useReviewSwap';
 import { useState, useEffect } from 'react';
 import RndClarifications from '@/features/clinical-clarification/RndClarifications';
 import ClarificationFormCard from '@/features/clinical-clarification/ClarificationFormCard';
-import RelatedConditionReviews from './RelatedConditionReviews';
+import Button from '@/components/ui/Button';
+import RelatedConditionReviews, { initialRelatedReviewView, relatedReviewConditions } from './RelatedConditionReviews';
 
 type Model = ReturnType<typeof useCaseReviewWorkspaceModel>;
 
 export default function CaseReviewDocument({ model }: { model: Model }) {
   const { detailData, expanded, setExpanded, claimHeader, errorMsg, setSelectedMealId } = model;
   const [action, setAction] = useState<'approve' | 'reject' | null>(null);
+  const [referenceRequest, setReferenceRequest] = useState<{ key: string; request: number } | null>(null);
+  const [referenceView, setReferenceView] = useState(initialRelatedReviewView);
   const hasActiveConcern = detailData?.flagConcerns?.some((concern) => concern.active);
   useEffect(() => setAction(null), [model.selectedMealId, detailData?.claimStatus.claimedByMe, hasActiveConcern]);
   const swap = useReviewSwap(
@@ -34,6 +37,11 @@ export default function CaseReviewDocument({ model }: { model: Model }) {
   );
   if (!detailData) return null;
   const meal = detailData.mealPlan;
+  const referenceKey = `${meal.id}:${detailData.reviewContext?.contextKey ?? 'legacy'}`;
+  const referencesOpen = referenceRequest?.key === referenceKey;
+  const lastPage = 2 + Number(Boolean(detailData.flagConcerns?.length))
+    + Number(Boolean(detailData.clarifications?.enabled && detailData.reviewContext))
+    + (detailData.clarifications?.forms.length ?? 0);
   return (
     <>
       <RndQueueDocument
@@ -43,9 +51,15 @@ export default function CaseReviewDocument({ model }: { model: Model }) {
         expanded={expanded}
         onExpandedChange={setExpanded}
         onBack={() => setSelectedMealId(null)}
+        focusSheet={referencesOpen ? { title: 'Related condition reviews', request: referenceRequest.request } : undefined}
         actions={
           <>
-            <RelatedConditionReviews key={meal.id} detail={detailData} />
+            {relatedReviewConditions(detailData).length > 0 && (
+              <Button variant="secondary" size="sm" onClick={() => {
+                if (!referencesOpen) setReferenceView(initialRelatedReviewView);
+                setReferenceRequest(previous => ({ key: referenceKey, request: (previous?.request ?? 0) + 1 }));
+              }}>Related reviews</Button>
+            )}
             {claimHeader}
             {errorMsg && !action && (
               <FeedbackNotice variant="inline" className="max-w-sm">
@@ -150,13 +164,19 @@ export default function CaseReviewDocument({ model }: { model: Model }) {
         {detailData.clarifications?.forms.map((form, index) => (
           <ReviewDocumentPage
             key={form.id}
-            page={(detailData.flagConcerns?.length ? 5 : 4) + index}
+            page={3 + Number(Boolean(detailData.flagConcerns?.length))
+              + Number(Boolean(detailData.clarifications?.enabled && detailData.reviewContext)) + index}
             title={form.title}
             subtitle="Saved profile clarification · read only"
           >
             <ClarificationFormCard form={form} mode="reviewer" />
           </ReviewDocumentPage>
         ))}
+        {referencesOpen && (
+          <ReviewDocumentPage page={lastPage + 1} title="Related condition reviews" subtitle="Completed decisions for this case’s conditions">
+            <RelatedConditionReviews detail={detailData} view={referenceView} onViewChange={setReferenceView} />
+          </ReviewDocumentPage>
+        )}
       </RndQueueDocument>
       {detailData.claimStatus.claimedByMe && (
         <p className="mt-3 text-xs text-brand-muted">
