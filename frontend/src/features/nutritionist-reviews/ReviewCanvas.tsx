@@ -31,6 +31,7 @@ export default function ReviewCanvas({
   readOnly = false,
   className = '',
   focusSheet,
+  tools,
 }: {
   title: string;
   contentKey: string;
@@ -42,6 +43,7 @@ export default function ReviewCanvas({
   readOnly?: boolean;
   className?: string;
   focusSheet?: { title: string; request: number };
+  tools?: ReactNode;
 }) {
   const pages = Children.toArray(children).filter((child): child is ReactElement<{ title?: string }> =>
     isValidElement<{ title?: string }>(child)
@@ -310,6 +312,7 @@ export default function ReviewCanvas({
         <button type="button" className={iconClass} onClick={() => fit(true, true)} aria-label="Reset sheet layout">
           <RotateCcw className="h-4 w-4" />
         </button>
+        {tools && <><span className="mx-1 h-5 border-l border-brand-border" />{tools}</>}
       </div>
       <div
         ref={viewport}

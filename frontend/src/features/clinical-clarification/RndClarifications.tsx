@@ -1,5 +1,6 @@
 'use client';
 import FeedbackNotice from '@/components/shared/FeedbackNotice';
+import { toast } from 'sonner';
 
 import { useEffect, useRef, useState } from 'react';
 import api from '@/lib/axios';
@@ -21,11 +22,13 @@ const newQuestion = (): DraftQuestion => ({
 export function useRndClarificationDraft(caseKey: string) {
   const [title, setTitle] = useState('Profile clarification');
   const [questions, setQuestions] = useState<DraftQuestion[]>([]);
+  const requestRef = useRef<{ payload: string; key: string } | null>(null);
   useEffect(() => {
     setTitle('Profile clarification');
     setQuestions([]);
+    requestRef.current = null;
   }, [caseKey]);
-  return { title, setTitle, questions, setQuestions };
+  return { title, setTitle, questions, setQuestions, requestRef };
 }
 
 export default function RndClarifications({
@@ -40,6 +43,8 @@ export default function RndClarifications({
   showComposer = true,
   publishTarget,
   onInvalidated,
+  embedded = false,
+  onBusyChange,
 }: {
   userId: string;
   profileRevision: number;
@@ -52,11 +57,13 @@ export default function RndClarifications({
   showComposer?: boolean;
   publishTarget?: { url: string; expectedContextKey: string };
   onInvalidated?: (cause: unknown) => boolean;
+  embedded?: boolean;
+  onBusyChange?: (busy: boolean) => void;
 }) {
   const internalDraft = useRndClarificationDraft(`${userId}:${profileRevision}:${scopeKey}`);
   const { title, setTitle, questions, setQuestions } = draft ?? internalDraft;
   const [busy, setBusy] = useState(false);
-  const requestRef = useRef<{ payload: string; key: string } | null>(null);
+  const requestRef = (draft ?? internalDraft).requestRef;
   const retryKey = (payload: unknown) => {
     const serialized = JSON.stringify(payload);
     if (requestRef.current?.payload !== serialized)
@@ -64,10 +71,8 @@ export default function RndClarifications({
     return requestRef.current.key;
   };
   const [error, setError] = useState<string | null>(null);
-  const [message, setMessage] = useState<string | null>(null);
   useEffect(() => {
     setError(null);
-    setMessage(null);
   }, [userId, profileRevision, scopeKey]);
   if (!workspace?.enabled) return null;
   const updateQuestion = (id: string, patch: Partial<DraftQuestion>) =>
@@ -105,8 +110,8 @@ export default function RndClarifications({
       return;
     }
     setBusy(true);
+    onBusyChange?.(true);
     setError(null);
-    setMessage(null);
     try {
       await api.post(publishTarget?.url ?? `/nutritionist/profile-reviews/${userId}/clarifications`, {
         profileRevision,
@@ -118,19 +123,20 @@ export default function RndClarifications({
       });
       setQuestions([]);
       await onUpdated();
-      setMessage('Questions sent to Health details. The profile is unchanged and confirmation waits for resolution.');
+      toast.success('Questions sent to Health details.');
     } catch (cause) {
       if (onInvalidated?.(cause)) return;
       setError(getApiErrorMessage(cause, 'Questions could not be sent.'));
     } finally {
       setBusy(false);
+      onBusyChange?.(false);
     }
   }
   async function resolve(form: ClarificationForm, rationale: string) {
     if (!canWrite || busy || publishTarget) return;
     setBusy(true);
+    onBusyChange?.(true);
     setError(null);
-    setMessage(null);
     try {
       await api.post(`/nutritionist/profile-reviews/${userId}/clarifications/${form.id}/resolve`, {
         profileRevision,
@@ -139,28 +145,22 @@ export default function RndClarifications({
         rationale,
       });
       await onUpdated();
-      setMessage(
-        'Clarification resolved against the reviewed response. Profile confirmation remains a separate decision.'
-      );
+      toast.success('Clarification resolved.');
     } catch (cause) {
       setError(getApiErrorMessage(cause, 'Clarification could not be resolved.'));
     } finally {
       setBusy(false);
+      onBusyChange?.(false);
     }
   }
   return (
     <section className="space-y-4" aria-label="Profile clarification work">
-      <h3 className="font-display text-lg font-bold">Clarification forms</h3>
-      <p className="text-xs text-brand-muted">
+      {!embedded && <h3 className="font-display text-lg font-bold">Clarification forms</h3>}
+      {!embedded && <p className="text-xs text-brand-muted">
         Forms stay with this member through claim handoffs. Published questions cannot be overwritten; send a follow-up
         form when needed.
-      </p>
+      </p>}
       {error && <FeedbackNotice variant="inline">{error}</FeedbackNotice>}
-      {message && (
-        <p role="status" className="text-sm text-brand-green">
-          {message}
-        </p>
-      )}
       {showForms &&
         workspace.forms.map((form) => (
           <ClarificationFormCard
@@ -172,7 +172,7 @@ export default function RndClarifications({
           />
         ))}
       {showComposer && (
-        <Card className="space-y-3 p-4">
+        <Card className={embedded ? 'space-y-3 rounded-none border-0 p-0 shadow-none sm:rounded-none' : 'space-y-3 p-4'}>
           <h4 className="font-bold">Send specific questions</h4>
           {publishTarget && (
             <p className="text-xs text-brand-muted">

@@ -101,3 +101,35 @@ it('opens references on demand as a canvas sheet and retains the selected eviden
   expect(screen.queryByRole('article', { name: 'Related condition reviews' })).not.toBeInTheDocument();
   expect(screen.getByRole('button', { name: 'Related reviews' })).toBeInTheDocument();
 });
+
+it('keeps published questions as information sheets and opens the blank composer from Canvas tools only', () => {
+  const model = {
+    selectedMealId: 'case', expanded: false, setExpanded: vi.fn(), setSelectedMealId: vi.fn(),
+    claimHeader: <button>Claim review</button>,
+    review: { fetchQueue: vi.fn(), handleSelectMeal: vi.fn(), retireInactiveReview: vi.fn() },
+    detailData: {
+      mealPlan: { id: 'case', userId: 'member', mealName: 'Recorded meal', mealType: 'LUNCH', scheduledDate: '2026-10-14' },
+      user: { name: 'Recorded member' }, claimStatus: { claimedByMe: false }, warnings: [],
+      reviewContext: { contextKey: 'version', profileRevision: 1, scopeKey: 'scope' },
+      clarifications: { enabled: true, forms: [{ id: 'form', title: 'Saved questions', authorName: 'Original RND',
+        profileRevision: 1, scopeKey: 'scope', status: 'ANSWERED',
+        questions: [{ id: 'q', label: 'Recorded question', type: 'TEXT', required: true }],
+        responses: [{ id: 'response', version: 1, answers: { q: 'Recorded answer' }, submittedAt: '2026-10-14' }], resolution: null,
+      }] },
+    },
+  } as unknown as ComponentProps<typeof CaseReviewDocument>['model'];
+  render(<CaseReviewDocument model={model} />);
+  expect(screen.queryByRole('article', { name: 'Request profile clarification' })).not.toBeInTheDocument();
+  const paper = screen.getByRole('article', { name: 'Saved questions' });
+  expect(paper).toHaveAttribute('data-document-page', '3');
+  expect(within(paper).getByLabelText('Recorded question *')).toHaveValue('Recorded answer');
+  expect(within(paper).getByLabelText('Recorded question *')).toBeDisabled();
+  expect(screen.queryByLabelText('Resolution notes')).not.toBeInTheDocument();
+  expect(screen.queryByLabelText('Form title')).not.toBeInTheDocument();
+  fireEvent.click(within(screen.getByRole('toolbar', { name: 'Canvas tools' })).getByRole('button', { name: 'Questions' }));
+  const tool = screen.getByRole('dialog', { name: 'Member questions' });
+  expect(within(tool).getByLabelText('Form title')).toBeDisabled();
+  expect(tool.closest('[data-canvas-world]')).toBeNull();
+  fireEvent.click(within(tool).getByRole('button', { name: 'Close' }));
+  expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+});

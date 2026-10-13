@@ -25,6 +25,7 @@ export const Modal: React.FC<ModalProps> = ({
   size = 'md',
   layer = 'default',
 }) => {
+  const opener = React.useRef<HTMLElement | null>(null);
   const sizeClasses = {
     sm: 'max-w-sm',
     md: 'max-w-md',
@@ -42,6 +43,13 @@ export const Modal: React.FC<ModalProps> = ({
           className={`fixed inset-0 ${layer === 'canvas' ? 'z-[100]' : 'z-50'} bg-[#020806]/75 backdrop-blur-md transition-all duration-300`}
         />
         <Dialog.Content
+          onOpenAutoFocus={() => { opener.current = document.activeElement instanceof HTMLElement ? document.activeElement : null; }}
+          onCloseAutoFocus={(event) => {
+            if (opener.current?.isConnected && opener.current !== document.body) {
+              event.preventDefault();
+              opener.current.focus();
+            }
+          }}
           className={`
             fixed left-1/2 top-1/2 ${layer === 'canvas' ? 'z-[101]' : 'z-50'} w-[92vw] ${sizeClasses[size]}
             max-h-[90vh] -translate-x-1/2 -translate-y-1/2 ${layer === 'canvas' ? 'overflow-hidden' : 'overflow-y-auto'} rounded-[28px]

@@ -7,6 +7,7 @@ import { factCodes } from './ProfileWorkPanel.shared';
 import type { useProfileWorkPanelModel } from './useProfileWorkPanelModel';
 type Model = Extract<ReturnType<typeof useProfileWorkPanelModel>, { kind: 'ready' }>;
 type SectionProps = {
+  section?: 'all' | 'evidence' | 'decision';
   model: Pick<
     Model,
     | 'selectedDocument'
@@ -30,7 +31,7 @@ type SectionProps = {
     | 'decideDocument'
   >;
 };
-export default function ProfileDocumentReview({ model }: SectionProps) {
+export default function ProfileDocumentReview({ model, section = 'all' }: SectionProps) {
   const {
     selectedDocument,
     documentDetail,
@@ -56,6 +57,7 @@ export default function ProfileDocumentReview({ model }: SectionProps) {
     <>
       {selectedDocument && documentDetail && (
         <>
+          {section !== 'decision' && <>
           <div className="rounded-xl border border-brand-border bg-brand-bgAlt/40 p-3 text-xs text-brand-muted">
             Claimed document: {selectedDocument.originalFileName} · {selectedDocument.status.replace(/_/g, ' ')}. Access
             to the original is recorded and the claim expires after 30 minutes.
@@ -100,7 +102,14 @@ export default function ProfileDocumentReview({ model }: SectionProps) {
               {selectedDocument.latestReview.rationale}
             </p>
           )}
-          {selectedDocument.pending && (
+          {section === 'evidence' && <section aria-label="Recorded document facts" className="space-y-2 text-sm">
+            <h3 className="font-bold">Facts from document</h3>
+            {documentDetail.facts.map(fact => <p key={fact.id}>
+              {fact.code}: {fact.valueText ?? fact.valueNumber} {fact.unit ?? ''} ({fact.reviewStatus})
+            </p>)}
+          </section>}
+          </>}
+          {section !== 'evidence' && selectedDocument.pending && (
             <section className="rounded-xl border border-brand-border p-4 text-xs">
               <h3 className="font-bold text-brand-text">Facts from document</h3>
               {documentDetail.facts.map((fact) => (
@@ -156,7 +165,7 @@ export default function ProfileDocumentReview({ model }: SectionProps) {
               )}
             </section>
           )}
-          {selectedDocument.pending && (
+          {section !== 'evidence' && selectedDocument.pending && (
             <section className="space-y-3 rounded-xl border border-brand-border p-4 text-xs">
               <h3 className="font-bold text-brand-text">Document decision</h3>
               <label className="block">

@@ -11,7 +11,7 @@ import CaseDecisionSection from './sections/CaseDecisionSection';
 import type { useCaseReviewWorkspaceModel } from './sections/useCaseReviewWorkspaceModel';
 import { useReviewSwap } from './useReviewSwap';
 import { useState, useEffect } from 'react';
-import RndClarifications from '@/features/clinical-clarification/RndClarifications';
+import ClarificationTool from '@/features/clinical-clarification/ClarificationTool';
 import ClarificationFormCard from '@/features/clinical-clarification/ClarificationFormCard';
 import Button from '@/components/ui/Button';
 import RelatedConditionReviews, { initialRelatedReviewView, relatedReviewConditions } from './RelatedConditionReviews';
@@ -40,7 +40,6 @@ export default function CaseReviewDocument({ model }: { model: Model }) {
   const referenceKey = `${meal.id}:${detailData.reviewContext?.contextKey ?? 'legacy'}`;
   const referencesOpen = referenceRequest?.key === referenceKey;
   const lastPage = 2 + Number(Boolean(detailData.flagConcerns?.length))
-    + Number(Boolean(detailData.clarifications?.enabled && detailData.reviewContext))
     + (detailData.clarifications?.forms.length ?? 0);
   return (
     <>
@@ -52,6 +51,26 @@ export default function CaseReviewDocument({ model }: { model: Model }) {
         onExpandedChange={setExpanded}
         onBack={() => setSelectedMealId(null)}
         focusSheet={referencesOpen ? { title: 'Related condition reviews', request: referenceRequest.request } : undefined}
+        tools={detailData.clarifications?.enabled && detailData.reviewContext && (
+          <ClarificationTool
+            userId={meal.userId}
+            profileRevision={detailData.reviewContext.profileRevision}
+            scopeKey={detailData.reviewContext.scopeKey}
+            workspace={detailData.clarifications}
+            canWrite={detailData.claimStatus.claimedByMe}
+            draft={model.review.clarificationDraft}
+            showForms={false}
+            publishTarget={{ url: `/nutritionist/queue/${meal.id}/clarifications`, expectedContextKey: detailData.reviewContext.contextKey }}
+            onInvalidated={(failure) => model.review.retireInactiveReview(failure, meal.id)}
+            onUpdated={async () => {
+              model.review.retireInactiveReview(
+                { response: { data: { code: 'PROFILE_REVIEW_REQUIRED' } } }, meal.id,
+                'Questions sent to Health details. This member’s meal reviews are paused. Continue the case in the Profile queue.'
+              );
+              await model.review.fetchQueue(false, undefined, true);
+            }}
+          />
+        )}
         actions={
           <>
             {relatedReviewConditions(detailData).length > 0 && (
@@ -131,45 +150,14 @@ export default function CaseReviewDocument({ model }: { model: Model }) {
             />
           </ReviewDocumentPage>
         )}
-        {detailData.clarifications?.enabled && detailData.reviewContext && (
-          <ReviewDocumentPage
-            page={detailData.flagConcerns?.length ? 4 : 3}
-            title="Request profile clarification"
-            subtitle="Questions stay with the member’s Profile case"
-          >
-            <RndClarifications
-              userId={meal.userId}
-              profileRevision={detailData.reviewContext.profileRevision}
-              scopeKey={detailData.reviewContext.scopeKey}
-              workspace={detailData.clarifications}
-              canWrite={detailData.claimStatus.claimedByMe}
-              draft={model.review.clarificationDraft}
-              showForms={false}
-              publishTarget={{
-                url: `/nutritionist/queue/${meal.id}/clarifications`,
-                expectedContextKey: detailData.reviewContext.contextKey,
-              }}
-              onInvalidated={(failure) => model.review.retireInactiveReview(failure, meal.id)}
-              onUpdated={async () => {
-                model.review.retireInactiveReview(
-                  { response: { data: { code: 'PROFILE_REVIEW_REQUIRED' } } },
-                  meal.id,
-                  'Questions sent to Health details. This member’s meal reviews are paused. Continue the case in the Profile queue.'
-                );
-                await model.review.fetchQueue(false, undefined, true);
-              }}
-            />
-          </ReviewDocumentPage>
-        )}
         {detailData.clarifications?.forms.map((form, index) => (
           <ReviewDocumentPage
             key={form.id}
-            page={3 + Number(Boolean(detailData.flagConcerns?.length))
-              + Number(Boolean(detailData.clarifications?.enabled && detailData.reviewContext)) + index}
+            page={3 + Number(Boolean(detailData.flagConcerns?.length)) + index}
             title={form.title}
             subtitle="Saved profile clarification · read only"
           >
-            <ClarificationFormCard form={form} mode="reviewer" />
+            <ClarificationFormCard form={form} mode="reviewer" embedded />
           </ReviewDocumentPage>
         ))}
         {referencesOpen && (

@@ -48,6 +48,8 @@ it('an involved verifier cannot claim or edit concern resolutions', () => {
 
 it('every flag requires its own marked resolution; edits invalidate the mark', async () => {
   render(<MealReviewPanel meal={meal} isAdmin={false} refresh={vi.fn().mockResolvedValue(undefined)} />);
+  expect(screen.queryByLabelText('How you resolved this concern')).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole('button', { name: 'Resolve concerns' }));
   const notes = screen.getAllByLabelText('How you resolved this concern');
   notes.forEach((note) =>
     fireEvent.change(note, { target: { value: 'Reconciled the ingredient grams against the recorded source.' } })
@@ -76,12 +78,15 @@ it('every flag requires its own marked resolution; edits invalidate the mark', a
 
 it('changed review evidence clears drafts and losing the claim removes resolution editing', () => {
   const { rerender } = render(<MealReviewPanel meal={meal} isAdmin={false} refresh={vi.fn()} />);
+  fireEvent.click(screen.getByRole('button', { name: 'Resolve concerns' }));
   fireEvent.change(screen.getAllByLabelText('How you resolved this concern')[0], {
     target: { value: 'Reconciled the ingredient grams against the recorded source.' },
   });
   fireEvent.click(screen.getAllByRole('button', { name: 'Mark resolved' })[0]);
   fixture.data = { ...fixture.data, reviewVersion: 'b'.repeat(64) };
   rerender(<MealReviewPanel meal={meal} isAdmin={false} refresh={vi.fn()} />);
+  expect(screen.queryByLabelText('How you resolved this concern')).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole('button', { name: 'Resolve concerns' }));
   expect(screen.getAllByLabelText('How you resolved this concern')[0]).toHaveValue('');
   expect(screen.queryByRole('button', { name: 'Resolved for this review' })).not.toBeInTheDocument();
   fixture.data = { ...fixture.data, claimStatus: { claimedByMe: false, claimedByOther: true } };

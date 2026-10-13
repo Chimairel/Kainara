@@ -32,7 +32,10 @@ it('requires a written resolution and explicit mark before verification, then sa
   const onVerified = vi.fn().mockResolvedValue(undefined);
   const onClose = vi.fn();
   render(<ApprovalRecheckCanvas target={target} onVerified={onVerified} onClose={onClose} />);
-  const note = await screen.findByLabelText('How you resolved this concern');
+  expect(screen.queryByLabelText('How you resolved this concern')).not.toBeInTheDocument();
+  await screen.findByText('Check the measured sodium values in this recorded plate.');
+  fireEvent.click(screen.getByRole('button', { name: 'Resolve concern' }));
+  const note = screen.getByLabelText('How you resolved this concern');
   const verify = screen.getByRole('button', { name: 'Verify resolved case' });
   expect(verify).toBeDisabled();
   fireEvent.change(note, { target: { value: 'Checked the source and corrected the recorded measured quantity.' } });
@@ -58,7 +61,9 @@ it('stale submission clears the resolution mark and cannot automatically submit 
   });
   const onVerified = vi.fn();
   render(<ApprovalRecheckCanvas target={target} onVerified={onVerified} onClose={vi.fn()} />);
-  fireEvent.change(await screen.findByLabelText('How you resolved this concern'), {
+  await screen.findByText('Check the measured sodium values in this recorded plate.');
+  fireEvent.click(screen.getByRole('button', { name: 'Resolve concern' }));
+  fireEvent.change(screen.getByLabelText('How you resolved this concern'), {
     target: { value: 'Checked the measured ingredient quantities against the source.' },
   });
   fireEvent.click(screen.getByRole('button', { name: 'Mark resolved' }));

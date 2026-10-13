@@ -105,19 +105,30 @@ function Fixture() {
 it('gives published forms movable sheets and preserves clarification/correction drafts across fullscreen', async () => {
   render(<Fixture />);
   expect(screen.getByRole('button', { name: 'Move Diabetes questions sheet' })).toBeInTheDocument();
+  expect(screen.queryByRole('article', { name: 'Profile clarification forms' })).not.toBeInTheDocument();
+  expect(screen.queryByRole('article', { name: 'Profile corrections' })).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole('button', { name: 'Questions' }));
   fireEvent.click(screen.getByRole('button', { name: 'Add question' }));
   fireEvent.change(screen.getByRole('textbox', { name: 'Question 1' }), {
     target: { value: 'Clarify your recent treatment.' },
   });
+  fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Profile corrections' }));
   fireEvent.change(screen.getByRole('textbox', { name: 'Correction rationale' }), {
     target: { value: 'Draft correction rationale.' },
   });
+  fireEvent.click(screen.getByRole('button', { name: 'Close' }));
   fireEvent.click(screen.getByRole('button', { name: 'Expand canvas' }));
   const fullscreen = screen.getByRole('dialog', { name: /Profile review.*fullscreen/ });
+  fireEvent.click(screen.getByRole('button', { name: 'Questions' }));
   expect(screen.getByRole('textbox', { name: 'Question 1' })).toHaveValue('Clarify your recent treatment.');
+  fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Profile corrections' }));
   expect(screen.getByRole('textbox', { name: 'Correction rationale' })).toHaveValue('Draft correction rationale.');
+  fireEvent.click(screen.getByRole('button', { name: 'Close' }));
   fireEvent.keyDown(fullscreen, { key: 'Escape' });
   await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+  fireEvent.click(screen.getByRole('button', { name: 'Questions' }));
   expect(screen.getByRole('textbox', { name: 'Question 1' })).toHaveValue('Clarify your recent treatment.');
 });
 it('keeps profile decision inputs in a separate dialog and retains its notes', async () => {

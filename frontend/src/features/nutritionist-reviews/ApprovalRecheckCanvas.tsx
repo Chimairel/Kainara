@@ -4,6 +4,8 @@ import api from '@/lib/axios';
 import { getApiErrorMessage } from '@/lib/api-error';
 import { formatMealTitle } from '@/lib/meal-title';
 import Button from '@/components/ui/Button';
+import Modal from '@/components/ui/Modal';
+import CanvasToolButton from './CanvasToolButton';
 import FeedbackNotice from '@/components/shared/FeedbackNotice';
 import RndQueueDocument, { ReviewDocumentPage } from './RndQueueDocument';
 import ConcernResolution, { type ReviewConcern } from './ConcernResolution';
@@ -51,6 +53,7 @@ export default function ApprovalRecheckCanvas({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [retry, setRetry] = useState(0);
+  const [resolutionOpen, setResolutionOpen] = useState(false);
   const key = `${ownerId}:${target.kind}:${target.approvalId}:${target.mealLibraryId}`;
   const captureScope = useRequestScope(key);
   useEffect(() => {
@@ -58,6 +61,7 @@ export default function ApprovalRecheckCanvas({
     setDetail(null);
     setNote('');
     setResolved(false);
+    setResolutionOpen(false);
     setError('');
     setBusy(false);
     api
@@ -128,12 +132,14 @@ export default function ApprovalRecheckCanvas({
       ? Object.entries(scope).filter(([, value]) => Array.isArray(value) && value.length)
       : [];
   return (
+    <>
     <RndQueueDocument
       title={`Approval recheck · ${formatMealTitle(plate?.mealName ?? 'Recorded case')}`}
       contentKey={key}
       expanded={expanded}
       onExpandedChange={setExpanded}
       onBack={onClose}
+      tools={<CanvasToolButton disabled={blocked || busy} onClick={() => setResolutionOpen(true)}>Resolve concern</CanvasToolButton>}
       actions={
         <Button variant="secondary" size="sm" disabled={busy} onClick={() => setRetry(retry + 1)}>
           Reload evidence
@@ -199,7 +205,7 @@ export default function ApprovalRecheckCanvas({
       </ReviewDocumentPage>
       <ReviewDocumentPage
         page={2}
-        title="Flag concern and resolution"
+        title="Recorded flag concern"
         subtitle="An uninvolved RND must review the recorded concern"
       >
         {detail?.flagReview && (
@@ -209,7 +215,7 @@ export default function ApprovalRecheckCanvas({
               concern={detail.flagReview.concern}
               note={note}
               resolved={resolved}
-              canWrite={!blocked && !busy}
+              canWrite={false}
               maxLength={1000}
               onNote={(value) => {
                 setNote(value);
@@ -225,5 +231,12 @@ export default function ApprovalRecheckCanvas({
         )}
       </ReviewDocumentPage>
     </RndQueueDocument>
+    <Modal isOpen={resolutionOpen && !!detail} onClose={() => { if (!busy) setResolutionOpen(false); }} layer="canvas" size="xl"
+      title="Resolve flagged approval" footer={<Button disabled={busy || !resolved || blocked} isLoading={busy} onClick={() => void verify()}>Verify resolved case</Button>}>
+      {detail && <ConcernResolution concern={detail.flagReview.concern} note={note} resolved={resolved}
+        canWrite={!blocked && !busy} maxLength={1000}
+        onNote={value => { setNote(value); setResolved(false); }} onResolve={() => setResolved(true)} />}
+    </Modal>
+    </>
   );
 }

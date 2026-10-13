@@ -11,6 +11,7 @@ import Button from '@/components/ui/Button';
 import Dropdown from '@/components/ui/Dropdown';
 import MealReviewTimeline, { reviewStateLabel, type ReviewIncident } from './MealReviewTimeline';
 import RndQueueDocument, { ReviewDocumentPage } from '@/features/nutritionist-reviews/RndQueueDocument';
+import CanvasToolButton from '@/features/nutritionist-reviews/CanvasToolButton';
 import ConcernResolution from '@/features/nutritionist-reviews/ConcernResolution';
 import { formatMealTitle } from '@/lib/meal-title';
 import type { LibraryMeal } from './useNutritionistLibrary';
@@ -69,9 +70,11 @@ export default function MealReviewPanel({
   const [resolutions, setResolutions] = useState<Record<string, string>>({});
   const [resolved, setResolved] = useState<Record<string, boolean>>({});
   const [expanded, setExpanded] = useState(false);
+  const [resolutionOpen, setResolutionOpen] = useState(false);
   const [savedVersion, setSavedVersion] = useState<string | null>(null);
   const data = query.data;
   useEffect(() => {
+    setResolutionOpen(false);
     setEvidenceReviewed(false);
     setResolutions({});
     setResolved({});
@@ -236,6 +239,7 @@ export default function MealReviewPanel({
             Profile and condition approval concerns are handled separately.
           </p>
           {held && data.incident && (
+            <>
             <RndQueueDocument
               title={`Recipe re-review · ${formatMealTitle(meal.mealName)}`}
               contentKey={`${meal.id}:${data.reviewVersion}`}
@@ -243,6 +247,7 @@ export default function MealReviewPanel({
               onExpandedChange={setExpanded}
               onBack={() => setExpanded(false)}
               actions={null}
+              tools={<CanvasToolButton disabled={busy || (!isAdmin && (data.state === 'QUARANTINED' || !data.claimStatus?.claimedByMe))} onClick={() => setResolutionOpen(true)}>Resolve concerns</CanvasToolButton>}
               decision={decisionControls}
             >
               <ReviewDocumentPage page={1} title="Recipe evidence" subtitle={formatMealTitle(meal.mealName)}>
@@ -281,7 +286,7 @@ export default function MealReviewPanel({
               </ReviewDocumentPage>
               <ReviewDocumentPage
                 page={2}
-                title="Flag concerns and resolutions"
+                title="Recorded flag concerns"
                 subtitle="Resolve every concern before re-verifying"
               >
                 <div className="space-y-6">
@@ -290,6 +295,31 @@ export default function MealReviewPanel({
                       ? 'Quarantined after repeated flags. Only an admin can release or archive this recipe.'
                       : 'One uninvolved eligible RND can re-verify the current version.'}
                   </p>
+                  {data.incident.reports.map((report) => (
+                    <ConcernResolution
+                      key={report.id}
+                      concern={report}
+                      note={resolutions[report.id] ?? ''}
+                      resolved={Boolean(resolved[report.id])}
+                      canWrite={false}
+                      onNote={(value) => {
+                        setResolutions({ ...resolutions, [report.id]: value });
+                        setResolved({ ...resolved, [report.id]: false });
+                      }}
+                      onResolve={() => setResolved({ ...resolved, [report.id]: true })}
+                    />
+                  ))}
+                  <p className="text-xs text-brand-muted">
+                    {data.state === 'QUARANTINED'
+                      ? 'Admin release records an administrative decision. Member-specific clinical approvals still require RND review.'
+                      : 'Authors, flaggers and challenged verifiers cannot re-verify this incident. Corrections and new evidence invalidate prior confirmations.'}
+                  </p>
+                </div>
+              </ReviewDocumentPage>
+            </RndQueueDocument>
+            <Modal isOpen={resolutionOpen} onClose={() => { if (!busy) setResolutionOpen(false); }} layer="canvas" size="xl"
+              title={isAdmin ? 'Administrative resolution' : 'Resolve recipe concerns'} footer={decisionControls}>
+              <div className="space-y-6">
                   {data.incident.reports.map((report) => (
                     <ConcernResolution
                       key={report.id}
@@ -332,14 +362,9 @@ export default function MealReviewPanel({
                       )}
                     </>
                   )}
-                  <p className="text-xs text-brand-muted">
-                    {data.state === 'QUARANTINED'
-                      ? 'Admin release records an administrative decision. Member-specific clinical approvals still require RND review.'
-                      : 'Authors, flaggers and challenged verifiers cannot re-verify this incident. Corrections and new evidence invalidate prior confirmations.'}
-                  </p>
-                </div>
-              </ReviewDocumentPage>
-            </RndQueueDocument>
+              </div>
+            </Modal>
+            </>
           )}
           {data.state !== 'ARCHIVED' && (
             <>

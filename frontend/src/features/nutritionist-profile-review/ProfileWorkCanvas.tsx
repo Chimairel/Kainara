@@ -4,7 +4,11 @@ import Button from '@/components/ui/Button';
 import Modal from '@/components/ui/Modal';
 import NutritionGuidancePaper from '@/features/reports/NutritionGuidancePaper';
 import RndQueueDocument, { ReviewDocumentPage } from '@/features/nutritionist-reviews/RndQueueDocument';
-import RndClarifications, { useRndClarificationDraft } from '@/features/clinical-clarification/RndClarifications';
+import { useRndClarificationDraft } from '@/features/clinical-clarification/RndClarifications';
+import ClarificationTool from '@/features/clinical-clarification/ClarificationTool';
+import ClarificationFormCard from '@/features/clinical-clarification/ClarificationFormCard';
+import ProfileProposalCard from '@/features/clinical-clarification/ProfileProposalCard';
+import CanvasToolButton from '@/features/nutritionist-reviews/CanvasToolButton';
 import RndProfileProposals, { useProfileProposalDraft } from '@/features/clinical-clarification/RndProfileProposals';
 import ProfileClinicalReview from './ProfileClinicalReview';
 import ProfileDocumentReview from './ProfileDocumentReview';
@@ -15,11 +19,14 @@ import type { useProfileWorkPanelModel } from './useProfileWorkPanelModel';
 export default function ProfileWorkCanvas({ model }: { model: ReturnType<typeof useProfileWorkPanelModel> }) {
   const { detail, expanded, setExpanded, clearSelection, claimProfile, busy, selectedReport, selectedDocument } = model;
   const [decisionOpen, setDecisionOpen] = useState(false);
+  const [tool, setTool] = useState<'corrections' | 'document' | null>(null);
+  const [toolBusy, setToolBusy] = useState(false);
   const caseKey = `${detail?.userId}:${detail?.profileReview?.profileRevision}:${detail?.profileReview?.scopeKey}`;
   const clarificationDraft = useRndClarificationDraft(caseKey);
   const proposalDraft = useProfileProposalDraft(caseKey);
   useEffect(() => {
     setDecisionOpen(false);
+    setTool(null);
   }, [caseKey, detail?.profileReview?.claim?.mine]);
   if (!detail) return null;
   const review = detail.profileReview;
@@ -31,6 +38,15 @@ export default function ProfileWorkCanvas({ model }: { model: ReturnType<typeof 
         expanded={expanded}
         onExpandedChange={setExpanded}
         onBack={clearSelection}
+        tools={<>
+          {review?.clarifications?.enabled && <ClarificationTool
+            userId={detail.userId} profileRevision={review.profileRevision} scopeKey={review.scopeKey}
+            workspace={{ ...review.clarifications, forms: review.clarifications.forms.filter(form => form.status === 'ANSWERED') }}
+            canWrite={!busy && !!review.claim?.mine} onUpdated={model.reloadDetail} draft={clarificationDraft}
+          />}
+          {review?.profileProposals?.enabled && <CanvasToolButton onClick={() => setTool('corrections')}>Profile corrections</CanvasToolButton>}
+          {selectedDocument?.pending && <CanvasToolButton onClick={() => setTool('document')}>Review document</CanvasToolButton>}
+        </>}
         actions={
           review && (
             <div className="flex items-center gap-3">
@@ -107,71 +123,46 @@ export default function ProfileWorkCanvas({ model }: { model: ReturnType<typeof 
               profile={savedProfile(selectedReport, detail.name)}
             />
           )}
-          <ProfileDocumentReview model={model} />
+          <ProfileDocumentReview model={model} section="evidence" />
           {!selectedReport && !selectedDocument && (
             <p className="text-sm text-brand-muted">
               Select a guidance version or document to inspect its recorded evidence.
             </p>
           )}
         </ReviewDocumentPage>
-        {review?.clarifications?.enabled && (
-          <ReviewDocumentPage
-            page={3}
-            title="Profile clarification forms"
-            subtitle="Questions and responses stay with this member across claim handoffs."
-          >
-            <RndClarifications
-              userId={detail.userId}
-              profileRevision={review.profileRevision}
-              scopeKey={review.scopeKey}
-              workspace={review.clarifications}
-              canWrite={!busy && !!review.claim?.mine}
-              onUpdated={model.reloadDetail}
-              draft={clarificationDraft}
-              showForms={false}
-            />
-          </ReviewDocumentPage>
-        )}
         {review?.clarifications?.enabled &&
           review.clarifications.forms.map((form, index) => (
             <ReviewDocumentPage
               key={form.id}
-              page={4 + index}
+              page={3 + index}
               title={form.title}
               subtitle={`Clarification · ${form.status.replace(/_/g, ' ')}`}
             >
-              <RndClarifications
-                userId={detail.userId}
-                profileRevision={review.profileRevision}
-                scopeKey={review.scopeKey}
-                workspace={{ enabled: true, forms: [form] }}
-                canWrite={!busy && !!review.claim?.mine}
-                onUpdated={model.reloadDetail}
-                showComposer={false}
-              />
+              <ClarificationFormCard form={form} mode="reviewer" embedded />
             </ReviewDocumentPage>
           ))}
-        {review?.profileProposals?.enabled && (
+        {review?.profileProposals?.proposals.map((proposal, index) => (
           <ReviewDocumentPage
-            page={4 + (review.clarifications?.forms.length ?? 0)}
-            title="Profile corrections"
-            subtitle="Propose reviewed changes for the member to acknowledge or request correction."
+            key={proposal.id}
+            page={3 + (review.clarifications?.forms.length ?? 0) + index}
+            title="Recorded profile correction"
+            subtitle={`Correction · ${proposal.status.replace(/_/g, ' ')}`}
           >
-            <RndProfileProposals
-              userId={detail.userId}
-              profileRevision={review.profileRevision}
-              scopeKey={review.scopeKey}
-              workspace={review.profileProposals}
-              clarifications={review.clarifications}
-              healthDetails={review.healthDetails ?? []}
-              availableAreas={detail.availableAreas}
-              canWrite={!busy && !!review.claim?.mine}
-              onUpdated={model.reloadDetail}
-              draft={proposalDraft}
-            />
+            <ProfileProposalCard proposal={proposal} embedded />
           </ReviewDocumentPage>
-        )}
+        ))}
       </RndQueueDocument>
+      <Modal isOpen={tool !== null} onClose={() => { if (!busy && !toolBusy) setTool(null); }} layer="canvas" size="xl"
+        title={tool === 'document' ? 'Review clinical document' : 'Propose profile corrections'}>
+        {tool === 'document' && <ProfileDocumentReview model={model} section="decision" />}
+        {tool === 'corrections' && review && <RndProfileProposals
+          userId={detail.userId} profileRevision={review.profileRevision} scopeKey={review.scopeKey}
+          workspace={review.profileProposals} clarifications={review.clarifications}
+          healthDetails={review.healthDetails ?? []} availableAreas={detail.availableAreas}
+          canWrite={!busy && !!review.claim?.mine} draft={proposalDraft} showProposals={false}
+          onBusyChange={setToolBusy} onUpdated={async () => { await model.reloadDetail(); setTool(null); }}
+        />}
+      </Modal>
       <Modal
         isOpen={decisionOpen}
         onClose={() => {

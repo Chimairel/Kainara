@@ -15,6 +15,7 @@ export default function RndQueueDocument({
   children,
   decision,
   focusSheet,
+  tools,
 }: {
   title: string;
   contentKey: string;
@@ -25,6 +26,7 @@ export default function RndQueueDocument({
   children: ReactNode;
   decision?: ReactNode;
   focusSheet?: { title: string; request: number };
+  tools?: ReactNode;
 }) {
   return (
     <ReviewCanvas
@@ -50,6 +52,7 @@ export default function RndQueueDocument({
       }
       decision={decision}
       focusSheet={focusSheet}
+      tools={tools}
     >
       {children}
     </ReviewCanvas>

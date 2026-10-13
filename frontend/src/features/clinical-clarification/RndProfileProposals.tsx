@@ -22,13 +22,15 @@ export function useProfileProposalDraft(caseKey: string) {
   const [healthDetails, setHealthDetails] = useState<HealthDetailCorrection[]>([]);
   const [rationale, setRationale] = useState('');
   const [evidence, setEvidence] = useState<string[]>([]);
+  const requestRef = useRef<{ payload: string; key: string } | null>(null);
   useEffect(() => {
     setDomains([]);
     setHealthDetails([]);
     setRationale('');
     setEvidence([]);
+    requestRef.current = null;
   }, [caseKey]);
-  return { domains, setDomains, healthDetails, setHealthDetails, rationale, setRationale, evidence, setEvidence };
+  return { domains, setDomains, healthDetails, setHealthDetails, rationale, setRationale, evidence, setEvidence, requestRef };
 }
 export default function RndProfileProposals({
   userId,
@@ -41,6 +43,8 @@ export default function RndProfileProposals({
   canWrite,
   onUpdated,
   draft,
+  showProposals = true,
+  onBusyChange,
 }: {
   userId: string;
   profileRevision: number;
@@ -52,10 +56,12 @@ export default function RndProfileProposals({
   canWrite: boolean;
   onUpdated: () => Promise<void>;
   draft: ReturnType<typeof useProfileProposalDraft>;
+  showProposals?: boolean;
+  onBusyChange?: (busy: boolean) => void;
 }) {
   const [busy, setBusy] = useState(false),
     [error, setError] = useState<string | null>(null);
-  const retry = useRef<{ payload: string; key: string } | null>(null);
+  const retry = draft.requestRef;
   if (!workspace?.enabled) return null;
   const active = workspace.proposals.find((p) => ['PENDING', 'CORRECTION_REQUESTED'].includes(p.status));
   const resolved = clarifications?.forms.filter((f) => f.status === 'RESOLVED') ?? [];
@@ -82,6 +88,7 @@ export default function RndProfileProposals({
     const payload = JSON.stringify({ userId, ...body });
     if (retry.current?.payload !== payload) retry.current = { payload, key: crypto.randomUUID() };
     setBusy(true);
+    onBusyChange?.(true);
     setError(null);
     try {
       await api.post(`/nutritionist/profile-reviews/${userId}/proposals`, { ...body, requestKey: retry.current.key });
@@ -93,11 +100,12 @@ export default function RndProfileProposals({
       setError(getApiErrorMessage(cause, 'Correction could not be proposed.'));
     } finally {
       setBusy(false);
+      onBusyChange?.(false);
     }
   }
   return (
     <section className="space-y-4" aria-label="Profile correction work">
-      {workspace.proposals.map((p) => (
+      {showProposals && workspace.proposals.map((p) => (
         <ProfileProposalCard key={p.id} proposal={p} />
       ))}
       {error && <FeedbackNotice variant="inline">{error}</FeedbackNotice>}

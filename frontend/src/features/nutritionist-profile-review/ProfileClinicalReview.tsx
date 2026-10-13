@@ -66,6 +66,26 @@ export default function ProfileClinicalReview({ model, section = 'all' }: Sectio
                 <p className="text-brand-muted">Previous review: {detail.profileReview.previousReview.notes}</p>
               )}
               {!!detail.profileReview.conditionReviewEntries?.length && (
+                <section aria-label="Recorded condition assessments" className="space-y-3">
+                  <h4 className="font-bold">Condition relevance to meal planning</h4>
+                  {detail.profileReview.conditionReviewEntries.map(entry => <div key={entry.id}>
+                    <p className="font-semibold">{entry.displayName}</p>
+                    <p>{entry.assessment
+                      ? `No additional restrictions identified · ${entry.assessment.reviewerName}, RND. ${entry.assessment.rationale}`
+                      : 'No condition assessment recorded.'}</p>
+                  </div>)}
+                </section>
+              )}
+            </>
+          )}
+          {section !== 'evidence' && (
+            <>
+              <h3 className="font-bold text-brand-text">Profile decision</h3>
+              <p className="text-brand-muted">
+                If the details are complete and correct, confirm this profile as recorded. Send a correction only when a
+                declaration needs to change.
+              </p>
+              {!!detail.profileReview.conditionReviewEntries?.length && (
                 <fieldset
                   className="space-y-3 rounded-lg border border-brand-border p-3"
                   disabled={busy || !detail.profileReview.claim?.mine}
@@ -159,15 +179,6 @@ export default function ProfileClinicalReview({ model, section = 'all' }: Sectio
                   })}
                 </fieldset>
               )}
-            </>
-          )}
-          {section !== 'evidence' && (
-            <>
-              <h3 className="font-bold text-brand-text">Profile decision</h3>
-              <p className="text-brand-muted">
-                If the details are complete and correct, confirm this profile as recorded. Send a correction only when a
-                declaration needs to change.
-              </p>
               {!!detail.profileReview.clarificationEntries?.length && (
                 <fieldset disabled={busy || !detail.profileReview.claim?.mine} className="space-y-3">
                   <legend className="mb-2 font-semibold">Declarations to review</legend>
