@@ -48,6 +48,16 @@ for (const theme of ['light', 'dark']) for (const width of [390, 1440]) {
     await expect(page.getByLabel('Reply email')).toHaveValue('support@example.invalid');
     await expect(page.getByLabel('Your name')).toHaveValue('Synthetic Support Preview');
     await expect(page.getByLabel('Your message')).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Send a support request', exact: true })).toHaveAttribute('class', /font-display/);
+    await expect(page.locator('main')).toHaveCount(1);
+    if (width >= 1024) {
+      const scene = page.locator('[data-auth-kubo-stage]');
+      await expect(scene).toHaveAttribute('data-auth-scene-ready', 'true', { timeout: 15000 });
+      const sceneBounds = (await scene.boundingBox())!;
+      const formBounds = (await page.locator('.auth-card').boundingBox())!;
+      expect(sceneBounds.height).toBeGreaterThan(300);
+      expect(sceneBounds.x + sceneBounds.width).toBeLessThanOrEqual(formBounds.x - 20);
+    }
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
     await page.screenshot({ path: `../backend/.local/docs-support/support-${width}-${theme}.png`, fullPage: true, style: 'nextjs-portal { display:none; }' });
     let calls = 0;

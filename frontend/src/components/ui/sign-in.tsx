@@ -14,6 +14,7 @@ export interface SignInPageProps {
   heroContent?: ReactNode;
   wide?: boolean;
   transition?: ReactNode;
+  embedded?: boolean;
 }
 
 /** Shared split authentication layout; callers own their auth forms and hero content. */
@@ -28,16 +29,19 @@ export function SignInPage({
   heroContent,
   wide = false,
   transition,
+  embedded = false,
 }: SignInPageProps) {
+  const Container = embedded ? 'section' : 'main';
+  const Heading = embedded ? 'h2' : 'h1';
   return (
-    <main className={`${styles.page} flex min-h-[100svh] w-full bg-brand-bg text-brand-text`}>
-      <section className="flex min-w-0 flex-1 flex-col px-6 py-6 sm:px-10 lg:order-2 lg:px-12 xl:px-20">
-        <header
+    <Container className={`${styles.page} flex ${embedded ? '' : 'min-h-[100svh]'} w-full bg-brand-bg text-brand-text`}>
+      <section className={`flex min-w-0 flex-1 flex-col ${embedded ? 'px-0 py-8 sm:px-6 lg:order-2 lg:px-12' : 'px-6 py-6 sm:px-10 lg:order-2 lg:px-12 xl:px-20'}`}>
+        {header && <header
           className={`mx-auto flex w-full max-w-xl items-center justify-between gap-4 ${heroContent ? 'lg:hidden' : ''}`}
         >
           {header}
-        </header>
-        <div className="flex flex-1 items-center justify-center py-10 lg:py-8">
+        </header>}
+        <div className={`flex flex-1 items-center justify-center ${embedded ? 'py-4 lg:py-8' : 'py-10 lg:py-8'}`}>
           <div className={`w-full ${wide ? 'max-w-lg' : 'max-w-md'}`}>
             {/* Preserve form DOM and dimensions during session/profile/navigation resolution. */}
             <div className={`auth-card ${styles.form} relative`}>
@@ -49,11 +53,11 @@ export function SignInPage({
                         {eyebrow}
                       </p>
                     )}
-                    <h1
+                    <Heading
                       className={`font-display font-bold leading-[1.08] tracking-tight ${wide ? 'text-3xl sm:text-4xl' : 'text-4xl sm:text-5xl'}`}
                     >
                       {title}
-                    </h1>
+                    </Heading>
                   </div>
                   {titleDecoration}
                 </div>
@@ -71,7 +75,7 @@ export function SignInPage({
       </section>
       {(heroImageSrc || heroContent) && (
         <aside
-          className="sticky top-0 order-first hidden h-[100svh] min-w-0 flex-1 p-4 lg:block"
+          className={embedded ? 'order-first hidden min-w-0 flex-1 lg:block' : 'sticky top-0 order-first hidden h-[100svh] min-w-0 flex-1 p-4 lg:block'}
           aria-label="About KAINARA"
         >
           <div
@@ -82,6 +86,6 @@ export function SignInPage({
           </div>
         </aside>
       )}
-    </main>
+    </Container>
   );
 }

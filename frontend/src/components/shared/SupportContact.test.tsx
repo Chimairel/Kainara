@@ -5,6 +5,7 @@ import SupportContact from './SupportContact';
 const state = vi.hoisted(() => ({ user: { userId: 'support-member', name: 'Test Member', email: 'member@example.invalid', emailVerified: true } as { userId: string; name: string; email: string; emailVerified: boolean } | null, post: vi.fn() }));
 vi.mock('@/hooks/useAuth', () => ({ useAuth: () => ({ user: state.user, isLoading: false }) }));
 vi.mock('@/lib/axios', () => ({ default: { post: state.post } }));
+vi.mock('@/components/auth/AuthHeroPanel', () => ({ default: () => <span>Support scene</span> }));
 vi.mock('@/components/auth/AuthMascot', () => ({ default: () => <span>Nara</span> }));
 
 beforeEach(() => { state.user = { userId: 'support-member', name: 'Test Member', email: 'member@example.invalid', emailVerified: true }; state.post.mockReset(); });

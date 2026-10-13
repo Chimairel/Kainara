@@ -10,6 +10,8 @@ import Button from '@/components/ui/Button';
 import Dropdown from '@/components/ui/Dropdown';
 import { ArrowUpRight, Mail, CheckCircle } from '@/components/ui/icons';
 import AuthMascot from '@/components/auth/AuthMascot';
+import AuthHeroPanel from '@/components/auth/AuthHeroPanel';
+import { SignInPage } from '@/components/ui/sign-in';
 import type { UserSession } from '@/lib/context/AuthContext';
 
 const supportEmail = 'chimairelp@gmail.com';
@@ -86,25 +88,30 @@ function SupportForm({ user, loading }: { user: UserSession | null; loading: boo
       <div><p className="font-semibold">Support request sent</p><p className="mt-1 text-sm leading-6 text-brand-muted">Our email provider accepted your request. Replies will go to {user?.email}.</p>
         <p className="mt-2 break-all text-xs text-brand-muted">Reference: {reference}</p></div>
     </div>}
-    <Button type="submit" isLoading={pending} disabled={loading} className="min-h-12 w-full sm:w-auto">Send a support request <ArrowUpRight className="h-4 w-4" /></Button>
+    <Button type="submit" isLoading={pending} disabled={loading} className="min-h-12 w-full">Send a support request <ArrowUpRight className="h-4 w-4" /></Button>
   </form>;
 }
 
-/** Adapted from the Contact with Globe composition; existing local Nara replaces the globe. */
+/** Reuses the auth composition below the public support hero. */
 export default function SupportContact() {
   const { user, isLoading } = useAuth();
-  return <div className="grid gap-10 py-3 lg:gap-14" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 24rem), 1fr))' }}>
-    <div>
-      <h3 className="font-display text-2xl font-bold tracking-tight">Help with your Kainara account</h3>
-      <p className="mt-4 max-w-[42ch] text-base leading-7 text-brand-muted">Something isn’t working? Have a question or an idea? Send us the details so we can take a look.</p>
-      <a href={`mailto:${supportEmail}`} className="mt-6 inline-flex min-h-11 items-center gap-3 break-all font-semibold text-brand-green underline underline-offset-4"><Mail className="h-5 w-5 shrink-0" />{supportEmail}</a>
-      <div className="mt-7 flex items-center gap-5 sm:mt-10"><AuthMascot size={180} /><p className="max-w-[16ch] text-sm leading-6 text-brand-muted">Nara’s here while you write.</p></div>
-      <Link href="/docs#faqs" className="mt-6 inline-flex min-h-11 items-center font-semibold text-brand-green underline underline-offset-4">Browse the FAQs</Link>
-    </div>
-    <div className="min-w-0 rounded-2xl bg-brand-surface p-5 sm:p-8">
-      <h3 className="mb-3 font-display text-xl font-bold">Send a support request</h3>
-      <p className="mb-7 text-sm leading-6 text-brand-muted">This form sends your message to the Kainara support email.</p>
+  return (
+    <SignInPage
+      embedded
+      wide
+      title="Send a support request"
+      heroContent={<AuthHeroPanel embedded />}
+      titleDecoration={<div className="w-[160px] lg:hidden"><AuthMascot size={160} /></div>}
+      footer={
+        <div className="space-y-3 text-center text-sm text-brand-muted">
+          <a href={`mailto:${supportEmail}`} className="inline-flex min-h-11 items-center gap-2 font-semibold text-brand-green underline underline-offset-4">
+            <Mail className="h-4 w-4" /> {supportEmail}
+          </a>
+          <div><Link href="/docs#faqs" className="inline-flex min-h-11 items-center font-semibold text-brand-green underline underline-offset-4">Browse the FAQs</Link></div>
+        </div>
+      }
+    >
       <SupportForm key={user?.userId ?? 'visitor'} user={user} loading={isLoading} />
-    </div>
-  </div>;
+    </SignInPage>
+  );
 }

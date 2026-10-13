@@ -30,3 +30,12 @@ The existing SMTP or Brevo provider sends escaped branded HTML. Each account is 
 Browser APIs were intercepted with synthetic fixtures. The backend tests used a disabled loopback database URL, mocked persistence and mocked email acceptance; no real support email, shared Neon write, release, secret change or live deployment occurred. Both themes/mobile and desktop were inspected in bounded screenshot passes. Email receipt in the real operator inbox remains unverified.
 
 Local screenshots are under `backend/.local/docs-support/`: `search-{390,1440}-{light,dark}.png`, `docs-{390,1440}-{light,dark}.png`, `help-{390,1440}-{light,dark}.png`, and `support-{390,1440}-{light,dark}.png`. They are synthetic local previews, not live evidence.
+
+
+## Contact Support composition refinement
+
+The owner's subsequent reference combines the Docs wave hero with the authentication scene/form composition. `/help` now has **Contact Support** and a short support subtitle in the wave hero, followed by the shared auth layout: the existing bahay kubo/team/Nara scene on the left and the support request form on the right. There is no Docs search, login form, Google sign-in or second public header on this page. Mobile uses the existing small Nara portrait above the form instead of squeezing the house beside it.
+
+`SignInPage` and `AuthHeroPanel` accept an embedded variant that uses an ordinary section and an h2 beneath the public-page h1. The scene follows the form's height rather than pinning itself to the viewport. The default auth variant retains its existing layout. Support controls share the auth form styling and a full-width submit button. Account gating, request payloads and email delivery behavior are unchanged.
+
+Verification of the refinement: 4 focused frontend tests, 5 intercepted Docs/support Chromium journeys at actual localhost:3000 (both themes at 390/1440 px, plus mobile reduced motion and anonymous submission), 1 short-desktop login regression, changed-file lint and frontend production build pass. Desktop checks assert a loaded scene, positive scene height, separation from the form, one main landmark, and usable support submission/failure recovery. All four support layout screenshots in the directory above were refreshed and inspected. No real email or hosted-data mutation was performed.

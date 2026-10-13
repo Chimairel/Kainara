@@ -50,6 +50,18 @@
   isolation: isolate;
 }
 
+/* The support page already supplies its public header and Docs hero. */
+.stage[data-auth-embedded='true'] {
+  --stage-extension: 0px;
+  width: 100%;
+  margin-top: 0;
+}
+
+.stage[data-auth-embedded='true'] .scene,
+.stage[data-auth-embedded='true']::after {
+  --scene-width: min(calc(100cqw * 2.3), 1600px);
+}
+
 .window {
   position: absolute;
   left: 33.2%;

@@ -7,7 +7,7 @@ import ThemeToggle from '@/components/ui/ThemeToggle';
 import AuthMascot, { authMascotAssets } from './AuthMascot';
 import styles from './AuthHeroPanel.module.css';
 
-export default function AuthHeroPanel({ header }: { header: ReactNode }) {
+export default function AuthHeroPanel({ header, embedded = false }: { header?: ReactNode; embedded?: boolean }) {
   const [houseReady, setHouseReady] = useState(false);
   const [photoReady, setPhotoReady] = useState(false);
   const [mascotReady, setMascotReady] = useState(false);
@@ -34,11 +34,12 @@ export default function AuthHeroPanel({ header }: { header: ReactNode }) {
   }, []);
 
   return (
-    <div className="flex h-full flex-col p-4 xl:p-6">
-      <header className="flex items-center gap-4">{header}</header>
+    <div className={`flex h-full flex-col ${embedded ? '' : 'p-4 xl:p-6'}`}>
+      {header && <header className="flex items-center gap-4">{header}</header>}
       <div
         className={styles.stage}
         data-auth-kubo-stage
+        data-auth-embedded={embedded}
         data-auth-scene-ready={sceneReady}
         inert={!sceneReady}
         aria-hidden={!sceneReady}

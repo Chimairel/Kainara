@@ -18,6 +18,16 @@
     background-color 150ms ease;
 }
 
+.form textarea,
+.form [role='combobox'] {
+  border-radius: 1rem;
+  background: color-mix(in srgb, var(--brand-text) 3%, var(--brand-bg));
+}
+
+.form [role='combobox'] {
+  min-height: 52px;
+}
+
 .form input:focus {
   background: var(--brand-surface);
 }
