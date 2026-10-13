@@ -846,6 +846,8 @@ model MealBatchImport {
 }
 
 model User {
+  supportRequests SupportRequest[]
+  supportReplies SupportReply[] @relation("SupportReplyAuthor")
   licenseUpdatesReviewed NutritionistLicenseUpdate[] @relation("LicenseUpdateReviewer")
   clinicalReviewEpoch            ClinicalProfileReviewEpoch?
   clarificationForms              ClinicalClarificationForm[] @relation("ClarificationMember")
@@ -3427,4 +3429,41 @@ model NutritionistLicenseUpdate {
 
   @@index([status, createdAt, id])
   @@index([nutritionistProfileId, createdAt, id])
+}
+
+
+// Provider acceptance is recorded separately from durable inbox storage.
+enum SupportDeliveryStatus {
+  PROCESSING
+  ACCEPTED
+  UNCONFIRMED
+}
+
+model SupportRequest {
+  id String @id @default(uuid())
+  userId String
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  requestKey String @db.VarChar(36)
+  category String @db.VarChar(24)
+  replyEmail String @db.VarChar(254)
+  message String @db.VarChar(4000)
+  deliveryStatus SupportDeliveryStatus @default(PROCESSING)
+  createdAt DateTime @default(now())
+  replies SupportReply[]
+  @@unique([userId, requestKey])
+  @@index([createdAt, id])
+}
+
+model SupportReply {
+  id String @id @default(uuid())
+  requestId String
+  request SupportRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  authorId String?
+  author User? @relation("SupportReplyAuthor", fields: [authorId], references: [id], onDelete: SetNull)
+  requestKey String @db.VarChar(36)
+  message String @db.VarChar(4000)
+  deliveryStatus SupportDeliveryStatus @default(PROCESSING)
+  createdAt DateTime @default(now())
+  @@unique([requestId, requestKey])
+  @@index([requestId, createdAt])
 }

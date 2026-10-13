@@ -25,11 +25,14 @@ import { adminMembershipHistoryRouter } from './membership-history.routes';
 import adminMealLogRouter from './admin-meal-log.routes';
 import adminTestAccountsRouter from './admin-test-accounts.routes';
 
+import adminSupportRouter from './admin-support.routes';
+
 const router = Router();
 
 // Apply auth + ADMIN role restriction
 router.use(authenticate);
 router.use(requireRole('ADMIN'));
+router.use('/support', adminSupportRouter);
 router.use('/license-updates', nutritionistLicenseRouter('ADMIN'));
 router.use('/review-routing', adminReviewRoutingRouter);
 router.use('/meal-review-cases', mealReviewRouter('admin'));

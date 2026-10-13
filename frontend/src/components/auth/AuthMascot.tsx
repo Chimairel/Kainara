@@ -1,7 +1,7 @@
 'use client';
 
 import { useSyncExternalStore } from 'react';
-import { Mascot } from 'page-mascot';
+import { Mascot } from './NaraSprite';
 
 export const authMascotAssets = {
   directions: '/mascots/nara-tanod-directions.webp',

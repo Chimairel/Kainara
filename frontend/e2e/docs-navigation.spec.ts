@@ -65,16 +65,17 @@ for (const theme of ['light', 'dark']) for (const width of [390, 1440]) {
       calls++;
       const headers = { 'Access-Control-Allow-Origin': 'http://localhost:3000', 'Access-Control-Allow-Credentials': 'true', 'Access-Control-Allow-Headers': 'Authorization, Content-Type' };
       if (route.request().method() === 'OPTIONS') { calls--; return route.fulfill({ status: 204, headers }); }
-      expect(route.request().postDataJSON()).toEqual({ category: 'MEALS', message: 'The grocery checklist did not update after I clicked an item.' });
-      return route.fulfill({ status: calls === 1 ? 503 : 202, headers, json: calls === 1 ? { success: false, errorCode: 'SUPPORT_EMAIL_UNCONFIRMED' } : { success: true, data: { status: 'ACCEPTED', reference: 'synthetic-support-reference' } } });
+      expect(route.request().postDataJSON()).toMatchObject({ replyEmail: 'alternate@example.invalid', requestKey: expect.any(String), category: 'MEALS', message: 'The grocery checklist did not update after I clicked an item.' });
+      return route.fulfill({ status: calls === 1 ? 503 : 202, headers, json: calls === 1 ? { success: false, errorCode: 'SUPPORT_EMAIL_UNCONFIRMED' } : { success: true, data: { status: 'RECORDED', reference: 'synthetic-support-reference' } } });
     });
+    await page.getByLabel('Reply email').fill('alternate@example.invalid');
     const message = page.getByLabel('Your message');
     await message.fill('The grocery checklist did not update after I clicked an item.');
     await page.getByRole('button', { name: 'Send a support request' }).click();
     await expect(page.getByRole('alert').filter({ hasText: 'Your message is still here' })).toBeVisible();
     await expect(message).not.toHaveValue('');
     await page.getByRole('button', { name: 'Send a support request' }).click();
-    await expect(page.getByText('Support request sent', { exact: true })).toBeVisible();
+    await expect(page.getByText('Support request received', { exact: true })).toBeVisible();
     await expect(message).toHaveValue(''); expect(calls).toBe(2);
   });
 }

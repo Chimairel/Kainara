@@ -19,13 +19,15 @@ const topics = { ACCOUNT: 'Account help', MEALS: 'Meals and planning', GROCERIES
 
 function SupportForm({ user, loading }: { user: UserSession | null; loading: boolean }) {
   const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
+  const [email, setEmail] = useState(user?.email ?? '');
   const [category, setCategory] = useState('MEALS');
   const [message, setMessage] = useState('');
   const [pending, setPending] = useState(false);
   const [error, setError] = useState('');
   const [fieldError, setFieldError] = useState('');
   const [reference, setReference] = useState('');
+  const [sentEmail, setSentEmail] = useState('');
+  const submission = useRef<{ key: string; body: string } | null>(null);
   const sending = useRef(false);
   const controller = useRef<AbortController | null>(null);
   useEffect(() => () => controller.current?.abort(), []);
@@ -40,10 +42,13 @@ function SupportForm({ user, loading }: { user: UserSession | null; loading: boo
     setFieldError(''); sending.current = true; setPending(true);
     const request = new AbortController(); controller.current = request;
     try {
-      const response = await api.post('/support/requests', { category, message: message.trim() }, { signal: request.signal });
+      const body = { category, message: message.trim(), replyEmail: email.trim() };
+      const signature = JSON.stringify(body);
+      if (submission.current?.body !== signature) submission.current = { key: crypto.randomUUID(), body: signature };
+      const response = await api.post('/support/requests', { ...body, requestKey: submission.current.key }, { signal: request.signal });
       if (request.signal.aborted) return;
-      if (response.data?.success !== true || response.data?.data?.status !== 'ACCEPTED' || !response.data.data.reference) throw new Error('Unconfirmed response');
-      setReference(response.data.data.reference); setMessage('');
+      if (response.data?.success !== true || response.data?.data?.status !== 'RECORDED' || !response.data.data.reference) throw new Error('Unconfirmed response');
+      setReference(response.data.data.reference); setSentEmail(email.trim()); setMessage(''); submission.current = null;
     } catch (failure) {
       if (request.signal.aborted) return;
       const code = isAxiosError(failure) ? failure.response?.data?.errorCode : '';
@@ -58,8 +63,8 @@ function SupportForm({ user, loading }: { user: UserSession | null; loading: boo
 
   return <form onSubmit={submit} className="space-y-6" aria-busy={pending || loading}>
     <div className="grid gap-5 sm:grid-cols-2">
-      <Input label="Your name" value={user?.name ?? name} onChange={(event) => setName(event.target.value)} readOnly={Boolean(user)} required disabled={loading || pending} autoComplete="name" className="!text-base" />
-      <Input label="Reply email" value={user?.email ?? email} onChange={(event) => setEmail(event.target.value)} type="email" readOnly={Boolean(user)} required disabled={loading || pending} autoComplete="email" className="!text-base" helperText={user ? "We’ll reply to your account email." : "Where we can reply."} />
+      <Input label="Your name" value={user?.name ?? name} onChange={(event) => setName(event.target.value)} readOnly={Boolean(user)} required disabled={loading || pending} autoComplete="name" className="!text-base !backdrop-blur-none" />
+      <Input label="Reply email" value={email} onChange={(event) => setEmail(event.target.value)} type="email" maxLength={254} required disabled={loading || pending} autoComplete="email" className="!text-base !backdrop-blur-none" helperText={user ? "Prefilled from your account. You can choose another reply email." : "Where we can reply."} />
     </div>
     <div>
       <label htmlFor="support-topic" className="mb-2 block text-sm font-semibold">What do you need help with?</label>
@@ -85,7 +90,7 @@ function SupportForm({ user, loading }: { user: UserSession | null; loading: boo
     </div>}
     {reference && <div role="status" className="flex items-start gap-3 text-brand-text">
       <CheckCircle className="mt-1 h-5 w-5 shrink-0 text-brand-green" />
-      <div><p className="font-semibold">Support request sent</p><p className="mt-1 text-sm leading-6 text-brand-muted">Our email provider accepted your request. Replies will go to {user?.email}.</p>
+      <div><p className="font-semibold">Support request received</p><p className="mt-1 text-sm leading-6 text-brand-muted">Your message is saved in our support inbox. Replies will go to {sentEmail}.</p>
         <p className="mt-2 break-all text-xs text-brand-muted">Reference: {reference}</p></div>
     </div>}
     <Button type="submit" isLoading={pending} disabled={loading} className="min-h-12 w-full">Send a support request <ArrowUpRight className="h-4 w-4" /></Button>

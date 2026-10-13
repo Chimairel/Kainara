@@ -16,7 +16,7 @@ it('anonymous and unverified visitors see the full form but cannot send', () => 
   expect(screen.getByLabelText('Your message')).toBeVisible();
   fireEvent.change(screen.getByLabelText('Your message'), { target: { value: message } });
   fireEvent.submit(screen.getByRole('button', { name: 'Send a support request' }).closest('form')!);
-  expect(screen.getByRole('link', { name: 'Log in', exact: true })).toHaveAttribute('href', '/login');
+  expect(screen.getByRole('link', { name: /^Log in$/ })).toHaveAttribute('href', '/login');
   expect(screen.getByLabelText('Your message')).toHaveValue(message);
   state.user = { userId: 'unverified', name: 'Member', email: 'email@example.invalid', emailVerified: false }; rerender(<SupportContact />);
   fireEvent.submit(screen.getByRole('button', { name: 'Send a support request' }).closest('form')!);
@@ -24,15 +24,17 @@ it('anonymous and unverified visitors see the full form but cannot send', () => 
 });
 
 it('preserves the message after failure and confirms success only after provider acknowledgment', async () => {
-  state.post.mockRejectedValueOnce(new Error('outage')).mockResolvedValueOnce({ data: { success: true, data: { status: 'ACCEPTED', reference: 'test-reference' } } });
+  state.post.mockRejectedValueOnce(new Error('outage')).mockResolvedValueOnce({ data: { success: true, data: { status: 'RECORDED', reference: 'test-reference' } } });
   render(<SupportContact />);
-  expect(screen.getByLabelText('Reply email')).toHaveAttribute('readonly');
+  expect(screen.getByLabelText('Reply email')).toHaveValue('member@example.invalid');
+  expect(screen.getByLabelText('Reply email')).not.toHaveAttribute('readonly');
+  fireEvent.change(screen.getByLabelText('Reply email'), { target: { value: 'alternate@example.invalid' } });
   fireEvent.change(screen.getByLabelText('Your message'), { target: { value: message } });
   fireEvent.submit(screen.getByRole('button', { name: 'Send a support request' }).closest('form')!);
   await screen.findByRole('alert'); expect(screen.getByLabelText('Your message')).toHaveValue(message);
   fireEvent.submit(screen.getByRole('button', { name: 'Send a support request' }).closest('form')!);
-  await screen.findByText('Support request sent'); expect(screen.getByLabelText('Your message')).toHaveValue('');
-  expect(state.post.mock.calls[0][1]).toEqual({ category: 'MEALS', message });
+  await screen.findByText('Support request received'); expect(screen.getByLabelText('Your message')).toHaveValue('');
+  expect(state.post.mock.calls[0][1]).toMatchObject({ category: 'MEALS', message, replyEmail: 'alternate@example.invalid', requestKey: expect.any(String) });
 });
 
 it('prevents duplicate sends and aborts/reset drafts when the account changes', async () => {
@@ -45,6 +47,6 @@ it('prevents duplicate sends and aborts/reset drafts when the account changes', 
   const signal = state.post.mock.calls[0][2].signal as AbortSignal;
   state.user = { userId: 'next', name: 'Next Member', email: 'next@example.invalid', emailVerified: true }; rerender(<SupportContact />);
   expect(signal.aborted).toBe(true); expect(screen.getByLabelText('Your message')).toHaveValue('');
-  finish({ data: { success: true, data: { status: 'ACCEPTED', reference: 'old-reference' } } });
-  await waitFor(() => expect(screen.queryByText('Support request sent')).not.toBeInTheDocument());
+  finish({ data: { success: true, data: { status: 'RECORDED', reference: 'old-reference' } } });
+  await waitFor(() => expect(screen.queryByText('Support request received')).not.toBeInTheDocument());
 });

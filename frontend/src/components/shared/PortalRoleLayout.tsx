@@ -43,7 +43,7 @@ export default function PortalRoleLayout({
               (item.href === '/admin/users' && pathname === '/admin/nutritionists') ||
               (item.href === '/admin/meals' && ['/admin/library', '/admin/images'].includes(pathname)) ||
               (item.href === '/admin/overview' && ['/admin/analytics', '/admin/operations'].includes(pathname)) ||
-              (item.href === '/admin/more' && ['/admin/website', '/admin/audit'].includes(pathname)) ||
+              (item.href === '/admin/more' && ['/admin/website', '/admin/audit', '/admin/support'].includes(pathname)) ||
               (item.href === '/nutritionist/reviews' &&
                 ['/nutritionist/outside-meals', '/nutritionist/approved'].includes(pathname));
             const Icon = item.icon;

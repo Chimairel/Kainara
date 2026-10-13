@@ -214,7 +214,7 @@ export const policyChapters: DocsChapter[] = [
       },
       {
         id: 'privacy-policy-support', title: 'Contact Support messages',
-        content: <p>When you submit Contact Support, Kainara sends your chosen topic and message, account identifier, name, email, and role to the operator’s support email through the configured email provider. The form uses your verified account email for replies. It does not attach your health profile, documents, or meal history. Your message is handled as email; the reference is not a separate in-app support ticket. Do not include passwords or medical documents.</p>,
+        content: <p>When you submit Contact Support, Kainara saves your topic, message, account identifier, chosen reply email, and submission time in an admin-only support inbox. Your account name and email identify who submitted it; changing the reply email does not change your account. A copy is sent to the operator’s support email through the configured email provider. Admin replies are saved with their author and delivery status, then emailed to your chosen reply address using Kainara’s configured sender. The form does not attach health profiles, documents, or meal history. Deleting your account also deletes its stored support requests and replies; copies already sent through email are handled separately by the recipient and email provider.</p>,
       },
     ],
   },
