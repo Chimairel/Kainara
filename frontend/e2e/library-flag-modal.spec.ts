@@ -47,6 +47,13 @@ for (const theme of ['light', 'dark']) for (const width of [390, 1440]) {
     await expect(page.getByRole('button', { name: 'Meal review', exact: true })).toHaveCount(0);
     await expect(page.getByText('Representative image', { exact: true })).toHaveCount(0);
     await expect(page.getByRole('region', { name: 'Meal details' })).toBeVisible();
+    const ingredients = page.getByRole('table', { name: 'Meal ingredients' });
+    await expect(ingredients.getByRole('cell', { name: '2', exact: true })).toBeVisible();
+    for (const name of ['Amount', 'Unit']) {
+      const heading = ingredients.getByRole('columnheader', { name, exact: true });
+      expect(await heading.evaluate(node => { const range = document.createRange(); range.selectNodeContents(node); return range.getClientRects().length; })).toBe(1);
+    }
+
     await page.getByRole('button', { name: /Reviewed by Synthetic/ }).click();
     await expect(page.getByRole('dialog', { name: 'Meal verifier' })).toBeVisible();
     await page.getByRole('dialog', { name: 'Meal verifier' }).getByRole('button', { name: /Close/ }).click();

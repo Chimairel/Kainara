@@ -49,7 +49,7 @@ for (const width of [400, 1440]) {
           proteinG: 25,
           carbsG: 60,
           fatG: 18,
-          ingredients: [],
+          ingredients: [{ id: 'ingredient', ingredientName: 'Chicken, breast, skinless and boneless', quantity: 150, unit: 'g', dataSource: 'FNRI', foodItem: { name: 'Chicken, breast, raw' } }],
           mealLogs: [],
           verifier: scope ? { name: 'Recorded Reviewer', reviewScope: scope } : null,
           nutritionistNote: scope ? 'Recorded portion review.' : null,
@@ -101,6 +101,18 @@ for (const width of [400, 1440]) {
           await page.getByRole('button', { name: 'Close credential details' }).click();
           await expect(attribution).toBeVisible();
         }
+        const ingredients = page.getByRole('table', { name: 'Meal ingredients' });
+        await ingredients.scrollIntoViewIfNeeded();
+        await expect(ingredients.getByRole('cell', { name: '150', exact: true })).toBeVisible();
+        await expect(ingredients.getByRole('cell', { name: 'g', exact: true })).toBeVisible();
+        for (const name of ['Amount', 'Unit']) {
+          const heading = ingredients.getByRole('columnheader', { name, exact: true });
+          const lines = await heading.evaluate(node => { const range = document.createRange(); range.selectNodeContents(node); return range.getClientRects().length; });
+          expect(lines).toBe(1);
+        }
+        const region = page.getByRole('region', { name: 'Ingredient table scroll area' });
+        expect(await region.evaluate(node => node.clientWidth <= innerWidth)).toBe(true);
+        if (!reviewScope) await region.screenshot({ path: testInfo.outputPath('ingredient-table.png') });
         await expect(page.getByRole('button', { name: 'Mark as eaten' })).toBeVisible();
       }
       expect(errors).toEqual([]);

@@ -1,4 +1,6 @@
 'use client';
+import MealIngredientTable from '@/components/shared/MealIngredientTable';
+import { recordedMealIngredients } from '@/lib/recorded-meal-ingredients';
 import FeedbackNotice from '@/components/shared/FeedbackNotice';
 
 import { Flame, Info, ShieldCheck, Sparkles, UtensilsCrossed } from '@/components/ui/icons';
@@ -267,16 +269,7 @@ export default function MealCardModalBody({ model }: SectionProps) {
                 Ingredients ({ingredients.length})
               </span>
             </div>
-            <div className="flex flex-wrap gap-1.5">
-              {ingredients.map((ing) => (
-                <span
-                  key={ing.id}
-                  className="text-xs bg-brand-surface dark:bg-black/30 border border-brand-border/70 text-brand-text px-3 py-1.5 rounded-xl font-medium shadow-2xs hover:border-brand-green/30 transition-colors"
-                >
-                  {ing.ingredientName}
-                </span>
-              ))}
-            </div>
+            <MealIngredientTable ingredients={recordedMealIngredients(ingredients)} />
           </div>
         )}
 

@@ -1,6 +1,8 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import MealIngredientTable from '@/components/shared/MealIngredientTable';
+import { recordedMealIngredients } from '@/lib/recorded-meal-ingredients';
 import MealReviewPanel from '../MealReviewPanel';
 import RecipeCaseHistory from '../RecipeCaseHistory';
 import LibraryMealHeader from './LibraryMealHeader';
@@ -66,11 +68,9 @@ export default function LibraryRecipeDetail({ model }: Props) {
             </div>
             <div className="border-t border-brand-border pt-6">
               <h3 className="font-display text-lg font-bold">Ingredients</h3>
-              <ul className="mt-3 grid gap-x-8 sm:grid-cols-2">
-                {(viewedMeal.ingredients || []).map(ingredient => <li key={ingredient.id} className="border-b border-brand-border py-3 text-sm leading-6">
-                  {ingredient.ingredientName}{ingredient.quantity != null ? <span className="ml-2 text-brand-muted">{ingredient.quantity} {ingredient.unit || ''}</span> : ''}
-                </li>)}
-              </ul>
+              {!!viewedMeal.ingredients?.length && <div className="mt-3 min-w-0">
+                <MealIngredientTable ingredients={recordedMealIngredients(viewedMeal.ingredients)} />
+              </div>}
               {!viewedMeal.ingredients?.length && <p className="mt-3 text-sm text-brand-muted">No ingredient snapshot recorded.</p>}
             </div>
           </section>
