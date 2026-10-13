@@ -61,7 +61,7 @@ export default function GroceryProgressSection({ model }: Props) {
             <div className="flex flex-wrap items-center gap-2">
               {projection.actionability.requiresIncompleteAcknowledgment && (
                 <Button variant="secondary" onClick={handleAcknowledgeIncomplete} className="text-xs">
-                  Use confirmed subset
+                  Use available meals only
                 </Button>
               )}
               {groceryList && projection?.actionability.canExportPdf && (

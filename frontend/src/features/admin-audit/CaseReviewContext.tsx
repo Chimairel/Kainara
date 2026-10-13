@@ -1,33 +1,36 @@
 'use client';
 import FeedbackNotice from '@/components/shared/FeedbackNotice';
 
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import api from '@/lib/axios';
 import Button from '@/components/ui/Button';
 import CaseReviewDocument, { type ReviewContext } from './CaseReviewDocument';
-export default function CaseReviewContext({ auditId, ownerId }: { auditId: string; ownerId: string | undefined }) {
-  const scope = JSON.stringify([auditId, ownerId]);
+export default function CaseReviewContext({ auditId, ownerId, endpoint = '/admin/audit-history', autoOpen = false }: { auditId: string; ownerId: string | undefined; endpoint?: string; autoOpen?: boolean }) {
+  const scope = JSON.stringify([auditId, ownerId, endpoint]);
   const liveScope = useRef(scope);
   liveScope.current = scope;
   const request = useRef<symbol | null>(null);
+  const resetScope = useRef(scope);
   const [loaded, setLoaded] = useState<{ scope: string; data: ReviewContext } | null>(null);
   const data = loaded?.scope === scope ? loaded.data : null;
   useEffect(() => {
+    if (resetScope.current === scope) return;
+    resetScope.current = scope;
     request.current = null;
     setLoaded(null);
     setError(null);
     setBusy(false);
-  }, [ownerId, auditId]);
+  }, [scope]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  async function open() {
+  const open = useCallback(async () => {
     if (request.current) return;
     const token = Symbol(scope);
     request.current = token;
     setBusy(true);
     setError(null);
     try {
-      const result = await api.get(`/admin/audit-history/${encodeURIComponent(auditId)}/review-context`);
+      const result = await api.get(`${endpoint}/${encodeURIComponent(auditId)}/review-context`);
       const value = result.data?.data;
       if (
         !result.data?.success ||
@@ -53,12 +56,13 @@ export default function CaseReviewContext({ auditId, ownerId }: { auditId: strin
         setBusy(false);
       }
     }
-  }
+  }, [auditId, endpoint, scope]);
+  useEffect(() => { if (autoOpen) void open(); }, [autoOpen, open]);
   return (
     <section className="space-y-3 border-t border-brand-border pt-3">
       {!data && (
         <Button variant="secondary" size="sm" isLoading={busy} onClick={() => void open()}>
-          Open related review details
+          {busy ? 'Loading saved review context' : error ? 'Retry saved review context' : 'Open related review details'}
         </Button>
       )}
       {error && !data && <FeedbackNotice variant="inline">{error}</FeedbackNotice>}
@@ -66,11 +70,12 @@ export default function CaseReviewContext({ auditId, ownerId }: { auditId: strin
         <>
           <CaseReviewDocument
             data={data}
+            role={endpoint.startsWith('/admin/') ? 'admin' : 'rnd'}
             error={error}
             onDownload={async (record) => {
               try {
                 const result = await api.get(
-                  `/admin/audit-history/${encodeURIComponent(auditId)}/review-context/documents/${encodeURIComponent(record.id!)}/file`,
+                  `${endpoint}/${encodeURIComponent(auditId)}/review-context/documents/${encodeURIComponent(record.id!)}/file`,
                   { responseType: 'blob' }
                 );
                 if (liveScope.current !== scope) return;
@@ -86,9 +91,9 @@ export default function CaseReviewContext({ auditId, ownerId }: { auditId: strin
               }
             }}
           />
-          <Button variant="secondary" size="sm" onClick={() => setLoaded(null)}>
+          {!autoOpen && <Button variant="secondary" size="sm" onClick={() => setLoaded(null)}>
             Close case details
-          </Button>
+          </Button>}
         </>
       )}
     </section>

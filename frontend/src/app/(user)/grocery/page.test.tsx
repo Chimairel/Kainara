@@ -5,6 +5,8 @@ import { clearSessionResourceCache } from '@/lib/session-resource-cache';
 import type { GroceryItem, GroceryWorkspace } from '@/features/grocery/current-grocery';
 import GroceryListPage from './page';
 
+const toastMock = vi.hoisted(() => ({ info: vi.fn() }));
+vi.mock('sonner', () => ({ toast: toastMock }));
 const authState = vi.hoisted(() => ({ userId: 'grocery-user' }));
 vi.mock('@/hooks/useAuth', () => ({ useAuth: () => ({ user: { userId: authState.userId } }) }));
 vi.mock('@/lib/axios', () => ({ default: { get: vi.fn(), patch: vi.fn(), post: vi.fn() } }));
@@ -191,4 +193,42 @@ describe('grocery checklist', () => {
     rerender(<GroceryListPage />);
     expect(screen.queryByRole('checkbox', { name: 'Mark as available: Rice' })).not.toBeInTheDocument();
   });
+});
+
+it('explains pending groceries through Sonner without toggling or posting acknowledgment', async () => {
+  get.mockResolvedValue({ data: { success: true, data: {
+    ...workspace, current: { ...workspace.current, actionability: {
+      ...workspace.current!.actionability, canCheckItems: false, canExportPdf: false,
+      requiresIncompleteAcknowledgment: true, message: 'Pending meal slots.',
+    } },
+  } } });
+  render(<GroceryListPage />);
+  const checkbox = await screen.findByRole('checkbox', { name: 'Mark as available: Rice' });
+  expect(checkbox).not.toBeDisabled();
+  fireEvent.click(checkbox);
+  expect(checkbox).not.toBeChecked();
+  expect(patch).not.toHaveBeenCalled();
+  expect(api.post).not.toHaveBeenCalled();
+  expect(toastMock.info).toHaveBeenCalledWith('Some meals are still pending.', expect.objectContaining({
+    action: expect.objectContaining({ label: 'Use available meals only' }),
+  }));
+  fireEvent.click(screen.getByRole('checkbox', { name: 'Mark all visible items as available' }));
+  expect(patch).not.toHaveBeenCalled();
+});
+
+it('an old pending-list toast cannot acknowledge after switching accounts', async () => {
+  get.mockResolvedValue({ data: { success: true, data: {
+    ...workspace, current: { ...workspace.current, actionability: {
+      ...workspace.current!.actionability, canCheckItems: false,
+      requiresIncompleteAcknowledgment: true, message: 'Pending meal slots.',
+    } },
+  } } });
+  const view = render(<GroceryListPage />);
+  fireEvent.click(await screen.findByRole('checkbox', { name: 'Mark as available: Rice' }));
+  const oldAction = toastMock.info.mock.calls.at(-1)![1].action.onClick;
+  vi.mocked(api.post).mockClear();
+  authState.userId = 'different-account';
+  view.rerender(<GroceryListPage />);
+  oldAction();
+  expect(api.post).not.toHaveBeenCalled();
 });

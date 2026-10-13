@@ -62,7 +62,7 @@ export const Modal: React.FC<ModalProps> = ({
                 </Dialog.Description>
               </div>
               <Dialog.Close
-                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-brand-border bg-brand-bgAlt text-brand-muted outline-none transition-colors hover:border-brand-green hover:text-brand-green focus-visible:ring-2 focus-visible:ring-brand-green/30"
+                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-brand-border bg-brand-bgAlt text-brand-muted outline-none transition-colors hover:border-brand-green hover:text-brand-green focus-visible:ring-2 focus-visible:ring-brand-green/30"
                 aria-label="Close"
               >
                 <X className="h-4 w-4" />

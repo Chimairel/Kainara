@@ -47,10 +47,10 @@ it('loads only on expansion and presents recorded changes, zero and missing nutr
   expect(within(panel).getByText('Not recorded')).toBeInTheDocument();
   expect(within(panel).getByText('Checked the serving.')).toBeInTheDocument();
   expect(within(panel).getByRole('link', { name: 'Author a meal' })).toHaveAttribute('href', '/admin/meals?tab=author');
-  expect(button).toHaveAttribute('aria-expanded', 'true');
-  fireEvent.click(button);
+  expect(screen.getByRole('dialog')).toBeVisible();
+  fireEvent.click(screen.getByRole('button', { name: 'Close' }));
   expect(screen.queryByRole('region', { name: /Corrected outside food details/ })).not.toBeInTheDocument();
-  expect(button).toHaveAttribute('aria-expanded', 'false');
+  expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
 });
 it('keeps failure visible and retries without any mutation', async () => {
   mocks.get.mockRejectedValueOnce(new Error('Details unavailable'));
@@ -77,6 +77,7 @@ it('does not flash a late response in a different record or account', async () =
   mocks.get.mockResolvedValue({
     data: { success: true, data: { ...details, food: { ...details.food!, name: 'Rice' } } },
   });
+  fireEvent.click(screen.getByRole('button', { name: 'Close' }));
   fireEvent.click(screen.getByRole('button', { name: /Details:.*Rice/ }));
   await screen.findByRole('heading', { name: 'Rice' });
   await act(async () => finish({ data: { success: true, data: details } }));
@@ -85,6 +86,6 @@ it('does not flash a late response in a different record or account', async () =
     data: { success: true, data: { facts: [], food: null, reason: null, previous: null, effective: null } },
   });
   view.rerender(<AuditHistoryList rows={[row, second]} ownerId="other" endpoint="/admin/audit-history" />);
-  await screen.findByText('No additional details were recorded.');
+  await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
   expect(screen.queryByRole('heading', { name: 'Rice' })).not.toBeInTheDocument();
 });

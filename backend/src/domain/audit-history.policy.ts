@@ -103,3 +103,17 @@ export function auditOutcomeLabel(action: string) {
   if (/NEEDS_CLARIFICATION|NEEDS_MORE_INFO|CLARIFICATION_PUBLISHED/.test(action)) return 'Waiting for information';
   return 'Completed';
 }
+
+/** Summary only; this label never grants access to clinical case details. */
+export function auditTypeLabel(action: string, targetType: string) {
+  if (action.startsWith('CLINICAL_PROFILE_') || targetType === 'ClinicalProfileReview') return 'Profile verification';
+  if (action.startsWith('CLINICAL_CLARIFICATION_')) return 'Profile clarification';
+  if (action.startsWith('CLINICAL_DOCUMENT_')) return 'Document review';
+  if (action.startsWith('BASE_MEAL_') || action.startsWith('MEAL_REVIEW_')) return 'Meal verification';
+  if (action.startsWith('MEAL_PLAN_') || action.startsWith('COALESCED_MEAL_')) return 'Meal approval';
+  if (action.startsWith('MEAL_APPROVAL_') || action.startsWith('CONDITION_CLEARANCE_')) return 'Reusable approval';
+  if (/MEAL_(BASE|LIBRARY)_FLAG/.test(action)) return 'Meal flag';
+  if (action.startsWith('OUTSIDE_MEAL_')) return 'Outside food review';
+  if (/NUTRITIONIST_(ACCESS|VERIFIED|APPLICATION|CALL)/.test(action)) return 'RND credentials';
+  return 'Administration';
+}

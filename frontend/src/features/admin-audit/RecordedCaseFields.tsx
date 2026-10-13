@@ -1,4 +1,5 @@
 import { recordFieldClass, recordSectionClass } from '@/components/shared/RecordPaper';
+import { formatMealTitle } from '@/lib/meal-title';
 
 const hiddenFields = new Set([
   'id',
@@ -118,7 +119,7 @@ export default function RecordedCaseFields({ value, paper = false }: { value: un
           {fields.map(([key, item]) => (
             <div key={key} className={`${fieldClass} min-w-0`}>
               <dt className="text-xs font-semibold text-brand-muted">{recordLabel(key)}</dt>
-              <dd className="mt-1 whitespace-pre-wrap text-sm font-semibold leading-relaxed">{recordValue(item)}</dd>
+              <dd className="mt-1 whitespace-pre-wrap text-sm font-semibold leading-relaxed">{['mealName', 'recipeName'].includes(key) && typeof item === 'string' ? formatMealTitle(item) : recordValue(item)}</dd>
             </div>
           ))}
         </dl>

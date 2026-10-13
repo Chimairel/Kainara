@@ -309,6 +309,8 @@ export async function approveMealPlan(
             },
             mealName,
             composedServingSignature: plan.composedServingSignature,
+            libraryMealId: plan.libraryMealId,
+            sourceRawRecipeCandidateId: plan.sourceRawRecipeCandidateId,
             servingComponents: plan.servingComponents.map(
               ({ componentType, quantityG, foodItemId, evidenceSource }) => ({
                 componentType,

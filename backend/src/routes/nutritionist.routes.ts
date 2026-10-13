@@ -46,6 +46,7 @@ import { NutritionistProfileWorkService } from '@/services/nutritionist-profile-
 import { ReviewStatusService } from '@/services/review-status.service';
 import { NutritionistAuditService } from '@/services/nutritionist-audit.service';
 import { AuditDetailsService } from '@/services/audit-details.service';
+import { NutritionistAuditContextService } from '@/services/nutritionist-audit-context.service';
 
 import libraryRouter from './nutritionist-library.routes';
 import reviewSwapRouter from './nutritionist-review-swap.routes';
@@ -228,6 +229,16 @@ router.get(
         query.data.mine === 'true' ? req.user!.userId : undefined
       ),
     });
+  })
+);
+router.get(
+  '/audit-history/:id/review-context',
+  asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+    const id = z.string().min(1).max(191).safeParse(req.params.id);
+    if (!id.success || Object.keys(req.query).length)
+      return res.status(400).json({ success: false, error: 'Supply one audit record; member selectors are not allowed.' });
+    res.setHeader('Cache-Control', 'private, no-store');
+    return res.json({ success: true, data: await NutritionistAuditContextService.detail(req.user!.userId, req.nutritionistProfileId!, id.data) });
   })
 );
 router.get(

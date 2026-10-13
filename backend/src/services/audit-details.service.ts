@@ -52,6 +52,15 @@ export class AuditDetailsService {
       (outside || mealFlag || baseMeal) && typeof reasonValue === 'string' ? reasonValue.slice(0, 1000) : null;
     return {
       record,
+      contextAvailable: (event.entityType === 'MealPlan' && /REVIEW|APPROV|REJECT|CLEARANCE/.test(event.action)) ||
+        (event.entityType === 'ClinicalProfileReview' && event.action.startsWith('CLINICAL_PROFILE_')) || baseMeal ||
+        (view === 'admin' && (
+          (event.entityType === 'ClinicalClarificationForm' && event.action.startsWith('CLINICAL_CLARIFICATION_')) ||
+          (event.entityType === 'ClinicalProfileProposal' && event.action.startsWith('CLINICAL_PROFILE_CORRECTION_')) ||
+          (event.entityType === 'ClinicalDocument' && event.action.startsWith('CLINICAL_DOCUMENT_')) ||
+          (['MealLibraryProfileApproval', 'MealConditionClearance'].includes(event.entityType) && event.action.startsWith('MEAL_APPROVAL_')) ||
+          (event.entityType === 'MealLibrary' && event.action.startsWith('MEAL_REVIEW_'))
+        )),
       facts: auditFacts(metadata),
       reason,
       food: snapshot ? auditFood(snapshot) : null,

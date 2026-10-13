@@ -14,6 +14,7 @@ import {
   type GroceryWorkspace,
 } from '@/features/grocery/current-grocery';
 import { getApiErrorMessage } from '@/lib/api-error';
+import { toast } from 'sonner';
 import { readSessionResource, refreshSessionResource, writeSessionResource } from '@/lib/session-resource-cache';
 
 type GroceryFilter = 'all' | 'remaining' | 'available';
@@ -125,7 +126,8 @@ export function useGroceryWorkspace() {
 
   const handleToggleItem = async (itemId: string) => {
     const item = groceryList?.groceryItems.find((row) => row.id === itemId);
-    if (!canCheckItems || !item || pendingRef.current.has(itemId) || bulkBusy) return;
+    if (!item || pendingRef.current.has(itemId) || bulkBusy) return;
+    if (!canCheckItems) { explainChecklistPause(); return; }
     setError(null);
     requestVersion.current += 1;
     const generation = ownerGeneration.current;
@@ -169,6 +171,21 @@ export function useGroceryWorkspace() {
     } catch (err) {
       setError(getApiErrorMessage(err, 'Could not acknowledge this partial grocery list.'));
     }
+  };
+
+  const explainChecklistPause = () => {
+    const generation = ownerGeneration.current;
+    toast.info(projection?.actionability.requiresIncompleteAcknowledgment ? 'Some meals are still pending.' : 'This checklist is not ready yet.', {
+      id: 'grocery-checklist-paused',
+      description: projection?.actionability.requiresIncompleteAcknowledgment
+        ? 'Accept the available meals only to check their ingredients. Pending meals stay excluded.'
+        : projection?.actionability.message,
+      action: projection?.actionability.requiresIncompleteAcknowledgment
+        ? { label: 'Use available meals only', onClick: () => {
+            if (generation === ownerGeneration.current) void handleAcknowledgeIncomplete();
+          } }
+        : undefined,
+    });
   };
 
   const totalItems = groceryList?.groceryItems.length || 0;
@@ -252,7 +269,8 @@ export function useGroceryWorkspace() {
   const allVisibleChecked = visibleItems.length > 0 && visibleItems.every(isGroceryItemAvailable);
 
   const handleToggleAllVisible = async () => {
-    if (!canCheckItems || visibleItems.length === 0 || pendingRef.current.size > 0 || bulkBusy) return;
+    if (visibleItems.length === 0 || pendingRef.current.size > 0 || bulkBusy) return;
+    if (!canCheckItems) { explainChecklistPause(); return; }
     const targetState = !allVisibleChecked;
     const itemsToUpdate = visibleItems.filter((item) => isGroceryItemAvailable(item) !== targetState);
     if (itemsToUpdate.length === 0) return;

@@ -1,6 +1,7 @@
 import { mealFlagSubmissionSchema, mealReviewSubmissionSchema } from '@/validation/meal-review.schemas';
 import { MealReviewService } from '@/services/meal-review.service';
 import { AppError } from '@/errors/AppError';
+import { NutritionistAuditService } from '@/services/nutritionist-audit.service';
 import { Router, Response } from 'express';
 import { z } from 'zod';
 import { AuthenticatedRequest } from '@/types';
@@ -155,6 +156,12 @@ router.get('/library/:id', async (req: AuthenticatedRequest, res: Response) => {
   }
 });
 
+router.get('/library/:id/case-history', asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+  z.object({ id: z.string().min(1).max(191) }).strict().parse(req.params);
+  const page = z.object({ page: z.coerce.number().int().min(1).max(100000).default(1) }).strict().parse(req.query);
+  res.setHeader('Cache-Control', 'private, no-store');
+  res.json({ success: true, data: await NutritionistAuditService.recipeCases(req.params.id, page.page) });
+}));
 router.get('/library/:id/approvals', async (req: AuthenticatedRequest, res: Response) => {
   try {
     const [approvals, review] = await Promise.all([

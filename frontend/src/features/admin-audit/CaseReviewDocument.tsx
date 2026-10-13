@@ -1,7 +1,7 @@
 'use client';
 import FeedbackNotice from '@/components/shared/FeedbackNotice';
 
-import { useState, type ReactNode } from 'react';
+import { useState, useSyncExternalStore, type ReactNode } from 'react';
 import { Select } from '@/components/ui/Select';
 import Button from '@/components/ui/Button';
 import ReviewCanvas from '@/features/nutritionist-reviews/ReviewCanvas';
@@ -9,6 +9,15 @@ import { ReviewDocumentPage } from '@/features/nutritionist-reviews/RndQueueDocu
 import MealReviewTimeline, { type ReviewIncident } from '@/features/nutritionist-library/MealReviewTimeline';
 import RecordedCaseFields, { recordedObject, recordValue } from './RecordedCaseFields';
 import AdminDecisionSheets from './AdminDecisionSheets';
+
+const compactQuery = '(max-width: 639px)';
+const compactSnapshot = () => typeof window.matchMedia === 'function' && window.matchMedia(compactQuery).matches;
+const subscribeCompact = (listener: () => void) => {
+  if (typeof window.matchMedia !== 'function') return () => {};
+  const query = window.matchMedia(compactQuery);
+  query.addEventListener('change', listener);
+  return () => query.removeEventListener('change', listener);
+};
 
 export type ReviewContext = {
   currentProfile: unknown;
@@ -25,10 +34,12 @@ export default function CaseReviewDocument({
   data,
   onDownload,
   error,
+  role = 'admin',
 }: {
   data: ReviewContext;
   onDownload: (record: ReviewContext['clinicalEvidence'][number]) => void;
   error?: string | null;
+  role?: 'admin' | 'rnd';
 }) {
   const decisions = Array.isArray(data.decisions) ? data.decisions : data.decisions == null ? [] : [data.decisions];
   const records = [
@@ -96,6 +107,7 @@ export default function CaseReviewDocument({
     () => records.find((item) => data.selectedDecisionId && item.id === data.selectedDecisionId)?.key ?? records[0].key
   );
   const [expanded, setExpanded] = useState(false);
+  const compact = useSyncExternalStore(subscribeCompact, compactSnapshot, () => false);
   const record = records.find((item) => item.key === selected) ?? records[0];
   const subtitle =
     record.kind === 'current'
@@ -107,6 +119,7 @@ export default function CaseReviewDocument({
   if (record.kind === 'decision') {
     const questions = recordedObject(data.reviewedSnapshot)?.questions;
     sheets = AdminDecisionSheets({
+      role,
       title: record.title,
       value: record.value,
       subtitle,
@@ -118,7 +131,7 @@ export default function CaseReviewDocument({
         page={1}
         title={record.title}
         subtitle={subtitle}
-        recordLabel="Admin oversight"
+        recordLabel={role === 'admin' ? 'Admin oversight' : 'Recorded RND review'}
         footer="Read-only case oversight · Access to clinical details is recorded"
       >
         {record.kind === 'recipe' && data.recipe ? (
@@ -149,7 +162,15 @@ export default function CaseReviewDocument({
           className="w-full"
         />
       </div>
-      <div className="h-[clamp(28rem,75dvh,52rem)] min-w-0">
+      {compact ? (
+        <section aria-label="Saved review pages" className="space-y-4">
+          {data.historicalInformation && <p className="text-sm text-brand-muted">{data.historicalInformation}</p>}
+          {error && <FeedbackNotice variant="inline">{error}</FeedbackNotice>}
+          <div className="space-y-5 [&>article]:min-h-0 [&>article]:rounded-xl [&>article]:p-4 [&>article]:shadow-none [&_h2]:text-xl">
+            {sheets}
+          </div>
+        </section>
+      ) : <div className="h-[clamp(28rem,75dvh,52rem)] min-w-0">
         <ReviewCanvas
           readOnly
           className="!h-full !min-h-0"
@@ -159,7 +180,7 @@ export default function CaseReviewDocument({
           onExpandedChange={setExpanded}
           actions={
             <div className="max-w-lg space-y-1 text-xs text-brand-muted">
-              <p>Read-only admin oversight</p>
+              <p>{role === 'admin' ? 'Read-only admin oversight' : 'Read-only saved review'}</p>
               {data.historicalInformation && <p>{data.historicalInformation}</p>}
               {error && <FeedbackNotice variant="inline">{error}</FeedbackNotice>}
             </div>
@@ -167,7 +188,7 @@ export default function CaseReviewDocument({
         >
           {sheets}
         </ReviewCanvas>
-      </div>
+      </div>}
     </div>
   );
 }

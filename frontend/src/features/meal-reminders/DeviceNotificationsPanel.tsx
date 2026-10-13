@@ -100,12 +100,13 @@ export default function DeviceNotificationsPanel() {
         setBrowserPush(null);
         setMessage('Notifications are disabled on this device.');
       } else if (operation === 'test' && subscription) {
+        setBrowserPush(null);
         const response = await api.post('/notifications/push/test', { endpoint: subscription.endpoint });
         if (currentOwner.current !== ownerId) return;
         setMessage(
           response.data.data?.processing
             ? 'The test is already being sent. Refresh delivery status to check the result.'
-            : 'Test sent. Check your device notification panel.'
+            : 'Test accepted by the push provider. Waiting for this browser to receive it.'
         );
       }
     } catch (err) {
@@ -186,6 +187,11 @@ export default function DeviceNotificationsPanel() {
             : browserPush.status === 'EXPIRED'
               ? 'It had expired and was not displayed.'
               : 'The browser could not display it. Check the site notification permission.'}
+        </p>
+      )}
+      {browserPush?.status === 'DISPLAY_REQUESTED' && (
+        <p className="text-xs leading-relaxed text-brand-muted">
+          No banner? Open your device notification panel. On Windows, turn off Do Not Disturb in Settings → System → Notifications and allow notifications for your browser. Also check KAINARA’s site notification permission. The app cannot override device settings.
         </p>
       )}
       {message && (

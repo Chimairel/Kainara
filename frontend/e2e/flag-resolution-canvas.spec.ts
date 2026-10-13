@@ -263,13 +263,17 @@ test('Audit opens the shared flag canvas and saves the exact version', async ({ 
   expect(errors).toEqual([]);
 });
 
-test('member-case canvas blocks approval and retains the saved resolution after recheck', async ({
+for (const theme of ['light', 'dark']) test(`member-case canvas blocks approval and retains the saved resolution after recheck in ${theme}`, async ({
   page,
-}, testInfo) => {
+}) => {
   await page.setViewportSize({ width: 1440, height: 1000 });
-  const { errors } = await fixture(page, 'case');
+  const { errors } = await fixture(page, 'case', theme);
   await page.goto('/nutritionist/reviews');
   await page.getByRole('button', { name: /Case approval/ }).click();
+  const search = page.getByRole('searchbox', { name: 'Search meals or members' });
+  await search.focus();
+  expect(await search.evaluate((el) => getComputedStyle(el).outlineStyle)).toBe('none');
+  expect(await search.evaluate((el) => Number.parseFloat(getComputedStyle(el.parentElement!).borderRadius))).toBeGreaterThan(0);
   await page.getByText(meal.mealName, { exact: true }).first().click();
   await page.getByRole('button', { name: 'Expand canvas', exact: true }).click();
   const parent = page.getByRole('dialog', { name: /Case approval.*fullscreen/ });
@@ -287,6 +291,16 @@ test('member-case canvas blocks approval and retains the saved resolution after 
   await expect(parent.getByText('Resolved in the recorded review', { exact: true })).toBeAttached();
   await expect(parent.getByText(resolution, { exact: true })).toBeAttached();
   await expect(parent.getByRole('button', { name: 'Approve', exact: true })).toBeEnabled();
-  await page.screenshot({ path: testInfo.outputPath('member-case-resolved.png') });
+  await parent.getByRole('button', { name: 'Approve', exact: true }).click();
+  const dialog = page.getByRole('dialog', { name: 'Approve this meal?' });
+  const note = dialog.getByRole('textbox');
+  await note.focus();
+  const style = await note.evaluate((el) => { const css = getComputedStyle(el); return { outline: css.outlineStyle, left: css.borderLeftWidth, radius: css.borderRadius, shadow: css.boxShadow }; });
+  expect(style.outline).toBe('none');
+  expect(Number.parseFloat(style.left)).toBeGreaterThanOrEqual(1);
+  expect(Number.parseFloat(style.radius)).toBeGreaterThan(0);
+  expect(style.shadow).toContain('inset');
+  await page.screenshot({ path: `../backend/.local/defense-bugfixes/review-note-focus-${theme}.png` });
+  await dialog.getByRole('button', { name: 'Cancel', exact: true }).click();
   expect(errors).toEqual([]);
 });

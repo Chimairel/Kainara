@@ -13,6 +13,7 @@ import { getApiErrorMessage } from '@/lib/api-error';
 import ApprovalRecheckCanvas from '@/features/nutritionist-reviews/ApprovalRecheckCanvas';
 import ConcernResolution, { type ReviewConcern } from '@/features/nutritionist-reviews/ConcernResolution';
 import ExpandableCasePanel from '@/features/nutritionist-reviews/ExpandableCasePanel';
+import RecipeCaseHistory from './RecipeCaseHistory';
 
 type Approval = {
   id: string;
@@ -540,6 +541,7 @@ export function MealApprovalsPanel({ mealId }: { mealId: string }) {
         </label>
       </div>
       <div className="space-y-4">
+        <RecipeCaseHistory key={mealId} mealId={mealId} />
         {error && <FeedbackNotice variant="inline">{error}</FeedbackNotice>}
         {loading ? (
           <p className="text-brand-muted">Loading approvals...</p>

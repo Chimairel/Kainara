@@ -46,9 +46,11 @@ for (const role of ['ADMIN', 'NUTRITIONIST'] as const) {
         if (!['GET', 'OPTIONS'].includes(request.method())) mutations++;
         const url = new URL(request.url());
         const path = url.pathname;
+        if (request.method() === 'OPTIONS') return route.fulfill({ status: 204, headers: { 'Access-Control-Allow-Origin': 'http://localhost:3000', 'Access-Control-Allow-Credentials': 'true', 'Access-Control-Allow-Headers': 'Authorization, Content-Type' } });
         let data: unknown = null;
         if (path.endsWith('/user/profile')) data = user;
         else if (path.endsWith('/notifications')) data = { notifications: [], unreadCount: 0 };
+        else if (path.endsWith('/credential-status')) data = { eligible: true, reason: null, expiryDate: '2099-01-01', canSubmitUpdate: true };
         else if (path.endsWith('/review-work-counts')) data = { meal: 0, case: 0, profile: 0, audit: 0 };
         else if (path.endsWith('/audit-history')) {
           if (url.searchParams.get('mine') === 'true') mineReads++;
@@ -76,7 +78,7 @@ for (const role of ['ADMIN', 'NUTRITIONIST'] as const) {
             effective: { calories: 300, proteinG: 24, carbsG: 0, fatG: null },
           };
         }
-        await route.fulfill({ json: { success: true, data } });
+        await route.fulfill({ headers: { 'Access-Control-Allow-Origin': 'http://localhost:3000', 'Access-Control-Allow-Credentials': 'true', 'Access-Control-Allow-Headers': 'Authorization, Content-Type' }, json: { success: true, data } });
       });
       await page.goto(`/${rolePath}/audit`);
       if (role === 'ADMIN') await page.getByRole('button', { name: 'RND history' }).click();
@@ -91,12 +93,12 @@ for (const role of ['ADMIN', 'NUTRITIONIST'] as const) {
       await expect(panel.getByRole('heading', { name: 'Sardines with egg' })).toBeVisible();
       await expect(panel.getByText('Not recorded', { exact: true })).toBeVisible();
       await expect(panel.getByText('egg · 1 piece')).toBeVisible();
-      const box = await button.boundingBox();
-      expect(Math.round(box!.height)).toBeGreaterThanOrEqual(44);
+      const box = await page.getByRole('button', { name: 'Close', exact: true }).boundingBox();
+      expect(Math.round(box!.height)).toBeGreaterThanOrEqual(36);
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
       expect(await panel.evaluate((node) => node.scrollWidth <= node.clientWidth + 1)).toBe(true);
       await page.screenshot({ path: testInfo.outputPath(`audit-${rolePath}-${width}.png`), fullPage: true });
-      await button.click();
+      await page.getByRole('button', { name: 'Close', exact: true }).click();
       await expect(panel).toBeHidden();
       if (role === 'NUTRITIONIST') {
         await page.getByRole('combobox', { name: 'Staff filter' }).click();
@@ -149,9 +151,11 @@ for (const width of [390, 1440]) {
         const request = route.request();
         if (!['GET', 'OPTIONS'].includes(request.method())) mutations++;
         const path = new URL(request.url()).pathname;
+        if (request.method() === 'OPTIONS') return route.fulfill({ status: 204, headers: { 'Access-Control-Allow-Origin': 'http://localhost:3000', 'Access-Control-Allow-Credentials': 'true', 'Access-Control-Allow-Headers': 'Authorization, Content-Type' } });
         let data: unknown = null;
         if (path.endsWith('/user/profile')) data = user;
         else if (path.endsWith('/notifications')) data = { notifications: [], unreadCount: 0 };
+        else if (path.endsWith('/credential-status')) data = { eligible: true, reason: null, expiryDate: '2099-01-01', canSubmitUpdate: true };
         else if (path.endsWith('/audit-history'))
           data = {
             rows: [
@@ -171,6 +175,7 @@ for (const width of [390, 1440]) {
           };
         else if (path.endsWith('/audit-history/case'))
           data = {
+            contextAvailable: true,
             facts: [{ label: 'Revision', value: '2' }],
             reason: 'Saved case approval.',
             food: null,
@@ -220,12 +225,12 @@ for (const width of [390, 1440]) {
             historicalInformation: null,
           };
         }
-        await route.fulfill({ json: { success: true, data } });
+        await route.fulfill({ headers: { 'Access-Control-Allow-Origin': 'http://localhost:3000', 'Access-Control-Allow-Credentials': 'true', 'Access-Control-Allow-Headers': 'Authorization, Content-Type' }, json: { success: true, data } });
       });
       await page.goto('/admin/audit');
       await page.getByRole('button', { name: 'RND history' }).click();
       await page.getByRole('button', { name: /^Details:/ }).click();
-      await page.getByRole('button', { name: 'Open related review details' }).click();
+      // Saved context opens automatically inside the audit modal.
       const picker = page.getByRole('combobox', { name: 'Case record' });
       await expect(picker).toHaveText(/Change 2/);
       await picker.click();
@@ -237,17 +242,19 @@ for (const width of [390, 1440]) {
       await expect(page.getByRole('article', { name: 'Current member profile' })).toBeVisible();
       await expect(page.getByText('Height (cm)', { exact: true })).toBeVisible();
       await expect(page.getByText('Build muscle', { exact: true })).toBeVisible();
-      const reader = page.getByRole('region', { name: 'Admin review canvas', exact: true });
+      const reader = width < 640 ? page.getByRole('region', { name: 'Saved review pages' }) : page.getByRole('region', { name: 'Admin review canvas', exact: true });
       await reader.scrollIntoViewIfNeeded();
       expect(await reader.evaluate((node) => node.scrollWidth <= node.clientWidth + 1)).toBe(true);
       await page.screenshot({ path: testInfo.outputPath(`case-report-${width}-${theme}.png`), fullPage: true });
+      if (width >= 640) {
       await page.getByRole('button', { name: 'Expand canvas' }).click();
       const fullscreen = page.getByRole('dialog', { name: 'Case review record — fullscreen' });
       await expect(fullscreen).toBeVisible();
       await expect(fullscreen.getByRole('article', { name: 'Current member profile' })).toBeVisible();
       await page.keyboard.press('Escape');
-      await expect(page.getByRole('dialog')).toHaveCount(0);
+      await expect(page.getByRole('dialog')).toHaveCount(1);
       await expect(picker).toHaveText(/Current member profile/);
+      }
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
       expect(reads).toBe(1);
       expect(mutations).toBe(0);

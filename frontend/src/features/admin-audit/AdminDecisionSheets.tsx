@@ -65,11 +65,11 @@ function ProfileRecord({
 
 function MealRecord({ title, value }: { title: string; value: unknown }) {
   const object = recordedObject(value);
-  const { ingredients, ...fields } = object ?? {};
+  const { ingredients, name, ...fields } = object ?? {};
   return (
     <section className="space-y-4">
       <h3 className="border-b border-brand-border pb-2 text-lg font-bold">{title}</h3>
-      <RecordedCaseFields value={object ? fields : null} paper />
+      <RecordedCaseFields value={object ? { ...fields, ...(typeof name === 'string' ? { mealName: name } : {}) } : null} paper />
       {Array.isArray(ingredients) && (
         <table className="w-full table-fixed border-collapse text-sm">
           <caption className="mb-2 text-left font-bold">Recorded ingredients</caption>
@@ -108,22 +108,24 @@ export default function AdminDecisionSheets({
   value,
   subtitle,
   recordedQuestions,
+  role = 'admin',
 }: {
   title: string;
   value: unknown;
   subtitle: string;
   recordedQuestions?: unknown[];
+  role?: 'admin' | 'rnd';
 }) {
   const decision = recordedObject(value);
   const evidence = recordedObject(decision?.evidenceSnapshot);
   const context = recordedObject(evidence?.reviewContext);
-  const profile = context?.profile ?? evidence?.recordedProfile;
+  const profile = context?.profile ?? evidence?.recordedProfile ?? decision?.profileSnapshot;
   const meal = context?.meal;
   const answers = recordedObject(decision?.answers);
   const hasClarificationAnswers = answers != null;
   const decisionFields = Object.fromEntries(
     Object.entries(decision ?? {}).filter(
-      ([key]) => key !== 'evidenceSnapshot' && !(hasClarificationAnswers && key === 'answers')
+      ([key]) => key !== 'evidenceSnapshot' && key !== 'profileSnapshot' && !(hasClarificationAnswers && key === 'answers')
     )
   );
   const hasMeal =
@@ -142,7 +144,7 @@ export default function AdminDecisionSheets({
       page={1}
       title={title}
       subtitle={subtitle}
-      recordLabel="Admin oversight"
+      recordLabel={role === 'admin' ? 'Admin oversight' : 'Recorded RND review'}
       footer={footer}
     >
       <RecordedCaseFields value={decisionFields} paper />
@@ -171,7 +173,7 @@ export default function AdminDecisionSheets({
         page={pages.length + 1}
         title="Recorded member context"
         subtitle="Member context saved with this decision. Current profile changes do not alter this record."
-        recordLabel="Admin oversight"
+        recordLabel={role === 'admin' ? 'Admin oversight' : 'Recorded RND review'}
         footer={footer}
       >
         {profile != null ? (
@@ -190,7 +192,7 @@ export default function AdminDecisionSheets({
         page={pages.length + 1}
         title="Recorded meal evidence"
         subtitle="Original and effective values saved by this RND. Ingredients are read-only."
-        recordLabel="Admin oversight"
+        recordLabel={role === 'admin' ? 'Admin oversight' : 'Recorded RND review'}
         footer={footer}
       >
         {evidence.original != null || evidence.effective != null ? (

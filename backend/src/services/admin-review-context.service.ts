@@ -47,7 +47,7 @@ export class AdminReviewContextService {
     }, DATABASE_TRANSACTION_OPTIONS);
   }
   static async detail(actorUserId: string, auditId: string, db: typeof prisma = prisma) {
-    await AuditDetailsService.detail(auditId, 'admin', db);
+    const summary = await AuditDetailsService.detail(auditId, 'admin', db);
     return db.$transaction(async (tx) => {
       await reviewActor(tx, actorUserId);
       const event = await tx.auditEvent.findUnique({
@@ -61,6 +61,13 @@ export class AdminReviewContextService {
       let evidenceIds: string[] = [];
       let selectedDecisionId: string | null = null;
       let historicalInformation: string | null = null;
+      if (/^BASE_MEAL_(VERIFIED|REJECTED)$/.test(event.action)) {
+        const metadata = event.metadata && typeof event.metadata === 'object' && !Array.isArray(event.metadata) ? event.metadata : {};
+        return { currentProfile: null, reviewedSnapshot: null, clinicalEvidence: [],
+          decisions: [{ id: auditId, decision: event.action, rationale: metadata.reason ?? metadata.rationale,
+            evidenceSnapshot: { original: metadata.food, effective: metadata.effective, reviewedBy: { name: summary.record.actor }, policyVersion: metadata.policyVersion } }],
+          selectedDecisionId: auditId, historicalInformation: metadata.food ? null : 'Historical meal evidence was not recorded.' };
+      }
       if (event.entityType === 'MealPlan' && /REVIEW|APPROV|REJECT|CLEARANCE/.test(event.action)) {
         const plan = await tx.mealPlan.findUnique({
           where: { id: event.entityId },

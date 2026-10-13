@@ -4,6 +4,7 @@ import { MealApprovalsPanel } from './MealApprovalsPanel';
 
 const mocks = vi.hoisted(() => ({ get: vi.fn(), post: vi.fn() }));
 vi.mock('@/lib/axios', () => ({ default: mocks }));
+vi.mock('./RecipeCaseHistory', () => ({ default: () => null }));
 
 describe('meal approvals on the recipe detail page', () => {
   beforeEach(() => {

@@ -1,6 +1,6 @@
 import { Prisma } from '@prisma/client';
 import prisma from '@/lib/prisma';
-import { auditActionLabel, auditOutcomeLabel, nutritionistAuditActions } from '@/domain/audit-history.policy';
+import { auditActionLabel, auditOutcomeLabel, auditTypeLabel, nutritionistAuditActions } from '@/domain/audit-history.policy';
 import { normalizePagination } from '@/policies/pagination.policy';
 
 export type StaffAuditFilters = {
@@ -15,6 +15,7 @@ export type StaffAuditFilters = {
   relatedTo?: string;
   recordId?: string;
   includeAdminMealFlags?: boolean;
+  recipeCase?: { libraryIds: string[]; sourceId: string | null };
 };
 type AuditRecord = {
   id: string;
@@ -40,6 +41,16 @@ export class StaffAuditService {
           ? Prisma.sql`(role = 'NUTRITIONIST' OR (role = 'ADMIN' AND "actionCode" = 'MEAL_BASE_FLAGGED'))`
           : Prisma.sql`role = 'NUTRITIONIST'`;
     const conditions = [roleWhere];
+    if (filters.recipeCase) {
+      const { libraryIds, sourceId } = filters.recipeCase;
+      conditions.push(Prisma.sql`EXISTS (
+        SELECT 1 FROM "AuditEvent" link JOIN "MealPlanReviewDecision" decision
+          ON decision.id = link.metadata->>'reviewDecisionId' AND decision."mealPlanId" = link."entityId"
+        WHERE link.id = records.id AND link."entityType" = 'MealPlan' AND (
+          COALESCE(decision."evidenceSnapshot"->'reviewContext'->'meal'->>'libraryMealId', decision."evidenceSnapshot"->>'libraryMealId') IN (${Prisma.join(libraryIds)})
+          OR (${sourceId}::text IS NOT NULL AND COALESCE(decision."evidenceSnapshot"->'reviewContext'->'meal'->>'sourceRawRecipeCandidateId', decision."evidenceSnapshot"->>'sourceRawRecipeCandidateId') = ${sourceId})
+        ))`);
+    }
     if (filters.recordId) conditions.push(Prisma.sql`id = ${filters.recordId}`);
     if (filters.actorId) conditions.push(Prisma.sql`"actorId" = ${filters.actorId}`);
     if (filters.actor?.trim()) conditions.push(Prisma.sql`strpos(lower(actor), lower(${filters.actor.trim()})) > 0`);
@@ -84,6 +95,8 @@ export class StaffAuditService {
             END, u.role::text, 'UNKNOWN') AS role,
           CASE WHEN e.action = 'MEAL_LIBRARY_FLAGGED' THEN 'MEAL_BASE_FLAGGED' ELSE e.action END AS "actionCode",
           COALESCE(CASE WHEN e.action ~ '^(OUTSIDE_MEAL_|BASE_MEAL_)' THEN e.metadata->'food'->>'name' END,
+            audit_decision."evidenceSnapshot"->>'mealName',
+            audit_decision."evidenceSnapshot"->'effective'->>'mealName',
             root."mealName", m."mealName", raw."recipeName",
             CASE e."entityType" WHEN 'ClinicalProfileReview' THEN 'Health profile' WHEN 'ClinicalDocument' THEN 'Clinical document'
               WHEN 'MealPlan' THEN 'Meal plan case' WHEN 'OutsideMealLogItem' THEN 'Outside food log'
@@ -93,6 +106,7 @@ export class StaffAuditService {
           CASE WHEN m.id IS NOT NULL THEN CASE WHEN COALESCE(root."sourceRawRecipeCandidateId", m."sourceRawRecipeCandidateId") IS NOT NULL THEN 'RecipeSource' ELSE 'MealLibrary' END WHEN raw.id IS NOT NULL THEN 'RecipeSource' ELSE e."entityType" END AS "targetType",
           COALESCE(root."sourceRawRecipeCandidateId", m."sourceRawRecipeCandidateId", m."recipeFamilyId", e."entityId") AS "targetId"
         FROM "AuditEvent" e LEFT JOIN "User" u ON u.id = e."actorUserId"
+        LEFT JOIN "MealPlanReviewDecision" audit_decision ON e."entityType" = 'MealPlan' AND audit_decision."mealPlanId" = e."entityId" AND audit_decision.id = e.metadata->>'reviewDecisionId'
         LEFT JOIN "NutritionistProfile" legacy_profile ON legacy_profile.id = e.metadata->>'reviewerProfileId'
         LEFT JOIN "User" legacy_reviewer ON legacy_reviewer.id = legacy_profile."userId"
         LEFT JOIN "MealLibrary" m ON m.id = e."entityId" AND e."entityType" IN ('MealLibrary','LIBRARY_MEAL')
@@ -119,6 +133,7 @@ export class StaffAuditService {
       // PostgreSQL JSON omits the zone for Prisma's UTC timestamp-without-time-zone columns.
       occurredAt: /(?:Z|[+-]\d{2}:\d{2})$/i.test(row.occurredAt) ? row.occurredAt : `${row.occurredAt}Z`,
       action: auditActionLabel(row.actionCode),
+      type: auditTypeLabel(row.actionCode, row.targetType),
       outcome: auditOutcomeLabel(row.actionCode),
     }));
     return { rows, total, page, limit, totalPages: Math.ceil(total / limit) };

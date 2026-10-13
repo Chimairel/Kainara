@@ -80,7 +80,7 @@ export default function ReviewDecisionDialog({
               ? 'Explain your decision and supporting observations.'
               : 'Advice for the member, such as reducing an ingredient if possible.'
           }
-          className="mt-2 w-full rounded-xl border border-brand-border bg-brand-bg p-3 text-sm font-normal"
+          className="mt-2 block w-full rounded-xl border border-brand-border bg-brand-bg p-3 text-base sm:text-sm font-normal outline-none focus:border-brand-green focus-visible:!outline-none focus:ring-2 focus:ring-inset focus:ring-brand-green"
         />
       </label>
       <p className="mt-2 text-xs text-brand-muted">

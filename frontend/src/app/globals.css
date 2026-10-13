@@ -544,6 +544,28 @@ html.theme-switching *::after {
   outline-offset: 3px;
 }
 
+/* Text fields use their rounded field boundary, not a square outline around
+   the inner editor. Inset focus remains visible inside scrollable dialogs. */
+:is(input:not([type='checkbox']):not([type='radio']):not([type='range']), textarea, select):focus-visible {
+  outline: none !important;
+}
+:is(input:not([type='checkbox']):not([type='radio']):not([type='range']), textarea, select)[class*='border']:focus-visible,
+:is(div, label)[class*='rounded'][class*='border']:has(> input:focus-visible),
+:is(div, label)[class*='rounded'][class*='border']:has(> textarea:focus-visible) {
+  border-color: var(--brand-green);
+  box-shadow: inset 0 0 0 2px var(--brand-green);
+}
+input[data-validation-state='error']:focus-visible {
+  border-color: var(--status-error-text);
+  box-shadow: inset 0 0 0 2px var(--status-error-text);
+}
+@media (max-width: 767px) {
+  [data-sonner-toaster].member-toaster {
+    --offset-bottom: calc(100px + env(safe-area-inset-bottom)) !important;
+    --mobile-offset-bottom: calc(100px + env(safe-area-inset-bottom)) !important;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

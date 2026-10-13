@@ -64,7 +64,7 @@ export default function GroceryTable({
         <CircularCheckbox
           checked={allVisibleChecked}
           onCheckedChange={() => onToggleAllVisible()}
-          disabled={!canCheckItems || items.length === 0 || bulkBusy || pendingIds.size > 0}
+          disabled={items.length === 0 || bulkBusy || pendingIds.size > 0}
           aria-label={allVisibleChecked ? 'Mark all visible items as needed' : 'Mark all visible items as available'}
           title={allVisibleChecked ? 'Mark all visible as needed' : 'Mark all visible as available'}
           className="mx-auto"
@@ -74,7 +74,8 @@ export default function GroceryTable({
         <CircularCheckbox
           checked={isGroceryItemAvailable(item)}
           onCheckedChange={() => onToggleItem(item.id)}
-          disabled={!canCheckItems || bulkBusy || pendingIds.has(item.id)}
+          disabled={bulkBusy || pendingIds.has(item.id)}
+          title={!canCheckItems ? 'Click to see why this checklist is pending' : undefined}
           aria-label={
             (isGroceryItemAvailable(item) ? 'Mark as needed: ' : 'Mark as available: ') +
             formatGroceryItemDisplay(item).cleanName

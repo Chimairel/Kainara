@@ -1,8 +1,9 @@
 'use client';
 import FeedbackNotice from '@/components/shared/FeedbackNotice';
 
-import { useId, useState } from 'react';
-import { ChevronDown, ChevronUp } from '@/components/ui/icons';
+import { useState } from 'react';
+import Modal from '@/components/ui/Modal';
+import { formatMealTitle } from '@/lib/meal-title';
 import Link from 'next/link';
 import Button from '@/components/ui/Button';
 import { useSessionQuery } from '@/hooks/useSessionQuery';
@@ -19,9 +20,11 @@ export type AuditRow = {
   action: string;
   subject: string;
   outcome: string;
+  type?: string;
 };
 type Nutrition = { calories: number | null; proteinG: number | null; carbsG: number | null; fatG: number | null };
 export type AuditDetails = {
+  contextAvailable?: boolean;
   facts: { label: string; value: string }[];
   reason: string | null;
   food: null | {
@@ -56,7 +59,7 @@ function RecordedDetails({ data, canAuthor }: { data: AuditDetails; canAuthor: b
     <RecordPaper aria-label="Recorded audit action" className="text-sm">
       <p className="font-mono text-xs font-bold uppercase tracking-widest text-brand-green">KAINARA · Audit record</p>
       {data.food?.name && (
-        <h3 className="break-words font-display text-xl font-extrabold tracking-tight">{data.food.name}</h3>
+        <h3 className="break-words font-display text-xl font-extrabold tracking-tight">{formatMealTitle(data.food.name)}</h3>
       )}
       {!!facts.length && (
         <dl className="grid grid-cols-2 gap-x-5 gap-y-3 sm:grid-cols-3">
@@ -165,8 +168,13 @@ function DetailPanel({
           Loading details...
         </p>
       )}
-      {query.data && <RecordedDetails data={query.data} canAuthor={canAuthor} />}
-      {query.data && endpoint.startsWith('/admin/') && <CaseReviewContext key={id} auditId={id} ownerId={ownerId} />}
+      {query.data?.contextAvailable && <CaseReviewContext key={id} auditId={id} ownerId={ownerId} endpoint={endpoint} autoOpen />}
+      {query.data && (query.data.contextAvailable ? (
+        <details className="border-t border-brand-border pt-3">
+          <summary className="cursor-pointer text-sm font-semibold">Audit metadata</summary>
+          <RecordedDetails data={query.data} canAuthor={canAuthor} />
+        </details>
+      ) : <RecordedDetails data={query.data} canAuthor={canAuthor} />)}
     </>
   );
 }
@@ -183,9 +191,8 @@ export default function AuditHistoryList({
   endpoint: string;
   canAuthor?: boolean;
 }) {
-  const [expandedId, setExpandedId] = useState<string | null>(null);
-  const panelPrefix = useId();
-  const panelId = (row: AuditRow) => panelPrefix + '-' + row.id;
+  const [opened, setOpened] = useState<{ row: AuditRow; ownerId: string | undefined; endpoint: string } | null>(null);
+  const selected = opened && opened.ownerId === ownerId && opened.endpoint === endpoint ? opened.row : null;
   const columns: WorkspaceTableColumn<AuditRow>[] = [
     {
       key: 'date',
@@ -210,6 +217,7 @@ export default function AuditHistoryList({
         </>
       ),
     },
+    { key: 'type', header: 'Type', headerClassName: 'min-w-[155px]', cell: (row) => row.type ?? 'Recorded activity' },
     {
       key: 'action',
       header: 'Action',
@@ -217,7 +225,7 @@ export default function AuditHistoryList({
       cell: (row) => (
         <>
           <p className="font-bold">{row.action}</p>
-          <p className="mt-1 break-words text-[11px] text-brand-muted">{row.subject}</p>
+          <p className="mt-1 break-words text-[11px] text-brand-muted">{formatMealTitle(row.subject)}</p>
         </>
       ),
     },
@@ -237,12 +245,11 @@ export default function AuditHistoryList({
             variant="secondary"
             size="sm"
             className="!min-h-11"
-            aria-expanded={expandedId === row.id}
-            aria-controls={panelId(row)}
-            aria-label={'Details: ' + row.action + ' — ' + row.subject}
-            onClick={() => setExpandedId(expandedId === row.id ? null : row.id)}
+            aria-haspopup="dialog"
+            aria-label={'Details: ' + row.action + ' — ' + formatMealTitle(row.subject)}
+            onClick={() => setOpened({ row, ownerId, endpoint })}
           >
-            Details {expandedId === row.id ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+            Details
           </Button>
           {onRelated && (
             <Button
@@ -250,7 +257,7 @@ export default function AuditHistoryList({
               size="sm"
               className="!min-h-11"
               onClick={() => onRelated(row)}
-              aria-label={'Related activity: ' + row.action + ' — ' + row.subject}
+              aria-label={'Related activity: ' + row.action + ' — ' + formatMealTitle(row.subject)}
             >
               Related activity
             </Button>
@@ -260,35 +267,26 @@ export default function AuditHistoryList({
     },
   ];
   return (
+    <>
     <WorkspaceTable
       label="Audit records"
       rows={rows}
       columns={columns}
       rowKey={(row) => row.id}
       emptyMessage="No activity matches these filters."
-      expandedContent={(row) =>
-        expandedId === row.id ? (
-          <div
-            id={panelId(row)}
-            role="region"
-            aria-label={row.action + ' details'}
-            className="space-y-5 rounded-3xl border border-brand-border/70 bg-[#faf8f5] dark:bg-[#071914] p-2 text-brand-text sm:p-4"
-          >
-            <DetailPanel
-              key={ownerId + ':' + row.id}
-              id={row.id}
-              ownerId={ownerId}
-              endpoint={endpoint}
-              canAuthor={canAuthor}
-            />
-          </div>
-        ) : null
-      }
       footer={
         <span>
           Showing <strong className="text-brand-text">{rows.length}</strong> records
         </span>
       }
     />
+    <Modal isOpen={Boolean(selected)} onClose={() => setOpened(null)} size="4xl"
+      title={selected ? `${selected.type ?? 'Audit record'} · ${formatMealTitle(selected.subject)}` : 'Audit record'}
+      description={selected ? `${selected.action} · ${selected.actor} · ${dateLabel(selected.occurredAt)}` : undefined}>
+      {selected && <section role="region" aria-label={selected.action + ' details'} className="space-y-5">
+        <DetailPanel key={ownerId + ':' + selected.id} id={selected.id} ownerId={ownerId} endpoint={endpoint} canAuthor={canAuthor} />
+      </section>}
+    </Modal>
+    </>
   );
 }
