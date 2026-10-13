@@ -45,3 +45,8 @@ After local commit `3b57835e`, the owner approved applying only this migration t
 - SMTP authentication/connectivity passed without sending mail. Real recipient inbox arrival remains unverified; the operator can submit a normal request and answer it from local `/admin/support` to exercise actual delivery.
 
 The local feature is activated. Public application deployment remains a separate step.
+
+
+## Contact form confirmation refinement
+
+The owner requested a Sonner confirmation instead of adding success content inside the form. A confirmed recorded request now shows `Support request received` in the existing global Sonner toaster, with reply address/reference in its description. The redundant email and FAQ shortcuts beneath this form were removed. The site's separate public footer remains available. Three support unit tests, five relevant browser journeys (desktop/mobile in both themes plus reduced motion), changed-file ESLint and the frontend production build pass. Browser checks compare the form height before and after success and confirm no inserted success block or form-footer shortcuts. No backend, schema, provider or shared record was changed for this refinement.

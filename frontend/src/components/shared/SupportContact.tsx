@@ -3,18 +3,18 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import Link from 'next/link';
 import { isAxiosError } from 'axios';
+import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
 import api from '@/lib/axios';
 import Input from '@/components/ui/Input';
 import Button from '@/components/ui/Button';
 import Dropdown from '@/components/ui/Dropdown';
-import { ArrowUpRight, Mail, CheckCircle } from '@/components/ui/icons';
+import { ArrowUpRight } from '@/components/ui/icons';
 import AuthMascot from '@/components/auth/AuthMascot';
 import AuthHeroPanel from '@/components/auth/AuthHeroPanel';
 import { SignInPage } from '@/components/ui/sign-in';
 import type { UserSession } from '@/lib/context/AuthContext';
 
-const supportEmail = 'chimairelp@gmail.com';
 const topics = { ACCOUNT: 'Account help', MEALS: 'Meals and planning', GROCERIES: 'Groceries', NOTIFICATIONS: 'Notifications', OTHER: 'Other question or feedback' };
 
 function SupportForm({ user, loading }: { user: UserSession | null; loading: boolean }) {
@@ -25,8 +25,6 @@ function SupportForm({ user, loading }: { user: UserSession | null; loading: boo
   const [pending, setPending] = useState(false);
   const [error, setError] = useState('');
   const [fieldError, setFieldError] = useState('');
-  const [reference, setReference] = useState('');
-  const [sentEmail, setSentEmail] = useState('');
   const submission = useRef<{ key: string; body: string } | null>(null);
   const sending = useRef(false);
   const controller = useRef<AbortController | null>(null);
@@ -35,7 +33,7 @@ function SupportForm({ user, loading }: { user: UserSession | null; loading: boo
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (sending.current || loading) return;
-    setReference(''); setError('');
+    setError('');
     if (!user) { setError('Log in to send your request. Your message is still here.'); return; }
     if (!user.emailVerified) { setError('Verify your email to send your request. Your message is still here.'); return; }
     if (message.trim().length < 20) { setFieldError('Add at least 20 characters so we can understand the problem.'); return; }
@@ -48,7 +46,10 @@ function SupportForm({ user, loading }: { user: UserSession | null; loading: boo
       const response = await api.post('/support/requests', { ...body, requestKey: submission.current.key }, { signal: request.signal });
       if (request.signal.aborted) return;
       if (response.data?.success !== true || response.data?.data?.status !== 'RECORDED' || !response.data.data.reference) throw new Error('Unconfirmed response');
-      setReference(response.data.data.reference); setSentEmail(email.trim()); setMessage(''); submission.current = null;
+      toast.success('Support request received', {
+        description: `We’ll reply to ${email.trim()}. Reference: ${response.data.data.reference}`,
+      });
+      setMessage(''); submission.current = null;
     } catch (failure) {
       if (request.signal.aborted) return;
       const code = isAxiosError(failure) ? failure.response?.data?.errorCode : '';
@@ -88,11 +89,6 @@ function SupportForm({ user, loading }: { user: UserSession | null; loading: boo
     {error && <div role="alert" className="text-sm leading-6 text-status-error-text"><p>{error}</p>
       {(!user || !user.emailVerified) && <Link href={user ? '/verify-email' : '/login'} className="mt-2 inline-flex min-h-11 items-center font-semibold text-brand-green underline underline-offset-4">{user ? 'Verify email' : 'Log in'}</Link>}
     </div>}
-    {reference && <div role="status" className="flex items-start gap-3 text-brand-text">
-      <CheckCircle className="mt-1 h-5 w-5 shrink-0 text-brand-green" />
-      <div><p className="font-semibold">Support request received</p><p className="mt-1 text-sm leading-6 text-brand-muted">Your message is saved in our support inbox. Replies will go to {sentEmail}.</p>
-        <p className="mt-2 break-all text-xs text-brand-muted">Reference: {reference}</p></div>
-    </div>}
     <Button type="submit" isLoading={pending} disabled={loading} className="min-h-12 w-full">Send a support request <ArrowUpRight className="h-4 w-4" /></Button>
   </form>;
 }
@@ -107,14 +103,6 @@ export default function SupportContact() {
       title="Send a support request"
       heroContent={<AuthHeroPanel embedded />}
       titleDecoration={<div className="w-[160px] lg:hidden"><AuthMascot size={160} /></div>}
-      footer={
-        <div className="space-y-3 text-center text-sm text-brand-muted">
-          <a href={`mailto:${supportEmail}`} className="inline-flex min-h-11 items-center gap-2 font-semibold text-brand-green underline underline-offset-4">
-            <Mail className="h-4 w-4" /> {supportEmail}
-          </a>
-          <div><Link href="/docs#faqs" className="inline-flex min-h-11 items-center font-semibold text-brand-green underline underline-offset-4">Browse the FAQs</Link></div>
-        </div>
-      }
     >
       <SupportForm key={user?.userId ?? 'visitor'} user={user} loading={isLoading} />
     </SignInPage>

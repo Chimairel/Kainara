@@ -71,11 +71,18 @@ for (const theme of ['light', 'dark']) for (const width of [390, 1440]) {
     await page.getByLabel('Reply email').fill('alternate@example.invalid');
     const message = page.getByLabel('Your message');
     await message.fill('The grocery checklist did not update after I clicked an item.');
+    const form = page.locator('.auth-card form');
+    const initialForm = (await form.boundingBox())!;
+    await expect(page.locator('.auth-card').locator('..').getByRole('link', { name: 'Browse the FAQs' })).toHaveCount(0);
     await page.getByRole('button', { name: 'Send a support request' }).click();
     await expect(page.getByRole('alert').filter({ hasText: 'Your message is still here' })).toBeVisible();
     await expect(message).not.toHaveValue('');
     await page.getByRole('button', { name: 'Send a support request' }).click();
-    await expect(page.getByText('Support request received', { exact: true })).toBeVisible();
+    await expect(page.locator('[data-sonner-toast]').getByText('Support request received', { exact: true })).toBeVisible();
+    await expect(form.getByText('Support request received')).toHaveCount(0);
+    const receivedForm = (await form.boundingBox())!;
+    expect(Math.abs(receivedForm.height - initialForm.height)).toBeLessThan(2);
+    await page.screenshot({ path: `../backend/.local/docs-support/support-toast-${width}-${theme}.png`, fullPage: true, style: 'nextjs-portal { display:none; }' });
     await expect(message).toHaveValue(''); expect(calls).toBe(2);
   });
 }
@@ -112,6 +119,6 @@ test('mobile reduced motion supports chapters, FAQ search and anonymous support'
   await page.getByLabel('Your message').fill('I need help accessing my Kainara account.');
   await page.getByRole('button', { name: 'Send a support request' }).click();
   await expect(page.getByRole('alert').filter({ hasText: 'Log in to send your request' })).toBeVisible();
-  await expect(page.getByRole('link', { name: 'chimairelp@gmail.com', exact: true }).first()).toHaveAttribute('href', 'mailto:chimairelp@gmail.com');
+  await expect(page.locator('.auth-card').locator('..').getByRole('link', { name: 'chimairelp@gmail.com', exact: true })).toHaveCount(0);
   await expect(page.getByRole('img', { name: 'Nara wearing her tanod costume' })).toBeVisible();
 });
