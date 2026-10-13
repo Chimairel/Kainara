@@ -10,10 +10,11 @@ export type AppIconProps = Omit<SVGProps<SVGSVGElement>, 'ref'> & {
 export type AppIcon = ReturnType<typeof adaptIcon>;
 export function adaptIcon(SolarIcon: ComponentType<IconProps>, name: string, tone: 'solid' | 'duotone' = 'solid') {
   const Icon = forwardRef<SVGSVGElement, AppIconProps>(
-    ({ size, strokeWidth = 1.7, secondaryColor, secondaryOpacity, className = '', ...props }, ref) => (
+    ({ size, color, strokeWidth = 1.7, secondaryColor, secondaryOpacity, className = '', ...props }, ref) => (
       <SolarIcon
         {...props}
         ref={ref}
+        color={color ?? (tone === 'duotone' ? 'var(--app-icon-primary, var(--brand-green))' : undefined)}
         className={`${tone === 'duotone' ? 'app-icon-filled app-icon-duotone ' : 'app-icon-filled '}${className}`}
         size={size}
         width={size ?? 24}

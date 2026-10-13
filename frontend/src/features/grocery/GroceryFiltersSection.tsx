@@ -2,7 +2,7 @@
 
 import Dropdown from '@/components/ui/Dropdown';
 import WorkspaceTabs from '@/components/ui/WorkspaceTabs';
-import { ChevronDown, Filter, RotateCcw, Search, X } from '@/components/ui/icons';
+import { RotateCcw, Search, X } from '@/components/ui/icons';
 import type { useGroceryWorkspace } from './useGroceryWorkspace';
 
 type Props = {
@@ -72,14 +72,11 @@ export default function GroceryFiltersSection({ model }: Props) {
 
             {/* Category Dropdown */}
             <div className="relative shrink-0 sm:w-56">
-              <div className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-brand-muted">
-                <Filter className="h-3.5 w-3.5" />
-              </div>
               <Dropdown
                 value={selectedCategory}
                 onChange={(e) => setSelectedCategory(e)}
                 aria-label="Filter by department category"
-                className="h-10 w-full appearance-none rounded-xl border border-brand-border/70 bg-brand-bgAlt/60 pl-10 pr-8 text-xs font-bold text-brand-text outline-none transition focus:border-brand-green/40 focus:ring-2 focus:ring-brand-green/15 cursor-pointer"
+                className="h-10 w-full appearance-none rounded-xl border border-brand-border/70 bg-brand-bgAlt/60 px-3 text-xs font-bold text-brand-text outline-none transition focus:border-brand-green/40 focus:ring-2 focus:ring-brand-green/15 cursor-pointer"
               >
                 <option value="ALL">All Departments ({totalItems})</option>
                 {allCategories.map((cat) => (
@@ -88,9 +85,6 @@ export default function GroceryFiltersSection({ model }: Props) {
                   </option>
                 ))}
               </Dropdown>
-              <div className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-brand-muted">
-                <ChevronDown className="h-3.5 w-3.5" />
-              </div>
             </div>
           </div>
 

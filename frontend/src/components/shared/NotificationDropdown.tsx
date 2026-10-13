@@ -71,45 +71,21 @@ export default function NotificationDropdown() {
       case 'PLAN_APPROVED':
       case 'OUTSIDE_MEAL_REVIEWED':
       case 'FLAG_RESOLVED':
-        return {
-          icon: <CheckCircle className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />,
-          surface:
-            'bg-emerald-500/10 border-emerald-500/20 text-emerald-600 dark:bg-emerald-500/15 dark:border-emerald-500/30 dark:text-emerald-400',
-        };
+        return <CheckCircle className="h-6 w-6 text-status-verified-text" />;
       case 'ASSIGNMENT':
       case 'MEMBERSHIP_UPDATED':
-        return {
-          icon: <Sprout className="w-3.5 h-3.5 text-brand-green dark:text-emerald-400" />,
-          surface:
-            'bg-brand-green/10 border-brand-green/20 text-brand-green dark:bg-emerald-500/15 dark:border-emerald-500/30 dark:text-emerald-400',
-        };
+        return <Sprout className="h-6 w-6" />;
       case 'PLAN_REJECTED':
       case 'MEAL_FLAGGED':
-        return {
-          icon: <AlertTriangle className="w-3.5 h-3.5 text-rose-600 dark:text-rose-400" />,
-          surface:
-            'bg-rose-500/10 border-rose-500/20 text-rose-600 dark:bg-rose-500/15 dark:border-rose-500/30 dark:text-rose-400',
-        };
+        return <AlertTriangle className="h-6 w-6 text-status-error-text" />;
       case 'OUTSIDE_MEAL_MORE_INFO':
       case 'NUTRITIONIST_APPLICATION':
       case 'REVIEW_REQUEST':
-        return {
-          icon: <ClipboardList className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />,
-          surface:
-            'bg-amber-500/10 border-amber-500/20 text-amber-600 dark:bg-amber-500/15 dark:border-amber-500/30 dark:text-amber-400',
-        };
+        return <ClipboardList className="h-6 w-6" />;
       case 'WEEKLY_CHECKIN':
-        return {
-          icon: <Calendar className="w-3.5 h-3.5 text-brand-green dark:text-emerald-400" />,
-          surface:
-            'bg-brand-green/10 border-brand-green/20 text-brand-green dark:bg-emerald-500/15 dark:border-emerald-500/30 dark:text-emerald-400',
-        };
+        return <Calendar className="h-6 w-6" />;
       default:
-        return {
-          icon: <Bell className="w-3.5 h-3.5 text-brand-muted dark:text-white/50" />,
-          surface:
-            'bg-brand-bgAlt border-brand-border/60 text-brand-muted dark:bg-white/[0.05] dark:border-white/[0.08] dark:text-white/60',
-        };
+        return <Bell className="h-6 w-6" />;
     }
   };
 
@@ -118,12 +94,12 @@ export default function NotificationDropdown() {
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className="group relative flex h-10 w-10 items-center justify-center rounded-full text-brand-muted hover:text-brand-text hover:bg-black/[0.05] dark:hover:bg-white/[0.08] active:scale-95 transition-all outline-none focus-visible:ring-2 focus-visible:ring-brand-green/40"
+        className="group relative flex h-10 w-10 items-center justify-center rounded-full text-brand-muted hover:text-brand-text active:scale-95 transition-all outline-none focus-visible:ring-2 focus-visible:ring-brand-green/40"
         aria-label="View notifications"
         aria-expanded={isOpen}
         aria-haspopup="dialog"
       >
-        <Bell className="h-5 w-5 transition-transform duration-200 group-hover:rotate-12" />
+        <Bell className="h-6 w-6 transition-transform duration-200 group-hover:rotate-12" />
 
         {unreadCount > 0 ? (
           <span className="absolute -top-0.5 -right-0.5 flex min-h-4 min-w-4 items-center justify-center rounded-full bg-brand-accent px-1 text-[8px] font-bold text-[#07100d] ring-2 ring-brand-bg shadow-sm">
@@ -141,8 +117,8 @@ export default function NotificationDropdown() {
           {/* Header */}
           <div className="flex items-center justify-between px-2.5 py-2">
             <div className="flex min-w-0 items-center gap-2.5">
-              <span className="relative flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border border-brand-green/20 bg-brand-green/10 text-brand-green dark:border-emerald-500/25 dark:bg-emerald-500/10 dark:text-emerald-400">
-                <Bell className="h-4 w-4" />
+              <span className="relative flex h-8 w-8 shrink-0 items-center justify-center">
+                <Bell className="h-6 w-6" />
                 {unreadCount > 0 && (
                   <span className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-emerald-500 ring-2 ring-brand-surface dark:ring-[#0c1813] animate-pulse" />
                 )}
@@ -183,7 +159,7 @@ export default function NotificationDropdown() {
                 onClick={toggleNotificationSound}
                 className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-brand-muted transition hover:bg-brand-bgAlt/70 hover:text-brand-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-green dark:text-white/50 dark:hover:bg-white/[0.06] dark:hover:text-white"
               >
-                {soundEnabled ? <Volume2 className="h-3.5 w-3.5" /> : <VolumeX className="h-3.5 w-3.5" />}
+                {soundEnabled ? <Volume2 className="h-5 w-5" /> : <VolumeX className="h-5 w-5" />}
               </button>
               {unreadCount > 0 && (
                 <button
@@ -214,8 +190,8 @@ export default function NotificationDropdown() {
               </div>
             ) : notifications.length === 0 ? (
               <div className="flex min-h-40 flex-col items-center justify-center gap-2 px-4 py-8 text-center">
-                <span className="flex h-10 w-10 items-center justify-center rounded-xl border border-brand-border/60 bg-brand-bgAlt text-brand-muted shadow-xs dark:border-[#173e33] dark:bg-white/[0.04] dark:text-white/40">
-                  <Inbox className="h-4 w-4 opacity-70" />
+                <span className="flex h-10 w-10 items-center justify-center">
+                  <Inbox className="h-8 w-8" />
                 </span>
                 <div>
                   <p className="text-xs font-bold text-brand-text dark:text-white/90">No notifications yet</p>
@@ -227,7 +203,7 @@ export default function NotificationDropdown() {
             ) : (
               <div className="space-y-1">
                 {notifications.map((notif) => {
-                  const meta = getIconForType(notif.type);
+                  const icon = getIconForType(notif.type);
                   return (
                     <button
                       key={notif.id}
@@ -258,10 +234,8 @@ export default function NotificationDropdown() {
                           : 'border border-transparent'
                       }`}
                     >
-                      <span
-                        className={`mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border ${meta.surface} transition-transform group-hover:scale-105`}
-                      >
-                        {meta.icon}
+                      <span data-notification-icon className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center">
+                        {icon}
                       </span>
                       <span className="min-w-0 flex-1">
                         <span className="flex items-start justify-between gap-1.5">

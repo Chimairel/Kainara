@@ -81,6 +81,7 @@ for (const theme of ['light', 'dark'])
         'Access-Control-Allow-Credentials': 'true',
         'Access-Control-Allow-Headers': 'Authorization, Content-Type',
       };
+      await page.route('**/deliberately-missing-meal.jpg', (route) => route.fulfill({ status: 404, body: '' }));
       await page.route('**/api/**', (route) => {
         const path = new URL(route.request().url()).pathname;
         if (route.request().method() === 'OPTIONS' || path.includes('/live/'))
@@ -90,7 +91,73 @@ for (const theme of ['light', 'dark'])
         if (path.endsWith('/user/profile')) data = profile;
         else if (path.endsWith('/clinical-profile-review/status')) data = { required: false, approved: true };
         else if (path.endsWith('/user/membership')) data = { enabled: false };
-        else if (path.endsWith('/notifications')) data = { notifications: [], unreadCount: 0 };
+        else if (path.endsWith('/notifications'))
+          data = {
+            notifications: [
+              {
+                id: 'palette-preview',
+                type: 'MEMBERSHIP_UPDATED',
+                title: 'Membership updated',
+                message: 'Synthetic preview notification.',
+                isRead: true,
+                createdAt: new Date().toISOString(),
+              },
+            ],
+            unreadCount: 0,
+          };
+        else if (path.endsWith('/user/grocery/workspace'))
+          data = {
+            current: {
+              scope: 'CURRENT',
+              cycle: {
+                id: 'grocery-preview',
+                startDate: today,
+                endDate: today,
+                status: 'ACTIVE',
+                deadlineOutcome: 'COMPLETE',
+                incompleteAcknowledgedAt: null,
+                shoppingStartedAt: null,
+              },
+              groceryList: {
+                id: 'grocery-list-preview',
+                weekLabel: 'Preview',
+                generatedAt: new Date().toISOString(),
+                groceryItems: [
+                  {
+                    id: 'water',
+                    ingredientName: 'Water',
+                    category: 'Beverages',
+                    quantity: 1,
+                    unit: 'L',
+                    isChecked: false,
+                    sourceMealCount: 1,
+                    isPantryStaple: false,
+                  },
+                  {
+                    id: 'rice',
+                    ingredientName: 'Rice',
+                    category: 'Other',
+                    quantity: 1,
+                    unit: 'kg',
+                    isChecked: false,
+                    sourceMealCount: 1,
+                    isPantryStaple: false,
+                  },
+                ],
+              },
+              coverage: { clearedSlotCount: 3, expectedSlotCount: 3, unresolvedSlotCount: 0 },
+              actionability: {
+                canCheckItems: true,
+                canExportPdf: true,
+                isFinal: true,
+                isIncomplete: false,
+                quantitiesMayIncrease: false,
+                requiresIncompleteAcknowledgment: false,
+                message: 'Ready',
+              },
+            },
+            upcoming: null,
+          };
         else if (path.endsWith('/checkin/status')) data = { isDue: false, hasPendingChanges: false };
         else if (path.endsWith('/water/today')) data = { totalMl: 0 };
         else if (path.endsWith('/user/meals/cycles')) data = { upcoming: null };
@@ -190,12 +257,63 @@ for (const theme of ['light', 'dark'])
           opacity: getComputedStyle(accent).opacity,
         };
       });
-      expect(paints).toEqual({ primary: 'rgb(13, 40, 32)', secondary: 'rgb(250, 248, 245)', opacity: '0.85' });
+      expect(paints).toEqual({ primary: 'rgb(247, 162, 73)', secondary: 'rgb(239, 180, 138)', opacity: '1' });
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
       await page.screenshot({
         path: `../backend/.local/meal-presentation-audit/${restoredImage ? 'cloudinary-' : ''}meals-${width}-${theme}.png`,
         fullPage: true,
         animations: 'disabled',
       });
+      await page.goto('/grocery');
+      const department = page.getByRole('combobox', { name: 'Filter by department category' });
+      await expect(department).toBeVisible();
+      // The shared Select supplies the only disclosure arrow, including while open.
+      await expect(department.locator('[data-app-icon="ChevronDown"]')).toHaveCount(1);
+      await expect(department.locator('xpath=../..').locator('[data-app-icon="ChevronDown"]')).toHaveCount(1);
+      await department.click();
+      await expect(department).toHaveAttribute('aria-expanded', 'true');
+      await page.getByRole('option', { name: 'Beverages (1)', exact: true }).click();
+      await expect(page.getByRole('cell', { name: 'Water', exact: true })).toBeVisible();
+      await expect(page.getByRole('cell', { name: 'Rice', exact: true })).toHaveCount(0);
+      await page.getByRole('button', { name: 'View notifications', exact: true }).click();
+      const inbox = page.getByRole('dialog', { name: 'Notifications', exact: true });
+      await expect(inbox.getByText('Membership updated', { exact: true })).toBeVisible();
+      const notificationPaints = await inbox.locator('[data-notification-icon]').evaluate((wrapper) => {
+        const svg = wrapper.querySelector('svg')!;
+        const accent = svg.querySelector('[style*="--solar-secondary-color"]')!;
+        return {
+          border: getComputedStyle(wrapper).borderTopWidth,
+          background: getComputedStyle(wrapper).backgroundColor,
+          size: getComputedStyle(svg).width,
+          primary: getComputedStyle(svg).color,
+          secondary: getComputedStyle(accent).color,
+          opacity: getComputedStyle(accent).opacity,
+        };
+      });
+      expect(notificationPaints).toEqual({
+        border: '0px',
+        background: 'rgba(0, 0, 0, 0)',
+        size: '24px',
+        primary: 'rgb(247, 162, 73)',
+        secondary: 'rgb(239, 180, 138)',
+        opacity: '1',
+      });
+      await page.screenshot({
+        path: `../backend/.local/meal-presentation-audit/grocery-notifications-${width}-${theme}.png`,
+        fullPage: true,
+        animations: 'disabled',
+      });
+      await page.keyboard.press('Escape');
+      await page
+        .locator(
+          width < 768 ? 'nav[aria-label="Mobile navigation"] [aria-label="Profile"]' : 'aside [aria-haspopup="menu"]'
+        )
+        .click();
+      const account = page.getByRole('menu', { name: 'Account menu' });
+      await expect(account).toBeVisible();
+      const accountPaint = await account
+        .locator('[data-app-icon="Settings"]')
+        .evaluate((svg) => getComputedStyle(svg).color);
+      expect(accountPaint).toBe('rgb(247, 162, 73)');
     });
   }
