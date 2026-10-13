@@ -138,16 +138,6 @@ html.dark {
   --sidebar-hover: #0e271f;
 }
 
-/* Owner-selected Solar palette: black details and peach filled shapes.
- * One opaque pair across themes and surfaces; explicit props may customize layers.
- * Solid status symbols retain semantic colors. */
-.app-icon-duotone {
-  --app-icon-primary: #000000;
-  --app-icon-accent: #efb48a;
-  --solar-secondary-color: var(--app-icon-accent);
-  --solar-secondary-opacity: var(--app-icon-accent-opacity, 1);
-}
-
 /*
  * Tailwind opacity variant fallback safety guards
  */

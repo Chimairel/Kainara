@@ -1,21 +1,21 @@
 import { forwardRef, type ComponentType, type SVGProps } from 'react';
 import type { IconProps } from '@solar-icons/react/lib/types';
 
-/** Shared dimensions and accessible labels; theme accents apply to duotone icons, while status symbols retain their meaning. */
+/** Thick linear Solar strokes; inherit themed control colors and preserve semantic status colors. */
 export type AppIconProps = Omit<SVGProps<SVGSVGElement>, 'ref'> & {
   size?: string | number;
   secondaryColor?: string;
   secondaryOpacity?: number;
 };
 export type AppIcon = ReturnType<typeof adaptIcon>;
-export function adaptIcon(SolarIcon: ComponentType<IconProps>, name: string, tone: 'solid' | 'duotone' = 'solid') {
+export function adaptIcon(SolarIcon: ComponentType<IconProps>, name: string) {
   const Icon = forwardRef<SVGSVGElement, AppIconProps>(
-    ({ size, color, strokeWidth = 1.7, secondaryColor, secondaryOpacity, className = '', ...props }, ref) => (
+    ({ size, color, strokeWidth = 2.25, secondaryColor, secondaryOpacity, className = '', ...props }, ref) => (
       <SolarIcon
         {...props}
         ref={ref}
-        color={color ?? (tone === 'duotone' ? 'var(--app-icon-primary, var(--brand-green))' : undefined)}
-        className={`${tone === 'duotone' ? 'app-icon-filled app-icon-duotone ' : 'app-icon-filled '}${className}`}
+        color={color}
+        className={`app-icon-linear ${className}`}
         size={size}
         width={size ?? 24}
         height={size ?? 24}

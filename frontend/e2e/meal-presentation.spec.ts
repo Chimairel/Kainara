@@ -242,22 +242,20 @@ for (const theme of ['light', 'dark'])
         .toBeGreaterThan(0);
       await page.getByText('French Toast', { exact: true }).scrollIntoViewIfNeeded();
       expect(
-        await page
-          .locator('.solar[class*="-linear"], .solar[class*="-line-duotone"], .solar[class*="-outline"]')
-          .count()
+        await page.locator('.solar[class*="-bold"], .solar[class*="-duotone"], .solar[class*="-outline"]').count()
       ).toBe(0);
       const navigation = page.locator(width < 768 ? 'nav[aria-label="Mobile navigation"]' : 'aside');
-      const selected = navigation.locator('[aria-current="page"] .app-icon-duotone').first();
+      const selected = navigation.locator('[aria-current="page"] .app-icon-linear').first();
       await expect(selected).toBeVisible();
       const paints = await selected.evaluate((svg) => {
-        const accent = svg.querySelector('[style*="--solar-secondary-color"]')!;
         return {
-          primary: getComputedStyle(svg).color,
-          secondary: getComputedStyle(accent).color,
-          opacity: getComputedStyle(accent).opacity,
+          color: getComputedStyle(svg).color,
+          inheritedColor: getComputedStyle(svg.parentElement!).color,
+          stroke: Number.parseFloat(getComputedStyle(svg).strokeWidth),
         };
       });
-      expect(paints).toEqual({ primary: 'rgb(247, 162, 73)', secondary: 'rgb(239, 180, 138)', opacity: '1' });
+      expect(paints.color).toBe(paints.inheritedColor);
+      expect(paints.stroke).toBe(2.25);
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
       await page.screenshot({
         path: `../backend/.local/meal-presentation-audit/${restoredImage ? 'cloudinary-' : ''}meals-${width}-${theme}.png`,
@@ -280,24 +278,22 @@ for (const theme of ['light', 'dark'])
       await expect(inbox.getByText('Membership updated', { exact: true })).toBeVisible();
       const notificationPaints = await inbox.locator('[data-notification-icon]').evaluate((wrapper) => {
         const svg = wrapper.querySelector('svg')!;
-        const accent = svg.querySelector('[style*="--solar-secondary-color"]')!;
         return {
           border: getComputedStyle(wrapper).borderTopWidth,
           background: getComputedStyle(wrapper).backgroundColor,
           size: getComputedStyle(svg).width,
-          primary: getComputedStyle(svg).color,
-          secondary: getComputedStyle(accent).color,
-          opacity: getComputedStyle(accent).opacity,
+          color: getComputedStyle(svg).color,
+          inheritedColor: getComputedStyle(wrapper).color,
+          stroke: Number.parseFloat(getComputedStyle(svg).strokeWidth),
         };
       });
-      expect(notificationPaints).toEqual({
+      expect(notificationPaints).toMatchObject({
         border: '0px',
         background: 'rgba(0, 0, 0, 0)',
         size: '24px',
-        primary: 'rgb(247, 162, 73)',
-        secondary: 'rgb(239, 180, 138)',
-        opacity: '1',
+        stroke: 2.25,
       });
+      expect(notificationPaints.color).toBe(notificationPaints.inheritedColor);
       await page.screenshot({
         path: `../backend/.local/meal-presentation-audit/grocery-notifications-${width}-${theme}.png`,
         fullPage: true,
@@ -313,7 +309,13 @@ for (const theme of ['light', 'dark'])
       await expect(account).toBeVisible();
       const accountPaint = await account
         .locator('[data-app-icon="Settings"]')
-        .evaluate((svg) => getComputedStyle(svg).color);
-      expect(accountPaint).toBe('rgb(247, 162, 73)');
+        .evaluate((svg) => ({
+          stroke: Number.parseFloat(getComputedStyle(svg).strokeWidth),
+          color: getComputedStyle(svg).color,
+          className: svg.getAttribute('class'),
+        }));
+      expect(accountPaint.stroke).toBe(2.25);
+      expect(accountPaint.className).toContain('solar-settings-linear');
+      expect(accountPaint.color).not.toBe('rgb(0, 0, 0)');
     });
   }

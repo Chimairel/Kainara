@@ -58,7 +58,7 @@ for (const role of ['ADMIN', 'NUTRITIONIST'] as const) {
         if (role === 'ADMIN') {
           await expect(page.getByText('Member accounts', { exact: true })).toBeVisible();
           const refresh = page.getByRole('button', { name: 'Refresh statistics' });
-          await expect(refresh.locator('.solar-refresh-bold')).toBeVisible();
+          await expect(refresh.locator('.solar-refresh-linear')).toBeVisible();
           expect(await refresh.locator('svg').evaluate((svg) => getComputedStyle(svg).width)).toBe('14px');
           const previous = analyticsRequests;
           await refresh.click();
@@ -67,7 +67,7 @@ for (const role of ['ADMIN', 'NUTRITIONIST'] as const) {
           await expect(page.getByRole('table', { name: 'Recorded AI operations' })).toBeVisible();
         } else if (width < 1024) {
           await expect(page.getByRole('heading', { name: 'Use a desktop to review meals' })).toBeVisible();
-          await expect(page.locator('main .solar-monitor-bold-duotone')).toBeVisible();
+          await expect(page.locator('main .solar-monitor-linear')).toBeVisible();
         } else {
           await expect(page.getByRole('navigation', { name: 'RND review queues' })).toBeVisible();
           await page.getByRole('button', { name: 'Meal verification', exact: true }).click();
@@ -81,22 +81,19 @@ for (const role of ['ADMIN', 'NUTRITIONIST'] as const) {
             'true'
           );
         }
-        const context = page.locator('.app-icon-duotone:visible').first();
+        const context = page.locator('.app-icon-linear[data-app-icon="Bell"]:visible').first();
         await expect(context).toBeVisible();
         const paints = await context.evaluate((svg) => {
-          const accent = svg.querySelector('[style*="--solar-secondary-color"]')!;
           return {
-            primary: getComputedStyle(svg).color,
-            secondary: getComputedStyle(accent).color,
-            opacity: Number(getComputedStyle(accent).opacity),
+            color: getComputedStyle(svg).color,
+            inheritedColor: getComputedStyle(svg.parentElement!).color,
+            stroke: Number.parseFloat(getComputedStyle(svg).strokeWidth),
           };
         });
-        expect(paints.primary).not.toBe(paints.secondary);
-        expect(paints.opacity).toBeGreaterThanOrEqual(0.65);
+        expect(paints.color).toBe(paints.inheritedColor);
+        expect(paints.stroke).toBe(2.25);
         expect(
-          await page
-            .locator('.solar[class*="-linear"], .solar[class*="-line-duotone"], .solar[class*="-outline"]')
-            .count()
+          await page.locator('.solar[class*="-bold"], .solar[class*="-duotone"], .solar[class*="-outline"]').count()
         ).toBe(0);
         const icons = page.locator('main .solar:visible');
         expect(await icons.count()).toBeGreaterThan(0);
