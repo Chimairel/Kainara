@@ -51,7 +51,7 @@ export default function HealthDetailsInbox({
   return (
     <ProfileSettingsSurface className="overflow-hidden">
       <section aria-label="Health forms inbox">
-        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-brand-border px-5 py-4 sm:px-6">
+        <div className="flex flex-col items-start gap-1 border-b border-brand-border px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:gap-2 sm:px-6">
           <h2 className="font-display text-xl font-semibold">
             Your forms <span className="ml-1 text-sm font-normal tabular-nums text-brand-muted">{items.length}</span>
           </h2>
@@ -154,12 +154,12 @@ export default function HealthDetailsInbox({
             ref={reader}
             tabIndex={-1}
             aria-label={selected?.title ?? 'Form reader'}
-            className={`${mobileReader ? '' : 'hidden lg:block'} min-w-0 p-5 outline-none sm:p-7 lg:p-8`}
+            className={`${mobileReader ? '' : 'hidden lg:block'} min-w-0 p-4 outline-none sm:p-7 lg:p-8`}
           >
             <button
               type="button"
               onClick={() => setMobileReader(false)}
-              className="mb-5 inline-flex min-h-11 items-center gap-2 text-sm font-semibold text-brand-green lg:hidden"
+              className="mb-3 inline-flex min-h-11 items-center gap-2 text-sm font-semibold text-brand-green sm:mb-5 lg:hidden"
             >
               <ArrowLeft aria-hidden="true" size={16} />
               Back to forms

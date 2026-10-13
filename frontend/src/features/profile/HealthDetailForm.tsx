@@ -57,10 +57,12 @@ export default function HealthDetailForm({
   return (
     <form
       onSubmit={onSave}
-      className={embedded ? 'space-y-6' : 'space-y-4 rounded-2xl border border-brand-border bg-brand-surface p-5'}
+      className={
+        embedded ? 'space-y-5 sm:space-y-6' : 'space-y-4 rounded-2xl border border-brand-border bg-brand-surface p-5'
+      }
     >
       {embedded ? (
-        <header className="border-b border-brand-border pb-5">
+        <header className="border-b border-brand-border pb-4 sm:pb-5">
           <ProfileSectionHeader
             level={3}
             title={healthAreaLabel(area)}
@@ -87,7 +89,7 @@ export default function HealthDetailForm({
           </div>
         </fieldset>
       )}
-      {area === 'FOOD_ALLERGY' && (
+      {area === 'FOOD_ALLERGY' && !embedded && (
         <p className="max-w-prose text-sm leading-relaxed text-brand-muted">
           Describe your declared food allergies, intolerances and avoided foods, including triggers and reactions. These
           answers are saved separately from your condition details.
@@ -104,7 +106,7 @@ export default function HealthDetailForm({
               rows={3}
               value={answers[field]}
               onChange={(event) => onChange(field, event.target.value)}
-              className="mt-2 block w-full rounded-xl border border-brand-border bg-brand-bgAlt/30 p-3 font-normal focus:outline-none focus:ring-2 focus:ring-brand-green/40 disabled:opacity-70"
+              className="mt-2 block w-full rounded-xl border border-brand-border bg-brand-bgAlt/30 p-3 text-base font-normal leading-relaxed focus:outline-none focus:ring-2 focus:ring-brand-green/40 disabled:opacity-70 sm:text-sm"
             />
           </label>
         ))}

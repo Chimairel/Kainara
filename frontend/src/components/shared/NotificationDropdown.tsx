@@ -112,11 +112,11 @@ export default function NotificationDropdown() {
         <div
           role="dialog"
           aria-label="Notifications"
-          className="absolute right-0 top-[calc(100%+8px)] z-50 flex max-h-[min(34rem,calc(100vh-5.5rem))] w-[min(24rem,calc(100vw-1.5rem))] sm:w-[26rem] flex-col overflow-hidden rounded-2xl border border-brand-border/90 bg-brand-surface p-1.5 shadow-[0_20px_50px_rgba(0,0,0,0.18)] backdrop-blur-xl transition-all duration-150 dark:border-[#173e33] dark:bg-[#0c1813]/95 dark:shadow-[0_25px_60px_rgba(0,0,0,0.65)] animate-in fade-in zoom-in-95 duration-150"
+          className="absolute right-0 top-[calc(100%+8px)] z-50 flex max-h-[min(34rem,calc(100dvh-11rem))] w-[min(24rem,calc(100vw-2.5rem))] sm:max-h-[min(34rem,calc(100dvh-7rem))] sm:w-[26rem] flex-col overflow-hidden rounded-2xl border border-brand-border/90 bg-brand-surface p-1.5 shadow-[0_20px_50px_rgba(0,0,0,0.18)] backdrop-blur-xl transition-all duration-150 dark:border-[#173e33] dark:bg-[#0c1813]/95 dark:shadow-[0_25px_60px_rgba(0,0,0,0.65)] animate-in fade-in zoom-in-95 duration-150"
         >
           {/* Header */}
-          <div className="flex items-center justify-between px-2.5 py-2">
-            <div className="flex min-w-0 items-center gap-2.5">
+          <div className="flex shrink-0 flex-col gap-2 px-2.5 py-2 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex min-w-0 flex-1 items-center gap-2.5">
               <span className="relative flex h-8 w-8 shrink-0 items-center justify-center">
                 <Bell className="h-6 w-6" />
                 {unreadCount > 0 && (
@@ -124,25 +124,22 @@ export default function NotificationDropdown() {
                 )}
               </span>
               <div className="min-w-0">
-                <div className="flex items-center gap-1.5">
-                  <h3 className="text-xs font-bold text-brand-text dark:text-white/95">Notifications</h3>
-                  {unreadCount > 0 && (
-                    <span className="rounded-full border border-brand-green/25 bg-brand-green/15 px-1.5 py-0.2 font-mono text-[9px] font-bold text-brand-green dark:border-emerald-500/30 dark:bg-emerald-500/15 dark:text-emerald-400">
-                      {unreadCount} new
-                    </span>
-                  )}
-                </div>
-                <p className="truncate text-[10px] font-medium text-brand-muted dark:text-white/45">
+                <h3 className="text-sm font-bold text-brand-text dark:text-white/95">Notifications</h3>
+                <p className="mt-0.5 truncate text-xs text-brand-muted dark:text-white/55">
                   {unreadCount > 0
                     ? `${unreadCount} unread update${unreadCount === 1 ? '' : 's'}`
                     : 'All caught up with updates'}
                 </p>
               </div>
             </div>
-            <div className="flex shrink-0 items-center gap-1">
+            <div
+              role="group"
+              aria-label="Notification controls"
+              className="flex shrink-0 items-center gap-1 border-t border-brand-border/60 pt-1 sm:border-0 sm:pt-0"
+            >
               <button
                 type="button"
-                className="rounded-lg px-2 py-1 text-[10px] font-bold text-brand-green"
+                className="mr-auto min-h-11 whitespace-nowrap rounded-lg px-2 text-xs font-semibold text-brand-green hover:bg-brand-bgAlt/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-green sm:mr-0 sm:text-[10px]"
                 onClick={() => {
                   setIsOpen(false);
                   setDeviceSettingsOpen(true);
@@ -157,7 +154,7 @@ export default function NotificationDropdown() {
                 aria-checked={soundEnabled}
                 title={soundEnabled ? 'Mute notification sound' : 'Enable and preview notification sound'}
                 onClick={toggleNotificationSound}
-                className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-brand-muted transition hover:bg-brand-bgAlt/70 hover:text-brand-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-green dark:text-white/50 dark:hover:bg-white/[0.06] dark:hover:text-white"
+                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-brand-muted transition hover:bg-brand-bgAlt/70 hover:text-brand-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-green dark:text-white/60 dark:hover:bg-white/[0.06] dark:hover:text-white"
               >
                 {soundEnabled ? <Volume2 className="h-5 w-5" /> : <VolumeX className="h-5 w-5" />}
               </button>
@@ -167,9 +164,9 @@ export default function NotificationDropdown() {
                   onClick={markAllAsRead}
                   aria-label="Mark all notifications as read"
                   title="Mark all notifications as read"
-                  className="group flex shrink-0 items-center gap-1 rounded-lg px-2 py-1 text-[10px] font-semibold text-brand-muted transition hover:bg-brand-bgAlt/70 hover:text-brand-green focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-green active:scale-95 dark:text-white/60 dark:hover:bg-white/[0.06] dark:hover:text-emerald-400"
+                  className="group flex min-h-11 min-w-11 shrink-0 items-center justify-center gap-1 rounded-lg px-2 text-[10px] font-semibold text-brand-muted transition hover:bg-brand-bgAlt/70 hover:text-brand-green focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-green active:scale-95 dark:text-white/60 dark:hover:bg-white/[0.06] dark:hover:text-emerald-400"
                 >
-                  <CheckCheck className="h-3 w-3 text-brand-muted transition group-hover:text-brand-green dark:text-white/50 dark:group-hover:text-emerald-400" />
+                  <CheckCheck className="h-5 w-5 text-brand-muted transition group-hover:text-brand-green dark:text-white/60 dark:group-hover:text-emerald-400" />
                   <span className="hidden sm:inline">Mark read</span>
                 </button>
               )}
@@ -178,7 +175,7 @@ export default function NotificationDropdown() {
 
           <div className="my-1 h-px bg-brand-border/60 dark:bg-white/[0.07]" />
 
-          <div className="custom-scrollbar flex-1 overflow-y-auto px-1 py-1 space-y-1.5">
+          <div className="custom-scrollbar min-h-0 flex-1 overflow-y-auto overscroll-contain px-1 py-1 space-y-1.5">
             {isLoading ? (
               <div className="space-y-1.5 py-1" aria-label="Loading notifications">
                 {[0, 1, 2].map((item) => (
@@ -240,7 +237,7 @@ export default function NotificationDropdown() {
                       <span className="min-w-0 flex-1">
                         <span className="flex items-start justify-between gap-1.5">
                           <span
-                            className={`text-xs font-semibold leading-snug line-clamp-1 ${
+                            className={`min-w-0 text-xs font-semibold leading-snug line-clamp-2 sm:line-clamp-1 ${
                               !notif.isRead
                                 ? 'text-brand-text dark:text-white/95'
                                 : 'text-brand-muted dark:text-white/60'
@@ -257,7 +254,7 @@ export default function NotificationDropdown() {
                             )}
                           </span>
                         </span>
-                        <span className="mt-0.5 line-clamp-2 block text-[11px] leading-relaxed text-brand-muted dark:text-white/55">
+                        <span className="mt-1 line-clamp-3 break-words text-xs leading-relaxed text-brand-muted dark:text-white/55 sm:line-clamp-2 sm:text-[11px]">
                           {notif.message}
                         </span>
                       </span>

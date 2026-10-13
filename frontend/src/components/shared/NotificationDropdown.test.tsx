@@ -184,7 +184,8 @@ describe('NotificationDropdown', () => {
     expect(screen.getByRole('dialog', { name: /notifications/i })).toBeInTheDocument();
     expect(screen.getByText('Weekly Plan Approved')).toBeInTheDocument();
     expect(screen.getByText('Outside Meal Recorded')).toBeInTheDocument();
-    expect(screen.getByText(/2 new/i)).toBeInTheDocument();
+    expect(screen.getByText('2 unread updates')).toBeInTheDocument();
+    expect(screen.queryByText(/2 new/i)).not.toBeInTheDocument();
     expect(screen.queryByText('Planner Status')).not.toBeInTheDocument();
     expect(screen.queryByText('Starter Plan Active')).not.toBeInTheDocument();
     expect(api.get).not.toHaveBeenCalled();
