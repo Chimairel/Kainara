@@ -146,11 +146,11 @@ export const Sidebar: React.FC<SidebarProps> = ({ className = '' }) => {
               type="button"
               onClick={toggleCollapse}
               aria-label="Open sidebar"
-              className="group/sidebar-toggle relative flex h-12 w-12 cursor-ew-resize items-center justify-center rounded-full outline-none transition-transform duration-200 hover:scale-105 focus-visible:ring-2 focus-visible:ring-brand-green/40"
+              className="group/sidebar-toggle relative flex h-12 w-12 cursor-ew-resize items-center justify-center rounded-full text-white/60 outline-none transition-transform duration-200 hover:scale-105 hover:text-white focus-visible:ring-2 focus-visible:ring-brand-green/40"
             >
               <div className="relative flex h-full w-full items-center justify-center rounded-full overflow-hidden">
                 <KainaraLogo className="h-12 w-12 transition-all duration-150 group-hover/sidebar-toggle:scale-75 group-hover/sidebar-toggle:opacity-0" />
-                <PanelLeftOpen className="absolute h-7 w-7 scale-75 opacity-0 transition-all duration-150 group-hover/sidebar-toggle:scale-100 group-hover/sidebar-toggle:opacity-100 text-brand-green" />
+                <PanelLeftOpen className="absolute h-6 w-6 scale-75 opacity-0 transition-all duration-150 group-hover/sidebar-toggle:scale-100 group-hover/sidebar-toggle:opacity-100" />
               </div>
               <span className="absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full border-2 border-[#0d1713] bg-brand-cyan transition-opacity group-hover/sidebar-toggle:opacity-0" />
               <SidebarTooltip id="sidebar-open-tooltip" label="Open sidebar" placement="side" />
@@ -311,9 +311,9 @@ export const Sidebar: React.FC<SidebarProps> = ({ className = '' }) => {
                 aria-describedby="sidebar-close-tooltip"
                 aria-controls="nutrimind-sidebar-navigation"
                 aria-expanded={true}
-                className="flex h-10 w-10 cursor-ew-resize items-center justify-center rounded-xl border border-[#173e33] bg-[#0e271f] text-emerald-400/80 outline-none transition hover:border-[#f09e6c]/40 hover:bg-[#163930] hover:text-white focus-visible:ring-2 focus-visible:ring-brand-cyan/70"
+                className="flex h-11 w-11 cursor-ew-resize items-center justify-center rounded-full text-white/60 outline-none transition-colors hover:text-white focus-visible:ring-2 focus-visible:ring-brand-cyan/70"
               >
-                <PanelLeftClose className="h-[18px] w-[18px]" />
+                <PanelLeftClose className="h-6 w-6" />
               </button>
               <SidebarTooltip id="sidebar-close-tooltip" label="Close sidebar" placement="below" />
             </div>
