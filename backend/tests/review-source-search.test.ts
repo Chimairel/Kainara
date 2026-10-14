@@ -76,7 +76,7 @@ test('RND search reads past the first chunk, counts all matches and revalidates 
   t.mock.method(prisma.mealPlan, 'findMany', async () => []);
   t.mock.method(prisma.mealReviewLineage, 'findMany', async () => [{ key: 'source:held' }]);
   const pool = [
-    ...Array.from({ length: 130 }, (_, i) => recipe(String(i).padStart(3, '0'))),
+    ...Array.from({ length: 650 }, (_, i) => recipe(String(i).padStart(3, '0'))),
     { ...recipe('allergen'), ingredients: [{ name: 'peanuts', quantity: 100, unit: 'g' }] },
     { ...recipe('unknown'), extendedNutrients: {} },
     recipe('held'),
@@ -94,8 +94,8 @@ test('RND search reads past the first chunk, counts all matches and revalidates 
       );
       const start = Number(input.cursor ?? 0);
       return {
-        items: rows.slice(start, start + 120),
-        nextCursor: start + 120 < rows.length ? String(start + 120) : null,
+        items: rows.slice(start, start + input.limit),
+        nextCursor: start + input.limit < rows.length ? String(start + input.limit) : null,
       };
     }
   );
@@ -117,17 +117,17 @@ test('RND search reads past the first chunk, counts all matches and revalidates 
     planningTargets: null,
   } as unknown as Parameters<typeof searchReviewSourceSwaps>[1];
   const first = await searchReviewSourceSwaps(plan, context, { sugarG: { max: 10 } });
-  assert.equal(first.total, 130);
+  assert.equal(first.total, 650);
   assert.equal(first.items.length, 24);
   assert.equal(first.unknownExcludedCount, 1);
   assert.ok(first.nextCursor);
-  assert.ok(calls.some((x) => x.cursor === '120'));
+  assert.ok(calls.some((x) => x.cursor === '600' && x.reviewPoolScan === true));
   assert.ok(first.items.every((x) => x.option.requiresReview));
-  const selected = await searchReviewSourceSwaps(plan, context, { sugarG: { max: 10 } }, undefined, '129');
+  const selected = await searchReviewSourceSwaps(plan, context, { sugarG: { max: 10 } }, undefined, '649');
   assert.equal(selected.total, 1);
-  assert.equal(selected.items[0].option.id, 'review-source:129');
-  assert.ok(calls.some((x) => x.candidateId === '129'));
-  const changed = await searchReviewSourceSwaps(plan, context, { sugarG: { max: 1 } }, undefined, '129');
+  assert.equal(selected.items[0].option.id, 'review-source:649');
+  assert.ok(calls.some((x) => x.candidateId === '649' && !x.reviewPoolScan));
+  const changed = await searchReviewSourceSwaps(plan, context, { sugarG: { max: 1 } }, undefined, '649');
   assert.equal(changed.total, 0);
 });
 
@@ -178,4 +178,7 @@ test('exact source lookup retains exclusions without overwriting the selected id
     equals: 'later-choice',
     notIn: ['current', 'held'],
   });
+  assert.equal((captured as { take: number }).take, 121);
+  await databaseRecipeCandidateProvider.list({ limit: 2000, reviewPoolScan: true, hydrateIngredients: false });
+  assert.equal((captured as { take: number }).take, 601);
 });

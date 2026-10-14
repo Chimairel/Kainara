@@ -193,13 +193,14 @@ export class DatabaseRecipeCandidateProvider implements RecipeCandidateProvider 
     candidateId?: string;
     hydrateIngredients?: boolean;
     includeEstimatedNutrients?: boolean;
+    reviewPoolScan?: boolean;
     calorieMinimum?: number;
     calorieMaximum?: number;
     excludeIds?: readonly string[];
     cursor?: string;
     limit: number;
   }): Promise<CandidatePage> {
-    const limit = Math.max(1, Math.min(input.limit, 120));
+    const limit = Math.max(1, Math.min(input.limit, input.reviewPoolScan ? 600 : 120));
     const cursor = decodeCursor(input.cursor);
     const rows = await prisma.rawRecipeCandidate.findMany({
       where: {

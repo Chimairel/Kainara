@@ -9,6 +9,17 @@ const preview = {
   options: [{ id: 'meal', mealName: 'Soup', recipeSignature: 'b'.repeat(64), evidenceRevision: 2, ingredients: [] }],
 };
 beforeEach(() => vi.resetAllMocks());
+it('explains search timeouts and allows a clean retry without refreshing the review', async () => {
+  vi.mocked(api.get).mockRejectedValueOnce({ code: 'ECONNABORTED' }).mockResolvedValueOnce({ data: { data: preview } });
+  const { result } = renderHook(() => useReviewSwap('case', true, vi.fn(async () => {})));
+  await act(() => result.current.load());
+  expect(result.current.error).toMatch(/search took too long.*Refresh options/);
+  expect(result.current.loading).toBe(false);
+  expect(result.current.data).toBeNull();
+  await act(() => result.current.load());
+  expect(result.current.error).toBe('');
+  expect(result.current.data).toEqual(preview);
+});
 it('requires selection and rationale, sends immutable version fields, and prevents double submissions', async () => {
   vi.mocked(api.get).mockResolvedValue({ data: { data: preview } });
   let finish!: (value: unknown) => void;

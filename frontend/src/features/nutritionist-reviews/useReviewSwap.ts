@@ -34,6 +34,13 @@ type Options = {
 };
 const message = (error: unknown) =>
   getApiErrorMessage(error, 'Unable to load or save the replacement. Refresh the review and try again.');
+const searchMessage = (error: unknown) => {
+  const code = error && typeof error === 'object' && 'code' in error ? error.code : null;
+  if (code === 'ECONNABORTED' || code === 'ETIMEDOUT')
+    return 'The meal catalogue search took too long. Retry with Refresh options.';
+  if (code === 'ERR_NETWORK') return 'Could not reach the server. Check the connection and retry with Refresh options.';
+  return getApiErrorMessage(error, 'Unable to load replacements. Retry with Refresh options.');
+};
 
 /** State belongs to the case, outside the canvas fullscreen portal. */
 export function useReviewSwap(
@@ -118,7 +125,7 @@ export function useReviewSwap(
       if (generation === scope.current && !controller.signal.aborted) setData(response.data.data);
     } catch (failure) {
       if (generation === scope.current && !controller.signal.aborted && !onInvalidated?.(failure))
-        setError(message(failure));
+        setError(searchMessage(failure));
     } finally {
       if (generation === scope.current && !controller.signal.aborted) setLoading(false);
     }

@@ -225,11 +225,12 @@ export async function searchReviewSourceSwaps(
         mealType: plan.mealType,
         dietaryPreference: validation.dietaryPreference,
         excludeIds: excludedIds,
-        limit: 120,
+        limit: candidateId ? 120 : 600,
         cursor: sourceCursor,
         candidateId,
         hydrateIngredients: false,
         includeEstimatedNutrients: true,
+        reviewPoolScan: !candidateId,
       });
       candidates.push(...page.items);
       sourceCursor = page.nextCursor ?? undefined;

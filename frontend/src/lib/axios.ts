@@ -45,7 +45,7 @@ api.interceptors.request.use((config) => {
     config.timeout === api.defaults.timeout &&
     config.method === 'get' &&
     (/^\/user\/meals\/(current|workspace)$/.test(config.url ?? '') ||
-      /^\/nutritionist\/(queue(?:\/[^/]+(?:\/condition-reviews)?)?|review-work-counts|profile-work(?:\/[^/]+)?|profile-reviews\/[^/]+)$/.test(
+      /^\/nutritionist\/(queue(?:\/[^/]+(?:\/(?:condition-reviews|swap-options))?)?|review-work-counts|profile-work(?:\/[^/]+)?|profile-reviews\/[^/]+)$/.test(
         config.url ?? ''
       ))
   ) {

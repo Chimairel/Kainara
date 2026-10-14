@@ -58,6 +58,8 @@ export interface RecipeCandidateProvider {
     candidateId?: string;
     hydrateIngredients?: boolean;
     includeEstimatedNutrients?: boolean;
+    /** Internal RND catalogue scan; normal provider pages remain capped at 120. */
+    reviewPoolScan?: boolean;
     calorieMinimum?: number;
     calorieMaximum?: number;
     excludeIds?: readonly string[];
