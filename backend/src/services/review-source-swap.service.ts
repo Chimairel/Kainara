@@ -43,8 +43,8 @@ export async function bestReviewSourceSwap(plan: Plan, context: Context, filters
   const plateFor = (candidate: Parameters<typeof rawRecipeServing>[0]['candidate']) => rawRecipeServing({ candidate,
     mealType: plan.mealType, dailyCalorieTarget: snapshot.dailyCalorieTarget, ricePreference: snapshot.ricePreference,
     riceFood: rice, macroTarget: macros.budget, scoreNutrition: macros.scoreReplacement });
-  // Source projections contain macros only. Extended nutrients stay unknown, rather than being inferred by AI.
-  const nutrientsFor = (plate: NonNullable<ReturnType<typeof rawRecipeServing>>) => plateNutrients(plate.nutrition!, rice ? {
+  // Carry recorded source nutrients through the same serving scale and rice calculation.
+  const nutrientsFor = (plate: NonNullable<ReturnType<typeof rawRecipeServing>>) => plateNutrients({ ...plate.extendedNutrients, ...plate.nutrition! }, rice ? {
     ...rice, sugarG: rice.sugar, sodiumMg: rice.sodium, fiberG: rice.fiber, potassiumMg: rice.potassium,
     phosphorusMg: rice.phosphorus, saturatedFatG: rice.saturatedFat,
   } : null, plate.pairedRiceG);
@@ -78,7 +78,12 @@ export async function bestReviewSourceSwap(plan: Plan, context: Context, filters
       customAllergies: (context.otherAllergies ?? '').split(',').filter(Boolean) } });
   const meal = prepared.preparedMeals[0];
   if (!meal) return null;
-  const nutrients = nutrientsFor({ ...plate, nutrition: meal });
+  const unchangedBase = (['calories', 'proteinG', 'carbsG', 'fatG'] as const).every(
+    key => Math.abs(meal[key] - plate.nutrition![key]) <= 0.011
+  );
+  const nutrients = nutrientsFor({ ...plate, nutrition: meal,
+    extendedNutrients: unchangedBase ? plate.extendedNutrients : {},
+  });
   if (!evaluateNutrientFilters(nutrients, filters).matches) return null;
   const servingKey = replacementServingKey({ recipeSignature: source.contentSignature, evidenceRevision: 1, nutrients,
     riceFoodId: plate.pairedRiceG ? rice?.id ?? null : null, riceRevision: plate.pairedRiceG ? rice?.compositionRevision ?? null : null,

@@ -27,6 +27,7 @@ export interface RecipeCandidateProjection {
   ingredientsComplete: boolean;
   reviewFreeBaseEligible?: boolean;
   nutrition: { calories: number; proteinG: number; carbsG: number; fatG: number } | null;
+  extendedNutrients?: Partial<import('../domain/review-nutrient-filter.policy').PlateNutrients>;
   servingDescription: string | null;
   riceRole: RecipeRiceRole | null;
   riceRoleReviewStatus?: RiceRoleReviewStatus;

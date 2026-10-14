@@ -83,6 +83,7 @@ export interface DetailData {
     carbsG: number;
     fatG: number;
     aiConfidenceFlag: string;
+    nutrients?: import('@/features/meals/SwapNutritionTable').SwapNutritionValues;
     requiresSafetyRevalidation?: boolean;
     planType: string;
     scheduledDate: string;

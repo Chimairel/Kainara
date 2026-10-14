@@ -1,5 +1,6 @@
 import type { SwapNutritionAnalysis } from './meals-workspace.types';
 import { swapNutritionLabel } from './swap-nutrition-label';
+import SwapNutritionTable from './SwapNutritionTable';
 
 type GroceryChange = { ingredientName: string; unit: string | null };
 export default function SwapImpactDetails({
@@ -56,41 +57,7 @@ export default function SwapImpactDetails({
                 ))}
               </ul>
             )}
-            <div className="overflow-x-auto mt-2">
-              <table className="w-full text-left text-[10px] font-mono border-collapse">
-                <thead>
-                  <tr className="border-b border-brand-border/50 text-[9px] uppercase tracking-wider text-brand-muted">
-                    <th className="py-1 pr-2 font-bold">Nutrient</th>
-                    <th className="py-1 px-2 font-bold">Before</th>
-                    <th className="py-1 px-2 font-bold">After</th>
-                    <th className="py-1 pl-2 font-bold">Estimate</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-brand-border/30">
-                  {(
-                    [
-                      ['calories', 'Energy', 'kcal'],
-                      ['proteinG', 'Protein', 'g'],
-                      ['carbsG', 'Carbs', 'g'],
-                      ['fatG', 'Fat', 'g'],
-                    ] as const
-                  ).map(([key, label, unit]) => (
-                    <tr key={key} className="hover:bg-brand-bgAlt/40">
-                      <th className="py-1 pr-2 font-semibold text-brand-text">{label}</th>
-                      <td className="py-1 px-2 text-brand-muted">
-                        {Math.round(analysis.before[key])} {unit}
-                      </td>
-                      <td className="py-1 px-2 font-bold text-brand-text">
-                        {Math.round(analysis.after[key])} {unit}
-                      </td>
-                      <td className="py-1 pl-2 text-brand-muted">
-                        {Math.round(analysis.target![key])} {unit}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <SwapNutritionTable before={analysis.before} after={analysis.after} estimate={analysis.target} />
             {!analysis.completeDay && (
               <p className="mt-2 text-[11px] text-brand-muted">
                 This day has missing or unavailable meals. These are the available planned totals.

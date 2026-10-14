@@ -35,6 +35,7 @@ import { ClinicalEvidenceService } from './clinical-evidence.service';
 import { resolveMealPlanDispute } from './nutritionist-dispute.service';
 import { rejectMealPlan } from './nutritionist-rejection.service';
 import { resolvePlanImage } from './meal-plan-presentation.service';
+import { recordedReviewPlateNutrients } from '@/domain/review-plate-nutrients.policy';
 import { resolveLibraryRecipeImages } from './library-recipe-image.service';
 
 async function reviewReadinessByUser(userIds: string[]) {
@@ -444,7 +445,8 @@ export class NutritionistReviewService {
       where: { id: mealPlanId, ...getNutritionistReviewableMealPlanWhere() },
       include: {
         sourceRawRecipeCandidate: {
-          select: { recipeName: true, sourceName: true, sourceUrl: true, sourceImageUrl: true, sourceVideoUrl: true },
+          select: { recipeName: true, sourceName: true, sourceUrl: true, sourceImageUrl: true, sourceVideoUrl: true,
+            calories: true, proteinG: true, carbsG: true, fatG: true, ingredients: true, publishedNutrition: true },
         },
         libraryMeal: {
           select: {
@@ -452,6 +454,8 @@ export class NutritionistReviewService {
             mealName: true,
             description: true,
             derivationKind: true,
+            recipeSignature: true, calories: true, proteinG: true, carbsG: true, fatG: true,
+            sodiumMg: true, sugarG: true, fiberG: true, potassiumMg: true, phosphorusMg: true, saturatedFatG: true,
             adaptedImageUrl: true,
             imagePublicId: true,
             imageVersion: true,
@@ -679,6 +683,7 @@ export class NutritionistReviewService {
         proteinG: updatedMealPlan.proteinG,
         carbsG: updatedMealPlan.carbsG,
         fatG: updatedMealPlan.fatG,
+        nutrients: recordedReviewPlateNutrients(updatedMealPlan),
         aiConfidenceFlag: updatedMealPlan.requiresSafetyRevalidation
           ? AIConfidenceFlag.NEEDS_REVIEW
           : updatedMealPlan.aiConfidenceFlag,

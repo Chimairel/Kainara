@@ -9,6 +9,7 @@ import type { SwapRiceFood } from './meal-swap-serving.service';
 import { nutritionFitScore, type NutritionVector } from '@/domain/meal-macro-target.policy';
 import { effectiveRecipeMealTypes } from '@/domain/meal-applicability.policy';
 import { composedNutritionTotal, scaleFnriFoodToGrams } from '@/domain/composed-serving.policy';
+import { scaledExtendedNutrients } from '@/domain/review-plate-nutrients.policy';
 
 /** Choose a complete plate while preserving the published dish as its base. */
 type ServingInput = {
@@ -69,6 +70,7 @@ export function rawRecipeServing(input: ServingInput) {
           {
             ...legacy,
             nutrition,
+            extendedNutrients: scaledExtendedNutrients(input.candidate.extendedNutrients, scale),
             servingScale: scale,
             pairedRiceG: riceG || null,
             plateCalories: total.calories,
@@ -165,6 +167,7 @@ function calorieServing(input: ServingInput) {
   return {
     ...candidate,
     nutrition,
+    extendedNutrients: scaledExtendedNutrients(candidate.extendedNutrients, servingScale),
     riceRole: role,
     servingScale,
     pairedRiceG,

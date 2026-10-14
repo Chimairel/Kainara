@@ -4,6 +4,7 @@ import Modal from '@/components/ui/Modal';
 import Button from '@/components/ui/Button';
 import SwapMealComparison from '@/features/meals/swap/SwapMealComparison';
 import SwapMealOptions from '@/features/meals/swap/SwapMealOptions';
+import SwapNutritionTable from '@/features/meals/SwapNutritionTable';
 import { getMealTheme } from '@/features/dashboard/DashboardMealRow';
 import { NutritionistCredentialCard } from '@/components/user/NutritionistCredentialCard';
 import type { PublicVerifier } from '@/types';
@@ -68,6 +69,19 @@ export default function ReviewSwapDialog({
             setSwapPreview: () => {},
           }}
         />
+        {selected && (
+          <section aria-label="Meal nutrition comparison" className="mt-5 border-b border-brand-border/60 pb-4">
+            <h3 className="font-display text-base font-bold">Nutrition comparison</h3>
+            <p className="mt-1 text-xs leading-5 text-brand-muted">
+              One serving, including any paired rice. Missing values are not recorded; they are not zero.
+            </p>
+            <SwapNutritionTable before={{ ...meal.nutrients, calories: meal.calories,
+              proteinG: meal.proteinG, carbsG: meal.carbsG, fatG: meal.fatG }} after={{ ...selected.nutrients,
+              calories: selected.calories, proteinG: selected.proteinG, carbsG: selected.carbsG, fatG: selected.fatG }}
+              fields={selected.nutrients ? REVIEW_NUTRIENT_FIELDS : undefined}
+              beforeLabel="Current meal" afterLabel="Replacement" showChange compact={false} />
+          </section>
+        )}
         {swap.filtersEnabled && <form className="mt-6 space-y-2" onSubmit={event => { event.preventDefault(); void swap.interpretAndSearch(); }}>
           <label htmlFor="review-swap-search" className="block text-sm font-semibold">Filter candidates with AI</label>
           <div className="flex items-center gap-2 rounded-xl border border-brand-border bg-brand-surface p-2 focus-within:ring-2 focus-within:ring-brand-green">
@@ -122,20 +136,6 @@ export default function ReviewSwapDialog({
         />}
         {selected && (
           <div className="mt-4">
-            {selected.nutrients && (
-              <dl className="mb-4 grid grid-cols-2 gap-2 sm:grid-cols-5">
-                {REVIEW_NUTRIENT_FIELDS.map(([key, label, unit]) => (
-                  <div key={key} className="rounded-lg border border-brand-border p-2 text-xs">
-                    <dt className="text-brand-muted">{label}</dt>
-                    <dd className="mt-1 font-bold">
-                      {selected.nutrients![key] === null
-                        ? 'Not recorded'
-                        : `${Number(selected.nutrients![key].toFixed(3))} ${unit}`}
-                    </dd>
-                  </div>
-                ))}
-              </dl>
-            )}
             <IngredientEvidenceTable ingredients={selected.ingredients} />
           </div>
         )}

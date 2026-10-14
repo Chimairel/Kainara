@@ -9,6 +9,7 @@ import type {
 import { isUnrestrictedPanlasangBaseEligible } from '@/domain/unrestricted-panlasang-base.policy';
 import { effectiveRecipeMealTypes } from '@/domain/meal-applicability.policy';
 import { lookupIngredientCompositions } from '@/lib/ingredient-composition';
+import { publishedExtendedNutrients } from '@/domain/review-plate-nutrients.policy';
 
 export const recipeCandidateSelect = {
   id: true,
@@ -124,6 +125,7 @@ export function projectRawRecipeCandidate(row: Row): RecipeCandidateProjection {
       })),
     }),
     nutrition,
+    extendedNutrients: publishedExtendedNutrients(row.publishedNutrition),
     servingDescription: row.originalServings ? `Original recipe yields ${row.originalServings} servings` : null,
     riceRole: row.riceRole,
     riceRoleReviewStatus: row.riceRoleReviewStatus,
