@@ -84,6 +84,7 @@ export interface DetailData {
     fatG: number;
     aiConfidenceFlag: string;
     nutrients?: import('@/features/meals/SwapNutritionTable').SwapNutritionValues;
+    estimatedNutrientKeys?: import('./ReviewNutrientFilters').NutrientKey[];
     requiresSafetyRevalidation?: boolean;
     planType: string;
     scheduledDate: string;

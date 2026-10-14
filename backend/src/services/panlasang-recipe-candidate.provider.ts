@@ -9,7 +9,7 @@ import type {
 import { isUnrestrictedPanlasangBaseEligible } from '@/domain/unrestricted-panlasang-base.policy';
 import { effectiveRecipeMealTypes } from '@/domain/meal-applicability.policy';
 import { lookupIngredientCompositions } from '@/lib/ingredient-composition';
-import { publishedExtendedNutrients } from '@/domain/review-plate-nutrients.policy';
+import { reviewSourceNutrients } from '@/domain/review-nutrient-estimate.policy';
 import { createHash } from 'node:crypto';
 
 export const recipeCandidateSelect = {
@@ -123,7 +123,12 @@ function decodeCursor(cursor?: string): { normalizedName: string; id: string } |
   }
 }
 
-export function projectRawRecipeCandidate(row: Row): RecipeCandidateProjection {
+export function projectRawRecipeCandidate(row: Row, includeEstimatedNutrients = false): RecipeCandidateProjection {
+  const review = reviewSourceNutrients(
+    row.publishedNutrition,
+    { ...row, name: row.recipeName },
+    includeEstimatedNutrients
+  );
   const parsedIngredients = parseRecipeCandidateIngredients(row.ingredients);
   const nutrition =
     row.calories === null || row.proteinG === null || row.carbsG === null || row.fatG === null
@@ -162,7 +167,10 @@ export function projectRawRecipeCandidate(row: Row): RecipeCandidateProjection {
       })),
     }),
     nutrition,
-    extendedNutrients: publishedExtendedNutrients(row.publishedNutrition),
+    extendedNutrients: review.values,
+    estimatedNutrientKeys: review.estimatedKeys,
+    estimatedExtendedNutrients: review.fallbackEstimates,
+    nutritionBasis: row.sourceName === 'DEMO_STANDARD_PORTION' ? 'CALCULATED_DEMO' : 'SOURCE_PUBLISHED',
     servingDescription: row.originalServings ? `Original recipe yields ${row.originalServings} servings` : null,
     riceRole: row.riceRole,
     riceRoleReviewStatus: row.riceRoleReviewStatus,
@@ -184,6 +192,7 @@ export class DatabaseRecipeCandidateProvider implements RecipeCandidateProvider 
     search?: string;
     candidateId?: string;
     hydrateIngredients?: boolean;
+    includeEstimatedNutrients?: boolean;
     calorieMinimum?: number;
     calorieMaximum?: number;
     excludeIds?: readonly string[];
@@ -232,7 +241,7 @@ export class DatabaseRecipeCandidateProvider implements RecipeCandidateProvider 
     });
     const hasMore = rows.length > limit;
     const page = rows.slice(0, limit);
-    const candidates = page.map(projectRawRecipeCandidate);
+    const candidates = page.map((row) => projectRawRecipeCandidate(row, input.includeEstimatedNutrients));
     if (input.hydrateIngredients !== false) await hydrateCandidateIngredientIdentities(candidates);
     return {
       items: candidates.filter(

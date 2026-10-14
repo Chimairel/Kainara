@@ -78,6 +78,25 @@ export default function ReviewSwapDialog({
             <p className="mt-1 text-xs leading-5 text-brand-muted">
               One serving, including any paired rice. Missing values are not recorded; they are not zero.
             </p>
+            {selected.nutritionBasis === 'CALCULATED_DEMO' && (
+              <p className="mt-2 text-xs font-semibold text-brand-muted">
+                Replacement values are calculated from a standardized demonstration recipe. They require RND review.
+              </p>
+            )}
+            {!!selected.estimatedNutrientKeys?.length && (
+              <p className="mt-2 text-xs font-semibold text-brand-muted">
+                Estimated replacement values:{' '}
+                {REVIEW_NUTRIENT_FIELDS.filter(([key]) => selected.estimatedNutrientKeys?.includes(key))
+                  .map(([, label]) => label)
+                  .join(', ')}
+                . Review these approximations before deciding.
+              </p>
+            )}
+            {!!meal.estimatedNutrientKeys?.length && (
+              <p className="mt-2 text-xs font-semibold text-brand-muted">
+                Current meal includes the nutrient estimates saved with its RND-selected replacement.
+              </p>
+            )}
             <SwapNutritionTable
               before={{
                 ...meal.nutrients,

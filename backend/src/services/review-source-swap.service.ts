@@ -123,6 +123,8 @@ export async function executeReviewSourceSwap(
           fallbackReasonCode: 'RND_SELECTED_REPLACEMENT',
           nutrientFilters: input.filters ?? {},
           reviewedPlate: candidate.option.nutrients,
+          estimatedNutrientKeys: candidate.option.estimatedNutrientKeys,
+          sourceCandidateId: candidate.source.id,
           servingKey: candidate.option.servingKey,
         } as Prisma.InputJsonObject,
       });

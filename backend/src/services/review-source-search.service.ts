@@ -14,6 +14,7 @@ import {
 } from '@/domain/review-nutrient-filter.policy';
 import { toPublicRawRecipeImage } from '@/domain/meal-image.policy';
 import { isMealWithinSlotCalorieRange } from '@/domain/meal-calorie-allocation.policy';
+import { scaledExtendedNutrients } from '@/domain/review-plate-nutrients.policy';
 import {
   databaseRecipeCandidateProvider,
   hydrateCandidateIngredientIdentities,
@@ -74,7 +75,7 @@ export async function searchReviewSourceSwaps(
   const snapshot = plan.cycle.snapshot;
   if (!snapshot) throw new AppError('Planning snapshot unavailable.', 409, 'REVIEW_SWAP_UNAVAILABLE');
   const [rice, macros, rejected, held] = await Promise.all([
-    loadReviewRice(),
+    loadReviewRice(prisma, true),
     swapMacroContext(prisma, plan.userId, plan, context.planningTargets),
     rejectedSlotRecipes(prisma, plan),
     prisma.mealReviewLineage.findMany({
@@ -146,7 +147,9 @@ export async function searchReviewSourceSwaps(
     const nutrients = nutrientsFor({
       ...plate,
       nutrition: meal,
-      extendedNutrients: unchanged ? plate.extendedNutrients : {},
+      extendedNutrients: unchanged
+        ? plate.extendedNutrients
+        : scaledExtendedNutrients(plate.estimatedExtendedNutrients, meal.calories / plate.nutrition!.calories),
     });
     return {
       id: REVIEW_SOURCE_PREFIX + plate.id,
@@ -166,6 +169,17 @@ export async function searchReviewSourceSwaps(
         fatG: nutrients.fatG!,
       }),
       nutrients,
+      nutritionBasis: plate.nutritionBasis,
+      estimatedNutrientKeys: [
+        ...new Set([
+          ...(unchanged
+            ? (plate.estimatedNutrientKeys ?? [])
+            : Object.entries(plate.estimatedExtendedNutrients ?? {})
+                .filter(([, value]) => typeof value === 'number')
+                .map(([key]) => key as keyof typeof nutrients)),
+          ...(plate.pairedRiceG ? (rice?.estimatedNutrientKeys ?? []) : []),
+        ]),
+      ],
       pairedRiceG: plate.pairedRiceG,
       recipeSignature: plate.contentSignature,
       evidenceRevision: 1,
@@ -215,6 +229,7 @@ export async function searchReviewSourceSwaps(
         cursor: sourceCursor,
         candidateId,
         hydrateIngredients: false,
+        includeEstimatedNutrients: true,
       });
       candidates.push(...page.items);
       sourceCursor = page.nextCursor ?? undefined;
