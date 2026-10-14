@@ -11,6 +11,7 @@ import {
   type ReactNode,
 } from 'react';
 import api from '@/lib/axios';
+import { isCancel } from 'axios';
 import { useAuth } from '@/hooks/useAuth';
 import { useVisiblePolling } from '@/hooks/useVisiblePolling';
 import { useNotificationSound } from '@/hooks/useNotificationSound';
@@ -55,6 +56,7 @@ function useNotificationInbox() {
           setInbox({ accountId, notifications: res.data.data.notifications, unreadCount: res.data.data.unreadCount });
         }
       } catch (err) {
+        if (signal?.aborted || isCancel(err) || currentAccountId.current !== accountId) return;
         console.warn('[useNotifications] Fetch failed:', err);
         if (!signal?.aborted && currentAccountId.current === accountId) {
           setInbox((previous) =>

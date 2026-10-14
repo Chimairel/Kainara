@@ -15,10 +15,10 @@ const mocks = vi.hoisted(() => ({
 vi.mock('next/navigation', () => ({ useRouter: () => ({ replace: mocks.replace }) }));
 vi.mock('@/lib/axios', () => ({ default: { post: mocks.post }, setSessionRefreshSuppressed: vi.fn() }));
 vi.mock('@/lib/auth', () => ({
-  decodeToken: () => ({ userId: mocks.owner, email: 'fixture@preview.invalid', role: 'USER' }),
+  decodeToken: (token: string) => token && token !== 'corrupt' ? ({ userId: mocks.owner, email: 'fixture@preview.invalid', role: 'USER' }) : null,
   cookieHelper: {
     get: () => mocks.cookie,
-    set: vi.fn(),
+    set: (_name: string, token: string) => { mocks.cookie = token; },
     clear: () => {
       mocks.cookie = '';
     },
@@ -33,6 +33,46 @@ describe('authoritative session refresh coordination', () => {
     vi.clearAllMocks();
     mocks.cookie = 'fixture';
     mocks.owner = 'fixture-owner';
+  });
+  it.each(['', 'corrupt'])('does not request a profile for a missing or corrupt cached session (%s)', async (cookie) => {
+    mocks.cookie = cookie;
+    let auth!: AuthContextType;
+    const Consumer = () => { auth = useContext(AuthContext)!; return null; };
+    render(<AuthProvider><Consumer /></AuthProvider>);
+    await waitFor(() => expect(auth.isLoading).toBe(false));
+    await act(async () => { expect(await auth.refreshSession()).toBeNull(); });
+    expect(mocks.read).not.toHaveBeenCalled();
+    expect(mocks.cookie).toBe('');
+    expect(auth.user).toBeNull();
+    expect(auth.profileLoadError).toBe(false);
+  });
+
+  it('clears a rejected session so subsequent refreshes stay signed out', async () => {
+    const warning = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    mocks.read.mockRejectedValue({ response: { status: 401 } });
+    let auth!: AuthContextType;
+    const Consumer = () => { auth = useContext(AuthContext)!; return null; };
+    render(<AuthProvider><Consumer /></AuthProvider>);
+    await waitFor(() => expect(auth.isLoading).toBe(false));
+    await act(async () => { await auth.refreshSession(); });
+    expect(mocks.read).toHaveBeenCalledTimes(1);
+    expect(mocks.cookie).toBe('');
+    expect(auth.user).toBeNull();
+    expect(warning).not.toHaveBeenCalled();
+    warning.mockRestore();
+  });
+
+  it('does not clear another account cookie when an old profile request returns 401', async () => {
+    let reject!: (error: unknown) => void;
+    mocks.read.mockReturnValue(new Promise((_resolve, fail) => { reject = fail; }));
+    let auth!: AuthContextType;
+    const Consumer = () => { auth = useContext(AuthContext)!; return null; };
+    render(<AuthProvider><Consumer /></AuthProvider>);
+    mocks.owner = 'other-account';
+    await act(async () => { reject({ response: { status: 401 } }); });
+    expect(mocks.cookie).toBe('fixture');
+    expect(auth.profileLoadFailure).toEqual({ kind: 'account-changed' });
+    expect(auth.profileLoadError).toBe(true);
   });
   it('returns the same confirmed result to the live refresh and acknowledgment continuation', async () => {
     let finish!: (value: unknown) => void;

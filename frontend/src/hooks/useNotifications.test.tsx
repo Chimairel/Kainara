@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { NotificationsProvider, useNotifications } from './useNotifications';
 import { LIVE_UPDATE_EVENT } from '@/lib/live-events';
 import { NOTIFICATION_SOUND_KEY } from '@/lib/notification-sound';
+import { CanceledError } from 'axios';
 
 const mocks = vi.hoisted(() => ({
   get: vi.fn(),
@@ -90,6 +91,37 @@ describe('shared notification inbox', () => {
     const { result } = renderHook(() => useNotifications(), { wrapper: NotificationsProvider });
     await waitFor(() => expect(result.current.isLoading).toBe(false));
     expect(mocks.get).not.toHaveBeenCalled();
+  });
+
+  it('silently cancels an in-flight poll when signing out', async () => {
+    const warning = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    mocks.user = { userId: 'account-1', role: 'USER' };
+    mocks.get.mockImplementation((_url, { signal }) => new Promise((_resolve, reject) => {
+      signal.addEventListener('abort', () => reject(new CanceledError()));
+    }));
+    const { result, rerender } = renderHook(() => useNotifications(), { wrapper: NotificationsProvider });
+    await waitFor(() => expect(mocks.get).toHaveBeenCalledOnce());
+    mocks.user = null;
+    await act(async () => { rerender(); });
+    expect(result.current.notifications).toEqual([]);
+    expect(result.current.isLoading).toBe(false);
+    expect(warning).not.toHaveBeenCalled();
+    warning.mockRestore();
+  });
+
+  it('silently ignores axios cancellation while preserving genuine error logging', async () => {
+    const warning = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    mocks.user = { userId: 'account-1', role: 'USER' };
+    mocks.get.mockRejectedValueOnce(new CanceledError());
+    const { result } = renderHook(() => useNotifications(), { wrapper: NotificationsProvider });
+    await act(async () => {});
+    expect(mocks.get).toHaveBeenCalledOnce();
+    expect(warning).not.toHaveBeenCalled();
+    mocks.get.mockRejectedValueOnce(new Error('offline'));
+    await act(async () => { await result.current.refresh(); });
+    expect(warning).toHaveBeenCalledOnce();
+    expect(result.current.isLoading).toBe(false);
+    warning.mockRestore();
   });
 
   it('does not show one account’s inbox after switching to another account', async () => {

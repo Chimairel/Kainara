@@ -2,7 +2,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { recoverWorkspaceNavigation, finishWorkspaceNavigation } from './workspace-navigation-recovery';
 import { cookieHelper } from './auth';
 
-const token = (owner: string) => `fixture.${btoa(JSON.stringify({ userId: owner }))}.fixture`;
+const token = (owner: string) =>
+  `fixture.${btoa(JSON.stringify({ userId: owner, email: 'fixture@example.test', role: 'NUTRITIONIST', iat: 1, exp: 4_000_000_000 }))}.fixture`;
 beforeEach(() => {
   sessionStorage.clear();
   cookieHelper.clear('nutrimind_session');

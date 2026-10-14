@@ -68,6 +68,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setProfileLoadError(false);
     setProfileLoadFailure(null);
 
+    if (!ownerId) {
+      cookieHelper.clear('nutrimind_session');
+      clearSessionResourceCache();
+      confirmedProfileOwner.current = null;
+      setUser(null);
+      setIsLoading(false);
+      return null;
+    }
+
     try {
       const profile = await refreshUserProfile(ownerId);
       if (profile) {
@@ -134,15 +143,22 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       if (requestId !== sessionRequestId.current) return null;
 
       const failure = classifyProfileLoadFailure(error, typeof navigator !== 'undefined' && !navigator.onLine);
-      console.warn('[AuthContext] Could not confirm live profile status.', failure);
       // If we fail because we are unauthenticated, clear session
       if ((error as { response?: { status?: number } }).response?.status === 401) {
+        const currentOwner = decodeToken(cookieHelper.get('nutrimind_session') || '')?.userId;
+        if (currentOwner && currentOwner !== ownerId) {
+          setProfileLoadFailure(classifyProfileLoadFailure(profileCheckError('PROFILE_ACCOUNT_CHANGED'), false));
+          setProfileLoadError(true);
+          return null;
+        }
+        cookieHelper.clear('nutrimind_session');
         clearSessionResourceCache();
         confirmedProfileOwner.current = null;
         setUser(null);
         setProfileLoadError(false);
         setProfileLoadFailure(null);
       } else {
+        console.warn('[AuthContext] Could not confirm live profile status.', failure);
         setProfileLoadFailure(failure);
         setProfileLoadError(true);
       }
@@ -201,6 +217,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           // Pull full profile to get exact onboarding/ToS variables
           await refreshSession();
         } else {
+          cookieHelper.clear('nutrimind_session');
+          clearSessionResourceCache();
+          setUser(null);
           setIsLoading(false);
         }
       } else {

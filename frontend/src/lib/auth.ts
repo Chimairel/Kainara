@@ -6,10 +6,27 @@ import { JWTPayload } from '@/types';
  * NOTE: This is for visual route/state changes and does NOT verify the signature.
  */
 export const decodeToken = (token: string): JWTPayload | null => {
+  if (!token || token.split('.').length !== 3) return null;
   try {
-    return jwtDecode<JWTPayload>(token);
-  } catch (error) {
-    console.error('[Auth Utility] Failed to decode token:', error);
+    const claims = jwtDecode<JWTPayload>(token);
+    if (
+      !claims ||
+      typeof claims.userId !== 'string' ||
+      !claims.userId.trim() ||
+      typeof claims.email !== 'string' ||
+      !claims.email.includes('@') ||
+      !['USER', 'NUTRITIONIST', 'ADMIN'].includes(claims.role) ||
+      typeof claims.exp !== 'number' ||
+      !Number.isFinite(claims.exp) ||
+      typeof claims.iat !== 'number' ||
+      !Number.isFinite(claims.iat)
+    ) {
+      return null;
+    }
+    return claims;
+  } catch {
+    // Missing/corrupt cached sessions are an ordinary signed-out state.
+    // Never log token payloads; the API remains responsible for authentication.
     return null;
   }
 };
@@ -23,7 +40,7 @@ export const isTokenExpired = (token: string): boolean => {
 
   // exp is in seconds, Date.now() in milliseconds
   const currentTime = Date.now() / 1000;
-  return decoded.exp < currentTime;
+  return decoded.exp <= currentTime;
 };
 
 /**
