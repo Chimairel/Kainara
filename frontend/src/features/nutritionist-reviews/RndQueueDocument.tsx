@@ -3,6 +3,7 @@
 import { type CSSProperties, type ReactNode } from 'react';
 import { ArrowLeft } from '@/components/ui/icons';
 import ReviewCanvas, { type ReviewCanvasLayout } from './ReviewCanvas';
+import CanvasToolButton from './CanvasToolButton';
 
 /** Queue adapter: movable paper sheets and an unscaled decision dock share one review canvas. */
 export default function RndQueueDocument({
@@ -44,8 +45,7 @@ export default function RndQueueDocument({
       onExpandedChange={onExpandedChange}
       actions={
         <>
-          <button
-            type="button"
+          <CanvasToolButton tooltipPlacement="bottom" tooltipAlign="start"
             aria-label="Back to queue"
             title="Back to queue"
             className="flex h-10 w-10 items-center justify-center rounded-lg text-brand-muted hover:bg-brand-green/10"
@@ -55,7 +55,7 @@ export default function RndQueueDocument({
             }}
           >
             <ArrowLeft className="h-4 w-4" />
-          </button>
+          </CanvasToolButton>
           {actions}
         </>
       }

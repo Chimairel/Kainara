@@ -16,6 +16,8 @@ import {
 } from 'react';
 import { Hand, MousePointer2, Maximize2, Minimize2, Minus, Plus, RotateCcw, Scan, Square } from '@/components/ui/icons';
 import CanvasMenu from './CanvasMenu';
+import CanvasToolButton from './CanvasToolButton';
+import CanvasTooltip from './CanvasTooltip';
 import { useDesktopWorkspaceVisible } from '@/lib/desktop-workspace-visibility';
 
 type Point = { x: number; y: number };
@@ -313,16 +315,16 @@ export default function ReviewCanvas({
         </h2>
         <div className="flex flex-wrap items-center gap-2">
           {actions}
-          <button
+          <CanvasTooltip label={expanded ? 'Exit fullscreen' : 'Expand canvas'} placement="bottom" align="end">{descriptionId => <button
             ref={expanded ? undefined : expandButton}
             type="button"
             className={iconClass}
             aria-label={expanded ? 'Exit fullscreen' : 'Expand canvas'}
-            title={expanded ? 'Exit fullscreen' : 'Expand canvas'}
+            aria-describedby={descriptionId}
             onClick={() => onExpandedChange(!expanded)}
           >
             {expanded ? <Minimize2 className="h-5 w-5" /> : <Maximize2 className="h-5 w-5" />}
-          </button>
+          </button>}</CanvasTooltip>
         </div>
       </header>
       <div
@@ -330,24 +332,24 @@ export default function ReviewCanvas({
         role="toolbar"
         aria-label="Canvas view controls"
       >
-        <button type="button" className={iconClass} title="Zoom out" aria-label="Zoom out" onClick={() => zoom(view.scale - 0.1)}>
+        <CanvasToolButton className="text-brand-muted" tooltipPlacement="bottom" tooltipAlign="start" title="Zoom out" aria-label="Zoom out" onClick={() => zoom(view.scale - 0.1)}>
           <Minus className="h-4 w-4" />
-        </button>
+        </CanvasToolButton>
         <span className="w-12 text-center font-mono text-xs" aria-live="polite">
           {Math.round(view.scale * 100)}%
         </span>
-        <button type="button" className={iconClass} title="Zoom in" aria-label="Zoom in" onClick={() => zoom(view.scale + 0.1)}>
+        <CanvasToolButton className="text-brand-muted" tooltipPlacement="bottom" title="Zoom in" aria-label="Zoom in" onClick={() => zoom(view.scale + 0.1)}>
           <Plus className="h-4 w-4" />
-        </button>
-        <button type="button" className={iconClass} title="Fit all sheets" onClick={() => fit(true)} aria-label="Fit all sheets">
+        </CanvasToolButton>
+        <CanvasToolButton className="text-brand-muted" tooltipPlacement="bottom" title="Fit all sheets" onClick={() => fit(true)} aria-label="Fit all sheets">
           <Scan className="h-4 w-4" />
-        </button>
-        <button type="button" className={iconClass} title="Fit selected sheet" onClick={() => fit(false)} aria-label="Fit selected sheet">
+        </CanvasToolButton>
+        <CanvasToolButton className="text-brand-muted" tooltipPlacement="bottom" title="Fit selected sheet" onClick={() => fit(false)} aria-label="Fit selected sheet">
           <Square className="h-4 w-4" />
-        </button>
-        <button type="button" className={iconClass} title="Reset sheet layout" onClick={() => fit(true, true)} aria-label="Reset sheet layout">
+        </CanvasToolButton>
+        <CanvasToolButton className="text-brand-muted" tooltipPlacement="bottom" title="Reset sheet layout" onClick={() => fit(true, true)} aria-label="Reset sheet layout">
           <RotateCcw className="h-4 w-4" />
-        </button>
+        </CanvasToolButton>
       </div>
       <div
         ref={bindViewport}

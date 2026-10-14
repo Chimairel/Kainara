@@ -24,6 +24,7 @@ export interface SelectProps {
   id?: string;
   name?: string;
   'aria-label'?: string;
+  'aria-describedby'?: string;
   triggerContent?: React.ReactNode;
 }
 
@@ -39,6 +40,7 @@ export function Select({
   id,
   name,
   'aria-label': ariaLabel,
+  'aria-describedby': ariaDescribedBy,
   triggerContent,
 }: SelectProps) {
   const desktopVisible = useDesktopWorkspaceVisible();
@@ -218,6 +220,7 @@ export function Select({
         aria-haspopup="listbox"
         aria-controls={listboxId}
         aria-label={ariaLabel}
+        aria-describedby={ariaDescribedBy}
         aria-activedescendant={isOpen && highlightedIndex >= 0 ? `${selectId}-option-${highlightedIndex}` : undefined}
         className={`flex min-h-11 w-full items-center justify-between gap-2 rounded-xl border px-3 text-xs font-semibold transition-all duration-150 outline-none ${
           isOpen

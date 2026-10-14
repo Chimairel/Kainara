@@ -43,6 +43,7 @@ export function useCaseReviewWorkspaceModel({
             : '30m'}
         </span>
         <CanvasToolButton aria-label="Release claim" title="Release claim"
+          tooltipPlacement="bottom"
           onClick={handleReleaseMeal}
           disabled={Boolean(actionLoading)}
           className="ml-1"

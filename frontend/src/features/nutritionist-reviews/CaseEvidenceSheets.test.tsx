@@ -19,6 +19,8 @@ it('shows the saved member guidance and all meal nutrition facts without repeate
         referenceItems: [{ heading: 'Protein reference', value: '50–75 g/day', explanation: '10–15% of 2000 kcal ÷ 4 kcal/g.',
           sourceTitle: 'Recorded reference', sourceUrl: 'https://example.test/source' }] } },
     ingredients: [], claimStatus: { claimedByMe: false }, highRiskReviewRequired: true,
+    clinicalEvidence: { requirements: [{ area: 'HEART_CONDITION', state: 'READY', message: 'Legacy profile summary' }],
+      healthDetails: [{ area: 'HEART_CONDITION', responses: { medications: 'Duplicate legacy detail' }, revision: 1 }], documents: [] },
     warnings: [{ severity: 'IMPORTANT', message: 'Generic repeat advisory' }, { severity: 'CRITICAL', message: 'Recorded ingredient conflicts with declared allergy.' }],
   } as unknown as DetailData;
   render(<>{CaseEvidenceSheets({ detailData: detail })}</>);
@@ -30,5 +32,9 @@ it('shows the saved member guidance and all meal nutrition facts without repeate
   expect(within(facts).getByText('Saturated fat')).toBeInTheDocument();
   expect(screen.queryByText(/Profile or evidence changed/)).not.toBeInTheDocument();
   expect(screen.queryByText('Generic repeat advisory')).not.toBeInTheDocument();
+  expect(screen.queryByText('Health details reviewed for the profile')).not.toBeInTheDocument();
+  expect(screen.queryByText('Duplicate legacy detail')).not.toBeInTheDocument();
+  expect(screen.queryByText('Complete structured restrictions')).not.toBeInTheDocument();
+  expect(screen.queryByText('Target Goal')).not.toBeInTheDocument();
   expect(screen.getByText('Recorded ingredient conflicts with declared allergy.')).toBeInTheDocument();
 });
