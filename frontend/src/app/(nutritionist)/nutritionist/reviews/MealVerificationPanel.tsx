@@ -6,6 +6,7 @@ import api from '@/lib/axios';
 import { getApiErrorMessage } from '@/lib/api-error';
 import ReviewDecisionPage from '@/features/nutritionist-reviews/ReviewDecisionPage';
 import CanvasToolButton from '@/features/nutritionist-reviews/CanvasToolButton';
+import Button from '@/components/ui/Button';
 import ExpandableCasePanel from '@/features/nutritionist-reviews/ExpandableCasePanel';
 import BaseMealEvidenceSheets from '@/features/nutritionist-reviews/BaseMealEvidenceSheets';
 import RndQueueDocument from '@/features/nutritionist-reviews/RndQueueDocument';
@@ -93,13 +94,14 @@ export default function MealVerificationPanel() {
         </CanvasToolButton>
       </div>
     ) : (
-      <CanvasToolButton aria-label={selected.authoredByMe ? 'Independent reviewer required' : 'Claim verification'}
+      <Button size="sm" aria-label={selected.authoredByMe ? 'Independent reviewer required' : 'Claim verification'}
         title={selected.authoredByMe ? 'Independent reviewer required' : 'Claim verification'}
         disabled={busy || selected.claimedByOther || selected.authoredByMe}
         onClick={() => void act('claim')}
       >
-        <ChefHat aria-hidden="true" className="h-5 w-5" />
-      </CanvasToolButton>
+        <ChefHat aria-hidden="true" className="mr-2 h-4 w-4" />
+        {selected.authoredByMe ? 'Independent reviewer required' : 'Claim verification'}
+      </Button>
     )
   ) : null;
 

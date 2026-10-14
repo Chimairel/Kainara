@@ -56,6 +56,7 @@ describe('case detail load failure', () => {
     expect(screen.getByRole('heading', { name: 'Review details unavailable' })).toBeVisible();
     expect(screen.queryByText('Access Blocked')).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Claim review' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Claim review' })).toHaveTextContent('Claim review');
     fireEvent.click(screen.getByRole('button', { name: 'Retry details' }));
     expect(retry).toHaveBeenCalledWith('meal-1');
     fireEvent.click(screen.getByRole('button', { name: 'Back to Queue' }));

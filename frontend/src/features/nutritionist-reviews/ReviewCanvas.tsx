@@ -325,14 +325,8 @@ export default function ReviewCanvas({
       <div
         className={`${compact ? 'hidden' : 'flex'} shrink-0 flex-wrap items-center gap-2 border-b border-brand-border bg-brand-surface px-3 py-2`}
         role="toolbar"
-        aria-label="Canvas tools"
+        aria-label="Canvas view controls"
       >
-        <CanvasMenu label={mode === 'hand' ? 'Hand tool (H)' : 'Move tool (V)'} value={mode}
-          icon={mode === 'hand' ? <Hand aria-hidden="true" className="h-5 w-5" /> : <MousePointer2 aria-hidden="true" className="h-5 w-5" />}
-          onSelect={value => setMode(value as 'hand' | 'select')}
-          items={[{ value: 'select', label: 'Move (V)', icon: <MousePointer2 className="h-4 w-4" /> },
-            { value: 'hand', label: 'Hand tool (H)', icon: <Hand className="h-4 w-4" /> }]} />
-        <span className="mx-1 h-5 border-l border-brand-border" />
         <button type="button" className={iconClass} title="Zoom out" aria-label="Zoom out" onClick={() => zoom(view.scale - 0.1)}>
           <Minus className="h-4 w-4" />
         </button>
@@ -351,7 +345,6 @@ export default function ReviewCanvas({
         <button type="button" className={iconClass} title="Reset sheet layout" onClick={() => fit(true, true)} aria-label="Reset sheet layout">
           <RotateCcw className="h-4 w-4" />
         </button>
-        {tools && <><span className="mx-1 h-5 border-l border-brand-border" />{tools}</>}
       </div>
       <div
         ref={bindViewport}
@@ -444,10 +437,22 @@ export default function ReviewCanvas({
           })}
         </div>
       </div>
+      <div
+        role="toolbar"
+        aria-label="Canvas tools"
+        className={`${compact ? 'hidden' : 'flex'} absolute bottom-4 left-1/2 z-20 w-max max-w-[calc(100%-32px)] -translate-x-1/2 flex-wrap items-center justify-center gap-1 rounded-2xl bg-brand-surface p-2 shadow-card-lg`}
+      >
+        <CanvasMenu label={mode === 'hand' ? 'Hand tool (H)' : 'Move tool (V)'} value={mode}
+          icon={mode === 'hand' ? <Hand aria-hidden="true" className="h-5 w-5" /> : <MousePointer2 aria-hidden="true" className="h-5 w-5" />}
+          onSelect={value => setMode(value as 'hand' | 'select')}
+          items={[{ value: 'select', label: 'Move (V)', icon: <MousePointer2 className="h-4 w-4" /> },
+            { value: 'hand', label: 'Hand tool (H)', icon: <Hand className="h-4 w-4" /> }]} />
+        {tools && <><span aria-hidden="true" className="mx-1 h-5 border-l border-brand-border" />{tools}</>}
+      </div>
       {!readOnly && !hideDecisionDock && (
         <footer
           role="region"
-          className="absolute bottom-4 left-1/2 z-10 max-w-[calc(100%-32px)] -translate-x-1/2 rounded-2xl border border-brand-border bg-brand-surface p-2 shadow-card-lg"
+          className={`absolute ${compact ? 'bottom-4' : 'bottom-24'} left-1/2 z-10 max-w-[calc(100%-32px)] -translate-x-1/2 rounded-2xl border border-brand-border bg-brand-surface p-2 shadow-card-lg`}
           aria-label="Review decisions"
         >
           {decision ?? (
@@ -467,6 +472,11 @@ export default function ReviewCanvas({
         <Dialog.Content
           aria-describedby={undefined}
           className="fixed inset-0 z-[81] h-[100dvh] w-screen outline-none"
+          onEscapeKeyDown={(event) => {
+            if (event.target instanceof Element && event.target.closest('[role="combobox"][aria-expanded="true"]')) {
+              event.preventDefault();
+            }
+          }}
           onCloseAutoFocus={(event) => {
             event.preventDefault();
             expandButton.current?.focus();

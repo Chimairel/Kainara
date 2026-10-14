@@ -65,6 +65,23 @@ it('changes H/V tools without hijacking typing or modified shortcuts', () => {
   expect(screen.getByRole('combobox', { name: 'Move tool (V)' })).toBeInTheDocument();
 });
 
+it('separates bottom editing tools from zoom controls and preserves their placement in fullscreen', () => {
+  render(<Fixture onBack={vi.fn()} />);
+  const tools = () => screen.getByRole('toolbar', { name: 'Canvas tools' });
+  expect(tools()).toHaveClass('absolute', 'bottom-4', 'left-1/2', '-translate-x-1/2');
+  expect(within(tools()).getByRole('combobox', { name: 'Move tool (V)' })).toBeInTheDocument();
+  expect(within(tools()).queryByRole('button', { name: 'Zoom in' })).not.toBeInTheDocument();
+  expect(within(screen.getByRole('toolbar', { name: 'Canvas view controls' })).getByRole('button', { name: 'Zoom in' })).toBeInTheDocument();
+  expect(tools().closest('[data-canvas-world]')).toBeNull();
+  fireEvent.click(screen.getByRole('button', { name: 'Expand canvas' }));
+  expect(tools()).toHaveClass('bottom-4', 'left-1/2');
+  expect(tools().closest('[role="dialog"]')).not.toBeNull();
+  fireEvent.click(within(tools()).getByRole('combobox', { name: 'Move tool (V)' }));
+  fireEvent.keyDown(within(tools()).getByRole('combobox', { name: 'Move tool (V)' }), { key: 'Escape' });
+  expect(screen.getByRole('dialog')).toBeInTheDocument();
+  expect(within(tools()).getByRole('combobox', { name: 'Move tool (V)' })).toHaveAttribute('aria-expanded', 'false');
+});
+
 it('requires a claim for decisions and preserves queue navigation', () => {
   const back = vi.fn();
   render(<Fixture onBack={back} claimed={false} />);

@@ -3,6 +3,7 @@
 import { ShieldCheck } from '@/components/ui/icons';
 import { LogOut } from '@/components/ui/icons';
 import CanvasToolButton from '../CanvasToolButton';
+import Button from '@/components/ui/Button';
 
 import { Props } from './CaseReviewWorkspace.shared';
 export function useCaseReviewWorkspaceModel({
@@ -57,12 +58,13 @@ export function useCaseReviewWorkspaceModel({
         Claim cooling down
       </span>
     ) : (
-      <CanvasToolButton aria-label="Claim review" title="Claim review"
+      <Button size="sm" aria-label="Claim review" title="Claim review"
         onClick={handleClaimMeal}
         disabled={Boolean(actionLoading) || detailLoading || !detailData}
       >
-        <ShieldCheck aria-hidden="true" className="h-5 w-5" />
-      </CanvasToolButton>
+        <ShieldCheck aria-hidden="true" className="mr-2 h-4 w-4" />
+        Claim review
+      </Button>
     )
   ) : null;
 
