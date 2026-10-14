@@ -1,12 +1,17 @@
 'use client';
 import { useEffect, useState, type ReactNode } from 'react';
 import { Monitor } from '@/components/ui/icons';
+import { DesktopWorkspaceVisibility } from '@/lib/desktop-workspace-visibility';
 
 export default function DesktopReviewGate({ children }: { children: ReactNode }) {
   const [desktop, setDesktop] = useState<boolean | null>(null);
+  const [opened, setOpened] = useState(false);
   useEffect(() => {
     const screen = window.matchMedia('(min-width: 1024px) and (hover: hover) and (pointer: fine)');
-    const update = () => setDesktop(screen.matches);
+    const update = () => {
+      setDesktop(screen.matches);
+      if (screen.matches) setOpened(true);
+    };
     update();
     screen.addEventListener('change', update);
     return () => screen.removeEventListener('change', update);
@@ -17,8 +22,9 @@ export default function DesktopReviewGate({ children }: { children: ReactNode })
         Opening review workspace…
       </p>
     );
-  if (!desktop)
-    return (
+  return (
+    <DesktopWorkspaceVisibility.Provider value={desktop}>
+      {!desktop && (
       <section className="m-6 rounded-2xl border border-brand-border bg-brand-surface p-8 text-brand-text">
         <Monitor className="mb-4 h-8 w-8 text-brand-green" />
         <h1 className="text-xl font-bold">Use a desktop to review meals</h1>
@@ -26,7 +32,10 @@ export default function DesktopReviewGate({ children }: { children: ReactNode })
           The RND review workspace needs a desktop-size window (at least 1024px), with a mouse and keyboard for
           comparing evidence and making decisions.
         </p>
+        {opened && <p className="mt-3 text-sm text-brand-muted">Return to desktop size to resume your open review.</p>}
       </section>
-    );
-  return children;
+      )}
+      {opened && <div hidden={!desktop} inert={!desktop}>{children}</div>}
+    </DesktopWorkspaceVisibility.Provider>
+  );
 }

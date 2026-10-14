@@ -3,6 +3,7 @@
 import React, { useState, useRef, useEffect, useId } from 'react';
 import { ChevronDown, Check } from '@/components/ui/icons';
 import { createPortal } from 'react-dom';
+import { useDesktopWorkspaceVisible } from '@/lib/desktop-workspace-visibility';
 
 export interface SelectOption {
   value: string;
@@ -40,7 +41,9 @@ export function Select({
   'aria-label': ariaLabel,
   triggerContent,
 }: SelectProps) {
+  const desktopVisible = useDesktopWorkspaceVisible();
   const [isOpen, setIsOpen] = useState(false);
+  useEffect(() => { if (!desktopVisible) setIsOpen(false); }, [desktopVisible]);
   const [highlightedIndex, setHighlightedIndex] = useState<number>(-1);
   const containerRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
@@ -247,7 +250,7 @@ export function Select({
       </button>
 
       {/* Dropdown Menu Panel */}
-      {isOpen &&
+      {isOpen && desktopVisible &&
         createPortal(
           <div
             ref={menuRef}

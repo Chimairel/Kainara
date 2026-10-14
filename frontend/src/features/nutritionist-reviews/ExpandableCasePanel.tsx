@@ -4,6 +4,7 @@ import { useEffect, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { ArrowLeft, Maximize2, Minimize2 } from '@/components/ui/icons';
 import ThemeToggle from '@/components/ui/ThemeToggle';
+import { useDesktopWorkspaceVisible } from '@/lib/desktop-workspace-visibility';
 
 export default function ExpandableCasePanel({
   children,
@@ -36,6 +37,7 @@ export default function ExpandableCasePanel({
   backLabel?: string;
   backBreakpoint?: 'md' | 'xl';
 }) {
+  const desktopVisible = useDesktopWorkspaceVisible();
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -43,7 +45,7 @@ export default function ExpandableCasePanel({
   }, []);
 
   useEffect(() => {
-    if (!expanded) return;
+    if (!expanded || !desktopVisible) return;
     const originalOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
 
@@ -58,7 +60,7 @@ export default function ExpandableCasePanel({
       document.body.style.overflow = originalOverflow;
       window.removeEventListener('keydown', onKeyDown);
     };
-  }, [expanded, onExpandedChange]);
+  }, [expanded, onExpandedChange, desktopVisible]);
 
   const miniNavbar =
     canExpand || headerLeft || onBack ? (
@@ -93,7 +95,7 @@ export default function ExpandableCasePanel({
       </header>
     ) : null;
 
-  if (expanded && mounted) {
+  if (expanded && mounted && desktopVisible) {
     return (
       <>
         {/* Placeholder in document flow so original layout is preserved */}

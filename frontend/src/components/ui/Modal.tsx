@@ -3,6 +3,7 @@
 import React from 'react';
 import * as Dialog from '@radix-ui/react-dialog';
 import { X } from '@/components/ui/icons';
+import { useDesktopWorkspaceVisible } from '@/lib/desktop-workspace-visibility';
 
 interface ModalProps {
   isOpen: boolean;
@@ -25,6 +26,7 @@ export const Modal: React.FC<ModalProps> = ({
   size = 'md',
   layer = 'default',
 }) => {
+  const desktopVisible = useDesktopWorkspaceVisible();
   const opener = React.useRef<HTMLElement | null>(null);
   const sizeClasses = {
     sm: 'max-w-sm',
@@ -37,7 +39,7 @@ export const Modal: React.FC<ModalProps> = ({
   };
 
   return (
-    <Dialog.Root open={isOpen} onOpenChange={(open) => !open && onClose()}>
+    <Dialog.Root open={isOpen && desktopVisible} onOpenChange={(open) => desktopVisible && !open && onClose()}>
       <Dialog.Portal>
         <Dialog.Overlay
           className={`fixed inset-0 ${layer === 'canvas' ? 'z-[100]' : 'z-50'} bg-[#020806]/75 backdrop-blur-md transition-all duration-300`}
@@ -45,6 +47,7 @@ export const Modal: React.FC<ModalProps> = ({
         <Dialog.Content
           onOpenAutoFocus={() => { opener.current = document.activeElement instanceof HTMLElement ? document.activeElement : null; }}
           onCloseAutoFocus={(event) => {
+            if (!desktopVisible) { event.preventDefault(); return; }
             if (opener.current?.isConnected && opener.current !== document.body) {
               event.preventDefault();
               opener.current.focus();

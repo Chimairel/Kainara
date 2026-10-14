@@ -16,6 +16,7 @@ import {
 } from 'react';
 import { Hand, MousePointer2, Maximize2, Minimize2, Minus, Plus, RotateCcw, Scan, Square } from '@/components/ui/icons';
 import CanvasMenu from './CanvasMenu';
+import { useDesktopWorkspaceVisible } from '@/lib/desktop-workspace-visibility';
 
 type Point = { x: number; y: number };
 export type ReviewCanvasLayout = {
@@ -77,6 +78,7 @@ export default function ReviewCanvas({
   onLayoutChange?: (layout: ReviewCanvasLayout) => void;
   restoreLayout?: { layout: ReviewCanvasLayout; request: number } | null;
 }) {
+  const desktopVisible = useDesktopWorkspaceVisible();
   const narrow = useSyncExternalStore(subscribeCompact, compactSnapshot, () => false);
   const compact = stackOnMobile && narrow;
   const pages = flattenSheets(children);
@@ -192,6 +194,7 @@ export default function ReviewCanvas({
   }, [restoreLayout?.request]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
     const shortcuts = (event: KeyboardEvent) => {
+      if (!desktopVisible) return;
       if (event.defaultPrevented || event.ctrlKey || event.metaKey || event.altKey || editableTarget(event.target))
         return;
       const target = event.target instanceof HTMLElement ? event.target : null;
@@ -215,7 +218,7 @@ export default function ReviewCanvas({
     };
     document.addEventListener('keydown', shortcuts);
     return () => document.removeEventListener('keydown', shortcuts);
-  }, []);
+  }, [desktopVisible]);
   const zoom = (scale: number, at?: Point) => {
     const node = viewport.current;
     if (!node) return;
@@ -465,8 +468,8 @@ export default function ReviewCanvas({
     </div>
   );
   return (
-    <Dialog.Root open={expanded} onOpenChange={onExpandedChange}>
-      {!expanded && canvas}
+    <Dialog.Root open={expanded && desktopVisible} onOpenChange={(open) => { if (desktopVisible) onExpandedChange(open); }}>
+      {(!expanded || !desktopVisible) && canvas}
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 z-[80] bg-black/60" />
         <Dialog.Content
@@ -479,7 +482,7 @@ export default function ReviewCanvas({
           }}
           onCloseAutoFocus={(event) => {
             event.preventDefault();
-            expandButton.current?.focus();
+            if (desktopVisible) expandButton.current?.focus();
           }}
         >
           <Dialog.Title className="sr-only">{title} — fullscreen</Dialog.Title>
