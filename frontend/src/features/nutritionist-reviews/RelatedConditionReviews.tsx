@@ -23,7 +23,7 @@ type ReviewRow = {
   plateFacts: { calories: number; proteinG: number; carbsG: number; fatG: number } | null;
   ingredients: Array<{ name: string; quantity: number | null; unit: string | null; source: string }>;
 };
-type ReviewPage = { condition: string; rows: ReviewRow[]; total: number; page: number; totalPages: number };
+export type ReviewPage = { condition: string; rows: ReviewRow[]; total: number; page: number; totalPages: number };
 
 export type RelatedReviewView = { condition: string; search: string; page: number; expandedId: string | null };
 export const initialRelatedReviewView: RelatedReviewView = { condition: '', search: '', page: 1, expandedId: null };
@@ -33,23 +33,25 @@ export function relatedReviewConditions(detail: DetailData) {
 }
 
 /** Read-only reference content mounted on demand inside a movable canvas sheet. */
-export default function RelatedConditionReviews({ detail, view, onViewChange }: {
+export default function RelatedConditionReviews({ detail, view, onViewChange, saved }: {
   detail: DetailData;
   view?: RelatedReviewView;
   onViewChange?: Dispatch<SetStateAction<RelatedReviewView>>;
+  saved?: { view: RelatedReviewView; result: ReviewPage };
 }) {
   const conditions = relatedReviewConditions(detail);
   return conditions.length ? <ConditionReviewBrowser key={detail.mealPlan.id}
     mealId={detail.mealPlan.id} conditions={conditions} expectedContextKey={detail.reviewContext?.contextKey}
-    view={view} onViewChange={onViewChange} /> : null;
+    view={view} onViewChange={onViewChange} saved={saved} /> : null;
 }
 
-function ConditionReviewBrowser({ mealId, conditions, expectedContextKey, view, onViewChange }: {
+function ConditionReviewBrowser({ mealId, conditions, expectedContextKey, view, onViewChange, saved }: {
   mealId: string; conditions: string[]; expectedContextKey?: string;
   view?: RelatedReviewView; onViewChange?: Dispatch<SetStateAction<RelatedReviewView>>;
+  saved?: { view: RelatedReviewView; result: ReviewPage };
 }) {
   const ownerId = useAuth().user?.userId;
-  const [localView, setLocalView] = useState(initialRelatedReviewView);
+  const [localView, setLocalView] = useState(saved?.view ?? initialRelatedReviewView);
   const state = view ?? localView;
   const setView = onViewChange ?? setLocalView;
   const condition = conditions.includes(state.condition) ? state.condition : conditions[0];
@@ -64,6 +66,7 @@ function ConditionReviewBrowser({ mealId, conditions, expectedContextKey, view, 
     return () => clearTimeout(timer);
   }, [search]);
   useEffect(() => {
+    if (saved) { setResult(saved.result); setBusy(false); setFailed(false); return; }
     const controller = new AbortController();
     let active = true;
     setBusy(true); setFailed(false); setResult(null);
@@ -78,19 +81,19 @@ function ConditionReviewBrowser({ mealId, conditions, expectedContextKey, view, 
       }
     }).finally(() => { if (active) setBusy(false); });
     return () => { active = false; controller.abort(); };
-  }, [ownerId, mealId, condition, page, query, expectedContextKey, retry]);
+  }, [ownerId, mealId, condition, page, query, expectedContextKey, retry, saved]);
   return <section aria-label="Related condition reviews" className="space-y-5 [&_thead]:!bg-white">
       <p className="text-sm text-brand-muted">Browse completed meal decisions for a condition in this case. A shared condition alone does not make an approval reusable.</p>
       <div className="grid gap-4 grid-cols-[12rem_1fr]">
         <div className="space-y-2">
           <label htmlFor="related-review-condition" className="text-xs font-semibold">Condition</label>
-          <NativeSelect id="related-review-condition" value={condition} onChange={event => {
+          <NativeSelect disabled={Boolean(saved)} id="related-review-condition" value={condition} onChange={event => {
             setView(previous => ({ ...previous, condition: event.target.value, page: 1, expandedId: null }));
           }}>
             {conditions.map(value => <option key={value} value={value}>{conditionLabels[value]}</option>)}
           </NativeSelect>
         </div>
-        <Input label="Search reviewed meals" value={search} maxLength={100}
+        <Input disabled={Boolean(saved)} label="Search reviewed meals" value={search} maxLength={100}
           placeholder="Search by meal name" onChange={event => setView(previous => ({ ...previous, search: event.target.value, page: 1, expandedId: null }))} />
       </div>
       <p role="status" className="text-sm text-brand-muted">
@@ -127,7 +130,7 @@ function ConditionReviewBrowser({ mealId, conditions, expectedContextKey, view, 
             {row.ingredients.length ? <MealIngredientTable ingredients={row.ingredients} /> :
               <p className="text-brand-muted">No ingredients were recorded in this decision.</p>}
           </section> : null} /></div>}
-      {!busy && !failed && result && <Pagination page={page} pageCount={result.totalPages}
-        onPageChange={next => setView(previous => ({ ...previous, page: next, expandedId: null }))} label="Related review pages" />}
+      {!saved && !busy && !failed && result && <Pagination page={page} pageCount={result.totalPages}
+        onPageChange={next => { if (!saved) setView(previous => ({ ...previous, page: next, expandedId: null })); }} label="Related review pages" />}
   </section>;
 }

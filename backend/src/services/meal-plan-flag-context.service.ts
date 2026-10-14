@@ -1,6 +1,8 @@
 import { Prisma } from '@prisma/client';
 import { AppError } from '@/errors/AppError';
 import { approvalRecheckContext } from './approval-recheck-context.service';
+import { caseApprovalConcern } from './case-approval-flag.service';
+import { env } from '@/config/env';
 
 const object = (value: unknown): Record<string, unknown> =>
   value && typeof value === 'object' && !Array.isArray(value) ? (value as Record<string, unknown>) : {};
@@ -22,9 +24,9 @@ export async function mealPlanFlagContext(tx: Prisma.TransactionClient, planId: 
       !plan.profileApprovalId &&
       !plan.clearanceUsages?.length)
   )
-    return [];
+    return env.CLINICAL_CLARIFICATIONS_ENABLED ? caseApprovalConcern(tx, planId) : [];
   const concerns: Array<{
-    kind: 'RECIPE' | 'PROFILE' | 'CONDITION';
+    kind: 'RECIPE' | 'PROFILE' | 'CONDITION' | 'CASE';
     mealLibraryId: string | null;
     approvalId?: string;
     active: boolean;
@@ -39,6 +41,7 @@ export async function mealPlanFlagContext(tx: Prisma.TransactionClient, planId: 
       affectedFields?: string[];
     };
     resolution?: string;
+    expectedVersion?: string;
   }> = [];
   const lineage = await tx.mealReviewLineage.findFirst({
     relationLoadStrategy: 'join',
@@ -105,6 +108,7 @@ export async function mealPlanFlagContext(tx: Prisma.TransactionClient, planId: 
         resolution: context.resolution,
       });
   }
+  if (env.CLINICAL_CLARIFICATIONS_ENABLED) concerns.push(...await caseApprovalConcern(tx, planId));
   return concerns;
 }
 export async function assertPlanFlagConcernsResolved(tx: Prisma.TransactionClient, planId: string) {

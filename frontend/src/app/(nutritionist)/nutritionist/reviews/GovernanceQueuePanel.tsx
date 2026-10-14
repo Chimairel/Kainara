@@ -9,6 +9,7 @@ import ApprovalRecheckCanvas, {
 } from '@/features/nutritionist-reviews/ApprovalRecheckCanvas';
 import Skeleton from '@/components/ui/Skeleton';
 import api from '@/lib/axios';
+import Link from 'next/link';
 
 type GovernanceClearance = {
   id: string;
@@ -36,6 +37,7 @@ export default function GovernanceQueuePanel({ tab }: { tab: 'audit' }) {
   const [reviewTarget, setReviewTarget] = useState<ApprovalReviewTarget | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [dueProfiles, setDueProfiles] = useState<DueProfileApproval[]>([]);
+  const [caseFlags, setCaseFlags] = useState<Array<{ id: string; mealPlanId: string; mealName: string; explanation: string }>>([]);
   const [selectedProfile, setSelectedProfile] = useState<DueProfileApproval | null>(null);
   const [caseDetail, setCaseDetail] = useState<{
     recordedScope: unknown;
@@ -46,10 +48,14 @@ export default function GovernanceQueuePanel({ tab }: { tab: 'audit' }) {
   const load = useCallback(async () => {
     setMessage(null);
     try {
-      const response = await api.get(`/nutritionist/governance/queue?view=${tab}`);
+      const [response, due, cases] = await Promise.all([
+        api.get(`/nutritionist/governance/queue?view=${tab}`),
+        api.get('/nutritionist/approval-follow-ups'),
+        api.get('/nutritionist/case-approval-follow-ups'),
+      ]);
       setData(response.data.data);
-      const due = await api.get('/nutritionist/approval-follow-ups');
       setDueProfiles(due.data.data ?? []);
+      setCaseFlags(Array.isArray(cases.data.data) ? cases.data.data : []);
     } catch {
       setMessage('Governance queue could not be loaded.');
     }
@@ -105,6 +111,12 @@ export default function GovernanceQueuePanel({ tab }: { tab: 'audit' }) {
           Review flagged or suspended approvals against their recorded evidence.
         </p>
       </div>
+      {caseFlags.length > 0 && <section aria-label="Flagged case approvals" className="space-y-3">
+        {caseFlags.map(item => <div key={item.id} className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-brand-border bg-brand-surface p-5">
+          <div><h2 className="font-bold">{formatMealTitle(item.mealName)}</h2><p className="mt-1 text-sm text-brand-muted">{item.explanation}</p></div>
+          <Link className="font-semibold text-brand-green underline" href={`/nutritionist/reviews?caseId=${encodeURIComponent(item.mealPlanId)}`}>Open case re-review</Link>
+        </div>)}
+      </section>}
       {message && (
         <div role="status" className="rounded-xl border border-brand-border p-3 text-sm text-brand-muted">
           {message}

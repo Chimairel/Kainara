@@ -24,6 +24,7 @@ export const nutritionistAuditActions = [
   'MEAL_PLAN_DISPUTE_RESOLVED',
   'MEAL_PLAN_REVIEW_CLAIM_RELEASED',
   'MEAL_APPROVAL_FLAGGED',
+  'MEAL_CASE_FLAG_RESOLVED',
   'MEAL_APPROVAL_RECHECKED',
   'CLINICAL_PROFILE_REVIEWED',
   'CLINICAL_CLARIFICATION_PUBLISHED',
@@ -93,6 +94,7 @@ export function auditActionLabel(action: string) {
     MEAL_PLAN_DISPUTE_RESOLVED: 'Resolved a dispute',
     MEAL_APPROVAL_FLAGGED: 'Flagged an approval',
     MEAL_APPROVAL_RECHECKED: 'Rechecked an approval',
+    MEAL_CASE_FLAG_RESOLVED: 'Resolved an approval concern',
     CLINICAL_PROFILE_REVIEWED: 'Reviewed a health profile',
     CLINICAL_CLARIFICATION_PUBLISHED: 'Sent profile clarification questions',
     CLINICAL_CLARIFICATION_RESOLVED: 'Resolved profile clarification',
@@ -129,6 +131,7 @@ export function auditOutcomeLabel(action: string) {
 
 /** Summary only; this label never grants access to clinical case details. */
 export function auditTypeLabel(action: string, targetType: string) {
+  if (targetType === 'MealPlanReviewDecision' || action === 'MEAL_CASE_FLAG_RESOLVED') return 'Meal approval';
   if (action.startsWith('CLINICAL_PROFILE_') || targetType === 'ClinicalProfileReview') return 'Profile verification';
   if (action.startsWith('CLINICAL_CLARIFICATION_')) return 'Profile clarification';
   if (action.startsWith('CLINICAL_DOCUMENT_')) return 'Document review';

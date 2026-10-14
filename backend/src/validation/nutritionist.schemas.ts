@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { reviewCanvasLayoutSchema } from './review-canvas.schema';
 import { replacementOutcomeSchema } from '@/domain/review-nutrient-filter.policy';
 
 const boundedNote = z.string().trim().min(1).max(2000);
@@ -30,6 +31,9 @@ export const nutritionistReviewActionSchema = z.discriminatedUnion('action', [
   z
     .object({
       action: z.literal('approve'),
+      canvasLayout: reviewCanvasLayoutSchema.optional(),
+      canvasReference: z.object({ condition: z.enum(['DIABETES', 'HYPERTENSION', 'KIDNEY_DISEASE', 'HEART_CONDITION', 'PREGNANT']),
+        search: z.string().trim().max(100), page: z.number().int().min(1).max(10000), expandedId: z.string().max(191).nullable() }).strict().optional(),
       expectedContextKey: mealReviewContextSchema,
       note: z.string().trim().max(2000).optional(),
       updates: reviewUpdatesSchema.optional(),

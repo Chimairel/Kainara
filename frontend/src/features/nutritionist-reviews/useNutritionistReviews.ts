@@ -33,6 +33,8 @@ export function useNutritionistReviews(enabled = true) {
   const [detailLoading, setDetailLoading] = useState(false);
   const [detailData, setDetailData] = useState<DetailData | null>(null);
   const detailRef = useRef(detailData);
+  const canvasLayout = useRef<import('./ReviewCanvas').ReviewCanvasLayout | null>(null);
+  const canvasReference = useRef<ReviewPayload['canvasReference'] | null>(null);
   detailRef.current = detailData;
   const [reviewNotice, setReviewNotice] = useState<string | null>(null);
   const [savedReviewNotes, setSavedReviewNotes] = useState<
@@ -112,6 +114,8 @@ export function useNutritionistReviews(enabled = true) {
 
   useEffect(() => {
     resourceOwner.current = ownerId;
+    canvasLayout.current = null;
+    canvasReference.current = null;
     resetQueue();
     setSelectedMealId(null);
     setDetailData(null);
@@ -192,6 +196,8 @@ export function useNutritionistReviews(enabled = true) {
   );
 
   const handleSelectMeal = async (id: string) => {
+    canvasLayout.current = null;
+    canvasReference.current = null;
     setSelectedMealId(id);
     const generation = selectionGeneration.current;
     setDetailLoading(true);
@@ -287,6 +293,8 @@ export function useNutritionistReviews(enabled = true) {
     const stillSelected = () => liveOwner.current === ownerId && generation === selectionGeneration.current;
     try {
       const payload: ReviewPayload = {
+        ...(canvasLayout.current ? { canvasLayout: canvasLayout.current } : {}),
+        ...(canvasReference.current ? { canvasReference: canvasReference.current } : {}),
         ...(detailData?.reviewContext ? { expectedContextKey: detailData.reviewContext.contextKey } : {}),
         action: 'approve',
         note: generalNote.trim() || undefined,
@@ -360,6 +368,8 @@ export function useNutritionistReviews(enabled = true) {
     handleClaimMeal,
     handleReleaseMeal,
     handleApprove,
+    canvasLayout,
+    canvasReference,
     handleReject,
   };
 }

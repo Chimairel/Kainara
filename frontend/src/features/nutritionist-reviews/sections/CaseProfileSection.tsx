@@ -29,7 +29,7 @@ export default function CaseProfileSection({ model, paper = false }: SectionProp
             <h2 className="text-[10px] font-bold text-brand-muted uppercase tracking-wider">Member Health Profile</h2>
             <h3 className="truncate text-base font-extrabold text-brand-text mt-0.5">{detailData.user.name}</h3>
             <p className="text-xs text-brand-muted">
-              {detailData.user.age} yrs • {detailData.user.sex}
+              {detailData.user.age == null ? 'Age not recorded' : `${detailData.user.age} yrs`} • {detailData.user.sex}
             </p>
           </div>
         </div>
@@ -39,7 +39,7 @@ export default function CaseProfileSection({ model, paper = false }: SectionProp
           <h4 className="text-xs font-bold text-brand-muted">Conditions</h4>
           <div className="flex flex-wrap gap-1.5">
             {detailData.user.conditions.length === 0 ? (
-              <span className="text-xs text-brand-muted italic">None declared</span>
+              <span className="text-xs text-brand-muted italic">{detailData.user.conditionsRecorded === false ? 'Not recorded' : 'None declared'}</span>
             ) : (
               detailData.user.conditions.map((hc, i) => (
                 <span
@@ -58,7 +58,7 @@ export default function CaseProfileSection({ model, paper = false }: SectionProp
           <h4 className="text-xs font-bold text-brand-muted">Allergies</h4>
           <div className="flex flex-wrap gap-1.5">
             {detailData.user.allergies.length === 0 ? (
-              <span className="text-xs text-brand-muted italic">None declared</span>
+              <span className="text-xs text-brand-muted italic">{detailData.user.allergiesRecorded === false ? 'Not recorded' : 'None declared'}</span>
             ) : (
               detailData.user.allergies.map((alg, i) => (
                 <span
@@ -165,7 +165,7 @@ export default function CaseProfileSection({ model, paper = false }: SectionProp
           </div>
           <div>
             <span className="block text-[10px] text-brand-muted">Daily Target</span>
-            <strong className="text-brand-text text-xs">{detailData.user.dailyCalorieTarget} kcal</strong>
+            <strong className="text-brand-text text-xs">{detailData.user.dailyCalorieTarget == null ? 'Not recorded' : `${detailData.user.dailyCalorieTarget} kcal`}</strong>
           </div>
           <div>
             <span className="block text-[10px] text-brand-muted">Diet Preference</span>

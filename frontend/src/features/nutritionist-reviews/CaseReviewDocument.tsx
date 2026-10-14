@@ -2,17 +2,13 @@
 import { formatMealTitle } from '@/lib/meal-title';
 import FeedbackNotice from '@/components/shared/FeedbackNotice';
 
-import { formatManilaDate } from '@/lib/manila-date';
+import CaseEvidenceSheets from './CaseEvidenceSheets';
 import RndQueueDocument, { ReviewDocumentPage } from './RndQueueDocument';
-import CaseProfileSection from './sections/CaseProfileSection';
-import CaseAuditSection from './sections/CaseAuditSection';
-import CaseFlagConcernSheet from './CaseFlagConcernSheet';
 import CaseDecisionSection from './sections/CaseDecisionSection';
 import type { useCaseReviewWorkspaceModel } from './sections/useCaseReviewWorkspaceModel';
 import { useReviewSwap } from './useReviewSwap';
 import { useState, useEffect } from 'react';
 import ClarificationTool from '@/features/clinical-clarification/ClarificationTool';
-import ClarificationFormCard from '@/features/clinical-clarification/ClarificationFormCard';
 import Button from '@/components/ui/Button';
 import RelatedConditionReviews, { initialRelatedReviewView, relatedReviewConditions } from './RelatedConditionReviews';
 
@@ -23,6 +19,12 @@ export default function CaseReviewDocument({ model }: { model: Model }) {
   const [action, setAction] = useState<'approve' | 'reject' | null>(null);
   const [referenceRequest, setReferenceRequest] = useState<{ key: string; request: number } | null>(null);
   const [referenceView, setReferenceView] = useState(initialRelatedReviewView);
+  useEffect(() => {
+    const active = referenceRequest?.key === `${detailData?.mealPlan.id}:${detailData?.reviewContext?.contextKey ?? 'legacy'}`;
+    if (model.review.canvasReference) model.review.canvasReference.current = active ? {
+      ...referenceView, condition: referenceView.condition || (detailData ? relatedReviewConditions(detailData)[0] : ''),
+    } : null;
+  }, [referenceView, referenceRequest, detailData, model.review]);
   const hasActiveConcern = detailData?.flagConcerns?.some((concern) => concern.active);
   useEffect(() => setAction(null), [model.selectedMealId, detailData?.claimStatus.claimedByMe, hasActiveConcern]);
   const swap = useReviewSwap(
@@ -47,6 +49,7 @@ export default function CaseReviewDocument({ model }: { model: Model }) {
         key={meal.id}
         title={`Case approval · ${formatMealTitle(meal.mealName)}`}
         contentKey={meal.id}
+        onLayoutChange={layout => { if (model.review.canvasLayout) model.review.canvasLayout.current = layout; }}
         expanded={expanded}
         onExpandedChange={setExpanded}
         onBack={() => setSelectedMealId(null)}
@@ -93,73 +96,8 @@ export default function CaseReviewDocument({ model }: { model: Model }) {
           ) : undefined
         }
       >
-        <ReviewDocumentPage
-          page={1}
-          title="Member health profile"
-          subtitle={`${detailData.user.name} · ${formatManilaDate(meal.scheduledDate, { dateStyle: 'medium' })}`}
-        >
-          {meal.requiresSafetyRevalidation && (
-            <FeedbackNotice role="status" tone="warning">
-              <strong>Profile or evidence changed.</strong> Check the current diet, allergies, conditions and portion
-              target below. Previous automated triage is not current.
-            </FeedbackNotice>
-          )}
-          {detailData.highRiskReviewRequired && (
-            <FeedbackNotice tone="warning">
-              Review the recorded health context before approving this meal.
-            </FeedbackNotice>
-          )}
-          <CaseProfileSection model={model} paper />
-        </ReviewDocumentPage>
-        <ReviewDocumentPage
-          page={2}
-          title="Meal evidence"
-          subtitle={`${formatMealTitle(meal.mealName)} · ${meal.mealType} · ${formatManilaDate(meal.scheduledDate, { dateStyle: 'medium' })}`}
-        >
-          <CaseAuditSection model={model} paper />
-          {detailData.warnings.length > 0 && (
-            <section aria-label="Pre-computed clinical warnings" className="space-y-3 border-t border-[#dce4e0] pt-4">
-              <h3 className="font-bold text-[#1B4332]">Pre-computed clinical warnings</h3>
-              {detailData.warnings.map((warning, index) => (
-                <p
-                  key={index}
-                  className={`rounded-xl border p-3 text-sm ${
-                    warning.severity === 'CRITICAL'
-                      ? 'border-red-200 bg-red-50 text-red-900'
-                      : warning.severity === 'IMPORTANT'
-                        ? 'border-amber-200 bg-amber-50 text-amber-900'
-                        : 'border-teal-200 bg-teal-50 text-teal-900'
-                  }`}
-                >
-                  <strong>{warning.severity}: </strong>
-                  {warning.message}
-                </p>
-              ))}
-            </section>
-          )}
-        </ReviewDocumentPage>
-        {!!detailData.flagConcerns?.length && (
-          <ReviewDocumentPage page={3} title="Flag concerns" subtitle="Recorded concerns and their resolution">
-            <CaseFlagConcernSheet
-              concerns={detailData.flagConcerns}
-              canWrite={detailData.claimStatus.claimedByMe}
-              onUpdated={async () => {
-                await model.review.handleSelectMeal(meal.id);
-                await model.review.fetchQueue(false, undefined, true);
-              }}
-            />
-          </ReviewDocumentPage>
-        )}
-        {detailData.clarifications?.forms.map((form, index) => (
-          <ReviewDocumentPage
-            key={form.id}
-            page={3 + Number(Boolean(detailData.flagConcerns?.length)) + index}
-            title={form.title}
-            subtitle="Saved profile clarification · read only"
-          >
-            <ClarificationFormCard form={form} mode="reviewer" embedded />
-          </ReviewDocumentPage>
-        ))}
+        {CaseEvidenceSheets({ detailData, canWrite: detailData.claimStatus.claimedByMe,
+          onUpdated: async () => { await model.review.handleSelectMeal(meal.id); await model.review.fetchQueue(false, undefined, true); } })}
         {referencesOpen && (
           <ReviewDocumentPage page={lastPage + 1} title="Related condition reviews" subtitle="Completed decisions for this case’s conditions">
             <RelatedConditionReviews detail={detailData} view={referenceView} onViewChange={setReferenceView} />

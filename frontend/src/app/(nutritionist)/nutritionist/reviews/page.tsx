@@ -4,7 +4,7 @@ import CaseReviewWorkspace from '@/features/nutritionist-reviews/CaseReviewWorks
 
 import PortalPageHeader from '@/components/shared/PortalPageHeader';
 import { ShieldCheck } from '@/components/ui/icons';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import { useNutritionistReviews } from '@/features/nutritionist-reviews/useNutritionistReviews';
 import { useReviewWorkCounts } from '@/features/nutritionist-reviews/useReviewWorkCounts';
@@ -30,6 +30,10 @@ function ReviewsWorkspace() {
   const [caseFilter, setCaseFilter] = useState<'pending' | 'outside'>('pending');
   const [expanded, setExpanded] = useState(false);
   const review = useNutritionistReviews(workspace === 'case' && caseFilter === 'pending');
+  useEffect(() => {
+    const id = new URLSearchParams(window.location.search).get('caseId');
+    if (id && id.length <= 191) void review.handleSelectMeal(id);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const navigation = (
     <WorkspaceTabs

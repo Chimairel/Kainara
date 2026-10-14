@@ -9,6 +9,7 @@ import { ReviewDocumentPage } from '@/features/nutritionist-reviews/RndQueueDocu
 import MealReviewTimeline, { type ReviewIncident } from '@/features/nutritionist-library/MealReviewTimeline';
 import RecordedCaseFields, { recordedObject, recordValue } from './RecordedCaseFields';
 import AdminDecisionSheets from './AdminDecisionSheets';
+import SavedApprovalCanvas, { type ApprovalFlagTarget } from '@/features/nutritionist-reviews/SavedApprovalCanvas';
 
 const compactQuery = '(max-width: 639px)';
 const compactSnapshot = () => typeof window.matchMedia === 'function' && window.matchMedia(compactQuery).matches;
@@ -27,6 +28,8 @@ export type ReviewContext = {
   clinicalEvidence: { id?: string; documentType?: string; originalFileName?: string }[];
   historicalInformation: string | null;
   recipe?: { history: ReviewIncident[]; legacyHistoryUnknown: boolean };
+  approvalFlag?: ApprovalFlagTarget | null;
+  recordedConcern?: NonNullable<import('@/features/nutritionist-reviews/review-types').DetailData['flagConcerns']>[number] | null;
 };
 
 /** Admin adapter for the same movable-sheet canvas used by RNDs. No clinical decision controls. */
@@ -116,6 +119,15 @@ export default function CaseReviewDocument({
         ? 'Related document metadata at access time. Recorded document versions remain in each decision snapshot.'
         : 'Saved review evidence. Missing historical information is labeled as not recorded.';
   let sheets: ReactNode;
+  const savedDecision = recordedObject(record.value);
+  if (record.kind === 'decision' && savedDecision?.decision === 'APPROVE' && savedDecision.evidenceSnapshot) {
+    return <div className="space-y-4">
+      <Select aria-label="Case record" value={record.key} onChange={setSelected}
+        options={records.map(item => ({ value: item.key, label: item.label }))} className="w-full" />
+      <SavedApprovalCanvas key={String(savedDecision.id)} snapshot={savedDecision.evidenceSnapshot}
+      decisionId={String(savedDecision.id)} recordedConcern={savedDecision.id === data.selectedDecisionId ? data.recordedConcern : null} approvalFlag={role === 'rnd' && savedDecision.id === data.selectedDecisionId ? data.approvalFlag : null} />
+    </div>;
+  }
   if (record.kind === 'decision') {
     const questions = recordedObject(data.reviewedSnapshot)?.questions;
     sheets = AdminDecisionSheets({

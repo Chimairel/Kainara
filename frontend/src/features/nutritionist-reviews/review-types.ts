@@ -45,7 +45,7 @@ export interface QueueItem {
 }
 
 export interface DetailData {
-  flagConcerns?: Array<import('./ConcernResolution').ReviewConcern & { kind: 'RECIPE' | 'PROFILE' | 'CONDITION'; mealLibraryId: string | null; approvalId?: string; active: boolean; resolution?: string }>;
+  flagConcerns?: Array<import('./ConcernResolution').ReviewConcern & { kind: 'RECIPE' | 'PROFILE' | 'CONDITION' | 'CASE'; mealLibraryId: string | null; approvalId?: string; active: boolean; resolution?: string; expectedVersion?: string }>;
   pollStatus?: ReviewPollStatus;
   reviewReferences?: Array<{
     reviewedAt: string;
@@ -98,6 +98,8 @@ export interface DetailData {
     ricePreference: string;
     conditions: string[];
     allergies: string[];
+    conditionsRecorded?: boolean;
+    allergiesRecorded?: boolean;
     safetyEntries?: Array<{
       mealPlanningAssessment?: { result: string; rationale: string; reviewerName: string } | null;
       domain: 'CONDITION' | 'ALLERGY' | 'INTOLERANCE' | 'AVOIDED_INGREDIENT' | 'UNKNOWN';
@@ -133,6 +135,8 @@ export interface DetailData {
 }
 
 export interface ReviewPayload {
+  canvasReference?: { condition: string; search: string; page: number; expandedId: string | null };
+  canvasLayout?: import('./ReviewCanvas').ReviewCanvasLayout;
   expectedContextKey?: string;
   action: 'approve';
   note?: string;

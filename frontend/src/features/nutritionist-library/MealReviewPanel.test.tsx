@@ -96,17 +96,19 @@ it('changed review evidence clears drafts and losing the claim removes resolutio
 });
 
 
-it('opens flag fields only in a dialog, keeps a cancelled draft and preserves it after a server failure', async () => {
+it('opens a verification canvas, removes cancelled flag pages and retains failed submission drafts', async () => {
   fixture.data = { ...fixture.data, state: 'PUBLISHED', recipeVersion: 'c'.repeat(64), incident: null };
   render(<MealReviewPanel meal={meal} isAdmin={false} refresh={vi.fn()} />);
   expect(screen.queryByLabelText('Explanation')).not.toBeInTheDocument();
-  fireEvent.click(screen.getByRole('button', { name: 'Flag meal', exact: true }));
-  expect(screen.getByRole('dialog', { name: 'Flag meal' })).toBeVisible();
+  fireEvent.click(screen.getByRole('button', { name: 'Flag meal' }));
+  expect(screen.getByRole('dialog', { name: /Meal verification.*fullscreen/ })).toBeVisible();
+  expect(screen.getByRole('article', { name: 'Flag meal reasons' })).toBeVisible();
   fireEvent.change(screen.getByLabelText('Explanation'), { target: { value: 'Measured nutrients do not match the ingredient evidence.' } });
   fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
-  expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
-  fireEvent.click(screen.getByRole('button', { name: 'Flag meal', exact: true }));
-  expect(screen.getByLabelText('Explanation')).toHaveValue('Measured nutrients do not match the ingredient evidence.');
+  expect(screen.queryByRole('article', { name: 'Flag meal reasons' })).not.toBeInTheDocument();
+  fireEvent.click(screen.getAllByRole('button', { name: 'Flag meal' }).at(-1)!);
+  expect(screen.getByLabelText('Explanation')).toHaveValue('');
+  fireEvent.change(screen.getByLabelText('Explanation'), { target: { value: 'Measured nutrients do not match the ingredient evidence.' } });
   const submit = screen.getByRole('button', { name: 'Flag and withhold meal' });
   expect(submit).toBeDisabled();
   fireEvent.change(screen.getByLabelText('Affected ingredients or nutrition fields'), { target: { value: 'sodiumMg' } });

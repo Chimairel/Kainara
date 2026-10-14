@@ -44,7 +44,7 @@ export default function CaseAuditSection({
           <div key={label}>
             <dt className="text-xs text-brand-muted">{label}</dt>
             <dd className="font-bold">
-              {value.toFixed(1)} {unit}
+              {typeof value === 'number' ? `${value.toFixed(1)} ${unit}` : 'Not recorded'}
             </dd>
           </div>
         ))}

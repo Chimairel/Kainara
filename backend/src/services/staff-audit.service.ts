@@ -148,7 +148,8 @@ export class StaffAuditService {
             CASE WHEN condition_approval.condition IS NOT NULL AND condition_approval.condition <> 'NONE'
               THEN jsonb_build_array(condition_approval.condition) END) AS "conditionCodes"
         FROM "AuditEvent" e LEFT JOIN "User" u ON u.id = e."actorUserId"
-        LEFT JOIN "MealPlanReviewDecision" audit_decision ON e."entityType" = 'MealPlan' AND audit_decision."mealPlanId" = e."entityId" AND audit_decision.id = e.metadata->>'reviewDecisionId'
+        LEFT JOIN "MealPlanReviewDecision" audit_decision ON (e."entityType" = 'MealPlan' AND audit_decision."mealPlanId" = e."entityId" AND audit_decision.id = e.metadata->>'reviewDecisionId')
+          OR (e."entityType" = 'MealPlanReviewDecision' AND audit_decision.id = e."entityId")
         LEFT JOIN "MealReviewReference" reuse_reference ON e.action = 'MEAL_APPROVAL_REUSED' AND reuse_reference.id = e.metadata->>'referenceId'
         LEFT JOIN "MealPlanReviewDecision" reuse_decision ON reuse_decision.id = reuse_reference."decisionId"
         LEFT JOIN "MealLibraryProfileApproval" profile_approval ON e."entityType" = 'MealLibraryProfileApproval' AND profile_approval.id = e."entityId"

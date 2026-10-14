@@ -3,18 +3,39 @@
 import * as Dialog from '@radix-ui/react-dialog';
 import {
   Children,
+  Fragment,
   isValidElement,
+  useCallback,
   useEffect,
   useLayoutEffect,
   useRef,
   useState,
+  useSyncExternalStore,
   type ReactNode,
   type ReactElement,
 } from 'react';
 import { Hand, MousePointer2, Maximize2, Minimize2, Minus, Plus, RotateCcw, Scan, Square } from '@/components/ui/icons';
 
 type Point = { x: number; y: number };
+export type ReviewCanvasLayout = {
+  version: 1;
+  sheets: Array<Point & { title: string }>;
+  view: Point & { scale: number };
+  selected: number;
+  mode: 'hand' | 'select';
+};
 const WIDTH = 794;
+const compactSnapshot = () => typeof window.matchMedia === 'function' && window.matchMedia('(max-width: 639px)').matches;
+const subscribeCompact = (listener: () => void) => {
+  if (typeof window.matchMedia !== 'function') return () => {};
+  const media = window.matchMedia('(max-width: 639px)');
+  media.addEventListener('change', listener);
+  return () => media.removeEventListener('change', listener);
+};
+const flattenSheets = (children: ReactNode): ReactElement<{ title?: string }>[] => Children.toArray(children).flatMap(child => {
+  if (!isValidElement<{ title?: string; children?: ReactNode }>(child)) return [];
+  return child.type === Fragment ? flattenSheets(child.props.children) : [child];
+});
 const editableTarget = (target: EventTarget | null) =>
   target instanceof HTMLElement &&
   Boolean(target.closest('input, textarea, select, [contenteditable="true"], [role="textbox"], [role="combobox"]'));
@@ -32,6 +53,11 @@ export default function ReviewCanvas({
   className = '',
   focusSheet,
   tools,
+  initialLayout,
+  onLayoutChange,
+  restoreLayout,
+  hideDecisionDock = false,
+  stackOnMobile = false,
 }: {
   title: string;
   contentKey: string;
@@ -41,13 +67,18 @@ export default function ReviewCanvas({
   expanded: boolean;
   onExpandedChange: (value: boolean) => void;
   readOnly?: boolean;
+  hideDecisionDock?: boolean;
+  stackOnMobile?: boolean;
   className?: string;
   focusSheet?: { title: string; request: number };
   tools?: ReactNode;
+  initialLayout?: ReviewCanvasLayout | null;
+  onLayoutChange?: (layout: ReviewCanvasLayout) => void;
+  restoreLayout?: { layout: ReviewCanvasLayout; request: number } | null;
 }) {
-  const pages = Children.toArray(children).filter((child): child is ReactElement<{ title?: string }> =>
-    isValidElement<{ title?: string }>(child)
-  );
+  const narrow = useSyncExternalStore(subscribeCompact, compactSnapshot, () => false);
+  const compact = stackOnMobile && narrow;
+  const pages = flattenSheets(children);
   const pageCount = pages.length;
   const initialPositions = () => pages.map((_, i) => ({ x: i * (WIDTH + 56), y: 0 }));
   const [positions, setPositions] = useState<Point[]>(initialPositions);
@@ -57,6 +88,8 @@ export default function ReviewCanvas({
   const [heights, setHeights] = useState<number[]>([]);
   const root = useRef<HTMLDivElement>(null),
     viewport = useRef<HTMLDivElement>(null);
+  const [viewportNode, setViewportNode] = useState<HTMLDivElement | null>(null);
+  const bindViewport = useCallback((node: HTMLDivElement | null) => { viewport.current = node; setViewportNode(node); }, []);
   const sheets = useRef<Array<HTMLDivElement | null>>([]),
     expandButton = useRef<HTMLButtonElement>(null);
   const drag = useRef<{ pointer: number; kind: 'pan' | 'sheet'; index: number; start: Point; origin: Point } | null>(
@@ -89,11 +122,13 @@ export default function ReviewCanvas({
     if (reset) setPositions(layout);
   };
   useLayoutEffect(() => {
-    setPositions(initialPositions());
-    setSelected(0);
-    setMode('select');
-    didFit.current = false;
-    resetPending.current = true;
+    setPositions(pages.map((page, index) => initialLayout && initialLayout.sheets[index]?.title === page.props.title
+      ? initialLayout.sheets[index] : initialPositions()[index]));
+    setSelected(initialLayout?.selected ?? 0);
+    setMode(initialLayout?.mode ?? 'select');
+    if (initialLayout) setView(initialLayout.view);
+    didFit.current = Boolean(initialLayout);
+    resetPending.current = !initialLayout;
   }, [contentKey]); // eslint-disable-line react-hooks/exhaustive-deps
   useLayoutEffect(() => {
     setPositions((previous) =>
@@ -101,8 +136,13 @@ export default function ReviewCanvas({
     );
     setSelected((previous) => Math.min(previous, Math.max(0, pageCount - 1)));
     sheets.current.length = pageCount;
-    didFit.current = false;
-  }, [pageCount]);
+    didFit.current = Boolean(initialLayout);
+  }, [pageCount]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    onLayoutChange?.({ version: 1, sheets: pages.map((page, index) => ({
+      title: page.props.title ?? `Sheet ${index + 1}`, ...(positions[index] ?? { x: index * (WIDTH + 56), y: 0 }),
+    })), view, selected, mode });
+  }, [positions, view, selected, mode, pageCount, onLayoutChange]); // eslint-disable-line react-hooks/exhaustive-deps
   useLayoutEffect(() => {
     const node = viewport.current;
     if (!node) return;
@@ -111,7 +151,7 @@ export default function ReviewCanvas({
         const next = sheets.current.map((sheet) => sheet?.offsetHeight ?? 1123);
         return next.every((height, i) => previous[i] === height) ? previous : next;
       });
-      if (!didFit.current && node.clientWidth) {
+      if (!compact && !didFit.current && node.clientWidth) {
         didFit.current = true;
         fit(true, resetPending.current);
         resetPending.current = false;
@@ -122,13 +162,17 @@ export default function ReviewCanvas({
     observer.observe(node);
     sheets.current.forEach((sheet) => sheet && observer.observe(sheet));
     return () => observer.disconnect();
-  }, [contentKey, expanded, pages.length, positions.length]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [contentKey, expanded, pages.length, positions.length, viewportNode, compact]); // eslint-disable-line react-hooks/exhaustive-deps
   useLayoutEffect(() => {
     if (!focusSheet) return;
     const index = pages.findIndex(page => page.props.title === focusSheet.title);
     const node = viewport.current;
     if (index < 0 || !node) return;
     const position = positions[index] ?? { x: index * (WIDTH + 56), y: 0 };
+    if (compact) {
+      node.scrollTop = sheets.current[index]?.offsetTop ?? 0;
+      setSelected(index); return;
+    }
     // Open references at a readable width, keeping their top in view.
     const scale = Math.max(0.1, Math.min(1, (node.clientWidth - 48) / WIDTH));
     setSelected(index);
@@ -136,7 +180,15 @@ export default function ReviewCanvas({
     setView({ scale, x: Math.max(24, (node.clientWidth - WIDTH * scale) / 2) - position.x * scale,
       y: 64 - position.y * scale });
     didFit.current = true;
-  }, [focusSheet?.title, focusSheet?.request, pageCount]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [focusSheet?.title, focusSheet?.request, pageCount, viewportNode, compact]); // eslint-disable-line react-hooks/exhaustive-deps
+  useLayoutEffect(() => {
+    if (!restoreLayout) return;
+    setPositions(restoreLayout.layout.sheets.slice(0, pageCount));
+    setView(restoreLayout.layout.view);
+    setSelected(Math.min(restoreLayout.layout.selected, pageCount - 1));
+    setMode(restoreLayout.layout.mode);
+    didFit.current = true;
+  }, [restoreLayout?.request]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
     const shortcuts = (event: KeyboardEvent) => {
       if (event.defaultPrevented || event.ctrlKey || event.metaKey || event.altKey || editableTarget(event.target))
@@ -180,6 +232,7 @@ export default function ReviewCanvas({
     // Fullscreen moves the viewport into a delayed Radix portal. Resolve live refs
     // for each wheel event so no listener is stranded on the previous DOM node.
     const wheel = (event: WheelEvent) => {
+      if (compact) return;
       const node = viewport.current,
         canvasNode = root.current;
       const target = event.target;
@@ -210,7 +263,7 @@ export default function ReviewCanvas({
     // browser's page zoom is cancelled synchronously, including trackpad pinch.
     document.addEventListener('wheel', wheel, { capture: true, passive: false });
     return () => document.removeEventListener('wheel', wheel, { capture: true });
-  }, []);
+  }, [compact]);
   const start = (event: React.PointerEvent, kind: 'pan' | 'sheet', index = 0) => {
     if (event.button !== 0) return;
     event.preventDefault();
@@ -268,7 +321,7 @@ export default function ReviewCanvas({
         </div>
       </header>
       <div
-        className="flex shrink-0 flex-wrap items-center gap-2 border-b border-brand-border bg-brand-surface px-3 py-2"
+        className={`${compact ? 'hidden' : 'flex'} shrink-0 flex-wrap items-center gap-2 border-b border-brand-border bg-brand-surface px-3 py-2`}
         role="toolbar"
         aria-label="Canvas tools"
       >
@@ -315,13 +368,13 @@ export default function ReviewCanvas({
         {tools && <><span className="mx-1 h-5 border-l border-brand-border" />{tools}</>}
       </div>
       <div
-        ref={viewport}
+        ref={bindViewport}
         tabIndex={0}
         role="region"
         aria-label="Review canvas viewport"
-        className={`relative min-h-0 flex-1 overflow-hidden overscroll-contain bg-[radial-gradient(var(--brand-border)_1px,transparent_1px)] [background-size:20px_20px] ${mode === 'hand' ? 'cursor-grab select-none' : 'cursor-default'}`}
+        className={`relative min-h-0 flex-1 ${compact ? 'overflow-y-auto p-3' : 'overflow-hidden'} overscroll-contain bg-[radial-gradient(var(--brand-border)_1px,transparent_1px)] [background-size:20px_20px] ${!compact && mode === 'hand' ? 'cursor-grab select-none' : 'cursor-default'}`}
         onPointerDownCapture={(event) => {
-          if (mode === 'hand') start(event, 'pan');
+          if (!compact && mode === 'hand') start(event, 'pan');
         }}
         onPointerMove={move}
         onPointerUp={() => {
@@ -334,7 +387,7 @@ export default function ReviewCanvas({
           drag.current = null;
         }}
         onClickCapture={(event) => {
-          if (mode === 'hand') {
+          if (!compact && mode === 'hand') {
             event.preventDefault();
             event.stopPropagation();
           }
@@ -342,24 +395,25 @@ export default function ReviewCanvas({
       >
         <div
           data-canvas-world
-          style={{ transform: `translate(${view.x}px, ${view.y}px) scale(${view.scale})`, transformOrigin: '0 0' }}
+          className={compact ? 'space-y-5' : undefined}
+          style={compact ? undefined : { transform: `translate(${view.x}px, ${view.y}px) scale(${view.scale})`, transformOrigin: '0 0' }}
         >
           {pages.map((page, index) => {
             const label = typeof page.props.title === 'string' ? page.props.title : `Sheet ${index + 1}`;
             return (
               <div
-                key={page.key ?? index}
+                key={`${index}:${page.key ?? "sheet"}`}
                 ref={(node) => {
                   sheets.current[index] = node;
                 }}
                 data-canvas-sheet={index}
-                style={{
+                style={compact ? undefined : {
                   position: 'absolute',
                   width: WIDTH,
                   left: positions[index]?.x ?? 0,
                   top: positions[index]?.y ?? 0,
                 }}
-                className={selected === index ? 'outline outline-2 outline-brand-accent outline-offset-4' : ''}
+                className={compact ? 'relative [&>article]:min-h-0 [&>article]:p-5 [&_h2]:text-2xl' : selected === index ? 'outline outline-2 outline-brand-accent outline-offset-4' : ''}
                 onPointerDown={() => {
                   if (mode === 'select') setSelected(index);
                 }}
@@ -371,7 +425,7 @@ export default function ReviewCanvas({
                   onFocus={() => {
                     if (mode === 'select') setSelected(index);
                   }}
-                  className="absolute bottom-full left-0 mb-3 cursor-move rounded-lg bg-brand-surface px-3 py-2 text-sm font-bold text-brand-text shadow-sm"
+                  className={`${compact ? 'hidden' : ''} absolute bottom-full left-0 mb-3 cursor-move rounded-lg bg-brand-surface px-3 py-2 text-sm font-bold text-brand-text shadow-sm`}
                   onPointerDown={(event) => {
                     if (mode === 'select') start(event, 'sheet', index);
                   }}
@@ -404,7 +458,7 @@ export default function ReviewCanvas({
           })}
         </div>
       </div>
-      {!readOnly && (
+      {!readOnly && !hideDecisionDock && (
         <footer
           role="region"
           className="absolute bottom-4 left-1/2 z-10 max-w-[calc(100%-32px)] -translate-x-1/2 rounded-2xl border border-brand-border bg-brand-surface p-2 shadow-card-lg"

@@ -48,6 +48,8 @@ import { NutritionistAuditService } from '@/services/nutritionist-audit.service'
 import { AuditDetailsService } from '@/services/audit-details.service';
 import { NutritionistAuditContextService } from '@/services/nutritionist-audit-context.service';
 import { RelatedConditionReviewsService } from '@/services/related-condition-reviews.service';
+import { flagCaseApproval, resolveCaseApprovalFlag, listCaseApprovalFlags } from '@/services/case-approval-flag.service';
+import { mealFlagSubmissionSchema } from '@/validation/meal-review.schemas';
 
 import libraryRouter from './nutritionist-library.routes';
 import reviewSwapRouter from './nutritionist-review-swap.routes';
@@ -611,6 +613,18 @@ router.get('/queue/:id/condition-reviews',
     res.json({ success: true, data });
   })
 );
+router.post('/case-approvals/:id/flag', validateZodRequest({ params: z.object({ id: z.string().min(1).max(191) }).strict() }), validateZodBody(mealFlagSubmissionSchema), asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+  res.json({ success: true, data: await flagCaseApproval(req.user!.userId, req.nutritionistProfileId!, req.params.id, req.body) });
+}));
+router.get('/case-approval-follow-ups', asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+  res.setHeader('Cache-Control', 'private, no-store');
+  res.json({ success: true, data: await listCaseApprovalFlags(req.nutritionistProfileId!) });
+}));
+router.post('/case-approvals/:id/resolve', validateZodRequest({ params: z.object({ id: z.string().min(1).max(191) }).strict() }), validateZodBody(z.object({
+  mealPlanId: z.string().min(1).max(191), expectedVersion: z.string().regex(/^[a-f0-9]{64}$/), rationale: z.string().trim().min(20).max(3000),
+}).strict()), asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+  res.json({ success: true, data: await resolveCaseApprovalFlag(req.user!.userId, req.nutritionistProfileId!, req.params.id, req.body) });
+}));
 router.get('/queue/:id', async (req: AuthenticatedRequest, res: Response) => {
   res.setHeader('Cache-Control', 'private, no-store');
   try {
@@ -698,7 +712,7 @@ router.patch(
   validateZodBody(nutritionistReviewActionSchema),
   async (req: AuthenticatedRequest, res: Response) => {
     try {
-      const { action, note, updates, expectedContextKey, replacementOutcome } = req.body;
+      const { action, note, updates, expectedContextKey, replacementOutcome, canvasLayout, canvasReference } = req.body;
       const mealPlanId = req.params.id;
 
       if (action === 'approve') {
@@ -707,7 +721,10 @@ router.patch(
           mealPlanId,
           note,
           updates,
-          expectedContextKey
+          expectedContextKey,
+          canvasLayout ? { version: 1, layout: canvasLayout,
+            detail: await NutritionistService.getReviewCardDetails(req.nutritionistProfileId!, mealPlanId),
+            ...(canvasReference ? { related: { view: canvasReference, result: await RelatedConditionReviewsService.list(req.nutritionistProfileId!, mealPlanId, { ...canvasReference, expectedContextKey }) } } : {}) } : undefined
         );
         return res.status(200).json({ success: true, data: result });
       } else if (action === 'reject') {

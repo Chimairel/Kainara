@@ -52,7 +52,7 @@ export class AuditDetailsService {
       (outside || mealFlag || baseMeal) && typeof reasonValue === 'string' ? reasonValue.slice(0, 1000) : null;
     return {
       record,
-      contextAvailable: (event.entityType === 'MealPlan' && /REVIEW|APPROV|REJECT|CLEARANCE/.test(event.action)) ||
+      contextAvailable: (['MealPlan', 'MealPlanReviewDecision'].includes(event.entityType) && /REVIEW|APPROV|REJECT|CLEARANCE|FLAG/.test(event.action)) ||
         (event.entityType === 'ClinicalProfileReview' && event.action.startsWith('CLINICAL_PROFILE_')) || baseMeal ||
         (view === 'admin' && (
           (event.entityType === 'ClinicalClarificationForm' && event.action.startsWith('CLINICAL_CLARIFICATION_')) ||

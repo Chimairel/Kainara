@@ -2,7 +2,7 @@
 
 import { type CSSProperties, type ReactNode } from 'react';
 import { ArrowLeft } from '@/components/ui/icons';
-import ReviewCanvas from './ReviewCanvas';
+import ReviewCanvas, { type ReviewCanvasLayout } from './ReviewCanvas';
 
 /** Queue adapter: movable paper sheets and an unscaled decision dock share one review canvas. */
 export default function RndQueueDocument({
@@ -16,6 +16,10 @@ export default function RndQueueDocument({
   decision,
   focusSheet,
   tools,
+  initialLayout,
+  onLayoutChange,
+  hideDecisionDock,
+  stackOnMobile,
 }: {
   title: string;
   contentKey: string;
@@ -25,8 +29,12 @@ export default function RndQueueDocument({
   actions: ReactNode;
   children: ReactNode;
   decision?: ReactNode;
+  hideDecisionDock?: boolean;
+  stackOnMobile?: boolean;
   focusSheet?: { title: string; request: number };
   tools?: ReactNode;
+  initialLayout?: ReviewCanvasLayout | null;
+  onLayoutChange?: (layout: ReviewCanvasLayout) => void;
 }) {
   return (
     <ReviewCanvas
@@ -50,9 +58,13 @@ export default function RndQueueDocument({
           {actions}
         </>
       }
+      stackOnMobile={stackOnMobile}
+      hideDecisionDock={hideDecisionDock}
       decision={decision}
       focusSheet={focusSheet}
       tools={tools}
+      initialLayout={initialLayout}
+      onLayoutChange={onLayoutChange}
     >
       {children}
     </ReviewCanvas>

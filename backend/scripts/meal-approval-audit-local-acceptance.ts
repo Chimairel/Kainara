@@ -18,7 +18,7 @@ async function main() {
   const password = parse(readFileSync(resolve(root, 'backend/.local/local-development/postgres.env'))).LOCAL_POSTGRES_PASSWORD;
   assert.match(password, /^[a-f0-9]{64}$/);
   const url = `postgresql://postgres:${password}@127.0.0.1:55432/${database}?schema=public`;
-  Object.assign(process.env, { DATABASE_URL: url, DIRECT_URL: url, NODE_ENV: 'test' });
+  Object.assign(process.env, { DATABASE_URL: url, DIRECT_URL: url, NODE_ENV: 'test', CLINICAL_CLARIFICATIONS_ENABLED: 'true' });
   docker(['exec', container, 'createdb', '-U', 'postgres', database]);
   const ddl = execFileSync(process.execPath, [resolve(root, 'backend/node_modules/prisma/build/index.js'), 'migrate', 'diff', '--from-empty', '--to-schema-datamodel', resolve(root, 'backend/prisma/schema.prisma'), '--script'], { cwd: resolve(root, 'backend'), env: process.env, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], maxBuffer: 32 * 1024 * 1024 });
   docker(['exec', '-i', container, 'psql', '-X', '-v', 'ON_ERROR_STOP=1', '-U', 'postgres', '-d', database], ddl);
@@ -28,7 +28,7 @@ async function main() {
   const { recordedReviewConditionsSql } = await import('../src/domain/recorded-review-conditions.sql');
   const { Prisma } = await import('@prisma/client');
   try {
-    const user = await db.user.create({ data: { name: 'Synthetic reviewer', email: 'meal-audit@example.invalid', passwordHash: 'unused', role: 'NUTRITIONIST' } });
+    const user = await db.user.create({ data: { name: 'Synthetic reviewer', email: 'meal-audit@example.invalid', passwordHash: 'unused', role: 'NUTRITIONIST', emailVerified: true } });
     const reviewer = await db.nutritionistProfile.create({ data: { userId: user.id, prcLicenseNumber: 'synthetic-approval-audit', prcLicenseExpiry: new Date('2099-01-01'), isVerified: true } });
     const food = { mealName: 'Synthetic meal', mealType: 'LUNCH' as const, calories: 450, proteinG: 25, carbsG: 45, fatG: 15 };
     const rootMeal = await db.mealLibrary.create({ data: food });
@@ -83,6 +83,74 @@ async function main() {
       const result = await db.$queryRaw<Array<{ codes: unknown }>>(Prisma.sql`SELECT ${recordedReviewConditionsSql(Prisma.sql`${JSON.stringify(snapshot)}::jsonb`)} AS codes`);
       assert.deepEqual(result[0].codes, expectedCodes);
     }
+    const { flagCaseApproval, caseApprovalFlagContext, resolveCaseApprovalFlag, caseApprovalConcern, listCaseApprovalFlags } = await import('../src/services/case-approval-flag.service');
+    const { ReviewRoutingService } = await import('../src/services/review-routing.service');
+    const { NutritionistAuditContextService } = await import('../src/services/nutritionist-audit-context.service');
+    const makeRnd = async (label: string) => {
+      const actor = await db.user.create({ data: { name: `Synthetic ${label}`, email: `${label}@example.invalid`, passwordHash: 'unused', role: 'NUTRITIONIST', emailVerified: true } });
+      const rnd = await db.nutritionistProfile.create({ data: { userId: actor.id, prcLicenseNumber: `synthetic-${label}`, prcLicenseExpiry: new Date('2099-01-01'), isVerified: true } });
+      return { actor, rnd };
+    };
+    const flagger = await makeRnd('flagger'), resolver = await makeRnd('resolver');
+    const nextDate = new Date(Date.now() + 86400000);
+    await db.mealPlanCycle.update({ where: { id: cycle.id }, data: { endDate: new Date(Date.now() + 7 * 86400000) } });
+    const source = await db.mealPlanReviewDecision.findUniqueOrThrow({ where: { id: sourceDecisionId } });
+    const immutableBefore = JSON.stringify(source.evidenceSnapshot);
+    await db.mealPlan.update({ where: { id: source.mealPlanId }, data: { status: 'APPROVED', requiresSafetyRevalidation: false, scheduledDate: nextDate } });
+    const reusedPlan = await db.mealPlan.create({ data: { ...food, userId: user.id, planGroupId: cycle.id, libraryMealId: rootMeal.id,
+      scheduledDate: nextDate, status: 'APPROVED', requiresSafetyRevalidation: false,
+      selectionEvidence: { exactApprovalReuse: { referenceId: reference.id } } } });
+    const untouched = await db.mealPlan.create({ data: { ...food, userId: user.id, planGroupId: cycle.id, libraryMealId: rootMeal.id,
+      scheduledDate: nextDate, status: 'APPROVED', requiresSafetyRevalidation: false } });
+    const independentlyReviewed = await db.mealPlan.create({ data: { ...food, userId: user.id, planGroupId: cycle.id, libraryMealId: rootMeal.id,
+      scheduledDate: nextDate, status: 'APPROVED', requiresSafetyRevalidation: false,
+      selectionEvidence: { exactApprovalReuse: { referenceId: reference.id } } } });
+    await db.mealPlanReviewDecision.create({ data: { mealPlanId: independentlyReviewed.id, nutritionistProfileId: resolver.rnd.id, stage: 'PRIMARY', decision: 'APPROVE',
+      evidenceSnapshot: { mealName: 'Independent new approval' } } });
+    const coalescedPlan = await db.mealPlan.create({ data: { ...food, userId: user.id, planGroupId: cycle.id, libraryMealId: rootMeal.id,
+      scheduledDate: nextDate, status: 'APPROVED', requiresSafetyRevalidation: false } });
+    await db.mealPlanReviewDecision.create({ data: { mealPlanId: coalescedPlan.id, nutritionistProfileId: reviewer.id, stage: 'PRIMARY', decision: 'APPROVE',
+      evidenceSnapshot: { coalescedFromMealPlanId: source.mealPlanId } } });
+    const notes = { category: 'NUTRITION' as const, affectedFields: ['sodium'], explanation: 'Recorded sodium needs an independent review.', reference: 'Synthetic measured evidence.', proposedCorrection: 'Recheck measured sodium amounts.' };
+    const initial = await caseApprovalFlagContext(db, sourceDecisionId);
+    await assert.rejects(flagCaseApproval(flagger.actor.id, flagger.rnd.id, sourceDecisionId, { notes, expectedVersion: 'a'.repeat(64) }, db), { statusCode: 409 });
+    assert.deepEqual(await flagCaseApproval(flagger.actor.id, flagger.rnd.id, sourceDecisionId, { notes, expectedVersion: initial.expectedVersion }, db), { affectedMeals: 3 });
+    await assert.rejects(flagCaseApproval(flagger.actor.id, flagger.rnd.id, sourceDecisionId, { notes, expectedVersion: initial.expectedVersion }, db), { statusCode: 409 });
+    for (const id of [source.mealPlanId, reusedPlan.id, coalescedPlan.id]) {
+      const plan = await db.mealPlan.findUniqueOrThrow({ where: { id } });
+      assert.equal(plan.status, 'PENDING_REVIEW'); assert.equal(plan.requiresSafetyRevalidation, true);
+      assert.equal(plan.claimedByNutritionistId, null);
+    }
+    for (const id of [untouched.id, independentlyReviewed.id]) assert.equal((await db.mealPlan.findUniqueOrThrow({ where: { id } })).status, 'APPROVED');
+    assert.equal((await db.mealLibrary.findUniqueOrThrow({ where: { id: rootMeal.id } })).status, rootMeal.status);
+    await assert.rejects(ReviewRoutingService.assertMeal(reviewer.id, reusedPlan.id, db), { statusCode: 403 });
+    await assert.rejects(ReviewRoutingService.assertMeal(flagger.rnd.id, reusedPlan.id, db), { statusCode: 403 });
+    await ReviewRoutingService.assertMeal(resolver.rnd.id, reusedPlan.id, db);
+    assert.equal((await listCaseApprovalFlags(resolver.rnd.id, db)).length, 1);
+    const concern = (await caseApprovalConcern(db, reusedPlan.id))[0];
+    assert.deepEqual(concern.notes, notes); assert.equal(concern.active, true);
+    const resolution = { mealPlanId: reusedPlan.id, expectedVersion: concern.expectedVersion, rationale: 'Independent measured evidence resolves this recorded concern.' };
+    await assert.rejects(resolveCaseApprovalFlag(resolver.actor.id, resolver.rnd.id, sourceDecisionId, resolution, db), { statusCode: 409 });
+    await assert.rejects(resolveCaseApprovalFlag(user.id, reviewer.id, sourceDecisionId, resolution, db), { statusCode: 403 });
+    await assert.rejects(resolveCaseApprovalFlag(flagger.actor.id, flagger.rnd.id, sourceDecisionId, resolution, db), { statusCode: 403 });
+    await db.mealPlan.update({ where: { id: reusedPlan.id }, data: { claimedByNutritionistId: resolver.rnd.id, claimedAt: new Date() } });
+    assert.deepEqual(await resolveCaseApprovalFlag(resolver.actor.id, resolver.rnd.id, sourceDecisionId, resolution, db), { resolved: true });
+    assert.equal((await db.mealPlan.findUniqueOrThrow({ where: { id: reusedPlan.id } })).status, 'PENDING_REVIEW');
+    const resolved = (await caseApprovalConcern(db, reusedPlan.id))[0];
+    assert.equal(resolved.active, false); assert.equal(resolved.resolution, resolution.rationale);
+    assert.deepEqual(resolved.notes, notes);
+    assert.equal(JSON.stringify((await db.mealPlanReviewDecision.findUniqueOrThrow({ where: { id: sourceDecisionId } })).evidenceSnapshot), immutableBefore);
+    assert.equal((await listCaseApprovalFlags(resolver.rnd.id, db)).length, 0);
+    const history = await StaffAuditService.history({ view: 'nutritionist', limit: 100 }, db);
+    for (const action of ['MEAL_APPROVAL_FLAGGED', 'MEAL_CASE_FLAG_RESOLVED']) {
+      const row = history.rows.find(row => row.actionCode === action)!;
+      assert.equal(row.type, 'Meal approval'); assert.deepEqual(row.conditionCodes, ['DIABETES', 'HEART_CONDITION']);
+      const saved = await NutritionistAuditContextService.detail(resolver.actor.id, resolver.rnd.id, row.id, db);
+      assert.deepEqual(saved.reviewedSnapshot, source.evidenceSnapshot);
+      assert.equal(saved.currentProfile, null); assert.deepEqual(saved.clinicalEvidence, []);
+      assert.deepEqual((saved.recordedConcern as { notes: unknown }).notes, notes);
+    }
+    console.log('PASS: real SQL approval flag affects source and exact reuse only; stale/repeated flags blocked; verifier and flagger locked; independent claim required; resolution retains reasons without approving; immutable full context and condition audit verified.');
     console.log('PASS: saved condition filtering occurs before pagination; missing and absent conditions differ; exact reuse resolves original conditions; only built-in codes leave SQL.');
     console.log('PASS: approval-only SQL filters before counts/paging, includes serving family and reusable rechecks, excludes unrelated/negative/access events, and follows saved identity after current meal changes. All records retained in owned loopback fixture.');
   } finally { await db.$disconnect(); }

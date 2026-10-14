@@ -3,12 +3,12 @@ import FeedbackNotice from '@/components/shared/FeedbackNotice';
 
 import { toast } from 'sonner';
 import Modal from '@/components/ui/Modal';
-import { useEffect, useId, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useSessionQuery } from '@/hooks/useSessionQuery';
 import api from '@/lib/axios';
 import Button from '@/components/ui/Button';
-import Dropdown from '@/components/ui/Dropdown';
+import MealFlagCanvas from './MealFlagCanvas';
 import MealReviewTimeline, { reviewStateLabel, type ReviewIncident } from './MealReviewTimeline';
 import RndQueueDocument, { ReviewDocumentPage } from '@/features/nutritionist-reviews/RndQueueDocument';
 import CanvasToolButton from '@/features/nutritionist-reviews/CanvasToolButton';
@@ -52,7 +52,6 @@ export default function MealReviewPanel({
     fetcher: async () => (await api.get(`${base}/meal-review-cases/${meal.id}`)).data.data,
     errorMessage: 'Review history could not be loaded.',
   });
-  const flagFormId = useId();
   const [localFlagOpen, setLocalFlagOpen] = useState(false);
   const isFlagOpen = flagOpen ?? localFlagOpen;
   const setFlagOpen = onFlagOpenChange ?? setLocalFlagOpen;
@@ -369,46 +368,13 @@ export default function MealReviewPanel({
           {data.state !== 'ARCHIVED' && (
             <>
               {held && <Button variant="secondary" disabled={busy} onClick={() => setFlagOpen(true)}>Add evidence to this incident</Button>}
-              {!held && !onFlagOpenChange && <Button variant="secondary" onClick={() => setFlagOpen(true)}>Flag meal</Button>}
-              <Modal isOpen={isFlagOpen} onClose={() => { if (!submitting.current) setFlagOpen(false); }} size="xl" layer="canvas"
-                title={held ? 'Add evidence to this incident' : 'Flag meal'}
-                description={held ? 'Record another concern for the current meal review.' : 'This withholds the meal and its serving variants until independent review.'}
-                footer={<>
-                  <Button type="button" variant="secondary" disabled={busy} onClick={() => setFlagOpen(false)}>Cancel</Button>
-                  <Button type="submit" form={flagFormId} isLoading={busy} disabled={busy || !affected.trim() || explanation.trim().length < 20 || reference.trim().length < 10 || correction.trim().length < 10}>
-                    {held ? 'Record evidence' : 'Flag and withhold meal'}
-                  </Button>
-                </>}>
-                <form id={flagFormId} className="space-y-5" aria-busy={busy} onSubmit={event => { event.preventDefault(); void mutate('flag'); }}>
-                  <p className="border-b border-brand-border pb-4 text-sm font-semibold">{formatMealTitle(meal.mealName)}</p>
-                  <div className="grid gap-4 sm:grid-cols-[1fr_1.5fr]">
-                    <label className="block space-y-2 text-sm font-semibold">Concern category
-                      <Dropdown value={category} onChange={setCategory} disabled={busy} className="w-full !text-base">
-                        {['INGREDIENT', 'NUTRITION', 'ALLERGEN', 'PREPARATION', 'EVIDENCE', 'OTHER'].map(value => <option key={value} value={value}>{value.charAt(0) + value.slice(1).toLowerCase()}</option>)}
-                      </Dropdown>
-                    </label>
-                    <div className="space-y-2 text-sm">
-                      <label className="block font-semibold" htmlFor="flag-affected">Affected ingredients or nutrition fields</label>
-                      <input id="flag-affected" className={field.replace('text-sm', 'text-base')} disabled={busy} required value={affected} onChange={event => setAffected(event.target.value)} maxLength={2000} placeholder="e.g. sodiumMg, salt" aria-describedby="flag-affected-help" />
-                      <p id="flag-affected-help" className="text-xs text-brand-muted">Separate multiple fields with commas.</p>
-                    </div>
-                  </div>
-                  <div className="grid gap-5 sm:grid-cols-2">
-                    {([
-                      ['explanation', 'Explanation', explanation, setExplanation, 3000, 20],
-                      ['reference', 'Supporting evidence or reference', reference, setReference, 2000, 10],
-                      ['correction', 'Proposed correction', correction, setCorrection, 2000, 10],
-                    ] as const).map(([id, label, value, setter, maximum, minimum]) => (
-                      <div className={`space-y-2 text-sm ${id === 'explanation' ? 'sm:col-span-2' : ''}`} key={id}>
-                        <label className="block font-semibold" htmlFor={`flag-${id}`}>{label}</label>
-                        <textarea id={`flag-${id}`} className={field.replace('text-sm', 'text-base')} disabled={busy} required minLength={minimum} maxLength={maximum}
-                          rows={id === 'explanation' ? 3 : 2} value={value} onChange={event => setter(event.target.value)} aria-describedby={`flag-${id}-help`} />
-                        <p id={`flag-${id}-help`} className="text-xs text-brand-muted">At least {minimum} characters.</p>
-                      </div>
-                    ))}
-                  </div>
-                </form>
-              </Modal>
+              {!held && !onFlagOpenChange && <Button variant="danger" onClick={() => setFlagOpen(true)}>Flag meal</Button>}
+              {isFlagOpen && <MealFlagCanvas meal={meal} busy={busy} error={error}
+                value={{ category, affectedFields: affected, explanation, reference, proposedCorrection: correction }}
+                onChange={value => { setCategory(value.category); setAffected(value.affectedFields); setExplanation(value.explanation); setReference(value.reference); setCorrection(value.proposedCorrection); }}
+                onClose={() => { if (!submitting.current) { setFlagOpen(false); setCategory('NUTRITION'); setAffected(''); setExplanation(''); setReference(''); setCorrection(''); } }}
+                onSubmit={() => void mutate('flag')} />}
+
             </>
           )}
           <MealReviewTimeline

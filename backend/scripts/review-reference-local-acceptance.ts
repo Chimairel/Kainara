@@ -567,13 +567,32 @@ export async function runReviewReferenceAcceptance() {
       await ok(
         request(rnd, `/nutritionist/queue/${sourcePlan.id}/claim`, 'POST', { expectedContextKey: current.contextKey })
       );
+      const canvasLayout = { version: 1, sheets: [
+        { title: 'Member health profile', x: 80, y: 40 }, { title: 'Meal evidence', x: 1020, y: 10 },
+      ], view: { x: -60, y: 30, scale: 0.8 }, selected: 1, mode: 'select' };
+      if (index === 0) {
+        assert.equal((await request(targetActor, `/nutritionist/case-approvals/not-found/flag`, 'POST', {})).status, 403);
+        assert.equal((await request(rnd, `/nutritionist/case-approvals/not-found/flag`, 'POST', {})).status, 400);
+        assert.equal((await request(rnd, `/nutritionist/review/${sourcePlan.id}`, 'PATCH', {
+          action: 'approve', expectedContextKey: current.contextKey, canvasLayout: { ...canvasLayout, detail: { untrusted: true } },
+        })).status, 400);
+      }
       await ok(
         request(rnd, `/nutritionist/review/${sourcePlan.id}`, 'PATCH', {
           action: 'approve',
+          canvasLayout,
+          ...(index === 3 ? { canvasReference: { condition: 'HEART_CONDITION', search: '', page: 1, expandedId: null } } : {}),
           expectedContextKey: current.contextKey,
           note: 'SYNTHETIC_PRIVATE_REVIEW_NOTE',
         })
       );
+      const captured = await db.mealPlanReviewDecision.findFirstOrThrow({ where: { mealPlanId: sourcePlan.id }, orderBy: { submittedAt: 'desc' } });
+      const capture = (captured.evidenceSnapshot as unknown as { savedCanvas: { layout: unknown; detail: { mealPlan: { id: string }; reviewContext: { contextKey: string }; user: { name: string } }; related?: { view: { condition: string }; result: { rows: unknown[] } } } }).savedCanvas;
+      assert.deepEqual(capture.layout, canvasLayout);
+      assert.equal(capture.detail.mealPlan.id, sourcePlan.id);
+      assert.equal(capture.detail.reviewContext.contextKey, current.contextKey);
+      assert.equal(capture.detail.user.name, sourceActor.name);
+      if (index === 3) { assert(capture.related); assert.equal(capture.related.view.condition, 'HEART_CONDITION'); assert(Array.isArray(capture.related.result.rows)); }
       await ok(request(rnd, `/nutritionist/queue/${targetPlan.id}/release`, 'POST', {}));
       if (index === 3) {
         const conditionPath = `/nutritionist/queue/${targetPlan.id}/condition-reviews`;
@@ -740,7 +759,42 @@ export async function runReviewReferenceAcceptance() {
         });
         pass('Expired original RND credentials block a reused approval');
       }
+      let freshlyReviewed: { id: string; userId: string; planGroupId: string } | null = null;
+      if (index === 3) {
+        const { caseApprovalFlagContext } = await import('../src/services/case-approval-flag.service');
+        const extraActor = await cloneProfile();
+        const extra = await makeSlot(extraActor);
+        await configure(extraActor, condition, false);
+        await ok(request(rnd, `/nutritionist/queue/${extra.id}/release`, 'POST', {}));
+        assert((await MealPlanCycleService.getClearedMealPlanIds(extraActor.id, extra.planGroupId)).includes(extra.id));
+        const flagVersion = await caseApprovalFlagContext(db, captured.id);
+        const notes = { category: 'NUTRITION', affectedFields: ['sodium'], explanation: 'Synthetic sodium facts require independent review.',
+          reference: 'Synthetic measured facts.', proposedCorrection: 'Review measured sodium amounts.' };
+        await ok(request(other, `/nutritionist/case-approvals/${captured.id}/flag`, 'POST', { expectedVersion: flagVersion.expectedVersion, notes }));
+        assert.equal((await request(rnd, `/nutritionist/queue/${extra.id}`)).status, 403);
+        assert.equal((await request(other, `/nutritionist/queue/${extra.id}/claim`, 'POST', {})).status, 403);
+        const independent = await account('NUTRITIONIST');
+        await db.nutritionistProfile.create({ data: { userId: independent.id, isVerified: true, prcLicenseNumber: independent.id, prcLicenseExpiry: new Date('2099-01-01') } });
+        const flaggedDetail = await ok(request(independent, `/nutritionist/queue/${extra.id}`));
+        const concern = flaggedDetail.flagConcerns.find((item: { kind: string; active?: boolean; notes: unknown; expectedVersion: string }) => item.kind === 'CASE');
+        assert.deepEqual(concern.notes, notes);
+        await ok(request(independent, `/nutritionist/queue/${extra.id}/claim`, 'POST', { expectedContextKey: flaggedDetail.reviewContext.contextKey }));
+        assert.equal((await request(independent, `/nutritionist/review/${extra.id}`, 'PATCH', { action: 'approve', expectedContextKey: flaggedDetail.reviewContext.contextKey })).status, 409);
+        await ok(request(independent, `/nutritionist/case-approvals/${captured.id}/resolve`, 'POST', {
+          mealPlanId: extra.id, expectedVersion: concern.expectedVersion, rationale: 'Synthetic independent evidence resolves the sodium concern.',
+        }));
+        const resolvedDetail = await ok(request(independent, `/nutritionist/queue/${extra.id}`));
+        assert.equal(resolvedDetail.flagConcerns.find((item: { kind: string; active?: boolean; notes: unknown; expectedVersion: string }) => item.kind === 'CASE').active, false);
+        await ok(request(independent, `/nutritionist/review/${extra.id}`, 'PATCH', { action: 'approve', expectedContextKey: resolvedDetail.reviewContext.contextKey, canvasLayout }));
+        const refreshed = await db.mealPlan.findUniqueOrThrow({ where: { id: extra.id } });
+        assert(!('exactApprovalReuse' in (refreshed.selectionEvidence as Prisma.JsonObject)));
+        assert((await MealPlanCycleService.getClearedMealPlanIds(extraActor.id, extra.planGroupId)).includes(extra.id));
+        freshlyReviewed = extra;
+        pass('Approval flag HTTP lifecycle: source verifier/flagger blocked, resolution required, fresh independent approval no longer follows the old exact-reuse provenance');
+      }
       await db.mealPlan.update({ where: { id: sourcePlan.id }, data: { status: 'DISPUTED' } });
+      if (freshlyReviewed) assert((await MealPlanCycleService.getClearedMealPlanIds(freshlyReviewed.userId, freshlyReviewed.planGroupId)).includes(freshlyReviewed.id));
+
       assert(
         !(await MealPlanCycleService.getClearedMealPlanIds(targetActor.id, targetPlan.planGroupId)).includes(
           targetPlan.id

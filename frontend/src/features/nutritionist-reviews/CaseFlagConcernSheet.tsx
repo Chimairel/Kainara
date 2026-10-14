@@ -5,15 +5,18 @@ import Button from '@/components/ui/Button';
 import ConcernResolution from './ConcernResolution';
 import ApprovalRecheckCanvas, { type ApprovalReviewTarget } from './ApprovalRecheckCanvas';
 import type { DetailData } from './review-types';
+import CaseApprovalResolutionTool from './CaseApprovalResolutionTool';
 
 export default function CaseFlagConcernSheet({
   concerns,
   canWrite,
   onUpdated,
+  planId,
 }: {
   concerns: NonNullable<DetailData['flagConcerns']>;
   canWrite: boolean;
   onUpdated: () => Promise<void>;
+  planId?: string;
 }) {
   const [target, setTarget] = useState<ApprovalReviewTarget | null>(null);
   return (
@@ -41,6 +44,8 @@ export default function CaseFlagConcernSheet({
               </p>
               {concern.resolution && <p className="whitespace-pre-wrap text-sm leading-6">{concern.resolution}</p>}
             </>
+          ) : concern.kind === 'CASE' && planId ? (
+            <CaseApprovalResolutionTool concern={concern} planId={planId} canWrite={canWrite} onUpdated={onUpdated} />
           ) : concern.kind === 'RECIPE' ? (
             <p className="text-sm">
               Recipe re-review is required.{' '}

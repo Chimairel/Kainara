@@ -2,6 +2,9 @@ import { HealthConditionType, Prisma } from '@prisma/client';
 import prisma from '@/lib/prisma';
 import { AppError } from '@/errors/AppError';
 import { isActiveMealReviewPeriod } from '@/domain/meal-actionability.policy';
+import { activeCaseApprovalFlag } from './case-approval-flag.service';
+import { auditObject } from '@/domain/audit-details.policy';
+import { env } from '@/config/env';
 
 type Db = Prisma.TransactionClient;
 export type RoutingInfo = { stage: string; opensAt: Date | null; reason: string };
@@ -75,7 +78,11 @@ export class ReviewRoutingService {
   }
 
   static async assertMeal(reviewerId: string, mealId: string, db: Db = prisma) {
-    void reviewerId;
+    if (env.CLINICAL_CLARIFICATIONS_ENABLED) {
+      const flagged = await activeCaseApprovalFlag(db, mealId);
+      if (flagged && [flagged.decision.nutritionistProfileId, auditObject(flagged.event?.metadata).flaggerId].includes(reviewerId))
+        throw new AppError('An independent RND must review this flagged approval.', 403, 'APPROVAL_REVIEW_INDEPENDENCE');
+    }
     const meal = await db.mealPlan.findFirst({
       relationLoadStrategy: 'join',
       where: { id: mealId },

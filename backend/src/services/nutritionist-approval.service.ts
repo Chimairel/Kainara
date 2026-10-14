@@ -23,6 +23,7 @@ import { ClinicalEvidenceService } from './clinical-evidence.service';
 import { assertObservedSourceStillAvailable } from './observed-source-guard.service';
 import { AppError } from '@/errors/AppError';
 import { env } from '@/config/env';
+import { auditObject } from '@/domain/audit-details.policy';
 import { getNutritionistReviewableMealPlanWhere } from '@/domain/meal-actionability.policy';
 
 async function findScopeMatchedPendingPlans(
@@ -83,7 +84,8 @@ export async function approveMealPlan(
     fatG?: number;
     ingredients?: { name: string; category?: string; dataSource?: MealIngredientDataSource }[];
   },
-  expectedContextKey?: string
+  expectedContextKey?: string,
+  savedCanvas?: { version: number; layout: unknown; detail: unknown; related?: unknown }
 ) {
   await ReviewRoutingService.assertMeal(nutritionistProfileId, mealPlanId);
   await assertCurrentMealReviewContext(mealPlanId, expectedContextKey);
@@ -166,6 +168,11 @@ export async function approveMealPlan(
         tx,
         nutritionistProfileId
       );
+      if (savedCanvas && reviewedContext) {
+        const detail = savedCanvas.detail as { reviewContext?: { contextKey?: string } };
+        if (detail.reviewContext?.contextKey !== reviewedContext.contextKey)
+          throw new AppError('The canvas evidence changed. Reopen this review.', 409, 'MEAL_REVIEW_CONTEXT_CHANGED');
+      }
       await ReviewRoutingService.assertMeal(nutritionistProfileId, mealPlanId, tx);
       if (!(await ClinicalProfileReviewService.hasCurrentApproval(plan.userId, tx)))
         throw new Error('The health details changed and need a new profile confirmation.');
@@ -216,6 +223,11 @@ export async function approveMealPlan(
       // Compare-and-set the decision while this reviewer still owns a live
       // claim. A competing or expired decision changes zero rows and rolls the
       // entire transaction back before a library record can be published.
+      // A fresh human decision replaces automatic reuse. Keep its old provenance
+      // in historical audit, but stop current clearing from following the challenged source.
+      const selectionEvidence = { ...auditObject(plan.selectionEvidence) };
+      const replacedReuse = selectionEvidence.exactApprovalReuse;
+      delete selectionEvidence.exactApprovalReuse;
       const decision = await tx.mealPlan.updateMany({
         where: {
           id: mealPlanId,
@@ -237,6 +249,7 @@ export async function approveMealPlan(
           nutritionistId: nutritionistProfileId,
           nutritionistNote: note || null,
           reviewedAt: now,
+          ...(replacedReuse ? { selectionEvidence: selectionEvidence as Prisma.InputJsonObject } : {}),
           requiresSafetyRevalidation: false,
           safetyPolicyVersion: MEAL_PLAN_SAFETY_POLICY_VERSION,
           reviewApprovalCount: 1,
@@ -257,6 +270,8 @@ export async function approveMealPlan(
           decision: 'APPROVE',
           rationale: note?.trim() || null,
           evidenceSnapshot: {
+            ...(replacedReuse ? { previousExactApprovalReuse: replacedReuse as Prisma.InputJsonValue } : {}),
+            ...(savedCanvas ? { savedCanvas: JSON.parse(JSON.stringify(savedCanvas)) } : {}),
             ...(reviewedContext
               ? { reviewContext: reviewedContext.snapshot, contextKey: reviewedContext.contextKey }
               : {}),
