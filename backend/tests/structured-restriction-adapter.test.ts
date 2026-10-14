@@ -46,6 +46,8 @@ test('named avoided foods filter ingredients without requiring a whole-profile r
   for (const supportState of ['SUPPORTED', 'RECOGNIZED_UNSUPPORTED']) {
     const profile = {
       dietaryPreference: 'OMNIVORE',
+      otherConditions: null,
+      otherAllergies: null,
       safetyEntries: [
         entry('CONDITION', 'NONE'),
         entry('ALLERGY', 'SHELLFISH'),

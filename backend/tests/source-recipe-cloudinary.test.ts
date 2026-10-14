@@ -142,7 +142,7 @@ test('admin image catalogue displays the shared source photo without pretending 
   };
   prisma.mealLibrary.findMany = (async () => [
     { ...library, mealType: 'BREAKFAST', status: 'APPROVED', sourceRawRecipeCandidate: toast },
-  ]) as typeof originals.meals;
+  ]) as unknown as typeof originals.meals;
   prisma.mealLibrary.count = (async () => 1) as typeof originals.count;
   prisma.rawRecipeCandidate.findMany = (async () => [toast]) as typeof originals.raw;
   context.after(() => {

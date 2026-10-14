@@ -2,6 +2,7 @@ import { beginSubmission, finishSubmission } from './submission-attempts';
 import axios, { type AxiosRequestConfig } from 'axios';
 import { cookieHelper } from '@/lib/auth';
 import { coordinatedRefresh } from './session-refresh-coordination';
+import { getApiRequestTimeout } from './api-request-policy';
 
 export type ApiRequestConfig = AxiosRequestConfig & { skipTransientRetry?: boolean };
 
@@ -39,48 +40,9 @@ const api = axios.create({
 // Request interceptor: attach JWT token from cookie as Authorization header
 // The backend expects "Authorization: Bearer <token>" on every protected route
 api.interceptors.request.use((config) => {
-  // Plan and review-workspace reads inspect saved profile and meal evidence. Under
-  // database load they can exceed the ordinary 30-second read budget.
-  if (
-    config.timeout === api.defaults.timeout &&
-    config.method === 'get' &&
-    (/^\/user\/meals\/(current|workspace)$/.test(config.url ?? '') ||
-      /^\/nutritionist\/(queue(?:\/[^/]+(?:\/(?:condition-reviews|swap-options))?)?|review-work-counts|profile-work(?:\/[^/]+)?|profile-reviews\/[^/]+)$/.test(
-        config.url ?? ''
-      ))
-  ) {
-    config.timeout = 90_000;
-  }
-  // Provider-backed operations have a longer, bounded budget than ordinary reads.
-  if (
-    config.timeout === api.defaults.timeout &&
-    (/^\/user\/meals\/(generate|log-outside)$/.test(config.url ?? '') ||
-      /^\/nutritionist\/review\/[^/]+\/regenerate-candidate$/.test(config.url ?? ''))
-  ) {
-    config.timeout = 120_000;
-  }
-  // Leave room for authentication, pool acquisition and the database transaction.
-  // Batch import has a 120-second transaction; preview has a 60-second one.
-  // These budgets do not replay mutations when a response is uncertain.
+  // Keep non-default caller deadlines; apply one policy to all default-budget calls.
   if (config.timeout === api.defaults.timeout) {
-    const url = config.url ?? '';
-    const isMutation = ['post', 'put', 'patch', 'delete'].includes(config.method ?? '');
-    if (config.method === 'post' && url === '/admin/meals/batch/import') {
-      config.timeout = 180_000;
-    } else if (config.method === 'post' && /^\/admin\/data\/releases\/[^/]+\/consumption-import$/.test(url)) {
-      config.timeout = 180_000;
-    } else if (
-      (config.method === 'get' && url.startsWith('/admin/')) ||
-      (isMutation &&
-        (url.startsWith('/admin/') ||
-          url.startsWith('/nutritionist/') ||
-          url.startsWith('/user/') ||
-          /^\/auth\/(register|reset-password|forgot-password)$/.test(url)))
-    ) {
-      config.timeout = 90_000;
-    } else if (config.method === 'post' && /^\/auth\/(login|google\/(continue|login|register))$/.test(url)) {
-      config.timeout = 60_000;
-    }
+    config.timeout = getApiRequestTimeout(config.method, config.url);
   }
   const token = cookieHelper.get('nutrimind_session');
   if (token) {
@@ -152,12 +114,15 @@ api.interceptors.response.use(
       (error.response.status === 503 || error.response.status === 500) &&
       originalRequest &&
       // Profile bootstrap owns its spaced retries and overall deadline.
+      !originalRequest.signal?.aborted &&
       !originalRequest.skipTransientRetry &&
       !originalRequest._retryTransient &&
       (!originalRequest.method || ['get', 'head'].includes(originalRequest.method.toLowerCase()))
     ) {
       originalRequest._retryTransient = true;
       await new Promise((resolve) => setTimeout(resolve, 500));
+      // Navigation may cancel the read while the reconnect delay is pending.
+      if (originalRequest.signal?.aborted) throw new axios.CanceledError('Request canceled.');
       return api(originalRequest);
     }
 
@@ -166,6 +131,7 @@ api.interceptors.response.use(
       originalRequest &&
       error.response &&
       error.response.status === 401 &&
+      !originalRequest.signal?.aborted &&
       !originalRequest._retry &&
       !sessionRefreshSuppressed
     ) {

@@ -124,19 +124,18 @@ it('opens the linked historical decision as read-only movable context and meal s
   render(<CaseReviewContext auditId="case" ownerId="admin" />);
   await open();
   expect(screen.getByRole('combobox', { name: 'Case record' })).toHaveTextContent('Change 1');
-  expect(screen.getByRole('article', { name: 'Recorded member context' })).toBeVisible();
-  const meal = screen.getByRole('article', { name: 'Recorded meal evidence' });
-  expect(within(meal).getAllByRole('table')).toHaveLength(2);
-  expect(within(meal).getByText('Original soup')).toBeVisible();
+  expect(screen.getByRole('article', { name: 'Member health profile' })).toBeVisible();
+  const meal = screen.getByRole('article', { name: 'Meal evidence' });
+  expect(within(meal).getByRole('table', { name: 'Meal ingredients' })).toBeVisible();
+  expect(within(meal).queryByText('Original soup')).not.toBeInTheDocument();
   expect(within(meal).getByText('Verified soup')).toBeVisible();
   expect(screen.queryByText('Synthetic member')).not.toBeInTheDocument();
   expect(screen.queryByRole('region', { name: 'Review decisions' })).not.toBeInTheDocument();
   expect(screen.queryByText(/Claim this review/)).not.toBeInTheDocument();
   expect(screen.queryByRole('button', { name: 'Approve' })).not.toBeInTheDocument();
-  expect(screen.getByText('RND', { exact: true })).toBeVisible();
-  const handle = screen.getByRole('button', { name: 'Move Recorded meal evidence sheet' });
+  const handle = screen.getByRole('button', { name: 'Move Meal evidence sheet' });
   fireEvent.keyDown(handle, { key: 'ArrowDown' });
-  expect(document.querySelector('[data-canvas-sheet="2"]')).toHaveStyle({ top: '20px' });
+  expect(meal.closest('[data-canvas-sheet]')).toHaveStyle({ top: '20px' });
 });
 
 it('rejects structurally malformed case responses without crashing and blocks duplicate opens', async () => {

@@ -14,30 +14,50 @@ export class GroceryCostService {
     const profile = await prisma.userProfile.findUniqueOrThrow({ where: { userId } });
     const estimates: IngredientPriceEstimate[] = [];
     const evidence: Array<{ ingredientId: string; sourceUrl: string; observedTo: Date; locality: string }> = [];
-    for (const item of list?.groceryItems ?? []) {
-      if (item.isChecked || item.isPantryStaple || item.quantity === 0) continue;
-      const foods = await prisma.foodItem.findMany({
-        where: { name: { equals: item.ingredientName, mode: 'insensitive' }, source: 'FNRI' },
-        take: 2,
-      });
-      const food = foods.length === 1 ? foods[0] : null;
-      const mappings = food
-        ? await prisma.ingredientPriceCommodityMapping.findMany({
-            where: { foodItemId: food.id, state: 'EXACT', supersededBy: null },
-            include: {
-              commodity: {
-                include: {
-                  observations: {
-                    where: { supersededBy: null, currency: 'PHP' },
-                    include: { geography: true, publication: { include: { source: true } } },
-                    orderBy: { observedTo: 'desc' },
-                    take: 100,
-                  },
+    const items = (list?.groceryItems ?? []).filter(
+      (item) => !item.isChecked && !item.isPantryStaple && item.quantity !== 0
+    );
+    // Fetch identities and evidence once for the list, preserving ambiguous matches.
+    const names = [...new Set(items.map((item) => item.ingredientName.toLowerCase()))];
+    const foods = names.length
+      ? await prisma.foodItem.findMany({
+          where: { source: 'FNRI', OR: names.map((name) => ({ name: { equals: name, mode: 'insensitive' as const } })) },
+          select: { id: true, name: true },
+        })
+      : [];
+    const foodsByName = new Map<string, typeof foods>();
+    for (const food of foods) {
+      const key = food.name.toLowerCase();
+      foodsByName.set(key, [...(foodsByName.get(key) ?? []), food]);
+    }
+    const foodIds = [...foodsByName.values()].filter((matches) => matches.length === 1).map(([food]) => food.id);
+    const allMappings = foodIds.length
+      ? await prisma.ingredientPriceCommodityMapping.findMany({
+          where: { foodItemId: { in: foodIds }, state: 'EXACT', supersededBy: null },
+          include: {
+            commodity: {
+              include: {
+                observations: {
+                  where: { supersededBy: null, currency: 'PHP' },
+                  include: { geography: true, publication: { include: { source: true } } },
+                  orderBy: { observedTo: 'desc' },
+                  take: 100,
                 },
               },
             },
-          })
-        : [];
+          },
+        })
+      : [];
+    const mappingsByFood = new Map<string, typeof allMappings>();
+    for (const mapping of allMappings) {
+      if (!mapping.foodItemId) continue;
+      mappingsByFood.set(mapping.foodItemId, [...(mappingsByFood.get(mapping.foodItemId) ?? []), mapping]);
+    }
+    const asOf = new Date();
+    for (const item of items) {
+      const matches = foodsByName.get(item.ingredientName.toLowerCase()) ?? [];
+      const food = matches.length === 1 ? matches[0] : null;
+      const mappings = food ? mappingsByFood.get(food.id) ?? [] : [];
       const candidates = mappings.map((mapping) => {
         const observations = mapping.commodity.observations.map((row) => {
           const equal = (a: string | null | undefined, b: string) =>
@@ -68,7 +88,7 @@ export class GroceryCostService {
             mapping,
             observations,
           },
-          { asOf: new Date(), maxAgeDays: 30, sourcePrecedence: ['PSA_OPENSTAT', 'DA_BANTAY_PRESYO', 'DTI_SRP'] }
+          { asOf, maxAgeDays: 30, sourcePrecedence: ['PSA_OPENSTAT', 'DA_BANTAY_PRESYO', 'DTI_SRP'] }
         );
       });
       const available = candidates.filter((estimate) => estimate.status === 'AVAILABLE');

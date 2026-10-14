@@ -28,6 +28,15 @@ beforeEach(() => {
   api.get.mockResolvedValue({ data: { data: detail() } });
   api.post.mockResolvedValue({ data: { success: true } });
 });
+it('rejects incomplete approval evidence and retries without exposing decision controls', async () => {
+  api.get.mockResolvedValueOnce({ data: { data: { meal: { mealName: 'Incomplete plate' } } } });
+  render(<ApprovalRecheckCanvas target={target} onVerified={vi.fn()} onClose={vi.fn()} />);
+  await screen.findByText('Approval evidence could not be loaded.');
+  expect(screen.getByRole('button', { name: 'Verify resolved case' })).toBeDisabled();
+  expect(api.post).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByRole('button', { name: 'Reload evidence' }));
+  await screen.findByText('Check the measured sodium values in this recorded plate.');
+});
 it('requires a written resolution and explicit mark before verification, then saves the exact version', async () => {
   const onVerified = vi.fn().mockResolvedValue(undefined);
   const onClose = vi.fn();

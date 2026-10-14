@@ -23,7 +23,10 @@ beforeEach(() => {
               },
             ],
           }
-        : [],
+        : path.includes('/approvals/') ? { meal: { mealName: 'Tinola', calories: 400, proteinG: 20, carbsG: 50, fatG: 10 },
+            originatingPlan: null, flagReview: { expectedVersion: 'synthetic-version', state: 'SUSPENDED',
+              canResolve: true, blockedByRecipe: false, matchesCurrentRecipe: true,
+              concern: { id: 'flagged', notes: { explanation: 'Recorded synthetic concern.' } } } } : [],
     },
   }));
   api.post.mockResolvedValue({ data: { success: true } });
@@ -33,7 +36,7 @@ it('opens the shared resolution canvas rather than clearing a flag through a pro
   const prompt = vi.spyOn(window, 'prompt');
   render(<GovernanceQueuePanel tab="audit" />);
   fireEvent.click(await screen.findByRole('button', { name: 'Recheck' }));
-  await screen.findByRole('heading', { name: 'Flag concern and resolution' });
+  await screen.findByRole('heading', { name: 'Recorded flag concern' });
   expect(api.get).toHaveBeenCalledWith(
     '/nutritionist/library/recipe/approvals/CONDITION/flagged',
     expect.objectContaining({ signal: expect.any(AbortSignal) })
@@ -41,4 +44,12 @@ it('opens the shared resolution canvas rather than clearing a flag through a pro
   expect(api.post).not.toHaveBeenCalled();
   expect(prompt).not.toHaveBeenCalled();
   prompt.mockRestore();
+});
+
+it('keeps malformed governance evidence out of the rendered queue', async () => {
+  api.get.mockResolvedValue({ data: { data: {} } });
+  render(<GovernanceQueuePanel tab="audit" />);
+  await screen.findByText('Governance queue could not be loaded.');
+  expect(screen.queryByRole('button', { name: 'Recheck' })).not.toBeInTheDocument();
+  expect(api.post).not.toHaveBeenCalled();
 });

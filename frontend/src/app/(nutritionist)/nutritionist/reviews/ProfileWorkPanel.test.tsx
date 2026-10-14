@@ -18,12 +18,14 @@ vi.mock('@/features/nutritionist-reviews/RndQueueDocument', () => ({
   default: ({
     children,
     actions,
+    tools,
     decision,
     expanded,
     onExpandedChange,
   }: {
     children: React.ReactNode;
     actions?: React.ReactNode;
+    tools?: React.ReactNode;
     decision?: React.ReactNode;
     expanded: boolean;
     onExpandedChange: (value: boolean) => void;
@@ -34,6 +36,7 @@ vi.mock('@/features/nutritionist-reviews/RndQueueDocument', () => ({
         {expanded ? 'Back to split view' : 'Expand case details'}
       </button>
       {children}
+      {tools}
       {decision}
     </div>
   ),
@@ -264,7 +267,8 @@ describe('unified RND profile work', () => {
     expect(urls.indexOf('/nutritionist/clinical-evidence/doc-2')).toBeLessThan(
       urls.indexOf('/nutritionist/clinical-evidence/doc-2/file')
     );
-    fireEvent.change(screen.getByRole('textbox', { name: 'Review rationale' }), {
+    fireEvent.click(screen.getByRole('button', { name: 'Review document' }));
+    fireEvent.change(await screen.findByRole('textbox', { name: 'Review rationale' }), {
       target: { value: 'The image needs clarification.' },
     });
     fireEvent.click(screen.getByRole('button', { name: 'Record document review' }));
@@ -476,7 +480,6 @@ it('requires condition-specific rationale and both checks, then submits a separa
     target: { value: 'Reviewed current health details.' },
   });
   expect(screen.getByRole('button', { name: 'Confirm for planning' })).toBeDisabled();
-  fireEvent.click(screen.getByRole('button', { name: 'Close' }));
   expect(screen.getAllByRole('checkbox', { name: 'No additional meal restrictions identified' })).toHaveLength(1);
   fireEvent.click(screen.getByRole('checkbox', { name: 'No additional meal restrictions identified' }));
   fireEvent.change(screen.getByRole('textbox', { name: 'Assessment rationale for Unrelated condition' }), {
@@ -488,7 +491,6 @@ it('requires condition-specific rationale and both checks, then submits a separa
   );
 
   fireEvent.click(screen.getByRole('checkbox', { name: 'I reviewed foodborne illness risk and food-handling needs.' }));
-  fireEvent.click(screen.getByRole('button', { name: 'Profile decision' }));
   const confirm = screen.getByRole('button', { name: 'Confirm for planning' });
   expect(confirm).toBeEnabled();
   fireEvent.click(confirm);

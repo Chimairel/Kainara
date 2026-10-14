@@ -23,7 +23,7 @@ test('quarantine state filter is applied before the queue limit; default review 
 
 for (const role of ['admin', 'rnd'] as const) test(`${role} queue route validates the quarantine selector and returns no-store`, async context => {
   const calls: unknown[] = [];
-  context.mock.method(MealReviewService, 'queue', async state => { calls.push(state); return []; });
+  context.mock.method(MealReviewService, 'queue', async (state?: 'QUARANTINED' | 'PENDING_REREVIEW') => { calls.push(state); return []; });
   const app = express();
   app.use('/cases', mealReviewRouter(role)); // Live authorization is provided by the existing parent router.
   const server = app.listen(0, '127.0.0.1');

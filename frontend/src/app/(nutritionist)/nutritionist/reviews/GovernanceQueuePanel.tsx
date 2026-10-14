@@ -53,9 +53,13 @@ export default function GovernanceQueuePanel({ tab }: { tab: 'audit' }) {
         api.get('/nutritionist/approval-follow-ups'),
         api.get('/nutritionist/case-approval-follow-ups'),
       ]);
+      if (!Array.isArray(response.data?.data?.clearances) ||
+        !Array.isArray(due.data?.data) || !Array.isArray(cases.data?.data)) {
+        throw new Error('Governance queue returned incomplete evidence.');
+      }
       setData(response.data.data);
-      setDueProfiles(due.data.data ?? []);
-      setCaseFlags(Array.isArray(cases.data.data) ? cases.data.data : []);
+      setDueProfiles(due.data.data);
+      setCaseFlags(cases.data.data);
     } catch {
       setMessage('Governance queue could not be loaded.');
     }

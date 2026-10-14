@@ -4,6 +4,32 @@ import api, { type ApiRequestConfig, setSessionRefreshSuppressed } from './axios
 import { cookieHelper } from './auth';
 
 describe('session recovery during background requests', () => {
+  it('does not reconnect or refresh a request canceled while its server response arrives', async () => {
+    for (const status of [503, 401]) {
+      const controller = new AbortController();
+      const adapter = vi.fn<AxiosAdapter>(async (config) => {
+        controller.abort();
+        return Promise.reject({ config, response: { status } });
+      });
+      const refresh = vi.spyOn(axios, 'post');
+      await expect(api.get('/user/meals/current', { adapter, signal: controller.signal })).rejects.toBeDefined();
+      expect(adapter).toHaveBeenCalledTimes(1);
+      expect(refresh).not.toHaveBeenCalled();
+      refresh.mockRestore();
+    }
+  });
+
+  it('does not retry when navigation cancels during the reconnect delay', async () => {
+    const controller = new AbortController();
+    const adapter = vi.fn<AxiosAdapter>(async (config) => {
+      setTimeout(() => controller.abort(), 20);
+      return Promise.reject({ config, response: { status: 503 } });
+    });
+    await expect(api.get('/user/meals/current', { adapter, signal: controller.signal })).rejects.toMatchObject({
+      code: 'ERR_CANCELED',
+    });
+    expect(adapter).toHaveBeenCalledTimes(1);
+  });
   afterEach(() => {
     vi.restoreAllMocks();
     setSessionRefreshSuppressed(false);
@@ -74,7 +100,7 @@ describe('session recovery during background requests', () => {
     await api.get('/nutritionist/queue/meal-1/swap-options', { adapter });
     await api.get('/nutritionist/queue/meal-1/swap-options', { adapter, timeout: 15_000 });
     expect(timeouts).toEqual([
-      90_000, 90_000, 30_000, 30_000, 15_000, 90_000, 120_000, 15_000, 90_000, 90_000, 15_000, 90_000, 90_000, 90_000,
+      90_000, 90_000, 30_000, 120_000, 15_000, 90_000, 120_000, 15_000, 90_000, 90_000, 15_000, 90_000, 90_000, 90_000,
       90_000, 90_000, 15_000, 90_000, 15_000, 90_000, 15_000,
     ]);
   });

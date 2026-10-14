@@ -1,5 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+process.env.CLINICAL_CLARIFICATIONS_ENABLED = 'true';
+
 import type { Response } from 'express';
 import type { AuthenticatedRequest } from '../src/types';
 import { getManilaDateKey, getManilaMidnight } from '../src/domain/meal-plan-cycle.policy';

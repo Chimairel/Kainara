@@ -69,7 +69,20 @@ export default function ApprovalRecheckCanvas({
         signal: abort.signal,
       })
       .then((response) => {
-        if (!abort.signal.aborted) setDetail(response.data.data);
+        if (abort.signal.aborted) return;
+        const value = response.data?.data as Detail | undefined;
+        if (!value?.meal || typeof value.meal.mealName !== 'string' ||
+          !value.flagReview || typeof value.flagReview.expectedVersion !== 'string' ||
+          typeof value.flagReview.state !== 'string' ||
+          typeof value.flagReview.canResolve !== 'boolean' ||
+          typeof value.flagReview.blockedByRecipe !== 'boolean' ||
+          typeof value.flagReview.matchesCurrentRecipe !== 'boolean' ||
+          !value.flagReview.concern?.notes ||
+          typeof value.flagReview.concern.id !== 'string' ||
+          typeof value.flagReview.concern.notes.explanation !== 'string') {
+          throw new Error('Approval evidence could not be loaded.');
+        }
+        setDetail(value);
       })
       .catch((failure) => {
         if (!abort.signal.aborted) setError(getApiErrorMessage(failure, 'Approval evidence could not be loaded.'));

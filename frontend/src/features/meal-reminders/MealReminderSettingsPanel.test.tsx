@@ -176,7 +176,7 @@ describe('meal times and device notifications', () => {
     fireEvent.click(button);
     await screen.findByText('Notifications are enabled on this device.');
     fireEvent.click(screen.getByRole('button', { name: 'Send test notification' }));
-    await screen.findByText('Test sent. Check your device notification panel.');
+    await screen.findByText('Test accepted by the push provider. Waiting for this browser to receive it.');
     expect(mocks.post).toHaveBeenCalledWith('/notifications/push/test', {
       endpoint: 'https://fcm.googleapis.com/send/synthetic',
     });
