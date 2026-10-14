@@ -1,5 +1,5 @@
-import ClinicalEvidenceWorkspace from '@/features/profile/ClinicalEvidenceWorkspace';
+import { redirect } from 'next/navigation';
 
 export default function OnboardingClinicalEvidencePage() {
-  return <ClinicalEvidenceWorkspace mode="onboarding" />;
+  redirect('/onboarding/shopping-day');
 }

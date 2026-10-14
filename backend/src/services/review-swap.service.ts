@@ -14,6 +14,7 @@ import { getStartOfManilaBusinessDay } from '@/domain/meal-actionability.policy'
 import { env } from '@/config/env';
 import { type ReviewNutrientFilters } from '@/domain/review-nutrient-filter.policy';
 import { searchReviewReplacements, signReplacementSearch } from './review-replacement-search.service';
+import { bestReviewSourceSwap, executeReviewSourceSwap, REVIEW_SOURCE_PREFIX } from './review-source-swap.service';
 
 export async function listReviewSwapOptions(
   profileId: string,
@@ -45,6 +46,7 @@ export async function listReviewSwapOptions(
   if (env.CLINICAL_CLARIFICATIONS_ENABLED) {
     const page = await searchReviewReplacements({ plan, snapshot: plan.cycle.snapshot!, context, filters, cursor });
     const images = await resolveLibraryRecipeImages(page.items.map(({ meal }) => meal));
+    const sourceCandidate = page.total === 0 ? await bestReviewSourceSwap(plan, context, filters) : null;
     await assertCurrentMealReviewContext(mealPlanId, expectedContextKey);
     assertReviewSwapClaim(await prisma.mealPlan.findUniqueOrThrow({ where: { id: mealPlanId } }), profileId);
     const summary = {
@@ -53,10 +55,10 @@ export async function listReviewSwapOptions(
       reviewerProfileId: profileId,
       contextKey: expectedContextKey!,
       filters,
-      matchedCount: page.total,
+      matchedCount: page.total + Number(Boolean(sourceCandidate)),
       unknownExcludedCount: page.unknownExcludedCount,
       searchedAt: new Date().toISOString(),
-      scope: 'CURRENT_ELIGIBLE_CERTIFIED_LIBRARY' as const,
+      scope: 'RND_PENDING_REPLACEMENT_CANDIDATES' as const,
     };
     return {
       expectedVersion: reviewSwapVersion(plan, context.profile),
@@ -65,7 +67,7 @@ export async function listReviewSwapOptions(
       searchReceipt: signReplacementSearch(summary),
       summary,
       nextCursor: page.nextCursor,
-      options: page.items.map(({ meal, plate }) => ({
+      options: [...page.items.map(({ meal, plate }) => ({
         id: meal.id,
         mealName: meal.mealName,
         mealType: meal.mealType,
@@ -96,7 +98,8 @@ export async function listReviewSwapOptions(
             ? [{ name: 'Rice, well-milled, boiled', quantity: plate.pairedRiceG, unit: 'g', source: 'FNRI' as const }]
             : []),
         ],
-      })),
+        requiresReview: true,
+      })), ...(sourceCandidate ? [sourceCandidate.option] : [])],
     };
   }
   if (Object.keys(filters).length || cursor)
@@ -107,6 +110,7 @@ export async function listReviewSwapOptions(
     userConditions: context.conditions,
     userAllergens: context.allergens,
     profile: { ...context.profile, userId: plan.userId, safetyEntries: context.user.safetyProfileEntries },
+    includeUnapprovedCaseCandidates: true,
     limit: 120,
   });
   const eligibleCandidates = candidates
@@ -132,6 +136,7 @@ export async function listReviewSwapOptions(
   return {
     expectedVersion: reviewSwapVersion(plan, context.profile),
     options: eligibleCandidates.map((meal) => ({
+      requiresReview: true,
       id: meal.id,
       mealName: meal.mealName,
       mealType: meal.mealType,
@@ -174,6 +179,11 @@ export async function executeReviewSwap(
 ) {
   await ReviewRoutingService.assertMeal(profileId, mealPlanId);
   await assertCurrentMealReviewContext(mealPlanId, input.expectedContextKey);
+  if (input.libraryMealId.startsWith(REVIEW_SOURCE_PREFIX)) {
+    const plan = await prisma.mealPlan.findUniqueOrThrow({ where: { id: mealPlanId }, include: { cycle: { include: { snapshot: true } } } });
+    assertReviewSwapClaim(plan, profileId);
+    return executeReviewSourceSwap(profileId, plan, input);
+  }
   const result = await CertifiedSlotFallbackService.replaceWithBestCertified({
     mealPlanId,
     tolerance: 0.15,

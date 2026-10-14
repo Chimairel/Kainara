@@ -11,6 +11,7 @@ import CaseEvidenceSheets from './CaseEvidenceSheets';
 import RelatedConditionReviews from './RelatedConditionReviews';
 import { ReviewDocumentPage } from './RndQueueDocument';
 import { savedReviewPresentation } from './saved-review-presentation';
+import ReviewDecisionPage from './ReviewDecisionPage';
 import FlagReasonFields, { emptyFlagReason, flagReasonPayload, useFlagReasonDraft, validFlagReason } from './FlagReasonFields';
 
 export type ApprovalFlagTarget = { url: string; expectedVersion: string; canFlag: boolean; flagged: boolean };
@@ -28,7 +29,9 @@ export default function SavedApprovalCanvas({ snapshot, approvalFlag, decisionId
   const latestLayout = useRef<ReviewCanvasLayout | null>(layout);
   const beforeFlag = useRef<ReviewCanvasLayout | null>(null);
   const [restore, setRestore] = useState<{ layout: ReviewCanvasLayout; request: number } | null>(null);
-  const lastPage = 2 + (detail.flagConcerns?.length ? 1 : 0) + (detail.clarifications?.forms.length ?? 0) + (related ? 1 : 0) + (recordedConcern ? 1 : 0);
+  const rationale = snapshot && typeof snapshot === 'object' && 'reviewRationale' in snapshot && typeof snapshot.reviewRationale === 'string' ? snapshot.reviewRationale : null;
+  const hasRationalePage = Boolean(layout?.sheets.some(sheet => sheet.title === 'Approval rationale'));
+  const lastPage = 2 + (detail.flagConcerns?.length ? 1 : 0) + (detail.clarifications?.forms.length ?? 0) + (related ? 1 : 0) + (recordedConcern ? 1 : 0) + Number(hasRationalePage);
   const cancel = () => {
     setDraft({ ...emptyFlagReason }); setWriting(false);
     if (beforeFlag.current) setRestore(previous => ({ layout: beforeFlag.current!, request: (previous?.request ?? 0) + 1 }));
@@ -53,12 +56,14 @@ export default function SavedApprovalCanvas({ snapshot, approvalFlag, decisionId
         if (writing) cancel(); else { beforeFlag.current = latestLayout.current; setWriting(true); setRequest(value => value + 1); }
       }}>{writing ? 'Cancel' : submitted || approvalFlag.flagged ? 'Approval flagged' : 'Flag approval'}</Button>}>
       {CaseEvidenceSheets({ detailData: detail })}
-      {related && <ReviewDocumentPage page={lastPage - Number(Boolean(recordedConcern))} title="Related condition reviews" subtitle="Completed decisions for this case’s conditions">
+      {related && <ReviewDocumentPage page={lastPage - Number(Boolean(recordedConcern)) - Number(hasRationalePage)} title="Related condition reviews" subtitle="Completed decisions for this case’s conditions">
         <RelatedConditionReviews detail={detail} saved={related} />
       </ReviewDocumentPage>}
-      {recordedConcern && <ReviewDocumentPage page={lastPage} title="Recorded approval flag" subtitle="Saved concern and resolution">
+      {recordedConcern && <ReviewDocumentPage page={lastPage - Number(hasRationalePage)} title="Recorded approval flag" subtitle="Saved concern and resolution">
         <CaseFlagConcernSheet concerns={[recordedConcern]} canWrite={false} onUpdated={async () => {}} />
       </ReviewDocumentPage>}
+      {hasRationalePage && <ReviewDecisionPage page={lastPage} title="Approval rationale" action="approve" readOnly
+        note={rationale ?? ''} onNoteChange={() => {}} onClose={() => {}} onConfirm={() => {}} busy={false} />}
       {writing && <ReviewDocumentPage page={lastPage + 1} title="Flag approval reasons" subtitle="Draft · not submitted">
         <p className="mb-6 text-sm">Submitting suspends this approval and meals that reused it. It does not flag the entire recipe.</p>
         <form className="space-y-6" onSubmit={event => { event.preventDefault(); void submit(); }}>

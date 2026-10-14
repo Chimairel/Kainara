@@ -4,13 +4,13 @@ import { useVisiblePolling } from '@/hooks/useVisiblePolling';
 import { useCallback, useEffect, useState } from 'react';
 import api from '@/lib/axios';
 import { getApiErrorMessage } from '@/lib/api-error';
-import Button from '@/components/ui/Button';
-import ReviewDecisionDialog from '@/features/nutritionist-reviews/ReviewDecisionDialog';
+import ReviewDecisionPage from '@/features/nutritionist-reviews/ReviewDecisionPage';
+import CanvasToolButton from '@/features/nutritionist-reviews/CanvasToolButton';
 import ExpandableCasePanel from '@/features/nutritionist-reviews/ExpandableCasePanel';
 import BaseMealEvidenceSheets from '@/features/nutritionist-reviews/BaseMealEvidenceSheets';
 import RndQueueDocument from '@/features/nutritionist-reviews/RndQueueDocument';
 import MealVerificationQueue, { type MealCandidate } from '@/features/nutritionist-reviews/MealVerificationQueue';
-import { ChefHat, ShieldCheck } from '@/components/ui/icons';
+import { ChefHat, ShieldCheck, Check, X, LogOut } from '@/components/ui/icons';
 import { useAuth } from '@/hooks/useAuth';
 import { readSessionResource, writeSessionResource } from '@/lib/session-resource-cache';
 
@@ -85,29 +85,21 @@ export default function MealVerificationPanel() {
       <div className="flex items-center gap-2 rounded-xl border border-brand-green/35 bg-brand-surface/95 px-3 py-1.5 text-xs text-brand-green shadow-md backdrop-blur-md">
         <ShieldCheck className="h-3.5 w-3.5 shrink-0 text-brand-green" />
         <span className="font-semibold text-xs text-brand-text">Claim active</span>
-        <Button
-          variant="secondary"
-          size="sm"
+        <CanvasToolButton aria-label="Release claim" title="Release claim"
           disabled={busy}
-          isLoading={busy}
           onClick={() => void act('release')}
-          className="ml-1 text-[11px] h-7 px-2.5 rounded-lg border-brand-green/30 hover:border-brand-green/50"
         >
-          Release claim
-        </Button>
+          <LogOut aria-hidden="true" className="h-5 w-5" />
+        </CanvasToolButton>
       </div>
     ) : (
-      <Button
-        variant="primary"
-        size="sm"
+      <CanvasToolButton aria-label={selected.authoredByMe ? 'Independent reviewer required' : 'Claim verification'}
+        title={selected.authoredByMe ? 'Independent reviewer required' : 'Claim verification'}
         disabled={busy || selected.claimedByOther || selected.authoredByMe}
-        isLoading={busy}
         onClick={() => void act('claim')}
-        className="rounded-xl shadow-md text-xs font-bold px-3.5 py-2"
       >
-        <ChefHat className="mr-1.5 h-3.5 w-3.5" />
-        {selected.authoredByMe ? 'Independent reviewer required' : 'Claim verification'}
-      </Button>
+        <ChefHat aria-hidden="true" className="h-5 w-5" />
+      </CanvasToolButton>
     )
   ) : null;
 
@@ -207,33 +199,29 @@ export default function MealVerificationPanel() {
                 setRationale('');
               }}
               actions={claimHeader}
-              decision={
-                selected.claimedByMe ? (
+              hideDecisionDock
+              focusSheet={decisionAction ? { title: decisionAction === 'approve' ? 'Verification rationale' : 'Rejection rationale', request: decisionAction === 'approve' ? 1 : 2 } : undefined}
+              tools={
+                selected ? (
                   <>
                     <div role="toolbar" aria-label="Meal review actions" className="flex items-center gap-2">
-                      <Button size="sm" disabled={busy} onClick={() => setDecisionAction('approve')}>
-                        Approve
-                      </Button>
-                      <Button size="sm" variant="danger" disabled={busy} onClick={() => setDecisionAction('reject')}>
-                        Reject
-                      </Button>
+                      <CanvasToolButton aria-label="Approve" title="Verify base meal" aria-pressed={decisionAction === 'approve'} disabled={busy || !selected.claimedByMe} onClick={() => setDecisionAction('approve')}>
+                        <Check aria-hidden="true" className="h-5 w-5" />
+                      </CanvasToolButton>
+                      <CanvasToolButton aria-label="Reject" title="Reject base meal" aria-pressed={decisionAction === 'reject'} className="text-red-700 dark:text-red-400" disabled={busy || !selected.claimedByMe} onClick={() => setDecisionAction('reject')}>
+                        <X aria-hidden="true" className="h-5 w-5" />
+                      </CanvasToolButton>
                     </div>
-                    <ReviewDecisionDialog
-                      action={decisionAction}
-                      onClose={() => setDecisionAction(null)}
-                      busy={busy}
-                      error={error}
-                      note={rationale}
-                      onNoteChange={setRationale}
-                      required
-                      approvalLabel="Verify base meal"
-                      onConfirm={() => void act('decision', decisionAction === 'reject' ? 'REJECTED' : 'VERIFIED')}
-                    />
                   </>
                 ) : undefined
               }
             >
               {BaseMealEvidenceSheets({ selected, error })}
+              {decisionAction && selected.claimedByMe && <ReviewDecisionPage action={decisionAction}
+                title={decisionAction === 'approve' ? 'Verification rationale' : 'Rejection rationale'} page={3}
+                onClose={() => setDecisionAction(null)} busy={busy} error={error} note={rationale}
+                onNoteChange={setRationale} required approvalLabel="Verify base meal"
+                onConfirm={() => void act('decision', decisionAction === 'reject' ? 'REJECTED' : 'VERIFIED')} />}
             </RndQueueDocument>
           </div>
         )}

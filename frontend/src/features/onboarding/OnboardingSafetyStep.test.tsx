@@ -34,10 +34,10 @@ describe('onboarding health details order', () => {
     mocks.entries = [{ domain: 'CONDITION', canonicalCode: 'HEART_CONDITION' }];
     mocks.refreshSession.mockResolvedValue(undefined);
   });
-  it('opens condition details immediately after saving conditions', async () => {
+  it('goes straight to allergies after saving a condition', async () => {
     render(<ConditionsPage />);
     fireEvent.click(screen.getByRole('button', { name: 'Save and continue →' }));
-    await waitFor(() => expect(mocks.push).toHaveBeenCalledWith('/onboarding/condition-details'));
+    await waitFor(() => expect(mocks.push).toHaveBeenCalledWith('/onboarding/allergies'));
   });
   it('skips allergy details when only a condition is declared', async () => {
     render(<AllergiesPage />);
@@ -51,13 +51,13 @@ describe('onboarding health details order', () => {
     ];
     render(<AllergiesPage />);
     fireEvent.click(screen.getByRole('button', { name: 'Save and continue →' }));
-    await waitFor(() => expect(mocks.push).toHaveBeenCalledWith('/onboarding/allergy-details'));
+    await waitFor(() => expect(mocks.push).toHaveBeenCalledWith('/onboarding/shopping-day'));
   });
   it('includes a custom allergy without requiring a predefined code', async () => {
     mocks.entries = [{ domain: 'ALLERGY', canonicalCode: null }];
     render(<AllergiesPage />);
     fireEvent.click(screen.getByRole('button', { name: 'Save and continue →' }));
-    await waitFor(() => expect(mocks.push).toHaveBeenCalledWith('/onboarding/allergy-details'));
+    await waitFor(() => expect(mocks.push).toHaveBeenCalledWith('/onboarding/shopping-day'));
   });
   it.each(['INTOLERANCE', 'AVOIDED_INGREDIENT'])(
     'opens the existing food restriction form for %s-only declarations',
@@ -65,7 +65,7 @@ describe('onboarding health details order', () => {
       mocks.entries = [{ domain, canonicalCode: 'LACTOSE' }];
       render(<AllergiesPage />);
       fireEvent.click(screen.getByRole('button', { name: 'Save and continue →' }));
-      await waitFor(() => expect(mocks.push).toHaveBeenCalledWith('/onboarding/allergy-details'));
+      await waitFor(() => expect(mocks.push).toHaveBeenCalledWith('/onboarding/shopping-day'));
     }
   );
   it('skips extra forms when no condition or allergy is declared', async () => {
@@ -81,7 +81,7 @@ describe('onboarding health details order', () => {
     mocks.search = 'from=review';
     render(<ConditionsPage />);
     fireEvent.click(screen.getByRole('button', { name: 'Save & Return to Review' }));
-    await waitFor(() => expect(mocks.push).toHaveBeenCalledWith('/onboarding/condition-details?from=review'));
+    await waitFor(() => expect(mocks.push).toHaveBeenCalledWith('/onboarding/tos'));
   });
   it('does not show condition details for a saved allergy when conditions are NONE', async () => {
     mocks.entries = [

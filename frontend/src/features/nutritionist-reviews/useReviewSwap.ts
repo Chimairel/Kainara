@@ -45,10 +45,15 @@ export function useReviewSwap(
     pending = useRef(false),
     abort = useRef<AbortController | null>(null);
   const [filterDraft, setFilterDraftState] = useState<FilterDraft>({});
+  const [filterText, setFilterTextState] = useState('');
+  const [interpreting, setInterpreting] = useState(false);
+  const appliedAiFilters = useRef<NutrientFilters | null>(null);
+  const interpretingRequest = useRef(false);
   const [noSuitable, setNoSuitable] = useState(false);
   const invalidate = useCallback(() => {
     scope.current++;
     abort.current?.abort();
+    interpretingRequest.current = false;
   }, []);
   useEffect(() => {
     invalidate();
@@ -61,16 +66,19 @@ export function useReviewSwap(
     setLoading(false);
     setSaving(false);
     setFilterDraftState({});
+    setFilterTextState(''); setInterpreting(false); appliedAiFilters.current = null;
     setNoSuitable(false);
     return invalidate;
   }, [mealId, claimed, expectedContextKey, invalidate]);
   const selected = data?.options.find((option) => option.id === selectedId) ?? null;
   const setFilterDraft = (value: FilterDraft) => {
+    appliedAiFilters.current = null;
+    setFilterTextState(''); setInterpreting(false);
     invalidate(); setFilterDraftState(value); setData(null); setSelectedId(''); setNoSuitable(false); setLoading(false); setError('');
   };
-  const load = async (cursor?: string) => {
+  const load = async (cursor?: string, override?: NutrientFilters) => {
     if (!mealId || !claimed || pending.current) return;
-    const filters = parseFilterDraft(filterDraft);
+    const filters = override ?? appliedAiFilters.current ?? parseFilterDraft(filterDraft);
     if (expectedContextKey && !filters) return;
     abort.current?.abort();
     const controller = new AbortController();
@@ -92,6 +100,32 @@ export function useReviewSwap(
     } finally {
       if (generation === scope.current && !controller.signal.aborted) setLoading(false);
     }
+  };
+  const setFilterText = (value: string) => {
+    invalidate(); setFilterTextState(value); setInterpreting(false); appliedAiFilters.current = null;
+    setData(null); setSelectedId(''); setNoSuitable(false); setLoading(false); setError('');
+  };
+  const interpretAndSearch = async () => {
+    if (!mealId || !claimed || !filterText.trim() || pending.current || interpretingRequest.current) return;
+    invalidate(); const generation = scope.current;
+    interpretingRequest.current = true;
+    const controller = new AbortController(); abort.current = controller;
+    setInterpreting(true); setError(''); setData(null); setSelectedId(''); setNoSuitable(false);
+    try {
+      const response = await api.post(`/nutritionist/queue/${mealId}/swap-filter`, {
+        text: filterText.trim(), ...(expectedContextKey ? { expectedContextKey } : {}),
+      }, { signal: controller.signal });
+      if (controller.signal.aborted || generation !== scope.current) return;
+      const filters = response.data.data.filters as NutrientFilters;
+      appliedAiFilters.current = filters;
+      setFilterDraftState(Object.fromEntries(Object.entries(filters).map(([key, range]) => [key, {
+        ...(range?.min !== undefined ? { min: String(range.min) } : {}),
+        ...(range?.max !== undefined ? { max: String(range.max) } : {}),
+      }])));
+      await load(undefined, filters);
+    } catch (failure) {
+      if (!controller.signal.aborted && generation === scope.current && !onInvalidated?.(failure)) setError(message(failure));
+    } finally { if (generation === scope.current) { interpretingRequest.current = false; setInterpreting(false); } }
   };
   const submit = async () => {
     if (!mealId || !claimed || !selected || !data || note.trim().length < 10 || pending.current) return;
@@ -130,7 +164,10 @@ export function useReviewSwap(
   return {
     open,
     close: () => {
-      if (!saving) setOpen(false);
+      if (!saving) {
+        if (loading || interpreting) { invalidate(); setLoading(false); setInterpreting(false); }
+        setOpen(false);
+      }
     },
     selected,
     selectedId,
@@ -143,7 +180,8 @@ export function useReviewSwap(
     data,
     load,
     submit,
-    filterDraft, setFilterDraft, filtersEnabled: Boolean(expectedContextKey), noSuitable, setNoSuitable,
+    filterDraft, setFilterDraft, filterText, setFilterText, interpreting, interpretAndSearch,
+    filtersEnabled: Boolean(expectedContextKey), noSuitable, setNoSuitable,
     replacementOutcome: noSuitable && data?.searchReceipt ? { kind: 'NO_SUITABLE_REPLACEMENT' as const, searchReceipt: data.searchReceipt } : undefined,
   };
 }

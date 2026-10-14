@@ -45,7 +45,7 @@ it('counts the full compatible set and approved plan groups without duplicate li
       meals: [
         meal,
         { ...meal, id: 'slot-2' },
-        { ...meal, id: 'other', libraryMealId: null, mealName: 'Plan-only dish' },
+        { ...meal, id: 'other', libraryMealId: undefined, mealName: 'Plan-only dish' },
       ],
     })
   );

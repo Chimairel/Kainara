@@ -4,12 +4,14 @@ import FeedbackNotice from '@/components/shared/FeedbackNotice';
 
 import CaseEvidenceSheets from './CaseEvidenceSheets';
 import RndQueueDocument, { ReviewDocumentPage } from './RndQueueDocument';
-import CaseDecisionSection from './sections/CaseDecisionSection';
+import CaseDecisionSection, { CaseDecisionPage } from './sections/CaseDecisionSection';
 import type { useCaseReviewWorkspaceModel } from './sections/useCaseReviewWorkspaceModel';
 import { useReviewSwap } from './useReviewSwap';
 import { useState, useEffect } from 'react';
-import ClarificationTool from '@/features/clinical-clarification/ClarificationTool';
+import RndClarifications from '@/features/clinical-clarification/RndClarifications';
 import Button from '@/components/ui/Button';
+import { Plus, MessageSquare, FileText, BookOpen } from '@/components/ui/icons';
+import CanvasMenu from './CanvasMenu';
 import RelatedConditionReviews, { initialRelatedReviewView, relatedReviewConditions } from './RelatedConditionReviews';
 
 type Model = ReturnType<typeof useCaseReviewWorkspaceModel>;
@@ -19,6 +21,13 @@ export default function CaseReviewDocument({ model }: { model: Model }) {
   const [action, setAction] = useState<'approve' | 'reject' | null>(null);
   const [referenceRequest, setReferenceRequest] = useState<{ key: string; request: number } | null>(null);
   const [referenceView, setReferenceView] = useState(initialRelatedReviewView);
+  const [messageOpen, setMessageOpen] = useState(false);
+  const [focus, setFocus] = useState<{ title: string; request: number }>();
+  const focusPage = (title: string) => setFocus(previous => ({ title, request: (previous?.request ?? 0) + 1 }));
+  const selectDecision = (value: 'approve' | 'reject' | null) => {
+    setAction(value);
+    if (value) { setMessageOpen(false); focusPage(value === 'approve' ? 'Approval rationale' : 'Rejection rationale'); }
+  };
   useEffect(() => {
     const active = referenceRequest?.key === `${detailData?.mealPlan.id}:${detailData?.reviewContext?.contextKey ?? 'legacy'}`;
     if (model.review.canvasReference) model.review.canvasReference.current = active ? {
@@ -26,7 +35,7 @@ export default function CaseReviewDocument({ model }: { model: Model }) {
     } : null;
   }, [referenceView, referenceRequest, detailData, model.review]);
   const hasActiveConcern = detailData?.flagConcerns?.some((concern) => concern.active);
-  useEffect(() => setAction(null), [model.selectedMealId, detailData?.claimStatus.claimedByMe, hasActiveConcern]);
+  useEffect(() => { setAction(null); setMessageOpen(false); setFocus(undefined); }, [model.selectedMealId, detailData?.claimStatus.claimedByMe, hasActiveConcern]);
   const swap = useReviewSwap(
     model.selectedMealId,
     Boolean(detailData?.claimStatus.claimedByMe),
@@ -53,35 +62,28 @@ export default function CaseReviewDocument({ model }: { model: Model }) {
         expanded={expanded}
         onExpandedChange={setExpanded}
         onBack={() => setSelectedMealId(null)}
-        focusSheet={referencesOpen ? { title: 'Related condition reviews', request: referenceRequest.request } : undefined}
-        tools={detailData.clarifications?.enabled && detailData.reviewContext && (
-          <ClarificationTool
-            userId={meal.userId}
-            profileRevision={detailData.reviewContext.profileRevision}
-            scopeKey={detailData.reviewContext.scopeKey}
-            workspace={detailData.clarifications}
-            canWrite={detailData.claimStatus.claimedByMe}
-            draft={model.review.clarificationDraft}
-            showForms={false}
-            publishTarget={{ url: `/nutritionist/queue/${meal.id}/clarifications`, expectedContextKey: detailData.reviewContext.contextKey }}
-            onInvalidated={(failure) => model.review.retireInactiveReview(failure, meal.id)}
-            onUpdated={async () => {
-              model.review.retireInactiveReview(
-                { response: { data: { code: 'PROFILE_REVIEW_REQUIRED' } } }, meal.id,
-                'Questions sent to Health details. This member’s meal reviews are paused. Continue the case in the Profile queue.'
-              );
-              await model.review.fetchQueue(false, undefined, true);
-            }}
-          />
-        )}
-        actions={
-          <>
-            {relatedReviewConditions(detailData).length > 0 && (
-              <Button variant="secondary" size="sm" onClick={() => {
+        focusSheet={focus}
+        hideDecisionDock
+        tools={<>
+          <CaseDecisionSection model={model} swap={swap} action={action} setAction={selectDecision} />
+          <CanvasMenu label="Add page" icon={<Plus aria-hidden="true" className="h-5 w-5" />}
+            items={[
+              { value: 'message', label: 'Message', icon: <MessageSquare className="h-4 w-4" />,
+                disabled: !detailData.claimStatus.claimedByMe || !detailData.clarifications?.enabled || !detailData.reviewContext },
+              { value: 'references', label: 'Related reviews', icon: <BookOpen className="h-4 w-4" />, disabled: !relatedReviewConditions(detailData).length },
+              { value: 'profile', label: 'Member health profile', icon: <FileText className="h-4 w-4" /> },
+              { value: 'meal', label: 'Meal evidence', icon: <FileText className="h-4 w-4" /> },
+            ]} onSelect={value => {
+              if (value === 'message') { setAction(null); setMessageOpen(true); focusPage('Member message'); }
+              else if (value === 'references') {
                 if (!referencesOpen) setReferenceView({ ...initialRelatedReviewView, search: formatMealTitle(meal.mealName) });
                 setReferenceRequest(previous => ({ key: referenceKey, request: (previous?.request ?? 0) + 1 }));
-              }}>Related reviews</Button>
-            )}
+                focusPage('Related condition reviews');
+              } else focusPage(value === 'profile' ? 'Member health profile' : 'Meal evidence');
+            }} />
+        </>}
+        actions={
+          <>
             {claimHeader}
             {errorMsg && !action && (
               <FeedbackNotice variant="inline" className="max-w-sm">
@@ -89,11 +91,6 @@ export default function CaseReviewDocument({ model }: { model: Model }) {
               </FeedbackNotice>
             )}
           </>
-        }
-        decision={
-          detailData.claimStatus.claimedByMe ? (
-            <CaseDecisionSection model={model} swap={swap} action={action} setAction={setAction} />
-          ) : undefined
         }
       >
         {CaseEvidenceSheets({ detailData, canWrite: detailData.claimStatus.claimedByMe,
@@ -103,6 +100,24 @@ export default function CaseReviewDocument({ model }: { model: Model }) {
             <RelatedConditionReviews detail={detailData} view={referenceView} onViewChange={setReferenceView} />
           </ReviewDocumentPage>
         )}
+        {messageOpen && detailData.reviewContext && detailData.claimStatus.claimedByMe && (
+          <ReviewDocumentPage page={lastPage + Number(referencesOpen) + 1} title="Member message" subtitle="Draft · not sent">
+            <RndClarifications userId={meal.userId} profileRevision={detailData.reviewContext.profileRevision}
+              scopeKey={detailData.reviewContext.scopeKey} workspace={detailData.clarifications} canWrite
+              draft={model.review.clarificationDraft} showForms={false} embedded
+              publishTarget={{ url: `/nutritionist/queue/${meal.id}/clarifications`, expectedContextKey: detailData.reviewContext.contextKey }}
+              onInvalidated={failure => model.review.retireInactiveReview(failure, meal.id)}
+              onUpdated={async () => {
+                model.review.retireInactiveReview({ response: { data: { code: 'PROFILE_REVIEW_REQUIRED' } } }, meal.id,
+                  'Questions sent to Health details. This member’s meal reviews are paused. Continue in the Member queue.');
+                await model.review.fetchQueue(false, undefined, true);
+              }} />
+            <Button variant="secondary" className="mt-6" onClick={() => setMessageOpen(false)}>Close draft</Button>
+          </ReviewDocumentPage>
+        )}
+        {action && detailData.claimStatus.claimedByMe && <CaseDecisionPage model={model} swap={swap} action={action}
+          title={action === 'approve' ? 'Approval rationale' : 'Rejection rationale'}
+          page={lastPage + Number(referencesOpen) + 1} setAction={selectDecision} />}
       </RndQueueDocument>
       {detailData.claimStatus.claimedByMe && (
         <p className="mt-3 text-xs text-brand-muted">

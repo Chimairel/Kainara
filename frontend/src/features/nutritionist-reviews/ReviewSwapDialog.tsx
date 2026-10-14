@@ -10,7 +10,8 @@ import type { PublicVerifier } from '@/types';
 import type { DetailData } from './useNutritionistReviews';
 import type { useReviewSwap } from './useReviewSwap';
 import IngredientEvidenceTable from './IngredientEvidenceTable';
-import ReviewNutrientFilters, { REVIEW_NUTRIENT_FIELDS } from './ReviewNutrientFilters';
+import ReviewNutrientFilters, { REVIEW_NUTRIENT_FIELDS, nutrientFilterLabels } from './ReviewNutrientFilters';
+import { Search } from '@/components/ui/icons';
 
 /** Reuses member swap presentation, with the RND claim and pending-review API adapter. */
 export default function ReviewSwapDialog({
@@ -67,24 +68,38 @@ export default function ReviewSwapDialog({
             setSwapPreview: () => {},
           }}
         />
+        {swap.filtersEnabled && <form className="mt-6 space-y-2" onSubmit={event => { event.preventDefault(); void swap.interpretAndSearch(); }}>
+          <label htmlFor="review-swap-search" className="block text-sm font-semibold">Filter candidates with AI</label>
+          <div className="flex items-center gap-2 rounded-xl border border-brand-border bg-brand-surface p-2 focus-within:ring-2 focus-within:ring-brand-green">
+            <Search aria-hidden="true" className="ml-2 h-5 w-5 shrink-0 text-brand-muted" />
+            <input id="review-swap-search" value={swap.filterText} onChange={event => swap.setFilterText(event.target.value)}
+              maxLength={500} disabled={swap.saving || swap.interpreting} placeholder="e.g. sugar under 10 g and sodium at most 500 mg"
+              className="min-w-0 flex-1 bg-transparent px-1 py-2 text-sm text-brand-text outline-none placeholder:text-brand-muted" />
+            <Button type="submit" size="sm" disabled={swap.saving || swap.loading || swap.interpreting || !swap.filterText?.trim()} isLoading={swap.interpreting}>Filter</Button>
+          </div>
+          <p className="text-xs leading-5 text-brand-muted">AI translates your request into nutrient limits per serving, including rice. Unknown values are excluded. You can also enter limits below.</p>
+          {swap.data?.filters && <ul aria-label="Applied nutrient limits" className="flex flex-wrap gap-2 pt-1">
+            {nutrientFilterLabels(swap.data.filters).map(label => <li key={label} className="rounded-lg bg-brand-green/10 px-3 py-1.5 text-xs font-semibold text-brand-text">{label}</li>)}
+          </ul>}
+        </form>}
         {swap.filtersEnabled && (
           <ReviewNutrientFilters
             draft={swap.filterDraft}
             onChange={swap.setFilterDraft}
             apply={() => void swap.load()}
-            busy={swap.saving || swap.loading}
+            busy={swap.saving || swap.loading || swap.interpreting}
           />
         )}
         {swap.data?.summary && (
           <p className="my-3 text-xs text-brand-muted">
-            {swap.data.summary.matchedCount} complete-plate matches in the currently eligible certified library.{' '}
-            {swap.data.summary.unknownExcludedCount} excluded for missing required nutrients. These limits narrow
+            {swap.data.summary.matchedCount} complete-plate {swap.data.summary.matchedCount === 1 ? 'candidate' : 'candidates'} for RND review.{' '}
+            {swap.data.summary.unknownExcludedCount} library records excluded for missing required nutrients. These limits narrow
             candidates; the RND still reviews the member’s health context.
           </p>
         )}
         {!swap.loading && !swap.error && swap.data && options.length === 0 && (
           <div className="my-5 space-y-3 text-sm">
-            <p className="font-semibold">No certified replacements match this search.</p>
+            <p className="font-semibold">No replacements match this search.</p>
             <p className="max-w-[65ch] leading-6 text-brand-muted">Find a replacement from stored recipes, then AI if needed. It will still need review. Library nutrient filters do not apply to this broader search; your member’s saved restrictions and planning targets do.</p>
             {onFindReplacement && <Button variant="secondary" disabled={swap.saving} onClick={onFindReplacement}>Reject and find replacement</Button>}
           </div>
@@ -99,7 +114,7 @@ export default function ReviewSwapDialog({
             ),
             miniSort: 'kcal_match',
             setMiniSort: () => {},
-            isOptionsLoading: swap.loading,
+            isOptionsLoading: swap.loading || swap.interpreting,
             swapOptionsError: swap.error,
             handleSelectSwapOption: async (option) => swap.setSelectedId(option.id),
             setSelectedVerifier: setVerifier,
@@ -139,7 +154,7 @@ export default function ReviewSwapDialog({
           className="mt-3"
           size="sm"
           variant="secondary"
-          disabled={swap.saving || swap.loading}
+          disabled={swap.saving || swap.loading || swap.interpreting}
           onClick={() => void swap.load()}
         >
           Refresh options

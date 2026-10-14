@@ -18,7 +18,7 @@ afterEach(() => vi.resetAllMocks());
 it('shows saved meal evidence inline and keeps comparison separate from approval', async () => {
   vi.mocked(api.get).mockResolvedValue(page);
   render(<RelatedConditionReviews detail={detail} />);
-  const panel = screen.getByRole('region', { name: 'Related condition reviews', exact: true });
+  const panel = screen.getByRole('region', { name: 'Related condition reviews' });
   expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   await within(panel).findByText('Original RND');
   expect(within(panel).getByRole('cell', { name: 'Heart condition' })).toBeVisible();
@@ -49,7 +49,7 @@ it('reports failures through Sonner and allows a retry and empty result', async 
 });
 it('hides related-condition browsing for a case without a health condition', () => {
   render(<RelatedConditionReviews detail={{ ...detail, user: { ...detail.user, conditions: ['NONE'] } }} />);
-  expect(screen.queryByRole('region', { name: 'Related condition reviews', exact: true })).not.toBeInTheDocument();
+  expect(screen.queryByRole('region', { name: 'Related condition reviews' })).not.toBeInTheDocument();
   expect(api.get).not.toHaveBeenCalled();
 });
 

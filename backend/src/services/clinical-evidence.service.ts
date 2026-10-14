@@ -4,7 +4,8 @@ import { ClinicalProfileProposalService } from './clinical-profile-proposal.serv
 import { ReviewRoutingService } from './review-routing.service';
 import path from 'node:path';
 import { isDeepStrictEqual } from 'node:util';
-import { healthDetailsRequirements, healthDetailsAreas } from '@/domain/health-details.policy';
+import { healthDetailsRequirements, healthDetailsAreas, isRequestedHealthDetails } from '@/domain/health-details.policy';
+import { context as profileContext, userInclude, snapshotKey, scopedPolicy } from './clinical-profile-review.context';
 import { profileReadUser, type ProfileRead } from './clinical-profile-review.context';
 import { publicClinicalDocument as publicDocument } from '@/domain/clinical-document-metadata';
 import { activeConditionPlanningAssessment } from '@/domain/condition-planning-assessment.policy';
@@ -104,16 +105,6 @@ async function invalidateActivePlansForUser(tx: Prisma.TransactionClient, userId
 }
 
 export class ClinicalEvidenceService {
-  static async nextOnboardingDetailsPath(userId: string, domains: readonly string[]) {
-    const areas = (await this.requirementsForUser(userId)).map((requirement) => requirement.area);
-    const conditions = domains.includes('CONDITION');
-    return [...areas].some((area) => (conditions ? area !== 'FOOD_ALLERGY' : area === 'FOOD_ALLERGY'))
-      ? conditions
-        ? '/onboarding/condition-details'
-        : '/onboarding/allergy-details'
-      : null;
-  }
-
   static async requirementsForUser(userId: string, _now = new Date()) {
     const user = await prisma.user.findFirst({
       relationLoadStrategy: 'join',
@@ -143,6 +134,17 @@ export class ClinicalEvidenceService {
       const answers = { conditionDetails, medications, dietaryAdvice, recentSymptoms, measurements };
       const responses = { ...answers, formVersion: 'HEALTH_DETAILS_V1', safetyRevision: profile.safetyRevision };
       const previous = await tx.clinicalContextResponse.findUnique({ where: { userId_area: { userId, area } } });
+      if (!previous) {
+        const user = await tx.user.findFirstOrThrow({ where: { id: userId }, include: userInclude });
+        const current = profileContext(user);
+        const request = await tx.clinicalProfileReview.findFirst({
+          where: { userId, policyVersion: scopedPolicy(current.scopeKey) },
+          orderBy: { createdAt: 'desc' },
+          select: { status: true, reasonCodes: true, profileSnapshot: true },
+        });
+        if (!request || !isRequestedHealthDetails({ ...request, area, savedScopeKey: snapshotKey(request.profileSnapshot), currentScopeKey: current.scopeKey }))
+          throw new AppError('An RND must request these health details before you can submit them.', 409, 'HEALTH_DETAILS_NOT_REQUESTED');
+      }
       if (previous && isDeepStrictEqual(previous.responses, responses)) return;
       await tx.clinicalContextResponse.upsert({
         where: { userId_area: { userId, area } },
@@ -288,6 +290,7 @@ export class ClinicalEvidenceService {
         const previous = await tx.clinicalContextResponse.findUnique({
           where: { userId_area: { userId, area: ClinicalEvidenceArea.DIABETES } },
         });
+        if (!previous) throw new AppError('Use the health-details form requested by your RND.', 409, 'HEALTH_DETAILS_NOT_REQUESTED');
         if (previous && isDeepStrictEqual(previous.responses, context)) return previous;
         const result = await tx.clinicalContextResponse.upsert({
           where: { userId_area: { userId, area: ClinicalEvidenceArea.DIABETES } },

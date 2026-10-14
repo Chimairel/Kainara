@@ -28,7 +28,7 @@ export function getGeminiModelSequence(
     usage.operation === 'OUTSIDE_MEAL_ESTIMATE' ||
     usage.operation === 'MEAL_PLAN_CORPUS_LOOKUP' ||
     (usage.operation === 'OTHER' &&
-      ['FNRI_LOOKUP_ESTIMATE', 'HEALTH_TERM_NORMALIZATION'].includes(usage.purpose ?? ''));
+      ['FNRI_LOOKUP_ESTIMATE', 'HEALTH_TERM_NORMALIZATION', 'RND_SWAP_NUTRIENT_FILTER'].includes(usage.purpose ?? ''));
   return routine ? GEMINI_MODEL_SEQUENCE : COMPLEX_MEAL_MODEL_SEQUENCE;
 }
 

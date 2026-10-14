@@ -1,9 +1,9 @@
 'use client';
-import Button from '@/components/ui/Button';
+import CanvasToolButton from '../CanvasToolButton';
 import { Check, X, ArrowLeftRight } from '@/components/ui/icons';
 import type { useCaseReviewWorkspaceModel } from './useCaseReviewWorkspaceModel';
 import type { useReviewSwap } from '../useReviewSwap';
-import ReviewDecisionDialog from '../ReviewDecisionDialog';
+import ReviewDecisionPage from '../ReviewDecisionPage';
 import ReviewSwapDialog from '../ReviewSwapDialog';
 type Model = ReturnType<typeof useCaseReviewWorkspaceModel>;
 
@@ -18,37 +18,48 @@ export default function CaseDecisionSection({
   action: 'approve' | 'reject' | null;
   setAction: (action: 'approve' | 'reject' | null) => void;
 }) {
-  if (!model.detailData?.claimStatus.claimedByMe) return null;
-  const busy = Boolean(model.actionLoading) || swap.saving;
+  if (!model.detailData) return null;
+  const busy = Boolean(model.actionLoading) || swap.saving || !model.detailData.claimStatus.claimedByMe;
   return (
     <>
       <div role="toolbar" aria-label="Meal review actions" className="flex items-center gap-2">
-        <Button
-          size="sm"
+        <CanvasToolButton
           disabled={busy}
           onClick={() => {
             setAction(null);
             void swap.load();
           }}
-          variant="secondary"
-          title="Choose a replacement; approval is still required"
+          aria-label="Swap"
+          title="Swap meal"
         >
-          <ArrowLeftRight className="mr-1 h-4 w-4" /> Swap
-        </Button>
+          <ArrowLeftRight aria-hidden="true" className="h-5 w-5" />
+        </CanvasToolButton>
         <span className="mx-1 h-6 border-l border-brand-border" />
-        <Button
-          size="sm"
+        <CanvasToolButton
+          aria-label="Approve" aria-pressed={action === 'approve'} title="Approve meal"
           disabled={busy || model.detailData?.flagConcerns?.some((concern) => concern.active)}
           onClick={() => setAction('approve')}
         >
-          <Check className="mr-1 h-4 w-4" /> Approve
-        </Button>
-        <Button size="sm" variant="danger" disabled={busy} onClick={() => setAction('reject')}>
-          <X className="mr-1 h-4 w-4" /> Reject
-        </Button>
+          <Check aria-hidden="true" className="h-5 w-5" />
+        </CanvasToolButton>
+        <CanvasToolButton aria-label="Reject" title="Reject meal" aria-pressed={action === 'reject'} className="text-red-700 dark:text-red-400" disabled={busy} onClick={() => setAction('reject')}>
+          <X aria-hidden="true" className="h-5 w-5" />
+        </CanvasToolButton>
       </div>
-      <ReviewDecisionDialog
-        action={action}
+      <ReviewSwapDialog swap={swap} meal={model.detailData.mealPlan}
+        onNoSuitable={() => { swap.setNoSuitable(true); swap.close(); setAction('reject'); }}
+        onFindReplacement={() => { swap.setNoSuitable(false); swap.close(); setAction('reject'); }} />
+    </>
+  );
+}
+
+export function CaseDecisionPage({ model, swap, action, setAction, title, page }: {
+  model: Model; swap: ReturnType<typeof useReviewSwap>; action: 'approve' | 'reject';
+  setAction: (action: 'approve' | 'reject' | null) => void; title: string; page: number;
+}) {
+  const busy = Boolean(model.actionLoading) || swap.saving;
+  return <ReviewDecisionPage
+        action={action} title={title} page={page}
         onClose={() => setAction(null)}
         busy={busy}
         error={model.errorMsg}
@@ -58,7 +69,7 @@ export default function CaseDecisionSection({
           if (action === 'reject') void model.review.handleReject(swap.replacementOutcome);
           else if (!model.detailData?.flagConcerns?.some((concern) => concern.active)) void model.handleApprove();
         }}
-        required={action === 'reject' && swap.noSuitable}
+        required
         rejectionLabel={swap.noSuitable ? 'Reject and leave unavailable' : 'Reject and find replacement'}
       >
         {action === 'reject' && !swap.noSuitable && (
@@ -84,21 +95,5 @@ export default function CaseDecisionSection({
             )}
           </label>
         )}
-      </ReviewDecisionDialog>
-      <ReviewSwapDialog
-        swap={swap}
-        meal={model.detailData.mealPlan}
-        onNoSuitable={() => {
-          swap.setNoSuitable(true);
-          swap.close();
-          setAction('reject');
-        }}
-        onFindReplacement={() => {
-          swap.setNoSuitable(false);
-          swap.close();
-          setAction('reject');
-        }}
-      />
-    </>
-  );
+      </ReviewDecisionPage>;
 }

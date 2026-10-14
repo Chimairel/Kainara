@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { ClinicalEvidenceArea, HealthConditionType } from '@prisma/client';
-import { healthDetailsRequirements } from '../src/domain/health-details.policy';
+import { healthDetailsRequirements, healthDetailsAreas } from '../src/domain/health-details.policy';
 import { healthDetailsSchema } from '../src/validation/health-details.schemas';
 
 const answers = {
@@ -30,30 +30,27 @@ test('condition details do not turn a known food preference into an allergy-deta
     ],
   };
   assert.deepEqual(
-    healthDetailsRequirements(profile).map((item) => item.area),
+    healthDetailsAreas(profile),
     ['HEART_CONDITION']
   );
   assert.deepEqual(
-    healthDetailsRequirements({
+    healthDetailsAreas({
       ...profile,
       safetyProfileEntries: [
         ...profile.safetyProfileEntries,
         { domain: 'ALLERGY', canonicalCode: null, displayName: 'Pork', supportState: 'PENDING_REVIEW' },
       ],
-    }).map((item) => item.area),
+    }),
     ['HEART_CONDITION', 'FOOD_ALLERGY']
   );
 });
-test('declared conditions and allergies need their own complete current form', () => {
+test('declarations do not fabricate forms; recorded forms must remain complete and current', () => {
   const missing = healthDetailsRequirements(user);
-  assert.deepEqual(
-    missing.map((item) => item.state),
-    ['CONTEXT_REQUIRED', 'CONTEXT_REQUIRED']
-  );
+  assert.deepEqual(missing, []);
   const responses = { ...answers, formVersion: 'HEALTH_DETAILS_V1', safetyRevision: 2 };
   const complete = healthDetailsRequirements({
     ...user,
-    clinicalContextResponses: missing.map(({ area }) => ({ area, responses })),
+    clinicalContextResponses: healthDetailsAreas(user).map(area => ({ area, responses })),
   });
   assert.ok(complete.every((item) => item.state === 'READY'));
   assert.ok(
@@ -80,16 +77,11 @@ test('health details reject omitted medication context and client-supplied verif
   assert.equal(healthDetailsSchema.safeParse({ ...body, verified: true }).success, false);
 });
 
-test('supported allergy-only planning needs no clinical form; unknown allergies still require details', () => {
+test('allergy declarations expose relevant areas without creating answers or an automatic form requirement', () => {
   const allergyOnly = { ...user, healthConditions: [], allergies: [{ allergen: 'SHELLFISH' }] };
-  assert.deepEqual(healthDetailsRequirements(allergyOnly), []);
-  assert.equal(
-    healthDetailsRequirements({ ...allergyOnly, allergies: [{ allergen: 'SOY' }] })[0].state,
-    'CONTEXT_REQUIRED'
-  );
-  assert.equal(
-    healthDetailsRequirements({ ...allergyOnly, userProfile: { ...user.userProfile, otherAllergies: 'sesame' } })[0]
-      .state,
-    'CONTEXT_REQUIRED'
-  );
+  for (const source of [allergyOnly, { ...allergyOnly, allergies: [{ allergen: 'SOY' }] },
+    { ...allergyOnly, userProfile: { ...user.userProfile, otherAllergies: 'sesame' } }]) {
+    assert.deepEqual(healthDetailsRequirements(source), []);
+    assert.deepEqual(healthDetailsAreas(source), ['FOOD_ALLERGY']);
+  }
 });

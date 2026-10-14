@@ -13,7 +13,6 @@ import { sanitizeErrorMessage } from '@/lib/sanitizeError';
 import { COMMON_ALLERGIES, COMMON_CONDITIONS } from '@/services/health-validation.service';
 import { SafetyIntakeService } from '@/services/safety-intake.service';
 import { AppError } from '@/errors/AppError';
-import { ClinicalEvidenceService } from '@/services/clinical-evidence.service';
 
 // The declaration and its fail-closed invalidation commit together. A later
 // recheck failure must never make the API claim that the declaration was lost.
@@ -52,13 +51,9 @@ export class UserController {
       if (!userId) return res.status(401).json({ success: false, error: 'Unauthorized.' });
       const saved = await SafetyIntakeService.replaceDomains(userId, req.body.editableDomains, req.body.entries);
       const safetyRecheckRetryNeeded = saved.changed && !(await trySafetyRecheck(userId));
-      const nextHealthDetailsPath = await ClinicalEvidenceService.nextOnboardingDetailsPath(
-        userId,
-        req.body.editableDomains
-      );
       return res
         .status(200)
-        .json({ success: true, data: { ...saved, safetyRecheckRetryNeeded, nextHealthDetailsPath } });
+        .json({ success: true, data: { ...saved, safetyRecheckRetryNeeded } });
     } catch (error: unknown) {
       return res.status(400).json({
         success: false,

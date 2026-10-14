@@ -5,9 +5,10 @@ export const REVIEW_NUTRIENTS = ['calories', 'proteinG', 'carbsG', 'fatG', 'sodi
 export type ReviewNutrient = typeof REVIEW_NUTRIENTS[number];
 export type PlateNutrients = Record<ReviewNutrient, number | null>;
 const bound = z.number().finite().min(0).max(1000000);
-const range = z.object({ min: bound.optional(), max: bound.optional() }).strict().refine(
+const range = z.object({ min: bound.optional(), max: bound.optional(), minExclusive: z.boolean().optional(), maxExclusive: z.boolean().optional() }).strict().refine(
   value => (value.min !== undefined || value.max !== undefined) &&
-    (value.min === undefined || value.max === undefined || value.min <= value.max),
+    (value.min === undefined || value.max === undefined || value.min <= value.max) &&
+    (!value.minExclusive || value.min !== undefined) && (!value.maxExclusive || value.max !== undefined),
   'Provide a minimum or maximum, with minimum no greater than maximum.'
 );
 export const reviewNutrientFiltersSchema = z.object({
@@ -34,7 +35,9 @@ export function evaluateNutrientFilters(nutrients: PlateNutrients, filters: Revi
   const unknown = REVIEW_NUTRIENTS.filter(key => filters[key] && !measured(nutrients[key]));
   const matches = !unknown.length && REVIEW_NUTRIENTS.every(key => {
     const range = filters[key], value = nutrients[key];
-    return !range || (measured(value) && (range.min === undefined || value >= range.min) && (range.max === undefined || value <= range.max));
+    return !range || (measured(value) &&
+      (range.min === undefined || (range.minExclusive ? value > range.min : value >= range.min)) &&
+      (range.max === undefined || (range.maxExclusive ? value < range.max : value <= range.max)));
   });
   return { matches, unknown };
 }

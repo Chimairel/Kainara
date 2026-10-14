@@ -47,6 +47,7 @@ export default function RndQueueDocument({
           <button
             type="button"
             aria-label="Back to queue"
+            title="Back to queue"
             className="flex h-10 w-10 items-center justify-center rounded-lg text-brand-muted hover:bg-brand-green/10"
             onClick={() => {
               onExpandedChange(false);

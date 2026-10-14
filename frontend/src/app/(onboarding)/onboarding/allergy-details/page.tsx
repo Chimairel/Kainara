@@ -1,5 +1,5 @@
-import ClinicalEvidenceWorkspace from '@/features/profile/ClinicalEvidenceWorkspace';
+import { redirect } from 'next/navigation';
 
 export default function OnboardingAllergyDetailsPage() {
-  return <ClinicalEvidenceWorkspace mode="onboarding" detailsSection="allergies" />;
+  redirect('/onboarding/shopping-day');
 }

@@ -225,7 +225,7 @@ export default function SwapMealOptions({ model, calorieSortOnly = false }: Sect
                       {/* Verifier / Source Badge */}
                       <div className="flex items-center justify-between text-[9px] text-white/75 pt-0.5">
                         <span className="truncate">
-                          {option.reuseBasis === 'PANLASANG_GENERAL_BASE' ? 'Source: ' : 'Verified by: '}
+                          {option.id.startsWith('review-source:') || option.reuseBasis === 'PANLASANG_GENERAL_BASE' ? 'Source: ' : 'Verified by: '}
                           {option.verifier ? (
                             <button
                               type="button"
@@ -242,6 +242,7 @@ export default function SwapMealOptions({ model, calorieSortOnly = false }: Sect
                           )}
                         </span>
                       </div>
+                      {option.requiresReview && <p className="text-[11px] font-semibold text-white">Pending case approval</p>}
                     </div>
                   </div>
                 );

@@ -370,6 +370,8 @@ export async function sourceRawRecipeCandidates(
     otherAllergies?: string | null;
     reviewFreeBaseOnly?: boolean;
     excludeCandidateIds?: readonly string[];
+    /** Internal RND search predicate; never grants clinical clearance. */
+    acceptCandidate?: (candidate: RecipeCandidateProjection) => boolean;
     ricePreference?: RicePreference;
     riceFood?: SwapRiceFood | null;
     recentCandidateIds?: readonly string[];
@@ -440,6 +442,7 @@ export async function sourceRawRecipeCandidates(
       ...page.items
         .filter(
           (candidate) =>
+            (!input.acceptCandidate || input.acceptCandidate(candidate)) &&
             candidate.dietaryTags.includes(input.dietaryPreference) &&
             rawRecipeServing({
               candidate,

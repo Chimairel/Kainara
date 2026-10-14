@@ -466,6 +466,8 @@ export async function queryEligibleLibraryPage(input: {
   safetyOnly?: boolean;
   /** Include patient-reviewed recipes with the same recorded safety context. */
   includeProfileApproved?: boolean;
+  /** RND/planning only: verified bases awaiting this member's clinical decision. */
+  includeUnapprovedCaseCandidates?: boolean;
   /** Internal count summaries retain admitted identities without resolving presentation assets. */
   collectIds?: boolean;
   /** Internal serving/filter predicate. Runs after authoritative admission, before counting and pagination. */
@@ -529,6 +531,10 @@ export async function queryEligibleLibraryPage(input: {
             },
           ]
         : []),
+      ...(input.includeUnapprovedCaseCandidates ? [{
+        verifiedByNutritionistId: { not: null },
+        safetyEvidenceStatus: MealLibrarySafetyEvidenceStatus.COMPLETE,
+      }] : []),
     ],
     ...(input.mealType ? { applicableMealTypes: { some: { mealType: input.mealType } } } : {}),
     ...(input.search ? { mealName: { contains: input.search, mode: 'insensitive' } } : {}),
@@ -584,7 +590,8 @@ export async function queryEligibleLibraryPage(input: {
           !(
             input.includeProfileApproved &&
             isProfileApprovedLibraryMealCompatible(row, input.userConditions, input.userAllergens, input.profile)
-          ))
+          ) && !(input.includeUnapprovedCaseCandidates &&
+            isLibraryMealSafeToQueueForCaseReview(row, input.userConditions, input.userAllergens, input.profile)))
       )
         continue;
       if (input.riceRole && resolveRecipeRiceRole(row).riceRole !== input.riceRole) continue;

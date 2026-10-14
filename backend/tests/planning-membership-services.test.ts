@@ -213,15 +213,8 @@ test('supported allergy-only intake skips clinical forms and profile confirmatio
     healthDetailsRequirements(user() as Parameters<typeof healthDetailsRequirements>[0])
   );
   assert.equal(await ClinicalProfileReviewService.hasCurrentApproval('fixture', client), true);
-  assert.equal(await ClinicalEvidenceService.nextOnboardingDetailsPath('fixture', ['ALLERGY']), null);
+  assert.deepEqual(await ClinicalEvidenceService.requirementsForUser('fixture'), []);
   medical = true;
   assert.equal(await ClinicalProfileReviewService.hasCurrentApproval('fixture', client), false);
-  assert.equal(
-    await ClinicalEvidenceService.nextOnboardingDetailsPath('fixture', ['ALLERGY']),
-    '/onboarding/allergy-details'
-  );
-  assert.equal(
-    await ClinicalEvidenceService.nextOnboardingDetailsPath('fixture', ['CONDITION']),
-    '/onboarding/condition-details'
-  );
+  assert.deepEqual(await ClinicalEvidenceService.requirementsForUser('fixture'), []);
 });

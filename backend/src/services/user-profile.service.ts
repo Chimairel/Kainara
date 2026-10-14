@@ -380,23 +380,6 @@ export class UserProfileService {
         await lockUserProfile(tx, userId);
         const current = await tx.userProfile.findUniqueOrThrow({ where: { userId } });
         if (current.revision !== profile.revision) throw new Error('Profile changed. Retry onboarding completion.');
-        const contexts = await tx.clinicalContextResponse.findMany({ where: { userId } });
-        const pending = healthDetailsRequirements({
-          userProfile: current,
-          healthConditions: user.healthConditions,
-          allergies: user.allergies,
-          clinicalContextResponses: contexts,
-        }).find((item) => item.state !== 'READY');
-        if (pending)
-          throw new AppError(
-            'Review and save your health details before completing onboarding.',
-            409,
-            'ONBOARDING_INCOMPLETE',
-            {
-              nextPath:
-                pending.area === 'FOOD_ALLERGY' ? '/onboarding/allergy-details' : '/onboarding/condition-details',
-            }
-          );
         let reportProfileRevision = current.revision;
         if (current.dailyCalorieTarget !== calculations.dailyCalorieTarget) {
           const revised = await advanceProfileRevision(tx, userId);

@@ -1,7 +1,7 @@
 import type { ComponentProps } from 'react';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { expect, it, vi } from 'vitest';
-import CaseDecisionSection from './CaseDecisionSection';
+import CaseDecisionSection, { CaseDecisionPage } from './CaseDecisionSection';
 
 vi.mock('../ReviewSwapDialog', () => ({ default: ({ onNoSuitable }: { onNoSuitable: () => void }) => <button onClick={onNoSuitable}>Prepare no-match rejection</button> }));
 type Props = ComponentProps<typeof CaseDecisionSection>;
@@ -15,12 +15,12 @@ function fixture() {
     data: { searchReceipt: 'saved-search' }, replacementOutcome, close, load: vi.fn() } as unknown as Props['swap'];
   return { model, swap, setAction, reject, approve, noSuitable, close, replacementOutcome };
 }
-it('keeps only approve/reject as final decisions and passes a recorded search outcome through the rejection modal', () => {
+it('keeps only approve/reject as final decisions and passes a recorded search outcome through a canvas reasoning page', () => {
   const props = fixture();
   const { rerender } = render(<CaseDecisionSection {...props} action={null} />);
   expect(screen.getByRole('toolbar', { name: 'Meal review actions' })).toBeInTheDocument();
   expect(screen.getByRole('button', { name: /^Swap$/ })).toBeInTheDocument();
-  rerender(<CaseDecisionSection {...props} action="reject" />);
+  rerender(<CaseDecisionPage {...props} action="reject" title="Rejection rationale" page={3} />);
   fireEvent.click(screen.getByRole('button', { name: 'Reject and leave unavailable' }));
   expect(props.reject).toHaveBeenCalledWith(props.replacementOutcome); expect(props.approve).not.toHaveBeenCalled();
 });

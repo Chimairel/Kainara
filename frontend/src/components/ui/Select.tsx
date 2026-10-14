@@ -23,6 +23,7 @@ export interface SelectProps {
   id?: string;
   name?: string;
   'aria-label'?: string;
+  triggerContent?: React.ReactNode;
 }
 
 export function Select({
@@ -37,6 +38,7 @@ export function Select({
   id,
   name,
   'aria-label': ariaLabel,
+  triggerContent,
 }: SelectProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [highlightedIndex, setHighlightedIndex] = useState<number>(-1);
@@ -225,6 +227,7 @@ export function Select({
         } ${triggerClassName}`}
       >
         <span className="flex items-center gap-2 truncate">
+          {triggerContent ?? <>
           {selectedOption?.icon && <span className="shrink-0">{selectedOption.icon}</span>}
           <span className="truncate">
             {selectedOption ? (
@@ -233,8 +236,8 @@ export function Select({
               <span className="text-brand-muted dark:text-white/40">{placeholder}</span>
             )}
           </span>
+          </>}
         </span>
-
         <ChevronDown
           className={`h-3.5 w-3.5 shrink-0 text-brand-muted transition-transform duration-200 dark:text-white/40 ${
             isOpen ? 'rotate-180 text-brand-green' : ''

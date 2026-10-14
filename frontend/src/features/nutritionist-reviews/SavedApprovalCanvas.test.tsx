@@ -33,7 +33,7 @@ it('replays saved sheet positions and camera; Cancel removes the draft and resto
   const world = () => container.querySelector('[data-canvas-world]') as HTMLElement;
   expect(world().style.transform).toBe('translate(-213px, 50px) scale(0.8)');
   expect((container.querySelector('[data-canvas-sheet="0"]') as HTMLElement).style.left).toBe('44px');
-  expect(screen.getByRole('button', { name: 'Hand tool (H)' })).toHaveAttribute('aria-pressed', 'true');
+  expect(screen.getByRole('combobox', { name: 'Hand tool (H)' })).toBeInTheDocument();
   fireEvent.click(screen.getByRole('button', { name: 'Flag approval' }));
   expect(screen.getByRole('article', { name: 'Flag approval reasons' })).toHaveAttribute('data-document-page', '3');
   fill();
@@ -110,4 +110,15 @@ it('shows the immutable flag and resolution on its audit page without changing t
   expect(within(paper).getByText('Independent measured evidence resolves this concern.')).toBeInTheDocument();
   expect(within(paper).queryByRole('textbox')).not.toBeInTheDocument();
   expect(screen.getByText('Immutable clinical context')).toBeInTheDocument();
+});
+
+it('replays a recorded rationale paper at the approver’s saved position without editable decision controls', () => {
+ const rationale = 'Recorded exact-serving review rationale for this synthetic decision.';
+ const saved = { ...snapshot, reviewRationale:rationale, savedCanvas:{...snapshot.savedCanvas, layout:{...layout,sheets:[...layout.sheets,{title:'Approval rationale',x:1800,y:120}]}} };
+ render(<SavedApprovalCanvas snapshot={saved} decisionId="reason-decision" approvalFlag={target}/>);
+ const paper=screen.getByRole('article',{name:'Approval rationale'});
+ expect(paper.closest('[data-canvas-sheet]')).toHaveStyle({left:'1800px',top:'120px'});
+ expect(within(paper).getByLabelText('Review rationale')).toHaveValue(rationale);
+ expect(within(paper).getByLabelText('Review rationale')).toHaveAttribute('readonly');
+ expect(screen.queryByRole('button',{name:'Confirm approval'})).not.toBeInTheDocument();
 });

@@ -13,6 +13,14 @@ type HealthDetailsProfile = {
   clinicalContextResponses: Array<{ area: ClinicalEvidenceArea; responses: unknown }>;
 };
 
+export function isRequestedHealthDetails(input: {
+  status?: string; reasonCodes?: unknown; savedScopeKey: string | null; currentScopeKey: string; area: string;
+}) {
+  return input.status === 'DECLINED' && Array.isArray(input.reasonCodes) &&
+    input.reasonCodes[0] === 'DETAILS_REQUESTED' && input.reasonCodes[1] === input.area &&
+    input.savedScopeKey === input.currentScopeKey;
+}
+
 export function healthDetailsAreas(user: Omit<HealthDetailsProfile, 'clinicalContextResponses'>) {
   const areas = new Set<ClinicalEvidenceArea>();
   user.healthConditions.forEach(({ condition }) => {
@@ -47,6 +55,9 @@ export function healthDetailsRequirements(user: HealthDetailsProfile) {
   return healthDetailsAreas(user)
     .filter((area) => area !== ClinicalEvidenceArea.FOOD_ALLERGY || requiresReview)
     .filter((area) => area !== ClinicalEvidenceArea.OTHER || restrictions.customConditions.length > 0)
+    // Declarations alone do not create a form. New members wait for an RND's questions;
+    // historical saved detail responses retain their revision checks.
+    .filter((area) => user.clinicalContextResponses.some((item) => item.area === area))
     .map((area) => {
       const context = user.clinicalContextResponses.find((item) => item.area === area);
       const ready = isCurrentHealthDetails(context?.responses, user.userProfile?.safetyRevision ?? -1);

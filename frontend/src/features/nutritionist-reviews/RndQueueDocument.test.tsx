@@ -55,16 +55,14 @@ it('keeps decisions inside the canvas, unscaled, with drafts and layout preserve
 
 it('changes H/V tools without hijacking typing or modified shortcuts', () => {
   render(<Fixture onBack={vi.fn()} />);
-  const hand = screen.getByRole('button', { name: 'Hand tool (H)' });
-  const select = screen.getByRole('button', { name: 'Select tool (V)' });
   fireEvent.keyDown(document.body, { key: 'h' });
-  expect(hand).toHaveAttribute('aria-pressed', 'true');
+  expect(screen.getByRole('combobox', { name: 'Hand tool (H)' })).toBeInTheDocument();
   fireEvent.keyDown(document.body, { key: 'v' });
-  expect(select).toHaveAttribute('aria-pressed', 'true');
+  expect(screen.getByRole('combobox', { name: 'Move tool (V)' })).toBeInTheDocument();
   fireEvent.keyDown(screen.getByLabelText('Decision note'), { key: 'h' });
-  expect(select).toHaveAttribute('aria-pressed', 'true');
+  expect(screen.getByRole('combobox', { name: 'Move tool (V)' })).toBeInTheDocument();
   fireEvent.keyDown(document.body, { key: 'h', ctrlKey: true });
-  expect(select).toHaveAttribute('aria-pressed', 'true');
+  expect(screen.getByRole('combobox', { name: 'Move tool (V)' })).toBeInTheDocument();
 });
 
 it('requires a claim for decisions and preserves queue navigation', () => {
@@ -154,7 +152,7 @@ it('focuses the requested reference sheet without moving the existing sheets', (
   rerender(<Fixture onBack={back} focusSheet={{ title: 'Meal evidence', request: 1 }} />);
   expect(document.querySelector('[data-canvas-sheet="0"]')).toHaveStyle({ top: '20px' });
   expect(document.querySelector('[data-canvas-sheet="1"]')).toHaveClass('outline');
-  expect(screen.getByRole('button', { name: 'Select tool (V)' })).toHaveAttribute('aria-pressed', 'true');
+  expect(screen.getByRole('combobox', { name: 'Move tool (V)' })).toBeInTheDocument();
   expect(document.querySelector('[data-canvas-world]')?.getAttribute('style')).toContain('64px) scale(1)');
 });
 

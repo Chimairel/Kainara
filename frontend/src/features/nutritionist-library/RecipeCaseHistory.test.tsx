@@ -56,7 +56,7 @@ for (const role of ['admin', 'nutritionist'] as const) it(`${role} requests appr
   render(<RecipeCaseHistory mealId="recipe" role={role} approvalsOnly />);
   await screen.findByText('Bam-I');
   expect(mocks.get).toHaveBeenCalledWith(`/${role}/library/recipe/case-history`, { params: { page: 1, approvalsOnly: 'true' } });
-  expect(screen.getByRole('heading', { name: 'Approvals', exact: true })).toBeVisible();
+  expect(screen.getByRole('heading', { name: 'Approvals' })).toBeVisible();
   fireEvent.click(screen.getByRole('button', { name: /^Details:/ }));
   await screen.findByRole('dialog', { name: /Meal approval .* Bam-I/ });
   expect(mocks.get).toHaveBeenCalledWith(`/${role}/audit-history/case`);

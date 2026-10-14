@@ -22,7 +22,6 @@ interface OnboardingSafetyStepProps {
   guidance: string;
   editableDomains: SafetyEntryDomain[];
   nextHref: string;
-  detailsSection: 'conditions' | 'allergies';
 }
 
 export default function OnboardingSafetyStep({
@@ -34,7 +33,6 @@ export default function OnboardingSafetyStep({
   guidance,
   editableDomains,
   nextHref,
-  detailsSection,
 }: OnboardingSafetyStepProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -67,20 +65,8 @@ export default function OnboardingSafetyStep({
             initialEntries={initialEntries}
             editableDomains={editableDomains}
             submitLabel={isFromReview ? 'Save & Return to Review' : 'Save and continue →'}
-            onSaved={async (entries, _changed, nextHealthDetailsPath) => {
-              const hasDeclaredHealthRestriction = entries.some(
-                (entry) => editableDomains.includes(entry.domain) && entry.canonicalCode !== 'NONE'
-              );
-              const detailsPath =
-                nextHealthDetailsPath ??
-                (detailsSection === 'conditions' ? '/onboarding/condition-details' : '/onboarding/allergy-details');
-              const nextTarget =
-                nextHealthDetailsPath || hasDeclaredHealthRestriction
-                  ? `${detailsPath}${isFromReview ? '?from=review' : ''}`
-                  : isFromReview
-                    ? '/onboarding/tos'
-                    : nextHref;
-              router.push(nextTarget);
+            onSaved={async () => {
+              router.push(isFromReview ? '/onboarding/tos' : nextHref);
               void refreshSession();
             }}
           />

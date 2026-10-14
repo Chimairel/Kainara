@@ -89,7 +89,7 @@ describe('onboarding final review readiness', () => {
     expect(state.post).not.toHaveBeenCalled();
   });
 
-  it('returns a skipped required allergy form instead of completing onboarding', async () => {
+  it('does not return to retired onboarding detail forms on a completion error', async () => {
     state.useProfile.mockReturnValue({
       profile: {
         id: 'fixture',
@@ -112,7 +112,8 @@ describe('onboarding final review readiness', () => {
     render(<TosPage />);
     acceptAll();
     fireEvent.click(screen.getByRole('button', { name: /Complete Onboarding/ }));
-    await waitFor(() => expect(state.push).toHaveBeenCalledWith('/onboarding/allergy-details'));
+    await waitFor(() => expect(state.post).toHaveBeenCalledTimes(2));
+    expect(state.push).not.toHaveBeenCalled();
     expect(state.refreshSession).not.toHaveBeenCalled();
     expect(state.replace).not.toHaveBeenCalled();
   });

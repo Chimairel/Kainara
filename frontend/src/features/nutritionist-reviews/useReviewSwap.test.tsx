@@ -125,3 +125,32 @@ it('filter edits abort a pending search and invalid limits cannot submit or load
   expect(result.current.data).toBeNull(); expect(result.current.loading).toBe(false);
   await act(() => result.current.load()); expect(api.get).toHaveBeenCalledTimes(1);
 });
+
+it('interprets natural language once, applies strict filters, and submits the applied serving evidence', async () => {
+  const filters = { sugarG: { max: 200, maxExclusive: true }, sodiumMg: { max: 500 } };
+  const page = { ...preview, filtersEnabled: true, filters, options: [{ ...preview.options[0], servingKey: 'c'.repeat(64) }] };
+  vi.mocked(api.post).mockResolvedValueOnce({ data: { data: { filters } } }).mockResolvedValueOnce({ data: { data: { replacementPlanId: 'replacement' } } });
+  vi.mocked(api.get).mockResolvedValue({ data: { data: page } });
+  const { result } = renderHook(() => useReviewSwap('case', true, vi.fn(async () => {}), 'a'.repeat(64)));
+  act(() => result.current.setFilterText('sugar less than 200 g and sodium at most 500 mg'));
+  await act(() => result.current.interpretAndSearch());
+  expect(api.post).toHaveBeenNthCalledWith(1, '/nutritionist/queue/case/swap-filter', { text: 'sugar less than 200 g and sodium at most 500 mg', expectedContextKey: 'a'.repeat(64) }, expect.objectContaining({ signal: expect.any(AbortSignal) }));
+  expect(api.get).toHaveBeenLastCalledWith('/nutritionist/queue/case/swap-options', expect.objectContaining({ params: { expectedContextKey: 'a'.repeat(64), filters: JSON.stringify(filters) } }));
+  act(() => { result.current.setSelectedId('meal'); result.current.setNote('Reviewed the recorded nutrient limits.'); });
+  await act(() => result.current.submit());
+  expect(api.post).toHaveBeenLastCalledWith('/nutritionist/queue/case/swap', expect.objectContaining({ filters, expectedServingKey: 'c'.repeat(64) }));
+});
+it('ignores stale AI interpretation after changing case and leaves failed searches unselectable', async () => {
+  let finish!: (value: unknown) => void;
+  vi.mocked(api.post).mockImplementation(() => new Promise(resolve => { finish = resolve; }));
+  const { result, rerender } = renderHook(({ id }) => useReviewSwap(id, true, vi.fn(async () => {}), 'a'.repeat(64)), { initialProps: { id: 'first' } });
+  act(() => result.current.setFilterText('sugar under 10 g'));
+  act(() => { void result.current.interpretAndSearch(); });
+  rerender({ id: 'second' });
+  await act(async () => finish({ data: { data: { filters: { sugarG: { max: 10, maxExclusive: true } } } } }));
+  expect(api.get).not.toHaveBeenCalled(); expect(result.current.data).toBeNull(); expect(result.current.filterText).toBe('');
+  vi.mocked(api.post).mockRejectedValue({ response: { data: { error: 'Use an explicit nutrient amount.' } } });
+  act(() => result.current.setFilterText('low sugar'));
+  await act(() => result.current.interpretAndSearch());
+  expect(result.current.error).toBe('Use an explicit nutrient amount.'); expect(result.current.selected).toBeNull(); expect(api.get).not.toHaveBeenCalled();
+});

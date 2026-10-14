@@ -8,6 +8,7 @@ export const reviewSwapQuerySchema = z.object({ expectedContextKey: mealReviewCo
   filters: queryFilters.optional(), cursor: z.string().max(1000).optional() }).strict();
 
 export const reviewSwapParamsSchema = z.object({ id: z.string().min(1).max(100) }).strict();
+export const reviewSwapInterpretSchema = z.object({ expectedContextKey: mealReviewContextSchema, text: z.string().trim().min(3).max(500) }).strict();
 export const reviewSwapBodySchema = z
   .object({
     expectedContextKey: mealReviewContextSchema,

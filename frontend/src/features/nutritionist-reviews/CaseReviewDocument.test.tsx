@@ -11,7 +11,7 @@ afterEach(() => vi.resetAllMocks());
 
 vi.mock('./sections/CaseProfileSection', () => ({ default: () => <p>Recorded profile</p> }));
 vi.mock('./sections/CaseAuditSection', () => ({ default: () => <p>Recorded meal evidence</p> }));
-vi.mock('./sections/CaseDecisionSection', () => ({ default: () => <p>Decision controls</p> }));
+vi.mock('./sections/CaseDecisionSection', () => ({ default: () => <p>Decision controls</p>, CaseDecisionPage: () => <p>Decision page</p> }));
 vi.mock('./useReviewSwap', () => ({ useReviewSwap: () => ({}) }));
 
 it('shows a claimed-case release failure inside the fullscreen canvas', () => {
@@ -78,7 +78,8 @@ it('opens references on demand as a canvas sheet and retains the selected eviden
   const { rerender } = render(<CaseReviewDocument model={model} />);
   expect(api.get).not.toHaveBeenCalled();
   expect(screen.queryByRole('article', { name: 'Related condition reviews' })).not.toBeInTheDocument();
-  fireEvent.click(screen.getByRole('button', { name: 'Related reviews' }));
+  fireEvent.click(screen.getByRole('combobox', { name: 'Add page' }));
+  fireEvent.click(screen.getByRole('option', { name: 'Related reviews' }));
   await screen.findByText('Original RND');
   const paper = screen.getByRole('article', { name: 'Related condition reviews' });
   expect(paper.closest('[data-canvas-world]')).not.toBeNull();
@@ -93,13 +94,14 @@ it('opens references on demand as a canvas sheet and retains the selected eviden
   expect(within(canvas).getByLabelText('Search reviewed meals')).toHaveValue('Heart');
   await within(canvas).findByRole('button', { name: 'Hide evidence for Heart meal' });
   expect(screen.getAllByRole('dialog')).toHaveLength(1);
-  fireEvent.click(within(canvas).getByRole('button', { name: 'Related reviews' }));
+  fireEvent.click(within(canvas).getByRole('combobox', { name: 'Add page' }));
+  fireEvent.click(screen.getByRole('option', { name: 'Related reviews' }));
   expect(screen.getAllByRole('article', { name: 'Related condition reviews' })).toHaveLength(1);
   rerender(<CaseReviewDocument model={{ ...model, selectedMealId: 'another-case', detailData: {
     ...model.detailData!, mealPlan: { ...model.detailData!.mealPlan, id: 'another-case' },
   } }} />);
   expect(screen.queryByRole('article', { name: 'Related condition reviews' })).not.toBeInTheDocument();
-  expect(screen.getByRole('button', { name: 'Related reviews' })).toBeInTheDocument();
+  expect(screen.getByRole('combobox', { name: 'Add page' })).toBeInTheDocument();
 });
 
 it('keeps published questions as information sheets and opens the blank composer from Canvas tools only', () => {
@@ -126,10 +128,7 @@ it('keeps published questions as information sheets and opens the blank composer
   expect(within(paper).getByLabelText('Recorded question *')).toBeDisabled();
   expect(screen.queryByLabelText('Resolution notes')).not.toBeInTheDocument();
   expect(screen.queryByLabelText('Form title')).not.toBeInTheDocument();
-  fireEvent.click(within(screen.getByRole('toolbar', { name: 'Canvas tools' })).getByRole('button', { name: 'Questions' }));
-  const tool = screen.getByRole('dialog', { name: 'Member questions' });
-  expect(within(tool).getByLabelText('Form title')).toBeDisabled();
-  expect(tool.closest('[data-canvas-world]')).toBeNull();
-  fireEvent.click(within(tool).getByRole('button', { name: 'Close' }));
-  expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole('combobox', { name: 'Add page' }));
+  expect(screen.getByRole('option', { name: 'Message' })).toHaveAttribute('aria-disabled', 'true');
+  expect(screen.queryByLabelText('Form title')).not.toBeInTheDocument();
 });

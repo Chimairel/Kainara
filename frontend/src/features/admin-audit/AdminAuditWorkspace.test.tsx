@@ -68,12 +68,12 @@ it('offers meal changes and keeps actual RND access changes discoverable', async
   render(<AdminAuditWorkspace />);
   await screen.findByText('Former staff');
   fireEvent.click(screen.getByLabelText('Action'));
-  fireEvent.click(screen.getByRole('option', { name: 'Meal changes', exact: true }));
+  fireEvent.click(screen.getByRole('option', { name: 'Meal changes' }));
   await waitFor(() => expect(mocks.get).toHaveBeenLastCalledWith('/admin/audit-history', {
     params: expect.objectContaining({ action: 'ADMIN_MEAL_', page: 1 }),
   }));
   fireEvent.click(screen.getByLabelText('Action'));
-  fireEvent.click(screen.getByRole('option', { name: 'RND access changes', exact: true }));
+  fireEvent.click(screen.getByRole('option', { name: 'RND access changes' }));
   await waitFor(() => expect(mocks.get).toHaveBeenLastCalledWith('/admin/audit-history', {
     params: expect.objectContaining({ action: 'ACCESS', page: 1 }),
   }));

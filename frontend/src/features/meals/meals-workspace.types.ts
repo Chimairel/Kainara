@@ -6,6 +6,8 @@ import type { MealCookingLink, MealPlan, PublicMealImage, PublicVerifier } from 
 export type SwapNutritionMatch = 'CLOSE' | 'GAPS_REMAIN' | 'PARTIAL_DAY' | 'UNAVAILABLE';
 
 export interface SwapOption {
+  /** RND preview only; member endpoints never return pending candidates. */
+  requiresReview?: boolean;
   nutritionFitScore?: number;
   nutritionMatch?: SwapNutritionMatch;
   id: string;

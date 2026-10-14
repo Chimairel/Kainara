@@ -8,10 +8,6 @@ import {
   SafetyEntrySupportState,
 } from '@prisma/client';
 import prisma from '@/lib/prisma';
-import {
-  captureOnboardingConditionDetails,
-  retainOnboardingConditionDetails,
-} from './onboarding-health-details.service';
 import { lockUserProfile, advanceSafetyRevision } from './profile-revision.service';
 import {
   getPublicSafetyCatalogue,
@@ -224,11 +220,7 @@ export class SafetyIntakeService {
       return { ...preview, entries, changed: false };
     }
 
-    const conditionsUnchanged =
-      sortedJson(current.filter((entry) => entry.domain === 'CONDITION')) ===
-      sortedJson(next.filter((entry) => entry.domain === 'CONDITION'));
     const legacy = buildLegacySafetyProjection(entries);
-    const conditionDetails = await captureOnboardingConditionDetails(tx, userId, conditionsUnchanged, legacy);
     await tx.safetyProfileEntry.deleteMany({ where: { userId } });
     if (entries.length) {
       await tx.safetyProfileEntry.createMany({
@@ -269,8 +261,7 @@ export class SafetyIntakeService {
         } as Prisma.InputJsonObject,
       },
     });
-    const updated = await advanceSafetyRevision(tx, userId);
-    await retainOnboardingConditionDetails(tx, userId, conditionDetails, updated.safetyRevision);
+    await advanceSafetyRevision(tx, userId);
 
     return { ...preview, entries, changed: true };
   }

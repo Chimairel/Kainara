@@ -13,7 +13,7 @@ import { rejectedSlotRecipes } from './rejected-slot-recipes.service';
 export type ReplacementSearchSummary = {
   schemaVersion: 1; mealPlanId: string; reviewerProfileId: string; contextKey: string;
   filters: ReviewNutrientFilters; matchedCount: number; unknownExcludedCount: number;
-  searchedAt: string; scope: 'CURRENT_ELIGIBLE_CERTIFIED_LIBRARY';
+  searchedAt: string; scope: 'CURRENT_ELIGIBLE_CERTIFIED_LIBRARY' | 'RND_PENDING_REPLACEMENT_CANDIDATES';
 };
 const audience = 'rnd-replacement-search';
 const receiptSecret = () => {
@@ -66,7 +66,7 @@ export async function searchReviewReplacements(input: {
   const page = await queryEligibleLibraryPage({ userId: plan.userId, mealType: plan.mealType,
     userConditions: context.conditions, userAllergens: context.allergens,
     profile: { ...context.profile, userId: plan.userId, safetyEntries: context.user.safetyProfileEntries },
-    includeProfileApproved: true, limit: 60, cursor: input.cursor,
+    includeProfileApproved: true, includeUnapprovedCaseCandidates: true, limit: 60, cursor: input.cursor,
     accept: meal => {
       if (meal.id === plan.libraryMealId || rejected.includes({ libraryMealId: meal.id,
         sourceRawRecipeCandidateId: meal.sourceRawRecipeCandidateId, baseRecipeSignature: meal.recipeSignature })) return false;

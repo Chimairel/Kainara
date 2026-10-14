@@ -77,7 +77,8 @@ function ClinicalEvidenceContent({ mode = 'profile', detailsSection }: Workspace
         setWorkspace(next);
         setRequest(status?.data?.data?.detailsRequest ?? null);
         const initialArea = status?.data?.data?.detailsRequest?.area;
-        const areas = next.availableAreas.filter((value) => inSection(value, section));
+        const areas = next.availableAreas.filter((value) => inSection(value, section) &&
+          (next.contexts.some(item => item.area === value) || value === initialArea));
         const selected = areas.includes(initialArea)
           ? initialArea
           : (next.requirements.find((item) => inSection(item.area, section) && item.state !== 'READY')?.area ??
@@ -132,7 +133,8 @@ function ClinicalEvidenceContent({ mode = 'profile', detailsSection }: Workspace
       // Refresh persisted review work without resetting any unsent form draft.
       setWorkspace(next);
       setRequest(status.data?.data?.detailsRequest ?? null);
-      const nextAreas = next.availableAreas.filter((value) => inSection(value, section));
+      const nextAreas = next.availableAreas.filter((value) => inSection(value, section) &&
+        (next.contexts.some(item => item.area === value) || value === status.data?.data?.detailsRequest?.area));
       if (!nextAreas.includes(area)) {
         const selected = nextAreas[0] ?? '';
         setArea(selected);
@@ -169,7 +171,8 @@ function ClinicalEvidenceContent({ mode = 'profile', detailsSection }: Workspace
       setBusy(false);
     }
   }
-  const areas = workspace?.availableAreas.filter((value) => inSection(value, section)) ?? [];
+  const areas = workspace?.availableAreas.filter((value) => inSection(value, section) &&
+    (workspace.contexts.some(item => item.area === value) || value === request?.area)) ?? [];
   const requirements = workspace?.requirements.filter((item) => inSection(item.area, section)) ?? [];
   const pendingAreas = requirements.filter((item) => item.state !== 'READY').map((item) => item.area);
   const hasRecordedReviewDetails =
@@ -187,7 +190,7 @@ function ClinicalEvidenceContent({ mode = 'profile', detailsSection }: Workspace
     );
     setMessage(null);
   };
-  const items = workspace ? healthInboxItems(workspace) : [];
+  const items = workspace ? healthInboxItems({ ...workspace, availableAreas: areas }) : [];
   const selectedId = items.some((item) => item.id === inboxSelection)
     ? inboxSelection
     : items.some((item) => item.id === healthAreaKey(area))
@@ -357,8 +360,8 @@ function ClinicalEvidenceContent({ mode = 'profile', detailsSection }: Workspace
               !hasRecordedReviewDetails && (
                 <StateNotice
                   variant="no-meal-plan"
-                  title="No health details are needed for your current profile"
-                  description={null}
+                  title="No questions from your RND yet"
+                  description="When an RND asks for more information, their questions will appear here."
                   imageAlt="Sleeping Nara"
                   action={null}
                 />

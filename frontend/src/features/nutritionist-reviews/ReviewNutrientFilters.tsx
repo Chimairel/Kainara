@@ -15,7 +15,16 @@ export const REVIEW_NUTRIENT_FIELDS = [
   ['saturatedFatG', 'Saturated fat', 'g'],
 ] as const;
 export type NutrientKey = (typeof REVIEW_NUTRIENT_FIELDS)[number][0];
-export type NutrientFilters = Partial<Record<NutrientKey, { min?: number; max?: number }>>;
+export type NutrientFilters = Partial<Record<NutrientKey, { min?: number; max?: number; minExclusive?: boolean; maxExclusive?: boolean }>>;
+export function nutrientFilterLabels(filters: NutrientFilters) {
+  return REVIEW_NUTRIENT_FIELDS.flatMap(([key, label, unit]) => {
+    const range = filters[key];
+    return !range ? [] : [
+      ...(range.min !== undefined ? [`${label} ${range.minExclusive ? '>' : '≥'} ${range.min} ${unit}`] : []),
+      ...(range.max !== undefined ? [`${label} ${range.maxExclusive ? '<' : '≤'} ${range.max} ${unit}`] : []),
+    ];
+  });
+}
 export type FilterDraft = Partial<Record<NutrientKey, { min?: string; max?: string }>>;
 export function parseFilterDraft(draft: FilterDraft): NutrientFilters | null {
   const filters: NutrientFilters = {};

@@ -270,6 +270,7 @@ export async function approveMealPlan(
           decision: 'APPROVE',
           rationale: note?.trim() || null,
           evidenceSnapshot: {
+            reviewRationale: note?.trim() || null,
             ...(replacedReuse ? { previousExactApprovalReuse: replacedReuse as Prisma.InputJsonValue } : {}),
             ...(savedCanvas ? { savedCanvas: JSON.parse(JSON.stringify(savedCanvas)) } : {}),
             ...(reviewedContext

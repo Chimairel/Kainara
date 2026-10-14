@@ -15,6 +15,7 @@ import {
   type ReactElement,
 } from 'react';
 import { Hand, MousePointer2, Maximize2, Minimize2, Minus, Plus, RotateCcw, Scan, Square } from '@/components/ui/icons';
+import CanvasMenu from './CanvasMenu';
 
 type Point = { x: number; y: number };
 export type ReviewCanvasLayout = {
@@ -314,6 +315,7 @@ export default function ReviewCanvas({
             type="button"
             className={iconClass}
             aria-label={expanded ? 'Exit fullscreen' : 'Expand canvas'}
+            title={expanded ? 'Exit fullscreen' : 'Expand canvas'}
             onClick={() => onExpandedChange(!expanded)}
           >
             {expanded ? <Minimize2 className="h-5 w-5" /> : <Maximize2 className="h-5 w-5" />}
@@ -325,44 +327,28 @@ export default function ReviewCanvas({
         role="toolbar"
         aria-label="Canvas tools"
       >
-        <button
-          type="button"
-          className={iconClass}
-          aria-label="Hand tool (H)"
-          aria-pressed={mode === 'hand'}
-          onClick={() => setMode('hand')}
-        >
-          <Hand className="h-4 w-4" /> <span className="ml-2 text-xs">H</span>
-        </button>
-        <button
-          type="button"
-          className={iconClass}
-          aria-label="Select tool (V)"
-          aria-pressed={mode === 'select'}
-          onClick={() => setMode('select')}
-        >
-          <MousePointer2 className="h-4 w-4" />
-          <span className="ml-2 text-xs">V</span>
-        </button>
+        <CanvasMenu label={mode === 'hand' ? 'Hand tool (H)' : 'Move tool (V)'} value={mode}
+          icon={mode === 'hand' ? <Hand aria-hidden="true" className="h-5 w-5" /> : <MousePointer2 aria-hidden="true" className="h-5 w-5" />}
+          onSelect={value => setMode(value as 'hand' | 'select')}
+          items={[{ value: 'select', label: 'Move (V)', icon: <MousePointer2 className="h-4 w-4" /> },
+            { value: 'hand', label: 'Hand tool (H)', icon: <Hand className="h-4 w-4" /> }]} />
         <span className="mx-1 h-5 border-l border-brand-border" />
-        <button type="button" className={iconClass} aria-label="Zoom out" onClick={() => zoom(view.scale - 0.1)}>
+        <button type="button" className={iconClass} title="Zoom out" aria-label="Zoom out" onClick={() => zoom(view.scale - 0.1)}>
           <Minus className="h-4 w-4" />
         </button>
         <span className="w-12 text-center font-mono text-xs" aria-live="polite">
           {Math.round(view.scale * 100)}%
         </span>
-        <button type="button" className={iconClass} aria-label="Zoom in" onClick={() => zoom(view.scale + 0.1)}>
+        <button type="button" className={iconClass} title="Zoom in" aria-label="Zoom in" onClick={() => zoom(view.scale + 0.1)}>
           <Plus className="h-4 w-4" />
         </button>
-        <button type="button" className={iconClass} onClick={() => fit(true)} aria-label="Fit all sheets">
+        <button type="button" className={iconClass} title="Fit all sheets" onClick={() => fit(true)} aria-label="Fit all sheets">
           <Scan className="h-4 w-4" />
-          <span className="ml-2 text-xs">Fit all</span>
         </button>
-        <button type="button" className={iconClass} onClick={() => fit(false)} aria-label="Fit selected sheet">
+        <button type="button" className={iconClass} title="Fit selected sheet" onClick={() => fit(false)} aria-label="Fit selected sheet">
           <Square className="h-4 w-4" />
-          <span className="ml-2 text-xs">Fit selected</span>
         </button>
-        <button type="button" className={iconClass} onClick={() => fit(true, true)} aria-label="Reset sheet layout">
+        <button type="button" className={iconClass} title="Reset sheet layout" onClick={() => fit(true, true)} aria-label="Reset sheet layout">
           <RotateCcw className="h-4 w-4" />
         </button>
         {tools && <><span className="mx-1 h-5 border-l border-brand-border" />{tools}</>}

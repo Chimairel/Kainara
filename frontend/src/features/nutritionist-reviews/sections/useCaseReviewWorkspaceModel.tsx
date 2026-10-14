@@ -1,8 +1,8 @@
 'use client';
 
-import Button from '@/components/ui/Button';
-
 import { ShieldCheck } from '@/components/ui/icons';
+import { LogOut } from '@/components/ui/icons';
+import CanvasToolButton from '../CanvasToolButton';
 
 import { Props } from './CaseReviewWorkspace.shared';
 export function useCaseReviewWorkspaceModel({
@@ -40,16 +40,13 @@ export function useCaseReviewWorkspaceModel({
             ? new Date(activeClaimStatus.claimExpiresAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
             : '30m'}
         </span>
-        <Button
-          variant="secondary"
-          size="sm"
+        <CanvasToolButton aria-label="Release claim" title="Release claim"
           onClick={handleReleaseMeal}
-          isLoading={actionLoading === selectedMealId}
           disabled={Boolean(actionLoading)}
-          className="ml-1 text-[11px] h-7 px-2.5 rounded-lg border-brand-green/30 hover:border-brand-green/50"
+          className="ml-1"
         >
-          Release claim
-        </Button>
+          <LogOut aria-hidden="true" className="h-5 w-5" />
+        </CanvasToolButton>
       </div>
     ) : activeClaimStatus?.claimedByOther ? (
       <span className="rounded-xl border border-[#a64600]/30 bg-[#8c3b00] px-3 py-1.5 text-xs font-bold text-white shadow-sm backdrop-blur-md">
@@ -60,16 +57,12 @@ export function useCaseReviewWorkspaceModel({
         Claim cooling down
       </span>
     ) : (
-      <Button
-        size="sm"
+      <CanvasToolButton aria-label="Claim review" title="Claim review"
         onClick={handleClaimMeal}
-        isLoading={actionLoading === selectedMealId || (detailLoading && !activeClaimStatus)}
         disabled={Boolean(actionLoading) || detailLoading || !detailData}
-        className="rounded-xl shadow-md text-xs font-bold px-3.5 py-2"
       >
-        <ShieldCheck className="mr-1.5 h-3.5 w-3.5" />
-        Claim review
-      </Button>
+        <ShieldCheck aria-hidden="true" className="h-5 w-5" />
+      </CanvasToolButton>
     )
   ) : null;
 

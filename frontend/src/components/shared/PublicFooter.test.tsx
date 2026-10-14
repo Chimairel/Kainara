@@ -20,7 +20,7 @@ it('keeps public resources, legal links and contact email without exposing porta
     'mailto:chimairelp@gmail.com'
   );
   expect(footer.getByText('For questions, feedback, or account support.')).toBeInTheDocument();
-  expect(footer.getByRole('link', { name: 'Log in', exact: true })).toHaveAttribute('href', '/login');
+  expect(footer.getByRole('link', { name: 'Log in' })).toHaveAttribute('href', '/login');
   expect(footer.getByRole('link', { name: 'Privacy Policy' })).toHaveAttribute('href', '/docs#privacy-policy');
   expect(footer.getByRole('link', { name: 'Terms of Service' })).toHaveAttribute('href', '/docs#terms-of-service');
   expect(footer.getByRole('link', { name: 'CC BY 4.0' })).toBeInTheDocument();

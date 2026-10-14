@@ -19,6 +19,7 @@ test('Routine estimates/extraction use Lite; complex and unknown tasks never dow
     { operation: 'MEAL_PLAN_CORPUS_LOOKUP' },
     { operation: 'OTHER', purpose: 'FNRI_LOOKUP_ESTIMATE' },
     { operation: 'OTHER', purpose: 'HEALTH_TERM_NORMALIZATION' },
+    { operation: 'OTHER', purpose: 'RND_SWAP_NUTRIENT_FILTER' },
   ])
     assert.equal(getGeminiModelSequence(usage)[0], 'gemini-3.5-flash-lite');
   for (const usage of [

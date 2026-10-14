@@ -18,6 +18,7 @@ import {
   certifiedLibraryMealInclude,
   isCertifiedLibraryMealCompatible,
   isProfileApprovedLibraryMealCompatible,
+  isLibraryMealSafeToQueueForCaseReview,
   queryEligibleLibraryMeals,
 } from './meal-library-candidate-query.service';
 import { buildBaseServingPersistence, composePlanWithPairedRice } from './meal-plan-serving.service';
@@ -131,6 +132,7 @@ export class CertifiedSlotFallbackService {
           userConditions: context.conditions,
           userAllergens: context.allergens,
           profile: { ...context.profile, userId: target.userId, safetyEntries: context.user.safetyProfileEntries },
+          includeUnapprovedCaseCandidates: Boolean(input.reviewer),
           limit: 120,
         });
     const ranked = candidates
@@ -301,7 +303,9 @@ export class CertifiedSlotFallbackService {
       const profileApproved =
         !certified &&
         isProfileApprovedLibraryMealCompatible(latest, context.conditions, context.allergens, currentProfile);
-      if (!certified && !profileApproved) {
+      const reviewCandidate = Boolean(input.reviewer) &&
+        isLibraryMealSafeToQueueForCaseReview(latest, context.conditions, context.allergens, currentProfile);
+      if (!certified && !profileApproved && !reviewCandidate) {
         if (filteredReview)
           throw new AppError(
             'Replacement clinical or credential evidence changed. Refresh the options.',

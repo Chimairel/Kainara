@@ -64,7 +64,16 @@ it('does not reopen old credentials after closing the swap or refreshing options
 it('offers broader preparation and a distinct hold after an empty certified search',()=>{
  const props=fixture(), find=vi.fn(), hold=vi.fn();
  render(<ReviewSwapDialog {...props} swap={{...props.swap,data:{...props.swap.data!,options:[],searchReceipt:'signed-search'}}} onFindReplacement={find} onNoSuitable={hold}/>);
- expect(screen.getByText('No certified replacements match this search.')).toBeInTheDocument();
+ expect(screen.getByText('No replacements match this search.')).toBeInTheDocument();
  fireEvent.click(screen.getByRole('button',{name:'Reject and find replacement'}));expect(find).toHaveBeenCalledOnce();expect(hold).not.toHaveBeenCalled();
  fireEvent.click(screen.getByRole('button',{name:'Reject and leave unavailable'}));expect(hold).toHaveBeenCalledOnce();
+});
+
+it('exposes the AI input and exact applied limits without hiding manual nutrient controls', () => {
+ const props=fixture(), apply=vi.fn(), change=vi.fn();
+ render(<ReviewSwapDialog {...props} swap={{...props.swap, filtersEnabled:true, filterText:'sugar less than 200 g', setFilterText:change, interpretAndSearch:apply, filterDraft:{}, setFilterDraft:vi.fn(), data:{...props.swap.data!,filters:{sugarG:{max:200,maxExclusive:true}}}}}/>);
+ expect(screen.getByLabelText('Filter candidates with AI')).toHaveValue('sugar less than 200 g');
+ expect(screen.getByRole('list',{name:'Applied nutrient limits'})).toHaveTextContent('Sugar < 200 g');
+ fireEvent.click(screen.getByRole('button',{name:'Filter'}));expect(apply).toHaveBeenCalledOnce();
+ expect(screen.getByText('Filter complete-plate nutrients')).toBeInTheDocument();
 });

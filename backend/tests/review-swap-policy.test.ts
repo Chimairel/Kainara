@@ -6,6 +6,7 @@ import {
   requiresExplicitReplacementReview,
 } from '../src/domain/review-swap.policy';
 import { reviewSwapBodySchema } from '../src/validation/review-swap.schemas';
+import { assertUserSwappableMealPlan } from '../src/domain/meal-actionability.policy';
 
 const now = new Date('2026-10-09T10:00:00Z');
 const claim = {
@@ -86,4 +87,8 @@ test('swap input accepts a version-bound choice and rationale, never recipe edit
     { calories: 700 },
   ])
     assert.equal(reviewSwapBodySchema.safeParse({ ...input, ...changed }).success, false);
+});
+
+test('pending replacements are never member-swappable even with a current scheduled date', () => {
+  assert.throws(() => assertUserSwappableMealPlan({ status: 'PENDING_REVIEW', scheduledDate: now, requiresSafetyRevalidation: false }, now));
 });

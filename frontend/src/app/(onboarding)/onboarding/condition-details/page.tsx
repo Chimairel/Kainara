@@ -1,5 +1,5 @@
-import ClinicalEvidenceWorkspace from '@/features/profile/ClinicalEvidenceWorkspace';
+import { redirect } from 'next/navigation';
 
 export default function OnboardingConditionDetailsPage() {
-  return <ClinicalEvidenceWorkspace mode="onboarding" detailsSection="conditions" />;
+  redirect('/onboarding/allergies');
 }
