@@ -35,6 +35,10 @@ export function useNutritionistReviews(enabled = true) {
   const detailRef = useRef(detailData);
   const canvasLayout = useRef<import('./ReviewCanvas').ReviewCanvasLayout | null>(null);
   const canvasReference = useRef<ReviewPayload['canvasReference'] | null>(null);
+  const replacementPending = useRef(0);
+  const setReplacementPending = (pending: boolean) => {
+    if (liveOwner.current === ownerId) replacementPending.current = Math.max(0, replacementPending.current + (pending ? 1 : -1));
+  };
   detailRef.current = detailData;
   const [reviewNotice, setReviewNotice] = useState<string | null>(null);
   const [savedReviewNotes, setSavedReviewNotes] = useState<
@@ -114,6 +118,7 @@ export function useNutritionistReviews(enabled = true) {
 
   useEffect(() => {
     resourceOwner.current = ownerId;
+    replacementPending.current = 0;
     canvasLayout.current = null;
     canvasReference.current = null;
     resetQueue();
@@ -141,11 +146,11 @@ export function useNutritionistReviews(enabled = true) {
   useVisiblePolling(
     async (signal) => {
       const generation = selectionGeneration.current;
-      if (selectedMealId && !actionLoading) {
+      if (selectedMealId && !actionLoading && !replacementPending.current) {
         try {
           const status = await api.get(`/nutritionist/queue/${selectedMealId}/status`, { signal });
           if (
-            signal.aborted ||
+            signal.aborted || replacementPending.current ||
             generation !== selectionGeneration.current ||
             liveOwner.current !== ownerId ||
             liveSelection.current !== selectedMealId
@@ -163,7 +168,7 @@ export function useNutritionistReviews(enabled = true) {
             return;
           const response = await api.get(`/nutritionist/queue/${selectedMealId}`, { signal });
           if (
-            !signal.aborted &&
+            !signal.aborted && !replacementPending.current &&
             liveOwner.current === ownerId &&
             generation === selectionGeneration.current &&
             liveSelection.current === selectedMealId &&
@@ -178,7 +183,7 @@ export function useNutritionistReviews(enabled = true) {
           }
         } catch (failure) {
           if (
-            !signal.aborted &&
+            !signal.aborted && !replacementPending.current &&
             generation === selectionGeneration.current &&
             retireInactiveReview(failure, selectedMealId)
           )
@@ -235,6 +240,10 @@ export function useNutritionistReviews(enabled = true) {
 
   const handleClaimMeal = async () => {
     if (!selectedMealId || detailLoading || !detailData) return;
+    if (queue.some(meal => meal.id !== selectedMealId && meal.claimStatus.claimedByMe)) {
+      setErrorMsg('Finish your claimed review before claiming another case.');
+      return;
+    }
     const action = beginAction(selectedMealId);
     if (!action) return;
     setErrorMsg(null);
@@ -370,6 +379,7 @@ export function useNutritionistReviews(enabled = true) {
     handleApprove,
     canvasLayout,
     canvasReference,
+    setReplacementPending,
     handleReject,
   };
 }

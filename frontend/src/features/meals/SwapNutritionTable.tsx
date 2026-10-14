@@ -1,3 +1,5 @@
+import type { ReactNode } from 'react';
+
 export type SwapNutritionValues = Partial<Record<
   'calories' | 'proteinG' | 'carbsG' | 'fatG' | 'sodiumMg' | 'sugarG' | 'fiberG' |
   'potassiumMg' | 'phosphorusMg' | 'saturatedFatG', number | null
@@ -12,6 +14,7 @@ const macroFields = [
 export default function SwapNutritionTable({
   before, after, estimate, fields = macroFields, beforeLabel = 'Before', afterLabel = 'After',
   showChange = false, compact = true,
+  targets, targetLabel = 'Target',
 }: {
   before: SwapNutritionValues;
   after: SwapNutritionValues;
@@ -21,6 +24,8 @@ export default function SwapNutritionTable({
   afterLabel?: string;
   showChange?: boolean;
   compact?: boolean;
+  targets?: Partial<Record<keyof SwapNutritionValues, ReactNode>>;
+  targetLabel?: string;
 }) {
   const recorded = (value: unknown): value is number => typeof value === 'number' && Number.isFinite(value) && value >= 0;
   const round = (value: number) => compact ? Math.round(value) : Math.round(value * 10) / 10;
@@ -37,6 +42,7 @@ export default function SwapNutritionTable({
             <th scope="col" className={`${cell} px-3 font-bold`}>{afterLabel}</th>
             {estimate && <th scope="col" className={`${cell} pl-3 font-bold`}>Estimate</th>}
             {showChange && <th scope="col" className={`${cell} pl-3 font-bold`}>Change</th>}
+            {targets && <th scope="col" className={`${cell} pl-3 font-bold`}>{targetLabel}</th>}
           </tr>
         </thead>
         <tbody className="divide-y divide-brand-border/30">
@@ -52,6 +58,7 @@ export default function SwapNutritionTable({
                 {showChange && <td className={`${cell} whitespace-nowrap pl-3 text-brand-muted`}>
                   {delta === null ? 'Not recorded' : `${delta > 0 ? '+' : ''}${delta} ${unit}`}
                 </td>}
+                {targets && <td className={`${cell} pl-3 text-brand-text`}>{targets[key] ?? 'Not set'}</td>}
               </tr>
             );
           })}

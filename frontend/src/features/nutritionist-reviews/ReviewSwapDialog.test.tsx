@@ -3,32 +3,15 @@ import { fireEvent, render, screen, within } from '@testing-library/react';
 import { expect, it, vi } from 'vitest';
 import ReviewSwapDialog from './ReviewSwapDialog';
 
-vi.mock('@/features/meals/swap/SwapMealComparison', () => ({ default: () => null }));
-vi.mock('@/features/meals/swap/SwapMealOptions', () => ({
-  default: ({
-    model,
-  }: {
-    model: {
-      setSelectedVerifier: (verifier: { name: string; prcLicenseNumber: string; prcLicenseExpiry: string }) => void;
-    };
-  }) => (
-    <button
-      onClick={() =>
-        model.setSelectedVerifier({ name: 'First recipe reviewer', prcLicenseNumber: '', prcLicenseExpiry: '' })
-      }
-    >
-      View recipe reviewer
-    </button>
-  ),
-}));
+vi.mock('@/components/user/MealImage', () => ({ default: () => null }));
 
 type Props = ComponentProps<typeof ReviewSwapDialog>;
 function fixture() {
   return {
-    meal: { id: 'first-case', mealType: 'LUNCH', calories: 400 },
+    meal: { id: 'first-case', mealType: 'LUNCH', mealName: 'Current meal', calories: 400, proteinG: 20, carbsG: 40, fatG: 15 },
     swap: {
       open: true,
-      data: { options: [{ id: 'certified-choice' }] },
+      data: { options: [{ id: 'certified-choice', mealName: 'Replacement soup', mealType: 'LUNCH', calories: 450, proteinG: 25, carbsG: 50, fatG: 16, ingredients: [], verifier: { name: 'First recipe reviewer', prcLicenseNumber: '', prcLicenseExpiry: '' } }] },
       selected: null,
       loading: false,
       saving: false,
@@ -37,9 +20,26 @@ function fixture() {
       submit: vi.fn(),
       load: vi.fn(),
       setNote: vi.fn(),
+      setSelectedId: vi.fn(),
     },
   } as unknown as Props;
 }
+
+it('keeps selection, comparison and rationale accessible together without large duplicate meal cards', () => {
+  const props = fixture();
+  const selected = props.swap.data!.options[0];
+  render(<ReviewSwapDialog {...props} swap={{ ...props.swap, selected, note: 'Fits the recorded meal target.' }} />);
+  expect(screen.getByRole('region', { name: 'Find a replacement' })).toBeInTheDocument();
+  expect(screen.getByRole('region', { name: 'Selected replacement review' })).toBeInTheDocument();
+  fireEvent.click(screen.getByRole('button', { name: 'Select Replacement soup' }));
+  expect(props.swap.setSelectedId).toHaveBeenCalledWith('certified-choice');
+  expect(screen.getByRole('button', { name: 'Confirm swap' })).toBeEnabled();
+  fireEvent.click(screen.getByRole('button', { name: 'Confirm swap' }));
+  expect(props.swap.submit).toHaveBeenCalledOnce();
+  fireEvent.click(screen.getByRole('button', { name: 'Change selection' }));
+  expect(props.swap.setSelectedId).toHaveBeenLastCalledWith('');
+  expect(screen.getByText('Replacement ingredients')).toBeInTheDocument();
+});
 
 it('closes the recipe reviewer overlay when switching cases', () => {
   const props = fixture();
@@ -77,6 +77,7 @@ it('offers broader preparation and a distinct hold after an empty certified sear
   fireEvent.click(screen.getByRole('button', { name: 'Reject and find replacement' }));
   expect(find).toHaveBeenCalledOnce();
   expect(hold).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByText('No suitable replacement?'));
   fireEvent.click(screen.getByRole('button', { name: 'Reject and leave unavailable' }));
   expect(hold).toHaveBeenCalledOnce();
 });
@@ -119,6 +120,7 @@ it('compares the recorded meal and complete replacement serving without grocery 
   };
   const selected = {
     id: 'replacement',
+    mealName: 'Replacement soup', mealType: 'LUNCH',
     calories: 1040.4,
     proteinG: 37.6,
     carbsG: 147,
@@ -139,12 +141,12 @@ it('compares the recorded meal and complete replacement serving without grocery 
   } as unknown as NonNullable<Props['swap']['selected']>;
   render(<ReviewSwapDialog {...props} meal={meal} swap={{ ...props.swap, selected }} />);
   const comparison = screen.getByRole('region', { name: 'Meal nutrition comparison' });
-  expect(within(comparison).getByRole('row', { name: 'Energy 1190.4 kcal 1040.4 kcal -150 kcal' })).toBeInTheDocument();
-  expect(within(comparison).getByRole('row', { name: 'Protein 38.6 g 37.6 g -1 g' })).toBeInTheDocument();
-  expect(within(comparison).getByRole('row', { name: 'Sodium 1000 mg 500 mg -500 mg' })).toBeInTheDocument();
-  expect(within(comparison).getByRole('row', { name: 'Sugar 0 g 0 g 0 g' })).toBeInTheDocument();
+  expect(within(comparison).getByRole('row', { name: 'Energy 1190.4 kcal 1040.4 kcal Not set' })).toBeInTheDocument();
+  expect(within(comparison).getByRole('row', { name: 'Protein 38.6 g 37.6 g Not set' })).toBeInTheDocument();
+  expect(within(comparison).getByRole('row', { name: 'Sodium 1000 mg 500 mg Not set' })).toBeInTheDocument();
+  expect(within(comparison).getByRole('row', { name: 'Sugar 0 g 0 g Not set' })).toBeInTheDocument();
   expect(
-    within(comparison).getByRole('row', { name: 'Fiber Not recorded Not recorded Not recorded' })
+    within(comparison).getByRole('row', { name: 'Fiber Not recorded Not recorded Not set' })
   ).toBeInTheDocument();
   expect(screen.queryByRole('region', { name: 'Grocery changes' })).not.toBeInTheDocument();
   expect(screen.queryByText(/No changes to remaining groceries/)).not.toBeInTheDocument();
@@ -156,6 +158,7 @@ it('updates the comparison for a new selection and removes it when selection cle
   const meal = { ...props.meal, calories: 400, proteinG: 20, carbsG: 40, fatG: 15 };
   const selected = {
     id: 'replacement',
+    mealName: 'Replacement soup', mealType: 'LUNCH',
     calories: 450,
     proteinG: 25,
     carbsG: 50,
@@ -163,7 +166,7 @@ it('updates the comparison for a new selection and removes it when selection cle
     ingredients: [],
   } as unknown as NonNullable<Props['swap']['selected']>;
   const { rerender } = render(<ReviewSwapDialog {...props} meal={meal} swap={{ ...props.swap, selected }} />);
-  expect(screen.getByRole('row', { name: 'Energy 400 kcal 450 kcal +50 kcal' })).toBeInTheDocument();
+  expect(screen.getByRole('row', { name: 'Energy 400 kcal 450 kcal Not set' })).toBeInTheDocument();
   rerender(
     <ReviewSwapDialog
       {...props}
@@ -171,7 +174,7 @@ it('updates the comparison for a new selection and removes it when selection cle
       swap={{ ...props.swap, selected: { ...selected, id: 'second', calories: 400 } }}
     />
   );
-  expect(screen.getByRole('row', { name: 'Energy 400 kcal 400 kcal 0 kcal' })).toBeInTheDocument();
+  expect(screen.getByRole('row', { name: 'Energy 400 kcal 400 kcal Not set' })).toBeInTheDocument();
   rerender(<ReviewSwapDialog {...props} meal={meal} swap={{ ...props.swap, selected: null }} />);
   expect(screen.queryByRole('region', { name: 'Meal nutrition comparison' })).not.toBeInTheDocument();
 });
@@ -180,6 +183,7 @@ it('shows completed capstone nutrients normally without additional notices', () 
   const props = fixture();
   const selected = {
     id: 'replacement',
+    mealName: 'Replacement soup', mealType: 'LUNCH',
     calories: 450,
     proteinG: 25,
     carbsG: 50,

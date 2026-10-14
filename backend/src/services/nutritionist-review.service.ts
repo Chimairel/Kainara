@@ -1,4 +1,5 @@
 import { mealPlanFlagContext } from './meal-plan-flag-context.service';
+import { assertCaseClaimCapacity } from './review-claim-capacity.service';
 import { lockUserProfile } from './profile-revision.service';
 import { AppError } from '@/errors/AppError';
 import { ClinicalClarificationService } from './clinical-clarification.service';
@@ -36,6 +37,8 @@ import { resolveMealPlanDispute } from './nutritionist-dispute.service';
 import { rejectMealPlan } from './nutritionist-rejection.service';
 import { resolvePlanImage } from './meal-plan-presentation.service';
 import { recordedRndPlateNutrients } from '@/domain/recorded-rnd-plate-nutrients.policy';
+import { reviewNutritionTargets } from '@/domain/review-nutrition-targets.policy';
+import { MEAL_MACRO_POLICY_VERSION, reportPlanningMacroTargets, type PlanningMacroTargets } from '@/domain/meal-macro-target.policy';
 import { resolveLibraryRecipeImages } from './library-recipe-image.service';
 
 async function reviewReadinessByUser(userIds: string[]) {
@@ -229,6 +232,9 @@ export class NutritionistReviewService {
     }
     const sorted = clinicallyReadyMeals.sort((a, b) => {
       if (nutritionistProfileId) {
+        const aMine = a.claimedByNutritionistId === nutritionistProfileId && isReviewClaimActive(a, now);
+        const bMine = b.claimedByNutritionistId === nutritionistProfileId && isReviewClaimActive(b, now);
+        if (aMine !== bMine) return aMine ? -1 : 1;
         const aCooling = Boolean(getReviewClaimCooldownUntil(a, nutritionistProfileId, now));
         const bCooling = Boolean(getReviewClaimCooldownUntil(b, nutritionistProfileId, now));
         if (aCooling !== bCooling) return aCooling ? 1 : -1;
@@ -380,6 +386,7 @@ export class NutritionistReviewService {
     // an unclaimed/expired row from the shared queue at a time.
     if (acquireClaim) {
       const claimResult = await prisma.$transaction(async (tx) => {
+        await assertCaseClaimCapacity(tx, nutritionistProfileId, mealPlanId, now);
         await lockUserProfile(tx, targetOwner.userId);
         await assertCurrentMealReviewContext(mealPlanId, expectedContextKey, tx, nutritionistProfileId);
         await ReviewRoutingService.assertMeal(nutritionistProfileId, mealPlanId, tx);
@@ -672,6 +679,14 @@ export class NutritionistReviewService {
         : {}),
       mealPlan: {
         id: updatedMealPlan.id,
+        nutritionTargets: reviewNutritionTargets({
+          mealType: updatedMealPlan.mealType,
+          dailyTargets: Object.values((updatedMealPlan.cycle.snapshot?.dailyMacroTargets ?? {}) as Record<string, PlanningMacroTargets>)
+            .find(target => target?.policyVersion === MEAL_MACRO_POLICY_VERSION) ?? reportPlanningMacroTargets(planningReport),
+          bodyWeightKg: userProfile?.weightKg,
+          rules: conditionRuleResults.nutrientEvaluations.map(result => result.rule),
+          referenceItems: (planningReport?.content as Record<string, unknown> | null)?.referenceItems,
+        }),
         planGroupId: updatedMealPlan.planGroupId,
         userId: updatedMealPlan.userId,
         status: updatedMealPlan.status,
@@ -694,6 +709,13 @@ export class NutritionistReviewService {
       },
       user: {
         name: user.name,
+        nutritionGuidance: planningReport ? {
+          ...(planningReport.content as Record<string, unknown>),
+          id: planningReport.id, userId: user.id, version: planningReport.version,
+          profileRevision: planningReport.profileRevision, generatedAt: planningReport.generatedAt,
+          acknowledgedAt: planningReport.acknowledgedAt, reportPolicyVersion: planningReport.policyVersion,
+          planningTargets: reportPlanningMacroTargets(planningReport), isStale: false,
+        } : null,
         planningReportVersion: planningReport?.version ?? null,
         planningReportGeneratedAt: planningReport?.generatedAt ?? null,
         latestDeclaredProfile: declaredProfile

@@ -48,7 +48,7 @@ export function useCaseReviewQueue(ownerId: string | undefined, liveOwner: RefOb
             );
           }
         } finally {
-          if (!silent && liveOwner.current === ownerId && generation === queueGeneration.current) setIsLoading(false);
+          if (liveOwner.current === ownerId && generation === queueGeneration.current) setIsLoading(false);
         }
       };
       const request: Promise<void> = load().finally(() => {

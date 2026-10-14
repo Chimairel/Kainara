@@ -4,6 +4,19 @@ import CaseReviewQueue from './CaseReviewQueue';
 import type { useNutritionistReviews } from './useNutritionistReviews';
 
 describe('single RND case queue', () => {
+  it('pins my claimed case before other cases and keeps it visible during search', () => {
+    const meal = { id: 'available', mealName: 'Available meal', mealType: 'LUNCH', user: { name: 'Member' },
+      claimStatus: { claimedByMe: false, claimedByOther: false }, coalescedDependentCount: 1,
+      assuranceTier: 'BASE', remainingReviewers: 1, sourceProvenance: 'RAW_RECIPE_CORPUS' };
+    const review = { queue: [meal, { ...meal, id: 'mine', mealName: 'My claimed meal', claimStatus: { claimedByMe: true, claimedByOther: false } }],
+      fetchQueue: vi.fn(), isLoading: false, handleSelectMeal: vi.fn() } as unknown as ReturnType<typeof useNutritionistReviews>;
+    render(<CaseReviewQueue review={review} caseFilter="pending" expanded={false} />);
+    const rows = screen.getAllByRole('button').filter(button => button.getAttribute('aria-pressed') !== null);
+    expect(rows[0]).toHaveTextContent('My claimed meal');
+    fireEvent.change(screen.getByRole('searchbox'), { target: { value: 'no match' } });
+    expect(screen.getByRole('button', { name: /My claimed meal/ })).toBeVisible();
+    expect(screen.queryByRole('button', { name: /Available meal/ })).not.toBeInTheDocument();
+  });
   it('offers retry rather than claiming an unavailable queue is clear', () => {
     const retry = vi.fn();
     const review = {

@@ -12,6 +12,37 @@ const preview = {
   claimStatus: { claimedByMe: false, claimedByOther: false, claimedByName: null, claimExpiresAt: null },
 };
 
+it('does not claim another case while the loaded queue contains my active claim', async () => {
+  vi.resetAllMocks(); auth.owner = 'nutritionist-1';
+  vi.mocked(api.get).mockImplementation(async url => ({ data: { success: true,
+    data: url === '/nutritionist/queue' ? [{ id: 'mine', claimStatus: { claimedByMe: true } }] : preview } }));
+  const { result } = renderHook(() => useNutritionistReviews());
+  await waitFor(() => expect(result.current.isLoading).toBe(false));
+  await act(() => result.current.handleSelectMeal('meal-1'));
+  await act(() => result.current.handleClaimMeal());
+  expect(api.post).not.toHaveBeenCalled();
+  expect(result.current.errorMsg).toMatch(/Finish your claimed review/);
+});
+
+it('keeps the selected canvas when an old status request fails during replacement', async () => {
+  vi.resetAllMocks(); auth.owner = 'nutritionist-1';
+  let rejectStatus!: (failure: unknown) => void;
+  vi.mocked(api.get).mockImplementation(async url => {
+    if (String(url).endsWith('/status')) return new Promise((_, reject) => { rejectStatus = reject; });
+    return { data: { success: true, data: url === '/nutritionist/queue' ? [] : preview } };
+  });
+  const { result } = renderHook(() => useNutritionistReviews());
+  await waitFor(() => expect(result.current.isLoading).toBe(false));
+  await act(() => result.current.handleSelectMeal('meal-1'));
+  act(() => window.dispatchEvent(new Event('kainara:live-update')));
+  await waitFor(() => expect(rejectStatus).toBeDefined());
+  act(() => result.current.setReplacementPending(true));
+  await act(async () => { rejectStatus({ response: { data: { errorCode: 'MEAL_REVIEW_INACTIVE' } } }); });
+  expect(result.current.selectedMealId).toBe('meal-1');
+  expect(result.current.detailData).toEqual(preview);
+  act(() => result.current.setReplacementPending(false));
+});
+
 it.each(['other-claim', 'inactive-case'] as const)(
   'retires %s on the 15-second fallback without a live event',
   async (scenario) => {

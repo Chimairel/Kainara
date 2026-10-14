@@ -48,7 +48,8 @@ export function useReviewSwap(
   claimed: boolean,
   onSuccess: (replacementId: string) => Promise<void>,
   expectedContextKey?: string,
-  onInvalidated?: (failure: unknown) => boolean
+  onInvalidated?: (failure: unknown) => boolean,
+  onMutationChange?: (pending: boolean) => void
 ) {
   const [open, setOpen] = useState(false),
     [data, setData] = useState<Options | null>(null);
@@ -191,6 +192,7 @@ export function useReviewSwap(
     if (!mealId || !claimed || !selected || !data || note.trim().length < 10 || pending.current) return;
     pending.current = true;
     setSaving(true);
+    onMutationChange?.(true);
     setError('');
     const generation = scope.current;
     try {
@@ -215,6 +217,7 @@ export function useReviewSwap(
         setSelectedId('');
       }
     } finally {
+      onMutationChange?.(false);
       if (generation === scope.current) {
         pending.current = false;
         setSaving(false);

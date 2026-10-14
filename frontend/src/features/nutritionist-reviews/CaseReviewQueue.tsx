@@ -19,9 +19,9 @@ export default function CaseReviewQueue({ review, expanded }: Props) {
   const { queue, queueError, fetchQueue, isLoading, selectedMealId, errorMsg, handleSelectMeal } = review;
   const [search, setSearch] = useState('');
   const query = search.trim().toLowerCase();
-  const visibleQueue = queue.filter((meal) =>
+  const visibleQueue = queue.filter((meal) => meal.claimStatus.claimedByMe ||
     [meal.mealName, meal.user.name, meal.mealType].some((value) => queueLabel(value).includes(query))
-  );
+  ).sort((a, b) => Number(b.claimStatus.claimedByMe) - Number(a.claimStatus.claimedByMe));
 
   return (
     <WorkspaceListPane visible={!selectedMealId} className={expanded ? '!hidden' : ''}>

@@ -12,6 +12,7 @@ interface ModalProps {
   description?: string;
   children: React.ReactNode;
   footer?: React.ReactNode;
+  contentClassName?: string;
   layer?: 'default' | 'canvas';
   size?: 'sm' | 'md' | 'lg' | 'xl' | '2xl' | '3xl' | '4xl';
 }
@@ -23,6 +24,7 @@ export const Modal: React.FC<ModalProps> = ({
   description,
   children,
   footer,
+  contentClassName = '',
   size = 'md',
   layer = 'default',
 }) => {
@@ -80,7 +82,7 @@ export const Modal: React.FC<ModalProps> = ({
               </Dialog.Close>
             </div>
             <div
-              className={`py-2 text-sm leading-relaxed text-brand-text ${layer === 'canvas' ? 'min-h-0 overflow-y-auto overscroll-contain pr-2 custom-scrollbar' : ''}`}
+              className={`py-2 text-sm leading-relaxed text-brand-text ${layer === 'canvas' ? 'min-h-0 overflow-y-auto overscroll-contain pr-2 custom-scrollbar' : ''} ${contentClassName}`}
             >
               {children}
             </div>

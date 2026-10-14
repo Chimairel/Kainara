@@ -4,6 +4,7 @@ import MealImage from '@/components/user/MealImage';
 import IngredientEvidenceTable from '../IngredientEvidenceTable';
 import type { DetailData } from '../useNutritionistReviews';
 import ReusableReviewReferences from '../ReusableReviewReferences';
+import { REVIEW_NUTRIENT_FIELDS } from '../ReviewNutrientFilters';
 
 /** Saved evidence is read-only. Notes never alter the approved recipe. */
 export default function CaseAuditSection({
@@ -32,23 +33,22 @@ export default function CaseAuditSection({
         />
       </div>
       <p className="text-sm text-brand-muted">{meal.description || 'No description recorded.'}</p>
-      <dl className="grid grid-cols-4 gap-3 text-sm">
-        {(
-          [
-            ['Energy', meal.calories, 'kcal'],
-            ['Protein', meal.proteinG, 'g'],
-            ['Carbs', meal.carbsG, 'g'],
-            ['Fat', meal.fatG, 'g'],
-          ] as const
-        ).map(([label, value, unit]) => (
-          <div key={label}>
-            <dt className="text-xs text-brand-muted">{label}</dt>
-            <dd className="font-bold">
-              {typeof value === 'number' ? `${value.toFixed(1)} ${unit}` : 'Not recorded'}
-            </dd>
-          </div>
-        ))}
-      </dl>
+      <section aria-label="Meal nutrition facts">
+        <h3 className="mb-3 text-base font-bold">Nutrition facts</h3>
+        <p className="mb-3 text-xs text-brand-muted">One meal, including any paired rice.</p>
+        <dl className="grid grid-cols-2 gap-x-6 text-sm">
+          {REVIEW_NUTRIENT_FIELDS.map(([key, label, unit]) => {
+            const values = { ...meal.nutrients, calories: meal.calories, proteinG: meal.proteinG, carbsG: meal.carbsG, fatG: meal.fatG };
+            const value = values[key];
+            return <div key={key} className="flex items-baseline justify-between gap-3 border-b border-brand-border/50 py-2">
+              <dt className="text-brand-muted">{label}</dt>
+              <dd className="whitespace-nowrap font-semibold tabular-nums">
+                {typeof value === 'number' && Number.isFinite(value) && value >= 0 ? `${Math.round(value * 10) / 10} ${unit}` : 'Not recorded'}
+              </dd>
+            </div>;
+          })}
+        </dl>
+      </section>
       <IngredientEvidenceTable ingredients={ingredients} />
       {model.detailData.reviewReferences && <ReusableReviewReferences references={model.detailData.reviewReferences} />}
     </section>

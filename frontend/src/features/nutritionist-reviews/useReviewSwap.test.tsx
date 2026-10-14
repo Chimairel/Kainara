@@ -30,7 +30,8 @@ it('requires selection and rationale, sends immutable version fields, and preven
       })
   );
   const success = vi.fn(async () => {});
-  const { result } = renderHook(() => useReviewSwap('case', true, success));
+  const mutation = vi.fn();
+  const { result } = renderHook(() => useReviewSwap('case', true, success, undefined, undefined, mutation));
   await act(() => result.current.submit());
   expect(api.post).not.toHaveBeenCalled();
   await act(() => result.current.load());
@@ -44,6 +45,7 @@ it('requires selection and rationale, sends immutable version fields, and preven
     void result.current.submit();
   });
   expect(api.post).toHaveBeenCalledTimes(1);
+  expect(mutation).toHaveBeenCalledWith(true);
   expect(api.post).toHaveBeenCalledWith('/nutritionist/queue/case/swap', {
     libraryMealId: 'meal',
     expectedVersion: preview.expectedVersion,
@@ -56,6 +58,7 @@ it('requires selection and rationale, sends immutable version fields, and preven
     await submitted;
   });
   expect(success).toHaveBeenCalledWith('replacement');
+  expect(mutation.mock.calls).toEqual([[true], [false]]);
   expect(result.current.open).toBe(false);
 });
 it('retains rationale after a conflict and requires refreshing options before retry', async () => {

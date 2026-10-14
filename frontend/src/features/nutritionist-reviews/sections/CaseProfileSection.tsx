@@ -3,6 +3,7 @@
 import { formatManilaDate } from '@/lib/manila-date';
 
 import Avatar from '@/components/ui/Avatar';
+import NutritionGuidancePaper from '@/features/reports/NutritionGuidancePaper';
 
 import { toast } from '@/components/ui/Sonner';
 
@@ -176,6 +177,14 @@ export default function CaseProfileSection({ model, paper = false }: SectionProp
             <strong className="text-brand-text text-xs uppercase">{detailData.user.ricePreference}</strong>
           </div>
         </div>
+        <section aria-label="Member nutrition guidance" className="border-t border-brand-border pt-5">
+          {detailData.user.nutritionGuidance ? <NutritionGuidancePaper
+            report={detailData.user.nutritionGuidance} presentation="inline"
+            profile={{ name: detailData.user.name, goal: detailData.user.goal,
+              dailyCalorieTarget: detailData.user.dailyCalorieTarget,
+              conditions: detailData.user.conditions, foodRestrictions: detailData.user.allergies }} />
+            : <p className="text-sm text-brand-muted">No saved nutrition guidance is recorded for this review.</p>}
+        </section>
       </div>
     </>
   );

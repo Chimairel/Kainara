@@ -40,11 +40,12 @@ export default function CaseReviewDocument({ model }: { model: Model }) {
     model.selectedMealId,
     Boolean(detailData?.claimStatus.claimedByMe),
     async (replacementId) => {
-      await model.review.fetchQueue(false, undefined, true);
       await model.review.handleSelectMeal(replacementId);
+      await model.review.fetchQueue(true, undefined, true);
     },
     detailData?.reviewContext?.contextKey,
-    (failure) => model.review.retireInactiveReview(failure, model.selectedMealId)
+    (failure) => model.review.retireInactiveReview(failure, model.selectedMealId),
+    model.review.setReplacementPending
   );
   if (!detailData) return null;
   const meal = detailData.mealPlan;

@@ -1,7 +1,6 @@
 'use client';
 import { formatMealTitle } from '@/lib/meal-title';
 import { formatManilaDate } from '@/lib/manila-date';
-import FeedbackNotice from '@/components/shared/FeedbackNotice';
 import { ReviewDocumentPage } from './RndQueueDocument';
 import CaseProfileSection from './sections/CaseProfileSection';
 import CaseAuditSection from './sections/CaseAuditSection';
@@ -14,6 +13,7 @@ export default function CaseEvidenceSheets({ detailData, canWrite = false, onUpd
   detailData: DetailData; canWrite?: boolean; onUpdated?: () => Promise<void>;
 }) {
   const meal = detailData.mealPlan;
+  const findings = detailData.warnings.filter(warning => warning.severity === 'CRITICAL');
   const dateLabel = meal.scheduledDate && !Number.isNaN(new Date(meal.scheduledDate).getTime())
     ? formatManilaDate(meal.scheduledDate, { dateStyle: 'medium' }) : 'Date not recorded';
   return <>
@@ -22,17 +22,6 @@ export default function CaseEvidenceSheets({ detailData, canWrite = false, onUpd
           title="Member health profile"
           subtitle={`${detailData.user.name} · ${dateLabel}`}
         >
-          {meal.requiresSafetyRevalidation && (
-            <FeedbackNotice role="status" tone="warning">
-              <strong>Profile or evidence changed.</strong> Check the current diet, allergies, conditions and portion
-              target below. Previous automated triage is not current.
-            </FeedbackNotice>
-          )}
-          {detailData.highRiskReviewRequired && (
-            <FeedbackNotice tone="warning">
-              Review the recorded health context before approving this meal.
-            </FeedbackNotice>
-          )}
           <CaseProfileSection model={{ detailData }} paper />
         </ReviewDocumentPage>
         <ReviewDocumentPage
@@ -41,10 +30,10 @@ export default function CaseEvidenceSheets({ detailData, canWrite = false, onUpd
           subtitle={`${formatMealTitle(meal.mealName)} · ${meal.mealType} · ${dateLabel}`}
         >
           <CaseAuditSection model={{ detailData }} paper />
-          {detailData.warnings.length > 0 && (
-            <section aria-label="Pre-computed clinical warnings" className="space-y-3 border-t border-[#dce4e0] pt-4">
-              <h3 className="font-bold text-[#1B4332]">Pre-computed clinical warnings</h3>
-              {detailData.warnings.map((warning, index) => (
+          {findings.length > 0 && (
+            <section aria-label="Critical review findings" className="space-y-3 border-t border-brand-border pt-4">
+              <h3 className="font-bold">Critical review findings</h3>
+              {findings.map((warning, index) => (
                 <p
                   key={index}
                   className={`rounded-xl border p-3 text-sm ${

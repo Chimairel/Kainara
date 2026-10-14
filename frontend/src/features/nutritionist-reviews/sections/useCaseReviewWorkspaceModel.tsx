@@ -30,6 +30,7 @@ export function useCaseReviewWorkspaceModel({
   } = review;
   const selectedQueueMeal = queue.find((m) => m.id === selectedMealId);
   const activeClaimStatus = detailData?.claimStatus ?? selectedQueueMeal?.claimStatus;
+  const hasAnotherClaim = queue.some(meal => meal.id !== selectedMealId && meal.claimStatus.claimedByMe);
 
   const claimHeader = selectedMealId ? (
     activeClaimStatus?.claimedByMe ? (
@@ -60,10 +61,10 @@ export function useCaseReviewWorkspaceModel({
     ) : (
       <Button size="sm" aria-label="Claim review" title="Claim review"
         onClick={handleClaimMeal}
-        disabled={Boolean(actionLoading) || detailLoading || !detailData}
+        disabled={Boolean(actionLoading) || detailLoading || !detailData || hasAnotherClaim}
       >
         <ShieldCheck aria-hidden="true" className="mr-2 h-4 w-4" />
-        Claim review
+        {hasAnotherClaim ? 'Finish your claimed review first' : 'Claim review'}
       </Button>
     )
   ) : null;

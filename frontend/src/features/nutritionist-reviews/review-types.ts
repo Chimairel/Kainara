@@ -84,6 +84,7 @@ export interface DetailData {
     fatG: number;
     aiConfidenceFlag: string;
     nutrients?: import('@/features/meals/SwapNutritionTable').SwapNutritionValues;
+    nutritionTargets?: import('./review-nutrition-targets').ReviewNutritionTargets;
     estimatedNutrientKeys?: import('./ReviewNutrientFilters').NutrientKey[];
     requiresSafetyRevalidation?: boolean;
     planType: string;
@@ -91,6 +92,7 @@ export interface DetailData {
     createdAt: string;
   };
   user: {
+    nutritionGuidance?: import('@/types').NutritionReport | null;
     name: string;
     age: number;
     sex: string;
