@@ -10,8 +10,8 @@ export default function MealFlagCanvas({ meal, value, onChange, onClose, onSubmi
   meal: LibraryMeal; value: FlagReason; onChange: (value: FlagReason) => void;
   onClose: () => void; onSubmit: () => void; busy: boolean; error?: string | null;
 }) {
-  const [writing, setWriting] = useState(true);
-  const [request, setRequest] = useState(1);
+  const [writing, setWriting] = useState(false);
+  const [request, setRequest] = useState(0);
   const cancel = () => { if (!busy) { setWriting(false); onChange({ ...emptyFlagReason }); } };
   return <RndQueueDocument stackOnMobile hideDecisionDock title={`Meal verification · ${meal.mealName}`} contentKey={meal.id}
     expanded onExpandedChange={open => { if (!open && !busy) onClose(); }} onBack={() => { if (!busy) onClose(); }}

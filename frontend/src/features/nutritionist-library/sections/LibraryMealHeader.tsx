@@ -7,11 +7,10 @@ import MealImage from '@/components/user/MealImage';
 import { getMealTheme } from '@/lib/compact-meal-theme';
 import { formatMealTitle } from '@/lib/meal-title';
 import Button from '@/components/ui/Button';
-import { ShieldAlert } from '@/components/ui/icons';
 import type { LibraryMeal } from '../useNutritionistLibrary';
 
 /** Detail header combines the dashboard surface with the library's cropped photo. */
-export default function LibraryMealHeader({ meal, onFlag, flagTrigger }: { meal: LibraryMeal; onFlag: () => void; flagTrigger: RefObject<HTMLDivElement | null> }) {
+export default function LibraryMealHeader({ meal, onDetails, detailsTrigger }: { meal: LibraryMeal; onDetails: () => void; detailsTrigger: RefObject<HTMLDivElement | null> }) {
   const theme = getMealTheme(meal.mealType);
   const held = meal.status === 'FLAGGED';
   const label = held ? meal.reviewLineage?.state === 'QUARANTINED' ? 'Quarantined' : 'Pending re-review' : meal.baseVerification === 'VERIFIED' ? 'Verified' : 'Review pending';
@@ -31,9 +30,9 @@ export default function LibraryMealHeader({ meal, onFlag, flagTrigger }: { meal:
         </div>
         <h1 className="mt-3 break-words font-display text-3xl font-bold leading-tight text-white sm:text-4xl">{formatMealTitle(meal.mealName)}</h1>
         <MealMacros variant="line" calories={meal.calories} proteinG={meal.proteinG} carbsG={meal.carbsG} fatG={meal.fatG} className="mt-3 gap-x-2 gap-y-1 text-sm sm:text-base" />
-        <div ref={flagTrigger} className="mt-5 flex justify-end">
-          <Button variant="danger" size="sm" disabled={meal.status === 'ARCHIVED'} onClick={onFlag}>
-            <ShieldAlert className="h-4 w-4" aria-hidden="true" /> Flag meal
+        <div ref={detailsTrigger} className="mt-5 flex justify-end">
+          <Button variant="secondary" size="sm" disabled={meal.status === 'ARCHIVED'} onClick={onDetails}>
+            Details
           </Button>
         </div>
       </div>

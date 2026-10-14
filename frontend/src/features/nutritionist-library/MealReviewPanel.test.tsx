@@ -100,8 +100,13 @@ it('opens a verification canvas, removes cancelled flag pages and retains failed
   fixture.data = { ...fixture.data, state: 'PUBLISHED', recipeVersion: 'c'.repeat(64), incident: null };
   render(<MealReviewPanel meal={meal} isAdmin={false} refresh={vi.fn()} />);
   expect(screen.queryByLabelText('Explanation')).not.toBeInTheDocument();
-  fireEvent.click(screen.getByRole('button', { name: 'Flag meal' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Details' }));
   expect(screen.getByRole('dialog', { name: /Meal verification.*fullscreen/ })).toBeVisible();
+  expect(screen.getByRole('article', { name: 'Base meal verification' })).toBeVisible();
+  expect(screen.getByRole('article', { name: 'Recipe ingredients' })).toBeVisible();
+  expect(screen.queryByRole('article', { name: 'Flag meal reasons' })).not.toBeInTheDocument();
+  expect(fixture.post).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByRole('button', { name: 'Flag meal' }));
   expect(screen.getByRole('article', { name: 'Flag meal reasons' })).toBeVisible();
   fireEvent.change(screen.getByLabelText('Explanation'), { target: { value: 'Measured nutrients do not match the ingredient evidence.' } });
   fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));

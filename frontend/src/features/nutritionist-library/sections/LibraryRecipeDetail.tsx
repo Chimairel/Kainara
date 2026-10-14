@@ -19,15 +19,15 @@ type Props = {
 
 export default function LibraryRecipeDetail({ model }: Props) {
   const { embedded, setViewedMeal, listScrollTop, viewedMeal, isAdmin, openMeal, workspace } = model;
-  const [flagOpen, setFlagOpen] = useState(false);
+  const [canvasOpen, setCanvasOpen] = useState(false);
   const [section, setSection] = useState<DetailSection>('details');
-  const flagTrigger = useRef<HTMLDivElement>(null);
-  const changeFlagOpen = (open: boolean) => {
-    setFlagOpen(open);
-    if (!open) requestAnimationFrame(() => flagTrigger.current?.querySelector('button')?.focus({ preventScroll: true }));
+  const detailsTrigger = useRef<HTMLDivElement>(null);
+  const changeCanvasOpen = (open: boolean) => {
+    setCanvasOpen(open);
+    if (!open) requestAnimationFrame(() => detailsTrigger.current?.querySelector('button')?.focus({ preventScroll: true }));
   };
   useEffect(() => {
-    setFlagOpen(false);
+    setCanvasOpen(false);
     setSection('details');
   }, [viewedMeal?.id, viewedMeal?.status, isAdmin]);
   if (!viewedMeal) return null;
@@ -49,7 +49,7 @@ export default function LibraryRecipeDetail({ model }: Props) {
         </button>
 
       </div>
-      <LibraryMealHeader meal={viewedMeal} onFlag={() => changeFlagOpen(true)} flagTrigger={flagTrigger} />
+      <LibraryMealHeader meal={viewedMeal} onDetails={() => changeCanvasOpen(true)} detailsTrigger={detailsTrigger} />
       {held && <p className="text-sm font-semibold text-status-warning-text">This meal and its serving variants are withheld. Its approvals cannot be reused until the meal is released.</p>}
       <div className="border-b border-brand-border pb-5 pt-2">
         <WorkspaceTabs<DetailSection> value={section} onChange={setSection} label="Meal detail sections" level="secondary"
@@ -76,7 +76,7 @@ export default function LibraryRecipeDetail({ model }: Props) {
           </section>
         </div>
         <div hidden={section !== 'details' || !held}>
-          <MealReviewPanel embedded key={`review-${viewedMeal.id}`} meal={viewedMeal} isAdmin={isAdmin} flagOpen={flagOpen} onFlagOpenChange={changeFlagOpen} refresh={refresh} />
+          <MealReviewPanel embedded key={`review-${viewedMeal.id}`} meal={viewedMeal} isAdmin={isAdmin} canvasOpen={canvasOpen} onCanvasOpenChange={changeCanvasOpen} refresh={refresh} />
         </div>
       </div>
     </div>

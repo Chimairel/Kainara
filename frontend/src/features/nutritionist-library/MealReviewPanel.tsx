@@ -33,16 +33,16 @@ export default function MealReviewPanel({
   meal,
   isAdmin,
   refresh,
-  flagOpen,
-  onFlagOpenChange,
+  canvasOpen,
+  onCanvasOpenChange,
   embedded = false,
 }: {
   meal: LibraryMeal;
   isAdmin: boolean;
   refresh: () => Promise<void>;
   embedded?: boolean;
-  flagOpen?: boolean;
-  onFlagOpenChange?: (open: boolean) => void;
+  canvasOpen?: boolean;
+  onCanvasOpenChange?: (open: boolean) => void;
 }) {
   const ownerId = useAuth().user?.userId;
   const base = isAdmin ? '/admin' : '/nutritionist';
@@ -52,9 +52,9 @@ export default function MealReviewPanel({
     fetcher: async () => (await api.get(`${base}/meal-review-cases/${meal.id}`)).data.data,
     errorMessage: 'Review history could not be loaded.',
   });
-  const [localFlagOpen, setLocalFlagOpen] = useState(false);
-  const isFlagOpen = flagOpen ?? localFlagOpen;
-  const setFlagOpen = onFlagOpenChange ?? setLocalFlagOpen;
+  const [localCanvasOpen, setLocalCanvasOpen] = useState(false);
+  const isCanvasOpen = canvasOpen ?? localCanvasOpen;
+  const setCanvasOpen = onCanvasOpenChange ?? setLocalCanvasOpen;
   const submitting = useRef(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -175,7 +175,7 @@ export default function MealReviewPanel({
       const response = await api.post(url, payload);
       if (response.data?.success !== true) throw new Error('Unconfirmed review action');
       if (action === 'flag') {
-        setFlagOpen(false);
+        setCanvasOpen(false);
         setAffected(''); setExplanation(''); setReference(''); setCorrection('');
         toast.success(held ? 'Additional evidence recorded.' : 'Meal flagged for review.');
       }
@@ -226,7 +226,7 @@ export default function MealReviewPanel({
           Retry history
         </Button>
       )}
-      {!data && isFlagOpen && <Modal isOpen onClose={() => setFlagOpen(false)} title="Flag meal" size="xl">
+      {!data && isCanvasOpen && <Modal isOpen onClose={() => setCanvasOpen(false)} title="Meal details" size="xl">
         {query.error ? <><p>{query.error}</p><Button variant="secondary" onClick={() => void query.refetch()}>Retry history</Button></> : <p role="status">Loading the current meal version…</p>}
       </Modal>}
       {data && (
@@ -367,12 +367,12 @@ export default function MealReviewPanel({
           )}
           {data.state !== 'ARCHIVED' && (
             <>
-              {held && <Button variant="secondary" disabled={busy} onClick={() => setFlagOpen(true)}>Add evidence to this incident</Button>}
-              {!held && !onFlagOpenChange && <Button variant="danger" onClick={() => setFlagOpen(true)}>Flag meal</Button>}
-              {isFlagOpen && <MealFlagCanvas meal={meal} busy={busy} error={error}
+              {held && <Button variant="secondary" disabled={busy} onClick={() => setCanvasOpen(true)}>Add evidence to this incident</Button>}
+              {!held && !onCanvasOpenChange && <Button variant="secondary" onClick={() => setCanvasOpen(true)}>Details</Button>}
+              {isCanvasOpen && <MealFlagCanvas meal={meal} busy={busy} error={error}
                 value={{ category, affectedFields: affected, explanation, reference, proposedCorrection: correction }}
                 onChange={value => { setCategory(value.category); setAffected(value.affectedFields); setExplanation(value.explanation); setReference(value.reference); setCorrection(value.proposedCorrection); }}
-                onClose={() => { if (!submitting.current) { setFlagOpen(false); setCategory('NUTRITION'); setAffected(''); setExplanation(''); setReference(''); setCorrection(''); } }}
+                onClose={() => { if (!submitting.current) { setCanvasOpen(false); setCategory('NUTRITION'); setAffected(''); setExplanation(''); setReference(''); setCorrection(''); } }}
                 onSubmit={() => void mutate('flag')} />}
 
             </>

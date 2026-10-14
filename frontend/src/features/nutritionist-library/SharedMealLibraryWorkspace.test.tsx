@@ -137,7 +137,8 @@ async function open() {
 }
 
 function fillFlag() {
-  if (!screen.queryByRole('dialog')) fireEvent.click(screen.getByRole('button', { name: 'Flag meal' }));
+  if (!screen.queryByRole('dialog')) fireEvent.click(screen.getByRole('button', { name: 'Details' }));
+  if (!screen.queryByLabelText('Explanation')) fireEvent.click(screen.getByRole('button', { name: 'Flag meal' }));
   fireEvent.change(screen.getByLabelText('Affected ingredients or nutrition fields'), {
     target: { value: 'sodiumMg, salt' },
   });
@@ -185,6 +186,10 @@ describe('shared library permissions and feedback', () => {
     await screen.findByText('Published');
     expect(screen.queryByText('Private case approvals')).not.toBeInTheDocument();
     expect(screen.queryByLabelText('Explanation')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Details' }));
+    expect(screen.getByRole('article', { name: 'Base meal verification' })).toBeInTheDocument();
+    expect(screen.queryByLabelText('Explanation')).not.toBeInTheDocument();
+    expect(mocks.post).not.toHaveBeenCalled();
     fireEvent.click(screen.getByRole('button', { name: 'Flag meal' }));
     expect(screen.getByRole('button', { name: 'Flag and withhold meal' })).toBeDisabled();
     fillFlag();
