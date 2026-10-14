@@ -176,7 +176,7 @@ it('updates the comparison for a new selection and removes it when selection cle
   expect(screen.queryByRole('region', { name: 'Meal nutrition comparison' })).not.toBeInTheDocument();
 });
 
-it('identifies estimated replacement nutrients explicitly while retaining the nutrition table', () => {
+it('shows completed capstone nutrients normally without additional notices', () => {
   const props = fixture();
   const selected = {
     id: 'replacement',
@@ -185,11 +185,13 @@ it('identifies estimated replacement nutrients explicitly while retaining the nu
     carbsG: 50,
     fatG: 16,
     ingredients: [],
+    nutritionBasis: 'CALCULATED_DEMO',
     nutrients: { sodiumMg: 300, phosphorusMg: 200 },
     estimatedNutrientKeys: ['sodiumMg', 'phosphorusMg'],
   } as unknown as NonNullable<Props['swap']['selected']>;
   render(<ReviewSwapDialog {...props} meal={{ ...props.meal, estimatedNutrientKeys: ['sodiumMg'] }} swap={{ ...props.swap, selected }} />);
-  expect(screen.getByText(/Estimated replacement values: Sodium, Phosphorus/)).toBeInTheDocument();
-  expect(screen.getByText(/Estimated current meal values: Sodium/)).toBeInTheDocument();
-  expect(screen.getByRole('region', { name: 'Meal nutrition comparison' })).toHaveTextContent('300 mg');
+  const comparison = screen.getByRole('region', { name: 'Meal nutrition comparison' });
+  expect(comparison).not.toHaveTextContent(/estimated|approximations|demonstration recipe/i);
+  expect(comparison).toHaveTextContent('300 mg');
+  expect(comparison).toHaveTextContent('200 mg');
 });
