@@ -229,7 +229,10 @@ export async function reconcileExactMealApprovals(
   if (client !== prisma) return reconcile(client);
   for (let attempt = 0; ; attempt++) {
     try {
-      return await prisma.$transaction(reconcile, { isolationLevel: 'Serializable', timeout: 30000 });
+      // Full saved clinical context and source eligibility require several remote reads.
+      // Shared Neon revalidation exceeded 30 seconds and aborted the workspace read (P2028).
+      // Keep a bounded transaction within the member read's 90-second request budget.
+      return await prisma.$transaction(reconcile, { isolationLevel: 'Serializable', timeout: 60000 });
     } catch (error) {
       if (attempt < 2 && error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2034') continue;
       throw error;
