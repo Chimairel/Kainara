@@ -190,6 +190,6 @@ it('identifies estimated replacement nutrients explicitly while retaining the nu
   } as unknown as NonNullable<Props['swap']['selected']>;
   render(<ReviewSwapDialog {...props} meal={{ ...props.meal, estimatedNutrientKeys: ['sodiumMg'] }} swap={{ ...props.swap, selected }} />);
   expect(screen.getByText(/Estimated replacement values: Sodium, Phosphorus/)).toBeInTheDocument();
-  expect(screen.getByText(/Current meal includes the nutrient estimates saved/)).toBeInTheDocument();
+  expect(screen.getByText(/Estimated current meal values: Sodium/)).toBeInTheDocument();
   expect(screen.getByRole('region', { name: 'Meal nutrition comparison' })).toHaveTextContent('300 mg');
 });

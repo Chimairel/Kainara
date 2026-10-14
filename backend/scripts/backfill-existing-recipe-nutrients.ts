@@ -39,7 +39,7 @@ async function main() {
     },
     orderBy: { id: 'asc' },
   });
-  const patches = [];
+  const patches: Array<{ before: (typeof rows)[number]; plan: NonNullable<ReturnType<typeof existingRecipeExtendedFill>> }> = [];
   for (const before of rows) {
     const plan = existingRecipeExtendedFill(before);
     if (

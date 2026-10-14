@@ -8,6 +8,8 @@ import {
 } from '../src/domain/review-plate-nutrients.policy';
 import { rawRecipeServing } from '../src/services/raw-recipe-serving.service';
 import type { RecipeCandidateProjection } from '../src/services/recipe-candidate-provider';
+import { recordedRndPlateNutrients } from '../src/domain/recorded-rnd-plate-nutrients.policy';
+import { REVIEW_NUTRIENT_ESTIMATE_VERSION, recipeEstimateFingerprint } from '../src/domain/review-nutrient-estimate.policy';
 
 const source = {
   recipeName: 'Recorded dish',
@@ -63,6 +65,32 @@ test('saved RND replacement estimates replay only for the same source and unchan
   ])
     assert.equal(recordedReviewPlateEstimates(changed).keys.length, 0);
   assert.equal(recordedReviewPlateEstimates(plan).keys.length, 0);
+});
+
+test('RND current plate supplements only compatible source and rice gaps without modifying stored inputs', () => {
+  const rice = { ...plan.servingComponents[0].foodItem, name: 'Rice', calories: 129, proteinG: 2.1, carbsG: 29.7, fatG: .2 };
+  const supplement = (recipe: Parameters<typeof recipeEstimateFingerprint>[0], values: object) => ({
+    version: REVIEW_NUTRIENT_ESTIMATE_VERSION, estimated: true, clinicalCertification: false,
+    inputFingerprint: recipeEstimateFingerprint(recipe), values,
+  });
+  const enriched = { ...plan,
+    sourceRawRecipeCandidate: { ...source, publishedNutrition: { ...source.publishedNutrition,
+      extendedNutritionEstimates: supplement({...source,name:source.recipeName}, {phosphorusMg:20, sugarG:99}),
+    }},
+    servingComponents: [{ ...plan.servingComponents[0], foodItem: { ...rice, sourceNutrientEvidence: {
+      reviewNutrientEstimates: supplement({...rice,ingredients:[]}, {potassiumMg:10}),
+    }}}],
+  };
+  const before = JSON.stringify(enriched), review = recordedRndPlateNutrients(enriched);
+  assert.equal(review.nutrients.phosphorusMg, 91);
+  assert.equal(review.nutrients.potassiumMg, 272.5);
+  assert.equal(review.nutrients.sugarG, .225);
+  assert.deepEqual(review.estimatedNutrientKeys, ['potassiumMg','phosphorusMg']);
+  assert.equal(recordedReviewPlateNutrients(enriched).phosphorusMg, null);
+  assert.equal(JSON.stringify(enriched), before);
+  const changed = recordedRndPlateNutrients({...enriched,proteinG:enriched.proteinG+1});
+  assert.equal(changed.nutrients.phosphorusMg,null);
+  assert.deepEqual(changed.estimatedNutrientKeys,[]);
 });
 
 test('source nutrients retain recorded zeros and reject missing, invalid or guessed values', () => {

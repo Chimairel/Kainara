@@ -79,7 +79,7 @@ async function main() {
       ...publishedExtendedNutrients(p),
     } as NutrientReference);
   }
-  const patches = [];
+  const patches: Array<{ before: (typeof rows)[number]; estimate: NonNullable<ReturnType<typeof estimateReviewNutrients>> }> = [];
   let unavailable = 0;
   for (const before of rows) {
     const prior = object(before.publishedNutrition);
@@ -97,7 +97,7 @@ async function main() {
     );
     if (estimate) patches.push({ before, estimate });
     else if (Object.values(publishedExtendedNutrients(prior)).some((v) => v == null)) unavailable++;
-    if ((patches.length + unavailable) % 250 === 0)
+    if (patches.length + unavailable > 0 && (patches.length + unavailable) % 250 === 0)
       console.log(JSON.stringify({ progress: patches.length + unavailable, total: rows.length }));
   }
   const rice = await db.foodItem.findFirstOrThrow({

@@ -94,7 +94,11 @@ export default function ReviewSwapDialog({
             )}
             {!!meal.estimatedNutrientKeys?.length && (
               <p className="mt-2 text-xs font-semibold text-brand-muted">
-                Current meal includes the nutrient estimates saved with its RND-selected replacement.
+                Estimated current meal values:{' '}
+                {REVIEW_NUTRIENT_FIELDS.filter(([key]) => meal.estimatedNutrientKeys?.includes(key))
+                  .map(([, label]) => label)
+                  .join(', ')}
+                . Review these approximations before deciding.
               </p>
             )}
             <SwapNutritionTable

@@ -35,7 +35,7 @@ import { ClinicalEvidenceService } from './clinical-evidence.service';
 import { resolveMealPlanDispute } from './nutritionist-dispute.service';
 import { rejectMealPlan } from './nutritionist-rejection.service';
 import { resolvePlanImage } from './meal-plan-presentation.service';
-import { recordedReviewPlateNutrients, recordedReviewPlateEstimates } from '@/domain/review-plate-nutrients.policy';
+import { recordedRndPlateNutrients } from '@/domain/recorded-rnd-plate-nutrients.policy';
 import { resolveLibraryRecipeImages } from './library-recipe-image.service';
 
 async function reviewReadinessByUser(userIds: string[]) {
@@ -683,8 +683,7 @@ export class NutritionistReviewService {
         proteinG: updatedMealPlan.proteinG,
         carbsG: updatedMealPlan.carbsG,
         fatG: updatedMealPlan.fatG,
-        nutrients: recordedReviewPlateNutrients(updatedMealPlan),
-        estimatedNutrientKeys: recordedReviewPlateEstimates(updatedMealPlan).keys,
+        ...recordedRndPlateNutrients(updatedMealPlan),
         aiConfidenceFlag: updatedMealPlan.requiresSafetyRevalidation
           ? AIConfidenceFlag.NEEDS_REVIEW
           : updatedMealPlan.aiConfidenceFlag,
