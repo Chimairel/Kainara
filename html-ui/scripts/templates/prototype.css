@@ -1,0 +1,84 @@
+/* Small static-prototype adapters; the app's captured CSS owns the visual design. */
+html {
+  scroll-behavior: smooth;
+}
+body {
+  caret-color: var(--brand-green);
+}
+::selection {
+  background: var(--brand-green-light);
+  color: var(--brand-text);
+}
+:focus-visible {
+  outline: 2px solid var(--brand-green);
+  outline-offset: 3px;
+}
+/* Preserve the source headline rule where Chromium CSSOM dropped the shorthand. */
+.text-gradient {
+  background: linear-gradient(115deg, var(--brand-text) 10%, var(--brand-green) 55%, var(--brand-cyan));
+  background-clip: text;
+  color: transparent;
+  -webkit-background-clip: text;
+}
+[data-unavailable-image] {
+  visibility: hidden;
+}
+.prototype-toast {
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  z-index: 9999;
+  max-width: 360px;
+  padding: 16px 20px;
+  border: 1px solid var(--brand-border);
+  border-radius: 12px;
+  background: var(--brand-surface);
+  color: var(--brand-text);
+  font:
+    500 14px/1.5 var(--font-dm-sans),
+    sans-serif;
+  box-shadow: 0 8px 24px #07100d22;
+}
+/* Add ?figma=1 when importing to reveal the complete, internally scrolling workspace. */
+html.figma-export,
+.figma-export body {
+  height: auto !important;
+  overflow: visible !important;
+}
+.figma-export main {
+  height: auto !important;
+  max-height: none !important;
+  overflow: visible !important;
+}
+.figma-export .h-screen,
+.figma-export .h-dvh {
+  height: auto !important;
+  min-height: 100vh;
+}
+.figma-export [class*='overflow-y-auto'] {
+  max-height: none !important;
+  overflow-y: visible !important;
+}
+.figma-export [aria-label='Review canvas viewport'] { overflow: visible !important; min-height: 1123px; }
+.figma-export [data-canvas-world] { transform: none !important; display:flex; flex-wrap:wrap; gap:24px; }
+.figma-export [data-canvas-sheet] { position:relative !important; left:auto !important; top:auto !important; max-width:100%; }
+@media print {
+  html,
+  body,
+  main {
+    height: auto !important;
+    overflow: visible !important;
+  }
+  .prototype-toast {
+    display: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+    scroll-behavior: auto !important;
+  }
+}

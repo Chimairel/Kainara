@@ -1,0 +1,36 @@
+{
+  "sourceDirectory": "C:/Users/chima/Desktop/Nutrimind",
+  "sourceCommit": "29da350e4fdcb670a631b1c745c9eee037c70f0b",
+  "sourceUrl": "http://127.0.0.1:3200",
+  "capturedAt": "2026-10-14T06:39:52.894Z",
+  "files": [
+    {
+      "file": "frontend/package.json",
+      "sha256": "0bcd3d2effc52e7c3536c28587271fc8b94fa6ec1eff581da27c17a8af04e63a"
+    },
+    {
+      "file": "frontend/src/app/globals.css",
+      "sha256": "8324de57b3b0c40f7df8fc770658db20797bbf6f3a0de6e7ad55d6123cb61f1e"
+    },
+    {
+      "file": "frontend/src/app/layout.tsx",
+      "sha256": "0fc7a9be438494b79ac0cf0b75c55ab1463106245f7c3148b90c059046f52b31"
+    },
+    {
+      "file": "frontend/src/app/page.tsx",
+      "sha256": "63706ef20d78316776ae6eac6b4363f3ea1fd79f3548f71481185801df23c280"
+    },
+    {
+      "file": "frontend/src/components/auth/AuthHeroPanel.tsx",
+      "sha256": "7eb2f5db49116761bb6908fc0c4b69dbdb7b047c42881405cc0d1c055c21b6d4"
+    },
+    {
+      "file": "frontend/src/features/dashboard/CockpitDashboard.tsx",
+      "sha256": "764092518b1323df65fdb6258f7bebf3ac44d14e0b5bfae01030a5409dcdb56b"
+    },
+    {
+      "file": "frontend/src/features/nutritionist-reviews/ReviewCanvas.tsx",
+      "sha256": "47a1b8e04cf24e36bd3c4692513695f54caab8f24a386eec0272fea4721cbffc"
+    }
+  ]
+}
