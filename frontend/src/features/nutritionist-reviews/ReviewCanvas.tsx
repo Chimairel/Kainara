@@ -305,6 +305,7 @@ export default function ReviewCanvas({
   const canvas = (
     <div
       ref={root}
+      tabIndex={-1}
       role="region"
       aria-label={readOnly ? 'Admin review canvas' : 'RND review canvas'}
       className={`relative isolate flex min-w-0 flex-col overflow-hidden border-[6px] border-b-[16px] border-brand-surface bg-brand-bgAlt text-brand-text ${expanded ? 'h-full w-full' : `h-[calc(100dvh-19rem)] min-h-[640px] w-full rounded-2xl shadow-card-lg ${className}`}`}
@@ -477,6 +478,11 @@ export default function ReviewCanvas({
         <Dialog.Content
           aria-describedby={undefined}
           className="fixed inset-0 z-[81] h-[100dvh] w-screen outline-none"
+          onOpenAutoFocus={(event) => {
+            event.preventDefault();
+            // Focus the workspace, not its first tooltip-bearing navigation control.
+            root.current?.focus({ preventScroll: true });
+          }}
           onEscapeKeyDown={(event) => {
             if (event.target instanceof Element && event.target.closest('[role="combobox"][aria-expanded="true"]')) {
               event.preventDefault();
@@ -484,7 +490,12 @@ export default function ReviewCanvas({
           }}
           onCloseAutoFocus={(event) => {
             event.preventDefault();
-            if (desktopVisible) expandButton.current?.focus();
+            const button = desktopVisible ? expandButton.current : null;
+            if (button) {
+              button.setAttribute('data-canvas-restoring-focus', '');
+              try { button.focus({ preventScroll: true }); }
+              finally { button.removeAttribute('data-canvas-restoring-focus'); }
+            }
           }}
         >
           <Dialog.Title className="sr-only">{title} — fullscreen</Dialog.Title>

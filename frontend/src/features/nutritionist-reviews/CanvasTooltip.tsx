@@ -26,7 +26,7 @@ export default function CanvasTooltip({ label, placement = 'top', align = 'cente
   return <span ref={trigger} className="relative inline-flex shrink-0"
     onPointerEnter={event => { if (event.pointerType !== 'touch') setOpen(true); }}
     onPointerLeave={() => setOpen(false)}
-    onFocusCapture={event => setOpen(event.currentTarget.contains(event.target))}
+    onFocusCapture={event => setOpen(event.currentTarget.contains(event.target) && !event.target.hasAttribute('data-canvas-restoring-focus'))}
     onBlurCapture={event => { if (!event.currentTarget.contains(event.relatedTarget)) setOpen(false); }}
     onClickCapture={() => setOpen(false)}
     onKeyDownCapture={event => {

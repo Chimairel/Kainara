@@ -34,6 +34,27 @@ function Fixture({ onBack, claimed = true, focusSheet }: { onBack: () => void; c
   );
 }
 
+it('clears hover hints when expanding and shrinking without reopening them on automatic focus', async () => {
+  render(<Fixture onBack={vi.fn()} />);
+  const expand = screen.getByRole('button', { name: 'Expand canvas' });
+  fireEvent.pointerEnter(expand.parentElement!);
+  expect(screen.getByRole('tooltip')).toHaveTextContent('Expand canvas');
+  fireEvent.click(expand);
+  const fullscreen = screen.getByRole('dialog', { name: /RND record.*fullscreen/ });
+  expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
+  expect(within(fullscreen).getByRole('region', { name: 'RND review canvas' })).toHaveFocus();
+  const shrink = within(fullscreen).getByRole('button', { name: 'Exit fullscreen' });
+  fireEvent.pointerEnter(shrink.parentElement!);
+  expect(screen.getByRole('tooltip')).toHaveTextContent('Exit fullscreen');
+  fireEvent.click(shrink);
+  await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+  await waitFor(() => expect(screen.getByRole('button', { name: 'Expand canvas' })).toHaveFocus());
+  expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
+  const restored = screen.getByRole('button', { name: 'Expand canvas' });
+  fireEvent.pointerEnter(restored.parentElement!);
+  expect(screen.getByRole('tooltip')).toHaveTextContent('Expand canvas');
+});
+
 it('keeps decisions inside the canvas, unscaled, with drafts and layout preserved across fullscreen', async () => {
   render(<Fixture onBack={vi.fn()} />);
   const dock = screen.getByRole('region', { name: 'Review decisions' });
