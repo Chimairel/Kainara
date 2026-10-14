@@ -17,6 +17,7 @@ import type { useMealsWorkspaceModalsModel } from './useMealsWorkspaceModalsMode
 type Model = Extract<ReturnType<typeof useMealsWorkspaceModalsModel>, { kind: 'ready' }>;
 type SectionProps = {
   calorieSortOnly?: boolean;
+  totalAvailable?: number;
   model: Pick<
     Model,
     | 'filteredAndSortedOptions'
@@ -32,7 +33,7 @@ type SectionProps = {
     | 'setSelectedVerifier'
   > & { activeSwapMeal: { mealType: string; calories: number } | null };
 };
-export default function SwapMealOptions({ model, calorieSortOnly = false }: SectionProps) {
+export default function SwapMealOptions({ model, calorieSortOnly = false, totalAvailable }: SectionProps) {
   const {
     filteredAndSortedOptions,
     isSwapping,
@@ -56,7 +57,10 @@ export default function SwapMealOptions({ model, calorieSortOnly = false }: Sect
           <div className="flex min-w-0 flex-wrap items-center gap-2">
             <h3 className="font-display text-sm font-bold text-brand-text">Mini Meal Library</h3>
             <span className="rounded-full bg-brand-bgAlt border border-brand-border/60 px-2 py-0.5 font-mono text-[10px] font-bold text-brand-muted">
-              {filteredAndSortedOptions.length} available
+              {totalAvailable !== undefined && totalAvailable > filteredAndSortedOptions.length
+                ? `${filteredAndSortedOptions.length} of ${totalAvailable}`
+                : filteredAndSortedOptions.length}{' '}
+              available
             </span>
           </div>
           <div className="ml-auto w-[152px] shrink-0 text-xs sm:w-40">
@@ -225,7 +229,9 @@ export default function SwapMealOptions({ model, calorieSortOnly = false }: Sect
                       {/* Verifier / Source Badge */}
                       <div className="flex items-center justify-between text-[9px] text-white/75 pt-0.5">
                         <span className="truncate">
-                          {option.id.startsWith('review-source:') || option.reuseBasis === 'PANLASANG_GENERAL_BASE' ? 'Source: ' : 'Verified by: '}
+                          {option.id.startsWith('review-source:') || option.reuseBasis === 'PANLASANG_GENERAL_BASE'
+                            ? 'Source: '
+                            : 'Verified by: '}
                           {option.verifier ? (
                             <button
                               type="button"
@@ -242,7 +248,9 @@ export default function SwapMealOptions({ model, calorieSortOnly = false }: Sect
                           )}
                         </span>
                       </div>
-                      {option.requiresReview && <p className="text-[11px] font-semibold text-white">Pending case approval</p>}
+                      {option.requiresReview && (
+                        <p className="text-[11px] font-semibold text-white">Pending case approval</p>
+                      )}
                     </div>
                   </div>
                 );

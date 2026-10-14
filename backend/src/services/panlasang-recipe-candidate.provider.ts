@@ -10,6 +10,7 @@ import { isUnrestrictedPanlasangBaseEligible } from '@/domain/unrestricted-panla
 import { effectiveRecipeMealTypes } from '@/domain/meal-applicability.policy';
 import { lookupIngredientCompositions } from '@/lib/ingredient-composition';
 import { publishedExtendedNutrients } from '@/domain/review-plate-nutrients.policy';
+import { createHash } from 'node:crypto';
 
 export const recipeCandidateSelect = {
   id: true,
@@ -38,6 +39,41 @@ export const recipeCandidateSelect = {
   status: true,
 } as const satisfies Prisma.RawRecipeCandidateSelect;
 type Row = Prisma.RawRecipeCandidateGetPayload<{ select: typeof recipeCandidateSelect }>;
+
+export function rawRecipeSourceRevision(
+  row: Pick<
+    Row,
+    | 'contentSignature'
+    | 'ingredients'
+    | 'calories'
+    | 'proteinG'
+    | 'carbsG'
+    | 'fatG'
+    | 'publishedNutrition'
+    | 'riceRole'
+    | 'riceRoleReviewStatus'
+    | 'includedRiceG'
+    | 'status'
+  >
+) {
+  return createHash('sha256')
+    .update(
+      JSON.stringify([
+        row.contentSignature,
+        row.ingredients,
+        row.calories,
+        row.proteinG,
+        row.carbsG,
+        row.fatG,
+        row.publishedNutrition,
+        row.riceRole,
+        row.riceRoleReviewStatus,
+        row.includedRiceG,
+        row.status,
+      ])
+    )
+    .digest('hex');
+}
 
 function jsonStrings(value: Prisma.JsonValue): string[] {
   return Array.isArray(value) ? value.filter((item): item is string => typeof item === 'string') : [];
@@ -102,6 +138,7 @@ export function projectRawRecipeCandidate(row: Row): RecipeCandidateProjection {
     category: row.category,
     description: row.description,
     contentSignature: row.contentSignature,
+    sourceRevisionKey: rawRecipeSourceRevision(row),
     sourceUrl: row.sourceUrl,
     applicableMealTypes: effectiveRecipeMealTypes(
       row.recipeName,
@@ -145,6 +182,8 @@ export class DatabaseRecipeCandidateProvider implements RecipeCandidateProvider 
     mealType?: MealType;
     dietaryPreference?: DietaryPreference;
     search?: string;
+    candidateId?: string;
+    hydrateIngredients?: boolean;
     calorieMinimum?: number;
     calorieMaximum?: number;
     excludeIds?: readonly string[];
@@ -167,7 +206,14 @@ export class DatabaseRecipeCandidateProvider implements RecipeCandidateProvider 
         ...(input.calorieMinimum !== undefined || input.calorieMaximum !== undefined
           ? { calories: { gte: input.calorieMinimum, lte: input.calorieMaximum } }
           : {}),
-        ...(input.excludeIds?.length ? { id: { notIn: [...input.excludeIds] } } : {}),
+        ...(input.candidateId || input.excludeIds?.length
+          ? {
+              id: {
+                ...(input.candidateId ? { equals: input.candidateId } : {}),
+                ...(input.excludeIds?.length ? { notIn: [...input.excludeIds] } : {}),
+              },
+            }
+          : {}),
         ...(cursor
           ? {
               OR: [
@@ -187,29 +233,34 @@ export class DatabaseRecipeCandidateProvider implements RecipeCandidateProvider 
     const hasMore = rows.length > limit;
     const page = rows.slice(0, limit);
     const candidates = page.map(projectRawRecipeCandidate);
-    const ingredients = candidates.flatMap((candidate) => candidate.ingredients);
-    const foodIds = [...new Set(ingredients.flatMap((item) => (item.foodItemId ? [item.foodItemId] : [])))];
-    const [linkedFoods, matchedFoods] = await Promise.all([
-      foodIds.length
-        ? prisma.foodItem.findMany({ where: { id: { in: foodIds } }, select: { id: true, name: true } })
-        : [],
-      lookupIngredientCompositions(
-        ingredients.filter((item) => !item.foodItemId && item.quantity !== undefined).map((item) => item.name)
-      ),
-    ]);
-    const byId = new Map(linkedFoods.map((food) => [food.id, food]));
-    // Check the same identity the save path uses, without replacing source labels
-    // or fetching nutrient payloads for every recipe in the candidate catalogue.
-    for (const ingredient of ingredients) {
-      const food = ingredient.foodItemId ? byId.get(ingredient.foodItemId) : matchedFoods.get(ingredient.name);
-      if (food) ingredient.compositionFoodName = food.name;
-    }
+    if (input.hydrateIngredients !== false) await hydrateCandidateIngredientIdentities(candidates);
     return {
       items: candidates.filter(
         (candidate) => !input.mealType || candidate.applicableMealTypes.includes(input.mealType)
       ),
       nextCursor: !input.recentFirst && hasMore && page.length ? encodeCursor(page[page.length - 1]) : null,
     };
+  }
+}
+
+/** Batch matching identities across a complete RND search before hydrating food evidence. */
+export async function hydrateCandidateIngredientIdentities(candidates: RecipeCandidateProjection[]) {
+  const ingredients = candidates.flatMap((candidate) => candidate.ingredients);
+  const foodIds = [...new Set(ingredients.flatMap((item) => (item.foodItemId ? [item.foodItemId] : [])))];
+  const [linkedFoods, matchedFoods] = await Promise.all([
+    foodIds.length
+      ? prisma.foodItem.findMany({ where: { id: { in: foodIds } }, select: { id: true, name: true } })
+      : [],
+    lookupIngredientCompositions(
+      ingredients.filter((item) => !item.foodItemId && item.quantity !== undefined).map((item) => item.name)
+    ),
+  ]);
+  const byId = new Map(linkedFoods.map((food) => [food.id, food]));
+  // Check the same identity the save path uses, without replacing source labels
+  // or fetching nutrient payloads for every recipe in the candidate catalogue.
+  for (const ingredient of ingredients) {
+    const food = ingredient.foodItemId ? byId.get(ingredient.foodItemId) : matchedFoods.get(ingredient.name);
+    if (food) ingredient.compositionFoodName = food.name;
   }
 }
 

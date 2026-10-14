@@ -11,6 +11,7 @@ export interface RecipeCandidateProjection {
   category: string | null;
   description: string | null;
   contentSignature: string;
+  sourceRevisionKey?: string;
   sourceUrl: string;
   applicableMealTypes: MealType[];
   dietaryTags: DietaryPreference[];
@@ -50,6 +51,9 @@ export interface RecipeCandidateProvider {
     mealType?: MealType;
     dietaryPreference?: DietaryPreference;
     search?: string;
+    /** Exact identity revalidation for an RND-selected source replacement. */
+    candidateId?: string;
+    hydrateIngredients?: boolean;
     calorieMinimum?: number;
     calorieMaximum?: number;
     excludeIds?: readonly string[];

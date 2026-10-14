@@ -27,8 +27,11 @@ export default function ReviewSwapDialog({
   onFindReplacement?: () => void;
 }) {
   const [verifier, setVerifier] = useState<PublicVerifier | null>(null);
+  const [sort, setSort] = useState<'best_match' | 'kcal_match'>('best_match');
   useEffect(() => setVerifier(null), [meal.id, swap.open, swap.data]);
   const options = swap.data?.options ?? [];
+  const hasRanking = options.some((option) => option.nutritionFitScore !== undefined);
+  const activeSort = hasRanking ? sort : 'kcal_match';
   const selected = swap.selected;
   const common = {
     activeSwapMeal: meal,
@@ -75,27 +78,78 @@ export default function ReviewSwapDialog({
             <p className="mt-1 text-xs leading-5 text-brand-muted">
               One serving, including any paired rice. Missing values are not recorded; they are not zero.
             </p>
-            <SwapNutritionTable before={{ ...meal.nutrients, calories: meal.calories,
-              proteinG: meal.proteinG, carbsG: meal.carbsG, fatG: meal.fatG }} after={{ ...selected.nutrients,
-              calories: selected.calories, proteinG: selected.proteinG, carbsG: selected.carbsG, fatG: selected.fatG }}
+            <SwapNutritionTable
+              before={{
+                ...meal.nutrients,
+                calories: meal.calories,
+                proteinG: meal.proteinG,
+                carbsG: meal.carbsG,
+                fatG: meal.fatG,
+              }}
+              after={{
+                ...selected.nutrients,
+                calories: selected.calories,
+                proteinG: selected.proteinG,
+                carbsG: selected.carbsG,
+                fatG: selected.fatG,
+              }}
               fields={selected.nutrients ? REVIEW_NUTRIENT_FIELDS : undefined}
-              beforeLabel="Current meal" afterLabel="Replacement" showChange compact={false} />
+              beforeLabel="Current meal"
+              afterLabel="Replacement"
+              showChange
+              compact={false}
+            />
           </section>
         )}
-        {swap.filtersEnabled && <form className="mt-6 space-y-2" onSubmit={event => { event.preventDefault(); void swap.interpretAndSearch(); }}>
-          <label htmlFor="review-swap-search" className="block text-sm font-semibold">Filter candidates with AI</label>
-          <div className="flex items-center gap-2 rounded-xl border border-brand-border bg-brand-surface p-2 focus-within:ring-2 focus-within:ring-brand-green">
-            <Search aria-hidden="true" className="ml-2 h-5 w-5 shrink-0 text-brand-muted" />
-            <input id="review-swap-search" value={swap.filterText} onChange={event => swap.setFilterText(event.target.value)}
-              maxLength={500} disabled={swap.saving || swap.interpreting} placeholder="e.g. sugar under 10 g and sodium at most 500 mg"
-              className="min-w-0 flex-1 bg-transparent px-1 py-2 text-sm text-brand-text outline-none placeholder:text-brand-muted" />
-            <Button type="submit" size="sm" disabled={swap.saving || swap.loading || swap.interpreting || !swap.filterText?.trim()} isLoading={swap.interpreting}>Filter</Button>
-          </div>
-          <p className="text-xs leading-5 text-brand-muted">AI translates your request into nutrient limits per serving, including rice. Unknown values are excluded. You can also enter limits below.</p>
-          {swap.data?.filters && <ul aria-label="Applied nutrient limits" className="flex flex-wrap gap-2 pt-1">
-            {nutrientFilterLabels(swap.data.filters).map(label => <li key={label} className="rounded-lg bg-brand-green/10 px-3 py-1.5 text-xs font-semibold text-brand-text">{label}</li>)}
-          </ul>}
-        </form>}
+        {swap.filtersEnabled && (
+          <form
+            className="mt-6 space-y-2"
+            onSubmit={(event) => {
+              event.preventDefault();
+              void swap.interpretAndSearch();
+            }}
+          >
+            <label htmlFor="review-swap-search" className="block text-sm font-semibold">
+              Filter candidates with AI
+            </label>
+            <div className="flex items-center gap-2 rounded-xl border border-brand-border bg-brand-surface p-2 focus-within:ring-2 focus-within:ring-brand-green">
+              <Search aria-hidden="true" className="ml-2 h-5 w-5 shrink-0 text-brand-muted" />
+              <input
+                id="review-swap-search"
+                value={swap.filterText}
+                onChange={(event) => swap.setFilterText(event.target.value)}
+                maxLength={500}
+                disabled={swap.saving || swap.interpreting}
+                placeholder="e.g. sugar under 10 g and sodium at most 500 mg"
+                className="min-w-0 flex-1 bg-transparent px-1 py-2 text-sm text-brand-text outline-none placeholder:text-brand-muted"
+              />
+              <Button
+                type="submit"
+                size="sm"
+                disabled={swap.saving || swap.loading || swap.interpreting || !swap.filterText?.trim()}
+                isLoading={swap.interpreting}
+              >
+                Filter
+              </Button>
+            </div>
+            <p className="text-xs leading-5 text-brand-muted">
+              AI translates your request into nutrient limits per serving, including rice. Unknown values are excluded.
+              You can also enter limits below.
+            </p>
+            {swap.data?.filters && (
+              <ul aria-label="Applied nutrient limits" className="flex flex-wrap gap-2 pt-1">
+                {nutrientFilterLabels(swap.data.filters).map((label) => (
+                  <li
+                    key={label}
+                    className="rounded-lg bg-brand-green/10 px-3 py-1.5 text-xs font-semibold text-brand-text"
+                  >
+                    {label}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </form>
+        )}
         {swap.filtersEnabled && (
           <ReviewNutrientFilters
             draft={swap.filterDraft}
@@ -106,34 +160,48 @@ export default function ReviewSwapDialog({
         )}
         {swap.data?.summary && (
           <p className="my-3 text-xs text-brand-muted">
-            {swap.data.summary.matchedCount} complete-plate {swap.data.summary.matchedCount === 1 ? 'candidate' : 'candidates'} for RND review.{' '}
-            {swap.data.summary.unknownExcludedCount} library records excluded for missing required nutrients. These limits narrow
-            candidates; the RND still reviews the member’s health context.
+            {swap.data.summary.matchedCount} complete-plate{' '}
+            {swap.data.summary.matchedCount === 1 ? 'candidate' : 'candidates'} for RND review.{' '}
+            {swap.data.summary.unknownExcludedCount} library records excluded for missing required nutrients. These
+            limits narrow candidates; the RND still reviews the member’s health context.
           </p>
         )}
         {!swap.loading && !swap.error && swap.data && options.length === 0 && (
           <div className="my-5 space-y-3 text-sm">
             <p className="font-semibold">No replacements match this search.</p>
-            <p className="max-w-[65ch] leading-6 text-brand-muted">Find a replacement from stored recipes, then AI if needed. It will still need review. Library nutrient filters do not apply to this broader search; your member’s saved restrictions and planning targets do.</p>
-            {onFindReplacement && <Button variant="secondary" disabled={swap.saving} onClick={onFindReplacement}>Reject and find replacement</Button>}
+            <p className="max-w-[65ch] leading-6 text-brand-muted">
+              Find a replacement from stored recipes, then AI if needed. It will still need review. Library nutrient
+              filters do not apply to this broader search; your member’s saved restrictions and planning targets do.
+            </p>
+            {onFindReplacement && (
+              <Button variant="secondary" disabled={swap.saving} onClick={onFindReplacement}>
+                Reject and find replacement
+              </Button>
+            )}
           </div>
         )}
-        {(swap.loading || swap.error || !swap.data || options.length > 0) && <SwapMealOptions
-          calorieSortOnly
-          model={{
-            ...common,
-            swapOptions: options,
-            filteredAndSortedOptions: [...options].sort(
-              (a, b) => Math.abs(a.calories - meal.calories) - Math.abs(b.calories - meal.calories)
-            ),
-            miniSort: 'kcal_match',
-            setMiniSort: () => {},
-            isOptionsLoading: swap.loading || swap.interpreting,
-            swapOptionsError: swap.error,
-            handleSelectSwapOption: async (option) => swap.setSelectedId(option.id),
-            setSelectedVerifier: setVerifier,
-          }}
-        />}
+        {(swap.loading || swap.error || !swap.data || options.length > 0) && (
+          <SwapMealOptions
+            calorieSortOnly={!hasRanking}
+            totalAvailable={swap.data?.summary?.matchedCount}
+            model={{
+              ...common,
+              swapOptions: options,
+              filteredAndSortedOptions:
+                activeSort === 'best_match'
+                  ? options
+                  : [...options].sort(
+                      (a, b) => Math.abs(a.calories - meal.calories) - Math.abs(b.calories - meal.calories)
+                    ),
+              miniSort: activeSort,
+              setMiniSort: setSort,
+              isOptionsLoading: swap.loading || swap.interpreting,
+              swapOptionsError: swap.error,
+              handleSelectSwapOption: async (option) => swap.setSelectedId(option.id),
+              setSelectedVerifier: setVerifier,
+            }}
+          />
+        )}
         {selected && (
           <div className="mt-4">
             <IngredientEvidenceTable ingredients={selected.ingredients} />
