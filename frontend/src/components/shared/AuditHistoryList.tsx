@@ -11,6 +11,7 @@ import api from '@/lib/axios';
 import RecordPaper, { recordFieldClass, recordSectionClass } from './RecordPaper';
 import CaseReviewContext from '@/features/admin-audit/CaseReviewContext';
 import WorkspaceTable, { type WorkspaceTableColumn } from './WorkspaceTable';
+import { recordedConditionsLabel } from '@/lib/recorded-review-conditions';
 
 export type AuditRow = {
   id: string;
@@ -21,6 +22,7 @@ export type AuditRow = {
   subject: string;
   outcome: string;
   type?: string;
+  conditionCodes?: string[] | null;
 };
 type Nutrition = { calories: number | null; proteinG: number | null; carbsG: number | null; fatG: number | null };
 export type AuditDetails = {
@@ -184,12 +186,14 @@ export default function AuditHistoryList({
   ownerId,
   endpoint,
   canAuthor = false,
+  showConditions = false,
 }: {
   rows: AuditRow[];
   onRelated?: (row: AuditRow) => void;
   ownerId: string | undefined;
   endpoint: string;
   canAuthor?: boolean;
+  showConditions?: boolean;
 }) {
   const [opened, setOpened] = useState<{ row: AuditRow; ownerId: string | undefined; endpoint: string } | null>(null);
   const selected = opened && opened.ownerId === ownerId && opened.endpoint === endpoint ? opened.row : null;
@@ -207,7 +211,7 @@ export default function AuditHistoryList({
     {
       key: 'staff',
       header: 'Staff',
-      headerClassName: 'min-w-[180px]',
+      headerClassName: showConditions ? 'min-w-[150px]' : 'min-w-[180px]',
       cell: (row) => (
         <>
           <p className="break-words font-semibold">{row.actor}</p>
@@ -217,11 +221,13 @@ export default function AuditHistoryList({
         </>
       ),
     },
-    { key: 'type', header: 'Type', headerClassName: 'min-w-[155px]', cell: (row) => row.type ?? 'Recorded activity' },
+    ...(showConditions ? [{ key: 'conditions', header: 'Condition', headerClassName: 'min-w-[150px]',
+      cell: (row: AuditRow) => <span>{recordedConditionsLabel(row.conditionCodes)}</span> }] : []),
+    { key: 'type', header: 'Type', headerClassName: showConditions ? 'min-w-[110px]' : 'min-w-[155px]', cell: (row) => row.type ?? 'Recorded activity' },
     {
       key: 'action',
       header: 'Action',
-      headerClassName: 'min-w-[240px]',
+      headerClassName: showConditions ? 'min-w-[160px]' : 'min-w-[240px]',
       cell: (row) => (
         <>
           <p className="font-bold">{row.action}</p>
@@ -238,7 +244,7 @@ export default function AuditHistoryList({
     {
       key: 'actions',
       header: 'Actions',
-      headerClassName: 'min-w-[160px]',
+      headerClassName: showConditions && !onRelated ? 'min-w-[100px]' : 'min-w-[160px]',
       cell: (row) => (
         <div className="flex flex-wrap gap-2">
           <Button

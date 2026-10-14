@@ -25,6 +25,8 @@ async function main() {
   const { default: db } = await import('../src/lib/prisma');
   const { NutritionistAuditService } = await import('../src/services/nutritionist-audit.service');
   const { StaffAuditService } = await import('../src/services/staff-audit.service');
+  const { recordedReviewConditionsSql } = await import('../src/domain/recorded-review-conditions.sql');
+  const { Prisma } = await import('@prisma/client');
   try {
     const user = await db.user.create({ data: { name: 'Synthetic reviewer', email: 'meal-audit@example.invalid', passwordHash: 'unused', role: 'NUTRITIONIST' } });
     const reviewer = await db.nutritionistProfile.create({ data: { userId: user.id, prcLicenseNumber: 'synthetic-approval-audit', prcLicenseExpiry: new Date('2099-01-01'), isVerified: true } });
@@ -35,14 +37,18 @@ async function main() {
     const now = new Date('2026-10-13T08:00:00Z');
     const cycle = await db.mealPlanCycle.create({ data: { id: 'fixture-cycle', userId: user.id, planType: 'WEEKLY', startDate: now, endDate: now, preparationOpensAt: now, shoppingDeadlineAt: now, expectedSlotCount: 3 } });
     const expected: string[] = [];
+    let sourceDecisionId = '';
     for (const [index, savedId, decisionValue] of [[0, rootMeal.id, 'APPROVE'], [1, variant.id, 'APPROVE'], [2, rootMeal.id, 'REJECT'], [3, otherMeal.id, 'APPROVE']] as const) {
       // Deliberately change the current meal identity. The saved decision is authoritative.
       const plan = await db.mealPlan.create({ data: { ...food, planGroupId: cycle.id, userId: user.id, libraryMealId: otherMeal.id, scheduledDate: now } });
-      const decision = await db.mealPlanReviewDecision.create({ data: { mealPlanId: plan.id, nutritionistProfileId: reviewer.id, stage: 'PRIMARY', decision: decisionValue, evidenceSnapshot: index === 1 ? { mealName: 'Saved serving', reviewContext: { meal: { libraryMealId: savedId } } } : { mealName: 'Saved meal', libraryMealId: savedId } } });
+      const decision = await db.mealPlanReviewDecision.create({ data: { mealPlanId: plan.id, nutritionistProfileId: reviewer.id, stage: 'PRIMARY', decision: decisionValue, evidenceSnapshot: index === 1
+        ? { mealName: 'Saved serving', recordedProfile: { conditions: ['DIABETES'] }, reviewContext: { meal: { libraryMealId: savedId }, clinical: { conditions: ['HEART_CONDITION'], healthDetails: 'PRIVATE_CLINICAL' } } }
+        : { mealName: 'Saved meal', libraryMealId: savedId, recordedProfile: { conditions: ['HEART_CONDITION', 'DIABETES'], age: 57 }, rationale: 'PRIVATE_NOTE' } } });
+      if (index === 0) sourceDecisionId = decision.id;
       const event = await db.auditEvent.create({ data: { actorUserId: user.id, actorRole: 'NUTRITIONIST', action: decisionValue === 'APPROVE' ? 'MEAL_PLAN_APPROVED' : 'MEAL_PLAN_REJECTED', entityType: 'MealPlan', entityId: plan.id, metadata: { reviewDecisionId: decision.id }, createdAt: new Date(now.getTime() + index * 1000) } });
       if (index < 2) expected.push(event.id);
     }
-    const profileApproval = await db.mealLibraryProfileApproval.create({ data: { mealLibraryId: variant.id, safetyScopeKey: 'a'.repeat(64), recipeSignature: 'b'.repeat(64), evidenceRevision: 1, reviewerNutritionistId: reviewer.id, reviewPolicyVersion: 'SYNTHETIC', sourceProvenance: 'CERTIFIED_LIBRARY' } });
+    const profileApproval = await db.mealLibraryProfileApproval.create({ data: { mealLibraryId: variant.id, safetyScopeKey: 'a'.repeat(64), recipeSignature: 'b'.repeat(64), evidenceRevision: 1, reviewerNutritionistId: reviewer.id, reviewPolicyVersion: 'SYNTHETIC', sourceProvenance: 'CERTIFIED_LIBRARY', scopeSnapshot: { conditions: [] } } });
     const profileEvent = await db.auditEvent.create({ data: { actorUserId: user.id, actorRole: 'NUTRITIONIST', action: 'MEAL_APPROVAL_RECHECKED', entityType: 'MealLibraryProfileApproval', entityId: profileApproval.id } });
     expected.push(profileEvent.id);
     await db.auditEvent.createMany({ data: ['BASE_MEAL_VERIFIED', 'MEAL_BASE_FLAGGED', 'RND_REVIEW_SAVED_CONTEXT_ACCESSED'].map(action => ({ actorRole: 'NUTRITIONIST' as const, actorName: 'Synthetic reviewer', action, entityType: 'MealLibrary', entityId: rootMeal.id })) });
@@ -55,6 +61,29 @@ async function main() {
     assert.deepEqual(new Set(service.rows.map(row => row.id)), new Set(expected));
     assert.equal((await NutritionistAuditService.recipeCases(rootMeal.id, 1, db)).total, 3); // old case history includes rejection, not reusable events
     assert.equal(await db.auditEvent.count(), 8);
+    const heart = await StaffAuditService.history({ ...filters, condition: 'HEART_CONDITION', limit: 1 }, db);
+    const heartNext = await StaffAuditService.history({ ...filters, condition: 'HEART_CONDITION', limit: 1, page: 2 }, db);
+    assert.equal(heart.total, 2); assert.equal(heart.totalPages, 2);
+    assert.equal(heart.rows.length, 1); assert.notEqual(heart.rows[0].id, heartNext.rows[0].id);
+    assert.equal((await NutritionistAuditService.recipeCases(rootMeal.id, 1, db, true, 'DIABETES')).total, 1);
+    assert.deepEqual((await NutritionistAuditService.recipeCases(rootMeal.id, 1, db, true, 'NONE')).rows.map(row => row.id), [profileEvent.id]);
+    assert.equal((await NutritionistAuditService.recipeCases(rootMeal.id, 1, db, true, 'UNRECORDED')).total, 0);
+    assert(!/PRIVATE_|healthDetails|age/.test(JSON.stringify(service.rows)));
+    const reference = await db.mealReviewReference.create({ data: { decisionId: sourceDecisionId, policyVersion: 'EXACT_REVIEW_APPROVAL_V2', contextKey: 'c'.repeat(64), servingKey: 'd'.repeat(64), plateFacts: {} } });
+    const reused = await db.auditEvent.create({ data: { actorName: 'Kainara', action: 'MEAL_APPROVAL_REUSED', entityType: 'MealPlan', entityId: 'synthetic-reused-plan', metadata: { referenceId: reference.id, libraryMealId: rootMeal.id } } });
+    const withReuse = await NutritionistAuditService.recipeCases(rootMeal.id, 1, db, true, 'HEART_CONDITION');
+    assert.equal(withReuse.total, 3);
+    assert.deepEqual(withReuse.rows.find(row => row.id === reused.id)?.conditionCodes, ['DIABETES', 'HEART_CONDITION']);
+    for (const [snapshot, expectedCodes] of [
+      [{}, null], [{ recordedProfile: { conditions: null } }, null], [{ conditions: [] }, []],
+      [{ conditions: ['NONE'] }, []], [{ conditions: ['PRIVATE_CUSTOM'] }, null],
+      [{ conditions: ['HEART_CONDITION', 'PRIVATE_CUSTOM', 'HEART_CONDITION'] }, ['HEART_CONDITION']],
+      [{ reviewContext: { clinical: { conditions: [] } }, recordedProfile: { conditions: ['DIABETES'] } }, []],
+    ] as const) {
+      const result = await db.$queryRaw<Array<{ codes: unknown }>>(Prisma.sql`SELECT ${recordedReviewConditionsSql(Prisma.sql`${JSON.stringify(snapshot)}::jsonb`)} AS codes`);
+      assert.deepEqual(result[0].codes, expectedCodes);
+    }
+    console.log('PASS: saved condition filtering occurs before pagination; missing and absent conditions differ; exact reuse resolves original conditions; only built-in codes leave SQL.');
     console.log('PASS: approval-only SQL filters before counts/paging, includes serving family and reusable rechecks, excludes unrelated/negative/access events, and follows saved identity after current meal changes. All records retained in owned loopback fixture.');
   } finally { await db.$disconnect(); }
 }

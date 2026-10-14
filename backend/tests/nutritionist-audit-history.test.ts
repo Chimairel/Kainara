@@ -22,6 +22,20 @@ test('staff history binds search, pagination and dates rather than injecting the
   assert.equal(result.totalPages, 3);
   assert.equal(result.page, 3);
 });
+test('condition filtering is bound and uses saved conditions before pagination', async () => {
+  const attack = "HEART_CONDITION' OR true --";
+  const db = { $queryRaw: async (query: { strings: string[]; values: unknown[] }) => {
+    const sql = query.strings.join('');
+    assert(!sql.includes(attack));
+    assert(query.values.includes(JSON.stringify([attack])));
+    assert(sql.indexOf('"conditionCodes" @>') < sql.indexOf('paged AS'));
+    assert(sql.includes('audit_decision."evidenceSnapshot"'));
+    assert(sql.includes('reuse_decision."evidenceSnapshot"'));
+    assert(!sql.includes('"HealthCondition"'));
+    return [{ total: 0n, rows: [] }];
+  } } as unknown as typeof prisma;
+  assert.equal((await StaffAuditService.history({ view: 'nutritionist', condition: attack }, db)).total, 0);
+});
 
 test('nutritionist audit retains its existing presentation contract and includes administrator meal flags', async () => {
   const db = {

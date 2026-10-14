@@ -2,6 +2,7 @@ import { mealFlagSubmissionSchema, mealReviewSubmissionSchema } from '@/validati
 import { MealReviewService } from '@/services/meal-review.service';
 import { AppError } from '@/errors/AppError';
 import { NutritionistAuditService } from '@/services/nutritionist-audit.service';
+import { recipeCaseHistoryQuery } from '@/validation/recipe-case-history.schema';
 import { Router, Response } from 'express';
 import { z } from 'zod';
 import { AuthenticatedRequest } from '@/types';
@@ -147,10 +148,10 @@ router.get('/library/:id', async (req: AuthenticatedRequest, res: Response) => {
 
 router.get('/library/:id/case-history', asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
   const id = z.object({ id: z.string().min(1).max(191) }).strict().safeParse(req.params);
-  const page = z.object({ page: z.coerce.number().int().min(1).max(100000).default(1), approvalsOnly: z.enum(['true']).optional() }).strict().safeParse(req.query);
+  const page = recipeCaseHistoryQuery.safeParse(req.query);
   if (!id.success || !page.success) return res.status(400).json({ success: false, error: 'Check the meal and approval history filters.' });
   res.setHeader('Cache-Control', 'private, no-store');
-  res.json({ success: true, data: await NutritionistAuditService.recipeCases(id.data.id, page.data.page, undefined, page.data.approvalsOnly === 'true') });
+  res.json({ success: true, data: await NutritionistAuditService.recipeCases(id.data.id, page.data.page, undefined, page.data.approvalsOnly === 'true', page.data.condition) });
 }));
 router.get('/library/:id/approvals', async (req: AuthenticatedRequest, res: Response) => {
   try {

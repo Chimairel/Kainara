@@ -75,7 +75,7 @@ export default function CaseReviewDocument({ model }: { model: Model }) {
           <>
             {relatedReviewConditions(detailData).length > 0 && (
               <Button variant="secondary" size="sm" onClick={() => {
-                if (!referencesOpen) setReferenceView(initialRelatedReviewView);
+                if (!referencesOpen) setReferenceView({ ...initialRelatedReviewView, search: formatMealTitle(meal.mealName) });
                 setReferenceRequest(previous => ({ key: referenceKey, request: (previous?.request ?? 0) + 1 }));
               }}>Related reviews</Button>
             )}

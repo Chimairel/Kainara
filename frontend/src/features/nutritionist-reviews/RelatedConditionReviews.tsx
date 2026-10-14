@@ -14,14 +14,12 @@ import Pagination from '@/components/ui/Pagination';
 import WorkspaceTable from '@/components/shared/WorkspaceTable';
 import MealIngredientTable from '@/components/shared/MealIngredientTable';
 import type { DetailData } from './review-types';
+import { reviewConditionLabels as conditionLabels, recordedConditionsLabel } from '@/lib/recorded-review-conditions';
 
-const conditionLabels: Record<string, string> = {
-  DIABETES: 'Diabetes', HYPERTENSION: 'Hypertension', KIDNEY_DISEASE: 'Kidney disease',
-  HEART_CONDITION: 'Heart condition', PREGNANT: 'Pregnancy',
-};
 type ReviewRow = {
   id: string; mealName: string; decision: 'APPROVE' | 'REJECT'; reviewedAt: string;
   reviewerName: string | null; needsReview: boolean;
+  conditionCodes?: string[] | null;
   plateFacts: { calories: number; proteinG: number; carbsG: number; fatG: number } | null;
   ingredients: Array<{ name: string; quantity: number | null; unit: string | null; source: string }>;
 };
@@ -104,6 +102,7 @@ function ConditionReviewBrowser({ mealId, conditions, expectedContextKey, view, 
           emptyMessage={query ? 'No completed reviews match this meal name.' : 'No completed reviews for this condition yet.'}
           columns={[
             { key: 'meal', header: 'Meal', cell: row => <span className="block min-w-36 font-bold">{formatMealTitle(row.mealName)}</span> },
+            { key: 'conditions', header: 'Condition', cell: row => <span className="block min-w-32">{recordedConditionsLabel(row.conditionCodes)}</span> },
             { key: 'decision', header: 'Decision', cell: row => <div className="min-w-24">
               <span className={row.decision === 'APPROVE' ? 'text-status-verified-text font-bold' : 'text-status-error-text font-bold'}>
                 {row.decision === 'APPROVE' ? 'Approved' : 'Rejected'}

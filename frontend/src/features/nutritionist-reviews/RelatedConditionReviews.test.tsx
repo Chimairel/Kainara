@@ -11,7 +11,7 @@ vi.mock('sonner', () => ({ toast: { error: vi.fn() } }));
 const detail = { mealPlan: { id: 'current-meal' }, user: { conditions: ['HEART_CONDITION', 'DIABETES'] },
   reviewContext: { contextKey: 'current-key' } } as unknown as DetailData;
 const row = { id: 'record', mealName: 'Recorded heart meal', decision: 'APPROVE', reviewedAt: '2026-10-13T10:00:00Z',
-  reviewerName: 'Original RND', needsReview: false, plateFacts: { calories: 500, proteinG: 20, carbsG: 0, fatG: 10 },
+  reviewerName: 'Original RND', needsReview: false, conditionCodes: ['HEART_CONDITION'], plateFacts: { calories: 500, proteinG: 20, carbsG: 0, fatG: 10 },
   ingredients: [{ name: 'Recorded vegetable', quantity: 100, unit: 'g', source: 'FNRI' }] };
 const page = { data: { data: { condition: 'HEART_CONDITION', rows: [row], total: 11, page: 1, totalPages: 2 } } };
 afterEach(() => vi.resetAllMocks());
@@ -21,6 +21,7 @@ it('shows saved meal evidence inline and keeps comparison separate from approval
   const panel = screen.getByRole('region', { name: 'Related condition reviews', exact: true });
   expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   await within(panel).findByText('Original RND');
+  expect(within(panel).getByRole('cell', { name: 'Heart condition' })).toBeVisible();
   expect(api.get).toHaveBeenCalledWith('/nutritionist/queue/current-meal/condition-reviews', expect.objectContaining({
     params: expect.objectContaining({ condition: 'HEART_CONDITION', expectedContextKey: 'current-key', page: 1 }),
   }));

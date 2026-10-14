@@ -8,6 +8,7 @@ import {
   nutritionistAuditActions,
 } from '@/domain/audit-history.policy';
 import { normalizePagination } from '@/policies/pagination.policy';
+import { recordedReviewConditionsSql } from '@/domain/recorded-review-conditions.sql';
 
 export type StaffAuditFilters = {
   view: 'admin' | 'nutritionist';
@@ -25,6 +26,7 @@ export type StaffAuditFilters = {
   changesOnly?: boolean;
   approvalActionsOnly?: boolean;
   recipeCase?: { libraryIds: string[]; sourceId: string | null };
+  condition?: string;
 };
 type AuditRecord = {
   id: string;
@@ -36,9 +38,10 @@ type AuditRecord = {
   subject: string;
   targetType: string;
   targetId: string | null;
+  conditionCodes: string[] | null;
 };
 
-/** Only public staff summaries leave the database; metadata, reasons and health answers are excluded. */
+/** Staff summaries expose recorded built-in conditions; private answers and full snapshots stay in the database. */
 export class StaffAuditService {
   static async history(filters: StaffAuditFilters, db = prisma) {
     const { page, limit } = normalizePagination(filters.page ?? 1, filters.limit ?? 20, 20);
@@ -55,6 +58,9 @@ export class StaffAuditService {
     if (filters.approvalActionsOnly)
       conditions.push(Prisma.sql`"actionCode" IN (${Prisma.join([...mealApprovalAuditActions])})`);
     if (filters.changesOnly) conditions.push(Prisma.sql`"actionCode" !~ '_ACCESSED$'`);
+    if (filters.condition === 'NONE') conditions.push(Prisma.sql`"conditionCodes" = '[]'::jsonb`);
+    else if (filters.condition === 'UNRECORDED') conditions.push(Prisma.sql`"conditionCodes" IS NULL`);
+    else if (filters.condition) conditions.push(Prisma.sql`"conditionCodes" @> ${JSON.stringify([filters.condition])}::jsonb`);
     if (filters.recipeCase) {
       const { libraryIds, sourceId } = filters.recipeCase;
       const recordedCase = Prisma.sql`(EXISTS (
@@ -135,9 +141,18 @@ export class StaffAuditService {
               WHEN 'NutritionistApplication' THEN 'Nutritionist application' WHEN 'WebsiteContent' THEN 'Website media'
               ELSE regexp_replace(e."entityType", '([a-z])([A-Z])', chr(92) || '1 ' || chr(92) || '2', 'g') END) AS subject,
           CASE WHEN m.id IS NOT NULL THEN CASE WHEN COALESCE(root."sourceRawRecipeCandidateId", m."sourceRawRecipeCandidateId") IS NOT NULL THEN 'RecipeSource' ELSE 'MealLibrary' END WHEN raw.id IS NOT NULL THEN 'RecipeSource' ELSE e."entityType" END AS "targetType",
-          COALESCE(root."sourceRawRecipeCandidateId", m."sourceRawRecipeCandidateId", m."recipeFamilyId", e."entityId") AS "targetId"
+          COALESCE(root."sourceRawRecipeCandidateId", m."sourceRawRecipeCandidateId", m."recipeFamilyId", e."entityId") AS "targetId",
+          COALESCE(${recordedReviewConditionsSql(Prisma.sql`audit_decision."evidenceSnapshot"`)},
+            ${recordedReviewConditionsSql(Prisma.sql`reuse_decision."evidenceSnapshot"`)},
+            ${recordedReviewConditionsSql(Prisma.sql`profile_approval."scopeSnapshot"`)},
+            CASE WHEN condition_approval.condition IS NOT NULL AND condition_approval.condition <> 'NONE'
+              THEN jsonb_build_array(condition_approval.condition) END) AS "conditionCodes"
         FROM "AuditEvent" e LEFT JOIN "User" u ON u.id = e."actorUserId"
         LEFT JOIN "MealPlanReviewDecision" audit_decision ON e."entityType" = 'MealPlan' AND audit_decision."mealPlanId" = e."entityId" AND audit_decision.id = e.metadata->>'reviewDecisionId'
+        LEFT JOIN "MealReviewReference" reuse_reference ON e.action = 'MEAL_APPROVAL_REUSED' AND reuse_reference.id = e.metadata->>'referenceId'
+        LEFT JOIN "MealPlanReviewDecision" reuse_decision ON reuse_decision.id = reuse_reference."decisionId"
+        LEFT JOIN "MealLibraryProfileApproval" profile_approval ON e."entityType" = 'MealLibraryProfileApproval' AND profile_approval.id = e."entityId"
+        LEFT JOIN "MealConditionClearance" condition_approval ON e."entityType" = 'MealConditionClearance' AND condition_approval.id = e."entityId"
         LEFT JOIN "NutritionistProfile" legacy_profile ON legacy_profile.id = e.metadata->>'reviewerProfileId'
         LEFT JOIN "User" legacy_reviewer ON legacy_reviewer.id = legacy_profile."userId"
         LEFT JOIN "MealLibrary" m ON m.id = e."entityId" AND e."entityType" IN ('MealLibrary','LIBRARY_MEAL')
@@ -146,7 +161,7 @@ export class StaffAuditService {
       ), legacy_flags AS (
         SELECT DISTINCT ON (f."targetType", f."targetId", f."actorId", f."createdAt", f.reason)
           'flag:' || f.id AS id, f."createdAt" AS "occurredAt", f."actorId", f.actor, f.role,
-          'MEAL_BASE_FLAGGED' AS "actionCode", f.subject, f."targetType", f."targetId"
+          'MEAL_BASE_FLAGGED' AS "actionCode", f.subject, f."targetType", f."targetId", NULL::jsonb AS "conditionCodes"
         FROM flag_origins f WHERE NOT EXISTS (
           SELECT 1 FROM events e WHERE e."actionCode" = 'MEAL_BASE_FLAGGED'
           AND e."actorId" IS NOT DISTINCT FROM f."actorId"

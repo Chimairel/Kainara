@@ -80,16 +80,18 @@ test('admin library HTTP access uses current role and exposes no clinical mutati
   }
   role = 'ADMIN';
   assert.equal((await fetch(`${base}/base/case-history`)).status, 401);
-  for (const query of ['page=0', 'page=1&actorId=other', 'approvalsOnly=false', 'approvalsOnly=true&approvalsOnly=false']) {
+  for (const query of ['page=0', 'page=1&actorId=other', 'approvalsOnly=false', 'approvalsOnly=true&approvalsOnly=false', 'condition=OTHER', 'condition=DIABETES&condition=HEART_CONDITION']) {
     assert.equal((await fetch(`${base}/base/case-history?${query}`, { headers })).status, 400);
   }
   assert.equal(calls.length, 0);
   const approvalResponse = await fetch(`${base}/base/case-history?page=2&approvalsOnly=true`, { headers });
   assert.equal(approvalResponse.status, 200);
   assert.equal(approvalResponse.headers.get('cache-control'), 'private, no-store');
-  assert.deepEqual(calls[0], ['base', 2, undefined, true]);
+  assert.deepEqual(calls[0], ['base', 2, undefined, true, undefined]);
   assert.equal((await fetch(`${base}/base/case-history`, { headers })).status, 200);
-  assert.deepEqual(calls[1], ['base', 1, undefined, false]);
+  assert.deepEqual(calls[1], ['base', 1, undefined, false, undefined]);
+  assert.equal((await fetch(`${base}/base/case-history?approvalsOnly=true&condition=HEART_CONDITION`, { headers })).status, 200);
+  assert.deepEqual(calls[2], ['base', 1, undefined, true, 'HEART_CONDITION']);
   assert.equal((await fetch(`${base}?verifiedByMe=true`, { headers })).status, 200);
   assert.equal((await fetch(`${base}/base`, { headers })).status, 200);
   for (const route of ['release-flag', 'safety-evidence/certify', 'derive']) {

@@ -109,6 +109,7 @@ export default function NutritionistAuditPage() {
                   key={`${ownerId}:${page}:${mine}`}
                   ownerId={ownerId}
                   endpoint="/nutritionist/audit-history"
+                  showConditions
                   rows={history.data.rows.map((row) => ({
                     ...row,
                     actor: row.actor ?? row.nutritionist ?? 'Actor not recorded',

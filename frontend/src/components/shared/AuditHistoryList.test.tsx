@@ -32,6 +32,17 @@ beforeEach(() => {
   clearSessionResourceCache();
   mocks.get.mockResolvedValue({ data: { success: true, data: details } });
 });
+it('distinguishes saved conditions, an explicit absence, and an unknown old record', () => {
+  render(<AuditHistoryList rows={[
+    { ...row, id: 'heart', conditionCodes: ['HEART_CONDITION', 'DIABETES'] },
+    { ...row, id: 'none', conditionCodes: [] },
+    { ...row, id: 'old', conditionCodes: null },
+  ]} ownerId="rnd" endpoint="/nutritionist/audit-history" showConditions />);
+  expect(screen.getByRole('cell', { name: 'Heart condition, Diabetes' })).toBeVisible();
+  expect(screen.getByRole('cell', { name: 'None declared' })).toBeVisible();
+  expect(screen.getByRole('cell', { name: 'Not recorded' })).toBeVisible();
+  expect(mocks.get).not.toHaveBeenCalled();
+});
 it('loads only on expansion and presents recorded changes, zero and missing nutrients', async () => {
   render(<AuditHistoryList rows={[row]} ownerId="admin" endpoint="/admin/audit-history" canAuthor />);
   expect(mocks.get).not.toHaveBeenCalled();
