@@ -1,9 +1,32 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import CaseReviewWorkspace from './CaseReviewWorkspace';
 import type { useNutritionistReviews } from './useNutritionistReviews';
 
 describe('case detail load failure', () => {
+  it('shows an independence restriction before the other-claim state and offers no retry or claim', () => {
+    const back = vi.fn();
+    const claim = vi.fn();
+    const review = {
+      queue: [{ id: 'another-case', mealName: 'Other case', mealType: 'LUNCH', user: { name: 'Synthetic member' },
+        sourceProvenance: 'RAW_RECIPE_CORPUS', assuranceTier: 'BASE', remainingReviewers: 1,
+        claimStatus: { claimedByMe: true, claimedByOther: false } }],
+      isLoading: false, selectedMealId: 'flagged-case', detailLoading: false, detailData: null,
+      claimBlocked: true, errorMsg: null, actionLoading: null, setSelectedMealId: back, handleClaimMeal: claim,
+    } as unknown as ReturnType<typeof useNutritionistReviews>;
+    render(<CaseReviewWorkspace review={review} caseFilter="pending" expanded={false} setExpanded={vi.fn()} navigation={null} caseFilters={null} />);
+    const button = screen.getByRole('button', { name: 'Another RND required' });
+    expect(button).toBeDisabled();
+    expect(button).toHaveClass('!bg-[#fff4df]');
+    expect(screen.getByRole('region', { name: 'Independent review required' })).toBeVisible();
+    expect(screen.queryByText('Review details unavailable')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Retry details' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    fireEvent.click(button);
+    expect(claim).not.toHaveBeenCalled();
+    fireEvent.click(within(screen.getByRole('region', { name: 'Independent review required' })).getByRole('button', { name: 'Back to queue' }));
+    expect(back).toHaveBeenCalledWith(null);
+  });
   it('returns to the queue after selection clears, even if previous details and fullscreen state remain', () => {
     const close = vi.fn();
     const review = {

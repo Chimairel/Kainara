@@ -12,6 +12,55 @@ const preview = {
   claimStatus: { claimedByMe: false, claimedByOther: false, claimedByName: null, claimExpiresAt: null },
 };
 
+it('treats reviewer independence as a blocked claim, without error logging, status retries or claim requests', async () => {
+  vi.resetAllMocks(); auth.owner = 'nutritionist-1';
+  const errorLog = vi.spyOn(console, 'error').mockImplementation(() => {});
+  vi.mocked(api.get).mockImplementation(async url => {
+    if (url === '/nutritionist/queue/meal-1') throw { response: { data: { errorCode: 'APPROVAL_REVIEW_INDEPENDENCE' } } };
+    return { data: { success: true, data: url === '/nutritionist/queue' ? [] : { ...preview, mealPlan: { ...preview.mealPlan, id: 'meal-2' } } } };
+  });
+  const { result, unmount } = renderHook(() => useNutritionistReviews());
+  try {
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    await act(() => result.current.handleSelectMeal('meal-1'));
+    expect(result.current.selectedMealId).toBe('meal-1');
+    expect(result.current.claimBlocked).toBe(true);
+    expect(result.current.errorMsg).toBeNull();
+    expect(result.current.detailData).toBeNull();
+    expect(errorLog).not.toHaveBeenCalled();
+    await act(async () => {
+      window.dispatchEvent(new Event('kainara:live-update'));
+      await result.current.handleClaimMeal();
+      await result.current.handleSelectMeal('meal-1');
+    });
+    expect(api.get).not.toHaveBeenCalledWith('/nutritionist/queue/meal-1/status', expect.anything());
+    expect(vi.mocked(api.get).mock.calls.filter(([url]) => url === '/nutritionist/queue/meal-1')).toHaveLength(1);
+    expect(api.post).not.toHaveBeenCalled();
+    await act(() => result.current.handleSelectMeal('meal-2'));
+    expect(result.current.claimBlocked).toBe(false);
+    expect(result.current.detailData?.mealPlan.id).toBe('meal-2');
+  } finally { unmount(); errorLog.mockRestore(); }
+});
+
+it('stops status polling when an open review becomes restricted to an independent RND', async () => {
+  vi.resetAllMocks(); auth.owner = 'nutritionist-1';
+  vi.mocked(api.get).mockImplementation(async url => {
+    if (String(url).endsWith('/status')) throw { response: { data: { errorCode: 'APPROVAL_REVIEW_INDEPENDENCE' } } };
+    return { data: { success: true, data: url === '/nutritionist/queue' ? [] : preview } };
+  });
+  const { result, unmount } = renderHook(() => useNutritionistReviews());
+  await waitFor(() => expect(result.current.isLoading).toBe(false));
+  await act(() => result.current.handleSelectMeal('meal-1'));
+  await act(async () => { window.dispatchEvent(new Event('kainara:live-update')); });
+  await waitFor(() => expect(result.current.claimBlocked).toBe(true));
+  expect(result.current.detailData).toBeNull();
+  vi.mocked(api.get).mockClear();
+  await act(async () => { window.dispatchEvent(new Event('kainara:live-update')); });
+  expect(api.get).not.toHaveBeenCalledWith('/nutritionist/queue/meal-1/status', expect.anything());
+  expect(result.current.errorMsg).toBeNull();
+  unmount();
+});
+
 it('does not claim another case while the loaded queue contains my active claim', async () => {
   vi.resetAllMocks(); auth.owner = 'nutritionist-1';
   vi.mocked(api.get).mockImplementation(async url => ({ data: { success: true,

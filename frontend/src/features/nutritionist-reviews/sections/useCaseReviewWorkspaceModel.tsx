@@ -20,6 +20,7 @@ export function useCaseReviewWorkspaceModel({
     setSelectedMealId,
     detailLoading,
     detailData,
+    claimBlocked,
     actionLoading,
     generalNote,
     setGeneralNote,
@@ -33,7 +34,14 @@ export function useCaseReviewWorkspaceModel({
   const hasAnotherClaim = queue.some(meal => meal.id !== selectedMealId && meal.claimStatus.claimedByMe);
 
   const claimHeader = selectedMealId ? (
-    activeClaimStatus?.claimedByMe ? (
+    claimBlocked ? (
+      <Button size="sm" variant="secondary" disabled aria-label="Another RND required"
+        title="An independent RND must review this flagged approval."
+        className="!border-[#ecc583] !bg-[#fff4df] !text-[#7a3b00] !opacity-100 dark:!border-[#75572c] dark:!bg-[#3a2d16] dark:!text-[#ffcd82]">
+        <ShieldCheck aria-hidden="true" className="mr-2 h-4 w-4" />
+        Another RND required
+      </Button>
+    ) : activeClaimStatus?.claimedByMe ? (
       <div className="flex items-center gap-2 rounded-xl border border-brand-green/35 bg-brand-surface/95 px-3 py-1.5 text-xs text-brand-green shadow-md backdrop-blur-md">
         <ShieldCheck className="h-3.5 w-3.5 shrink-0 text-brand-green" />
         <span className="font-semibold text-xs text-brand-text">
@@ -82,6 +90,7 @@ export function useCaseReviewWorkspaceModel({
     claimHeader,
     setSelectedMealId,
     detailLoading,
+    claimBlocked,
     errorMsg,
     detailData,
     generalNote,

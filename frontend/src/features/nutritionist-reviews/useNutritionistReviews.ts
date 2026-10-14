@@ -32,6 +32,8 @@ export function useNutritionistReviews(enabled = true) {
   }, []);
   const [detailLoading, setDetailLoading] = useState(false);
   const [detailData, setDetailData] = useState<DetailData | null>(null);
+  const [blockedCaseId, setBlockedCaseId] = useState<string | null>(null);
+  const claimBlocked = Boolean(selectedMealId && blockedCaseId === selectedMealId);
   const detailRef = useRef(detailData);
   const canvasLayout = useRef<import('./ReviewCanvas').ReviewCanvasLayout | null>(null);
   const canvasReference = useRef<ReviewPayload['canvasReference'] | null>(null);
@@ -77,6 +79,13 @@ export function useNutritionistReviews(enabled = true) {
   const retireInactiveReview = (failure: unknown, id: string | null, notice?: string) => {
     const data = (failure as { response?: { data?: { code?: string; errorCode?: string } } } | null)?.response?.data;
     const code = data?.code ?? data?.errorCode;
+    if (code === 'APPROVAL_REVIEW_INDEPENDENCE' && id && liveSelection.current === id && liveOwner.current === ownerId) {
+      setBlockedCaseId(id);
+      setDetailData(null);
+      setErrorMsg(null);
+      setDetailLoading(false);
+      return true;
+    }
     if (
       ![
         'MEAL_REVIEW_INACTIVE',
@@ -124,6 +133,7 @@ export function useNutritionistReviews(enabled = true) {
     resetQueue();
     setSelectedMealId(null);
     setDetailData(null);
+    setBlockedCaseId(null);
     setReviewNotice(null);
     setSavedReviewNotes([]);
     setGeneralNote('');
@@ -193,7 +203,7 @@ export function useNutritionistReviews(enabled = true) {
       }
     },
     {
-      enabled: enabled && Boolean(selectedMealId) && !actionLoading,
+      enabled: enabled && Boolean(selectedMealId) && !actionLoading && !claimBlocked,
       intervalMs: 15000,
       immediate: false,
       scopeKey: `${ownerId}:${selectedMealId}`,
@@ -201,6 +211,8 @@ export function useNutritionistReviews(enabled = true) {
   );
 
   const handleSelectMeal = async (id: string) => {
+    if (claimBlocked && selectedMealId === id) return;
+    setBlockedCaseId(null);
     canvasLayout.current = null;
     canvasReference.current = null;
     setSelectedMealId(id);
@@ -239,7 +251,7 @@ export function useNutritionistReviews(enabled = true) {
   };
 
   const handleClaimMeal = async () => {
-    if (!selectedMealId || detailLoading || !detailData) return;
+    if (!selectedMealId || detailLoading || !detailData || claimBlocked) return;
     if (queue.some(meal => meal.id !== selectedMealId && meal.claimStatus.claimedByMe)) {
       setErrorMsg('Finish your claimed review before claiming another case.');
       return;
@@ -366,6 +378,7 @@ export function useNutritionistReviews(enabled = true) {
     selectedMealId: resourceOwner.current === ownerId ? selectedMealId : null,
     setSelectedMealId,
     detailLoading,
+    claimBlocked: resourceOwner.current === ownerId && claimBlocked,
     detailData: resourceOwner.current === ownerId ? detailData : null,
     actionLoading,
     rejectNote,

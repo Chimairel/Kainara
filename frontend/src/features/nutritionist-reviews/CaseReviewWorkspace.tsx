@@ -32,7 +32,7 @@ export default function CaseReviewWorkspace({
   const model = useCaseReviewWorkspaceModel({ review, caseFilter, expanded, setExpanded, navigation, caseFilters });
   const [notesOpen, setNotesOpen] = useState(false);
 
-  const { selectedMealId, claimHeader, setSelectedMealId, detailLoading, errorMsg, detailData } = model;
+  const { selectedMealId, claimHeader, setSelectedMealId, detailLoading, errorMsg, detailData, claimBlocked } = model;
   useEffect(() => {
     if (!selectedMealId && expanded) setExpanded(false);
   }, [selectedMealId, expanded, setExpanded]);
@@ -165,7 +165,14 @@ export default function CaseReviewWorkspace({
                 onBack={() => setSelectedMealId(null)}
                 className={`${selectedMealId ? 'flex' : 'hidden md:flex'} h-full min-w-0 flex-1 flex-col overflow-hidden bg-transparent`}
               >
-                {detailLoading ? (
+                {claimBlocked ? (
+                  <section aria-label="Independent review required" aria-live="polite" className="mx-auto my-12 max-w-md space-y-3 px-5 text-sm">
+                    <ShieldCheck aria-hidden="true" className="h-7 w-7 text-[#8c3b00] dark:text-[#ffcd82]" />
+                    <h3 className="font-display text-xl font-semibold">Another RND must review this flag</h3>
+                    <p className="leading-6 text-brand-muted">Previous reviewers and the flagger cannot claim this case.</p>
+                    <Button variant="secondary" size="sm" onClick={() => setSelectedMealId(null)}>Back to queue</Button>
+                  </section>
+                ) : detailLoading ? (
                   <div className="flex-1">
                     <ReviewDetailSkeleton />
                   </div>
