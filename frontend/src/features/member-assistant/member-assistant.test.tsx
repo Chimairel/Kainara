@@ -16,6 +16,21 @@ beforeEach(() => {
 });
 afterEach(() => { vi.useRealTimers(); vi.restoreAllMocks(); });
 
+it('answers the reported kcal and numbered-target questions locally without credit consent or message POSTs', async () => {
+  vi.mocked(api.get).mockResolvedValue({ data: { data: { enabled: true, allowance: { ...allowance, used: 5, remaining: 0 } } } });
+  const { result } = renderHook(() => useMemberAssistant(true));
+  await waitFor(() => expect(result.current.enabled).toBe(true));
+  for (const message of ['how do you calculate my kcal?', 'why is my daily target 2571?']) {
+    act(() => result.current.send(undefined, message));
+    expect(result.current.messages.at(-1)?.text).toContain('TDEE = BMR');
+    expect(result.current.messages.at(-1)?.reply?.creditsUsed).toBe(0);
+    expect(result.current.pending).toBeNull();
+  }
+  expect(api.post).not.toHaveBeenCalled();
+  expect(api.get).toHaveBeenCalledTimes(1);
+  expect(result.current.allowance?.remaining).toBe(0);
+});
+
 it('answers repeated information and navigation questions entirely in the browser', async () => {
   const { result } = renderHook(() => useMemberAssistant(true));
   await waitFor(() => expect(result.current.enabled).toBe(true));

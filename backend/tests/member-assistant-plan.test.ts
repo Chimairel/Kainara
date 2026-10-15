@@ -36,6 +36,22 @@ test('math, completion holds, profile destinations, questions and support fallba
   assert.equal(assistantStaticReply('how do I calculate the protein I should eat for diabetes?'), null);
 });
 
+test('app energy explanations accept units, numeric targets and word order without opening unrelated food or treatment requests', () => {
+  for (const question of ['how do you calculate my kcal?', 'why is my daily target 2571?',
+    'why is my daily target 2,571 kcal?', 'why is my daily goal 1800?', 'how come my calories are 2100?',
+    'my kcal is based on what?', 'where did my calorie target come from?', 'how is my energy budget computed?',
+    'how does KAINARA calculate calories?', 'my kilocalories: how are they calculated?', 'explain my calorie target']) {
+    const reply = assistantStaticReply(question);
+    assert.match(reply?.text ?? '', /BMR = 10/ , question);
+    assert.match(reply?.text ?? '', /TDEE = BMR/ , question);
+    assert.ok(reply?.links.some(link => link.href === '/profile/nutrition-report'), question);
+    assert.doesNotMatch(reply?.text ?? '', /(?:your|my) (?:daily )?target is (?:2571|2,571|1800)/i);
+  }
+  for (const question of ['how many kcal in pandesal?', 'how do you calculate kcal in adobo?',
+    'how many calories should I eat?', 'what should my daily target be for diabetes?'])
+    assert.equal(assistantStaticReply(question), null, question);
+});
+
 test('day requirements reuse aggregation, separate dates, include rice and preserve unknown quantities', () => {
   const base = { ingredients: [{ ingredientName: 'Chicken', quantity: 0.1, unit: 'kg' }, { ingredientName: 'Salt', quantity: null, unit: null }],
     servingComponents: [{ quantityG: 225, foodItem: { name: 'Cooked rice', category: 'Grains' } }] };

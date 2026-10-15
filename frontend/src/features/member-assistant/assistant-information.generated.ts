@@ -138,6 +138,17 @@ export function assistantInformationReply(message: string): AssistantInformation
   if (/\b(should|safe|allowed|prescribe|treat)\b/.test(text)
     && /\b(eat|consume|take|protein|carbs|fat|sodium|potassium|calories)\b/.test(text)
     && /\b(diabetes|diabetic|kidney|hypertension|pregnant|heart|condition)\b/.test(text)) return null;
+  // Identify the member's app estimate independently of a particular number,
+  // unit abbreviation or word order. Do not interpret typed values as saved facts.
+  const ownEstimate = /\b(my|mine|our|kainara|system|app)\b/.test(text);
+  const energyEstimate = /\b(kcals?|kilocalories?|calories?|daily target|daily goal|energy target|energy needs|energy budget)\b/.test(text);
+  const explainEstimate = /\b(calculate|calculates|calculated|calculating|calculation|calculations|compute|computes|computed|computing|explain|determined|formula|math|why|how come|come from|came from|based on|basis)\b/.test(text);
+  const personalPrescription = /\b(should i|should my|should be|should eat|should consume|should take|how much.*need|how many.*need)\b/.test(text);
+  if (ownEstimate && energyEstimate && personalPrescription) return null;
+  if (ownEstimate && energyEstimate && explainEstimate && !personalPrescription) return {
+    text: 'KAINARA derives the daily energy estimate from the profile saved in your acknowledged planning report. First, BMR = 10 × weight (kg) + 6.25 × height (cm) − 5 × age, then +5 for male or −161 for female. TDEE = BMR × activity factor: sedentary 1.2, lightly active 1.375, active 1.55 or very active 1.725. The current draft goal adjustment is −500 kcal for weight loss, +500 for weight gain, 0 for maintenance or +300 for muscle building; the final estimate is rounded to whole kcal. These explain the software estimate, not a new personal prescription. Open Nutrition guidance to see the saved inputs and dated estimate behind the number shown in your account; a number typed into chat does not verify that record. Health & goals is where you can correct your profile details.',
+    links: [{ label: 'Nutrition guidance', href: '/profile/nutrition-report' }, { label: 'Health & goals', href: '/profile/health' }],
+  };
   const help = extendedHelp.find(entry => entry.match.test(text));
   if (help) return { text: help.text, links: help.links };
   if (/\b(?:about|purpose|features)\b|^(?:what is|whats|what does|what can|tell me about|explain|unsa|ano)\b|^how does .+ work\b/.test(text)

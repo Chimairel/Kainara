@@ -92,7 +92,8 @@ test('information works at zero credits without provider calls, reservations, re
   const provider = t.mock.method(GoogleGenerativeAI.prototype, 'getGenerativeModel', () => { throw new Error('no provider'); });
   mockDelegate(t, prisma.userProfile, 'update', async () => { throw new Error('no profile write'); });
   mockDelegate(t, prisma.mealLog, 'create', async () => { throw new Error('no meal log'); });
-  for (const message of ['what is the system all about?', 'how to change my weight', 'change my plan', 'how to log an outside meal?']) {
+  for (const message of ['what is the system all about?', 'how to change my weight', 'change my plan', 'how to log an outside meal?',
+    'how do you calculate my kcal?', 'why is my daily target 2571?']) {
     for (const allowAi of [false, true]) {
       const result = await Assistant.message('member', { ...input(), message, allowAi });
       assert.equal(result.confirmationRequired, false);

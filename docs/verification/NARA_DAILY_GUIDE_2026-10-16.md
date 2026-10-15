@@ -24,3 +24,9 @@ Date: October 16, 2026 (Asia/Singapore). Branch: `codex/member-assistant`. Base:
 ## Release boundary
 
 Feature branch only. No Neon reads/writes, real Gemini calls, hosted migrations, feature-flag changes or demo deployment. Nara remains unreleased. Existing local test records and the exact earlier capstone documentation handoff are independent artifacts. Tests are software evidence, not clinical approval or general language-understanding validation.
+
+## Reported phrase correction — October 16, 2026
+
+The owner found that “how do you calculate my kcal?” and “why is my daily target 2571?” still fell through to AI consent: the initial math patterns required other nutrient words or an explicit calculation verb. Added compositional app-energy explanation matching for unit aliases, numbered targets and word order. The exact two phrases and nine related variants are regression-covered; a typed target is not asserted as a saved fact. Food lookup and new personal dietary prescriptions retain separate routing.
+
+43 focused backend assistant tests and 41 frontend assistant tests pass. Server tests trap provider/reservation/receipt writes even with zero credits and explicit AI consent; browser-hook regression asserts zero message POSTs, no confirmation and unchanged zero balance for the exact screenshot phrases. Both production builds, backend tests TypeScript, generated-guide parity and scoped lint pass. No additional database/browser/provider run was needed for this pure matcher correction. Feature branch only; no demo release.
