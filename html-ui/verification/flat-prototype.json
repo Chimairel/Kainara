@@ -1,0 +1,29 @@
+{
+  "checkedAt": "2026-10-15T12:38:38.175Z",
+  "results": [
+    {
+      "width": 1440,
+      "screenTransform": "none",
+      "shadow": "none",
+      "renderingDependencies": 0,
+      "staticMeals": 3,
+      "overflow": false
+    },
+    {
+      "width": 1024,
+      "screenTransform": "none",
+      "shadow": "none",
+      "renderingDependencies": 0,
+      "staticMeals": 3,
+      "overflow": false
+    },
+    {
+      "width": 390,
+      "screenTransform": "none",
+      "shadow": "none",
+      "renderingDependencies": 0,
+      "staticMeals": 3,
+      "overflow": false
+    }
+  ]
+}

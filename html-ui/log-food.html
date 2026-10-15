@@ -12165,6 +12165,35 @@ body[data-scroll-locked] { overscroll-behavior: contain; padding-left: 0px; padd
 .width-before-scroll-bar .width-before-scroll-bar { margin-right: 0px !important; }
 body[data-scroll-locked] { --removed-body-scroll-bar-size: 0px; }
 </style><style data-embedded-preview-css>/* Small static-prototype adapters; the app's captured CSS owns the visual design. */
+/* Figma-friendly prototype: retain structure and color, freeze decorative motion. */
+*, *::before, *::after {
+  animation: none !important;
+  transition: none !important;
+  scroll-behavior: auto !important;
+}
+[data-screen='index'] [style*='perspective'] {
+  perspective: none !important;
+}
+[data-screen='index'] [style*='rotateX('],
+[data-screen='index'] [data-scroll-screen] {
+  transform: none !important;
+  border-width: 1px !important;
+  border-radius: 16px !important;
+  padding: 8px !important;
+}
+[data-screen='index'] [data-scroll-presentation],
+[data-screen='index'] [class*='LandingHeroSection_device'] {
+  margin-top: 24px !important;
+}
+[data-screen='index'] main * {
+  box-shadow: none !important;
+  text-shadow: none !important;
+  backdrop-filter: none !important;
+}
+[data-screen='index'] .pointer-events-none[class*='blur-'],
+[data-screen='index'] [data-meal-gallery]::before {
+  display: none !important;
+}
 html {
   scroll-behavior: smooth;
 }

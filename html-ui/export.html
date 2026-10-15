@@ -12166,6 +12166,35 @@ html.theme-switching .StateNotice_imageLayer__KUv_k {
   tr { break-inside: avoid !important; break-after: auto !important; }
 }
 </style><style data-embedded-preview-css>/* Small static-prototype adapters; the app's captured CSS owns the visual design. */
+/* Figma-friendly prototype: retain structure and color, freeze decorative motion. */
+*, *::before, *::after {
+  animation: none !important;
+  transition: none !important;
+  scroll-behavior: auto !important;
+}
+[data-screen='index'] [style*='perspective'] {
+  perspective: none !important;
+}
+[data-screen='index'] [style*='rotateX('],
+[data-screen='index'] [data-scroll-screen] {
+  transform: none !important;
+  border-width: 1px !important;
+  border-radius: 16px !important;
+  padding: 8px !important;
+}
+[data-screen='index'] [data-scroll-presentation],
+[data-screen='index'] [class*='LandingHeroSection_device'] {
+  margin-top: 24px !important;
+}
+[data-screen='index'] main * {
+  box-shadow: none !important;
+  text-shadow: none !important;
+  backdrop-filter: none !important;
+}
+[data-screen='index'] .pointer-events-none[class*='blur-'],
+[data-screen='index'] [data-meal-gallery]::before {
+  display: none !important;
+}
 html {
   scroll-behavior: smooth;
 }

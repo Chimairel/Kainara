@@ -17,8 +17,10 @@
       "group": "Public",
       "title": "Landing",
       "selfContained": true,
-      "bytes": 5865861,
-      "sourceDirectory": "C:/Users/chima/Desktop/Nutrimind"
+      "bytes": 11217332,
+      "sourceDirectory": "C:/Users/chima/Desktop/Nutrimind",
+      "renderAdaptation": "Embedded static diagonal meal artwork and flat dashboard preview",
+      "adaptedAt": "2026-10-15T12:36:52.688Z"
     },
     {
       "file": "auth.html",
@@ -26,7 +28,7 @@
       "group": "Public",
       "title": "Sign in",
       "selfContained": true,
-      "bytes": 4430341,
+      "bytes": 4431263,
       "sourceDirectory": "C:/Users/chima/Desktop/Nutrimind"
     },
     {
@@ -35,7 +37,7 @@
       "group": "Public",
       "title": "Create account",
       "selfContained": true,
-      "bytes": 4434344,
+      "bytes": 4435266,
       "sourceDirectory": "C:/Users/chima/Desktop/Nutrimind"
     },
     {
@@ -44,7 +46,7 @@
       "group": "Public",
       "title": "Forgot password",
       "selfContained": true,
-      "bytes": 4422627,
+      "bytes": 4423549,
       "sourceDirectory": "C:/Users/chima/Desktop/Nutrimind"
     },
     {
@@ -53,7 +55,7 @@
       "group": "Public",
       "title": "Reset password",
       "selfContained": true,
-      "bytes": 4424667,
+      "bytes": 4425589,
       "sourceDirectory": "C:/Users/chima/Desktop/Nutrimind"
     },
     {
@@ -62,7 +64,7 @@
       "group": "Verification",
       "title": "Verify email",
       "selfContained": true,
-      "bytes": 4428542,
+      "bytes": 4429464,
       "sourceDirectory": "C:/Users/chima/Desktop/Nutrimind"
     },
     {
@@ -71,7 +73,7 @@
       "group": "Onboarding",
       "title": "Body statistics",
       "selfContained": true,
-      "bytes": 1437842,
+      "bytes": 1438764,
       "sourceDirectory": "C:/Users/chima/Desktop/Nutrimind"
     },
     {
@@ -80,7 +82,7 @@
       "group": "Onboarding",
       "title": "Food preferences",
       "selfContained": true,
-      "bytes": 1434731,
+      "bytes": 1435653,
       "sourceDirectory": "C:/Users/chima/Desktop/Nutrimind"
     },
     {
@@ -89,7 +91,7 @@
       "group": "Onboarding",
       "title": "Health conditions",
       "selfContained": true,
-      "bytes": 1425699,
+      "bytes": 1426621,
       "sourceDirectory": "C:/Users/chima/Desktop/Nutrimind"
     },
     {
@@ -98,7 +100,7 @@
       "group": "Onboarding",
       "title": "Food restrictions",
       "selfContained": true,
-      "bytes": 1428123,
+      "bytes": 1429045,
       "sourceDirectory": "C:/Users/chima/Desktop/Nutrimind"
     },
     {
@@ -107,7 +109,7 @@
       "group": "Onboarding",
       "title": "Shopping day",
       "selfContained": true,
-      "bytes": 1436889,
+      "bytes": 1437811,
       "sourceDirectory": "C:/Users/chima/Desktop/Nutrimind"
     },
     {
@@ -116,7 +118,7 @@
       "group": "Onboarding",
       "title": "Terms & final review",
       "selfContained": true,
-      "bytes": 1439256,
+      "bytes": 1440178,
       "sourceDirectory": "C:/Users/chima/Desktop/Nutrimind"
     },
     {
@@ -125,7 +127,7 @@
       "group": "Member",
       "title": "Home",
       "selfContained": true,
-      "bytes": 1881970,
+      "bytes": 1882892,
       "sourceDirectory": "C:/Users/chima/Desktop/Nutrimind"
     },
     {
@@ -134,7 +136,7 @@
       "group": "Member",
       "title": "Meal plan",
       "selfContained": true,
-      "bytes": 1889175,
+      "bytes": 1890097,
       "sourceDirectory": "C:/Users/chima/Desktop/Nutrimind"
     },
     {
@@ -143,7 +145,7 @@
       "group": "Member",
       "title": "Meal history",
       "selfContained": true,
-      "bytes": 2509045,
+      "bytes": 2509967,
       "sourceDirectory": "C:/Users/chima/Desktop/Nutrimind"
     },
     {
@@ -152,7 +154,7 @@
       "group": "Member",
       "title": "Meal library",
       "selfContained": true,
-      "bytes": 2126543,
+      "bytes": 2127465,
       "sourceDirectory": "C:/Users/chima/Desktop/Nutrimind"
     },
     {
@@ -161,7 +163,7 @@
       "group": "Member",
       "title": "Groceries",
       "selfContained": true,
-      "bytes": 1484316,
+      "bytes": 1485238,
       "sourceDirectory": "C:/Users/chima/Desktop/Nutrimind"
     },
     {
@@ -170,7 +172,7 @@
       "group": "Member",
       "title": "Progress",
       "selfContained": true,
-      "bytes": 1478273,
+      "bytes": 1479195,
       "sourceDirectory": "C:/Users/chima/Desktop/Nutrimind"
     },
     {
@@ -179,7 +181,7 @@
       "group": "Member",
       "title": "Progress reports",
       "selfContained": true,
-      "bytes": 1438946,
+      "bytes": 1439868,
       "sourceDirectory": "C:/Users/chima/Desktop/Nutrimind"
     },
     {
@@ -188,7 +190,7 @@
       "group": "Member",
       "title": "Profile overview",
       "selfContained": true,
-      "bytes": 1456000,
+      "bytes": 1456922,
       "sourceDirectory": "C:/Users/chima/Desktop/Nutrimind"
     },
     {
@@ -197,7 +199,7 @@
       "group": "Member",
       "title": "Personal details",
       "selfContained": true,
-      "bytes": 1466748,
+      "bytes": 1467670,
       "sourceDirectory": "C:/Users/chima/Desktop/Nutrimind"
     },
     {
@@ -206,7 +208,7 @@
       "group": "Member",
       "title": "Health & goals",
       "selfContained": true,
-      "bytes": 1456798,
+      "bytes": 1457720,
       "sourceDirectory": "C:/Users/chima/Desktop/Nutrimind"
     },
     {
@@ -215,7 +217,7 @@
       "group": "Member",
       "title": "Food & planning",
       "selfContained": true,
-      "bytes": 1459949,
+      "bytes": 1460871,
       "sourceDirectory": "C:/Users/chima/Desktop/Nutrimind"
     },
     {
@@ -224,7 +226,7 @@
       "group": "Member",
       "title": "Security & privacy",
       "selfContained": true,
-      "bytes": 1454787,
+      "bytes": 1455709,
       "sourceDirectory": "C:/Users/chima/Desktop/Nutrimind"
     },
     {
@@ -233,7 +235,7 @@
       "group": "Member",
       "title": "Health details",
       "selfContained": true,
-      "bytes": 1855345,
+      "bytes": 1856267,
       "sourceDirectory": "C:/Users/chima/Desktop/Nutrimind"
     },
     {
@@ -242,7 +244,7 @@
       "group": "Member",
       "title": "Nutrition report",
       "selfContained": true,
-      "bytes": 1438156,
+      "bytes": 1439078,
       "sourceDirectory": "C:/Users/chima/Desktop/Nutrimind"
     },
     {
@@ -251,7 +253,7 @@
       "group": "Member",
       "title": "Data export",
       "selfContained": true,
-      "bytes": 1485272,
+      "bytes": 1486194,
       "sourceDirectory": "C:/Users/chima/Desktop/Nutrimind"
     },
     {
@@ -260,7 +262,7 @@
       "group": "Nutritionist",
       "title": "Review queue",
       "selfContained": true,
-      "bytes": 1449841,
+      "bytes": 1450763,
       "sourceDirectory": "C:/Users/chima/Desktop/Nutrimind"
     },
     {
@@ -269,7 +271,7 @@
       "group": "Nutritionist",
       "title": "Meal library",
       "selfContained": true,
-      "bytes": 2116933,
+      "bytes": 2117855,
       "sourceDirectory": "C:/Users/chima/Desktop/Nutrimind"
     },
     {
@@ -278,7 +280,7 @@
       "group": "Nutritionist",
       "title": "Approved reviews",
       "selfContained": true,
-      "bytes": 1456728,
+      "bytes": 1457650,
       "sourceDirectory": "C:/Users/chima/Desktop/Nutrimind"
     },
     {
@@ -287,7 +289,7 @@
       "group": "Nutritionist",
       "title": "Professional profile",
       "selfContained": true,
-      "bytes": 1505956,
+      "bytes": 1506878,
       "sourceDirectory": "C:/Users/chima/Desktop/Nutrimind"
     },
     {
@@ -296,7 +298,7 @@
       "group": "Admin",
       "title": "Overview",
       "selfContained": true,
-      "bytes": 1516474,
+      "bytes": 1517396,
       "sourceDirectory": "C:/Users/chima/Desktop/Nutrimind"
     },
     {
@@ -305,7 +307,7 @@
       "group": "Admin",
       "title": "User accounts",
       "selfContained": true,
-      "bytes": 1460497,
+      "bytes": 1461419,
       "sourceDirectory": "C:/Users/chima/Desktop/Nutrimind"
     },
     {
@@ -314,7 +316,7 @@
       "group": "Admin",
       "title": "Nutritionist onboarding",
       "selfContained": true,
-      "bytes": 1466359,
+      "bytes": 1467281,
       "sourceDirectory": "C:/Users/chima/Desktop/Nutrimind"
     },
     {
@@ -323,7 +325,7 @@
       "group": "Admin",
       "title": "Analytics overview",
       "selfContained": true,
-      "bytes": 1516484,
+      "bytes": 1517406,
       "sourceDirectory": "C:/Users/chima/Desktop/Nutrimind"
     },
     {
@@ -332,7 +334,7 @@
       "group": "Admin",
       "title": "Nutrition data",
       "selfContained": true,
-      "bytes": 1467861,
+      "bytes": 1468783,
       "sourceDirectory": "C:/Users/chima/Desktop/Nutrimind"
     },
     {
@@ -341,7 +343,7 @@
       "group": "Admin",
       "title": "FNRI catalogue",
       "selfContained": true,
-      "bytes": 1465858,
+      "bytes": 1466780,
       "sourceDirectory": "C:/Users/chima/Desktop/Nutrimind"
     },
     {
@@ -350,7 +352,7 @@
       "group": "Admin",
       "title": "Meal library",
       "selfContained": true,
-      "bytes": 2130538,
+      "bytes": 2131460,
       "sourceDirectory": "C:/Users/chima/Desktop/Nutrimind"
     },
     {
@@ -359,7 +361,7 @@
       "group": "Nutritionist",
       "title": "Outside meal reviews",
       "selfContained": true,
-      "bytes": 1440429,
+      "bytes": 1441351,
       "sourceDirectory": "C:/Users/chima/Desktop/Nutrimind"
     },
     {
@@ -368,7 +370,7 @@
       "group": "Public",
       "title": "Help",
       "selfContained": true,
-      "bytes": 1531818,
+      "bytes": 1532740,
       "sourceDirectory": "C:/Users/chima/Desktop/Nutrimind"
     },
     {
@@ -377,7 +379,7 @@
       "group": "Public",
       "title": "Documentation",
       "selfContained": true,
-      "bytes": 1531818,
+      "bytes": 1532740,
       "sourceDirectory": "C:/Users/chima/Desktop/Nutrimind"
     },
     {
@@ -386,7 +388,7 @@
       "group": "Public",
       "title": "Evidence sources",
       "selfContained": true,
-      "bytes": 1586917,
+      "bytes": 1587839,
       "sourceDirectory": "C:/Users/chima/Desktop/Nutrimind"
     },
     {
@@ -395,7 +397,7 @@
       "group": "Member",
       "title": "Meal details",
       "selfContained": true,
-      "bytes": 1982613,
+      "bytes": 1983535,
       "sourceDirectory": "C:/Users/chima/Desktop/Nutrimind"
     },
     {
@@ -404,7 +406,7 @@
       "group": "Member",
       "title": "Log food or snack",
       "selfContained": true,
-      "bytes": 1902987,
+      "bytes": 1903909,
       "sourceDirectory": "C:/Users/chima/Desktop/Nutrimind"
     },
     {
@@ -413,7 +415,7 @@
       "group": "Member",
       "title": "Log weight",
       "selfContained": true,
-      "bytes": 1485982,
+      "bytes": 1486904,
       "sourceDirectory": "C:/Users/chima/Desktop/Nutrimind"
     },
     {
@@ -422,8 +424,9 @@
       "group": "Nutritionist",
       "title": "Selected review",
       "selfContained": true,
-      "bytes": 1541542,
+      "bytes": 1542464,
       "sourceDirectory": "C:/Users/chima/Desktop/Nutrimind"
     }
-  ]
+  ],
+  "presentation": "Flat static prototype"
 }

@@ -8,6 +8,8 @@ KAINARA logos, Bahay Kubo artwork, capstone-team photograph, Nara sprites, meal 
 
 Verification PNGs are local captures of the source/export with synthetic account fixtures. Public artwork and photographs are original repository content, not synthetic identities generated for this export.
 
+The landing diagonal meal display is a browser capture of the existing photo collage, embedded directly in `index.html` at desktop/tablet/mobile sizes. It preserves the source photographs and captions as static artwork; the original photo provenance still applies.
+
 ## Reviewed meal photographs
 
 Canonical per-image metadata: `frontend/src/components/user/reviewed-meal-images.ts`, `docs/meal-images/generated/approved-meal-images.csv` and `docs/meal-images/`. These describe representative photographs, resized and cropped for display:
