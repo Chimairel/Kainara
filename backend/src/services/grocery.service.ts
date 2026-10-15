@@ -275,7 +275,14 @@ export class GroceryService {
     ]);
     const clearedMeals = await prisma.mealPlan.findMany({
       where: { userId, planGroupId: cycle.id, id: { in: clearedMealPlanIds } },
-      include: { ingredients: true, servingComponents: { where: { componentType: 'COOKED_RICE' }, include: { foodItem: true } } },
+      select: {
+        scheduledDate: true, mealType: true,
+        ingredients: { select: { ingredientName: true, category: true, quantity: true, unit: true } },
+        servingComponents: {
+          where: { componentType: 'COOKED_RICE' },
+          select: { quantityG: true, foodItem: { select: { name: true, category: true } } },
+        },
+      },
     });
     const retained = await retainedMealsForCycle(userId, cycle.id);
     const clearedSlotCount = retainedSlotKeys(clearedMeals).size;
