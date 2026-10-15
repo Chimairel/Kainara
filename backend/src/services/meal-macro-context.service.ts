@@ -62,7 +62,9 @@ export async function swapMacroContext(
   fallback: PlanningMacroTargets | null
 ) {
   const [snapshot, rows] = await Promise.all([
-    client.mealPlanCycleSnapshot.findUnique({ where: { planGroupId: slot.planGroupId } }),
+    // planGroupId is unique. Avoid Prisma 5's findUnique batching panic when
+    // these reads run together inside the swap's interactive transaction.
+    client.mealPlanCycleSnapshot.findFirst({ where: { planGroupId: slot.planGroupId } }),
     client.mealPlan.findMany({ where: { userId, planGroupId: slot.planGroupId, ...getApprovedMealPlanStatusWhere() } }),
   ]);
   const target = await cycleMacroTargets(client, snapshot, fallback);

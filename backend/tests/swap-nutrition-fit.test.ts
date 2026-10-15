@@ -29,7 +29,7 @@ const balanced = { calories: 740, proteinG: 40, carbsG: 100, fatG: 25 };
 function client(complete = true, savedTarget: PlanningMacroTargets | null = target) {
   return {
     mealPlanCycleSnapshot: {
-      findUnique: async () =>
+      findFirst: async () =>
         savedTarget
           ? {
               dailyMacroTargets: { '2100-10-03': savedTarget },

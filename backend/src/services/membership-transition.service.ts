@@ -13,7 +13,9 @@ export async function membershipTransitionContext(
   at = new Date()
 ) {
   const [account, rows, grants, balance] = await Promise.all([
-    tx.membershipAccount.findUnique({ where: { userId } }),
+    // These unique-key reads also run inside checkout transactions. findFirst
+    // avoids Prisma 5's parallel findUnique/query-strategy engine panic.
+    tx.membershipAccount.findFirst({ where: { userId } }),
     tx.membershipTestCheckout.findMany({
       where: { userId, accountHash, revokedAt: null, status: { in: ['PAID', 'REVIEW', 'CREATING', 'OPEN'] } },
       orderBy: { createdAt: 'asc' },
@@ -27,7 +29,7 @@ export async function membershipTransitionContext(
         source: { in: ['PAID_INVOICE', 'ADMIN_ADJUSTMENT'] },
       },
     }),
-    tx.membershipTestBalance.findUnique({ where: { userId_accountHash: { userId, accountHash } } }),
+    tx.membershipTestBalance.findFirst({ where: { userId, accountHash } }),
   ]);
   const periods: PaidPeriod[] = rows.flatMap((r) => {
     if (r.status !== 'PAID' || !r.verifiedAt || !r.effectiveFrom || !r.effectiveUntil) return [];
