@@ -61,6 +61,10 @@ This feature branch has not applied its migration to Neon, changed hosted secret
 
 ## Verification
 
+### Normal localhost activation — October 15, 2026
+
+The owner chose the isolated local database. Ports 3000 / 5000 now serve the member assistant against `kainara_local_development@127.0.0.1:55432`, with all 109 migrations applied and its local flag enabled. The older local records are separate from demo. No Neon migration or hosted rollout was performed. Local API/database verification and ordinary browser login confirmed the launcher, desktop dock, free totals and AI credit confirmation/cancellation. The existing Health fixture retained 40/40 credits; no provider call was made. Runtime and rollback instructions are in [local development](LOCAL_DEVELOPMENT_AND_DEFENSE.md#current-local-runtime--october-15-2026).
+
 - Focused backend policy/service tests cover consent default, strict inputs/context, direct routing, weekly boundaries, tier caps/upgrades, combined recipe constraints, disabled rollout, provider faults, shared capacity and replay.
 - Frontend tests cover free actions, confirmation, duplicate clicks, cancellation, draft/history lifetime, new chat, account unmount cancellation and exhausted credits.
 - `backend/scripts/member-assistant-local-acceptance.ts` refuses all targets except the named task-owned loopback database. It tests real HTTP/auth, PostgreSQL entitlements/receipts, concurrency and authoritative meal admission using provider stubs and blocks external fetches.

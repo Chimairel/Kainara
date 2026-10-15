@@ -1,5 +1,13 @@
 # Local development and defense rehearsal
 
+## Current local runtime — October 15, 2026
+
+The owner selected the isolated local database for chatbot development. Normal localhost at ports **3000 / 5000 now uses `kainara_local_development@127.0.0.1:55432`**, superseding the October 12 shared-Neon localhost configuration. The local copy contains older records and does not synchronize with demo. All 109 current migrations are applied locally, `MEMBER_ASSISTANT_ENABLED=true`, and local push delivery is disabled to avoid sending restored subscriptions' notifications. Hosted configuration and data were not changed.
+
+The previous shared-Neon environment is preserved privately in `backend/.local/local-development/backend-before-local.env`; its older predecessor is retained separately. Do not print or commit these files. The pre-migration local backup is `backend/.local/backups/local-development-2026-10-15T09-46-57-000Z.dump` with its adjacent manifest. This backup reads Docker PostgreSQL, not Neon.
+
+Backend build, `/ready`, ordinary local member login, free assistant help/totals, AI credit preflight and cancellation pass. The desktop dock and floating launcher were checked on `/meals`. No AI request was confirmed; local SQL showed zero assistant receipts and zero provider usage events since startup. Use the configured ordinary local login; the verification used the existing `local-member@example.test` fixture. Keep Docker Desktop running and restart with the existing `npm run dev:backend` / `npm run dev:frontend` commands when needed. Gemini requests still use the configured external provider if explicitly confirmed.
+
 ## Database target
 
 The target is `kainara_local_development@127.0.0.1:55432`, owned by Docker Compose project `kainara-local-development` and container `kainara-local-postgres`. Its named volume persists across stops. PostgreSQL is bound only to loopback. The helper never uses a hosted `DATABASE_URL` for restoration, backup or migrations.
