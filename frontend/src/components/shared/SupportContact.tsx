@@ -10,7 +10,7 @@ import Input from '@/components/ui/Input';
 import Button from '@/components/ui/Button';
 import Dropdown from '@/components/ui/Dropdown';
 import { ArrowUpRight } from '@/components/ui/icons';
-import AuthMascot from '@/components/auth/AuthMascot';
+import SupportMascot, { supportMascotAssets } from './SupportMascot';
 import AuthHeroPanel from '@/components/auth/AuthHeroPanel';
 import { SignInPage } from '@/components/ui/sign-in';
 import type { UserSession } from '@/lib/context/AuthContext';
@@ -99,8 +99,8 @@ export default function SupportContact() {
       embedded
       wide
       title="Send a support request"
-      heroContent={<AuthHeroPanel embedded />}
-      titleDecoration={<div className="w-[160px] lg:hidden"><AuthMascot size={160} /></div>}
+      heroContent={<AuthHeroPanel embedded mascot={<SupportMascot size={1024} />} mascotAssets={supportMascotAssets} />}
+      titleDecoration={<div className="w-[160px] lg:hidden"><SupportMascot size={160} /></div>}
     >
       <SupportForm key={user?.userId ?? 'visitor'} user={user} loading={isLoading} />
     </SignInPage>
