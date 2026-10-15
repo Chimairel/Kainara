@@ -21,6 +21,7 @@ jobs:
           cache-dependency-path: package-lock.json
       - run: npm ci
       - run: npm audit
+      - run: node scripts/sync-assistant-guide.mjs --check
       - run: npm run format:check
 
   backend:

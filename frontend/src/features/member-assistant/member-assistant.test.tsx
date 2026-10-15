@@ -1,10 +1,11 @@
 import { act, fireEvent, render, renderHook, screen, waitFor } from '@testing-library/react';
-import { beforeEach, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import api from '@/lib/axios';
 import { useMemberAssistant } from './useMemberAssistant';
 import AssistantConversation from './AssistantConversation';
 import type { MemberAssistantModel } from './useMemberAssistant';
 import * as Dialog from '@radix-ui/react-dialog';
+import { ASSISTANT_BALANCE_MAX_AGE_MS } from './useMemberAssistant';
 
 vi.mock('@/lib/axios', () => ({ default: { get: vi.fn(), post: vi.fn() } }));
 const allowance = { tier: 'FREE' as const, cap: 5, used: 0, remaining: 5, resetsAt: '2026-10-18T16:00:00Z' };
@@ -12,6 +13,91 @@ beforeEach(() => {
   vi.clearAllMocks();
   Element.prototype.scrollIntoView = vi.fn();
   vi.mocked(api.get).mockResolvedValue({ data: { data: { enabled: true, allowance } } });
+});
+afterEach(() => { vi.useRealTimers(); vi.restoreAllMocks(); });
+
+it('answers repeated information and navigation questions entirely in the browser', async () => {
+  const { result } = renderHook(() => useMemberAssistant(true));
+  await waitFor(() => expect(result.current.enabled).toBe(true));
+  for (const message of ['what is the system all about?', 'how to change my weight', 'how to change my weight', 'hello', 'how do credits work', 'change my plan']) {
+    act(() => result.current.setDraft(message));
+    act(() => result.current.send());
+  }
+  act(() => result.current.send('FIND_MEAL', 'Find a meal'));
+  expect(api.post).not.toHaveBeenCalled();
+  expect(api.get).toHaveBeenCalledTimes(1);
+  expect(result.current.messages).toHaveLength(14);
+  expect(result.current.messages.filter(message => message.role === 'assistant').every(message => message.reply?.creditsUsed === 0)).toBe(true);
+  expect(result.current.pending).toBeNull();
+});
+
+it('reuses a recent balance on reopen, refreshes after expiry and deduplicates concurrent refreshes', async () => {
+  const clock = vi.spyOn(Date, 'now').mockReturnValue(new Date('2026-10-15T10:00:00Z').getTime());
+  const { result } = renderHook(() => useMemberAssistant(true));
+  await waitFor(() => expect(result.current.enabled).toBe(true));
+  await act(async () => { await result.current.refreshAllowance(); await result.current.refreshAllowance(); });
+  expect(api.get).toHaveBeenCalledTimes(1);
+  clock.mockReturnValue(new Date('2026-10-15T10:00:00Z').getTime() + ASSISTANT_BALANCE_MAX_AGE_MS + 1);
+  await act(async () => { await Promise.all([result.current.refreshAllowance(), result.current.refreshAllowance()]); });
+  expect(api.get).toHaveBeenCalledTimes(2);
+});
+
+it('invalidates the display after membership changes and discards an older in-flight balance', async () => {
+  const { result } = renderHook(() => useMemberAssistant(true));
+  await waitFor(() => expect(result.current.enabled).toBe(true));
+  let resolveOld!: (value: unknown) => void;
+  vi.mocked(api.get).mockImplementationOnce(() => new Promise(resolve => { resolveOld = resolve; }));
+  act(() => { void result.current.refreshAllowance(true); });
+  vi.mocked(api.get).mockResolvedValueOnce({ data: { data: { enabled: true, allowance: { ...allowance, cap: 40, remaining: 40, tier: 'HEALTH' } } } });
+  await act(async () => { window.dispatchEvent(new Event('kainara:membership-updated')); });
+  expect(result.current.allowance?.remaining).toBe(40);
+  await act(async () => { resolveOld({ data: { data: { enabled: true, allowance } } }); });
+  expect(result.current.allowance?.remaining).toBe(40);
+  expect(api.get).toHaveBeenCalledTimes(3);
+});
+
+it('refreshes at weekly reset while open even if its cached balance is recent', async () => {
+  vi.useFakeTimers();
+  vi.setSystemTime(new Date('2026-10-18T15:59:59Z'));
+  const { result } = renderHook(() => useMemberAssistant(true));
+  await act(async () => {});
+  act(() => result.current.setOpen(true));
+  vi.mocked(api.get).mockResolvedValueOnce({ data: { data: { enabled: true, allowance: { ...allowance, resetsAt: '2026-10-25T16:00:00Z' } } } });
+  await act(async () => { await vi.advanceTimersByTimeAsync(1100); });
+  expect(api.get).toHaveBeenCalledTimes(2);
+  expect(result.current.allowance?.resetsAt).toBe('2026-10-25T16:00:00Z');
+});
+
+it('does not let an older status read overwrite the balance returned by a new request', async () => {
+  const { result } = renderHook(() => useMemberAssistant(true));
+  await waitFor(() => expect(result.current.enabled).toBe(true));
+  let resolveOld!: (value: unknown) => void;
+  vi.mocked(api.get).mockImplementationOnce(() => new Promise(resolve => { resolveOld = resolve; }));
+  act(() => { void result.current.refreshAllowance(true); });
+  vi.mocked(api.post).mockResolvedValueOnce({ data: { data: { confirmationRequired: true, requestKey: 'key', allowance: { ...allowance, used: 3, remaining: 2 } } } });
+  act(() => result.current.setDraft('find chicken dinner'));
+  act(() => result.current.send());
+  await waitFor(() => expect(result.current.allowance?.remaining).toBe(2));
+  await act(async () => { resolveOld({ data: { data: { enabled: true, allowance } } }); });
+  expect(result.current.allowance?.remaining).toBe(2);
+});
+
+it('aborts status reads and keeps account balance and messages out of the next mounted session', async () => {
+  const first = renderHook(() => useMemberAssistant(true));
+  await waitFor(() => expect(first.result.current.enabled).toBe(true));
+  act(() => first.result.current.setDraft('hello'));
+  act(() => first.result.current.send());
+  first.unmount();
+  let signal: AbortSignal | undefined;
+  vi.mocked(api.get).mockImplementationOnce((_path, config) => {
+    signal = config?.signal as AbortSignal;
+    return new Promise(() => {});
+  });
+  const second = renderHook(() => useMemberAssistant(true));
+  expect(second.result.current.allowance).toBeNull();
+  expect(second.result.current.messages).toEqual([]);
+  second.unmount();
+  expect(signal?.aborted).toBe(true);
 });
 
 it('free shortcut returns immediately without a confirmation or AI consent', async () => {

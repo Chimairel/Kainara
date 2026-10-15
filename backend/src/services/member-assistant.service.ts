@@ -14,7 +14,7 @@ import { resolvePlanningProfile } from '@/domain/planning-report.policy';
 import { NutritionReportService } from './nutrition-report.service';
 import { MemberAssistantUsageService as Usage } from './member-assistant-usage.service';
 import { queryEligibleLibraryPage, type EligibleLibraryMeal } from './meal-library-candidate-query.service';
-import { assistantInformationReply } from '@/domain/member-assistant-information';
+import { assistantStaticReply } from '@/domain/member-assistant-information';
 
 export type AssistantReply = {
   text: string;
@@ -54,11 +54,11 @@ export class MemberAssistantService {
   static async message(userId: string, input: AssistantInput) {
     if (!assistantEnabled()) throw new AppError('The assistant is not enabled.', 404, 'ASSISTANT_DISABLED');
     const direct = input.action ?? assistantDirectAction(input.message);
-    if (direct) {
+    if (direct === 'TODAY' || direct === 'GUIDANCE') {
       const reply = await this.direct(userId, direct);
       return { confirmationRequired: false as const, reply, allowance: await Usage.allowance(userId) };
     }
-    const information = assistantInformationReply(input.message);
+    const information = assistantStaticReply(input.message, input.action);
     if (information) return {
       confirmationRequired: false as const,
       reply: { ...information, source: 'SYSTEM' as const, creditsUsed: 0 },
@@ -103,22 +103,8 @@ export class MemberAssistantService {
   }
 
   private static async direct(userId: string, action: string): Promise<AssistantReply> {
-    if (action === 'CREDITS') return {
-      text: 'One successful AI-assisted request uses one credit. I ask before calling AI. Free shortcuts, greetings and saved guidance do not spend credits. Weekly allowances are Free: 5, Lifestyle: 20, Health: 40; unused credits do not roll over. Credits reset on Monday at 12:00 AM in the Philippines. Your current balance is below.',
-      source: 'SYSTEM', creditsUsed: 0,
-    };
     if (action === 'TODAY') return this.today(userId);
-    if (action === 'GUIDANCE') return this.guidance(userId);
-    if (action === 'VIEW_PLAN') return {
-      text: 'Your current and upcoming meals are in your meal plan.', source: 'SYSTEM', creditsUsed: 0,
-      links: [{ label: 'Open my meal plan', href: '/meals' }],
-    };
-    if (action === 'FIND_MEAL') return {
-      text: 'Tell me the meal, ingredients, or numeric limits you want. For example: “Chicken dinner with at least 25 g protein.” I’ll ask before using an AI credit to interpret your request.',
-      source: 'SYSTEM', creditsUsed: 0, links: [{ label: 'Browse meals without AI', href: '/meals?tab=library' }],
-    };
-    return { text: 'Hi, I’m Nara. You can ask me how to use KAINARA—for example, “How do I update my weight?” or “Where is my meal history?” App instructions are free. I can also show today’s recorded nutrition, read saved guidance and help find meals. Explore Docs & Help for more instructions.',
-      source: 'SYSTEM', creditsUsed: 0, links: [{ label: 'Docs & Help', href: '/docs' }] };
+    return this.guidance(userId);
   }
 
   private static async today(userId: string): Promise<AssistantReply> {

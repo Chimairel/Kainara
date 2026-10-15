@@ -70,6 +70,40 @@ export function normalizeAssistantQuestion(message: string) {
     .split(/\s+/u).map(word => corrections[word] ?? word).join(' ');
 }
 
+/** Shared by the server fallback and the generated browser guide. */
+export function assistantDirectAction(message: string): 'GREETING' | 'TODAY' | 'GUIDANCE' | 'VIEW_PLAN' | 'CREDITS' | null {
+  const text = normalizeAssistantQuestion(message);
+  if (/^(hi|hello|hey|thanks|thank you|salamat|maayong (adlaw|buntag)|good (morning|afternoon|evening))$/u.test(text)) return 'GREETING';
+  if (['help', 'what can you do'].includes(text)) return 'GREETING';
+  if (['credits', 'my credits', 'ai credits'].includes(text) || /\bcredits?\b/.test(text) && /\b(how|what|when|balance|remaining|reset|used|renew|weekly)\b/.test(text)) return 'CREDITS';
+  if (['todays nutrition', 'daily summary', 'nutrition today'].includes(text)) return 'TODAY';
+  if (['view my plan', 'view meal plan', 'my meal plan'].includes(text)) return 'VIEW_PLAN';
+  if (['my guidance', 'show my guidance', 'explain my guidance'].includes(text)) return 'GUIDANCE';
+  return null;
+}
+
+/** No member facts or balance are inferred here. Dynamic shortcuts return null. */
+export function assistantStaticReply(message: string, action?: string): AssistantInformation | null {
+  const direct = action ?? assistantDirectAction(message);
+  if (direct === 'TODAY' || direct === 'GUIDANCE') return null;
+  if (direct === 'CREDITS') return {
+    text: 'One successful AI-assisted request uses one credit. I ask before calling AI. App instructions, greetings and free shortcuts do not spend credits. Credits reset on Monday at 12:00 AM in the Philippines; unused credits do not roll over. The balance below is the last checked balance. The server checks your current allowance before any AI request.',
+    links: [{ label: 'View membership', href: '/membership' }],
+  };
+  if (direct === 'VIEW_PLAN') return {
+    text: 'Your current and upcoming meals are in your Meal plan.', links: [{ label: 'Meal plan', href: '/meals' }],
+  };
+  if (direct === 'FIND_MEAL') return {
+    text: 'Tell me the meal, ingredients, or numeric limits you want. For example: “Chicken dinner with at least 25 g protein.” I’ll ask before using an AI credit to interpret your request.',
+    links: [{ label: 'Browse meals without AI', href: '/meals?tab=library' }],
+  };
+  if (direct === 'GREETING') return {
+    text: 'Hi, I’m Nara. You can ask me how to use KAINARA—for example, “How do I update my weight?” or “Where is my meal history?” App instructions are free. I can also show today’s recorded nutrition, read saved guidance and help find meals. Explore Docs & Help for more instructions.',
+    links: [{ label: 'Docs & Help', href: '/docs' }],
+  };
+  return assistantInformationReply(message);
+}
+
 const choices: AssistantInformation = {
   text: 'Which part of KAINARA do you mean? I can explain weight tracking in Progress, your Meal plan, Membership, profile settings or other app features. You can also browse Docs & Help. These instructions are free.',
   links: [{ label: 'Progress', href: '/progress' }, { label: 'Meal plan', href: '/meals' },

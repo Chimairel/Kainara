@@ -89,7 +89,7 @@ export default function AssistantConversation({ model, titleId, member, modal = 
       {!model.messages.length ? <div className="flex min-h-60 flex-col justify-center pb-8">
         <h3 className="font-display text-2xl font-semibold leading-tight">What would help<br />with your next meal?</h3>
         <p className="mt-3 text-sm leading-6 text-brand-muted">Find meals, check what you’ve logged, or understand your saved nutrition guidance.</p>
-        <div className="mt-6 flex flex-col gap-2">{quickActions.map(({ action, label, icon: Icon }) => <button key={action} type="button" disabled={disabled}
+        <div className="mt-6 flex flex-col gap-2">{quickActions.map(({ action, label, icon: Icon }) => <button key={label} type="button" disabled={disabled}
           onClick={() => model.send(action, label)} className="flex min-h-12 items-center gap-3 rounded-xl border border-brand-border px-4 py-3 text-left text-sm font-semibold transition-colors hover:bg-brand-bgAlt focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-green disabled:opacity-40">
           <Icon className="h-4 w-4 text-brand-green" />{label}<ArrowUpRight className="ml-auto h-4 w-4 text-brand-muted" />
         </button>)}</div>
@@ -107,7 +107,7 @@ export default function AssistantConversation({ model, titleId, member, modal = 
             </div>
           </div>)}
         </div>
-        <div className="mt-6 flex flex-wrap gap-2">{quickActions.map(({ action, label }) => <button key={action} type="button" disabled={disabled} onClick={() => model.send(action, label)}
+        <div className="mt-6 flex flex-wrap gap-2">{quickActions.map(({ action, label }) => <button key={label} type="button" disabled={disabled} onClick={() => model.send(action, label)}
           className="min-h-9 rounded-lg border border-brand-border px-2.5 text-xs text-brand-muted hover:bg-brand-bgAlt focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-green disabled:opacity-40">{label}</button>)}</div>
       </>}
       {model.busy ? <p role="status" className="mt-5 text-sm text-brand-muted">Nara is thinking…</p> : null}

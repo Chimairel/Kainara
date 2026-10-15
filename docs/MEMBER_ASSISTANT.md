@@ -25,6 +25,16 @@ Recognizable food-search and supported explanation requests first return an inli
 
 Named destinations appear as colored, underlined inline links in replies. Mobile links dismiss the covering chat; desktop links preserve the drawer and conversation. These information replies run before usage preparation/reservation even if `allowAi` is supplied, work at zero credits, and create no assistant receipt or member-data change. There is no automated food log, profile update or other member mutation from chat.
 
+### Browser answers and recent balance reuse
+
+The member hook now resolves prepared help, greetings, credit explanations, the Find a meal introduction and plan navigation locally. Sending these messages makes **zero assistant message API calls**, with no per-question authentication, membership or credit query. An initial authenticated status request still checks feature availability and loads the allowance. Personalized shortcuts (today's recorded totals and saved guidance), food-search preflight and confirmed AI requests still use the existing authenticated API.
+
+The backend guide remains the reviewed source. Run `node scripts/sync-assistant-guide.mjs` after editing it to regenerate the self-contained frontend module. `--check`, a frontend parity test and repository CI reject guide drift. No server-only imports, secrets or personal data enter this generated guide. This preserves independent backend/frontend deployment roots without adding a package or runtime cross-project import.
+
+Credit display reuses its in-memory snapshot for 60 seconds and until the returned weekly reset, whichever is earlier. Concurrent refreshes share a pending GET. Opening chat or returning focus/visibility refreshes only when stale; there is no periodic chat polling. AI/preflight responses update the snapshot, failures force a refresh, and `kainara:membership-updated` invalidates it immediately. An open chat schedules a refresh at weekly reset. Slow older reads cannot overwrite a newer response or membership refresh. All state remains in the account-keyed authenticated layout and status/message requests abort on unmount. Reload/sign-out ends this cache; no personal data is added to browser storage.
+
+The cached balance is display-only. Every confirmed AI request still passes current server-side membership/credit admission and locking. Other tabs or external membership changes can make the display briefly stale until the next refresh; they cannot authorize spending through the cached value. This change does not cache personalized guidance, nutrition totals, meal-search eligibility or other portal polling, and does not quantify total Neon savings.
+
 | Current entitlement | Weekly AI credits |
 | --- | ---: |
 | Free / trial not yet started / membership rollout disabled | 5 |
@@ -67,6 +77,10 @@ Each provider call passes through existing project-wide capacity admission. Chat
 This feature branch has not applied its migration to Neon, changed hosted secrets, or deployed the assistant. Isolated tests use synthetic data and stubbed provider responses; these do not establish real-model language quality or clinical validation.
 
 ## Verification
+
+### Browser help and balance cache — October 15, 2026
+
+23 focused frontend assistant tests and 16 backend tests pass. New coverage asserts zero POSTs for repeated help/navigation messages, a single initial status read, TTL reuse, concurrent refresh sharing, weekly reset, membership invalidation, stale-read protection, unmount cancellation and fresh-account isolation. Guide parity/CI checks, both production builds, backend test typecheck and scoped lint pass. Isolated browser checks answered system/weight questions and retained conversation on close/reopen; the local API's message POST count remained zero throughout those checks. Existing inline links still render and the Health balance remains 40/40. Screenshot: `codex_outputs/nara-browser-help-cache-20261015.png`. No real provider request, hosted query, migration or deployment was made.
 
 ### Free system information — October 15, 2026
 

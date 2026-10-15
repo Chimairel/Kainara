@@ -1,9 +1,12 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import api, { type ApiRequestConfig } from '@/lib/axios';
 import { getApiErrorMessage } from '@/lib/api-error';
 import type { AssistantAction, AssistantAllowance, AssistantInput, AssistantResult, ChatEntry } from './types';
+import { assistantStaticReply } from './assistant-information.generated';
+
+export const ASSISTANT_BALANCE_MAX_AGE_MS = 60_000;
 
 /** Kept in the authenticated layout only; no health/chat text enters browser storage. */
 export function useMemberAssistant(ready: boolean) {
@@ -19,27 +22,64 @@ export function useMemberAssistant(ready: boolean) {
   const inFlight = useRef(false);
   const controller = useRef<AbortController | null>(null);
   const alive = useRef(true);
+  const balance = useRef<{ value: AssistantAllowance | null; checkedAt: number }>({ value: null, checkedAt: 0 });
+  const balanceRevision = useRef(0);
+  const statusRequest = useRef<{ controller: AbortController; promise: Promise<void> } | null>(null);
+
+  const refreshAllowance = useCallback((force = false) => {
+    if (!ready || !alive.current) return Promise.resolve();
+    if (statusRequest.current) return statusRequest.current.promise;
+    const cached = balance.current;
+    if (!force && cached.value && Date.now() - cached.checkedAt < ASSISTANT_BALANCE_MAX_AGE_MS
+      && Date.now() < Date.parse(cached.value.resetsAt)) return Promise.resolve();
+    const abort = new AbortController();
+    const revision = balanceRevision.current;
+    const promise = api.get('/user/assistant', { signal: abort.signal }).then(response => {
+      if (!alive.current || abort.signal.aborted || revision !== balanceRevision.current) return;
+      setEnabled(Boolean(response.data.data?.enabled));
+      const value = response.data.data?.allowance ?? null;
+      balance.current = { value, checkedAt: Date.now() };
+      setAllowance(value);
+    }).catch(() => { /* Keep the last display; server admission still checks current credits. */ })
+      .finally(() => { if (statusRequest.current?.controller === abort) statusRequest.current = null; });
+    statusRequest.current = { controller: abort, promise };
+    return promise;
+  }, [ready]);
 
   useEffect(() => {
     alive.current = true;
-    return () => { alive.current = false; controller.current?.abort(); };
+    return () => {
+      alive.current = false; controller.current?.abort(); statusRequest.current?.controller.abort();
+      statusRequest.current = null;
+    };
   }, []);
   useEffect(() => {
     if (!ready) return;
-    const abort = new AbortController();
-    void api.get('/user/assistant', { signal: abort.signal }).then(response => {
-      if (abort.signal.aborted) return;
-      setEnabled(Boolean(response.data.data?.enabled));
-      setAllowance(response.data.data?.allowance ?? null);
-    }).catch(() => { /* A disabled/unavailable extension never blocks the member portal. */ });
-    return () => abort.abort();
-  }, [ready]);
+    void refreshAllowance();
+    const membershipChanged = () => {
+      balanceRevision.current++;
+      balance.current.checkedAt = 0;
+      statusRequest.current?.controller.abort();
+      statusRequest.current = null;
+      void refreshAllowance(true);
+    };
+    window.addEventListener('kainara:membership-updated', membershipChanged);
+    return () => { window.removeEventListener('kainara:membership-updated', membershipChanged); };
+  }, [ready, refreshAllowance]);
 
-  const refreshAllowance = () => {
-    void api.get('/user/assistant').then(response => {
-      if (alive.current) setAllowance(response.data.data?.allowance ?? null);
-    }).catch(() => {});
-  };
+  useEffect(() => {
+    if (!open || !allowance) return;
+    const remaining = Date.parse(allowance.resetsAt) - Date.now();
+    const timer = remaining > 0 && remaining <= 2_147_483_647
+      ? window.setTimeout(() => { void refreshAllowance(); }, remaining + 50) : undefined;
+    const resume = () => { if (!document.hidden) void refreshAllowance(); };
+    window.addEventListener('focus', resume);
+    document.addEventListener('visibilitychange', resume);
+    return () => {
+      window.clearTimeout(timer); window.removeEventListener('focus', resume);
+      document.removeEventListener('visibilitychange', resume);
+    };
+  }, [open, allowance, refreshAllowance]);
 
   const request = async (input: AssistantInput) => {
     if (inFlight.current) return;
@@ -52,6 +92,8 @@ export function useMemberAssistant(ready: boolean) {
       const response = await api.post('/user/assistant/messages', input, config);
       if (!alive.current) return;
       const result = response.data.data as AssistantResult;
+      balanceRevision.current++;
+      balance.current = { value: result.allowance, checkedAt: Date.now() };
       setAllowance(result.allowance);
       if (result.confirmationRequired) { setPending({ ...input, requestKey: result.requestKey }); return; }
       setPending(null);
@@ -63,7 +105,7 @@ export function useMemberAssistant(ready: boolean) {
       setError(getApiErrorMessage(cause, 'The assistant could not respond. Please try again.'));
       setFailed(input);
       setPending(null);
-      refreshAllowance();
+      void refreshAllowance(true);
     } finally {
       inFlight.current = false;
       if (alive.current) setBusy(false);
@@ -79,6 +121,15 @@ export function useMemberAssistant(ready: boolean) {
     };
     setMessages(current => [...current.slice(-39), { id: input.requestKey, role: 'user', text }]);
     setDraft('');
+    const information = assistantStaticReply(text, action);
+    if (information) {
+      setError(null); setFailed(null);
+      setMessages(current => [...current.slice(-39), {
+        id: `${input.requestKey}:reply`, role: 'assistant', text: information.text,
+        reply: { ...information, source: 'SYSTEM', creditsUsed: 0 },
+      }]);
+      return;
+    }
     void request(input);
   };
 
