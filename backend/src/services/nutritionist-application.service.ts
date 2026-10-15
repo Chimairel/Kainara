@@ -78,7 +78,8 @@ export class NutritionistApplicationService {
           },
           select: { id: true },
         }),
-        tx.user.findUnique({ where: { email }, select: { id: true } }),
+        // Keep the unique email lookup out of Prisma 5's parallel unique-read batch.
+        tx.user.findFirst({ where: { email }, select: { id: true } }),
         tx.nutritionistProfile.findFirst({
           where: { prcLicenseNumber: { equals: prcLicenseNumber, mode: 'insensitive' } },
           select: { id: true },

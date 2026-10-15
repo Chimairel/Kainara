@@ -307,7 +307,7 @@ export class MealSwapService {
       throw new Error('Replacement must match the meal type.');
     }
     const [cycleSnapshot, riceFood] = await Promise.all([
-      client.mealPlanCycleSnapshot.findUnique({ where: { planGroupId: mealPlan.planGroupId } }),
+      client.mealPlanCycleSnapshot.findFirst({ where: { planGroupId: mealPlan.planGroupId } }),
       userProfile.ricePreference !== RicePreference.NO_RICE
         ? client.foodItem.findFirst({
             where: { source: 'FNRI', name: { equals: 'Rice, well-milled, boiled', mode: 'insensitive' } },

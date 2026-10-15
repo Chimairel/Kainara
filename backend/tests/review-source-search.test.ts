@@ -5,7 +5,7 @@ import type { RecipeCandidateProjection } from '../src/services/recipe-candidate
 const db = {
   foodItem: { findFirst: async () => null, findMany: async () => [] },
   foodAlias: { findMany: async () => [] },
-  mealPlanCycleSnapshot: { findUnique: async () => null },
+  mealPlanCycleSnapshot: { findFirst: async () => null },
   mealPlan: { findMany: async () => [] },
   mealReviewLineage: { findMany: async () => [] },
 };
@@ -72,7 +72,7 @@ test('RND search reads past the first chunk, counts all matches and revalidates 
   t.mock.method(prisma.foodItem, 'findFirst', async () => null);
   t.mock.method(prisma.foodItem, 'findMany', async () => []);
   t.mock.method(prisma.foodAlias, 'findMany', async () => []);
-  t.mock.method(prisma.mealPlanCycleSnapshot, 'findUnique', async () => null);
+  t.mock.method(prisma.mealPlanCycleSnapshot, 'findFirst', async () => null);
   t.mock.method(prisma.mealPlan, 'findMany', async () => []);
   t.mock.method(prisma.mealReviewLineage, 'findMany', async () => [{ key: 'source:held' }]);
   const pool = [

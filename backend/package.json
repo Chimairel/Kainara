@@ -8,6 +8,7 @@
     "npm": ">=11"
   },
   "scripts": {
+    "test:acceptance:parallel-transactions": "tsx scripts/parallel-transaction-local-acceptance.ts",
     "evaluate:capstone": "tsx scripts/capstone-evaluation.ts",
     "benchmark:capstone-reads": "tsx scripts/capstone-read-benchmark.ts",
     "test:acceptance:capstone-concurrency": "node scripts/capstone-concurrency-drill.mjs",

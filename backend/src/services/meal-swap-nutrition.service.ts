@@ -40,9 +40,10 @@ export async function recalculateDailyNutritionLog(
     select: { planGroupId: true },
   });
   const [profile, cycleSnapshot] = await Promise.all([
-    client.userProfile.findUnique({ where: { userId } }),
+    // Avoid Prisma 5's parallel unique-read panic during a swap transaction.
+    client.userProfile.findFirst({ where: { userId } }),
     scheduledPlan
-      ? client.mealPlanCycleSnapshot.findUnique({ where: { planGroupId: scheduledPlan.planGroupId } })
+      ? client.mealPlanCycleSnapshot.findFirst({ where: { planGroupId: scheduledPlan.planGroupId } })
       : Promise.resolve(null),
   ]);
   const targetCalories = resolvePlanTargetCalories(
