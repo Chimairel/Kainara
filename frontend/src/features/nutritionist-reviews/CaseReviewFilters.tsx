@@ -1,5 +1,5 @@
 import WorkspaceTabs from '@/components/ui/WorkspaceTabs';
-import NotificationActivityDot from '@/components/shared/NotificationActivityDot';
+import NotificationCountBadge from '@/components/shared/NotificationCountBadge';
 
 export default function CaseReviewFilters({
   value,
@@ -13,10 +13,10 @@ export default function CaseReviewFilters({
   outside?: number;
 }) {
   const activityLabel = (label: string, count: number, name: string) => (
-    <span className="relative inline-flex px-1">
+    <span className={`relative inline-flex min-h-6 items-center pl-1 ${count > 0 ? 'pr-5' : 'pr-1'}`}>
       {label}
       {count > 0 && <>
-        <NotificationActivityDot />
+        <NotificationCountBadge count={count} />
         <span className="sr-only">
           {count} {count === 1 ? name.slice(0, -1) : name} waiting
         </span>

@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import NotificationActivityDot from './NotificationActivityDot';
+import NotificationCountBadge from './NotificationCountBadge';
 import { useRouter } from 'next/navigation';
 import { useNotifications } from '@/hooks/useNotifications';
 import { useAuth } from '@/hooks/useAuth';
@@ -16,7 +17,6 @@ import {
   Volume2,
   VolumeX,
 } from '@/components/ui/icons';
-import { formatBadgeCount } from '@/lib/badge-count';
 import Modal from '@/components/ui/Modal';
 import DeviceNotificationsPanel from '@/features/meal-reminders/DeviceNotificationsPanel';
 
@@ -102,11 +102,7 @@ export default function NotificationDropdown() {
       >
         <Bell className="h-6 w-6 transition-transform duration-200 group-hover:rotate-12" />
 
-        {unreadCount > 0 ? (
-          <span className="absolute -top-0.5 -right-0.5 flex min-h-4 min-w-4 items-center justify-center rounded-full bg-brand-accent px-1 text-[8px] font-bold text-[#07100d] ring-2 ring-brand-bg shadow-sm">
-            {formatBadgeCount(unreadCount)}
-          </span>
-        ) : null}
+        <NotificationCountBadge count={unreadCount} />
       </button>
 
       {isOpen && (

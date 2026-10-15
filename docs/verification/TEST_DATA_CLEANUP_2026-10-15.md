@@ -41,3 +41,7 @@ The additional owner request replaces the inline dark bullets on Pending/Outside
 Fourteen existing notification/review-filter component tests, scoped ESLint, frontend production build/TypeScript, React quality review and Impeccable detector pass. Actual normal browser verified both dots, 8px absolute placement, tab switching and no console errors. Local screenshot: `codex_outputs/review-notification-dots-20261015.png`.
 
 Database cleanup is already applied to the shared defense database. Git publication of the UI change does not itself establish successful hosted deployment.
+
+### Activity badge correction
+
+The owner clarified that the intended reference was the orange count badge on the main notification bell, rather than the green dot inside its dropdown. Pending and Outside food logs now reuse the bell's exact `NotificationCountBadge` component, including displayed counts, 99+ formatting, orange fill, 16px minimum size, 8px type and theme ring. The green dropdown-header mark remains separate. Browser computed styles matched for the bell and both tab badges; all 14 relevant tests and scoped lint pass. Screenshot: `codex_outputs/review-bell-count-badges-20261015.png`. No additional data cleanup was performed for this correction.
