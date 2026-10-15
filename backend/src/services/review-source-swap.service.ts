@@ -9,7 +9,7 @@ import { savePreparedCorpusMeal } from './meal-plan-corpus-persistence.service';
 import { assertFoodCompositionRevisions } from './generation-integrity.service';
 import { assertObservedSourceStillAvailable } from './observed-source-guard.service';
 import { lockUserProfile } from './profile-revision.service';
-import { assertCurrentMealReviewContext } from './meal-case-context.service';
+import { assertCurrentMealReviewContext, assertMealQuestionsResolved } from './meal-case-context.service';
 import { currentReviewProfile } from './meal-review-context.service';
 import { ReviewRoutingService } from './review-routing.service';
 import { assertRecipeNotRejectedForSlot } from './rejected-slot-recipes.service';
@@ -52,7 +52,7 @@ export async function executeReviewSourceSwap(
   return prisma.$transaction(
     async (tx) => {
       await lockUserProfile(tx, plan.userId);
-      await assertCurrentMealReviewContext(plan.id, input.expectedContextKey, tx, profileId);
+      assertMealQuestionsResolved(await assertCurrentMealReviewContext(plan.id, input.expectedContextKey, tx, profileId));
       await ReviewRoutingService.assertMeal(profileId, plan.id, tx);
       const reviewer = await currentReviewProfile(tx, profileId);
       const current = await tx.mealPlan.findUniqueOrThrow({ where: { id: plan.id } });

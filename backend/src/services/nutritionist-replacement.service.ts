@@ -9,7 +9,7 @@ import prisma from '@/lib/prisma';
 import { loadPlanningNutritionContext } from '@/domain/user-nutrition-context';
 import { Prisma, MealPlanStatus, AIConfidenceFlag, MealIngredientDataSource, NotificationType } from '@prisma/client';
 import { lockUserProfile } from './profile-revision.service';
-import { assertCurrentMealReviewContext } from './meal-case-context.service';
+import { assertCurrentMealReviewContext, assertMealQuestionsResolved } from './meal-case-context.service';
 import { getNutritionistReviewableMealPlanWhere } from '@/domain/meal-actionability.policy';
 import { getReviewClaimCutoff } from '@/domain/nutritionist-review.policy';
 import { generateGenerativeJSON } from '@/lib/gemini';
@@ -157,7 +157,7 @@ export class NutritionistReplacementService {
     await prisma.$transaction(
       async (tx) => {
         await lockUserProfile(tx, plan.userId);
-        await assertCurrentMealReviewContext(mealPlanId, payload.expectedContextKey, tx, nutritionistProfileId);
+        assertMealQuestionsResolved(await assertCurrentMealReviewContext(mealPlanId, payload.expectedContextKey, tx, nutritionistProfileId));
         await ReviewRoutingService.assertMeal(nutritionistProfileId, mealPlanId, tx);
         await loadPlanningNutritionContext(tx, plan.userId, 'Planning profile missing.');
         const currentProfile = await tx.userProfile.findUniqueOrThrow({ where: { userId: plan.userId } });

@@ -6,6 +6,7 @@ import CaseProfileSection from './sections/CaseProfileSection';
 import CaseAuditSection from './sections/CaseAuditSection';
 import CaseFlagConcernSheet from './CaseFlagConcernSheet';
 import ClarificationFormCard from '@/features/clinical-clarification/ClarificationFormCard';
+import RndClarifications from '@/features/clinical-clarification/RndClarifications';
 import type { DetailData } from './review-types';
 
 /** One paper composition for live review and immutable approval replay. */
@@ -66,9 +67,14 @@ export default function CaseEvidenceSheets({ detailData, canWrite = false, onUpd
             key={form.id}
             page={3 + Number(Boolean(detailData.flagConcerns?.length)) + index}
             title={form.title}
-            subtitle="Saved profile clarification · read only"
+            subtitle={form.purpose === 'MEAL' ? 'Meal question and recorded response' : 'Saved profile clarification · read only'}
           >
-            <ClarificationFormCard form={form} mode="reviewer" embedded />
+            {form.purpose === 'MEAL' && detailData.reviewContext ? <RndClarifications
+              userId={meal.userId} profileRevision={detailData.reviewContext.profileRevision} scopeKey={detailData.reviewContext.scopeKey}
+              workspace={{ enabled: true, forms: [form] }} canWrite={canWrite} onUpdated={onUpdated}
+              showComposer={false} embedded
+              publishTarget={{ url: `/nutritionist/queue/${meal.id}/clarifications`, expectedContextKey: detailData.reviewContext.contextKey, purpose: 'MEAL' }}
+            /> : <ClarificationFormCard form={form} mode="reviewer" embedded />}
           </ReviewDocumentPage>
         ))}
   </>;

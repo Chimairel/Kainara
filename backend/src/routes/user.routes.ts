@@ -39,6 +39,7 @@ const router = Router();
 const accountDeletionSchema = z
   .object({
     password: z.string().min(8).max(128).optional(),
+    googleIdToken: z.string().min(20).max(10000).optional(),
     confirmation: z.union([z.literal('DELETE MY KAINARA ACCOUNT'), z.literal('DELETE MY NUTRIMIND ACCOUNT')]),
   })
   .strict();
@@ -317,6 +318,7 @@ router.delete('/account', validateZodBody(accountDeletionSchema), async (req: Au
   try {
     await UserPrivacyService.deleteAccount(req.user!.userId, {
       password: req.body.password,
+      googleIdToken: req.body.googleIdToken,
     });
     res.clearCookie('nutrimind_refresh', {
       httpOnly: true,

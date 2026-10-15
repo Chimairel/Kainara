@@ -86,10 +86,10 @@ export default function CaseReviewWorkspace({
                     <p className="whitespace-pre-wrap">{draft.rejection}</p>
                   </div>
                 )}
-                {draft.clarification && (
-                  <div className="space-y-2">
-                    <h4 className="font-bold">{draft.clarification.title}</h4>
-                    {draft.clarification.questions.map((question) => (
+                {[draft.clarification, draft.profileClarification].filter(Boolean).map((clarification, index) => (
+                  <div className="space-y-2" key={index}>
+                    <h4 className="font-bold">{clarification!.title}</h4>
+                    {clarification!.questions.map((question) => (
                       <div key={question.id}>
                         <p className="whitespace-pre-wrap">{question.label || 'Untitled question'}</p>
                         {question.type === 'CHOICE' && (
@@ -98,7 +98,7 @@ export default function CaseReviewWorkspace({
                       </div>
                     ))}
                   </div>
-                )}
+                ))}
               </section>
             ))}
           </div>

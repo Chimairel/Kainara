@@ -52,7 +52,8 @@ vi.mock('@/lib/axios', () => ({
 }));
 vi.mock('@/features/profile/AvatarSettings', () => ({ default: () => null }));
 vi.mock('@/components/auth/GoogleSignInButton', () => ({
-  default: () => <button type="button">Continue with Google</button>,
+  default: ({ disabled, onCredential }: { disabled?: boolean; onCredential: (credential: string) => Promise<void> }) =>
+    <button type="button" disabled={disabled} onClick={() => void onCredential('verified-google-test-credential')}>Continue with Google</button>,
 }));
 
 const baseUser: UserSession = {
@@ -129,6 +130,7 @@ describe('provider-aware account security', () => {
     mocks.user = { ...baseUser, authMethods: { password: passwordEnabled, google: true } };
     vi.mocked(api.delete).mockResolvedValue({ data: { success: true } });
     await act(async () => render(<AccountSettings initialPanel="privacy" />));
+    if (passwordEnabled) fireEvent.click(screen.getByLabelText('Use my KAINARA password'));
     const button = screen.getByRole('button', { name: 'Permanently delete account' });
     expect(button).toBeDisabled();
     expect(screen.queryByRole('button', { name: 'Continue with Google' })).not.toBeInTheDocument();
@@ -151,6 +153,23 @@ describe('provider-aware account security', () => {
       },
     });
     expect(setSessionRefreshSuppressed).toHaveBeenCalledWith(true);
+  });
+
+  it('lets a Google-linked password account verify with Google and requires the typed confirmation first', async () => {
+    mocks.user = { ...baseUser, authMethods: { password: true, google: true } };
+    vi.mocked(api.delete).mockResolvedValue({ data: { success: true } });
+    await act(async () => render(<AccountSettings initialPanel="privacy" />));
+    const google = screen.getByRole('button', { name: 'Continue with Google' });
+    expect(google).toBeDisabled();
+    expect(screen.queryByLabelText('Current password')).not.toBeInTheDocument();
+    fireEvent.click(google);
+    expect(api.delete).not.toHaveBeenCalled();
+    fireEvent.change(screen.getByLabelText('Type DELETE MY KAINARA ACCOUNT'), { target: { value: 'DELETE MY KAINARA ACCOUNT' } });
+    fireEvent.click(google);
+    await waitFor(() => expect(mocks.completeAccountDeletion).toHaveBeenCalledOnce());
+    expect(api.delete).toHaveBeenCalledWith('/user/account', { data: {
+      confirmation: 'DELETE MY KAINARA ACCOUNT', googleIdToken: 'verified-google-test-credential',
+    } });
   });
 
   it('keeps the session and permits retry when deletion fails', async () => {

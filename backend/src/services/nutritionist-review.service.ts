@@ -661,7 +661,8 @@ export class NutritionistReviewService {
         where: { userId: updatedMealPlan.userId },
         select: { area: true, responses: true, revision: true },
       }),
-      openedContext ? ClinicalClarificationService.list(updatedMealPlan.userId, nutritionistProfileId) : undefined,
+      openedContext ? ClinicalClarificationService.list(updatedMealPlan.userId, nutritionistProfileId, undefined,
+        { mealId: mealPlanId, baseContextKey: openedContext.baseContextKey, includeProfile: true }) : undefined,
       openedContext ? listReviewReferences(openedContext, nutritionistProfileId) : undefined,
       mealPlanFlagContext(prisma, mealPlanId),
       prisma.mealPlan.findMany({
@@ -684,6 +685,7 @@ export class NutritionistReviewService {
               contextKey: openedContext.contextKey,
               profileRevision: openedContext.profileRevision,
               scopeKey: openedContext.scopeKey,
+              ...(openedContext.mealQuestionState ? { mealQuestionState: openedContext.mealQuestionState } : {}),
             },
           }
         : {}),

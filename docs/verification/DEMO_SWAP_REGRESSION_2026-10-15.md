@@ -35,4 +35,13 @@ Railway's filtered runtime error search from 08:09 to 14:20 UTC returned the fiv
 
 ## Release state
 
-The repair is prepared on `codex/member-assistant`. Demo remains on `6212344e` until an authorized narrow promotion; publishing the whole assistant branch is not required for this fix. A live swap has not yet been rechecked after a hotfix deployment. Keep deployment status separate from the passing local evidence above.
+The owner explicitly authorized publishing the swap hotfix while the separate meal/profile-question correction proceeds locally. Implementation commit `963435ce` was promoted as narrow release `9f16e4af3dcde6839e41ea5370de147088aa6adf`, parented directly on `6212344e`. Only 12 reviewed backend/test/documentation files changed; frontend, migrations, lockfile and deployment configuration match the prior demo. The separate assistant branch and its migrations were excluded. A temporary Git index and committed archive kept unrelated shared-checkout edits out of the release.
+
+The release archive's backend build and real-engine local acceptance passed. Its backend suite had 1,086 passes, one existing TODO and one missing-root-script harness error; after extracting the complete committed repository, both database-guard tests passed independently (1,087 behavioral passes in total). This is distinct from the larger feature branch's 1,123 passing tests.
+
+| Host | Verified release |
+| --- | --- |
+| Railway API | `2b03e3ae-c0d8-4815-a256-53d0c0e9901b` — SUCCESS, commit `9f16e4af`; `/ready` passes |
+| Vercel frontend | `nutrimindv1-31los7i5t-chimairels-projects.vercel.app` — READY, commit `9f16e4af`; public application returns HTTP 200 |
+
+The repaired macro query completed inside an explicitly read-only transaction against the confirmed hosted defense database using the exact released backend code. The agent's authenticated request was rejected by the hosted API (401); no hosted signing credential was retrieved and no saved meal was changed by that check. The owner subsequently tested the signed-in live swap and explicitly confirmed that it worked. No migration, configuration, catalogue or member-data change was required. Code rollback remains the preceding compatible `6212344e` pair; no database rollback is needed.

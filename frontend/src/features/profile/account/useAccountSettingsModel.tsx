@@ -109,8 +109,10 @@ export function useAccountSettingsModel({ initialPanel = 'account' }: { initialP
     deletionConfirmation === ACCOUNT_DELETION_CONFIRMATION || deletionConfirmation === 'DELETE MY NUTRIMIND ACCOUNT';
   const deletionConfirmationMismatch = deletionConfirmation.length > 0 && !deletionConfirmed;
   const passwordLoginEnabled = user?.authMethods?.password !== false;
+  const googleLoginEnabled = user?.authMethods?.google === true;
+  const [deletionMethod, setDeletionMethod] = useState<'PASSWORD' | 'GOOGLE'>('GOOGLE');
 
-  const deleteAccount = async (credential: { password?: string }) => {
+  const deleteAccount = async (credential: { password?: string; googleIdToken?: string }) => {
     setSessionRefreshSuppressed(true);
     try {
       await api.delete('/user/account', {
@@ -128,12 +130,26 @@ export function useAccountSettingsModel({ initialPanel = 'account' }: { initialP
 
   const handleDeleteAccount = async (event: React.FormEvent) => {
     event.preventDefault();
+    if (!deletionConfirmed || (passwordLoginEnabled && googleLoginEnabled && deletionMethod === 'GOOGLE')) return;
     setIsDeleting(true);
     setDeletionError(null);
     try {
       await deleteAccount(passwordLoginEnabled ? { password: deletionPassword } : {});
     } catch (error: unknown) {
       setDeletionError(getApiErrorMessage(error, 'Account deletion failed.'));
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const handleGoogleDeleteAccount = async (googleIdToken: string) => {
+    if (!deletionConfirmed || isDeleting) return;
+    setIsDeleting(true);
+    setDeletionError(null);
+    try {
+      await deleteAccount({ googleIdToken });
+    } catch (error: unknown) {
+      setDeletionError(getApiErrorMessage(error, 'Google verification could not complete account deletion.'));
     } finally {
       setIsDeleting(false);
     }
@@ -242,6 +258,10 @@ export function useAccountSettingsModel({ initialPanel = 'account' }: { initialP
     setEmail,
     isSavingAccount,
     passwordLoginEnabled,
+    googleLoginEnabled,
+    deletionMethod,
+    setDeletionMethod,
+    handleGoogleDeleteAccount,
     passwordSuccess,
     passwordError,
     handlePasswordSubmit,

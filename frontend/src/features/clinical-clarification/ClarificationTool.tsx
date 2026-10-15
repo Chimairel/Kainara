@@ -10,7 +10,7 @@ export default function ClarificationTool(props: ComponentProps<typeof RndClarif
   useEffect(() => setOpen(false), [props.userId, props.profileRevision, props.scopeKey]);
   if (!props.workspace?.enabled) return null;
   return <>
-    <CanvasToolButton onClick={() => setOpen(true)} aria-expanded={open}>Questions</CanvasToolButton>
+    <CanvasToolButton disabled={!props.canWrite} onClick={() => setOpen(true)} aria-expanded={open}>Questions</CanvasToolButton>
     <Modal isOpen={open} onClose={() => { if (!busy) setOpen(false); }} layer="canvas" size="xl"
       title="Member questions" description="Send questions or review submitted answers. Saved forms remain on the canvas.">
       <RndClarifications {...props} onBusyChange={setBusy} embedded

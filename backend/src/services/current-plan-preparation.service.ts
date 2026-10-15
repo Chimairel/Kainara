@@ -12,7 +12,7 @@ import { AppError } from '@/errors/AppError';
 type Account = NonNullable<Awaited<ReturnType<typeof loadAccount>>>;
 
 async function loadAccount(userId: string) {
-  return prisma.user.findUnique({
+  return prisma.user.findFirst({
     where: { id: userId },
     select: {
       role: true,

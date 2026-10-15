@@ -61,7 +61,7 @@ export class ClinicalProfileReviewService {
       }),
       env.CLINICAL_CLARIFICATIONS_ENABLED
         ? prisma.clinicalClarificationForm.findMany({
-            where: { userId: { in: userIds }, resolution: { is: null } },
+            where: { userId: { in: userIds }, purpose: 'PROFILE', resolution: { is: null } },
             select: { userId: true, profileRevision: true, scopeKey: true },
           })
         : [],
@@ -245,7 +245,7 @@ export class ClinicalProfileReviewService {
         : [],
       ClinicalClarificationService.enabled && eligible.length
         ? prisma.clinicalClarificationForm.findMany({
-            where: { userId: { in: eligible.map(({ user }) => user.id) }, resolution: { is: null } },
+            where: { userId: { in: eligible.map(({ user }) => user.id) }, purpose: 'PROFILE', resolution: { is: null } },
             select: {
               userId: true,
               profileRevision: true,

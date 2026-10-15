@@ -34,7 +34,7 @@ export default function ClarificationFormCard({
     AWAITING_MEMBER: 'Awaiting your response',
     ANSWERED: 'Awaiting RND review',
     RESOLVED: 'Resolved by an RND',
-    SUPERSEDED: 'Historical — profile changed',
+    SUPERSEDED: form.purpose === 'MEAL' ? 'Historical — meal or profile changed' : 'Historical — profile changed',
   }[form.status];
   return (
     <Card
@@ -52,7 +52,7 @@ export default function ClarificationFormCard({
       </header>
       {form.sourceMeal && (
         <p className="text-xs text-brand-muted">
-          Requested during meal review: {formatMealTitle(form.sourceMeal.mealName)}
+          {form.purpose === 'MEAL' ? 'Meal question:' : 'Profile question requested during meal review:'} {formatMealTitle(form.sourceMeal.mealName)}
         </p>
       )}
       <form

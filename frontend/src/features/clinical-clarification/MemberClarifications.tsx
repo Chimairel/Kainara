@@ -65,7 +65,9 @@ export default function MemberClarifications({
         profileRevision: form.profileRevision,
         scopeKey: form.scopeKey,
       });
-      setMessage('Answers submitted. An RND will review them; your profile has not changed.');
+      setMessage(form.purpose === 'MEAL'
+        ? 'Meal answer submitted. Your RND will review it; this has not approved or rejected the meal.'
+        : 'Answers submitted. An RND will review them; your profile has not changed.');
       setNeedsRefresh(true);
       await refreshSavedAnswers();
     } catch (cause) {

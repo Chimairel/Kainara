@@ -4,6 +4,7 @@ export type ClarificationQuestion = {
   required: boolean;
 } & ({ type: 'TEXT' } | { type: 'CHOICE'; options: string[] });
 export type ClarificationForm = {
+  purpose?: 'PROFILE' | 'MEAL';
   id: string;
   title: string;
   profileRevision: number;

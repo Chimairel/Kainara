@@ -4,11 +4,11 @@ import Button from '@/components/ui/Button';
 import Modal from '@/components/ui/Modal';
 import NutritionGuidancePaper from '@/features/reports/NutritionGuidancePaper';
 import RndQueueDocument, { ReviewDocumentPage } from '@/features/nutritionist-reviews/RndQueueDocument';
-import { useRndClarificationDraft } from '@/features/clinical-clarification/RndClarifications';
+import RndClarifications, { useRndClarificationDraft } from '@/features/clinical-clarification/RndClarifications';
 import ClarificationTool from '@/features/clinical-clarification/ClarificationTool';
-import ClarificationFormCard from '@/features/clinical-clarification/ClarificationFormCard';
 import ProfileProposalCard from '@/features/clinical-clarification/ProfileProposalCard';
 import CanvasToolButton from '@/features/nutritionist-reviews/CanvasToolButton';
+import { ClipboardCheck, FileCheck, Pencil } from '@/components/ui/icons';
 import RndProfileProposals, { useProfileProposalDraft } from '@/features/clinical-clarification/RndProfileProposals';
 import ProfileClinicalReview from './ProfileClinicalReview';
 import ProfileDocumentReview from './ProfileDocumentReview';
@@ -38,14 +38,28 @@ export default function ProfileWorkCanvas({ model }: { model: ReturnType<typeof 
         expanded={expanded}
         onExpandedChange={setExpanded}
         onBack={clearSelection}
+        hideDecisionDock
         tools={<>
           {review?.clarifications?.enabled && <ClarificationTool
             userId={detail.userId} profileRevision={review.profileRevision} scopeKey={review.scopeKey}
             workspace={{ ...review.clarifications, forms: review.clarifications.forms.filter(form => form.status === 'ANSWERED') }}
             canWrite={!busy && !!review.claim?.mine} onUpdated={model.reloadDetail} draft={clarificationDraft}
           />}
-          {review?.profileProposals?.enabled && <CanvasToolButton onClick={() => setTool('corrections')}>Profile corrections</CanvasToolButton>}
-          {selectedDocument?.pending && <CanvasToolButton onClick={() => setTool('document')}>Review document</CanvasToolButton>}
+          {review?.profileProposals?.enabled && <CanvasToolButton
+            aria-label="Profile corrections" title="Propose profile corrections" disabled={busy || !review.claim?.mine}
+            onClick={() => setTool('corrections')}>
+            <Pencil aria-hidden="true" className="h-5 w-5" />
+          </CanvasToolButton>}
+          {selectedDocument?.pending && <CanvasToolButton
+            aria-label="Review document" title="Review clinical document" disabled={busy}
+            onClick={() => setTool('document')}>
+            <FileCheck aria-hidden="true" className="h-5 w-5" />
+          </CanvasToolButton>}
+          {review && <CanvasToolButton aria-label="Profile decision" title="Record profile decision"
+            disabled={busy || !review.claim?.mine} aria-pressed={decisionOpen}
+            onClick={() => setDecisionOpen(true)}>
+            <ClipboardCheck aria-hidden="true" className="h-5 w-5" />
+          </CanvasToolButton>}
         </>}
         actions={
           review && (
@@ -66,13 +80,6 @@ export default function ProfileWorkCanvas({ model }: { model: ReturnType<typeof 
               </span>
             </div>
           )
-        }
-        decision={
-          review?.claim?.mine ? (
-            <Button size="sm" disabled={busy} onClick={() => setDecisionOpen(true)}>
-              Profile decision
-            </Button>
-          ) : undefined
         }
       >
         <ReviewDocumentPage
@@ -138,7 +145,12 @@ export default function ProfileWorkCanvas({ model }: { model: ReturnType<typeof 
               title={form.title}
               subtitle={`Clarification · ${form.status.replace(/_/g, ' ')}`}
             >
-              <ClarificationFormCard form={form} mode="reviewer" embedded />
+              <RndClarifications
+                userId={detail.userId} profileRevision={review.profileRevision} scopeKey={review.scopeKey}
+                workspace={{ enabled: true, forms: [form] }}
+                canWrite={!busy && !toolBusy && !!review.claim?.mine}
+                showComposer={false} embedded onBusyChange={setToolBusy} onUpdated={model.reloadDetail}
+              />
             </ReviewDocumentPage>
           ))}
         {review?.profileProposals?.proposals.map((proposal, index) => (
@@ -173,6 +185,17 @@ export default function ProfileWorkCanvas({ model }: { model: ReturnType<typeof 
         title="Record profile decision"
         description="Confirm the current profile for planning, request correction, or ask for more details."
       >
+        {review?.clarifications?.forms.some(form => form.status === 'ANSWERED') && (
+          <div className="mb-5 space-y-3">
+            <h3 className="font-display text-lg font-semibold">Review clarification answers</h3>
+            <RndClarifications
+              userId={detail.userId} profileRevision={review.profileRevision} scopeKey={review.scopeKey}
+              workspace={{ enabled: true, forms: review.clarifications.forms.filter(form => form.status === 'ANSWERED') }}
+              canWrite={!busy && !toolBusy && !!review.claim?.mine} showComposer={false} embedded
+              onBusyChange={setToolBusy} onUpdated={model.reloadDetail}
+            />
+          </div>
+        )}
         <ProfileClinicalReview model={model} section="decision" />
       </Modal>
     </>

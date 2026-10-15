@@ -41,7 +41,11 @@ export const publishClarificationSchema = clarificationContextSchema
   })
   .strict();
 export const publishMealClarificationSchema = publishClarificationSchema
-  .extend({ expectedContextKey: z.string().regex(/^[a-f0-9]{64}$/) })
+  .extend({
+    expectedContextKey: z.string().regex(/^[a-f0-9]{64}$/),
+    // Old clients retain the existing profile handoff until their UI is upgraded.
+    purpose: z.enum(['PROFILE', 'MEAL']).default('PROFILE'),
+  })
   .strict();
 export const answerClarificationSchema = clarificationContextSchema
   .extend({

@@ -20,6 +20,7 @@ import { OutsideMealModal } from '@/features/dashboard/OutsideMealModal';
 import { useOutsideMealLog } from '@/features/dashboard/useOutsideMealLog';
 import { invalidateSessionResource } from '@/lib/session-resource-cache';
 import MealPlanAnnouncements from './MealPlanAnnouncements';
+import MealQuestions from '@/features/clinical-clarification/MealQuestions';
 import AnnouncementBanner from '@/components/shared/AnnouncementBanner';
 import { PortalAnnouncement, announcementPriority } from '@/components/shared/PortalAnnouncements';
 
@@ -76,6 +77,7 @@ export default function MealsWorkspace() {
             ) : undefined
           }
         />
+        <MealQuestions ownerId={workspace.ownerId} />
         {!isLoading && (
           <UnavailableMealsNotice
             cycle={cycles?.current ?? null}

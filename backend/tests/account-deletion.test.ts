@@ -2,14 +2,21 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import express from 'express';
 import bcrypt from 'bcryptjs';
+import { OAuth2Client } from 'google-auth-library';
 
 process.env.JWT_SECRET ||= 'synthetic-deletion-access-key';
 process.env.JWT_REFRESH_SECRET ||= 'synthetic-deletion-refresh-key';
+process.env.GOOGLE_CLIENT_ID ||= 'synthetic-google-client';
 
 test('account deletion uses one authenticated action, validates ownership and preserves its atomic audit', async (t) => {
   const globals = globalThis as unknown as { prisma: unknown };
   const previous = globals.prisma;
   const password = 'Synthetic!123';
+  let googleSubject = 'synthetic-subject';
+  t.mock.method(OAuth2Client.prototype, 'verifyIdToken', async (input: { idToken: string }) => {
+    if (input.idToken !== 'valid-synthetic-google-credential') throw new Error('Invalid Google credential');
+    return { getPayload: () => ({ sub: googleSubject, email: 'fixture@example.invalid', email_verified: true }) } as never;
+  });
   let user: Record<string, unknown> | null = {
     id: 'synthetic-owner',
     email: 'fixture@example.invalid',
@@ -102,6 +109,13 @@ test('account deletion uses one authenticated action, validates ownership and pr
   assert.equal((await remove({ confirmation, password })).status, 200);
   assert.equal(transactions, 2);
   assert.match(JSON.stringify(batch.at(-2)?.args), /PASSWORD/);
+  googleSubject = 'different-subject';
+  assert.equal((await remove({ confirmation, googleIdToken: 'valid-synthetic-google-credential' })).status, 400);
+  assert.equal(transactions, 2, 'Another Google identity cannot delete the signed-in account.');
+  googleSubject = 'synthetic-subject';
+  assert.equal((await remove({ confirmation, googleIdToken: 'valid-synthetic-google-credential' })).status, 200);
+  assert.equal(transactions, 3);
+  assert.match(JSON.stringify(batch.at(-2)?.args), /GOOGLE/);
   user!.passwordLoginEnabled = false;
   user!.accounts = [];
   assert.equal((await remove({ confirmation })).status, 400);
@@ -115,7 +129,7 @@ test('account deletion uses one authenticated action, validates ownership and pr
   assert.equal((await remove({ confirmation })).status, 401);
   user = null;
   assert.equal((await remove({ confirmation })).status, 401);
-  assert.equal(transactions, 2);
+  assert.equal(transactions, 3);
 
   // An explicit initials selection persists without reading the Google account photo.
   const save = t.mock.method(UserService, 'updateUserImage', async (_userId: string, image: string | null) => ({

@@ -5,6 +5,7 @@ import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import PasswordInput from '@/components/ui/PasswordInput';
+import GoogleSignInButton from '@/components/auth/GoogleSignInButton';
 
 import { ACCOUNT_DELETION_CONFIRMATION } from './AccountSettings.shared';
 import type { useAccountSettingsModel } from './useAccountSettingsModel';
@@ -16,6 +17,10 @@ type SectionProps = {
     | 'handleDeleteAccount'
     | 'deletionError'
     | 'passwordLoginEnabled'
+    | 'googleLoginEnabled'
+    | 'deletionMethod'
+    | 'setDeletionMethod'
+    | 'handleGoogleDeleteAccount'
     | 'deletionPassword'
     | 'setDeletionPassword'
     | 'deletionConfirmation'
@@ -31,6 +36,10 @@ export default function AccountPrivacySection({ model }: SectionProps) {
     handleDeleteAccount,
     deletionError,
     passwordLoginEnabled,
+    googleLoginEnabled,
+    deletionMethod,
+    setDeletionMethod,
+    handleGoogleDeleteAccount,
     deletionPassword,
     setDeletionPassword,
     deletionConfirmation,
@@ -53,7 +62,22 @@ export default function AccountPrivacySection({ model }: SectionProps) {
           </div>
           <form onSubmit={handleDeleteAccount} className="space-y-4 p-5 sm:p-6">
             {deletionError && <FeedbackNotice>{deletionError}</FeedbackNotice>}
-            {passwordLoginEnabled && (
+            {passwordLoginEnabled && googleLoginEnabled && (
+              <fieldset disabled={isDeleting} className="space-y-2">
+                <legend className="text-sm font-semibold">Verify account ownership</legend>
+                <label className="flex items-center gap-2 text-sm">
+                  <input type="radio" name="deletion-method" checked={deletionMethod === 'GOOGLE'}
+                    onChange={() => setDeletionMethod('GOOGLE')} />
+                  Use my linked Google account
+                </label>
+                <label className="flex items-center gap-2 text-sm">
+                  <input type="radio" name="deletion-method" checked={deletionMethod === 'PASSWORD'}
+                    onChange={() => setDeletionMethod('PASSWORD')} />
+                  Use my KAINARA password
+                </label>
+              </fieldset>
+            )}
+            {passwordLoginEnabled && (!googleLoginEnabled || deletionMethod === 'PASSWORD') && (
               <PasswordInput
                 id="delete-account-password"
                 name="currentPassword"
@@ -73,13 +97,20 @@ export default function AccountPrivacySection({ model }: SectionProps) {
               required
             />
             <div className="flex justify-end border-t border-brand-border/60 pt-4">
-              <Button
+              {passwordLoginEnabled && googleLoginEnabled && deletionMethod === 'GOOGLE' ? (
+                <div className="w-full space-y-3">
+                  <p className="text-sm text-brand-muted">
+                    After typing the confirmation, continue with your linked Google account to permanently delete this account and its health data.
+                  </p>
+                  <GoogleSignInButton disabled={isDeleting || !deletionConfirmed} onCredential={handleGoogleDeleteAccount} />
+                </div>
+              ) : <Button
                 variant="danger"
                 type="submit"
                 disabled={isDeleting || !deletionConfirmed || (passwordLoginEnabled && deletionPassword.length < 8)}
               >
                 {isDeleting ? 'Deleting account...' : 'Permanently delete account'}
-              </Button>
+              </Button>}
             </div>
           </form>
         </Card>

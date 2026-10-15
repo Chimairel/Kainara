@@ -169,7 +169,7 @@ export class ClinicalProfileProposalService {
         const evidence: Prisma.InputJsonObject[] = [];
         for (const source of input.evidence) {
           const form = await tx.clinicalClarificationForm.findFirst({
-            where: { id: source.formId, userId, profileRevision: input.profileRevision, scopeKey: input.scopeKey },
+            where: { id: source.formId, userId, purpose: 'PROFILE', profileRevision: input.profileRevision, scopeKey: input.scopeKey },
             include: { resolution: true, responses: { orderBy: { version: 'desc' }, take: 1 } },
           });
           if (
