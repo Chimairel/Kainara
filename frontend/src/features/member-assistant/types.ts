@@ -1,5 +1,5 @@
 export type AssistantAllowance = { tier: 'FREE' | 'LIFESTYLE' | 'HEALTH'; cap: number; used: number; remaining: number; resetsAt: string; nextAiRequestAt?: string | null };
-export type AssistantAction = 'TODAY' | 'GUIDANCE' | 'FIND_MEAL' | 'VIEW_PLAN';
+export type AssistantAction = 'TODAY' | 'GUIDANCE' | 'FIND_MEAL' | 'VIEW_PLAN' | 'CURRENT_MEALS' | 'GROCERIES';
 export type AssistantInput = {
   requestKey: string; message: string; action?: AssistantAction; allowAi: boolean;
   context: Array<{ role: 'user' | 'assistant'; content: string }>;

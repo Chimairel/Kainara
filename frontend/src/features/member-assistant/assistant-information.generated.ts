@@ -72,12 +72,21 @@ export function normalizeAssistantQuestion(message: string) {
 }
 
 /** Shared by the server fallback and the generated browser guide. */
-export function assistantDirectAction(message: string): 'GREETING' | 'TODAY' | 'GUIDANCE' | 'VIEW_PLAN' | 'CREDITS' | null {
+export function assistantDirectAction(message: string): 'GREETING' | 'TODAY' | 'GUIDANCE' | 'VIEW_PLAN' | 'CREDITS' | 'CURRENT_MEALS' | 'GROCERIES' | null {
   const text = normalizeAssistantQuestion(message);
   if (/^(hi|hello|hey|thanks|thank you|salamat|maayong (adlaw|buntag)|good (morning|afternoon|evening))$/u.test(text)) return 'GREETING';
   if (['help', 'what can you do'].includes(text)) return 'GREETING';
   if (['credits', 'my credits', 'ai credits'].includes(text) || /\bcredits?\b/.test(text) && /\b(how|what|when|balance|remaining|reset|used|renew|weekly)\b/.test(text)) return 'CREDITS';
   if (['todays nutrition', 'daily summary', 'nutrition today'].includes(text)) return 'TODAY';
+  // These reads use today's Manila date, never infer a different day or a prescribed food.
+  const anotherDay = /\b(tomorrow|yesterday|monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b|\b\d{4} \d{2} \d{2}\b/.test(text);
+  if (!anotherDay && /\b(today|todays|this day|current|now|ngayon|karon)\b/.test(text)
+    && /\b(ingredients?|groceries|grocery|shopping list|buy|bilhin|paliton)\b/.test(text)
+    && /\b(what|whats|which|show|list|need|should|ingredients|ano|unsa)\b/.test(text)) return 'GROCERIES';
+  if (!anotherDay && !/\b(nutrition|facts?|calories|protein|carbs?|fat|should|recommend|change|swap|replace|log|done|eaten)\b/.test(text)
+    && /\b(what|whats|which|show|list|ano|unsa)\b/.test(text)
+    && /\b(meals?|menu|breakfast|lunch|dinner|pagkain|ulam)\b/.test(text)
+    && /\b(my|today|todays|this day|current|now|for me|for breakfast|for lunch|for dinner|ngayon|karon)\b/.test(text)) return 'CURRENT_MEALS';
   if (['view my plan', 'view meal plan', 'my meal plan'].includes(text)) return 'VIEW_PLAN';
   if (['my guidance', 'show my guidance', 'explain my guidance'].includes(text)) return 'GUIDANCE';
   return null;
@@ -86,7 +95,7 @@ export function assistantDirectAction(message: string): 'GREETING' | 'TODAY' | '
 /** No member facts or balance are inferred here. Dynamic shortcuts return null. */
 export function assistantStaticReply(message: string, action?: string): AssistantInformation | null {
   const direct = action ?? assistantDirectAction(message);
-  if (direct === 'TODAY' || direct === 'GUIDANCE') return null;
+  if (['TODAY', 'GUIDANCE', 'CURRENT_MEALS', 'GROCERIES'].includes(direct ?? '')) return null;
   if (direct === 'CREDITS') return {
     text: 'One successful AI-assisted request uses one Nara credit. Outside-food AI estimates have a separate allowance. I ask before calling AI. App instructions, greetings and free shortcuts do not spend credits. Credits reset on Monday at 12:00 AM in the Philippines; unused credits do not roll over. The balance below is the last checked balance. The server checks your current allowance before any AI request.',
     links: [{ label: 'View membership', href: '/membership' }],
@@ -106,9 +115,9 @@ export function assistantStaticReply(message: string, action?: string): Assistan
 }
 
 const choices: AssistantInformation = {
-  text: 'Which part of KAINARA do you mean? I can explain weight tracking in Progress, your Meal plan, Membership, profile settings or other app features. You can also browse Docs & Help. These instructions are free.',
+  text: 'Which part of KAINARA do you mean? I can explain weight tracking in Progress, your Meal plan, Membership, profile settings or other app features. You can also browse Docs & Help. These instructions are free. For a specific concern, you can contact support through Help.',
   links: [{ label: 'Progress', href: '/progress' }, { label: 'Meal plan', href: '/meals' },
-    { label: 'Membership', href: '/membership' }, { label: 'Docs & Help', href: '/docs' }],
+    { label: 'Membership', href: '/membership' }, { label: 'Docs & Help', href: '/docs' }, { label: 'Help', href: '/help' }],
 };
 
 /** General food/nutrition questions proceed to the consent-based server classifier too. */
@@ -125,6 +134,10 @@ function needsAi(text: string) {
 
 export function assistantInformationReply(message: string): AssistantInformation | null {
   const text = normalizeAssistantQuestion(message);
+  // A question about personal dietary amounts is not app-calculation help.
+  if (/\b(should|safe|allowed|prescribe|treat)\b/.test(text)
+    && /\b(eat|consume|take|protein|carbs|fat|sodium|potassium|calories)\b/.test(text)
+    && /\b(diabetes|diabetic|kidney|hypertension|pregnant|heart|condition)\b/.test(text)) return null;
   const help = extendedHelp.find(entry => entry.match.test(text));
   if (help) return { text: help.text, links: help.links };
   if (/\b(?:about|purpose|features)\b|^(?:what is|whats|what does|what can|tell me about|explain|unsa|ano)\b|^how does .+ work\b/.test(text)
@@ -157,6 +170,33 @@ export function assistantInformationReply(message: string): AssistantInformation
 
 /** Reviewed against NARA_SYSTEM_GUIDE.md and current routes; these replies require no account reads. */
 const extendedHelp: Array<AssistantInformation & { match: RegExp }> = [
+  { match: /\b(cant|cannot|unable|couldnt|why wont|why can t|not allowed|disabled|locked)\b.*\b(mark|done|eaten|complete|meal)\b|\b(mark|meal)\b.*\b(disabled|locked|not working|cant|cannot)\b/,
+    text: 'A planned meal must be cleared before you can mark it as eaten. A saved condition or allergy can require profile and meal review; this does not mean every member with a condition is blocked. Changed safety information, an RND question, a flag or an outdated approval can also hold a meal. Future meals cannot be logged early; past meals have a seven-day logging window. Open Meal plan and read the meal’s current notice. Answer meal questions there; profile questions are in Health details. Keep your declared conditions and allergies accurate. For a specific concern, you can contact support through Help.',
+    links: [{ label: 'Meal plan', href: '/meals' }, { label: 'Health details', href: '/profile/clinical-evidence' }, { label: 'Help', href: '/help' }] },
+  { match: /\b(bmr|basal metabolic rate|mifflin)\b/,
+    text: 'KAINARA estimates resting energy using Mifflin–St Jeor: BMR = 10 × weight (kg) + 6.25 × height (cm) − 5 × age + a sex term (+5 male, −161 female). Activity is applied afterward to estimate daily expenditure. This explains the app’s calculation, not a measured metabolism or a personal medical prescription. Your saved Nutrition guidance shows the inputs and dated estimates used for planning.',
+    links: [{ label: 'Nutrition guidance', href: '/profile/nutrition-report' }] },
+  { match: /\b(tdee|activity multiplier|activity factor|daily energy expenditure)\b/,
+    text: 'KAINARA estimates TDEE by multiplying BMR by your recorded activity factor: sedentary 1.2, lightly active 1.375, active 1.55, very active 1.725. Its current draft goal adjustments are −500 kcal for weight loss, +500 for weight gain, 0 for maintenance and +300 for muscle building. These are software planning estimates, not individually prescribed targets. Read your saved Nutrition guidance; correct activity or goal details in Health & goals.',
+    links: [{ label: 'Nutrition guidance', href: '/profile/nutrition-report' }, { label: 'Health & goals', href: '/profile/health' }] },
+  { match: /\b(how|why|what|explain)\b.*\b(macros?|protein|carbs?|carbohydrates?|fats?)\b.*\b(calculate|calculated|calculates|calculation|computed|compute|target|split|allocated)\b|\b(how|why)\b.*\b(calculate|compute|split)\b.*\b(macros?|protein|carbs?|fats?)\b/,
+    text: 'The general planning point allocates 12.5% of energy to protein, 25% to fat and the remaining 62.5% to carbohydrate. Grams = allocated kcal ÷ 4 for protein/carbohydrate, or ÷ 9 for fat. For eligible unrestricted adults aged 19 or above with a muscle-building goal, the code can instead use 1.6 g protein/kg if it fits within 35% of energy; carbohydrate uses the energy left after protein and fat. Restricted or younger profiles use review references, not automatic therapeutic targets. Saved review references may differ. Nutrition guidance shows your recorded basis.',
+    links: [{ label: 'Nutrition guidance', href: '/profile/nutrition-report' }] },
+  { match: /\b(breakfast|lunch|dinner|meal|slot)\b.*\b(30|40|split|allocation|allocated|range|tolerance|percent|percentage)\b|\b(how|why)\b.*\b(split|allocate|allocated|divide)\b.*\b(meals?|calories|energy)\b|\bwhy\b.*\b(breakfast|lunch|dinner)\b.*\b(calories|energy)\b.*\b(different|higher|lower|more|less)\b/,
+    text: 'The usual daily energy allocation is breakfast 30%, lunch 40% and dinner 30%. A meal’s target is the daily estimate × its share, rounded to the nearest kcal. Its usual candidate range is 15% below to 15% above that target, with the lower bound rounded down and upper bound rounded up. Portions, paired rice and all applicable safety/review rules still matter. Matching calories alone does not approve a meal or guarantee an exact daily total. Check the actual serving in Meal plan.',
+    links: [{ label: 'Meal plan', href: '/meals' }, { label: 'Nutrition guidance', href: '/profile/nutrition-report' }] },
+  { match: /\b(how|why|explain|what)\b.*\b(calculate|calculated|calculates|calculation|calculations|compute|computed|computes|math|formula|formulas|behind the scenes|choose|chooses|chosen|select|selected|picked|decide)\b.*\b(meals?|plan|calories?|nutrition|energy|kainara)\b|\b(how|why)\b.*\b(meals?|calories?|target)\b.*\b(calculated|computed|chosen|selected)\b/,
+    text: 'KAINARA uses your acknowledged planning report and saved profile to estimate energy from age, sex, height, weight, activity and goal. It balances protein, carbohydrate and fat, then usually allocates energy 30% to breakfast, 40% to lunch and 30% to dinner. Existing recipes are screened for preferences, restrictions, evidence and required reviews, then portions and suitable rice are fitted to the slot. Nutrition comes from recorded composition or recipe data, scaled to the serving; missing evidence stays unknown. AI may help with an unmatched recipe, but it does not grant approval. Planned totals sum scheduled servings; consumed totals sum food recorded as eaten. These are planning estimates. Ask about BMR, TDEE, macro calculations, meal allocation or rice for the specific math, and read Nutrition guidance for your saved inputs.',
+    links: [{ label: 'Nutrition guidance', href: '/profile/nutrition-report' }, { label: 'Meal plan', href: '/meals' }] },
+  { match: /\b(how|why|what)\b.*\b(nutrition|calories|nutrients?|ingredients?)\b.*\b(source|scaled|scale|serving|portion|per 100|come from)\b|\b(how|why)\b.*\b(rice|serving|portion)\b.*\b(calculate|calculated|compute|computed|nutrition|calories)\b/,
+    text: 'For a composition record measured per 100 g, amount in a serving = recorded nutrient × serving grams ÷ 100. A recipe’s stored serving uses its recorded serving basis and any saved scaling factor. A planned plate can add a separately calculated cooked-rice component; its displayed totals include that component when recorded. KAINARA sums the actual components, so a base recipe and a planned plate can differ. Unknown nutrients are not zero, and estimates or package variants can differ. Check the meal’s serving label and source in Meal plan or Meal library.',
+    links: [{ label: 'Meal plan', href: '/meals' }, { label: 'Meal library', href: '/meals?tab=library' }] },
+  { match: /\b(ingredients?|groceries|grocery|shopping list)\b.*\b(tomorrow|yesterday|monday|tuesday|wednesday|thursday|friday|saturday|sunday|another day|specific day|date)\b|\b\d{4} \d{2} \d{2}\b.*\b(ingredients?|groceries)\b/,
+    text: 'Open Groceries and use Ingredients by day to choose a date in your current or next cycle. Day quantities cover that date’s currently cleared meals, including recorded rice. Check your pantry before buying. All days shows the cycle shopping checklist; purchase checkmarks apply to that cycle.',
+    links: [{ label: 'Groceries', href: '/grocery' }] },
+  { match: /\b(answer|reply|respond|where)\b.*\b(meal question|question about (?:a |my |the )?meal|meal clarification)\b|\b(meal question|meal clarification)\b/,
+    text: 'Open Meal plan to answer a question about a specific meal. After you submit, the RND reviews your answer and resolves the question before deciding on that meal. A meal question does not reopen an approved profile. Questions about your health profile are in Health details.',
+    links: [{ label: 'Meal plan', href: '/meals' }, { label: 'Health details', href: '/profile/clinical-evidence' }] },
   { match: /\b(report|submit|send|raise|file)\b.*\b(issues?|problems?|bugs?|errors?|complaints?|tickets?)\b|\b(contact|reach|message)\b.*\b(support|admin|administrator|team|developer)\b|\b(found|have|got)\b.*\b(bug|issue|problem)\b|\b(contact support|technical support|help desk)\b/,
     text: 'Open Contact Support to report a problem. Choose a topic and include the page, what you expected and what happened. Verified signed-in members can send the form. Check the reply email; your request goes to the admin support inbox and an admin can reply by email. I have not submitted anything from this chat.', links: [{ label: 'Contact Support', href: '/help' }] },
   { match: /\b(forgot|forgotten|reset|recover)\b.*\b(password|login)\b|\b(cannot|cant|unable to) (?:log in|login|sign in)\b/,
@@ -168,7 +208,7 @@ const extendedHelp: Array<AssistantInformation & { match: RegExp }> = [
   { match: /\b(weekly check in|weekly checkin|check in due|checkin due|overdue check in|still the same)\b/,
     text: 'Use the weekly check-in reminder on your Dashboard to confirm whether your details changed. Review any new dated Nutrition guidance and choose “Use this report for meal planning” when prompted. A check-in does not restart your trial.', links: [{ label: 'Dashboard', href: '/dashboard' }, { label: 'Nutrition guidance', href: '/profile/nutrition-report' }] },
   { match: /\b(rnd|nutritionist|dietitian)\b.*\b(feedback|advice|contact|message|questions?|answers?)\b|\b(feedback|advice|contact|message|answer|respond)\b.*\b(rnd|nutritionist|dietitian)\b/,
-    text: 'For logged outside food, open Meal history, select the entry and choose “Get RND feedback” when available. Your current access and allowance apply. Feedback does not rewrite its nutrition. For questions your RND sent you, open Health details. Nara is not a live chat with an RND.', links: [{ label: 'Meal history', href: '/meals?tab=history' }, { label: 'Health details', href: '/profile/clinical-evidence' }] },
+    text: 'For logged outside food, open Meal history, select the entry and choose “Get RND feedback” when available. Your current access and allowance apply. Feedback does not rewrite its nutrition. Answer meal questions in Meal plan and profile questions in Health details. Nara is not a live chat with an RND.', links: [{ label: 'Meal history', href: '/meals?tab=history' }, { label: 'Meal plan', href: '/meals' }, { label: 'Health details', href: '/profile/clinical-evidence' }] },
   { match: /\b(health details|clinical documents?|upload.*(?:medical|clinical|evidence|document)|requested forms?)\b/,
     text: 'Open Health details to answer forms requested by your RND. New declarations do not automatically create a form. New clinical-document uploads are retired; existing historical files do not make uploading available. I have not submitted any health details.', links: [{ label: 'Health details', href: '/profile/clinical-evidence' }] },
   { match: /\b(pending|flagged|verification|verified|approval|approved|rejected|quarantined)\b.*\b(mean|means|status|review|meal|recipe|profile)\b|\b(what|why)\b.*\b(pending|flagged|verification|approval|quarantined)\b/,

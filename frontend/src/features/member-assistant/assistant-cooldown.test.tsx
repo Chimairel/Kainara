@@ -14,6 +14,25 @@ beforeEach(() => {
 });
 afterEach(() => { vi.useRealTimers(); vi.restoreAllMocks(); });
 
+it('free current meal and day ingredients remain sendable at zero credits during cooldown', async () => {
+  const exhausted = { ...allowance, remaining: 0, used: 5, nextAiRequestAt: '2026-10-15T14:01:00Z' };
+  vi.mocked(api.get).mockResolvedValue({ data: { data: { enabled: true, allowance: exhausted } } });
+  vi.mocked(api.post).mockResolvedValue({ data: { data: { confirmationRequired: false, allowance: exhausted,
+    reply: { text: 'Current member records', source: 'SYSTEM', creditsUsed: 0 } } } });
+  const { result } = renderHook(() => useMemberAssistant(true));
+  await act(async () => {});
+  act(() => result.current.setOpen(true));
+  for (const question of ['whats my current meal?', 'what are the ingredients i should by for this day?']) {
+    act(() => result.current.setDraft(question));
+    expect(result.current.cooldownBlocksDraft).toBe(false);
+    await act(async () => result.current.send());
+    expect(result.current.pending).toBeNull();
+    expect(result.current.messages.at(-1)?.text).toBe('Current member records');
+  }
+  expect(api.post).toHaveBeenCalledTimes(2);
+  expect(vi.mocked(api.post).mock.calls.every(([, body]) => !(body as { allowAi: boolean }).allowAi)).toBe(true);
+});
+
 it('counts down locally, preserves blocked drafts and allows free system help without extra reads', async () => {
   const { result } = renderHook(() => useMemberAssistant(true));
   await act(async () => {}); act(() => result.current.setOpen(true));

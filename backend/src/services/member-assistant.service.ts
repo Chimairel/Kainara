@@ -16,6 +16,7 @@ import { MemberAssistantUsageService as Usage } from './member-assistant-usage.s
 import { queryEligibleLibraryPage, type EligibleLibraryMeal } from './meal-library-candidate-query.service';
 import { assistantStaticReply } from '@/domain/member-assistant-information';
 import { MemberAssistantNutritionService } from './member-assistant-nutrition.service';
+import { MemberAssistantPlanService } from './member-assistant-plan.service';
 
 export type AssistantReply = {
   text: string;
@@ -60,8 +61,8 @@ export class MemberAssistantService {
   static async message(userId: string, input: AssistantInput) {
     if (!assistantEnabled()) throw new AppError('The assistant is not enabled.', 404, 'ASSISTANT_DISABLED');
     const direct = input.action ?? assistantDirectAction(input.message);
-    if (direct === 'TODAY' || direct === 'GUIDANCE') {
-      const reply = await this.direct(userId, direct);
+    if (direct === 'TODAY' || direct === 'GUIDANCE' || direct === 'CURRENT_MEALS' || direct === 'GROCERIES') {
+      const reply = await this.direct(userId, direct, input.message);
       return { confirmationRequired: false as const, reply, allowance: await Usage.allowance(userId) };
     }
     const information = assistantStaticReply(input.message, input.action);
@@ -101,7 +102,8 @@ export class MemberAssistantService {
         text: criteria.clarification || 'Which meal or numeric nutrition limit would you like me to search for?', source: 'AI', creditsUsed: 1,
       };
       else reply = {
-        text: 'I can help with KAINARA, meals, food facts and general nutrition education. Use the existing meal or profile screens to make changes, and ask an RND for individual health advice.',
+        text: 'I can help with KAINARA, meals, food facts and general nutrition education. Use the existing meal or profile screens to make changes, and ask an RND for individual health advice. For a specific concern, you can contact support through Help.',
+        links: [{ label: 'Help', href: '/help' }],
         source: 'AI', creditsUsed: 1,
       };
       reply = { ...reply, source: 'AI', creditsUsed: 1 };
@@ -113,8 +115,10 @@ export class MemberAssistantService {
     }
   }
 
-  private static async direct(userId: string, action: string): Promise<AssistantReply> {
+  private static async direct(userId: string, action: string, message: string): Promise<AssistantReply> {
     if (action === 'TODAY') return this.today(userId);
+    if (action === 'CURRENT_MEALS') return MemberAssistantPlanService.currentMeals(userId, message);
+    if (action === 'GROCERIES') return MemberAssistantPlanService.groceries(userId);
     return this.guidance(userId);
   }
 

@@ -15,6 +15,9 @@ import { assistantInputSchema } from '../src/domain/member-assistant.policy';
 import { buildMealLibraryRecipeSignature } from '../src/domain/meal-library-signature.policy';
 import { MEAL_LIBRARY_SAFETY_POLICY_VERSION } from '../src/domain/meal-library-safety-evidence.policy';
 import { libraryBaseRevisionKey } from '../src/services/meal-base-admission.service';
+import { getStartOfManilaBusinessDay } from '../src/domain/meal-actionability.policy';
+import { getManilaDateKey } from '../src/domain/meal-plan-cycle.policy';
+import { GroceryService } from '../src/services/grocery.service';
 
 async function main() {
   const target = new URL(process.env.DATABASE_URL ?? '');
@@ -80,6 +83,20 @@ async function main() {
   } });
   await prisma.mealBaseVerification.create({ data: { targetKind: 'LIBRARY_MEAL', targetId: meal.id,
     revisionKey: libraryBaseRevisionKey(signature, meal.description), status: 'VERIFIED', reviewedByNutritionistId: reviewer.id, reviewedAt: new Date(), rationale: 'Isolated test fixture.' } });
+  const today = getStartOfManilaBusinessDay();
+  const tomorrow = new Date(+today + 86400000);
+  const cycle = await prisma.mealPlanCycle.create({ data: { id: randomUUID(), userId: member.id, planType: 'STARTER',
+    startDate: today, endDate: tomorrow, preparationOpensAt: today, shoppingDeadlineAt: new Date(+today + 2 * 86400000), expectedSlotCount: 6 } });
+  const slot = { userId: member.id, planGroupId: cycle.id, libraryMealId: meal.id, ...nutrition,
+    status: 'APPROVED' as const, requiresSafetyRevalidation: false, safetyPolicyVersion: MEAL_LIBRARY_SAFETY_POLICY_VERSION,
+    candidateProvenance: 'CERTIFIED_LIBRARY' as const, baseRecipeSignature: signature, composedServingSignature: 'f'.repeat(64), mealName: meal.mealName };
+  await prisma.mealPlan.create({ data: { ...slot, mealType: 'BREAKFAST', scheduledDate: today,
+    ingredients: { create: { ingredientName: 'Synthetic chicken breast', quantity: 100, unit: 'g', category: 'PROTEIN', foodItemId: food.id } } } });
+  await prisma.mealPlan.create({ data: { ...slot, mealType: 'LUNCH', scheduledDate: tomorrow,
+    ingredients: { create: { ingredientName: 'Synthetic chicken breast', quantity: 200, unit: 'g', category: 'PROTEIN', foodItemId: food.id } } } });
+  await prisma.mealPlan.create({ data: { ...slot, status: 'PENDING_REVIEW', requiresSafetyRevalidation: true,
+    mealType: 'LUNCH', scheduledDate: today, mealName: 'Pending synthetic lunch',
+    ingredients: { create: { ingredientName: 'Pending ingredient excluded', quantity: 999, unit: 'g', category: 'OTHER' } } } });
   await prisma.mealLog.createMany({ data: [
     { userId: member.id, source: 'USER_LOGGED', mealName: 'Synthetic recorded lunch', ...nutrition, dataSource: 'USER_REPORTED', status: 'DONE' },
     { userId: other.id, source: 'USER_LOGGED', mealName: 'Other member private log', ...nutrition, calories: 999, dataSource: 'USER_REPORTED', status: 'DONE' },
@@ -116,6 +133,20 @@ async function main() {
     assert.equal(free.body.data.reply.facts[0].value, '400.0 kcal');
     assert.equal(free.body.data.confirmationRequired, false); assert.equal(providerCalls, 0);
     pass('free nutrition action excludes voided and other-member data');
+    const menu = await request(member, '/messages', { requestKey: randomUUID(), message: 'whats my current meal?' });
+    assert.equal(menu.status, 200); assert.equal(menu.body.data.reply.creditsUsed, 0);
+    assert.match(menu.body.data.reply.text, /cleared for the plan/); assert.match(menu.body.data.reply.text, /not cleared/);
+    const projection = await GroceryService.getTodayIngredients(member.id);
+    const day = projection?.days.find(item => item.date === getManilaDateKey(new Date()));
+    assert.equal(day?.clearedMealCount, 1);
+    assert.equal(day?.items.find(item => item.ingredientName === 'Synthetic chicken breast')?.quantity, 100);
+    assert.equal(day?.items.some(item => /Pending/.test(item.ingredientName)), false);
+    assert.equal(projection?.groceryList?.groceryItems.find(item => item.ingredientName === 'Synthetic chicken breast')?.quantity, 300);
+    const groceries = await request(member, '/messages', { requestKey: randomUUID(), message: 'what ingredients should I buy today?' });
+    assert.equal(groceries.status, 200); assert.match(groceries.body.data.reply.text, /100.0 g/);
+    assert.equal(groceries.body.data.reply.creditsUsed, 0); assert.equal(providerCalls, 0);
+    assert.equal(await prisma.assistantRequest.count(), 0);
+    pass('free current menu and shared grocery day projection exclude held meals and other dates without spending');
     const consent = await request(member, '/messages', { ...raw, allowAi: true });
     assert.equal(consent.status, 200, JSON.stringify(consent.body));
     assert.equal(consent.body.data.reply.meals.length, 1);

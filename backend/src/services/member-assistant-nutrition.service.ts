@@ -62,7 +62,8 @@ export class MemberAssistantNutritionService {
       if (recipe) return recipe;
     }
     if (!foods.length) return {
-      text: `I couldn’t find a recorded ${!source && userId ? 'food composition or visible meal-library recipe' : 'FNRI/USDA composition'} match for “${term}”. Try its full food name, preparation or brand. I won’t invent a nutrition table. A package label can identify the actual product and serving.`,
+      text: `I couldn’t find a recorded ${!source && userId ? 'food composition or visible meal-library recipe' : 'FNRI/USDA composition'} match for “${term}”. Try its full food name, preparation or brand. I won’t invent a nutrition table. A package label can identify the actual product and serving. For a specific concern, you can contact support through Help.`,
+      links: [{ label: 'Help', href: '/help' }],
       source: 'AI', creditsUsed: 1,
     };
     if (foods.length > 1 || !complete) return {

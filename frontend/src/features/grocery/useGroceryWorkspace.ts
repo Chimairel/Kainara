@@ -15,10 +15,13 @@ import {
 } from '@/features/grocery/current-grocery';
 import { getApiErrorMessage } from '@/lib/api-error';
 import { toast } from 'sonner';
+import { useSearchParams } from 'next/navigation';
 import { readSessionResource, refreshSessionResource, writeSessionResource } from '@/lib/session-resource-cache';
 
 type GroceryFilter = 'all' | 'remaining' | 'available';
 export function useGroceryWorkspace() {
+  const searchParams = useSearchParams();
+  const requestedDay = searchParams?.get('day') ?? null;
   const { user } = useAuth();
   const ownerId = user?.userId;
   const cachedPage = readSessionResource<GroceryWorkspace>(ownerId, 'user-grocery-workspace');
@@ -36,6 +39,7 @@ export function useGroceryWorkspace() {
   const [query, setQuery] = useState('');
   const [filter, setFilter] = useState<GroceryFilter>('all');
   const [selectedCategory, setSelectedCategory] = useState<string>('ALL');
+  const [selectedDay, setSelectedDay] = useState('ALL');
   const [sortField, setSortField] = useState<GrocerySortField>('status');
   const [sortOrder, setSortOrder] = useState<GrocerySortOrder>('asc');
   const visibleWorkspace = workspaceOwnerId === ownerId ? workspace : null;
@@ -43,6 +47,16 @@ export function useGroceryWorkspace() {
   const groceryList = projection?.groceryList ?? null;
   const pendingMealCount = projection?.coverage.unresolvedSlotCount ?? 0;
   const canCheckItems = Boolean(projection?.actionability.canCheckItems);
+  const days = projection?.days ?? [];
+  const selectedDayData = days.find(day => day.date === selectedDay);
+  const dayView = selectedDay !== 'ALL';
+  const displayedItems = useMemo<GroceryItem[]>(() => dayView
+    ? (selectedDayData?.items ?? []).map(item => ({ ...item, id: item.key, isChecked: false, isPantryStaple: false }))
+    : groceryList?.groceryItems ?? [], [dayView, selectedDayData, groceryList]);
+
+  useEffect(() => {
+    setSelectedDay(requestedDay && /^\d{4}-\d{2}-\d{2}$/.test(requestedDay) ? requestedDay : 'ALL');
+  }, [requestedDay, ownerId]);
 
   const cachePage = useCallback(
     (nextWorkspace: GroceryWorkspace) => {
@@ -125,6 +139,7 @@ export function useGroceryWorkspace() {
   );
 
   const handleToggleItem = async (itemId: string) => {
+    if (dayView) return;
     const item = groceryList?.groceryItems.find((row) => row.id === itemId);
     if (!item || pendingRef.current.has(itemId) || bulkBusy) return;
     if (!canCheckItems) { explainChecklistPause(); return; }
@@ -153,7 +168,7 @@ export function useGroceryWorkspace() {
   const { isDownloadingPdf, startPdfDownload } = usePdfDownload(ownerId);
 
   const handleDownloadPDF = async () => {
-    if (!projection || !projection.actionability.canExportPdf || isDownloadingPdf) return;
+    if (dayView || !projection || !projection.actionability.canExportPdf || isDownloadingPdf) return;
     try {
       await startPdfDownload('/user/grocery/pdf', `KAINARA_Grocery_List_${groceryList?.weekLabel || 'Current'}.pdf`, {
         params: { cycleId: projection.cycle.id },
@@ -194,18 +209,15 @@ export function useGroceryWorkspace() {
   const normalizedQuery = query.trim().toLowerCase();
 
   const allCategories = useMemo(() => {
-    if (!groceryList?.groceryItems) return [];
     const set = new Set<string>();
-    groceryList.groceryItems.forEach((item) => {
+    displayedItems.forEach((item) => {
       set.add(normalizeCategory(item.category));
     });
     return Array.from(set).sort();
-  }, [groceryList]);
+  }, [displayedItems]);
 
   const visibleItems = useMemo(() => {
-    if (!groceryList?.groceryItems) return [];
-
-    return groceryList.groceryItems
+    return displayedItems
       .filter((item) => {
         const matchesQuery =
           !normalizedQuery ||
@@ -237,24 +249,24 @@ export function useGroceryWorkspace() {
 
         return sortOrder === 'asc' ? diff : -diff;
       });
-  }, [groceryList, normalizedQuery, filter, selectedCategory, sortField, sortOrder]);
+  }, [displayedItems, normalizedQuery, filter, selectedCategory, sortField, sortOrder]);
 
   const categoryCounts = useMemo(() => {
-    if (!groceryList?.groceryItems) return {};
     const counts: Record<string, number> = {};
-    groceryList.groceryItems.forEach((item) => {
+    displayedItems.forEach((item) => {
       const cat = normalizeCategory(item.category);
       counts[cat] = (counts[cat] || 0) + 1;
     });
     return counts;
-  }, [groceryList]);
+  }, [displayedItems]);
 
-  const isFiltered = query.trim() !== '' || filter !== 'all' || selectedCategory !== 'ALL';
+  const isFiltered = query.trim() !== '' || filter !== 'all' || selectedCategory !== 'ALL' || dayView;
 
   const handleResetFilters = () => {
     setQuery('');
     setFilter('all');
     setSelectedCategory('ALL');
+    setSelectedDay('ALL');
   };
 
   const handleSort = (field: GrocerySortField) => {
@@ -269,6 +281,7 @@ export function useGroceryWorkspace() {
   const allVisibleChecked = visibleItems.length > 0 && visibleItems.every(isGroceryItemAvailable);
 
   const handleToggleAllVisible = async () => {
+    if (dayView) return;
     if (visibleItems.length === 0 || pendingRef.current.size > 0 || bulkBusy) return;
     if (!canCheckItems) { explainChecklistPause(); return; }
     const targetState = !allVisibleChecked;
@@ -347,5 +360,10 @@ export function useGroceryWorkspace() {
     handleSort,
     handleToggleAllVisible,
     allVisibleChecked,
+    selectedDay,
+    setSelectedDay,
+    selectedDayData,
+    days,
+    dayView,
   };
 }

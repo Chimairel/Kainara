@@ -17,7 +17,7 @@ const reply = z.object({
   }).strict()).max(5).optional(),
 }).strict();
 const pending = z.object({ requestKey: z.uuid(), message: z.string().min(1).max(1000), allowAi: z.literal(false),
-  action: z.enum(['TODAY', 'GUIDANCE', 'FIND_MEAL', 'VIEW_PLAN']).optional(),
+  action: z.enum(['TODAY', 'GUIDANCE', 'FIND_MEAL', 'VIEW_PLAN', 'CURRENT_MEALS', 'GROCERIES']).optional(),
   context: z.array(z.object({ role: z.enum(['user', 'assistant']), content: z.string().max(500) }).strict()).max(6),
 }).strict();
 const schema = z.object({ version: z.literal(1), owner: z.string().min(1).max(200), createdAt: z.number().finite(),

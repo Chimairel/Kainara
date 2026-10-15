@@ -8,7 +8,7 @@ export const ASSISTANT_COOLDOWN_MS = 60_000;
 export const assistantInputSchema = z.object({
   requestKey: z.uuid(),
   allowAi: z.boolean().default(false),
-  action: z.enum(['TODAY', 'GUIDANCE', 'FIND_MEAL', 'VIEW_PLAN']).optional(),
+  action: z.enum(['TODAY', 'GUIDANCE', 'FIND_MEAL', 'VIEW_PLAN', 'CURRENT_MEALS', 'GROCERIES']).optional(),
   message: z.string().trim().min(1).max(1000),
   context: z.array(z.object({ role: z.enum(['user', 'assistant']), content: z.string().max(500) }).strict()).max(6).default([]),
 }).strict();

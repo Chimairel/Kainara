@@ -20,6 +20,7 @@ interface GroceryTableProps {
   allVisibleChecked?: boolean;
   pendingIds?: ReadonlySet<string>;
   bulkBusy?: boolean;
+  readOnly?: boolean;
 }
 
 export default function GroceryTable({
@@ -33,6 +34,7 @@ export default function GroceryTable({
   allVisibleChecked = false,
   pendingIds = new Set(),
   bulkBusy = false,
+  readOnly = false,
 }: GroceryTableProps) {
   const renderSortIndicator = (field: GrocerySortField) => {
     if (sortField !== field) {
@@ -156,14 +158,14 @@ export default function GroceryTable({
       ),
     },
   ];
-  const sortableColumns = columns.map((column) => ({
+  const sortableColumns = columns.filter(column => !readOnly || column.key !== 'availability').map((column) => ({
     ...column,
     sortDirection:
       column.key === sortField ? (sortOrder === 'asc' ? ('ascending' as const) : ('descending' as const)) : undefined,
   }));
   return (
     <WorkspaceTable
-      label="Grocery items"
+      label={readOnly ? 'Ingredient requirements for the selected day' : 'Grocery items'}
       rows={items}
       columns={sortableColumns}
       rowKey={(item) => item.id}
@@ -179,10 +181,10 @@ export default function GroceryTable({
           <span>
             Showing <strong className="text-brand-text">{items.length}</strong> items
           </span>
-          <span className="font-mono text-[10px]">
+          {!readOnly ? <span className="font-mono text-[10px]">
             {items.filter(isGroceryItemAvailable).length} ready ·{' '}
             {items.filter((item) => !isGroceryItemAvailable(item)).length} to buy
-          </span>
+          </span> : <span>Recipe requirements · check pantry before buying</span>}
         </>
       }
     />

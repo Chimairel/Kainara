@@ -92,6 +92,14 @@ This feature branch has not applied its migration to Neon, changed hosted secret
 
 ## Verification
 
+### Daily meal/grocery reads and expanded calculation guide — October 16, 2026
+
+The free guide covers the owner's current-meal, day-ingredient, system-math, disabled-eaten-action and linked settings questions, plus related variants. Current meals and ingredients use authenticated free actions `CURRENT_MEALS` / `GROCERIES`; both stay usable at zero credits and during AI cooldown, without a provider reservation. Meals are date/owner/current-cycle scoped and distinguish clearance from consumption. Grocery answers reuse the page's day projection and quantity aggregation, include recorded rice, exclude pending meals and preserve unknown quantities. They link to `/grocery?day=YYYY-MM-DD`.
+
+Groceries adds Ingredients by day across current/next cycles. Day amounts are recipe requirements, with read-only rows; All days retains the existing cycle purchases, pantry/checklist semantics and PDF. Date selection reuses the loaded workspace without a fetch per selection. A stale/hidden list exposes no day requirements. Frozen cycle purchases can differ from later-cleared recipe requirements; day requirements never subtract invented pantry stock. No migration or dependency change.
+
+Calculation help describes the code's estimate and saved planning basis, not new medical targets. Profile/meal question links now follow their separate deployed destinations. Unknown app replies, unsupported scope and missing food records include a linked Help sentence. Prepared guide generation/parity remains required. Verification and release status are recorded in CHG-20261016-02; this is feature-branch work, not a demo promotion.
+
 ### One-minute AI cooldown and visible countdown — October 15, 2026
 
 The owner requested one AI request per minute and a visible countdown. The existing per-owner PostgreSQL admission lock now permits one new confirmed request per 60 seconds from its admission timestamp, including failed attempts. Successful receipt replay remains idempotent and free of a new admission. The server returns the latest deadline with allowance/status/recovery responses; cooldown rejections provide an absolute retry time and Retry-After. The independent 30/minute direct/preflight transport guard remains separate and also returns a deadline.
