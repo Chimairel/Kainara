@@ -5,6 +5,7 @@ import { generateGenerativeJSON } from '@/lib/gemini';
 import { catalogueMatchingCache } from '@/lib/catalogue-matching-cache';
 import type { AssistantInput } from '@/domain/member-assistant.policy';
 import type { AssistantReply } from './member-assistant.service';
+import { MemberAssistantRecipeFactsService } from './member-assistant-recipe-facts.service';
 
 const select = {
   id: true, name: true, source: true, sourceRecordId: true, sourceReferenceUrl: true, sourceDataset: true,
@@ -52,12 +53,16 @@ const education = [
 ] as const;
 
 export class MemberAssistantNutritionService {
-  static async facts(search: string, source?: 'FNRI' | 'USDA_FDC'): Promise<AssistantReply> {
+  static async facts(search: string, source?: 'FNRI' | 'USDA_FDC', userId?: string): Promise<AssistantReply> {
     const term = search.trim().slice(0, 80);
     if (term.length < 2) return { text: 'Which food would you like nutrition facts for?', source: 'AI', creditsUsed: 1 };
     const { foods, complete } = await lookup(term, source);
+    if (!foods.length && !source && userId) {
+      const recipe = await MemberAssistantRecipeFactsService.facts(userId, term);
+      if (recipe) return recipe;
+    }
     if (!foods.length) return {
-      text: `I couldn’t find a recorded FNRI/USDA composition match for “${term}”. Try its full food name, preparation or brand. I won’t invent a nutrition table. A package label can identify the actual product and serving.`,
+      text: `I couldn’t find a recorded ${!source && userId ? 'food composition or visible meal-library recipe' : 'FNRI/USDA composition'} match for “${term}”. Try its full food name, preparation or brand. I won’t invent a nutrition table. A package label can identify the actual product and serving.`,
       source: 'AI', creditsUsed: 1,
     };
     if (foods.length > 1 || !complete) return {

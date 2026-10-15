@@ -92,6 +92,14 @@ This feature branch has not applied its migration to Neon, changed hosted secret
 
 ## Verification
 
+### Meal-library fallback for food facts — October 15, 2026
+
+Food facts previously queried only composition records, so a source recipe visible in the Library could still return “not found.” When no FNRI/USDA record matches and no explicit FNRI/USDA source was requested, Nara now checks the member-visible recipe catalogue. It reuses the Library’s source catalogue and, for restricted profiles, its existing compatible/profile-approved admission path. No result or profile context is cached across members. Existing composition matches and explicit source requests keep their original behavior.
+
+Broad recipe matches ask for a full variant name. A single/exact recipe returns its stored base-serving macros and available extended nutrients, with its actual source URL when recorded. These values exclude separately paired rice and do not substitute a scheduled plate or imply health clearance. Missing nutrients remain missing, measured zeros remain zero, and displayed amounts have one decimal. No generated nutrient numbers, vector store, new database table or additional provider call was added.
+
+Verification: 32 focused backend tests, backend/test TypeScript and scoped lint pass; backend build passes. Direct guarded local reads find the visible sinigang variants, and exact `Beef Ribs Sinigang` returns the recorded 604.0 kcal, 59.0 g protein, available extended nutrients and its Panlasang Pinoy source. This reuses existing records without estimating or mutating nutrition. One real-provider browser question, “i want to know the nutrition fact about sinigang”, now renders the matching library variants; the synthetic local member balance changes from 39 to 38 and the composer remains usable. Exact recipe facts are verified through direct local service reads and unit coverage; the additional exact-name browser/provider turn was not needed. Screenshot: `codex_outputs/nara-sinigang-library-20261015.png`. The running local API was restarted through its loopback guard. No Neon or demo change.
+
 ### Provider null-field failure and immediate receipt recovery — October 15, 2026
 
 The local API recorded repeated `AI_INVALID_RESPONSE` / HTTP 502 failures because Gemini returned `clarification: null` for a meal search. The parser now normalizes null `clarification` and `search` to empty strings; all other intent, ingredient, enum and numeric checks remain strict, and the prompt explicitly requests empty strings for unused text. A paid POST failure triggers one owned receipt GET after the in-flight guard clears. Confirmed failures unlock the composer and state that no member credit was spent; running or uncertain delivery remains recoverable without replaying POST or polling. Admission rejections continue to unlock immediately.

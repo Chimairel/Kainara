@@ -92,7 +92,7 @@ export class MemberAssistantService {
       if (criteria.intent === 'FIND_MEAL') reply = await this.meals(userId, criteria);
       else if (criteria.intent === 'FOOD_FACTS') {
         const fnri = /\bFNRI\b/i.test(input.message), usda = /\bUSDA\b/i.test(input.message);
-        reply = await MemberAssistantNutritionService.facts(criteria.search, fnri !== usda ? fnri ? 'FNRI' : 'USDA_FDC' : undefined);
+        reply = await MemberAssistantNutritionService.facts(criteria.search, fnri !== usda ? fnri ? 'FNRI' : 'USDA_FDC' : undefined, userId);
       }
       else if (criteria.intent === 'NUTRITION_QUESTION') reply = await MemberAssistantNutritionService.explain(input);
       else if (criteria.intent === 'TODAY') reply = await this.today(userId);
