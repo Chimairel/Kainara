@@ -125,26 +125,33 @@ export default function AssistantConversation({ model, titleId, member, modal = 
         <h3 className="text-sm font-semibold">This request uses 1 AI credit</h3>
         <p className="mt-2 text-xs leading-5 text-brand-muted">{model.allowance?.remaining ?? 0} credits remaining this week. Failed requests won’t spend a credit.</p>
         <div className="mt-4 flex gap-2">
-          <Button size="sm" onClick={model.confirm} disabled={!model.allowance?.remaining}>Continue</Button>
+          <Button size="sm" onClick={model.confirm} disabled={!model.allowance?.remaining || model.cooldownSeconds > 0}>Continue</Button>
           <Button size="sm" variant="secondary" onClick={model.cancel}>Cancel</Button>
         </div>
         {!model.allowance?.remaining ? <p className="mt-3 text-xs leading-5 text-brand-muted">Credits reset {reset}. Free shortcuts are still available after cancelling.</p> : null}
       </section> : null}
       {model.error && !model.recoveryKey ? <div role="alert" className="mt-5 text-sm leading-6">
         <p>{model.error}</p>
-        <button type="button" onClick={model.retry} disabled={model.busy} className="mt-2 min-h-10 rounded font-semibold text-brand-green underline underline-offset-4 focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-green">Retry request</button>
+        <button type="button" onClick={model.retry} disabled={model.busy || model.cooldownSeconds > 0} className="mt-2 min-h-10 rounded font-semibold text-brand-green underline underline-offset-4 focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-green disabled:opacity-50">Retry request</button>
       </div> : null}
       <div ref={end} />
     </div>
     <footer className="shrink-0 border-t border-brand-border px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-3">
       <p className="mb-3 text-xs text-brand-muted tabular-nums">{model.allowance ? `${model.allowance.tier === 'FREE' ? 'Free' : model.allowance.tier === 'HEALTH' ? 'Health' : 'Lifestyle'} · ${model.allowance.remaining} / ${model.allowance.cap} AI credits · Resets ${reset}` : 'Checking AI credits…'}</p>
+      {model.cooldownSeconds > 0 ? <div aria-label="AI request cooldown" className="mb-3 text-sm">
+        <div className="flex items-center justify-between gap-3">
+          <span className="font-semibold">AI cooldown</span>
+          <span role="timer" aria-live="off" aria-label="Time until your next AI request" className="font-semibold tabular-nums">{Math.floor(model.cooldownSeconds / 60)}:{String(model.cooldownSeconds % 60).padStart(2, '0')}</span>
+        </div>
+        <p className="mt-1 text-xs leading-5 text-brand-muted">Free system help is still available.</p>
+      </div> : null}
       <form onSubmit={event => { event.preventDefault(); model.send(); }} className="nara-composer flex items-end gap-2 rounded-2xl border border-brand-border bg-brand-bg p-2 focus-within:border-brand-muted">
         <label htmlFor={`${titleId}-input`} className="sr-only">Message the assistant</label>
         <textarea data-nara-composer ref={input} id={`${titleId}-input`} value={model.draft} onChange={event => model.setDraft(event.target.value)} maxLength={1000} rows={2}
           placeholder="Ask about meals or your guidance…" disabled={disabled}
           onKeyDown={event => { if (event.key === 'Enter' && !event.shiftKey && !event.nativeEvent.isComposing) { event.preventDefault(); model.send(); } }}
           className="max-h-36 min-h-14 flex-1 resize-none border-0 bg-transparent p-2 text-sm leading-6 text-brand-text outline-none placeholder:text-brand-muted disabled:opacity-50" />
-        <Button type="submit" size="sm" disabled={disabled || !model.draft.trim()} aria-label="Send message" className="!h-10 !w-10 !min-w-10 !rounded-xl !p-0"><ArrowUp className="h-5 w-5" /></Button>
+        <Button type="submit" size="sm" disabled={disabled || model.cooldownBlocksDraft || !model.draft.trim()} aria-label="Send message" className="!h-10 !w-10 !min-w-10 !rounded-xl !p-0"><ArrowUp className="h-5 w-5" /></Button>
       </form>
       <p className="mt-2 text-[11px] leading-4 text-brand-muted">AI can misinterpret requests. Your saved guidance and RND decisions still apply.</p>
     </footer>

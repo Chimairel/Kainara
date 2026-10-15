@@ -4,6 +4,7 @@ import { membershipWeek, type MembershipTierName } from './membership.policy';
 export { assistantDirectAction } from './member-assistant-information';
 
 export const assistantEnabled = () => process.env.MEMBER_ASSISTANT_ENABLED === 'true';
+export const ASSISTANT_COOLDOWN_MS = 60_000;
 export const assistantInputSchema = z.object({
   requestKey: z.uuid(),
   allowAi: z.boolean().default(false),

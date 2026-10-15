@@ -198,6 +198,7 @@ test('lost response replay returns the saved reply without another AI call', asy
 test('current entitlement changes caps without resetting used credits; pending trial gets Free', async t => {
   process.env.MEMBERSHIP_ENABLED = 'true';
   mockDelegate(t, prisma.assistantRequest, 'count', async () => 4);
+  mockDelegate(t, prisma.assistantRequest, 'findFirst', async () => null);
   for (const [level, tier, cap] of [['TRIAL_PENDING', 'HEALTH', 5], ['TRIAL', 'HEALTH', 40], ['MEMBER', 'LIFESTYLE', 20], ['FREE', 'FREE', 5]]) {
     t.mock.method(MembershipService, 'state', async () => ({ level, tier }) as Awaited<ReturnType<typeof MembershipService.state>>);
     const result = await Usage.allowance('member');

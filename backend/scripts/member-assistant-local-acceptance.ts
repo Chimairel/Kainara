@@ -126,6 +126,11 @@ async function main() {
     assert.equal(replay.body.data.replayed, true); assert.equal(providerCalls, 1);
     assert.equal(replay.body.data.allowance.remaining, 4);
     pass('lost-response recovery is idempotent before asking to spend again');
+    const cooldown = await request(member, '/messages', { ...raw, requestKey: randomUUID(), allowAi: true });
+    assert.equal(cooldown.status, 429); assert.equal(cooldown.body.errorCode, 'ASSISTANT_TOO_FAST');
+    assert.ok(Date.parse(cooldown.body.retryAt) > Date.now()); assert.equal(providerCalls, 1);
+    assert.ok(consent.body.data.allowance.nextAiRequestAt);
+    pass('a second AI admission within a minute returns an exact cooldown without provider work');
     const otherReplay = await request(other, '/messages', raw);
     assert.equal(otherReplay.body.data.confirmationRequired, true);
     assert.equal(otherReplay.body.data.allowance.remaining, 5);
@@ -136,6 +141,10 @@ async function main() {
     assert.ok(reserved && reserved.status === 'fulfilled'); await Usage.fail(reserved.value.id);
     assert.equal((await Usage.allowance(other.id)).remaining, 5);
     pass('database lock permits one active request and failed work refunds the reservation');
+    // Advance only this disposable fixture's admission timestamp past cooldown
+    // so the following assertion tests the independent weekly-credit gate.
+    await prisma.assistantRequest.updateMany({ where: { userId: member.id, state: 'SUCCEEDED' },
+      data: { createdAt: new Date(Date.now() - 120000) } });
     await prisma.assistantRequest.createMany({ data: Array.from({ length: 4 }, (_, n) => ({
       userId: member.id, requestKey: randomUUID(), payloadHash: '0'.repeat(64), state: 'SUCCEEDED',
       createdAt: new Date(Date.now() - (n + 2) * 60000), leaseUntil: new Date(), completedAt: new Date(), response: {},

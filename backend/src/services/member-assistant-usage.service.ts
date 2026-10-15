@@ -3,10 +3,17 @@ import { Prisma } from '@prisma/client';
 import prisma from '@/lib/prisma';
 import { AppError } from '@/errors/AppError';
 import { membershipEnabled, type MembershipTierName } from '@/domain/membership.policy';
-import { assistantLimits, assistantWindows, type AssistantInput } from '@/domain/member-assistant.policy';
+import { ASSISTANT_COOLDOWN_MS, assistantLimits, assistantWindows, type AssistantInput } from '@/domain/member-assistant.policy';
 import { MembershipService } from './membership.service';
 
 export class MemberAssistantUsageService {
+  static async nextRequestAt(userId: string, now = new Date(), tx: Prisma.TransactionClient = prisma) {
+    const latest = await tx.assistantRequest.findFirst({ where: { userId,
+      createdAt: { gt: new Date(+now - ASSISTANT_COOLDOWN_MS) } },
+      orderBy: { createdAt: 'desc' }, select: { createdAt: true } });
+    return latest ? new Date(+latest.createdAt + ASSISTANT_COOLDOWN_MS) : null;
+  }
+
   /** Owned receipt recovery only. Never reserves credits, writes a receipt or invokes a provider. */
   static async recover(userId: string, requestKey: string, now = new Date()) {
     const row = await prisma.assistantRequest.findUnique({ where: { userId_requestKey: { userId, requestKey } },
@@ -25,11 +32,12 @@ export class MemberAssistantUsageService {
       ? membership.tier === 'HEALTH' ? 'HEALTH' : membership.tier === 'LIFESTYLE' ? 'LIFESTYLE' : 'FREE' : 'FREE';
     const windows = assistantWindows(now);
     const cap = assistantLimits(tier).weekly;
-    const used = await tx.assistantRequest.count({ where: {
+    const [used, nextRequestAt] = await Promise.all([tx.assistantRequest.count({ where: {
       userId, createdAt: { gte: windows.weekStart, lt: windows.weekEnd },
       OR: [{ state: 'SUCCEEDED' }, { state: 'PENDING', leaseUntil: { gt: now } }],
-    } });
-    return { tier, cap, used, remaining: Math.max(0, cap - used), resetsAt: windows.weekEnd.toISOString() };
+    } }), this.nextRequestAt(userId, now, tx)]);
+    return { tier, cap, used, remaining: Math.max(0, cap - used), resetsAt: windows.weekEnd.toISOString(),
+      nextAiRequestAt: nextRequestAt?.toISOString() ?? null };
   }
 
   static async reserve(userId: string, input: AssistantInput) {
@@ -52,8 +60,8 @@ export class MemberAssistantUsageService {
       }
       const active = await tx.assistantRequest.findFirst({ where: { userId, state: 'PENDING', leaseUntil: { gt: now } } });
       if (active) throw new AppError('Wait for your current AI request to finish.', 409, 'ASSISTANT_IN_PROGRESS');
-      const recent = await tx.assistantRequest.count({ where: { userId, createdAt: { gt: new Date(+now - 60000) } } });
-      if (recent >= 3) throw new AppError('Please wait a minute before another AI request.', 429, 'ASSISTANT_TOO_FAST');
+      const retryAt = await this.nextRequestAt(userId, now, tx);
+      if (retryAt) throw Object.assign(new AppError('AI requests have a one-minute cooldown. Free system help is still available.', 429, 'ASSISTANT_TOO_FAST'), { retryAt });
       const allowance = await this.allowance(userId, now, tx);
       if (!allowance.remaining) throw new AppError('Your AI credits are used for this week. Direct actions are still available.', 429, 'ASSISTANT_CREDITS_EXHAUSTED');
       const row = await tx.assistantRequest.create({ data: {

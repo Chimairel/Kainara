@@ -25,7 +25,11 @@ validateZodRequest({ params: z.object({ requestKey: z.uuid() }).strict() }), asy
 router.post('/messages', rateLimit({
   windowMs: 60000, limit: 30, standardHeaders: true, legacyHeaders: false,
   keyGenerator: req => (req as AuthenticatedRequest).user!.userId,
-  message: { success: false, error: 'Please wait before sending more messages.', errorCode: 'ASSISTANT_TOO_FAST' },
+  handler: (req, res) => {
+    const retryAt = (req as typeof req & { rateLimit?: { resetTime?: Date } }).rateLimit?.resetTime ?? new Date(Date.now() + 60000);
+    res.status(429).json({ success: false, error: 'Please wait before sending more messages.',
+      errorCode: 'ASSISTANT_TOO_FAST', retryAt: retryAt.toISOString() });
+  },
 }), validateZodBody(assistantInputSchema), asyncHandler(async (req: AuthenticatedRequest, res) => {
   try {
     res.json({ success: true, data: await MemberAssistantService.message(req.user!.userId, req.body) });

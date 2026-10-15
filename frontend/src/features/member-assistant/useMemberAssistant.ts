@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import api, { type ApiRequestConfig } from '@/lib/axios';
 import { getApiErrorCode, getApiErrorMessage } from '@/lib/api-error';
 import type { AssistantAction, AssistantAllowance, AssistantInput, AssistantResult, AssistantReply, ChatEntry } from './types';
-import { assistantStaticReply } from './assistant-information.generated';
+import { assistantDirectAction, assistantStaticReply } from './assistant-information.generated';
 import { readAssistantSession, saveAssistantSession, type AssistantSession } from '@/lib/assistant-session';
 
 export const ASSISTANT_BALANCE_MAX_AGE_MS = 60_000;
@@ -20,6 +20,10 @@ export function useMemberAssistant(ready: boolean, ownerId?: string) {
   const [failed, setFailed] = useState<AssistantInput | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [retryUntil, setRetryUntil] = useState(0);
+  const [clock, setClock] = useState(Date.now);
+  const cooldownUntil = Math.max(Date.parse(allowance?.nextAiRequestAt ?? '') || 0, retryUntil);
+  const cooldownSeconds = Math.max(0, Math.ceil((cooldownUntil - clock) / 1000));
   const [hydrated, setHydrated] = useState(false);
   const [recoveryKey, setRecoveryKey] = useState<string | null>(null);
   const [recoveryStatus, setRecoveryStatus] = useState<string | null>(null);
@@ -37,6 +41,21 @@ export function useMemberAssistant(ready: boolean, ownerId?: string) {
   const recovering = useRef(false);
   const snapshot = useRef<AssistantSession | null>(null);
   snapshot.current = ownerId ? { version: 1, owner: ownerId, createdAt: createdAt.current, open, draft, messages, pending, recoveryKey } : null;
+
+  // Purely local countdown: no per-second status reads or automatic AI retry.
+  useEffect(() => {
+    setClock(Date.now());
+    if (!open || cooldownUntil <= Date.now()) return;
+    const timer = window.setInterval(() => {
+      const now = Date.now(); setClock(now);
+      if (now >= cooldownUntil) window.clearInterval(timer);
+    }, 1000);
+    return () => window.clearInterval(timer);
+  }, [open, cooldownUntil]);
+  const freeRequest = (text: string, action?: AssistantAction) => {
+    const direct = action ?? assistantDirectAction(text);
+    return Boolean(assistantStaticReply(text, action)) || direct === 'TODAY' || direct === 'GUIDANCE';
+  };
 
   useEffect(() => {
     if (!ready || !ownerId || initialized.current) return;
@@ -58,6 +77,7 @@ export function useMemberAssistant(ready: boolean, ownerId?: string) {
       storageBlocked.current = true;
       controller.current?.abort(); recoveryController.current?.abort();
       setMessages([]); setDraft(''); setPending(null); setRecoveryKey(null); setRecoveryStatus(null); setOpen(false);
+      setRetryUntil(0);
     };
     window.addEventListener('kainara:nara-session-cleared', clear);
     return () => window.removeEventListener('kainara:nara-session-cleared', clear);
@@ -145,13 +165,22 @@ export function useMemberAssistant(ready: boolean, ownerId?: string) {
       }]);
     } catch (cause) {
       if (!alive.current || abort.signal.aborted) return;
+      const response = (cause as { response?: { status?: number; data?: { retryAt?: string }; headers?: Record<string, string> } })?.response;
+      const retryAt = Date.parse(response?.data?.retryAt ?? '');
+      if (Number.isFinite(retryAt) && retryAt > Date.now()) setRetryUntil(retryAt);
+      else if (response?.status === 429 && getApiErrorCode(cause) !== 'ASSISTANT_CREDITS_EXHAUSTED') {
+        const seconds = Number(response.headers?.['retry-after']);
+        setRetryUntil(Date.now() + (Number.isFinite(seconds) && seconds > 0 ? seconds : 60) * 1000);
+      }
       // These admission rejections cannot have created work for this request key.
       // Keep uncertain delivery/provider failures recoverable, but do not trap free help
       // behind a receipt that will never exist after a known pre-admission rejection.
-      if (['ASSISTANT_DISABLED', 'ASSISTANT_TOO_FAST', 'ASSISTANT_CREDITS_EXHAUSTED'].includes(getApiErrorCode(cause) ?? '')) {
+      if (response?.status === 429 || ['ASSISTANT_DISABLED', 'ASSISTANT_TOO_FAST', 'ASSISTANT_CREDITS_EXHAUSTED'].includes(getApiErrorCode(cause) ?? '')) {
         setRecoveryKey(null); setRecoveryStatus(null);
       } else if (input.allowAi) recoverAfterFailure = true;
-      setError(getApiErrorMessage(cause, 'The assistant could not respond. Please try again.'));
+      if (getApiErrorCode(cause) === 'ASSISTANT_TOO_FAST' || (response?.status === 429 && getApiErrorCode(cause) !== 'ASSISTANT_CREDITS_EXHAUSTED')) {
+        setError(null); setDraft(input.message);
+      } else setError(getApiErrorMessage(cause, 'The assistant could not respond. Please try again.'));
       setFailed(input);
       setPending(null);
       if (!recoverAfterFailure) void refreshAllowance(true);
@@ -188,7 +217,7 @@ export function useMemberAssistant(ready: boolean, ownerId?: string) {
       } else if (result.status === 'FAILED' || result.status === 'EXPIRED') {
         setRecoveryKey(null); setRecoveryStatus(null);
         setMessages(current => [...current.slice(-39), { id: crypto.randomUUID(), role: 'assistant', createdAt: Date.now(),
-          text: 'Your previous request did not complete. No credit was spent. Send your question again if you want to try; I’ll ask for confirmation first.' }]);
+          text: 'Your previous request did not complete. No credit was spent. If a cooldown is shown, wait for it to finish before trying again. I’ll ask for confirmation first.' }]);
       } else throw new Error('Unconfirmed recovery response');
     } catch {
       if (alive.current && !abort.signal.aborted) setRecoveryStatus('I couldn’t check your previous reply. Check again when your connection is available; no new AI request was started.');
@@ -206,6 +235,7 @@ export function useMemberAssistant(ready: boolean, ownerId?: string) {
   const send = (action?: AssistantAction, label?: string) => {
     const text = (label ?? draft).trim();
     if (!text || text.length > 1000 || inFlight.current || pending || recoveryKey) return;
+    if (cooldownUntil > Date.now() && !freeRequest(text, action)) return;
     const input: AssistantInput = {
       requestKey: crypto.randomUUID(), message: text, action, allowAi: false,
       context: messages.slice(-6).map(item => ({ role: item.role, content: item.text.slice(0, 500) })),
@@ -228,8 +258,9 @@ export function useMemberAssistant(ready: boolean, ownerId?: string) {
   return {
     enabled: enabled && ready, open, setOpen, draft, setDraft, messages, allowance, pending, error, busy, failed,
     recoveryKey, recoveryStatus, checkRecovery: () => { void checkRecovery(); },
+    cooldownSeconds, cooldownBlocksDraft: cooldownSeconds > 0 && !freeRequest(draft),
     send,
-    confirm: () => { if (pending && !inFlight.current) void request({ ...pending, allowAi: true }); },
+    confirm: () => { if (pending && !inFlight.current && cooldownUntil <= Date.now()) void request({ ...pending, allowAi: true }); },
     cancel: () => {
       setPending(null);
       setMessages(current => [...current.slice(-39), { id: crypto.randomUUID(), role: 'assistant', text: 'Cancelled. No AI credit was used.', createdAt: Date.now() }]);
@@ -237,6 +268,7 @@ export function useMemberAssistant(ready: boolean, ownerId?: string) {
     retry: () => {
       if (recoveryKey) { void checkRecovery(); return; }
       if (!failed || inFlight.current) return;
+      if (cooldownUntil > Date.now() && !freeRequest(failed.message, failed.action)) return;
       // Recheck before a new provider attempt; retries never silently spend a credit.
       void request({ ...failed, allowAi: false });
     },
