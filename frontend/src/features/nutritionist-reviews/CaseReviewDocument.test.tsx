@@ -56,6 +56,8 @@ it('keeps claim errors visible inside the preview canvas', () => {
   render(<CaseReviewDocument model={model} />);
   const canvas = screen.getByRole('region', { name: 'RND review canvas' });
   expect(within(canvas).getByRole('alert')).toHaveTextContent('This case is being reviewed by another RND.');
+  expect(within(canvas).getByRole('combobox', { name: 'Add page' })).toBeDisabled();
+  expect(within(canvas).getByRole('combobox', { name: 'Move tool (V)' })).toBeEnabled();
   fireEvent.click(screen.getByRole('button', { name: 'Back to queue' }));
   expect(model.setSelectedMealId).toHaveBeenCalledWith(null);
 });
@@ -72,7 +74,7 @@ it('opens references on demand as a canvas sheet and retains the selected eviden
     detailData: {
       mealPlan: { id: 'synthetic-case', mealName: 'Synthetic plate', mealType: 'LUNCH', scheduledDate: '2026-10-10' },
       user: { name: 'Synthetic member', conditions: ['HEART_CONDITION'] },
-      claimStatus: { claimedByMe: false }, warnings: [],
+      claimStatus: { claimedByMe: true }, warnings: [],
     },
   } as unknown as ComponentProps<typeof CaseReviewDocument>['model'];
   const { rerender } = render(<CaseReviewDocument model={model} />);
@@ -128,7 +130,7 @@ it('keeps published questions as information sheets and opens the blank composer
   expect(within(paper).getByLabelText('Recorded question *')).toBeDisabled();
   expect(screen.queryByLabelText('Resolution notes')).not.toBeInTheDocument();
   expect(screen.queryByLabelText('Form title')).not.toBeInTheDocument();
-  fireEvent.click(screen.getByRole('combobox', { name: 'Add page' }));
-  expect(screen.getByRole('option', { name: 'Message' })).toHaveAttribute('aria-disabled', 'true');
+  expect(screen.getByRole('combobox', { name: 'Add page' })).toBeDisabled();
+  expect(screen.getByRole('combobox', { name: 'Move tool (V)' })).toBeEnabled();
   expect(screen.queryByLabelText('Form title')).not.toBeInTheDocument();
 });

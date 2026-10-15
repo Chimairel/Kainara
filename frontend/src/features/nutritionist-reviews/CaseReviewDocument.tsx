@@ -67,7 +67,7 @@ export default function CaseReviewDocument({ model }: { model: Model }) {
         hideDecisionDock
         tools={<>
           <CaseDecisionSection model={model} swap={swap} action={action} setAction={selectDecision} />
-          <CanvasMenu label="Add page" icon={<Plus aria-hidden="true" className="h-5 w-5" />}
+          <CanvasMenu label="Add page" disabled={!detailData.claimStatus.claimedByMe || Boolean(model.actionLoading) || swap.saving} icon={<Plus aria-hidden="true" className="h-5 w-5" />}
             items={[
               { value: 'message', label: 'Message', icon: <MessageSquare className="h-4 w-4" />,
                 disabled: !detailData.claimStatus.claimedByMe || !detailData.clarifications?.enabled || !detailData.reviewContext },

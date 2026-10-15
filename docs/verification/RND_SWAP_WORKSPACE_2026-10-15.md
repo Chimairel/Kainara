@@ -41,3 +41,8 @@ Only owned fixtures `qa-rnd-swap-layout-20261014`, `qa-rnd-swap-layout-peer-2026
 
 - Fullscreen now initially focuses the workspace region rather than automatically opening the first navigation control's tooltip. Closing fullscreen still restores keyboard focus to the expand button, with a transient focus-restoration marker suppressing only that automatic hint. Normal subsequent hover/focus behavior remains available.
 - Eighteen focused tooltip/fullscreen/desktop-gate tests pass, including hover → expand → no hint → hover → shrink → focus restored without hint → hover works again. TypeScript, scoped lint and Impeccable checks pass. Shared browser verified both transitions on the reported Garlic Fried Rice preview without claiming or deciding it. Screenshot after shrinking: local `codex_outputs/rnd-canvas-tooltip-cleared-20261015.png`. Temporary browser tab closed; no backend/database change.
+
+## Follow-up: unclaimed canvas tools
+
+- Swap, Approve, Reject and Add page are disabled until the current RND claims the meal. Disabled icons share the muted gray color and do not show active hover backgrounds; this also corrects the red disabled Reject icon in meal verification. Move/Hand remains enabled, along with the top navigation/zoom controls and text Claim review button.
+- Twenty-one focused frontend tests pass, including claim-state transitions, disabled Add page, enabled Move/Hand, and existing tooltip/fullscreen regressions. TypeScript and scoped ESLint pass. Shared localhost browser confirmed all four action controls disabled with identical computed colors/opacity, while changing V to H worked. No claim or decision was submitted. Screenshot: local `codex_outputs/rnd-unclaimed-tools-20261015.png`. No backend/database change.

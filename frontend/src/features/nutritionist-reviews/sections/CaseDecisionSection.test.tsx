@@ -30,3 +30,22 @@ it('no suitable replacement prepares a rejection and never commits a third decis
   expect(props.noSuitable).toHaveBeenCalledWith(true); expect(props.close).toHaveBeenCalledOnce(); expect(props.setAction).toHaveBeenCalledWith('reject');
   expect(props.reject).not.toHaveBeenCalled(); expect(props.approve).not.toHaveBeenCalled();
 });
+
+it('disables every decision tool until this RND claims the meal and enables them after claiming', () => {
+  const props = fixture();
+  props.model.detailData!.claimStatus.claimedByMe = false;
+  const { rerender } = render(<CaseDecisionSection {...props} action={null} />);
+  for (const name of ['Swap', 'Approve', 'Reject']) {
+    const button = screen.getByRole('button', { name });
+    expect(button).toBeDisabled();
+    expect(button).toHaveClass('disabled:!text-brand-muted');
+    fireEvent.click(button);
+  }
+  expect(props.swap.load).not.toHaveBeenCalled();
+  expect(props.setAction).not.toHaveBeenCalled();
+  props.model.detailData!.claimStatus.claimedByMe = true;
+  rerender(<CaseDecisionSection {...props} action={null} />);
+  for (const name of ['Swap', 'Approve', 'Reject']) {
+    expect(screen.getByRole('button', { name })).toBeEnabled();
+  }
+});
