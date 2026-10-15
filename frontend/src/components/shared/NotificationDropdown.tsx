@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import NotificationActivityDot from './NotificationActivityDot';
 import { useRouter } from 'next/navigation';
 import { useNotifications } from '@/hooks/useNotifications';
 import { useAuth } from '@/hooks/useAuth';
@@ -120,7 +121,7 @@ export default function NotificationDropdown() {
               <span className="relative flex h-8 w-8 shrink-0 items-center justify-center">
                 <Bell className="h-6 w-6" />
                 {unreadCount > 0 && (
-                  <span className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-emerald-500 ring-2 ring-brand-surface dark:ring-[#0c1813] animate-pulse" />
+                  <NotificationActivityDot />
                 )}
               </span>
               <div className="min-w-0">

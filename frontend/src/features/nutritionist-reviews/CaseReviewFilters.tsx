@@ -1,4 +1,5 @@
 import WorkspaceTabs from '@/components/ui/WorkspaceTabs';
+import NotificationActivityDot from '@/components/shared/NotificationActivityDot';
 
 export default function CaseReviewFilters({
   value,
@@ -11,15 +12,17 @@ export default function CaseReviewFilters({
   pending?: number;
   outside?: number;
 }) {
-  const activity = (count: number, name: string) =>
-    count > 0 ? (
-      <span className="inline-flex items-center">
-        <span aria-hidden="true" className="h-1.5 w-1.5 rounded-full bg-brand-text" />
+  const activityLabel = (label: string, count: number, name: string) => (
+    <span className="relative inline-flex px-1">
+      {label}
+      {count > 0 && <>
+        <NotificationActivityDot />
         <span className="sr-only">
           {count} {count === 1 ? name.slice(0, -1) : name} waiting
         </span>
-      </span>
-    ) : undefined;
+      </>}
+    </span>
+  );
   return (
     <WorkspaceTabs
       value={value}
@@ -27,8 +30,8 @@ export default function CaseReviewFilters({
       label="Case approval filters"
       level="secondary"
       items={[
-        { value: 'pending', label: 'Pending', icon: activity(pending, 'cases') },
-        { value: 'outside', label: 'Outside food logs', icon: activity(outside, 'feedback requests') },
+        { value: 'pending', label: activityLabel('Pending', pending, 'cases') },
+        { value: 'outside', label: activityLabel('Outside food logs', outside, 'feedback requests') },
       ]}
     />
   );
