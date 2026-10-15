@@ -3,6 +3,7 @@
 import { useVisiblePolling } from '@/hooks/useVisiblePolling';
 import { useCallback, useEffect, useState } from 'react';
 import api from '@/lib/axios';
+import { toast } from 'sonner';
 import { getApiErrorMessage } from '@/lib/api-error';
 import ReviewDecisionPage from '@/features/nutritionist-reviews/ReviewDecisionPage';
 import CanvasToolButton from '@/features/nutritionist-reviews/CanvasToolButton';
@@ -72,6 +73,9 @@ export default function MealVerificationPanel() {
         setSelectedId(null);
         setExpanded(false);
         setRationale('');
+      }
+      if (action === 'decision') {
+        toast.success(decision === 'VERIFIED' ? 'Meal verified' : 'Meal rejected');
       }
       await load();
     } catch (cause) {

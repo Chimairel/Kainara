@@ -2,8 +2,10 @@ import api from '@/lib/axios';
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { useNutritionistReviews } from './useNutritionistReviews';
+import { toast } from 'sonner';
 
 vi.mock('@/lib/axios', () => ({ default: { get: vi.fn(), post: vi.fn(), patch: vi.fn() } }));
+vi.mock('sonner', () => ({ toast: { success: vi.fn() } }));
 const auth = vi.hoisted(() => ({ owner: 'nutritionist-1' }));
 vi.mock('@/hooks/useAuth', () => ({ useAuth: () => ({ user: { userId: auth.owner } }) }));
 
@@ -11,6 +13,62 @@ const preview = {
   mealPlan: { id: 'meal-1', status: 'PENDING_REVIEW' },
   claimStatus: { claimedByMe: false, claimedByOther: false, claimedByName: null, claimExpiresAt: null },
 };
+
+it.each(['approve', 'reject'] as const)('removes a completed %s case and notifies only after the server saves it', async action => {
+  vi.resetAllMocks(); auth.owner = 'nutritionist-1';
+  vi.mocked(api.get).mockImplementation(async url => ({ data: { success: true,
+    data: url === '/nutritionist/queue' ? [{ id: 'meal-1' }, { id: 'meal-2' }] : preview } }));
+  let finish!: (value: unknown) => void;
+  vi.mocked(api.patch).mockImplementation(() => new Promise(resolve => { finish = resolve; }));
+  const { result } = renderHook(() => useNutritionistReviews());
+  await waitFor(() => expect(result.current.isLoading).toBe(false));
+  await act(() => result.current.handleSelectMeal('meal-1'));
+  act(() => result.current.setRejectNote('Recorded reason for rejection.'));
+  let pending!: Promise<void>;
+  act(() => { pending = action === 'approve' ? result.current.handleApprove() : result.current.handleReject(); });
+  expect(toast.success).not.toHaveBeenCalled();
+  expect(result.current.selectedMealId).toBe('meal-1');
+  await act(async () => { finish({ data: { data: { replacementResult: { status: 'READY_FOR_REVIEW' } } } }); await pending; });
+  expect(result.current.selectedMealId).toBeNull();
+  expect(result.current.detailData).toBeNull();
+  expect(result.current.queue.map(item => item.id)).toEqual(['meal-2']);
+  expect(toast.success).toHaveBeenCalledTimes(1);
+  if (action === 'reject') expect(toast.success).toHaveBeenCalledWith('Meal rejected', {
+    description: 'Rejection saved. A replacement is ready for review.',
+  });
+});
+
+it.each(['approve', 'reject'] as const)('keeps a failed %s open without a success notification', async action => {
+  vi.resetAllMocks(); auth.owner = 'nutritionist-1';
+  vi.mocked(api.get).mockImplementation(async url => ({ data: { success: true,
+    data: url === '/nutritionist/queue' ? [{ id: 'meal-1' }] : preview } }));
+  vi.mocked(api.patch).mockRejectedValue({ response: { data: { error: 'Please try again.' } } });
+  const { result } = renderHook(() => useNutritionistReviews());
+  await waitFor(() => expect(result.current.isLoading).toBe(false));
+  await act(() => result.current.handleSelectMeal('meal-1'));
+  act(() => result.current.setRejectNote('Recorded reason for rejection.'));
+  await act(() => action === 'approve' ? result.current.handleApprove() : result.current.handleReject());
+  expect(result.current.selectedMealId).toBe('meal-1');
+  expect(result.current.errorMsg).toBe('Please try again.');
+  expect(toast.success).not.toHaveBeenCalled();
+});
+
+it('does not notify a different account about an old approval response', async () => {
+  vi.resetAllMocks(); auth.owner = 'nutritionist-1';
+  vi.mocked(api.get).mockImplementation(async url => ({ data: { success: true,
+    data: url === '/nutritionist/queue' ? [] : preview } }));
+  let finish!: (value: unknown) => void;
+  vi.mocked(api.patch).mockImplementation(() => new Promise(resolve => { finish = resolve; }));
+  const { result, rerender } = renderHook(() => useNutritionistReviews());
+  await waitFor(() => expect(result.current.isLoading).toBe(false));
+  await act(() => result.current.handleSelectMeal('meal-1'));
+  let pending!: Promise<void>;
+  act(() => { pending = result.current.handleApprove(); });
+  auth.owner = 'nutritionist-2'; rerender();
+  await act(async () => { finish({ data: { success: true } }); await pending; });
+  expect(toast.success).not.toHaveBeenCalled();
+  auth.owner = 'nutritionist-1'; rerender();
+});
 
 it('treats reviewer independence as a blocked claim, without error logging, status retries or claim requests', async () => {
   vi.resetAllMocks(); auth.owner = 'nutritionist-1';
@@ -511,6 +569,15 @@ it.each(['handleClaimMeal', 'handleReleaseMeal', 'handleApprove', 'handleReject'
       await pending;
     });
     expect(result.current.actionLoading).toBeNull();
+    if (method === 'handleApprove' || method === 'handleReject') {
+      expect(toast.success).toHaveBeenCalledTimes(1);
+      expect(toast.success).toHaveBeenCalledWith(
+        method === 'handleApprove' ? 'Meal approved' : 'Meal rejected',
+        ...(method === 'handleReject' ? [{ description: expect.stringContaining('Rejection saved.') }] : [])
+      );
+      expect(result.current.selectedMealId).toBeNull();
+      expect(result.current.detailData).toBeNull();
+    } else expect(toast.success).not.toHaveBeenCalled();
   }
 );
 

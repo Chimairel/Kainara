@@ -1,6 +1,7 @@
 'use client';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import api from '@/lib/axios';
+import { toast } from 'sonner';
 import { getApiErrorMessage } from '@/lib/api-error';
 import type { DetailData } from './useNutritionistReviews';
 import { parseFilterDraft, type FilterDraft, type NutrientFilters, type NutrientKey } from './ReviewNutrientFilters';
@@ -149,6 +150,7 @@ export function useReviewSwap(
       });
       if (generation === scope.current) {
         setOpen(false);
+        toast.success('Meal swapped', { description: 'Review the replacement before approving or rejecting it.' });
         await onSuccess(response.data.data.replacementPlanId);
       }
     } catch (failure) {

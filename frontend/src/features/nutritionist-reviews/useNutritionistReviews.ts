@@ -3,6 +3,7 @@ import { useVisiblePolling } from '@/hooks/useVisiblePolling';
 import { useAuth } from '@/hooks/useAuth';
 import { getApiErrorMessage } from '@/lib/api-error';
 import api from '@/lib/axios';
+import { toast } from 'sonner';
 import { replacementResultMessage } from './replacement-result';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
@@ -326,6 +327,7 @@ export function useNutritionistReviews(enabled = true) {
       removeFromQueue(selectedMealId, true);
       setSelectedMealId(null);
       setDetailData(null);
+      toast.success('Meal approved');
     } catch (err: unknown) {
       if (!stillSelected()) return;
       if (retireInactiveReview(err, selectedMealId)) await fetchQueue(false, undefined, true);
@@ -356,6 +358,7 @@ export function useNutritionistReviews(enabled = true) {
       setDetailData(null);
       setRejectNote('');
       setReviewNotice(replacementResultMessage(response.data?.data));
+      toast.success('Meal rejected', { description: replacementResultMessage(response.data?.data) });
     } catch (err: unknown) {
       if (!stillSelected()) return;
       if (retireInactiveReview(err, selectedMealId)) await fetchQueue(false, undefined, true);

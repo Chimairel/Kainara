@@ -2,8 +2,10 @@ import { act, renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, expect, it, vi } from 'vitest';
 import api from '@/lib/axios';
 import { useReviewSwap } from './useReviewSwap';
+import { toast } from 'sonner';
 
 vi.mock('@/lib/axios', () => ({ default: { get: vi.fn(), post: vi.fn() } }));
+vi.mock('sonner', () => ({ toast: { success: vi.fn() } }));
 const preview = {
   expectedVersion: 'a'.repeat(64),
   options: [{ id: 'meal', mealName: 'Soup', recipeSignature: 'b'.repeat(64), evidenceRevision: 2, ingredients: [] }],
@@ -60,6 +62,9 @@ it('requires selection and rationale, sends immutable version fields, and preven
   expect(success).toHaveBeenCalledWith('replacement');
   expect(mutation.mock.calls).toEqual([[true], [false]]);
   expect(result.current.open).toBe(false);
+  expect(toast.success).toHaveBeenCalledExactlyOnceWith('Meal swapped', {
+    description: 'Review the replacement before approving or rejecting it.',
+  });
 });
 it('retains rationale after a conflict and requires refreshing options before retry', async () => {
   vi.mocked(api.get).mockResolvedValue({ data: { data: preview } });
@@ -78,10 +83,27 @@ it('retains rationale after a conflict and requires refreshing options before re
   });
   await act(() => result.current.submit());
   expect(result.current.error).toBe('Recipe evidence changed.');
+  expect(toast.success).not.toHaveBeenCalled();
   expect(result.current.note).toBe('Recorded review rationale.');
   expect(result.current.selected).toBeNull();
   await act(() => result.current.submit());
   expect(api.post).toHaveBeenCalledTimes(1);
+});
+
+it('ignores a swap response after leaving its case, including the success toast', async () => {
+  vi.mocked(api.get).mockResolvedValue({ data: { data: preview } });
+  let finish!: (value: unknown) => void;
+  vi.mocked(api.post).mockImplementation(() => new Promise(resolve => { finish = resolve; }));
+  const success = vi.fn(async () => {});
+  const { result, rerender } = renderHook(({ id }) => useReviewSwap(id, true, success), { initialProps: { id: 'first' } });
+  await act(() => result.current.load());
+  act(() => { result.current.setSelectedId('meal'); result.current.setNote('Recorded review rationale.'); });
+  let pending!: Promise<void>;
+  act(() => { pending = result.current.submit(); });
+  rerender({ id: 'another-case' });
+  await act(async () => { finish({ data: { data: { replacementPlanId: 'replacement' } } }); await pending; });
+  expect(success).not.toHaveBeenCalled();
+  expect(toast.success).not.toHaveBeenCalled();
 });
 it('ignores late option responses after moving to another case or losing the claim', async () => {
   let finish!: (value: unknown) => void;
