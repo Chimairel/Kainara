@@ -434,9 +434,10 @@ it('requires an explicit profile claim before allowing confirmation', async () =
   });
   render(<ProfileWorkPanel />);
   fireEvent.click(await screen.findByRole('button', { name: /Both Tasks/ }));
-  expect(screen.queryByRole('button', { name: 'Profile decision' })).not.toBeInTheDocument();
+  expect(await screen.findByRole('button', { name: 'Profile decision' })).toBeDisabled();
   fireEvent.click(await screen.findByRole('button', { name: 'Claim profile' }));
-  fireEvent.click(await screen.findByRole('button', { name: 'Profile decision' }));
+  await waitFor(() => expect(screen.getByRole('button', { name: 'Profile decision' })).toBeEnabled());
+  fireEvent.click(screen.getByRole('button', { name: 'Profile decision' }));
   fireEvent.change(await screen.findByRole('textbox', { name: 'Review notes' }), {
     target: { value: 'Reviewed the submitted health details.' },
   });

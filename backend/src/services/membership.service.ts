@@ -27,7 +27,9 @@ const include = { userProfile: true, healthConditions: true, allergies: true, sa
 
 export class MembershipService {
   static async state(userId: string, at = new Date(), client: Client = prisma) {
-    const user = await client.user.findUnique({ where: { id: userId }, include });
+    // Prisma 5's batched unique reads can panic with relationLoadStrategy=query
+    // when concurrent generation checks request the same membership graph.
+    const user = await client.user.findFirst({ where: { id: userId }, include });
     if (!user || user.role !== 'USER' || user.isSuspended)
       throw new AppError('Membership is unavailable for this account.', 403, 'MEMBERSHIP_ACCOUNT_INELIGIBLE');
     // An empty-update Prisma upsert can race on first access. ON CONFLICT preserves

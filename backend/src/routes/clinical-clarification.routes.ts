@@ -19,6 +19,10 @@ export function clinicalClarificationRouter(role: 'member' | 'rnd') {
   const router = Router();
   const id = z.string().min(1).max(191);
   if (role === 'member') {
+    router.get('/meal-clarifications', asyncHandler(async (req: AuthenticatedRequest, res) => {
+      res.setHeader('Cache-Control', 'private, no-store');
+      res.json({ success: true, data: await ClinicalClarificationService.list(req.user!.userId, undefined, undefined, { purpose: 'MEAL' }) });
+    }));
     router.post(
       '/clinical-profile-proposals/:id/respond',
       validateZodRequest({ params: z.object({ id }).strict(), body: respondProfileProposalSchema }),
@@ -41,6 +45,13 @@ export function clinicalClarificationRouter(role: 'member' | 'rnd') {
       })
     );
   } else {
+    router.post('/queue/:id/clarifications/:formId/resolve',
+      validateZodRequest({ params: z.object({ id, formId: id }).strict(),
+        body: resolveClarificationSchema.extend({ expectedContextKey: z.string().regex(/^[a-f0-9]{64}$/) }).strict() }),
+      asyncHandler(async (req: AuthenticatedRequest, res) => {
+        res.setHeader('Cache-Control', 'private, no-store');
+        res.json({ success: true, data: await MealClarificationService.resolve(req.nutritionistProfileId!, req.params.id, req.params.formId, req.body) });
+      }));
     router.post(
       '/queue/:id/clarifications',
       validateZodRequest({ params: z.object({ id }).strict(), body: publishMealClarificationSchema }),

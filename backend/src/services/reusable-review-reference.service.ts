@@ -19,6 +19,8 @@ export async function matchingReviewKeys(tx: Prisma.TransactionClient, opened: O
   const snapshot = opened.snapshot,
     meal = object(snapshot.meal),
     userId = String(snapshot.userId);
+  // Meal-specific answers stay in their own review rather than another member's reference.
+  if (Array.isArray(snapshot.mealQuestions) && snapshot.mealQuestions.length) return null;
   const facts = referencePlateFacts(snapshot);
   if (
     !facts ||
@@ -29,7 +31,7 @@ export async function matchingReviewKeys(tx: Prisma.TransactionClient, opened: O
     return null;
   const forms = await tx.clinicalClarificationForm.findMany({
     relationLoadStrategy: 'join',
-    where: { userId, profileRevision: opened.profileRevision, scopeKey: opened.scopeKey },
+    where: { userId, purpose: 'PROFILE', profileRevision: opened.profileRevision, scopeKey: opened.scopeKey },
     include: { responses: { orderBy: { version: 'desc' }, take: 1 }, resolution: true },
   });
   const resolvedForms: unknown[] = [];

@@ -1,9 +1,11 @@
 import bcrypt from 'bcryptjs';
 import prisma from '@/lib/prisma';
 import { assistantEnabled } from '@/domain/member-assistant.policy';
+import { verifyGoogleIdentity } from './auth/google-auth';
 
 type AccountDeletionCredential = {
   password?: string;
+  googleIdToken?: string;
 };
 
 export class UserPrivacyService {
@@ -93,8 +95,13 @@ export class UserPrivacyService {
     });
     if (!user || user.role !== 'USER') throw new Error('Only patient accounts can use self-service deletion.');
 
-    let reauthenticationMethod: 'PASSWORD' | 'AUTHENTICATED_SESSION';
-    if (user.passwordLoginEnabled) {
+    let reauthenticationMethod: 'PASSWORD' | 'GOOGLE' | 'AUTHENTICATED_SESSION';
+    if (credential.googleIdToken) {
+      const identity = await verifyGoogleIdentity(credential.googleIdToken);
+      if (!user.accounts.some(account => account.providerAccountId === identity.sub))
+        throw new Error('Use the Google account linked to this KAINARA account.');
+      reauthenticationMethod = 'GOOGLE';
+    } else if (user.passwordLoginEnabled) {
       if (!credential.password || !(await bcrypt.compare(credential.password, user.passwordHash))) {
         throw new Error('Current password is incorrect.');
       }

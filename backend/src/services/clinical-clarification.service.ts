@@ -48,7 +48,7 @@ export async function hasUnresolvedClarifications(
   if (!env.CLINICAL_CLARIFICATIONS_ENABLED) return false;
   return (
     (await tx.clinicalClarificationForm.count({
-      where: { userId, profileRevision: current.profileRevision, scopeKey: current.scopeKey, resolution: { is: null } },
+      where: { userId, purpose: 'PROFILE', profileRevision: current.profileRevision, scopeKey: current.scopeKey, resolution: { is: null } },
     })) > 0
   );
 }
@@ -98,10 +98,12 @@ export class ClinicalClarificationService {
     if (!this.enabled) throw new AppError('Clarification forms are not enabled yet.', 503, 'CLARIFICATIONS_DISABLED');
   }
 
-  static async list(userId: string, reviewerId?: string, read?: ProfileRead) {
+  static async list(userId: string, reviewerId?: string, read?: ProfileRead,
+    scope: { purpose?: 'PROFILE' | 'MEAL'; mealId?: string; baseContextKey?: string; includeProfile?: boolean } = {}) {
     if (!this.enabled) return { enabled: false, forms: [] };
     if (reviewerId) {
-      await ReviewRoutingService.assertProfile(reviewerId, userId);
+      if (scope.mealId) await ReviewRoutingService.assertMeal(reviewerId, scope.mealId);
+      else await ReviewRoutingService.assertProfile(reviewerId, userId);
       const reviewer = await prisma.nutritionistProfile.findFirst({
         relationLoadStrategy: 'join',
         where: { id: reviewerId },
@@ -114,16 +116,34 @@ export class ClinicalClarificationService {
       read ? Promise.resolve(context(profileReadUser(userId, read))) : currentClarificationContext(prisma, userId),
       prisma.clinicalClarificationForm.findMany({
         relationLoadStrategy: 'join',
-        where: { userId },
+        where: { userId,
+          ...(scope.mealId ? { OR: [
+            ...(scope.includeProfile ? [{ purpose: 'PROFILE' as const }] : []),
+            { purpose: 'MEAL' as const, sourceMealPlanId: scope.mealId },
+          ] } : { purpose: scope.purpose ?? 'PROFILE' }),
+        },
         include: formInclude,
         orderBy: { createdAt: 'asc' },
       }),
     ]);
     const currentScope = { profileRevision: current.profile.revision, scopeKey: current.scopeKey };
+    const mealKeys = new Map<string, string>();
+    if (scope.mealId && scope.baseContextKey) mealKeys.set(scope.mealId, scope.baseContextKey);
+    else if (forms.some(form => form.purpose === 'MEAL')) {
+      const { loadMealReviewContexts } = await import('./meal-case-context.service');
+      const contexts = await loadMealReviewContexts([...new Set(forms.flatMap(form => form.sourceMealPlanId ? [form.sourceMealPlanId] : []))], prisma);
+      for (const [id, opened] of contexts) {
+        const meal = opened.snapshot.meal as Prisma.InputJsonObject;
+        const cycle = opened.snapshot.cycle as Prisma.InputJsonObject;
+        if (meal.status === 'PENDING_REVIEW' && !['COMPLETED', 'SUPERSEDED'].includes(String(cycle.status)) && !cycle.supersededById)
+          mealKeys.set(id, opened.baseContextKey);
+      }
+    }
     return {
       enabled: true,
       forms: forms.map((form) => ({
         id: form.id,
+        purpose: form.purpose,
         sourceMeal: form.sourceMealPlan,
         title: form.title,
         profileRevision: form.profileRevision,
@@ -145,7 +165,8 @@ export class ClinicalClarificationService {
               resolvedAt: form.resolution.resolvedAt,
             }
           : null,
-        status: clarificationDisplayState(form, currentScope, form.responses.length > 0, !!form.resolution),
+        status: form.purpose === 'MEAL' && (!form.sourceMealPlanId || mealKeys.get(form.sourceMealPlanId) !== form.sourceContextKey)
+          ? 'SUPERSEDED' : clarificationDisplayState(form, currentScope, form.responses.length > 0, !!form.resolution),
       })),
     };
   }
@@ -220,6 +241,14 @@ export class ClinicalClarificationService {
       });
       if (!form) throw new AppError('Clarification form not found.', 404, 'CLARIFICATION_NOT_FOUND');
       const current = await currentClarificationContext(tx, userId);
+      if (form.purpose === 'MEAL') {
+        const { loadMealReviewContext } = await import('./meal-case-context.service');
+        const opened = form.sourceMealPlanId ? await loadMealReviewContext(form.sourceMealPlanId, tx) : null;
+        const meal = opened?.snapshot.meal as Prisma.InputJsonObject | undefined;
+        const cycle = opened?.snapshot.cycle as Prisma.InputJsonObject | undefined;
+        if (!opened || opened.baseContextKey !== form.sourceContextKey || meal?.status !== 'PENDING_REVIEW' ||
+          cycle?.supersededById || ['COMPLETED', 'SUPERSEDED'].includes(String(cycle?.status))) throw stale();
+      }
       if (
         form.profileRevision !== current.profile.revision ||
         form.scopeKey !== current.scopeKey ||
@@ -269,9 +298,16 @@ export class ClinicalClarificationService {
             responseId: response.id,
             responseVersion: response.version,
             profileRevision: form.profileRevision,
+            purpose: form.purpose,
+            ...(form.sourceMealPlanId ? { sourceMealPlanId: form.sourceMealPlanId } : {}),
           },
         },
       });
+      if (form.purpose === 'MEAL') await tx.notification.create({ data: {
+        userId: form.authorUserId, type: 'REVIEW_REQUEST', title: 'Meal question answered',
+        message: 'The member answered your meal question. Return to Case approval to review the response.',
+        targetPath: `/nutritionist/reviews?caseId=${form.sourceMealPlanId}`,
+      } });
       return { id: response.id, version: response.version };
     });
   }
@@ -292,6 +328,8 @@ export class ClinicalClarificationService {
         include: formInclude,
       });
       if (!form) throw new AppError('Clarification form not found.', 404, 'CLARIFICATION_NOT_FOUND');
+      if (form.purpose === 'MEAL')
+        throw new AppError('Resolve meal questions from their Case approval review.', 409, 'MEAL_QUESTION_REQUIRES_CASE');
       if (
         form.profileRevision !== input.profileRevision ||
         form.scopeKey !== input.scopeKey ||

@@ -29,7 +29,7 @@ async function main() {
   const target = new URL(process.env.DATABASE_URL ?? '');
   assert.equal(target.hostname, '127.0.0.1');
   assert.equal(target.port, '55488');
-  assert.equal(target.pathname, '/kainara_meal_clarification');
+  assert.ok(target.pathname === '/kainara_meal_clarification' || /^\/kainara_meal_questions_20261015_[a-f0-9]{8}$/.test(target.pathname));
   assert.equal(process.env.NODE_ENV, 'test');
   assert.equal(process.env.CLINICAL_CLARIFICATIONS_ENABLED, 'true');
   for (const key of ['GEMINI_API_KEY', 'SMTP_USER', 'BREVO_API_KEY', 'PAYMONGO_SECRET_KEY'])
@@ -258,7 +258,7 @@ async function main() {
       data: { prcLicenseExpiry: new Date('2099-01-01') },
     });
     assert.equal(
-      await db.notification.count({ where: { userId: member.id, title: 'An RND requested clarification' } }),
+      await db.notification.count({ where: { userId: member.id, title: 'An RND requested profile clarification' } }),
       1
     );
     assert.deepEqual(await db.userProfile.findUniqueOrThrow({ where: { userId: member.id } }), beforeProfile);
@@ -392,6 +392,70 @@ async function main() {
       1
     );
     pass('Meal previews reuse saved forms read-only; related admin access retains source context and is audited');
+
+    // A food/portion question must not reopen the already confirmed profile.
+    const mealOpened = await ok(request(reviewers[2], route(1)));
+    await ok(request(reviewers[2], route(1) + '/claim', 'POST', { expectedContextKey: mealOpened.reviewContext.contextKey }));
+    const siblingOpened = await ok(request(reviewers[3], route(2)));
+    await ok(request(reviewers[3], route(2) + '/claim', 'POST', { expectedContextKey: siblingOpened.reviewContext.contextKey }));
+    const siblingClaim = (await db.mealPlan.findUniqueOrThrow({ where: { id: plans[2].id } })).claimedByNutritionistId;
+    const approvedProfile = await db.clinicalProfileReview.findUniqueOrThrow({ where: { id: oldConfirmation.id } });
+    const epochBefore = await db.clinicalProfileReviewEpoch.findUnique({ where: { userId: member.id } });
+    const mealInput = {
+      purpose: 'MEAL', profileRevision: mealOpened.reviewContext.profileRevision, scopeKey: mealOpened.reviewContext.scopeKey,
+      expectedContextKey: mealOpened.reviewContext.contextKey, title: 'Confirm the portion for this meal',
+      questions: [{ id: 'portion', type: 'TEXT', required: true, label: 'How much of this meal do you intend to eat?' }],
+      requestKey: randomUUID(),
+    };
+    const mealQuestions = await Promise.all([
+      ok(request(reviewers[2], route(1) + '/clarifications', 'POST', mealInput)),
+      ok(request(reviewers[2], route(1) + '/clarifications', 'POST', mealInput)),
+    ]);
+    const mealFormId = mealQuestions[0].id;
+    assert.equal(mealQuestions[1].id, mealFormId);
+    assert.equal(await ClinicalProfileReviewService.hasCurrentApproval(member.id), true);
+    assert.deepEqual(await db.clinicalProfileReview.findUniqueOrThrow({ where: { id: oldConfirmation.id } }), approvedProfile);
+    assert.deepEqual(await db.clinicalProfileReviewEpoch.findUnique({ where: { userId: member.id } }), epochBefore);
+    assert.deepEqual(await db.userProfile.findUniqueOrThrow({ where: { userId: member.id } }), beforeProfile);
+    assert.equal((await db.mealPlan.findUniqueOrThrow({ where: { id: plans[1].id } })).claimedByNutritionistId, null);
+    assert.equal((await db.mealPlan.findUniqueOrThrow({ where: { id: plans[2].id } })).claimedByNutritionistId, siblingClaim);
+    assert((await ok(request(reviewers[0], '/nutritionist/queue'))).some((row: any) => row.id === plans[1].id));
+    const memberMeals = await ok(request(member, '/user/meal-clarifications'));
+    const mealForm = memberMeals.forms.find((form: any) => form.id === mealFormId);
+    assert.equal(mealForm.purpose, 'MEAL');
+    assert.equal(mealForm.status, 'AWAITING_MEMBER');
+    assert(!(await ok(request(member, '/user/clinical-evidence'))).clarifications.forms.some((form: any) => form.id === mealFormId));
+    let mealCase = await ok(request(reviewers[2], route(1)));
+    assert.equal(mealCase.reviewContext.mealQuestionState, 'AWAITING_MEMBER');
+    assert.notEqual(mealCase.reviewContext.contextKey, mealInput.expectedContextKey);
+    await ok(request(reviewers[2], route(1) + '/claim', 'POST', { expectedContextKey: mealCase.reviewContext.contextKey }));
+    const blockedApproval = await request(reviewers[2], `/nutritionist/review/${plans[1].id}`, 'PATCH', {
+      action: 'approve', expectedContextKey: mealCase.reviewContext.contextKey,
+    });
+    assert.equal(blockedApproval.status, 409);
+    assert.equal(blockedApproval.body.code, 'MEAL_QUESTIONS_PENDING');
+    const mealAnswer = { profileRevision: mealForm.profileRevision, scopeKey: mealForm.scopeKey,
+      expectedResponseId: null, answers: { portion: 'One recorded serving, without extra rice.' }, requestKey: randomUUID() };
+    assert.equal((await request(foreign, `/user/clinical-clarifications/${mealFormId}/answers`, 'POST', mealAnswer)).status, 404);
+    await db.mealPlan.update({ where: { id: plans[1].id }, data: { calories: plans[1].calories + 1 } });
+    assert.equal((await request(member, `/user/clinical-clarifications/${mealFormId}/answers`, 'POST', mealAnswer)).status, 409);
+    await db.mealPlan.update({ where: { id: plans[1].id }, data: { calories: plans[1].calories } });
+    const mealResponse = await ok(request(member, `/user/clinical-clarifications/${mealFormId}/answers`, 'POST', mealAnswer));
+    mealCase = await ok(request(reviewers[2], route(1)));
+    assert.equal(mealCase.reviewContext.mealQuestionState, 'ANSWERED');
+    assert.equal((await db.mealPlan.findUniqueOrThrow({ where: { id: plans[1].id } })).status, 'PENDING_REVIEW');
+    assert.deepEqual(await db.clinicalProfileReview.findUniqueOrThrow({ where: { id: oldConfirmation.id } }), approvedProfile);
+    const resolutionInput = { profileRevision: mealForm.profileRevision, scopeKey: mealForm.scopeKey,
+      expectedContextKey: mealCase.reviewContext.contextKey, responseId: mealResponse.id,
+      rationale: 'Reviewed this specific portion answer; it does not change the member health profile.' };
+    const resolution = await ok(request(reviewers[2], route(1) + `/clarifications/${mealFormId}/resolve`, 'POST', resolutionInput));
+    assert.equal((await ok(request(reviewers[2], route(1) + `/clarifications/${mealFormId}/resolve`, 'POST', resolutionInput))).id, resolution.id);
+    assert.equal((await ok(request(reviewers[2], route(1)))).reviewContext.mealQuestionState, undefined);
+    assert.equal(await db.mealPlanReviewDecision.count(), 0, 'Questions and resolutions are not meal decisions.');
+    assert.equal(await ClinicalProfileReviewService.hasCurrentApproval(member.id), true);
+    await ok(request(reviewers[2], route(1) + '/release', 'POST', {}));
+    await ok(request(reviewers[3], route(2) + '/release', 'POST', {}));
+    pass('Meal questions preserve the approved profile and sibling claims, remain queued, enforce ownership/staleness, and require answer review without deciding the meal');
 
     // An actual member edit permanently retires current/future unconsumed requests.
     const fresh = await ok(request(reviewers[0], route(0)));

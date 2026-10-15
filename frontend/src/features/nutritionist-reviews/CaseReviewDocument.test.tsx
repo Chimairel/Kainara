@@ -1,17 +1,45 @@
 import { ThemeProvider } from '@/lib/context/ThemeContext';
 
 import type { ComponentProps } from 'react';
-import { fireEvent, render as renderUi, screen, within } from '@testing-library/react';
+import { fireEvent, render as renderUi, screen, within, waitFor } from '@testing-library/react';
 import { afterEach, expect, it, vi } from 'vitest';
 import CaseReviewDocument from './CaseReviewDocument';
 import api from '@/lib/axios';
 
 const render = (ui: Parameters<typeof renderUi>[0]) => renderUi(ui, { wrapper: ThemeProvider });
 
-vi.mock('@/lib/axios', () => ({ default: { get: vi.fn() } }));
+vi.mock('@/lib/axios', () => ({ default: { get: vi.fn(), post: vi.fn() } }));
 vi.mock('@/hooks/useAuth', () => ({ useAuth: () => ({ user: { userId: 'current-rnd' } }) }));
-vi.mock('sonner', () => ({ toast: { error: vi.fn() } }));
+vi.mock('sonner', () => ({ toast: { error: vi.fn(), success: vi.fn() } }));
 afterEach(() => vi.resetAllMocks());
+
+it.each(['MEAL', 'PROFILE'] as const)('sends a %s question from the plus menu and only retires profile handoffs', async purpose => {
+  vi.mocked(api.post).mockResolvedValue({ data: { success: true } });
+  const model = {
+    selectedMealId: 'case', expanded: false, setExpanded: vi.fn(), setSelectedMealId: vi.fn(),
+    review: { fetchQueue: vi.fn(), handleSelectMeal: vi.fn(), retireInactiveReview: vi.fn() },
+    detailData: {
+      mealPlan: { id: 'case', userId: 'member', mealName: 'Recorded meal', mealType: 'LUNCH', scheduledDate: '2026-10-15' },
+      user: { name: 'Synthetic member' }, claimStatus: { claimedByMe: true }, warnings: [],
+      reviewContext: { contextKey: 'a'.repeat(64), profileRevision: 1, scopeKey: 'scope' },
+      clarifications: { enabled: true, forms: [] },
+    },
+  } as unknown as ComponentProps<typeof CaseReviewDocument>['model'];
+  render(<CaseReviewDocument model={model} />);
+  fireEvent.click(screen.getByRole('combobox', { name: 'Add page' }));
+  expect(screen.getByRole('option', { name: 'Meal question' })).toBeInTheDocument();
+  expect(screen.getByRole('option', { name: 'Profile question' })).toBeInTheDocument();
+  fireEvent.click(screen.getByRole('option', { name: purpose === 'MEAL' ? 'Meal question' : 'Profile question' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Add question' }));
+  fireEvent.change(screen.getByLabelText('Question 1'), { target: { value: 'Please explain the recorded preparation.' } });
+  fireEvent.click(screen.getByRole('button', { name: 'Send questions' }));
+  await waitFor(() => expect(model.review.fetchQueue).toHaveBeenCalled());
+  expect(api.post).toHaveBeenCalledWith('/nutritionist/queue/case/clarifications', expect.objectContaining({ purpose }));
+  if (purpose === 'MEAL') {
+    expect(model.review.handleSelectMeal).toHaveBeenCalledWith('case');
+    expect(model.review.retireInactiveReview).not.toHaveBeenCalled();
+  } else expect(model.review.retireInactiveReview).toHaveBeenCalledOnce();
+});
 
 vi.mock('./sections/CaseProfileSection', () => ({ default: () => <p>Recorded profile</p> }));
 vi.mock('./sections/CaseAuditSection', () => ({ default: () => <p>Recorded meal evidence</p> }));

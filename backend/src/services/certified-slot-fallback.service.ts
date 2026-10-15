@@ -39,7 +39,7 @@ import { ReviewRoutingService } from './review-routing.service';
 import { getStartOfManilaBusinessDay } from '@/domain/meal-actionability.policy';
 import { admittedLibraryBaseIds } from './meal-base-admission.service';
 import { AppError } from '@/errors/AppError';
-import { assertCurrentMealReviewContext } from './meal-case-context.service';
+import { assertCurrentMealReviewContext, assertMealQuestionsResolved, loadMealReviewContext } from './meal-case-context.service';
 
 export class CertifiedSlotFallbackService {
   static async replaceWithBestCertified(input: {
@@ -206,12 +206,13 @@ export class CertifiedSlotFallbackService {
     return prisma.$transaction(async (tx) => {
       await lockUserProfile(tx, target.userId);
       if (input.reviewer)
-        await assertCurrentMealReviewContext(
+        assertMealQuestionsResolved(await assertCurrentMealReviewContext(
           target.id,
           input.reviewer.expectedContextKey,
           tx,
           input.reviewer.profileId
-        );
+        ));
+      else assertMealQuestionsResolved(await loadMealReviewContext(target.id, tx));
       const currentContext = await loadPlanningNutritionContext(tx, target.userId, 'Planning profile missing.');
       if (
         currentContext.profile.revision !== context.profile.revision ||

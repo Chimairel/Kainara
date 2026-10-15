@@ -3374,7 +3374,13 @@ model ClinicalProfileProposal {
   @@index([userId, createdAt])
 }
 
+enum ClarificationPurpose {
+  PROFILE
+  MEAL
+}
+
 model ClinicalClarificationForm {
+  purpose         ClarificationPurpose @default(PROFILE)
   sourceMealPlanId String?
   sourceMealPlan   MealPlan? @relation(fields: [sourceMealPlanId], references: [id], onDelete: Restrict)
   sourceContextKey String? @db.VarChar(64)
@@ -3396,6 +3402,7 @@ model ClinicalClarificationForm {
   @@unique([userId, requestKey])
   @@index([userId, profileRevision, createdAt])
   @@index([sourceMealPlanId])
+  @@index([sourceMealPlanId, purpose, createdAt])
 }
 
 /// A new clarification episode reopens the profile review without altering its data revision.

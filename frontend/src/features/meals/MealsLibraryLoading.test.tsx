@@ -41,6 +41,7 @@ vi.mock('./useMealsPage', () => ({
   }),
 }));
 vi.mock('./UnavailableMealsNotice', () => ({ default: () => null }));
+vi.mock('@/features/clinical-clarification/MealQuestions', () => ({ default: () => null }));
 vi.mock('./MealsGenerationNotice', () => ({ default: () => null }));
 vi.mock('./MealsDateNavigation', () => ({ default: () => null }));
 vi.mock('./MealsPlanSection', () => ({ default: () => null }));

@@ -52,10 +52,14 @@ export function useNutritionistReviews(enabled = true) {
       note: string;
       rejection: string;
       clarification?: { title: string; questions: DraftQuestion[] };
+      profileClarification?: { title: string; questions: DraftQuestion[] };
     }>
   >([]);
   const clarificationDraft = useRndClarificationDraft(
-    `${ownerId}:${selectedMealId}:${detailData?.reviewContext?.contextKey}`
+    `${ownerId}:${selectedMealId}:${detailData?.reviewContext?.contextKey}`, 'Meal question'
+  );
+  const profileClarificationDraft = useRndClarificationDraft(
+    `${ownerId}:${selectedMealId}:${detailData?.reviewContext?.contextKey}`, 'Profile question'
   );
 
   // Actions states
@@ -106,11 +110,14 @@ export function useNutritionistReviews(enabled = true) {
       contextKey: detailRef.current?.reviewContext?.contextKey,
       note: generalNote,
       rejection: rejectNote,
-      ...(!notice && clarificationDraft.questions.length
+      ...(clarificationDraft.questions.length
         ? { clarification: { title: clarificationDraft.title, questions: clarificationDraft.questions } }
         : {}),
+      ...(profileClarificationDraft.questions.length
+        ? { profileClarification: { title: profileClarificationDraft.title, questions: profileClarificationDraft.questions } }
+        : {}),
     };
-    if (generalNote.trim() || rejectNote.trim() || (!notice && clarificationDraft.questions.length))
+    if (generalNote.trim() || rejectNote.trim() || clarificationDraft.questions.length || profileClarificationDraft.questions.length)
       setSavedReviewNotes((previous) => [...previous, savedDraft].slice(-10));
     setReviewNotice(
       notice ??
@@ -372,6 +379,7 @@ export function useNutritionistReviews(enabled = true) {
 
   return {
     clarificationDraft,
+    profileClarificationDraft,
     reviewNotice: resourceOwner.current === ownerId ? reviewNotice : null,
     dismissReviewNotice: () => setReviewNotice(null),
     savedReviewNotes: resourceOwner.current === ownerId ? savedReviewNotes : [],

@@ -19,15 +19,15 @@ const newQuestion = (): DraftQuestion => ({
   required: true,
   choices: '',
 });
-export function useRndClarificationDraft(caseKey: string) {
-  const [title, setTitle] = useState('Profile clarification');
+export function useRndClarificationDraft(caseKey: string, initialTitle = 'Profile clarification') {
+  const [title, setTitle] = useState(initialTitle);
   const [questions, setQuestions] = useState<DraftQuestion[]>([]);
   const requestRef = useRef<{ payload: string; key: string } | null>(null);
   useEffect(() => {
-    setTitle('Profile clarification');
+    setTitle(initialTitle);
     setQuestions([]);
     requestRef.current = null;
-  }, [caseKey]);
+  }, [caseKey, initialTitle]);
   return { title, setTitle, questions, setQuestions, requestRef };
 }
 
@@ -55,7 +55,7 @@ export default function RndClarifications({
   draft?: ReturnType<typeof useRndClarificationDraft>;
   showForms?: boolean;
   showComposer?: boolean;
-  publishTarget?: { url: string; expectedContextKey: string };
+  publishTarget?: { url: string; expectedContextKey: string; purpose?: 'PROFILE' | 'MEAL' };
   onInvalidated?: (cause: unknown) => boolean;
   embedded?: boolean;
   onBusyChange?: (busy: boolean) => void;
@@ -118,12 +118,14 @@ export default function RndClarifications({
         scopeKey,
         title,
         questions: prepared,
-        ...(publishTarget ? { expectedContextKey: publishTarget.expectedContextKey } : {}),
+        ...(publishTarget ? { expectedContextKey: publishTarget.expectedContextKey, purpose: publishTarget.purpose ?? 'PROFILE' } : {}),
         requestKey: retryKey({ userId, profileRevision, scopeKey, title, questions: prepared, publishTarget }),
       });
       setQuestions([]);
       await onUpdated();
-      toast.success('Questions sent to Health details.');
+      toast.success(publishTarget?.purpose === 'MEAL'
+        ? 'Meal question sent. Waiting for the member’s response.'
+        : 'Profile question sent to Health details.');
     } catch (cause) {
       if (onInvalidated?.(cause)) return;
       setError(getApiErrorMessage(cause, 'Questions could not be sent.'));
@@ -133,16 +135,19 @@ export default function RndClarifications({
     }
   }
   async function resolve(form: ClarificationForm, rationale: string) {
-    if (!canWrite || busy || publishTarget) return;
+    if (!canWrite || busy || (publishTarget && form.purpose !== 'MEAL')) return;
     setBusy(true);
     onBusyChange?.(true);
     setError(null);
     try {
-      await api.post(`/nutritionist/profile-reviews/${userId}/clarifications/${form.id}/resolve`, {
+      await api.post(publishTarget && form.purpose === 'MEAL'
+        ? `${publishTarget.url}/${form.id}/resolve`
+        : `/nutritionist/profile-reviews/${userId}/clarifications/${form.id}/resolve`, {
         profileRevision,
         scopeKey,
         responseId: form.responses.at(-1)!.id,
         rationale,
+        ...(publishTarget ? { expectedContextKey: publishTarget.expectedContextKey } : {}),
       });
       await onUpdated();
       toast.success('Clarification resolved.');
@@ -154,7 +159,13 @@ export default function RndClarifications({
     }
   }
   return (
-    <section className="space-y-4" aria-label="Profile clarification work">
+    <section className="space-y-4" aria-label={publishTarget?.purpose === 'MEAL' ? 'Meal question work' : 'Profile clarification work'}>
+      {showComposer && <p className="text-sm text-brand-muted">
+        {publishTarget?.purpose === 'MEAL'
+          ? 'Ask about this meal, its portion or ingredients. Only this meal will wait for a response; the approved profile stays unchanged.'
+          : publishTarget ? 'Ask about the member’s health profile. Sending reopens profile review and pauses their meal cases until the profile is confirmed again.'
+          : 'Ask about this member’s profile. Responses are reviewed here before profile confirmation.'}
+      </p>}
       {!embedded && <h3 className="font-display text-lg font-bold">Clarification forms</h3>}
       {!embedded && <p className="text-xs text-brand-muted">
         Forms stay with this member through claim handoffs. Published questions cannot be overwritten; send a follow-up
@@ -167,19 +178,14 @@ export default function RndClarifications({
             key={form.id}
             form={form}
             mode="reviewer"
+            embedded={embedded}
             disabled={busy || !canWrite}
-            onResolve={publishTarget ? undefined : (rationale) => resolve(form, rationale)}
+            onResolve={publishTarget && form.purpose !== 'MEAL' ? undefined : (rationale) => resolve(form, rationale)}
           />
         ))}
       {showComposer && (
         <Card className={embedded ? 'space-y-3 rounded-none border-0 p-0 shadow-none sm:rounded-none' : 'space-y-3 p-4'}>
           <h4 className="font-bold">Send specific questions</h4>
-          {publishTarget && (
-            <p className="text-xs text-brand-muted">
-              Sending questions pauses this member’s meal reviews. Review answers and any profile corrections in the
-              Profile queue.
-            </p>
-          )}
           {!canWrite && (
             <p className="text-xs text-brand-muted">
               {publishTarget

@@ -5,7 +5,7 @@ import prisma from '@/lib/prisma';
 import { loadPlanningNutritionContext } from '@/domain/user-nutrition-context';
 import { MealIngredientDataSource, MealPlanStatus, NotificationType, Prisma } from '@prisma/client';
 import { lockUserProfile } from './profile-revision.service';
-import { assertCurrentMealReviewContext } from './meal-case-context.service';
+import { assertCurrentMealReviewContext, assertMealQuestionsResolved } from './meal-case-context.service';
 import { captureReviewReference } from './reusable-review-reference.service';
 import { hasCurrentRiceEvidence } from '@/domain/serving-evidence.policy';
 import { validateGeneratedMealCandidate, splitCustomRestrictions } from '@/domain/generated-meal-validation.policy';
@@ -88,7 +88,7 @@ export async function approveMealPlan(
   savedCanvas?: { version: number; layout: unknown; detail: unknown; related?: unknown }
 ) {
   await ReviewRoutingService.assertMeal(nutritionistProfileId, mealPlanId);
-  await assertCurrentMealReviewContext(mealPlanId, expectedContextKey);
+  assertMealQuestionsResolved(await assertCurrentMealReviewContext(mealPlanId, expectedContextKey));
   const now = new Date();
   const claimCutoff = getReviewClaimCutoff(now);
   const plan = await prisma.mealPlan.findUnique({
@@ -168,6 +168,7 @@ export async function approveMealPlan(
         tx,
         nutritionistProfileId
       );
+      assertMealQuestionsResolved(reviewedContext);
       if (savedCanvas && reviewedContext) {
         const detail = savedCanvas.detail as { reviewContext?: { contextKey?: string } };
         if (detail.reviewContext?.contextKey !== reviewedContext.contextKey)

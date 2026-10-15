@@ -56,7 +56,7 @@ export interface DetailData {
     use: string;
   }>;
   clarifications?: ClarificationWorkspace;
-  reviewContext?: { contextKey: string; profileRevision: number; scopeKey: string };
+  reviewContext?: { contextKey: string; profileRevision: number; scopeKey: string; mealQuestionState?: 'AWAITING_MEMBER' | 'ANSWERED' };
   clinicalEvidence?: {
     policyVersion: string;
     healthDetails?: Array<{ area: string; responses: Record<string, unknown>; revision: number }>;

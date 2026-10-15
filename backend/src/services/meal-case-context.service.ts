@@ -53,7 +53,7 @@ export async function loadMealReviewContext(mealPlanId: string, client: Client =
         where: { userId_version: { userId: plan.userId, version: reportVersion } },
       })
     : null;
-  return buildMealReviewContext(plan, report);
+  return (await attachMealQuestions(new Map([[plan.id, buildMealReviewContext(plan, report)]]), client)).get(plan.id)!;
 }
 
 /** Batch one member's cycle so reuse does not reload profile and guidance for every slot. */
@@ -68,13 +68,43 @@ export async function loadMealReviewContexts(mealPlanIds: string[], client: Clie
     return version ? [{ userId: plan.userId, version }] : [];
   });
   const reports = requested.length ? await client.nutritionReportVersion.findMany({ where: { OR: requested } }) : [];
-  return new Map(
+  return attachMealQuestions(new Map(
     plans.map((plan) => {
       const version = plan.cycle.snapshot?.nutritionReportVersion ?? plan.user.userProfile?.planningReportVersion;
       const report = reports.find((row) => row.userId === plan.userId && row.version === version) ?? null;
       return [plan.id, buildMealReviewContext(plan, report)] as const;
     })
-  );
+  ), client);
+}
+
+async function attachMealQuestions(contexts: Map<string, ReturnType<typeof buildMealReviewContext>>, client: Client) {
+  if (!env.CLINICAL_CLARIFICATIONS_ENABLED || !contexts.size) return contexts;
+  const forms = await client.clinicalClarificationForm.findMany({
+    where: { purpose: 'MEAL', sourceMealPlanId: { in: [...contexts.keys()] } },
+    include: { responses: { orderBy: { version: 'desc' }, take: 1 }, resolution: true },
+    orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+  });
+  for (const [mealId, opened] of contexts) {
+    const current = forms.filter(form => form.sourceMealPlanId === mealId &&
+      form.sourceContextKey === opened.baseContextKey && form.profileRevision === opened.profileRevision &&
+      form.scopeKey === opened.scopeKey);
+    if (!current.length) continue;
+    const snapshot = JSON.parse(JSON.stringify({ ...opened.snapshot, mealQuestions: current.map(form => ({
+      id: form.id, title: form.title, questions: form.questions,
+      response: form.responses[0] ?? null, resolution: form.resolution,
+    })) })) as Prisma.InputJsonObject;
+    opened.snapshot = snapshot;
+    opened.contextKey = reviewContextKey(snapshot);
+    const unresolved = current.filter(form => !form.resolution);
+    opened.mealQuestionState = unresolved.some(form => !form.responses.length) ? 'AWAITING_MEMBER'
+      : unresolved.length ? 'ANSWERED' : null;
+  }
+  return contexts;
+}
+
+export function assertMealQuestionsResolved(opened: { mealQuestionState?: string | null } | null) {
+  if (opened?.mealQuestionState)
+    throw new AppError('Review and resolve this meal’s questions before approving or replacing it.', 409, 'MEAL_QUESTIONS_PENDING');
 }
 
 function buildMealReviewContext(plan: ContextPlan, report: NutritionReportVersion | null) {
@@ -137,6 +167,8 @@ function buildMealReviewContext(plan: ContextPlan, report: NutritionReportVersio
       reportVersion === profile.planningReportVersion &&
       planningInputsMatch(profile, report),
     contextKey: reviewContextKey(snapshot),
+    baseContextKey: reviewContextKey(snapshot),
+    mealQuestionState: null as 'AWAITING_MEMBER' | 'ANSWERED' | null,
     profileRevision: profile.revision,
     scopeKey: current.scopeKey,
     // JSON-safe immutable snapshot for decisions, never sent to unrelated cases.

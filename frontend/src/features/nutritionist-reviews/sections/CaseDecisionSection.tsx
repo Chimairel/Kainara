@@ -20,11 +20,12 @@ export default function CaseDecisionSection({
 }) {
   if (!model.detailData) return null;
   const busy = Boolean(model.actionLoading) || swap.saving || !model.detailData.claimStatus.claimedByMe;
+  const questionsPending = Boolean(model.detailData.reviewContext?.mealQuestionState);
   return (
     <>
       <div role="toolbar" aria-label="Meal review actions" className="flex items-center gap-2">
         <CanvasToolButton
-          disabled={busy}
+          disabled={busy || questionsPending}
           onClick={() => {
             setAction(null);
             void swap.load();
@@ -37,7 +38,7 @@ export default function CaseDecisionSection({
         <span className="mx-1 h-6 border-l border-brand-border" />
         <CanvasToolButton
           aria-label="Approve" aria-pressed={action === 'approve'} title="Approve meal"
-          disabled={busy || model.detailData?.flagConcerns?.some((concern) => concern.active)}
+          disabled={busy || questionsPending || model.detailData?.flagConcerns?.some((concern) => concern.active)}
           onClick={() => setAction('approve')}
         >
           <Check aria-hidden="true" className="h-5 w-5" />
