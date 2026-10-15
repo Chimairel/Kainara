@@ -1,6 +1,9 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { ThemeProvider } from '@/lib/context/ThemeContext';
+import { fireEvent, render as renderUi, screen } from '@testing-library/react';
 import { beforeEach, expect, it, vi } from 'vitest';
 import GovernanceQueuePanel from './GovernanceQueuePanel';
+
+const render = (ui: Parameters<typeof renderUi>[0]) => renderUi(ui, { wrapper: ThemeProvider });
 
 const api = vi.hoisted(() => ({ get: vi.fn(), post: vi.fn() }));
 vi.mock('@/lib/axios', () => ({ default: api }));

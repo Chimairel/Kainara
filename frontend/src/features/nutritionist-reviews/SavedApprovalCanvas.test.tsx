@@ -1,16 +1,19 @@
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { ThemeProvider } from '@/lib/context/ThemeContext';
+import { fireEvent, render as renderUi, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, expect, it, vi } from 'vitest';
 import SavedApprovalCanvas from './SavedApprovalCanvas';
 import { savedReviewPresentation } from './saved-review-presentation';
 import api from '@/lib/axios';
 import { toast } from 'sonner';
 
+const render = (ui: Parameters<typeof renderUi>[0]) => renderUi(ui, { wrapper: ThemeProvider });
+
 vi.mock('@/lib/axios', () => ({ default: { get: vi.fn(), post: vi.fn() } }));
 vi.mock('sonner', () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
 vi.mock('@/hooks/useAuth', () => ({ useAuth: () => ({ user: { userId: 'rnd' } }) }));
 vi.mock('./sections/CaseProfileSection', () => ({ default: () => <p>Immutable clinical context</p> }));
 vi.mock('./sections/CaseAuditSection', () => ({ default: () => <p>Immutable meal evidence</p> }));
-afterEach(() => vi.resetAllMocks());
+afterEach(() => { vi.unstubAllGlobals(); vi.resetAllMocks(); });
 
 const layout = { version: 1 as const, sheets: [
   { title: 'Member health profile', x: 44, y: 87 }, { title: 'Meal evidence', x: 994, y: 34 },
@@ -93,7 +96,9 @@ it('stacks the same evidence and flag pages at phone widths without scaling form
   fireEvent.click(screen.getByRole('button', { name: 'Flag approval' }));
   const paper = screen.getByRole('article', { name: 'Flag approval reasons' });
   expect(paper.closest('[data-canvas-world]')).not.toHaveAttribute('style');
-  expect(container.querySelector('[role="toolbar"]')).toHaveClass('hidden');
+  const viewControls = container.querySelector('[aria-label="Canvas view controls"]');
+  expect(viewControls).toBeInTheDocument();
+  expect(viewControls?.closest('.hidden')).not.toBeNull();
   expect(within(paper).getByLabelText('Explanation')).toHaveClass('text-base');
   fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
   expect(screen.queryByRole('article', { name: 'Flag approval reasons' })).not.toBeInTheDocument();

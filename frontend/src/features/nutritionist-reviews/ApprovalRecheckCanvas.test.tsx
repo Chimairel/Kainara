@@ -1,6 +1,8 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { ThemeProvider } from '@/lib/context/ThemeContext';
+import { fireEvent, render as renderUi, screen, waitFor } from '@testing-library/react';
 import { beforeEach, expect, it, vi } from 'vitest';
 import ApprovalRecheckCanvas from './ApprovalRecheckCanvas';
+const render = (ui: Parameters<typeof renderUi>[0]) => renderUi(ui, { wrapper: ThemeProvider });
 const api = vi.hoisted(() => ({ get: vi.fn(), post: vi.fn() }));
 vi.mock('@/lib/axios', () => ({ default: api }));
 vi.mock('@/hooks/useAuth', () => ({ useAuth: () => ({ user: { userId: 'independent-rnd' } }) }));

@@ -1,8 +1,11 @@
+import { ThemeProvider } from '@/lib/context/ThemeContext';
 import { useState } from 'react';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render as renderUi, screen, waitFor } from '@testing-library/react';
 import { expect, it, vi } from 'vitest';
 import ProfileWorkCanvas from './ProfileWorkCanvas';
 import type { useProfileWorkPanelModel } from './useProfileWorkPanelModel';
+
+const render = (ui: Parameters<typeof renderUi>[0]) => renderUi(ui, { wrapper: ThemeProvider });
 
 function Fixture() {
   const [expanded, setExpanded] = useState(false);

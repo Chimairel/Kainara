@@ -1,7 +1,10 @@
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { ThemeProvider } from '@/lib/context/ThemeContext';
+import { fireEvent, render as renderUi, screen, waitFor, within } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { clearSessionResourceCache } from '@/lib/session-resource-cache';
 import SharedMealLibraryWorkspace from './SharedMealLibraryWorkspace';
+
+const render = (ui: Parameters<typeof renderUi>[0]) => renderUi(ui, { wrapper: ThemeProvider });
 
 const mocks = vi.hoisted(() => ({
   get: vi.fn(),

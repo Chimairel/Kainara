@@ -1,7 +1,10 @@
+import { ThemeProvider } from '@/lib/context/ThemeContext';
 import type { ComponentProps } from 'react';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render as renderUi, screen, waitFor } from '@testing-library/react';
 import { beforeEach, expect, it, vi } from 'vitest';
 import MealReviewPanel from './MealReviewPanel';
+
+const render = (ui: Parameters<typeof renderUi>[0]) => renderUi(ui, { wrapper: ThemeProvider });
 
 const fixture = vi.hoisted(() => ({ data: {} as Record<string, unknown>, post: vi.fn(), refetch: vi.fn(), success: vi.fn(), error: vi.fn(), warning: vi.fn() }));
 vi.mock('sonner', () => ({ toast: { success: fixture.success, error: fixture.error, warning: fixture.warning } }));
