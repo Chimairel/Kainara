@@ -44,7 +44,7 @@ export default function MemberAssistantShell({ ready, children }: { ready: boole
       <MessageSquare className="h-6 w-6" />
     </button> : null}
     {opened && docked ? <aside id={`${titleId}-panel`} aria-labelledby={titleId}
-      className="relative z-20 ml-4 h-full w-[420px] shrink-0 overflow-hidden rounded-[28px] border border-brand-border">
+      className="fixed bottom-4 right-4 top-[88px] z-20 w-[420px] overflow-hidden rounded-[28px] border border-brand-border shadow-card-lg">
       <AssistantConversation model={model} titleId={titleId} />
     </aside> : null}
     <Dialog.Root open={opened && !docked} onOpenChange={model.setOpen}>

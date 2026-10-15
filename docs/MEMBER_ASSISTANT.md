@@ -5,7 +5,7 @@ Branch: `codex/member-assistant`. Status: implemented on this feature branch; sh
 ## Accepted design
 
 - Member portal only. An icon button floats at the bottom right and clears the mobile bottom navigation. Its accessible name and tooltip are **Open assistant**.
-- At desktop widths (1280 CSS pixels and above), a 420 px panel docks on the right and the existing workspace reflows. Smaller widths use a full-screen dialog with keyboard focus containment. The header and composer stay fixed while messages scroll.
+- At desktop widths (1280 CSS pixels and above), a 420 px panel floats over the right side without resizing the workspace. Its top sits below the portal header, leaving the theme toggle and notification bell accessible; header menus stack above the assistant. Smaller widths use a full-screen dialog with keyboard focus containment. The chat header and composer stay fixed while messages scroll.
 - KAINARA's current light/dark tokens, fonts, shared buttons and Solar icons are reused. No new dependencies, illustrations, vector database or duplicated food catalogue.
 - The panel contains New chat, Close, free shortcuts, bounded conversation history, meal details, saved-guidance references, AI consent and recoverable errors. Closing/navigation preserve draft and conversation in the authenticated layout. Reload ends that in-memory conversation; signing out/account changes unmount it and abort pending browser requests. New chat clears context, never usage.
 - Internal result links dismiss the covering dialog below 1280 CSS pixels so members can read the destination. Desktop navigation preserves the dock; both retain conversation state.
@@ -64,6 +64,8 @@ This feature branch has not applied its migration to Neon, changed hosted secret
 ### Normal localhost activation — October 15, 2026
 
 The owner chose the isolated local database. Ports 3000 / 5000 now serve the member assistant against `kainara_local_development@127.0.0.1:55432`, with all 109 migrations applied and its local flag enabled. The older local records are separate from demo. No Neon migration or hosted rollout was performed. Local API/database verification and ordinary browser login confirmed the launcher, desktop dock, free totals and AI credit confirmation/cancellation. The existing Health fixture retained 40/40 credits; no provider call was made. Runtime and rollback instructions are in [local development](LOCAL_DEVELOPMENT_AND_DEFENSE.md#current-local-runtime--october-15-2026).
+
+The subsequent desktop overlay refinement preserves identical main-content bounds with chat closed/open, places the panel below the portal header and keeps the notification dropdown above it. Light/dark desktop and mobile-dialog browser checks pass, along with seven assistant tests, scoped ESLint, the frontend production build/TypeScript and an empty Impeccable layout scan. Screenshots: `codex_outputs/member-assistant-overlay-light-20261015.png`, `member-assistant-overlay-dark-notifications-20261015.png` and `member-assistant-overlay-mobile-20261015.png`. No provider request or hosted release was performed for this layout change.
 
 - Focused backend policy/service tests cover consent default, strict inputs/context, direct routing, weekly boundaries, tier caps/upgrades, combined recipe constraints, disabled rollout, provider faults, shared capacity and replay.
 - Frontend tests cover free actions, confirmation, duplicate clicks, cancellation, draft/history lifetime, new chat, account unmount cancellation and exhausted credits.

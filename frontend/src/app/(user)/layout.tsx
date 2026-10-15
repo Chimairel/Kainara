@@ -35,7 +35,8 @@ export default function UserLayout({ children }: { children: React.ReactNode }) 
           <BackgroundResourceBoundary ownerId={user?.userId} />
           <MemberAssistantShell key={user?.userId} ready={Boolean(user?.role === 'USER' && user.onboardingDone && user.tosAccepted)}>
             <Sidebar />
-            <div className="relative z-10 flex min-w-0 flex-1 flex-col md:pl-4">
+            {/* Let the navbar's menus stack above the floating assistant. */}
+            <div className="relative flex min-w-0 flex-1 flex-col md:pl-4">
               <Navbar />
               {isReportPending && (
                 <PortalAnnouncement
