@@ -9,6 +9,7 @@ import {
 import { MemberAssistantUsageService as Usage } from '../src/services/member-assistant-usage.service';
 import { AiCapacityService } from '../src/services/ai-capacity.service';
 import { MembershipService } from '../src/services/membership.service';
+import { assistantInformationReply } from '../src/domain/member-assistant-information';
 
 process.env.GEMINI_API_KEY = 'unit-test-key-never-sent';
 let Assistant: typeof import('../src/services/member-assistant.service').MemberAssistantService;
@@ -47,6 +48,59 @@ test('weekly credit caps are 5/20/40 with no daily reply cap', () => {
     assert.deepEqual(assistantLimits(tier, {}), { weekly: cap });
   assert.deepEqual(assistantLimits('FREE', { MEMBER_ASSISTANT_FREE_WEEKLY_CREDITS: '0' }), { weekly: 0 });
   assert.throws(() => assistantLimits('FREE', { MEMBER_ASSISTANT_FREE_WEEKLY_CREDITS: '-1' }));
+});
+
+test('prepared information recognizes actions, aliases, common typos and app navigation wording', () => {
+  const cases = [
+    ['what is the system all about?', '/docs'], ['What can Nara do?', '/docs'],
+    ['How do I change my weight?', '/progress'], ['Where can I update my timbang?', '/progress'],
+    ['I want to record my new weight', '/progress'], ['Paano baguhin ang timbang ko?', '/progress'],
+    ['Unsaon pag update sa akong timbang?', '/progress'], ['how to update my wieght in the app', '/progress'],
+    ['where do I edit my target weight?', '/profile/health'], ['how can I change my height?', '/profile/health'],
+    ['How do I update my allergies?', '/profile/health'], ['Where can I change my passowrd?', '/profile/security'],
+    ['how do I change my avatar?', '/profile/personal'], ['how can I update my diet?', '/profile/planning'],
+    ['how to log an outside meal?', '/meals'], ['How do I swap a meal?', '/meals'],
+    ['where is my meal history?', '/meals?tab=history'], ['how to find my grocceries?', '/grocery'],
+    ['where is the meal library?', '/meals?tab=library'], ['where can I read my nutrition report?', '/profile/nutrition-report'],
+    ['how to upgrade my membership?', '/membership'], ['where can I export my data?', '/export'],
+  ];
+  for (const [message, href] of cases) {
+    const result = assistantInformationReply(message);
+    assert.ok(result?.links.some(link => link.href === href), message);
+  }
+  assert.equal(assistantDirectAction('When do my AI credits reset?'), 'CREDITS');
+});
+
+test('uncertain requests clarify for free and weight guidance is not mistaken for changing a recorded measurement', () => {
+  assert.match(assistantInformationReply('change my plan')!.text, /Meal plan or your Membership/);
+  for (const message of ['what does this button do in the app?', 'something unclear', 'how much should I weigh?', 'how do I lose weight?']) {
+    const result = assistantInformationReply(message);
+    assert.ok(result, message);
+    assert.doesNotMatch(result.text, /Log today’s weight/, message);
+  }
+  for (const message of ['find chicken without pork', 'Chicken under 500 kcal', 'a pork dinner with 25g protein']) {
+    assert.equal(assistantInformationReply(message), null, message);
+  }
+});
+
+test('information works at zero credits without provider calls, reservations, receipts or member-data writes', async t => {
+  process.env.MEMBER_ASSISTANT_ENABLED = 'true';
+  t.mock.method(Usage, 'allowance', async () => ({ ...allowance, remaining: 0, used: 5 }));
+  const prepare = t.mock.method(Usage, 'prepare', async () => { throw new Error('no receipt'); });
+  const reserve = t.mock.method(Usage, 'reserve', async () => { throw new Error('no reservation'); });
+  const provider = t.mock.method(GoogleGenerativeAI.prototype, 'getGenerativeModel', () => { throw new Error('no provider'); });
+  mockDelegate(t, prisma.userProfile, 'update', async () => { throw new Error('no profile write'); });
+  mockDelegate(t, prisma.mealLog, 'create', async () => { throw new Error('no meal log'); });
+  for (const message of ['what is the system all about?', 'how to change my weight', 'change my plan', 'how to log an outside meal?']) {
+    for (const allowAi of [false, true]) {
+      const result = await Assistant.message('member', { ...input(), message, allowAi });
+      assert.equal(result.confirmationRequired, false);
+      assert.equal('reply' in result && result.reply.source, 'SYSTEM');
+      assert.equal('reply' in result && result.reply.creditsUsed, 0);
+      assert.equal(result.allowance.remaining, 0);
+    }
+  }
+  assert.equal(prepare.mock.callCount(), 0); assert.equal(reserve.mock.callCount(), 0); assert.equal(provider.mock.callCount(), 0);
 });
 test('credits reset on Monday midnight Manila, including UTC Sunday boundary', () => {
   const before = assistantWindows(new Date('2026-10-18T15:59:59Z'));

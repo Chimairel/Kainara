@@ -11,11 +11,23 @@ import type { MemberAssistantModel } from './useMemberAssistant';
 import type { AssistantReply } from './types';
 
 const quickActions = [
+  { action: undefined, label: 'About KAINARA', icon: BookOpen },
   { action: 'FIND_MEAL' as const, label: 'Find a meal', icon: Soup },
   { action: 'TODAY' as const, label: 'Today’s nutrition', icon: MessageSquare },
   { action: 'GUIDANCE' as const, label: 'My nutrition guidance', icon: BookOpen },
 ];
 const iconButton = 'inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-brand-muted transition-colors hover:bg-brand-bgAlt hover:text-brand-text focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-green disabled:opacity-40';
+
+function ReplyText({ text, links, onNavigate }: { text: string; links?: AssistantReply['links']; onNavigate?: () => void }) {
+  const inline = links?.filter(link => link.label && text.includes(link.label) && /^\/(?!\/)/u.test(link.href)) ?? [];
+  if (!inline.length) return <>{text}</>;
+  const pattern = new RegExp(`(${inline.map(link => link.label.replace(/[.*+?^${}()|[\]\\]/gu, '\\$&')).sort((a, b) => b.length - a.length).join('|')})`, 'gu');
+  return <>{text.split(pattern).map((part, index) => {
+    const link = inline.find(item => item.label === part);
+    return link ? <Link key={index} href={link.href} onClick={onNavigate}
+      className="rounded font-semibold text-brand-green underline decoration-brand-green/60 underline-offset-4 hover:decoration-brand-green focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-green">{part}</Link> : part;
+  })}</>;
+}
 
 function ReplyDetails({ reply, onNavigate }: { reply: AssistantReply; onNavigate?: () => void }) {
   return <>
@@ -40,7 +52,7 @@ function ReplyDetails({ reply, onNavigate }: { reply: AssistantReply; onNavigate
         <a href={item.href} target="_blank" rel="noopener noreferrer" className="break-words text-brand-green underline underline-offset-4">{item.label}</a>
       </li>)}</ul>
     </details> : null}
-    {reply.links?.map(link => <Link key={link.href} href={link.href} onClick={onNavigate} className="mt-4 inline-flex min-h-10 items-center gap-1 rounded text-sm font-semibold text-brand-green underline-offset-4 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-green">
+    {reply.links?.filter(link => !link.label || !reply.text.includes(link.label)).map(link => <Link key={link.href} href={link.href} onClick={onNavigate} className="mt-4 inline-flex min-h-10 items-center gap-1 rounded text-sm font-semibold text-brand-green underline underline-offset-4 focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-green">
       {link.label}<ArrowUpRight className="h-4 w-4" />
     </Link>)}
     <p className="mt-3 text-[11px] text-brand-muted">{reply.source === 'AI' ? 'AI assisted · 1 credit used' : 'System response · No credit used'}</p>
@@ -90,7 +102,7 @@ export default function AssistantConversation({ model, titleId, member, modal = 
               : <NaraPortrait size={32} />}
             <div className={`min-w-0 max-w-[calc(100%-40px)] rounded-2xl px-4 py-3 ${message.role === 'user' ? 'rounded-br-sm bg-brand-green text-brand-surface' : 'rounded-bl-sm bg-brand-bgAlt'}`}>
               <span className="sr-only">{message.role === 'user' ? 'You' : 'Nara'}: </span>
-              <p className="whitespace-pre-wrap break-words text-sm leading-6">{message.text}</p>
+              <p className="whitespace-pre-wrap break-words text-sm leading-6"><ReplyText text={message.text} links={message.reply?.links} onNavigate={modal ? () => model.setOpen(false) : undefined} /></p>
               {message.reply ? <ReplyDetails reply={message.reply} onNavigate={modal ? () => model.setOpen(false) : undefined} /> : null}
             </div>
           </div>)}

@@ -15,9 +15,15 @@ Branch: `codex/member-assistant`. Status: implemented on this feature branch; sh
 
 `GET /api/user/assistant` reports rollout status and the authenticated member's current allowance. `POST /api/user/assistant/messages` accepts a UUID request key, message (1000 characters maximum), optional fixed action, `allowAi` (false by default), and at most six context messages of 500 characters each. No caller-supplied owner, membership, tool names or arbitrary URLs are accepted.
 
-Free shortcuts: Find a meal (opens the search conversation), Today's nutrition, My nutrition guidance, and View my plan. Narrow greetings/help/credit FAQs and equivalent direct commands also return prepared system responses. **Free requests have no confirmation prompt and never call Gemini.**
+Free shortcuts: About KAINARA, Find a meal (opens the search conversation), Today's nutrition, My nutrition guidance, and View my plan. Greetings, app instructions, credit FAQs and equivalent direct commands also return prepared system responses. **Free requests have no confirmation prompt and never call Gemini.**
 
-Unrecognized text first returns an inline confirmation: **This request uses 1 AI credit**, current balance, Continue and Cancel. This preflight does not reserve a credit or call Gemini. Only explicit `allowAi: true` proceeds. Cancel does not create a receipt or call the provider. A completed-response retry is recovered before asking for another credit.
+Recognizable food-search and supported explanation requests first return an inline confirmation: **This request uses 1 AI credit**, current balance, Continue and Cancel. Unknown or ambiguous information requests return free topic choices instead. Preflight does not reserve a credit or call Gemini. Only explicit `allowAi: true` proceeds. Cancel does not create a receipt or call the provider. A completed-response retry is recovered before asking for another credit.
+
+### Prepared system information
+
+`backend/src/domain/member-assistant-information.ts` contains the versioned member guide and fixed internal destinations. It covers the app overview, current/target weight, health and personal settings, dietary preferences, outside-food logging instructions, water, theme, meal tracking/swaps/history/library, groceries, guidance, membership, exports and notifications. The matcher normalizes punctuation/contractions, uses action/topic aliases (including selected Tagalog/Bisaya wording), and corrects a small explicit list of common typos. This is bounded pattern matching, not unrestricted language understanding, an LLM, embeddings or vector retrieval. Unclear requests ask for clarification and offer topic links for free. Update this file and its phrase/destination tests when the corresponding screen or workflow changes.
+
+Named destinations appear as colored, underlined inline links in replies. Mobile links dismiss the covering chat; desktop links preserve the drawer and conversation. These information replies run before usage preparation/reservation even if `allowAi` is supplied, work at zero credits, and create no assistant receipt or member-data change. There is no automated food log, profile update or other member mutation from chat.
 
 | Current entitlement | Weekly AI credits |
 | --- | ---: |
@@ -61,6 +67,10 @@ Each provider call passes through existing project-wide capacity admission. Chat
 This feature branch has not applied its migration to Neon, changed hosted secrets, or deployed the assistant. Isolated tests use synthetic data and stubbed provider responses; these do not establish real-model language quality or clinical validation.
 
 ## Verification
+
+### Free system information — October 15, 2026
+
+The focused backend and frontend assistant suites each pass 16 tests. Checks include 22 navigation phrasings/destinations, normalization and aliases, clarification, preserved AI consent for food searches, zero-credit information with provider/reservation/write traps, and inline/mobile link behavior. Backend build, backend test typecheck, frontend production build and scoped lint pass. Isolated localhost browser checks confirmed the exact “what is the system all about?” and “how to change my weight” requests return system replies with no consent prompt, the Progress link reaches the page with “Log today's weight”, and “change my plan” offers Meal plan/Membership links. On mobile, Membership navigation closes the covering dialog. Health fixture credits remained 40/40. Captures: `codex_outputs/nara-free-help-desktop-20261015.png` and `nara-free-help-mobile-20261015.png`. No real provider request, migration or hosted release was performed.
 
 ### Nara conversation UI — October 15, 2026
 

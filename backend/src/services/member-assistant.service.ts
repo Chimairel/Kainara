@@ -14,6 +14,7 @@ import { resolvePlanningProfile } from '@/domain/planning-report.policy';
 import { NutritionReportService } from './nutrition-report.service';
 import { MemberAssistantUsageService as Usage } from './member-assistant-usage.service';
 import { queryEligibleLibraryPage, type EligibleLibraryMeal } from './meal-library-candidate-query.service';
+import { assistantInformationReply } from '@/domain/member-assistant-information';
 
 export type AssistantReply = {
   text: string;
@@ -57,6 +58,12 @@ export class MemberAssistantService {
       const reply = await this.direct(userId, direct);
       return { confirmationRequired: false as const, reply, allowance: await Usage.allowance(userId) };
     }
+    const information = assistantInformationReply(input.message);
+    if (information) return {
+      confirmationRequired: false as const,
+      reply: { ...information, source: 'SYSTEM' as const, creditsUsed: 0 },
+      allowance: await Usage.allowance(userId),
+    };
     // Preflight never reserves a credit and NEVER calls the provider.
     if (!input.allowAi) {
       const prepared = await Usage.prepare(userId, input);
@@ -110,7 +117,8 @@ export class MemberAssistantService {
       text: 'Tell me the meal, ingredients, or numeric limits you want. For example: “Chicken dinner with at least 25 g protein.” I’ll ask before using an AI credit to interpret your request.',
       source: 'SYSTEM', creditsUsed: 0, links: [{ label: 'Browse meals without AI', href: '/meals?tab=library' }],
     };
-    return { text: 'What would you like to do? You can find a meal, see today’s nutrition, or read your saved guidance.', source: 'SYSTEM', creditsUsed: 0 };
+    return { text: 'Hi, I’m Nara. You can ask me how to use KAINARA—for example, “How do I update my weight?” or “Where is my meal history?” App instructions are free. I can also show today’s recorded nutrition, read saved guidance and help find meals. Explore Docs & Help for more instructions.',
+      source: 'SYSTEM', creditsUsed: 0, links: [{ label: 'Docs & Help', href: '/docs' }] };
   }
 
   private static async today(userId: string): Promise<AssistantReply> {

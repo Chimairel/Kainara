@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { getManilaDateKey, getManilaMidnight } from './meal-plan-cycle.policy';
 import { membershipWeek, type MembershipTierName } from './membership.policy';
+import { normalizeAssistantQuestion } from './member-assistant-information';
 
 export const assistantEnabled = () => process.env.MEMBER_ASSISTANT_ENABLED === 'true';
 export const assistantInputSchema = z.object({
@@ -43,11 +44,11 @@ export function assistantWindows(at: Date) {
 
 /** Narrow whole-message routes avoid swallowing substantive text that contains a greeting. */
 export function assistantDirectAction(message: string): 'GREETING' | 'TODAY' | 'GUIDANCE' | 'VIEW_PLAN' | 'CREDITS' | null {
-  const text = message.toLowerCase().trim().replace(/[.!?]+$/u, '');
+  const text = normalizeAssistantQuestion(message);
   if (/^(hi|hello|hey|thanks|thank you|salamat|maayong (adlaw|buntag)|good (morning|afternoon|evening))$/u.test(text)) return 'GREETING';
   if (['help', 'what can you do'].includes(text)) return 'GREETING';
-  if (['credits', 'my credits', 'ai credits', 'what are ai credits', 'how do credits work'].includes(text)) return 'CREDITS';
-  if (["today's nutrition", 'today’s nutrition', 'daily summary', 'nutrition today'].includes(text)) return 'TODAY';
+  if (['credits', 'my credits', 'ai credits'].includes(text) || /\bcredits?\b/.test(text) && /\b(how|what|when|balance|remaining|reset|used|renew|weekly)\b/.test(text)) return 'CREDITS';
+  if (['todays nutrition', 'daily summary', 'nutrition today'].includes(text)) return 'TODAY';
   if (['view my plan', 'view meal plan', 'my meal plan'].includes(text)) return 'VIEW_PLAN';
   if (['my guidance', 'show my guidance', 'explain my guidance'].includes(text)) return 'GUIDANCE';
   return null;

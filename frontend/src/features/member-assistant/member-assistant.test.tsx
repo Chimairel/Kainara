@@ -103,3 +103,18 @@ it('mobile internal result links close the covering panel so the destination can
   fireEvent.click(screen.getByRole('link', { name: 'Open my meal plan' }));
   expect(model.setOpen).toHaveBeenCalledWith(false);
 });
+
+it('renders help destinations as inline links without a duplicate navigation row', () => {
+  const reply = { text: 'Open Progress and select Log today’s weight.', source: 'SYSTEM' as const, creditsUsed: 0,
+    links: [{ label: 'Progress', href: '/progress' }] };
+  const model = { messages: [{ id: 'reply', role: 'assistant', text: reply.text, reply }], busy: false, pending: null,
+    allowance: { ...allowance, remaining: 0 }, draft: '', error: null, setOpen: vi.fn() } as unknown as MemberAssistantModel;
+  render(<Dialog.Root open><Dialog.Content aria-describedby={undefined}><AssistantConversation model={model} titleId="chat" modal /></Dialog.Content></Dialog.Root>);
+  const links = screen.getAllByRole('link', { name: 'Progress' });
+  expect(links).toHaveLength(1);
+  expect(links[0]).toHaveAttribute('href', '/progress');
+  expect(links[0].closest('p')).toHaveTextContent(reply.text);
+  expect(screen.queryByRole('region', { name: 'Confirm AI credit use' })).toBeNull();
+  fireEvent.click(links[0]);
+  expect(model.setOpen).toHaveBeenCalledWith(false);
+});
