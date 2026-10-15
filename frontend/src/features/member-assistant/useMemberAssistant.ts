@@ -6,6 +6,7 @@ import { getApiErrorCode, getApiErrorMessage } from '@/lib/api-error';
 import type { AssistantAction, AssistantAllowance, AssistantInput, AssistantResult, AssistantReply, ChatEntry } from './types';
 import { assistantDirectAction, assistantStaticReply } from './assistant-information.generated';
 import { readAssistantSession, saveAssistantSession, type AssistantSession } from '@/lib/assistant-session';
+import { useAssistantTyping } from './useAssistantTyping';
 
 export const ASSISTANT_BALANCE_MAX_AGE_MS = 60_000;
 
@@ -13,6 +14,8 @@ export const ASSISTANT_BALANCE_MAX_AGE_MS = 60_000;
 export function useMemberAssistant(ready: boolean, ownerId?: string) {
   const [enabled, setEnabled] = useState(false);
   const [open, setOpen] = useState(false);
+  const typing = useAssistantTyping(open);
+  const finishTyping = typing.finish;
   const [draft, setDraft] = useState('');
   const [messages, setMessages] = useState<ChatEntry[]>([]);
   const [allowance, setAllowance] = useState<AssistantAllowance | null>(null);
@@ -75,13 +78,14 @@ export function useMemberAssistant(ready: boolean, ownerId?: string) {
   useEffect(() => {
     const clear = () => {
       storageBlocked.current = true;
+      finishTyping();
       controller.current?.abort(); recoveryController.current?.abort();
       setMessages([]); setDraft(''); setPending(null); setRecoveryKey(null); setRecoveryStatus(null); setOpen(false);
       setRetryUntil(0);
     };
     window.addEventListener('kainara:nara-session-cleared', clear);
     return () => window.removeEventListener('kainara:nara-session-cleared', clear);
-  }, []);
+  }, [finishTyping]);
 
   const refreshAllowance = useCallback((force = false) => {
     if (!ready || !alive.current) return Promise.resolve();
@@ -160,6 +164,7 @@ export function useMemberAssistant(ready: boolean, ownerId?: string) {
       setAllowance(result.allowance);
       if (result.confirmationRequired) { setPending({ ...input, requestKey: result.requestKey }); return; }
       setPending(null); setRecoveryKey(null); setRecoveryStatus(null);
+      typing.start(`${input.requestKey}:reply`, result.reply.text);
       setMessages(current => [...current.slice(-39), {
         id: `${input.requestKey}:reply`, role: 'assistant', text: result.reply.text, reply: result.reply, createdAt: Date.now(),
       }]);
@@ -238,7 +243,7 @@ export function useMemberAssistant(ready: boolean, ownerId?: string) {
 
   const send = (action?: AssistantAction, label?: string) => {
     const text = (label ?? draft).trim();
-    if (!text || text.length > 1000 || inFlight.current || pending || recoveryKey) return;
+    if (!text || text.length > 1000 || inFlight.current || pending || recoveryKey || typing.active.current) return;
     if (cooldownUntil > Date.now() && !freeRequest(text, action)) return;
     const input: AssistantInput = {
       requestKey: crypto.randomUUID(), message: text, action, allowAi: false,
@@ -249,6 +254,7 @@ export function useMemberAssistant(ready: boolean, ownerId?: string) {
     const information = assistantStaticReply(text, action);
     if (information) {
       setError(null); setFailed(null);
+      typing.start(`${input.requestKey}:reply`, information.text);
       setMessages(current => [...current.slice(-39), {
         id: `${input.requestKey}:reply`, role: 'assistant', text: information.text,
         reply: { ...information, source: 'SYSTEM', creditsUsed: 0 },
@@ -261,23 +267,23 @@ export function useMemberAssistant(ready: boolean, ownerId?: string) {
 
   return {
     enabled: enabled && ready, open, setOpen, draft, setDraft, messages, allowance, pending, error, busy, failed,
-    recoveryKey, recoveryStatus, checkRecovery: () => { void checkRecovery(); },
+    recoveryKey, recoveryStatus, checkRecovery: () => { void checkRecovery(); }, typingReply: typing.reply,
     cooldownSeconds, cooldownBlocksDraft: cooldownSeconds > 0 && !freeRequest(draft),
     send,
-    confirm: () => { if (pending && !inFlight.current && cooldownUntil <= Date.now()) void request({ ...pending, allowAi: true }); },
+    confirm: () => { if (pending && !inFlight.current && !typing.active.current && cooldownUntil <= Date.now()) void request({ ...pending, allowAi: true }); },
     cancel: () => {
       setPending(null);
       setMessages(current => [...current.slice(-39), { id: crypto.randomUUID(), role: 'assistant', text: 'Cancelled. No AI credit was used.', createdAt: Date.now() }]);
     },
     retry: () => {
       if (recoveryKey) { void checkRecovery(); return; }
-      if (!failed || inFlight.current) return;
+      if (!failed || inFlight.current || typing.active.current) return;
       if (cooldownUntil > Date.now() && !freeRequest(failed.message, failed.action)) return;
       // Recheck before a new provider attempt; retries never silently spend a credit.
       void request({ ...failed, allowAi: false });
     },
     newChat: () => {
-      if (inFlight.current || recovering.current) return;
+      if (inFlight.current || recovering.current || typing.active.current) return;
       setMessages([]); setDraft(''); setError(null); setPending(null); setFailed(null);
       setRecoveryKey(null); setRecoveryStatus(null); createdAt.current = Date.now();
     },

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import * as Dialog from '@radix-ui/react-dialog';
 import Button from '@/components/ui/Button';
@@ -17,6 +17,23 @@ const quickActions = [
   { action: 'GUIDANCE' as const, label: 'My nutrition guidance', icon: BookOpen },
 ];
 const iconButton = 'inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-brand-muted transition-colors hover:bg-brand-bgAlt hover:text-brand-text focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-green disabled:opacity-40';
+
+function TypingDots({ label }: { label: string }) {
+  const [paused, setPaused] = useState(false);
+  useEffect(() => {
+    const update = () => setPaused(document.hidden);
+    update(); document.addEventListener('visibilitychange', update);
+    return () => document.removeEventListener('visibilitychange', update);
+  }, []);
+  return <span role="status" className="inline-flex min-h-6 items-center">
+    <span className="sr-only">{label}</span>
+    <span aria-hidden="true" className="inline-flex items-center gap-1.5">
+      {[0, 1, 2].map(index => <span key={index} data-nara-typing-dot
+        className="inline-block h-1.5 w-1.5 rounded-full bg-brand-muted motion-safe:animate-bounce"
+        style={{ animationDelay: `${index * 160}ms`, animationPlayState: paused ? 'paused' : 'running' }} />)}
+    </span>
+  </span>;
+}
 
 function ReplyText({ text, links, onNavigate }: { text: string; links?: AssistantReply['links']; onNavigate?: () => void }) {
   const inline = links?.filter(link => link.label && text.includes(link.label) && /^\/(?!\/)/u.test(link.href)) ?? [];
@@ -70,11 +87,19 @@ export default function AssistantConversation({ model, titleId, member, modal = 
   const end = useRef<HTMLDivElement>(null);
   const input = useRef<HTMLTextAreaElement>(null);
   const confirmation = useRef<HTMLElement>(null);
-  useEffect(() => { end.current?.scrollIntoView({ block: 'nearest', behavior: 'instant' }); }, [model.messages, model.busy, model.pending, model.error]);
+  const followReply = useRef(true);
+  useEffect(() => {
+    followReply.current = true;
+    end.current?.scrollIntoView({ block: 'nearest', behavior: 'instant' });
+  }, [model.messages, model.busy, model.pending, model.error]);
+  useEffect(() => {
+    if (followReply.current) end.current?.scrollIntoView({ block: 'nearest', behavior: 'instant' });
+  }, [model.typingReply]);
   useEffect(() => { input.current?.focus(); }, []);
   useEffect(() => { if (model.pending && !model.busy) confirmation.current?.focus(); }, [model.pending, model.busy]);
   const reset = model.allowance ? new Intl.DateTimeFormat('en-PH', { timeZone: 'Asia/Manila', weekday: 'short', hour: 'numeric', minute: '2-digit' }).format(new Date(model.allowance.resetsAt)) : '';
   const disabled = model.busy || Boolean(model.pending) || Boolean(model.recoveryKey);
+  const sendBlocked = disabled || Boolean(model.typingReply);
   const mood = model.busy ? 'thinking' : model.error || (model.pending && model.allowance?.remaining === 0) ? 'failed' : 'front';
   return <div className="flex h-full min-h-0 flex-col bg-brand-surface text-brand-text">
     <header className="flex shrink-0 items-center justify-between gap-2 border-b border-brand-border px-5 py-3">
@@ -86,15 +111,16 @@ export default function AssistantConversation({ model, titleId, member, modal = 
         <p className="mt-0.5 text-xs text-brand-muted">Your nutrition companion</p></div>
       </div>
       <div className="flex shrink-0 gap-1">
-        <button type="button" className={iconButton} aria-label="New chat" title="New chat" onClick={model.newChat} disabled={model.busy}><Plus className="h-5 w-5" /></button>
+        <button type="button" className={iconButton} aria-label="New chat" title="New chat" onClick={model.newChat} disabled={model.busy || Boolean(model.typingReply)}><Plus className="h-5 w-5" /></button>
         <button type="button" className={iconButton} aria-label="Close assistant" title="Close assistant" onClick={() => model.setOpen(false)}><X className="h-5 w-5" /></button>
       </div>
     </header>
-    <div className="custom-scrollbar min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 py-6">
+    <div className="custom-scrollbar min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 py-6"
+      onScroll={event => { const node = event.currentTarget; followReply.current = node.scrollHeight - node.scrollTop - node.clientHeight < 48; }}>
       {!model.messages.length ? <div className="flex min-h-60 flex-col justify-center pb-8">
         <h3 className="font-display text-2xl font-semibold leading-tight">What would help<br />with your next meal?</h3>
         <p className="mt-3 text-sm leading-6 text-brand-muted">Find meals, check what you’ve logged, or understand your saved nutrition guidance.</p>
-        <div className="mt-6 flex flex-col gap-2">{quickActions.map(({ action, label, icon: Icon }) => <button key={label} type="button" disabled={disabled}
+        <div className="mt-6 flex flex-col gap-2">{quickActions.map(({ action, label, icon: Icon }) => <button key={label} type="button" disabled={sendBlocked}
           onClick={() => model.send(action, label)} className="flex min-h-12 items-center gap-3 rounded-xl border border-brand-border px-4 py-3 text-left text-sm font-semibold transition-colors hover:bg-brand-bgAlt focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-green disabled:opacity-40">
           <Icon className="h-4 w-4 text-brand-green" />{label}<ArrowUpRight className="ml-auto h-4 w-4 text-brand-muted" />
         </button>)}</div>
@@ -107,16 +133,25 @@ export default function AssistantConversation({ model, titleId, member, modal = 
               : <NaraPortrait size={32} />}
             <div className={`min-w-0 max-w-[calc(100%-40px)] rounded-2xl px-4 py-3 ${message.role === 'user' ? 'rounded-br-sm bg-brand-green text-brand-surface' : 'rounded-bl-sm bg-brand-bgAlt'}`}>
               <span className="sr-only">{message.role === 'user' ? 'You' : 'Nara'}: </span>
-              <p className="whitespace-pre-wrap break-words text-sm leading-6"><ReplyText text={message.text} links={message.reply?.links} onNavigate={modal ? () => model.setOpen(false) : undefined} /></p>
+              <p className="whitespace-pre-wrap break-words text-sm leading-6">{model.typingReply?.id === message.id ? <>
+                <span aria-hidden="true">{model.typingReply.text}<span className="ml-0.5 inline-block h-3.5 w-0.5 translate-y-0.5 bg-brand-muted" /></span>
+                <span className="sr-only">{message.text}</span>
+              </> : <ReplyText text={message.text} links={message.reply?.links} onNavigate={modal ? () => model.setOpen(false) : undefined} />}</p>
               {message.restored && message.createdAt ? <p className={`mt-2 text-[11px] ${message.role === 'user' ? '' : 'text-brand-muted'}`}>Earlier · {new Intl.DateTimeFormat('en-PH', { timeZone: 'Asia/Manila', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }).format(message.createdAt)}</p> : null}
-              {message.reply ? <ReplyDetails reply={message.reply} onNavigate={modal ? () => model.setOpen(false) : undefined} /> : null}
+              {model.typingReply?.id === message.id ? <div className="mt-1"><TypingDots label="Nara is typing…" /></div> : null}
+              {message.reply && model.typingReply?.id !== message.id ? <ReplyDetails reply={message.reply} onNavigate={modal ? () => model.setOpen(false) : undefined} /> : null}
             </div>
           </div>)}
         </div>
-        <div className="mt-6 flex flex-wrap gap-2">{quickActions.map(({ action, label }) => <button key={label} type="button" disabled={disabled} onClick={() => model.send(action, label)}
+        <div className="mt-6 flex flex-wrap gap-2">{quickActions.map(({ action, label }) => <button key={label} type="button" disabled={sendBlocked} onClick={() => model.send(action, label)}
           className="min-h-9 rounded-lg border border-brand-border px-2.5 text-xs text-brand-muted hover:bg-brand-bgAlt focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-green disabled:opacity-40">{label}</button>)}</div>
       </>}
-      {model.busy ? <p role="status" className="mt-5 text-sm text-brand-muted">{model.recoveryStatus ? 'Checking your previous reply…' : 'Nara is thinking…'}</p> : null}
+      {model.busy ? <div className="mt-5 flex items-end gap-2">
+        <NaraPortrait size={32} />
+        <div className="rounded-2xl rounded-bl-sm bg-brand-bgAlt px-4 py-3">
+          <TypingDots label={model.recoveryStatus ? 'Checking your previous reply…' : 'Nara is thinking…'} />
+        </div>
+      </div> : null}
       {model.recoveryKey && !model.busy ? <section aria-label="Recover previous reply" className="mt-5 border-t border-brand-border pt-4 text-sm leading-6">
         <p>{model.recoveryStatus ?? 'Recover your previous reply without calling AI again.'}</p>
         <Button size="sm" variant="secondary" onClick={model.checkRecovery} className="mt-3">Check reply</Button>
@@ -132,7 +167,7 @@ export default function AssistantConversation({ model, titleId, member, modal = 
       </section> : null}
       {model.error && !model.recoveryKey ? <div role="alert" className="mt-5 text-sm leading-6">
         <p>{model.error}</p>
-        <button type="button" onClick={model.retry} disabled={model.busy || model.cooldownSeconds > 0} className="mt-2 min-h-10 rounded font-semibold text-brand-green underline underline-offset-4 focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-green disabled:opacity-50">Retry request</button>
+        <button type="button" onClick={model.retry} disabled={sendBlocked || model.cooldownSeconds > 0} className="mt-2 min-h-10 rounded font-semibold text-brand-green underline underline-offset-4 focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-green disabled:opacity-50">Retry request</button>
       </div> : null}
       <div ref={end} />
     </div>
@@ -145,13 +180,13 @@ export default function AssistantConversation({ model, titleId, member, modal = 
         </div>
         <p className="mt-1 text-xs leading-5 text-brand-muted">Free system help is still available.</p>
       </div> : null}
-      <form onSubmit={event => { event.preventDefault(); model.send(); }} className="nara-composer flex items-end gap-2 rounded-2xl border border-brand-border bg-brand-bg p-2 focus-within:border-brand-muted">
+      <form onSubmit={event => { event.preventDefault(); if (!sendBlocked) model.send(); }} className="nara-composer flex items-end gap-2 rounded-2xl border border-brand-border bg-brand-bg p-2 focus-within:border-brand-muted">
         <label htmlFor={`${titleId}-input`} className="sr-only">Message the assistant</label>
         <textarea data-nara-composer ref={input} id={`${titleId}-input`} value={model.draft} onChange={event => model.setDraft(event.target.value)} maxLength={1000} rows={2}
           placeholder="Ask about meals or your guidance…" disabled={disabled}
-          onKeyDown={event => { if (event.key === 'Enter' && !event.shiftKey && !event.nativeEvent.isComposing) { event.preventDefault(); model.send(); } }}
+          onKeyDown={event => { if (event.key === 'Enter' && !event.shiftKey && !event.nativeEvent.isComposing) { event.preventDefault(); if (!sendBlocked) model.send(); } }}
           className="max-h-36 min-h-14 flex-1 resize-none border-0 bg-transparent p-2 text-sm leading-6 text-brand-text outline-none placeholder:text-brand-muted disabled:opacity-50" />
-        <Button type="submit" size="sm" disabled={disabled || model.cooldownBlocksDraft || !model.draft.trim()} aria-label="Send message" className="!h-10 !w-10 !min-w-10 !rounded-xl !p-0"><ArrowUp className="h-5 w-5" /></Button>
+        <Button type="submit" size="sm" disabled={sendBlocked || model.cooldownBlocksDraft || !model.draft.trim()} aria-label="Send message" className="!h-10 !w-10 !min-w-10 !rounded-xl !p-0"><ArrowUp className="h-5 w-5" /></Button>
       </form>
       <p className="mt-2 text-[11px] leading-4 text-brand-muted">AI replies depend on shared availability and can misinterpret requests. Your saved guidance and RND decisions still apply.</p>
     </footer>

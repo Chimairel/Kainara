@@ -28,6 +28,7 @@ it('free current meal and day ingredients remain sendable at zero credits during
     await act(async () => result.current.send());
     expect(result.current.pending).toBeNull();
     expect(result.current.messages.at(-1)?.text).toBe('Current member records');
+    act(() => vi.advanceTimersByTime(2500));
   }
   expect(api.post).toHaveBeenCalledTimes(2);
   expect(vi.mocked(api.post).mock.calls.every(([, body]) => !(body as { allowAi: boolean }).allowAi)).toBe(true);

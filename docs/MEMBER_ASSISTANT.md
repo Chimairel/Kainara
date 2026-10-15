@@ -98,6 +98,14 @@ This feature branch has not applied its migration to Neon, changed hosted secret
 
 ## Verification
 
+### Typing reveal — October 16, 2026
+
+New ordinary Nara replies reveal text locally in complete graphemes, with a subtle cursor and a typing status. A Messenger-style left bubble beside Nara's avatar shows three staggered dots while waiting; the dots continue inside the reply bubble during reveal. Reduced motion keeps waiting dots still, and hidden documents pause their animation. Duration scales with reply length and is bounded to about 2.4 seconds; facts, links and recipe details appear when the reveal finishes. The full answer is available to assistive technology without announcing every character. Send, Enter, shortcuts and New chat pause during the reveal; a synchronous hook guard also rejects repeated sends before React rerenders. Members can draft their next question. Scrolling back suspends automatic following of the reveal.
+
+This is a display effect, not provider streaming or a security boundary. Full text is stored once using the existing bounded session rules; context and receipts are never truncated to the displayed prefix. Closing, document hiding or enabling reduced motion finishes the reveal. Restored/recovered history and cancellation/failure notices appear immediately. Timers clear on completion/unmount. No extra API calls, provider calls, credit deductions, dependencies or server-rate changes.
+
+Verification: all 50 assistant UI/hook tests pass, including same-event duplicate sends, restored full history after interrupted typing, reduced motion, visibility/close cleanup, grapheme integrity, API/credit preservation, accessible full text, withheld partial links/facts and the three-dot waiting/reveal states. Production build/TypeScript, scoped ESLint, generated-guide parity and the scoped Impeccable detector pass. Fresh browser visual verification was unavailable: browser security rejected access to the existing preview error tab, and no alternate browser workaround was attempted. No hosted database change or demo promotion.
+
 ### Conservative weekly allowances — October 16, 2026
 
 Changed the default and example configuration to Free 5 / Lifestyle 15 / Health 30 credits per Monday-to-Monday Manila week. Existing usage is retained; lowering a cap below usage yields zero remaining credits without resetting receipts. Custom environment overrides still apply. Raised the default shared chat sub-budget from 10 to 20 attempts per rolling day, keeping the 40-attempt project budget, 20-request core reserve and all minute/token/concurrency guards. No schema or provider model change. Consent and the composer explain shared availability; prepared credit help explains that member credits are not reserved provider requests. The backend guide and generated browser guide match.
