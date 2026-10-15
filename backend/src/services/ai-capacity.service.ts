@@ -70,10 +70,16 @@ export class AiCapacityService {
           const chatCount = await tx.aiQuotaReservation.count({ where: {
             provider: PROVIDER, operation: input.operation, reservedAt: { gt: dayStart },
           } });
-          if (chatCount >= chatCap) throw new AiCapacityDeferredError(
-            'AI chat has reached its shared capacity. Direct actions are still available.',
-            new Date(+now + 60000), 'ASSISTANT_SHARED_CAPACITY'
-          );
+          if (chatCount >= chatCap) {
+            const oldest = chatCap > 0 ? await tx.aiQuotaReservation.findFirst({
+              where: { provider: PROVIDER, operation: input.operation, reservedAt: { gt: dayStart } },
+              orderBy: { reservedAt: 'asc' }, skip: Math.max(0, chatCount - chatCap), select: { reservedAt: true },
+            }) : null;
+            throw new AiCapacityDeferredError(
+              'AI chat has reached its shared request limit for the rolling 24-hour window. Free system help is still available.',
+              oldest ? new Date(+oldest.reservedAt + DAY_MS + 1000) : new Date(+now + 60000), 'ASSISTANT_SHARED_CAPACITY'
+            );
+          }
         }
         const [
           minuteCount,

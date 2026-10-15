@@ -141,7 +141,7 @@ export default function AssistantConversation({ model, titleId, member, modal = 
       {model.cooldownSeconds > 0 ? <div aria-label="AI request cooldown" className="mb-3 text-sm">
         <div className="flex items-center justify-between gap-3">
           <span className="font-semibold">AI cooldown</span>
-          <span role="timer" aria-live="off" aria-label="Time until your next AI request" className="font-semibold tabular-nums">{Math.floor(model.cooldownSeconds / 60)}:{String(model.cooldownSeconds % 60).padStart(2, '0')}</span>
+          <span role="timer" aria-live="off" aria-label="Time until your next AI request" className="font-semibold tabular-nums">{model.cooldownSeconds >= 3600 ? `${Math.floor(model.cooldownSeconds / 3600)}:${String(Math.floor(model.cooldownSeconds / 60) % 60).padStart(2, '0')}` : Math.floor(model.cooldownSeconds / 60)}:{String(model.cooldownSeconds % 60).padStart(2, '0')}</span>
         </div>
         <p className="mt-1 text-xs leading-5 text-brand-muted">Free system help is still available.</p>
       </div> : null}

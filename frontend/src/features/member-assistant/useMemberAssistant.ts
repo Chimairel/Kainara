@@ -178,8 +178,12 @@ export function useMemberAssistant(ready: boolean, ownerId?: string) {
       if (response?.status === 429 || ['ASSISTANT_DISABLED', 'ASSISTANT_TOO_FAST', 'ASSISTANT_CREDITS_EXHAUSTED'].includes(getApiErrorCode(cause) ?? '')) {
         setRecoveryKey(null); setRecoveryStatus(null);
       } else if (input.allowAi) recoverAfterFailure = true;
-      if (getApiErrorCode(cause) === 'ASSISTANT_TOO_FAST' || (response?.status === 429 && getApiErrorCode(cause) !== 'ASSISTANT_CREDITS_EXHAUSTED')) {
+      const errorCode = getApiErrorCode(cause);
+      if (response?.status === 429) setDraft(input.message);
+      if (errorCode === 'ASSISTANT_TOO_FAST' || (response?.status === 429 && !errorCode)) {
         setError(null); setDraft(input.message);
+      } else if (response?.status === 429 && errorCode !== 'ASSISTANT_CREDITS_EXHAUSTED') {
+        setError(`${getApiErrorMessage(cause, 'AI is temporarily unavailable.')} No AI credit was spent.`);
       } else setError(getApiErrorMessage(cause, 'The assistant could not respond. Please try again.'));
       setFailed(input);
       setPending(null);

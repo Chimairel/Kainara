@@ -208,9 +208,17 @@ test('current entitlement changes caps without resetting used credits; pending t
   process.env.MEMBERSHIP_ENABLED = 'false';
 });
 test('shared chat sub-budget refuses provider work before the project budget is exhausted', async t => {
+  const now = new Date('2026-10-15T19:20:00Z');
+  const oldest = new Date('2026-10-15T13:00:00Z');
   t.mock.method(prisma, '$transaction', async (fn: unknown) => (fn as (tx: unknown) => unknown)({
     $executeRaw: async () => 0,
-    aiQuotaReservation: { deleteMany: async () => ({}), count: async () => 10 },
+    aiQuotaReservation: { deleteMany: async () => ({}), count: async () => 10,
+      findFirst: async (query: any) => {
+        assert.equal(query.where.operation, 'MEMBER_ASSISTANT'); assert.equal(query.skip, 0);
+        assert.equal(query.where.reservedAt.gt.toISOString(), '2026-10-14T19:20:00.000Z');
+        return { reservedAt: oldest };
+      } },
   }));
-  await assert.rejects(AiCapacityService.reserve({ model: 'fixture', estimatedTokens: 100, operation: 'MEMBER_ASSISTANT' }), { errorCode: 'ASSISTANT_SHARED_CAPACITY' });
+  await assert.rejects(AiCapacityService.reserve({ model: 'fixture', estimatedTokens: 100, operation: 'MEMBER_ASSISTANT', now }),
+    (error: any) => error.errorCode === 'ASSISTANT_SHARED_CAPACITY' && error.retryAt.toISOString() === '2026-10-16T13:00:01.000Z');
 });

@@ -84,6 +84,25 @@ it('a transport 429 uses Retry-After without waiting for a nonexistent receipt',
   expect(vi.mocked(api.get).mock.calls.some(([path]) => String(path).includes('/requests/'))).toBe(false);
 });
 
+it('shared capacity 429 shows its actual reason and deadline without losing the draft or spending a credit', async () => {
+  vi.mocked(api.get).mockResolvedValue({ data: { data: { enabled: true, allowance } } });
+  vi.mocked(api.post).mockRejectedValue({ response: { status: 429, data: {
+    errorCode: 'ASSISTANT_SHARED_CAPACITY', error: 'AI chat has reached its shared request limit for the rolling 24-hour window.',
+    retryAt: '2026-10-15T16:00:00Z',
+  } } });
+  const { result } = renderHook(() => useMemberAssistant(true)); await act(async () => {});
+  act(() => result.current.setOpen(true));
+  await act(async () => result.current.send(undefined, 'What is protein?'));
+  expect(result.current.error).toContain('rolling 24-hour window');
+  expect(result.current.error).toContain('No AI credit was spent');
+  expect(result.current.cooldownSeconds).toBe(7200);
+  expect(result.current.recoveryKey).toBeNull(); expect(result.current.pending).toBeNull();
+  expect(result.current.draft).toBe('What is protein?'); expect(result.current.allowance?.remaining).toBe(5);
+  act(() => result.current.send(undefined, 'how do you calculate my kcal?'));
+  expect(result.current.messages.at(-1)?.reply?.creditsUsed).toBe(0);
+  expect(api.post).toHaveBeenCalledTimes(1);
+});
+
 it('shows a timer, keeps typing available, and disables AI send and confirmation during cooldown', () => {
   const model = { messages: [], busy: false, pending: null, allowance, draft: 'What is protein?',
     error: null, cooldownSeconds: 42, cooldownBlocksDraft: true, setDraft: vi.fn() } as unknown as MemberAssistantModel;
@@ -92,6 +111,8 @@ it('shows a timer, keeps typing available, and disables AI send and confirmation
   expect(screen.getByRole('textbox', { name: 'Message the assistant' })).toBeEnabled();
   expect(screen.getByRole('button', { name: 'Send message' })).toBeDisabled();
   expect(screen.getByText('Free system help is still available.')).toBeVisible();
+  view.rerender(<AssistantConversation model={{ ...model, cooldownSeconds: 7205 }} titleId="cooldown" />);
+  expect(screen.getByRole('timer')).toHaveTextContent('2:00:05');
   view.rerender(<AssistantConversation model={{ ...model, pending: { requestKey: 'key', allowAi: false, message: 'question', context: [] } }} titleId="cooldown" />);
   expect(screen.getByRole('button', { name: 'Continue' })).toBeDisabled();
 });
