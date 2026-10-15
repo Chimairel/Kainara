@@ -1,0 +1,27 @@
+C:\Users\chima\Desktop\Nutrimind\frontend\characters\nara-default\reactions.png  PNG RGBA (1266, 1266)
+   alpha: ok   shoulder spread 1.6% -> n/a on an expressions sheet
+   shoulders/head 0.85 -> GOOD  (target under 0.95; cat 0.66, panda 0.93)
+   mean shoulder width 186px   blobs per cell [4, 5, 5, 3, 1, 1, 5, 2, 2]
+   edge contact: none
+C:\Users\chima\Desktop\Nutrimind\frontend\characters\nara-default\directions.png  PNG RGBA (1254, 1254)
+   alpha: ok   shoulder spread 2.7% -> GOOD
+   shoulders/head 0.92 -> GOOD  (target under 0.95; cat 0.66, panda 0.93)
+   mean shoulder width 222px   blobs per cell [10, 10, 14, 12, 5, 16, 31, 17, 11]
+   edge contact: none
+building nara-default
+  anchor noise 2.7% -> scale clamp +-35%
+  cross-sheet fit  scale 1.005  shift +0px  overlap 93.7%
+  per-frame settle  [-3, -2, -2, -2, 0, -2, -1, -2, -1]
+  nara-default-directions.webp  152 KB  (anchor shoulders)
+  nara-default-reactions.webp  154 KB  (anchor shoulders)
+character      shift   overlap   palette    width   (at 140px rendered)
+nara-default  0.00 px     70.8%     86.2%     5.4%
+
+worst shift: nara-default moves 0.00 rendered px on boop
+weakest palette match: nara-default at 86.2%
+worst width change: nara-default at 5.4%
+
+nara-default is ready:
+  C:\Users\chima\Desktop\Nutrimind\frontend\public\mascots\nara-default-directions.webp
+  C:\Users\chima\Desktop\Nutrimind\frontend\public\mascots\nara-default-reactions.webp
+Now install page-mascot and put <Mascot /> on the page (SKILL.md, "Put it on the page").
