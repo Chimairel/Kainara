@@ -67,9 +67,9 @@ it('saves an estimate separately from requesting one whole-meal review', () => {
   render(<PreviewConfirmation {...props} />);
   fireEvent.click(screen.getByRole('button', { name: 'Use estimate' }));
   expect(props.onSubmit).toHaveBeenLastCalledWith(true);
-  fireEvent.click(screen.getByRole('button', { name: 'Ask RND to review' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Get RND feedback' }));
   expect(props.onSubmit).toHaveBeenLastCalledWith(true, undefined, true);
-  expect(screen.getByText(/1 of 1 meal reviews left/)).toBeInTheDocument();
+  expect(screen.getByText(/1 of 1 feedback requests left/)).toBeInTheDocument();
   expect(screen.getByText(/300–500 kcal/)).toBeInTheDocument();
 });
 it.each(['quota', 'lifestyle', 'loading', 'error'])(
@@ -80,7 +80,7 @@ it.each(['quota', 'lifestyle', 'loading', 'error'])(
     if (state === 'loading') membership.isLoading = true;
     if (state === 'error') membership.error = 'Unavailable';
     render(<PreviewConfirmation {...props} />);
-    expect(screen.getByRole('button', { name: 'Ask RND to review' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Get RND feedback' })).toBeDisabled();
     expect(screen.getByRole('button', { name: 'Use estimate' })).toBeEnabled();
     if (state === 'error') {
       fireEvent.click(screen.getByRole('button', { name: 'Retry allowance' }));

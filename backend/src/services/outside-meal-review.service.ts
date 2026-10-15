@@ -15,6 +15,7 @@ import { summarizeOutsideMealNutrition } from '@/domain/outside-meal.policy';
 import { MealSwapService } from './meal-swap.service';
 import { ObservedMealService } from './observed-meal.service';
 import { requestOutsideMealReview } from './outside-meal-review-admission.service';
+import { sendOutsideMealFeedback } from './outside-meal-feedback.service';
 
 const CLAIM_MINUTES = 30;
 
@@ -32,7 +33,8 @@ function aggregateDataSource(items: Array<{ includedInTotals: boolean; source: O
 }
 
 type ReviewAction = {
-  action: 'VERIFY' | 'CORRECT' | 'NEEDS_MORE_INFO' | 'UNVERIFIABLE';
+  action: 'FEEDBACK' | 'VERIFY' | 'CORRECT' | 'NEEDS_MORE_INFO' | 'UNVERIFIABLE';
+  expectedRevision?: number;
   calories?: number;
   proteinG?: number;
   carbsG?: number;
@@ -61,12 +63,20 @@ export class OutsideMealReviewService {
                 loggedAt: true,
                 estimationContext: true,
                 outsideImageMime: true,
+                user: {
+                  select: {
+                    name: true,
+                    healthConditions: { select: { condition: true } },
+                    allergies: { select: { allergen: true } },
+                    userProfile: { select: { dietaryPreference: true, otherConditions: true, otherAllergies: true } },
+                  },
+                },
               },
             },
             revisions: { orderBy: { revision: 'desc' }, take: 1 },
           },
         },
-        messages: { orderBy: { createdAt: 'asc' }, take: 12 },
+        messages: { orderBy: { createdAt: 'desc' }, take: 12 },
         claimedByNutritionist: { include: { user: { select: { name: true } } } },
       },
       orderBy: [{ priority: 'desc' }, { createdAt: 'asc' }],
@@ -248,15 +258,12 @@ export class OutsideMealReviewService {
     );
   }
 
-  static async imageForClaimedReview(nutritionistProfileId: string, reviewId: string) {
-    const cutoff = new Date(Date.now() - CLAIM_MINUTES * 60 * 1000);
+  static async imageForRequestedReview(_nutritionistProfileId: string, reviewId: string) {
     const review = await prisma.outsideMealReview.findFirst({
       where: {
         id: reviewId,
         requestedByUserAt: { not: null },
-        status: OutsideMealReviewStatus.CLAIMED,
-        claimedByNutritionistId: nutritionistProfileId,
-        claimedAt: { gte: cutoff },
+        // The member explicitly requested RND feedback; viewing evidence does not claim it.
         outsideMealLogItem: { mealLog: { status: 'DONE' } },
       },
       select: {
@@ -270,6 +277,8 @@ export class OutsideMealReviewService {
   }
 
   static async resolve(nutritionistProfileId: string, reviewId: string, action: ReviewAction) {
+    if (action.action === 'FEEDBACK')
+      return sendOutsideMealFeedback(nutritionistProfileId, reviewId, action.expectedRevision, action.reason);
     return prisma.$transaction(
       async (tx) => {
         const now = new Date();

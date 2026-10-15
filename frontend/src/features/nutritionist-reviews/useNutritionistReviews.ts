@@ -328,6 +328,7 @@ export function useNutritionistReviews(enabled = true) {
       setSelectedMealId(null);
       setDetailData(null);
       toast.success('Meal approved');
+      window.dispatchEvent(new Event('nutrimind:review-work-updated'));
     } catch (err: unknown) {
       if (!stillSelected()) return;
       if (retireInactiveReview(err, selectedMealId)) await fetchQueue(false, undefined, true);
@@ -359,6 +360,7 @@ export function useNutritionistReviews(enabled = true) {
       setRejectNote('');
       setReviewNotice(replacementResultMessage(response.data?.data));
       toast.success('Meal rejected', { description: replacementResultMessage(response.data?.data) });
+      window.dispatchEvent(new Event('nutrimind:review-work-updated'));
     } catch (err: unknown) {
       if (!stillSelected()) return;
       if (retireInactiveReview(err, selectedMealId)) await fetchQueue(false, undefined, true);

@@ -38,10 +38,24 @@ function Harness({ record = log }: { record?: MealHistoryLog }) {
   return <OutsideMealHistoryItems model={model} />;
 }
 beforeEach(() => vi.clearAllMocks());
+it('shows received feedback without certifying nutrition and reopens requests only after a food edit', () => {
+  const record: MealHistoryLog = { ...log, outsideItems: [{ ...item, review: {
+    id: 'feedback', status: 'FEEDBACK_SENT', requestedByUserAt: '2026-10-15T01:00:00Z', reviewedRevision: 0,
+    messages: [{ id: 'advice', sender: 'NUTRITIONIST', content: 'Consider a smaller portion next time.', itemRevision: 0, createdAt: '2026-10-15T02:00:00Z' }],
+  } }] };
+  const { rerender } = render(<Harness record={record} />);
+  expect(screen.getByText('RND feedback received')).toBeInTheDocument();
+  expect(screen.getByText('Consider a smaller portion next time.', { exact: false })).toBeInTheDocument();
+  expect(screen.queryByText('RND-reviewed estimate')).not.toBeInTheDocument();
+  expect(screen.queryByRole('button', { name: 'Optionally share deidentified food details' })).not.toBeInTheDocument();
+  expect(screen.queryByRole('button', { name: 'Get RND feedback' })).not.toBeInTheDocument();
+  rerender(<Harness record={{ ...record, outsideItems: [{ ...record.outsideItems![0], currentRevision: 1 }] }} />);
+  expect(screen.getByRole('button', { name: 'Get RND feedback' })).toBeEnabled();
+});
 it('offers one request for the whole meal rather than one per food item', async () => {
   render(<Harness />);
-  expect(screen.getAllByRole('button', { name: 'Ask RND to review' })).toHaveLength(1);
-  fireEvent.click(screen.getByRole('button', { name: 'Ask RND to review' }));
+  expect(screen.getAllByRole('button', { name: 'Get RND feedback' })).toHaveLength(1);
+  fireEvent.click(screen.getByRole('button', { name: 'Get RND feedback' }));
   await waitFor(() => expect(onRequest).toHaveBeenCalledWith('log', 'food-1'));
   expect(refresh).toHaveBeenCalledOnce();
 });
@@ -51,9 +65,9 @@ it('retains legacy automatic tasks as history without presenting them as admitte
       record={{ ...log, outsideItems: [{ ...item, review: { id: 'old', status: 'NEEDS_MORE_INFO', messages: [] } }] }}
     />
   );
-  expect(screen.getByText('No RND review requested')).toBeInTheDocument();
+  expect(screen.getByText('No RND feedback requested')).toBeInTheDocument();
   expect(screen.queryByRole('textbox', { name: 'Clarification reply' })).not.toBeInTheDocument();
-  expect(screen.getByRole('button', { name: 'Ask RND to review' })).toBeEnabled();
+  expect(screen.getByRole('button', { name: 'Get RND feedback' })).toBeEnabled();
 });
 it('does not reopen unchanged completed estimates or request more allowance while open', () => {
   const review = {
@@ -65,9 +79,9 @@ it('does not reopen unchanged completed estimates or request more allowance whil
   };
   const { rerender } = render(<Harness record={{ ...log, outsideItems: [{ ...item, currentRevision: 1, review }] }} />);
   expect(screen.getByText('RND-reviewed estimate')).toBeInTheDocument();
-  expect(screen.queryByRole('button', { name: 'Ask RND to review' })).not.toBeInTheDocument();
+  expect(screen.queryByRole('button', { name: 'Get RND feedback' })).not.toBeInTheDocument();
   rerender(<Harness record={{ ...log, outsideItems: [{ ...item, review: { ...review, status: 'PENDING' } }] }} />);
-  expect(screen.queryByRole('button', { name: 'Ask RND to review' })).not.toBeInTheDocument();
+  expect(screen.queryByRole('button', { name: 'Get RND feedback' })).not.toBeInTheDocument();
 });
 it('labels a changed reviewed item and prevents consent to reuse its stale review', () => {
   render(
@@ -90,7 +104,7 @@ it('labels a changed reviewed item and prevents consent to reuse its stale revie
       }}
     />
   );
-  expect(screen.getByText('Previous review: this item has changed')).toBeInTheDocument();
-  expect(screen.getByRole('button', { name: 'Ask RND to review' })).toBeEnabled();
+  expect(screen.getByText('Previous feedback or review: this item has changed')).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: 'Get RND feedback' })).toBeEnabled();
   expect(screen.queryByRole('button', { name: 'Optionally share deidentified food details' })).not.toBeInTheDocument();
 });

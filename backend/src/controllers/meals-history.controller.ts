@@ -93,7 +93,7 @@ export async function getPlanHistory(req: AuthenticatedRequest, res: Response) {
                 reviewedAt: true,
                 messages: {
                   select: { id: true, sender: true, itemRevision: true, content: true, createdAt: true },
-                  orderBy: { createdAt: 'asc' },
+                  orderBy: { createdAt: 'desc' },
                   take: 12,
                 },
               },

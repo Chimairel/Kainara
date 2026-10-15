@@ -31,6 +31,8 @@ export class NutritionistWorkCountsService {
     return {
       meal: mealVerifications,
       case: caseReviews + outside,
+      pending: caseReviews,
+      outside,
       profile: profiles.reduce((total, person) => total + (person.profileStatus ? 1 : 0) + person.documentCount, 0),
       audit: dueAudit + dueProfileApprovals,
     };

@@ -29,7 +29,7 @@ test('work counts include current queues without reading historical disputed pla
     throw new Error('Historical disputes must not inflate active work');
   }) as never;
   try {
-    assert.deepEqual(await NutritionistWorkCountsService.get('rnd'), { meal: 4, case: 11, profile: 3, audit: 3 });
+    assert.deepEqual(await NutritionistWorkCountsService.get('rnd'), { meal: 4, case: 11, pending: 8, outside: 3, profile: 3, audit: 3 });
   } finally {
     MealBaseVerificationService.count = restore[0];
     NutritionistProfileWorkService.queue = restore[2];

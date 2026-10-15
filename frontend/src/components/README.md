@@ -181,3 +181,5 @@ Meal case context updates: `useNutritionistReviews` owns the expected review con
 Text fields use rounded container focus instead of the global square outline on bare inner editors. Shared search shells own the ring; standalone bordered fields and scrollable review notes use inset focus so the left side does not clip. Preserve visible keyboard focus and the error validation color.
 
 `ui/Sonner` keeps member-page messages above mobile bottom navigation. A grocery hold can be explained through a clickable checkbox without changing persisted state. Only explicit **Use available meals only** acknowledgment unlocks an incomplete list, and busy/duplicate and revalidation guards stay with the caller/server. Verification: [October 13 UI/audit fixes](../../../docs/verification/DEFENSE_UI_AND_AUDIT_2026-10-13.md).
+
+Outside-food feedback reuses the RND canvas adapters with an informational food sheet and an on-demand feedback sheet. `CaseReviewFilters` renders independent accessible activity dots from the work-count contract. Keep FEEDBACK separate from nutrition correction, recipe verification and observed-food admission; do not infer clearance from `FEEDBACK_SENT`.

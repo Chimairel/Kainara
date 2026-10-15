@@ -2,6 +2,22 @@ import { OutsideMealCompatibilityStatus, OutsideMealItemSource } from '@prisma/c
 
 export type OutsideReviewQueueReason = 'USER_REQUEST' | 'SAFETY_CONFLICT' | 'LOW_CONFIDENCE' | 'IMPLAUSIBLE_VALUES';
 
+export function isCurrentOutsideReview(item: {
+  currentRevision: number;
+  review: {
+    status: string;
+    reviewedRevision: number | null;
+    requestedByUserAt: Date | null;
+  } | null;
+}) {
+  const review = item.review;
+  if (!review?.requestedByUserAt || review.reviewedRevision === null) return false;
+  return review.status === 'FEEDBACK_SENT'
+    ? review.reviewedRevision === item.currentRevision
+    : ['VERIFIED', 'CORRECTED', 'UNVERIFIABLE'].includes(review.status) &&
+        review.reviewedRevision + 1 === item.currentRevision;
+}
+
 export function outsideReviewQueueReason(
   item: {
     source: OutsideMealItemSource;

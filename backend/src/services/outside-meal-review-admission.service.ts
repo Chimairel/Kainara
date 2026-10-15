@@ -6,10 +6,9 @@ import { lockUserProfile } from './profile-revision.service';
 import { MembershipService } from './membership.service';
 import { NotificationService } from './notification.service';
 import { ObservedMealService } from './observed-meal.service';
-import { outsideReviewQueueReason } from '@/domain/outside-meal-review.policy';
+import { outsideReviewQueueReason, isCurrentOutsideReview } from '@/domain/outside-meal-review.policy';
 
 const openStates = ['PENDING', 'CLAIMED', 'NEEDS_MORE_INFO'];
-const finalStates = ['VERIFIED', 'CORRECTED', 'UNVERIFIABLE'];
 
 /** One saved meal is one admission. Item decisions still bind to their individual revisions. */
 export async function requestOutsideMealReview(
@@ -49,23 +48,13 @@ export async function admitOutsideMealReview(
   const open = log.outsideItems.some(
     (item) => item.review?.requestedByUserAt && openStates.includes(item.review.status)
   );
-  const unchanged = log.outsideItems.every(
-    (item) =>
-      item.review?.requestedByUserAt &&
-      finalStates.includes(item.review.status) &&
-      item.review.reviewedRevision !== null &&
-      item.review.reviewedRevision + 1 === item.currentRevision
-  );
+  const unchanged = log.outsideItems.every(isCurrentOutsideReview);
   if (unchanged) return selected.review!;
   if (
     open &&
     log.outsideItems.every(
       (item) =>
-        item.review?.requestedByUserAt &&
-        (openStates.includes(item.review.status) ||
-          (finalStates.includes(item.review.status) &&
-            item.review.reviewedRevision !== null &&
-            item.review.reviewedRevision + 1 === item.currentRevision))
+        item.review?.requestedByUserAt && (openStates.includes(item.review.status) || isCurrentOutsideReview(item))
     )
   )
     return selected.review!;
@@ -80,10 +69,7 @@ export async function admitOutsideMealReview(
     if (
       open &&
       item.review?.requestedByUserAt &&
-      (openStates.includes(item.review.status) ||
-        (finalStates.includes(item.review.status) &&
-          item.review.reviewedRevision !== null &&
-          item.review.reviewedRevision + 1 === item.currentRevision))
+      (openStates.includes(item.review.status) || isCurrentOutsideReview(item))
     ) {
       if (item.id === itemId) result = item.review;
       continue;
@@ -108,8 +94,8 @@ export async function admitOutsideMealReview(
   if (allowance && !allowance.replayed) await MembershipService.complete(allowance.id, tx, logId);
   if (!open)
     await NotificationService.notifyReviewers(
-      'Outside-meal estimate review requested',
-      'A member requested review of a logged meal and its food items.',
+      'Outside food feedback requested',
+      'A member requested RND feedback on a logged meal and its food items.',
       tx
     );
   await tx.auditEvent.create({

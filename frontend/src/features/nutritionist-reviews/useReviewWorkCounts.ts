@@ -8,6 +8,8 @@ export interface ReviewWorkCounts {
   case: number;
   profile: number;
   audit?: number;
+  pending?: number;
+  outside?: number;
 }
 
 export function useReviewWorkCounts() {

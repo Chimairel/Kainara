@@ -13,7 +13,7 @@ import MealVerificationPanel from './MealVerificationPanel';
 import PendingMealRereviews from '@/features/nutritionist-reviews/PendingMealRereviews';
 import ProfileWorkPanel from './ProfileWorkPanel';
 import WorkspaceTabs, { type ReviewWorkspace } from './WorkspaceTabs';
-import SharedWorkspaceTabs from '@/components/ui/WorkspaceTabs';
+import CaseReviewFilters from '@/features/nutritionist-reviews/CaseReviewFilters';
 import DesktopReviewGate from '@/features/nutritionist-reviews/DesktopReviewGate';
 
 export default function ReviewsPage() {
@@ -47,18 +47,14 @@ function ReviewsWorkspace() {
   );
 
   const caseFilters = (
-    <SharedWorkspaceTabs
+    <CaseReviewFilters
       value={caseFilter}
       onChange={(next) => {
         setCaseFilter(next);
         setExpanded(false);
       }}
-      label="Case approval filters"
-      level="secondary"
-      items={[
-        { value: 'pending', label: 'Pending' },
-        { value: 'outside', label: 'Outside food logs' },
-      ]}
+      pending={workCounts?.pending}
+      outside={workCounts?.outside}
     />
   );
 

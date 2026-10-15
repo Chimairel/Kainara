@@ -1,5 +1,3 @@
-import { Apple, Moon, Sun, Utensils } from '@/components/ui/icons';
-
 export type QueueRow = {
   id: string;
   priority: number;
@@ -36,6 +34,16 @@ export type QueueRow = {
       loggedAt: string;
       estimationContext?: string | null;
       outsideImageMime?: string | null;
+      user?: {
+        name: string;
+        healthConditions: { condition: string }[];
+        allergies: { allergen: string }[];
+        userProfile: {
+          dietaryPreference: string | null;
+          otherConditions: string | null;
+          otherAllergies: string | null;
+        } | null;
+      };
     };
   };
 };
@@ -56,41 +64,4 @@ export type ObservedSubmission = {
     mealLog: { mealType: string | null; estimationContext: string | null; status: string };
   } | null;
 };
-export const emptyCorrection = { calories: '', proteinG: '', carbsG: '', fatG: '', reason: '' };
 export type OutsideQueues = { rows: QueueRow[]; submissions: ObservedSubmission[] };
-export function getMealTypeTheme(mealType?: string | null) {
-  const norm = (mealType || '').toUpperCase();
-  if (norm.includes('BREAKFAST')) {
-    return {
-      label: 'Breakfast',
-      icon: Sun,
-      badgeStyle: 'border-amber-500/25 bg-amber-500/10 text-amber-600 dark:text-amber-400',
-    };
-  }
-  if (norm.includes('LUNCH')) {
-    return {
-      label: 'Lunch',
-      icon: Utensils,
-      badgeStyle: 'border-brand-green/25 bg-brand-green/10 text-brand-green dark:text-emerald-400',
-    };
-  }
-  if (norm.includes('DINNER')) {
-    return {
-      label: 'Dinner',
-      icon: Moon,
-      badgeStyle: 'border-indigo-500/25 bg-indigo-500/10 text-indigo-600 dark:text-indigo-400',
-    };
-  }
-  if (norm.includes('SNACK')) {
-    return {
-      label: 'Snack',
-      icon: Apple,
-      badgeStyle: 'border-rose-500/25 bg-rose-500/10 text-rose-600 dark:text-rose-400',
-    };
-  }
-  return {
-    label: mealType || 'Meal',
-    icon: Utensils,
-    badgeStyle: 'border-brand-border/70 bg-brand-bgAlt text-brand-muted',
-  };
-}

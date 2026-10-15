@@ -140,7 +140,8 @@ export const outsideMealReviewParamsSchema = z.object({ id: boundedId }).strict(
 
 export const outsideMealReviewBodySchema = z
   .object({
-    action: z.enum(['VERIFY', 'CORRECT', 'NEEDS_MORE_INFO', 'UNVERIFIABLE']),
+    action: z.enum(['FEEDBACK', 'VERIFY', 'CORRECT', 'NEEDS_MORE_INFO', 'UNVERIFIABLE']),
+    expectedRevision: z.number().int().min(0).optional(),
     calories: z.number().min(0).max(10_000).optional(),
     proteinG: z.number().min(0).max(1_000).optional(),
     carbsG: z.number().min(0).max(2_000).optional(),
@@ -149,6 +150,12 @@ export const outsideMealReviewBodySchema = z
   })
   .strict()
   .superRefine((value, ctx) => {
+    if (value.action === 'FEEDBACK') {
+      if (value.expectedRevision === undefined)
+        ctx.addIssue({ code: 'custom', message: 'The opened food revision is required.', path: ['expectedRevision'] });
+      if (['calories', 'proteinG', 'carbsG', 'fatG'].some((key) => value[key as 'calories'] !== undefined))
+        ctx.addIssue({ code: 'custom', message: 'Feedback cannot change nutrition values.', path: ['action'] });
+    }
     if (value.action !== 'CORRECT') return;
     for (const key of ['calories', 'proteinG', 'carbsG', 'fatG'] as const) {
       if (value[key] === undefined) {

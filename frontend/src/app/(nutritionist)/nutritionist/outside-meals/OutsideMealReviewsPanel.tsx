@@ -9,8 +9,11 @@ import { useOutsideMealReviewsPanelModel } from '@/features/nutritionist-outside
 import OutsideMealReviewQueue from '@/features/nutritionist-outside-meals/OutsideMealReviewQueue';
 import OutsideMealReviewDetail from '@/features/nutritionist-outside-meals/OutsideMealReviewDetail';
 import ObservedMealCorpusSection from '@/features/nutritionist-outside-meals/ObservedMealCorpusSection';
+import { useState } from 'react';
+import SplitWorkspace from '@/components/shared/SplitWorkspace';
 export default function OutsideMealReviewsPanel({ embedded = false }: { embedded?: boolean } = {}) {
   const model = useOutsideMealReviewsPanelModel({ embedded });
+  const [expanded, setExpanded] = useState(false);
 
   const { error } = model;
   return (
@@ -19,8 +22,8 @@ export default function OutsideMealReviewsPanel({ embedded = false }: { embedded
         <PortalPageHeader
           icon={ClipboardCheck}
           eyebrow="Nutrition review"
-          title="Outside food estimates"
-          description="Confirm an intake estimate, correct it, ask for detail, or mark it unverifiable. This does not certify a reusable recipe."
+          title="Outside food feedback"
+          description="Send advice on logged food. Members’ recorded nutrition stays unchanged."
         />
       )}
 
@@ -30,13 +33,13 @@ export default function OutsideMealReviewsPanel({ embedded = false }: { embedded
         </FeedbackNotice>
       )}
 
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,1.15fr)_minmax(360px,0.85fr)] items-start">
+      <SplitWorkspace className="flex md:h-[calc(100vh-270px)] md:min-h-[640px] overflow-hidden rounded-3xl border border-brand-border bg-brand-surface">
         {/* Left Column: Outside Food Queue */}
-        <OutsideMealReviewQueue model={model} />
+        <OutsideMealReviewQueue model={model} expanded={expanded} />
 
         {/* Right Column: Workflow Guide or Active Inspection Form */}
-        <OutsideMealReviewDetail model={model} />
-      </div>
+        <div className="min-w-0 flex-1"><OutsideMealReviewDetail model={model} expanded={expanded} setExpanded={setExpanded} /></div>
+      </SplitWorkspace>
 
       {/* Consented Food Observations Section */}
       <ObservedMealCorpusSection model={model} />

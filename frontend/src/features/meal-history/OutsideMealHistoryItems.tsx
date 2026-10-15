@@ -65,7 +65,7 @@ export default function OutsideMealHistoryItems({ model }: SectionProps) {
   const open = items.some(
     (item) => item.review?.requestedByUserAt && ['PENDING', 'CLAIMED', 'NEEDS_MORE_INFO'].includes(item.review.status)
   );
-  const completed = items.length > 0 && items.every(isCurrentReviewedEstimate);
+  const completed = items.length > 0 && items.every(isCurrentOutsideResponse);
   return (
     <>
       {log.outsideItems && log.outsideItems.length > 0 && (
@@ -89,7 +89,7 @@ export default function OutsideMealHistoryItems({ model }: SectionProps) {
                     await onRequestOutsideReview(log.id, items[0].id);
                     refresh();
                   } catch (error) {
-                    setSaveError(getApiErrorMessage(error, 'Could not request estimate review. Please retry.'));
+                    setSaveError(getApiErrorMessage(error, 'Could not request RND feedback. Please retry.'));
                   } finally {
                     setIsChanging(false);
                   }
@@ -232,23 +232,25 @@ export default function OutsideMealHistoryItems({ model }: SectionProps) {
                   <div className="mt-2 space-y-2 border-t border-white/10 pt-2 text-white/90">
                     <p className="font-semibold text-white/80">
                       {!item.review?.requestedByUserAt
-                        ? 'No RND review requested'
-                        : ['VERIFIED', 'CORRECTED', 'UNVERIFIABLE'].includes(item.review.status) &&
-                            !isCurrentReviewedEstimate(item)
-                          ? 'Previous review: this item has changed'
+                        ? 'No RND feedback requested'
+                        : ['FEEDBACK_SENT', 'VERIFIED', 'CORRECTED', 'UNVERIFIABLE'].includes(item.review.status) &&
+                            !isCurrentOutsideResponse(item)
+                          ? 'Previous feedback or review: this item has changed'
                           : item.review.status === 'PENDING'
-                            ? 'Queued for nutrition estimate review'
+                            ? 'RND feedback requested'
                             : item.review?.status === 'CLAIMED'
-                              ? 'Nutrition estimate under review'
-                              : item.review?.status === 'VERIFIED'
-                                ? 'RND-reviewed estimate'
-                                : item.review?.status === 'CORRECTED'
-                                  ? 'RND-adjusted estimate'
-                                  : item.review?.status === 'NEEDS_MORE_INFO'
-                                    ? 'RND needs more information'
-                                    : item.review?.status === 'UNVERIFIABLE'
-                                      ? 'RND could not assess this estimate'
-                                      : 'No RND review requested'}
+                              ? 'RND is checking your food log'
+                              : item.review?.status === 'FEEDBACK_SENT'
+                                ? 'RND feedback received'
+                                : item.review?.status === 'VERIFIED'
+                                  ? 'RND-reviewed estimate'
+                                  : item.review?.status === 'CORRECTED'
+                                    ? 'RND-adjusted estimate'
+                                    : item.review?.status === 'NEEDS_MORE_INFO'
+                                      ? 'RND needs more information'
+                                      : item.review?.status === 'UNVERIFIABLE'
+                                        ? 'RND could not assess this estimate'
+                                        : 'No RND feedback requested'}
                     </p>
                     {item.review &&
                       ['VERIFIED', 'CORRECTED', 'UNVERIFIABLE'].includes(item.review.status) &&
@@ -416,5 +418,16 @@ function isCurrentReviewedEstimate(item: NonNullable<MealHistoryLog['outsideItem
     ['VERIFIED', 'CORRECTED', 'UNVERIFIABLE'].includes(item.review.status) &&
     item.review.reviewedRevision != null &&
     item.review.reviewedRevision + 1 === item.currentRevision
+  );
+}
+
+function isCurrentOutsideResponse(item: NonNullable<MealHistoryLog['outsideItems']>[number]) {
+  return (
+    isCurrentReviewedEstimate(item) ||
+    Boolean(
+      item.review?.requestedByUserAt &&
+      item.review.status === 'FEEDBACK_SENT' &&
+      item.review.reviewedRevision === item.currentRevision
+    )
   );
 }

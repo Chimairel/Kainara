@@ -34,6 +34,23 @@ export const outsideMealsChapter: DocsChapter = {
       ),
     },
     {
+      id: 'outside-meals-feedback',
+      title: 'Getting RND feedback',
+      content: (
+        <>
+          <p>
+            Your food log counts toward tracking as soon as you save it. Choose Get RND feedback if you want advice
+            on that food. Feedback requests use your existing plan allowance; logging food does not require one.
+          </p>
+          <p>
+            The RND can suggest a portion change or an alternative for next time. Their feedback appears with the
+            logged food and you receive a notification. Feedback does not change the recorded nutrition or approve
+            the food for a health condition.
+          </p>
+        </>
+      ),
+    },
+    {
       id: 'outside-meals-library',
       title: 'Proposing a reusable recipe',
       content: (

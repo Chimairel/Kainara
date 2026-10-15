@@ -5,10 +5,11 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 
 import api from '@/lib/axios';
 import { getApiErrorMessage } from '@/lib/api-error';
+import { toast } from 'sonner';
 
 import { useAuth } from '@/hooks/useAuth';
 import { readSessionResource, writeSessionResource } from '@/lib/session-resource-cache';
-import { QueueRow, ObservedSubmission, emptyCorrection, OutsideQueues } from './OutsideMealReviewsPanel.shared';
+import { QueueRow, ObservedSubmission, OutsideQueues } from './OutsideMealReviewsPanel.shared';
 export function useOutsideMealReviewsPanelModel({ embedded = false }: { embedded?: boolean } = {}) {
   const ownerId = useAuth().user?.userId;
   const liveOwner = useRef(ownerId);
@@ -20,7 +21,8 @@ export function useOutsideMealReviewsPanelModel({ embedded = false }: { embedded
   const [isLoading, setIsLoading] = useState(!cached);
   const [rows, setRows] = useState<QueueRow[]>(cached?.rows ?? []);
   const [selected, setSelected] = useState<QueueRow | null>(null);
-  const [correction, setCorrection] = useState(emptyCorrection);
+  const [feedback, setFeedback] = useState('');
+  const feedbackFlight = useRef(false);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [submissions, setSubmissions] = useState<ObservedSubmission[]>(cached?.submissions ?? []);
@@ -68,7 +70,7 @@ export function useOutsideMealReviewsPanelModel({ embedded = false }: { embedded
     setSubmissions([]);
     setSelected(null);
     setObserved(null);
-    setCorrection(emptyCorrection);
+    setFeedback('');
     setError(null);
     setBusy(false);
     setIsLoading(true);
@@ -78,64 +80,43 @@ export function useOutsideMealReviewsPanelModel({ embedded = false }: { embedded
   useEffect(() => {
     setSelected((current) => {
       const latest = rows.find((row) => row.id === current?.id);
-      return current && latest ? { ...current, ...latest } : current;
+      return current && latest ? { ...current, claimStatus: latest.claimStatus } : current;
     });
   }, [rows]);
 
-  const claim = async (row: QueueRow) => {
-    if (!isCurrent()) return;
-    setBusy(true);
+  const selectReview = (row: QueueRow | null) => {
+    if (!isCurrent() || feedbackFlight.current) return;
+    setSelected(row);
+    setFeedback('');
     setError(null);
-    try {
-      const response = await api.post(`/nutritionist/outside-meal-reviews/${row.id}/claim`);
-      if (!isCurrent()) return;
-      setSelected({
-        ...response.data.data,
-        claimStatus: { claimedByMe: true, claimedByOther: false, claimedByName: null },
-      });
-      setCorrection({
-        calories: String(row.outsideMealLogItem.calories ?? ''),
-        proteinG: String(row.outsideMealLogItem.proteinG ?? ''),
-        carbsG: String(row.outsideMealLogItem.carbsG ?? ''),
-        fatG: String(row.outsideMealLogItem.fatG ?? ''),
-        reason: '',
-      });
-      await load();
-    } catch (err) {
-      if (isCurrent()) setError(getApiErrorMessage(err, 'Could not claim this review.'));
-    } finally {
-      if (isCurrent()) setBusy(false);
-    }
   };
 
-  const resolve = async (action: 'VERIFY' | 'CORRECT' | 'NEEDS_MORE_INFO' | 'UNVERIFIABLE') => {
-    if (!selected || !isCurrent()) return;
+  const sendFeedback = async () => {
+    if (!selected || !isCurrent() || feedback.trim().length < 3 || feedbackFlight.current) return;
+    const opened = selected;
+    feedbackFlight.current = true;
     setBusy(true);
     setError(null);
     try {
-      await api.patch(`/nutritionist/outside-meal-reviews/${selected.id}`, {
-        action,
-        reason: correction.reason,
-        ...(action === 'CORRECT'
-          ? {
-              calories: Number(correction.calories),
-              proteinG: Number(correction.proteinG),
-              carbsG: Number(correction.carbsG),
-              fatG: Number(correction.fatG),
-            }
-          : {}),
+      await api.patch(`/nutritionist/outside-meal-reviews/${opened.id}`, {
+        action: 'FEEDBACK',
+        expectedRevision: opened.outsideMealLogItem.currentRevision,
+        reason: feedback.trim(),
       });
       if (!isCurrent()) return;
       setSelected(null);
-      setCorrection(emptyCorrection);
+      setFeedback('');
+      setRows((previous) => previous.filter((row) => row.id !== opened.id));
+      toast.success('Feedback sent', { description: 'The member has been notified.' });
+      window.dispatchEvent(new Event('nutrimind:review-work-updated'));
       await load();
     } catch (err) {
-      if (isCurrent()) setError(getApiErrorMessage(err, 'Failed to submit the review.'));
+      if (isCurrent()) setError(getApiErrorMessage(err, 'Feedback could not be sent. Your draft is still here.'));
     } finally {
+      feedbackFlight.current = false;
       if (isCurrent()) setBusy(false);
     }
   };
-
   const selectObserved = (row: ObservedSubmission) => {
     if (!isCurrent()) return;
     setObserved(row);
@@ -204,11 +185,11 @@ export function useOutsideMealReviewsPanelModel({ embedded = false }: { embedded
     rows: ownsState ? rows : [],
     selected: ownsState ? selected : null,
     busy: ownsState && busy,
-    claim,
+    selectReview,
     setError,
-    correction: ownsState ? correction : emptyCorrection,
-    setCorrection,
-    resolve,
+    feedback: ownsState ? feedback : '',
+    setFeedback,
+    sendFeedback,
     submissions: ownsState ? submissions : [],
     selectObserved,
     observed: ownsState ? observed : null,

@@ -486,6 +486,7 @@ enum OutsideMealCompleteness {
 enum OutsideMealReviewStatus {
   PENDING
   CLAIMED
+  FEEDBACK_SENT
   VERIFIED
   CORRECTED
   NEEDS_MORE_INFO

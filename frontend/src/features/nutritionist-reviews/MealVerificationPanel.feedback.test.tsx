@@ -27,12 +27,12 @@ it.each(['approve', 'reject'] as const)('closes verification and confirms a save
   vi.mocked(api.post).mockResolvedValue({ data: { success: true } });
   render(<MealVerificationPanel />);
   fireEvent.click(await screen.findByRole('button', { name: /Synthetic recipe/ }));
-  fireEvent.click(screen.getByRole('button', { name: action === 'approve' ? 'Approve' : 'Reject', exact: true }));
+  fireEvent.click(screen.getByRole('button', { name: action === 'approve' ? 'Approve' : 'Reject' }));
   fireEvent.change(screen.getByRole('textbox', { name: action === 'approve' ? 'Review rationale' : 'Rejection reason' }), {
     target: { value: 'Recorded verification rationale.' },
   });
   vi.mocked(api.get).mockRejectedValue(new Error('Queue refresh failed'));
-  fireEvent.click(screen.getByRole('button', { name: action === 'approve' ? 'Verify base meal' : 'Confirm rejection', exact: true }));
+  fireEvent.click(screen.getByRole('button', { name: action === 'approve' ? 'Verify base meal' : 'Confirm rejection' }));
   await waitFor(() => expect(screen.queryByRole('region', { name: 'Verification canvas' })).not.toBeInTheDocument());
   expect(screen.getByRole('heading', { name: 'A clear path to meal verification' })).toBeVisible();
   expect(api.post).toHaveBeenCalledWith('/nutritionist/meal-verification/RAW_RECIPE/recipe/decision', {
@@ -45,9 +45,9 @@ it('keeps a failed verification open with its rationale and no success toast', a
   vi.mocked(api.post).mockRejectedValue({ response: { data: { error: 'The claim expired.' } } });
   render(<MealVerificationPanel />);
   fireEvent.click(await screen.findByRole('button', { name: /Synthetic recipe/ }));
-  fireEvent.click(screen.getByRole('button', { name: 'Approve', exact: true }));
+  fireEvent.click(screen.getByRole('button', { name: 'Approve' }));
   fireEvent.change(screen.getByRole('textbox', { name: 'Review rationale' }), { target: { value: 'Recorded verification rationale.' } });
-  fireEvent.click(screen.getByRole('button', { name: 'Verify base meal', exact: true }));
+  fireEvent.click(screen.getByRole('button', { name: 'Verify base meal' }));
   await within(screen.getByRole('region', { name: 'Verification canvas' })).findByText('The claim expired.');
   expect(screen.getByRole('region', { name: 'Verification canvas' })).toBeVisible();
   expect(screen.getByRole('textbox', { name: 'Review rationale' })).toHaveValue('Recorded verification rationale.');

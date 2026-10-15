@@ -33,17 +33,17 @@ export default function OutsideReviewRequestButton({
         onClick={onRequest}
         disabled={busy || isLoading || !!error || !available}
       >
-        Ask RND to review
+        Get RND feedback
       </Button>
       <p aria-live="polite" className={`text-xs leading-relaxed ${inverse ? 'text-white/90' : 'text-brand-muted'}`}>
         {isLoading || (!data && !error)
-          ? 'Checking your review allowance…'
+          ? 'Checking your feedback allowance…'
           : error
-            ? 'Review allowance could not be loaded. You can still save the estimate.'
+            ? 'Feedback allowance could not be loaded. You can still save the food log.'
             : !eligible
-              ? 'RND estimate reviews are included with the Health Plan.'
+              ? 'RND food feedback is included with the Health Plan.'
               : allowance
-                ? `${allowance.remaining} of ${allowance.cap} meal reviews left. Resets ${reset} (Philippine time).`
+                ? `${allowance.remaining} of ${allowance.cap} feedback requests left. Resets ${reset} (Philippine time).`
                 : 'One request covers all food items in this logged meal.'}
       </p>
       {error && (

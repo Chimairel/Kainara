@@ -32,7 +32,7 @@ export default function PreviewConfirmation(props: Props & { warning: OutsideMea
         </div>
         {summary.provisionalItemCount > 0 && (
           <p className="mt-3 text-xs font-semibold text-status-pending-text">
-            {Math.round(summary.provisionalCalories)} kcal remains estimated. Saving it does not request RND review.
+            {Math.round(summary.provisionalCalories)} kcal remains estimated. Saving it does not request RND feedback.
           </p>
         )}
       </div>
@@ -91,8 +91,7 @@ export default function PreviewConfirmation(props: Props & { warning: OutsideMea
 
       <div className="space-y-4 border-t border-brand-border pt-4">
         <p className="text-sm leading-relaxed text-brand-muted">
-          Save these values for tracking, or request an RND review of the whole meal. Reviewed values are still
-          estimates.
+          Save these values for tracking. You can also get RND feedback on this meal without changing its logged nutrition.
         </p>
         <div className="flex flex-wrap items-start gap-3">
           <Button
