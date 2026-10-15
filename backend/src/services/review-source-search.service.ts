@@ -1,3 +1,4 @@
+import { matchesReviewMealSearch } from '@/domain/review-meal-search.policy';
 import { createHash } from 'node:crypto';
 import type { Prisma } from '@prisma/client';
 import prisma from '@/lib/prisma';
@@ -70,7 +71,8 @@ export async function searchReviewSourceSwaps(
   context: Context,
   filters: ReviewNutrientFilters,
   cursor?: string,
-  candidateId?: string
+  candidateId?: string,
+  search = ''
 ) {
   const snapshot = plan.cycle.snapshot;
   if (!snapshot) throw new AppError('Planning snapshot unavailable.', 409, 'REVIEW_SWAP_UNAVAILABLE');
@@ -238,6 +240,7 @@ export async function searchReviewSourceSwaps(
   }
   await hydrateCandidateIngredientIdentities(candidates);
   const plates = candidates.flatMap((candidate) => {
+    if (!matchesReviewMealSearch(search, candidate.displayName, candidate.ingredients.map(item => item.name))) return [];
     if (
       rejected.includes({
         sourceRawRecipeCandidateId: candidate.id,
@@ -315,7 +318,7 @@ export async function searchReviewSourceSwaps(
     }
   }
   const scope = createHash('sha256')
-    .update(JSON.stringify([plan.id, context.profile.revision, context.profile.safetyRevision, snapshot.id, filters]))
+    .update(JSON.stringify([plan.id, context.profile.revision, context.profile.safetyRevision, snapshot.id, filters, search]))
     .digest('hex');
   return { ...pageReviewSourceCandidates(matches, scope, cursor), unknownExcludedCount };
 }

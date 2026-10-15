@@ -2,25 +2,17 @@ import { Router, Response } from 'express';
 import { AuthenticatedRequest } from '@/types';
 import { asyncHandler } from '@/middleware/errorHandler';
 import { validateZodRequest } from '@/middleware/validateZod';
-import { reviewSwapBodySchema, reviewSwapParamsSchema, reviewSwapQuerySchema, reviewSwapInterpretSchema } from '@/validation/review-swap.schemas';
+import { reviewSwapBodySchema, reviewSwapParamsSchema, reviewSwapQuerySchema } from '@/validation/review-swap.schemas';
 import { executeReviewSwap, listReviewSwapOptions } from '@/services/review-swap.service';
-import { interpretReviewSwapFilter } from '@/services/review-filter-interpretation.service';
-import { geminiLimiter } from '@/middleware/rateLimiter';
 
 // Mounted after authentication, role and current RND eligibility middleware.
 const router = Router();
-router.post('/queue/:id/swap-filter', geminiLimiter,
-  validateZodRequest({ params: reviewSwapParamsSchema, body: reviewSwapInterpretSchema }),
-  asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
-    res.json({ success: true, data: await interpretReviewSwapFilter(req.nutritionistProfileId!, req.params.id, req.body.text, req.body.expectedContextKey) });
-  })
-);
 router.get(
   '/queue/:id/swap-options',
   validateZodRequest({ params: reviewSwapParamsSchema, query: reviewSwapQuerySchema }),
   asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
-    const query = req.query as unknown as { expectedContextKey?: string; filters?: import('@/domain/review-nutrient-filter.policy').ReviewNutrientFilters; cursor?: string };
-    res.json({ success: true, data: await listReviewSwapOptions(req.nutritionistProfileId!, req.params.id, query.expectedContextKey, query.filters, query.cursor) });
+    const query = req.query as unknown as { expectedContextKey?: string; filters?: import('@/domain/review-nutrient-filter.policy').ReviewNutrientFilters; cursor?: string; search?: string };
+    res.json({ success: true, data: await listReviewSwapOptions(req.nutritionistProfileId!, req.params.id, query.expectedContextKey, query.filters, query.cursor, query.search) });
   })
 );
 router.post(

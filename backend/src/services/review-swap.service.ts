@@ -22,7 +22,8 @@ export async function listReviewSwapOptions(
   mealPlanId: string,
   expectedContextKey?: string,
   filters: ReviewNutrientFilters = {},
-  cursor?: string
+  cursor?: string,
+  search = ''
 ) {
   await ReviewRoutingService.assertMeal(profileId, mealPlanId);
   await assertCurrentMealReviewContext(mealPlanId, expectedContextKey);
@@ -47,9 +48,9 @@ export async function listReviewSwapOptions(
   if (env.CLINICAL_CLARIFICATIONS_ENABLED) {
     const page = isReviewSourceCursor(cursor)
       ? { items: [], total: 0, unknownExcludedCount: 0, nextCursor: null }
-      : await searchReviewReplacements({ plan, snapshot: plan.cycle.snapshot!, context, filters, cursor });
+      : await searchReviewReplacements({ plan, snapshot: plan.cycle.snapshot!, context, filters, cursor, search });
     const images = await resolveLibraryRecipeImages(page.items.map(({ meal }) => meal));
-    const sourcePage = page.total === 0 ? await searchReviewSourceSwaps(plan, context, filters, cursor) : null;
+    const sourcePage = page.total === 0 ? await searchReviewSourceSwaps(plan, context, filters, cursor, undefined, search) : null;
     await assertCurrentMealReviewContext(mealPlanId, expectedContextKey);
     assertReviewSwapClaim(await prisma.mealPlan.findUniqueOrThrow({ where: { id: mealPlanId } }), profileId);
     const summary = {
@@ -58,6 +59,7 @@ export async function listReviewSwapOptions(
       reviewerProfileId: profileId,
       contextKey: expectedContextKey!,
       filters,
+      search,
       matchedCount: page.total + (sourcePage?.total ?? 0),
       unknownExcludedCount: page.unknownExcludedCount + (sourcePage?.unknownExcludedCount ?? 0),
       searchedAt: new Date().toISOString(),
@@ -67,6 +69,7 @@ export async function listReviewSwapOptions(
       expectedVersion: reviewSwapVersion(plan, context.profile),
       filtersEnabled: true,
       filters,
+      search,
       searchReceipt: signReplacementSearch(summary),
       summary,
       nextCursor: sourcePage?.nextCursor ?? page.nextCursor,
@@ -108,7 +111,7 @@ export async function listReviewSwapOptions(
       ],
     };
   }
-  if (Object.keys(filters).length || cursor)
+  if (Object.keys(filters).length || cursor || search)
     throw new AppError('Replacement filters are not enabled.', 409, 'REVIEW_FILTERS_DISABLED');
   const rejected = await rejectedSlotRecipes(prisma, plan);
   const candidates = await queryEligibleLibraryMeals({

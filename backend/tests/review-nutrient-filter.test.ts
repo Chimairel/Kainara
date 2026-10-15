@@ -45,3 +45,16 @@ test('only rejection accepts the recorded no-match outcome and holds automatic f
   assert.equal(requiresExplicitReplacementReview({ status: 'APPROVED', selectionEvidence: { replacementOutcome: outcome } }), false);
   assert.equal(reviewSwapBodySchema.safeParse({ libraryMealId: 'meal', expectedVersion: 'a'.repeat(64), expectedRecipeSignature: 'b'.repeat(64), expectedEvidenceRevision: 1, expectedServingKey: 'c'.repeat(64), filters: { sodiumMg: { max: 10 } }, note: 'Recorded replacement.' }).success, true);
 });
+
+test('meal search combines name and ingredient terms with validated numeric bounds', async () => {
+  const { matchesReviewMealSearch } = await import('../src/domain/review-meal-search.policy');
+  assert.equal(matchesReviewMealSearch(' PORK  carrot ', 'Pork Lomi', ['carrots', 'noodles']), true);
+  assert.equal(matchesReviewMealSearch('pork chicken', 'Pork Lomi', ['carrots']), false);
+  assert.equal(matchesReviewMealSearch('cafe', 'Café soup', []), true);
+  assert.equal(matchesReviewMealSearch('', 'Any recipe', []), true);
+  const filters = { proteinG: { min: 35.7, max: 35.7 }, fatG: { max: 14.6 } };
+  assert.equal(reviewSwapQuerySchema.safeParse({ search: 'pork', filters: JSON.stringify(filters) }).success, true);
+  assert.equal(reviewSwapQuerySchema.safeParse({ search: 'x'.repeat(101) }).success, false);
+  assert.equal(evaluateNutrientFilters(plateNutrients({ ...base, proteinG: 35.7, fatG: 14.6 }, null, null), filters).matches, true);
+  assert.equal(evaluateNutrientFilters(plateNutrients({ ...base, proteinG: 35.7001, fatG: 14.6 }, null, null), filters).matches, false);
+});

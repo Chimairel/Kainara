@@ -5,10 +5,9 @@ const queryFilters = z.string().max(2048).transform((value, ctx) => {
   try { return JSON.parse(value) as unknown; } catch { ctx.addIssue({ code: 'custom', message: 'Invalid nutrient filter JSON.' }); return z.NEVER; }
 }).pipe(reviewNutrientFiltersSchema);
 export const reviewSwapQuerySchema = z.object({ expectedContextKey: mealReviewContextSchema,
-  filters: queryFilters.optional(), cursor: z.string().max(1000).optional() }).strict();
+  filters: queryFilters.optional(), search: z.string().trim().max(100).optional(), cursor: z.string().max(1000).optional() }).strict();
 
 export const reviewSwapParamsSchema = z.object({ id: z.string().min(1).max(100) }).strict();
-export const reviewSwapInterpretSchema = z.object({ expectedContextKey: mealReviewContextSchema, text: z.string().trim().min(3).max(500) }).strict();
 export const reviewSwapBodySchema = z
   .object({
     expectedContextKey: mealReviewContextSchema,

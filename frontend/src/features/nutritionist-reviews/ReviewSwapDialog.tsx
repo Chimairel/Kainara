@@ -10,10 +10,10 @@ import type { PublicVerifier } from '@/types';
 import type { DetailData } from './useNutritionistReviews';
 import type { useReviewSwap } from './useReviewSwap';
 import IngredientEvidenceTable from './IngredientEvidenceTable';
-import ReviewNutrientFilters, { nutrientFilterLabels } from './ReviewNutrientFilters';
+import ReviewSwapFilters from './ReviewSwapFilters';
 import ReviewSwapNutrition from './ReviewSwapNutrition';
 import ReviewSwapCandidates from './ReviewSwapCandidates';
-import { Search, RefreshCw } from '@/components/ui/icons';
+import { RefreshCw } from '@/components/ui/icons';
 import { formatMealTitle } from '@/lib/meal-title';
 
 /** RND selection and evidence share one workspace; claim/submit state stays in its adapter. */
@@ -28,7 +28,7 @@ export default function ReviewSwapDialog({ swap, meal, onNoSuitable, onFindRepla
   const hasRanking = options.some(option => option.nutritionFitScore !== undefined);
   const activeSort = hasRanking ? sort : 'kcal_match';
   const selected = swap.selected;
-  const busy = swap.loading || swap.interpreting || swap.saving;
+  const busy = swap.loading || swap.saving;
   const ordered = activeSort === 'best_match' ? options : [...options].sort(
     (a, b) => Math.abs(a.calories - meal.calories) - Math.abs(b.calories - meal.calories)
   );
@@ -58,7 +58,9 @@ export default function ReviewSwapDialog({ swap, meal, onNoSuitable, onFindRepla
             isLoading={swap.saving} onClick={() => void swap.submit()}>Confirm swap</Button>
         </div>
       </div>}>
-      <div className="grid h-[calc(90dvh-17rem)] min-h-64 grid-cols-1 overflow-y-auto lg:grid-cols-[minmax(17rem,0.8fr)_minmax(0,1.6fr)] lg:overflow-hidden">
+      <div className="flex h-[calc(90dvh-17rem)] min-h-64 flex-col">
+        {swap.filtersEnabled && <ReviewSwapFilters key={meal.id} swap={swap} />}
+      <div className="grid min-h-0 flex-1 grid-cols-1 overflow-y-auto pt-4 lg:grid-cols-[minmax(17rem,0.8fr)_minmax(0,1.6fr)] lg:overflow-hidden">
         <section aria-label="Find a replacement" className="min-w-0 space-y-4 pb-5 pr-4 lg:overflow-y-auto lg:border-r lg:border-brand-border/70 custom-scrollbar">
           <div className="flex items-center justify-between gap-3">
             <h3 className="font-display text-lg font-semibold">Candidates</h3>
@@ -66,22 +68,6 @@ export default function ReviewSwapDialog({ swap, meal, onNoSuitable, onFindRepla
               <RefreshCw aria-hidden="true" className="h-4 w-4" />
             </Button>
           </div>
-          {swap.filtersEnabled && <>
-            <form className="space-y-2" onSubmit={event => { event.preventDefault(); void swap.interpretAndSearch(); }}>
-              <label htmlFor="review-swap-search" className="block text-xs font-semibold">Filter candidates with AI</label>
-              <div className="flex items-center gap-2 rounded-xl border border-brand-border bg-brand-surface p-2 focus-within:ring-2 focus-within:ring-brand-green">
-                <Search aria-hidden="true" className="h-4 w-4 shrink-0 text-brand-muted" />
-                <input id="review-swap-search" value={swap.filterText} onChange={event => swap.setFilterText(event.target.value)}
-                  maxLength={500} disabled={swap.saving || swap.interpreting} placeholder="e.g. sodium under 500 mg"
-                  className="min-w-0 flex-1 bg-transparent py-2 text-sm outline-none placeholder:text-brand-muted" />
-                <Button type="submit" size="sm" disabled={busy || !swap.filterText?.trim()} isLoading={swap.interpreting}>Filter</Button>
-              </div>
-            </form>
-            {!!Object.keys(swap.data?.filters ?? {}).length && <ul aria-label="Applied nutrient limits" className="flex flex-wrap gap-2 text-xs text-brand-green">
-              {nutrientFilterLabels(swap.data!.filters!).map(label => <li key={label}>{label}</li>)}
-            </ul>}
-            <ReviewNutrientFilters draft={swap.filterDraft} onChange={swap.setFilterDraft} apply={() => void swap.load()} busy={busy} />
-          </>}
           <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-brand-muted">
             <p aria-live="polite">{swap.data?.summary ? `${options.length} of ${swap.data.summary.matchedCount} available` : `${options.length} available`}</p>
             <Dropdown aria-label="Sort candidates" value={activeSort} onChange={value => setSort(value as typeof sort)} className="!w-auto !min-h-9 !text-xs">
@@ -130,6 +116,7 @@ export default function ReviewSwapDialog({ swap, meal, onNoSuitable, onFindRepla
             <p className="mt-2">Search limits apply to one meal, including any paired rice.</p>
           </div>}
         </section>
+      </div>
       </div>
     </Modal>
     <Modal isOpen={Boolean(verifier) && swap.open} onClose={() => setVerifier(null)} layer="canvas" size="lg" title="Recorded RND credentials">

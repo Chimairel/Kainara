@@ -8,14 +8,21 @@ it('keeps a recorded zero, validates bounds, and does not invent defaults or med
   for (const max of ['-1', 'Infinity', 'NaN', '1000001']) expect(parseFilterDraft({ sugarG: { max } })).toBeNull();
   expect(parseFilterDraft({ sugarG: { min: '37', max: '36' } })).toBeNull();
 });
-it('renders fixed-unit controls, explains side totals and unknown exclusion, and blocks invalid submissions', () => {
-  const apply = vi.fn(), change = vi.fn();
-  const { rerender } = render(<ReviewNutrientFilters draft={{ sugarG: { min: '37', max: '36' } }} onChange={change} apply={apply} busy={false} />);
-  expect(screen.getByText(/one serving including rice/)).toBeInTheDocument();
-  expect(screen.getByRole('button', { name: 'Apply filters' })).toBeDisabled();
-  rerender(<ReviewNutrientFilters draft={{ sugarG: { max: '36' } }} onChange={change} apply={apply} busy={false} />);
+it('adds and removes only the requested nutrients with explicit comparisons and units', () => {
+  const change = vi.fn();
+  const { rerender } = render(<ReviewNutrientFilters draft={{ sugarG: { min: '37', max: '36' } }} onChange={change} busy={false} />);
+  expect(screen.getByText(/one meal, including rice/)).toBeInTheDocument();
+  expect(screen.getByText(/Use nonnegative amounts/)).toBeVisible();
+  rerender(<ReviewNutrientFilters draft={{ sodiumMg: { max: '500' } }} onChange={change} busy={false} />);
+  expect(screen.queryByLabelText('Sugar maximum (g)')).not.toBeInTheDocument();
   fireEvent.change(screen.getByLabelText('Sodium maximum (mg)'), { target: { value: '200' } });
-  expect(change).toHaveBeenCalledWith({ sugarG: { max: '36' }, sodiumMg: { max: '200' } });
-  fireEvent.click(screen.getByRole('button', { name: 'Apply filters' })); expect(apply).toHaveBeenCalledOnce();
-  fireEvent.click(screen.getByRole('button', { name: 'Clear limits' })); expect(change).toHaveBeenLastCalledWith({});
+  expect(change).toHaveBeenLastCalledWith({ sodiumMg: { max: '200' } });
+  fireEvent.click(screen.getByRole('button', { name: 'Remove Sodium filter' }));
+  expect(change).toHaveBeenLastCalledWith({});
+});
+it('supports exact decimals, zero, combined ranges and blocks incomplete rows', () => {
+  expect(parseFilterDraft({ proteinG: { mode: 'exact', min: '35.7' }, fatG: { max: '14.6' }, sugarG: { mode: 'exact', min: '0' } }))
+    .toEqual({ proteinG: { min: 35.7, max: 35.7 }, fatG: { max: 14.6 }, sugarG: { min: 0, max: 0 } });
+  expect(parseFilterDraft({ sodiumMg: { mode: 'max', max: '' } })).toBeNull();
+  expect(parseFilterDraft({ sodiumMg: { mode: 'between', min: '200' } })).toBeNull();
 });

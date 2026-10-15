@@ -1,3 +1,4 @@
+import { matchesReviewMealSearch } from '@/domain/review-meal-search.policy';
 import jwt from 'jsonwebtoken';
 import { createHmac } from 'node:crypto';
 import { Prisma, type FoodItem } from '@prisma/client';
@@ -22,6 +23,7 @@ export type ReplacementSearchSummary = {
   reviewerProfileId: string;
   contextKey: string;
   filters: ReviewNutrientFilters;
+  search?: string;
   matchedCount: number;
   unknownExcludedCount: number;
   searchedAt: string;
@@ -58,6 +60,7 @@ export function readReplacementSearch(
       reviewerProfileId: saved.reviewerProfileId,
       contextKey: saved.contextKey,
       filters: saved.filters,
+      ...(saved.search ? { search: saved.search } : {}),
       matchedCount: saved.matchedCount,
       unknownExcludedCount: saved.unknownExcludedCount,
       searchedAt: saved.searchedAt,
@@ -166,6 +169,7 @@ export async function searchReviewReplacements(input: {
   context: Awaited<ReturnType<typeof loadPlanningNutritionContext>>;
   filters: ReviewNutrientFilters;
   cursor?: string;
+  search?: string;
 }) {
   const { plan, context, snapshot, filters } = input;
   const rejected = await rejectedSlotRecipes(prisma, plan),
@@ -190,6 +194,7 @@ export async function searchReviewReplacements(input: {
     limit: 60,
     cursor: input.cursor,
     accept: (meal) => {
+      if (!matchesReviewMealSearch(input.search, meal.mealName, meal.ingredients.map(item => item.ingredientName))) return false;
       if (
         meal.id === plan.libraryMealId ||
         rejected.includes({

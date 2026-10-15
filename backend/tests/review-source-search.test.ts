@@ -129,6 +129,14 @@ test('RND search reads past the first chunk, counts all matches and revalidates 
   assert.ok(calls.some((x) => x.candidateId === '649' && !x.reviewPoolScan));
   const changed = await searchReviewSourceSwaps(plan, context, { sugarG: { max: 1 } }, undefined, '649');
   assert.equal(changed.total, 0);
+  const searched = await searchReviewSourceSwaps(plan, context, { sugarG: { max: 10 } }, undefined, undefined, '649 breast');
+  assert.equal(searched.total, 1);
+  assert.equal(searched.items[0].option.id, 'review-source:649');
+  const incompatible = await searchReviewSourceSwaps(plan, context, { sugarG: { max: 1 } }, undefined, undefined, '649 breast');
+  assert.equal(incompatible.total, 0);
+  const allergenSearch = await searchReviewSourceSwaps(plan, context, {}, undefined, undefined, 'peanuts');
+  assert.equal(allergenSearch.total, 0);
+  await assert.rejects(() => searchReviewSourceSwaps(plan, context, { sugarG: { max: 10 } }, first.nextCursor!, undefined, 'breast'), /search changed/i);
 });
 
 test('source revision detects nutrient and ingredient changes even with an unchanged signature', async () => {

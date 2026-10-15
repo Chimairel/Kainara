@@ -13,7 +13,6 @@ export function getApiRequestTimeout(method: string = 'get', url: string = ''): 
   if (mutation &&
     (/^\/user\/meals\/(generate|log-outside)$/.test(path) ||
       /^\/nutritionist\/review\/[^/]+\/regenerate-candidate$/.test(path) ||
-      /^\/nutritionist\/queue\/[^/]+\/swap-filter$/.test(path) ||
       path === '/user/onboarding/safety-preview' || path === '/user/nutrition-report/generate')) {
     return 120_000;
   }

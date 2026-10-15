@@ -82,30 +82,39 @@ it('offers broader preparation and a distinct hold after an empty certified sear
   expect(hold).toHaveBeenCalledOnce();
 });
 
-it('exposes the AI input and exact applied limits without hiding manual nutrient controls', () => {
-  const props = fixture(),
-    apply = vi.fn(),
-    change = vi.fn();
-  render(
-    <ReviewSwapDialog
-      {...props}
-      swap={{
-        ...props.swap,
-        filtersEnabled: true,
-        filterText: 'sugar less than 200 g',
-        setFilterText: change,
-        interpretAndSearch: apply,
-        filterDraft: {},
-        setFilterDraft: vi.fn(),
-        data: { ...props.swap.data!, filters: { sugarG: { max: 200, maxExclusive: true } } },
-      }}
-    />
-  );
-  expect(screen.getByLabelText('Filter candidates with AI')).toHaveValue('sugar less than 200 g');
-  expect(screen.getByRole('list', { name: 'Applied nutrient limits' })).toHaveTextContent('Sugar < 200 g');
-  fireEvent.click(screen.getByRole('button', { name: 'Filter' }));
-  expect(apply).toHaveBeenCalledOnce();
-  expect(screen.getByText('Filter complete-plate nutrients')).toBeInTheDocument();
+it('keeps structured filter drafts inside the swap dialog and applies them together without AI', () => {
+  const props = fixture(), applyFilters = vi.fn();
+  render(<ReviewSwapDialog {...props} swap={{ ...props.swap, filtersEnabled: true, filterDraft: {}, searchText: '', applyFilters }} />);
+  fireEvent.change(screen.getByRole('textbox', { name: 'Search meals or ingredients' }), { target: { value: 'pork' } });
+  fireEvent.click(screen.getByRole('button', { name: 'Filters' }));
+  fireEvent.click(screen.getByRole('combobox', { name: 'Add nutrient filter' }));
+  fireEvent.click(screen.getByRole('option', { name: 'Protein (g)' }));
+  fireEvent.click(screen.getByRole('combobox', { name: 'Protein comparison' }));
+  fireEvent.click(screen.getByRole('option', { name: 'Exactly =' }));
+  fireEvent.change(screen.getByLabelText('Protein exact amount (g)'), { target: { value: '35.7' } });
+  fireEvent.click(screen.getByRole('combobox', { name: 'Add nutrient filter' }));
+  fireEvent.click(screen.getByRole('option', { name: /^Fat \(g\)$/ }));
+  fireEvent.change(screen.getByLabelText('Fat maximum (g)'), { target: { value: '14.6' } });
+  expect(applyFilters).not.toHaveBeenCalled();
+  expect(screen.getAllByRole('dialog')).toHaveLength(1);
+  expect(screen.getByRole('button', { name: 'Select Replacement soup' })).toBeInTheDocument();
+  fireEvent.click(screen.getByRole('button', { name: 'Apply filters' }));
+  expect(applyFilters).toHaveBeenCalledWith({ proteinG: { mode: 'exact', min: '35.7' }, fatG: { mode: 'max', max: '14.6' } }, 'pork');
+  expect(screen.queryByRole('region', { name: 'Replacement filters' })).not.toBeInTheDocument();
+  expect(screen.queryByText('Filter candidates with AI')).not.toBeInTheDocument();
+});
+
+it('removes applied chips and clears all search criteria with one request', () => {
+  const props = fixture(), applyFilters = vi.fn();
+  render(<ReviewSwapDialog {...props} swap={{ ...props.swap, filtersEnabled: true,
+    filterDraft: { sodiumMg: { max: '500' } }, searchText: 'pork', applyFilters,
+    data: { ...props.swap.data!, search: 'pork', filters: { sodiumMg: { max: 500 } } } }} />);
+  const chips = screen.getByRole('list', { name: 'Applied replacement filters' });
+  expect(chips).toHaveTextContent('Sodium ≤ 500 mg');
+  fireEvent.click(screen.getByRole('button', { name: 'Remove applied Sodium filter' }));
+  expect(applyFilters).toHaveBeenLastCalledWith({}, 'pork');
+  fireEvent.click(screen.getByRole('button', { name: 'Clear all' }));
+  expect(applyFilters).toHaveBeenLastCalledWith({}, '');
 });
 
 it('compares the recorded meal and complete replacement serving without grocery impact', () => {
